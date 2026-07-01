@@ -346,15 +346,12 @@ public class StpLogic {
 		SaTokenConfig config = getConfigOrGlobal();
 		String tokenValue = null;
 
-		// 1. 尝试从请求体读取
 		if (config.getIsReadBody()) {
 			tokenValue = request.getParam(tokenName);
 		}
-		// 2. 尝试从 Header 读取
 		if (SaFoxUtil.isEmpty(tokenValue) && config.getIsReadHeader()) {
 			tokenValue = request.getHeader(tokenName);
 		}
-		// 3. 尝试从 Cookie 读取
 		if (SaFoxUtil.isEmpty(tokenValue) && config.getIsReadCookie()) {
 			tokenValue = request.getCookieValue(tokenName);
 			if (SaFoxUtil.isNotEmpty(tokenValue) && config.getCookieAutoFillPrefix()) {
@@ -390,7 +387,6 @@ public class StpLogic {
 		// 3. 如果仍未获取到，遍历 tokenNames 回退尝试
 		if(SaFoxUtil.isEmpty(tokenValue) && config.getTokenNames() != null){
 			for(String tn : config.getTokenNames()){
-				// 跳过与 tokenName 重复的条目
 				if(tn.equals(keyTokenName)){
 					continue;
 				}
