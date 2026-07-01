@@ -1,0 +1,21 @@
+package com.xx9527.fw.plus.dify.app.types;
+
+import com.alibaba.fastjson2.JSONObject;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@Builder
+public class DifyChatResult {
+    /**
+     * 事件类型
+     */
+    private String event;
+
+    /**
+     * 返回的消息内容
+     */
+    private JSONObject payload;
+}
