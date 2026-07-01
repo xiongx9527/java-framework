@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.xx9527.fw.plus.cloud</groupId>
+    <artifactId>fw-plus-cloud-parent</artifactId>
+    <version>0.1.1-SNAPSHOT</version>
+    <relativePath>../fw-plus-cloud-parent</relativePath>
+  </parent>
+  <groupId>com.xx9527.fw.plus.cloud</groupId>
+  <artifactId>fw-plus-cloud-starters</artifactId>
+  <version>0.1.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+  <modules>
+    <module>fw-plus-cloud-starter</module>
+    <module>fw-plus-magicapi-spring-cloud-starter</module>
+    <module>fw-plus-admin-server-spring-cloud-starter</module>
+    <module>fw-plus-eureka-server-spring-cloud-starter</module>
+  </modules>
+  <properties>
+    <main.basedir>${basedir}/../..</main.basedir>
+  </properties>
+</project>

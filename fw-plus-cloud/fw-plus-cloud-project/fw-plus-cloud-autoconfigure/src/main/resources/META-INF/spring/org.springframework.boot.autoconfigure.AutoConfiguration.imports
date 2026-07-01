@@ -1,0 +1,4 @@
+com.xx9527.fw.plus.cloud.autoconfigure.BaseAutoConfiguration
+com.xx9527.fw.plus.cloud.autoconfigure.eureka.server.EurekaServerAutoConfiguration
+com.xx9527.fw.plus.cloud.autoconfigure.gray.GrayLoadBalancerAutoConfiguration
+com.xx9527.fw.plus.cloud.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
