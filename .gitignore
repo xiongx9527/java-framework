@@ -5,3 +5,4 @@
 /package-lock.json
 /.codegraph/
 /logDir_IS_UNDEFINED/
+!/.claude/settings.local.json
