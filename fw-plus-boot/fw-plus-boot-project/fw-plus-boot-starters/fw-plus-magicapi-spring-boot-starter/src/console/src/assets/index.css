@@ -1,0 +1,387 @@
+@font-face {
+  font-family: JetBrainsMono;
+  src: url(JetBrainsMono-Regular.woff2) format('woff2');
+  font-weight: 100;
+  font-style: normal;
+}
+@font-face {
+  font-family: PoetsenOne;
+  src: url(PoetsenOne.woff2) format('woff2');
+  font-weight: 100;
+  font-style: normal;
+}
+
+.magic-editor {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-width: 1200px;
+  min-height: 600px;
+  font-size: 12px;
+  letter-spacing: 0px;
+  background-color: var(--main-background-color);
+  cursor: default;
+  color: var(--main-color);
+  outline: 0;
+
+  /* 主要颜色 */
+  --main-color: #000;
+  /* 主要背景颜色 */
+  --main-background-color: #f2f2f2;
+  /* 主要边框颜色 */
+  --main-border-color: #cdcdcd;
+  /* 主要悬浮背景色颜色 */
+  --main-hover-background-color: #d9d9d9;
+  /* 主要悬浮图标背景色*/
+  --main-hover-icon-background-color: #d9d9d9;
+  /* 主要选中背景色 */
+  --main-selected-background-color: #bdbdbd;
+  /* 主要选中文字颜色 */
+  --main-selected-color: #000;
+  /* 主要图标颜色 */
+  --main-icon-color: #6e6e6e;
+  /* 导航条内容背景颜色 */
+  --navbar-body-background-color: #fff;
+  --navbar-body-border-color: #c0c0c0;
+  /* 顶部名字版本号颜色 */
+  --header-title-color: #000;
+  /* 顶部其它文字颜色 */
+  --header-default-color: #6e6e6e;
+  /* 中间空的背景颜色 */
+  --empty-background-color: #b6b6b6;
+  /* 中间空的文字颜色 */
+  --empty-color: #505050;
+  /* 中间空的快捷键文字颜色 */
+  --empty-key-color: #5263a0;
+  /* 树形菜单悬浮背景色 */
+  --tree-hover-background-color: #d4d4d4;
+  /* 树形菜单图标颜色 */
+  --tree-icon-color: #aeb9c0;
+
+  /* 表格边框颜色 */
+  --table-border-color: #bdbdbd;
+
+  /* input边框颜色 */
+  --input-border-color: #bdbdbd;
+  /* input背景颜色 */
+  --input-background-color: #fff;
+  /* input focus边框颜色 */
+  --input-focus-color: #0784de;
+  /* dialog 边框颜色 */
+  --dialog-border-color: #707070;
+  /* dialog 阴影颜色 */
+  --dialog-shadow-color: #cfcfcf;
+  /* 按钮边框颜色 */
+  --button-border-color: #adadad;
+  /* 按钮背景颜色 */
+  --button-background-color: #e3e3e3;
+  /* 按钮悬浮边框颜色 */
+  --button-hover-border-color: #99a0a5;
+  /* 按钮悬浮背景颜色 */
+  --button-hover-background-color: #e3f1fa;
+  /* 按钮禁用时的颜色 */
+  --button-disabled-color: #bdbdbd;
+
+  /* select背景颜色 */
+  --select-background-color: #e3e3e3;
+  /* select悬浮背景色 */
+  --select-hover-background-color: #e3f1fa;
+  /* select选项背景色 */
+  --select-option-background-color: #fff;
+  /* select选项边框色 */
+  --select-option-border-color: #808080;
+  /* select选项悬浮背景色 */
+  --select-option-hover-background-color: #1a7dc4;
+  /* select选项悬浮文字颜色 */
+  --select-option-hover-color: #fff;
+  /* select输入框背景颜色 */
+  --select-inputable-background-color: #fff;
+  
+  /* tab 选中时的背景颜色 */
+  --tab-selected-background-color: #fff;
+
+  /* DEBUG图标颜色 */
+  --icon-debug-color: #59A869;
+  --icon-step-color: #389FD6;
+
+  --data-type-default-color: #000;
+  --data-type-string-color: #008000;
+  --data-type-integer-color: #0000ff;
+  --data-type-number-color: #0000ff;
+  --data-type-byte-color: #0000ff;
+  --data-type-long-color: #0000ff;
+  --data-type-float-color: #0000ff;
+  --data-type-double-color: #0000ff;
+  --data-type-short-color: #0000ff;
+  --data-type-boolean-color: #000080;
+  --data-type-class-color: #660e7a;
+  --data-type-key-color: #AC0039;
+
+  /* 断点圆圈背景颜色 */
+  --breakpoints-background-color: #db5860;
+  /* 调试时，断点行背景颜色 */
+  --debug-line-background-color: #2154A6;
+  /* 断点所在行的背景颜色 */
+  --breakpoint-line-background-color: #FAEAE6;
+  /* 运行日志背景颜色 */
+  --run-log-background-color: #fff;
+   /* 日志级别颜色 */
+   --log-color-info: #00cd00;
+   --log-color-warn: #A66F00;
+   --log-color-debug: #00cccc;
+   --log-color-error: #cd0000;
+   --log-color-trace: #0000EE;
+   --log-color-cyan: #00CCCC;
+   --log-color-link: #006DCC;
+
+   --todo-color: #008dde;
+  
+  /* 消息 em 颜色 */
+  --message-em-color: #007F31;
+
+  /* 复选框背景颜色 */
+  --checkbox-background-color: #fff;
+  /* 复选框文字颜色 */
+  --checkbox-text-color: #fff;
+  /* 复选框边框颜色 */
+  --checkbox-border-color: #b0b0b0;
+  /* 复选框选中边框颜色 */
+  --checkbox-selected-boder-color: #4F9EE3;
+  /* 复选框选中背景颜色 */
+  --checkbox-selected-background-color: #4F9EE3;
+
+  /* 资源树形菜单label颜色 */
+  --resource-label-color: #000;
+  /* 资源树形菜单span颜色 */
+  --resource-span-color: #999;
+  /* 滚动条颜色 */
+  --scollbar-color: rgba(170, 170, 170, 0.7);
+  --scollbar-background: rgba(194, 194, 194, 0.1);
+  --scollbar-thumb-background: rgba(170, 170, 170, 0.4);
+  --scollbar-thumb-hover-background: rgba(170, 170, 170, 0.7);
+  --scollbar-scrollbar-corner-background: rgba(194, 194, 194, 0.1);
+  /* 滚动条颜色 */
+
+  /* 纵向导航条的宽度 */
+  --magic-navbar-vertical-width: 22px;
+  --magic-navbar-vertical-title-display: block;
+  --magic-navbar-vertical-icon-size: 1.3em;
+  --magic-navbar-vertical-header-padding: 8px 3px;
+  --magic-navbar-vertical-header-margin: 0;
+  --magic-navbar-vertical-header-border-radius: 0;
+  --magic-navbar-vertical-header-border-width: 1px;
+
+  --magic-resource-header-icon-display: inline-flex;
+
+  --magic-header-height: 30px;
+  --magic-header-icon-size: 24px;
+
+  --magic-panel-toolbar-width: 28px;
+  --magic-panel-toolbar-size: 18px;
+  --tab-selected-border-color: #4083c9;
+
+  --magic-navbar-horizontal-height: 24px;
+  --magic-input-height: 22px;
+
+  --magic-table-row-height: 24px;
+
+  --input-focus-border-width: 1px;
+  --input-border-radius: 0px;
+  --button-hover-color: var(--main-color);
+  --button-border-hover-color: var(--button-border-color);
+  --button-height: 22px;
+
+  --magic-header-logo-padding: 25px;
+  --magic-header-logo-background-size: 16px;
+  --magic-header-logo-background-position: 4px 7px;
+
+  --context-menu-background: var(--main-background-color);
+  --context-menu-padding: 0;
+  --context-menu-item-border-radius: 0;
+  --tooltip-background-color: #27282E;
+  --tooltip-color: #fff;
+  --tooltip-border-color: transparent;
+}
+.magic-editor,
+.magic-editor .monaco-editor, 
+.magic-log pre, 
+.magic-input,
+.magic-dialog pre{
+  font-family: 'JetBrainsMono', 'Consolas', 'Courier New', '微软雅黑';
+}
+.magic-editor * {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+.magic-editor .none-select {
+  -moz-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  -khtml-user-select: none;
+  user-select: none;
+}
+/* 设置ul样式 */
+.magic-editor ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+/* 滚动条样式 */
+.magic-editor * {
+  scrollbar-color: var(--scollbar-thumb-background) var(--scollbar-thumb-background);
+  scrollbar-track-color: var(--scollbar-thumb-background);
+  -ms-scrollbar-track-color: var(--scollbar-thumb-background);
+  scrollbar-width: thin;
+}
+.magic-editor *::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+  background: var(--scollbar-background);
+}
+
+.magic-editor *::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: var(--scollbar-thumb-background);
+}
+
+.magic-editor *::-webkit-scrollbar-thumb:hover {
+  background: var(--scollbar-thumb-hover-background);
+}
+
+.magic-editor *::-webkit-scrollbar-corner {
+  background: var(--scollbar-scrollbar-corner-background);
+}
+/* 滚动条样式 */
+
+/* LOGO */
+.magic-header .magic-logo,
+.magic-dialog .magic-dialog-header {
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABmJLR0QAAAAAAAD5Q7t/AAAAB3RJTUUH5QgUECk1a4VTIAAABdZJREFUeNrtm11IFF0cxp+Z1d1NdFtNbW3FDa1WoQ1hCcrUzPTOgkARNnpjuxHrovemu+jqvQmKlCC8DLooefMiQUWFFGLNj9KMgihBjSyyze+lmXHbfS9ilz17zqy7mp5edh4YmHnOmTP/85vznzlnPwTjdSWIJJbIOwDe0gDwDoC3kh5ACsuU/tHzjmtbJKRbYPj7I+El/QjQAPAOgLc0ALwD4C0NAO8AeEsDwDsA3kpJ9IS7d+8iPz+f8JaXl9Hb24tHjx4hGGSvruvr63H+/HnKX1tbw9OnT3H//n3VcwFAFEW0trYS115YWEBraytev369eQLG60owegOgun39+jXo9/uZ2507d1TP83g8quf5/f5gc3NzzOu6XC7meV6vN2i1WmOeG9qEdAvV14RTYNeuXaplV65cQXFxMeWbTCY4nc6Y7Z46dUq1TBAEXLt2jVlmNpvR1NS06QGQEAC9Xo+0tDT1xkQRDQ0NlF9ZWYmUlNjZZjQaVcuqqqrgcDhUy+vq6nYGwJ49ezasU1FRQXmx7m5IkiSpll2+fJk4lmWZOHY4HHHFtmUAWVlZlBcdTGlpKVWnurp6w876fD7mNa1WK86cOUN47e3txLEgCEzwvx0Ai/Lz588pSBaLJXycm5uLw4cPE3WGh4epdlZWVpjXdLvdRPooioK2tjaqXmVl5fYDyM7OprzBwUHKO3ToUHj/9OnTEAQhfOz1evH27VvqnOXlZTo4UcSlS5cIb2hoCK9evYLf7/8zAExOTmJtbY3wDh48SACIVGdnJ8xmM9XO4uIi5dXU1KCgoIDw+vr6oCgKpqenCf/IkSPIzMzceQCSJGFiYoLwDhw4QHQiUh0dHcjJyYkLgNvtpry+vj4AwLt378iOiCLKy8u3FwDrGaAoCl6+fMkEUFJSQszclpaWMDAwgNzc3A0BZGZm4uzZs4Q3Pz+PyclJJgBgc2mQEADWnZNlGePj44QXSoHa2lrC7+rqgqIoxENSDUBjYyMMBgPh9ff3h6fLvwtAQmsBVgrIsswcATqdjhr+T548gU6niysFXC4XVcdms6GlpQUAqPUI8OsVbDKZVN8oWwbASgFZlvHhwwesrKzAZDIB+DWrs9vtxB358eMHent7sXfvXuh0upgA9u/fj+PHj1N1ysvLY+a5TqfDiRMn0NPTE3effsszIBAIUA9Ct9uN9PT08HF/fz98Ph+sViuz7UgA9fX1xKszESU6IdoygPX1dQDA2NgY4Ue/vzs6OgAA+/bto9qQZZmYCZ47d25TnQeQ8Jsg7hTQ6/XIyMigfEVRAACjo6OEv3v37vC+JEno7OwEAOTl5VFtfP/+PbxvsVhw9OhRqs7Y2Bi+fftGeHa7HUVFRYTndDphNBpjri02BSCU39EKjYDoKXGkurq6sLq6Gu5gLAC1tbUQRXpgulwuavJz9epV3L59m/AMBgOcTic8Hk9c/Yo7BdSWqyEAX758wfv375l1Hj58GN5nLagWFhbC+2VlZVT53Nwc1XkAePPmDfN6x44di7db8QPwer3MYRU5Jw/N0qI7193dTbQTrcgRwJomP3v2jBmTx+PB/Pw85W/04cumAEiShBs3bhAdDgQC4WcAANy8eZN6GD548ICo09bWRt25yNy+desWPn/+HBcASZJw8eJFCgJrjqAmgfUboVhfj2dlZcFut0Ov18Pn8+HFixdUncLCQlgsFiiKgomJCfz8+ZOkLoooLi5GdnY2BEHA1NQU5ubmwuWpqalwOBzIyMhAIBDAyMgIATFaqampKCkpgdlshiAImJ2dxczMDN1ZxtfjCQP4P0v7fQBDGgDeAfCWBoB3ALylAeAdAG/FtRj668IF5geU26V/Hz/GvXv3/hwANpsNVSdP7hiA6A9XtlNJnwJJDyCuFFhdXcWnT592LKilpaUdu5a2GOIdFG9pAHgHwFsaAN4B8JYGgHcAvJX0AJgzQcFs4x3XtkhIo3+XIGj/HU5yaQB4B8Bb/wGL33wfrIpOmgAAACx6VFh0ZGF0ZTpjcmVhdGUAAAiZMzIwMtQ1sNA1MggxsLAyMbQyNdYGMgwMAEGtBRRid74MAAAALHpUWHRkYXRlOm1vZGlmeQAACJkzMjAy1DWw0DUyCDGwsDIxtDI11gYyDAwAQa0FFGA7xkMAAAAASUVORK5CYII=);
+  background-size: 16px;
+}
+.magic-data-type{
+  color: var(--data-type-default-color)
+}
+.magic-data-type.string{
+  color: var(--data-type-string-color);
+  font-weight: bold;
+}
+.magic-data-type.integer{
+  color: var(--data-type-integer-color)
+}
+.magic-data-type.number{
+  color: var(--data-type-number-color)
+}
+.magic-data-type.double{
+  color: var(--data-type-double-color)
+}
+.magic-data-type.float{
+  color: var(--data-type-float-color)
+}
+.magic-data-type.short{
+  color: var(--data-type-short-color)
+}
+.magic-data-type.long{
+  color: var(--data-type-long-color)
+}
+.magic-data-type.byte{
+  color: var(--data-type-byte-color)
+}
+.magic-data-type.boolean{
+  color: var(--data-type-boolean-color);
+  font-weight: bold;
+}
+.magic-data-type.class{
+  color: var(--data-type-class-color)
+}
+
+.magic-icon.magic-icon-difference{
+	fill: #389FD6 !important;
+}
+
+.magic-status-bar .message em,
+.magic-event em{
+  color: var(--message-em-color);
+  font-style: normal;
+  font-weight: bold;
+}
+
+.magic-editor .magic-monaco-editor[data-mode-id=magicscript] .monaco-editor .margin-view-overlays .codicon-folding-expanded,
+.magic-editor .magic-monaco-editor[data-mode-id=magicscript] .monaco-editor .margin-view-overlays .codicon-folding-collapsed {
+    margin-left: 12px !important;
+}
+
+.magic-editor [data-title] { 
+  position: relative;
+  
+}
+.magic-editor [data-title]:hover{
+  overflow: visible;
+}
+.magic-editor [data-title]:hover::after { 
+  opacity: 1;
+  transition: all 0.1s ease 0.5s;
+  visibility: visible;
+}
+.magic-editor [data-title]::after {
+  content: attr(data-title);
+  background-color: var(--tooltip-background-color);
+  color: var(--tooltip-color);
+  font-size: 12px;
+  position: absolute;
+  height: 30px;
+  line-height: 30px;
+  padding:0 10px;
+  white-space: nowrap;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.16);
+  z-index: 99999;
+  visibility: hidden;
+  opacity: 0;
+  border: 1px solid var(--tooltip-border-color);
+  box-sizing: border-box;
+  
+}
+.magic-editor [data-title][data-tooltip-direction="right"]::after{
+  transform: translate(100%, -50%);
+  right: -5px;
+  top: 0;
+  margin-top: 50%;
+}
+.magic-editor [data-title][data-tooltip-direction="top"]::after {
+  top:  -5px;
+  left: 0;
+  transform: translate(-50%, -100%);
+  margin-left: 50%;
+}
+.magic-editor [data-title][data-tooltip-direction="left"]::after{
+  transform: translate(-100%, -50%);
+  top: 0;
+  left: -5px;
+  margin-top: 50%;
+}
+
+.magic-editor [data-title][data-tooltip-direction="left-top"]::after{
+  transform: translate(-100%, -100%);
+  top: -5px;
+  left: 0;
+  margin-left: 100%;
+}
+
+.magic-editor [data-title][data-tooltip-direction="left-bottom"]::after{
+  transform: translate(-100%, 100%);
+  bottom: -5px;
+  left: 0;
+  margin-top: 50%;
+  margin-left: 100%;
+}
+
+.magic-editor [data-title][data-tooltip-direction="bottom"]::after {
+  bottom: 0;
+  left: 0;
+  transform: translate(-50%, 100%);
+  margin-left: 50%;
+}

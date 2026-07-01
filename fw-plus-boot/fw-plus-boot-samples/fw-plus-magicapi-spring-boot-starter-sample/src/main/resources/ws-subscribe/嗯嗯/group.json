@@ -1,0 +1,14 @@
+{
+  "properties" : { },
+  "id" : "f81539ec5f89465181a74b22fb9e5272",
+  "name" : "嗯嗯",
+  "type" : "ws-subscribe",
+  "parentId" : "0",
+  "path" : "嗯嗯",
+  "createTime" : 1756954788125,
+  "updateTime" : null,
+  "createBy" : "admin",
+  "updateBy" : null,
+  "paths" : [ ],
+  "options" : [ ]
+}

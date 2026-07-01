@@ -1,0 +1,14 @@
+{
+  "properties" : { },
+  "id" : "af3f7914bd124958953c592b9e82e5f5",
+  "name" : "test",
+  "type" : "freemarker",
+  "parentId" : "0",
+  "path" : "test",
+  "createTime" : 1757472763440,
+  "updateTime" : null,
+  "createBy" : "admin",
+  "updateBy" : null,
+  "paths" : [ ],
+  "options" : [ ]
+}

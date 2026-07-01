@@ -1,0 +1,25 @@
+.magic-rocketmq-info[data-v-e06d085c] {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 5px;
+}
+.magic-rocketmq-info form[data-v-e06d085c] {
+    display: flex;
+}
+.magic-rocketmq-info form label[data-v-e06d085c] {
+    display: inline-block;
+    width: 100px;
+    height: var(--magic-input-height);
+    line-height: var(--magic-input-height);
+    font-weight: 400;
+    text-align: right;
+    padding: 0 5px;
+}
+.magic-rocketmq-info form .magic-checkbox[data-v-e06d085c] {
+    width: 22px;
+    height: 22px;
+}
+.magic-rocketmq-info form .magic-textarea[data-v-e06d085c] {
+    margin: 5px;
+}

@@ -1,0 +1,19 @@
+{
+  "properties" : { },
+  "id" : "441125cf8a7e4ab1b1a3e0f9f379950a",
+  "script" : null,
+  "groupId" : "weaviate-datasource:0",
+  "name" : "test",
+  "createTime" : 1760586762137,
+  "updateTime" : null,
+  "lock" : null,
+  "createBy" : null,
+  "updateBy" : null,
+  "key" : "test",
+  "scheme" : "http",
+  "host" : "172.17.240.242:3480",
+  "connectionTimeout" : 60,
+  "connectionRequestTimeout" : 60,
+  "socketTimeout" : 60,
+  "other" : null
+}

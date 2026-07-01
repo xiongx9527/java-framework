@@ -1,0 +1,538 @@
+{
+  "properties" : { },
+  "id" : "5bbc8f933b634f45abfcf134c4ec44db",
+  "script" : null,
+  "groupId" : "b361a7616a8f4f65b2743b4cdc5223cb",
+  "name" : "登录",
+  "createTime" : 1762514794060,
+  "updateTime" : 1779629465677,
+  "lock" : null,
+  "createBy" : null,
+  "updateBy" : null,
+  "path" : "login",
+  "jsDependences" : null,
+  "cssDependences" : null,
+  "compileCss" : "[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;\n}\n.login-container[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  min-height: 100vh;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n  padding: 20px;\n}\n.login-card[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  display: flex;\n  width: 900px;\n  height: 550px;\n  background: white;\n  border-radius: 20px;\n  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);\n  overflow: hidden;\n}\n\n/* 左侧装饰区域 */\n.login-decoration[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  flex: 1;\n  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: white;\n  padding: 40px;\n}\n.decoration-circle[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  position: absolute;\n  border-radius: 50%;\n  background: rgba(255, 255, 255, 0.1);\n}\n.circle-1[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  width: 200px;\n  height: 200px;\n  top: -50px;\n  left: -50px;\n}\n.circle-2[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  width: 150px;\n  height: 150px;\n  bottom: 30px;\n  right: 30px;\n}\n.circle-3[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  width: 100px;\n  height: 100px;\n  top: 50%;\n  right: -30px;\n}\n.welcome-text[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  text-align: center;\n  z-index: 1;\n}\n.welcome-text h2[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  font-size: 28px;\n  margin-bottom: 10px;\n}\n.welcome-text p[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  opacity: 0.8;\n}\n\n/* 右侧登录表单 */\n.login-form[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  flex: 1;\n  padding: 50px 40px;\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n}\n.form-header[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  margin-bottom: 30px;\n  text-align: center;\n}\n.form-header h1[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  font-size: 28px;\n  color: #333;\n  margin-bottom: 8px;\n}\n.form-header p[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  color: #666;\n  font-size: 14px;\n}\n.form-group[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  margin-bottom: 20px;\n}\nlabel[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  display: block;\n  margin-bottom: 8px;\n  font-weight: 500;\n  color: #444;\n  font-size: 14px;\n}\ninput[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  width: 100%;\n  padding: 12px 15px;\n  border: 1px solid #ddd;\n  border-radius: 8px;\n  font-size: 14px;\n  transition: all 0.3s;\n}\ninput[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1]:focus {\n  outline: none;\n  border-color: #6a11cb;\n  box-shadow: 0 0 0 2px rgba(106, 17, 203, 0.1);\n}\ninput.error[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  border-color: #e74c3c;\n}\n.error-message[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  display: block;\n  color: #e74c3c;\n  font-size: 12px;\n  margin-top: 5px;\n}\n.password-input[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  position: relative;\n}\n.toggle-password[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  position: absolute;\n  right: 10px;\n  top: 50%;\n  transform: translateY(-50%);\n  background: none;\n  border: none;\n  color: #666;\n  font-size: 12px;\n  cursor: pointer;\n}\n.form-options[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  margin-bottom: 25px;\n  font-size: 14px;\n}\n.remember-me[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  display: flex;\n  align-items: center;\n  cursor: pointer;\n}\n.remember-me input[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  display: none;\n}\n.checkmark[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  width: 18px;\n  height: 18px;\n  border: 1px solid #ddd;\n  border-radius: 3px;\n  margin-right: 8px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.2s;\n}\n.remember-me input:checked + .checkmark[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  background: #6a11cb;\n  border-color: #6a11cb;\n}\n.remember-me input:checked + .checkmark[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1]:after {\n  content: '✓';\n  color: white;\n  font-size: 12px;\n}\n.forgot-password[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  color: #6a11cb;\n  text-decoration: none;\n  transition: color 0.2s;\n}\n.forgot-password[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1]:hover {\n  color: #4a0da9;\n  text-decoration: underline;\n}\n.login-button[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  width: 100%;\n  padding: 14px;\n  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);\n  color: white;\n  border: none;\n  border-radius: 8px;\n  font-size: 16px;\n  font-weight: 600;\n  cursor: pointer;\n  transition: all 0.3s;\n  position: relative;\n  overflow: hidden;\n}\n.login-button[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1]:hover {\n  transform: translateY(-2px);\n  box-shadow: 0 7px 14px rgba(106, 17, 203, 0.3);\n}\n.login-button[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1]:active {\n  transform: translateY(0);\n}\n.login-button[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1]:disabled {\n  opacity: 0.7;\n  cursor: not-allowed;\n  transform: none;\n}\n.loading-spinner[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  display: inline-block;\n  width: 20px;\n  height: 20px;\n  border: 2px solid rgba(255, 255, 255, 0.3);\n  border-radius: 50%;\n  border-top-color: white;\n  animation: spin-337599a3-5a31-402b-a6c6-4ae8ae16e2d1 1s ease-in-out infinite;\n}\n@keyframes spin-337599a3-5a31-402b-a6c6-4ae8ae16e2d1 {\nto { transform: rotate(360deg);\n}\n}\n.divider[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  display: flex;\n  align-items: center;\n  margin: 25px 0;\n  color: #999;\n  font-size: 14px;\n}\n.divider[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1]::before,\n.divider[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1]::after {\n  content: \"\";\n  flex: 1;\n  border-bottom: 1px solid #ddd;\n}\n.divider span[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  padding: 0 15px;\n}\n.social-login[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  display: flex;\n  flex-direction: column;\n  gap: 12px;\n  margin-bottom: 25px;\n}\n.social-button[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 10px;\n  padding: 12px;\n  border: 1px solid #ddd;\n  border-radius: 8px;\n  background: white;\n  font-size: 14px;\n  cursor: pointer;\n  transition: all 0.2s;\n}\n.social-button[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1]:hover {\n  background: #f9f9f9;\n  border-color: #bbb;\n}\n.social-button.google[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1]:hover {\n  border-color: #4285F4;\n}\n.social-button.github[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1]:hover {\n  border-color: #333;\n}\n.signup-link[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  text-align: center;\n  font-size: 14px;\n  color: #666;\n}\n.signup-link a[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n  color: #6a11cb;\n  text-decoration: none;\n  font-weight: 500;\n}\n.signup-link a[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1]:hover {\n  text-decoration: underline;\n}\n\n/* 响应式设计 */\n@media (max-width: 768px) {\n.login-card[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n    flex-direction: column;\n    height: auto;\n    width: 100%;\n    max-width: 450px;\n}\n.login-decoration[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n    padding: 30px 20px;\n    min-height: 200px;\n}\n.login-form[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n    padding: 40px 30px;\n}\n.circle-1[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1], .circle-2[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1], .circle-3[data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1] {\n    display: none;\n}\n}",
+  "compileJs" : "export default (async function() {\n/* Analyzed bindings: {\n  \"ref\": \"setup-const\",\n  \"reactive\": \"setup-const\",\n  \"formData\": \"setup-reactive-const\",\n  \"errors\": \"setup-reactive-const\",\n  \"showPassword\": \"setup-ref\",\n  \"isLoading\": \"setup-ref\",\n  \"validateField\": \"setup-const\",\n  \"togglePasswordVisibility\": \"setup-const\",\n  \"handleLogin\": \"setup-const\"\n} */\n/* Component metadata: {\n  \"id\": \"337599a3-5a31-402b-a6c6-4ae8ae16e2d1\",\n  \"hasScript\": false,\n  \"hasScriptSetup\": true,\n  \"hasTemplate\": true,\n  \"hasStyles\": true,\n  \"hasScopedStyles\": true,\n  \"hasModuleStyles\": false,\n  \"styleLangs\": [\n    \"css\"\n  ]\n} */\nconst _createCommentVNode = await import('vue').then(m => m.createCommentVNode);\nconst _createElementVNode = await import('vue').then(m => m.createElementVNode);\nconst _vModelText = await import('vue').then(m => m.vModelText);\nconst _normalizeClass = await import('vue').then(m => m.normalizeClass);\nconst _withDirectives = await import('vue').then(m => m.withDirectives);\nconst _toDisplayString = await import('vue').then(m => m.toDisplayString);\nconst _openBlock = await import('vue').then(m => m.openBlock);\nconst _createElementBlock = await import('vue').then(m => m.createElementBlock);\nconst _vModelDynamic = await import('vue').then(m => m.vModelDynamic);\nconst _vModelCheckbox = await import('vue').then(m => m.vModelCheckbox);\nconst _createTextVNode = await import('vue').then(m => m.createTextVNode);\nconst _withModifiers = await import('vue').then(m => m.withModifiers);\nconst _createStaticVNode = await import('vue').then(m => m.createStaticVNode);\n\nconst _hoisted_1 = { class: \"login-container\" }\nconst _hoisted_2 = { class: \"login-card\" }\nconst _hoisted_3 = { class: \"login-form\" }\nconst _hoisted_4 = { class: \"form-group\" }\nconst _hoisted_5 = {\n  key: 0,\n  class: \"error-message\"\n}\nconst _hoisted_6 = { class: \"form-group\" }\nconst _hoisted_7 = { class: \"password-input\" }\nconst _hoisted_8 = [\"type\"]\nconst _hoisted_9 = {\n  key: 0,\n  class: \"error-message\"\n}\nconst _hoisted_10 = { class: \"form-options\" }\nconst _hoisted_11 = { class: \"remember-me\" }\nconst _hoisted_12 = [\"disabled\"]\nconst _hoisted_13 = { key: 0 }\nconst _hoisted_14 = {\n  key: 1,\n  class: \"loading-spinner\"\n}\n\nconst ref = await import('vue').then(m => m.ref);\nconst reactive = await import('vue').then(m => m.reactive);\n\n// 响应式数据\n\nconst __sfc__ = {\n  __name: '337599a3-5a31-402b-a6c6-4ae8ae16e2d1',\n  setup(__props) {\n\nconst formData = reactive({\n  username: '',\n  password: '',\n  rememberMe: false\n})\n\nconst errors = reactive({\n  username: '',\n  password: ''\n})\n\nconst showPassword = ref(false)\nconst isLoading = ref(false)\n\n// 方法\nconst validateField = (field) => {\n  if (field === 'username') {\n    if (!formData.username) {\n      errors.username = '用户名不能为空'\n    } else if (formData.username.length < 3) {\n      errors.username = '用户名至少3个字符'\n    } else {\n      errors.username = ''\n    }\n  }\n  \n  if (field === 'password') {\n    if (!formData.password) {\n      errors.password = '密码不能为空'\n    } else if (formData.password.length < 6) {\n      errors.password = '密码至少6个字符'\n    } else {\n      errors.password = ''\n    }\n  }\n}\n\nconst togglePasswordVisibility = () => {\n  showPassword.value = !showPassword.value\n}\n\nconst handleLogin = () => {\n  // 验证所有字段\n  validateField('username')\n  validateField('password')\n  \n  // 检查是否有错误\n  if (errors.username || errors.password) {\n    return\n  }\n  \n  // 模拟登录请求\n  isLoading.value = true\n  setTimeout(() => {\n    isLoading.value = false\n    alert(`登录成功！欢迎 ${formData.username}`)\n  }, 1500)\n}\n\nreturn (_ctx, _cache) => {\n  return (_openBlock(), _createElementBlock(\"div\", _hoisted_1, [\n    _createElementVNode(\"div\", _hoisted_2, [\n      _createCommentVNode(\" 左侧装饰区域 \"),\n      _cache[12] || (_cache[12] = _createStaticVNode(\"<div class=\\\"login-decoration\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1><div class=\\\"decoration-circle circle-1\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1></div><div class=\\\"decoration-circle circle-2\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1></div><div class=\\\"decoration-circle circle-3\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1></div><div class=\\\"welcome-text\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1><h2 data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1>欢迎回来</h2><p data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1>请登录您的账户继续使用</p></div></div>\", 1)),\n      _createCommentVNode(\" 右侧登录表单 \"),\n      _createElementVNode(\"div\", _hoisted_3, [\n        _cache[10] || (_cache[10] = _createElementVNode(\"div\", { class: \"form-header\" }, [\n          _createElementVNode(\"h1\", null, \"用户登录\"),\n          _createElementVNode(\"p\", null, \"请输入您的账户信息\")\n        ], -1 /* CACHED */)),\n        _createElementVNode(\"form\", {\n          onSubmit: _withModifiers(handleLogin, [\"prevent\"])\n        }, [\n          _createElementVNode(\"div\", _hoisted_4, [\n            _cache[5] || (_cache[5] = _createElementVNode(\"label\", { for: \"username\" }, \"用户名/邮箱\", -1 /* CACHED */)),\n            _withDirectives(_createElementVNode(\"input\", {\n              type: \"text\",\n              id: \"username\",\n              \"onUpdate:modelValue\": _cache[0] || (_cache[0] = $event => ((formData.username) = $event)),\n              class: _normalizeClass({ 'error': errors.username }),\n              placeholder: \"请输入用户名或邮箱\",\n              onBlur: _cache[1] || (_cache[1] = $event => (validateField('username')))\n            }, null, 34 /* CLASS, NEED_HYDRATION */), [\n              [_vModelText, formData.username]\n            ]),\n            (errors.username)\n              ? (_openBlock(), _createElementBlock(\"span\", _hoisted_5, _toDisplayString(errors.username), 1 /* TEXT */))\n              : _createCommentVNode(\"v-if\", true)\n          ]),\n          _createElementVNode(\"div\", _hoisted_6, [\n            _cache[6] || (_cache[6] = _createElementVNode(\"label\", { for: \"password\" }, \"密码\", -1 /* CACHED */)),\n            _createElementVNode(\"div\", _hoisted_7, [\n              _withDirectives(_createElementVNode(\"input\", {\n                type: showPassword.value ? 'text' : 'password',\n                id: \"password\",\n                \"onUpdate:modelValue\": _cache[2] || (_cache[2] = $event => ((formData.password) = $event)),\n                class: _normalizeClass({ 'error': errors.password }),\n                placeholder: \"请输入密码\",\n                onBlur: _cache[3] || (_cache[3] = $event => (validateField('password')))\n              }, null, 42 /* CLASS, PROPS, NEED_HYDRATION */, _hoisted_8), [\n                [_vModelDynamic, formData.password]\n              ]),\n              _createElementVNode(\"button\", {\n                type: \"button\",\n                class: \"toggle-password\",\n                onClick: togglePasswordVisibility\n              }, _toDisplayString(showPassword.value ? '隐藏' : '显示'), 1 /* TEXT */)\n            ]),\n            (errors.password)\n              ? (_openBlock(), _createElementBlock(\"span\", _hoisted_9, _toDisplayString(errors.password), 1 /* TEXT */))\n              : _createCommentVNode(\"v-if\", true)\n          ]),\n          _createElementVNode(\"div\", _hoisted_10, [\n            _createElementVNode(\"label\", _hoisted_11, [\n              _withDirectives(_createElementVNode(\"input\", {\n                type: \"checkbox\",\n                \"onUpdate:modelValue\": _cache[4] || (_cache[4] = $event => ((formData.rememberMe) = $event))\n              }, null, 512 /* NEED_PATCH */), [\n                [_vModelCheckbox, formData.rememberMe]\n              ]),\n              _cache[7] || (_cache[7] = _createElementVNode(\"span\", { class: \"checkmark\" }, null, -1 /* CACHED */)),\n              _cache[8] || (_cache[8] = _createTextVNode(\" 记住我 \", -1 /* CACHED */))\n            ]),\n            _cache[9] || (_cache[9] = _createElementVNode(\"a\", {\n              href: \"#\",\n              class: \"forgot-password\"\n            }, \"忘记密码?\", -1 /* CACHED */))\n          ]),\n          _createElementVNode(\"button\", {\n            type: \"submit\",\n            class: _normalizeClass([\"login-button\", { 'loading': isLoading.value }]),\n            disabled: isLoading.value\n          }, [\n            (!isLoading.value)\n              ? (_openBlock(), _createElementBlock(\"span\", _hoisted_13, \"登录\"))\n              : (_openBlock(), _createElementBlock(\"span\", _hoisted_14))\n          ], 10 /* CLASS, PROPS */, _hoisted_12)\n        ], 32 /* NEED_HYDRATION */),\n        _cache[11] || (_cache[11] = _createStaticVNode(\"<div class=\\\"divider\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1><span data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1>或</span></div><div class=\\\"social-login\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1><button class=\\\"social-button google\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1><svg viewBox=\\\"0 0 24 24\\\" width=\\\"20\\\" height=\\\"20\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1><path fill=\\\"#4285F4\\\" d=\\\"M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1></path><path fill=\\\"#34A853\\\" d=\\\"M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1></path><path fill=\\\"#FBBC05\\\" d=\\\"M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1></path><path fill=\\\"#EA4335\\\" d=\\\"M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1></path></svg> 使用 Google 登录 </button><button class=\\\"social-button github\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1><svg viewBox=\\\"0 0 24 24\\\" width=\\\"20\\\" height=\\\"20\\\" fill=\\\"currentColor\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1><path d=\\\"M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1></path></svg> 使用 GitHub 登录 </button></div><div class=\\\"signup-link\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1> 还没有账户? <a href=\\\"#\\\" data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1>立即注册</a></div>\", 3))\n      ])\n    ])\n  ]))\n}\n}\n\n}\n__sfc__.__scopeId = \"data-v-337599a3-5a31-402b-a6c6-4ae8ae16e2d1\"\n__sfc__.__file = \"337599a3-5a31-402b-a6c6-4ae8ae16e2d1.vue\"\nreturn __sfc__\n})()",
+  "description" : "登录页面",
+  "params" : ""
+}
+================================
+<template>
+  <div class="login-container">
+    <div class="login-card">
+      <!-- 左侧装饰区域 -->
+      <div class="login-decoration">
+        <div class="decoration-circle circle-1"></div>
+        <div class="decoration-circle circle-2"></div>
+        <div class="decoration-circle circle-3"></div>
+        <div class="welcome-text">
+          <h2>欢迎回来</h2>
+          <p>请登录您的账户继续使用</p>
+        </div>
+      </div>
+      
+      <!-- 右侧登录表单 -->
+      <div class="login-form">
+        <div class="form-header">
+          <h1>用户登录</h1>
+          <p>请输入您的账户信息</p>
+        </div>
+        
+        <form @submit.prevent="handleLogin">
+          <div class="form-group">
+            <label for="username">用户名/邮箱</label>
+            <input 
+              type="text" 
+              id="username" 
+              v-model="formData.username"
+              :class="{ 'error': errors.username }"
+              placeholder="请输入用户名或邮箱"
+              @blur="validateField('username')"
+            >
+            <span class="error-message" v-if="errors.username">{{ errors.username }}</span>
+          </div>
+          
+          <div class="form-group">
+            <label for="password">密码</label>
+            <div class="password-input">
+              <input 
+                :type="showPassword ? 'text' : 'password'" 
+                id="password" 
+                v-model="formData.password"
+                :class="{ 'error': errors.password }"
+                placeholder="请输入密码"
+                @blur="validateField('password')"
+              >
+              <button 
+                type="button" 
+                class="toggle-password"
+                @click="togglePasswordVisibility"
+              >
+                {{ showPassword ? '隐藏' : '显示' }}
+              </button>
+            </div>
+            <span class="error-message" v-if="errors.password">{{ errors.password }}</span>
+          </div>
+          
+          <div class="form-options">
+            <label class="remember-me">
+              <input type="checkbox" v-model="formData.rememberMe">
+              <span class="checkmark"></span>
+              记住我
+            </label>
+            <a href="#" class="forgot-password">忘记密码?</a>
+          </div>
+          
+          <button 
+            type="submit" 
+            class="login-button"
+            :class="{ 'loading': isLoading }"
+            :disabled="isLoading"
+          >
+            <span v-if="!isLoading">登录</span>
+            <span v-else class="loading-spinner"></span>
+          </button>
+        </form>
+        
+        <div class="divider">
+          <span>或</span>
+        </div>
+        
+        <div class="social-login">
+          <button class="social-button google">
+            <svg viewBox="0 0 24 24" width="20" height="20">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            使用 Google 登录
+          </button>
+          <button class="social-button github">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            使用 GitHub 登录
+          </button>
+        </div>
+        
+        <div class="signup-link">
+          还没有账户? <a href="#">立即注册</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive } from 'vue'
+
+// 响应式数据
+const formData = reactive({
+  username: '',
+  password: '',
+  rememberMe: false
+})
+
+const errors = reactive({
+  username: '',
+  password: ''
+})
+
+const showPassword = ref(false)
+const isLoading = ref(false)
+
+// 方法
+const validateField = (field) => {
+  if (field === 'username') {
+    if (!formData.username) {
+      errors.username = '用户名不能为空'
+    } else if (formData.username.length < 3) {
+      errors.username = '用户名至少3个字符'
+    } else {
+      errors.username = ''
+    }
+  }
+  
+  if (field === 'password') {
+    if (!formData.password) {
+      errors.password = '密码不能为空'
+    } else if (formData.password.length < 6) {
+      errors.password = '密码至少6个字符'
+    } else {
+      errors.password = ''
+    }
+  }
+}
+
+const togglePasswordVisibility = () => {
+  showPassword.value = !showPassword.value
+}
+
+const handleLogin = () => {
+  // 验证所有字段
+  validateField('username')
+  validateField('password')
+  
+  // 检查是否有错误
+  if (errors.username || errors.password) {
+    return
+  }
+  
+  // 模拟登录请求
+  isLoading.value = true
+  setTimeout(() => {
+    isLoading.value = false
+    alert(`登录成功！欢迎 ${formData.username}`)
+  }, 1500)
+}
+</script>
+
+<style scoped>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.login-card {
+  display: flex;
+  width: 900px;
+  height: 550px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* 左侧装饰区域 */
+.login-decoration {
+  flex: 1;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  padding: 40px;
+}
+
+.decoration-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.circle-1 {
+  width: 200px;
+  height: 200px;
+  top: -50px;
+  left: -50px;
+}
+
+.circle-2 {
+  width: 150px;
+  height: 150px;
+  bottom: 30px;
+  right: 30px;
+}
+
+.circle-3 {
+  width: 100px;
+  height: 100px;
+  top: 50%;
+  right: -30px;
+}
+
+.welcome-text {
+  text-align: center;
+  z-index: 1;
+}
+
+.welcome-text h2 {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.welcome-text p {
+  opacity: 0.8;
+}
+
+/* 右侧登录表单 */
+.login-form {
+  flex: 1;
+  padding: 50px 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.form-header {
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.form-header h1 {
+  font-size: 28px;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.form-header p {
+  color: #666;
+  font-size: 14px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #444;
+  font-size: 14px;
+}
+
+input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+input:focus {
+  outline: none;
+  border-color: #6a11cb;
+  box-shadow: 0 0 0 2px rgba(106, 17, 203, 0.1);
+}
+
+input.error {
+  border-color: #e74c3c;
+}
+
+.error-message {
+  display: block;
+  color: #e74c3c;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.password-input {
+  position: relative;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  font-size: 14px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.remember-me input {
+  display: none;
+}
+
+.checkmark {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.remember-me input:checked + .checkmark {
+  background: #6a11cb;
+  border-color: #6a11cb;
+}
+
+.remember-me input:checked + .checkmark:after {
+  content: '✓';
+  color: white;
+  font-size: 12px;
+}
+
+.forgot-password {
+  color: #6a11cb;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.forgot-password:hover {
+  color: #4a0da9;
+  text-decoration: underline;
+}
+
+.login-button {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 14px rgba(106, 17, 203, 0.3);
+}
+
+.login-button:active {
+  transform: translateY(0);
+}
+
+.login-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 25px 0;
+  color: #999;
+  font-size: 14px;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #ddd;
+}
+
+.divider span {
+  padding: 0 15px;
+}
+
+.social-login {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.social-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.social-button:hover {
+  background: #f9f9f9;
+  border-color: #bbb;
+}
+
+.social-button.google:hover {
+  border-color: #4285F4;
+}
+
+.social-button.github:hover {
+  border-color: #333;
+}
+
+.signup-link {
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+}
+
+.signup-link a {
+  color: #6a11cb;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.signup-link a:hover {
+  text-decoration: underline;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .login-card {
+    flex-direction: column;
+    height: auto;
+    width: 100%;
+    max-width: 450px;
+  }
+  
+  .login-decoration {
+    padding: 30px 20px;
+    min-height: 200px;
+  }
+  
+  .login-form {
+    padding: 40px 30px;
+  }
+  
+  .circle-1, .circle-2, .circle-3 {
+    display: none;
+  }
+}
+</style>

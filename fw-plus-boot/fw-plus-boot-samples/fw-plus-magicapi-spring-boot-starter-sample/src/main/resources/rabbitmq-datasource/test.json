@@ -1,0 +1,19 @@
+{
+  "properties" : { },
+  "id" : "89bda4d201844df6a1936b76c0888352",
+  "script" : null,
+  "groupId" : "rabbitmq-datasource:0",
+  "name" : "test",
+  "createTime" : 1764595440321,
+  "updateTime" : 1764641596755,
+  "lock" : null,
+  "createBy" : null,
+  "updateBy" : null,
+  "host" : "172.17.240.242",
+  "port" : 5672,
+  "username" : "admin",
+  "password" : "wbLt6Qge6Tymv15I",
+  "key" : "test",
+  "virtualHost" : null,
+  "other" : null
+}

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xx9527.fw.plus.boot</groupId>
+        <artifactId>fw-plus-boot-build</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <packaging>pom</packaging>
+    <modules>
+        <module>fw-plus-mate-spring-boot-starter-sample</module>
+        <module>fw-plus-mp-spring-boot-starter-sample</module>
+        <module>fw-plus-jdbc-spring-boot-starter-sample</module>
+        <module>fw-plus-redis-spring-boot-starter-sample</module>
+        <module>fw-plus-magicapi-spring-boot-starter-sample</module>
+    </modules>
+    <properties>
+        <main.basedir>${basedir}/../..</main.basedir>
+        <!--跳过test-->
+        <maven.test.skip>true</maven.test.skip>
+        <!--跳过javadoc生成-->
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <!--跳过install-->
+        <maven.install.skip>true</maven.install.skip>
+        <!--跳过deploy-->
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+    <artifactId>fw-plus-boot-samples</artifactId>
+    <name>Fw-Plus-Boot Samples</name>
+    <description>
+        fw-plus-boot 示例
+    </description>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-boot-dependencies</artifactId>
+                <version>${revision}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- swagger
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-boot-starter</artifactId>
+        </dependency>
+         -->
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
+        </dependency>
+
+    </dependencies>
+
+</project>
