@@ -24,7 +24,7 @@
         <!--  vesoft-java-client版本号 -->
         <vesoft-java-client.version>3.8.4</vesoft-java-client.version>
         <!--sa-token版本号-->
-        <sa-token.version>1.40.0</sa-token.version>
+        <sa-token.version>1.44.0</sa-token.version>
         <!--dynamic-tp版本号-->
         <dynamictp.version>1.2.1</dynamictp.version>
         <!--akali版本号-->
