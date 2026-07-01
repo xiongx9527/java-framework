@@ -34,7 +34,7 @@ public class SensitiveAop extends SensitiveAopBase {
 	 * </p>
 	 * <p>
 	 * 切点表达式匹配规则：
-	 * - 公共方法：execution(public * com.9527..*.*(..))
+	 * - 公共方法：execution(public * com.xx9527..*.*(..))
 	 * - 控制器类：@target(org.springframework.web.bind.annotation.RestController) 或 @target(org.springframework.stereotype.Controller)
 	 * - 请求映射方法：@annotation(org.springframework.web.bind.annotation.RequestMapping) 或其他HTTP方法注解
 	 * </p>
@@ -43,7 +43,7 @@ public class SensitiveAop extends SensitiveAopBase {
 	 * @return 原方法的执行结果
 	 * @throws Throwable 目标方法可能抛出的异常
 	 */
-	@Around("(execution(public * com.9527..*.*(..)) && (@target(org.springframework.web.bind.annotation.RestController)   " +
+	@Around("(execution(public * com.xx9527..*.*(..)) && (@target(org.springframework.web.bind.annotation.RestController)   " +
 			" || @target(org.springframework.stereotype.Controller)) && (@annotation(org.springframework.web.bind.annotation.RequestMapping)  " +
 			" || @annotation(org.springframework.web.bind.annotation.PostMapping)    " +
 			" || @annotation(org.springframework.web.bind.annotation.PutMapping)     " +
