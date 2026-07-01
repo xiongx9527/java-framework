@@ -3,12 +3,12 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>com.xx9527.fw.plus.cloud</groupId>
+    <groupId>com.xiongx9527.fw.plus.cloud</groupId>
     <artifactId>fw-plus-cloud-dependencies</artifactId>
     <version>0.1.1-SNAPSHOT</version>
     <relativePath>../fw-plus-cloud-dependencies</relativePath>
   </parent>
-  <groupId>com.xx9527.fw.plus.cloud</groupId>
+  <groupId>com.xiongx9527.fw.plus.cloud</groupId>
   <artifactId>fw-plus-cloud-parent</artifactId>
   <version>0.1.1-SNAPSHOT</version>
   <packaging>pom</packaging>
@@ -24,7 +24,7 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>com.xx9527.fw.plus.boot</groupId>
+        <groupId>com.xiongx9527.fw.plus.boot</groupId>
         <artifactId>fw-plus-boot-dependencies</artifactId>
         <version>${revision}</version>
         <type>pom</type>

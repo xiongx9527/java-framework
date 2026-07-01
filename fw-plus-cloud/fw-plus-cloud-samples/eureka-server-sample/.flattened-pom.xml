@@ -3,11 +3,11 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>com.xx9527.fw.plus.cloud</groupId>
+    <groupId>com.xiongx9527.fw.plus.cloud</groupId>
     <artifactId>fw-plus-cloud-samples</artifactId>
     <version>0.1.1-SNAPSHOT</version>
   </parent>
-  <groupId>com.xx9527.fw.plus.cloud</groupId>
+  <groupId>com.xiongx9527.fw.plus.cloud</groupId>
   <artifactId>eureka-server-sample</artifactId>
   <version>0.1.1-SNAPSHOT</version>
   <licenses>
@@ -25,11 +25,11 @@
   </properties>
   <dependencies>
     <dependency>
-      <groupId>com.xx9527.fw.plus.cloud</groupId>
+      <groupId>com.xiongx9527.fw.plus.cloud</groupId>
       <artifactId>fw-plus-magicapi-spring-cloud-starter</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.xx9527.fw.plus.cloud</groupId>
+      <groupId>com.xiongx9527.fw.plus.cloud</groupId>
       <artifactId>fw-plus-eureka-server-spring-cloud-starter</artifactId>
     </dependency>
     <dependency>
@@ -37,11 +37,11 @@
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.xx9527.fw.plus.boot</groupId>
+      <groupId>com.xiongx9527.fw.plus.boot</groupId>
       <artifactId>fw-plus-magicapi-plugin-config</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.xx9527.fw.plus.cloud</groupId>
+      <groupId>com.xiongx9527.fw.plus.cloud</groupId>
       <artifactId>fw-plus-admin-server-spring-cloud-starter</artifactId>
     </dependency>
     <dependency>
@@ -49,7 +49,7 @@
       <artifactId>spring-boot-admin-starter-client</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.xx9527.fw.plus.boot</groupId>
+      <groupId>com.xiongx9527.fw.plus.boot</groupId>
       <artifactId>fw-plus-magicapi-plugin-swagger</artifactId>
     </dependency>
   </dependencies>

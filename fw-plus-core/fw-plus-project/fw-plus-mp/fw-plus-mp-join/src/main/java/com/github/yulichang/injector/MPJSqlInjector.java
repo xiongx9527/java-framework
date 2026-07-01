@@ -50,7 +50,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.xx9527.fw.plus.mp.base.MpSqlInjector;
+import com.xiongx9527.fw.plus.mp.base.MpSqlInjector;
 import lombok.Generated;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.ibatis.builder.MapperBuilderAssistant;

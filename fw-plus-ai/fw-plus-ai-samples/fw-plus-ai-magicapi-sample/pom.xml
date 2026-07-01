@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.xx9527.fw.plus.ai</groupId>
+        <groupId>com.xiongx9527.fw.plus.ai</groupId>
         <artifactId>fw-plus-ai-samples</artifactId>
         <version>${revision}</version>
     </parent>
@@ -25,28 +25,28 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.xx9527.fw.plus.boot</groupId>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
         </dependency>
 
 
         <dependency>
-            <groupId>com.xx9527.fw.plus.ai</groupId>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
             <artifactId>fw-plus-ai-magicapi-plugin-milvus</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus.ai</groupId>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
             <artifactId>fw-plus-ai-magicapi-plugin-qdrant</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus.ai</groupId>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
             <artifactId>fw-plus-ai-magicapi-plugin-weaviate</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus.ai</groupId>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
             <artifactId>fw-plus-ai-magicapi-plugin-langchain4j</artifactId>
         </dependency>
 

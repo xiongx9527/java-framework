@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.xx9527.fw.plus.cloud</groupId>
+        <groupId>com.xiongx9527.fw.plus.cloud</groupId>
         <artifactId>fw-plus-cloud-project</artifactId>
         <version>${revision}</version>
     </parent>
@@ -39,43 +39,43 @@
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.cloud</groupId>
+                <groupId>com.xiongx9527.fw.plus.cloud</groupId>
                 <artifactId>fw-plus-cloud-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.cloud</groupId>
+                <groupId>com.xiongx9527.fw.plus.cloud</groupId>
                 <artifactId>fw-plus-cloud</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.cloud</groupId>
+                <groupId>com.xiongx9527.fw.plus.cloud</groupId>
                 <artifactId>fw-plus-cloud-autoconfigure</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.cloud</groupId>
+                <groupId>com.xiongx9527.fw.plus.cloud</groupId>
                 <artifactId>fw-plus-cloud-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.cloud</groupId>
+                <groupId>com.xiongx9527.fw.plus.cloud</groupId>
                 <artifactId>fw-plus-magicapi-spring-cloud-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.cloud</groupId>
+                <groupId>com.xiongx9527.fw.plus.cloud</groupId>
                 <artifactId>fw-plus-admin-server-spring-cloud-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.cloud</groupId>
+                <groupId>com.xiongx9527.fw.plus.cloud</groupId>
                 <artifactId>fw-plus-eureka-server-spring-cloud-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>

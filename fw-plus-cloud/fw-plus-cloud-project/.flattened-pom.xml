@@ -3,11 +3,11 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>com.xx9527.fw.plus.cloud</groupId>
+    <groupId>com.xiongx9527.fw.plus.cloud</groupId>
     <artifactId>fw-plus-cloud-build</artifactId>
     <version>0.1.1-SNAPSHOT</version>
   </parent>
-  <groupId>com.xx9527.fw.plus.cloud</groupId>
+  <groupId>com.xiongx9527.fw.plus.cloud</groupId>
   <artifactId>fw-plus-cloud-project</artifactId>
   <version>0.1.1-SNAPSHOT</version>
   <packaging>pom</packaging>

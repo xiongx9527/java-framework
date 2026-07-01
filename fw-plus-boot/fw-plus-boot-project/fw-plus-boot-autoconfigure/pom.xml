@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.xx9527.fw.plus.boot</groupId>
+        <groupId>com.xiongx9527.fw.plus.boot</groupId>
         <artifactId>fw-plus-boot-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../fw-plus-boot-parent</relativePath>
@@ -28,14 +28,14 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus.boot</groupId>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-boot-common</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus.boot</groupId>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-boot</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
@@ -70,14 +70,14 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus</groupId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-annotation</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus</groupId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-easytrans-service</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
@@ -105,7 +105,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus</groupId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-redis</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
@@ -196,14 +196,14 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus</groupId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-template</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus</groupId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-magicapi</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
@@ -280,28 +280,28 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus</groupId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-mp-join</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus</groupId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-mp-datachange</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus</groupId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-mp-encrypt</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus</groupId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-mp-datascope</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
@@ -351,7 +351,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus</groupId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-report-jimu</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
@@ -743,7 +743,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus</groupId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-dify</artifactId>
             <scope>compile</scope>
             <optional>true</optional>

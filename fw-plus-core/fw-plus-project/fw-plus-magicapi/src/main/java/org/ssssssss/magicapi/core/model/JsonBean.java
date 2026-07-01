@@ -1,6 +1,6 @@
 package org.ssssssss.magicapi.core.model;
 
-import com.xx9527.fw.plus.common.model.JsonResult;
+import com.xiongx9527.fw.plus.common.model.JsonResult;
 import org.apache.commons.lang3.StringUtils;
 
 /**

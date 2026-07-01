@@ -1,6 +1,6 @@
 package org.ssssssss.magicapi.core.web;
 
-import com.xx9527.fw.plus.common.util.WebUtils;
+import com.xiongx9527.fw.plus.common.util.WebUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

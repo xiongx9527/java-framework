@@ -1,4 +1,4 @@
-com.xx9527.fw.plus.ai.autoconfigure.BaseAutoConfiguration
-com.xx9527.fw.plus.ai.autoconfigure.langchain4j.openapi.Langchain4jOpenApiAutoConfiguration
-com.xx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAutoConfiguration
-com.xx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.BaseAutoConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.openapi.Langchain4jOpenApiAutoConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAutoConfiguration
+com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration

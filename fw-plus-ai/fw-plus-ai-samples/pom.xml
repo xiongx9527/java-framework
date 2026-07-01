@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.xx9527.fw.plus.ai</groupId>
+        <groupId>com.xiongx9527.fw.plus.ai</groupId>
         <artifactId>fw-plus-ai-build</artifactId>
         <version>${revision}</version>
     </parent>
@@ -28,7 +28,7 @@
         <dependencies>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-boot-dependencies</artifactId>
                 <version>${revision}</version>
                 <type>pom</type>
@@ -37,7 +37,7 @@
 
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.ai</groupId>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
                 <artifactId>fw-plus-ai-boot-dependencies</artifactId>
                 <version>${revision}</version>
                 <type>pom</type>
@@ -63,7 +63,7 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus.ai</groupId>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
             <artifactId>fw-plus-ai-boot-starter</artifactId>
         </dependency>
 

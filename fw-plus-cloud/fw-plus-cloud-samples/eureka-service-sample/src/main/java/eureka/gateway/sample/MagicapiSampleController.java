@@ -1,7 +1,7 @@
 package eureka.gateway.sample;
 
 import com.alibaba.fastjson.JSON;
-import com.xx9527.fw.plus.boot.autoconfigure.trace.plumelog.annotation.PlumelogTrace;
+import com.xiongx9527.fw.plus.boot.autoconfigure.trace.plumelog.annotation.PlumelogTrace;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

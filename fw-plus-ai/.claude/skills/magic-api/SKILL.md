@@ -990,7 +990,7 @@ magic.api.<type>.<dataSourceKey>.<configKey>
 | dify | `magic.api.dify.{key}.` | url, apiKey |
 
 ```magicscript
-import 'com.xx9527.fw.plus.common.util.SpringUtils' as SpringUtils;
+import 'com.xiongx9527.fw.plus.common.util.SpringUtils' as SpringUtils;
 
 // 读取数据库连接配置
 var dbUrl = SpringUtils.getAppConfig('magic.api.db.services.url');
