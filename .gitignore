@@ -1,1 +1,6 @@
 /.idea/
+/node_modules/
+/skills-lock.json
+/package.json
+/package-lock.json
+/.codegraph/
