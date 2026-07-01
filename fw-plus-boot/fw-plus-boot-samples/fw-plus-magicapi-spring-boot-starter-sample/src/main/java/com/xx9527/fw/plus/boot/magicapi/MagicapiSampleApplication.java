@@ -1,0 +1,17 @@
+package com.xx9527.fw.plus.boot.magicapi;
+import com.ctrip.framework.apollo.spring.annotation.EnableApolloConfig;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitterReturnValueHandler;
+
+import java.util.stream.Collectors;
+//import org.springframework.cloud.config.server.EnableConfigServer;
+//@EnableConfigServer
+//@EnableApolloPropertiesProvider
+@EnableApolloConfig
+@SpringBootApplication
+public class MagicapiSampleApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(MagicapiSampleApplication.class, args);
+    }
+}

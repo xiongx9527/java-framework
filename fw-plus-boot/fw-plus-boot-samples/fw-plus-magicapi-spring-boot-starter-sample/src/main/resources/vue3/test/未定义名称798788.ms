@@ -1,0 +1,58 @@
+{
+  "properties" : { },
+  "id" : "74d72ddb020c4c58817f0021d9efa116",
+  "script" : null,
+  "groupId" : "b361a7616a8f4f65b2743b4cdc5223cb",
+  "name" : "未定义名称798788",
+  "createTime" : 1761815614695,
+  "updateTime" : 1764509216898,
+  "lock" : null,
+  "createBy" : null,
+  "updateBy" : null,
+  "path" : "5675675675",
+  "jsDependences" : null,
+  "cssDependences" : null,
+  "compileCss" : ".card[data-v-a36c8056-48cb-4350-be75-ab5b110ddfb9] {\n  background: #ffffff;\n  border-radius: 8px;\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\n  padding: 20px;\n  margin: 16px 0;\n  transition: box-shadow 0.3s ease;\n}",
+  "compileJs" : "export default (async function() {\nconst _openBlock = await import('vue').then(m => m.openBlock);\nconst _createElementBlock = await import('vue').then(m => m.createElementBlock);\n\nconst _hoisted_1 = { class: \"card\" }\n\nconst onMounted = await import('vue').then(m => m.onMounted);\n// 定义组件接收的参数\n\nconst __sfc__ = {\n  __name: 'a36c8056-48cb-4350-be75-ab5b110ddfb9',\n  props: {\n  title: {\n    type: String,\n    default: '默认标题'\n  },\n  message: {\n    type: String,\n    default: '----------------------'\n  },\n  count: {\n    type: Number,\n    default: 0\n  }\n},\n  setup(__props) {\n\nconst props = __props\n\nonMounted(() => {\n  alert(props.message)\n})\n\nreturn (_ctx, _cache) => {\n  return (_openBlock(), _createElementBlock(\"div\", _hoisted_1, \" Test6456456 Component999999999999999999999999999999999999999999 \"))\n}\n}\n\n}\n__sfc__.__scopeId = \"data-v-a36c8056-48cb-4350-be75-ab5b110ddfb9\"\n__sfc__.__file = \"a36c8056-48cb-4350-be75-ab5b110ddfb9.vue\"\nreturn __sfc__\n})()",
+  "description" : "567567567567567",
+  "params" : "{\n  \"message\":\"sdfsdfsdfsdfsdfr2343423423345345\"\n}",
+  "history" : "[{\"createDate\":1762424708315,\"createTime\":1762424708315,\"id\":\"8d9d7301-e9b8-4803-9c6e-ada5842a4989\",\"sourceCode\":\"<template>\\n  <div class=\\\"card\\\">\\n    Test6456456 Component999999999999999999999999999999999999999999\\n  </div>\\n</template>\\n\\n<script setup>\\nimport { onMounted , defineProps } from 'vue'\\n// 定义组件接收的参数\\nconst props = defineProps({\\n  title: {\\n    type: String,\\n    default: '默认标题'\\n  },\\n  message: {\\n    type: String,\\n    default: '----------------------'\\n  },\\n  count: {\\n    type: Number,\\n    default: 0\\n  }\\n})\\n\\nonMounted(() => {\\n  alert(props.message)\\n})\\n</script>\\n<style scoped>\\n.card {\\n  background: #ffffff;\\n  border-radius: 8px;\\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\\n  padding: 20px;\\n  margin: 16px 0;\\n  transition: box-shadow 0.3s ease;\\n}\\n</style>\",\"updateBy\":\"\",\"updateTime\":1762424709049},{\"createDate\":1762425109412,\"createTime\":1762425109412,\"id\":\"a6483ff7-9159-49cd-b3c7-afb4ca387b7e\",\"sourceCode\":\"<template>\\n  <div class=\\\"card\\\">\\n    Test6456456 Component999999999999999999999999999999999999999999\\n  </div>\\n</template>\\n\\n<script setup>\\nimport { onMounted , defineProps } from 'vue'\\n// 定义组件接收的参数\\nconst props = defineProps({\\n  title: {\\n    type: String,\\n    default: '默认标题'\\n  },\\n  message: {\\n    type: String,\\n    default: '----------------------'\\n  },\\n  count: {\\n    type: Number,\\n    default: 0\\n  }\\n})\\n\\nonMounted(() => {\\n  alert(props.message)\\n})\\n</script>\\n<style scoped>\\n.card {\\n  background: #ffffff;\\n  border-radius: 8px;\\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\\n  padding: 20px;\\n  margin: 16px 0;\\n  transition: box-shadow 0.3s ease;\\n}\\n</style>\",\"updateBy\":\"\",\"updateTime\":1762425110130},{\"createDate\":1762425442157,\"createTime\":1762425442157,\"id\":\"25b4709f-d8c5-487d-8b5d-e8c1b463241e\",\"sourceCode\":\"<template>\\n  <div class=\\\"card\\\">\\n    Test6456456 Component999999999999999999999999999999999999999999\\n  </div>\\n</template>\\n\\n<script setup>\\nimport { onMounted , defineProps } from 'vue'\\n// 定义组件接收的参数\\nconst props = defineProps({\\n  title: {\\n    type: String,\\n    default: '默认标题'\\n  },\\n  message: {\\n    type: String,\\n    default: '----------------------'\\n  },\\n  count: {\\n    type: Number,\\n    default: 0\\n  }\\n})\\n\\nonMounted(() => {\\n  alert(props.message)\\n})\\n</script>\\n<style scoped>\\n.card {\\n  background: #ffffff;\\n  border-radius: 8px;\\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\\n  padding: 20px;\\n  margin: 16px 0;\\n  transition: box-shadow 0.3s ease;\\n}\\n</style>\",\"updateBy\":\"\",\"updateTime\":1762425442176},{\"createDate\":1762425442176,\"createTime\":1762425442176,\"id\":\"8d2a2a57-bac1-49ca-b93f-83b24a7ed88f\",\"sourceCode\":\"<template>\\n  <div class=\\\"card\\\">\\n    Test6456456 Component999999999999999999999999999999999999999999\\n  </div>\\n</template>\\n\\n<script setup>\\nimport { onMounted , defineProps } from 'vue'\\n// 定义组件接收的参数\\nconst props = defineProps({\\n  title: {\\n    type: String,\\n    default: '默认标题'\\n  },\\n  message: {\\n    type: String,\\n    default: '----------------------'\\n  },\\n  count: {\\n    type: Number,\\n    default: 0\\n  }\\n})\\n\\nonMounted(() => {\\n  alert(props.message)\\n})\\n</script>\\n<style scoped>\\n.card {\\n  background: #ffffff;\\n  border-radius: 8px;\\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\\n  padding: 20px;\\n  margin: 16px 0;\\n  transition: box-shadow 0.3s ease;\\n}\\n</style>\",\"updateBy\":\"\",\"updateTime\":1762441604190},{\"createDate\":1762441604190,\"createTime\":1762441604190,\"id\":\"be17b578-1281-4009-869b-68da57430fd2\",\"sourceCode\":\"<template>\\n  <div class=\\\"card\\\">\\n    Test6456456 Component999999999999999999999999999999999999999999\\n  </div>\\n</template>\\n\\n<script setup>\\nimport { onMounted , defineProps } from 'vue'\\n// 定义组件接收的参数\\nconst props = defineProps({\\n  title: {\\n    type: String,\\n    default: '默认标题'\\n  },\\n  message: {\\n    type: String,\\n    default: '----------------------'\\n  },\\n  count: {\\n    type: Number,\\n    default: 0\\n  }\\n})\\n\\nonMounted(() => {\\n  alert(props.message)\\n})\\n</script>\\n<style scoped>\\n.card {\\n  background: #ffffff;\\n  border-radius: 8px;\\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\\n  padding: 20px;\\n  margin: 16px 0;\\n  transition: box-shadow 0.3s ease;\\n}\\n</style>\",\"updateBy\":\"\",\"updateTime\":1762478959898},{\"createDate\":1762480775391,\"createTime\":1762480775391,\"id\":\"f82eff39-1369-4cc7-8213-375a50018ae1\",\"sourceCode\":\"<template>\\n  <div class=\\\"card\\\">\\n    Test6456456 Component999999999999999999999999999999999999999999\\n  </div>\\n</template>\\n\\n<script setup>\\nimport { onMounted , defineProps } from 'vue'\\n// 定义组件接收的参数\\nconst props = defineProps({\\n  title: {\\n    type: String,\\n    default: '默认标题'\\n  },\\n  message: {\\n    type: String,\\n    default: '----------------------'\\n  },\\n  count: {\\n    type: Number,\\n    default: 0\\n  }\\n})\\n\\nonMounted(() => {\\n  alert(props.message)\\n})\\n</script>\\n<style scoped>\\n.card {\\n  background: #ffffff;\\n  border-radius: 8px;\\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\\n  padding: 20px;\\n  margin: 16px 0;\\n  transition: box-shadow 0.3s ease;\\n}\\n</style>\",\"updateBy\":\"\",\"updateTime\":1762480775407},{\"createDate\":1762483968128,\"createTime\":1762483968128,\"id\":\"475182ff-e0c4-48f4-b27d-abd93440b97d\",\"sourceCode\":\"<template>\\n  <div class=\\\"card\\\">\\n    Test6456456 Component999999999999999999999999999999999999999999\\n  </div>\\n</template>\\n<script setup>\\nimport { onMounted , defineProps } from 'vue'\\n// 定义组件接收的参数\\nconst props = defineProps({\\n  title: {\\n    type: String,\\n    default: '默认标题'\\n  },\\n  message: {\\n    type: String,\\n    default: '----------------------'\\n  },\\n  count: {\\n    type: Number,\\n    default: 0\\n  }\\n})\\n\\nonMounted(() => {\\n  alert(props.message)\\n})\\n</script>\\n<style scoped>\\n.card {\\n  background: #ffffff;\\n  border-radius: 8px;\\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\\n  padding: 20px;\\n  margin: 16px 0;\\n  transition: box-shadow 0.3s ease;\\n}\\n</style>\",\"updateBy\":\"\",\"updateTime\":1762559256892},{\"createDate\":1762559256893,\"createTime\":1762559256893,\"id\":\"075378dd-5845-491b-afc6-df9ee03f733c\",\"sourceCode\":\"<template>\\n  <div class=\\\"card\\\">\\n    Test6456456 Component999999999999999999999999999999999999999999\\n  </div>\\n</template>\\n<script setup>\\nimport { onMounted , defineProps } from 'vue'\\n// 定义组件接收的参数\\nconst props = defineProps({\\n  title: {\\n    type: String,\\n    default: '默认标题'\\n  },\\n  message: {\\n    type: String,\\n    default: '----------------------'\\n  },\\n  count: {\\n    type: Number,\\n    default: 0\\n  }\\n})\\n\\nonMounted(() => {\\n  alert(props.message)\\n})\\n</script>\\n<style scoped>\\n.card {\\n  background: #ffffff;\\n  border-radius: 8px;\\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\\n  padding: 20px;\\n  margin: 16px 0;\\n  transition: box-shadow 0.3s ease;\\n}\\n</style>\",\"updateBy\":\"\",\"updateTime\":1762559346193},{\"createDate\":1762559708263,\"createTime\":1762559708263,\"id\":\"f4eaa59e-f731-49e4-be79-658d44e720b5\",\"sourceCode\":\"<template>\\n  <div class=\\\"card\\\">\\n    Test6456456 Component999999999999999999999999999999999999999999\\n  </div>\\n</template>\\n<script setup>\\nimport { onMounted , defineProps } from 'vue'\\n// 定义组件接收的参数\\nconst props = defineProps({\\n  title: {\\n    type: String,\\n    default: '默认标题'\\n  },\\n  message: {\\n    type: String,\\n    default: '----------------------'\\n  },\\n  count: {\\n    type: Number,\\n    default: 0\\n  }\\n})\\n\\nonMounted(() => {\\n  alert(props.message)\\n})\\n</script>\\n<style scoped>\\n.card {\\n  background: #ffffff;\\n  border-radius: 8px;\\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\\n  padding: 20px;\\n  margin: 16px 0;\\n  transition: box-shadow 0.3s ease;\\n}\\n</style>\",\"updateBy\":\"\",\"updateTime\":1762559711002},{\"createDate\":1764509215938,\"createTime\":1764509215938,\"id\":\"5097dc47-27eb-41bb-8a6c-0e09b30e7ece\",\"sourceCode\":\"<template>\\n  <div class=\\\"card\\\">\\n    Test6456456 Component999999999999999999999999999999999999999999\\n  </div>\\n</template>\\n<script setup>\\nimport { onMounted , defineProps } from 'vue'\\n// 定义组件接收的参数\\nconst props = defineProps({\\n  title: {\\n    type: String,\\n    default: '默认标题'\\n  },\\n  message: {\\n    type: String,\\n    default: '----------------------'\\n  },\\n  count: {\\n    type: Number,\\n    default: 0\\n  }\\n})\\n\\nonMounted(() => {\\n  alert(props.message)\\n})\\n</script>\\n<style scoped>\\n.card {\\n  background: #ffffff;\\n  border-radius: 8px;\\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\\n  padding: 20px;\\n  margin: 16px 0;\\n  transition: box-shadow 0.3s ease;\\n}\\n</style>\",\"updateBy\":\"\",\"updateTime\":1764509216897}]"
+}
+================================
+<template>
+  <div class="card">
+    Test6456456 Component999999999999999999999999999999999999999999
+  </div>
+</template>
+<script setup>
+import { onMounted , defineProps } from 'vue'
+// 定义组件接收的参数
+const props = defineProps({
+  title: {
+    type: String,
+    default: '默认标题'
+  },
+  message: {
+    type: String,
+    default: '----------------------'
+  },
+  count: {
+    type: Number,
+    default: 0
+  }
+})
+
+onMounted(() => {
+  alert(props.message)
+})
+</script>
+<style scoped>
+.card {
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin: 16px 0;
+  transition: box-shadow 0.3s ease;
+}
+</style>

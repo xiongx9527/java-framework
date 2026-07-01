@@ -1,0 +1,23 @@
+{
+  "properties" : {
+    "filters" : "stat,wall",
+    "statViewServlet" : true,
+    "webStatFilter" : true
+  },
+  "id" : "72c8d1a504df4d08abc63a3fddbd9dc7",
+  "script" : null,
+  "groupId" : "datasource:0",
+  "name" : "test",
+  "createTime" : 1756472608041,
+  "updateTime" : 1764507970813,
+  "lock" : null,
+  "createBy" : "admin",
+  "updateBy" : null,
+  "url" : "jdbc:mysql://172.17.240.242:3306/test?allowMultiQueries=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai",
+  "username" : "test",
+  "password" : "k{z9Aacx+NA}M&+3",
+  "key" : "test",
+  "maxRows" : -1,
+  "driverClassName" : "com.mysql.jdbc.Driver",
+  "type" : "com.alibaba.druid.pool.DruidDataSource"
+}

@@ -1,0 +1,14 @@
+{
+  "properties" : { },
+  "id" : "b361a7616a8f4f65b2743b4cdc5223cb",
+  "name" : "test",
+  "type" : "vue3",
+  "parentId" : "0",
+  "path" : "test",
+  "createTime" : 1761386591119,
+  "updateTime" : null,
+  "createBy" : null,
+  "updateBy" : null,
+  "paths" : [ ],
+  "options" : [ ]
+}

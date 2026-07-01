@@ -1,0 +1,18 @@
+{
+  "properties" : { },
+  "id" : "a8058e27529a498d8343de80f54fb024",
+  "script" : null,
+  "groupId" : "pulsar-datasource:0",
+  "name" : "iot",
+  "createTime" : 1755593130880,
+  "updateTime" : 1776585570006,
+  "lock" : null,
+  "createBy" : "admin",
+  "updateBy" : null,
+  "servers" : "172.17.17.185:6650",
+  "serviceUrls" : "http://172.17.17.185:6080",
+  "key" : "iot",
+  "tenant" : "em-test",
+  "namespace" : "iot",
+  "other" : null
+}

@@ -1,0 +1,17 @@
+{
+  "properties" : { },
+  "id" : "08960f6b4f9a4f39b18c7a3db8d2a031",
+  "script" : null,
+  "groupId" : "rocketmq-datasource:0",
+  "name" : "test",
+  "createTime" : 1765521463233,
+  "updateTime" : 1765521494920,
+  "lock" : null,
+  "createBy" : null,
+  "updateBy" : null,
+  "nameServer" : "172.17.240.242:9876",
+  "accessKey" : null,
+  "secretKey" : null,
+  "key" : "test",
+  "other" : null
+}

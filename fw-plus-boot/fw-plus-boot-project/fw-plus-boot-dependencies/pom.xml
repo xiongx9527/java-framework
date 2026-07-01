@@ -1,0 +1,752 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xx9527.fw.plus.boot</groupId>
+        <artifactId>fw-plus-boot-project</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <packaging>pom</packaging>
+    <artifactId>fw-plus-boot-dependencies</artifactId>
+    <properties>
+        <main.basedir>${basedir}/../..</main.basedir>
+        <!-- jasypt版本号 -->
+        <jasypt.version>3.0.5</jasypt.version>
+        <!-- seata版本号 -->
+        <seata.version>2.0.0</seata.version>
+        <!--  jackson版本号 -->
+        <jackson.version>2.20.1</jackson.version>
+        <!--  RocketMQ版本号 -->
+        <rocketmq.version>5.1.3</rocketmq.version>
+        <!--pulsar版本号-->
+        <pulsar-client.version>2.11.2</pulsar-client.version>
+        <!--  mysql-binlog-connector-java版本号 -->
+        <mysql-binlog-connector-java.version>0.30.1</mysql-binlog-connector-java.version>
+        <!--  lock4j版本号 -->
+        <lock4j.version>2.2.7</lock4j.version>
+        <!--  debezium版本号 -->
+        <debezium.version>1.9.8.Final</debezium.version>
+        <debezium-server.version>1.6.4.Final</debezium-server.version>
+        <!--  paimon版本号 -->
+        <paimon.version>1.2.0</paimon.version>
+        <!--  influxdb-sdk-java版本号 -->
+        <influxdb.version>6.7.0</influxdb.version>
+        <!--  resilience4j版本号 -->
+        <resilience4j.version>2.3.0</resilience4j.version>
+        <!--  akali版本号 -->
+        <akali.version>1.1.5</akali.version>
+        <!--  elasticsearch版本号 -->
+        <elasticsearch-sdk-java.version>8.19.8</elasticsearch-sdk-java.version>
+        <!--  langchain4j版本号 -->
+        <langchain4j.version>0.35.0</langchain4j.version>
+        <!--  tika版本号 -->
+        <tika.version>3.2.3</tika.version>
+        <!--  grpc版本号 -->
+        <grpc.version>1.65.1</grpc.version>
+        <!--  netty版本号 -->
+        <netty.version>4.1.94.Final</netty.version>
+        <!-- wildfly版本号 -->
+        <wildfly.version>1.7.0.Final</wildfly.version>
+        <!--  jwt版本号 -->
+        <jjwt.version>0.12.7</jjwt.version>
+        <!--  dynamic-tp版本号 -->
+        <dynamic-tp.version>1.2.2</dynamic-tp.version>
+        <!--  kotlin版本号 -->
+        <kotlin.version>2.2.21</kotlin.version>
+        <!--  sms4j版本号 -->
+        <sms4j.version>3.3.5</sms4j.version>
+        <!--  ognl版本号 -->
+        <ognl.version>3.4.7</ognl.version>
+        <!--  activation版本号 -->
+        <activation.version>1.1.1</activation.version>
+        <!--  snappy-java版本号 -->
+        <snappy-java.version>1.1.8.4</snappy-java.version>
+        <!--  javax.ws.rs版本号 -->
+        <javax.ws.rs.version>2.1.1</javax.ws.rs.version>
+        <!--  jspecify版本号 -->
+        <jspecify.version>1.0.0</jspecify.version>
+        <!--  netty-websocket版本号 -->
+        <netty-websocket.version>0.12.0</netty-websocket.version>
+        <!--  mica版本号 -->
+        <mica.version>2.7.18.9</mica.version>
+        <!--  mica-mqtt版本号 -->
+        <mica-mqtt.version>2.3.9</mica-mqtt.version>
+        <!--  plumelog版本号 -->
+        <plumelog.version>3.5.2</plumelog.version>
+        <!--  spring-boot-admin版本号 -->
+        <spring-boot-admin.version>2.7.16</spring-boot-admin.version>
+        <!-- spring-cloud-stream版本号 -->
+        <spring-cloud-stream.version>4.3.0</spring-cloud-stream.version>
+        <!-- spring-cloud-core版本号 -->
+        <spring-cloud-core.version>1.2.9.RELEASE</spring-cloud-core.version>
+        <!-- spring-cloud-stream-codec版本号 -->
+        <spring-cloud-stream-codec.version>1.3.4.RELEASE</spring-cloud-stream-codec.version>
+        <!-- spring-cloud-stream-redis版本号 -->
+        <spring-cloud-stream-redis.version>1.0.0.RELEASE</spring-cloud-stream-redis.version>
+        <!-- spring-cloud-stream-rocketmq版本号 -->
+        <spring-cloud-stream-rocketmq.version>2.3.0.RELEASE</spring-cloud-stream-rocketmq.version>
+        <!-- spring-cloud-stream-rocketmq版本号 -->
+        <alibaba-spring-cloud-starter-stream-rocketmq.version>2021.0.5.0</alibaba-spring-cloud-starter-stream-rocketmq.version>
+        <!-- spring-cloud-azure-starter-stream-eventhubs版本号 -->
+        <spring-cloud-azure-starter-stream-eventhubs.version>5.21.0</spring-cloud-azure-starter-stream-eventhubs.version>
+        <!-- spring-cloud-starter-stream-redis版本号 -->
+        <spring-cloud-starter-stream-redis.version>1.0.0.RELEASE</spring-cloud-starter-stream-redis.version>
+    </properties>
+    <name>Fw-Plus-Boot Dependencies</name>
+    <description>
+        fw-plus-boot 依赖库.
+    </description>
+    <dependencyManagement>
+        <dependencies>
+            <!-- spring-boot-admin -->
+            <dependency>
+                <groupId>de.codecentric</groupId>
+                <artifactId>spring-boot-admin-dependencies</artifactId>
+                <version>${spring-boot-admin.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- jasypt -->
+            <dependency>
+                <groupId>com.github.ulisesbocchio</groupId>
+                <artifactId>jasypt-spring-boot-starter</artifactId>
+                <version>${jasypt.version}</version>
+            </dependency>
+            <!-- jackson -->
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- seata -->
+            <dependency>
+                <groupId>io.seata</groupId>
+                <artifactId>seata-bom</artifactId>
+                <version>${seata.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.seata</groupId>
+                <artifactId>seata-server</artifactId>
+                <version>${seata.version}</version>
+            </dependency>
+            <!-- influxdb -->
+            <dependency>
+                <groupId>com.influxdb</groupId>
+                <artifactId>influxdb-client-java</artifactId>
+                <version>${influxdb.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.influxdb</groupId>
+                <artifactId>influxdb-client-reactive</artifactId>
+                <version>${influxdb.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.influxdb</groupId>
+                <artifactId>influxdb-spring</artifactId>
+                <version>${influxdb.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.dromara</groupId>
+                <artifactId>akali</artifactId>
+                <version>${akali.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>co.elastic.clients</groupId>
+                <artifactId>elasticsearch-java</artifactId>
+                <version>${elasticsearch-sdk-java.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-bom</artifactId>
+                <version>${kotlin.version}</version> <!-- 使用真实存在的版本 -->
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.dromara.dynamictp</groupId>
+                <artifactId>dynamic-tp-dependencies</artifactId>
+                <version>${dynamic-tp.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>${netty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>${grpc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.github.resilience4j</groupId>
+                <artifactId>resilience4j-bom</artifactId>
+                <version>${resilience4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-protobuf</artifactId>
+                <version>${grpc.version}</version>
+            </dependency>
+            <!-- sms4j -->
+            <dependency>
+                <groupId>org.dromara.sms4j</groupId>
+                <artifactId>sms4j-spring-boot-starter</artifactId>
+                <version>${sms4j.version}</version>
+            </dependency>
+            <!-- jwt -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+
+            <!--debezium-->
+            <dependency>
+                <groupId>io.debezium</groupId>
+                <artifactId>debezium-bom</artifactId>
+                <version>${debezium.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- wildfly -->
+            <dependency>
+                <groupId>org.wildfly.common</groupId>
+                <artifactId>wildfly-common</artifactId>
+                <version>${wildfly.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>javax.ws.rs</groupId>
+                <artifactId>javax.ws.rs-api</artifactId>
+                <version>${javax.ws.rs.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>javax.activation</groupId>
+                <artifactId>activation</artifactId>
+                <version>${activation.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.xerial.snappy</groupId>
+                <artifactId>snappy-java</artifactId>
+                <version>${snappy-java.version}</version>
+            </dependency>
+
+            <!--
+            <dependency>
+                <groupId>io.debezium</groupId>
+                <artifactId>debezium-embedded</artifactId>
+                <version>${debezium.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.debezium</groupId>
+                <artifactId>debezium-connector-mysql</artifactId>
+                <version>${debezium.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.debezium</groupId>
+                <artifactId>debezium-connector-postgres</artifactId>
+                <version>${debezium.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.debezium</groupId>
+                <artifactId>debezium-connector-sqlserver</artifactId>
+                <version>${debezium.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.debezium</groupId>
+                <artifactId>debezium-connector-mongodb</artifactId>
+                <version>${debezium.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.debezium</groupId>
+                <artifactId>debezium-connector-oracle</artifactId>
+                <version>${debezium.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.debezium</groupId>
+                <artifactId>debezium-connector-db2</artifactId>
+                <version>${debezium.version}</version>
+            </dependency>
+
+            -->
+
+
+            <dependency>
+                <groupId>ognl</groupId>
+                <artifactId>ognl</artifactId>
+                <version>${ognl.version}</version>
+            </dependency>
+
+            <!-- pulsar版本统一管理 -->
+            <dependency>
+                <groupId>org.apache.pulsar</groupId>
+                <artifactId>pulsar-client</artifactId>
+                <version>${pulsar-client.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.pulsar</groupId>
+                <artifactId>pulsar-client-admin</artifactId>
+                <version>${pulsar-client.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-acl</artifactId>
+                <version>${rocketmq.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-tools</artifactId>
+                <version>${rocketmq.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.rocketmq</groupId>
+                <artifactId>rocketmq-client</artifactId>
+                <version>${rocketmq.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>lock4j-core</artifactId>
+                <version>${lock4j.version}</version>
+            </dependency>
+
+            <!--若使用redisTemplate作为分布式锁底层，则需要引入-->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>lock4j-redis-template-spring-boot-starter</artifactId>
+                <version>${lock4j.version}</version>
+            </dependency>
+            <!--若使用redisson作为分布式锁底层，则需要引入-->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>lock4j-redisson-spring-boot-starter</artifactId>
+                <version>${lock4j.version}</version>
+            </dependency>
+            <!--若使用zookeeper作为分布式锁底层，则需要引入-->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>lock4j-zookeeper-spring-boot-starter</artifactId>
+                <version>${lock4j.version}</version>
+            </dependency>
+            <!--
+            <dependency>
+                <groupId>org.xerial.snappy</groupId>
+                <artifactId>snappy-java</artifactId>
+                <version>1.1.10.7</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-context</artifactId>
+                <version>1.44.1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-api</artifactId>
+                <version>1.44.1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-sdk</artifactId>
+                <version>1.44.1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>2.13.5</version>
+            </dependency>
+            -->
+
+            <!--
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-stream-binder-redis</artifactId>
+                <version>${spring-cloud-stream-redis.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-stream-binder-rocketmq</artifactId>
+                <version>${spring-cloud-stream-rocketmq.version}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-core</artifactId>
+                <version>${spring-cloud-core.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-stream</artifactId>
+                <version>${spring-cloud-stream.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-stream-codec</artifactId>
+                <version>${spring-cloud-stream-codec.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-stream-binder-kafka</artifactId>
+                <version>${spring-cloud-stream.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-stream-binder-rabbit</artifactId>
+                <version>${spring-cloud-stream.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-stream-binder-pulsar</artifactId>
+                <version>${spring-cloud-stream.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.azure.spring</groupId>
+                <artifactId>spring-cloud-azure-starter-stream-eventhubs</artifactId>
+                <version>${spring-cloud-azure-starter-stream-eventhubs.version}</version>
+            </dependency>
+            -->
+
+            <dependency>
+                <groupId>com.plumelog</groupId>
+                <artifactId>plumelog-logback</artifactId>
+                <version>${plumelog.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.plumelog</groupId>
+                <artifactId>plumelog-trace</artifactId>
+                <version>${plumelog.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.plumelog</groupId>
+                <artifactId>plumelog-lite</artifactId>
+                <version>${plumelog.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.plumelog</groupId>
+                <artifactId>plumelog-lite-spring-boot-starter</artifactId>
+                <version>${plumelog.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jspecify</groupId>
+                <artifactId>jspecify</artifactId>
+                <version>${jspecify.version}</version> <!-- 或者使用最新的稳定版本 -->
+            </dependency>
+
+            <dependency>
+                <groupId>net.dreamlu</groupId>
+                <artifactId>mica-redis</artifactId>
+                <version>${mica.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.yeauty</groupId>
+                <artifactId>netty-websocket-spring-boot-starter</artifactId>
+                <version>${netty-websocket.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>net.dreamlu</groupId>
+                <artifactId>mica-mqtt-server-spring-boot-starter</artifactId>
+                <version>${mica-mqtt.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>net.dreamlu</groupId>
+                <artifactId>mica-mqtt-client-spring-boot-starter</artifactId>
+                <version>${mica-mqtt.version}</version>
+            </dependency>
+
+            <!--fw-plus-boot版本统一管理-->
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-boot</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-boot-autoconfigure</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-boot-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-mate-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-mp-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-jdbc-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-redis-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-jimu-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-file-storage-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-mqtt-server-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-mqtt-client-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-template-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-uid-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-influxdb-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-admin-server-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-freemarker</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-vue3</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-config</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-rocketmq</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-rabbitmq</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-kafka</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-pulsar</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-swagger</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-debezium</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-redis</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-mongo</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-s3</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-task</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-ws</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-sse</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-dtp</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-mqtt</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-mqttclient</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-influx</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-elasticsearch</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-satoken</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-word</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!--
+            <dependency>
+                <groupId>org.dromara.dynamictp</groupId>
+                <artifactId>dynamic-tp-spring-boot-starter-nacos</artifactId>
+                <version>1.1.9-3.x</version>
+            </dependency>
+            -->
+        </dependencies>
+    </dependencyManagement>
+</project>
