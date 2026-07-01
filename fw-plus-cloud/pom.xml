@@ -3,7 +3,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
-		<groupId>com.xx9527.fw.plus.boot</groupId>
+		<groupId>com.xiongx9527.fw.plus.boot</groupId>
 		<artifactId>fw-plus-boot-parent</artifactId>
 		<version>0.1.1-SNAPSHOT</version>
 		<relativePath />
@@ -13,7 +13,7 @@
 		<module>fw-plus-cloud-project</module>
 		<module>fw-plus-cloud-samples</module>
     </modules>
-	<groupId>com.xx9527.fw.plus.cloud</groupId>
+	<groupId>com.xiongx9527.fw.plus.cloud</groupId>
 	<artifactId>fw-plus-cloud-build</artifactId>
 	<version>${revision}</version>
 	<name>Fw-Plus-Cloud Build</name>

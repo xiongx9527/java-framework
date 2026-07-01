@@ -1,8 +1,8 @@
 package cn.afterturn.easypoi.util;
 
 import cn.afterturn.easypoi.excel.annotation.Excel;
-import com.xx9527.fw.plus.common.validator.CommonsValidator;
-import com.xx9527.fw.plus.common.validator.CommonsValidatorHolder;
+import com.xiongx9527.fw.plus.common.validator.CommonsValidator;
+import com.xiongx9527.fw.plus.common.validator.CommonsValidatorHolder;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;

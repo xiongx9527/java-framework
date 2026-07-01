@@ -4,14 +4,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<!--
 	<parent>
-		<groupId>com.xx9527.fw</groupId>
+		<groupId>com.xiongx9527.fw</groupId>
 		<artifactId>framework-parent</artifactId>
 		<version>0.2.2-SNAPSHOT</version>
 		<relativePath />
 	</parent>
     -->
 	<parent>
-		<groupId>com.xx9527.fw.plus.boot</groupId>
+		<groupId>com.xiongx9527.fw.plus.boot</groupId>
 		<artifactId>fw-plus-boot-parent</artifactId>
 		<version>0.1.1-SNAPSHOT</version>
 		<relativePath />
@@ -21,7 +21,7 @@
 		<module>fw-plus-ai-project</module>
 		<module>fw-plus-ai-samples</module>
 	</modules>
-	<groupId>com.xx9527.fw.plus.ai</groupId>
+	<groupId>com.xiongx9527.fw.plus.ai</groupId>
 	<artifactId>fw-plus-ai-build</artifactId>
 	<version>${revision}</version>
 	<name>Fw-Plus-AI Build</name>

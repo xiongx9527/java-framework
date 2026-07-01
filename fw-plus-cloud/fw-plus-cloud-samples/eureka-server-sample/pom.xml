@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.xx9527.fw.plus.cloud</groupId>
+        <groupId>com.xiongx9527.fw.plus.cloud</groupId>
         <artifactId>fw-plus-cloud-samples</artifactId>
         <version>${revision}</version>
     </parent>
@@ -23,11 +23,11 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.xx9527.fw.plus.cloud</groupId>
+            <groupId>com.xiongx9527.fw.plus.cloud</groupId>
             <artifactId>fw-plus-magicapi-spring-cloud-starter</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.xx9527.fw.plus.cloud</groupId>
+            <groupId>com.xiongx9527.fw.plus.cloud</groupId>
             <artifactId>fw-plus-eureka-server-spring-cloud-starter</artifactId>
         </dependency>
         <dependency>
@@ -35,11 +35,11 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.xx9527.fw.plus.boot</groupId>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-plugin-config</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.xx9527.fw.plus.cloud</groupId>
+            <groupId>com.xiongx9527.fw.plus.cloud</groupId>
             <artifactId>fw-plus-admin-server-spring-cloud-starter</artifactId>
         </dependency>
         <dependency>
@@ -47,7 +47,7 @@
             <artifactId>spring-boot-admin-starter-client</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.xx9527.fw.plus.boot</groupId>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-plugin-swagger</artifactId>
         </dependency>
     </dependencies>

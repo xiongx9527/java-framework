@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<!--
 	<parent>
-		<groupId>com.xx9527.fw</groupId>
+		<groupId>com.xiongx9527.fw</groupId>
 		<artifactId>framework-parent</artifactId>
 		<version>0.2.2-SNAPSHOT</version>
 		<relativePath />
@@ -21,7 +21,7 @@
 		<module>fw-plus-samples</module>
 		<module>fw-plus-project</module>
 	</modules>
-	<groupId>com.xx9527.fw.plus</groupId>
+	<groupId>com.xiongx9527.fw.plus</groupId>
 	<artifactId>fw-plus-build</artifactId>
 	<version>${revision}</version>
 	<name>Fw-Plus Build</name>

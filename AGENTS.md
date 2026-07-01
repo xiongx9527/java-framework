@@ -14,11 +14,11 @@ fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spri
 **Git 仓库结构**：根目录和各模块（`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai`、`fw-plus-product`、`resources`）各自拥有独立的 `.git` 仓库，互为平级目录，非 git submodule。构建产物在各仓库间通过 Maven 本地仓库（`~/.m2`）传递，不依赖 SNAPSHOT 的自动更新机制。
 
 各层 GroupId：
-- Core: `com.xx9527.fw.plus`
-- Boot: `com.xx9527.fw.plus.boot`
-- Cloud: `com.xx9527.fw.plus.cloud`
-- AI: `com.xx9527.fw.plus.ai`
-- Product: `com.xx9527.fw.plus.product`
+- Core: `com.xiongx9527.fw.plus`
+- Boot: `com.xiongx9527.fw.plus.boot`
+- Cloud: `com.xiongx9527.fw.plus.cloud`
+- AI: `com.xiongx9527.fw.plus.ai`
+- Product: `com.xiongx9527.fw.plus.product`
 
 ## 模块结构
 
@@ -320,7 +320,7 @@ The Maven wrapper (`mvnw`) is included in each top-level module — use it inste
 - **Java**: 目标 JDK 1.8，遵循标准 Java 编码规范。
 - **缩进**: 使用 Tab（与现有 `pom.xml` 文件一致），保持与周围文件风格统一。
 - **模块命名**: kebab-case — `fw-plus-core`、`fw-plus-boot`、`fw-plus-mp`。
-- **包命名**: `com.xx9527.fw.plus.*` — 如 `com.xx9527.fw.plus.mp`、`com.xx9527.fw.plus.common`。
+- **包命名**: `com.xiongx9527.fw.plus.*` — 如 `com.xiongx9527.fw.plus.mp`、`com.xiongx9527.fw.plus.common`。
 - **POM 属性**: 使用 `${revision}` 作为版本属性（flatten-maven-plugin 负责解析）。
 - **格式化**: 未找到显式的格式化配置，保持所编辑文件的现有风格。
 - **资源文件**: JSON 数据源定义位于 `resources/datasource/`（独立 git 仓库）。共享配置文件位于 `resources/config/`。

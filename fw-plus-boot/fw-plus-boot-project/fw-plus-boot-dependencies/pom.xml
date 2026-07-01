@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.xx9527.fw.plus.boot</groupId>
+        <groupId>com.xiongx9527.fw.plus.boot</groupId>
         <artifactId>fw-plus-boot-project</artifactId>
         <version>${revision}</version>
     </parent>
@@ -515,227 +515,227 @@
 
             <!--fw-plus-boot版本统一管理-->
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-boot</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-boot-autoconfigure</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-boot-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-mate-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-mp-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-jdbc-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-redis-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-jimu-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-file-storage-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-mqtt-server-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-mqtt-client-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-template-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-uid-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-influxdb-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-admin-server-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-freemarker</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-vue3</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-config</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-rocketmq</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-rabbitmq</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-kafka</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-pulsar</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-swagger</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-debezium</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-redis</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-mongo</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-s3</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-task</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-ws</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-sse</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-dtp</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-mqtt</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-mqttclient</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-influx</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-elasticsearch</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-satoken</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus.boot</groupId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-word</artifactId>
                 <version>${project.version}</version>
             </dependency>

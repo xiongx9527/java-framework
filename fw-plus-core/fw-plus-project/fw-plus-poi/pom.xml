@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.xx9527.fw.plus</groupId>
+        <groupId>com.xiongx9527.fw.plus</groupId>
         <artifactId>fw-plus-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../fw-plus-parent</relativePath>
@@ -21,7 +21,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.xx9527.fw.plus</groupId>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-easytrans-service</artifactId>
         </dependency>
     </dependencies>

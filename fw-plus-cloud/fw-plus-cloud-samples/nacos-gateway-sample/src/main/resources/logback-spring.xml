@@ -91,9 +91,9 @@
     <if condition='!isDefined("log.appender.type")'>
         <then>
             <!-- traceId的converter -->
-            <conversionRule conversionWord="traceId" converterClass="com.xx9527.fw.plus.common.trace.logback.TraceIdConverter" />
+            <conversionRule conversionWord="traceId" converterClass="com.xiongx9527.fw.plus.common.trace.logback.TraceIdConverter" />
             <!-- spanId的converter -->
-            <conversionRule conversionWord="spanId" converterClass="com.xx9527.fw.plus.common.trace.logback.SpanIdConverter" />
+            <conversionRule conversionWord="spanId" converterClass="com.xiongx9527.fw.plus.common.trace.logback.SpanIdConverter" />
             <!-- 输出格式 -->
             <property name="logPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [${appName}][%thread][%traceId][%spanId] %-5level %logger{40} - %msg%n" />
 

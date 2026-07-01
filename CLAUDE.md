@@ -16,11 +16,11 @@ fw-plus 是9527的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spring
 **Git 仓库结构**：根目录和各模块（`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai`、`fw-plus-product`、`resources`）各自拥有独立的 `.git` 仓库，互为平级目录，非 git submodule。构建产物在各仓库间通过 Maven 本地仓库（`~/.m2`）传递，不依赖 SNAPSHOT 的自动更新机制。
 
 各层 GroupId：
-- Core: `com.xx9527.fw.plus`
-- Boot: `com.xx9527.fw.plus.boot`
-- Cloud: `com.xx9527.fw.plus.cloud`
-- AI: `com.xx9527.fw.plus.ai`
-- Product: `com.xx9527.fw.plus.product`
+- Core: `com.xiongx9527.fw.plus`
+- Boot: `com.xiongx9527.fw.plus.boot`
+- Cloud: `com.xiongx9527.fw.plus.cloud`
+- AI: `com.xiongx9527.fw.plus.ai`
+- Product: `com.xiongx9527.fw.plus.product`
 
 ## 模块结构
 

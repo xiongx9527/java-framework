@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.xx9527.fw.plus</groupId>
+        <groupId>com.xiongx9527.fw.plus</groupId>
         <artifactId>fw-plus-project</artifactId>
         <version>${revision}</version>
     </parent>
@@ -926,39 +926,39 @@
 
             <!--jugui framework版本统一管理
             <dependency>
-                <groupId>com.xx9527.fw</groupId>
+                <groupId>com.xiongx9527.fw</groupId>
                 <artifactId>framework-common</artifactId>
-                <version>${com.xx9527.fw.version}</version>
+                <version>${com.xiongx9527.fw.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw</groupId>
+                <groupId>com.xiongx9527.fw</groupId>
                 <artifactId>framework-redis</artifactId>
-                <version>${com.xx9527.fw.version}</version>
+                <version>${com.xiongx9527.fw.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw</groupId>
+                <groupId>com.xiongx9527.fw</groupId>
                 <artifactId>framework-database</artifactId>
-                <version>${com.xx9527.fw.version}</version>
+                <version>${com.xiongx9527.fw.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw</groupId>
+                <groupId>com.xiongx9527.fw</groupId>
                 <artifactId>framework-forwarding</artifactId>
-                <version>${com.xx9527.fw.version}</version>
+                <version>${com.xiongx9527.fw.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw</groupId>
+                <groupId>com.xiongx9527.fw</groupId>
                 <artifactId>framework-auth</artifactId>
-                <version>${com.xx9527.fw.version}</version>
+                <version>${com.xiongx9527.fw.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw</groupId>
+                <groupId>com.xiongx9527.fw</groupId>
                 <artifactId>framework-data-permission</artifactId>
-                <version>${com.xx9527.fw.version}</version>
+                <version>${com.xiongx9527.fw.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw</groupId>
+                <groupId>com.xiongx9527.fw</groupId>
                 <artifactId>framework-validating</artifactId>
-                <version>${com.xx9527.fw.version}</version>
+                <version>${com.xiongx9527.fw.version}</version>
             </dependency>
             -->
             <!-- x-easypdf版本统一管理 -->
@@ -1075,120 +1075,120 @@
             </dependency>
             <!-- fw-plus 版本统一管理 -->
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-annotation</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-easytrans-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-easytrans-annotation</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-easytrans-service</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-poi-easypoi</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mp-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mp-join</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mp-datachange</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mp-encrypt</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mp-datascope</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mf-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-redis</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-report-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-report-jimu</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-template</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-magicapi</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-mcp</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-nebula-jdbc</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-dify</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-auth-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
 
             <dependency>
-                <groupId>com.xx9527.fw.plus</groupId>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-auth-satoken</artifactId>
                 <version>${project.version}</version>
             </dependency>

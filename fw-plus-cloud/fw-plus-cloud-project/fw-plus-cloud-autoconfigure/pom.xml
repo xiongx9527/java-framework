@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.xx9527.fw.plus.cloud</groupId>
+        <groupId>com.xiongx9527.fw.plus.cloud</groupId>
         <artifactId>fw-plus-cloud-parent</artifactId>
         <version>${revision}</version>
         <relativePath>../fw-plus-cloud-parent</relativePath>
@@ -37,21 +37,21 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus.boot</groupId>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-boot-common</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus.cloud</groupId>
+            <groupId>com.xiongx9527.fw.plus.cloud</groupId>
             <artifactId>fw-plus-cloud-common</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus.cloud</groupId>
+            <groupId>com.xiongx9527.fw.plus.cloud</groupId>
             <artifactId>fw-plus-cloud</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
@@ -100,14 +100,14 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus.boot</groupId>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
 
         <dependency>
-            <groupId>com.xx9527.fw.plus.boot</groupId>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-boot-autoconfigure</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
