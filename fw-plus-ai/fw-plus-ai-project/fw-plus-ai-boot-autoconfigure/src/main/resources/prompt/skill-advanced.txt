@@ -1,0 +1,124 @@
+## 进阶特性
+
+### 异步执行
+```magicscript
+// async 包裹的代码块在新线程执行，返回 Future
+var future = async () => {
+    return db.select('select * from big_table')
+}
+// 其他操作...
+var result = future.get()  // 阻塞获取结果
+
+// 异步 + 循环（注意参数传递保证线程安全）
+var futures = []
+for(id in ids) {
+    futures.add(async (id) => db.selectOne('select * from user where id = #{id}'))
+}
+return futures.map(f => f.get())
+```
+
+### Lambda 函数
+```magicscript
+// 单参数单表达式
+var double = e => e * 2
+
+// 多参数
+var add = (a, b) => a + b
+
+// 带代码块
+var process = (item) => {
+    var result = item.value * 2
+    return {name: item.name, value: result}
+}
+
+// 作为参数传递
+var list = [3, 1, 4, 1, 5]
+list.sort((a, b) => a - b)
+list.filter(it => it > 2)
+list.map(it => it * 10)
+```
+
+### 可选链 ?.
+```magicscript
+// ?. 遇到 null 返回 null，不抛异常
+var city = user?.address?.city    // 安全访问嵌套属性
+var name = list?.first()?.name
+
+// 对比：. 遇到 null 抛出异常
+// var city = user.address.city   // address 为 null 时报错
+```
+
+### 展开运算符 ...
+```magicscript
+// 展开 Map
+var base = {name: '张三', age: 20}
+var extended = {...base, dept: 'IT', age: 25}  // age 被覆盖为 25
+
+// 展开 List
+var list1 = [1, 2, 3]
+var list2 = [0, ...list1, 4, 5]  // [0, 1, 2, 3, 4, 5]
+```
+
+### 日志
+```magicscript
+import log;
+
+log.info('用户{}登录成功', username)
+log.warn('库存不足: 商品{}, 剩余{}', productId, stock)
+log.error('操作失败', exception)
+log.debug('调试信息: {}', data)
+```
+
+### 环境变量
+```magicscript
+import env;
+
+// 读取 Spring 配置
+var port = env.get('server.port')
+var dbUrl = env.get('spring.datasource.url')
+var customVal = env.get('app.custom.config')
+```
+
+### try / catch / finally
+```magicscript
+try {
+    var result = db.update('update account set balance = balance - 100 where id = 1')
+    if (result == 0) {
+        exit 400, '账户不存在'
+    }
+    return '成功'
+} catch(e) {
+    log.error('操作异常', e)
+    exit 500, '系统异常: ' + e.getMessage()
+} finally {
+    log.info('操作完成')
+}
+```
+
+### range 函数
+```magicscript
+// range(start, end) 生成序列（包含首尾）
+for(i in range(1, 10)) {
+    log.info('第{}次', i)
+}
+
+// 常用于批量生成测试数据
+var testData = range(1, 100).map(i => {
+    name: '用户' + i,
+    age: 20 + (i % 30)
+})
+```
+
+### Redis 操作（插件）
+```magicscript
+import redis;
+
+// 设置值（带过期时间，秒）
+redis.setex('user:token:' + userId, 3600, token)
+
+// 获取值
+var token = redis.get('user:token:' + userId)
+
+// 删除
+redis.del('user:token:' + userId)
+```

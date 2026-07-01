@@ -1,0 +1,104 @@
+## Fluent Table API（db.table）
+
+db.table() 提供链式操作数据库表，无需手写 SQL。
+
+### 查询
+```magicscript
+// 查询所有
+return db.table('user').select()
+
+// 指定列
+return db.table('user').columns('id', 'name', 'age').select()
+
+// 排除列
+return db.table('user').exclude('password').select()
+
+// 条件查询
+return db.table('user')
+    .where()
+    .eq('status', 1)
+    .like('name', '%张%')
+    .select()
+
+// 分页
+return db.table('user').where().eq('status', 1).page()
+
+// 查询单条
+return db.table('user').where().eq('id', id).selectOne()
+
+// 计数
+return db.table('user').where().eq('status', 1).count()
+
+// 是否存在
+return db.table('user').where().eq('name', name).exists()
+```
+
+### 条件方法
+```magicscript
+.where()
+    .eq('status', 1)          // = 等于
+    .ne('status', 0)          // != 不等于
+    .gt('age', 18)            // > 大于
+    .ge('age', 18)            // >= 大于等于
+    .lt('age', 60)            // < 小于
+    .le('age', 60)            // <= 小于等于
+    .like('name', '%关键字%')  // LIKE 模糊
+    .in('id', [1, 2, 3])     // IN 列表
+    .isNull('deleted_at')     // IS NULL
+    .isNotNull('name')        // IS NOT NULL
+    .and()                    // AND 分组
+    .or()                     // OR 分组
+```
+
+### 排序与分组
+```magicscript
+return db.table('user')
+    .where().eq('status', 1)
+    .groupBy('dept_id')
+    .orderBy('create_time', 'desc')
+    .select()
+```
+
+### 新增
+```magicscript
+// 插入（自增主键，不需要指定生成策略）
+return db.table('user')
+    .primary('id')
+    .insert({name: '张三', age: 25, status: 1})
+
+// 插入（UUID 主键，需要用 () => uuid() 生成）
+return db.table('user')
+    .primary('id', () => uuid())
+    .insert({name: '张三', age: 25, status: 1})
+```
+
+### 修改
+```magicscript
+return db.table('user')
+    .primary('id')
+    .update({id: id, name: '李四', age: 30})
+```
+
+### 保存（有则更新，无则插入）
+```magicscript
+return db.table('user')
+    .primary('id', () => uuid())
+    .save(body)
+```
+
+### 删除
+```magicscript
+return db.table('user').where().eq('id', id).delete()
+```
+
+### 批量插入
+```magicscript
+var users = [{name: '张三', age: 20}, {name: '李四', age: 25}]
+return db.table('user').primary('id', () => uuid()).batchInsert(users)
+```
+
+### 逻辑删除
+```magicscript
+// logic() 将 delete 转为 update deleted_flag
+return db.table('user').logic().where().eq('id', id).delete()
+```
