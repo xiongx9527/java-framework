@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xx9527.fw.plus</groupId>
+        <artifactId>fw-plus-build</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <packaging>pom</packaging>
+    <modules>
+        <module>fw-plus-dependencies</module>
+        <module>fw-plus-parent</module>
+        <module>fw-plus-common</module>
+        <module>fw-plus-annotation</module>
+        <module>fw-plus-mf</module>
+        <module>fw-plus-mp</module>
+        <module>fw-plus-easytrans</module>
+        <module>fw-plus-poi</module>
+        <module>fw-plus-jdbc</module>
+        <module>fw-plus-nosql</module>
+        <module>fw-plus-report</module>
+        <module>fw-plus-auth</module>
+        <module>fw-plus-template</module>
+        <module>fw-plus-ai</module>
+        <module>fw-plus-magicapi</module>
+        <module>fw-plus-nebula</module>
+        <module>fw-plus-dify</module>
+    </modules>
+    <artifactId>fw-plus-project</artifactId>
+    <name>Fw-Plus Project</name>
+    <description>
+        fw-plus 核心库.
+    </description>
+</project>
