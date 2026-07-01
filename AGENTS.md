@@ -20,7 +20,7 @@ fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spri
 - AI: `com.xx9527.fw.plus.ai`
 - Product: `com.xx9527.fw.plus.product`
 
-## Module Structure
+## 模块结构
 
 Each module follows the same internal layout:
 - `fw-plus-{name}-project/` — the actual library code
@@ -92,7 +92,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       │   ├── fw-plus-magicapi-plugin-elasticsearch/ # Elasticsearch
 │   │       │   ├── fw-plus-magicapi-plugin-freemarker/    # Freemarker 模板
 │   │       │   ├── fw-plus-magicapi-plugin-influx/        # InfluxDB
-│   │       │   ├── fw-plus-magicapi-plugin-word/          # Word 文档操作
 │   │       │   ├── fw-plus-magicapi-plugin-kafka/         # Kafka 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-mongo/         # MongoDB
 │   │       │   ├── fw-plus-magicapi-plugin-mqtt/          # MQTT 协议支持
@@ -107,6 +106,7 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       │   ├── fw-plus-magicapi-plugin-swagger/       # Swagger API 文档
 │   │       │   ├── fw-plus-magicapi-plugin-task/          # 定时任务
 │   │       │   ├── fw-plus-magicapi-plugin-vue3/          # Vue3 前端资源
+│   │       │   ├── fw-plus-magicapi-plugin-word/          # Word 文档操作
 │   │       │   └── fw-plus-magicapi-plugin-ws/            # WebSocket
 │   │       ├── fw-plus-mate-spring-boot-starter/          # Mate 租户/数据权限
 │   │       ├── fw-plus-mp-spring-boot-starter/            # MyBatis-Plus 增强
@@ -278,9 +278,11 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 | ORM | MyBatis-Plus 3.3.2, MyBatis-Flex 1.11.4 |
 | 脚本引擎 | Magic-API 2.2.2（自行维护版本，非中央仓库版本） |
 | AI | LangChain4j 0.35.0, Agents-Flex 1.3.4, Spring AI 1.0.1, EasyAi 1.4.9 |
-| 消息队列 | Kafka, Pulsar, RocketMQ, RabbitMQ, MQTT |
+| 消息队列 | Kafka, Pulsar 2.11.2, RocketMQ 5.1.3, RabbitMQ, Mica MQTT 2.3.9 |
 | 数据库/存储 | MySQL, InfluxDB, Redis, Elasticsearch, Nebula Graph, Minio/S3 |
+| 工具库 | Hutool 5.8.34, EasyPoi 4.5.0, DynamicTp 1.2.1, Debezium 1.9.8.Final |
 | 模板引擎 | Freemarker, docx4j, OpenPDF |
+| 可观测性 | OpenTelemetry 1.56.0, Apollo 2.5.0 |
 | 认证鉴权 | Sa-Token 1.40.0, OAuth2 |
 | 前端 | Vue3, Vite, NaiveUI |
 
@@ -294,59 +296,56 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 - **自定义类**：项目中包含大量自定义类和注解（如 `Algorithm`、`FieldEncrypt` 等），修改相关代码时确保充分理解其用途。
 - **resources/**：该目录由 Magic-API 引擎动态加载（独立 git 仓库，不在当前工作区），修改 api/function/task 等脚本目录后即时生效，无需重启服务；修改 datasource/config 等配置目录后需要重启服务或触发配置刷新。
 
-## Build, Test, and Development Commands
+## 构建、测试与开发命令
 
 ```bash
-# Build the entire project (skip tests for speed during development)
-./mvnw clean install -DskipTests
+# 全量编译（跳过测试）— 需在各模块目录下执行，根目录无统一 POM
+# 推荐使用各模块内置的 Maven Wrapper (mvnw)
+cd fw-plus-core && ./mvnw clean install -DskipTests
 
-# Build a specific module
-./mvnw clean install -pl fw-plus-core -DskipTests
+# 编译指定模块
+cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -DskipTests
 
-# Run tests (Cobertura coverage report in target/site/cobertura/)
-./mvnw clean test
+# 运行测试（Cobertura 覆盖率报告在 target/site/cobertura/）
+cd fw-plus-core && ./mvnw clean test
 
-# Generate site report including coverage
-./mvnw clean site
-
-# Deploy to the internal Nexus repository (jugui-snapshot / jugui-release)
-./mvnw clean deploy -DskipTests
+# 发布到内网 Nexus 仓库（jugui-snapshot / jugui-release）
+cd fw-plus-core && ./mvnw clean deploy -DskipTests
 ```
 
 The Maven wrapper (`mvnw`) is included in each top-level module — use it instead of a system `mvn` for reproducible builds.
 
-## Coding Style & Naming Conventions
+## 编码风格与命名约定
 
-- **Java**: Target JDK 1.8. Code style follows standard Java conventions.
-- **Indentation**: Tabs (shown in existing `pom.xml` files). Be consistent with the surrounding file.
-- **Module naming**: kebab-case — `fw-plus-core`, `fw-plus-boot`, `fw-plus-mp`.
-- **Package naming**: `com.xx9527.fw.plus.*` — e.g., `com.xx9527.fw.plus.mp`, `com.xx9527.fw.plus.common`.
-- **POM properties**: Use `${revision}` as the version property (flatten-maven-plugin resolves it).
-- **Formatting**: No explicit formatter configuration found; maintain the style of the file you are editing.
-- **Resources**: JSON datasource definitions live under `resources/datasource/`. Shared config files sit in `resources/config/`.
+- **Java**: 目标 JDK 1.8，遵循标准 Java 编码规范。
+- **缩进**: 使用 Tab（与现有 `pom.xml` 文件一致），保持与周围文件风格统一。
+- **模块命名**: kebab-case — `fw-plus-core`、`fw-plus-boot`、`fw-plus-mp`。
+- **包命名**: `com.xx9527.fw.plus.*` — 如 `com.xx9527.fw.plus.mp`、`com.xx9527.fw.plus.common`。
+- **POM 属性**: 使用 `${revision}` 作为版本属性（flatten-maven-plugin 负责解析）。
+- **格式化**: 未找到显式的格式化配置，保持所编辑文件的现有风格。
+- **资源文件**: JSON 数据源定义位于 `resources/datasource/`（独立 git 仓库）。共享配置文件位于 `resources/config/`。
 
-## Testing Guidelines
+## 测试指南
 
-- **Framework**: JUnit via the `maven-surefire-plugin` and `maven-failsafe-plugin` (inherited from Spring Boot parent).
-- **Coverage**: Cobertura (`cobertura-maven-plugin 2.7`) generates HTML + XML reports.
-- **Test location**: `src/test/java/` in each Maven module.
-- **Naming**: Follow standard Maven conventions — `*Test.java` for unit tests, `*IT.java` for integration tests.
-- **Run tests**: `./mvnw clean test` from the module root.
+- **框架**: JUnit，通过 `maven-surefire-plugin` 和 `maven-failsafe-plugin`（继承自 Spring Boot 父 POM）。
+- **覆盖率**: Cobertura（`cobertura-maven-plugin 2.7`）生成 HTML + XML 报告。
+- **测试位置**: 各 Maven 模块的 `src/test/java/` 目录。
+- **命名**: 遵循标准 Maven 约定 — 单元测试用 `*Test.java`，集成测试用 `*IT.java`。
+- **运行测试**: 从模块根目录执行 `./mvnw clean test`。
 
-## Commit & Pull Request Guidelines
+## 提交与 PR 规范
 
-This project does not enforce a strict commit message convention. Follow these practical guidelines:
+本项目不强制要求严格的提交消息格式。遵循以下实用指南：
 
-- Write concise, descriptive commit messages in Chinese or English as appropriate for the team.
-- Prefix large-scope changes with the module name, e.g., `fw-plus-core: fix NPE in report parser`.
-- Pull requests should include a short description of the change, motivation, and any breaking changes.
-- Link related issues or feature requests when possible.
+- 根据团队习惯使用中文或英文编写简洁、描述性的提交消息。
+- 大范围变更在消息前加模块名前缀，如 `fw-plus-core: 修复报表解析器中的 NPE`。
+- Pull Request 应包含变更简述、动机以及破坏性变更说明（如有）。
+- 尽可能关联相关的 issue 或功能请求。
 
-## Development Environment
+## 开发环境
 
-- **IDE**: IntelliJ IDEA (`.idea/` directory checked in).
-- **AI agent config**: `AGENTS.md` (this file) and `CLAUDE.md` contain project guidelines and AI assistant configuration.
-- **Internal Nexus**: `http://172.17.1.6:28081/` — repositories `jugui-snapshot` and `jugui-release`.
-- **License**: Apache 2.0.
+- **IDE**: IntelliJ IDEA（`.idea/` 目录已纳入版本控制）。
+- **AI 代理配置**: `AGENTS.md`（本文件）和 `CLAUDE.md` 包含项目指南和 AI 助手配置。
+- **内部 Nexus**: `http://172.17.1.6:28081/` — 仓库 `jugui-snapshot` 和 `jugui-release`。
+- **许可证**: Apache 2.0。
 
-</INSTRUCTIONS>
