@@ -2,7 +2,6 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.mode
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.common.BaseService;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -49,15 +48,15 @@ public class MagicDynamicLangchain4jDataSource implements BaseService, Disposabl
         // 创建属性映射表，用于存储模型配置参数
         Map<String, Object> properties = new HashMap<>();
         String baseUrl = info.getBaseUrl();
-        baseUrl = MagicAPIConfigUtils.getLangchain4jConfig(info.getKey(), "baseUrl", baseUrl);
+        baseUrl = SpringUtils.getAppConfig(String.format("magic.api.langchain4j.%s.baseUrl", info.getKey()), baseUrl);
         String apiKey = info.getApiKey();
-        apiKey = MagicAPIConfigUtils.getLangchain4jConfig(info.getKey(), "apiKey", apiKey);
+        apiKey = SpringUtils.getAppConfig(String.format("magic.api.langchain4j.%s.apiKey", info.getKey()), apiKey);
         String modelName = info.getModelName();
-        modelName = MagicAPIConfigUtils.getLangchain4jConfig(info.getKey(), "modelName", modelName);
+        modelName = SpringUtils.getAppConfig(String.format("magic.api.langchain4j.%s.modelName", info.getKey()), modelName);
 
         // 如果存在其他配置参数，将其解析并添加到属性映射表中
         String others = info.getOther();
-        others = MagicAPIConfigUtils.getLangchain4jConfig(info.getKey(), "other", others);
+        others = SpringUtils.getAppConfig(String.format("magic.api.langchain4j.%s.other", info.getKey()), others);
         if (StringUtils.isNotBlank(others)) {
             properties.putAll(JSON.parseObject(others, new TypeReference<Map<String, Object>>() {}));
         }

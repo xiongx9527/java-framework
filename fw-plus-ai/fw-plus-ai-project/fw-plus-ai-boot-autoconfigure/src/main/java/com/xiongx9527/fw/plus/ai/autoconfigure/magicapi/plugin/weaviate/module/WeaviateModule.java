@@ -196,7 +196,7 @@ public class WeaviateModule implements DynamicAttribute<WeaviateModule, Weaviate
                 apiKey,
                 scheme, host, port,
                 useGrpcForInserts, securedGrpc, grpcPort,
-                objectClass, avoidDups, consistencyLevel, metadataKeys, textFieldName);
+                objectClass, avoidDups, consistencyLevel, metadataKeys, textFieldName,null);
         return weaviateEmbeddingStore;
     }
 

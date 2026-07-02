@@ -41,8 +41,9 @@ public class WsDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
 	public void onFileEvent(FileEvent event) {
 		try {
 			processEvent(event);
-		} catch (Exception ignored) {
-        }
+		} catch (Exception e) {
+			log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
+		}
 	}
     
     /**
@@ -53,10 +54,7 @@ public class WsDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
 	 */
 	@EventListener(condition = "#event.type == 'ws-datasource'")
 	public void onGroupEvent(GroupEvent event) {
-		    try {
-		       processEvent(event);
-		    } catch (Exception ignored) {
-		    }
+		processEvent(event);
 	}
 
 
@@ -78,11 +76,7 @@ public class WsDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
 
 	@Override
 	public boolean unregister(WsDataSourceInfo entity) {
-		try {
-			return super.unregister(entity);
-		} catch (Exception ignored) {
-			return false;
-		}
+		return super.unregister(entity);
 	}
     
     /**
@@ -94,11 +88,7 @@ public class WsDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
 	 */
 	@Override
 	protected boolean register(MappingNode<WsDataSourceInfo> mappingNode) {
-		try {
-		    return super.register(mappingNode);
-		} catch (Exception ignored) {
-		    return false;
-		}
+		return super.register(mappingNode);
 	}
     
     /**
@@ -113,12 +103,8 @@ public class WsDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
 			SpringUtils.getBean(BaseDynamicWebSocketHandler.class)
 					.cleanupByAppId(mappingNode.getEntity().getKey());
 		} catch (Exception e) {
-			log.error("Failed to cleanup sessions for appId: {}", mappingNode.getEntity().getKey(), e);
 		}
-		try {
-		    super.unregister(mappingNode);
-		} catch (Exception ignored) {
-		}
+		super.unregister(mappingNode);
 	}
 
     /**

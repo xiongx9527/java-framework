@@ -2,7 +2,6 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.milvus.model;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.milvus.common.BaseService;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import io.milvus.v2.client.ConnectConfig;
@@ -40,30 +39,30 @@ public class MagicDynamicMilvusDataSource implements BaseService, DisposableBean
      * @param info Milvus数据源信息，包含连接所需的基本信息和额外配置
      * @return ConnectConfig 连接配置对象，用于创建Milvus客户端
      */
-    private ConnectConfig buildConnectConfig(MilvusDataSourceInfo info) {
+    private ConnectConfig buldConnectConfig(MilvusDataSourceInfo info) {
         if (info == null) {
             return null;
         }
 
         ConnectConfig.ConnectConfigBuilder builder = ConnectConfig.builder();
-        String uri = MagicAPIConfigUtils.getMilvusConfig(info.getKey(), "uri", info.getUri());
-        String token = MagicAPIConfigUtils.getMilvusConfig(info.getKey(), "token", info.getToken());
+        String uri = SpringUtils.getAppConfig(String.format("magic.api.milvus.%s.uri", info.getKey()), info.getUri());
+        String token = SpringUtils.getAppConfig(String.format("magic.api.milvus.%s.token", info.getKey()), info.getToken());
         if (StringUtils.isNotBlank(token)) {
             builder.token(token);
         }
-        String username = MagicAPIConfigUtils.getMilvusConfig(info.getKey(), "username", info.getUsername());
-        String password = MagicAPIConfigUtils.getMilvusConfig(info.getKey(), "password", info.getPassword());
+        String username = SpringUtils.getAppConfig(String.format("magic.api.milvus.%s.username", info.getKey()), info.getUsername());
+        String password = SpringUtils.getAppConfig(String.format("magic.api.milvus.%s.password", info.getKey()), info.getPassword());
         if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
             builder.username(username);
             builder.password(password);
         }
-        String dbName = MagicAPIConfigUtils.getMilvusConfig(info.getKey(), "dbName", info.getDbName());
+        String dbName = SpringUtils.getAppConfig(String.format("magic.api.milvus.%s.dbName", info.getKey()), info.getDbName());
         if (StringUtils.isNotBlank(dbName)) {
             builder.dbName(dbName);
         }
 
         String other = info.getOther();
-        other = MagicAPIConfigUtils.getMilvusConfig(info.getKey(), "other", other);
+        other = SpringUtils.getAppConfig(String.format("magic.api.milvus.%s.other", info.getKey()), other);
         // 从other字段中解析额外配置
         if (StringUtils.isNotBlank(other)) {
             try {
@@ -139,7 +138,7 @@ public class MagicDynamicMilvusDataSource implements BaseService, DisposableBean
             throw new IllegalArgumentException("Milvus数据源信息不能为空");
         }
         try {
-            ConnectConfig connectConfig = buildConnectConfig(info);
+            ConnectConfig connectConfig = buldConnectConfig(info);
             if (connectConfig == null) {
                 throw new IllegalStateException("无法构建Milvus连接配置");
             }

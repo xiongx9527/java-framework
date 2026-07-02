@@ -44,7 +44,8 @@ public class MongoDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
         }
     }
 
@@ -56,10 +57,7 @@ public class MongoDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
      */
     @EventListener(condition = "#event.type == 'mongo-datasource'")
     public void onGroupEvent(GroupEvent event) {
-            try {
-                processEvent(event);
-            } catch (Exception ignored) {
-            }
+        processEvent(event);
     }
 
     /**
@@ -72,11 +70,7 @@ public class MongoDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
     @Override
     public boolean register(MongoDataSourceInfo entity) {
         magicDynamicMongoDataSource.destroyMongoConnectionFactoryByKey(entity.getKey());
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
     /**
@@ -91,11 +85,7 @@ public class MongoDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
         MongoDataSourceInfo entity = mappingNode.getEntity();
         magicDynamicMongoDataSource.destroyMongoConnectionFactoryByKey(entity.getKey());
         magicDynamicMongoDataSource.buildMongoDatabaseFactory(entity);
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(mappingNode);
     }
 
     /**
@@ -107,10 +97,7 @@ public class MongoDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
     @Override
     protected void unregister(MappingNode<MongoDataSourceInfo> mappingNode) {
         magicDynamicMongoDataSource.destroyMongoConnectionFactoryByKey(mappingNode.getEntity().getKey());
-        try {
-            super.unregister(mappingNode);
-        } catch (Exception ignored) {
-        }
+        super.unregister(mappingNode);
     }
 
     /**

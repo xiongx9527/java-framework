@@ -2,7 +2,6 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.model;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.common.BaseService;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import io.qdrant.client.QdrantClient;
@@ -43,19 +42,20 @@ public class MagicDynamicQdrantDataSource implements BaseService, DisposableBean
             throw new IllegalArgumentException("Qdrant数据源信息不能为空");
         }
         String url = info.getHost() ;
-        url = MagicAPIConfigUtils.getQdrantConfig(info.getKey(), "host", url);
+        url = SpringUtils.getAppConfig(String.format("magic.api.qdrant.%s.host", info.getKey()), url);
         String portStr = info.getPort() ;
-        portStr = MagicAPIConfigUtils.getQdrantConfig(info.getKey(), "port", portStr);
+        portStr = SpringUtils.getAppConfig(String.format("magic.api.qdrant.%s.port", info.getKey()), portStr);
         int port = Integer.parseInt(portStr);
         QdrantGrpcClient.Builder builder = QdrantGrpcClient.newBuilder(url, port, info.isUtls());
         String apikey = info.getApiKey();
-        apikey = MagicAPIConfigUtils.getQdrantConfig(info.getKey(), "apiKey", apikey);
+        apikey = SpringUtils.getAppConfig(String.format("magic.api.qdrant.%s.apiKey", info.getKey()), apikey);
         if (StringUtils.isNotBlank(apikey)) {
             builder.withApiKey(apikey);
         }
         
+        // 其它配置
         String other = info.getOther();
-        other = MagicAPIConfigUtils.getQdrantConfig(info.getKey(), "other", other);
+        other = SpringUtils.getAppConfig(String.format("magic.api.qdrant.%s.other", info.getKey()), other);
         if (StringUtils.isNotBlank(other)) {
             try {
                 JSONObject otherConfig = JSON.parseObject(other);

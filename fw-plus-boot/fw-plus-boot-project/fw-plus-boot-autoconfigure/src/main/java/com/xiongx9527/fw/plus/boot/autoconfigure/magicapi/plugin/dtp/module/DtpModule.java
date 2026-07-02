@@ -1,10 +1,10 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.module;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.model.MagicDynamicDtpDataSource;
+import io.jsonwebtoken.lang.Collections;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.dromara.dynamictp.core.executor.DtpExecutor;
-import org.springframework.util.CollectionUtils;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.magicapi.core.model.Options;
 import org.ssssssss.magicapi.modules.DynamicModule;
@@ -57,17 +57,36 @@ public class DtpModule implements DynamicAttribute<DtpModule, DtpModule>, Dynami
      * @return CompletableFuture 对象，包含所有任务的结果列表
      */
     public <T> CompletableFuture<List<T>> allOfWithAllResults(List<Supplier<T>> tasks) {
-        if (CollectionUtils.isEmpty(tasks)) {
+        if (Collections.isEmpty(tasks)) {
             return null;
         }
         List<CompletableFuture<T>> futures = tasks.stream()
-                .map(task -> CompletableFuture.supplyAsync(task, this.dtpExecutor))
+                .map(task -> CompletableFuture.supplyAsync(task, this.dtpExecutor)
+                        .exceptionally(ex -> {
+                            // 处理单个任务异常，避免影响其他任务
+                            throw new RuntimeException("Task execution failed", ex);
+                        }))
                 .collect(Collectors.toList());
 
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                .thenApply(v -> futures.stream()
-                        .map(CompletableFuture::join)
-                        .collect(Collectors.toList()));
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+                futures.toArray(new CompletableFuture[0]));
+        return allFutures.handle((v, ex) -> {
+            if (ex != null) {
+                // 如果等待过程中出现异常，抛出合适的异常
+                throw new RuntimeException("Failed to wait for all tasks completion", ex);
+            }
+
+            return futures.stream()
+                    .map(future -> {
+                        try {
+                            return future.join();
+                        } catch (Exception e) {
+                            // 处理join可能抛出的异常
+                            throw new RuntimeException("Failed to get task result", e);
+                        }
+                    })
+                    .collect(Collectors.toList());
+        });
     }
 
     /**
@@ -77,18 +96,25 @@ public class DtpModule implements DynamicAttribute<DtpModule, DtpModule>, Dynami
      * @param <T> 返回值类型
      * @return CompletableFuture 对象，包含第一个完成任务的结果
      */
-    @SuppressWarnings("unchecked")
     public <T> CompletableFuture<T> anyOfWithFirstResult(List<Supplier<T>> tasks) {
-        if (CollectionUtils.isEmpty(tasks)) {
+        if (Collections.isEmpty(tasks)) {
             return null;
         }
 
         List<CompletableFuture<T>> futures = tasks.stream()
-                .map(task -> CompletableFuture.supplyAsync(task, this.dtpExecutor))
+                .map(task -> CompletableFuture.supplyAsync(task, this.dtpExecutor)
+                        .exceptionally(ex -> {
+                            // 处理单个任务异常，避免影响其他任务
+                            throw new RuntimeException("Task execution failed", ex);
+                        }))
                 .collect(Collectors.toList());
 
-        return CompletableFuture.anyOf(futures.toArray(new CompletableFuture[0]))
-                .thenApply(result -> (T) result);
+        // 使用 anyOf 等待任意一个任务完成
+        CompletableFuture<Object> anyFuture = CompletableFuture.anyOf(
+                futures.toArray(new CompletableFuture[0]));
+
+        // 转换结果类型并返回
+        return anyFuture.thenApply(result -> (T) result);
     }
 
     /**
@@ -98,15 +124,25 @@ public class DtpModule implements DynamicAttribute<DtpModule, DtpModule>, Dynami
      * @return CompletableFuture 对象，表示第一个完成的任务
      */
     public CompletableFuture<Void> anyOfWithoutResult(List<Runnable> tasks) {
-        if (CollectionUtils.isEmpty(tasks)) {
+        if (Collections.isEmpty(tasks)) {
             return null;
         }
 
-        CompletableFuture<?>[] futures = tasks.stream()
-                .map(task -> CompletableFuture.runAsync(task, this.dtpExecutor))
-                .toArray(CompletableFuture[]::new);
+        List<CompletableFuture<Void>> futures = tasks.stream()
+                .map(task -> CompletableFuture.runAsync(task, this.dtpExecutor)
+                        .exceptionally(ex -> {
+                            // 处理单个任务异常，避免影响其他任务
+                            log.warn("Task execution failed", ex);
+                            return null;
+                        }))
+                .collect(Collectors.toList());
 
-        return CompletableFuture.anyOf(futures).thenRun(() -> {});
+        // 使用 anyOf 等待任意一个任务完成
+        CompletableFuture<Object> anyFuture = CompletableFuture.anyOf(
+                futures.toArray(new CompletableFuture[0]));
+
+        // 返回Void类型的CompletableFuture
+        return anyFuture.thenRun(() -> {});
     }
 
     /**
@@ -126,26 +162,24 @@ public class DtpModule implements DynamicAttribute<DtpModule, DtpModule>, Dynami
      */
     @Override
     public DtpModule getDynamicModule(MagicScriptContext context) {
+        // 从上下文中获取数据源键值
         String dataSourceKey = context.getString(Options.DEFAULT_DATA_SOURCE.getValue());
-        if (StringUtils.isEmpty(dataSourceKey)) {
-            return this;
-        }
-        DtpExecutor client = this.magicDynamicDtpDataSource.getClient(dataSourceKey);
-        if (client == null) {
-            log.warn("DTP数据源 '{}' 不存在，使用默认线程池", dataSourceKey);
-            return this;
-        }
-        return new DtpModule(this.magicDynamicDtpDataSource, client);
+        // 如果数据源键值为空，返回当前模块实例
+        if (StringUtils.isEmpty(dataSourceKey)) return this;
+        // 根据数据源键值创建新的DtpModule实例
+        return new DtpModule(this.magicDynamicDtpDataSource, this.magicDynamicDtpDataSource.getClient(dataSourceKey));
     }
 
+    /**
+     * 根据键值获取动态属性对应的模块
+     *
+     * @param key 属性键值，用于获取对应的数据源客户端
+     * @return 基于指定键值对应数据源的新DtpModule实例
+     */
     @Override
     public DtpModule getDynamicAttribute(String key) {
-        DtpExecutor client = this.magicDynamicDtpDataSource.getClient(key);
-        if (client == null) {
-            log.warn("DTP数据源 '{}' 不存在，使用默认线程池", key);
-            return this;
-        }
-        return new DtpModule(this.magicDynamicDtpDataSource, client);
+        // 根据键值创建新的DtpModule实例
+        return new DtpModule(this.magicDynamicDtpDataSource, this.magicDynamicDtpDataSource.getClient(key));
     }
 
 }

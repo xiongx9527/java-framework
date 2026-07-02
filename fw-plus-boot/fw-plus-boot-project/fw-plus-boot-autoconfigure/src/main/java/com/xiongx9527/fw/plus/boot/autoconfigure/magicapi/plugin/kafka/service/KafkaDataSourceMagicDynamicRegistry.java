@@ -4,13 +4,13 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.Kaf
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.MagicDynamicKafkaDataSource;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.context.event.EventListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.ssssssss.magicapi.core.event.FileEvent;
 import org.ssssssss.magicapi.core.event.GroupEvent;
 import org.ssssssss.magicapi.core.service.AbstractMagicDynamicRegistry;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.event.EventListener;
 
 import java.util.List;
 import java.util.Objects;
@@ -48,7 +48,8 @@ public class KafkaDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
         }
     }
 
@@ -60,10 +61,7 @@ public class KafkaDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
      */
     @EventListener(condition = "#event.type == 'kafka-datasource'")
     public void onGroupEvent(GroupEvent event) {
-        try {
-            processEvent(event);
-        } catch (Exception ignored) {
-        }
+        processEvent(event);
     }
 
     /**
@@ -93,33 +91,45 @@ public class KafkaDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
         }
     }
 
+    /**
+     * 注册Kafka数据源
+     *
+     * @param entity Kafka数据源信息实体
+     * @return boolean 注册是否成功
+     */
     @Override
     public boolean register(KafkaDataSourceInfo entity) {
         unregisterByEntity(entity);
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
+    /**
+     * 注册Kafka数据源，包括生产者和消费者
+     *
+     * @param mappingNode 包含Kafka数据源信息的映射节点
+     * @return 如果生产者和消费者都注册成功返回true，否则返回false
+     */
     @Override
     protected boolean register(MappingNode<KafkaDataSourceInfo> mappingNode) {
-        registerByEntity(mappingNode.getEntity());
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        KafkaDataSourceInfo entity = mappingNode.getEntity();
+        log.info("注册 Kafka 消息队列:[{}]开始执行", entity.getKey());
+        registerByEntity(entity);
+        log.info("注册 Kafka 消息队列：[{}]完成执行", entity.getKey());
+        // 返回生产者和消费者是否都注册成功
+        return super.register(mappingNode);
     }
 
+    /**
+     * 取消注册Kafka数据源，包括生产者和消费者
+     *
+     * @param mappingNode 包含Kafka数据源信息的映射节点
+     */
     @Override
     protected void unregister(MappingNode<KafkaDataSourceInfo> mappingNode) {
+        log.info("取消注册 Kafka 消息队列:[{}]开始执行", mappingNode.getEntity().getKey());
         unregisterByEntity(mappingNode.getEntity());
-        try {
-            super.unregister(mappingNode);
-        } catch (Exception ignored) {
-        }
+        log.info("取消注册 Kafka 消息队列：[{}]完成执行", mappingNode.getEntity().getKey());
+        super.unregister(mappingNode);
     }
 
     /**
@@ -150,7 +160,6 @@ public class KafkaDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
                 }
             }
         } catch (Exception e) {
-            log.debug("获取默认 KafkaTemplate 失败", e);
         }
         return dataSourceInfoList;
     }

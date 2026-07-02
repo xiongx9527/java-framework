@@ -95,4 +95,47 @@ public class TemplateModule {
         return this.templateParser.parseHtmlByUrl(url, map);
     }
 
+    /**
+     * 根据数据字节数组、参数映射和配置路径解析PDF文档
+     * @param data PDF文档的字节数组
+     * @param map 参数映射，用于替换模板中的占位符
+     * @param configPath 配置文件路径
+     * @return 解析后的PDF文档字节数组
+     */
+    public byte[] parsePdfByData(byte[] data, Map<String, Object> map, String configPath)  {
+        return this.templateParser.parsePdfByData(data, map, configPath);
+    }
+
+    /**
+     * 根据数据字节数组和参数映射解析PDF文档
+     * @param data PDF文档的字节数组
+     * @param map 参数映射，用于替换模板中的占位符
+     * @return 解析后的PDF文档字节数组
+     */
+    public byte[] parsePdfByData(byte[] data, Map<String, Object> map)  {
+        return this.templateParser.parsePdfByData(data, map);
+    }
+
+    /**
+     * 根据URL、参数映射和配置路径解析PDF文档
+     * @param url PDF文档的URL地址
+     * @param map 参数映射，用于替换模板中的占位符
+     * @param configPath 配置文件路径
+     * @return 解析后的PDF文档字节数组
+     */
+    public byte[] parsePdfByUrl(String url, Map<String, Object> map, String configPath) {
+        return this.templateParser.parsePdfByUrl(url, map, configPath);
+    }
+
+    /**
+     * 根据URL和参数映射解析PDF文档
+     * @param url PDF文档的URL地址
+     * @param map 参数映射，用于替换模板中的占位符
+     * @return 解析后的PDF文档字节数组
+     */
+    public byte[] parsePdfByUrl(String url, Map<String, Object> map) {
+        return this.templateParser.parsePdfByUrl(url, map);
+    }
+
+
 }

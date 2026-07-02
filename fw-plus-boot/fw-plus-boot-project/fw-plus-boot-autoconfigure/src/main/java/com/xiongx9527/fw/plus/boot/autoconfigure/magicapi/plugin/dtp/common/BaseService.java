@@ -20,7 +20,7 @@ public interface BaseService extends MagicBaseService {
 
         // 验证其它配置是否为有效的JSON格式
         // 如果配置内容不为空，则进行JSON格式校验
-        validateJSON(entity.getOther(),"other");
+        validateJSON(entity.getOther(),"其它配置");
     }
 
     /**

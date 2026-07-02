@@ -5,13 +5,13 @@ var MagicMilvus = function(vue) {
     "use strict";
     var MagicMilvusDataSource = (request, $i, modal, JavaClass) => {
         let findResources;
-        JavaClass.setExtensionAttribute("com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.milvus.model.MilvusDataSourceInfo", () => {
+        JavaClass.setExtensionAttribute("com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.milvus.model.MilvusDataSourceInfo", () => {
             var _a;
-            JavaClass.loadClass("com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.milvus.model.MilvusDataSourceInfo");
+            JavaClass.loadClass("com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.milvus.model.MilvusDataSourceInfo");
             return findResources && (((_a = findResources("milvus-datasource")[0]) == null ? void 0 : _a.children) || []).map((it) => {
                 return {
                     name: it.key,
-                    type: "com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.milvus.model.MilvusDataSourceInfo",
+                    type: "com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.milvus.model.MilvusDataSourceInfo",
                     comment: it.name
                 };
             }) || [];

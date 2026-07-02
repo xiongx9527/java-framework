@@ -5,13 +5,13 @@ var MagicLangchain4j = function(vue) {
     "use strict";
     var MagicLangchain4jDataSource = (request, $i, modal, JavaClass) => {
         let findResources;
-        JavaClass.setExtensionAttribute("com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo", () => {
+        JavaClass.setExtensionAttribute("com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo", () => {
             var _a;
-            JavaClass.loadClass("com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo");
+            JavaClass.loadClass("com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo");
             return findResources && (((_a = findResources("qdrant-datasource")[0]) == null ? void 0 : _a.children) || []).map((it) => {
                 return {
                     name: it.key,
-                    type: "com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo",
+                    type: "com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo",
                     comment: it.name
                 };
             }) || [];

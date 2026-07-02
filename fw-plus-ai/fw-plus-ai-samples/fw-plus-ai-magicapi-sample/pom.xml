@@ -62,12 +62,6 @@
             <version>2.0.1</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-jdbc-driver</artifactId>
-            <version>4.0.10</version>
-        </dependency>
-
     </dependencies>
 
 </project>

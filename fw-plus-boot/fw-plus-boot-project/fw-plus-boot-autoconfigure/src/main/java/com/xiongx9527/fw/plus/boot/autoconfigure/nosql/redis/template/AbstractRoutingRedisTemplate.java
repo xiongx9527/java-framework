@@ -294,8 +294,8 @@ public abstract class AbstractRoutingRedisTemplate<K, V> extends RedisTemplate<K
     }
 
     @Override
-    public void convertAndSend(@NonNull String channel, @NonNull Object message) {
-        determineTargetRedisTemplate().convertAndSend(channel, message);
+    public Long convertAndSend(@NonNull String channel, @NonNull Object message) {
+        return determineTargetRedisTemplate().convertAndSend(channel, message);
     }
 
     @Override
@@ -499,15 +499,6 @@ public abstract class AbstractRoutingRedisTemplate<K, V> extends RedisTemplate<K
         return determineTargetRedisTemplate().getClientList();
     }
 
-    @Override
-    public void slaveOf(@NonNull String host, int port) {
-        determineTargetRedisTemplate().slaveOf(host, port);
-    }
-
-    @Override
-    public void slaveOfNoOne() {
-        determineTargetRedisTemplate().slaveOfNoOne();
-    }
 
     @Override
     public void setEnableTransactionSupport(boolean enableTransactionSupport) {

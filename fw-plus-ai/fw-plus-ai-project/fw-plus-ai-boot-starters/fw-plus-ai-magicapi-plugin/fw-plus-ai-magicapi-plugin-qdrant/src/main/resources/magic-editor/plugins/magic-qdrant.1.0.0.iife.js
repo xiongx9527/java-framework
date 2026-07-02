@@ -5,13 +5,13 @@ var MagicQdrant = function(vue) {
     "use strict";
     var MagicQdrantDataSource = (request, $i, modal, JavaClass) => {
         let findResources;
-        JavaClass.setExtensionAttribute("com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.model.QdrantDataSourceInfo", () => {
+        JavaClass.setExtensionAttribute("com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.model.QdrantDataSourceInfo", () => {
             var _a;
-            JavaClass.loadClass("com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.model.QdrantDataSourceInfo");
+            JavaClass.loadClass("com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.model.QdrantDataSourceInfo");
             return findResources && (((_a = findResources("qdrant-datasource")[0]) == null ? void 0 : _a.children) || []).map((it) => {
                 return {
                     name: it.key,
-                    type: "com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.model.QdrantDataSourceInfo",
+                    type: "com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.model.QdrantDataSourceInfo",
                     comment: it.name
                 };
             }) || [];

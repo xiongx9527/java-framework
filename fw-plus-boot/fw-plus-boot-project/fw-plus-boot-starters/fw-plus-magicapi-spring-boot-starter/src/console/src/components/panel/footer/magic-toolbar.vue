@@ -6,8 +6,7 @@
                     <div class="magic-toolbar-header">
                         <label>{{ toolbar.title }}</label>
                         <div class="magic-toolbar-header-buttons">
-                            <magic-icon v-if="toolbar.fullscreen" :icon="isFullscreen ? 'fullscreen-exit' : 'fullscreen'" size="14px" :title="isFullscreen ? $i('message.exitFullscreen') : $i('message.fullscreen')" @click="toggleFullscreen"/>
-                            <magic-icon v-if="!isFullscreen" icon="minimize" size="14px" :title="$i('message.hide')" @click="navbar.select(-1)"/>
+                            <magic-icon icon="minimize" size="14px" :title="$i('message.hide')" @click="navbar.select(-1)"/>
                             <magic-icon icon="close" :title="$i('editor.tab.close')" v-if="toolbar.allowClose" @click="closeTab(toolbar)"/>
                         </div>
                     </div>
@@ -18,36 +17,12 @@
     </div>
 </template>
 <script setup>
-import {onMounted, onUnmounted, provide, reactive, ref, resolveDynamicComponent, shallowRef} from 'vue'
+import {  provide, reactive, ref, resolveDynamicComponent, shallowRef } from 'vue'
 import bus from '../../../scripts/bus.js'
 import $i from '../../../scripts/i18n.js'
 import Message from '../../../scripts/constants/message.js'
 import constants from '../../../scripts/constants.js'
-
 const navbar = ref(null)
-const isFullscreen = ref(false)
-
-function toggleFullscreen(event) {
-    const panel = event.target.closest('.magic-resizer-y')
-    if (!panel) return
-    if (isFullscreen.value) {
-        document.exitFullscreen()
-    } else {
-        panel.requestFullscreen()
-    }
-}
-
-function onFullscreenChange() {
-    isFullscreen.value = !!document.fullscreenElement
-}
-
-onMounted(() => {
-    document.addEventListener('fullscreenchange', onFullscreenChange)
-})
-
-onUnmounted(() => {
-    document.removeEventListener('fullscreenchange', onFullscreenChange)
-})
 const toolbars = reactive([
     { type: 'api', title: $i('api.title'), icon: 'parameter', component: shallowRef(resolveDynamicComponent('magic-api-info')) },
 
@@ -72,47 +47,29 @@ const toolbars = reactive([
     { id: 'event', title: $i('toolbars.event'), icon: 'event', component: shallowRef(resolveDynamicComponent('magic-event')), style: { float: 'right'} }
 ])
 
-// 只有当constants.PLUGINS_DATA中包含s3插件时，才添加s3工具栏
-if (constants.PLUGINS_DATA.some(plugin => plugin.name === 's3' && plugin.adminEnabled === true)) {
+// 只有当constants.PLUGINS_DATA中包含aia插件时，才添加aia工具栏
+if (constants.PLUGINS_DATA.some(plugin => plugin.name === 'aia')) {
     toolbars.push({
-        id: 's3',
-        title: $i('toolbars.s3'),
-        icon: 's3',
-        component: shallowRef(resolveDynamicComponent('magic-s3')),
-        max: 1000,
-        min: 200,
-        value: 500,
-        fullscreen: true
+        id: 'aia', 
+        title: $i('toolbars.aia'), 
+        icon: 'aia', 
+        component: shallowRef(resolveDynamicComponent('magic-aia')), 
+        max: 1000, 
+        min: 200, 
+        value: 500 
     })
 }
 
-
-
-// 只有当constants.PLUGINS_DATA中包含pulsar插件时，才添加pulsar工具栏
-if (constants.PLUGINS_DATA.some(plugin => plugin.name === 'pulsar'  && plugin.adminEnabled === true)) {
+// 添加tinyflow工具栏
+{
     toolbars.push({
-        id: 'pulsar',
-        title: $i('pulsar.title'),
-        icon: 'pulsar',
-        component: shallowRef(resolveDynamicComponent('magic-pulsar')),
-        max: 1000,
-        min: 200,
-        value: 500,
-        fullscreen: true
-    })
-}
-
-// 只有当constants.PLUGINS_DATA中包含kafka插件时，才添加kafka工具栏
-if (constants.PLUGINS_DATA.some(plugin => plugin.name === 'kafka' && plugin.adminEnabled === true)) {
-    toolbars.push({
-        id: 'kafka',
-        title: $i('kafka.title'),
-        icon: 'kafka',
-        component: shallowRef(resolveDynamicComponent('magic-kafka')),
-        max: 1000,
-        min: 200,
-        value: 500,
-        fullscreen: true
+        id: 'tinyflow', 
+        title: $i('toolbars.tinyflow'), 
+        icon: 'tinyflow',
+        component: shallowRef(resolveDynamicComponent('magic-tinyflow')), 
+        max: 1000, 
+        min: 200, 
+        value: 500 
     })
 }
 constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).map(it => it.toolbars).forEach(res => res.forEach(it => {
@@ -121,9 +78,7 @@ constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).map(it => 
 		type: it.type,
 		icon: it.icon,
 		title: $i(it.title),
-        component: shallowRef(it.component),
-        fullscreen: it.fullscreen,
-        allowClose: it.allowClose
+        component: shallowRef(it.component)
 	})
 }))
 const opened = ref({})

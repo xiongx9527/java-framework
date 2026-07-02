@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.common.exception.BaseRuntimeException;
 import com.xiongx9527.fw.plus.common.web.WebRequest;
 import com.xiongx9527.fw.plus.common.web.WebRequestContextHolder;
 import com.xiongx9527.fw.plus.common.web.WebResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
@@ -44,20 +45,18 @@ public abstract class WebUtils extends org.springframework.web.util.WebUtils {
      * 通过尝试加载WebFluxConfigurer和WebMvcConfigurer类来判断是否支持相应的框架
      */
     static {
+        // 检测是否支持WebFlux框架
         try {
             Class.forName("org.springframework.web.reactive.config.WebFluxConfigurer");
             isWebFlux = true;
-            log.debug("WebFlux framework detected");
         } catch (ClassNotFoundException e) {
-            log.debug("WebFlux framework not detected");
         }
 
+        // 检测是否支持WebMvc框架
         try {
             Class.forName("org.springframework.web.servlet.config.annotation.WebMvcConfigurer");
             isWebMvc = true;
-            log.debug("WebMvc framework detected");
         } catch (ClassNotFoundException e) {
-            log.debug("WebMvc framework not detected");
         }
     }
 
@@ -277,9 +276,12 @@ public abstract class WebUtils extends org.springframework.web.util.WebUtils {
      * @return 如果请求希望升级到WebSocket，则返回true；否则返回false
      */
     public static boolean isWebSocketRequest(WebRequest request) {
+        // 获取HTTP请求头中的Connection字段值
         String connectionHeader = request.getHeader("Connection");
-        String upgradeHeader = request.getHeader("Upgrade");
-        return "upgrade".equalsIgnoreCase(connectionHeader) && "websocket".equalsIgnoreCase(upgradeHeader);
+        // 使用Connection字段值作为新的请求头字段名进行二次获取
+        String upgradeHeader = request.getHeader(connectionHeader);
+        // 判断是否符合WebSocket升级特征
+        return "websocket".equalsIgnoreCase(upgradeHeader);
     }
 
     /**
@@ -306,7 +308,7 @@ public abstract class WebUtils extends org.springframework.web.util.WebUtils {
      * @param data 需要绑定请求参数的目标数据对象
      * @return 返回绑定结果，包含数据对象及可能的验证错误信息
      */
-    public static BindingResult bindRequestParameters(javax.servlet.http.HttpServletRequest request, Object data) {
+    public static BindingResult bindRequestParameters(HttpServletRequest request, Object data) {
         // 创建ServletRequestDataBinder实例，用于绑定请求参数到数据对象
         ServletRequestDataBinder binder = new ServletRequestDataBinder(data);
 

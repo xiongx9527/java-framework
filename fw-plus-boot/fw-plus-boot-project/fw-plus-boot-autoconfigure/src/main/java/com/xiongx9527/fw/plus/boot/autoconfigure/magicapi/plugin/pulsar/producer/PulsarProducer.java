@@ -1,23 +1,19 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.producer;
 
 import com.alibaba.fastjson.JSON;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.MagicDynamicPulsarDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarDataSourceInfo;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.PulsarClient;
-import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.TypedMessageBuilder;
+import org.apache.pulsar.client.api.*;
 
+import java.beans.Transient;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Pulsar 生产者实现
@@ -105,10 +101,11 @@ public class PulsarProducer implements BaseService {
         // 使用 computeIfAbsent 实现线程安全且高效的单次创建逻辑
         return pulsarProducerMap.computeIfAbsent(topicName, tn -> {
             try {
+                // 构造新的主题名称
                 String tenant = dataSourceInfo.getTenant();
-                tenant = MagicAPIConfigUtils.getPulsarConfig(dataSourceInfo.getKey(), "tenant", tenant);
+                tenant = SpringUtils.getAppConfig(String.format("magic.api.pulsar.%s.tenant",dataSourceInfo.getKey()),tenant);
                 String namespace = dataSourceInfo.getNamespace();
-                namespace = MagicAPIConfigUtils.getPulsarConfig(dataSourceInfo.getKey(), "namespace", namespace);
+                namespace = SpringUtils.getAppConfig(String.format("magic.api.pulsar.%s.namespace",dataSourceInfo.getKey()),namespace);
                 if (tenant == null || namespace == null) {
                     throw new IllegalStateException("Tenant or Namespace in DataSourceInfo is null.");
                 }
@@ -181,19 +178,26 @@ public class PulsarProducer implements BaseService {
     public boolean send(String topic,Integer partition,String key,Long delay, TimeUnit unit,Object msg , boolean async) {
         try {
             TypedMessageBuilder builder = createMessageBuilder(topic, partition, key, delay, unit, msg);
-            if (async) {
-                builder.sendAsync().whenComplete((messageId, throwable) -> {
-                    if (throwable != null) {
-                        log.error("异步发送消息失败：topic={}, partition={}, key={}",
-                                topic, partition, key, throwable);
+            try {
+                String messageId = null;
+                if (async) {
+                    builder.sendAsync();
+                } else {
+                    messageId = builder.send().toString();
+                }
+                log.debug("发送消息成功：topic={}, partition={}, key={}, delay={}, async={}, messageId={}",
+                        topic, partition, key, delay, async, messageId);
+                return true;
+            } finally {
+                // 确保资源得到释放（如果MessageBuilder需要关闭的话）
+                if (builder instanceof AutoCloseable) {
+                    try {
+                        ((AutoCloseable) builder).close();
+                    } catch (Exception e) {
+                        log.error("Failed to close TypedMessageBuilder: {}", e.getMessage(), e);
                     }
-                });
-            } else {
-                builder.send();
+                }
             }
-            log.debug("发送消息成功：topic={}, partition={}, key={}, delay={}, async={}",
-                    topic, partition, key, delay, async);
-            return true;
         } catch (Exception e) {
             log.error("发送消息失败：topic={}, partition={}, key={}, delay={}, async={}",
                     topic, partition, key, delay, async, e);
@@ -363,25 +367,29 @@ public class PulsarProducer implements BaseService {
      * 本方法遍历pulsarProducerMap中的所有生产者对象，并尝试关闭它们的连接
      * 如果在关闭过程中遇到任何错误，将会记录错误信息，但不会抛出异常
      */
+    @Transient
     public void close() {
+        // 检查pulsarProducerMap是否非空
         if (pulsarProducerMap == null || pulsarProducerMap.isEmpty()) {
             return;
         }
+        // 使用同步块确保线程安全
         synchronized (this) {
             try {
+                // 遍历pulsarProducerMap中的每个生产者对象
                 for (Map.Entry<String, Producer<byte[]>> entry : pulsarProducerMap.entrySet()) {
                     String producerKey = entry.getKey();
                     Producer<byte[]> producer = entry.getValue();
                     try {
-                        CompletableFuture.runAsync(() -> closeProducerSafely(producerKey, producer))
-                                .get(5, TimeUnit.SECONDS);
-                    } catch (TimeoutException e) {
-                        log.warn("关闭Pulsar生产者 [{}] 超时，已跳过", producerKey);
+                        closeProducerSafely(producerKey, producer);
                     } catch (Exception e) {
-                        log.warn("关闭Pulsar生产者 [{}] 异常", producerKey, e);
+                        // 记录单个生产者关闭异常，但继续处理其他生产者
+                        // 这里应该有具体的日志记录实现
+                        log.warn("Error closing Pulsar producer [{}]", producerKey, e);
                     }
                 }
             } finally {
+                // 确保无论如何都清空map以避免重复关闭或误用
                 pulsarProducerMap.clear();
             }
         }
@@ -395,10 +403,12 @@ public class PulsarProducer implements BaseService {
      */
     private void closeProducerSafely(String producerKey, Producer<byte[]> producer) {
         try {
-            if (producer != null) {
+            // 检查当前生产者对象是否非空且已连接
+            if (producer != null && producer.isConnected()) {
                 producer.close();
             }
         }catch (Throwable ee) {
+            // 对于非预期的错误仍然记录，但单独分类
             log.error("Unexpected error while closing Pulsar producer [{}]", producerKey, ee);
         }
     }
@@ -409,6 +419,7 @@ public class PulsarProducer implements BaseService {
      *
      * @return 返回当前对象的ID字符串
      */
+    @Transient
     public String getId() {
         return id;
     }
@@ -418,6 +429,7 @@ public class PulsarProducer implements BaseService {
      *
      * @return 返回当前对象的名称字符串
      */
+    @Transient
     public String getName() {
         return name;
     }
@@ -427,6 +439,7 @@ public class PulsarProducer implements BaseService {
      *
      * @return 返回当前对象的键字符串
      */
+    @Transient
     public String getKey() {
         return key;
     }
@@ -436,6 +449,7 @@ public class PulsarProducer implements BaseService {
      *
      * @return 返回Pulsar数据源信息对象
      */
+    @Transient
     public PulsarDataSourceInfo getDataSourceInfo() {
         return dataSourceInfo;
     }

@@ -1,18 +1,25 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.service;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaDataSourceInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.consumer.PulsarConsumer;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.MagicDynamicPulsarDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarDataSourceInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarSubscribeInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarSubscribeScriptInfo;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.api.Producer;
 import org.springframework.context.event.EventListener;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.ssssssss.magicapi.core.event.FileEvent;
 import org.ssssssss.magicapi.core.event.GroupEvent;
 import org.ssssssss.magicapi.core.service.AbstractMagicDynamicRegistry;
+import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -53,7 +60,8 @@ public class PulsarDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
         }
     }
 
@@ -65,10 +73,7 @@ public class PulsarDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
      */
     @EventListener(condition = "#event.type == 'pulsar-datasource'")
     public void onGroupEvent(GroupEvent event) {
-        try {
-            processEvent(event);
-        } catch (Exception ignored) {
-        }
+        processEvent(event);
     }
 
     /**
@@ -106,13 +111,8 @@ public class PulsarDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
      */
     @Override
     public boolean register(PulsarDataSourceInfo entity) {
-        // 先清理旧资源再注册，幂等安全
         unregisterByEntity(entity);
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
     /**
@@ -123,12 +123,11 @@ public class PulsarDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
      */
     @Override
     protected boolean register(MappingNode<PulsarDataSourceInfo> mappingNode) {
-        registerByEntity(mappingNode.getEntity());
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        PulsarDataSourceInfo entity = mappingNode.getEntity();
+        log.info("注册 Pulsar 消息队列:[{}]开始执行", entity.getKey());
+        registerByEntity(entity);
+        log.info("注册 Pulsar 消息队列：[{}]完成执行", entity.getKey());
+        return super.register(mappingNode);
     }
 
     /**
@@ -138,11 +137,10 @@ public class PulsarDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
      */
     @Override
     protected void unregister(MappingNode<PulsarDataSourceInfo> mappingNode) {
+        log.info("取消注册 Pulsar 消息队列:[{}]开始执行", mappingNode.getEntity().getKey());
         unregisterByEntity(mappingNode.getEntity());
-        try {
-            super.unregister(mappingNode);
-        } catch (Exception ignored) {
-        }
+        log.info("取消注册 Pulsar 消息队列：[{}]完成执行", mappingNode.getEntity().getKey());
+        super.unregister(mappingNode);
     }
 
     /**
@@ -168,7 +166,6 @@ public class PulsarDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
                 dataSourceInfoList.add(dataSourceInfo);
             }
         } catch (Exception e) {
-            log.debug("未找到默认 Producer bean", e);
         }
         return dataSourceInfoList;
     }

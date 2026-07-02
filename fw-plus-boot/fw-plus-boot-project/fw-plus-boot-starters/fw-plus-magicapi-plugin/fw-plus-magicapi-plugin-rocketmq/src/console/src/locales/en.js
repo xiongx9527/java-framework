@@ -10,27 +10,19 @@ export default {
             title: 'RocketMq Subscribe Info',
             name: 'RocketMq Subscribe',
             form: {
-                key: 'DataSource',
-                broadcast: 'Broadcast',
+                key: 'DataSource Key',
                 topic: 'Topic',
-                tags: 'Tags',
-                group: 'Group',
+                tag: 'Tag',
                 name: 'Name',
                 path: 'Path',
                 placeholder: {
                     key: 'Please Enter DataSource Key',
                     topic: 'Please Enter Subscribe Topic',
-                    tags: 'Please Enter Subscribe Tags',
-                    group: 'Please Enter Subscribe Group',
+                    tag: 'Please Enter Subscribe Tag Expression',
                     name: 'Please Enter Name',
                     path: 'Please Enter Path',
-                    other: 'Please Enter RocketMq Other Config',
-                    params: 'Please Enter RocketMq Subscribe Params'
+                    description: 'Please Enter RocketMq Subscribe Description'
                 }
-            },
-            navbars: {
-                other: 'Other',
-                params: 'Subscribe Params'
             }
         },
         datasource: {
@@ -44,7 +36,7 @@ export default {
                 secretKey: 'Secret Key',
                 extra: 'Type',
                 group: 'Group Name',
-                other: 'Other',
+                other: 'Other Config',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',

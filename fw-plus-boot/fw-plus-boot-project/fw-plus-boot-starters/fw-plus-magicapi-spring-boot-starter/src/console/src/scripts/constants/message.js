@@ -30,6 +30,5 @@ export default {
     RELOAD_RESOURCES: 'reload-resources',
     RELOAD_RESOURCE: 'reload-resource',
     RELOAD_RESOURCES_FINISH: 'reload-resources-finish',
-    RELOAD_ITEM: 'reload-item',
     ADD_FOOTER_TOOLBAR: 'add-footer-toolbar'
 }

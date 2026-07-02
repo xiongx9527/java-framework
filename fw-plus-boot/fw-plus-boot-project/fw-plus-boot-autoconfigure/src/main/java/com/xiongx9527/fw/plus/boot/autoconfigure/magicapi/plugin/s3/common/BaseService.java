@@ -5,10 +5,10 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.S3Data
 
 public interface BaseService extends MagicBaseService {
     /**
-     * 验证S3数据源配置信息的必填字段
-     *
-     * @param entity S3数据源配置信息实体
-     * @throws IllegalArgumentException 当任何必填字段为空时抛出此异常
+     * 验证Debezium数据源配置信息的必填字段
+     * 
+     * @param entity Debezium数据源配置信息实体
+     * @throws IllegalArgumentException 当任何必填字段为空或端口无效时抛出此异常
      */
     default void validateField(S3DataSourceInfo entity) {
         validateRequiredField(entity.getName(), "name");
@@ -18,6 +18,15 @@ public interface BaseService extends MagicBaseService {
         validateRequiredField(entity.getSecretKey(), "secretKey");
         validateRequiredField(entity.getEndPoint(), "endPoint");
         validateRequiredField(entity.getBucketName(), "bucketName");
+        //validateRequiredField(entity.getDefaultAcl(), "defaultAcl");
+        validateRequiredField(entity.getDomain(), "domain");
+        validateRequiredField(entity.getBasePath(), "basePath");
+
+        //validateRequiredField(entity.getHostname(), "hostname");
+        //validatePort(entity.getPort());
+        //validateRequiredField(entity.getUsername(), "username");
+        //validateRequiredField(entity.getPassword(), "password");
+        //validateRequiredField(entity.getMode(), "mode");
     }
 
 

@@ -37,6 +37,7 @@ public interface RabbitMqConsumerService {
      */
     @Transactional(rollbackFor = {Exception.class})
     default boolean consume(String key, Message msg) {
+        MagicResourceService resourceService = MagicConfiguration.getMagicResourceService();
         RabbitMqSubscribeInfoMagicResourceStorage subscribeInfoMagicResourceStorage = SpringUtils.getBean(RabbitMqSubscribeInfoMagicResourceStorage.class);
         Map<String, RabbitMqSubscribeInfo> subscribeScriptInfoMap = ListUtils.emptyIfNull(subscribeInfoMagicResourceStorage.findAll()).stream().filter(subscribeInfo -> StringUtils.equals(subscribeInfo.getKey(), key))
                 .collect(Collectors.toList()).stream().collect(Collectors.toMap(RabbitMqSubscribeInfo::getQueueName, val -> val, (k1, k2) -> k1));
@@ -55,7 +56,7 @@ public interface RabbitMqConsumerService {
         for (RabbitMqSubscribeInfo subscribeScriptInfo : subscribeScriptInfoMap.values()) {
             if (StringUtils.equals(subscribeScriptInfo.getQueueName(), consumerQueue)) {
                 MagicScriptContext magicScriptContext = new MagicScriptContext();
-                magicScriptContext.setScriptName("rabbitmq/" + subscribeScriptInfo.getKey() + "/" + subscribeScriptInfo.getQueueName() + "(" + subscribeScriptInfo.getName() + ")");
+                magicScriptContext.setScriptName(resourceService.getScriptName(subscribeScriptInfo));
                 magicScriptContext.set("msg", msg);
                 try {
                     // 执行脚本并返回结果

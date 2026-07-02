@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.common.web;
 
 import com.xiongx9527.fw.plus.common.util.WebUtils;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.Map;
 
@@ -21,7 +23,7 @@ public class WebRequestContextHolder {
     public static String resolveAndCacheLookupPath(WebRequest request) {
         // 判断是否为WebMvc环境
         if (WebUtils.isWebMvc()) {
-            return WebUtils.defaultUrlPathHelper().resolveAndCacheLookupPath((javax.servlet.http.HttpServletRequest)request.getRequest());
+            return WebUtils.defaultUrlPathHelper().resolveAndCacheLookupPath((HttpServletRequest)request.getRequest());
         } else if (WebUtils.isWebFlux()) {
             // WebFlux环境下的处理逻辑（暂未实现）
             //return WebFluxRequestContextHolder.resolveAndCacheLookupPath();
@@ -38,7 +40,7 @@ public class WebRequestContextHolder {
     public static String getLookupPath(WebRequest request) {
         // 判断是否为WebMvc环境
         if (WebUtils.isWebMvc()) {
-            return WebUtils.defaultUrlPathHelper().getResolvedLookupPath((javax.servlet.http.HttpServletRequest)request.getRequest());
+            return WebUtils.defaultUrlPathHelper().getResolvedLookupPath((HttpServletRequest)request.getRequest());
         } else if (WebUtils.isWebFlux()) {
             // WebFlux环境下的处理逻辑（暂未实现）
             //return WebFluxRequestContextHolder.getLookupPath();
@@ -54,7 +56,7 @@ public class WebRequestContextHolder {
      * @param request 传入的HttpServletRequest对象，包含了HTTP请求的所有信息
      * @return 返回一个WebRequest对象，该对象封装了传入的HttpServletRequest请求的所有信息
      */
-    public static WebRequest getWebMvcRequest(javax.servlet.http.HttpServletRequest request) {
+    public static WebRequest getWebMvcRequest(HttpServletRequest request) {
         return new WebMvcRequestContextHolder.WebMvcRequest(request);
     }
 
@@ -66,7 +68,7 @@ public class WebRequestContextHolder {
      * @param response Servlet的HttpServletResponse对象，用于接收HTTP响应
      * @return 返回一个包装了HttpServletResponse的WebResponse对象
      */
-    public static WebResponse getWebMvcResponse(javax.servlet.http.HttpServletResponse response) {
+    public static WebResponse getWebMvcResponse(HttpServletResponse response) {
         return new WebMvcRequestContextHolder.WebMvcResponse(response);
     }
 

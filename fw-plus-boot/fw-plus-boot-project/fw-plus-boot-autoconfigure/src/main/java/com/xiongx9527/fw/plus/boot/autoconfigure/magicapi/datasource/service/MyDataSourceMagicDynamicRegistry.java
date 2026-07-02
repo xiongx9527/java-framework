@@ -3,7 +3,8 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.JSONValidator;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model.RedisDataSourceInfo;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -87,7 +88,8 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("注册数据源失败", e);
         }
     }
 
@@ -100,11 +102,7 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
      */
     @Override
     public boolean register(DataSourceInfo entity) {
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
 
@@ -119,8 +117,8 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
     protected boolean register(MappingNode<DataSourceInfo> mappingNode) {
         DataSourceInfo info = mappingNode.getEntity();
         Map<String, Object> properties = new HashMap<>(info.getProperties());
-        String other = MagicAPIConfigUtils.getDbConfig(info.getKey(), "other", "");
-        if (StringUtils.isNotBlank(other)) {
+        String other = SpringUtils.getAppConfig(String.format("magic.api.db.%s.other", info.getKey()));
+        if (StringUtils.isNotBlank(other) && JSONValidator.from(other).validate()) {
             JSONValidator jsonValidator = JSONValidator.from(other);
             if (jsonValidator.validate() && jsonValidator.getType() == JSONValidator.Type.Object) {
                 JSONObject jsonObject = JSON.parseObject(other);
@@ -129,11 +127,11 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
                 }
             }
         }
-        String url = MagicAPIConfigUtils.getDbConfig(info.getKey(), "url", info.getUrl());
-        String username = MagicAPIConfigUtils.getDbConfig(info.getKey(), "username", info.getUsername());
-        String password = MagicAPIConfigUtils.getDbConfig(info.getKey(), "password", info.getPassword());
-        String type = MagicAPIConfigUtils.getDbConfig(info.getKey(), "type", info.getType());
-        String driverClassName = MagicAPIConfigUtils.getDbConfig(info.getKey(), "driverClassName", info.getDriverClassName());
+        String url = SpringUtils.getAppConfig(String.format("magic.api.db.%s.url", info.getKey()),info.getUrl());
+        String username = SpringUtils.getAppConfig(String.format("magic.api.db.%s.username", info.getKey()),info.getUsername());
+        String password = SpringUtils.getAppConfig(String.format("magic.api.db.%s.password", info.getKey()),info.getPassword());
+        String type = SpringUtils.getAppConfig(String.format("magic.api.db.%s.type", info.getKey()),info.getType());
+        String driverClassName = SpringUtils.getAppConfig(String.format("magic.api.db.%s.driverClassName", info.getKey()),info.getDriverClassName());
         // 特殊处理Elasticsearch驱动，设置只读模式
         if(Constants.ES_DRIVER.equals(driverClassName)){
             properties.put("defaultReadOnly", true);

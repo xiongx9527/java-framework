@@ -55,8 +55,14 @@ public class SseSubscribeInfo extends PathMagicEntity {
      */
     @Override
     public SseSubscribeInfo copy() {
+        // 创建新的SseSubscribeInfo实例并复制当前对象的属性
         SseSubscribeInfo info = new SseSubscribeInfo();
         this.copyTo(info);
+        info.setKey(this.key);
+        info.setEnabled(this.enabled);
+        info.setDescription(this.description);
+        info.setBusinessId(this.businessId);
+        info.setPath(null);
         return info;
     }
 
@@ -67,8 +73,14 @@ public class SseSubscribeInfo extends PathMagicEntity {
      */
     @Override
     public MagicEntity simple() {
+        // 创建新的SseSubscribeInfo实例作为简化版本并复制属性
         SseSubscribeInfo info = new SseSubscribeInfo();
         this.copyTo(info);
+        info.setKey(this.key);
+        info.setEnabled(this.enabled);
+        info.setDescription(this.description);
+        info.setBusinessId(this.businessId);
+        info.setPath(null);
         return info;
     }
 

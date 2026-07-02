@@ -9,8 +9,7 @@
   overflow-x: auto;
 }
 .magic-tab ul li {
-  display: inline-flex;
-  align-items: center;
+  display: inline-block;
   cursor: pointer;
   padding: 0 10px;
   height: 24px;
@@ -30,7 +29,6 @@
 .magic-tab.magic-script-tab ul li {
   height: 30px;
   line-height: 30px;
-  align-items: center;
   border-bottom: 3px solid transparent;
 }
 .magic-tab.magic-script-tab ul li.selected {

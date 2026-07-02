@@ -33,7 +33,7 @@ public class MagicAPISseHandlerConfiguration implements BaseService {
      */
     @Bean
     @DependsOn(value = {"sseDataSourceInfoMagicResourceStorage", "sseSubscribeInfoMagicResourceStorage"})
-    public BaseDynamicSseHandler redisDynamicSseHandler(SseDataSourceInfoMagicResourceStorage magicDataSourceStorage
+    public BaseDynamicSseHandler redisDynamicWebSocketHandler(SseDataSourceInfoMagicResourceStorage magicDataSourceStorage
             , SseSubscribeInfoMagicResourceStorage ssSubscribeInfoMagicResourceStorage) {
         return new RedisDynamicSseHandler(magicDataSourceStorage, ssSubscribeInfoMagicResourceStorage);
     }
@@ -63,9 +63,9 @@ public class MagicAPISseHandlerConfiguration implements BaseService {
             RedisConnectionFactory redisConnectionFactory = SpringUtils.getBean(RedisConnectionFactory.class);
             this.setConnectionFactory(redisConnectionFactory);
 
-            // 添加Redis消息监听器用于SSE消息处理
-            RedisDynamicSseHandler sseHandler = SpringUtils.getBean(RedisDynamicSseHandler.class);
-            this.addMessageListener(sseHandler.getRedisMessageListener(),
+            // 添加Redis消息监听器用于WebSocket消息处理
+            RedisDynamicSseHandler webSocketHandler = SpringUtils.getBean(RedisDynamicSseHandler.class);
+            this.addMessageListener(webSocketHandler.getRedisMessageListener(),
                     new ChannelTopic(getBroadcastChannelName()));
         }
     }

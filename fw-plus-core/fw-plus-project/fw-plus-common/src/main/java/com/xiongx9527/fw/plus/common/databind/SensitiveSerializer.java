@@ -22,7 +22,7 @@ public class SensitiveSerializer extends JsonSerializer<String> implements JsonC
     /**
      * 敏感策略接口实例，用于处理敏感信息相关策略
      */
-    private static volatile ISensitiveStrategy SENSITIVE_STRATEGY;
+    private static ISensitiveStrategy SENSITIVE_STRATEGY;
 
     /**
      * 类型字段，表示当前对象的类型标识

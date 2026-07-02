@@ -1,15 +1,10 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.template;
 
 import com.xiongx9527.fw.plus.template.TemplateParser;
-import com.xiongx9527.fw.plus.template.excel.ExcelAbstractParser;
 import com.xiongx9527.fw.plus.template.excel.ExcelParser;
-import com.xiongx9527.fw.plus.template.filechange.*;
-import com.xiongx9527.fw.plus.template.html.HtmlAbstractParser;
 import com.xiongx9527.fw.plus.template.html.HtmlParser;
-import com.xiongx9527.fw.plus.template.word.WordAbstractParser;
+import com.xiongx9527.fw.plus.template.pdf.PdfParser;
 import com.xiongx9527.fw.plus.template.word.WordParser;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,11 +19,9 @@ public class TemplateParserConfiguration {
      * @return WordParser Word文档解析器实例
      */
     @Bean
-    @ConditionalOnClass(name = "cn.afterturn.easypoi.word.parse.ParseWord07")
     @ConditionalOnMissingClass
-    public WordAbstractParser wordParser(@Autowired(required = false) AbstractWord2Html word2Html,
-                                         @Autowired(required = false) AbstractWord2Pdf word2Pdf) {
-        return new WordParser(word2Html, word2Pdf);
+    public WordParser wordParser() {
+        return new WordParser();
     }
 
     /**
@@ -38,10 +31,9 @@ public class TemplateParserConfiguration {
      * @return ExcelParser Excel文档解析器实例
      */
     @Bean
-    @ConditionalOnClass(name = "cn.afterturn.easypoi.excel.ExcelImportUtil")
     @ConditionalOnMissingClass
-    public ExcelAbstractParser excelParser(@Autowired(required = false) AbstractExcel2Html excel2Html) {
-        return new ExcelParser(excel2Html);
+    public ExcelParser excelParser () {
+        return new ExcelParser();
     }
 
     /**
@@ -51,10 +43,21 @@ public class TemplateParserConfiguration {
      * @return HtmlParser HTML文档解析器实例
      */
     @Bean
-    @ConditionalOnClass(name = "freemarker.template.Template")
     @ConditionalOnMissingClass
-    public HtmlAbstractParser htmlParser(@Autowired(required = false) AbstractHtml2Pdf html2Pdf) {
-        return new HtmlParser(html2Pdf);
+    public HtmlParser htmlParser () {
+        return new HtmlParser();
+    }
+
+    /**
+     * 创建PDF文档解析器bean实例
+     * 当容器中不存在PdfParser类时才会创建该bean
+     *
+     * @return PdfParser PDF文档解析器实例
+     */
+    @Bean
+    @ConditionalOnMissingClass
+    public PdfParser pdfParser() {
+        return new PdfParser();
     }
 
     /**
@@ -66,14 +69,13 @@ public class TemplateParserConfiguration {
      * @param wordParser  Word文档解析器
      * @param excelParser Excel文档解析器
      * @param htmlParser  HTML文档解析器
+     * @param pdfParser   PDF文档解析器
      * @return TemplateParser模板解析器实例
      */
     @Bean
     @ConditionalOnMissingClass
-    public TemplateParser templateParser(@Autowired(required = false) WordAbstractParser wordParser,
-                                         @Autowired(required = false) ExcelAbstractParser excelParser,
-                                         @Autowired(required = false) HtmlAbstractParser htmlParser) {
-        return new TemplateParser(wordParser, excelParser, htmlParser);
+    public TemplateParser templateParser(WordParser wordParser, ExcelParser excelParser, HtmlParser htmlParser, PdfParser pdfParser) {
+        return new TemplateParser(wordParser, excelParser, htmlParser, pdfParser);
     }
 
 }

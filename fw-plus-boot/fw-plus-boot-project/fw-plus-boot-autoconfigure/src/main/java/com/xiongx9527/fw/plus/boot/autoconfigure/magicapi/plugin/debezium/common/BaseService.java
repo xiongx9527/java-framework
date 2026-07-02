@@ -18,11 +18,6 @@ public interface BaseService extends MagicBaseService  {
         validateRequiredField(entity.getConnectorClass(), "connectorClass");
         validateRequiredField(entity.getHostname(), "hostname");
         validateRequiredField(entity.getPort(), "port");
-        try {
-            validatePort(Integer.parseInt(entity.getPort()));
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("数据库端口(port)必须是有效的整数");
-        }
         validateRequiredField(entity.getUsername(), "username");
         validateRequiredField(entity.getPassword(), "password");
         validateRequiredField(entity.getDatabase(), "database");

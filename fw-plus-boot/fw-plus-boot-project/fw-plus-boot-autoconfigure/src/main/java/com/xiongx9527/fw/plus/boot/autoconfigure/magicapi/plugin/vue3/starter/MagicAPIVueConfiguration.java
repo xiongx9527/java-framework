@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.starter;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.modules.VueModule;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.service.VueInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.service.VueMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.service.VueInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.web.MagicVueController;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -11,8 +11,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
 import org.ssssssss.magicapi.core.model.Plugin;
@@ -21,8 +19,9 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 @ConditionalOnClass(name={"org.thymeleaf.Thymeleaf"})
 @Configuration
 @EnableConfigurationProperties(MagicVue3Config.class)
-@Import(Vue3ResourceConfiguration.class)
+@Import(Vue3ResourcConfiguration.class)
 public class MagicAPIVueConfiguration implements MagicPluginConfiguration {
+
     /**
      * MagicAPI配置属性对象
      *
@@ -59,17 +58,6 @@ public class MagicAPIVueConfiguration implements MagicPluginConfiguration {
     @Bean
     public VueModule vueModule() {
         return new VueModule(magicAPIProperties);
-    }
-
-    @Bean
-    public WebMvcConfigurer vue3StaticResourceConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addResourceHandlers(ResourceHandlerRegistry registry) {
-                registry.addResourceHandler(magicAPIProperties.getWeb() + "/magic-editor/vue3/**")
-                        .addResourceLocations("classpath:/magic-editor/vue3/");
-            }
-        };
     }
 
     /**

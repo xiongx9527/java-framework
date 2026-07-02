@@ -63,6 +63,11 @@ public class DebeziumDataSourceInfo extends MagicEntity {
     private String kafkaTopic;
 
     /**
+     * 是否启用生产者
+     */
+    private boolean producerEnable = true;
+
+    /**
      * 其他配置项
      */
     private String other;
@@ -73,11 +78,6 @@ public class DebeziumDataSourceInfo extends MagicEntity {
      * 该变量用于控制对象的功能是否可用，默认初始化为false（禁用状态）
      */
     private boolean enabled = false;
-
-    /**
-     * server.id 生成策略：random（随机）或 fixed（固定），默认 random
-     */
-    private String serverIdType = "random";
 
 
     /**
@@ -104,8 +104,6 @@ public class DebeziumDataSourceInfo extends MagicEntity {
         dataSourceInfo.setKafkaServers(this.kafkaServers);
         dataSourceInfo.setKafkaTopic(this.kafkaTopic);
         dataSourceInfo.setOther(this.other);
-        dataSourceInfo.setEnabled(this.enabled);
-        dataSourceInfo.setServerIdType(this.serverIdType);
         return dataSourceInfo;
     }
 
@@ -134,9 +132,9 @@ public class DebeziumDataSourceInfo extends MagicEntity {
         dataSourceInfo.setKafkaServers(this.kafkaServers);
         dataSourceInfo.setKafkaTopic(this.kafkaTopic);
         dataSourceInfo.setOther(this.other);
-        dataSourceInfo.setEnabled(this.enabled);
-        dataSourceInfo.setServerIdType(this.serverIdType);
         return dataSourceInfo;
     }
+
+
 
 }

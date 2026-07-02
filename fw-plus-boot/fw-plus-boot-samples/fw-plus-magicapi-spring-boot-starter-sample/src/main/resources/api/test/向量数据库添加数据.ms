@@ -5,7 +5,7 @@
   "groupId" : "6ba036bab29041888d8c2705d6fb77d3",
   "name" : "向量数据库添加数据",
   "createTime" : 1758684961204,
-  "updateTime" : 1777039249126,
+  "updateTime" : 1764509013207,
   "lock" : null,
   "createBy" : "admin",
   "updateBy" : null,
@@ -13,36 +13,12 @@
   "method" : "GET",
   "parameters" : [ ],
   "options" : [ ],
-  "requestBody" : "{\n    \"a\":\"b44\"\n}",
+  "requestBody" : "",
   "headers" : [ ],
   "paths" : [ ],
   "responseBody" : null,
   "description" : null,
-  "requestBodyDefinition" : {
-    "name" : "",
-    "value" : "",
-    "description" : "",
-    "required" : false,
-    "dataType" : "Object",
-    "type" : null,
-    "defaultValue" : null,
-    "validateType" : "",
-    "error" : "",
-    "expression" : "",
-    "children" : [ {
-      "name" : "a",
-      "value" : "b44",
-      "description" : "",
-      "required" : false,
-      "dataType" : "String",
-      "type" : null,
-      "defaultValue" : null,
-      "validateType" : "",
-      "error" : "",
-      "expression" : "",
-      "children" : [ ]
-    } ]
-  },
+  "requestBodyDefinition" : null,
   "responseBodyDefinition" : null
 }
 ================================

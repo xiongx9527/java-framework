@@ -21,13 +21,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.github.ulisesbocchio</groupId>
-            <artifactId>jasypt-spring-boot-starter</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-boot-common</artifactId>
             <scope>compile</scope>
@@ -119,17 +112,16 @@
         </dependency>
 
         <dependency>
-            <groupId>org.hibernate</groupId>
-            <artifactId>hibernate-c3p0</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-dbcp2</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -267,14 +259,7 @@
 
         <dependency>
             <groupId>com.alibaba</groupId>
-            <artifactId>druid-spring-boot-starter</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-jta-atomikos</artifactId>
+            <artifactId>druid-spring-boot-3-starter</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -323,8 +308,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-logging</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -359,7 +344,7 @@
 
         <dependency>
             <groupId>org.jeecgframework.jimureport</groupId>
-            <artifactId>jimureport-spring-boot-starter</artifactId>
+            <artifactId>jimureport-spring-boot3-starter</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -373,7 +358,7 @@
 
         <dependency>
             <groupId>org.jeecgframework.jimureport</groupId>
-            <artifactId>jimubi-spring-boot-starter</artifactId>
+            <artifactId>jimubi-spring-boot3-starter</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -459,18 +444,16 @@
             <optional>true</optional>
         </dependency>
 
-        <!--
         <dependency>
-            <groupId>org.ssssssss</groupId>
-            <artifactId>magic-api-plugin-nebula</artifactId>
+            <groupId>com.vesoft</groupId>
+            <artifactId>client</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
-        -->
 
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
+            <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -482,14 +465,6 @@
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
-
-        <dependency>
-            <groupId>org.apache.rocketmq</groupId>
-            <artifactId>rocketmq-tools</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
         <dependency>
             <groupId>org.apache.rocketmq</groupId>
             <artifactId>rocketmq-acl</artifactId>
@@ -519,17 +494,6 @@
             <artifactId>pulsar-client</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
-            <exclusions>
-            </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.pulsar</groupId>
-            <artifactId>pulsar-client-admin</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-            <exclusions>
-            </exclusions>
         </dependency>
 
         <!--  thymeleaf-->
@@ -540,6 +504,12 @@
             <optional>true</optional>
         </dependency>
 
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-javaparser</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
 
         <dependency>
             <groupId>org.springframework.cloud</groupId>
@@ -551,13 +521,6 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-config-server</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-config-client</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -612,6 +575,13 @@
         <dependency>
             <groupId>com.influxdb</groupId>
             <artifactId>influxdb-spring</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>co.elastic.clients</groupId>
+            <artifactId>elasticsearch-java</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -718,6 +688,22 @@
             <!-- 排除冲突的依赖 -->
             <exclusions>
                 <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-reload4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-core</artifactId>
+                </exclusion>
+                <exclusion>
                     <artifactId>kafka-clients</artifactId>
                     <groupId>org.apache.kafka</groupId>
                 </exclusion>
@@ -735,19 +721,6 @@
             <optional>true</optional>
         </dependency>
 
-        <dependency>
-            <groupId>io.seata</groupId>
-            <artifactId>seata-spring-boot-starter</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-dify</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
 
     </dependencies>
 

@@ -13,12 +13,10 @@
 		</div>
 		<magic-empty v-if="datasources.length === 0" :text="$i('message.empty', title)"/>
 		<ul v-else>
-			<li v-for="(item, key) in datasources" :key="key" :class="{selected: selectedKey === item.key}" @click="selectedKey = item.key" @contextmenu.prevent="e => { selectedKey = item.key; onContextMenu(item, e) }">
+			<li v-for="(item, key) in datasources" :key="key" @contextmenu.prevent="e => onContextMenu(item, e)">
 				<magic-icon icon="datasource" />
-				<div class="magic-data-resource-item-content">
-					<label>{{item.name || $i('datasource.primary')}}</label>
-					<span>({{item.key || 'default'}})</span>
-				</div>
+				<label>{{item.name || $i('datasource.primary')}}</label>
+				<span>({{item.key || 'default'}})</span>
 				<magic-icon v-if="item.lock === '1'" icon="lock" />
 			</li>
 		</ul>
@@ -35,13 +33,12 @@
 	</magic-dialog>
 </template>
 <script setup>
-import {computed, getCurrentInstance, inject, ref, resolveDynamicComponent} from 'vue'
+import { ref, resolveDynamicComponent, getCurrentInstance, computed, inject } from 'vue'
 import request from '../../../scripts/request.js'
 import bus from '../../../scripts/bus.js'
 import constants from '../../../scripts/constants.js'
 import Message from '../../../scripts/constants/message.js'
 import $i from '../../../scripts/i18n.js'
-
 const props = defineProps({
 	/**
 	 * 类型，datasource、redis、mongo
@@ -60,7 +57,6 @@ const dataResourceObj = ref({})
 const keyword = ref('')
 const saveButtonText = ref('')
 const loading = ref(true)
-const selectedKey = ref('')
 const datasources = computed(() => {
 	return props.data && props.data.length > 0 && props.data[0].children && props.data[0].children.filter(it => it.name.indexOf(keyword.value) > -1 || it.key.indexOf(keyword.value) > -1) || []
 })
@@ -87,10 +83,6 @@ const doTest = () => {
 }
 const { proxy } = getCurrentInstance()
 const doSaveObj = (saveObj, msgId, msg) => {
-	// Default data source is not modifiable
-	if(saveObj.key === 'default' || saveObj.key === 'default_data_source' || !saveObj.key) {
-		return
-	}
 	saveObj.groupId = `${props.type}:0`
 	request.sendJson(`/resource/file/${props.type}/save`, saveObj).success((id) => {
 		if(id) {
@@ -119,29 +111,14 @@ const doSave = () => {
 }
 const getFullPath = item => `${item.name}(${item.key})`
 const deleteNode = item => {
-	// Default data source is not deletable
-	if(item.key === 'default' || item.key === 'default_data_source' || !item.key) {
-		return
-	}
 	const index = props.data[0].children.findIndex(it => it === item)
 	if(index > -1) {
 		props.data[0].children.splice(index, 1)
 	}
 }
-const executeDelete = (item, msg) => {
-	request.send('/resource/delete', { id: item.id }).success(ret => {
-		bus.status(ret ? 'message.deleteSuccess': 'message.deleteFailed', ret, msg)
-		if(!ret) {
-			proxy.$alert(ret ? 'message.deleteSuccess': 'message.deleteFailed', msg)
-		}else{
-			deleteNode(item)
-		}
-	})
-}
 const onContextMenu = (item, event) => {
 	const menus = []
-	// Default data source is not modifiable
-	if(item.id && !(item.key === 'default' || item.key === 'default_data_source' || !item.key)){
+	if(item.id){
 		[{
 			label: $i('message.update'),
 			icon: 'update',
@@ -162,27 +139,14 @@ const onContextMenu = (item, event) => {
 			onClick: () => {
 				const msg = `${props.title}「${getFullPath(item)}」`
 				proxy.$confirm($i('message.deleteTips', props.title), $i('message.deleteConfirm', msg), () => {
-					if (typeof service.doDelete === 'function') {
-						try {
-							const result = service.doDelete(item)
-							if (result && typeof result.then === 'function') {
-								result.then(() => {
-									executeDelete(item, msg)
-								}).catch((error) => {
-									console.error('删除前置操作失败:', error)
-									bus.status('message.deleteFailed', false, msg)
-									proxy.$alert(error.message || $i('message.deleteFailed', msg))
-								})
-								return
-							}
-						} catch (error) {
-							console.error('删除前置操作失败:', error)
-							bus.status('message.deleteFailed', false, msg)
-							proxy.$alert(error.message || $i('message.deleteFailed', msg))
-							return
+					request.send('/resource/delete', { id: item.id }).success(ret => {
+						bus.status(ret ? 'message.deleteSuccess': 'message.deleteFailed', ret, msg)
+						if(!ret) {
+							proxy.$alert(ret ? 'message.deleteSuccess': 'message.deleteFailed', msg)
+						}else{
+							deleteNode(item)
 						}
-					}
-					executeDelete(item, msg)
+					})
 				})
 			}
 		}, {
@@ -196,12 +160,6 @@ const onContextMenu = (item, event) => {
 					res.key = res.key + '_copy'
 					doSaveObj(res, 'datasource.copy',`${props.title}「${getFullPath(res)}」`)
 				})
-			}
-		}, {
-			label: $i('message.refresh'),
-			icon: 'refresh',
-			onClick: () => {
-				bus.$emit(Message.RELOAD_ITEM, {type: props.type, id: item.id})
 			}
 		}].forEach(m => menus.push(m))
 		if(item.lock === constants.LOCKED){
@@ -294,45 +252,24 @@ const onContextMenu = (item, event) => {
 	overflow: auto;
 }
 .magic-data-resource > ul li{
-	display: flex;
-	align-items: center;
 	line-height: 22px;
 	padding-left: 10px;
 	white-space: nowrap;
-	min-width: 0;
+}
+.magic-data-resource > ul li:hover{
+	background-color: var(--tree-hover-background-color);
 }
 .magic-data-resource > ul li .magic-icon{
-	flex-shrink: 0;
-	width: 16px;
-	height: 16px;
-	margin-right: 4px;
+	padding-right: 2px;
 }
-.magic-data-resource > ul li .magic-data-resource-item-content{
-	flex: 1;
-	display: flex;
-	align-items: center;
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-.magic-data-resource > ul li .magic-data-resource-item-content label{
+.magic-data-resource > ul li label{
 	color: var(--resource-label-color);
-	white-space: nowrap;
 }
-.magic-data-resource > ul li .magic-data-resource-item-content span{
+.magic-data-resource > ul li span{
 	color: var(--resource-span-color);
 	display: inline-block;
 	height: 22px;
 	line-height: 22px;
-	white-space: nowrap;
-	margin-left: 0;
-}
-.magic-data-resource > ul li.selected{
-		background-color: var(--tree-hover-background-color);
-	}
-	.magic-data-resource > ul li:hover{
-	background-color: var(--tree-hover-background-color);
 }
 .magic-data-resource > ul li :deep(.magic-icon-datasource){
 	fill: #089910

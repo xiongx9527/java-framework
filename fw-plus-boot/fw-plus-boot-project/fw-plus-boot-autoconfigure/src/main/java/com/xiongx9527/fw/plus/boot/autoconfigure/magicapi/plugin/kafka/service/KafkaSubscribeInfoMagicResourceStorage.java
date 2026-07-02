@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.config.KafkaCodeConstants.*;
+import static com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.config.PulsarCodeConstants.PULSAR_SUBSCRIBE_OTHER_MUST_BE_JSONOBJECT;
 
 /**
  * @author zzy

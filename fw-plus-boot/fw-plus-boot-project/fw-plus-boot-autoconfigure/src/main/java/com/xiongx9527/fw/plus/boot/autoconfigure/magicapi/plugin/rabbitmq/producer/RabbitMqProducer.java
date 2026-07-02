@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.producer;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqDataSourceInfo;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
@@ -70,22 +70,22 @@ public class RabbitMqProducer {
     private ConnectionFactory createConnectionFactory(RabbitMqDataSourceInfo dataSourceInfo) {
         CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
         String host = dataSourceInfo.getHost();
-        host = MagicAPIConfigUtils.getRabbitMQConfig(dataSourceInfo.getKey(), "host", host);
+        host = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.host",dataSourceInfo.getKey()), host);
         connectionFactory.setHost(host);
         String portStr = dataSourceInfo.getPort();
-        portStr = MagicAPIConfigUtils.getRabbitMQConfig(dataSourceInfo.getKey(), "port", portStr);
+        portStr = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.port",dataSourceInfo.getKey()), portStr);
         int port = Integer.parseInt(portStr);
         connectionFactory.setPort(port);
         String username = dataSourceInfo.getUsername();
-        username = MagicAPIConfigUtils.getRabbitMQConfig(dataSourceInfo.getKey(), "username", username);
+        username = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.username",dataSourceInfo.getKey()), username);
         String password = dataSourceInfo.getPassword() ;
-        password = MagicAPIConfigUtils.getRabbitMQConfig(dataSourceInfo.getKey(), "password", password);
+        password = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.password",dataSourceInfo.getKey()), password);
         if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
             connectionFactory.setUsername(username);
             connectionFactory.setPassword(password);
         }
         String virtualHost = dataSourceInfo.getVirtualHost();
-        virtualHost = MagicAPIConfigUtils.getRabbitMQConfig(dataSourceInfo.getKey(), "virtualHost", virtualHost);
+        virtualHost = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.virtualHost",dataSourceInfo.getKey()), virtualHost);
         if (StringUtils.isNotBlank(virtualHost)) {
             connectionFactory.setVirtualHost(virtualHost);
         }

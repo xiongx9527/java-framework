@@ -45,7 +45,9 @@ public class Langchain4jDataSourceMagicDynamicRegistry extends AbstractMagicDyna
         try {
             // 处理文件事件的核心逻辑
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            // 记录处理文件事件时发生的异常信息
+            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
         }
     }
 
@@ -57,10 +59,7 @@ public class Langchain4jDataSourceMagicDynamicRegistry extends AbstractMagicDyna
      */
     @EventListener(condition = "#event.type == 'langchain4j-datasource'")
     public void onGroupEvent(GroupEvent event) {
-            try {
-              processEvent(event);
-            } catch (Exception ignored) {
-            }
+        processEvent(event);
     }
 
 
@@ -74,11 +73,7 @@ public class Langchain4jDataSourceMagicDynamicRegistry extends AbstractMagicDyna
     public boolean register(Langchain4jDataSourceInfo entity) {
         // 销毁旧的数据源模型
         magicLangchain4jDataSource.destroyModelByKey(entity.getKey());
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
 
@@ -95,11 +90,7 @@ public class Langchain4jDataSourceMagicDynamicRegistry extends AbstractMagicDyna
         magicLangchain4jDataSource.destroyModelByKey(entity.getKey());
         // 创建新的数据源客户端
         magicLangchain4jDataSource.createClient(entity);
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(mappingNode);
     }
 
 
@@ -113,10 +104,7 @@ public class Langchain4jDataSourceMagicDynamicRegistry extends AbstractMagicDyna
         // 销毁模型实例
         magicLangchain4jDataSource.destroyModelByKey(mappingNode.getEntity().getKey());
         // 调用父类注销方法
-        try {
-            super.unregister(mappingNode);
-        } catch (Exception ignored) {
-        }
+        super.unregister(mappingNode);
     }
 
 

@@ -29,7 +29,8 @@ public class FreemarkerMagicDynamicRegistry extends AbstractMagicDynamicRegistry
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
         }
     }
 
@@ -40,10 +41,7 @@ public class FreemarkerMagicDynamicRegistry extends AbstractMagicDynamicRegistry
      */
     @EventListener(condition = "#event.type == 'freemarker'")
     public void onGroupEvent(GroupEvent event) {
-            try {
         processEvent(event);
-            } catch (Exception ignored) {
-            }
     }
 
     /**
@@ -74,11 +72,7 @@ public class FreemarkerMagicDynamicRegistry extends AbstractMagicDynamicRegistry
     @Override
     public boolean register(FtlInfo entity) {
         clearCache(entity);
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
     /**
@@ -89,11 +83,7 @@ public class FreemarkerMagicDynamicRegistry extends AbstractMagicDynamicRegistry
     @Override
     protected boolean register(MappingNode<FtlInfo> mappingNode) {
         clearCache(mappingNode.getEntity());
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(mappingNode);
     }
 
     /**
@@ -103,10 +93,7 @@ public class FreemarkerMagicDynamicRegistry extends AbstractMagicDynamicRegistry
     @Override
     protected void unregister(MappingNode<FtlInfo> mappingNode) {
         clearCache(mappingNode.getEntity());
-        try {
-            super.unregister(mappingNode);
-        } catch (Exception ignored) {
-        }
+        super.unregister(mappingNode);
     }
 
 }

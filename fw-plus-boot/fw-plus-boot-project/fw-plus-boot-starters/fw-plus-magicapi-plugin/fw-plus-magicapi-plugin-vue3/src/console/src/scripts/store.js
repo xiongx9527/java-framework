@@ -4,7 +4,7 @@ class Store {
     }
 
     set(key, value) {
-        if (value != null && (Array.isArray(value) || typeof value === 'object')) {
+        if (Array.isArray(value) || typeof value == 'object') {
             value = JSON.stringify(value);
         }
         localStorage.setItem(`${prefix}${key}`, value);

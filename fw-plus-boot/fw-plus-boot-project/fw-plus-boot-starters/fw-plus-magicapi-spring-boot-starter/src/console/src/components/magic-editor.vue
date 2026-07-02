@@ -394,8 +394,6 @@ bus.$on(Message.SHOW_LOGIN, showLoginFunc)
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin: 0 auto 12px;
-    transform-origin: center center;
-    will-change: transform;
 }
 
 .loading-text {

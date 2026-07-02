@@ -35,8 +35,9 @@ public class SseDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegis
 	public void onFileEvent(FileEvent event) {
 		try {
 			processEvent(event);
-		} catch (Exception ignored) {
-        }
+		} catch (Exception e) {
+			log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
+		}
 	}
 
 	/**
@@ -46,10 +47,7 @@ public class SseDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegis
 	 */
 	@EventListener(condition = "#event.type == 'sse-datasource'")
 	public void onGroupEvent(GroupEvent event) {
-		    try {
 		processEvent(event);
-		    } catch (Exception ignored) {
-		    }
 	}
 
 	/**
@@ -73,11 +71,7 @@ public class SseDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegis
 	 */
 	@Override
 	protected boolean register(MappingNode<SseDataSourceInfo> mappingNode) {
-		try {
-		    return super.register(mappingNode);
-		} catch (Exception ignored) {
-		    return false;
-		}
+		return super.register(mappingNode);
 	}
 
 	/**
@@ -90,12 +84,8 @@ public class SseDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegis
 			SpringUtils.getBean(BaseDynamicSseHandler.class)
 					.cleanupByAppId(mappingNode.getEntity().getKey());
 		} catch (Exception e) {
-			log.warn("Failed to cleanup sessions for appId: {}", mappingNode.getEntity().getKey(), e);
 		}
-		try {
-		    super.unregister(mappingNode);
-		} catch (Exception ignored) {
-		}
+		super.unregister(mappingNode);
 	}
 
 

@@ -9,6 +9,7 @@ import com.fhs.core.trans.util.ReflectUtils;
 import com.fhs.core.trans.vo.VO;
 import com.fhs.trans.service.impl.TransService;
 import com.fhs.trans.utils.TransUtil;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.description.annotation.AnnotationDescription;
@@ -20,7 +21,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
 
-import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.*;

@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.common.web;
 
-import cn.hutool.core.util.ObjectUtil;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.NamedThreadLocal;

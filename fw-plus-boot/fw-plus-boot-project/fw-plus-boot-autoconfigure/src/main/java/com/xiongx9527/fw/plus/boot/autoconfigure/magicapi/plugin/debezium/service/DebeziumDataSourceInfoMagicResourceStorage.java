@@ -134,16 +134,18 @@ public class DebeziumDataSourceInfoMagicResourceStorage implements MagicResource
         if (key == null || magicResourceService == null) {
             return;
         }
-
-        boolean exists = magicResourceService.listFiles(folder() + ":0").stream()
+        
+        // 获取所有已存在的数据源
+        boolean noneMatchKey = magicResourceService.listFiles(folder() + ":0").stream()
                 .filter(it -> it instanceof DebeziumDataSourceInfo)
-                .map(it -> (DebeziumDataSourceInfo) it)
+                .map(it -> (DebeziumDataSourceInfo)it)
                 .filter(it -> it.getId() != null && !it.getId().equals(currentId))
-                .anyMatch(it -> Objects.equals(it.getKey(), key));
+                .noneMatch(it -> Objects.equals(it.getKey(), key));
 
-        if (exists) {
+        if (!noneMatchKey) {
             throw new IllegalArgumentException(String.format("数据源唯一标识(key) '%s' 已存在，请使用其他唯一标识", key));
         }
+
     }
 
     /**

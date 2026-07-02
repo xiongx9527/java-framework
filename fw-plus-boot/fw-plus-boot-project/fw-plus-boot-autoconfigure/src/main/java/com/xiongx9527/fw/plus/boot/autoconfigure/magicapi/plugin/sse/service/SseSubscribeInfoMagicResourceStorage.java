@@ -70,16 +70,16 @@ public class SseSubscribeInfoMagicResourceStorage extends AbstractPathMagicResou
 
 		// 检查同一key下业务标识的唯一性
 		if (map.containsKey(entity.getKey())) {
-			Map<String, SseSubscribeInfo> subscribeInfoMap = ListUtils.emptyIfNull(map.get(entity.getKey())).stream().collect(Collectors.toMap(SseSubscribeInfo::getBusinessId, val -> val, (k1, k2) -> k1));
-			if (subscribeInfoMap.containsKey(entity.getBusinessId()) && !subscribeInfoMap.get(entity.getBusinessId()).getId().equals(entity.getId())) {
+			Map<String, SseSubscribeInfo> kafkaDataSourceInfoMap = ListUtils.emptyIfNull(map.get(entity.getKey())).stream().collect(Collectors.toMap(SseSubscribeInfo::getBusinessId, val -> val, (k1, k2) -> k1));
+			if (kafkaDataSourceInfoMap.containsKey(entity.getBusinessId()) && !kafkaDataSourceInfoMap.get(entity.getBusinessId()).getId().equals(entity.getId())) {
 				throw new IllegalArgumentException(String.format("业务标识:%s 已存在", entity.getBusinessId()));
 			}
 		}
 
 		// 验证数据源key是否存在
-		SseDataSourceInfoMagicResourceStorage dataSourceInfoStorage = SpringUtils.getBean(SseDataSourceInfoMagicResourceStorage.class);
-		Map<String, SseDataSourceInfo> dataSourceInfoMap = ListUtils.emptyIfNull(dataSourceInfoStorage.findAll()).stream().collect(Collectors.toMap(SseDataSourceInfo::getKey, val -> val, (k1, k2) -> k1));
-		if (!dataSourceInfoMap.containsKey(entity.getKey())) {
+		SseDataSourceInfoMagicResourceStorage kafkaDataSourceInfoMagicResourceStorage = SpringUtils.getBean(SseDataSourceInfoMagicResourceStorage.class);
+		Map<String, SseDataSourceInfo> kafkaDataSourceInfoMap = ListUtils.emptyIfNull(kafkaDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(SseDataSourceInfo::getKey, val -> val, (k1, k2) -> k1));
+		if (!kafkaDataSourceInfoMap.containsKey(entity.getKey())) {
 			throw new IllegalArgumentException(String.format("数据源key:%s 不存在", entity.getKey()));
 		}
 

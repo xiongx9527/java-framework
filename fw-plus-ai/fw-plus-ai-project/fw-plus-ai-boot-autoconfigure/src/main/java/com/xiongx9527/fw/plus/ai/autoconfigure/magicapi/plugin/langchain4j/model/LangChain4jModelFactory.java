@@ -32,23 +32,46 @@ import dev.langchain4j.model.zhipu.ZhipuAiImageModel;
 import dev.langchain4j.model.zhipu.ZhipuAiStreamingChatModel;
 import lombok.Data;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public interface LangChain4jModelFactory {
 
+    /**
+     * 模型信息类，用于封装模型对象及其提供者信息
+     */
     @Data
     class ModelInfo {
+        /**
+         * 模型对象，可以是任何类型的模型实例
+         */
         private Object model;
+
+        /**
+         * 模型提供者，指定模型的来源提供方
+         */
         private LangChain4jModel.Provider provider;
     }
 
-    static LangChain4jModel createModel(LangChain4jModel.Provider provider, LangChain4jModel.ModelType modelType, Map<String, Object> config) {
+
+    /**
+     * 根据厂家和模型类型创建LangChain4j模型
+     */
+    public static LangChain4jModel createModel(LangChain4jModel.Provider provider, LangChain4jModel.ModelType modelType, Map<String, Object> config) {
         ModelInfo nativeModel = createNativeModel(provider, modelType, config);
         return wrapModel(modelType, nativeModel);
     }
 
+
+    /**
+     * 将原生模型对象包装为LangChain4jModel接口实现
+     *
+     * @param modelType 模型类型枚举，指示需要创建的模型包装器类型
+     * @param nativeModel 原生模型对象，需要与指定的模型类型匹配
+     * * @return 返回对应类型的LangChain4jModel实现
+     * @throws IllegalArgumentException 当模型类型不支持或原生模型类型不匹配时抛出异常
+     */
     static LangChain4jModel wrapModel(LangChain4jModel.ModelType modelType, ModelInfo nativeModel) {
+        // 根据模型类型创建对应的包装器实例
         switch (modelType) {
             case CHAT:
                 if (nativeModel.getModel() instanceof ChatLanguageModel) {
@@ -84,121 +107,545 @@ public interface LangChain4jModelFactory {
         throw new IllegalArgumentException("Unsupported model type or native model");
     }
 
-    // ============ Provider Builder Registry ============
 
-    Map<LangChain4jModel.Provider, Map<LangChain4jModel.ModelType, ModelBuilder>> PROVIDER_BUILDERS = buildRegistry();
-
-    static Map<LangChain4jModel.Provider, Map<LangChain4jModel.ModelType, ModelBuilder>> buildRegistry() {
-        Map<LangChain4jModel.Provider, Map<LangChain4jModel.ModelType, ModelBuilder>> registry = new HashMap<>();
-
-        // OpenAI
-        Map<LangChain4jModel.ModelType, ModelBuilder> openAi = new HashMap<>();
-        openAi.put(LangChain4jModel.ModelType.CHAT, (url, key, name, cfg) -> OpenAiChatModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        openAi.put(LangChain4jModel.ModelType.STREAMING_CHAT, (url, key, name, cfg) -> OpenAiStreamingChatModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        openAi.put(LangChain4jModel.ModelType.EMBEDDING, (url, key, name, cfg) -> OpenAiEmbeddingModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        openAi.put(LangChain4jModel.ModelType.IMAGE, (url, key, name, cfg) -> OpenAiImageModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        openAi.put(LangChain4jModel.ModelType.LANGUAGE, (url, key, name, cfg) -> OpenAiLanguageModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        openAi.put(LangChain4jModel.ModelType.STREAMING_LANGUAGE, (url, key, name, cfg) -> OpenAiStreamingLanguageModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        registry.put(LangChain4jModel.Provider.OPENAI, openAi);
-
-        // Azure OpenAI (使用 endpoint 代替 baseUrl, deploymentName 代替 modelName)
-        Map<LangChain4jModel.ModelType, ModelBuilder> azureAi = new HashMap<>();
-        azureAi.put(LangChain4jModel.ModelType.CHAT, (url, key, name, cfg) -> AzureOpenAiChatModel.builder().endpoint(url).apiKey(key).deploymentName(name).build());
-        azureAi.put(LangChain4jModel.ModelType.STREAMING_CHAT, (url, key, name, cfg) -> AzureOpenAiStreamingChatModel.builder().endpoint(url).apiKey(key).deploymentName(name).build());
-        azureAi.put(LangChain4jModel.ModelType.EMBEDDING, (url, key, name, cfg) -> AzureOpenAiEmbeddingModel.builder().endpoint(url).apiKey(key).deploymentName(name).build());
-        azureAi.put(LangChain4jModel.ModelType.IMAGE, (url, key, name, cfg) -> AzureOpenAiImageModel.builder().endpoint(url).apiKey(key).deploymentName(name).build());
-        azureAi.put(LangChain4jModel.ModelType.LANGUAGE, (url, key, name, cfg) -> AzureOpenAiLanguageModel.builder().endpoint(url).apiKey(key).deploymentName(name).build());
-        azureAi.put(LangChain4jModel.ModelType.STREAMING_LANGUAGE, (url, key, name, cfg) -> AzureOpenAiStreamingLanguageModel.builder().endpoint(url).apiKey(key).deploymentName(name).build());
-        registry.put(LangChain4jModel.Provider.AZURE_OPENAI, azureAi);
-
-        // Qwen
-        Map<LangChain4jModel.ModelType, ModelBuilder> qwen = new HashMap<>();
-        qwen.put(LangChain4jModel.ModelType.CHAT, (url, key, name, cfg) -> QwenChatModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        qwen.put(LangChain4jModel.ModelType.STREAMING_CHAT, (url, key, name, cfg) -> QwenStreamingChatModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        qwen.put(LangChain4jModel.ModelType.EMBEDDING, (url, key, name, cfg) -> QwenEmbeddingModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        qwen.put(LangChain4jModel.ModelType.IMAGE, (url, key, name, cfg) -> WanxImageModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        qwen.put(LangChain4jModel.ModelType.LANGUAGE, (url, key, name, cfg) -> QwenLanguageModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        qwen.put(LangChain4jModel.ModelType.STREAMING_LANGUAGE, (url, key, name, cfg) -> QwenStreamingLanguageModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        registry.put(LangChain4jModel.Provider.QWEN, qwen);
-
-        // Ollama (无需apiKey)
-        Map<LangChain4jModel.ModelType, ModelBuilder> ollama = new HashMap<>();
-        ollama.put(LangChain4jModel.ModelType.CHAT, (url, key, name, cfg) -> OllamaChatModel.builder().baseUrl(url).modelName(name).build());
-        ollama.put(LangChain4jModel.ModelType.EMBEDDING, (url, key, name, cfg) -> OllamaEmbeddingModel.builder().baseUrl(url).modelName(name).build());
-        ollama.put(LangChain4jModel.ModelType.LANGUAGE, (url, key, name, cfg) -> OllamaLanguageModel.builder().baseUrl(url).modelName(name).build());
-        registry.put(LangChain4jModel.Provider.OLLAMA, ollama);
-
-        // HuggingFace (使用 accessToken 代替 apiKey, modelId 代替 modelName)
-        Map<LangChain4jModel.ModelType, ModelBuilder> hf = new HashMap<>();
-        hf.put(LangChain4jModel.ModelType.CHAT, (url, key, name, cfg) -> HuggingFaceChatModel.builder().accessToken(key).modelId(name).build());
-        hf.put(LangChain4jModel.ModelType.EMBEDDING, (url, key, name, cfg) -> HuggingFaceEmbeddingModel.builder().accessToken(key).modelId(name).build());
-        hf.put(LangChain4jModel.ModelType.LANGUAGE, (url, key, name, cfg) -> HuggingFaceLanguageModel.builder().accessToken(key).modelId(name).build());
-        registry.put(LangChain4jModel.Provider.HUGGING_FACE, hf);
-
-        // Zhipu (使用 model 代替 modelName)
-        Map<LangChain4jModel.ModelType, ModelBuilder> zhipu = new HashMap<>();
-        zhipu.put(LangChain4jModel.ModelType.CHAT, (url, key, name, cfg) -> ZhipuAiChatModel.builder().baseUrl(url).apiKey(key).model(name).build());
-        zhipu.put(LangChain4jModel.ModelType.STREAMING_CHAT, (url, key, name, cfg) -> ZhipuAiStreamingChatModel.builder().baseUrl(url).apiKey(key).model(name).build());
-        zhipu.put(LangChain4jModel.ModelType.EMBEDDING, (url, key, name, cfg) -> ZhipuAiEmbeddingModel.builder().baseUrl(url).apiKey(key).model(name).build());
-        zhipu.put(LangChain4jModel.ModelType.IMAGE, (url, key, name, cfg) -> ZhipuAiImageModel.builder().baseUrl(url).apiKey(key).model(name).build());
-        registry.put(LangChain4jModel.Provider.ZHIPU, zhipu);
-
-        // Qianfan (需要 secretKey，与 apiKey 相同)
-        Map<LangChain4jModel.ModelType, ModelBuilder> qianfan = new HashMap<>();
-        qianfan.put(LangChain4jModel.ModelType.CHAT, (url, key, name, cfg) -> QianfanChatModel.builder().baseUrl(url).apiKey(key).secretKey(key).modelName(name).build());
-        qianfan.put(LangChain4jModel.ModelType.STREAMING_CHAT, (url, key, name, cfg) -> QianfanStreamingChatModel.builder().baseUrl(url).apiKey(key).secretKey(key).modelName(name).build());
-        qianfan.put(LangChain4jModel.ModelType.EMBEDDING, (url, key, name, cfg) -> QianfanEmbeddingModel.builder().baseUrl(url).apiKey(key).secretKey(key).modelName(name).build());
-        qianfan.put(LangChain4jModel.ModelType.LANGUAGE, (url, key, name, cfg) -> QianfanLanguageModel.builder().baseUrl(url).apiKey(key).secretKey(key).modelName(name).build());
-        registry.put(LangChain4jModel.Provider.QIANFAN, qianfan);
-
-        // LocalAI (无需apiKey)
-        Map<LangChain4jModel.ModelType, ModelBuilder> localAi = new HashMap<>();
-        localAi.put(LangChain4jModel.ModelType.CHAT, (url, key, name, cfg) -> LocalAiChatModel.builder().baseUrl(url).modelName(name).build());
-        localAi.put(LangChain4jModel.ModelType.EMBEDDING, (url, key, name, cfg) -> LocalAiEmbeddingModel.builder().baseUrl(url).modelName(name).build());
-        localAi.put(LangChain4jModel.ModelType.LANGUAGE, (url, key, name, cfg) -> LocalAiLanguageModel.builder().baseUrl(url).modelName(name).build());
-        registry.put(LangChain4jModel.Provider.LOCAL_AI, localAi);
-
-        // Gemini (无需baseUrl)
-        Map<LangChain4jModel.ModelType, ModelBuilder> gemini = new HashMap<>();
-        gemini.put(LangChain4jModel.ModelType.CHAT, (url, key, name, cfg) -> GoogleAiGeminiChatModel.builder().apiKey(key).modelName(name).build());
-        gemini.put(LangChain4jModel.ModelType.EMBEDDING, (url, key, name, cfg) -> GoogleAiEmbeddingModel.builder().apiKey(key).modelName(name).build());
-        registry.put(LangChain4jModel.Provider.GEMINI, gemini);
-
-        // Anthropic
-        Map<LangChain4jModel.ModelType, ModelBuilder> anthropic = new HashMap<>();
-        anthropic.put(LangChain4jModel.ModelType.CHAT, (url, key, name, cfg) -> AnthropicChatModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        anthropic.put(LangChain4jModel.ModelType.STREAMING_CHAT, (url, key, name, cfg) -> AnthropicStreamingChatModel.builder().baseUrl(url).apiKey(key).modelName(name).build());
-        registry.put(LangChain4jModel.Provider.ANTHROPIC, anthropic);
-
-        return registry;
-    }
-
-    // ============ Core Method ============
-
+   /**
+     * 根据指定的提供商和模型类型创建对应的原生模型实例
+     *
+     * @param provider 模型提供商枚举值，决定使用哪种AI服务
+     * @param modelType 模型类型，指定创建的模型用途（如聊天、嵌入等）
+     * @param config 包含模型配置信息的键值对映射，通常包括baseUrl、apiKey、modelName等参数
+     * @return 返回对应提供商的模型实例对象
+     * @throws IllegalArgumentException 当提供不支持的提供商时抛出异常
+     */
     static ModelInfo createNativeModel(LangChain4jModel.Provider provider, LangChain4jModel.ModelType modelType, Map<String, Object> config) {
+        // 从配置中提取基础连接参数
         String baseUrl = (String) config.get("baseUrl");
         String apiKey = (String) config.get("apiKey");
         String modelName = (String) config.get("modelName");
-
-        Map<LangChain4jModel.ModelType, ModelBuilder> builders = PROVIDER_BUILDERS.get(provider);
-        if (builders == null) {
-            throw new IllegalArgumentException("Unsupported provider: " + provider);
+        // 根据不同的提供商创建对应的模型实例
+        switch (provider) {
+            case OPENAI:
+                return createOpenAiModel(modelType, baseUrl ,apiKey, modelName,config);
+            case AZURE_OPENAI:
+                return createAzureOpenAiModel(modelType, baseUrl, apiKey, modelName, config);
+            case ANTHROPIC:
+                return createAnthropicModel(modelType, baseUrl, apiKey, modelName, config);
+            case QWEN:
+                return createQwenModel(modelType, baseUrl,apiKey, modelName,config);
+            case HUGGING_FACE:
+                return createHuggingFaceModel(modelType,apiKey, modelName, config);
+            case OLLAMA:
+                return createOllamaModel(modelType, baseUrl,modelName, config);
+            case ZHIPU:
+                return createZhipuModel(modelType, baseUrl,apiKey, modelName,config);
+            case QIANFAN:
+                return createQianfanModel(modelType, baseUrl,apiKey, modelName,config);
+            case GEMINI:
+                return createGeminiModel(modelType, apiKey, modelName, config);
+            case LOCAL_AI:
+                return createLocalAiModel(modelType, baseUrl,modelName, config);
+            default:
+                throw new IllegalArgumentException("Unsupported provider: " + provider);
         }
-        ModelBuilder builder = builders.get(modelType);
-        if (builder == null) {
-            throw new IllegalArgumentException("Unsupported model type " + modelType + " for provider: " + provider);
-        }
+    }
 
+
+
+    /**
+     * 创建OpenAI模型实例
+     *
+     * @param modelType 模型类型，决定创建哪种类型的OpenAI模型
+     * @param baseUrl OpenAI API的基础URL地址
+     * @param apiKey OpenAI API的访问密钥
+     * @param modelName 具体的模型名称
+     * @param config 额外的配置参数映射表（当前未使用）
+     * @return 返回对应类型的OpenAI模型实例
+     * @throws IllegalArgumentException 当modelType不被支持时抛出异常
+     */
+    static ModelInfo createOpenAiModel(LangChain4jModel.ModelType modelType, String baseUrl, String apiKey, String modelName, Map<String, Object> config) {
         ModelInfo modelInfo = new ModelInfo();
-        modelInfo.setProvider(provider);
-        modelInfo.setModel(builder.build(baseUrl, apiKey, modelName, config));
+        modelInfo.setProvider(LangChain4jModel.Provider.OPENAI);
+        // 根据模型类型创建对应的OpenAI模型实例
+        switch (modelType) {
+            case CHAT:
+                modelInfo.setModel(OpenAiChatModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case STREAMING_CHAT:
+                modelInfo.setModel(OpenAiStreamingChatModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case EMBEDDING:
+                modelInfo.setModel(OpenAiEmbeddingModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case IMAGE:
+                modelInfo.setModel(OpenAiImageModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case LANGUAGE:
+                modelInfo.setModel(OpenAiLanguageModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case STREAMING_LANGUAGE:
+                modelInfo.setModel(OpenAiStreamingLanguageModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported model type for OpenAI: " + modelType);
+        }
         return modelInfo;
     }
 
-    // ============ ModelBuilder Interface ============
 
-    interface ModelBuilder {
-        Object build(String baseUrl, String apiKey, String modelName, Map<String, Object> config);
+    /**
+     * 创建Azure OpenAI模型实例
+     *
+     * @param modelType 模型类型，决定创建哪种类型的Azure OpenAI模型
+     * @param baseUrl Azure OpenAI API的基础URL地址
+     * @param apiKey Azure OpenAI API的访问密钥
+     * @param modelName 具体的模型名称
+     * @param config 额外的配置参数映射表
+     * @return 返回对应类型的Azure OpenAI模型实例
+     * @throws IllegalArgumentException 当modelType不被支持时抛出异常
+     */
+    static ModelInfo createAzureOpenAiModel(LangChain4jModel.ModelType modelType, String baseUrl, String apiKey, String modelName, Map<String, Object> config) {
+        ModelInfo modelInfo = new ModelInfo();
+        modelInfo.setProvider(LangChain4jModel.Provider.AZURE_OPENAI);
+        // 根据模型类型创建对应的Azure OpenAI模型实例
+        switch (modelType) {
+            case CHAT:
+                modelInfo.setModel(AzureOpenAiChatModel.builder()
+                        .endpoint(baseUrl)
+                        .apiKey(apiKey)
+                        .deploymentName(modelName)
+                        .build());
+                break;
+            case STREAMING_CHAT:
+                modelInfo.setModel(AzureOpenAiStreamingChatModel.builder()
+                        .endpoint(baseUrl)
+                        .apiKey(apiKey)
+                        .deploymentName(modelName)
+                        .build());
+                break;
+            case EMBEDDING:
+                modelInfo.setModel(AzureOpenAiEmbeddingModel.builder()
+                        .endpoint(baseUrl)
+                        .apiKey(apiKey)
+                        .deploymentName(modelName)
+                        .build());
+                break;
+            case IMAGE:
+                modelInfo.setModel(AzureOpenAiImageModel.builder()
+                        .endpoint(baseUrl)
+                        .apiKey(apiKey)
+                        .deploymentName(modelName)
+                        .build());
+                break;
+            case LANGUAGE:
+                modelInfo.setModel(AzureOpenAiLanguageModel.builder()
+                        .endpoint(baseUrl)
+                        .apiKey(apiKey)
+                        .deploymentName(modelName)
+                        .build());
+                break;
+            case STREAMING_LANGUAGE:
+                modelInfo.setModel(AzureOpenAiStreamingLanguageModel.builder()
+                        .endpoint(baseUrl)
+                        .apiKey(apiKey)
+                        .deploymentName(modelName)
+                        .build());
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported model type for Azure OpenAI: " + modelType);
+        }
+        return modelInfo;
     }
+
+
+
+    /**
+     * 创建Qwen模型实例
+     *
+     * @param modelType 模型类型，决定创建哪种类型的模型实例
+     * @param baseUrl 模型服务的基础URL地址
+     * @param apiKey 访问模型服务的API密钥
+     * @param modelName 具体的模型名称
+     * @param config 模型配置参数映射表（当前实现中未使用）
+     * @return 返回对应类型的模型实例对象
+     * @throws IllegalArgumentException 当modelType不支持时抛出异常
+     */
+    static ModelInfo createQwenModel(LangChain4jModel.ModelType modelType, String baseUrl, String apiKey, String modelName, Map<String, Object> config) {
+        ModelInfo modelInfo = new ModelInfo();
+        modelInfo.setProvider(LangChain4jModel.Provider.QWEN);
+        // 根据模型类型创建对应的模型实例
+        switch (modelType) {
+            case CHAT:
+                modelInfo.setModel(QwenChatModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case STREAMING_CHAT:
+                modelInfo.setModel(QwenStreamingChatModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case EMBEDDING:
+                modelInfo.setModel(QwenEmbeddingModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case IMAGE:
+                modelInfo.setModel(WanxImageModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case LANGUAGE:
+                modelInfo.setModel(QwenLanguageModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case STREAMING_LANGUAGE:
+                modelInfo.setModel(QwenStreamingLanguageModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported model type for Qwen: " + modelType);
+        }
+        return modelInfo;
+    }
+
+
+    /**
+     * 创建HuggingFace模型实例
+     *
+     * @param modelType 模型类型，决定创建哪种类型的模型实例
+     * @param apiKey 访问HuggingFace API的认证密钥
+     * @param modelName 要加载的具体模型名称
+     * @param config 模型配置参数映射表
+     * @return 返回对应的HuggingFace模型实例对象
+     */
+    static ModelInfo createHuggingFaceModel(LangChain4jModel.ModelType modelType, String apiKey, String modelName,
+                                            Map<String, Object> config) {
+        ModelInfo modelInfo = new ModelInfo();
+        // 根据模型类型创建对应的HuggingFace模型实例
+        switch (modelType) {
+            case CHAT:
+                modelInfo.setModel(HuggingFaceChatModel.builder()
+                        .accessToken(apiKey)
+                        .modelId(modelName)
+                        .build());
+                break;
+            case EMBEDDING:
+                modelInfo.setModel(HuggingFaceEmbeddingModel.builder()
+                        .accessToken(apiKey)
+                        .modelId(modelName)
+                        .build());
+                break;
+            case LANGUAGE:
+                modelInfo.setModel(HuggingFaceLanguageModel.builder()
+                        .accessToken(apiKey)
+                        .modelId(modelName)
+                        .build());
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported model type for HuggingFace: " + modelType);
+        }
+        return modelInfo;
+    }
+
+
+
+    /**
+     * 根据模型类型创建对应的Ollama模型实例
+     *
+     * @param modelType 模型类型，决定创建聊天模型还是嵌入模型
+     * @param baseUrl Ollama服务的基础URL地址
+     * @param modelName 模型名称
+     * @param config 模型配置参数映射表（当前实现中未使用）
+     * @return 返回创建的Ollama模型实例，可能是OllamaChatModel或OllamaEmbeddingModel类型
+     * @throws IllegalArgumentException 当modelType不支持时抛出异常
+     */
+    static ModelInfo createOllamaModel(LangChain4jModel.ModelType modelType, String baseUrl, String modelName, Map<String, Object> config) {
+        ModelInfo modelInfo = new ModelInfo();
+        modelInfo.setProvider(LangChain4jModel.Provider.OLLAMA);
+        // 根据模型类型创建对应的Ollama模型实例
+        switch (modelType) {
+            case CHAT:
+                modelInfo.setModel(OllamaChatModel.builder()
+                        .baseUrl(baseUrl)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case EMBEDDING:
+                modelInfo.setModel(OllamaEmbeddingModel.builder()
+                        .baseUrl(baseUrl)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case LANGUAGE:
+                modelInfo.setModel(OllamaLanguageModel.builder()
+                        .baseUrl(baseUrl)
+                        .modelName(modelName)
+                        .build());
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported model type for Ollama: " + modelType);
+        }
+        return modelInfo;
+    }
+
+
+    /**
+     * 根据模型类型创建对应的智谱AI模型实例
+     *
+     * @param modelType 模型类型，决定创建哪种类型的模型实例
+     * @param baseUrl API基础URL地址
+     * @param apiKey API密钥，用于身份验证
+     * @param modelName 模型名称，指定具体使用的模型
+     * @param config 额外的配置参数映射表
+     * @return 返回对应类型的智谱AI模型实例
+     * @throws IllegalArgumentException 当传入不支持的模型类型时抛出异常
+     */
+    static ModelInfo createZhipuModel(LangChain4jModel.ModelType modelType, String baseUrl, String apiKey, String modelName, Map<String, Object> config) {
+        ModelInfo modelInfo = new ModelInfo();
+        modelInfo.setProvider(LangChain4jModel.Provider.ZHIPU);
+        // 根据不同的模型类型创建对应的模型实例
+        switch (modelType) {
+            case CHAT:
+                modelInfo.setModel(ZhipuAiChatModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .model(modelName)
+                        .build());
+                break;
+            case STREAMING_CHAT:
+                modelInfo.setModel(ZhipuAiStreamingChatModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .model(modelName)
+                        .build());
+                break;
+            case EMBEDDING:
+                modelInfo.setModel(ZhipuAiEmbeddingModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .model(modelName)
+                        .build());
+                break;
+            case IMAGE:
+                modelInfo.setModel(ZhipuAiImageModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .model(modelName)
+                        .build());
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported model type for Zhipu: " + modelType);
+        }
+        return modelInfo;
+    }
+
+    /**
+     * 创建千帆模型实例
+     *
+     * @param modelType 模型类型，决定创建哪种类型的千帆模型
+     * @param baseUrl 模型服务的基础URL地址
+     * @param apiKey API密钥，用于身份验证
+     * @param modelName 模型名称，指定具体使用的模型
+     * @param config 额外的配置参数映射表
+     * @return 返回对应类型的千帆模型实例对象
+     * @throws IllegalArgumentException 当不支持的模型类型时抛出异常
+     */
+    static ModelInfo createQianfanModel(LangChain4jModel.ModelType modelType, String baseUrl, String apiKey, String modelName, Map<String, Object> config) {
+        ModelInfo modelInfo = new ModelInfo();
+        modelInfo.setProvider(LangChain4jModel.Provider.QIANFAN);
+        // 根据模型类型创建对应的千帆模型实例
+        switch (modelType) {
+            case CHAT:
+                modelInfo.setModel(QianfanChatModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .secretKey(apiKey) // 百度千帆使用apiKey和secretKey相同
+                        .modelName(modelName)
+                        .build());
+                break;
+            case STREAMING_CHAT:
+                modelInfo.setModel(QianfanStreamingChatModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .secretKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case EMBEDDING:
+                modelInfo.setModel(QianfanEmbeddingModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .secretKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case LANGUAGE:
+                modelInfo.setModel(QianfanLanguageModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .secretKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported model type for Qianfan: " + modelType);
+        }
+        return modelInfo;
+    }
+
+
+
+    /**
+     * 创建本地AI模型实例
+     *
+     * @param modelType 模型类型，决定创建哪种类型的AI模型
+     * @param baseUrl 模型服务的基础URL地址
+     * @param modelName 模型名称
+     * @param config 模型配置参数映射表
+     * @return 返回对应的本地AI模型实例对象
+     */
+    static ModelInfo createLocalAiModel(LangChain4jModel.ModelType modelType, String baseUrl, String modelName,
+                                        Map<String, Object> config) {
+        ModelInfo modelInfo = new ModelInfo();
+        modelInfo.setProvider(LangChain4jModel.Provider.LOCAL_AI);
+        // 根据模型类型创建对应的本地AI模型实例
+        switch (modelType) {
+            case CHAT:
+                modelInfo.setModel(LocalAiChatModel.builder()
+                        .baseUrl(baseUrl)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case EMBEDDING:
+                modelInfo.setModel(LocalAiEmbeddingModel.builder()
+                        .baseUrl(baseUrl)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case LANGUAGE:
+                modelInfo.setModel(LocalAiLanguageModel.builder()
+                        .baseUrl(baseUrl)
+                        .modelName(modelName)
+                        .build());
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported model type for LocalAI: " + modelType);
+        }
+        return modelInfo;
+    }
+
+
+
+    /**
+     * 创建Gemini模型实例
+     *
+     * @param modelType 模型类型，决定创建聊天模型还是嵌入模型
+     * @param apiKey API密钥，用于认证Gemini服务
+     * @param modelName 模型名称，指定要使用的具体模型
+     * @param config 额外的配置参数（当前未使用）
+     * @return 返回对应的Gemini模型实例
+     * @throws IllegalArgumentException 当modelType不支持时抛出异常
+     */
+    static ModelInfo createGeminiModel(LangChain4jModel.ModelType modelType, String apiKey, String modelName, Map<String, Object> config) {
+        ModelInfo modelInfo = new ModelInfo();
+        modelInfo.setProvider(LangChain4jModel.Provider.GEMINI);
+        // 根据模型类型创建对应的Gemini模型实例
+        switch (modelType) {
+            case CHAT:
+                modelInfo.setModel(GoogleAiGeminiChatModel.builder()
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case EMBEDDING:
+                modelInfo.setModel(GoogleAiEmbeddingModel.builder()
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case LANGUAGE:
+                // Gemini 暂时不支持 Language Model，抛出异常
+                throw new IllegalArgumentException("Language model not supported for Gemini");
+            default:
+                throw new IllegalArgumentException("Unsupported model type for Gemini: " + modelType);
+        }
+        return modelInfo;
+    }
+
+    /**
+     * 创建Anthropic模型实例
+     *
+     * @param modelType 模型类型，决定创建哪种类型的Anthropic模型
+     * @param baseUrl Anthropic API的基础URL地址
+     * @param apiKey Anthropic API的访问密钥
+     * @param modelName 具体的模型名称
+     * @param config 额外的配置参数映射表
+     * @return 返回对应类型的Anthropic模型实例
+     * @throws IllegalArgumentException 当modelType不被支持时抛出异常
+     */
+    static ModelInfo createAnthropicModel(LangChain4jModel.ModelType modelType, String baseUrl, String apiKey, String modelName, Map<String, Object> config) {
+        ModelInfo modelInfo = new ModelInfo();
+        modelInfo.setProvider(LangChain4jModel.Provider.ANTHROPIC);
+        // 根据模型类型创建对应的Anthropic模型实例
+        switch (modelType) {
+            case CHAT:
+                modelInfo.setModel(AnthropicChatModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            case STREAMING_CHAT:
+                modelInfo.setModel(AnthropicStreamingChatModel.builder()
+                        .baseUrl(baseUrl)
+                        .apiKey(apiKey)
+                        .modelName(modelName)
+                        .build());
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported model type for Anthropic: " + modelType);
+        }
+        return modelInfo;
+    }
+
+    
 
 }

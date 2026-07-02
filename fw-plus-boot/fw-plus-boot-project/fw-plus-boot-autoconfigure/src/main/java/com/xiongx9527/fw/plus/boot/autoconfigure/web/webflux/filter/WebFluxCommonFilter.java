@@ -1,14 +1,14 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.webflux.filter;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.web.filter.WebCommonFilter;
-import com.xiongx9527.fw.plus.boot.common.web.ICommonFilterService;
-import com.xiongx9527.fw.plus.boot.common.web.MyHttpEncryptor;
-import com.xiongx9527.fw.plus.boot.common.web.MyHttpEncryptorProperties;
-import com.xiongx9527.fw.plus.boot.common.web.flux.filter.WebFluxBaseRequestFilter;
-import com.xiongx9527.fw.plus.boot.common.web.flux.http.DecryptWebFluxServerHttpRequestDecorator;
-import com.xiongx9527.fw.plus.boot.common.web.flux.http.EncryptWebFluxServerHttpResponDecorator;
 import com.xiongx9527.fw.plus.common.util.WebUtils;
 import com.xiongx9527.fw.plus.common.web.WebFluxRequestContextHolder;
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.filter.WebCommonFilter;
+import com.xiongx9527.fw.plus.boot.common.web.flux.filter.WebFluxBaseRequestFilter;
+import com.xiongx9527.fw.plus.boot.common.web.ICommonFilterService;
+import com.xiongx9527.fw.plus.boot.common.web.flux.http.DecryptWebFluxServerHttpRequestDecorator;
+import com.xiongx9527.fw.plus.boot.common.web.flux.http.EncryptWebFluxServerHttpResponDecorator;
+import com.xiongx9527.fw.plus.boot.common.web.MyHttpEncryptor;
+import com.xiongx9527.fw.plus.boot.common.web.MyHttpEncryptorProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
@@ -47,7 +47,7 @@ public class WebFluxCommonFilter extends WebFluxBaseRequestFilter implements Web
 
             // 判断是否启用全局加密功能，并排除特定路径
             boolean enabled = (Objects.nonNull(encryptorProperties) && encryptorProperties.isEnabled())
-                    && Objects.nonNull(encryptor) && encryptor.isGolabal();
+                    && encryptor.isGolabal();
             if (enabled && Objects.nonNull(encryptorProperties.getExcludePaths())) {
                 String requestPath = request.getPath().value();
                 for (String url : encryptorProperties.getExcludePaths()) {
@@ -81,14 +81,14 @@ public class WebFluxCommonFilter extends WebFluxBaseRequestFilter implements Web
             } finally {
                 try {
                     // 获取HTTP响应状态码
-                    HttpStatus statusCode = defaultServerWebExchange.getResponse().getStatusCode();
-                    int status = statusCode != null ? statusCode.value() : 0;
+                    int status = defaultServerWebExchange.getResponse().getStatusCode().value();
                     // 如果响应状态码不是200（OK）或0（未设置状态码），则记录警告日志
-                    if (status != HttpStatus.OK.value() && status != HttpStatus.NOT_MODIFIED.value() && status != 0) {
+                    if (status != HttpStatus.OK.value() && status != HttpStatus.NOT_MODIFIED.value()  && status != 0) {
                         log.warn("error http response status. path={}, status={}", lookupPath, status);
+                    } else {
+                        // 在请求处理后执行过滤操作
+                        webCommonFilterService.doFilterAfter();
                     }
-                    // 在请求处理后执行过滤操作
-                    webCommonFilterService.doFilterAfter();
                 } finally {
                     WebFluxRequestContextHolder.clear();
                 }
@@ -105,7 +105,8 @@ public class WebFluxCommonFilter extends WebFluxBaseRequestFilter implements Web
      */
     @Override
     public int getOrder() {
-        return Ordered.LOWEST_PRECEDENCE - 100;
+        // 返回Integer.MIN_VALUE减去100，确保获得比最小整数还小的值
+        return Integer.MIN_VALUE - 100;
     }
 
 

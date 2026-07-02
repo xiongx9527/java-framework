@@ -7,7 +7,6 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.module.S3Mod
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.service.S3DataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.service.S3DataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.web.MagicS3Controller;
-import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.dromara.x.file.storage.core.FileStorageService;
 import org.dromara.x.file.storage.core.recorder.DefaultFileRecorder;
@@ -119,16 +118,13 @@ public class MagicAPIS3Configuration implements MagicPluginConfiguration {
 
     /**
      * 定义插件信息
-     * 返回当前S3插件的元数据信息
+     * 返回当前Redis插件的元数据信息
      *
      * @return Plugin 插件信息对象，包含插件名称、显示名称和JavaScript文件路径
      */
     @Override
     public Plugin plugin() {
-        Plugin plugin = new Plugin("s3", "MagicS3", "magic-s3.1.0.0.iife.js");
-        String adminEnabled = SpringUtils.getAppConfig("magic-api.plugin.s3.admin.enabled", "false");
-        plugin.setAdminEnabled(Boolean.parseBoolean(adminEnabled));
-        return plugin;
+        return new Plugin("s3", "MagicS3", "magic-s3.1.0.0.iife.js");
     }
 
 

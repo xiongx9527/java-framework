@@ -2,8 +2,8 @@ package com.xiongx9527.fw.plus.boot.mate.sample.dto.form;
 
 import lombok.Data;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 
 @Data
 public class TestForm {

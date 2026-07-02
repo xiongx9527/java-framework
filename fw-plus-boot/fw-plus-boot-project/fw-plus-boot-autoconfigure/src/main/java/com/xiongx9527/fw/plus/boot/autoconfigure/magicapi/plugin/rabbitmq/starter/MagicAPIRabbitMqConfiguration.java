@@ -12,15 +12,15 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.servic
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.web.MagicRabbitMqController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
+import org.ssssssss.magicapi.core.model.Plugin;
+import org.ssssssss.magicapi.core.web.MagicControllerRegister;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
-import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
-import org.ssssssss.magicapi.core.model.Plugin;
-import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 @ConditionalOnProperty(prefix = "magic-api.plugin.rabbitmq", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name={"org.springframework.amqp.rabbit.core.RabbitTemplate"})
@@ -111,8 +111,8 @@ public class MagicAPIRabbitMqConfiguration implements MagicPluginConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @DependsOn({"rabbitMqDataSourceMagicDynamicRegistry"})
-    public RabbitMqSubscribeMagicDynamicRegistry rabbitMqSubscribeMagicDynamicRegistry(RabbitMqSubscribeInfoMagicResourceStorage rabbitMqSubscribeInfoMagicResourceStorage, MagicDynamicRabbitMqDataSource magicDynamicRabbitMqDataSource, RabbitMqDataSourceInfoMagicResourceStorage rabbitMqDataSourceInfoMagicResourceStorage) {
-        return new RabbitMqSubscribeMagicDynamicRegistry(rabbitMqSubscribeInfoMagicResourceStorage, magicDynamicRabbitMqDataSource, rabbitMqDataSourceInfoMagicResourceStorage, rabbitMqSubscribeInfoMagicResourceStorage);
+    public RabbitMqSubscribeMagicDynamicRegistry rabbitMqSubscribeMagicDynamicRegistry(RabbitMqSubscribeInfoMagicResourceStorage rabbitMqSubscribeInfoMagicResourceStorage, MagicDynamicRabbitMqDataSource magicDynamicRabbitMqDataSource) {
+        return new RabbitMqSubscribeMagicDynamicRegistry(rabbitMqSubscribeInfoMagicResourceStorage, magicDynamicRabbitMqDataSource);
     }
 
     /**

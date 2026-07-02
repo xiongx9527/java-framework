@@ -42,7 +42,8 @@ public class QdrantDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
         }
     }
 
@@ -53,10 +54,7 @@ public class QdrantDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
      */
     @EventListener(condition = "#event.type == 'qdrant-datasource'")
     public void onGroupEvent(GroupEvent event) {
-            try {
-               processEvent(event);
-            } catch (Exception ignored) {
-            }
+        processEvent(event);
     }
     
     /**
@@ -68,11 +66,7 @@ public class QdrantDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
     @Override
     public boolean register(QdrantDataSourceInfo entity) {
         magicQdrantDataSource.destroyClientByKey(entity.getKey());
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
     /**
@@ -86,11 +80,7 @@ public class QdrantDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
         QdrantDataSourceInfo entity = mappingNode.getEntity();
         magicQdrantDataSource.destroyClientByKey(entity.getKey());
         magicQdrantDataSource.createClient(entity);
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(mappingNode);
     }
 
     /**
@@ -101,10 +91,7 @@ public class QdrantDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
     @Override
     protected void unregister(MappingNode<QdrantDataSourceInfo> mappingNode) {
         magicQdrantDataSource.destroyClientByKey(mappingNode.getEntity().getKey());
-        try {
-            super.unregister(mappingNode);
-        } catch (Exception ignored) {
-        }
+        super.unregister(mappingNode);
     }
 
     /**

@@ -29,13 +29,6 @@ public interface IAppCompletion extends IAppBaseClient {
     EventSource sendMessagesAsync(ParamMessage message, EventSourceListener listener);
 
     /**
-     * 发送消息（仅支持流式模式）
-     * @param message
-     * @return
-     */
-    EventSource sendMessagesAsync(ParamMessage message);
-
-    /**
      * 停止响应（仅支持流式模式）
      *
      * @param taskId 任务 ID，可在流式返回 Chunk 中获取

@@ -71,7 +71,6 @@ export default {
     padding:0 10px;
     cursor: pointer;
     display: flex;
-    align-items: center;
     border-radius: var(--context-menu-item-border-radius);
 }
 .magic-context-menu li > span,
@@ -94,12 +93,10 @@ export default {
     top: 100%;
 }
 .magic-context-menu .magic-context-menu-icon{
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display: inline-block;
+    text-align: center;
     margin-right: 8px;
     width: 13px;
-    height: 24px;
 }
 .magic-context-menu li:hover{
     background-color: var(--select-option-hover-background-color);

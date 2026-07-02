@@ -2,13 +2,11 @@ import MagicFreemarker from './service/magic-freemarker.js'
 import localZhCN from './i18n/zh-cn.js'
 import localEn from './i18n/en.js'
 import MagicFreemarkerInfo from './components/magic-freemarker-info.vue'
-import MagicFreemarkerResult from './components/magic-freemarker-result.vue'
 import 'vite-plugin-svg-icons/register'
 
 import setCss from './js/css/css.contribution'
 import setJs from './js/javascript/javascript.contribution'
 import setHtml from './js/html/html.contribution'
-
 export default (opt) => {
     const i18n = opt.i18n
     // 添加i18n 国际化信息
@@ -31,21 +29,14 @@ export default (opt) => {
         }],
         // 底部工具条
         toolbars: [{
-            id: 'freemarker-result',
-            type: 'freemarker',
-            title: 'freemarker.result',
-            icon: 'run',
-            component: MagicFreemarkerResult,
-            fullscreen: true
-        }, {
             // 当打开的资源类型为 freemarker 时显示
             type: 'freemarker',
             // 工具条展示的标题
             title: 'freemarker.title',
             // 展示图标
-            icon: '#magic-freemarker-ftl',
+            icon: 'parameter',
             // 对应的组件
-            component: MagicFreemarkerInfo
+            component: MagicFreemarkerInfo,
         }]
     }
 }

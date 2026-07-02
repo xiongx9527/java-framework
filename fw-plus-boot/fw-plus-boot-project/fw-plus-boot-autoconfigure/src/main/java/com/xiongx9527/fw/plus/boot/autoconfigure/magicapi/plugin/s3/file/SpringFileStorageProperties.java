@@ -102,7 +102,7 @@ public class SpringFileStorageProperties {
      */
     private List<? extends SpringUpyunUssConfig> upyunUss = new ArrayList<>();
     /**
-     * MinIO
+     * MinIO USS
      */
     private List<? extends SpringMinioConfig> minio = new ArrayList<>();
 
@@ -117,7 +117,7 @@ public class SpringFileStorageProperties {
     private List<? extends SpringFtpConfig> ftp = new ArrayList<>();
 
     /**
-     * SFTP
+     * FTP
      */
     private List<? extends SpringSftpConfig> sftp = new ArrayList<>();
 

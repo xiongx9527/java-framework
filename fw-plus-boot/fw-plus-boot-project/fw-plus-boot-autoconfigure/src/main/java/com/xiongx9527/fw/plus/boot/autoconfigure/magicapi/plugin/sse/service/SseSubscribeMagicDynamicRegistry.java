@@ -34,8 +34,9 @@ public class SseSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegist
 		try {
 			// 处理文件事件的核心逻辑
 			processEvent(event);
-		} catch (Exception ignored) {
-        }
+		} catch (Exception e) {
+			log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
+		}
 	}
 
 	/**
@@ -44,10 +45,7 @@ public class SseSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegist
 	 */
 	@EventListener(condition = "#event.type == 'sse-subscribe'")
 	public void onGroupEvent(GroupEvent event) {
-		    try {
 		processEvent(event);
-		    } catch (Exception ignored) {
-		    }
 	}
 
 	/**
@@ -61,7 +59,8 @@ public class SseSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegist
 		try {
 			// 调用父类的注册方法进行实际注册操作
 			return super.register(entity);
-		} catch (Exception ignored) {
+		} catch (Exception e) {
+			// 发生异常时返回false表示注册失败
 			return false;
 		}
 	}
@@ -75,11 +74,7 @@ public class SseSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegist
 	@Override
 	protected boolean register(MappingNode<SseSubscribeInfo> mappingNode) {
 		// 调用父类的注册方法完成实际的注册逻辑
-		try {
-		    return super.register(mappingNode);
-		} catch (Exception ignored) {
-		    return false;
-		}
+		return super.register(mappingNode);
 	}
 
 	/**
@@ -90,9 +85,6 @@ public class SseSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegist
 	@Override
 	protected void unregister(MappingNode<SseSubscribeInfo> mappingNode) {
 		// 调用父类的注销方法完成实际的注销操作
-		try {
-		    super.unregister(mappingNode);
-		} catch (Exception ignored) {
-		}
+		super.unregister(mappingNode);
 	}
 }

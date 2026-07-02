@@ -52,20 +52,13 @@ public abstract class BaseTaskMagicDynamicRegistry extends AbstractMagicDynamicR
 
     @EventListener(condition = "#event.type == 'task'")
     public void onGroupEvent(GroupEvent event) {
-            try {
         processEvent(event);
-            } catch (Exception ignored) {
-            }
     }
 
     @Override
     public boolean register(TaskInfo entity) {
         unregister(entity);
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
     /**
@@ -92,16 +85,12 @@ public abstract class BaseTaskMagicDynamicRegistry extends AbstractMagicDynamicR
     @Override
     protected boolean register(MappingNode<TaskInfo> mappingNode) {
         TaskInfo entity = mappingNode.getEntity();
-        //String cron = MagicAPIConfigUtils.getTaskConfig(entity.getName(), "cron", entity.getCron());
-        String cron = entity.getCron();
-        //Boolean enabled = Boolean.parseBoolean(MagicAPIConfigUtils.getTaskConfig(entity.getName(), "enabled", String.valueOf(entity.isEnabled())));
-        Boolean enabled = entity.isEnabled();
         if (taskScheduler != null) {
             String scriptName = MagicConfiguration.getMagicResourceService().getScriptName(entity);
             try {
-                CronTrigger trigger = new CronTrigger(cron);
+                CronTrigger trigger = new CronTrigger(entity.getCron());
                 CronTask cronTask = new CronTask(() -> {
-                    if (enabled) {
+                    if (entity.isEnabled()) {
                         executeTask(mappingNode, scriptName);
                     }
                 }, trigger);
@@ -110,14 +99,10 @@ public abstract class BaseTaskMagicDynamicRegistry extends AbstractMagicDynamicR
             } catch (Exception e) {
                 log.error("定时任务:[{}]注册失败", scriptName, e);
             }
-            log.debug("注册定时任务:[{},{}]", MagicConfiguration.getMagicResourceService().getScriptName(entity), cron);
+            log.debug("注册定时任务:[{},{}]", MagicConfiguration.getMagicResourceService().getScriptName(entity), entity.getCron());
         }
 
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(mappingNode);
     }
 
     /**

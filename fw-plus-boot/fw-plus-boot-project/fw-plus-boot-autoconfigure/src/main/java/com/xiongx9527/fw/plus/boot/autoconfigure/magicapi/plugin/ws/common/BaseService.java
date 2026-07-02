@@ -241,14 +241,98 @@ public interface BaseService extends MagicBaseService {
      * @throws RuntimeException 当token验证失败或算法不可用时抛出此异常
      */
     default String validateAndExtractAppIdFromToken(String token) {
-        SecretKeyAndSignatureAlgorithm keyAndAlg = getSecretKeyAndSignatureAlgorithm();
+        String defaultSecretKey = getTokenSecret();
+        byte[] keyBytes = defaultSecretKey.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        // 尝试使用不同长度的密钥和算法来验证token
+        // 按安全性从高到低尝试
+        // 首先尝试使用原始密钥（如果足够长）
+        if (keyBytes.length >= 64) {
+            // 尝试HS512
+            try {
+                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
+                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+                return claims.getSubject();
+            } catch (Exception e) {
+                // 如果失败，继续尝试其他算法
+            }
+        }
+
+        if (keyBytes.length >= 48) {
+            // 尝试HS384
+            try {
+                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
+                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+                return claims.getSubject();
+            } catch (Exception e) {
+                // 如果失败，继续尝试其他算法
+            }
+        }
+
+        if (keyBytes.length >= 32) {
+            // 尝试HS256
+            try {
+                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
+                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+                return claims.getSubject();
+            } catch (Exception e) {
+                // 如果失败，继续尝试其他方法
+            }
+        }
+
+        // 如果原始密钥长度不足，尝试使用处理后的密钥
+        // 生成不同长度的密钥以匹配不同算法
         try {
+            // 缓存常用的MessageDigest实例
+            java.security.MessageDigest sha512Digest = java.security.MessageDigest.getInstance("SHA-512");
+            java.security.MessageDigest sha384Digest = java.security.MessageDigest.getInstance("SHA-384");
+            java.security.MessageDigest sha256Digest = java.security.MessageDigest.getInstance("SHA-256");
+
+            // 为HS512生成64字节密钥
+            byte[] hs512KeyBytes = sha512Digest.digest(keyBytes);
+            try {
+                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
+                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(hs512KeyBytes))
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+                return claims.getSubject();
+            } catch (Exception e) {
+                // 继续尝试其他方式
+            }
+
+            // 为HS384生成48字节密钥
+            byte[] hs384KeyBytes = sha384Digest.digest(keyBytes);
+            try {
+                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
+                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(hs384KeyBytes))
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+                return claims.getSubject();
+            } catch (Exception e) {
+                // 继续尝试其他方式
+            }
+
+            // 为HS256生成32字节密钥
+            byte[] hs256KeyBytes = sha256Digest.digest(keyBytes);
             io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
-                    .setSigningKey(keyAndAlg.getSecretKey())
+                    .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(hs256KeyBytes))
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
             return claims.getSubject();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("Failed to validate token due to missing algorithm", e);
         } catch (Exception e) {
             throw new RuntimeException("Failed to validate token", e);
         }

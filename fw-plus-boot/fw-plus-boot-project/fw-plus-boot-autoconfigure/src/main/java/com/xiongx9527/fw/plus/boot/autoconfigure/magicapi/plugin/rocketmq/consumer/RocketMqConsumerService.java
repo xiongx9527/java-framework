@@ -30,7 +30,7 @@ public interface RocketMqConsumerService {
         for (RocketMqSubscribeScriptInfo subscribeScriptInfo : subscribeScriptInfoList) {
             if (subscribeScriptInfo.getTopic().equals(msg.getTopic())) {
                 MagicScriptContext magicScriptContext = new MagicScriptContext();
-                magicScriptContext.setScriptName("rocketmq/" + subscribeScriptInfo.getKey() + "/" + subscribeScriptInfo.getTopic() + "(" + subscribeScriptInfo.getName() + ")");
+                magicScriptContext.setScriptName(subscribeScriptInfo.getScriptName());
                 magicScriptContext.set("msg", msg);
                 String messageBody = null;
                 if (ObjectUtils.isNotEmpty(msg.getBody())) {

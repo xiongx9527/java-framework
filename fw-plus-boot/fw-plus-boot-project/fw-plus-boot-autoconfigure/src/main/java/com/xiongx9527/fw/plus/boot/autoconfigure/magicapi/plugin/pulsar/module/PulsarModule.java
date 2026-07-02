@@ -1,15 +1,9 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.module;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.MagicDynamicPulsarDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.producer.PulsarProducer;
-import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.admin.PulsarAdminException;
-import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.Producer;
-import org.apache.pulsar.client.api.PulsarClientException;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.magicapi.core.model.Options;
 import org.ssssssss.magicapi.modules.DynamicModule;
@@ -17,7 +11,6 @@ import org.ssssssss.script.MagicScriptContext;
 import org.ssssssss.script.functions.DynamicAttribute;
 
 import java.beans.Transient;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 
@@ -27,20 +20,11 @@ import java.util.concurrent.TimeUnit;
 @MagicModule("pulsar")
 public class PulsarModule implements DynamicAttribute<PulsarModule, PulsarModule> , DynamicModule<PulsarModule> {
 
-    /**
-     * 动态Pulsar数据源，用于管理Pulsar连接
-     */
+    /** Pulsar动态数据源，用于管理Pulsar连接 */
     private final MagicDynamicPulsarDataSource magicDynamicPulsarDataSource;
 
-    /**
-     * Pulsar生产者实例，用于发送消息
-     */
+    /** Pulsar生产者实例 */
     private PulsarProducer producer;
-
-    /**
-     * Pulsar数据源键名，用于标识Pulsar数据源
-     */
-    private String key ;
 
     /**
      * 构造函数，初始化PulsarModule实例（无默认生产者）
@@ -75,6 +59,7 @@ public class PulsarModule implements DynamicAttribute<PulsarModule, PulsarModule
         this.producer = producer;
     }
 
+
     /**
      * 根据键名获取动态Pulsar生产者属性
      *
@@ -82,18 +67,9 @@ public class PulsarModule implements DynamicAttribute<PulsarModule, PulsarModule
      * @return PulsarProducer 对应键名的Pulsar生产者实例
      */
     @Override
+    @Transient
     public PulsarModule getDynamicAttribute(String key) {
-        if (Objects.isNull(key) || Options.DEFAULT_DATA_SOURCE.getValue().equalsIgnoreCase(key)
-                || "default".equalsIgnoreCase(key)) {
-            return this;
-        }
-        PulsarProducer pulsarProducer = this.magicDynamicPulsarDataSource.getProducer(key);
-        if (pulsarProducer == null) {
-            throw new IllegalArgumentException("Pulsar数据源不存在: " + key);
-        }
-        PulsarModule pulsarModule = new PulsarModule(this.magicDynamicPulsarDataSource, pulsarProducer);
-        pulsarModule.key = key;
-        return pulsarModule;
+        return new PulsarModule(this.magicDynamicPulsarDataSource, this.magicDynamicPulsarDataSource.getProducer(key));
     }
 
     /**
@@ -109,13 +85,7 @@ public class PulsarModule implements DynamicAttribute<PulsarModule, PulsarModule
         if (StringUtils.isEmpty(dataSourceKey)) {
             return this;
         }
-        PulsarProducer pulsarProducer = this.magicDynamicPulsarDataSource.getProducer(dataSourceKey);
-        if (pulsarProducer == null) {
-            throw new IllegalArgumentException("Pulsar数据源不存在: " + dataSourceKey);
-        }
-        PulsarModule pulsarModule = new PulsarModule(this.magicDynamicPulsarDataSource, pulsarProducer);
-        pulsarModule.key = dataSourceKey;
-        return pulsarModule;
+        return new PulsarModule(this.magicDynamicPulsarDataSource,this.magicDynamicPulsarDataSource.getProducer(dataSourceKey));
     }
 
     /**
@@ -131,9 +101,6 @@ public class PulsarModule implements DynamicAttribute<PulsarModule, PulsarModule
      * @return 消息发送是否成功，同步发送时返回实际发送结果，异步发送时通常返回true
      */
     public boolean send(String topic, Integer partition, String key, Long delay, TimeUnit unit, Object msg , boolean async) {
-        if (this.producer == null) {
-            throw new IllegalStateException("PulsarModule producer 未初始化，请指定数据源或确保已配置默认 Producer");
-        }
         return this.producer.send(topic, partition, key, delay, unit, msg, async);
     }
 
@@ -292,61 +259,5 @@ public class PulsarModule implements DynamicAttribute<PulsarModule, PulsarModule
     public boolean send(String topic,Integer partition,String key,Object msg) {
         return this.producer.send(topic, partition, key, null, null, msg, false);
     }
-
-
-    /**
-     * 获取PulsarAdmin管理客户端实例
-     * 根据当前模块的key值判断使用默认数据源还是指定数据源的PulsarAdmin实例
-     * 如果key为空则返回默认数据源的PulsarAdmin，否则返回对应key的PulsarAdmin
-     *
-     * @return PulsarAdmin Pulsar管理客户端实例，用于执行主题管理、订阅管理等操作；如果未找到对应的数据源则返回null
-     */
-    public PulsarAdmin getPulsarAdmin() throws PulsarClientException {
-        PulsarAdmin pulsarAdmin = null;
-        if (Objects.isNull(this.key)) {
-            String serviceHttpUrl = MagicAPIConfigUtils.getPulsarConfig("default", "serviceHttpUrl", null);
-            if (StringUtils.isBlank(serviceHttpUrl)) {
-                throw new PulsarClientException("Pulsar Admin serviceHttpUrl 未配置，请先在配置中心设置 default.serviceHttpUrl");
-            }
-            this.magicDynamicPulsarDataSource.createDefaultPulsarAdmin(serviceHttpUrl);
-            pulsarAdmin = this.magicDynamicPulsarDataSource.getDefaultPulsarAdmin();
-        } else {
-            if (this.producer == null) {
-                throw new PulsarClientException("PulsarModule producer 未初始化，无法获取 PulsarAdmin，key: " + this.key);
-            }
-            this.magicDynamicPulsarDataSource.putPulsarAdmin(this.producer.getDataSourceInfo());
-            pulsarAdmin = this.magicDynamicPulsarDataSource.getPulsarAdmin(this.key);
-        }
-        return pulsarAdmin;
-    }
-
-    /**
-     * 修改指定消费者组的消费位点到最新消息位置（快捷方法）
-     *
-     * @param topic 主题名称，需要重置消费位点的目标主题
-     * @param group 消费者组名称，需要调整消费位点的消费者组
-     * @throws PulsarClientException 当Pulsar客户端操作失败时抛出，如连接异常、超时等
-     * @throws PulsarAdminException 当调用Pulsar Admin API失败时抛出，如权限不足、主题不存在等
-     */
-    public void alterConsumerGroupOffsets(String topic, String group) throws PulsarClientException, PulsarAdminException {
-        this.alterConsumerGroupOffsets(topic, group, MessageId.latest);
-    }
-
-
-    /**
-     * 修改指定消费者组的消费位点到指定的消息ID
-     *
-     * @param topic 主题名称，需要重置消费位点的目标主题
-     * @param group 消费者组名称，需要调整消费位点的消费者组
-     * @param messageId 目标消息ID，消费者组将重置到该消息位置；如果为null则使用最新的消息ID
-     * @throws PulsarClientException 当Pulsar客户端操作失败时抛出，如连接异常、超时等
-     * @throws PulsarAdminException 当调用Pulsar Admin API失败时抛出，如权限不足、主题不存在等
-     */
-    public void alterConsumerGroupOffsets(String topic, String group, MessageId messageId) throws PulsarClientException, PulsarAdminException {
-        PulsarAdmin pulsarAdmin = getPulsarAdmin();
-        MessageId targetMessageId = (MessageId) ObjectUtils.defaultIfNull(messageId, MessageId.latest);
-        pulsarAdmin.topics().resetCursor(topic, group, targetMessageId);
-    }
-
 
 }

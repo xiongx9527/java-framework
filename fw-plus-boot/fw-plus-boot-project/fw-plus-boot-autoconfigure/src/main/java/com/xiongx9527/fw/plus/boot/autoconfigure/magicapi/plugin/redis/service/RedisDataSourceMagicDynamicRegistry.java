@@ -1,7 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.service;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model.MagicDynamicRedisDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model.RedisDataSourceInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model.MagicDynamicRedisDataSource;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.S3DataSourceInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.event.EventListener;
@@ -44,7 +45,8 @@ public class RedisDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
         }
     }
 
@@ -56,42 +58,52 @@ public class RedisDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
      */
     @EventListener(condition = "#event.type == 'redis-datasource'")
     public void onGroupEvent(GroupEvent event) {
-            try {
-               processEvent(event);
-            } catch (Exception ignored) {
-            }
+        processEvent(event);
     }
 
 
+    /**
+     * 注册Redis数据源
+     * 销毁已存在的连接工厂并重新构建新的连接工厂，然后调用父类方法完成注册
+     *
+     * @param entity Redis数据源信息对象，包含连接所需的各种配置参数
+     * @return boolean 注册是否成功
+     */
     @Override
     public boolean register(RedisDataSourceInfo entity) {
         magicRedisDataSource.destroyRedisConnectionFactoryByKey(entity.getKey());
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
+
+    /**
+     * 注册映射节点
+     * 调用父类方法注册Redis数据源的映射节点
+     *
+     * @param mappingNode Redis数据源映射节点
+     * @return boolean 注册是否成功
+     */
     @Override
     protected boolean register(MappingNode<RedisDataSourceInfo> mappingNode) {
-        magicRedisDataSource.destroyRedisConnectionFactoryByKey(mappingNode.getEntity().getKey());
-        magicRedisDataSource.buildRedisConnectionFactory(mappingNode.getEntity());
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        RedisDataSourceInfo entity = mappingNode.getEntity();
+        magicRedisDataSource.destroyRedisConnectionFactoryByKey(entity.getKey());
+        magicRedisDataSource.buildRedisConnectionFactory(entity);
+        return super.register(mappingNode);
     }
 
+
+    /**
+     * 注销映射节点
+     * 销毁对应的数据源连接工厂，然后调用父类方法完成注销操作
+     *
+     * @param mappingNode Redis数据源映射节点
+     */
     @Override
     protected void unregister(MappingNode<RedisDataSourceInfo> mappingNode) {
         magicRedisDataSource.destroyRedisConnectionFactoryByKey(mappingNode.getEntity().getKey());
-        try {
-            super.unregister(mappingNode);
-        } catch (Exception ignored) {
-        }
+        super.unregister(mappingNode);
     }
+
 
     /**
      * 获取默认的Redis数据源映射列表

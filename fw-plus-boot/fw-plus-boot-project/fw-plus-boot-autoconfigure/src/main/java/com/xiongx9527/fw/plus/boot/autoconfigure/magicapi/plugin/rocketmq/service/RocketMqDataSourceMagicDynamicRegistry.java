@@ -1,18 +1,28 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.service;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqDataSourceInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.consumer.RocketMQConsumer;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.MagicDynamicRocketMqDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqDataSourceInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqSubscribeInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqSubscribeScriptInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.producer.RocketMqProducer;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.springframework.context.event.EventListener;
+import org.apache.rocketmq.client.producer.MQProducer;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.ssssssss.magicapi.core.event.FileEvent;
 import org.ssssssss.magicapi.core.event.GroupEvent;
+import org.ssssssss.magicapi.core.model.Options;
 import org.ssssssss.magicapi.core.service.AbstractMagicDynamicRegistry;
+import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.event.EventListener;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -56,21 +66,16 @@ public class RocketMqDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
      */
     @EventListener(condition = "#event.type == 'rocketmq-datasource'")
     public void onFileEvent(FileEvent event) {
-        try {
-            processEvent(event);
-        } catch (Exception ignored) {
-        }
+        processEvent(event);
     }
 
     /**
-     * 监听分组事件，当事件类型为 'rocketmq-datasource' 时处理
+     * 监听分组事件，当事件类型为 'rocketmq-datasource' 时处理该事件
+     * @param event 分组事件对象
      */
     @EventListener(condition = "#event.type == 'rocketmq-datasource'")
     public void onGroupEvent(GroupEvent event) {
-        try {
-            processEvent(event);
-        } catch (Exception ignored) {
-        }
+        processEvent(event);
     }
 
     /**
@@ -87,13 +92,15 @@ public class RocketMqDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
      * @param info RocketMQ 数据源信息对象
      */
     private void registerByEntity(RocketMqDataSourceInfo info) {
-        unregisterByEntity(info);
-        log.info("注册 RocketMQ 消息队列:[{}]开始执行", info.getKey());
+        // 先注销已存在的数据源配置
+        this.unregisterByEntity(info);
+        log.info("注册 rocketmq 消息队列:[{}]开始执行", info.getKey());
+        // 注册生产者
         boolean registerProducer = this.magicDynamicRocketMqDataSource.putProducer(info);
         if (!registerProducer) {
-            log.error("RocketMQ 消息队列:[{}]注册生产者失败", info.getKey());
+            log.error("rocketmq 消息队列:[{}]注册生产者失败", info.getKey());
         } else {
-            log.info("RocketMQ 消息队列:[{}]注册生产者成功", info.getKey());
+            log.info("rocketmq 消息队列:[{}]注册生产者成功", info.getKey());
         }
     }
 
@@ -107,34 +114,48 @@ public class RocketMqDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
     @Override
     public boolean register(RocketMqDataSourceInfo entity) {
         unregisterByEntity(entity);
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
+    /**
+     * 注册指定的映射节点中的 RocketMQ 数据源信息。
+     * 该方法会记录日志并在注册前后输出相关信息。
+     *
+     * @param mappingNode 包含要注册的数据源信息的映射节点
+     * @return 始终返回 false（根据当前实现）
+     */
     @Override
     protected boolean register(MappingNode<RocketMqDataSourceInfo> mappingNode) {
-        registerByEntity(mappingNode.getEntity());
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        RocketMqDataSourceInfo entity = mappingNode.getEntity();
+        log.info("注册 Rabbit 消息队列:[{}]开始执行", entity.getKey());
+        registerByEntity(entity);
+        log.info("注册 Rabbit 消息队列：[{}]完成执行", entity.getKey());
+        return false;
     }
 
+    /**
+     * 取消注册指定映射节点中的 RocketMQ 数据源信息。
+     * 执行前记录开始日志，完成后记录结束日志，并调用父类的注销逻辑。
+     *
+     * @param mappingNode 包含要注销的数据源信息的映射节点
+     */
     @Override
     protected void unregister(MappingNode<RocketMqDataSourceInfo> mappingNode) {
+        log.info("取消注册 Rabbit 消息队列:[{}]开始执行", mappingNode.getEntity().getKey());
         unregisterByEntity(mappingNode.getEntity());
-        try {
-            super.unregister(mappingNode);
-        } catch (Exception ignored) {
-        }
+        log.info("取消注册 Rabbit 消息队列：[{}]完成执行", mappingNode.getEntity().getKey());
+        super.unregister(mappingNode);
     }
 
+    /**
+     * 获取默认的 RocketMQ 数据源信息列表。
+     * 列表包括没有设置 ID 的生产者节点以及 Spring 容器中存在的 MQProducer 实例对应的默认数据源。
+     *
+     * @return 默认的 RocketMQ 数据源信息列表
+     */
     @Override
     public List<RocketMqDataSourceInfo> defaultMappings() {
+        // 从生产者节点中获取没有ID的节点，并转换为数据源信息列表
         List<RocketMqDataSourceInfo> dataSourceInfoList = this.magicDynamicRocketMqDataSource.producerNodes().stream().filter(it -> it.getId() == null).map(it -> {
             RocketMqDataSourceInfo dataSourceInfo = new RocketMqDataSourceInfo();
             dataSourceInfo.setName(StringUtils.defaultIfBlank(it.getName(), StringUtils.defaultIfBlank(it.getKey(), "默认数据源")));
@@ -142,16 +163,17 @@ public class RocketMqDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
             return dataSourceInfo;
         }).collect(Collectors.toList());
 
+        // 尝试从 Spring 上下文中获取 MQProducer 并添加默认数据源
         try {
-            DefaultMQProducer producer = SpringUtils.getBean(DefaultMQProducer.class);
-            if (producer != null) {
+            RocketMqProducer mqProducer = SpringUtils.getBean(RocketMqProducer.class);
+            if (mqProducer != null) {
                 RocketMqDataSourceInfo dataSourceInfo = new RocketMqDataSourceInfo();
                 dataSourceInfo.setKey("default");
-                dataSourceInfo.setName("默认数据源");
+                dataSourceInfo.setName(Options.DEFAULT_DATA_SOURCE.getName());
                 dataSourceInfoList.add(dataSourceInfo);
             }
         } catch (Exception e) {
-            log.debug("获取默认 DefaultMQProducer 失败", e);
+            // 忽略异常，不影响主流程
         }
 
         return dataSourceInfoList;

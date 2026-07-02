@@ -1,8 +1,6 @@
 package com.xiongx9527.fw.plus.cloud.autoconfigure.magicapi;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.sse.SseHttpProperties;
 import com.xiongx9527.fw.plus.cloud.autoconfigure.magicapi.modules.http.MyHttpModule;
-import com.xiongx9527.fw.plus.cloud.autoconfigure.magicapi.modules.http.MySseHttpModule;
 import com.xiongx9527.fw.plus.cloud.autoconfigure.magicapi.plugin.MagicApiPluginAutoConfiguration;
 import org.apache.commons.collections4.MapUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -18,7 +16,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
 @ConditionalOnProperty(prefix = "fw.plus.magicapi", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass(name={"org.springframework.boot.web.client.RestTemplateBuilder",
@@ -62,24 +59,6 @@ public class MagicAPIBaseAutoConfiguration {
             }
         }
         return new MyHttpModule(restTemplate, loadBalancerClient);
-    }
-
-
-    /**
-     * 创建 SSE HTTP 模块 Bean（支持负载均衡）
-     * 
-     * <p>该方法用于创建并配置 MySseHttpModule 实例，集成 Spring Cloud 负载均衡功能。
-     * 仅在类路径中存在 DifyClientBuilder 时才会自动配置此 Bean。</p>
-     *
-     * @param sseHttpProperties SSE HTTP 配置属性，包含超时、请求头等配置
-     * @param loadBalancerClient Spring Cloud 负载均衡客户端，用于服务发现和负载均衡
-     * @return MySseHttpModule 实例，用于处理 SSE 请求
-     */
-    @Bean
-    @ConditionalOnClass(name="com.xiongx9527.fw.plus.dify.DifyClientBuilder")
-    public MySseHttpModule sseHttpModule(SseHttpProperties sseHttpProperties,
-                                   org.springframework.cloud.client.loadbalancer.LoadBalancerClient loadBalancerClient) {
-        return new MySseHttpModule(sseHttpProperties, loadBalancerClient);
     }
 
 

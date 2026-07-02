@@ -5,15 +5,13 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.Dat
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.DruidDataSourceBuilder;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.MyDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.filter.auth.AuthConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dify.DifyModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock.LockModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.mybatisflex.MyBatisFlexConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.template.TemplateModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.trace.TraceModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.uid.UidModuleConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.sse.SseModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.MagicApiPluginAutoConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ParamProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ExceptionResultProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ResultProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.resource.MyDefaultMagicResourceService;
 import lombok.extern.slf4j.Slf4j;
@@ -52,8 +50,6 @@ import java.util.*;
 		 MyBatisFlexConfiguration.class,
 		 TemplateModuleConfiguration.class,
          MagicApiPluginAutoConfiguration.class,
-		 DifyModuleConfiguration.class,
-		 SseModuleConfiguration.class,
 		 TraceModuleConfiguration.class})
 public class MagicAPIBaseAutoConfiguration implements ApplicationRunner {
 
@@ -111,27 +107,14 @@ public class MagicAPIBaseAutoConfiguration implements ApplicationRunner {
         this.applicationContext = applicationContext;
     }
 
-	/**
-	 * 配置并创建一个ParamProvider的Bean实例
-	 *
-	 * @return ParamProvider的实例，用于处理参数提供
-	 */
-	@Bean
-	public ParamProvider paramProvider() {
-		return new ParamProvider();
-	}
-
-
     /**
-     * 创建ResultProvider Bean实例
+     * 配置并创建一个ExceptionResultProvider的Bean实例
      *
-     * 该方法用于向Spring容器中注册ResultProvider组件，用于统一处理MagicAPI的响应结果格式
-     *
-     * @return ResultProvider实例，用于构建统一的API响应结果
+     * @return ExceptionResultProvider的实例，用于处理异常结果
      */
-	@Bean
-    public ResultProvider resultProvider() {
-        return new ResultProvider(properties);
+    @Bean
+    public ResultProvider resultProvider(@Autowired(required = false) ExceptionResultProvider exceptionResultProvider) {
+        return new ResultProvider(exceptionResultProvider);
     }
 
 	/**

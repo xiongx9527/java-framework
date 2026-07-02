@@ -34,10 +34,14 @@ export const initializeVue = () => {
             { open: '{', close: '}' },
             { open: '[', close: ']' },
             { open: '(', close: ')' },
+            { open: '<', close: '>' },
             { open: '"', close: '"', notIn: ['string'] },
             { open: '\'', close: '\'', notIn: ['string'] },
             { open: '`', close: '`', notIn: ['string'] },
-            { open: '<!--', close: '-->', notIn: ['string', 'comment'] }
+            { open: '<!--', close: '-->' },
+            { open: '<template', close: '</template>' },
+            { open: '<script', close: '</script>' },
+            { open: '<style', close: '</style>' }
         ],
         surroundingPairs: [
             { open: '{', close: '}' },
@@ -103,270 +107,308 @@ export const initializeVue = () => {
     monaco.languages.setMonarchTokensProvider(language, {
         defaultToken: '',
         tokenPostfix: '.vue',
-
-        // Vue 内置全局/组件 API
-        vueGlobals: [
-            'ref', 'reactive', 'computed', 'watch', 'watchEffect', 'watchPostEffect',
-            'watchSyncEffect', 'onMounted', 'onUnmounted', 'onUpdated', 'onBeforeMount',
-            'onBeforeUnmount', 'onBeforeUpdate', 'onActivated', 'onDeactivated',
-            'provide', 'inject', 'nextTick', 'defineComponent', 'defineAsyncComponent',
-            'h', 'createVNode', 'resolveComponent', 'resolveDirective', 'withDirectives',
-            'withModifiers', 'toRef', 'toRefs', 'toValue', 'isRef', 'isReactive',
-            'isReadonly', 'isProxy', 'unref', 'shallowRef', 'triggerRef', 'customRef',
-            'shallowReactive', 'shallowReadonly', 'markRaw', 'toRaw', 'readonly',
-            'useSlots', 'useAttrs', 'useCssModule', 'useTemplateRef',
-            'defineProps', 'defineEmits', 'defineExpose', 'defineOptions', 'defineModel', 'defineSlots'
+        
+        // 关键字
+        keywords: [
+            'template', 'script', 'style', 'lang', 'scoped', 'setup', 'defineProps',
+            'defineEmits', 'ref', 'reactive', 'computed', 'watch', 'watchEffect',
+            'onMounted', 'onUnmounted', 'onUpdated', 'onBeforeMount', 'onBeforeUnmount',
+            'onBeforeUpdate', 'provide', 'inject', 'nextTick', 'const', 'let', 'var', 'function', 'return',
+            'class', 'extends', 'implements', 'interface', 'type', 'typeof', 'instanceof',
+            'new', 'this', 'super', 'true', 'false', 'null', 'undefined', 'NaN',
+            'Infinity', 'void', 'delete', 'in', 'of', 'try', 'catch', 'finally',
+            'throw', 'switch', 'case', 'default', 'break', 'continue', 'do', 'while',
+            'for', 'if', 'else', 'async', 'await', 'yield', 'get', 'set', 'static',
+            'public', 'private', 'protected', 'readonly', 'abstract', 'enum',
+            'declare', 'module', 'namespace', 'require', 'global', 'window', 'document',
+            'console', 'localStorage', 'sessionStorage', 'JSON', 'Math', 'Date',
+            'RegExp', 'Error', 'Promise', 'Array', 'Object', 'String', 'Number',
+            'Boolean', 'Symbol', 'Map', 'Set', 'WeakMap', 'WeakSet', 'Proxy',
+            'Reflect', 'Intl', 'URL', 'URLSearchParams', 'Headers', 'Request',
+            'Response', 'fetch', 'Event', 'CustomEvent', 'FormData', 'File', 'Blob'
         ],
-
-        // Vue 指令
+        
+        // 指令
         directives: [
             'v-model', 'v-for', 'v-if', 'v-else', 'v-else-if', 'v-show', 'v-bind',
-            'v-on', 'v-slot', 'v-pre', 'v-once', 'v-text', 'v-html', 'v-cloak', 'v-memo'
+            'v-on', 'v-slot', 'v-pre', 'v-once', 'v-text', 'v-html', 'v-cloak'
+        ],
+        
+        // Vue特殊标签
+        specialTags: [
+            'component', 'template', 'slot', 'transition', 'transition-group',
+            'keep-alive', 'teleport', 'suspense'
         ],
 
-        // Vue 内置组件
-        builtInComponents: [
-            'component', 'slot', 'template', 'transition', 'transition-group',
-            'keep-alive', 'teleport', 'suspense', 'router-view', 'router-link'
+        // 操作符
+        operators: [
+            '=', '>', '<', '!', '~', '?', ':', '==', '<=', '>=', '!=',
+            '&&', '||', '++', '++', '--', '+', '-', '*', '/', '&', '|', '^', '%',
+            '<<', '>>', '>>>', '+=', '-=', '*=', '/=', '&=', '|=', '^=',
+            '<<=', '>>=', '>>>=', '%='
         ],
 
-        // 内置对象/类型
-        builtInTypes: [
-            'console', 'window', 'document', 'localStorage', 'sessionStorage',
-            'JSON', 'Math', 'Date', 'RegExp', 'Error', 'Promise',
-            'Array', 'Object', 'String', 'Number', 'Boolean', 'Symbol',
-            'Map', 'Set', 'WeakMap', 'WeakSet', 'Proxy', 'Reflect',
-            'Intl', 'URL', 'URLSearchParams', 'Headers', 'Request', 'Response',
-            'FormData', 'File', 'Blob', 'Event', 'CustomEvent', 'fetch'
-        ],
+        // 符号
+        symbols: /[=><!~?:&|+\-*\/\^%]+/,
 
+        // 数字
+        digits: /\d+/,
+
+        // 转义序列
         escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
 
         tokenizer: {
             root: [
-                // SFC 顶级块 —— 使用 Monaco 内置语言嵌入高亮
-                [/<template/, { token: 'tag', next: '@templateTag' }],
-
-                [/<script(\s+setup)?/, { token: 'tag', next: '@scriptTag' }],
-
-                [/<style/, { token: 'tag', next: '@styleTag' }],
-
-                // HTML 标签（Vue 内置组件用不同颜色）
-                [/<\/?(\w+)/, {
+                // 导入语句特殊处理
+                [/^\s*import\s+/, { token: 'keyword', next: '@import' }],
+                
+                // Vue模板标签
+                [/<template/, { token: 'tag', next: '@template' }],
+                [/<script/, { token: 'tag', next: '@script' }],
+                [/<style/, { token: 'tag', next: '@style' }],
+                
+                // 特殊Vue标签
+                [/<(\w+)/, {
                     cases: {
-                        '@builtInComponents': 'tag',
-                        '@default': 'delimiter.html'
+                        '@specialTags': 'tag.name',
+                        '@default': 'tag'
                     },
-                    next: '@tagAttributes'
+                    next: '@tag_content'
                 }],
-
+                
                 // 注释
-                [/<!--/, { token: 'comment', next: '@htmlComment' }],
-
+                [/<!--/, { token: 'comment', next: '@comment' }],
+                [/\/\//, 'comment'],
+                [/\/\*/, { token: 'comment', next: '@comment_block' }],
+                
                 // 字符串
-                [/"/, { token: 'string', next: '@stringDouble' }],
-                [/'/, { token: 'string', next: '@stringSingle' }],
-                [/`/, { token: 'string', next: '@stringBacktick' }],
-
+                [/"/, { token: 'string', next: '@string_double' }],
+                [/'/, { token: 'string', next: '@string_single' }],
+                [/`/, { token: 'string', next: '@string_backtick' }],
+                
                 // 数字
                 [/\d*\.\d+([eE][\-+]?\d+)?/, 'number.float'],
                 [/0[xX][0-9a-fA-F]+/, 'number.hex'],
                 [/0[oO][0-7]+/, 'number.octal'],
                 [/0[bB][01]+/, 'number.binary'],
                 [/\d+/, 'number'],
-
-                [/\s+/, 'white']
-            ],
-
-            // ── template 标签属性 ──
-            templateTag: [
-                [/lang=\s*["'](html|pug)["']/, 'keyword'],
-                [/"([^"]*)"/, 'attribute.value'],
-                [/'([^']*)'/, 'attribute.value'],
-                [/[\w\-]+/, 'attribute.name'],
-                [/=/, 'delimiter'],
-                [/>/, { token: 'delimiter', next: '@templateContent', nextEmbedded: 'text/html' }],
-                [/(<\/)(template\s*)(>)/, ['delimiter', 'tag', { token: 'delimiter', next: '@pop' }]],
-                [/[ \t\r\n]+/]
-            ],
-
-            // ── template 内容（委托给 HTML tokenizer，补充 Vue 插值）──
-            templateContent: [
-                [/<\/template/, { token: '@rematch', next: '@pop', nextEmbedded: '@pop' }],
-                [/\{\{/, { token: 'delimiter.curly', next: '@interpolation' }],
-                [/[^<{]+/, '']
-            ],
-
-            // ── Vue 模板插值 {{ expr }} ──
-            interpolation: [
-                [/\}\}/, { token: 'delimiter.curly', next: '@pop' }],
-                [/\b(true|false|null|undefined)\b/, 'keyword'],
+                
+                // Vue指令
+                [/(v-\w+(?:-\w+)*)/, {
+                    cases: {
+                        '@directives': 'directive',
+                        '@default': 'attribute.name'
+                    }
+                }],
+                [/@(\w+)/, 'directive'],
+                [/:(\w+(?:-\w+)*)/, 'directive'],
+                
+                // 符号和运算符
+                [/[{}()\[\]]/, '@brackets'],
+                [/[<>](?!\w)/, '@brackets'],
+                [/@symbols/, { cases: { '@operators': 'operator', '@default': '' } }],
+                
+                // 导入语句处理（非行首的情况）
+                [/\bimport\b/, 'keyword'],
+                [/\bfrom\b/, 'keyword'],
+                [/\bexport\b/, 'keyword'],
+                [/\bdefault\b/, 'keyword'],
+                
+                // 标识符和关键字
                 [/[a-zA-Z_$][\w$]*/, {
                     cases: {
-                        '@vueGlobals': 'type',
-                        '@builtInTypes': 'type.identifier',
+                        '@keywords': 'keyword',
                         '@default': 'identifier'
                     }
                 }],
-                [/\d+/, 'number'],
+                
+                // 空白
+                [/\s+/, 'white']
+            ],
+
+            // HTML模板
+            template: [
+                [/\/>/, { token: 'tag', next: '@pop' }],
+                [/<\/template>/, { token: 'tag', next: '@pop' }],
+                { include: '@html' }
+            ],
+
+            // HTML嵌入
+            html: [
+                [/<\w+/, { token: 'tag', next: '@tag_content' }],
+                [/<\/\w+/, { token: 'tag', next: '@closing_tag' }],
+                [/<!--/, { token: 'comment', next: '@comment' }],
+                [/[^<]+/, ''],
+                [/</, '']
+            ],
+
+            // Script标签
+            script: [
+                [/\/>/, { token: 'tag', next: '@pop' }],
+                [/<\/script>/, { token: 'tag', next: '@pop' }],
+                [/lang=\s*["']ts["']/, 'keyword'],
+                [/setup/, 'keyword'],
+                { include: '@javascript' }
+            ],
+
+            // JavaScript嵌入
+            javascript: [
+                [/\b(import|from|export|default)\b/, 'keyword'],
+                [/\b(var|let|const|function|return|if|for|while|else|do|break|continue|switch|case|default|throw|try|catch|finally|new|delete|typeof|instanceof|void|yield|await|async|class|extends|super|import|from|export|default|static|get|set|constructor)\b/, 'keyword'],
+                [/\b(true|false|null|undefined|NaN|Infinity)\b/, 'keyword'],
+                [/\b(console|window|document|Array|Object|String|Number|Boolean|Function|RegExp|Date|Error|Math|JSON|Promise|Map|Set|WeakMap|WeakSet)\b/, 'type'],
+                [/\b(this|super)\b/, 'variable.predefined'],
+                [/[a-zA-Z_$][\w$]*/, 'identifier'],
+                [/[$][a-zA-Z_$][\w$]*/, 'variable.predefined'],
+                [/[0-9]+\.[0-9]+([eE][\-+]?[0-9]+)?/, 'number.float'],
+                [/0[xX][0-9a-fA-F]+/, 'number.hex'],
+                [/0[0-7]+(?!\d)/, 'number.octal'],
+                [/[0-9]+/, 'number'],
+                [/"([^"\\]|\\.)*$/, 'string.invalid'],
+                [/'([^'\\]|\\.)*$/, 'string.invalid'],
                 [/"([^"\\]|\\.)*"/, 'string'],
                 [/'([^'\\]|\\.)*'/, 'string'],
+                [/`([^`\\]|\\.)*`/, 'string'],
                 [/[{}()\[\]]/, '@brackets'],
                 [/[;,]/, 'delimiter'],
-                [/[=><!~?:&|+\-*\/^%]+/, 'operator'],
+                [/[\/*=<>!]+/, 'operator'],
+                [/\/\/.*$/, 'comment'],
+                [/\/\*/, 'comment', '@comment_js'],
                 [/\s+/, 'white']
             ],
 
-            // ── script 标签属性（自动识别 lang=ts/tsx）──
-            scriptTag: [
-                [/lang=\s*["']ts["']/, { token: 'keyword', next: '@scriptTagTs' }],
-                [/lang=\s*["']jsx["']/, { token: 'keyword', next: '@scriptTagTsx' }],
-                [/lang=\s*["']tsx["']/, { token: 'keyword', next: '@scriptTagTsx' }],
-                [/setup/, 'keyword'],
-                [/generic=\s*["'][^"']*["']/, 'attribute'],
-                [/name=\s*["'][^"']*["']/, 'attribute'],
-                [/compilerOptions=/, { token: 'attribute.name', next: '@compilerOptionsValue' }],
-                [/"([^"]*)"/, 'attribute.value'],
-                [/'([^']*)'/, 'attribute.value'],
-                [/[\w\-]+/, 'attribute.name'],
-                [/=/, 'delimiter'],
-                [/>/, { token: 'delimiter', next: '@scriptContent', nextEmbedded: 'text/javascript' }],
-                [/(<\/)(script\s*)(>)/, ['delimiter', 'tag', { token: 'delimiter', next: '@pop' }]],
-                [/[ \t\r\n]+/]
+            // JavaScript注释
+            comment_js: [
+                [/[^\/*]+/, 'comment'],
+                [/\*\//, 'comment', '@pop'],
+                [/[\/*]/, 'comment']
             ],
 
-            scriptTagTs: [
-                [/setup/, 'keyword'],
-                [/generic=\s*["'][^"']*["']/, 'attribute'],
-                [/"([^"]*)"/, 'attribute.value'],
-                [/'([^']*)'/, 'attribute.value'],
-                [/[\w\-]+/, 'attribute.name'],
-                [/=/, 'delimiter'],
-                [/>/, { token: 'delimiter', next: '@scriptContent', nextEmbedded: 'text/typescript' }],
-                [/(<\/)(script\s*)(>)/, ['delimiter', 'tag', { token: 'delimiter', next: '@pop' }]],
-                [/[ \t\r\n]+/]
-            ],
-
-            scriptTagTsx: [
-                [/setup/, 'keyword'],
-                [/"([^"]*)"/, 'attribute.value'],
-                [/'([^']*)'/, 'attribute.value'],
-                [/[\w\-]+/, 'attribute.name'],
-                [/=/, 'delimiter'],
-                [/>/, { token: 'delimiter', next: '@scriptContent', nextEmbedded: 'text/typescript' }],
-                [/(<\/)(script\s*)(>)/, ['delimiter', 'tag', { token: 'delimiter', next: '@pop' }]],
-                [/[ \t\r\n]+/]
-            ],
-
-            compilerOptionsValue: [
-                [/"([^"]*)"/, 'attribute.value', '@pop'],
-                [/'([^']*)'/, 'attribute.value', '@pop'],
-                [/\{/, 'delimiter', '@compilerOptionsJson'],
-                [/[^>]+/, 'attribute.value', '@pop']
-            ],
-
-            compilerOptionsJson: [
-                [/}/, 'delimiter', '@pop'],
-                [/\{/, 'delimiter', '@compilerOptionsJson'],
-                [/"([^"\\]|\\.)*"/, 'attribute.value'],
-                [/\b(true|false|null)\b/, 'keyword'],
-                [/\d+/, 'number'],
-                [/[a-zA-Z_$][\w$]*/, 'attribute.name'],
-                [/[,:]/, 'delimiter'],
-                [/\s+/, 'white']
-            ],
-
-            // ── script 内容（委托 JS/TS tokenizer）──
-            scriptContent: [
-                [/<\/script/, { token: '@rematch', next: '@pop', nextEmbedded: '@pop' }],
-                [/[^<]+/, '']
-            ],
-
-            // ── style 标签属性 ──
-            styleTag: [
-                [/lang=\s*["'](css|scss|sass|less|stylus)["']/, 'keyword'],
+            // Style标签
+            style: [
+                [/\/>/, { token: 'tag', next: '@pop' }],
+                [/<\/style>/, { token: 'tag', next: '@pop' }],
+                [/lang=\s*["'](css|scss|sass|less)["']/, 'keyword'],
                 [/scoped/, 'keyword'],
-                [/module(\s*=\s*["'][\w\-]+["'])?/, 'keyword'],
                 [/"([^"]*)"/, 'attribute.value'],
                 [/'([^']*)'/, 'attribute.value'],
                 [/[\w\-]+/, 'attribute.name'],
                 [/=/, 'delimiter'],
-                [/>/, { token: 'delimiter', next: '@styleContent', nextEmbedded: 'text/css' }],
-                [/(<\/)(style\s*)(>)/, ['delimiter', 'tag', { token: 'delimiter', next: '@pop' }]],
-                [/[ \t\r\n]+/]
+                [/>/, { token: 'delimiter', next: '@styleEmbedded', nextEmbedded: 'text/css' }],
+                [/[ \t\r\n]+/],
+                [/(<\/)(style\s*)(>)/, ['delimiter', 'tag', { token: 'delimiter', next: '@pop' }]]
             ],
 
-            // ── style 内容（委托 CSS tokenizer）──
-            styleContent: [
-                [/<\/style/, { token: '@rematch', next: '@pop', nextEmbedded: '@pop' }],
-                [/[^<]+/, '']
-            ],
-
-            // ── 普通 HTML 标签属性 ──
-            tagAttributes: [
-                [/\/?>/, { token: 'tag', next: '@pop' }],
-                [/(v-\w+(?:-\w+)*)/, {
-                    cases: { '@directives': 'directive', '@default': 'attribute.name' }
-                }],
-                [/@(\w+(?:\.\w+)*)/, 'directive'],
-                [/:(\w+(?:-\w+)*(?:\.\w+)*)/, 'directive'],
-                [/#(\w+)/, 'directive'],
-                [/"([^"]*)"/, 'attribute.value'],
-                [/'([^']*)'/, 'attribute.value'],
-                [/[\w\-:]+/, 'attribute.name'],
-                [/=/, 'delimiter'],
-                [/\s+/, 'white']
-            ],
-
-            // ── HTML 注释 ──
-            htmlComment: [
+            // 注释
+            comment: [
                 [/-->/, { token: 'comment', next: '@pop' }],
                 [/[^-]+/, 'comment'],
                 [/./, 'comment']
             ],
+            
+            comment_block: [
+                [/\*\//, { token: 'comment', next: '@pop' }],
+                [/[^*]+/, 'comment'],
+                [/./, 'comment']
+            ],
 
-            // ── 字符串 ──
-            stringDouble: [
+            // 字符串
+            string_double: [
                 [/[^\\"\$]+/, 'string'],
                 [/@escapes/, 'string.escape'],
-                [/\\./, 'string.escape.invalid'],
-                [/\$\{/, { token: 'delimiter.bracket', next: '@templateExpr' }],
+                [/\./, 'string.escape.invalid'],
+                [/\$\(/, { token: 'delimiter.bracket', next: '@bracketCounting' }],
                 [/"/, { token: 'string', next: '@pop' }]
             ],
 
-            stringSingle: [
+            string_single: [
                 [/[^\\'\$]+/, 'string'],
                 [/@escapes/, 'string.escape'],
-                [/\\./, 'string.escape.invalid'],
+                [/\./, 'string.escape.invalid'],
+                [/\$\(/, { token: 'delimiter.bracket', next: '@bracketCounting' }],
                 [/'/, { token: 'string', next: '@pop' }]
             ],
 
-            stringBacktick: [
+            string_backtick: [
                 [/[^\\`\$]+/, 'string'],
                 [/@escapes/, 'string.escape'],
-                [/\\./, 'string.escape.invalid'],
-                [/\$\{/, { token: 'delimiter.bracket', next: '@templateExpr' }],
+                [/\./, 'string.escape.invalid'],
+                [/\$\{/, { token: 'delimiter.bracket', next: '@bracketCounting' }],
                 [/`/, { token: 'string', next: '@pop' }]
             ],
 
-            // ── 模板字符串内嵌表达式 ──
-            templateExpr: [
+            bracketCounting: [
+                [/{/, 'delimiter.bracket', '@bracketCounting'],
                 [/}/, 'delimiter.bracket', '@pop'],
-                [/\b(true|false|null|undefined)\b/, 'keyword'],
-                [/[a-zA-Z_$][\w$]*/, {
+                { include: 'root' }
+            ],
+            
+            // 导入语句处理
+            import: [
+                [/[a-zA-Z_$][\w$]*/, 'identifier'],
+                [/,/, 'punctuation'],
+                [/\bfrom\b/, 'keyword'],
+                [/'/, { token: 'string', next: '@string_single' }],
+                [/"/, { token: 'string', next: '@string_double' }],
+                [/;/, 'punctuation', '@pop'],
+                [/$/, '', '@pop'],
+                { include: 'root' }
+            ],
+            
+            // 标签内容处理
+            tag_content: [
+                // Vue指令
+                [/(v-\w+(?:-\w+)*)/, {
                     cases: {
-                        '@vueGlobals': 'type',
-                        '@builtInTypes': 'type.identifier',
-                        '@default': 'identifier'
+                        '@directives': 'directive',
+                        '@default': 'attribute.name'
                     }
                 }],
-                [/\d+/, 'number'],
-                [/"([^"\\]|\\.)*"/, 'string'],
-                [/'([^'\\]|\\.)*'/, 'string'],
-                [/[{}()\[\]]/, '@brackets'],
-                [/[;,]/, 'delimiter'],
-                [/[=><!~?:&|+\-*\/^%]+/, 'operator'],
+                // :绑定指令和@事件指令
+                [/:(\w+(?:-\w+)*)/, 'directive'],
+                [/@(\w+)/, 'directive'],
+                // 普通属性
+                [/([a-zA-Z\-:]+)=/, 'attribute.name'],
+                // 字符串属性值
+                [/'/, { token: 'string', next: '@string_single_attr' }],
+                [/"/, { token: 'string', next: '@string_double_attr' }],
+                // 结束标签
+                [/>/, { token: 'tag', next: '@pop' }],
+                [/\/>/, { token: 'tag', next: '@pop' }],
+                // 空白
                 [/\s+/, 'white']
+            ],
+            
+            // 属性值处理
+            attribute_value: [
+                [/'/, { token: 'string', next: '@string_single_attr' }],
+                [/"/, { token: 'string', next: '@string_double_attr' }],
+                [/[^{}\s]+/, 'string'],
+                [/\s+/, 'white', '@pop'],
+                [/[<>]/, '', '@pop']
+            ],
+            
+            string_single_attr: [
+                [/[^']+/, 'string'],
+                [/'/, { token: 'string', next: '@pop' }]
+            ],
+            
+            string_double_attr: [
+                [/[^"]+/, 'string'],
+                [/"/, { token: 'string', next: '@pop' }]
+            ],
+            
+            // 结束标签处理
+            closing_tag: [
+                [/[a-zA-Z][a-zA-Z0-9\-]*/, 'tag'],
+                [/>/, { token: 'tag', next: '@pop' }],
+                [/\s+/, 'white']
+            ],
+            
+            // CSS嵌入内容
+            styleEmbedded: [
+                [/<\/style/, { token: '@rematch', next: '@pop', nextEmbedded: '@pop' }],
+                [/[^<]+/, '']
             ]
         }
     })

@@ -12,11 +12,6 @@ public class PulsarDataSourceInfo extends MagicEntity {
 	private String servers;
 
 	/**
-	 * 服务http地址
-	 */
-	private String serviceUrls;
-
-	/**
 	 * 用户名
 	 */
 	//private String username;
@@ -63,7 +58,6 @@ public class PulsarDataSourceInfo extends MagicEntity {
 		dataSourceInfo.setNamespace(this.namespace);
 		dataSourceInfo.setOther(this.other);
 		dataSourceInfo.setServers(this.servers);
-		dataSourceInfo.setServiceUrls(this.serviceUrls);
 		return dataSourceInfo;
 	}
 
@@ -84,7 +78,6 @@ public class PulsarDataSourceInfo extends MagicEntity {
 		dataSourceInfo.setNamespace(this.namespace);
 		dataSourceInfo.setOther(this.other);
 		dataSourceInfo.setServers(this.servers);
-		dataSourceInfo.setServiceUrls(this.serviceUrls);
 		return dataSourceInfo;
 	}
 

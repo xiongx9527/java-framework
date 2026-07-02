@@ -47,8 +47,8 @@ public class RedisDynamicSseHandler extends BaseDynamicSseHandler {
      * @param message 消息内容
      * @return 分布式广播消息对象
      */
-    private DistributedBroadcastMessage createDistributedBroadcastMessage(String excludedServerId, String appId, String clientId, String eventName, String message) {
-        return new DistributedBroadcastMessage(excludedServerId, appId, clientId, eventName, message);
+    private DistributedBroadcastMessage createDistributedBroadcastMessage(String excludedServerId, String appId,String clientId,  String message) {
+        return new DistributedBroadcastMessage(excludedServerId, appId, clientId, message);
     }
 
     /**
@@ -60,14 +60,22 @@ public class RedisDynamicSseHandler extends BaseDynamicSseHandler {
      * @param message 要发送的消息内容
      */
     @Override
-    void broadcastMessageToClient(String excludedServerId, String appId, String clientId, String eventName, String message) {
+    void broadcastMessageToClient(String excludedServerId, String appId, String clientId, String eventName,String message) {
         try {
+            // 创建分布式广播消息对象
             DistributedBroadcastMessage broadcastMessage = createDistributedBroadcastMessage(
-                    excludedServerId, appId, clientId, eventName, message);
+                    excludedServerId, appId, clientId, message);
+            
+            // 将消息转换为JSON字符串
             String messageJson = com.alibaba.fastjson2.JSON.toJSONString(broadcastMessage);
+            
+            // 从配置中获取广播频道名称
             String broadcastChannel = getBroadcastChannelName();
+            
+            // 使用Redis模板发送消息
             stringRedisTemplate.convertAndSend(broadcastChannel, messageJson);
-            log.info("Broadcast message sent to Redis channel: {}, excludedServerId: {}, clientId: {}, appId: {}",
+            
+            log.info("Broadcast message sent to Redis channel: {}, excludedServerId: {}, clientId: {}, appId: {}", 
                     broadcastChannel, excludedServerId, clientId, appId);
         } catch (Exception e) {
             log.error("Failed to send broadcast message to client via Redis - clientId: {}, appId: {}", clientId, appId, e);
@@ -82,8 +90,9 @@ public class RedisDynamicSseHandler extends BaseDynamicSseHandler {
      * @param message 要广播的消息内容
      */
     @Override
-    void broadcastMessageToAllClient(String excludedServerId, String appId, String eventName, String message) {
-        broadcastMessageToClient(excludedServerId, appId, null, eventName, message);
+    void broadcastMessageToAllClient(String excludedServerId, String appId, String eventName,String message) {
+        // 调用通用的广播方法，传入null表示向所有客户端广播
+        broadcastMessageToClient(excludedServerId, null, appId,eventName, message);
     }
     
     /**
@@ -109,7 +118,6 @@ public class RedisDynamicSseHandler extends BaseDynamicSseHandler {
         private String excludedServerId;
         private String appId;
         private String clientId;
-        private String eventName;
         private String message;
     }
 
@@ -142,13 +150,13 @@ public class RedisDynamicSseHandler extends BaseDynamicSseHandler {
                     return;
                 }
                 
-                // 仅本地投递，避免再次触发 Redis 广播导致无限循环
+                // 根据消息类型决定广播方式
                 if (broadcastMessage.getClientId() == null) {
-                    baseDynamicSseHandler.deliverToLocalClients(broadcastMessage.getAppId(),
-                            broadcastMessage.getEventName(), broadcastMessage.getMessage());
+                    // 广播给所有客户端
+                    baseDynamicSseHandler.broadcastMessageToAllClient(broadcastMessage.getAppId(), null,broadcastMessage.getMessage());
                 } else {
-                    baseDynamicSseHandler.deliverToLocalClient(broadcastMessage.getAppId(),
-                            broadcastMessage.getClientId(), broadcastMessage.getEventName(), broadcastMessage.getMessage());
+                    // 广播给指定客户端
+                    baseDynamicSseHandler.broadcastMessageToClient(broadcastMessage.getClientId(), broadcastMessage.getAppId(), null,broadcastMessage.getMessage());
                 }
             } catch (Exception e) {
                 log.error("Error processing Redis broadcast message", e);

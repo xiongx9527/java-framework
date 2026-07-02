@@ -132,7 +132,7 @@ class JedisConnectionConfigure extends RedisConnectionConfiguration {
         PropertyMapper map = PropertyMapper.get().alwaysApplyingWhenNonNull();
 
         // 根据配置属性设置SSL、读取超时、连接超时和客户端名称
-        map.from(getProperties().isSsl()).whenTrue().toCall(builder::useSsl);
+        map.from(getProperties().getSsl().isEnabled()).whenTrue().toCall(builder::useSsl);
         map.from(getProperties().getTimeout()).to(builder::readTimeout);
         map.from(getProperties().getConnectTimeout()).to(builder::connectTimeout);
         map.from(getProperties().getClientName()).whenHasText().to(builder::clientName);

@@ -10,7 +10,7 @@
     </div>
 </template>
 <script setup>
-import { computed, ref, onMounted, shallowRef, resolveDynamicComponent } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import bus from '../../../scripts/bus.js'
 import Message from '../../../scripts/constants/message.js'
 import constants from '../../../scripts/constants.js'
@@ -29,7 +29,6 @@ const hasLangchain4jPlugin = ref(false)
 const hasDtpPlugin = ref(false)
 const hasFreemarkerPlugin = ref(false)
 const hasConfigPlugin = ref(false)
-const hasSatokenPlugin = ref(false)
 const hasWsPlugin = ref(false)
 const hasSsePlugin = ref(false)
 const hasMqttPlugin = ref(false)
@@ -111,11 +110,6 @@ const icons = [{
     displayKey: 'vue3',
     onClick: () => openVue3Compiler()
 }, {
-  icon: 'satoken',
-  title: 'Satoken',
-  displayKey: 'satoken',
-  onClick: () => openSatoken()
-}, {
   icon: 'admin',
   title: 'Spring Boot Admin',
   displayKey: 'admin',
@@ -166,9 +160,6 @@ const navs = computed(() => {
         }
         if (it.displayKey === 'config') {
             return hasConfigPlugin.value && props.config.header[it.displayKey] !== false
-        }
-        if (it.displayKey === 'satoken') {
-            return hasSatokenPlugin.value && props.config.header[it.displayKey] !== false
         }
         if (it.displayKey === 'ws') {
             return hasWsPlugin.value && props.config.header[it.displayKey] !== false
@@ -234,7 +225,6 @@ bus.$on(Message.STATUS, msg => {
         hasDtpPlugin.value = checkPlugin('dtp-datasource')
         hasFreemarkerPlugin.value = checkPlugin('freemarker')
         hasConfigPlugin.value = checkPlugin('config')
-        hasSatokenPlugin.value = checkPlugin('satoken')
         hasWsPlugin.value = checkPlugin('ws-subscribe')
         hasSsePlugin.value = checkPlugin('sse-subscribe')
         hasMqttPlugin.value = checkPlugin('mqtt-subscribe')
@@ -273,23 +263,11 @@ const openKafka = () => {
 }
 
 const openPulsar = () => {
-  bus.$emit(Message.ADD_FOOTER_TOOLBAR, {
-    id: 'pulsar', 
-    title: $i('pulsar.title'), 
-    icon: 'pulsar', 
-    component: shallowRef(resolveDynamicComponent('magic-pulsar')), 
-    max: 1000, 
-    min: 200, 
-    value: 500 
-  })
+  window.open('https://pulsar.apache.org/', '_blank')
 }
 
 const openDebezium = () => {
   window.open('https://debezium.io/', '_blank')
-}
-
-const openSatoken = () => {
-  window.open('https://sa-token.cc/', '_blank')
 }
 
 const openWs = () => {
@@ -483,7 +461,6 @@ onMounted(() => {
     hasDtpPlugin.value = checkPlugin('dtp-datasource')
     hasFreemarkerPlugin.value = checkPlugin('freemarker')
     hasConfigPlugin.value = checkPlugin('config')
-    hasSatokenPlugin.value = checkPlugin('satoken')
     hasWsPlugin.value = checkPlugin('ws-subscribe')
     hasSsePlugin.value = checkPlugin('sse-subscribe')
     hasMqttPlugin.value = checkPlugin('mqtt-subscribe')

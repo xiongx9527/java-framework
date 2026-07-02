@@ -21,7 +21,7 @@ management:
             exposure:
                 include: '*'
 mybatis:
-    mapper-locations: classpath:com/9527/fw/plus/boot/mp/sample/mappers/xml/*xml
+    mapper-locations: classpath:com/xiongx9527/fw/plus/boot/mp/sample/mappers/xml/*xml
     type-aliases-package: com.xiongx9527.fw.plus.boot.mp.sample.mapper
 mybatis-plus:
     configuration:

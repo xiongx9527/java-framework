@@ -1,7 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.model;
 
 import com.alibaba.fastjson2.JSON;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.common.BaseService;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import io.weaviate.client.Config;
@@ -187,23 +186,23 @@ public class MagicDynamicWeaviateDataSource implements BaseService, DisposableBe
         // 提取请求头配置
         Map<String, String> headers = extractHeadersFromOtherConfig(info);
         String scheme = info.getScheme();
-        scheme = MagicAPIConfigUtils.getWeaviateConfig(info.getKey(), "scheme", scheme);
+        scheme = SpringUtils.getAppConfig(String.format("magic.api.weaviate.%s.scheme", info.getKey()), scheme);
         String host = info.getHost();
-        host = MagicAPIConfigUtils.getWeaviateConfig(info.getKey(), "host", host);
+        host = SpringUtils.getAppConfig(String.format("magic.api.weaviate.%s.host", info.getKey()), host);
         String connectionTimeoutStr = info.getConnectionTimeout();
-        connectionTimeoutStr = MagicAPIConfigUtils.getWeaviateConfig(info.getKey(), "connectionTimeout", connectionTimeoutStr);
+        connectionTimeoutStr = SpringUtils.getAppConfig(String.format("magic.api.weaviate.%s.connectionTimeout", info.getKey()), connectionTimeoutStr);
         int connectionTimeout = Integer.parseInt(connectionTimeoutStr);
         String connectionRequestTimeoutStr = info.getConnectionRequestTimeout();
-        connectionRequestTimeoutStr = MagicAPIConfigUtils.getWeaviateConfig(info.getKey(), "connectionRequestTimeout", connectionRequestTimeoutStr);
+        connectionRequestTimeoutStr = SpringUtils.getAppConfig(String.format("magic.api.weaviate.%s.connectionRequestTimeout", info.getKey()), connectionRequestTimeoutStr);
         int connectionRequestTimeout = Integer.parseInt(connectionRequestTimeoutStr);
         String socketTimeoutStr = info.getSocketTimeout();
-        socketTimeoutStr = MagicAPIConfigUtils.getWeaviateConfig(info.getKey(), "socketTimeout", socketTimeoutStr);
+        socketTimeoutStr = SpringUtils.getAppConfig(String.format("magic.api.weaviate.%s.socketTimeout", info.getKey()), socketTimeoutStr);
         int socketTimeout = Integer.parseInt(socketTimeoutStr);
 
         // 创建基础配置对象
         Config config = new Config(scheme, host,headers, connectionTimeout, connectionRequestTimeout, socketTimeout);
         String other = info.getOther();
-        other = MagicAPIConfigUtils.getWeaviateConfig(info.getKey(), "other", other);
+        other = SpringUtils.getAppConfig(String.format("magic.api.weaviate.%s.other", info.getKey()), other);
         if (StringUtils.isNotBlank(other)) {
             try {
                 // 解析 other 字段中的 JSON 配置
@@ -219,7 +218,7 @@ public class MagicDynamicWeaviateDataSource implements BaseService, DisposableBe
 
         try {
             String apiKey = info.getApiKey();
-            apiKey = MagicAPIConfigUtils.getWeaviateConfig(info.getKey(), "apiKey", apiKey);
+            apiKey = SpringUtils.getAppConfig(String.format("magic.api.weaviate.%s.apiKey", info.getKey()), apiKey);
             // 根据是否配置API密钥来选择不同的客户端创建方式
             if (StringUtils.isNotBlank(apiKey)) {
                 return WeaviateAuthClient.apiKey(config,apiKey);

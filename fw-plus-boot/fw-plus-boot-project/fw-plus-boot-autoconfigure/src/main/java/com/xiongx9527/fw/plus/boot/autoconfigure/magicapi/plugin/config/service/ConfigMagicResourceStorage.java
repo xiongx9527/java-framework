@@ -2,8 +2,10 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.service
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.model.ConfigInfo;
+import org.apache.commons.collections4.ListUtils;
 import org.ssssssss.magicapi.core.service.AbstractPathMagicResourceStorage;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -58,30 +60,27 @@ public class ConfigMagicResourceStorage extends AbstractPathMagicResourceStorage
         validateField(entity);
         validateFormat(entity.getScript());
         if (entity.getId() != null) {
-            ConfigInfo oldConfigInfo = magicResourceService.file(entity.getId());
-            if (oldConfigInfo != null) {
-                if (!oldConfigInfo.getAppId().equals(entity.getAppId())) {
+            ConfigInfo oldKafkaDataSourceInfo =  magicResourceService.file(entity.getId());
+            if (null != oldKafkaDataSourceInfo) {
+                if (!oldKafkaDataSourceInfo.getAppId().equals(entity.getAppId())) {
                     throw new IllegalArgumentException("AppId不可修改");
                 }
-                if (!oldConfigInfo.getNamespace().equals(entity.getNamespace())) {
+                if (!oldKafkaDataSourceInfo.getNamespace().equals(entity.getNamespace())) {
                     throw new IllegalArgumentException("Namespace不可修改");
                 }
-                if (!oldConfigInfo.getEnv().equals(entity.getEnv())) {
+                if (!oldKafkaDataSourceInfo.getEnv().equals(entity.getEnv())) {
                     throw new IllegalArgumentException("Env不可修改");
                 }
             }
         }
-        String key = buildUniquenessKey(entity);
-        Map<String, List<ConfigInfo>> map = findAll().stream()
-                .filter(e -> entity.getId() == null || !entity.getId().equals(e.getId()))
-                .collect(Collectors.groupingBy(this::buildUniquenessKey));
+        List<ConfigInfo> list = ListUtils.emptyIfNull(findAll());
+        String key = entity.getEnv() + "_" + entity.getAppId() +"_" + entity.getNamespace();
+        Map<String, List<ConfigInfo>> map = list.stream().collect(Collectors.groupingBy(e->{
+            return e.getEnv()+"_"+e.getAppId()+e.getNamespace();
+        }));
         if (map.containsKey(key)) {
-            throw new IllegalArgumentException(String.format("该环境已存在配置 env:%s , appId:%s , namespace:%s ", entity.getEnv(), entity.getAppId(), entity.getNamespace()));
+            throw new IllegalArgumentException(String.format("该环境已存在配置 env:{} , appId:{} , namesapce:{} ", entity.getEnv(), entity.getAppId(), entity.getNamespace()));
         }
-    }
-
-    private String buildUniquenessKey(ConfigInfo entity) {
-        return entity.getEnv() + "_" + entity.getAppId() + "_" + entity.getNamespace();
     }
 
     /**
@@ -90,7 +89,12 @@ public class ConfigMagicResourceStorage extends AbstractPathMagicResourceStorage
      * @return 包含所有配置信息的列表
      */
     public List<ConfigInfo> findAll() {
-        return magicResourceService.files(folder());
+        String folderPath = folder();
+        if (folderPath == null || folderPath.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ConfigInfo> files = magicResourceService.files(folderPath);
+        return files != null ? files : Collections.emptyList();
     }
 
     /**

@@ -21,7 +21,7 @@ const initLanguage = (rstObj, en, langObj) => {
 const dir = './node_modules/monaco-editor/dev/vs/editor/editor.main.nls'
 const language = {}
 const fs = require('fs')
-const read = path => JSON.parse(fs.readFileSync(path, 'utf8').replace(/[\s\S]+define\("[a-zA-Z/\.\-]+", ({[\s\S]+})\);$/g, '$1').replace(/,\s+]/g, ']'));
+const read = path => eval('(' + fs.readFileSync(path, 'utf8').replace(/[\s\S]+define\("[a-zA-Z/\.\-]+", ({[\s\S]+})\);$/g, '$1').replace(/,\s+]/g, ']') + ')');
 ['zh-cn'].forEach(it => {
 	language[`${it}`] = {}
 	initLanguage(language[`${it}`], read(`${dir}.js`), read(`${dir}.${it}.js`))

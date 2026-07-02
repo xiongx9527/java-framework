@@ -26,7 +26,7 @@ public class RedisDataSourceInfoMagicResourceStorage implements MagicResourceSto
 
     @Override
     public Class<RedisDataSourceInfo> magicClass() {
-        return RedisDataSourceInfo.class;
+        return RedisDataSourceInfo. class;
     }
 
     @Override
@@ -46,7 +46,7 @@ public class RedisDataSourceInfoMagicResourceStorage implements MagicResourceSto
 
     @Override
     public String buildMappingKey(RedisDataSourceInfo info) {
-        return String.format("%s-%s", info.getKey(), info.getUpdateTime() != null ? info.getUpdateTime() : "");
+        return String.format("%s-%s", info.getKey(), info.getUpdateTime());
     }
 
     @Override
@@ -56,9 +56,9 @@ public class RedisDataSourceInfoMagicResourceStorage implements MagicResourceSto
         validateField(entity);
 
         if (entity.getId() != null) {
-            RedisDataSourceInfo oldRedisDataSourceInfo = magicResourceService.file(entity.getId());
-            if (null != oldRedisDataSourceInfo) {
-                if (!oldRedisDataSourceInfo.getKey().equals(entity.getKey())) {
+            RedisDataSourceInfo oldKafkaDataSourceInfo =  magicResourceService.file(entity.getId());
+            if (null != oldKafkaDataSourceInfo) {
+                if (!oldKafkaDataSourceInfo.getKey().equals(entity.getKey())) {
                     throw new IllegalArgumentException("key不可修改");
                 }
             }

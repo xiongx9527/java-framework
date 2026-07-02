@@ -3,7 +3,6 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.model;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.mongodb.ConnectionString;
 import com.mongodb.client.MongoClient;
@@ -80,10 +79,7 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
      */
     public void buildMongoDatabaseFactory(MongoDataSourceInfo dataSourceInfo) { 
         MongoDatabaseFactory mongoDatabaseFactory = createMongoDatabaseFactory(dataSourceInfo);
-        MongoDatabaseFactory oldMongoDatabaseFactory = mongoDatabaseFactoryMap.put(dataSourceInfo.getKey(), mongoDatabaseFactory);
-        if (oldMongoDatabaseFactory != null) {
-            destroyMongoDatabaseFactory(oldMongoDatabaseFactory);
-        }
+        mongoDatabaseFactoryMap.put(dataSourceInfo.getKey(), mongoDatabaseFactory);
         mongoDataSourceInfoMap.put(dataSourceInfo.getKey(), dataSourceInfo);
     }
 
@@ -98,17 +94,17 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
             // 从other字段解析集群配置
             List<String> hosts = new ArrayList<>();
             String hostname = dataSourceInfo.getHostname();
-            hostname = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "hostname", hostname);
+            hostname = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.hostname",dataSourceInfo.getKey()),hostname);
             String portStr = dataSourceInfo.getPort();
-            portStr = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "port", portStr);
+            portStr = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.port",dataSourceInfo.getKey()),portStr);
             String database = dataSourceInfo.getDatabase();
-            database = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "database", database);
-            String username = dataSourceInfo.getUsername();
-            username = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "username", username);
-            String password = dataSourceInfo.getPassword();
-            password = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "password", password);
+            database = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.database",dataSourceInfo.getKey()),database);
+            String username = SpringUtils.getAppConfig(dataSourceInfo.getUsername(),dataSourceInfo.getUsername());
+            username = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.username",dataSourceInfo.getKey()),username);
+            String password = SpringUtils.getAppConfig(dataSourceInfo.getPassword(),dataSourceInfo.getPassword());
+            password = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.password",dataSourceInfo.getKey()),password);
             String other = dataSourceInfo.getOther();
-            other = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "other", other);
+            other = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.other",dataSourceInfo.getKey()),other);
             if (StringUtils.isNotBlank(other)) {
                 try {
                     JSONObject jsonObject = JSON.parseObject(other);
@@ -185,17 +181,17 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
             // 从other字段解析副本集配置
             List<String> hosts = new ArrayList<>();
             String hostname = dataSourceInfo.getHostname();
-            hostname = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "hostname", hostname);
+            hostname = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.hostname",dataSourceInfo.getKey()),hostname);
             String portStr = dataSourceInfo.getPort();
-            portStr = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "port", portStr);
+            portStr = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.port",dataSourceInfo.getKey()),portStr);
             String database = dataSourceInfo.getDatabase();
-            database = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "database", database);
-            String username = dataSourceInfo.getUsername();
-            username = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "username", username);
-            String password = dataSourceInfo.getPassword();
-            password = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "password", password);
+            database = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.database",dataSourceInfo.getKey()),database);
+            String username = SpringUtils.getAppConfig(dataSourceInfo.getUsername(),dataSourceInfo.getUsername());
+            username = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.username",dataSourceInfo.getKey()),username);
+            String password = SpringUtils.getAppConfig(dataSourceInfo.getPassword(),dataSourceInfo.getPassword());
+            password = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.password",dataSourceInfo.getKey()),password);
             String other = dataSourceInfo.getOther();
-            other = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "other", other);
+            other = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.other",dataSourceInfo.getKey()),other);
 
             // 获取副本集名称和读偏好
             String replicaSet = "";
@@ -300,17 +296,17 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
     private MongoDatabaseFactory createStandaloneMongoDatabaseFactory(MongoDataSourceInfo dataSourceInfo) {
         try {
             String hostname = dataSourceInfo.getHostname();
-            hostname = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "hostname", hostname);
+            hostname = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.hostname",dataSourceInfo.getKey()),hostname);
             String portStr = dataSourceInfo.getPort();
-            portStr = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "port", portStr);
+            portStr = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.port",dataSourceInfo.getKey()),portStr);
             String database = dataSourceInfo.getDatabase();
-            database = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "database", database);
-            String username = dataSourceInfo.getUsername();
-            username = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "username", username);
-            String password = dataSourceInfo.getPassword();
-            password = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "password", password);
+            database = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.database",dataSourceInfo.getKey()),database);
+            String username = SpringUtils.getAppConfig(dataSourceInfo.getUsername(),dataSourceInfo.getUsername());
+            username = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.username",dataSourceInfo.getKey()),username);
+            String password = SpringUtils.getAppConfig(dataSourceInfo.getPassword(),dataSourceInfo.getPassword());
+            password = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.password",dataSourceInfo.getKey()),password);
             String other = dataSourceInfo.getOther();
-            other = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "other", other);
+            other = SpringUtils.getAppConfig(String.format("magic.api.mongo.%s.other",dataSourceInfo.getKey()),other);
 
             // 从other字段解析额外配置
             if (StringUtils.isNotBlank(other)) {

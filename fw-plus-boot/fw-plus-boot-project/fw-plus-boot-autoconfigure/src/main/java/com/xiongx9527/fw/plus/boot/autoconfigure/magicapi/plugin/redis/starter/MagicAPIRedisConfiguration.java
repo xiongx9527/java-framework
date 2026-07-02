@@ -92,10 +92,10 @@ public class MagicAPIRedisConfiguration implements MagicPluginConfiguration {
 
     /**
      * 创建Redis数据源动态注册Bean实例
-     * 用于动态注册和管理Redis数据源
+     * 用于动态注册和管理Debezium数据源
      *
-     * @param redisDataSourceInfoMagicResourceStorage Redis数据源信息存储实例
-     * @param magicDynamicRedisDataSource Redis数据源管理器实例
+     * @param redisDataSourceInfoMagicResourceStorage Debezium数据源信息存储实例
+     * @param magicDynamicRedisDataSource Debezium数据源管理器实例
      * @return RedisDataSourceMagicDynamicRegistry Redis数据源动态注册器实例
      */
     @Bean

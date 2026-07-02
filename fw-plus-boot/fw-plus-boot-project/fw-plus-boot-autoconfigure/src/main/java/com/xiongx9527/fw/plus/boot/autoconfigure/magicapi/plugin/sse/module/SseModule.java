@@ -3,8 +3,14 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.sse.module;
 import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.sse.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.sse.handler.BaseDynamicSseHandler;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.sse.model.SseDataSourceInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.sse.service.SseDataSourceInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
+import com.xiongx9527.fw.plus.common.util.WebUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
@@ -12,6 +18,8 @@ import org.ssssssss.magicapi.core.model.Options;
 import org.ssssssss.magicapi.modules.DynamicModule;
 import org.ssssssss.script.MagicScriptContext;
 import org.ssssssss.script.functions.DynamicAttribute;
+
+import java.util.*;
 
 @Slf4j
 @MagicModule("sse")
@@ -21,7 +29,7 @@ public class SseModule implements DynamicAttribute<SseModule, SseModule> , Dynam
      * SSE模块类，用于处理与SSE（Server-Sent Events）相关的操作。
      * 包括消息广播、Token生成等功能。
      */
-    private final BaseDynamicSseHandler baseDynamicSseHandler;
+    private final BaseDynamicSseHandler baseDynamicWebSocketHandler;
 
     /**
      * 模块标识key，用于区分不同的数据源或应用。
@@ -31,11 +39,11 @@ public class SseModule implements DynamicAttribute<SseModule, SseModule> , Dynam
     /**
      * 构造函数，初始化SseModule实例。
      *
-     * @param baseDynamicSseHandler 基础动态SSE处理器
-     * @param key                   模块标识key
+     * @param baseDynamicWebSocketHandler 基础动态SSE处理器
+     * @param key                         模块标识key
      */
-    public SseModule(BaseDynamicSseHandler baseDynamicSseHandler, String key) {
-        this.baseDynamicSseHandler = baseDynamicSseHandler;
+    public SseModule(BaseDynamicSseHandler baseDynamicWebSocketHandler, String key) {
+        this.baseDynamicWebSocketHandler = baseDynamicWebSocketHandler;
         this.key = key;
     }
 
@@ -47,7 +55,7 @@ public class SseModule implements DynamicAttribute<SseModule, SseModule> , Dynam
      * @param message 要发送的消息内容
      */
     public void broadcastMessageToClient(String clientId , String eventName,String message) {
-        this.baseDynamicSseHandler.broadcastMessageToClient(key, clientId, eventName, message);
+        this.baseDynamicWebSocketHandler.broadcastMessageToClient(key, clientId, eventName, message);
     }
 
     /**
@@ -57,7 +65,7 @@ public class SseModule implements DynamicAttribute<SseModule, SseModule> , Dynam
      * @param message 要发送的消息内容
      */
     public void broadcastDistributedMessageToAllClient(String eventName,String message) {
-        this.baseDynamicSseHandler.broadcastDistributedMessageToAllClient(key, eventName, message);
+        this.baseDynamicWebSocketHandler.broadcastDistributedMessageToAllClient(key, eventName, message);
     }
 
     /**
@@ -70,7 +78,7 @@ public class SseModule implements DynamicAttribute<SseModule, SseModule> , Dynam
      * @return SseEmitter 实例，用于向客户端发送事件
      */
     public SseEmitter connect(String appId,String secret, String clientId) {
-        SseEmitter emitter = this.baseDynamicSseHandler.connect(appId, secret, clientId);
+        SseEmitter emitter = this.baseDynamicWebSocketHandler.connect(appId, secret, clientId);
         return emitter;
     }
 
@@ -83,7 +91,7 @@ public class SseModule implements DynamicAttribute<SseModule, SseModule> , Dynam
      * @return 处理结果 ResponseEntity，状态码表示处理成功或失败
      */
     public ResponseEntity<Void> message(String sessionId ,String message) {
-        return this.baseDynamicSseHandler.message(sessionId, JSON.parseObject(message, BaseDynamicSseHandler.JsonRpcMessage.class));
+        return this.baseDynamicWebSocketHandler.message(sessionId, JSON.parseObject(message, BaseDynamicSseHandler.JsonRpcMessage.class));
     }
 
     /**
@@ -98,7 +106,7 @@ public class SseModule implements DynamicAttribute<SseModule, SseModule> , Dynam
         if (StringUtils.isEmpty(dataSourceKey)) {
             return this;
         }
-        return new SseModule(this.baseDynamicSseHandler,dataSourceKey);
+        return new SseModule(this.baseDynamicWebSocketHandler,dataSourceKey);
     }
 
 
@@ -110,7 +118,7 @@ public class SseModule implements DynamicAttribute<SseModule, SseModule> , Dynam
      */
     @Override
     public SseModule getDynamicAttribute(String key) {
-        return new SseModule(this.baseDynamicSseHandler,key);
+        return new SseModule(this.baseDynamicWebSocketHandler,key);
     }
 
 }

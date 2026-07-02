@@ -4,7 +4,7 @@ import com.xiongx9527.fw.plus.boot.jdbc.sample.service.TestOrderService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 
 @RestController("/test")
 public class TestOrderController {

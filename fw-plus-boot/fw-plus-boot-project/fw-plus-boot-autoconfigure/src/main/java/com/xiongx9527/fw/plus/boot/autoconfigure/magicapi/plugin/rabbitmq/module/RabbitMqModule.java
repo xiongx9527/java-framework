@@ -10,38 +10,18 @@ import org.ssssssss.magicapi.modules.DynamicModule;
 import org.ssssssss.script.MagicScriptContext;
 import org.ssssssss.script.functions.DynamicAttribute;
 
-import java.io.IOException;
-import java.util.Objects;
-import java.util.concurrent.TimeoutException;
-
 @MagicModule("rabbitmq")
 public class RabbitMqModule implements DynamicAttribute<RabbitMqModule, RabbitMqModule> , DynamicModule<RabbitMqModule> {
 
-    /**
-     * RabbitMQ生产者实例
-     */
     private final RabbitMqProducer producer;
 
-    /**
-     * 动态RabbitMQ数据源管理器
-     */
     private final MagicDynamicRabbitMqDataSource magicDynamicRabbitMqDataSource;
 
-    /**
-     * 数据源键值
-     */
-    private String key ;
-
-    /**
-     * 构造函数，初始化RabbitMQ模块
-     *
-     * @param producer RabbitMQ生产者实例
-     * @param magicDynamicRabbitMqDataSource 动态RabbitMQ数据源管理器
-     */
     public RabbitMqModule(RabbitMqProducer producer, MagicDynamicRabbitMqDataSource magicDynamicRabbitMqDataSource) {
         this.producer = producer;
         this.magicDynamicRabbitMqDataSource = magicDynamicRabbitMqDataSource;
     }
+
 
     /**
      * 获取RabbitMQ生产者实例
@@ -79,48 +59,7 @@ public class RabbitMqModule implements DynamicAttribute<RabbitMqModule, RabbitMq
      */
     @Override
     public RabbitMqModule getDynamicAttribute(String key) {
-        if (Objects.isNull(key) || Options.DEFAULT_DATA_SOURCE.getValue().equalsIgnoreCase(key)
-                || "default".equalsIgnoreCase(key)) {
-            return this;
-        }
-        RabbitMqModule module = new RabbitMqModule( this.magicDynamicRabbitMqDataSource.getProducer(key),this.magicDynamicRabbitMqDataSource);
-        module.key = key;
-        return module;
-    }
-
-
-    /**
-     * 清空指定队列中的所有消息
-     * 注意：RabbitMQ 没有消费者组偏移量的概念，此方法直接清空队列中的所有消息
-     *
-     * @param topic 队列名称
-     * @throws IOException 当 IO 操作失败时抛出
-     * @throws TimeoutException 当连接超时时抛出
-     * @throws IllegalArgumentException 当队列为空时抛出
-     * @throws IllegalStateException 当 RabbitMQ 连接配置缺失时抛出
-     */
-    public void alterConsumerGroupOffsets(String topic) throws IOException, TimeoutException {
-        if (StringUtils.isBlank(topic)) {
-            throw new IllegalArgumentException("Queue name cannot be blank");
-        }
-
-        // 使用 RabbitTemplate 的 execute 方法复用连接和通道，避免频繁创建连接
-        try {
-            this.producer.getProducer().execute(channel -> {
-                // 清空队列中的所有消息
-                channel.queuePurge(topic);
-                return null;
-            });
-        } catch (Exception e) {
-            // 将运行时异常转换为声明的受检异常
-            if (e instanceof IOException) {
-                throw (IOException) e;
-            } else if (e instanceof TimeoutException) {
-                throw (TimeoutException) e;
-            } else {
-                throw new IOException("Failed to purge queue: " + topic, e);
-            }
-        }
+        return new RabbitMqModule( this.magicDynamicRabbitMqDataSource.getProducer(key),this.magicDynamicRabbitMqDataSource);
     }
 
 

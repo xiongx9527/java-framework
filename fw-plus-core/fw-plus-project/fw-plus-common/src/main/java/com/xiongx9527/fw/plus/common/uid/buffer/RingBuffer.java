@@ -1,10 +1,10 @@
 package com.xiongx9527.fw.plus.common.uid.buffer;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import com.xiongx9527.fw.plus.common.uid.common.PaddedAtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.Assert;
-
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Represents a ring buffer based on array.<br>
@@ -141,7 +141,7 @@ public class RingBuffer {
         // trigger padding in an async-mode if reach the threshold
         long currentTail = tail.get();
         if (currentTail - nextCursor < paddingThreshold) {
-            log.debug("Reach the padding threshold:{}. tail:{}, cursor:{}, rest:{}", paddingThreshold, currentTail,
+            log.info("Reach the padding threshold:{}. tail:{}, cursor:{}, rest:{}", paddingThreshold, currentTail,
                     nextCursor, currentTail - nextCursor);
             bufferPaddingExecutor.asyncPadding();
         }

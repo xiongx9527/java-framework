@@ -11,7 +11,7 @@
 </template>
 
 <script>
-import {inject, ref} from 'vue';
+import { ref } from 'vue';
 
 export default {
   props: {
@@ -21,13 +21,12 @@ export default {
     }
   },
   setup(props) {
-    const $i = inject('i18n.format');
     const info = ref(props.info);
     const options = [
       { text: $i('datasource.extra.producer'), value: 'producer' },
       { text: $i('datasource.extra.consumer'), value: 'consumer' }
     ];
-    return { $i, info, options };
+    return { info, options };
   }
 };
 </script>

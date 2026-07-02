@@ -5,7 +5,6 @@ import com.influxdb.LogLevel;
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.InfluxDBClientOptions;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -47,16 +46,14 @@ public class MagicDynamicInfluxDataSource implements DisposableBean {
      */
     public InfluxDBClient createInfluxDBClient(InfluxDataSourceInfo dataSourceInfo) {
         InfluxDBClientOptions.Builder optionsBuilder = InfluxDBClientOptions.builder();
-        String url = dataSourceInfo.getUrl();
-        url = MagicAPIConfigUtils.getInfluxConfig(dataSourceInfo.getKey(), "url", url);
-        optionsBuilder.url(url);
+        optionsBuilder.url(SpringUtils.getAppConfig(dataSourceInfo.getUrl(), dataSourceInfo.getUrl()));
 
         String username = dataSourceInfo.getUsername();
-        username = MagicAPIConfigUtils.getInfluxConfig(dataSourceInfo.getKey(), "username", username);
+        username = SpringUtils.getAppConfig(String.format("magic.api.influx.%s.username",dataSourceInfo.getKey()), username);
         String password = dataSourceInfo.getPassword();
-        password = MagicAPIConfigUtils.getInfluxConfig(dataSourceInfo.getKey(), "password", password);
+        password = SpringUtils.getAppConfig(String.format("magic.api.influx.%s.password",dataSourceInfo.getKey()), password);
         String token = dataSourceInfo.getToken();
-        token = MagicAPIConfigUtils.getInfluxConfig(dataSourceInfo.getKey(), "token", token);
+        token = SpringUtils.getAppConfig(String.format("magic.api.influx.%s.token",dataSourceInfo.getKey()), token);
         // 认证配置：优先使用用户名密码，其次使用 Token
         if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
             optionsBuilder.authenticate(username, password.toCharArray());
@@ -65,19 +62,19 @@ public class MagicDynamicInfluxDataSource implements DisposableBean {
         }
 
         String org = dataSourceInfo.getOrg();
-        org = MagicAPIConfigUtils.getInfluxConfig(dataSourceInfo.getKey(), "org", org);
+        org = SpringUtils.getAppConfig(String.format("magic.api.influx.%s.org",dataSourceInfo.getKey()), org);
         // 组织和存储桶配置
         if (StringUtils.isNotBlank(org)) {
             optionsBuilder.org(org);
         }
         String bucket = dataSourceInfo.getBucket();
-        bucket = MagicAPIConfigUtils.getInfluxConfig(dataSourceInfo.getKey(), "bucket", bucket);
+        bucket = SpringUtils.getAppConfig(String.format("magic.api.influx.%s.bucket",dataSourceInfo.getKey()), bucket);
         if (StringUtils.isNotBlank(bucket)) {
             optionsBuilder.bucket(bucket);
         }
 
         String logLevel = dataSourceInfo.getLogLevel();
-        logLevel = MagicAPIConfigUtils.getInfluxConfig(dataSourceInfo.getKey(), "logLevel", logLevel);
+        logLevel = SpringUtils.getAppConfig(String.format("magic.api.influx.%s.logLevel",dataSourceInfo.getKey()), logLevel);
         // 日志级别配置
         if ("NONE".equals(logLevel)) {
             optionsBuilder.logLevel(LogLevel.NONE);
@@ -89,7 +86,7 @@ public class MagicDynamicInfluxDataSource implements DisposableBean {
             optionsBuilder.logLevel(LogLevel.BODY);
         }
 
-        String other = MagicAPIConfigUtils.getInfluxConfig(dataSourceInfo.getKey(), "other", dataSourceInfo.getOther());
+        String other = SpringUtils.getAppConfig(String.format("magic.api.influx.%s.other",dataSourceInfo.getKey()), dataSourceInfo.getOther());
         // 其他配置项处理，例如默认标签（defaultTag）
         if (StringUtils.isNotBlank(other)) {
             try {

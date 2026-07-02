@@ -5,7 +5,11 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.entity.
 import io.swagger.v3.oas.models.OpenAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springdoc.core.*;
+import org.springdoc.core.models.GroupedOpenApi;
+import org.springdoc.core.properties.AbstractSwaggerUiConfigProperties;
+import org.springdoc.core.properties.SpringDocConfigProperties;
+import org.springdoc.core.properties.SwaggerUiConfigParameters;
+import org.springdoc.core.properties.SwaggerUiConfigProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -26,7 +30,7 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.impl.RequestMagicDynamicRegistry;
 import org.ssssssss.magicapi.utils.Mapping;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;

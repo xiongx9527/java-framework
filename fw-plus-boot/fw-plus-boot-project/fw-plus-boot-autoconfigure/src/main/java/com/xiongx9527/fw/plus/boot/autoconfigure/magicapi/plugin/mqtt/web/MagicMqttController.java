@@ -36,24 +36,24 @@ public class MagicMqttController extends MagicController implements MagicExcepti
     @RequestMapping("/mqtt/datasource/test")
     @ResponseBody
     public JsonBean<Object> test(@RequestBody MqttDataSourceInfo properties) {
-        MagicAPIMqttServer server = null;
+        MagicAPIMqttServer client = null;
         try {
             // 验证输入参数的合法性
             validateField(properties);
 
             // 构建MQTT客户端实例
-            server = SpringUtils.getBean(BaseMagicDynamicMqttDataSource.class).buildServer(properties);
+            client = SpringUtils.getBean(BaseMagicDynamicMqttDataSource.class).buildClient(properties);
 
             // 验证连接
-            server.start();
+            client.start();
             return new JsonBean<>("ok");
         } catch (Exception e) {
             return new JsonBean<>(e.getMessage());
         } finally {
             // 确保在所有情况下都销毁客户端，释放资源
-            if (server != null) {
+            if (client != null) {
                 try {
-                    SpringUtils.getBean(BaseMagicDynamicMqttDataSource.class).destroyServer(server);
+                    SpringUtils.getBean(BaseMagicDynamicMqttDataSource.class).destroyClient(client);
                 } catch (Exception e) {
                 }
             }

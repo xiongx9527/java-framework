@@ -4,7 +4,6 @@ import localEn from './i18n/en.js'
 import MagicConfigInfo from './components/magic-config-info.vue'
 import setYaml from './js/yaml'
 import 'vite-plugin-svg-icons/register'
-
 export default (opt) => {
     const i18n = opt.i18n
     // 添加i18n 国际化信息
@@ -30,7 +29,7 @@ export default (opt) => {
             // 工具条展示的标题
             title: 'config.title',
             // 展示图标
-            icon: '#magic-config-config',
+            icon: 'parameter',
             // 对应的组件
             component: MagicConfigInfo,
         }]

@@ -1,7 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.model;
 
 import com.alibaba.fastjson2.JSON;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.common.BaseService;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -9,9 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.dromara.dynamictp.core.executor.DtpExecutor;
 import org.springframework.beans.factory.DisposableBean;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -39,16 +36,21 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
      * @return 返回指定类型的BlockingQueue实例
      */
     private BlockingQueue<Runnable> createWorkQueue(DtpDataSourceInfo info) {
-        String queueType = MagicAPIConfigUtils.getDtpConfig(info.getKey(), "queueType", info.getQueueType());
-        if (queueType == null || queueType.isEmpty()) {
-            queueType = "linked";
-        }
-
-        int capacity = Integer.parseInt(MagicAPIConfigUtils.getDtpConfig(info.getKey(), "queueCapacity", String.valueOf(info.getQueueCapacity())));
+        int capacity = info.getQueueCapacity();
+        capacity = Integer.parseInt(SpringUtils.getAppConfig(String.format("magic.api.dtp.%s.queueCapacity",info.getKey()),String.valueOf(capacity)));
+        String queueType = info.getQueueType();
+        queueType = SpringUtils.getAppConfig(String.format("magic.api.dtp.%s.queueType",info.getKey()),queueType);
+        // 容量合法性校验
         if (capacity <= 0) {
             throw new IllegalArgumentException("队列容量必须大于0");
         }
 
+        // 设置默认队列类型
+        if (queueType == null || queueType.isEmpty()) {
+            queueType = "linked";
+        }
+
+        // 统一小写比较
         switch (queueType.toLowerCase()) {
             case "array":
                 return new ArrayBlockingQueue<>(capacity);
@@ -77,10 +79,17 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
      * @return 返回对应的ThreadFactory实例
      */
     private ThreadFactory createThreadFactory(DtpDataSourceInfo info) {
-        String threadFactoryType = MagicAPIConfigUtils.getDtpConfig(info.getKey(), "threadFactory", info.getThreadFactory());
-        ThreadFactory baseFactory = "privileged".equalsIgnoreCase(threadFactoryType)
-                ? Executors.privilegedThreadFactory()
-                : Executors.defaultThreadFactory();
+        String threadFactoryType = info.getThreadFactory();
+        threadFactoryType = SpringUtils.getAppConfig(String.format("magic.api.dtp.%s.threadFactory",info.getKey()),threadFactoryType);
+        // 根据配置选择线程工厂类型
+        ThreadFactory baseFactory;
+        if ("privileged".equalsIgnoreCase(threadFactoryType)) {
+            baseFactory = Executors.privilegedThreadFactory();
+        } else {
+            baseFactory = Executors.defaultThreadFactory();
+        }
+
+        // 包装成自定义线程工厂以支持动态命名
         return new NamedThreadFactory(baseFactory, info.getKey());
     }
 
@@ -112,11 +121,14 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
      * @return 返回对应的拒绝执行处理器实例
      */
     private RejectedExecutionHandler createRejectedHandler(DtpDataSourceInfo info) {
-        String rejectedPolicy = MagicAPIConfigUtils.getDtpConfig(info.getKey(), "rejectedPolicy", info.getRejectedPolicy());
+        String rejectedPolicy = info.getRejectedPolicy(); // 如果DtpDataSourceInfo中有拒绝策略配置
+        rejectedPolicy = SpringUtils.getAppConfig(String.format("magic.api.dtp.%s.rejectedPolicy",info.getKey()),rejectedPolicy);
+        // 如果拒绝策略未配置，则使用默认的abort策略
         if (StringUtils.isEmpty(rejectedPolicy)) {
-            rejectedPolicy = "abort";
+            rejectedPolicy = "abort"; // 默认策略
         }
 
+        // 根据配置的拒绝策略名称创建对应的处理器实例
         switch (rejectedPolicy.toLowerCase()) {
             case "caller_runs":
                 return new ThreadPoolExecutor.CallerRunsPolicy();
@@ -127,7 +139,7 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
             case "discard_oldest":
                 return new ThreadPoolExecutor.DiscardOldestPolicy();
             default:
-                throw new IllegalArgumentException("不支持的拒绝策略: " + rejectedPolicy);
+                return new ThreadPoolExecutor.AbortPolicy();
         }
     }
 
@@ -138,10 +150,12 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
      * @param info 数据源信息对象
      */
     private void configureDtpExecutorFromOtherInfo(DtpExecutor client, DtpDataSourceInfo info) {
-        String other = MagicAPIConfigUtils.getDtpConfig(info.getKey(), "other", info.getOther());
+        String other = info.getOther();
+        other = SpringUtils.getAppConfig(String.format("magic.api.dtp.%s.other",info.getKey()),other);
         if (StringUtils.isEmpty(other)) {
             return;
         }
+        // 根据other配置设置DtpExecutor的额外属性
         JSON.parseObject(other).forEach((key, value) -> {
             try {
                 applyDtpExecutorConfiguration(client, key, value);
@@ -167,7 +181,8 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
                 break;
             case "awaitTerminationSeconds":
                 if (value instanceof Number) {
-                    client.setAwaitTerminationSeconds(((Number) value).intValue());
+                    // 设置等待终止时间
+                    client.setAwaitTerminationSeconds(Integer.parseInt(value.toString()));
                 }
                 break;
             default:
@@ -193,7 +208,7 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
                 createThreadFactory(info),
                 createRejectedHandler(info)
         );
-        configureDtpExecutorFromOtherInfo(client, info);
+        configureDtpExecutorFromOtherInfo(client ,  info);
         return client;
     }
 
@@ -206,10 +221,7 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
         // 构建客户端执行器
         DtpExecutor client = buildClient(info);
         // 将客户端执行器存储到客户端映射中
-        DtpExecutor oldClient = this.clientMap.put(info.getKey(), client);
-        if (oldClient != null) {
-            destroyClient(oldClient);
-        }
+        this.clientMap.put(info.getKey(), client);
         // 将数据源信息存储到信息映射中
         this.infoMap.put(info.getKey(), info);
     }
@@ -236,7 +248,9 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
     public void destroyClient(DtpExecutor client) {
         if (client != null) {
             try {
+                // 尝试关闭客户端并释放相关资源
                 client.shutdown();
+                client = null;
             } catch (Exception e) {
                 log.warn("Failed to destroy client: {}", e.getMessage());
             }
@@ -250,8 +264,9 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
      */
     public List<DtpDataSourceInfo> datasourceNodes() {
         // 获取所有动态创建的数据源信息
-        List<DtpDataSourceInfo> dataSourceInfoList = new ArrayList<>(infoMap.values());
+        List<DtpDataSourceInfo>  dataSourceInfoList = new ArrayList<>(infoMap.values());
         try {
+            // 尝试获取默认数据源客户端，如果存在则添加默认数据源信息
             DtpExecutor client = SpringUtils.getBean(DtpExecutor.class);
             if (client != null) {
                 DtpDataSourceInfo dataSourceInfo = new DtpDataSourceInfo();
@@ -260,7 +275,6 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
                 dataSourceInfoList.add(dataSourceInfo);
             }
         } catch (Exception e) {
-            log.debug("未找到默认 DtpExecutor Bean");
         }
         return dataSourceInfoList;
     }
@@ -270,24 +284,59 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
      *
      * @param key 客户端的唯一标识key，用于定位需要销毁的客户端实例
      */
-    public void destroyClientByKey(String key) {
+    public void destroyClientByKey(String  key) {
+        // 参数校验，空key直接返回
         if (key == null) {
             return;
         }
-        DtpExecutor client = this.clientMap.remove(key);
-        this.infoMap.remove(key);
-        if (client != null) {
-            destroyClient(client);
+        try {
+            // 从客户端映射表中获取并移除对应的客户端实例
+            DtpExecutor client = this.clientMap.get(key);
+            if (client != null) {
+                try {
+                    // 安全地关闭客户端连接
+                    destroyClient(client);
+                } catch (Exception e) {
+                    log.warn("销毁数据源客户端失败: {}", e.getMessage(), e);
+                }
+                // 从映射表中移除客户端引用
+                this.clientMap.remove(key);
+            }
+            // 同时清理相关的配置信息
+            this.infoMap.remove(key);
+        } catch (Exception e) {
+            log.warn("销毁数据源客户端失败: {}", e.getMessage(), e);
         }
     }
 
+    /**
+     * 销毁数据源客户端资源
+     * <p>
+     * 该方法会遍历所有已创建的客户端实例，逐一销毁它们，然后清空客户端映射表。
+     * 在销毁过程中如果发生异常，会记录警告日志但不会中断整个销毁流程。
+     * </p>
+     *
+     * @throws Exception 如果在销毁过程中发生无法处理的异常
+     */
     @Override
-    public void destroy() {
+    public void destroy() throws Exception {
+        // 遍历并销毁所有客户端实例
         for (String key : new ArrayList<>(this.clientMap.keySet())) {
-            destroyClientByKey(key);
+            try {
+                destroyClientByKey(key);
+            } catch (Exception e) {
+                log.warn("销毁数据源客户端失败: {}", e.getMessage(), e);
+            }
         }
-        this.clientMap.clear();
-        this.infoMap.clear();
+
+        // 清空客户端映射表
+        try {
+            this.clientMap.clear();
+            this.infoMap.clear();
+        } catch (Exception e) {
+            log.warn("销毁数据源客户端失败: {}", e.getMessage(), e);
+        }
+
     }
 
 }

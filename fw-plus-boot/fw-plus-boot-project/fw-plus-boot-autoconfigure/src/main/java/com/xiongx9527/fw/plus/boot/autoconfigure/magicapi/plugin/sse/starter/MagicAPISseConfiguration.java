@@ -29,7 +29,7 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 @ConditionalOnProperty(prefix = "magic-api.plugin.sse", name = "enabled", havingValue = "true", matchIfMissing = true)
 @Configuration
 @EnableConfigurationProperties(MagicAPISseConfig.class)
-
+//@ConditionalOnClass(name={"org.springframework.web.socket.WebSocketHandler"})
 @Import(MagicAPISseHandlerConfiguration.class)
 public class MagicAPISseConfiguration implements MagicPluginConfiguration , BaseService {
 

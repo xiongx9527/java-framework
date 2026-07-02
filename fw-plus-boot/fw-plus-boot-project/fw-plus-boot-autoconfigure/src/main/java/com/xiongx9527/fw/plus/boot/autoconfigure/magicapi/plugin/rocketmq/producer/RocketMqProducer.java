@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.producer;
 
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqDataSourceInfo;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.acl.common.AclClientRPCHook;
@@ -24,6 +24,7 @@ import java.util.UUID;
 @Slf4j
 public class RocketMqProducer {
 
+
     /**
      * 消息队列生产者实例的唯一标识符
      */
@@ -38,12 +39,6 @@ public class RocketMqProducer {
      * 消息队列生产者的名称
      */
     private final String name;
-
-
-    /**
-     * 数据源信息，包含连接 RocketMQ 所需的配置
-     */
-    private final RocketMqDataSourceInfo dataSourceInfo;
 
     /**
      * RocketMQ消息生产者对象，用于发送消息到消息队列
@@ -61,11 +56,6 @@ public class RocketMqProducer {
         this.id = UUID.randomUUID().toString();
         this.name = Options.DEFAULT_DATA_SOURCE.getName();
         this.key = Options.DEFAULT_DATA_SOURCE.getValue();
-        RocketMqDataSourceInfo dataSourceInfo = new RocketMqDataSourceInfo();
-        dataSourceInfo.setId("");
-        dataSourceInfo.setName("默认数据源");
-        dataSourceInfo.setKey("default");
-        this.dataSourceInfo = dataSourceInfo;
     }
 
     /**
@@ -75,7 +65,6 @@ public class RocketMqProducer {
      * @throws MQClientException 当生产者启动失败时抛出该异常
      */
     public RocketMqProducer(RocketMqDataSourceInfo dataSourceInfo) throws MQClientException {
-        this.dataSourceInfo = dataSourceInfo;
         this.producer = createProducer(dataSourceInfo);
         this.id = dataSourceInfo.getId();
         this.name = dataSourceInfo.getName();
@@ -96,9 +85,9 @@ public class RocketMqProducer {
         DefaultMQProducer producer;
         // 判断是否需要启用 ACL 鉴权机制
         String accessKey = dataSourceInfo.getAccessKey();
-        accessKey = MagicAPIConfigUtils.getRocketMQConfig(dataSourceInfo.getKey(), "accessKey", accessKey);
+        accessKey = SpringUtils.getAppConfig(String.format("magic.api.rocketmq.%s.accessKey",dataSourceInfo.getKey()), accessKey);
         String secretKey = dataSourceInfo.getSecretKey();
-        secretKey = MagicAPIConfigUtils.getRocketMQConfig(dataSourceInfo.getKey(), "secretKey", secretKey);
+        secretKey = SpringUtils.getAppConfig(String.format("magic.api.rocketmq.%s.secretKey",dataSourceInfo.getKey()), secretKey);
         if (StringUtils.isBlank(accessKey) || StringUtils.isBlank(secretKey) ) {
             producer = new DefaultMQProducer();
         } else {
@@ -106,10 +95,10 @@ public class RocketMqProducer {
                     new AclClientRPCHook(new SessionCredentials(accessKey,secretKey)));
         }
         String  nameServer = dataSourceInfo.getNameServer();
-        nameServer = MagicAPIConfigUtils.getRocketMQConfig(dataSourceInfo.getKey(), "nameServer", nameServer);
+        nameServer = SpringUtils.getAppConfig(String.format("magic.api.rocketmq.%s.nameServer",dataSourceInfo.getKey()), nameServer);
         producer.setNamesrvAddr(nameServer);
         String group = dataSourceInfo.getGroup();
-        group = MagicAPIConfigUtils.getRocketMQConfig(dataSourceInfo.getKey(), "group", group);
+        group = SpringUtils.getAppConfig(String.format("magic.api.rocketmq.%s.group",dataSourceInfo.getKey()), group);
         if (StringUtils.isBlank(group)) {
             group = "magic-api";
         }
@@ -222,64 +211,29 @@ public class RocketMqProducer {
         }
     }
 
-    /**
-     * 关闭并释放RocketMQ生产者资源
-     */
     @Transient
     public void close() {
-        try {
-            this.producer.shutdown();
-        } catch (Exception e) {
-            log.error("close producer error", e);
-        }
+        producer.shutdown();
     }
 
-    /**
-     * 获取生产者唯一标识符
-     *
-     * @return 生产者ID
-     */
     @Transient
     public String getId() {
-        return this.id;
+        return id;
     }
 
-    /**
-     * 获取生产者名称
-     *
-     * @return 生产者名称
-     */
     @Transient
     public String getName() {
-        return this.name;
+        return name;
     }
 
-    /**
-     * 获取生产者数据源键
-     *
-     * @return 数据源键
-     */
     @Transient
     public String getKey() {
-        return this.key;
+        return key;
     }
 
-    /**
-     * 获取底层的DefaultMQProducer实例
-     *
-     * @return DefaultMQProducer实例
-     */
     @Transient
     public DefaultMQProducer getProducer() {
-        return this.producer;
+        return producer;
     }
 
-    /**
-     * 获取数据源配置信息
-     *
-     * @return RocketMQ数据源配置信息
-     */
-    public RocketMqDataSourceInfo getDataSourceInfo() {
-        return this.dataSourceInfo;
-    }
 }

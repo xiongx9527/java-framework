@@ -1,101 +1,75 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.trace.opentelemetry;
 
 import com.xiongx9527.fw.plus.common.trace.AbstractTrace;
-import io.opentelemetry.api.trace.Span;
-import lombok.extern.slf4j.Slf4j;
 
-import java.util.function.Function;
-
-@Slf4j
 public class OpentelemetryTrace extends AbstractTrace {
 
+    /**
+     * 无效的追踪ID常量
+     * 用于表示无效或未初始化的分布式追踪ID
+     */
     private static final String INVALID_TRACE_ID = "00000000000000000000000000000000";
+
+    /**
+     * 无效的跨度ID常量
+     * 用于表示无效或未初始化的分布式追踪跨度ID
+     */
     private static final String INVALID_SPAN_ID = "0000000000000000";
 
-    private String getSpanContextValue(Function<Span, String> extractor, String invalidValue) {
+    /**
+     * 获取当前追踪的Trace ID
+     *
+     * @return 当前追踪的Trace ID，如果获取失败则返回"no-trace-id"
+     */
+    private String traceId() {
+        String traceId = null;
         try {
-            String value = extractor.apply(Span.current());
-            if (invalidValue.equals(value)) {
-                return null;
-            }
-            return value;
+            traceId = io.opentelemetry.api.trace.Span.current().getSpanContext().getTraceId();
         } catch (Throwable e) {
-            log.trace("Failed to get span context value from OpenTelemetry", e);
-            return null;
         }
+        if (INVALID_TRACE_ID.equals(traceId)) {
+            traceId = null;
+        }
+        return traceId;
     }
 
+    /**
+     * 获取当前跨度的Span ID
+     *
+     * @return 当前跨度的Span ID，如果获取失败则返回"no-span-id"
+     */
+    private String spanId() {
+        String spanId = null;
+        try {
+            spanId = io.opentelemetry.api.trace.Span.current().getSpanContext().getSpanId();
+        } catch (Throwable e) {
+        }
+        if (INVALID_SPAN_ID.equals(spanId)) {
+            spanId = null;
+        }
+        return spanId;
+    }
+
+    /**
+     * 获取追踪ID的实现方法
+     *
+     * @return 追踪ID字符串
+     */
     @Override
     public String getTraceId() {
-        return getSpanContextValue(
-                span -> span.getSpanContext().getTraceId(),
-                INVALID_TRACE_ID);
+        return traceId();
     }
 
+    /**
+     * 获取跨度ID的实现方法
+     *
+     * @return 跨度ID字符串
+     */
     @Override
     public String getSpanId() {
-        return getSpanContextValue(
-                span -> span.getSpanContext().getSpanId(),
-                INVALID_SPAN_ID);
+        return spanId();
     }
 
-    @Override
-    public void setAttribute(String key, String value) {
-        if (value != null) {
-            try {
-                Span.current().setAttribute(key, value);
-            } catch (Throwable e) {
-                log.trace("Failed to set span attribute: {}={}", key, value, e);
-            }
-        }
-    }
 
-    @Override
-    public void setAttribute(String key, long value) {
-        try {
-            Span.current().setAttribute(key, value);
-        } catch (Throwable e) {
-            log.trace("Failed to set span attribute: {}={}", key, value, e);
-        }
-    }
-
-    @Override
-    public void setAttribute(String key, boolean value) {
-        try {
-            Span.current().setAttribute(key, value);
-        } catch (Throwable e) {
-            log.trace("Failed to set span attribute: {}={}", key, value, e);
-        }
-    }
-
-    @Override
-    public void setAttribute(String key, double value) {
-        try {
-            Span.current().setAttribute(key, value);
-        } catch (Throwable e) {
-            log.trace("Failed to set span attribute: {}={}", key, value, e);
-        }
-    }
-
-    @Override
-    public void addEvent(String name) {
-        try {
-            Span.current().addEvent(name);
-        } catch (Throwable e) {
-            log.trace("Failed to add span event: {}", name, e);
-        }
-    }
-
-    @Override
-    public void recordException(Throwable throwable) {
-        if (throwable != null) {
-            try {
-                Span.current().recordException(throwable);
-                Span.current().setStatus(io.opentelemetry.api.trace.StatusCode.ERROR, throwable.getMessage());
-            } catch (Throwable e) {
-                log.trace("Failed to record exception on span", e);
-            }
-        }
-    }
 
 }

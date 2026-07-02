@@ -8,8 +8,6 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import okhttp3.*;
 import okhttp3.MediaType;
@@ -19,8 +17,6 @@ import okhttp3.sse.EventSourceListener;
 import okhttp3.sse.EventSources;
 
 public class SimpleHttpClient {
-
-    private static final Pattern JSON_UNICODE_ESCAPE_PATTERN = Pattern.compile("\\\\{1,2}u([0-9a-fA-F]{4})");
 
     /**
      * 缓存池，用于存储已创建的 SimpleHttpClient 实例
@@ -172,9 +168,6 @@ public class SimpleHttpClient {
      */
     private static OkHttpClient buildOkHttpClient(long connectTimeout, long readTimeout, long writeTimeout,
                                                    int maxIdleConnections, int keepAliveDuration, boolean retryOnConnectionFailure) {
-        if (keepAliveDuration <= 0) {
-            keepAliveDuration = 5;
-        }
         return new OkHttpClient.Builder()
                 .connectTimeout(connectTimeout, TimeUnit.SECONDS)
                 .readTimeout(readTimeout, TimeUnit.SECONDS)
@@ -313,36 +306,18 @@ public class SimpleHttpClient {
             
             try (Response response = getHttpClient().newCall(request).execute()) {
                 int statusCode = response.code();
-                String responseBody = readResponseBody(response);
                 if (statusCode >= 400) {
+                    String responseBody = response.body() != null ? response.body().string() : "";
                     throw new DifyException(responseBody, statusCode);
                 }
                 
-                return decodeUnicodeEscapes(responseBody);
+                return response.body() != null ? response.body().string() : "";
             }
         } catch (DifyException e) {
             throw e;
         } catch (Exception e) {
             throw new DifyClientException(e);
         }
-    }
-
-    private String readResponseBody(Response response) throws java.io.IOException {
-        return response.body() != null ? response.body().string() : null;
-    }
-
-    private String decodeUnicodeEscapes(String value) {
-        if (value == null || value.indexOf("\\u") < 0) {
-            return value;
-        }
-        Matcher matcher = JSON_UNICODE_ESCAPE_PATTERN.matcher(value);
-        StringBuffer buffer = new StringBuffer();
-        while (matcher.find()) {
-            char ch = (char) Integer.parseInt(matcher.group(1), 16);
-            matcher.appendReplacement(buffer, Matcher.quoteReplacement(String.valueOf(ch)));
-        }
-        matcher.appendTail(buffer);
-        return buffer.toString();
     }
 
     /**
@@ -408,7 +383,8 @@ public class SimpleHttpClient {
             try (Response response = getHttpClient().newCall(request).execute()) {
                 int statusCode = response.code();
                 if (statusCode >= 400) {
-                    throw new DifyException(readResponseBody(response), statusCode);
+                    String responseBody = response.body() != null ? response.body().string() : "";
+                    throw new DifyException(responseBody, statusCode);
                 }
                 
                 // 从响应头获取文件类型信息并构建返回对象
@@ -566,10 +542,11 @@ public class SimpleHttpClient {
             try (Response response = getHttpClient().newCall(request).execute()) {
                 int statusCode = response.code();
                 if (statusCode >= 400) {
-                    throw new DifyException(readResponseBody(response), statusCode);
+                    String responseBody = response.body() != null ? response.body().string() : "";
+                    throw new DifyException(responseBody, statusCode);
                 }
                 
-                return readResponseBody(response);
+                return response.body() != null ? response.body().string() : "";
             }
         } catch (DifyException e) {
             throw e;

@@ -3,9 +3,9 @@ package com.xiongx9527.fw.plus.dify.app.impl;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.dify.SimpleHttpClient;
-import com.xiongx9527.fw.plus.dify.app.DifyEventSourceBaseListener;
 import com.xiongx9527.fw.plus.dify.app.IAppFlowClient;
 import com.xiongx9527.fw.plus.dify.app.params.ParamMessage;
+import com.xiongx9527.fw.plus.dify.app.types.DifyWorkFlowResult;
 import com.xiongx9527.fw.plus.dify.app.types.WorkflowStatus;
 import com.xiongx9527.fw.plus.dify.routes.AppRoutes;
 import com.xiongx9527.fw.plus.dify.types.HttpMethod;
@@ -14,6 +14,8 @@ import okhttp3.sse.EventSource;
 import okhttp3.sse.EventSourceListener;
 
 import java.util.HashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 @Slf4j
 public class AppFlowClientImpl extends AppBaseClientImpl implements IAppFlowClient {
@@ -43,23 +45,6 @@ public class AppFlowClientImpl extends AppBaseClientImpl implements IAppFlowClie
     @Override
     public EventSource runStreaming(ParamMessage message, EventSourceListener listener) {
         return requestStreaming(AppRoutes.WORKFLOW_RUN, null, message.toMap(), listener);
-    }
-
-    /**
-     * 以流式模式异步执行 Dify 工作流并监听响应事件（使用默认监听器）
-     * 
-     * <p>该方法用于启动 Dify 工作流的流式执行，使用默认的 DifyEventSourceListener 
-     * 接收工作流执行过程中的各个节点输出和状态更新。适用于不需要自定义事件处理逻辑
-     * 的常规流式工作流执行场景。</p>
-     *
-     * @param message 参数消息对象，包含工作流执行所需的输入参数和配置信息
-     *                该对象会被转换为 Map 结构发送到 Dify 服务端点
-     * @return EventSource 事件源对象，用于管理流式连接的生命周期
-     *         可通过该对象控制连接的开启、关闭等操作
-     */
-    @Override
-    public EventSource runStreaming(ParamMessage message) {
-        return runStreaming(message, new DifyEventSourceBaseListener());
     }
 
     /**

@@ -17,7 +17,7 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 @ConditionalOnProperty(prefix = "magic-api.plugin.freemarker", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name={"freemarker.template.Template"})
 @Configuration
-@Import({StaticResourceConfiguration.class})
+@Import({StaticResourcConfiguration.class})
 public class MagicAPIFreemarkerConfiguration implements MagicPluginConfiguration {
 
     /**

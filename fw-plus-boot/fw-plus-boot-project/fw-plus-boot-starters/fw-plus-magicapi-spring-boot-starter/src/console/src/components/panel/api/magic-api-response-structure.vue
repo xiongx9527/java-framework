@@ -10,12 +10,12 @@
             <magic-select :options="$BODY_DATA_TYPES" v-model:value="row.node.dataType" :border="false"/>
         </magic-table-column>
         <magic-table-column title="Value" #default="{ row }" flex="3">
-            <template v-if="row.folder"><span class="magic-dash">-</span></template>
+            <template v-if="row.folder"><p align="center" style="flex:1">-</p></template>
             <span v-else class="magic-data-type" :class="row.node.dataType?.toLowerCase()">{{ row.node.value }}</span>
         </magic-table-column>
         <magic-table-column :title="$i('message.description')" #default="{ row }">
             <magic-input v-if="row.name" v-model:value="row.node.description" :border="false"/>
-            <template v-else><span class="magic-dash">-</span></template>
+            <template v-else><p align="center" style="flex:1">-</p></template>
         </magic-table-column>
     </magic-table>
     <magic-empty v-else :text="$i('message.empty', $i('message.responseBody'))"/>
@@ -57,18 +57,6 @@ const filteredTreeList = computed(() => {
 .magic-table :deep(.magic-table-column:first-child){
     justify-content: unset !important;
     text-align:unset !important;
-}
-.magic-table :deep(.magic-table-column:first-child) span {
-    display: inline-flex;
-    align-items: center;
-}
-.magic-table :deep(.magic-icon) {
-    vertical-align: middle;
-}
-.magic-dash {
-    display: block;
-    width: 100%;
-    text-align: center;
 }
 .magic-data-type{
     display: inline-block;

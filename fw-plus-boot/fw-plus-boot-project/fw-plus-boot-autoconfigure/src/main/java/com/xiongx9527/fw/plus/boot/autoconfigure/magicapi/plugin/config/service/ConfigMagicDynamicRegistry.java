@@ -18,7 +18,7 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 import org.yaml.snakeyaml.Yaml;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -62,7 +62,8 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
         }
     }
 
@@ -75,10 +76,7 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
      */
     @EventListener(condition = "#event.type == 'config'")
     public void onGroupEvent(GroupEvent event) {
-            try {
         processEvent(event);
-            } catch (Exception ignored) {
-            }
     }
 
 
@@ -91,26 +89,25 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
     private void registerByEntity(ConfigInfo info) {
         MagicResourceService resourceService = MagicConfiguration.getMagicResourceService();
         String scriptName = resourceService.getScriptName(info);
-        String propName  = buildPropName(info);
+        String propName  = removeUnderscores(info.getEnv()) + "_" + removeUnderscores(info.getAppId()) +"_" + removeUnderscores(info.getNamespace()) ; ;
         try {
+            // 解析YAML配置并扁平化为Map结构
             String yamlStr = info.getScript();
             Map<String,Object> map = new HashMap<>();
-            if (StringUtils.isNotBlank(yamlStr)) {
+            if (StringUtils.isNotBlank(yamlStr)  && yamlStr.trim().length() > 0) {
                 Map<String, Object> loadedMap = yaml.loadAs(yamlStr, Map.class);
-                map = this.flattenYamlMap(MapUtils.emptyIfNull(loadedMap));
+                map = MapUtils.emptyIfNull(this.flattenYamlMap(MapUtils.emptyIfNull(loadedMap)));
             }
-            boolean changed = false;
+            // 更新环境变量：先移除旧配置再添加新配置
             if (this.environment.getPropertySources().contains(propName)) {
                 this.environment.getPropertySources().remove(propName);
-                changed = true;
             }
+            MapPropertySource propertySource = new MapPropertySource(propName, map);
             if (!info.isExternalFlag() && info.isEnabled()) {
-                this.environment.getPropertySources().addFirst(new MapPropertySource(propName, map));
-                changed = true;
+                this.environment.getPropertySources().addFirst(propertySource);
             }
-            if (changed) {
-                this.contextRefresher.refresh();
-            }
+            // 触发配置刷新
+            this.contextRefresher.refresh();
             log.info("配置文件:[{}]加载成功", scriptName);
         } catch (Exception e) {
             log.error("配置文件:[{}]发生错误: {}", scriptName, e.getMessage(), e);
@@ -125,20 +122,18 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
      * @param info 配置信息实体，包含环境、应用ID和命名空间等信息
      */
     private void unregisterByEntity(ConfigInfo info) {
-        String propName = buildPropName(info);
+        String propName  = removeUnderscores(info.getEnv()) + "_" + removeUnderscores(info.getAppId()) +"_" + removeUnderscores(info.getNamespace()) ; ;
+        // 从环境属性源中移除对应的属性源（如果存在）
         MutablePropertySources propertySources = this.environment.getPropertySources();
         if (propertySources.contains(propName)) {
             propertySources.remove(propName);
-            try {
-                this.contextRefresher.refresh();
-            } catch (Exception e) {
-                log.error("刷新上下文失败", e);
-            }
         }
-    }
-
-    private String buildPropName(ConfigInfo info) {
-        return removeUnderscores(info.getEnv()) + "_" + removeUnderscores(info.getAppId()) + "_" + removeUnderscores(info.getNamespace());
+        // 尝试刷新上下文以应用变更
+        try {
+            this.contextRefresher.refresh();
+        } catch (Exception e) {
+            log.error("刷新上下文失败", e);
+        }
     }
 
 
@@ -169,11 +164,7 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
      */
     @Override
     protected boolean register(MappingNode<ConfigInfo> mappingNode) {
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(mappingNode);
     }
 
 
@@ -186,10 +177,7 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
     @Override
     protected void unregister(MappingNode<ConfigInfo> mappingNode) {
         unregisterByEntity(mappingNode.getEntity());
-        try {
-            super.unregister(mappingNode);
-        } catch (Exception ignored) {
-        }
+        super.unregister(mappingNode);
     }
 
 

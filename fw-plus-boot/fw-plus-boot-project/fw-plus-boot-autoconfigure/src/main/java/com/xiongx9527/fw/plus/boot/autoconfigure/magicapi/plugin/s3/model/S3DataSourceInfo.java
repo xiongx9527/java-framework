@@ -34,9 +34,19 @@ public class S3DataSourceInfo extends MagicEntity {
     private String endPointSchema = "https";
 
     /**
+     * 访问域名协议
+     */
+    private String domainSchema = "https";
+
+    /**
      * 端点
      */
     private String endPoint;
+
+    /**
+     * 访问域名
+     */
+    private String domain = "";
 
     /**
      * 存储桶名称
@@ -98,6 +108,7 @@ public class S3DataSourceInfo extends MagicEntity {
         dataSourceInfo.setSecretKey(this.secretKey);
         dataSourceInfo.setEndPoint(this.endPoint);
         dataSourceInfo.setBucketName(this.bucketName);
+        dataSourceInfo.setDomain(this.domain);
         dataSourceInfo.setBasePath(this.basePath);
         dataSourceInfo.setMultipartThreshold(this.multipartThreshold);
         dataSourceInfo.setMultipartPartSize(this.multipartPartSize);
@@ -106,6 +117,7 @@ public class S3DataSourceInfo extends MagicEntity {
         dataSourceInfo.setTmpPath(this.tmpPath);
         dataSourceInfo.setExpirationSeconds(this.expirationSeconds);
         dataSourceInfo.setPresignedUrlMethod(this.presignedUrlMethod);
+        dataSourceInfo.setDomainSchema(this.domainSchema);
         dataSourceInfo.setEndPointSchema(this.endPointSchema);
         dataSourceInfo.setOther(this.other);
         return dataSourceInfo;
@@ -121,6 +133,7 @@ public class S3DataSourceInfo extends MagicEntity {
         dataSourceInfo.setSecretKey(this.secretKey);
         dataSourceInfo.setEndPoint(this.endPoint);
         dataSourceInfo.setBucketName(this.bucketName);
+        dataSourceInfo.setDomain(this.domain);
         dataSourceInfo.setBasePath(this.basePath);
         dataSourceInfo.setMultipartThreshold(this.multipartThreshold);
         dataSourceInfo.setMultipartPartSize(this.multipartPartSize);
@@ -129,6 +142,7 @@ public class S3DataSourceInfo extends MagicEntity {
         dataSourceInfo.setTmpPath(this.tmpPath);
         dataSourceInfo.setExpirationSeconds(this.expirationSeconds);
         dataSourceInfo.setPresignedUrlMethod(this.presignedUrlMethod);
+        dataSourceInfo.setDomainSchema(this.domainSchema);
         dataSourceInfo.setEndPointSchema(this.endPointSchema);
         dataSourceInfo.setOther(this.other);
         return dataSourceInfo;

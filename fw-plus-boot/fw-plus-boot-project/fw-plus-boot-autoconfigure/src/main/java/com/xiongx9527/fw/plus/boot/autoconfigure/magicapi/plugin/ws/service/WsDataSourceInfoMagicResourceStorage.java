@@ -116,9 +116,9 @@ public class WsDataSourceInfoMagicResourceStorage implements MagicResourceStorag
 		validateJSON(entity.getOther(), "other");
 		// 如果实体已存在，验证key不可修改
 		if (entity.getId() != null) {
-			WsDataSourceInfo oldWsDataSourceInfo = magicResourceService.file(entity.getId());
-			if (null != oldWsDataSourceInfo) {
-				if (!oldWsDataSourceInfo.getKey().equals(entity.getKey())) {
+			WsDataSourceInfo oldKafkaDataSourceInfo = magicResourceService.file(entity.getId());
+			if (null != oldKafkaDataSourceInfo) {
+				if (!oldKafkaDataSourceInfo.getKey().equals(entity.getKey())) {
 					throw new IllegalArgumentException("key不可修改");
 				}
 			}

@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.enums.Options;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.resource.MyDefaultMagicResourceService;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.ssssssss.magicapi.core.annotation.Valid;
 import org.ssssssss.magicapi.core.config.Constants;
@@ -121,16 +121,6 @@ public class MagicAPIController extends MagicController implements MagicExceptio
         return new JsonBean<>(true);
     }
 
-    @GetMapping("${magic-api.web:/magic-api/web}/{type}/reload/{id}")
-    @ResponseBody
-    public JsonBean<Boolean> reloadSingleResource(@PathVariable("type") String type,
-                                                   @PathVariable("id") String id,
-                                                   MagicHttpServletRequest request) {
-        isTrue(allowVisit(request, Authorization.RELOAD), PERMISSION_INVALID);
-        MyDefaultMagicResourceService service = (MyDefaultMagicResourceService)MagicConfiguration.getMagicResourceService();
-        return new JsonBean<>(service.refreshResourceById(type, id));
-    }
-
 
     /**
      * 处理组节点并构建包含属性的树结构
@@ -245,10 +235,10 @@ public class MagicAPIController extends MagicController implements MagicExceptio
     @ResponseBody
     public JsonBean<String> test(@RequestBody DataSourceInfo info) {
         try {
-            String url = MagicAPIConfigUtils.getDbConfig(info.getKey(), "url", info.getUrl());
-            String username = MagicAPIConfigUtils.getDbConfig(info.getKey(), "username", info.getUsername());
-            String password = MagicAPIConfigUtils.getDbConfig(info.getKey(), "password", info.getPassword());
-            String driverClassName = MagicAPIConfigUtils.getDbConfig(info.getKey(), "driverClassName", info.getDriverClassName());
+            String url = SpringUtils.getAppConfig(String.format("magic.api.db.%s.url", info.getKey()), info.getUrl());
+            String username = SpringUtils.getAppConfig(String.format("magic.api.db.%s.username", info.getKey()), info.getUsername());
+            String password = SpringUtils.getAppConfig(String.format("magic.api.db.%s.password", info.getKey()), info.getPassword());
+            String driverClassName = SpringUtils.getAppConfig(String.format("magic.api.db.%s.driverClassName", info.getKey()), info.getDriverClassName());
             Connection connection = JdbcUtils.getConnection(driverClassName, url, username, password);
             JdbcUtils.close(connection);
         } catch (Exception e) {

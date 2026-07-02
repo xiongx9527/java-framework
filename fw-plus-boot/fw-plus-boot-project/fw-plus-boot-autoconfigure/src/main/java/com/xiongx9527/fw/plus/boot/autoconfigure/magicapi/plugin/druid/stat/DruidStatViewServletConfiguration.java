@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.druid.stat;
 
-import com.alibaba.druid.support.http.StatViewServlet;
+import com.alibaba.druid.support.jakarta.StatViewServlet;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.druid.properties.DruidStatProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Bean;
  * @author lihengming [89921218@qq.com]
  */
 @ConditionalOnWebApplication
-@ConditionalOnProperty(prefix="magic-api.plugin.druid.stat-view-servlet",name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "magic-api.plugin.druid.stat-view-servlet.enabled", havingValue = "true")
 public class DruidStatViewServletConfiguration {
 
     /**

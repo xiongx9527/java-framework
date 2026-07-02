@@ -5,13 +5,13 @@ var MagicWeaviate = function(vue) {
     "use strict";
     var MagicWeaviateDataSource = (request, $i, modal, JavaClass) => {
         let findResources;
-        JavaClass.setExtensionAttribute("com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.model.WeaviateDataSourceInfo", () => {
+        JavaClass.setExtensionAttribute("com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.model.WeaviateDataSourceInfo", () => {
             var _a;
-            JavaClass.loadClass("com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.model.WeaviateDataSourceInfo");
+            JavaClass.loadClass("com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.model.WeaviateDataSourceInfo");
             return findResources && (((_a = findResources("weaviate-datasource")[0]) == null ? void 0 : _a.children) || []).map((it) => {
                 return {
                     name: it.key,
-                    type: "com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.model.WeaviateDataSourceInfo",
+                    type: "com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.model.WeaviateDataSourceInfo",
                     comment: it.name
                 };
             }) || [];

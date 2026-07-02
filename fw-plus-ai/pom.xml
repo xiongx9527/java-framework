@@ -13,7 +13,7 @@
 	<parent>
 		<groupId>com.xiongx9527.fw.plus.boot</groupId>
 		<artifactId>fw-plus-boot-parent</artifactId>
-		<version>0.1.1-SNAPSHOT</version>
+		<version>0.3.0-SNAPSHOT</version>
 		<relativePath />
 	</parent>
 	<packaging>pom</packaging>
@@ -26,8 +26,8 @@
 	<version>${revision}</version>
 	<name>Fw-Plus-AI Build</name>
 	<properties>
-		<revision>0.1.1-SNAPSHOT</revision>
-		<jdk.version>1.8</jdk.version>
+		<revision>0.3.0-SNAPSHOT</revision>
+		<jdk.version>17</jdk.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.encoding>UTF-8</maven.compiler.encoding>
 		<cobertura-maven-plugin.version>2.7</cobertura-maven-plugin.version>
@@ -48,8 +48,33 @@
 			<url>http://www.apache.org/licenses/LICENSE-2.0</url>
 		</license>
 	</licenses>
+	<!--开发者信息-->
+	<developers>
+		<developer>
+			<id>jugui-tech nanchang group</id>
+			<name>巨龟科技南昌团队</name>
+			<organization>jugui-tech</organization>
+			<organizationUrl>https://gitee.com/xiongx9527-tech</organizationUrl>
+			<email>xiongxiao@jugui-tech.com</email>
+		</developer>
+	</developers>
 	<!--配置拉取仓库地址-->
 	<repositories>
+		<repository>
+			<id>jugui-snapshot</id>
+			<url>http://172.17.1.6:28081/repository/jugui-snapshot/</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+			<id>jugui-release</id>
+			<url>http://172.17.1.6:28081/repository/jugui-release/</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+
 		<repository>
 			<id>jeecg</id>
 			<name>jeecg Repository</name>
@@ -83,7 +108,19 @@
 				<enabled>false</enabled>
 			</releases>
 		</repository>
+
 	</repositories>
+    <!--发布仓库地址-->
+	<distributionManagement>
+		<repository>
+			<id>jugui-release</id>
+			<url>http://172.17.1.6:28081/repository/jugui-release/</url>
+		</repository>
+		<snapshotRepository>
+			<id>jugui-snapshot</id>
+			<url>http://172.17.1.6:28081/repository/jugui-snapshot/</url>
+		</snapshotRepository>
+	</distributionManagement>
 	<!--编译插件-->
 	<build>
 		<plugins>

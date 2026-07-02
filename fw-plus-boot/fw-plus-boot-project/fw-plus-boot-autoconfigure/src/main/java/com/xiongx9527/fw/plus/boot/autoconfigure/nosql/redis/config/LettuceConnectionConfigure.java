@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.config;
 import io.lettuce.core.ClientOptions;
 import io.lettuce.core.SocketOptions;
 import io.lettuce.core.TimeoutOptions;
+import io.lettuce.core.api.StatefulConnection;
 import io.lettuce.core.cluster.ClusterClientOptions;
 import io.lettuce.core.cluster.ClusterTopologyRefreshOptions;
 import io.lettuce.core.cluster.ClusterTopologyRefreshOptions.Builder;
@@ -147,7 +148,7 @@ class LettuceConnectionConfigure extends RedisConnectionConfiguration {
     private LettuceClientConfigurationBuilder applyProperties(
             LettuceClientConfigurationBuilder builder) {
         // 配置SSL连接
-        if (getProperties().isSsl()) {
+        if (getProperties().getSsl().isEnabled()) {
             builder.useSsl();
         }
         // 配置命令超时时间
@@ -257,9 +258,9 @@ class LettuceConnectionConfigure extends RedisConnectionConfiguration {
          * @param properties 连接池配置属性，包含最大活跃连接数、最大空闲连接数、最小空闲连接数等参数
          * @return 配置好的GenericObjectPoolConfig对象，用于连接池的初始化
          */
-        private static GenericObjectPoolConfig<?> getPoolConfig(Pool properties) {
+        private static GenericObjectPoolConfig<StatefulConnection<?, ?>> getPoolConfig(Pool properties) {
             // 创建连接池配置对象并设置基本参数
-            GenericObjectPoolConfig<?> config = new GenericObjectPoolConfig<>();
+            GenericObjectPoolConfig<StatefulConnection<?, ?>> config = new GenericObjectPoolConfig<>();
             config.setMaxTotal(properties.getMaxActive());
             config.setMaxIdle(properties.getMaxIdle());
             config.setMinIdle(properties.getMinIdle());

@@ -33,18 +33,18 @@
 	</div>
 </template>
 <script setup>
-import {getCurrentInstance, inject, nextTick, onMounted, reactive, ref, toRaw, watch} from 'vue'
+import { getCurrentInstance, inject, nextTick, onMounted, reactive, ref, toRaw, watch } from 'vue'
 import bus from '../../../scripts/bus.js'
 import request from '../../../scripts/request.js'
 import constants from '../../../scripts/constants.js'
 import Message from '../../../scripts/constants/message.js'
-import {Range} from 'monaco-editor'
-import {convertVariables} from '../../../scripts/utils.js'
+import { Range } from 'monaco-editor'
+import { convertVariables } from '../../../scripts/utils.js'
 import RequestParameter from '../../../scripts/editor/request-parameter.js'
 import Socket from '../../../scripts/constants/socket.js'
 import store from '../../../scripts/store.js'
 import $i from '../../../scripts/i18n.js'
-
+import { encrypt } from '../../../scripts/rot13.js'
 const { proxy } = getCurrentInstance()
 const openedScripts = reactive([])
 const selectTab = ref({})
@@ -104,17 +104,6 @@ watch(openedScripts, (newVal) => {
 const doSave = (flag) => {
 	const opened = selectTab.value
 	if(opened && opened.item){
-    console.log('selectTab.value.doSave:{}', selectTab.value.doSave)
-    if(selectTab.value.doSave) {
-      try {
-        selectTab.value.doSave(opened)
-      } catch (error) {
-        console.error('selectTab.value.doSave保存失败:', error)
-        bus.status('message.saveFailed', false, `${opened.title}「${opened.path()}」`)
-        proxy.$alert(error.message || $i('message.saveFailed', `${opened.title}「${opened.path()}」`))
-        return
-      }
-    }
 		const item = selectTab.value.processSave(opened.item)
 		Object.keys(item).forEach(key => opened.item[key] = item[key])
 		return request.sendJson(`/resource/file/${selectTab.value.type}/save?auto=${flag ? 0 : 1}`, item).success((id) => {
@@ -134,11 +123,7 @@ const doSave = (flag) => {
 	}
 }
 // 执行测试
-const doTest = () => {
-  if (selectTab.value.doTest) {
-    selectTab.value.doTest(selectTab.value)
-  }
-}
+const doTest = () => selectTab.value.doTest(selectTab.value)
 const doContinue = step => {
     if(selectTab.value.debuging){
         editor.value.removedDecorations(selectTab.value.debugDecorations)
@@ -260,18 +245,13 @@ bus.$on(Message.OPEN, opened => {
 // 保存事件
 bus.$on(Message.DO_SAVE, doSave)
 // 测试事件
-bus.$on(Message.DO_TEST, async () => {
+bus.$on(Message.DO_TEST, () => {
 	const opened = selectTab.value
 	if(opened && opened.item && opened.runnable && opened.doTest && opened.running !== true){
 		if(constants.AUTO_SAVE && opened.item.lock !== '1'){
-			const successed = await new Promise(resolve => {
-				doSave().end(resolve)
-			})
-			if(successed) {
-				await doTest()
-			}
+			doSave().end(successed => successed && doTest())
 		} else {
-			await doTest()
+			doTest()
 		}
 	}
 })

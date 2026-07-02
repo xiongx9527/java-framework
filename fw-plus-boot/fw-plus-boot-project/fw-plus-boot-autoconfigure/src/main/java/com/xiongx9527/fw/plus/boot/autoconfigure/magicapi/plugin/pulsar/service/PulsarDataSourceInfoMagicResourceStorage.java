@@ -133,9 +133,9 @@ public class PulsarDataSourceInfoMagicResourceStorage implements MagicResourceSt
 
         // 验证已存在数据源的key不可修改
         if (entity.getId() != null) {
-            PulsarDataSourceInfo oldPulsarDataSourceInfo = magicResourceService.file(entity.getId());
-            if (null != oldPulsarDataSourceInfo) {
-                if (!oldPulsarDataSourceInfo.getKey().equals(entity.getKey())) {
+            PulsarDataSourceInfo oldKafkaDataSourceInfo =  magicResourceService.file(entity.getId());
+            if (null != oldKafkaDataSourceInfo) {
+                if (!oldKafkaDataSourceInfo.getKey().equals(entity.getKey())) {
                     throw new IllegalArgumentException("key不可修改");
                 }
             }

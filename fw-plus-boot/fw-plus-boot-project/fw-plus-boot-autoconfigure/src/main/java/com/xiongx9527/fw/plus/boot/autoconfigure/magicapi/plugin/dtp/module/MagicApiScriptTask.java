@@ -39,10 +39,11 @@ public class MagicApiScriptTask implements Supplier<Map<String, Object>>  {
         MagicScriptContext context = new MagicScriptContext();
         context.set("args", args);
         try {
+            // 执行脚本并获取结果
             return (Map<String, Object>) ScriptManager.executeScript(script, context);
         } catch (Exception e) {
             log.warn("执行脚本失败：{}", e.getMessage());
-            return java.util.Collections.emptyMap();
+            return null;
         }
     }
 

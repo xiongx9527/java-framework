@@ -137,6 +137,7 @@ public class MilvusModule  implements DynamicAttribute<MilvusModule, MilvusModul
         if (connectConfig == null) {
             throw new IllegalStateException("ConnectConfig is null, unable to build MilvusEmbeddingStore.");
         }
+
         // 构建Milvus向量存储实例
         MilvusEmbeddingStore.Builder builder = MilvusEmbeddingStore.builder().uri(connectConfig.getUri())
                 .username(connectConfig.getUsername()).password(connectConfig.getPassword())

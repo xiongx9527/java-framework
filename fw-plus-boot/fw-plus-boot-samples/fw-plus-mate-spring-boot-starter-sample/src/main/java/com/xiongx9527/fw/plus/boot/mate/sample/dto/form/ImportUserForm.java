@@ -9,7 +9,7 @@ import com.xiongx9527.fw.plus.boot.mate.sample.dto.vo.UserInfoVo;
 import com.xiongx9527.fw.plus.easytrans.common.MateEasyTransDTO;
 import lombok.Data;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 @Data
 public class ImportUserForm extends MateEasyTransDTO implements IExcelModel , IExcelDataModel {

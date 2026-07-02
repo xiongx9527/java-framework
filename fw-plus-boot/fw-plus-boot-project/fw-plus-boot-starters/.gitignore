@@ -32,5 +32,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-!/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-config/src/console/node_modules/

@@ -1,32 +1,12 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common;
 
 import com.alibaba.fastjson2.JSONValidator;
-import com.xiongx9527.fw.plus.common.util.NetUtils;
-import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
-import java.util.function.Function;
 
 public interface MagicBaseService {
-
-
-    /**
-     * 生成全局唯一标识符
-     * <p>
-     * 该标识符由应用名称、服务端口号和MAC地址三部分组成，用于在分布式环境中唯一标识当前实例。
-     * 格式为：{应用名称}-{端口号}-{MAC地址}
-     * </p>
-     *
-     * @return String 唯一标识符字符串
-     */
-    default String getUniqueId() {
-        String serviceName = SpringUtils.getApplicationName();
-        String serverPort = SpringUtils.getServerPort();
-        String macAddress = NetUtils.getMacAddress();
-        return serviceName + "-" + serverPort + "-" + macAddress;
-    }
 
     /**
      * 验证字段是否为空
@@ -70,14 +50,22 @@ public interface MagicBaseService {
         }
     }
 
-    default <T> T getConfigValue(Map<String, Object> configMap, String configKey, T defaultValue, Function<String, T> converter) {
+    /**
+     * 从配置映射中获取指定键的长整型值
+     * 
+     * @param configMap 配置映射
+     * @param configKey 配置键
+     * @param defaultValue 默认值
+     * @return 配置值或默认值
+     */
+    default long getConfigValueAsLong(Map<String,Object> configMap , String configKey, long defaultValue) {
         if (configMap == null) {
             return defaultValue;
         }
         try {
             Object valueObj = configMap.get(configKey);
             if (valueObj != null) {
-                return converter.apply(valueObj.toString());
+                return Long.parseLong(valueObj.toString());
             }
         } catch (Exception e) {
             // 忽略转换异常，使用默认值
@@ -85,24 +73,99 @@ public interface MagicBaseService {
         return defaultValue;
     }
 
-    default long getConfigValueAsLong(Map<String, Object> configMap, String configKey, long defaultValue) {
-        return getConfigValue(configMap, configKey, defaultValue, Long::parseLong);
+    /**
+     * 从配置映射中获取指定键的浮点型值
+     *
+     * @param configMap 配置映射
+     * @param configKey 配置键
+     * @param defaultValue 默认值
+     * @return 配置值或默认值
+     */
+    default Float getConfigValueAsFloat(Map<String,Object> configMap , String configKey, float defaultValue) {
+        if (configMap == null) {
+            return defaultValue;
+        }
+        try {
+            Object valueObj = configMap.get(configKey);
+            if (valueObj != null) {
+                return Float.parseFloat(valueObj.toString());
+            }
+        } catch (Exception e) {
+            // 忽略转换异常，使用默认值
+        }
+        return defaultValue;
     }
 
-    default Float getConfigValueAsFloat(Map<String, Object> configMap, String configKey, float defaultValue) {
-        return getConfigValue(configMap, configKey, defaultValue, Float::parseFloat);
+    /**
+     * 从配置映射中获取指定键的整型值
+     * 
+     * @param configMap 配置映射
+     * @param configKey 配置键
+     * @param defaultValue 默认值
+     * @return 配置值或默认值
+     */
+    default int getConfigValueAsInt(Map<String,Object> configMap , String configKey, int defaultValue) {
+        if (configMap == null) {
+            return defaultValue;
+        }
+        try {
+            Object valueObj = configMap.get(configKey);
+            if (valueObj != null) {
+                return Integer.parseInt(valueObj.toString());
+            }
+        } catch (Exception e) {
+            // 忽略转换异常，使用默认值
+        }
+        return defaultValue;
     }
 
-    default int getConfigValueAsInt(Map<String, Object> configMap, String configKey, int defaultValue) {
-        return getConfigValue(configMap, configKey, defaultValue, Integer::parseInt);
+    /**
+     * 从配置映射中获取指定键的字符串值
+     * 
+     * @param configMap 配置映射
+     * @param configKey 配置键
+     * @param defaultValue 默认值
+     * @return 配置值或默认值
+     */
+    default String getConfigValueAsString(Map<String,Object> configMap , String configKey, String defaultValue) {
+        if (configMap == null) {
+            return defaultValue;
+        }
+        try {
+            Object valueObj = configMap.get(configKey);
+            if (valueObj != null) {
+                String valueStr = valueObj.toString();
+                if (valueStr != null && !valueStr.isEmpty()) {
+                    return valueStr;
+                }
+            }
+        } catch (Exception e) {
+            // 忽略转换异常，使用默认值
+        }
+        return defaultValue;
     }
 
-    default String getConfigValueAsString(Map<String, Object> configMap, String configKey, String defaultValue) {
-        return getConfigValue(configMap, configKey, defaultValue, v -> (v != null && !v.isEmpty()) ? v : defaultValue);
-    }
-
-    default boolean getConfigValueAsBoolean(Map<String, Object> configMap, String configKey, boolean defaultValue) {
-        return getConfigValue(configMap, configKey, defaultValue, Boolean::parseBoolean);
+    /**
+     * 从配置映射中获取指定键的布尔值
+     * 
+     * @param configMap 配置映射
+     * @param configKey 配置键
+     * @param defaultValue 默认值
+     * @return 配置值或默认值
+     */
+    default boolean getConfigValueAsBoolean(Map<String,Object> configMap , String configKey, boolean defaultValue) {
+        if (configMap == null) {
+            return defaultValue;
+        }
+        try {
+            Object valueObj = configMap.get(configKey);
+            if (valueObj != null) {
+                return Boolean.parseBoolean(valueObj.toString());
+            }
+        } catch (Exception e) {
+            // 忽略转换异常，使用默认值
+        }
+        return defaultValue;
     }
 
 

@@ -12,7 +12,7 @@ import org.ssssssss.script.MagicScriptContext;
 import org.ssssssss.script.functions.DynamicAttribute;
 
 @Slf4j
-@MagicModule("mqttServer")
+@MagicModule("mqtt")
 public class MqttModule implements DynamicAttribute<MqttModule, MqttModule>, DynamicModule<MqttModule> {
 
     /**
@@ -61,7 +61,7 @@ public class MqttModule implements DynamicAttribute<MqttModule, MqttModule>, Dyn
         // 如果数据源键值为空，返回当前模块实例
         if (StringUtils.isEmpty(dataSourceKey)) return this;
         // 根据数据源键值创建新的MQTT模块实例
-        return new MqttModule(this.magicDynamicWeaviateDataSource, this.magicDynamicWeaviateDataSource.getServer(dataSourceKey).getMqttServer());
+        return new MqttModule(this.magicDynamicWeaviateDataSource, this.magicDynamicWeaviateDataSource.getClient(dataSourceKey).getMqttServer());
     }
 
 
@@ -74,7 +74,7 @@ public class MqttModule implements DynamicAttribute<MqttModule, MqttModule>, Dyn
     @Override
     public MqttModule getDynamicAttribute(String key) {
         // 根据指定键值创建新的MQTT模块实例
-        return new MqttModule(this.magicDynamicWeaviateDataSource, this.magicDynamicWeaviateDataSource.getServer(key).getMqttServer());
+        return new MqttModule(this.magicDynamicWeaviateDataSource, this.magicDynamicWeaviateDataSource.getClient(key).getMqttServer());
     }
 
 

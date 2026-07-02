@@ -4,7 +4,6 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.web.properties.WebProperties;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.webflux.filter.WebFluxCommonFilter;
 import com.xiongx9527.fw.plus.boot.common.CommonAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 @Configuration
@@ -35,7 +34,6 @@ public class WebFluxAutoConfiguration extends CommonAutoConfiguration {
      * @return WebFluxRequestMonitorHandler类型的请求监控处理器实例
      *         该处理器用于监控和处理WebFlux请求的相关操作
      */
-    @Bean
     public WebFluxRequestMonitorHandler webFluxRequestMonitorHandler() {
         return new WebFluxRequestMonitorHandler(webProperties);
     }

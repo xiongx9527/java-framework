@@ -1,10 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.common;
 
 import com.alibaba.fastjson.JSONValidator;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqDataSourceInfo;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.service.RabbitMqDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.starter.MagicRabbitMqConfig;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
@@ -22,31 +20,6 @@ import static com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq
 
 public interface BaseService extends MagicBaseService , JsonCodeConstants {
 
-
-    /**
-     * 检查RabbitMQ订阅是否启用
-     * <p>
-     * 该方法首先从实体对象中获取启用状态，然后尝试从配置中心获取对应的配置值进行覆盖。
-     * 如果配置获取失败，则默认返回false。
-     * </p>
-     *
-     * @param entity RabbitMQ订阅信息实体，包含订阅的Key、QueueName等配置信息
-     * @return boolean 订阅是否启用，true表示启用，false表示禁用
-     */
-    default boolean enable(RabbitMqSubscribeInfo entity) {
-        Boolean enable = entity.isEnabled();
-        String enableStr = "false";
-        if (enable != null) {
-            enableStr = enable.toString();
-        }
-        try {
-            enableStr = MagicAPIConfigUtils.getRabbitMQSubscribeConfig(entity.getKey(), entity.getQueueName(), "enabled", enableStr);
-            enable = Boolean.parseBoolean(enableStr);
-        } catch (Exception e) {
-            enable = Boolean.FALSE;
-        }
-        return enable;
-    }
 
     /**
      * 验证RabbitMQ数据源字段的有效性

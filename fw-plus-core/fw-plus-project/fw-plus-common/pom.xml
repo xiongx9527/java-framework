@@ -64,24 +64,14 @@
             <groupId>com.alibaba.fastjson2</groupId>
             <artifactId>fastjson2</artifactId>
         </dependency>
-        <!-- fastjson2-extension：提供 fastjson v1 API 兼容（com.alibaba.fastjson.JSON），resources 脚本依赖 -->
-        <dependency>
-            <groupId>com.alibaba.fastjson2</groupId>
-            <artifactId>fastjson2-extension</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.validation</groupId>
-            <artifactId>validation-api</artifactId>
-        </dependency>
-        <dependency>
             <groupId>commons-codec</groupId>
             <artifactId>commons-codec</artifactId>
         </dependency>
-        <!-- assertj-core（1.4MB）：仅测试使用，main 代码零引用，待改为 test scope 或排除 -->
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
@@ -90,7 +80,6 @@
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-annotation</artifactId>
         </dependency>
-        <!-- byte-buddy-agent：仅序列化场景（Orika、fastjson）的辅助工具，main 代码零引用，待改为 optional 或排除 -->
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy-agent</artifactId>
@@ -107,47 +96,32 @@
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
-        <!-- 未使用：无 zstd 压缩相关代码引用，按需启用 -->
-        <!--
         <dependency>
             <groupId>com.github.luben</groupId>
             <artifactId>zstd-jni</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
-        -->
-        <!-- 未使用：无 kryo 序列化代码引用，按需启用 -->
-        <!--
         <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo</artifactId>
             <scope>provided</scope>
         </dependency>
-        -->
-        <!-- 未使用：无 protostuff 序列化代码引用，按需启用 -->
-        <!--
         <dependency>
             <groupId>io.protostuff</groupId>
             <artifactId>protostuff-core</artifactId>
             <scope>provided</scope>
         </dependency>
-        -->
-        <!-- 未使用：无 protostuff 序列化代码引用，按需启用 -->
-        <!--
         <dependency>
             <groupId>io.protostuff</groupId>
             <artifactId>protostuff-runtime</artifactId>
             <scope>provided</scope>
         </dependency>
-        -->
-        <!-- 未使用：无 apollo 配置中心代码引用，按需启用 -->
-        <!--
         <dependency>
             <groupId>com.ctrip.framework.apollo</groupId>
             <artifactId>apollo-client</artifactId>
             <scope>provided</scope>
         </dependency>
-        -->
         <!--Spring Context-->
         <dependency>
             <groupId>org.springframework</groupId>
@@ -174,20 +148,14 @@
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>

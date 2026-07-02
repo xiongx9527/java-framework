@@ -23,13 +23,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.httpcomponents</groupId>
-            <artifactId>httpclient</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
             <groupId>com.xiongx9527.fw.plus.cloud</groupId>
             <artifactId>fw-plus-cloud-common</artifactId>
             <scope>compile</scope>

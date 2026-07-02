@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Import;
 
 import java.util.Date;
 
-@ConditionalOnProperty(prefix = "fw.plus.uid", name = "enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(prefix = "fw.plus.uid", name = "enabled", havingValue = "true", matchIfMissing = true)
 @Configuration
 @Import({UIDJdbcAutoConfiguration.class})
 public class UIDAutoConfiguration {

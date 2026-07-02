@@ -23,7 +23,7 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 @Slf4j
 @ConditionalOnProperty(prefix = "magic-api.plugin.milvus", name = "enabled", havingValue = "true", matchIfMissing = true)
-@ConditionalOnClass(name = {"io.milvus.v2.client.MilvusClientV2","dev.langchain4j.store.embedding.milvus.MilvusEmbeddingStore"})
+@ConditionalOnClass(name = {"io.milvus.v2.client.MilvusClientV2"})
 @EnableConfigurationProperties(MagicAPIMilvueConfig.class)
 @Configuration
 public class MagicAPIMilvusConfiguration implements MagicPluginConfiguration {

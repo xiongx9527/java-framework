@@ -1,6 +1,6 @@
 export default {
     config: {
-        title: '配置文件',
+        title: '配置文件管理',
         name: '配置文件',
         form: {
             enabled: '启用',
@@ -17,9 +17,6 @@ export default {
                 env: '请输入环境',
                 description: '请输入配置文件描述'
             }
-        },
-        navbars: {
-            description: '配置描述'
         }
     }
 }

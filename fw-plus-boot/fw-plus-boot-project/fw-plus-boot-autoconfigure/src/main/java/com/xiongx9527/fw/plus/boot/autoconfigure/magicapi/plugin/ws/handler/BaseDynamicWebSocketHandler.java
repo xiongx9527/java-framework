@@ -22,28 +22,13 @@ import org.ssssssss.magicapi.utils.ScriptManager;
 import org.ssssssss.script.MagicScriptContext;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
 @Slf4j
 public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , BaseService {
-
-    /**
-     * 共享的延迟关闭调度器，避免每次 delayedClose 创建新线程池导致线程泄漏
-     */
-    private final ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(2, r -> {
-        Thread t = new Thread(r, "ws-delayed-close");
-        t.setDaemon(true);
-        return t;
-    });
-
-    /**
-     * 缓存的JWT密钥和签名算法，避免每次验证/生成token时重复计算MessageDigest（延迟初始化）
-     */
-    private volatile com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.common.BaseService.SecretKeyAndSignatureAlgorithm cachedSecretKeyAndAlgorithm;
 
     /**
      * 存储客户端ID与会话列表的映射关系，用于管理同一客户端的多个会话
@@ -51,9 +36,10 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
      */
     private final com.google.common.cache.Cache<String, List<WebSocketSession>> clientIdSessionListMap =
             com.google.common.cache.CacheBuilder.newBuilder()
-                    .maximumSize(getMaxClientSessions())
-                    .expireAfterWrite(getSessionCacheExpireMinutes(), java.util.concurrent.TimeUnit.MINUTES)
-                    .concurrencyLevel(getCacheConcurrencyLevel())
+                    .maximumSize(getMaxClientSessions()) // 配置的最大客户端会话数
+                    .expireAfterWrite(getSessionCacheExpireMinutes(), java.util.concurrent.TimeUnit.MINUTES) // 配置的过期时间
+                    .concurrencyLevel(getCacheConcurrencyLevel()) // 配置的并发级别
+                    //.weakKeys() // 使用弱引用键，允许垃圾回收器回收不再使用的键
                     .removalListener(new com.google.common.cache.RemovalListener<String, List<WebSocketSession>>() {
                         @Override
                         public void onRemoval(com.google.common.cache.RemovalNotification<String, List<WebSocketSession>> notification) {
@@ -62,6 +48,7 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
                             try {
                                 List<WebSocketSession> sessions = notification.getValue();
                                 if (sessions != null) {
+                                    // 遍历并关闭所有被移除的会话
                                     for (WebSocketSession session : sessions) {
                                         try {
                                             log.warn("Session is still open: {}", session.getId());
@@ -102,6 +89,7 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
     public BaseDynamicWebSocketHandler(WsDataSourceInfoMagicResourceStorage magicDataSourceStorage, WsSubscribeInfoMagicResourceStorage magicSubscribeStorage) {
         this.magicDataSourceStorage = magicDataSourceStorage;
         this.magicSubscribeStorage = magicSubscribeStorage;
+        // 添加JVM关闭钩子，确保应用关闭时能清理资源
         addShutdownHook();
     }
 
@@ -117,45 +105,12 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
      */
     private void cleanupAllResources() {
         try {
-            // 先收集所有活跃会话引用，避免 session.close() 触发 afterConnectionClosed
-            // 回调中修改缓存导致迭代器行为不确定
-            List<WebSocketSession> allSessions = new java.util.ArrayList<>();
-            for (Map.Entry<String, List<WebSocketSession>> entry : clientIdSessionListMap.asMap().entrySet()) {
-                for (WebSocketSession session : entry.getValue()) {
-                    if (session.isOpen()) {
-                        allSessions.add(session);
-                    }
-                }
-            }
-            // 统一关闭，此时 afterConnectionClosed 中的 cleanSession 操作缓存是安全的
-            for (WebSocketSession session : allSessions) {
-                try {
-                    session.close(CloseStatus.GOING_AWAY.withReason("Server shutting down"));
-                } catch (Exception e) {
-                    log.warn("Error closing session {} during shutdown", session.getId());
-                }
-            }
+            // 清理所有会话相关映射
             clientIdSessionListMap.invalidateAll();
-            scheduledExecutor.shutdown();
             log.info("All WebSocket resources have been cleaned up");
         } catch (Exception e) {
             log.error("Error during cleanup of all resources", e);
         }
-    }
-
-    /**
-     * 返回缓存的JWT密钥和签名算法，延迟初始化避免Spring上下文未就绪问题
-     */
-    @Override
-    public com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.common.BaseService.SecretKeyAndSignatureAlgorithm getSecretKeyAndSignatureAlgorithm() {
-        if (cachedSecretKeyAndAlgorithm == null) {
-            synchronized (this) {
-                if (cachedSecretKeyAndAlgorithm == null) {
-                    cachedSecretKeyAndAlgorithm = BaseService.super.getSecretKeyAndSignatureAlgorithm();
-                }
-            }
-        }
-        return cachedSecretKeyAndAlgorithm;
     }
 
     /**
@@ -196,7 +151,7 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
         if (query != null && !query.isEmpty()) {
             String[] pairs = query.split("&");
             for (String pair : pairs) {
-                String[] keyValue = pair.split("=", 2);
+                String[] keyValue = pair.split("=");
                 if (keyValue.length == 2) {
                     try {
                         String key = java.net.URLDecoder.decode(keyValue[0], "UTF-8");
@@ -224,7 +179,10 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
 	private void init(String appId, String sessionId, String clientId) {
 		// 获取初始化的业务类型
 		String businessType = getInitBussinessType();
-		List<WsSubscribeInfo> subscribeInfoList = findEnabledSubscribes(appId, businessType);
+		// 查找符合条件的订阅信息列表（启用状态、匹配的应用ID和业务ID）
+		List<WsSubscribeInfo> subscribeInfoList = ListUtils.emptyIfNull(magicSubscribeStorage.findAll()).stream()
+				.filter(subscribeInfo -> Boolean.TRUE.equals(subscribeInfo.isEnabled()) && subscribeInfo.getKey().equals(appId)
+						&& businessType.equals(subscribeInfo.getBusinessId())).collect(Collectors.toList());
 		// 遍历订阅信息列表，执行相应的脚本
 		for (WsSubscribeInfo subscribeInfo : subscribeInfoList) {
             // 创建脚本执行上下文
@@ -247,42 +205,43 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
 	}
 
     /**
-     * 查找启用且匹配指定appId和业务类型的订阅信息列表
-     */
-    private List<WsSubscribeInfo> findEnabledSubscribes(String appId, String businessType) {
-        return ListUtils.emptyIfNull(magicSubscribeStorage.findAll()).stream()
-                .filter(s -> Boolean.TRUE.equals(s.isEnabled())
-                        && s.getKey().equals(appId)
-                        && businessType.equals(s.getBusinessId()))
-                .collect(Collectors.toList());
-    }
-
-    /**
      * 根据应用ID清理相关的WebSocket会话连接
+     * <p>
+     * 该方法会遍历所有客户端的会话列表，找到与指定应用ID匹配的会话并进行清理操作。
+     * 为了避免在遍历过程中出现并发修改异常，首先创建了会话映射表的副本。
      *
      * @param appId 应用ID，用于筛选需要清理的会话
      */
     public void cleanupByAppId(String appId) {
+        // 创建副本避免并发修改异常
         Map<String, List<WebSocketSession>> snapshot = clientIdSessionListMap.asMap();
-        // 使用 List 存储 (clientId, sessionId) 对，避免 HashMap 覆盖导致同 clientId 多会话时清理遗漏
-        List<String[]> pairs = new java.util.ArrayList<>();
+        Map<String,String> clientSessionIdMap = new HashMap<>();
+        // 遍历所有客户端的会话列表，查找并清理匹配应用ID的会话
         for (Map.Entry<String, List<WebSocketSession>> e : snapshot.entrySet()) {
             for (WebSocketSession session : e.getValue()) {
                 try {
                     Object sessionInfoObj = session.getAttributes().get("sessionInfo");
-                    if (sessionInfoObj instanceof SessionInfo) {
-                        SessionInfo sessionInfo = (SessionInfo) sessionInfoObj;
-                        if (appId.equals(sessionInfo.getAppId())) {
-                            pairs.add(new String[]{sessionInfo.getClientId(), session.getId()});
+                    if (null != sessionInfoObj) {
+                        if (sessionInfoObj instanceof SessionInfo) {
+                            SessionInfo sessionInfo = (SessionInfo) sessionInfoObj;
+                            if (sessionInfo != null && appId.equals(sessionInfo.getAppId())) {
+                                //cleanSession(sessionInfo.getClientId(), session.getId());
+                                clientSessionIdMap.put(sessionInfo.getClientId(), session.getId());
+                            }
                         }
                     }
                 } catch (Exception ex) {
+                    // 处理其他可能的异常
                     log.error("Error processing session: {}", session.getId(), ex);
                 }
             }
         }
-        for (String[] pair : pairs) {
-            cleanSession(pair[0], pair[1]);
+        if (clientSessionIdMap.size() > 0) {
+            for (Map.Entry<String, String> entry : clientSessionIdMap.entrySet()) {
+                String clientId = entry.getKey();
+                String sessionId = entry.getValue();
+                cleanSession(clientId, sessionId);
+            }
         }
     }
 
@@ -298,20 +257,13 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
         String sessionId = session.getId();
         
         try {
-            // 获取客户端IP地址（getRemoteAddress 可能在连接异常关闭时返回 null）
-            String clientIp = null;
-            try {
-                if (session.getRemoteAddress() != null) {
-                    clientIp = session.getRemoteAddress().getAddress().getHostAddress();
-                }
-            } catch (Exception e) {
-                log.debug("Failed to get remote address for session: {}", sessionId, e);
-            }
-
+            // 获取客户端IP地址
+            String clientIp = session.getRemoteAddress().getAddress().getHostAddress();
+            
             // 获取URI参数
             URI uri = session.getUri();
             String query = uri != null ? uri.getQuery() : null;
-
+            
             // 获取Session ID
             log.info("WebSocket connection established - Session ID: {}, Client IP: {}", sessionId, clientIp);
 
@@ -392,10 +344,7 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
             log.warn("Received message from invalid session: {}", session.getId());
             return;
         }
-        // 刷新缓存过期计时，避免仅发送业务消息不发 ping 的活跃客户端被驱逐
-        refreshCacheEntry(session);
-
-        log.debug("Received message from client - Session ID: {}, Message: {}",
+        log.debug("Received message from client - Session ID: {}, Message: {}", 
                 session.getId(), message.getPayload());
         try {
             // 获取消息内容
@@ -415,10 +364,10 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
                 businessType = jsonObject.getString("type");
             }
             if (StringUtils.isNotBlank(businessType)) {
-                // 根据业务类型处理消息，复用已解析的jsonObject避免重复解析
-                handleBusinessMessage(session, businessType, jsonObject);
+                // 根据业务类型处理消息
+                handleBusinessMessage(session, businessType, com.alibaba.fastjson2.JSON.parseObject(payload));
             } else {
-                log.debug("Ignoring message without business type from session: {}", session.getId());
+                sendMessage(session, payload);
             }
         } catch (com.alibaba.fastjson2.JSONException e) {
             log.error("Invalid JSON format in message: {}", message.getPayload(), e);
@@ -456,7 +405,10 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
                     return;
                 }
                 String appId = sessionInfo.getAppId();
-                List<WsSubscribeInfo> subscribeInfoList = findEnabledSubscribes(appId, businessType);
+                List<WsSubscribeInfo> subscribeInfoList = this.magicSubscribeStorage.findAll().stream()
+                        .filter(subscribeInfo -> Boolean.TRUE.equals(subscribeInfo.isEnabled())
+                                && subscribeInfo.getBusinessId().equals(businessType) && subscribeInfo.getKey().equals(appId))
+                        .collect(Collectors.toList());
                 if (CollectionUtils.isNotEmpty(subscribeInfoList)) {
                     // 处理基于订阅信息的自定义业务逻辑
                     log.info("Processing custom business logic for appId: {} with businessType: {}", appId, businessType);
@@ -483,11 +435,28 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
                 session.getAttributes().put("sessionInfo", sessionInfo);
             }
             
-            // 通过重新放入缓存项来续期（session 对象是同一个引用，无需替换列表元素）
+            // 通过重新放入缓存项来续期
             String clientId = sessionInfo != null ? sessionInfo.getClientId() : null;
             if (clientId != null) {
                 List<WebSocketSession> cachedSessionList = clientIdSessionListMap.getIfPresent(clientId);
                 if (cachedSessionList != null) {
+                    // 更新session列表中的特定session信息
+                    boolean sessionFound = false;
+                    // 更新session列表中的session信息
+                    for (int i = 0; i < cachedSessionList.size(); i++) {
+                        WebSocketSession cachedSession = cachedSessionList.get(i);
+                        if (cachedSession.getId().equals(session.getId())) {
+                            // 找到匹配的session并替换
+                            cachedSessionList.set(i, session);
+                            sessionFound = true;
+                            break;
+                        }
+                    }
+                    if (!sessionFound) {
+                        // 如果未找到匹配的session，则添加新的session
+                        cachedSessionList.add(session);
+                    }
+                    // 重新放入缓存项以续期
                     clientIdSessionListMap.put(clientId, cachedSessionList);
                 }
             }
@@ -544,7 +513,10 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
      */
     private void end(String appId,String sessionId,String clientId) {
         String businessType = getCloseBussinessType();
-        List<WsSubscribeInfo> subscribeInfoList = findEnabledSubscribes(appId, businessType);
+        // 查找启用的且与当前应用ID和业务类型匹配的订阅信息
+        List<WsSubscribeInfo> subscribeInfoList = ListUtils.emptyIfNull(magicSubscribeStorage.findAll()).stream()
+                .filter(subscribeInfo ->Boolean.TRUE.equals(subscribeInfo.isEnabled()) && subscribeInfo.getKey().equals(appId)
+                        && businessType.equals(subscribeInfo.getBusinessId())).collect(Collectors.toList());
         // 为每个匹配的订阅信息执行相应的关闭脚本
         for (WsSubscribeInfo subscribeInfo : subscribeInfoList) {
             MagicScriptContext magicScriptContext = new MagicScriptContext();
@@ -570,16 +542,9 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
      */
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) {
+        // 记录WebSocket传输错误日志，包含会话ID和异常堆栈信息
         log.error("WebSocket transport error - Session ID: {}", session.getId(), exception);
-        try {
-            SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
-            if (sessionInfo != null) {
-                cleanSession(sessionInfo.getClientId(), session.getId());
-                return;
-            }
-        } catch (Exception e) {
-            log.warn("Failed to clean session after transport error: {}", session.getId(), e);
-        }
+        // 延迟关闭WebSocket连接，返回服务器错误状态码
         delayedClose(session, "Error occurred", CloseStatus.PROTOCOL_ERROR, getDelayMillis());
     }
 
@@ -594,16 +559,25 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus closeStatus) throws Exception {
         String sessionId = session.getId();
-        SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
-        if (sessionInfo == null) {
-            log.warn("Session info not found for closed session: {}", sessionId);
-            return;
+        try {
+            // 从会话属性中获取会话信息
+            SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
+            if (sessionInfo == null) {
+                log.warn("Session info not found for closed session: {}", sessionId);
+                return;
+            }
+            String appId = sessionInfo.getAppId();
+            String clientId = sessionInfo.getClientId();
+            log.info("WebSocket connection closed - Session ID: {}, Client ID: {}, App ID: {}, Close status: {}", 
+                    sessionId, clientId, appId, closeStatus);
+            // 先执行业务结束逻辑
+            end(appId,sessionId,clientId);
+            // 再清理会话资源
+            cleanSession(clientId,sessionId);
+        } catch (Exception e) {
+            log.error("Error during connection closed handling for session: {}", sessionId, e);
+            throw e;
         }
-        String appId = sessionInfo.getAppId();
-        String clientId = sessionInfo.getClientId();
-        log.info("WebSocket connection closed - Session ID: {}, Client ID: {}, App ID: {}, Close status: {}",
-                sessionId, clientId, appId, closeStatus);
-        cleanSession(clientId, sessionId);
     }
 
 
@@ -622,40 +596,44 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
      *                  若为null或空白字符串，则表示清理该客户端的所有会话
      */
     private void cleanSession(String clientId, String sessionId) {
-        List<WebSocketSession> sessionList = clientIdSessionListMap.getIfPresent(clientId);
+        List<WebSocketSession> sessionList = clientIdSessionListMap.asMap().get(clientId);
         if (sessionList != null) {
+            // 创建需要移除的会话列表
             List<WebSocketSession> sessionsToRemove = new java.util.ArrayList<>();
+            // 遍历并收集需要清理的会话
             for (WebSocketSession session : sessionList) {
                 if (StringUtils.isNotBlank(sessionId)) {
+                    // 如果指定了sessionId，只收集匹配的会话
                     if (session.getId().equals(sessionId)) {
                         sessionsToRemove.add(session);
                     }
                 } else {
+                    // 如果未指定sessionId，收集所有会话
                     sessionsToRemove.add(session);
                 }
             }
 
+            // 清理收集到的会话
             for (WebSocketSession session : sessionsToRemove) {
-                // 先执行关闭脚本，再移除 sessionInfo，确保 afterConnectionClosed 回调
-                // 或直接调用 cleanSession 的路径都能正确触发关闭脚本
-                SessionInfo si = (SessionInfo) session.getAttributes().get("sessionInfo");
-                if (si != null) {
-                    try {
-                        end(si.getAppId(), session.getId(), si.getClientId());
-                    } catch (Exception e) {
-                        log.error("Error executing close scripts for session: {}", session.getId(), e);
-                    }
-                }
                 delayedClose(session, "Session closed", CloseStatus.NORMAL, getDelayMillis());
+                // 清理会话属性
                 session.getAttributes().remove("sessionInfo");
+                // 从列表中移除会话
+                sessionList.remove(session);
             }
-            sessionList.removeAll(sessionsToRemove);
 
-            if (sessionList.isEmpty()) {
-                clientIdSessionListMap.asMap().computeIfPresent(clientId, (k, v) -> v.isEmpty() ? null : v);
-            } else {
+            // 根据清理情况更新缓存
+            if(StringUtils.isNotBlank(sessionId) && sessionList.isEmpty()) {
+                clientIdSessionListMap.invalidate(clientId);
+            } else if (StringUtils.isNotBlank(sessionId) && sessionList.size() > 0) {
+                // 如果清理了特定会话，更新缓存
+                clientIdSessionListMap.put(clientId, sessionList);
+            } else if (StringUtils.isBlank(sessionId)) {
+                // 如果清理了所有会话，更新缓存
                 clientIdSessionListMap.put(clientId, sessionList);
             }
+        } else {
+            clientIdSessionListMap.invalidate(clientId);
         }
     }
 
@@ -670,14 +648,25 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
     private void addSession(String appId, WebSocketSession session, String clientId) {
         String sessionId = session.getId();
 
+        // 添加会话信息到会话属性中
         SessionInfo sessionInfo = new SessionInfo(appId, clientId);
         session.getAttributes().put("sessionInfo", sessionInfo);
 
-        List<WebSocketSession> sessions = clientIdSessionListMap.asMap()
-                .computeIfAbsent(clientId, k -> new java.util.concurrent.CopyOnWriteArrayList<>());
-        sessions.add(session);
-        // 显式 put 以刷新 Guava Cache 的写入过期计时，避免活跃客户端因仅通过 asMap 操作而被驱逐
-        clientIdSessionListMap.put(clientId, sessions);
+        // 添加客户端ID与会话列表的映射
+        try {
+            List<WebSocketSession> sessions = clientIdSessionListMap.get(clientId,
+                () -> new java.util.concurrent.CopyOnWriteArrayList<>());
+            sessions.add(session);
+        } catch (java.util.concurrent.ExecutionException e) {
+            log.error("Error adding session for client: {}", clientId, e);
+            // Fallback: 直接操作
+            List<WebSocketSession> sessions = clientIdSessionListMap.getIfPresent(clientId);
+            if (sessions == null) {
+                sessions = new java.util.concurrent.CopyOnWriteArrayList<>();
+                clientIdSessionListMap.put(clientId, sessions);
+            }
+            sessions.add(session);
+        }
 
         log.debug("Added session - Session ID: {}, Client ID: {}, App ID: {}",
                  sessionId, clientId, appId);
@@ -691,7 +680,8 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
      * @param message 要发送的消息内容
      * @throws Exception 如果发送消息过程中发生错误
      */
-    private void sendMessage(WebSocketSession session, String message) throws java.io.IOException {
+    private void sendMessage(WebSocketSession session, String message) throws Exception {
+        // 检查会话是否仍然有效
         if (!isSessionValid(session)) {
             log.warn("Attempted to send message to invalid session: {}", session.getId());
             return;
@@ -705,22 +695,6 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
      * @param session WebSocket会话对象
      * @return 如果会话有效返回true，否则返回false
      */
-    /**
-     * 刷新指定会话所属 clientId 的缓存过期计时
-     */
-    private void refreshCacheEntry(WebSocketSession session) {
-        SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
-        if (sessionInfo != null) {
-            String clientId = sessionInfo.getClientId();
-            if (clientId != null) {
-                List<WebSocketSession> sessionList = clientIdSessionListMap.getIfPresent(clientId);
-                if (sessionList != null) {
-                    clientIdSessionListMap.put(clientId, sessionList);
-                }
-            }
-        }
-    }
-
     private boolean isSessionValid(WebSocketSession session) {
         // 检查会话是否打开以及是否仍在缓存中（未过期）
         if (session == null || !session.isOpen()) {
@@ -733,13 +707,11 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
             return false;
         }
         
-        // 检查会话是否超时
-        Long lastPingTime = sessionInfo.getLastPingTime();
-        if (lastPingTime == null) {
-            return false;
-        }
-        long timeoutMillis = (long) getSessionCacheExpireMinutes() * 60 * 1000;
-        return (System.currentTimeMillis() - lastPingTime) <= timeoutMillis;
+        // 检查会话是否超时（即使在缓存中）
+        long currentTime = System.currentTimeMillis();
+        long lastPingTime = sessionInfo.getLastPingTime();
+        long timeoutMillis = getSessionCacheExpireMinutes() * 60 * 1000;
+        return (currentTime - lastPingTime) <= timeoutMillis;
     }
 
     /**
@@ -749,7 +721,7 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
      * @param jsonBean 包含消息内容的JsonBean对象
      * @throws Exception 如果发送消息过程中发生错误
      */
-    private void sendMessage(WebSocketSession session, JsonBean jsonBean) throws java.io.IOException {
+    private void sendMessage(WebSocketSession session, JsonBean jsonBean) throws Exception {
         sendMessage(session, JSON.toJSONString(jsonBean));
     }
 
@@ -760,51 +732,51 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
      * @param clientId 客户端ID
      * @param message 要发送的消息内容
      */
-    /**
-     * 仅向本地指定客户端投递消息，不发布到Redis（供Redis消息监听器使用，避免消息反弹循环）。
-     *
-     * @return true 如果至少有一条消息成功发送到本地会话
-     */
-    boolean broadcastMessageToClientLocalOnly(String appId, String clientId, String message) {
+    public void broadcastMessageToClient(String appId, String clientId, String message) {
         List<WebSocketSession> sessionList = this.clientIdSessionListMap.getIfPresent(clientId);
-        boolean sent = false;
         if (!Collections.isEmpty(sessionList)) {
+            // 创建需要移除的会话列表
             List<WebSocketSession> sessionsToRemove = new java.util.ArrayList<>();
+            // 创建需要发送消息的会话列表
             List<WebSocketSession> sessionsToSend = new java.util.ArrayList<>();
+            // 筛选出与指定appId匹配的会话
             for (WebSocketSession session : sessionList) {
                 SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
                 if (sessionInfo != null && appId.equals(sessionInfo.getAppId())) {
                     if (isSessionValid(session)) {
                         sessionsToSend.add(session);
                     } else {
+                        // 如果会话无效，记录需要移除的会话
                         sessionsToRemove.add(session);
                     }
                 }
             }
+            // 向筛选出的会话发送消息
             for (WebSocketSession session : sessionsToSend) {
                 try {
                     sendMessage(session, message);
-                    sent = true;
                 } catch (Exception e) {
                     log.error("Failed to send message to session: {}", session.getId(), e);
+                    // 如果发送失败，记录需要移除的会话
                     sessionsToRemove.add(session);
                 }
             }
-            for (WebSocketSession session : sessionsToRemove) {
-                session.getAttributes().remove("sessionInfo");
-                delayedClose(session, "Session invalid", CloseStatus.SESSION_NOT_RELIABLE, getDelayMillis());
-            }
-            sessionList.removeAll(sessionsToRemove);
-            if (sessionList.isEmpty()) {
-                this.clientIdSessionListMap.asMap().computeIfPresent(clientId, (k, v) -> v.isEmpty() ? null : v);
-            }
-        }
-        return sent;
-    }
 
-    public void broadcastMessageToClient(String appId, String clientId, String message) {
-        broadcastMessageToClientLocalOnly(appId, clientId, message);
-        broadcastMessageToClient(this.webSocketServerId, appId, clientId, message);
+            // 移除无效或发送失败的会话
+            for (WebSocketSession session : sessionsToRemove) {
+                sessionList.remove(session);
+                // 清理会话属性
+                session.getAttributes().remove("sessionInfo");
+            }
+
+            // 如果该clientId没有有效会话了，则从map中移除
+            if (sessionList.isEmpty()) {
+                this.clientIdSessionListMap.invalidate(clientId);
+            }
+        } else {
+            log.warn("No active sessions found for client: {}", clientId);
+            broadcastMessageToClient(this.webSocketServerId,clientId, appId, message);
+        }
     }
 
     /**
@@ -817,17 +789,24 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
      */
     private void delayedClose(WebSocketSession session, String message, CloseStatus status, int delayMillis) {
         try {
-            scheduledExecutor.schedule(() -> {
+            // 创建延迟任务来关闭连接
+            java.util.concurrent.ScheduledExecutorService delayedCloser = 
+                java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+            delayedCloser.schedule(() -> {
                 try {
                     if (session.isOpen()) {
                         session.close(status.withReason(message));
                     }
                 } catch (Exception e) {
                     log.error("Error closing session: {}", session.getId(), e);
+                } finally {
+                    // 清理资源
+                    delayedCloser.shutdown();
                 }
             }, delayMillis, java.util.concurrent.TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             log.error("Error during delayed close operation for session: {}", session.getId(), e);
+            // 如果延迟关闭失败，立即关闭连接
             try {
                 if (session.isOpen()) {
                     session.close(status);
@@ -855,51 +834,22 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
      * @param appId 应用ID，用于过滤会话
      * @param message 要广播的消息内容
      */
-    /**
-     * 仅向本地客户端广播消息，不发布到Redis（供Redis消息监听器使用，避免消息放大循环）
-     */
-    void broadcastMessageToAllClientLocalOnly(String appId, String message) {
-        if (appId == null) {
-            log.warn("broadcastMessageToAllClientLocalOnly called with null appId, ignoring");
-            return;
-        }
-        java.util.Map<String, List<WebSocketSession>> sessionsToCleanup = new java.util.LinkedHashMap<>();
+    protected void broadcastMessageToAllClient(String appId, String message) {
+        // 遍历所有客户端
         for (java.util.Map.Entry<String, List<WebSocketSession>> entry : clientIdSessionListMap.asMap().entrySet()) {
             for (WebSocketSession session : entry.getValue()) {
                 try {
                     SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
-                    if (sessionInfo == null || !isSessionValid(session)) {
-                        sessionsToCleanup.computeIfAbsent(entry.getKey(), k -> new java.util.ArrayList<>()).add(session);
-                        continue;
-                    }
-                    if (!appId.equals(sessionInfo.getAppId())) {
+                    if (!isSessionValid(session) || sessionInfo == null || !appId.equals(sessionInfo.getAppId())) {
+                        log.warn("Attempted to send message to invalid session: {}", session.getId());
                         continue;
                     }
                     sendMessage(session, message);
                 } catch (Exception e) {
-                    log.error("Failed to send message to session: {}", session.getId(), e);
-                    sessionsToCleanup.computeIfAbsent(entry.getKey(), k -> new java.util.ArrayList<>()).add(session);
+                    throw new RuntimeException(e);
                 }
             }
         }
-        for (java.util.Map.Entry<String, List<WebSocketSession>> entry : sessionsToCleanup.entrySet()) {
-            String clientId = entry.getKey();
-            List<WebSocketSession> sessionList = clientIdSessionListMap.getIfPresent(clientId);
-            if (sessionList != null) {
-                for (WebSocketSession session : entry.getValue()) {
-                    session.getAttributes().remove("sessionInfo");
-                    delayedClose(session, "Session invalid", CloseStatus.SESSION_NOT_RELIABLE, getDelayMillis());
-                }
-                sessionList.removeAll(entry.getValue());
-                if (sessionList.isEmpty()) {
-                    clientIdSessionListMap.asMap().computeIfPresent(clientId, (k, v) -> v.isEmpty() ? null : v);
-                }
-            }
-        }
-    }
-
-    protected void broadcastMessageToAllClient(String appId, String message) {
-        broadcastMessageToAllClientLocalOnly(appId, message);
         broadcastMessageToAllClient(webSocketServerId, appId, message);
     }
 

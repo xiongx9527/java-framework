@@ -41,7 +41,8 @@ public class ElasticsearchDataSourceMagicDynamicRegistry extends AbstractMagicDy
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
         }
     }
 
@@ -53,10 +54,7 @@ public class ElasticsearchDataSourceMagicDynamicRegistry extends AbstractMagicDy
      */
     @EventListener(condition = "#event.type == 'elasticsearch-datasource'")
     public void onGroupEvent(GroupEvent event) {
-            try {
-               processEvent(event);
-            } catch (Exception ignored) {
-            }
+        processEvent(event);
     }
 
     /**
@@ -69,11 +67,7 @@ public class ElasticsearchDataSourceMagicDynamicRegistry extends AbstractMagicDy
     @Override
     public boolean register(ElasticSearchDataSourceInfo entity) {
         magicElasticSearchDataSource.destroyByKey(entity.getKey());
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
     /**
@@ -91,11 +85,7 @@ public class ElasticsearchDataSourceMagicDynamicRegistry extends AbstractMagicDy
         magicElasticSearchDataSource.destroyByKey(entity.getKey());
         // 构建ElasticSearch REST客户端
         magicElasticSearchDataSource.buildElasticSearchRestClient(entity);
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(mappingNode);
     }
 
     /**
@@ -108,10 +98,7 @@ public class ElasticsearchDataSourceMagicDynamicRegistry extends AbstractMagicDy
     protected void unregister(MappingNode<ElasticSearchDataSourceInfo> mappingNode) {
         // 销毁对应key的数据源
         magicElasticSearchDataSource.destroyByKey(mappingNode.getEntity().getKey());
-        try {
-            super.unregister(mappingNode);
-        } catch (Exception ignored) {
-        }
+        super.unregister(mappingNode);
     }
 
     /**

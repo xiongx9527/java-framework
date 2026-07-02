@@ -96,7 +96,8 @@ public class RedisDynamicWebSocketHandler extends BaseDynamicWebSocketHandler {
      */
     @Override
     void broadcastMessageToAllClient(String excludedServerId, String appId, String message) {
-        broadcastMessageToClient(excludedServerId, appId, null, message);
+        // 调用通用的广播方法，传入null表示向所有客户端广播
+        broadcastMessageToClient(excludedServerId, null, appId, message);
     }
     
     /**
@@ -155,7 +156,7 @@ public class RedisDynamicWebSocketHandler extends BaseDynamicWebSocketHandler {
         public void onMessage(Message message, byte[] pattern) {
             try {
                 // 解析消息内容
-                String messageBody = new String(message.getBody(), java.nio.charset.StandardCharsets.UTF_8);
+                String messageBody = new String(message.getBody());
                 DistributedBroadcastMessage broadcastMessage = com.alibaba.fastjson2.JSON.parseObject(
                     messageBody, DistributedBroadcastMessage.class);
                 
@@ -171,18 +172,14 @@ public class RedisDynamicWebSocketHandler extends BaseDynamicWebSocketHandler {
                     log.debug("Skipping message for excluded server: {}", excludedServerId);
                     return;
                 }
-
-                // 校验必要字段，防止反序列化出空字段导致下游 NPE
-                if (broadcastMessage.getAppId() == null || broadcastMessage.getMessage() == null) {
-                    log.warn("Received broadcast message with null appId or message, ignoring");
-                    return;
-                }
-
-                // 根据消息类型决定广播方式，仅限本地投递，不重新发布到Redis避免消息放大循环
+                
+                // 根据消息类型决定广播方式
                 if (StringUtils.isBlank(broadcastMessage.getClientId())) {
-                    baseDynamicWebSocketHandler.broadcastMessageToAllClientLocalOnly(broadcastMessage.getAppId(), broadcastMessage.getMessage());
+                    // 广播给所有客户端
+                    baseDynamicWebSocketHandler.broadcastMessageToAllClient(broadcastMessage.getAppId(), broadcastMessage.getMessage());
                 } else {
-                    baseDynamicWebSocketHandler.broadcastMessageToClientLocalOnly(broadcastMessage.getAppId(), broadcastMessage.getClientId(), broadcastMessage.getMessage());
+                    // 广播给指定客户端
+                    baseDynamicWebSocketHandler.broadcastMessageToClient(broadcastMessage.getClientId(), broadcastMessage.getAppId(), broadcastMessage.getMessage());
                 }
             } catch (Exception e) {
                 log.error("Error processing Redis broadcast message", e);

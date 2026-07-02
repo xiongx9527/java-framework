@@ -44,7 +44,8 @@ public class MilvusDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
         }
     }
 
@@ -57,10 +58,7 @@ public class MilvusDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
      */
     @EventListener(condition = "#event.type == 'milvus-datasource'")
     public void onGroupEvent(GroupEvent event) {
-            try {
-              processEvent(event);
-            } catch (Exception ignored) {
-            }
+        processEvent(event);
     }
 
 
@@ -74,11 +72,7 @@ public class MilvusDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
     @Override
     public boolean register(MilvusDataSourceInfo entity) {
         magicMilvusDataSource.destroyClientByKey(entity.getKey());
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
     /**
@@ -93,11 +87,7 @@ public class MilvusDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
         MilvusDataSourceInfo entity = mappingNode.getEntity();
         magicMilvusDataSource.destroyClientByKey(entity.getKey());
         magicMilvusDataSource.createClient(entity);
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(mappingNode);
     }
 
     /**
@@ -109,10 +99,7 @@ public class MilvusDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
     @Override
     protected void unregister(MappingNode<MilvusDataSourceInfo> mappingNode) {
         magicMilvusDataSource.destroyClientByKey(mappingNode.getEntity().getKey());
-        try {
-            super.unregister(mappingNode);
-        } catch (Exception ignored) {
-        }
+        super.unregister(mappingNode);
     }
 
 

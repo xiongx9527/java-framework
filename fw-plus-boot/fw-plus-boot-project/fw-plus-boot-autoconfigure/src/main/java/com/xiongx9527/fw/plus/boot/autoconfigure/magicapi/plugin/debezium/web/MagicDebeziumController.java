@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.web;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.model.DebeziumDataSourceInfo;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoIterable;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +19,6 @@ import org.ssssssss.magicapi.core.web.MagicController;
 import org.ssssssss.magicapi.core.web.MagicExceptionHandler;
 import org.ssssssss.magicapi.utils.JdbcUtils;
 
-import java.net.URLEncoder;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,38 +93,23 @@ public class MagicDebeziumController extends MagicController implements MagicExc
     }
 
 
-    /**
-     * 获取需要处理的数据库表列表
-     * 
-     * 该方法从配置中读取包含表和排除表的配置，将它们合并到一个列表中返回。
-     * 注意：返回的列表同时包含includeTables和excludeTables中的表名。
-     *
-     * @param properties Debezium数据源配置信息，包含数据源的键以及包含表和排除表的配置
-     * @return 表名列表，包含配置的包含表和排除表中的所有表名
-     */
     private List<String> getTables(DebeziumDataSourceInfo properties) {
-        // 从配置中获取包含表和排除表的字符串配置
-        String includeTablesStr = MagicAPIConfigUtils.getDebeziumConfig(properties.getKey(), "includeTables", properties.getIncludeTables());
-        String excludeTablesStr = MagicAPIConfigUtils.getDebeziumConfig(properties.getKey(), "excludeTables", properties.getExcludeTables());
+        String includeTablesStr = SpringUtils.getAppConfig(String.format("magic.api.debezium.%s.includeTables",properties.getKey()),properties.getIncludeTables());
+        String excludeTablesStr = SpringUtils.getAppConfig(String.format("magic.api.debezium.%s.excludeTables",properties.getKey()),properties.getExcludeTables());
 
         List<String> tableList = new ArrayList<>();
-        
-        // 解析包含表配置，将逗号分隔的表名添加到列表中
         if (StringUtils.isNotEmpty(includeTablesStr)) {
             String[] includeTables = StringUtils.split(includeTablesStr,",");
             for (String table : includeTables) {
                 tableList.add(table);
             }
         }
-        
-        // 解析排除表配置，将逗号分隔的表名添加到列表中
         if (StringUtils.isNotEmpty(excludeTablesStr)) {
             String[] excludeTables = StringUtils.split(excludeTablesStr,",");
             for (String table : excludeTables) {
                 tableList.add(table);
             }
         }
-        
         return tableList;
     }
 
@@ -137,15 +121,17 @@ public class MagicDebeziumController extends MagicController implements MagicExc
      *                   包括 hostname、port、database、username、password 和 connectorClass 等属性。
      */
     private void testDb(DebeziumDataSourceInfo properties) {
-        String connectorClass = MagicAPIConfigUtils.getDebeziumConfig(properties.getKey(), "connectorClass", properties.getConnectorClass());
+        String connectorClass = properties.getConnectorClass();
         String driver = "";
         String url = "";
+
+        connectorClass = SpringUtils.getAppConfig(String.format("magic.api.debezium.%s.connectorClass",properties.getKey()),connectorClass);
         // 数据库连接配置
-        String hostname = MagicAPIConfigUtils.getDebeziumConfig(properties.getKey(), "hostname", properties.getHostname());
-        String port = MagicAPIConfigUtils.getDebeziumConfig(properties.getKey(), "port", properties.getPort());
-        String username = MagicAPIConfigUtils.getDebeziumConfig(properties.getKey(), "username", properties.getUsername());
-        String password = MagicAPIConfigUtils.getDebeziumConfig(properties.getKey(), "password", properties.getPassword());
-        String database =  MagicAPIConfigUtils.getDebeziumConfig(properties.getKey(), "database", properties.getDatabase());
+        String hostname = SpringUtils.getAppConfig(String.format("magic.api.debezium.%s.hostname",properties.getKey()),properties.getHostname());
+        String port = SpringUtils.getAppConfig(String.format("magic.api.debezium.%s.port",properties.getKey()),properties.getPort());
+        String username = SpringUtils.getAppConfig(String.format("magic.api.debezium.%s.username",properties.getKey()),properties.getUsername());
+        String password = SpringUtils.getAppConfig(String.format("magic.api.debezium.%s.password",properties.getKey()),properties.getPassword());
+        String database =  SpringUtils.getAppConfig(String.format("magic.api.debezium.%s.database",properties.getKey()),properties.getDatabase());
 
         // 根据不同的数据库类型设置对应的 JDBC 驱动和连接 URL
         if (connectorClass.contains("mysql")) {
@@ -166,11 +152,10 @@ public class MagicDebeziumController extends MagicController implements MagicExc
         if (connectorClass.contains("mongodb")) {
             MongoClient mongoClient = null;
             try {
-                // 构建 MongoDB 连接字符串，对密码进行 URL 编码防止特殊字符问题
-                String mongoUri = "mongodb://" + username + ":" + URLEncoder.encode(password, "UTF-8") +
+                // 构建 MongoDB 连接字符串
+                String mongoUri = "mongodb://" + username + ":" + password +
                         "@" + hostname + ":" + port +
-                        "/" + database +
-                        "?connectTimeoutMS=5000&serverSelectionTimeoutMS=5000";
+                        "/" + database;
                 mongoClient = com.mongodb.client.MongoClients.create(mongoUri);
                 MongoIterable<String> collectionNames =  mongoClient.getDatabase(database).listCollectionNames();
                 List<String> allTables = new ArrayList<>();
@@ -225,12 +210,11 @@ public class MagicDebeziumController extends MagicController implements MagicExc
     private void testKafka(DebeziumDataSourceInfo properties) {
         // 配置Kafka生产者属性
         Properties kafkaProps = new Properties();
-        String kafkaServers = MagicAPIConfigUtils.getDebeziumConfig(properties.getKey(), "kafkaServers", properties.getKafkaServers());
+        String kafkaServers = SpringUtils.getAppConfig(String.format("magic.api.debezium.%s.kafkaServers",properties.getKey()), properties.getKafkaServers());
         kafkaProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers);
         kafkaProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         kafkaProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         kafkaProps.put(ProducerConfig.METADATA_MAX_IDLE_CONFIG, 6000);
-        kafkaProps.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 10000);
 
         // 创建Kafka生产者并测试连接
         try (KafkaProducer<String, String> producer = new KafkaProducer<>(kafkaProps)) {
@@ -259,8 +243,7 @@ public class MagicDebeziumController extends MagicController implements MagicExc
             return new JsonBean<>("ok");
         } catch (Exception e) {
             log.error("测试数据源失败", e);
-            String message = e.getMessage() != null ? e.getMessage() : "未知错误";
-            return new JsonBean<>("数据源连接失败: " + message);
+            return new JsonBean<>(e.getMessage());
         }
     }
 }

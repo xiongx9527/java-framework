@@ -7,7 +7,6 @@ import lombok.Data;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public interface BaseService extends MagicBaseService {
 
@@ -122,10 +121,29 @@ public interface BaseService extends MagicBaseService {
     /**
      * 获取广播频道名称
      *
-     * @return 广播频道名称，如果配置中未指定则返回默认值"sse:broadcast"
+     * @return 广播频道名称，如果配置中未指定则返回默认值"websocket:broadcast"
      */
     default String getBroadcastChannelName() {
-        return getConfigValueAsString("redis.channel.broadcast","sse:broadcast");
+        return getConfigValueAsString("redis.channel.broadcast","websocket:broadcast");
+    }
+
+
+    /**
+     * 获取WebSocket路径
+     *
+     * @return WebSocket路径，如果配置中未指定则返回默认值"websocket:group"
+     */
+    default String getWebsocketPath() {
+        return getConfigValueAsString("sse.path","/ws/api");
+    }
+
+    /**
+     * 获取WebSocket受信任的域名
+     *
+     * @return 受信任的域名列表，如果配置中未指定则返回默认值"*"（允许所有域名）
+     */
+    default String getTrustedDomain() {
+        return getConfigValueAsString("sse.trustedDomain","*");
     }
 
     /**
@@ -148,69 +166,161 @@ public interface BaseService extends MagicBaseService {
 
 
     /**
-     * 根据配置获取Token密钥和签名算法（首次调用后缓存结果）。
-     *
+     * 根据配置获取Token密钥和签名算法
+     * 
      * @return 包含密钥和签名算法的SecretKeyAndSignatureAlgorithm对象
      */
     default SecretKeyAndSignatureAlgorithm getSecretKeyAndSignatureAlgorithm() {
-        return getCachedSecretKeyAndAlgorithm();
-    }
+        // 构建JWT token，明确指定UTF-8编码以确保跨平台一致性
+        // 确保使用适合的签名算法和足够长度的密钥
+        byte[] keyBytes = getTokenSecret().getBytes(java.nio.charset.StandardCharsets.UTF_8);
 
-    /**
-     * 密钥算法缓存，避免重复创建 MessageDigest 和 SecretKey。
-     */
-    ConcurrentHashMap<String, SecretKeyAndSignatureAlgorithm> SECRET_KEY_CACHE = new ConcurrentHashMap<>();
+        // 定义算法所需的最小密钥长度常量
+        final int HS512_MIN_KEY_LENGTH = 64;  // 512位
+        final int HS384_MIN_KEY_LENGTH = 48;  // 384位
+        final int HS256_MIN_KEY_LENGTH = 32;  // 256位
 
-    /**
-     * 获取缓存的密钥和算法，避免重复创建 MessageDigest 和 SecretKey。
-     */
-    default SecretKeyAndSignatureAlgorithm getCachedSecretKeyAndAlgorithm() {
-        String tokenSecret = getTokenSecret();
-        return SECRET_KEY_CACHE.computeIfAbsent(tokenSecret, k -> {
-            byte[] keyBytes = k.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-            javax.crypto.SecretKey secretKey;
-            io.jsonwebtoken.SignatureAlgorithm algorithm;
+        // 根据密钥长度选择合适的签名算法
+        // HS512需要至少512位(64字节)密钥
+        // HS384需要至少384位(48字节)密钥
+        // HS256需要至少256位(32字节)密钥
+        javax.crypto.SecretKey secretKey;
+        io.jsonwebtoken.SignatureAlgorithm algorithm;
 
-            if (keyBytes.length >= 64) {
-                secretKey = io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
+        SecretKeyAndSignatureAlgorithm secretKeyAndSignatureAlgorithm = new SecretKeyAndSignatureAlgorithm();
+        if (keyBytes.length >= HS512_MIN_KEY_LENGTH) {
+            // 密钥长度足够支持HS512
+            secretKey = io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
+            algorithm = io.jsonwebtoken.SignatureAlgorithm.HS512;
+        } else if (keyBytes.length >= HS384_MIN_KEY_LENGTH) {
+            // 密钥长度足够支持HS384
+            secretKey = io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
+            algorithm = io.jsonwebtoken.SignatureAlgorithm.HS384;
+        } else if (keyBytes.length >= HS256_MIN_KEY_LENGTH) {
+            // 密钥长度足够支持HS256
+            secretKey = io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
+            algorithm = io.jsonwebtoken.SignatureAlgorithm.HS256;
+        } else {
+            // 密钥长度不足，使用标准方法生成安全密钥
+            // 为HS512生成64字节密钥
+            try {
+                java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-512");
+                byte[] hashedBytes = digest.digest(keyBytes);
+                // 确保我们有64字节用于HS512，使用完整的哈希结果（通常为64字节）
+                secretKey = io.jsonwebtoken.security.Keys.hmacShaKeyFor(hashedBytes);
                 algorithm = io.jsonwebtoken.SignatureAlgorithm.HS512;
-            } else if (keyBytes.length >= 48) {
-                secretKey = io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
-                algorithm = io.jsonwebtoken.SignatureAlgorithm.HS384;
-            } else if (keyBytes.length >= 32) {
-                secretKey = io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
-                algorithm = io.jsonwebtoken.SignatureAlgorithm.HS256;
-            } else {
-                try {
-                    java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-512");
-                    secretKey = io.jsonwebtoken.security.Keys.hmacShaKeyFor(digest.digest(keyBytes));
-                    algorithm = io.jsonwebtoken.SignatureAlgorithm.HS512;
-                } catch (java.security.NoSuchAlgorithmException e) {
-                    throw new RuntimeException("Failed to generate secure key", e);
-                }
+            } catch (java.security.NoSuchAlgorithmException e) {
+                throw new RuntimeException("Failed to generate secure key", e);
             }
-            SecretKeyAndSignatureAlgorithm result = new SecretKeyAndSignatureAlgorithm();
-            result.setSecretKey(secretKey);
-            result.setAlgorithm(algorithm);
-            return result;
-        });
+        }
+        secretKeyAndSignatureAlgorithm.secretKey = secretKey;
+        secretKeyAndSignatureAlgorithm.algorithm = algorithm;
+        return secretKeyAndSignatureAlgorithm;
     }
 
     /**
-     * 验证JWT token的有效性并提取appId。
-     * 使用缓存的密钥和算法，避免每次暴力尝试所有算法组合。
-     *
+     * 验证JWT token的有效性并提取appId
+     * 
      * @param token JWT token字符串
      * @return 如果token有效返回对应的appId，否则抛出异常
+     * @throws RuntimeException 当token验证失败或算法不可用时抛出此异常
      */
     default String validateAndExtractAppIdFromToken(String token) {
-        SecretKeyAndSignatureAlgorithm keyAndAlgo = getCachedSecretKeyAndAlgorithm();
-        io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
-                .setSigningKey(keyAndAlgo.getSecretKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-        return claims.getSubject();
+        String defaultSecretKey = getTokenSecret();
+        byte[] keyBytes = defaultSecretKey.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        // 尝试使用不同长度的密钥和算法来验证token
+        // 按安全性从高到低尝试
+        // 首先尝试使用原始密钥（如果足够长）
+        if (keyBytes.length >= 64) {
+            // 尝试HS512
+            try {
+                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
+                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+                return claims.getSubject();
+            } catch (Exception e) {
+                // 如果失败，继续尝试其他算法
+            }
+        }
+
+        if (keyBytes.length >= 48) {
+            // 尝试HS384
+            try {
+                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
+                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+                return claims.getSubject();
+            } catch (Exception e) {
+                // 如果失败，继续尝试其他算法
+            }
+        }
+
+        if (keyBytes.length >= 32) {
+            // 尝试HS256
+            try {
+                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
+                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+                return claims.getSubject();
+            } catch (Exception e) {
+                // 如果失败，继续尝试其他方法
+            }
+        }
+
+        // 如果原始密钥长度不足，尝试使用处理后的密钥
+        // 生成不同长度的密钥以匹配不同算法
+        try {
+            // 缓存常用的MessageDigest实例
+            java.security.MessageDigest sha512Digest = java.security.MessageDigest.getInstance("SHA-512");
+            java.security.MessageDigest sha384Digest = java.security.MessageDigest.getInstance("SHA-384");
+            java.security.MessageDigest sha256Digest = java.security.MessageDigest.getInstance("SHA-256");
+
+            // 为HS512生成64字节密钥
+            byte[] hs512KeyBytes = sha512Digest.digest(keyBytes);
+            try {
+                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
+                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(hs512KeyBytes))
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+                return claims.getSubject();
+            } catch (Exception e) {
+                // 继续尝试其他方式
+            }
+
+            // 为HS384生成48字节密钥
+            byte[] hs384KeyBytes = sha384Digest.digest(keyBytes);
+            try {
+                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
+                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(hs384KeyBytes))
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+                return claims.getSubject();
+            } catch (Exception e) {
+                // 继续尝试其他方式
+            }
+
+            // 为HS256生成32字节密钥
+            byte[] hs256KeyBytes = sha256Digest.digest(keyBytes);
+            io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
+                    .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(hs256KeyBytes))
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            return claims.getSubject();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("Failed to validate token due to missing algorithm", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to validate token", e);
+        }
     }
 
     /**
@@ -266,7 +376,7 @@ public interface BaseService extends MagicBaseService {
      * @return 超时时间，单位为毫秒，默认值为 5分钟 = 5 * 60 * 1000 = 300,000 毫秒
      */
     default long getTimeOut() {
-        return getConfigValueAsLong("sse.timeout",300000L);
+        return getConfigValueAsLong("sse.timeount",300000L);
     }
 
     /**

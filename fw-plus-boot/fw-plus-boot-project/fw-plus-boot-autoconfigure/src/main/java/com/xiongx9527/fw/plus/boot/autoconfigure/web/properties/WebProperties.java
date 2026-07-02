@@ -39,12 +39,11 @@ public class WebProperties {
          * key: 阈值时间(毫秒)
          * value: 告警级别(WARN/ERROR/CRITICAL)
          */
-        private Map<Long, String> thresholdLevels = new HashMap<>();
-        {
-            thresholdLevels.put(1000L, "WARN");
-            thresholdLevels.put(3000L, "ERROR");
-            thresholdLevels.put(10000L, "CRITICAL");
-        }
+        private Map<Long, String> thresholdLevels = new HashMap<Long, String>() {{
+            put(1000L, "WARN");
+            put(3000L, "ERROR");
+            put(10000L, "CRITICAL");
+        }};
     }
 
     // 获取慢请求监控开关的getter方法

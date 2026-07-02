@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.sse.service;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.S3DataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.sse.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.sse.model.SseDataSourceInfo;
 import org.ssssssss.magicapi.core.model.MagicEntity;
@@ -103,9 +104,9 @@ public class SseDataSourceInfoMagicResourceStorage implements MagicResourceStora
 		validateJSON(entity.getOther(), "other");
 		// 如果实体已存在，验证key不可修改
 		if (entity.getId() != null) {
-			SseDataSourceInfo oldDataSourceInfo = magicResourceService.file(entity.getId());
-			if (null != oldDataSourceInfo) {
-				if (!oldDataSourceInfo.getKey().equals(entity.getKey())) {
+			SseDataSourceInfo oldKafkaDataSourceInfo = magicResourceService.file(entity.getId());
+			if (null != oldKafkaDataSourceInfo) {
+				if (!oldKafkaDataSourceInfo.getKey().equals(entity.getKey())) {
 					throw new IllegalArgumentException("key不可修改");
 				}
 			}

@@ -44,7 +44,9 @@ public class WeaviateDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
         try {
             // 处理文件事件的核心逻辑
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            // 记录事件处理过程中的异常信息
+            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
         }
     }
 
@@ -56,10 +58,8 @@ public class WeaviateDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
      */
     @EventListener(condition = "#event.type == 'weaviate-datasource'")
     public void onGroupEvent(GroupEvent event) {
-        try {
-            processEvent(event);
-        } catch (Exception ignored) {
-        }
+        // 处理接收到的事件
+        processEvent(event);
     }
 
     /**
@@ -72,11 +72,7 @@ public class WeaviateDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
     public boolean register(WeaviateDataSourceInfo entity) {
         // 销毁已存在的客户端连接
         magicDynamicWeaviateDataSource.destroyClientByKey(entity.getKey());
-        try {
-            return super.register(entity);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(entity);
     }
 
     /**
@@ -91,11 +87,7 @@ public class WeaviateDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
         // 销毁旧的客户端连接并创建新的客户端连接
         magicDynamicWeaviateDataSource.destroyClientByKey(entity.getKey());
         magicDynamicWeaviateDataSource.createClient(entity);
-        try {
-            return super.register(mappingNode);
-        } catch (Exception ignored) {
-            return false;
-        }
+        return super.register(mappingNode);
     }
 
     /**
@@ -108,10 +100,7 @@ public class WeaviateDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
         // 销毁指定key的Weaviate客户端连接
         magicDynamicWeaviateDataSource.destroyClientByKey(mappingNode.getEntity().getKey());
         // 调用父类的注销方法完成剩余的注销逻辑
-        try {
-            super.unregister(mappingNode);
-        } catch (Exception ignored) {
-        }
+        super.unregister(mappingNode);
     }
 
     /**

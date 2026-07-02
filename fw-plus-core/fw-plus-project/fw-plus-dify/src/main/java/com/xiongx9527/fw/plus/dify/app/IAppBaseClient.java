@@ -126,16 +126,12 @@ public interface IAppBaseClient {
      * @param params Body params
      * @return EventSource
      */
-    EventSource requestStreaming(DifyRoute route,Map<String, Object> query,Map<String, Object> params,EventSourceListener listener);
-
-    /**
-     * 发送流式接口请求
-     * @param route
-     * @param query
-     * @param params
-     * @return
-     */
-    EventSource requestStreaming(DifyRoute route,Map<String, Object> query,Map<String, Object> params);
+    EventSource requestStreaming(
+            DifyRoute route,
+            Map<String, Object> query,
+            Map<String, Object> params,
+            EventSourceListener listener
+    );
 
     /**
      * 获取标注列表

@@ -59,11 +59,8 @@ public class RedisDataSourceInfo extends MagicEntity {
         dataSourceInfo.setKey(this.key);
         dataSourceInfo.setHostname(this.hostname);
         dataSourceInfo.setPort(this.port);
-        dataSourceInfo.setUsername(this.username);
         dataSourceInfo.setPassword(this.password);
-        dataSourceInfo.setDatabase(this.database);
         dataSourceInfo.setClientType(clientType);
-        dataSourceInfo.setMode(mode);
         dataSourceInfo.setOther(other);
         return dataSourceInfo;
     }
@@ -75,11 +72,8 @@ public class RedisDataSourceInfo extends MagicEntity {
         dataSourceInfo.setKey(this.key);
         dataSourceInfo.setHostname(this.hostname);
         dataSourceInfo.setPort(this.port);
-        dataSourceInfo.setUsername(this.username);
         dataSourceInfo.setPassword(this.password);
-        dataSourceInfo.setDatabase(this.database);
         dataSourceInfo.setClientType(clientType);
-        dataSourceInfo.setMode(mode);
         dataSourceInfo.setOther(other);
         return dataSourceInfo;
     }

@@ -144,13 +144,13 @@ public class WebMvcAutoConfiguration extends CommonAutoConfiguration implements 
         }
         // 获取请求处理时间
         long processingTime = event.getProcessingTimeMillis();
-        // 根据处理时间找到对应的阈值级别（按 key 升序排列，取最高匹配阈值）
-        Map.Entry<Long, String> matchedLevel = this.webProperties.getSlowRequest().getThresholdLevels()
-                .entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .filter(entry -> processingTime >= entry.getKey())
-                .reduce((first, second) -> second)
-                .orElse(null);
+        // 根据处理时间找到对应的阈值级别
+        Map.Entry<Long, String> matchedLevel = null;
+        for (Map.Entry<Long, String> entry : this.webProperties.getSlowRequest().getThresholdLevels().entrySet()) {
+            if (processingTime >= entry.getKey()) {
+                matchedLevel = entry;
+            }
+        }
 
         // 如果请求处理失败，记录异常详细信息
         if (this.webProperties.getSlowRequest().isPrintExceptionDetails() && event.getFailureCause() != null) {
