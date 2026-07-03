@@ -29,8 +29,6 @@
         <!--  debezium版本号 -->
         <debezium.version>3.3.1.Final</debezium.version>
         <debezium-server.version>1.6.4.Final</debezium-server.version>
-        <!--  javaparser版本号 -->
-        <javaparser.version>3.27.0</javaparser.version>
         <!--  resilience4j版本号 -->
         <resilience4j.version>2.3.0</resilience4j.version>
         <!--  akali版本号 -->
@@ -335,13 +333,6 @@
             </dependency>
 
             -->
-
-            <!-- javaparser -->
-            <dependency>
-                <groupId>com.github.javaparser</groupId>
-                <artifactId>javaparser-symbol-solver-core</artifactId>
-                <version>${javaparser.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>ognl</groupId>
@@ -674,12 +665,6 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
-                <artifactId>fw-plus-magicapi-plugin-java</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-swagger</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -747,6 +732,12 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-elasticsearch</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-satoken</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

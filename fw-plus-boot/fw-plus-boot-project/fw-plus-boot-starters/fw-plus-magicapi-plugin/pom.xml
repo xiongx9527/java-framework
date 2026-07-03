@@ -17,7 +17,6 @@
         <module>fw-plus-magicapi-plugin-kafka</module>
         <module>fw-plus-magicapi-plugin-pulsar</module>
         <module>fw-plus-magicapi-plugin-vue3</module>
-        <module>fw-plus-magicapi-plugin-java</module>
         <module>fw-plus-magicapi-plugin-swagger</module>
         <module>fw-plus-magicapi-plugin-debezium</module>
         <module>fw-plus-magicapi-plugin-redis</module>
@@ -30,6 +29,7 @@
         <module>fw-plus-magicapi-plugin-mqtt</module>
         <module>fw-plus-magicapi-plugin-influx</module>
         <module>fw-plus-magicapi-plugin-elasticsearch</module>
+        <module>fw-plus-magicapi-plugin-satoken</module>
     </modules>
 
     <artifactId>fw-plus-magicapi-plugin</artifactId>

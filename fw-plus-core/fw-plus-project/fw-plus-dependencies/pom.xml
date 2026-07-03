@@ -180,8 +180,6 @@
         <protobuf-java.version>3.25.1</protobuf-java.version>
         <!--jakarta版本号-->
         <jakarta.version>6.0.0</jakarta.version>
-        <!--javaparser-symbol-solver-core版本号-->
-        <javaparser-symbol-solver-core.version>3.27.0</javaparser-symbol-solver-core.version>
         <!--
         <maven-plugin-plugin.version>3.6.2</maven-plugin-plugin.version>
         <build-helper-maven-plugin.version>3.2.0</build-helper-maven-plugin.version>
@@ -977,12 +975,6 @@
                 <artifactId>jimubi-spring-boot3-starter</artifactId>
                 <version>${jimubi.version}</version>
             </dependency>
-            <!-- javaparser版本统一管理 -->
-            <dependency>
-                <groupId>com.github.javaparser</groupId>
-                <artifactId>javaparser-symbol-solver-core</artifactId>
-                <version>${javaparser-symbol-solver-core.version}</version>
-            </dependency>
             <!-- fw-plus 版本统一管理 -->
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
@@ -1062,11 +1054,6 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-report-jimu</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-javaparser</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

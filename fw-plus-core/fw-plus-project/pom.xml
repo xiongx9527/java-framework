@@ -22,7 +22,6 @@
         <module>fw-plus-nosql</module>
         <module>fw-plus-report</module>
         <module>fw-plus-auth</module>
-        <module>fw-plus-javaparser</module>
         <module>fw-plus-template</module>
         <module>fw-plus-ai</module>
         <module>fw-plus-magicapi</module>
