@@ -9,7 +9,7 @@
 
 ## 项目概述
 
-fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Agents-Flex / Spring AI / EasyAi）集成等能力。使用 Maven 构建，当前版本 `0.1.1-SNAPSHOT`（通过 `${revision}` + `flatten-maven-plugin` 管理）。
+fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 3.5.8 和 Java 17，提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Agents-Flex / Spring AI / EasyAi）集成等能力。使用 Maven 构建，当前版本 `0.3.0-SNAPSHOT`（通过 `${revision}` + `flatten-maven-plugin` 管理）。
 
 **Git 仓库结构**：根目录和各模块（`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai`、`fw-plus-product`、`resources`）各自拥有独立的 `.git` 仓库，互为平级目录，非 git submodule。构建产物在各仓库间通过 Maven 本地仓库（`~/.m2`）传递，不依赖 SNAPSHOT 的自动更新机制。
 
@@ -30,7 +30,7 @@ All source code is under `src/main/java`; resources under `src/main/resources`. 
 
 ```
 fw-plus/                      # 根目录（聚合项目，无统一父 POM）
-├── fw-plus-core/             # 核心库层（Java 1.8, Spring Boot 2.7.18）
+├── fw-plus-core/             # 核心库层（Java 17, Spring Boot 3.5.8）
 │   ├── fw-plus-project/
 │   │   ├── fw-plus-parent/       # Core 层父 POM
 │   │   ├── fw-plus-common/       # 公共工具：加密、UID、异常、序列化、SpringUtils
@@ -51,7 +51,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │   ├── fw-plus-ai/           # AI 基础模块
 │   │   │   ├── fw-plus-ai-base/       # AI 基础（向量存储、向量数据库客户端等）
 │   │   │   └── fw-plus-ai-mcp/        # MCP 协议支持
-│   │   ├── fw-plus-javaparser/   # 动态类加载器、JavaParser
 │   │   ├── fw-plus-template/     # 模板引擎：Freemarker, docx4j, OpenPDF, FO
 │   │   ├── fw-plus-poi/          # EasyPoi 扩展
 │   │   │   └── fw-plus-poi-easypoi/   # EasyPoi Excel/Word 操作
@@ -85,7 +84,7 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       ├── fw-plus-jdbc-spring-boot-starter/          # JDBC 数据库
 │   │       ├── fw-plus-jimu-spring-boot-starter/          # JimuReport 积木报表
 │   │       ├── fw-plus-magicapi-spring-boot-starter/      # Magic-API 主引擎
-│   │       ├── fw-plus-magicapi-plugin/                   # Magic-API 插件（22 个）
+│   │       ├── fw-plus-magicapi-plugin/                   # Magic-API 插件（当前 reactor 接入 20 个）
 │   │       │   ├── fw-plus-magicapi-plugin-config/        # 配置中心
 │   │       │   ├── fw-plus-magicapi-plugin-debezium/      # Debezium CDC
 │   │       │   ├── fw-plus-magicapi-plugin-dtp/           # 动态线程池
@@ -95,7 +94,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       │   ├── fw-plus-magicapi-plugin-kafka/         # Kafka 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-mongo/         # MongoDB
 │   │       │   ├── fw-plus-magicapi-plugin-mqtt/          # MQTT 协议支持
-│   │       │   ├── fw-plus-magicapi-plugin-mqttclient/    # MQTT 客户端
 │   │       │   ├── fw-plus-magicapi-plugin-pulsar/        # Pulsar 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-rabbitmq/      # RabbitMQ 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-redis/         # Redis 缓存
@@ -106,7 +104,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       │   ├── fw-plus-magicapi-plugin-swagger/       # Swagger API 文档
 │   │       │   ├── fw-plus-magicapi-plugin-task/          # 定时任务
 │   │       │   ├── fw-plus-magicapi-plugin-vue3/          # Vue3 前端资源
-│   │       │   ├── fw-plus-magicapi-plugin-word/          # Word 文档操作
 │   │       │   └── fw-plus-magicapi-plugin-ws/            # WebSocket
 │   │       ├── fw-plus-mate-spring-boot-starter/          # Mate 租户/数据权限
 │   │       ├── fw-plus-mp-spring-boot-starter/            # MyBatis-Plus 增强
@@ -274,23 +271,24 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 
 | 类别 | 技术 |
 |------|------|
-| 基础框架 | Spring Boot 2.7.18, Spring Cloud 2021.0.9 |
+| 基础框架 | Java 17, Spring Boot 3.5.8, Spring Cloud 2025.0.0, Spring Cloud Alibaba 2025.0.0.0 |
 | ORM | MyBatis-Plus 3.3.2, MyBatis-Flex 1.11.4 |
 | 脚本引擎 | Magic-API 2.2.2（自行维护版本，非中央仓库版本） |
-| AI | LangChain4j 0.35.0, Agents-Flex 1.3.4, Spring AI 1.0.1, EasyAi 1.4.9 |
+| AI | LangChain4j 0.36.2, Agents-Flex 1.3.4, Spring AI 1.1.0, Spring AI Alibaba 1.1.2.2, EasyAi 1.4.9 |
 | 消息队列 | Kafka, Pulsar 2.11.2, RocketMQ 5.1.3, RabbitMQ, Mica MQTT 2.3.9 |
 | 数据库/存储 | MySQL, InfluxDB, Redis, Elasticsearch, Nebula Graph, Minio/S3 |
-| 工具库 | Hutool 5.8.34, EasyPoi 4.5.0, DynamicTp 1.2.1, Debezium 1.9.8.Final |
+| 工具库 | Hutool 5.8.34, EasyPoi 4.5.0, DynamicTp 1.2.1, Debezium 1.9.8.Final, JimuReport 2.3.0 |
 | 模板引擎 | Freemarker, docx4j, OpenPDF |
 | 可观测性 | OpenTelemetry 1.56.0, Apollo 2.5.0 |
-| 认证鉴权 | Sa-Token 1.40.0, OAuth2 |
+| 认证鉴权 | Sa-Token 1.44.0, OAuth2 |
 | 前端 | Vue3, Vite, NaiveUI |
 
 ## 重要提醒
 
-- **Maven 构建**：使用各模块下的 `mvnw`（Maven Wrapper）而非系统 `mvn`。按依赖顺序构建：fw-plus-core → fw-plus-boot → fw-plus-cloud → fw-plus-ai → fw-plus-product。fw-plus-core 是底层依赖，各层级均有独立的父 POM。发版按版本号统一发，不单独发某个模块。
+- **Maven 构建**：当前工程按 Java 17 + Maven 构建。按依赖顺序构建：fw-plus-core → fw-plus-boot → fw-plus-cloud → fw-plus-ai → fw-plus-product。fw-plus-core 是底层依赖，各层级均有独立的父 POM。发版按版本号统一发，不单独发某个模块。
 - **Magic-API 版本**：使用自行维护的 2.2.2 版本，`org.ssssssss` 组的依赖通过 `<repositories>` 指向内部 Nexus 仓库（jugui-snapshot / jugui-release），请勿修改这些依赖的版本号。
-- **JDK 1.8 约束**：fw-plus-core 严格约束为 Java 1.8（compiler source/target = 1.8），不要引入 Java 9+ 的 API（如 `List.of()`、`Map.copyOf()`、`Optional.orElseThrow()` 等）。
+- **Java 17 约束**：项目已升级到 Spring Boot 3.x / Java 17，注意 Jakarta 包名迁移和 Spring Boot 3 兼容性，不要引入依赖于 Spring Boot 2 或 `javax.*` Servlet API 的旧实现。
+- **JavaParser 移除**：`fw-plus-javaparser` 和 MagicAPI Java 插件已不在当前 reactor 中，除非用户明确要求，不要恢复相关模块、POM module 或依赖。
 - **源文件编码**：所有 Java 源文件、资源文件统一使用 UTF-8 编码。
 - **文件路径**：不构造硬编码的跨平台文件路径，系统路径使用 `System.getProperty()` 或 `Path` API，资源路径使用 Spring `ResourceLoader` 或 `ClassPathResource`。
 - **自定义类**：项目中包含大量自定义类和注解（如 `Algorithm`、`FieldEncrypt` 等），修改相关代码时确保充分理解其用途。
@@ -300,24 +298,28 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 
 ```bash
 # 全量编译（跳过测试）— 需在各模块目录下执行，根目录无统一 POM
-# 推荐使用各模块内置的 Maven Wrapper (mvnw)
-cd fw-plus-core && ./mvnw clean install -DskipTests
+# 当前已验证的 JDK 17 构建环境
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+
+# 全量编译（跳过测试）
+cd fw-plus-core && mvn clean install -DskipTests -Dcobertura.skip -Dmaven.javadoc.skip=true
 
 # 编译指定模块
-cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -DskipTests
+cd fw-plus-core && mvn clean install -pl fw-plus-project/fw-plus-common -DskipTests -Dcobertura.skip -Dmaven.javadoc.skip=true
 
 # 运行测试（Cobertura 覆盖率报告在 target/site/cobertura/）
-cd fw-plus-core && ./mvnw clean test
+cd fw-plus-core && mvn clean test
 
 # 发布到内网 Nexus 仓库（jugui-snapshot / jugui-release）
-cd fw-plus-core && ./mvnw clean deploy -DskipTests
+cd fw-plus-core && mvn clean deploy -DskipTests -Dcobertura.skip -Dmaven.javadoc.skip=true
 ```
 
-The Maven wrapper (`mvnw`) is included in each top-level module — use it instead of a system `mvn` for reproducible builds.
+根目录没有统一 `pom.xml`，需进入各层目录执行 Maven 命令；如使用 Maven Wrapper，先确认对应层的 `mvnw` 在当前环境可用。
 
 ## 编码风格与命名约定
 
-- **Java**: 目标 JDK 1.8，遵循标准 Java 编码规范。
+- **Java**: 目标 JDK 17，遵循标准 Java 编码规范。
 - **缩进**: 使用 Tab（与现有 `pom.xml` 文件一致），保持与周围文件风格统一。
 - **模块命名**: kebab-case — `fw-plus-core`、`fw-plus-boot`、`fw-plus-mp`。
 - **包命名**: `com.xiongx9527.fw.plus.*` — 如 `com.xiongx9527.fw.plus.mp`、`com.xiongx9527.fw.plus.common`。
@@ -331,7 +333,7 @@ The Maven wrapper (`mvnw`) is included in each top-level module — use it inste
 - **覆盖率**: Cobertura（`cobertura-maven-plugin 2.7`）生成 HTML + XML 报告。
 - **测试位置**: 各 Maven 模块的 `src/test/java/` 目录。
 - **命名**: 遵循标准 Maven 约定 — 单元测试用 `*Test.java`，集成测试用 `*IT.java`。
-- **运行测试**: 从模块根目录执行 `./mvnw clean test`。
+- **运行测试**: 从模块根目录执行 `mvn clean test`。
 
 ## 提交与 PR 规范
 
@@ -348,4 +350,3 @@ The Maven wrapper (`mvnw`) is included in each top-level module — use it inste
 - **AI 代理配置**: `AGENTS.md`（本文件）和 `CLAUDE.md` 包含项目指南和 AI 助手配置。
 - **内部 Nexus**: `http://172.17.1.6:28081/` — 仓库 `jugui-snapshot` 和 `jugui-release`。
 - **许可证**: Apache 2.0。
-
