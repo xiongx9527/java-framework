@@ -1,0 +1,14 @@
+{
+  "properties" : { },
+  "id" : "e69696de42344850902d6efeb10711f8",
+  "name" : "test",
+  "type" : "kafka-subscribe",
+  "parentId" : "0",
+  "path" : "test",
+  "createTime" : 1764494019986,
+  "updateTime" : null,
+  "createBy" : null,
+  "updateBy" : null,
+  "paths" : [ ],
+  "options" : [ ]
+}
