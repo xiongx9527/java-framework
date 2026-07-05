@@ -2,6 +2,8 @@
 comet_change: add-standard-mcp-server-plugin
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-05-add-standard-mcp-server-plugin
+status: final
 ---
 
 # Standard MCP Server Plugin Design
