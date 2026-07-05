@@ -1,0 +1,14 @@
+{
+  "change": "add-mcp-resources-prompts-console-cluster",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "9a809363fbe94cacbd914039c3198ab7261f9794c659fcab56f478d42274d408",
+  "files": [
+    { "path": "openspec/changes/add-mcp-resources-prompts-console-cluster/proposal.md", "sha256": "c694d3d42fee54bdb849b960c00478a28fec0f6ee5e85173101f7dd42cdd5cca" },
+    { "path": "openspec/changes/add-mcp-resources-prompts-console-cluster/design.md", "sha256": "bfe6f3512093cdcaa5e1c84c55ce57391f555d40da4d5f97ead99fc6b8964df2" },
+    { "path": "openspec/changes/add-mcp-resources-prompts-console-cluster/tasks.md", "sha256": "b685fb969363b7618cea19285a53ecc339a59959a05ea897983ed8a65d8e47d3" },
+    { "path": "openspec/changes/add-mcp-resources-prompts-console-cluster/specs/standard-mcp-server-plugin/spec.md", "sha256": "1a43388bd8d6f13c25faba78141292887b81472c446202f1368ab1d09668afd4" }
+  ]
+}

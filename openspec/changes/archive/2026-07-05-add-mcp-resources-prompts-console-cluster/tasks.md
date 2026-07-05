@@ -1,0 +1,68 @@
+## 1. Backend Resource Model
+
+- [x] 1.1 Add MCP resource and prompt entity classes for `mcp-resource` and `mcp-prompt` MagicAPI files.
+- [x] 1.2 Add MagicAPI resource storage classes with validation for resource URI, MIME type, prompt name, arguments, and message content.
+- [x] 1.3 Add dynamic registries that listen to `mcp-resource` and `mcp-prompt` file/group events.
+- [x] 1.4 Add console-backed `McpResourceProvider` and `McpPromptProvider` implementations.
+- [x] 1.5 Register storage, registry, and providers in `MagicAPIMcpConfiguration`.
+- [x] 1.6 Add unit tests for storage validation and provider list/read/get behavior.
+
+## 2. API And Function Tool Scope
+
+- [x] 2.1 Extend `MagicAPIMcpProperties` with tool exposure configuration for functions and APIs.
+- [x] 2.2 Add API scope matcher for enabled flag, include groups, include paths, exclude paths, methods, and explicit opt-in metadata.
+- [x] 2.3 Extend `MagicApiMcpToolProvider` to list and call scoped MagicAPI API resources without exposing disabled APIs.
+- [x] 2.4 Preserve existing function tool support and apply function scope configuration where applicable.
+- [x] 2.5 Add tests for disabled-by-default API exposure, included APIs, excluded APIs, and rejected calls.
+
+## 3. Transport Headers And Sessions
+
+- [x] 3.1 Add configurable MCP header names with defaults for accept, protocol version, session id, and origin.
+- [x] 3.2 Refactor `MagicMcpController` to read configured headers from `HttpServletRequest`.
+- [x] 3.3 Introduce `McpSessionRepository` and move existing in-memory session map behind the repository abstraction.
+- [x] 3.4 Keep local in-memory session behavior for non-Redis or non-cluster deployments.
+- [x] 3.5 Add tests for custom header names and repository-backed session lifecycle.
+
+## 4. Client Notifications And SSE
+
+- [x] 4.1 Replace the empty GET SSE behavior with a local MCP SSE emitter registry keyed by session id.
+- [x] 4.2 Add an MCP notification service that sends JSON-RPC notifications and server-initiated requests through the registered emitters.
+- [x] 4.3 Wire tool, resource, and prompt file events to `tools/list_changed`, `resources/list_changed`, `resources/updated`, and `prompts/list_changed`.
+- [x] 4.4 Ensure `resources/updated` is sent only to sessions subscribed to the changed resource URI.
+- [x] 4.5 Release emitters when sessions are deleted, expired, completed, or fail.
+- [x] 4.6 Add tests for notification payloads, subscription filtering, and emitter cleanup.
+
+## 5. Redis Cluster Integration
+
+- [x] 5.1 Detect Redis-backed cluster mode only when Redis support is present and `magic-api.plugin.cluster.enabled=true`.
+- [x] 5.2 Add Redis-capable MCP session/event integration that is active only in cluster mode.
+- [x] 5.3 Broadcast MCP change events in cluster mode while preventing duplicate self-loop delivery.
+- [x] 5.4 Ensure only nodes with local connected client SSE emitters send notifications to those clients.
+- [x] 5.5 Add tests for cluster-disabled fallback and cluster-event dispatch behavior using fakes/mocks.
+
+## 6. MagicAPI Console Plugin
+
+- [x] 6.1 Add `src/console` for the MCP plugin following the `config` plugin build pattern.
+- [x] 6.2 Register `mcp-resource` and `mcp-prompt` resource entries with icons, i18n, services, and editor toolbars.
+- [x] 6.3 Add Vue editor panels for MCP resource metadata/content and prompt metadata/arguments/messages.
+- [x] 6.4 Configure the MCP starter POM to build and package the console bundle.
+- [x] 6.5 Update `MagicAPIMcpConfiguration.plugin()` to expose the MCP console bundle.
+- [x] 6.6 Build the MCP console bundle and verify generated resources are packaged like existing plugins.
+
+## 7. Documentation
+
+- [x] 7.1 Rewrite `fw-plus-magicapi-plugin-mcp/README.md` with dependency and enablement instructions.
+- [x] 7.2 Document Sa-Token OAuth2 protected resource setup, scopes, and token validation extension points.
+- [x] 7.3 Document `resources` and `prompts` console usage and file semantics.
+- [x] 7.4 Document API/function tool scope configuration and safe defaults.
+- [x] 7.5 Document custom MCP header configuration.
+- [x] 7.6 Document SSE notifications, client refresh behavior, and Redis-only cluster deployment.
+- [x] 7.7 Add curl-style validation examples and troubleshooting guidance.
+
+## 8. Verification
+
+- [x] 8.1 Run MCP-focused unit tests in `fw-plus-boot-autoconfigure`.
+- [x] 8.2 Run the MCP plugin starter Maven build with skipped tests if frontend packaging requires it.
+- [x] 8.3 Run OpenSpec validation for `add-mcp-resources-prompts-console-cluster`.
+- [x] 8.4 Run `git diff --check`.
+- [x] 8.5 Review the implementation against every requirement in the delta spec before archive.
