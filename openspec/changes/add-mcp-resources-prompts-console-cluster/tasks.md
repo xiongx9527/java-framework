@@ -1,11 +1,11 @@
 ## 1. Backend Resource Model
 
-- [ ] 1.1 Add MCP resource and prompt entity classes for `mcp-resource` and `mcp-prompt` MagicAPI files.
-- [ ] 1.2 Add MagicAPI resource storage classes with validation for resource URI, MIME type, prompt name, arguments, and message content.
-- [ ] 1.3 Add dynamic registries that listen to `mcp-resource` and `mcp-prompt` file/group events.
-- [ ] 1.4 Add console-backed `McpResourceProvider` and `McpPromptProvider` implementations.
-- [ ] 1.5 Register storage, registry, and providers in `MagicAPIMcpConfiguration`.
-- [ ] 1.6 Add unit tests for storage validation and provider list/read/get behavior.
+- [x] 1.1 Add MCP resource and prompt entity classes for `mcp-resource` and `mcp-prompt` MagicAPI files.
+- [x] 1.2 Add MagicAPI resource storage classes with validation for resource URI, MIME type, prompt name, arguments, and message content.
+- [x] 1.3 Add dynamic registries that listen to `mcp-resource` and `mcp-prompt` file/group events.
+- [x] 1.4 Add console-backed `McpResourceProvider` and `McpPromptProvider` implementations.
+- [x] 1.5 Register storage, registry, and providers in `MagicAPIMcpConfiguration`.
+- [x] 1.6 Add unit tests for storage validation and provider list/read/get behavior.
 
 ## 2. API And Function Tool Scope
 
