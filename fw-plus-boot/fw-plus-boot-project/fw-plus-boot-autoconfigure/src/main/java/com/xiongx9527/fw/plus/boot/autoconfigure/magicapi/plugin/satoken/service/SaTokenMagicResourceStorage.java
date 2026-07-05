@@ -1,7 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.satoken.service;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.satoken.model.SaTokenInfo;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.sse.model.SseDataSourceInfo;
 import org.ssssssss.magicapi.core.config.JsonCodeConstants;
 import org.ssssssss.magicapi.core.model.JsonCode;
 import org.ssssssss.magicapi.core.service.AbstractPathMagicResourceStorage;
