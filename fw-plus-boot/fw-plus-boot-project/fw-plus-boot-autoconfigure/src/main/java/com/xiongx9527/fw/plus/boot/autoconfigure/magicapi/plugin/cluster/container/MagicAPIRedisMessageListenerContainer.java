@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.cluster.container;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.cluster.config.ClusterConfig;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.cluster.service.MagicNotifyListener;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.listener.ChannelTopic;
@@ -10,6 +11,8 @@ import org.ssssssss.magicapi.core.service.MagicAPIService;
 import org.ssssssss.magicapi.utils.JsonUtils;
 
 import javax.annotation.PostConstruct;
+import java.util.Collections;
+import java.util.List;
 
 @Slf4j
 public class MagicAPIRedisMessageListenerContainer extends RedisMessageListenerContainer {
@@ -29,6 +32,8 @@ public class MagicAPIRedisMessageListenerContainer extends RedisMessageListenerC
      */
     private final MagicAPIService magicAPIService;
 
+    private final List<MagicNotifyListener> notifyListeners;
+
     /**
      * 构造函数，初始化Redis消息监听容器
      *
@@ -39,9 +44,17 @@ public class MagicAPIRedisMessageListenerContainer extends RedisMessageListenerC
     public MagicAPIRedisMessageListenerContainer(ClusterConfig config,
                                                   RedisConnectionFactory connectionFactory,
                                                   MagicAPIService magicAPIService) {
+        this(config, connectionFactory, magicAPIService, Collections.emptyList());
+    }
+
+    public MagicAPIRedisMessageListenerContainer(ClusterConfig config,
+                                                  RedisConnectionFactory connectionFactory,
+                                                  MagicAPIService magicAPIService,
+                                                  List<MagicNotifyListener> notifyListeners) {
         this.config = config;
         this.connectionFactory = connectionFactory;
         this.magicAPIService = magicAPIService;
+        this.notifyListeners = notifyListeners == null ? Collections.emptyList() : notifyListeners;
     }
 
     /**
@@ -53,8 +66,13 @@ public class MagicAPIRedisMessageListenerContainer extends RedisMessageListenerC
         String channel = config.getChannel();
         log.info("开启集群通知监听，Redis channel: {}", channel);
         setConnectionFactory(connectionFactory);
-        addMessageListener((message, pattern) ->
-                magicAPIService.processNotify(JsonUtils.readValue(message.getBody(), MagicNotify.class)),
+        addMessageListener((message, pattern) -> {
+                    MagicNotify notify = JsonUtils.readValue(message.getBody(), MagicNotify.class);
+                    for (MagicNotifyListener listener : notifyListeners) {
+                        listener.onNotify(notify);
+                    }
+                    magicAPIService.processNotify(notify);
+                },
                 ChannelTopic.of(channel));
     }
 }
