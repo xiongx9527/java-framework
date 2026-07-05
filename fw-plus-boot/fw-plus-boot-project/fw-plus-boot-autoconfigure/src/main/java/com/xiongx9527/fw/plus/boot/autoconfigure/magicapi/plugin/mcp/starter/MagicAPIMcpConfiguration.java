@@ -17,6 +17,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.provider.Mc
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.provider.McpToolProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.resources.McpResourceSubscriptionService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.resources.McpResourcesHandler;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.InMemoryMcpSessionRepository;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionRepository;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.tools.McpToolsHandler;
@@ -51,8 +53,14 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 	}
 
 	@Bean
-	public McpSessionService mcpSessionService(MagicAPIMcpProperties properties) {
-		return new McpSessionService(properties.getSessionTimeoutSeconds());
+	@ConditionalOnMissingBean
+	public McpSessionRepository mcpSessionRepository() {
+		return new InMemoryMcpSessionRepository();
+	}
+
+	@Bean
+	public McpSessionService mcpSessionService(McpSessionRepository sessionRepository, MagicAPIMcpProperties properties) {
+		return new McpSessionService(sessionRepository, properties.getSessionTimeoutSeconds());
 	}
 
 	@Bean
