@@ -2,6 +2,7 @@
 change: add-mcp-resources-prompts-console-cluster
 design-doc: docs/superpowers/specs/2026-07-05-mcp-resources-prompts-console-cluster-design.md
 base-ref: 4b1e2ad0b7a9d654cb076328d4f80eb7da5b666b
+archived-with: 2026-07-05-add-mcp-resources-prompts-console-cluster
 ---
 
 # MCP Resources Prompts Console Cluster Implementation Plan
@@ -24,6 +25,7 @@ base-ref: 4b1e2ad0b7a9d654cb076328d4f80eb7da5b666b
 - 保留现有 MCP provider SPI 和默认 header 名称，避免破坏现有客户端。
 - 使用 `apply_patch` 做手工编辑；不要回滚用户未要求回滚的改动。
 
+archived-with: 2026-07-05-add-mcp-resources-prompts-console-cluster
 ---
 
 ## File Structure
