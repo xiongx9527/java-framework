@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.cluster.starte
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.cluster.config.ClusterConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.cluster.container.MagicAPIRedisMessageListenerContainer;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.cluster.service.MagicNotifyListener;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.module.RedisModule;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -13,6 +14,7 @@ import org.ssssssss.magicapi.core.service.MagicNotifyService;
 import org.ssssssss.magicapi.utils.JsonUtils;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * MagicAPI集群Redis配置类
@@ -46,8 +48,9 @@ public class MagicAPIClusterRedisConfiguration {
      */
     @Bean
     public MagicAPIRedisMessageListenerContainer magicAPIRedisMessageListenerContainer(
-            RedisConnectionFactory connectionFactory, MagicAPIService magicAPIService) {
-        return new MagicAPIRedisMessageListenerContainer(config, connectionFactory, magicAPIService);
+            RedisConnectionFactory connectionFactory, MagicAPIService magicAPIService,
+            List<MagicNotifyListener> notifyListeners) {
+        return new MagicAPIRedisMessageListenerContainer(config, connectionFactory, magicAPIService, notifyListeners);
     }
 
     /**

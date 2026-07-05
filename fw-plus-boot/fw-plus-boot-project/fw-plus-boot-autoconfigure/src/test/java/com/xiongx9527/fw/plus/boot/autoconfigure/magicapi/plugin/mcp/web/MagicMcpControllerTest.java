@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Collections;
@@ -104,6 +105,26 @@ class MagicMcpControllerTest {
 		ResponseEntity<?> response = controller.post("application/json", null, null, null, request("ping"), null);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.PAYLOAD_TOO_LARGE);
+	}
+
+	@Test
+	void shouldReadConfiguredHeaderNamesFromRequest() {
+		MagicAPIMcpProperties properties = new MagicAPIMcpProperties();
+		properties.getHeaders().setAccept("X-Mcp-Accept");
+		properties.getHeaders().setProtocolVersion("X-Mcp-Protocol");
+		properties.getHeaders().setSessionId("X-Mcp-Session");
+		properties.getHeaders().setOrigin("X-Mcp-Origin");
+		MagicMcpController controller = controller(properties, pingDispatcher());
+		MockHttpServletRequest servletRequest = new MockHttpServletRequest();
+		servletRequest.addHeader("X-Mcp-Accept", "application/json");
+		servletRequest.addHeader("X-Mcp-Protocol", "2025-06-18");
+		servletRequest.addHeader("X-Mcp-Session", "session-1");
+		servletRequest.addHeader("X-Mcp-Origin", "https://client.example");
+
+		ResponseEntity<?> response = controller.post(request("ping"), servletRequest);
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(response.getBody()).isInstanceOf(McpJsonRpcResponse.class);
 	}
 
 	private MagicMcpController controller(MagicAPIMcpProperties properties, McpJsonRpcDispatcher dispatcher) {

@@ -2,6 +2,8 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth.McpAccessTokenVerifier;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth.McpPrincipal;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.service.McpPromptMagicResourceStorage;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.service.McpResourceMagicResourceStorage;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -97,6 +99,14 @@ class MagicAPIMcpConfigurationTest {
 		contextRunner.run(context -> {
 			MagicControllerRegister register = context.getBean(MagicAPIMcpConfiguration.class).controllerRegister();
 			assertThat(register).isNotNull();
+		});
+	}
+
+	@Test
+	void shouldRegisterMcpResourceStoragesBeforeMagicResourceServiceExists() {
+		contextRunner.run(context -> {
+			assertThat(context).hasSingleBean(McpResourceMagicResourceStorage.class);
+			assertThat(context).hasSingleBean(McpPromptMagicResourceStorage.class);
 		});
 	}
 

@@ -5,15 +5,19 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth.McpPri
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class McpSessionService {
 
-	private final Map<String, McpSession> sessions = new ConcurrentHashMap<>();
+	private final McpSessionRepository repository;
 
 	private final long sessionTimeoutMillis;
 
 	public McpSessionService(long sessionTimeoutSeconds) {
+		this(new InMemoryMcpSessionRepository(), sessionTimeoutSeconds);
+	}
+
+	public McpSessionService(McpSessionRepository repository, long sessionTimeoutSeconds) {
+		this.repository = repository == null ? new InMemoryMcpSessionRepository() : repository;
 		this.sessionTimeoutMillis = sessionTimeoutSeconds <= 0 ? 0 : sessionTimeoutSeconds * 1000L;
 	}
 
@@ -27,19 +31,19 @@ public class McpSessionService {
 		session.setState(McpSessionState.INITIALIZED);
 		session.setCreatedAt(now);
 		session.setLastActivityAt(now);
-		sessions.put(session.getId(), session);
+		repository.save(session);
 		return session;
 	}
 
 	public McpSession requireSession(String sessionId) {
-		McpSession session = sessions.get(sessionId);
+		McpSession session = repository.findById(sessionId);
 		if (session == null || session.getState() == McpSessionState.DELETED || isExpired(session)) {
 			if (session != null) {
-				sessions.remove(sessionId);
+				repository.delete(sessionId);
 			}
 			throw new McpSessionNotFoundException(sessionId);
 		}
-		session.setLastActivityAt(System.currentTimeMillis());
+		repository.touch(sessionId, System.currentTimeMillis());
 		return session;
 	}
 
@@ -49,10 +53,10 @@ public class McpSessionService {
 	}
 
 	public void delete(String sessionId) {
-		McpSession session = sessions.get(sessionId);
+		McpSession session = repository.findById(sessionId);
 		if (session != null) {
 			session.setState(McpSessionState.DELETED);
-			sessions.remove(sessionId);
+			repository.delete(sessionId);
 		}
 	}
 
