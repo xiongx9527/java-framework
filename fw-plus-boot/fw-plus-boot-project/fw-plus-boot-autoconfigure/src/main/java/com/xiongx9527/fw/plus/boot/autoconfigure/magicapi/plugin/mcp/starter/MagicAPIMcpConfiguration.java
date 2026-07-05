@@ -8,6 +8,9 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.completion.
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpLifecycleHandlers;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.logging.McpLogService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.logging.McpLoggingHandler;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.MagicNotifyMcpChangeEventPublisher;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.McpChangeEventPublisher;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.McpClusterChangeEventListener;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.McpNotificationService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.McpToolMagicChangeListener;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcDispatcher;
@@ -41,7 +44,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
+import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 import org.ssssssss.magicapi.core.model.Plugin;
+import org.ssssssss.magicapi.core.service.MagicNotifyService;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
@@ -176,8 +181,25 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 
 	@Bean
 	public McpNotificationService mcpNotificationService(McpSseStreamService sseStreamService,
-														 McpResourceSubscriptionService subscriptionService) {
-		return new McpNotificationService(sseStreamService, subscriptionService);
+														 McpResourceSubscriptionService subscriptionService,
+														 ObjectProvider<McpChangeEventPublisher> changeEventPublisher) {
+		return new McpNotificationService(sseStreamService, subscriptionService, changeEventPublisher.getIfAvailable());
+	}
+
+	@Bean
+	@ConditionalOnProperty(prefix = "magic-api.plugin.cluster", name = "enabled", havingValue = "true")
+	@ConditionalOnBean(MagicNotifyService.class)
+	@ConditionalOnMissingBean
+	public McpChangeEventPublisher mcpChangeEventPublisher(MagicNotifyService magicNotifyService,
+														   MagicAPIProperties magicAPIProperties) {
+		return new MagicNotifyMcpChangeEventPublisher(magicNotifyService, magicAPIProperties.getInstanceId());
+	}
+
+	@Bean
+	@ConditionalOnProperty(prefix = "magic-api.plugin.cluster", name = "enabled", havingValue = "true")
+	@ConditionalOnBean(McpChangeEventPublisher.class)
+	public McpClusterChangeEventListener mcpClusterChangeEventListener(McpNotificationService notificationService) {
+		return new McpClusterChangeEventListener(notificationService);
 	}
 
 	@Bean

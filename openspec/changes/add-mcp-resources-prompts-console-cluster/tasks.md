@@ -34,11 +34,11 @@
 
 ## 5. Redis Cluster Integration
 
-- [ ] 5.1 Detect Redis-backed cluster mode only when Redis support is present and `magic-api.plugin.cluster.enabled=true`.
-- [ ] 5.2 Add Redis-capable MCP session/event integration that is active only in cluster mode.
-- [ ] 5.3 Broadcast MCP change events in cluster mode while preventing duplicate self-loop delivery.
-- [ ] 5.4 Ensure only nodes with local connected client SSE emitters send notifications to those clients.
-- [ ] 5.5 Add tests for cluster-disabled fallback and cluster-event dispatch behavior using fakes/mocks.
+- [x] 5.1 Detect Redis-backed cluster mode only when Redis support is present and `magic-api.plugin.cluster.enabled=true`.
+- [x] 5.2 Add Redis-capable MCP session/event integration that is active only in cluster mode.
+- [x] 5.3 Broadcast MCP change events in cluster mode while preventing duplicate self-loop delivery.
+- [x] 5.4 Ensure only nodes with local connected client SSE emitters send notifications to those clients.
+- [x] 5.5 Add tests for cluster-disabled fallback and cluster-event dispatch behavior using fakes/mocks.
 
 ## 6. MagicAPI Console Plugin
 
