@@ -14,6 +14,10 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.BinaryMessage;
+import org.springframework.web.socket.PingMessage;
+import org.springframework.web.socket.PongMessage;
+import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -66,12 +70,11 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
                             try {
                                 List<WebSocketSession> sessions = notification.getValue();
                                 if (sessions != null) {
-				for (WebSocketSession session : sessions) {
-					try {
-						log.warn("Session is still open: {}", session.getId());
-						sessionSendLockMap.remove(session.getId());
-						delayedClose(session,"SERVICE OVERLOAD", CloseStatus.SERVICE_OVERLOAD, getDelayMillis());
-					} catch (Exception e) {
+					for (WebSocketSession session : sessions) {
+						try {
+							log.warn("Session is still open: {}", session.getId());
+							cleanupSessionResources(session, "SERVICE OVERLOAD", CloseStatus.SERVICE_OVERLOAD, true);
+						} catch (Exception e) {
                                             log.error("Error closing session: {}", session.getId(), e);
                                         }
                                     }
@@ -335,17 +338,17 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
 			if (StringUtils.isBlank(token) || StringUtils.isBlank(clientId)) {
 				log.error("Missing required parameters - Token present: {}, Client ID present: {}",
 						StringUtils.isNotBlank(token), StringUtils.isNotBlank(clientId));
-				delayedClose(session, "缺少必要参数", CloseStatus.BAD_DATA, getDelayMillis());
-				return;
-			}
+					closeSession(session, "缺少必要参数", CloseStatus.POLICY_VIOLATION);
+					return;
+				}
 
             // 检查clientId长度
             int maxClientIdLength = getMaxClientIdLength();
             if (clientId.length() > maxClientIdLength) {
                 log.error("Client ID too long - Length: {}, Max: {}", clientId.length(), maxClientIdLength);
-                delayedClose(session, "客户端ID过长", CloseStatus.BAD_DATA, getDelayMillis());
-                return;
-            }
+	                closeSession(session, "客户端ID过长", CloseStatus.POLICY_VIOLATION);
+	                return;
+	            }
             
             // 验证token并提取appId
             String appId;
@@ -353,22 +356,22 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
                 appId = validateAndExtractAppIdFromToken(token);
 				if (StringUtils.isBlank(appId)) {
 					log.error("Invalid token: {}", maskSensitiveValue(token));
-					delayedClose(session, "无效的token", CloseStatus.BAD_DATA, getDelayMillis());
+						closeSession(session, "无效的token", CloseStatus.POLICY_VIOLATION);
+						return;
+					}
+				} catch (Exception e) {
+					log.error("Failed to validate token: {}", maskSensitiveValue(token), e);
+					closeSession(session, "token验证失败", CloseStatus.POLICY_VIOLATION);
 					return;
 				}
-			} catch (Exception e) {
-				log.error("Failed to validate token: {}", maskSensitiveValue(token), e);
-				delayedClose(session, "token验证失败", CloseStatus.BAD_DATA, getDelayMillis());
-				return;
-			}
 
             //判断appid 是否存在
             boolean isAppIdExist = ListUtils.emptyIfNull(magicDataSourceStorage.findAll()).stream().anyMatch(e->e.getKey().equals(appId));
             if(!isAppIdExist){
                 log.error("AppId not exist: {}", appId);
-                delayedClose(session, "AppId不存在", CloseStatus.BAD_DATA, getDelayMillis());
-                return;
-            }
+	                closeSession(session, "AppId不存在", CloseStatus.POLICY_VIOLATION);
+	                return;
+	            }
             
             // 添加会话到管理映射
             addSession(appId,session,clientId);
@@ -409,9 +412,25 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
 
         log.debug("Received message from client - Session ID: {}, Message: {}",
                 session.getId(), message.getPayload());
+		if (message instanceof PingMessage) {
+			sendPongMessage(session, (PingMessage) message);
+			return;
+		}
+		if (message instanceof PongMessage) {
+			updateLastPingTime(session);
+			return;
+		}
+		if (message instanceof BinaryMessage) {
+			session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Unsupported binary message"));
+			return;
+		}
+		if (!(message instanceof TextMessage)) {
+			session.close(CloseStatus.NOT_ACCEPTABLE.withReason("Unsupported websocket message"));
+			return;
+		}
+		String payload = ((TextMessage) message).getPayload();
         try {
             // 获取消息内容
-            String payload = (String) message.getPayload();
             if ("ping".equals(payload)) {
                 handlePingMessage(session, null);
                 return;
@@ -425,27 +444,79 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
                 jsonObject = com.alibaba.fastjson2.JSON.parseObject(payload);
                 // 获取业务类型
                 businessType = jsonObject.getString("type");
+			} else {
+				sendErrorMessage(session, "INVALID_JSON", "Invalid JSON format");
+				return;
             }
             if (StringUtils.isNotBlank(businessType)) {
                 // 根据业务类型处理消息，复用已解析的jsonObject避免重复解析
                 handleBusinessMessage(session, businessType, jsonObject);
             } else {
                 log.debug("Ignoring message without business type from session: {}", session.getId());
+				sendErrorMessage(session, "MISSING_TYPE", "Message type is required");
             }
         } catch (com.alibaba.fastjson2.JSONException e) {
-            log.error("Invalid JSON format in message: {}", message.getPayload(), e);
-            org.ssssssss.magicapi.core.model.JsonBean errorBean = new org.ssssssss.magicapi.core.model.JsonBean();
-            errorBean.setCode(getErrorCode("INVALID_JSON", 400));
-            errorBean.setMessage("Invalid JSON format");
-            sendMessage(session, errorBean);
+            log.error("Invalid JSON format in message: {}", payload, e);
+            sendErrorMessage(session, "INVALID_JSON", "Invalid JSON format");
         } catch (Exception e) {
-            log.error("Error processing message: {}", message.getPayload(), e);
-            org.ssssssss.magicapi.core.model.JsonBean errorBean = new org.ssssssss.magicapi.core.model.JsonBean();
-            errorBean.setCode(getErrorCode("PROCESSING_ERROR", 500));
-            errorBean.setMessage("Error processing message: " + e.getMessage());
-            sendMessage(session, errorBean);
+            log.error("Error processing message: {}", payload, e);
+            sendErrorMessage(session, "PROCESSING_ERROR", "Error processing message: " + e.getMessage());
         }
     }
+
+	private void sendErrorMessage(WebSocketSession session, String code, String message) throws java.io.IOException {
+		JSONObject errorObject = new JSONObject();
+		errorObject.put("type", "error");
+		errorObject.put("code", code);
+		errorObject.put("message", message);
+		sendMessage(session, JSON.toJSONString(errorObject));
+	}
+
+	private void closeSession(WebSocketSession session, String reason, CloseStatus status) {
+		try {
+			if (session.isOpen()) {
+				session.close(status.withReason(reason));
+			}
+		} catch (Exception e) {
+			log.error("Error closing session: {}", session.getId(), e);
+		}
+	}
+
+	private void cleanupSessionResources(WebSocketSession session, String reason, CloseStatus status, boolean closeSession) {
+		SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
+		if (sessionInfo != null && !Boolean.TRUE.equals(session.getAttributes().get("closeScriptExecuted"))) {
+			session.getAttributes().put("closeScriptExecuted", Boolean.TRUE);
+			try {
+				end(sessionInfo.getAppId(), session.getId(), sessionInfo.getClientId());
+			} catch (Exception e) {
+				log.error("Error executing close scripts for session: {}", session.getId(), e);
+			}
+		}
+		sessionSendLockMap.remove(session.getId());
+		session.getAttributes().remove("sessionInfo");
+		if (closeSession) {
+			delayedClose(session, reason, status, getDelayMillis());
+		}
+	}
+
+	private void sendPongMessage(WebSocketSession session, PingMessage message) throws java.io.IOException {
+		updateLastPingTime(session);
+		Object sendLock = sessionSendLockMap.computeIfAbsent(session.getId(), key -> new Object());
+		synchronized (sendLock) {
+			if (!isSessionValid(session)) {
+				return;
+			}
+			session.sendMessage(new PongMessage(message.getPayload()));
+		}
+	}
+
+	private void updateLastPingTime(WebSocketSession session) {
+		SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
+		if (sessionInfo != null) {
+			sessionInfo.setLastPingTime(System.currentTimeMillis());
+			session.getAttributes().put("sessionInfo", sessionInfo);
+		}
+	}
     
     /**
      * 根据业务类型处理消息
@@ -469,15 +540,21 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
                 }
                 String appId = sessionInfo.getAppId();
                 List<WsSubscribeInfo> subscribeInfoList = findEnabledSubscribes(appId, businessType);
-                if (CollectionUtils.isNotEmpty(subscribeInfoList)) {
-                    // 处理基于订阅信息的自定义业务逻辑
-                    log.info("Processing custom business logic for appId: {} with businessType: {}", appId, businessType);
-                    // 这里可以添加基于subscribeInfoList的自定义业务处理
-                    handleSubscribeMessage(session, appId,businessType, jsonObject,subscribeInfoList);
-                }
-                break;
-        }
-    }
+	                if (CollectionUtils.isNotEmpty(subscribeInfoList)) {
+	                    // 处理基于订阅信息的自定义业务逻辑
+	                    log.info("Processing custom business logic for appId: {} with businessType: {}", appId, businessType);
+	                    // 这里可以添加基于subscribeInfoList的自定义业务处理
+	                    handleSubscribeMessage(session, appId,businessType, jsonObject,subscribeInfoList);
+	                } else {
+					try {
+						sendErrorMessage(session, "UNKNOWN_TYPE", "No enabled websocket subscribe script matched message type");
+					} catch (java.io.IOException e) {
+						log.error("Failed to send unknown type error message", e);
+					}
+	                }
+	                break;
+	        }
+	    }
 
     /**
      * 处理ping消息并向客户端发送pong响应
@@ -648,19 +725,7 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
             }
 
 			for (WebSocketSession session : sessionsToRemove) {
-                // 先执行关闭脚本，再移除 sessionInfo，确保 afterConnectionClosed 回调
-                // 或直接调用 cleanSession 的路径都能正确触发关闭脚本
-                SessionInfo si = (SessionInfo) session.getAttributes().get("sessionInfo");
-                if (si != null) {
-                    try {
-                        end(si.getAppId(), session.getId(), si.getClientId());
-                    } catch (Exception e) {
-                        log.error("Error executing close scripts for session: {}", session.getId(), e);
-                    }
-                }
-				delayedClose(session, "Session closed", CloseStatus.NORMAL, getDelayMillis());
-				sessionSendLockMap.remove(session.getId());
-				session.getAttributes().remove("sessionInfo");
+				cleanupSessionResources(session, "Session closed", CloseStatus.NORMAL, true);
             }
             sessionList.removeAll(sessionsToRemove);
 
@@ -810,10 +875,8 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
                     sessionsToRemove.add(session);
                 }
             }
-			for (WebSocketSession session : sessionsToRemove) {
-				session.getAttributes().remove("sessionInfo");
-				sessionSendLockMap.remove(session.getId());
-				delayedClose(session, "Session invalid", CloseStatus.SESSION_NOT_RELIABLE, getDelayMillis());
+		    for (WebSocketSession session : sessionsToRemove) {
+                cleanupSessionResources(session, "Session invalid", CloseStatus.SESSION_NOT_RELIABLE, true);
             }
             sessionList.removeAll(sessionsToRemove);
             if (sessionList.isEmpty()) {
@@ -907,10 +970,8 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
             String clientId = entry.getKey();
             List<WebSocketSession> sessionList = clientIdSessionListMap.getIfPresent(clientId);
             if (sessionList != null) {
-				for (WebSocketSession session : entry.getValue()) {
-					session.getAttributes().remove("sessionInfo");
-					sessionSendLockMap.remove(session.getId());
-					delayedClose(session, "Session invalid", CloseStatus.SESSION_NOT_RELIABLE, getDelayMillis());
+                for (WebSocketSession session : entry.getValue()) {
+                    cleanupSessionResources(session, "Session invalid", CloseStatus.SESSION_NOT_RELIABLE, true);
                 }
                 sessionList.removeAll(entry.getValue());
                 if (sessionList.isEmpty()) {
