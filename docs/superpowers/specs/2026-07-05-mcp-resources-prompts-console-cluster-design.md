@@ -2,6 +2,8 @@
 comet_change: add-mcp-resources-prompts-console-cluster
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-05-add-mcp-resources-prompts-console-cluster
+status: final
 ---
 
 # MCP Resources Prompts Console Cluster Design
