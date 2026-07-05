@@ -9,11 +9,11 @@
 
 ## 2. API And Function Tool Scope
 
-- [ ] 2.1 Extend `MagicAPIMcpProperties` with tool exposure configuration for functions and APIs.
-- [ ] 2.2 Add API scope matcher for enabled flag, include groups, include paths, exclude paths, methods, and explicit opt-in metadata.
-- [ ] 2.3 Extend `MagicApiMcpToolProvider` to list and call scoped MagicAPI API resources without exposing disabled APIs.
-- [ ] 2.4 Preserve existing function tool support and apply function scope configuration where applicable.
-- [ ] 2.5 Add tests for disabled-by-default API exposure, included APIs, excluded APIs, and rejected calls.
+- [x] 2.1 Extend `MagicAPIMcpProperties` with tool exposure configuration for functions and APIs.
+- [x] 2.2 Add API scope matcher for enabled flag, include groups, include paths, exclude paths, methods, and explicit opt-in metadata.
+- [x] 2.3 Extend `MagicApiMcpToolProvider` to list and call scoped MagicAPI API resources without exposing disabled APIs.
+- [x] 2.4 Preserve existing function tool support and apply function scope configuration where applicable.
+- [x] 2.5 Add tests for disabled-by-default API exposure, included APIs, excluded APIs, and rejected calls.
 
 ## 3. Transport Headers And Sessions
 
