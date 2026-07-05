@@ -32,10 +32,10 @@ public class MagicAPIWsHandlerConfiguration implements BaseService {
      */
     @Bean
     @DependsOn(value = {"wsDataSourceInfoMagicResourceStorage", "wsSubscribeInfoMagicResourceStorage"})
-    public BaseDynamicWebSocketHandler redisDynamicWebSocketHandler(WsDataSourceInfoMagicResourceStorage magicDataSourceStorage
-            , WsSubscribeInfoMagicResourceStorage wsSubscribeInfoMagicResourceStorage) {
-        return new RedisDynamicWebSocketHandler(magicDataSourceStorage, wsSubscribeInfoMagicResourceStorage);
-    }
+	public RedisDynamicWebSocketHandler redisDynamicWebSocketHandler(WsDataSourceInfoMagicResourceStorage magicDataSourceStorage
+			, WsSubscribeInfoMagicResourceStorage wsSubscribeInfoMagicResourceStorage) {
+		return new RedisDynamicWebSocketHandler(magicDataSourceStorage, wsSubscribeInfoMagicResourceStorage);
+	}
 
     /**
      * 创建Redis消息监听容器Bean，用于处理WebSocket消息的分布式传输

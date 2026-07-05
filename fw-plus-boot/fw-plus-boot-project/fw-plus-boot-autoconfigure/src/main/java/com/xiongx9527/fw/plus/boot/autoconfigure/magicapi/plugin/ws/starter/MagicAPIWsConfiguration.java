@@ -188,10 +188,17 @@ public class MagicAPIWsConfiguration implements MagicPluginConfiguration , BaseS
             if (handler == null) {
                 log.warn("WebSocket handler bean is not available.");
                 return;
-            }
-            WebSocketHandlerRegistration registration = registry.addHandler(handler, fullPath);
-            registration.setAllowedOrigins(getAllowedOrigins());
-            if (MapUtils.isNotEmpty(this.magicAPIHandshakeInterceptorMap)) {
+			}
+			WebSocketHandlerRegistration registration = registry.addHandler(handler, fullPath);
+			registration.setAllowedOrigins(getAllowedOrigins());
+			String[] subProtocols = getSubProtocols();
+			if (subProtocols.length > 0) {
+				org.springframework.web.socket.server.support.DefaultHandshakeHandler handshakeHandler =
+						new org.springframework.web.socket.server.support.DefaultHandshakeHandler();
+				handshakeHandler.setSupportedProtocols(subProtocols);
+				registration.setHandshakeHandler(handshakeHandler);
+			}
+			if (MapUtils.isNotEmpty(this.magicAPIHandshakeInterceptorMap)) {
                 Collection<MagicAPIHandshakeInterceptor> interceptors = this.magicAPIHandshakeInterceptorMap.values();
                 if (CollectionUtils.isNotEmpty(interceptors)) {
                     registration.addInterceptors(interceptors.toArray(new MagicAPIHandshakeInterceptor[0]));
@@ -251,12 +258,14 @@ public class MagicAPIWsConfiguration implements MagicPluginConfiguration , BaseS
     private String[] getAllowedOrigins() {
         // 从配置中读取受信任的域名列表，支持多个域名用逗号分隔
         String trustedDomain = getTrustedDomain();
-        if (StringUtils.isBlank(trustedDomain) || "*".equals(trustedDomain.trim())) {
-            // 如果未配置受信任域名或配置为通配符，则记录警告日志并返回通配符（仅用于开发环境）
-            // 生产环境强烈建议配置具体的受信任域名
-            log.warn("WebSocket允许所有来源访问，生产环境建议配置具体的受信任域名");
-            return new String[]{"*"};
-        }
+		if (StringUtils.isBlank(trustedDomain)) {
+			log.warn("WebSocket未配置受信任域名，默认不允许跨域访问");
+			return new String[0];
+		}
+		if ("*".equals(trustedDomain.trim())) {
+			log.warn("WebSocket允许所有来源访问，生产环境建议配置具体的受信任域名");
+			return new String[]{"*"};
+		}
         
         // 将逗号分隔的域名列表拆分为数组，并清理空白元素
         String[] domains = trustedDomain.split(",");
@@ -268,11 +277,11 @@ public class MagicAPIWsConfiguration implements MagicPluginConfiguration , BaseS
             }
         }
         
-        // 如果清理后没有有效域名，则返回通配符并记录警告
-        if (cleanedDomains.isEmpty()) {
-            log.warn("WebSocket受信任域名配置存在问题，回退到允许所有来源访问");
-            return new String[]{"*"};
-        }
+		// 如果清理后没有有效域名，则返回通配符并记录警告
+		if (cleanedDomains.isEmpty()) {
+			log.warn("WebSocket受信任域名配置存在问题，默认不允许跨域访问");
+			return new String[0];
+		}
 
         return cleanedDomains.toArray(new String[cleanedDomains.size()]);
     }
