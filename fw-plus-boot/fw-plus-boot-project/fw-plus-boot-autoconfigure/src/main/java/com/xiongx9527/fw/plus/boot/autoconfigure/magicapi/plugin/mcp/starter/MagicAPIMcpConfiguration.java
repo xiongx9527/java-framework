@@ -270,7 +270,7 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 
 	@Override
 	public Plugin plugin() {
-		return new Plugin("mcp", "MagicMcp");
+		return new Plugin("mcp", "MagicMcp", "magic-mcp.1.0.0.iife.js");
 	}
 
 	@Override
