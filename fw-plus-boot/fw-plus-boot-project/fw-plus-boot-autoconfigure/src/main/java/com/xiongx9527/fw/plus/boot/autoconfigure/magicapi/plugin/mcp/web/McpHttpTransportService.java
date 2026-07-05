@@ -24,6 +24,8 @@ public class McpHttpTransportService {
 
 	private final McpAuthService authService;
 
+	private final McpSseStreamService sseStreamService;
+
 	public McpHttpTransportService(MagicAPIMcpProperties properties, McpJsonRpcDispatcher dispatcher,
 								   McpSessionService sessionService) {
 		this(properties, dispatcher, sessionService, null);
@@ -31,10 +33,17 @@ public class McpHttpTransportService {
 
 	public McpHttpTransportService(MagicAPIMcpProperties properties, McpJsonRpcDispatcher dispatcher,
 								   McpSessionService sessionService, McpAuthService authService) {
+		this(properties, dispatcher, sessionService, authService, null);
+	}
+
+	public McpHttpTransportService(MagicAPIMcpProperties properties, McpJsonRpcDispatcher dispatcher,
+								   McpSessionService sessionService, McpAuthService authService,
+								   McpSseStreamService sseStreamService) {
 		this.properties = properties;
 		this.dispatcher = dispatcher;
 		this.sessionService = sessionService;
 		this.authService = authService;
+		this.sseStreamService = sseStreamService;
 	}
 
 	public ResponseEntity<?> post(String accept, String protocolVersion, String sessionId, Map<String, Object> body) {
@@ -87,6 +96,9 @@ public class McpHttpTransportService {
 		}
 		if (sessionId != null) {
 			sessionService.delete(sessionId);
+			if (sseStreamService != null) {
+				sseStreamService.remove(sessionId);
+			}
 		}
 		return ResponseEntity.accepted().build();
 	}

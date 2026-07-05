@@ -25,12 +25,12 @@
 
 ## 4. Client Notifications And SSE
 
-- [ ] 4.1 Replace the empty GET SSE behavior with a local MCP SSE emitter registry keyed by session id.
-- [ ] 4.2 Add an MCP notification service that sends JSON-RPC notifications and server-initiated requests through the registered emitters.
-- [ ] 4.3 Wire tool, resource, and prompt file events to `tools/list_changed`, `resources/list_changed`, `resources/updated`, and `prompts/list_changed`.
-- [ ] 4.4 Ensure `resources/updated` is sent only to sessions subscribed to the changed resource URI.
-- [ ] 4.5 Release emitters when sessions are deleted, expired, completed, or fail.
-- [ ] 4.6 Add tests for notification payloads, subscription filtering, and emitter cleanup.
+- [x] 4.1 Replace the empty GET SSE behavior with a local MCP SSE emitter registry keyed by session id.
+- [x] 4.2 Add an MCP notification service that sends JSON-RPC notifications and server-initiated requests through the registered emitters.
+- [x] 4.3 Wire tool, resource, and prompt file events to `tools/list_changed`, `resources/list_changed`, `resources/updated`, and `prompts/list_changed`.
+- [x] 4.4 Ensure `resources/updated` is sent only to sessions subscribed to the changed resource URI.
+- [x] 4.5 Release emitters when sessions are deleted, expired, completed, or fail.
+- [x] 4.6 Add tests for notification payloads, subscription filtering, and emitter cleanup.
 
 ## 5. Redis Cluster Integration
 
