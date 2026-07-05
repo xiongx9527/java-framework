@@ -78,11 +78,11 @@ OpenSpec tracking:
 - Produces: `MagicAPIMcpProperties.Headers` with defaults for `accept`, `protocolVersion`, `sessionId`, `origin`.
 - Consumes: existing `McpSession`, `McpSessionState`, `MagicAPIMcpProperties`.
 
-- [ ] **Step 1: Add failing tests for custom headers and repository-backed sessions**
+- [x] **Step 1: Add failing tests for custom headers and repository-backed sessions**
 
 Add tests proving custom header names are read from `HttpServletRequest`, and `McpSessionService` no longer depends on a private map directly.
 
-- [ ] **Step 2: Run focused tests and verify failure**
+- [x] **Step 2: Run focused tests and verify failure**
 
 Run:
 
@@ -92,15 +92,15 @@ mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure 
 
 Expected: tests fail because header config/repository abstractions do not exist yet.
 
-- [ ] **Step 3: Implement properties, controller header lookup, and in-memory repository**
+- [x] **Step 3: Implement properties, controller header lookup, and in-memory repository**
 
 Add nested properties and refactor controller methods to pass values read through configured names.
 
-- [ ] **Step 4: Run focused tests and verify pass**
+- [x] **Step 4: Run focused tests and verify pass**
 
 Run the same MCP-focused Maven test command. Expected: session/header tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/mcp/starter/MagicAPIMcpProperties.java \
@@ -129,27 +129,27 @@ git commit -m "feat: make MCP headers and sessions configurable"
 - Produces: provider beans implementing `McpResourceProvider` and `McpPromptProvider`.
 - Consumes: MagicAPI `MagicResourceService`, `PathMagicEntity`, and existing MCP provider DTOs.
 
-- [ ] **Step 1: Write failing storage/provider tests**
+- [x] **Step 1: Write failing storage/provider tests**
 
 Tests must cover valid resource URI, invalid URI rejection, prompt required fields, list/read/get translation, and no datasource folder usage.
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run MCP-focused Maven tests. Expected: new classes missing.
 
-- [ ] **Step 3: Implement entity, storage, registry, and provider classes**
+- [x] **Step 3: Implement entity, storage, registry, and provider classes**
 
 Mirror the `config` plugin's storage/registry pattern, but keep MCP-specific validation and folder names.
 
-- [ ] **Step 4: Register beans in auto-configuration**
+- [x] **Step 4: Register beans in auto-configuration**
 
 Register storage, dynamic registries, and providers with `@ConditionalOnMissingBean` where appropriate.
 
-- [ ] **Step 5: Run tests and verify pass**
+- [x] **Step 5: Run tests and verify pass**
 
 Run MCP-focused Maven tests. Expected: resource/prompt tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/mcp \
@@ -171,27 +171,27 @@ git commit -m "feat: add console-backed MCP resources and prompts"
 - Produces: `McpToolScopeMatcher#matches(MagicEntity entity, String type)`.
 - Consumes: `MagicResourceService.files("api")`, `MagicResourceService.files("function")`.
 
-- [ ] **Step 1: Write failing tests for disabled API exposure and scoped inclusion/exclusion**
+- [x] **Step 1: Write failing tests for disabled API exposure and scoped inclusion/exclusion**
 
 Cover default disabled behavior, path/method/group include, exclude precedence, and rejected `tools/call`.
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run MCP-focused Maven tests. Expected: scope classes/config missing.
 
-- [ ] **Step 3: Implement tool scope properties and matcher**
+- [x] **Step 3: Implement tool scope properties and matcher**
 
 Use simple wildcard/Ant-style matching consistent with available Spring utilities. Keep Java 8-compatible collection code.
 
-- [ ] **Step 4: Extend `MagicApiMcpToolProvider`**
+- [x] **Step 4: Extend `MagicApiMcpToolProvider`**
 
 List and call API-backed tools only when matched. Preserve existing function behavior and existing provider SPI.
 
-- [ ] **Step 5: Run tests and verify pass**
+- [x] **Step 5: Run tests and verify pass**
 
 Run MCP-focused Maven tests. Expected: API tool scope tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/mcp/starter/MagicAPIMcpProperties.java \
@@ -216,27 +216,27 @@ git commit -m "feat: scope MagicAPI APIs exposed as MCP tools"
 - Produces: `McpNotificationService#broadcastListChanged(String capability, Map<String,Object> message)`.
 - Consumes: local session ids, client capabilities, `SseEmitter`.
 
-- [ ] **Step 1: Write failing notification tests**
+- [x] **Step 1: Write failing notification tests**
 
 Tests must prove emitters receive JSON-RPC notifications, resource updates are subscription-filtered, and emitters are removed on completion/error/delete.
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run MCP-focused Maven tests. Expected: notification service missing or empty SSE behavior.
 
-- [ ] **Step 3: Implement SSE emitter registry and notification service**
+- [x] **Step 3: Implement SSE emitter registry and notification service**
 
 Register emitters on GET, send JSON-RPC notification maps, handle cleanup callbacks, and keep local-only behavior by default.
 
-- [ ] **Step 4: Wire local file events to notifications**
+- [x] **Step 4: Wire local file events to notifications**
 
 Tool-related API/function changes send `tools/list_changed`; `mcp-resource` sends list/update notifications; `mcp-prompt` sends prompt list changes.
 
-- [ ] **Step 5: Run tests and verify pass**
+- [x] **Step 5: Run tests and verify pass**
 
 Run MCP-focused Maven tests. Expected: notification and SSE tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/mcp \
@@ -255,27 +255,27 @@ git commit -m "feat: send MCP change notifications over SSE"
 - Produces: cluster-enabled beans only when Redis/MagicAPI cluster conditions are satisfied.
 - Consumes: existing MagicAPI cluster infrastructure and `MagicNotifyService` where appropriate.
 
-- [ ] **Step 1: Write failing tests for cluster boundary**
+- [x] **Step 1: Write failing tests for cluster boundary**
 
 Tests must show cluster behavior is inactive without `magic-api.plugin.cluster.enabled=true`, and active only when Redis cluster dependencies/beans are present.
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run MCP-focused Maven tests. Expected: cluster-specific beans/conditions missing.
 
-- [ ] **Step 3: Implement Redis-backed or Redis-coordinated session/event integration**
+- [x] **Step 3: Implement Redis-backed or Redis-coordinated session/event integration**
 
 Use existing MagicAPI cluster infrastructure where practical. Keep local emitter sending on owning node only.
 
-- [ ] **Step 4: Add duplicate/self-loop protection**
+- [x] **Step 4: Add duplicate/self-loop protection**
 
 Cluster events must include origin id or equivalent information so a node does not duplicate its own local notification.
 
-- [ ] **Step 5: Run tests and verify pass**
+- [x] **Step 5: Run tests and verify pass**
 
 Run MCP-focused Maven tests. Expected: cluster boundary and event dispatch tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/mcp \
@@ -301,27 +301,27 @@ git commit -m "feat: support Redis-backed MCP cluster events"
 - Produces: `magic-mcp.1.0.0.iife.js` or matching package version bundle.
 - Consumes: MagicAPI console plugin contract with `resource` and `toolbars`.
 
-- [ ] **Step 1: Copy structure pattern from config plugin without copying business semantics**
+- [x] **Step 1: Copy structure pattern from config plugin without copying business semantics**
 
 Create MCP-specific console files for `mcp-resource` and `mcp-prompt`.
 
-- [ ] **Step 2: Implement resource services**
+- [x] **Step 2: Implement resource services**
 
 Define icons, language/default script, `requirePath`, and metadata merge behavior for both resource types.
 
-- [ ] **Step 3: Implement Vue editor panels**
+- [x] **Step 3: Implement Vue editor panels**
 
 Resource panel covers URI, name, MIME type, description, template flag, and content. Prompt panel covers name, description, arguments, and messages.
 
-- [ ] **Step 4: Add console build packaging**
+- [x] **Step 4: Add console build packaging**
 
 Mirror the config plugin POM plugin declarations and Vite output naming.
 
-- [ ] **Step 5: Build console bundle**
+- [x] **Step 5: Build console bundle**
 
 Run the existing Maven/npm build path for the MCP plugin. Expected: IIFE bundle generated and packageable.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-mcp \
@@ -338,15 +338,15 @@ git commit -m "feat: add MCP console resources and prompts"
 - Produces: detailed integration guide for developers/operators.
 - Consumes: final property names and resource folder semantics from earlier tasks.
 
-- [ ] **Step 1: Rewrite README sections**
+- [x] **Step 1: Rewrite README sections**
 
 Include overview, dependencies, enablement, endpoint, OAuth/Sa-Token, headers, tools, resources, prompts, SSE notifications, Redis cluster, examples, and troubleshooting.
 
-- [ ] **Step 2: Verify examples match final property names**
+- [x] **Step 2: Verify examples match final property names**
 
 Cross-check YAML examples against `MagicAPIMcpProperties`.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-mcp/README.md
@@ -362,29 +362,29 @@ git commit -m "docs: expand MCP plugin integration guide"
 - Consumes: all implemented tasks.
 - Produces: checked OpenSpec task list and verification evidence.
 
-- [ ] **Step 1: Run MCP-focused tests**
+- [x] **Step 1: Run MCP-focused tests**
 
 ```bash
 mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -DfailIfNoTests=false -Dtest='com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.**.*Test' test
 ```
 
-- [ ] **Step 2: Run relevant starter build**
+- [x] **Step 2: Run relevant starter build**
 
 Use the module build needed for `fw-plus-magicapi-plugin-mcp` and document the exact command/output.
 
-- [ ] **Step 3: Run OpenSpec validation**
+- [x] **Step 3: Run OpenSpec validation**
 
 ```bash
 openspec validate add-mcp-resources-prompts-console-cluster --strict
 ```
 
-- [ ] **Step 4: Run whitespace check**
+- [x] **Step 4: Run whitespace check**
 
 ```bash
 git diff --check
 ```
 
-- [ ] **Step 5: Mark tasks complete and commit verification updates**
+- [x] **Step 5: Mark tasks complete and commit verification updates**
 
 ```bash
 git add openspec/changes/add-mcp-resources-prompts-console-cluster/tasks.md
