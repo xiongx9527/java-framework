@@ -28,6 +28,8 @@ public class MagicAPIMcpProperties {
 
 	private Headers headers = new Headers();
 
+	private Tools tools = new Tools();
+
 	@Data
 	public static class Headers {
 
@@ -62,5 +64,39 @@ public class MagicAPIMcpProperties {
 		private String samplingScope = "mcp:sampling";
 
 		private String elicitationScope = "mcp:elicitation";
+	}
+
+	@Data
+	public static class Tools {
+
+		private Scope functions = new Scope();
+
+		private Api api = new Api();
+	}
+
+	@Data
+	public static class Scope {
+
+		private boolean enabled = true;
+
+		private List<String> includeGroups = new ArrayList<>();
+
+		private List<String> includePaths = new ArrayList<>();
+
+		private List<String> excludePaths = new ArrayList<>();
+	}
+
+	@Data
+	public static class Api extends Scope {
+
+		private List<String> methods = new ArrayList<>();
+
+		private boolean requireOptIn = false;
+
+		private String optInOptionName = "mcpTool";
+
+		public Api() {
+			setEnabled(false);
+		}
 	}
 }

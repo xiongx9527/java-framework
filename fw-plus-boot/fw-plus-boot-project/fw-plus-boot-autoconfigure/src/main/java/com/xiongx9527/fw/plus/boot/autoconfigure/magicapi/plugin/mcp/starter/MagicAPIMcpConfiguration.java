@@ -83,8 +83,9 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 
 	@Bean
 	@ConditionalOnBean(MagicResourceService.class)
-	public MagicApiMcpToolProvider magicApiMcpToolProvider(MagicResourceService magicResourceService) {
-		return new MagicApiMcpToolProvider(magicResourceService);
+	public MagicApiMcpToolProvider magicApiMcpToolProvider(MagicResourceService magicResourceService,
+														   MagicAPIMcpProperties properties) {
+		return new MagicApiMcpToolProvider(magicResourceService, properties);
 	}
 
 	@Bean
