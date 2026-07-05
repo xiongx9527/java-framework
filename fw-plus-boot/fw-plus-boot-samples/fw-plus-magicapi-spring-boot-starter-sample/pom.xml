@@ -72,11 +72,6 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
-            <artifactId>fw-plus-magicapi-plugin-sse</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-plugin-kafka</artifactId>
         </dependency>
 
@@ -172,6 +167,11 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-plugin-satoken</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-mcp</artifactId>
         </dependency>
 
         <dependency>
