@@ -182,8 +182,10 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 	@Bean
 	public McpNotificationService mcpNotificationService(McpSseStreamService sseStreamService,
 														 McpResourceSubscriptionService subscriptionService,
-														 ObjectProvider<McpChangeEventPublisher> changeEventPublisher) {
-		return new McpNotificationService(sseStreamService, subscriptionService, changeEventPublisher.getIfAvailable());
+														 ObjectProvider<McpChangeEventPublisher> changeEventPublisher,
+														 McpSessionRepository sessionRepository) {
+		return new McpNotificationService(sseStreamService, subscriptionService, changeEventPublisher.getIfAvailable(),
+				sessionRepository);
 	}
 
 	@Bean
