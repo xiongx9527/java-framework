@@ -141,26 +141,47 @@ public interface BaseService extends MagicBaseService {
     /**
      * 获取WebSocket受信任的域名
      *
-     * @return 受信任的域名列表，如果配置中未指定则返回默认值"*"（允许所有域名）
+	 * @return 受信任的域名列表，如果配置中未指定则返回空字符串（不允许任意域名）
      */
-    default String getTrustedDomain() {
-        return getConfigValueAsString("websocket.trustedDomain","*");
-    }
+	default String getTrustedDomain() {
+		return getConfigValueAsString("websocket.trustedDomain","");
+	}
 
-    /**
-     * 获取WebSocket子协议数组
+	/**
+	 * 对敏感值做日志脱敏，避免 token、secret 等凭证被完整写入日志。
+	 *
+	 * @param value 敏感值
+	 * @return 脱敏后的值
+	 */
+	default String maskSensitiveValue(String value) {
+		if (StringUtils.isBlank(value)) {
+			return value;
+		}
+		if (value.length() <= 8) {
+			return "***";
+		}
+		return value.substring(0, 4) + "****" + value.substring(value.length() - 4);
+	}
+
+	/**
+	 * 获取WebSocket子协议数组
      *
      * @return 子协议字符串数组，如果未配置则返回空数组
      */
-    default String[] getSubProtocols() {
-        // 从配置中获取子协议配置值，默认为"chat,superchat"
-        String subProtocols = getConfigValueAsString("websocket.subProtocols","chat,superchat");
-        if (StringUtils.isNotBlank(subProtocols)) {
-            // 将逗号分隔的子协议字符串拆分为数组
-            return subProtocols.split(",");
-        }
-        return new String[0];
-    }
+	default String[] getSubProtocols() {
+		String subProtocols = getConfigValueAsString("websocket.subProtocols","");
+		if (StringUtils.isNotBlank(subProtocols)) {
+			java.util.List<String> protocols = new java.util.ArrayList<>();
+			for (String protocol : subProtocols.split(",")) {
+				String trimmedProtocol = protocol.trim();
+				if (StringUtils.isNotBlank(trimmedProtocol)) {
+					protocols.add(trimmedProtocol);
+				}
+			}
+			return protocols.toArray(new String[protocols.size()]);
+		}
+		return new String[0];
+	}
 
     /**
      * 获取Token过期时间（小时）
@@ -171,14 +192,18 @@ public interface BaseService extends MagicBaseService {
         return getConfigValueAsLong("token.expireHours",2L);
     }
 
-    /**
-     * 获取Token密钥
-     *
-     * @return Token密钥，如果配置中未指定则返回默认值"63XYwWBJF5P3GBCZfFLFWXGbSw4KpKSg"
-     */
-    default String getTokenSecret() {
-        return getConfigValueAsString("token.secret","63XYwWBJF5P3GBCZfFLFWXGbSw4KpKSg");
-    }
+	/**
+	 * 获取Token密钥
+	 *
+	 * @return Token密钥
+	 */
+	default String getTokenSecret() {
+		String tokenSecret = getConfigValueAsString("token.secret", "");
+		if (StringUtils.isBlank(tokenSecret)) {
+			throw new IllegalStateException("magic-api.plugin.ws.token.secret must be configured");
+		}
+		return tokenSecret;
+	}
 
     /**
      * 根据配置获取Token密钥和签名算法

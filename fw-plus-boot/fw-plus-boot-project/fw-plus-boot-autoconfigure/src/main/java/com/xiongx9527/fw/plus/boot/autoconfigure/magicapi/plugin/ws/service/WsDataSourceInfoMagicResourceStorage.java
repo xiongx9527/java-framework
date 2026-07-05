@@ -134,11 +134,11 @@ public class WsDataSourceInfoMagicResourceStorage implements MagicResourceStorag
         if (key == null || magicResourceService == null) {
             return;
         }
-        // 获取所有已存在的数据源
-        boolean noneMatchKey = magicResourceService.listFiles(folder() + ":0").stream()
-                .map(it -> (WsDataSourceInfo)it)
-                .filter(it -> !it.getId().equals(currentId))
-                .noneMatch(it -> Objects.equals(it.getKey(), key));
+		// 获取所有已存在的数据源
+		boolean noneMatchKey = magicResourceService.listFiles(folder() + ":0").stream()
+				.map(it -> (WsDataSourceInfo)it)
+				.filter(it -> !Objects.equals(it.getId(), currentId))
+				.noneMatch(it -> Objects.equals(it.getKey(), key));
 
         if (!noneMatchKey) {
             throw new IllegalArgumentException(String.format("数据源唯一标识(key) '%s' 已存在，请使用其他唯一标识", key));
