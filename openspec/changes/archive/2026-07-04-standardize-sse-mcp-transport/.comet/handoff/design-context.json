@@ -1,0 +1,14 @@
+{
+  "change": "standardize-sse-mcp-transport",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "fbe607643ad978bc36d1bd4b9fbfeb8290e125c102b3d79f975b2de41b41f0eb",
+  "files": [
+    { "path": "openspec/changes/standardize-sse-mcp-transport/proposal.md", "sha256": "df4d8e80eeaf7676965f3e9922102f44ad8004f9a9daa9a6b996ca2ebb4aa0c5" },
+    { "path": "openspec/changes/standardize-sse-mcp-transport/design.md", "sha256": "09f4c2d42a09516cd4597eb4fee4f0a0f70e7a31bc5fecaf27f9464f41b66f33" },
+    { "path": "openspec/changes/standardize-sse-mcp-transport/tasks.md", "sha256": "ec8284a7e70c05c84553c46c9a06c2a16b26ee0f13fcff21cb8a8168e115867c" },
+    { "path": "openspec/changes/standardize-sse-mcp-transport/specs/mcp-transport/spec.md", "sha256": "960cab15ee9c2ca6b2259492394bbf92db19420a8a41e222688befb3af64806f" }
+  ]
+}
