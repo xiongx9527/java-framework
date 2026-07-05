@@ -11,6 +11,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.logging.Mcp
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcDispatcher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpMethodHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.prompts.McpPromptsHandler;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.provider.MagicApiMcpPromptProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.provider.MagicApiMcpResourceProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.provider.McpCompletionProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.provider.McpPromptProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.provider.McpResourceProvider;
@@ -20,6 +22,10 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.resources.M
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.InMemoryMcpSessionRepository;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionRepository;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.service.McpPromptMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.service.McpPromptMagicResourceStorage;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.service.McpResourceMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.service.McpResourceMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.tools.McpToolsHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.MagicMcpController;
@@ -79,6 +85,46 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 	@ConditionalOnBean(MagicResourceService.class)
 	public MagicApiMcpToolProvider magicApiMcpToolProvider(MagicResourceService magicResourceService) {
 		return new MagicApiMcpToolProvider(magicResourceService);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public McpResourceMagicResourceStorage mcpResourceMagicResourceStorage() {
+		return new McpResourceMagicResourceStorage();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public McpPromptMagicResourceStorage mcpPromptMagicResourceStorage() {
+		return new McpPromptMagicResourceStorage();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public McpResourceMagicDynamicRegistry mcpResourceMagicDynamicRegistry(
+			McpResourceMagicResourceStorage mcpResourceMagicResourceStorage) {
+		return new McpResourceMagicDynamicRegistry(mcpResourceMagicResourceStorage);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public McpPromptMagicDynamicRegistry mcpPromptMagicDynamicRegistry(
+			McpPromptMagicResourceStorage mcpPromptMagicResourceStorage) {
+		return new McpPromptMagicDynamicRegistry(mcpPromptMagicResourceStorage);
+	}
+
+	@Bean
+	@ConditionalOnBean(MagicResourceService.class)
+	@ConditionalOnMissingBean(MagicApiMcpResourceProvider.class)
+	public MagicApiMcpResourceProvider magicApiMcpResourceProvider(MagicResourceService magicResourceService) {
+		return new MagicApiMcpResourceProvider(magicResourceService);
+	}
+
+	@Bean
+	@ConditionalOnBean(MagicResourceService.class)
+	@ConditionalOnMissingBean(MagicApiMcpPromptProvider.class)
+	public MagicApiMcpPromptProvider magicApiMcpPromptProvider(MagicResourceService magicResourceService) {
+		return new MagicApiMcpPromptProvider(magicResourceService);
 	}
 
 	@Bean
