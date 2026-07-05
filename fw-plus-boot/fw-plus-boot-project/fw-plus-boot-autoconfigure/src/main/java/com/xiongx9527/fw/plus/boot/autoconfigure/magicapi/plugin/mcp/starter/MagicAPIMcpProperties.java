@@ -26,6 +26,20 @@ public class MagicAPIMcpProperties {
 
 	private Auth auth = new Auth();
 
+	private Headers headers = new Headers();
+
+	@Data
+	public static class Headers {
+
+		private String accept = "Accept";
+
+		private String protocolVersion = "MCP-Protocol-Version";
+
+		private String sessionId = "Mcp-Session-Id";
+
+		private String origin = "Origin";
+	}
+
 	@Data
 	public static class Auth {
 

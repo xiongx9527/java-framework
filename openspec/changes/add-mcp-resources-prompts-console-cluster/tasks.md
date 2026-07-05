@@ -17,11 +17,11 @@
 
 ## 3. Transport Headers And Sessions
 
-- [ ] 3.1 Add configurable MCP header names with defaults for accept, protocol version, session id, and origin.
-- [ ] 3.2 Refactor `MagicMcpController` to read configured headers from `HttpServletRequest`.
-- [ ] 3.3 Introduce `McpSessionRepository` and move existing in-memory session map behind the repository abstraction.
-- [ ] 3.4 Keep local in-memory session behavior for non-Redis or non-cluster deployments.
-- [ ] 3.5 Add tests for custom header names and repository-backed session lifecycle.
+- [x] 3.1 Add configurable MCP header names with defaults for accept, protocol version, session id, and origin.
+- [x] 3.2 Refactor `MagicMcpController` to read configured headers from `HttpServletRequest`.
+- [x] 3.3 Introduce `McpSessionRepository` and move existing in-memory session map behind the repository abstraction.
+- [x] 3.4 Keep local in-memory session behavior for non-Redis or non-cluster deployments.
+- [x] 3.5 Add tests for custom header names and repository-backed session lifecycle.
 
 ## 4. Client Notifications And SSE
 
