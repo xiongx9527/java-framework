@@ -3,7 +3,20 @@ export default function (bus, constants, $i, Message, request) {
         getIcon: item => ['PRM', '#d29922'],
         name: $i('mcp.prompt.name'),
         language: 'json',
-        defaultScript: `{\n  "messages": [\n    {\n      "role": "user",\n      "content": "Describe the current context."\n    }\n  ]\n}`,
+        defaultScript: JSON.stringify({
+            arguments: [{
+                name: 'content',
+                description: 'Prompt input content',
+                required: true
+            }],
+            messages: [{
+                role: 'user',
+                content: {
+                    type: 'text',
+                    text: '{{content}}'
+                }
+            }]
+        }, null, 2),
         runnable: false,
         requirePath: true,
         merge: item => Object.assign({

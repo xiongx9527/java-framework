@@ -28,8 +28,8 @@ export default {
                 placeholder: {
                     name: 'Please enter prompt name',
                     description: 'Please enter prompt description',
-                    arguments: 'JSON array, for example [{"name":"topic","required":true}]',
-                    messages: 'JSON array, for example [{"role":"user","content":"..."}]'
+                    arguments: 'JSON argument array, for example [{"name":"content","description":"Content","required":true}]',
+                    messages: 'JSON message array, for example [{"role":"user","content":{"type":"text","text":"{{content}}"}}]'
                 }
             }
         }

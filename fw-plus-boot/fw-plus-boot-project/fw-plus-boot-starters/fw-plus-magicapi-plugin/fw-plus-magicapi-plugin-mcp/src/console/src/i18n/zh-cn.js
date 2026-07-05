@@ -28,8 +28,8 @@ export default {
                 placeholder: {
                     name: '请输入提示词名称',
                     description: '请输入提示词描述',
-                    arguments: 'JSON 数组，例如 [{"name":"topic","required":true}]',
-                    messages: 'JSON 数组，例如 [{"role":"user","content":"..."}]'
+                    arguments: 'JSON 参数数组，例如 [{"name":"content","description":"内容","required":true}]',
+                    messages: 'JSON 消息数组，例如 [{"role":"user","content":{"type":"text","text":"{{content}}"}}]'
                 }
             }
         }

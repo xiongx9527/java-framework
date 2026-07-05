@@ -115,7 +115,7 @@ magic-api:
 - `mcp-resource`
 - `mcp-prompt`
 
-这两个资源类型是代码类资源，不是 datasource。文件内容由控制台维护，后端 storage 会校验 URI、MIME、prompt name、arguments、messages 等字段。
+这两个资源类型是代码类资源，不是 datasource。文件内容由控制台维护，后端 storage 会校验 URI、MIME、prompt name、arguments、messages 等字段。MCP Prompt 的 `arguments` 与 `messages` 在控制台中使用 JSON 组件编辑，建议始终按结构化 JSON 维护。
 
 MCP resource 示例：
 
@@ -139,10 +139,25 @@ MCP prompt 示例：
     {"name": "topic", "required": true, "description": "主题"}
   ],
   "messages": [
-    {"role": "user", "content": "请总结 {{topic}}"}
+    {
+      "role": "user",
+      "content": {
+        "type": "text",
+        "text": "请总结 {{topic}}"
+      }
+    }
   ]
 }
 ```
+
+Prompt 字段说明：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `arguments` | JSON Array | Prompt 参数定义数组，元素包含 `name`、`description`、`required` |
+| `messages` | JSON Array | MCP Prompt 消息数组，元素包含 `role` 和结构化 `content` |
+| `content.type` | String | 内容类型，文本消息使用 `text` |
+| `content.text` | String | 文本内容，支持 `{{argumentName}}` 占位符 |
 
 仍可通过 Spring Bean 扩展 provider：
 
