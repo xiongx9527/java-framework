@@ -31,7 +31,6 @@ const hasFreemarkerPlugin = ref(false)
 const hasConfigPlugin = ref(false)
 const hasSatokenPlugin = ref(false)
 const hasWsPlugin = ref(false)
-const hasSsePlugin = ref(false)
 const hasMqttPlugin = ref(false)
 const hasKafkaPlugin = ref(false)
 const hasPulsarPlugin = ref(false)
@@ -85,11 +84,6 @@ const icons = [{
     title: 'Websocket client',
     displayKey: 'ws',
     onClick: () => openWs()
-}, {
-    icon: 'sse',
-    title: 'Server-Sent Events',
-    displayKey: 'sse',
-    onClick: () => openSse()
 }, {
     icon: 'mqtt',
     title: 'Mqtt client',
@@ -173,9 +167,6 @@ const navs = computed(() => {
         if (it.displayKey === 'ws') {
             return hasWsPlugin.value && props.config.header[it.displayKey] !== false
         }
-        if (it.displayKey === 'sse') {
-            return hasSsePlugin.value && props.config.header[it.displayKey] !== false
-        }
         if (it.displayKey === 'mqtt') {
             return hasMqttPlugin.value && props.config.header[it.displayKey] !== false
         }
@@ -236,7 +227,6 @@ bus.$on(Message.STATUS, msg => {
         hasConfigPlugin.value = checkPlugin('config')
         hasSatokenPlugin.value = checkPlugin('satoken')
         hasWsPlugin.value = checkPlugin('ws-subscribe')
-        hasSsePlugin.value = checkPlugin('sse-subscribe')
         hasMqttPlugin.value = checkPlugin('mqtt-subscribe')
         hasKafkaPlugin.value = checkPlugin('kafka-subscribe')
         hasPulsarPlugin.value = checkPlugin('pulsar-subscribe')
@@ -307,24 +297,6 @@ const openWs = () => {
     link = window.location.pathname.replace(/\/index\.html$/, '');
   }
   const druidUrl = link + '/ws/index.html'
-  window.open(druidUrl, '_blank');
-}
-
-const openSse = () => {
-  /**
-  const currentPath = window.location.pathname;
-  const cleanedPath = currentPath.replace(/\/index\.html$/, '');
-  window.open(cleanedPath + '/sse/index.html', '_blank')
-      **/
-  let link = `${location.protocol}//${location.host}${location.pathname}`.replace('/index.html', '')
-  // 使用系统定义的baseURL
-  const baseURL = import.meta.env.MAGIC_API_BASE_URL || './'
-  if (baseURL.startsWith('http')) {
-    link = baseURL
-  } else if (baseURL.startsWith('./')) {
-    link = window.location.pathname.replace(/\/index\.html$/, '')
-  }
-  const druidUrl = link + '/sse/index.html'
   window.open(druidUrl, '_blank');
 }
 
@@ -485,7 +457,6 @@ onMounted(() => {
     hasConfigPlugin.value = checkPlugin('config')
     hasSatokenPlugin.value = checkPlugin('satoken')
     hasWsPlugin.value = checkPlugin('ws-subscribe')
-    hasSsePlugin.value = checkPlugin('sse-subscribe')
     hasMqttPlugin.value = checkPlugin('mqtt-subscribe')
     hasKafkaPlugin.value = checkPlugin('kafka-subscribe')
     hasPulsarPlugin.value = checkPlugin('pulsar-subscribe')
@@ -505,7 +476,6 @@ onMounted(() => {
             hasFreemarkerPlugin.value = checkPlugin('freemarker')
             hasConfigPlugin.value = checkPlugin('config')
             hasWsPlugin.value = checkPlugin('ws-subscribe')
-            hasSsePlugin.value = checkPlugin('sse-subscribe')
             hasMqttPlugin.value = checkPlugin('mqtt-subscribe')
             hasKafkaPlugin.value = checkPlugin('kafka-subscribe')
             hasPulsarPlugin.value = checkPlugin('pulsar-subscribe')

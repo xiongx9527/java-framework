@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.freemarker.star
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.influx.starter.MagicAPIInfluxConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.starter.MagicAPIKafkaConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.starter.MagicAPIMongoConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.starter.MagicAPIMqttConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.starter.MagicAPIMqttClientConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.starter.MagicAPIPulsarConfiguration;
@@ -19,7 +20,6 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.starter.M
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.starter.MagicAPIRocketMqConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.starter.MagicAPIS3Configuration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.satoken.starter.MagicAPISaTokenConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.sse.starter.MagicAPISseConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.MagicSwaggerConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.task.starter.MagicAPITaskConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.starter.MagicAPIVueConfiguration;
@@ -45,7 +45,6 @@ import org.springframework.context.annotation.Import;
          MagicAPITaskConfiguration.class,
          MagicAPIDtpConfiguration.class,
          MagicAPIWsConfiguration.class,
-         MagicAPISseConfiguration.class,
          MagicAPIClusterConfiguration.class,
          MagicAPIMqttConfiguration.class,
          MagicAPIMqttClientConfiguration.class,
@@ -53,6 +52,7 @@ import org.springframework.context.annotation.Import;
          MagicAPIInfluxConfiguration.class,
          MagicAPIAdminServerConfiguration.class,
          MagicAPISaTokenConfiguration.class,
+         MagicAPIMcpConfiguration.class,
 
 })
 public class MagicApiPluginAutoConfiguration {
