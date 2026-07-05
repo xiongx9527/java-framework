@@ -1,8 +1,11 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.resources.McpResourceSubscriptionService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSession;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionRepository;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.McpSseStreamService;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +18,8 @@ public class McpNotificationService {
 
 	private final McpChangeEventPublisher changeEventPublisher;
 
+	private final McpSessionRepository sessionRepository;
+
 	public McpNotificationService(McpSseStreamService sseStreamService,
 								  McpResourceSubscriptionService subscriptionService) {
 		this(sseStreamService, subscriptionService, null);
@@ -23,9 +28,17 @@ public class McpNotificationService {
 	public McpNotificationService(McpSseStreamService sseStreamService,
 								  McpResourceSubscriptionService subscriptionService,
 								  McpChangeEventPublisher changeEventPublisher) {
+		this(sseStreamService, subscriptionService, changeEventPublisher, null);
+	}
+
+	public McpNotificationService(McpSseStreamService sseStreamService,
+								  McpResourceSubscriptionService subscriptionService,
+								  McpChangeEventPublisher changeEventPublisher,
+								  McpSessionRepository sessionRepository) {
 		this.sseStreamService = sseStreamService;
 		this.subscriptionService = subscriptionService;
 		this.changeEventPublisher = changeEventPublisher;
+		this.sessionRepository = sessionRepository;
 	}
 
 	public boolean send(String sessionId, Map<String, Object> message) {
@@ -59,7 +72,17 @@ public class McpNotificationService {
 	}
 
 	private void broadcastLocal(Map<String, Object> message) {
-		sseStreamService.broadcast(message);
+		String capability = capabilityFor(message);
+		if (sessionRepository == null || capability == null) {
+			sseStreamService.broadcast(message);
+			return;
+		}
+		Collection<McpSession> sessions = sessionRepository.findAll();
+		for (McpSession session : sessions) {
+			if (session != null && session.getClientCapabilities().containsKey(capability)) {
+				sseStreamService.send(session.getId(), message);
+			}
+		}
 	}
 
 	public void resourceUpdated(String uri) {
@@ -112,5 +135,22 @@ public class McpNotificationService {
 		notification.put("jsonrpc", "2.0");
 		notification.put("method", method);
 		return notification;
+	}
+
+	private String capabilityFor(Map<String, Object> message) {
+		if (message == null) {
+			return null;
+		}
+		Object method = message.get("method");
+		if ("notifications/tools/list_changed".equals(method)) {
+			return "tools";
+		}
+		if ("notifications/resources/list_changed".equals(method)) {
+			return "resources";
+		}
+		if ("notifications/prompts/list_changed".equals(method)) {
+			return "prompts";
+		}
+		return null;
 	}
 }

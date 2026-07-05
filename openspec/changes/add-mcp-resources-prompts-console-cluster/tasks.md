@@ -61,8 +61,8 @@
 
 ## 8. Verification
 
-- [ ] 8.1 Run MCP-focused unit tests in `fw-plus-boot-autoconfigure`.
-- [ ] 8.2 Run the MCP plugin starter Maven build with skipped tests if frontend packaging requires it.
-- [ ] 8.3 Run OpenSpec validation for `add-mcp-resources-prompts-console-cluster`.
-- [ ] 8.4 Run `git diff --check`.
-- [ ] 8.5 Review the implementation against every requirement in the delta spec before archive.
+- [x] 8.1 Run MCP-focused unit tests in `fw-plus-boot-autoconfigure`.
+- [x] 8.2 Run the MCP plugin starter Maven build with skipped tests if frontend packaging requires it.
+- [x] 8.3 Run OpenSpec validation for `add-mcp-resources-prompts-console-cluster`.
+- [x] 8.4 Run `git diff --check`.
+- [x] 8.5 Review the implementation against every requirement in the delta spec before archive.

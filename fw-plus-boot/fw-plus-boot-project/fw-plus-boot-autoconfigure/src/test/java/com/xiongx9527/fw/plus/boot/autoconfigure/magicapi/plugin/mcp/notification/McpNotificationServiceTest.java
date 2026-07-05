@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.resources.McpResourceSubscriptionService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.InMemoryMcpSessionRepository;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSession;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpProperties;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.McpSseStreamService;
 import org.junit.jupiter.api.Test;
@@ -9,6 +11,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -70,6 +74,35 @@ class McpNotificationServiceTest {
 
 		assertThat(response.getBody()).isSameAs(emitter);
 		assertThat(sseStreamService.hasEmitter("session-1")).isTrue();
+	}
+
+	@Test
+	void shouldBroadcastListChangedOnlyToSessionsWithMatchingCapability() {
+		RecordingEmitter toolSession = new RecordingEmitter();
+		RecordingEmitter promptSession = new RecordingEmitter();
+		McpSseStreamService sseStreamService = new McpSseStreamService(new MagicAPIMcpProperties(), null,
+				new QueueEmitterFactory(toolSession, promptSession));
+		sseStreamService.open("text/event-stream", "session-1");
+		sseStreamService.open("text/event-stream", "session-2");
+		InMemoryMcpSessionRepository repository = new InMemoryMcpSessionRepository();
+		repository.save(session("session-1", "tools"));
+		repository.save(session("session-2", "prompts"));
+		McpNotificationService notificationService = new McpNotificationService(sseStreamService,
+				new McpResourceSubscriptionService(), null, repository);
+
+		notificationService.broadcast(McpNotificationService.toolsListChanged());
+
+		assertThat(toolSession.events).hasSize(1);
+		assertThat(promptSession.events).isEmpty();
+	}
+
+	private McpSession session(String id, String capability) {
+		McpSession session = new McpSession();
+		session.setId(id);
+		Map<String, Object> capabilities = new HashMap<>();
+		capabilities.put(capability, Collections.emptyMap());
+		session.setClientCapabilities(capabilities);
+		return session;
 	}
 
 	private static class RecordingEmitter extends SseEmitter {
