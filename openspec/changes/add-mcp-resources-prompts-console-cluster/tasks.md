@@ -51,13 +51,13 @@
 
 ## 7. Documentation
 
-- [ ] 7.1 Rewrite `fw-plus-magicapi-plugin-mcp/README.md` with dependency and enablement instructions.
-- [ ] 7.2 Document Sa-Token OAuth2 protected resource setup, scopes, and token validation extension points.
-- [ ] 7.3 Document `resources` and `prompts` console usage and file semantics.
-- [ ] 7.4 Document API/function tool scope configuration and safe defaults.
-- [ ] 7.5 Document custom MCP header configuration.
-- [ ] 7.6 Document SSE notifications, client refresh behavior, and Redis-only cluster deployment.
-- [ ] 7.7 Add curl-style validation examples and troubleshooting guidance.
+- [x] 7.1 Rewrite `fw-plus-magicapi-plugin-mcp/README.md` with dependency and enablement instructions.
+- [x] 7.2 Document Sa-Token OAuth2 protected resource setup, scopes, and token validation extension points.
+- [x] 7.3 Document `resources` and `prompts` console usage and file semantics.
+- [x] 7.4 Document API/function tool scope configuration and safe defaults.
+- [x] 7.5 Document custom MCP header configuration.
+- [x] 7.6 Document SSE notifications, client refresh behavior, and Redis-only cluster deployment.
+- [x] 7.7 Add curl-style validation examples and troubleshooting guidance.
 
 ## 8. Verification
 
