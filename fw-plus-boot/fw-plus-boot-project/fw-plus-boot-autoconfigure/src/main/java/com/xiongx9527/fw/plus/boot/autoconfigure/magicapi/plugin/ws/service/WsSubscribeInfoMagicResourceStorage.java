@@ -9,6 +9,7 @@ import org.ssssssss.magicapi.core.service.AbstractPathMagicResourceStorage;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -66,7 +67,8 @@ public class WsSubscribeInfoMagicResourceStorage extends AbstractPathMagicResour
 		// 检查同一key下业务标识的唯一性
 		if (map.containsKey(entity.getKey())) {
 			Map<String, WsSubscribeInfo> wsDataSourceInfoMap = ListUtils.emptyIfNull(map.get(entity.getKey())).stream().collect(Collectors.toMap(WsSubscribeInfo::getBusinessId, val -> val, (k1, k2) -> k1));
-			if (wsDataSourceInfoMap.containsKey(entity.getBusinessId()) && !wsDataSourceInfoMap.get(entity.getBusinessId()).getId().equals(entity.getId())) {
+			if (wsDataSourceInfoMap.containsKey(entity.getBusinessId())
+					&& (entity.getId() == null || !Objects.equals(wsDataSourceInfoMap.get(entity.getBusinessId()).getId(), entity.getId()))) {
 				throw new IllegalArgumentException(String.format("业务标识:%s 已存在", entity.getBusinessId()));
 			}
 		}
