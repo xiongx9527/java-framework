@@ -12,8 +12,22 @@
 	<artifactId>fw-plus-magicapi-plugin-mcp</artifactId>
 
 	<properties>
-		<main.basedir>${basedir}/../../..</main.basedir>
+		<main.basedir>${basedir}/../../../..</main.basedir>
 	</properties>
+
+	<build>
+		<plugins>
+			<!-- 前端 console 自动编译打包 -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+			</plugin>
+		</plugins>
+	</build>
 
 	<dependencies>
 		<dependency>

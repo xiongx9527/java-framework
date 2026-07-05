@@ -42,12 +42,12 @@
 
 ## 6. MagicAPI Console Plugin
 
-- [ ] 6.1 Add `src/console` for the MCP plugin following the `config` plugin build pattern.
-- [ ] 6.2 Register `mcp-resource` and `mcp-prompt` resource entries with icons, i18n, services, and editor toolbars.
-- [ ] 6.3 Add Vue editor panels for MCP resource metadata/content and prompt metadata/arguments/messages.
-- [ ] 6.4 Configure the MCP starter POM to build and package the console bundle.
-- [ ] 6.5 Update `MagicAPIMcpConfiguration.plugin()` to expose the MCP console bundle.
-- [ ] 6.6 Build the MCP console bundle and verify generated resources are packaged like existing plugins.
+- [x] 6.1 Add `src/console` for the MCP plugin following the `config` plugin build pattern.
+- [x] 6.2 Register `mcp-resource` and `mcp-prompt` resource entries with icons, i18n, services, and editor toolbars.
+- [x] 6.3 Add Vue editor panels for MCP resource metadata/content and prompt metadata/arguments/messages.
+- [x] 6.4 Configure the MCP starter POM to build and package the console bundle.
+- [x] 6.5 Update `MagicAPIMcpConfiguration.plugin()` to expose the MCP console bundle.
+- [x] 6.6 Build the MCP console bundle and verify generated resources are packaged like existing plugins.
 
 ## 7. Documentation
 
