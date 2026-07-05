@@ -8,6 +8,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.completion.
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpLifecycleHandlers;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.logging.McpLogService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.logging.McpLoggingHandler;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.McpNotificationService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.McpToolMagicChangeListener;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcDispatcher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpMethodHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.prompts.McpPromptsHandler;
@@ -103,15 +105,17 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public McpResourceMagicDynamicRegistry mcpResourceMagicDynamicRegistry(
-			McpResourceMagicResourceStorage mcpResourceMagicResourceStorage) {
-		return new McpResourceMagicDynamicRegistry(mcpResourceMagicResourceStorage);
+			McpResourceMagicResourceStorage mcpResourceMagicResourceStorage,
+			McpNotificationService notificationService) {
+		return new McpResourceMagicDynamicRegistry(mcpResourceMagicResourceStorage, notificationService);
 	}
 
 	@Bean
 	@ConditionalOnMissingBean
 	public McpPromptMagicDynamicRegistry mcpPromptMagicDynamicRegistry(
-			McpPromptMagicResourceStorage mcpPromptMagicResourceStorage) {
-		return new McpPromptMagicDynamicRegistry(mcpPromptMagicResourceStorage);
+			McpPromptMagicResourceStorage mcpPromptMagicResourceStorage,
+			McpNotificationService notificationService) {
+		return new McpPromptMagicDynamicRegistry(mcpPromptMagicResourceStorage, notificationService);
 	}
 
 	@Bean
@@ -171,6 +175,17 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 	}
 
 	@Bean
+	public McpNotificationService mcpNotificationService(McpSseStreamService sseStreamService,
+														 McpResourceSubscriptionService subscriptionService) {
+		return new McpNotificationService(sseStreamService, subscriptionService);
+	}
+
+	@Bean
+	public McpToolMagicChangeListener mcpToolMagicChangeListener(McpNotificationService notificationService) {
+		return new McpToolMagicChangeListener(notificationService);
+	}
+
+	@Bean
 	public McpJsonRpcDispatcher mcpJsonRpcDispatcher(McpLifecycleHandlers lifecycleHandlers,
 													 McpToolsHandler toolsHandler,
 													 McpResourcesHandler resourcesHandler,
@@ -213,8 +228,9 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 	public McpHttpTransportService mcpHttpTransportService(MagicAPIMcpProperties properties,
 														   McpJsonRpcDispatcher dispatcher,
 														   McpSessionService sessionService,
-														   SaTokenMcpAuthService authService) {
-		return new McpHttpTransportService(properties, dispatcher, sessionService, authService);
+														   SaTokenMcpAuthService authService,
+														   McpSseStreamService sseStreamService) {
+		return new McpHttpTransportService(properties, dispatcher, sessionService, authService, sseStreamService);
 	}
 
 	@Bean
