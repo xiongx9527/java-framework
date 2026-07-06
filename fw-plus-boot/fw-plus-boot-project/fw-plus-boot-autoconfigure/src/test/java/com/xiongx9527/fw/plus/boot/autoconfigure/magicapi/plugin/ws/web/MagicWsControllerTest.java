@@ -49,15 +49,48 @@ class MagicWsControllerTest {
 	void buildTestContextShouldExposeCompatibleVariables() {
 		WsSubscribeInfo subscribeInfo = subscribeInfo("script-1", "default", "order-refresh", "return null;");
 		MagicWsController controller = controller(null, null, null);
+		Map<String, Object> params = new HashMap<>();
+		params.put("keyword", "订单");
 
-		MagicScriptContext context = controller.buildTestContext(subscribeInfo, null);
+		MagicScriptContext context = controller.buildTestContext(subscribeInfo, params);
 
 		assertThat(context.get("appId")).isEqualTo("default");
 		assertThat(context.get("clientId")).isEqualTo("test-client");
 		assertThat(context.get("sessionId")).isEqualTo("test-session");
 		assertThat(context.get("type")).isEqualTo("order-refresh");
 		assertThat(context.get("businessType")).isEqualTo("order-refresh");
-		assertThat(context.get("params")).isInstanceOf(Map.class);
+		assertThat(context.get("params")).isSameAs(params);
+	}
+
+	@Test
+	void executeShouldPassRequestParamsToSubscribeScript() {
+		WsSubscribeInfo subscribeInfo = subscribeInfo("script-1", "default", "order-refresh", "return params.keyword;");
+		WsSubscribeInfoMagicResourceStorage subscribeStorage = mock(WsSubscribeInfoMagicResourceStorage.class);
+		when(subscribeStorage.findAll()).thenReturn(Collections.singletonList(subscribeInfo));
+		MagicWsController controller = controller(subscribeStorage, null, null);
+		Map<String, Object> body = new HashMap<>();
+		Map<String, Object> params = new HashMap<>();
+		params.put("keyword", "订单");
+		body.put("params", params);
+
+		JsonBean<Object> result = controller.execute("script-1", body, null);
+
+		assertThat(result.getCode()).isEqualTo(1);
+		assertThat(result.getData()).isEqualTo("订单");
+	}
+
+	@Test
+	void executeShouldRejectDisabledSubscribeScript() {
+		WsSubscribeInfo subscribeInfo = subscribeInfo("script-1", "default", "order-refresh", "return 'ok';");
+		subscribeInfo.setEnabled(false);
+		WsSubscribeInfoMagicResourceStorage subscribeStorage = mock(WsSubscribeInfoMagicResourceStorage.class);
+		when(subscribeStorage.findAll()).thenReturn(Collections.singletonList(subscribeInfo));
+		MagicWsController controller = controller(subscribeStorage, null, null);
+
+		JsonBean<Object> result = controller.execute("script-1", null);
+
+		assertThat(result.getCode()).isEqualTo(-1);
+		assertThat(result.getMessage()).contains("script-1");
 	}
 
 	@Test
@@ -81,6 +114,7 @@ class MagicWsControllerTest {
 
 	@Test
 	void datasourceTestShouldReturnOkWhenTokenSecretIsConfigured() {
+		BaseDynamicWebSocketHandler handler = mock(BaseDynamicWebSocketHandler.class);
 		MagicWsController controller = new MagicWsController(new MagicConfiguration(), null, null, null) {
 			@Override
 			public Map<String, Object> getConfig() {
@@ -90,10 +124,19 @@ class MagicWsControllerTest {
 			}
 		};
 
+		controller = controller(null, null, handler);
 		JsonBean<Object> result = controller.test(dataSourceInfo());
 
 		assertThat(result.getCode()).isEqualTo(1);
 		assertThat(result.getData()).isEqualTo("ok");
+	}
+
+	@Test
+	void datasourceTestShouldFailWhenWebSocketHandlerMissing() {
+		JsonBean<Object> result = controller(null, null, null).test(dataSourceInfo());
+
+		assertThat(result.getCode()).isEqualTo(-1);
+		assertThat(result.getMessage()).contains("WebSocket handler");
 	}
 
 	private MagicWsController controller(WsSubscribeInfoMagicResourceStorage subscribeStorage,

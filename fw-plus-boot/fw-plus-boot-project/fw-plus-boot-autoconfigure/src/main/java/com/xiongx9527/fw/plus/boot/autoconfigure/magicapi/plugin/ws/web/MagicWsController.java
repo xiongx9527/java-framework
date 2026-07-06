@@ -5,7 +5,6 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.common.BaseS
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.handler.BaseDynamicWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsSubscribeInfo;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.module.WsModule;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsSubscribeInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
@@ -57,16 +56,21 @@ public class MagicWsController extends MagicController implements MagicException
      * @param request HTTP请求对象
      * @return 执行结果的JsonBean对象
      */
+    public JsonBean<Object> execute(String id, MagicHttpServletRequest request) {
+        return execute(id, null, request);
+    }
+
     @PostMapping("/ws/execute")
     @ResponseBody
-    public JsonBean<Object> execute(String id, MagicHttpServletRequest request) {
+    public JsonBean<Object> execute(String id, @RequestBody(required = false) Map<String, Object> body, MagicHttpServletRequest request) {
         try {
+            id = resolveId(id, body);
             validateRequiredField(id, "id");
             WsSubscribeInfo subscribeInfo = findSubscribeInfo(id);
             if (subscribeInfo == null) {
                 return failure("ws-subscribe脚本不存在: " + id);
             }
-            MagicScriptContext context = buildTestContext(subscribeInfo, null);
+            MagicScriptContext context = buildTestContext(subscribeInfo, extractParams(body));
             Object result = ScriptManager.executeScript(subscribeInfo.getScript(), context);
             return new JsonBean<>(result);
         } catch (Exception e) {
@@ -87,9 +91,10 @@ public class MagicWsController extends MagicController implements MagicException
             validateDataSourceInfo(properties);
             getSecretKeyAndSignatureAlgorithm();
             BaseDynamicWebSocketHandler handler = getBaseDynamicWebSocketHandler();
-            if (handler != null) {
-                new WsModule(handler, properties.getKey()).generateToken(properties.getSecret());
+            if (handler == null) {
+                return failure("WebSocket handler不可用");
             }
+            createTestToken(properties.getKey());
             return new JsonBean<>("ok");
         } catch (Exception e) {
             log.error("Failed to test websocket datasource", e);
@@ -115,9 +120,21 @@ public class MagicWsController extends MagicController implements MagicException
             return null;
         }
         return ListUtils.emptyIfNull(storage.findAll()).stream()
-                .filter(item -> Objects.equals(item.getId(), id))
+                .filter(item -> item.isEnabled() && Objects.equals(item.getId(), id))
                 .findFirst()
                 .orElse(null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> extractParams(Map<String, Object> body) {
+        if (body == null) {
+            return null;
+        }
+        Object params = body.get("params");
+        if (params instanceof Map) {
+            return (Map<String, Object>) params;
+        }
+        return body;
     }
 
     private void validateDataSourceInfo(WsDataSourceInfo properties) {
@@ -137,6 +154,29 @@ public class MagicWsController extends MagicController implements MagicException
 
     private JsonBean<Object> failure(String message) {
         return new JsonBean<>(-1, StringUtils.defaultIfBlank(message, "操作失败"), null);
+    }
+
+    private String resolveId(String id, Map<String, Object> body) {
+        if (StringUtils.isNotBlank(id)) {
+            return id;
+        }
+        if (body == null) {
+            return null;
+        }
+        Object bodyId = body.get("id");
+        return bodyId == null ? null : bodyId.toString();
+    }
+
+    private String createTestToken(String appId) {
+        SecretKeyAndSignatureAlgorithm secretKeyAndSignatureAlgorithm = getSecretKeyAndSignatureAlgorithm();
+        java.util.Date now = new java.util.Date();
+        java.util.Date expireDate = new java.util.Date(now.getTime() + java.util.concurrent.TimeUnit.HOURS.toMillis(getTokenExpireHours()));
+        return io.jsonwebtoken.Jwts.builder()
+                .setSubject(appId)
+                .setIssuedAt(now)
+                .setExpiration(expireDate)
+                .signWith(secretKeyAndSignatureAlgorithm.getAlgorithm(), secretKeyAndSignatureAlgorithm.getSecretKey())
+                .compact();
     }
 
     private WsSubscribeInfoMagicResourceStorage getWsSubscribeInfoMagicResourceStorage() {
