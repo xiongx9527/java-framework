@@ -22,16 +22,24 @@ public class McpLifecycleHandlers {
 
 	private final String defaultProtocolVersion;
 
+	private final Capabilities capabilities;
+
 	public McpLifecycleHandlers(McpSessionService sessionService) {
 		this(sessionService, null);
 	}
 
 	public McpLifecycleHandlers(McpSessionService sessionService, MagicAPIMcpProperties properties) {
+		this(sessionService, properties, new Capabilities());
+	}
+
+	public McpLifecycleHandlers(McpSessionService sessionService, MagicAPIMcpProperties properties,
+							 Capabilities capabilities) {
 		this.sessionService = sessionService;
 		MagicAPIMcpProperties.Protocol protocol = properties == null ? new MagicAPIMcpProperties.Protocol() : properties.getProtocol();
 		this.defaultProtocolVersion = protocol.getDefaultVersion();
 		this.supportedProtocolVersions = protocol.getSupportedVersions() == null
 				? Collections.<String>emptyList() : new ArrayList<>(protocol.getSupportedVersions());
+		this.capabilities = capabilities == null ? new Capabilities() : capabilities;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -90,10 +98,54 @@ public class McpLifecycleHandlers {
 
 	private Map<String, Object> serverCapabilities() {
 		Map<String, Object> capabilities = new HashMap<>();
-		capabilities.put("tools", Collections.emptyMap());
-		capabilities.put("resources", Collections.emptyMap());
-		capabilities.put("prompts", Collections.emptyMap());
+		Map<String, Object> tools = new HashMap<>();
+		if (this.capabilities.isToolsListChanged()) {
+			tools.put("listChanged", true);
+		}
+		capabilities.put("tools", tools);
+		Map<String, Object> resources = new HashMap<>();
+		if (this.capabilities.isResourcesListChanged()) {
+			resources.put("listChanged", true);
+		}
+		if (this.capabilities.isResourceSubscribe()) {
+			resources.put("subscribe", true);
+		}
+		capabilities.put("resources", resources);
+		Map<String, Object> prompts = new HashMap<>();
+		if (this.capabilities.isPromptsListChanged()) {
+			prompts.put("listChanged", true);
+		}
+		capabilities.put("prompts", prompts);
+		if (this.capabilities.isLogging()) {
+			capabilities.put("logging", Collections.emptyMap());
+		}
+		if (this.capabilities.isCompletion()) {
+			capabilities.put("completion", Collections.emptyMap());
+		}
 		return capabilities;
+	}
+
+	public static class Capabilities {
+
+		private boolean toolsListChanged;
+		private boolean resourcesListChanged;
+		private boolean resourceSubscribe;
+		private boolean promptsListChanged;
+		private boolean logging;
+		private boolean completion;
+
+		public boolean isToolsListChanged() { return toolsListChanged; }
+		public void setToolsListChanged(boolean toolsListChanged) { this.toolsListChanged = toolsListChanged; }
+		public boolean isResourcesListChanged() { return resourcesListChanged; }
+		public void setResourcesListChanged(boolean resourcesListChanged) { this.resourcesListChanged = resourcesListChanged; }
+		public boolean isResourceSubscribe() { return resourceSubscribe; }
+		public void setResourceSubscribe(boolean resourceSubscribe) { this.resourceSubscribe = resourceSubscribe; }
+		public boolean isPromptsListChanged() { return promptsListChanged; }
+		public void setPromptsListChanged(boolean promptsListChanged) { this.promptsListChanged = promptsListChanged; }
+		public boolean isLogging() { return logging; }
+		public void setLogging(boolean logging) { this.logging = logging; }
+		public boolean isCompletion() { return completion; }
+		public void setCompletion(boolean completion) { this.completion = completion; }
 	}
 
 	private Map<String, Object> serverInfo() {

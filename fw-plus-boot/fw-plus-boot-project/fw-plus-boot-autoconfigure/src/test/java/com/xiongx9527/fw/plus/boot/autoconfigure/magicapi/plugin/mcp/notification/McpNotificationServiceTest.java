@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.Mag
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.McpSseStreamService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -31,6 +32,7 @@ class McpNotificationServiceTest {
 
 		assertThat(emitter.events).hasSize(1);
 		assertThat(emitter.events.get(0)).contains("notifications/tools/list_changed");
+		assertThat(emitter.events.get(0)).contains("message");
 	}
 
 	@Test
@@ -112,6 +114,15 @@ class McpNotificationServiceTest {
 		@Override
 		public void send(Object object) throws IOException {
 			events.add(String.valueOf(object));
+		}
+
+		@Override
+		public void send(SseEventBuilder builder) throws IOException {
+			StringBuilder event = new StringBuilder();
+			for (ResponseBodyEmitter.DataWithMediaType data : builder.build()) {
+				event.append(data.getData());
+			}
+			events.add(event.toString());
 		}
 	}
 

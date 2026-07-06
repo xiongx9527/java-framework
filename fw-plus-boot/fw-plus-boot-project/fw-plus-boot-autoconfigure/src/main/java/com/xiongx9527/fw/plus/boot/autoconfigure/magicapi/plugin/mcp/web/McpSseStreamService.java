@@ -89,7 +89,7 @@ public class McpSseStreamService {
 			return false;
 		}
 		try {
-			emitter.send(message);
+			emitter.send(SseEmitter.event().name("message").data(message));
 			return true;
 		} catch (IOException | IllegalStateException e) {
 			remove(sessionId);
