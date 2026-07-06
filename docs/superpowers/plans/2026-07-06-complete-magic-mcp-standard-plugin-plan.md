@@ -70,23 +70,23 @@ Run: `mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconf
 - Produces: capabilities map with `tools.listChanged`, `resources.listChanged`, `resources.subscribe`, `prompts.listChanged`, `logging`, and `completion` when available.
 - Produces: SSE sends `SseEmitter.event().name("message").data(message)`.
 
-- [ ] **Step 1: Write failing capability tests**
+- [x] **Step 1: Write failing capability tests**
 
 Assert initialize result contains precise capabilities for tools/resources/prompts/logging/completion based on constructor inputs.
 
-- [ ] **Step 2: Write failing SSE event test**
+- [x] **Step 2: Write failing SSE event test**
 
 Use existing emitter test seam to assert send receives an event object named `message` or equivalent Spring SSE builder payload.
 
-- [ ] **Step 3: Implement capability builder**
+- [x] **Step 3: Implement capability builder**
 
 Inject availability flags/counts into lifecycle handler from configuration and providers; omit unavailable optional capabilities.
 
-- [ ] **Step 4: Implement SSE message event sending**
+- [x] **Step 4: Implement SSE message event sending**
 
 Change `McpSseStreamService.send` to use named message event while keeping existing removal-on-error behavior.
 
-- [ ] **Step 5: Run task tests**
+- [x] **Step 5: Run task tests**
 
 Run: `mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='McpLifecycleHandlersTest,MagicMcpControllerTest,McpNotificationServiceTest' test -q`
 

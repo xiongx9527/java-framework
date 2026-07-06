@@ -78,8 +78,16 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 
 	@Bean
 	public McpLifecycleHandlers mcpLifecycleHandlers(McpSessionService mcpSessionService,
-										   MagicAPIMcpProperties properties) {
-		return new McpLifecycleHandlers(mcpSessionService, properties);
+										   MagicAPIMcpProperties properties,
+										   List<McpCompletionProvider> completionProviders) {
+		McpLifecycleHandlers.Capabilities capabilities = new McpLifecycleHandlers.Capabilities();
+		capabilities.setToolsListChanged(true);
+		capabilities.setResourcesListChanged(true);
+		capabilities.setResourceSubscribe(true);
+		capabilities.setPromptsListChanged(true);
+		capabilities.setLogging(true);
+		capabilities.setCompletion(completionProviders != null && !completionProviders.isEmpty());
+		return new McpLifecycleHandlers(mcpSessionService, properties, capabilities);
 	}
 
 	@Bean

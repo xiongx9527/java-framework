@@ -59,6 +59,29 @@ class McpLifecycleHandlersTest {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
+	void shouldAdvertisePreciseCapabilities() {
+		McpLifecycleHandlers.Capabilities capabilities = new McpLifecycleHandlers.Capabilities();
+		capabilities.setToolsListChanged(true);
+		capabilities.setResourcesListChanged(true);
+		capabilities.setResourceSubscribe(true);
+		capabilities.setPromptsListChanged(true);
+		capabilities.setLogging(true);
+		capabilities.setCompletion(true);
+		McpLifecycleHandlers handlers = new McpLifecycleHandlers(new McpSessionService(1800), null, capabilities);
+
+		Map<String, Object> result = handlers.initialize(new McpRequestContext(), Collections.emptyMap());
+		Map<String, Object> serverCapabilities = (Map<String, Object>) result.get("capabilities");
+
+		assertThat((Map<String, Object>) serverCapabilities.get("tools")).containsEntry("listChanged", true);
+		assertThat((Map<String, Object>) serverCapabilities.get("resources"))
+				.containsEntry("listChanged", true)
+				.containsEntry("subscribe", true);
+		assertThat((Map<String, Object>) serverCapabilities.get("prompts")).containsEntry("listChanged", true);
+		assertThat(serverCapabilities).containsKeys("logging", "completion");
+	}
+
+	@Test
 	void shouldMarkInitializedSessionReady() {
 		McpSessionService sessionService = new McpSessionService(1800);
 		McpLifecycleHandlers handlers = new McpLifecycleHandlers(sessionService);
