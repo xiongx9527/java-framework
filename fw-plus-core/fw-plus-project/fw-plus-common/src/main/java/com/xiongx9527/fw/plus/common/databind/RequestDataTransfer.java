@@ -10,7 +10,17 @@ public class RequestDataTransfer {
     /**
      * 线程本地变量，用于存储请求数据
      */
-    private static final ThreadLocal<Map<String, Object>> REQUEST_DATA = new ThreadLocal();
+    private static final ThreadLocal<Map<String, Object>> REQUEST_DATA;
+
+	static {
+		ThreadLocal<Map<String, Object>> requestData;
+		try {
+			requestData = (ThreadLocal) Class.forName("com.alibaba.ttl.TransmittableThreadLocal").newInstance();
+		} catch (Throwable e) {
+			requestData = new InheritableThreadLocal();
+		}
+		REQUEST_DATA = requestData;
+	}
     /**
      * 跳过敏感信息的字段名
      */

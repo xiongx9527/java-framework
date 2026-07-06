@@ -1,9 +1,7 @@
 package com.xiongx9527.fw.plus.common.web;
 
-import cn.hutool.core.util.ObjectUtil;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.core.NamedThreadLocal;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpCookie;
@@ -22,8 +20,17 @@ import java.util.*;
 
 public class WebFluxRequestContextHolder {
 
-    private static final ThreadLocal<ServerWebExchange> serverWebExchangeHolder =
-            new NamedThreadLocal<>("ServerWebExchange");
+    private static final ThreadLocal<ServerWebExchange> serverWebExchangeHolder;
+
+	static {
+		ThreadLocal<ServerWebExchange> holder;
+		try {
+			holder = (ThreadLocal) Class.forName("com.alibaba.ttl.TransmittableThreadLocal").newInstance();
+		} catch (Throwable e) {
+			holder = new InheritableThreadLocal();
+		}
+		serverWebExchangeHolder = holder;
+	}
 
     private WebFluxRequestContextHolder(){
 
