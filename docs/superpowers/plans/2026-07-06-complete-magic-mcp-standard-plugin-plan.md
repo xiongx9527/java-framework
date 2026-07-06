@@ -2,6 +2,7 @@
 change: complete-magic-mcp-standard-plugin
 design-doc: docs/superpowers/specs/2026-07-06-complete-magic-mcp-standard-plugin-design.md
 base-ref: 341b7e34334ac65db182499f658e5ff2b83e3d9e
+archived-with: 2026-07-06-complete-magic-mcp-standard-plugin
 ---
 
 # Complete Magic MCP Standard Plugin Implementation Plan
@@ -22,6 +23,7 @@ base-ref: 341b7e34334ac65db182499f658e5ff2b83e3d9e
 - Use Maven command: `mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='*Mcp*Test,MagicMcpControllerTest,MagicMcpControllerAuthTest' test -q`.
 - Keep Magic API tool exposure disabled by default for APIs.
 
+archived-with: 2026-07-06-complete-magic-mcp-standard-plugin
 ---
 
 ### Task 1: Protocol Negotiation And POST Session Semantics

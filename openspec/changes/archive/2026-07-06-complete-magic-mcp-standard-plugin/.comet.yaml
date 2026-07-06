@@ -17,7 +17,7 @@ verification_report: docs/superpowers/reports/2026-07-06-complete-magic-mcp-stan
 branch_status: handled
 created_at: 2026-07-06
 verified_at: 2026-07-06
-archived: false
+archived: true
 handoff_context: openspec/changes/complete-magic-mcp-standard-plugin/.comet/handoff/design-context.json
 handoff_hash: fe12ac8583afb5cfe0acd0334f5ac5b4645f7a8ce19d189e21edf467f5bd1772
 build_command: mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='*Mcp*Test,MagicMcpControllerTest,MagicMcpControllerAuthTest' test -q

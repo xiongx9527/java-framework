@@ -29,20 +29,7 @@ The system SHALL enforce MCP lifecycle ordering and support the base `ping` requ
 - **WHEN** a client initializes without an explicit protocol version
 - **THEN** the server negotiates the configured default version, which SHALL default to `2025-11-25`
 
-### Requirement: MCP capabilities
-The system SHALL advertise capabilities that match the enabled MCP handlers, providers, subscriptions, logging, completion, and client-request features.
-
-#### Scenario: List changed capabilities advertised
-- **WHEN** tools, resources, or prompts support list change notifications
-- **THEN** the corresponding capability includes `listChanged: true`
-
-#### Scenario: Resource subscription capability advertised
-- **WHEN** resource subscription is enabled
-- **THEN** the resources capability includes `subscribe: true`
-
-#### Scenario: Optional capabilities omitted when unavailable
-- **WHEN** completion providers or client-request features are unavailable
-- **THEN** the server does not advertise unsupported capabilities
+## ADDED Requirements
 
 ### Requirement: Client capability requests
 The system SHALL support server-to-client requests for client capabilities with request correlation, response handling, timeout cleanup, cancellation, and unsupported capability errors.
@@ -69,6 +56,22 @@ The system SHALL expose MagicAPI functions and explicitly enabled MagicAPI APIs 
 #### Scenario: Tool schema falls back safely
 - **WHEN** Magic metadata is insufficient to generate a precise schema
 - **THEN** `tools/list` returns a valid object schema without failing list or call operations
+
+## ADDED Requirements
+### Requirement: MCP capabilities
+The system SHALL advertise capabilities that match the enabled MCP handlers, providers, subscriptions, logging, completion, and client-request features.
+
+#### Scenario: List changed capabilities advertised
+- **WHEN** tools, resources, or prompts support list change notifications
+- **THEN** the corresponding capability includes `listChanged: true`
+
+#### Scenario: Resource subscription capability advertised
+- **WHEN** resource subscription is enabled
+- **THEN** the resources capability includes `subscribe: true`
+
+#### Scenario: Optional capabilities omitted when unavailable
+- **WHEN** completion providers or client-request features are unavailable
+- **THEN** the server does not advertise unsupported capabilities
 
 ### Requirement: Console-managed MCP diagnostics
 The system SHALL provide Magic console diagnostics for MCP tools, resources, and prompts without bypassing MCP authorization, session, or provider semantics.

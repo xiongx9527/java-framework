@@ -2,6 +2,8 @@
 comet_change: complete-magic-mcp-standard-plugin
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-06-complete-magic-mcp-standard-plugin
+status: final
 ---
 
 # Complete Magic MCP Standard Plugin Design
