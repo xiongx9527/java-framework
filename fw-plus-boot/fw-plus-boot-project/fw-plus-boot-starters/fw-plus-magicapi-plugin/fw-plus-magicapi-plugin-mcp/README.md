@@ -14,6 +14,11 @@ magic-api:
     mcp:
       enabled: true
       endpoint: /mcp
+      protocol:
+        default-version: 2025-11-25
+        supported-versions:
+          - 2025-11-25
+          - 2025-06-18
 ```
 
 默认端点：
@@ -22,6 +27,9 @@ magic-api:
 - `GET /mcp`：MCP SSE 流
 - `DELETE /mcp`：删除 session，并释放本地 SSE emitter
 - `GET /mcp/.well-known/oauth-protected-resource`：OAuth Protected Resource Metadata
+- `POST /mcp/diagnostics/execute`：控制台诊断执行入口，复用 MCP JSON-RPC、session、scope 与 provider 语义
+
+初始化默认协商 `2025-11-25`。如客户端传入不支持的 `protocolVersion`，服务端返回 JSON-RPC invalid params 错误且不会创建可用 session。成功响应会写回 `MCP-Protocol-Version`，初始化响应还会写回 `Mcp-Session-Id`。
 
 ## 认证与 Scope
 
@@ -71,6 +79,8 @@ magic-api:
 
 如网关统一改写 header，可在这里配置自定义名称。
 
+非 `initialize` 的 POST 请求携带未知、过期或删除的 session header 时，会在传输层直接返回客户端错误，避免进入 tools/resources/prompts 业务分发。
+
 ## Tools 暴露范围
 
 函数工具默认启用，API 工具默认关闭，避免把已有 MagicAPI HTTP API 意外暴露给 MCP client。
@@ -107,6 +117,12 @@ magic-api:
 - `include-paths` 使用 API path 或 function path 做 Ant 风格匹配。
 - `methods` 只对 API 生效。
 - `require-opt-in=true` 时，API 需要在 options/attributes 中显式设置 `mcpTool=true`。
+
+Tool schema：
+
+- 如果 Magic API/function metadata 中包含 `mcpInputSchema`，插件会优先使用该 JSON object 作为 `tools/list` 的 `inputSchema`。
+- `mcpInputSchema` 无效或缺失时，安全回退为 `{ "type": "object" }`，不影响工具列出和调用。
+- `tools/call` 仍返回 MCP content 与 `structuredContent`。
 
 ## Resources 与 Prompts
 
@@ -177,6 +193,26 @@ Prompt 字段说明：
 
 `resources/updated` 仅发送给已订阅对应 URI 的 session。session 删除、超时、完成或发送失败时会释放 emitter。
 
+SSE 输出使用标准 `message` event，data 为 JSON-RPC message，可承载通知和 server-to-client request。
+
+## Server-to-client 请求
+
+插件支持服务端向客户端发起以下 capability request：
+
+- `roots/list`
+- `sampling/createMessage`
+- `elicitation/create`
+
+请求创建前会检查 initialize 阶段记录的 client capabilities。每个请求会记录 id、method、capability、session、创建时间、超时时间和状态。客户端返回 JSON-RPC response/error 后，dispatcher 会按 id 关联并将 pending request 标记为 resolved 或 failed；超时清理会标记为 timed out。
+
+## 控制台诊断
+
+控制台资源类型 `mcp-resource` 与 `mcp-prompt` 已提供运行预览入口：
+
+- `mcp-resource` 预览调用 `resources/read`，用于检查 URI 与内容输出。
+- `mcp-prompt` 预览调用 `prompts/get`，可通过 `previewArguments` 传入参数。
+- 后端诊断入口为 `POST /mcp/diagnostics/execute`，不会绕过 MCP 鉴权、session 或 provider 过滤。
+
 ## Redis-only 集群
 
 跨节点通知只在 Redis-backed MagicAPI cluster 启用时生效：
@@ -204,7 +240,7 @@ magic-api:
 curl -sS http://localhost:8080/mcp \
   -H 'Accept: application/json' \
   -H 'Content-Type: application/json' \
-  -H 'MCP-Protocol-Version: 2025-06-18' \
+  -H 'MCP-Protocol-Version: 2025-11-25' \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}'
 ```
 
