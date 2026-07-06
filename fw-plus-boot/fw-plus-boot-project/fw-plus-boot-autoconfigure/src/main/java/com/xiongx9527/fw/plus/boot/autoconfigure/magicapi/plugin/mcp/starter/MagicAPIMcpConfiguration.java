@@ -220,11 +220,12 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 
 	@Bean
 	public McpJsonRpcDispatcher mcpJsonRpcDispatcher(McpLifecycleHandlers lifecycleHandlers,
-													 McpToolsHandler toolsHandler,
-													 McpResourcesHandler resourcesHandler,
-													 McpPromptsHandler promptsHandler,
-													 McpCompletionHandler completionHandler,
-													 McpLoggingHandler loggingHandler) {
+										 McpToolsHandler toolsHandler,
+										 McpResourcesHandler resourcesHandler,
+										 McpPromptsHandler promptsHandler,
+										 McpCompletionHandler completionHandler,
+										 McpLoggingHandler loggingHandler,
+										 McpClientRequestService clientRequestService) {
 		Map<String, McpMethodHandler> handlers = new HashMap<>();
 		handlers.put("initialize", (context, params) -> lifecycleHandlers.initialize(context, asMap(params)));
 		handlers.put("notifications/initialized", lifecycleHandlers::initialized);
@@ -242,7 +243,7 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 		handlers.put("prompts/get", (context, params) -> promptsHandler.getPrompt(context, asMap(params)));
 		handlers.put("completion/complete", (context, params) -> completionHandler.complete(context, asMap(params)));
 		handlers.put("logging/setLevel", (context, params) -> loggingHandler.setLevel(context, asMap(params)));
-		return new McpJsonRpcDispatcher(handlers, lifecycleHandlers);
+		return new McpJsonRpcDispatcher(handlers, lifecycleHandlers, clientRequestService);
 	}
 
 	@Bean

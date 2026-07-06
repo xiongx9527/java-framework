@@ -1,6 +1,10 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpRequestContext;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.client.McpClientRequestService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.client.McpClientRequestStatus;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSession;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionService;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -97,6 +101,26 @@ class McpJsonRpcDispatcherTest {
 		List<?> responses = (List<?>) response;
 		assertThat(responses).hasSize(1);
 		assertThat(((McpJsonRpcResponse) responses.get(0)).getId()).isEqualTo(4);
+	}
+
+	@Test
+	void shouldRouteJsonRpcResponseToClientRequestService() {
+		McpSessionService sessionService = new McpSessionService(1800);
+		McpSession session = sessionService.createSession(null, Collections.singletonMap("roots", Collections.emptyMap()), "2025-11-25");
+		McpClientRequestService clientRequestService = new McpClientRequestService(sessionService);
+		Map<String, Object> outbound = clientRequestService.rootsList(session.getId());
+		McpJsonRpcDispatcher dispatcher = new McpJsonRpcDispatcher(Collections.emptyMap(), null, clientRequestService);
+		McpRequestContext context = new McpRequestContext();
+		context.setSessionId(session.getId());
+		Map<String, Object> response = new HashMap<>();
+		response.put("jsonrpc", "2.0");
+		response.put("id", outbound.get("id"));
+		response.put("result", Collections.singletonMap("roots", Collections.emptyList()));
+
+		Object dispatchResponse = dispatcher.dispatchMessage(context, response);
+
+		assertThat(dispatchResponse).isNull();
+		assertThat(session.getPendingClientRequests().get(outbound.get("id")).getStatus()).isEqualTo(McpClientRequestStatus.RESOLVED);
 	}
 
 	private Map<String, Object> request(Object id, String method, Object params) {

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.client.McpClientRequestService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpRequestContext;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpLifecycleHandlers;
 
@@ -14,13 +15,21 @@ public class McpJsonRpcDispatcher {
 
 	private final McpLifecycleHandlers lifecycleHandlers;
 
+	private final McpClientRequestService clientRequestService;
+
 	public McpJsonRpcDispatcher(Map<String, McpMethodHandler> handlers) {
 		this(handlers, null);
 	}
 
 	public McpJsonRpcDispatcher(Map<String, McpMethodHandler> handlers, McpLifecycleHandlers lifecycleHandlers) {
+		this(handlers, lifecycleHandlers, null);
+	}
+
+	public McpJsonRpcDispatcher(Map<String, McpMethodHandler> handlers, McpLifecycleHandlers lifecycleHandlers,
+							 McpClientRequestService clientRequestService) {
 		this.handlers = handlers == null ? Collections.emptyMap() : handlers;
 		this.lifecycleHandlers = lifecycleHandlers;
+		this.clientRequestService = clientRequestService;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -54,6 +63,12 @@ public class McpJsonRpcDispatcher {
 		if (!"2.0".equals(message.get("jsonrpc"))) {
 			return notification ? null : McpJsonRpcResponse.error(id,
 					new McpJsonRpcError(McpJsonRpcError.INVALID_REQUEST, "Invalid Request", null));
+		}
+		if (!message.containsKey("method") && id != null && (message.containsKey("result") || message.containsKey("error"))) {
+			if (clientRequestService != null) {
+				clientRequestService.resolve(context == null ? null : context.getSessionId(), id, message.get("result"), message.get("error"));
+			}
+			return null;
 		}
 		Object methodValue = message.get("method");
 		if (!(methodValue instanceof String)) {

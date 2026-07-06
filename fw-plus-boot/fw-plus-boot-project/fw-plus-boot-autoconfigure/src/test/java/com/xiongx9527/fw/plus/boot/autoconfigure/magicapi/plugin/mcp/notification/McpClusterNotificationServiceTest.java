@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.resources.M
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpProperties;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.McpSseStreamService;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
@@ -108,6 +109,15 @@ class McpClusterNotificationServiceTest {
 		@Override
 		public void send(Object object) throws IOException {
 			events.add(String.valueOf(object));
+		}
+
+		@Override
+		public void send(SseEventBuilder builder) throws IOException {
+			StringBuilder event = new StringBuilder();
+			for (ResponseBodyEmitter.DataWithMediaType data : builder.build()) {
+				event.append(data.getData());
+			}
+			events.add(event.toString());
 		}
 	}
 
