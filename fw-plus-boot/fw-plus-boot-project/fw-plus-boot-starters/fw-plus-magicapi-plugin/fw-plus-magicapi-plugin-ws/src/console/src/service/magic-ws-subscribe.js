@@ -32,7 +32,7 @@ export default (bus, constants, $i, Message, request) => {
                 })
         },
         runnable: true,
-        requirePath: true,
+        requirePath: false,
         merge: (item) => item
     }
 }
