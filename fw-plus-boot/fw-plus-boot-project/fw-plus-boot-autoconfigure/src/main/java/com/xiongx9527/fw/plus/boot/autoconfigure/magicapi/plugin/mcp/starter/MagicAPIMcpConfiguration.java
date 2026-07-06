@@ -77,8 +77,9 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 	}
 
 	@Bean
-	public McpLifecycleHandlers mcpLifecycleHandlers(McpSessionService mcpSessionService) {
-		return new McpLifecycleHandlers(mcpSessionService);
+	public McpLifecycleHandlers mcpLifecycleHandlers(McpSessionService mcpSessionService,
+										   MagicAPIMcpProperties properties) {
+		return new McpLifecycleHandlers(mcpSessionService, properties);
 	}
 
 	@Bean

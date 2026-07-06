@@ -6,23 +6,42 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.Mcp
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionNotFoundException;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionState;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpProperties;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class McpLifecycleHandlers {
 
 	private final McpSessionService sessionService;
 
+	private final List<String> supportedProtocolVersions;
+
+	private final String defaultProtocolVersion;
+
 	public McpLifecycleHandlers(McpSessionService sessionService) {
+		this(sessionService, null);
+	}
+
+	public McpLifecycleHandlers(McpSessionService sessionService, MagicAPIMcpProperties properties) {
 		this.sessionService = sessionService;
+		MagicAPIMcpProperties.Protocol protocol = properties == null ? new MagicAPIMcpProperties.Protocol() : properties.getProtocol();
+		this.defaultProtocolVersion = protocol.getDefaultVersion();
+		this.supportedProtocolVersions = protocol.getSupportedVersions() == null
+				? Collections.<String>emptyList() : new ArrayList<>(protocol.getSupportedVersions());
 	}
 
 	@SuppressWarnings("unchecked")
 	public Map<String, Object> initialize(McpRequestContext context, Map<String, Object> params) {
 		Map<String, Object> safeParams = params == null ? Collections.emptyMap() : params;
-		String protocolVersion = stringValue(safeParams.get("protocolVersion"), "2025-06-18");
+		String protocolVersion = stringValue(safeParams.get("protocolVersion"), defaultProtocolVersion);
+		if (!supportedProtocolVersions.contains(protocolVersion)) {
+			throw new McpJsonRpcException(McpJsonRpcError.INVALID_PARAMS,
+					"Unsupported protocol version: " + protocolVersion);
+		}
 		Object capabilities = safeParams.get("capabilities");
 		Map<String, Object> clientCapabilities = capabilities instanceof Map ? (Map<String, Object>) capabilities : Collections.emptyMap();
 		McpSession session = sessionService.createSession(context.getPrincipal(), clientCapabilities, protocolVersion);

@@ -28,7 +28,20 @@ public class MagicAPIMcpProperties {
 
 	private Headers headers = new Headers();
 
+	private Protocol protocol = new Protocol();
+
 	private Tools tools = new Tools();
+
+	@Data
+	public static class Protocol {
+
+		private String defaultVersion = "2025-11-25";
+
+		private List<String> supportedVersions = new ArrayList<String>() {{
+			add("2025-11-25");
+			add("2025-06-18");
+		}};
+	}
 
 	@Data
 	public static class Headers {

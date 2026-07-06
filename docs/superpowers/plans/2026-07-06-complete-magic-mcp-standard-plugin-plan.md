@@ -37,23 +37,23 @@ base-ref: 341b7e34334ac65db182499f658e5ff2b83e3d9e
 - Produces: `MagicAPIMcpProperties.Protocol#getSupportedVersions()`, `getDefaultVersion()`, and lifecycle negotiation using those values.
 - Produces: transport behavior that rejects invalid non-initialize session headers before dispatcher execution.
 
-- [ ] **Step 1: Write failing protocol negotiation tests**
+- [x] **Step 1: Write failing protocol negotiation tests**
 
 Add tests asserting default version `2025-11-25`, supported version accepted, unsupported version returns `-32602`, and no usable session is created for unsupported version.
 
-- [ ] **Step 2: Write failing POST session tests**
+- [x] **Step 2: Write failing POST session tests**
 
 Add controller tests asserting non-initialize POST with unknown/deleted session returns client error before handler side effects.
 
-- [ ] **Step 3: Implement protocol properties and lifecycle validation**
+- [x] **Step 3: Implement protocol properties and lifecycle validation**
 
 Add nested `Protocol` config with supported versions default `2025-11-25, 2025-06-18` and default version `2025-11-25`; validate initialize params before `createSession`.
 
-- [ ] **Step 4: Implement POST session validation and protocol response header**
+- [x] **Step 4: Implement POST session validation and protocol response header**
 
 Before dispatch, if method is not initialize and session header is present or required, call `sessionService.requireSession`; return client errors for invalid states. Add protocol version response header from context/session.
 
-- [ ] **Step 5: Run task tests**
+- [x] **Step 5: Run task tests**
 
 Run: `mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='McpLifecycleHandlersTest,MagicMcpControllerTest' test -q`
 
