@@ -1,5 +1,5 @@
 workflow: hotfix
-phase: verify
+phase: archive
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -12,10 +12,10 @@ auto_transition: true
 base_ref: 3d9167eba4c659e9914d37b1f99ccc5c1caa794d
 design_doc: null
 plan: null
-verify_result: pending
-verification_report: null
-branch_status: pending
+verify_result: pass
+verification_report: docs/superpowers/reports/2026-07-06-fix-magic-mcp-standard-query-gaps-verify.md
+branch_status: handled
 created_at: 2026-07-06
-verified_at: null
+verified_at: 2026-07-06
 archived: false
 build_command: mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='*Mcp*Test,MagicMcpControllerTest,MagicMcpControllerAuthTest' test -q
