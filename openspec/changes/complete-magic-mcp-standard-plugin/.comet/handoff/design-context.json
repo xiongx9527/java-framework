@@ -1,0 +1,14 @@
+{
+  "change": "complete-magic-mcp-standard-plugin",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "fe12ac8583afb5cfe0acd0334f5ac5b4645f7a8ce19d189e21edf467f5bd1772",
+  "files": [
+    { "path": "openspec/changes/complete-magic-mcp-standard-plugin/proposal.md", "sha256": "e4904399788dad2548415cd112b47e4e2439ae505f2122287391cf416ad57ad1" },
+    { "path": "openspec/changes/complete-magic-mcp-standard-plugin/design.md", "sha256": "8f92f1382f04ed2df7119d3b33212692219ab7cad2eccb6dac1ce5bec0152f0e" },
+    { "path": "openspec/changes/complete-magic-mcp-standard-plugin/tasks.md", "sha256": "cdde224b997d65935b0c8c742ff01b3b6f3c37ae6e8f3556e3dd4375dcc270cf" },
+    { "path": "openspec/changes/complete-magic-mcp-standard-plugin/specs/standard-mcp-server-plugin/spec.md", "sha256": "99cae74a4d9594a3b04211d31f19f576fe85bc31d1be1de271763715396abe61" }
+  ]
+}
