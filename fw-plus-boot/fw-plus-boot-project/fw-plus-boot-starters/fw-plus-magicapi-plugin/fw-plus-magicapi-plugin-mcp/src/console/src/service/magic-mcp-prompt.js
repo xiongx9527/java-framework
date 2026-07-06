@@ -17,7 +17,16 @@ export default function (bus, constants, $i, Message, request) {
                 }
             }]
         }, null, 2),
-        runnable: false,
+        runnable: true,
+        execute: item => request.post('/mcp/diagnostics/execute', {
+            jsonrpc: '2.0',
+            id: Date.now(),
+            method: 'prompts/get',
+            params: {
+                name: item.name,
+                arguments: item.previewArguments || {}
+            }
+        }),
         requirePath: true,
         merge: item => Object.assign({
             name: '',
