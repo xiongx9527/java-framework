@@ -24,13 +24,17 @@ The system SHALL manage MCP tools, resources, and prompts without introducing `m
 ### Requirement: Streamable HTTP transport
 The system SHALL expose a configurable MCP Streamable HTTP endpoint that supports POST, GET, and DELETE according to negotiated session behavior, and GET SHALL maintain an MCP-owned server-to-client SSE stream for notifications and server-initiated requests when streaming is enabled.
 
-#### Scenario: Initialize response includes session id header
-- **WHEN** a client sends a valid `initialize` request and sessions are enabled
-- **THEN** the HTTP response SHALL include the configured MCP session header with the created session id
+#### Scenario: Protocol version header is returned
+- **WHEN** a client sends a valid MCP request with a negotiated protocol version
+- **THEN** the HTTP response SHALL include the configured protocol version header with the negotiated value
 
-#### Scenario: SSE stream rejects invalid session
-- **WHEN** a client sends GET to the MCP endpoint with an unknown, expired, deleted, or not-ready `Mcp-Session-Id`
-- **THEN** the system returns a client error and does not open an SSE stream
+#### Scenario: POST rejects invalid session before dispatch
+- **WHEN** a client sends a non-initialize POST with an unknown, expired, deleted, or invalid MCP session header
+- **THEN** the system returns a client error before dispatching feature logic
+
+#### Scenario: SSE emits message events
+- **WHEN** the server sends a JSON-RPC notification or server-to-client request over GET SSE
+- **THEN** the stream emits a standards-compatible `message` event containing the JSON-RPC message payload
 
 ### Requirement: MCP header and HTTP semantics
 The system SHALL validate MCP transport headers and use standard HTTP statuses for authentication, authorization, unsupported methods, expired sessions, and accepted notifications.
@@ -50,9 +54,17 @@ The system SHALL validate MCP transport headers and use standard HTTP statuses f
 ### Requirement: MCP lifecycle and ping
 The system SHALL enforce MCP lifecycle ordering and support the base `ping` request.
 
-#### Scenario: Feature operations before initialization are rejected
-- **WHEN** a client sends feature requests such as `tools/list`, `resources/read`, or `prompts/get` before a successful initialize and initialized flow
-- **THEN** the system returns a JSON-RPC lifecycle error and does not execute feature logic
+#### Scenario: Supported protocol version negotiated
+- **WHEN** a client initializes with a protocol version supported by the configured MCP server
+- **THEN** the server returns that negotiated version, server info, capabilities, and session metadata
+
+#### Scenario: Unsupported protocol version rejected
+- **WHEN** a client initializes with an unsupported protocol version
+- **THEN** the server returns a JSON-RPC invalid params error and does not create a usable MCP session
+
+#### Scenario: Default protocol version is current
+- **WHEN** a client initializes without an explicit protocol version
+- **THEN** the server negotiates the configured default version, which SHALL default to `2025-11-25`
 
 ### Requirement: JSON-RPC dispatcher
 The system SHALL implement strict JSON-RPC 2.0 request, notification, response, batch, error, and unknown-method handling for MCP messages.
@@ -254,4 +266,34 @@ The system SHALL include a detailed MCP plugin README that documents practical i
 #### Scenario: README covers runtime operations
 - **WHEN** a developer opens the MCP plugin README
 - **THEN** it documents client event behavior, Redis cluster requirements, validation examples, and troubleshooting steps
+
+### Requirement: MCP capabilities
+The system SHALL advertise capabilities that match the enabled MCP handlers, providers, subscriptions, logging, completion, and client-request features.
+
+#### Scenario: List changed capabilities advertised
+- **WHEN** tools, resources, or prompts support list change notifications
+- **THEN** the corresponding capability includes `listChanged: true`
+
+#### Scenario: Resource subscription capability advertised
+- **WHEN** resource subscription is enabled
+- **THEN** the resources capability includes `subscribe: true`
+
+#### Scenario: Optional capabilities omitted when unavailable
+- **WHEN** completion providers or client-request features are unavailable
+- **THEN** the server does not advertise unsupported capabilities
+
+### Requirement: Console-managed MCP diagnostics
+The system SHALL provide Magic console diagnostics for MCP tools, resources, and prompts without bypassing MCP authorization, session, or provider semantics.
+
+#### Scenario: Resource read preview
+- **WHEN** a console user previews an MCP resource
+- **THEN** the diagnostic flow executes `resources/read` semantics and displays returned contents or JSON-RPC error details
+
+#### Scenario: Prompt get preview
+- **WHEN** a console user previews an MCP prompt with arguments
+- **THEN** the diagnostic flow executes `prompts/get` semantics and displays rendered messages or JSON-RPC error details
+
+#### Scenario: Tool list and call preview
+- **WHEN** a console user opens MCP tool diagnostics
+- **THEN** the console can list available tools and call a selected tool with JSON arguments through protected MCP diagnostic backend behavior
 
