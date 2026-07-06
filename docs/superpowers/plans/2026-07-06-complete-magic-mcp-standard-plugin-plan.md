@@ -190,14 +190,14 @@ Run backend diagnostic tests. If `package.json` scripts are available, run conso
 **Interfaces:**
 - Produces: README sections for protocol version, capabilities, diagnostics, security, and examples.
 
-- [ ] **Step 1: Update README**
+- [x] **Step 1: Update README**
 
 Document configuration keys, supported protocol versions, diagnostics, client-request lifecycle and security defaults.
 
-- [ ] **Step 2: Run full MCP verification**
+- [x] **Step 2: Run full MCP verification**
 
 Run: `mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='*Mcp*Test,MagicMcpControllerTest,MagicMcpControllerAuthTest' test -q`
 
-- [ ] **Step 3: Mark OpenSpec tasks complete**
+- [x] **Step 3: Mark OpenSpec tasks complete**
 
 Check off `openspec/changes/complete-magic-mcp-standard-plugin/tasks.md` only after corresponding implementation and verification pass.
