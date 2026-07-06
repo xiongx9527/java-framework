@@ -11,6 +11,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.data.redis.connection.RedisClusterConfiguration;
 import org.springframework.data.redis.connection.RedisSentinelConfiguration;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,9 +47,19 @@ public abstract class RedisDataSourceContext implements ApplicationContextAware 
      * 通过数据源名称获取该数据源对应的Redis配置
      */
     protected RedisProperties getRedisProperties() {
+		if (!StringUtils.hasText(dataSourceName)) {
+			throw new IllegalArgumentException("dataSourceName must not be blank.");
+		}
+		if (applicationContext == null) {
+			throw new IllegalStateException("ApplicationContext must be set before resolving redis datasource.");
+		}
         RedisDataSourceProperties dataSourceProperties = applicationContext.getBean(RedisDataSourceProperties.class);
         // 通过数据源名称获取application配置文件中配置的该数据源的redis-properties
-        return dataSourceProperties.getDatasource().get(dataSourceName);
+		RedisProperties redisProperties = dataSourceProperties.getRedisProperties(dataSourceName);
+		if (redisProperties == null) {
+			throw new IllegalArgumentException("redis datasource [" + dataSourceName + "] does not exist.");
+		}
+		return redisProperties;
     }
 
     /**
