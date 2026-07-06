@@ -33,6 +33,32 @@ class McpLifecycleHandlersTest {
 	}
 
 	@Test
+	void shouldDefaultToCurrentProtocolVersion() {
+		McpSessionService sessionService = new McpSessionService(1800);
+		McpLifecycleHandlers handlers = new McpLifecycleHandlers(sessionService);
+		McpRequestContext context = new McpRequestContext(new McpPrincipal("user-1", Collections.emptySet()));
+
+		Map<String, Object> result = handlers.initialize(context, Collections.emptyMap());
+
+		assertThat(result.get("protocolVersion")).isEqualTo("2025-11-25");
+		assertThat(sessionService.requireSession(context.getSessionId()).getProtocolVersion()).isEqualTo("2025-11-25");
+	}
+
+	@Test
+	void shouldRejectUnsupportedProtocolVersionWithoutCreatingSession() {
+		McpSessionService sessionService = new McpSessionService(1800);
+		McpLifecycleHandlers handlers = new McpLifecycleHandlers(sessionService);
+		McpRequestContext context = new McpRequestContext(new McpPrincipal("user-1", Collections.emptySet()));
+		Map<String, Object> params = new HashMap<>();
+		params.put("protocolVersion", "2099-01-01");
+
+		assertThatThrownBy(() -> handlers.initialize(context, params))
+				.isInstanceOf(McpJsonRpcException.class)
+				.hasMessageContaining("Unsupported protocol version");
+		assertThat(context.getSessionId()).isNull();
+	}
+
+	@Test
 	void shouldMarkInitializedSessionReady() {
 		McpSessionService sessionService = new McpSessionService(1800);
 		McpLifecycleHandlers handlers = new McpLifecycleHandlers(sessionService);

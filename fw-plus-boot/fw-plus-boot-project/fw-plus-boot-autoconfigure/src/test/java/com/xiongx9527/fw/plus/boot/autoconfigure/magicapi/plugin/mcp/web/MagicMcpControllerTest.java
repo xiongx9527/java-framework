@@ -105,6 +105,34 @@ class MagicMcpControllerTest {
 	}
 
 	@Test
+	void shouldRejectPostWithUnknownSessionBeforeDispatch() {
+		McpSessionService sessionService = new McpSessionService(1800);
+		MagicAPIMcpProperties properties = new MagicAPIMcpProperties();
+		final boolean[] invoked = new boolean[] {false};
+		MagicMcpController controller = new MagicMcpController(properties,
+				new McpHttpTransportService(properties,
+						new McpJsonRpcDispatcher(Collections.singletonMap("tools/list", (context, params) -> {
+							invoked[0] = true;
+							return Collections.emptyMap();
+						})), sessionService),
+				new McpSseStreamService(properties, null, sessionService));
+
+		ResponseEntity<?> response = controller.post("application/json", null, "missing-session", null, request("tools/list"), null);
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+		assertThat(invoked[0]).isFalse();
+	}
+
+	@Test
+	void shouldReturnProtocolVersionHeader() {
+		MagicMcpController controller = controller(new MagicAPIMcpProperties(), pingDispatcher());
+
+		ResponseEntity<?> response = controller.post("application/json", "2025-11-25", null, null, request("ping"), null);
+
+		assertThat(response.getHeaders().getFirst("MCP-Protocol-Version")).isEqualTo("2025-11-25");
+	}
+
+	@Test
 	void shouldOpenSseStreamWhenEnabled() {
 		McpSessionService sessionService = new McpSessionService(1800);
 		McpSession session = sessionService.createSession(null, Collections.emptyMap(), "2025-06-18");
@@ -185,11 +213,15 @@ class MagicMcpControllerTest {
 		properties.getHeaders().setProtocolVersion("X-Mcp-Protocol");
 		properties.getHeaders().setSessionId("X-Mcp-Session");
 		properties.getHeaders().setOrigin("X-Mcp-Origin");
-		MagicMcpController controller = controller(properties, pingDispatcher());
+		McpSessionService sessionService = new McpSessionService(1800);
+		McpSession session = sessionService.createSession(null, Collections.emptyMap(), "2025-11-25");
+		MagicMcpController controller = new MagicMcpController(properties,
+				new McpHttpTransportService(properties, pingDispatcher(), sessionService),
+				new McpSseStreamService(properties, null, sessionService));
 		MockHttpServletRequest servletRequest = new MockHttpServletRequest();
 		servletRequest.addHeader("X-Mcp-Accept", "application/json");
 		servletRequest.addHeader("X-Mcp-Protocol", "2025-06-18");
-		servletRequest.addHeader("X-Mcp-Session", "session-1");
+		servletRequest.addHeader("X-Mcp-Session", session.getId());
 		servletRequest.addHeader("X-Mcp-Origin", "https://client.example");
 
 		ResponseEntity<?> response = controller.post(request("ping"), servletRequest);

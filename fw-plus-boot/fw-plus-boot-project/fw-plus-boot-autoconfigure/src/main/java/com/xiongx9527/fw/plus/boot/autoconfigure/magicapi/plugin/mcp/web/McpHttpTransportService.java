@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth.McpPri
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpRequestContext;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcDispatcher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcResponse;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionNotFoundException;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpProperties;
 import org.springframework.http.HttpStatus;
@@ -78,6 +79,10 @@ public class McpHttpTransportService {
 		McpRequestContext context = new McpRequestContext();
 		context.setPrincipal(principal);
 		context.setSessionId(sessionId);
+		ResponseEntity<?> sessionFailure = validatePostSession(body, sessionId);
+		if (sessionFailure != null) {
+			return sessionFailure;
+		}
 		Object response = dispatcher.dispatchMessage(context, body);
 		if (response == null) {
 			return ResponseEntity.accepted().build();
@@ -86,7 +91,29 @@ public class McpHttpTransportService {
 		if (context.getSessionId() != null) {
 			builder.header(properties.getHeaders().getSessionId(), context.getSessionId());
 		}
+		builder.header(properties.getHeaders().getProtocolVersion(), protocolVersion(protocolVersion));
 		return builder.body(response);
+	}
+
+	@SuppressWarnings("unchecked")
+	private ResponseEntity<?> validatePostSession(Object body, String sessionId) {
+		if (!(body instanceof Map)) {
+			return null;
+		}
+		Object method = ((Map<String, Object>) body).get("method");
+		if ("initialize".equals(method) || sessionId == null) {
+			return null;
+		}
+		try {
+			sessionService.requireSession(sessionId);
+			return null;
+		} catch (McpSessionNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+		}
+	}
+
+	private String protocolVersion(String requestedProtocolVersion) {
+		return requestedProtocolVersion == null ? properties.getProtocol().getDefaultVersion() : requestedProtocolVersion;
 	}
 
 	public ResponseEntity<?> delete(String sessionId) {
