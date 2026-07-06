@@ -137,19 +137,19 @@ Run: `mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconf
 **Interfaces:**
 - Produces: valid JSON schema map with type object, properties, required when metadata exists; fallback schema remains valid.
 
-- [ ] **Step 1: Write failing schema tests**
+- [x] **Step 1: Write failing schema tests**
 
 Use Magic API/function test doubles with option metadata and assert schema includes known properties and required names.
 
-- [ ] **Step 2: Implement schema extraction helper**
+- [x] **Step 2: Implement schema extraction helper**
 
 Parse conservative metadata from Magic resource options/body; ignore malformed metadata and return fallback object schema.
 
-- [ ] **Step 3: Use helper in listTools**
+- [x] **Step 3: Use helper in listTools**
 
 Replace unconditional `objectSchema()` calls with extracted schema for input and safe fallback for output.
 
-- [ ] **Step 4: Run task tests**
+- [x] **Step 4: Run task tests**
 
 Run: `mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='MagicApiMcpToolProviderTest,McpToolsHandlerTest' test -q`
 

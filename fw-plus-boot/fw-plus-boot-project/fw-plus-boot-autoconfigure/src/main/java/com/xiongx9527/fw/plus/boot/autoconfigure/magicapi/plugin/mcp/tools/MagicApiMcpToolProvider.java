@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.tools;
 
+import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.provider.*;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpProperties;
 import org.apache.commons.lang3.StringUtils;
@@ -62,7 +63,7 @@ public class MagicApiMcpToolProvider implements McpToolProvider {
 			McpToolDefinition definition = new McpToolDefinition();
 			definition.setName(toolName(entity));
 			definition.setDescription(entity.getName());
-			definition.setInputSchema(objectSchema());
+			definition.setInputSchema(inputSchema(entity));
 			definition.setOutputSchema(objectSchema());
 			tools.add(definition);
 		}
@@ -73,7 +74,7 @@ public class MagicApiMcpToolProvider implements McpToolProvider {
 			McpToolDefinition definition = new McpToolDefinition();
 			definition.setName(apiToolName(info));
 			definition.setDescription(StringUtils.defaultIfBlank(info.getDescription(), info.getName()));
-			definition.setInputSchema(objectSchema());
+			definition.setInputSchema(inputSchema(info));
 			definition.setOutputSchema(objectSchema());
 			tools.add(definition);
 		}
@@ -151,6 +152,25 @@ public class MagicApiMcpToolProvider implements McpToolProvider {
 		Map<String, Object> schema = new HashMap<>();
 		schema.put("type", "object");
 		return schema;
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> inputSchema(MagicEntity entity) {
+		Object value = entity.getAttribute("mcpInputSchema");
+		if (value instanceof Map) {
+			return (Map<String, Object>) value;
+		}
+		if (value instanceof String && StringUtils.isNotBlank((String) value)) {
+			try {
+				Map<String, Object> schema = JSON.parseObject((String) value, Map.class);
+				if (schema != null && "object".equals(schema.get("type"))) {
+					return schema;
+				}
+			} catch (Exception ignored) {
+				return objectSchema();
+			}
+		}
+		return objectSchema();
 	}
 
 	private static Object invokeFunction(String name, Map<String, Object> arguments) {

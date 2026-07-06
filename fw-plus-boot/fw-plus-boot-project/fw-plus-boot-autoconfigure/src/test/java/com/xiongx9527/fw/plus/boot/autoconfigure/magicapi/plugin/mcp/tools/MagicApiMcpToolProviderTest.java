@@ -66,6 +66,26 @@ class MagicApiMcpToolProviderTest {
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
+	void shouldUseMagicMetadataInputSchema() {
+		MagicAPIMcpProperties properties = new MagicAPIMcpProperties();
+		properties.getTools().getApi().setEnabled(true);
+		properties.getTools().getApi().getIncludePaths().add("/orders/**");
+		MagicApiMcpToolProvider provider = new MagicApiMcpToolProvider(new FixedResourceService(), properties,
+				(name, arguments) -> Collections.singletonMap("tool", name));
+
+		McpPage<McpToolDefinition> page = provider.listTools(new McpProviderContext(new McpRequestContext()), new McpPageRequest());
+		McpToolDefinition definition = page.getItems().stream()
+				.filter(item -> "GET /orders/list".equals(item.getName()))
+				.findFirst()
+				.orElseThrow(AssertionError::new);
+		Map<String, Object> schema = definition.getInputSchema();
+
+		assertThat((Map<String, Object>) schema.get("properties")).containsKey("status");
+		assertThat((List<String>) schema.get("required")).contains("status");
+	}
+
+	@Test
 	void shouldExcludeApiBeforeIncludeScope() {
 		MagicAPIMcpProperties properties = new MagicAPIMcpProperties();
 		properties.getTools().getApi().setEnabled(true);
@@ -148,6 +168,7 @@ class MagicApiMcpToolProviderTest {
 			info.setMethod("GET");
 			info.setDescription("List orders");
 			info.setAttribute("mcpTool", true);
+			info.setAttribute("mcpInputSchema", "{\"type\":\"object\",\"properties\":{\"status\":{\"type\":\"string\",\"description\":\"Order status\"}},\"required\":[\"status\"]}");
 			return info;
 		}
 
