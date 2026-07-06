@@ -24,25 +24,13 @@ The system SHALL manage MCP tools, resources, and prompts without introducing `m
 ### Requirement: Streamable HTTP transport
 The system SHALL expose a configurable MCP Streamable HTTP endpoint that supports POST, GET, and DELETE according to negotiated session behavior, and GET SHALL maintain an MCP-owned server-to-client SSE stream for notifications and server-initiated requests when streaming is enabled.
 
-#### Scenario: Default endpoint path
-- **WHEN** the MCP plugin starts without an explicit endpoint override
-- **THEN** the system exposes the MCP Streamable HTTP endpoint at `/mcp`
+#### Scenario: Initialize response includes session id header
+- **WHEN** a client sends a valid `initialize` request and sessions are enabled
+- **THEN** the HTTP response SHALL include the configured MCP session header with the created session id
 
-#### Scenario: Configured endpoint path
-- **WHEN** `magic-api.plugin.mcp.endpoint` is configured with a valid path
-- **THEN** the system exposes the MCP Streamable HTTP endpoint at the configured path
-
-#### Scenario: JSON-RPC request over POST
-- **WHEN** a client sends a valid MCP JSON-RPC request to the MCP endpoint with acceptable headers
-- **THEN** the system dispatches the request and returns a valid JSON-RPC response or accepted notification response
-
-#### Scenario: SSE stream over GET
-- **WHEN** a client sends GET to the MCP endpoint with `Accept: text/event-stream`
-- **THEN** the system opens a server-to-client SSE stream associated with the MCP session or returns a standards-compatible method error when streaming is disabled
-
-#### Scenario: Session termination over DELETE
-- **WHEN** a client sends DELETE with a valid `Mcp-Session-Id`
-- **THEN** the system terminates that MCP session and releases associated transport resources
+#### Scenario: SSE stream rejects invalid session
+- **WHEN** a client sends GET to the MCP endpoint with an unknown, expired, deleted, or not-ready `Mcp-Session-Id`
+- **THEN** the system returns a client error and does not open an SSE stream
 
 ### Requirement: MCP header and HTTP semantics
 The system SHALL validate MCP transport headers and use standard HTTP statuses for authentication, authorization, unsupported methods, expired sessions, and accepted notifications.
@@ -62,28 +50,20 @@ The system SHALL validate MCP transport headers and use standard HTTP statuses f
 ### Requirement: MCP lifecycle and ping
 The system SHALL enforce MCP lifecycle ordering and support the base `ping` request.
 
-#### Scenario: Initialize establishes session
-- **WHEN** a client sends a valid `initialize` request
-- **THEN** the system returns protocol version, server info, capabilities, and an MCP session id when sessions are enabled
-
-#### Scenario: Operations before initialization are rejected
-- **WHEN** a client sends feature requests before a successful initialize flow
+#### Scenario: Feature operations before initialization are rejected
+- **WHEN** a client sends feature requests such as `tools/list`, `resources/read`, or `prompts/get` before a successful initialize and initialized flow
 - **THEN** the system returns a JSON-RPC lifecycle error and does not execute feature logic
-
-#### Scenario: Ping returns empty result
-- **WHEN** a client sends `ping`
-- **THEN** the system returns a JSON-RPC response with an empty result object
 
 ### Requirement: JSON-RPC dispatcher
 The system SHALL implement strict JSON-RPC 2.0 request, notification, response, batch, error, and unknown-method handling for MCP messages.
 
-#### Scenario: Unknown method
-- **WHEN** a client sends a request for an unsupported method
-- **THEN** the system returns JSON-RPC error code `-32601`
+#### Scenario: Invalid JSON-RPC version
+- **WHEN** a client sends a JSON-RPC request without `jsonrpc: "2.0"`
+- **THEN** the system returns JSON-RPC error code `-32600`
 
-#### Scenario: Invalid parameters
-- **WHEN** a client sends a supported method with invalid parameters
-- **THEN** the system returns JSON-RPC error code `-32602`
+#### Scenario: Batch request
+- **WHEN** a client sends a JSON-RPC batch containing one or more requests
+- **THEN** the system dispatches each item and returns a response array for request items while omitting notification-only items
 
 ### Requirement: Sa-Token OAuth2 protected resource
 The system SHALL protect MCP endpoints using Sa-Token OAuth2 Bearer token validation and capability-specific permission or scope checks.
