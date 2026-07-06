@@ -248,7 +248,7 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
 				// 设置脚本变量
 				magicScriptContext.set("clientId", clientId);
 				magicScriptContext.set("appId", appId);
-				magicScriptContext.set("businessType", subscribeInfo.getBusinessId());
+				putBusinessType(magicScriptContext, subscribeInfo.getBusinessId());
 				magicScriptContext.set("sessionId", sessionId);
 				// 执行脚本并记录结果
 				Object result = ScriptManager.executeScript(subscribeInfo.getScript(), magicScriptContext);
@@ -606,17 +606,16 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
      */
     private void handleSubscribeMessage(WebSocketSession session, String appId , String businessType, JSONObject jsonObject, List<WsSubscribeInfo> subscribeInfoList) {
         SessionInfo sessionInfo = (SessionInfo) session.getAttributes().get("sessionInfo");
-        for (WsSubscribeInfo subscribeInfo : subscribeInfoList) {
-            MagicScriptContext magicScriptContext = new MagicScriptContext();
-            try {
-                session.getAttributes().put("subscribeInfo", subscribeInfo);
-                magicScriptContext.setScriptName(subscribeInfo.getName());
-                magicScriptContext.set("appId", appId);
-                magicScriptContext.set("clientId",sessionInfo.getClientId());
-                magicScriptContext.set("type", businessType);
-                magicScriptContext.set("sessionId", session.getId());
-                magicScriptContext.set("params", jsonObject);
-                Object result = ScriptManager.executeScript(subscribeInfo.getScript(), magicScriptContext);
+	        for (WsSubscribeInfo subscribeInfo : subscribeInfoList) {
+	            MagicScriptContext magicScriptContext = new MagicScriptContext();
+	            try {
+	                session.getAttributes().put("subscribeInfo", subscribeInfo);
+	                magicScriptContext.setScriptName(subscribeInfo.getName());
+	                magicScriptContext.set("appId", appId);
+	                magicScriptContext.set("clientId",sessionInfo.getClientId());
+	                magicScriptContext.set("sessionId", session.getId());
+	                putBusinessMessageContext(magicScriptContext, businessType, jsonObject);
+	                Object result = ScriptManager.executeScript(subscribeInfo.getScript(), magicScriptContext);
                 log.info("Result of {} sessionId:{} ,appId:{} script: {}", businessType,session.getId(),appId,result);
             } catch (Exception e) {
                 log.error("Error processing subscribe message: {}", e.getMessage(), e);
@@ -635,21 +634,31 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
         String businessType = getCloseBussinessType();
         List<WsSubscribeInfo> subscribeInfoList = findEnabledSubscribes(appId, businessType);
         // 为每个匹配的订阅信息执行相应的关闭脚本
-        for (WsSubscribeInfo subscribeInfo : subscribeInfoList) {
-            MagicScriptContext magicScriptContext = new MagicScriptContext();
-            try {
-                magicScriptContext.setScriptName(subscribeInfo.getName());
-                magicScriptContext.set("clientId", clientId);
-                magicScriptContext.set("appId", appId);
-                magicScriptContext.set("type", subscribeInfo.getBusinessId());
-                magicScriptContext.set("sessionId", sessionId);
+	        for (WsSubscribeInfo subscribeInfo : subscribeInfoList) {
+	            MagicScriptContext magicScriptContext = new MagicScriptContext();
+	            try {
+	                magicScriptContext.setScriptName(subscribeInfo.getName());
+	                magicScriptContext.set("clientId", clientId);
+	                magicScriptContext.set("appId", appId);
+	                putBusinessType(magicScriptContext, subscribeInfo.getBusinessId());
+	                magicScriptContext.set("sessionId", sessionId);
                 Object result = ScriptManager.executeScript(subscribeInfo.getScript(), magicScriptContext);
                 log.info("Result of init sessionId:{} ,appId:{} script: {}", sessionId,appId,result);
             } catch (Exception e) {
                 log.error("Error processing subscribe message: {}", e.getMessage(), e);
             }
         }
-    }
+	    }
+
+	void putBusinessType(MagicScriptContext magicScriptContext, String businessType) {
+		magicScriptContext.set("type", businessType);
+		magicScriptContext.set("businessType", businessType);
+	}
+
+	void putBusinessMessageContext(MagicScriptContext magicScriptContext, String businessType, JSONObject params) {
+		putBusinessType(magicScriptContext, businessType);
+		magicScriptContext.set("params", params);
+	}
 
     /**
      * 处理WebSocket传输错误的回调方法

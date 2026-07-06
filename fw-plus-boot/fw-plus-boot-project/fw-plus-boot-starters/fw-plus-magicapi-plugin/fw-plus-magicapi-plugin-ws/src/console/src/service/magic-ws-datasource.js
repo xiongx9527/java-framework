@@ -1,15 +1,16 @@
 export default (request, $i, modal, JavaClass) => {
     let findResources
+    const wsModuleClass = 'com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.module.WsModule'
 
     JavaClass.setExtensionAttribute(
-        'com.jugui.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsModule',
+        wsModuleClass,
         () => {
-            JavaClass.loadClass('com.jugui.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsModule')
+            JavaClass.loadClass(wsModuleClass)
             return (findResources && (findResources('ws-datasource')[0]?.children || [])
-                .filter((it) => it.key && it.extra === 'producer')
+                .filter((it) => it.key)
                 .map((it) => ({
                     name: it.key,
-                    type: 'com.jugui.fw.plus.boot.autoconfigure.magicapi.plugin.ws.producer.WsProducer',
+                    type: wsModuleClass,
                     comment: it.name
                 }))) || []
         }

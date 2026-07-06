@@ -158,10 +158,18 @@ return null;
 | `appId` | 当前数据源 `key` |
 | `clientId` | 连接客户端标识 |
 | `sessionId` | 当前 WebSocket session id |
-| `type` | 当前业务消息类型；建连脚本使用 `businessType` |
+| `type` | 当前业务消息类型，建连和断连脚本中为对应生命周期业务标识 |
+| `businessType` | `type` 的兼容别名，建议新脚本优先使用 `type` |
 | `params` | 客户端发送的 JSON 消息对象，仅业务消息脚本存在 |
 
 同一个数据源 `key` 下，`businessId` 必须唯一。
+
+### 控制台测试说明
+
+- `ws-datasource` 测试会校验必填字段、`other` JSON 格式和 token 生成前置条件。
+- `ws-subscribe` 运行按钮使用模拟 WebSocket 上下文执行当前脚本，不会建立真实 WebSocket 连接，也不会注册真实 session。
+- 模拟上下文包含 `appId`、`clientId`、`sessionId`、`type`、`businessType`、`params`。
+- 推荐新脚本使用 `type`，`businessType` 作为兼容别名保留。
 
 ## 生成连接 Token
 
