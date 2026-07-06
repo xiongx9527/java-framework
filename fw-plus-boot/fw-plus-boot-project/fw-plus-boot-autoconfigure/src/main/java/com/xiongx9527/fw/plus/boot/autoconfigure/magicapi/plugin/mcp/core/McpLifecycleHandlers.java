@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcError;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcException;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSession;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionNotFoundException;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionState;
 
@@ -57,7 +58,12 @@ public class McpLifecycleHandlers {
 	}
 
 	public void requireReady(McpRequestContext context) {
-		McpSession session = sessionService.requireSession(context.getSessionId());
+		McpSession session;
+		try {
+			session = sessionService.requireSession(context == null ? null : context.getSessionId());
+		} catch (McpSessionNotFoundException e) {
+			throw new McpJsonRpcException(McpJsonRpcError.INVALID_REQUEST, "Session is not ready");
+		}
 		if (session.getState() != McpSessionState.READY) {
 			throw new McpJsonRpcException(McpJsonRpcError.INVALID_REQUEST, "Session is not ready");
 		}

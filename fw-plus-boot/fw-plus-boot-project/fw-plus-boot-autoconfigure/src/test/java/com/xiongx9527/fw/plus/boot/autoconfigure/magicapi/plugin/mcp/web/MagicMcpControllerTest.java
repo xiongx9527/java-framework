@@ -2,7 +2,9 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcDispatcher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcResponse;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSession;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionState;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -13,6 +15,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,6 +43,25 @@ class MagicMcpControllerTest {
 	}
 
 	@Test
+	void shouldReturnSessionHeaderAfterInitialize() {
+		McpSessionService sessionService = new McpSessionService(1800);
+		MagicAPIMcpProperties properties = new MagicAPIMcpProperties();
+		MagicMcpController controller = new MagicMcpController(properties,
+				new McpHttpTransportService(properties,
+						new McpJsonRpcDispatcher(Collections.singletonMap("initialize", (context, params) -> {
+							McpSession session = sessionService.createSession(null, Collections.emptyMap(), "2025-06-18");
+							context.setSessionId(session.getId());
+							return Collections.emptyMap();
+						})), sessionService),
+				new McpSseStreamService(properties, null, sessionService));
+
+		ResponseEntity<?> response = controller.post("application/json", null, null, null, request("initialize"), null);
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(response.getHeaders().getFirst(properties.getHeaders().getSessionId())).isNotBlank();
+	}
+
+	@Test
 	void shouldAcceptNotificationWithoutBody() {
 		MagicMcpController controller = controller(new MagicAPIMcpProperties(),
 				new McpJsonRpcDispatcher(Collections.singletonMap("notifications/initialized", (context, params) -> Collections.emptyMap())));
@@ -53,13 +75,62 @@ class MagicMcpControllerTest {
 	}
 
 	@Test
-	void shouldOpenSseStreamWhenEnabled() {
+	void shouldDispatchBatchPostRequest() {
 		MagicMcpController controller = controller(new MagicAPIMcpProperties(), pingDispatcher());
 
-		ResponseEntity<?> response = controller.get("text/event-stream", null, null);
+		ResponseEntity<?> response = controller.post("application/json", null, null, null,
+				java.util.Arrays.asList(request("ping"), request("ping")), null);
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(response.getBody()).isInstanceOf(List.class);
+		assertThat((List<?>) response.getBody()).hasSize(2);
+	}
+
+	@Test
+	void shouldRejectFeatureRequestBeforeSessionReady() {
+		McpSessionService sessionService = new McpSessionService(1800);
+		MagicAPIMcpProperties properties = new MagicAPIMcpProperties();
+		MagicMcpController controller = new MagicMcpController(properties,
+				new McpHttpTransportService(properties,
+						new McpJsonRpcDispatcher(Collections.singletonMap("tools/list", (context, params) -> Collections.emptyMap()),
+								new com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpLifecycleHandlers(sessionService)),
+						sessionService),
+				new McpSseStreamService(properties, null, sessionService));
+
+		ResponseEntity<?> response = controller.post("application/json", null, null, null, request("tools/list"), null);
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(response.getBody()).isInstanceOf(McpJsonRpcResponse.class);
+		assertThat(((McpJsonRpcResponse) response.getBody()).getError().getCode()).isEqualTo(-32600);
+	}
+
+	@Test
+	void shouldOpenSseStreamWhenEnabled() {
+		McpSessionService sessionService = new McpSessionService(1800);
+		McpSession session = sessionService.createSession(null, Collections.emptyMap(), "2025-06-18");
+		session.setState(McpSessionState.READY);
+		MagicAPIMcpProperties properties = new MagicAPIMcpProperties();
+		MagicMcpController controller = new MagicMcpController(properties,
+				new McpHttpTransportService(properties, pingDispatcher(), sessionService),
+				new McpSseStreamService(properties, null, sessionService));
+
+		ResponseEntity<?> response = controller.get("text/event-stream", session.getId(), null);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(response.getBody()).isInstanceOf(SseEmitter.class);
+	}
+
+	@Test
+	void shouldRejectSseStreamForUnknownSession() {
+		MagicAPIMcpProperties properties = new MagicAPIMcpProperties();
+		McpSessionService sessionService = new McpSessionService(1800);
+		MagicMcpController controller = new MagicMcpController(properties,
+				new McpHttpTransportService(properties, pingDispatcher(), sessionService),
+				new McpSseStreamService(properties, null, sessionService));
+
+		ResponseEntity<?> response = controller.get("text/event-stream", "missing-session", null);
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
 	}
 
 	@Test

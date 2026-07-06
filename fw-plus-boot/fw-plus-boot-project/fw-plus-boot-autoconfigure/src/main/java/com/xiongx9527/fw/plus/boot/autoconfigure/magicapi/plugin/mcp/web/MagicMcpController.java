@@ -6,7 +6,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Map;
 
 public class MagicMcpController {
 
@@ -25,7 +24,7 @@ public class MagicMcpController {
 
 	@PostMapping("${magic-api.plugin.mcp.endpoint:/mcp}")
 	@ResponseBody
-	public ResponseEntity<?> post(@RequestBody Map<String, Object> body, HttpServletRequest request) {
+	public ResponseEntity<?> post(@RequestBody Object body, HttpServletRequest request) {
 		return post(header(request, properties.getHeaders().getAccept()),
 				header(request, properties.getHeaders().getProtocolVersion()),
 				header(request, properties.getHeaders().getSessionId()),
@@ -34,7 +33,7 @@ public class MagicMcpController {
 	}
 
 	public ResponseEntity<?> post(String accept, String protocolVersion, String sessionId, String origin,
-								  Map<String, Object> body, HttpServletRequest request) {
+							  Object body, HttpServletRequest request) {
 		return transportService.post(accept, protocolVersion, sessionId, origin, body, request);
 	}
 

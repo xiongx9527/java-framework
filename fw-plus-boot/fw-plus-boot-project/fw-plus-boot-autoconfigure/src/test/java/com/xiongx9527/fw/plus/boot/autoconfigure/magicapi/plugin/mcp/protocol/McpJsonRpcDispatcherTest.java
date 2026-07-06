@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -64,6 +65,38 @@ class McpJsonRpcDispatcherTest {
 		assertThat(response.getId()).isEqualTo(2);
 		assertThat(response.getError()).isNull();
 		assertThat(response.getResult()).isEqualTo(Collections.emptyMap());
+	}
+
+	@Test
+	void shouldRejectRequestWithoutJsonRpcVersion() {
+		McpJsonRpcDispatcher dispatcher = new McpJsonRpcDispatcher(Collections.singletonMap("ping",
+				(context, params) -> Collections.emptyMap()));
+		Map<String, Object> request = request(3, "ping", null);
+		request.remove("jsonrpc");
+
+		McpJsonRpcResponse response = dispatcher.dispatch(new McpRequestContext(), request);
+
+		assertThat(response.getId()).isEqualTo(3);
+		assertThat(response.getError()).isNotNull();
+		assertThat(response.getError().getCode()).isEqualTo(-32600);
+	}
+
+	@Test
+	void shouldDispatchBatchAndOmitNotificationResponses() {
+		Map<String, McpMethodHandler> handlers = new HashMap<>();
+		handlers.put("ping", (context, params) -> Collections.emptyMap());
+		handlers.put("notifications/initialized", (context, params) -> Collections.emptyMap());
+		McpJsonRpcDispatcher dispatcher = new McpJsonRpcDispatcher(handlers);
+		Map<String, Object> notification = request(null, "notifications/initialized", null);
+		notification.remove("id");
+
+		Object response = dispatcher.dispatchMessage(new McpRequestContext(), java.util.Arrays.asList(
+				request(4, "ping", null), notification));
+
+		assertThat(response).isInstanceOf(List.class);
+		List<?> responses = (List<?>) response;
+		assertThat(responses).hasSize(1);
+		assertThat(((McpJsonRpcResponse) responses.get(0)).getId()).isEqualTo(4);
 	}
 
 	private Map<String, Object> request(Object id, String method, Object params) {
