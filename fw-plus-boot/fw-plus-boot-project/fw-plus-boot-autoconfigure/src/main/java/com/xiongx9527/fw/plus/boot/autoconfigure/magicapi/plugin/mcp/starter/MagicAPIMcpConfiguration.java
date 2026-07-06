@@ -233,7 +233,7 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 		handlers.put("prompts/get", (context, params) -> promptsHandler.getPrompt(context, asMap(params)));
 		handlers.put("completion/complete", (context, params) -> completionHandler.complete(context, asMap(params)));
 		handlers.put("logging/setLevel", (context, params) -> loggingHandler.setLevel(context, asMap(params)));
-		return new McpJsonRpcDispatcher(handlers);
+		return new McpJsonRpcDispatcher(handlers, lifecycleHandlers);
 	}
 
 	@Bean
@@ -259,8 +259,9 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 
 	@Bean
 	public McpSseStreamService mcpSseStreamService(MagicAPIMcpProperties properties,
-												   SaTokenMcpAuthService authService) {
-		return new McpSseStreamService(properties, authService);
+										   SaTokenMcpAuthService authService,
+										   McpSessionService sessionService) {
+		return new McpSseStreamService(properties, authService, sessionService);
 	}
 
 	@Bean

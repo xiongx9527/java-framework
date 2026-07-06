@@ -2,6 +2,10 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth.McpAuthService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth.McpAuthorizationException;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSession;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionNotFoundException;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionState;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +24,8 @@ public class McpSseStreamService {
 
 	private final EmitterFactory emitterFactory;
 
+	private final McpSessionService sessionService;
+
 	private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
 
 	public McpSseStreamService(MagicAPIMcpProperties properties) {
@@ -31,9 +37,20 @@ public class McpSseStreamService {
 	}
 
 	public McpSseStreamService(MagicAPIMcpProperties properties, McpAuthService authService,
-							   EmitterFactory emitterFactory) {
+								   EmitterFactory emitterFactory) {
+		this(properties, authService, null, emitterFactory);
+	}
+
+	public McpSseStreamService(MagicAPIMcpProperties properties, McpAuthService authService,
+								   McpSessionService sessionService) {
+		this(properties, authService, sessionService, null);
+	}
+
+	public McpSseStreamService(MagicAPIMcpProperties properties, McpAuthService authService,
+								   McpSessionService sessionService, EmitterFactory emitterFactory) {
 		this.properties = properties;
 		this.authService = authService;
+		this.sessionService = sessionService;
 		this.emitterFactory = emitterFactory == null ? SseEmitter::new : emitterFactory;
 	}
 
@@ -51,6 +68,10 @@ public class McpSseStreamService {
 		}
 		if (accept == null || !accept.contains("text/event-stream")) {
 			return ResponseEntity.status(HttpStatus.NOT_ACCEPTABLE).build();
+		}
+		ResponseEntity<?> sessionFailure = requireReadySession(sessionId);
+		if (sessionFailure != null) {
+			return sessionFailure;
 		}
 		SseEmitter emitter = emitterFactory.create();
 		if (sessionId != null) {
@@ -90,6 +111,21 @@ public class McpSseStreamService {
 
 	public boolean hasEmitter(String sessionId) {
 		return sessionId != null && emitters.containsKey(sessionId);
+	}
+
+	private ResponseEntity<?> requireReadySession(String sessionId) {
+		if (sessionService == null) {
+			return null;
+		}
+		try {
+			McpSession session = sessionService.requireSession(sessionId);
+			if (session.getState() != McpSessionState.READY) {
+				return ResponseEntity.status(HttpStatus.CONFLICT).build();
+			}
+			return null;
+		} catch (McpSessionNotFoundException e) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+		}
 	}
 
 	private ResponseEntity<?> authenticate(HttpServletRequest request) {

@@ -46,16 +46,16 @@ public class McpHttpTransportService {
 		this.sseStreamService = sseStreamService;
 	}
 
-	public ResponseEntity<?> post(String accept, String protocolVersion, String sessionId, Map<String, Object> body) {
+	public ResponseEntity<?> post(String accept, String protocolVersion, String sessionId, Object body) {
 		return post(accept, protocolVersion, sessionId, null, body);
 	}
 
-	public ResponseEntity<?> post(String accept, String protocolVersion, String sessionId, String origin, Map<String, Object> body) {
+	public ResponseEntity<?> post(String accept, String protocolVersion, String sessionId, String origin, Object body) {
 		return post(accept, protocolVersion, sessionId, origin, body, null);
 	}
 
 	public ResponseEntity<?> post(String accept, String protocolVersion, String sessionId, String origin,
-								  Map<String, Object> body, HttpServletRequest request) {
+								  Object body, HttpServletRequest request) {
 		if (!isTrustedOrigin(origin)) {
 			return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
 		}
@@ -78,11 +78,15 @@ public class McpHttpTransportService {
 		McpRequestContext context = new McpRequestContext();
 		context.setPrincipal(principal);
 		context.setSessionId(sessionId);
-		McpJsonRpcResponse response = dispatcher.dispatch(context, body);
+		Object response = dispatcher.dispatchMessage(context, body);
 		if (response == null) {
 			return ResponseEntity.accepted().build();
 		}
-		return ResponseEntity.ok(response);
+		ResponseEntity.BodyBuilder builder = ResponseEntity.ok();
+		if (context.getSessionId() != null) {
+			builder.header(properties.getHeaders().getSessionId(), context.getSessionId());
+		}
+		return builder.body(response);
 	}
 
 	public ResponseEntity<?> delete(String sessionId) {

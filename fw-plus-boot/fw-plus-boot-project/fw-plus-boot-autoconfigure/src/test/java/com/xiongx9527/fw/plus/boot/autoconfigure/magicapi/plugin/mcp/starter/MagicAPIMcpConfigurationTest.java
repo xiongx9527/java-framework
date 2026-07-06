@@ -2,6 +2,10 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth.McpAccessTokenVerifier;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth.McpPrincipal;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpRequestContext;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSession;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionState;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.service.McpPromptMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.service.McpResourceMagicResourceStorage;
 import org.junit.jupiter.api.Test;
@@ -48,7 +52,7 @@ class MagicAPIMcpConfigurationTest {
 		contextRunner.withPropertyValues("magic-api.plugin.mcp.auth.enabled=false")
 				.run(context -> {
 					Object response = context.getBean(com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcDispatcher.class)
-							.dispatch(new com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpRequestContext(), request("tools/list"));
+							.dispatch(readyContext(context.getBean(McpSessionService.class)), request("tools/list"));
 
 					assertThat(response).extracting("error").isNull();
 				});
@@ -59,7 +63,7 @@ class MagicAPIMcpConfigurationTest {
 		contextRunner.withPropertyValues("magic-api.plugin.mcp.auth.enabled=false")
 				.run(context -> {
 					Object response = context.getBean(com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcDispatcher.class)
-							.dispatch(new com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpRequestContext(), request("resources/list"));
+							.dispatch(readyContext(context.getBean(McpSessionService.class)), request("resources/list"));
 
 					assertThat(response).extracting("error").isNull();
 				});
@@ -72,10 +76,11 @@ class MagicAPIMcpConfigurationTest {
 					com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcDispatcher dispatcher =
 							context.getBean(com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcDispatcher.class);
 
-					assertThat(dispatcher.dispatch(new com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpRequestContext(),
+					McpRequestContext requestContext = readyContext(context.getBean(McpSessionService.class));
+					assertThat(dispatcher.dispatch(requestContext,
 							request("prompts/list"))).extracting("error").isNull();
 					Object completionResponse = dispatcher.dispatch(
-							new com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpRequestContext(),
+							requestContext,
 							request("completion/complete"));
 					assertThat(completionResponse).extracting("error").extracting("code").isNotEqualTo(-32601);
 				});
@@ -88,7 +93,7 @@ class MagicAPIMcpConfigurationTest {
 					com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcDispatcher dispatcher =
 							context.getBean(com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcDispatcher.class);
 
-					assertThat(dispatcher.dispatch(new com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpRequestContext(),
+					assertThat(dispatcher.dispatch(readyContext(context.getBean(McpSessionService.class)),
 							request("logging/setLevel"))).extracting("error").isNull();
 					assertThat(context).hasSingleBean(com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.client.McpClientRequestService.class);
 				});
@@ -127,5 +132,13 @@ class MagicAPIMcpConfigurationTest {
 		request.put("id", 1);
 		request.put("method", method);
 		return request;
+	}
+
+	private McpRequestContext readyContext(McpSessionService sessionService) {
+		McpSession session = sessionService.createSession(null, java.util.Collections.emptyMap(), "2025-06-18");
+		session.setState(McpSessionState.READY);
+		McpRequestContext context = new McpRequestContext();
+		context.setSessionId(session.getId());
+		return context;
 	}
 }
