@@ -2,6 +2,8 @@
 comet_change: fix-magic-ws-console-query
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-06-fix-magic-ws-console-query
+status: final
 ---
 
 # Fix Magic WebSocket Console Query Design
