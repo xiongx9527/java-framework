@@ -57,6 +57,7 @@ public class RedisDataSourceProperties {
         if (Objects.isNull(redisProperties)) {
             throw new IllegalArgumentException("redisProperties can not be null, please check.");
         }
+		ensureDatasource();
         datasource.put(datasourceName, redisProperties);
     }
 
@@ -68,7 +69,16 @@ public class RedisDataSourceProperties {
      * @author wenpan 2022/9/24 5:54 下午
      */
     public RedisProperties getRedisProperties(String datasourceName) {
+		if (StringUtils.isBlank(datasourceName) || datasource == null) {
+			return null;
+		}
         return datasource.get(datasourceName);
     }
+
+	private void ensureDatasource() {
+		if (datasource == null) {
+			datasource = new ConcurrentHashMap<>();
+		}
+	}
 
 }

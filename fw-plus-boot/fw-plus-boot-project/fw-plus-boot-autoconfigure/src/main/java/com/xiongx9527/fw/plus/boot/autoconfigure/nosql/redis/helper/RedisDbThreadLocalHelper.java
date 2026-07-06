@@ -28,6 +28,9 @@ public class RedisDbThreadLocalHelper {
      * @param db set current redis db
      */
     public static void set(int db) {
+		if (db < 0) {
+			throw new IllegalArgumentException("redis db index must not be negative.");
+		}
         Deque<Integer> deque = THREAD_DB.get();
         if (deque == null) {
             deque = new ArrayDeque<>();
