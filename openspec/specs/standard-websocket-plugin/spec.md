@@ -1,7 +1,7 @@
 # standard-websocket-plugin Specification
 
 ## Purpose
-TBD - created by archiving change standardize-websocket-plugin. Update Purpose after archive.
+Define the standard behavior for the MagicAPI WebSocket plugin, including handshake validation, protocol frame handling, text business-message dispatch, lifecycle scripts, console validation, structured errors, and operational documentation.
 ## Requirements
 ### Requirement: Standards-compliant handshake validation
 The plugin SHALL validate required connection parameters, token, appId, trusted Origin, and negotiated subprotocol during the WebSocket handshake or immediately at connection establishment with deterministic failure behavior.
@@ -162,4 +162,3 @@ The plugin SHALL provide compatible business type variables for all WebSocket su
 #### Scenario: Business message script receives compatible type variables
 - **WHEN** the plugin executes a business-message `ws-subscribe` script
 - **THEN** the script context SHALL include both `type` and `businessType` with the incoming message type and SHALL include `params` with the parsed JSON message
-

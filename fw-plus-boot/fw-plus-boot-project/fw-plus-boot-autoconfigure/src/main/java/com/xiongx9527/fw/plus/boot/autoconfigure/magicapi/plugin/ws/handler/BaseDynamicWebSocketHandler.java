@@ -467,8 +467,10 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
 	private void sendErrorMessage(WebSocketSession session, String code, String message) throws java.io.IOException {
 		JSONObject errorObject = new JSONObject();
 		errorObject.put("type", "error");
+		errorObject.put("success", false);
 		errorObject.put("code", code);
 		errorObject.put("message", message);
+		errorObject.put("timestamp", System.currentTimeMillis());
 		sendMessage(session, JSON.toJSONString(errorObject));
 	}
 
@@ -617,11 +619,16 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
 	                putBusinessMessageContext(magicScriptContext, businessType, jsonObject);
 	                Object result = ScriptManager.executeScript(subscribeInfo.getScript(), magicScriptContext);
                 log.info("Result of {} sessionId:{} ,appId:{} script: {}", businessType,session.getId(),appId,result);
-            } catch (Exception e) {
-                log.error("Error processing subscribe message: {}", e.getMessage(), e);
-            }
-        }
-    }
+	            } catch (Exception e) {
+	                log.error("Error processing subscribe message: {}", e.getMessage(), e);
+				try {
+					sendErrorMessage(session, "SCRIPT_ERROR", "Error processing websocket subscribe script: " + e.getMessage());
+				} catch (java.io.IOException sendException) {
+					log.error("Failed to send script error message", sendException);
+				}
+	            }
+	        }
+	    }
 
     /**
      * 结束WebSocket会话，执行订阅信息中的关闭脚本
