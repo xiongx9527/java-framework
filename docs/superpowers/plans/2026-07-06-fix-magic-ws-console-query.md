@@ -2,6 +2,7 @@
 change: fix-magic-ws-console-query
 design-doc: docs/superpowers/specs/2026-07-06-fix-magic-ws-console-query-design.md
 base-ref: 761ee27494afe47f031884a62c684aa4951afc39
+archived-with: 2026-07-06-fix-magic-ws-console-query
 ---
 
 # Fix Magic WebSocket Console Query Implementation Plan
@@ -23,6 +24,7 @@ base-ref: 761ee27494afe47f031884a62c684aa4951afc39
 - 控制台 `/ws/execute` 是模拟上下文脚本测试，不建立真实 WebSocket session。
 - 每完成 OpenSpec `tasks.md` 中一个可验收任务后同步勾选。
 
+archived-with: 2026-07-06-fix-magic-ws-console-query
 ---
 
 ## File Structure
@@ -44,6 +46,7 @@ base-ref: 761ee27494afe47f031884a62c684aa4951afc39
 - Create or Modify: WS 前端插件静态校验测试文件，位置根据现有测试结构确定。
   - 覆盖旧包名、Producer 残留和 `requirePath` 不一致。
 
+archived-with: 2026-07-06-fix-magic-ws-console-query
 ---
 
 ### Task 1: 后端控制台接口
@@ -132,6 +135,7 @@ git add openspec/changes/fix-magic-ws-console-query fw-plus-boot/fw-plus-boot-pr
 git commit -m "fix: implement magic ws console backend tests"
 ```
 
+archived-with: 2026-07-06-fix-magic-ws-console-query
 ---
 
 ### Task 2: 脚本上下文兼容
@@ -202,6 +206,7 @@ git add openspec/changes/fix-magic-ws-console-query fw-plus-boot/fw-plus-boot-pr
 git commit -m "fix: align magic ws script context variables"
 ```
 
+archived-with: 2026-07-06-fix-magic-ws-console-query
 ---
 
 ### Task 3: 前端控制台插件
@@ -273,6 +278,7 @@ git add openspec/changes/fix-magic-ws-console-query fw-plus-boot/fw-plus-boot-pr
 git commit -m "fix: align magic ws console metadata"
 ```
 
+archived-with: 2026-07-06-fix-magic-ws-console-query
 ---
 
 ### Task 4: 文档与最终验证
@@ -329,6 +335,7 @@ git add openspec/changes/fix-magic-ws-console-query fw-plus-boot/fw-plus-boot-pr
 git commit -m "docs: document magic ws console test behavior"
 ```
 
+archived-with: 2026-07-06-fix-magic-ws-console-query
 ---
 
 ## Self-Review

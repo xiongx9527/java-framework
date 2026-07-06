@@ -17,7 +17,7 @@ verification_report: docs/superpowers/reports/2026-07-06-fix-magic-ws-console-qu
 branch_status: handled
 created_at: 2026-07-06
 verified_at: 2026-07-06
-archived: false
+archived: true
 handoff_context: openspec/changes/fix-magic-ws-console-query/.comet/handoff/design-context.json
 handoff_hash: 12617592dab8d06a893e41f86e396e9dace1247f3786394c18923ff7002c2eaa
 build_command: mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest=MagicWsControllerTest,BaseDynamicWebSocketHandlerTest test -q
