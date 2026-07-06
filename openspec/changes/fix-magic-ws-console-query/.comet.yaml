@@ -1,5 +1,5 @@
 workflow: full
-phase: verify
+phase: archive
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -12,11 +12,11 @@ auto_transition: true
 base_ref: 761ee27494afe47f031884a62c684aa4951afc39
 design_doc: docs/superpowers/specs/2026-07-06-fix-magic-ws-console-query-design.md
 plan: docs/superpowers/plans/2026-07-06-fix-magic-ws-console-query.md
-verify_result: pending
+verify_result: pass
 verification_report: docs/superpowers/reports/2026-07-06-fix-magic-ws-console-query-verify.md
 branch_status: handled
 created_at: 2026-07-06
-verified_at: null
+verified_at: 2026-07-06
 archived: false
 handoff_context: openspec/changes/fix-magic-ws-console-query/.comet/handoff/design-context.json
 handoff_hash: 12617592dab8d06a893e41f86e396e9dace1247f3786394c18923ff7002c2eaa
