@@ -38,7 +38,7 @@ public abstract class BaseDynamicWebSocketHandler implements WebSocketHandler , 
     /**
      * 共享的延迟关闭调度器，避免每次 delayedClose 创建新线程池导致线程泄漏
      */
-    private final ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(2, r -> {
+    private final ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(getDelayedClosePoolSize(), r -> {
         Thread t = new Thread(r, "ws-delayed-close");
         t.setDaemon(true);
         return t;
