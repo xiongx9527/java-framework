@@ -165,19 +165,19 @@ Run: `mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconf
 - Produces: protected diagnostic endpoint for tools list/call, resources read, prompts get using existing handlers and auth/session semantics.
 - Produces: console service/UI entries to preview resource/prompt/tool results with JSON inputs.
 
-- [ ] **Step 1: Write failing backend diagnostic tests**
+- [x] **Step 1: Write failing backend diagnostic tests**
 
 Assert diagnostics call existing handlers, enforce auth scopes, return JSON-RPC-like success/error body.
 
-- [ ] **Step 2: Implement diagnostic backend**
+- [x] **Step 2: Implement diagnostic backend**
 
 Add controller/service using existing handler methods and a diagnostic request context; do not bypass provider filtering.
 
-- [ ] **Step 3: Add console services and UI controls**
+- [x] **Step 3: Add console services and UI controls**
 
 Add actions for resource read preview, prompt get preview, and tools list/call preview with JSON editor inputs.
 
-- [ ] **Step 4: Run backend tests and console build if available**
+- [x] **Step 4: Run backend tests and console build if available**
 
 Run backend diagnostic tests. If `package.json` scripts are available, run console build command for MCP plugin.
 

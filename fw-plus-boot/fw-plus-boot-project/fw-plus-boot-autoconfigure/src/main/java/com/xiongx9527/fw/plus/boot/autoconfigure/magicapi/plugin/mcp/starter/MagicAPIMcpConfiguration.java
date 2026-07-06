@@ -34,6 +34,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.service.Mcp
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.tools.MagicApiMcpToolProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.tools.McpToolsHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.MagicMcpController;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.MagicMcpDiagnosticController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.McpHttpTransportService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.web.McpSseStreamService;
 import org.springframework.beans.factory.ObjectProvider;
@@ -61,8 +62,12 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 
 	private final ObjectProvider<MagicMcpController> magicMcpControllerProvider;
 
-	public MagicAPIMcpConfiguration(ObjectProvider<MagicMcpController> magicMcpControllerProvider) {
+	private final ObjectProvider<MagicMcpDiagnosticController> magicMcpDiagnosticControllerProvider;
+
+	public MagicAPIMcpConfiguration(ObjectProvider<MagicMcpController> magicMcpControllerProvider,
+									 ObjectProvider<MagicMcpDiagnosticController> magicMcpDiagnosticControllerProvider) {
 		this.magicMcpControllerProvider = magicMcpControllerProvider;
+		this.magicMcpDiagnosticControllerProvider = magicMcpDiagnosticControllerProvider;
 	}
 
 	@Bean
@@ -276,9 +281,15 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 
 	@Bean
 	public MagicMcpController magicMcpController(MagicAPIMcpProperties properties,
-												 McpHttpTransportService transportService,
-												 McpSseStreamService sseStreamService) {
+										 McpHttpTransportService transportService,
+										 McpSseStreamService sseStreamService) {
 		return new MagicMcpController(properties, transportService, sseStreamService);
+	}
+
+	@Bean
+	public MagicMcpDiagnosticController magicMcpDiagnosticController(MagicAPIMcpProperties properties,
+												 McpHttpTransportService transportService) {
+		return new MagicMcpDiagnosticController(properties, transportService);
 	}
 
 	@Override
@@ -288,7 +299,10 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 
 	@Override
 	public MagicControllerRegister controllerRegister() {
-		return (mapping, configuration) -> mapping.registerController(magicMcpControllerProvider.getObject());
+		return (mapping, configuration) -> {
+			mapping.registerController(magicMcpControllerProvider.getObject());
+			mapping.registerController(magicMcpDiagnosticControllerProvider.getObject());
+		};
 	}
 
 	@SuppressWarnings("unchecked")
