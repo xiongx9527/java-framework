@@ -28,12 +28,18 @@ public class OnMissingPropertyCondition extends SpringBootCondition {
      * @return ConditionOutcome 匹配结果对象，包含是否匹配以及原因说明
      */
     @Override
-    public ConditionOutcome getMatchOutcome(ConditionContext context, AnnotatedTypeMetadata metadata) {
+	    public ConditionOutcome getMatchOutcome(ConditionContext context, AnnotatedTypeMetadata metadata) {
         // 获取注解属性（key:注解属性名，value：注解属性值）
         Map<String, Object> annotationAttributes = metadata.getAnnotationAttributes(ConditionalOnMissingProperty.class.getName());
-        // 获取注解中value属性的值
-        assert annotationAttributes != null;
-        String[] properties = (String[]) annotationAttributes.get("value");
+	        if (annotationAttributes == null) {
+	            return ConditionOutcome.noMatch(ConditionMessage.forCondition(ConditionalOnMissingProperty.class)
+	                    .because("annotation attributes are missing."));
+	        }
+	        String[] properties = (String[]) annotationAttributes.get("value");
+	        if (ArrayUtils.isEmpty(properties)) {
+	            return ConditionOutcome.noMatch(ConditionMessage.forCondition(ConditionalOnMissingProperty.class)
+	                    .because("properties are empty."));
+	        }
 
         // 遍历所有指定的属性，检查是否存在非空值
         for (String property : properties) {

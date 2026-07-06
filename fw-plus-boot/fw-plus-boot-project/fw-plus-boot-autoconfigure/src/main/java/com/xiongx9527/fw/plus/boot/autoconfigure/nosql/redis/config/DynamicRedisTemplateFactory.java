@@ -67,10 +67,13 @@ public class DynamicRedisTemplateFactory<K, V> {
      */
     public DynamicRedisTemplateFactory(RedisProperties properties,
                                        RedisSentinelConfiguration sentinelConfiguration,
-                                       RedisClusterConfiguration clusterConfiguration,
-                                       List<JedisClientConfigurationBuilderCustomizer> jedisBuilderCustomizers,
-                                       List<LettuceClientConfigurationBuilderCustomizer> lettuceBuilderCustomizers) {
-        this.properties = properties;
+	                                       RedisClusterConfiguration clusterConfiguration,
+	                                       List<JedisClientConfigurationBuilderCustomizer> jedisBuilderCustomizers,
+	                                       List<LettuceClientConfigurationBuilderCustomizer> lettuceBuilderCustomizers) {
+		Assert.notNull(properties, "redisProperties must not be null.");
+		Assert.notNull(jedisBuilderCustomizers, "jedisBuilderCustomizers must not be null.");
+		Assert.notNull(lettuceBuilderCustomizers, "lettuceBuilderCustomizers must not be null.");
+	        this.properties = properties;
         this.sentinelConfiguration = sentinelConfiguration;
         this.clusterConfiguration = clusterConfiguration;
         this.jedisBuilderCustomizers = jedisBuilderCustomizers;

@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.boot.common.CommonAutoConfiguration;
 import com.xiongx9527.fw.plus.nosql.redis.constant.DynamicRedisConstants;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.util.StringUtils;
 import static com.xiongx9527.fw.plus.nosql.redis.constant.DynamicRedisConstants.MultiSource.DEFAULT_SOURCE;
 
 /**
@@ -23,11 +24,11 @@ public class RedisMultiSourceClient extends CommonAutoConfiguration {
      * @param datasource 数据源名称
      */
     public RedisTemplate<String, String> opsDefaultDb(String datasource) {
+        validateDatasource(datasource);
         // 获取该数据源的默认db对应的redisTemplate
-        RedisTemplate<String, String> redisTemplate = RedisDataSourceRegister.getRedisTemplate(
-                datasource + DynamicRedisConstants.MultiSource.REDIS_TEMPLATE);
+        RedisTemplate<String, String> redisTemplate = RedisDataSourceRegister.getRedisTemplate(datasource);
         if (null == redisTemplate) {
-            throw new RuntimeException("没有该数据源，请确认传入的redis数据源名称是否正确.");
+            throw missingDatasourceException(datasource);
         }
         return redisTemplate;
     }
@@ -351,13 +352,24 @@ public class RedisMultiSourceClient extends CommonAutoConfiguration {
     }
 
     private AbstractOptionsRedisDb<String, String> commonOpsDb(String datasource) {
+        validateDatasource(datasource);
         // 获取该数据源对应的redisHelper
-        RedisHelper redisHelper = RedisDataSourceRegister.getRedisHelper(datasource + DynamicRedisConstants.MultiSource.REDIS_HELPER);
+        RedisHelper redisHelper = RedisDataSourceRegister.getRedisHelper(datasource);
         if (redisHelper == null) {
-            throw new RuntimeException("没有该数据源，请确认传入的redis数据源名称是否正确.");
+            throw missingDatasourceException(datasource);
         }
         // 获取指定db的redisTemplate
         return redisHelper.opsDb();
     }
+
+	private void validateDatasource(String datasource) {
+		if (!StringUtils.hasText(datasource)) {
+			throw new IllegalArgumentException("redis datasource name must not be blank.");
+		}
+	}
+
+	private IllegalArgumentException missingDatasourceException(String datasource) {
+		return new IllegalArgumentException("redis datasource [" + datasource + "] does not exist.");
+	}
 
 }

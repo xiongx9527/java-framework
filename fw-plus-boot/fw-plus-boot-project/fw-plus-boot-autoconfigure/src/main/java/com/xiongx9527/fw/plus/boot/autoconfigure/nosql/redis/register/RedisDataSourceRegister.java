@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.register;
 import com.xiongx9527.fw.plus.boot.autoconfigure.nosql.redis.helper.RedisHelper;
 import com.xiongx9527.fw.plus.nosql.redis.constant.DynamicRedisConstants;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.util.StringUtils;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,7 +37,7 @@ public class RedisDataSourceRegister {
      * 注册RedisTemplate
      */
     public static void registerRedisTemplate(String name, RedisTemplate<String, String> redisTemplate) {
-        if (redisTemplate == null || name == null) {
+        if (redisTemplate == null || !StringUtils.hasText(name)) {
             return;
         }
         REDIS_TEMPLATE_REGISTER.put(name + DynamicRedisConstants.MultiSource.REDIS_TEMPLATE, redisTemplate);
@@ -46,7 +47,7 @@ public class RedisDataSourceRegister {
      * 注册RedisHelper
      */
     public static void registerRedisHelper(String name, RedisHelper redisHelper) {
-        if (redisHelper == null || name == null) {
+        if (redisHelper == null || !StringUtils.hasText(name)) {
             return;
         }
         REDIS_HELPER_REGISTER.put(name + DynamicRedisConstants.MultiSource.REDIS_HELPER, redisHelper);
