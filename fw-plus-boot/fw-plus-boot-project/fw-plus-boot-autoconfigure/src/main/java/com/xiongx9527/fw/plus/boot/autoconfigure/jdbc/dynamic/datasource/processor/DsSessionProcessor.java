@@ -2,10 +2,13 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.jdbc.dynamic.datasource.proces
 
 import com.baomidou.dynamic.datasource.processor.DsProcessor;
 import org.aopalliance.intercept.MethodInvocation;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 
 /**
  * @author TaoYu
@@ -26,7 +29,7 @@ public class DsSessionProcessor extends DsProcessor {
      */
     @Override
     public boolean matches(String key) {
-        return key.startsWith(SESSION_PREFIX);
+        return StringUtils.startsWith(key, SESSION_PREFIX);
     }
 
     /**
@@ -38,10 +41,21 @@ public class DsSessionProcessor extends DsProcessor {
      */
     @Override
     public String doDetermineDatasource(MethodInvocation invocation, String key) {
-        // 获取当前HTTP请求对象
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        // 从会话中获取属性值，键为去掉前缀后的字符串
-        return request.getSession().getAttribute(key.substring(9)).toString();
+        String sessionAttributeName = StringUtils.substringAfter(key, SESSION_PREFIX + ".");
+        if (StringUtils.isBlank(sessionAttributeName)) {
+            return null;
+        }
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (!(requestAttributes instanceof ServletRequestAttributes)) {
+            return null;
+        }
+        HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return null;
+        }
+        Object datasource = session.getAttribute(sessionAttributeName);
+        return datasource == null ? null : datasource.toString();
     }
 
 }

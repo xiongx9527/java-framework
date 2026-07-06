@@ -2,7 +2,9 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.jdbc.dynamic.datasource.proces
 
 import com.baomidou.dynamic.datasource.processor.DsProcessor;
 import org.aopalliance.intercept.MethodInvocation;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
@@ -26,7 +28,7 @@ public class DsHeaderProcessor extends DsProcessor {
      */
     @Override
     public boolean matches(String key) {
-        return key.startsWith(HEADER_PREFIX);
+        return StringUtils.startsWith(key, HEADER_PREFIX);
     }
 
     /**
@@ -38,10 +40,16 @@ public class DsHeaderProcessor extends DsProcessor {
      */
     @Override
     public String doDetermineDatasource(MethodInvocation invocation, String key) {
-        // 获取当前HTTP请求对象
-        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        // 从请求头中获取去掉前缀后的键对应的值作为数据源名称
-        return request.getHeader(key.substring(8));
+        String headerName = StringUtils.substringAfter(key, HEADER_PREFIX + ".");
+        if (StringUtils.isBlank(headerName)) {
+            return null;
+        }
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        if (!(requestAttributes instanceof ServletRequestAttributes)) {
+            return null;
+        }
+        HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+        return request.getHeader(headerName);
     }
 
 }
