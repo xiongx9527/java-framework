@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -136,6 +137,18 @@ class BaseDynamicWebSocketHandlerTest {
 		assertThat(session.closeStatus).isNull();
 	}
 
+	@Test
+	void scheduledExecutorPoolSizeShouldUseConfiguredValue() throws Exception {
+		Map<String, Object> config = new HashMap<>();
+		config.put("scheduler.delayedClosePoolSize", 4);
+		TestDynamicWebSocketHandler handler = TestDynamicWebSocketHandler.withConfig(config);
+
+		java.lang.reflect.Field field = BaseDynamicWebSocketHandler.class.getDeclaredField("scheduledExecutor");
+		field.setAccessible(true);
+		ScheduledThreadPoolExecutor executor = (ScheduledThreadPoolExecutor) field.get(handler);
+		assertThat(executor.getCorePoolSize()).isEqualTo(4);
+	}
+
 	private static String errorCode(TestWebSocketSession session) {
 		assertThat(session.textMessages).hasSize(1);
 		return JSONObject.parseObject(session.textMessages.get(0)).getString("code");
@@ -153,6 +166,17 @@ class BaseDynamicWebSocketHandlerTest {
 
 	private static class TestDynamicWebSocketHandler extends BaseDynamicWebSocketHandler {
 
+		private static final ThreadLocal<Map<String, Object>> NEXT_CONFIG = new ThreadLocal<>();
+
+		static TestDynamicWebSocketHandler withConfig(Map<String, Object> config) {
+			NEXT_CONFIG.set(config);
+			try {
+				return new TestDynamicWebSocketHandler(mock(WsSubscribeInfoMagicResourceStorage.class));
+			} finally {
+				NEXT_CONFIG.remove();
+			}
+		}
+
 		TestDynamicWebSocketHandler() {
 			this(mock(WsSubscribeInfoMagicResourceStorage.class));
 		}
@@ -161,9 +185,14 @@ class BaseDynamicWebSocketHandlerTest {
 			super(mock(WsDataSourceInfoMagicResourceStorage.class), subscribeStorage);
 		}
 
+		private static Map<String, Object> currentConfig() {
+			Map<String, Object> config = NEXT_CONFIG.get();
+			return config == null ? Collections.emptyMap() : config;
+		}
+
 		@Override
 		public Map<String, Object> getConfig() {
-			return Collections.emptyMap();
+			return currentConfig();
 		}
 
 		@Override

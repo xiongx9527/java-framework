@@ -366,6 +366,15 @@ public interface BaseService extends MagicBaseService {
         return getConfigValueAsInt("session.cache.concurrencyLevel", 16);
     }
 
+	/**
+	 * 获取延迟关闭调度线程池大小。
+	 *
+	 * @return 延迟关闭调度线程池大小，如果配置中未指定则返回默认值2
+	 */
+	default int getDelayedClosePoolSize() {
+		return getConfigValueAsInt("scheduler.delayedClosePoolSize", 2);
+	}
+
     /**
      * 获取会话延迟时间（毫秒）
      *
