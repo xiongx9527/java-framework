@@ -51,11 +51,13 @@ public abstract class RedisConnectionConfiguration {
      * @param clusterConfiguration Redis集群配置对象，用于集群模式下的连接配置
      * @param database 数据库索引号，指定要连接的Redis数据库实例
      */
-    protected RedisConnectionConfiguration(RedisProperties properties,
-                                           RedisSentinelConfiguration sentinelConfiguration,
-                                           RedisClusterConfiguration clusterConfiguration,
-                                           int database) {
-        this.properties = properties;
+	protected RedisConnectionConfiguration(RedisProperties properties,
+	                                       RedisSentinelConfiguration sentinelConfiguration,
+	                                       RedisClusterConfiguration clusterConfiguration,
+	                                       int database) {
+		Assert.notNull(properties, "redisProperties must not be null.");
+		Assert.isTrue(database >= 0, "database must not be negative.");
+	    this.properties = properties;
         this.sentinelConfiguration = sentinelConfiguration;
         this.clusterConfiguration = clusterConfiguration;
         this.database = database;
@@ -184,11 +186,14 @@ public abstract class RedisConnectionConfiguration {
         try {
             URI uri = new URI(url);
             String scheme = uri.getScheme();
-            if (!"redis".equals(scheme) && !"rediss".equals(scheme)) {
-                // 无效的或畸形的url
-                throw new RedisUrlSyntaxException(url);
-            }
-            boolean useSsl = ("rediss".equals(scheme));
+	            if (!"redis".equals(scheme) && !"rediss".equals(scheme)) {
+	                // 无效的或畸形的url
+	                throw new RedisUrlSyntaxException(url);
+	            }
+			if (!StringUtils.hasText(uri.getHost()) || uri.getPort() < 0) {
+				throw new RedisUrlSyntaxException(url);
+			}
+	            boolean useSsl = ("rediss".equals(scheme));
             String username = null;
             String password = null;
             if (uri.getUserInfo() != null) {
