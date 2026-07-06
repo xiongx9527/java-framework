@@ -51,6 +51,8 @@ import java.util.List;
 @ConditionalOnProperty(prefix = DynamicDataSourceProperties.PREFIX, name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DynamicDataSourceAutoConfiguration implements InitializingBean {
 
+    private static final String DEFAULT_PRIMARY = "master";
+
     /**
      * 动态数据源配置属性实例
      * 用于存储和管理动态数据源的核心配置信息
@@ -78,14 +80,15 @@ public class DynamicDataSourceAutoConfiguration implements InitializingBean {
             ObjectProvider<List<DynamicDataSourcePropertiesCustomizer>> dataSourcePropertiesCustomizers) {
         // 当属性配置和默认数据源配置都不为空且URL不为空时，进行数据源配置初始化
         if (ObjectUtils.isNotEmpty(properties) && ObjectUtils.isNotEmpty(defaultDataSourceProperty)
-                && StringUtils.isNotEmpty(defaultDataSourceProperty.getUrl())) {
+                && StringUtils.isNotBlank(defaultDataSourceProperty.getUrl())) {
             // 如果数据源映射为空，则创建新的LinkedHashMap
             if (null == properties.getDatasource()) {
                 properties.setDatasource(new LinkedHashMap<>());
             }
+            String primary = resolvePrimary(properties);
             // 如果主数据源不存在于数据源映射中，则将默认数据源添加为主数据源
-            if (!properties.getDatasource().containsKey(properties.getPrimary())) {
-                properties.getDatasource().put(properties.getPrimary(), defaultDataSourceProperty);
+            if (!properties.getDatasource().containsKey(primary)) {
+                properties.getDatasource().put(primary, defaultDataSourceProperty);
             }
         }
         this.properties = properties;
@@ -122,6 +125,13 @@ public class DynamicDataSourceAutoConfiguration implements InitializingBean {
                 customizer.customize(properties);
             }
         }
+    }
+
+    private String resolvePrimary(DynamicDataSourceProperties properties) {
+        if (StringUtils.isBlank(properties.getPrimary())) {
+            return DEFAULT_PRIMARY;
+        }
+        return properties.getPrimary();
     }
 
 }

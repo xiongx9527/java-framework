@@ -104,7 +104,7 @@ public class DynamicDataSourceAopConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = DynamicDataSourceProperties.PREFIX + ".aop", name = "enabled", havingValue = "true", matchIfMissing = true)
     public Advisor dynamicDatasourceAnnotationAdvisor(DsProcessor dsProcessor) {
-        DynamicDatasourceAopProperties aopProperties = properties.getAop();
+        DynamicDatasourceAopProperties aopProperties = getAopProperties();
         DynamicDataSourceAnnotationInterceptor interceptor = new DynamicDataSourceAnnotationInterceptor(aopProperties.getAllowedPublicOnly(), dsProcessor);
         DynamicDataSourceAnnotationAdvisor advisor = new DynamicDataSourceAnnotationAdvisor(interceptor, DS.class);
         advisor.setOrder(aopProperties.getOrder());
@@ -123,10 +123,17 @@ public class DynamicDataSourceAopConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = DynamicDataSourceProperties.PREFIX, name = "seata", havingValue = "false", matchIfMissing = true)
     public Advisor dynamicTransactionAdvisor() {
-        DynamicDatasourceAopProperties aopProperties = properties.getAop();
+        DynamicDatasourceAopProperties aopProperties = getAopProperties();
         DynamicLocalTransactionInterceptor interceptor = new DynamicLocalTransactionInterceptor(aopProperties.getAllowedPublicOnly());
         return new DynamicDataSourceAnnotationAdvisor(interceptor, DSTransactional.class);
     }
 
-}
+    private DynamicDatasourceAopProperties getAopProperties() {
+        DynamicDatasourceAopProperties aopProperties = properties.getAop();
+        if (aopProperties == null) {
+            return new DynamicDatasourceAopProperties();
+        }
+        return aopProperties;
+    }
 
+}
