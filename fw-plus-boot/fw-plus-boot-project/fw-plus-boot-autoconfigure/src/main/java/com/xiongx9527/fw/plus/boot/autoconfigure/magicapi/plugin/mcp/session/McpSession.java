@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth.McpPrincipal;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.client.McpClientRequestRecord;
 import lombok.Data;
 
 import java.util.Collections;
@@ -26,6 +27,8 @@ public class McpSession {
 	private long lastActivityAt;
 
 	private Map<Object, Map<String, Object>> clientRequests = new ConcurrentHashMap<>();
+
+	private Map<Object, McpClientRequestRecord> pendingClientRequests = new ConcurrentHashMap<>();
 
 	private Set<Object> cancelledRequests = Collections.newSetFromMap(new ConcurrentHashMap<Object, Boolean>());
 }

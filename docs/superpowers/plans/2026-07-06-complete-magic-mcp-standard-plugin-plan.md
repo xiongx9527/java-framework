@@ -103,27 +103,27 @@ Run: `mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconf
 - Produces: pending request record with id, sessionId, method, capability, createdAt, timeoutAt, status, result, error.
 - Consumes: dispatcher response messages with matching id.
 
-- [ ] **Step 1: Write failing lifecycle tests**
+- [x] **Step 1: Write failing lifecycle tests**
 
 Assert roots/sampling/elicitation creates pending request, response resolves it, error marks failed, timeout cleanup marks timed out, cancelled marks cancelled.
 
-- [ ] **Step 2: Write failing dispatcher response routing test**
+- [x] **Step 2: Write failing dispatcher response routing test**
 
 Assert a message with `jsonrpc`, `id`, and `result` but no `method` is routed to client request service and does not return method-not-found.
 
-- [ ] **Step 3: Implement pending request model**
+- [x] **Step 3: Implement pending request model**
 
 Add Java 8 compatible POJO and session storage map keyed by request id.
 
-- [ ] **Step 4: Implement resolve/error/timeout/cancel operations**
+- [x] **Step 4: Implement resolve/error/timeout/cancel operations**
 
 Extend `McpClientRequestService` with methods to resolve, fail, timeout cleanup and cancel pending requests.
 
-- [ ] **Step 5: Route JSON-RPC responses in dispatcher**
+- [x] **Step 5: Route JSON-RPC responses in dispatcher**
 
 Add optional client request service dependency; detect response/error messages before method dispatch.
 
-- [ ] **Step 6: Run task tests**
+- [x] **Step 6: Run task tests**
 
 Run: `mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='McpClientRequestServiceTest,McpJsonRpcDispatcherTest' test -q`
 
