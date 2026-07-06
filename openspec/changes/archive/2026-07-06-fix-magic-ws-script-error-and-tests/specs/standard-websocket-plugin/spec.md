@@ -11,7 +11,7 @@ The plugin SHALL make MagicAPI console validation for WebSocket resources reflec
 - **WHEN** a MagicAPI console user tests a `ws-datasource` with missing required fields, invalid JSON configuration, or missing token signing configuration
 - **THEN** the plugin SHALL return a failure result instead of reporting `ok`
 
-### Requirement: Structured WebSocket error responses
+### Requirement: Structured recoverable error response
 The plugin SHALL return a structured text error message for recoverable business-message errors and SHALL reserve WebSocket close codes for protocol, policy, unsupported-data, overload, and server-failure conditions.
 
 #### Scenario: Recoverable business message error

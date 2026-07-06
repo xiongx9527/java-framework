@@ -17,6 +17,6 @@ verification_report: openspec/changes/fix-magic-ws-script-error-and-tests/verifi
 branch_status: handled
 created_at: 2026-07-06
 verified_at: 2026-07-06
-archived: false
+archived: true
 build_command: mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='*Ws*Test,*WebSocket*Test,MagicWsControllerTest' test -q
 verify_command: mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='*Ws*Test,*WebSocket*Test,MagicWsControllerTest' test -q
