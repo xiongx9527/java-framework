@@ -72,6 +72,8 @@ public class CommonsValidatorRequestBodyAdvice implements RequestBodyAdvice {
         if (ObjectUtils.isNotEmpty(body)) {
             CommonsValidatorHolder.set(CommonsValidator.FORM_DATA_KEY, body);
             CommonsValidatorHolder.set(CommonsValidator.METHOD_PARAMETER_KEY, parameter);
+        } else {
+            CommonsValidatorHolder.clear();
         }
         return body;
     }
@@ -89,6 +91,7 @@ public class CommonsValidatorRequestBodyAdvice implements RequestBodyAdvice {
      */
     @Override
     public Object handleEmptyBody(Object body, HttpInputMessage inputMessage, MethodParameter parameter, Type targetType, Class<? extends HttpMessageConverter<?>> converterType) {
+        CommonsValidatorHolder.clear();
         return body;
     }
 }
