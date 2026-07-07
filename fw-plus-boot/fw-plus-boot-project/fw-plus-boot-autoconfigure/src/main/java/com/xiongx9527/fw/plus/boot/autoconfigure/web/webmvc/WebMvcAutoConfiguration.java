@@ -8,29 +8,21 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.context.support.ServletRequestHandledEvent;
 
 import java.util.Map;
 
 @Slf4j
 @Configuration
-//@ConditionalOnExpression("#{T(com.xiongx9527.fw.plus.common.util.SpringUtils).isWebMvc()}")
 @ConditionalOnWebApplication(
         type = ConditionalOnWebApplication.Type.SERVLET
 )
 @Import({WebMvcCommonFilter.class})
 public class WebMvcAutoConfiguration extends CommonAutoConfiguration implements ApplicationListener<ServletRequestHandledEvent> {
 
-    /**
-     * Web属性配置对象，用于存储和提供Web相关的配置信息
-     */
     private final WebProperties webProperties;
 
-    /**
-     * WebMvc自动配置类的构造函数
-     *
-     * @param webProperties Web属性配置对象，包含Web应用的相关配置信息
-     */
     public WebMvcAutoConfiguration(WebProperties webProperties) {
         this.webProperties = webProperties;
     }
@@ -46,7 +38,6 @@ public class WebMvcAutoConfiguration extends CommonAutoConfiguration implements 
         String levelName = level.getValue();
         long threshold = level.getKey();
 
-        // 根据不同的告警级别执行相应的日志记录操作
         switch (levelName) {
             case "WARN":
                 logWarnLevel(event, processingTime, threshold);
@@ -72,9 +63,7 @@ public class WebMvcAutoConfiguration extends CommonAutoConfiguration implements 
      * @param threshold 慢请求时间阈值（毫秒）
      */
     private void logWarnLevel(ServletRequestHandledEvent event, long processingTime, long threshold) {
-        // 检查是否启用警告级别日志，避免不必要的字符串拼接
         if (log.isWarnEnabled()) {
-            // 输出慢请求警告日志，包含请求方法、URL、实际耗时和阈值
             log.warn("[慢请求-WARN] {} {} - 耗时: {}ms (阈值: {}ms)",
                     event.getMethod(), event.getRequestUrl(), processingTime, threshold);
         }
@@ -89,7 +78,6 @@ public class WebMvcAutoConfiguration extends CommonAutoConfiguration implements 
      * @param threshold 配置的耗时阈值(毫秒)
      */
     private void logErrorLevel(ServletRequestHandledEvent event, long processingTime, long threshold) {
-        // 记录慢请求错误日志，包含请求方法、URL、客户端地址、处理耗时和阈值信息
         log.error("[慢请求-ERROR] 请求: {} {} 客户端: {} 耗时: {}ms (超过阈值: {}ms) 建议: 检查数据库查询或外部服务调用",
                 event.getMethod(), event.getRequestUrl(),
                 event.getClientAddress(), processingTime, threshold
@@ -105,7 +93,6 @@ public class WebMvcAutoConfiguration extends CommonAutoConfiguration implements 
      * @param threshold 慢请求时间阈值（毫秒）
      */
     private void logCriticalLevel(ServletRequestHandledEvent event, long processingTime, long threshold) {
-        // 记录慢请求的关键信息：请求方法、URL、客户端地址、处理耗时、阈值和请求状态
         log.error("[慢请求-CRITICAL] 请求: {} {} 客户端: {} 耗时: {}ms (严重超过阈值: {}ms) 是否异常: {} 紧急: 需要立即检查系统性能",
                 event.getMethod(), event.getRequestUrl(),
                 event.getClientAddress(), processingTime, threshold,
@@ -126,9 +113,14 @@ public class WebMvcAutoConfiguration extends CommonAutoConfiguration implements 
             log.error("[异常请求] 请求: {} {} 客户端: {} 耗时: {}ms 异常类型: {} 异常信息: {}",
                     event.getMethod(), event.getRequestUrl(),
                     event.getClientAddress(), processingTime,
+                    getExceptionType(failureCause),
                     failureCause.getMessage(),
                     failureCause);
         }
+    }
+
+    String getExceptionType(Throwable failureCause) {
+        return failureCause.getClass().getName();
     }
 
     /**
@@ -138,26 +130,24 @@ public class WebMvcAutoConfiguration extends CommonAutoConfiguration implements 
      */
     @Override
     public void onApplicationEvent(ServletRequestHandledEvent event) {
-        // 检查是否启用慢请求监控
         if (!this.webProperties.isSlowRequestEnabled()) {
             return;
         }
-        // 获取请求处理时间
         long processingTime = event.getProcessingTimeMillis();
-        // 根据处理时间找到对应的阈值级别（按 key 升序排列，取最高匹配阈值）
-        Map.Entry<Long, String> matchedLevel = this.webProperties.getSlowRequest().getThresholdLevels()
-                .entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .filter(entry -> processingTime >= entry.getKey())
-                .reduce((first, second) -> second)
-                .orElse(null);
+        Map.Entry<Long, String> matchedLevel = null;
+        Map<Long, String> thresholdLevels = this.webProperties.getSlowRequest().getThresholdLevels();
+        if (!CollectionUtils.isEmpty(thresholdLevels)) {
+            matchedLevel = thresholdLevels.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .filter(entry -> processingTime >= entry.getKey())
+                    .reduce((first, second) -> second)
+                    .orElse(null);
+        }
 
-        // 如果请求处理失败，记录异常详细信息
         if (this.webProperties.getSlowRequest().isPrintExceptionDetails() && event.getFailureCause() != null) {
             logExceptionDetails(event, processingTime);
         }
 
-        // 如果找到匹配的阈值级别，则处理阈值事件
         if (matchedLevel != null) {
             handleThresholdEvent(event, processingTime, matchedLevel);
         }
