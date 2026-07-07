@@ -2,8 +2,14 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.mate.webmvc;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.mate.webmvc.validator.CommonsValidatorRequestBodyAdvice;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mate.webmvc.validator.CommonsValidatorResponseBodyAdvice;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration(proxyBeanMethods = false)
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnProperty(prefix = "fw.plus.mate.validator", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class MateWebMvcValidatorAutoConfiguration {
 
@@ -17,6 +23,7 @@ public class MateWebMvcValidatorAutoConfiguration {
      * @return CommonsValidatorRequestBodyAdvice的实例，用于全局请求体验证
      */
     @Bean
+    @ConditionalOnMissingBean
     public CommonsValidatorRequestBodyAdvice commonsValidatorRequestBodyAdvice() {
         return new CommonsValidatorRequestBodyAdvice();
     }
@@ -26,6 +33,7 @@ public class MateWebMvcValidatorAutoConfiguration {
      * @return
      */
     @Bean
+    @ConditionalOnMissingBean
     public CommonsValidatorResponseBodyAdvice commonsValidatorResponseBodyAdvice() {
         return new CommonsValidatorResponseBodyAdvice();
     }
