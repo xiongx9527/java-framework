@@ -1,0 +1,6 @@
+{
+  "openspec_proposal": "openspec/changes/optimize-trace-autoconfigure/proposal.md",
+  "openspec_design": "openspec/changes/optimize-trace-autoconfigure/design.md",
+  "openspec_tasks": "openspec/changes/optimize-trace-autoconfigure/tasks.md",
+  "archive_directory": "openspec/changes/archive/2026-07-07-optimize-trace-autoconfigure"
+}
