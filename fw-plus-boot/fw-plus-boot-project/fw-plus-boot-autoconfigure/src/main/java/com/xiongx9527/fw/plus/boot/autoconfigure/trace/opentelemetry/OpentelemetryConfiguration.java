@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.trace.opentelemetry;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,8 +12,8 @@ import org.springframework.context.annotation.Configuration;
 public class OpentelemetryConfiguration {
 
     @Bean
+    @ConditionalOnMissingBean
     public OpentelemetryTrace opentelemetryTrace() {
         return new OpentelemetryTrace();
     }
-
 }

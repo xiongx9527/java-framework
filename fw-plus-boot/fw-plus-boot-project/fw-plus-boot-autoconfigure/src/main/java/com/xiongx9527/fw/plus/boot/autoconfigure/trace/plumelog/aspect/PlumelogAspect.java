@@ -15,20 +15,16 @@ public class PlumelogAspect {
     }
 
     @Around("@annotation(com.xiongx9527.fw.plus.boot.autoconfigure.trace.plumelog.annotation.PlumelogTrace)")
-    public Object beforeExecute(ProceedingJoinPoint joinPoint) {
-        return plumelogTrace.traceLog(joinPoint.getSignature().toShortString(), o -> {
-            try {
-                return joinPoint.proceed();
-            } catch (Throwable e) {
-                if (e instanceof Error) {
-                    throw (Error) e;
-                }
-                if (e instanceof RuntimeException) {
-                    throw (RuntimeException) e;
-                }
-                throw new RuntimeException(e);
+    public Object beforeExecute(ProceedingJoinPoint joinPoint) throws Throwable {
+        String messageType = joinPoint.getSignature().toShortString();
+        boolean start = plumelogTrace.startTraceLog(messageType);
+        try {
+            return joinPoint.proceed();
+        } finally {
+            if (start) {
+                plumelogTrace.endTraceLog(messageType);
             }
-        });
+        }
     }
 
 }
