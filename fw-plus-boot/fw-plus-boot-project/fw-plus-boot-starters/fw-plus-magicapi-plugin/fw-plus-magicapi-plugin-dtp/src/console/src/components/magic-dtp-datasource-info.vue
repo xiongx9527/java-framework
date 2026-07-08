@@ -18,7 +18,7 @@
     </div>
     <div class="magic-form-row">
       <label>{{ $i('dtp.datasource.form.queueType') }}</label>
-      <magic-input v-model:value="info.queueType" :placeholder="$i('dtp.datasource.form.placeholder.queueType')" width="100%" />
+      <magic-select v-model:value="info.queueType" :placeholder="$i('dtp.datasource.form.placeholder.queueType')" :options="queueTypeOptions" width="100%" />
     </div>
     <div class="magic-form-row">
       <label>{{ $i('dtp.datasource.form.queueCapacity') }}</label>
@@ -43,6 +43,16 @@
 import {inject} from 'vue'
 
 const $i = inject('i18n.format')
+
+const queueTypeOptions = [
+  { label: 'LinkedBlockingQueue', value: 'linked' },
+  { label: 'ArrayBlockingQueue', value: 'array' },
+  { label: 'SynchronousQueue', value: 'synchronous' },
+  { label: 'PriorityBlockingQueue', value: 'priority' },
+  { label: 'DelayQueue', value: 'delayed' },
+  { label: 'LinkedTransferQueue', value: 'linkedtransferqueue' },
+  { label: 'LinkedBlockingDeque', value: 'linkedblockingdeque' }
+]
 
 const props = defineProps({
   info: {
