@@ -28,7 +28,8 @@ public class DtpDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegis
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("处理 DTP 数据源文件事件失败: {}", event, e);
         }
     }
 
@@ -36,16 +37,17 @@ public class DtpDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegis
     public void onGroupEvent(GroupEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("处理 DTP 数据源分组事件失败: {}", event, e);
         }
     }
 
     @Override
     public boolean register(DtpDataSourceInfo entity) {
-        magicDynamicDtpDataSource.destroyClientByKey(entity.getKey());
         try {
             return super.register(entity);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("注册 DTP 数据源失败: {}", entity == null ? null : entity.getKey(), e);
             return false;
         }
     }
@@ -54,11 +56,11 @@ public class DtpDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegis
     protected boolean register(MappingNode<DtpDataSourceInfo> mappingNode) {
         DtpDataSourceInfo entity = mappingNode.getEntity();
         // 销毁旧的客户端连接并创建新的客户端连接
-        magicDynamicDtpDataSource.destroyClientByKey(entity.getKey());
         magicDynamicDtpDataSource.createClient(entity);
         try {
             return super.register(mappingNode);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("注册 DTP 数据源映射失败: {}", entity == null ? null : entity.getKey(), e);
             return false;
         }
     }
@@ -68,7 +70,8 @@ public class DtpDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegis
         magicDynamicDtpDataSource.destroyClientByKey(mappingNode.getEntity().getKey());
         try {
             super.unregister(mappingNode);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("注销 DTP 数据源失败: {}", mappingNode.getEntity().getKey(), e);
         }
     }
 
