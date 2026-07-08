@@ -19,7 +19,7 @@ export default {
                     key: '数据源Key，必填',
                     corePoolSize: '核心线程数，默认1',
                     maximumPoolSize: '最大线程数，默认10',
-                    queueType: '队列类型，默认ArrayBlockingQueue',
+                    queueType: '队列类型，默认LinkedBlockingQueue',
                     queueCapacity: '队列容量，默认1000',
                     threadFactory: '线程工厂，默认DefaultThreadFactory',
                     rejectedPolicy: '拒绝策略，默认CallerRunsPolicy',
