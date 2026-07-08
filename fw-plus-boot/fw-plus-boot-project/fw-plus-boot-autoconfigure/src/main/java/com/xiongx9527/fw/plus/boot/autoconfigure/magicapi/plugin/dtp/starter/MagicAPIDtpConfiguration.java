@@ -7,13 +7,13 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.service.Dtp
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.service.DtpDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.web.MagicDtpController;
 import org.dromara.dynamictp.core.executor.DtpExecutor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
 import org.ssssssss.magicapi.core.model.Plugin;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
@@ -24,8 +24,14 @@ import java.util.concurrent.TimeUnit;
 @ConditionalOnProperty(prefix = "magic-api.plugin.dtp", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name = {"org.dromara.dynamictp.core.executor.DtpExecutor"})
 @EnableConfigurationProperties(MagicAPIDtpConfig.class)
-@Configuration
+@Configuration(proxyBeanMethods = false)
 public class MagicAPIDtpConfiguration implements MagicPluginConfiguration, BaseService {
+
+    private final ObjectProvider<MagicDynamicDtpDataSource> magicDynamicDtpDataSourceProvider;
+
+    public MagicAPIDtpConfiguration(ObjectProvider<MagicDynamicDtpDataSource> magicDynamicDtpDataSourceProvider) {
+        this.magicDynamicDtpDataSourceProvider = magicDynamicDtpDataSourceProvider;
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -35,20 +41,21 @@ public class MagicAPIDtpConfiguration implements MagicPluginConfiguration, BaseS
 
     @Bean
     @ConditionalOnMissingBean(DtpExecutor.class)
-    public DtpExecutor dtpExecutor() {
-        return new DtpExecutor(getCorePoolSize(),
-                getMaximumPoolSize(),
-                getKeepAliveTime(), TimeUnit.SECONDS,
-                new LinkedBlockingQueue<>(getQueueCapacity()));
+    public DtpExecutor dtpExecutor(MagicAPIDtpConfig config) {
+        return new DtpExecutor(getConfigValueAsInt(config, "corePoolSize", 5),
+                getConfigValueAsInt(config, "maximumPoolSize", 15),
+                getConfigValueAsInt(config, "keepAliveTime", 0), TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(getConfigValueAsInt(config, "queueCapacity", 20)));
     }
 
     @Bean
-    @DependsOn(value = {"magicDynamicDtpDataSource"})
+    @ConditionalOnMissingBean
     public DtpModule dtpModule(MagicDynamicDtpDataSource magicDynamicDtpDataSource, DtpExecutor dtpExecutor) {
         return new DtpModule(magicDynamicDtpDataSource, dtpExecutor);
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public DtpDataSourceInfoMagicResourceStorage dtpDataSourceInfoMagicResourceStorage() {
         return new DtpDataSourceInfoMagicResourceStorage();
     }
@@ -67,7 +74,8 @@ public class MagicAPIDtpConfiguration implements MagicPluginConfiguration, BaseS
 
     @Override
     public MagicControllerRegister controllerRegister() {
-        return (mapping, configuration) -> mapping.registerController(new MagicDtpController(configuration, magicDynamicDtpDataSource()));
+        return (mapping, configuration) -> mapping.registerController(
+                new MagicDtpController(configuration, this.magicDynamicDtpDataSourceProvider.getObject()));
     }
 
 }
