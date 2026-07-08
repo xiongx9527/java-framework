@@ -92,6 +92,7 @@ public class RedisMqttMessageExchangeReceiver extends RedisMessageListenerContai
 		this.clusterMessageListener = new MqttClusterMessageListener(mqttServer);
 		this.channel = channel;
 		this.redisConnectionFactory = redisConnectionFactory;
+		this.setConnectionFactory(redisConnectionFactory);
 	}
 
 
@@ -113,8 +114,11 @@ public class RedisMqttMessageExchangeReceiver extends RedisMessageListenerContai
 	@Override
 	public void afterSingletonsInstantiated() {
 		// 如果Redis连接工厂未初始化，则从应用上下文中获取
-		if (this.redisConnectionFactory == null) {
+		if (this.redisConnectionFactory == null && this.applicationContext != null) {
 			this.redisConnectionFactory = this.applicationContext.getBean(RedisConnectionFactory.class);
+		}
+		if (this.redisConnectionFactory == null) {
+			throw new IllegalStateException("No RedisConnectionFactory available for MQTT Redis receiver.");
 		}
 		this.setConnectionFactory(this.redisConnectionFactory);
 		// 添加消息监听器，监听指定频道的消息
