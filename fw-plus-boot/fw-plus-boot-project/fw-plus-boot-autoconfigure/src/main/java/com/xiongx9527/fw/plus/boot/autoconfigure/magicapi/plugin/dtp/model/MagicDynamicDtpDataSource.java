@@ -39,17 +39,15 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
      * @return 返回指定类型的BlockingQueue实例
      */
     private BlockingQueue<Runnable> createWorkQueue(DtpDataSourceInfo info) {
-        String queueType = MagicAPIConfigUtils.getDtpConfig(info.getKey(), "queueType", info.getQueueType());
-        if (queueType == null || queueType.isEmpty()) {
-            queueType = "linked";
-        }
+        String queueType = DtpDataSourceValidator.normalizeQueueType(
+                MagicAPIConfigUtils.getDtpConfig(info.getKey(), "queueType", info.getQueueType()));
 
         int capacity = Integer.parseInt(MagicAPIConfigUtils.getDtpConfig(info.getKey(), "queueCapacity", String.valueOf(info.getQueueCapacity())));
-        if (capacity <= 0) {
-            throw new IllegalArgumentException("队列容量必须大于0");
+        if (DtpDataSourceValidator.isBoundedQueue(queueType) && capacity <= 0) {
+            throw new IllegalArgumentException("queueCapacity必须大于0");
         }
 
-        switch (queueType.toLowerCase()) {
+        switch (queueType) {
             case "array":
                 return new ArrayBlockingQueue<>(capacity);
             case "synchronous":
@@ -66,7 +64,7 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
                 return new LinkedBlockingDeque<>(capacity);
             default:
                 // 抛出异常而不是静默使用默认队列，防止配置错误被忽略
-                throw new IllegalArgumentException("不支持的队列类型: " + queueType);
+                throw new IllegalArgumentException("queueType不支持: " + queueType);
         }
     }
 
@@ -112,12 +110,10 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
      * @return 返回对应的拒绝执行处理器实例
      */
     private RejectedExecutionHandler createRejectedHandler(DtpDataSourceInfo info) {
-        String rejectedPolicy = MagicAPIConfigUtils.getDtpConfig(info.getKey(), "rejectedPolicy", info.getRejectedPolicy());
-        if (StringUtils.isEmpty(rejectedPolicy)) {
-            rejectedPolicy = "abort";
-        }
+        String rejectedPolicy = DtpDataSourceValidator.normalizeRejectedPolicy(
+                MagicAPIConfigUtils.getDtpConfig(info.getKey(), "rejectedPolicy", info.getRejectedPolicy()));
 
-        switch (rejectedPolicy.toLowerCase()) {
+        switch (rejectedPolicy) {
             case "caller_runs":
                 return new ThreadPoolExecutor.CallerRunsPolicy();
             case "abort":
@@ -127,7 +123,7 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
             case "discard_oldest":
                 return new ThreadPoolExecutor.DiscardOldestPolicy();
             default:
-                throw new IllegalArgumentException("不支持的拒绝策略: " + rejectedPolicy);
+                throw new IllegalArgumentException("rejectedPolicy不支持: " + rejectedPolicy);
         }
     }
 
@@ -183,6 +179,7 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
      * @return 返回配置好的DtpExecutor线程池执行器实例
      */
     public DtpExecutor buildClient(DtpDataSourceInfo info) {
+        DtpDataSourceValidator.validate(info);
         // 使用数据源信息中的配置参数创建DtpExecutor实例
         DtpExecutor client = new DtpExecutor(
                 info.getCorePoolSize(),
@@ -193,6 +190,7 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
                 createThreadFactory(info),
                 createRejectedHandler(info)
         );
+        client.setThreadPoolName(info.getKey());
         configureDtpExecutorFromOtherInfo(client, info);
         return client;
     }
@@ -207,11 +205,11 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
         DtpExecutor client = buildClient(info);
         // 将客户端执行器存储到客户端映射中
         DtpExecutor oldClient = this.clientMap.put(info.getKey(), client);
+        // 将数据源信息存储到信息映射中
+        this.infoMap.put(info.getKey(), (DtpDataSourceInfo) info.copy());
         if (oldClient != null) {
             destroyClient(oldClient);
         }
-        // 将数据源信息存储到信息映射中
-        this.infoMap.put(info.getKey(), info);
     }
 
     /**
@@ -222,6 +220,14 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
      */
     public DtpExecutor getClient(String key) {
         return this.clientMap.get(key);
+    }
+
+    public DtpDataSourceInfo getInfo(String key) {
+        return this.infoMap.get(key);
+    }
+
+    public int size() {
+        return this.clientMap.size();
     }
 
     /**
