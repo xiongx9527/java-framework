@@ -120,7 +120,7 @@ public class RedisMqttMessageDispatcher implements IMqttMessageDispatcher , Appl
 	@Override
 	public void afterSingletonsInstantiated() {
 		// 如果streamTemplate未初始化，则从上下文中获取RStreamTemplate bean进行赋值
-		if (this.streamTemplate == null) {
+		if (this.streamTemplate == null && this.context != null) {
 			try {
 				this.streamTemplate = this.context.getBean(RStreamTemplate.class);
 			} catch (Exception e) {
@@ -132,6 +132,9 @@ public class RedisMqttMessageDispatcher implements IMqttMessageDispatcher , Appl
 					}
 				}
 			}
+		}
+		if (this.streamTemplate == null) {
+			throw new IllegalStateException("No RStreamTemplate or non-String RedisTemplate available for MQTT Redis dispatcher.");
 		}
 	}
 
