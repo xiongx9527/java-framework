@@ -41,7 +41,7 @@ public class MagicApiScriptTask implements Supplier<Map<String, Object>>  {
         try {
             return (Map<String, Object>) ScriptManager.executeScript(script, context);
         } catch (Exception e) {
-            log.warn("执行脚本失败：{}", e.getMessage());
+            log.warn("执行脚本失败，scriptPrefix={}：{}", script == null ? null : script.substring(0, Math.min(script.length(), 80)), e.getMessage(), e);
             return java.util.Collections.emptyMap();
         }
     }
