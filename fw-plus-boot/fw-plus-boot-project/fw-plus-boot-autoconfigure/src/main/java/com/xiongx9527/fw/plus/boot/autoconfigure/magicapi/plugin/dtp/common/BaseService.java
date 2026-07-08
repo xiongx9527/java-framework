@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.common;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.model.DtpDataSourceInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.model.DtpDataSourceValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.starter.MagicAPIDtpConfig;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 
@@ -17,10 +18,7 @@ public interface BaseService extends MagicBaseService {
         // 验证必填字段：确保名称、密钥、主机和协议都不为空
         validateRequiredField(entity.getName(), "name");
         validateRequiredField(entity.getKey(), "key");
-
-        // 验证其它配置是否为有效的JSON格式
-        // 如果配置内容不为空，则进行JSON格式校验
-        validateJSON(entity.getOther(),"other");
+        DtpDataSourceValidator.validate(entity);
     }
 
     /**
