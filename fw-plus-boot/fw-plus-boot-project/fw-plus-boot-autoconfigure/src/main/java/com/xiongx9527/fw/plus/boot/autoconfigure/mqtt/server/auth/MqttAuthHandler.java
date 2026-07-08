@@ -16,34 +16,39 @@
 
 package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.auth;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.properties.FwPlusMqttServerSecurityProperties;
 import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerAuthHandler;
+import net.dreamlu.iot.mqtt.spring.server.config.MqttServerProperties;
+import org.apache.commons.lang3.StringUtils;
 import org.tio.core.ChannelContext;
-import org.tio.core.Node;
 
-/**
- * mqtt tcp、websocket 认证，请按照自己的需求和业务进行扩展
- *
- * @author L.cm
- */
-//@Configuration(proxyBeanMethods = false)
+import java.util.Objects;
+
 public class MqttAuthHandler implements IMqttServerAuthHandler {
 
-	/**
-	 * 客户端认证方法
-	 *
-	 * @param context 通道上下文对象，包含客户端连接信息
-	 * @param uniqueId 客户端唯一标识符
-	 * @param clientId 客户端ID
-	 * @param userName 用户名
-	 * @param password 密码
-	 * @return 认证结果，true表示认证成功，false表示认证失败
-	 */
-	@Override
-	public boolean authenticate(ChannelContext context, String uniqueId, String clientId, String userName, String password) {
-		// 获取客户端信息
-		Node clientNode = context.getClientNode();
-		// 客户端认证逻辑实现
-		return true;
+	private final MqttServerProperties properties;
+
+	private final FwPlusMqttServerSecurityProperties securityProperties;
+
+	public MqttAuthHandler() {
+		this(new MqttServerProperties(), new FwPlusMqttServerSecurityProperties());
 	}
 
+	public MqttAuthHandler(MqttServerProperties properties, FwPlusMqttServerSecurityProperties securityProperties) {
+		this.properties = Objects.requireNonNull(properties, "MqttServerProperties must not be null");
+		this.securityProperties = Objects.requireNonNull(securityProperties, "FwPlusMqttServerSecurityProperties must not be null");
+	}
+
+	@Override
+	public boolean authenticate(ChannelContext context, String uniqueId, String clientId, String userName, String password) {
+		if (StringUtils.isBlank(clientId)) {
+			return false;
+		}
+		MqttServerProperties.MqttAuth mqttAuth = this.properties.getAuth();
+		if (mqttAuth == null || !mqttAuth.isEnable()) {
+			return this.securityProperties.isAllowAnonymousWhenAuthDisabled();
+		}
+		return StringUtils.equals(mqttAuth.getUsername(), userName)
+				&& StringUtils.equals(mqttAuth.getPassword(), password);
+	}
 }
