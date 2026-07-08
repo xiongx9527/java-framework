@@ -78,7 +78,7 @@ public class RedisDataSourceInfoMagicResourceStorage implements MagicResourceSto
         // 获取所有已存在的数据源
         boolean noneMatchKey = magicResourceService.listFiles(folder() + ":0").stream()
                 .map(it -> (RedisDataSourceInfo)it)
-                .filter(it -> !Objects.equals(it.getId(), currentId))
+                .filter(it -> !it.getId().equals(currentId))
                 .noneMatch(it -> Objects.equals(it.getKey(), key));
 
         if (!noneMatchKey) {
