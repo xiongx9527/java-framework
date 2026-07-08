@@ -16,32 +16,49 @@
 
 package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.auth;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.properties.FwPlusMqttServerSecurityProperties;
 import net.dreamlu.iot.mqtt.codec.MqttQoS;
 import net.dreamlu.iot.mqtt.core.server.auth.IMqttServerSubscribeValidator;
+import org.apache.commons.lang3.StringUtils;
 import org.tio.core.ChannelContext;
 
-/**
- * 订阅校验，请按照自己的需求和业务进行扩展
- *
- * @author L.cm
- */
-//@Configuration(proxyBeanMethods = false)
+import java.util.Objects;
+
 public class MqttSubscribeValidator implements IMqttServerSubscribeValidator {
 
-	/**
-	 * 验证客户端订阅主题的合法性
-	 *
-	 * @param context Channel上下文对象，包含连接相关信息
-	 * @param clientId 客户端唯一标识符
-	 * @param topicFilter 主题过滤器，客户端要订阅的主题
-	 * @param qoS 服务质量等级
-	 * @return 验证结果，true表示订阅合法，false表示订阅不合法
-	 */
-	@Override
-	public boolean isValid(ChannelContext context, String clientId, String topicFilter, MqttQoS qoS) {
-		// 校验客户端订阅的 topic，校验成功返回 true，失败返回 false
-		return true;
+	private final FwPlusMqttServerSecurityProperties securityProperties;
+
+	public MqttSubscribeValidator() {
+		this(new FwPlusMqttServerSecurityProperties());
 	}
 
+	public MqttSubscribeValidator(FwPlusMqttServerSecurityProperties securityProperties) {
+		this.securityProperties = Objects.requireNonNull(securityProperties, "FwPlusMqttServerSecurityProperties must not be null");
+	}
 
+	@Override
+	public boolean isValid(ChannelContext context, String clientId, String topicFilter, MqttQoS qoS) {
+		if (!this.securityProperties.isSubscribeAuthEnabled()) {
+			return true;
+		}
+		return StringUtils.isNotBlank(clientId)
+				&& StringUtils.isNotBlank(topicFilter)
+				&& isValidTopicFilter(topicFilter);
+	}
+
+	private boolean isValidTopicFilter(String topicFilter) {
+		String[] levels = topicFilter.split("/", -1);
+		for (int i = 0; i < levels.length; i++) {
+			String level = levels[i];
+			if (StringUtils.contains(level, '#')) {
+				if (!"#".equals(level) || i != levels.length - 1) {
+					return false;
+				}
+			}
+			if (StringUtils.contains(level, '+') && !"+".equals(level)) {
+				return false;
+			}
+		}
+		return true;
+	}
 }
