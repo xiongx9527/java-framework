@@ -40,6 +40,9 @@ public class MagicRedisController extends MagicController implements MagicExcept
     public JsonBean<Object> test(@RequestBody RedisDataSourceInfo properties) {
         MagicDynamicRedisDataSource magicDynamicRedisDataSource = SpringUtils.getBean(MagicDynamicRedisDataSource.class);
         RedisConnectionFactory connectionFactory = null;
+        RedisConnection connection = null;
+        RedisClusterConnection clusterConnection = null;
+        RedisSentinelConnection sentinelConnection = null;
         try {
             // 验证传入的Redis配置字段是否合法
             validateField(properties);
@@ -64,19 +67,19 @@ public class MagicRedisController extends MagicController implements MagicExcept
                 // 根据不同模式选择相应的连接方式进行测试，默认使用单机模式
                 if (!"cluster".equals(mode) && !"sentinel".equals(mode)) {
                     // 单机模式（默认）
-                    RedisConnection connection = connectionFactory.getConnection();
+                    connection = connectionFactory.getConnection();
                     if (connection != null) {
                         ping = connection.ping();
                     }
                 } else if ("cluster".equals(mode)) {
                     // 集群模式
-                    RedisClusterConnection clusterConnection = connectionFactory.getClusterConnection();
+                    clusterConnection = connectionFactory.getClusterConnection();
                     if (clusterConnection != null) {
                         ping = clusterConnection.ping();
                     }
                 } else if ("sentinel".equals(mode)) {
                     // 哨兵模式
-                    RedisSentinelConnection sentinelConnection = connectionFactory.getSentinelConnection();
+                    sentinelConnection = connectionFactory.getSentinelConnection();
                     if (sentinelConnection != null) {
                         sentinelConnection.masters();
                         ping = "PONG";
@@ -96,12 +99,26 @@ public class MagicRedisController extends MagicController implements MagicExcept
             log.error("测试Redis数据源配置失败", e);
             return new JsonBean<>(e.getMessage());
         } finally {
+            closeConnection(connection);
+            closeConnection(clusterConnection);
+            closeConnection(sentinelConnection);
             // 销毁临时创建的Redis连接工厂资源
             try {
                 magicDynamicRedisDataSource.destroyRedisConnectionFactory(connectionFactory);
             } catch (Exception e) {
                 log.error("销毁Redis数据源配置失败", e);
             }
+        }
+    }
+
+    private void closeConnection(AutoCloseable connection) {
+        if (connection == null) {
+            return;
+        }
+        try {
+            connection.close();
+        } catch (Exception e) {
+            log.warn("关闭Redis连接失败", e);
         }
     }
 
