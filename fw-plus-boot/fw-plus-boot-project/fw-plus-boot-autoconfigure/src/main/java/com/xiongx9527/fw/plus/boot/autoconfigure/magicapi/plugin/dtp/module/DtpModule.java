@@ -58,7 +58,7 @@ public class DtpModule implements DynamicAttribute<DtpModule, DtpModule>, Dynami
      */
     public <T> CompletableFuture<List<T>> allOfWithAllResults(List<Supplier<T>> tasks) {
         if (CollectionUtils.isEmpty(tasks)) {
-            return null;
+            return CompletableFuture.completedFuture(java.util.Collections.emptyList());
         }
         List<CompletableFuture<T>> futures = tasks.stream()
                 .map(task -> CompletableFuture.supplyAsync(task, this.dtpExecutor))
@@ -80,7 +80,7 @@ public class DtpModule implements DynamicAttribute<DtpModule, DtpModule>, Dynami
     @SuppressWarnings("unchecked")
     public <T> CompletableFuture<T> anyOfWithFirstResult(List<Supplier<T>> tasks) {
         if (CollectionUtils.isEmpty(tasks)) {
-            return null;
+            return CompletableFuture.completedFuture(null);
         }
 
         List<CompletableFuture<T>> futures = tasks.stream()
@@ -99,7 +99,7 @@ public class DtpModule implements DynamicAttribute<DtpModule, DtpModule>, Dynami
      */
     public CompletableFuture<Void> anyOfWithoutResult(List<Runnable> tasks) {
         if (CollectionUtils.isEmpty(tasks)) {
-            return null;
+            return CompletableFuture.completedFuture(null);
         }
 
         CompletableFuture<?>[] futures = tasks.stream()
@@ -130,20 +130,18 @@ public class DtpModule implements DynamicAttribute<DtpModule, DtpModule>, Dynami
         if (StringUtils.isEmpty(dataSourceKey)) {
             return this;
         }
-        DtpExecutor client = this.magicDynamicDtpDataSource.getClient(dataSourceKey);
-        if (client == null) {
-            log.warn("DTP数据源 '{}' 不存在，使用默认线程池", dataSourceKey);
-            return this;
-        }
-        return new DtpModule(this.magicDynamicDtpDataSource, client);
+        return moduleForKey(dataSourceKey);
     }
 
     @Override
     public DtpModule getDynamicAttribute(String key) {
+        return moduleForKey(key);
+    }
+
+    private DtpModule moduleForKey(String key) {
         DtpExecutor client = this.magicDynamicDtpDataSource.getClient(key);
         if (client == null) {
-            log.warn("DTP数据源 '{}' 不存在，使用默认线程池", key);
-            return this;
+            throw new IllegalArgumentException("DTP数据源不存在: " + key);
         }
         return new DtpModule(this.magicDynamicDtpDataSource, client);
     }

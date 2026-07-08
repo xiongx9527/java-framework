@@ -47,7 +47,7 @@ public class MagicApiFuncTask implements Supplier<Map<String, Object>> {
         try {
             return (Map<String, Object>) ScriptManager.executeScript("import magic; return magic.invoke(funcName, args);", context);
         } catch (Exception e) {
-            log.warn("执行函数调用失败：{}", e.getMessage());
+            log.warn("执行函数调用失败，funcName={}：{}", funcName, e.getMessage(), e);
             return java.util.Collections.emptyMap();
         }
     }
