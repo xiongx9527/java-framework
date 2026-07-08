@@ -30,14 +30,14 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
      * 存储所有已创建的Redis连接工厂实例
      * 使用ConcurrentHashMap保证线程安全，key为数据源的唯一标识，value为对应的Redis连接工厂实例
      */
-    private static final Map<String, RedisConnectionFactory> redisConnectionFactoryMap = new ConcurrentHashMap<>();
+    private final Map<String, RedisConnectionFactory> redisConnectionFactoryMap = new ConcurrentHashMap<>();
 
     /**
      * Redis数据源信息映射表
      * 用于存储Redis数据源的配置信息，以数据源名称为键，RedisDataSourceInfo对象为值
      * 使用ConcurrentHashMap保证线程安全，支持多线程并发访问
      */
-    private static final Map<String, RedisDataSourceInfo> redisDataSourceInfoMap = new ConcurrentHashMap<>();
+    private final Map<String, RedisDataSourceInfo> redisDataSourceInfoMap = new ConcurrentHashMap<>();
 
 
     /**
@@ -48,22 +48,16 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
      * @return RedisConnectionFactory Redis连接工厂实例，如果创建失败则返回null
      */
     public RedisConnectionFactory createRedisConnectionFactory(RedisDataSourceInfo dataSourceInfo) {
-        RedisConnectionFactory connectionFactory = null;
-        // 检查数据源信息是否为空
-        if (dataSourceInfo == null) {
-            log.warn("数据源信息为空，无法构建Redis连接工厂");
-            return connectionFactory;
-        }
-        String clientType = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "clientType", dataSourceInfo.getClientType());
+        RedisDataSourceInfo resolvedInfo = resolveDataSourceInfo(dataSourceInfo);
+        RedisDataSourceValidator.validate(resolvedInfo);
+        String clientType = RedisDataSourceValidator.normalizeClientType(resolvedInfo.getClientType());
         // 根据客户端类型创建相应的连接工厂
         if ("lettuce".equalsIgnoreCase(clientType)) {
-            connectionFactory = createLettuceConnectionFactory(dataSourceInfo);
+            return createLettuceConnectionFactory(resolvedInfo);
         } else if ("jedis".equalsIgnoreCase(clientType)) {
-            connectionFactory = createJedisConnectionFactory(dataSourceInfo);
-        } else {
-            log.warn("不支持的Redis客户端类型: {}", clientType);
+            return createJedisConnectionFactory(resolvedInfo);
         }
-        return connectionFactory;
+        throw new IllegalArgumentException("clientType不支持: " + clientType);
     }
 
 
@@ -74,32 +68,51 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
      * @param dataSourceInfo Redis数据源信息，包含连接所需的各种配置参数
      */
     public void buildRedisConnectionFactory(RedisDataSourceInfo dataSourceInfo) {
-        RedisConnectionFactory connectionFactory = createRedisConnectionFactory(dataSourceInfo);
-        String key = dataSourceInfo.getKey();
-        // 初始化连接工厂并存储
-        if (connectionFactory != null) {
-            try {
-                // 初始化连接工厂
-                if (connectionFactory instanceof LettuceConnectionFactory) {
-                    ((LettuceConnectionFactory) connectionFactory).afterPropertiesSet();
-                } else if (connectionFactory instanceof JedisConnectionFactory) {
-                    ((JedisConnectionFactory) connectionFactory).afterPropertiesSet();
-                }
-                RedisConnectionFactory oldConnectionFactory = redisConnectionFactoryMap.put(key, connectionFactory);
-                if (oldConnectionFactory != null) {
-                    destroyRedisConnectionFactory(oldConnectionFactory);
-                }
-                redisDataSourceInfoMap.put(key, dataSourceInfo);
-            } catch (Exception e) {
-                log.error("初始化Redis连接工厂失败: key={}", key, e);
-                // 如果初始化失败，清理已创建的连接工厂
-                try {
-                    destroyRedisConnectionFactory(connectionFactory);
-                } catch (Exception destroyException) {
-                    log.warn("销毁Redis连接工厂失败: key={}", key, destroyException);
-                }
+        RedisDataSourceInfo resolvedInfo = resolveDataSourceInfo(dataSourceInfo);
+        RedisDataSourceValidator.validate(resolvedInfo);
+        RedisConnectionFactory connectionFactory = createRedisConnectionFactory(resolvedInfo);
+        String key = resolvedInfo.getKey();
+        try {
+            initializeRedisConnectionFactory(connectionFactory);
+            RedisConnectionFactory oldConnectionFactory = redisConnectionFactoryMap.put(key, connectionFactory);
+            redisDataSourceInfoMap.put(key, (RedisDataSourceInfo) resolvedInfo.copy());
+            if (oldConnectionFactory != null) {
+                destroyRedisConnectionFactory(oldConnectionFactory);
             }
+        } catch (RuntimeException e) {
+            destroyRedisConnectionFactory(connectionFactory);
+            throw e;
+        } catch (Exception e) {
+            destroyRedisConnectionFactory(connectionFactory);
+            throw new IllegalStateException("初始化Redis连接工厂失败: key=" + key, e);
         }
+    }
+
+    private void initializeRedisConnectionFactory(RedisConnectionFactory connectionFactory) {
+        if (connectionFactory instanceof LettuceConnectionFactory) {
+            ((LettuceConnectionFactory) connectionFactory).afterPropertiesSet();
+        } else if (connectionFactory instanceof JedisConnectionFactory) {
+            ((JedisConnectionFactory) connectionFactory).afterPropertiesSet();
+        }
+    }
+
+    private RedisDataSourceInfo resolveDataSourceInfo(RedisDataSourceInfo dataSourceInfo) {
+        if (dataSourceInfo == null) {
+            throw new IllegalArgumentException("Redis 数据源配置不能为空");
+        }
+        RedisDataSourceInfo resolvedInfo = (RedisDataSourceInfo) dataSourceInfo.copy();
+        String key = resolvedInfo.getKey();
+        resolvedInfo.setHostname(MagicAPIConfigUtils.getRedisConfig(key, "hostname", resolvedInfo.getHostname()));
+        resolvedInfo.setPort(MagicAPIConfigUtils.getRedisConfig(key, "port", resolvedInfo.getPort()));
+        resolvedInfo.setUsername(MagicAPIConfigUtils.getRedisConfig(key, "username", resolvedInfo.getUsername()));
+        resolvedInfo.setPassword(MagicAPIConfigUtils.getRedisConfig(key, "password", resolvedInfo.getPassword()));
+        resolvedInfo.setDatabase(MagicAPIConfigUtils.getRedisConfig(key, "database", resolvedInfo.getDatabase()));
+        resolvedInfo.setClientType(RedisDataSourceValidator.normalizeClientType(
+                MagicAPIConfigUtils.getRedisConfig(key, "clientType", resolvedInfo.getClientType())));
+        resolvedInfo.setMode(RedisDataSourceValidator.normalizeMode(
+                MagicAPIConfigUtils.getRedisConfig(key, "mode", resolvedInfo.getMode())));
+        resolvedInfo.setOther(MagicAPIConfigUtils.getRedisConfig(key, "other", resolvedInfo.getOther()));
+        return resolvedInfo;
     }
 
     /**
@@ -116,8 +129,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
         }
         LettuceConnectionFactory connectionFactory = null;
         LettuceClientConfiguration clientConfiguration = createLettuceClientConfiguration(dataSourceInfo);
-        String mode = dataSourceInfo.getMode();
-        mode = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "mode", mode);
+        String mode = RedisDataSourceValidator.normalizeMode(dataSourceInfo.getMode());
         if ("standalone".equalsIgnoreCase(mode)) {
             // 单机模式配置
             RedisStandaloneConfiguration standaloneConfig = createStandaloneConfig(dataSourceInfo);
@@ -140,7 +152,6 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
         // 示例实现：假设other字段是JSON格式，可包含timeout、connectTimeout等配置
         // {"timeout": 2000, "connectTimeout": 3000, "clientName": "myClient", "shutdownTimeout": 100}
         String otherJson = dataSourceInfo.getOther();
-        otherJson = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "other", otherJson);
         if (StringUtils.isNotBlank(otherJson)) {
             try {
                 JSONObject jsonObject = JSON.parseObject(otherJson);
@@ -177,8 +188,7 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
         
         JedisConnectionFactory connectionFactory = null;
         JedisClientConfiguration clientConfiguration = createJedisClientConfiguration(dataSourceInfo);
-        String mode = dataSourceInfo.getMode();
-        mode = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "mode", mode);
+        String mode = RedisDataSourceValidator.normalizeMode(dataSourceInfo.getMode());
         if ("standalone".equalsIgnoreCase(mode)) {
             // 单机模式配置
             RedisStandaloneConfiguration standaloneConfig = createStandaloneConfig(dataSourceInfo);
@@ -200,7 +210,6 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
         // 示例实现：假设other字段是JSON格式，可包含timeout、connectTimeout等配置
         // {"timeout": 2000, "connectTimeout": 3000, "clientName": "myClient"}
         String otherJson = dataSourceInfo.getOther();
-        otherJson = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "other", otherJson);
         if (StringUtils.isNotBlank(otherJson)) {
             try {
                 JSONObject jsonObject = JSON.parseObject(otherJson);
@@ -243,7 +252,6 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
         // 从other字段解析客户端配置
         JSONObject jsonObject = null;
         String otherJson = dataSourceInfo.getOther();
-        otherJson = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "other", otherJson);
         if (StringUtils.isNotBlank(otherJson)) {
             try {
                 jsonObject = JSON.parseObject(otherJson);
@@ -383,7 +391,6 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
         // 从other字段解析客户端配置
         JSONObject jsonObject = null;
         String otherJson = dataSourceInfo.getOther();
-        otherJson = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "other", otherJson);
         if (StringUtils.isNotBlank(otherJson)) {
             try {
                 jsonObject = JSON.parseObject(otherJson);
@@ -495,30 +502,15 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
      * @return RedisStandaloneConfiguration
      */
     private RedisStandaloneConfiguration createStandaloneConfig(RedisDataSourceInfo dataSourceInfo) {
-        // 添加空值检查
         if (dataSourceInfo == null) {
             throw new IllegalArgumentException("数据源信息不能为空");
         }
-        
         RedisStandaloneConfiguration standaloneConfig = new RedisStandaloneConfiguration();
         String hostname = dataSourceInfo.getHostname();
-        hostname = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "hostname", hostname);
         String username = dataSourceInfo.getUsername();
-        username = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "username", username);
         String password = dataSourceInfo.getPassword();
-        password = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "password", password);
         standaloneConfig.setHostName(hostname);
-        
-        // 设置端口，默认为6379
-        String portStr = dataSourceInfo.getPort();
-        portStr = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "port", portStr);
-        int port;
-        try {
-            port = Integer.parseInt(portStr);
-        } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("端口(port)必须是有效数字: " + portStr, e);
-        }
-        standaloneConfig.setPort(port);
+        standaloneConfig.setPort(RedisDataSourceValidator.parsePort(dataSourceInfo.getPort(), "port"));
         // 设置用户名（如果存在）
         if (StringUtils.isNotBlank(username)) {
             standaloneConfig.setUsername(username);
@@ -529,7 +521,6 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
         }
         // 设置数据库索引，默认为0
         String databaseStr = dataSourceInfo.getDatabase();
-        databaseStr = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "database", databaseStr);
         if (StringUtils.isBlank(databaseStr)) {
             databaseStr = "0";
         }
@@ -550,75 +541,33 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
      * @return RedisClusterConfiguration
      */
     private RedisClusterConfiguration createClusterConfig(RedisDataSourceInfo dataSourceInfo) {
-        // 添加空值检查
         if (dataSourceInfo == null) {
             throw new IllegalArgumentException("数据源信息不能为空");
         }
         RedisClusterConfiguration clusterConfig = new RedisClusterConfiguration();
-        // 注意：Redis集群模式下，通常不支持SELECT命令切换数据库，只能使用默认的0号数据库
-        // 但我们可以尝试设置，具体是否生效取决于Redis服务器的配置
         Set<String> addedNodes = new HashSet<>();
-        // 添加主节点（hostname:port）作为集群节点之一
-        String hostname = dataSourceInfo.getHostname();
-        hostname = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "hostname", hostname);
-        String portStr = dataSourceInfo.getPort();
-        portStr = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "port", portStr);
-        if (StringUtils.isNotBlank(hostname) && StringUtils.isNotBlank(portStr)) {
-            int port;
-            try {
-                port = Integer.parseInt(portStr);
-            } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("端口(port)必须是有效数字: " + portStr, e);
-            }
-            String nodeKey = hostname + ":" + port;
-            if (!addedNodes.contains(nodeKey)) {
-                clusterConfig.clusterNode(hostname, port);
-                addedNodes.add(nodeKey);
+        if (StringUtils.isNotBlank(dataSourceInfo.getHostname()) && StringUtils.isNotBlank(dataSourceInfo.getPort())) {
+            addClusterNode(clusterConfig, addedNodes, dataSourceInfo.getHostname(),
+                    RedisDataSourceValidator.parsePort(dataSourceInfo.getPort(), "port"));
+        }
+        JSONObject jsonObject = RedisDataSourceValidator.parseOtherJson(dataSourceInfo.getOther());
+        JSONArray nodes = jsonObject.getJSONArray("nodes");
+        if (nodes != null) {
+            for (int i = 0; i < nodes.size(); i++) {
+                JSONObject node = nodes.getJSONObject(i);
+                String host = node.getString("host");
+                if (StringUtils.isNotBlank(host)) {
+                    addClusterNode(clusterConfig, addedNodes, host,
+                            RedisDataSourceValidator.parsePort(node.get("port"), "nodes[" + i + "].port"));
+                }
             }
         }
-        // 从other字段解析其他节点信息和其他配置
-        // 示例实现：假设other字段是JSON格式，包含nodes数组，每个元素包含host和port字段
-        // {"nodes": [{"host": "192.168.1.1", "port": 6379}, {"host": "192.168.1.2", "port": 6380}], 
-        //  "maxRedirects": 3, "username": "clusterUser", "password": "clusterPass"}
-        String other = dataSourceInfo.getOther();
-        other = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "other", other);
-        if (StringUtils.isNotBlank(other)) {
-            try {
-                JSONObject jsonObject = JSON.parseObject(other);
-                JSONArray nodes = jsonObject.getJSONArray("nodes");
-                if (nodes != null) {
-                    for (int i = 0; i < nodes.size(); i++) {
-                        JSONObject node = nodes.getJSONObject(i);
-                        String host = node.getString("host");
-                        String port = node.getString("port");
-                        if (host != null && !host.isEmpty() && port != null) {
-                            int portInt;
-                            try {
-                                portInt = Integer.parseInt(port);
-                            } catch (NumberFormatException e) {
-                                throw new IllegalArgumentException("集群节点端口必须是有效数字: " + port, e);
-                            }
-                            String nodeKey = host + ":" + portInt;
-                            if (!addedNodes.contains(nodeKey)) {
-                                clusterConfig.clusterNode(host, portInt);
-                                addedNodes.add(nodeKey);
-                            }
-                        }
-                    }
-                }
-                // 如果JSON中指定了maxRedirects，则使用指定的值
-                Integer maxRedirects = jsonObject.getInteger("maxRedirects");
-                if (maxRedirects != null && maxRedirects > 0) {
-                    clusterConfig.setMaxRedirects(maxRedirects);
-                }
-            } catch (Exception e) {
-                log.warn("解析集群配置失败: {}", other, e);
-            }
+        Integer maxRedirects = jsonObject.getInteger("maxRedirects");
+        if (maxRedirects != null && maxRedirects > 0) {
+            clusterConfig.setMaxRedirects(maxRedirects);
         }
         String username = dataSourceInfo.getUsername();
-        username = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "username", username);
         String password = dataSourceInfo.getPassword();
-        password = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "password", password);
         // 设置用户名（如果存在）
         if (StringUtils.isNotBlank(username)) {
             clusterConfig.setUsername(username);
@@ -630,6 +579,13 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
         return clusterConfig;
     }
 
+    private void addClusterNode(RedisClusterConfiguration clusterConfig, Set<String> addedNodes, String host, int port) {
+        String nodeKey = host + ":" + port;
+        if (addedNodes.add(nodeKey)) {
+            clusterConfig.clusterNode(host, port);
+        }
+    }
+
     /**
      * 创建Redis哨兵配置
      *
@@ -637,15 +593,12 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
      * @return RedisSentinelConfiguration
      */
     private RedisSentinelConfiguration createSentinelConfig(RedisDataSourceInfo dataSourceInfo) {
-        // 添加空值检查
         if (dataSourceInfo == null) {
             throw new IllegalArgumentException("数据源信息不能为空");
         }
-        
         RedisSentinelConfiguration sentinelConfig = new RedisSentinelConfiguration();
         // 设置数据库索引，默认为0
         String databaseStr = dataSourceInfo.getDatabase();
-        databaseStr = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "database", databaseStr);
         if (StringUtils.isBlank(databaseStr)) {
             databaseStr = "0";
         }
@@ -658,82 +611,30 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
         sentinelConfig.setDatabase(database);
 
         Set<String> addedSentinels = new HashSet<>();
-        String defaultMasterName = "mymaster";
-        
-        // 从other字段解析哨兵信息
-        // 示例实现：假设other字段是JSON格式，包含masterName和sentinels字段
-        // {"masterName": "mymaster", "sentinels": [{"host": "192.168.1.1", "port": 26379}, {"host": "192.168.1.2", "port": 26380}],
-        //  "sentinelPassword": "sentinelPass", "timeout": 2000}
-        String other = dataSourceInfo.getOther();
-        other = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "other", other);
-        if (StringUtils.isNotBlank(other)) {
-            try {
-                JSONObject jsonObject = JSON.parseObject(other);
-                String masterName = jsonObject.getString("masterName");
-                if (masterName != null && !masterName.isEmpty()) {
-                    sentinelConfig.master(masterName);
-                } else {
-                    sentinelConfig.master(defaultMasterName);
+        JSONObject jsonObject = RedisDataSourceValidator.parseOtherJson(dataSourceInfo.getOther());
+        sentinelConfig.master(jsonObject.getString("masterName"));
+        if (StringUtils.isNotBlank(dataSourceInfo.getHostname()) && StringUtils.isNotBlank(dataSourceInfo.getPort())) {
+            addSentinelNode(sentinelConfig, addedSentinels, dataSourceInfo.getHostname(),
+                    RedisDataSourceValidator.parsePort(dataSourceInfo.getPort(), "port"));
+        }
+        JSONArray sentinels = jsonObject.getJSONArray("sentinels");
+        if (sentinels != null) {
+            for (int i = 0; i < sentinels.size(); i++) {
+                JSONObject sentinel = sentinels.getJSONObject(i);
+                String host = sentinel.getString("host");
+                if (StringUtils.isNotBlank(host)) {
+                    addSentinelNode(sentinelConfig, addedSentinels, host,
+                            RedisDataSourceValidator.parsePort(sentinel.get("port"), "sentinels[" + i + "].port"));
                 }
-                String hostname = dataSourceInfo.getHostname();
-                hostname = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "hostname", hostname);
-                String portStr = dataSourceInfo.getPort();
-                portStr = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "port", portStr);
-                // 添加主节点（hostname:port）作为哨兵节点之一
-                if (StringUtils.isNotBlank(hostname) && StringUtils.isNotBlank(portStr)) {
-                    String sentinelKey = hostname + ":" + portStr;
-                    if (!addedSentinels.contains(sentinelKey)) {
-                        int port;
-                        try {
-                            port = Integer.parseInt(portStr);
-                        } catch (NumberFormatException e) {
-                            throw new IllegalArgumentException("端口(port)必须是有效数字: " + portStr, e);
-                        }
-                        sentinelConfig.sentinel(hostname, port);
-                        addedSentinels.add(sentinelKey);
-                    }
-                }
-                JSONArray sentinels = jsonObject.getJSONArray("sentinels");
-                if (sentinels != null) {
-                    for (int i = 0; i < sentinels.size(); i++) {
-                        JSONObject sentinel = sentinels.getJSONObject(i);
-                        String host = sentinel.getString("host");
-                        String port = sentinel.getString("port");
-                        if (host != null && !host.isEmpty() && port != null) {
-                            int portInt;
-                            try {
-                                portInt = Integer.parseInt(port);
-                            } catch (NumberFormatException e) {
-                                throw new IllegalArgumentException("哨兵节点端口必须是有效数字: " + port, e);
-                            }
-                            String sentinelKey = host + ":" + portInt;
-                            if (!addedSentinels.contains(sentinelKey)) {
-                                sentinelConfig.sentinel(host, portInt);
-                                addedSentinels.add(sentinelKey);
-                            }
-                        }
-                    }
-                }
-
-                // 如果JSON中指定了哨兵密码，则使用指定的密码
-                String sentinelPassword = jsonObject.getString("sentinelPassword");
-                if (sentinelPassword != null && !sentinelPassword.isEmpty()) {
-                    sentinelConfig.setSentinelPassword(RedisPassword.of(sentinelPassword));
-                }
-            } catch (Exception e) {
-                log.warn("解析哨兵配置失败: {}", other, e);
-                // 出现异常时使用默认配置
-                handleDefaultSentinelConfig(sentinelConfig, dataSourceInfo, defaultMasterName, addedSentinels);
             }
-        } else {
-            // 如果没有other配置，则使用默认配置
-            handleDefaultSentinelConfig(sentinelConfig, dataSourceInfo, defaultMasterName, addedSentinels);
+        }
+        String sentinelPassword = jsonObject.getString("sentinelPassword");
+        if (StringUtils.isNotBlank(sentinelPassword)) {
+            sentinelConfig.setSentinelPassword(RedisPassword.of(sentinelPassword));
         }
 
         String username = dataSourceInfo.getUsername();
-        username = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "username", username);
         String password = dataSourceInfo.getPassword();
-        password = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "password", password);
 
         // 设置用户名（如果存在）
         if (StringUtils.isNotBlank(username)) {
@@ -747,39 +648,11 @@ public class MagicDynamicRedisDataSource implements DisposableBean {
 
         return sentinelConfig;
     }
-    
-    /**
-     * 处理默认哨兵配置
-     *
-     * @param sentinelConfig 哨兵配置对象
-     * @param dataSourceInfo 数据源信息
-     * @param defaultMasterName 默认主节点名称
-     * @param addedSentinels 已添加的哨兵节点集合
-     */
-    private void handleDefaultSentinelConfig(RedisSentinelConfiguration sentinelConfig, 
-                                           RedisDataSourceInfo dataSourceInfo, 
-                                           String defaultMasterName, 
-                                           Set<String> addedSentinels) {
-        String hostname = dataSourceInfo.getHostname();
-        hostname = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "hostname", hostname);
-        String portStr = dataSourceInfo.getPort();
-        portStr = MagicAPIConfigUtils.getRedisConfig(dataSourceInfo.getKey(), "port", portStr);
-        // 如果没有other配置，则使用hostname和port作为主节点
-        if (StringUtils.isNotBlank(hostname) && StringUtils.isNotBlank(portStr)) {
-            // 默认主节点名称为mymaster
-            sentinelConfig.master(defaultMasterName);
-            // 添加主节点作为哨兵节点
-            String sentinelKey = hostname + ":" + portStr;
-            if (!addedSentinels.contains(sentinelKey)) {
-                int port;
-                try {
-                    port = Integer.parseInt(portStr);
-                } catch (NumberFormatException e) {
-                    throw new IllegalArgumentException("端口(port)必须是有效数字: " + portStr, e);
-                }
-                sentinelConfig.sentinel(hostname, port);
-                addedSentinels.add(sentinelKey);
-            }
+
+    private void addSentinelNode(RedisSentinelConfiguration sentinelConfig, Set<String> addedSentinels, String host, int port) {
+        String sentinelKey = host + ":" + port;
+        if (addedSentinels.add(sentinelKey)) {
+            sentinelConfig.sentinel(host, port);
         }
     }
 

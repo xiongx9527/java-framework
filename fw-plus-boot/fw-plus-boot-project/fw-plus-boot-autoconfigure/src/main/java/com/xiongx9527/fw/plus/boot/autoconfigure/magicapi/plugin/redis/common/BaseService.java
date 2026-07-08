@@ -10,11 +10,7 @@ public interface BaseService extends MagicBaseService {
      * @param entity
      */
     default void validateField(RedisDataSourceInfo entity) {
-        validateRequiredField(entity.getName(), "name");
-        validateRequiredField(entity.getKey(), "key");
-        validateRequiredField(entity.getHostname(), "hostname");
-        validateRequiredField(entity.getPort(), "port");
-        validateJSON(entity.getOther(), "other");
+        com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model.RedisDataSourceValidator.validate(entity);
     }
 
 
