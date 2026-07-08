@@ -7,6 +7,7 @@ import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.resource.Resource;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
+import org.ssssssss.magicapi.utils.IoUtils;
 import org.ssssssss.magicapi.utils.JsonUtils;
 
 import java.util.Objects;
@@ -81,8 +82,11 @@ public class DtpDataSourceInfoMagicResourceStorage implements MagicResourceStora
 
     @Override
     public void validate(DtpDataSourceInfo entity) {
-        validateKeyUnique(entity.getKey(), entity.getId());
         validateField(entity);
+        if (!IoUtils.validateFileName(entity.getKey())) {
+            throw new IllegalArgumentException("key包含非法文件名字符");
+        }
+        validateKeyUnique(entity.getKey(), entity.getId());
 
         if (entity.getId() != null) {
             DtpDataSourceInfo oldInfo = magicResourceService.file(entity.getId());
