@@ -44,7 +44,8 @@ public class RedisDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("处理 Redis 数据源文件事件失败: {}", event, e);
         }
     }
 
@@ -56,10 +57,11 @@ public class RedisDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
      */
     @EventListener(condition = "#event.type == 'redis-datasource'")
     public void onGroupEvent(GroupEvent event) {
-            try {
-               processEvent(event);
-            } catch (Exception ignored) {
-            }
+        try {
+            processEvent(event);
+        } catch (Exception e) {
+            log.warn("处理 Redis 数据源分组事件失败: {}", event, e);
+        }
     }
 
 
@@ -68,7 +70,8 @@ public class RedisDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
         magicRedisDataSource.destroyRedisConnectionFactoryByKey(entity.getKey());
         try {
             return super.register(entity);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("注册 Redis 数据源失败: {}", entity == null ? null : entity.getKey(), e);
             return false;
         }
     }
@@ -79,7 +82,8 @@ public class RedisDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
         magicRedisDataSource.buildRedisConnectionFactory(mappingNode.getEntity());
         try {
             return super.register(mappingNode);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("注册 Redis 数据源映射失败: {}", mappingNode.getEntity() == null ? null : mappingNode.getEntity().getKey(), e);
             return false;
         }
     }
@@ -89,7 +93,8 @@ public class RedisDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
         magicRedisDataSource.destroyRedisConnectionFactoryByKey(mappingNode.getEntity().getKey());
         try {
             super.unregister(mappingNode);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("注销 Redis 数据源失败: {}", mappingNode.getEntity().getKey(), e);
         }
     }
 
