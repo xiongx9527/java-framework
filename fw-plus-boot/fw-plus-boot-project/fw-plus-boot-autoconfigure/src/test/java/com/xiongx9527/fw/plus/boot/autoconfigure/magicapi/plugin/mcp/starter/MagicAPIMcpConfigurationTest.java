@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth.McpAccessTokenVerifier;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth.McpPrincipal;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.core.McpRequestContext;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.McpConfigurationChangeNotifier;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSession;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.session.McpSessionState;
@@ -113,6 +114,17 @@ class MagicAPIMcpConfigurationTest {
 			assertThat(context).hasSingleBean(McpResourceMagicResourceStorage.class);
 			assertThat(context).hasSingleBean(McpPromptMagicResourceStorage.class);
 		});
+	}
+
+	@Test
+	void shouldRegisterMcpConfigurationChangeNotifierByDefault() {
+		contextRunner.run(context -> assertThat(context).hasSingleBean(McpConfigurationChangeNotifier.class));
+	}
+
+	@Test
+	void shouldNotRegisterMcpConfigurationChangeNotifierWhenMcpDisabled() {
+		contextRunner.withPropertyValues("magic-api.plugin.mcp.enabled=false")
+				.run(context -> assertThat(context).doesNotHaveBean(McpConfigurationChangeNotifier.class));
 	}
 
 	@Test
