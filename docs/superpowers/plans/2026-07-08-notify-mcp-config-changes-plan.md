@@ -58,7 +58,7 @@ base-ref: 32ae4fb3e9af2359d01b2160af9585c3560161c5
 - Produces: `public void onMcpConfigurationChanged(Map<String, Object> properties)`，供 `ConfigChangeEventListener` 反射调用。
 - Produces: 每次调用按固定顺序广播 tools、resources、prompts 三类去重 notification。
 
-- [ ] **Step 1: 写失败测试覆盖 tools key 映射**
+- [x] **Step 1: 写失败测试覆盖 tools key 映射**
 
 Create `McpConfigurationChangeNotifierTest.java`，先写以下测试类。该测试使用 recording service 捕获 broadcast method，预期在实现类不存在或未实现映射时失败。
 
@@ -116,7 +116,7 @@ class McpConfigurationChangeNotifierTest {
 }
 ```
 
-- [ ] **Step 2: 运行 Task 1 当前测试确认失败**
+- [x] **Step 2: 运行 Task 1 当前测试确认失败**
 
 Run:
 
@@ -127,7 +127,7 @@ cd fw-plus-boot
 
 Expected: FAIL，编译失败信息包含 `cannot find symbol` 和 `McpConfigurationChangeNotifier`。
 
-- [ ] **Step 3: 补充完整 mapping 与去重测试**
+- [x] **Step 3: 补充完整 mapping 与去重测试**
 
 在同一个测试类中追加以下测试方法，覆盖协议、认证、headers、去重、忽略逻辑。
 
@@ -220,7 +220,7 @@ Expected: FAIL，编译失败信息包含 `cannot find symbol` 和 `McpConfigura
 	}
 ```
 
-- [ ] **Step 4: 实现 `McpConfigurationChangeNotifier` 最小可用代码**
+- [x] **Step 4: 实现 `McpConfigurationChangeNotifier` 最小可用代码**
 
 Create production class with Java 8-compatible collections and deterministic broadcast order.
 
@@ -297,7 +297,7 @@ public class McpConfigurationChangeNotifier {
 }
 ```
 
-- [ ] **Step 5: 运行 Task 1 测试确认通过**
+- [x] **Step 5: 运行 Task 1 测试确认通过**
 
 Run:
 
@@ -308,7 +308,7 @@ cd fw-plus-boot
 
 Expected: PASS，输出包含 `Tests run: 8` 且无 failure/error。
 
-- [ ] **Step 6: 提交 Task 1**
+- [x] **Step 6: 提交 Task 1**
 
 Run:
 
