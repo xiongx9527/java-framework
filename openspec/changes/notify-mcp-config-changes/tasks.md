@@ -1,7 +1,7 @@
 ## 1. MCP 配置变化通知组件
 
 - [x] 1.1 新增 MCP 配置变化通知组件，集中判断 `magic-api.plugin.mcp.tools.functions.*`、`tools.api.*`、`protocol.*`、`auth.*`、`headers.*` 配置 key。
-- [ ] 1.2 通过现有 `ConfigChangeEvent` / `@OnConfigChange` 机制接入外部配置刷新事件。
+- [x] 1.2 通过现有 `ConfigChangeEvent` / `@OnConfigChange` 机制接入外部配置刷新事件。
 - [x] 1.3 复用 `McpNotificationService.broadcast(...)` 发送去重后的 `tools/resources/prompts` list_changed 通知。
 
 ## 2. MagicAPI config 资源兼容
