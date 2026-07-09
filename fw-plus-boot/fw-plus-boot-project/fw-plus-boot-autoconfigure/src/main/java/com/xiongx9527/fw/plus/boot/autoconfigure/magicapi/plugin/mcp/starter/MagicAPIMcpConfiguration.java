@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.logging.Mcp
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.MagicNotifyMcpChangeEventPublisher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.McpChangeEventPublisher;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.McpClusterChangeEventListener;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.McpConfigurationChangeNotifier;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.McpNotificationService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification.McpToolMagicChangeListener;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol.McpJsonRpcDispatcher;
@@ -200,6 +201,12 @@ public class MagicAPIMcpConfiguration implements MagicPluginConfiguration {
 														 McpSessionRepository sessionRepository) {
 		return new McpNotificationService(sseStreamService, subscriptionService, changeEventPublisher.getIfAvailable(),
 				sessionRepository);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public McpConfigurationChangeNotifier mcpConfigurationChangeNotifier(McpNotificationService notificationService) {
+		return new McpConfigurationChangeNotifier(notificationService);
 	}
 
 	@Bean
