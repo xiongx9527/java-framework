@@ -331,7 +331,7 @@ Expected: commit only includes the new notifier and its unit test.
 - Produces: `McpConfigurationChangeNotifier` bean registered only when `MagicAPIMcpConfiguration` is active。
 - Preserves: `magic-api.plugin.mcp.enabled=false` 时 `MagicAPIMcpConfiguration` 不存在，MCP 相关 bean 不注册。
 
-- [ ] **Step 1: 写自动配置失败测试**
+- [x] **Step 1: 写自动配置失败测试**
 
 在 `MagicAPIMcpConfigurationTest.java` imports 中加入：
 
@@ -354,7 +354,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notificatio
 	}
 ```
 
-- [ ] **Step 2: 运行自动配置测试确认失败**
+- [x] **Step 2: 运行自动配置测试确认失败**
 
 Run:
 
@@ -365,7 +365,7 @@ cd fw-plus-boot
 
 Expected: FAIL，失败断言显示缺少 `McpConfigurationChangeNotifier` bean。
 
-- [ ] **Step 3: 修改 `MagicAPIMcpConfiguration` 注册 bean**
+- [x] **Step 3: 修改 `MagicAPIMcpConfiguration` 注册 bean**
 
 在 `MagicAPIMcpConfiguration.java` imports 中加入：
 
@@ -383,7 +383,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notificatio
 	}
 ```
 
-- [ ] **Step 4: 运行 Task 2 测试确认通过**
+- [x] **Step 4: 运行 Task 2 测试确认通过**
 
 Run:
 
@@ -394,7 +394,7 @@ cd fw-plus-boot
 
 Expected: PASS，`MagicAPIMcpConfigurationTest` 和 `McpConfigurationChangeNotifierTest` 均无 failure/error。
 
-- [ ] **Step 5: 提交 Task 2**
+- [x] **Step 5: 提交 Task 2**
 
 Run:
 
