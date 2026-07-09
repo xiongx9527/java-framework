@@ -1,11 +1,13 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.service;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.config.event.ConfigChangeEvent;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.model.ConfigInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cloud.context.refresh.ContextRefresher;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
@@ -42,6 +44,9 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
     // Spring环境配置接口，用于管理应用程序的配置属性源（包括系统属性、环境变量、应用配置等）
     @Resource
     private ConfigurableEnvironment environment;
+
+    @Resource
+    private ApplicationEventPublisher eventPublisher;
 
     /**
      * 构造函数
@@ -89,16 +94,10 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
      * @param info 配置信息实体，包含环境、应用ID、命名空间、配置内容等信息
      */
     private void registerByEntity(ConfigInfo info) {
-        MagicResourceService resourceService = MagicConfiguration.getMagicResourceService();
-        String scriptName = resourceService.getScriptName(info);
+        String scriptName = resolveScriptName(info);
         String propName  = buildPropName(info);
         try {
-            String yamlStr = info.getScript();
-            Map<String,Object> map = new HashMap<>();
-            if (StringUtils.isNotBlank(yamlStr)) {
-                Map<String, Object> loadedMap = yaml.loadAs(yamlStr, Map.class);
-                map = this.flattenYamlMap(MapUtils.emptyIfNull(loadedMap));
-            }
+            Map<String, Object> map = parseProperties(info);
             boolean changed = false;
             if (this.environment.getPropertySources().contains(propName)) {
                 this.environment.getPropertySources().remove(propName);
@@ -109,7 +108,7 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
                 changed = true;
             }
             if (changed) {
-                this.contextRefresher.refresh();
+                refreshAndPublish(map);
             }
             log.info("配置文件:[{}]加载成功", scriptName);
         } catch (Exception e) {
@@ -128,13 +127,42 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
         String propName = buildPropName(info);
         MutablePropertySources propertySources = this.environment.getPropertySources();
         if (propertySources.contains(propName)) {
+            Map<String, Object> properties = parseProperties(info);
             propertySources.remove(propName);
             try {
-                this.contextRefresher.refresh();
+                refreshAndPublish(properties);
             } catch (Exception e) {
                 log.error("刷新上下文失败", e);
             }
         }
+    }
+
+    private Map<String, Object> parseProperties(ConfigInfo info) {
+        Map<String, Object> map = new HashMap<>();
+        if (info == null || StringUtils.isBlank(info.getScript())) {
+            return map;
+        }
+        Map<String, Object> loadedMap = yaml.loadAs(info.getScript(), Map.class);
+        return this.flattenYamlMap(MapUtils.emptyIfNull(loadedMap));
+    }
+
+    private void refreshAndPublish(Map<String, Object> properties) {
+        this.contextRefresher.refresh();
+        publishConfigChangeEvent(properties);
+    }
+
+    private void publishConfigChangeEvent(Map<String, Object> properties) {
+        if (this.eventPublisher != null && properties != null && !properties.isEmpty()) {
+            this.eventPublisher.publishEvent(new ConfigChangeEvent(this, properties));
+        }
+    }
+
+    private String resolveScriptName(ConfigInfo info) {
+        MagicResourceService resourceService = MagicConfiguration.getMagicResourceService();
+        if (resourceService == null) {
+            return buildPropName(info);
+        }
+        return resourceService.getScriptName(info);
     }
 
     private String buildPropName(ConfigInfo info) {
@@ -151,7 +179,6 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
      */
     @Override
     public boolean register(ConfigInfo info) {
-        unregisterByEntity(info);
         registerByEntity(info);
         try {
             return super.register(info);
