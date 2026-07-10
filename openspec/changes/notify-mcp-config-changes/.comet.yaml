@@ -8,14 +8,14 @@ subagent_dispatch: confirmed
 tdd_mode: tdd
 review_mode: standard
 isolation: worktree
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: 32ae4fb3e9af2359d01b2160af9585c3560161c5
 design_doc: docs/superpowers/specs/2026-07-08-notify-mcp-config-changes-design.md
 plan: docs/superpowers/plans/2026-07-08-notify-mcp-config-changes-plan.md
 verify_result: pending
-verification_report: null
-branch_status: pending
+verification_report: docs/superpowers/reports/2026-07-10-notify-mcp-config-changes-verify.md
+branch_status: handled
 created_at: 2026-07-08
 verified_at: null
 archived: false
