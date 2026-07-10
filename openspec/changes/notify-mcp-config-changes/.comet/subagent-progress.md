@@ -1,41 +1,37 @@
 # Subagent Progress — notify-mcp-config-changes
 
 - change: notify-mcp-config-changes
-- phase: done
+- phase: checkoff
 - review_mode: standard
 - tdd_mode: tdd
 - isolation: worktree
 - language: zh-CN
 - plan: docs/superpowers/plans/2026-07-08-notify-mcp-config-changes-plan.md
 - openspec_tasks: openspec/changes/notify-mcp-config-changes/tasks.md
-- current_plan_task: Task 3: MagicAPI config 刷新后发布 ConfigChangeEvent
-- current_plan_task_text: MagicAPI config 刷新后发布 ConfigChangeEvent
+- current_plan_task: Task 4: 端到端分发链路与回归验证
+- current_plan_task_text: 端到端分发链路与回归验证
 - mapped_openspec_task_texts:
-  - 调整 MagicAPI `config` 资源动态注册刷新链路，在配置刷新应用后暴露变更 key 给统一配置变化通知机制。
-  - 确保 MCP 插件禁用或缺失时，MagicAPI config 刷新不依赖 MCP notification bean 且行为保持兼容。
-- task_brief: .superpowers/sdd/task-3-brief.md
-- report_file: .superpowers/sdd/task-3-report.md
-- implementer: completed
+  - 新增或调整测试覆盖 MagicAPI config 资源变化路径与 MCP disabled/absent 兼容场景。
+  - 运行 Boot autoconfigure 模块中 MCP/config 相关测试，确认现有通知、集群广播和 lifecycle 行为未回归。
+- task_brief: .superpowers/sdd/task-4-brief.md
+- report_file: .superpowers/sdd/task-4-report.md
+- implementer: task-4-finish-implementer-haiku
 - implementer_status: DONE
-- implementation_commits: 775ce66
+- implementation_commits: pending-coordinator-commit
 - changed_files:
-  - fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/config/service/ConfigMagicDynamicRegistry.java
-  - fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/config/service/ConfigMagicDynamicRegistryTest.java
-- red_evidence: system Maven ConfigMagicDynamicRegistryTest failed as expected with missing eventPublisher field; public register old behavior produced double refresh failure; ./mvnw unavailable due missing wrapper files
-- green_evidence: system Maven ConfigMagicDynamicRegistryTest passed, Tests run 5, Failures 0, Errors 0, Skipped 0
-- risk_signals:
-  - shared mutable state / Environment propertySources and refresh ordering
-  - public API contract / existing ConfigChangeEvent publishing behavior
-- task_review_required: yes (review_mode standard risk task)
-- task_review_status: approved
-- review_package: .superpowers/sdd/review-713b9a7..775ce66.diff
+  - fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/mcp/notification/McpConfigurationChangeNotifierTest.java
+  - .superpowers/sdd/task-4-report.md
+- red_evidence: "./mvnw 验证命令因仓库基线缺少 .mvn/wrapper/* 失败；根因已调查并记录。"
+- green_evidence: "系统 Maven 3.6.3 运行 Task 4 三组验证通过：22/69/136 tests，0 failures/errors。"
+- risk_signals: []
+- task_review_required: no-standard-risk
+- task_review_status: skipped-non-risk
 - review_fix_round: 0
 - unresolved_feedback: []
-- review_result: Task quality Approved; Critical/Important none; Minor: tests do not explicitly assert refresh-before-publish order.
-- checkoff_status: passed
-- progress_commit: pending
 
 ## Log
 
 - 2026-07-09: Task 2 已完成并通过定向勾选验证；提交 `713b9a7` 记录 Task 2 验收进度。
 - 2026-07-09: 生成 `.superpowers/sdd/task-3-brief.md`；准备派发 Task 3 implementer。
+- 2026-07-10: Task 3 已实现并通过 standard 风险任务审查；提交 `8802c53` 记录 Task 3 验收进度。
+- 2026-07-10: 生成 `.superpowers/sdd/task-4-brief.md`；准备派发 Task 4 implementer。
