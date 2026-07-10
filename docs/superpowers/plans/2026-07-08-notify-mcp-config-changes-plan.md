@@ -419,7 +419,7 @@ Expected: commit only includes MCP starter registration and starter tests.
 - Produces: unregister/delete/disable path publishes `ConfigChangeEvent` with original flattened keys after property source removal and refresh。
 - Preserves: no direct dependency on MCP notification classes。
 
-- [ ] **Step 1: 写刷新后发布事件测试**
+- [x] **Step 1: 写刷新后发布事件测试**
 
 Create `ConfigMagicDynamicRegistryTest.java` with the following class. The tests call private registry methods through `ReflectionTestUtils` to isolate Spring `Environment` refresh/publish behavior from Magic-API static resource service bootstrapping.
 
@@ -508,7 +508,7 @@ class ConfigMagicDynamicRegistryTest {
 }
 ```
 
-- [ ] **Step 2: 运行 ConfigMagicDynamicRegistry 测试确认失败**
+- [x] **Step 2: 运行 ConfigMagicDynamicRegistry 测试确认失败**
 
 Run:
 
@@ -519,7 +519,7 @@ cd fw-plus-boot
 
 Expected: FAIL，失败原因是 `eventPublisher` 字段不存在或没有发布 `ConfigChangeEvent`。
 
-- [ ] **Step 3: 修改 `ConfigMagicDynamicRegistry` 注入事件发布器并抽取 flatten helper**
+- [x] **Step 3: 修改 `ConfigMagicDynamicRegistry` 注入事件发布器并抽取 flatten helper**
 
 在 `ConfigMagicDynamicRegistry.java` imports 中加入：
 
@@ -559,7 +559,7 @@ import org.springframework.context.ApplicationEventPublisher;
     }
 ```
 
-- [ ] **Step 4: 修改注册路径在 refresh 后发布事件**
+- [x] **Step 4: 修改注册路径在 refresh 后发布事件**
 
 将 `registerByEntity(ConfigInfo info)` 内 YAML 解析和 refresh 部分调整为以下结构。保留现有日志和异常包装；只把 `contextRefresher.refresh()` 替换为 `refreshAndPublish(map)`。
 
@@ -593,7 +593,7 @@ import org.springframework.context.ApplicationEventPublisher;
     }
 ```
 
-- [ ] **Step 5: 补充删除/禁用/取消注册发布原 key 测试**
+- [x] **Step 5: 补充删除/禁用/取消注册发布原 key 测试**
 
 在 `ConfigMagicDynamicRegistryTest.java` imports 中加入：
 
@@ -648,7 +648,7 @@ import org.springframework.core.env.MapPropertySource;
 	}
 ```
 
-- [ ] **Step 6: 修改 unregister 和 disabled 路径携带原 flatten key**
+- [x] **Step 6: 修改 unregister 和 disabled 路径携带原 flatten key**
 
 将 `unregisterByEntity(ConfigInfo info)` 中 refresh 替换为带原 properties 的 `refreshAndPublish(parseProperties(info))`：
 
@@ -670,7 +670,7 @@ import org.springframework.core.env.MapPropertySource;
 
 在 `registerByEntity(ConfigInfo info)` 中，`map` 是原脚本 flatten 结果。对于 `info.isEnabled() == false` 或 `info.isExternalFlag() == true` 且原 property source 被移除的场景，`changed == true` 时调用 `refreshAndPublish(map)`，即可携带原 key。不要把 MCP 专属判断放入本类。
 
-- [ ] **Step 7: 运行 Task 3 测试确认通过**
+- [x] **Step 7: 运行 Task 3 测试确认通过**
 
 Run:
 
@@ -681,7 +681,7 @@ cd fw-plus-boot
 
 Expected: PASS，`ConfigMagicDynamicRegistryTest` 无 failure/error。
 
-- [ ] **Step 8: 提交 Task 3**
+- [x] **Step 8: 提交 Task 3**
 
 Run:
 

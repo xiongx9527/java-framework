@@ -6,8 +6,8 @@
 
 ## 2. MagicAPI config 资源兼容
 
-- [ ] 2.1 调整 MagicAPI `config` 资源动态注册刷新链路，在配置刷新应用后暴露变更 key 给统一配置变化通知机制。
-- [ ] 2.2 确保 MCP 插件禁用或缺失时，MagicAPI config 刷新不依赖 MCP notification bean 且行为保持兼容。
+- [x] 2.1 调整 MagicAPI `config` 资源动态注册刷新链路，在配置刷新应用后暴露变更 key 给统一配置变化通知机制。
+- [x] 2.2 确保 MCP 插件禁用或缺失时，MagicAPI config 刷新不依赖 MCP notification bean 且行为保持兼容。
 
 ## 3. 自动配置与测试
 
