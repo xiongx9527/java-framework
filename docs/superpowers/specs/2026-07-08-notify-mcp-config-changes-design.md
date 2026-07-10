@@ -2,6 +2,8 @@
 comet_change: notify-mcp-config-changes
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-10-notify-mcp-config-changes
+status: final
 ---
 
 # MCP 配置变化通知设计
@@ -65,3 +67,4 @@ MCP 业务判断只存在于 MCP notification 包内，通用 config event 层�
 `protocol/auth/headers` 不直接对应单一 list endpoint。本设计按已确认决策发送三类 list_changed，代价是客户端刷新范围更大，但能避免能力视图局部过期。
 
 MagicAPI config 删除路径需要从原脚本解析 key。如果原脚本解析失败，应保留现有错误处理，不应因为通知失败影响配置资源注册或取消注册主流程。
+
