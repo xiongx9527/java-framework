@@ -1,6 +1,6 @@
 workflow: full
 language: zh-CN
-phase: build
+phase: verify
 context_compression: off
 build_mode: subagent-driven-development
 build_pause: null
@@ -20,7 +20,9 @@ created_at: 2026-07-08
 verified_at: null
 archived: false
 direct_override: null
-build_command: null
+build_command: mvn -f
+  /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-boot/pom.xml
+  -pl fw-plus-boot-project/fw-plus-boot-autoconfigure compile -DskipTests
 verify_command: null
 handoff_context: openspec/changes/notify-mcp-config-changes/.comet/handoff/design-context.json
 handoff_hash: 39e095aafc9f3a7a1edc282c584a7fb5644e73ba48fbcf9d920fc0a716ac83f9
