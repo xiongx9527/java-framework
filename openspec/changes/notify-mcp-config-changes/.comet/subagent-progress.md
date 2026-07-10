@@ -1,7 +1,7 @@
 # Subagent Progress — notify-mcp-config-changes
 
 - change: notify-mcp-config-changes
-- phase: final-review
+- phase: blocked
 - review_mode: standard
 - tdd_mode: tdd
 - isolation: worktree
@@ -26,8 +26,9 @@
 - risk_signals: []
 - task_review_required: no-standard-risk
 - task_review_status: skipped-non-risk
-- review_fix_round: 0
-- unresolved_feedback: []
+- review_fix_round: 1
+- unresolved_feedback:
+  - "final-rereview CHANGES_REQUESTED: ConfigMagicDynamicRegistry unregisterByEntity 在移除 property source 和 super.unregister 之前执行 parseProperties(info)，若 YAML 解析失败会阻断取消注册主流程。建议：取消注册主流程优先，parseProperties 单独捕获异常并降级为空 properties；已移除 property source 时仍 refresh，仅成功解析 flatten key 时发布 ConfigChangeEvent。standard 自动修复预算已用完，需用户决定继续修复或接受偏差。"
 
 ## Log
 
