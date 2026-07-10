@@ -126,9 +126,13 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
     private void unregisterByEntity(ConfigInfo info) {
         String propName = buildPropName(info);
         MutablePropertySources propertySources = this.environment.getPropertySources();
+        Map<String, Object> properties = parseProperties(info);
+        boolean removed = false;
         if (propertySources.contains(propName)) {
-            Map<String, Object> properties = parseProperties(info);
             propertySources.remove(propName);
+            removed = true;
+        }
+        if (removed || !properties.isEmpty()) {
             try {
                 refreshAndPublish(properties);
             } catch (Exception e) {
@@ -179,7 +183,6 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
      */
     @Override
     public boolean register(ConfigInfo info) {
-        registerByEntity(info);
         try {
             return super.register(info);
         } catch (Exception e) {
@@ -197,7 +200,11 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
     @Override
     protected boolean register(MappingNode<ConfigInfo> mappingNode) {
         try {
-            return super.register(mappingNode);
+            boolean result = super.register(mappingNode);
+            if (result) {
+                registerByEntity(mappingNode.getEntity());
+            }
+            return result;
         } catch (Exception ignored) {
             return false;
         }
