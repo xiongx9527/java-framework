@@ -11,7 +11,7 @@
 
 ## 3. 自动配置与测试
 
-- [ ] 3.1 在 MCP 自动配置中注册新增配置变化通知组件，并保持现有启用条件。
-- [ ] 3.2 新增单元测试覆盖 MCP tools/api 配置变化触发 `notifications/tools/list_changed`、非 MCP 配置变化不触发、同一刷新内通知去重。
-- [ ] 3.3 新增或调整测试覆盖 MagicAPI config 资源变化路径与 MCP disabled/absent 兼容场景。
-- [ ] 3.4 运行 Boot autoconfigure 模块中 MCP/config 相关测试，确认现有通知、集群广播和 lifecycle 行为未回归。
+- [x] 3.1 在 MCP 自动配置中注册新增配置变化通知组件，并保持现有启用条件。
+- [x] 3.2 新增单元测试覆盖 MCP tools/api 配置变化触发 `notifications/tools/list_changed`、非 MCP 配置变化不触发、同一刷新内通知去重。
+- [x] 3.3 新增或调整测试覆盖 MagicAPI config 资源变化路径与 MCP disabled/absent 兼容场景。
+- [x] 3.4 运行 Boot autoconfigure 模块中 MCP/config 相关测试，确认现有通知、集群广播和 lifecycle 行为未回归。

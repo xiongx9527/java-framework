@@ -1,8 +1,11 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.notification;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.config.event.ConfigChangeEvent;
+import com.xiongx9527.fw.plus.boot.autoconfigure.config.event.ConfigChangeEventListener;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -107,6 +110,34 @@ class McpConfigurationChangeNotifierTest {
 		properties.put("magic-api.plugin.mcp.enabled", true);
 
 		notifier.onMcpConfigurationChanged(properties);
+
+		assertThat(notificationService.methods).isEmpty();
+	}
+
+	@Test
+	void shouldReceiveFilteredPropertiesThroughOnConfigChangeListener() {
+		RecordingNotificationService notificationService = new RecordingNotificationService();
+		McpConfigurationChangeNotifier notifier = new McpConfigurationChangeNotifier(notificationService);
+		ConfigChangeEventListener listener = new ConfigChangeEventListener();
+		listener.postProcessAfterInitialization(notifier, "mcpConfigurationChangeNotifier");
+		Map<String, Object> properties = new HashMap<>();
+		properties.put("server.port", 8080);
+		properties.put("magic-api.plugin.mcp.tools.functions.enabled", true);
+
+		listener.onApplicationEvent(new ConfigChangeEvent(this, properties));
+
+		assertThat(notificationService.methods).containsExactly("notifications/tools/list_changed");
+	}
+
+	@Test
+	void shouldIgnoreConfigChangeEventWhenFilteredMcpMapIsEmpty() {
+		RecordingNotificationService notificationService = new RecordingNotificationService();
+		McpConfigurationChangeNotifier notifier = new McpConfigurationChangeNotifier(notificationService);
+		ConfigChangeEventListener listener = new ConfigChangeEventListener();
+		listener.postProcessAfterInitialization(notifier, "mcpConfigurationChangeNotifier");
+
+		listener.onApplicationEvent(new ConfigChangeEvent(this,
+				Collections.<String, Object>singletonMap("server.port", 8080)));
 
 		assertThat(notificationService.methods).isEmpty();
 	}

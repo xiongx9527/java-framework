@@ -703,7 +703,7 @@ Expected: commit only includes MagicAPI config registry event publishing and tes
 - Consumes: `ConfigChangeEventListener` bean post-processing and `ConfigChangeEvent` dispatch。
 - Produces: proof that `ConfigChangeEvent` with MCP keys invokes notifier through `@OnConfigChange` rather than only direct method calls。
 
-- [ ] **Step 1: 写 `@OnConfigChange` 分发链路测试**
+- [x] **Step 1: 写 `@OnConfigChange` 分发链路测试**
 
 在 `McpConfigurationChangeNotifierTest.java` imports 中加入：
 
@@ -744,7 +744,7 @@ import java.util.Collections;
 	}
 ```
 
-- [ ] **Step 2: 运行通知器和自动配置测试**
+- [x] **Step 2: 运行通知器和自动配置测试**
 
 Run:
 
@@ -755,7 +755,7 @@ cd fw-plus-boot
 
 Expected: PASS，新增分发链路测试、自动配置测试均通过。
 
-- [ ] **Step 3: 运行 MCP/config 相关回归测试**
+- [x] **Step 3: 运行 MCP/config 相关回归测试**
 
 Run:
 
@@ -766,7 +766,7 @@ cd fw-plus-boot
 
 Expected: PASS，所有列出的测试类无 failure/error。
 
-- [ ] **Step 4: 运行 Boot autoconfigure 模块定向验证命令**
+- [x] **Step 4: 运行 Boot autoconfigure 模块定向验证命令**
 
 Run:
 
@@ -777,7 +777,7 @@ cd fw-plus-boot
 
 Expected: PASS，覆盖 MCP notification、starter、config registry、cluster broadcast、lifecycle、controller auth 相关测试。
 
-- [ ] **Step 5: 检查未提交文件并提交测试补充**
+- [x] **Step 5: 检查未提交文件并提交测试补充**
 
 Run:
 
@@ -791,16 +791,16 @@ Expected: commit only includes Task 4 test refinements.
 
 ## 验收清单
 
-- [ ] 新增 `McpConfigurationChangeNotifier` 并通过 `@OnConfigChange(prefix = "magic-api.plugin.mcp")` 接入 `ConfigChangeEventListener`。
-- [ ] `tools.functions.*` 与 `tools.api.*` 配置变化触发一次 `notifications/tools/list_changed`。
-- [ ] `protocol.*`、`auth.*`、`headers.*` 配置变化触发 tools、resources、prompts 三类 `list_changed`。
-- [ ] 同一次刷新内相同 notification method 去重。
-- [ ] 非 MCP key 与未覆盖 MCP key 不触发 MCP notification。
-- [ ] `MagicAPIMcpConfiguration` 默认注册 `McpConfigurationChangeNotifier`，`magic-api.plugin.mcp.enabled=false` 时不注册。
-- [ ] `ConfigMagicDynamicRegistry` 在 `ContextRefresher.refresh()` 完成后发布 `ConfigChangeEvent`。
-- [ ] MagicAPI `config` 删除、禁用、取消注册时基于原脚本 flatten key 发布事件。
-- [ ] MagicAPI config 插件没有 MCP 类依赖，MCP 插件禁用或缺失时配置刷新仍可工作。
-- [ ] 使用 `cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='*Mcp*Test,ConfigMagicDynamicRegistryTest,MagicAPIMcpConfigurationTest,MagicMcpControllerTest,MagicMcpControllerAuthTest' test` 验证通过。
+- [x] 新增 `McpConfigurationChangeNotifier` 并通过 `@OnConfigChange(prefix = "magic-api.plugin.mcp")` 接入 `ConfigChangeEventListener`。
+- [x] `tools.functions.*` 与 `tools.api.*` 配置变化触发一次 `notifications/tools/list_changed`。
+- [x] `protocol.*`、`auth.*`、`headers.*` 配置变化触发 tools、resources、prompts 三类 `list_changed`。
+- [x] 同一次刷新内相同 notification method 去重。
+- [x] 非 MCP key 与未覆盖 MCP key 不触发 MCP notification。
+- [x] `MagicAPIMcpConfiguration` 默认注册 `McpConfigurationChangeNotifier`，`magic-api.plugin.mcp.enabled=false` 时不注册。
+- [x] `ConfigMagicDynamicRegistry` 在 `ContextRefresher.refresh()` 完成后发布 `ConfigChangeEvent`。
+- [x] MagicAPI `config` 删除、禁用、取消注册时基于原脚本 flatten key 发布事件。
+- [x] MagicAPI config 插件没有 MCP 类依赖，MCP 插件禁用或缺失时配置刷新仍可工作。
+- [x] 使用 `cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='*Mcp*Test,ConfigMagicDynamicRegistryTest,MagicAPIMcpConfigurationTest,MagicMcpControllerTest,MagicMcpControllerAuthTest' test` 验证通过。
 
 ## 计划自检
 
