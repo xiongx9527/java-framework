@@ -2,6 +2,7 @@
 change: notify-mcp-config-changes
 design-doc: docs/superpowers/specs/2026-07-08-notify-mcp-config-changes-design.md
 base-ref: 32ae4fb3e9af2359d01b2160af9585c3560161c5
+archived-with: 2026-07-10-notify-mcp-config-changes
 ---
 
 # MCP 配置变化通知实施计划
@@ -29,6 +30,7 @@ base-ref: 32ae4fb3e9af2359d01b2160af9585c3560161c5
 - Maven 验证必须使用模块内 Maven Wrapper：从 `fw-plus-boot` 目录执行 `./mvnw`。
 - 执行代码实现时不得回滚或覆盖他人改动；提交前必须检查 `git status --short` 并只暂存本任务相关文件。
 
+archived-with: 2026-07-10-notify-mcp-config-changes
 ---
 
 ## 文件结构
@@ -807,3 +809,4 @@ Expected: commit only includes Task 4 test refinements.
 - Spec coverage: OpenSpec 中 MCP tools/protocol/auth/headers 配置变化、非 MCP 忽略、同批去重、MagicAPI config 资源变化、MCP disabled/absent 兼容场景，分别由 Task 1、Task 2、Task 3、Task 4 覆盖。
 - Placeholder scan: 本计划没有使用 `TBD`、`TODO`、`implement later`、`fill in details` 或无代码的泛化测试描述。
 - Type consistency: `McpConfigurationChangeNotifier#onMcpConfigurationChanged(Map<String, Object>)`、`McpNotificationService.broadcast(Map<String, Object>)`、`ConfigChangeEvent(Object, Map<String, Object>)`、`ConfigMagicDynamicRegistry#registerByEntity(ConfigInfo)`、`unregisterByEntity(ConfigInfo)` 名称与当前代码或本计划定义一致。
+
