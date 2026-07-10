@@ -126,18 +126,27 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
     private void unregisterByEntity(ConfigInfo info) {
         String propName = buildPropName(info);
         MutablePropertySources propertySources = this.environment.getPropertySources();
-        Map<String, Object> properties = parseProperties(info);
         boolean removed = false;
         if (propertySources.contains(propName)) {
             propertySources.remove(propName);
             removed = true;
         }
+        Map<String, Object> properties = parsePropertiesForUnregister(info, propName);
         if (removed || !properties.isEmpty()) {
             try {
                 refreshAndPublish(properties);
             } catch (Exception e) {
                 log.error("刷新上下文失败", e);
             }
+        }
+    }
+
+    private Map<String, Object> parsePropertiesForUnregister(ConfigInfo info, String propName) {
+        try {
+            return parseProperties(info);
+        } catch (Exception e) {
+            log.warn("配置文件:[{}]取消注册时解析失败，已降级为空配置: {}", propName, e.getMessage(), e);
+            return new HashMap<>();
         }
     }
 
@@ -168,7 +177,6 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
         }
         return resourceService.getScriptName(info);
     }
-
     private String buildPropName(ConfigInfo info) {
         return removeUnderscores(info.getEnv()) + "_" + removeUnderscores(info.getAppId()) + "_" + removeUnderscores(info.getNamespace());
     }

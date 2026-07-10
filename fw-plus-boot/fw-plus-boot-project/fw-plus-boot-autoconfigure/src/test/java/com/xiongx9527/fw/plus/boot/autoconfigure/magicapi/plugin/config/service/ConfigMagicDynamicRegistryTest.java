@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -130,6 +131,26 @@ class ConfigMagicDynamicRegistryTest {
         assertThat(environment.getPropertySources().contains("dev_app_mcp")).isFalse();
         assertThat(publisher.events).hasSize(1);
         assertThat(publisher.events.get(0).getProperties()).containsEntry("magic-api.plugin.mcp.headers.session-id", "Mcp-Session-Id");
+    }
+
+    @Test
+    void shouldRemovePropertySourceAndRefreshWhenInvalidYamlIsUnregistered() {
+        ConfigMagicDynamicRegistry registry = registry();
+        RecordingEventPublisher publisher = new RecordingEventPublisher();
+        ContextRefresher contextRefresher = mock(ContextRefresher.class);
+        MockEnvironment environment = new MockEnvironment();
+        ConfigInfo info = config("magic-api:\n  plugin:\n    mcp: [invalid\n");
+        environment.getPropertySources().addFirst(new MapPropertySource("dev_app_mcp", java.util.Collections.<String, Object>singletonMap(
+                "magic-api.plugin.mcp.auth.enabled", false)));
+        ReflectionTestUtils.setField(registry, "eventPublisher", publisher);
+        ReflectionTestUtils.setField(registry, "contextRefresher", contextRefresher);
+        ReflectionTestUtils.setField(registry, "environment", environment);
+
+        assertThatCode(() -> ReflectionTestUtils.invokeMethod(registry, "unregisterByEntity", info)).doesNotThrowAnyException();
+
+        assertThat(environment.getPropertySources().contains("dev_app_mcp")).isFalse();
+        verify(contextRefresher).refresh();
+        assertThat(publisher.events).isEmpty();
     }
 
     private ConfigMagicDynamicRegistry registry() {
