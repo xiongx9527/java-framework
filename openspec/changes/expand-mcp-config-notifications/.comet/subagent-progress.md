@@ -8,13 +8,15 @@
 
 ## Current Task
 
-- Plan task: Task 1: 固定新增精确 key 与忽略边界测试
-- OpenSpec mapping: 2.1 为新增覆盖 key 编写 `McpConfigurationChangeNotifierTest` 失败用例，覆盖对应 tools/resources/prompts 或能力视图刷新通知。
+- Plan task: Task 2: 扩展通知器精确 key 映射并验证去重
+- OpenSpec mapping: 2.2/2.3/2.4 通知器映射、去重、忽略逻辑。
 - Stage: done
-- Implementer: DONE
-- Reviewer: skipped (standard review; no risk signal)
+- Implementer: DONE_WITH_CONCERNS
+- Reviewer: APPROVED
 - Review/fix round: 0
-- Risk signals: none
-- RED evidence: `McpConfigurationChangeNotifierTest` failed as expected; Tests run: 13, Failures: 3; endpoint/session-transport/trusted-origins actual methods were empty.
-- GREEN evidence: deferred to Task 2 by design; Task 1 is RED test task.
-- Commits: 1947dfb
+- Risk signals: DONE_WITH_CONCERNS; task review completed cleanly
+- RED evidence: `McpConfigurationChangeNotifierTest` failed; Tests run: 13, Failures: 3.
+- GREEN evidence: `McpConfigurationChangeNotifierTest` passed; Tests run: 13, Failures: 0, Errors: 0, Skipped: 0.
+- Commits: 9fd6f844f5dd0eeea360f7f094d119ad386b67ac
+- Review package: .superpowers/sdd/review-4e8cf8b..9fd6f84.diff
+- Review result: Spec ✅, Quality ✅, Findings: none
