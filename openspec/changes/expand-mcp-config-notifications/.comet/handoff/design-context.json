@@ -1,0 +1,14 @@
+{
+  "change": "expand-mcp-config-notifications",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "806187f41b6012f50598a73524efe0fabf7bd4ad275d414baedac0015aba328b",
+  "files": [
+    { "path": "openspec/changes/expand-mcp-config-notifications/proposal.md", "sha256": "0c683d1e1d206f4752a7b085774dd94191cf4f1d0b165ecd1e1acb9922722a9b" },
+    { "path": "openspec/changes/expand-mcp-config-notifications/design.md", "sha256": "21fc38d923d413333dffc630ae966bcc517161778d4f624e750729b2c4da71ad" },
+    { "path": "openspec/changes/expand-mcp-config-notifications/tasks.md", "sha256": "c378739ceb9bbeb9387e7cba259a9ad9490ec0ae6eb4b0a9e56c7d3131d5ac8d" },
+    { "path": "openspec/changes/expand-mcp-config-notifications/specs/standard-mcp-server-plugin/spec.md", "sha256": "2428da40ef8e733de14aad6c6e6d46209b1c3934f1ba1c4dfbff7c7667c36e06" }
+  ]
+}
