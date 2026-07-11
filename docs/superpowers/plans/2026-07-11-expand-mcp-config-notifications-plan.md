@@ -322,7 +322,7 @@ base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
 - Consumes: Task 2 已通过的 notifier 行为。
 - Produces: OpenSpec section 1 和 3 的完成勾选；定向测试证据。
 
-- [ ] **Step 1: 对照使用点确认纳入和忽略理由**
+- [x] **Step 1: 对照使用点确认纳入和忽略理由**
 
   用代码阅读确认下表，不新增文档文件；确认结果体现在 OpenSpec task 勾选和提交说明中：
 
@@ -342,7 +342,7 @@ base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
 
   Expected: 没发现除 4 个新增精确 key 之外还必须纳入的 client-visible 配置 key。若发现新的必须纳入 key，停止并回到设计确认，不要擅自扩大范围。
 
-- [ ] **Step 2: 运行 Design Doc 指定定向回归**
+- [x] **Step 2: 运行 Design Doc 指定定向回归**
 
   Run:
 
@@ -354,7 +354,7 @@ base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
 
   Expected: 三组测试全部通过，`Failures: 0, Errors: 0`。
 
-- [ ] **Step 3: 如测试类路径不匹配，使用当前模块实际测试名重跑**
+- [x] **Step 3: 如测试类路径不匹配，使用当前模块实际测试名重跑**
 
   只有当 Step 2 因测试名匹配不到而失败时，先定位实际测试类名，再运行等价命令。保持范围只覆盖 MCP/config 相关测试，不扩大到全模块：
 
@@ -365,7 +365,7 @@ base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
 
   Expected: 找到 `McpConfigurationChangeNotifierTest`、`MagicAPIMcpConfigurationTest`、`ConfigMagicDynamicRegistryTest` 或它们的当前等价名称。随后用 `-Dtest='实际类名1,实际类名2,实际类名3' test` 重跑并通过。
 
-- [ ] **Step 4: 勾选 OpenSpec 影响面与验证任务**
+- [x] **Step 4: 勾选 OpenSpec 影响面与验证任务**
 
   仅当 Step 1 确认完成且 Step 2/3 测试通过后，编辑 `openspec/changes/expand-mcp-config-notifications/tasks.md`，把这些项改为已完成：
 
@@ -378,7 +378,7 @@ base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
   - [x] 3.3 运行 Boot autoconfigure 模块中 MCP/config 相关定向测试，确认现有通知、集群广播和 lifecycle 行为未回归。
   ```
 
-- [ ] **Step 5: 提交验证勾选**
+- [x] **Step 5: 提交验证勾选**
 
   ```bash
   cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework && \
