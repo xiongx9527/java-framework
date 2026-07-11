@@ -214,7 +214,7 @@ base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
 - Consumes: Task 1 测试方法；现有 `McpNotificationService.toolsListChanged()`、`resourcesListChanged()`、`promptsListChanged()`。
 - Produces: 私有方法 `isCapabilityViewKey(String key): boolean`；`collectNotificationMethods` 对新增 4 个精确 key 添加 tools/resources/prompts 三类通知。
 
-- [ ] **Step 1: 修改通知器常量和判断方法**
+- [x] **Step 1: 修改通知器常量和判断方法**
 
   在 `McpConfigurationChangeNotifier.java` 的 `HEADERS_PREFIX` 后添加精确 key 常量：
 
@@ -252,7 +252,7 @@ base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
   	}
   ```
 
-- [ ] **Step 2: 扩展同批去重测试**
+- [x] **Step 2: 扩展同批去重测试**
 
   在 `McpConfigurationChangeNotifierTest.java` 的 `shouldDeduplicateNotificationMethodsWithinOneRefresh()` 中，把 properties 初始化块改成：
 
@@ -268,7 +268,7 @@ base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
 
   Expected: 仍然只发送三类 method 各一次，顺序保持 tools、resources、prompts。
 
-- [ ] **Step 3: 运行通知器单测确认通过**
+- [x] **Step 3: 运行通知器单测确认通过**
 
   Run:
 
@@ -280,7 +280,7 @@ base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
 
   Expected: `Tests run: 10` 或更多，`Failures: 0, Errors: 0`。
 
-- [ ] **Step 4: 勾选 OpenSpec 通知器相关任务**
+- [x] **Step 4: 勾选 OpenSpec 通知器相关任务**
 
   仅当 Step 3 通过后，编辑 `openspec/changes/expand-mcp-config-notifications/tasks.md`，把这些项改为已完成：
 
@@ -293,7 +293,7 @@ base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
 
   Do not mark section 1 or 3 yet.
 
-- [ ] **Step 5: 提交通知器实现**
+- [x] **Step 5: 提交通知器实现**
 
   ```bash
   cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework && \
