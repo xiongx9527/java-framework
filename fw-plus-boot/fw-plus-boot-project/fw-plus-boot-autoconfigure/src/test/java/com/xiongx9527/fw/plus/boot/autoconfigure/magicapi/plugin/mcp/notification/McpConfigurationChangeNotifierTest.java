@@ -137,6 +137,9 @@ class McpConfigurationChangeNotifierTest {
 		properties.put("magic-api.plugin.mcp.tools.functions.enabled", true);
 		properties.put("magic-api.plugin.mcp.tools.api.enabled", true);
 		properties.put("magic-api.plugin.mcp.auth.enabled", false);
+		properties.put("magic-api.plugin.mcp.endpoint", "/mcp-v2");
+		properties.put("magic-api.plugin.mcp.sse-stream-enabled", false);
+		properties.put("magic-api.plugin.mcp.max-request-bytes", 1024);
 
 		notifier.onMcpConfigurationChanged(properties);
 
