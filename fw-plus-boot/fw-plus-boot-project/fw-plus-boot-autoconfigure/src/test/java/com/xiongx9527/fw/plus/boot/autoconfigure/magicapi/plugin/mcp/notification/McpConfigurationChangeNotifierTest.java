@@ -84,6 +84,52 @@ class McpConfigurationChangeNotifierTest {
 	}
 
 	@Test
+	void shouldNotifyAllCapabilityListsWhenEndpointConfigChanges() {
+		RecordingNotificationService notificationService = new RecordingNotificationService();
+		McpConfigurationChangeNotifier notifier = new McpConfigurationChangeNotifier(notificationService);
+		Map<String, Object> properties = new HashMap<>();
+		properties.put("magic-api.plugin.mcp.endpoint", "/mcp-v2");
+
+		notifier.onMcpConfigurationChanged(properties);
+
+		assertThat(notificationService.methods).containsExactly(
+				"notifications/tools/list_changed",
+				"notifications/resources/list_changed",
+				"notifications/prompts/list_changed");
+	}
+
+	@Test
+	void shouldNotifyAllCapabilityListsWhenSessionAndTransportConfigChanges() {
+		RecordingNotificationService notificationService = new RecordingNotificationService();
+		McpConfigurationChangeNotifier notifier = new McpConfigurationChangeNotifier(notificationService);
+		Map<String, Object> properties = new HashMap<>();
+		properties.put("magic-api.plugin.mcp.session-timeout-seconds", 60);
+		properties.put("magic-api.plugin.mcp.sse-stream-enabled", false);
+
+		notifier.onMcpConfigurationChanged(properties);
+
+		assertThat(notificationService.methods).containsExactly(
+				"notifications/tools/list_changed",
+				"notifications/resources/list_changed",
+				"notifications/prompts/list_changed");
+	}
+
+	@Test
+	void shouldNotifyAllCapabilityListsWhenTrustedOriginsConfigChanges() {
+		RecordingNotificationService notificationService = new RecordingNotificationService();
+		McpConfigurationChangeNotifier notifier = new McpConfigurationChangeNotifier(notificationService);
+		Map<String, Object> properties = new HashMap<>();
+		properties.put("magic-api.plugin.mcp.trusted-origins", "https://example.com");
+
+		notifier.onMcpConfigurationChanged(properties);
+
+		assertThat(notificationService.methods).containsExactly(
+				"notifications/tools/list_changed",
+				"notifications/resources/list_changed",
+				"notifications/prompts/list_changed");
+	}
+
+	@Test
 	void shouldDeduplicateNotificationMethodsWithinOneRefresh() {
 		RecordingNotificationService notificationService = new RecordingNotificationService();
 		McpConfigurationChangeNotifier notifier = new McpConfigurationChangeNotifier(notificationService);
@@ -101,13 +147,15 @@ class McpConfigurationChangeNotifierTest {
 	}
 
 	@Test
-	void shouldIgnoreNonMcpAndUncoveredMcpConfigKeys() {
+	void shouldIgnoreNonClientVisibleAndUnknownMcpConfigKeys() {
 		RecordingNotificationService notificationService = new RecordingNotificationService();
 		McpConfigurationChangeNotifier notifier = new McpConfigurationChangeNotifier(notificationService);
 		Map<String, Object> properties = new HashMap<>();
 		properties.put("server.port", 8080);
-		properties.put("magic-api.plugin.mcp.endpoint", "/mcp");
 		properties.put("magic-api.plugin.mcp.enabled", true);
+		properties.put("magic-api.plugin.mcp.max-request-bytes", 1024);
+		properties.put("magic-api.plugin.mcp.max-response-chars", 4096);
+		properties.put("magic-api.plugin.mcp.logging.level", "debug");
 
 		notifier.onMcpConfigurationChanged(properties);
 
