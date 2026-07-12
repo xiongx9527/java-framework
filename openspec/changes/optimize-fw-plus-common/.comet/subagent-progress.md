@@ -7,20 +7,22 @@
 
 ## Last Completed Task
 
-- Plan task: Task 1: 筛选并固定最小优化清单
-- OpenSpec task mapping:
-  - `1.1 盘点 fw-plus-common 关键公共类及调用半径，筛掉无明确收益的改动。`
-  - `1.2 确定本次只处理的最小优化清单，并记录不处理项。`
+- Plan task: Task 2: TDD 最小兼容优化 CommonsValidatorHolder
 - Stage: done
-- Brief: `.superpowers/sdd/task-1-brief.md`
-- Report: `.superpowers/sdd/task-1-report.md`
-- Implementer status: DONE_WITH_CONCERNS
-- Commit: `05e7b2322a4a9c8d20e0c74a7df59cceab77a61a`
-- Review package: `.superpowers/sdd/review-6cd22c2..05e7b23.diff`
+- Commit: `88b7789005f02d7d7cc4265a31cd8778ccaf2d3a`
 - Review verdict: PASS / APPROVED
-- Coordinator verification:
-  - Commit body contains scope exclusions.
-  - Untracked `.claude/settings.local.json` is outside task diff.
 - Risk signals:
-  - DONE_WITH_CONCERNS; reviewed and approved.
-- RED/GREEN evidence: not applicable; screening task only, no production logic.
+  - Maven Wrapper 缺失，已用系统 Maven 3.6.3 做等价验证。
+  - fw-plus-common 未声明 JUnit 测试依赖，测试采用 Surefire 可执行 POJO 形式以避免新增依赖。
+- RED/GREEN evidence:
+  - RED: `mvn -Dtest=CommonsValidatorHolderSourceTest test` 在生产修改前因 `ObjectUtils` 断言失败。
+  - GREEN: `mvn -Dtest='CommonsValidatorHolderTest,CommonsValidatorHolderSourceTest' test` 通过，Tests run: 4。
+  - Downstream: `mvn -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='CommonsValidatorRequestBodyAdviceTest,CommonsValidatorResponseBodyAdviceTest' test` 通过，Tests run: 5。
+
+## Current Task
+
+- Plan task: Task 3: 最终验证与范围检查
+- OpenSpec task mapping:
+  - all tasks already checked in `openspec/changes/optimize-fw-plus-common/tasks.md`
+- Stage: pending
+- Review round: 0
