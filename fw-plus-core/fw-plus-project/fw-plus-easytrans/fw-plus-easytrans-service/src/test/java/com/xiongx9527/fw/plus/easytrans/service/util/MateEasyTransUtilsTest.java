@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -59,6 +60,18 @@ class MateEasyTransUtilsTest {
 
         Object result = MateEasyTransUtils.transOne(node, transService, false,
                 new ArrayList<>(), null, null);
+
+        assertSame(node, result);
+    }
+
+    @Test
+    void transOneTracksCycleWhenHistoryIsNull() throws Exception {
+        CountingTransService transService = new CountingTransService();
+        Node node = new Node();
+        node.self = node;
+
+        Object result = assertDoesNotThrow(() -> MateEasyTransUtils.transOne(node, transService, false,
+                null, null, null));
 
         assertSame(node, result);
     }
