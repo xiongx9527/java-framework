@@ -54,7 +54,7 @@ public class CommonsValidatorHolder {
         Map<String,Object> map = CONTEXT_HOLDER.get();
         if (map == null || map.isEmpty()) {
             map = new HashMap<>();
-            CONTEXT_HOLDER.set(map);
+            set(map);
         }
         return map;
     }
