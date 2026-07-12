@@ -217,6 +217,8 @@ git commit -m "test: cover easytrans shared translation edge cases"
 
 ### Task 2: 修复集合批量翻译的 null 与重复首元素读取
 
+- [x] Task 2: 修复集合批量翻译的 null 与重复首元素读取
+
 **Files:**
 - Modify: `fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/main/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtils.java:103-157`
 - Test: `fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/test/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtilsTest.java`
