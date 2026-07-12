@@ -2,6 +2,8 @@
 comet_change: expand-mcp-config-notifications
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-12-expand-mcp-config-notifications
+status: final
 ---
 
 # 扩展 MCP 配置通知覆盖面技术设计

@@ -2,6 +2,7 @@
 change: expand-mcp-config-notifications
 design-doc: docs/superpowers/specs/2026-07-11-expand-mcp-config-notifications-design.md
 base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
+archived-with: 2026-07-12-expand-mcp-config-notifications
 ---
 
 # 扩展 MCP 配置通知覆盖面实施计划
@@ -27,6 +28,7 @@ base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
 - Java 8 兼容；不要使用 `List.of`、`Map.of`、`Set.of`、var、Stream API 中 Java 9+ 功能。
 - 每个 OpenSpec task 验收后按 Comet build 规则勾选 `openspec/changes/expand-mcp-config-notifications/tasks.md` 并单独提交。
 
+archived-with: 2026-07-12-expand-mcp-config-notifications
 ---
 
 ## File Structure
@@ -393,3 +395,4 @@ base-ref: d496155c8a91fcc307cfb055e86a65e7f8d24623
 - Spec coverage: 覆盖新增 4 个精确 key、既有 tools/protocol/auth/headers 映射、同批 method 去重、明确忽略 enabled/max-request/max-response/未知 MCP/非 MCP key、定向回归命令。
 - Placeholder scan: 未使用 TBD/TODO/implement later/similar to 等占位描述；每个代码变更步骤给出具体代码块或具体编辑文本。
 - Type consistency: 仅使用现有 `McpConfigurationChangeNotifier#onMcpConfigurationChanged(Map<String, Object>)`、`RecordingNotificationService.methods`、`McpNotificationService.*ListChanged()`；新增私有方法签名为 `isCapabilityViewKey(String key)`，不对外暴露。
+
