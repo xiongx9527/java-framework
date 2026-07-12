@@ -2,6 +2,8 @@
 comet_change: optimize-fw-plus-common
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-12-optimize-fw-plus-common
+status: final
 ---
 
 # optimize-fw-plus-common 技术设计
@@ -92,3 +94,4 @@ canonical_spec: openspec
 - 所有实现任务都有明确收益说明或代码证据。
 - 非平凡逻辑改动有最小可运行验证。
 - 没有新增依赖、无 public API 语义变化、无无关格式化改动。
+
