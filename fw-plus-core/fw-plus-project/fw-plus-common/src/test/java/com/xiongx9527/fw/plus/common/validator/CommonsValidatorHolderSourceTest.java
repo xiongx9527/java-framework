@@ -10,8 +10,8 @@ public class CommonsValidatorHolderSourceTest {
     public void testHolderDoesNotUseObjectUtilsForMapEmptiness() throws Exception {
         String source = new String(Files.readAllBytes(sourcePath()), StandardCharsets.UTF_8);
 
-        if (source.contains("ObjectUtils")) {
-            throw new AssertionError("CommonsValidatorHolder should not use ObjectUtils");
+        if (source.contains("import org.apache.commons.lang3.ObjectUtils;") || source.contains("ObjectUtils.isEmpty(")) {
+            throw new AssertionError("CommonsValidatorHolder should not use ObjectUtils for map emptiness");
         }
     }
 

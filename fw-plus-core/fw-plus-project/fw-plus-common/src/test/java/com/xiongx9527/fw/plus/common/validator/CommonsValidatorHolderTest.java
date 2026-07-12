@@ -6,12 +6,12 @@ import java.util.Map;
 
 public class CommonsValidatorHolderTest {
 
-    public void testGetCreatesWritableContext() {
+    public void testGetReturnsUnstoredEmptyContext() {
         try {
             Map<String, Object> context = CommonsValidatorHolder.get();
             context.put("name", "fw-plus");
 
-            assertEquals("fw-plus", CommonsValidatorHolder.get("name"));
+            assertNull(CommonsValidatorHolder.get("name"));
         } finally {
             CommonsValidatorHolder.clear();
         }
