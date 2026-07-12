@@ -6,7 +6,7 @@
 ## 2. 稳定性优化
 
 - [x] 2.1 修复共享翻译链路中的 null、空集合、反射访问或翻译异常兜底问题。
-- [ ] 2.2 确认 Boolean、Enum、Dictionary、RPC 翻译输出保持兼容。
+- [x] 2.2 确认 Boolean、Enum、Dictionary、RPC 翻译输出保持兼容。
 
 ## 3. 性能优化
 

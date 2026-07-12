@@ -8,22 +8,24 @@
 
 ## Current Task
 
-- Plan task: Task 3: 引入内部身份判重上下文
-- OpenSpec mapping: `1.1 梳理 fw-plus-easytrans 当前翻译入口、工具方法和翻译服务调用链，确认实际修改点。`; `3.2 复用已有缓存或局部变量降低重复反射开销，不新增独立缓存层。`
+- Plan task: Task 4: 补代理和兼容输出验证
+- OpenSpec mapping: `2.2 确认 Boolean、Enum、Dictionary、RPC 翻译输出保持兼容。`
 - Stage: task-review
-- Brief: `.superpowers/sdd/task-3-brief.md`
-- Report: `.superpowers/sdd/task-3-report.md`
-- Review package: `.superpowers/sdd/review-434e7d6..56952fa.diff`
+- Brief: `.superpowers/sdd/task-4-brief.md`
+- Report: `.superpowers/sdd/task-4-report.md`
+- Review package: `.superpowers/sdd/review-26d0d45..ac7764f.diff`
 - Review rounds: 0
 - Risk review required: yes
 - Risk signals:
+  - ./mvnw wrapper metadata missing in worktree; system mvn used for equivalent command.
   - Existing Maven settings/dependency warnings.
-  - createProxyVo compatibility test logs current Byte Buddy fallback error.
-- Commits: 434e7d6..56952fa
-- RED evidence: new `transOneTracksCycleWhenHistoryIsNull` failed with NullPointerException.
-- GREEN evidence: system mvn ran MateEasyTransUtilsTest; 6 tests passed.
+  - Proxy failure test still logs genNewClass fallback error, but no longer logs secondary assignment error.
+- Commits: 26d0d45..ac7764f
+- RED evidence: new proxy fallback test failed because createProxyVo continued clazz.newInstance() after genNewClass returned null.
+- GREEN evidence: system mvn ran MateEasyTransUtilsTest; 7 tests passed.
 
 ## Completed
 
 - Task 1: complete (commits d47dd1a..b9d1f75, review clean, progress commit 6070619)
 - Task 2: complete (commits 6070619..5626cbb, review accepted after coordinator checkoff, progress commit 434e7d6)
+- Task 3: complete (commits 434e7d6..56952fa, review accepted after coordinator checkoff, progress commit 26d0d45)

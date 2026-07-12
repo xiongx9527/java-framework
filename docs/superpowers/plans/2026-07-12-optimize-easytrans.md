@@ -450,6 +450,8 @@ git commit -m "perf: use identity tracking in easytrans recursion"
 
 ### Task 4: 补代理和兼容输出验证
 
+- [x] Task 4: 补代理和兼容输出验证
+
 **Files:**
 - Modify: `fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/main/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtils.java:421-453`
 - Modify: `fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/test/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtilsTest.java`
