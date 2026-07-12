@@ -52,7 +52,7 @@ base-ref: 5a66ee7c7ab0f88dd23d4ffee1e2a5e39b52780e
 - Consumes: 当前 `MateEasyTransUtils.transOne(...)`、`transBatch(...)`、`createProxyVo(...)` public static 方法。
 - Produces: `MateEasyTransUtilsTest.CountingTransService`，后续任务继续复用它验证实现。
 
-- [ ] **Step 1: Add test dependency if missing**
+- [x] **Step 1: Add test dependency if missing**
 
 在 `fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/pom.xml` 的 `<dependencies>` 内追加 test scope 依赖。若父 POM 已统一提供测试依赖且当前模块测试可编译，则跳过此改动。
 
@@ -64,7 +64,7 @@ base-ref: 5a66ee7c7ab0f88dd23d4ffee1e2a5e39b52780e
         </dependency>
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/test/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtilsTest.java`：
 
@@ -195,7 +195,7 @@ class MateEasyTransUtilsTest {
 
 如果 `VO` 不是 interface 或需要额外方法，按编译错误补齐 `TestVo` 的最小实现，但不要引入 Spring 容器。
 
-- [ ] **Step 3: Run tests to verify current failures**
+- [x] **Step 3: Run tests to verify current failures**
 
 Run:
 
@@ -205,7 +205,7 @@ cd fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-eas
 
 Expected: 至少 `transBatchSkipsLeadingNullAndTranslatesLaterVo` 在当前实现下失败，因为首元素为 `null` 时不会翻译后续 VO。若测试依赖或 `VO` stub 编译失败，先按错误最小调整测试代码，不改生产代码。
 
-- [ ] **Step 4: Commit test setup only after it compiles to the expected failing point**
+- [x] **Step 4: Commit test setup only after it compiles to the expected failing point**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/pom.xml \
@@ -228,7 +228,7 @@ git commit -m "test: cover easytrans shared translation edge cases"
 - Consumes: Task 1 的 `transBatchSkipsLeadingNullAndTranslatesLaterVo` 测试。
 - Produces: `firstNonNull(Collection)` 私有辅助方法；后续任务不依赖公开签名变化。
 
-- [ ] **Step 1: Replace transBatch with single first-non-null scan**
+- [x] **Step 1: Replace transBatch with single first-non-null scan**
 
 在 `MateEasyTransUtils.java` 中把 `transBatch` 方法替换为：
 
@@ -295,7 +295,7 @@ git commit -m "test: cover easytrans shared translation edge cases"
     }
 ```
 
-- [ ] **Step 2: Run focused tests**
+- [x] **Step 2: Run focused tests**
 
 Run:
 
@@ -305,7 +305,7 @@ cd fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-eas
 
 Expected: `transBatchSkipsLeadingNullAndTranslatesLaterVo` passes. If proxy mode with `null` in a `Set` changes ordering, accept because Set ordering is already undefined; keep element preservation for `List`.
 
-- [ ] **Step 3: Update OpenSpec task checkboxes for accepted work**
+- [x] **Step 3: Update OpenSpec task checkboxes for accepted work**
 
 After focused tests pass, edit `openspec/changes/optimize-easytrans/tasks.md` only for completed items:
 
@@ -317,7 +317,7 @@ After focused tests pass, edit `openspec/changes/optimize-easytrans/tasks.md` on
 
 Do not check items `1.1`, `2.2`, `3.2`, `4.1`, or `4.2` yet.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/main/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtils.java \
@@ -341,7 +341,7 @@ git commit -m "fix: handle easytrans batch null elements"
 - Consumes: public `transOne(Object, TransService, boolean, ArrayList<Object>, Set<String>, Set<String>)` signature remains unchanged.
 - Produces: private overload using `Set<Object>` backed by `IdentityHashMap`.
 
-- [ ] **Step 1: Add JDK imports**
+- [x] **Step 1: Add JDK imports**
 
 在 `MateEasyTransUtils.java` imports 中确认存在：
 
@@ -350,7 +350,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 ```
 
-- [ ] **Step 2: Replace contains-based entry with identity set adapter**
+- [x] **Step 2: Replace contains-based entry with identity set adapter**
 
 将现有 public `transOne(...)` 方法改为薄适配器，并新增私有重载：
 
@@ -408,7 +408,7 @@ import java.util.IdentityHashMap;
 
 说明：此步骤保持 public 签名不变。内部重载先不强行贯穿 `transFields` 和 `transBatch` 的签名，避免扩大改动面；若测试发现循环仍未覆盖，再在同任务中把私有重载继续传入 `transFields`/`transBatch` 的私有版本。
 
-- [ ] **Step 3: Run cycle test**
+- [x] **Step 3: Run cycle test**
 
 Run:
 
@@ -418,7 +418,7 @@ cd fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-eas
 
 Expected: PASS，不出现 `StackOverflowError`。
 
-- [ ] **Step 4: Run full focused tests**
+- [x] **Step 4: Run full focused tests**
 
 Run:
 
@@ -428,7 +428,7 @@ cd fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-eas
 
 Expected: PASS。
 
-- [ ] **Step 5: Update OpenSpec task checkboxes**
+- [x] **Step 5: Update OpenSpec task checkboxes**
 
 Edit `openspec/changes/optimize-easytrans/tasks.md`:
 
@@ -437,7 +437,7 @@ Edit `openspec/changes/optimize-easytrans/tasks.md`:
 - [x] 3.2 复用已有缓存或局部变量降低重复反射开销，不新增独立缓存层。
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/main/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtils.java \
@@ -461,7 +461,7 @@ git commit -m "perf: use identity tracking in easytrans recursion"
 - Consumes: existing `createProxyVo(VO vo)` public static method.
 - Produces: same return contract：代理成功返回代理对象，代理失败或无 transMap 返回原 VO。
 
-- [ ] **Step 1: Add explicit null-class guard in createProxyVo**
+- [x] **Step 1: Add explicit null-class guard in createProxyVo**
 
 在 `createProxyVo` 中 `Class clazz = genNewClass(vo);` 后立即增加：
 
@@ -481,7 +481,7 @@ git commit -m "perf: use identity tracking in easytrans recursion"
                 Object newObject = clazz.newInstance();
 ```
 
-- [ ] **Step 2: Add compatibility tests for Boolean and Enum translators only if cheap**
+- [x] **Step 2: Add compatibility tests for Boolean and Enum translators only if cheap**
 
 如果当前测试依赖已经可用，在 `MateEasyTransUtilsTest.java` 追加最小兼容断言，不启动 Spring：
 
@@ -517,7 +517,7 @@ git commit -m "perf: use identity tracking in easytrans recursion"
 
 如果 `MateEasyTransEnumTransService.isValid` 因 Easy-Trans 反射细节无法在单测中稳定运行，不为它写脆弱测试；改为运行 service 模块编译并记录未修改 Enum/Dictionary/RPC 服务实现，避免制造低价值测试。
 
-- [ ] **Step 3: Run focused tests**
+- [x] **Step 3: Run focused tests**
 
 Run:
 
@@ -527,7 +527,7 @@ cd fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-eas
 
 Expected: PASS。
 
-- [ ] **Step 4: Update OpenSpec task checkbox**
+- [x] **Step 4: Update OpenSpec task checkbox**
 
 Edit `openspec/changes/optimize-easytrans/tasks.md`:
 
@@ -537,7 +537,7 @@ Edit `openspec/changes/optimize-easytrans/tasks.md`:
 
 若 Dictionary/RPC 未写单测，在提交信息 body 或 tasks.md 附近保留一句：`兼容确认：本 change 未修改 Dictionary/RPC 服务实现，模块编译覆盖其公开签名。`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/main/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtils.java \
@@ -560,7 +560,7 @@ git commit -m "fix: keep easytrans proxy fallback safe"
 - Consumes: Tasks 1-4 committed code.
 - Produces: 全部 OpenSpec task 勾选完成，build guard 可进入 verify。
 
-- [ ] **Step 1: Run easytrans focused tests**
+- [x] **Step 1: Run easytrans focused tests**
 
 Run:
 
@@ -572,7 +572,7 @@ Expected: BUILD SUCCESS。
 
 If this fails, load `superpowers:systematic-debugging` before any source fix, identify root cause, then fix and rerun.
 
-- [ ] **Step 2: Run module compile**
+- [x] **Step 2: Run module compile**
 
 Run:
 
@@ -588,7 +588,7 @@ If Maven reports missing reactor dependencies, rerun with `-am`:
 cd fw-plus-core && ./mvnw compile -pl fw-plus-project/fw-plus-easytrans -am -DskipTests
 ```
 
-- [ ] **Step 3: Update final OpenSpec verification checkboxes**
+- [x] **Step 3: Update final OpenSpec verification checkboxes**
 
 Edit `openspec/changes/optimize-easytrans/tasks.md`:
 
@@ -597,14 +597,14 @@ Edit `openspec/changes/optimize-easytrans/tasks.md`:
 - [x] 4.2 运行模块编译，确认不破坏下游兼容编译。
 ```
 
-- [ ] **Step 4: Commit verification evidence**
+- [x] **Step 4: Commit verification evidence**
 
 ```bash
 git add openspec/changes/optimize-easytrans/tasks.md
 git commit -m "chore: verify easytrans optimization"
 ```
 
-- [ ] **Step 5: Prepare review gate before build guard**
+- [x] **Step 5: Prepare review gate before build guard**
 
 If `review_mode=standard`, request one final lightweight code review before running build guard. If review skill is unavailable, add this persistent note to `openspec/changes/optimize-easytrans/tasks.md` and commit it:
 
@@ -612,7 +612,7 @@ If `review_mode=standard`, request one final lightweight code review before runn
 <!-- review skipped: skill unavailable -->
 ```
 
-- [ ] **Step 6: Run Comet build guard**
+- [x] **Step 6: Run Comet build guard**
 
 Run from repo root:
 
