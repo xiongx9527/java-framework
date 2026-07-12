@@ -106,7 +106,7 @@ Expected: commit succeeds.
 - Consumes: `CommonsValidatorHolder.get()`, `get(String)`, `set(Map<String,Object>)`, `set(String,Object)`, `clear()`。
 - Produces: 保持 public API 不变的更小实现，并用行为测试 + source-level 测试覆盖本次优化目标。
 
-- [ ] **Step 1: 创建 RED 测试**
+- [x] **Step 1: 创建 RED 测试**
 
 Create `fw-plus-core/fw-plus-project/fw-plus-common/src/test/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolderSourceTest.java`:
 ```java
@@ -138,7 +138,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-common -Dtest=CommonsValid
 ```
 Expected: FAIL because current source still imports/uses `ObjectUtils`.
 
-- [ ] **Step 2: 创建行为保护测试**
+- [x] **Step 2: 创建行为保护测试**
 
 Create `fw-plus-core/fw-plus-project/fw-plus-common/src/test/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolderTest.java`:
 ```java
@@ -188,7 +188,7 @@ public class CommonsValidatorHolderTest {
 }
 ```
 
-- [ ] **Step 3: 写最小实现**
+- [x] **Step 3: 写最小实现**
 
 Update `CommonsValidatorHolder.java` imports:
 ```java
@@ -221,7 +221,7 @@ public static void set(Map<String,Object> map) {
 }
 ```
 
-- [ ] **Step 4: 运行 GREEN 测试**
+- [x] **Step 4: 运行 GREEN 测试**
 
 Run:
 ```bash
@@ -229,7 +229,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-common -Dtest='CommonsVali
 ```
 Expected: PASS.
 
-- [ ] **Step 5: 运行下游最小测试**
+- [x] **Step 5: 运行下游最小测试**
 
 Run:
 ```bash
@@ -237,7 +237,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 ```
 Expected: PASS.
 
-- [ ] **Step 6: 勾选 OpenSpec 任务 2.1、2.2、3.1、3.2**
+- [x] **Step 6: 勾选 OpenSpec 任务 2.1、2.2、3.1、3.2**
 
 Edit `openspec/changes/optimize-fw-plus-common/tasks.md`:
 ```md
@@ -247,7 +247,7 @@ Edit `openspec/changes/optimize-fw-plus-common/tasks.md`:
 - [x] 3.2 如影响下游公共调用方，运行对应最小下游验证。
 ```
 
-- [ ] **Step 7: 提交实现**
+- [x] **Step 7: 提交实现**
 
 Run:
 ```bash
@@ -269,7 +269,7 @@ Expected: commit succeeds.
 - Consumes: Tasks 1-2 的提交。
 - Produces: build 阶段可进入 verify 的证据。
 
-- [ ] **Step 1: 确认 OpenSpec tasks 全部勾选**
+- [x] **Step 1: 确认 OpenSpec tasks 全部勾选**
 
 Run:
 ```bash
@@ -277,7 +277,7 @@ grep -n '\- \[ \]' openspec/changes/optimize-fw-plus-common/tasks.md || true
 ```
 Expected: no output.
 
-- [ ] **Step 2: 运行 common 最小测试**
+- [x] **Step 2: 运行 common 最小测试**
 
 Run:
 ```bash
@@ -285,7 +285,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-common -Dtest='CommonsVali
 ```
 Expected: PASS.
 
-- [ ] **Step 3: 运行下游最小测试**
+- [x] **Step 3: 运行下游最小测试**
 
 Run:
 ```bash
@@ -293,7 +293,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 ```
 Expected: PASS.
 
-- [ ] **Step 4: 确认无无关改动**
+- [x] **Step 4: 确认无无关改动**
 
 Run:
 ```bash
@@ -302,6 +302,6 @@ git diff --stat 8317c3b8c36e073abb83fc78fb9d9bc91344ee02..HEAD
 ```
 Expected: diff 只包含本 change 的计划、测试、holder 实现和 OpenSpec task 勾选。
 
-- [ ] **Step 5: 最终轻量代码审查**
+- [x] **Step 5: 最终轻量代码审查**
 
 Because `review_mode=standard`, request one final lightweight code review before build guard. Critical or Important findings must be fixed before verify.
