@@ -1,7 +1,5 @@
 package com.xiongx9527.fw.plus.common.validator;
 
-import org.apache.commons.lang3.ObjectUtils;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,9 +52,9 @@ public class CommonsValidatorHolder {
      */
     public static Map<String,Object> get() {
         Map<String,Object> map = CONTEXT_HOLDER.get();
-        if (ObjectUtils.isEmpty(map)) {
+        if (map == null || map.isEmpty()) {
             map = new HashMap<>();
-            set(map);
+            CONTEXT_HOLDER.set(map);
         }
         return map;
     }
@@ -81,7 +79,7 @@ public class CommonsValidatorHolder {
      */
     public static void set(Map<String,Object> map) {
         // 检查提供的表单对象是否为空
-        if (ObjectUtils.isEmpty(map)) {
+        if (map == null || map.isEmpty()) {
             // 如果表单对象为空，从上下文持有者中移除当前表单对象
             CONTEXT_HOLDER.remove();
         } else {
