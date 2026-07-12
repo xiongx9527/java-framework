@@ -21,7 +21,7 @@
 - 使用系统 Maven 3.6.3 执行同模块同参数测试通过：`MateEasyTransUtilsTest` 9 个测试，0 失败，0 错误，0 跳过。
 
 ## 提交哈希
-`76bb446`
+修复提交：`8fcce6f`；最终提交请以 `git log -1 --oneline` 输出为准。
 
 ## 风险/备注
 - 测试输出存在既有 Maven settings warning：`Unrecognised tag: 'repository'`。
