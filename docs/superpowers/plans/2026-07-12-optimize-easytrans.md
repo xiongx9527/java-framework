@@ -330,6 +330,8 @@ git commit -m "fix: handle easytrans batch null elements"
 
 ### Task 3: 引入内部身份判重上下文
 
+- [x] Task 3: 引入内部身份判重上下文
+
 **Files:**
 - Modify: `fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/main/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtils.java:197-279`
 - Test: `fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/test/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtilsTest.java`
