@@ -58,6 +58,33 @@ class MateEasyTransUtilsTest {
     }
 
     @Test
+    void transBatchPassesOnlyNonNullVosToTransMore() throws Exception {
+        StrictTransService transService = new StrictTransService();
+        TestVo vo = new TestVo(1L);
+        List<Object> source = new ArrayList<>(Arrays.asList(null, vo));
+
+        Collection result = MateEasyTransUtils.transBatch(source, transService, false,
+                new ArrayList<>(), null, null);
+
+        assertSame(source, result);
+        assertEquals(1, transService.transMoreCount);
+        assertEquals(1, transService.transOneCount);
+        assertSame(vo, transService.lastVo);
+    }
+
+    @Test
+    void transFieldsTranslatesFinalListWhenFirstItemIsNull() throws Exception {
+        CountingTransService transService = new CountingTransService();
+        TestVo vo = new TestVo(1L);
+        bsHolder holder = new bsHolder(new ArrayList<>(Arrays.asList(null, vo)));
+
+        MateEasyTransUtils.transOne(holder, transService, false, new ArrayList<>(), null, null);
+
+        assertEquals(1, transService.transOneCount);
+        assertSame(vo, transService.lastVo);
+    }
+
+    @Test
     void transOneDoesNotRecurseForeverOnCycle() throws Exception {
         CountingTransService transService = new CountingTransService();
         Node node = new Node();
@@ -133,6 +160,18 @@ class MateEasyTransUtilsTest {
         }
     }
 
+    static class StrictTransService extends CountingTransService {
+        @Override
+        public void transMore(List<? extends VO> objList, Set<String> includeFields, Set<String> excludeFields) {
+            for (VO vo : objList) {
+                if (vo == null) {
+                    throw new NullPointerException("transMore received null VO");
+                }
+            }
+            super.transMore(objList, includeFields, excludeFields);
+        }
+    }
+
     static class TestVo implements VO {
         private final Long id;
         private final Map<String, Object> transMap = new java.util.LinkedHashMap<>();
@@ -153,6 +192,14 @@ class MateEasyTransUtilsTest {
 
     static class Node {
         Node self;
+    }
+
+    static class bsHolder {
+        private final List<Object> list;
+
+        bsHolder(List<Object> list) {
+            this.list = list;
+        }
     }
 
     static final class FinalVo implements VO {
