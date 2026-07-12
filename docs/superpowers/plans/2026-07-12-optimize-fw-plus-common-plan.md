@@ -32,8 +32,10 @@ base-ref: 8317c3b8c36e073abb83fc78fb9d9bc91344ee02
   - 责任：持有校验上下文 ThreadLocal；本计划只允许简化空 Map 判断，保持 API 不变。
 - Create: `fw-plus-core/fw-plus-project/fw-plus-common/src/test/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolderTest.java`
   - 责任：验证 holder 的 get/set/clear 和空 Map 清理语义。
-- Maybe modify: `openspec/changes/optimize-fw-plus-common/tasks.md`
-  - 责任：每个任务验收后定向勾选对应 OpenSpec task。
+- Create: `fw-plus-core/fw-plus-project/fw-plus-common/src/test/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolderSourceTest.java`
+  - 责任：用最小 source-level RED/GREEN 验证本次优化目标：`CommonsValidatorHolder` 不再依赖 `ObjectUtils` 判断 Map 是否为空。
+- Modify: `openspec/changes/optimize-fw-plus-common/tasks.md`
+  - 责任：每个 OpenSpec task 验收后定向勾选。
 
 ## Task 1: 筛选并固定最小优化清单
 
@@ -46,7 +48,7 @@ base-ref: 8317c3b8c36e073abb83fc78fb9d9bc91344ee02
 
 **Interfaces:**
 - Consumes: OpenSpec requirement `common-module-optimization`。
-- Produces: 一个固定的最小优化清单：本轮只改 `CommonsValidatorHolder`，除非代码证据发现同一路径还有必须一起修的兼容问题。
+- Produces: 固定的最小优化清单：本轮只改 `CommonsValidatorHolder`，除非代码证据发现同一路径还有必须一起修的兼容问题。
 
 - [ ] **Step 1: 确认当前阶段仍是 build**
 
@@ -69,7 +71,7 @@ Expected: 输出包含 `CommonsValidatorHolder` 调用方和相关 Boot 测试�
 
 - [ ] **Step 3: 固定本轮不处理项**
 
-记录到任务执行日志或提交说明：
+记录到提交说明：
 ```text
 本轮只处理 CommonsValidatorHolder 的空 Map / clear 语义。
 SpringUtils、WebRequestContextHolder、异常/结果封装暂不处理：调用面更宽或缺少明确收益，避免扩大回归面。
@@ -92,17 +94,51 @@ git commit -m "docs: plan fw-plus-common optimization scope"
 ```
 Expected: commit succeeds.
 
-## Task 2: 用 TDD 固化 CommonsValidatorHolder 语义
+## Task 2: TDD 最小兼容优化 CommonsValidatorHolder
 
 **Files:**
 - Create: `fw-plus-core/fw-plus-project/fw-plus-common/src/test/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolderTest.java`
+- Create: `fw-plus-core/fw-plus-project/fw-plus-common/src/test/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolderSourceTest.java`
+- Modify: `fw-plus-core/fw-plus-project/fw-plus-common/src/main/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolder.java`
 - Modify: `openspec/changes/optimize-fw-plus-common/tasks.md`
 
 **Interfaces:**
 - Consumes: `CommonsValidatorHolder.get()`, `get(String)`, `set(Map<String,Object>)`, `set(String,Object)`, `clear()`。
-- Produces: 最小测试覆盖 holder 的现有兼容语义。
+- Produces: 保持 public API 不变的更小实现，并用行为测试 + source-level 测试覆盖本次优化目标。
 
-- [ ] **Step 1: 创建失败测试**
+- [ ] **Step 1: 创建 RED 测试**
+
+Create `fw-plus-core/fw-plus-project/fw-plus-common/src/test/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolderSourceTest.java`:
+```java
+package com.xiongx9527.fw.plus.common.validator;
+
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+public class CommonsValidatorHolderSourceTest {
+
+    @Test
+    public void holderDoesNotUseObjectUtilsForMapEmptiness() throws Exception {
+        String source = new String(Files.readAllBytes(Paths.get(
+                "fw-plus-project/fw-plus-common/src/main/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolder.java"
+        )), StandardCharsets.UTF_8);
+
+        Assert.assertFalse(source.contains("ObjectUtils"));
+    }
+}
+```
+
+Run:
+```bash
+cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-common -Dtest=CommonsValidatorHolderSourceTest test
+```
+Expected: FAIL because current source still imports/uses `ObjectUtils`.
+
+- [ ] **Step 2: 创建行为保护测试**
 
 Create `fw-plus-core/fw-plus-project/fw-plus-common/src/test/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolderTest.java`:
 ```java
@@ -152,36 +188,9 @@ public class CommonsValidatorHolderTest {
 }
 ```
 
-- [ ] **Step 2: 运行测试确认当前行为**
+- [ ] **Step 3: 写最小实现**
 
-Run:
-```bash
-cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-common -Dtest=CommonsValidatorHolderTest test
-```
-Expected: 当前实现应 PASS；若失败，先记录失败输出并按 systematic-debugging 处理。
-
-- [ ] **Step 3: 提交测试**
-
-Run:
-```bash
-git add fw-plus-core/fw-plus-project/fw-plus-common/src/test/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolderTest.java
-git commit -m "test: cover common validator holder context semantics"
-```
-Expected: commit succeeds.
-
-## Task 3: 最小兼容优化 CommonsValidatorHolder
-
-**Files:**
-- Modify: `fw-plus-core/fw-plus-project/fw-plus-common/src/main/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolder.java`
-- Modify: `openspec/changes/optimize-fw-plus-common/tasks.md`
-
-**Interfaces:**
-- Consumes: Task 2 的 `CommonsValidatorHolderTest`。
-- Produces: 保持 public API 不变的更小实现。
-
-- [ ] **Step 1: 简化空 Map 判断**
-
-Replace `CommonsValidatorHolder.java` import and empty checks:
+Update `CommonsValidatorHolder.java` imports:
 ```java
 package com.xiongx9527.fw.plus.common.validator;
 
@@ -189,7 +198,7 @@ import java.util.HashMap;
 import java.util.Map;
 ```
 
-`get()` body:
+Update `get()`:
 ```java
 public static Map<String,Object> get() {
     Map<String,Object> map = CONTEXT_HOLDER.get();
@@ -201,7 +210,7 @@ public static Map<String,Object> get() {
 }
 ```
 
-`set(Map<String,Object> map)` body:
+Update `set(Map<String,Object> map)`:
 ```java
 public static void set(Map<String,Object> map) {
     if (map == null || map.isEmpty()) {
@@ -212,17 +221,15 @@ public static void set(Map<String,Object> map) {
 }
 ```
 
-Rationale: 用 JDK `Map#isEmpty` 替代 `ObjectUtils.isEmpty`，删除一个不必要的 commons-lang3 工具调用；空 Map 语义保持不变。
-
-- [ ] **Step 2: 运行 holder 测试**
+- [ ] **Step 4: 运行 GREEN 测试**
 
 Run:
 ```bash
-cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-common -Dtest=CommonsValidatorHolderTest test
+cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-common -Dtest='CommonsValidatorHolderTest,CommonsValidatorHolderSourceTest' test
 ```
 Expected: PASS.
 
-- [ ] **Step 3: 如触及公共校验路径，运行下游最小测试**
+- [ ] **Step 5: 运行下游最小测试**
 
 Run:
 ```bash
@@ -230,7 +237,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 ```
 Expected: PASS.
 
-- [ ] **Step 4: 勾选 OpenSpec 任务 2.1、2.2、3.1、3.2**
+- [ ] **Step 6: 勾选 OpenSpec 任务 2.1、2.2、3.1、3.2**
 
 Edit `openspec/changes/optimize-fw-plus-common/tasks.md`:
 ```md
@@ -240,24 +247,26 @@ Edit `openspec/changes/optimize-fw-plus-common/tasks.md`:
 - [x] 3.2 如影响下游公共调用方，运行对应最小下游验证。
 ```
 
-- [ ] **Step 5: 提交实现**
+- [ ] **Step 7: 提交实现**
 
 Run:
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-common/src/main/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolder.java \
+  fw-plus-core/fw-plus-project/fw-plus-common/src/test/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolderTest.java \
+  fw-plus-core/fw-plus-project/fw-plus-common/src/test/java/com/xiongx9527/fw/plus/common/validator/CommonsValidatorHolderSourceTest.java \
   openspec/changes/optimize-fw-plus-common/tasks.md
 git commit -m "refactor: simplify common validator holder emptiness checks"
 ```
 Expected: commit succeeds.
 
-## Task 4: 最终验证与范围检查
+## Task 3: 最终验证与范围检查
 
 **Files:**
 - Read: `openspec/changes/optimize-fw-plus-common/tasks.md`
 - Read: `docs/superpowers/specs/2026-07-12-optimize-fw-plus-common-design.md`
 
 **Interfaces:**
-- Consumes: Tasks 1-3 的提交。
+- Consumes: Tasks 1-2 的提交。
 - Produces: build 阶段可进入 verify 的证据。
 
 - [ ] **Step 1: 确认 OpenSpec tasks 全部勾选**
@@ -272,7 +281,7 @@ Expected: no output.
 
 Run:
 ```bash
-cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-common -Dtest=CommonsValidatorHolderTest test
+cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-common -Dtest='CommonsValidatorHolderTest,CommonsValidatorHolderSourceTest' test
 ```
 Expected: PASS.
 
@@ -293,6 +302,6 @@ git diff --stat 8317c3b8c36e073abb83fc78fb9d9bc91344ee02..HEAD
 ```
 Expected: diff 只包含本 change 的计划、测试、holder 实现和 OpenSpec task 勾选。
 
-- [ ] **Step 5: 代码审查前置说明**
+- [ ] **Step 5: 最终轻量代码审查**
 
-If `review_mode=standard`, request one final lightweight code review before build guard. Critical findings must be fixed before verify.
+Because `review_mode=standard`, request one final lightweight code review before build guard. Critical or Important findings must be fixed before verify.
