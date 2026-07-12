@@ -102,59 +102,63 @@ public class MateEasyTransUtils extends TransUtil {
      */
     public static Collection transBatch(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {
         Collection param = (Collection)object;
-        // 如果集合为null，直接返回null
         if (param == null) {
             return null;
-        // 如果集合非空且第一个元素不为空
-        } else if (!param.isEmpty() && param.iterator().next() != null) {
-            boolean isVo = false;
-            // 如果第一个元素是VO类型，执行批量转换和字段转换
-            if (param.iterator().next() instanceof VO) {
-                transService.transMore(new ArrayList(param), includeFields, excludeFields);
+        }
+        if (param.isEmpty()) {
+            return param;
+        }
 
-                for(Object tempObject : param) {
+        Object firstNonNull = firstNonNull(param);
+        if (firstNonNull == null) {
+            return param;
+        }
+
+        boolean isVo = firstNonNull instanceof VO;
+        if (isVo) {
+            transService.transMore(new ArrayList(param), includeFields, excludeFields);
+            for (Object tempObject : param) {
+                if (tempObject != null) {
                     transFields(tempObject, transService, isProxy, hasTransObjs, includeFields, excludeFields);
                 }
-
-                isVo = true;
-            } else {
-                // 如果第一个元素不是VO类型，逐个转换每个对象
-                for(Object tempObject : param) {
+            }
+        } else {
+            for (Object tempObject : param) {
+                if (tempObject != null) {
                     transOne(tempObject, transService, isProxy, hasTransObjs, includeFields, excludeFields);
                 }
             }
-
-            // 如果需要代理且对象是VO类型，创建并返回代理后的VO对象集合
-            if (isProxy && isVo) {
-                Collection result = null;
-                // 根据输入集合的类型创建相应类型的集合
-                if (param instanceof List) {
-                    result = new ArrayList();
-                } else {
-                    if (!(param instanceof Set)) {
-                        return param;
-                    }
-
-                    result = new HashSet();
-                }
-
-                for(Object vo : param) {
-                    // 如果当前VO对象未被转换过，创建其代理对象并添加到结果集合中
-                    if (!contains(hasTransObjs, vo)) {
-                        hasTransObjs.add(vo);
-                        result.add(createProxyVo((VO)vo));
-                    }
-                }
-
-                return result;
-            } else {
-                // 如果不需要代理或对象不是VO类型，直接返回原始集合
-                return (Collection)object;
-            }
-        } else {
-            // 如果集合为空，直接返回空集合
-            return param;
         }
+
+        if (isProxy && isVo) {
+            Collection result;
+            if (param instanceof List) {
+                result = new ArrayList();
+            } else if (param instanceof Set) {
+                result = new HashSet();
+            } else {
+                return param;
+            }
+
+            for (Object vo : param) {
+                if (vo == null) {
+                    result.add(null);
+                } else {
+                    result.add(createProxyVo((VO)vo));
+                }
+            }
+            return result;
+        }
+        return param;
+    }
+
+    private static Object firstNonNull(Collection collection) {
+        for (Object item : collection) {
+            if (item != null) {
+                return item;
+            }
+        }
+        return null;
     }
 
     /**
