@@ -2,6 +2,7 @@
 change: optimize-fw-plus-common
 design-doc: docs/superpowers/specs/2026-07-12-optimize-fw-plus-common-design.md
 base-ref: 8317c3b8c36e073abb83fc78fb9d9bc91344ee02
+archived-with: 2026-07-12-optimize-fw-plus-common
 ---
 
 # optimize-fw-plus-common Implementation Plan
@@ -24,6 +25,7 @@ base-ref: 8317c3b8c36e073abb83fc78fb9d9bc91344ee02
 - 非平凡逻辑变化必须有最小可运行验证。
 - 每个 Comet task 验收后立即勾选 `openspec/changes/optimize-fw-plus-common/tasks.md` 并提交，不累计提交。
 
+archived-with: 2026-07-12-optimize-fw-plus-common
 ---
 
 ## File Structure
@@ -305,3 +307,4 @@ Expected: diff 只包含本 change 的计划、测试、holder 实现和 OpenSpe
 - [x] **Step 5: 最终轻量代码审查**
 
 Because `review_mode=standard`, request one final lightweight code review before build guard. Critical or Important findings must be fixed before verify.
+
