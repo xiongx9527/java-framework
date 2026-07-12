@@ -550,6 +550,8 @@ git commit -m "fix: keep easytrans proxy fallback safe"
 
 ### Task 5: 模块验证与 Build 阶段收口
 
+- [x] Task 5: 模块验证与 Build 阶段收口
+
 **Files:**
 - Modify: `openspec/changes/optimize-easytrans/tasks.md`
 - No source changes expected unless verification exposes a real defect.
