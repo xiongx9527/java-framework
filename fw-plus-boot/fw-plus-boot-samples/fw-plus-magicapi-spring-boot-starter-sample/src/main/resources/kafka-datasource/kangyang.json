@@ -1,0 +1,15 @@
+{
+  "properties" : { },
+  "id" : "061ecc1764a14714ab9d38fb837ff19c",
+  "script" : null,
+  "groupId" : "kafka-datasource:0",
+  "name" : "kangyang",
+  "createTime" : 1764324330549,
+  "updateTime" : 1764494716149,
+  "lock" : null,
+  "createBy" : "admin",
+  "updateBy" : "admin",
+  "key" : "kangyang",
+  "servers" : "172.17.20.16:9092",
+  "other" : null
+}

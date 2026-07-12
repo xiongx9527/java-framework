@@ -1,0 +1,24 @@
+# Auto Configure
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.xiongx9527.fw.plus.boot.autoconfigure.BaseAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.trace.TraceAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.web.WebAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.mate.MateAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.nosql.NoSqlAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.jdbc.JdbcAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.mp.MpAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.template.TemplateAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.uid.UIDAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.report.ReportAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.MqttAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.config.server.ConfigServerAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.config.client.ConfigClientAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.config.event.ConfigEventAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.config.apollo.ApolloConfigChangeAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.config.nacos.NacosConfigChangeAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.admin.server.AdminServerAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
+
+# Bootstrap Configuration
+org.springframework.cloud.bootstrap.BootstrapConfiguration=\
+  com.xiongx9527.fw.plus.boot.autoconfigure.config.client.ConfigClientBootstrapConfiguration

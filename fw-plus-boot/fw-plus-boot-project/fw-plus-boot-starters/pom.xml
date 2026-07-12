@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus.boot</groupId>
+        <artifactId>fw-plus-boot-parent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../fw-plus-boot-parent</relativePath>
+    </parent>
+    <packaging>pom</packaging>
+    <modules>
+        <module>fw-plus-boot-starter</module>
+        <module>fw-plus-mate-spring-boot-starter</module>
+        <module>fw-plus-mp-spring-boot-starter</module>
+        <module>fw-plus-jdbc-spring-boot-starter</module>
+        <module>fw-plus-redis-spring-boot-starter</module>
+        <module>fw-plus-jimu-spring-boot-starter</module>
+        <module>fw-plus-file-storage-spring-boot-starter</module>
+        <module>fw-plus-magicapi-spring-boot-starter</module>
+        <module>fw-plus-magicapi-plugin</module>
+        <module>fw-plus-uid-spring-boot-starter</module>
+        <module>fw-plus-mqtt-server-spring-boot-starter</module>
+        <module>fw-plus-mqtt-client-spring-boot-starter</module>
+        <module>fw-plus-template-spring-boot-starter</module>
+        <module>fw-plus-influxdb-spring-boot-starter</module>
+        <module>fw-plus-admin-server-spring-boot-starter</module>
+    </modules>
+    <artifactId>fw-plus-boot-starters</artifactId>
+    <name>Fw-Plus-Boot Starters</name>
+    <properties>
+        <main.basedir>${basedir}/../..</main.basedir>
+    </properties>
+    <description>
+        fw-plus-boot 启动组件集合.
+    </description>
+</project>

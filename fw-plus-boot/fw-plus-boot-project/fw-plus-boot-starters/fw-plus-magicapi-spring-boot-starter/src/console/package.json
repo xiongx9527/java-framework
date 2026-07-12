@@ -1,0 +1,21 @@
+{
+  "name": "magic-editor",
+  "version": "2.2.2",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "axios": "1.15.0",
+    "jit-viewer": "^1.5.0",
+    "marked": "^18.0.0",
+    "monaco-editor": "0.29.1",
+    "qs": "^6.10.7",
+    "vue": "^3.5.32"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^2.2.4",
+    "vite": "^2.8.6",
+    "vite-plugin-svg-icons": "^1.1.0"
+  }
+}

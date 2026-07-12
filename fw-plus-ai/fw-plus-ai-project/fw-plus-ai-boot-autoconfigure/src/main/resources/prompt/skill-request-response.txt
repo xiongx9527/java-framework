@@ -1,0 +1,108 @@
+## 请求与响应处理
+
+### 获取请求参数
+```magicscript
+// 路径变量（API 路径定义为 /user/{id}）
+var userId = id
+
+// Query 参数（GET 请求 ?name=xxx）
+var userName = name
+
+// 请求体（POST JSON）
+var data = body           // 整个请求体对象
+var userName = body.name  // 请求体字段
+
+// 请求头
+var token = header.token
+var auth = header.Authorization
+
+// 路径变量（显式）
+var userId = path.id
+```
+
+### request 对象
+```magicscript
+import request;
+
+// 获取请求头
+request.getHeader('Authorization')
+request.getHeaders('Accept')   // 返回数组
+
+// 获取参数
+request.getParameter('name')
+
+// 获取客户端IP
+request.getClientIP()
+
+// 获取上传文件
+var file = request.getFile('file')
+var fileName = file.getOriginalFilename()
+var fileBytes = file.getBytes()
+```
+
+### response 对象
+```magicscript
+import response;
+
+// 返回 JSON（跳过框架默认包装）
+response.json({code: 200, data: result})
+
+// 返回纯文本
+response.text('ok')
+
+// 设置响应头
+response.setHeader('X-Custom', 'value')
+
+// 设置 Cookie
+response.addCookie('token', jwtToken)
+
+// 文件下载
+response.download(fileBytes, '报表.xlsx')
+
+// 返回图片
+response.image(imageBytes, 'image/png')
+
+// 分页结果（自定义格式）
+response.page(total, list)
+```
+
+### exit 快速返回
+```magicscript
+// 参数校验失败时快速返回
+if (!name || name.trim() == '') {
+    exit 400, '名称不能为空'
+}
+if (age::int < 0 || age::int > 150) {
+    exit 400, '年龄不合法'
+}
+
+// 带数据返回
+exit 200, '操作成功', {id: newId}
+```
+
+### 完整 CRUD 示例
+```magicscript
+// POST /api/user — 新增用户（自增主键）
+if (!body.name || body.name == '') {
+    exit 400, '用户名不能为空'
+}
+return db.table('user')
+    .primary('id')
+    .insert(body)
+```
+
+### 修改记录示例
+```magicscript
+// POST /api/user/update — 修改用户
+if (!body.id) {
+    exit 400, 'ID不能为空'
+}
+// 过滤掉id字段，构建新map（map不能用delete）
+var updateData = body.filter((k, v) => k != 'id')
+return db.table('user')
+    .where()
+    .eq('id', body.id::int)
+    .set('name', updateData.name)
+    .set('status', updateData.status)
+    .update()
+```

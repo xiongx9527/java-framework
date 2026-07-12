@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus.boot</groupId>
+        <artifactId>fw-plus-magicapi-plugin</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>fw-plus-magicapi-plugin-pulsar</artifactId>
+
+    <properties>
+        <main.basedir>${basedir}/../../../..</main.basedir>
+    </properties>
+
+    <build>
+        <plugins>
+            <!-- 前端 console 自动编译打包 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.pulsar</groupId>
+            <artifactId>pulsar-client</artifactId>
+            <exclusions>
+                <!-- bouncy-castle-bc 是 Pulsar 自定义 shaded 包（10.5M），
+                     内含 bcprov/bcpkix/bcutil，仅用于大数据环境的隔离 ClassLoader；
+                     Spring Boot 应用不需要，排除以减小 fat jar 体积 -->
+                <!-- bouncy-castle-bc 是 Pulsar 自定义 shaded 包（10.5MB），
+                     内含 bcprov/bcpkix/bcutil 的 jar-in-jar，仅用于大数据环境
+                    （Spark/Flink on YARN）的隔离 ClassLoader 加载；
+                     Spring Boot 应用不需要，排除以减小 fat jar 体积 -->
+                <exclusion>
+                    <artifactId>bouncy-castle-bc</artifactId>
+                    <groupId>org.apache.pulsar</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- 按需启用 -->
+        <!--
+        <dependency>
+            <groupId>org.apache.pulsar</groupId>
+            <artifactId>pulsar-client-admin</artifactId>
+            <exclusions>
+            </exclusions>
+        </dependency>
+        -->
+
+    </dependencies>
+
+
+</project>

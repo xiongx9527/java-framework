@@ -1,0 +1,4 @@
+com.xiongx9527.fw.plus.cloud.autoconfigure.BaseAutoConfiguration
+com.xiongx9527.fw.plus.cloud.autoconfigure.eureka.server.EurekaServerAutoConfiguration
+com.xiongx9527.fw.plus.cloud.autoconfigure.gray.GrayLoadBalancerAutoConfiguration
+com.xiongx9527.fw.plus.cloud.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration

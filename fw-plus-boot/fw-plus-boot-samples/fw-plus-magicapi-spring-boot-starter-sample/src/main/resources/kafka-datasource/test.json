@@ -1,0 +1,15 @@
+{
+  "properties" : { },
+  "id" : "02433a509cad44e89491c4912acb4838",
+  "script" : null,
+  "groupId" : "kafka-datasource:0",
+  "name" : "test",
+  "createTime" : 1764494008886,
+  "updateTime" : null,
+  "lock" : null,
+  "createBy" : null,
+  "updateBy" : null,
+  "key" : "test",
+  "servers" : "172.17.240.242:9092",
+  "other" : null
+}

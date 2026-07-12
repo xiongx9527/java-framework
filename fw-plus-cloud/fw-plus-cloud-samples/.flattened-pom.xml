@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.xiongx9527.fw.plus.cloud</groupId>
+    <artifactId>fw-plus-cloud-build</artifactId>
+    <version>0.1.1-SNAPSHOT</version>
+  </parent>
+  <groupId>com.xiongx9527.fw.plus.cloud</groupId>
+  <artifactId>fw-plus-cloud-samples</artifactId>
+  <version>0.1.1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+  <modules>
+    <module>eureka-server-sample</module>
+    <module>eureka-gateway-sample</module>
+    <module>eureka-service-sample</module>
+    <module>nacos-gateway-sample</module>
+  </modules>
+  <properties>
+    <main.basedir>${basedir}/../..</main.basedir>
+    <maven.test.skip>true</maven.test.skip>
+    <maven.install.skip>true</maven.install.skip>
+    <maven.deploy.skip>true</maven.deploy.skip>
+    <maven.javadoc.skip>true</maven.javadoc.skip>
+  </properties>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.xiongx9527.fw.plus.cloud</groupId>
+        <artifactId>fw-plus-cloud-dependencies</artifactId>
+        <version>${revision}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  <dependencies>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+  </dependencies>
+</project>

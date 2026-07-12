@@ -1,0 +1,88 @@
+## Java 互操作
+
+### 导入 Java 类
+```magicscript
+import 'java.util.Date' as Date
+import 'java.text.SimpleDateFormat' as SimpleDateFormat
+import 'java.util.UUID' as UUID
+
+var now = new Date()
+var fmt = new SimpleDateFormat('yyyy-MM-dd HH:mm:ss')
+return fmt.format(now)
+```
+
+### 导入 Spring Bean
+```magicscript
+// 从 Spring 容器获取 Bean（按类型）
+import 'org.springframework.core.env.Environment' as springEnv
+return springEnv.getProperty('server.port')
+
+// 简写方式（按名称从 Spring 容器获取）
+// 需在 magic-api 中注册
+```
+
+### 类型转换
+```magicscript
+// :: 操作符（null 安全）
+var num = '123'::int            // String → int
+var str = 123::string           // int → String
+var d = '2024-01-01'::date('yyyy-MM-dd')  // String → Date
+var n = '3.14'::double          // String → double
+var l = '999'::long             // String → long
+
+// 带默认值
+var num = str::int(0)           // 转换失败返回 0
+
+// JSON 转换
+var obj = '{"name":"test"}'::json      // JSON 字符串 → 对象
+var jsonStr = {name: 'test'}::stringify // 对象 → JSON 字符串
+
+// 扩展方法
+value.asString()
+value.asInt()
+value.asDouble()
+```
+
+### 调用 Java 静态方法
+```magicscript
+import 'java.lang.Math' as Math
+import 'java.util.Collections' as Collections
+
+var max = Math.max(10, 20)
+```
+
+### 实用示例：生成验证码图片
+```magicscript
+import 'java.awt.image.BufferedImage' as BufferedImage
+import 'java.awt.Color' as Color
+import 'java.awt.Font' as Font
+import 'javax.imageio.ImageIO' as ImageIO
+import 'java.io.ByteArrayOutputStream' as ByteArrayOutputStream
+import response;
+
+var width = 120
+var height = 40
+var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+var g = image.getGraphics()
+g.setColor(Color.WHITE)
+g.fillRect(0, 0, width, height)
+g.setFont(new Font('Arial', Font.BOLD, 24))
+g.setColor(Color.BLACK)
+g.drawString('ABCD', 10, 30)
+g.dispose()
+
+var baos = new ByteArrayOutputStream()
+ImageIO.write(image, 'png', baos)
+response.image(baos.toByteArray(), 'image/png')
+```
+
+### 导入自定义函数
+```magicscript
+// 调用其他 magic-api 函数
+import '@/utils/add' as add
+return add(1, 2)
+
+// 调用其他 API 接口
+import '@get:/api/user/list' as getUserList
+return getUserList()
+```

@@ -1,0 +1,66 @@
+## HTTP 客户端（调用外部接口）
+
+```magicscript
+import http;
+```
+
+### GET 请求
+```magicscript
+// 简单 GET
+var result = http.connect('https://api.example.com/users')
+    .get()
+    .getBody()
+
+// 带参数和请求头
+var result = http.connect('https://api.example.com/users')
+    .header('Authorization', 'Bearer ' + token)
+    .param('page', 1)
+    .param('size', 10)
+    .get()
+    .getBody()
+```
+
+### POST 请求
+```magicscript
+// POST JSON
+var result = http.connect('https://api.example.com/users')
+    .contentType('application/json')
+    .header('Authorization', 'Bearer ' + token)
+    .body({name: '张三', age: 25})
+    .post()
+    .getBody()
+
+// POST 表单
+var result = http.connect('https://api.example.com/login')
+    .contentType('application/x-www-form-urlencoded')
+    .data('username', 'admin')
+    .data('password', '123456')
+    .post()
+    .getBody()
+```
+
+### 其他方法
+```magicscript
+// PUT
+http.connect(url).body(data).put().getBody()
+
+// DELETE
+http.connect(url).delete().getBody()
+```
+
+### 综合示例：调用第三方API并处理结果
+```magicscript
+import http;
+
+var apiResult = http.connect('https://api.example.com/data')
+    .header('Authorization', 'Bearer ' + apiKey)
+    .param('keyword', keyword)
+    .get()
+    .getBody()
+
+if (apiResult.code != 200) {
+    exit 500, '第三方接口调用失败: ' + apiResult.message
+}
+
+return apiResult.data
+```

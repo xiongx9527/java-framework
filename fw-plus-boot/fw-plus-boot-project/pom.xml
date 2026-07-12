@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus.boot</groupId>
+        <artifactId>fw-plus-boot-build</artifactId>
+        <version>${revision}</version>
+    </parent>
+    <packaging>pom</packaging>
+    <modules>
+        <module>fw-plus-boot-dependencies</module>
+        <module>fw-plus-boot-parent</module>
+        <module>fw-plus-boot-common</module>
+        <module>fw-plus-boot-starters</module>
+        <module>fw-plus-boot-autoconfigure</module>
+        <module>fw-plus-boot</module>
+    </modules>
+    <artifactId>fw-plus-boot-project</artifactId>
+    <name>Fw-Plus-Boot Project</name>
+    <description>
+        fw-plus-boot 核心组件.
+    </description>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>src/main/java</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>**/mapper/xml/*.xml</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+</project>

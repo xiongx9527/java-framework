@@ -1,0 +1,15 @@
+{
+  "properties" : { },
+  "id" : "c8b5ec0119fd4d8bbad01e53f0ca016a",
+  "script" : null,
+  "groupId" : "kafka-datasource:0",
+  "name" : "appoinment",
+  "createTime" : 1757732625024,
+  "updateTime" : 1764494700367,
+  "lock" : null,
+  "createBy" : "admin",
+  "updateBy" : "admin",
+  "key" : "appoinment",
+  "servers" : "172.17.20.16:9092",
+  "other" : null
+}
