@@ -7,3 +7,4 @@
 /logDir_IS_UNDEFINED/
 /.worktrees/
 !/.claude/settings.local.json
+/.claude/worktrees/
