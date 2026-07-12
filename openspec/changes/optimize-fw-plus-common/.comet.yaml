@@ -14,8 +14,8 @@ base_ref: 8317c3b8c36e073abb83fc78fb9d9bc91344ee02
 design_doc: docs/superpowers/specs/2026-07-12-optimize-fw-plus-common-design.md
 plan: docs/superpowers/plans/2026-07-12-optimize-fw-plus-common-plan.md
 verify_result: pending
-verification_report: null
-branch_status: pending
+verification_report: docs/superpowers/reports/2026-07-12-optimize-fw-plus-common-verify.md
+branch_status: handled
 created_at: 2026-07-12
 verified_at: null
 archived: false
