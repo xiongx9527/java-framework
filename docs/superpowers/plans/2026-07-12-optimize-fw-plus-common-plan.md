@@ -50,7 +50,7 @@ base-ref: 8317c3b8c36e073abb83fc78fb9d9bc91344ee02
 - Consumes: OpenSpec requirement `common-module-optimization`。
 - Produces: 固定的最小优化清单：本轮只改 `CommonsValidatorHolder`，除非代码证据发现同一路径还有必须一起修的兼容问题。
 
-- [ ] **Step 1: 确认当前阶段仍是 build**
+- [x] **Step 1: 确认当前阶段仍是 build**
 
 Run:
 ```bash
@@ -61,7 +61,7 @@ node "$COMET_STATE" get optimize-fw-plus-common phase
 ```
 Expected: `build`
 
-- [ ] **Step 2: 用 CodeGraph 确认 holder 调用半径**
+- [x] **Step 2: 用 CodeGraph 确认 holder 调用半径**
 
 Run CodeGraph query:
 ```text
@@ -69,7 +69,7 @@ CommonsValidatorHolder CommonsValidatorRequestBodyAdvice CommonsValidatorRespons
 ```
 Expected: 输出包含 `CommonsValidatorHolder` 调用方和相关 Boot 测试。
 
-- [ ] **Step 3: 固定本轮不处理项**
+- [x] **Step 3: 固定本轮不处理项**
 
 记录到提交说明：
 ```text
@@ -77,7 +77,7 @@ Expected: 输出包含 `CommonsValidatorHolder` 调用方和相关 Boot 测试�
 SpringUtils、WebRequestContextHolder、异常/结果封装暂不处理：调用面更宽或缺少明确收益，避免扩大回归面。
 ```
 
-- [ ] **Step 4: 勾选 OpenSpec 任务 1.1 和 1.2**
+- [x] **Step 4: 勾选 OpenSpec 任务 1.1 和 1.2**
 
 Edit `openspec/changes/optimize-fw-plus-common/tasks.md`:
 ```md
@@ -85,7 +85,7 @@ Edit `openspec/changes/optimize-fw-plus-common/tasks.md`:
 - [x] 1.2 确定本次只处理的最小优化清单，并记录不处理项。
 ```
 
-- [ ] **Step 5: 提交筛选结果**
+- [x] **Step 5: 提交筛选结果**
 
 Run:
 ```bash
