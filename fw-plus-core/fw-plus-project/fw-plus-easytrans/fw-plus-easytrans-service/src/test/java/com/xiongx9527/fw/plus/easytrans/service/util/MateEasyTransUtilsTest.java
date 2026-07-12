@@ -2,7 +2,12 @@ package com.xiongx9527.fw.plus.easytrans.service.util;
 
 import com.fhs.core.trans.vo.VO;
 import com.fhs.trans.service.impl.TransService;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -77,13 +82,32 @@ class MateEasyTransUtilsTest {
     }
 
     @Test
-    void createProxyVoReturnsOriginalVoWhenProxyCannotBeCreated() {
-        TestVo vo = new TestVo(2L);
+    void createProxyVoReturnsOriginalVoWithoutAssignmentErrorWhenProxyClassCannotBeCreated() {
+        FinalVo vo = new FinalVo();
         vo.getTransMap().put("dynamicField", "value");
+        Logger logger = (Logger) LoggerFactory.getLogger(MateEasyTransUtils.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
 
-        Object result = MateEasyTransUtils.createProxyVo(vo);
+        try {
+            Object result = MateEasyTransUtils.createProxyVo(vo);
 
-        assertTrue(result instanceof VO);
+            assertSame(vo, result);
+            assertTrue(appender.list.stream().noneMatch(event ->
+                    event.getLevel().isGreaterOrEqual(Level.ERROR)
+                            && event.getFormattedMessage().contains("easy trans 赋值错误")));
+        } finally {
+            logger.detachAppender(appender);
+        }
+    }
+
+    @Test
+    void booleanAndEnumServicesRemainInstantiable() {
+        assertTrue(new com.xiongx9527.fw.plus.easytrans.service.MateEasyTransBooleanTransService()
+                .isValid(Boolean.class, "", Boolean.TRUE));
+        assertTrue(new com.xiongx9527.fw.plus.easytrans.service.MateEasyTransEnumTransService()
+                .isValid(SampleEnum.class, "code", "A"));
     }
 
     static class CountingTransService extends TransService {
@@ -129,5 +153,34 @@ class MateEasyTransUtilsTest {
 
     static class Node {
         Node self;
+    }
+
+    static final class FinalVo implements VO {
+        private final Map<String, Object> transMap = new java.util.LinkedHashMap<>();
+
+        @Override
+        public Map<String, Object> getTransMap() {
+            return transMap;
+        }
+    }
+
+    enum SampleEnum {
+        A("A", "启用");
+
+        private final String code;
+        private final String label;
+
+        SampleEnum(String code, String label) {
+            this.code = code;
+            this.label = label;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public String getLabel() {
+            return label;
+        }
     }
 }

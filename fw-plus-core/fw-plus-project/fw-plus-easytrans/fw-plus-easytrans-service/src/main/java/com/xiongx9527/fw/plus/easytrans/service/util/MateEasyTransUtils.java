@@ -432,6 +432,9 @@ public class MateEasyTransUtils extends TransUtil {
             try {
                 // 生成新的类
                 Class clazz = genNewClass(vo);
+                if (clazz == null) {
+                    return vo;
+                }
                 // 创建新类的实例
                 Object newObject = clazz.newInstance();
                 // 如果新创建的对象为空，则直接返回原VO对象
