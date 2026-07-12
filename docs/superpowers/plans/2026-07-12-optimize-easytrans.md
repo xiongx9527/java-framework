@@ -41,6 +41,8 @@ base-ref: 5a66ee7c7ab0f88dd23d4ffee1e2a5e39b52780e
 
 ### Task 1: 建立 MateEasyTransUtils 最小回归测试
 
+- [x] Task 1: 建立 MateEasyTransUtils 最小回归测试
+
 **Files:**
 - Modify: `fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/pom.xml`
 - Create: `fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/test/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtilsTest.java`
