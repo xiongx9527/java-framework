@@ -1,8 +1,8 @@
 ## 1. 现状梳理与范围确认
 
-- [ ] 1.1 梳理 `fw-plus-dify` 的 app、dataset、web console 客户端构建链路和现有 public API。
-- [ ] 1.2 梳理 Boot 层 Magic-API `DifyModule` 入口，确认需要保持兼容的方法名、参数顺序和返回类型语义。
-- [ ] 1.3 明确本次实现不覆盖的 Dify API 范围，避免扩展为全量 SDK 重写。
+- [x] 1.1 梳理 `fw-plus-dify` 的 app、dataset、web console 客户端构建链路和现有 public API。
+- [x] 1.2 梳理 Boot 层 Magic-API `DifyModule` 入口，确认需要保持兼容的方法名、参数顺序和返回类型语义。
+- [x] 1.3 明确本次实现不覆盖的 Dify API 范围，避免扩展为全量 SDK 重写。
 
 ## 2. 客户端构建与配置优化
 
