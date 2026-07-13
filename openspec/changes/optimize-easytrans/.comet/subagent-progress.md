@@ -2,15 +2,22 @@
 
 - review_mode: standard
 - tdd_mode: tdd
-- current_task: Task 1 建立 MateEasyTransUtils 最小回归测试
+- current_task: Task 2 修复集合批量翻译的 null 与重复首元素读取
 - stage: checkoff
-- plan_task_text: Task 1: 建立 MateEasyTransUtils 最小回归测试
-- openspec_task_text: 1.2 为将要修改的稳定性或性能路径补最小失败用例。
-- brief: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/task-1-brief.md
-- report: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/task-1-report.md
-- implementation_commit: 3e50e65940123edf8de0ee641144f1283e312344
-- review_package: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/review-6049f16..3e50e65.diff
-- red_green_evidence: wrapper 缺失导致 ./mvnw 无法启动；系统 Maven 3.6.3 下测试编译成功并到达预期失败点 transBatchSkipsLeadingNullAndTranslatesLaterVo expected 1 but was 0。
-- risk_signals: DONE_WITH_CONCERNS; 新增 test scope 依赖; wrapper 缺失; 既有无关 dirty worktree。
-- review_round: 0
-- task_review: passed; Critical 无; Important 无; Minor createProxyVoReturnsOriginalVoWhenProxyCannotBeCreated 方法名比断言更强但不阻塞。
+- task_review: passed; reviewer approved Task 2 after fix; no Critical/Important/Minor findings.
+- final_fix_status: completed
+- fix_commit: 14ff5e86f8d2a13592f5af7729888542bd2d1785
+- fix_review_package: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/review-ea88a0a..14ff5e8.diff
+- plan_task_text: Task 2: 修复集合批量翻译的 null 与重复首元素读取
+- openspec_task_text:
+  - 2.1 修复共享翻译链路中的 null、空集合、反射访问或翻译异常兜底问题。
+  - 3.1 移除批量翻译中的重复首元素读取、重复遍历或无效转换。
+- brief: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/task-2-brief.md
+- report: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/task-2-report.md
+- implementation_commit: 3d8703a554646ba157b0e0f74acc9ea3d38b516a
+- review_package: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/review-ea88a0a..3d8703a.diff
+- red_green_evidence: ./mvnw wrapper 缺失；系统 Maven 下 RED expected 1 but was 0；GREEN MateEasyTransUtilsTest 5/5 通过。
+- risk_signals: DONE_WITH_CONCERNS; wrapper 缺失; ByteBuddy/NPE 日志噪声; 既有无关 dirty worktree。
+- review_round: 1
+- reviewer_retry: first reviewer stalled after 600s; second reviewer completed.
+- task_review: failed; Important transBatch proxy VO 分支仍使用 contains(hasTransObjs, vo)/hasTransObjs.add(vo)，可能跳过重复/已存在 VO 导致返回集合丢元素；需要每个非 null 元素 createProxyVo 并保留 null。
