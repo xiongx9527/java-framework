@@ -2,6 +2,8 @@
 comet_change: optimize-easytrans
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-13-optimize-easytrans
+status: final
 ---
 
 # optimize-easytrans 技术设计

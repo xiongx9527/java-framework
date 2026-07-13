@@ -2,6 +2,7 @@
 change: optimize-easytrans
 design-doc: docs/superpowers/specs/2026-07-12-optimize-easytrans-design.md
 base-ref: 5a66ee7c7ab0f88dd23d4ffee1e2a5e39b52780e
+archived-with: 2026-07-13-optimize-easytrans
 ---
 
 # optimize-easytrans Implementation Plan
