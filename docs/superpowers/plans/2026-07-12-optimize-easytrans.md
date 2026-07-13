@@ -335,7 +335,7 @@ git commit -m "fix: handle easytrans batch null elements"
 - Consumes: public `transOne(Object, TransService, boolean, ArrayList<Object>, Set<String>, Set<String>)` signature remains unchanged.
 - Produces: private overload using `Set<Object>` backed by `IdentityHashMap`.
 
-- [ ] **Step 1: Add JDK imports**
+- [x] **Step 1: Add JDK imports**
 
 在 `MateEasyTransUtils.java` imports 中确认存在：
 
@@ -344,7 +344,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 ```
 
-- [ ] **Step 2: Replace contains-based entry with identity set adapter**
+- [x] **Step 2: Replace contains-based entry with identity set adapter**
 
 将现有 public `transOne(...)` 方法改为薄适配器，并新增私有重载：
 
@@ -402,7 +402,7 @@ import java.util.IdentityHashMap;
 
 说明：此步骤保持 public 签名不变。内部重载先不强行贯穿 `transFields` 和 `transBatch` 的签名，避免扩大改动面；若测试发现循环仍未覆盖，再在同任务中把私有重载继续传入 `transFields`/`transBatch` 的私有版本。
 
-- [ ] **Step 3: Run cycle test**
+- [x] **Step 3: Run cycle test**
 
 Run:
 
@@ -412,7 +412,7 @@ cd fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-eas
 
 Expected: PASS，不出现 `StackOverflowError`。
 
-- [ ] **Step 4: Run full focused tests**
+- [x] **Step 4: Run full focused tests**
 
 Run:
 
@@ -422,7 +422,7 @@ cd fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-eas
 
 Expected: PASS。
 
-- [ ] **Step 5: Update OpenSpec task checkboxes**
+- [x] **Step 5: Update OpenSpec task checkboxes**
 
 Edit `openspec/changes/optimize-easytrans/tasks.md`:
 
@@ -431,7 +431,7 @@ Edit `openspec/changes/optimize-easytrans/tasks.md`:
 - [x] 3.2 复用已有缓存或局部变量降低重复反射开销，不新增独立缓存层。
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/main/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtils.java \
