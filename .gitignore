@@ -8,5 +8,3 @@
 /.worktrees/
 !/.claude/settings.local.json
 /.claude/worktrees/
-/.claude/worktrees/
-/.claude/settings.local.json
