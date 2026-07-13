@@ -274,7 +274,7 @@ git commit -m "feat(dify): add URL normalization helper"
   - `public static String requireText(String value, String fieldName, String clientType, String phase)`
   - `public static String normalizeServer(String server, String clientType, String phase)`
 
-- [ ] **Step 1: 写参数校验 helper 的失败测试**
+- [x] **Step 1: 写参数校验 helper 的失败测试**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/utils/DifyValidationUtilsTest.java`：
 
@@ -310,7 +310,7 @@ class DifyValidationUtilsTest {
 }
 ```
 
-- [ ] **Step 2: 写构建器参数校验失败测试**
+- [x] **Step 2: 写构建器参数校验失败测试**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/utils/DifyBuilderValidationTest.java`：
 
@@ -357,7 +357,7 @@ class DifyBuilderValidationTest {
 }
 ```
 
-- [ ] **Step 3: 运行测试确认失败**
+- [x] **Step 3: 运行测试确认失败**
 
 Run:
 
@@ -367,7 +367,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyValidation
 
 Expected: FAIL，错误包含 `DifyValidationUtils` 未定义或构建器仍抛出泛化 `RuntimeException`。
 
-- [ ] **Step 4: 实现参数校验 helper**
+- [x] **Step 4: 实现参数校验 helper**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/main/java/com/xiongx9527/fw/plus/dify/utils/DifyValidationUtils.java`：
 
@@ -399,7 +399,7 @@ public final class DifyValidationUtils {
 }
 ```
 
-- [ ] **Step 5: 接入 `AppClientBuilder`**
+- [x] **Step 5: 接入 `AppClientBuilder`**
 
 在 `AppClientBuilder.Builder.build()` 中替换参数校验和异常包装。目标方法内容：
 
@@ -422,7 +422,7 @@ public R build() {
 import com.xiongx9527.fw.plus.dify.types.DifyClientException;
 ```
 
-- [ ] **Step 6: 接入 `DatasetBuilder`**
+- [x] **Step 6: 接入 `DatasetBuilder`**
 
 在 `DatasetBuilder.build()` 中替换为：
 
@@ -453,7 +453,7 @@ import com.xiongx9527.fw.plus.dify.types.DifyClientException;
 
 在 `ofDocument(String datasetId, String documentId)` 中做相同替换。
 
-- [ ] **Step 7: 接入 `WebClientBuilder`**
+- [x] **Step 7: 接入 `WebClientBuilder`**
 
 在 `WebClientBuilder.connect()` 中替换为：
 
@@ -479,7 +479,7 @@ public IWebConsoleClient connect() {
 }
 ```
 
-- [ ] **Step 8: 运行构建器校验测试确认通过**
+- [x] **Step 8: 运行构建器校验测试确认通过**
 
 Run:
 
@@ -489,7 +489,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyValidation
 
 Expected: PASS。
 
-- [ ] **Step 9: 勾选 OpenSpec 任务 2.1**
+- [x] **Step 9: 勾选 OpenSpec 任务 2.1**
 
 把 `openspec/changes/optimize-fw-plus-dify/tasks.md` 中以下行勾选：
 
@@ -497,7 +497,7 @@ Expected: PASS。
 - [x] 2.1 优化 app、dataset、web console 客户端构建时的必填参数校验和错误信息。
 ```
 
-- [ ] **Step 10: 提交 Task 2**
+- [x] **Step 10: 提交 Task 2**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dify/src/main/java/com/xiongx9527/fw/plus/dify/utils/AppClientBuilder.java \
