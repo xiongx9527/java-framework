@@ -75,6 +75,19 @@ class MateEasyTransUtilsTest {
     }
 
     @Test
+    void transFieldsTranslatesFinalListWhenFirstElementIsNull() throws Exception {
+        CountingTransService transService = new CountingTransService();
+        TestVo vo = new TestVo(4L);
+        bsFinalListHolder holder = new bsFinalListHolder(null, vo);
+
+        MateEasyTransUtils.transFields(holder, transService, false,
+                new ArrayList<>(), null, null);
+
+        assertEquals(1, transService.transOneCount);
+        assertSame(vo, transService.lastVo);
+    }
+
+    @Test
     void transOneDoesNotRecurseForeverOnCycle() throws Exception {
         CountingTransService transService = new CountingTransService();
         Node node = new Node();
@@ -144,6 +157,9 @@ class MateEasyTransUtilsTest {
         @Override
         public void transMore(List<? extends VO> objList, Set<String> includeFields, Set<String> excludeFields) {
             transMoreCount++;
+            if (objList.isEmpty() || objList.get(0) == null) {
+                return;
+            }
             for (VO vo : objList) {
                 if (vo != null) {
                     transOne(vo, includeFields, excludeFields);
@@ -181,6 +197,14 @@ class MateEasyTransUtilsTest {
         @Override
         public Map<String, Object> getTransMap() {
             return transMap;
+        }
+    }
+
+    static class bsFinalListHolder {
+        final List<Object> vos;
+
+        bsFinalListHolder(Object... vos) {
+            this.vos = new ArrayList<>(Arrays.asList(vos));
         }
     }
 

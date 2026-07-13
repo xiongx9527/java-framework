@@ -132,7 +132,13 @@ public class MateEasyTransUtils extends TransUtil {
 
         boolean isVo = firstNonNull instanceof VO;
         if (isVo) {
-            transService.transMore(new ArrayList(param), includeFields, excludeFields);
+            ArrayList<VO> transMoreParam = new ArrayList<>();
+            for (Object tempObject : param) {
+                if (tempObject != null) {
+                    transMoreParam.add((VO) tempObject);
+                }
+            }
+            transService.transMore(transMoreParam, includeFields, excludeFields);
             for (Object tempObject : param) {
                 if (tempObject != null) {
                     transFields(tempObject, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
@@ -320,7 +326,7 @@ public class MateEasyTransUtils extends TransUtil {
                             // 如果字段值为List类型且不为空，则批量转换
                             if (Objects.nonNull(tempObj) && tempObj instanceof List) {
                                 List tempList = (List)tempObj;
-                                if (!CollectionUtils.isEmpty(tempList) && Objects.nonNull(tempList.get(0)) && tempList.get(0) instanceof VO) {
+                                if (!CollectionUtils.isEmpty(tempList) && firstNonNull(tempList) instanceof VO) {
                                     Collection transResult = transBatch(tempObj, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
                                     tempList.clear();
                                     tempList.addAll(transResult);
