@@ -16,7 +16,7 @@ public class DifyPageTest {
                 + "\"limit\":20,"
                 + "\"total\":2,"
                 + "\"total_pages\":1,"
-                + "\"has_more\":false,"
+                + "\"has_more\":true,"
                 + "\"data\":[{\"id\":\"dataset-1\",\"name\":\"知识库\",\"unknown\":\"value\"}]"
                 + "}";
 
@@ -26,9 +26,27 @@ public class DifyPageTest {
         assertEquals(20, page.getLimit(), "limit");
         assertEquals(2L, page.getTotal(), "total");
         assertEquals(1L, page.getTotalPages(), "totalPages");
-        assertFalse(readHasMore(page), "hasMore");
+        assertEquals(Boolean.TRUE, readHasMoreObject(page), "getHasMore");
+        assertTrue(readHasMore(page), "isHasMore");
         assertNotNull(page.getData(), "data");
         assertEquals(1, page.getData().size(), "data size");
+        JSONObject first = (JSONObject) page.getData().get(0);
+        assertEquals("value", first.getString("unknown"), "data[0].unknown");
+    }
+
+    public void testShouldDefaultMissingHasMoreToFalseWhileKeepingNullableGetter() throws Exception {
+        String json = "{"
+                + "\"page\":1,"
+                + "\"limit\":20,"
+                + "\"total\":0,"
+                + "\"total_pages\":0,"
+                + "\"data\":[]"
+                + "}";
+
+        DifyPage page = JSON.parseObject(json, DifyPage.class);
+
+        assertEquals(null, readHasMoreObject(page), "getHasMore");
+        assertFalse(readHasMore(page), "isHasMore");
     }
 
     public void testDynamicJsonShouldKeepUnknownFieldsWhenParsedAsJSONObject() {
@@ -45,9 +63,20 @@ public class DifyPageTest {
         assertEquals(Boolean.TRUE, "success".equals(object.getString("result")), "operation success");
     }
 
+    private Boolean readHasMoreObject(DifyPage page) throws Exception {
+        Method method = DifyPage.class.getMethod("getHasMore");
+        return (Boolean) method.invoke(page);
+    }
+
     private boolean readHasMore(DifyPage page) throws Exception {
         Method method = DifyPage.class.getMethod("isHasMore");
         return (Boolean) method.invoke(page);
+    }
+
+    private void assertTrue(boolean value, String name) {
+        if (!value) {
+            throw new AssertionError(name + " expected <true> but was <false>");
+        }
     }
 
     private void assertEquals(Object expected, Object actual, String name) {
