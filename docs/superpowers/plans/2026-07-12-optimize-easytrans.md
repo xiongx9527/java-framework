@@ -550,7 +550,7 @@ git commit -m "fix: keep easytrans proxy fallback safe"
 - Consumes: Tasks 1-4 committed code.
 - Produces: 全部 OpenSpec task 勾选完成，build guard 可进入 verify。
 
-- [ ] **Step 1: Run easytrans focused tests**
+- [x] **Step 1: Run easytrans focused tests**
 
 Run:
 
@@ -562,7 +562,7 @@ Expected: BUILD SUCCESS。
 
 If this fails, load `superpowers:systematic-debugging` before any source fix, identify root cause, then fix and rerun.
 
-- [ ] **Step 2: Run module compile**
+- [x] **Step 2: Run module compile**
 
 Run:
 
@@ -578,7 +578,7 @@ If Maven reports missing reactor dependencies, rerun with `-am`:
 cd fw-plus-core && ./mvnw compile -pl fw-plus-project/fw-plus-easytrans -am -DskipTests
 ```
 
-- [ ] **Step 3: Update final OpenSpec verification checkboxes**
+- [x] **Step 3: Update final OpenSpec verification checkboxes**
 
 Edit `openspec/changes/optimize-easytrans/tasks.md`:
 
@@ -587,14 +587,14 @@ Edit `openspec/changes/optimize-easytrans/tasks.md`:
 - [x] 4.2 运行模块编译，确认不破坏下游兼容编译。
 ```
 
-- [ ] **Step 4: Commit verification evidence**
+- [x] **Step 4: Commit verification evidence**
 
 ```bash
 git add openspec/changes/optimize-easytrans/tasks.md
 git commit -m "chore: verify easytrans optimization"
 ```
 
-- [ ] **Step 5: Prepare review gate before build guard**
+- [x] **Step 5: Prepare review gate before build guard**
 
 If `review_mode=standard`, request one final lightweight code review before running build guard. If review skill is unavailable, add this persistent note to `openspec/changes/optimize-easytrans/tasks.md` and commit it:
 

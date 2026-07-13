@@ -2,17 +2,15 @@
 
 - review_mode: standard
 - tdd_mode: tdd
-- current_task: Task 4 补代理和兼容输出验证
-- stage: checkoff
-- task_review: passed; reviewer approved Task 4. Minor accepted: proxyClassMap/proxyClassFieldMap test cleanup is non-blocking and final review can revisit.
-- implementation_commit: 138d0d263c78418b6e302f18e4bc1196a18f876a
-- review_package: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/review-6326c54..138d0d2.diff
-- red_green_evidence: system mvn RED proxy fallback NPE; GREEN MateEasyTransUtilsTest 9/9 passed.
-- risk_signals: DONE_WITH_CONCERNS; wrapper missing; proxy fallback and compatibility tests.
-- plan_task_text: Task 4: 补代理和兼容输出验证
+- current_task: Task 5 模块验证与 Build 阶段收口
+- stage: final-review
+- task_review: not required for Task 5; validation-only task, standard risk accepted with final lightweight review.
+- validation_evidence: MateEasyTransUtilsTest 9/9 passed; fw-plus-easytrans compile passed via system mvn.
+- plan_task_text: Task 5: 模块验证与 Build 阶段收口
 - openspec_task_text:
-  - 2.2 确认 Boolean、Enum、Dictionary、RPC 翻译输出保持兼容。
-- brief: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/task-4-brief.md
-- report: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/task-4-report.md
+  - 4.1 运行 `fw-plus-easytrans` 相关单元测试或最小验证。
+  - 4.2 运行模块编译，确认不破坏下游兼容编译。
+- brief: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/task-5-brief.md
+- report: /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/task-5-report.md
 - review_mode_standard_risk_review: pending
 - review_round: 0
