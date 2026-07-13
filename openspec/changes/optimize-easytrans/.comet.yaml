@@ -20,8 +20,6 @@ created_at: 2026-07-12
 verified_at: null
 archived: false
 direct_override: null
-build_command: null
-verify_command: null
 handoff_context: openspec/changes/optimize-easytrans/.comet/handoff/design-context.json
 handoff_hash: db35ec4ba377626d77779a83ab7377243db4455e54b2cf2cf235e45187e0d10b
 classic_profile: full
