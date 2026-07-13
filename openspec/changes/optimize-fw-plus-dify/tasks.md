@@ -18,9 +18,9 @@
 
 ## 4. Magic-API 兼容性保障
 
-- [ ] 4.1 确认 `dify.web(server, userName, password)`、`dify.dataset(server, apiKey)` 和各 app 入口保持兼容。
-- [ ] 4.2 如需新增配置能力，优先通过新增重载或新增方法实现，不改变现有入口语义。
-- [ ] 4.3 补充或更新 Magic-API 使用说明/示例，说明 Dify 客户端创建与错误处理行为。
+- [x] 4.1 确认 `dify.web(server, userName, password)`、`dify.dataset(server, apiKey)` 和各 app 入口保持兼容。
+- [x] 4.2 如需新增配置能力，优先通过新增重载或新增方法实现，不改变现有入口语义。
+- [x] 4.3 补充或更新 Magic-API 使用说明/示例，说明 Dify 客户端创建与错误处理行为。
 
 ## 5. 验证与收尾
 
