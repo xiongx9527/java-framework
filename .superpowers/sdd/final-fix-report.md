@@ -1,38 +1,44 @@
-# Final Fix Report - notify-mcp-config-changes
+# Final Fix Report - optimize-easytrans
 
 ## 状态
-已完成 final-fix round 1。修复 `ConfigMagicDynamicRegistry` 在注册失败时提前刷新/发布配置变更，以及取消注册缺失 property source 时不发布原始配置 key 的问题。
+DONE
+
+## 提交哈希
+`923ed1e`
 
 ## RED
 命令：
-`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.worktrees/notify-mcp-config-changes/fw-plus-boot && mvn -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest=ConfigMagicDynamicRegistryTest test`
+`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service -Dtest=MateEasyTransUtilsTest`
 
 摘要：
-- 首次 RED 编译失败：当前 Mockito 版本不支持 `verifyNoInteractions`，已改为 `verify(..., never())` 后重跑。
-- 有效 RED 失败：`shouldNotRefreshOrPublishWhenRegisterStorageFails` 发现注册存储失败后仍残留 `dev_app_mcp` property source；`shouldPublishOriginalKeysWhenConfigIsUnregisteredWithoutExistingPropertySource` 发现缺失 property source 时未调用 `ContextRefresher.refresh()`。
+- 未进入测试：`./mvnw` 缺少 `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 和 `maven-wrapper.jar`，无法加载 `org.apache.maven.wrapper.MavenWrapperMain`。
+
+命令：
+`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && mvn test -pl fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service -Dtest=MateEasyTransUtilsTest`
+
+摘要：
+- 有效 RED 失败：`MateEasyTransUtilsTest` 10 个测试，2 个失败，0 错误，0 跳过。
+- `transBatchSkipsLeadingNullAndTranslatesLaterVo`：期望翻译 1 次，实际 0 次，复现真实 `TransService.transMore` 首元素 null 直接返回后后续 VO 未翻译。
+- `transFieldsTranslatesFinalListWhenFirstElementIsNull`：期望翻译 1 次，实际 0 次，复现特殊 final List 分支用 `tempList.get(0)` 导致 `[null, vo]` 不进入批量翻译。
 
 ## GREEN
 命令：
-`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.worktrees/notify-mcp-config-changes/fw-plus-boot && mvn -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest=ConfigMagicDynamicRegistryTest test`
+`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && mvn test -pl fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service -Dtest=MateEasyTransUtilsTest`
 
 摘要：
-- 通过。`ConfigMagicDynamicRegistryTest`：6 个测试，0 失败，0 错误，0 跳过。
-
-命令：
-`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.worktrees/notify-mcp-config-changes/fw-plus-boot && mvn -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='McpConfigurationChangeNotifierTest,ConfigMagicDynamicRegistryTest,MagicAPIMcpConfigurationTest,McpNotificationServiceTest,McpClusterNotificationServiceTest,MagicNotifyMcpChangeEventPublisherTest,McpChangeNotificationRegistryTest,McpLifecycleHandlersTest,MagicMcpControllerTest,MagicMcpControllerAuthTest' test`
-
-摘要：
-- 通过。相关 MCP/配置测试集合：71 个测试，0 失败，0 错误，0 跳过。
-
-## 提交哈希
-`a74e938`
+- 通过。`MateEasyTransUtilsTest` 10 个测试，0 失败，0 错误，0 跳过。
 
 ## 变更文件
-- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.worktrees/notify-mcp-config-changes/fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/config/service/ConfigMagicDynamicRegistry.java`
-- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.worktrees/notify-mcp-config-changes/fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/config/service/ConfigMagicDynamicRegistryTest.java`
-- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.worktrees/notify-mcp-config-changes/.superpowers/sdd/final-fix-report.md`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/main/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtils.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/test/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtilsTest.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/final-fix-report.md`
 
 ## 风险信号
+- 必跑 wrapper 命令无法执行：`fw-plus-core/.mvn/wrapper` 文件缺失，已按要求改用系统 `mvn`。
 - Maven settings 存在既有 warning：`Unrecognised tag: 'repository'`。
-- 测试运行中存在既有 SLF4J multiple bindings warning。
-- 工作树中有本次未处理的既存未跟踪文件：`.superpowers/sdd/reviews/`、`docs/superpowers/reports/2026-07-09-notify-mcp-config-changes-verify.md`、`docs/superpowers/reports/2026-07-10-notify-mcp-config-changes-verify.md`。
+- Maven model 存在既有 warning：`fw-plus-auth-satoken` 重复声明 `cn.dev33:sa-token-core`。
+- 测试输出包含既有 ByteBuddy 代理生成错误日志，现有断言覆盖该降级行为且测试通过。
+- 工作树存在本次禁止修改/未处理的既有变更与未跟踪文件，包括 `openspec/changes/optimize-easytrans/.comet/subagent-progress.md`、`.claude/worktrees/*`、`.claude/settings.local.json`、`.comet/` 等；本次提交只暂存允许范围内文件。
+
+## 顾虑
+无
