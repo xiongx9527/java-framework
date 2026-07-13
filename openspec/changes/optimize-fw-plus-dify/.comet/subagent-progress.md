@@ -7,24 +7,26 @@
 
 ## Current Task
 
-- Plan task: Task 3: 将 URL helper 接入 HTTP 请求链路
+- Plan task: Task 4: 增强 Dify 异常诊断信息
 - OpenSpec task mapping:
-  - 2.2 明确并实现 server 地址规范化规则，覆盖末尾斜杠、已有基础路径和 route 拼接边界。
-  - 2.3 检查 `ApiConfig` 中 timeout、连接池和重试配置是否被关键客户端正确应用，必要时补齐传递链路。
+  - 3.1 优化 Dify HTTP 错误响应处理，保留 HTTP 状态、Dify code、message、params 和原始响应体。
+  - 3.2 优化非 JSON 错误响应、空响应体和网络异常的诊断信息，保留原始异常链。
 - Stage: checkoff
-- Brief: .superpowers/sdd/task-3-brief.md
-- Report: .superpowers/sdd/task-3-report.md
-- Review package: .superpowers/sdd/review-b55787e..00b89ea.diff
-- Base commit: b55787edf192d7a6441f2891383a4589bc67ceb5
+- Brief: .superpowers/sdd/task-4-brief.md
+- Report: .superpowers/sdd/task-4-report.md
+- Review package: .superpowers/sdd/review-097d8c7..6f1bcc7.diff
+- Base commit: 097d8c7f7e97d51d10d80b934b6253beeeaa2fa9
 - Implementer status: DONE_WITH_CONCERNS
-- Implement commit: 00b89eaa4da7596fe134025ca946cb18e71837bf
-- Task review: Approved
-- Review findings: none blocking
-- Reviewer non-blocking risk: empty route may normalize away trailing server slash; no real Dify route call point shown.
+- Implement commit: 6f1bcc7d7fac6d41364147cd129fff06262f19ad
+- Task review: accepted with non-blocking Minor
+- Review finding accepted:
+  - Minor: DifyExceptionTest 未使用 JUnit 5 `@Test` 注解。接受理由：当前 `fw-plus-dify` 模块缺少 JUnit 5 依赖，前序任务已采用可执行的无外部依赖测试风格；Surefire 报告确认 3 个测试实际执行并通过。新增 JUnit 5 依赖会超出本任务范围。
 - RED evidence:
-  - Route already containing query produced a second `?` before fix.
+  - Fallback Maven observed DifyExceptionTest compile failure for missing getters before implementation.
 - GREEN evidence:
-  - `DifyUrlUtilsTest` passed with 5 tests.
+  - `DifyExceptionTest` passed with 3 tests.
   - `fw-plus-dify` compile passed.
-- 2.3 handling: minimal boundary review only; `SimpleHttpClient.get(ApiConfig)` already uses `createClientByConfig(config)`, no full config-chain expansion and 2.3 not checked off.
+- Risk signals:
+  - Maven Wrapper unavailable in worktree; system Maven 3.6.3 used against same module.
+  - Existing Maven settings/POM warnings outside task scope.
 - Review-fix round: 0/1

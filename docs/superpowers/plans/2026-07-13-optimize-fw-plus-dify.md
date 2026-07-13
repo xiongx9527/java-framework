@@ -639,7 +639,7 @@ git commit -m "feat(dify): normalize request URLs"
   - `public Integer getDifyStatus()` 返回 Dify body 中的 status。
   - `getOriginal()`、`getCode()`、`getParams()` 继续可用。
 
-- [ ] **Step 1: 写 DifyException 失败测试**
+- [x] **Step 1: 写 DifyException 失败测试**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/types/DifyExceptionTest.java`：
 
@@ -690,7 +690,7 @@ class DifyExceptionTest {
 }
 ```
 
-- [ ] **Step 2: 运行异常测试确认失败**
+- [x] **Step 2: 运行异常测试确认失败**
 
 Run:
 
@@ -700,7 +700,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyExceptionT
 
 Expected: FAIL，错误包含 `getHttpStatus()` 或 `getDifyStatus()` 未定义。
 
-- [ ] **Step 3: 修改 `DifyException`**
+- [x] **Step 3: 修改 `DifyException`**
 
 将 `DifyException` 调整为以下结构，保留原 package 与 imports：
 
@@ -786,7 +786,7 @@ public class DifyException extends RuntimeException {
 }
 ```
 
-- [ ] **Step 4: 改善 `SimpleHttpClient` 客户端异常上下文**
+- [x] **Step 4: 改善 `SimpleHttpClient` 客户端异常上下文**
 
 在 `requestJson` 的最后一个 catch 中替换为：
 
@@ -806,7 +806,7 @@ public class DifyException extends RuntimeException {
 
 不要把 `apiKey` 拼入异常消息。
 
-- [ ] **Step 5: 运行异常测试与编译**
+- [x] **Step 5: 运行异常测试与编译**
 
 Run:
 
@@ -817,7 +817,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -DskipTests compile
 
 Expected: 两条命令均 PASS。
 
-- [ ] **Step 6: 勾选 OpenSpec 任务 3.1、3.2**
+- [x] **Step 6: 勾选 OpenSpec 任务 3.1、3.2**
 
 把 `tasks.md` 中以下两行勾选：
 
@@ -826,7 +826,7 @@ Expected: 两条命令均 PASS。
 - [x] 3.2 优化非 JSON 错误响应、空响应体和网络异常的诊断信息，保留原始异常链。
 ```
 
-- [ ] **Step 7: 提交 Task 4**
+- [x] **Step 7: 提交 Task 4**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dify/src/main/java/com/xiongx9527/fw/plus/dify/types/DifyException.java \
