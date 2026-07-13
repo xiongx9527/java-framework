@@ -52,6 +52,23 @@ class MateEasyTransUtilsTest {
     }
 
     @Test
+    void transBatchProxyKeepsDuplicateAndPreviouslyVisitedVoSlots() throws Exception {
+        TestVo vo = new TestVo(2L);
+        List<Object> source = new ArrayList<>(Arrays.asList(vo, null, vo));
+        ArrayList<Object> hasTransObjs = new ArrayList<>();
+        hasTransObjs.add(vo);
+
+        Collection result = MateEasyTransUtils.transBatch(source, new CountingTransService(), true,
+                hasTransObjs, null, null);
+
+        List resultList = new ArrayList(result);
+        assertEquals(3, resultList.size());
+        assertSame(vo, resultList.get(0));
+        assertNull(resultList.get(1));
+        assertSame(vo, resultList.get(2));
+    }
+
+    @Test
     void transOneDoesNotRecurseForeverOnCycle() throws Exception {
         CountingTransService transService = new CountingTransService();
         Node node = new Node();
