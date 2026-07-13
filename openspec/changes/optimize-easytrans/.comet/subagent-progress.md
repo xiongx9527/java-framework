@@ -3,7 +3,8 @@
 - review_mode: standard
 - tdd_mode: tdd
 - current_task: Task 5 模块验证与 Build 阶段收口
-- stage: final-review
+- stage: done
+- final_review: passed after final-fix; no Critical/Important findings remain. Minor accepted: duplicate .gitignore worktree entry from existing diff.
 - final_fix_commit: d80f9c9
 - final_fix_status: completed; leading-null transMore and final List guard fixed.
 - final_review: failed; Important findings: transBatch passes null-leading list to real TransService.transMore; transFields final List guard still checks get(0).
