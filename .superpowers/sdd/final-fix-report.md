@@ -1,29 +1,44 @@
 # Final Fix Report - optimize-easytrans
 
 ## 状态
-已完成 final-fix round 1，修复 final review findings 1 和 2。
-
-## 修复项
-- `transBatch` 调用 `transService.transMore(...)` 前先构造仅包含非 null VO 的列表，避免将原集合中的 null 传入真实翻译服务。
-- `transBatch` 返回代理集合时继续按原集合遍历，保留原有 null 位置。
-- `transFields` 的特殊 final `List` 字段路径改为基于首个非 null 元素判断 VO，修复 `[null, vo]` 漏翻译。
-- 补充并保留最小回归测试：`transBatchPassesOnlyNonNullVosToTransMore`、`transFieldsTranslatesFinalListWhenFirstItemIsNull`。
-
-## 测试命令
-指定命令：
-`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.claude/worktrees/optimize-easytrans/fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service -Dtest=MateEasyTransUtilsTest`
-
-实际执行：
-`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.claude/worktrees/optimize-easytrans/fw-plus-core && mvn test -pl fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service -Dtest=MateEasyTransUtilsTest`
-
-## 测试结果
-- 指定 `./mvnw` 命令未进入测试：`fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 和 `maven-wrapper.jar` 缺失，Maven Wrapper 无法启动。
-- 使用系统 Maven 3.6.3 执行同模块同参数测试通过：`MateEasyTransUtilsTest` 9 个测试，0 失败，0 错误，0 跳过。
+DONE
 
 ## 提交哈希
-修复提交：`8fcce6f`；最终提交请以 `git log -1 --oneline` 输出为准。
+`d80f9c9`
 
-## 风险/备注
-- 测试输出存在既有 Maven settings warning：`Unrecognised tag: 'repository'`。
-- 测试输出存在既有 POM warning：`fw-plus-auth-satoken` 重复声明 `cn.dev33:sa-token-core`。
-- `createProxyVoReturnsOriginalVoWithoutAssignmentErrorWhenProxyClassCannotBeCreated` 会按预期记录一次 ByteBuddy 无法继承 final 类的 ERROR 日志，用例仍通过。
+## RED
+命令：
+`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service -Dtest=MateEasyTransUtilsTest`
+
+摘要：
+- 未进入测试：`./mvnw` 缺少 `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 和 `maven-wrapper.jar`，无法加载 `org.apache.maven.wrapper.MavenWrapperMain`。
+
+命令：
+`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && mvn test -pl fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service -Dtest=MateEasyTransUtilsTest`
+
+摘要：
+- 有效 RED 失败：`MateEasyTransUtilsTest` 10 个测试，2 个失败，0 错误，0 跳过。
+- `transBatchSkipsLeadingNullAndTranslatesLaterVo`：期望翻译 1 次，实际 0 次，复现真实 `TransService.transMore` 首元素 null 直接返回后后续 VO 未翻译。
+- `transFieldsTranslatesFinalListWhenFirstElementIsNull`：期望翻译 1 次，实际 0 次，复现特殊 final List 分支用 `tempList.get(0)` 导致 `[null, vo]` 不进入批量翻译。
+
+## GREEN
+命令：
+`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && mvn test -pl fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service -Dtest=MateEasyTransUtilsTest`
+
+摘要：
+- 通过。`MateEasyTransUtilsTest` 10 个测试，0 失败，0 错误，0 跳过。
+
+## 变更文件
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/main/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtils.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/test/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtilsTest.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/final-fix-report.md`
+
+## 风险信号
+- 必跑 wrapper 命令无法执行：`fw-plus-core/.mvn/wrapper` 文件缺失，已按要求改用系统 `mvn`。
+- Maven settings 存在既有 warning：`Unrecognised tag: 'repository'`。
+- Maven model 存在既有 warning：`fw-plus-auth-satoken` 重复声明 `cn.dev33:sa-token-core`。
+- 测试输出包含既有 ByteBuddy 代理生成错误日志，现有断言覆盖该降级行为且测试通过。
+- 工作树存在本次禁止修改/未处理的既有变更与未跟踪文件，包括 `openspec/changes/optimize-easytrans/.comet/subagent-progress.md`、`.claude/worktrees/*`、`.claude/settings.local.json`、`.comet/` 等；本次提交只暂存允许范围内文件。
+
+## 顾虑
+无

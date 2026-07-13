@@ -23,9 +23,15 @@ import org.springframework.util.CollectionUtils;
 import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -103,7 +109,11 @@ public class MateEasyTransUtils extends TransUtil {
      * @throws InstantiationException 当实例化对象时发生错误
      */
     public static Collection transBatch(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {
-        return transBatch(object, transService, isProxy, hasTransObjs, newTransContext(hasTransObjs), includeFields, excludeFields);
+        Set<Object> transContext = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+        if (hasTransObjs != null) {
+            transContext.addAll(hasTransObjs);
+        }
+        return transBatch(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
     }
 
     private static Collection transBatch(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<Object> transContext, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {
@@ -122,15 +132,17 @@ public class MateEasyTransUtils extends TransUtil {
 
         boolean isVo = firstNonNull instanceof VO;
         if (isVo) {
-            List<VO> vos = new ArrayList<>();
+            ArrayList<VO> transMoreParam = new ArrayList<>();
             for (Object tempObject : param) {
                 if (tempObject != null) {
-                    vos.add((VO) tempObject);
+                    transMoreParam.add((VO) tempObject);
                 }
             }
-            transService.transMore(vos, includeFields, excludeFields);
-            for (Object tempObject : vos) {
-                transFields(tempObject, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+            transService.transMore(transMoreParam, includeFields, excludeFields);
+            for (Object tempObject : param) {
+                if (tempObject != null) {
+                    transFields(tempObject, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+                }
             }
         } else {
             for (Object tempObject : param) {
@@ -171,14 +183,6 @@ public class MateEasyTransUtils extends TransUtil {
         return null;
     }
 
-    private static Set<Object> newTransContext(ArrayList<Object> hasTransObjs) {
-        Set<Object> transContext = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
-        if (hasTransObjs != null) {
-            transContext.addAll(hasTransObjs);
-        }
-        return transContext;
-    }
-
     /**
      * 合并交易明细子VO
      * 此方法用于将一个VO实例与一个VO集合合并，并将结果存储在以VO类为键的映射中
@@ -210,6 +214,13 @@ public class MateEasyTransUtils extends TransUtil {
     }
 
     /**
+     * 检查列表中是否包含特定对象
+     *
+     * @param list 待检查的列表
+     * @param obj 需要查找的对象
+     * @return 如果列表中包含该对象，则返回true；否则返回false
+     */
+    /**
      * Converts a single object.
      *
      * This method is designed to convert a given object based on various conditions and parameters.
@@ -227,63 +238,53 @@ public class MateEasyTransUtils extends TransUtil {
      * @throws InstantiationException If an instance of the object cannot be created during the conversion process.
      */
     public static Object transOne(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {
-        return transOne(object, transService, isProxy, hasTransObjs, newTransContext(hasTransObjs), includeFields, excludeFields);
+        Set<Object> transContext = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+        if (hasTransObjs != null) {
+            transContext.addAll(hasTransObjs);
+        }
+        return transOne(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
     }
 
     private static Object transOne(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<Object> transContext, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {
-        // If the object is null, return null directly
         if (object == null) {
             return null;
-        } else if (transContext.contains(object)) {
-            // If the object has already been converted, return the object directly to avoid repeated conversion
-            return object;
-        } else {
-            // Add the object to the list of converted objects
-            transContext.add(object);
-            if (hasTransObjs != null) {
-                hasTransObjs.add(object);
-            }
-
-            // Determine if a proxy object needs to be created
-            boolean isVo = false;
-
-            // If it is a Map and map conversion is enabled, convert each value in the Map
-            if (transResultMap && object instanceof Map) {
-                Map tempMap = (Map)object;
-                for(Object key : tempMap.keySet()) {
-                    Object mapValue = tempMap.get(key);
-                    try {
-                        tempMap.put(key, transOne(mapValue, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields));
-                    } catch (Exception var12) {
-                        // Exception handling can be logged or processed as needed
-                    }
-                }
-                return object;
-            } else {
-                // If it is a VO instance, perform VO-specific conversion
-                if (object instanceof VO) {
-                    transService.transOne((VO)object, includeFields, excludeFields);
-                    transFields(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
-                    isVo = true;
-                } else {
-                    // If it is a Collection, call the batch conversion method
-                    if (object instanceof Collection) {
-                        return transBatch(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
-                    }
-
-                    // If it is a Java standard library type, return the object directly without conversion
-                    if (object.getClass().getName().startsWith("java.")) {
-                        return object;
-                    }
-
-                    // Perform field conversion for non-standard types
-                    transFields(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
-                }
-
-                // Based on whether a proxy is needed and whether it is a VO, decide whether to return a proxy object
-                return isProxy && isVo ? createProxyVo((VO)object) : object;
-            }
         }
+        if (transContext.contains(object)) {
+            return object;
+        }
+        transContext.add(object);
+        if (hasTransObjs != null) {
+            hasTransObjs.add(object);
+        }
+
+        boolean isVo = false;
+        if (transResultMap && object instanceof Map) {
+            Map tempMap = (Map)object;
+            for(Object key : tempMap.keySet()) {
+                Object mapValue = tempMap.get(key);
+                try {
+                    tempMap.put(key, transOne(mapValue, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields));
+                } catch (Exception var12) {
+                    // Exception handling can be logged or processed as needed
+                }
+            }
+            return object;
+        }
+
+        if (object instanceof VO) {
+            transService.transOne((VO)object, includeFields, excludeFields);
+            transFields(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+            isVo = true;
+        } else {
+            if (object instanceof Collection) {
+                return transBatch(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+            }
+            if (object.getClass().getName().startsWith("java.")) {
+                return object;
+            }
+            transFields(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+        }
+        return isProxy && isVo ? createProxyVo((VO)object) : object;
     }
 
     /**
@@ -301,7 +302,11 @@ public class MateEasyTransUtils extends TransUtil {
      * @throws InstantiationException 当通过反射创建对象实例失败时抛出
      */
     public static void transFields(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {
-        transFields(object, transService, isProxy, hasTransObjs, newTransContext(hasTransObjs), includeFields, excludeFields);
+        Set<Object> transContext = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+        if (hasTransObjs != null) {
+            transContext.addAll(hasTransObjs);
+        }
+        transFields(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
     }
 
     private static void transFields(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<Object> transContext, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {

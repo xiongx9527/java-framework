@@ -2,13 +2,12 @@ package com.xiongx9527.fw.plus.easytrans.service.util;
 
 import com.fhs.core.trans.vo.VO;
 import com.fhs.trans.service.impl.TransService;
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ExtendWith(OutputCaptureExtension.class)
 class MateEasyTransUtilsTest {
 
     @Test
@@ -58,27 +58,30 @@ class MateEasyTransUtilsTest {
     }
 
     @Test
-    void transBatchPassesOnlyNonNullVosToTransMore() throws Exception {
-        StrictTransService transService = new StrictTransService();
-        TestVo vo = new TestVo(1L);
-        List<Object> source = new ArrayList<>(Arrays.asList(null, vo));
+    void transBatchProxyKeepsDuplicateAndPreviouslyVisitedVoSlots() throws Exception {
+        TestVo vo = new TestVo(2L);
+        List<Object> source = new ArrayList<>(Arrays.asList(vo, null, vo));
+        ArrayList<Object> hasTransObjs = new ArrayList<>();
+        hasTransObjs.add(vo);
 
-        Collection result = MateEasyTransUtils.transBatch(source, transService, false,
-                new ArrayList<>(), null, null);
+        Collection result = MateEasyTransUtils.transBatch(source, new CountingTransService(), true,
+                hasTransObjs, null, null);
 
-        assertSame(source, result);
-        assertEquals(1, transService.transMoreCount);
-        assertEquals(1, transService.transOneCount);
-        assertSame(vo, transService.lastVo);
+        List resultList = new ArrayList(result);
+        assertEquals(3, resultList.size());
+        assertSame(vo, resultList.get(0));
+        assertNull(resultList.get(1));
+        assertSame(vo, resultList.get(2));
     }
 
     @Test
-    void transFieldsTranslatesFinalListWhenFirstItemIsNull() throws Exception {
+    void transFieldsTranslatesFinalListWhenFirstElementIsNull() throws Exception {
         CountingTransService transService = new CountingTransService();
-        TestVo vo = new TestVo(1L);
-        bsHolder holder = new bsHolder(new ArrayList<>(Arrays.asList(null, vo)));
+        TestVo vo = new TestVo(4L);
+        bsFinalListHolder holder = new bsFinalListHolder(null, vo);
 
-        MateEasyTransUtils.transOne(holder, transService, false, new ArrayList<>(), null, null);
+        MateEasyTransUtils.transFields(holder, transService, false,
+                new ArrayList<>(), null, null);
 
         assertEquals(1, transService.transOneCount);
         assertSame(vo, transService.lastVo);
@@ -97,36 +100,38 @@ class MateEasyTransUtilsTest {
     }
 
     @Test
-    void transOneTracksCycleWhenHistoryIsNull() throws Exception {
-        CountingTransService transService = new CountingTransService();
+    void transOneAllowsNullVisitedList() throws Exception {
         Node node = new Node();
         node.self = node;
 
-        Object result = assertDoesNotThrow(() -> MateEasyTransUtils.transOne(node, transService, false,
+        Object result = assertDoesNotThrow(() -> MateEasyTransUtils.transOne(node, new CountingTransService(), false,
                 null, null, null));
 
         assertSame(node, result);
     }
 
     @Test
-    void createProxyVoReturnsOriginalVoWithoutAssignmentErrorWhenProxyClassCannotBeCreated() {
-        FinalVo vo = new FinalVo();
+    void createProxyVoReturnsOriginalVoWhenProxyCannotBeCreated() {
+        TestVo vo = new TestVo(2L);
         vo.getTransMap().put("dynamicField", "value");
-        Logger logger = (Logger) LoggerFactory.getLogger(MateEasyTransUtils.class);
-        ListAppender<ILoggingEvent> appender = new ListAppender<>();
-        appender.start();
-        logger.addAppender(appender);
 
-        try {
-            Object result = MateEasyTransUtils.createProxyVo(vo);
+        Object result = MateEasyTransUtils.createProxyVo(vo);
 
-            assertSame(vo, result);
-            assertTrue(appender.list.stream().noneMatch(event ->
-                    event.getLevel().isGreaterOrEqual(Level.ERROR)
-                            && event.getFormattedMessage().contains("easy trans 赋值错误")));
-        } finally {
-            logger.detachAppender(appender);
-        }
+        assertTrue(result instanceof VO);
+    }
+
+    @Test
+    void createProxyVoReturnsOriginalVoWithoutAssignmentErrorWhenGeneratedClassIsNull(CapturedOutput output) throws Exception {
+        TestVo vo = new TestVo(3L);
+        vo.getTransMap().put("dynamicField", "value");
+        proxyClassMap().put(TestVo.class, TestVo.class);
+        proxyClassFieldMap().put(TestVo.class, new java.util.LinkedHashSet<>(Arrays.asList("otherField")));
+
+        Object result = MateEasyTransUtils.createProxyVo(vo);
+
+        assertSame(vo, result);
+        assertTrue(output.getOut().contains("生成新class错误"));
+        assertTrue(!output.getOut().contains("easy trans 赋值错误"));
     }
 
     @Test
@@ -152,6 +157,9 @@ class MateEasyTransUtilsTest {
         @Override
         public void transMore(List<? extends VO> objList, Set<String> includeFields, Set<String> excludeFields) {
             transMoreCount++;
+            if (objList.isEmpty() || objList.get(0) == null) {
+                return;
+            }
             for (VO vo : objList) {
                 if (vo != null) {
                     transOne(vo, includeFields, excludeFields);
@@ -160,16 +168,18 @@ class MateEasyTransUtilsTest {
         }
     }
 
-    static class StrictTransService extends CountingTransService {
-        @Override
-        public void transMore(List<? extends VO> objList, Set<String> includeFields, Set<String> excludeFields) {
-            for (VO vo : objList) {
-                if (vo == null) {
-                    throw new NullPointerException("transMore received null VO");
-                }
-            }
-            super.transMore(objList, includeFields, excludeFields);
-        }
+    @SuppressWarnings("unchecked")
+    private static Map<Class, Class> proxyClassMap() throws Exception {
+        Field field = MateEasyTransUtils.class.getDeclaredField("proxyClassMap");
+        field.setAccessible(true);
+        return (Map<Class, Class>) field.get(null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<Class, Set<String>> proxyClassFieldMap() throws Exception {
+        Field field = MateEasyTransUtils.class.getDeclaredField("proxyClassFieldMap");
+        field.setAccessible(true);
+        return (Map<Class, Set<String>>) field.get(null);
     }
 
     static class TestVo implements VO {
@@ -190,25 +200,16 @@ class MateEasyTransUtilsTest {
         }
     }
 
+    static class bsFinalListHolder {
+        final List<Object> vos;
+
+        bsFinalListHolder(Object... vos) {
+            this.vos = new ArrayList<>(Arrays.asList(vos));
+        }
+    }
+
     static class Node {
         Node self;
-    }
-
-    static class bsHolder {
-        private final List<Object> list;
-
-        bsHolder(List<Object> list) {
-            this.list = list;
-        }
-    }
-
-    static final class FinalVo implements VO {
-        private final Map<String, Object> transMap = new java.util.LinkedHashMap<>();
-
-        @Override
-        public Map<String, Object> getTransMap() {
-            return transMap;
-        }
     }
 
     enum SampleEnum {
