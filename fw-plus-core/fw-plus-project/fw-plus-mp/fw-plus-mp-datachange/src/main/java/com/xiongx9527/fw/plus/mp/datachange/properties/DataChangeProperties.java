@@ -51,7 +51,7 @@ public class DataChangeProperties {
      * 物理删除单个entity的方法的默认值
      */
     private static final String[] defaultSingleEntityPhysicalDeleteMethods = new String[]{
-            "uphysicalDeleteById"};
+            "physicalDeleteById"};
 
     /**
      * 物理删除多个entity的方法的默认值
@@ -70,8 +70,7 @@ public class DataChangeProperties {
      * 逻辑删除单个entity的方法的默认值
      */
     private static final String[] defaultSingleEntityLogicDeleteMethods = new String[]{
-            "deleteById",
-    ""};
+            "deleteById"};
 
     /**
      * 逻辑删除多个entity的方法的默认值
