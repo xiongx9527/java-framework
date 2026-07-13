@@ -224,7 +224,7 @@ git commit -m "test: cover easytrans shared translation edge cases"
 - Consumes: Task 1 的 `transBatchSkipsLeadingNullAndTranslatesLaterVo` 测试。
 - Produces: `firstNonNull(Collection)` 私有辅助方法；后续任务不依赖公开签名变化。
 
-- [ ] **Step 1: Replace transBatch with single first-non-null scan**
+- [x] **Step 1: Replace transBatch with single first-non-null scan**
 
 在 `MateEasyTransUtils.java` 中把 `transBatch` 方法替换为：
 
@@ -291,7 +291,7 @@ git commit -m "test: cover easytrans shared translation edge cases"
     }
 ```
 
-- [ ] **Step 2: Run focused tests**
+- [x] **Step 2: Run focused tests**
 
 Run:
 
@@ -301,7 +301,7 @@ cd fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-eas
 
 Expected: `transBatchSkipsLeadingNullAndTranslatesLaterVo` passes. If proxy mode with `null` in a `Set` changes ordering, accept because Set ordering is already undefined; keep element preservation for `List`.
 
-- [ ] **Step 3: Update OpenSpec task checkboxes for accepted work**
+- [x] **Step 3: Update OpenSpec task checkboxes for accepted work**
 
 After focused tests pass, edit `openspec/changes/optimize-easytrans/tasks.md` only for completed items:
 
@@ -313,7 +313,7 @@ After focused tests pass, edit `openspec/changes/optimize-easytrans/tasks.md` on
 
 Do not check items `1.1`, `2.2`, `3.2`, `4.1`, or `4.2` yet.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/main/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtils.java \
