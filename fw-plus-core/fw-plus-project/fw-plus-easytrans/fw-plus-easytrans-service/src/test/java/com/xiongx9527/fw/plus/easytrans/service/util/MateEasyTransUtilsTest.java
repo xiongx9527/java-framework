@@ -3,7 +3,11 @@ package com.xiongx9527.fw.plus.easytrans.service.util;
 import com.fhs.core.trans.vo.VO;
 import com.fhs.trans.service.impl.TransService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -17,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ExtendWith(OutputCaptureExtension.class)
 class MateEasyTransUtilsTest {
 
     @Test
@@ -102,6 +107,28 @@ class MateEasyTransUtilsTest {
         assertTrue(result instanceof VO);
     }
 
+    @Test
+    void createProxyVoReturnsOriginalVoWithoutAssignmentErrorWhenGeneratedClassIsNull(CapturedOutput output) throws Exception {
+        TestVo vo = new TestVo(3L);
+        vo.getTransMap().put("dynamicField", "value");
+        proxyClassMap().put(TestVo.class, TestVo.class);
+        proxyClassFieldMap().put(TestVo.class, new java.util.LinkedHashSet<>(Arrays.asList("otherField")));
+
+        Object result = MateEasyTransUtils.createProxyVo(vo);
+
+        assertSame(vo, result);
+        assertTrue(output.getOut().contains("生成新class错误"));
+        assertTrue(!output.getOut().contains("easy trans 赋值错误"));
+    }
+
+    @Test
+    void booleanAndEnumServicesRemainInstantiable() {
+        assertTrue(new com.xiongx9527.fw.plus.easytrans.service.MateEasyTransBooleanTransService()
+                .isValid(Boolean.class, "", Boolean.TRUE));
+        assertTrue(new com.xiongx9527.fw.plus.easytrans.service.MateEasyTransEnumTransService()
+                .isValid(SampleEnum.class, "code", "A"));
+    }
+
     static class CountingTransService extends TransService {
         int transOneCount;
         int transMoreCount;
@@ -125,6 +152,20 @@ class MateEasyTransUtilsTest {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    private static Map<Class, Class> proxyClassMap() throws Exception {
+        Field field = MateEasyTransUtils.class.getDeclaredField("proxyClassMap");
+        field.setAccessible(true);
+        return (Map<Class, Class>) field.get(null);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<Class, Set<String>> proxyClassFieldMap() throws Exception {
+        Field field = MateEasyTransUtils.class.getDeclaredField("proxyClassFieldMap");
+        field.setAccessible(true);
+        return (Map<Class, Set<String>>) field.get(null);
+    }
+
     static class TestVo implements VO {
         private final Long id;
         private final Map<String, Object> transMap = new java.util.LinkedHashMap<>();
@@ -145,5 +186,25 @@ class MateEasyTransUtilsTest {
 
     static class Node {
         Node self;
+    }
+
+    enum SampleEnum {
+        A("A", "启用");
+
+        private final String code;
+        private final String label;
+
+        SampleEnum(String code, String label) {
+            this.code = code;
+            this.label = label;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public String getLabel() {
+            return label;
+        }
     }
 }
