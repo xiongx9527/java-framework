@@ -602,7 +602,7 @@ If `review_mode=standard`, request one final lightweight code review before runn
 <!-- review skipped: skill unavailable -->
 ```
 
-- [ ] **Step 6: Run Comet build guard**
+- [x] **Step 6: Run Comet build guard**
 
 Run from repo root:
 
