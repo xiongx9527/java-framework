@@ -143,8 +143,7 @@ public class MateEasyTransUtils extends TransUtil {
             for (Object vo : param) {
                 if (vo == null) {
                     result.add(null);
-                } else if (!contains(hasTransObjs, vo)) {
-                    hasTransObjs.add(vo);
+                } else {
                     result.add(createProxyVo((VO)vo));
                 }
             }
