@@ -1,0 +1,31 @@
+workflow: tweak
+language: en
+phase: archive
+context_compression: off
+build_mode: direct
+build_pause: null
+subagent_dispatch: null
+tdd_mode: direct
+review_mode: off
+isolation: branch
+verify_mode: full
+auto_transition: true
+base_ref: 46d18e17e65c52cfc21ad8a8a27532eab95248c6
+design_doc: null
+plan: null
+verify_result: pass
+verification_report: docs/superpowers/reports/2026-07-07-optimize-web-autoconfigure-verify.md
+branch_status: handled
+created_at: 2026-07-07
+verified_at: 2026-07-07
+archived: true
+direct_override: null
+build_command: mvn -f fw-plus-boot/pom.xml -pl
+  fw-plus-boot-project/fw-plus-boot-autoconfigure
+  -Dtest=WebMvcAutoConfigurationTest test -q
+verify_command: null
+handoff_context: null
+handoff_hash: null
+classic_profile: tweak
+classic_migration: 1
+run_id: eefd16dd-60e5-4d1a-8846-cf610851256f
