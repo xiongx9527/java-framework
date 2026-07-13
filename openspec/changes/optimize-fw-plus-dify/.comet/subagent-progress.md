@@ -7,24 +7,24 @@
 
 ## Current Task
 
-- Plan task: Task 2: 新增参数校验 helper 并接入构建器
+- Plan task: Task 3: 将 URL helper 接入 HTTP 请求链路
 - OpenSpec task mapping:
-  - 2.1 优化 app、dataset、web console 客户端构建时的必填参数校验和错误信息。
+  - 2.2 明确并实现 server 地址规范化规则，覆盖末尾斜杠、已有基础路径和 route 拼接边界。
+  - 2.3 检查 `ApiConfig` 中 timeout、连接池和重试配置是否被关键客户端正确应用，必要时补齐传递链路。
 - Stage: checkoff
-- Brief: .superpowers/sdd/task-2-brief.md
-- Report: .superpowers/sdd/task-2-report.md
-- Original review package: .superpowers/sdd/review-4441d0d..8cbef5a.diff
-- Fixed review package: .superpowers/sdd/review-4441d0d..6aeef02.diff
-- Base commit: 4441d0dc6cb1984914f330402060dba6dafca4c7
+- Brief: .superpowers/sdd/task-3-brief.md
+- Report: .superpowers/sdd/task-3-report.md
+- Review package: .superpowers/sdd/review-b55787e..00b89ea.diff
+- Base commit: b55787edf192d7a6441f2891383a4589bc67ceb5
 - Implementer status: DONE_WITH_CONCERNS
-- Implement commit: 8cbef5a
-- Fix commit: 6aeef02
-- Task review: Approved after re-review
-- Review findings resolved:
-  1. `DatasetBuilder.of(...)` 和 `ofDocument(...)` 已补 `apiKey` 必填校验。
-  2. `DifyValidationUtils.normalizeServer` 已避免暴露原始 `URI.create` cause。
-- Fix RED evidence:
-  - Dataset shortcut apiKey tests failed before fix.
-  - Malformed server sensitive cause test failed before fix.
-- Fix GREEN evidence: `mvn -f .../fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-dify -Dtest=DifyValidationUtilsTest,DifyBuilderValidationTest test` passed with 9 tests.
-- Review-fix round: 1/1
+- Implement commit: 00b89eaa4da7596fe134025ca946cb18e71837bf
+- Task review: Approved
+- Review findings: none blocking
+- Reviewer non-blocking risk: empty route may normalize away trailing server slash; no real Dify route call point shown.
+- RED evidence:
+  - Route already containing query produced a second `?` before fix.
+- GREEN evidence:
+  - `DifyUrlUtilsTest` passed with 5 tests.
+  - `fw-plus-dify` compile passed.
+- 2.3 handling: minimal boundary review only; `SimpleHttpClient.get(ApiConfig)` already uses `createClientByConfig(config)`, no full config-chain expansion and 2.3 not checked off.
+- Review-fix round: 0/1

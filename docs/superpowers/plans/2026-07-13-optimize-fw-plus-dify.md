@@ -523,7 +523,7 @@ git commit -m "feat(dify): validate client builder parameters"
 - Consumes: `DifyUrlUtils.buildUrl(String server, String route, Map<String, Object> query)`。
 - Produces: `SimpleHttpClient` 所有 JSON、file、SSE、multipart 请求统一使用同一 URL 拼接规则。
 
-- [ ] **Step 1: 补充 query 空值边界测试**
+- [x] **Step 1: 补充 query 空值边界测试**
 
 在 `DifyUrlUtilsTest` 增加：
 
@@ -540,7 +540,7 @@ void buildUrlShouldNotAppendQuestionMarkWhenAllQueryValuesAreNull() {
 }
 ```
 
-- [ ] **Step 2: 运行测试确认当前实现失败或暴露多余问号问题**
+- [x] **Step 2: 运行测试确认当前实现失败或暴露多余问号问题**
 
 Run:
 
@@ -550,7 +550,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyUrlUtilsTe
 
 Expected: 如果 Task 1 helper 已正确实现，应 PASS；如果出现 `...?` 尾随问号，应 FAIL 并在下一步修复。
 
-- [ ] **Step 3: 调整 helper 的 `appendQuery` 只在首个有效参数前追加 `?`**
+- [x] **Step 3: 调整 helper 的 `appendQuery` 只在首个有效参数前追加 `?`**
 
 确认 `DifyUrlUtils.appendQuery(...)` 使用以下逻辑：
 
@@ -574,7 +574,7 @@ private static void appendQuery(StringBuilder sb, Map<String, Object> query) {
 }
 ```
 
-- [ ] **Step 4: 替换 `SimpleHttpClient.buildUrl` 内部逻辑**
+- [x] **Step 4: 替换 `SimpleHttpClient.buildUrl` 内部逻辑**
 
 在 `SimpleHttpClient` imports 中加入：
 
@@ -590,7 +590,7 @@ private String buildUrl(String url, Map<String, Object> query) {
 }
 ```
 
-- [ ] **Step 5: 运行 URL 测试和模块编译**
+- [x] **Step 5: 运行 URL 测试和模块编译**
 
 Run:
 
@@ -601,7 +601,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -DskipTests compile
 
 Expected: 两条命令均 PASS。
 
-- [ ] **Step 6: 勾选 OpenSpec 任务 2.2，并记录 2.3 最小处理边界**
+- [x] **Step 6: 勾选 OpenSpec 任务 2.2，并记录 2.3 最小处理边界**
 
 把 `tasks.md` 中 2.2 勾选：
 
@@ -611,7 +611,7 @@ Expected: 两条命令均 PASS。
 
 如果没有完整打通所有 `ApiConfig` timeout / 连接池 / retry 链路，不要伪造勾选。只有确认当前默认值和已有传递链路已经审查完成后，再把 2.3 勾选。若本任务仅完成审查但未修改代码，在提交信息中说明“最小处理边界已确认”。
 
-- [ ] **Step 7: 提交 Task 3**
+- [x] **Step 7: 提交 Task 3**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dify/src/main/java/com/xiongx9527/fw/plus/dify/SimpleHttpClient.java \
