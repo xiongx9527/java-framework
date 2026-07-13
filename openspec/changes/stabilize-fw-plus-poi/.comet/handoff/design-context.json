@@ -1,0 +1,14 @@
+{
+  "change": "stabilize-fw-plus-poi",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "4e0eb64f0db3025a823bb4b8ff304f2b36526624d73e80cc01453f4d3359c689",
+  "files": [
+    { "path": "openspec/changes/stabilize-fw-plus-poi/proposal.md", "sha256": "b7f091d56aa4349506ce434005d56e54a4b827181ba29cfa8f551ba706c333d3" },
+    { "path": "openspec/changes/stabilize-fw-plus-poi/design.md", "sha256": "402f209c2f7635bef90ebede884dce7a3f358f9a78bf4c9299042eff1bc4371c" },
+    { "path": "openspec/changes/stabilize-fw-plus-poi/tasks.md", "sha256": "ec701f1ab376a5983975b1e15519dd76aa3e14b879a5fb16d73ab90c0a9c918e" },
+    { "path": "openspec/changes/stabilize-fw-plus-poi/specs/poi-easypoi-stability/spec.md", "sha256": "75c0e1c5d615c63a9c29420dcfee72c42c3d30b1a34f28af05e29b2e5e0b8d04" }
+  ]
+}
