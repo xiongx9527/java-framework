@@ -32,7 +32,7 @@ public final class DifyValidationUtils {
             return normalized;
         } catch (IllegalArgumentException e) {
             throw new DifyClientException("Dify " + clientType + " client " + phase
-                    + " error: required field 'server' is malformed", e);
+                    + " error: required field 'server' is malformed");
         }
     }
 }
