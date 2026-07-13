@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.dify;
 
 import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.dify.types.*;
+import com.xiongx9527.fw.plus.dify.utils.DifyUrlUtils;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -590,32 +591,6 @@ public class SimpleHttpClient {
      * @return 构建完成的完整 URL 字符串
      */
     private String buildUrl(String url, Map<String, Object> query) {
-        StringBuilder sb = new StringBuilder();
-
-        // 处理 server 和 url 连接处的斜杠，确保只有一个斜杠分隔
-        if (this.server.endsWith("/") && url.startsWith("/")) {
-            sb.append(this.server, 0, this.server.length() - 1);
-        } else if (!this.server.endsWith("/") && !url.startsWith("/")) {
-            sb.append(this.server).append('/');
-        } else {
-            sb.append(this.server);
-        }
-
-        sb.append(url);
-
-        // 如果有查询参数，构建查询字符串
-        if (query != null && !query.isEmpty()) {
-            sb.append("?");
-
-            query.forEach((key, value) -> {
-                if (key != null && value != null) {
-                    sb.append(key).append("=").append(value).append("&");
-                }
-            });
-
-            sb.setLength(sb.length() - 1);
-        }
-
-        return sb.toString();
+        return DifyUrlUtils.buildUrl(this.server, url, query);
     }
 }
