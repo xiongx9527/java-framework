@@ -2,5 +2,6 @@
   "openspec_proposal": "openspec/changes/optimize-fw-plus-mp/proposal.md",
   "openspec_design": "openspec/changes/optimize-fw-plus-mp/design.md",
   "openspec_tasks": "openspec/changes/optimize-fw-plus-mp/tasks.md",
-  "openspec_delta_spec": "openspec/changes/optimize-fw-plus-mp/specs/mp-core-optimization/spec.md"
+  "openspec_delta_spec": "openspec/changes/optimize-fw-plus-mp/specs/mp-core-optimization/spec.md",
+  "archive_directory": "openspec/changes/archive/2026-07-13-optimize-fw-plus-mp"
 }
