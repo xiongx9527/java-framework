@@ -453,7 +453,7 @@ git commit -m "perf: use identity tracking in easytrans recursion"
 - Consumes: existing `createProxyVo(VO vo)` public static method.
 - Produces: same return contract：代理成功返回代理对象，代理失败或无 transMap 返回原 VO。
 
-- [ ] **Step 1: Add explicit null-class guard in createProxyVo**
+- [x] **Step 1: Add explicit null-class guard in createProxyVo**
 
 在 `createProxyVo` 中 `Class clazz = genNewClass(vo);` 后立即增加：
 
@@ -473,7 +473,7 @@ git commit -m "perf: use identity tracking in easytrans recursion"
                 Object newObject = clazz.newInstance();
 ```
 
-- [ ] **Step 2: Add compatibility tests for Boolean and Enum translators only if cheap**
+- [x] **Step 2: Add compatibility tests for Boolean and Enum translators only if cheap**
 
 如果当前测试依赖已经可用，在 `MateEasyTransUtilsTest.java` 追加最小兼容断言，不启动 Spring：
 
@@ -509,7 +509,7 @@ git commit -m "perf: use identity tracking in easytrans recursion"
 
 如果 `MateEasyTransEnumTransService.isValid` 因 Easy-Trans 反射细节无法在单测中稳定运行，不为它写脆弱测试；改为运行 service 模块编译并记录未修改 Enum/Dictionary/RPC 服务实现，避免制造低价值测试。
 
-- [ ] **Step 3: Run focused tests**
+- [x] **Step 3: Run focused tests**
 
 Run:
 
@@ -519,7 +519,7 @@ cd fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-eas
 
 Expected: PASS。
 
-- [ ] **Step 4: Update OpenSpec task checkbox**
+- [x] **Step 4: Update OpenSpec task checkbox**
 
 Edit `openspec/changes/optimize-easytrans/tasks.md`:
 
@@ -529,7 +529,7 @@ Edit `openspec/changes/optimize-easytrans/tasks.md`:
 
 若 Dictionary/RPC 未写单测，在提交信息 body 或 tasks.md 附近保留一句：`兼容确认：本 change 未修改 Dictionary/RPC 服务实现，模块编译覆盖其公开签名。`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/main/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtils.java \

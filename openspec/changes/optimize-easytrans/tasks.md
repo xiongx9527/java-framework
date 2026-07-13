@@ -6,7 +6,8 @@
 ## 2. 稳定性优化
 
 - [x] 2.1 修复共享翻译链路中的 null、空集合、反射访问或翻译异常兜底问题。
-- [ ] 2.2 确认 Boolean、Enum、Dictionary、RPC 翻译输出保持兼容。
+- [x] 2.2 确认 Boolean、Enum、Dictionary、RPC 翻译输出保持兼容。
+  - 兼容确认：Boolean/Enum 已补最小测试；本 change 未修改 Dictionary/RPC 服务实现，模块测试覆盖当前工具层公开签名。
 
 ## 3. 性能优化
 
