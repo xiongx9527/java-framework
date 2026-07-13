@@ -94,7 +94,9 @@ public class DatasetBuilder {
      * @param datasetId 知识库ID
      */
     public DatasetHero of(String datasetId) {
-        return DatasetHero.of(datasetId, ApiConfig.builder().server(DifyValidationUtils.normalizeServer(baseUrl, "dataset", "build")).apiKey(apiKey).build());
+        String normalizedBaseUrl = DifyValidationUtils.normalizeServer(baseUrl, "dataset", "build");
+        String requiredApiKey = DifyValidationUtils.requireText(apiKey, "apiKey", "dataset", "build");
+        return DatasetHero.of(datasetId, ApiConfig.builder().server(normalizedBaseUrl).apiKey(requiredApiKey).build());
     }
 
     /**
@@ -103,7 +105,9 @@ public class DatasetBuilder {
      * @param documentId 文档ID
      */
     public DocumentHero ofDocument(String datasetId, String documentId) {
-        return DocumentHero.of(datasetId, documentId, ApiConfig.builder().server(DifyValidationUtils.normalizeServer(baseUrl, "dataset", "build")).apiKey(apiKey).build());
+        String normalizedBaseUrl = DifyValidationUtils.normalizeServer(baseUrl, "dataset", "build");
+        String requiredApiKey = DifyValidationUtils.requireText(apiKey, "apiKey", "dataset", "build");
+        return DocumentHero.of(datasetId, documentId, ApiConfig.builder().server(normalizedBaseUrl).apiKey(requiredApiKey).build());
     }
 
 }

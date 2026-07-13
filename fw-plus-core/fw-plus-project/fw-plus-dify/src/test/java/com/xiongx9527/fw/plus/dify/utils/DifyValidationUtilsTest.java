@@ -36,6 +36,28 @@ public class DifyValidationUtilsTest {
         assertContains(exception.getMessage(), "server");
     }
 
+    public void testNormalizeServerShouldNotExposeSensitiveMalformedServerInExceptionChain() {
+        DifyClientException exception = assertThrowsDifyClientException(new ThrowingRunnable() {
+            @Override
+            public void run() {
+                DifyValidationUtils.normalizeServer(
+                        "http://user:secret@example .com/path?apiKey=sk-xxx&password=pw",
+                        "app",
+                        "build"
+                );
+            }
+        });
+
+        assertNotContains(exception.getMessage(), "user:secret");
+        assertNotContains(exception.getMessage(), "apiKey=sk-xxx");
+        assertNotContains(exception.getMessage(), "password=pw");
+        if (exception.getCause() != null) {
+            assertNotContains(exception.getCause().getMessage(), "user:secret");
+            assertNotContains(exception.getCause().getMessage(), "apiKey=sk-xxx");
+            assertNotContains(exception.getCause().getMessage(), "password=pw");
+        }
+    }
+
     private DifyClientException assertThrowsDifyClientException(ThrowingRunnable runnable) {
         try {
             runnable.run();
@@ -48,6 +70,12 @@ public class DifyValidationUtilsTest {
     private void assertContains(String actual, String expectedPart) {
         if (actual == null || !actual.contains(expectedPart)) {
             throw new AssertionError("expected <" + actual + "> to contain <" + expectedPart + ">");
+        }
+    }
+
+    private void assertNotContains(String actual, String unexpectedPart) {
+        if (actual != null && actual.contains(unexpectedPart)) {
+            throw new AssertionError("expected <" + actual + "> not to contain <" + unexpectedPart + ">");
         }
     }
 

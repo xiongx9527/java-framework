@@ -28,6 +28,30 @@ public class DifyBuilderValidationTest {
         assertContains(exception.getMessage(), "apiKey");
     }
 
+    public void testDatasetBuilderOfShouldRejectBlankApiKey() {
+        DifyClientException exception = assertThrowsDifyClientException(new ThrowingRunnable() {
+            @Override
+            public void run() {
+                DatasetBuilder.builder("https://api.dify.ai", " ").of("dataset-id");
+            }
+        });
+
+        assertContains(exception.getMessage(), "dataset");
+        assertContains(exception.getMessage(), "apiKey");
+    }
+
+    public void testDatasetBuilderOfDocumentShouldRejectNullApiKey() {
+        DifyClientException exception = assertThrowsDifyClientException(new ThrowingRunnable() {
+            @Override
+            public void run() {
+                DatasetBuilder.builder("https://api.dify.ai", null).ofDocument("dataset-id", "document-id");
+            }
+        });
+
+        assertContains(exception.getMessage(), "dataset");
+        assertContains(exception.getMessage(), "apiKey");
+    }
+
     public void testWebBuilderShouldRejectBlankPassword() {
         DifyClientException exception = assertThrowsDifyClientException(new ThrowingRunnable() {
             @Override
