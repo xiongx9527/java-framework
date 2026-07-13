@@ -134,14 +134,22 @@ public class MateEasyTransUtils extends TransUtil {
         if (isVo) {
             ArrayList<VO> transMoreParam = new ArrayList<>();
             for (Object tempObject : param) {
-                if (tempObject != null) {
+                if (tempObject instanceof VO) {
                     transMoreParam.add((VO) tempObject);
                 }
             }
             transService.transMore(transMoreParam, includeFields, excludeFields);
+            for (VO vo : transMoreParam) {
+                transContext.add(vo);
+                if (hasTransObjs != null) {
+                    hasTransObjs.add(vo);
+                }
+            }
             for (Object tempObject : param) {
-                if (tempObject != null) {
+                if (tempObject instanceof VO) {
                     transFields(tempObject, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+                } else if (tempObject != null) {
+                    transOne(tempObject, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
                 }
             }
         } else {
@@ -165,8 +173,10 @@ public class MateEasyTransUtils extends TransUtil {
             for (Object vo : param) {
                 if (vo == null) {
                     result.add(null);
-                } else {
+                } else if (vo instanceof VO) {
                     result.add(createProxyVo((VO)vo));
+                } else {
+                    result.add(vo);
                 }
             }
             return result;
@@ -328,8 +338,10 @@ public class MateEasyTransUtils extends TransUtil {
                                 List tempList = (List)tempObj;
                                 if (!CollectionUtils.isEmpty(tempList) && firstNonNull(tempList) instanceof VO) {
                                     Collection transResult = transBatch(tempObj, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
-                                    tempList.clear();
-                                    tempList.addAll(transResult);
+                                    if (transResult != tempList) {
+                                        tempList.clear();
+                                        tempList.addAll(transResult);
+                                    }
                                 }
                             }
                         }
