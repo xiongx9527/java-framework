@@ -968,7 +968,7 @@ git commit -m "test(dify): verify response model parsing"
 - Consumes: `DifyClientBuilder` 和 `DifyModule` 现有入口。
 - Produces: Java 层兼容性测试，证明最小入口仍存在。
 
-- [ ] **Step 1: 写客户端入口兼容性测试**
+- [x] **Step 1: 写客户端入口兼容性测试**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/DifyClientBuilderCompatibilityTest.java`：
 
@@ -1007,7 +1007,7 @@ class DifyClientBuilderCompatibilityTest {
 }
 ```
 
-- [ ] **Step 2: 运行兼容性测试**
+- [x] **Step 2: 运行兼容性测试**
 
 Run:
 
@@ -1017,7 +1017,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyClientBuil
 
 Expected: PASS。
 
-- [ ] **Step 3: 编译 Boot 层 DifyModule 所在模块**
+- [x] **Step 3: 编译 Boot 层 DifyModule 所在模块**
 
 只有当本次修改影响 Boot 层编译时执行；如果 Core 层 public API 未变，这一步仍可作为兼容证据执行：
 
@@ -1027,7 +1027,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: PASS。若因本地 Maven 依赖未安装失败，先不要修改源码；记录失败输出，按 systematic-debugging 流程定位是否为环境依赖问题。
 
-- [ ] **Step 4: 如需补充使用说明，在 OpenSpec tasks 中记录说明位置**
+- [x] **Step 4: 如需补充使用说明，在 OpenSpec tasks 中记录说明位置**
 
 如果项目已有 Dify README 或示例目录，补充以下说明；如果没有合适文档文件，不新建大篇文档，只在本计划执行证据中保留兼容性测试和异常行为说明：
 
@@ -1044,7 +1044,7 @@ Magic-API `dify` 模块兼容入口保持不变：
 `server` 可以带或不带末尾 `/`；认证失败、Dify 错误响应和网络失败会抛出包含上下文的异常。
 ```
 
-- [ ] **Step 5: 勾选 OpenSpec 任务 4.1、4.2、4.3**
+- [x] **Step 5: 勾选 OpenSpec 任务 4.1、4.2、4.3**
 
 把 `tasks.md` 中以下三行勾选：
 
@@ -1056,7 +1056,7 @@ Magic-API `dify` 模块兼容入口保持不变：
 
 如果没有新增文档文件，4.3 的验收证据为本任务中的兼容性测试、计划说明和最终验证报告；提交说明中写明“no public Magic-API entry changed”。
 
-- [ ] **Step 6: 提交 Task 6**
+- [x] **Step 6: 提交 Task 6**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/DifyClientBuilderCompatibilityTest.java \
