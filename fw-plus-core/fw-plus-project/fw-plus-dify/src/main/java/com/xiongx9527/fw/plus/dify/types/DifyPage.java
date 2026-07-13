@@ -18,5 +18,9 @@ public class DifyPage<T> implements Serializable {
     private long total;
     private long totalPages;
     private List<T> data;
-    private boolean hasMore;
+    private Boolean hasMore;
+
+    public boolean isHasMore() {
+        return Boolean.TRUE.equals(hasMore);
+    }
 }
