@@ -11,3 +11,5 @@ Task 3 follow-up candidates (pending coordinator review after Task 4):
 - DifyUrlUtils appendQuery may append query after fragment when route contains #fragment.
 
 Task 4: complete (commits 097d8c7..6f1bcc7, review accepted with non-blocking Minor due module test style)
+
+Task 5: complete (commits 6bf0d4c..7c89899, review approved after one fix round)

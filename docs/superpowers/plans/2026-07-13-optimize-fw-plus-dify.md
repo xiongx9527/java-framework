@@ -849,7 +849,7 @@ git commit -m "feat(dify): improve error diagnostics"
 - Consumes: `DifyPage` 当前字段与 Fastjson2 解析行为。
 - Produces: 分页字段 `page`、`limit`、`total`、`total_pages`、`has_more`、`data` 的可验证映射。
 
-- [ ] **Step 1: 写分页解析测试**
+- [x] **Step 1: 写分页解析测试**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/types/DifyPageTest.java`：
 
@@ -898,7 +898,7 @@ class DifyPageTest {
 }
 ```
 
-- [ ] **Step 2: 运行分页测试**
+- [x] **Step 2: 运行分页测试**
 
 Run:
 
@@ -908,7 +908,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyPageTest t
 
 Expected: PASS。如果 FAIL，错误应指向 `DifyPage` 字段命名或 getter 命名不匹配。
 
-- [ ] **Step 3: 如分页字段映射失败，修正 `DifyPage`**
+- [x] **Step 3: 如分页字段映射失败，修正 `DifyPage`**
 
 如果 `total_pages` 或 `has_more` 映射失败，在 `DifyPage` 对应字段上使用 Fastjson2 注解。目标代码片段：
 
@@ -928,7 +928,7 @@ import com.alibaba.fastjson2.annotation.JSONField;
 
 如果测试已通过，不修改 `DifyPage`。
 
-- [ ] **Step 4: 再次运行分页测试**
+- [x] **Step 4: 再次运行分页测试**
 
 Run:
 
@@ -938,7 +938,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyPageTest t
 
 Expected: PASS。
 
-- [ ] **Step 5: 勾选 OpenSpec 任务 3.3**
+- [x] **Step 5: 勾选 OpenSpec 任务 3.3**
 
 把 `tasks.md` 中以下行勾选：
 
@@ -946,7 +946,7 @@ Expected: PASS。
 - [x] 3.3 验证分页响应、动态 JSON 响应和布尔操作响应的解析行为，必要时调整模型或解析逻辑。
 ```
 
-- [ ] **Step 6: 提交 Task 5**
+- [x] **Step 6: 提交 Task 5**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/types/DifyPageTest.java \
