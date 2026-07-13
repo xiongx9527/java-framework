@@ -4,6 +4,10 @@
 - tdd_mode: tdd
 - current_task: Task 5 模块验证与 Build 阶段收口
 - stage: final-review
+- final_fix_commit: d80f9c9
+- final_fix_status: completed; leading-null transMore and final List guard fixed.
+- final_review: failed; Important findings: transBatch passes null-leading list to real TransService.transMore; transFields final List guard still checks get(0).
+- final_review_round: 1
 - task_review: not required for Task 5; validation-only task, standard risk accepted with final lightweight review.
 - validation_evidence: MateEasyTransUtilsTest 9/9 passed; fw-plus-easytrans compile passed via system mvn.
 - plan_task_text: Task 5: 模块验证与 Build 阶段收口
