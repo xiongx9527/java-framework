@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.dify.dataset.heros.DocumentHero;
 import com.xiongx9527.fw.plus.dify.types.ApiConfig;
 import com.xiongx9527.fw.plus.dify.dataset.heros.DatasetHero;
 import com.xiongx9527.fw.plus.dify.dataset.impl.DatasetClientImpl;
+import com.xiongx9527.fw.plus.dify.types.DifyClientException;
 
 /**
  * Dify 知识库 builder
@@ -78,14 +79,13 @@ public class DatasetBuilder {
      * build
      */
     public IDatasetClient build() {
-        if (baseUrl == null || apiKey == null) {
-            throw new RuntimeException("Dify Dataset Client Build Error: params is not defined");
-        }
+        String normalizedBaseUrl = DifyValidationUtils.normalizeServer(baseUrl, "dataset", "build");
+        String requiredApiKey = DifyValidationUtils.requireText(apiKey, "apiKey", "dataset", "build");
 
         try {
-            return DatasetClientImpl.build(baseUrl, apiKey);
+            return DatasetClientImpl.build(normalizedBaseUrl, requiredApiKey);
         } catch (Exception e) {
-            throw new RuntimeException("Dify Dataset Client Build Error: class is not defined", e);
+            throw new DifyClientException("Dify dataset client build error: failed to create DatasetClientImpl", e);
         }
     }
 
@@ -94,7 +94,7 @@ public class DatasetBuilder {
      * @param datasetId 知识库ID
      */
     public DatasetHero of(String datasetId) {
-        return DatasetHero.of(datasetId, ApiConfig.builder().server(baseUrl).apiKey(apiKey).build());
+        return DatasetHero.of(datasetId, ApiConfig.builder().server(DifyValidationUtils.normalizeServer(baseUrl, "dataset", "build")).apiKey(apiKey).build());
     }
 
     /**
@@ -103,7 +103,7 @@ public class DatasetBuilder {
      * @param documentId 文档ID
      */
     public DocumentHero ofDocument(String datasetId, String documentId) {
-        return DocumentHero.of(datasetId, documentId, ApiConfig.builder().server(baseUrl).apiKey(apiKey).build());
+        return DocumentHero.of(datasetId, documentId, ApiConfig.builder().server(DifyValidationUtils.normalizeServer(baseUrl, "dataset", "build")).apiKey(apiKey).build());
     }
 
 }
