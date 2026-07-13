@@ -24,7 +24,7 @@
 
 ## 5. 验证与收尾
 
-- [ ] 5.1 为客户端构建、server 规范化、异常处理或分页解析补充测试或可审查示例。
-- [ ] 5.2 在 `fw-plus-core` 中编译验证 `fw-plus-dify` 相关模块。
-- [ ] 5.3 如 Boot 层入口受影响，在 `fw-plus-boot` 中编译验证相关自动配置模块。
-- [ ] 5.4 对照 `dify-client-optimization` 规范逐项确认验收场景已覆盖。
+- [x] 5.1 为客户端构建、server 规范化、异常处理或分页解析补充测试或可审查示例。
+- [x] 5.2 在 `fw-plus-core` 中编译验证 `fw-plus-dify` 相关模块。
+- [x] 5.3 如 Boot 层入口受影响，在 `fw-plus-boot` 中编译验证相关自动配置模块。
+- [x] 5.4 对照 `dify-client-optimization` 规范逐项确认验收场景已覆盖。
