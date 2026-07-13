@@ -50,7 +50,7 @@ base-ref: 5a66ee7c7ab0f88dd23d4ffee1e2a5e39b52780e
 - Consumes: 当前 `MateEasyTransUtils.transOne(...)`、`transBatch(...)`、`createProxyVo(...)` public static 方法。
 - Produces: `MateEasyTransUtilsTest.CountingTransService`，后续任务继续复用它验证实现。
 
-- [ ] **Step 1: Add test dependency if missing**
+- [x] **Step 1: Add test dependency if missing**
 
 在 `fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/pom.xml` 的 `<dependencies>` 内追加 test scope 依赖。若父 POM 已统一提供测试依赖且当前模块测试可编译，则跳过此改动。
 
@@ -62,7 +62,7 @@ base-ref: 5a66ee7c7ab0f88dd23d4ffee1e2a5e39b52780e
         </dependency>
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/src/test/java/com/xiongx9527/fw/plus/easytrans/service/util/MateEasyTransUtilsTest.java`：
 
@@ -193,7 +193,7 @@ class MateEasyTransUtilsTest {
 
 如果 `VO` 不是 interface 或需要额外方法，按编译错误补齐 `TestVo` 的最小实现，但不要引入 Spring 容器。
 
-- [ ] **Step 3: Run tests to verify current failures**
+- [x] **Step 3: Run tests to verify current failures**
 
 Run:
 
@@ -203,7 +203,7 @@ cd fw-plus-core && ./mvnw test -pl fw-plus-project/fw-plus-easytrans/fw-plus-eas
 
 Expected: 至少 `transBatchSkipsLeadingNullAndTranslatesLaterVo` 在当前实现下失败，因为首元素为 `null` 时不会翻译后续 VO。若测试依赖或 `VO` stub 编译失败，先按错误最小调整测试代码，不改生产代码。
 
-- [ ] **Step 4: Commit test setup only after it compiles to the expected failing point**
+- [x] **Step 4: Commit test setup only after it compiles to the expected failing point**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-easytrans/fw-plus-easytrans-service/pom.xml \
