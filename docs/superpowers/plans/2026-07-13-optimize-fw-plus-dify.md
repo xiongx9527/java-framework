@@ -87,7 +87,7 @@ base-ref: 8e5124fb778f7599e24800bad04f7b646afd73c1
   - `public static String normalizeServer(String server)`
   - `public static String buildUrl(String server, String route, Map<String, Object> query)`
 
-- [ ] **Step 1: 写 URL helper 的失败测试**
+- [x] **Step 1: 写 URL helper 的失败测试**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/utils/DifyUrlUtilsTest.java`：
 
@@ -138,7 +138,7 @@ class DifyUrlUtilsTest {
 }
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run:
 
@@ -148,7 +148,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyUrlUtilsTe
 
 Expected: FAIL，错误包含 `cannot find symbol` 或 `DifyUrlUtils` 未定义。
 
-- [ ] **Step 3: 实现 URL helper**
+- [x] **Step 3: 实现 URL helper**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/main/java/com/xiongx9527/fw/plus/dify/utils/DifyUrlUtils.java`：
 
@@ -225,7 +225,7 @@ public final class DifyUrlUtils {
 }
 ```
 
-- [ ] **Step 4: 运行 URL helper 测试确认通过**
+- [x] **Step 4: 运行 URL helper 测试确认通过**
 
 Run:
 
@@ -235,7 +235,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyUrlUtilsTe
 
 Expected: PASS。
 
-- [ ] **Step 5: 定向勾选 OpenSpec 任务 1.1、1.2、1.3 的兼容基线部分**
+- [x] **Step 5: 定向勾选 OpenSpec 任务 1.1、1.2、1.3 的兼容基线部分**
 
 只在本任务完成代码审查或自检后，把 `openspec/changes/optimize-fw-plus-dify/tasks.md` 中以下三行勾选：
 
@@ -245,7 +245,7 @@ Expected: PASS。
 - [x] 1.3 明确本次实现不覆盖的 Dify API 范围，避免扩展为全量 SDK 重写。
 ```
 
-- [ ] **Step 6: 提交 Task 1**
+- [x] **Step 6: 提交 Task 1**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dify/src/main/java/com/xiongx9527/fw/plus/dify/utils/DifyUrlUtils.java \
