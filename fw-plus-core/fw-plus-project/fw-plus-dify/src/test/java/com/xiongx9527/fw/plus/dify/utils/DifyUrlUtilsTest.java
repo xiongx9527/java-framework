@@ -35,6 +35,26 @@ public class DifyUrlUtilsTest {
         );
     }
 
+    public void testBuildUrlShouldNotAppendQuestionMarkWhenAllQueryValuesAreNull() {
+        Map<String, Object> query = new LinkedHashMap<String, Object>();
+        query.put("keyword", null);
+
+        assertEquals(
+                "https://api.dify.ai/v1/datasets",
+                DifyUrlUtils.buildUrl("https://api.dify.ai", "/v1/datasets", query)
+        );
+    }
+
+    public void testBuildUrlShouldAppendQueryWithAmpersandWhenRouteAlreadyHasQuery() {
+        Map<String, Object> query = new LinkedHashMap<String, Object>();
+        query.put("keyword", "abc");
+
+        assertEquals(
+                "https://api.dify.ai/v1/datasets?page=1&keyword=abc",
+                DifyUrlUtils.buildUrl("https://api.dify.ai", "/v1/datasets?page=1", query)
+        );
+    }
+
     private void assertEquals(Object expected, Object actual) {
         if (expected == null ? actual != null : !expected.equals(actual)) {
             throw new AssertionError("expected:<" + expected + "> but was:<" + actual + ">");

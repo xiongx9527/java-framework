@@ -52,7 +52,7 @@ public final class DifyUrlUtils {
             if (entry.getKey() == null || entry.getValue() == null) {
                 continue;
             }
-            sb.append(first ? '?' : '&');
+            sb.append(first ? (sb.indexOf("?") >= 0 ? '&' : '?') : '&');
             sb.append(encode(entry.getKey()));
             sb.append('=');
             sb.append(encode(String.valueOf(entry.getValue())));
