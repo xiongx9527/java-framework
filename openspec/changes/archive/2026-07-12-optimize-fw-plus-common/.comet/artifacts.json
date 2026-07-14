@@ -1,9 +1,0 @@
-{
-  "openspec_proposal": "openspec/changes/optimize-fw-plus-common/proposal.md",
-  "openspec_design": "openspec/changes/optimize-fw-plus-common/design.md",
-  "openspec_tasks": "openspec/changes/optimize-fw-plus-common/tasks.md",
-  "openspec_delta_spec": "openspec/changes/optimize-fw-plus-common/specs/common-module-optimization/spec.md",
-  "handoff_context": "openspec/changes/optimize-fw-plus-common/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/optimize-fw-plus-common/.comet/handoff/design-context.md",
-  "archive_directory": "openspec/changes/archive/2026-07-12-optimize-fw-plus-common"
-}
