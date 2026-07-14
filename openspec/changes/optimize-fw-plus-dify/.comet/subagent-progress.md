@@ -13,7 +13,7 @@
   - 5.2 在 `fw-plus-core` 中编译验证 `fw-plus-dify` 相关模块。
   - 5.3 如 Boot 层入口受影响，在 `fw-plus-boot` 中编译验证相关自动配置模块。
   - 5.4 对照 `dify-client-optimization` 规范逐项确认验收场景已覆盖。
-- Stage: checkoff
+- Stage: final-review
 - Brief: .superpowers/sdd/task-7-brief.md
 - Report: .superpowers/sdd/task-7-report.md
 - Review package: .superpowers/sdd/review-c95c987..f59f494.diff
