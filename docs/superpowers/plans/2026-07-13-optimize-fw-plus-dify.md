@@ -1076,7 +1076,7 @@ git commit -m "test(dify): keep client entry compatibility"
 - Consumes: Tasks 1-6 的实现和测试。
 - Produces: 可审查的构建、测试和 OpenSpec 验收证据。
 
-- [ ] **Step 1: 运行 `fw-plus-dify` 全部单元测试**
+- [x] **Step 1: 运行 `fw-plus-dify` 全部单元测试**
 
 Run:
 
@@ -1086,7 +1086,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify test
 
 Expected: PASS。
 
-- [ ] **Step 2: 运行 `fw-plus-dify` 编译验证**
+- [x] **Step 2: 运行 `fw-plus-dify` 编译验证**
 
 Run:
 
@@ -1096,7 +1096,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -DskipTests compile
 
 Expected: PASS。
 
-- [ ] **Step 3: 如 Boot 层入口受影响，运行 Boot 编译验证**
+- [x] **Step 3: 如 Boot 层入口受影响，运行 Boot 编译验证**
 
 如果 Task 6 修改过 Boot 层或 Core public API 变化可能影响 Boot，运行：
 
@@ -1108,7 +1108,7 @@ Expected: PASS。
 
 如果 Boot 层未受影响，在最终验证记录中写明：`Boot 层 DifyModule 未修改，兼容性由 Core 入口测试覆盖。`
 
-- [ ] **Step 4: 对照 OpenSpec 规范逐项确认**
+- [x] **Step 4: 对照 OpenSpec 规范逐项确认**
 
 在执行记录或提交说明中确认：
 
@@ -1120,7 +1120,7 @@ Expected: PASS。
 - Dify 优化具备可验证交付物：fw-plus-dify test 与 compile 通过。
 ```
 
-- [ ] **Step 5: 勾选 OpenSpec 任务 5.1、5.2、5.3、5.4**
+- [x] **Step 5: 勾选 OpenSpec 任务 5.1、5.2、5.3、5.4**
 
 根据实际验证结果勾选：
 
@@ -1133,7 +1133,7 @@ Expected: PASS。
 
 如果 Boot 层入口未受影响，将 5.3 勾选的依据写入提交说明：`Boot entry unchanged; Core compatibility test covers existing DifyModule call targets.`
 
-- [ ] **Step 6: 记录 Comet build evidence**
+- [x] **Step 6: 记录 Comet build evidence**
 
 如果 `comet guard optimize-fw-plus-dify build --apply` 无法自动识别 Maven 构建证据，记录实际运行过的命令：
 
@@ -1142,7 +1142,7 @@ comet state record-check optimize-fw-plus-dify build --command "cd fw-plus-core 
 comet state record-check optimize-fw-plus-dify build --command "cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -DskipTests compile" --exit-code 0
 ```
 
-- [ ] **Step 7: 提交 Task 7**
+- [x] **Step 7: 提交 Task 7**
 
 ```bash
 git add openspec/changes/optimize-fw-plus-dify/tasks.md
