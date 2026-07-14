@@ -1,8 +1,0 @@
-{
-  "openspec_proposal": "openspec/changes/stabilize-fw-plus-poi/proposal.md",
-  "openspec_design": "openspec/changes/stabilize-fw-plus-poi/design.md",
-  "openspec_tasks": "openspec/changes/stabilize-fw-plus-poi/tasks.md",
-  "openspec_delta_spec": "openspec/changes/stabilize-fw-plus-poi/specs/poi-easypoi-stability/spec.md",
-  "handoff_context": "openspec/changes/stabilize-fw-plus-poi/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/stabilize-fw-plus-poi/.comet/handoff/design-context.md"
-}
