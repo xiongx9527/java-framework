@@ -80,3 +80,52 @@ c1402ef
 - 已记录 build evidence。
 - 已运行必需验证命令；因 wrapper 缺失，按任务允许路径使用系统 Maven 3.6.3 降级执行并在本报告中说明原因。
 - 未修改业务源码、Boot/Product 业务代码、计划文件或 Design Doc。
+
+
+---
+
+## Task 7 reviewer Important fix report
+
+### 状态
+
+DONE_WITH_CONCERNS
+
+### 修复的 evidence 命令
+
+已通过 Comet CLI 追加记录实际成功执行的三条 build evidence，均为 exit-code 0：
+
+- `mvn -f /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.claude/worktrees/optimize-fw-plus-dify/fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-dify test`
+- `mvn -f /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.claude/worktrees/optimize-fw-plus-dify/fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-dify -DskipTests compile`
+- `mvn -f /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.claude/worktrees/optimize-fw-plus-dify/fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -DskipTests compile`
+
+原 wrapper 命令仅作为失败尝试保留：`fw-plus-core` 与 `fw-plus-boot` 的 `./mvnw` 均因缺少 `.mvn/wrapper/maven-wrapper.properties` 与 `.mvn/wrapper/maven-wrapper.jar` 未实际启动 Maven 构建；不再把 wrapper 命令表述为 exit-code 0 的 build evidence。
+
+### 2.3 / 5.4 处理结论
+
+- 2.3：已勾选，并通过 `comet state task-checkoff openspec/changes/optimize-fw-plus-dify/tasks.md '2.3 检查 `ApiConfig` 中 timeout、连接池和重试配置是否被关键客户端正确应用，必要时补齐传递链路。'` 验证为 `TASK_CHECKOFF: PASS`。
+- 2.3 证据边界：`ApiConfig` 默认值为 `connectTimeoutSeconds=30L`、`readTimeoutSeconds=30L`、`writeTimeoutSeconds=30L`、`maxIdleConnections=5`、`keepAliveDurationMinutes=5`、`retryOnConnectionFailure=true`；`SimpleHttpClient.get(ApiConfig)` 通过 `createClientByConfig(config)` 读取上述字段，并由 `buildOkHttpClient(...)` 映射到 OkHttp 的 `connectTimeout/readTimeout/writeTimeout/ConnectionPool/retryOnConnectionFailure`。
+- 2.3 最小处理说明：本次确认默认配置和底层 `ApiConfig -> SimpleHttpClient -> OkHttpClient` 边界已经存在并可被关键 HTTP 调用路径使用；按照 brainstorm-summary 的既定边界，timeout/连接池/retry 不强制完整打通所有 builder 自定义配置链路。`DifyClientBuilder.app(ApiConfig)`、`DifyClientBuilder.dataset(ApiConfig)` 以及 `AppClientBuilder.config(ApiConfig)`、`DatasetBuilder.config(ApiConfig)` 当前只传递 server/apiKey；该限制作为后续扩展点记录，不在本 Task 7 改源码。
+- 5.4：维持勾选，但验收映射不再表述为自定义 timeout/连接池/retry “逐项覆盖”；结论调整为已对 `dify-client-optimization` 规范做逐项确认，并明确 timeout/连接池/retry 本次仅满足“最小必填参数构建客户端时应用默认配置”的验收边界。
+
+### 修复提交哈希
+
+b8002b8
+
+### 变更文件
+
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.claude/worktrees/optimize-fw-plus-dify/openspec/changes/optimize-fw-plus-dify/tasks.md`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.claude/worktrees/optimize-fw-plus-dify/.superpowers/sdd/task-7-report.md`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.claude/worktrees/optimize-fw-plus-dify/openspec/changes/optimize-fw-plus-dify/.comet/trajectory.jsonl`（由 `comet state record-check` 自动追加 build evidence）
+
+### 风险信号
+
+- 目标 worktree 的 Maven Wrapper 文件仍缺失；本次只修复 evidence 记录，不重新运行 Maven，也不修复 wrapper 环境。
+- timeout/连接池/retry 的自定义配置未全量打通到所有 public builder 重载；本次依据 Design/brainstorm 的最小处理边界接受为后续扩展点。
+- 本次未修改业务源码、Boot/Product 层业务代码、计划文件或 Design Doc。
+
+### 自检结论
+
+- 已读取 Task 7 brief、原实现报告、review diff、Task 3 报告和当前 `ApiConfig` / `SimpleHttpClient.get(ApiConfig)` / `createClientByConfig` 关系。
+- 已用 Comet CLI 追加真实成功的 `mvn -f ...` build evidence，修正 wrapper evidence 表述偏差。
+- 已勾选 2.3，并使用 `comet state task-checkoff` 对精确任务文本完成验证。
+- 已补充 5.4 验收映射，明确 timeout/连接池/retry 的默认值、应用链路与最小处理边界。
