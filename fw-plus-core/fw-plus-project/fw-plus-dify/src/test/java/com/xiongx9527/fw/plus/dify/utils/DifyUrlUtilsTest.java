@@ -55,6 +55,30 @@ public class DifyUrlUtilsTest {
         );
     }
 
+    public void testBuildUrlShouldUseAbsoluteRouteAsBaseUrl() {
+        Map<String, Object> query = new LinkedHashMap<String, Object>();
+        query.put("keyword", "abc");
+
+        assertEquals(
+                "https://override.example.com/v1/datasets?keyword=abc",
+                DifyUrlUtils.buildUrl("https://api.dify.ai", "https://override.example.com/v1/datasets", query)
+        );
+        assertEquals(
+                "http://override.example.com/v1/datasets?keyword=abc",
+                DifyUrlUtils.buildUrl("https://api.dify.ai", "http://override.example.com/v1/datasets", query)
+        );
+    }
+
+    public void testBuildUrlShouldInsertQueryBeforeFragment() {
+        Map<String, Object> query = new LinkedHashMap<String, Object>();
+        query.put("keyword", "abc");
+
+        assertEquals(
+                "https://api.dify.ai/v1/datasets?keyword=abc#section",
+                DifyUrlUtils.buildUrl("https://api.dify.ai", "/v1/datasets#section", query)
+        );
+    }
+
     private void assertEquals(Object expected, Object actual) {
         if (expected == null ? actual != null : !expected.equals(actual)) {
             throw new AssertionError("expected:<" + expected + "> but was:<" + actual + ">");

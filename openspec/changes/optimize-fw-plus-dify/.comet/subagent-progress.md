@@ -43,3 +43,27 @@
   - Minor — 已处理：报告不再固定写入旧中间提交，改为说明最终提交以 `git log` / 本轮返回为准。
 - Awaiting:
   - Task 7 定向勾选验证和最终轻量审查。
+
+## Final Fix Result
+
+- Stage: final-fix completed
+- Final fix status: DONE
+- Final fix commit: pending commit at report write time
+- Final fix report: .superpowers/sdd/final-fix-report.md
+- Findings fixed:
+  1. Important — `DifyUrlUtils.buildUrl(server, route, query)` now treats `http://` and `https://` route values as absolute base URLs before appending query.
+  2. Important — `ApiConfig` Lombok builder now preserves documented defaults with `@Builder.Default` for timeout, connection pool, keep-alive, and retry fields.
+  3. Important — `SimpleHttpClient.requestJson` and `requestFile` wrap local exceptions with query/fragment-stripped URLs so sensitive query values are not exposed.
+  4. Minor — `DifyUrlUtils` now inserts appended query parameters before `#fragment`.
+- RED evidence:
+  - `./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyUrlUtilsTest,ApiConfigTest test` failed before tests because wrapper files are missing.
+  - `mvn -pl fw-plus-project/fw-plus-dify -Dtest=DifyUrlUtilsTest,ApiConfigTest test` failed as expected: 8 tests, 3 failures covering absolute URL, fragment query placement, and ApiConfig builder defaults.
+  - `mvn -pl fw-plus-project/fw-plus-dify -Dtest=SimpleHttpClientTest test` failed as expected after no-network adjustment: 2 tests, 2 failures showing raw query leakage in requestJson/requestFile exception messages.
+- GREEN evidence:
+  - `mvn -pl fw-plus-project/fw-plus-dify -Dtest=DifyUrlUtilsTest,ApiConfigTest test` passed: 8 tests, 0 failures, 0 errors.
+  - `mvn -pl fw-plus-project/fw-plus-dify -Dtest=SimpleHttpClientTest test` passed: 2 tests, 0 failures, 0 errors.
+  - `./mvnw -pl fw-plus-project/fw-plus-dify test` failed before tests because wrapper files are missing; equivalent `mvn -pl fw-plus-project/fw-plus-dify test` passed: 28 tests, 0 failures, 0 errors.
+  - `./mvnw -pl fw-plus-project/fw-plus-dify -DskipTests compile` failed before compile because wrapper files are missing; equivalent `mvn -pl fw-plus-project/fw-plus-dify -DskipTests compile` passed with BUILD SUCCESS.
+- Scope check:
+  - Modified only allowed Dify source/tests plus `.superpowers/sdd/final-fix-report.md` and this progress checkpoint.
+  - Did not modify Product layer, real Magic-API scripts, or Boot DifyModule.
