@@ -4,7 +4,7 @@
 DONE
 
 ## 提交哈希
-提交后填写；本报告随 `fix(dify): address final review findings` 一并提交。
+`d821261`（最终修复提交）；本报告的复审状态由后续协调提交记录。
 
 ## RED 失败命令与失败摘要
 
