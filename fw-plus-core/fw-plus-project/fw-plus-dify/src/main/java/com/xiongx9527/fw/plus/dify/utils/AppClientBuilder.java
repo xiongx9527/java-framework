@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.dify.app.IAppFlowClient;
 import com.xiongx9527.fw.plus.dify.app.impl.AppBaseClientImpl;
 import com.xiongx9527.fw.plus.dify.app.impl.AppChatClientImpl;
 import com.xiongx9527.fw.plus.dify.types.ApiConfig;
+import com.xiongx9527.fw.plus.dify.types.DifyClientException;
 
 /**
  * Dify Client builder
@@ -124,14 +125,13 @@ public class AppClientBuilder {
          * build
          */
         public R build() {
-            if (baseUrl == null || apiKey == null) {
-                throw new RuntimeException("Dify App Client Build Error: params is not defined");
-            }
+            String normalizedBaseUrl = DifyValidationUtils.normalizeServer(baseUrl, "app", "build");
+            String requiredApiKey = DifyValidationUtils.requireText(apiKey, "apiKey", "app", "build");
 
             try {
-                return type.getConstructor(String.class, String.class).newInstance(baseUrl, apiKey);
+                return type.getConstructor(String.class, String.class).newInstance(normalizedBaseUrl, requiredApiKey);
             } catch (Exception e) {
-                throw new RuntimeException("Dify App Client Build Error: class is not defined", e);
+                throw new DifyClientException("Dify app client build error: failed to create " + type.getSimpleName(), e);
             }
         }
     }

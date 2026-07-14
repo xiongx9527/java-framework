@@ -87,7 +87,7 @@ base-ref: 8e5124fb778f7599e24800bad04f7b646afd73c1
   - `public static String normalizeServer(String server)`
   - `public static String buildUrl(String server, String route, Map<String, Object> query)`
 
-- [ ] **Step 1: 写 URL helper 的失败测试**
+- [x] **Step 1: 写 URL helper 的失败测试**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/utils/DifyUrlUtilsTest.java`：
 
@@ -138,7 +138,7 @@ class DifyUrlUtilsTest {
 }
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run:
 
@@ -148,7 +148,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyUrlUtilsTe
 
 Expected: FAIL，错误包含 `cannot find symbol` 或 `DifyUrlUtils` 未定义。
 
-- [ ] **Step 3: 实现 URL helper**
+- [x] **Step 3: 实现 URL helper**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/main/java/com/xiongx9527/fw/plus/dify/utils/DifyUrlUtils.java`：
 
@@ -225,7 +225,7 @@ public final class DifyUrlUtils {
 }
 ```
 
-- [ ] **Step 4: 运行 URL helper 测试确认通过**
+- [x] **Step 4: 运行 URL helper 测试确认通过**
 
 Run:
 
@@ -235,7 +235,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyUrlUtilsTe
 
 Expected: PASS。
 
-- [ ] **Step 5: 定向勾选 OpenSpec 任务 1.1、1.2、1.3 的兼容基线部分**
+- [x] **Step 5: 定向勾选 OpenSpec 任务 1.1、1.2、1.3 的兼容基线部分**
 
 只在本任务完成代码审查或自检后，把 `openspec/changes/optimize-fw-plus-dify/tasks.md` 中以下三行勾选：
 
@@ -245,7 +245,7 @@ Expected: PASS。
 - [x] 1.3 明确本次实现不覆盖的 Dify API 范围，避免扩展为全量 SDK 重写。
 ```
 
-- [ ] **Step 6: 提交 Task 1**
+- [x] **Step 6: 提交 Task 1**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dify/src/main/java/com/xiongx9527/fw/plus/dify/utils/DifyUrlUtils.java \
@@ -274,7 +274,7 @@ git commit -m "feat(dify): add URL normalization helper"
   - `public static String requireText(String value, String fieldName, String clientType, String phase)`
   - `public static String normalizeServer(String server, String clientType, String phase)`
 
-- [ ] **Step 1: 写参数校验 helper 的失败测试**
+- [x] **Step 1: 写参数校验 helper 的失败测试**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/utils/DifyValidationUtilsTest.java`：
 
@@ -310,7 +310,7 @@ class DifyValidationUtilsTest {
 }
 ```
 
-- [ ] **Step 2: 写构建器参数校验失败测试**
+- [x] **Step 2: 写构建器参数校验失败测试**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/utils/DifyBuilderValidationTest.java`：
 
@@ -357,7 +357,7 @@ class DifyBuilderValidationTest {
 }
 ```
 
-- [ ] **Step 3: 运行测试确认失败**
+- [x] **Step 3: 运行测试确认失败**
 
 Run:
 
@@ -367,7 +367,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyValidation
 
 Expected: FAIL，错误包含 `DifyValidationUtils` 未定义或构建器仍抛出泛化 `RuntimeException`。
 
-- [ ] **Step 4: 实现参数校验 helper**
+- [x] **Step 4: 实现参数校验 helper**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/main/java/com/xiongx9527/fw/plus/dify/utils/DifyValidationUtils.java`：
 
@@ -399,7 +399,7 @@ public final class DifyValidationUtils {
 }
 ```
 
-- [ ] **Step 5: 接入 `AppClientBuilder`**
+- [x] **Step 5: 接入 `AppClientBuilder`**
 
 在 `AppClientBuilder.Builder.build()` 中替换参数校验和异常包装。目标方法内容：
 
@@ -422,7 +422,7 @@ public R build() {
 import com.xiongx9527.fw.plus.dify.types.DifyClientException;
 ```
 
-- [ ] **Step 6: 接入 `DatasetBuilder`**
+- [x] **Step 6: 接入 `DatasetBuilder`**
 
 在 `DatasetBuilder.build()` 中替换为：
 
@@ -453,7 +453,7 @@ import com.xiongx9527.fw.plus.dify.types.DifyClientException;
 
 在 `ofDocument(String datasetId, String documentId)` 中做相同替换。
 
-- [ ] **Step 7: 接入 `WebClientBuilder`**
+- [x] **Step 7: 接入 `WebClientBuilder`**
 
 在 `WebClientBuilder.connect()` 中替换为：
 
@@ -479,7 +479,7 @@ public IWebConsoleClient connect() {
 }
 ```
 
-- [ ] **Step 8: 运行构建器校验测试确认通过**
+- [x] **Step 8: 运行构建器校验测试确认通过**
 
 Run:
 
@@ -489,7 +489,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyValidation
 
 Expected: PASS。
 
-- [ ] **Step 9: 勾选 OpenSpec 任务 2.1**
+- [x] **Step 9: 勾选 OpenSpec 任务 2.1**
 
 把 `openspec/changes/optimize-fw-plus-dify/tasks.md` 中以下行勾选：
 
@@ -497,7 +497,7 @@ Expected: PASS。
 - [x] 2.1 优化 app、dataset、web console 客户端构建时的必填参数校验和错误信息。
 ```
 
-- [ ] **Step 10: 提交 Task 2**
+- [x] **Step 10: 提交 Task 2**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dify/src/main/java/com/xiongx9527/fw/plus/dify/utils/AppClientBuilder.java \
@@ -523,7 +523,7 @@ git commit -m "feat(dify): validate client builder parameters"
 - Consumes: `DifyUrlUtils.buildUrl(String server, String route, Map<String, Object> query)`。
 - Produces: `SimpleHttpClient` 所有 JSON、file、SSE、multipart 请求统一使用同一 URL 拼接规则。
 
-- [ ] **Step 1: 补充 query 空值边界测试**
+- [x] **Step 1: 补充 query 空值边界测试**
 
 在 `DifyUrlUtilsTest` 增加：
 
@@ -540,7 +540,7 @@ void buildUrlShouldNotAppendQuestionMarkWhenAllQueryValuesAreNull() {
 }
 ```
 
-- [ ] **Step 2: 运行测试确认当前实现失败或暴露多余问号问题**
+- [x] **Step 2: 运行测试确认当前实现失败或暴露多余问号问题**
 
 Run:
 
@@ -550,7 +550,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyUrlUtilsTe
 
 Expected: 如果 Task 1 helper 已正确实现，应 PASS；如果出现 `...?` 尾随问号，应 FAIL 并在下一步修复。
 
-- [ ] **Step 3: 调整 helper 的 `appendQuery` 只在首个有效参数前追加 `?`**
+- [x] **Step 3: 调整 helper 的 `appendQuery` 只在首个有效参数前追加 `?`**
 
 确认 `DifyUrlUtils.appendQuery(...)` 使用以下逻辑：
 
@@ -574,7 +574,7 @@ private static void appendQuery(StringBuilder sb, Map<String, Object> query) {
 }
 ```
 
-- [ ] **Step 4: 替换 `SimpleHttpClient.buildUrl` 内部逻辑**
+- [x] **Step 4: 替换 `SimpleHttpClient.buildUrl` 内部逻辑**
 
 在 `SimpleHttpClient` imports 中加入：
 
@@ -590,7 +590,7 @@ private String buildUrl(String url, Map<String, Object> query) {
 }
 ```
 
-- [ ] **Step 5: 运行 URL 测试和模块编译**
+- [x] **Step 5: 运行 URL 测试和模块编译**
 
 Run:
 
@@ -601,7 +601,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -DskipTests compile
 
 Expected: 两条命令均 PASS。
 
-- [ ] **Step 6: 勾选 OpenSpec 任务 2.2，并记录 2.3 最小处理边界**
+- [x] **Step 6: 勾选 OpenSpec 任务 2.2，并记录 2.3 最小处理边界**
 
 把 `tasks.md` 中 2.2 勾选：
 
@@ -611,7 +611,7 @@ Expected: 两条命令均 PASS。
 
 如果没有完整打通所有 `ApiConfig` timeout / 连接池 / retry 链路，不要伪造勾选。只有确认当前默认值和已有传递链路已经审查完成后，再把 2.3 勾选。若本任务仅完成审查但未修改代码，在提交信息中说明“最小处理边界已确认”。
 
-- [ ] **Step 7: 提交 Task 3**
+- [x] **Step 7: 提交 Task 3**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dify/src/main/java/com/xiongx9527/fw/plus/dify/SimpleHttpClient.java \
@@ -639,7 +639,7 @@ git commit -m "feat(dify): normalize request URLs"
   - `public Integer getDifyStatus()` 返回 Dify body 中的 status。
   - `getOriginal()`、`getCode()`、`getParams()` 继续可用。
 
-- [ ] **Step 1: 写 DifyException 失败测试**
+- [x] **Step 1: 写 DifyException 失败测试**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/types/DifyExceptionTest.java`：
 
@@ -690,7 +690,7 @@ class DifyExceptionTest {
 }
 ```
 
-- [ ] **Step 2: 运行异常测试确认失败**
+- [x] **Step 2: 运行异常测试确认失败**
 
 Run:
 
@@ -700,7 +700,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyExceptionT
 
 Expected: FAIL，错误包含 `getHttpStatus()` 或 `getDifyStatus()` 未定义。
 
-- [ ] **Step 3: 修改 `DifyException`**
+- [x] **Step 3: 修改 `DifyException`**
 
 将 `DifyException` 调整为以下结构，保留原 package 与 imports：
 
@@ -786,7 +786,7 @@ public class DifyException extends RuntimeException {
 }
 ```
 
-- [ ] **Step 4: 改善 `SimpleHttpClient` 客户端异常上下文**
+- [x] **Step 4: 改善 `SimpleHttpClient` 客户端异常上下文**
 
 在 `requestJson` 的最后一个 catch 中替换为：
 
@@ -806,7 +806,7 @@ public class DifyException extends RuntimeException {
 
 不要把 `apiKey` 拼入异常消息。
 
-- [ ] **Step 5: 运行异常测试与编译**
+- [x] **Step 5: 运行异常测试与编译**
 
 Run:
 
@@ -817,7 +817,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -DskipTests compile
 
 Expected: 两条命令均 PASS。
 
-- [ ] **Step 6: 勾选 OpenSpec 任务 3.1、3.2**
+- [x] **Step 6: 勾选 OpenSpec 任务 3.1、3.2**
 
 把 `tasks.md` 中以下两行勾选：
 
@@ -826,7 +826,7 @@ Expected: 两条命令均 PASS。
 - [x] 3.2 优化非 JSON 错误响应、空响应体和网络异常的诊断信息，保留原始异常链。
 ```
 
-- [ ] **Step 7: 提交 Task 4**
+- [x] **Step 7: 提交 Task 4**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dify/src/main/java/com/xiongx9527/fw/plus/dify/types/DifyException.java \
@@ -849,7 +849,7 @@ git commit -m "feat(dify): improve error diagnostics"
 - Consumes: `DifyPage` 当前字段与 Fastjson2 解析行为。
 - Produces: 分页字段 `page`、`limit`、`total`、`total_pages`、`has_more`、`data` 的可验证映射。
 
-- [ ] **Step 1: 写分页解析测试**
+- [x] **Step 1: 写分页解析测试**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/types/DifyPageTest.java`：
 
@@ -898,7 +898,7 @@ class DifyPageTest {
 }
 ```
 
-- [ ] **Step 2: 运行分页测试**
+- [x] **Step 2: 运行分页测试**
 
 Run:
 
@@ -908,7 +908,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyPageTest t
 
 Expected: PASS。如果 FAIL，错误应指向 `DifyPage` 字段命名或 getter 命名不匹配。
 
-- [ ] **Step 3: 如分页字段映射失败，修正 `DifyPage`**
+- [x] **Step 3: 如分页字段映射失败，修正 `DifyPage`**
 
 如果 `total_pages` 或 `has_more` 映射失败，在 `DifyPage` 对应字段上使用 Fastjson2 注解。目标代码片段：
 
@@ -928,7 +928,7 @@ import com.alibaba.fastjson2.annotation.JSONField;
 
 如果测试已通过，不修改 `DifyPage`。
 
-- [ ] **Step 4: 再次运行分页测试**
+- [x] **Step 4: 再次运行分页测试**
 
 Run:
 
@@ -938,7 +938,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyPageTest t
 
 Expected: PASS。
 
-- [ ] **Step 5: 勾选 OpenSpec 任务 3.3**
+- [x] **Step 5: 勾选 OpenSpec 任务 3.3**
 
 把 `tasks.md` 中以下行勾选：
 
@@ -946,7 +946,7 @@ Expected: PASS。
 - [x] 3.3 验证分页响应、动态 JSON 响应和布尔操作响应的解析行为，必要时调整模型或解析逻辑。
 ```
 
-- [ ] **Step 6: 提交 Task 5**
+- [x] **Step 6: 提交 Task 5**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/types/DifyPageTest.java \
@@ -968,7 +968,7 @@ git commit -m "test(dify): verify response model parsing"
 - Consumes: `DifyClientBuilder` 和 `DifyModule` 现有入口。
 - Produces: Java 层兼容性测试，证明最小入口仍存在。
 
-- [ ] **Step 1: 写客户端入口兼容性测试**
+- [x] **Step 1: 写客户端入口兼容性测试**
 
 创建 `fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/DifyClientBuilderCompatibilityTest.java`：
 
@@ -1007,7 +1007,7 @@ class DifyClientBuilderCompatibilityTest {
 }
 ```
 
-- [ ] **Step 2: 运行兼容性测试**
+- [x] **Step 2: 运行兼容性测试**
 
 Run:
 
@@ -1017,7 +1017,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -Dtest=DifyClientBuil
 
 Expected: PASS。
 
-- [ ] **Step 3: 编译 Boot 层 DifyModule 所在模块**
+- [x] **Step 3: 编译 Boot 层 DifyModule 所在模块**
 
 只有当本次修改影响 Boot 层编译时执行；如果 Core 层 public API 未变，这一步仍可作为兼容证据执行：
 
@@ -1027,7 +1027,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: PASS。若因本地 Maven 依赖未安装失败，先不要修改源码；记录失败输出，按 systematic-debugging 流程定位是否为环境依赖问题。
 
-- [ ] **Step 4: 如需补充使用说明，在 OpenSpec tasks 中记录说明位置**
+- [x] **Step 4: 如需补充使用说明，在 OpenSpec tasks 中记录说明位置**
 
 如果项目已有 Dify README 或示例目录，补充以下说明；如果没有合适文档文件，不新建大篇文档，只在本计划执行证据中保留兼容性测试和异常行为说明：
 
@@ -1044,7 +1044,7 @@ Magic-API `dify` 模块兼容入口保持不变：
 `server` 可以带或不带末尾 `/`；认证失败、Dify 错误响应和网络失败会抛出包含上下文的异常。
 ```
 
-- [ ] **Step 5: 勾选 OpenSpec 任务 4.1、4.2、4.3**
+- [x] **Step 5: 勾选 OpenSpec 任务 4.1、4.2、4.3**
 
 把 `tasks.md` 中以下三行勾选：
 
@@ -1056,7 +1056,7 @@ Magic-API `dify` 模块兼容入口保持不变：
 
 如果没有新增文档文件，4.3 的验收证据为本任务中的兼容性测试、计划说明和最终验证报告；提交说明中写明“no public Magic-API entry changed”。
 
-- [ ] **Step 6: 提交 Task 6**
+- [x] **Step 6: 提交 Task 6**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dify/src/test/java/com/xiongx9527/fw/plus/dify/DifyClientBuilderCompatibilityTest.java \
@@ -1076,7 +1076,7 @@ git commit -m "test(dify): keep client entry compatibility"
 - Consumes: Tasks 1-6 的实现和测试。
 - Produces: 可审查的构建、测试和 OpenSpec 验收证据。
 
-- [ ] **Step 1: 运行 `fw-plus-dify` 全部单元测试**
+- [x] **Step 1: 运行 `fw-plus-dify` 全部单元测试**
 
 Run:
 
@@ -1086,7 +1086,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify test
 
 Expected: PASS。
 
-- [ ] **Step 2: 运行 `fw-plus-dify` 编译验证**
+- [x] **Step 2: 运行 `fw-plus-dify` 编译验证**
 
 Run:
 
@@ -1096,7 +1096,7 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -DskipTests compile
 
 Expected: PASS。
 
-- [ ] **Step 3: 如 Boot 层入口受影响，运行 Boot 编译验证**
+- [x] **Step 3: 如 Boot 层入口受影响，运行 Boot 编译验证**
 
 如果 Task 6 修改过 Boot 层或 Core public API 变化可能影响 Boot，运行：
 
@@ -1108,7 +1108,7 @@ Expected: PASS。
 
 如果 Boot 层未受影响，在最终验证记录中写明：`Boot 层 DifyModule 未修改，兼容性由 Core 入口测试覆盖。`
 
-- [ ] **Step 4: 对照 OpenSpec 规范逐项确认**
+- [x] **Step 4: 对照 OpenSpec 规范逐项确认**
 
 在执行记录或提交说明中确认：
 
@@ -1120,7 +1120,7 @@ Expected: PASS。
 - Dify 优化具备可验证交付物：fw-plus-dify test 与 compile 通过。
 ```
 
-- [ ] **Step 5: 勾选 OpenSpec 任务 5.1、5.2、5.3、5.4**
+- [x] **Step 5: 勾选 OpenSpec 任务 5.1、5.2、5.3、5.4**
 
 根据实际验证结果勾选：
 
@@ -1133,7 +1133,7 @@ Expected: PASS。
 
 如果 Boot 层入口未受影响，将 5.3 勾选的依据写入提交说明：`Boot entry unchanged; Core compatibility test covers existing DifyModule call targets.`
 
-- [ ] **Step 6: 记录 Comet build evidence**
+- [x] **Step 6: 记录 Comet build evidence**
 
 如果 `comet guard optimize-fw-plus-dify build --apply` 无法自动识别 Maven 构建证据，记录实际运行过的命令：
 
@@ -1142,7 +1142,7 @@ comet state record-check optimize-fw-plus-dify build --command "cd fw-plus-core 
 comet state record-check optimize-fw-plus-dify build --command "cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -DskipTests compile" --exit-code 0
 ```
 
-- [ ] **Step 7: 提交 Task 7**
+- [x] **Step 7: 提交 Task 7**
 
 ```bash
 git add openspec/changes/optimize-fw-plus-dify/tasks.md
