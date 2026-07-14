@@ -2,12 +2,12 @@ workflow: full
 language: zh-CN
 phase: build
 context_compression: off
-build_mode: null
+build_mode: subagent-driven-development
 build_pause: null
 subagent_dispatch: confirmed
 tdd_mode: tdd
 review_mode: standard
-isolation: null
+isolation: worktree
 verify_mode: null
 auto_transition: true
 base_ref: 71c0b2bed165c5743f8b23c6720ef64df4ab1e34
