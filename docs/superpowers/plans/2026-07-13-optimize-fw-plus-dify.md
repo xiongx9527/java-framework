@@ -2,6 +2,7 @@
 change: optimize-fw-plus-dify
 design-doc: docs/superpowers/specs/2026-07-13-optimize-fw-plus-dify-design.md
 base-ref: 8e5124fb778f7599e24800bad04f7b646afd73c1
+archived-with: 2026-07-14-optimize-fw-plus-dify
 ---
 
 # optimize-fw-plus-dify Implementation Plan
