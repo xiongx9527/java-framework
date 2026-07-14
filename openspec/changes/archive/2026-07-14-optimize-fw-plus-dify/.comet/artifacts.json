@@ -4,5 +4,6 @@
   "openspec_tasks": "openspec/changes/optimize-fw-plus-dify/tasks.md",
   "openspec_delta_spec": "openspec/changes/optimize-fw-plus-dify/specs/dify-client-optimization/spec.md",
   "handoff_context": "openspec/changes/optimize-fw-plus-dify/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/optimize-fw-plus-dify/.comet/handoff/design-context.md"
+  "handoff_markdown": "openspec/changes/optimize-fw-plus-dify/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-14-optimize-fw-plus-dify"
 }
