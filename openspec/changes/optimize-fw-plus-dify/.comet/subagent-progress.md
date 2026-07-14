@@ -16,7 +16,7 @@
 - Stage: task-review
 - Brief: .superpowers/sdd/task-7-brief.md
 - Report: .superpowers/sdd/task-7-report.md
-- Review package: .superpowers/sdd/review-c95c987..983de9a.diff
+- Review package: .superpowers/sdd/review-c95c987..1c6ceaa.diff
 - Base commit: c95c987b825bc41ffedde481a70ccd2968f448cf
 - Implementer status: DONE_WITH_CONCERNS
 - Implement commits:
@@ -28,5 +28,5 @@
   2. Important — 5.4 勾选缺少完整 spec 映射证据，尤其是 timeout/连接池/retry；2.3 仍未勾选。
 - Review-fix round: 1/1
 - Fix commit:
-  - b8002b8 (task 7 review evidence)
-- Re-review: pending
+  - 1c6ceaa (task 7 review evidence)
+- Re-review: dispatched
