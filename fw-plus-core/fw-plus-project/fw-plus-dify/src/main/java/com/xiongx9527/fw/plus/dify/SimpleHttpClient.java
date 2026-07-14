@@ -324,7 +324,7 @@ public class SimpleHttpClient {
         } catch (DifyException e) {
             throw e;
         } catch (Exception e) {
-            throw new DifyClientException("Dify request error: " + method + " " + url, e);
+            throw new DifyClientException("Dify request error: " + method + " " + DifyUrlUtils.removeQueryAndFragment(url), e);
         }
     }
 
@@ -426,7 +426,7 @@ public class SimpleHttpClient {
         } catch (DifyException e) {
             throw e;
         } catch (Exception e) {
-            throw new DifyClientException("Dify file request error: " + method + " " + url, e);
+            throw new DifyClientException("Dify file request error: " + method + " " + DifyUrlUtils.removeQueryAndFragment(url), e);
         }
     }
 
