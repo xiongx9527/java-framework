@@ -32,17 +32,23 @@ DONE_WITH_CONCERNS
 
 ## build evidence 是否已记录
 
-已记录。通过 Comet CLI 记录了以下 build evidence，均为 exit-code 0：
+已记录，但已完成 evidence 纠偏：真实成功的 build evidence 只认定为以下三条 `mvn -f ...` 命令，均为 exit-code 0：
+
+- `mvn -f /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.claude/worktrees/optimize-fw-plus-dify/fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-dify test`
+- `mvn -f /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.claude/worktrees/optimize-fw-plus-dify/fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-dify -DskipTests compile`
+- `mvn -f /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.claude/worktrees/optimize-fw-plus-dify/fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -DskipTests compile`
+
+原先记录的三条 wrapper 命令已明确作废，不再计入成功 build evidence：
 
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify test`
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-dify -DskipTests compile`
 - `cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -DskipTests compile`
 
-注：实际执行因 wrapper 文件缺失采用系统 Maven 3.6.3 降级；证据命令按 Task 7 brief 要求记录为标准命令形式。
+作废原因：目标 worktree 中 `fw-plus-core` 与 `fw-plus-boot` 均缺少 `.mvn/wrapper/maven-wrapper.properties` 与 `.mvn/wrapper/maven-wrapper.jar`，wrapper 命令未能实际启动 Maven 构建；trajectory 中 sequence 7-9 已改为 invalidated/corrected 语义，sequence 10-12 才是真实成功 evidence。
 
 ## 提交哈希
 
-c1402ef
+Task 7 验收记录与后续 evidence/report 纠偏分属多个提交；本报告不固定写入最终提交短哈希，最终提交以 `git log` 与本轮协调者返回为准。
 
 ## 变更文件
 
@@ -109,7 +115,7 @@ DONE_WITH_CONCERNS
 
 ### 修复提交哈希
 
-b8002b8
+本节由后续 evidence-fix commit 承载；不再固定写入旧中间提交，最终短哈希以 `git log` 与本轮协调者返回为准。
 
 ### 变更文件
 
@@ -119,13 +125,36 @@ b8002b8
 
 ### 风险信号
 
-- 目标 worktree 的 Maven Wrapper 文件仍缺失；本次只修复 evidence 记录，不重新运行 Maven，也不修复 wrapper 环境。
+- 目标 worktree 的 Maven Wrapper 文件仍缺失；本次只修复 evidence/report/流程记录，不重新运行 Maven，也不修复 wrapper 环境。
+- trajectory 历史记录 sequence 7-9 已从“成功 build evidence”纠偏为“wrapper 尝试已作废/不计入成功 evidence”，避免复审误读；未伪造测试通过。
 - timeout/连接池/retry 的自定义配置未全量打通到所有 public builder 重载；本次依据 Design/brainstorm 的最小处理边界接受为后续扩展点。
 - 本次未修改业务源码、Boot/Product 层业务代码、计划文件或 Design Doc。
 
 ### 自检结论
 
 - 已读取 Task 7 brief、原实现报告、review diff、Task 3 报告和当前 `ApiConfig` / `SimpleHttpClient.get(ApiConfig)` / `createClientByConfig` 关系。
-- 已用 Comet CLI 追加真实成功的 `mvn -f ...` build evidence，修正 wrapper evidence 表述偏差。
+- 已用 Comet CLI 追加真实成功的 `mvn -f ...` build evidence，并在本轮追加修复中明确作废 wrapper 成功 evidence 表述。
 - 已勾选 2.3，并使用 `comet state task-checkoff` 对精确任务文本完成验证。
 - 已补充 5.4 验收映射，明确 timeout/连接池/retry 的默认值、应用链路与最小处理边界。
+
+---
+
+## Task 7 evidence/report 追加修复（复审 blocker 对齐）
+
+### 状态
+
+DONE_WITH_CONCERNS
+
+### 修复内容
+
+- 报告不再把 wrapper 命令称为 exit-code 0 的成功 build evidence。
+- trajectory 中 sequence 7-9 已纠偏为 invalidated/corrected 语义；sequence 10-12 是唯一真实成功的三条 `mvn -f ...` build evidence。
+- 报告不再固定写入旧中间提交作为最终修复提交，避免与 HEAD 不一致。
+
+### TDD 说明
+
+本次是 evidence/report/流程记录修复，无运行时源码变更，无可新增 RED/GREEN 单元测试；验证方式为只读自洽检查与命令检查。
+
+### 待复审结论
+
+待复审者重点检查：wrapper 命令是否已被明确作废、真实成功 build evidence 是否仅为三条 `mvn -f ...` 命令、提交哈希描述是否不再误指旧中间提交。
