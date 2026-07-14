@@ -2,6 +2,8 @@
 comet_change: optimize-fw-plus-dify
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-14-optimize-fw-plus-dify
+status: final
 ---
 
 # optimize-fw-plus-dify 技术设计
