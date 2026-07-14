@@ -12,7 +12,7 @@ base-ref: 71c0b2bed165c5743f8b23c6720ef64df4ab1e34
 
 **Architecture:** 采用最小防御性修复：在 FwPlus 扩展入口先判断参数类型、转换开关和集合状态，再调用 `TransUtils`。普通 EasyPoi 参数继续走原 EasyPoi 主流程，FwPlus 参数只在 `needTrans=true` 且集合存在有效数据时进入翻译/过滤。测试优先覆盖转换服务和低成本导出入口，避免伪造完整 EasyTrans/Spring 上下文。
 
-**Tech Stack:** Java 1.8、Spring Boot 2.7.18、EasyPoi 4.5.0、Apache POI 4.1.2、JUnit 4/Spring Boot Test、Maven Wrapper。
+**Tech Stack:** Java 1.8、Spring Boot 2.7.18、EasyPoi 4.5.0、Apache POI 4.1.2、JUnit 4/Spring Boot Test、Maven。
 
 ## Global Constraints
 
@@ -27,7 +27,7 @@ base-ref: 71c0b2bed165c5743f8b23c6720ef64df4ab1e34
 - Java 代码保持 Java 1.8 兼容，不使用 Java 9+ API。
 - 不做无关格式化，不修改无关模块。
 - 仓库可能存在他人改动，实施时不得回滚或覆盖非本 change 文件。
-- Maven 构建使用 `fw-plus-core` 下的 `./mvnw`，不用系统 `mvn`。
+- `fw-plus-core/.mvn/wrapper` 文件缺失，经用户确认，本 change 临时使用系统 `mvn` 执行测试/验证；验证记录必须说明该环境约束。
 
 ---
 
