@@ -3,6 +3,9 @@ package com.vesoft.nebula.jdbc.config;
 import com.vesoft.nebula.client.graph.data.HostAddress;
 import org.junit.Test;
 
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
@@ -93,9 +96,11 @@ public class NebulaConnectionConfigParserTest {
     }
 
     @Test
-    public void parseShouldKeepNonStringPoolOptionsFromPropertiesDefaultsWhenUrlContainsQuery() throws Exception {
-        Properties defaults = new Properties();
-        defaults.put("minConnsSize", Integer.valueOf(2));
+    public void parseShouldMergeStringPropertiesFromDefaultsChainWhenUrlContainsQuery() throws Exception {
+        Properties parentDefaults = new Properties();
+        parentDefaults.setProperty("minConnsSize", "2");
+        Properties defaults = new Properties(parentDefaults);
+        defaults.setProperty("timeout", "1000");
         Properties properties = new Properties(defaults);
         properties.setProperty("user", "root");
         properties.setProperty("password", "nebula");
@@ -105,7 +110,18 @@ public class NebulaConnectionConfigParserTest {
 
         assertEquals("url_user", config.getUsername());
         assertEquals(2, config.getMinConnsSize());
-        assertEquals(Integer.valueOf(2), config.getMergedProperties().get("minConnsSize"));
+        assertEquals(1000, config.getTimeout());
+        assertEquals("2", config.getMergedProperties().getProperty("minConnsSize"));
+        assertEquals("1000", config.getMergedProperties().getProperty("timeout"));
+    }
+
+    @Test
+    public void parserSourceShouldNotReflectIntoPropertiesDefaults() throws Exception {
+        File sourceFile = new File("src/main/java/com/vesoft/nebula/jdbc/config/NebulaConnectionConfigParser.java");
+        String source = new String(Files.readAllBytes(sourceFile.toPath()), StandardCharsets.UTF_8);
+
+        assertFalse(source.contains("getDeclaredField(\"defaults\")"));
+        assertFalse(source.contains("setAccessible"));
     }
 
     @Test

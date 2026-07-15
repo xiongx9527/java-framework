@@ -93,18 +93,26 @@ public class NebulaClientFacade implements AutoCloseable {
         closed = true;
         if (session != null) {
             session.release();
+            session = null;
         }
         if (pool != null) {
             pool.close();
+            pool = null;
         }
     }
 
     private void releaseFailedOpen(Session openedSession, boolean poolCreated) {
-        if (openedSession != null) {
-            openedSession.release();
-        }
-        if (poolCreated) {
-            pool.close();
+        try {
+            if (openedSession != null) {
+                openedSession.release();
+            }
+            if (poolCreated && pool != null) {
+                pool.close();
+            }
+        } finally {
+            session = null;
+            pool = null;
+            closed = true;
         }
     }
 

@@ -4,29 +4,13 @@ import com.vesoft.nebula.client.graph.data.HostAddress;
 import com.vesoft.nebula.jdbc.utils.NebulaJdbcUrlParser;
 import com.vesoft.nebula.jdbc.utils.NebulaPropertyKey;
 
-import java.lang.reflect.Field;
 import java.sql.SQLException;
-import java.util.Collections;
-import java.util.IdentityHashMap;
+import java.util.Enumeration;
 import java.util.Map;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 
 public final class NebulaConnectionConfigParser {
-    private static final Field PROPERTIES_DEFAULTS_FIELD;
-
-    static {
-        Field defaultsField = null;
-        try {
-            defaultsField = Properties.class.getDeclaredField("defaults");
-            defaultsField.setAccessible(true);
-        } catch (NoSuchFieldException | SecurityException exception) {
-            defaultsField = null;
-        }
-        PROPERTIES_DEFAULTS_FIELD = defaultsField;
-    }
-
     private NebulaConnectionConfigParser() {
     }
 
@@ -65,30 +49,30 @@ public final class NebulaConnectionConfigParser {
 
     private static Properties flatten(Properties properties) {
         Properties flattened = new Properties();
-        flattenInto(flattened, properties, Collections.newSetFromMap(new IdentityHashMap<Properties, Boolean>()));
+        copyStringProperties(flattened, properties);
+        copyDirectEntries(flattened, properties);
         return flattened;
     }
 
-    private static void flattenInto(Properties flattened, Properties properties, Set<Properties> visited) {
-        if (properties == null || visited.contains(properties)) {
+    private static void copyStringProperties(Properties target, Properties source) {
+        if (source == null) {
             return;
         }
-        visited.add(properties);
-        flattenInto(flattened, defaultsOf(properties), visited);
-        for (Map.Entry<Object, Object> entry : properties.entrySet()) {
-            flattened.put(entry.getKey(), entry.getValue());
+        Enumeration<?> propertyNames = source.propertyNames();
+        while (propertyNames.hasMoreElements()) {
+            Object key = propertyNames.nextElement();
+            if (key instanceof String) {
+                String value = source.getProperty((String) key);
+                if (value != null) {
+                    target.setProperty((String) key, value);
+                }
+            }
         }
     }
 
-    private static Properties defaultsOf(Properties properties) {
-        if (PROPERTIES_DEFAULTS_FIELD == null) {
-            return null;
-        }
-        try {
-            Object defaults = PROPERTIES_DEFAULTS_FIELD.get(properties);
-            return defaults instanceof Properties ? (Properties) defaults : null;
-        } catch (IllegalAccessException exception) {
-            return null;
+    private static void copyDirectEntries(Properties target, Properties source) {
+        for (Map.Entry<Object, Object> entry : source.entrySet()) {
+            target.put(entry.getKey(), entry.getValue());
         }
     }
 
