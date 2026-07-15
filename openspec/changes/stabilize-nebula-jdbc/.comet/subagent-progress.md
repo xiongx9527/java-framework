@@ -1,0 +1,34 @@
+# Subagent Progress: stabilize-nebula-jdbc
+
+- review_mode: standard
+- tdd_mode: tdd
+- build_mode: subagent-driven-development
+- phase: task-review-fix
+- current_plan_task: Task 1: 测试基线与覆盖补强
+- mapped_openspec_tasks:
+  - 1.1 确认 `fw-plus-nebula-jdbc` 当前 Maven 测试配置，补充必要的单元测试依赖但不引入真实 NebulaGraph 集成环境要求
+  - 1.2 为 JDBC URL 解析和连接配置合并行为补充单元测试
+  - 1.3 为连接池数字参数解析的字符串值、默认值和非法值场景补充单元测试
+  - 1.4 为 Statement 查询/更新语句分类的大小写、换行、多空白和非法类型场景补充单元测试
+  - 1.5 为资源重复关闭和 ResultSet 边界行为补充单元测试或可隔离验证
+- task_brief: .superpowers/sdd/task-1-brief.md
+- implementer_report: .superpowers/sdd/task-1-report.md
+- user_decisions:
+  - Task 1 不能提交仅失败基线；必须按 tdd_mode=tdd 达到 GREEN 后提交。
+  - 2026-07-15 Task 1 review conflict decision: 保持 GREEN；Critical 的“恢复 RED 基线”不作为修复目标。
+  - 2026-07-15 Task 1 re-review blocker decision: 额外修复；授权突破 standard 1 轮限制修复剩余 2 个 Important。
+- stage_evidence:
+  - dispatched: Task 1 implementer launched; base commit 6185af993dae06ae3867380a44d21f2f31660578; brief .superpowers/sdd/task-1-brief.md; report .superpowers/sdd/task-1-report.md
+- commits: 9f11685b7ead9eebb8e99b45bc5695c62d644a05; fix 4e0a062026f8da74cc41f242e68346a35583830b
+- changed_files: 13 files in fw-plus-nebula-jdbc (pom, 7 main helper classes, 5 tests)
+- red_green_evidence: initial GREEN reported with system Maven 3.6.3; 22 tests, 0 failures, 0 errors. Fix report records RED for NebulaClientFacadeTest (9 tests, 2 failures, 2 errors) then GREEN for NebulaClientFacadeTest (9/9) and Task 1 five-test set (26/26).
+- risk_signals: DONE_WITH_CONCERNS; diff > 200 lines (826 insertions); public API additions limited to planned Task 1 components
+- task_review: re-review Needs fixes. No Critical. Important findings: NebulaStatementClassifier.checkUpdate scans all tokens and can reject legal update when later identifiers match query keywords; NebulaClientFacade.open ignores NebulaPool.init boolean false.
+- blocker: resolved by user decision authorizing extra fix round for remaining Important findings.
+- review_fix_round: 2
+- active_dispatch: extra fix agent for remaining two Important findings; DONE_WITH_CONCERNS commit c88eabc; RED 16 tests/2 failures, GREEN focused 16/16 and five-test set 28/28.
+- task_review_rerun: Needs fixes. Important finding: NebulaStatementClassifier.checkQuery still scans all tokens and can accept unknown-leading statements when a later token matches a query keyword.
+- active_dispatch: checkQuery leading-keyword fix DONE commit 64e1b40; RED classifier 7 tests/1 failure, GREEN classifier 7/7 and five-test set 29/29.
+- task_review_rerun_2: Approved. No Critical/Important/Minor findings. Cannot verify Maven output from diff only; report GREEN evidence accepted with diff consistency.
+- phase: checkoff
+- task1_result: Task 1 accepted; commits 9f11685, 4e0a062, c88eabc, 64e1b40; plan steps 1-8 and OpenSpec 1.1-1.5 checked.

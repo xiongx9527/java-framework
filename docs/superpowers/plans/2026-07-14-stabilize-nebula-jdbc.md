@@ -113,7 +113,7 @@ OpenSpec tasks 映射：
 
 **提交边界建议:** `test: add nebula jdbc stability baseline tests`
 
-- [ ] **Step 1: 确认测试框架依赖**
+- [x] **Step 1: 确认测试框架依赖**
 
 检查父 POM 是否已管理 JUnit/Mockito。若未能直接在模块运行测试，则在模块 `pom.xml` 的 `<dependencies>` 下新增测试依赖；优先添加 `junit:junit` 与 `org.mockito:mockito-core` 的 `test` scope，避免引入运行时依赖。
 
@@ -134,7 +134,7 @@ OpenSpec tasks 映射：
 
 如果父级未管理版本导致 Maven 报缺失版本，再回查 `fw-plus-core/fw-plus-project/fw-plus-parent/pom.xml` 与 `fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml`，按项目已有测试依赖版本补充，禁止升级 Nebula Java client 大版本。
 
-- [ ] **Step 2: 为配置解析写失败测试**
+- [x] **Step 2: 为配置解析写失败测试**
 
 在 `NebulaConnectionConfigParserTest.java` 中覆盖：URL query 合并、`Properties` 合并、`graphspace`、`user`、`password`、`graphAddress`、整数默认值、字符串数字、`Number`、空白字符串、非数字字符串。
 
@@ -168,7 +168,7 @@ assertEquals(10, config.getMaxConnsSize());
 assertTrue(exception.getMessage().contains("minConnsSize"));
 ```
 
-- [ ] **Step 3: 为 Statement 分类写失败测试**
+- [x] **Step 3: 为 Statement 分类写失败测试**
 
 在 `NebulaStatementClassifierTest.java` 中覆盖大小写、换行、多空白、update 关键字拒绝、未知/空白/null 拒绝。
 
@@ -202,7 +202,7 @@ public void classifierShouldRejectNullBlankAndUnknownNgql() throws Exception
 null
 ```
 
-- [ ] **Step 4: 为生命周期写失败测试**
+- [x] **Step 4: 为生命周期写失败测试**
 
 在 `NebulaResourceLifecycleTest.java` 中固定关闭幂等、首次关闭执行一次、关闭后访问抛 `SQLException`、首次关闭底层异常能传播。
 
@@ -227,7 +227,7 @@ assertTrue(lifecycle.isClosed());
 assertTrue(exception.getMessage().contains("Connection"));
 ```
 
-- [ ] **Step 5: 为 ResultSet 游标写失败测试**
+- [x] **Step 5: 为 ResultSet 游标写失败测试**
 
 在 `NebulaResultSetCursorTest.java` 中固定 before first、after last、最近列访问、未读取列前 `wasNull()` 的行为。按 Design Doc 优先选择“未读取列前调用 `wasNull()` 抛明确 `SQLException`”。
 
@@ -254,7 +254,7 @@ ValueWrapper nullValue = mock(ValueWrapper.class);
 when(nullValue.isNull()).thenReturn(true);
 ```
 
-- [ ] **Step 6: 为 Nebula client façade 写失败测试**
+- [x] **Step 6: 为 Nebula client façade 写失败测试**
 
 在 `NebulaClientFacadeTest.java` 中通过 Mockito mock `NebulaPool`、`Session`、Nebula 原生 `ResultSet`，覆盖 pool 初始化参数来自 `NebulaConnectionConfig`、session 使用配置用户名密码、`use <graphspace>` 失败转 `SQLException`、`executeNgql` 异常转 `SQLException`、重复 close 稳定。
 
@@ -274,7 +274,7 @@ public void executeNgqlShouldWrapNebulaClientExceptionAsSQLException() throws Ex
 public void closeShouldReleaseSessionAndClosePoolOnlyOnce() throws Exception
 ```
 
-- [ ] **Step 7: 运行新增测试确认失败原因可解释**
+- [x] **Step 7: 运行新增测试确认失败原因可解释**
 
 Run:
 
@@ -285,7 +285,7 @@ cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core
 
 Expected: FAIL，失败原因应为新类不存在或当前行为未满足测试期望；不得出现真实 NebulaGraph 连接超时。
 
-- [ ] **Step 8: 提交测试基线**
+- [x] **Step 8: 提交测试基线**
 
 ```bash
 git add fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/pom.xml \
