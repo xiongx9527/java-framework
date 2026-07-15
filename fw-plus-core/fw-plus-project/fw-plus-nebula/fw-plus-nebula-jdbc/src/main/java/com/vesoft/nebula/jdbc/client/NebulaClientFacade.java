@@ -39,22 +39,36 @@ public class NebulaClientFacade implements AutoCloseable {
         poolConfig.setIntervalIdle(config.getIntervalIdle());
         poolConfig.setWaitTime(config.getWaitTime());
 
+        Session openedSession = null;
+        boolean poolInitialized = false;
         try {
             pool.init(parseAddresses(config.getGraphAddress()), poolConfig);
-            session = pool.getSession(config.getUsername(), config.getPassword(), true);
-            ResultSet useResult = session.execute("use " + config.getGraphspace());
+            poolInitialized = true;
+            openedSession = pool.getSession(config.getUsername(), config.getPassword(), true);
+            ResultSet useResult = openedSession.execute("use " + config.getGraphspace());
             if (!useResult.isSucceeded()) {
                 throw new SQLException(String.format("Access graph space [%s] failed. Error code: %d, Error message: %s",
                         config.getGraphspace(), useResult.getErrorCode(), useResult.getErrorMessage()));
             }
+            session = openedSession;
             closed = false;
+        } catch (SQLException exception) {
+            releaseFailedOpen(openedSession, poolInitialized);
+            throw exception;
         } catch (UnknownHostException | InvalidConfigException | NotValidConnectionException |
                  IOErrorException | AuthFailedException | ClientServerIncompatibleException exception) {
+            releaseFailedOpen(openedSession, poolInitialized);
             throw new SQLException(exception.getMessage(), exception);
         }
     }
 
     public ResultSet executeNgql(String ngql) throws SQLException {
+        if (closed) {
+            throw new SQLException("Nebula client facade is closed.");
+        }
+        if (session == null) {
+            throw new SQLException("Nebula client facade is not open.");
+        }
         try {
             return session.execute(ngql);
         } catch (IOErrorException exception) {
@@ -74,6 +88,15 @@ public class NebulaClientFacade implements AutoCloseable {
         pool.close();
     }
 
+    private void releaseFailedOpen(Session openedSession, boolean poolInitialized) {
+        if (openedSession != null) {
+            openedSession.release();
+        }
+        if (poolInitialized) {
+            pool.close();
+        }
+    }
+
     private static List<HostAddress> parseAddresses(String graphAddress) throws SQLException {
         if (graphAddress == null || !graphAddress.startsWith("//")) {
             throw new SQLException("graphAddress must start with //");
@@ -85,7 +108,11 @@ public class NebulaClientFacade implements AutoCloseable {
             if (hostPort.length != 2) {
                 throw new SQLException("graphAddress has wrong host format.");
             }
-            addresses.add(new HostAddress(hostPort[0], Integer.parseInt(hostPort[1])));
+            try {
+                addresses.add(new HostAddress(hostPort[0], Integer.parseInt(hostPort[1])));
+            } catch (NumberFormatException exception) {
+                throw new SQLException("Invalid graphAddress port in address: " + addressPart, exception);
+            }
         }
         return addresses;
     }
