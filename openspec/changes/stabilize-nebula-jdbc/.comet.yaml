@@ -14,8 +14,8 @@ base_ref: bb0295974e02e3c324595eab127ae869abebb181
 design_doc: docs/superpowers/specs/2026-07-14-stabilize-nebula-jdbc-design.md
 plan: docs/superpowers/plans/2026-07-14-stabilize-nebula-jdbc.md
 verify_result: pending
-verification_report: null
-branch_status: pending
+verification_report: docs/superpowers/reports/2026-07-16-stabilize-nebula-jdbc-verify.md
+branch_status: handled
 created_at: 2026-07-14
 verified_at: null
 archive_confirmation: null
