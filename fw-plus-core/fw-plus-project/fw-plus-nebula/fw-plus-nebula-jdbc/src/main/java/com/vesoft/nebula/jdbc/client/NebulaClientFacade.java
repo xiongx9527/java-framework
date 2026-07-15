@@ -44,14 +44,13 @@ public class NebulaClientFacade implements AutoCloseable {
         poolConfig.setWaitTime(config.getWaitTime());
 
         Session openedSession = null;
-        boolean poolInitialized = false;
+        boolean poolCreated = pool != null;
         if (poolFactory != null) {
             pool = poolFactory.create();
+            poolCreated = true;
         }
         try {
-            poolInitialized = pool.init(config.getGraphAddresses(), poolConfig);
-            if (!poolInitialized) {
-                poolInitialized = true;
+            if (!pool.init(config.getGraphAddresses(), poolConfig)) {
                 throw new SQLException("Initialize Nebula graph pool failed for graphAddress: " + config.getGraphAddress());
             }
             openedSession = pool.getSession(config.getUsername(), config.getPassword(), true);
@@ -63,11 +62,11 @@ public class NebulaClientFacade implements AutoCloseable {
             session = openedSession;
             closed = false;
         } catch (SQLException exception) {
-            releaseFailedOpen(openedSession, poolInitialized);
+            releaseFailedOpen(openedSession, poolCreated);
             throw exception;
         } catch (UnknownHostException | InvalidConfigException | NotValidConnectionException |
                  IOErrorException | AuthFailedException | ClientServerIncompatibleException exception) {
-            releaseFailedOpen(openedSession, poolInitialized);
+            releaseFailedOpen(openedSession, poolCreated);
             throw new SQLException(exception.getMessage(), exception);
         }
     }
@@ -100,11 +99,11 @@ public class NebulaClientFacade implements AutoCloseable {
         }
     }
 
-    private void releaseFailedOpen(Session openedSession, boolean poolInitialized) {
+    private void releaseFailedOpen(Session openedSession, boolean poolCreated) {
         if (openedSession != null) {
             openedSession.release();
         }
-        if (poolInitialized) {
+        if (poolCreated) {
             pool.close();
         }
     }
