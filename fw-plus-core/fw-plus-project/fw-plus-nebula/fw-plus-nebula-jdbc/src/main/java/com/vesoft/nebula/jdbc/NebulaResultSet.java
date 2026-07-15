@@ -229,6 +229,7 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public boolean wasNull() throws SQLException {
+        this.checkClosed();
         return this.lastColumnAccess.isNull();
     }
 
