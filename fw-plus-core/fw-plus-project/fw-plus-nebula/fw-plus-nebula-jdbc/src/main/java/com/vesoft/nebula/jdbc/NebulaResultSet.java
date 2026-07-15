@@ -36,7 +36,6 @@ public class NebulaResultSet implements java.sql.ResultSet {
     protected ValueWrapper lastColumnAccess;
     private int resultRowSize;
     private List<String> columnNames;
-    private int currentRowNumber = -1;
     private ResultSet.Record currentRow;
     private Statement statement;
     private NebulaResultSetCursor cursor;
@@ -79,7 +78,6 @@ public class NebulaResultSet implements java.sql.ResultSet {
     public boolean next() throws SQLException {
         this.checkClosed();
         boolean hasNext = cursor.next();
-        currentRowNumber = cursor.getCurrentRowNumber();
         if (!hasNext) {
             currentRow = null;
         }
@@ -89,100 +87,81 @@ public class NebulaResultSet implements java.sql.ResultSet {
     @Override
     public boolean previous() throws SQLException {
         this.checkClosed();
-        --currentRowNumber;
-        if(currentRowNumber >= 0){
-            return true;
-        } else {
+        boolean hasPrevious = cursor.previous();
+        if (!hasPrevious) {
             currentRow = null;
-            return false;
         }
+        return hasPrevious;
     }
 
     @Override
     public boolean isBeforeFirst() throws SQLException {
         this.checkClosed();
-        return currentRowNumber == -1;
+        return cursor.isBeforeFirst();
     }
 
     @Override
     public boolean isAfterLast() throws SQLException {
         this.checkClosed();
-        return currentRowNumber == resultRowSize;
+        return cursor.isAfterLast();
     }
 
     @Override
     public boolean isFirst() throws SQLException {
         this.checkClosed();
-        return currentRowNumber == 0;
+        return cursor.isFirst();
     }
 
     @Override
     public boolean isLast() throws SQLException {
         this.checkClosed();
-        return currentRowNumber == resultRowSize - 1;
+        return cursor.isLast();
     }
 
     @Override
     public void beforeFirst() throws SQLException {
         this.checkClosed();
-        currentRowNumber = -1;
+        cursor.beforeFirst();
+        currentRow = null;
     }
 
     @Override
     public void afterLast() throws SQLException {
         this.checkClosed();
-        currentRowNumber = resultRowSize;
+        cursor.afterLast();
+        currentRow = null;
     }
 
     @Override
     public boolean first() throws SQLException {
         this.checkClosed();
-        if (resultRowSize == 0){
-            return false;
-        }
-        currentRowNumber = 0;
-        return true;
+        return cursor.first();
     }
 
     @Override
     public boolean last() throws SQLException {
         this.checkClosed();
-        if (resultRowSize == 0){
-            return false;
-        }
-        currentRowNumber = resultRowSize - 1;
-        return true;
+        return cursor.last();
     }
 
     @Override
     public boolean absolute(int row) throws SQLException {
         this.checkClosed();
-        if(row > 0){
-            if(row > resultRowSize){
-                currentRowNumber = resultRowSize - 1;
-            }else{
-                currentRowNumber = row - 1;
-            }
-        }else if(row < 0){
-            currentRowNumber = resultRowSize + row;
-            if (Math.abs(currentRowNumber) > resultRowSize) {
-                currentRowNumber = 0;
-            }
-        }else  {
-            currentRowNumber = -1;
+        boolean onRow = cursor.absolute(row);
+        if (!onRow) {
+            currentRow = null;
         }
-        return true;
+        return onRow;
     }
 
     @Override
     public boolean relative(int rows) throws SQLException {
         this.checkClosed();
-        if(rows > 0){
-            currentRowNumber = Math.min(currentRowNumber + rows, resultRowSize - 1);
-        }else {
-            currentRowNumber = Math.max(currentRowNumber + rows, 0);
+        boolean onRow = cursor.relative(rows);
+        if (!onRow) {
+            currentRow = null;
         }
-        return false;
+        return onRow;
     }
 
 
@@ -190,7 +169,7 @@ public class NebulaResultSet implements java.sql.ResultSet {
     @Override
     public int getRow() throws SQLException {
         this.checkClosed();
-        return currentRowNumber + 1;
+        return cursor.getRow();
     }
 
     @Override
