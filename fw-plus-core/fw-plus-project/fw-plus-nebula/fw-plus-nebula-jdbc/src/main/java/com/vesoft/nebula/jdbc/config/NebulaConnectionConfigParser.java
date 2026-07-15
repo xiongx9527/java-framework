@@ -4,12 +4,29 @@ import com.vesoft.nebula.client.graph.data.HostAddress;
 import com.vesoft.nebula.jdbc.utils.NebulaJdbcUrlParser;
 import com.vesoft.nebula.jdbc.utils.NebulaPropertyKey;
 
+import java.lang.reflect.Field;
 import java.sql.SQLException;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 public final class NebulaConnectionConfigParser {
+    private static final Field PROPERTIES_DEFAULTS_FIELD;
+
+    static {
+        Field defaultsField = null;
+        try {
+            defaultsField = Properties.class.getDeclaredField("defaults");
+            defaultsField.setAccessible(true);
+        } catch (NoSuchFieldException | SecurityException exception) {
+            defaultsField = null;
+        }
+        PROPERTIES_DEFAULTS_FIELD = defaultsField;
+    }
+
     private NebulaConnectionConfigParser() {
     }
 
@@ -24,7 +41,8 @@ public final class NebulaConnectionConfigParser {
             throw new SQLException(exception);
         }
 
-        Properties mergedProperties = flatten(parsed);
+        Properties mergedProperties = flatten(input);
+        overlay(mergedProperties, parsed);
         return new NebulaConnectionConfig(
                 stringValue(mergedProperties, NebulaPropertyKey.DBNAME.getKeyName()),
                 stringValue(mergedProperties, NebulaPropertyKey.USER.getKeyName()),
@@ -47,13 +65,37 @@ public final class NebulaConnectionConfigParser {
 
     private static Properties flatten(Properties properties) {
         Properties flattened = new Properties();
-        for (String propertyName : properties.stringPropertyNames()) {
-            flattened.setProperty(propertyName, properties.getProperty(propertyName));
+        flattenInto(flattened, properties, Collections.newSetFromMap(new IdentityHashMap<Properties, Boolean>()));
+        return flattened;
+    }
+
+    private static void flattenInto(Properties flattened, Properties properties, Set<Properties> visited) {
+        if (properties == null || visited.contains(properties)) {
+            return;
         }
+        visited.add(properties);
+        flattenInto(flattened, defaultsOf(properties), visited);
         for (Map.Entry<Object, Object> entry : properties.entrySet()) {
             flattened.put(entry.getKey(), entry.getValue());
         }
-        return flattened;
+    }
+
+    private static Properties defaultsOf(Properties properties) {
+        if (PROPERTIES_DEFAULTS_FIELD == null) {
+            return null;
+        }
+        try {
+            Object defaults = PROPERTIES_DEFAULTS_FIELD.get(properties);
+            return defaults instanceof Properties ? (Properties) defaults : null;
+        } catch (IllegalAccessException exception) {
+            return null;
+        }
+    }
+
+    private static void overlay(Properties properties, Properties overrides) {
+        for (Map.Entry<Object, Object> entry : overrides.entrySet()) {
+            properties.put(entry.getKey(), entry.getValue());
+        }
     }
 
     private static int parseInt(Properties properties, NebulaPropertyKey key, int defaultValue) throws SQLException {
@@ -67,7 +109,7 @@ public final class NebulaConnectionConfigParser {
         }
         String text = String.valueOf(value).trim();
         if (text.isEmpty()) {
-            throw new SQLException("Invalid numeric property " + keyName + ": blank value");
+            throw new SQLException("Invalid numeric property " + keyName + ": '" + value + "'");
         }
         try {
             return Integer.parseInt(text);

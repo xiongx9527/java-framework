@@ -10,6 +10,7 @@ import com.vesoft.nebula.jdbc.config.NebulaConnectionConfig;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
@@ -183,6 +184,26 @@ public class NebulaClientFacadeTest {
 
         verify(pool, never()).getSession(any(String.class), any(String.class), eq(true));
         verify(pool).close();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void openShouldCloseCreatedPoolWhenPoolInitThrowsBeforeReturning() throws Exception {
+        NebulaPool pool = mock(NebulaPool.class);
+        NebulaClientFacade facade = new NebulaClientFacade(pool);
+
+        when(pool.init(any(List.class), any(NebulaPoolConfig.class)))
+                .thenThrow(new UnknownHostException("bad host"));
+
+        try {
+            facade.open(config());
+            fail("Expected SQLException when NebulaPool init throws");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains("bad host"));
+        }
+
+        verify(pool).close();
+        verify(pool, never()).getSession(any(String.class), any(String.class), eq(true));
     }
 
     @Test
