@@ -133,3 +133,69 @@ mvn test -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaCon
 - 数据或 schema 迁移：否。
 - 公共 API 契约或对外接口变更：否；仅补强现有 facade 错误处理语义。
 - 已知环境噪声：Maven settings 存在 `Unrecognised tag: 'repository'` 警告；测试运行出现 SLF4J NOP logger 警告；不影响本次目标测试 GREEN。
+
+
+---
+
+# Task 1 Additional Reviewer Fix Report
+
+Status: DONE
+
+## 修复内容
+
+- `NebulaStatementClassifier.checkUpdate()` 改为基于首个有效语句关键字分类：首关键字为 update 类则接受，首关键字为 query 类则拒绝，避免合法 update 语句中后续属性名/标识符命中 `show`、`go`、`desc` 等 query 关键字时被误拒。
+- `NebulaClientFacade.open()` 检查 `NebulaPool.init(...)` 返回值：返回 `false` 时抛出包含 `graphAddress` 的 `SQLException`，不调用 `getSession`，并关闭 pool 清理资源。
+- 未勾选 plan 或 OpenSpec task，未修改其它模块源码。
+
+## RED 命令与失败摘要
+
+RED 在全新临时目录 `/private/tmp/nebula-jdbc-red-check.LLgtCZ` 中用当前新增测试 + HEAD 未修复生产代码验证，避免覆盖工作树草稿修复。
+
+命令：
+
+```bash
+cd /private/tmp/nebula-jdbc-red-check.LLgtCZ/fw-plus-core
+mvn test -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaStatementClassifierTest,NebulaClientFacadeTest
+```
+
+失败摘要：`Tests run: 16, Failures: 2, Errors: 0, Skipped: 0`，`BUILD FAILURE`。
+
+- `NebulaStatementClassifierTest.checkUpdateShouldAcceptQueryKeywordAfterLeadingUpdateKeyword`: `Update nGql must not contain query keyword: go`。
+- `NebulaClientFacadeTest.openShouldThrowSQLExceptionAndClosePoolWhenPoolInitReturnsFalse`: 触发 `NullPointerException` 分支，说明 init=false 后仍进入 `getSession`。
+
+## GREEN 命令与通过摘要
+
+命令 1：
+
+```bash
+cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core
+mvn test -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaStatementClassifierTest,NebulaClientFacadeTest
+```
+
+通过摘要：`Tests run: 16, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+
+命令 2：
+
+```bash
+cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core
+mvn test -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaConnectionConfigParserTest,NebulaStatementClassifierTest,NebulaResourceLifecycleTest,NebulaResultSetCursorTest,NebulaClientFacadeTest
+```
+
+通过摘要：`Tests run: 28, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+
+备注：本次按用户指定命令使用系统 Maven 3.6.3；未使用 `./mvnw`。
+
+## 变更文件
+
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/vesoft/nebula/jdbc/client/NebulaClientFacade.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/vesoft/nebula/jdbc/statement/NebulaStatementClassifier.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/test/java/com/vesoft/nebula/jdbc/client/NebulaClientFacadeTest.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/test/java/com/vesoft/nebula/jdbc/statement/NebulaStatementClassifierTest.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/task-1-report.md`
+
+## 风险信号
+
+- Maven settings 存在 `Unrecognised tag: 'repository'` 警告。
+- `fw-plus-auth-satoken` POM 存在重复 `cn.dev33:sa-token-core` 依赖警告。
+- 最终回归测试中出现 SLF4J NOP logger 警告。
+- 以上均为既有环境/依赖警告，未影响本次目标测试通过。

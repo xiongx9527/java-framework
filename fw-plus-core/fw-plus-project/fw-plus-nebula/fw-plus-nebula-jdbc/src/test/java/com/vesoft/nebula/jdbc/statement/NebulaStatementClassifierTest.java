@@ -22,6 +22,15 @@ public class NebulaStatementClassifierTest {
     }
 
     @Test
+    public void checkUpdateShouldAcceptQueryKeywordAfterLeadingUpdateKeyword() throws Exception {
+        try {
+            NebulaStatementClassifier.checkUpdate("CREATE TAG person(desc string, show string, go string)");
+        } catch (SQLException exception) {
+            fail("Leading update keyword should classify the statement as update: " + exception.getMessage());
+        }
+    }
+
+    @Test
     public void checkQueryShouldRejectUpdateKeyword() throws Exception {
         assertRejectedQuery("create tag person(name string)", "create");
         assertRejectedQuery("insert vertex person(name) values \"p1\":(\"tom\")", "insert");

@@ -42,8 +42,11 @@ public class NebulaClientFacade implements AutoCloseable {
         Session openedSession = null;
         boolean poolInitialized = false;
         try {
-            pool.init(parseAddresses(config.getGraphAddress()), poolConfig);
-            poolInitialized = true;
+            poolInitialized = pool.init(parseAddresses(config.getGraphAddress()), poolConfig);
+            if (!poolInitialized) {
+                poolInitialized = true;
+                throw new SQLException("Initialize Nebula graph pool failed for graphAddress: " + config.getGraphAddress());
+            }
             openedSession = pool.getSession(config.getUsername(), config.getPassword(), true);
             ResultSet useResult = openedSession.execute("use " + config.getGraphspace());
             if (!useResult.isSucceeded()) {

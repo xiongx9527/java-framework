@@ -20,6 +20,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -139,6 +140,28 @@ public class NebulaClientFacadeTest {
         facade.open(config());
 
         assertSame(resultSet, facade.executeNgql("MATCH (v) RETURN v"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void openShouldThrowSQLExceptionAndClosePoolWhenPoolInitReturnsFalse() throws Exception {
+        NebulaPool pool = mock(NebulaPool.class);
+        NebulaClientFacade facade = new NebulaClientFacade(pool);
+
+        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(false);
+
+        try {
+            facade.open(config());
+            fail("Expected SQLException when NebulaPool init returns false");
+        } catch (NullPointerException exception) {
+            fail("NebulaPool init=false should fail before getSession");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains("graphAddress"));
+            assertTrue(exception.getMessage().contains("127.0.0.1:9669"));
+        }
+
+        verify(pool, never()).getSession(any(String.class), any(String.class), eq(true));
+        verify(pool).close();
     }
 
     @Test
