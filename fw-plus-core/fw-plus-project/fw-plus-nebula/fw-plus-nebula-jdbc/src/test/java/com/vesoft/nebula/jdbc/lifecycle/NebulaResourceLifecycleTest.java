@@ -85,6 +85,48 @@ public class NebulaResourceLifecycleTest {
     }
 
     @Test
+    public void resultSetWasNullShouldRejectAccessAfterClose() throws Exception {
+        NebulaResultSet resultSet = new NebulaResultSet(mock(com.vesoft.nebula.client.graph.data.ResultSet.class), null);
+
+        resultSet.close();
+
+        try {
+            resultSet.wasNull();
+            fail("Expected SQLException");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains("ResultSet"));
+        }
+    }
+
+    @Test
+    public void statementExecuteQueryShouldRejectClosedBeforeClassifyingSql() throws Exception {
+        NebulaStatementImpl statement = new NebulaStatementImpl(null);
+
+        statement.close();
+
+        try {
+            statement.executeQuery("insert vertex person(name) values 1:(\"Ann\")");
+            fail("Expected SQLException");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains("Statement"));
+        }
+    }
+
+    @Test
+    public void statementExecuteUpdateShouldRejectClosedBeforeClassifyingSql() throws Exception {
+        NebulaStatementImpl statement = new NebulaStatementImpl(null);
+
+        statement.close();
+
+        try {
+            statement.executeUpdate("match (v) return v");
+            fail("Expected SQLException");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains("Statement"));
+        }
+    }
+
+    @Test
     public void resultSetShouldRejectStatusAccessAfterClose() throws Exception {
         NebulaResultSet resultSet = new NebulaResultSet(mock(com.vesoft.nebula.client.graph.data.ResultSet.class), null);
 

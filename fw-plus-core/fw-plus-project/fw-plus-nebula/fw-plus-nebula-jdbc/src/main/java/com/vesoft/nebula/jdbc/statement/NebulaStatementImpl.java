@@ -52,6 +52,7 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     @Override
     public ResultSet executeQuery(String nGql) throws SQLException {
+        this.checkClosed();
         this.checkReadOnly(nGql);
         this.execute(nGql);
         return currentResultSet;
@@ -64,6 +65,7 @@ public class NebulaStatementImpl implements NebulaStatement {
     */
     @Override
     public int executeUpdate(String nGql) throws SQLException {
+        this.checkClosed();
         this.checkUpdate(nGql);
         this.execute(nGql);
         return 0;
