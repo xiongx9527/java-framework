@@ -507,7 +507,7 @@ git commit -m "chore: mark nebula jdbc connection config tasks complete"
 
 **提交边界建议:** `fix: make nebula jdbc resource close idempotent`
 
-- [ ] **Step 1: 实现 NebulaResourceLifecycle**
+- [x] **Step 1: 实现 NebulaResourceLifecycle**
 
 实现约定：
 
@@ -529,7 +529,7 @@ public final class NebulaResourceLifecycle {
 }
 ```
 
-- [ ] **Step 2: 接入 NebulaConnection**
+- [x] **Step 2: 接入 NebulaConnection**
 
 将 `NebulaConnection` 的 `isClosed` boolean 替换或委托给 `NebulaResourceLifecycle`。
 
@@ -553,17 +553,17 @@ lifecycle.checkOpen("Connection");
 
 `isClosed()` 返回 `lifecycle.isClosed()`。
 
-- [ ] **Step 3: 接入 NebulaStatementImpl**
+- [x] **Step 3: 接入 NebulaStatementImpl**
 
 将 `isClosed` boolean 替换或委托给 `NebulaResourceLifecycle`。`close()` 重复调用不抛异常；`checkClosed()` 消息包含 `Statement`。
 
 注意：`NebulaPreparedStatementImpl` 继承 `NebulaStatementImpl`，应自动获得同样语义；如构造器受影响，只做最小调整。
 
-- [ ] **Step 4: 接入 NebulaResultSet**
+- [x] **Step 4: 接入 NebulaResultSet**
 
 将 `NebulaResultSet.close()` 改为生命周期幂等关闭。关闭 action 通常只需要清理内部状态，不应关闭外部 `Statement`，避免改变 JDBC 资源所有权。`checkClosed()` 消息包含 `ResultSet`。
 
-- [ ] **Step 5: 运行生命周期测试**
+- [x] **Step 5: 运行生命周期测试**
 
 Run:
 
@@ -574,7 +574,7 @@ cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core
 
 Expected: PASS。
 
-- [ ] **Step 6: 提交生命周期改动**
+- [x] **Step 6: 提交生命周期改动**
 
 ```bash
 git add fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/vesoft/nebula/jdbc/lifecycle/NebulaResourceLifecycle.java \
@@ -585,7 +585,7 @@ git add fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/ves
 git commit -m "fix: make nebula jdbc resource close idempotent"
 ```
 
-- [ ] **Step 7: 勾选 OpenSpec task 3.1**
+- [x] **Step 7: 勾选 OpenSpec task 3.1**
 
 仅在测试通过并提交后，编辑 `openspec/changes/stabilize-nebula-jdbc/tasks.md` 勾选：
 

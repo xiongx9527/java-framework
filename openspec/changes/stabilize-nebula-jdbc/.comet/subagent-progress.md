@@ -4,23 +4,35 @@
 - tdd_mode: tdd
 - build_mode: subagent-driven-development
 - phase: task-review
-- current_plan_task: Task 2: 连接配置与连接池参数稳定化
+- current_plan_task: Task 3: 资源生命周期稳定化
 - mapped_openspec_tasks:
-  - 2.1 调整 `NebulaConnection` 初始化逻辑，统一使用 `NebulaJdbcUrlParser.parse` 后的合并配置
-  - 2.2 实现连接池整数参数的集中解析逻辑，支持字符串和数字类型并提供明确异常
-  - 2.3 确认 `graphspace`、用户名、密码和连接池参数均来自同一合并配置来源
-- task_brief: .superpowers/sdd/task-2-brief.md
-- implementer_report: .superpowers/sdd/task-2-report.md
+  - 3.1 调整 `Connection.close()`、`Statement.close()`、`ResultSet.close()` 的重复关闭行为，避免非必要异常
+- task_brief: .superpowers/sdd/task-3-brief.md
+- implementer_report: .superpowers/sdd/task-3-report.md
 - dependency_context:
   - Task 1 accepted and committed through 64e1b40; progress commit ba6adc1.
-  - Task 1 already introduced initial config/parser/facade/lifecycle/result/classifier components and tests; Task 2 must complete/refine connection config single-source behavior and NebulaConnection integration.
+  - Task 2 accepted and committed through bbe5e42; progress commit 4604bb4.
+  - Task 2 introduced NebulaClientFacade.close() and NebulaConnection delegation; Task 3 should use that as lifecycle dependency.
+  - Task 2 minor notes accepted for final review awareness: Properties.defaults static reflection future Java 9+ risk; parseInt accepts non-String objects via toString.
 - stage_evidence:
-  - dispatched: pending Task 2 implementer; base commit ba6adc1; brief .superpowers/sdd/task-2-brief.md; report .superpowers/sdd/task-2-report.md
-- implementation_result: DONE_WITH_CONCERNS commit 4b9ed7f; target tests 16/16 GREEN; five-test regression 30/30 GREEN.
-- risk_signals: DONE_WITH_CONCERNS; NebulaConnection integration touches public JDBC connection path; Task 2 diff requires task-level review under standard mode.
-- task_review: Needs fixes. Critical: Number pool params in defaults chain are lost when URL has query because flatten(parsed) misses non-String defaults entries. Important: NebulaClientFacade.open does not close created pool when init throws before returning true; blank numeric SQLException omits illegal blank value. Minor: .superpowers report in diff is process artifact; do not commit reports in fix commits.
+  - dispatched: pending Task 3 implementer; base commit 4604bb4; brief .superpowers/sdd/task-3-brief.md; report .superpowers/sdd/task-3-report.md
+- implementation_result: DONE commit 98748f8; RED lifecycle 6 tests/3 failures, GREEN lifecycle+facade 17/17 and five-test set 36/36.
+- risk_signals: touches public JDBC Connection/Statement/ResultSet lifecycle semantics; ResultSet closed-state behavior tightened; task-level review required under standard mode.
+- task_review: Needs fixes. Critical: NebulaResultSet.wasNull does not check closed and can NPE after close; NebulaStatementImpl.executeQuery/executeUpdate classify before closed check, so closed statements can throw classification errors without Statement in message. Important: .superpowers task report appears in diff and should remain process artifact.
 - review_fix_round: 1
-- active_dispatch: Task 2 fix DONE commit bbe5e42; RED 4 expected failures for defaults Number loss, init-throw pool close, blank illegal value message; GREEN target 19/19 and five-test set 33/33.
-- task_review_rerun: Approved. No Critical/Important findings. Minor findings accepted for Java 8 scope/final review awareness: Properties.defaults reflection static initializer future Java 9+ risk; parseInt accepts non-String objects via toString.
-- phase: checkoff
-- task2_result: Task 2 accepted; commits 4b9ed7f and bbe5e42; ready to check plan steps 1-7 and OpenSpec 2.1-2.3.
+- active_dispatch: Task 3 fix DONE commit 3ffc940; RED lifecycle 9 tests/2 failures/1 error, GREEN lifecycle 9/9, lifecycle+facade 20/20, five-test set 39/39.
+- task_review_rerun: Needs fixes after standard fix round. No Critical. Important findings: Connection implemented accessors such as getSchema/getMetaData/getAutoCommit/getHoldability do not consistently check closed; Statement getWarnings and similar implemented accessors do not consistently check closed; .superpowers/sdd/task-3-report.md appears in diff as process artifact boundary issue.
+- phase: blocked
+- blocker: resolved by user decision authorizing extra fix round for remaining Important findings.
+- user_decisions:
+  - 2026-07-15 Task 3 re-review blocker decision: 额外修复；授权突破 standard 1 轮限制修复剩余 Important。
+- active_dispatch: extra Task 3 fix DONE commit 5bb01a8; RED lifecycle+facade 22 tests/2 failures, GREEN lifecycle+facade 22/22 and five-test set 41/41; .superpowers reports removed from git tracking.
+- task_review_rerun_2: Needs fixes. No Critical. Important findings: .superpowers/sdd/task-2-report.md still appears as deleted file in Task 3 implementation diff; NebulaConnection#getConnectionConfig() added checked SQLException and risks public API source compatibility.
+- phase: blocked
+- blocker: resolved by user decision authorizing another extra fix round for remaining Task 3 Important findings.
+- user_decisions:
+  - 2026-07-15 Task 3 re-review blocker decision: 额外修复；授权突破 standard 1 轮限制修复剩余 Important。
+  - 2026-07-15 Task 3 final re-review blocker decision: 再修一轮；授权继续修复 .superpowers diff 边界与 getConnectionConfig API 兼容性问题。
+- active_dispatch: second extra Task 3 fix DONE commit 682f461; RED lifecycle test failed for checked SQLException signature, GREEN lifecycle 12/12, lifecycle+facade 23/23, five-test set 42/42; 4604bb4..HEAD has no net diff for .superpowers report files.
+- task_review_rerun_3: Approved. No Critical/Important/Minor. Reviewer confirmed .superpowers reports no longer appear in Task 3 implementation diff and getConnectionConfig keeps public signature without checked SQLException.
+- task_acceptance: Task 3 accepted; plan Step 1-7 and OpenSpec task 3.1 checked off.
