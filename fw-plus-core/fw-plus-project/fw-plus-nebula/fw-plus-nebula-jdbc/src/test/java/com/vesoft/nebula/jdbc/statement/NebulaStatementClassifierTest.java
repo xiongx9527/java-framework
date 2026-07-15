@@ -37,6 +37,12 @@ public class NebulaStatementClassifierTest {
     }
 
     @Test
+    public void checkQueryShouldRejectUnknownLeadingKeywordEvenWhenQueryKeywordAppearsLater() throws Exception {
+        assertRejectedQuery("foo MATCH (v) RETURN v", "query");
+        assertRejectedQuery("select match from person", "query");
+    }
+
+    @Test
     public void checkUpdateShouldRejectQueryAndUnknownStatements() throws Exception {
         assertRejectedUpdate("  MATCH (v) RETURN v", "match");
         assertRejectedUpdate("select * from person", "update");
