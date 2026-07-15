@@ -20,6 +20,6 @@
 
 ## 4. 验证与收尾
 
-- [ ] 4.1 运行 `fw-plus-nebula-jdbc` 模块测试并修复失败
-- [ ] 4.2 检查变更不引入 SQL 转 nGQL、MySQL wire protocol 或跨层改动
-- [ ] 4.3 更新任务勾选并准备进入 Comet design 阶段
+- [x] 4.1 运行 `fw-plus-nebula-jdbc` 模块测试并修复失败
+- [x] 4.2 检查变更不引入 SQL 转 nGQL、MySQL wire protocol 或跨层改动
+- [x] 4.3 更新任务勾选并准备进入 Comet design 阶段
