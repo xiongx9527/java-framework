@@ -10,6 +10,7 @@ import com.vesoft.nebula.client.graph.exception.IOErrorException;
 import com.vesoft.nebula.jdbc.client.NebulaClientFacade;
 import com.vesoft.nebula.jdbc.config.NebulaConnectionConfig;
 import com.vesoft.nebula.jdbc.config.NebulaConnectionConfigParser;
+import com.vesoft.nebula.jdbc.lifecycle.NebulaResourceLifecycle;
 import com.vesoft.nebula.jdbc.statement.NebulaPreparedStatementImpl;
 import com.vesoft.nebula.jdbc.statement.NebulaStatementImpl;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
@@ -40,7 +41,7 @@ public class NebulaConnection implements Connection {
 
     private Properties properties;
     private String graphSpace = null;
-    private boolean isClosed = false;
+    private final NebulaResourceLifecycle lifecycle = new NebulaResourceLifecycle();
     private NebulaClientFacade clientFacade;
 
     protected NebulaConnection(String url, Properties properties) throws SQLException {
@@ -58,25 +59,23 @@ public class NebulaConnection implements Connection {
     }
 
     private void checkClosed() throws SQLException {
-        if (this.isClosed()) {
-            throw new SQLException("Connection already closed.");
-        }
+        lifecycle.checkOpen("Connection");
     }
 
     @Override
     public void close() throws SQLException {
-        if (this.isClosed) {
-            return;
-        }
-        this.clientFacade.close();
-        this.isClosed = true;
-        log.debug("JDBCConnection closed");
-
+        lifecycle.close(new NebulaResourceLifecycle.ThrowingCloseAction() {
+            @Override
+            public void close() throws SQLException {
+                clientFacade.close();
+                log.debug("JDBCConnection closed");
+            }
+        });
     }
 
     @Override
     public boolean isClosed() throws SQLException {
-        return this.isClosed;
+        return lifecycle.isClosed();
     }
 
 

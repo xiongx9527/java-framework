@@ -9,6 +9,7 @@ import com.vesoft.nebula.client.graph.data.ResultSet;
 import com.vesoft.nebula.client.graph.data.*;
 import com.vesoft.nebula.client.graph.exception.InvalidValueException;
 
+import com.vesoft.nebula.jdbc.lifecycle.NebulaResourceLifecycle;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
 import java.io.InputStream;
 import java.io.Reader;
@@ -30,7 +31,7 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     protected ResultSet nativeNebulaResultSet;
 
-    protected boolean isClosed = false;
+    protected final NebulaResourceLifecycle lifecycle = new NebulaResourceLifecycle();
     protected ValueWrapper lastColumnAccess;
     private int resultRowSize;
     private List<String> columnNames;
@@ -58,13 +59,17 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public void close() throws SQLException {
-        this.isClosed = true;
+        lifecycle.close(new NebulaResourceLifecycle.ThrowingCloseAction() {
+            @Override
+            public void close() throws SQLException {
+                currentRow = null;
+                lastColumnAccess = null;
+            }
+        });
     }
 
     public void checkClosed() throws SQLException {
-        if(this.isClosed){
-            throw new SQLException("ResultSet already closed.");
-        }
+        lifecycle.checkOpen("ResultSet");
 
     }
 
@@ -95,21 +100,25 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public boolean isBeforeFirst() throws SQLException {
+        this.checkClosed();
         return currentRowNumber == -1;
     }
 
     @Override
     public boolean isAfterLast() throws SQLException {
+        this.checkClosed();
         return currentRowNumber == resultRowSize;
     }
 
     @Override
     public boolean isFirst() throws SQLException {
+        this.checkClosed();
         return currentRowNumber == 0;
     }
 
     @Override
     public boolean isLast() throws SQLException {
+        this.checkClosed();
         return currentRowNumber == resultRowSize - 1;
     }
 
@@ -180,11 +189,13 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public int getRow() throws SQLException {
+        this.checkClosed();
         return currentRowNumber + 1;
     }
 
     @Override
     public int findColumn(String columnLabel) throws SQLException {
+        this.checkClosed();
         int index = 0;
         for(int i = 0; i < columnNames.size(); ++i){
             if(columnLabel.equals(columnNames.get(i))){
@@ -421,11 +432,13 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public ResultSetMetaData getMetaData() throws SQLException {
+        this.checkClosed();
         return NebulaResultSetMetaData.getInstance(this);
     }
 
     @Override
     public Statement getStatement() throws SQLException {
+        this.checkClosed();
         return statement;
     }
 
@@ -437,22 +450,25 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public int getType() throws SQLException {
+        this.checkClosed();
         return SUPPORTED_TYPE;
     }
 
     @Override
     public int getConcurrency() throws SQLException {
+        this.checkClosed();
         return SUPPORTED_CONCURRENCY;
     }
 
     @Override
     public int getHoldability() throws SQLException {
+        this.checkClosed();
         return SUPPORTED_HOLDABILITY;
     }
 
     @Override
     public boolean isClosed() throws SQLException {
-        return this.isClosed;
+        return lifecycle.isClosed();
     }
 
     /**
