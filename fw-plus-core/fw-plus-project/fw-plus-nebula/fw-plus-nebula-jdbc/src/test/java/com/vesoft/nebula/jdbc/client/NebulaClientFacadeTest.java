@@ -141,6 +141,80 @@ public class NebulaClientFacadeTest {
         assertSame(resultSet, facade.executeNgql("MATCH (v) RETURN v"));
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void openShouldReleaseSessionAndClosePoolWhenUseGraphspaceFails() throws Exception {
+        NebulaPool pool = mock(NebulaPool.class);
+        Session session = mock(Session.class);
+        ResultSet failedUse = mock(ResultSet.class);
+        NebulaClientFacade facade = new NebulaClientFacade(pool);
+
+        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
+        when(pool.getSession("root", "nebula", true)).thenReturn(session);
+        when(session.execute("use test_space")).thenReturn(failedUse);
+        when(failedUse.isSucceeded()).thenReturn(false);
+        when(failedUse.getErrorCode()).thenReturn(-1005);
+        when(failedUse.getErrorMessage()).thenReturn("space not found");
+
+        try {
+            facade.open(config());
+            fail("Expected SQLException");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains("test_space"));
+        }
+
+        verify(session).release();
+        verify(pool).close();
+    }
+
+    @Test
+    public void executeNgqlShouldThrowSQLExceptionWhenNotOpened() throws Exception {
+        NebulaClientFacade facade = new NebulaClientFacade(mock(NebulaPool.class));
+
+        try {
+            facade.executeNgql("MATCH (v) RETURN v");
+            fail("Expected SQLException");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains("not open"));
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void executeNgqlShouldThrowSQLExceptionWhenClosed() throws Exception {
+        NebulaPool pool = mock(NebulaPool.class);
+        Session session = mock(Session.class);
+        ResultSet useResult = successfulResult();
+        NebulaClientFacade facade = new NebulaClientFacade(pool);
+
+        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
+        when(pool.getSession("root", "nebula", true)).thenReturn(session);
+        when(session.execute("use test_space")).thenReturn(useResult);
+        facade.open(config());
+        facade.close();
+
+        try {
+            facade.executeNgql("MATCH (v) RETURN v");
+            fail("Expected SQLException");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains("closed"));
+        }
+    }
+
+    @Test
+    public void openShouldWrapNonNumericGraphAddressPortAsSQLException() throws Exception {
+        NebulaClientFacade facade = new NebulaClientFacade(mock(NebulaPool.class));
+        NebulaConnectionConfig invalidConfig = new NebulaConnectionConfig("//127.0.0.1:not-a-port", "test_space", "root", "nebula", 2, 11, 1000, 2000, 3000, 4000);
+
+        try {
+            facade.open(invalidConfig);
+            fail("Expected SQLException");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains("graphAddress"));
+            assertTrue(exception.getMessage().contains("127.0.0.1:not-a-port"));
+        }
+    }
+
     private static NebulaConnectionConfig config() {
         return new NebulaConnectionConfig("//127.0.0.1:9669", "test_space", "root", "nebula", 2, 11, 1000, 2000, 3000, 4000);
     }
