@@ -3,32 +3,24 @@
 - review_mode: standard
 - tdd_mode: tdd
 - build_mode: subagent-driven-development
-- phase: task-review-fix
-- current_plan_task: Task 1: 测试基线与覆盖补强
+- phase: task-review
+- current_plan_task: Task 2: 连接配置与连接池参数稳定化
 - mapped_openspec_tasks:
-  - 1.1 确认 `fw-plus-nebula-jdbc` 当前 Maven 测试配置，补充必要的单元测试依赖但不引入真实 NebulaGraph 集成环境要求
-  - 1.2 为 JDBC URL 解析和连接配置合并行为补充单元测试
-  - 1.3 为连接池数字参数解析的字符串值、默认值和非法值场景补充单元测试
-  - 1.4 为 Statement 查询/更新语句分类的大小写、换行、多空白和非法类型场景补充单元测试
-  - 1.5 为资源重复关闭和 ResultSet 边界行为补充单元测试或可隔离验证
-- task_brief: .superpowers/sdd/task-1-brief.md
-- implementer_report: .superpowers/sdd/task-1-report.md
-- user_decisions:
-  - Task 1 不能提交仅失败基线；必须按 tdd_mode=tdd 达到 GREEN 后提交。
-  - 2026-07-15 Task 1 review conflict decision: 保持 GREEN；Critical 的“恢复 RED 基线”不作为修复目标。
-  - 2026-07-15 Task 1 re-review blocker decision: 额外修复；授权突破 standard 1 轮限制修复剩余 2 个 Important。
+  - 2.1 调整 `NebulaConnection` 初始化逻辑，统一使用 `NebulaJdbcUrlParser.parse` 后的合并配置
+  - 2.2 实现连接池整数参数的集中解析逻辑，支持字符串和数字类型并提供明确异常
+  - 2.3 确认 `graphspace`、用户名、密码和连接池参数均来自同一合并配置来源
+- task_brief: .superpowers/sdd/task-2-brief.md
+- implementer_report: .superpowers/sdd/task-2-report.md
+- dependency_context:
+  - Task 1 accepted and committed through 64e1b40; progress commit ba6adc1.
+  - Task 1 already introduced initial config/parser/facade/lifecycle/result/classifier components and tests; Task 2 must complete/refine connection config single-source behavior and NebulaConnection integration.
 - stage_evidence:
-  - dispatched: Task 1 implementer launched; base commit 6185af993dae06ae3867380a44d21f2f31660578; brief .superpowers/sdd/task-1-brief.md; report .superpowers/sdd/task-1-report.md
-- commits: 9f11685b7ead9eebb8e99b45bc5695c62d644a05; fix 4e0a062026f8da74cc41f242e68346a35583830b
-- changed_files: 13 files in fw-plus-nebula-jdbc (pom, 7 main helper classes, 5 tests)
-- red_green_evidence: initial GREEN reported with system Maven 3.6.3; 22 tests, 0 failures, 0 errors. Fix report records RED for NebulaClientFacadeTest (9 tests, 2 failures, 2 errors) then GREEN for NebulaClientFacadeTest (9/9) and Task 1 five-test set (26/26).
-- risk_signals: DONE_WITH_CONCERNS; diff > 200 lines (826 insertions); public API additions limited to planned Task 1 components
-- task_review: re-review Needs fixes. No Critical. Important findings: NebulaStatementClassifier.checkUpdate scans all tokens and can reject legal update when later identifiers match query keywords; NebulaClientFacade.open ignores NebulaPool.init boolean false.
-- blocker: resolved by user decision authorizing extra fix round for remaining Important findings.
-- review_fix_round: 2
-- active_dispatch: extra fix agent for remaining two Important findings; DONE_WITH_CONCERNS commit c88eabc; RED 16 tests/2 failures, GREEN focused 16/16 and five-test set 28/28.
-- task_review_rerun: Needs fixes. Important finding: NebulaStatementClassifier.checkQuery still scans all tokens and can accept unknown-leading statements when a later token matches a query keyword.
-- active_dispatch: checkQuery leading-keyword fix DONE commit 64e1b40; RED classifier 7 tests/1 failure, GREEN classifier 7/7 and five-test set 29/29.
-- task_review_rerun_2: Approved. No Critical/Important/Minor findings. Cannot verify Maven output from diff only; report GREEN evidence accepted with diff consistency.
+  - dispatched: pending Task 2 implementer; base commit ba6adc1; brief .superpowers/sdd/task-2-brief.md; report .superpowers/sdd/task-2-report.md
+- implementation_result: DONE_WITH_CONCERNS commit 4b9ed7f; target tests 16/16 GREEN; five-test regression 30/30 GREEN.
+- risk_signals: DONE_WITH_CONCERNS; NebulaConnection integration touches public JDBC connection path; Task 2 diff requires task-level review under standard mode.
+- task_review: Needs fixes. Critical: Number pool params in defaults chain are lost when URL has query because flatten(parsed) misses non-String defaults entries. Important: NebulaClientFacade.open does not close created pool when init throws before returning true; blank numeric SQLException omits illegal blank value. Minor: .superpowers report in diff is process artifact; do not commit reports in fix commits.
+- review_fix_round: 1
+- active_dispatch: Task 2 fix DONE commit bbe5e42; RED 4 expected failures for defaults Number loss, init-throw pool close, blank illegal value message; GREEN target 19/19 and five-test set 33/33.
+- task_review_rerun: Approved. No Critical/Important findings. Minor findings accepted for Java 8 scope/final review awareness: Properties.defaults reflection static initializer future Java 9+ risk; parseInt accepts non-String objects via toString.
 - phase: checkoff
-- task1_result: Task 1 accepted; commits 9f11685, 4e0a062, c88eabc, 64e1b40; plan steps 1-8 and OpenSpec 1.1-1.5 checked.
+- task2_result: Task 2 accepted; commits 4b9ed7f and bbe5e42; ready to check plan steps 1-7 and OpenSpec 2.1-2.3.
