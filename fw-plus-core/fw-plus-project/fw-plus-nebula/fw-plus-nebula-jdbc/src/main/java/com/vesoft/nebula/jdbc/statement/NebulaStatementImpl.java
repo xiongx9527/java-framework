@@ -213,7 +213,8 @@ public class NebulaStatementImpl implements NebulaStatement {
     }
 
     @Override
-    public SQLWarning getWarnings() {
+    public SQLWarning getWarnings() throws SQLException {
+        this.checkClosed();
         return null;
     }
 

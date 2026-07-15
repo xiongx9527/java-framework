@@ -137,25 +137,30 @@ public class NebulaConnection implements Connection {
 
     @Override
     public String getSchema() throws SQLException {
+        this.checkClosed();
         return this.properties.getProperty(NebulaPropertyKey.DBNAME.getKeyName());
     }
 
     @Override
     public Properties getClientInfo() throws SQLException {
+        this.checkClosed();
         return null;
     }
 
     @Override
     public String getClientInfo(String name) throws SQLException {
+        this.checkClosed();
         return (String) (getClientInfo().getOrDefault(name, "null"));
     }
 
     @Override
     public void setSchema(String schema) throws SQLException {
+        this.checkClosed();
         properties.setProperty(NebulaPropertyKey.DBNAME.getKeyName(), schema);
     }
 
-    public Properties getConnectionConfig() {
+    public Properties getConnectionConfig() throws SQLException {
+        this.checkClosed();
         return this.properties;
     }
 
@@ -198,10 +203,12 @@ public class NebulaConnection implements Connection {
 
     @Override
     public void setAutoCommit(boolean autoCommit) throws SQLException {
+        this.checkClosed();
     }
 
     @Override
     public boolean getAutoCommit() throws SQLException {
+        this.checkClosed();
         return false;
     }
 
@@ -217,15 +224,18 @@ public class NebulaConnection implements Connection {
 
     @Override
     public DatabaseMetaData getMetaData() throws SQLException {
+        this.checkClosed();
         return new NebulaDatabaseMetaData(this);
     }
 
     @Override
     public void setReadOnly(boolean readOnly) throws SQLException {
+        this.checkClosed();
     }
 
     @Override
     public boolean isReadOnly() throws SQLException {
+        this.checkClosed();
         return false;
     }
 
@@ -241,38 +251,45 @@ public class NebulaConnection implements Connection {
 
     @Override
     public void setTransactionIsolation(int level) throws SQLException {
-
+        this.checkClosed();
     }
 
     @Override
     public int getTransactionIsolation() throws SQLException {
+        this.checkClosed();
         return Connection.TRANSACTION_NONE;
     }
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
+        this.checkClosed();
         return null;
     }
 
     @Override
     public void clearWarnings() throws SQLException {
+        this.checkClosed();
     }
 
     @Override
     public Map<String, Class<?>> getTypeMap() throws SQLException {
+        this.checkClosed();
         return null;
     }
 
     @Override
     public void setTypeMap(Map<String, Class<?>> map) throws SQLException {
+        this.checkClosed();
     }
 
     @Override
     public void setHoldability(int holdability) throws SQLException {
+        this.checkClosed();
     }
 
     @Override
     public int getHoldability() throws SQLException {
+        this.checkClosed();
         // CLOSE_CURSORS_AT_COMMIT
         return 0;
     }
@@ -289,6 +306,7 @@ public class NebulaConnection implements Connection {
 
     @Override
     public void rollback(Savepoint savepoint) throws SQLException {
+        this.checkClosed();
     }
 
     @Override
