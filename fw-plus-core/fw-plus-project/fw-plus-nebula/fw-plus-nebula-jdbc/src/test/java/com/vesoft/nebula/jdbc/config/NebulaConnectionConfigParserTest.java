@@ -1,0 +1,109 @@
+package com.vesoft.nebula.jdbc.config;
+
+import org.junit.Test;
+
+import java.sql.SQLException;
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+public class NebulaConnectionConfigParserTest {
+
+    @Test
+    public void parseShouldMergeUrlQueryAndInputPropertiesIntoTypedConfig() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("user", "root");
+        properties.setProperty("password", "nebula");
+        properties.setProperty("minConnsSize", "1");
+
+        NebulaConnectionConfig config = NebulaConnectionConfigParser.parse(
+                "jdbc:nebula://127.0.0.1:9669/test_space?maxConnsSize=10", properties);
+
+        assertEquals("test_space", config.getGraphspace());
+        assertEquals("root", config.getUsername());
+        assertEquals("nebula", config.getPassword());
+        assertEquals("//127.0.0.1:9669", config.getGraphAddress());
+        assertEquals(1, config.getMinConnsSize());
+        assertEquals(10, config.getMaxConnsSize());
+    }
+
+    @Test
+    public void parseShouldSupportStringNumberAndTrimSpacesForPoolOptions() throws Exception {
+        Properties properties = basicProperties();
+        properties.setProperty("minConnsSize", " 2 ");
+        properties.setProperty("maxConnsSize", " 11 ");
+        properties.setProperty("timeout", " 1000 ");
+        properties.setProperty("idleTime", " 2000 ");
+        properties.setProperty("intervalIdle", " 3000 ");
+        properties.setProperty("waitTime", " 4000 ");
+
+        NebulaConnectionConfig config = NebulaConnectionConfigParser.parse(
+                "jdbc:nebula://127.0.0.1:9669/test_space", properties);
+
+        assertEquals(2, config.getMinConnsSize());
+        assertEquals(11, config.getMaxConnsSize());
+        assertEquals(1000, config.getTimeout());
+        assertEquals(2000, config.getIdleTime());
+        assertEquals(3000, config.getIntervalIdle());
+        assertEquals(4000, config.getWaitTime());
+    }
+
+    @Test
+    public void parseShouldSupportNumberInstancesForPoolOptions() throws Exception {
+        Properties properties = basicProperties();
+        properties.put("minConnsSize", 3);
+        properties.put("maxConnsSize", 12L);
+        properties.put("timeout", Short.valueOf((short) 5));
+
+        NebulaConnectionConfig config = NebulaConnectionConfigParser.parse(
+                "jdbc:nebula://127.0.0.1:9669/test_space", properties);
+
+        assertEquals(3, config.getMinConnsSize());
+        assertEquals(12, config.getMaxConnsSize());
+        assertEquals(5, config.getTimeout());
+    }
+
+    @Test
+    public void parseShouldUseDefaultsWhenPoolOptionsMissing() throws Exception {
+        NebulaConnectionConfig config = NebulaConnectionConfigParser.parse(
+                "jdbc:nebula://127.0.0.1:9669/test_space", basicProperties());
+
+        assertEquals(0, config.getMinConnsSize());
+        assertEquals(10, config.getMaxConnsSize());
+        assertEquals(0, config.getTimeout());
+        assertEquals(0, config.getIdleTime());
+        assertEquals(-1, config.getIntervalIdle());
+        assertEquals(0, config.getWaitTime());
+    }
+
+    @Test
+    public void parseShouldRejectBlankAndNonNumericPoolOptionsWithFieldName() throws Exception {
+        Properties blankProperties = basicProperties();
+        blankProperties.setProperty("minConnsSize", "   ");
+
+        assertInvalidPoolOption(blankProperties, "minConnsSize");
+
+        Properties textProperties = basicProperties();
+        textProperties.setProperty("maxConnsSize", "ten");
+
+        assertInvalidPoolOption(textProperties, "maxConnsSize");
+    }
+
+    private static Properties basicProperties() {
+        Properties properties = new Properties();
+        properties.setProperty("user", "root");
+        properties.setProperty("password", "nebula");
+        return properties;
+    }
+
+    private static void assertInvalidPoolOption(Properties properties, String fieldName) throws Exception {
+        try {
+            NebulaConnectionConfigParser.parse("jdbc:nebula://127.0.0.1:9669/test_space", properties);
+            fail("Expected SQLException");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains(fieldName));
+        }
+    }
+}
