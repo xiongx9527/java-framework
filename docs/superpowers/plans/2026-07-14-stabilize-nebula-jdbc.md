@@ -731,7 +731,7 @@ git commit -m "chore: mark nebula statement classification task complete"
 
 **提交边界建议:** `fix: stabilize nebula result set cursor boundaries`
 
-- [ ] **Step 1: 实现 NebulaResultSetCursor**
+- [x] **Step 1: 实现 NebulaResultSetCursor**
 
 推荐状态：
 
@@ -758,7 +758,7 @@ private boolean hasColumnAccess = false;
 - 未读取任何列前抛 `SQLException`，消息包含 `wasNull` 和 column access。
 - 已读取列后返回 `lastColumnAccess == null || lastColumnAccess.isNull()`。
 
-- [ ] **Step 2: 改造 NebulaResultSet.next 与 getObject**
+- [x] **Step 2: 改造 NebulaResultSet.next 与 getObject**
 
 将当前行号推进交给 cursor。`getObject(int columnIndex)` 顺序应为：
 
@@ -780,7 +780,7 @@ return cursor.wasNull();
 
 `checkResultSetCursor()` 可保留但委托 `cursor.checkReadable()`，避免重复边界逻辑。
 
-- [ ] **Step 3: 明确空结果集行为**
+- [x] **Step 3: 明确空结果集行为**
 
 当原生结果集为空或 `rowsSize() == 0`：
 
@@ -795,7 +795,7 @@ this.resultRowSize = nativeNebulaResultSet.isEmpty() ? 0 : nativeNebulaResultSet
 this.cursor = new NebulaResultSetCursor(this.resultRowSize);
 ```
 
-- [ ] **Step 4: 运行 ResultSet 游标测试**
+- [x] **Step 4: 运行 ResultSet 游标测试**
 
 Run:
 
@@ -806,7 +806,7 @@ cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core
 
 Expected: PASS。
 
-- [ ] **Step 5: 提交 ResultSet 边界改动**
+- [x] **Step 5: 提交 ResultSet 边界改动**
 
 ```bash
 git add fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/vesoft/nebula/jdbc/result/NebulaResultSetCursor.java \
@@ -815,7 +815,7 @@ git add fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/ves
 git commit -m "fix: stabilize nebula result set cursor boundaries"
 ```
 
-- [ ] **Step 6: 勾选 OpenSpec task 3.3**
+- [x] **Step 6: 勾选 OpenSpec task 3.3**
 
 仅在测试通过并提交后，编辑 `openspec/changes/stabilize-nebula-jdbc/tasks.md` 勾选：
 
