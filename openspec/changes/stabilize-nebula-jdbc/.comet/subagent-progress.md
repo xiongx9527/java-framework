@@ -36,3 +36,31 @@
 - active_dispatch: second extra Task 3 fix DONE commit 682f461; RED lifecycle test failed for checked SQLException signature, GREEN lifecycle 12/12, lifecycle+facade 23/23, five-test set 42/42; 4604bb4..HEAD has no net diff for .superpowers report files.
 - task_review_rerun_3: Approved. No Critical/Important/Minor. Reviewer confirmed .superpowers reports no longer appear in Task 3 implementation diff and getConnectionConfig keeps public signature without checked SQLException.
 - task_acceptance: Task 3 accepted; plan Step 1-7 and OpenSpec task 3.1 checked off.
+
+---
+
+## Task 4 Dispatch
+
+- review_mode: standard
+- tdd_mode: tdd
+- build_mode: subagent-driven-development
+- phase: implementation
+- current_plan_task: Task 4: Statement nGQL 类型分类稳定化
+- mapped_openspec_tasks:
+  - 3.2 改善 `NebulaStatementImpl` 的 nGQL 类型分类逻辑，支持常见空白和大小写格式
+- task_brief: .superpowers/sdd/task-4-brief.md
+- implementer_report: .superpowers/sdd/task-4-report.md
+- dependency_context:
+  - Task 1 accepted and committed through 64e1b40; progress commit ba6adc1.
+  - Task 2 accepted and committed through bbe5e42; progress commit 4604bb4.
+  - Task 3 accepted and committed through 682f461; progress commit 580dfc9.
+  - Task 4 should preserve Task 3 lifecycle ordering: closed Statement access must check closed before SQL classification.
+- stage_evidence:
+  - dispatched: pending Task 4 implementer; base commit 580dfc9; brief .superpowers/sdd/task-4-brief.md; report .superpowers/sdd/task-4-report.md
+- implementation_result: DONE commit c801385; GREEN classifier 7/7 and lifecycle 12/12; implementer noted mvnw wrapper missing and used system Maven; commit contains only Task 4 production/test files.
+- risk_signals: touches Statement query/update classification; must preserve Task 3 closed-check-before-classification behavior; task-level review required under standard mode.
+- task_review: Needs fixes. No Critical. Important finding: NebulaStatementClassifier.checkQuery accepts any query keyword token, so illegal leading statements such as `select match from person` or `foo MATCH (v) RETURN v` are accepted; must clearly reject illegal statement types.
+- review_fix_round: 1
+- active_dispatch: Task 4 fix DONE commit ffabaeb; RED classifier exposed illegal leading query acceptance, GREEN classifier 7/7 and lifecycle 12/12; classifier now uses first token for query/update decisions.
+- task_review_rerun: Approved. No Critical/Important/Minor. Reviewer confirmed classifier uses first token, rejects illegal leading types, preserves Statement closed-check priority, and diff excludes .superpowers/.comet artifacts.
+- task_acceptance: Task 4 accepted; plan Step 1-5 and OpenSpec task 3.2 checked off.

@@ -625,7 +625,7 @@ git commit -m "chore: mark nebula jdbc lifecycle task complete"
 
 **提交边界建议:** `fix: stabilize nebula statement classification`
 
-- [ ] **Step 1: 实现 NebulaStatementClassifier**
+- [x] **Step 1: 实现 NebulaStatementClassifier**
 
 固定关键字集合与 Design Doc 一致：
 
@@ -658,7 +658,7 @@ private static List<String> tokenize(String ngql) throws SQLException {
 - `checkQuery`：先拒绝 update 关键字，再接受 query 关键字，否则抛 expected query。
 - `checkUpdate`：接受 update 关键字；否则抛 expected update。
 
-- [ ] **Step 2: 改造 NebulaStatementImpl 委托分类器**
+- [x] **Step 2: 改造 NebulaStatementImpl 委托分类器**
 
 保留 `checkReadOnly(String nGql)` 与 `checkUpdate(String nGql)` 方法签名，内部改为：
 
@@ -669,7 +669,7 @@ NebulaStatementClassifier.checkUpdate(nGql);
 
 删除或停止使用 `updateKeyword`、`queryKeyword` 数组，避免双重事实源。
 
-- [ ] **Step 3: 运行分类测试**
+- [x] **Step 3: 运行分类测试**
 
 Run:
 
@@ -680,7 +680,7 @@ cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core
 
 Expected: PASS。
 
-- [ ] **Step 4: 提交分类改动**
+- [x] **Step 4: 提交分类改动**
 
 ```bash
 git add fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/vesoft/nebula/jdbc/statement/NebulaStatementClassifier.java \
@@ -689,7 +689,7 @@ git add fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/ves
 git commit -m "fix: stabilize nebula statement classification"
 ```
 
-- [ ] **Step 5: 勾选 OpenSpec task 3.2**
+- [x] **Step 5: 勾选 OpenSpec task 3.2**
 
 仅在测试通过并提交后，编辑 `openspec/changes/stabilize-nebula-jdbc/tasks.md` 勾选：
 
