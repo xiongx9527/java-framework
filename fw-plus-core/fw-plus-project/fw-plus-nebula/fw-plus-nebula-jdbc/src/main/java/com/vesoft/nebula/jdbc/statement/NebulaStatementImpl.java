@@ -12,15 +12,11 @@ import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.util.Arrays;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NebulaStatementImpl implements NebulaStatement {
     protected final Logger log = LoggerFactory.getLogger(this.getClass());
-    protected final String[] updateKeyword = {"update", "delete", "insert", "upsert", "create", "drop", "alter", "rebuild"};
-    protected final String[] queryKeyword = {"match", "lookup", "go", "fetch", "find", "subgraph", "show", "desc", "describe"};
 
     protected String nGql;
     protected NebulaConnection nebulaConnection;
@@ -81,37 +77,12 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     @Override
     public void checkReadOnly(String nGql) throws SQLException {
-        String lowerCaseNGQL = nGql.toLowerCase();
-        List<String> splitNGQL = Arrays.asList(lowerCaseNGQL.split(" "));
-        for (String updateItem : updateKeyword) {
-            if(splitNGQL.contains(updateItem)){
-                throw new SQLException(String.format("Method executeQuery() can only execute nGql to query data, " +
-                        "but the current nGql contains the update keyword [%s], " +
-                        "please modify your nGql or use executeUpdate().", updateItem));
-            }
-        }
-        for (String queryItem : queryKeyword) {
-            if(splitNGQL.contains(queryItem)){
-                return;
-            }
-        }
-        throw new SQLException("Method executeQuery() can only execute nGql to query data, " +
-                "but the current nGql do not contains any query keyword in " + Arrays.toString(queryKeyword) +
-                ", please modify your nGql or use executeUpdate(), execute().");
+        NebulaStatementClassifier.checkQuery(nGql);
     }
 
     @Override
     public void checkUpdate(String nGql) throws SQLException {
-        String lowerCaseNGQL = nGql.toLowerCase();
-        List<String> splitNGQL = Arrays.asList(lowerCaseNGQL.split(" "));
-        for (String updateItem : updateKeyword) {
-            if(splitNGQL.contains(updateItem)){
-                return;
-            }
-        }
-        throw new SQLException("Method executeUpdate() can only execute nGql to update data, " +
-                "but the current nGql do not contains any update keyword in " + Arrays.toString(updateKeyword) +
-                ", please modify your nGql or use executeQuery(), execute().");
+        NebulaStatementClassifier.checkUpdate(nGql);
     }
 
 

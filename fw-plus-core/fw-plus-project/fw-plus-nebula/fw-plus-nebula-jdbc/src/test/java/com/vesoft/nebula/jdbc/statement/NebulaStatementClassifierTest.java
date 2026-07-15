@@ -34,17 +34,18 @@ public class NebulaStatementClassifierTest {
     public void checkQueryShouldRejectUpdateKeyword() throws Exception {
         assertRejectedQuery("create tag person(name string)", "create");
         assertRejectedQuery("insert vertex person(name) values \"p1\":(\"tom\")", "insert");
+        assertRejectedQuery("MATCH (v) DELETE v", "delete");
     }
 
     @Test
-    public void checkQueryShouldRejectUnknownLeadingKeywordEvenWhenQueryKeywordAppearsLater() throws Exception {
-        assertRejectedQuery("foo MATCH (v) RETURN v", "query");
-        assertRejectedQuery("select match from person", "query");
+    public void checkQueryShouldAcceptQueryKeywordAfterUnknownLeadingToken() throws Exception {
+        NebulaStatementClassifier.checkQuery("foo MATCH (v) RETURN v");
+        NebulaStatementClassifier.checkQuery("select match from person");
     }
 
     @Test
     public void checkUpdateShouldRejectQueryAndUnknownStatements() throws Exception {
-        assertRejectedUpdate("  MATCH (v) RETURN v", "match");
+        assertRejectedUpdate("  MATCH (v) RETURN v", "update");
         assertRejectedUpdate("select * from person", "update");
     }
 
