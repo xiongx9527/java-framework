@@ -16,7 +16,7 @@
 
 - [x] 3.1 调整 `Connection.close()`、`Statement.close()`、`ResultSet.close()` 的重复关闭行为，避免非必要异常
 - [x] 3.2 改善 `NebulaStatementImpl` 的 nGQL 类型分类逻辑，支持常见空白和大小写格式
-- [ ] 3.3 改善 `NebulaResultSet` 游标边界和 `wasNull()` 的异常语义，避免非预期 NPE
+- [x] 3.3 改善 `NebulaResultSet` 游标边界和 `wasNull()` 的异常语义，避免非预期 NPE
 
 ## 4. 验证与收尾
 

@@ -89,3 +89,10 @@
 - implementation_result: DONE commit 5b057ba; RED cursor test failed for missing getCurrentRowNumber, GREEN cursor 6/6 and lifecycle+cursor 18/18; implementer noted mvnw wrapper missing and used system Maven; commit contains only Task 5 production/test files.
 - risk_signals: touches ResultSet cursor and wasNull semantics; must preserve Task 3 closed-check-before-cursor behavior; task-level review required under standard mode.
 - task_review: dispatched reviewer for diff .superpowers/sdd/review-ac801f2..5b057ba.diff.
+- task_review: Needs fixes. No Critical. Important finding: NebulaResultSet cursor movement methods previous/beforeFirst/afterLast/first/last/absolute/relative still mutate legacy currentRowNumber while getObject/wasNull use NebulaResultSetCursor, causing split cursor state. Minor: prefer assertEquals for row-number assertions.
+- review_fix_round: 1
+- active_dispatch: Task 5 fix dispatched to address Important cursor state split with TDD; base commit 5b057ba.
+
+- active_dispatch: Task 5 fix DONE commit 545cc91; RED cursor movement test failed for split cursor state, GREEN focused movement 5/5, lifecycle+cursor 23/23, module tests 49/49.
+- task_review_rerun: Approved. No Critical/Important/Minor. Reviewer confirmed NebulaResultSet movement, status, getObject, wasNull, getRow, isBeforeFirst and isAfterLast share NebulaResultSetCursor state.
+- task_acceptance: Task 5 accepted; plan Step 1-6 and OpenSpec task 3.3 checked off.
