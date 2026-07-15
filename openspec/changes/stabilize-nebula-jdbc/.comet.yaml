@@ -8,7 +8,7 @@ subagent_dispatch: confirmed
 tdd_mode: tdd
 review_mode: standard
 isolation: worktree
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: bb0295974e02e3c324595eab127ae869abebb181
 design_doc: docs/superpowers/specs/2026-07-14-stabilize-nebula-jdbc-design.md
