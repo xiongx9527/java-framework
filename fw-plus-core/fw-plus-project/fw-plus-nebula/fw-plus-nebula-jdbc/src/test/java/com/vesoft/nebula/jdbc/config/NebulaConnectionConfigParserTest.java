@@ -1,11 +1,14 @@
 package com.vesoft.nebula.jdbc.config;
 
+import com.vesoft.nebula.client.graph.data.HostAddress;
 import org.junit.Test;
 
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -24,9 +27,16 @@ public class NebulaConnectionConfigParserTest {
         assertEquals("test_space", config.getGraphspace());
         assertEquals("root", config.getUsername());
         assertEquals("nebula", config.getPassword());
-        assertEquals("//127.0.0.1:9669", config.getGraphAddress());
+        List<HostAddress> addresses = config.getGraphAddresses();
+        assertEquals(1, addresses.size());
+        assertEquals("127.0.0.1", addresses.get(0).getHost());
+        assertEquals(9669, addresses.get(0).getPort());
         assertEquals(1, config.getMinConnsSize());
         assertEquals(10, config.getMaxConnsSize());
+        assertEquals("root", config.getMergedProperties().getProperty("user"));
+        assertEquals("nebula", config.getMergedProperties().getProperty("password"));
+        assertEquals("1", config.getMergedProperties().getProperty("minConnsSize"));
+        assertEquals("10", config.getMergedProperties().getProperty("maxConnsSize"));
     }
 
     @Test
@@ -76,6 +86,32 @@ public class NebulaConnectionConfigParserTest {
         assertEquals(0, config.getIdleTime());
         assertEquals(-1, config.getIntervalIdle());
         assertEquals(0, config.getWaitTime());
+    }
+
+    @Test
+    public void parseShouldUseMergedPropertiesAsSingleSourceAndReturnDefensiveCopy() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("user", "property_user");
+        properties.setProperty("password", "property_password");
+        properties.setProperty("maxConnsSize", "2");
+
+        NebulaConnectionConfig config = NebulaConnectionConfigParser.parse(
+                "jdbc:nebula://127.0.0.1:9669/url_space?user=url_user&password=url_password&maxConnsSize=15", properties);
+
+        assertEquals("url_space", config.getGraphspace());
+        assertEquals("url_user", config.getUsername());
+        assertEquals("url_password", config.getPassword());
+        assertEquals(15, config.getMaxConnsSize());
+        Properties mergedProperties = config.getMergedProperties();
+        assertEquals("url_space", mergedProperties.getProperty("graphspace"));
+        assertEquals("url_user", mergedProperties.getProperty("user"));
+        assertEquals("url_password", mergedProperties.getProperty("password"));
+        assertEquals("15", mergedProperties.getProperty("maxConnsSize"));
+
+        mergedProperties.setProperty("graphspace", "mutated");
+
+        assertFalse("mutated".equals(config.getMergedProperties().getProperty("graphspace")));
+        assertEquals("url_space", config.getGraphspace());
     }
 
     @Test

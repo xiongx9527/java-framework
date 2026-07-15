@@ -5,22 +5,15 @@
 
 package com.vesoft.nebula.jdbc;
 
-import com.vesoft.nebula.client.graph.NebulaPoolConfig;
-import com.vesoft.nebula.client.graph.data.HostAddress;
 import com.vesoft.nebula.client.graph.data.ResultSet;
-import com.vesoft.nebula.client.graph.exception.AuthFailedException;
-import com.vesoft.nebula.client.graph.exception.ClientServerIncompatibleException;
 import com.vesoft.nebula.client.graph.exception.IOErrorException;
-import com.vesoft.nebula.client.graph.exception.InvalidConfigException;
-import com.vesoft.nebula.client.graph.exception.NotValidConnectionException;
-import com.vesoft.nebula.client.graph.net.NebulaPool;
-import com.vesoft.nebula.client.graph.net.Session;
+import com.vesoft.nebula.jdbc.client.NebulaClientFacade;
+import com.vesoft.nebula.jdbc.config.NebulaConnectionConfig;
+import com.vesoft.nebula.jdbc.config.NebulaConnectionConfigParser;
 import com.vesoft.nebula.jdbc.statement.NebulaPreparedStatementImpl;
 import com.vesoft.nebula.jdbc.statement.NebulaStatementImpl;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
-import com.vesoft.nebula.jdbc.utils.NebulaJdbcUrlParser;
 import com.vesoft.nebula.jdbc.utils.NebulaPropertyKey;
-import java.net.UnknownHostException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
@@ -36,7 +29,6 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
@@ -47,74 +39,22 @@ import lombok.extern.slf4j.Slf4j;
 public class NebulaConnection implements Connection {
 
     private Properties properties;
-    private Session nebulaSession;
     private String graphSpace = null;
     private boolean isClosed = false;
-    private NebulaPool nebulaPool;
+    private NebulaClientFacade clientFacade;
 
     protected NebulaConnection(String url, Properties properties) throws SQLException {
-        try {
-            this.properties = NebulaJdbcUrlParser.parse(url, properties);
-        } catch (Exception e) {
-            throw new SQLException(e);
-        }
-        this.graphSpace = properties.getProperty(NebulaPropertyKey.DBNAME.getKeyName());
-        initNebulaPool(url, properties);
-        // check whether access the given graph space successfully.
-        try {
-            this.nebulaSession =
-                    nebulaPool.getSession(properties.getProperty(NebulaPropertyKey.USER.getKeyName()),
-                            properties.getProperty(NebulaPropertyKey.PASSWORD.getKeyName()), true);
-            ResultSet result = nebulaSession.execute("use " + graphSpace);
-            if (result.isSucceeded()) {
-                this.graphSpace = graphSpace;
-                log.debug(String.format("Access graph space [%s] succeeded", graphSpace));
-            } else {
-                throw new SQLException(String.format("Access graph space [%s] failed. Error code:" +
-                                " %d, Error message: %s",
-                        graphSpace, result.getErrorCode(), result.getErrorMessage()));
-            }
-        } catch (IOErrorException | AuthFailedException | NotValidConnectionException | ClientServerIncompatibleException e) {
-            throw new SQLException(e);
-        }
+        NebulaConnectionConfig config = NebulaConnectionConfigParser.parse(url, properties);
+        this.properties = config.getMergedProperties();
+        this.graphSpace = config.getGraphspace();
+        this.clientFacade = new NebulaClientFacade();
+        this.clientFacade.open(config);
+        log.debug(String.format("Access graph space [%s] succeeded", graphSpace));
     }
-
-    private void initNebulaPool(String url, Properties properties) throws SQLException {
-        int minConnsSize = (int) properties.getOrDefault(NebulaPropertyKey.MINCONNSSIZE, 0);
-        int maxConnsSize = (int) properties.getOrDefault(NebulaPropertyKey.MAXCONNSSIZE, 10);
-        int timeout = (int) properties.getOrDefault(NebulaPropertyKey.TIMEOUT, 0);
-        int idleTime = (int) properties.getOrDefault(NebulaPropertyKey.IDLETIME, 0);
-        int intervalIdle = (int) properties.getOrDefault(NebulaPropertyKey.INTERVALIDLE, -1);
-        int waitTime = (int) properties.getOrDefault(NebulaPropertyKey.WAITTIME, 0);
-
-        NebulaPoolConfig nebulaPoolConfig = new NebulaPoolConfig();
-        nebulaPoolConfig.setMinConnSize(minConnsSize);
-        nebulaPoolConfig.setMaxConnSize(maxConnsSize);
-        nebulaPoolConfig.setTimeout(timeout);
-        nebulaPoolConfig.setIdleTime(idleTime);
-        nebulaPoolConfig.setIntervalIdle(intervalIdle);
-        nebulaPoolConfig.setWaitTime(waitTime);
-
-        List<HostAddress> addressList = NebulaJdbcUrlParser.getAddresses(url);
-        nebulaPool = new NebulaPool();
-        try {
-            long start = System.currentTimeMillis();
-            nebulaPool.init(addressList, nebulaPoolConfig);
-            long end = System.currentTimeMillis();
-            log.debug("NebulaPool.init(addressList, nebulaPoolConfig) use {} ms", end - start);
-        } catch (UnknownHostException | InvalidConfigException e) {
-            throw new SQLException(e);
-        }
-    }
-
 
     public ResultSet execute(String nGql) throws SQLException {
         this.checkClosed();
-        try {
-            return nebulaSession.execute(nGql);
-        } catch (IOErrorException e) {
-            throw new SQLException(e.getMessage());
-        }
+        return this.clientFacade.executeNgql(nGql);
     }
 
     private void checkClosed() throws SQLException {
@@ -125,10 +65,11 @@ public class NebulaConnection implements Connection {
 
     @Override
     public void close() throws SQLException {
-        this.checkClosed();
-        this.nebulaSession.release();
+        if (this.isClosed) {
+            return;
+        }
+        this.clientFacade.close();
         this.isClosed = true;
-        this.nebulaPool.close();
         log.debug("JDBCConnection closed");
 
     }
