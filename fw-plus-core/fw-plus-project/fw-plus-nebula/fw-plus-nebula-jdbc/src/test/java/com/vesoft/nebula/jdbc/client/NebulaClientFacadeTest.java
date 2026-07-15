@@ -188,6 +188,28 @@ public class NebulaClientFacadeTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    public void openFailureShouldEnterClosedStateAndNotClosePoolAgainWhenPoolInitReturnsFalse() throws Exception {
+        NebulaPool pool = mock(NebulaPool.class);
+        NebulaClientFacade facade = new NebulaClientFacade(pool);
+
+        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(false);
+
+        try {
+            facade.open(config());
+            fail("Expected SQLException when NebulaPool init returns false");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains("graphAddress"));
+        }
+
+        assertTrue(facade.isClosed());
+        facade.close();
+
+        verify(pool, times(1)).close();
+        verify(pool, never()).getSession(any(String.class), any(String.class), eq(true));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     public void openShouldCloseCreatedPoolWhenPoolInitThrowsBeforeReturning() throws Exception {
         NebulaPool pool = mock(NebulaPool.class);
         NebulaClientFacade facade = new NebulaClientFacade(pool);
@@ -230,6 +252,35 @@ public class NebulaClientFacadeTest {
 
         verify(session).release();
         verify(pool).close();
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void openFailureShouldEnterClosedStateAndNotReleaseResourcesAgainWhenUseGraphspaceFails() throws Exception {
+        NebulaPool pool = mock(NebulaPool.class);
+        Session session = mock(Session.class);
+        ResultSet failedUse = mock(ResultSet.class);
+        NebulaClientFacade facade = new NebulaClientFacade(pool);
+
+        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
+        when(pool.getSession("root", "nebula", true)).thenReturn(session);
+        when(session.execute("use test_space")).thenReturn(failedUse);
+        when(failedUse.isSucceeded()).thenReturn(false);
+        when(failedUse.getErrorCode()).thenReturn(-1005);
+        when(failedUse.getErrorMessage()).thenReturn("space not found");
+
+        try {
+            facade.open(config());
+            fail("Expected SQLException");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains("test_space"));
+        }
+
+        assertTrue(facade.isClosed());
+        facade.close();
+
+        verify(session, times(1)).release();
+        verify(pool, times(1)).close();
     }
 
     @Test
