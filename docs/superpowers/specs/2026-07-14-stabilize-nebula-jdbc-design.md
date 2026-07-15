@@ -2,6 +2,8 @@
 comet_change: stabilize-nebula-jdbc
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-15-stabilize-nebula-jdbc
+status: final
 ---
 
 # stabilize-nebula-jdbc 技术设计
