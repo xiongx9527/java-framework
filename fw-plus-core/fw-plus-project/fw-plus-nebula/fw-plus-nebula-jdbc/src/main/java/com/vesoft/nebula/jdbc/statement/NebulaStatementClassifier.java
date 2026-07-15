@@ -1,0 +1,54 @@
+package com.vesoft.nebula.jdbc.statement;
+
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
+
+public final class NebulaStatementClassifier {
+    private static final Set<String> UPDATE_KEYWORDS = new HashSet<>(Arrays.asList(
+            "update", "delete", "insert", "upsert", "create", "drop", "alter", "rebuild"));
+    private static final Set<String> QUERY_KEYWORDS = new HashSet<>(Arrays.asList(
+            "match", "lookup", "go", "fetch", "find", "subgraph", "show", "desc", "describe"));
+
+    private NebulaStatementClassifier() {
+    }
+
+    public static void checkQuery(String ngql) throws SQLException {
+        Set<String> tokens = tokens(ngql);
+        for (String keyword : UPDATE_KEYWORDS) {
+            if (tokens.contains(keyword)) {
+                throw new SQLException("Query nGql must not contain update keyword: " + keyword);
+            }
+        }
+        for (String keyword : QUERY_KEYWORDS) {
+            if (tokens.contains(keyword)) {
+                return;
+            }
+        }
+        throw new SQLException("Query nGql must contain a query keyword: " + QUERY_KEYWORDS);
+    }
+
+    public static void checkUpdate(String ngql) throws SQLException {
+        Set<String> tokens = tokens(ngql);
+        for (String keyword : QUERY_KEYWORDS) {
+            if (tokens.contains(keyword)) {
+                throw new SQLException("Update nGql must not contain query keyword: " + keyword);
+            }
+        }
+        for (String keyword : UPDATE_KEYWORDS) {
+            if (tokens.contains(keyword)) {
+                return;
+            }
+        }
+        throw new SQLException("Update nGql must contain an update keyword: " + UPDATE_KEYWORDS);
+    }
+
+    private static Set<String> tokens(String ngql) throws SQLException {
+        if (ngql == null || ngql.trim().isEmpty()) {
+            throw new SQLException("nGql must not be null or blank");
+        }
+        return new HashSet<>(Arrays.asList(ngql.toLowerCase(Locale.ROOT).trim().split("\\s+|(?=[(),])|(?<=[(),])")));
+    }
+}
