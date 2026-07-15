@@ -37,6 +37,27 @@ public class NebulaResultSetCursorTest {
     }
 
     @Test
+    public void emptyResultSetShouldMoveDirectlyAfterLast() throws Exception {
+        NebulaResultSetCursor cursor = new NebulaResultSetCursor(0);
+
+        assertFalse(cursor.next());
+        assertTrue(cursor.getCurrentRowNumber() == 0);
+        assertUnreadable(cursor, "after");
+    }
+
+    @Test
+    public void currentRowNumberShouldExposeReadableRowIndexForNativeLookup() throws Exception {
+        NebulaResultSetCursor cursor = new NebulaResultSetCursor(2);
+
+        assertTrue(cursor.next());
+        assertTrue(cursor.getCurrentRowNumber() == 0);
+        assertTrue(cursor.next());
+        assertTrue(cursor.getCurrentRowNumber() == 1);
+        assertFalse(cursor.next());
+        assertTrue(cursor.getCurrentRowNumber() == 2);
+    }
+
+    @Test
     public void wasNullShouldReturnLastColumnNullStateAfterColumnAccess() throws Exception {
         NebulaResultSetCursor cursor = new NebulaResultSetCursor(1);
         ValueWrapper nullValue = mock(ValueWrapper.class);
@@ -49,6 +70,8 @@ public class NebulaResultSetCursorTest {
         assertTrue(cursor.wasNull());
         cursor.recordColumnAccess(nonNullValue);
         assertFalse(cursor.wasNull());
+        cursor.recordColumnAccess(null);
+        assertTrue(cursor.wasNull());
     }
 
     @Test
@@ -60,7 +83,8 @@ public class NebulaResultSetCursorTest {
             cursor.wasNull();
             fail("Expected SQLException");
         } catch (SQLException exception) {
-            assertTrue(exception.getMessage().contains("column"));
+            assertTrue(exception.getMessage().contains("wasNull"));
+            assertTrue(exception.getMessage().contains("column access"));
         }
     }
 

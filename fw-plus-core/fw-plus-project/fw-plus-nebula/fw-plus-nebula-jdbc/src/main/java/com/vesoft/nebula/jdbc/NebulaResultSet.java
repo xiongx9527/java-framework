@@ -10,6 +10,7 @@ import com.vesoft.nebula.client.graph.data.*;
 import com.vesoft.nebula.client.graph.exception.InvalidValueException;
 
 import com.vesoft.nebula.jdbc.lifecycle.NebulaResourceLifecycle;
+import com.vesoft.nebula.jdbc.result.NebulaResultSetCursor;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
 import java.io.InputStream;
 import java.io.Reader;
@@ -38,14 +39,14 @@ public class NebulaResultSet implements java.sql.ResultSet {
     private int currentRowNumber = -1;
     private ResultSet.Record currentRow;
     private Statement statement;
+    private NebulaResultSetCursor cursor;
 
     public NebulaResultSet(ResultSet nebulaResultSet, Statement statement) {
         this.nativeNebulaResultSet = nebulaResultSet;
         this.statement = statement;
-        if(!nativeNebulaResultSet.isEmpty()){
-            this.resultRowSize = nativeNebulaResultSet.rowsSize();
-            this.columnNames = nativeNebulaResultSet.getColumnNames();
-        }
+        this.resultRowSize = nativeNebulaResultSet.isEmpty() ? 0 : nativeNebulaResultSet.rowsSize();
+        this.columnNames = nativeNebulaResultSet.getColumnNames();
+        this.cursor = new NebulaResultSetCursor(this.resultRowSize);
     }
 
     public ResultSet getNativeNebulaResultSet() {
@@ -77,13 +78,12 @@ public class NebulaResultSet implements java.sql.ResultSet {
     @Override
     public boolean next() throws SQLException {
         this.checkClosed();
-        ++currentRowNumber;
-        if(currentRowNumber < resultRowSize){
-            return true;
-        } else {
+        boolean hasNext = cursor.next();
+        currentRowNumber = cursor.getCurrentRowNumber();
+        if (!hasNext) {
             currentRow = null;
-            return false;
         }
+        return hasNext;
     }
 
     @Override
@@ -222,15 +222,13 @@ public class NebulaResultSet implements java.sql.ResultSet {
     }
 
     public void checkResultSetCursor() throws SQLException {
-        if(currentRowNumber > resultRowSize || currentRowNumber < 0){
-            throw new SQLException(String.format("The cursor of ResultSet is in invalid position [%d] (count from 0), please check it.", currentRowNumber));
-        }
+        cursor.checkReadable();
     }
 
     @Override
     public boolean wasNull() throws SQLException {
         this.checkClosed();
-        return this.lastColumnAccess.isNull();
+        return cursor.wasNull();
     }
 
     /** some getter methods */
@@ -238,10 +236,11 @@ public class NebulaResultSet implements java.sql.ResultSet {
     @Override
     public Object getObject(int columnIndex) throws SQLException {
         this.checkClosed();
-        checkResultSetCursor();
+        cursor.checkReadable();
         checkIndex(columnIndex);
-        currentRow = nativeNebulaResultSet.rowValues(currentRowNumber);
+        currentRow = nativeNebulaResultSet.rowValues(cursor.getCurrentRowNumber());
         ValueWrapper result = currentRow.get(columnIndex - 1);
+        cursor.recordColumnAccess(result);
         this.lastColumnAccess = result;
         return result;
     }

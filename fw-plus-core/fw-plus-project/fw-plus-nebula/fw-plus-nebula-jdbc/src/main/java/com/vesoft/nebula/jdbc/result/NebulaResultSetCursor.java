@@ -6,38 +6,54 @@ import java.sql.SQLException;
 
 public class NebulaResultSetCursor {
     private final int rowCount;
-    private int rowIndex = -1;
-    private Boolean lastColumnWasNull;
+    private int currentRowNumber = -1;
+    private boolean afterLast = false;
+    private ValueWrapper lastColumnAccess;
+    private boolean hasColumnAccess = false;
 
     public NebulaResultSetCursor(int rowCount) {
         this.rowCount = Math.max(rowCount, 0);
     }
 
     public boolean next() {
-        lastColumnWasNull = null;
-        if (rowIndex < rowCount) {
-            rowIndex++;
+        clearColumnAccess();
+        if (currentRowNumber + 1 < rowCount) {
+            currentRowNumber++;
+            afterLast = false;
+            return true;
         }
-        return rowIndex >= 0 && rowIndex < rowCount;
+        currentRowNumber = rowCount;
+        afterLast = true;
+        return false;
+    }
+
+    public int getCurrentRowNumber() {
+        return currentRowNumber;
     }
 
     public void checkReadable() throws SQLException {
-        if (rowIndex < 0) {
+        if (currentRowNumber < 0) {
             throw new SQLException("ResultSet cursor is before first row.");
         }
-        if (rowIndex >= rowCount) {
+        if (afterLast || currentRowNumber >= rowCount) {
             throw new SQLException("ResultSet cursor is after last row.");
         }
     }
 
     public void recordColumnAccess(ValueWrapper value) {
-        lastColumnWasNull = value == null || value.isNull();
+        lastColumnAccess = value;
+        hasColumnAccess = true;
     }
 
     public boolean wasNull() throws SQLException {
-        if (lastColumnWasNull == null) {
-            throw new SQLException("No column has been read before wasNull().");
+        if (!hasColumnAccess) {
+            throw new SQLException("wasNull() requires a previous column access.");
         }
-        return lastColumnWasNull;
+        return lastColumnAccess == null || lastColumnAccess.isNull();
+    }
+
+    private void clearColumnAccess() {
+        lastColumnAccess = null;
+        hasColumnAccess = false;
     }
 }
