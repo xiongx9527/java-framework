@@ -14,19 +14,23 @@ import com.vesoft.nebula.jdbc.config.NebulaConnectionConfig;
 
 import java.net.UnknownHostException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
 
 public class NebulaClientFacade implements AutoCloseable {
-    private final NebulaPool pool;
+    private final NebulaPoolFactory poolFactory;
+    private NebulaPool pool;
     private Session session;
     private boolean closed;
 
     public NebulaClientFacade() {
-        this(new NebulaPool());
+        this(new NebulaPoolFactory());
+    }
+
+    NebulaClientFacade(NebulaPoolFactory poolFactory) {
+        this.poolFactory = poolFactory;
     }
 
     public NebulaClientFacade(NebulaPool pool) {
+        this.poolFactory = null;
         this.pool = pool;
     }
 
@@ -41,8 +45,11 @@ public class NebulaClientFacade implements AutoCloseable {
 
         Session openedSession = null;
         boolean poolInitialized = false;
+        if (poolFactory != null) {
+            pool = poolFactory.create();
+        }
         try {
-            poolInitialized = pool.init(parseAddresses(config.getGraphAddress()), poolConfig);
+            poolInitialized = pool.init(config.getGraphAddresses(), poolConfig);
             if (!poolInitialized) {
                 poolInitialized = true;
                 throw new SQLException("Initialize Nebula graph pool failed for graphAddress: " + config.getGraphAddress());
@@ -88,7 +95,9 @@ public class NebulaClientFacade implements AutoCloseable {
         if (session != null) {
             session.release();
         }
-        pool.close();
+        if (pool != null) {
+            pool.close();
+        }
     }
 
     private void releaseFailedOpen(Session openedSession, boolean poolInitialized) {
@@ -100,23 +109,7 @@ public class NebulaClientFacade implements AutoCloseable {
         }
     }
 
-    private static List<HostAddress> parseAddresses(String graphAddress) throws SQLException {
-        if (graphAddress == null || !graphAddress.startsWith("//")) {
-            throw new SQLException("graphAddress must start with //");
-        }
-        String[] addressParts = graphAddress.substring(2).split(",");
-        List<HostAddress> addresses = new ArrayList<>();
-        for (String addressPart : addressParts) {
-            String[] hostPort = addressPart.split(":");
-            if (hostPort.length != 2) {
-                throw new SQLException("graphAddress has wrong host format.");
-            }
-            try {
-                addresses.add(new HostAddress(hostPort[0], Integer.parseInt(hostPort[1])));
-            } catch (NumberFormatException exception) {
-                throw new SQLException("Invalid graphAddress port in address: " + addressPart, exception);
-            }
-        }
-        return addresses;
+    public boolean isClosed() {
+        return closed;
     }
 }

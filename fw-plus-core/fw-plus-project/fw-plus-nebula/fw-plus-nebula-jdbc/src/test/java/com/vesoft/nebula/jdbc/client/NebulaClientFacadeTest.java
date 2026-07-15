@@ -11,7 +11,9 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -143,6 +145,25 @@ public class NebulaClientFacadeTest {
     }
 
     @Test
+    public void defaultConstructorShouldCreatePoolThroughFactoryWhenOpening() throws Exception {
+        NebulaPool pool = mock(NebulaPool.class);
+        Session session = mock(Session.class);
+        ResultSet useResult = successfulResult();
+        NebulaPoolFactory factory = mock(NebulaPoolFactory.class);
+        NebulaClientFacade facade = new NebulaClientFacade(factory);
+
+        when(factory.create()).thenReturn(pool);
+        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
+        when(pool.getSession("root", "nebula", true)).thenReturn(session);
+        when(session.execute("use test_space")).thenReturn(useResult);
+
+        facade.open(config());
+
+        verify(factory).create();
+        verify(pool).init(any(List.class), any(NebulaPoolConfig.class));
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     public void openShouldThrowSQLExceptionAndClosePoolWhenPoolInitReturnsFalse() throws Exception {
         NebulaPool pool = mock(NebulaPool.class);
@@ -224,22 +245,14 @@ public class NebulaClientFacadeTest {
         }
     }
 
-    @Test
-    public void openShouldWrapNonNumericGraphAddressPortAsSQLException() throws Exception {
-        NebulaClientFacade facade = new NebulaClientFacade(mock(NebulaPool.class));
-        NebulaConnectionConfig invalidConfig = new NebulaConnectionConfig("//127.0.0.1:not-a-port", "test_space", "root", "nebula", 2, 11, 1000, 2000, 3000, 4000);
-
-        try {
-            facade.open(invalidConfig);
-            fail("Expected SQLException");
-        } catch (SQLException exception) {
-            assertTrue(exception.getMessage().contains("graphAddress"));
-            assertTrue(exception.getMessage().contains("127.0.0.1:not-a-port"));
-        }
-    }
-
     private static NebulaConnectionConfig config() {
-        return new NebulaConnectionConfig("//127.0.0.1:9669", "test_space", "root", "nebula", 2, 11, 1000, 2000, 3000, 4000);
+        Properties mergedProperties = new Properties();
+        mergedProperties.setProperty("graphspace", "test_space");
+        mergedProperties.setProperty("user", "root");
+        mergedProperties.setProperty("password", "nebula");
+        return new NebulaConnectionConfig("test_space", "root", "nebula",
+                Collections.singletonList(new HostAddress("127.0.0.1", 9669)),
+                2, 11, 1000, 2000, 3000, 4000, mergedProperties);
     }
 
     private static ResultSet successfulResult() {

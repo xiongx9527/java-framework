@@ -1,9 +1,12 @@
 package com.vesoft.nebula.jdbc.config;
 
+import com.vesoft.nebula.client.graph.data.HostAddress;
 import com.vesoft.nebula.jdbc.utils.NebulaJdbcUrlParser;
 import com.vesoft.nebula.jdbc.utils.NebulaPropertyKey;
 
 import java.sql.SQLException;
+import java.util.Map;
+import java.util.List;
 import java.util.Properties;
 
 public final class NebulaConnectionConfigParser {
@@ -13,23 +16,27 @@ public final class NebulaConnectionConfigParser {
     public static NebulaConnectionConfig parse(String url, Properties properties) throws SQLException {
         Properties input = properties == null ? new Properties() : properties;
         Properties parsed;
+        List<HostAddress> addresses;
         try {
             parsed = NebulaJdbcUrlParser.parse(url, input);
+            addresses = NebulaJdbcUrlParser.getAddresses(url);
         } catch (Exception exception) {
             throw new SQLException(exception);
         }
 
+        Properties mergedProperties = flatten(parsed);
         return new NebulaConnectionConfig(
-                stringValue(parsed, NebulaPropertyKey.DBADDRESS.getKeyName()),
-                stringValue(parsed, NebulaPropertyKey.DBNAME.getKeyName()),
-                stringValue(parsed, NebulaPropertyKey.USER.getKeyName()),
-                stringValue(parsed, NebulaPropertyKey.PASSWORD.getKeyName()),
-                intValue(parsed, NebulaPropertyKey.MINCONNSSIZE.getKeyName(), 0),
-                intValue(parsed, NebulaPropertyKey.MAXCONNSSIZE.getKeyName(), 10),
-                intValue(parsed, NebulaPropertyKey.TIMEOUT.getKeyName(), 0),
-                intValue(parsed, NebulaPropertyKey.IDLETIME.getKeyName(), 0),
-                intValue(parsed, NebulaPropertyKey.INTERVALIDLE.getKeyName(), -1),
-                intValue(parsed, NebulaPropertyKey.WAITTIME.getKeyName(), 0)
+                stringValue(mergedProperties, NebulaPropertyKey.DBNAME.getKeyName()),
+                stringValue(mergedProperties, NebulaPropertyKey.USER.getKeyName()),
+                stringValue(mergedProperties, NebulaPropertyKey.PASSWORD.getKeyName()),
+                addresses,
+                parseInt(mergedProperties, NebulaPropertyKey.MINCONNSSIZE, 0),
+                parseInt(mergedProperties, NebulaPropertyKey.MAXCONNSSIZE, 10),
+                parseInt(mergedProperties, NebulaPropertyKey.TIMEOUT, 0),
+                parseInt(mergedProperties, NebulaPropertyKey.IDLETIME, 0),
+                parseInt(mergedProperties, NebulaPropertyKey.INTERVALIDLE, -1),
+                parseInt(mergedProperties, NebulaPropertyKey.WAITTIME, 0),
+                mergedProperties
         );
     }
 
@@ -38,8 +45,20 @@ public final class NebulaConnectionConfigParser {
         return value == null ? null : String.valueOf(value);
     }
 
-    private static int intValue(Properties properties, String key, int defaultValue) throws SQLException {
-        Object value = value(properties, key);
+    private static Properties flatten(Properties properties) {
+        Properties flattened = new Properties();
+        for (String propertyName : properties.stringPropertyNames()) {
+            flattened.setProperty(propertyName, properties.getProperty(propertyName));
+        }
+        for (Map.Entry<Object, Object> entry : properties.entrySet()) {
+            flattened.put(entry.getKey(), entry.getValue());
+        }
+        return flattened;
+    }
+
+    private static int parseInt(Properties properties, NebulaPropertyKey key, int defaultValue) throws SQLException {
+        String keyName = key.getKeyName();
+        Object value = value(properties, keyName);
         if (value == null) {
             return defaultValue;
         }
@@ -48,12 +67,12 @@ public final class NebulaConnectionConfigParser {
         }
         String text = String.valueOf(value).trim();
         if (text.isEmpty()) {
-            throw new SQLException("Invalid numeric property " + key + ": blank value");
+            throw new SQLException("Invalid numeric property " + keyName + ": blank value");
         }
         try {
             return Integer.parseInt(text);
         } catch (NumberFormatException exception) {
-            throw new SQLException("Invalid numeric property " + key + ": " + value, exception);
+            throw new SQLException("Invalid numeric property " + keyName + ": " + value, exception);
         }
     }
 
