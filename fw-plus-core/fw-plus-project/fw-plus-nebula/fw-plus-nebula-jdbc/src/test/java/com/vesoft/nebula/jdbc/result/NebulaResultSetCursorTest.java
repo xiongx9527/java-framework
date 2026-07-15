@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.sql.SQLException;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -41,7 +42,7 @@ public class NebulaResultSetCursorTest {
         NebulaResultSetCursor cursor = new NebulaResultSetCursor(0);
 
         assertFalse(cursor.next());
-        assertTrue(cursor.getCurrentRowNumber() == 0);
+        assertEquals(0, cursor.getCurrentRowNumber());
         assertUnreadable(cursor, "after");
     }
 
@@ -50,11 +51,11 @@ public class NebulaResultSetCursorTest {
         NebulaResultSetCursor cursor = new NebulaResultSetCursor(2);
 
         assertTrue(cursor.next());
-        assertTrue(cursor.getCurrentRowNumber() == 0);
+        assertEquals(0, cursor.getCurrentRowNumber());
         assertTrue(cursor.next());
-        assertTrue(cursor.getCurrentRowNumber() == 1);
+        assertEquals(1, cursor.getCurrentRowNumber());
         assertFalse(cursor.next());
-        assertTrue(cursor.getCurrentRowNumber() == 2);
+        assertEquals(2, cursor.getCurrentRowNumber());
     }
 
     @Test
