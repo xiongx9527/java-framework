@@ -852,7 +852,7 @@ git commit -m "chore: mark nebula result set task complete"
 
 **提交边界建议:** `chore: complete nebula jdbc stability tasks`
 
-- [ ] **Step 1: 运行模块测试**
+- [x] **Step 1: 运行模块测试**
 
 Run:
 
@@ -874,7 +874,7 @@ Expected: PASS。
 
 若出现测试失败或构建失败，必须按 Comet 规则加载 `systematic-debugging` skill，先定位根因，再修复。
 
-- [ ] **Step 2: 检查变更范围不越界**
+- [x] **Step 2: 检查变更范围不越界**
 
 Run:
 
@@ -898,7 +898,7 @@ fw-plus-ai/
 fw-plus-product/
 ```
 
-- [ ] **Step 3: 检查未引入非目标能力**
+- [x] **Step 3: 检查未引入非目标能力**
 
 Run:
 
@@ -913,7 +913,7 @@ git -C /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework diff 85908d71d9
 - 没有真实 NebulaGraph 集成测试、Testcontainers、外部服务地址依赖。
 - 没有 Nebula Java client 大版本升级。
 
-- [ ] **Step 4: 勾选测试与验证相关 OpenSpec tasks**
+- [x] **Step 4: 勾选测试与验证相关 OpenSpec tasks**
 
 在 Task 1–5 的测试和提交均完成后，编辑 `openspec/changes/stabilize-nebula-jdbc/tasks.md` 勾选：
 
@@ -929,7 +929,7 @@ git -C /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework diff 85908d71d9
 
 注意：`4.3 更新任务勾选并准备进入 Comet design 阶段` 原文疑似阶段名写错。执行时若当前 Comet 状态仍为 build，应理解为“准备进入 Comet verify 阶段”；不要手工改 OpenSpec task 文案，除非用户明确要求修正文案。
 
-- [ ] **Step 5: 勾选 OpenSpec task 4.3**
+- [x] **Step 5: 勾选 OpenSpec task 4.3**
 
 确认所有 tasks 已完成后，勾选：
 
@@ -937,14 +937,14 @@ git -C /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework diff 85908d71d9
 - [x] 4.3 更新任务勾选并准备进入 Comet design 阶段
 ```
 
-- [ ] **Step 6: 提交收尾勾选**
+- [x] **Step 6: 提交收尾勾选**
 
 ```bash
 git add openspec/changes/stabilize-nebula-jdbc/tasks.md
 git commit -m "chore: complete nebula jdbc stability tasks"
 ```
 
-- [ ] **Step 7: 进入 build guard 前检查**
+- [x] **Step 7: 进入 build guard 前检查**
 
 Run:
 
@@ -958,9 +958,9 @@ Expected: clean。
 
 ## 自检清单
 
-- [ ] 覆盖 Design Doc 第 4.1–4.6 节：配置、parser、client façade、lifecycle、statement classifier、result cursor。
-- [ ] 覆盖 Design Doc 第 8.1–8.6 测试策略。
-- [ ] 覆盖 OpenSpec tasks 1.1–1.5、2.1–2.3、3.1–3.3、4.1–4.3。
-- [ ] 无 SQL 转 nGQL、MySQL wire protocol、跨层改动、真实 NebulaGraph 集成测试。
-- [ ] 每个 task 均有目标、涉及文件/组件、验证方式、提交边界建议。
-- [ ] 每个实现 task 完成后才勾选对应 OpenSpec task，并单独提交。
+- [x] 覆盖 Design Doc 第 4.1–4.6 节：配置、parser、client façade、lifecycle、statement classifier、result cursor。
+- [x] 覆盖 Design Doc 第 8.1–8.6 测试策略。
+- [x] 覆盖 OpenSpec tasks 1.1–1.5、2.1–2.3、3.1–3.3、4.1–4.3。
+- [x] 无 SQL 转 nGQL、MySQL wire protocol、跨层改动、真实 NebulaGraph 集成测试。
+- [x] 每个 task 均有目标、涉及文件/组件、验证方式、提交边界建议。
+- [x] 每个实现 task 完成后才勾选对应 OpenSpec task，并单独提交。
