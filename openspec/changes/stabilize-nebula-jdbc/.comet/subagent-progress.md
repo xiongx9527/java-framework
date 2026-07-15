@@ -120,3 +120,15 @@
 - implementation_result: DONE commit 4cccc63; wrapper failed due missing fw-plus-core/.mvn/wrapper files, system Maven with Java 8 passed module tests 49/49; scope and non-goal checks completed; commit contains only plan/tasks checkoffs.
 - task_review: Approved. No Critical/Important. Minor: report did not include git status --short output and Maven wrapper remains unavailable; reviewer accepted as non-blocking.
 - task_acceptance: Task 6 accepted; plan Step 1-7, self-checklist, and OpenSpec tasks 4.1-4.3 checked off.
+
+---
+
+## Final Review and Fixes
+
+- final_review: With fixes. No Critical. Important findings: range drift in current review range; Properties.defaults reflection in NebulaConnectionConfigParser; NebulaClientFacade open-failure cleanup state.
+- final_review_decision:
+  - range_drift: accepted as branch/range hygiene risk, not code defect; unrelated paths (.gitignore, fw-plus-ai/.claude/skills, .superpowers task reports) are pre-existing non-target commits/process artifacts and must be handled by integration strategy (cherry-pick/split/explicit maintainer acceptance), not by reverting inside stabilize-nebula-jdbc code fix.
+  - code_important_fix: required before build completion.
+- final_fix: DONE commit 1cb4ecd; RED parser source reflection guard failed and facade open-failure closed-state tests failed; GREEN parser 9/9, facade 13/13, focused 22/22, module 52/52.
+- final_fix_review: Approved. No Critical/Important/Minor. Reviewer confirmed Properties.defaults reflection removed and NebulaClientFacade failed-open cleanup enters safe closed state without repeated release/close.
+- fresh_verification: 2026-07-16 system Maven with Java 8 ran `mvn -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc test`; module result 52 tests, 0 failures, 0 errors, BUILD SUCCESS.
