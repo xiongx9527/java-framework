@@ -96,3 +96,27 @@
 - active_dispatch: Task 5 fix DONE commit 545cc91; RED cursor movement test failed for split cursor state, GREEN focused movement 5/5, lifecycle+cursor 23/23, module tests 49/49.
 - task_review_rerun: Approved. No Critical/Important/Minor. Reviewer confirmed NebulaResultSet movement, status, getObject, wasNull, getRow, isBeforeFirst and isAfterLast share NebulaResultSetCursor state.
 - task_acceptance: Task 5 accepted; plan Step 1-6 and OpenSpec task 3.3 checked off.
+
+---
+
+## Task 6 Dispatch
+
+- review_mode: standard
+- tdd_mode: tdd
+- build_mode: subagent-driven-development
+- phase: implementation
+- current_plan_task: Task 6: 模块验证与收尾
+- mapped_openspec_tasks:
+  - 4.1 运行 `fw-plus-nebula-jdbc` 模块测试并修复失败
+  - 4.2 检查变更不引入 SQL 转 nGQL、MySQL wire protocol 或跨层改动
+  - 4.3 更新任务勾选并准备进入 Comet design 阶段
+- task_brief: .superpowers/sdd/task-6-brief.md
+- implementer_report: .superpowers/sdd/task-6-report.md
+- dependency_context:
+  - Tasks 1-5 accepted and committed through 652f525.
+  - Task 5 final module test evidence from implementer: 49/49 passing with Java 8 system Maven due missing Maven wrapper files.
+- stage_evidence:
+  - dispatched: pending Task 6 implementer; base commit 652f525; brief .superpowers/sdd/task-6-brief.md; report .superpowers/sdd/task-6-report.md
+- implementation_result: DONE commit 4cccc63; wrapper failed due missing fw-plus-core/.mvn/wrapper files, system Maven with Java 8 passed module tests 49/49; scope and non-goal checks completed; commit contains only plan/tasks checkoffs.
+- task_review: Approved. No Critical/Important. Minor: report did not include git status --short output and Maven wrapper remains unavailable; reviewer accepted as non-blocking.
+- task_acceptance: Task 6 accepted; plan Step 1-7, self-checklist, and OpenSpec tasks 4.1-4.3 checked off.
