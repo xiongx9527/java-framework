@@ -7,6 +7,7 @@ package com.vesoft.nebula.jdbc.statement;
 
 import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.NebulaResultSet;
+import com.vesoft.nebula.jdbc.lifecycle.NebulaResourceLifecycle;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,7 +26,7 @@ public class NebulaStatementImpl implements NebulaStatement {
     protected NebulaConnection nebulaConnection;
     protected boolean isExecuteSucceed;
     protected ResultSet currentResultSet;
-    protected boolean isClosed = false;
+    protected final NebulaResourceLifecycle lifecycle = new NebulaResourceLifecycle();
 
     public NebulaStatementImpl(NebulaConnection connection) {
         this.nebulaConnection = connection;
@@ -70,6 +71,7 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     @Override
     public NebulaConnection getConnection() throws SQLException {
+        this.checkClosed();
         return this.nebulaConnection;
     }
 
@@ -114,26 +116,30 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     @Override
     public void close() throws SQLException {
-        this.isClosed = true;
+        lifecycle.close(new NebulaResourceLifecycle.ThrowingCloseAction() {
+            @Override
+            public void close() throws SQLException {
+                currentResultSet = null;
+            }
+        });
     }
 
     @Override
     public boolean isClosed() throws SQLException {
-        return this.isClosed;
+        return lifecycle.isClosed();
     }
 
 
     @Override
     public void checkClosed() throws SQLException {
-        if(this.isClosed){
-            throw new SQLException("Statement already closed.");
-        }
+        lifecycle.checkOpen("Statement");
     }
 
 
 
     @Override
     public ResultSet getResultSet() throws SQLException {
+        this.checkClosed();
         if(this.currentResultSet != null){
             log.debug("Method getResultSet() should be called only once per result, " +
                     "after it was called, the currentResultSet will be set to null.");
@@ -147,16 +153,19 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     @Override
     public int getResultSetHoldability() throws SQLException {
+        this.checkClosed();
         return this.currentResultSet.getHoldability();
     }
 
     @Override
     public int getResultSetConcurrency() throws SQLException {
+        this.checkClosed();
         return this.currentResultSet.getConcurrency();
     }
 
     @Override
     public int getResultSetType() throws SQLException {
+        this.checkClosed();
         return this.currentResultSet.getType();
     }
 
