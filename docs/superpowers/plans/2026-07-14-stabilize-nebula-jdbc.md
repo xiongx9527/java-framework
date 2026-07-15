@@ -2,6 +2,7 @@
 change: stabilize-nebula-jdbc
 design-doc: docs/superpowers/specs/2026-07-14-stabilize-nebula-jdbc-design.md
 base-ref: 85908d71d9146167f277cae498c5d0954d986e25
+archived-with: 2026-07-15-stabilize-nebula-jdbc
 ---
 
 # stabilize-nebula-jdbc Implementation Plan
@@ -28,6 +29,7 @@ base-ref: 85908d71d9146167f277cae498c5d0954d986e25
 - 每个 OpenSpec task 完成验收后再勾选 `openspec/changes/stabilize-nebula-jdbc/tasks.md`；本计划阶段不勾选任务。
 - Comet build 阶段每个 task 验收后应立即按任务边界提交，不积攒多个任务一起提交。
 
+archived-with: 2026-07-15-stabilize-nebula-jdbc
 ---
 
 ## 参考依据
@@ -964,3 +966,4 @@ Expected: clean。
 - [x] 无 SQL 转 nGQL、MySQL wire protocol、跨层改动、真实 NebulaGraph 集成测试。
 - [x] 每个 task 均有目标、涉及文件/组件、验证方式、提交边界建议。
 - [x] 每个实现 task 完成后才勾选对应 OpenSpec task，并单独提交。
+

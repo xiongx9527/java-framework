@@ -4,5 +4,6 @@
   "openspec_tasks": "openspec/changes/stabilize-nebula-jdbc/tasks.md",
   "openspec_delta_spec": "openspec/changes/stabilize-nebula-jdbc/specs/nebula-jdbc-stability/spec.md",
   "handoff_context": "openspec/changes/stabilize-nebula-jdbc/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/stabilize-nebula-jdbc/.comet/handoff/design-context.md"
+  "handoff_markdown": "openspec/changes/stabilize-nebula-jdbc/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-15-stabilize-nebula-jdbc"
 }
