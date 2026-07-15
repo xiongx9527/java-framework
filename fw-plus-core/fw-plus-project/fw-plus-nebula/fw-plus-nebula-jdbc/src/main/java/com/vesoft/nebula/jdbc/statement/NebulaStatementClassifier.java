@@ -17,36 +17,38 @@ public final class NebulaStatementClassifier {
     }
 
     public static void checkQuery(String ngql) throws SQLException {
-        String leadingKeyword = leadingKeyword(ngql);
-        if (UPDATE_KEYWORDS.contains(leadingKeyword)) {
-            throw new SQLException("Query nGql must not contain update keyword: " + leadingKeyword);
+        List<String> tokens = tokenize(ngql);
+        for (String token : tokens) {
+            if (UPDATE_KEYWORDS.contains(token)) {
+                throw new SQLException("Query nGql must not contain update keyword: " + token);
+            }
         }
-        if (QUERY_KEYWORDS.contains(leadingKeyword)) {
-            return;
+        for (String token : tokens) {
+            if (QUERY_KEYWORDS.contains(token)) {
+                return;
+            }
         }
         throw new SQLException("Query nGql must contain a query keyword: " + QUERY_KEYWORDS);
     }
 
     public static void checkUpdate(String ngql) throws SQLException {
-        String leadingKeyword = leadingKeyword(ngql);
-        if (QUERY_KEYWORDS.contains(leadingKeyword)) {
-            throw new SQLException("Update nGql must not contain query keyword: " + leadingKeyword);
-        }
-        if (UPDATE_KEYWORDS.contains(leadingKeyword)) {
-            return;
+        List<String> tokens = tokenize(ngql);
+        for (String token : tokens) {
+            if (UPDATE_KEYWORDS.contains(token)) {
+                return;
+            }
         }
         throw new SQLException("Update nGql must contain an update keyword: " + UPDATE_KEYWORDS);
     }
 
-    private static String leadingKeyword(String ngql) throws SQLException {
-        List<String> tokens = tokens(ngql);
-        return tokens.get(0);
-    }
-
-    private static List<String> tokens(String ngql) throws SQLException {
-        if (ngql == null || ngql.trim().isEmpty()) {
-            throw new SQLException("nGql must not be null or blank");
+    private static List<String> tokenize(String ngql) throws SQLException {
+        if (ngql == null) {
+            throw new SQLException("nGQL must not be null.");
         }
-        return Arrays.asList(ngql.toLowerCase(Locale.ROOT).trim().split("\\s+|(?=[(),])|(?<=[(),])"));
+        String normalized = ngql.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
+        if (normalized.isEmpty()) {
+            throw new SQLException("nGQL must not be blank.");
+        }
+        return Arrays.asList(normalized.split(" "));
     }
 }
