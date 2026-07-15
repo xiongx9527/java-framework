@@ -17,28 +17,22 @@ public final class NebulaStatementClassifier {
     }
 
     public static void checkQuery(String ngql) throws SQLException {
-        List<String> tokens = tokenize(ngql);
-        for (String token : tokens) {
-            if (UPDATE_KEYWORDS.contains(token)) {
-                throw new SQLException("Query nGql must not contain update keyword: " + token);
-            }
+        String leadingToken = tokenize(ngql).get(0);
+        if (UPDATE_KEYWORDS.contains(leadingToken)) {
+            throw new SQLException("Query nGql must not start with update keyword: " + leadingToken);
         }
-        for (String token : tokens) {
-            if (QUERY_KEYWORDS.contains(token)) {
-                return;
-            }
+        if (QUERY_KEYWORDS.contains(leadingToken)) {
+            return;
         }
-        throw new SQLException("Query nGql must contain a query keyword: " + QUERY_KEYWORDS);
+        throw new SQLException("Query nGql must start with a query keyword: " + QUERY_KEYWORDS);
     }
 
     public static void checkUpdate(String ngql) throws SQLException {
-        List<String> tokens = tokenize(ngql);
-        for (String token : tokens) {
-            if (UPDATE_KEYWORDS.contains(token)) {
-                return;
-            }
+        String leadingToken = tokenize(ngql).get(0);
+        if (UPDATE_KEYWORDS.contains(leadingToken)) {
+            return;
         }
-        throw new SQLException("Update nGql must contain an update keyword: " + UPDATE_KEYWORDS);
+        throw new SQLException("Update nGql must start with an update keyword: " + UPDATE_KEYWORDS);
     }
 
     private static List<String> tokenize(String ngql) throws SQLException {
