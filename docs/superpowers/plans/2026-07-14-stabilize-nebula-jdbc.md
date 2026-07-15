@@ -331,7 +331,7 @@ git commit -m "test: add nebula jdbc stability baseline tests"
 
 **提交边界建议:** `fix: stabilize nebula jdbc connection config`
 
-- [ ] **Step 1: 实现 NebulaConnectionConfig**
+- [x] **Step 1: 实现 NebulaConnectionConfig**
 
 创建不可变配置对象。字段使用 `private final`，构造时复制 `Properties`，`getMergedProperties()` 返回副本，避免调用方修改单一事实源。
 
@@ -351,7 +351,7 @@ private final int waitTime;
 private final Properties mergedProperties;
 ```
 
-- [ ] **Step 2: 实现 NebulaConnectionConfigParser.parse**
+- [x] **Step 2: 实现 NebulaConnectionConfigParser.parse**
 
 解析流程必须与 Design Doc 4.2 一致：
 
@@ -384,7 +384,7 @@ private static int parseInt(Properties properties, NebulaPropertyKey key, int de
 - `String` 先 `trim()`，空串抛 `SQLException`。
 - 非数字抛 `SQLException`，消息包含参数名和非法值。
 
-- [ ] **Step 3: 实现 NebulaPoolFactory 与 NebulaClientFacade**
+- [x] **Step 3: 实现 NebulaPoolFactory 与 NebulaClientFacade**
 
 `NebulaPoolFactory` 提供：
 
@@ -415,7 +415,7 @@ public NebulaPool create() {
 - 重复调用稳定。
 - 首次关闭释放 session 并关闭 pool。
 
-- [ ] **Step 4: 改造 NebulaConnection 使用配置与 façade**
+- [x] **Step 4: 改造 NebulaConnection 使用配置与 façade**
 
 替换当前构造器中混用原始 `properties` 的逻辑。关键行为：
 
@@ -438,7 +438,7 @@ return this.clientFacade.executeNgql(nGql);
 
 保留 `getConnectionConfig()` 返回 `Properties` 的兼容行为。
 
-- [ ] **Step 5: 运行配置与 façade 测试**
+- [x] **Step 5: 运行配置与 façade 测试**
 
 Run:
 
@@ -449,7 +449,7 @@ cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core
 
 Expected: PASS。
 
-- [ ] **Step 6: 提交配置稳定化改动**
+- [x] **Step 6: 提交配置稳定化改动**
 
 ```bash
 git add fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/vesoft/nebula/jdbc/config/NebulaConnectionConfig.java \
@@ -462,7 +462,7 @@ git add fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/ves
 git commit -m "fix: stabilize nebula jdbc connection config"
 ```
 
-- [ ] **Step 7: 勾选 OpenSpec tasks 2.1、2.2、2.3**
+- [x] **Step 7: 勾选 OpenSpec tasks 2.1、2.2、2.3**
 
 仅在本任务测试通过并提交后，编辑 `openspec/changes/stabilize-nebula-jdbc/tasks.md` 勾选：
 
