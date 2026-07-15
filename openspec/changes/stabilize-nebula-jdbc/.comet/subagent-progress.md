@@ -132,3 +132,4 @@
 - final_fix: DONE commit 1cb4ecd; RED parser source reflection guard failed and facade open-failure closed-state tests failed; GREEN parser 9/9, facade 13/13, focused 22/22, module 52/52.
 - final_fix_review: Approved. No Critical/Important/Minor. Reviewer confirmed Properties.defaults reflection removed and NebulaClientFacade failed-open cleanup enters safe closed state without repeated release/close.
 - fresh_verification: 2026-07-16 system Maven with Java 8 ran `mvn -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc test`; module result 52 tests, 0 failures, 0 errors, BUILD SUCCESS.
+- build_guard_debug: initial guard failed Build passes because repository root has no package.json/pom.xml/Cargo.toml for default inference; configured change-level build_command and verify_command to run fw-plus-nebula-jdbc module tests via fw-plus-core/pom.xml with Java 8.
