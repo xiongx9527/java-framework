@@ -199,3 +199,33 @@ mvn test -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaCon
 - `fw-plus-auth-satoken` POM 存在重复 `cn.dev33:sa-token-core` 依赖警告。
 - 最终回归测试中出现 SLF4J NOP logger 警告。
 - 以上均为既有环境/依赖警告，未影响本次目标测试通过。
+
+
+## Task 1 Review Fix - 2026-07-15
+
+Status: DONE
+
+修复内容:
+- 为 `NebulaStatementClassifier.checkQuery()` 增加首关键字未知但后续含 query keyword 的回归测试。
+- 将 `checkQuery()` 改为与 `checkUpdate()` 一致的首个有效语句关键字分类：首关键字为 update 时抛 query/update 类型错误；首关键字为 query 时接受；其它首关键字抛 query keyword 缺失/unknown 错误。
+
+RED 命令与失败摘要:
+- 命令: `cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && mvn test -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaStatementClassifierTest`
+- 结果: BUILD FAILURE；`NebulaStatementClassifierTest` Tests run: 7, Failures: 1, Errors: 0, Skipped: 0。
+- 失败摘要: `checkQueryShouldRejectUnknownLeadingKeywordEvenWhenQueryKeywordAppearsLater` 未收到预期 `SQLException`，证明旧实现会接受 `foo MATCH (v) RETURN v` / `select match from person`。
+
+GREEN 命令与通过摘要:
+- 命令: `cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && mvn test -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaStatementClassifierTest`
+- 结果: BUILD SUCCESS；Tests run: 7, Failures: 0, Errors: 0, Skipped: 0。
+- 最终回归命令: `cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && mvn test -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaConnectionConfigParserTest,NebulaStatementClassifierTest,NebulaResourceLifecycleTest,NebulaResultSetCursorTest,NebulaClientFacadeTest`
+- 最终回归结果: BUILD SUCCESS；Tests run: 29, Failures: 0, Errors: 0, Skipped: 0。
+
+变更文件:
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/vesoft/nebula/jdbc/statement/NebulaStatementClassifier.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/test/java/com/vesoft/nebula/jdbc/statement/NebulaStatementClassifierTest.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.superpowers/sdd/task-1-report.md`
+
+风险信号:
+- Maven settings 存在既有 warning：`Unrecognised tag: 'repository'`。
+- 聚合模型存在既有 warning：`fw-plus-auth-satoken` 重复声明 `cn.dev33:sa-token-core`。
+- 测试运行中出现既有 SLF4J NOP logger 提示与 deprecated API 编译提示；本次修复未改动相关区域。

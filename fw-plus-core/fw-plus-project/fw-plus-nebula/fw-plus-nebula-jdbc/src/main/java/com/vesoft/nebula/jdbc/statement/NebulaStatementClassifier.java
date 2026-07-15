@@ -17,16 +17,12 @@ public final class NebulaStatementClassifier {
     }
 
     public static void checkQuery(String ngql) throws SQLException {
-        Set<String> tokens = new HashSet<>(tokens(ngql));
-        for (String keyword : UPDATE_KEYWORDS) {
-            if (tokens.contains(keyword)) {
-                throw new SQLException("Query nGql must not contain update keyword: " + keyword);
-            }
+        String leadingKeyword = leadingKeyword(ngql);
+        if (UPDATE_KEYWORDS.contains(leadingKeyword)) {
+            throw new SQLException("Query nGql must not contain update keyword: " + leadingKeyword);
         }
-        for (String keyword : QUERY_KEYWORDS) {
-            if (tokens.contains(keyword)) {
-                return;
-            }
+        if (QUERY_KEYWORDS.contains(leadingKeyword)) {
+            return;
         }
         throw new SQLException("Query nGql must contain a query keyword: " + QUERY_KEYWORDS);
     }
