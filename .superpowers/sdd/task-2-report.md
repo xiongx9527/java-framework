@@ -61,3 +61,46 @@ cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && mvn
 - 构建环境：`./mvnw` wrapper 缺失，按 brief 使用系统 Maven 3.6.3；Maven settings 存在既有 `Unrecognised tag: 'repository'` 警告、`sa-token-core` 重复依赖警告、SLF4J binder 缺失警告，未影响测试通过。
 - 并发/生命周期：`NebulaClientFacade.close()` 和 `NebulaConnection.close()` 已保持重复调用稳定；更完整生命周期策略按 Task 3 继续收敛。
 - 异常处理：`executeNgql` 对 `IOErrorException` 保留 cause 包装为 `SQLException`；`use graphspace` 失败信息包含 graphspace、error code、error message。
+
+
+## Review Fix - Task 2 - 2026-07-15
+
+### Status
+DONE
+
+### 修复内容
+- 修复 `NebulaConnectionConfigParser` 在 URL query 存在时只 flatten parsed Properties 导致 input/defaults 链上的非 String pool 参数丢失的问题；现在先 flatten input/defaults 链，再用 URL query/current entries 覆盖，pool 参数继续从 merged properties 单一事实源读取。
+- 修复 `NebulaClientFacade.open` 在 `pool.init(...)` 抛 `UnknownHostException` 等异常时未关闭已创建 pool 的问题；失败清理改为基于 pool 是否已创建，不依赖 init 返回 true。
+- 修复空白数字参数的 `SQLException` 消息缺少实际非法值的问题；空白值消息现在包含字段名和原始空白值表示。
+
+### RED 命令与失败摘要
+命令：
+`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && mvn test -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaConnectionConfigParserTest,NebulaClientFacadeTest`
+
+失败摘要：
+- `parseShouldKeepNonStringPoolOptionsWhenUrlContainsQuery`: expected `<2>` but was `<0>`。
+- `parseShouldKeepNonStringPoolOptionsFromPropertiesDefaultsWhenUrlContainsQuery`: expected `<2>` but was `<0>`。
+- `parseShouldRejectBlankAndNonNumericPoolOptionsWithFieldName`: 空白值消息未包含原始非法值。
+- `openShouldCloseCreatedPoolWhenPoolInitThrowsBeforeReturning`: `nebulaPool.close()` 未被调用。
+
+### GREEN 命令与通过摘要
+命令：
+`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && mvn test -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaConnectionConfigParserTest,NebulaClientFacadeTest`
+
+通过摘要：`Tests run: 19, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+
+最终验证命令：
+`cd /Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core && mvn test -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaConnectionConfigParserTest,NebulaStatementClassifierTest,NebulaResourceLifecycleTest,NebulaResultSetCursorTest,NebulaClientFacadeTest`
+
+通过摘要：`Tests run: 33, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+
+### 变更文件
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/vesoft/nebula/jdbc/config/NebulaConnectionConfigParser.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/main/java/com/vesoft/nebula/jdbc/client/NebulaClientFacade.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/test/java/com/vesoft/nebula/jdbc/config/NebulaConnectionConfigParserTest.java`
+- `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/fw-plus-core/fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/test/java/com/vesoft/nebula/jdbc/client/NebulaClientFacadeTest.java`
+
+### 风险信号
+- Maven/settings 既有警告：settings.xml 存在无法识别的 `repository` 标签；`fw-plus-auth-satoken` 存在重复依赖声明。
+- 测试运行时既有 SLF4J NOP logger 提示。
+- `Properties.defaults` 需要通过反射 flatten；当前项目 Java 8 环境验证可访问，但未来强封装 JDK 需关注模块访问限制。

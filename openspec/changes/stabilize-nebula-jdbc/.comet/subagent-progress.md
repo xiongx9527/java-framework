@@ -64,3 +64,28 @@
 - active_dispatch: Task 4 fix DONE commit ffabaeb; RED classifier exposed illegal leading query acceptance, GREEN classifier 7/7 and lifecycle 12/12; classifier now uses first token for query/update decisions.
 - task_review_rerun: Approved. No Critical/Important/Minor. Reviewer confirmed classifier uses first token, rejects illegal leading types, preserves Statement closed-check priority, and diff excludes .superpowers/.comet artifacts.
 - task_acceptance: Task 4 accepted; plan Step 1-5 and OpenSpec task 3.2 checked off.
+
+---
+
+## Task 5 Dispatch
+
+- review_mode: standard
+- tdd_mode: tdd
+- build_mode: subagent-driven-development
+- phase: implementation
+- current_plan_task: Task 5: ResultSet 游标边界与 wasNull 稳定化
+- mapped_openspec_tasks:
+  - 3.3 改善 `NebulaResultSet` 游标边界和 `wasNull()` 的异常语义，避免非预期 NPE
+- task_brief: .superpowers/sdd/task-5-brief.md
+- implementer_report: .superpowers/sdd/task-5-report.md
+- dependency_context:
+  - Task 1 accepted and committed through 64e1b40; progress commit ba6adc1.
+  - Task 2 accepted and committed through bbe5e42; progress commit 4604bb4.
+  - Task 3 accepted and committed through 682f461; progress commit 580dfc9.
+  - Task 4 accepted and committed through ffabaeb; progress commit ac801f2.
+  - Task 5 must preserve Task 3 lifecycle behavior: closed ResultSet access must check closed before cursor/wasNull semantics.
+- stage_evidence:
+  - dispatched: pending Task 5 implementer; base commit ac801f2; brief .superpowers/sdd/task-5-brief.md; report .superpowers/sdd/task-5-report.md
+- implementation_result: DONE commit 5b057ba; RED cursor test failed for missing getCurrentRowNumber, GREEN cursor 6/6 and lifecycle+cursor 18/18; implementer noted mvnw wrapper missing and used system Maven; commit contains only Task 5 production/test files.
+- risk_signals: touches ResultSet cursor and wasNull semantics; must preserve Task 3 closed-check-before-cursor behavior; task-level review required under standard mode.
+- task_review: dispatched reviewer for diff .superpowers/sdd/review-ac801f2..5b057ba.diff.
