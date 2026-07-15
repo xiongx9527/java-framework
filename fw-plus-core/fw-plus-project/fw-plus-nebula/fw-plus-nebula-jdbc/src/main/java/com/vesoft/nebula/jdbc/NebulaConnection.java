@@ -159,8 +159,7 @@ public class NebulaConnection implements Connection {
         properties.setProperty(NebulaPropertyKey.DBNAME.getKeyName(), schema);
     }
 
-    public Properties getConnectionConfig() throws SQLException {
-        this.checkClosed();
+    public Properties getConnectionConfig() {
         return this.properties;
     }
 

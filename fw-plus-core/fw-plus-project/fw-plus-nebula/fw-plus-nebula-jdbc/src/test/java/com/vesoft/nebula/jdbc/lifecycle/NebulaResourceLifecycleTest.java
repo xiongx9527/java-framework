@@ -7,6 +7,7 @@ import com.vesoft.nebula.jdbc.utils.NebulaPropertyKey;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.SQLWarning;
@@ -149,6 +150,13 @@ public class NebulaResourceLifecycleTest {
     }
 
     @Test
+    public void connectionConfigAccessorShouldNotDeclareCheckedSQLException() throws Exception {
+        Method method = NebulaConnection.class.getMethod("getConnectionConfig");
+
+        assertEquals(0, method.getExceptionTypes().length);
+    }
+
+    @Test
     public void connectionImplementedAccessorsShouldRejectAccessAfterClose() throws Exception {
         NebulaConnection connection = closedConnection();
 
@@ -170,7 +178,6 @@ public class NebulaResourceLifecycleTest {
         assertClosedConnection(() -> connection.rollback((Savepoint) null));
         assertClosedConnection(() -> connection.getClientInfo());
         assertClosedConnection(() -> connection.getClientInfo("client"));
-        assertClosedConnection(() -> connection.getConnectionConfig());
     }
 
     @Test
