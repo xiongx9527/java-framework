@@ -1,5 +1,6 @@
 ## 1. 调研与架构决策
 
+- [ ] 1.0 读取 `define-nebula-sql-ast-coverage-matrix` 产出的 Druid AST 覆盖矩阵，并确认实现范围。
 - [ ] 1.1 评估自研 parser 与第三方 SQL parser 的兼容性、许可证、Java 8 支持和 AST 可控性。
 - [ ] 1.2 定义 SQL AST / 中间表示和错误模型。
 

@@ -18,6 +18,7 @@
 
 ## Impact
 
+- 依赖前置 change `define-nebula-sql-ast-coverage-matrix` 提供 Druid AST 覆盖矩阵和验收边界。
 
 - MySQL binlog、复制协议、存储过程和触发器不在本 change 内实现；这些能力由后续独立 changes 承接。
 - 影响 `fw-plus-nebula-jdbc` 或新建相邻 SQL 子包。

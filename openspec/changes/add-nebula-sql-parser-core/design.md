@@ -2,7 +2,7 @@
 
 本 change 属于 Nebula SQL / MySQL 协议支持路线的一部分。当前 `fw-plus-nebula-jdbc` 已具备稳定的 nGQL JDBC 基础能力，但完整 SQL 与 MySQL 协议能力需要分阶段建设。
 
-前置依赖：无前置 change；这是 SQL 与 MySQL 协议整体路线的基础。
+前置依赖：`define-nebula-sql-ast-coverage-matrix`。本 change 按该矩阵实现 Druid MySQL AST 到 Nebula AST 的完整 adapter。
 
 ## Goals / Non-Goals
 
@@ -23,7 +23,7 @@
 
 ## Decisions
 
-- 优先将 parser 输出设计为与执行层解耦的中间表示，避免 MySQL 协议、JDBC 和转换器直接依赖第三方 parser 具体 AST。
+- 按 `define-nebula-sql-ast-coverage-matrix` 的覆盖矩阵实现完整 adapter，parser 输出为与执行层解耦的中间表示，避免 MySQL 协议、JDBC 和转换器直接依赖 Druid AST。
 - SQL 方言能力采用分层白名单：parser 尽量完整表达复杂 SQL 结构，转换层再决定哪些语义可映射到 nGQL，不能映射时返回明确错误。
 - 错误模型使用 JDBC 可传播的异常类型或内部解析异常，并保留原始 SQL 与错误位置。
 
