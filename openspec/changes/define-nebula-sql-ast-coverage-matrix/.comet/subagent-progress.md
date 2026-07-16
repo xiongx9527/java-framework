@@ -15,7 +15,7 @@
 - Changed files: artifacts Markdown
 - Test evidence: JSON format exit 0; constructs coverage assertions exit 0; rg fact-source/raw-fallback/parser-core/Druid rules exit 0; openspec strict validate exit 0; git diff --check exit 0
 - Risk signals: SQL/parser/external-input/raw-fallback sensitive surface
-- Review status: final review found Critical/Important issues; final fix dispatched
+- Review status: final review Critical/Important issues fixed; final re-review pending
 - Fix rounds: 1
 
 ## Task 6 Review Feedback Resolution
@@ -39,6 +39,12 @@
 - Important: required entries for metadata / CREATE TABLE / DROP TABLE allow unsupported errors, conflicting with requiredBehavior.required.
 - Important: raw debug/trace policy lacks default-off, redaction, truncation, and parameter-value logging boundary.
 - Minor: Markdown field description still says categories/entries/reflectedCandidates are filled by later enumeration tasks.
+
+## Final Fix
+
+- Fix commit: ee65232
+- Changed files: artifacts JSON/Markdown
+- Verification: JSON parse PASS; Druid class existence PASS; matrix policy assertions PASS; Markdown rg PASS; OpenSpec strict PASS; git diff --check PASS
 
 ## Completed Task 5
 
