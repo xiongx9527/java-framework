@@ -82,12 +82,16 @@
     "sampleSqlDriven": true,
     "reflectionGapCheck": true,
     "reflectionGapCheckEvidence": {
-      "scanSource": "Druid 1.2.24 锁定 JAR 的 class 清单（jar tf）与当前 entries[].druidAstType 去重集合的双向核对。",
+      "scanSource": "先用 Druid 1.2.24 的 SQLUtils.parseStatements(exampleSql, JdbcConstants.MYSQL) 解析全部 23 条 entries[].exampleSql，再通过 SQLASTVisitorAdapter.preVisit 对每棵 AST 做递归遍历并收集运行时类名；随后将该集合与 entries[].druidAstType 和 reflectedCandidates[].className 交叉核对。另以锁定 JAR 的 jar tf 类清单核对候选类存在性。",
+      "sampleEntryCount": 23,
+      "actualAstClassCount": 39,
+      "actualAstTraversal": "每条样例 SQL 均以 MYSQL 方言解析；从每个 SQLStatement 调用 accept(visitor)，visitor 的 preVisit 记录每个访问到的 SQLObject 具体运行时类名。Druid visitor 负责递归下降，不依赖私有字段或字符串匹配。",
       "lockedJar": "/tmp/druid-1.2.24-review-check.jar",
       "jarCoordinate": "com.alibaba:druid:1.2.24",
       "jarSha256": "1db6e535ce91e4982f5d27882950e35811a3a3c7d58576c865b1cb088794fe0e",
-      "candidateSelection": "仅记录当前 parser-core acceptance boundary 涉及的 statement、queryShape 和 expression AST 类型；辅助/父类及不在 acceptance boundary 的类型不纳入本清单。",
-      "dispositionRule": "与 entries 关联的候选标记为 coveredByMatrix；当前路线明确拒绝的候选标记为 explicitlyUnsupported；已知但不进入当前实现的候选标记为 deferred。"
+      "jarUse": "该本地路径仅为本次临时核验输入；可移植证据是 Maven 坐标、SHA-256、解析方法和矩阵中的处置记录，复核时可从 Maven Central 重新取得同一坐标的 JAR。",
+      "candidateSelection": "reflectedCandidates 必须包含每个实际遍历得到但未作为 entries[].druidAstType 的运行时 AST 类；现有 entry 主类型也保留其处置记录。矩阵外的语句/查询/表源容器、字面量和标识符不能静默忽略。",
+      "dispositionRule": "coveredByMatrix 表示该类本身是 entry 主验收类型；coveredByContainingEntry 表示该类由关联 entry 的结构化输出递归消费，不单独扩张 acceptance entry；excludedInternalContainer 表示 DDL/DML 内部组装节点不构成独立 SQL 构造；excludedLiteralOrIdentifier 表示叶子字面量、通配符、标识符或属性引用由其父表达式保留结构化值，但不单列 adapter acceptance entry；explicitlyUnsupported 和 deferred 分别沿用对应 entry 的明确拒绝或延期边界。"
     },
     "packages": [
       "com.alibaba.druid.sql.ast",
@@ -572,6 +576,160 @@
       "status": "deferred",
       "entryId": "SQL-DEFERRED-TRIGGER",
       "reason": "CREATE TRIGGER 由未来独立 change 定义，不进入当前 parser-core 必做范围。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.SQLDataTypeImpl",
+      "status": "excludedInternalContainer",
+      "entryId": "SQL-STMT-CREATE-TABLE",
+      "reason": "CREATE TABLE 列定义中的具体数据类型载体由其父 DDL 节点递归消费，不构成独立 SQL 构造或 adapter acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.SQLLimit",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-SELECT-BASIC",
+      "reason": "LIMIT 是基础 SELECT 的已承诺结构化字段，由基础 SELECT adapter 递归输出，不单列验收 entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.SQLOrderBy",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-SELECT-BASIC",
+      "reason": "ORDER BY 容器由基础 SELECT 的结构化输出递归消费；排序语义已在该 entry 的 adapterRequirement 中承诺。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr",
+      "status": "coveredByContainingEntry",
+      "relatedEntryIds": [
+        "SQL-STMT-SELECT-BASIC",
+        "SQL-EXPR-BINARY",
+        "SQL-EXPR-PARAMETER",
+        "SQL-EXPR-IN",
+        "SQL-FRAMEWORK-DYNAMIC-WHERE"
+      ],
+      "reason": "SELECT * 投影由关联 SELECT 的选择列结构递归表达，不作为独立 SQL 构造或 adapter acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLCharExpr",
+      "status": "excludedLiteralOrIdentifier",
+      "entryId": "SQL-EXPR-BINARY",
+      "reason": "字符串字面量是父表达式的结构化叶子值；adapter 必须保留其类型和值边界，但无需为单一字面量建立 acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr",
+      "status": "excludedLiteralOrIdentifier",
+      "relatedEntryIds": [
+        "SQL-STMT-SELECT-BASIC",
+        "SQL-EXPR-BINARY",
+        "SQL-EXPR-ALIAS",
+        "SQL-QUERY-GROUP-HAVING"
+      ],
+      "reason": "列、表和别名标识符由其父语句或表达式以结构化名称递归消费；单一标识符不扩张为独立 adapter acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLIntegerExpr",
+      "status": "excludedLiteralOrIdentifier",
+      "relatedEntryIds": [
+        "SQL-STMT-SELECT-BASIC",
+        "SQL-FRAMEWORK-SELECT-ONE",
+        "SQL-FRAMEWORK-DYNAMIC-WHERE"
+      ],
+      "reason": "整数常量是 LIMIT、SELECT 1 和比较表达式的结构化叶子值，不单列为 adapter acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLPropertyExpr",
+      "status": "excludedLiteralOrIdentifier",
+      "entryId": "SQL-QUERY-JOIN",
+      "reason": "限定列引用如 p.id 由 JOIN/表达式 adapter 递归消费，不能作为独立 SQL 构造重复验收。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLAssignItem",
+      "status": "excludedInternalContainer",
+      "entryId": "SQL-DEFERRED-TRIGGER",
+      "reason": "触发器体中的赋值组装节点随其延期的 CREATE TRIGGER 处置，不形成当前路线的独立 acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLCharacterDataType",
+      "status": "excludedInternalContainer",
+      "entryId": "SQL-STMT-CREATE-TABLE",
+      "reason": "字符类型声明是 CREATE TABLE 列定义的内部组成，不是独立 SQL 构造。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLColumnDefinition",
+      "status": "excludedInternalContainer",
+      "entryId": "SQL-STMT-CREATE-TABLE",
+      "reason": "列定义由 CREATE TABLE adapter 作为 DDL 子结构递归消费，不单列 acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLColumnPrimaryKey",
+      "status": "excludedInternalContainer",
+      "entryId": "SQL-STMT-CREATE-TABLE",
+      "reason": "主键约束是列定义内部约束节点，由 CREATE TABLE 的结构化 DDL 输出承载。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLExprTableSource",
+      "status": "coveredByContainingEntry",
+      "relatedEntryIds": [
+        "SQL-STMT-SELECT-BASIC",
+        "SQL-QUERY-JOIN",
+        "SQL-STMT-INSERT",
+        "SQL-STMT-UPDATE",
+        "SQL-STMT-DELETE"
+      ],
+      "reason": "普通表源由关联语句和 JOIN 的数据源字段递归输出；它是容器，不单独定义 adapter acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLInsertStatement$ValuesClause",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-INSERT",
+      "reason": "INSERT VALUES 子句由 INSERT adapter 递归输出列与值，不作为独立 SQL 构造重复验收。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLSelect",
+      "status": "coveredByContainingEntry",
+      "relatedEntryIds": [
+        "SQL-STMT-SELECT-BASIC",
+        "SQL-QUERY-SUBQUERY",
+        "SQL-QUERY-UNION"
+      ],
+      "reason": "SQLSelect 是 SELECT 查询包装容器；其查询块、排序和 LIMIT 均由关联 entry 递归消费。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-SELECT-BASIC",
+      "reason": "排序项由 ORDER BY 容器和基础 SELECT 的结构化输出递归消费，不单列验收 entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLSelectStatement",
+      "status": "coveredByContainingEntry",
+      "relatedEntryIds": [
+        "SQL-STMT-SELECT-BASIC",
+        "SQL-FRAMEWORK-SELECT-ONE"
+      ],
+      "reason": "SQLSelectStatement 是顶层 SELECT 语句容器；实际适配边界由其查询块和查询结构 entry 定义。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLSetStatement",
+      "status": "excludedInternalContainer",
+      "entryId": "SQL-DEFERRED-TRIGGER",
+      "reason": "样例中该 SET 语句属于触发器体，随延期的 CREATE TRIGGER 处置，不形成独立 acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-UPDATE",
+      "reason": "UPDATE SET 项由 UPDATE adapter 递归输出赋值目标和值，不单列验收 entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-CREATE-TABLE",
+      "reason": "Druid 在 MYSQL 方言下为 CREATE TABLE 产出该具体子类；它由矩阵中的 CREATE TABLE 结构化 DDL entry 覆盖。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlExplainStatement",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-DESCRIBE",
+      "reason": "Druid 在 MYSQL 方言下将样例 DESCRIBE 解析为该具体语句类；其 metadata 语义由 DESCRIBE entry 处置。"
     }
   ],
   "parserCoreConsumption": {
