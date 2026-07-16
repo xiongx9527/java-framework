@@ -1013,7 +1013,7 @@ node "$COMET_SCRIPTS_DIR/comet-guard.mjs" define-nebula-sql-ast-coverage-matrix 
 
 Expected: 所有 build guard 检查通过，并推进到 `phase: verify`。
 
-- [ ] **Step 8: 提交最终收尾**
+- [x] **Step 8: 提交最终收尾**
 
 Run:
 
