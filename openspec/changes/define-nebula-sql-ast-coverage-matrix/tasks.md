@@ -16,4 +16,4 @@
 
 - [x] 3.1 定义 adapter 完整性测试策略，要求矩阵内节点缺失适配时测试失败。
 - [x] 3.2 定义 raw fallback 禁止规则和测试断言。
-- [ ] 3.3 输出覆盖矩阵文档或测试资源，供 `add-nebula-sql-parser-core` 使用。
+- [x] 3.3 输出覆盖矩阵文档或测试资源，供 `add-nebula-sql-parser-core` 使用。

@@ -7,19 +7,39 @@
 
 ## Current Task
 
-- Plan task: Task 5: 定义 adapter 完整性测试策略和 parser-core 消费规则
-- OpenSpec mapping: 3.1 定义 adapter 完整性测试策略。 / 3.2 定义 raw fallback 禁止规则和测试断言。
+- Plan task: Task 6: 最终一致性验证和交付收尾
+- OpenSpec mapping: 3.3 输出覆盖矩阵文档或测试资源，供 `add-nebula-sql-parser-core` 使用。
 - Stage: done
-- Implementer: DONE (b95401d)
-- Implementation commits: f8b1622..b95401d
-- Changed files: artifacts JSON/Markdown
-- Test evidence: parserCoreConsumption/rawSqlPolicy assertions exit 0; git diff --check exit 0
-- Risk signals: SQL/external-input sensitive surface
-- Review status: approved
-- Fix rounds: 0
+- Implementer: DONE_WITH_CONCERNS (cd94f3e)
+- Implementation commits: 5496e7b..1faee17
+- Changed files: artifacts Markdown
+- Test evidence: JSON format exit 0; constructs coverage assertions exit 0; rg fact-source/raw-fallback/parser-core/Druid rules exit 0; openspec strict validate exit 0; git diff --check exit 0
+- Risk signals: SQL/parser/external-input/raw-fallback sensitive surface
+- Review status: artifact minor fixed; task checkoff passed; controller-owned guard pending after final review
+- Fix rounds: 1
+
+## Task 6 Review Feedback Resolution
+
+- Critical resolved: OpenSpec task 3.3 checked by controller and task-checkoff passed.
+- Important deferred to build exit: build guard is controller-owned and runs after final review.
+- Minor resolved: Markdown Druid baseline labels localized.
+- Fix commit: 1faee17
+
+## Completed Task 6
+
+- Final head: 1faee17
+- Plan checkoff: PASS
+- OpenSpec checkoff: PASS
+- Remaining OpenSpec unchecked count: 0
 
 ## Completed Task 5
 
 - Final head: b95401d
 - Plan checkoff: PASS
 - OpenSpec checkoff: PASS
+
+## Task 6 Dispatch
+
+- Brief: .superpowers/sdd/task-6-brief.md
+- Report: /tmp/nebula-sql-ast-task-6-report.md
+- Review package: .superpowers/sdd/review-5496e7b..cd94f3e.diff
