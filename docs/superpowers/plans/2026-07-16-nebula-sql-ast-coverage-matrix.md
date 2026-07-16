@@ -1001,7 +1001,7 @@ openspec validate define-nebula-sql-ast-coverage-matrix --strict
 
 Expected: exit 0。若 `openspec` 不可用，记录命令不可用，不把它当作通过证据。
 
-- [ ] **Step 7: 运行 Comet build guard**
+- [x] **Step 7: 运行 Comet build guard**
 
 Run:
 
@@ -1024,9 +1024,9 @@ git commit -m "docs: finalize nebula sql ast coverage matrix"
 
 ## Self-Review Checklist
 
-- [ ] 每个 OpenSpec task 1.1 到 3.3 都有对应计划步骤。
-- [ ] JSON 是唯一机器可读事实源，Markdown 明确不是测试事实源。
-- [ ] 每个矩阵条目都有 `rawFallbackAllowed: false`。
-- [ ] `supportLevel` 只使用 `required`、`explicitlyUnsupported`、`deferred`。
-- [ ] Druid 升级规则要求重新运行样例 SQL 枚举和反射缺口检查。
-- [ ] 后续 parser-core 的失败信息要求包含 `id`、`druidAstType`、`exampleSql`。
+- [x] 每个 OpenSpec task 1.1 到 3.3 都有对应计划步骤。
+- [x] JSON 是唯一机器可读事实源，Markdown 明确不是测试事实源。
+- [x] 每个矩阵条目都有 `rawFallbackAllowed: false`。
+- [x] `supportLevel` 只使用 `required`、`explicitlyUnsupported`、`deferred`。
+- [x] Druid 升级规则要求重新运行样例 SQL 枚举和反射缺口检查。
+- [x] 后续 parser-core 的失败信息要求包含 `id`、`druidAstType`、`exampleSql`。
