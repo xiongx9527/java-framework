@@ -198,7 +198,7 @@ git commit -m "docs: add nebula sql ast matrix baseline"
 - Consumes: Task 1 的 JSON 顶层结构。
 - Produces: 后续矩阵条目必须引用的 `categories`、字段语义、升级策略和枚举方法。
 
-- [ ] **Step 1: 填充 JSON 分类**
+- [x] **Step 1: 填充 JSON 分类**
 
 Set `categories` to:
 
@@ -227,7 +227,7 @@ Set `categories` to:
 ]
 ```
 
-- [ ] **Step 2: 填充样例 SQL 分组**
+- [x] **Step 2: 填充样例 SQL 分组**
 
 Set `enumeration.sampleSqlGroups` to include these groups:
 
@@ -282,7 +282,7 @@ Set `enumeration.sampleSqlGroups` to include these groups:
 ]
 ```
 
-- [ ] **Step 3: 在 Markdown 写明字段结构**
+- [x] **Step 3: 在 Markdown 写明字段结构**
 
 Under `## 字段说明`, document every entry field:
 
@@ -300,7 +300,7 @@ Under `## 字段说明`, document every entry field:
 - `notes`：排除理由、限制条件或维护说明。
 ```
 
-- [ ] **Step 4: 在 Markdown 写明 Druid 升级规则**
+- [x] **Step 4: 在 Markdown 写明 Druid 升级规则**
 
 Under `## Druid 升级规则`, write:
 
@@ -308,7 +308,7 @@ Under `## Druid 升级规则`, write:
 升级 Druid 版本时必须重新运行样例 SQL 枚举和反射缺口检查。维护者需要比较新增、删除或行为变化的 AST 类型，并重新评估 `supportLevel`、`adapterRequirement`、`testCaseId` 以及矩阵内容 hash 是否改变 parser-core 的验收边界。
 ```
 
-- [ ] **Step 5: 验证字段和枚举值**
+- [x] **Step 5: 验证字段和枚举值**
 
 Run:
 
@@ -327,7 +327,7 @@ PY
 
 Expected: exit 0。
 
-- [ ] **Step 6: 勾选 OpenSpec 任务 1.2、1.3、2.1、2.2**
+- [x] **Step 6: 勾选 OpenSpec 任务 1.2、1.3、2.1、2.2**
 
 Modify `tasks.md`:
 
@@ -338,7 +338,7 @@ Modify `tasks.md`:
 - [x] 2.2 建立 Druid AST 到 Nebula AST 的覆盖矩阵字段结构。
 ```
 
-- [ ] **Step 7: 提交 Task 2**
+- [x] **Step 7: 提交 Task 2**
 
 Run:
 
