@@ -1,6 +1,6 @@
 ## 1. Druid 版本与枚举策略
 
-- [ ] 1.1 确认 Druid SQL Parser 版本、许可证和 Java 8 兼容性。
+- [x] 1.1 确认 Druid SQL Parser 版本、许可证和 Java 8 兼容性。
 - [ ] 1.2 定义 Druid 版本升级时的 AST 覆盖矩阵更新规则。
 - [ ] 1.3 制定 MySQL parser AST 类型枚举方法。
 

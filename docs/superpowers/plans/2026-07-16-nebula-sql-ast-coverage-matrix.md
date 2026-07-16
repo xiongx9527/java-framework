@@ -47,7 +47,7 @@ base-ref: 8498dbc28d5b53b542dc2d5d05d12895268ffabc
 - Consumes: Design Doc 中的 JSON 顶层结构、Druid 基线和 artifact 双产物决策。
 - Produces: 后续任务可追加 `entries`、`reflectedCandidates` 和 Markdown 章节的稳定文件结构。
 
-- [ ] **Step 1: 记录当前 Druid 版本来源**
+- [x] **Step 1: 记录当前 Druid 版本来源**
 
 Run:
 
@@ -57,7 +57,7 @@ rg -n "druid.version|<artifactId>druid</artifactId>|druid-spring-boot-starter" f
 
 Expected: 输出包含 `<druid.version>1.2.24</druid.version>`、`com.alibaba:druid` 和 `druid-spring-boot-starter` 的版本管理位置。
 
-- [ ] **Step 2: 尝试解析 Druid POM 元信息**
+- [x] **Step 2: 尝试解析 Druid POM 元信息**
 
 Run:
 
@@ -67,7 +67,7 @@ cd fw-plus-core && ./mvnw -q dependency:get -Dartifact=com.alibaba:druid:1.2.24:
 
 Expected: 命令 exit 0 时，记录 Maven 能解析该 POM；若内部网络或仓库导致失败，不修改 Druid 版本，在 JSON `druid.verificationNotes` 中记录失败命令和原因。
 
-- [ ] **Step 3: 创建 JSON 骨架**
+- [x] **Step 3: 创建 JSON 骨架**
 
 Create `openspec/changes/define-nebula-sql-ast-coverage-matrix/artifacts/nebula-sql-ast-coverage-matrix.json` with this structure:
 
@@ -123,7 +123,7 @@ Create `openspec/changes/define-nebula-sql-ast-coverage-matrix/artifacts/nebula-
 }
 ```
 
-- [ ] **Step 4: 创建 Markdown 骨架**
+- [x] **Step 4: 创建 Markdown 骨架**
 
 Create `openspec/changes/define-nebula-sql-ast-coverage-matrix/artifacts/nebula-sql-ast-coverage-matrix.md` with sections:
 
@@ -158,7 +158,7 @@ JSON 文件是后续 parser-core 完整性测试消费的机器可读事实源�
 ## Druid 升级规则
 ```
 
-- [ ] **Step 5: 验证 JSON 可解析**
+- [x] **Step 5: 验证 JSON 可解析**
 
 Run:
 
@@ -168,7 +168,7 @@ python3 -m json.tool openspec/changes/define-nebula-sql-ast-coverage-matrix/arti
 
 Expected: exit 0，无 JSON 解析错误。
 
-- [ ] **Step 6: 勾选 OpenSpec 任务 1.1**
+- [x] **Step 6: 勾选 OpenSpec 任务 1.1**
 
 Modify `openspec/changes/define-nebula-sql-ast-coverage-matrix/tasks.md`:
 
@@ -178,7 +178,7 @@ Modify `openspec/changes/define-nebula-sql-ast-coverage-matrix/tasks.md`:
 
 如果许可证或 Java 8 兼容性证据只能记录为“待 Maven 解析环境确认”，不要勾选 1.1；先在 JSON `verificationNotes` 中记录阻塞证据，再暂停处理。
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交 Task 1**
 
 Run:
 
@@ -338,7 +338,7 @@ Modify `tasks.md`:
 - [x] 2.2 建立 Druid AST 到 Nebula AST 的覆盖矩阵字段结构。
 ```
 
-- [ ] **Step 7: 提交**
+- [ ] **Step 7: 提交 Task 2**
 
 Run:
 
@@ -601,7 +601,7 @@ Modify `tasks.md`:
 - [x] 2.5 覆盖正常 JDBC/MyBatis/JdbcTemplate 常见 SQL 形态：`?` 参数、SELECT 1、SELECT COUNT(*)、列别名、IN 条件、分页、SHOW/DESCRIBE、metadata 探测 SQL 和动态 SQL 展开后的条件组合。
 ```
 
-- [ ] **Step 7: 提交**
+- [ ] **Step 7: 提交 Task 3**
 
 Run:
 
@@ -802,7 +802,7 @@ Modify `tasks.md`:
 - [x] 2.4 覆盖 INSERT、UPDATE、DELETE 和基础 DDL。
 ```
 
-- [ ] **Step 7: 提交**
+- [ ] **Step 7: 提交 Task 4**
 
 Run:
 
@@ -893,7 +893,7 @@ Modify `tasks.md`:
 - [x] 3.2 定义 raw fallback 禁止规则和测试断言。
 ```
 
-- [ ] **Step 6: 提交**
+- [ ] **Step 6: 提交 Task 5**
 
 Run:
 
