@@ -15,7 +15,7 @@
 - Changed files: artifacts Markdown
 - Test evidence: JSON format exit 0; constructs coverage assertions exit 0; rg fact-source/raw-fallback/parser-core/Druid rules exit 0; openspec strict validate exit 0; git diff --check exit 0
 - Risk signals: SQL/parser/external-input/raw-fallback sensitive surface
-- Review status: user confirmed extra final-fix round for remaining reflection audit issue
+- Review status: extra final-fix completed; final re-review pending
 - Fix rounds: 2
 
 ## Task 6 Review Feedback Resolution
@@ -55,6 +55,13 @@
 ## User Decision
 
 - User confirmed an extra final-fix round after standard-mode review budget was exhausted.
+
+## Extra Final Fix
+
+- Fix commit: 473bc5e
+- Changed files: artifacts JSON/Markdown
+- Verification: JSON parse PASS; actual AST traversal coverage PASS; named reviewer classes PASS; matrix constraints PASS; Markdown rg PASS; OpenSpec strict PASS; git diff --check PASS
+- Result: reflectedCandidates expanded to 41 records covering all 39 actual AST classes from 23 sample SQL statements.
 
 ## Completed Task 5
 
