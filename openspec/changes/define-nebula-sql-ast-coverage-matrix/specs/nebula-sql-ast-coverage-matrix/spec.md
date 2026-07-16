@@ -41,12 +41,12 @@
 - **THEN** 开发者可以根据覆盖矩阵逐项实现 adapter 和测试
 
 ### Requirement: Framework-generated SQL shapes are represented
-系统 SHALL 在 AST 覆盖矩阵中纳入 MyBatis 和 JdbcTemplate 常见 SQL 形态，确保 JDBC 上层框架生成的 SQL 能被 parser core 验证。
+系统 SHALL 在 AST 覆盖矩阵中纳入 正常 JDBC、MyBatis 和 JdbcTemplate 常见 SQL 形态，确保 JDBC 上层框架生成的 SQL 能被 parser core 验证。
 
 #### Scenario: JDBC 参数占位符
-- **WHEN** SQL 包含 `?` 参数占位符或 IN 参数列表
+- **WHEN** SQL 包含 `?` 参数占位符、SELECT 1、SELECT COUNT(*)、IN 参数列表、分页、SHOW/DESCRIBE 或框架 metadata 探测 SQL
 - **THEN** 覆盖矩阵包含对应 Druid AST 类型、Nebula 参数表达式和测试 SQL
 
 #### Scenario: 列别名和动态条件
-- **WHEN** SQL 包含列别名、动态 SQL 展开后的可选 WHERE 条件或 IN 条件
+- **WHEN** SQL 包含列别名、动态 SQL 展开后的可选 WHERE 条件、IN 条件或标准 JDBC metadata 探测 SQL
 - **THEN** 覆盖矩阵包含对应别名、条件表达式和测试要求

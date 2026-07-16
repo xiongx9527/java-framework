@@ -10,7 +10,7 @@
 - [ ] 2.2 建立 Druid AST 到 Nebula AST 的覆盖矩阵字段结构。
 - [ ] 2.3 覆盖 SELECT、JOIN、子查询、聚合、GROUP BY、HAVING、UNION、函数、表达式、别名和参数占位符。
 - [ ] 2.4 覆盖 INSERT、UPDATE、DELETE 和基础 DDL。
-- [ ] 2.5 覆盖 MyBatis/JdbcTemplate 常见 SQL 形态：`?` 参数、列别名、IN 条件和动态 SQL 展开后的条件组合。
+- [ ] 2.5 覆盖正常 JDBC/MyBatis/JdbcTemplate 常见 SQL 形态：`?` 参数、SELECT 1、SELECT COUNT(*)、列别名、IN 条件、分页、SHOW/DESCRIBE、metadata 探测 SQL 和动态 SQL 展开后的条件组合。
 
 ## 3. 测试策略与交付
 

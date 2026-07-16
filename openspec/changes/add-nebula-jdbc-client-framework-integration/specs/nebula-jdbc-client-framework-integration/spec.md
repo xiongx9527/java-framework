@@ -1,5 +1,20 @@
 ## ADDED Requirements
 
+### Requirement: Standard JDBC usage paths are supported
+系统 SHALL 支持像正常 JDBC Driver 一样使用 Nebula JDBC Driver 的常见路径，包括 DriverManager 或 DataSource 获取连接、创建 Statement/PreparedStatement、执行查询、读取 ResultSet 和关闭资源。
+
+#### Scenario: DriverManager 查询
+- **WHEN** 应用使用 DriverManager 获取 Nebula JDBC 连接并通过 Statement 执行 SELECT
+- **THEN** Driver 返回可遍历 ResultSet，资源关闭行为符合 JDBC 清理习惯
+
+#### Scenario: PreparedStatement 参数绑定
+- **WHEN** 应用使用 PreparedStatement 和 `?` 参数执行查询
+- **THEN** Driver 正确绑定参数、执行 SQL 并返回结果
+
+#### Scenario: 不支持 JDBC 能力
+- **WHEN** 应用调用当前不支持的事务、batch、generated keys、CallableStatement 或多结果集能力
+- **THEN** Driver 返回标准 JDBC 异常，而不是静默成功或抛出非预期异常
+
 ### Requirement: JdbcTemplate can execute parameterized queries
 系统 SHALL 支持 Spring JdbcTemplate 通过 Nebula JDBC Driver 执行带 `?` 参数的查询，并正确读取标量和行映射结果。
 
@@ -23,11 +38,11 @@
 - **THEN** 查询结果可映射到 Java POJO 属性
 
 ### Requirement: JDBC metadata supports framework mapping
-系统 SHALL 提供 MyBatis 和 JdbcTemplate 常见映射所需的 ResultSetMetaData、列标签、列类型和基础 DatabaseMetaData 行为。
+系统 SHALL 提供标准 JDBC、MyBatis 和 JdbcTemplate 常见映射所需的 ResultSetMetaData、列标签、列类型和基础 DatabaseMetaData 行为。
 
 #### Scenario: 列别名映射
 - **WHEN** SQL 使用 `AS` 定义列别名
-- **THEN** ResultSetMetaData 和 ResultSet 读取方法返回框架可识别的列标签
+- **THEN** ResultSetMetaData 和 ResultSet 读取方法返回标准 JDBC 客户端和框架可识别的列标签
 
 #### Scenario: 不支持 JDBC 能力
 - **WHEN** 框架调用当前不支持的 batch、generated keys、CallableStatement 或复杂事务能力

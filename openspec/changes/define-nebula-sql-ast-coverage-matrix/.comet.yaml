@@ -26,4 +26,4 @@ classic_profile: full
 classic_migration: 1
 run_id: a8e482d0-7cee-4ff8-aac2-659fb1e2f893
 handoff_context: openspec/changes/define-nebula-sql-ast-coverage-matrix/.comet/handoff/design-context.json
-handoff_hash: ce28e1e0dfa1c7d1255cd1b4d817479157decc1d0da2f46e659c38d404c9baf5
+handoff_hash: 2160356a4041843f65b0e6d081d3b89a4d144ff86204985a765cd6730a4ac2e0
