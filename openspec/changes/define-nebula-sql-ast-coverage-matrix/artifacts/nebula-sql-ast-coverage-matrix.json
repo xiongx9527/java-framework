@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "nebula-sql-ast-coverage-matrix.v1",
+  "druid": {
+    "groupId": "com.alibaba",
+    "artifactId": "druid",
+    "version": "1.2.24",
+    "versionSource": "fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml",
+    "java8Compatible": null,
+    "license": null,
+    "verificationNotes": [
+      "Build 阶段必须用 Maven 解析或构建结果补充许可证和 Java 8 兼容性证据。",
+      "已执行 ./mvnw -q dependency:get -Dartifact=com.alibaba:druid:1.2.24:pom -Dtransitive=false，但当前 worktree 缺少 .mvn/wrapper/maven-wrapper.properties 及 Maven Wrapper 主类，命令未进入依赖解析。"
+    ]
+  },
+  "artifacts": {
+    "json": "openspec/changes/define-nebula-sql-ast-coverage-matrix/artifacts/nebula-sql-ast-coverage-matrix.json",
+    "markdown": "openspec/changes/define-nebula-sql-ast-coverage-matrix/artifacts/nebula-sql-ast-coverage-matrix.md"
+  },
+  "supportLevels": [
+    "required",
+    "explicitlyUnsupported",
+    "deferred"
+  ],
+  "categories": [],
+  "enumeration": {
+    "sampleSqlDriven": true,
+    "reflectionGapCheck": true,
+    "packages": [
+      "com.alibaba.druid.sql.ast",
+      "com.alibaba.druid.sql.dialect.mysql.ast"
+    ],
+    "sampleSqlGroups": []
+  },
+  "entries": [],
+  "reflectedCandidates": [],
+  "parserCoreConsumption": {
+    "matrixIsTestFactSource": true,
+    "markdownIsTestFactSource": false,
+    "failureMessageFields": [
+      "id",
+      "druidAstType",
+      "exampleSql"
+    ]
+  },
+  "upgradePolicy": {
+    "rerunSampleSqlEnumeration": true,
+    "rerunReflectionGapCheck": true,
+    "reevaluateParserCoreAcceptanceBoundary": true
+  }
+}
