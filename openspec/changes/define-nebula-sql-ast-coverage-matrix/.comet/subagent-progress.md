@@ -15,7 +15,7 @@
 - Changed files: artifacts Markdown
 - Test evidence: JSON format exit 0; constructs coverage assertions exit 0; rg fact-source/raw-fallback/parser-core/Druid rules exit 0; openspec strict validate exit 0; git diff --check exit 0
 - Risk signals: SQL/parser/external-input/raw-fallback sensitive surface
-- Review status: artifact minor fixed; task checkoff passed; controller-owned guard pending after final review
+- Review status: approved; task checkoff passed; controller-owned guard pending after final review
 - Fix rounds: 1
 
 ## Task 6 Review Feedback Resolution
@@ -27,7 +27,7 @@
 
 ## Completed Task 6
 
-- Final head: 1faee17
+- Final head: 8d4519c
 - Plan checkoff: PASS
 - OpenSpec checkoff: PASS
 - Remaining OpenSpec unchecked count: 0
