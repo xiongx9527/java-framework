@@ -9,13 +9,13 @@
 
 - Plan task: Task 6: 最终一致性验证和交付收尾
 - OpenSpec mapping: 3.3 输出覆盖矩阵文档或测试资源，供 `add-nebula-sql-parser-core` 使用。
-- Stage: final-fix
+- Stage: blocked
 - Implementer: DONE_WITH_CONCERNS (cd94f3e)
 - Implementation commits: 5496e7b..1faee17
 - Changed files: artifacts Markdown
 - Test evidence: JSON format exit 0; constructs coverage assertions exit 0; rg fact-source/raw-fallback/parser-core/Druid rules exit 0; openspec strict validate exit 0; git diff --check exit 0
 - Risk signals: SQL/parser/external-input/raw-fallback sensitive surface
-- Review status: final review Critical/Important issues fixed; final re-review pending
+- Review status: final re-review still has Important issue after one standard-mode fix round
 - Fix rounds: 1
 
 ## Task 6 Review Feedback Resolution
@@ -45,6 +45,12 @@
 - Fix commit: ee65232
 - Changed files: artifacts JSON/Markdown
 - Verification: JSON parse PASS; Druid class existence PASS; matrix policy assertions PASS; Markdown rg PASS; OpenSpec strict PASS; git diff --check PASS
+
+## Final Re-Review Blocker
+
+- Remaining Important: reflection audit still only cross-checks current entries and does not account for actual AST types produced by sample SQL but excluded from matrix entries.
+- Reviewer examples: `SQLLimit`, `SQLOrderBy`, `SQLIdentifierExpr`, `SQLIntegerExpr`, `SQLExprTableSource`, `SQLSelect`, `SQLSelectOrderByItem`, and `SQLSelectStatement` from basic SELECT parsing need candidate records or explicit exclusion reasons.
+- Standard review mode allows one final review-fix round; re-review still found an Important issue, so build guard is paused until user decides whether to run another fix round or adjust scope/acceptance.
 
 ## Completed Task 5
 
