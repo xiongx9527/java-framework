@@ -3,7 +3,7 @@
 - Change: define-nebula-sql-ast-coverage-matrix
 - Phase: design
 - Mode: compact
-- Context hash: ce28e1e0dfa1c7d1255cd1b4d817479157decc1d0da2f46e659c38d404c9baf5
+- Context hash: 2160356a4041843f65b0e6d081d3b89a4d144ff86204985a765cd6730a4ac2e0
 
 Generated-by: comet-handoff.sh
 
@@ -13,7 +13,7 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 
 - Source: openspec/changes/define-nebula-sql-ast-coverage-matrix/proposal.md
 - Lines: 1-25
-- SHA256: 4f233a0e397c6cffceac57583dc6da46875ecc86bd6f8ee0adb8a3295ef049ae
+- SHA256: 424a86adb974e8838899cbf0c2ee9cbc59c6b1c2b147a369e89f7f22119694c2
 
 ```md
 ## Why
@@ -26,7 +26,7 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 - 枚举该版本 MySQL parser 可产出的关键 AST 类型和 SQL 构造。
 - 定义 Druid AST 到 Nebula AST / 中间表示的覆盖矩阵。
 - 定义 adapter 完整性测试策略，确保 parser core 不允许 raw fallback 或遗漏适配。
-- 覆盖 MyBatis 和 JdbcTemplate 常见 SQL 形态，包括 `?` 参数、列别名、IN 条件和动态 SQL 展开后的条件组合。
+- 覆盖 正常 JDBC、MyBatis 和 JdbcTemplate 常见 SQL 形态，包括 `?` 参数、SELECT 1、SELECT COUNT(*)、列别名、IN 条件、分页、SHOW/DESCRIBE 和动态 SQL 展开后的条件组合。
 - 明确后续 Druid 升级时必须重新评估 AST 覆盖矩阵。
 
 ## Capabilities
@@ -48,7 +48,7 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 
 - Source: openspec/changes/define-nebula-sql-ast-coverage-matrix/design.md
 - Lines: 1-49
-- SHA256: 416a7b8e86ce46640d8dd7fd0935c7beb6fc9fb03634921adc1ddb3db51e5aa3
+- SHA256: fe526e8f1adfbc149ccded2ea53ecca82a0ab13828376f60ee8f6d5ec5c65704
 
 ```md
 ## Context
@@ -62,7 +62,7 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 - 锁定 Druid SQL Parser 版本和 Java 8 兼容边界。
 - 枚举 Druid MySQL parser 关键 AST 类型。
 - 定义 Druid AST 到 Nebula AST / 中间表示的覆盖矩阵。
-- 覆盖 MyBatis 和 JdbcTemplate 常见 SQL 形态，包括 `?` 参数、列别名、IN 条件和动态 SQL 展开后的条件组合。
+- 覆盖 正常 JDBC、MyBatis 和 JdbcTemplate 常见 SQL 形态，包括 `?` 参数、SELECT 1、SELECT COUNT(*)、列别名、IN 条件、分页、SHOW/DESCRIBE 和动态 SQL 展开后的条件组合。
 - 定义 adapter 完整性测试策略和 raw fallback 禁止规则。
 - 为 `add-nebula-sql-parser-core` 提供可执行输入。
 
@@ -107,7 +107,7 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 
 - Source: openspec/changes/define-nebula-sql-ast-coverage-matrix/tasks.md
 - Lines: 1-19
-- SHA256: 7545e337228f77ccacc41a5d983b2de0d14672f0bbdae453b04d4354b5cf8a73
+- SHA256: b255f5f1466fc063d9a046368358e1ccc8f96ec18658cbdff84726d86bf75305
 
 ```md
 ## 1. Druid 版本与枚举策略
@@ -122,7 +122,7 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 - [ ] 2.2 建立 Druid AST 到 Nebula AST 的覆盖矩阵字段结构。
 - [ ] 2.3 覆盖 SELECT、JOIN、子查询、聚合、GROUP BY、HAVING、UNION、函数、表达式、别名和参数占位符。
 - [ ] 2.4 覆盖 INSERT、UPDATE、DELETE 和基础 DDL。
-- [ ] 2.5 覆盖 MyBatis/JdbcTemplate 常见 SQL 形态：`?` 参数、列别名、IN 条件和动态 SQL 展开后的条件组合。
+- [ ] 2.5 覆盖正常 JDBC/MyBatis/JdbcTemplate 常见 SQL 形态：`?` 参数、SELECT 1、SELECT COUNT(*)、列别名、IN 条件、分页、SHOW/DESCRIBE、metadata 探测 SQL 和动态 SQL 展开后的条件组合。
 
 ## 3. 测试策略与交付
 
@@ -136,7 +136,7 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 
 - Source: openspec/changes/define-nebula-sql-ast-coverage-matrix/specs/nebula-sql-ast-coverage-matrix/spec.md
 - Lines: 1-52
-- SHA256: 22784a3107d3676b8e2fe09f9fa72cd10666796b8829a663d21f606d042ee7a3
+- SHA256: fcd5c7464035f9dbe93d633be99c980be648724230edc66fad7bab003a55d1f3
 
 ```md
 ## ADDED Requirements
@@ -182,14 +182,14 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 - **THEN** 开发者可以根据覆盖矩阵逐项实现 adapter 和测试
 
 ### Requirement: Framework-generated SQL shapes are represented
-系统 SHALL 在 AST 覆盖矩阵中纳入 MyBatis 和 JdbcTemplate 常见 SQL 形态，确保 JDBC 上层框架生成的 SQL 能被 parser core 验证。
+系统 SHALL 在 AST 覆盖矩阵中纳入 正常 JDBC、MyBatis 和 JdbcTemplate 常见 SQL 形态，确保 JDBC 上层框架生成的 SQL 能被 parser core 验证。
 
 #### Scenario: JDBC 参数占位符
-- **WHEN** SQL 包含 `?` 参数占位符或 IN 参数列表
+- **WHEN** SQL 包含 `?` 参数占位符、SELECT 1、SELECT COUNT(*)、IN 参数列表、分页、SHOW/DESCRIBE 或框架 metadata 探测 SQL
 - **THEN** 覆盖矩阵包含对应 Druid AST 类型、Nebula 参数表达式和测试 SQL
 
 #### Scenario: 列别名和动态条件
-- **WHEN** SQL 包含列别名、动态 SQL 展开后的可选 WHERE 条件或 IN 条件
+- **WHEN** SQL 包含列别名、动态 SQL 展开后的可选 WHERE 条件、IN 条件或标准 JDBC metadata 探测 SQL
 - **THEN** 覆盖矩阵包含对应别名、条件表达式和测试要求
 
 ```
