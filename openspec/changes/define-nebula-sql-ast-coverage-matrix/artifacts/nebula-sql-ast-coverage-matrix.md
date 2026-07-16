@@ -16,6 +16,17 @@ JSON 文件是后续 parser-core 完整性测试消费的机器可读事实源�
 
 ## 字段说明
 
+- `id`：稳定矩阵 ID，用于测试失败定位。
+- `category`：顶层分类，必须来自 JSON `categories`。
+- `druidAstType`：Druid AST 类型全限定名或明确类名。
+- `sqlConstruct`：SQL 构造名称。
+- `exampleSql`：能触发该 AST 的示例 SQL。
+- `nebulaAstKind`：Nebula AST / 中间表示分类。
+- `adapterRequirement`：后续 adapter 需要实现的结构化输出或错误边界。
+- `supportLevel`：`required`、`explicitlyUnsupported` 或 `deferred`。
+- `testCaseId`：后续 parser-core 测试或生成测试的稳定引用。
+- `rawFallbackAllowed`：固定为 `false`。
+- `notes`：排除理由、限制条件或维护说明。
 - `schemaVersion` 固定标识矩阵结构版本。
 - `druid` 记录解析器依赖坐标、来源和验证状态。
 - `artifacts` 记录双产物路径。
@@ -28,7 +39,13 @@ JSON 文件是后续 parser-core 完整性测试消费的机器可读事实源�
 
 ## 分类
 
-分类和具体 AST 条目由后续任务根据 Druid 样例 SQL 及反射结果补充。
+矩阵条目必须归入以下顶层分类：
+
+- `statement`：SELECT、INSERT、UPDATE、DELETE、DDL、SHOW、DESCRIBE 等语句节点。
+- `queryShape`：JOIN、子查询、UNION、GROUP BY、HAVING、ORDER BY、LIMIT 等查询结构。
+- `expression`：二元表达式、函数调用、字面量、列引用、别名、IN、LIKE、IS NULL、参数占位符。
+- `frameworkGenerated`：JDBC、MyBatis、JdbcTemplate 常见探测和动态 SQL 展开形态。
+- `unsupportedOrDeferred`：Druid 能解析但当前 Nebula SQL 路线明确不支持或延期的语法。
 
 ## 样例 SQL 枚举
 
@@ -54,4 +71,4 @@ parser-core 完整性测试只消费 JSON；Markdown 用于解释字段、边界
 
 ## Druid 升级规则
 
-Druid 版本升级后必须重新执行样例 SQL 枚举、反射缺口检查，并重新评估 parser-core 的接受边界；同时补充许可证和 Java 8 兼容性证据。
+升级 Druid 版本时必须重新运行样例 SQL 枚举和反射缺口检查。维护者需要比较新增、删除或行为变化的 AST 类型，并重新评估 `supportLevel`、`adapterRequirement`、`testCaseId` 以及矩阵内容 hash 是否改变 parser-core 的验收边界。
