@@ -71,11 +71,11 @@ Task 3 增加以下查询、表达式和框架生成 SQL 覆盖条目：
 
 ## Raw Fallback 禁止规则
 
-所有未来矩阵条目，无论其 `supportLevel`、来源或当前是否纳入 parser-core，都必须显式包含 `"rawFallbackAllowed": false`。任何 AST 类型都不得通过 Raw Fallback 绕过结构化解析；raw SQL 仅允许出现在 debug、trace 或 error context 中，不得作为语义 fallback 返回或继续处理。解析失败信息至少包含条目 `id`、`druidAstType` 和 `exampleSql`。
+raw SQL 只允许作为 debug、trace 或错误上下文保存，不允许作为语义 fallback。矩阵内所有条目的 `rawFallbackAllowed` 必须为 `false`。后续 parser-core 如果用 raw SQL 替代结构化 Nebula AST，完整性测试必须失败。
 
 ## Parser-Core 消费方式
 
-parser-core 完整性测试只消费 JSON；Markdown 用于解释字段、边界和维护流程，不作为测试事实源。
+后续 `add-nebula-sql-parser-core` 必须读取 JSON 矩阵或从 JSON 生成测试输入。`required` 条目缺 adapter 时测试失败；`explicitlyUnsupported` 条目必须返回结构化不支持错误；`deferred` 条目不进入当前必做范围，但必须保留延期原因。失败信息至少包含 `id`、`druidAstType` 和 `exampleSql`。
 
 ## Druid 升级规则
 

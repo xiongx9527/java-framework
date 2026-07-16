@@ -439,6 +439,15 @@
   "parserCoreConsumption": {
     "matrixIsTestFactSource": true,
     "markdownIsTestFactSource": false,
+    "requiredBehavior": {
+      "required": "解析 exampleSql，断言 Druid AST 类型被 adapter 覆盖，并产生 nebulaAstKind。",
+      "explicitlyUnsupported": "解析到该结构时返回结构化不支持错误，错误中包含矩阵 ID 或稳定错误码。",
+      "deferred": "不作为当前 parser-core 必过实现项，但测试报告或文档必须能说明延期原因。"
+    },
+    "rawSqlPolicy": {
+      "debugTraceAllowed": true,
+      "semanticFallbackAllowed": false
+    },
     "failureMessageFields": [
       "id",
       "druidAstType",
