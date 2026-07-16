@@ -51,6 +51,14 @@ JSON 文件是后续 parser-core 完整性测试消费的机器可读事实源�
 
 枚举应以可执行样例 SQL 为入口，覆盖 `com.alibaba.druid.sql.ast` 与 `com.alibaba.druid.sql.dialect.mysql.ast`，并记录 SQL 到 AST 类型的映射。
 
+Task 3 增加以下查询、表达式和框架生成 SQL 覆盖条目：
+
+- 查询结构：`SQL-STMT-SELECT-BASIC`、`SQL-QUERY-JOIN`、`SQL-QUERY-SUBQUERY`、`SQL-QUERY-UNION`、`SQL-QUERY-GROUP-HAVING`。
+- 表达式：`SQL-EXPR-BINARY`、`SQL-EXPR-FUNCTION`、`SQL-EXPR-ALIAS`、`SQL-EXPR-PARAMETER`、`SQL-EXPR-IN`。
+- 框架生成形态：`SQL-FRAMEWORK-SELECT-ONE`、`SQL-FRAMEWORK-COUNT`、`SQL-FRAMEWORK-METADATA`、`SQL-FRAMEWORK-DYNAMIC-WHERE`。
+
+以上条目的 `supportLevel` 均为 `required`，是 parser-core adapter 完整性的输入，必须纳入后续结构化 AST 完整性测试。
+
 ## 反射缺口检查
 
 反射检查用于发现 Druid AST 包中未被样例 SQL 枚举覆盖的候选类型。候选类型进入 `reflectedCandidates`，再由维护者决定支持、明确不支持或延期。
