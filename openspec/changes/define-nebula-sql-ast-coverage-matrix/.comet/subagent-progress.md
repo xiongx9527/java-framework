@@ -9,13 +9,13 @@
 
 - Plan task: Task 6: 最终一致性验证和交付收尾
 - OpenSpec mapping: 3.3 输出覆盖矩阵文档或测试资源，供 `add-nebula-sql-parser-core` 使用。
-- Stage: done
+- Stage: final-fix
 - Implementer: DONE_WITH_CONCERNS (cd94f3e)
 - Implementation commits: 5496e7b..1faee17
 - Changed files: artifacts Markdown
 - Test evidence: JSON format exit 0; constructs coverage assertions exit 0; rg fact-source/raw-fallback/parser-core/Druid rules exit 0; openspec strict validate exit 0; git diff --check exit 0
 - Risk signals: SQL/parser/external-input/raw-fallback sensitive surface
-- Review status: approved; task checkoff passed; controller-owned guard pending after final review
+- Review status: final review found Critical/Important issues; final fix dispatched
 - Fix rounds: 1
 
 ## Task 6 Review Feedback Resolution
@@ -31,6 +31,14 @@
 - Plan checkoff: PASS
 - OpenSpec checkoff: PASS
 - Remaining OpenSpec unchecked count: 0
+
+## Final Review Findings
+
+- Critical: three required entries reference non-existent Druid 1.2.24 AST classes for SHOW COLUMNS, SHOW TABLES, and DESCRIBE.
+- Important: reflection gap check enabled but reflectedCandidates has no auditable scan result or disposition.
+- Important: required entries for metadata / CREATE TABLE / DROP TABLE allow unsupported errors, conflicting with requiredBehavior.required.
+- Important: raw debug/trace policy lacks default-off, redaction, truncation, and parameter-value logging boundary.
+- Minor: Markdown field description still says categories/entries/reflectedCandidates are filled by later enumeration tasks.
 
 ## Completed Task 5
 
