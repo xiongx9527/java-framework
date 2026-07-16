@@ -65,9 +65,9 @@ Task 3 增加以下查询、表达式和框架生成 SQL 覆盖条目：
 
 ## 支持级别
 
-- `required`：parser-core 必须支持并纳入完整性测试。
-- `explicitlyUnsupported`：明确不支持，并保留原因和诊断信息。
-- `deferred`：暂不纳入当前实现，但必须可追踪。
+- `required`：后续 parser-core 必须输出结构化 Nebula AST / 中间表示。
+- `explicitlyUnsupported`：Druid 能解析，但当前路线明确不支持；必须返回结构化不支持错误。
+- `deferred`：不进入当前 parser-core 必做范围；必须写明原因和后续 change 边界。
 
 ## Raw Fallback 禁止规则
 
