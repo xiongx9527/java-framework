@@ -822,7 +822,7 @@ git commit -m "docs: cover nebula sql write and ddl ast matrix"
 - Consumes: 已填充的 `entries`。
 - Produces: 后续 `add-nebula-sql-parser-core` 可以直接采用的测试规则。
 
-- [ ] **Step 1: 完善 JSON `parserCoreConsumption`**
+- [x] **Step 1: 完善 JSON `parserCoreConsumption`**
 
 Set `parserCoreConsumption` to:
 
@@ -847,7 +847,7 @@ Set `parserCoreConsumption` to:
 }
 ```
 
-- [ ] **Step 2: 在 Markdown 写入 parser-core 消费方式**
+- [x] **Step 2: 在 Markdown 写入 parser-core 消费方式**
 
 Under `## Parser-Core 消费方式`, write:
 
@@ -855,7 +855,7 @@ Under `## Parser-Core 消费方式`, write:
 后续 `add-nebula-sql-parser-core` 必须读取 JSON 矩阵或从 JSON 生成测试输入。`required` 条目缺 adapter 时测试失败；`explicitlyUnsupported` 条目必须返回结构化不支持错误；`deferred` 条目不进入当前必做范围，但必须保留延期原因。失败信息至少包含 `id`、`druidAstType` 和 `exampleSql`。
 ```
 
-- [ ] **Step 3: 在 Markdown 写入 raw fallback 禁止规则**
+- [x] **Step 3: 在 Markdown 写入 raw fallback 禁止规则**
 
 Under `## Raw Fallback 禁止规则`, write:
 
@@ -863,7 +863,7 @@ Under `## Raw Fallback 禁止规则`, write:
 raw SQL 只允许作为 debug、trace 或错误上下文保存，不允许作为语义 fallback。矩阵内所有条目的 `rawFallbackAllowed` 必须为 `false`。后续 parser-core 如果用 raw SQL 替代结构化 Nebula AST，完整性测试必须失败。
 ```
 
-- [ ] **Step 4: 验证 parser-core 消费规则**
+- [x] **Step 4: 验证 parser-core 消费规则**
 
 Run:
 
@@ -884,7 +884,7 @@ PY
 
 Expected: exit 0。
 
-- [ ] **Step 5: 勾选 OpenSpec 任务 3.1、3.2**
+- [x] **Step 5: 勾选 OpenSpec 任务 3.1、3.2**
 
 Modify `tasks.md`:
 
@@ -893,7 +893,7 @@ Modify `tasks.md`:
 - [x] 3.2 定义 raw fallback 禁止规则和测试断言。
 ```
 
-- [ ] **Step 6: 提交 Task 5**
+- [x] **Step 6: 提交 Task 5**
 
 Run:
 
