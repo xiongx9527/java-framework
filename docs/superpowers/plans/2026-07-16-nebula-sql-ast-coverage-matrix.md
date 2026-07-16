@@ -621,7 +621,7 @@ git commit -m "docs: cover nebula sql query ast matrix"
 - Consumes: Task 2 的分类和 supportLevel 语义。
 - Produces: 写入、基础 DDL、SHOW/DESCRIBE、明确不支持和延期条目。
 
-- [ ] **Step 1: 添加写入和基础 DDL 条目**
+- [x] **Step 1: 添加写入和基础 DDL 条目**
 
 Append entries:
 
@@ -695,7 +695,7 @@ Append entries:
 ]
 ```
 
-- [ ] **Step 2: 添加 SHOW/DESCRIBE 条目**
+- [x] **Step 2: 添加 SHOW/DESCRIBE 条目**
 
 Append entries:
 
@@ -730,7 +730,7 @@ Append entries:
 ]
 ```
 
-- [ ] **Step 3: 添加明确不支持和延期条目**
+- [x] **Step 3: 添加明确不支持和延期条目**
 
 Append entries:
 
@@ -765,7 +765,7 @@ Append entries:
 ]
 ```
 
-- [ ] **Step 4: 在 Markdown 增加不支持和延期说明**
+- [x] **Step 4: 在 Markdown 增加不支持和延期说明**
 
 Under `## 支持级别`, write:
 
@@ -775,7 +775,7 @@ Under `## 支持级别`, write:
 - `deferred`：不进入当前 parser-core 必做范围；必须写明原因和后续 change 边界。
 ```
 
-- [ ] **Step 5: 验证写入和 DDL 覆盖存在**
+- [x] **Step 5: 验证写入和 DDL 覆盖存在**
 
 Run:
 
@@ -794,7 +794,7 @@ PY
 
 Expected: exit 0。
 
-- [ ] **Step 6: 勾选 OpenSpec 任务 2.4**
+- [x] **Step 6: 勾选 OpenSpec 任务 2.4**
 
 Modify `tasks.md`:
 
@@ -802,7 +802,7 @@ Modify `tasks.md`:
 - [x] 2.4 覆盖 INSERT、UPDATE、DELETE 和基础 DDL。
 ```
 
-- [ ] **Step 7: 提交 Task 4**
+- [x] **Step 7: 提交 Task 4**
 
 Run:
 
