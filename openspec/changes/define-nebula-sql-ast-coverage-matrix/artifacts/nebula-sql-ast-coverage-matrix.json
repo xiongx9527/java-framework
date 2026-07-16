@@ -410,7 +410,7 @@
     {
       "id": "SQL-STMT-DESCRIBE",
       "category": "statement",
-      "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLDescribeStatement",
+      "druidAstType": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlExplainStatement",
       "sqlConstruct": "DESCRIBE",
       "exampleSql": "DESCRIBE person",
       "nebulaAstKind": "MetadataStatement",
@@ -561,9 +561,9 @@
     },
     {
       "className": "com.alibaba.druid.sql.ast.statement.SQLDescribeStatement",
-      "status": "coveredByMatrix",
+      "status": "coveredByContainingEntry",
       "entryId": "SQL-STMT-DESCRIBE",
-      "reason": "DESCRIBE metadata 查询已纳入 required 结构化输出边界。"
+      "reason": "该类存在于 Druid 1.2.24 JAR，但 MYSQL 方言下当前 DESCRIBE person 样例的实际顶层 AST 是 MySqlExplainStatement；保留此候选用于反射类存在性记录，不将其作为本样例的主 AST。"
     },
     {
       "className": "com.alibaba.druid.sql.ast.statement.SQLCallStatement",
@@ -727,9 +727,9 @@
     },
     {
       "className": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlExplainStatement",
-      "status": "coveredByContainingEntry",
+      "status": "coveredByMatrix",
       "entryId": "SQL-STMT-DESCRIBE",
-      "reason": "Druid 在 MYSQL 方言下将样例 DESCRIBE 解析为该具体语句类；其 metadata 语义由 DESCRIBE entry 处置。"
+      "reason": "Druid 在 MYSQL 方言下将当前 DESCRIBE person 样例解析为该具体顶层语句类；DESCRIBE 的 metadata 语义由该 entry 处置。"
     }
   ],
   "parserCoreConsumption": {
