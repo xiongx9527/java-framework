@@ -9,6 +9,7 @@
 - 锁定 Druid SQL Parser 版本和 Java 8 兼容边界。
 - 枚举 Druid MySQL parser 关键 AST 类型。
 - 定义 Druid AST 到 Nebula AST / 中间表示的覆盖矩阵。
+- 覆盖 MyBatis 和 JdbcTemplate 常见 SQL 形态，包括 `?` 参数、列别名、IN 条件和动态 SQL 展开后的条件组合。
 - 定义 adapter 完整性测试策略和 raw fallback 禁止规则。
 - 为 `add-nebula-sql-parser-core` 提供可执行输入。
 
