@@ -1,0 +1,14 @@
+{
+  "change": "define-nebula-sql-ast-coverage-matrix",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "73815823def23f983beefbd4666157d943470cc88a7ecdbdd3c4d37b35756dc6",
+  "files": [
+    { "path": "openspec/changes/define-nebula-sql-ast-coverage-matrix/proposal.md", "sha256": "02be69eaf1ab0d38340b244845dfb64b504766f2e4348f1b3fa6c1020ab8267c" },
+    { "path": "openspec/changes/define-nebula-sql-ast-coverage-matrix/design.md", "sha256": "8b24867305713896c5ed78d8e9ea1d0b07dc4941e9566251704a114806926b1a" },
+    { "path": "openspec/changes/define-nebula-sql-ast-coverage-matrix/tasks.md", "sha256": "b021ac5f41dab06732457833b34f1800e22d03994a9d50ce3127c21a7bb5dffe" },
+    { "path": "openspec/changes/define-nebula-sql-ast-coverage-matrix/specs/nebula-sql-ast-coverage-matrix/spec.md", "sha256": "85d0cb1b32e3b80de19ea6a0aeb3593d7e3b5d9ef7703e162cf112223b5b45d8" }
+  ]
+}
