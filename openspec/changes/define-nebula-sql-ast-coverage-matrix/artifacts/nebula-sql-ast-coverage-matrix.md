@@ -6,10 +6,10 @@ JSON 文件是后续 parser-core 完整性测试消费的机器可读事实源�
 
 ## Druid 基线
 
-- GroupId: `com.alibaba`
-- ArtifactId: `druid`
-- Version: `1.2.24`
-- Version source: `fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml`
+- 组 ID（GroupId）: `com.alibaba`
+- 构件 ID（ArtifactId）: `druid`
+- 版本（Version）: `1.2.24`
+- 版本来源（Version source）: `fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml`
 - 许可证：已验证为 `Apache 2`，来源为 Maven Central POM（`https://repo1.maven.org/maven2/com/alibaba/druid/1.2.24/druid-1.2.24.pom`），许可证 URL 为 `http://www.apache.org/licenses/LICENSE-2.0.txt`。
 - Java 8 兼容性：已验证。Maven Central JAR（`https://repo1.maven.org/maven2/com/alibaba/druid/1.2.24/druid-1.2.24.jar`）包含 1893 个 class，最小和最大 major version 52，表明字节码兼容 Java 8。
 - 证据说明：`./mvnw -q dependency:get -Dartifact=com.alibaba:druid:1.2.24:pom -Dtransitive=false` 因当前 worktree 缺少 `.mvn/wrapper/maven-wrapper.properties` 及 Maven Wrapper 主类而失败，未进入依赖解析；上述 Maven Central POM/JAR 直接证据作为替代来源。
