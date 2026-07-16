@@ -3,7 +3,7 @@
 - Change: define-nebula-sql-ast-coverage-matrix
 - Phase: design
 - Mode: compact
-- Context hash: 2160356a4041843f65b0e6d081d3b89a4d144ff86204985a765cd6730a4ac2e0
+- Context hash: 990d26003da4646ce8088b4e6b9bcc0c488936c89fb2d10382d8356dd16a656f
 
 Generated-by: comet-handoff.sh
 
@@ -135,8 +135,8 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 ## openspec/changes/define-nebula-sql-ast-coverage-matrix/specs/nebula-sql-ast-coverage-matrix/spec.md
 
 - Source: openspec/changes/define-nebula-sql-ast-coverage-matrix/specs/nebula-sql-ast-coverage-matrix/spec.md
-- Lines: 1-52
-- SHA256: fcd5c7464035f9dbe93d633be99c980be648724230edc66fad7bab003a55d1f3
+- Lines: 1-56
+- SHA256: e0202bc9d4976446136258ba59f0d0512f3c77b25e00b22d50d136e3c0eb3a2d
 
 ```md
 ## ADDED Requirements
@@ -180,6 +180,10 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 #### Scenario: parser core 读取矩阵
 - **WHEN** 实现 `add-nebula-sql-parser-core`
 - **THEN** 开发者可以根据覆盖矩阵逐项实现 adapter 和测试
+
+#### Scenario: 矩阵 artifact 区分机器事实源和说明文档
+- **WHEN** 维护者查看本 change 交付的矩阵 artifact
+- **THEN** `nebula-sql-ast-coverage-matrix.json` 是后续 parser core 完整性测试消费的机器可读事实源，`nebula-sql-ast-coverage-matrix.md` 仅作为人类可读说明和维护文档
 
 ### Requirement: Framework-generated SQL shapes are represented
 系统 SHALL 在 AST 覆盖矩阵中纳入 正常 JDBC、MyBatis 和 JdbcTemplate 常见 SQL 形态，确保 JDBC 上层框架生成的 SQL 能被 parser core 验证。

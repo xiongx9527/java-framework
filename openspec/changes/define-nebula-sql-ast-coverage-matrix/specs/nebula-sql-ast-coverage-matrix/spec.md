@@ -40,6 +40,10 @@
 - **WHEN** 实现 `add-nebula-sql-parser-core`
 - **THEN** 开发者可以根据覆盖矩阵逐项实现 adapter 和测试
 
+#### Scenario: 矩阵 artifact 区分机器事实源和说明文档
+- **WHEN** 维护者查看本 change 交付的矩阵 artifact
+- **THEN** `nebula-sql-ast-coverage-matrix.json` 是后续 parser core 完整性测试消费的机器可读事实源，`nebula-sql-ast-coverage-matrix.md` 仅作为人类可读说明和维护文档
+
 ### Requirement: Framework-generated SQL shapes are represented
 系统 SHALL 在 AST 覆盖矩阵中纳入 正常 JDBC、MyBatis 和 JdbcTemplate 常见 SQL 形态，确保 JDBC 上层框架生成的 SQL 能被 parser core 验证。
 
