@@ -15,7 +15,7 @@
 - Changed files: artifacts Markdown
 - Test evidence: JSON format exit 0; constructs coverage assertions exit 0; rg fact-source/raw-fallback/parser-core/Druid rules exit 0; openspec strict validate exit 0; git diff --check exit 0
 - Risk signals: SQL/parser/external-input/raw-fallback sensitive surface
-- Review status: final re-review found DESCRIBE AST type mismatch; narrow fix dispatched
+- Review status: DESCRIBE AST type mismatch fixed; final re-review pending
 - Fix rounds: 2
 
 ## Task 6 Review Feedback Resolution
@@ -67,6 +67,12 @@
 
 - Remaining Important: `DESCRIBE person` actual Druid MYSQL AST type is `com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlExplainStatement`, while entry `SQL-STMT-DESCRIBE` still uses `SQLDescribeStatement`.
 - Controller verification: compiling and running `/tmp/CheckDruidDescribe.java` against `/tmp/druid-1.2.24-review-check.jar` printed `com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlExplainStatement`.
+
+## DESCRIBE Final Fix
+
+- Fix commit: c4ecd68
+- Changed files: artifacts JSON/Markdown
+- Verification: JSON parse PASS; DESCRIBE actual AST matches entry PASS; 23 sample SQL actual AST closure PASS; named reviewer classes PASS; OpenSpec strict PASS; git diff --check PASS
 
 ## Completed Task 5
 
