@@ -43,7 +43,7 @@ JSON 文件是后续 parser-core 完整性测试消费的机器可读事实源�
 
 ## Raw Fallback 禁止规则
 
-属于 `required` 的 AST 类型不得通过 Raw Fallback 绕过结构化解析。解析失败信息至少包含条目 `id`、`druidAstType` 和 `exampleSql`。
+所有未来矩阵条目，无论其 `supportLevel`、来源或当前是否纳入 parser-core，都必须显式包含 `"rawFallbackAllowed": false`。任何 AST 类型都不得通过 Raw Fallback 绕过结构化解析；raw SQL 仅允许出现在 debug、trace 或 error context 中，不得作为语义 fallback 返回或继续处理。解析失败信息至少包含条目 `id`、`druidAstType` 和 `exampleSql`。
 
 ## Parser-Core 消费方式
 
