@@ -32,7 +32,7 @@ JSON 文件是后续 parser-core 完整性测试消费的机器可读事实源�
 - `artifacts` 记录双产物路径。
 - `supportLevels` 定义条目的支持级别枚举。
 - `entryRequirements` 是后续任务和 parser-core 测试必须消费的机器约束，定义每个矩阵条目的必填字段、Raw Fallback 禁止值和支持级别枚举。
-- `categories`、`entries` 和 `reflectedCandidates` 已交付：23 个矩阵条目和 20 个经锁定 Druid JAR 核验的反射候选记录共同定义当前验收边界。
+- `categories`、`entries` 和 `reflectedCandidates` 已交付：23 个矩阵条目和 41 个经锁定 Druid JAR 核验、并由样例 SQL 实际 AST 遍历审计的候选记录共同定义当前验收边界。
 - `enumeration` 描述样例 SQL 驱动枚举和反射缺口检查的范围。
 - `parserCoreConsumption` 定义测试事实源和失败诊断字段。
 - `upgradePolicy` 定义 Druid 升级后的重新验证动作。
@@ -61,9 +61,11 @@ Task 3 增加以下查询、表达式和框架生成 SQL 覆盖条目：
 
 ## 反射缺口检查
 
-本次反射检查已完成：以锁定 JAR `/tmp/druid-1.2.24-review-check.jar`（`com.alibaba:druid:1.2.24`，SHA-256 `1db6e535ce91e4982f5d27882950e35811a3a3c7d58576c865b1cb088794fe0e`）的 `jar tf` 类清单为扫描来源，并与 `entries[].druidAstType` 的去重集合双向核对。
+本次反射缺口检查同时覆盖类存在性和实际 AST：使用 `SQLUtils.parseStatements(exampleSql, JdbcConstants.MYSQL)` 解析全部 23 个样例 SQL，并从每个 `SQLStatement` 调用 `accept(SQLASTVisitorAdapter)`。visitor 的 `preVisit` 会随 Druid 的递归下降记录每个访问到的 `SQLObject` 具体运行时类，最终得到 39 个去重实际 AST 类。该集合逐项与 `entries[].druidAstType` 和 `reflectedCandidates[].className` 核对，任何实际类都必须是 entry 主类型，或有明确候选处置。
 
-`reflectedCandidates` 已记录当前 parser-core acceptance boundary 中的 20 个唯一 statement、queryShape 和 expression 类型：SHOW/DESCRIBE、CALL、TRIGGER、DDL、DML、查询和表达式均有处置。与矩阵条目关联的类型标为 `coveredByMatrix`；CALL 标为 `explicitlyUnsupported`；TRIGGER 标为 `deferred`。每项均包含类名、处置状态、关联 `entryId` 和理由；辅助/父类及不在当前验收边界内的类型不进入候选清单。
+锁定 JAR `/tmp/druid-1.2.24-review-check.jar`（`com.alibaba:druid:1.2.24`，SHA-256 `1db6e535ce91e4982f5d27882950e35811a3a3c7d58576c865b1cb088794fe0e`）仍用于 `jar tf` 的候选类存在性核对，但该 `/tmp` 路径只是本次临时核验输入。可移植复核依据是 Maven 坐标、SHA-256、上述解析/递归遍历方法和 JSON 内的处置记录；复核者可从 Maven Central 重新取得相同坐标的 JAR。
+
+`reflectedCandidates` 现有 41 条记录，包含每个实际遍历到但未作为 entry 主类型的类。`coveredByMatrix` 表示该类本身是矩阵 entry；`coveredByContainingEntry` 表示外层语句、查询、表源、`SQLLimit`、`SQLOrderBy`、`SQLSelect`、`SQLSelectOrderByItem`、`SQLSelectStatement` 等容器由关联 entry 递归输出，因而不单列 adapter acceptance entry。`excludedInternalContainer` 处置 DDL/DML 内部组装节点；`excludedLiteralOrIdentifier` 处置 `SQLIdentifierExpr`、`SQLIntegerExpr`、字符串、属性引用和通配符等叶子，它们必须作为父语句/表达式的结构化内容保留，但不能把每种叶子扩张为独立 SQL 构造。`explicitlyUnsupported` 和 `deferred` 分别保持 CALL 与 TRIGGER 的既有边界。每项都包含类名、处置状态、关联 entry 和理由。
 
 ## 支持级别
 
