@@ -20,8 +20,6 @@ created_at: 2026-07-16
 verified_at: null
 archived: false
 direct_override: null
-build_command: null
-verify_command: null
 classic_profile: full
 classic_migration: 1
 run_id: a8e482d0-7cee-4ff8-aac2-659fb1e2f893
