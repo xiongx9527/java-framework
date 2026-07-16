@@ -20,6 +20,7 @@ JSON 文件是后续 parser-core 完整性测试消费的机器可读事实源�
 - `druid` 记录解析器依赖坐标、来源和验证状态。
 - `artifacts` 记录双产物路径。
 - `supportLevels` 定义条目的支持级别枚举。
+- `entryRequirements` 是后续任务和 parser-core 测试必须消费的机器约束，定义每个矩阵条目的必填字段、Raw Fallback 禁止值和支持级别枚举。
 - `categories`、`entries` 和 `reflectedCandidates` 由后续枚举任务填充。
 - `enumeration` 描述样例 SQL 驱动枚举和反射缺口检查的范围。
 - `parserCoreConsumption` 定义测试事实源和失败诊断字段。

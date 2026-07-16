@@ -6,13 +6,20 @@
     "version": "1.2.24",
     "versionSource": "fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml",
     "java8Compatible": true,
+    "java8Evidence": {
+      "jarSource": "https://repo1.maven.org/maven2/com/alibaba/druid/1.2.24/druid-1.2.24.jar",
+      "classCount": 1893,
+      "minMajorVersion": 52,
+      "maxMajorVersion": 52,
+      "maxMajorVersionMeaning": "Java 8"
+    },
     "license": {
       "name": "Apache 2",
       "url": "http://www.apache.org/licenses/LICENSE-2.0.txt",
       "source": "https://repo1.maven.org/maven2/com/alibaba/druid/1.2.24/druid-1.2.24.pom"
     },
     "verificationNotes": [
-      "Build 阶段必须用 Maven 解析或构建结果补充许可证和 Java 8 兼容性证据。",
+      "许可证和 Java 8 兼容性证据已通过 Maven Central POM/JAR 直接检查完成。",
       "已执行 ./mvnw -q dependency:get -Dartifact=com.alibaba:druid:1.2.24:pom -Dtransitive=false，但当前 worktree 缺少 .mvn/wrapper/maven-wrapper.properties 及 Maven Wrapper 主类，命令未进入依赖解析。",
       "Maven Central POM https://repo1.maven.org/maven2/com/alibaba/druid/1.2.24/druid-1.2.24.pom 的 license block 验证为 Apache 2，许可证 URL 为 http://www.apache.org/licenses/LICENSE-2.0.txt。",
       "Maven Central JAR https://repo1.maven.org/maven2/com/alibaba/druid/1.2.24/druid-1.2.24.jar 检查得到 class_count 1893，min_major 52，max_major 52；major version 52 表明字节码兼容 Java 8。"
@@ -27,6 +34,28 @@
     "explicitlyUnsupported",
     "deferred"
   ],
+  "entryRequirements": {
+    "requiredFields": [
+      "id",
+      "category",
+      "druidAstType",
+      "sqlConstruct",
+      "exampleSql",
+      "nebulaAstKind",
+      "adapterRequirement",
+      "supportLevel",
+      "testCaseId",
+      "rawFallbackAllowed",
+      "notes"
+    ],
+    "rawFallbackAllowedRequired": true,
+    "rawFallbackAllowedValue": false,
+    "supportLevelAllowedValues": [
+      "required",
+      "explicitlyUnsupported",
+      "deferred"
+    ]
+  },
   "categories": [],
   "enumeration": {
     "sampleSqlDriven": true,
