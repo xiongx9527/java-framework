@@ -65,7 +65,7 @@ Task 3 增加以下查询、表达式和框架生成 SQL 覆盖条目：
 
 锁定 JAR `/tmp/druid-1.2.24-review-check.jar`（`com.alibaba:druid:1.2.24`，SHA-256 `1db6e535ce91e4982f5d27882950e35811a3a3c7d58576c865b1cb088794fe0e`）仍用于 `jar tf` 的候选类存在性核对，但该 `/tmp` 路径只是本次临时核验输入。可移植复核依据是 Maven 坐标、SHA-256、上述解析/递归遍历方法和 JSON 内的处置记录；复核者可从 Maven Central 重新取得相同坐标的 JAR。
 
-`reflectedCandidates` 现有 41 条记录，包含每个实际遍历到但未作为 entry 主类型的类。`coveredByMatrix` 表示该类本身是矩阵 entry；`coveredByContainingEntry` 表示外层语句、查询、表源、`SQLLimit`、`SQLOrderBy`、`SQLSelect`、`SQLSelectOrderByItem`、`SQLSelectStatement` 等容器由关联 entry 递归输出，因而不单列 adapter acceptance entry。`excludedInternalContainer` 处置 DDL/DML 内部组装节点；`excludedLiteralOrIdentifier` 处置 `SQLIdentifierExpr`、`SQLIntegerExpr`、字符串、属性引用和通配符等叶子，它们必须作为父语句/表达式的结构化内容保留，但不能把每种叶子扩张为独立 SQL 构造。`explicitlyUnsupported` 和 `deferred` 分别保持 CALL 与 TRIGGER 的既有边界。每项都包含类名、处置状态、关联 entry 和理由。
+`reflectedCandidates` 现有 41 条记录，包含每个实际遍历到但未作为 entry 主类型的类，以及为反射类存在性保留的候选类。`coveredByMatrix` 表示该类本身是矩阵 entry；`coveredByContainingEntry` 表示外层语句、查询、表源、`SQLLimit`、`SQLOrderBy`、`SQLSelect`、`SQLSelectOrderByItem`、`SQLSelectStatement` 等容器由关联 entry 递归输出，因而不单列 adapter acceptance entry。对于 `DESCRIBE person`，主 `druidAstType` 和 `coveredByMatrix` 候选均为 `MySqlExplainStatement`；`SQLDescribeStatement` 虽存在于 Druid 1.2.24 JAR，但不是该样例的实际顶层 AST，故保留并明确记录其反射存在性处置。`excludedInternalContainer` 处置 DDL/DML 内部组装节点；`excludedLiteralOrIdentifier` 处置 `SQLIdentifierExpr`、`SQLIntegerExpr`、字符串、属性引用和通配符等叶子，它们必须作为父语句/表达式的结构化内容保留，但不能把每种叶子扩张为独立 SQL 构造。`explicitlyUnsupported` 和 `deferred` 分别保持 CALL 与 TRIGGER 的既有边界。每项都包含类名、处置状态、关联 entry 和理由。
 
 ## 支持级别
 
