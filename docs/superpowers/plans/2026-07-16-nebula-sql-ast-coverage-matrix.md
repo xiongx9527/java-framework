@@ -358,7 +358,7 @@ git commit -m "docs: define nebula sql ast matrix schema"
 - Consumes: Task 2 的分类和字段结构。
 - Produces: 覆盖 SELECT、JOIN、子查询、聚合、GROUP BY、HAVING、UNION、函数、表达式、别名、参数占位符、JDBC/MyBatis/JdbcTemplate 常见 SQL 形态的矩阵条目。
 
-- [ ] **Step 1: 添加 SELECT 与查询结构条目**
+- [x] **Step 1: 添加 SELECT 与查询结构条目**
 
 Append entries with IDs and constructs:
 
@@ -432,7 +432,7 @@ Append entries with IDs and constructs:
 ]
 ```
 
-- [ ] **Step 2: 添加表达式条目**
+- [x] **Step 2: 添加表达式条目**
 
 Append expression entries:
 
@@ -506,7 +506,7 @@ Append expression entries:
 ]
 ```
 
-- [ ] **Step 3: 添加框架生成 SQL 条目**
+- [x] **Step 3: 添加框架生成 SQL 条目**
 
 Append framework entries:
 
@@ -567,11 +567,11 @@ Append framework entries:
 ]
 ```
 
-- [ ] **Step 4: 在 Markdown 增加查询覆盖说明**
+- [x] **Step 4: 在 Markdown 增加查询覆盖说明**
 
 Under `## 样例 SQL 枚举`, summarize the IDs added in this task and state that `required` entries are parser-core adapter completeness inputs.
 
-- [ ] **Step 5: 验证所有新增条目禁止 raw fallback**
+- [x] **Step 5: 验证所有新增条目禁止 raw fallback**
 
 Run:
 
@@ -592,7 +592,7 @@ PY
 
 Expected: exit 0。
 
-- [ ] **Step 6: 勾选 OpenSpec 任务 2.3、2.5**
+- [x] **Step 6: 勾选 OpenSpec 任务 2.3、2.5**
 
 Modify `tasks.md`:
 
@@ -601,7 +601,7 @@ Modify `tasks.md`:
 - [x] 2.5 覆盖正常 JDBC/MyBatis/JdbcTemplate 常见 SQL 形态：`?` 参数、SELECT 1、SELECT COUNT(*)、列别名、IN 条件、分页、SHOW/DESCRIBE、metadata 探测 SQL 和动态 SQL 展开后的条件组合。
 ```
 
-- [ ] **Step 7: 提交 Task 3**
+- [x] **Step 7: 提交 Task 3**
 
 Run:
 

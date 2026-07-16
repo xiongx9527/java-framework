@@ -7,20 +7,19 @@
 
 ## Current Task
 
-- Plan task: Task 2: 定义分类、字段结构和升级规则
-- OpenSpec mapping: 1.2 定义 Druid 版本升级时的 AST 覆盖矩阵更新规则。 / 1.3 制定 MySQL parser AST 类型枚举方法。 / 2.1 定义 Nebula AST 顶层分类和表达式分类。 / 2.2 建立 Druid AST 到 Nebula AST 的覆盖矩阵字段结构。
+- Plan task: Task 3: 填充查询、表达式和框架生成 SQL 矩阵条目
+- OpenSpec mapping: 2.3 覆盖 SELECT、JOIN、子查询、聚合、GROUP BY、HAVING、UNION、函数、表达式、别名和参数占位符。 / 2.5 覆盖正常 JDBC/MyBatis/JdbcTemplate 常见 SQL 形态。
 - Stage: done
-- Implementer: DONE (28b4980)
-- Implementation commits: abb51d2..28b4980
+- Implementer: DONE (61bfe79)
+- Implementation commits: 77a062d..61bfe79
 - Changed files: artifacts JSON/Markdown
-- Test evidence: Python assertions exit 0; JSON structure checks exit 0; git diff --check exit 0
+- Test evidence: Python entries/raw fallback assertions exit 0; git diff --check exit 0
 - Risk signals: SQL/external-input sensitive surface
-- Review status: approved; minor Markdown wording accepted for later cleanup
+- Review status: approved
 - Fix rounds: 0
 
-## Completed Task 2
+## Completed Task 3
 
-- Final head: 28b4980
+- Final head: 61bfe79
 - Plan checkoff: PASS
 - OpenSpec checkoff: PASS
-- Accepted minor: Markdown line still says categories are filled later; future Markdown edits can clean this up.
