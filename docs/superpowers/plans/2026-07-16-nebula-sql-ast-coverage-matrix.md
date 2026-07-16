@@ -913,7 +913,7 @@ git commit -m "docs: define nebula sql parser matrix test policy"
 - Consumes: Task 1 到 Task 5 的全部 artifact。
 - Produces: 全部 OpenSpec tasks 勾选，build guard 可进入 verify 的变更状态。
 
-- [ ] **Step 1: 验证 JSON 格式**
+- [x] **Step 1: 验证 JSON 格式**
 
 Run:
 
@@ -923,7 +923,7 @@ python3 -m json.tool openspec/changes/define-nebula-sql-ast-coverage-matrix/arti
 
 Expected: exit 0。
 
-- [ ] **Step 2: 验证矩阵覆盖关键 SQL 构造**
+- [x] **Step 2: 验证矩阵覆盖关键 SQL 构造**
 
 Run:
 
@@ -963,7 +963,7 @@ PY
 
 Expected: exit 0。
 
-- [ ] **Step 3: 验证 Markdown 明确 JSON 是事实源**
+- [x] **Step 3: 验证 Markdown 明确 JSON 是事实源**
 
 Run:
 
@@ -973,7 +973,7 @@ rg -n "JSON.*事实源|Markdown.*说明|rawFallbackAllowed|Parser-Core|Druid 升
 
 Expected: 输出匹配 JSON 事实源、Markdown 说明、raw fallback、Parser-Core 消费方式和 Druid 升级规则。
 
-- [ ] **Step 4: 勾选 OpenSpec 任务 3.3**
+- [x] **Step 4: 勾选 OpenSpec 任务 3.3**
 
 Modify `tasks.md`:
 
@@ -981,7 +981,7 @@ Modify `tasks.md`:
 - [x] 3.3 输出覆盖矩阵文档或测试资源，供 `add-nebula-sql-parser-core` 使用。
 ```
 
-- [ ] **Step 5: 验证 tasks.md 全部勾选**
+- [x] **Step 5: 验证 tasks.md 全部勾选**
 
 Run:
 
@@ -991,7 +991,7 @@ grep -c -- "- \\[ \\]" openspec/changes/define-nebula-sql-ast-coverage-matrix/ta
 
 Expected: `0`。
 
-- [ ] **Step 6: 运行 OpenSpec 校验**
+- [x] **Step 6: 运行 OpenSpec 校验**
 
 Run:
 
