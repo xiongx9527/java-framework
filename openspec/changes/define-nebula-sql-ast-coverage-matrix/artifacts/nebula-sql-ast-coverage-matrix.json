@@ -56,7 +56,28 @@
       "deferred"
     ]
   },
-  "categories": [],
+  "categories": [
+    {
+      "id": "statement",
+      "description": "SELECT、INSERT、UPDATE、DELETE、DDL、SHOW、DESCRIBE 等语句节点。"
+    },
+    {
+      "id": "queryShape",
+      "description": "JOIN、子查询、UNION、GROUP BY、HAVING、ORDER BY、LIMIT 等查询结构。"
+    },
+    {
+      "id": "expression",
+      "description": "二元表达式、函数调用、字面量、列引用、别名、IN、LIKE、IS NULL、参数占位符。"
+    },
+    {
+      "id": "frameworkGenerated",
+      "description": "JDBC、MyBatis、JdbcTemplate 常见探测和动态 SQL 展开形态。"
+    },
+    {
+      "id": "unsupportedOrDeferred",
+      "description": "Druid 能解析但当前 Nebula SQL 路线明确不支持或延期的语法。"
+    }
+  ],
   "enumeration": {
     "sampleSqlDriven": true,
     "reflectionGapCheck": true,
@@ -64,7 +85,54 @@
       "com.alibaba.druid.sql.ast",
       "com.alibaba.druid.sql.dialect.mysql.ast"
     ],
-    "sampleSqlGroups": []
+    "sampleSqlGroups": [
+      {
+        "id": "select-basic",
+        "constructs": [
+          "SELECT 1",
+          "SELECT COUNT(*)",
+          "列别名",
+          "WHERE 条件",
+          "ORDER BY",
+          "LIMIT"
+        ]
+      },
+      {
+        "id": "select-complex",
+        "constructs": [
+          "JOIN",
+          "子查询",
+          "聚合",
+          "GROUP BY",
+          "HAVING",
+          "UNION",
+          "函数",
+          "表达式"
+        ]
+      },
+      {
+        "id": "write-and-ddl",
+        "constructs": [
+          "INSERT",
+          "UPDATE",
+          "DELETE",
+          "CREATE TABLE",
+          "DROP TABLE",
+          "SHOW",
+          "DESCRIBE"
+        ]
+      },
+      {
+        "id": "framework-generated",
+        "constructs": [
+          "? 参数",
+          "IN 参数列表",
+          "分页",
+          "metadata 探测 SQL",
+          "动态 SQL 展开后的条件组合"
+        ]
+      }
+    ]
   },
   "entries": [],
   "reflectedCandidates": [],
