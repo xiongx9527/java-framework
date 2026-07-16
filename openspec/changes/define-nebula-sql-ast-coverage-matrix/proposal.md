@@ -8,6 +8,7 @@
 - 枚举该版本 MySQL parser 可产出的关键 AST 类型和 SQL 构造。
 - 定义 Druid AST 到 Nebula AST / 中间表示的覆盖矩阵。
 - 定义 adapter 完整性测试策略，确保 parser core 不允许 raw fallback 或遗漏适配。
+- 覆盖 MyBatis 和 JdbcTemplate 常见 SQL 形态，包括 `?` 参数、列别名、IN 条件和动态 SQL 展开后的条件组合。
 - 明确后续 Druid 升级时必须重新评估 AST 覆盖矩阵。
 
 ## Capabilities
