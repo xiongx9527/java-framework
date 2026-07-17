@@ -3,7 +3,7 @@
 - Change: add-nebula-sql-parser-core
 - Phase: design
 - Mode: compact
-- Context hash: e2c775ba25ac17fe9813b3c0bedb339877f981ef532215927a0983ce21f2ce8a
+- Context hash: a9f8a76b33eab2c4f2b704ca3eb23bd5dbf757b71c2ded45a82f0f6985297ec3
 
 Generated-by: comet-handoff.sh
 
@@ -105,8 +105,8 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 ## openspec/changes/add-nebula-sql-parser-core/tasks.md
 
 - Source: openspec/changes/add-nebula-sql-parser-core/tasks.md
-- Lines: 1-18
-- SHA256: 76876e48daad60399f20c7093caf0066db09f548d997aaab97d67ad527d18692
+- Lines: 1-23
+- SHA256: 4e55093e6473c7eeebad0d387e4f1305d38acfb3f42fcc0382c81aeb3522eca3
 
 ```md
 ## 1. 调研与架构决策
@@ -114,6 +114,8 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 - [ ] 1.0 读取 `define-nebula-sql-ast-coverage-matrix` 产出的 Druid AST 覆盖矩阵，并确认实现范围。
 - [ ] 1.1 评估自研 parser 与第三方 SQL parser 的兼容性、许可证、Java 8 支持和 AST 可控性。
 - [ ] 1.2 定义 SQL AST / 中间表示和错误模型。
+- [ ] 1.3 定义 Druid AST adapter 与自有 Nebula SQL IR 的包边界，确保后续转换层和协议层不依赖 Druid AST。
+- [ ] 1.4 定义 raw SQL 诊断字段、脱敏截断规则和禁止语义 fallback 的测试断言。
 
 ## 2. Parser 核心实现
 
@@ -122,19 +124,22 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 - [ ] 2.3 实现基础 DDL 语法解析。
 - [ ] 2.4 实现 JOIN、子查询、聚合、GROUP BY、HAVING、UNION、函数、表达式和别名等复杂 SQL 构造解析。
 - [ ] 2.5 实现非法语法和不支持语法的明确错误。
+- [ ] 2.6 保留 `?` 参数占位符的 1-based 位置和出现顺序，不在 parser core 中绑定参数值。
 
 ## 3. 测试与文档
 
 - [ ] 3.1 补充 parser 单元测试，覆盖读写、DDL、复杂 SQL、非法 SQL 和暂不支持语法。
 - [ ] 3.2 记录第一阶段 SQL 方言边界和后续转换层依赖。
+- [ ] 3.3 补充矩阵驱动测试，读取前置覆盖矩阵 JSON，按 required、explicitlyUnsupported、deferred 分流验证 adapter 行为。
+- [ ] 3.4 补充纯解析隔离测试，验证 parser API 不创建 Nebula 连接、不调用 `NebulaClientFacade`、不生成 nGQL。
 
 ```
 
 ## openspec/changes/add-nebula-sql-parser-core/specs/nebula-sql-parser-core/spec.md
 
 - Source: openspec/changes/add-nebula-sql-parser-core/specs/nebula-sql-parser-core/spec.md
-- Lines: 1-46
-- SHA256: a794538590a7f402a0347276a00222e32f72aa64b54cd895cd0480fa5ba3575f
+- Lines: 1-65
+- SHA256: 35757c820ae6ac1b49f5156b76ac12ff9284220ac8ab614ce8c198a1e3357887
 
 ```md
 ## ADDED Requirements
@@ -149,6 +154,10 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 #### Scenario: 解析写入和 DDL 语句
 - **WHEN** 输入基础 INSERT、UPDATE、DELETE 或 CREATE TABLE 语句
 - **THEN** 解析结果标识语句类型和关键结构。
+
+#### Scenario: 不暴露 Druid AST 给后续层
+- **WHEN** 后续 SQL→nGQL、写入/DDL、JDBC 框架适配或 MySQL 协议能力消费 parser 输出
+- **THEN** 它们只依赖稳定的 Nebula SQL 中间表示，不直接依赖 Druid AST 类型或 visitor 实现。
 
 ### Requirement: Complex SQL constructs are represented explicitly
 系统 SHALL 解析复杂 SQL 构造，并在中间表示中显式表达 JOIN、子查询、聚合、分组、HAVING、UNION、函数、表达式和别名等结构。
@@ -165,6 +174,10 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 - **WHEN** 输入包含 UNION、内置函数或复杂表达式
 - **THEN** 解析结果能区分集合操作、函数调用和表达式树
 
+#### Scenario: 保留参数占位符位置
+- **WHEN** 输入包含 `?` 参数占位符的 SQL
+- **THEN** 解析结果按出现顺序保留 1-based 参数位置，不做字符串替换或参数值绑定。
+
 ### Requirement: Unsupported SQL reports clear errors
 系统 SHALL 对语法错误或暂不支持的 SQL 返回明确、可定位的异常信息。
 
@@ -176,6 +189,14 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 - **WHEN** 输入 parser 识别但当前不支持的 SQL 特性
 - **THEN** 返回明确的不支持原因。
 
+#### Scenario: 矩阵驱动的支持边界
+- **WHEN** parser core 验证 `define-nebula-sql-ast-coverage-matrix` 产出的矩阵 JSON
+- **THEN** `required` 条目必须产生结构化中间表示，`explicitlyUnsupported` 条目必须返回结构化不支持错误，`deferred` 条目必须保留延期原因。
+
+#### Scenario: 禁止 raw SQL 语义兜底
+- **WHEN** Druid 能解析的矩阵 required 条目进入 parser core
+- **THEN** 系统不得用 raw SQL 文本替代结构化中间表示；raw SQL 仅可作为脱敏、截断后的诊断上下文。
+
 ### Requirement: Parser does not execute Nebula queries
 SQL parser 核心 SHALL 只负责解析与基础语义校验，不直接访问 NebulaGraph。
 
@@ -183,5 +204,8 @@ SQL parser 核心 SHALL 只负责解析与基础语义校验，不直接访问 N
 - **WHEN** 调用 parser API 
 - **THEN** 不创建 Nebula 连接、不调用 `NebulaClientFacade`，只返回解析结果或错误。
 
+#### Scenario: 不做 schema 映射或 nGQL 生成
+- **WHEN** parser API 解析 SQL 表、列、DDL 或 JOIN 结构
+- **THEN** 结果只保留 SQL 结构，不判断 tag/edge/property/id 映射，也不生成 nGQL。
 
 ```
