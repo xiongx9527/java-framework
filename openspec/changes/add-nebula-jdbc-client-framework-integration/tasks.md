@@ -9,7 +9,7 @@
 
 - [x] 2.1 支持 PreparedStatement `?` 参数绑定和参数传递到 SQL parser / 转换层。
 - [x] 2.2 补齐 ResultSetMetaData、基础 DatabaseMetaData、列名、列别名和 JDBC 类型映射。
-- [ ] 2.3 明确不支持 JDBC 能力的异常语义。
+- [x] 2.3 明确不支持 JDBC 能力的异常语义。
 
 ## 3. 标准 JDBC 与框架集成验证
 

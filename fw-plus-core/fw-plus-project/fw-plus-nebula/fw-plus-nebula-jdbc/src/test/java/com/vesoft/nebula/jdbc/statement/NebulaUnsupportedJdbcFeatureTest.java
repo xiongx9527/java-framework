@@ -4,6 +4,8 @@ import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.NebulaDatabaseMetaData;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -12,6 +14,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
@@ -38,6 +41,12 @@ public class NebulaUnsupportedJdbcFeatureTest {
 		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
 			@Override
 			public void run() throws SQLException {
+				connection.setAutoCommit(false);
+			}
+		});
+		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
+			@Override
+			public void run() throws SQLException {
 				connection.commit();
 			}
 		});
@@ -50,7 +59,7 @@ public class NebulaUnsupportedJdbcFeatureTest {
 	}
 
 	@Test
-	public void unsupportedStatementFeaturesShouldThrowSqlFeatureNotSupportedException() throws Exception {
+	public void unsupportedStatementFeaturesShouldExposeExplicitSemantics() throws Exception {
 		final Statement statement = new NebulaStatementImpl(mock(NebulaConnection.class));
 
 		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
@@ -68,13 +77,42 @@ public class NebulaUnsupportedJdbcFeatureTest {
 		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
 			@Override
 			public void run() throws SQLException {
-				statement.getMoreResults();
+				statement.executeBatch();
+			}
+		});
+		assertFalse(statement.getMoreResults());
+		assertEquals(-1, statement.getUpdateCount());
+	}
+
+	@Test
+	public void preparedStatementSqlOverloadsShouldKeepJdbcPreparedStatementContract() throws Exception {
+		final PreparedStatement statement = new NebulaPreparedStatementImpl(
+				mock(NebulaConnection.class),
+				"SELECT name FROM player WHERE id = ?"
+		);
+
+		assertCannotPassSqlToPreparedStatement(new SqlRunnable() {
+			@Override
+			public void run() throws SQLException {
+				statement.executeQuery("SELECT name FROM player");
+			}
+		});
+		assertCannotPassSqlToPreparedStatement(new SqlRunnable() {
+			@Override
+			public void run() throws SQLException {
+				statement.executeUpdate("UPDATE player SET age = 19");
+			}
+		});
+		assertCannotPassSqlToPreparedStatement(new SqlRunnable() {
+			@Override
+			public void run() throws SQLException {
+				statement.execute("SELECT name FROM player", Statement.RETURN_GENERATED_KEYS);
 			}
 		});
 	}
 
 	@Test
-	public void unsupportedPreparedStatementSqlOverloadsShouldThrowSqlFeatureNotSupportedException() throws Exception {
+	public void unsupportedPreparedStatementCapabilitiesShouldThrowSqlFeatureNotSupportedException() throws Exception {
 		final PreparedStatement statement = new NebulaPreparedStatementImpl(
 				mock(NebulaConnection.class),
 				"SELECT name FROM player WHERE id = ?"
@@ -83,19 +121,13 @@ public class NebulaUnsupportedJdbcFeatureTest {
 		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
 			@Override
 			public void run() throws SQLException {
-				statement.executeQuery("SELECT name FROM player");
+				statement.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1}), 1);
 			}
 		});
 		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
 			@Override
 			public void run() throws SQLException {
-				statement.executeUpdate("UPDATE player SET age = 19");
-			}
-		});
-		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
-			@Override
-			public void run() throws SQLException {
-				statement.execute("SELECT name FROM player", Statement.RETURN_GENERATED_KEYS);
+				statement.setBlob(1, mock(Blob.class));
 			}
 		});
 	}
@@ -121,6 +153,16 @@ public class NebulaUnsupportedJdbcFeatureTest {
 			return type.cast(exception);
 		}
 		return null;
+	}
+
+	private static void assertCannotPassSqlToPreparedStatement(SqlRunnable runnable) throws Exception {
+		try {
+			runnable.run();
+			fail("Expected SQLException");
+		} catch (SQLException exception) {
+			assertFalse(exception instanceof SQLFeatureNotSupportedException);
+			assertTrue(exception.getMessage().contains("cannot be called on PreparedStatement"));
+		}
 	}
 
 	private interface SqlRunnable {
