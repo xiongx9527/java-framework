@@ -10,6 +10,7 @@ import java.sql.Types;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class NebulaSqlWriteConverterTest {
 
@@ -45,6 +46,65 @@ public class NebulaSqlWriteConverterTest {
 		assertEquals(2020, plan.getDescriptor().getProperties().get("since"));
 	}
 
+	@Test
+	public void updateAndDeleteTagShouldRequireIdPredicate() throws Exception {
+		NebulaMutationPlan update = new DefaultNebulaSqlWriteConverter()
+				.convert(new DruidNebulaSqlParser()
+								.parse("UPDATE person SET name = 'Jerry' WHERE id = 'p1'")
+								.getStatement(),
+						NebulaWriteBindings.empty(),
+						personMappings());
+
+		assertEquals(NebulaMutationKind.UPDATE_VERTEX, update.getMutationKind());
+		assertEquals("UPDATE VERTEX ON person \"p1\" SET name = \"Jerry\"", update.getNgql());
+		assertEquals("p1", update.getDescriptor().getKeys().get("id"));
+		assertEquals("Jerry", update.getDescriptor().getProperties().get("name"));
+
+		NebulaMutationPlan delete = new DefaultNebulaSqlWriteConverter()
+				.convert(new DruidNebulaSqlParser()
+								.parse("DELETE FROM person WHERE id = 'p1'")
+								.getStatement(),
+						NebulaWriteBindings.empty(),
+						personMappings());
+
+		assertEquals(NebulaMutationKind.DELETE_VERTEX, delete.getMutationKind());
+		assertEquals("DELETE VERTEX \"p1\"", delete.getNgql());
+		assertEquals("p1", delete.getDescriptor().getKeys().get("id"));
+	}
+
+	@Test
+	public void updateAndDeleteEdgeShouldRequireSrcDstPredicate() throws Exception {
+		NebulaMutationPlan update = new DefaultNebulaSqlWriteConverter()
+				.convert(new DruidNebulaSqlParser()
+								.parse("UPDATE follow SET since = 2021 WHERE src_id = 'p1' AND dst_id = 'p2'")
+								.getStatement(),
+						NebulaWriteBindings.empty(),
+						followMappings());
+
+		assertEquals(NebulaMutationKind.UPDATE_EDGE, update.getMutationKind());
+		assertEquals("UPDATE EDGE ON follow \"p1\"->\"p2\" SET since = 2021", update.getNgql());
+		assertEquals("p1", update.getDescriptor().getKeys().get("src_id"));
+		assertEquals("p2", update.getDescriptor().getKeys().get("dst_id"));
+
+		NebulaMutationPlan delete = new DefaultNebulaSqlWriteConverter()
+				.convert(new DruidNebulaSqlParser()
+								.parse("DELETE FROM follow WHERE src_id = 'p1' AND dst_id = 'p2'")
+								.getStatement(),
+						NebulaWriteBindings.empty(),
+						followMappings());
+
+		assertEquals(NebulaMutationKind.DELETE_EDGE, delete.getMutationKind());
+		assertEquals("DELETE EDGE follow \"p1\"->\"p2\"", delete.getNgql());
+	}
+
+	@Test
+	public void unsafeUpdateAndDeleteShouldReportStableError() throws Exception {
+		assertWriteError(NebulaWriteErrorCode.NEBULA_SQL_WRITE_UNSAFE_UPDATE,
+				"UPDATE person SET name = 'Jerry'");
+		assertWriteError(NebulaWriteErrorCode.NEBULA_SQL_WRITE_UNSAFE_UPDATE,
+				"DELETE FROM person");
+	}
+
 	private NebulaSchemaMappingRegistry personMappings() {
 		return NebulaSchemaMappingRegistry.builder()
 				.addTable(TableMapping.tag("person", "person")
@@ -63,5 +123,18 @@ public class NebulaSqlWriteConverterTest {
 						.property("since", "since", Types.INTEGER)
 						.build())
 				.build();
+	}
+
+	private void assertWriteError(NebulaWriteErrorCode code, String sql) throws Exception {
+		try {
+			new DefaultNebulaSqlWriteConverter()
+					.convert(new DruidNebulaSqlParser().parse(sql).getStatement(),
+							NebulaWriteBindings.empty(),
+							personMappings());
+			fail("Expected NebulaWriteConversionException");
+		} catch (NebulaWriteConversionException exception) {
+			assertEquals(code, exception.getWriteErrorCode());
+			assertTrue(exception.getMessage().contains(code.name()));
+		}
 	}
 }
