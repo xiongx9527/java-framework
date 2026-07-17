@@ -370,15 +370,18 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
         } else if (x instanceof String) {
             setString(parameterIndex, (String) x);
         } else if (x instanceof BigDecimal) {
-            setBigDecimal(parameterIndex, (BigDecimal) x);
+            insertParameter(parameterIndex, x);
+            this.parameterBindings.bind(parameterIndex, x, Types.DECIMAL);
         } else if (x instanceof Short) {
-            setShort(parameterIndex, (Short) x);
+            insertParameter(parameterIndex, x);
+            this.parameterBindings.bind(parameterIndex, x, Types.SMALLINT);
         } else if (x instanceof Integer) {
             setInt(parameterIndex, (Integer) x);
         } else if (x instanceof Long) {
             setLong(parameterIndex, (Long) x);
         } else if (x instanceof Float) {
-            setFloat(parameterIndex, (Float) x);
+            insertParameter(parameterIndex, x);
+            this.parameterBindings.bind(parameterIndex, x, Types.FLOAT);
         } else if (x instanceof Double) {
             setDouble(parameterIndex, (Double) x);
         } else if (x instanceof byte[]) {

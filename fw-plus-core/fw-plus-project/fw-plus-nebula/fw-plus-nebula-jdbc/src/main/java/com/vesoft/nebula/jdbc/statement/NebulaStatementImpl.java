@@ -133,15 +133,7 @@ public class NebulaStatementImpl implements NebulaStatement {
     @Override
     public ResultSet getResultSet() throws SQLException {
         this.checkClosed();
-        if(this.currentResultSet != null){
-            log.debug("Method getResultSet() should be called only once per result, " +
-                    "after it was called, the currentResultSet will be set to null.");
-            ResultSet returnedResultSet =  this.currentResultSet;
-            this.currentResultSet = null;
-            return returnedResultSet;
-        }else {
-            throw new SQLException("currentResultSet has been set to null, may have been called before.");
-        }
+        return this.currentResultSet;
     }
 
     @Override

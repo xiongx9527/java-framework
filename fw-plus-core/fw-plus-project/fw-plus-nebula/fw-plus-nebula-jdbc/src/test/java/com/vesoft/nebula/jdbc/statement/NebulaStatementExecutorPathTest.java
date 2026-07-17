@@ -49,6 +49,7 @@ public class NebulaStatementExecutorPathTest {
 
 		assertTrue(hasResultSet);
 		assertSame(executor.resultSet, statement.getResultSet());
+		assertSame(executor.resultSet, statement.getResultSet());
 		assertEquals("SELECT name FROM player", executor.sql);
 		assertEquals(0, executor.bindings.size());
 		assertSame(connection, executor.connection);
@@ -64,6 +65,7 @@ public class NebulaStatementExecutorPathTest {
 		boolean hasResultSet = statement.execute("INSERT VERTEX player(name) VALUES 1:(\"Tim\")");
 
 		assertEquals(false, hasResultSet);
+		assertSame(null, statement.getResultSet());
 		assertEquals("INSERT VERTEX player(name) VALUES 1:(\"Tim\")", executor.sql);
 		assertEquals(0, executor.bindings.size());
 		assertSame(connection, executor.connection);

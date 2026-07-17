@@ -40,11 +40,13 @@ import lombok.extern.slf4j.Slf4j;
 public class NebulaConnection implements Connection {
 
     private Properties properties;
+    private String url;
     private String graphSpace = null;
     private final NebulaResourceLifecycle lifecycle = new NebulaResourceLifecycle();
     private NebulaClientFacade clientFacade;
 
     protected NebulaConnection(String url, Properties properties) throws SQLException {
+        this.url = url;
         NebulaConnectionConfig config = NebulaConnectionConfigParser.parse(url, properties);
         this.properties = config.getMergedProperties();
         this.graphSpace = config.getGraphspace();
@@ -161,6 +163,10 @@ public class NebulaConnection implements Connection {
 
     public Properties getConnectionConfig() {
         return this.properties;
+    }
+
+    public String getUrl() {
+        return this.url;
     }
 
 
