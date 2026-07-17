@@ -33,7 +33,7 @@ public class NebulaMyBatisContractTest {
 	}
 
 	@Test
-	public void xmlMapperShouldBindParameterAndMapResultObject() throws Exception {
+	public void xmlMapperShouldBindParameterAndMapPojo() throws Exception {
 		FakeNebulaSqlExecutor executor = FakeNebulaSqlExecutor.singlePlayer("Tim", 18);
 		NebulaSqlExecutorProvider.setExecutor(executor);
 		SqlSessionFactory sqlSessionFactory = sqlSessionFactory(mockOpenConnection());
@@ -45,6 +45,7 @@ public class NebulaMyBatisContractTest {
 
 			assertEquals("Tim", player.getPlayerName());
 			assertEquals(Integer.valueOf(18), player.getAge());
+			assertEquals("SELECT name AS playerName, age FROM player WHERE id = ?", normalizeSql(executor.getLastSql()));
 			assertEquals(Long.valueOf(1001L), executor.getLastBindings().get(1).getValue());
 		} finally {
 			session.close();
@@ -87,6 +88,10 @@ public class NebulaMyBatisContractTest {
 			mapperBuilder.parse();
 		}
 		return new SqlSessionFactoryBuilder().build(configuration);
+	}
+
+	private String normalizeSql(String sql) {
+		return sql == null ? null : sql.replaceAll("\\s+", " ").trim();
 	}
 
 	private NebulaConnection mockOpenConnection() throws Exception {
