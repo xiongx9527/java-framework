@@ -43,6 +43,13 @@ public class MysqlPacketWriter {
 		return this;
 	}
 
+	public MysqlPacketWriter writeLengthEncodedString(String value) {
+		byte[] bytes = value == null ? new byte[0] : value.getBytes(MysqlCharsets.UTF8);
+		writeLengthEncodedInteger(bytes.length);
+		writeBytes(bytes);
+		return this;
+	}
+
 	public MysqlPacketWriter writeString(String value) {
 		if (value != null) {
 			writeBytes(value.getBytes(MysqlCharsets.UTF8));
