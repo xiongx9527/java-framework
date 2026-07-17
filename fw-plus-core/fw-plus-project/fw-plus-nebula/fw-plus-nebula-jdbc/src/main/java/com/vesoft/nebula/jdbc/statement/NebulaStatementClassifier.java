@@ -11,7 +11,7 @@ public final class NebulaStatementClassifier {
     private static final Set<String> UPDATE_KEYWORDS = new HashSet<>(Arrays.asList(
             "update", "delete", "insert", "upsert", "create", "drop", "alter", "rebuild"));
     private static final Set<String> QUERY_KEYWORDS = new HashSet<>(Arrays.asList(
-            "match", "lookup", "go", "fetch", "find", "subgraph", "show", "desc", "describe"));
+            "select", "match", "lookup", "go", "fetch", "find", "subgraph", "show", "desc", "describe"));
 
     private NebulaStatementClassifier() {
     }
