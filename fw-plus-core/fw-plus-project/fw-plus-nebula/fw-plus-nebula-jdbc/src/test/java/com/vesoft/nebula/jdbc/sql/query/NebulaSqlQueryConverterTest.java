@@ -115,6 +115,26 @@ public class NebulaSqlQueryConverterTest {
 						mappings);
 			}
 		});
+		assertUnsupportedFeature(mappings, UnsupportedQueryFeature.SUBQUERY, NebulaQueryErrorCode.UNSUPPORTED_SUBQUERY);
+		assertUnsupportedFeature(mappings, UnsupportedQueryFeature.UNION, NebulaQueryErrorCode.UNSUPPORTED_UNION);
+		assertUnsupportedFeature(mappings, UnsupportedQueryFeature.FUNCTION, NebulaQueryErrorCode.UNSUPPORTED_FUNCTION);
+	}
+
+	private void assertUnsupportedFeature(final NebulaSchemaMappingRegistry mappings,
+										  final UnsupportedQueryFeature feature,
+										  NebulaQueryErrorCode code) throws Exception {
+		assertConversionError(code, new SqlRunnable() {
+			@Override
+			public void run() throws SQLException {
+				new DefaultNebulaSqlQueryConverter().convert(
+						NebulaQueryStatement.select("person")
+								.selectAll()
+								.unsupported(feature, feature.name() + " is not graph-mappable")
+								.build(),
+						NebulaQueryBindings.empty(),
+						mappings);
+			}
+		});
 	}
 
 	private void assertConversionError(NebulaQueryErrorCode code, SqlRunnable runnable) throws Exception {
