@@ -264,21 +264,21 @@ Check task `3.2` after transaction and complex DDL tests pass. Commit message: `
 - Consumes: all implementation and tests.
 - Produces: completed build task checklist and validation evidence.
 
-- [ ] **Step 1: Run full Nebula JDBC tests**
+- [x] **Step 1: Run full Nebula JDBC tests**
 
 Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc test`
 Expected: tests pass.
 
-- [ ] **Step 2: Run compile in module context**
+- [x] **Step 2: Run compile in module context**
 
 Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -DskipTests compile`
 Expected: compile passes.
 
-- [ ] **Step 3: Mark remaining verification task**
+- [x] **Step 3: Mark remaining verification task**
 
 Check task `3.1` after converter and DDL tests exist and pass.
 
-- [ ] **Step 4: Commit validation artifacts**
+- [x] **Step 4: Commit validation artifacts**
 
 Commit message: `test(nebula): verify sql write ddl support`.
 
