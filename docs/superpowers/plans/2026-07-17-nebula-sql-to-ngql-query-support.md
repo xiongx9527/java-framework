@@ -35,23 +35,23 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
 - Produces: `NgqlQueryPlan` with `ngql`、`queryKind`、`columns`、`fidelity`、`trace`
 - Produces: `NebulaSchemaMappingRegistry` and `TableMapping` / `ColumnMapping`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
   - 点查询 `SELECT * FROM person WHERE id = 'p1'` 的 IR + tag mapping 转为包含 `MATCH (person:person)`、`id(person) == "p1"`、`RETURN person.id AS id, person.name AS name` 的 plan。
   - 断言输出列、trace、`QueryFidelity.EQUIVALENT`。
 
-- [ ] **Step 2: Run focused test and verify RED**
+- [x] **Step 2: Run focused test and verify RED**
   - Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaSqlQueryConverterTest test`
   - Expected: compile fail or test fail because query package does not exist.
 
-- [ ] **Step 3: Implement minimal boundary and tag conversion**
+- [x] **Step 3: Implement minimal boundary and tag conversion**
   - Add Java 8 POJOs/enums for query statement, expressions, mapping and plan.
   - Implement `DefaultNebulaSqlQueryConverter` for single tag table, `*` projection, id equality filter.
 
-- [ ] **Step 4: Run focused test and verify GREEN**
+- [x] **Step 4: Run focused test and verify GREEN**
   - Same command as Step 2.
   - Expected: test pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `git add ... && git commit -m "feat: add nebula query converter boundary"`
 
 ### Task 2: Edge Query、Filter、Order 和 Pagination
@@ -64,22 +64,22 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
 - Consumes: Task 1 query model and schema mapping.
 - Produces: edge query conversion and nGQL clauses for boolean filter、`IN`、`IS NULL`、`ORDER BY`、`LIMIT/OFFSET`。
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
   - Edge table `follow` with `src_id`、`dst_id`、`rank` mapping converts to `MATCH (src)-[follow:follow]->(dst)` and src/dst predicates.
   - Property filter、order by、limit offset are rendered in stable clause order.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
   - Run focused Maven test.
   - Expected: unsupported edge/filter/order/pagination failures.
 
-- [ ] **Step 3: Implement minimal conversion**
+- [x] **Step 3: Implement minimal conversion**
   - Add expression renderer for comparison、AND/OR、IN、IS NULL、property references、literal values。
   - Add order and pagination rendering.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
   - Run focused Maven test.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `git add ... && git commit -m "feat: convert nebula edge queries and clauses"`
 
 ### Task 3: Complex Query Whitelist、错误模型与执行适配
@@ -92,24 +92,24 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
 - Produces: stable error codes including query-only, missing mapping, unsupported join/subquery/union/function.
 - Produces: `NebulaSqlQueryExecutionAdapter.executeQuery(NebulaConnection, NgqlQueryPlan)`。
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
   - Missing table/column mapping reports stable error code.
   - INSERT/UPDATE/DDL statement kind is rejected with query-only error.
   - Unsupported JOIN/subquery/union/function reports stable unsupported error.
   - Execution adapter passes `plan.getNgql()` into `NebulaConnection.execute` and wraps failed native result as `SQLException`.
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
   - Run query package tests.
 
-- [ ] **Step 3: Implement errors and execution adapter**
+- [x] **Step 3: Implement errors and execution adapter**
   - Add `NebulaQueryConversionException` extending `SQLException` and `NebulaQueryErrorCode` enum.
   - Add unsupported flags to query statement and fail closed.
   - Add execution adapter without changing `DirectNebulaSqlExecutor` native nGQL path.
 
-- [ ] **Step 4: Verify GREEN**
+- [x] **Step 4: Verify GREEN**
   - Run query package tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
   - `git add ... && git commit -m "feat: add nebula query conversion errors and execution adapter"`
 
 ### Task 4: Golden/Negative 覆盖、任务勾选与 Build 验证
@@ -122,17 +122,17 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
 - Consumes: all previous tasks.
 - Produces: build evidence and updated task checklist.
 
-- [ ] **Step 1: Add golden and negative tests**
+- [x] **Step 1: Add golden and negative tests**
   - Golden: tag point query、edge query、filter/order/limit trace.
   - Negative: query-only boundary、missing mapping、unsupported complex structures。
 
-- [ ] **Step 2: Run focused tests**
+- [x] **Step 2: Run focused tests**
   - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=com.vesoft.nebula.jdbc.sql.query.*Test test`
 
-- [ ] **Step 3: Run module tests**
+- [x] **Step 3: Run module tests**
   - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc test`
 
-- [ ] **Step 4: Update Comet tasks**
+- [x] **Step 4: Update Comet tasks**
   - Check completed tasks in `openspec/changes/add-nebula-sql-to-ngql-query-support/tasks.md` only for this change.
   - Do not edit `add-nebula-sql-parser-core` state or tasks.
 
