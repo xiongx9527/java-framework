@@ -4,5 +4,6 @@
   "openspec_tasks": "openspec/changes/define-nebula-sql-ast-coverage-matrix/tasks.md",
   "openspec_delta_spec": "openspec/changes/define-nebula-sql-ast-coverage-matrix/specs/nebula-sql-ast-coverage-matrix/spec.md",
   "handoff_context": "openspec/changes/define-nebula-sql-ast-coverage-matrix/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/define-nebula-sql-ast-coverage-matrix/.comet/handoff/design-context.md"
+  "handoff_markdown": "openspec/changes/define-nebula-sql-ast-coverage-matrix/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-17-define-nebula-sql-ast-coverage-matrix"
 }
