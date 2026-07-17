@@ -71,6 +71,26 @@ public class NebulaMyBatisContractTest {
 		}
 	}
 
+	@Test
+	public void xmlResultMapShouldMapSnakeCaseColumnToPojoProperty() throws Exception {
+		FakeNebulaSqlExecutor executor = FakeNebulaSqlExecutor.singlePlayerSnakeCase("Tim", 18);
+		NebulaSqlExecutorProvider.setExecutor(executor);
+		SqlSessionFactory sqlSessionFactory = sqlSessionFactory(mockOpenConnection());
+
+		SqlSession session = sqlSessionFactory.openSession();
+		try {
+			PlayerMapper mapper = session.getMapper(PlayerMapper.class);
+			PlayerRecord player = mapper.selectByIdWithResultMap(1001L);
+
+			assertEquals("Tim", player.getPlayerName());
+			assertEquals(Integer.valueOf(18), player.getAge());
+			assertEquals("SELECT name AS player_name, age FROM player WHERE id = ?", normalizeSql(executor.getLastSql()));
+			assertEquals(Long.valueOf(1001L), executor.getLastBindings().get(1).getValue());
+		} finally {
+			session.close();
+		}
+	}
+
 	private SqlSessionFactory sqlSessionFactory(Connection connection) throws Exception {
 		Environment environment = new Environment(
 				"test",
