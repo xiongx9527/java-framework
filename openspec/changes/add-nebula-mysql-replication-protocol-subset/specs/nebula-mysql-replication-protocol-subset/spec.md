@@ -18,6 +18,10 @@
 - **WHEN** 客户端请求未支持的 GTID 复制能力
 - **THEN** 系统返回明确不支持错误。
 
+#### Scenario: 未知复制命令
+- **WHEN** 客户端发送本子集未定义的复制命令
+- **THEN** 系统返回明确不支持错误，且不进入普通查询或写入执行链路。
+
 ### Requirement: Replication stream uses gateway event positions
 复制协议输出 SHALL 基于 binlog-compatible stream 的 position，不伪造全局 Nebula 变更顺序。
 
@@ -25,3 +29,10 @@
 - **WHEN** 客户端从已知 position 继续读取
 - **THEN** 收到该 position 后的网关事件。
 
+#### Scenario: position 不可用
+- **WHEN** 客户端请求的 position 已过期、格式非法或不在可读取范围内
+- **THEN** 系统返回明确 position 不可用错误，且不得静默跳到最新 position。
+
+#### Scenario: 事件来源边界
+- **WHEN** binlog-compatible stream 中不存在某个 Nebula 原生变更事件
+- **THEN** 复制协议输出不得生成、补偿或伪造该事件。
