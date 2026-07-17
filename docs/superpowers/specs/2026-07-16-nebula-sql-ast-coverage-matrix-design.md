@@ -2,6 +2,8 @@
 comet_change: define-nebula-sql-ast-coverage-matrix
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-17-define-nebula-sql-ast-coverage-matrix
+status: final
 ---
 
 # Nebula SQL AST 覆盖矩阵设计

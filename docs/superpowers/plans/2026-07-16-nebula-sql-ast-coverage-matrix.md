@@ -2,6 +2,7 @@
 change: define-nebula-sql-ast-coverage-matrix
 design-doc: docs/superpowers/specs/2026-07-16-nebula-sql-ast-coverage-matrix-design.md
 base-ref: 8498dbc28d5b53b542dc2d5d05d12895268ffabc
+archived-with: 2026-07-17-define-nebula-sql-ast-coverage-matrix
 ---
 
 # Nebula SQL AST 覆盖矩阵实施计划
