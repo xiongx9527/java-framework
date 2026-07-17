@@ -7,7 +7,7 @@
 ## 2. 只读查询
 
 - [x] 2.1 实现 COM_QUERY 文本查询处理。
-- [ ] 2.2 接入 SQL 查询转换和 Nebula 执行结果，包括复杂只读 SQL 的可映射子集。
+- [x] 2.2 接入 SQL 查询转换和 Nebula 执行结果，包括复杂只读 SQL 的可映射子集。
 - [x] 2.3 实现 MySQL 结果集编码。
 - [x] 2.4 实现 SHOW/DESCRIBE 元数据响应。
 - [x] 2.5 实现只读拒绝、parser/converter/Nebula 执行错误到 MySQL ERR 响应的映射。
