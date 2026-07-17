@@ -2,6 +2,8 @@
 comet_change: add-nebula-jdbc-client-framework-integration
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-17-add-nebula-jdbc-client-framework-integration
+status: final
 ---
 
 # Nebula JDBC 客户端框架集成技术设计
