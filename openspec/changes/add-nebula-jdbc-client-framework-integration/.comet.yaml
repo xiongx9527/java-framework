@@ -25,5 +25,5 @@ handoff_hash: 936f82e37461f16b19bbfa8cdb4880283e4f8a455eae5afc236d53b24d7c47b0
 classic_profile: full
 classic_migration: 1
 run_id: 03b503f4-235b-4205-a077-5fbd2b3becbc
-verify_failures: 1
+verify_failures: 2
 archive_confirmation: null

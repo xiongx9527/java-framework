@@ -1,23 +1,25 @@
 package com.vesoft.nebula.jdbc.sql;
 
 public final class NebulaSqlExecutorProvider {
-	private static volatile NebulaSqlExecutor executor = new DirectNebulaSqlExecutor();
+	private static final NebulaSqlExecutor DEFAULT_EXECUTOR = new DirectNebulaSqlExecutor();
+	private static final ThreadLocal<NebulaSqlExecutor> EXECUTOR_OVERRIDE = new ThreadLocal<NebulaSqlExecutor>();
 
 	private NebulaSqlExecutorProvider() {
 	}
 
 	public static NebulaSqlExecutor getExecutor() {
-		return executor;
+		NebulaSqlExecutor executor = EXECUTOR_OVERRIDE.get();
+		return executor == null ? DEFAULT_EXECUTOR : executor;
 	}
 
 	public static void setExecutor(NebulaSqlExecutor executor) {
 		if (executor == null) {
 			throw new IllegalArgumentException("executor must not be null");
 		}
-		NebulaSqlExecutorProvider.executor = executor;
+		EXECUTOR_OVERRIDE.set(executor);
 	}
 
 	public static void reset() {
-		executor = new DirectNebulaSqlExecutor();
+		EXECUTOR_OVERRIDE.remove();
 	}
 }

@@ -10,8 +10,10 @@ import org.junit.Test;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
@@ -78,6 +80,25 @@ public class NebulaStatementExecutorPathTest {
 		assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, statement.getResultSetHoldability());
 		assertEquals(ResultSet.CONCUR_READ_ONLY, statement.getResultSetConcurrency());
 		assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, statement.getResultSetType());
+	}
+
+	@Test
+	public void providerOverrideShouldNotLeakAcrossThreads() throws Exception {
+		RecordingExecutor executor = new RecordingExecutor();
+		NebulaSqlExecutorProvider.setExecutor(executor);
+		final AtomicReference<NebulaSqlExecutor> executorFromOtherThread = new AtomicReference<NebulaSqlExecutor>();
+		Thread thread = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				executorFromOtherThread.set(NebulaSqlExecutorProvider.getExecutor());
+			}
+		});
+
+		thread.start();
+		thread.join();
+
+		assertSame(executor, NebulaSqlExecutorProvider.getExecutor());
+		assertNotSame(executor, executorFromOtherThread.get());
 	}
 
 	private static class RecordingExecutor implements NebulaSqlExecutor {
