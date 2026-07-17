@@ -63,26 +63,26 @@ base-ref: 4f550f242396d103ba024356c23b2a1917638bd7
 - Consumes: `TableMapping`, `ColumnRole` from query adapter.
 - Produces: stable mutation kinds and error codes for converter, executor and tests.
 
-- [ ] **Step 1: Merge upstream parser/query adapter**
+- [x] **Step 1: Merge upstream parser/query adapter**
 
 Run: `git merge feature/20260717/add-nebula-sql-to-ngql-query-support`
 Expected: parser/query classes become available under `com.vesoft.nebula.jdbc.sql.parser` and `com.vesoft.nebula.jdbc.sql.query`.
 
-- [ ] **Step 2: Add error/kind enums**
+- [x] **Step 2: Add error/kind enums**
 
 Implement `NebulaMutationKind` with `INSERT_VERTEX`, `INSERT_EDGE`, `UPDATE_VERTEX`, `UPDATE_EDGE`, `DELETE_VERTEX`, `DELETE_EDGE`.
 Implement `NebulaWriteErrorCode` with `NEBULA_SQL_WRITE_UNSUPPORTED_STATEMENT`, `NEBULA_SQL_WRITE_MISSING_ID`, `NEBULA_SQL_WRITE_UNMAPPED_COLUMN`, `NEBULA_SQL_WRITE_UNSAFE_UPDATE`, `NEBULA_SQL_DDL_UNSUPPORTED_OPTION`, `NEBULA_SQL_TRANSACTION_UNSUPPORTED`.
 
-- [ ] **Step 3: Add checked conversion exception**
+- [x] **Step 3: Add checked conversion exception**
 
 Implement `NebulaWriteConversionException extends SQLException` with fields `NebulaWriteErrorCode errorCode` and getters. Message format must include the enum name and a human-readable reason.
 
-- [ ] **Step 4: Verify compile target**
+- [x] **Step 4: Verify compile target**
 
 Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -DskipTests compile`
 Expected: compile passes or reports only issues introduced by the upstream merge that must be fixed before continuing.
 
-- [ ] **Step 5: Mark and commit**
+- [x] **Step 5: Mark and commit**
 
 Check tasks `1.1` if enums/errors document write safety boundaries in code and tests. Commit message: `feat(nebula): define sql write semantics`.
 
