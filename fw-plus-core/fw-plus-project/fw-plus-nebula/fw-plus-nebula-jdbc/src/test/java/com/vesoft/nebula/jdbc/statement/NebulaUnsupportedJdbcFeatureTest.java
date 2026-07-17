@@ -32,6 +32,7 @@ public class NebulaUnsupportedJdbcFeatureTest {
 
 		assertTrue(connection.getAutoCommit());
 		assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, connection.getHoldability());
+		connection.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
 		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
 			@Override
 			public void run() throws SQLException {
@@ -72,6 +73,12 @@ public class NebulaUnsupportedJdbcFeatureTest {
 			@Override
 			public void run() throws SQLException {
 				connection.rollback(mock(Savepoint.class));
+			}
+		});
+		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
+			@Override
+			public void run() throws SQLException {
+				connection.setHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT);
 			}
 		});
 	}

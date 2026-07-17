@@ -290,6 +290,9 @@ public class NebulaConnection implements Connection {
     @Override
     public void setHoldability(int holdability) throws SQLException {
         this.checkClosed();
+        if (holdability != java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT) {
+            throw ExceptionBuilder.buildUnsupportedOperationException();
+        }
     }
 
     @Override

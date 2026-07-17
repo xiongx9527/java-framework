@@ -9,6 +9,7 @@ import org.junit.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -66,6 +67,15 @@ public class NebulaStatementExecutorPathTest {
 		assertEquals("INSERT VERTEX player(name) VALUES 1:(\"Tim\")", executor.sql);
 		assertEquals(0, executor.bindings.size());
 		assertSame(connection, executor.connection);
+	}
+
+	@Test
+	public void resultSetCapabilityGettersShouldReturnSupportedConstantsWithoutCurrentResultSet() throws Exception {
+		NebulaStatementImpl statement = new NebulaStatementImpl(mock(NebulaConnection.class));
+
+		assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, statement.getResultSetHoldability());
+		assertEquals(ResultSet.CONCUR_READ_ONLY, statement.getResultSetConcurrency());
+		assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, statement.getResultSetType());
 	}
 
 	private static class RecordingExecutor implements NebulaSqlExecutor {
