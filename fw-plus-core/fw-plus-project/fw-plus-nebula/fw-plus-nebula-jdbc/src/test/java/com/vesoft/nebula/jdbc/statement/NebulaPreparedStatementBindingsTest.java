@@ -84,6 +84,32 @@ public class NebulaPreparedStatementBindingsTest {
 	}
 
 	@Test
+	public void directScalarSettersShouldBindCommonFrameworkTypes() throws Exception {
+		FakeNebulaSqlExecutor executor = FakeNebulaSqlExecutor.singleString("Tim");
+		BigDecimal amount = new BigDecimal("12.50");
+		PreparedStatement statement = new NebulaPreparedStatementImpl(
+				mock(NebulaConnection.class),
+				"SELECT * FROM player WHERE b = ? AND s = ? AND f = ? AND amount = ?",
+				executor
+		);
+
+		statement.setByte(1, (byte) 2);
+		statement.setShort(2, (short) 7);
+		statement.setFloat(3, 3.5f);
+		statement.setBigDecimal(4, amount);
+		statement.executeQuery();
+
+		assertEquals(Byte.valueOf((byte) 2), executor.getLastBindings().get(1).getValue());
+		assertEquals(Types.TINYINT, executor.getLastBindings().get(1).getJdbcType());
+		assertEquals(Short.valueOf((short) 7), executor.getLastBindings().get(2).getValue());
+		assertEquals(Types.SMALLINT, executor.getLastBindings().get(2).getJdbcType());
+		assertEquals(Float.valueOf(3.5f), executor.getLastBindings().get(3).getValue());
+		assertEquals(Types.FLOAT, executor.getLastBindings().get(3).getJdbcType());
+		assertEquals(amount, executor.getLastBindings().get(4).getValue());
+		assertEquals(Types.DECIMAL, executor.getLastBindings().get(4).getJdbcType());
+	}
+
+	@Test
 	public void parameterMetaDataShouldExposeBoundTypesAndUnboundDefaults() throws Exception {
 		PreparedStatement statement = new NebulaPreparedStatementImpl(
 				mock(NebulaConnection.class),

@@ -5,6 +5,7 @@
 
 package com.vesoft.nebula.jdbc;
 
+import com.vesoft.nebula.client.graph.data.ValueWrapper;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -85,7 +86,7 @@ public class NebulaResultSetMetaData implements ResultSetMetaData {
     @Override
     public boolean isSigned(int column) throws SQLException {
         checkColumnIndex(column);
-        return false;
+        return getColumnTypeDescriptor(column).signed;
     }
 
     @Override
@@ -126,13 +127,13 @@ public class NebulaResultSetMetaData implements ResultSetMetaData {
     @Override
     public int getColumnType(int column) throws SQLException {
         checkColumnIndex(column);
-        return Types.JAVA_OBJECT;
+        return getColumnTypeDescriptor(column).jdbcType;
     }
 
     @Override
     public String getColumnTypeName(int column) throws SQLException {
         checkColumnIndex(column);
-        return "JAVA_OBJECT";
+        return getColumnTypeDescriptor(column).typeName;
     }
 
     @Override
@@ -156,7 +157,120 @@ public class NebulaResultSetMetaData implements ResultSetMetaData {
     @Override
     public String getColumnClassName(int column) throws SQLException {
         checkColumnIndex(column);
-        return Object.class.getName();
+        return getColumnTypeDescriptor(column).className;
+    }
+
+    private ColumnTypeDescriptor getColumnTypeDescriptor(int column) throws SQLException {
+        ValueWrapper value = firstNonNullColumnValue(column);
+        if (value == null) {
+            return ColumnTypeDescriptor.JAVA_OBJECT;
+        }
+        if (value.isString()) {
+            return ColumnTypeDescriptor.VARCHAR;
+        }
+        if (value.isLong()) {
+            return ColumnTypeDescriptor.BIGINT;
+        }
+        if (value.isDouble()) {
+            return ColumnTypeDescriptor.DOUBLE;
+        }
+        if (value.isBoolean()) {
+            return ColumnTypeDescriptor.BOOLEAN;
+        }
+        if (value.isDate()) {
+            return ColumnTypeDescriptor.DATE;
+        }
+        if (value.isTime()) {
+            return ColumnTypeDescriptor.TIME;
+        }
+        if (value.isDateTime()) {
+            return ColumnTypeDescriptor.TIMESTAMP;
+        }
+        return ColumnTypeDescriptor.JAVA_OBJECT;
+    }
+
+    private ValueWrapper firstNonNullColumnValue(int column) throws SQLException {
+        if (this.nebulaResultSet == null || this.nebulaResultSet.getNativeNebulaResultSet() == null) {
+            return null;
+        }
+        String columnName = getColumnName(column);
+        try {
+            List<ValueWrapper> values = this.nebulaResultSet.getNativeNebulaResultSet().colValues(columnName);
+            if (values == null) {
+                return null;
+            }
+            for (ValueWrapper value : values) {
+                if (value != null && !value.isNull()) {
+                    return value;
+                }
+            }
+            return null;
+        } catch (RuntimeException exception) {
+            return null;
+        }
+    }
+
+    private static class ColumnTypeDescriptor {
+        private static final ColumnTypeDescriptor VARCHAR = new ColumnTypeDescriptor(
+                Types.VARCHAR,
+                "VARCHAR",
+                String.class.getName(),
+                false
+        );
+        private static final ColumnTypeDescriptor BIGINT = new ColumnTypeDescriptor(
+                Types.BIGINT,
+                "BIGINT",
+                Long.class.getName(),
+                true
+        );
+        private static final ColumnTypeDescriptor DOUBLE = new ColumnTypeDescriptor(
+                Types.DOUBLE,
+                "DOUBLE",
+                Double.class.getName(),
+                true
+        );
+        private static final ColumnTypeDescriptor BOOLEAN = new ColumnTypeDescriptor(
+                Types.BOOLEAN,
+                "BOOLEAN",
+                Boolean.class.getName(),
+                false
+        );
+        private static final ColumnTypeDescriptor DATE = new ColumnTypeDescriptor(
+                Types.DATE,
+                "DATE",
+                java.sql.Date.class.getName(),
+                false
+        );
+        private static final ColumnTypeDescriptor TIME = new ColumnTypeDescriptor(
+                Types.TIME,
+                "TIME",
+                java.sql.Time.class.getName(),
+                false
+        );
+        private static final ColumnTypeDescriptor TIMESTAMP = new ColumnTypeDescriptor(
+                Types.TIMESTAMP,
+                "TIMESTAMP",
+                java.sql.Timestamp.class.getName(),
+                false
+        );
+        private static final ColumnTypeDescriptor JAVA_OBJECT = new ColumnTypeDescriptor(
+                Types.JAVA_OBJECT,
+                "JAVA_OBJECT",
+                Object.class.getName(),
+                false
+        );
+
+        private final int jdbcType;
+        private final String typeName;
+        private final String className;
+        private final boolean signed;
+
+        private ColumnTypeDescriptor(int jdbcType, String typeName, String className, boolean signed) {
+            this.jdbcType = jdbcType;
+            this.typeName = typeName;
+            this.className = className;
+            this.signed = signed;
+        }
     }
 
     @Override

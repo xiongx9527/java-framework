@@ -324,12 +324,14 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
 
     @Override
     public void setByte(int parameterIndex, byte x) throws SQLException {
-        throw  ExceptionBuilder.buildUnsupportedOperationException();
+        insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.TINYINT);
     }
 
     @Override
     public void setShort(int parameterIndex, short x) throws SQLException {
-        throw  ExceptionBuilder.buildUnsupportedOperationException();
+        insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.SMALLINT);
     }
 
     @Override
@@ -340,7 +342,8 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
 
     @Override
     public void setFloat(int parameterIndex, float x) throws SQLException {
-        throw  ExceptionBuilder.buildUnsupportedOperationException();
+        insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.FLOAT);
     }
 
     @Override
@@ -425,7 +428,8 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
 
     @Override
     public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-        throw  ExceptionBuilder.buildUnsupportedOperationException();
+        insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.DECIMAL);
     }
 
     @Override
