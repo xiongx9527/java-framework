@@ -20,7 +20,7 @@ created_at: 2026-07-16
 verified_at: 2026-07-17
 archived: true
 direct_override: null
-handoff_context: openspec/changes/add-nebula-jdbc-client-framework-integration/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-17-add-nebula-jdbc-client-framework-integration/.comet/handoff/design-context.json
 handoff_hash: 936f82e37461f16b19bbfa8cdb4880283e4f8a455eae5afc236d53b24d7c47b0
 classic_profile: full
 classic_migration: 1
