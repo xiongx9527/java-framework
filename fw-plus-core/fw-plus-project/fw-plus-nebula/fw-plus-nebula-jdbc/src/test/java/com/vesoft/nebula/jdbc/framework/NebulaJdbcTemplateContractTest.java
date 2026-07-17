@@ -7,10 +7,14 @@ import com.vesoft.nebula.jdbc.test.FakeNebulaSqlExecutor;
 import org.junit.After;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -40,6 +44,33 @@ public class NebulaJdbcTemplateContractTest {
 		assertEquals("Tim", value);
 		assertEquals("SELECT name FROM player WHERE id = ?", executor.getLastSql());
 		assertEquals(Long.valueOf(1001L), executor.getLastBindings().get(1).getValue());
+	}
+
+	@Test
+	public void jdbcTemplateRowMapperShouldReadColumnsByLabel() throws Exception {
+		FakeNebulaSqlExecutor executor = FakeNebulaSqlExecutor.singlePlayer("Tim", 18);
+		NebulaSqlExecutorProvider.setExecutor(executor);
+		NebulaConnection connection = mockOpenConnection();
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(connection, true));
+
+		List<PlayerRecord> rows = jdbcTemplate.query(
+				"SELECT name AS playerName, age FROM player WHERE age > ?",
+				new Object[]{10},
+				new RowMapper<PlayerRecord>() {
+					@Override
+					public PlayerRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
+						PlayerRecord record = new PlayerRecord();
+						record.setPlayerName(rs.getString("playerName"));
+						record.setAge(Integer.valueOf(rs.getInt("age")));
+						return record;
+					}
+				}
+		);
+
+		assertEquals(1, rows.size());
+		assertEquals("Tim", rows.get(0).getPlayerName());
+		assertEquals(Integer.valueOf(18), rows.get(0).getAge());
+		assertEquals(Integer.valueOf(10), executor.getLastBindings().get(1).getValue());
 	}
 
 	private NebulaConnection mockOpenConnection() throws Exception {
