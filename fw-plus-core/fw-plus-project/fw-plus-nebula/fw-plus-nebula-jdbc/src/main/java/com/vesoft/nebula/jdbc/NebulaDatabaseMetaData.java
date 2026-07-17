@@ -255,12 +255,12 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public boolean supportsMultipleResultSets() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return false;
 	}
 
 	@Override
 	public boolean supportsMultipleTransactions() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return false;
 	}
 
 	@Override
@@ -575,17 +575,17 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public int getDefaultTransactionIsolation() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return Connection.TRANSACTION_NONE;
 	}
 
 	@Override
 	public boolean supportsTransactions() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return false;
 	}
 
 	@Override
 	public boolean supportsTransactionIsolationLevel(int level) throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return false;
 	}
 
 	@Override
@@ -750,7 +750,7 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public boolean supportsBatchUpdates() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return false;
 	}
 
 	@Override
@@ -765,22 +765,22 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public boolean supportsSavepoints() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return false;
 	}
 
 	@Override
 	public boolean supportsNamedParameters() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return false;
 	}
 
 	@Override
 	public boolean supportsMultipleOpenResults() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return false;
 	}
 
 	@Override
 	public boolean supportsGetGeneratedKeys() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return false;
 	}
 
 	@Override
