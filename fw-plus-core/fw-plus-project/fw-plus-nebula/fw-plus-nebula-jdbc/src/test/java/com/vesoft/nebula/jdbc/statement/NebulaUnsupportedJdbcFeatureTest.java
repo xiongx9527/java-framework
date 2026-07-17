@@ -2,13 +2,17 @@ package com.vesoft.nebula.jdbc.statement;
 
 import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.NebulaDatabaseMetaData;
+import com.vesoft.nebula.jdbc.lifecycle.NebulaResourceLifecycle;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.lang.reflect.Field;
 import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Savepoint;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
@@ -24,8 +28,10 @@ public class NebulaUnsupportedJdbcFeatureTest {
 
 	@Test
 	public void unsupportedConnectionFeaturesShouldThrowSqlFeatureNotSupportedException() throws Exception {
-		NebulaConnection connection = mock(NebulaConnection.class, CALLS_REAL_METHODS);
+		NebulaConnection connection = realMethodConnection();
 
+		assertTrue(connection.getAutoCommit());
+		assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, connection.getHoldability());
 		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
 			@Override
 			public void run() throws SQLException {
@@ -54,6 +60,18 @@ public class NebulaUnsupportedJdbcFeatureTest {
 			@Override
 			public void run() throws SQLException {
 				connection.rollback();
+			}
+		});
+		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
+			@Override
+			public void run() throws SQLException {
+				connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+			}
+		});
+		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
+			@Override
+			public void run() throws SQLException {
+				connection.rollback(mock(Savepoint.class));
 			}
 		});
 	}
@@ -163,6 +181,14 @@ public class NebulaUnsupportedJdbcFeatureTest {
 			assertFalse(exception instanceof SQLFeatureNotSupportedException);
 			assertTrue(exception.getMessage().contains("cannot be called on PreparedStatement"));
 		}
+	}
+
+	private static NebulaConnection realMethodConnection() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class, CALLS_REAL_METHODS);
+		Field lifecycle = NebulaConnection.class.getDeclaredField("lifecycle");
+		lifecycle.setAccessible(true);
+		lifecycle.set(connection, new NebulaResourceLifecycle());
+		return connection;
 	}
 
 	private interface SqlRunnable {

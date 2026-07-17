@@ -9,6 +9,7 @@ import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -81,6 +82,29 @@ public class NebulaResultSetCursorMovementTest {
         assertEquals("first", resultSet.getObject(1));
     }
 
+    @Test
+    public void typedGettersShouldReturnJdbcDefaultsAndExposeWasNullForNullValues() throws Exception {
+        NebulaResultSet resultSet = resultSetWithRows(nullValue());
+        assertTrue(resultSet.next());
+
+        assertNull(resultSet.getString(1));
+        assertTrue(resultSet.wasNull());
+        assertEquals(0, resultSet.getInt(1));
+        assertTrue(resultSet.wasNull());
+        assertEquals(0L, resultSet.getLong(1));
+        assertTrue(resultSet.wasNull());
+        assertFalse(resultSet.getBoolean(1));
+        assertTrue(resultSet.wasNull());
+        assertEquals(0.0d, resultSet.getDouble(1), 0.0d);
+        assertTrue(resultSet.wasNull());
+        assertNull(resultSet.getDate(1));
+        assertTrue(resultSet.wasNull());
+        assertNull(resultSet.getTime(1));
+        assertTrue(resultSet.wasNull());
+        assertNull(resultSet.getObject(1));
+        assertTrue(resultSet.wasNull());
+    }
+
     private static NebulaResultSet resultSetWithRows(ValueWrapper... values) {
         ResultSet nativeResultSet = mock(ResultSet.class);
         when(nativeResultSet.isEmpty()).thenReturn(values.length == 0);
@@ -106,6 +130,12 @@ public class NebulaResultSetCursorMovementTest {
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
+        return valueWrapper;
+    }
+
+    private static ValueWrapper nullValue() {
+        ValueWrapper valueWrapper = mock(ValueWrapper.class);
+        when(valueWrapper.isNull()).thenReturn(true);
         return valueWrapper;
     }
 

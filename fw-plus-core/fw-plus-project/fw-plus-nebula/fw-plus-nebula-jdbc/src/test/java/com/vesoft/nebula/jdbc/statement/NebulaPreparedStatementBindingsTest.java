@@ -1,14 +1,20 @@
 package com.vesoft.nebula.jdbc.statement;
 
 import com.vesoft.nebula.jdbc.NebulaConnection;
+import com.vesoft.nebula.jdbc.sql.NebulaParameterBindings;
+import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutor;
 import com.vesoft.nebula.jdbc.test.FakeNebulaSqlExecutor;
 import org.junit.Test;
 
+import java.sql.ResultSet;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Types;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 
@@ -70,5 +76,73 @@ public class NebulaPreparedStatementBindingsTest {
 		assertEquals(Object.class.getName(), metaData.getParameterClassName(2));
 		assertEquals(ParameterMetaData.parameterModeIn, metaData.getParameterMode(1));
 		assertEquals(ParameterMetaData.parameterNullableUnknown, metaData.isNullable(1));
+	}
+
+	@Test
+	public void executeShouldDispatchQueryAndUpdateSqlWithBindings() throws Exception {
+		RecordingExecutor queryExecutor = new RecordingExecutor();
+		PreparedStatement query = new NebulaPreparedStatementImpl(
+				mock(NebulaConnection.class),
+				"SELECT name FROM player WHERE id = ?",
+				queryExecutor
+		);
+		query.setLong(1, 1001L);
+
+		assertTrue(query.execute());
+		assertEquals("SELECT name FROM player WHERE id = ?", queryExecutor.sql);
+		assertEquals(Long.valueOf(1001L), queryExecutor.bindings.get(1).getValue());
+
+		RecordingExecutor updateExecutor = new RecordingExecutor();
+		PreparedStatement update = new NebulaPreparedStatementImpl(
+				mock(NebulaConnection.class),
+				"INSERT VERTEX player(name) VALUES ?:(?)",
+				updateExecutor
+		);
+		update.setLong(1, 1001L);
+		update.setString(2, "Tim");
+
+		assertFalse(update.execute());
+		assertEquals("INSERT VERTEX player(name) VALUES ?:(?)", updateExecutor.sql);
+		assertEquals(Long.valueOf(1001L), updateExecutor.bindings.get(1).getValue());
+		assertEquals("Tim", updateExecutor.bindings.get(2).getValue());
+	}
+
+	@Test
+	public void placeholderCountingShouldIgnoreQuotedIdentifiersLiteralsAndComments() throws Exception {
+		FakeNebulaSqlExecutor executor = FakeNebulaSqlExecutor.singleString("Tim");
+		PreparedStatement statement = new NebulaPreparedStatementImpl(
+				mock(NebulaConnection.class),
+				"SELECT '?' AS marker, \"?\" AS double_marker, `?column` FROM player -- ? line comment\n"
+						+ "WHERE id = ? AND active = ?",
+				executor
+		);
+
+		statement.setLong(1, 1001L);
+		statement.setBoolean(2, true);
+		statement.executeQuery();
+
+		assertEquals(2, executor.getLastBindings().size());
+		assertEquals(Long.valueOf(1001L), executor.getLastBindings().get(1).getValue());
+		assertEquals(Boolean.TRUE, executor.getLastBindings().get(2).getValue());
+	}
+
+	private static class RecordingExecutor implements NebulaSqlExecutor {
+		private final ResultSet resultSet = mock(ResultSet.class);
+		private String sql;
+		private NebulaParameterBindings bindings;
+
+		@Override
+		public ResultSet executeQuery(NebulaConnection connection, String sql, NebulaParameterBindings bindings) {
+			this.sql = sql;
+			this.bindings = bindings;
+			return resultSet;
+		}
+
+		@Override
+		public int executeUpdate(NebulaConnection connection, String sql, NebulaParameterBindings bindings) throws SQLException {
+			this.sql = sql;
+			this.bindings = bindings;
+			return 1;
+		}
 	}
 }

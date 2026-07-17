@@ -211,7 +211,7 @@ public class NebulaConnection implements Connection {
     @Override
     public boolean getAutoCommit() throws SQLException {
         this.checkClosed();
-        return false;
+        return true;
     }
 
     @Override
@@ -254,6 +254,9 @@ public class NebulaConnection implements Connection {
     @Override
     public void setTransactionIsolation(int level) throws SQLException {
         this.checkClosed();
+        if (level != Connection.TRANSACTION_NONE) {
+            throw ExceptionBuilder.buildUnsupportedOperationException();
+        }
     }
 
     @Override
@@ -292,8 +295,7 @@ public class NebulaConnection implements Connection {
     @Override
     public int getHoldability() throws SQLException {
         this.checkClosed();
-        // CLOSE_CURSORS_AT_COMMIT
-        return 0;
+        return java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT;
     }
 
     @Override
@@ -308,7 +310,7 @@ public class NebulaConnection implements Connection {
 
     @Override
     public void rollback(Savepoint savepoint) throws SQLException {
-        this.checkClosed();
+        throw ExceptionBuilder.buildUnsupportedOperationException();
     }
 
     @Override
