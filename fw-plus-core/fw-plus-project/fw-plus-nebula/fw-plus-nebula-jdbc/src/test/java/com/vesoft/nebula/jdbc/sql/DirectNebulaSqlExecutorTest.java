@@ -5,10 +5,13 @@ import com.vesoft.nebula.jdbc.NebulaConnection;
 import org.junit.Test;
 
 import java.sql.SQLException;
+import java.sql.Types;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class DirectNebulaSqlExecutorTest {
@@ -49,11 +52,36 @@ public class DirectNebulaSqlExecutorTest {
 		});
 	}
 
+	@Test
+	public void executeQueryShouldRenderPreparedStatementBindingsBeforeNativeExecution() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		ResultSet nativeResultSet = successNativeResult();
+		when(connection.execute(anyString())).thenReturn(nativeResultSet);
+		NebulaParameterBindings bindings = new NebulaParameterBindings(3);
+		bindings.bind(1, 1001L, Types.BIGINT);
+		bindings.bind(2, true, Types.BOOLEAN);
+		bindings.bind(3, "Tim", Types.VARCHAR);
+
+		new DirectNebulaSqlExecutor().executeQuery(
+				connection,
+				"SELECT '?' AS marker FROM player WHERE id = ? AND active = ? AND name = ?",
+				bindings
+		);
+
+		verify(connection).execute("SELECT '?' AS marker FROM player WHERE id = 1001 AND active = true AND name = \"Tim\"");
+	}
+
 	private ResultSet failedNativeResult() {
 		ResultSet nativeResultSet = mock(ResultSet.class);
 		when(nativeResultSet.isSucceeded()).thenReturn(false);
 		when(nativeResultSet.getErrorCode()).thenReturn(-1004);
 		when(nativeResultSet.getErrorMessage()).thenReturn("syntax error");
+		return nativeResultSet;
+	}
+
+	private ResultSet successNativeResult() {
+		ResultSet nativeResultSet = mock(ResultSet.class);
+		when(nativeResultSet.isSucceeded()).thenReturn(true);
 		return nativeResultSet;
 	}
 

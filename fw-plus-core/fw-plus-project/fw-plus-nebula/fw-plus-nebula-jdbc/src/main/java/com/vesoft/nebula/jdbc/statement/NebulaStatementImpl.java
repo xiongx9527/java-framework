@@ -147,19 +147,19 @@ public class NebulaStatementImpl implements NebulaStatement {
     @Override
     public int getResultSetHoldability() throws SQLException {
         this.checkClosed();
-        return this.currentResultSet.getHoldability();
+        return NebulaResultSet.SUPPORTED_HOLDABILITY;
     }
 
     @Override
     public int getResultSetConcurrency() throws SQLException {
         this.checkClosed();
-        return this.currentResultSet.getConcurrency();
+        return NebulaResultSet.SUPPORTED_CONCURRENCY;
     }
 
     @Override
     public int getResultSetType() throws SQLException {
         this.checkClosed();
-        return this.currentResultSet.getType();
+        return NebulaResultSet.SUPPORTED_TYPE;
     }
 
     @Override
