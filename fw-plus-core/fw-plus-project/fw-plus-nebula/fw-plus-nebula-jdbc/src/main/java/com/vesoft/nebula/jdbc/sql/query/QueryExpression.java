@@ -4,7 +4,9 @@ public class QueryExpression {
 	public enum Type {
 		COLUMN,
 		LITERAL,
-		EQ
+		EQ,
+		GTE,
+		AND
 	}
 
 	private final Type type;
@@ -34,6 +36,14 @@ public class QueryExpression {
 
 	public static QueryExpression eq(QueryExpression left, QueryExpression right) {
 		return new QueryExpression(Type.EQ, null, null, null, left, right);
+	}
+
+	public static QueryExpression gte(QueryExpression left, QueryExpression right) {
+		return new QueryExpression(Type.GTE, null, null, null, left, right);
+	}
+
+	public static QueryExpression and(QueryExpression left, QueryExpression right) {
+		return new QueryExpression(Type.AND, null, null, null, left, right);
 	}
 
 	public Type getType() {

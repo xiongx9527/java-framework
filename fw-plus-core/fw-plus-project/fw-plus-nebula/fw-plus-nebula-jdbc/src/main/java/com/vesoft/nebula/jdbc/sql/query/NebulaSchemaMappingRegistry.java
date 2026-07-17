@@ -19,7 +19,7 @@ public class NebulaSchemaMappingRegistry {
 	public TableMapping getRequired(String sqlTable) throws SQLException {
 		TableMapping tableMapping = tables.get(sqlTable);
 		if (tableMapping == null) {
-			throw new SQLException("NEBULA_SQL_QUERY_MISSING_TABLE_MAPPING: " + sqlTable);
+			throw NebulaQueryConversionException.of(NebulaQueryErrorCode.MISSING_TABLE_MAPPING, sqlTable);
 		}
 		return tableMapping;
 	}
