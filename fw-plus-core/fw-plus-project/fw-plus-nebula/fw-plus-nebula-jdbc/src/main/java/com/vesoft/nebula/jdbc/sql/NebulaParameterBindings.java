@@ -1,6 +1,7 @@
 package com.vesoft.nebula.jdbc.sql;
 
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -26,8 +27,12 @@ public class NebulaParameterBindings {
 	}
 
 	public void bind(int parameterIndex, Object value, int jdbcType) throws SQLException {
+		bind(parameterIndex, value, jdbcType, null);
+	}
+
+	public void bind(int parameterIndex, Object value, int jdbcType, Integer scaleOrLength) throws SQLException {
 		checkIndex(parameterIndex);
-		values.put(parameterIndex, new NebulaParameterBinding(value, jdbcType));
+		values.put(parameterIndex, new NebulaParameterBinding(value, jdbcType, scaleOrLength));
 	}
 
 	public NebulaParameterBinding get(int parameterIndex) throws SQLException {
@@ -38,9 +43,18 @@ public class NebulaParameterBindings {
 	public NebulaParameterBindings copy() throws SQLException {
 		NebulaParameterBindings copy = new NebulaParameterBindings(size);
 		for (Map.Entry<Integer, NebulaParameterBinding> entry : values.entrySet()) {
-			copy.bind(entry.getKey(), entry.getValue().getValue(), entry.getValue().getJdbcType());
+			copy.bind(
+					entry.getKey(),
+					entry.getValue().getValue(),
+					entry.getValue().getJdbcType(),
+					entry.getValue().getScaleOrLength()
+			);
 		}
 		return copy;
+	}
+
+	public Map<Integer, NebulaParameterBinding> asMap() {
+		return Collections.unmodifiableMap(values);
 	}
 
 	public void validateComplete() throws SQLException {

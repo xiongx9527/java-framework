@@ -6,13 +6,13 @@
 package com.vesoft.nebula.jdbc;
 
 import com.vesoft.nebula.jdbc.statement.NebulaPreparedStatementImpl;
+import com.vesoft.nebula.jdbc.sql.NebulaParameterBinding;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;
+import java.sql.Types;
 
 public class NebulaParameterMetaData implements ParameterMetaData{
-
-    private static NebulaParameterMetaData nebulaParameterMetaData = null;
 
     private NebulaPreparedStatementImpl preparedStatement;
 
@@ -21,15 +21,11 @@ public class NebulaParameterMetaData implements ParameterMetaData{
     }
 
     public static ParameterMetaData getInstance(NebulaPreparedStatementImpl preparedStatement){
-        if (nebulaParameterMetaData == null){
-            nebulaParameterMetaData = new NebulaParameterMetaData(preparedStatement);
-        }
-        return nebulaParameterMetaData;
+        return new NebulaParameterMetaData(preparedStatement);
     }
 
     /**  If you want to get MetaData after PreparedStatement changes, the method below should be called. */
     public static void release(){
-        nebulaParameterMetaData = null;
     }
 
     @Override
@@ -39,11 +35,11 @@ public class NebulaParameterMetaData implements ParameterMetaData{
 
     @Override
     public String getParameterClassName(int param) throws SQLException {
-        Object parameter =  preparedStatement.getParameters().get(param);
-        if(parameter != null){
-            return parameter.getClass().getName();
+        NebulaParameterBinding binding = preparedStatement.getParameterBindings().get(param);
+        if(binding != null && binding.getValue() != null){
+            return binding.getValue().getClass().getName();
         }
-        return String.format("No such param with index [%d]", param);
+        return Object.class.getName();
     }
 
     @Override
@@ -53,7 +49,8 @@ public class NebulaParameterMetaData implements ParameterMetaData{
 
     @Override
     public int isNullable(int param) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        preparedStatement.getParameterBindings().get(param);
+        return ParameterMetaData.parameterNullableUnknown;
     }
 
     @Override
@@ -68,17 +65,20 @@ public class NebulaParameterMetaData implements ParameterMetaData{
 
     @Override
     public int getScale(int param) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        NebulaParameterBinding binding = preparedStatement.getParameterBindings().get(param);
+        return binding == null || binding.getScaleOrLength() == null ? 0 : binding.getScaleOrLength();
     }
 
     @Override
     public int getParameterType(int param) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        NebulaParameterBinding binding = preparedStatement.getParameterBindings().get(param);
+        return binding == null ? Types.JAVA_OBJECT : binding.getJdbcType();
     }
 
     @Override
     public int getParameterMode(int param) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        preparedStatement.getParameterBindings().get(param);
+        return ParameterMetaData.parameterModeIn;
     }
 
     @Override
