@@ -204,24 +204,24 @@ Check task `2.2`. Commit message: `feat(nebula): convert sql updates and deletes
 - Consumes: `NebulaSchemaStatement`, `NebulaMetadataStatement`, `NebulaSchemaMappingRegistry`.
 - Produces: CREATE/DROP/DESCRIBE nGQL plans and DDL unsupported errors.
 
-- [ ] **Step 1: Write failing DDL tests**
+- [x] **Step 1: Write failing DDL tests**
 
 Add tests for CREATE tag, CREATE edge, DROP tag/edge, DESCRIBE tag/edge, unsupported ALTER/index/foreign key errors.
 
-- [ ] **Step 2: Implement DDL conversion**
+- [x] **Step 2: Implement DDL conversion**
 
 Use mapping registry to determine `TableKind.TAG` or `TableKind.EDGE`. Generate `CREATE TAG`, `CREATE EDGE`, `DROP TAG`, `DROP EDGE`, `DESCRIBE TAG`, `DESCRIBE EDGE`.
 
-- [ ] **Step 3: Reject unsupported options**
+- [x] **Step 3: Reject unsupported options**
 
 Throw `NebulaWriteConversionException` with `NEBULA_SQL_DDL_UNSUPPORTED_OPTION` for complex ALTER, indexes, constraints, engine/charset/collation options, and unsupported SQL statement kinds.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaSqlDdlConverterTest test`
 Expected: tests pass.
 
-- [ ] **Step 5: Mark and commit**
+- [x] **Step 5: Mark and commit**
 
 Check task `2.3`. Commit message: `feat(nebula): map sql ddl to nebula schema plans`.
 
