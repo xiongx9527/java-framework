@@ -2,5 +2,7 @@
   "openspec_proposal": "openspec/changes/add-nebula-sql-to-ngql-query-support/proposal.md",
   "openspec_design": "openspec/changes/add-nebula-sql-to-ngql-query-support/design.md",
   "openspec_tasks": "openspec/changes/add-nebula-sql-to-ngql-query-support/tasks.md",
-  "openspec_delta_spec": "openspec/changes/add-nebula-sql-to-ngql-query-support/specs/nebula-sql-to-ngql-query-support/spec.md"
+  "openspec_delta_spec": "openspec/changes/add-nebula-sql-to-ngql-query-support/specs/nebula-sql-to-ngql-query-support/spec.md",
+  "handoff_context": "openspec/changes/add-nebula-sql-to-ngql-query-support/.comet/handoff/design-context.json",
+  "handoff_markdown": "openspec/changes/add-nebula-sql-to-ngql-query-support/.comet/handoff/design-context.md"
 }
