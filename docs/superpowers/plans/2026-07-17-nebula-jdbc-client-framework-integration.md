@@ -2,6 +2,7 @@
 change: add-nebula-jdbc-client-framework-integration
 design-doc: docs/superpowers/specs/2026-07-17-nebula-jdbc-client-framework-integration-design.md
 base-ref: a85124d86a5a88a5107ce5f109b811c346d9c3e3
+archived-with: 2026-07-17-add-nebula-jdbc-client-framework-integration
 ---
 
 # Nebula JDBC 客户端框架集成实施计划
