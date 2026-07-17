@@ -137,28 +137,28 @@ Check task `1.2`. Commit message: `feat(nebula): define sql ddl mapping contract
 - Consumes: `NebulaInsertStatement`, `NebulaSchemaMappingRegistry`, `TableMapping`, `ColumnRole`.
 - Produces: INSERT vertex/edge nGQL plans and execution result descriptors.
 
-- [ ] **Step 1: Write failing INSERT converter tests**
+- [x] **Step 1: Write failing INSERT converter tests**
 
 Add tests for `INSERT INTO person(id, name) VALUES ('p1', 'Tom')` producing `INSERT VERTEX person(name) VALUES "p1":("Tom")`, and edge insert with `src`, `dst`, optional `rank`.
 
-- [ ] **Step 2: Implement mutation plan and descriptors**
+- [x] **Step 2: Implement mutation plan and descriptors**
 
 Use immutable classes with defensive copies for keys, columns, warnings and trace. `NebulaMutationResult` must expose `success`, `affectedRows`, `mutationDescriptor`, `ddlDescriptor`, `warnings`, `traceId`.
 
-- [ ] **Step 3: Implement INSERT conversion**
+- [x] **Step 3: Implement INSERT conversion**
 
 Resolve table mapping by SQL table name. For tag mappings require `ColumnRole.ID`; for edge mappings require `ColumnRole.SRC` and `ColumnRole.DST`, rank optional. Reject unmapped property columns.
 
-- [ ] **Step 4: Implement mutation executor**
+- [x] **Step 4: Implement mutation executor**
 
 `DirectNebulaSqlMutationExecutor.executeMutation` executes `plan.getNgql()` and returns `affectedRows` using policy `1` for successful single plan execution. `executeDdl` mirrors the behavior for DDL.
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaSqlWriteConverterTest,NebulaSqlMutationExecutorTest test`
 Expected: tests pass.
 
-- [ ] **Step 6: Mark and commit**
+- [x] **Step 6: Mark and commit**
 
 Check task `2.1`. Commit message: `feat(nebula): convert sql inserts to mutation plans`.
 
