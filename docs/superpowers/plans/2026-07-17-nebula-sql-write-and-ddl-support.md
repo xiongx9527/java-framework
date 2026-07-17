@@ -282,7 +282,7 @@ Check task `3.1` after converter and DDL tests exist and pass.
 
 Commit message: `test(nebula): verify sql write ddl support`.
 
-- [ ] **Step 5: Apply build guard when all tasks are complete**
+- [x] **Step 5: Apply build guard when all tasks are complete**
 
 Run: `comet guard add-nebula-sql-write-and-ddl-support build --apply`
 Expected: guard passes only after plan, isolation, build_mode, tdd_mode, review_mode and tasks are complete.
