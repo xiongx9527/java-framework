@@ -37,6 +37,26 @@ public class NebulaQueryStatementAdapterTest {
 	}
 
 	@Test
+	public void adapterShouldConvertWhitelistedFunctionProjection() throws Exception {
+		NebulaSchemaMappingRegistry mappings = NebulaSchemaMappingRegistry.builder()
+				.addTable(TableMapping.tag("person", "person")
+						.idColumn("id", Types.VARCHAR)
+						.property("name", "name", Types.VARCHAR)
+						.build())
+				.build();
+		NebulaSqlParseResult parseResult = parser.parse(
+				"SELECT lower(p.name) AS lowered_name FROM person p WHERE p.id = 'p1'");
+
+		NebulaQueryStatement statement = adapter.adapt(parseResult);
+		NgqlQueryPlan plan = new DefaultNebulaSqlQueryConverter()
+				.convert(statement, NebulaQueryBindings.empty(), mappings);
+
+		assertEquals("MATCH (p:person) WHERE id(p) == \"p1\" RETURN lower(p.name) AS lowered_name", plan.getNgql());
+		assertEquals(1, plan.getColumns().size());
+		assertEquals("lowered_name", plan.getColumns().get(0).getLabel());
+	}
+
+	@Test
 	public void adapterShouldPreserveQueryOnlyBoundaryForNonSelectParserResults() throws Exception {
 		NebulaSqlParseResult parseResult = parser.parse("INSERT INTO person(id, name) VALUES ('p1', 'Tom')");
 		NebulaQueryStatement statement = adapter.adapt(parseResult);
