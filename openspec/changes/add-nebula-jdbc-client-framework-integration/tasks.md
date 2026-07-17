@@ -3,7 +3,7 @@
 - [x] 1.0 梳理正常 JDBC 使用路径：DriverManager/DataSource、Connection、Statement、PreparedStatement、ResultSet、ResultSetMetaData 和 DatabaseMetaData。
 - [x] 1.1 梳理 JdbcTemplate 常见调用路径和所需 JDBC 方法。
 - [x] 1.2 梳理 MyBatis XML / 注解 Mapper 常见调用路径和所需 JDBC 方法。
-- [ ] 1.3 定义不支持的 batch、generated keys、CallableStatement、事务、多结果集和完整 DatabaseMetaData 边界。
+- [x] 1.3 定义不支持的 batch、generated keys、CallableStatement、事务、多结果集和完整 DatabaseMetaData 边界。
 
 ## 2. JDBC 行为补强
 
