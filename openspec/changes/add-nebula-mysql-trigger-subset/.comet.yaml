@@ -1,6 +1,6 @@
 workflow: full
 language: zh-CN
-phase: design
+phase: build
 context_compression: off
 build_mode: null
 build_pause: null
@@ -11,7 +11,7 @@ isolation: null
 verify_mode: null
 auto_transition: false
 base_ref: 7fcfa07e31ed4260bd04c3e5b656831845b8b544
-design_doc: null
+design_doc: docs/superpowers/specs/2026-07-17-nebula-mysql-trigger-subset-design.md
 plan: null
 verify_result: pending
 verification_report: null
@@ -20,10 +20,10 @@ created_at: 2026-07-16
 verified_at: null
 archived: false
 direct_override: null
-build_command: null
-verify_command: null
-handoff_context: null
-handoff_hash: null
+handoff_context: openspec/changes/add-nebula-mysql-trigger-subset/.comet/handoff/design-context.json
+handoff_hash: 68ca36c332cecdb9f2732208fa568fc04e6d12aaa909dd1381e2905d488fc080
 classic_profile: full
 classic_migration: 1
 run_id: 8e5931b2-5b30-40da-94cc-45f497a475ef
+verify_failures: 0
+archive_confirmation: null
