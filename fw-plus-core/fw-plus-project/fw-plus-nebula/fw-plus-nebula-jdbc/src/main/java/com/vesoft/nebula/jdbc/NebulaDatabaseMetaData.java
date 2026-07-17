@@ -40,7 +40,7 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public boolean isReadOnly() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return true;
 	}
 
 	@Override
@@ -70,7 +70,7 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public String getDatabaseProductVersion() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return "";
 	}
 
 	@Override
@@ -80,7 +80,7 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public String getDriverVersion() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return "0.1.1-SNAPSHOT";
 	}
 
 	@Override
@@ -145,7 +145,7 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public String getIdentifierQuoteString() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return "`";
 	}
 
 	@Override
@@ -695,12 +695,12 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public boolean supportsResultSetType(int type) throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return type == NebulaResultSet.SUPPORTED_TYPE;
 	}
 
 	@Override
 	public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return type == NebulaResultSet.SUPPORTED_TYPE && concurrency == NebulaResultSet.SUPPORTED_CONCURRENCY;
 	}
 
 	@Override
@@ -760,7 +760,7 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public Connection getConnection() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return connection;
 	}
 
 	@Override
