@@ -37,6 +37,10 @@
 - **WHEN** MyBatis 注解 Mapper 执行带列别名的 SELECT 查询
 - **THEN** 查询结果可映射到 Java POJO 属性
 
+#### Scenario: 当前框架非目标边界
+- **WHEN** 应用尝试通过当前能力验收 MyBatis 写入、MyBatis-Plus BaseMapper/Wrapper 或完整事务语义
+- **THEN** 这些路径不属于当前能力验收范围；若调用触达当前不支持的 JDBC 能力，Driver 返回明确的标准 JDBC 异常
+
 ### Requirement: JDBC metadata supports framework mapping
 系统 SHALL 提供标准 JDBC、MyBatis 和 JdbcTemplate 常见映射所需的 ResultSetMetaData、列标签、列类型和基础 DatabaseMetaData 行为。
 

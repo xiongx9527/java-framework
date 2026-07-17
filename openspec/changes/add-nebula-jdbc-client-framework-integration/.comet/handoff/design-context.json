@@ -1,0 +1,14 @@
+{
+  "change": "add-nebula-jdbc-client-framework-integration",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "936f82e37461f16b19bbfa8cdb4880283e4f8a455eae5afc236d53b24d7c47b0",
+  "files": [
+    { "path": "openspec/changes/add-nebula-jdbc-client-framework-integration/proposal.md", "sha256": "caf886b7a7eff026491fb9e6e393e915d8dcf0fb1669997f9198fa34b5abd990" },
+    { "path": "openspec/changes/add-nebula-jdbc-client-framework-integration/design.md", "sha256": "07cefec4eebb5e591f7514bcb6093ddc1666d152e75dbc669cb5394e6112ed85" },
+    { "path": "openspec/changes/add-nebula-jdbc-client-framework-integration/tasks.md", "sha256": "6f636dbc4b9f7374d685f2fdd4d41fec833407643ac2b46ab4179c49bf5d5725" },
+    { "path": "openspec/changes/add-nebula-jdbc-client-framework-integration/specs/nebula-jdbc-client-framework-integration/spec.md", "sha256": "ea1255f9a874e7659d158f134ed60912e5b7cb794b3c83b54ff110312dfee390" }
+  ]
+}
