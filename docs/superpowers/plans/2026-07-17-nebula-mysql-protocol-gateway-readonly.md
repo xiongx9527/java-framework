@@ -60,11 +60,11 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
 - Produces: `NebulaSqlExecutionPort.executeQuery(MysqlGatewaySessionContext context, String sql) throws SQLException`
 - Produces: immutable-style result objects backed by Java 8 collections.
 
-- [ ] Add module POM and parent module entry.
-- [ ] Add query result and session context model classes with Java 8 constructors/getters.
-- [ ] Add unit tests for result model null row/value handling.
-- [ ] Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-mysql-gateway test`
-- [ ] Commit: `feat: add nebula mysql gateway module`
+- [x] Add module POM and parent module entry.
+- [x] Add query result and session context model classes with Java 8 constructors/getters.
+- [x] Add unit tests for result model null row/value handling.
+- [x] Run module tests. Wrapper was attempted but blocked by missing `.mvn/wrapper`; fallback verification used JDK 8 + system Maven.
+- [x] Commit: `feat: add nebula mysql gateway module`
 
 ## Task 2: MySQL packet 编解码与结果包
 
@@ -83,11 +83,11 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
 - Consumes: `MysqlQueryResult`
 - Produces: packet payload readers/writers for later handshake and resultset encoders.
 
-- [ ] Write packet reader/writer tests for length-encoded integers, strings, packet headers and sequence id.
-- [ ] Implement Java 8 packet primitives without Netty dependency.
-- [ ] Add OK/ERR/EOF packet tests with fixed MySQL codes and SQLState.
-- [ ] Run module tests.
-- [ ] Commit: `feat: add mysql protocol packet codecs`
+- [x] Write packet reader/writer tests for length-encoded integers, strings, packet headers and sequence id.
+- [x] Implement Java 8 packet primitives without Netty dependency.
+- [x] Add OK/ERR/EOF packet tests with fixed MySQL codes and SQLState.
+- [x] Run module tests.
+- [x] Commit: `feat: add mysql protocol packet codecs`
 
 ## Task 3: 握手、认证与 session 生命周期
 
@@ -105,12 +105,12 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
 **Interfaces:**
 - Produces: authenticated `MysqlProtocolSession` with username/database/capability.
 
-- [ ] Write failing tests for initial handshake fields, auth plugin, capability flags and sequence id.
-- [ ] Write failing tests for valid and invalid `mysql_native_password` scramble.
-- [ ] Implement static authenticator with allowed default database checks.
-- [ ] Implement handshake response parser for protocol 41 secure connection path.
-- [ ] Run module tests.
-- [ ] Commit: `feat: implement mysql handshake authentication`
+- [x] Write failing tests for initial handshake fields, auth plugin, capability flags and sequence id.
+- [x] Write failing tests for valid and invalid `mysql_native_password` scramble.
+- [x] Implement static authenticator with allowed default database checks.
+- [x] Implement handshake response parser for protocol 41 secure connection path.
+- [x] Run module tests.
+- [x] Commit: `feat: implement mysql handshake authentication`
 
 ## Task 4: 命令分发、只读门禁与错误映射
 
@@ -125,12 +125,12 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
 - Consumes: `NebulaSqlExecutionPort`
 - Produces: ERR packet for unsupported commands and read-only rejection.
 
-- [ ] Test COM_QUERY forwards SELECT/JOIN/UNION/GROUP BY strings to fake executor unchanged.
-- [ ] Test INSERT/UPDATE/DELETE/DDL/transaction/CALL/TRIGGER/binlog/replication are rejected before executor call.
-- [ ] Test COM_PING returns OK, COM_QUIT closes, unsupported commands return 1235.
-- [ ] Implement guard with comment/whitespace stripping and first-keyword classification only.
-- [ ] Run module tests.
-- [ ] Commit: `feat: add readonly mysql command dispatcher`
+- [x] Test COM_QUERY forwards SELECT/JOIN/UNION/GROUP BY strings to fake executor unchanged.
+- [x] Test INSERT/UPDATE/DELETE/DDL/transaction/CALL/TRIGGER/binlog/replication are rejected before executor call.
+- [x] Test COM_PING returns OK, COM_QUIT closes, unsupported commands return 1235.
+- [x] Implement guard with comment/whitespace stripping and first-keyword classification only.
+- [x] Run module tests.
+- [x] Commit: `feat: add readonly mysql command dispatcher`
 
 ## Task 5: Metadata 与文本结果集编码
 
@@ -144,11 +144,11 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
 - Consumes: `MysqlQueryResult`
 - Produces: MySQL text protocol column definitions and row packets.
 
-- [ ] Test SHOW DATABASES, SHOW TABLES, DESCRIBE/DESC happy paths and table-not-found error.
-- [ ] Test text resultsets for empty rows, null, string, integer, long, double, boolean, date/timestamp and object fallback.
-- [ ] Implement conservative MySQL type mapping and NULL row marker.
-- [ ] Run module tests.
-- [ ] Commit: `feat: encode mysql text resultsets`
+- [x] Test SHOW DATABASES, SHOW TABLES, DESCRIBE/DESC happy paths and table-not-found error.
+- [x] Test text resultsets for empty rows, null, string, integer, long, double, boolean, date/timestamp and object fallback.
+- [x] Implement conservative MySQL type mapping and NULL row marker.
+- [x] Run module tests.
+- [x] Commit: `feat: encode mysql text resultsets`
 
 ## Task 6: 最小 server 封装、文档证据与 Comet 收尾
 
@@ -163,10 +163,10 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
 - Consumes: authenticator, metadata handler, execution port and dispatcher.
 - Produces: embeddable start/stop lifecycle for future Boot starter.
 
-- [ ] Implement simple Java socket accept loop with clean `start()`/`stop()` lifecycle and per-connection handler.
-- [ ] Add lifecycle unit tests using fake socket streams where practical; document that MySQL CLI/GUI acceptance requires manual environment with a running port and stable upstream SQL executor.
-- [ ] Update `tasks.md` checkboxes for completed independent scope; leave GUI/client items unchecked if no real client/Nebula environment exists.
-- [ ] Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-mysql-gateway test`
-- [ ] Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula test -DskipITs`
+- [x] Implement simple Java socket accept loop with clean `start()`/`stop()` lifecycle and per-connection handler.
+- [x] Add lifecycle unit tests using fake socket streams where practical; document that MySQL CLI/GUI acceptance requires manual environment with a running port and stable upstream SQL executor.
+- [x] Update `tasks.md` checkboxes for completed independent scope; leave GUI/client items unchecked if no real client/Nebula environment exists.
+- [x] Run module tests. Wrapper was attempted but blocked by missing `.mvn/wrapper`; fallback verification used JDK 8 + system Maven.
+- [x] Run Nebula reactor tests with JDK 8 + system Maven.
 - [ ] Request standard code review before guard.
-- [ ] Commit: `feat: add readonly nebula mysql gateway`
+- [x] Commit: `feat: add readonly nebula mysql gateway`

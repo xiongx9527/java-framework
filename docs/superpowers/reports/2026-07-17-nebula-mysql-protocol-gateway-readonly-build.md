@@ -23,3 +23,5 @@
   - Result: failed before Maven startup because `.mvn/wrapper` files are missing.
 - `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-mysql-gateway test`
   - Result: passed, 17 tests, 0 failures.
+- `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/fw-plus-nebula/pom.xml test`
+  - Result: passed. Reactor modules `fw-plus-nebula`, `fw-plus-nebula-jdbc`, and `fw-plus-nebula-mysql-gateway` succeeded; JDBC ran 87 tests and gateway ran 17 tests, 0 failures.
