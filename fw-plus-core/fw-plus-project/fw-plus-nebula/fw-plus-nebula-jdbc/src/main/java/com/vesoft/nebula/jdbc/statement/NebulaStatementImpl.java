@@ -208,12 +208,14 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     @Override
     public int getUpdateCount() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return -1;
     }
 
     @Override
     public boolean getMoreResults() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return false;
     }
 
     @Override

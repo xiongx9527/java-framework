@@ -202,6 +202,9 @@ public class NebulaConnection implements Connection {
 
     @Override
     public void setAutoCommit(boolean autoCommit) throws SQLException {
+        if (!autoCommit) {
+            throw ExceptionBuilder.buildUnsupportedOperationException();
+        }
         this.checkClosed();
     }
 
