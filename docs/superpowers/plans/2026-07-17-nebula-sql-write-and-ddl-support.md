@@ -172,24 +172,24 @@ Check task `2.1`. Commit message: `feat(nebula): convert sql inserts to mutation
 - Consumes: `NebulaUpdateStatement`, `NebulaDeleteStatement`, mapping roles.
 - Produces: UPDATE/DELETE vertex/edge nGQL plans and unsafe write errors.
 
-- [ ] **Step 1: Write failing UPDATE/DELETE tests**
+- [x] **Step 1: Write failing UPDATE/DELETE tests**
 
 Add tests for `UPDATE person SET name = 'Jerry' WHERE id = 'p1'`, `DELETE FROM person WHERE id = 'p1'`, edge update/delete with `src` and `dst`, and unsafe no-WHERE rejection.
 
-- [ ] **Step 2: Implement UPDATE conversion**
+- [x] **Step 2: Implement UPDATE conversion**
 
 Require WHERE predicate that identifies VID for tags or src/dst for edges. Convert mapped SET properties to Nebula `UPDATE VERTEX` or `UPDATE EDGE` statements.
 
-- [ ] **Step 3: Implement DELETE conversion**
+- [x] **Step 3: Implement DELETE conversion**
 
 Require WHERE predicate that identifies VID for tags or src/dst for edges. Convert to `DELETE VERTEX` or `DELETE EDGE`.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaSqlWriteConverterTest test`
 Expected: tests pass.
 
-- [ ] **Step 5: Mark and commit**
+- [x] **Step 5: Mark and commit**
 
 Check task `2.2`. Commit message: `feat(nebula): convert sql updates and deletes`.
 
