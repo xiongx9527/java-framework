@@ -7,7 +7,7 @@
 
 - [x] 2.1 实现 INSERT 转换与执行。
 - [x] 2.2 实现 UPDATE/DELETE 转换与执行。
-- [ ] 2.3 实现基础 CREATE/DROP/DESCRIBE 类 DDL 映射。
+- [x] 2.3 实现基础 CREATE/DROP/DESCRIBE 类 DDL 映射。
 
 ## 3. 验证
 
