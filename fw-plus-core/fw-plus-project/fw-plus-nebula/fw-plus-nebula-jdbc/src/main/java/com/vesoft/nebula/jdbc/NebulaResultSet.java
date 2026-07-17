@@ -212,8 +212,7 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     /** some getter methods */
 
-    @Override
-    public Object getObject(int columnIndex) throws SQLException {
+    private ValueWrapper getValueWrapper(int columnIndex) throws SQLException {
         this.checkClosed();
         cursor.checkReadable();
         checkIndex(columnIndex);
@@ -225,15 +224,57 @@ public class NebulaResultSet implements java.sql.ResultSet {
     }
 
     @Override
+    public Object getObject(int columnIndex) throws SQLException {
+        return unwrapValue(getValueWrapper(columnIndex));
+    }
+
+    @Override
     public Object getObject(String columnLabel) throws SQLException {
         return getObject(findColumn(columnLabel));
+    }
+
+    private Object unwrapValue(ValueWrapper valueWrapper) throws SQLException {
+        if (valueWrapper == null || valueWrapper.isNull()) {
+            return null;
+        }
+        try {
+            if (valueWrapper.isDate()) {
+                return getDateFromValueWrapper(valueWrapper);
+            }
+            if (valueWrapper.isTime()) {
+                return getTimeFromValueWrapper(valueWrapper);
+            }
+            if (valueWrapper.isDateTime()) {
+                return getTimestampFromValueWrapper(valueWrapper);
+            }
+            String value = valueWrapper.asString();
+            if (value != null) {
+                return value;
+            }
+        } catch (Exception ignored) {
+        }
+        try {
+            return valueWrapper.asLong();
+        } catch (Exception ignored) {
+        }
+        try {
+            return valueWrapper.asBoolean();
+        } catch (Exception ignored) {
+        }
+        try {
+            return valueWrapper.getValue().getFVal();
+        } catch (Exception ignored) {
+        }
+        return valueWrapper.getValue();
     }
 
     @Override
     public String getString(int columnIndex) throws SQLException {
         try {
-            ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-            this.checkNullValue();
+            ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+            if (this.wasNull()) {
+                return null;
+            }
             return valueWrapper.asString();
         } catch (UnsupportedEncodingException e) {
             throw new SQLException("UnsupportedEncodingException occur in NebulaResult.getString().", e);
@@ -248,8 +289,10 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public int getInt(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-        this.checkNullValue();
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return 0;
+        }
         return new Long(valueWrapper.asLong()).intValue();
     }
 
@@ -260,8 +303,10 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public long getLong(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = ((ValueWrapper) getObject(columnIndex));
-        this.checkNullValue();
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return 0L;
+        }
         return valueWrapper.asLong();
     }
 
@@ -272,8 +317,10 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public boolean getBoolean(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-        this.checkNullValue();
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return false;
+        }
         return valueWrapper.asBoolean();
     }
 
@@ -284,8 +331,10 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-        this.checkNullValue();
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return 0.0d;
+        }
         return valueWrapper.getValue().getFVal();
     }
 
@@ -296,10 +345,12 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public Date getDate(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-        this.checkNullValue();
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return null;
+        }
         DateWrapper dateWrapper = valueWrapper.asDate();
-        return Date.valueOf(dateWrapper.toString());
+        return getDateFromValueWrapper(valueWrapper);
     }
 
     @Override
@@ -309,11 +360,11 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public Time getTime(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-        this.checkNullValue();
-        TimeWrapper timeWrapper = valueWrapper.asTime();
-        String time = String.format("%02d:%02d:%02d", timeWrapper.getHour(), timeWrapper.getMinute(), timeWrapper.getSecond());
-        return Time.valueOf(time);
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return null;
+        }
+        return getTimeFromValueWrapper(valueWrapper);
     }
 
     @Override
@@ -322,9 +373,43 @@ public class NebulaResultSet implements java.sql.ResultSet {
     }
 
     public DateTimeWrapper getDateTime(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-        this.checkNullValue();
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return null;
+        }
         return valueWrapper.asDateTime();
+    }
+
+    private Date getDateFromValueWrapper(ValueWrapper valueWrapper) throws SQLException {
+        DateWrapper dateWrapper = valueWrapper.asDate();
+        return Date.valueOf(String.format("%04d-%02d-%02d",
+                dateWrapper.getYear(),
+                dateWrapper.getMonth(),
+                dateWrapper.getDay()
+        ));
+    }
+
+    private Time getTimeFromValueWrapper(ValueWrapper valueWrapper) throws SQLException {
+        TimeWrapper timeWrapper = valueWrapper.asTime();
+        return Time.valueOf(String.format("%02d:%02d:%02d",
+                timeWrapper.getHour(),
+                timeWrapper.getMinute(),
+                timeWrapper.getSecond()
+        ));
+    }
+
+    private Timestamp getTimestampFromValueWrapper(ValueWrapper valueWrapper) throws SQLException {
+        DateTimeWrapper dateTimeWrapper = valueWrapper.asDateTime();
+        Timestamp timestamp = Timestamp.valueOf(String.format("%04d-%02d-%02d %02d:%02d:%02d",
+                dateTimeWrapper.getYear(),
+                dateTimeWrapper.getMonth(),
+                dateTimeWrapper.getDay(),
+                dateTimeWrapper.getHour(),
+                dateTimeWrapper.getMinute(),
+                dateTimeWrapper.getSecond()
+        ));
+        timestamp.setNanos(dateTimeWrapper.getMicrosec() * 1000);
+        return timestamp;
     }
 
     public DateTimeWrapper getDateTime(String columnLabel) throws SQLException {
@@ -333,8 +418,10 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     public Node getNode(int columnIndex) throws SQLException {
         try {
-            ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-            this.checkNullValue();
+            ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+            if (this.wasNull()) {
+                return null;
+            }
             return valueWrapper.asNode();
         } catch (UnsupportedEncodingException e) {
             throw new SQLException("UnsupportedEncodingException occur in NebulaResult.getNode().", e);
@@ -346,8 +433,10 @@ public class NebulaResultSet implements java.sql.ResultSet {
     }
 
     public Relationship getEdge(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-        this.checkNullValue();
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return null;
+        }
         return valueWrapper.asRelationship();
     }
 
@@ -357,8 +446,10 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     public PathWrapper getPath(int columnIndex) throws SQLException {
         try {
-            ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-            this.checkNullValue();
+            ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+            if (this.wasNull()) {
+                return null;
+            }
             return valueWrapper.asPath();
         } catch (UnsupportedEncodingException e) {
             throw new SQLException("UnsupportedEncodingException occur in NebulaResult.getPath().", e);
@@ -370,8 +461,10 @@ public class NebulaResultSet implements java.sql.ResultSet {
     }
 
     public List getList(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-        this.checkNullValue();
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return null;
+        }
         return valueWrapper.asList();
     }
 
@@ -380,8 +473,10 @@ public class NebulaResultSet implements java.sql.ResultSet {
     }
 
     public Set getSet(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-        this.checkNullValue();
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return null;
+        }
         try{
             return valueWrapper.asSet();
         }catch(InvalidValueException e){
@@ -394,8 +489,10 @@ public class NebulaResultSet implements java.sql.ResultSet {
     }
 
     public Map getMap(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = (ValueWrapper) getObject(columnIndex);
-        this.checkNullValue();
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return null;
+        }
         HashMap<String, ValueWrapper> result = null;
         try {
             result = valueWrapper.asMap();
@@ -492,7 +589,11 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return null;
+        }
+        return getTimestampFromValueWrapper(valueWrapper);
     }
 
     @Override
@@ -539,7 +640,7 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public Timestamp getTimestamp(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getTimestamp(findColumn(columnLabel));
     }
 
     @Override
