@@ -41,6 +41,7 @@ public class DruidNebulaSqlParserTest {
 		NebulaSelectStatement select = select("SELECT p.id, o.amount FROM person p JOIN orders o ON p.id = o.person_id");
 
 		assertEquals(NebulaTableSource.Type.JOIN, select.getFrom().getType());
+		assertEquals("p.id", select.getSelectItems().get(0).getExpression().getName());
 		assertEquals("person", select.getFrom().getLeft().getName());
 		assertEquals("p", select.getFrom().getLeft().getAlias());
 		assertEquals("orders", select.getFrom().getRight().getName());
@@ -86,6 +87,15 @@ public class DruidNebulaSqlParserTest {
 		assertEquals(1, result.getParameters().get(0).getIndex());
 		assertEquals(2, result.getParameters().get(1).getIndex());
 		assertEquals(3, result.getParameters().get(2).getIndex());
+	}
+
+	@Test
+	public void parseLikeAndIsNullExplicitly() throws Exception {
+		NebulaSelectStatement likeSelect = select("SELECT * FROM person WHERE name LIKE ?");
+		assertEquals(NebulaExpression.Type.LIKE, likeSelect.getWhere().getType());
+
+		NebulaSelectStatement isNullSelect = select("SELECT * FROM person WHERE deleted_at IS NULL");
+		assertEquals(NebulaExpression.Type.IS_NULL, isNullSelect.getWhere().getType());
 	}
 
 	@Test

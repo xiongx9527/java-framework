@@ -299,6 +299,18 @@ public class DruidNebulaAstAdapter {
 		}
 		if (expression instanceof SQLBinaryOpExpr) {
 			SQLBinaryOpExpr binary = (SQLBinaryOpExpr) expression;
+			String operator = binary.getOperator().getName();
+			if ("LIKE".equalsIgnoreCase(operator) || "NOT LIKE".equalsIgnoreCase(operator)) {
+				List<NebulaExpression> arguments = new ArrayList<NebulaExpression>();
+				arguments.add(adaptExpression(binary.getRight(), context));
+				return NebulaExpression.listExpression(NebulaExpression.Type.LIKE, operator,
+						adaptExpression(binary.getLeft(), context), arguments);
+			}
+			if (("IS".equalsIgnoreCase(operator) || "IS NOT".equalsIgnoreCase(operator))
+					&& binary.getRight() instanceof SQLNullExpr) {
+				return NebulaExpression.listExpression(NebulaExpression.Type.IS_NULL, operator,
+						adaptExpression(binary.getLeft(), context), Collections.<NebulaExpression>emptyList());
+			}
 			return NebulaExpression.binary(binary.getOperator().getName(),
 					adaptExpression(binary.getLeft(), context), adaptExpression(binary.getRight(), context));
 		}
@@ -342,6 +354,9 @@ public class DruidNebulaAstAdapter {
 	}
 
 	private static String nameOf(SQLExpr expression) {
+		if (expression instanceof SQLPropertyExpr) {
+			return expression.toString();
+		}
 		if (expression instanceof SQLName) {
 			return ((SQLName) expression).getSimpleName();
 		}
