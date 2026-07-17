@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
 
@@ -36,6 +37,37 @@ public class NebulaStatementExecutorPathTest {
 		assertSame(connection, executor.connection);
 	}
 
+	@Test
+	public void executeShouldDelegateQuerySqlAndEmptyBindingsToExecutor() throws Exception {
+		RecordingExecutor executor = new RecordingExecutor();
+		NebulaSqlExecutorProvider.setExecutor(executor);
+		NebulaConnection connection = mock(NebulaConnection.class);
+		NebulaStatementImpl statement = new NebulaStatementImpl(connection);
+
+		boolean hasResultSet = statement.execute("SELECT name FROM player");
+
+		assertTrue(hasResultSet);
+		assertSame(executor.resultSet, statement.getResultSet());
+		assertEquals("SELECT name FROM player", executor.sql);
+		assertEquals(0, executor.bindings.size());
+		assertSame(connection, executor.connection);
+	}
+
+	@Test
+	public void executeShouldDelegateUpdateSqlAndReturnFalse() throws Exception {
+		RecordingExecutor executor = new RecordingExecutor();
+		NebulaSqlExecutorProvider.setExecutor(executor);
+		NebulaConnection connection = mock(NebulaConnection.class);
+		NebulaStatementImpl statement = new NebulaStatementImpl(connection);
+
+		boolean hasResultSet = statement.execute("INSERT VERTEX player(name) VALUES 1:(\"Tim\")");
+
+		assertEquals(false, hasResultSet);
+		assertEquals("INSERT VERTEX player(name) VALUES 1:(\"Tim\")", executor.sql);
+		assertEquals(0, executor.bindings.size());
+		assertSame(connection, executor.connection);
+	}
+
 	private static class RecordingExecutor implements NebulaSqlExecutor {
 		private final ResultSet resultSet = mock(ResultSet.class);
 		private NebulaConnection connection;
@@ -52,7 +84,10 @@ public class NebulaStatementExecutorPathTest {
 
 		@Override
 		public int executeUpdate(NebulaConnection connection, String sql, NebulaParameterBindings bindings) throws SQLException {
-			throw new SQLException("not used");
+			this.connection = connection;
+			this.sql = sql;
+			this.bindings = bindings;
+			return 1;
 		}
 	}
 }

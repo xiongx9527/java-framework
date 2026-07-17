@@ -263,7 +263,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
     public String getString(int columnIndex) throws SQLException {
         try {
             ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-            this.checkNullValue();
+            if (this.wasNull()) {
+                return null;
+            }
             return valueWrapper.asString();
         } catch (UnsupportedEncodingException e) {
             throw new SQLException("UnsupportedEncodingException occur in NebulaResult.getString().", e);
@@ -279,7 +281,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
     @Override
     public int getInt(int columnIndex) throws SQLException {
         ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-        this.checkNullValue();
+        if (this.wasNull()) {
+            return 0;
+        }
         return new Long(valueWrapper.asLong()).intValue();
     }
 
@@ -291,7 +295,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
     @Override
     public long getLong(int columnIndex) throws SQLException {
         ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-        this.checkNullValue();
+        if (this.wasNull()) {
+            return 0L;
+        }
         return valueWrapper.asLong();
     }
 
@@ -303,7 +309,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
     @Override
     public boolean getBoolean(int columnIndex) throws SQLException {
         ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-        this.checkNullValue();
+        if (this.wasNull()) {
+            return false;
+        }
         return valueWrapper.asBoolean();
     }
 
@@ -315,7 +323,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
     @Override
     public double getDouble(int columnIndex) throws SQLException {
         ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-        this.checkNullValue();
+        if (this.wasNull()) {
+            return 0.0d;
+        }
         return valueWrapper.getValue().getFVal();
     }
 
@@ -327,7 +337,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
     @Override
     public Date getDate(int columnIndex) throws SQLException {
         ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-        this.checkNullValue();
+        if (this.wasNull()) {
+            return null;
+        }
         DateWrapper dateWrapper = valueWrapper.asDate();
         return Date.valueOf(dateWrapper.toString());
     }
@@ -340,7 +352,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
     @Override
     public Time getTime(int columnIndex) throws SQLException {
         ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-        this.checkNullValue();
+        if (this.wasNull()) {
+            return null;
+        }
         TimeWrapper timeWrapper = valueWrapper.asTime();
         String time = String.format("%02d:%02d:%02d", timeWrapper.getHour(), timeWrapper.getMinute(), timeWrapper.getSecond());
         return Time.valueOf(time);
@@ -353,7 +367,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     public DateTimeWrapper getDateTime(int columnIndex) throws SQLException {
         ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-        this.checkNullValue();
+        if (this.wasNull()) {
+            return null;
+        }
         return valueWrapper.asDateTime();
     }
 
@@ -364,7 +380,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
     public Node getNode(int columnIndex) throws SQLException {
         try {
             ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-            this.checkNullValue();
+            if (this.wasNull()) {
+                return null;
+            }
             return valueWrapper.asNode();
         } catch (UnsupportedEncodingException e) {
             throw new SQLException("UnsupportedEncodingException occur in NebulaResult.getNode().", e);
@@ -377,7 +395,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     public Relationship getEdge(int columnIndex) throws SQLException {
         ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-        this.checkNullValue();
+        if (this.wasNull()) {
+            return null;
+        }
         return valueWrapper.asRelationship();
     }
 
@@ -388,7 +408,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
     public PathWrapper getPath(int columnIndex) throws SQLException {
         try {
             ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-            this.checkNullValue();
+            if (this.wasNull()) {
+                return null;
+            }
             return valueWrapper.asPath();
         } catch (UnsupportedEncodingException e) {
             throw new SQLException("UnsupportedEncodingException occur in NebulaResult.getPath().", e);
@@ -401,7 +423,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     public List getList(int columnIndex) throws SQLException {
         ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-        this.checkNullValue();
+        if (this.wasNull()) {
+            return null;
+        }
         return valueWrapper.asList();
     }
 
@@ -411,7 +435,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     public Set getSet(int columnIndex) throws SQLException {
         ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-        this.checkNullValue();
+        if (this.wasNull()) {
+            return null;
+        }
         try{
             return valueWrapper.asSet();
         }catch(InvalidValueException e){
@@ -425,7 +451,9 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     public Map getMap(int columnIndex) throws SQLException {
         ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-        this.checkNullValue();
+        if (this.wasNull()) {
+            return null;
+        }
         HashMap<String, ValueWrapper> result = null;
         try {
             result = valueWrapper.asMap();

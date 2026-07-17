@@ -69,8 +69,19 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
 
     @Override
     public boolean execute() throws SQLException {
-        this.executeQuery();
-        return true;
+        this.checkClosed();
+        this.parameterBindings.validateComplete();
+        if (isQuery(this.rawNGQL)) {
+            this.currentResultSet = this.sqlExecutor.executeQuery(
+                    this.nebulaConnection,
+                    this.rawNGQL,
+                    this.parameterBindings.copy()
+            );
+            return true;
+        }
+        this.sqlExecutor.executeUpdate(this.nebulaConnection, this.rawNGQL, this.parameterBindings.copy());
+        this.currentResultSet = null;
+        return false;
     }
 
     protected String replacePlaceHolderWithParam(String rawNGQL) throws SQLException {
@@ -170,12 +181,76 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
     }
 
     protected int namedParameterCount(String rawNGQL) {
-        int max = 0;
-        Matcher matcher = NAMED_PARAMETER_REGEX.matcher(rawNGQL);
-        while (matcher.find()) {
-            max++;
+        if (rawNGQL == null || rawNGQL.isEmpty()) {
+            return 0;
         }
-        return max;
+        int count = 0;
+        boolean singleQuoted = false;
+        boolean doubleQuoted = false;
+        boolean backtickQuoted = false;
+        boolean lineComment = false;
+        boolean blockComment = false;
+        for (int i = 0; i < rawNGQL.length(); i++) {
+            char current = rawNGQL.charAt(i);
+            char next = i + 1 < rawNGQL.length() ? rawNGQL.charAt(i + 1) : '\0';
+
+            if (lineComment) {
+                if (current == '\n' || current == '\r') {
+                    lineComment = false;
+                }
+                continue;
+            }
+            if (blockComment) {
+                if (current == '*' && next == '/') {
+                    blockComment = false;
+                    i++;
+                }
+                continue;
+            }
+            if (singleQuoted) {
+                if (current == '\\' && next != '\0') {
+                    i++;
+                } else if (current == '\'' && next == '\'') {
+                    i++;
+                } else if (current == '\'') {
+                    singleQuoted = false;
+                }
+                continue;
+            }
+            if (doubleQuoted) {
+                if (current == '\\' && next != '\0') {
+                    i++;
+                } else if (current == '"' && next == '"') {
+                    i++;
+                } else if (current == '"') {
+                    doubleQuoted = false;
+                }
+                continue;
+            }
+            if (backtickQuoted) {
+                if (current == '`') {
+                    backtickQuoted = false;
+                }
+                continue;
+            }
+
+            if (current == '-' && next == '-') {
+                lineComment = true;
+                i++;
+            } else if (current == '/' && next == '*') {
+                blockComment = true;
+                i++;
+            } else if (current == '\'') {
+                singleQuoted = true;
+            } else if (current == '"') {
+                doubleQuoted = true;
+            } else if (current == '`') {
+                backtickQuoted = true;
+            } else if (current == '?') {
+                count++;
+            }
+        }
+        return count;
     }
 
     @Override

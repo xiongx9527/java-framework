@@ -44,15 +44,15 @@ public class NebulaStatementImpl implements NebulaStatement {
     public boolean execute(String nGql) throws SQLException {
         this.checkClosed();
         this.nGql = nGql;
-        com.vesoft.nebula.client.graph.data.ResultSet nebulaResultSet = this.nebulaConnection.execute(nGql);
-        isExecuteSucceed = nebulaResultSet.isSucceeded();
-        if(!isExecuteSucceed){
-            int errorCode = nebulaResultSet.getErrorCode();
-            String errorMessage = nebulaResultSet.getErrorMessage();
-            throw new SQLException(String.format("nGql \"%s\" executed failed, error code: %d, error message: %s", nGql, errorCode, errorMessage));
+        if (isQuery(nGql)) {
+            this.currentResultSet = this.sqlExecutor.executeQuery(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
+            isExecuteSucceed = true;
+            return true;
         }
-        this.currentResultSet = new NebulaResultSet(nebulaResultSet, this);
-        return true;
+        this.sqlExecutor.executeUpdate(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
+        this.currentResultSet = null;
+        isExecuteSucceed = true;
+        return false;
     }
 
     @Override
@@ -89,6 +89,20 @@ public class NebulaStatementImpl implements NebulaStatement {
     @Override
     public void checkUpdate(String nGql) throws SQLException {
         NebulaStatementClassifier.checkUpdate(nGql);
+    }
+
+    protected boolean isQuery(String nGql) throws SQLException {
+        try {
+            NebulaStatementClassifier.checkQuery(nGql);
+            return true;
+        } catch (SQLException queryException) {
+            try {
+                NebulaStatementClassifier.checkUpdate(nGql);
+                return false;
+            } catch (SQLException updateException) {
+                throw queryException;
+            }
+        }
     }
 
 

@@ -14,6 +14,7 @@ public class NebulaStatementClassifierTest {
         NebulaStatementClassifier.checkQuery("  MATCH\n(v)\tRETURN v  ");
         NebulaStatementClassifier.checkQuery("\n  sHoW   TAGS");
         NebulaStatementClassifier.checkQuery(" SELECT COUNT(*) FROM player ");
+        NebulaStatementClassifier.checkQuery("YIELD 1");
     }
 
     @Test
