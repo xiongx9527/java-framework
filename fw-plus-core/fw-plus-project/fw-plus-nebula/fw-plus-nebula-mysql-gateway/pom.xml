@@ -17,6 +17,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-nebula-jdbc</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
