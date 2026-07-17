@@ -19,13 +19,13 @@ public class NebulaResultSetCursorMovementTest {
 
     @Test
     public void firstShouldSynchronizeCursorForReads() throws Exception {
-        ValueWrapper firstValue = nonNullValue();
+        ValueWrapper firstValue = nonNullValue("first");
         NebulaResultSet resultSet = resultSetWithRows(firstValue, nonNullValue());
 
         assertTrue(resultSet.first());
 
         assertEquals(1, resultSet.getRow());
-        assertSame(firstValue, resultSet.getObject(1));
+        assertEquals("first", resultSet.getObject(1));
         assertFalse(resultSet.wasNull());
     }
 
@@ -55,30 +55,30 @@ public class NebulaResultSetCursorMovementTest {
 
     @Test
     public void absoluteAndRelativeShouldExposeTheSameCursorStateToRowsAndReads() throws Exception {
-        ValueWrapper firstValue = nonNullValue();
-        ValueWrapper secondValue = nonNullValue();
+        ValueWrapper firstValue = nonNullValue("first");
+        ValueWrapper secondValue = nonNullValue("second");
         NebulaResultSet resultSet = resultSetWithRows(firstValue, secondValue);
 
         assertTrue(resultSet.absolute(1));
         assertEquals(1, resultSet.getRow());
-        assertSame(firstValue, resultSet.getObject(1));
+        assertEquals("first", resultSet.getObject(1));
 
         assertTrue(resultSet.relative(1));
         assertEquals(2, resultSet.getRow());
-        assertSame(secondValue, resultSet.getObject(1));
+        assertEquals("second", resultSet.getObject(1));
     }
 
     @Test
     public void previousShouldExposeTheSameCursorStateToRowsAndReads() throws Exception {
-        ValueWrapper firstValue = nonNullValue();
-        ValueWrapper secondValue = nonNullValue();
+        ValueWrapper firstValue = nonNullValue("first");
+        ValueWrapper secondValue = nonNullValue("second");
         NebulaResultSet resultSet = resultSetWithRows(firstValue, secondValue);
         assertTrue(resultSet.last());
 
         assertTrue(resultSet.previous());
 
         assertEquals(1, resultSet.getRow());
-        assertSame(firstValue, resultSet.getObject(1));
+        assertEquals("first", resultSet.getObject(1));
     }
 
     private static NebulaResultSet resultSetWithRows(ValueWrapper... values) {
@@ -95,8 +95,17 @@ public class NebulaResultSetCursorMovementTest {
     }
 
     private static ValueWrapper nonNullValue() {
+        return nonNullValue("value");
+    }
+
+    private static ValueWrapper nonNullValue(String value) {
         ValueWrapper valueWrapper = mock(ValueWrapper.class);
         when(valueWrapper.isNull()).thenReturn(false);
+        try {
+            when(valueWrapper.asString()).thenReturn(value);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
         return valueWrapper;
     }
 

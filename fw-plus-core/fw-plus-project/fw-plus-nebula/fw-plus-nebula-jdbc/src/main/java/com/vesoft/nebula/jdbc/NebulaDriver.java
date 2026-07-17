@@ -26,6 +26,14 @@ import java.util.Properties;
 public class NebulaDriver implements java.sql.Driver {
 
     public static final String DRIVER_NAME = "Nebula JDBC Driver";
+    private static final ConnectionFactory DEFAULT_CONNECTION_FACTORY = new ConnectionFactory() {
+        @Override
+        public Connection connect(String url, Properties properties) throws SQLException {
+            return new NebulaConnection(url, properties);
+        }
+    };
+    private static volatile ConnectionFactory connectionFactory = DEFAULT_CONNECTION_FACTORY;
+
     static {
         try {
             NebulaDriver driver = new NebulaDriver();
@@ -75,10 +83,25 @@ public class NebulaDriver implements java.sql.Driver {
                     "make sure your url match this format.");
 
         }
-        NebulaConnection JdbcConnection = new NebulaConnection(url, properties);
+        Connection JdbcConnection = connectionFactory.connect(url, properties);
         log.debug("Get JDBCConnection succeeded");
         return JdbcConnection;
 
+    }
+
+    static void setConnectionFactory(ConnectionFactory factory) {
+        if (factory == null) {
+            throw new IllegalArgumentException("factory must not be null");
+        }
+        connectionFactory = factory;
+    }
+
+    static void resetConnectionFactory() {
+        connectionFactory = DEFAULT_CONNECTION_FACTORY;
+    }
+
+    interface ConnectionFactory {
+        Connection connect(String url, Properties properties) throws SQLException;
     }
 
     @Override
