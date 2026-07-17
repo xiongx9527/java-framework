@@ -7,6 +7,7 @@ import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
+import com.vesoft.nebula.jdbc.utils.NebulaPropertyKey;
 
 public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
@@ -30,12 +31,12 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public String getURL() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return connection.getUrl();
 	}
 
 	@Override
 	public String getUserName() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return connection.getConnectionConfig().getProperty(NebulaPropertyKey.USER.getKeyName(), "");
 	}
 
 	@Override
@@ -85,12 +86,12 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public int getDriverMajorVersion() {
-		throw new RuntimeException(ExceptionBuilder.buildUnsupportedOperationException());
+		return new NebulaDriver().getMajorVersion();
 	}
 
 	@Override
 	public int getDriverMinorVersion() {
-		throw new RuntimeException(ExceptionBuilder.buildUnsupportedOperationException());
+		return new NebulaDriver().getMinorVersion();
 	}
 
 	@Override

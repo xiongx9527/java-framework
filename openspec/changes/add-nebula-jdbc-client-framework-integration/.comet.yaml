@@ -1,6 +1,6 @@
 workflow: full
 language: zh-CN
-phase: verify
+phase: build
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -8,12 +8,12 @@ subagent_dispatch: null
 tdd_mode: tdd
 review_mode: standard
 isolation: worktree
-verify_mode: null
+verify_mode: full
 auto_transition: false
 base_ref: 3aa55d4351a9e94e3541a2c6a70156e69777349c
 design_doc: docs/superpowers/specs/2026-07-17-nebula-jdbc-client-framework-integration-design.md
 plan: docs/superpowers/plans/2026-07-17-nebula-jdbc-client-framework-integration.md
-verify_result: pending
+verify_result: fail
 verification_report: null
 branch_status: pending
 created_at: 2026-07-16
@@ -25,5 +25,5 @@ handoff_hash: 936f82e37461f16b19bbfa8cdb4880283e4f8a455eae5afc236d53b24d7c47b0
 classic_profile: full
 classic_migration: 1
 run_id: 03b503f4-235b-4205-a077-5fbd2b3becbc
-verify_failures: 0
+verify_failures: 1
 archive_confirmation: null

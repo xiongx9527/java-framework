@@ -6,6 +6,7 @@ import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutor;
 import com.vesoft.nebula.jdbc.test.FakeNebulaSqlExecutor;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -57,6 +58,29 @@ public class NebulaPreparedStatementBindingsTest {
 
 		assertSame(value, executor.getLastBindings().get(1).getValue());
 		assertEquals(Types.JAVA_OBJECT, executor.getLastBindings().get(1).getJdbcType());
+	}
+
+	@Test
+	public void setObjectShouldBindCommonScalarTypes() throws Exception {
+		FakeNebulaSqlExecutor executor = FakeNebulaSqlExecutor.singleString("Tim");
+		BigDecimal amount = new BigDecimal("12.50");
+		PreparedStatement statement = new NebulaPreparedStatementImpl(
+				mock(NebulaConnection.class),
+				"SELECT * FROM player WHERE amount = ? AND rank = ? AND score = ?",
+				executor
+		);
+
+		statement.setObject(1, amount);
+		statement.setObject(2, Short.valueOf((short) 7));
+		statement.setObject(3, Float.valueOf(3.5f));
+		statement.executeQuery();
+
+		assertEquals(amount, executor.getLastBindings().get(1).getValue());
+		assertEquals(Types.DECIMAL, executor.getLastBindings().get(1).getJdbcType());
+		assertEquals(Short.valueOf((short) 7), executor.getLastBindings().get(2).getValue());
+		assertEquals(Types.SMALLINT, executor.getLastBindings().get(2).getJdbcType());
+		assertEquals(Float.valueOf(3.5f), executor.getLastBindings().get(3).getValue());
+		assertEquals(Types.FLOAT, executor.getLastBindings().get(3).getJdbcType());
 	}
 
 	@Test
