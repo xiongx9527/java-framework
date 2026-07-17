@@ -238,6 +238,15 @@ public class NebulaResultSet implements java.sql.ResultSet {
             return null;
         }
         try {
+            if (valueWrapper.isDate()) {
+                return getDateFromValueWrapper(valueWrapper);
+            }
+            if (valueWrapper.isTime()) {
+                return getTimeFromValueWrapper(valueWrapper);
+            }
+            if (valueWrapper.isDateTime()) {
+                return getTimestampFromValueWrapper(valueWrapper);
+            }
             String value = valueWrapper.asString();
             if (value != null) {
                 return value;
@@ -341,7 +350,7 @@ public class NebulaResultSet implements java.sql.ResultSet {
             return null;
         }
         DateWrapper dateWrapper = valueWrapper.asDate();
-        return Date.valueOf(dateWrapper.toString());
+        return getDateFromValueWrapper(valueWrapper);
     }
 
     @Override
@@ -355,9 +364,7 @@ public class NebulaResultSet implements java.sql.ResultSet {
         if (this.wasNull()) {
             return null;
         }
-        TimeWrapper timeWrapper = valueWrapper.asTime();
-        String time = String.format("%02d:%02d:%02d", timeWrapper.getHour(), timeWrapper.getMinute(), timeWrapper.getSecond());
-        return Time.valueOf(time);
+        return getTimeFromValueWrapper(valueWrapper);
     }
 
     @Override
@@ -371,6 +378,38 @@ public class NebulaResultSet implements java.sql.ResultSet {
             return null;
         }
         return valueWrapper.asDateTime();
+    }
+
+    private Date getDateFromValueWrapper(ValueWrapper valueWrapper) throws SQLException {
+        DateWrapper dateWrapper = valueWrapper.asDate();
+        return Date.valueOf(String.format("%04d-%02d-%02d",
+                dateWrapper.getYear(),
+                dateWrapper.getMonth(),
+                dateWrapper.getDay()
+        ));
+    }
+
+    private Time getTimeFromValueWrapper(ValueWrapper valueWrapper) throws SQLException {
+        TimeWrapper timeWrapper = valueWrapper.asTime();
+        return Time.valueOf(String.format("%02d:%02d:%02d",
+                timeWrapper.getHour(),
+                timeWrapper.getMinute(),
+                timeWrapper.getSecond()
+        ));
+    }
+
+    private Timestamp getTimestampFromValueWrapper(ValueWrapper valueWrapper) throws SQLException {
+        DateTimeWrapper dateTimeWrapper = valueWrapper.asDateTime();
+        Timestamp timestamp = Timestamp.valueOf(String.format("%04d-%02d-%02d %02d:%02d:%02d",
+                dateTimeWrapper.getYear(),
+                dateTimeWrapper.getMonth(),
+                dateTimeWrapper.getDay(),
+                dateTimeWrapper.getHour(),
+                dateTimeWrapper.getMinute(),
+                dateTimeWrapper.getSecond()
+        ));
+        timestamp.setNanos(dateTimeWrapper.getMicrosec() * 1000);
+        return timestamp;
     }
 
     public DateTimeWrapper getDateTime(String columnLabel) throws SQLException {
@@ -550,7 +589,11 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return null;
+        }
+        return getTimestampFromValueWrapper(valueWrapper);
     }
 
     @Override
@@ -597,7 +640,7 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public Timestamp getTimestamp(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getTimestamp(findColumn(columnLabel));
     }
 
     @Override

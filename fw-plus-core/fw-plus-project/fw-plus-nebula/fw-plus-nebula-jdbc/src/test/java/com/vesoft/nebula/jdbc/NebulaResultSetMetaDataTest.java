@@ -4,7 +4,10 @@ import com.vesoft.nebula.client.graph.data.ResultSet;
 import com.vesoft.nebula.client.graph.data.ValueWrapper;
 import org.junit.Test;
 
+import java.sql.Date;
 import java.sql.ResultSetMetaData;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collections;
@@ -70,6 +73,53 @@ public class NebulaResultSetMetaDataTest {
 		assertEquals(Double.class.getName(), metaData.getColumnClassName(4));
 		assertTrue(metaData.isSigned(2));
 		assertTrue(metaData.isSigned(4));
+	}
+
+	@Test
+	public void temporalMetadataShouldMatchResultSetReadMethods() throws Exception {
+		ResultSet nativeResultSet = mock(ResultSet.class);
+		ResultSet.Record record = mock(ResultSet.Record.class);
+		ValueWrapper birthDate = mock(ValueWrapper.class);
+		ValueWrapper alarmTime = mock(ValueWrapper.class);
+		ValueWrapper createdAt = mock(ValueWrapper.class);
+		when(nativeResultSet.isEmpty()).thenReturn(false);
+		when(nativeResultSet.rowsSize()).thenReturn(1);
+		when(nativeResultSet.getColumnNames()).thenReturn(Arrays.asList("birthDate", "alarmTime", "createdAt"));
+		when(nativeResultSet.getSpaceName()).thenReturn("test_space");
+		when(nativeResultSet.colValues("birthDate")).thenReturn(Collections.singletonList(birthDate));
+		when(nativeResultSet.colValues("alarmTime")).thenReturn(Collections.singletonList(alarmTime));
+		when(nativeResultSet.colValues("createdAt")).thenReturn(Collections.singletonList(createdAt));
+		when(nativeResultSet.rowValues(0)).thenReturn(record);
+		when(record.get(0)).thenReturn(birthDate);
+		when(record.get(1)).thenReturn(alarmTime);
+		when(record.get(2)).thenReturn(createdAt);
+		when(birthDate.isDate()).thenReturn(true);
+		when(birthDate.asDate()).thenReturn(new com.vesoft.nebula.client.graph.data.DateWrapper(
+				new com.vesoft.nebula.Date((short) 2026, (byte) 7, (byte) 17)
+		));
+		when(alarmTime.isTime()).thenReturn(true);
+		when(alarmTime.asTime()).thenReturn(new com.vesoft.nebula.client.graph.data.TimeWrapper(
+				new com.vesoft.nebula.Time((byte) 8, (byte) 9, (byte) 10, 123000)
+		));
+		when(createdAt.isDateTime()).thenReturn(true);
+		when(createdAt.asDateTime()).thenReturn(new com.vesoft.nebula.client.graph.data.DateTimeWrapper(
+				new com.vesoft.nebula.DateTime((short) 2026, (byte) 7, (byte) 17, (byte) 8, (byte) 9, (byte) 10, 123000)
+		));
+
+		NebulaResultSet resultSet = new NebulaResultSet(nativeResultSet, null);
+		resultSet.next();
+		ResultSetMetaData metaData = resultSet.getMetaData();
+
+		assertEquals(Types.DATE, metaData.getColumnType(1));
+		assertEquals(Date.class.getName(), metaData.getColumnClassName(1));
+		assertEquals(Date.valueOf("2026-07-17"), resultSet.getObject(1));
+		assertEquals(Types.TIME, metaData.getColumnType(2));
+		assertEquals(Time.class.getName(), metaData.getColumnClassName(2));
+		assertEquals(Time.valueOf("08:09:10"), resultSet.getObject(2));
+		assertEquals(Types.TIMESTAMP, metaData.getColumnType(3));
+		assertEquals(Timestamp.class.getName(), metaData.getColumnClassName(3));
+		assertEquals(Timestamp.valueOf("2026-07-17 08:09:10.123"), resultSet.getObject(3));
+		assertEquals(Timestamp.valueOf("2026-07-17 08:09:10.123"), resultSet.getTimestamp("createdAt"));
 	}
 
 	private static NebulaResultSet resultSet(String... columnNames) {
