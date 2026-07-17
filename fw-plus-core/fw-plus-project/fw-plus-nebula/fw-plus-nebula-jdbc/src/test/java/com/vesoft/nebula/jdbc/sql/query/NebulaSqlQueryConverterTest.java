@@ -70,6 +70,30 @@ public class NebulaSqlQueryConverterTest {
 	}
 
 	@Test
+	public void whitelistedFunctionProjectionShouldRenderMappedNgqlExpression() throws Exception {
+		NebulaSchemaMappingRegistry mappings = NebulaSchemaMappingRegistry.builder()
+				.addTable(TableMapping.tag("person", "person")
+						.idColumn("id", Types.VARCHAR)
+						.property("name", "name", Types.VARCHAR)
+						.build())
+				.build();
+		NebulaQueryStatement statement = NebulaQueryStatement.select("person")
+				.alias("p")
+				.projection(QueryExpression.function("lower", QueryExpression.column("person", "name")), "lowered_name")
+				.where(QueryExpression.eq(QueryExpression.column("person", "id"), QueryExpression.literal("p1")))
+				.build();
+
+		NgqlQueryPlan plan = new DefaultNebulaSqlQueryConverter()
+				.convert(statement, NebulaQueryBindings.empty(), mappings);
+
+		assertEquals("MATCH (p:person) WHERE id(p) == \"p1\" RETURN lower(p.name) AS lowered_name", plan.getNgql());
+		assertEquals(1, plan.getColumns().size());
+		assertEquals("lowered_name", plan.getColumns().get(0).getColumnName());
+		assertEquals(Types.VARCHAR, plan.getColumns().get(0).getJdbcType());
+		assertTrue(plan.getTrace().contains("function lower -> lower"));
+	}
+
+	@Test
 	public void unsupportedAndMissingMappingsShouldReportStableCodes() throws Exception {
 		final NebulaSchemaMappingRegistry mappings = NebulaSchemaMappingRegistry.builder()
 				.addTable(TableMapping.tag("person", "person")
@@ -118,6 +142,17 @@ public class NebulaSqlQueryConverterTest {
 		assertUnsupportedFeature(mappings, UnsupportedQueryFeature.SUBQUERY, NebulaQueryErrorCode.UNSUPPORTED_SUBQUERY);
 		assertUnsupportedFeature(mappings, UnsupportedQueryFeature.UNION, NebulaQueryErrorCode.UNSUPPORTED_UNION);
 		assertUnsupportedFeature(mappings, UnsupportedQueryFeature.FUNCTION, NebulaQueryErrorCode.UNSUPPORTED_FUNCTION);
+		assertConversionError(NebulaQueryErrorCode.UNSUPPORTED_FUNCTION, new SqlRunnable() {
+			@Override
+			public void run() throws SQLException {
+				new DefaultNebulaSqlQueryConverter().convert(
+						NebulaQueryStatement.select("person")
+								.projection(QueryExpression.function("mysql_only", QueryExpression.column("person", "name")), "value")
+								.build(),
+						NebulaQueryBindings.empty(),
+						mappings);
+			}
+		});
 	}
 
 	private void assertUnsupportedFeature(final NebulaSchemaMappingRegistry mappings,

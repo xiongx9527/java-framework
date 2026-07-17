@@ -9,6 +9,7 @@ import com.vesoft.nebula.jdbc.sql.parser.ast.NebulaSqlStatement;
 import com.vesoft.nebula.jdbc.sql.parser.ast.NebulaTableSource;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class NebulaQueryStatementAdapter {
@@ -47,11 +48,15 @@ public class NebulaQueryStatementAdapter {
 
 		NebulaQueryStatement.Builder builder = NebulaQueryStatement.select(from.getName())
 				.alias(from.getAlias() == null ? from.getName() : from.getAlias());
-		if (isSelectAll(select.getSelectItems())) {
-			builder.selectAll();
-		}
-		if (select.getWhere() != null) {
-			builder.where(adaptExpression(select.getWhere(), from));
+			if (isSelectAll(select.getSelectItems())) {
+				builder.selectAll();
+			} else {
+				for (NebulaSelectItem item : select.getSelectItems()) {
+					builder.projection(adaptExpression(item.getExpression(), from), item.getAlias());
+				}
+			}
+			if (select.getWhere() != null) {
+				builder.where(adaptExpression(select.getWhere(), from));
 		}
 		if (!select.getOrderBy().isEmpty()) {
 			if (select.getOrderBy().size() > 1) {
@@ -90,18 +95,29 @@ public class NebulaQueryStatementAdapter {
 			if ("AND".equalsIgnoreCase(operator) || "&&".equals(operator)) {
 				return QueryExpression.and(adaptExpression(expression.getLeft(), from), adaptExpression(expression.getRight(), from));
 			}
-		}
-		if (expression.getType() == NebulaExpression.Type.FUNCTION) {
-			throw NebulaQueryConversionException.of(NebulaQueryErrorCode.UNSUPPORTED_FUNCTION,
-					"Function expression is not graph-mappable: " + expression.getName());
-		}
+			}
+			if (expression.getType() == NebulaExpression.Type.FUNCTION) {
+				if (expression.isAggregate()) {
+					throw NebulaQueryConversionException.of(NebulaQueryErrorCode.UNSUPPORTED_FUNCTION,
+							"Aggregate expression requires explicit graph aggregation template: " + expression.getName());
+				}
+				return QueryExpression.function(expression.getName(), adaptArguments(expression.getArguments(), from));
+			}
 		if (expression.getType() == NebulaExpression.Type.PARAMETER) {
 			throw NebulaQueryConversionException.of(NebulaQueryErrorCode.UNSUPPORTED_EXPRESSION,
 					"Parameter binding is not available in NebulaQueryStatement adapter yet");
 		}
-		throw NebulaQueryConversionException.of(NebulaQueryErrorCode.UNSUPPORTED_EXPRESSION,
-				"Unsupported expression type: " + expression.getType());
-	}
+			throw NebulaQueryConversionException.of(NebulaQueryErrorCode.UNSUPPORTED_EXPRESSION,
+					"Unsupported expression type: " + expression.getType());
+		}
+
+		private List<QueryExpression> adaptArguments(List<NebulaExpression> arguments, NebulaTableSource from) throws SQLException {
+			List<QueryExpression> adapted = new ArrayList<QueryExpression>();
+			for (NebulaExpression argument : arguments) {
+				adapted.add(adaptExpression(argument, from));
+			}
+			return adapted;
+		}
 
 	private StatementKind toQueryKind(com.vesoft.nebula.jdbc.sql.parser.StatementKind kind) {
 		if (kind == com.vesoft.nebula.jdbc.sql.parser.StatementKind.INSERT) {
