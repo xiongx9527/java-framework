@@ -97,25 +97,25 @@ Check tasks `1.1` if enums/errors document write safety boundaries in code and t
 - Consumes: parser `NebulaSchemaStatement`, query `TableKind`.
 - Produces: DDL plan contract for converter and mutation executor.
 
-- [ ] **Step 1: Add DDL kind and descriptors**
+- [x] **Step 1: Add DDL kind and descriptors**
 
 Implement `NebulaDdlKind` with `CREATE_TAG`, `CREATE_EDGE`, `DROP_TAG`, `DROP_EDGE`, `DESCRIBE_TAG`, `DESCRIBE_EDGE`.
 Implement immutable `NebulaDdlDescriptor` fields: `kind`, `schemaName`, `columns`, `sourceSql`, `ngql`.
 
-- [ ] **Step 2: Add DDL plan**
+- [x] **Step 2: Add DDL plan**
 
 Implement immutable `NebulaDdlPlan` fields: `kind`, `ngql`, `descriptor`, `warnings`, `trace`.
 
-- [ ] **Step 3: Add constructor validation**
+- [x] **Step 3: Add constructor validation**
 
 Reject blank `ngql`, null `kind`, and null `descriptor` with `IllegalArgumentException`.
 
-- [ ] **Step 4: Verify compile target**
+- [x] **Step 4: Verify compile target**
 
 Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -DskipTests compile`
 Expected: compile passes.
 
-- [ ] **Step 5: Mark and commit**
+- [x] **Step 5: Mark and commit**
 
 Check task `1.2`. Commit message: `feat(nebula): define sql ddl mapping contract`.
 
