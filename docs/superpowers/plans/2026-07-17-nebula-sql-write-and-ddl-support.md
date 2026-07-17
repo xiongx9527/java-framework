@@ -237,20 +237,20 @@ Check task `2.3`. Commit message: `feat(nebula): map sql ddl to nebula schema pl
 - Consumes: parser, write converter, DDL converter and mutation executor.
 - Produces: JDBC `executeUpdate` path for SQL write/DDL and explicit transaction errors.
 
-- [ ] **Step 1: Add failing executor route tests**
+- [x] **Step 1: Add failing executor route tests**
 
 Test SQL INSERT/UPDATE/DELETE/CREATE/DROP executed through `DirectNebulaSqlExecutor.executeUpdate` calls converted nGQL. Test native nGQL update still passes through. Test BEGIN/COMMIT/ROLLBACK throw `NEBULA_SQL_TRANSACTION_UNSUPPORTED`.
 
-- [ ] **Step 2: Implement routing**
+- [x] **Step 2: Implement routing**
 
 In `DirectNebulaSqlExecutor.executeUpdate`, parse SQL-like statements with `DruidNebulaSqlParser`; route write statements to `DefaultNebulaSqlWriteConverter`, schema/metadata statements to `DefaultNebulaSqlDdlConverter`, and unsupported transaction statements to explicit exception. Keep existing `NebulaStatementClassifier.checkUpdate` for raw nGQL fallback.
 
-- [ ] **Step 3: Run targeted tests**
+- [x] **Step 3: Run targeted tests**
 
 Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=DirectNebulaSqlExecutorTest,NebulaSqlWriteConverterTest,NebulaSqlDdlConverterTest test`
 Expected: tests pass.
 
-- [ ] **Step 4: Mark and commit**
+- [x] **Step 4: Mark and commit**
 
 Check task `3.2` after transaction and complex DDL tests pass. Commit message: `feat(nebula): route sql write ddl execution`.
 

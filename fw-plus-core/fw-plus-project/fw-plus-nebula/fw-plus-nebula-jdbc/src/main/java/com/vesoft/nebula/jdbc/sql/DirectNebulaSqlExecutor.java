@@ -3,6 +3,20 @@ package com.vesoft.nebula.jdbc.sql;
 import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.NebulaResultSet;
 import com.vesoft.nebula.jdbc.statement.NebulaStatementClassifier;
+import com.vesoft.nebula.jdbc.sql.parser.NebulaSqlParseResult;
+import com.vesoft.nebula.jdbc.sql.parser.StatementKind;
+import com.vesoft.nebula.jdbc.sql.parser.druid.DruidNebulaSqlParser;
+import com.vesoft.nebula.jdbc.sql.parser.error.NebulaSqlParseException;
+import com.vesoft.nebula.jdbc.sql.query.NebulaSchemaMappingRegistry;
+import com.vesoft.nebula.jdbc.sql.write.DefaultNebulaSqlDdlConverter;
+import com.vesoft.nebula.jdbc.sql.write.DefaultNebulaSqlWriteConverter;
+import com.vesoft.nebula.jdbc.sql.write.DirectNebulaSqlMutationExecutor;
+import com.vesoft.nebula.jdbc.sql.write.NebulaDdlPlan;
+import com.vesoft.nebula.jdbc.sql.write.NebulaMutationPlan;
+import com.vesoft.nebula.jdbc.sql.write.NebulaMutationResult;
+import com.vesoft.nebula.jdbc.sql.write.NebulaWriteBindings;
+import com.vesoft.nebula.jdbc.sql.write.NebulaWriteConversionException;
+import com.vesoft.nebula.jdbc.sql.write.NebulaWriteErrorCode;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -11,6 +25,19 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 
 public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
+	private final NebulaSchemaMappingRegistry schemaMapping;
+	private final DruidNebulaSqlParser parser = new DruidNebulaSqlParser();
+	private final DefaultNebulaSqlWriteConverter writeConverter = new DefaultNebulaSqlWriteConverter();
+	private final DefaultNebulaSqlDdlConverter ddlConverter = new DefaultNebulaSqlDdlConverter();
+
+	public DirectNebulaSqlExecutor() {
+		this(NebulaSchemaMappingRegistry.builder().build());
+	}
+
+	public DirectNebulaSqlExecutor(NebulaSchemaMappingRegistry schemaMapping) {
+		this.schemaMapping = schemaMapping == null ? NebulaSchemaMappingRegistry.builder().build() : schemaMapping;
+	}
+
 	@Override
 	public ResultSet executeQuery(NebulaConnection connection, String sql, NebulaParameterBindings bindings) throws SQLException {
 		NebulaStatementClassifier.checkQuery(sql);
@@ -19,9 +46,50 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 
 	@Override
 	public int executeUpdate(NebulaConnection connection, String sql, NebulaParameterBindings bindings) throws SQLException {
+		String renderedSql = renderSql(sql, bindings);
+		if (isTransactionStatement(renderedSql)) {
+			throw NebulaWriteConversionException.of(NebulaWriteErrorCode.NEBULA_SQL_TRANSACTION_UNSUPPORTED,
+					"SQL transactions are not supported by Nebula write/DDL executor.");
+		}
+		NebulaSqlParseResult parseResult = tryParse(renderedSql);
+		if (parseResult != null && isWriteStatement(parseResult.getKind())) {
+			NebulaMutationPlan plan = writeConverter.convert(
+					parseResult.getStatement(),
+					new NebulaWriteBindings(renderedSql, bindings),
+					schemaMapping);
+			NebulaMutationResult result = new DirectNebulaSqlMutationExecutor(connection).executeMutation(plan);
+			return result.getAffectedRows();
+		}
+		if (parseResult != null && isDdlStatement(parseResult.getKind())) {
+			NebulaDdlPlan plan = ddlConverter.convert(parseResult.getStatement(), schemaMapping);
+			NebulaMutationResult result = new DirectNebulaSqlMutationExecutor(connection).executeDdl(plan);
+			return result.getAffectedRows();
+		}
 		NebulaStatementClassifier.checkUpdate(sql);
-		executeNative(connection, renderSql(sql, bindings));
+		executeNative(connection, renderedSql);
 		return 0;
+	}
+
+	private NebulaSqlParseResult tryParse(String sql) throws SQLException {
+		try {
+			return parser.parse(sql);
+		} catch (NebulaSqlParseException exception) {
+			return null;
+		}
+	}
+
+	private boolean isWriteStatement(StatementKind kind) {
+		return kind == StatementKind.INSERT || kind == StatementKind.UPDATE || kind == StatementKind.DELETE;
+	}
+
+	private boolean isDdlStatement(StatementKind kind) {
+		return kind == StatementKind.CREATE_SCHEMA || kind == StatementKind.DROP_SCHEMA || kind == StatementKind.METADATA;
+	}
+
+	private boolean isTransactionStatement(String sql) {
+		String normalized = sql == null ? "" : sql.trim().toUpperCase();
+		return "BEGIN".equals(normalized) || "START TRANSACTION".equals(normalized)
+				|| "COMMIT".equals(normalized) || "ROLLBACK".equals(normalized);
 	}
 
 	private com.vesoft.nebula.client.graph.data.ResultSet executeNative(NebulaConnection connection, String sql)
