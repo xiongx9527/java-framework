@@ -8,6 +8,9 @@ package com.vesoft.nebula.jdbc.statement;
 import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.NebulaResultSet;
 import com.vesoft.nebula.jdbc.lifecycle.NebulaResourceLifecycle;
+import com.vesoft.nebula.jdbc.sql.NebulaParameterBindings;
+import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutor;
+import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutorProvider;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,12 +23,18 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     protected String nGql;
     protected NebulaConnection nebulaConnection;
+    protected NebulaSqlExecutor sqlExecutor;
     protected boolean isExecuteSucceed;
     protected ResultSet currentResultSet;
     protected final NebulaResourceLifecycle lifecycle = new NebulaResourceLifecycle();
 
     public NebulaStatementImpl(NebulaConnection connection) {
+        this(connection, NebulaSqlExecutorProvider.getExecutor());
+    }
+
+    public NebulaStatementImpl(NebulaConnection connection, NebulaSqlExecutor sqlExecutor) {
         this.nebulaConnection = connection;
+        this.sqlExecutor = sqlExecutor == null ? NebulaSqlExecutorProvider.getExecutor() : sqlExecutor;
     }
 
     /** This method just return a boolean value to indicate whether succeed or not,
@@ -49,8 +58,7 @@ public class NebulaStatementImpl implements NebulaStatement {
     @Override
     public ResultSet executeQuery(String nGql) throws SQLException {
         this.checkClosed();
-        this.checkReadOnly(nGql);
-        this.execute(nGql);
+        this.currentResultSet = this.sqlExecutor.executeQuery(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
         return currentResultSet;
     }
 
@@ -62,9 +70,7 @@ public class NebulaStatementImpl implements NebulaStatement {
     @Override
     public int executeUpdate(String nGql) throws SQLException {
         this.checkClosed();
-        this.checkUpdate(nGql);
-        this.execute(nGql);
-        return 0;
+        return this.sqlExecutor.executeUpdate(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
     }
 
     @Override
