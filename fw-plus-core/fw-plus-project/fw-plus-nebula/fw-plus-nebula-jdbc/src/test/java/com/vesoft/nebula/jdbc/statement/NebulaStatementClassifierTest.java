@@ -13,6 +13,7 @@ public class NebulaStatementClassifierTest {
     public void checkQueryShouldAcceptMixedCaseAndWhitespaceQueryNgql() throws Exception {
         NebulaStatementClassifier.checkQuery("  MATCH\n(v)\tRETURN v  ");
         NebulaStatementClassifier.checkQuery("\n  sHoW   TAGS");
+        NebulaStatementClassifier.checkQuery(" SELECT COUNT(*) FROM player ");
     }
 
     @Test
@@ -40,7 +41,6 @@ public class NebulaStatementClassifierTest {
     @Test
     public void checkQueryShouldRejectUnknownLeadingKeywordEvenWhenQueryKeywordAppearsLater() throws Exception {
         assertRejectedQuery("foo MATCH (v) RETURN v", "query");
-        assertRejectedQuery("select match from person", "query");
     }
 
     @Test
@@ -53,7 +53,6 @@ public class NebulaStatementClassifierTest {
     public void classifierShouldRejectNullBlankAndUnknownNgql() throws Exception {
         assertRejectedQuery(null, "nGql");
         assertRejectedQuery("   ", "nGql");
-        assertRejectedQuery("select * from person", "query");
         assertRejectedUpdate(null, "nGql");
         assertRejectedUpdate("   ", "nGql");
     }

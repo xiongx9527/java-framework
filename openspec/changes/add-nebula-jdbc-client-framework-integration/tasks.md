@@ -17,4 +17,4 @@
 - [x] 3.1 补充 JdbcTemplate queryForObject 和 RowMapper 测试。
 - [x] 3.2 补充 MyBatis XML Mapper 参数查询测试。
 - [x] 3.3 补充 MyBatis 注解 Mapper 和 resultMap / POJO 映射测试。
-- [ ] 3.4 将 MyBatis/JdbcTemplate 常见 SQL 形态回补到 AST 覆盖矩阵。
+- [x] 3.4 将 MyBatis/JdbcTemplate 常见 SQL 形态回补到 AST 覆盖矩阵。
