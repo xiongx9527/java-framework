@@ -1,7 +1,7 @@
 ## 1. 写入语义设计
 
 - [x] 1.1 定义 INSERT/UPDATE/DELETE 支持边界和安全条件。
-- [ ] 1.2 定义 DDL 到 tag/edge 的映射规则。
+- [x] 1.2 定义 DDL 到 tag/edge 的映射规则。
 
 ## 2. 写入与 DDL 实现
 
