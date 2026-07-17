@@ -8,6 +8,8 @@ package com.vesoft.nebula.jdbc.statement;
 import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.NebulaParameterMetaData;
 
+import com.vesoft.nebula.jdbc.sql.NebulaParameterBindings;
+import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutor;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
 import java.io.InputStream;
 import java.io.Reader;
@@ -30,19 +32,26 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
     protected String                  rawNGQL;
     protected String                  nGql;
     protected Map<Object, Object> parameters;
+    protected NebulaParameterBindings parameterBindings;
     protected int                     parametersNumber;
 
     public NebulaPreparedStatementImpl(NebulaConnection connection, String rawNGQL) {
-        super(connection);
+        this(connection, rawNGQL, null);
+    }
+
+    public NebulaPreparedStatementImpl(NebulaConnection connection, String rawNGQL, NebulaSqlExecutor sqlExecutor) {
+        super(connection, sqlExecutor);
        this.rawNGQL = rawNGQL;
        this.parametersNumber = namedParameterCount(rawNGQL);
        this.parameters = new HashMap<>();
+       this.parameterBindings = new NebulaParameterBindings(this.parametersNumber);
     }
 
     @Override
     public ResultSet executeQuery() throws SQLException {
-        this.checkReadOnly(this.rawNGQL);
-        this.execute();
+        this.checkClosed();
+        this.parameterBindings.validateComplete();
+        this.currentResultSet = this.sqlExecutor.executeQuery(this.nebulaConnection, this.rawNGQL, this.parameterBindings.copy());
         return currentResultSet;
     }
 
@@ -53,15 +62,26 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
      */
     @Override
     public int executeUpdate() throws SQLException {
-        this.checkUpdate(this.rawNGQL);
-        this.execute();
-        return 0;
+        this.checkClosed();
+        this.parameterBindings.validateComplete();
+        return this.sqlExecutor.executeUpdate(this.nebulaConnection, this.rawNGQL, this.parameterBindings.copy());
     }
 
     @Override
     public boolean execute() throws SQLException {
-        this.nGql = replacePlaceHolderWithParam(this.rawNGQL);
-        return this.execute(this.nGql);
+        this.checkClosed();
+        this.parameterBindings.validateComplete();
+        if (isQuery(this.rawNGQL)) {
+            this.currentResultSet = this.sqlExecutor.executeQuery(
+                    this.nebulaConnection,
+                    this.rawNGQL,
+                    this.parameterBindings.copy()
+            );
+            return true;
+        }
+        this.sqlExecutor.executeUpdate(this.nebulaConnection, this.rawNGQL, this.parameterBindings.copy());
+        this.currentResultSet = null;
+        return false;
     }
 
     protected String replacePlaceHolderWithParam(String rawNGQL) throws SQLException {
@@ -110,31 +130,37 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
     @Override
     public void setBoolean(int parameterIndex, boolean x) throws SQLException {
         insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.BOOLEAN);
     }
 
     @Override
     public void setInt(int parameterIndex, int x) throws SQLException {
         insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.INTEGER);
     }
 
     @Override
     public void setDouble(int parameterIndex, double x) throws SQLException {
         insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.DOUBLE);
     }
 
     @Override
     public void setString(int parameterIndex, String x) throws SQLException {
         insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.VARCHAR);
     }
 
     @Override
     public void setDate(int parameterIndex, Date date) throws SQLException {
         insertParameter(parameterIndex, date);
+        this.parameterBindings.bind(parameterIndex, date, Types.DATE);
     }
 
     @Override
     public void setTime(int parameterIndex, Time time) throws SQLException {
         insertParameter(parameterIndex, time);
+        this.parameterBindings.bind(parameterIndex, time, Types.TIME);
     }
 
     public void setDatetime(int parameterIndex, java.util.Date datetime) throws SQLException {
@@ -149,18 +175,82 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
 
     @Override
     public void checkParamsNumber(int parameterIndex) throws SQLException {
-        if (parameterIndex > this.parametersNumber) {
+        if (parameterIndex < 1 || parameterIndex > this.parametersNumber) {
             throw new SQLException("ParameterIndex does not correspond to a parameter marker in the nGQL statement.");
         }
     }
 
     protected int namedParameterCount(String rawNGQL) {
-        int max = 0;
-        Matcher matcher = NAMED_PARAMETER_REGEX.matcher(rawNGQL);
-        while (matcher.find()) {
-            max++;
+        if (rawNGQL == null || rawNGQL.isEmpty()) {
+            return 0;
         }
-        return max;
+        int count = 0;
+        boolean singleQuoted = false;
+        boolean doubleQuoted = false;
+        boolean backtickQuoted = false;
+        boolean lineComment = false;
+        boolean blockComment = false;
+        for (int i = 0; i < rawNGQL.length(); i++) {
+            char current = rawNGQL.charAt(i);
+            char next = i + 1 < rawNGQL.length() ? rawNGQL.charAt(i + 1) : '\0';
+
+            if (lineComment) {
+                if (current == '\n' || current == '\r') {
+                    lineComment = false;
+                }
+                continue;
+            }
+            if (blockComment) {
+                if (current == '*' && next == '/') {
+                    blockComment = false;
+                    i++;
+                }
+                continue;
+            }
+            if (singleQuoted) {
+                if (current == '\\' && next != '\0') {
+                    i++;
+                } else if (current == '\'' && next == '\'') {
+                    i++;
+                } else if (current == '\'') {
+                    singleQuoted = false;
+                }
+                continue;
+            }
+            if (doubleQuoted) {
+                if (current == '\\' && next != '\0') {
+                    i++;
+                } else if (current == '"' && next == '"') {
+                    i++;
+                } else if (current == '"') {
+                    doubleQuoted = false;
+                }
+                continue;
+            }
+            if (backtickQuoted) {
+                if (current == '`') {
+                    backtickQuoted = false;
+                }
+                continue;
+            }
+
+            if (current == '-' && next == '-') {
+                lineComment = true;
+                i++;
+            } else if (current == '/' && next == '*') {
+                blockComment = true;
+                i++;
+            } else if (current == '\'') {
+                singleQuoted = true;
+            } else if (current == '"') {
+                doubleQuoted = true;
+            } else if (current == '`') {
+                backtickQuoted = true;
+            } else if (current == '?') {
+                count++;
+            }
+        }
+        return count;
     }
 
     @Override
@@ -180,6 +270,7 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
     public void clearParameters() throws SQLException {
         checkClosed();
         this.parameters.clear();
+        this.parameterBindings = new NebulaParameterBindings(this.parametersNumber);
     }
 
     public Map<Object, Object> getParameters() {
@@ -188,6 +279,10 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
 
     public int getParametersNumber() {
         return parametersNumber;
+    }
+
+    public NebulaParameterBindings getParameterBindings() {
+        return parameterBindings;
     }
 
     @Override public boolean execute(String sql, int autoGeneratedKeys) throws SQLException {
@@ -229,22 +324,26 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
 
     @Override
     public void setByte(int parameterIndex, byte x) throws SQLException {
-        throw  ExceptionBuilder.buildUnsupportedOperationException();
+        insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.TINYINT);
     }
 
     @Override
     public void setShort(int parameterIndex, short x) throws SQLException {
-        throw  ExceptionBuilder.buildUnsupportedOperationException();
+        insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.SMALLINT);
     }
 
     @Override
     public void setLong(int parameterIndex, long x) throws SQLException {
-        throw  ExceptionBuilder.buildUnsupportedOperationException();
+        insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.BIGINT);
     }
 
     @Override
     public void setFloat(int parameterIndex, float x) throws SQLException {
-        throw  ExceptionBuilder.buildUnsupportedOperationException();
+        insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.FLOAT);
     }
 
     @Override
@@ -254,13 +353,14 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
 
     @Override
     public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
-        throw  ExceptionBuilder.buildUnsupportedOperationException();
+        insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.TIMESTAMP);
     }
 
     @Override
     public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
         insertParameter(parameterIndex, x);
-        //TODO: switch by targetSqlType for each java.sql.Types
+        this.parameterBindings.bind(parameterIndex, x, targetSqlType);
     }
 
     @Override
@@ -273,15 +373,18 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
         } else if (x instanceof String) {
             setString(parameterIndex, (String) x);
         } else if (x instanceof BigDecimal) {
-            setBigDecimal(parameterIndex, (BigDecimal) x);
+            insertParameter(parameterIndex, x);
+            this.parameterBindings.bind(parameterIndex, x, Types.DECIMAL);
         } else if (x instanceof Short) {
-            setShort(parameterIndex, (Short) x);
+            insertParameter(parameterIndex, x);
+            this.parameterBindings.bind(parameterIndex, x, Types.SMALLINT);
         } else if (x instanceof Integer) {
             setInt(parameterIndex, (Integer) x);
         } else if (x instanceof Long) {
             setLong(parameterIndex, (Long) x);
         } else if (x instanceof Float) {
-            setFloat(parameterIndex, (Float) x);
+            insertParameter(parameterIndex, x);
+            this.parameterBindings.bind(parameterIndex, x, Types.FLOAT);
         } else if (x instanceof Double) {
             setDouble(parameterIndex, (Double) x);
         } else if (x instanceof byte[]) {
@@ -313,7 +416,8 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
         } else if (x instanceof OffsetDateTime) {
             setObject(parameterIndex, ((OffsetDateTime) x).toLocalDateTime());
         } else {
-            throw new SQLException(String.format("Unsupported parameter type %s at index %d", x.getClass().getName(), parameterIndex));
+            insertParameter(parameterIndex, x);
+            this.parameterBindings.bind(parameterIndex, x, Types.JAVA_OBJECT);
         }
     }
 
@@ -324,7 +428,8 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
 
     @Override
     public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-        throw  ExceptionBuilder.buildUnsupportedOperationException();
+        insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, Types.DECIMAL);
     }
 
     @Override
@@ -340,6 +445,7 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
     @Override
     public void setNull(int parameterIndex, int sqlType) throws SQLException {
         insertParameter(parameterIndex, null);
+        this.parameterBindings.bind(parameterIndex, null, sqlType);
     }
 
     @Override
@@ -439,7 +545,8 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
 
     @Override
     public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
-        throw  ExceptionBuilder.buildUnsupportedOperationException();
+        insertParameter(parameterIndex, x);
+        this.parameterBindings.bind(parameterIndex, x, targetSqlType, scaleOrLength);
     }
 
     @Override

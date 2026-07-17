@@ -8,6 +8,9 @@ package com.vesoft.nebula.jdbc.statement;
 import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.NebulaResultSet;
 import com.vesoft.nebula.jdbc.lifecycle.NebulaResourceLifecycle;
+import com.vesoft.nebula.jdbc.sql.NebulaParameterBindings;
+import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutor;
+import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutorProvider;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,12 +23,18 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     protected String nGql;
     protected NebulaConnection nebulaConnection;
+    protected NebulaSqlExecutor sqlExecutor;
     protected boolean isExecuteSucceed;
     protected ResultSet currentResultSet;
     protected final NebulaResourceLifecycle lifecycle = new NebulaResourceLifecycle();
 
     public NebulaStatementImpl(NebulaConnection connection) {
+        this(connection, NebulaSqlExecutorProvider.getExecutor());
+    }
+
+    public NebulaStatementImpl(NebulaConnection connection, NebulaSqlExecutor sqlExecutor) {
         this.nebulaConnection = connection;
+        this.sqlExecutor = sqlExecutor == null ? NebulaSqlExecutorProvider.getExecutor() : sqlExecutor;
     }
 
     /** This method just return a boolean value to indicate whether succeed or not,
@@ -35,22 +44,21 @@ public class NebulaStatementImpl implements NebulaStatement {
     public boolean execute(String nGql) throws SQLException {
         this.checkClosed();
         this.nGql = nGql;
-        com.vesoft.nebula.client.graph.data.ResultSet nebulaResultSet = this.nebulaConnection.execute(nGql);
-        isExecuteSucceed = nebulaResultSet.isSucceeded();
-        if(!isExecuteSucceed){
-            int errorCode = nebulaResultSet.getErrorCode();
-            String errorMessage = nebulaResultSet.getErrorMessage();
-            throw new SQLException(String.format("nGql \"%s\" executed failed, error code: %d, error message: %s", nGql, errorCode, errorMessage));
+        if (isQuery(nGql)) {
+            this.currentResultSet = this.sqlExecutor.executeQuery(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
+            isExecuteSucceed = true;
+            return true;
         }
-        this.currentResultSet = new NebulaResultSet(nebulaResultSet, this);
-        return true;
+        this.sqlExecutor.executeUpdate(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
+        this.currentResultSet = null;
+        isExecuteSucceed = true;
+        return false;
     }
 
     @Override
     public ResultSet executeQuery(String nGql) throws SQLException {
         this.checkClosed();
-        this.checkReadOnly(nGql);
-        this.execute(nGql);
+        this.currentResultSet = this.sqlExecutor.executeQuery(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
         return currentResultSet;
     }
 
@@ -62,9 +70,7 @@ public class NebulaStatementImpl implements NebulaStatement {
     @Override
     public int executeUpdate(String nGql) throws SQLException {
         this.checkClosed();
-        this.checkUpdate(nGql);
-        this.execute(nGql);
-        return 0;
+        return this.sqlExecutor.executeUpdate(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
     }
 
     @Override
@@ -83,6 +89,20 @@ public class NebulaStatementImpl implements NebulaStatement {
     @Override
     public void checkUpdate(String nGql) throws SQLException {
         NebulaStatementClassifier.checkUpdate(nGql);
+    }
+
+    protected boolean isQuery(String nGql) throws SQLException {
+        try {
+            NebulaStatementClassifier.checkQuery(nGql);
+            return true;
+        } catch (SQLException queryException) {
+            try {
+                NebulaStatementClassifier.checkUpdate(nGql);
+                return false;
+            } catch (SQLException updateException) {
+                throw queryException;
+            }
+        }
     }
 
 
@@ -113,33 +133,25 @@ public class NebulaStatementImpl implements NebulaStatement {
     @Override
     public ResultSet getResultSet() throws SQLException {
         this.checkClosed();
-        if(this.currentResultSet != null){
-            log.debug("Method getResultSet() should be called only once per result, " +
-                    "after it was called, the currentResultSet will be set to null.");
-            ResultSet returnedResultSet =  this.currentResultSet;
-            this.currentResultSet = null;
-            return returnedResultSet;
-        }else {
-            throw new SQLException("currentResultSet has been set to null, may have been called before.");
-        }
+        return this.currentResultSet;
     }
 
     @Override
     public int getResultSetHoldability() throws SQLException {
         this.checkClosed();
-        return this.currentResultSet.getHoldability();
+        return NebulaResultSet.SUPPORTED_HOLDABILITY;
     }
 
     @Override
     public int getResultSetConcurrency() throws SQLException {
         this.checkClosed();
-        return this.currentResultSet.getConcurrency();
+        return NebulaResultSet.SUPPORTED_CONCURRENCY;
     }
 
     @Override
     public int getResultSetType() throws SQLException {
         this.checkClosed();
-        return this.currentResultSet.getType();
+        return NebulaResultSet.SUPPORTED_TYPE;
     }
 
     @Override
@@ -202,12 +214,14 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     @Override
     public int getUpdateCount() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return -1;
     }
 
     @Override
     public boolean getMoreResults() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return false;
     }
 
     @Override

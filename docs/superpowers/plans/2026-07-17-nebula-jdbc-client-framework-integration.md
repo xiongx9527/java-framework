@@ -2,6 +2,7 @@
 change: add-nebula-jdbc-client-framework-integration
 design-doc: docs/superpowers/specs/2026-07-17-nebula-jdbc-client-framework-integration-design.md
 base-ref: a85124d86a5a88a5107ce5f109b811c346d9c3e3
+archived-with: 2026-07-17-add-nebula-jdbc-client-framework-integration
 ---
 
 # Nebula JDBC 客户端框架集成实施计划
@@ -107,7 +108,7 @@ git commit -m "<scope>: <message>"
   - Existing `NebulaConnection.execute(String nGql)`
   - Existing `NebulaStatementClassifier.checkQuery(String)` / `checkUpdate(String)`
 
-- [ ] **Step 1: Write failing executor path test**
+- [x] **Step 1: Write failing executor path test**
 
 Create `NebulaStatementExecutorPathTest` with a fake executor and assert `Statement.executeQuery(sql)` delegates the exact SQL and empty bindings:
 
@@ -127,7 +128,7 @@ public void executeQueryShouldDelegateSqlAndEmptyBindingsToExecutor() throws Exc
 }
 ```
 
-- [ ] **Step 2: Run the failing test**
+- [x] **Step 2: Run the failing test**
 
 Run:
 
@@ -138,7 +139,7 @@ cd fw-plus-core
 
 Expected: FAIL because `NebulaSqlExecutor` and provider classes do not exist or `NebulaStatementImpl` still calls `NebulaConnection.execute` directly.
 
-- [ ] **Step 3: Add executor boundary and default implementation**
+- [x] **Step 3: Add executor boundary and default implementation**
 
 Implement:
 
@@ -159,7 +160,7 @@ public ResultSet executeQuery(NebulaConnection connection, String sql, NebulaPar
 }
 ```
 
-- [ ] **Step 4: Wire `NebulaStatementImpl` to the executor**
+- [x] **Step 4: Wire `NebulaStatementImpl` to the executor**
 
 Add constructor overload:
 
@@ -172,7 +173,7 @@ public NebulaStatementImpl(NebulaConnection connection, NebulaSqlExecutor sqlExe
 
 Keep the existing constructor delegating to `NebulaSqlExecutorProvider.getExecutor()`. Change `executeQuery(String sql)` to set `currentResultSet = sqlExecutor.executeQuery(...)` and return it.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run:
 
@@ -212,7 +213,7 @@ git commit -m "feat: add nebula jdbc sql executor boundary"
 - Produces:
   - Reusable `FakeNebulaSqlExecutor` with `getLastSql()` and `getLastBindings()`
 
-- [ ] **Step 1: Add failing JdbcTemplate contract test**
+- [x] **Step 1: Add failing JdbcTemplate contract test**
 
 Create a test that configures a single `Connection` through `SingleConnectionDataSource`, then verifies JdbcTemplate uses `PreparedStatement`, binds arguments, and reads the result:
 
@@ -239,7 +240,7 @@ public void jdbcTemplateQueryForObjectShouldBindArgumentsAndReadScalar() throws 
 }
 ```
 
-- [ ] **Step 2: Run test to confirm dependency and behavior gaps**
+- [x] **Step 2: Run test to confirm dependency and behavior gaps**
 
 Run:
 
@@ -250,7 +251,7 @@ cd fw-plus-core
 
 Expected: FAIL because `spring-jdbc` is not on the test classpath or parameter bindings are not yet available.
 
-- [ ] **Step 3: Add test dependencies**
+- [x] **Step 3: Add test dependencies**
 
 Add to `pom.xml`:
 
@@ -264,7 +265,7 @@ Add to `pom.xml`:
 
 Do not specify a version; let Spring Boot 2.7.18 dependency management resolve it.
 
-- [ ] **Step 4: Implement reusable fake executor test helper**
+- [x] **Step 4: Implement reusable fake executor test helper**
 
 `FakeNebulaSqlExecutor` must store SQL and bindings:
 
@@ -278,7 +279,7 @@ public ResultSet executeQuery(NebulaConnection connection, String sql, NebulaPar
 
 If constructing native Nebula result mocks is noisy, use Mockito to mock `com.vesoft.nebula.client.graph.data.ResultSet` and wrap it with `NebulaResultSet`.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run:
 
@@ -319,7 +320,7 @@ git commit -m "test: capture jdbc template query contract"
 - Produces:
   - MyBatis XML Mapper and annotation Mapper contract tests for later metadata tasks.
 
-- [ ] **Step 1: Add failing MyBatis tests**
+- [x] **Step 1: Add failing MyBatis tests**
 
 Use `Environment`, `JdbcTransactionFactory`, `Configuration`, and `SqlSessionFactoryBuilder` to create an in-memory MyBatis configuration over a `SingleConnectionDataSource`. Include both XML and annotation mapper methods:
 
@@ -341,7 +342,7 @@ assertEquals(Integer.valueOf(18), player.getAge());
 assertEquals(Long.valueOf(1001L), executor.getLastBindings().get(1).getValue());
 ```
 
-- [ ] **Step 2: Run test to confirm dependency and JDBC gaps**
+- [x] **Step 2: Run test to confirm dependency and JDBC gaps**
 
 Run:
 
@@ -352,7 +353,7 @@ cd fw-plus-core
 
 Expected: FAIL because `mybatis` is not on the test classpath or metadata / parameter APIs are incomplete.
 
-- [ ] **Step 3: Add MyBatis test dependency**
+- [x] **Step 3: Add MyBatis test dependency**
 
 Add:
 
@@ -366,7 +367,7 @@ Add:
 
 Do not specify a version; use dependency management inherited by the module. If Maven reports no managed version, use the project-managed MyBatis version already present in `fw-plus-parent` or dependencies BOM rather than adding a new arbitrary version.
 
-- [ ] **Step 4: Keep mapper SQL in query-only scope**
+- [x] **Step 4: Keep mapper SQL in query-only scope**
 
 XML mapper must contain only:
 
@@ -378,7 +379,7 @@ XML mapper must contain only:
 
 Do not add insert/update/delete mapper methods in this change.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run:
 
@@ -417,7 +418,7 @@ git commit -m "test: capture mybatis query mapper contract"
 - Produces:
   - Standard `SQLFeatureNotSupportedException` for unsupported feature paths.
 
-- [ ] **Step 1: Write failing unsupported feature tests**
+- [x] **Step 1: Write failing unsupported feature tests**
 
 Cover:
 
@@ -447,7 +448,7 @@ private static <T extends SQLException> T assertThrows(Class<T> type, SqlRunnabl
 }
 ```
 
-- [ ] **Step 2: Run test and confirm failures**
+- [x] **Step 2: Run test and confirm failures**
 
 Run:
 
@@ -458,7 +459,7 @@ cd fw-plus-core
 
 Expected: FAIL for methods that currently throw generic `SQLException`, `RuntimeException`, or return misleading values.
 
-- [ ] **Step 3: Normalize unsupported method behavior**
+- [x] **Step 3: Normalize unsupported method behavior**
 
 Change unsupported paths to:
 
@@ -474,7 +475,7 @@ public boolean supportsBatchUpdates() throws SQLException {
 }
 ```
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run:
 
@@ -520,7 +521,7 @@ git commit -m "fix: normalize unsupported jdbc feature errors"
 - Consumes:
   - `PreparedStatement.setObject`, `setString`, `setInt`, `setLong`, `setBoolean`, `setDouble`, `setDate`, `setTimestamp`, `setNull`
 
-- [ ] **Step 1: Write failing parameter model tests**
+- [x] **Step 1: Write failing parameter model tests**
 
 Cover 1-based indexing, out-of-range index, missing binding, JDBC type retention:
 
@@ -533,7 +534,7 @@ assertEquals("Tim", bindings.get(1).getValue());
 assertEquals(Types.INTEGER, bindings.get(2).getJdbcType());
 ```
 
-- [ ] **Step 2: Write failing PreparedStatement binding tests**
+- [x] **Step 2: Write failing PreparedStatement binding tests**
 
 Assert the fake executor receives typed parameters without SQL string replacement:
 
@@ -548,7 +549,7 @@ assertEquals(Types.BIGINT, executor.getLastBindings().get(1).getJdbcType());
 assertEquals(Boolean.TRUE, executor.getLastBindings().get(2).getValue());
 ```
 
-- [ ] **Step 3: Run failing tests**
+- [x] **Step 3: Run failing tests**
 
 Run:
 
@@ -559,7 +560,7 @@ cd fw-plus-core
 
 Expected: FAIL because `NebulaParameterBindings` does not exist and `NebulaPreparedStatementImpl` still stores raw values in a map.
 
-- [ ] **Step 4: Implement binding model and PreparedStatement setters**
+- [x] **Step 4: Implement binding model and PreparedStatement setters**
 
 Implement setter mappings:
 
@@ -577,7 +578,7 @@ setObject(Object) -> infer String/Integer/Long/Boolean/Double/Date/Timestamp, fa
 
 `executeQuery()` must call `bindings.validateComplete()` and then `sqlExecutor.executeQuery(nebulaConnection, rawSql, bindings.copy())`.
 
-- [ ] **Step 5: Update `NebulaParameterMetaData`**
+- [x] **Step 5: Update `NebulaParameterMetaData`**
 
 Return:
 
@@ -589,7 +590,7 @@ getParameterMode(int) -> ParameterMetaData.parameterModeIn
 isNullable(int) -> ParameterMetaData.parameterNullableUnknown
 ```
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
 Run:
 
@@ -629,7 +630,7 @@ git commit -m "feat: add typed prepared statement bindings"
 - Produces:
   - Stable metadata methods used by JdbcTemplate and MyBatis.
 
-- [ ] **Step 1: Write failing ResultSetMetaData tests**
+- [x] **Step 1: Write failing ResultSetMetaData tests**
 
 Assert:
 
@@ -645,7 +646,7 @@ assertTrue(metaData.isReadOnly(1));
 assertFalse(metaData.isWritable(1));
 ```
 
-- [ ] **Step 2: Write failing DatabaseMetaData tests**
+- [x] **Step 2: Write failing DatabaseMetaData tests**
 
 Assert common probes:
 
@@ -663,7 +664,7 @@ assertTrue(metaData.supportsResultSetType(ResultSet.TYPE_SCROLL_INSENSITIVE));
 assertTrue(metaData.supportsResultSetConcurrency(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY));
 ```
 
-- [ ] **Step 3: Run failing tests**
+- [x] **Step 3: Run failing tests**
 
 Run:
 
@@ -674,7 +675,7 @@ cd fw-plus-core
 
 Expected: FAIL because metadata methods currently throw unsupported exceptions.
 
-- [ ] **Step 4: Implement metadata defaults**
+- [x] **Step 4: Implement metadata defaults**
 
 Implement column index validation once:
 
@@ -689,7 +690,7 @@ private void checkColumnIndex(int column) throws SQLException {
 
 Map missing native type information conservatively to `Types.JAVA_OBJECT` / `Object.class.getName()`. Return false for writable, auto-increment, searchable, currency; return true for read-only.
 
-- [ ] **Step 5: Implement DatabaseMetaData common probes**
+- [x] **Step 5: Implement DatabaseMetaData common probes**
 
 Return stable values:
 
@@ -705,7 +706,7 @@ getDefaultTransactionIsolation() -> Connection.TRANSACTION_NONE
 getIdentifierQuoteString() -> "`"
 ```
 
-- [ ] **Step 6: Verify and commit**
+- [x] **Step 6: Verify and commit**
 
 Run:
 
@@ -745,7 +746,7 @@ git commit -m "feat: add jdbc framework metadata defaults"
 - Produces:
   - Consistent `SQLFeatureNotSupportedException` for unsupported streams, LOBs, generated keys, batch, multi-result, write paths not covered by current change.
 
-- [ ] **Step 1: Extend unsupported feature tests**
+- [x] **Step 1: Extend unsupported feature tests**
 
 Cover:
 
@@ -763,7 +764,7 @@ connection.rollback();
 
 Each assertion must require `SQLFeatureNotSupportedException` when the method represents an unsupported capability.
 
-- [ ] **Step 2: Run failing test**
+- [x] **Step 2: Run failing test**
 
 Run:
 
@@ -774,7 +775,7 @@ cd fw-plus-core
 
 Expected: FAIL on methods that currently throw generic `SQLException`, return a misleading value, or throw `RuntimeException`.
 
-- [ ] **Step 3: Normalize unsupported exceptions**
+- [x] **Step 3: Normalize unsupported exceptions**
 
 Rules:
 
@@ -786,7 +787,7 @@ getMoreResults() -> false when no multiple result support
 getUpdateCount() -> -1 for query-only path unless an update path executed
 ```
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run:
 
@@ -825,7 +826,7 @@ git commit -m "fix: make unsupported jdbc semantics explicit"
 - Produces:
   - End-to-end standard JDBC smoke coverage.
 
-- [ ] **Step 1: Write failing standard JDBC integration test**
+- [x] **Step 1: Write failing standard JDBC integration test**
 
 Cover:
 
@@ -844,7 +845,7 @@ assertEquals("playerName", resultSet.getMetaData().getColumnLabel(1));
 assertFalse(resultSet.next());
 ```
 
-- [ ] **Step 2: Run failing test**
+- [x] **Step 2: Run failing test**
 
 Run:
 
@@ -855,7 +856,7 @@ cd fw-plus-core
 
 Expected: FAIL if driver registration, fake connection setup, ResultSet label reads, or metadata are incomplete.
 
-- [ ] **Step 3: Fix ResultSet label and cursor behavior**
+- [x] **Step 3: Fix ResultSet label and cursor behavior**
 
 Ensure:
 
@@ -867,7 +868,7 @@ closed ResultSet access -> SQLException
 cursor before first / after last reads -> SQLException
 ```
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run:
 
@@ -905,7 +906,7 @@ git commit -m "test: cover standard jdbc query path"
 - Produces:
   - Framework-level proof that scalar and POJO RowMapper reads work.
 
-- [ ] **Step 1: Extend JdbcTemplate tests**
+- [x] **Step 1: Extend JdbcTemplate tests**
 
 Add RowMapper test:
 
@@ -928,7 +929,7 @@ assertEquals("Tim", rows.get(0).getPlayerName());
 assertEquals(Integer.valueOf(18), rows.get(0).getAge());
 ```
 
-- [ ] **Step 2: Run failing test**
+- [x] **Step 2: Run failing test**
 
 Run:
 
@@ -939,7 +940,7 @@ cd fw-plus-core
 
 Expected: FAIL if `getInt(String)`, `getMetaData()`, `findColumn`, or `wasNull()` do not match JdbcTemplate expectations.
 
-- [ ] **Step 3: Fix ResultSet getters used by RowMapper**
+- [x] **Step 3: Fix ResultSet getters used by RowMapper**
 
 Implement / verify:
 
@@ -953,7 +954,7 @@ getObject(String) delegates to getObject(int)
 
 Each getter must record column access so `wasNull()` reflects the last read column.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run:
 
@@ -992,7 +993,7 @@ git commit -m "test: cover jdbc template scalar and row mapper queries"
 - Produces:
   - XML mapper query proof with parameter binding and POJO resultType mapping.
 
-- [ ] **Step 1: Add XML mapper parameter query test**
+- [x] **Step 1: Add XML mapper parameter query test**
 
 Assert MyBatis converts `#{id}` to `?`, binds the value, and maps aliases:
 
@@ -1005,7 +1006,7 @@ assertEquals("SELECT name AS playerName, age FROM player WHERE id = ?", normaliz
 assertEquals(Long.valueOf(1001L), executor.getLastBindings().get(1).getValue());
 ```
 
-- [ ] **Step 2: Run failing test**
+- [x] **Step 2: Run failing test**
 
 Run:
 
@@ -1016,7 +1017,7 @@ cd fw-plus-core
 
 Expected: FAIL if MyBatis metadata probes or PreparedStatement setters are incomplete.
 
-- [ ] **Step 3: Fix PreparedStatement and metadata methods MyBatis calls**
+- [x] **Step 3: Fix PreparedStatement and metadata methods MyBatis calls**
 
 Ensure these return stable values:
 
@@ -1027,7 +1028,7 @@ ResultSetMetaData.getColumnLabel(int) -> alias
 ResultSetMetaData.getColumnType(int) -> conservative JDBC type
 ```
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 Run:
 
@@ -1067,7 +1068,7 @@ git commit -m "test: cover mybatis xml query mapper"
 - Produces:
   - Annotation mapper and resultMap proof for POJO mapping.
 
-- [ ] **Step 1: Add annotation Mapper test**
+- [x] **Step 1: Add annotation Mapper test**
 
 Assert:
 
@@ -1077,7 +1078,7 @@ assertEquals("Tim", player.getPlayerName());
 assertEquals(Integer.valueOf(18), player.getAge());
 ```
 
-- [ ] **Step 2: Add XML resultMap test**
+- [x] **Step 2: Add XML resultMap test**
 
 XML:
 
@@ -1099,7 +1100,7 @@ assertEquals("Tim", player.getPlayerName());
 assertEquals(Integer.valueOf(18), player.getAge());
 ```
 
-- [ ] **Step 3: Run failing tests**
+- [x] **Step 3: Run failing tests**
 
 Run:
 
@@ -1110,11 +1111,11 @@ cd fw-plus-core
 
 Expected: FAIL if alias lookup, snake_case label lookup, or getter conversion is incomplete.
 
-- [ ] **Step 4: Fix ResultSet label lookup for exact aliases**
+- [x] **Step 4: Fix ResultSet label lookup for exact aliases**
 
 `findColumn` must use labels as exposed by `getColumnLabel`; it must throw `SQLException` when no exact label exists. Do not implement fuzzy property matching in JDBC; MyBatis resultMap owns property-column mapping.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 Run:
 
@@ -1151,7 +1152,7 @@ git commit -m "test: cover mybatis annotation and result map queries"
 - Produces:
   - Local executable coverage for framework SQL shapes until parser-core matrix is merged.
 
-- [ ] **Step 1: Add SQL shape matrix test**
+- [x] **Step 1: Add SQL shape matrix test**
 
 Create parameterized-style JUnit 4 tests using a simple loop over cases:
 
@@ -1176,7 +1177,7 @@ for (String sql : sqlShapes) {
 
 The test should not assert parser AST internals in this module. It records the SQL forms that parser-core and converter changes must support and ensures JDBC passes them through without mutation.
 
-- [ ] **Step 2: Run failing SQL shape test**
+- [x] **Step 2: Run failing SQL shape test**
 
 Run:
 
@@ -1187,7 +1188,7 @@ cd fw-plus-core
 
 Expected: FAIL if placeholder counting, binding validation, or query classification rejects supported framework SQL forms.
 
-- [ ] **Step 3: Fix placeholder counting and classification for SQL query forms**
+- [x] **Step 3: Fix placeholder counting and classification for SQL query forms**
 
 Update `NebulaPreparedStatementImpl` placeholder counting to ignore `?` inside double-quoted string literals as existing code intends. Update query classification only if it blocks SQL query starts required by this change:
 
@@ -1196,7 +1197,7 @@ QUERY_KEYWORDS includes "select", "show", "desc", "describe"
 UPDATE_KEYWORDS includes write and DDL keywords, but write execution remains outside this change
 ```
 
-- [ ] **Step 4: Run full module verification**
+- [x] **Step 4: Run full module verification**
 
 Run:
 
@@ -1208,7 +1209,7 @@ git diff --check
 
 Expected: PASS. This is the final build evidence for the implementation branch before Comet build guard.
 
-- [ ] **Step 5: Check off final OpenSpec task and commit**
+- [x] **Step 5: Check off final OpenSpec task and commit**
 
 Check off OpenSpec task `3.4`, then commit:
 
@@ -1219,7 +1220,7 @@ git add fw-plus-core/fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc/src/test
 git commit -m "test: cover framework sql shape pass through"
 ```
 
-- [ ] **Step 6: Record build evidence before leaving build phase**
+- [x] **Step 6: Record build evidence before leaving build phase**
 
 Run the build command again if any changes occurred after Step 4:
 
