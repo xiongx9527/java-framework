@@ -128,6 +128,21 @@ public class DirectNebulaSqlExecutorTest {
 		}
 	}
 
+	@Test
+	public void executeUpdateShouldRejectComplexSqlDdlWithoutNativeFallback() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		try {
+			new DirectNebulaSqlExecutor(personMappings()).executeUpdate(
+					connection,
+					"ALTER TABLE person ADD INDEX idx_name(name)",
+					NebulaParameterBindings.empty()
+			);
+			fail("Expected NebulaWriteConversionException");
+		} catch (NebulaWriteConversionException exception) {
+			assertTrue(exception.getMessage().contains(NebulaWriteErrorCode.NEBULA_SQL_DDL_UNSUPPORTED_OPTION.name()));
+		}
+	}
+
 	private ResultSet failedNativeResult() {
 		ResultSet nativeResultSet = mock(ResultSet.class);
 		when(nativeResultSet.isSucceeded()).thenReturn(false);

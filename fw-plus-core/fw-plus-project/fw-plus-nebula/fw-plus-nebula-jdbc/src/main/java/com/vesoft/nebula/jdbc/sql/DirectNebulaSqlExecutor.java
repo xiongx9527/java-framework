@@ -51,6 +51,10 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 			throw NebulaWriteConversionException.of(NebulaWriteErrorCode.NEBULA_SQL_TRANSACTION_UNSUPPORTED,
 					"SQL transactions are not supported by Nebula write/DDL executor.");
 		}
+		if (isUnsupportedSqlDdl(renderedSql)) {
+			throw NebulaWriteConversionException.of(NebulaWriteErrorCode.NEBULA_SQL_DDL_UNSUPPORTED_OPTION,
+					"Complex SQL DDL is not supported by Nebula write/DDL executor.");
+		}
 		NebulaSqlParseResult parseResult = tryParse(renderedSql);
 		if (parseResult != null && isWriteStatement(parseResult.getKind())) {
 			NebulaMutationPlan plan = writeConverter.convert(
@@ -90,6 +94,14 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 		String normalized = sql == null ? "" : sql.trim().toUpperCase();
 		return "BEGIN".equals(normalized) || "START TRANSACTION".equals(normalized)
 				|| "COMMIT".equals(normalized) || "ROLLBACK".equals(normalized);
+	}
+
+	private boolean isUnsupportedSqlDdl(String sql) {
+		String normalized = sql == null ? "" : sql.trim().toUpperCase();
+		return normalized.startsWith("ALTER TABLE ")
+				|| normalized.startsWith("CREATE INDEX ")
+				|| normalized.startsWith("DROP INDEX ")
+				|| normalized.startsWith("CREATE UNIQUE INDEX ");
 	}
 
 	private com.vesoft.nebula.client.graph.data.ResultSet executeNative(NebulaConnection connection, String sql)
