@@ -13,7 +13,7 @@
 
 ## 3. 标准 JDBC 与框架集成验证
 
-- [ ] 3.0 补充标准 JDBC DriverManager/PreparedStatement/ResultSet/metadata 使用路径测试。
+- [x] 3.0 补充标准 JDBC DriverManager/PreparedStatement/ResultSet/metadata 使用路径测试。
 - [ ] 3.1 补充 JdbcTemplate queryForObject 和 RowMapper 测试。
 - [ ] 3.2 补充 MyBatis XML Mapper 参数查询测试。
 - [ ] 3.3 补充 MyBatis 注解 Mapper 和 resultMap / POJO 映射测试。
