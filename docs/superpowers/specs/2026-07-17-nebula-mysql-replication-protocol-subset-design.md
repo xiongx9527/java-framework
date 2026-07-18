@@ -22,7 +22,8 @@ canonical_spec: openspec
 - 将 binlog-compatible stream 的内部 position 映射为复制协议可传输的 file/offset 视图或稳定 token。
 - 将 stream event 编码为 CDC 客户端可识别的最小 binlog-compatible event packet 序列。
 - 对 GTID、完整 slave 生命周期、semi-sync、relay log、master status 写入语义和未知复制命令返回明确不支持错误。
-- 补充协议、position、事件编码、不支持能力和客户端兼容测试。
+- 补充协议、position、事件编码、不支持能力、binlog stream adapter 和 replication-style 自动化测试。
+- 记录真实 CDC/复制客户端端到端验收的后续人工处理项；当前 change 不把该验收作为 build gate。
 
 ### 非目标
 
@@ -289,14 +290,22 @@ COM_BINLOG_DUMP_GTID / unknown replication command
 - format description event 在 dump 起始发送。
 - encoder 不从事件外部推导 row image。
 
-### 10.4 客户端兼容测试
+### 10.4 当前自动化兼容测试
+
+- `ReplicationCommandHandlerTest` 覆盖注册、未启用、GTID 不支持、未知复制命令和未认证边界。
+- `ReplicationDumpFlowTest` 覆盖 `COM_BINLOG_DUMP` 打开 reader、记录 session position、从最后 position 续读、stream disabled/position unavailable 返回 ERR。
+- `BinlogEventReaderStreamReaderTest` 覆盖通过稳定 `BinlogEventReader` 读取 `NebulaBinlogEvent`，转换为 replication stream event，验证事件类型映射、payload 透传和 position 推进。
+- 当前自动化测试使用 handler/adapter 级 replication-style 验证，不声明真实 CDC/复制客户端已完成验收。
+
+### 10.5 Manual Acceptance Follow-up
 
 - 至少一个轻量 MySQL replication client 完成连接、可选注册、dump、读取事件。
 - 客户端读取一批事件后断开，再从最后 position 续读。
 - 客户端请求 GTID path 时收到明确不支持错误。
 - stream 未启用或 position 过期时客户端收到明确错误。
+- 该验收依赖可运行的 MySQL gateway 网络入口；当前仓库未发现该入口时，应拆为后续人工验收或单独 change。
 
-### 10.5 边界测试
+### 10.6 边界测试
 
 - 绕过网关直接写入 NebulaGraph 不产生复制事件。
 - 复制命令不会调用 SQL parser、SQL converter 或 Nebula 执行链。
@@ -313,7 +322,8 @@ COM_BINLOG_DUMP_GTID / unknown replication command
 6. 实现 `COM_BINLOG_DUMP` 读取循环和 cursor lifecycle。
 7. 实现最小 event packet encoder。
 8. 补齐 position、unsupported command、stream unavailable 和客户端续读测试。
-9. 做至少一个 CDC/replication client 验收记录。
+9. 通过 `BinlogEventReaderStreamReaderTest` 完成 binlog stream adapter 的 replication-style 自动化验收。
+10. 在后续 Manual Acceptance Follow-up 中做至少一个真实 CDC/replication client 端到端验收记录。
 
 ## 12. 风险与缓解
 
@@ -321,6 +331,5 @@ COM_BINLOG_DUMP_GTID / unknown replication command
 - **客户端误认为网关支持完整 MySQL replication。** 缓解：capability 保守声明，不支持路径返回 1235/1236，文档和测试矩阵写明边界。
 - **CDC 客户端依赖 GTID 或完整 metadata。** 缓解：把 GTID 明确列为非目标；可在后续 change 针对具体客户端补 metadata 子集。
 - **position 保留期导致续读失败。** 缓解：返回明确 position unavailable 错误，并暴露 retention 配置和诊断日志。
-- **event packet 子集与客户端期望不一致。** 缓解：先用 fake stream 做协议单元测试，再用至少一个真实 replication client 做验收；兼容矩阵记录不支持原因。
+- **event packet 子集与客户端期望不一致。** 缓解：当前 change 先用 fake stream 和 `BinlogEventReader` adapter 做协议/读取自动化测试；真实 replication client 端到端验收在后续 Manual Acceptance Follow-up 中完成，兼容矩阵记录不支持原因。
 - **复制读取影响普通网关连接资源。** 缓解：为 dump cursor 设置独立 timeout、batch size、限流和关闭钩子，避免长连接泄漏。
-

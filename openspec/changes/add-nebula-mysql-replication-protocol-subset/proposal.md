@@ -8,6 +8,7 @@
 - 支持基础复制握手和从指定 position 拉取事件。
 - 支持 `COM_BINLOG_DUMP` 或等价子集。
 - 对 GTID、完整 slave 兼容等不支持能力返回明确错误。
+- 当前 change 的自动验收范围为 replication handler、position 语义、binlog stream adapter 和 replication-style 测试；真实 CDC/复制客户端端到端验收作为后续 Manual Acceptance Follow-up。
 
 ## Capabilities
 
@@ -20,4 +21,4 @@
 
 - 依赖 binlog-compatible stream。
 - 影响 MySQL 协议网关连接类型和命令分发。
-- 可能需要针对 CDC 客户端做兼容测试。
+- 当前自动验证不声称已通过真实 CDC/复制客户端验收；后续需要在 MySQL gateway 网络入口可运行后补充客户端兼容测试。
