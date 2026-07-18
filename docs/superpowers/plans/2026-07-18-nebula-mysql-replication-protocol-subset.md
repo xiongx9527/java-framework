@@ -12,6 +12,8 @@ base-ref: 2c33c0e4a1d441ba7438ad813082dad8332ba134
 
 **Architecture:** 本轮不依赖尚未稳定的 binlog-compatible stream 实现，先定义 replication 层自己的消费端口、position codec、命令处理器和错误映射。测试使用 fake stream reader 验证 COM_REGISTER_SLAVE、COM_BINLOG_DUMP、position 续读和不支持命令边界。
 
+**Scope update 2026-07-18:** 合入 `dev` 后，前置 binlog-compatible stream 已归档并提供稳定 `BinlogEventReader` API。本 change 已新增 `BinlogEventReaderStreamReader` 作为 replication 层 adapter，并用 `BinlogEventReaderStreamReaderTest` 证明从 `NebulaBinlogEvent` 到 replication stream event 的类型映射、payload 透传和 position 推进。真实 CDC/复制客户端端到端验收仍依赖尚未发现的 MySQL gateway 网络入口，作为后续 Manual Acceptance Follow-up，不计入当前 build gate。
+
 **Tech Stack:** Java 1.8、JUnit 4、Maven Wrapper、`fw-plus-core/fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc`。
 
 ## Global Constraints
@@ -107,4 +109,8 @@ Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebul
 
 - [x] **Step 5: Update OpenSpec tasks and commit**
 
-勾选已完成的独立任务，保留 CDC 客户端真实验收和最终 binlog stream 对接阻塞点。
+勾选已完成的独立任务，把当前 build gate 收敛为 handler、position、binlog stream adapter 和 replication-style 自动化测试；真实 CDC/复制客户端验收记录为后续 Manual Acceptance Follow-up，不伪造成已完成。
+
+## Manual Acceptance Follow-up
+
+当前 worktree 未发现可运行的 MySQL gateway 网络入口，无法执行真实 CDC/复制客户端端到端验收。后续应在网络入口可运行后，至少用一个真实 CDC/复制客户端验证连接、dump、读取事件、断线续读和不支持能力错误响应，并将结果纳入单独 change 或人工验收记录。

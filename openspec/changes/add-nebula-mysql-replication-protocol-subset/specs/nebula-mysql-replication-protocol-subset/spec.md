@@ -11,6 +11,10 @@
 - **WHEN** 客户端请求从指定 position 读取
 - **THEN** 系统返回对应事件流。
 
+#### Scenario: 自动化 adapter 读取验收
+- **WHEN** replication 层通过 `BinlogEventReaderStreamReader` 读取 binlog-compatible stream 中的 `NebulaBinlogEvent`
+- **THEN** 系统将事件转换为 replication stream event，并推进兼容 position。
+
 ### Requirement: Unsupported replication features fail explicitly
 系统 SHALL 对完整 GTID 复制、真实 MySQL slave 语义或其他不支持命令返回明确错误。
 
@@ -36,3 +40,7 @@
 #### Scenario: 事件来源边界
 - **WHEN** binlog-compatible stream 中不存在某个 Nebula 原生变更事件
 - **THEN** 复制协议输出不得生成、补偿或伪造该事件。
+
+## Manual Acceptance Follow-up
+
+真实 CDC/复制客户端端到端验收不属于当前 build gate。后续应在 MySQL gateway 网络入口可运行后，使用至少一个真实 CDC/复制客户端验证连接、dump、读取事件、断线续读和不支持能力错误响应。
