@@ -8,7 +8,7 @@ subagent_dispatch: null
 tdd_mode: tdd
 review_mode: standard
 isolation: worktree
-verify_mode: null
+verify_mode: full
 auto_transition: false
 base_ref: 7fcfa07e31ed4260bd04c3e5b656831845b8b544
 design_doc: docs/superpowers/specs/2026-07-17-nebula-mysql-binlog-compatible-stream-design.md
