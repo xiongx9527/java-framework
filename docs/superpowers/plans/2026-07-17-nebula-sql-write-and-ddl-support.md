@@ -2,6 +2,7 @@
 change: add-nebula-sql-write-and-ddl-support
 design-doc: docs/superpowers/specs/2026-07-17-nebula-sql-write-and-ddl-support-design.md
 base-ref: 4f550f242396d103ba024356c23b2a1917638bd7
+archived-with: 2026-07-18-add-nebula-sql-write-and-ddl-support
 ---
 
 # Nebula SQL 写入与 DDL 支持实施计划

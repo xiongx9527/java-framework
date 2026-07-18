@@ -2,6 +2,8 @@
 comet_change: add-nebula-sql-write-and-ddl-support
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-18-add-nebula-sql-write-and-ddl-support
+status: final
 ---
 
 # Nebula SQL 写入与 DDL 支持技术设计
