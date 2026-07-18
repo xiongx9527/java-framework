@@ -19,7 +19,7 @@ public class RoutineInterpreter {
 		if (definition.getParameters().size() != call.getArguments().size()) {
 			throw RoutineException.invalidArguments(definition.getName());
 		}
-		if (definition.getBodyStatements().size() > context.getMaxStatements()) {
+		if (countBudgetedStatements(definition.getBodyStatements()) > context.getMaxStatements()) {
 			throw RoutineException.executionLimit("Routine execution statement limit exceeded");
 		}
 		Map<String, Object> variables = bindArguments(definition, call);
@@ -127,11 +127,37 @@ public class RoutineInterpreter {
 		}
 		PreparedRoutineSql prepared = prepareSql(sql, variables);
 		if (isQuery(prepared.sql)) {
-			return StatementExecution.resultSet(context.getExecutor().executeQuery(context.getConnection(),
-					prepared.sql, prepared.bindings));
+			ResultSet resultSet = context.getExecutor().executeQuery(context.getConnection(),
+					prepared.sql, prepared.bindings);
+			context.checkTimeout();
+			return StatementExecution.resultSet(resultSet);
 		}
-		return StatementExecution.updateCount(context.getExecutor().executeUpdate(context.getConnection(),
-				prepared.sql, prepared.bindings));
+		int updateCount = context.getExecutor().executeUpdate(context.getConnection(),
+				prepared.sql, prepared.bindings);
+		context.checkTimeout();
+		return StatementExecution.updateCount(updateCount);
+	}
+
+	private int countBudgetedStatements(List<String> statements) throws SQLException {
+		int count = 0;
+		for (int i = 0; i < statements.size(); i++) {
+			String statement = statements.get(i).trim();
+			if (startsWithIgnoreCase(statement, "IF ")) {
+				count += maxBranchStatementCount(parseIfBranches(statement));
+			}
+			else {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	private int maxBranchStatementCount(List<IfBranch> branches) throws SQLException {
+		int max = 0;
+		for (int i = 0; i < branches.size(); i++) {
+			max = Math.max(max, countBudgetedStatements(splitBranchStatements(branches.get(i).body)));
+		}
+		return max;
 	}
 
 	private PreparedRoutineSql prepareSql(String sql, Map<String, Object> variables) throws SQLException {

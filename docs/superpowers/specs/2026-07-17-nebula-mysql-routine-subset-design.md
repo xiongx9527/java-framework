@@ -235,6 +235,8 @@ routine 权限依附 MySQL gateway 已有认证/权限边界。
 - 禁止递归和循环。
 - 禁止动态 SQL。
 
+执行时间保护基于当前同步 `NebulaSqlExecutor` 能力实现：解释器会在执行前、语句间以及单条过程体 SQL 返回后检查预算并返回 `ROUTINE_EXECUTION_TIMEOUT`。当前 executor 和 JDBC `Statement.cancel()` 不提供可移植的底层取消能力，因此本 change 不承诺强制中断已经下发到 NebulaGraph 的单条 SQL；如需真正取消底层执行，需要后续为 executor 增加 cancel/timeout contract。
+
 ### 3.7 错误映射
 
 内部错误应稳定，协议层再映射为 MySQL ERR packet。
@@ -458,4 +460,3 @@ MySQL routine 语义与 NebulaGraph 能力不等价。缓解方式是以子集�
 5. 接入 MySQL gateway routine router 和错误映射。
 6. 增加 repository、interpreter、gateway 分发和 smoke 测试。
 7. 补充配置文档，说明子集边界、执行保护和生产 repository 责任。
-

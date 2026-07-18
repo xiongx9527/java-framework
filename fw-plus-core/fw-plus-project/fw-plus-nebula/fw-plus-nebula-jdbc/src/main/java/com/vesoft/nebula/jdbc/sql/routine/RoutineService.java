@@ -62,12 +62,12 @@ public class RoutineService {
 		return 0;
 	}
 
-	public int drop(String schema, String sql) throws SQLException {
+	public int drop(String schema, String user, String sql) throws SQLException {
 		RoutineStatement statement = RoutineStatementParser.parse(sql);
 		if (statement.getKind() != RoutineStatement.Kind.DROP_PROCEDURE) {
 			throw RoutineException.syntax("Expected DROP PROCEDURE");
 		}
-		permissionChecker.check(schema, "", statement.getName(), RoutinePermissionChecker.Action.MANAGE);
+		permissionChecker.check(schema, user, statement.getName(), RoutinePermissionChecker.Action.MANAGE);
 		RoutineName name = RoutineName.of(schema, statement.getName());
 		boolean dropped = repository.drop(name);
 		if (!dropped && !statement.isIfExists()) {
