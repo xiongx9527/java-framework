@@ -54,9 +54,15 @@ public class NebulaSqlDdlConverterTest {
 
 	@Test
 	public void unsupportedDdlShouldReportStableError() throws Exception {
+		assertDdlError("CREATE TABLE person (id VARCHAR(64) PRIMARY KEY, name VARCHAR(64)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+		assertDdlError("CREATE TABLE person (id VARCHAR(64) PRIMARY KEY, name VARCHAR(64), KEY idx_name(name))");
+		assertDdlError("SHOW TABLES");
+	}
+
+	private void assertDdlError(String sql) throws Exception {
 		try {
 			new DefaultNebulaSqlDdlConverter()
-					.convert(new DruidNebulaSqlParser().parse("SHOW TABLES").getStatement(), personMappings());
+					.convert(new DruidNebulaSqlParser().parse(sql).getStatement(), personMappings());
 			fail("Expected NebulaWriteConversionException");
 		} catch (NebulaWriteConversionException exception) {
 			assertEquals(NebulaWriteErrorCode.NEBULA_SQL_DDL_UNSUPPORTED_OPTION, exception.getWriteErrorCode());

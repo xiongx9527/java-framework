@@ -31,6 +31,9 @@ public class DefaultNebulaSqlDdlConverter implements NebulaSqlDdlConverter {
 
 	private NebulaDdlPlan convertSchema(NebulaSchemaStatement statement, NebulaSchemaMappingRegistry schemaMapping)
 			throws SQLException {
+		if (!statement.getUnsupportedOptions().isEmpty()) {
+			throw unsupported("Unsupported CREATE TABLE options: " + join(statement.getUnsupportedOptions()));
+		}
 		TableMapping tableMapping = schemaMapping.getRequired(statement.getTableName());
 		if (statement.getKind() == StatementKind.CREATE_SCHEMA) {
 			return createPlan(statement, tableMapping);
