@@ -141,5 +141,5 @@ base-ref: 8351c1363299bea131187df5b5358927c0a4dbc8
 - [x] 在 build report 记录 Java MySQL JDBC Driver 路径的自动测试证据。
 - [x] 对 GUI/BI 客户端验证，若无可运行客户端，则记录 DBeaver/DataGrip/BI metadata fixture 覆盖与手动阻塞。
 - [x] 勾选 tasks.md 的 3.1。
-- [ ] 3.2 因当前环境缺少可运行 GUI/BI 客户端，保留为手动验收阻塞；已有 DBeaver/DataGrip/BI metadata SQL fixture 作为替代协议级覆盖。
-- [ ] 提交：`test(nebula): verify mysql advanced protocol compatibility`
+- [ ] 3.2 因当前环境缺少可运行 GUI/BI 客户端，保留为手动验收阻塞；已有 DBeaver/DataGrip/BI metadata SQL fixture 作为替代协议级覆盖，并已在 build report 记录扩大检测命令和阻塞原因。
+- [x] 提交：`docs(nebula): record gui bi verification blocker`
