@@ -20,31 +20,43 @@ public class DefaultNebulaSqlDdlConverter implements NebulaSqlDdlConverter {
 
 	public NebulaDdlPlan convert(NebulaSqlStatement statement, NebulaSchemaMappingRegistry schemaMapping)
 			throws SQLException {
+		return convert(statement, schemaMapping, null);
+	}
+
+	public NebulaDdlPlan convert(NebulaSqlStatement statement, NebulaSchemaMappingRegistry schemaMapping,
+			String sourceSql) throws SQLException {
 		if (statement instanceof NebulaSchemaStatement) {
-			return convertSchema((NebulaSchemaStatement) statement, schemaMapping);
+			return convertSchema((NebulaSchemaStatement) statement, schemaMapping, sourceSql);
 		}
 		if (statement instanceof NebulaMetadataStatement) {
-			return convertMetadata((NebulaMetadataStatement) statement, schemaMapping);
+			return convertMetadata((NebulaMetadataStatement) statement, schemaMapping, sourceSql);
 		}
 		throw unsupported("Unsupported DDL statement: " + statement.getKind());
 	}
 
 	private NebulaDdlPlan convertSchema(NebulaSchemaStatement statement, NebulaSchemaMappingRegistry schemaMapping)
 			throws SQLException {
+		return convertSchema(statement, schemaMapping, null);
+	}
+
+	private NebulaDdlPlan convertSchema(NebulaSchemaStatement statement, NebulaSchemaMappingRegistry schemaMapping,
+			String sourceSql)
+			throws SQLException {
 		if (!statement.getUnsupportedOptions().isEmpty()) {
 			throw unsupported("Unsupported CREATE TABLE options: " + join(statement.getUnsupportedOptions()));
 		}
 		TableMapping tableMapping = schemaMapping.getRequired(statement.getTableName());
 		if (statement.getKind() == StatementKind.CREATE_SCHEMA) {
-			return createPlan(statement, tableMapping);
+			return createPlan(statement, tableMapping, sourceSql);
 		}
 		if (statement.getKind() == StatementKind.DROP_SCHEMA) {
-			return dropPlan(statement, tableMapping);
+			return dropPlan(statement, tableMapping, sourceSql);
 		}
 		throw unsupported("Unsupported schema statement: " + statement.getKind());
 	}
 
-	private NebulaDdlPlan createPlan(NebulaSchemaStatement statement, TableMapping tableMapping) throws SQLException {
+	private NebulaDdlPlan createPlan(NebulaSchemaStatement statement, TableMapping tableMapping, String sourceSql)
+			throws SQLException {
 		List<String> columns = new ArrayList<String>();
 		for (Map.Entry<String, ColumnMapping> entry : tableMapping.getProperties().entrySet()) {
 			NebulaColumnDefinition definition = findColumn(statement, entry.getKey());
@@ -54,20 +66,26 @@ public class DefaultNebulaSqlDdlConverter implements NebulaSqlDdlConverter {
 				? NebulaDdlKind.CREATE_TAG : NebulaDdlKind.CREATE_EDGE;
 		String objectKind = tableMapping.getTableKind() == TableKind.TAG ? "TAG" : "EDGE";
 		String ngql = "CREATE " + objectKind + " " + tableMapping.getNebulaName() + "(" + join(columns) + ")";
-		return plan(kind, tableMapping.getNebulaName(), statement.getColumns(), ngql,
+		return plan(kind, tableMapping.getNebulaName(), statement.getColumns(), sourceSql, ngql,
 				"create " + tableMapping.getTableKind() + " from " + statement.getTableName());
 	}
 
-	private NebulaDdlPlan dropPlan(NebulaSchemaStatement statement, TableMapping tableMapping) {
+	private NebulaDdlPlan dropPlan(NebulaSchemaStatement statement, TableMapping tableMapping, String sourceSql) {
 		NebulaDdlKind kind = tableMapping.getTableKind() == TableKind.TAG
 				? NebulaDdlKind.DROP_TAG : NebulaDdlKind.DROP_EDGE;
 		String objectKind = tableMapping.getTableKind() == TableKind.TAG ? "TAG" : "EDGE";
 		String ngql = "DROP " + objectKind + " " + tableMapping.getNebulaName();
-		return plan(kind, tableMapping.getNebulaName(), statement.getColumns(), ngql,
+		return plan(kind, tableMapping.getNebulaName(), statement.getColumns(), sourceSql, ngql,
 				"drop " + tableMapping.getTableKind() + " from " + statement.getTableName());
 	}
 
 	private NebulaDdlPlan convertMetadata(NebulaMetadataStatement statement, NebulaSchemaMappingRegistry schemaMapping)
+			throws SQLException {
+		return convertMetadata(statement, schemaMapping, null);
+	}
+
+	private NebulaDdlPlan convertMetadata(NebulaMetadataStatement statement, NebulaSchemaMappingRegistry schemaMapping,
+			String sourceSql)
 			throws SQLException {
 		if (statement.getTargetName() == null) {
 			throw unsupported("Metadata statement without target is not a tag/edge schema plan.");
@@ -77,7 +95,7 @@ public class DefaultNebulaSqlDdlConverter implements NebulaSqlDdlConverter {
 				? NebulaDdlKind.DESCRIBE_TAG : NebulaDdlKind.DESCRIBE_EDGE;
 		String objectKind = tableMapping.getTableKind() == TableKind.TAG ? "TAG" : "EDGE";
 		String ngql = "DESCRIBE " + objectKind + " " + tableMapping.getNebulaName();
-		return plan(kind, tableMapping.getNebulaName(), Collections.<NebulaColumnDefinition>emptyList(), ngql,
+		return plan(kind, tableMapping.getNebulaName(), Collections.<NebulaColumnDefinition>emptyList(), sourceSql, ngql,
 				"describe " + tableMapping.getTableKind() + " from " + statement.getTargetName());
 	}
 
@@ -91,8 +109,8 @@ public class DefaultNebulaSqlDdlConverter implements NebulaSqlDdlConverter {
 	}
 
 	private NebulaDdlPlan plan(NebulaDdlKind kind, String schemaName, List<NebulaColumnDefinition> columns,
-			String ngql, String trace) {
-		NebulaDdlDescriptor descriptor = new NebulaDdlDescriptor(kind, schemaName, columns, null, ngql);
+			String sourceSql, String ngql, String trace) {
+		NebulaDdlDescriptor descriptor = new NebulaDdlDescriptor(kind, schemaName, columns, sourceSql, ngql);
 		return new NebulaDdlPlan(kind, ngql, descriptor, Collections.<String>emptyList(),
 				Collections.singletonList(trace));
 	}
