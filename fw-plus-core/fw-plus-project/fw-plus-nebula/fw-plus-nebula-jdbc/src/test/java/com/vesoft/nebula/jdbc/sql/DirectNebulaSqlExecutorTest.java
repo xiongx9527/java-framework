@@ -2,6 +2,10 @@ package com.vesoft.nebula.jdbc.sql;
 
 import com.vesoft.nebula.client.graph.data.ResultSet;
 import com.vesoft.nebula.jdbc.NebulaConnection;
+import com.vesoft.nebula.jdbc.sql.query.NebulaSchemaMappingRegistry;
+import com.vesoft.nebula.jdbc.sql.query.TableMapping;
+import com.vesoft.nebula.jdbc.sql.write.NebulaWriteConversionException;
+import com.vesoft.nebula.jdbc.sql.write.NebulaWriteErrorCode;
 import org.junit.Test;
 
 import java.sql.SQLException;
@@ -71,6 +75,74 @@ public class DirectNebulaSqlExecutorTest {
 		verify(connection).execute("SELECT '?' AS marker FROM player WHERE id = 1001 AND active = true AND name = \"Tim\"");
 	}
 
+	@Test
+	public void executeUpdateShouldRouteSqlInsertAndDdlThroughConverters() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		ResultSet nativeResultSet = successNativeResult();
+		when(connection.execute(anyString())).thenReturn(nativeResultSet);
+
+		DirectNebulaSqlExecutor executor = new DirectNebulaSqlExecutor(personMappings());
+		int insertRows = executor.executeUpdate(
+				connection,
+				"INSERT INTO person(id, name) VALUES ('p1', 'Tom')",
+				NebulaParameterBindings.empty()
+		);
+		int ddlRows = executor.executeUpdate(
+				connection,
+				"DROP TABLE person",
+				NebulaParameterBindings.empty()
+		);
+
+		assertTrue(insertRows == 1);
+		assertTrue(ddlRows == 0);
+		verify(connection).execute("INSERT VERTEX person(name) VALUES \"p1\":(\"Tom\")");
+		verify(connection).execute("DROP TAG person");
+	}
+
+	@Test
+	public void executeUpdateShouldKeepNativeNgqlFallback() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		ResultSet nativeResultSet = successNativeResult();
+		when(connection.execute(anyString())).thenReturn(nativeResultSet);
+
+		new DirectNebulaSqlExecutor(personMappings()).executeUpdate(
+				connection,
+				"INSERT VERTEX person(name) VALUES \"p1\":(\"Tom\")",
+				NebulaParameterBindings.empty()
+		);
+
+		verify(connection).execute("INSERT VERTEX person(name) VALUES \"p1\":(\"Tom\")");
+	}
+
+	@Test
+	public void executeUpdateShouldRejectTransactionsExplicitly() throws Exception {
+		try {
+			new DirectNebulaSqlExecutor(personMappings()).executeUpdate(
+					mock(NebulaConnection.class),
+					"BEGIN",
+					NebulaParameterBindings.empty()
+			);
+			fail("Expected NebulaWriteConversionException");
+		} catch (NebulaWriteConversionException exception) {
+			assertTrue(exception.getMessage().contains(NebulaWriteErrorCode.NEBULA_SQL_TRANSACTION_UNSUPPORTED.name()));
+		}
+	}
+
+	@Test
+	public void executeUpdateShouldRejectComplexSqlDdlWithoutNativeFallback() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		try {
+			new DirectNebulaSqlExecutor(personMappings()).executeUpdate(
+					connection,
+					"ALTER TABLE person ADD INDEX idx_name(name)",
+					NebulaParameterBindings.empty()
+			);
+			fail("Expected NebulaWriteConversionException");
+		} catch (NebulaWriteConversionException exception) {
+			assertTrue(exception.getMessage().contains(NebulaWriteErrorCode.NEBULA_SQL_DDL_UNSUPPORTED_OPTION.name()));
+		}
+	}
+
 	private ResultSet failedNativeResult() {
 		ResultSet nativeResultSet = mock(ResultSet.class);
 		when(nativeResultSet.isSucceeded()).thenReturn(false);
@@ -83,6 +155,15 @@ public class DirectNebulaSqlExecutorTest {
 		ResultSet nativeResultSet = mock(ResultSet.class);
 		when(nativeResultSet.isSucceeded()).thenReturn(true);
 		return nativeResultSet;
+	}
+
+	private NebulaSchemaMappingRegistry personMappings() {
+		return NebulaSchemaMappingRegistry.builder()
+				.addTable(TableMapping.tag("person", "person")
+						.idColumn("id", Types.VARCHAR)
+						.property("name", "name", Types.VARCHAR)
+						.build())
+				.build();
 	}
 
 	private void assertNativeFailure(SqlRunnable runnable) throws Exception {
