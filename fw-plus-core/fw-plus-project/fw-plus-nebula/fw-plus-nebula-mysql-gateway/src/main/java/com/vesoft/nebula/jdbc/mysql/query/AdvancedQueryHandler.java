@@ -1,0 +1,102 @@
+package com.vesoft.nebula.jdbc.mysql.query;
+
+import com.vesoft.nebula.jdbc.mysql.session.MysqlProtocolSession;
+import com.vesoft.nebula.jdbc.sql.parser.NebulaSqlParseResult;
+import com.vesoft.nebula.jdbc.sql.parser.NebulaSqlParser;
+import com.vesoft.nebula.jdbc.sql.parser.StatementKind;
+import com.vesoft.nebula.jdbc.sql.parser.druid.DruidNebulaSqlParser;
+import com.vesoft.nebula.jdbc.sql.parser.error.NebulaSqlParseException;
+import com.vesoft.nebula.jdbc.sql.query.NebulaSchemaMappingRegistry;
+import com.vesoft.nebula.jdbc.sql.write.DefaultNebulaSqlDdlConverter;
+import com.vesoft.nebula.jdbc.sql.write.DefaultNebulaSqlWriteConverter;
+import com.vesoft.nebula.jdbc.sql.write.NebulaDdlPlan;
+import com.vesoft.nebula.jdbc.sql.write.NebulaMutationPlan;
+import com.vesoft.nebula.jdbc.sql.write.NebulaMutationResult;
+import com.vesoft.nebula.jdbc.sql.write.NebulaSqlDdlConverter;
+import com.vesoft.nebula.jdbc.sql.write.NebulaSqlMutationExecutor;
+import com.vesoft.nebula.jdbc.sql.write.NebulaSqlWriteConverter;
+import com.vesoft.nebula.jdbc.sql.write.NebulaWriteBindings;
+
+import java.sql.SQLException;
+import java.util.Locale;
+
+public class AdvancedQueryHandler {
+	private final ReadonlyQueryHandler readonlyHandler;
+	private final NebulaSqlParser parser;
+	private final NebulaSqlWriteConverter writeConverter;
+	private final NebulaSqlDdlConverter ddlConverter;
+	private final NebulaSqlMutationExecutor mutationExecutor;
+	private final NebulaSchemaMappingRegistry schemaMapping;
+
+	public AdvancedQueryHandler(NebulaSqlExecutionPort executionPort, MysqlMetadataHandler metadataHandler) {
+		this(executionPort, metadataHandler, new DruidNebulaSqlParser(),
+				new DefaultNebulaSqlWriteConverter(), new DefaultNebulaSqlDdlConverter(),
+				null, NebulaSchemaMappingRegistry.builder().build());
+	}
+
+	public AdvancedQueryHandler(NebulaSqlExecutionPort executionPort, MysqlMetadataHandler metadataHandler,
+			NebulaSqlParser parser, NebulaSqlWriteConverter writeConverter, NebulaSqlDdlConverter ddlConverter,
+			NebulaSqlMutationExecutor mutationExecutor, NebulaSchemaMappingRegistry schemaMapping) {
+		this.readonlyHandler = new ReadonlyQueryHandler(executionPort, metadataHandler);
+		this.parser = parser;
+		this.writeConverter = writeConverter;
+		this.ddlConverter = ddlConverter;
+		this.mutationExecutor = mutationExecutor;
+		this.schemaMapping = schemaMapping == null ? NebulaSchemaMappingRegistry.builder().build() : schemaMapping;
+	}
+
+	public MysqlQueryResult handle(MysqlProtocolSession session, String sql) throws SQLException {
+		String normalized = sql == null ? "" : sql.trim();
+		if (isTransactionStatement(normalized)) {
+			throw MysqlErrorMapper.transactionUnsupported();
+		}
+		NebulaSqlParseResult parseResult = parse(normalized);
+		if (parseResult == null || parseResult.getKind() == StatementKind.SELECT
+				|| parseResult.getKind() == StatementKind.METADATA) {
+			return readonlyHandler.handle(session, sql);
+		}
+		if (isWriteStatement(parseResult.getKind())) {
+			NebulaMutationPlan plan = writeConverter.convert(
+					parseResult.getStatement(),
+					new NebulaWriteBindings(normalized, null),
+					schemaMapping);
+			NebulaMutationResult result = requireMutationExecutor().executeMutation(plan);
+			return MysqlQueryResult.ok(result.getAffectedRows(), result.getWarnings().size());
+		}
+		if (isDdlStatement(parseResult.getKind())) {
+			NebulaDdlPlan plan = ddlConverter.convert(parseResult.getStatement(), schemaMapping);
+			NebulaMutationResult result = requireMutationExecutor().executeDdl(plan);
+			return MysqlQueryResult.ok(result.getAffectedRows(), result.getWarnings().size());
+		}
+		throw MysqlErrorMapper.unsupported("SQL statement is not supported by Nebula MySQL gateway");
+	}
+
+	private NebulaSqlParseResult parse(String sql) throws SQLException {
+		try {
+			return parser.parse(sql);
+		} catch (NebulaSqlParseException exception) {
+			return null;
+		}
+	}
+
+	private NebulaSqlMutationExecutor requireMutationExecutor() throws SQLException {
+		if (mutationExecutor == null) {
+			throw MysqlErrorMapper.unsupported("Mutation executor is not configured");
+		}
+		return mutationExecutor;
+	}
+
+	private boolean isWriteStatement(StatementKind kind) {
+		return kind == StatementKind.INSERT || kind == StatementKind.UPDATE || kind == StatementKind.DELETE;
+	}
+
+	private boolean isDdlStatement(StatementKind kind) {
+		return kind == StatementKind.CREATE_SCHEMA || kind == StatementKind.DROP_SCHEMA;
+	}
+
+	private boolean isTransactionStatement(String sql) {
+		String upper = sql == null ? "" : sql.trim().toUpperCase(Locale.ENGLISH);
+		return "BEGIN".equals(upper) || "START TRANSACTION".equals(upper)
+				|| "COMMIT".equals(upper) || "ROLLBACK".equals(upper);
+	}
+}
