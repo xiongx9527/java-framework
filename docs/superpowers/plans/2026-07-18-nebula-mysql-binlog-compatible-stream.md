@@ -38,25 +38,25 @@ base-ref: 65db9422f8918b205df81b8e462e4b683a2741c2
 **Interfaces:**
 - Produces: `BinlogEventStore.append(NebulaBinlogEventDraft)`, `BinlogEventStore.readAfter(BinlogPosition, int)`, `BinlogEventReader.readAfter(BinlogPosition, int, long)`.
 
-- [ ] **Step 1: Write failing store/reader tests**
+- [x] **Step 1: Write failing store/reader tests**
 
 Cover monotonic positions, immutable payload maps, `readAfter(null, max)` from beginning, `readAfter(position, max)` after a known position, stale/wrong store position error, and wait polling after append.
 
-- [ ] **Step 2: Run red test**
+- [x] **Step 2: Run red test**
 
 Run: `./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=InMemoryBinlogEventStoreTest test`
 Expected: compilation failure because binlog model classes do not exist.
 
-- [ ] **Step 3: Implement minimal event model/store/reader**
+- [x] **Step 3: Implement minimal event model/store/reader**
 
 Use immutable defensive copies, `AtomicLong` sequence allocation, store id validation, and a synchronized monitor for simple wait polling.
 
-- [ ] **Step 4: Run green test**
+- [x] **Step 4: Run green test**
 
 Run: `./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=InMemoryBinlogEventStoreTest test`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Commit message: `feat(nebula): add binlog event store model`
 
@@ -70,25 +70,25 @@ Commit message: `feat(nebula): add binlog event store model`
 - Consumes: `NebulaMutationDescriptor`, `NebulaDdlDescriptor`.
 - Produces: `NebulaBinlogEventFactory.forMutation(...)`, `NebulaBinlogEventFactory.forDdl(...)`.
 
-- [ ] **Step 1: Write failing factory tests**
+- [x] **Step 1: Write failing factory tests**
 
 Verify INSERT/UPDATE/DELETE map to `WRITE_ROWS`/`UPDATE_ROWS`/`DELETE_ROWS`, DDL maps to `SCHEMA_CHANGE`, payload contains descriptor kind, target/schema name, keys/properties/columns, `sourceSql`, `ngql`, `traceId`, and `beforeImageAvailable=false`.
 
-- [ ] **Step 2: Run red test**
+- [x] **Step 2: Run red test**
 
 Run: `./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaBinlogEventFactoryTest test`
 Expected: compilation failure because factory does not exist.
 
-- [ ] **Step 3: Implement minimal factory**
+- [x] **Step 3: Implement minimal factory**
 
 Keep mapping deterministic and avoid reparsing SQL. Reject null descriptors with `IllegalArgumentException`.
 
-- [ ] **Step 4: Run green test**
+- [x] **Step 4: Run green test**
 
 Run: `./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=NebulaBinlogEventFactoryTest test`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Commit message: `feat(nebula): map write ddl descriptors to binlog events`
 
@@ -102,25 +102,25 @@ Commit message: `feat(nebula): map write ddl descriptors to binlog events`
 - Consumes: `NebulaBinlogEventStore`, `NebulaBinlogEventFactory`.
 - Produces: constructor overload `DirectNebulaSqlExecutor(NebulaSchemaMappingRegistry, BinlogEventStore)`.
 
-- [ ] **Step 1: Write failing hook tests**
+- [x] **Step 1: Write failing hook tests**
 
 Add tests proving successful SQL INSERT and DROP TABLE append events, native nGQL fallback appends nothing, native execution failure appends nothing, and append failure causes `SQLException` containing `binlog-compatible stream append failed`.
 
-- [ ] **Step 2: Run red test**
+- [x] **Step 2: Run red test**
 
 Run: `./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=DirectNebulaSqlExecutorTest test`
 Expected: failure because constructor/hook behavior is missing.
 
-- [ ] **Step 3: Implement minimal hook**
+- [x] **Step 3: Implement minimal hook**
 
 Append only after `DirectNebulaSqlMutationExecutor` reports successful mutation/DDL result with a descriptor. Keep default constructor behavior unchanged by using null store as disabled stream.
 
-- [ ] **Step 4: Run green test**
+- [x] **Step 4: Run green test**
 
 Run: `./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=DirectNebulaSqlExecutorTest test`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Commit message: `feat(nebula): append binlog events after gateway writes`
 
@@ -135,24 +135,24 @@ Commit message: `feat(nebula): append binlog events after gateway writes`
 - Consumes all earlier tasks.
 - Produces checked OpenSpec task list for completed implementation.
 
-- [ ] **Step 1: Add any missing boundary assertions**
+- [x] **Step 1: Add any missing boundary assertions**
 
 Confirm empty reads are stable, wrong store positions fail clearly, and direct native executor/fallback does not synthesize binlog events.
 
-- [ ] **Step 2: Run focused module tests**
+- [x] **Step 2: Run focused module tests**
 
 Run: `./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc -Dtest=InMemoryBinlogEventStoreTest,NebulaBinlogEventFactoryTest,DirectNebulaSqlExecutorTest test`
 Expected: PASS.
 
-- [ ] **Step 3: Update OpenSpec tasks**
+- [x] **Step 3: Update OpenSpec tasks**
 
 Check completed items in `openspec/changes/add-nebula-mysql-binlog-compatible-stream/tasks.md`.
 
-- [ ] **Step 4: Run broader module verification**
+- [x] **Step 4: Run broader module verification**
 
 Run: `./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc test`
 Expected: PASS or report blocker with logs.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Commit message: `test(nebula): verify binlog stream boundaries`
