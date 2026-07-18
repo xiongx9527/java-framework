@@ -2,6 +2,7 @@
 change: add-nebula-mysql-protocol-write-and-advanced-support
 design-doc: docs/superpowers/specs/2026-07-17-nebula-mysql-protocol-write-and-advanced-support-design.md
 base-ref: 8351c1363299bea131187df5b5358927c0a4dbc8
+archived-with: 2026-07-18-add-nebula-mysql-protocol-write-and-advanced-support
 ---
 
 # Nebula MySQL 协议写入与高级兼容实施计划

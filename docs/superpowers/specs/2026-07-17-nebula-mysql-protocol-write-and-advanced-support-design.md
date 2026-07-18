@@ -2,6 +2,8 @@
 comet_change: add-nebula-mysql-protocol-write-and-advanced-support
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-18-add-nebula-mysql-protocol-write-and-advanced-support
+status: final
 ---
 
 # Nebula MySQL 协议写入与高级兼容技术设计
