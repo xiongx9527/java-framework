@@ -23,7 +23,7 @@ direct_override: null
 classic_profile: full
 classic_migration: 1
 run_id: d2aece65-5a65-42af-8b2c-4a3156cd25a5
-handoff_context: openspec/changes/add-nebula-sql-parser-core/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-18-add-nebula-sql-parser-core/.comet/handoff/design-context.json
 handoff_hash: a9f8a76b33eab2c4f2b704ca3eb23bd5dbf757b71c2ded45a82f0f6985297ec3
 verify_failures: 0
 archive_confirmation: confirmed
