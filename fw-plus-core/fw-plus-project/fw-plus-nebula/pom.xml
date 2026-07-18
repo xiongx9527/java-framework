@@ -12,6 +12,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>fw-plus-nebula-jdbc</module>
+        <module>fw-plus-nebula-mysql-gateway</module>
     </modules>
     <artifactId>fw-plus-nebula</artifactId>
 
