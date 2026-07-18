@@ -11,10 +11,15 @@ import com.vesoft.nebula.jdbc.lifecycle.NebulaResourceLifecycle;
 import com.vesoft.nebula.jdbc.sql.NebulaParameterBindings;
 import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutor;
 import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutorProvider;
+import com.vesoft.nebula.jdbc.sql.routine.RoutineCallResult;
+import com.vesoft.nebula.jdbc.sql.routine.RoutineService;
+import com.vesoft.nebula.jdbc.sql.routine.RoutineStatement;
+import com.vesoft.nebula.jdbc.sql.routine.RoutineStatementParser;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +49,9 @@ public class NebulaStatementImpl implements NebulaStatement {
     public boolean execute(String nGql) throws SQLException {
         this.checkClosed();
         this.nGql = nGql;
+        if (RoutineStatementParser.isRoutineStatement(nGql)) {
+            return executeRoutine(nGql).hasResultSet();
+        }
         if (isQuery(nGql)) {
             this.currentResultSet = this.sqlExecutor.executeQuery(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
             isExecuteSucceed = true;
@@ -58,6 +66,13 @@ public class NebulaStatementImpl implements NebulaStatement {
     @Override
     public ResultSet executeQuery(String nGql) throws SQLException {
         this.checkClosed();
+        if (RoutineStatementParser.isRoutineStatement(nGql)) {
+            RoutineCallResult result = executeRoutine(nGql);
+            if (!result.hasResultSet()) {
+                throw new SQLException("Routine call did not return a result set");
+            }
+            return currentResultSet;
+        }
         this.currentResultSet = this.sqlExecutor.executeQuery(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
         return currentResultSet;
     }
@@ -70,6 +85,13 @@ public class NebulaStatementImpl implements NebulaStatement {
     @Override
     public int executeUpdate(String nGql) throws SQLException {
         this.checkClosed();
+        if (RoutineStatementParser.isRoutineStatement(nGql)) {
+            RoutineCallResult result = executeRoutine(nGql);
+            if (result.hasResultSet()) {
+                throw new SQLException("Routine call returned a result set");
+            }
+            return result.getUpdateCount();
+        }
         return this.sqlExecutor.executeUpdate(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
     }
 
@@ -103,6 +125,40 @@ public class NebulaStatementImpl implements NebulaStatement {
                 throw queryException;
             }
         }
+    }
+
+    private RoutineCallResult executeRoutine(String sql) throws SQLException {
+        RoutineStatement statement = RoutineStatementParser.parse(sql);
+        RoutineService service = RoutineService.getDefault();
+        if (statement.getKind() == RoutineStatement.Kind.CREATE_PROCEDURE) {
+            service.create(currentSchema(), currentUser(), sql);
+            this.currentResultSet = null;
+            isExecuteSucceed = true;
+            return RoutineCallResult.updateCount(0);
+        }
+        if (statement.getKind() == RoutineStatement.Kind.DROP_PROCEDURE) {
+            service.drop(currentSchema(), sql);
+            this.currentResultSet = null;
+            isExecuteSucceed = true;
+            return RoutineCallResult.updateCount(0);
+        }
+        RoutineCallResult result = service.call(currentSchema(), currentUser(), sql,
+                this.nebulaConnection, this.sqlExecutor);
+        this.currentResultSet = result.getResultSet();
+        isExecuteSucceed = true;
+        return result;
+    }
+
+    private String currentSchema() throws SQLException {
+        return this.nebulaConnection == null ? "" : this.nebulaConnection.getSchema();
+    }
+
+    private String currentUser() {
+        if (this.nebulaConnection == null || this.nebulaConnection.getConnectionConfig() == null) {
+            return "";
+        }
+        Properties properties = this.nebulaConnection.getConnectionConfig();
+        return properties.getProperty("user", "");
     }
 
 

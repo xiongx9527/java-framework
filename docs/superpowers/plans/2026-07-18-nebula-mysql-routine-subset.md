@@ -146,11 +146,11 @@ Run the same tests. Then commit with message `feat(nebula): persist mysql routin
 - Consumes: `RoutineDefinition`, `NebulaSqlExecutor`.
 - Produces: sequential execution of body SQL, last resultset return, OK summary for updates-only body, argument count validation, statement budget rejection, direct recursive `CALL` rejection.
 
-- [ ] **Step 1: Write failing interpreter tests**
+- [x] **Step 1: Write failing interpreter tests**
 
 Cover argument binding count, sequential SQL order, last resultset returned, no-resultset OK, first SQL failure short-circuits, statement limit, body `CALL` rejected.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run:
 
@@ -160,11 +160,11 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc
 
 Expected: failure because CALL execution is not implemented.
 
-- [ ] **Step 3: Implement minimal interpreter**
+- [x] **Step 3: Implement minimal interpreter**
 
 Classify each body SQL through existing query/update path: call `executeQuery` for SELECT-like statements, otherwise `executeUpdate`. Store `currentResultSet` only for last query.
 
-- [ ] **Step 4: Verify GREEN and commit**
+- [x] **Step 4: Verify GREEN and commit**
 
 Run the same tests. Then commit with message `feat(nebula): execute mysql routine call skeleton`.
 
@@ -179,11 +179,11 @@ Run the same tests. Then commit with message `feat(nebula): execute mysql routin
 - Consumes: static/default `RoutineService`.
 - Produces: `Statement.execute("CREATE PROCEDURE...")` returns `false`, `CALL` returns `true` when resultset exists and `false` for update-only, `DROP` returns `false`; `supportsStoredProcedures()` returns true when routine subset is available.
 
-- [ ] **Step 1: Write failing statement route tests**
+- [x] **Step 1: Write failing statement route tests**
 
 Cover create/call/drop through `NebulaStatementImpl` with recording executor and verify ordinary SELECT still goes through original path.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run:
 
@@ -193,11 +193,11 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc
 
 Expected: failure because statement routing is not connected.
 
-- [ ] **Step 3: Implement minimal routing**
+- [x] **Step 3: Implement minimal routing**
 
 In `execute`, route routine statements before `isQuery`; in `executeQuery`, reject create/drop and allow CALL only if resultset exists; in `executeUpdate`, allow create/drop and update-only CALL. Keep `checkReadOnly` and `checkUpdate` unchanged for nGQL compatibility.
 
-- [ ] **Step 4: Verify GREEN and commit**
+- [x] **Step 4: Verify GREEN and commit**
 
 Run the same tests and commit with message `feat(nebula): route mysql routine statements`.
 
