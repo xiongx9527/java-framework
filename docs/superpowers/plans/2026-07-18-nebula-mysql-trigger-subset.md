@@ -151,7 +151,9 @@ base-ref: 874719db4c0b576fc1cceb7e2be0c05d4816fcc7
 - Modify `openspec/changes/add-nebula-mysql-trigger-subset/tasks.md`
 - Possibly update `.comet` state through CLI only.
 
-- [ ] Step 1: Run targeted module tests with Maven Wrapper.
-- [ ] Step 2: Run relevant wider module test if time permits.
-- [ ] Step 3: Record build evidence with `comet state record-check` if guard does not auto-detect the command.
+- [x] Step 1: Run targeted module tests with `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn`.
+- [x] Step 2: Run relevant wider module test with `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn`.
+- [x] Step 3: Record build evidence with `comet state record-check` if guard does not auto-detect the command.
 - [ ] Step 4: If all OpenSpec tasks are checked and review gate is satisfied, run `comet guard add-nebula-mysql-trigger-subset build --apply`; otherwise leave phase in build and report remaining tasks.
+
+Note: `fw-plus-core/mvnw` cannot run in this worktree because `.mvn/wrapper` is not tracked here, so verification used system Maven with explicit JDK 8. `review_mode=standard` requires a reviewer subagent before build guard. No callable subagent/reviewer tool is available in this session, so build guard was intentionally not run.
