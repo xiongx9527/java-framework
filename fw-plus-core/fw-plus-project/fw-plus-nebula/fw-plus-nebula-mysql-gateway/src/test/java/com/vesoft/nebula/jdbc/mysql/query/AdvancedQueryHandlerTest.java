@@ -129,6 +129,21 @@ public class AdvancedQueryHandlerTest {
 	}
 
 	@Test
+	public void shouldRouteCommonMetadataQueries() throws Exception {
+		AdvancedQueryHandler handler = advancedHandler(new RecordingMutationExecutor(0));
+		MysqlProtocolSession session = authenticatedSession();
+
+		assertEquals("basketballplayer", handler.handle(session, "SELECT DATABASE()").getRows().get(0).get(0));
+		assertEquals("version", handler.handle(session, "SHOW VARIABLES").getRows().get(0).get(0));
+		assertEquals("person", handler.handle(session,
+				"select table_schema, table_name from information_schema.tables where table_schema = 'basketballplayer'")
+				.getRows().get(0).get(2));
+		assertEquals("name", handler.handle(session,
+				"select column_name, data_type from information_schema.columns where table_name = 'person'")
+				.getRows().get(0).get(3));
+	}
+
+	@Test
 	public void shouldRejectNonSslSessionWhenSslRequired() throws Exception {
 		RecordingMutationExecutor mutationExecutor = new RecordingMutationExecutor(1);
 		AdvancedQueryHandler handler = advancedHandler(mutationExecutor,
@@ -151,7 +166,9 @@ public class AdvancedQueryHandlerTest {
 			MysqlGatewaySecurityPolicy securityPolicy) {
 		return new AdvancedQueryHandler(
 				new RecordingExecutionPort(),
-				new StaticMysqlMetadataHandler("basketballplayer"),
+				new StaticMysqlMetadataHandler("basketballplayer",
+						Collections.singletonMap("person",
+								Collections.singletonList(new MysqlColumn("name", "name", Types.VARCHAR, true, true)))),
 				new DruidNebulaSqlParser(),
 				new DefaultNebulaSqlWriteConverter(),
 				new DefaultNebulaSqlDdlConverter(),

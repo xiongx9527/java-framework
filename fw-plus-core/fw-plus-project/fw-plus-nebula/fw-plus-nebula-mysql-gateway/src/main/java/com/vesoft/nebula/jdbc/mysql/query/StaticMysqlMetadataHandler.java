@@ -80,6 +80,94 @@ public class StaticMysqlMetadataHandler implements MysqlMetadataHandler {
 		);
 	}
 
+	@Override
+	public MysqlQueryResult showVariables(MysqlProtocolSession session) {
+		List<List<Object>> rows = new ArrayList<List<Object>>();
+		rows.add(Arrays.<Object>asList("version", "5.7.0-nebula-gateway"));
+		rows.add(Arrays.<Object>asList("version_comment", "Nebula MySQL protocol gateway"));
+		rows.add(Arrays.<Object>asList("character_set_client", "utf8mb4"));
+		rows.add(Arrays.<Object>asList("character_set_connection", "utf8mb4"));
+		return MysqlQueryResult.of(
+				Arrays.asList(
+						new MysqlColumn("Variable_name", "Variable_name", Types.VARCHAR, false, true),
+						new MysqlColumn("Value", "Value", Types.VARCHAR, true, true)
+				),
+				rows
+		);
+	}
+
+	@Override
+	public MysqlQueryResult selectDatabase(MysqlProtocolSession session) {
+		return MysqlQueryResult.of(
+				Collections.singletonList(new MysqlColumn("DATABASE()", "DATABASE()", Types.VARCHAR, true, true)),
+				Collections.<List<Object>>singletonList(Collections.<Object>singletonList(session.getDatabase()))
+		);
+	}
+
+	@Override
+	public MysqlQueryResult informationSchemaTables(MysqlProtocolSession session) {
+		List<List<Object>> rows = new ArrayList<List<Object>>();
+		for (String tableName : tables.keySet()) {
+			rows.add(Arrays.<Object>asList("def", session.getDatabase(), tableName, "BASE TABLE"));
+		}
+		return MysqlQueryResult.of(
+				Arrays.asList(
+						new MysqlColumn("TABLE_CATALOG", "TABLE_CATALOG", Types.VARCHAR, false, true),
+						new MysqlColumn("TABLE_SCHEMA", "TABLE_SCHEMA", Types.VARCHAR, false, true),
+						new MysqlColumn("TABLE_NAME", "TABLE_NAME", Types.VARCHAR, false, true),
+						new MysqlColumn("TABLE_TYPE", "TABLE_TYPE", Types.VARCHAR, false, true)
+				),
+				rows
+		);
+	}
+
+	@Override
+	public MysqlQueryResult informationSchemaColumns(MysqlProtocolSession session, String tableName) throws SQLException {
+		List<List<Object>> rows = new ArrayList<List<Object>>();
+		if (tableName == null || tableName.trim().length() == 0) {
+			for (String currentTable : tables.keySet()) {
+				addColumnRows(session, rows, currentTable, tables.get(currentTable));
+			}
+		} else {
+			String normalized = tableName.toLowerCase(java.util.Locale.ENGLISH);
+			List<MysqlColumn> tableColumns = tables.get(normalized);
+			if (tableColumns == null) {
+				throw MysqlErrorMapper.tableNotFound(tableName);
+			}
+			addColumnRows(session, rows, normalized, tableColumns);
+		}
+		return MysqlQueryResult.of(
+				Arrays.asList(
+						new MysqlColumn("TABLE_CATALOG", "TABLE_CATALOG", Types.VARCHAR, false, true),
+						new MysqlColumn("TABLE_SCHEMA", "TABLE_SCHEMA", Types.VARCHAR, false, true),
+						new MysqlColumn("TABLE_NAME", "TABLE_NAME", Types.VARCHAR, false, true),
+						new MysqlColumn("COLUMN_NAME", "COLUMN_NAME", Types.VARCHAR, false, true),
+						new MysqlColumn("ORDINAL_POSITION", "ORDINAL_POSITION", Types.INTEGER, false, true),
+						new MysqlColumn("COLUMN_DEFAULT", "COLUMN_DEFAULT", Types.VARCHAR, true, true),
+						new MysqlColumn("IS_NULLABLE", "IS_NULLABLE", Types.VARCHAR, false, true),
+						new MysqlColumn("DATA_TYPE", "DATA_TYPE", Types.VARCHAR, false, true)
+				),
+				rows
+		);
+	}
+
+	private void addColumnRows(MysqlProtocolSession session, List<List<Object>> rows,
+			String tableName, List<MysqlColumn> tableColumns) {
+		for (int i = 0; i < tableColumns.size(); i++) {
+			MysqlColumn column = tableColumns.get(i);
+			rows.add(Arrays.<Object>asList(
+					"def",
+					session.getDatabase(),
+					tableName,
+					column.getName(),
+					i + 1,
+					null,
+					column.isNullable() ? "YES" : "NO",
+					toMysqlTypeName(column.getJdbcType())
+			));
+		}
+	}
+
 	private String toMysqlTypeName(int jdbcType) {
 		if (jdbcType == Types.INTEGER || jdbcType == Types.SMALLINT || jdbcType == Types.TINYINT) {
 			return "int";
