@@ -2,6 +2,8 @@
 comet_change: add-nebula-mysql-routine-subset
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-18-add-nebula-mysql-routine-subset
+status: final
 ---
 
 # Nebula MySQL Routine 子集技术设计
