@@ -108,11 +108,11 @@ base-ref: 874719db4c0b576fc1cceb7e2be0c05d4816fcc7
 - Consumes: `NebulaSqlMutationExecutor.executeMutation(NebulaMutationPlan)`
 - Produces: `TriggerAwareMutationExecutor.executeMutation(NebulaMutationPlan)` ordering: BEFORE bodies, primary write, AFTER bodies
 
-- [ ] Step 1: Write tests for INSERT, UPDATE and DELETE trigger ordering using fake executors.
-- [ ] Step 2: Run targeted test and verify it fails.
-- [ ] Step 3: Implement event mapping from `NebulaMutationKind` and trigger-aware executor.
-- [ ] Step 4: Run targeted test and verify it passes.
-- [ ] Step 5: Check OpenSpec tasks `2.2` and `3.1` if INSERT/UPDATE/DELETE paths are all covered, then commit with `feat(nebula): execute trigger hooks around writes`.
+- [x] Step 1: Write tests for INSERT, UPDATE and DELETE trigger ordering using fake executors.
+- [x] Step 2: Run targeted test and verify it fails.
+- [x] Step 3: Implement event mapping from `NebulaMutationKind` and trigger-aware executor.
+- [x] Step 4: Run targeted test and verify it passes.
+- [x] Step 5: Check OpenSpec tasks `2.2` and `3.1` if INSERT/UPDATE/DELETE paths are all covered, then commit with `feat(nebula): execute trigger hooks around writes`.
 
 ### Task 5: 递归保护和不支持 body 语法
 
