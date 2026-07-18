@@ -15,7 +15,7 @@ design_doc: docs/superpowers/specs/2026-07-17-nebula-mysql-trigger-subset-design
 plan: docs/superpowers/plans/2026-07-18-nebula-mysql-trigger-subset.md
 verify_result: pass
 verification_report: docs/superpowers/reports/2026-07-18-add-nebula-mysql-trigger-subset-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-07-16
 verified_at: 2026-07-18
 archived: true
