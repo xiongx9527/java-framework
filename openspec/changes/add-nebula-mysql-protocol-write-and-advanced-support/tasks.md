@@ -8,7 +8,7 @@
 - [x] 2.1 实现 MySQL 协议写入和 DDL 执行路径。
 - [x] 2.2 实现 prepared statement 常见路径。
 - [x] 2.3 实现认证/权限/SSL 配置策略。
-- [ ] 2.4 增强 metadata 查询兼容。
+- [x] 2.4 增强 metadata 查询兼容。
 
 ## 3. 兼容验证
 

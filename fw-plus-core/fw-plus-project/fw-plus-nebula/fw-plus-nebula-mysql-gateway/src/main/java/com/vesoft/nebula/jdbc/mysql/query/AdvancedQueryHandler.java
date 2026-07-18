@@ -24,6 +24,7 @@ import java.util.Locale;
 
 public class AdvancedQueryHandler {
 	private final ReadonlyQueryHandler readonlyHandler;
+	private final MysqlMetadataHandler metadataHandler;
 	private final NebulaSqlParser parser;
 	private final NebulaSqlWriteConverter writeConverter;
 	private final NebulaSqlDdlConverter ddlConverter;
@@ -49,6 +50,7 @@ public class AdvancedQueryHandler {
 			NebulaSqlMutationExecutor mutationExecutor, NebulaSchemaMappingRegistry schemaMapping,
 			MysqlGatewaySecurityPolicy securityPolicy) {
 		this.readonlyHandler = new ReadonlyQueryHandler(executionPort, metadataHandler);
+		this.metadataHandler = metadataHandler;
 		this.parser = parser;
 		this.writeConverter = writeConverter;
 		this.ddlConverter = ddlConverter;
@@ -62,6 +64,10 @@ public class AdvancedQueryHandler {
 		checkTransport(session);
 		if (isTransactionStatement(normalized)) {
 			throw MysqlErrorMapper.transactionUnsupported();
+		}
+		if (isAdvancedMetadataSql(normalized)) {
+			checkAllowed(session, MysqlGatewayOperation.METADATA);
+			return routeAdvancedMetadata(session, normalized);
 		}
 		NebulaSqlParseResult parseResult = parse(normalized);
 		if (parseResult == null) {
@@ -132,6 +138,53 @@ public class AdvancedQueryHandler {
 	private boolean isMetadataSql(String sql) {
 		String upper = sql == null ? "" : sql.trim().toUpperCase(Locale.ENGLISH);
 		return upper.startsWith("SHOW ") || upper.startsWith("DESCRIBE ") || upper.startsWith("DESC ");
+	}
+
+	private boolean isAdvancedMetadataSql(String sql) {
+		String upper = sql == null ? "" : sql.trim().toUpperCase(Locale.ENGLISH);
+		return "SHOW VARIABLES".equals(upper)
+				|| "SELECT DATABASE()".equals(upper)
+				|| upper.indexOf("INFORMATION_SCHEMA.TABLES") >= 0
+				|| upper.indexOf("INFORMATION_SCHEMA.COLUMNS") >= 0;
+	}
+
+	private MysqlQueryResult routeAdvancedMetadata(MysqlProtocolSession session, String sql) throws SQLException {
+		String upper = sql == null ? "" : sql.trim().toUpperCase(Locale.ENGLISH);
+		if ("SHOW VARIABLES".equals(upper)) {
+			return metadataHandler.showVariables(session);
+		}
+		if ("SELECT DATABASE()".equals(upper)) {
+			return metadataHandler.selectDatabase(session);
+		}
+		if (upper.indexOf("INFORMATION_SCHEMA.TABLES") >= 0) {
+			return metadataHandler.informationSchemaTables(session);
+		}
+		if (upper.indexOf("INFORMATION_SCHEMA.COLUMNS") >= 0) {
+			return metadataHandler.informationSchemaColumns(session, extractTableName(sql));
+		}
+		throw MysqlErrorMapper.unsupported("Metadata query is not supported");
+	}
+
+	private String extractTableName(String sql) {
+		String marker = "TABLE_NAME";
+		String upper = sql == null ? "" : sql.toUpperCase(Locale.ENGLISH);
+		int index = upper.indexOf(marker);
+		if (index < 0) {
+			return null;
+		}
+		int equals = upper.indexOf('=', index + marker.length());
+		if (equals < 0) {
+			return null;
+		}
+		String value = sql.substring(equals + 1).trim();
+		if (value.startsWith("'") && value.indexOf("'", 1) > 1) {
+			return value.substring(1, value.indexOf("'", 1));
+		}
+		if (value.startsWith("\"") && value.indexOf("\"", 1) > 1) {
+			return value.substring(1, value.indexOf("\"", 1));
+		}
+		String[] parts = value.split("\\s+");
+		return parts.length == 0 ? null : parts[0].replace("`", "");
 	}
 
 	private boolean isTransactionStatement(String sql) {
