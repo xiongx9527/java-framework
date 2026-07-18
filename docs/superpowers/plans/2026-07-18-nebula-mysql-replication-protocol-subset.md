@@ -2,6 +2,7 @@
 change: add-nebula-mysql-replication-protocol-subset
 design-doc: docs/superpowers/specs/2026-07-17-nebula-mysql-replication-protocol-subset-design.md
 base-ref: 2c33c0e4a1d441ba7438ad813082dad8332ba134
+archived-with: 2026-07-18-add-nebula-mysql-replication-protocol-subset
 ---
 
 # Nebula MySQL 复制协议子集 Implementation Plan

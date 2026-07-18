@@ -2,6 +2,8 @@
 comet_change: add-nebula-mysql-replication-protocol-subset
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-18-add-nebula-mysql-replication-protocol-subset
+status: final
 ---
 
 # Nebula MySQL 复制协议子集技术设计
