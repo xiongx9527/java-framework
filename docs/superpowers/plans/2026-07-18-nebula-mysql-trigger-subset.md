@@ -71,11 +71,11 @@ base-ref: 874719db4c0b576fc1cceb7e2be0c05d4816fcc7
 - Produces: `create(TriggerDefinitionDraft)`, `drop(schemaName, triggerName, ifExists)`, `findEnabled(schemaName, targetTable, event, timing)`
 - Produces: `TriggerExecutionContext.root(maxDepth)` and `enter(TriggerDefinition)`
 
-- [ ] Step 1: Write tests for duplicate create, drop missing, drop-if-exists, stable ordering, disabled filtering, max-depth rejection.
-- [ ] Step 2: Run targeted test and verify the new assertions fail.
-- [ ] Step 3: Implement store/service/context.
-- [ ] Step 4: Run targeted test and verify it passes.
-- [ ] Step 5: Check OpenSpec task `1.2` and commit with `feat(nebula): add trigger metadata service`.
+- [x] Step 1: Write tests for duplicate create, drop missing, drop-if-exists, stable ordering, disabled filtering, max-depth rejection.
+- [x] Step 2: Run targeted test and verify the new assertions fail.
+- [x] Step 3: Implement store/service/context.
+- [x] Step 4: Run targeted test and verify it passes.
+- [x] Step 5: Check OpenSpec task `1.2` and commit with `feat(nebula): add trigger metadata service`.
 
 ### Task 3: CREATE/DROP TRIGGER DDL handler
 
