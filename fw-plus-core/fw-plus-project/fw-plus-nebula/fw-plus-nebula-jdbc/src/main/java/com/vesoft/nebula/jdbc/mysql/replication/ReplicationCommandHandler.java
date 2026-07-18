@@ -52,11 +52,17 @@ public class ReplicationCommandHandler {
 					DEFAULT_TIMEOUT_MILLIS
 			);
 			BinlogStreamCursor cursor = streamReader.open(readRequest);
+			List<BinlogStreamEvent> events;
+			try {
+				events = cursor.read(DEFAULT_BATCH_SIZE, DEFAULT_TIMEOUT_MILLIS);
+			} catch (BinlogStreamException exception) {
+				cursor.close();
+				throw exception;
+			}
 			session.startStreaming(cursor, request.getServerId(), request.getFileName(), request.getPosition(),
 					request.getFlags());
 			List<ReplicationEventPacket> packets = new ArrayList<ReplicationEventPacket>();
 			packets.add(ReplicationEventPacket.formatDescription(startPosition));
-			List<BinlogStreamEvent> events = cursor.read(DEFAULT_BATCH_SIZE, DEFAULT_TIMEOUT_MILLIS);
 			for (BinlogStreamEvent event : events) {
 				packets.add(ReplicationEventPacket.from(event));
 				session.markSent(event.getNextPosition());
