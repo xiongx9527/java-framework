@@ -139,9 +139,9 @@ base-ref: 874719db4c0b576fc1cceb7e2be0c05d4816fcc7
 - Create or modify `fw-plus-core/.../src/main/resources/META-INF/fw-plus-nebula-sql-trigger.md`
 - Modify delta spec only if implementation reveals a small missing scenario.
 
-- [ ] Step 1: Document supported CREATE/DROP syntax, BEFORE/AFTER ordering, failure policy, recursion depth and gateway-only boundary.
-- [ ] Step 2: Verify docs contain no full MySQL compatibility claim.
-- [ ] Step 3: Commit with `docs(nebula): document trigger subset boundaries`.
+- [x] Step 1: Document supported CREATE/DROP syntax, BEFORE/AFTER ordering, failure policy, recursion depth and gateway-only boundary.
+- [x] Step 2: Verify docs contain no full MySQL compatibility claim.
+- [x] Step 3: Commit with `docs(nebula): document trigger subset boundaries`.
 
 ### Task 7: Build verification and final build bookkeeping
 
