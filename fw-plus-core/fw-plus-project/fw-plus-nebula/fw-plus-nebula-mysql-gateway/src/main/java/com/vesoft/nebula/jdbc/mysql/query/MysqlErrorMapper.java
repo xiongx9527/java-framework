@@ -24,6 +24,10 @@ public final class MysqlErrorMapper {
 		return new MysqlGatewayException(message == null ? "Command is not supported" : message, "HY000", 1235);
 	}
 
+	public static MysqlGatewayException incorrectArguments(String message) {
+		return new MysqlGatewayException(message == null ? "Incorrect arguments" : message, "HY000", 1210);
+	}
+
 	public static MysqlGatewayException transactionUnsupported() {
 		return new MysqlGatewayException("Transactions are not supported by Nebula MySQL gateway", "HY000", 1196);
 	}
