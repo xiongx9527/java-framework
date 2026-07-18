@@ -4,6 +4,7 @@ import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.NebulaResultSet;
 import com.vesoft.nebula.jdbc.statement.NebulaStatementClassifier;
 import com.vesoft.nebula.jdbc.sql.binlog.BinlogEventStore;
+import com.vesoft.nebula.jdbc.sql.binlog.NebulaBinlogEventOptions;
 import com.vesoft.nebula.jdbc.sql.binlog.NebulaBinlogEventDraft;
 import com.vesoft.nebula.jdbc.sql.binlog.NebulaBinlogEventFactory;
 import com.vesoft.nebula.jdbc.sql.parser.NebulaSqlParseResult;
@@ -30,6 +31,7 @@ import java.text.SimpleDateFormat;
 public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 	private final NebulaSchemaMappingRegistry schemaMapping;
 	private final BinlogEventStore binlogEventStore;
+	private final NebulaBinlogEventOptions binlogEventOptions;
 	private final DruidNebulaSqlParser parser = new DruidNebulaSqlParser();
 	private final DefaultNebulaSqlWriteConverter writeConverter = new DefaultNebulaSqlWriteConverter();
 	private final DefaultNebulaSqlDdlConverter ddlConverter = new DefaultNebulaSqlDdlConverter();
@@ -43,8 +45,14 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 	}
 
 	public DirectNebulaSqlExecutor(NebulaSchemaMappingRegistry schemaMapping, BinlogEventStore binlogEventStore) {
+		this(schemaMapping, binlogEventStore, NebulaBinlogEventOptions.defaults());
+	}
+
+	public DirectNebulaSqlExecutor(NebulaSchemaMappingRegistry schemaMapping, BinlogEventStore binlogEventStore,
+			NebulaBinlogEventOptions binlogEventOptions) {
 		this.schemaMapping = schemaMapping == null ? NebulaSchemaMappingRegistry.builder().build() : schemaMapping;
 		this.binlogEventStore = binlogEventStore;
+		this.binlogEventOptions = binlogEventOptions == null ? NebulaBinlogEventOptions.defaults() : binlogEventOptions;
 	}
 
 	@Override
@@ -74,8 +82,8 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 			appendMutationEvent(result);
 			return result.getAffectedRows();
 		}
-		if (parseResult != null && isDdlStatement(parseResult.getKind())) {
-			NebulaDdlPlan plan = ddlConverter.convert(parseResult.getStatement(), schemaMapping);
+		if (parseResult != null && isSchemaChangeStatement(parseResult.getKind())) {
+			NebulaDdlPlan plan = ddlConverter.convert(parseResult.getStatement(), schemaMapping, renderedSql);
 			NebulaMutationResult result = new DirectNebulaSqlMutationExecutor(connection).executeDdl(plan);
 			appendDdlEvent(result);
 			return result.getAffectedRows();
@@ -93,7 +101,8 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 				result.getMutationDescriptor(),
 				"nebula-jdbc",
 				result.getTraceId(),
-				System.currentTimeMillis()
+				System.currentTimeMillis(),
+				binlogEventOptions
 		));
 	}
 
@@ -105,7 +114,8 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 				result.getDdlDescriptor(),
 				"nebula-jdbc",
 				result.getTraceId(),
-				System.currentTimeMillis()
+				System.currentTimeMillis(),
+				binlogEventOptions
 		));
 	}
 
@@ -129,8 +139,8 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 		return kind == StatementKind.INSERT || kind == StatementKind.UPDATE || kind == StatementKind.DELETE;
 	}
 
-	private boolean isDdlStatement(StatementKind kind) {
-		return kind == StatementKind.CREATE_SCHEMA || kind == StatementKind.DROP_SCHEMA || kind == StatementKind.METADATA;
+	private boolean isSchemaChangeStatement(StatementKind kind) {
+		return kind == StatementKind.CREATE_SCHEMA || kind == StatementKind.DROP_SCHEMA;
 	}
 
 	private boolean isTransactionStatement(String sql) {
