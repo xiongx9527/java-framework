@@ -1,0 +1,65 @@
+package com.vesoft.nebula.jdbc.sql.routine;
+
+import org.junit.Test;
+
+import java.sql.SQLException;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+public class RoutineServiceTest {
+
+	@Test
+	public void createAndDropShouldManageDefinitions() throws Exception {
+		InMemoryRoutineMetadataRepository repository = new InMemoryRoutineMetadataRepository();
+		RoutineService service = new RoutineService(repository);
+
+		service.create("graph_a", "alice",
+				"CREATE PROCEDURE P(IN id VARCHAR(64)) BEGIN SELECT * FROM person WHERE id = id; END");
+
+		assertNotNull(repository.find(RoutineName.of("graph_a", "p")));
+		service.drop("graph_a", "DROP PROCEDURE p");
+		assertNull(repository.find(RoutineName.of("graph_a", "p")));
+	}
+
+	@Test
+	public void duplicateCreateShouldReturnStableMysqlError() throws Exception {
+		RoutineService service = new RoutineService(new InMemoryRoutineMetadataRepository());
+		String sql = "CREATE PROCEDURE p() BEGIN SELECT 1; END";
+		service.create("graph_a", "alice", sql);
+
+		try {
+			service.create("graph_a", "alice", sql);
+			fail("Duplicate create must fail");
+		}
+		catch (SQLException exception) {
+			assertEquals(1304, exception.getErrorCode());
+			assertEquals("42000", exception.getSQLState());
+		}
+	}
+
+	@Test
+	public void dropIfExistsShouldSucceedWhenMissing() throws Exception {
+		RoutineService service = new RoutineService(new InMemoryRoutineMetadataRepository());
+
+		assertEquals(0, service.drop("graph_a", "DROP PROCEDURE IF EXISTS p"));
+	}
+
+	@Test
+	public void dropMissingWithoutIfExistsShouldReturnStableMysqlError() throws Exception {
+		RoutineService service = new RoutineService(new InMemoryRoutineMetadataRepository());
+
+		try {
+			service.drop("graph_a", "DROP PROCEDURE p");
+			fail("Missing drop must fail");
+		}
+		catch (SQLException exception) {
+			assertEquals(1305, exception.getErrorCode());
+			assertEquals("42000", exception.getSQLState());
+			assertTrue(exception.getMessage().contains("p"));
+		}
+	}
+}
