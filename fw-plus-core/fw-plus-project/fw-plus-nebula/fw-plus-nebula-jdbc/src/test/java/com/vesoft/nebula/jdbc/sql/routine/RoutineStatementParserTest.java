@@ -74,6 +74,17 @@ public class RoutineStatementParserTest {
 		assertUnsupported("CREATE PROCEDURE p() BEGIN LOOP SELECT 1; END LOOP; END");
 	}
 
+	@Test
+	public void unsupportedKeywordsInsideStringLiteralsShouldNotBeRejected() throws Exception {
+		RoutineStatement statement = RoutineStatementParser.parse(
+				"CREATE PROCEDURE p() BEGIN SELECT 'COMMIT'; SELECT 'PREPARE stmt FROM ''SELECT 1'''; END");
+
+		assertEquals(RoutineStatement.Kind.CREATE_PROCEDURE, statement.getKind());
+		assertEquals(2, statement.getBodyStatements().size());
+		assertEquals("SELECT 'COMMIT'", statement.getBodyStatements().get(0));
+		assertEquals("SELECT 'PREPARE stmt FROM ''SELECT 1'''", statement.getBodyStatements().get(1));
+	}
+
 	private void assertUnsupported(String sql) throws Exception {
 		try {
 			RoutineStatementParser.parse(sql);

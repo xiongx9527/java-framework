@@ -107,6 +107,24 @@ public class RoutineInterpreterTest {
 	}
 
 	@Test
+	public void statementBudgetShouldCountSqlInsideMatchedIfBranch() throws Exception {
+		RoutineService service = new RoutineService(new InMemoryRoutineMetadataRepository(), 1);
+		service.create("graph_a", "alice",
+				"CREATE PROCEDURE p() BEGIN IF 1 = 1 THEN SELECT * FROM person; UPDATE person SET touched = 1 WHERE id = 'v1'; ELSE SELECT * FROM fallback; END IF; END");
+		RecordingExecutor executor = new RecordingExecutor(mock(ResultSet.class));
+
+		try {
+			service.call("graph_a", "alice", "CALL p()", null, executor);
+			fail("Nested IF body statements must count toward statement budget");
+		}
+		catch (SQLException exception) {
+			assertEquals(1317, exception.getErrorCode());
+			assertEquals("70100", exception.getSQLState());
+			assertEquals(0, executor.calls.size());
+		}
+	}
+
+	@Test
 	public void bodyCallShouldBeRejectedAsRecursiveBoundary() throws Exception {
 		RoutineService service = new RoutineService(new InMemoryRoutineMetadataRepository());
 		service.create("graph_a", "alice",
@@ -158,12 +176,32 @@ public class RoutineInterpreterTest {
 		}
 	}
 
+	@Test
+	public void executionTimeoutShouldRejectCallAfterSlowBodySqlReturns() throws Exception {
+		RoutineService service = new RoutineService(new InMemoryRoutineMetadataRepository(), 64, 100L);
+		service.create("graph_a", "alice",
+				"CREATE PROCEDURE p() BEGIN SELECT * FROM person; END");
+		RecordingExecutor executor = new RecordingExecutor(mock(ResultSet.class));
+		executor.queryDelayMillis = 150L;
+
+		try {
+			service.call("graph_a", "alice", "CALL p()", null, executor);
+			fail("Timeout budget must be checked after a body SQL returns");
+		}
+		catch (SQLException exception) {
+			assertEquals(1317, exception.getErrorCode());
+			assertEquals("70100", exception.getSQLState());
+			assertEquals(1, executor.calls.size());
+		}
+	}
+
 	private static class RecordingExecutor implements NebulaSqlExecutor {
 		private final List<String> calls = new ArrayList<String>();
 		private final List<NebulaParameterBindings> bindings = new ArrayList<NebulaParameterBindings>();
 		private final ResultSet[] queryResults;
 		private int queryIndex;
 		private boolean failOnUpdate;
+		private long queryDelayMillis;
 
 		private RecordingExecutor(ResultSet... queryResults) {
 			this.queryResults = queryResults;
@@ -173,6 +211,15 @@ public class RoutineInterpreterTest {
 		public ResultSet executeQuery(NebulaConnection connection, String sql, NebulaParameterBindings bindings) throws SQLException {
 			calls.add("Q:" + sql);
 			this.bindings.add(bindings);
+			if (queryDelayMillis > 0L) {
+				try {
+					Thread.sleep(queryDelayMillis);
+				}
+				catch (InterruptedException exception) {
+					Thread.currentThread().interrupt();
+					throw new SQLException("interrupted", exception);
+				}
+			}
 			if (queryIndex < queryResults.length) {
 				return queryResults[queryIndex++];
 			}

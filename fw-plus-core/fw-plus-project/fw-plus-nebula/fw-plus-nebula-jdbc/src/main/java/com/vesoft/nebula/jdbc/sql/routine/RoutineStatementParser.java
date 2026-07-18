@@ -75,12 +75,7 @@ public final class RoutineStatementParser {
 		if (upper.startsWith("ALTER PROCEDURE") || upper.startsWith("SHOW PROCEDURE")) {
 			throw RoutineException.unsupported(firstWords(upper, 2));
 		}
-		String padded = " " + upper.replace('\n', ' ')
-				.replace('\r', ' ')
-				.replace(';', ' ')
-				.replace('(', ' ')
-				.replace(')', ' ')
-				.replace(',', ' ') + " ";
+		String padded = unsupportedKeywordSearchText(sql);
 		String[] unsupported = new String[] {
 				" OUT ", " INOUT ", " CURSOR ", " HANDLER ", " PREPARE ", " EXECUTE ",
 				" DEALLOCATE ", " CREATE TEMPORARY TABLE ", " START TRANSACTION ",
@@ -91,6 +86,38 @@ public final class RoutineStatementParser {
 				throw RoutineException.unsupported(unsupported[i].trim());
 			}
 		}
+	}
+
+	private static String unsupportedKeywordSearchText(String sql) throws SQLException {
+		StringBuilder builder = new StringBuilder(sql.length() + 2);
+		builder.append(' ');
+		boolean inString = false;
+		for (int i = 0; i < sql.length(); i++) {
+			char c = sql.charAt(i);
+			if (c == '\'') {
+				builder.append(' ');
+				if (inString && i + 1 < sql.length() && sql.charAt(i + 1) == '\'') {
+					builder.append(' ');
+					i++;
+				}
+				else {
+					inString = !inString;
+				}
+				continue;
+			}
+			if (inString || c == '\n' || c == '\r' || c == ';'
+					|| c == '(' || c == ')' || c == ',') {
+				builder.append(' ');
+			}
+			else {
+				builder.append(Character.toUpperCase(c));
+			}
+		}
+		if (inString) {
+			throw RoutineException.syntax("Unbalanced routine expression");
+		}
+		builder.append(' ');
+		return builder.toString();
 	}
 
 	private static String firstWords(String upper, int count) {

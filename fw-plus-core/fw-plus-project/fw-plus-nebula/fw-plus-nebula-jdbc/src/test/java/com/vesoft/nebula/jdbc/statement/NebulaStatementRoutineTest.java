@@ -3,6 +3,8 @@ package com.vesoft.nebula.jdbc.statement;
 import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.sql.NebulaParameterBindings;
 import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutor;
+import com.vesoft.nebula.jdbc.sql.routine.InMemoryRoutineMetadataRepository;
+import com.vesoft.nebula.jdbc.sql.routine.RoutinePermissionChecker;
 import com.vesoft.nebula.jdbc.sql.routine.RoutineService;
 import org.junit.After;
 import org.junit.Test;
@@ -11,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -61,6 +64,22 @@ public class NebulaStatementRoutineTest {
 	}
 
 	@Test
+	public void executeShouldPassCurrentUserToDropProcedurePermissionCheck() throws Exception {
+		RecordingPermissionChecker checker = new RecordingPermissionChecker();
+		RoutineService service = new RoutineService(new InMemoryRoutineMetadataRepository(), 64,
+				30000L, checker);
+		RecordingExecutor executor = new RecordingExecutor(mock(ResultSet.class));
+		TestableStatement statement = new TestableStatement(connection("dropper"), executor, service);
+
+		statement.execute("CREATE PROCEDURE p() BEGIN SELECT * FROM person; END");
+		statement.execute("DROP PROCEDURE p");
+
+		assertEquals("dropper", checker.users.get(0));
+		assertEquals("dropper", checker.users.get(1));
+		assertEquals(RoutinePermissionChecker.Action.MANAGE, checker.actions.get(1));
+	}
+
+	@Test
 	public void ordinarySelectShouldKeepOriginalExecutorPath() throws Exception {
 		RecordingExecutor executor = new RecordingExecutor(mock(ResultSet.class));
 		NebulaStatementImpl statement = new NebulaStatementImpl(connection(), executor);
@@ -73,9 +92,31 @@ public class NebulaStatementRoutineTest {
 	}
 
 	private NebulaConnection connection() throws Exception {
+		return connection("");
+	}
+
+	private NebulaConnection connection(String user) throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
 		when(connection.getSchema()).thenReturn("graph_a");
+		Properties properties = new Properties();
+		properties.setProperty("user", user);
+		when(connection.getConnectionConfig()).thenReturn(properties);
 		return connection;
+	}
+
+	private static class TestableStatement extends NebulaStatementImpl {
+		private final RoutineService routineService;
+
+		private TestableStatement(NebulaConnection connection, NebulaSqlExecutor sqlExecutor,
+				RoutineService routineService) {
+			super(connection, sqlExecutor);
+			this.routineService = routineService;
+		}
+
+		@Override
+		protected RoutineService routineService() {
+			return routineService;
+		}
 	}
 
 	private static class RecordingExecutor implements NebulaSqlExecutor {
@@ -96,6 +137,17 @@ public class NebulaStatementRoutineTest {
 		public int executeUpdate(NebulaConnection connection, String sql, NebulaParameterBindings bindings) throws SQLException {
 			calls.add("U:" + sql);
 			return 1;
+		}
+	}
+
+	private static class RecordingPermissionChecker implements RoutinePermissionChecker {
+		private final List<String> users = new ArrayList<String>();
+		private final List<Action> actions = new ArrayList<Action>();
+
+		@Override
+		public void check(String schema, String user, String routineName, Action action) {
+			users.add(user);
+			actions.add(action);
 		}
 	}
 }

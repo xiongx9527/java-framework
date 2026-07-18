@@ -129,7 +129,7 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     private RoutineCallResult executeRoutine(String sql) throws SQLException {
         RoutineStatement statement = RoutineStatementParser.parse(sql);
-        RoutineService service = RoutineService.getDefault();
+        RoutineService service = routineService();
         if (statement.getKind() == RoutineStatement.Kind.CREATE_PROCEDURE) {
             service.create(currentSchema(), currentUser(), sql);
             this.currentResultSet = null;
@@ -137,7 +137,7 @@ public class NebulaStatementImpl implements NebulaStatement {
             return RoutineCallResult.updateCount(0);
         }
         if (statement.getKind() == RoutineStatement.Kind.DROP_PROCEDURE) {
-            service.drop(currentSchema(), sql);
+            service.drop(currentSchema(), currentUser(), sql);
             this.currentResultSet = null;
             isExecuteSucceed = true;
             return RoutineCallResult.updateCount(0);
@@ -147,6 +147,10 @@ public class NebulaStatementImpl implements NebulaStatement {
         this.currentResultSet = result.getResultSet();
         isExecuteSucceed = true;
         return result;
+    }
+
+    protected RoutineService routineService() {
+        return RoutineService.getDefault();
     }
 
     private String currentSchema() throws SQLException {
