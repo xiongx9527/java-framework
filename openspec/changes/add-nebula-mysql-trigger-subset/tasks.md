@@ -5,7 +5,7 @@
 
 ## 2. Trigger 实现
 
-- [ ] 2.1 实现 trigger 定义保存和删除。
+- [x] 2.1 实现 trigger 定义保存和删除。
 - [ ] 2.2 在 INSERT/UPDATE/DELETE 网关写入路径触发 BEFORE/AFTER 逻辑。
 - [ ] 2.3 实现递归保护和不支持语法错误。
 
