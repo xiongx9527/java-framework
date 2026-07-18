@@ -22,10 +22,11 @@ public class QueryExpression {
 	private final QueryExpression left;
 	private final QueryExpression right;
 	private final List<QueryExpression> arguments;
+	private final boolean aggregate;
 
 	private QueryExpression(Type type, String tableName, String columnName, Object literalValue,
 							QueryExpression left, QueryExpression right, String functionName,
-							List<QueryExpression> arguments) {
+							List<QueryExpression> arguments, boolean aggregate) {
 		this.type = type;
 		this.tableName = tableName;
 		this.columnName = columnName;
@@ -35,26 +36,27 @@ public class QueryExpression {
 		this.right = right;
 		this.arguments = arguments == null ? Collections.<QueryExpression>emptyList()
 				: Collections.unmodifiableList(new ArrayList<QueryExpression>(arguments));
+		this.aggregate = aggregate;
 	}
 
 	public static QueryExpression column(String tableName, String columnName) {
-		return new QueryExpression(Type.COLUMN, tableName, columnName, null, null, null, null, null);
+		return new QueryExpression(Type.COLUMN, tableName, columnName, null, null, null, null, null, false);
 	}
 
 	public static QueryExpression literal(Object value) {
-		return new QueryExpression(Type.LITERAL, null, null, value, null, null, null, null);
+		return new QueryExpression(Type.LITERAL, null, null, value, null, null, null, null, false);
 	}
 
 	public static QueryExpression eq(QueryExpression left, QueryExpression right) {
-		return new QueryExpression(Type.EQ, null, null, null, left, right, null, null);
+		return new QueryExpression(Type.EQ, null, null, null, left, right, null, null, false);
 	}
 
 	public static QueryExpression gte(QueryExpression left, QueryExpression right) {
-		return new QueryExpression(Type.GTE, null, null, null, left, right, null, null);
+		return new QueryExpression(Type.GTE, null, null, null, left, right, null, null, false);
 	}
 
 	public static QueryExpression and(QueryExpression left, QueryExpression right) {
-		return new QueryExpression(Type.AND, null, null, null, left, right, null, null);
+		return new QueryExpression(Type.AND, null, null, null, left, right, null, null, false);
 	}
 
 	public static QueryExpression function(String functionName, QueryExpression argument) {
@@ -64,7 +66,13 @@ public class QueryExpression {
 	}
 
 	public static QueryExpression function(String functionName, List<QueryExpression> arguments) {
-		return new QueryExpression(Type.FUNCTION, null, null, null, null, null, functionName, arguments);
+		return new QueryExpression(Type.FUNCTION, null, null, null, null, null, functionName, arguments, false);
+	}
+
+	public static QueryExpression aggregate(String functionName, QueryExpression argument) {
+		List<QueryExpression> arguments = new ArrayList<QueryExpression>();
+		arguments.add(argument);
+		return new QueryExpression(Type.FUNCTION, null, null, null, null, null, functionName, arguments, true);
 	}
 
 	public Type getType() {
@@ -97,5 +105,9 @@ public class QueryExpression {
 
 	public List<QueryExpression> getArguments() {
 		return arguments;
+	}
+
+	public boolean isAggregate() {
+		return aggregate;
 	}
 }

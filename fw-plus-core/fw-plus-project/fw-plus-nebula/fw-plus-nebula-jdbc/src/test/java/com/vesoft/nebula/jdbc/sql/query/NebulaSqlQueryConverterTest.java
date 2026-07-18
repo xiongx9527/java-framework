@@ -94,6 +94,93 @@ public class NebulaSqlQueryConverterTest {
 	}
 
 	@Test
+	public void tagEdgeTagJoinShouldRenderSingleHopRelationQuery() throws Exception {
+		NebulaSchemaMappingRegistry mappings = NebulaSchemaMappingRegistry.builder()
+				.addTable(TableMapping.tag("person", "person")
+						.idColumn("id", Types.VARCHAR)
+						.property("name", "name", Types.VARCHAR)
+						.build())
+				.addTable(TableMapping.edge("follow", "follow")
+						.srcColumn("src_id", Types.VARCHAR)
+						.dstColumn("dst_id", Types.VARCHAR)
+						.property("since", "since", Types.INTEGER)
+						.build())
+				.build();
+		NebulaQueryStatement statement = NebulaQueryStatement.tagEdgeTag(
+						"person", "p", "follow", "f", "person", "friend")
+				.projection(QueryExpression.column("p", "name"), "person_name")
+				.projection(QueryExpression.column("f", "since"), "since")
+				.projection(QueryExpression.column("friend", "name"), "friend_name")
+				.where(QueryExpression.eq(QueryExpression.column("p", "id"), QueryExpression.literal("p1")))
+				.build();
+
+		NgqlQueryPlan plan = new DefaultNebulaSqlQueryConverter()
+				.convert(statement, NebulaQueryBindings.empty(), mappings);
+
+		assertEquals("MATCH (p:person)-[f:follow]->(friend:person) WHERE id(p) == \"p1\" RETURN p.name AS person_name, f.since AS since, friend.name AS friend_name", plan.getNgql());
+		assertEquals(QueryKind.RELATION_QUERY, plan.getQueryKind());
+		assertEquals(QueryFidelity.CONTROLLED_EQUIVALENT, plan.getFidelity());
+		assertEquals(3, plan.getColumns().size());
+		assertTrue(plan.getTrace().contains("join person-follow-person -> tag-edge-tag"));
+	}
+
+	@Test
+	public void aggregateGroupByHavingShouldRenderWithPipeline() throws Exception {
+		NebulaSchemaMappingRegistry mappings = NebulaSchemaMappingRegistry.builder()
+				.addTable(TableMapping.tag("person", "person")
+						.idColumn("id", Types.VARCHAR)
+						.property("city", "city", Types.VARCHAR)
+						.build())
+				.build();
+		NebulaQueryStatement statement = NebulaQueryStatement.select("person")
+				.alias("p")
+				.projection(QueryExpression.column("p", "city"), "city")
+				.projection(QueryExpression.aggregate("count", QueryExpression.column("p", "id")), "person_count")
+				.groupBy(QueryExpression.column("p", "city"))
+				.having(QueryExpression.gte(QueryExpression.column(null, "person_count"), QueryExpression.literal(2)))
+				.build();
+
+		NgqlQueryPlan plan = new DefaultNebulaSqlQueryConverter()
+				.convert(statement, NebulaQueryBindings.empty(), mappings);
+
+		assertEquals("MATCH (p:person) WITH p.city AS city, count(id(p)) AS person_count WHERE person_count >= 2 RETURN city, person_count", plan.getNgql());
+		assertEquals(QueryKind.AGGREGATE_QUERY, plan.getQueryKind());
+		assertEquals(2, plan.getColumns().size());
+		assertEquals(Types.BIGINT, plan.getColumns().get(1).getJdbcType());
+		assertTrue(plan.getTrace().contains("aggregate count -> count"));
+		assertTrue(plan.getTrace().contains("group [p.city]"));
+	}
+
+	@Test
+	public void unionShouldRenderCompatibleSelectBranches() throws Exception {
+		NebulaSchemaMappingRegistry mappings = NebulaSchemaMappingRegistry.builder()
+				.addTable(TableMapping.tag("person", "person")
+						.idColumn("id", Types.VARCHAR)
+						.property("name", "name", Types.VARCHAR)
+						.build())
+				.addTable(TableMapping.tag("player", "player")
+						.idColumn("id", Types.VARCHAR)
+						.property("name", "name", Types.VARCHAR)
+						.build())
+				.build();
+		NebulaQueryStatement left = NebulaQueryStatement.select("person")
+				.projection(QueryExpression.column("person", "name"), "name")
+				.build();
+		NebulaQueryStatement right = NebulaQueryStatement.select("player")
+				.projection(QueryExpression.column("player", "name"), "name")
+				.build();
+
+		NgqlQueryPlan plan = new DefaultNebulaSqlQueryConverter()
+				.convert(NebulaQueryStatement.union(left, right), NebulaQueryBindings.empty(), mappings);
+
+		assertEquals("MATCH (person:person) RETURN person.name AS name UNION MATCH (player:player) RETURN player.name AS name", plan.getNgql());
+		assertEquals(QueryKind.SET_QUERY, plan.getQueryKind());
+		assertEquals(QueryFidelity.CONTROLLED_EQUIVALENT, plan.getFidelity());
+		assertEquals(1, plan.getColumns().size());
+		assertTrue(plan.getTrace().contains("union UNION"));
+	}
+
+	@Test
 	public void unsupportedAndMissingMappingsShouldReportStableCodes() throws Exception {
 		final NebulaSchemaMappingRegistry mappings = NebulaSchemaMappingRegistry.builder()
 				.addTable(TableMapping.tag("person", "person")
