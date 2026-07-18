@@ -207,7 +207,7 @@ Run the same tests and commit with message `feat(nebula): route mysql routine st
 - Modify: `openspec/changes/add-nebula-mysql-routine-subset/tasks.md`
 - Optional: `openspec/changes/add-nebula-mysql-routine-subset/specs/nebula-mysql-routine-subset/spec.md` only if implementation reveals a small missing acceptance boundary.
 
-- [ ] **Step 1: Run focused module tests**
+- [x] **Step 1: Run focused module tests**
 
 Run:
 
@@ -215,7 +215,7 @@ Run:
 cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc test
 ```
 
-- [ ] **Step 2: Run Comet build check**
+- [x] **Step 2: Run Comet build check**
 
 Run:
 
@@ -223,6 +223,6 @@ Run:
 comet state check add-nebula-mysql-routine-subset build --recover
 ```
 
-- [ ] **Step 3: Do not run build guard if tasks are intentionally left incomplete**
+- [x] **Step 3: Do not run build guard if tasks are intentionally left incomplete**
 
 Only run `comet guard add-nebula-mysql-routine-subset build --apply` if all tasks are checked, review gate is satisfied, and the user has not limited this worker to partial build.
