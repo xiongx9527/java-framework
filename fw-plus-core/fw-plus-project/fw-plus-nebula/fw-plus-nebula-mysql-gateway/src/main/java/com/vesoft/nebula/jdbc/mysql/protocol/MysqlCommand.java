@@ -8,6 +8,8 @@ public final class MysqlCommand {
 	public static final int COM_PING = 0x0e;
 	public static final int COM_STMT_PREPARE = 0x16;
 	public static final int COM_STMT_EXECUTE = 0x17;
+	public static final int COM_STMT_CLOSE = 0x19;
+	public static final int COM_STMT_RESET = 0x1a;
 
 	private MysqlCommand() {
 	}

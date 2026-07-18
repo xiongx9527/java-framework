@@ -75,6 +75,40 @@ public class MysqlCommandDispatcherTest {
 		assertNotNull(result.getPayload());
 	}
 
+	@Test
+	public void shouldDispatchPreparedStatementCommonCommands() {
+		MysqlCommandDispatcher dispatcher = new MysqlCommandDispatcher(new AdvancedQueryHandler(
+				new EmptyExecutionPort(),
+				new StaticMysqlMetadataHandler("basketballplayer"),
+				new DruidNebulaSqlParser(),
+				new DefaultNebulaSqlWriteConverter(),
+				new DefaultNebulaSqlDdlConverter(),
+				new SuccessfulMutationExecutor(),
+				NebulaSchemaMappingRegistry.builder()
+						.addTable(TableMapping.tag("person", "person")
+								.idColumn("id", Types.VARCHAR)
+								.property("name", "name", Types.VARCHAR)
+								.build())
+						.build()
+		));
+		MysqlProtocolSession session = new MysqlProtocolSession(1L);
+		session.authenticate("writer", "basketballplayer", 0);
+
+		MysqlCommandResult prepare = dispatcher.dispatch(session, MysqlCommand.COM_STMT_PREPARE,
+				"select name from person where id = ?");
+		assertEquals(MysqlCommandResult.Type.OK, prepare.getType());
+
+		MysqlCommandResult execute = dispatcher.dispatch(session, MysqlCommand.COM_STMT_EXECUTE,
+				"1\tp1");
+		assertEquals(MysqlCommandResult.Type.RESULT_SET, execute.getType());
+
+		MysqlCommandResult reset = dispatcher.dispatch(session, MysqlCommand.COM_STMT_RESET, "1");
+		assertEquals(MysqlCommandResult.Type.OK, reset.getType());
+
+		MysqlCommandResult close = dispatcher.dispatch(session, MysqlCommand.COM_STMT_CLOSE, "1");
+		assertEquals(MysqlCommandResult.Type.OK, close.getType());
+	}
+
 	private static class EmptyExecutionPort implements NebulaSqlExecutionPort {
 		@Override
 		public MysqlQueryResult executeQuery(com.vesoft.nebula.jdbc.mysql.query.MysqlGatewaySessionContext context, String sql) {
