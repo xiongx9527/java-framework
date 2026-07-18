@@ -11,6 +11,7 @@ public class MysqlProtocolSession {
 	private int clientCapabilities;
 	private boolean authenticated;
 	private boolean closed;
+	private boolean sslEstablished;
 
 	public MysqlProtocolSession(long connectionId) {
 		this.connectionId = connectionId;
@@ -53,6 +54,14 @@ public class MysqlProtocolSession {
 
 	public boolean isClosed() {
 		return closed;
+	}
+
+	public boolean isSslEstablished() {
+		return sslEstablished;
+	}
+
+	public void setSslEstablished(boolean sslEstablished) {
+		this.sslEstablished = sslEstablished;
 	}
 
 	public void close() {
