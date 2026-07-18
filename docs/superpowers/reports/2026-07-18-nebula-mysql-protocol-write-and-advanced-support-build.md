@@ -120,6 +120,24 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-
 - PASS
 - 16 tests, failures 0, errors 0, skipped 0
 
+命令：
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-mysql-gateway -am -Dtest=MysqlMetadataHandlerTest,AdvancedQueryHandlerTest#shouldRouteCommonMetadataQueries -DfailIfNoTests=false test
+```
+
+结果：
+
+- PASS
+- `AdvancedQueryHandlerTest#shouldRouteCommonMetadataQueries`: 1 test, failures 0, errors 0, skipped 0
+- `MysqlMetadataHandlerTest`: 3 tests, failures 0, errors 0, skipped 0
+
+覆盖：
+
+- `SELECT DATABASE()`、`SHOW VARIABLES`。
+- DBeaver/DataGrip 常见 `information_schema.tables` 和 `information_schema.columns` 探测 SQL。
+- `SHOW DATABASES`、`SHOW TABLES`、`DESCRIBE` 和 table-not-found 错误语义。
+
 ### 环境约束
 
 - `fw-plus-core/mvnw` 存在，但仓库未跟踪 `fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 和 wrapper jar；在当前 worktree 直接执行 `./mvnw` 会失败。
@@ -128,13 +146,23 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-
 ### 未完成的手动/端到端验证
 
 - `3.1 使用 Java MySQL JDBC Driver 验证查询和写入` 已通过 Connector/J 8.0.33 真实 socket 端到端自动化测试。
-- `3.2 使用至少两个 GUI/BI 客户端验证元数据浏览和查询` 未勾选：当前环境未发现可运行的 DBeaver、DataGrip、Tableau、Power BI 或 Metabase 客户端应用/命令；已用 DBeaver/DataGrip/BI 常见 metadata SQL fixture 覆盖自动测试，但这不替代真实客户端手动验收。
+- `3.2 使用至少两个 GUI/BI 客户端验证元数据浏览和查询` 未勾选：当前环境未发现可运行的 DBeaver、DataGrip、Tableau、Power BI、Metabase、DbVisualizer、SQuirreL、SQL Workbench 或 MySQL Workbench 客户端应用/命令，也未发现对应运行进程；已用 DBeaver/DataGrip/BI 常见 metadata SQL fixture 覆盖自动测试，但这不替代真实客户端手动验收。
 
 GUI/BI 客户端检查命令：
 
 ```bash
-find /Applications "$HOME/Applications" -maxdepth 2 \( -iname '*DBeaver*.app' -o -iname '*DataGrip*.app' -o -iname '*Tableau*.app' -o -iname '*Power BI*.app' -o -iname '*Metabase*.app' \) -print 2>/dev/null
-command -v dbeaver || true; command -v datagrip || true; command -v tableau || true
+command -v dbeaver || true
+command -v datagrip || true
+command -v tableau || true
+command -v metabase || true
+find /Applications "$HOME/Applications" -maxdepth 3 \( -iname '*DBeaver*.app' -o -iname '*DataGrip*.app' -o -iname '*Tableau*.app' -o -iname '*Power BI*.app' -o -iname '*Metabase*.app' -o -iname '*DbVisualizer*.app' -o -iname '*SQuirreL*.app' -o -iname '*MySQL Workbench*.app' -o -iname '*SQL Workbench*.app' \) -print 2>/dev/null
+mdfind "kMDItemKind == 'Application' && (kMDItemFSName == '*DBeaver*' || kMDItemFSName == '*DataGrip*' || kMDItemFSName == '*Tableau*' || kMDItemFSName == '*Power BI*' || kMDItemFSName == '*Metabase*' || kMDItemFSName == '*DbVisualizer*' || kMDItemFSName == '*SQuirreL*' || kMDItemFSName == '*MySQL Workbench*')" 2>/dev/null || true
+ps aux | rg -i 'DBeaver|DataGrip|Tableau|Power BI|Metabase|DbVisualizer|SQuirreL|MySQL Workbench|SQL Workbench' | rg -v 'rg -i' || true
 ```
 
-结果：未发现匹配应用或命令。
+结果：未发现匹配应用、命令或运行进程。
+
+手动阻塞：
+
+- 需要在安装了至少两个 GUI/BI 客户端的环境中连接本地 Nebula MySQL gateway，执行连接测试、schema/table metadata 浏览和 SELECT 查询。
+- 当前 build 阶段不能将 fixture-based coverage 记为 `3.2` 完成；进入 guard 前仍需补齐真实客户端验收或由用户明确调整验收边界。
