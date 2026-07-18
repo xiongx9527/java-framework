@@ -2,6 +2,7 @@
 change: add-nebula-mysql-binlog-compatible-stream
 design-doc: docs/superpowers/specs/2026-07-17-nebula-mysql-binlog-compatible-stream-design.md
 base-ref: 65db9422f8918b205df81b8e462e4b683a2741c2
+archived-with: 2026-07-18-add-nebula-mysql-binlog-compatible-stream
 ---
 
 # Nebula MySQL Binlog Compatible Stream Implementation Plan

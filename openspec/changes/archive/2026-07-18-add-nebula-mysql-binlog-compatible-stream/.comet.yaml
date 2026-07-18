@@ -18,12 +18,12 @@ verification_report: docs/superpowers/reports/2026-07-18-add-nebula-mysql-binlog
 branch_status: pending
 created_at: 2026-07-16
 verified_at: 2026-07-18
-archived: false
+archived: true
 direct_override: null
-handoff_context: openspec/changes/add-nebula-mysql-binlog-compatible-stream/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-18-add-nebula-mysql-binlog-compatible-stream/.comet/handoff/design-context.json
 handoff_hash: 0e99d9ac49c909709b12465c46e4988cd9ba873e049ab7ed12be5c117133f604
 classic_profile: full
 classic_migration: 1
 run_id: f8d76499-d7c9-44aa-a05a-d43bec0b600b
 verify_failures: 0
-archive_confirmation: pending
+archive_confirmation: confirmed

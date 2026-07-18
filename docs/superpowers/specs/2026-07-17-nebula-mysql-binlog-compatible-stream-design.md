@@ -2,6 +2,8 @@
 comet_change: add-nebula-mysql-binlog-compatible-stream
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-18-add-nebula-mysql-binlog-compatible-stream
+status: final
 ---
 
 # Nebula MySQL Binlog 兼容事件流技术设计
