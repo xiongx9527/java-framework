@@ -52,7 +52,7 @@ Change: `add-nebula-mysql-protocol-write-and-advanced-support`
 
 | 客户端 | 路径 | 本 change 验收方式 | 预期 |
 |--------|------|--------------------|------|
-| Java MySQL JDBC Driver | `Statement.executeQuery` / `executeUpdate` | 自动单元测试 fixture 固定 query/write/DDL handler 行为 | SELECT 返回 result set；INSERT/UPDATE/DELETE/DDL 返回 OK 和 affected rows |
+| Java MySQL JDBC Driver | `Statement.executeQuery` / `executeUpdate` | Connector/J 8.0.33 真实 socket 端到端测试 | SELECT 返回 result set；INSERT/UPDATE/DELETE 返回 OK 和 affected rows |
 | Java MySQL JDBC Driver | `PreparedStatement` SELECT/write | 自动单元测试覆盖 prepare/execute/close/reset 与参数绑定 | 参数绑定后执行，参数数量错误返回 1210 |
 | DBeaver | metadata browser | `information_schema.tables`、`information_schema.columns`、`SHOW VARIABLES` fixture | 返回稳定列名/类型或明确不支持错误 |
 | DataGrip / BI 工具 | schema introspection | `SELECT DATABASE()`、`SHOW TABLES`、`DESCRIBE` fixture | 返回兼容 result set |
@@ -67,18 +67,47 @@ Change: `add-nebula-mysql-protocol-write-and-advanced-support`
 JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-mysql-gateway -am test -DfailIfNoTests=false
 ```
 
-结果：
+最新结果：
 
 - PASS
 - `fw-plus-nebula-jdbc`: 123 tests, failures 0, errors 0, skipped 0
-- `fw-plus-nebula-mysql-gateway`: 37 tests, failures 0, errors 0, skipped 0
+- `fw-plus-nebula-mysql-gateway`: 39 tests, failures 0, errors 0, skipped 0
 
 覆盖：
 
 - COM_QUERY SELECT、INSERT、DDL handler 路径。
 - Prepared statement prepare/execute/reset/close common path。
+- Connector/J 8.0.33 真实 socket 端到端查询与写入。
 - 权限拒绝、SSL required、事务不支持、unsupported command。
 - `SHOW DATABASES`、`SHOW TABLES`、`DESCRIBE`、`SHOW VARIABLES`、`SELECT DATABASE()`、`information_schema.tables`、`information_schema.columns` fixture。
+
+命令：
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-mysql-gateway -am -Dtest=NebulaMysqlGatewayConnectorJTest -DfailIfNoTests=false test
+```
+
+结果：
+
+- PASS
+- `NebulaMysqlGatewayConnectorJTest`: 1 test, failures 0, errors 0, skipped 0
+
+覆盖：
+
+- Connector/J 8.0.33 通过 `DriverManager.getConnection` 连接本地 ephemeral port 的真实 MySQL wire-level handshake。
+- Connector/J 初始化 SQL、`SELECT DATABASE()`、`Statement.executeQuery("select name from person")`。
+- `Statement.executeUpdate("INSERT ...")` 和客户端侧 `PreparedStatement` 写入，均返回 affected rows = 1。
+
+命令：
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-mysql-gateway -am -Dtest=AdvancedQueryHandlerTest#shouldAcceptMysqlDriverSessionSetStatementsAsOk,NebulaMysqlGatewayConnectorJTest -DfailIfNoTests=false test
+```
+
+结果：
+
+- PASS
+- 2 tests, failures 0, errors 0, skipped 0
 
 命令：
 
@@ -98,5 +127,14 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-
 
 ### 未完成的手动/端到端验证
 
-- `3.1 使用 Java MySQL JDBC Driver 验证查询和写入` 未勾选：当前 `NebulaMysqlGatewayConnectionHandler` 仍会接受连接后立即关闭 socket，无法用 Connector/J 做真实 wire-level 端到端验证。
-- `3.2 使用至少两个 GUI/BI 客户端验证元数据浏览和查询` 未勾选：当前环境没有可运行的 GUI/BI 客户端会话；已用 DBeaver/DataGrip/BI 常见 metadata SQL fixture 覆盖自动测试，但未替代真实客户端验收。
+- `3.1 使用 Java MySQL JDBC Driver 验证查询和写入` 已通过 Connector/J 8.0.33 真实 socket 端到端自动化测试。
+- `3.2 使用至少两个 GUI/BI 客户端验证元数据浏览和查询` 未勾选：当前环境未发现可运行的 DBeaver、DataGrip、Tableau、Power BI 或 Metabase 客户端应用/命令；已用 DBeaver/DataGrip/BI 常见 metadata SQL fixture 覆盖自动测试，但这不替代真实客户端手动验收。
+
+GUI/BI 客户端检查命令：
+
+```bash
+find /Applications "$HOME/Applications" -maxdepth 2 \( -iname '*DBeaver*.app' -o -iname '*DataGrip*.app' -o -iname '*Tableau*.app' -o -iname '*Power BI*.app' -o -iname '*Metabase*.app' \) -print 2>/dev/null
+command -v dbeaver || true; command -v datagrip || true; command -v tableau || true
+```
+
+结果：未发现匹配应用或命令。

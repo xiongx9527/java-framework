@@ -6,14 +6,22 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 
+import com.vesoft.nebula.jdbc.mysql.command.MysqlCommandDispatcher;
+
 public class NebulaMysqlGatewayServer implements AutoCloseable {
 	private final NebulaMysqlGatewayServerConfig config;
+	private final MysqlCommandDispatcher commandDispatcher;
 	private ServerSocket serverSocket;
 	private Thread acceptThread;
 	private volatile boolean running;
 
 	public NebulaMysqlGatewayServer(NebulaMysqlGatewayServerConfig config) {
+		this(config, null);
+	}
+
+	public NebulaMysqlGatewayServer(NebulaMysqlGatewayServerConfig config, MysqlCommandDispatcher commandDispatcher) {
 		this.config = config;
+		this.commandDispatcher = commandDispatcher;
 	}
 
 	public synchronized void start() throws IOException {
@@ -37,7 +45,7 @@ public class NebulaMysqlGatewayServer implements AutoCloseable {
 		while (running) {
 			try {
 				Socket socket = serverSocket.accept();
-				new Thread(new NebulaMysqlGatewayConnectionHandler(socket), "nebula-mysql-gateway-connection").start();
+				new Thread(new NebulaMysqlGatewayConnectionHandler(socket, commandDispatcher), "nebula-mysql-gateway-connection").start();
 			} catch (SocketException exception) {
 				if (running) {
 					running = false;

@@ -65,6 +65,10 @@ public class AdvancedQueryHandler {
 		if (isTransactionStatement(normalized)) {
 			throw MysqlErrorMapper.transactionUnsupported();
 		}
+		if (isSessionSetStatement(normalized)) {
+			checkAllowed(session, MysqlGatewayOperation.READ);
+			return MysqlQueryResult.ok(0, 0);
+		}
 		if (isAdvancedMetadataSql(normalized)) {
 			checkAllowed(session, MysqlGatewayOperation.METADATA);
 			return routeAdvancedMetadata(session, normalized);
@@ -191,5 +195,12 @@ public class AdvancedQueryHandler {
 		String upper = sql == null ? "" : sql.trim().toUpperCase(Locale.ENGLISH);
 		return "BEGIN".equals(upper) || "START TRANSACTION".equals(upper)
 				|| "COMMIT".equals(upper) || "ROLLBACK".equals(upper);
+	}
+
+	private boolean isSessionSetStatement(String sql) {
+		String upper = sql == null ? "" : sql.trim().toUpperCase(Locale.ENGLISH);
+		return upper.startsWith("SET NAMES ")
+				|| upper.startsWith("SET AUTOCOMMIT=")
+				|| upper.startsWith("SET SQL_MODE=");
 	}
 }

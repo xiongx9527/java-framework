@@ -140,7 +140,17 @@ public class AdvancedQueryHandlerTest {
 				.getRows().get(0).get(2));
 		assertEquals("name", handler.handle(session,
 				"select column_name, data_type from information_schema.columns where table_name = 'person'")
-				.getRows().get(0).get(3));
+					.getRows().get(0).get(3));
+	}
+
+	@Test
+	public void shouldAcceptMysqlDriverSessionSetStatementsAsOk() throws Exception {
+		AdvancedQueryHandler handler = advancedHandler(new RecordingMutationExecutor(0));
+		MysqlProtocolSession session = authenticatedSession();
+
+		assertEquals(true, handler.handle(session, "SET NAMES utf8mb4").isOkResult());
+		assertEquals(true, handler.handle(session, "SET autocommit=1").isOkResult());
+		assertEquals(true, handler.handle(session, "SET sql_mode='STRICT_TRANS_TABLES'").isOkResult());
 	}
 
 	@Test
