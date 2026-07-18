@@ -1,0 +1,9 @@
+{
+  "openspec_proposal": "openspec/changes/add-nebula-mysql-binlog-compatible-stream/proposal.md",
+  "openspec_design": "openspec/changes/add-nebula-mysql-binlog-compatible-stream/design.md",
+  "openspec_tasks": "openspec/changes/add-nebula-mysql-binlog-compatible-stream/tasks.md",
+  "openspec_delta_spec": "openspec/changes/add-nebula-mysql-binlog-compatible-stream/specs/nebula-mysql-binlog-compatible-stream/spec.md",
+  "handoff_context": "openspec/changes/add-nebula-mysql-binlog-compatible-stream/.comet/handoff/design-context.json",
+  "handoff_markdown": "openspec/changes/add-nebula-mysql-binlog-compatible-stream/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-18-add-nebula-mysql-binlog-compatible-stream"
+}

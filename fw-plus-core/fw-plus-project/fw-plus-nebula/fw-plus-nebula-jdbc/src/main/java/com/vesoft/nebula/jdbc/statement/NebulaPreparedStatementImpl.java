@@ -165,6 +165,7 @@ public class NebulaPreparedStatementImpl extends NebulaStatementImpl implements 
 
     public void setDatetime(int parameterIndex, java.util.Date datetime) throws SQLException {
         insertParameter(parameterIndex, datetime);
+        this.parameterBindings.bind(parameterIndex, datetime, Types.TIMESTAMP);
     }
 
     @Override

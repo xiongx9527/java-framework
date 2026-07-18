@@ -2,6 +2,8 @@
 comet_change: add-nebula-sql-parser-core
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-18-add-nebula-sql-parser-core
+status: final
 ---
 
 # Nebula SQL Parser Core 技术设计

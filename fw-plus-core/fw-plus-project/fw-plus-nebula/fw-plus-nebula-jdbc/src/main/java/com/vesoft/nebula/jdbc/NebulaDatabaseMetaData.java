@@ -411,7 +411,7 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public boolean supportsStoredProcedures() throws SQLException {
-		throw ExceptionBuilder.buildUnsupportedOperationException();
+		return true;
 	}
 
 	@Override
