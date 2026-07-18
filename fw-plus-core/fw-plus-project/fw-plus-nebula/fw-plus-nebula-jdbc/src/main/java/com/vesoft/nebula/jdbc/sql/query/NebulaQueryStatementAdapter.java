@@ -9,6 +9,7 @@ import com.vesoft.nebula.jdbc.sql.parser.ast.NebulaSqlStatement;
 import com.vesoft.nebula.jdbc.sql.parser.ast.NebulaTableSource;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class NebulaQueryStatementAdapter {
@@ -29,10 +30,8 @@ public class NebulaQueryStatementAdapter {
 			throw NebulaQueryConversionException.of(NebulaQueryErrorCode.INVALID_INPUT, "select statement must not be null");
 		}
 		if (select.getUnion() != null) {
-			return unsupported(UnsupportedQueryFeature.UNION, "UNION is not graph-mappable by the query adapter");
-		}
-		if (!select.getGroupBy().isEmpty() || select.getHaving() != null || hasAggregate(select.getSelectItems())) {
-			return unsupported(UnsupportedQueryFeature.FUNCTION, "Aggregate, GROUP BY and HAVING require explicit graph aggregation templates");
+			return NebulaQueryStatement.union(adaptSelect(select.getUnion().getLeft()),
+					adaptSelect(select.getUnion().getRight()));
 		}
 		NebulaTableSource from = select.getFrom();
 		if (from == null) {
@@ -47,11 +46,21 @@ public class NebulaQueryStatementAdapter {
 
 		NebulaQueryStatement.Builder builder = NebulaQueryStatement.select(from.getName())
 				.alias(from.getAlias() == null ? from.getName() : from.getAlias());
-		if (isSelectAll(select.getSelectItems())) {
-			builder.selectAll();
+			if (isSelectAll(select.getSelectItems())) {
+				builder.selectAll();
+			} else {
+				for (NebulaSelectItem item : select.getSelectItems()) {
+					builder.projection(adaptExpression(item.getExpression(), from), item.getAlias());
+				}
+			}
+			if (select.getWhere() != null) {
+				builder.where(adaptExpression(select.getWhere(), from));
 		}
-		if (select.getWhere() != null) {
-			builder.where(adaptExpression(select.getWhere(), from));
+		for (NebulaExpression groupBy : select.getGroupBy()) {
+			builder.groupBy(adaptExpression(groupBy, from));
+		}
+		if (select.getHaving() != null) {
+			builder.having(adaptExpression(select.getHaving(), from));
 		}
 		if (!select.getOrderBy().isEmpty()) {
 			if (select.getOrderBy().size() > 1) {
@@ -74,7 +83,7 @@ public class NebulaQueryStatementAdapter {
 
 	private QueryExpression adaptExpression(NebulaExpression expression, NebulaTableSource from) throws SQLException {
 		if (expression.getType() == NebulaExpression.Type.COLUMN) {
-			return QueryExpression.column(from.getName(), unqualified(expression.getName()));
+			return QueryExpression.column(qualifier(expression.getName()), unqualified(expression.getName()));
 		}
 		if (expression.getType() == NebulaExpression.Type.LITERAL) {
 			return QueryExpression.literal(expression.getValue());
@@ -90,18 +99,32 @@ public class NebulaQueryStatementAdapter {
 			if ("AND".equalsIgnoreCase(operator) || "&&".equals(operator)) {
 				return QueryExpression.and(adaptExpression(expression.getLeft(), from), adaptExpression(expression.getRight(), from));
 			}
-		}
-		if (expression.getType() == NebulaExpression.Type.FUNCTION) {
-			throw NebulaQueryConversionException.of(NebulaQueryErrorCode.UNSUPPORTED_FUNCTION,
-					"Function expression is not graph-mappable: " + expression.getName());
-		}
+			}
+			if (expression.getType() == NebulaExpression.Type.FUNCTION) {
+				if (expression.isAggregate()) {
+					if (expression.getArguments().size() != 1) {
+						throw NebulaQueryConversionException.of(NebulaQueryErrorCode.UNSUPPORTED_FUNCTION,
+								"Aggregate expression requires exactly one argument: " + expression.getName());
+					}
+					return QueryExpression.aggregate(expression.getName(), adaptExpression(expression.getArguments().get(0), from));
+				}
+				return QueryExpression.function(expression.getName(), adaptArguments(expression.getArguments(), from));
+			}
 		if (expression.getType() == NebulaExpression.Type.PARAMETER) {
 			throw NebulaQueryConversionException.of(NebulaQueryErrorCode.UNSUPPORTED_EXPRESSION,
 					"Parameter binding is not available in NebulaQueryStatement adapter yet");
 		}
-		throw NebulaQueryConversionException.of(NebulaQueryErrorCode.UNSUPPORTED_EXPRESSION,
-				"Unsupported expression type: " + expression.getType());
-	}
+			throw NebulaQueryConversionException.of(NebulaQueryErrorCode.UNSUPPORTED_EXPRESSION,
+					"Unsupported expression type: " + expression.getType());
+		}
+
+		private List<QueryExpression> adaptArguments(List<NebulaExpression> arguments, NebulaTableSource from) throws SQLException {
+			List<QueryExpression> adapted = new ArrayList<QueryExpression>();
+			for (NebulaExpression argument : arguments) {
+				adapted.add(adaptExpression(argument, from));
+			}
+			return adapted;
+		}
 
 	private StatementKind toQueryKind(com.vesoft.nebula.jdbc.sql.parser.StatementKind kind) {
 		if (kind == com.vesoft.nebula.jdbc.sql.parser.StatementKind.INSERT) {
@@ -153,6 +176,11 @@ public class NebulaQueryStatementAdapter {
 	private String unqualified(String name) {
 		int dot = name == null ? -1 : name.lastIndexOf('.');
 		return dot < 0 ? name : name.substring(dot + 1);
+	}
+
+	private String qualifier(String name) {
+		int dot = name == null ? -1 : name.lastIndexOf('.');
+		return dot < 0 ? null : name.substring(0, dot);
 	}
 
 	private SortDirection sortDirection(String direction) {
