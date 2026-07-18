@@ -4,12 +4,18 @@ import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.sql.NebulaParameterBindings;
 import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutor;
 import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutorProvider;
+import com.vesoft.nebula.jdbc.sql.binlog.BinlogEventBatch;
+import com.vesoft.nebula.jdbc.sql.binlog.InMemoryBinlogEventStore;
+import com.vesoft.nebula.jdbc.sql.binlog.NebulaBinlogEventType;
+import com.vesoft.nebula.jdbc.sql.query.NebulaSchemaMappingRegistry;
+import com.vesoft.nebula.jdbc.sql.query.TableMapping;
 import org.junit.After;
 import org.junit.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
@@ -17,6 +23,7 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertSame;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class NebulaStatementExecutorPathTest {
 
@@ -99,6 +106,33 @@ public class NebulaStatementExecutorPathTest {
 
 		assertSame(executor, NebulaSqlExecutorProvider.getExecutor());
 		assertNotSame(executor, executorFromOtherThread.get());
+	}
+
+	@Test
+	public void defaultStatementPathShouldUseConfiguredBinlogEventStore() throws Exception {
+		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
+		NebulaSqlExecutorProvider.configureDefaultExecutor(personMappings(), store);
+		NebulaConnection connection = mock(NebulaConnection.class);
+		com.vesoft.nebula.client.graph.data.ResultSet nativeResultSet =
+				mock(com.vesoft.nebula.client.graph.data.ResultSet.class);
+		when(nativeResultSet.isSucceeded()).thenReturn(true);
+		when(connection.execute("INSERT VERTEX person(name) VALUES \"p1\":(\"Tom\")")).thenReturn(nativeResultSet);
+		Statement statement = new NebulaStatementImpl(connection);
+
+		statement.executeUpdate("INSERT INTO person(id, name) VALUES ('p1', 'Tom')");
+
+		BinlogEventBatch batch = store.readAfter(null, 10);
+		assertEquals(1, batch.getEvents().size());
+		assertEquals(NebulaBinlogEventType.WRITE_ROWS, batch.getEvents().get(0).getEventType());
+	}
+
+	private NebulaSchemaMappingRegistry personMappings() {
+		return NebulaSchemaMappingRegistry.builder()
+				.addTable(TableMapping.tag("person", "person")
+						.idColumn("id", Types.VARCHAR)
+						.property("name", "name", Types.VARCHAR)
+						.build())
+				.build();
 	}
 
 	private static class RecordingExecutor implements NebulaSqlExecutor {
