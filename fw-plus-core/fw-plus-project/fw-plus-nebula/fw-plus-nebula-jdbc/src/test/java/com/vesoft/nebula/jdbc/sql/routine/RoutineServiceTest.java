@@ -62,4 +62,37 @@ public class RoutineServiceTest {
 			assertTrue(exception.getMessage().contains("p"));
 		}
 	}
+
+	@Test
+	public void createShouldRequireRoutineManagePermission() throws Exception {
+		RoutineService service = new RoutineService(new InMemoryRoutineMetadataRepository(), 64,
+				30000L, RoutinePermissionChecker.denyAll());
+
+		try {
+			service.create("graph_a", "alice", "CREATE PROCEDURE p() BEGIN SELECT 1; END");
+			fail("CREATE PROCEDURE must require routine manage permission");
+		}
+		catch (SQLException exception) {
+			assertEquals(1142, exception.getErrorCode());
+			assertEquals("42000", exception.getSQLState());
+		}
+	}
+
+	@Test
+	public void callShouldRequireRoutineExecutePermission() throws Exception {
+		InMemoryRoutineMetadataRepository repository = new InMemoryRoutineMetadataRepository();
+		RoutineService service = new RoutineService(repository);
+		service.create("graph_a", "alice", "CREATE PROCEDURE p() BEGIN SELECT 1; END");
+		RoutineService denied = new RoutineService(repository, 64,
+				30000L, RoutinePermissionChecker.denyAll());
+
+		try {
+			denied.call("graph_a", "bob", "CALL p()", null, null);
+			fail("CALL must require routine execute permission");
+		}
+		catch (SQLException exception) {
+			assertEquals(1142, exception.getErrorCode());
+			assertEquals("42000", exception.getSQLState());
+		}
+	}
 }

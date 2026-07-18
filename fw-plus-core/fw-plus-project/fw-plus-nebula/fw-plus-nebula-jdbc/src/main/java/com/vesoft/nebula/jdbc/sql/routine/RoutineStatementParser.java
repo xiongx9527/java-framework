@@ -145,13 +145,39 @@ public final class RoutineStatementParser {
 		for (int i = 0; i < statements.size(); i++) {
 			String statement = statements.get(i).trim();
 			if (!statement.isEmpty()) {
-				body.add(statement);
+				if (startsWithIgnoreCase(statement, "IF ")) {
+					StringBuilder ifBlock = new StringBuilder(statement);
+					while (!endsWithIgnoreCase(statement, "END IF")) {
+						i++;
+						if (i >= statements.size()) {
+							throw RoutineException.syntax("Unterminated IF statement");
+						}
+						statement = statements.get(i).trim();
+						if (!statement.isEmpty()) {
+							ifBlock.append("; ").append(statement);
+						}
+					}
+					body.add(ifBlock.toString());
+				}
+				else {
+					body.add(statement);
+				}
 			}
 		}
 		if (body.isEmpty()) {
 			throw RoutineException.syntax("Routine body is empty");
 		}
 		return body;
+	}
+
+	private static boolean startsWithIgnoreCase(String value, String prefix) {
+		return value != null && value.toUpperCase(Locale.ROOT)
+				.startsWith(prefix.toUpperCase(Locale.ROOT));
+	}
+
+	private static boolean endsWithIgnoreCase(String value, String suffix) {
+		return value != null && value.toUpperCase(Locale.ROOT)
+				.endsWith(suffix.toUpperCase(Locale.ROOT));
 	}
 
 	private static List<Object> parseArguments(String rawArguments) throws SQLException {

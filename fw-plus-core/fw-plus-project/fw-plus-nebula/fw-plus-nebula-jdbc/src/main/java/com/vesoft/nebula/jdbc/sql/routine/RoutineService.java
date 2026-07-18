@@ -8,12 +8,15 @@ import java.sql.SQLException;
 public class RoutineService {
 
 	private static final int DEFAULT_MAX_STATEMENTS = 64;
+	private static final long DEFAULT_MAX_EXECUTION_MILLIS = 30000L;
 	private static final InMemoryRoutineMetadataRepository DEFAULT_REPOSITORY =
 			new InMemoryRoutineMetadataRepository();
 	private static final RoutineService DEFAULT = new RoutineService(DEFAULT_REPOSITORY);
 
 	private final RoutineMetadataRepository repository;
 	private final int maxStatements;
+	private final long maxExecutionMillis;
+	private final RoutinePermissionChecker permissionChecker;
 	private final RoutineInterpreter interpreter = new RoutineInterpreter();
 
 	public RoutineService(RoutineMetadataRepository repository) {
@@ -21,8 +24,20 @@ public class RoutineService {
 	}
 
 	public RoutineService(RoutineMetadataRepository repository, int maxStatements) {
+		this(repository, maxStatements, DEFAULT_MAX_EXECUTION_MILLIS);
+	}
+
+	public RoutineService(RoutineMetadataRepository repository, int maxStatements, long maxExecutionMillis) {
+		this(repository, maxStatements, maxExecutionMillis, RoutinePermissionChecker.allowAll());
+	}
+
+	public RoutineService(RoutineMetadataRepository repository, int maxStatements,
+			long maxExecutionMillis, RoutinePermissionChecker permissionChecker) {
 		this.repository = repository;
 		this.maxStatements = maxStatements;
+		this.maxExecutionMillis = maxExecutionMillis;
+		this.permissionChecker = permissionChecker == null
+				? RoutinePermissionChecker.allowAll() : permissionChecker;
 	}
 
 	public static RoutineService getDefault() {
@@ -38,6 +53,7 @@ public class RoutineService {
 		if (statement.getKind() != RoutineStatement.Kind.CREATE_PROCEDURE) {
 			throw RoutineException.syntax("Expected CREATE PROCEDURE");
 		}
+		permissionChecker.check(schema, owner, statement.getName(), RoutinePermissionChecker.Action.MANAGE);
 		RoutineName name = RoutineName.of(schema, statement.getName());
 		if (repository.find(name) != null) {
 			throw RoutineException.alreadyExists(statement.getName());
@@ -51,6 +67,7 @@ public class RoutineService {
 		if (statement.getKind() != RoutineStatement.Kind.DROP_PROCEDURE) {
 			throw RoutineException.syntax("Expected DROP PROCEDURE");
 		}
+		permissionChecker.check(schema, "", statement.getName(), RoutinePermissionChecker.Action.MANAGE);
 		RoutineName name = RoutineName.of(schema, statement.getName());
 		boolean dropped = repository.drop(name);
 		if (!dropped && !statement.isIfExists()) {
@@ -69,7 +86,9 @@ public class RoutineService {
 		if (definition == null) {
 			throw RoutineException.notFound(statement.getName());
 		}
+		permissionChecker.check(schema, user, statement.getName(), RoutinePermissionChecker.Action.EXECUTE);
 		return interpreter.execute(definition, statement,
-				new RoutineExecutionContext(schema, user, connection, executor, maxStatements));
+				new RoutineExecutionContext(schema, user, connection, executor,
+						maxStatements, maxExecutionMillis));
 	}
 }
