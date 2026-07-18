@@ -29,6 +29,7 @@ import com.alibaba.druid.sql.ast.statement.SQLDropTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
+import com.alibaba.druid.sql.ast.statement.SQLAssignItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelect;
 import com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
@@ -144,15 +145,34 @@ public class DruidNebulaAstAdapter {
 
 	private NebulaSchemaStatement adaptCreateTable(SQLCreateTableStatement statement, AdaptContext context) {
 		List<NebulaColumnDefinition> columns = new ArrayList<NebulaColumnDefinition>();
+		List<String> unsupportedOptions = new ArrayList<String>();
 		for (SQLTableElement element : statement.getTableElementList()) {
 			if (element instanceof SQLColumnDefinition) {
 				SQLColumnDefinition column = (SQLColumnDefinition) element;
 				columns.add(new NebulaColumnDefinition(column.getNameAsString(),
 						column.getDataType() == null ? null : column.getDataType().toString(),
 						column.isPrimaryKey()));
+			} else {
+				unsupportedOptions.add("table element " + element.getClass().getSimpleName() + ": " + element.toString());
 			}
 		}
-		return new NebulaSchemaStatement(StatementKind.CREATE_SCHEMA, nameOf(statement.getName()), columns);
+		for (SQLAssignItem option : statement.getTableOptions()) {
+			unsupportedOptions.add("table option " + option.toString());
+		}
+		if (statement.getSelect() != null) {
+			unsupportedOptions.add("CREATE TABLE ... SELECT");
+		}
+		if (statement.getLike() != null) {
+			unsupportedOptions.add("CREATE TABLE ... LIKE");
+		}
+		if (statement.getPartitioning() != null || statement.getLocalPartitioning() != null) {
+			unsupportedOptions.add("partitioning");
+		}
+		if (statement.getTablespace() != null) {
+			unsupportedOptions.add("tablespace");
+		}
+		return new NebulaSchemaStatement(StatementKind.CREATE_SCHEMA, nameOf(statement.getName()), columns,
+				unsupportedOptions);
 	}
 
 	private NebulaSchemaStatement adaptDropTable(SQLDropTableStatement statement, AdaptContext context) {
