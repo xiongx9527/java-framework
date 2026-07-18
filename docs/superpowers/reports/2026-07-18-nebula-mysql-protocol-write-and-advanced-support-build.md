@@ -59,4 +59,44 @@ Change: `add-nebula-mysql-protocol-write-and-advanced-support`
 
 ## 验证记录
 
-待 Task 6 补充实际命令输出。
+### 自动测试
+
+命令：
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-mysql-gateway -am test -DfailIfNoTests=false
+```
+
+结果：
+
+- PASS
+- `fw-plus-nebula-jdbc`: 123 tests, failures 0, errors 0, skipped 0
+- `fw-plus-nebula-mysql-gateway`: 37 tests, failures 0, errors 0, skipped 0
+
+覆盖：
+
+- COM_QUERY SELECT、INSERT、DDL handler 路径。
+- Prepared statement prepare/execute/reset/close common path。
+- 权限拒绝、SSL required、事务不支持、unsupported command。
+- `SHOW DATABASES`、`SHOW TABLES`、`DESCRIBE`、`SHOW VARIABLES`、`SELECT DATABASE()`、`information_schema.tables`、`information_schema.columns` fixture。
+
+命令：
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc test -Dtest=NebulaSqlWriteConverterTest,NebulaSqlDdlConverterTest,NebulaSqlMutationExecutorTest,DirectNebulaSqlExecutorTest
+```
+
+结果：
+
+- PASS
+- 16 tests, failures 0, errors 0, skipped 0
+
+### 环境约束
+
+- `fw-plus-core/mvnw` 存在，但仓库未跟踪 `fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 和 wrapper jar；在当前 worktree 直接执行 `./mvnw` 会失败。
+- 当前 shell `JAVA_HOME` 为空，系统默认 `java` 为 JDK 24；验证命令显式使用本机 Zulu 8。
+
+### 未完成的手动/端到端验证
+
+- `3.1 使用 Java MySQL JDBC Driver 验证查询和写入` 未勾选：当前 `NebulaMysqlGatewayConnectionHandler` 仍会接受连接后立即关闭 socket，无法用 Connector/J 做真实 wire-level 端到端验证。
+- `3.2 使用至少两个 GUI/BI 客户端验证元数据浏览和查询` 未勾选：当前环境没有可运行的 GUI/BI 客户端会话；已用 DBeaver/DataGrip/BI 常见 metadata SQL fixture 覆盖自动测试，但未替代真实客户端验收。
