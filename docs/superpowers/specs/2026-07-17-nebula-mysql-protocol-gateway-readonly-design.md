@@ -8,7 +8,7 @@ canonical_spec: openspec
 
 ## 1. 背景与目标
 
-本 change 为 Nebula SQL / MySQL 协议路线提供第一阶段只读 MySQL wire protocol 网关。目标是让 MySQL CLI、DBeaver、DataGrip、Navicat 等常见客户端可以用 MySQL 协议连接网关，执行受支持的只读 SQL 和基础 metadata 查询，并收到 MySQL 文本协议结果集。
+本 change 为 Nebula SQL / MySQL 协议路线提供第一阶段只读 MySQL wire protocol 网关。目标是让 MySQL CLI 和兼容 MySQL wire protocol 的客户端可以连接网关，执行受支持的只读 SQL 和基础 metadata 查询，并收到 MySQL 文本协议结果集。GUI 客户端真实验收依赖本地客户端环境；当前环境未安装 GUI 客户端时，只记录后续人工验收，不伪造通过结论。
 
 当前 `fw-plus-nebula-jdbc` 已有 nGQL JDBC 执行基础，相关前置 change 将提供 SQL parser core 和 SQL-to-nGQL 查询转换能力。网关设计必须消费这些稳定边界，不在协议层重复实现复杂 SQL parser、Druid AST adapter 或 SQL-to-nGQL converter。
 
@@ -22,7 +22,7 @@ canonical_spec: openspec
 - 将 COM_QUERY 中的只读 SQL 转发给 `NebulaSqlExecutor` 或等价稳定 SQL 查询服务。
 - 将 SQL 查询服务或 Nebula 执行结果编码为 MySQL 文本协议结果集。
 - 将认证失败、语法错误、converter 不支持、Nebula 执行失败、只读拒绝和非目标协议命令映射为客户端可理解的 ERR packet。
-- 增加不依赖真实 NebulaGraph 的协议、查询分发、结果集编码和错误语义测试；保留 MySQL CLI 与至少一个 GUI 客户端的验收记录。
+- 增加不依赖真实 NebulaGraph 的协议、查询分发、结果集编码和错误语义测试；本 change 的 build 退出条件要求 MySQL CLI 真实连接查询通过，并保留 GUI 客户端后续人工验收记录。
 
 ### 非目标
 
@@ -319,7 +319,7 @@ COM_QUERY "INSERT INTO person ..."
 ### 8.5 客户端验收
 
 - MySQL CLI：连接、`SELECT 1` 或受支持 SELECT、`SHOW TABLES`、`DESCRIBE`、写入拒绝。
-- 至少一个 GUI 客户端：连接测试、打开 schema/table 列表、执行 SELECT、写入拒绝。
+- GUI 客户端后续人工验收：在安装 DBeaver、DataGrip、Navicat、TablePlus、Sequel Ace、MySQL Workbench 或等价客户端后执行连接测试、打开 schema/table 列表、执行 SELECT、写入拒绝。
 - 客户端验收可以作为可选集成测试或手动验证记录，不应阻塞无 NebulaGraph 环境的单元测试。
 
 ## 9. 实施顺序
@@ -332,7 +332,7 @@ COM_QUERY "INSERT INTO person ..."
 6. 实现文本结果集、OK、ERR、EOF 编码。
 7. 补齐错误映射和日志诊断。
 8. 增加协议、查询、metadata、结果集编码和只读拒绝测试。
-9. 执行 MySQL CLI 与至少一个 GUI 客户端验收。
+9. 执行 MySQL CLI 真实验收；GUI 客户端验收在具备客户端环境后作为后续人工验收执行。
 
 ## 10. 风险与缓解
 
