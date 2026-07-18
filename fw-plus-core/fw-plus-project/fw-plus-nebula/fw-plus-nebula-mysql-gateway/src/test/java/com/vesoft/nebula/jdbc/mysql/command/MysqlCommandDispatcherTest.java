@@ -1,13 +1,24 @@
 package com.vesoft.nebula.jdbc.mysql.command;
 
 import com.vesoft.nebula.jdbc.mysql.protocol.MysqlCommand;
+import com.vesoft.nebula.jdbc.mysql.query.AdvancedQueryHandler;
 import com.vesoft.nebula.jdbc.mysql.query.MysqlQueryResult;
 import com.vesoft.nebula.jdbc.mysql.query.NebulaSqlExecutionPort;
 import com.vesoft.nebula.jdbc.mysql.query.ReadonlyQueryHandler;
 import com.vesoft.nebula.jdbc.mysql.query.StaticMysqlMetadataHandler;
 import com.vesoft.nebula.jdbc.mysql.session.MysqlProtocolSession;
+import com.vesoft.nebula.jdbc.sql.parser.druid.DruidNebulaSqlParser;
+import com.vesoft.nebula.jdbc.sql.query.NebulaSchemaMappingRegistry;
+import com.vesoft.nebula.jdbc.sql.query.TableMapping;
+import com.vesoft.nebula.jdbc.sql.write.DefaultNebulaSqlDdlConverter;
+import com.vesoft.nebula.jdbc.sql.write.DefaultNebulaSqlWriteConverter;
+import com.vesoft.nebula.jdbc.sql.write.NebulaDdlPlan;
+import com.vesoft.nebula.jdbc.sql.write.NebulaMutationPlan;
+import com.vesoft.nebula.jdbc.sql.write.NebulaMutationResult;
+import com.vesoft.nebula.jdbc.sql.write.NebulaSqlMutationExecutor;
 import org.junit.Test;
 
+import java.sql.Types;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
@@ -38,10 +49,82 @@ public class MysqlCommandDispatcherTest {
 		assertNotNull(quit.getPayload());
 	}
 
+	@Test
+	public void shouldDispatchAdvancedQueryHandlerOkResultAsOkPacket() {
+		MysqlCommandDispatcher dispatcher = new MysqlCommandDispatcher(new AdvancedQueryHandler(
+				new EmptyExecutionPort(),
+				new StaticMysqlMetadataHandler("basketballplayer"),
+				new DruidNebulaSqlParser(),
+				new DefaultNebulaSqlWriteConverter(),
+				new DefaultNebulaSqlDdlConverter(),
+				new SuccessfulMutationExecutor(),
+				NebulaSchemaMappingRegistry.builder()
+						.addTable(TableMapping.tag("person", "person")
+								.idColumn("id", Types.VARCHAR)
+								.property("name", "name", Types.VARCHAR)
+								.build())
+						.build()
+		));
+		MysqlProtocolSession session = new MysqlProtocolSession(1L);
+		session.authenticate("writer", "basketballplayer", 0);
+
+		MysqlCommandResult result = dispatcher.dispatch(session, MysqlCommand.COM_QUERY,
+				"INSERT INTO person(id, name) VALUES ('p1', 'Tom')");
+
+		assertEquals(MysqlCommandResult.Type.OK, result.getType());
+		assertNotNull(result.getPayload());
+	}
+
+	@Test
+	public void shouldDispatchPreparedStatementCommonCommands() {
+		MysqlCommandDispatcher dispatcher = new MysqlCommandDispatcher(new AdvancedQueryHandler(
+				new EmptyExecutionPort(),
+				new StaticMysqlMetadataHandler("basketballplayer"),
+				new DruidNebulaSqlParser(),
+				new DefaultNebulaSqlWriteConverter(),
+				new DefaultNebulaSqlDdlConverter(),
+				new SuccessfulMutationExecutor(),
+				NebulaSchemaMappingRegistry.builder()
+						.addTable(TableMapping.tag("person", "person")
+								.idColumn("id", Types.VARCHAR)
+								.property("name", "name", Types.VARCHAR)
+								.build())
+						.build()
+		));
+		MysqlProtocolSession session = new MysqlProtocolSession(1L);
+		session.authenticate("writer", "basketballplayer", 0);
+
+		MysqlCommandResult prepare = dispatcher.dispatch(session, MysqlCommand.COM_STMT_PREPARE,
+				"select name from person where id = ?");
+		assertEquals(MysqlCommandResult.Type.OK, prepare.getType());
+
+		MysqlCommandResult execute = dispatcher.dispatch(session, MysqlCommand.COM_STMT_EXECUTE,
+				"1\tp1");
+		assertEquals(MysqlCommandResult.Type.RESULT_SET, execute.getType());
+
+		MysqlCommandResult reset = dispatcher.dispatch(session, MysqlCommand.COM_STMT_RESET, "1");
+		assertEquals(MysqlCommandResult.Type.OK, reset.getType());
+
+		MysqlCommandResult close = dispatcher.dispatch(session, MysqlCommand.COM_STMT_CLOSE, "1");
+		assertEquals(MysqlCommandResult.Type.OK, close.getType());
+	}
+
 	private static class EmptyExecutionPort implements NebulaSqlExecutionPort {
 		@Override
 		public MysqlQueryResult executeQuery(com.vesoft.nebula.jdbc.mysql.query.MysqlGatewaySessionContext context, String sql) {
 			return MysqlQueryResult.of(Collections.<com.vesoft.nebula.jdbc.mysql.query.MysqlColumn>emptyList(), Collections.<java.util.List<Object>>emptyList());
+		}
+	}
+
+	private static class SuccessfulMutationExecutor implements NebulaSqlMutationExecutor {
+		@Override
+		public NebulaMutationResult executeMutation(NebulaMutationPlan plan) {
+			return new NebulaMutationResult(true, 1, plan.getDescriptor(), null, null, "trace-write");
+		}
+
+		@Override
+		public NebulaMutationResult executeDdl(NebulaDdlPlan plan) {
+			return new NebulaMutationResult(true, 0, null, plan.getDescriptor(), plan.getWarnings(), "trace-ddl");
 		}
 	}
 }

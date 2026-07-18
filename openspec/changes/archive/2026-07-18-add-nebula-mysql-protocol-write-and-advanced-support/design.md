@@ -11,7 +11,7 @@
 - 扩展 MySQL 协议网关支持写入和 DDL。
 - 支持 prepared statement 常见路径。
 - 支持权限、SSL 或可配置安全策略。
-- 增强 Java MySQL JDBC Driver、BI 工具和 GUI 工具的 metadata 兼容。
+- 增强 Java MySQL JDBC Driver、BI/GUI metadata fixture 的兼容，并记录真实 GUI/BI 客户端的后续人工验收事项。
 
 **Non-Goals:**
 
@@ -30,7 +30,7 @@
 ## Risks / Trade-offs
 
 - **[Risk] SQL 与图模型语义存在天然差异。** → Mitigation：采用明确白名单和可测试映射，不支持时返回清晰错误。
-- **[Risk] 客户端兼容范围可能快速扩大。** → Mitigation：按 change 分阶段交付，每阶段定义验收客户端和协议子集。
+- **[Risk] 客户端兼容范围可能快速扩大。** → Mitigation：按 change 分阶段交付，每阶段定义自动验收客户端、metadata fixture、协议子集和后续人工验收事项。
 - **[Risk] 引入第三方 parser 或协议库可能带来许可证和 Java 8 兼容风险。** → Mitigation：在 design/build 阶段先做依赖评估，再落地实现。
 
 ## Migration Plan

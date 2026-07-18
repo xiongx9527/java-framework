@@ -1,9 +1,10 @@
 package com.vesoft.nebula.jdbc.mysql.server;
 
 import com.vesoft.nebula.jdbc.mysql.auth.MysqlAuthenticationResult;
-import com.vesoft.nebula.jdbc.mysql.command.MysqlCommandResult;
 import com.vesoft.nebula.jdbc.mysql.command.MysqlCommandDispatcher;
+import com.vesoft.nebula.jdbc.mysql.command.MysqlCommandResult;
 import com.vesoft.nebula.jdbc.mysql.protocol.MysqlCapability;
+import com.vesoft.nebula.jdbc.mysql.protocol.MysqlCharsets;
 import com.vesoft.nebula.jdbc.mysql.protocol.MysqlCommand;
 import com.vesoft.nebula.jdbc.mysql.protocol.MysqlErrPacket;
 import com.vesoft.nebula.jdbc.mysql.protocol.MysqlHandshakeHandler;
@@ -24,24 +25,38 @@ import java.net.SocketException;
 import java.util.List;
 
 public class NebulaMysqlGatewayConnectionHandler implements Runnable {
-	private static final int SERVER_CAPABILITIES = MysqlCapability.CLIENT_PROTOCOL_41
+	private static final int SERVER_CAPABILITIES = MysqlCapability.CLIENT_LONG_PASSWORD
+			| MysqlCapability.CLIENT_LONG_FLAG
+			| MysqlCapability.CLIENT_CONNECT_WITH_DB
+			| MysqlCapability.CLIENT_PROTOCOL_41
+			| MysqlCapability.CLIENT_TRANSACTIONS
 			| MysqlCapability.CLIENT_SECURE_CONNECTION
-			| MysqlCapability.CLIENT_PLUGIN_AUTH
-			| MysqlCapability.CLIENT_CONNECT_WITH_DB;
+			| MysqlCapability.CLIENT_PLUGIN_AUTH;
 
 	private final Socket socket;
 	private final long connectionId;
 	private final NebulaMysqlGatewayServerConfig config;
+	private final MysqlCommandDispatcher commandDispatcher;
 	private final MysqlTextResultSetEncoder resultSetEncoder;
 
 	public NebulaMysqlGatewayConnectionHandler(Socket socket) {
-		this(socket, 1L, new NebulaMysqlGatewayServerConfig("0.0.0.0", 0));
+		this(socket, 1L, new NebulaMysqlGatewayServerConfig("0.0.0.0", 0), null);
 	}
 
 	public NebulaMysqlGatewayConnectionHandler(Socket socket, long connectionId, NebulaMysqlGatewayServerConfig config) {
+		this(socket, connectionId, config, null);
+	}
+
+	public NebulaMysqlGatewayConnectionHandler(Socket socket, MysqlCommandDispatcher commandDispatcher) {
+		this(socket, 1L, new NebulaMysqlGatewayServerConfig("0.0.0.0", 0), commandDispatcher);
+	}
+
+	public NebulaMysqlGatewayConnectionHandler(Socket socket, long connectionId, NebulaMysqlGatewayServerConfig config,
+											   MysqlCommandDispatcher commandDispatcher) {
 		this.socket = socket;
 		this.connectionId = connectionId;
 		this.config = config;
+		this.commandDispatcher = commandDispatcher == null ? new MysqlCommandDispatcher(config.getQueryHandler()) : commandDispatcher;
 		this.resultSetEncoder = new MysqlTextResultSetEncoder();
 	}
 
@@ -83,7 +98,6 @@ public class NebulaMysqlGatewayConnectionHandler implements Runnable {
 		}
 		writePacket(output, 2, MysqlOkPacket.success().toPayload());
 
-		MysqlCommandDispatcher dispatcher = new MysqlCommandDispatcher(config.getQueryHandler());
 		while (!session.isClosed()) {
 			MysqlPacket commandPacket = readPacket(input);
 			if (commandPacket == null) {
@@ -96,13 +110,48 @@ public class NebulaMysqlGatewayConnectionHandler implements Runnable {
 			}
 			MysqlPacketReader reader = new MysqlPacketReader(payload);
 			int command = reader.readUnsignedByte();
-			String argument = reader.readRestString();
-			MysqlCommandResult result = dispatcher.dispatch(session, command, argument);
+			String argument = parseArgument(command, payload, reader);
+			MysqlCommandResult result = commandDispatcher.dispatch(session, command, argument);
 			writeCommandResult(output, result);
 			if (command == MysqlCommand.COM_QUIT) {
 				return;
 			}
 		}
+	}
+
+	private String parseArgument(int command, byte[] payload, MysqlPacketReader reader) {
+		if (command == MysqlCommand.COM_STMT_RESET || command == MysqlCommand.COM_STMT_CLOSE) {
+			if (payload.length < 5) {
+				return "";
+			}
+			long statementId = ((long) payload[1] & 0xff)
+					| (((long) payload[2] & 0xff) << 8)
+					| (((long) payload[3] & 0xff) << 16)
+					| (((long) payload[4] & 0xff) << 24);
+			return String.valueOf(statementId);
+		}
+		if (command == MysqlCommand.COM_STMT_EXECUTE) {
+			return parsePreparedExecuteArgument(payload);
+		}
+		return reader.readRestString();
+	}
+
+	private String parsePreparedExecuteArgument(byte[] payload) {
+		if (payload.length < 5) {
+			return "";
+		}
+		long statementId = ((long) payload[1] & 0xff)
+				| (((long) payload[2] & 0xff) << 8)
+				| (((long) payload[3] & 0xff) << 16)
+				| (((long) payload[4] & 0xff) << 24);
+		if (payload.length == 5) {
+			return String.valueOf(statementId);
+		}
+		String parameters = new String(payload, 5, payload.length - 5, MysqlCharsets.UTF8);
+		if (parameters.length() == 0) {
+			return String.valueOf(statementId);
+		}
+		return String.valueOf(statementId) + "\t" + parameters;
 	}
 
 	private MysqlPacket readPacket(InputStream input) throws IOException {

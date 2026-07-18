@@ -1,0 +1,9 @@
+{
+  "openspec_proposal": "openspec/changes/add-nebula-mysql-protocol-write-and-advanced-support/proposal.md",
+  "openspec_design": "openspec/changes/add-nebula-mysql-protocol-write-and-advanced-support/design.md",
+  "openspec_tasks": "openspec/changes/add-nebula-mysql-protocol-write-and-advanced-support/tasks.md",
+  "openspec_delta_spec": "openspec/changes/add-nebula-mysql-protocol-write-and-advanced-support/specs/nebula-mysql-protocol-write-and-advanced-support/spec.md",
+  "handoff_context": "openspec/changes/add-nebula-mysql-protocol-write-and-advanced-support/.comet/handoff/design-context.json",
+  "handoff_markdown": "openspec/changes/add-nebula-mysql-protocol-write-and-advanced-support/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-18-add-nebula-mysql-protocol-write-and-advanced-support"
+}
