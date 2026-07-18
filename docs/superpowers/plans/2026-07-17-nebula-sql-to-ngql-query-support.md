@@ -136,7 +136,7 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
   - Check completed tasks in `openspec/changes/add-nebula-sql-to-ngql-query-support/tasks.md` only for this change.
   - Do not edit `add-nebula-sql-parser-core` state or tasks.
 
-- [ ] **Step 5: Commit and guard**
+- [x] **Step 5: Commit and guard**
   - `git add ... && git commit -m "test: cover nebula sql to ngql query conversion"`
   - Run `comet guard add-nebula-sql-to-ngql-query-support build --apply` if review gate and build evidence permit.
 
@@ -159,3 +159,5 @@ Subquery conversion remains deliberately unsupported and returns `UNSUPPORTED_SU
 Build environment note: `fw-plus-core/mvnw` exists but `.mvn/wrapper` metadata is absent in this worktree and the original checkout, so Maven Wrapper cannot launch. Verification commands in this continuation use system Maven with `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home` to preserve JDK 1.8.
 
 Review gate note: Comet state has `review_mode: standard`, and the `requesting-code-review` skill was loaded. The current tool surface did not expose a reviewer subagent dispatch mechanism, so no automatic reviewer was actually dispatched. A local diff review checked alias resolution, UNION output compatibility, aggregate HAVING labels, explicit subquery rejection and old single-table query compatibility; guard should remain the authoritative gate for whether this review evidence is acceptable.
+
+Guard note: first guard attempt after commit failed because this plan step was still unchecked and build evidence was not recorded. `comet state check --recover` synchronized the classic trajectory to the configured build step, then the JDK 8 module test command was recorded with `comet state record-check`.
