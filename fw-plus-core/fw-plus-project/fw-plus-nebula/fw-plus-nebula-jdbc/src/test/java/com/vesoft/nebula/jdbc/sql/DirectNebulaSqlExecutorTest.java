@@ -2,6 +2,12 @@ package com.vesoft.nebula.jdbc.sql;
 
 import com.vesoft.nebula.client.graph.data.ResultSet;
 import com.vesoft.nebula.jdbc.NebulaConnection;
+import com.vesoft.nebula.jdbc.sql.binlog.BinlogEventBatch;
+import com.vesoft.nebula.jdbc.sql.binlog.BinlogEventStore;
+import com.vesoft.nebula.jdbc.sql.binlog.BinlogPosition;
+import com.vesoft.nebula.jdbc.sql.binlog.InMemoryBinlogEventStore;
+import com.vesoft.nebula.jdbc.sql.binlog.NebulaBinlogEventDraft;
+import com.vesoft.nebula.jdbc.sql.binlog.NebulaBinlogEventType;
 import com.vesoft.nebula.jdbc.sql.query.NebulaSchemaMappingRegistry;
 import com.vesoft.nebula.jdbc.sql.query.TableMapping;
 import com.vesoft.nebula.jdbc.sql.trigger.TriggerAwareNebulaSqlExecutor;

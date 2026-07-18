@@ -1,5 +1,7 @@
 package com.vesoft.nebula.jdbc.mysql.server;
 
+import com.vesoft.nebula.jdbc.mysql.command.MysqlCommandDispatcher;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -9,13 +11,19 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class NebulaMysqlGatewayServer implements AutoCloseable {
 	private final NebulaMysqlGatewayServerConfig config;
+	private final MysqlCommandDispatcher commandDispatcher;
 	private final AtomicLong connectionIds = new AtomicLong(1L);
 	private ServerSocket serverSocket;
 	private Thread acceptThread;
 	private volatile boolean running;
 
 	public NebulaMysqlGatewayServer(NebulaMysqlGatewayServerConfig config) {
+		this(config, null);
+	}
+
+	public NebulaMysqlGatewayServer(NebulaMysqlGatewayServerConfig config, MysqlCommandDispatcher commandDispatcher) {
 		this.config = config;
+		this.commandDispatcher = commandDispatcher;
 	}
 
 	public synchronized void start() throws IOException {
@@ -39,8 +47,8 @@ public class NebulaMysqlGatewayServer implements AutoCloseable {
 		while (running) {
 			try {
 				Socket socket = serverSocket.accept();
-				new Thread(new NebulaMysqlGatewayConnectionHandler(socket, connectionIds.getAndIncrement(), config),
-						"nebula-mysql-gateway-connection").start();
+				new Thread(new NebulaMysqlGatewayConnectionHandler(socket, connectionIds.getAndIncrement(), config,
+						commandDispatcher), "nebula-mysql-gateway-connection").start();
 			} catch (SocketException exception) {
 				if (running) {
 					running = false;

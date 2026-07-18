@@ -7,18 +7,30 @@ import java.util.List;
 public class MysqlQueryResult {
 	private final List<MysqlColumn> columns;
 	private final List<List<Object>> rows;
+	private final boolean okResult;
+	private final int affectedRows;
+	private final int warnings;
 
-	private MysqlQueryResult(List<MysqlColumn> columns, List<List<Object>> rows) {
+	private MysqlQueryResult(List<MysqlColumn> columns, List<List<Object>> rows,
+			boolean okResult, int affectedRows, int warnings) {
 		this.columns = copyColumns(columns);
 		this.rows = copyRows(rows);
+		this.okResult = okResult;
+		this.affectedRows = affectedRows;
+		this.warnings = warnings;
 	}
 
 	public static MysqlQueryResult of(List<MysqlColumn> columns, List<List<Object>> rows) {
-		return new MysqlQueryResult(columns, rows);
+		return new MysqlQueryResult(columns, rows, false, 0, 0);
 	}
 
 	public static MysqlQueryResult empty(List<MysqlColumn> columns) {
-		return new MysqlQueryResult(columns, Collections.<List<Object>>emptyList());
+		return new MysqlQueryResult(columns, Collections.<List<Object>>emptyList(), false, 0, 0);
+	}
+
+	public static MysqlQueryResult ok(int affectedRows, int warnings) {
+		return new MysqlQueryResult(Collections.<MysqlColumn>emptyList(),
+				Collections.<List<Object>>emptyList(), true, affectedRows, warnings);
 	}
 
 	public List<MysqlColumn> getColumns() {
@@ -27,6 +39,18 @@ public class MysqlQueryResult {
 
 	public List<List<Object>> getRows() {
 		return rows;
+	}
+
+	public boolean isOkResult() {
+		return okResult;
+	}
+
+	public int getAffectedRows() {
+		return affectedRows;
+	}
+
+	public int getWarnings() {
+		return warnings;
 	}
 
 	private static List<MysqlColumn> copyColumns(List<MysqlColumn> columns) {

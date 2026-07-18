@@ -24,6 +24,22 @@ public final class MysqlErrorMapper {
 		return new MysqlGatewayException(message == null ? "Command is not supported" : message, "HY000", 1235);
 	}
 
+	public static MysqlGatewayException incorrectArguments(String message) {
+		return new MysqlGatewayException(message == null ? "Incorrect arguments" : message, "HY000", 1210);
+	}
+
+	public static MysqlGatewayException transactionUnsupported() {
+		return new MysqlGatewayException("Transactions are not supported by Nebula MySQL gateway", "HY000", 1196);
+	}
+
+	public static MysqlGatewayException commandDenied(String operation) {
+		return new MysqlGatewayException("Command denied for operation: " + operation, "42000", 1142);
+	}
+
+	public static MysqlGatewayException sslRequired() {
+		return new MysqlGatewayException("Connections using insecure transport are prohibited", "HY000", 3159);
+	}
+
 	public static MysqlGatewayException tableNotFound(String tableName) {
 		return new MysqlGatewayException("Table '" + tableName + "' doesn't exist", "42S02", 1146);
 	}
@@ -32,7 +48,9 @@ public final class MysqlErrorMapper {
 		if (exception instanceof MysqlGatewayException) {
 			return (MysqlGatewayException) exception;
 		}
-		return new MysqlGatewayException("Nebula execution failed", "HY000", 1105);
+		return new MysqlGatewayException(exception.getMessage() == null ? "Nebula execution failed" : exception.getMessage(),
+				exception.getSQLState() == null ? "HY000" : exception.getSQLState(),
+				exception.getErrorCode() == 0 ? 1105 : exception.getErrorCode());
 	}
 
 	public static MysqlErrPacket toErrPacket(SQLException exception) {

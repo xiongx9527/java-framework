@@ -42,6 +42,24 @@ public class MysqlMetadataHandlerTest {
 		}
 	}
 
+	@Test
+	public void shouldReturnVariablesDatabaseAndInformationSchemaRows() throws Exception {
+		StaticMysqlMetadataHandler handler = new StaticMysqlMetadataHandler(
+				"basketballplayer",
+				Collections.singletonMap("player", Arrays.asList(
+						new MysqlColumn("name", "name", Types.VARCHAR, true, true),
+						new MysqlColumn("age", "age", Types.INTEGER, true, true)
+				))
+		);
+		MysqlProtocolSession session = session();
+
+		assertEquals("version", handler.showVariables(session).getRows().get(0).get(0));
+		assertEquals("basketballplayer", handler.selectDatabase(session).getRows().get(0).get(0));
+		assertEquals("player", handler.informationSchemaTables(session).getRows().get(0).get(2));
+		assertEquals("name", handler.informationSchemaColumns(session, "player").getRows().get(0).get(3));
+		assertEquals("varchar", handler.informationSchemaColumns(session, "player").getRows().get(0).get(7));
+	}
+
 	private MysqlProtocolSession session() {
 		MysqlProtocolSession session = new MysqlProtocolSession(1L);
 		session.authenticate("reader", "basketballplayer", 0);
