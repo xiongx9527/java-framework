@@ -26,6 +26,7 @@
 - 转换层只消费 parser 中间表示，不直接解析 SQL 字符串。
 - schema 映射规则独立建模，用于区分 tag、edge、属性和 id 字段。
 - 复杂 SQL 支持采用显式白名单：JOIN、子查询、聚合、UNION 和函数表达式必须有明确图语义映射；不能映射时 fail fast。
+- Build 阶段 2.4 收敛为可验证子集：显式 tag-edge-tag IR、`COUNT(mapped_column)` 聚合/GROUP BY/HAVING 别名过滤、同形 UNION 和 `lower`/`upper`/`length` 函数白名单。子查询转换继续返回 `UNSUPPORTED_SUBQUERY`，建议拆分为后续 graph subquery template change。
 
 ## Risks / Trade-offs
 
@@ -39,6 +40,7 @@
 2. 以不破坏现有 nGQL 直连能力为前提新增能力。
 3. 每个后续 change 只依赖前置产物的稳定 API，不回头扩大前置范围。
 4. 如发现范围过大，优先继续拆分而不是在单个 change 中堆叠。
+5. 子查询转换不在本 change 内伪完成；后续 change 应先定义 nGQL 子查询/管道模板、相关子查询拒绝策略和中间结果物化边界。
 
 ## Open Questions
 

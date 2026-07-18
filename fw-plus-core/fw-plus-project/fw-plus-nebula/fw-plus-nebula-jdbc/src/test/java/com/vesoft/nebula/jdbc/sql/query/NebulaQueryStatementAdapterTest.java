@@ -57,6 +57,50 @@ public class NebulaQueryStatementAdapterTest {
 	}
 
 	@Test
+	public void adapterShouldConvertAggregateGroupByAndHaving() throws Exception {
+		NebulaSchemaMappingRegistry mappings = NebulaSchemaMappingRegistry.builder()
+				.addTable(TableMapping.tag("person", "person")
+						.idColumn("id", Types.VARCHAR)
+						.property("city", "city", Types.VARCHAR)
+						.build())
+				.build();
+		NebulaSqlParseResult parseResult = parser.parse(
+				"SELECT p.city AS city, COUNT(p.id) AS person_count FROM person p GROUP BY p.city HAVING person_count >= 2");
+
+		NebulaQueryStatement statement = adapter.adapt(parseResult);
+		NgqlQueryPlan plan = new DefaultNebulaSqlQueryConverter()
+				.convert(statement, NebulaQueryBindings.empty(), mappings);
+
+		assertEquals("MATCH (p:person) WITH p.city AS city, count(id(p)) AS person_count WHERE person_count >= 2 RETURN city, person_count", plan.getNgql());
+		assertEquals(QueryKind.AGGREGATE_QUERY, plan.getQueryKind());
+		assertEquals(2, plan.getColumns().size());
+	}
+
+	@Test
+	public void adapterShouldConvertCompatibleUnionBranches() throws Exception {
+		NebulaSchemaMappingRegistry mappings = NebulaSchemaMappingRegistry.builder()
+				.addTable(TableMapping.tag("person", "person")
+						.idColumn("id", Types.VARCHAR)
+						.property("name", "name", Types.VARCHAR)
+						.build())
+				.addTable(TableMapping.tag("player", "player")
+						.idColumn("id", Types.VARCHAR)
+						.property("name", "name", Types.VARCHAR)
+						.build())
+				.build();
+		NebulaSqlParseResult parseResult = parser.parse(
+				"SELECT name AS name FROM person UNION SELECT name AS name FROM player");
+
+		NebulaQueryStatement statement = adapter.adapt(parseResult);
+		NgqlQueryPlan plan = new DefaultNebulaSqlQueryConverter()
+				.convert(statement, NebulaQueryBindings.empty(), mappings);
+
+		assertEquals("MATCH (person:person) RETURN person.name AS name UNION MATCH (player:player) RETURN player.name AS name", plan.getNgql());
+		assertEquals(QueryKind.SET_QUERY, plan.getQueryKind());
+		assertEquals(1, plan.getColumns().size());
+	}
+
+	@Test
 	public void adapterShouldPreserveQueryOnlyBoundaryForNonSelectParserResults() throws Exception {
 		NebulaSqlParseResult parseResult = parser.parse("INSERT INTO person(id, name) VALUES ('p1', 'Tom')");
 		NebulaQueryStatement statement = adapter.adapt(parseResult);
@@ -79,10 +123,6 @@ public class NebulaQueryStatementAdapterTest {
 				NebulaQueryErrorCode.UNSUPPORTED_JOIN);
 		assertUnsupported("SELECT t.id FROM (SELECT id FROM person) t",
 				NebulaQueryErrorCode.UNSUPPORTED_SUBQUERY);
-		assertUnsupported("SELECT id FROM person UNION SELECT id FROM player",
-				NebulaQueryErrorCode.UNSUPPORTED_UNION);
-		assertUnsupported("SELECT city, COUNT(*) c FROM person GROUP BY city HAVING COUNT(*) > 1",
-				NebulaQueryErrorCode.UNSUPPORTED_FUNCTION);
 	}
 
 	private void assertUnsupported(String sql, NebulaQueryErrorCode expectedCode) throws Exception {
