@@ -84,8 +84,8 @@ public class DruidNebulaAstAdapter {
 					"SQL-UNSUPPORTED-PROCEDURE", statement.getClass().getName());
 		}
 		if (simpleName.indexOf("Trigger") >= 0 || normalized.startsWith("CREATE TRIGGER")) {
-			throw context.error(ErrorKind.DEFERRED_FEATURE, "Triggers are deferred to a later change",
-					"SQL-DEFERRED-TRIGGER", statement.getClass().getName());
+			throw context.error(ErrorKind.UNSUPPORTED_FEATURE, "Trigger DDL is handled by the trigger DDL handler",
+					"SQL-UNSUPPORTED-TRIGGER-DDL", statement.getClass().getName());
 		}
 		if (statement instanceof SQLSelectStatement) {
 			return adaptSelect(((SQLSelectStatement) statement).getSelect(), context);

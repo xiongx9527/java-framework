@@ -1,0 +1,9 @@
+{
+  "openspec_proposal": "openspec/changes/add-nebula-mysql-trigger-subset/proposal.md",
+  "openspec_design": "openspec/changes/add-nebula-mysql-trigger-subset/design.md",
+  "openspec_tasks": "openspec/changes/add-nebula-mysql-trigger-subset/tasks.md",
+  "openspec_delta_spec": "openspec/changes/add-nebula-mysql-trigger-subset/specs/nebula-mysql-trigger-subset/spec.md",
+  "handoff_context": "openspec/changes/add-nebula-mysql-trigger-subset/.comet/handoff/design-context.json",
+  "handoff_markdown": "openspec/changes/add-nebula-mysql-trigger-subset/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-18-add-nebula-mysql-trigger-subset"
+}

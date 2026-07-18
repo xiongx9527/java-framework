@@ -2,14 +2,9 @@ package com.vesoft.nebula.jdbc.sql;
 
 import com.vesoft.nebula.client.graph.data.ResultSet;
 import com.vesoft.nebula.jdbc.NebulaConnection;
-import com.vesoft.nebula.jdbc.sql.binlog.BinlogEventBatch;
-import com.vesoft.nebula.jdbc.sql.binlog.BinlogEventStore;
-import com.vesoft.nebula.jdbc.sql.binlog.BinlogPosition;
-import com.vesoft.nebula.jdbc.sql.binlog.InMemoryBinlogEventStore;
-import com.vesoft.nebula.jdbc.sql.binlog.NebulaBinlogEventDraft;
-import com.vesoft.nebula.jdbc.sql.binlog.NebulaBinlogEventType;
 import com.vesoft.nebula.jdbc.sql.query.NebulaSchemaMappingRegistry;
 import com.vesoft.nebula.jdbc.sql.query.TableMapping;
+import com.vesoft.nebula.jdbc.sql.trigger.TriggerAwareNebulaSqlExecutor;
 import com.vesoft.nebula.jdbc.sql.write.NebulaWriteConversionException;
 import com.vesoft.nebula.jdbc.sql.write.NebulaWriteErrorCode;
 import org.junit.Test;
@@ -21,9 +16,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.InOrder;
 
 public class DirectNebulaSqlExecutorTest {
 
@@ -107,106 +105,61 @@ public class DirectNebulaSqlExecutorTest {
 	}
 
 	@Test
-	public void executeUpdateShouldAppendBinlogEventsForSqlInsertAndDdl() throws Exception {
+	public void executeUpdateShouldCreateTriggerMetadataAndFireBodySqlOnGatewayWrite() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
 		ResultSet nativeResultSet = successNativeResult();
+		when(connection.getSchema()).thenReturn("test_space");
 		when(connection.execute(anyString())).thenReturn(nativeResultSet);
-		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
 
-		DirectNebulaSqlExecutor executor = new DirectNebulaSqlExecutor(personMappings(), store);
-		executor.executeUpdate(
+		DirectNebulaSqlExecutor executor = new DirectNebulaSqlExecutor(triggerMappings());
+		int ddlRows = executor.executeUpdate(
+				connection,
+				"CREATE TRIGGER person_ai AFTER INSERT ON person FOR EACH ROW "
+						+ "INSERT INTO audit(id, marker) VALUES ('a1', 'seen;still')",
+				NebulaParameterBindings.empty()
+		);
+		int insertRows = executor.executeUpdate(
 				connection,
 				"INSERT INTO person(id, name) VALUES ('p1', 'Tom')",
 				NebulaParameterBindings.empty()
 		);
-		executor.executeUpdate(
-				connection,
-				"DROP TABLE person",
-				NebulaParameterBindings.empty()
-		);
 
-		BinlogEventBatch batch = store.readAfter(null, 10);
-		assertEquals(2, batch.getEvents().size());
-		assertEquals(NebulaBinlogEventType.WRITE_ROWS, batch.getEvents().get(0).getEventType());
-		assertEquals("person", batch.getEvents().get(0).getSchemaName());
-		assertEquals("INSERT_VERTEX", batch.getEvents().get(0).getPayload().get("mutationKind"));
-		assertEquals(NebulaBinlogEventType.SCHEMA_CHANGE, batch.getEvents().get(1).getEventType());
-		assertEquals("DROP_TAG", batch.getEvents().get(1).getPayload().get("ddlKind"));
-		assertEquals("DROP TABLE person", batch.getEvents().get(1).getSql());
+		assertEquals(0, ddlRows);
+		assertEquals(1, insertRows);
+		verify(connection, never()).execute("CREATE TRIGGER person_ai AFTER INSERT ON person FOR EACH ROW "
+				+ "INSERT INTO audit(id, marker) VALUES ('a1', 'seen;still')");
+		InOrder order = inOrder(connection);
+		order.verify(connection).execute("INSERT VERTEX person(name) VALUES \"p1\":(\"Tom\")");
+		order.verify(connection).execute("INSERT VERTEX audit(marker) VALUES \"a1\":(\"seen;still\")");
 	}
 
 	@Test
-	public void executeUpdateShouldNotAppendBinlogEventForMetadataStatements() throws Exception {
-		NebulaConnection connection = mock(NebulaConnection.class);
-		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
-
-		try {
-			new DirectNebulaSqlExecutor(personMappings(), store).executeUpdate(
-					connection,
-					"DESCRIBE person",
-					NebulaParameterBindings.empty()
-			);
-			fail("Expected SQLException");
-		} catch (SQLException exception) {
-			assertTrue(exception.getMessage().contains("Update nGql must start with an update keyword"));
-		}
-
-		assertTrue(store.readAfter(null, 10).isEmpty());
-	}
-
-	@Test
-	public void executeUpdateShouldNotAppendBinlogEventForNativeNgqlFallback() throws Exception {
+	public void executeUpdateShouldKeepNativeNgqlFallbackOutsideTriggerPath() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
 		ResultSet nativeResultSet = successNativeResult();
+		when(connection.getSchema()).thenReturn("test_space");
 		when(connection.execute(anyString())).thenReturn(nativeResultSet);
-		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
 
-		new DirectNebulaSqlExecutor(personMappings(), store).executeUpdate(
+		DirectNebulaSqlExecutor executor = new DirectNebulaSqlExecutor(triggerMappings());
+		executor.executeUpdate(
+				connection,
+				"CREATE TRIGGER person_ai AFTER INSERT ON person FOR EACH ROW "
+						+ "INSERT INTO audit(id, marker) VALUES ('a1', 'seen')",
+				NebulaParameterBindings.empty()
+		);
+		executor.executeUpdate(
 				connection,
 				"INSERT VERTEX person(name) VALUES \"p1\":(\"Tom\")",
 				NebulaParameterBindings.empty()
 		);
 
-		assertTrue(store.readAfter(null, 10).isEmpty());
+		verify(connection).execute("INSERT VERTEX person(name) VALUES \"p1\":(\"Tom\")");
+		verify(connection, never()).execute("INSERT VERTEX audit(marker) VALUES \"a1\":(\"seen\")");
 	}
 
 	@Test
-	public void executeUpdateShouldNotAppendBinlogEventWhenNativeExecutionFails() throws Exception {
-		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = failedNativeResult();
-		when(connection.execute(anyString())).thenReturn(nativeResultSet);
-		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
-
-		try {
-			new DirectNebulaSqlExecutor(personMappings(), store).executeUpdate(
-					connection,
-					"INSERT INTO person(id, name) VALUES ('p1', 'Tom')",
-					NebulaParameterBindings.empty()
-			);
-			fail("Expected SQLException");
-		} catch (SQLException exception) {
-			assertTrue(exception.getMessage().contains("executed failed"));
-		}
-
-		assertTrue(store.readAfter(null, 10).isEmpty());
-	}
-
-	@Test
-	public void executeUpdateShouldFailWhenBinlogAppendFails() throws Exception {
-		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = successNativeResult();
-		when(connection.execute(anyString())).thenReturn(nativeResultSet);
-
-		try {
-			new DirectNebulaSqlExecutor(personMappings(), failingStore()).executeUpdate(
-					connection,
-					"INSERT INTO person(id, name) VALUES ('p1', 'Tom')",
-					NebulaParameterBindings.empty()
-			);
-			fail("Expected SQLException");
-		} catch (SQLException exception) {
-			assertTrue(exception.getMessage().contains("binlog-compatible stream append failed"));
-		}
+	public void defaultExecutorProviderShouldUseTriggerAwareSqlExecutor() {
+		assertTrue(NebulaSqlExecutorProvider.getExecutor() instanceof TriggerAwareNebulaSqlExecutor);
 	}
 
 	@Test
@@ -272,27 +225,21 @@ public class DirectNebulaSqlExecutorTest {
 				.addTable(TableMapping.tag("person", "person")
 						.idColumn("id", Types.VARCHAR)
 						.property("name", "name", Types.VARCHAR)
-						.build())
-				.build();
+					.build())
+			.build();
 	}
 
-	private BinlogEventStore failingStore() {
-		return new BinlogEventStore() {
-			@Override
-			public BinlogPosition append(NebulaBinlogEventDraft event) throws SQLException {
-				throw new SQLException("store unavailable");
-			}
-
-			@Override
-			public BinlogEventBatch readAfter(BinlogPosition position, int maxEvents) throws SQLException {
-				return new BinlogEventBatch(null, null);
-			}
-
-			@Override
-			public BinlogPosition currentPosition() throws SQLException {
-				return new BinlogPosition(0L, "failing-store");
-			}
-		};
+	private NebulaSchemaMappingRegistry triggerMappings() {
+		return NebulaSchemaMappingRegistry.builder()
+				.addTable(TableMapping.tag("person", "person")
+						.idColumn("id", Types.VARCHAR)
+						.property("name", "name", Types.VARCHAR)
+						.build())
+				.addTable(TableMapping.tag("audit", "audit")
+						.idColumn("id", Types.VARCHAR)
+						.property("marker", "marker", Types.VARCHAR)
+						.build())
+				.build();
 	}
 
 	private void assertNativeFailure(SqlRunnable runnable) throws Exception {
