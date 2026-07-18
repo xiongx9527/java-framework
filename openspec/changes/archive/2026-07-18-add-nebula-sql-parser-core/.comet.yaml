@@ -15,7 +15,7 @@ design_doc: docs/superpowers/specs/2026-07-17-nebula-sql-parser-core-design.md
 plan: null
 verify_result: pass
 verification_report: docs/superpowers/reports/2026-07-17-add-nebula-sql-parser-core-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-07-15
 verified_at: 2026-07-17
 archived: true
