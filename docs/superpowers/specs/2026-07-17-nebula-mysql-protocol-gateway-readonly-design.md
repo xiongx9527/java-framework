@@ -2,6 +2,8 @@
 comet_change: add-nebula-mysql-protocol-gateway-readonly
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-18-add-nebula-mysql-protocol-gateway-readonly
+status: final
 ---
 
 # Nebula MySQL 协议只读网关技术设计
