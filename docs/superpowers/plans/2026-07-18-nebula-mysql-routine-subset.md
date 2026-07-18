@@ -111,11 +111,11 @@ git commit -m "feat(nebula): define mysql routine subset parser"
 - Consumes: `RoutineStatementParser.parse`.
 - Produces: `RoutineService.create(String schema, String user, String sql)`, `drop(String schema, String sql)`, `call(String schema, String user, String sql, NebulaConnection connection, NebulaSqlExecutor executor)`.
 
-- [ ] **Step 1: Write failing repository/service tests**
+- [x] **Step 1: Write failing repository/service tests**
 
 Cover save/find/drop, duplicate create error 1304, missing drop error 1305, `DROP PROCEDURE IF EXISTS` OK, schema isolation, lowercase normalization.
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 Run:
 
@@ -125,11 +125,11 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc
 
 Expected: failure because metadata/service classes are absent or incomplete.
 
-- [ ] **Step 3: Implement minimal metadata and service**
+- [x] **Step 3: Implement minimal metadata and service**
 
 Use static default in-memory repository for JDBC statement routing and instance repository for tests. Enforce duplicate/missing behavior and unsupported syntax validation before save.
 
-- [ ] **Step 4: Verify GREEN and commit**
+- [x] **Step 4: Verify GREEN and commit**
 
 Run the same tests. Then commit with message `feat(nebula): persist mysql routine definitions`.
 
