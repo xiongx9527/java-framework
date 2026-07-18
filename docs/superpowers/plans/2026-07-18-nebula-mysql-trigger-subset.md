@@ -53,11 +53,11 @@ base-ref: 874719db4c0b576fc1cceb7e2be0c05d4816fcc7
 - Produces: `TriggerDefinition`, `TriggerDefinitionDraft`, `TriggerEvent`, `TriggerTiming`
 - Produces: immutable metadata fields `schemaName`, `triggerName`, `targetTable`, `event`, `timing`, `bodySql`, `order`, `enabled`
 
-- [ ] Step 1: Write tests for immutable metadata and event/timing mapping.
-- [ ] Step 2: Run targeted test and verify it fails because trigger classes do not exist.
-- [ ] Step 3: Implement minimal model and enum classes.
-- [ ] Step 4: Run targeted test and verify it passes.
-- [ ] Step 5: Check OpenSpec task `1.1` and commit with `feat(nebula): define trigger metadata model`.
+- [x] Step 1: Write tests for immutable metadata and event/timing mapping.
+- [x] Step 2: Run targeted test and verify it fails because trigger classes do not exist.
+- [x] Step 3: Implement minimal model and enum classes.
+- [x] Step 4: Run targeted test and verify it passes.
+- [x] Step 5: Check OpenSpec task `1.1` and commit with `feat(nebula): define trigger metadata model`.
 
 ### Task 2: Trigger 元数据存储、排序、失败策略与递归限制字段
 
