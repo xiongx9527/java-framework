@@ -71,6 +71,8 @@ public class TriggerDdlHandlerTest {
 				"CREATE TRIGGER person_tx BEFORE INSERT ON person FOR EACH ROW START TRANSACTION");
 		assertSqlError("Unsupported trigger body", handler,
 				"CREATE TRIGGER nested BEFORE INSERT ON person FOR EACH ROW CREATE TRIGGER child BEFORE INSERT ON audit FOR EACH ROW INSERT INTO x(id) VALUES ('x')");
+		assertSqlError("Unsupported trigger body", handler,
+				"CREATE TRIGGER nested_late BEFORE INSERT ON person FOR EACH ROW INSERT INTO audit(id) VALUES ('a1'); CREATE TRIGGER child BEFORE INSERT ON audit FOR EACH ROW INSERT INTO x(id) VALUES ('x')");
 		assertSqlError("Unsupported CREATE TRIGGER syntax", handler,
 				"CREATE TRIGGER person_missing BEFORE INSERT ON person INSERT INTO audit(id) VALUES ('a1')");
 	}
