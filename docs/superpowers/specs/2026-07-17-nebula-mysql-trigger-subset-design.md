@@ -2,6 +2,8 @@
 comet_change: add-nebula-mysql-trigger-subset
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-18-add-nebula-mysql-trigger-subset
+status: final
 ---
 
 # Nebula MySQL Trigger 子集技术设计

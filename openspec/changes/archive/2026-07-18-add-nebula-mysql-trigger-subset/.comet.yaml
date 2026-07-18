@@ -18,12 +18,12 @@ verification_report: docs/superpowers/reports/2026-07-18-add-nebula-mysql-trigge
 branch_status: pending
 created_at: 2026-07-16
 verified_at: 2026-07-18
-archived: false
+archived: true
 direct_override: null
-handoff_context: openspec/changes/add-nebula-mysql-trigger-subset/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-18-add-nebula-mysql-trigger-subset/.comet/handoff/design-context.json
 handoff_hash: 68ca36c332cecdb9f2732208fa568fc04e6d12aaa909dd1381e2905d488fc080
 classic_profile: full
 classic_migration: 1
 run_id: 8e5931b2-5b30-40da-94cc-45f497a475ef
 verify_failures: 0
-archive_confirmation: pending
+archive_confirmation: confirmed
