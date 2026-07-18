@@ -18,12 +18,12 @@ verification_report: docs/superpowers/reports/2026-07-18-add-nebula-mysql-protoc
 branch_status: pending
 created_at: 2026-07-15
 verified_at: 2026-07-18
-archived: false
+archived: true
 direct_override: null
-handoff_context: openspec/changes/add-nebula-mysql-protocol-gateway-readonly/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-18-add-nebula-mysql-protocol-gateway-readonly/.comet/handoff/design-context.json
 handoff_hash: 4c333f63b2f8192277a07fb2ab0856006eec2dbd1017c666f409982d64a5de6f
 classic_profile: full
 classic_migration: 1
 run_id: 72e9b312-d44c-44b1-a2d0-cdaf7fd2cbad
 verify_failures: 0
-archive_confirmation: pending
+archive_confirmation: confirmed

@@ -2,6 +2,7 @@
 change: add-nebula-mysql-protocol-gateway-readonly
 design-doc: docs/superpowers/specs/2026-07-17-nebula-mysql-protocol-gateway-readonly-design.md
 base-ref: ce556fc260050b85ced425180f850a7fc9299256
+archived-with: 2026-07-18-add-nebula-mysql-protocol-gateway-readonly
 ---
 
 # Nebula MySQL 协议只读网关实施计划
