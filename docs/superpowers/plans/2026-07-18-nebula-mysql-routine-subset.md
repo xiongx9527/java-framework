@@ -37,7 +37,7 @@
 - Consumes: 当前 routine design 分支。
 - Produces: `NebulaSqlExecutor` 可继续作为 routine body SQL execution port；SQL parser/write 支持类可供后续 routine 识别复用。
 
-- [ ] **Step 1: Merge local write/DDL branch**
+- [x] **Step 1: Merge local write/DDL branch**
 
 Run:
 
@@ -47,7 +47,7 @@ git merge --no-ff codex/comet-add-nebula-sql-write-and-ddl-support -m "merge: br
 
 Expected: merge succeeds or only Comet artifact conflicts that can be resolved by preserving current routine change state.
 
-- [ ] **Step 2: Verify build baseline**
+- [x] **Step 2: Verify build baseline**
 
 Run:
 
@@ -68,11 +68,11 @@ Expected: existing module tests pass. If this fails, load `systematic-debugging`
 **Interfaces:**
 - Produces: `RoutineStatementParser.parse(String sql)` returning `RoutineStatement`; `RoutineException` with stable SQLState/errorCode.
 
-- [ ] **Step 1: Write failing parser tests**
+- [x] **Step 1: Write failing parser tests**
 
 Cover `CREATE PROCEDURE p(IN id VARCHAR(64)) BEGIN SELECT * FROM person WHERE id = id; END`, `DROP PROCEDURE IF EXISTS p`, `CALL p('v1')`, plus rejection of `CREATE FUNCTION`, `OUT`, `INOUT`, `CURSOR`, `HANDLER`, `PREPARE`, `START TRANSACTION`, `WHILE`, `LOOP`.
 
-- [ ] **Step 2: Run parser tests and verify RED**
+- [x] **Step 2: Run parser tests and verify RED**
 
 Run:
 
@@ -82,11 +82,11 @@ cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc
 
 Expected: compilation/test failure because routine classes do not exist.
 
-- [ ] **Step 3: Implement minimal parser**
+- [x] **Step 3: Implement minimal parser**
 
 Use conservative string scanning for first routine subset only. Preserve original body SQL statements as strings, split semicolon-delimited body statements only after extracting `BEGIN ... END`, and reject unsupported keywords before saving.
 
-- [ ] **Step 4: Verify GREEN and commit**
+- [x] **Step 4: Verify GREEN and commit**
 
 Run the same parser test command. Then commit:
 

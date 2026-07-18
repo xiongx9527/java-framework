@@ -1,6 +1,6 @@
 ## 1. Routine 子集设计
 
-- [ ] 1.1 定义支持的 CREATE/CALL/DROP 语法和过程体语言子集。
+- [x] 1.1 定义支持的 CREATE/CALL/DROP 语法和过程体语言子集。
 - [ ] 1.2 定义 routine 元数据存储、权限和执行上下文。
 
 ## 2. Routine 实现
