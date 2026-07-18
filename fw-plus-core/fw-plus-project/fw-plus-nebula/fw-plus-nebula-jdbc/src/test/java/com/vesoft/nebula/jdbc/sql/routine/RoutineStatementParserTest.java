@@ -50,6 +50,18 @@ public class RoutineStatementParserTest {
 	}
 
 	@Test
+	public void parseIfBlockAsSingleBodyStatement() throws Exception {
+		RoutineStatement statement = RoutineStatementParser.parse(
+				"CREATE PROCEDURE p(IN mode VARCHAR(8)) BEGIN DECLARE target VARCHAR(8) DEFAULT 'B'; SET target = mode; IF target = 'A' THEN SELECT * FROM person WHERE id = target; ELSEIF target = 'B' THEN UPDATE person SET touched = 1 WHERE id = target; ELSE SELECT * FROM fallback; END IF; END");
+
+		assertEquals(3, statement.getBodyStatements().size());
+		assertEquals("DECLARE target VARCHAR(8) DEFAULT 'B'", statement.getBodyStatements().get(0));
+		assertEquals("SET target = mode", statement.getBodyStatements().get(1));
+		assertTrue(statement.getBodyStatements().get(2).startsWith("IF target = 'A' THEN"));
+		assertTrue(statement.getBodyStatements().get(2).endsWith("END IF"));
+	}
+
+	@Test
 	public void rejectUnsupportedRoutineFeaturesExplicitly() throws Exception {
 		assertUnsupported("CREATE FUNCTION f() RETURNS INT RETURN 1");
 		assertUnsupported("CREATE PROCEDURE p(OUT id VARCHAR(64)) BEGIN SELECT 1; END");

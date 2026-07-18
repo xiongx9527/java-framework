@@ -38,6 +38,10 @@
 - **WHEN** 过程调用超过配置的超时、语句数量、嵌套深度或递归限制
 - **THEN** 系统中止调用并返回明确的执行保护错误。
 
+#### Scenario: 权限检查
+- **WHEN** 当前用户缺少 routine 管理或执行权限
+- **THEN** CREATE PROCEDURE、DROP PROCEDURE 或 CALL 返回稳定的权限拒绝错误，过程体 SQL 不被执行。
+
 ### Requirement: Unsupported routine language features fail explicitly
 系统 SHALL 对复杂游标、handler、动态 SQL、临时表或复杂事务语义返回明确不支持错误。
 

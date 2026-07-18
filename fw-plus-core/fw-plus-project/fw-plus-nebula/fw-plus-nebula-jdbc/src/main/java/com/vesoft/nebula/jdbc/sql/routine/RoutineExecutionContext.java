@@ -10,14 +10,18 @@ public class RoutineExecutionContext {
 	private final NebulaConnection connection;
 	private final NebulaSqlExecutor executor;
 	private final int maxStatements;
+	private final long maxExecutionMillis;
+	private final long startedAtMillis;
 
 	public RoutineExecutionContext(String schema, String user, NebulaConnection connection,
-			NebulaSqlExecutor executor, int maxStatements) {
+			NebulaSqlExecutor executor, int maxStatements, long maxExecutionMillis) {
 		this.schema = schema;
 		this.user = user;
 		this.connection = connection;
 		this.executor = executor;
 		this.maxStatements = maxStatements;
+		this.maxExecutionMillis = maxExecutionMillis;
+		this.startedAtMillis = System.currentTimeMillis();
 	}
 
 	public String getSchema() {
@@ -38,5 +42,14 @@ public class RoutineExecutionContext {
 
 	public int getMaxStatements() {
 		return maxStatements;
+	}
+
+	public void checkTimeout() throws RoutineException {
+		if (maxExecutionMillis <= 0) {
+			throw RoutineException.executionLimit("Routine execution timed out");
+		}
+		if (System.currentTimeMillis() - startedAtMillis >= maxExecutionMillis) {
+			throw RoutineException.executionLimit("Routine execution timed out");
+		}
 	}
 }

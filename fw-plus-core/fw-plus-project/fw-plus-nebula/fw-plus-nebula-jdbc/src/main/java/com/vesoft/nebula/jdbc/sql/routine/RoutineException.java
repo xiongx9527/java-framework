@@ -10,6 +10,7 @@ public class RoutineException extends SQLException {
 	public static final int ER_SP_WRONG_NO_OF_ARGS = 1318;
 	public static final int ER_NOT_SUPPORTED_YET = 1235;
 	public static final int ER_QUERY_INTERRUPTED = 1317;
+	public static final int ER_TABLEACCESS_DENIED_ERROR = 1142;
 
 	public RoutineException(String message, String sqlState, int vendorCode) {
 		super(message, sqlState, vendorCode);
@@ -41,5 +42,10 @@ public class RoutineException extends SQLException {
 
 	public static RoutineException executionLimit(String message) {
 		return new RoutineException(message, "70100", ER_QUERY_INTERRUPTED);
+	}
+
+	public static RoutineException permissionDenied(RoutinePermissionChecker.Action action, String name) {
+		return new RoutineException("Routine permission denied: " + action + " " + name,
+				"42000", ER_TABLEACCESS_DENIED_ERROR);
 	}
 }
