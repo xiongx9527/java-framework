@@ -105,6 +105,109 @@ public class DirectNebulaSqlExecutorTest {
 	}
 
 	@Test
+	public void executeUpdateShouldAppendBinlogEventsForSqlInsertAndDdl() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		ResultSet nativeResultSet = successNativeResult();
+		when(connection.execute(anyString())).thenReturn(nativeResultSet);
+		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
+
+		DirectNebulaSqlExecutor executor = new DirectNebulaSqlExecutor(personMappings(), store);
+		executor.executeUpdate(
+				connection,
+				"INSERT INTO person(id, name) VALUES ('p1', 'Tom')",
+				NebulaParameterBindings.empty()
+		);
+		executor.executeUpdate(
+				connection,
+				"DROP TABLE person",
+				NebulaParameterBindings.empty()
+		);
+
+		BinlogEventBatch batch = store.readAfter(null, 10);
+		assertEquals(2, batch.getEvents().size());
+		assertEquals(NebulaBinlogEventType.WRITE_ROWS, batch.getEvents().get(0).getEventType());
+		assertEquals("person", batch.getEvents().get(0).getSchemaName());
+		assertEquals("INSERT_VERTEX", batch.getEvents().get(0).getPayload().get("mutationKind"));
+		assertEquals(NebulaBinlogEventType.SCHEMA_CHANGE, batch.getEvents().get(1).getEventType());
+		assertEquals("DROP_TAG", batch.getEvents().get(1).getPayload().get("ddlKind"));
+		assertEquals("DROP TABLE person", batch.getEvents().get(1).getSql());
+	}
+
+	@Test
+	public void executeUpdateShouldNotAppendBinlogEventForMetadataStatements() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
+
+		try {
+			new DirectNebulaSqlExecutor(personMappings(), store).executeUpdate(
+					connection,
+					"DESCRIBE person",
+					NebulaParameterBindings.empty()
+			);
+			fail("Expected SQLException");
+		} catch (SQLException exception) {
+			assertTrue(exception.getMessage().contains("Update nGql must start with an update keyword"));
+		}
+
+		assertTrue(store.readAfter(null, 10).isEmpty());
+	}
+
+	@Test
+	public void executeUpdateShouldNotAppendBinlogEventForNativeNgqlFallback() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		ResultSet nativeResultSet = successNativeResult();
+		when(connection.execute(anyString())).thenReturn(nativeResultSet);
+		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
+
+		new DirectNebulaSqlExecutor(personMappings(), store).executeUpdate(
+				connection,
+				"INSERT VERTEX person(name) VALUES \"p1\":(\"Tom\")",
+				NebulaParameterBindings.empty()
+		);
+
+		assertTrue(store.readAfter(null, 10).isEmpty());
+	}
+
+	@Test
+	public void executeUpdateShouldNotAppendBinlogEventWhenNativeExecutionFails() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		ResultSet nativeResultSet = failedNativeResult();
+		when(connection.execute(anyString())).thenReturn(nativeResultSet);
+		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
+
+		try {
+			new DirectNebulaSqlExecutor(personMappings(), store).executeUpdate(
+					connection,
+					"INSERT INTO person(id, name) VALUES ('p1', 'Tom')",
+					NebulaParameterBindings.empty()
+			);
+			fail("Expected SQLException");
+		} catch (SQLException exception) {
+			assertTrue(exception.getMessage().contains("executed failed"));
+		}
+
+		assertTrue(store.readAfter(null, 10).isEmpty());
+	}
+
+	@Test
+	public void executeUpdateShouldFailWhenBinlogAppendFails() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		ResultSet nativeResultSet = successNativeResult();
+		when(connection.execute(anyString())).thenReturn(nativeResultSet);
+
+		try {
+			new DirectNebulaSqlExecutor(personMappings(), failingStore()).executeUpdate(
+					connection,
+					"INSERT INTO person(id, name) VALUES ('p1', 'Tom')",
+					NebulaParameterBindings.empty()
+			);
+			fail("Expected SQLException");
+		} catch (SQLException exception) {
+			assertTrue(exception.getMessage().contains("binlog-compatible stream append failed"));
+		}
+	}
+
+	@Test
 	public void executeUpdateShouldCreateTriggerMetadataAndFireBodySqlOnGatewayWrite() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
 		ResultSet nativeResultSet = successNativeResult();
@@ -240,6 +343,25 @@ public class DirectNebulaSqlExecutorTest {
 						.property("marker", "marker", Types.VARCHAR)
 						.build())
 				.build();
+	}
+
+	private BinlogEventStore failingStore() {
+		return new BinlogEventStore() {
+			@Override
+			public BinlogPosition append(NebulaBinlogEventDraft event) throws SQLException {
+				throw new SQLException("store unavailable");
+			}
+
+			@Override
+			public BinlogEventBatch readAfter(BinlogPosition position, int maxEvents) throws SQLException {
+				return new BinlogEventBatch(null, null);
+			}
+
+			@Override
+			public BinlogPosition currentPosition() throws SQLException {
+				return new BinlogPosition(0L, "failing-store");
+			}
+		};
 	}
 
 	private void assertNativeFailure(SqlRunnable runnable) throws Exception {
