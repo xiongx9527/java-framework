@@ -2,17 +2,23 @@ package com.vesoft.nebula.jdbc.mysql.command;
 
 import com.vesoft.nebula.jdbc.mysql.protocol.MysqlCommand;
 import com.vesoft.nebula.jdbc.mysql.protocol.MysqlOkPacket;
+import com.vesoft.nebula.jdbc.mysql.query.AdvancedQueryHandler;
 import com.vesoft.nebula.jdbc.mysql.query.MysqlErrorMapper;
 import com.vesoft.nebula.jdbc.mysql.query.MysqlGatewayException;
+import com.vesoft.nebula.jdbc.mysql.query.MysqlQueryResult;
 import com.vesoft.nebula.jdbc.mysql.query.ReadonlyQueryHandler;
 import com.vesoft.nebula.jdbc.mysql.session.MysqlProtocolSession;
 
 import java.sql.SQLException;
 
 public class MysqlCommandDispatcher {
-	private final ReadonlyQueryHandler queryHandler;
+	private final AdvancedQueryHandler queryHandler;
 
 	public MysqlCommandDispatcher(ReadonlyQueryHandler queryHandler) {
+		this(new AdvancedQueryHandlerAdapter(queryHandler));
+	}
+
+	public MysqlCommandDispatcher(AdvancedQueryHandler queryHandler) {
 		this.queryHandler = queryHandler;
 	}
 
@@ -23,7 +29,11 @@ public class MysqlCommandDispatcher {
 			}
 			switch (command) {
 				case MysqlCommand.COM_QUERY:
-					return MysqlCommandResult.resultSet(queryHandler.handle(session, argument));
+					MysqlQueryResult result = queryHandler.handle(session, argument);
+					if (result.isOkResult()) {
+						return MysqlCommandResult.ok(MysqlOkPacket.success(result.getAffectedRows(), result.getWarnings()).toPayload());
+					}
+					return MysqlCommandResult.resultSet(result);
 				case MysqlCommand.COM_PING:
 					return MysqlCommandResult.ok(MysqlOkPacket.success().toPayload());
 				case MysqlCommand.COM_QUIT:
@@ -43,6 +53,20 @@ public class MysqlCommandDispatcher {
 					mapped.getMessage(),
 					MysqlErrorMapper.toErrPacket(mapped).toPayload()
 			);
+		}
+	}
+
+	private static class AdvancedQueryHandlerAdapter extends AdvancedQueryHandler {
+		private final ReadonlyQueryHandler readonlyQueryHandler;
+
+		private AdvancedQueryHandlerAdapter(ReadonlyQueryHandler readonlyQueryHandler) {
+			super(null, null);
+			this.readonlyQueryHandler = readonlyQueryHandler;
+		}
+
+		@Override
+		public MysqlQueryResult handle(MysqlProtocolSession session, String sql) throws SQLException {
+			return readonlyQueryHandler.handle(session, sql);
 		}
 	}
 }
