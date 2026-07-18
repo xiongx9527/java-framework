@@ -434,17 +434,17 @@
       "notes": "routine 不在本路线当前范围。"
     },
     {
-      "id": "SQL-DEFERRED-TRIGGER",
+      "id": "SQL-UNSUPPORTED-TRIGGER-DDL",
       "category": "unsupportedOrDeferred",
       "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLCreateTriggerStatement",
       "sqlConstruct": "CREATE TRIGGER",
       "exampleSql": "CREATE TRIGGER trg BEFORE INSERT ON person FOR EACH ROW SET @x = 1",
-      "nebulaAstKind": "DeferredStatement",
-      "adapterRequirement": "当前 parser-core 不作为必做项；若 Druid 能解析，必须返回结构化延期或不支持错误。",
-      "supportLevel": "deferred",
-      "testCaseId": "deferCreateTrigger",
+      "nebulaAstKind": "UnsupportedStatement",
+      "adapterRequirement": "CREATE TRIGGER 由 trigger DDL handler 在 SQL 执行入口处理；parser-core 必须返回结构化不支持错误而不是 raw fallback。",
+      "supportLevel": "explicitlyUnsupported",
+      "testCaseId": "rejectCreateTriggerInParserCore",
       "rawFallbackAllowed": false,
-      "notes": "trigger 由未来独立 change 决定。"
+      "notes": "trigger DDL metadata 管理由 add-nebula-mysql-trigger-subset change 的 TriggerDdlHandler 负责。"
     }
   ],
   "reflectedCandidates": [
@@ -573,9 +573,9 @@
     },
     {
       "className": "com.alibaba.druid.sql.ast.statement.SQLCreateTriggerStatement",
-      "status": "deferred",
-      "entryId": "SQL-DEFERRED-TRIGGER",
-      "reason": "CREATE TRIGGER 由未来独立 change 定义，不进入当前 parser-core 必做范围。"
+      "status": "explicitlyUnsupported",
+      "entryId": "SQL-UNSUPPORTED-TRIGGER-DDL",
+      "reason": "CREATE TRIGGER 由 trigger DDL handler 在 SQL 执行入口处理，parser-core 不输出公共 trigger AST。"
     },
     {
       "className": "com.alibaba.druid.sql.ast.SQLDataTypeImpl",
@@ -643,8 +643,8 @@
     {
       "className": "com.alibaba.druid.sql.ast.statement.SQLAssignItem",
       "status": "excludedInternalContainer",
-      "entryId": "SQL-DEFERRED-TRIGGER",
-      "reason": "触发器体中的赋值组装节点随其延期的 CREATE TRIGGER 处置，不形成当前路线的独立 acceptance entry。"
+      "entryId": "SQL-UNSUPPORTED-TRIGGER-DDL",
+      "reason": "触发器体中的赋值组装节点随 CREATE TRIGGER handler 处置，不形成 parser-core 独立 acceptance entry。"
     },
     {
       "className": "com.alibaba.druid.sql.ast.statement.SQLCharacterDataType",
@@ -710,8 +710,8 @@
     {
       "className": "com.alibaba.druid.sql.ast.statement.SQLSetStatement",
       "status": "excludedInternalContainer",
-      "entryId": "SQL-DEFERRED-TRIGGER",
-      "reason": "样例中该 SET 语句属于触发器体，随延期的 CREATE TRIGGER 处置，不形成独立 acceptance entry。"
+      "entryId": "SQL-UNSUPPORTED-TRIGGER-DDL",
+      "reason": "样例中该 SET 语句属于触发器体，随 CREATE TRIGGER handler 处置，不形成独立 acceptance entry。"
     },
     {
       "className": "com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem",

@@ -41,6 +41,7 @@ public class NebulaDatabaseMetaDataTest {
 		assertFalse(metaData.supportsGetGeneratedKeys());
 		assertFalse(metaData.supportsMultipleResultSets());
 		assertFalse(metaData.supportsNamedParameters());
+		assertTrue(metaData.supportsStoredProcedures());
 		assertEquals("`", metaData.getIdentifierQuoteString());
 		assertTrue(metaData.supportsResultSetType(ResultSet.TYPE_SCROLL_INSENSITIVE));
 		assertFalse(metaData.supportsResultSetType(ResultSet.TYPE_FORWARD_ONLY));
