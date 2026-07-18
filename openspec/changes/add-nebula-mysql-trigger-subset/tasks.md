@@ -1,6 +1,6 @@
 ## 1. Trigger 子集设计
 
-- [ ] 1.1 定义支持的 CREATE/DROP TRIGGER 语法和 BEFORE/AFTER 范围。
+- [x] 1.1 定义支持的 CREATE/DROP TRIGGER 语法和 BEFORE/AFTER 范围。
 - [ ] 1.2 定义触发器元数据、执行顺序、失败策略和递归限制。
 
 ## 2. Trigger 实现
