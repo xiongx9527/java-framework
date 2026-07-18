@@ -2,6 +2,7 @@
 change: add-nebula-sql-to-ngql-query-support
 design-doc: docs/superpowers/specs/2026-07-17-nebula-sql-to-ngql-query-support-design.md
 base-ref: ce556fc260050b85ced425180f850a7fc9299256
+archived-with: 2026-07-18-add-nebula-sql-to-ngql-query-support
 ---
 
 # Nebula SQL To nGQL Query Support Implementation Plan
@@ -136,7 +137,7 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
   - Check completed tasks in `openspec/changes/add-nebula-sql-to-ngql-query-support/tasks.md` only for this change.
   - Do not edit `add-nebula-sql-parser-core` state or tasks.
 
-- [ ] **Step 5: Commit and guard**
+- [x] **Step 5: Commit and guard**
   - `git add ... && git commit -m "test: cover nebula sql to ngql query conversion"`
   - Run `comet guard add-nebula-sql-to-ngql-query-support build --apply` if review gate and build evidence permit.
 
@@ -144,3 +145,20 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
 
 - `add-nebula-sql-parser-core` must later provide `NebulaSqlParseResult` / `NebulaSelectStatement` or equivalent stable IR. This plan keeps converter input isolated so a parser adapter can map those parser classes into `NebulaQueryStatement`.
 - Until parser core is implemented, this change cannot honestly claim end-to-end SQL text parsing. It can complete converter core, schema mapping, nGQL rendering, diagnostics, and execution handoff.
+
+## Task 2.4 Scope Note
+
+Build continuation on 2026-07-18 evaluated task 2.4 as too broad for full complex SQL coverage in one change. The implemented and tested subset is:
+
+- Explicit tag-edge-tag relation IR to single-hop nGQL `MATCH`.
+- `COUNT(mapped_column)` aggregate projection with mapped GROUP BY columns and HAVING filters that reference aggregate projection aliases.
+- Compatible UNION where both SELECT branches expose the same column count, labels and JDBC types.
+- Existing scalar function whitelist: `lower`, `upper`, `length`.
+
+Subquery conversion remains deliberately unsupported and returns `UNSUPPORTED_SUBQUERY`; recommended split is a later graph subquery template change that defines nGQL subquery/pipeline templates, correlated subquery rejection rules and whether client-side materialization is allowed.
+
+Build environment note: `fw-plus-core/mvnw` exists but `.mvn/wrapper` metadata is absent in this worktree and the original checkout, so Maven Wrapper cannot launch. Verification commands in this continuation use system Maven with `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home` to preserve JDK 1.8.
+
+Review gate note: Comet state has `review_mode: standard`, and the `requesting-code-review` skill was loaded. The current tool surface did not expose a reviewer subagent dispatch mechanism, so no automatic reviewer was actually dispatched. A local diff review checked alias resolution, UNION output compatibility, aggregate HAVING labels, explicit subquery rejection and old single-table query compatibility; guard should remain the authoritative gate for whether this review evidence is acceptable.
+
+Guard note: first guard attempt after commit failed because this plan step was still unchecked and build evidence was not recorded. `comet state check --recover` synchronized the classic trajectory to the configured build step, then the JDK 8 module test command was recorded with `comet state record-check`.

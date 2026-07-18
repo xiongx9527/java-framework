@@ -1,5 +1,8 @@
-## ADDED Requirements
+# nebula-sql-to-ngql-query-support Specification
 
+## Purpose
+TBD - created by archiving change add-nebula-sql-to-ngql-query-support. Update Purpose after archive.
+## Requirements
 ### Requirement: Query converter consumes parser-core IR
 系统 SHALL 只消费 `add-nebula-sql-parser-core` 提供的稳定 AST 或中间表示来进行 SQL SELECT 到 nGQL 的转换，不得在查询转换层直接解析 SQL 字符串，也不得把 Druid AST 作为公共转换契约。
 
@@ -62,9 +65,25 @@
 - **WHEN** SQL JOIN 可以根据 schema 映射规则对应到 tag/edge 关系
 - **THEN** 转换器生成等价或受控等价的 nGQL 图关系查询
 
+#### Scenario: 显式 tag-edge-tag IR 映射为单跳关系查询
+- **WHEN** parser 或上游适配层提供显式 tag-edge-tag 查询 IR，且 schema mapping 中左右表为 tag、中间表为 edge
+- **THEN** 转换器生成单跳 `MATCH (left:tag)-[edge:edge]->(right:tag)` 查询计划。
+
 #### Scenario: 聚合和分组转换
 - **WHEN** SQL 包含可由 nGQL 表达的聚合、GROUP BY 或 HAVING
 - **THEN** 转换器生成包含对应聚合和过滤语义的 nGQL
+
+#### Scenario: COUNT 分组和 HAVING 别名过滤
+- **WHEN** SELECT IR 包含普通分组列、`COUNT(mapped_column)` 聚合投影和引用聚合别名的 HAVING 条件
+- **THEN** 转换器使用 `WITH ... WHERE ... RETURN ...` 管道生成受控等价的 nGQL。
+
+#### Scenario: 同形 UNION 转换
+- **WHEN** UNION 左右分支均为受支持 SELECT，且输出列数量、标签和 JDBC 类型一致
+- **THEN** 转换器生成 `left_query UNION right_query` 查询计划。
+
+#### Scenario: 子查询保持明确拆分
+- **WHEN** SQL 包含 FROM 子查询、相关子查询或需要中间结果物化的子查询
+- **THEN** 转换器拒绝执行并返回 `UNSUPPORTED_SUBQUERY`，该能力由后续 graph subquery template change 承接。
 
 #### Scenario: 不可映射复杂 SQL
 - **WHEN** SQL 包含无法映射到 NebulaGraph 的复杂子查询、UNION 或函数表达式
@@ -91,3 +110,4 @@
 #### Scenario: MySQL read-only gateway 复用查询转换
 - **WHEN** 后续 `add-nebula-mysql-protocol-gateway-readonly` 处理 COM_QUERY SELECT
 - **THEN** 其调用本能力判断复杂只读 SQL 是否可映射，并只负责协议和结果编码。
+

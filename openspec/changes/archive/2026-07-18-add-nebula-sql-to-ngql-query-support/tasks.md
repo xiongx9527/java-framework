@@ -10,7 +10,7 @@
 - [x] 2.1 实现点查询 SQL→nGQL 转换。
 - [x] 2.2 实现边查询 SQL→nGQL 转换。
 - [x] 2.3 实现过滤、排序、分页转换。
-- [ ] 2.4 实现可映射 JOIN、子查询、聚合、GROUP BY、HAVING、UNION 和函数表达式转换。
+- [x] 2.4 实现可映射 JOIN、聚合、GROUP BY、HAVING、UNION 和函数表达式转换；子查询保持明确拒绝并拆分为后续 graph subquery template change。
 - [x] 2.5 提供最小查询执行适配，将转换后的 nGQL 交给现有 Nebula 执行链路，并保持 nGQL 直连路径不变。
 - [x] 2.6 暴露可供 JDBC framework integration 和 MySQL read-only gateway 复用的查询计划边界。
 

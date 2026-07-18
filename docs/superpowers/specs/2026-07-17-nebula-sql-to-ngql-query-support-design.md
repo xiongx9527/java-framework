@@ -2,6 +2,8 @@
 comet_change: add-nebula-sql-to-ngql-query-support
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-18-add-nebula-sql-to-ngql-query-support
+status: final
 ---
 
 # Nebula SQL SELECT 到 nGQL 查询转换技术设计
@@ -199,6 +201,14 @@ UNION 只支持左右查询输出列数量、类型和语义一致，且 nGQL �
 
 函数表达式必须建立 SQL 函数到 nGQL 函数的白名单映射。未知函数、语义差异大的函数和需要 MySQL 专有运行时语义的函数均拒绝。
 
+Build 阶段收敛实现的复杂查询子集：
+
+- JOIN：仅支持由上游适配层显式提供的单跳 tag-edge-tag IR，转换器校验左右表为 tag、中间表为 edge 后生成 `MATCH (left:tag)-[edge:edge]->(right:tag)`。当前不从任意 SQL JOIN 条件中推断图语义。
+- 聚合 / GROUP BY / HAVING：支持 `COUNT(mapped_column)`、普通映射列分组，以及引用聚合投影别名的 HAVING 条件，使用 `WITH ... WHERE ... RETURN ...` 管道表达。
+- UNION：支持左右分支均为受支持 SELECT，且输出列数量、标签和 JDBC 类型一致的同形 UNION。
+- 函数表达式：支持 `lower`、`upper`、`length` 安全白名单。
+- 子查询：当前无稳定 graph subquery template 边界，继续返回 `UNSUPPORTED_SUBQUERY`。建议拆分为后续独立 change，先设计 nGQL 子查询/管道模板、相关子查询拒绝策略和是否允许客户端物化中间结果。
+
 ## 6. 执行接入边界
 
 本 change 可以定义最小查询执行适配：
@@ -294,3 +304,5 @@ NgqlQueryPlan
 ## 10. Build 阶段执行边界
 
 build 阶段应优先实现 converter 核心、schema mapping、错误模型和转换测试。若需要接入 `NebulaStatementImpl`，只做最小 SQL 查询入口或内部 execution service 调用，不扩展 PreparedStatement、metadata、JdbcTemplate、MyBatis 或 MySQL protocol。
+
+2.4 范围记录：完整 JOIN、子查询、聚合、GROUP BY、HAVING、UNION 和函数表达式覆盖超出单个 build task。当前 change 只完成可验证的最小可映射子集，并保留子查询的明确错误路径；不要在 verify/archive 时把子查询转换描述为已支持。
