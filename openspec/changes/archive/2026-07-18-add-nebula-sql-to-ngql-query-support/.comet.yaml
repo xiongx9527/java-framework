@@ -18,12 +18,12 @@ verification_report: docs/superpowers/reports/2026-07-18-add-nebula-sql-to-ngql-
 branch_status: pending
 created_at: 2026-07-15
 verified_at: 2026-07-18
-archived: false
+archived: true
 direct_override: null
-handoff_context: openspec/changes/add-nebula-sql-to-ngql-query-support/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-18-add-nebula-sql-to-ngql-query-support/.comet/handoff/design-context.json
 handoff_hash: 4134485c7e0959a26e48377e831a4f6b2d99469dfe967db8c06069f8a53a7f13
 classic_profile: full
 classic_migration: 1
 run_id: 6d2ba8f7-6922-4ee5-8792-1bfad2dda02f
 verify_failures: 0
-archive_confirmation: pending
+archive_confirmation: confirmed

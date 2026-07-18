@@ -2,6 +2,8 @@
 comet_change: add-nebula-sql-to-ngql-query-support
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-18-add-nebula-sql-to-ngql-query-support
+status: final
 ---
 
 # Nebula SQL SELECT 到 nGQL 查询转换技术设计
