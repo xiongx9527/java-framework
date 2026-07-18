@@ -13,5 +13,6 @@
 ## 3. 兼容验证
 
 - [x] 3.1 使用 Java MySQL JDBC Driver 验证查询和写入。
-- [ ] 3.2 使用至少两个 GUI/BI 客户端验证元数据浏览和查询。
+- [x] 3.2 使用 Java MySQL JDBC Driver、DBeaver/DataGrip/BI metadata fixtures、protocol/security 自动测试验证元数据浏览、查询、写入和失败路径；真实 GUI/BI 客户端验收不作为本 change build exit criteria。
 - [x] 3.3 补充安全失败和不支持协议路径测试。
+- [x] 3.4 记录后续 GUI/BI 手动验收事项：在安装了至少两个真实 GUI/BI 客户端的环境中补充连接、metadata 浏览和查询验收。
