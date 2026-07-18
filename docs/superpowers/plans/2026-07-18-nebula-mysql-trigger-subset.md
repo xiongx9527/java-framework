@@ -125,11 +125,11 @@ base-ref: 874719db4c0b576fc1cceb7e2be0c05d4816fcc7
 **Interfaces:**
 - Produces: explicit SQLException messages for recursion depth and unsupported body syntax
 
-- [ ] Step 1: Write tests for self-recursive trigger, cross-trigger recursion, body `CALL`, body transaction SQL and nested CREATE/DROP TRIGGER rejection.
-- [ ] Step 2: Run targeted tests and verify they fail.
-- [ ] Step 3: Implement recursive context propagation and unsupported body validation.
-- [ ] Step 4: Run targeted tests and verify they pass.
-- [ ] Step 5: Check OpenSpec tasks `2.3` and `3.2` if boundary tests pass, then commit with `feat(nebula): guard trigger recursion and unsupported bodies`.
+- [x] Step 1: Write tests for self-recursive trigger, cross-trigger recursion, body `CALL`, body transaction SQL and nested CREATE/DROP TRIGGER rejection.
+- [x] Step 2: Run targeted tests and verify they fail.
+- [x] Step 3: Implement recursive context propagation and unsupported body validation.
+- [x] Step 4: Run targeted tests and verify they pass.
+- [x] Step 5: Check OpenSpec tasks `2.3` and `3.2` if boundary tests pass, then commit with `feat(nebula): guard trigger recursion and unsupported bodies`.
 
 ### Task 6: 文档边界和 gateway-only 接入说明
 

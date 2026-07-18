@@ -66,6 +66,9 @@ public class TriggerDdlHandler {
 		if (normalized.length() == 0) {
 			throw syntaxError("Unsupported trigger body: body SQL must not be blank.");
 		}
+		if (bodySql.indexOf(';') >= 0) {
+			throw syntaxError("Unsupported trigger body: multiple statements are not supported.");
+		}
 		if (normalized.startsWith("BEGIN ") || normalized.equals("BEGIN")
 				|| normalized.startsWith("CALL ")
 				|| normalized.startsWith("START TRANSACTION")

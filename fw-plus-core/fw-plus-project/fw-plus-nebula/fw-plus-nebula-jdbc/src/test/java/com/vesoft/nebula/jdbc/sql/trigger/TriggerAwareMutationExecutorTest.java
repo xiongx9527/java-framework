@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TriggerAwareMutationExecutorTest {
 
@@ -72,6 +73,84 @@ public class TriggerAwareMutationExecutorTest {
 		assertEquals(list("ddl"), calls);
 	}
 
+	@Test
+	public void beforeFailureShouldSkipPrimaryAndAfterTriggers() throws Exception {
+		List<String> calls = new ArrayList<String>();
+		TriggerMetadataService service = new TriggerMetadataService(new InMemoryTriggerMetadataStore());
+		service.create(draft("person_before", TriggerEvent.INSERT, TriggerTiming.BEFORE));
+		service.create(draft("person_after", TriggerEvent.INSERT, TriggerTiming.AFTER));
+
+		assertSqlError("before failed", new SqlRunnable() {
+			public void run() throws SQLException {
+				new TriggerAwareMutationExecutor("test_space", service,
+						new FailingBodyExecutor(calls, "person_before", "before failed"),
+						new RecordingMutationExecutor(calls), 8)
+						.executeMutation(plan(NebulaMutationKind.INSERT_VERTEX, "person"));
+			}
+		});
+
+		assertEquals(list("body:person_before"), calls);
+	}
+
+	@Test
+	public void primaryFailureShouldSkipAfterTriggers() throws Exception {
+		List<String> calls = new ArrayList<String>();
+		TriggerMetadataService service = new TriggerMetadataService(new InMemoryTriggerMetadataStore());
+		service.create(draft("person_after", TriggerEvent.INSERT, TriggerTiming.AFTER));
+
+		assertSqlError("primary failed", new SqlRunnable() {
+			public void run() throws SQLException {
+				new TriggerAwareMutationExecutor("test_space", service, new RecordingBodyExecutor(calls),
+						new FailingMutationExecutor(calls), 8)
+						.executeMutation(plan(NebulaMutationKind.INSERT_VERTEX, "person"));
+			}
+		});
+
+		assertEquals(list("primary:INSERT_VERTEX:person"), calls);
+	}
+
+	@Test
+	public void afterFailureShouldReportErrorAfterPrimaryMutation() throws Exception {
+		List<String> calls = new ArrayList<String>();
+		TriggerMetadataService service = new TriggerMetadataService(new InMemoryTriggerMetadataStore());
+		service.create(draft("person_after", TriggerEvent.INSERT, TriggerTiming.AFTER));
+
+		assertSqlError("after failed", new SqlRunnable() {
+			public void run() throws SQLException {
+				new TriggerAwareMutationExecutor("test_space", service,
+						new FailingBodyExecutor(calls, "person_after", "after failed"),
+						new RecordingMutationExecutor(calls), 8)
+						.executeMutation(plan(NebulaMutationKind.INSERT_VERTEX, "person"));
+			}
+		});
+
+		assertEquals(list("primary:INSERT_VERTEX:person", "body:person_after"), calls);
+	}
+
+	@Test
+	public void recursiveBodyShouldStopAtMaxDepth() throws Exception {
+		List<String> calls = new ArrayList<String>();
+		TriggerMetadataService service = new TriggerMetadataService(new InMemoryTriggerMetadataStore());
+		service.create(draft("person_before", TriggerEvent.INSERT, TriggerTiming.BEFORE));
+		RecordingMutationExecutor delegate = new RecordingMutationExecutor(calls);
+		final TriggerAwareMutationExecutor[] holder = new TriggerAwareMutationExecutor[1];
+		holder[0] = new TriggerAwareMutationExecutor("test_space", service, new TriggerBodyExecutor() {
+			public NebulaMutationResult executeBody(TriggerDefinition definition, NebulaMutationPlan parentPlan,
+					TriggerExecutionContext context) throws SQLException {
+				calls.add("body:" + definition.getTriggerName() + ":depth=" + context.getDepth());
+				return holder[0].executeMutation(parentPlan, context);
+			}
+		}, delegate, 1);
+
+		assertSqlError("Trigger recursion depth exceeded", new SqlRunnable() {
+			public void run() throws SQLException {
+				holder[0].executeMutation(plan(NebulaMutationKind.INSERT_VERTEX, "person"));
+			}
+		});
+
+		assertEquals(list("body:person_before:depth=1"), calls);
+	}
+
 	private TriggerDefinitionDraft draft(String name, TriggerEvent event, TriggerTiming timing) {
 		return new TriggerDefinitionDraft("test_space", name, "person", event, timing,
 				"INSERT INTO audit(id) VALUES ('a1')");
@@ -114,7 +193,7 @@ public class TriggerAwareMutationExecutorTest {
 			this.calls = calls;
 		}
 
-		public NebulaMutationResult executeMutation(NebulaMutationPlan plan) {
+		public NebulaMutationResult executeMutation(NebulaMutationPlan plan) throws SQLException {
 			calls.add("primary:" + plan.getMutationKind().name() + ":" + plan.getTargetName());
 			return new NebulaMutationResult(true, 1, plan.getDescriptor(), null,
 					Collections.<String>emptyList(), "primary");
@@ -124,5 +203,52 @@ public class TriggerAwareMutationExecutorTest {
 			calls.add("ddl");
 			return new NebulaMutationResult(true, 0, null, null, Collections.<String>emptyList(), "ddl");
 		}
+	}
+
+	private static class FailingBodyExecutor implements TriggerBodyExecutor {
+		private final List<String> calls;
+		private final String triggerName;
+		private final String message;
+
+		private FailingBodyExecutor(List<String> calls, String triggerName, String message) {
+			this.calls = calls;
+			this.triggerName = triggerName;
+			this.message = message;
+		}
+
+		public NebulaMutationResult executeBody(TriggerDefinition definition, NebulaMutationPlan parentPlan,
+				TriggerExecutionContext context) throws SQLException {
+			calls.add("body:" + definition.getTriggerName());
+			if (triggerName.equals(definition.getTriggerName())) {
+				throw new SQLException(message, "HY000");
+			}
+			return new NebulaMutationResult(true, 1, parentPlan.getDescriptor(), null,
+					Collections.<String>emptyList(), "body");
+		}
+	}
+
+	private static class FailingMutationExecutor extends RecordingMutationExecutor {
+		private FailingMutationExecutor(List<String> calls) {
+			super(calls);
+		}
+
+		public NebulaMutationResult executeMutation(NebulaMutationPlan plan) throws SQLException {
+			super.executeMutation(plan);
+			throw new SQLException("primary failed", "HY000");
+		}
+	}
+
+	private void assertSqlError(String messagePart, SqlRunnable runnable) throws Exception {
+		try {
+			runnable.run();
+		} catch (SQLException expected) {
+			assertTrue(expected.getMessage().contains(messagePart));
+			return;
+		}
+		throw new AssertionError("Expected SQLException");
+	}
+
+	private interface SqlRunnable {
+		void run() throws SQLException;
 	}
 }
