@@ -35,10 +35,10 @@ base-ref: 8351c1363299bea131187df5b5358927c0a4dbc8
 - Consumes: design doc section 2, section 4, section 8.
 - Produces: 持久化 build 记录，后续验证补充实际命令和客户端 fixture 结果。
 
-- [ ] 写入 report，明确 COM_QUERY 写入/DDL、prepared statement、权限、SSL、metadata、unsupported command 的支持边界。
-- [ ] 在 report 中记录 Java MySQL JDBC Driver、DBeaver、DataGrip/BI fixture 的兼容矩阵和不可自动验证项。
-- [ ] 勾选 tasks.md 的 1.1 和 1.2。
-- [ ] 提交：`docs+openspec: record nebula mysql advanced support boundaries`
+- [x] 写入 report，明确 COM_QUERY 写入/DDL、prepared statement、权限、SSL、metadata、unsupported command 的支持边界。
+- [x] 在 report 中记录 Java MySQL JDBC Driver、DBeaver、DataGrip/BI fixture 的兼容矩阵和不可自动验证项。
+- [x] 勾选 tasks.md 的 1.1 和 1.2。
+- [x] 提交：`docs+openspec: record nebula mysql advanced support boundaries`
 
 ### Task 2: COM_QUERY 写入与 DDL 接入
 
@@ -53,13 +53,13 @@ base-ref: 8351c1363299bea131187df5b5358927c0a4dbc8
 - Consumes: `NebulaSqlExecutionPort.executeQuery`, `NebulaSqlParser.parse`, `NebulaSqlWriteConverter.convert`, `NebulaSqlDdlConverter.convert`, `NebulaSqlMutationExecutor.executeMutation/executeDdl`.
 - Produces: `AdvancedQueryHandler.handle(session, sql)` 返回 SELECT/metadata result set 或写入/DDL OK result。
 
-- [ ] 先写 `AdvancedQueryHandlerTest`，覆盖 INSERT 返回 affected rows、CREATE TABLE 返回 OK、事务语句返回不支持错误。
-- [ ] 运行单测确认失败：`./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-mysql-gateway test -Dtest=AdvancedQueryHandlerTest,MysqlCommandDispatcherTest`
-- [ ] 实现 `AdvancedQueryHandler`，SELECT 和 metadata 复用只读逻辑，INSERT/UPDATE/DELETE 与 DDL 调用 mutation executor，错误通过 `MysqlErrorMapper` 映射。
-- [ ] 调整 dispatcher 构造器兼容旧测试并支持 advanced handler。
-- [ ] 运行单测通过。
-- [ ] 勾选 tasks.md 的 2.1。
-- [ ] 提交：`feat(nebula): route mysql com_query writes and ddl`
+- [x] 先写 `AdvancedQueryHandlerTest`，覆盖 INSERT 返回 affected rows、CREATE TABLE 返回 OK、事务语句返回不支持错误。
+- [x] 运行单测确认失败：`./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-mysql-gateway test -Dtest=AdvancedQueryHandlerTest,MysqlCommandDispatcherTest`
+- [x] 实现 `AdvancedQueryHandler`，SELECT 和 metadata 复用只读逻辑，INSERT/UPDATE/DELETE 与 DDL 调用 mutation executor，错误通过 `MysqlErrorMapper` 映射。
+- [x] 调整 dispatcher 构造器兼容旧测试并支持 advanced handler。
+- [x] 运行单测通过。
+- [x] 勾选 tasks.md 的 2.1。
+- [x] 提交：`feat(nebula): route mysql com_query writes and ddl`
 
 ### Task 3: Prepared Statement 常见路径
 
@@ -75,13 +75,13 @@ base-ref: 8351c1363299bea131187df5b5358927c0a4dbc8
 - Consumes: `AdvancedQueryHandler.handle(session, renderedSql)`.
 - Produces: prepare/execute/close/reset command support for common JDBC text payloads and deterministic errors for unsupported binary payloads.
 
-- [ ] 先写 tests，覆盖 prepare 分配 statement id、execute SELECT 参数绑定、execute INSERT 参数绑定、close/reset 清理、参数数量不匹配。
-- [ ] 运行 prepared 单测确认失败。
-- [ ] 实现 registry、statement 模型、文本安全参数绑定和 dispatcher 命令分发。
-- [ ] 对完整 binary protocol 未覆盖路径返回 MySQL 1235/1210 错误，不断连。
-- [ ] 运行 prepared 与 dispatcher 单测通过。
-- [ ] 勾选 tasks.md 的 2.2。
-- [ ] 提交：`feat(nebula): add mysql prepared statement common path`
+- [x] 先写 tests，覆盖 prepare 分配 statement id、execute SELECT 参数绑定、execute INSERT 参数绑定、close/reset 清理、参数数量不匹配。
+- [x] 运行 prepared 单测确认失败。
+- [x] 实现 registry、statement 模型、文本安全参数绑定和 dispatcher 命令分发。
+- [x] 对完整 binary protocol 未覆盖路径返回 MySQL 1235/1210 错误，不断连。
+- [x] 运行 prepared 与 dispatcher 单测通过。
+- [x] 勾选 tasks.md 的 2.2。
+- [x] 提交：`feat(nebula): add mysql prepared statement common path`
 
 ### Task 4: 安全、权限与 SSL 策略
 
@@ -98,13 +98,13 @@ base-ref: 8351c1363299bea131187df5b5358927c0a4dbc8
 - Consumes: session user/database, statement kind and command type.
 - Produces: configurable read/write/ddl/metadata permission checks and SSL required failure mapping before execution.
 
-- [ ] 先写 tests，覆盖 write denied、ddl denied、metadata allowed、SSL required with non-SSL session。
-- [ ] 运行安全相关单测确认失败。
-- [ ] 实现 immutable security policy 和 operation 判断。
-- [ ] 在 handler 执行端口前调用 policy，权限失败映射 1142，SSL required 映射 3159。
-- [ ] 运行安全和 query 单测通过。
-- [ ] 勾选 tasks.md 的 2.3 和 3.3。
-- [ ] 提交：`feat(nebula): enforce mysql gateway security policy`
+- [x] 先写 tests，覆盖 write denied、ddl denied、metadata allowed、SSL required with non-SSL session。
+- [x] 运行安全相关单测确认失败。
+- [x] 实现 immutable security policy 和 operation 判断。
+- [x] 在 handler 执行端口前调用 policy，权限失败映射 1142，SSL required 映射 3159。
+- [x] 运行安全和 query 单测通过。
+- [x] 勾选 tasks.md 的 2.3 和 3.3。
+- [x] 提交：`feat(nebula): enforce mysql gateway security policy`
 
 ### Task 5: Metadata 兼容增强
 
@@ -118,13 +118,13 @@ base-ref: 8351c1363299bea131187df5b5358927c0a4dbc8
 - Consumes: `MysqlMetadataHandler.showDatabases/showTables/describe`.
 - Produces: compatible result sets for `SHOW VARIABLES`, `SELECT DATABASE()`, common `information_schema.tables/columns` fixtures.
 
-- [ ] 先写 tests，覆盖 JDBC metadata 查询、DBeaver/DataGrip 常见 `information_schema` fixture、SHOW VARIABLES。
-- [ ] 运行 metadata 单测确认失败。
-- [ ] 扩展 metadata handler 和 query routing，授权后返回稳定列名/类型。
-- [ ] 对 unsupported metadata query 返回明确不支持错误或空结果，行为写入 build report。
-- [ ] 运行 metadata 与 query 单测通过。
-- [ ] 勾选 tasks.md 的 2.4。
-- [ ] 提交：`feat(nebula): improve mysql metadata compatibility`
+- [x] 先写 tests，覆盖 JDBC metadata 查询、DBeaver/DataGrip 常见 `information_schema` fixture、SHOW VARIABLES。
+- [x] 运行 metadata 单测确认失败。
+- [x] 扩展 metadata handler 和 query routing，授权后返回稳定列名/类型。
+- [x] 对 unsupported metadata query 返回明确不支持错误或空结果，行为写入 build report。
+- [x] 运行 metadata 与 query 单测通过。
+- [x] 勾选 tasks.md 的 2.4。
+- [x] 提交：`feat(nebula): improve mysql metadata compatibility`
 
 ### Task 6: 构建验证与验收记录
 
@@ -136,9 +136,9 @@ base-ref: 8351c1363299bea131187df5b5358927c0a4dbc8
 - Consumes: 全部实现和测试。
 - Produces: build 阶段验证证据；若无法真实 GUI/BI 手动验证，记录为 fixture-based 验证和阻塞项。
 
-- [ ] 运行模块测试：`./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-mysql-gateway test`
-- [ ] 运行相关 JDBC 测试：`./mvnw -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc test -Dtest=NebulaSqlWriteConverterTest,NebulaSqlDdlConverterTest,NebulaSqlMutationExecutorTest,DirectNebulaSqlExecutorTest`
-- [ ] 在 build report 记录 Java MySQL JDBC Driver 路径的自动测试证据。
-- [ ] 对 GUI/BI 客户端验证，若无可运行客户端，则记录 DBeaver/DataGrip/BI metadata fixture 覆盖与手动阻塞。
+- [x] 运行模块测试：`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-mysql-gateway -am test -DfailIfNoTests=false`
+- [x] 运行相关 JDBC 测试：`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc test -Dtest=NebulaSqlWriteConverterTest,NebulaSqlDdlConverterTest,NebulaSqlMutationExecutorTest,DirectNebulaSqlExecutorTest`
+- [x] 在 build report 记录 Java MySQL JDBC Driver 路径的自动测试证据。
+- [x] 对 GUI/BI 客户端验证，若无可运行客户端，则记录 DBeaver/DataGrip/BI metadata fixture 覆盖与手动阻塞。
 - [ ] 勾选 tasks.md 的 3.1、3.2。
 - [ ] 提交：`test(nebula): verify mysql advanced protocol compatibility`
