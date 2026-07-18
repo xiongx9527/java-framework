@@ -1,17 +1,28 @@
 package com.vesoft.nebula.jdbc.sql.routine;
 
+import com.vesoft.nebula.jdbc.NebulaConnection;
+import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutor;
+
 import java.sql.SQLException;
 
 public class RoutineService {
 
+	private static final int DEFAULT_MAX_STATEMENTS = 64;
 	private static final InMemoryRoutineMetadataRepository DEFAULT_REPOSITORY =
 			new InMemoryRoutineMetadataRepository();
 	private static final RoutineService DEFAULT = new RoutineService(DEFAULT_REPOSITORY);
 
 	private final RoutineMetadataRepository repository;
+	private final int maxStatements;
+	private final RoutineInterpreter interpreter = new RoutineInterpreter();
 
 	public RoutineService(RoutineMetadataRepository repository) {
+		this(repository, DEFAULT_MAX_STATEMENTS);
+	}
+
+	public RoutineService(RoutineMetadataRepository repository, int maxStatements) {
 		this.repository = repository;
+		this.maxStatements = maxStatements;
 	}
 
 	public static RoutineService getDefault() {
@@ -46,5 +57,19 @@ public class RoutineService {
 			throw RoutineException.notFound(statement.getName());
 		}
 		return 0;
+	}
+
+	public RoutineCallResult call(String schema, String user, String sql,
+			NebulaConnection connection, NebulaSqlExecutor executor) throws SQLException {
+		RoutineStatement statement = RoutineStatementParser.parse(sql);
+		if (statement.getKind() != RoutineStatement.Kind.CALL_PROCEDURE) {
+			throw RoutineException.syntax("Expected CALL");
+		}
+		RoutineDefinition definition = repository.find(RoutineName.of(schema, statement.getName()));
+		if (definition == null) {
+			throw RoutineException.notFound(statement.getName());
+		}
+		return interpreter.execute(definition, statement,
+				new RoutineExecutionContext(schema, user, connection, executor, maxStatements));
 	}
 }
