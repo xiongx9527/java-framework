@@ -22,6 +22,7 @@ base-ref: 8351c1363299bea131187df5b5358927c0a4dbc8
 - 不破坏现有 `jdbc:nebula://...` nGQL 直连路径。
 - 不实现事务、binlog、复制协议、routine、trigger、LOAD DATA、完整 MySQL 用户系统。
 - 每完成一个 OpenSpec task 后更新 `openspec/changes/add-nebula-mysql-protocol-write-and-advanced-support/tasks.md` 并提交。
+- 当前 build exit criteria 只要求可自动证明的 JDBC driver、metadata fixture、protocol/security 验证通过；真实 GUI/BI 客户端验收记录为后续 Manual Acceptance Follow-up，不伪造成已完成。
 
 ---
 
@@ -130,6 +131,7 @@ base-ref: 8351c1363299bea131187df5b5358927c0a4dbc8
 
 **Files:**
 - Modify: `docs/superpowers/reports/2026-07-18-nebula-mysql-protocol-write-and-advanced-support-build.md`
+- Create: `docs/superpowers/reports/2026-07-18-nebula-mysql-protocol-gui-bi-manual-acceptance-follow-up.md`
 - Modify: `openspec/changes/add-nebula-mysql-protocol-write-and-advanced-support/tasks.md`
 
 **Interfaces:**
@@ -141,5 +143,6 @@ base-ref: 8351c1363299bea131187df5b5358927c0a4dbc8
 - [x] 在 build report 记录 Java MySQL JDBC Driver 路径的自动测试证据。
 - [x] 对 GUI/BI 客户端验证，若无可运行客户端，则记录 DBeaver/DataGrip/BI metadata fixture 覆盖与手动阻塞。
 - [x] 勾选 tasks.md 的 3.1。
-- [ ] 3.2 因当前环境缺少可运行 GUI/BI 客户端，保留为手动验收阻塞；已有 DBeaver/DataGrip/BI metadata SQL fixture 作为替代协议级覆盖，并已在 build report 记录扩大检测命令和阻塞原因。
-- [x] 提交：`docs(nebula): record gui bi verification blocker`
+- [x] 将 tasks.md 的 3.2 拆分为当前 change 可自动证明的 JDBC driver、metadata fixture、protocol/security 验证范围，并明确真实 GUI/BI 客户端验收不是 build exit criteria。
+- [x] 新增 Manual Acceptance Follow-up 记录，列出后续至少两个真实 GUI/BI 客户端的连接、metadata 浏览和查询验收步骤。
+- [x] 提交：`docs(nebula): scope advanced gateway manual gui acceptance`

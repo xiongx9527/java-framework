@@ -57,6 +57,15 @@ Change: `add-nebula-mysql-protocol-write-and-advanced-support`
 | DBeaver | metadata browser | `information_schema.tables`、`information_schema.columns`、`SHOW VARIABLES` fixture | 返回稳定列名/类型或明确不支持错误 |
 | DataGrip / BI 工具 | schema introspection | `SELECT DATABASE()`、`SHOW TABLES`、`DESCRIBE` fixture | 返回兼容 result set |
 
+## Build Exit Criteria 边界
+
+本 change 的 build exit criteria 收敛为可自动证明的范围：
+
+- Java MySQL JDBC Driver 通过 Connector/J 8.0.33 真实 socket 自动化测试验证查询、写入和客户端侧 prepared write。
+- DBeaver/DataGrip/BI 常见 metadata SQL 通过 fixture 自动化测试验证列名、类型、空结果或明确不支持错误。
+- protocol/security 路径通过单元测试验证权限拒绝、SSL required、事务不支持和 unsupported command。
+- 真实 GUI/BI 客户端验收不作为本 change 的 build exit criteria；该项已拆出为后续 Manual Acceptance Follow-up，不得在本 change 中声明已完成。
+
 ## 验证记录
 
 ### 自动测试
@@ -143,10 +152,18 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-
 - `fw-plus-core/mvnw` 存在，但仓库未跟踪 `fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 和 wrapper jar；在当前 worktree 直接执行 `./mvnw` 会失败。
 - 当前 shell `JAVA_HOME` 为空，系统默认 `java` 为 JDK 24；验证命令显式使用本机 Zulu 8。
 
-### 未完成的手动/端到端验证
+### Review Gate
+
+- `.comet.yaml` 当前 `review_mode: standard`。
+- 当前工具面未提供可用的 reviewer 子代理派发工具，因此未伪造子代理审查。
+- 已在主会话对本轮 Comet/OpenSpec 文档 diff 做轻量审查：tasks、plan、proposal、design、delta spec、build report 和 Manual Acceptance Follow-up 对当前 build exit criteria 的描述一致；未发现把真实 GUI/BI 客户端验收伪造成已完成的问题。
+- 本轮范围收敛没有新增生产代码；CRITICAL/IMPORTANT 审查发现：无。
+
+### 后续手动/端到端验收
 
 - `3.1 使用 Java MySQL JDBC Driver 验证查询和写入` 已通过 Connector/J 8.0.33 真实 socket 端到端自动化测试。
-- `3.2 使用至少两个 GUI/BI 客户端验证元数据浏览和查询` 未勾选：当前环境未发现可运行的 DBeaver、DataGrip、Tableau、Power BI、Metabase、DbVisualizer、SQuirreL、SQL Workbench 或 MySQL Workbench 客户端应用/命令，也未发现对应运行进程；已用 DBeaver/DataGrip/BI 常见 metadata SQL fixture 覆盖自动测试，但这不替代真实客户端手动验收。
+- `3.2` 已调整为当前 change 内可自动证明的 JDBC driver、metadata fixture、protocol/security 验证范围。
+- 真实 GUI/BI 客户端验收已记录为后续 Manual Acceptance Follow-up：当前环境未发现可运行的 DBeaver、DataGrip、Tableau、Power BI、Metabase、DbVisualizer、SQuirreL、SQL Workbench 或 MySQL Workbench 客户端应用/命令，也未发现对应运行进程；已用 DBeaver/DataGrip/BI 常见 metadata SQL fixture 覆盖自动测试，但这不替代真实客户端手动验收。
 
 GUI/BI 客户端检查命令：
 
@@ -162,7 +179,7 @@ ps aux | rg -i 'DBeaver|DataGrip|Tableau|Power BI|Metabase|DbVisualizer|SQuirreL
 
 结果：未发现匹配应用、命令或运行进程。
 
-手动阻塞：
+后续人工验收事项：
 
 - 需要在安装了至少两个 GUI/BI 客户端的环境中连接本地 Nebula MySQL gateway，执行连接测试、schema/table metadata 浏览和 SELECT 查询。
-- 当前 build 阶段不能将 fixture-based coverage 记为 `3.2` 完成；进入 guard 前仍需补齐真实客户端验收或由用户明确调整验收边界。
+- 后续验收结果应写入独立 follow-up 或新 change；本 change 不伪造真实 GUI/BI 客户端验收。

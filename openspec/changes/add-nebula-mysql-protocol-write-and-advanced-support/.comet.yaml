@@ -1,6 +1,6 @@
 workflow: full
 language: zh-CN
-phase: build
+phase: archive
 context_compression: off
 build_mode: executing-plans
 build_pause: null
@@ -8,16 +8,16 @@ subagent_dispatch: null
 tdd_mode: tdd
 review_mode: standard
 isolation: worktree
-verify_mode: null
+verify_mode: full
 auto_transition: false
 base_ref: 7fcfa07e31ed4260bd04c3e5b656831845b8b544
 design_doc: docs/superpowers/specs/2026-07-17-nebula-mysql-protocol-write-and-advanced-support-design.md
 plan: docs/superpowers/plans/2026-07-18-nebula-mysql-protocol-write-and-advanced-support.md
-verify_result: pending
-verification_report: null
+verify_result: pass
+verification_report: docs/superpowers/reports/2026-07-18-add-nebula-mysql-protocol-write-and-advanced-support-verify.md
 branch_status: pending
 created_at: 2026-07-15
-verified_at: null
+verified_at: 2026-07-18
 archived: false
 direct_override: null
 handoff_context: openspec/changes/add-nebula-mysql-protocol-write-and-advanced-support/.comet/handoff/design-context.json
@@ -26,4 +26,4 @@ classic_profile: full
 classic_migration: 1
 run_id: c1dcf664-1b18-41ee-a01c-9a0d245ad236
 verify_failures: 0
-archive_confirmation: null
+archive_confirmation: pending
