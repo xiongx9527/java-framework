@@ -5,9 +5,11 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class NebulaMysqlGatewayServer implements AutoCloseable {
 	private final NebulaMysqlGatewayServerConfig config;
+	private final AtomicLong connectionIds = new AtomicLong(1L);
 	private ServerSocket serverSocket;
 	private Thread acceptThread;
 	private volatile boolean running;
@@ -37,7 +39,8 @@ public class NebulaMysqlGatewayServer implements AutoCloseable {
 		while (running) {
 			try {
 				Socket socket = serverSocket.accept();
-				new Thread(new NebulaMysqlGatewayConnectionHandler(socket), "nebula-mysql-gateway-connection").start();
+				new Thread(new NebulaMysqlGatewayConnectionHandler(socket, connectionIds.getAndIncrement(), config),
+						"nebula-mysql-gateway-connection").start();
 			} catch (SocketException exception) {
 				if (running) {
 					running = false;
