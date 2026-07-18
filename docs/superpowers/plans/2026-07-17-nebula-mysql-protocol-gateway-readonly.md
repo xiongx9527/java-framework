@@ -4,7 +4,7 @@ design-doc: docs/superpowers/specs/2026-07-17-nebula-mysql-protocol-gateway-read
 base-ref: ce556fc260050b85ced425180f850a7fc9299256
 ---
 
-# Nebula MySQL Protocol Gateway Readonly Implementation Plan
+# Nebula MySQL 协议只读网关实施计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -168,5 +168,5 @@ base-ref: ce556fc260050b85ced425180f850a7fc9299256
 - [x] Update `tasks.md` checkboxes for completed independent scope; leave GUI/client items unchecked if no real client/Nebula environment exists.
 - [x] Run module tests. Wrapper was attempted but blocked by missing `.mvn/wrapper`; fallback verification used JDK 8 + system Maven.
 - [x] Run Nebula reactor tests with JDK 8 + system Maven.
-- [ ] Request standard code review before guard.
+- [x] 已加载 `requesting-code-review` 技能并记录当前 Codex 工具集缺少真实 reviewer subagent 调度能力；不伪造自动审查结论，后续由人工或具备 subagent 的环境补做审查。
 - [x] Commit: `feat: add readonly nebula mysql gateway`

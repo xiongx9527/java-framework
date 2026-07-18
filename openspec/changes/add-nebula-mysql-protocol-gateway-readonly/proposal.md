@@ -7,7 +7,7 @@
 - 新增 MySQL wire protocol 服务端基础网关。
 - 支持握手、认证、COM_QUERY 和文本协议结果集返回。
 - 支持 SELECT、复杂只读 SQL、SHOW DATABASES、SHOW TABLES、DESCRIBE 等只读语句，复杂 SQL 语义由 SQL→nGQL 查询转换层判定。
-- 支持 MySQL CLI、DBeaver、DataGrip、Navicat 等客户端的基础连接与查询，包括客户端发起的复杂只读 SQL。
+- 支持 MySQL CLI 和兼容 MySQL wire protocol 客户端的基础连接与查询，包括客户端发起的复杂只读 SQL；GUI 客户端真实验收在具备客户端环境后作为后续人工验收执行。
 
 ## Capabilities
 

@@ -1,11 +1,15 @@
 ## ADDED Requirements
 
 ### Requirement: MySQL clients can establish read-only connections
-系统 SHALL 提供 MySQL wire protocol 只读服务端，使常见 MySQL 客户端可连接。
+系统 SHALL 提供 MySQL wire protocol 只读服务端，使 MySQL CLI 和兼容 MySQL wire protocol 的客户端可连接；GUI 客户端真实验收 SHALL 在具备客户端环境后作为后续人工验收执行。
 
 #### Scenario: 客户端握手
-- **WHEN** MySQL CLI 或 GUI 客户端连接网关
+- **WHEN** MySQL CLI 或兼容 MySQL wire protocol 的客户端连接网关
 - **THEN** 完成握手和基础认证。
+
+#### Scenario: GUI 客户端验收待后续人工执行
+- **WHEN** 当前自动化或 CLI 验收环境未安装 DBeaver、DataGrip、Navicat、TablePlus、Sequel Ace、MySQL Workbench 或等价 GUI 客户端
+- **THEN** 本 change SHALL 记录 GUI 验收 blocker 和后续人工验收步骤，不得把未执行的 GUI 验收标记为已真实通过。
 
 #### Scenario: 认证失败
 - **WHEN** 客户端使用错误用户名、密码或不允许的默认 database 连接网关

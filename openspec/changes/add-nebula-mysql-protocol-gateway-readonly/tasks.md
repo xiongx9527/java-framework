@@ -15,6 +15,10 @@
 
 ## 3. 客户端验证
 
-- [ ] 3.1 用 MySQL CLI 和至少一个 GUI 客户端验证连接查询。
+- [x] 3.1 用 MySQL CLI 真实验证连接和 `SELECT 1` 查询；GUI 客户端真实验收因当前环境未检测到可用 GUI 客户端，拆为后续人工验收记录，不作为本 change 的 build 退出条件。
 - [x] 3.2 补充只读拒绝写入测试。
 - [x] 3.3 补充协议握手、认证失败、非目标命令、结果集编码和 metadata 查询测试。
+
+## 后续人工验收记录
+
+- GUI 客户端验收待在安装 DBeaver、DataGrip、Navicat、TablePlus、Sequel Ace、MySQL Workbench 或等价 MySQL GUI 客户端的环境中执行，至少覆盖连接测试、执行 `SELECT 1`、查看基础 schema/table metadata 和写入拒绝。

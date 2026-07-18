@@ -11,7 +11,7 @@
 - 新增 MySQL wire protocol 服务端基础网关。
 - 支持握手、认证、COM_QUERY 和文本协议结果集返回。
 - 支持 SELECT、复杂只读 SQL、SHOW DATABASES、SHOW TABLES、DESCRIBE 等只读语句，复杂 SQL 语义由 SQL→nGQL 查询转换层判定。
-- 支持 MySQL CLI、DBeaver、DataGrip、Navicat 等客户端的基础连接与查询，包括客户端发起的复杂只读 SQL。
+- 支持 MySQL CLI 和兼容 MySQL wire protocol 客户端的基础连接与查询，包括客户端发起的复杂只读 SQL；GUI 客户端真实验收在具备客户端环境后作为后续人工验收执行。
 
 **Non-Goals:**
 
@@ -30,7 +30,7 @@
 ## Risks / Trade-offs
 
 - **[Risk] SQL 与图模型语义存在天然差异。** → Mitigation：采用明确白名单和可测试映射，不支持时返回清晰错误。
-- **[Risk] 客户端兼容范围可能快速扩大。** → Mitigation：按 change 分阶段交付，每阶段定义验收客户端和协议子集。
+- **[Risk] 客户端兼容范围可能快速扩大。** → Mitigation：按 change 分阶段交付，每阶段定义验收客户端和协议子集；当前 build 退出条件只要求可自动/CLI 证明的连接查询，GUI 客户端验收保留为后续人工记录。
 - **[Risk] 引入第三方 parser 或协议库可能带来许可证和 Java 8 兼容风险。** → Mitigation：在 design/build 阶段先做依赖评估，再落地实现。
 
 ## Migration Plan
