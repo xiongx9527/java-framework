@@ -18,12 +18,7 @@ public class TriggerMetadataService {
 		if (draft == null) {
 			throw new IllegalArgumentException("Trigger definition draft must not be null.");
 		}
-		TriggerDefinition definition = draft.toDefinition(store.nextOrder(draft.getSchemaName()));
-		if (store.findByName(definition.getSchemaName(), definition.getTriggerName()) != null) {
-			throw metadataError("Trigger already exists: " + definition.getTriggerName());
-		}
-		store.save(definition);
-		return definition;
+		return store.create(draft);
 	}
 
 	public TriggerDropResult drop(String schemaName, String triggerName, boolean ifExists) throws SQLException {

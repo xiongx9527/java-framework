@@ -110,6 +110,20 @@ public class TriggerAwareMutationExecutorTest {
 	}
 
 	@Test
+	public void unsuccessfulPrimaryResultShouldSkipAfterTriggers() throws Exception {
+		List<String> calls = new ArrayList<String>();
+		TriggerMetadataService service = new TriggerMetadataService(new InMemoryTriggerMetadataStore());
+		service.create(draft("person_after", TriggerEvent.INSERT, TriggerTiming.AFTER));
+
+		NebulaMutationResult result = new TriggerAwareMutationExecutor("test_space", service,
+				new RecordingBodyExecutor(calls), new UnsuccessfulMutationExecutor(calls), 8)
+				.executeMutation(plan(NebulaMutationKind.INSERT_VERTEX, "person"));
+
+		assertTrue(!result.isSuccess());
+		assertEquals(list("primary:INSERT_VERTEX:person"), calls);
+	}
+
+	@Test
 	public void afterFailureShouldReportErrorAfterPrimaryMutation() throws Exception {
 		List<String> calls = new ArrayList<String>();
 		TriggerMetadataService service = new TriggerMetadataService(new InMemoryTriggerMetadataStore());
@@ -235,6 +249,18 @@ public class TriggerAwareMutationExecutorTest {
 		public NebulaMutationResult executeMutation(NebulaMutationPlan plan) throws SQLException {
 			super.executeMutation(plan);
 			throw new SQLException("primary failed", "HY000");
+		}
+	}
+
+	private static class UnsuccessfulMutationExecutor extends RecordingMutationExecutor {
+		private UnsuccessfulMutationExecutor(List<String> calls) {
+			super(calls);
+		}
+
+		public NebulaMutationResult executeMutation(NebulaMutationPlan plan) throws SQLException {
+			super.executeMutation(plan);
+			return new NebulaMutationResult(false, 0, plan.getDescriptor(), null,
+					Collections.<String>emptyList(), "primary-false");
 		}
 	}
 

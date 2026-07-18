@@ -52,6 +52,9 @@ public class TriggerAwareMutationExecutor implements NebulaSqlMutationExecutor {
 		TriggerEvent event = toEvent(plan.getMutationKind());
 		executeTriggers(plan, context, event, TriggerTiming.BEFORE);
 		NebulaMutationResult result = delegate.executeMutation(plan);
+		if (!result.isSuccess()) {
+			return result;
+		}
 		executeTriggers(plan, context, event, TriggerTiming.AFTER);
 		return result;
 	}

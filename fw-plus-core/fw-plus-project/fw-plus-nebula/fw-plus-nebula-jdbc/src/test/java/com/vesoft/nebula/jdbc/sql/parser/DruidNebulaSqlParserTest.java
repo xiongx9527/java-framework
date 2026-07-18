@@ -142,7 +142,7 @@ public class DruidNebulaSqlParserTest {
 	public void rejectInvalidUnsupportedDeferredAndMultiStatement() throws Exception {
 		assertError("SELECT FROM", ErrorKind.SYNTAX_ERROR);
 		assertError("CALL refresh_person()", ErrorKind.UNSUPPORTED_FEATURE);
-		assertError("CREATE TRIGGER trg BEFORE INSERT ON person FOR EACH ROW SET @x = 1", ErrorKind.DEFERRED_FEATURE);
+		assertError("CREATE TRIGGER trg BEFORE INSERT ON person FOR EACH ROW SET @x = 1", ErrorKind.UNSUPPORTED_FEATURE);
 		assertError("SELECT 1; SELECT 2", ErrorKind.UNSUPPORTED_FEATURE);
 	}
 

@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 public class TriggerExecutionContext {
+	public static final int DEFAULT_MAX_DEPTH = 8;
 	private final int depth;
 	private final int maxDepth;
 	private final List<String> triggerChain;

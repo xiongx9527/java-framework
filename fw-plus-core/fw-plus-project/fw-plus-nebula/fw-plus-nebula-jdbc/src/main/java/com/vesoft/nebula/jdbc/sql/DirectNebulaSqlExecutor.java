@@ -8,12 +8,19 @@ import com.vesoft.nebula.jdbc.sql.parser.StatementKind;
 import com.vesoft.nebula.jdbc.sql.parser.druid.DruidNebulaSqlParser;
 import com.vesoft.nebula.jdbc.sql.parser.error.NebulaSqlParseException;
 import com.vesoft.nebula.jdbc.sql.query.NebulaSchemaMappingRegistry;
+import com.vesoft.nebula.jdbc.sql.trigger.InMemoryTriggerMetadataStore;
+import com.vesoft.nebula.jdbc.sql.trigger.SqlTriggerBodyExecutor;
+import com.vesoft.nebula.jdbc.sql.trigger.TriggerAwareMutationExecutor;
+import com.vesoft.nebula.jdbc.sql.trigger.TriggerDdlHandler;
+import com.vesoft.nebula.jdbc.sql.trigger.TriggerExecutionContext;
+import com.vesoft.nebula.jdbc.sql.trigger.TriggerMetadataService;
 import com.vesoft.nebula.jdbc.sql.write.DefaultNebulaSqlDdlConverter;
 import com.vesoft.nebula.jdbc.sql.write.DefaultNebulaSqlWriteConverter;
 import com.vesoft.nebula.jdbc.sql.write.DirectNebulaSqlMutationExecutor;
 import com.vesoft.nebula.jdbc.sql.write.NebulaDdlPlan;
 import com.vesoft.nebula.jdbc.sql.write.NebulaMutationPlan;
 import com.vesoft.nebula.jdbc.sql.write.NebulaMutationResult;
+import com.vesoft.nebula.jdbc.sql.write.NebulaSqlMutationExecutor;
 import com.vesoft.nebula.jdbc.sql.write.NebulaWriteBindings;
 import com.vesoft.nebula.jdbc.sql.write.NebulaWriteConversionException;
 import com.vesoft.nebula.jdbc.sql.write.NebulaWriteErrorCode;
@@ -25,7 +32,11 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 
 public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
+	private static final String DEFAULT_SCHEMA_NAME = "default";
+	private static final String TRIGGER_MAX_DEPTH_PROPERTY = "nebula.jdbc.sql.trigger.maxDepth";
 	private final NebulaSchemaMappingRegistry schemaMapping;
+	private final TriggerMetadataService triggerMetadataService;
+	private final int triggerMaxDepth;
 	private final DruidNebulaSqlParser parser = new DruidNebulaSqlParser();
 	private final DefaultNebulaSqlWriteConverter writeConverter = new DefaultNebulaSqlWriteConverter();
 	private final DefaultNebulaSqlDdlConverter ddlConverter = new DefaultNebulaSqlDdlConverter();
@@ -35,7 +46,20 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 	}
 
 	public DirectNebulaSqlExecutor(NebulaSchemaMappingRegistry schemaMapping) {
+		this(schemaMapping, new TriggerMetadataService(new InMemoryTriggerMetadataStore()), configuredTriggerMaxDepth());
+	}
+
+	public DirectNebulaSqlExecutor(NebulaSchemaMappingRegistry schemaMapping,
+			TriggerMetadataService triggerMetadataService, int triggerMaxDepth) {
 		this.schemaMapping = schemaMapping == null ? NebulaSchemaMappingRegistry.builder().build() : schemaMapping;
+		if (triggerMetadataService == null) {
+			throw new IllegalArgumentException("Trigger metadata service must not be null.");
+		}
+		if (triggerMaxDepth < 1) {
+			throw new IllegalArgumentException("Trigger max depth must be greater than zero.");
+		}
+		this.triggerMetadataService = triggerMetadataService;
+		this.triggerMaxDepth = triggerMaxDepth;
 	}
 
 	@Override
@@ -47,6 +71,11 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 	@Override
 	public int executeUpdate(NebulaConnection connection, String sql, NebulaParameterBindings bindings) throws SQLException {
 		String renderedSql = renderSql(sql, bindings);
+		TriggerDdlHandler triggerDdlHandler = new TriggerDdlHandler(triggerMetadataService);
+		if (triggerDdlHandler.supports(renderedSql)) {
+			triggerDdlHandler.handle(schemaName(connection), renderedSql);
+			return 0;
+		}
 		if (isTransactionStatement(renderedSql)) {
 			throw NebulaWriteConversionException.of(NebulaWriteErrorCode.NEBULA_SQL_TRANSACTION_UNSUPPORTED,
 					"SQL transactions are not supported by Nebula write/DDL executor.");
@@ -61,7 +90,7 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 					parseResult.getStatement(),
 					new NebulaWriteBindings(renderedSql, bindings),
 					schemaMapping);
-			NebulaMutationResult result = new DirectNebulaSqlMutationExecutor(connection).executeMutation(plan);
+			NebulaMutationResult result = mutationExecutor(connection).executeMutation(plan);
 			return result.getAffectedRows();
 		}
 		if (parseResult != null && isDdlStatement(parseResult.getKind())) {
@@ -72,6 +101,29 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 		NebulaStatementClassifier.checkUpdate(sql);
 		executeNative(connection, renderedSql);
 		return 0;
+	}
+
+	private NebulaSqlMutationExecutor mutationExecutor(NebulaConnection connection) throws SQLException {
+		String schemaName = schemaName(connection);
+		NebulaSqlMutationExecutor delegate = new DirectNebulaSqlMutationExecutor(connection);
+		SqlTriggerBodyExecutor bodyExecutor = new SqlTriggerBodyExecutor(schemaName, triggerMetadataService,
+				parser, writeConverter, schemaMapping, delegate, triggerMaxDepth);
+		return new TriggerAwareMutationExecutor(schemaName, triggerMetadataService, bodyExecutor, delegate, triggerMaxDepth);
+	}
+
+	private String schemaName(NebulaConnection connection) throws SQLException {
+		if (connection == null) {
+			return DEFAULT_SCHEMA_NAME;
+		}
+		String schemaName = connection.getSchema();
+		if (schemaName == null || schemaName.trim().length() == 0) {
+			return DEFAULT_SCHEMA_NAME;
+		}
+		return schemaName.trim();
+	}
+
+	private static int configuredTriggerMaxDepth() {
+		return Integer.getInteger(TRIGGER_MAX_DEPTH_PROPERTY, TriggerExecutionContext.DEFAULT_MAX_DEPTH).intValue();
 	}
 
 	private NebulaSqlParseResult tryParse(String sql) throws SQLException {

@@ -67,4 +67,6 @@ Metadata order is stable by creation order, with trigger name as a deterministic
 ## Recursion
 
 Trigger execution carries a `TriggerExecutionContext` through nested body writes.
-The default design limit is 8 levels. Exceeding the configured limit returns a `HY000` error with a trigger recursion depth message.
+The default production limit is `TriggerExecutionContext.DEFAULT_MAX_DEPTH` (8 levels).
+It can be overridden with the `nebula.jdbc.sql.trigger.maxDepth` system property.
+Exceeding the configured limit returns a `HY000` error with a trigger recursion depth message.

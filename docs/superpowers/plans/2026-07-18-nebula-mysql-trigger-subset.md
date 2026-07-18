@@ -154,6 +154,6 @@ base-ref: 874719db4c0b576fc1cceb7e2be0c05d4816fcc7
 - [x] Step 1: Run targeted module tests with `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn`.
 - [x] Step 2: Run relevant wider module test with `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn`.
 - [x] Step 3: Record build evidence with `comet state record-check` if guard does not auto-detect the command.
-- [ ] Step 4: If all OpenSpec tasks are checked and review gate is satisfied, run `comet guard add-nebula-mysql-trigger-subset build --apply`; otherwise leave phase in build and report remaining tasks.
+- [x] Step 4: If all OpenSpec tasks are checked and review gate is satisfied, run `comet guard add-nebula-mysql-trigger-subset build --apply`; otherwise leave phase in build and report remaining tasks.
 
-Note: `fw-plus-core/mvnw` cannot run in this worktree because `.mvn/wrapper` is not tracked here, so verification used system Maven with explicit JDK 8. `review_mode=standard` requires a reviewer subagent before build guard. No callable subagent/reviewer tool is available in this session, so build guard was intentionally not run.
+Note: `fw-plus-core/mvnw` cannot run in this worktree because `.mvn/wrapper` is not tracked here, so verification used system Maven with explicit JDK 8. Review feedback follow-up added real SQL/JDBC trigger DDL and write-path coverage, then recorded build evidence for `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc test` with 149 tests passing.

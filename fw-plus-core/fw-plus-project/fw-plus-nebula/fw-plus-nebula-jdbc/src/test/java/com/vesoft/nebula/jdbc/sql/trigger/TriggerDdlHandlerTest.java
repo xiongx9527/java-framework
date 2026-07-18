@@ -37,6 +37,20 @@ public class TriggerDdlHandlerTest {
 	}
 
 	@Test
+	public void createTriggerShouldAllowSemicolonInsideStringLiteral() throws Exception {
+		TriggerMetadataService service = new TriggerMetadataService(new InMemoryTriggerMetadataStore());
+		TriggerDdlHandler handler = new TriggerDdlHandler(service);
+
+		TriggerDdlResult result = handler.handle("test_space",
+				"CREATE TRIGGER person_ai AFTER INSERT ON person FOR EACH ROW "
+						+ "INSERT INTO audit(id, marker) VALUES ('a1', 'seen;still')");
+
+		assertTrue(result.isHandled());
+		assertEquals("INSERT INTO audit(id, marker) VALUES ('a1', 'seen;still')",
+				result.getDefinition().getBodySql());
+	}
+
+	@Test
 	public void dropTriggerShouldRemoveMetadataDefinition() throws Exception {
 		TriggerMetadataService service = new TriggerMetadataService(new InMemoryTriggerMetadataStore());
 		TriggerDdlHandler handler = new TriggerDdlHandler(service);
