@@ -2,6 +2,7 @@
 change: add-nebula-sql-to-ngql-query-support
 design-doc: docs/superpowers/specs/2026-07-17-nebula-sql-to-ngql-query-support-design.md
 base-ref: ce556fc260050b85ced425180f850a7fc9299256
+archived-with: 2026-07-18-add-nebula-sql-to-ngql-query-support
 ---
 
 # Nebula SQL To nGQL Query Support Implementation Plan
