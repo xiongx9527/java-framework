@@ -1,0 +1,45 @@
+package com.vesoft.nebula.jdbc.sql.routine;
+
+import java.sql.SQLException;
+
+public class RoutineException extends SQLException {
+
+	public static final int ER_PARSE_ERROR = 1064;
+	public static final int ER_SP_ALREADY_EXISTS = 1304;
+	public static final int ER_SP_DOES_NOT_EXIST = 1305;
+	public static final int ER_SP_WRONG_NO_OF_ARGS = 1318;
+	public static final int ER_NOT_SUPPORTED_YET = 1235;
+	public static final int ER_QUERY_INTERRUPTED = 1317;
+
+	public RoutineException(String message, String sqlState, int vendorCode) {
+		super(message, sqlState, vendorCode);
+	}
+
+	public static RoutineException syntax(String message) {
+		return new RoutineException(message, "42000", ER_PARSE_ERROR);
+	}
+
+	public static RoutineException unsupported(String feature) {
+		return new RoutineException("网关 routine 子集不支持该能力: " + feature,
+				"42000", ER_NOT_SUPPORTED_YET);
+	}
+
+	public static RoutineException alreadyExists(String name) {
+		return new RoutineException("Routine already exists: " + name,
+				"42000", ER_SP_ALREADY_EXISTS);
+	}
+
+	public static RoutineException notFound(String name) {
+		return new RoutineException("Routine does not exist: " + name,
+				"42000", ER_SP_DOES_NOT_EXIST);
+	}
+
+	public static RoutineException invalidArguments(String name) {
+		return new RoutineException("Invalid routine arguments: " + name,
+				"42000", ER_SP_WRONG_NO_OF_ARGS);
+	}
+
+	public static RoutineException executionLimit(String message) {
+		return new RoutineException(message, "70100", ER_QUERY_INTERRUPTED);
+	}
+}
