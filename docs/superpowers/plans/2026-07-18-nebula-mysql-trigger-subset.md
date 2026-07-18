@@ -90,11 +90,11 @@ base-ref: 874719db4c0b576fc1cceb7e2be0c05d4816fcc7
 - Produces: `TriggerDdlResult handle(String schemaName, String sql) throws SQLException`
 - Consumes: `TriggerMetadataService`
 
-- [ ] Step 1: Write tests for supported CREATE TRIGGER, DROP TRIGGER, DROP TRIGGER IF EXISTS and unsupported syntax.
-- [ ] Step 2: Run targeted test and verify it fails.
-- [ ] Step 3: Implement a conservative parser for the supported subset: single body SQL after `FOR EACH ROW`, no `BEGIN ... END`, `CALL`, transaction SQL, dynamic SQL, or nested trigger DDL in body.
-- [ ] Step 4: Run targeted test and verify it passes.
-- [ ] Step 5: Check OpenSpec task `2.1` and commit with `feat(nebula): handle trigger ddl metadata`.
+- [x] Step 1: Write tests for supported CREATE TRIGGER, DROP TRIGGER, DROP TRIGGER IF EXISTS and unsupported syntax.
+- [x] Step 2: Run targeted test and verify it fails.
+- [x] Step 3: Implement a conservative parser for the supported subset: single body SQL after `FOR EACH ROW`, no `BEGIN ... END`, `CALL`, transaction SQL, dynamic SQL, or nested trigger DDL in body.
+- [x] Step 4: Run targeted test and verify it passes.
+- [x] Step 5: Check OpenSpec task `2.1` and commit with `feat(nebula): handle trigger ddl metadata`.
 
 ### Task 4: BEFORE/AFTER write execution hook
 
