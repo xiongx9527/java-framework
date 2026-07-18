@@ -1,6 +1,8 @@
 package com.vesoft.nebula.jdbc.mysql.query;
 
 import com.vesoft.nebula.jdbc.mysql.session.MysqlProtocolSession;
+import com.vesoft.nebula.jdbc.mysql.security.MysqlGatewaySecurityPolicy;
+import com.vesoft.nebula.jdbc.mysql.security.MysqlSslMode;
 import com.vesoft.nebula.jdbc.sql.parser.druid.DruidNebulaSqlParser;
 import com.vesoft.nebula.jdbc.sql.query.NebulaSchemaMappingRegistry;
 import com.vesoft.nebula.jdbc.sql.query.TableMapping;
@@ -84,7 +86,69 @@ public class AdvancedQueryHandlerTest {
 		assertEquals(1, result.getRows().size());
 	}
 
+	@Test
+	public void shouldRejectWriteBeforeExecutionWhenPolicyDeniesWrite() throws Exception {
+		RecordingMutationExecutor mutationExecutor = new RecordingMutationExecutor(1);
+		AdvancedQueryHandler handler = advancedHandler(mutationExecutor,
+				MysqlGatewaySecurityPolicy.builder().allowWrite(false).build());
+
+		try {
+			handler.handle(authenticatedSession(), "INSERT INTO person(id, name) VALUES ('p1', 'Tom')");
+			fail("Expected command denied error");
+		} catch (MysqlGatewayException exception) {
+			assertEquals(1142, exception.getErrorCode());
+			assertEquals("42000", exception.getSQLState());
+		}
+		assertEquals(0, mutationExecutor.mutationCalls);
+	}
+
+	@Test
+	public void shouldRejectDdlBeforeExecutionWhenPolicyDeniesDdl() throws Exception {
+		RecordingMutationExecutor mutationExecutor = new RecordingMutationExecutor(0);
+		AdvancedQueryHandler handler = advancedHandler(mutationExecutor,
+				MysqlGatewaySecurityPolicy.builder().allowDdl(false).build());
+
+		try {
+			handler.handle(authenticatedSession(), "CREATE TABLE person(id varchar, name varchar)");
+			fail("Expected command denied error");
+		} catch (MysqlGatewayException exception) {
+			assertEquals(1142, exception.getErrorCode());
+			assertEquals("42000", exception.getSQLState());
+		}
+		assertEquals(0, mutationExecutor.ddlCalls);
+	}
+
+	@Test
+	public void shouldAllowMetadataWhenPolicyAllowsMetadata() throws Exception {
+		AdvancedQueryHandler handler = advancedHandler(new RecordingMutationExecutor(0),
+				MysqlGatewaySecurityPolicy.builder().allowMetadata(true).build());
+
+		MysqlQueryResult result = handler.handle(authenticatedSession(), "SHOW DATABASES");
+
+		assertEquals(1, result.getRows().size());
+	}
+
+	@Test
+	public void shouldRejectNonSslSessionWhenSslRequired() throws Exception {
+		RecordingMutationExecutor mutationExecutor = new RecordingMutationExecutor(1);
+		AdvancedQueryHandler handler = advancedHandler(mutationExecutor,
+				MysqlGatewaySecurityPolicy.builder().sslMode(MysqlSslMode.REQUIRED).build());
+
+		try {
+			handler.handle(authenticatedSession(), "select name from person");
+			fail("Expected ssl required error");
+		} catch (MysqlGatewayException exception) {
+			assertEquals(3159, exception.getErrorCode());
+			assertEquals("HY000", exception.getSQLState());
+		}
+	}
+
 	private AdvancedQueryHandler advancedHandler(RecordingMutationExecutor mutationExecutor) {
+		return advancedHandler(mutationExecutor, MysqlGatewaySecurityPolicy.allowAll());
+	}
+
+	private AdvancedQueryHandler advancedHandler(RecordingMutationExecutor mutationExecutor,
+			MysqlGatewaySecurityPolicy securityPolicy) {
 		return new AdvancedQueryHandler(
 				new RecordingExecutionPort(),
 				new StaticMysqlMetadataHandler("basketballplayer"),
@@ -92,7 +156,8 @@ public class AdvancedQueryHandlerTest {
 				new DefaultNebulaSqlWriteConverter(),
 				new DefaultNebulaSqlDdlConverter(),
 				mutationExecutor,
-				personMappings()
+				personMappings(),
+				securityPolicy
 		);
 	}
 

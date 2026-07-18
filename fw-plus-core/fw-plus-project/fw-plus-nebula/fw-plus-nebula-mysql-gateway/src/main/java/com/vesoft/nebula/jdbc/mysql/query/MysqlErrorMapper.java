@@ -32,6 +32,14 @@ public final class MysqlErrorMapper {
 		return new MysqlGatewayException("Transactions are not supported by Nebula MySQL gateway", "HY000", 1196);
 	}
 
+	public static MysqlGatewayException commandDenied(String operation) {
+		return new MysqlGatewayException("Command denied for operation: " + operation, "42000", 1142);
+	}
+
+	public static MysqlGatewayException sslRequired() {
+		return new MysqlGatewayException("Connections using insecure transport are prohibited", "HY000", 3159);
+	}
+
 	public static MysqlGatewayException tableNotFound(String tableName) {
 		return new MysqlGatewayException("Table '" + tableName + "' doesn't exist", "42S02", 1146);
 	}
