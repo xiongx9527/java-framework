@@ -11,6 +11,18 @@ import java.util.Map;
 public class InMemoryTriggerMetadataStore implements TriggerMetadataStore {
 	private final Map<String, TriggerDefinition> definitions = new LinkedHashMap<String, TriggerDefinition>();
 
+	public synchronized TriggerDefinition create(TriggerDefinitionDraft draft) throws SQLException {
+		if (draft == null) {
+			throw new IllegalArgumentException("Trigger definition draft must not be null.");
+		}
+		if (findByName(draft.getSchemaName(), draft.getTriggerName()) != null) {
+			throw metadataError("Trigger already exists: " + draft.getTriggerName());
+		}
+		TriggerDefinition definition = draft.toDefinition(nextOrder(draft.getSchemaName()));
+		save(definition);
+		return definition;
+	}
+
 	public synchronized TriggerDefinition findByName(String schemaName, String triggerName) {
 		return definitions.get(key(schemaName, triggerName));
 	}
@@ -69,5 +81,9 @@ public class InMemoryTriggerMetadataStore implements TriggerMetadataStore {
 			return right == null;
 		}
 		return left.equalsIgnoreCase(right);
+	}
+
+	private SQLException metadataError(String message) {
+		return new SQLException("Nebula MySQL trigger subset metadata error: " + message, "42000");
 	}
 }

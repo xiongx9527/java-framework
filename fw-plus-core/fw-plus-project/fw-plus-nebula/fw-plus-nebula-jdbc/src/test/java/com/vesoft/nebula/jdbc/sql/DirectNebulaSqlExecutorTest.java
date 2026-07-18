@@ -4,6 +4,7 @@ import com.vesoft.nebula.client.graph.data.ResultSet;
 import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.sql.query.NebulaSchemaMappingRegistry;
 import com.vesoft.nebula.jdbc.sql.query.TableMapping;
+import com.vesoft.nebula.jdbc.sql.trigger.TriggerAwareNebulaSqlExecutor;
 import com.vesoft.nebula.jdbc.sql.write.NebulaWriteConversionException;
 import com.vesoft.nebula.jdbc.sql.write.NebulaWriteErrorCode;
 import org.junit.Test;
@@ -12,11 +13,15 @@ import java.sql.SQLException;
 import java.sql.Types;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.InOrder;
 
 public class DirectNebulaSqlExecutorTest {
 
@@ -100,6 +105,64 @@ public class DirectNebulaSqlExecutorTest {
 	}
 
 	@Test
+	public void executeUpdateShouldCreateTriggerMetadataAndFireBodySqlOnGatewayWrite() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		ResultSet nativeResultSet = successNativeResult();
+		when(connection.getSchema()).thenReturn("test_space");
+		when(connection.execute(anyString())).thenReturn(nativeResultSet);
+
+		DirectNebulaSqlExecutor executor = new DirectNebulaSqlExecutor(triggerMappings());
+		int ddlRows = executor.executeUpdate(
+				connection,
+				"CREATE TRIGGER person_ai AFTER INSERT ON person FOR EACH ROW "
+						+ "INSERT INTO audit(id, marker) VALUES ('a1', 'seen;still')",
+				NebulaParameterBindings.empty()
+		);
+		int insertRows = executor.executeUpdate(
+				connection,
+				"INSERT INTO person(id, name) VALUES ('p1', 'Tom')",
+				NebulaParameterBindings.empty()
+		);
+
+		assertEquals(0, ddlRows);
+		assertEquals(1, insertRows);
+		verify(connection, never()).execute("CREATE TRIGGER person_ai AFTER INSERT ON person FOR EACH ROW "
+				+ "INSERT INTO audit(id, marker) VALUES ('a1', 'seen;still')");
+		InOrder order = inOrder(connection);
+		order.verify(connection).execute("INSERT VERTEX person(name) VALUES \"p1\":(\"Tom\")");
+		order.verify(connection).execute("INSERT VERTEX audit(marker) VALUES \"a1\":(\"seen;still\")");
+	}
+
+	@Test
+	public void executeUpdateShouldKeepNativeNgqlFallbackOutsideTriggerPath() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		ResultSet nativeResultSet = successNativeResult();
+		when(connection.getSchema()).thenReturn("test_space");
+		when(connection.execute(anyString())).thenReturn(nativeResultSet);
+
+		DirectNebulaSqlExecutor executor = new DirectNebulaSqlExecutor(triggerMappings());
+		executor.executeUpdate(
+				connection,
+				"CREATE TRIGGER person_ai AFTER INSERT ON person FOR EACH ROW "
+						+ "INSERT INTO audit(id, marker) VALUES ('a1', 'seen')",
+				NebulaParameterBindings.empty()
+		);
+		executor.executeUpdate(
+				connection,
+				"INSERT VERTEX person(name) VALUES \"p1\":(\"Tom\")",
+				NebulaParameterBindings.empty()
+		);
+
+		verify(connection).execute("INSERT VERTEX person(name) VALUES \"p1\":(\"Tom\")");
+		verify(connection, never()).execute("INSERT VERTEX audit(marker) VALUES \"a1\":(\"seen\")");
+	}
+
+	@Test
+	public void defaultExecutorProviderShouldUseTriggerAwareSqlExecutor() {
+		assertTrue(NebulaSqlExecutorProvider.getExecutor() instanceof TriggerAwareNebulaSqlExecutor);
+	}
+
+	@Test
 	public void executeUpdateShouldKeepNativeNgqlFallback() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
 		ResultSet nativeResultSet = successNativeResult();
@@ -162,6 +225,19 @@ public class DirectNebulaSqlExecutorTest {
 				.addTable(TableMapping.tag("person", "person")
 						.idColumn("id", Types.VARCHAR)
 						.property("name", "name", Types.VARCHAR)
+					.build())
+			.build();
+	}
+
+	private NebulaSchemaMappingRegistry triggerMappings() {
+		return NebulaSchemaMappingRegistry.builder()
+				.addTable(TableMapping.tag("person", "person")
+						.idColumn("id", Types.VARCHAR)
+						.property("name", "name", Types.VARCHAR)
+						.build())
+				.addTable(TableMapping.tag("audit", "audit")
+						.idColumn("id", Types.VARCHAR)
+						.property("marker", "marker", Types.VARCHAR)
 						.build())
 				.build();
 	}

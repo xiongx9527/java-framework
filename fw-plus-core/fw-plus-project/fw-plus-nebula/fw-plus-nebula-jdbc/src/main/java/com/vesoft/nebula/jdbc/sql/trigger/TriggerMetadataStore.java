@@ -4,6 +4,8 @@ import java.sql.SQLException;
 import java.util.List;
 
 public interface TriggerMetadataStore {
+	TriggerDefinition create(TriggerDefinitionDraft draft) throws SQLException;
+
 	TriggerDefinition findByName(String schemaName, String triggerName) throws SQLException;
 
 	void save(TriggerDefinition definition) throws SQLException;

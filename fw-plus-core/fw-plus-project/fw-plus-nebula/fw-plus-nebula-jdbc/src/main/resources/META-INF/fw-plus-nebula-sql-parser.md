@@ -8,7 +8,7 @@
 - 输出自有 IR：SELECT、INSERT、UPDATE、DELETE、CREATE/DROP TABLE、SHOW、DESCRIBE、JOIN、子查询、UNION、GROUP BY、HAVING、ORDER BY、LIMIT、函数、表达式、别名和 `?` 参数占位符。
 - `?` 只记录 1-based 出现位置，不绑定参数值，不做字符串替换。
 - `CALL ...` 返回 `UNSUPPORTED_FEATURE`，矩阵 ID 为 `SQL-UNSUPPORTED-PROCEDURE`。
-- `CREATE TRIGGER ...` 返回 `DEFERRED_FEATURE`，矩阵 ID 为 `SQL-DEFERRED-TRIGGER`。
+- `CREATE TRIGGER ...` 由 trigger DDL handler 在 SQL 执行入口处理；parser-core 返回 `UNSUPPORTED_FEATURE`，矩阵 ID 为 `SQL-UNSUPPORTED-TRIGGER-DDL`。
 - raw SQL 只作为脱敏截断后的诊断摘要保存，`ParserDiagnostic.isRawFallback()` 对成功 required 路径保持 `false`。
 
 非目标：

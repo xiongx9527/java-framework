@@ -66,7 +66,7 @@ public class TriggerDdlHandler {
 		if (normalized.length() == 0) {
 			throw syntaxError("Unsupported trigger body: body SQL must not be blank.");
 		}
-		if (bodySql.indexOf(';') >= 0) {
+		if (hasStatementSeparator(bodySql)) {
 			throw syntaxError("Unsupported trigger body: multiple statements are not supported.");
 		}
 		if (normalized.startsWith("BEGIN ") || normalized.equals("BEGIN")
@@ -88,6 +88,75 @@ public class TriggerDdlHandler {
 			return trimmed.substring(0, trimmed.length() - 1).trim();
 		}
 		return trimmed;
+	}
+
+	private boolean hasStatementSeparator(String sql) {
+		boolean singleQuoted = false;
+		boolean doubleQuoted = false;
+		boolean backtickQuoted = false;
+		boolean lineComment = false;
+		boolean blockComment = false;
+		for (int i = 0; i < sql.length(); i++) {
+			char current = sql.charAt(i);
+			char next = i + 1 < sql.length() ? sql.charAt(i + 1) : '\0';
+
+			if (lineComment) {
+				if (current == '\n' || current == '\r') {
+					lineComment = false;
+				}
+				continue;
+			}
+			if (blockComment) {
+				if (current == '*' && next == '/') {
+					blockComment = false;
+					i++;
+				}
+				continue;
+			}
+			if (singleQuoted) {
+				if (current == '\\' && next != '\0') {
+					i++;
+				} else if (current == '\'' && next == '\'') {
+					i++;
+				} else if (current == '\'') {
+					singleQuoted = false;
+				}
+				continue;
+			}
+			if (doubleQuoted) {
+				if (current == '\\' && next != '\0') {
+					i++;
+				} else if (current == '"' && next == '"') {
+					i++;
+				} else if (current == '"') {
+					doubleQuoted = false;
+				}
+				continue;
+			}
+			if (backtickQuoted) {
+				if (current == '`') {
+					backtickQuoted = false;
+				}
+				continue;
+			}
+
+			if (current == '-' && next == '-') {
+				lineComment = true;
+				i++;
+			} else if (current == '/' && next == '*') {
+				blockComment = true;
+				i++;
+			} else if (current == '\'') {
+				singleQuoted = true;
+			} else if (current == '"') {
+				doubleQuoted = true;
+			} else if (current == '`') {
+				backtickQuoted = true;
+			} else if (current == ';') {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private String normalize(String sql) {

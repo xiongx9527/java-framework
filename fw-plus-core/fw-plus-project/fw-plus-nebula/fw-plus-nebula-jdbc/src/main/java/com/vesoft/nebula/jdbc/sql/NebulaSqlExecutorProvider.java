@@ -1,7 +1,9 @@
 package com.vesoft.nebula.jdbc.sql;
 
+import com.vesoft.nebula.jdbc.sql.trigger.TriggerAwareNebulaSqlExecutor;
+
 public final class NebulaSqlExecutorProvider {
-	private static final NebulaSqlExecutor DEFAULT_EXECUTOR = new DirectNebulaSqlExecutor();
+	private static final NebulaSqlExecutor DEFAULT_EXECUTOR = new TriggerAwareNebulaSqlExecutor();
 	private static final ThreadLocal<NebulaSqlExecutor> EXECUTOR_OVERRIDE = new ThreadLocal<NebulaSqlExecutor>();
 
 	private NebulaSqlExecutorProvider() {
