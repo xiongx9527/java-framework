@@ -132,6 +132,26 @@ public class DirectNebulaSqlExecutorTest {
 		assertEquals("INSERT_VERTEX", batch.getEvents().get(0).getPayload().get("mutationKind"));
 		assertEquals(NebulaBinlogEventType.SCHEMA_CHANGE, batch.getEvents().get(1).getEventType());
 		assertEquals("DROP_TAG", batch.getEvents().get(1).getPayload().get("ddlKind"));
+		assertEquals("DROP TABLE person", batch.getEvents().get(1).getSql());
+	}
+
+	@Test
+	public void executeUpdateShouldNotAppendBinlogEventForMetadataStatements() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
+
+		try {
+			new DirectNebulaSqlExecutor(personMappings(), store).executeUpdate(
+					connection,
+					"DESCRIBE person",
+					NebulaParameterBindings.empty()
+			);
+			fail("Expected SQLException");
+		} catch (SQLException exception) {
+			assertTrue(exception.getMessage().contains("Update nGql must start with an update keyword"));
+		}
+
+		assertTrue(store.readAfter(null, 10).isEmpty());
 	}
 
 	@Test

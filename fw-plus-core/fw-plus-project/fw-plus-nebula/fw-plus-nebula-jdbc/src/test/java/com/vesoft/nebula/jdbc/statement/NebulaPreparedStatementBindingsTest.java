@@ -110,6 +110,23 @@ public class NebulaPreparedStatementBindingsTest {
 	}
 
 	@Test
+	public void setDatetimeShouldBindTypedParameterSnapshot() throws Exception {
+		FakeNebulaSqlExecutor executor = FakeNebulaSqlExecutor.singleString("Tim");
+		java.util.Date datetime = new java.util.Date(123456789L);
+		NebulaPreparedStatementImpl statement = new NebulaPreparedStatementImpl(
+				mock(NebulaConnection.class),
+				"SELECT * FROM player WHERE created_at = ?",
+				executor
+		);
+
+		statement.setDatetime(1, datetime);
+		statement.executeQuery();
+
+		assertEquals(datetime, executor.getLastBindings().get(1).getValue());
+		assertEquals(Types.TIMESTAMP, executor.getLastBindings().get(1).getJdbcType());
+	}
+
+	@Test
 	public void parameterMetaDataShouldExposeBoundTypesAndUnboundDefaults() throws Exception {
 		PreparedStatement statement = new NebulaPreparedStatementImpl(
 				mock(NebulaConnection.class),
