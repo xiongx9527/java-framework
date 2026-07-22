@@ -21,8 +21,9 @@
         <spring-cloud-alibaba-dependencies.version>2021.0.5.0</spring-cloud-alibaba-dependencies.version>
         <!--tencent-cloud版本号-->
         <spring-cloud-tencent-dependencies.version>1.14.0-2023.0.0-RC2</spring-cloud-tencent-dependencies.version>
-        <!--  vesoft-java-client版本号 -->
+        <!-- vesoft nebula-java 版本号；fw-plus-nebula-jdbc 默认使用 client 3.8.4，profile nebula-java-5 使用 driver 5.3.0 -->
         <vesoft-java-client.version>3.8.4</vesoft-java-client.version>
+        <vesoft-java-driver.version>5.3.0</vesoft-java-driver.version>
         <!--sa-token版本号-->
         <sa-token.version>1.44.0</sa-token.version>
         <!--dynamic-tp版本号-->
@@ -245,11 +246,17 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!--vesoft-java-client 配置管理-->
+            <!--vesoft nebula-java 3.x client 配置管理-->
             <dependency>
                 <groupId>com.vesoft</groupId>
                 <artifactId>client</artifactId>
                 <version>${vesoft-java-client.version}</version>
+            </dependency>
+            <!--vesoft nebula-java 5.x driver 配置管理-->
+            <dependency>
+                <groupId>com.vesoft</groupId>
+                <artifactId>driver</artifactId>
+                <version>${vesoft-java-driver.version}</version>
             </dependency>
             <!--sa-token 版本统一管理-->
             <dependency>

@@ -1,7 +1,7 @@
 package com.vesoft.nebula.jdbc;
 
-import com.vesoft.nebula.client.graph.data.ResultSet.Record;
-import com.vesoft.nebula.client.graph.data.ValueWrapper;
+import com.vesoft.nebula.jdbc.client.NebulaNativeRecord;
+import com.vesoft.nebula.jdbc.client.NebulaNativeValue;
 import com.vesoft.nebula.jdbc.sql.NebulaParameterBindings;
 import com.vesoft.nebula.jdbc.sql.NebulaSqlExecutor;
 import com.vesoft.nebula.jdbc.statement.NebulaPreparedStatementImpl;
@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static com.vesoft.nebula.jdbc.test.NativeResultSets.rows;
 
 public class NebulaStandardJdbcIntegrationTest {
 
@@ -64,17 +65,7 @@ public class NebulaStandardJdbcIntegrationTest {
 	}
 
 	private static ResultSet resultSetWithSingleString(String columnName, String value) throws Exception {
-		com.vesoft.nebula.client.graph.data.ResultSet nativeResultSet = mock(com.vesoft.nebula.client.graph.data.ResultSet.class);
-		Record record = mock(Record.class);
-		ValueWrapper valueWrapper = mock(ValueWrapper.class);
-		when(valueWrapper.isNull()).thenReturn(false);
-		when(valueWrapper.asString()).thenReturn(value);
-		when(nativeResultSet.isEmpty()).thenReturn(false);
-		when(nativeResultSet.rowsSize()).thenReturn(1);
-		when(nativeResultSet.getColumnNames()).thenReturn(Collections.singletonList(columnName));
-		when(nativeResultSet.rowValues(0)).thenReturn(record);
-		when(record.get(0)).thenReturn(valueWrapper);
-		return new NebulaResultSet(nativeResultSet, null);
+		return new NebulaResultSet(rows(Collections.singletonList(columnName), new String[][] {{value}}), null);
 	}
 
 	private static class RecordingExecutor implements NebulaSqlExecutor {

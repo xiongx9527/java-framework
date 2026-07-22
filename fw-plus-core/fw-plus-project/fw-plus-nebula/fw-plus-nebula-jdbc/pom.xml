@@ -13,6 +13,8 @@
 
     <properties>
         <main.basedir>${basedir}/../../..</main.basedir>
+        <vesoft-nebula-sdk.artifactId>client</vesoft-nebula-sdk.artifactId>
+        <vesoft-nebula-sdk.version>${vesoft-java-client.version}</vesoft-nebula-sdk.version>
     </properties>
 
     <dependencies>
@@ -22,7 +24,8 @@
         </dependency>
         <dependency>
             <groupId>com.vesoft</groupId>
-            <artifactId>client</artifactId>
+            <artifactId>${vesoft-nebula-sdk.artifactId}</artifactId>
+            <version>${vesoft-nebula-sdk.version}</version>
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
@@ -49,5 +52,15 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>nebula-java-5</id>
+            <properties>
+                <vesoft-nebula-sdk.artifactId>driver</vesoft-nebula-sdk.artifactId>
+                <vesoft-nebula-sdk.version>${vesoft-java-driver.version}</vesoft-nebula-sdk.version>
+            </properties>
+        </profile>
+    </profiles>
 
 </project>

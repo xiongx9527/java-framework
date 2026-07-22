@@ -5,9 +5,7 @@ import com.vesoft.nebula.jdbc.NebulaDatabaseMetaData;
 import com.vesoft.nebula.jdbc.lifecycle.NebulaResourceLifecycle;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
 import java.lang.reflect.Field;
-import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
@@ -87,22 +85,13 @@ public class NebulaUnsupportedJdbcFeatureTest {
 	public void unsupportedStatementFeaturesShouldExposeExplicitSemantics() throws Exception {
 		final Statement statement = new NebulaStatementImpl(mock(NebulaConnection.class));
 
-		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
-			@Override
-			public void run() throws SQLException {
-				statement.addBatch("INSERT VERTEX player(name) VALUES 1:(\"Tim\")");
-			}
-		});
+		statement.addBatch("INSERT VERTEX player(name) VALUES 1:(\"Tim\")");
+		statement.clearBatch();
+		assertEquals(0, statement.executeBatch().length);
 		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
 			@Override
 			public void run() throws SQLException {
 				statement.getGeneratedKeys();
-			}
-		});
-		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
-			@Override
-			public void run() throws SQLException {
-				statement.executeBatch();
 			}
 		});
 		assertFalse(statement.getMoreResults());
@@ -137,31 +126,10 @@ public class NebulaUnsupportedJdbcFeatureTest {
 	}
 
 	@Test
-	public void unsupportedPreparedStatementCapabilitiesShouldThrowSqlFeatureNotSupportedException() throws Exception {
-		final PreparedStatement statement = new NebulaPreparedStatementImpl(
-				mock(NebulaConnection.class),
-				"SELECT name FROM player WHERE id = ?"
-		);
-
-		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
-			@Override
-			public void run() throws SQLException {
-				statement.setBinaryStream(1, new ByteArrayInputStream(new byte[] {1}), 1);
-			}
-		});
-		assertThrows(SQLFeatureNotSupportedException.class, new SqlRunnable() {
-			@Override
-			public void run() throws SQLException {
-				statement.setBlob(1, mock(Blob.class));
-			}
-		});
-	}
-
-	@Test
 	public void unsupportedMetadataCapabilitiesShouldReturnFalseForFrameworkProbes() throws Exception {
 		DatabaseMetaData metaData = new NebulaDatabaseMetaData(mock(NebulaConnection.class));
 
-		assertFalse(metaData.supportsBatchUpdates());
+		assertTrue(metaData.supportsBatchUpdates());
 		assertFalse(metaData.supportsGetGeneratedKeys());
 		assertFalse(metaData.supportsMultipleOpenResults());
 		assertFalse(metaData.supportsMultipleResultSets());

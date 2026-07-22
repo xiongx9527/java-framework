@@ -1,6 +1,6 @@
 package com.vesoft.nebula.jdbc.sql;
 
-import com.vesoft.nebula.client.graph.data.ResultSet;
+import com.vesoft.nebula.jdbc.client.NebulaNativeResultSet;
 import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.sql.binlog.BinlogEventBatch;
 import com.vesoft.nebula.jdbc.sql.binlog.BinlogEventStore;
@@ -34,15 +34,15 @@ public class DirectNebulaSqlExecutorTest {
 	@Test
 	public void executeQueryShouldThrowWhenNativeResultFails() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = failedNativeResult();
-		when(connection.execute("SELECT 1")).thenReturn(nativeResultSet);
+		NebulaNativeResultSet nativeResultSet = failedNativeResult();
+		when(connection.execute("YIELD 1")).thenReturn(nativeResultSet);
 
 		assertNativeFailure(new SqlRunnable() {
 			@Override
 			public void run() throws SQLException {
 				new DirectNebulaSqlExecutor().executeQuery(
 						connection,
-						"SELECT 1",
+						"YIELD 1",
 						NebulaParameterBindings.empty()
 				);
 			}
@@ -52,7 +52,7 @@ public class DirectNebulaSqlExecutorTest {
 	@Test
 	public void executeUpdateShouldThrowWhenNativeResultFails() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = failedNativeResult();
+		NebulaNativeResultSet nativeResultSet = failedNativeResult();
 		when(connection.execute("INSERT VERTEX player(name) VALUES 1:(\"Tim\")")).thenReturn(nativeResultSet);
 
 		assertNativeFailure(new SqlRunnable() {
@@ -70,7 +70,7 @@ public class DirectNebulaSqlExecutorTest {
 	@Test
 	public void executeQueryShouldRenderPreparedStatementBindingsBeforeNativeExecution() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = successNativeResult();
+		NebulaNativeResultSet nativeResultSet = successNativeResult();
 		when(connection.execute(anyString())).thenReturn(nativeResultSet);
 		NebulaParameterBindings bindings = new NebulaParameterBindings(3);
 		bindings.bind(1, 1001L, Types.BIGINT);
@@ -79,17 +79,52 @@ public class DirectNebulaSqlExecutorTest {
 
 		new DirectNebulaSqlExecutor().executeQuery(
 				connection,
-				"SELECT '?' AS marker FROM player WHERE id = ? AND active = ? AND name = ?",
+				"YIELD '?' AS marker, ? AS id, ? AS active, ? AS name",
 				bindings
 		);
 
-		verify(connection).execute("SELECT '?' AS marker FROM player WHERE id = 1001 AND active = true AND name = \"Tim\"");
+		verify(connection).execute("YIELD '?' AS marker, 1001 AS id, true AS active, \"Tim\" AS name");
+	}
+
+	@Test
+	public void executeQueryShouldRouteMappedSqlSelectThroughQueryConverter() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		NebulaNativeResultSet nativeResultSet = successNativeResult();
+		when(connection.execute(anyString())).thenReturn(nativeResultSet);
+
+		new DirectNebulaSqlExecutor(personMappings()).executeQuery(
+				connection,
+				"SELECT name FROM person WHERE id = 'p1' LIMIT 10",
+				NebulaParameterBindings.empty()
+		);
+
+		verify(connection).execute("MATCH (person:person) WHERE id(person) == \"p1\" RETURN person.name AS name LIMIT 10");
+	}
+
+	@Test
+	public void executeQueryShouldNotFallbackToRawSqlWhenMappedSqlSelectNativeExecutionFails() throws Exception {
+		NebulaConnection connection = mock(NebulaConnection.class);
+		NebulaNativeResultSet nativeResultSet = failedNativeResult();
+		when(connection.execute("MATCH (person:person) RETURN person.name AS name")).thenReturn(nativeResultSet);
+
+		try {
+			new DirectNebulaSqlExecutor(personMappings()).executeQuery(
+					connection,
+					"SELECT name FROM person",
+					NebulaParameterBindings.empty()
+			);
+			fail("Expected SQLException");
+		} catch (SQLException exception) {
+			assertTrue(exception.getMessage().contains("MATCH (person:person) RETURN person.name AS name"));
+		}
+
+		verify(connection, never()).execute("SELECT name FROM person");
 	}
 
 	@Test
 	public void executeUpdateShouldRouteSqlInsertAndDdlThroughConverters() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = successNativeResult();
+		NebulaNativeResultSet nativeResultSet = successNativeResult();
 		when(connection.execute(anyString())).thenReturn(nativeResultSet);
 
 		DirectNebulaSqlExecutor executor = new DirectNebulaSqlExecutor(personMappings());
@@ -113,7 +148,7 @@ public class DirectNebulaSqlExecutorTest {
 	@Test
 	public void executeUpdateShouldAppendBinlogEventsForSqlInsertAndDdl() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = successNativeResult();
+		NebulaNativeResultSet nativeResultSet = successNativeResult();
 		when(connection.execute(anyString())).thenReturn(nativeResultSet);
 		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
 
@@ -161,7 +196,7 @@ public class DirectNebulaSqlExecutorTest {
 	@Test
 	public void executeUpdateShouldNotAppendBinlogEventForNativeNgqlFallback() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = successNativeResult();
+		NebulaNativeResultSet nativeResultSet = successNativeResult();
 		when(connection.execute(anyString())).thenReturn(nativeResultSet);
 		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
 
@@ -177,7 +212,7 @@ public class DirectNebulaSqlExecutorTest {
 	@Test
 	public void executeUpdateShouldNotAppendBinlogEventWhenNativeExecutionFails() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = failedNativeResult();
+		NebulaNativeResultSet nativeResultSet = failedNativeResult();
 		when(connection.execute(anyString())).thenReturn(nativeResultSet);
 		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
 
@@ -198,7 +233,7 @@ public class DirectNebulaSqlExecutorTest {
 	@Test
 	public void executeUpdateShouldFailWhenBinlogAppendFails() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = successNativeResult();
+		NebulaNativeResultSet nativeResultSet = successNativeResult();
 		when(connection.execute(anyString())).thenReturn(nativeResultSet);
 
 		try {
@@ -216,7 +251,7 @@ public class DirectNebulaSqlExecutorTest {
 	@Test
 	public void executeUpdateShouldCreateTriggerMetadataAndFireBodySqlOnGatewayWrite() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = successNativeResult();
+		NebulaNativeResultSet nativeResultSet = successNativeResult();
 		when(connection.getSchema()).thenReturn("test_space");
 		when(connection.execute(anyString())).thenReturn(nativeResultSet);
 
@@ -245,7 +280,7 @@ public class DirectNebulaSqlExecutorTest {
 	@Test
 	public void executeUpdateShouldKeepNativeNgqlFallbackOutsideTriggerPath() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = successNativeResult();
+		NebulaNativeResultSet nativeResultSet = successNativeResult();
 		when(connection.getSchema()).thenReturn("test_space");
 		when(connection.execute(anyString())).thenReturn(nativeResultSet);
 
@@ -274,7 +309,7 @@ public class DirectNebulaSqlExecutorTest {
 	@Test
 	public void executeUpdateShouldKeepNativeNgqlFallback() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = successNativeResult();
+		NebulaNativeResultSet nativeResultSet = successNativeResult();
 		when(connection.execute(anyString())).thenReturn(nativeResultSet);
 
 		new DirectNebulaSqlExecutor(personMappings()).executeUpdate(
@@ -315,16 +350,16 @@ public class DirectNebulaSqlExecutorTest {
 		}
 	}
 
-	private ResultSet failedNativeResult() {
-		ResultSet nativeResultSet = mock(ResultSet.class);
+	private NebulaNativeResultSet failedNativeResult() throws SQLException {
+		NebulaNativeResultSet nativeResultSet = mock(NebulaNativeResultSet.class);
 		when(nativeResultSet.isSucceeded()).thenReturn(false);
-		when(nativeResultSet.getErrorCode()).thenReturn(-1004);
+		when(nativeResultSet.getErrorCode()).thenReturn("INVALID_SYNTAX");
 		when(nativeResultSet.getErrorMessage()).thenReturn("syntax error");
 		return nativeResultSet;
 	}
 
-	private ResultSet successNativeResult() {
-		ResultSet nativeResultSet = mock(ResultSet.class);
+	private NebulaNativeResultSet successNativeResult() throws SQLException {
+		NebulaNativeResultSet nativeResultSet = mock(NebulaNativeResultSet.class);
 		when(nativeResultSet.isSucceeded()).thenReturn(true);
 		return nativeResultSet;
 	}
@@ -376,7 +411,7 @@ public class DirectNebulaSqlExecutorTest {
 			fail("Expected SQLException");
 		} catch (SQLException exception) {
 			assertTrue(exception.getMessage().contains("executed failed"));
-			assertTrue(exception.getMessage().contains("-1004"));
+			assertTrue(exception.getMessage().contains("INVALID_SYNTAX"));
 			assertTrue(exception.getMessage().contains("syntax error"));
 		}
 	}

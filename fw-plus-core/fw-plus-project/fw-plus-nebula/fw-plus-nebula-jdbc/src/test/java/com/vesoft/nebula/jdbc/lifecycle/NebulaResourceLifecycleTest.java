@@ -95,7 +95,7 @@ public class NebulaResourceLifecycleTest {
 
     @Test
     public void resultSetWasNullShouldRejectAccessAfterClose() throws Exception {
-        NebulaResultSet resultSet = new NebulaResultSet(mock(com.vesoft.nebula.client.graph.data.ResultSet.class), null);
+        NebulaResultSet resultSet = new NebulaResultSet(mock(com.vesoft.nebula.jdbc.client.NebulaNativeResultSet.class), null);
 
         resultSet.close();
 
@@ -137,7 +137,7 @@ public class NebulaResourceLifecycleTest {
 
     @Test
     public void resultSetShouldRejectStatusAccessAfterClose() throws Exception {
-        NebulaResultSet resultSet = new NebulaResultSet(mock(com.vesoft.nebula.client.graph.data.ResultSet.class), null);
+        NebulaResultSet resultSet = new NebulaResultSet(mock(com.vesoft.nebula.jdbc.client.NebulaNativeResultSet.class), null);
 
         resultSet.close();
 

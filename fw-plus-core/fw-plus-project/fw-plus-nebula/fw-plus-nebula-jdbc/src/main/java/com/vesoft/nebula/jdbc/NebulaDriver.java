@@ -6,7 +6,6 @@
 package com.vesoft.nebula.jdbc;
 
 import static com.vesoft.nebula.jdbc.utils.NebulaJdbcUrlParser.JDBC_NEBULA_PREFIX;
-import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
 import com.vesoft.nebula.jdbc.utils.NebulaJdbcUrlParser;
 import java.net.URISyntaxException;
 import java.sql.DriverPropertyInfo;
@@ -119,7 +118,7 @@ public class NebulaDriver implements java.sql.Driver {
 
     @Override
     public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return java.util.logging.Logger.getLogger(java.util.logging.Logger.GLOBAL_LOGGER_NAME);
     }
 
 

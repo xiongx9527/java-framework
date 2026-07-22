@@ -1,6 +1,6 @@
 package com.vesoft.nebula.jdbc.result;
 
-import com.vesoft.nebula.client.graph.data.ValueWrapper;
+import com.vesoft.nebula.jdbc.client.NebulaNativeValue;
 
 import java.sql.SQLException;
 
@@ -8,7 +8,7 @@ public class NebulaResultSetCursor {
     private final int rowCount;
     private int currentRowNumber = -1;
     private boolean afterLast = false;
-    private ValueWrapper lastColumnAccess;
+    private NebulaNativeValue lastColumnAccess;
     private boolean hasColumnAccess = false;
 
     public NebulaResultSetCursor(int rowCount) {
@@ -128,7 +128,7 @@ public class NebulaResultSetCursor {
         }
     }
 
-    public void recordColumnAccess(ValueWrapper value) {
+    public void recordColumnAccess(NebulaNativeValue value) {
         lastColumnAccess = value;
         hasColumnAccess = true;
     }

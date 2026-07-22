@@ -1,6 +1,6 @@
 package com.vesoft.nebula.jdbc.config;
 
-import com.vesoft.nebula.client.graph.data.HostAddress;
+import com.vesoft.nebula.jdbc.client.NebulaHostAddress;
 import org.junit.Test;
 
 import java.io.File;
@@ -30,7 +30,7 @@ public class NebulaConnectionConfigParserTest {
         assertEquals("test_space", config.getGraphspace());
         assertEquals("root", config.getUsername());
         assertEquals("nebula", config.getPassword());
-        List<HostAddress> addresses = config.getGraphAddresses();
+        List<NebulaHostAddress> addresses = config.getGraphAddresses();
         assertEquals(1, addresses.size());
         assertEquals("127.0.0.1", addresses.get(0).getHost());
         assertEquals(9669, addresses.get(0).getPort());

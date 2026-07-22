@@ -41,6 +41,10 @@ public final class NebulaSqlExecutorProvider {
 		configureDefaultExecutor(schemaMapping, binlogEventStore, NebulaBinlogEventOptions.defaults());
 	}
 
+	public static void configureDefaultExecutor(NebulaSchemaMappingRegistry schemaMapping) {
+		defaultExecutorConfiguration = new DefaultExecutorConfiguration(schemaMapping, null, NebulaBinlogEventOptions.defaults());
+	}
+
 	public static void configureDefaultExecutor(NebulaSchemaMappingRegistry schemaMapping,
 			BinlogEventStore binlogEventStore, NebulaBinlogEventOptions binlogEventOptions) {
 		if (binlogEventStore == null) {

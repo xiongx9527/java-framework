@@ -1,80 +1,39 @@
 package com.vesoft.nebula.jdbc.client;
 
-import com.vesoft.nebula.client.graph.NebulaPoolConfig;
-import com.vesoft.nebula.client.graph.data.HostAddress;
-import com.vesoft.nebula.client.graph.data.ResultSet;
-import com.vesoft.nebula.client.graph.exception.IOErrorException;
-import com.vesoft.nebula.client.graph.net.NebulaPool;
-import com.vesoft.nebula.client.graph.net.Session;
 import com.vesoft.nebula.jdbc.config.NebulaConnectionConfig;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 
-import java.net.UnknownHostException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
+import static com.vesoft.nebula.jdbc.test.NativeResultSets.failure;
+import static com.vesoft.nebula.jdbc.test.NativeResultSets.success;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class NebulaClientFacadeTest {
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void openShouldInitializePoolGetSessionAndUseGraphspaceFromConfig() throws Exception {
-        NebulaPool pool = mock(NebulaPool.class);
-        Session session = mock(Session.class);
-        ResultSet useResult = successfulResult();
-        NebulaClientFacade facade = new NebulaClientFacade(pool);
-
-        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
-        when(pool.getSession("root", "nebula", true)).thenReturn(session);
-        when(session.execute("use test_space")).thenReturn(useResult);
+    public void openShouldOpenNativeClientAndUseGraphspaceFromConfig() throws Exception {
+        RecordingNativeClient nativeClient = new RecordingNativeClient();
+        NebulaClientFacade facade = new NebulaClientFacade(nativeClient);
 
         facade.open(config());
 
-        ArgumentCaptor<List> addressesCaptor = ArgumentCaptor.forClass(List.class);
-        ArgumentCaptor<NebulaPoolConfig> poolConfigCaptor = ArgumentCaptor.forClass(NebulaPoolConfig.class);
-        verify(pool).init(addressesCaptor.capture(), poolConfigCaptor.capture());
-        List<HostAddress> addresses = addressesCaptor.getValue();
-        assertEquals(1, addresses.size());
-        assertEquals("127.0.0.1", addresses.get(0).getHost());
-        assertEquals(9669, addresses.get(0).getPort());
-        assertEquals(2, poolConfigCaptor.getValue().getMinConnSize());
-        assertEquals(11, poolConfigCaptor.getValue().getMaxConnSize());
-        assertEquals(1000, poolConfigCaptor.getValue().getTimeout());
-        assertEquals(2000, poolConfigCaptor.getValue().getIdleTime());
-        assertEquals(3000, poolConfigCaptor.getValue().getIntervalIdle());
-        assertEquals(4000, poolConfigCaptor.getValue().getWaitTime());
-        verify(pool).getSession("root", "nebula", true);
-        verify(session).execute("use test_space");
+        assertEquals(Collections.singletonList("USE test_space"), nativeClient.executed);
+        assertSame(nativeClient.nativeClient, facade.getNativeClient());
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void openShouldThrowSQLExceptionWhenUseGraphspaceFails() throws Exception {
-        NebulaPool pool = mock(NebulaPool.class);
-        Session session = mock(Session.class);
-        ResultSet failedUse = mock(ResultSet.class);
-        NebulaClientFacade facade = new NebulaClientFacade(pool);
-
-        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
-        when(pool.getSession("root", "nebula", true)).thenReturn(session);
-        when(session.execute("use test_space")).thenReturn(failedUse);
-        when(failedUse.isSucceeded()).thenReturn(false);
-        when(failedUse.getErrorCode()).thenReturn(-1005);
-        when(failedUse.getErrorMessage()).thenReturn("space not found");
+        RecordingNativeClient nativeClient = new RecordingNativeClient();
+        nativeClient.useResult = failure("CATALOG_GRAPH_NOT_FOUND", "space not found");
+        NebulaClientFacade facade = new NebulaClientFacade(nativeClient);
 
         try {
             facade.open(config());
@@ -83,20 +42,15 @@ public class NebulaClientFacadeTest {
             assertTrue(exception.getMessage().contains("test_space"));
             assertTrue(exception.getMessage().contains("space not found"));
         }
+
+        assertTrue(nativeClient.closed);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void executeNgqlShouldWrapNebulaClientExceptionAsSQLException() throws Exception {
-        NebulaPool pool = mock(NebulaPool.class);
-        Session session = mock(Session.class);
-        ResultSet useResult = successfulResult();
-        NebulaClientFacade facade = new NebulaClientFacade(pool);
-
-        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
-        when(pool.getSession("root", "nebula", true)).thenReturn(session);
-        when(session.execute("use test_space")).thenReturn(useResult);
-        when(session.execute("MATCH (v) RETURN v")).thenThrow(new IOErrorException(-1, "network down"));
+    public void executeNgqlShouldWrapNativeClientExceptionAsSQLException() throws Exception {
+        RecordingNativeClient nativeClient = new RecordingNativeClient();
+        nativeClient.failure = new SQLException("network down");
+        NebulaClientFacade facade = new NebulaClientFacade(nativeClient);
         facade.open(config());
 
         try {
@@ -108,166 +62,73 @@ public class NebulaClientFacadeTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void closeShouldReleaseSessionAndClosePoolOnlyOnce() throws Exception {
-        NebulaPool pool = mock(NebulaPool.class);
-        Session session = mock(Session.class);
-        ResultSet useResult = successfulResult();
-        NebulaClientFacade facade = new NebulaClientFacade(pool);
-
-        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
-        when(pool.getSession("root", "nebula", true)).thenReturn(session);
-        when(session.execute("use test_space")).thenReturn(useResult);
+    public void closeShouldCloseNativeClientOnlyOnce() throws Exception {
+        RecordingNativeClient nativeClient = new RecordingNativeClient();
+        NebulaClientFacade facade = new NebulaClientFacade(nativeClient);
         facade.open(config());
 
         facade.close();
         facade.close();
 
-        verify(session, times(1)).release();
-        verify(pool, times(1)).close();
+        assertEquals(1, nativeClient.closeCount);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void executeNgqlShouldReturnNebulaResultSetFromSession() throws Exception {
-        NebulaPool pool = mock(NebulaPool.class);
-        Session session = mock(Session.class);
-        ResultSet resultSet = successfulResult();
-        ResultSet useResult = successfulResult();
-        NebulaClientFacade facade = new NebulaClientFacade(pool);
-
-        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
-        when(pool.getSession("root", "nebula", true)).thenReturn(session);
-        when(session.execute("use test_space")).thenReturn(useResult);
-        when(session.execute(eq("MATCH (v) RETURN v"))).thenReturn(resultSet);
+    public void executeNgqlShouldReturnNativeResultSetFromClient() throws Exception {
+        RecordingNativeClient nativeClient = new RecordingNativeClient();
+        NebulaNativeResultSet resultSet = success();
+        nativeClient.queryResult = resultSet;
+        NebulaClientFacade facade = new NebulaClientFacade(nativeClient);
         facade.open(config());
 
         assertSame(resultSet, facade.executeNgql("MATCH (v) RETURN v"));
     }
 
     @Test
-    public void defaultConstructorShouldCreatePoolThroughFactoryWhenOpening() throws Exception {
-        NebulaPool pool = mock(NebulaPool.class);
-        Session session = mock(Session.class);
-        ResultSet useResult = successfulResult();
-        NebulaPoolFactory factory = mock(NebulaPoolFactory.class);
-        NebulaClientFacade facade = new NebulaClientFacade(factory);
-
-        when(factory.create()).thenReturn(pool);
-        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
-        when(pool.getSession("root", "nebula", true)).thenReturn(session);
-        when(session.execute("use test_space")).thenReturn(useResult);
-
+    public void nativeAccessorsShouldExposeOpenedNativeObjects() throws Exception {
+        RecordingNativeClient nativeClient = new RecordingNativeClient();
+        NebulaClientFacade facade = new NebulaClientFacade(nativeClient);
         facade.open(config());
 
-        verify(factory).create();
-        verify(pool).init(any(List.class), any(NebulaPoolConfig.class));
+        assertSame(nativeClient.nativePool, facade.getNativePool());
+        assertSame(nativeClient.nativeClient, facade.getNativeClient());
+        assertSame(nativeClient.nativeSession, facade.getNativeSession());
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void openShouldThrowSQLExceptionAndClosePoolWhenPoolInitReturnsFalse() throws Exception {
-        NebulaPool pool = mock(NebulaPool.class);
-        NebulaClientFacade facade = new NebulaClientFacade(pool);
+    public void defaultConstructorShouldCreateClientThroughFactoryWhenOpening() throws Exception {
+        RecordingNativeClient nativeClient = new RecordingNativeClient();
+        RecordingFactory factory = new RecordingFactory(nativeClient);
+        NebulaConnectionConfig config = config();
+        NebulaClientFacade facade = new NebulaClientFacade(factory);
 
-        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(false);
+        facade.open(config);
+
+        assertTrue(factory.created);
+        assertEquals(Collections.singletonList("USE test_space"), nativeClient.executed);
+    }
+
+    @Test
+    public void openShouldCloseCreatedClientWhenNativeOpenThrows() throws Exception {
+        RecordingNativeClient nativeClient = new RecordingNativeClient();
+        nativeClient.openFailure = new SQLException("pool exhausted");
+        NebulaClientFacade facade = new NebulaClientFacade(nativeClient);
 
         try {
             facade.open(config());
-            fail("Expected SQLException when NebulaPool init returns false");
-        } catch (NullPointerException exception) {
-            fail("NebulaPool init=false should fail before getSession");
+            fail("Expected SQLException when native open throws");
         } catch (SQLException exception) {
-            assertTrue(exception.getMessage().contains("graphAddress"));
-            assertTrue(exception.getMessage().contains("127.0.0.1:9669"));
+            assertTrue(exception.getMessage().contains("pool exhausted"));
         }
 
-        verify(pool, never()).getSession(any(String.class), any(String.class), eq(true));
-        verify(pool).close();
+        assertTrue(nativeClient.closed);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
-    public void openFailureShouldEnterClosedStateAndNotClosePoolAgainWhenPoolInitReturnsFalse() throws Exception {
-        NebulaPool pool = mock(NebulaPool.class);
-        NebulaClientFacade facade = new NebulaClientFacade(pool);
-
-        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(false);
-
-        try {
-            facade.open(config());
-            fail("Expected SQLException when NebulaPool init returns false");
-        } catch (SQLException exception) {
-            assertTrue(exception.getMessage().contains("graphAddress"));
-        }
-
-        assertTrue(facade.isClosed());
-        facade.close();
-
-        verify(pool, times(1)).close();
-        verify(pool, never()).getSession(any(String.class), any(String.class), eq(true));
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void openShouldCloseCreatedPoolWhenPoolInitThrowsBeforeReturning() throws Exception {
-        NebulaPool pool = mock(NebulaPool.class);
-        NebulaClientFacade facade = new NebulaClientFacade(pool);
-
-        when(pool.init(any(List.class), any(NebulaPoolConfig.class)))
-                .thenThrow(new UnknownHostException("bad host"));
-
-        try {
-            facade.open(config());
-            fail("Expected SQLException when NebulaPool init throws");
-        } catch (SQLException exception) {
-            assertTrue(exception.getMessage().contains("bad host"));
-        }
-
-        verify(pool).close();
-        verify(pool, never()).getSession(any(String.class), any(String.class), eq(true));
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void openShouldReleaseSessionAndClosePoolWhenUseGraphspaceFails() throws Exception {
-        NebulaPool pool = mock(NebulaPool.class);
-        Session session = mock(Session.class);
-        ResultSet failedUse = mock(ResultSet.class);
-        NebulaClientFacade facade = new NebulaClientFacade(pool);
-
-        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
-        when(pool.getSession("root", "nebula", true)).thenReturn(session);
-        when(session.execute("use test_space")).thenReturn(failedUse);
-        when(failedUse.isSucceeded()).thenReturn(false);
-        when(failedUse.getErrorCode()).thenReturn(-1005);
-        when(failedUse.getErrorMessage()).thenReturn("space not found");
-
-        try {
-            facade.open(config());
-            fail("Expected SQLException");
-        } catch (SQLException exception) {
-            assertTrue(exception.getMessage().contains("test_space"));
-        }
-
-        verify(session).release();
-        verify(pool).close();
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
     public void openFailureShouldEnterClosedStateAndNotReleaseResourcesAgainWhenUseGraphspaceFails() throws Exception {
-        NebulaPool pool = mock(NebulaPool.class);
-        Session session = mock(Session.class);
-        ResultSet failedUse = mock(ResultSet.class);
-        NebulaClientFacade facade = new NebulaClientFacade(pool);
-
-        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
-        when(pool.getSession("root", "nebula", true)).thenReturn(session);
-        when(session.execute("use test_space")).thenReturn(failedUse);
-        when(failedUse.isSucceeded()).thenReturn(false);
-        when(failedUse.getErrorCode()).thenReturn(-1005);
-        when(failedUse.getErrorMessage()).thenReturn("space not found");
+        RecordingNativeClient nativeClient = new RecordingNativeClient();
+        nativeClient.useResult = failure("CATALOG_GRAPH_NOT_FOUND", "space not found");
+        NebulaClientFacade facade = new NebulaClientFacade(nativeClient);
 
         try {
             facade.open(config());
@@ -279,33 +140,25 @@ public class NebulaClientFacadeTest {
         assertTrue(facade.isClosed());
         facade.close();
 
-        verify(session, times(1)).release();
-        verify(pool, times(1)).close();
+        assertEquals(1, nativeClient.closeCount);
     }
 
     @Test
     public void executeNgqlShouldThrowSQLExceptionWhenNotOpened() throws Exception {
-        NebulaClientFacade facade = new NebulaClientFacade(mock(NebulaPool.class));
+        NebulaClientFacade facade = new NebulaClientFacade(new RecordingNativeClient());
 
         try {
             facade.executeNgql("MATCH (v) RETURN v");
             fail("Expected SQLException");
         } catch (SQLException exception) {
-            assertTrue(exception.getMessage().contains("not open"));
+            assertTrue(exception.getMessage().contains("closed"));
         }
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void executeNgqlShouldThrowSQLExceptionWhenClosed() throws Exception {
-        NebulaPool pool = mock(NebulaPool.class);
-        Session session = mock(Session.class);
-        ResultSet useResult = successfulResult();
-        NebulaClientFacade facade = new NebulaClientFacade(pool);
-
-        when(pool.init(any(List.class), any(NebulaPoolConfig.class))).thenReturn(true);
-        when(pool.getSession("root", "nebula", true)).thenReturn(session);
-        when(session.execute("use test_space")).thenReturn(useResult);
+        RecordingNativeClient nativeClient = new RecordingNativeClient();
+        NebulaClientFacade facade = new NebulaClientFacade(nativeClient);
         facade.open(config());
         facade.close();
 
@@ -317,19 +170,106 @@ public class NebulaClientFacadeTest {
         }
     }
 
+    @Test
+    public void factoryShouldRejectClientAndDriverOnSameClasspath() throws Exception {
+        NebulaPoolFactory factory = new NebulaPoolFactory() {
+            @Override
+            boolean hasClass(String className) {
+                return true;
+            }
+        };
+
+        try {
+            factory.create();
+            fail("Expected SQLException");
+        } catch (SQLException exception) {
+            assertTrue(exception.getMessage().contains("must not appear"));
+        }
+    }
+
     private static NebulaConnectionConfig config() {
         Properties mergedProperties = new Properties();
         mergedProperties.setProperty("graphspace", "test_space");
         mergedProperties.setProperty("user", "root");
         mergedProperties.setProperty("password", "nebula");
         return new NebulaConnectionConfig("test_space", "root", "nebula",
-                Collections.singletonList(new HostAddress("127.0.0.1", 9669)),
+                Collections.singletonList(new NebulaHostAddress("127.0.0.1", 9669)),
                 2, 11, 1000, 2000, 3000, 4000, mergedProperties);
     }
 
-    private static ResultSet successfulResult() {
-        ResultSet resultSet = mock(ResultSet.class);
-        when(resultSet.isSucceeded()).thenReturn(true);
-        return resultSet;
+    private static class RecordingFactory extends NebulaPoolFactory {
+        private final NebulaNativeClient nativeClient;
+        private boolean created;
+
+        private RecordingFactory(NebulaNativeClient nativeClient) {
+            this.nativeClient = nativeClient;
+        }
+
+        @Override
+        public NebulaNativeClient create() {
+            created = true;
+            return nativeClient;
+        }
+    }
+
+    private static class RecordingNativeClient implements NebulaNativeClient {
+        private final Object nativeClient = new Object();
+        private final Object nativeSession = new Object();
+        private final Object nativePool = new Object();
+        private final List<String> executed = new ArrayList<String>();
+        private NebulaNativeResultSet useResult;
+        private NebulaNativeResultSet queryResult;
+        private SQLException openFailure;
+        private SQLException failure;
+        private boolean closed = true;
+        private int closeCount;
+
+        private RecordingNativeClient() throws SQLException {
+            useResult = success();
+            queryResult = success();
+        }
+
+        @Override
+        public void open(NebulaConnectionConfigHolder config) throws SQLException {
+            if (openFailure != null) {
+                throw openFailure;
+            }
+            closed = false;
+        }
+
+        @Override
+        public NebulaNativeResultSet execute(String ngql) throws SQLException {
+            if (failure != null && !"USE test_space".equals(ngql)) {
+                throw failure;
+            }
+            executed.add(ngql);
+            return "USE test_space".equals(ngql) ? useResult : queryResult;
+        }
+
+        @Override
+        public Object getNativeClient() {
+            return nativeClient;
+        }
+
+        @Override
+        public Object getNativeSession() {
+            return nativeSession;
+        }
+
+        @Override
+        public Object getNativePool() {
+            return nativePool;
+        }
+
+        @Override
+        public boolean isClosed() {
+            return closed;
+        }
+
+        @Override
+        public void close() {
+            closeCount++;
+            closed = true;
+        }
     }
 }

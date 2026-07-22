@@ -5,20 +5,27 @@
 
 package com.vesoft.nebula.jdbc;
 
-import com.vesoft.nebula.client.graph.data.ResultSet;
-import com.vesoft.nebula.client.graph.data.*;
-import com.vesoft.nebula.client.graph.exception.InvalidValueException;
-
+import com.vesoft.nebula.jdbc.client.NebulaNativeRecord;
+import com.vesoft.nebula.jdbc.client.NebulaNativeResultSet;
+import com.vesoft.nebula.jdbc.client.NebulaNativeValue;
 import com.vesoft.nebula.jdbc.lifecycle.NebulaResourceLifecycle;
 import com.vesoft.nebula.jdbc.result.NebulaResultSetCursor;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
+import com.vesoft.nebula.jdbc.utils.JdbcWrapperSupport;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetTime;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 import lombok.extern.slf4j.Slf4j;
@@ -30,31 +37,144 @@ public class NebulaResultSet implements java.sql.ResultSet {
     public static final int SUPPORTED_CONCURRENCY = CONCUR_READ_ONLY;
     public static final int SUPPORTED_HOLDABILITY = CLOSE_CURSORS_AT_COMMIT;
 
-    protected ResultSet nativeNebulaResultSet;
+    protected NebulaNativeResultSet nativeNebulaResultSet;
 
     protected final NebulaResourceLifecycle lifecycle = new NebulaResourceLifecycle();
-    protected ValueWrapper lastColumnAccess;
+    protected NebulaNativeValue lastColumnAccess;
     private int resultRowSize;
     private List<String> columnNames;
-    private ResultSet.Record currentRow;
+    private List<NebulaNativeRecord> rows;
+    private NebulaNativeRecord currentRow;
     private Statement statement;
     private NebulaResultSetCursor cursor;
+    private int fetchDirection = FETCH_FORWARD;
+    private int fetchSize;
 
-    public NebulaResultSet(ResultSet nebulaResultSet, Statement statement) {
+    public NebulaResultSet(NebulaNativeResultSet nebulaResultSet, Statement statement) {
         this.nativeNebulaResultSet = nebulaResultSet;
         this.statement = statement;
-        this.resultRowSize = nativeNebulaResultSet.isEmpty() ? 0 : nativeNebulaResultSet.rowsSize();
-        this.columnNames = nativeNebulaResultSet.getColumnNames();
+        this.columnNames = copyColumnNames(nativeNebulaResultSet);
+        this.rows = materializeRows(nativeNebulaResultSet);
+        this.resultRowSize = this.rows.size();
         this.cursor = new NebulaResultSetCursor(this.resultRowSize);
     }
 
-    public ResultSet getNativeNebulaResultSet() {
+    public Object getNativeNebulaResultSet() {
+        if (nativeNebulaResultSet == null) {
+            return null;
+        }
+        Object unwrapped = nativeNebulaResultSet.unwrap();
+        return unwrapped == null ? nativeNebulaResultSet : unwrapped;
+    }
+
+    public NebulaNativeResultSet getNativeResultSet() {
         return nativeNebulaResultSet;
+    }
+
+    public List<NebulaNativeRecord> getRows() {
+        return Collections.unmodifiableList(rows);
+    }
+
+    private static List<String> copyColumnNames(NebulaNativeResultSet resultSet) {
+        try {
+            if (resultSet == null || resultSet.getColumnNames() == null) {
+                return new ArrayList<String>();
+            }
+            return new ArrayList<String>(resultSet.getColumnNames());
+        } catch (SQLException exception) {
+            return new ArrayList<String>();
+        }
+    }
+
+    private static List<NebulaNativeRecord> materializeRows(NebulaNativeResultSet resultSet) {
+        try {
+            if (resultSet == null || resultSet.isEmpty()) {
+                return new ArrayList<NebulaNativeRecord>();
+            }
+            return resultSet.rows();
+        } catch (SQLException exception) {
+            return new ArrayList<NebulaNativeRecord>();
+        }
+    }
+
+    private static List<NebulaNativeRecord> copyRows(List<NebulaNativeRecord> rows) {
+        if (rows == null) {
+            return new ArrayList<NebulaNativeRecord>();
+        }
+        return new ArrayList<NebulaNativeRecord>(rows);
+    }
+
+    private boolean nativeType(NebulaNativeValue valueWrapper, String typeName) {
+        if (valueWrapper == null) {
+            return false;
+        }
+        if ("date".equals(typeName)) {
+            return valueWrapper.isDate();
+        }
+        if ("time".equals(typeName)) {
+            return valueWrapper.isTime();
+        }
+        if ("datetime".equals(typeName)) {
+            return valueWrapper.isDateTime();
+        }
+        if ("double".equals(typeName)) {
+            return valueWrapper.isDouble();
+        }
+        if ("float".equals(typeName)) {
+            return valueWrapper.isFloat();
+        }
+        if ("long".equals(typeName)) {
+            return valueWrapper.isLong();
+        }
+        if ("int".equals(typeName)) {
+            return valueWrapper.isInt();
+        }
+        return false;
+    }
+
+    private Object rawValue(NebulaNativeValue valueWrapper) {
+        return valueWrapper == null ? null : valueWrapper.rawValue();
+    }
+
+    private Object unwrapNestedValue(Object value) throws SQLException {
+        if (value instanceof NebulaNativeValue) {
+            return unwrapValue((NebulaNativeValue) value);
+        }
+        return value;
+    }
+
+    private List unwrapNestedList(List values) throws SQLException {
+        if (values == null) {
+            return null;
+        }
+        List unwrapped = new ArrayList();
+        for (Object value : values) {
+            unwrapped.add(unwrapNestedValue(value));
+        }
+        return unwrapped;
+    }
+
+    public void limitRows(int maxRows) throws SQLException {
+        this.checkClosed();
+        if (maxRows < 0) {
+            throw new SQLException("Max rows must be >= 0.");
+        }
+        if (maxRows > 0 && maxRows < resultRowSize) {
+            resultRowSize = maxRows;
+            rows = new ArrayList<NebulaNativeRecord>(rows.subList(0, maxRows));
+            cursor = new NebulaResultSetCursor(resultRowSize);
+            currentRow = null;
+            lastColumnAccess = null;
+        }
     }
 
 
     public String getErrorMessage(){
-        return this.getNativeNebulaResultSet().getErrorMessage();
+        try {
+            return nativeNebulaResultSet == null ? null : nativeNebulaResultSet.getErrorMessage();
+        } catch (SQLException exception) {
+            return null;
+        }
     }
 
     @Override
@@ -212,12 +332,12 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     /** some getter methods */
 
-    private ValueWrapper getValueWrapper(int columnIndex) throws SQLException {
+    private NebulaNativeValue getValueWrapper(int columnIndex) throws SQLException {
         this.checkClosed();
         cursor.checkReadable();
         checkIndex(columnIndex);
-        currentRow = nativeNebulaResultSet.rowValues(cursor.getCurrentRowNumber());
-        ValueWrapper result = currentRow.get(columnIndex - 1);
+        currentRow = rows.get(cursor.getCurrentRowNumber());
+        NebulaNativeValue result = currentRow.get(columnIndex - 1);
         cursor.recordColumnAccess(result);
         this.lastColumnAccess = result;
         return result;
@@ -233,23 +353,30 @@ public class NebulaResultSet implements java.sql.ResultSet {
         return getObject(findColumn(columnLabel));
     }
 
-    private Object unwrapValue(ValueWrapper valueWrapper) throws SQLException {
+    private Object unwrapValue(NebulaNativeValue valueWrapper) throws SQLException {
         if (valueWrapper == null || valueWrapper.isNull()) {
             return null;
         }
         try {
-            if (valueWrapper.isDate()) {
-                return getDateFromValueWrapper(valueWrapper);
+            if (nativeType(valueWrapper, "date")) {
+                return valueWrapper.asDate();
             }
-            if (valueWrapper.isTime()) {
-                return getTimeFromValueWrapper(valueWrapper);
+            if (nativeType(valueWrapper, "time")) {
+                return valueWrapper.asTime();
             }
-            if (valueWrapper.isDateTime()) {
-                return getTimestampFromValueWrapper(valueWrapper);
+            if (nativeType(valueWrapper, "datetime")) {
+                return valueWrapper.asTimestamp();
             }
             String value = valueWrapper.asString();
             if (value != null) {
                 return value;
+            }
+        } catch (Exception ignored) {
+        }
+        try {
+            List list = valueWrapper.asList();
+            if (list != null) {
+                return list;
             }
         } catch (Exception ignored) {
         }
@@ -262,23 +389,43 @@ public class NebulaResultSet implements java.sql.ResultSet {
         } catch (Exception ignored) {
         }
         try {
-            return valueWrapper.getValue().getFVal();
+            return numericValue(valueWrapper);
         } catch (Exception ignored) {
         }
-        return valueWrapper.getValue();
+        return rawValue(valueWrapper);
+    }
+
+    private double numericValue(NebulaNativeValue valueWrapper) throws SQLException {
+        try {
+            if (nativeType(valueWrapper, "double")) {
+                return valueWrapper.asDouble();
+            }
+            if (nativeType(valueWrapper, "float")) {
+                return valueWrapper.asFloat();
+            }
+            if (nativeType(valueWrapper, "long")) {
+                return valueWrapper.asLong();
+            }
+            if (nativeType(valueWrapper, "int")) {
+                return valueWrapper.asInt();
+            }
+            Object value = rawValue(valueWrapper);
+            if (value instanceof Number) {
+                return ((Number) value).doubleValue();
+            }
+            return Double.parseDouble(String.valueOf(value));
+        } catch (Exception exception) {
+            throw new SQLException(exception);
+        }
     }
 
     @Override
     public String getString(int columnIndex) throws SQLException {
-        try {
-            ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-            if (this.wasNull()) {
-                return null;
-            }
-            return valueWrapper.asString();
-        } catch (UnsupportedEncodingException e) {
-            throw new SQLException("UnsupportedEncodingException occur in NebulaResult.getString().", e);
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return null;
         }
+        return valueWrapper.asString();
     }
 
     @Override
@@ -289,7 +436,7 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public int getInt(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
         if (this.wasNull()) {
             return 0;
         }
@@ -303,7 +450,7 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public long getLong(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
         if (this.wasNull()) {
             return 0L;
         }
@@ -317,7 +464,7 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public boolean getBoolean(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
         if (this.wasNull()) {
             return false;
         }
@@ -331,11 +478,11 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public double getDouble(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
         if (this.wasNull()) {
             return 0.0d;
         }
-        return valueWrapper.getValue().getFVal();
+        return numericValue(valueWrapper);
     }
 
     @Override
@@ -345,11 +492,10 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public Date getDate(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
         if (this.wasNull()) {
             return null;
         }
-        DateWrapper dateWrapper = valueWrapper.asDate();
         return getDateFromValueWrapper(valueWrapper);
     }
 
@@ -360,7 +506,7 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public Time getTime(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
         if (this.wasNull()) {
             return null;
         }
@@ -372,96 +518,73 @@ public class NebulaResultSet implements java.sql.ResultSet {
         return getTime(findColumn(columnLabel));
     }
 
-    public DateTimeWrapper getDateTime(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+    public LocalDateTime getDateTime(int columnIndex) throws SQLException {
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
         if (this.wasNull()) {
             return null;
         }
-        return valueWrapper.asDateTime();
+        return localDateTime(valueWrapper);
     }
 
-    private Date getDateFromValueWrapper(ValueWrapper valueWrapper) throws SQLException {
-        DateWrapper dateWrapper = valueWrapper.asDate();
-        return Date.valueOf(String.format("%04d-%02d-%02d",
-                dateWrapper.getYear(),
-                dateWrapper.getMonth(),
-                dateWrapper.getDay()
-        ));
+    private Date getDateFromValueWrapper(NebulaNativeValue valueWrapper) throws SQLException {
+        return valueWrapper.asDate();
     }
 
-    private Time getTimeFromValueWrapper(ValueWrapper valueWrapper) throws SQLException {
-        TimeWrapper timeWrapper = valueWrapper.asTime();
-        return Time.valueOf(String.format("%02d:%02d:%02d",
-                timeWrapper.getHour(),
-                timeWrapper.getMinute(),
-                timeWrapper.getSecond()
-        ));
+    private Time getTimeFromValueWrapper(NebulaNativeValue valueWrapper) throws SQLException {
+        return valueWrapper.asTime();
     }
 
-    private Timestamp getTimestampFromValueWrapper(ValueWrapper valueWrapper) throws SQLException {
-        DateTimeWrapper dateTimeWrapper = valueWrapper.asDateTime();
-        Timestamp timestamp = Timestamp.valueOf(String.format("%04d-%02d-%02d %02d:%02d:%02d",
-                dateTimeWrapper.getYear(),
-                dateTimeWrapper.getMonth(),
-                dateTimeWrapper.getDay(),
-                dateTimeWrapper.getHour(),
-                dateTimeWrapper.getMinute(),
-                dateTimeWrapper.getSecond()
-        ));
-        timestamp.setNanos(dateTimeWrapper.getMicrosec() * 1000);
-        return timestamp;
+    private Timestamp getTimestampFromValueWrapper(NebulaNativeValue valueWrapper) throws SQLException {
+        return valueWrapper.asTimestamp();
     }
 
-    public DateTimeWrapper getDateTime(String columnLabel) throws SQLException {
+    private LocalDateTime localDateTime(NebulaNativeValue valueWrapper) throws SQLException {
+        Timestamp timestamp = valueWrapper.asTimestamp();
+        return timestamp == null ? null : timestamp.toLocalDateTime();
+    }
+
+    public LocalDateTime getDateTime(String columnLabel) throws SQLException {
         return getDateTime(findColumn(columnLabel));
     }
 
-    public Node getNode(int columnIndex) throws SQLException {
-        try {
-            ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-            if (this.wasNull()) {
-                return null;
-            }
-            return valueWrapper.asNode();
-        } catch (UnsupportedEncodingException e) {
-            throw new SQLException("UnsupportedEncodingException occur in NebulaResult.getNode().", e);
-        }
-    }
-
-    public Node getNode(String columnLabel) throws SQLException {
-        return getNode(findColumn(columnLabel));
-    }
-
-    public Relationship getEdge(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+    public Object getNode(int columnIndex) throws SQLException {
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
         if (this.wasNull()) {
             return null;
         }
-        return valueWrapper.asRelationship();
+        return valueWrapper.asNode();
     }
 
-    public Relationship getEdge(String columnLabel) throws SQLException {
+    public Object getNode(String columnLabel) throws SQLException {
+        return getNode(findColumn(columnLabel));
+    }
+
+    public Object getEdge(int columnIndex) throws SQLException {
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return null;
+        }
+        return valueWrapper.asEdge();
+    }
+
+    public Object getEdge(String columnLabel) throws SQLException {
         return getEdge(findColumn(columnLabel));
     }
 
-    public PathWrapper getPath(int columnIndex) throws SQLException {
-        try {
-            ValueWrapper valueWrapper = getValueWrapper(columnIndex);
-            if (this.wasNull()) {
-                return null;
-            }
-            return valueWrapper.asPath();
-        } catch (UnsupportedEncodingException e) {
-            throw new SQLException("UnsupportedEncodingException occur in NebulaResult.getPath().", e);
+    public Object getPath(int columnIndex) throws SQLException {
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
+        if (this.wasNull()) {
+            return null;
         }
+        return valueWrapper.asPath();
     }
 
-    public PathWrapper getPath(String columnLabel) throws SQLException {
+    public Object getPath(String columnLabel) throws SQLException {
         return getPath(findColumn(columnLabel));
     }
 
     public List getList(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
         if (this.wasNull()) {
             return null;
         }
@@ -473,15 +596,11 @@ public class NebulaResultSet implements java.sql.ResultSet {
     }
 
     public Set getSet(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
         if (this.wasNull()) {
             return null;
         }
-        try{
-            return valueWrapper.asSet();
-        }catch(InvalidValueException e){
-            throw new SQLException(e);
-        }
+        return valueWrapper.asSet();
     }
 
     public Set getSet(String columnLabel) throws SQLException {
@@ -489,17 +608,11 @@ public class NebulaResultSet implements java.sql.ResultSet {
     }
 
     public Map getMap(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
         if (this.wasNull()) {
             return null;
         }
-        HashMap<String, ValueWrapper> result = null;
-        try {
-            result = valueWrapper.asMap();
-        } catch (UnsupportedEncodingException | InvalidValueException e) {
-            throw new SQLException(e);
-        }
-        return result;
+        return valueWrapper.asMap();
     }
 
     public Map getMap(String columnLabel) throws SQLException {
@@ -554,42 +667,84 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public RowId getRowId(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        byte[] value = getBytes(columnIndex);
+        return value == null ? null : new NebulaRowId(value);
     }
 
     @Override
     public RowId getRowId(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getRowId(findColumn(columnLabel));
     }
 
     @Override
     public byte getByte(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        Object value = getObject(columnIndex);
+        if (value == null) {
+            return 0;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).byteValue();
+        }
+        try {
+            return Byte.parseByte(String.valueOf(value));
+        } catch (NumberFormatException exception) {
+            throw conversionFailure(value, "byte", exception);
+        }
     }
 
     @Override
     public short getShort(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        Object value = getObject(columnIndex);
+        if (value == null) {
+            return 0;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).shortValue();
+        }
+        try {
+            return Short.parseShort(String.valueOf(value));
+        } catch (NumberFormatException exception) {
+            throw conversionFailure(value, "short", exception);
+        }
     }
 
     @Override
     public float getFloat(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        Object value = getObject(columnIndex);
+        if (value == null) {
+            return 0.0f;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).floatValue();
+        }
+        try {
+            return Float.parseFloat(String.valueOf(value));
+        } catch (NumberFormatException exception) {
+            throw conversionFailure(value, "float", exception);
+        }
     }
 
     @Override
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        BigDecimal value = getBigDecimal(columnIndex);
+        return value == null ? null : value.setScale(scale, BigDecimal.ROUND_HALF_UP);
     }
 
     @Override
     public byte[] getBytes(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        Object value = getObject(columnIndex);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof byte[]) {
+            return (byte[]) value;
+        }
+        return String.valueOf(value).getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        ValueWrapper valueWrapper = getValueWrapper(columnIndex);
+        NebulaNativeValue valueWrapper = getValueWrapper(columnIndex);
         if (this.wasNull()) {
             return null;
         }
@@ -598,43 +753,46 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public InputStream getAsciiStream(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        String value = getString(columnIndex);
+        return value == null ? null : new ByteArrayInputStream(value.getBytes(StandardCharsets.US_ASCII));
     }
 
     @Override
     public InputStream getUnicodeStream(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        String value = getString(columnIndex);
+        return value == null ? null : new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        byte[] value = getBytes(columnIndex);
+        return value == null ? null : new ByteArrayInputStream(value);
     }
 
 
     @Override
     public byte getByte(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getByte(findColumn(columnLabel));
     }
 
     @Override
     public short getShort(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getShort(findColumn(columnLabel));
     }
 
     @Override
     public float getFloat(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getFloat(findColumn(columnLabel));
     }
 
     @Override
     public BigDecimal getBigDecimal(String columnLabel, int scale) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getBigDecimal(findColumn(columnLabel), scale);
     }
 
     @Override
     public byte[] getBytes(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getBytes(findColumn(columnLabel));
     }
 
 
@@ -645,88 +803,121 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public InputStream getAsciiStream(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getAsciiStream(findColumn(columnLabel));
     }
 
     @Override
     public InputStream getUnicodeStream(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getUnicodeStream(findColumn(columnLabel));
     }
 
     @Override
     public InputStream getBinaryStream(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getBinaryStream(findColumn(columnLabel));
     }
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return null;
     }
 
     @Override
     public void clearWarnings() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
     }
 
     @Override
     public String getCursorName() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return null;
     }
 
 
     @Override
     public Reader getCharacterStream(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        String value = getString(columnIndex);
+        return value == null ? null : new StringReader(value);
     }
 
     @Override
     public Reader getCharacterStream(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getCharacterStream(findColumn(columnLabel));
     }
 
     @Override
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        Object value = getObject(columnIndex);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        }
+        if (value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long) {
+            return BigDecimal.valueOf(((Number) value).longValue());
+        }
+        if (value instanceof Number) {
+            return BigDecimal.valueOf(((Number) value).doubleValue());
+        }
+        try {
+            return new BigDecimal(String.valueOf(value));
+        } catch (NumberFormatException exception) {
+            throw conversionFailure(value, "BigDecimal", exception);
+        }
     }
 
     @Override
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getBigDecimal(findColumn(columnLabel));
     }
 
     @Override
     public void setFetchDirection(int direction) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        if (direction != FETCH_FORWARD && direction != FETCH_REVERSE && direction != FETCH_UNKNOWN) {
+            throw new SQLException("Invalid fetch direction: " + direction);
+        }
+        this.fetchDirection = direction;
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return fetchDirection;
     }
 
     @Override
     public void setFetchSize(int rows) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        if (rows < 0) {
+            throw new SQLException("Fetch size must be greater than or equal to zero.");
+        }
+        this.fetchSize = rows;
     }
 
     @Override
     public int getFetchSize() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return fetchSize;
     }
 
     @Override
     public boolean rowUpdated() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return false;
     }
 
     @Override
     public boolean rowInserted() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return false;
     }
 
     @Override
     public boolean rowDeleted() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return false;
     }
 
     @Override
@@ -956,92 +1147,130 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getObject(columnIndex);
     }
 
     @Override
     public Ref getRef(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        Object value = getObject(columnIndex);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Ref) {
+            return (Ref) value;
+        }
+        return new NebulaRef("JAVA_OBJECT", value);
     }
 
     @Override
     public Blob getBlob(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        byte[] value = getBytes(columnIndex);
+        return value == null ? null : new NebulaBlob(value);
     }
 
     @Override
     public Clob getClob(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        String value = getString(columnIndex);
+        return value == null ? null : new NebulaClob(value);
     }
 
     @Override
     public Array getArray(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        Object value = getObject(columnIndex);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Array) {
+            return (Array) value;
+        }
+        if (value instanceof List) {
+            List list = (List) value;
+            Object[] values = new Object[list.size()];
+            for (int i = 0; i < list.size(); i++) {
+                values[i] = unwrapNestedValue(list.get(i));
+            }
+            return new NebulaArray("JAVA_OBJECT", values);
+        }
+        if (value instanceof Object[]) {
+            return new NebulaArray("JAVA_OBJECT", (Object[]) value);
+        }
+        return new NebulaArray("JAVA_OBJECT", new Object[] {value});
     }
 
     @Override
     public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getObject(columnLabel);
     }
 
     @Override
     public Ref getRef(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getRef(findColumn(columnLabel));
     }
 
     @Override
     public Blob getBlob(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getBlob(findColumn(columnLabel));
     }
 
     @Override
     public Clob getClob(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getClob(findColumn(columnLabel));
     }
 
     @Override
     public Array getArray(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getArray(findColumn(columnLabel));
     }
 
     @Override
     public Date getDate(int columnIndex, Calendar cal) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getDate(columnIndex);
     }
 
     @Override
     public Date getDate(String columnLabel, Calendar cal) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getDate(findColumn(columnLabel), cal);
     }
 
     @Override
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getTime(columnIndex);
     }
 
     @Override
     public Time getTime(String columnLabel, Calendar cal) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getTime(findColumn(columnLabel), cal);
     }
 
     @Override
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getTimestamp(columnIndex);
     }
 
     @Override
     public Timestamp getTimestamp(String columnLabel, Calendar cal) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getTimestamp(findColumn(columnLabel), cal);
     }
 
     @Override
     public URL getURL(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        Object value = getObject(columnIndex);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof URL) {
+            return (URL) value;
+        }
+        try {
+            return new URL(String.valueOf(value));
+        } catch (Exception exception) {
+            throw new SQLException("Cannot convert column value to URL: " + value, exception);
+        }
     }
 
     @Override
     public URL getURL(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getURL(findColumn(columnLabel));
     }
 
     @Override
@@ -1116,22 +1345,24 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public NClob getNClob(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        String value = getNString(columnIndex);
+        return value == null ? null : new NebulaNClob(value);
     }
 
     @Override
     public NClob getNClob(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getNClob(findColumn(columnLabel));
     }
 
     @Override
     public SQLXML getSQLXML(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        String value = getString(columnIndex);
+        return value == null ? null : new NebulaSQLXML(value);
     }
 
     @Override
     public SQLXML getSQLXML(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getSQLXML(findColumn(columnLabel));
     }
 
     @Override
@@ -1146,22 +1377,23 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public String getNString(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getString(columnIndex);
     }
 
     @Override
     public String getNString(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getNString(findColumn(columnLabel));
     }
 
     @Override
     public Reader getNCharacterStream(int columnIndex) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        String value = getNString(columnIndex);
+        return value == null ? null : new StringReader(value);
     }
 
     @Override
     public Reader getNCharacterStream(String columnLabel) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getNCharacterStream(findColumn(columnLabel));
     }
 
     @Override
@@ -1306,12 +1538,12 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return convertObject(getObject(columnIndex), type);
     }
 
     @Override
     public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return getObject(findColumn(columnLabel), type);
     }
 
     @Override
@@ -1336,11 +1568,104 @@ public class NebulaResultSet implements java.sql.ResultSet {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return JdbcWrapperSupport.unwrap(this, iface);
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return JdbcWrapperSupport.isWrapperFor(this, iface);
+    }
+
+    private <T> T convertObject(Object value, Class<T> type) throws SQLException {
+        if (type == null) {
+            throw new SQLException("Target type must not be null.");
+        }
+        if (value == null) {
+            return null;
+        }
+        if (type.isInstance(value)) {
+            return type.cast(value);
+        }
+        if (type == String.class) {
+            return type.cast(String.valueOf(value));
+        }
+        if (type == URL.class) {
+            return type.cast(getUrlFromValue(value));
+        }
+        if (Number.class.isAssignableFrom(type)) {
+            return convertNumber(value, type);
+        }
+        if (type == Boolean.class) {
+            if (value instanceof Boolean) {
+                return type.cast(value);
+            }
+            if (value instanceof Number) {
+                return type.cast(((Number) value).intValue() != 0);
+            }
+            return type.cast(Boolean.valueOf(String.valueOf(value)));
+        }
+        if (type == Date.class && value instanceof java.util.Date) {
+            return type.cast(new Date(((java.util.Date) value).getTime()));
+        }
+        if (type == Time.class && value instanceof java.util.Date) {
+            return type.cast(new Time(((java.util.Date) value).getTime()));
+        }
+        if (type == Timestamp.class && value instanceof java.util.Date) {
+            return type.cast(new Timestamp(((java.util.Date) value).getTime()));
+        }
+        throw new SQLException("Cannot convert column value of type " + value.getClass().getName()
+                + " to " + type.getName() + ".");
+    }
+
+    private URL getUrlFromValue(Object value) throws SQLException {
+        if (value instanceof URL) {
+            return (URL) value;
+        }
+        try {
+            return new URL(String.valueOf(value));
+        } catch (Exception exception) {
+            throw new SQLException("Cannot convert column value to URL: " + value, exception);
+        }
+    }
+
+    private <T> T convertNumber(Object value, Class<T> type) throws SQLException {
+        BigDecimal decimal;
+        if (value instanceof BigDecimal) {
+            decimal = (BigDecimal) value;
+        } else if (value instanceof Number) {
+            decimal = new BigDecimal(String.valueOf(value));
+        } else {
+            try {
+                decimal = new BigDecimal(String.valueOf(value));
+            } catch (NumberFormatException exception) {
+                throw new SQLException("Cannot convert column value to number: " + value, exception);
+            }
+        }
+        if (type == Byte.class) {
+            return type.cast(Byte.valueOf(decimal.byteValue()));
+        }
+        if (type == Short.class) {
+            return type.cast(Short.valueOf(decimal.shortValue()));
+        }
+        if (type == Integer.class) {
+            return type.cast(Integer.valueOf(decimal.intValue()));
+        }
+        if (type == Long.class) {
+            return type.cast(Long.valueOf(decimal.longValue()));
+        }
+        if (type == Float.class) {
+            return type.cast(Float.valueOf(decimal.floatValue()));
+        }
+        if (type == Double.class) {
+            return type.cast(Double.valueOf(decimal.doubleValue()));
+        }
+        if (type == BigDecimal.class) {
+            return type.cast(decimal);
+        }
+        throw new SQLException("Unsupported numeric target type: " + type.getName() + ".");
+    }
+
+    private SQLException conversionFailure(Object value, String targetType, Exception cause) {
+        return new SQLException("Cannot convert column value to " + targetType + ": " + value, cause);
     }
 }
