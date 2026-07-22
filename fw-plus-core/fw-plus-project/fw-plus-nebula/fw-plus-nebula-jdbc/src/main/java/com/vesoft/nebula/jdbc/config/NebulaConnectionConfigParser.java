@@ -1,6 +1,6 @@
 package com.vesoft.nebula.jdbc.config;
 
-import com.vesoft.nebula.client.graph.data.HostAddress;
+import com.vesoft.nebula.jdbc.client.NebulaHostAddress;
 import com.vesoft.nebula.jdbc.utils.NebulaJdbcUrlParser;
 import com.vesoft.nebula.jdbc.utils.NebulaPropertyKey;
 
@@ -17,7 +17,7 @@ public final class NebulaConnectionConfigParser {
     public static NebulaConnectionConfig parse(String url, Properties properties) throws SQLException {
         Properties input = properties == null ? new Properties() : properties;
         Properties parsed;
-        List<HostAddress> addresses;
+        List<NebulaHostAddress> addresses;
         try {
             parsed = NebulaJdbcUrlParser.parse(url, input);
             addresses = NebulaJdbcUrlParser.getAddresses(url);

@@ -5,8 +5,10 @@
 
 package com.vesoft.nebula.jdbc;
 
-import com.vesoft.nebula.client.graph.data.ValueWrapper;
+import com.vesoft.nebula.jdbc.client.NebulaNativeRecord;
+import com.vesoft.nebula.jdbc.client.NebulaNativeValue;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
+import com.vesoft.nebula.jdbc.utils.JdbcWrapperSupport;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -39,7 +41,11 @@ public class NebulaResultSetMetaData implements ResultSetMetaData {
     @Override
     public String getSchemaName(int column) throws SQLException {
         checkColumnIndex(column);
-        return this.nebulaResultSet.getNativeNebulaResultSet().getSpaceName();
+        if (this.nebulaResultSet.getStatement() != null
+                && this.nebulaResultSet.getStatement().getConnection() != null) {
+            return this.nebulaResultSet.getStatement().getConnection().getSchema();
+        }
+        return "";
     }
 
     private List<String> getColumnNames() {
@@ -161,7 +167,7 @@ public class NebulaResultSetMetaData implements ResultSetMetaData {
     }
 
     private ColumnTypeDescriptor getColumnTypeDescriptor(int column) throws SQLException {
-        ValueWrapper value = firstNonNullColumnValue(column);
+        NebulaNativeValue value = firstNonNullColumnValue(column);
         if (value == null) {
             return ColumnTypeDescriptor.JAVA_OBJECT;
         }
@@ -170,6 +176,12 @@ public class NebulaResultSetMetaData implements ResultSetMetaData {
         }
         if (value.isLong()) {
             return ColumnTypeDescriptor.BIGINT;
+        }
+        if (value.isInt()) {
+            return ColumnTypeDescriptor.INTEGER;
+        }
+        if (value.isFloat()) {
+            return ColumnTypeDescriptor.FLOAT;
         }
         if (value.isDouble()) {
             return ColumnTypeDescriptor.DOUBLE;
@@ -189,17 +201,14 @@ public class NebulaResultSetMetaData implements ResultSetMetaData {
         return ColumnTypeDescriptor.JAVA_OBJECT;
     }
 
-    private ValueWrapper firstNonNullColumnValue(int column) throws SQLException {
-        if (this.nebulaResultSet == null || this.nebulaResultSet.getNativeNebulaResultSet() == null) {
+    private NebulaNativeValue firstNonNullColumnValue(int column) throws SQLException {
+        if (this.nebulaResultSet == null || this.nebulaResultSet.getNativeResultSet() == null) {
             return null;
         }
         String columnName = getColumnName(column);
         try {
-            List<ValueWrapper> values = this.nebulaResultSet.getNativeNebulaResultSet().colValues(columnName);
-            if (values == null) {
-                return null;
-            }
-            for (ValueWrapper value : values) {
+            for (NebulaNativeRecord row : this.nebulaResultSet.getRows()) {
+                NebulaNativeValue value = row == null ? null : row.get(columnName);
                 if (value != null && !value.isNull()) {
                     return value;
                 }
@@ -221,6 +230,18 @@ public class NebulaResultSetMetaData implements ResultSetMetaData {
                 Types.BIGINT,
                 "BIGINT",
                 Long.class.getName(),
+                true
+        );
+        private static final ColumnTypeDescriptor INTEGER = new ColumnTypeDescriptor(
+                Types.INTEGER,
+                "INTEGER",
+                Integer.class.getName(),
+                true
+        );
+        private static final ColumnTypeDescriptor FLOAT = new ColumnTypeDescriptor(
+                Types.FLOAT,
+                "FLOAT",
+                Float.class.getName(),
                 true
         );
         private static final ColumnTypeDescriptor DOUBLE = new ColumnTypeDescriptor(
@@ -275,11 +296,11 @@ public class NebulaResultSetMetaData implements ResultSetMetaData {
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return JdbcWrapperSupport.unwrap(this, iface);
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return JdbcWrapperSupport.isWrapperFor(this, iface);
     }
 }

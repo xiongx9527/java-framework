@@ -2,6 +2,7 @@ package com.vesoft.nebula.jdbc.sql;
 
 import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.NebulaResultSet;
+import com.vesoft.nebula.jdbc.client.NebulaNativeResultSet;
 import com.vesoft.nebula.jdbc.statement.NebulaStatementClassifier;
 import com.vesoft.nebula.jdbc.sql.binlog.BinlogEventStore;
 import com.vesoft.nebula.jdbc.sql.binlog.NebulaBinlogEventDraft;
@@ -11,7 +12,12 @@ import com.vesoft.nebula.jdbc.sql.parser.NebulaSqlParseResult;
 import com.vesoft.nebula.jdbc.sql.parser.StatementKind;
 import com.vesoft.nebula.jdbc.sql.parser.druid.DruidNebulaSqlParser;
 import com.vesoft.nebula.jdbc.sql.parser.error.NebulaSqlParseException;
+import com.vesoft.nebula.jdbc.sql.query.DefaultNebulaSqlQueryConverter;
+import com.vesoft.nebula.jdbc.sql.query.NebulaQueryBindings;
+import com.vesoft.nebula.jdbc.sql.query.NebulaQueryStatement;
+import com.vesoft.nebula.jdbc.sql.query.NebulaQueryStatementAdapter;
 import com.vesoft.nebula.jdbc.sql.query.NebulaSchemaMappingRegistry;
+import com.vesoft.nebula.jdbc.sql.query.NebulaSqlQueryExecutionAdapter;
 import com.vesoft.nebula.jdbc.sql.trigger.InMemoryTriggerMetadataStore;
 import com.vesoft.nebula.jdbc.sql.trigger.SqlTriggerBodyExecutor;
 import com.vesoft.nebula.jdbc.sql.trigger.TriggerAwareMutationExecutor;
@@ -34,6 +40,7 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 
 public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 	private static final String DEFAULT_SCHEMA_NAME = "default";
@@ -44,6 +51,9 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 	private final TriggerMetadataService triggerMetadataService;
 	private final int triggerMaxDepth;
 	private final DruidNebulaSqlParser parser = new DruidNebulaSqlParser();
+	private final NebulaQueryStatementAdapter queryStatementAdapter = new NebulaQueryStatementAdapter();
+	private final DefaultNebulaSqlQueryConverter queryConverter = new DefaultNebulaSqlQueryConverter();
+	private final NebulaSqlQueryExecutionAdapter queryExecutionAdapter = new NebulaSqlQueryExecutionAdapter();
 	private final DefaultNebulaSqlWriteConverter writeConverter = new DefaultNebulaSqlWriteConverter();
 	private final DefaultNebulaSqlDdlConverter ddlConverter = new DefaultNebulaSqlDdlConverter();
 
@@ -88,8 +98,13 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 
 	@Override
 	public ResultSet executeQuery(NebulaConnection connection, String sql, NebulaParameterBindings bindings) throws SQLException {
+		String renderedSql = renderSql(sql, bindings);
+		NebulaSqlParseResult parseResult = tryParse(renderedSql);
+		if (parseResult != null && parseResult.getKind() == StatementKind.SELECT) {
+			return executeSqlSelect(connection, parseResult);
+		}
 		NebulaStatementClassifier.checkQuery(sql);
-		return new NebulaResultSet(executeNative(connection, renderSql(sql, bindings)), null);
+		return new NebulaResultSet(executeNative(connection, renderedSql), null);
 	}
 
 	@Override
@@ -194,6 +209,12 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 		}
 	}
 
+	private ResultSet executeSqlSelect(NebulaConnection connection, NebulaSqlParseResult parseResult) throws SQLException {
+		NebulaQueryStatement queryStatement = queryStatementAdapter.adapt(parseResult);
+		return queryExecutionAdapter.executeQuery(connection,
+				queryConverter.convert(queryStatement, NebulaQueryBindings.empty(), schemaMapping));
+	}
+
 	private boolean isWriteStatement(StatementKind kind) {
 		return kind == StatementKind.INSERT || kind == StatementKind.UPDATE || kind == StatementKind.DELETE;
 	}
@@ -216,12 +237,12 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 				|| normalized.startsWith("CREATE UNIQUE INDEX ");
 	}
 
-	private com.vesoft.nebula.client.graph.data.ResultSet executeNative(NebulaConnection connection, String sql)
+	private NebulaNativeResultSet executeNative(NebulaConnection connection, String sql)
 			throws SQLException {
-		com.vesoft.nebula.client.graph.data.ResultSet resultSet = connection.execute(sql);
+		NebulaNativeResultSet resultSet = connection.execute(sql);
 		if (!resultSet.isSucceeded()) {
 			throw new SQLException(String.format(
-					"nGql \"%s\" executed failed, error code: %d, error message: %s",
+					"nGql \"%s\" executed failed, error code: %s, error message: %s",
 					sql,
 					resultSet.getErrorCode(),
 					resultSet.getErrorMessage()
@@ -335,6 +356,20 @@ public class DirectNebulaSqlExecutor implements NebulaSqlExecutor {
 		}
 		if (value instanceof Number || value instanceof Boolean) {
 			return String.valueOf(value);
+		}
+		if (value instanceof byte[]) {
+			return "\"" + Base64.getEncoder().encodeToString((byte[]) value) + "\"";
+		}
+		if (value instanceof Object[]) {
+			Object[] values = (Object[]) value;
+			StringBuilder builder = new StringBuilder("[");
+			for (int i = 0; i < values.length; i++) {
+				if (i > 0) {
+					builder.append(", ");
+				}
+				builder.append(toLiteral(values[i]));
+			}
+			return builder.append("]").toString();
 		}
 		if (value instanceof java.sql.Date) {
 			return "date(\"" + value + "\")";

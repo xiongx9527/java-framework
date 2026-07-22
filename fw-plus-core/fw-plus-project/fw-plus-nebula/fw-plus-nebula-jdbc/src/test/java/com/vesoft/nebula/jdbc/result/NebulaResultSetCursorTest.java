@@ -1,6 +1,6 @@
 package com.vesoft.nebula.jdbc.result;
 
-import com.vesoft.nebula.client.graph.data.ValueWrapper;
+import com.vesoft.nebula.jdbc.client.NebulaNativeValue;
 import org.junit.Test;
 
 import java.sql.SQLException;
@@ -61,8 +61,8 @@ public class NebulaResultSetCursorTest {
     @Test
     public void wasNullShouldReturnLastColumnNullStateAfterColumnAccess() throws Exception {
         NebulaResultSetCursor cursor = new NebulaResultSetCursor(1);
-        ValueWrapper nullValue = mock(ValueWrapper.class);
-        ValueWrapper nonNullValue = mock(ValueWrapper.class);
+        NebulaNativeValue nullValue = mock(NebulaNativeValue.class);
+        NebulaNativeValue nonNullValue = mock(NebulaNativeValue.class);
         when(nullValue.isNull()).thenReturn(true);
         when(nonNullValue.isNull()).thenReturn(false);
 

@@ -1,6 +1,6 @@
 package com.vesoft.nebula.jdbc.sql.query;
 
-import com.vesoft.nebula.client.graph.data.ResultSet;
+import com.vesoft.nebula.jdbc.client.NebulaNativeResultSet;
 import com.vesoft.nebula.jdbc.NebulaConnection;
 import com.vesoft.nebula.jdbc.NebulaResultSet;
 import org.junit.Test;
@@ -20,7 +20,7 @@ public class NebulaSqlQueryExecutionAdapterTest {
 	@Test
 	public void executeQueryShouldUseExistingNebulaExecutionPath() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = mock(ResultSet.class);
+		NebulaNativeResultSet nativeResultSet = mock(NebulaNativeResultSet.class);
 		when(nativeResultSet.isSucceeded()).thenReturn(true);
 		when(nativeResultSet.isEmpty()).thenReturn(true);
 		when(nativeResultSet.getColumnNames()).thenReturn(Collections.<String>emptyList());
@@ -42,9 +42,9 @@ public class NebulaSqlQueryExecutionAdapterTest {
 	@Test
 	public void executeQueryShouldWrapFailedNativeResult() throws Exception {
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = mock(ResultSet.class);
+		NebulaNativeResultSet nativeResultSet = mock(NebulaNativeResultSet.class);
 		when(nativeResultSet.isSucceeded()).thenReturn(false);
-		when(nativeResultSet.getErrorCode()).thenReturn(-1004);
+		when(nativeResultSet.getErrorCode()).thenReturn("INVALID_SYNTAX");
 		when(nativeResultSet.getErrorMessage()).thenReturn("syntax error");
 		when(connection.execute("BROKEN")).thenReturn(nativeResultSet);
 		NgqlQueryPlan plan = new NgqlQueryPlan(
@@ -59,7 +59,7 @@ public class NebulaSqlQueryExecutionAdapterTest {
 			fail("Expected SQLException");
 		} catch (SQLException exception) {
 			assertTrue(exception.getMessage().contains("nGql \"BROKEN\" executed failed"));
-			assertTrue(exception.getMessage().contains("-1004"));
+			assertTrue(exception.getMessage().contains("INVALID_SYNTAX"));
 			assertTrue(exception.getMessage().contains("syntax error"));
 		}
 	}

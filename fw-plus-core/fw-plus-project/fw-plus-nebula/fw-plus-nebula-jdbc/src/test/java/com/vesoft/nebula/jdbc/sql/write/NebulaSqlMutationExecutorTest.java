@@ -1,6 +1,6 @@
 package com.vesoft.nebula.jdbc.sql.write;
 
-import com.vesoft.nebula.client.graph.data.ResultSet;
+import com.vesoft.nebula.jdbc.client.NebulaNativeResultSet;
 import com.vesoft.nebula.jdbc.NebulaConnection;
 import org.junit.Test;
 
@@ -36,7 +36,7 @@ public class NebulaSqlMutationExecutorTest {
 				Collections.<String>emptyList()
 		);
 		NebulaConnection connection = mock(NebulaConnection.class);
-		ResultSet nativeResultSet = mock(ResultSet.class);
+		NebulaNativeResultSet nativeResultSet = mock(NebulaNativeResultSet.class);
 		when(nativeResultSet.isSucceeded()).thenReturn(true);
 		when(connection.execute(plan.getNgql())).thenReturn(nativeResultSet);
 

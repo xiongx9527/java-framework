@@ -113,8 +113,8 @@ public class NebulaStatementExecutorPathTest {
 		InMemoryBinlogEventStore store = new InMemoryBinlogEventStore("store-a");
 		NebulaSqlExecutorProvider.configureDefaultExecutor(personMappings(), store);
 		NebulaConnection connection = mock(NebulaConnection.class);
-		com.vesoft.nebula.client.graph.data.ResultSet nativeResultSet =
-				mock(com.vesoft.nebula.client.graph.data.ResultSet.class);
+		com.vesoft.nebula.jdbc.client.NebulaNativeResultSet nativeResultSet =
+				mock(com.vesoft.nebula.jdbc.client.NebulaNativeResultSet.class);
 		when(nativeResultSet.isSucceeded()).thenReturn(true);
 		when(connection.execute("INSERT VERTEX person(name) VALUES \"p1\":(\"Tom\")")).thenReturn(nativeResultSet);
 		Statement statement = new NebulaStatementImpl(connection);
@@ -124,6 +124,21 @@ public class NebulaStatementExecutorPathTest {
 		BinlogEventBatch batch = store.readAfter(null, 10);
 		assertEquals(1, batch.getEvents().size());
 		assertEquals(NebulaBinlogEventType.WRITE_ROWS, batch.getEvents().get(0).getEventType());
+	}
+
+	@Test
+	public void defaultStatementPathShouldUseConfiguredSchemaMappingWithoutBinlogStore() throws Exception {
+		NebulaSqlExecutorProvider.configureDefaultExecutor(personMappings());
+		NebulaConnection connection = mock(NebulaConnection.class);
+		com.vesoft.nebula.jdbc.client.NebulaNativeResultSet nativeResultSet =
+				mock(com.vesoft.nebula.jdbc.client.NebulaNativeResultSet.class);
+		when(nativeResultSet.isSucceeded()).thenReturn(true);
+		when(connection.execute("MATCH (person:person) RETURN person.name AS name")).thenReturn(nativeResultSet);
+		Statement statement = new NebulaStatementImpl(connection);
+
+		statement.executeQuery("SELECT name FROM person");
+
+		org.mockito.Mockito.verify(connection).execute("MATCH (person:person) RETURN person.name AS name");
 	}
 
 	private NebulaSchemaMappingRegistry personMappings() {

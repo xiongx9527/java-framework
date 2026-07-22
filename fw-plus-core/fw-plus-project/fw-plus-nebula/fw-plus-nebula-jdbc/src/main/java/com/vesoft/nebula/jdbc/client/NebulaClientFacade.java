@@ -1,25 +1,13 @@
 package com.vesoft.nebula.jdbc.client;
 
-import com.vesoft.nebula.client.graph.NebulaPoolConfig;
-import com.vesoft.nebula.client.graph.data.HostAddress;
-import com.vesoft.nebula.client.graph.data.ResultSet;
-import com.vesoft.nebula.client.graph.exception.AuthFailedException;
-import com.vesoft.nebula.client.graph.exception.ClientServerIncompatibleException;
-import com.vesoft.nebula.client.graph.exception.IOErrorException;
-import com.vesoft.nebula.client.graph.exception.InvalidConfigException;
-import com.vesoft.nebula.client.graph.exception.NotValidConnectionException;
-import com.vesoft.nebula.client.graph.net.NebulaPool;
-import com.vesoft.nebula.client.graph.net.Session;
 import com.vesoft.nebula.jdbc.config.NebulaConnectionConfig;
 
-import java.net.UnknownHostException;
 import java.sql.SQLException;
 
 public class NebulaClientFacade implements AutoCloseable {
     private final NebulaPoolFactory poolFactory;
-    private NebulaPool pool;
-    private Session session;
-    private boolean closed;
+    private NebulaNativeClient nativeClient;
+    private boolean closed = true;
 
     public NebulaClientFacade() {
         this(new NebulaPoolFactory());
@@ -29,59 +17,65 @@ public class NebulaClientFacade implements AutoCloseable {
         this.poolFactory = poolFactory;
     }
 
-    public NebulaClientFacade(NebulaPool pool) {
+    public NebulaClientFacade(NebulaNativeClient nativeClient) {
         this.poolFactory = null;
-        this.pool = pool;
+        this.nativeClient = nativeClient;
     }
 
     public void open(NebulaConnectionConfig config) throws SQLException {
-        NebulaPoolConfig poolConfig = new NebulaPoolConfig();
-        poolConfig.setMinConnSize(config.getMinConnsSize());
-        poolConfig.setMaxConnSize(config.getMaxConnsSize());
-        poolConfig.setTimeout(config.getTimeout());
-        poolConfig.setIdleTime(config.getIdleTime());
-        poolConfig.setIntervalIdle(config.getIntervalIdle());
-        poolConfig.setWaitTime(config.getWaitTime());
-
-        Session openedSession = null;
-        boolean poolCreated = pool != null;
-        if (poolFactory != null) {
-            pool = poolFactory.create();
-            poolCreated = true;
-        }
         try {
-            if (!pool.init(config.getGraphAddresses(), poolConfig)) {
-                throw new SQLException("Initialize Nebula graph pool failed for graphAddress: " + config.getGraphAddress());
+            if (poolFactory != null) {
+                nativeClient = poolFactory.create();
             }
-            openedSession = pool.getSession(config.getUsername(), config.getPassword(), true);
-            ResultSet useResult = openedSession.execute("use " + config.getGraphspace());
+            if (nativeClient == null) {
+                throw new SQLException("Nebula native client is not configured.");
+            }
+            nativeClient.open(new NebulaConnectionConfigHolder(config));
+            NebulaNativeResultSet useResult = nativeClient.execute("USE " + config.getGraphspace());
             if (!useResult.isSucceeded()) {
-                throw new SQLException(String.format("Access graph space [%s] failed. Error code: %d, Error message: %s",
+                throw new SQLException(String.format("Access graph space [%s] failed. Error code: %s, Error message: %s",
                         config.getGraphspace(), useResult.getErrorCode(), useResult.getErrorMessage()));
             }
-            session = openedSession;
             closed = false;
         } catch (SQLException exception) {
-            releaseFailedOpen(openedSession, poolCreated);
+            releaseFailedOpen();
             throw exception;
-        } catch (UnknownHostException | InvalidConfigException | NotValidConnectionException |
-                 IOErrorException | AuthFailedException | ClientServerIncompatibleException exception) {
-            releaseFailedOpen(openedSession, poolCreated);
+        } catch (Exception exception) {
+            releaseFailedOpen();
             throw new SQLException(exception.getMessage(), exception);
         }
     }
 
-    public ResultSet executeNgql(String ngql) throws SQLException {
+    public NebulaNativeResultSet executeNgql(String ngql) throws SQLException {
+        checkOpen();
+        return nativeClient.execute(ngql);
+    }
+
+    public Object getNativeClient() throws SQLException {
+        checkOpen();
+        return nativeClient.getNativeClient();
+    }
+
+    /**
+     * @deprecated nebula-java 5.x no longer exposes Session. Use {@link #getNativeClient()}.
+     */
+    @Deprecated
+    public Object getNativeSession() throws SQLException {
+        checkOpen();
+        return nativeClient.getNativeSession();
+    }
+
+    public Object getNativePool() throws SQLException {
+        checkOpen();
+        return nativeClient.getNativePool();
+    }
+
+    private void checkOpen() throws SQLException {
         if (closed) {
             throw new SQLException("Nebula client facade is closed.");
         }
-        if (session == null) {
+        if (nativeClient == null || nativeClient.isClosed()) {
             throw new SQLException("Nebula client facade is not open.");
-        }
-        try {
-            return session.execute(ngql);
-        } catch (IOErrorException exception) {
-            throw new SQLException(exception.getMessage(), exception);
         }
     }
 
@@ -91,27 +85,19 @@ public class NebulaClientFacade implements AutoCloseable {
             return;
         }
         closed = true;
-        if (session != null) {
-            session.release();
-            session = null;
-        }
-        if (pool != null) {
-            pool.close();
-            pool = null;
+        if (nativeClient != null) {
+            nativeClient.close();
+            nativeClient = null;
         }
     }
 
-    private void releaseFailedOpen(Session openedSession, boolean poolCreated) {
+    private void releaseFailedOpen() {
         try {
-            if (openedSession != null) {
-                openedSession.release();
-            }
-            if (poolCreated && pool != null) {
-                pool.close();
+            if (nativeClient != null) {
+                nativeClient.close();
             }
         } finally {
-            session = null;
-            pool = null;
+            nativeClient = null;
             closed = true;
         }
     }

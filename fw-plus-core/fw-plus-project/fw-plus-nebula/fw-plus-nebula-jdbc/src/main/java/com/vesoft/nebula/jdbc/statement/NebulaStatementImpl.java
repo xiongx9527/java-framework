@@ -16,9 +16,14 @@ import com.vesoft.nebula.jdbc.sql.routine.RoutineService;
 import com.vesoft.nebula.jdbc.sql.routine.RoutineStatement;
 import com.vesoft.nebula.jdbc.sql.routine.RoutineStatementParser;
 import com.vesoft.nebula.jdbc.utils.ExceptionBuilder;
+import com.vesoft.nebula.jdbc.utils.JdbcWrapperSupport;
+import java.sql.BatchUpdateException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +37,16 @@ public class NebulaStatementImpl implements NebulaStatement {
     protected boolean isExecuteSucceed;
     protected ResultSet currentResultSet;
     protected final NebulaResourceLifecycle lifecycle = new NebulaResourceLifecycle();
+    protected int maxFieldSize;
+    protected int maxRows;
+    protected boolean escapeProcessing = true;
+    protected int queryTimeout;
+    protected int fetchDirection = ResultSet.FETCH_FORWARD;
+    protected int fetchSize;
+    protected String cursorName;
+    protected boolean poolable;
+    protected boolean closeOnCompletion;
+    protected final List<String> batchSql = new ArrayList<String>();
 
     public NebulaStatementImpl(NebulaConnection connection) {
         this(connection, NebulaSqlExecutorProvider.getExecutor());
@@ -53,7 +68,7 @@ public class NebulaStatementImpl implements NebulaStatement {
             return executeRoutine(nGql).hasResultSet();
         }
         if (isQuery(nGql)) {
-            this.currentResultSet = this.sqlExecutor.executeQuery(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
+            this.currentResultSet = applyResultSetLimits(this.sqlExecutor.executeQuery(this.nebulaConnection, nGql, NebulaParameterBindings.empty()));
             isExecuteSucceed = true;
             return true;
         }
@@ -73,7 +88,7 @@ public class NebulaStatementImpl implements NebulaStatement {
             }
             return currentResultSet;
         }
-        this.currentResultSet = this.sqlExecutor.executeQuery(this.nebulaConnection, nGql, NebulaParameterBindings.empty());
+        this.currentResultSet = applyResultSetLimits(this.sqlExecutor.executeQuery(this.nebulaConnection, nGql, NebulaParameterBindings.empty()));
         return currentResultSet;
     }
 
@@ -144,13 +159,20 @@ public class NebulaStatementImpl implements NebulaStatement {
         }
         RoutineCallResult result = service.call(currentSchema(), currentUser(), sql,
                 this.nebulaConnection, this.sqlExecutor);
-        this.currentResultSet = result.getResultSet();
+        this.currentResultSet = applyResultSetLimits(result.getResultSet());
         isExecuteSucceed = true;
         return result;
     }
 
     protected RoutineService routineService() {
         return RoutineService.getDefault();
+    }
+
+    protected ResultSet applyResultSetLimits(ResultSet resultSet) throws SQLException {
+        if (resultSet instanceof NebulaResultSet) {
+            ((NebulaResultSet) resultSet).limitRows(maxRows);
+        }
+        return resultSet;
     }
 
     private String currentSchema() throws SQLException {
@@ -216,43 +238,58 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     @Override
     public int getMaxFieldSize() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return maxFieldSize;
     }
 
     @Override
     public void setMaxFieldSize(int max) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        if (max < 0) {
+            throw new SQLException("Max field size must be >= 0.");
+        }
+        this.maxFieldSize = max;
     }
 
     @Override
     public int getMaxRows() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return maxRows;
     }
 
     @Override
     public void setMaxRows(int max) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        if (max < 0) {
+            throw new SQLException("Max rows must be >= 0.");
+        }
+        this.maxRows = max;
     }
 
     @Override
     public void setEscapeProcessing(boolean enable) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        this.escapeProcessing = enable;
     }
 
     @Override
     public int getQueryTimeout() throws SQLException {
-//        return ((NebulaResultSet)currentResultSet).getNativeNebulaResultSet().getLatency();
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return queryTimeout;
     }
 
     @Override
     public void setQueryTimeout(int seconds) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        if (seconds < 0) {
+            throw new SQLException("Query timeout must be >= 0.");
+        }
+        this.queryTimeout = seconds;
     }
 
     @Override
     public void cancel() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
     }
 
     @Override
@@ -263,12 +300,13 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     @Override
     public void clearWarnings() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
     }
 
     @Override
     public void setCursorName(String name) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        this.cursorName = name;
     }
 
 
@@ -286,42 +324,75 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     @Override
     public void setFetchDirection(int direction) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        if (direction != ResultSet.FETCH_FORWARD
+                && direction != ResultSet.FETCH_REVERSE
+                && direction != ResultSet.FETCH_UNKNOWN) {
+            throw new SQLException("Invalid fetch direction: " + direction);
+        }
+        this.fetchDirection = direction;
     }
 
     @Override
     public int getFetchDirection() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return fetchDirection;
     }
 
     @Override
     public void setFetchSize(int rows) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        if (rows < 0) {
+            throw new SQLException("Fetch size must be >= 0.");
+        }
+        this.fetchSize = rows;
     }
 
     @Override
     public int getFetchSize() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return fetchSize;
     }
 
     @Override
     public void addBatch(String sql) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        batchSql.add(sql);
     }
 
     @Override
     public void clearBatch() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        batchSql.clear();
     }
 
     @Override
     public int[] executeBatch() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        int[] counts = new int[batchSql.size()];
+        for (int i = 0; i < batchSql.size(); i++) {
+            try {
+                counts[i] = executeUpdate(batchSql.get(i));
+            } catch (SQLException exception) {
+                throw new BatchUpdateException(exception.getMessage(), counts, exception);
+            }
+        }
+        clearBatch();
+        return counts;
     }
 
     @Override
     public boolean getMoreResults(int current) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        if (current == Statement.CLOSE_CURRENT_RESULT || current == Statement.CLOSE_ALL_RESULTS) {
+            if (currentResultSet != null) {
+                currentResultSet.close();
+                currentResultSet = null;
+            }
+        } else if (current != Statement.KEEP_CURRENT_RESULT) {
+            throw new SQLException("Invalid getMoreResults flag: " + current);
+        }
+        return false;
     }
 
     @Override
@@ -331,62 +402,84 @@ public class NebulaStatementImpl implements NebulaStatement {
 
     @Override
     public int executeUpdate(String sql, int autoGeneratedKeys) throws SQLException {
+        if (autoGeneratedKeys == Statement.NO_GENERATED_KEYS) {
+            return executeUpdate(sql);
+        }
         throw ExceptionBuilder.buildUnsupportedOperationException();
     }
 
     @Override
     public int executeUpdate(String sql, int[] columnIndexes) throws SQLException {
+        if (columnIndexes == null || columnIndexes.length == 0) {
+            return executeUpdate(sql);
+        }
         throw ExceptionBuilder.buildUnsupportedOperationException();
     }
 
     @Override
     public int executeUpdate(String sql, String[] columnNames) throws SQLException {
+        if (columnNames == null || columnNames.length == 0) {
+            return executeUpdate(sql);
+        }
         throw ExceptionBuilder.buildUnsupportedOperationException();
     }
 
     @Override
     public boolean execute(String sql, int autoGeneratedKeys) throws SQLException {
+        if (autoGeneratedKeys == Statement.NO_GENERATED_KEYS) {
+            return execute(sql);
+        }
         throw ExceptionBuilder.buildUnsupportedOperationException();
     }
 
     @Override
     public boolean execute(String sql, int[] columnIndexes) throws SQLException {
+        if (columnIndexes == null || columnIndexes.length == 0) {
+            return execute(sql);
+        }
         throw ExceptionBuilder.buildUnsupportedOperationException();
     }
 
     @Override
     public boolean execute(String sql, String[] columnNames) throws SQLException {
+        if (columnNames == null || columnNames.length == 0) {
+            return execute(sql);
+        }
         throw ExceptionBuilder.buildUnsupportedOperationException();
     }
 
     @Override
     public void setPoolable(boolean poolable) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        this.poolable = poolable;
     }
 
     @Override
     public boolean isPoolable() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return poolable;
     }
 
     @Override
     public void closeOnCompletion() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        this.closeOnCompletion = true;
     }
 
     @Override
     public boolean isCloseOnCompletion() throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        this.checkClosed();
+        return closeOnCompletion;
     }
 
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return JdbcWrapperSupport.unwrap(this, iface);
     }
 
     @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        throw ExceptionBuilder.buildUnsupportedOperationException();
+        return JdbcWrapperSupport.isWrapperFor(this, iface);
     }
 }

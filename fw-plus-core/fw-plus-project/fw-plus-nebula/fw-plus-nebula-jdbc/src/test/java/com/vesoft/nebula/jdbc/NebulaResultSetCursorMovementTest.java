@@ -1,11 +1,14 @@
 package com.vesoft.nebula.jdbc;
 
-import com.vesoft.nebula.client.graph.data.ResultSet;
-import com.vesoft.nebula.client.graph.data.ValueWrapper;
+import com.vesoft.nebula.jdbc.client.NebulaNativeResultSet;
+import com.vesoft.nebula.jdbc.client.NebulaNativeRecord;
+import com.vesoft.nebula.jdbc.client.NebulaNativeValue;
 import org.junit.Test;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -15,12 +18,14 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static com.vesoft.nebula.jdbc.test.NativeResultSets.record;
+import static com.vesoft.nebula.jdbc.test.NativeResultSets.rows;
 
 public class NebulaResultSetCursorMovementTest {
 
     @Test
     public void firstShouldSynchronizeCursorForReads() throws Exception {
-        ValueWrapper firstValue = nonNullValue("first");
+        NebulaNativeValue firstValue = nonNullValue("first");
         NebulaResultSet resultSet = resultSetWithRows(firstValue, nonNullValue());
 
         assertTrue(resultSet.first());
@@ -56,8 +61,8 @@ public class NebulaResultSetCursorMovementTest {
 
     @Test
     public void absoluteAndRelativeShouldExposeTheSameCursorStateToRowsAndReads() throws Exception {
-        ValueWrapper firstValue = nonNullValue("first");
-        ValueWrapper secondValue = nonNullValue("second");
+        NebulaNativeValue firstValue = nonNullValue("first");
+        NebulaNativeValue secondValue = nonNullValue("second");
         NebulaResultSet resultSet = resultSetWithRows(firstValue, secondValue);
 
         assertTrue(resultSet.absolute(1));
@@ -71,8 +76,8 @@ public class NebulaResultSetCursorMovementTest {
 
     @Test
     public void previousShouldExposeTheSameCursorStateToRowsAndReads() throws Exception {
-        ValueWrapper firstValue = nonNullValue("first");
-        ValueWrapper secondValue = nonNullValue("second");
+        NebulaNativeValue firstValue = nonNullValue("first");
+        NebulaNativeValue secondValue = nonNullValue("second");
         NebulaResultSet resultSet = resultSetWithRows(firstValue, secondValue);
         assertTrue(resultSet.last());
 
@@ -105,25 +110,20 @@ public class NebulaResultSetCursorMovementTest {
         assertTrue(resultSet.wasNull());
     }
 
-    private static NebulaResultSet resultSetWithRows(ValueWrapper... values) {
-        ResultSet nativeResultSet = mock(ResultSet.class);
-        when(nativeResultSet.isEmpty()).thenReturn(values.length == 0);
-        when(nativeResultSet.rowsSize()).thenReturn(values.length);
-        when(nativeResultSet.getColumnNames()).thenReturn(Collections.singletonList("value"));
-        for (int i = 0; i < values.length; i++) {
-            ResultSet.Record record = mock(ResultSet.Record.class);
-            when(record.get(0)).thenReturn(values[i]);
-            when(nativeResultSet.rowValues(i)).thenReturn(record);
+    private static NebulaResultSet resultSetWithRows(NebulaNativeValue... values) throws Exception {
+        List<NebulaNativeRecord> records = new ArrayList<NebulaNativeRecord>();
+        for (NebulaNativeValue value : values) {
+            records.add(record(Collections.singletonList("value"), Collections.singletonList(value)));
         }
-        return new NebulaResultSet(nativeResultSet, null);
+        return new NebulaResultSet(rows(Collections.singletonList("value"), records), null);
     }
 
-    private static ValueWrapper nonNullValue() {
+    private static NebulaNativeValue nonNullValue() {
         return nonNullValue("value");
     }
 
-    private static ValueWrapper nonNullValue(String value) {
-        ValueWrapper valueWrapper = mock(ValueWrapper.class);
+    private static NebulaNativeValue nonNullValue(String value) {
+        NebulaNativeValue valueWrapper = mock(NebulaNativeValue.class);
         when(valueWrapper.isNull()).thenReturn(false);
         try {
             when(valueWrapper.asString()).thenReturn(value);
@@ -133,8 +133,8 @@ public class NebulaResultSetCursorMovementTest {
         return valueWrapper;
     }
 
-    private static ValueWrapper nullValue() {
-        ValueWrapper valueWrapper = mock(ValueWrapper.class);
+    private static NebulaNativeValue nullValue() {
+        NebulaNativeValue valueWrapper = mock(NebulaNativeValue.class);
         when(valueWrapper.isNull()).thenReturn(true);
         return valueWrapper;
     }

@@ -1,6 +1,6 @@
 package com.vesoft.nebula.jdbc.sql.write;
 
-import com.vesoft.nebula.client.graph.data.ResultSet;
+import com.vesoft.nebula.jdbc.client.NebulaNativeResultSet;
 import com.vesoft.nebula.jdbc.NebulaConnection;
 
 import java.sql.SQLException;
@@ -25,10 +25,10 @@ public class DirectNebulaSqlMutationExecutor implements NebulaSqlMutationExecuto
 	}
 
 	private void executeNative(String ngql) throws SQLException {
-		ResultSet resultSet = connection.execute(ngql);
+		NebulaNativeResultSet resultSet = connection.execute(ngql);
 		if (!resultSet.isSucceeded()) {
 			throw new SQLException(String.format(
-					"nGql \"%s\" executed failed, error code: %d, error message: %s",
+					"nGql \"%s\" executed failed, error code: %s, error message: %s",
 					ngql,
 					resultSet.getErrorCode(),
 					resultSet.getErrorMessage()

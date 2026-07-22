@@ -1,6 +1,6 @@
 package com.vesoft.nebula.jdbc.config;
 
-import com.vesoft.nebula.client.graph.data.HostAddress;
+import com.vesoft.nebula.jdbc.client.NebulaHostAddress;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -12,7 +12,7 @@ public class NebulaConnectionConfig {
     private final String graphspace;
     private final String username;
     private final String password;
-    private final List<HostAddress> graphAddresses;
+    private final List<NebulaHostAddress> graphAddresses;
     private final int minConnsSize;
     private final int maxConnsSize;
     private final int timeout;
@@ -22,7 +22,7 @@ public class NebulaConnectionConfig {
     private final Properties mergedProperties;
 
     public NebulaConnectionConfig(String graphspace, String username, String password,
-                                  List<HostAddress> graphAddresses, int minConnsSize,
+                                  List<NebulaHostAddress> graphAddresses, int minConnsSize,
                                   int maxConnsSize, int timeout, int idleTime,
                                   int intervalIdle, int waitTime, Properties mergedProperties) {
         this.graphspace = graphspace;
@@ -57,7 +57,7 @@ public class NebulaConnectionConfig {
         return password;
     }
 
-    public List<HostAddress> getGraphAddresses() {
+    public List<NebulaHostAddress> getGraphAddresses() {
         return new ArrayList<>(graphAddresses);
     }
 
@@ -67,7 +67,7 @@ public class NebulaConnectionConfig {
             if (i > 0) {
                 graphAddress.append(',');
             }
-            HostAddress address = graphAddresses.get(i);
+            NebulaHostAddress address = graphAddresses.get(i);
             graphAddress.append(address.getHost()).append(':').append(address.getPort());
         }
         return graphAddress.toString();
@@ -109,19 +109,19 @@ public class NebulaConnectionConfig {
         return copy;
     }
 
-    private static List<HostAddress> parseGraphAddresses(String graphAddress) throws SQLException {
+    private static List<NebulaHostAddress> parseGraphAddresses(String graphAddress) throws SQLException {
         if (graphAddress == null || !graphAddress.startsWith("//")) {
             throw new SQLException("graphAddress must start with //");
         }
         String[] addressParts = graphAddress.substring(2).split(",");
-        List<HostAddress> addresses = new ArrayList<>();
+        List<NebulaHostAddress> addresses = new ArrayList<>();
         for (String addressPart : addressParts) {
             String[] hostPort = addressPart.split(":");
             if (hostPort.length != 2) {
                 throw new SQLException("graphAddress has wrong host format.");
             }
             try {
-                addresses.add(new HostAddress(hostPort[0], Integer.parseInt(hostPort[1])));
+                addresses.add(new NebulaHostAddress(hostPort[0], Integer.parseInt(hostPort[1])));
             } catch (NumberFormatException exception) {
                 throw new SQLException("Invalid graphAddress port in address: " + addressPart, exception);
             }

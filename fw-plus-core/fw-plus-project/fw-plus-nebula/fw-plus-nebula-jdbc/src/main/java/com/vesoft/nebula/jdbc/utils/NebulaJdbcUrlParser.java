@@ -5,7 +5,7 @@
 
 package com.vesoft.nebula.jdbc.utils;
 
-import com.vesoft.nebula.client.graph.data.HostAddress;
+import com.vesoft.nebula.jdbc.client.NebulaHostAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.SQLException;
@@ -88,20 +88,20 @@ public class NebulaJdbcUrlParser {
     /**
      * resolve NebulaGraph address from url
      */
-    public static List<HostAddress> getAddresses(String url) throws SQLException {
+    public static List<NebulaHostAddress> getAddresses(String url) throws SQLException {
         int startIdx = url.indexOf("/") + 2;
         int endIdx = url.lastIndexOf("/");
 
         String ipStr = url.substring(startIdx, endIdx);
         String[] ipStrs = ipStr.split(",");
 
-        List<HostAddress> addressList = new ArrayList<>();
+        List<NebulaHostAddress> addressList = new ArrayList<>();
         for (int i = 0; i < ipStrs.length; i++) {
             String[] ipPort = ipStrs[i].split(":");
             if (ipPort.length < 2) {
                 throw new SQLException("url has wrong host format.");
             }
-            addressList.add(new HostAddress(ipPort[0], Integer.parseInt(ipPort[1])));
+            addressList.add(new NebulaHostAddress(ipPort[0], Integer.parseInt(ipPort[1])));
         }
         return addressList;
     }
