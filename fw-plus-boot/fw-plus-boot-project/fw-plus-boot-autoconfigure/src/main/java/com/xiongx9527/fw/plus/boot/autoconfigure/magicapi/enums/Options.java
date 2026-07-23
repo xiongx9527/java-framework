@@ -64,7 +64,7 @@ public enum Options {
 	/**
 	 * 避免重复提交超时时间
 	 */
-	AVOID_REPEAT_SUBMIT_TIMEOUT("避免重复提交超时时间(秒)", "avoid_repeat_submit_timeout", "1000") ,
+	AVOID_REPEAT_SUBMIT_TIMEOUT("避免重复提交超时时间(毫秒)", "avoid_repeat_submit_timeout", "1000") ,
 
 	/**
 	 * 避免重复提交的 Key（支持 SpEL 表达式）

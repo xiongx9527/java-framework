@@ -1,0 +1,14 @@
+{
+  "change": "add-magicapi-repeat-submit-lock",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "0e288614f6960dabbfc74671b3467f924dff551ab4d9aec9df46ba0738e4dc66",
+  "files": [
+    { "path": "openspec/changes/add-magicapi-repeat-submit-lock/proposal.md", "sha256": "eade7a33c353438839e4daf90ad305cb1f1922714102369c82a4950063f6ea8e" },
+    { "path": "openspec/changes/add-magicapi-repeat-submit-lock/design.md", "sha256": "c47993d4f48b4850024bf28bbba05c821240e426c37b14d918f2f30729533c84" },
+    { "path": "openspec/changes/add-magicapi-repeat-submit-lock/tasks.md", "sha256": "4682799cb7e6a5a1ff291f7728774493b08f5f5d500574f01ea2f9166ff3df1f" },
+    { "path": "openspec/changes/add-magicapi-repeat-submit-lock/specs/magicapi-repeat-submit-lock/spec.md", "sha256": "f41e8ed51fa5290745ee6fdb708a5fa429c89ffefe3ce288fb0cd63e6e908f04" }
+  ]
+}
