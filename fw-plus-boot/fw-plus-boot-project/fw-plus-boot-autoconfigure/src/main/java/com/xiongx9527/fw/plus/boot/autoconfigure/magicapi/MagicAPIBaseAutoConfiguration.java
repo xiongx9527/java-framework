@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.Dat
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.DruidDataSourceBuilder;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.MyDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.filter.auth.AuthConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock.Lock;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dify.DifyModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock.LockModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.mybatisflex.MyBatisFlexConfiguration;
@@ -17,10 +18,15 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.sse.SseModuleC
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.MagicApiPluginAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ParamProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ResultProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.repeat.DefaultRepeatSubmitKeySuffixProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.repeat.RepeatSubmitKeyResolver;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.repeat.RepeatSubmitKeySuffixProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.repeat.RepeatSubmitRequestInterceptor;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.resource.MyDefaultMagicResourceService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.*;
@@ -123,9 +129,31 @@ public class MagicAPIBaseAutoConfiguration implements ApplicationRunner {
 		return new ParamProvider();
 	}
 
+	@Bean
+	@ConditionalOnMissingBean(name = "defaultRepeatSubmitKeySuffixProvider")
+	public RepeatSubmitKeySuffixProvider defaultRepeatSubmitKeySuffixProvider() {
+		return new DefaultRepeatSubmitKeySuffixProvider();
+	}
 
-    /**
-     * 创建ResultProvider Bean实例
+	@Bean
+	@ConditionalOnMissingBean
+	public RepeatSubmitKeyResolver repeatSubmitKeyResolver(ApplicationContext applicationContext,
+														   @Qualifier("defaultRepeatSubmitKeySuffixProvider")
+														   RepeatSubmitKeySuffixProvider defaultSuffixProvider) {
+		return new RepeatSubmitKeyResolver(applicationContext, defaultSuffixProvider);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public RepeatSubmitRequestInterceptor repeatSubmitRequestInterceptor(Lock lock,
+																		 org.ssssssss.magicapi.core.interceptor.ResultProvider resultProvider,
+																		 RepeatSubmitKeyResolver keyResolver) {
+		return new RepeatSubmitRequestInterceptor(lock, resultProvider, keyResolver);
+	}
+
+
+	    /**
+	     * 创建ResultProvider Bean实例
      *
      * 该方法用于向Spring容器中注册ResultProvider组件，用于统一处理MagicAPI的响应结果格式
      *
