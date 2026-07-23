@@ -2,6 +2,8 @@
 comet_change: dynamic-s3-platform-options
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-23-dynamic-s3-platform-options
+status: final
 ---
 
 # S3 平台下拉动态显示技术设计
