@@ -17,6 +17,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -187,23 +188,27 @@ class MateEasyTransUtilsTest {
     }
 
     @Test
-    void createProxyVoReturnsOriginalVoWithoutAssignmentErrorWhenGeneratedClassIsNull(CapturedOutput output) throws Exception {
-        TestVo vo = new TestVo(3L);
+    void genNewClassUsesOriginalPackageForPackagePrivateVo() throws Exception {
+        TestVo vo = new TestVo(10L);
         vo.getTransMap().put("dynamicField", "value");
         Map<Class, Class> proxyClassMap = proxyClassMap();
         Map<Class, Set<String>> proxyClassFieldMap = proxyClassFieldMap();
         Class originalProxyClass = proxyClassMap.get(TestVo.class);
         Set<String> originalProxyFields = proxyClassFieldMap.get(TestVo.class);
+        Class generatedClass = null;
         try {
-            proxyClassMap.put(TestVo.class, TestVo.class);
-            proxyClassFieldMap.put(TestVo.class, new java.util.LinkedHashSet<>(Arrays.asList("otherField")));
+            proxyClassMap.remove(TestVo.class);
 
-            Object result = MateEasyTransUtils.createProxyVo(vo);
+            generatedClass = MateEasyTransUtils.genNewClass(vo);
 
-            assertSame(vo, result);
-            assertTrue(output.getOut().contains("生成新class错误"));
-            assertTrue(!output.getOut().contains("easy trans 赋值错误"));
+            assertNotNull(generatedClass);
+            assertEquals(TestVo.class.getPackage().getName(), generatedClass.getPackage().getName());
+            assertTrue(TestVo.class.isAssignableFrom(generatedClass));
+            assertTrue(proxyClassFieldMap.get(generatedClass).contains("dynamicField"));
         } finally {
+            if (generatedClass != null) {
+                proxyClassFieldMap.remove(generatedClass);
+            }
             if (originalProxyClass == null) {
                 proxyClassMap.remove(TestVo.class);
             } else {
@@ -213,6 +218,38 @@ class MateEasyTransUtilsTest {
                 proxyClassFieldMap.remove(TestVo.class);
             } else {
                 proxyClassFieldMap.put(TestVo.class, originalProxyFields);
+            }
+        }
+    }
+
+    @Test
+    void createProxyVoReturnsOriginalVoWithoutAssignmentErrorWhenGeneratedClassIsNull(CapturedOutput output) throws Exception {
+        FinalVo vo = new FinalVo();
+        vo.getTransMap().put("dynamicField", "value");
+        Map<Class, Class> proxyClassMap = proxyClassMap();
+        Map<Class, Set<String>> proxyClassFieldMap = proxyClassFieldMap();
+        Class originalProxyClass = proxyClassMap.get(FinalVo.class);
+        Set<String> originalProxyFields = proxyClassFieldMap.get(FinalVo.class);
+        try {
+            proxyClassMap.put(FinalVo.class, FinalVo.class);
+            proxyClassFieldMap.put(FinalVo.class, new java.util.LinkedHashSet<>(Arrays.asList("otherField")));
+
+            Object result = MateEasyTransUtils.createProxyVo(vo);
+
+            assertSame(vo, result);
+            String outputText = output.getOut() + output.getErr();
+            assertTrue(outputText.contains("Cannot subclass primitive, array or final types"));
+            assertTrue(!outputText.contains("easy trans 赋值错误"));
+        } finally {
+            if (originalProxyClass == null) {
+                proxyClassMap.remove(FinalVo.class);
+            } else {
+                proxyClassMap.put(FinalVo.class, originalProxyClass);
+            }
+            if (originalProxyFields == null) {
+                proxyClassFieldMap.remove(FinalVo.class);
+            } else {
+                proxyClassFieldMap.put(FinalVo.class, originalProxyFields);
             }
         }
     }
@@ -277,6 +314,15 @@ class MateEasyTransUtilsTest {
         public Long getId() {
             return id;
         }
+
+        @Override
+        public Map<String, Object> getTransMap() {
+            return transMap;
+        }
+    }
+
+    static final class FinalVo implements VO {
+        private final Map<String, Object> transMap = new java.util.LinkedHashMap<>();
 
         @Override
         public Map<String, Object> getTransMap() {
