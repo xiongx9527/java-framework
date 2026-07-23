@@ -410,8 +410,13 @@ public class MateEasyTransUtils extends TransUtil {
                 // 定义Jackson和Fastjson注解以忽略序列化
                 AnnotationDescription jacksonIgnore = AnnotationDescription.Builder.ofType(JsonIgnore.class).build();
                 AnnotationDescription fastJsonIgnore = AnnotationDescription.Builder.ofType(JSONField.class).define("serialize", false).build();
+                String proxyClassName = vo.getClass().getSimpleName() + "DynamicTypeBuilder" + StringUtil.getUUID();
+                Package targetPackage = vo.getClass().getPackage();
+                if (targetPackage != null && targetPackage.getName().length() > 0) {
+                    proxyClassName = targetPackage.getName() + "." + proxyClassName;
+                }
                 // 使用ByteBuddy创建新类的构建器，设置父类为VO类，并添加忽略序列化的注解
-                DynamicType.Builder<? extends Object> builder = (new ByteBuddy()).subclass(vo.getClass()).name(vo.getClass().getSimpleName() + "DynamicTypeBuilder" + StringUtil.getUUID()).defineMethod("getTransMap", Map.class, 1).intercept(FixedValue.nullValue()).annotateMethod(new AnnotationDescription[]{jacksonIgnore, fastJsonIgnore});
+                DynamicType.Builder<? extends Object> builder = (new ByteBuddy()).subclass(vo.getClass()).name(proxyClassName).defineMethod("getTransMap", Map.class, 1).intercept(FixedValue.nullValue()).annotateMethod(new AnnotationDescription[]{jacksonIgnore, fastJsonIgnore});
 
                 // 根据VO的转换映射添加新字段到构建器
                 for(String property : vo.getTransMap().keySet()) {

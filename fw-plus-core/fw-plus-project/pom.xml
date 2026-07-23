@@ -25,7 +25,7 @@
         <module>fw-plus-template</module>
         <module>fw-plus-ai</module>
         <module>fw-plus-magicapi</module>
-        <module>fw-plus-nebula</module>
+        <module>fw-plus-graph</module>
         <module>fw-plus-dify</module>
     </modules>
     <artifactId>fw-plus-project</artifactId>

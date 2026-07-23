@@ -2,11 +2,16 @@ package com.xiongx9527.fw.plus.mp.datachange;
 
 import com.xiongx9527.fw.plus.mp.datachange.properties.DataChangeProperties;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
+@ExtendWith(OutputCaptureExtension.class)
 class DataChangeHelperTest {
 
     @Test
@@ -20,7 +25,7 @@ class DataChangeHelperTest {
     }
 
     @Test
-    void formatValueFallsBackToOriginalValueWhenDatePatternInvalid() {
+    void formatValueFallsBackToOriginalValueWhenDatePatternInvalid(CapturedOutput output) {
         Date date = new Date(0L);
         DataChangeProperties.FieldFormat format = new DataChangeProperties.FieldFormat();
         format.setDateFormat("invalid-pattern-[");
@@ -31,6 +36,7 @@ class DataChangeHelperTest {
         field.setDateFormat("invalid-pattern-[");
 
         assertEquals(date, DataChangeHelper.formatValue(date, field));
+        assertFalse((output.getOut() + output.getErr()).contains("Illegal pattern component"));
     }
 
     @Test
