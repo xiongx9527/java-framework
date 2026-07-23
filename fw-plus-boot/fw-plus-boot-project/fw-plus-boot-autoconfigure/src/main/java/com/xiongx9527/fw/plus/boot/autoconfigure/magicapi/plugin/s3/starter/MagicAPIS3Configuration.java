@@ -4,6 +4,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.file.MyFileS
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.MagicDynamicS3DataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.S3DataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.module.S3Module;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.options.MagicS3PlatformOptionProperties;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.options.MagicS3PlatformOptionProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.service.S3DataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.service.S3DataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.web.MagicS3Controller;
@@ -20,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
@@ -29,8 +32,12 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 @Slf4j
 @ConditionalOnProperty(prefix = "magic-api.plugin.s3", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name = {"org.dromara.x.file.storage.core.FileStorageService"})
+@EnableConfigurationProperties(MagicS3PlatformOptionProperties.class)
 @Configuration
 public class MagicAPIS3Configuration implements MagicPluginConfiguration {
+
+    @Autowired(required = false)
+    private MagicS3PlatformOptionProvider magicS3PlatformOptionProvider;
 
     /**
      * 创建FileRecorder bean实例
@@ -104,6 +111,12 @@ public class MagicAPIS3Configuration implements MagicPluginConfiguration {
         return new MagicDynamicS3DataSource(fileRecorder, contentTypeDetect);
     }
 
+    @Bean
+    @ConditionalOnMissingBean(MagicS3PlatformOptionProvider.class)
+    public MagicS3PlatformOptionProvider magicS3PlatformOptionProvider(MagicS3PlatformOptionProperties properties) {
+        return new MagicS3PlatformOptionProvider(properties, MagicAPIS3Configuration.class.getClassLoader());
+    }
+
     /**
      * 创建S3模块Bean
      * 用于在MagicAPI中提供S3文件存储功能
@@ -140,7 +153,7 @@ public class MagicAPIS3Configuration implements MagicPluginConfiguration {
      */
     @Override
     public MagicControllerRegister controllerRegister() {
-        return (mapping, configuration) -> mapping.registerController(new MagicS3Controller(configuration));
+        return (mapping, configuration) -> mapping.registerController(new MagicS3Controller(configuration, magicS3PlatformOptionProvider));
     }
 
 }

@@ -52,7 +52,8 @@
 </template>
 
 <script setup>
-import {inject} from 'vue'
+import {inject, onMounted, ref, watch} from 'vue'
+import {loadS3PlatformOptions} from '../service/magic-s3-datasource.js'
 
 const $i = inject('i18n.format')
 
@@ -63,12 +64,63 @@ const props = defineProps({
   }
 })
 
-const platformOptions = [
+const defaultPlatformOptions = [
   { text: 'minio', value: 'minio' },
   { text: 'aliyun-oss', value: 'aliyun-oss' },
   { text: 'tencent-cos', value: 'tencent-cos' },
   { text: 'aws-s3', value: 'aws-s3' }
 ]
+
+const platformOptions = ref(defaultPlatformOptions.slice())
+
+const normalizeOptions = (options) => {
+  if (!Array.isArray(options)) {
+    return []
+  }
+  const values = new Set()
+  return options
+    .filter(option => option && option.value)
+    .filter(option => {
+      if (values.has(option.value)) {
+        return false
+      }
+      values.add(option.value)
+      return true
+    })
+    .map(option => ({
+      text: option.text || option.value,
+      value: option.value
+    }))
+}
+
+const ensureCurrentPlatformOption = () => {
+  const current = props.info && props.info.platform
+  if (!current) {
+    return
+  }
+  if (!platformOptions.value.some(option => option.value === current)) {
+    platformOptions.value = platformOptions.value.concat([{ text: current, value: current }])
+  }
+}
+
+const loadPlatformOptions = () => {
+  loadS3PlatformOptions().then(options => {
+    const normalizedOptions = normalizeOptions(options)
+    if (normalizedOptions.length > 0) {
+      platformOptions.value = normalizedOptions
+    }
+    ensureCurrentPlatformOption()
+  })
+}
+
+onMounted(() => {
+  ensureCurrentPlatformOption()
+  loadPlatformOptions()
+})
+
+watch(() => props.info && props.info.platform, () => {
+  ensureCurrentPlatformOption()
+})
 
 const presignedUrlMethodOptions = [
   { text: 'PUT', value: 'PUT' },
