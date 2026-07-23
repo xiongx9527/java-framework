@@ -2,6 +2,7 @@
 change: dynamic-s3-platform-options
 design-doc: docs/superpowers/specs/2026-07-23-dynamic-s3-platform-options-design.md
 base-ref: 64abaf80da3a779425b9046cc936c3f11766f0e3
+archived-with: 2026-07-23-dynamic-s3-platform-options
 ---
 
 # Dynamic S3 Platform Options Implementation Plan
