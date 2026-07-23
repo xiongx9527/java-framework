@@ -2,6 +2,8 @@
 comet_change: dynamic-debezium-connector-options
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-23-dynamic-debezium-connector-options
+status: final
 ---
 
 # Debezium 连接器选项动态化设计

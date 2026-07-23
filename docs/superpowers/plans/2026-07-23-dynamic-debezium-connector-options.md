@@ -2,6 +2,7 @@
 change: dynamic-debezium-connector-options
 design-doc: docs/superpowers/specs/2026-07-23-dynamic-debezium-connector-options-design.md
 base-ref: b874215ca46cef35a65c9d04ce727e3d02998233
+archived-with: 2026-07-23-dynamic-debezium-connector-options
 ---
 
 # Debezium 连接器选项动态化 Implementation Plan

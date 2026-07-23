@@ -4,5 +4,6 @@
   "openspec_tasks": "openspec/changes/dynamic-debezium-connector-options/tasks.md",
   "openspec_delta_spec": "openspec/changes/dynamic-debezium-connector-options/specs/debezium-connector-options/spec.md",
   "handoff_context": "openspec/changes/dynamic-debezium-connector-options/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/dynamic-debezium-connector-options/.comet/handoff/design-context.md"
+  "handoff_markdown": "openspec/changes/dynamic-debezium-connector-options/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-23-dynamic-debezium-connector-options"
 }
