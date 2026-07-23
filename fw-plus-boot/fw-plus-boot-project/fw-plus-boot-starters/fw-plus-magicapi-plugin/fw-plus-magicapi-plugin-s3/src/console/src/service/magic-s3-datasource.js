@@ -1,4 +1,26 @@
+let s3Request = null
+
+export const loadS3PlatformOptions = () => {
+    return new Promise((resolve) => {
+        if (!s3Request) {
+            resolve([])
+            return
+        }
+        s3Request.sendGet('/s3/datasource/platform/options')
+            .success((res) => {
+                resolve(Array.isArray(res) ? res : [])
+            })
+            .exception(() => {
+                resolve([])
+            })
+            .error(() => {
+                resolve([])
+            })
+    })
+}
+
 export default (request, $i, modal, JavaClass) => {
+    s3Request = request
     let findResources
 
     JavaClass.setExtensionAttribute(

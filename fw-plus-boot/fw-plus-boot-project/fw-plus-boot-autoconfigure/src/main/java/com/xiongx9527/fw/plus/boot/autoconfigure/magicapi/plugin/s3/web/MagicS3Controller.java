@@ -6,6 +6,9 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.file.MyFileS
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.MagicDynamicS3DataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.S3DataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.module.S3Module;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.options.MagicS3PlatformOption;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.options.MagicS3PlatformOptionProperties;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.options.MagicS3PlatformOptionProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.service.S3DataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -14,8 +17,13 @@ import org.apache.commons.lang.StringUtils;
 import org.dromara.x.file.storage.core.FileInfo;
 import org.dromara.x.file.storage.core.get.ListFilesResult;
 import org.springframework.web.bind.annotation.*;
+import org.ssssssss.magicapi.core.annotation.Valid;
+import org.ssssssss.magicapi.core.config.Constants;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
+import org.ssssssss.magicapi.core.context.MagicUser;
+import org.ssssssss.magicapi.core.interceptor.Authorization;
 import org.ssssssss.magicapi.core.model.JsonBean;
+import org.ssssssss.magicapi.core.servlet.MagicHttpServletRequest;
 import org.ssssssss.magicapi.core.web.MagicController;
 import org.ssssssss.magicapi.core.web.MagicExceptionHandler;
 
@@ -28,13 +36,41 @@ import java.util.stream.Collectors;
 @Slf4j
 public class MagicS3Controller extends MagicController implements MagicExceptionHandler , BaseService {
 
+    private final MagicConfiguration configuration;
+
+    private final MagicS3PlatformOptionProvider magicS3PlatformOptionProvider;
+
     /**
      * 构造函数，用于创建MagicS3Controller实例
      *
      * @param configuration 魔法配置对象，包含S3相关的配置信息
      */
     public MagicS3Controller(MagicConfiguration configuration) {
+        this(configuration, null);
+    }
+
+    public MagicS3Controller(MagicConfiguration configuration, MagicS3PlatformOptionProvider magicS3PlatformOptionProvider) {
         super(configuration);
+        this.configuration = configuration;
+        this.magicS3PlatformOptionProvider = magicS3PlatformOptionProvider == null
+                ? new MagicS3PlatformOptionProvider(new MagicS3PlatformOptionProperties(), MagicS3Controller.class.getClassLoader())
+                : magicS3PlatformOptionProvider;
+    }
+
+    @GetMapping("/s3/datasource/platform/options")
+    @ResponseBody
+    @Valid(requireLogin = true)
+    public JsonBean<List<MagicS3PlatformOption>> platformOptions(MagicHttpServletRequest request) {
+        isTrue(allowVisit(request, Authorization.VIEW), PERMISSION_INVALID);
+        return new JsonBean<>(magicS3PlatformOptionProvider.getOptions());
+    }
+
+    private boolean allowVisit(MagicHttpServletRequest request, Authorization authorization) {
+        if (authorization == null) {
+            return true;
+        }
+        MagicUser magicUser = (MagicUser) request.getAttribute(Constants.ATTRIBUTE_MAGIC_USER);
+        return this.configuration.getAuthorizationInterceptor().allowVisit(magicUser, request, authorization);
     }
 
     /**
