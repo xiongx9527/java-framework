@@ -17,6 +17,18 @@ export default (request, $i, modal, JavaClass) => {
     return {
         injectResources: (fn) => findResources = fn,
         dialogWidth: '1100px',
+        loadConnectorOptions: (success, failure) => {
+            request.sendJson('/debezium/datasource/connector-options', {})
+                .success((res) => {
+                    success && success(res)
+                })
+                .exception((code, message) => {
+                    failure && failure({ code, message })
+                })
+                .error((err) => {
+                    failure && failure(err)
+                })
+        },
         doTest: (info) => {
             request.sendJson('/debezium/datasource/test', info)
                 .success((res) => {
