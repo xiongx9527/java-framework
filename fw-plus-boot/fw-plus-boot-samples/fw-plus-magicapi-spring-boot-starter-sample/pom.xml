@@ -200,6 +200,16 @@
         </dependency>
 
 
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-nebula-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-neo4j-jdbc</artifactId>
+        </dependency>
+
+
     </dependencies>
 
 </project>
