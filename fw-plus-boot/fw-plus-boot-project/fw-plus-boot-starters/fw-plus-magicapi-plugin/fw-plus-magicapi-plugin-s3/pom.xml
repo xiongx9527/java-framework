@@ -144,13 +144,10 @@
         </dependency>
         -->
 
-        <!-- MINIO，按需启用 -->
-        <!--
         <dependency>
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
         </dependency>
-        -->
 
         <!-- OSS，按需启用 -->
         <!--

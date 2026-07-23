@@ -29,7 +29,7 @@ GET /s3/datasource/platform/options
 
 ## 兼容行为
 
-如果动态接口不可用、未登录、旧后端不存在该接口或接口返回空列表，前端会保留原有默认候选：
+如果动态接口不可用、未登录或旧后端不存在该接口，前端会保留原有默认候选：
 
 - `minio`
 - `aliyun-oss`
@@ -37,6 +37,8 @@ GET /s3/datasource/platform/options
 - `aws-s3`
 
 如果编辑已有 datasource 时当前 `platform` 不在动态候选中，前端会临时追加当前值，保证表单显示和保存不会丢失历史配置。
+
+如果动态接口请求成功但返回空列表，前端会按后端结果显示为空，不再回退到默认候选。这通常表示当前 classpath 没有可用的平台 SDK 类。
 
 `amazon-s3` 是当前后端真实支持的平台值；历史 `aws-s3` 仅作为旧前端兜底或旧 datasource 当前值保留，本插件不会自动迁移或改写已有 JSON。
 

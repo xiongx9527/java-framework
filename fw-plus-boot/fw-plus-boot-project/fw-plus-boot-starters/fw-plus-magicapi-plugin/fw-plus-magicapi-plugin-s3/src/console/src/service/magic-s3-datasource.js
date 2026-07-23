@@ -3,18 +3,22 @@ let s3Request = null
 export const loadS3PlatformOptions = () => {
     return new Promise((resolve) => {
         if (!s3Request) {
-            resolve([])
+            resolve(null)
             return
         }
         s3Request.sendGet('/s3/datasource/platform/options')
             .success((res) => {
-                resolve(Array.isArray(res) ? res : [])
+                if (Array.isArray(res)) {
+                    resolve(res)
+                    return
+                }
+                resolve(res && Array.isArray(res.data) ? res.data : null)
             })
             .exception(() => {
-                resolve([])
+                resolve(null)
             })
             .error(() => {
-                resolve([])
+                resolve(null)
             })
     })
 }

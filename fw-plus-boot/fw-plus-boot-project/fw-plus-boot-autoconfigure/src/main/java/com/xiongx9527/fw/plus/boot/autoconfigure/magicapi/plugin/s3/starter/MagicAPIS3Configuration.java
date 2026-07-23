@@ -19,6 +19,7 @@ import org.dromara.x.file.storage.core.tika.DefaultTikaFactory;
 import org.dromara.x.file.storage.core.tika.TikaContentTypeDetect;
 import org.dromara.x.file.storage.core.tika.TikaFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -36,8 +37,15 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 @Configuration
 public class MagicAPIS3Configuration implements MagicPluginConfiguration {
 
-    @Autowired(required = false)
-    private MagicS3PlatformOptionProvider magicS3PlatformOptionProvider;
+    private final ObjectProvider<MagicS3PlatformOptionProvider> magicS3PlatformOptionProvider;
+
+    private final MagicS3PlatformOptionProperties magicS3PlatformOptionProperties;
+
+    public MagicAPIS3Configuration(ObjectProvider<MagicS3PlatformOptionProvider> magicS3PlatformOptionProvider,
+                                   MagicS3PlatformOptionProperties magicS3PlatformOptionProperties) {
+        this.magicS3PlatformOptionProvider = magicS3PlatformOptionProvider;
+        this.magicS3PlatformOptionProperties = magicS3PlatformOptionProperties;
+    }
 
     /**
      * 创建FileRecorder bean实例
@@ -153,7 +161,14 @@ public class MagicAPIS3Configuration implements MagicPluginConfiguration {
      */
     @Override
     public MagicControllerRegister controllerRegister() {
-        return (mapping, configuration) -> mapping.registerController(new MagicS3Controller(configuration, magicS3PlatformOptionProvider));
+        return (mapping, configuration) -> mapping.registerController(new MagicS3Controller(configuration, getMagicS3PlatformOptionProvider()));
+    }
+
+    private MagicS3PlatformOptionProvider getMagicS3PlatformOptionProvider() {
+        MagicS3PlatformOptionProvider provider = magicS3PlatformOptionProvider == null ? null : magicS3PlatformOptionProvider.getIfAvailable();
+        return provider == null
+                ? new MagicS3PlatformOptionProvider(magicS3PlatformOptionProperties, MagicAPIS3Configuration.class.getClassLoader())
+                : provider;
     }
 
 }
