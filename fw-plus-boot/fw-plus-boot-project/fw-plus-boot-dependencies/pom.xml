@@ -37,6 +37,8 @@
         <resilience4j.version>2.3.0</resilience4j.version>
         <!--  akali版本号 -->
         <akali.version>1.1.5</akali.version>
+        <!--  sentinel版本号 -->
+        <sentinel.version>1.8.6</sentinel.version>
         <!--  elasticsearch版本号 -->
         <elasticsearch-sdk-java.version>8.19.8</elasticsearch-sdk-java.version>
         <!--  langchain4j版本号 -->
@@ -158,6 +160,18 @@
                 <groupId>org.dromara</groupId>
                 <artifactId>akali</artifactId>
                 <version>${akali.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.csp</groupId>
+                <artifactId>sentinel-core</artifactId>
+                <version>${sentinel.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.csp</groupId>
+                <artifactId>sentinel-parameter-flow-control</artifactId>
+                <version>${sentinel.version}</version>
             </dependency>
 
             <dependency>

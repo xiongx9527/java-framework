@@ -18,10 +18,14 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.sse.SseModuleC
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.MagicApiPluginAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ParamProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ResultProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.key.MagicApiRequestKeyResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.repeat.DefaultRepeatSubmitKeySuffixProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.repeat.RepeatSubmitKeyResolver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.repeat.RepeatSubmitKeySuffixProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.repeat.RepeatSubmitRequestInterceptor;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.sentinel.MagicApiSentinelGuardRequestInterceptor;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.sentinel.MagicApiSentinelResourceResolver;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.sentinel.MagicApiSentinelRuleManager;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.resource.MyDefaultMagicResourceService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
@@ -149,6 +153,34 @@ public class MagicAPIBaseAutoConfiguration implements ApplicationRunner {
 																		 org.ssssssss.magicapi.core.interceptor.ResultProvider resultProvider,
 																		 RepeatSubmitKeyResolver keyResolver) {
 		return new RepeatSubmitRequestInterceptor(lock, resultProvider, keyResolver);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public MagicApiRequestKeyResolver magicApiRequestKeyResolver() {
+		return new MagicApiRequestKeyResolver();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public MagicApiSentinelResourceResolver magicApiSentinelResourceResolver() {
+		return new MagicApiSentinelResourceResolver();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public MagicApiSentinelRuleManager magicApiSentinelRuleManager() {
+		return new MagicApiSentinelRuleManager();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public MagicApiSentinelGuardRequestInterceptor magicApiSentinelGuardRequestInterceptor(
+			org.ssssssss.magicapi.core.interceptor.ResultProvider resultProvider,
+			MagicApiRequestKeyResolver keyResolver,
+			MagicApiSentinelResourceResolver resourceResolver,
+			MagicApiSentinelRuleManager ruleManager) {
+		return new MagicApiSentinelGuardRequestInterceptor(resultProvider, keyResolver, resourceResolver, ruleManager);
 	}
 
 
