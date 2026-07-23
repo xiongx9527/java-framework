@@ -1,8 +1,12 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProperties;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptions;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.enums.Options;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.resource.MyDefaultMagicResourceService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.ssssssss.magicapi.core.annotation.Valid;
 import org.ssssssss.magicapi.core.config.Constants;
@@ -32,14 +36,24 @@ public class MagicAPIController extends MagicController implements MagicExceptio
      */
     private final MagicConfiguration configuration ;
 
+    private final MagicJdbcClassOptionProvider magicJdbcClassOptionProvider;
+
 
     /**
      * 构造函数，初始化MagicAPIController
      * @param configuration 魔法配置对象
      */
     public MagicAPIController(MagicConfiguration configuration) {
+        this(configuration, null);
+    }
+
+    @Autowired
+    public MagicAPIController(MagicConfiguration configuration, MagicJdbcClassOptionProvider magicJdbcClassOptionProvider) {
         super(configuration);
         this.configuration = configuration;
+        this.magicJdbcClassOptionProvider = magicJdbcClassOptionProvider == null
+                ? new MagicJdbcClassOptionProvider(new MagicJdbcClassOptionProperties(), Collections.emptyMap(), MagicAPIController.class.getClassLoader())
+                : magicJdbcClassOptionProvider;
     }
 
     /**
@@ -99,6 +113,14 @@ public class MagicAPIController extends MagicController implements MagicExceptio
     public JsonBean<List<List<String>>> options() {
         // 将Options枚举转换为包含value、name、defaultValue的列表集合
         return new JsonBean<>(Stream.of(Options.values()).map(item -> Arrays.asList(item.getValue(), item.getName(), item.getDefaultValue())).collect(Collectors.toList()));
+    }
+
+    @GetMapping("${magic-api.web:/magic-api/web}/datasource/options")
+    @ResponseBody
+    @Valid(requireLogin = true)
+    public JsonBean<MagicJdbcClassOptions> datasourceOptions(MagicHttpServletRequest request) {
+        isTrue(allowVisit(request, Authorization.VIEW), PERMISSION_INVALID);
+        return new JsonBean<>(magicJdbcClassOptionProvider.getOptions());
     }
 
     /**

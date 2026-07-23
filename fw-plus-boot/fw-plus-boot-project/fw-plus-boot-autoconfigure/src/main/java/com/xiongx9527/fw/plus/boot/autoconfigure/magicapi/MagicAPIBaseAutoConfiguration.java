@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller.MagicAPIController;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProperties;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.DataSourceBuilder;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.DruidDataSourceBuilder;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.MyDataSourceMagicDynamicRegistry;
@@ -41,7 +43,7 @@ import java.util.*;
 
 @Slf4j
 @ConditionalOnProperty(prefix = "fw.plus.magicapi", name = "enabled", havingValue = "true", matchIfMissing = true)
-@EnableConfigurationProperties(DataSourceProperties.class)
+@EnableConfigurationProperties({DataSourceProperties.class, MagicJdbcClassOptionProperties.class})
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass(name={"org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration"})
 @Configuration
@@ -147,6 +149,13 @@ public class MagicAPIBaseAutoConfiguration implements ApplicationRunner {
 	@ConditionalOnClass(name={"com.alibaba.druid.pool.DruidDataSource"})
 	public DruidDataSourceBuilder magicDynamicDataSourceBuilder() {
 		return new DruidDataSourceBuilder();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean(MagicJdbcClassOptionProvider.class)
+	public MagicJdbcClassOptionProvider magicJdbcClassOptionProvider(MagicJdbcClassOptionProperties properties,
+																	 Map<String, DataSourceBuilder> dataSourceBuilderMap) {
+		return new MagicJdbcClassOptionProvider(properties, dataSourceBuilderMap, MagicAPIBaseAutoConfiguration.class.getClassLoader());
 	}
 
 	/**

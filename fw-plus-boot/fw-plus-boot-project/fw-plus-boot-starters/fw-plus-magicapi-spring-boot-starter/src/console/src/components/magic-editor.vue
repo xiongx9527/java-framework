@@ -21,7 +21,7 @@
     </div>
 </template>
 <script setup>
-import request, { addLoadingListener } from '../scripts/request.js'
+import request, { addLoadingListener, removeLoadingListener } from '../scripts/request.js'
 import constants from '../scripts/constants.js'
 import HotKey from '../scripts/hotkey.js'
 import defaultTheme from '../scripts/editor/default-theme.js'
@@ -196,8 +196,23 @@ provide('options', options)
 request.sendGet('/optionList').success(res => {
 	res.forEach(it => options.push(it))
 })
+const loadJdbcClassOptions = () => {
+	request.sendGet('/datasource/options').success(res => {
+		if(res && Array.isArray(res.jdbcDrivers)){
+			constants.JDBC_DRIVERS = res.jdbcDrivers
+		}
+		if(res && Array.isArray(res.datasourceTypes)){
+			constants.DATASOURCE_TYPES = res.datasourceTypes
+		}
+	}).exception((code, message) => {
+		console.warn('load jdbc class options failed', code, message)
+	}).error(e => {
+		console.warn('load jdbc class options failed', e)
+	})
+}
 const onLogin = () => {
 	constants.LOGINED = true
+	loadJdbcClassOptions()
 	websocket = new MagicWebSocket(replaceURL(link.replace(/^http/, 'ws') + '/console'))
 	nextTick(() => componentMain.value.loadResources())
 }
