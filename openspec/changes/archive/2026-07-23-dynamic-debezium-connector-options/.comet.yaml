@@ -16,14 +16,14 @@ plan: docs/superpowers/plans/2026-07-23-dynamic-debezium-connector-options.md
 verify_result: pass
 verify_failures: 0
 verification_report: docs/superpowers/reports/2026-07-23-dynamic-debezium-connector-options-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-07-23
 verified_at: 2026-07-23
 archive_confirmation: confirmed
 archived: true
 bound_branch: dev
 direct_override: null
-handoff_context: openspec/changes/dynamic-debezium-connector-options/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-23-dynamic-debezium-connector-options/.comet/handoff/design-context.json
 handoff_hash: 1290896d15366a1801040671d139a47ec6bd61f6389d0944559f1556db368bfa
 classic_profile: full
 classic_migration: 1
