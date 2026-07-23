@@ -19,8 +19,8 @@ verification_report: docs/superpowers/reports/2026-07-23-dynamic-debezium-connec
 branch_status: pending
 created_at: 2026-07-23
 verified_at: 2026-07-23
-archive_confirmation: pending
-archived: false
+archive_confirmation: confirmed
+archived: true
 bound_branch: dev
 direct_override: null
 handoff_context: openspec/changes/dynamic-debezium-connector-options/.comet/handoff/design-context.json
