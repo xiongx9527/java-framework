@@ -1,7 +1,12 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.sentinel;
 
+import com.alibaba.csp.sentinel.Entry;
+import com.alibaba.csp.sentinel.EntryType;
 import com.alibaba.csp.sentinel.slots.block.flow.FlowRuleManager;
 import com.alibaba.csp.sentinel.slots.block.flow.param.ParamFlowRuleManager;
+import com.alibaba.csp.sentinel.node.Node;
+import com.alibaba.csp.sentinel.slotchain.StringResourceWrapper;
+import com.alibaba.csp.sentinel.context.Context;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.enums.Options;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.key.MagicApiRequestKeyResolver;
 import org.junit.jupiter.api.AfterEach;
@@ -20,8 +25,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MagicApiSentinelGuardRequestInterceptorTest {
 
@@ -67,6 +74,31 @@ class MagicApiSentinelGuardRequestInterceptorTest {
 		Object result = interceptor.preHandle(entity);
 
 		assertThat(result).isNull();
+		assertThat(FlowRuleManager.getRules()).isEmpty();
+		assertThat(ParamFlowRuleManager.getRules()).isEmpty();
+	}
+
+	@Test
+	void nonPositiveCountsRemovePreviouslyLoadedRules() throws Exception {
+		RequestEntity enabled = entity("disable-previous",
+				option(Options.HOT_DATA_ENABLE, "true"),
+				option(Options.HOT_DATA_KEY, "hot-key"),
+				option(Options.HOT_DATA_COUNT, "1"),
+				option(Options.FALLBACK_ENABLE, "true"),
+				option(Options.FALLBACK_COUNT, "1"));
+		RequestEntity disabled = entity("disable-previous",
+				option(Options.HOT_DATA_ENABLE, "true"),
+				option(Options.HOT_DATA_COUNT, "0"),
+				option(Options.FALLBACK_ENABLE, "true"),
+				option(Options.FALLBACK_COUNT, "0"));
+
+		assertThat(interceptor.preHandle(enabled)).isNull();
+		interceptor.afterCompletion(enabled, "ok", null);
+		assertThat(FlowRuleManager.getRules()).isNotEmpty();
+		assertThat(ParamFlowRuleManager.getRules()).isNotEmpty();
+
+		assertThat(interceptor.preHandle(disabled)).isNull();
+
 		assertThat(FlowRuleManager.getRules()).isEmpty();
 		assertThat(ParamFlowRuleManager.getRules()).isEmpty();
 	}
@@ -137,6 +169,43 @@ class MagicApiSentinelGuardRequestInterceptorTest {
 		assertFailure(result, "接口触发熔断降级，请稍后再试。");
 	}
 
+	@Test
+	void hotDataKeyParsingFailsBeforeEnteringSentinel() throws Exception {
+		TrackingEntry fallbackEntry = new TrackingEntry();
+		AtomicInteger fallbackEnterCount = new AtomicInteger();
+		AtomicInteger hotDataEnterCount = new AtomicInteger();
+		MagicApiSentinelGuardRequestInterceptor trackingInterceptor = new MagicApiSentinelGuardRequestInterceptor(
+				new StubResultProvider(),
+				new MagicApiRequestKeyResolver(),
+				new MagicApiSentinelResourceResolver(),
+				new MagicApiSentinelRuleManager()) {
+			@Override
+			protected Entry enterFallback(String resource) {
+				fallbackEnterCount.incrementAndGet();
+				return fallbackEntry;
+			}
+
+			@Override
+			protected Entry enterHotData(String resource, String hotKey) {
+				hotDataEnterCount.incrementAndGet();
+				return new TrackingEntry();
+			}
+		};
+		RequestEntity broken = entity("fallback-release-on-key-error",
+				option(Options.HOT_DATA_ENABLE, "true"),
+				option(Options.HOT_DATA_KEY, "#{#params['missing'].toString()}"),
+				option(Options.HOT_DATA_GRADE, "QPS"),
+				option(Options.HOT_DATA_COUNT, "1"),
+				option(Options.FALLBACK_ENABLE, "true"),
+				option(Options.FALLBACK_COUNT, "1"));
+
+		assertThatThrownBy(() -> trackingInterceptor.preHandle(broken)).isInstanceOf(IllegalArgumentException.class);
+
+		assertThat(fallbackEnterCount.get()).isEqualTo(0);
+		assertThat(hotDataEnterCount.get()).isEqualTo(0);
+		assertThat(fallbackEntry.exitCount()).isEqualTo(0);
+	}
+
 	private RequestEntity hotThreadEntity(String id, String key) {
 		return entity(id,
 				option(Options.HOT_DATA_ENABLE, "true"),
@@ -192,6 +261,38 @@ class MagicApiSentinelGuardRequestInterceptorTest {
 		@Override
 		public Object buildPageResult(RequestEntity requestEntity, Page page, long total, List<Map<String, Object>> data) {
 			return null;
+		}
+	}
+
+	static class TrackingEntry extends Entry {
+
+		private final AtomicInteger exitCount = new AtomicInteger();
+
+		TrackingEntry() {
+			super(new StringResourceWrapper("tracking", EntryType.IN));
+		}
+
+		@Override
+		public void exit(int count, Object... args) {
+			exitCount.incrementAndGet();
+		}
+
+		@Override
+		protected Entry trueExit(int count, Object... args) {
+			return this;
+		}
+
+		@Override
+		public Node getLastNode() {
+			return null;
+		}
+
+		@Override
+		public void whenTerminate(com.alibaba.csp.sentinel.util.function.BiConsumer<Context, Entry> handler) {
+		}
+
+		int exitCount() {
+			return exitCount.get();
 		}
 	}
 }

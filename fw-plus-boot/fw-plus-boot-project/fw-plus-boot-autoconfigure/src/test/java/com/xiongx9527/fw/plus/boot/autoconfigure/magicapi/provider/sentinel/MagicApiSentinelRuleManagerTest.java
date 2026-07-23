@@ -167,6 +167,41 @@ class MagicApiSentinelRuleManagerTest {
 				.isEqualTo(10D);
 	}
 
+	@Test
+	void disablingEffectiveRulesRemovesPreviouslyOwnedRules() {
+		MagicApiSentinelOptions enabled = new MagicApiSentinelOptions(true, RuleConstant.FLOW_GRADE_QPS, 5D, 60L,
+				true, 3D);
+		MagicApiSentinelOptions disabled = new MagicApiSentinelOptions(true, RuleConstant.FLOW_GRADE_QPS, 0D, 60L,
+				true, 0D);
+
+		ruleManager.ensureRules("magicapi:disable", enabled);
+		ruleManager.ensureRules("magicapi:disable", disabled);
+
+		assertThat(FlowRuleManager.getRules()).isEmpty();
+		assertThat(ParamFlowRuleManager.getRules()).isEmpty();
+	}
+
+	@Test
+	void updatingMagicApiRuleKeepsExternalRuleWithSameResource() {
+		FlowRule externalFlow = new FlowRule("magicapi:same").setCount(99D);
+		FlowRuleManager.loadRules(Collections.singletonList(externalFlow));
+		ParamFlowRule externalParam = new ParamFlowRule("magicapi:same").setCount(88D).setParamIdx(0);
+		ParamFlowRuleManager.loadRules(Collections.singletonList(externalParam));
+		MagicApiSentinelOptions options = new MagicApiSentinelOptions(true, RuleConstant.FLOW_GRADE_QPS, 5D, 60L,
+				true, 3D);
+
+		ruleManager.ensureRules("magicapi:same", options);
+
+		assertThat(FlowRuleManager.getRules())
+				.filteredOn(rule -> "magicapi:same".equals(rule.getResource()))
+				.extracting(FlowRule::getCount)
+				.containsExactlyInAnyOrder(99D, 3D);
+		assertThat(ParamFlowRuleManager.getRules())
+				.filteredOn(rule -> "magicapi:same".equals(rule.getResource()))
+				.extracting(ParamFlowRule::getCount)
+				.containsExactlyInAnyOrder(88D, 5D);
+	}
+
 	private ApiInfo api(String id, String path, String method, Option... options) {
 		ApiInfo info = new ApiInfo();
 		info.setId(id);

@@ -7,14 +7,19 @@ import com.alibaba.csp.sentinel.slots.block.flow.param.ParamFlowRule;
 import com.alibaba.csp.sentinel.slots.block.flow.param.ParamFlowRuleManager;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class MagicApiSentinelRuleManager {
 
 	private final Map<String, FlowRule> flowRules = new LinkedHashMap<>();
 	private final Map<String, ParamFlowRule> paramFlowRules = new LinkedHashMap<>();
+	private final Set<FlowRule> ownedFlowRules = Collections.newSetFromMap(new IdentityHashMap<FlowRule, Boolean>());
+	private final Set<ParamFlowRule> ownedParamFlowRules = Collections.newSetFromMap(new IdentityHashMap<ParamFlowRule, Boolean>());
 
 	public synchronized void ensureRules(String resource, MagicApiSentinelOptions options) {
 		if (options == null) {
@@ -55,10 +60,12 @@ public class MagicApiSentinelRuleManager {
 	private void loadFlowRules() {
 		List<FlowRule> merged = new ArrayList<>();
 		for (FlowRule rule : FlowRuleManager.getRules()) {
-			if (!flowRules.containsKey(rule.getResource())) {
+			if (!ownedFlowRules.contains(rule)) {
 				merged.add(rule);
 			}
 		}
+		ownedFlowRules.clear();
+		ownedFlowRules.addAll(flowRules.values());
 		merged.addAll(flowRules.values());
 		FlowRuleManager.loadRules(merged);
 	}
@@ -66,10 +73,12 @@ public class MagicApiSentinelRuleManager {
 	private void loadParamFlowRules() {
 		List<ParamFlowRule> merged = new ArrayList<>();
 		for (ParamFlowRule rule : ParamFlowRuleManager.getRules()) {
-			if (!paramFlowRules.containsKey(rule.getResource())) {
+			if (!ownedParamFlowRules.contains(rule)) {
 				merged.add(rule);
 			}
 		}
+		ownedParamFlowRules.clear();
+		ownedParamFlowRules.addAll(paramFlowRules.values());
 		merged.addAll(paramFlowRules.values());
 		ParamFlowRuleManager.loadRules(merged);
 	}

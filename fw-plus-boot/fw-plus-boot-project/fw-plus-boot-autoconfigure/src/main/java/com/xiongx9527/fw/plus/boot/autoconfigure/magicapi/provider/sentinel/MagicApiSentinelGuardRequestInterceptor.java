@@ -4,6 +4,8 @@ import com.alibaba.csp.sentinel.Entry;
 import com.alibaba.csp.sentinel.EntryType;
 import com.alibaba.csp.sentinel.SphU;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
+import com.alibaba.csp.sentinel.slots.block.flow.FlowException;
+import com.alibaba.csp.sentinel.slots.block.flow.param.ParamFlowException;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.enums.Options;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ParamConfig;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.key.MagicApiRequestKeyResolver;
@@ -49,32 +51,53 @@ public class MagicApiSentinelGuardRequestInterceptor implements RequestIntercept
 	public Object preHandle(RequestEntity requestEntity) {
 		ApiInfo info = requestEntity.getApiInfo();
 		MagicApiSentinelOptions options = MagicApiSentinelOptions.from(info);
+		String resource = resourceResolver.resolve(info);
+		ruleManager.ensureRules(resource, options);
 		if (!options.isFallbackEffective() && !options.isHotDataEffective()) {
 			return null;
 		}
-		String resource = resourceResolver.resolve(info);
-		ruleManager.ensureRules(resource, options);
 		MagicScriptContext context = ensureMagicScriptContext(requestEntity);
 		List<EntryHolder> entries = new ArrayList<>();
 		String blockMessage = FALLBACK_BLOCK_MESSAGE;
 		try {
-			if (options.isFallbackEffective()) {
-				blockMessage = FALLBACK_BLOCK_MESSAGE;
-				entries.add(EntryHolder.fallback(SphU.entry(resource, EntryType.IN)));
-			}
 			if (options.isHotDataEffective()) {
 				String hotKey = keyResolver.resolve(info, requestEntity,
 						ParamConfig.get(info, Options.HOT_DATA_KEY.getValue()));
 				blockMessage = HOT_DATA_BLOCK_MESSAGE;
-				entries.add(EntryHolder.hotData(SphU.entry(resource, EntryType.IN, 1, hotKey), hotKey));
+				entries.add(EntryHolder.hotData(enterHotData(resource, hotKey), hotKey));
+			} else if (options.isFallbackEffective()) {
+				blockMessage = FALLBACK_BLOCK_MESSAGE;
+				entries.add(EntryHolder.fallback(enterFallback(resource)));
 			}
 			context.set(ENTRY_CONTEXT_KEY, entries);
 			return null;
 		} catch (BlockException e) {
 			release(entries);
 			context.set(ENTRY_CONTEXT_KEY, null);
-			return failure(requestEntity, blockMessage);
+			return failure(requestEntity, blockMessage(e, blockMessage));
+		} catch (RuntimeException e) {
+			release(entries);
+			context.set(ENTRY_CONTEXT_KEY, null);
+			throw e;
 		}
+	}
+
+	protected Entry enterFallback(String resource) throws BlockException {
+		return SphU.entry(resource, EntryType.IN);
+	}
+
+	protected Entry enterHotData(String resource, String hotKey) throws BlockException {
+		return SphU.entry(resource, EntryType.IN, 1, hotKey);
+	}
+
+	private String blockMessage(BlockException exception, String fallback) {
+		if (exception instanceof ParamFlowException) {
+			return HOT_DATA_BLOCK_MESSAGE;
+		}
+		if (exception instanceof FlowException) {
+			return FALLBACK_BLOCK_MESSAGE;
+		}
+		return fallback;
 	}
 
 	@Override
