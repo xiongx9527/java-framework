@@ -105,9 +105,8 @@ const ensureCurrentPlatformOption = () => {
 
 const loadPlatformOptions = () => {
   loadS3PlatformOptions().then(options => {
-    const normalizedOptions = normalizeOptions(options)
-    if (normalizedOptions.length > 0) {
-      platformOptions.value = normalizedOptions
+    if (options !== null) {
+      platformOptions.value = normalizeOptions(options)
     }
     ensureCurrentPlatformOption()
   })
