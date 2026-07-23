@@ -1,0 +1,58 @@
+package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller;
+
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptions;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.ssssssss.magicapi.core.annotation.Valid;
+import org.ssssssss.magicapi.core.config.MagicConfiguration;
+import org.ssssssss.magicapi.core.context.MagicUser;
+import org.ssssssss.magicapi.core.interceptor.Authorization;
+import org.ssssssss.magicapi.core.interceptor.AuthorizationInterceptor;
+import org.ssssssss.magicapi.core.model.JsonBean;
+import org.ssssssss.magicapi.core.servlet.MagicHttpServletRequest;
+
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+
+class MagicAPIControllerJdbcOptionsTest {
+
+    @Test
+    void datasourceOptionsEndpointRequiresAuthenticatedConsoleAccess() throws Exception {
+        Method method = MagicAPIController.class.getMethod("datasourceOptions", MagicHttpServletRequest.class);
+
+        GetMapping getMapping = method.getAnnotation(GetMapping.class);
+        assertEquals("${magic-api.web:/magic-api/web}/datasource/options", getMapping.value()[0]);
+
+        Valid valid = method.getAnnotation(Valid.class);
+        assertNotNull(valid);
+        assertTrue(valid.requireLogin());
+
+        assertEquals(JsonBean.class, method.getReturnType());
+        ParameterizedType returnType = (ParameterizedType) method.getGenericReturnType();
+        assertEquals(MagicJdbcClassOptions.class, returnType.getActualTypeArguments()[0]);
+        assertFalse(method.isAnnotationPresent(Deprecated.class));
+    }
+
+    @Test
+    void datasourceOptionsRejectsRequestsWithoutViewPermission() {
+        MagicConfiguration configuration = new MagicConfiguration();
+        configuration.setAuthorizationInterceptor(new AuthorizationInterceptor() {
+            @Override
+            public boolean allowVisit(MagicUser magicUser, MagicHttpServletRequest request, Authorization authorization) {
+                return false;
+            }
+        });
+
+        MagicAPIController controller = new MagicAPIController(configuration, mock(MagicJdbcClassOptionProvider.class));
+
+        Assertions.assertThrows(RuntimeException.class, () -> controller.datasourceOptions(mock(MagicHttpServletRequest.class)));
+    }
+}
