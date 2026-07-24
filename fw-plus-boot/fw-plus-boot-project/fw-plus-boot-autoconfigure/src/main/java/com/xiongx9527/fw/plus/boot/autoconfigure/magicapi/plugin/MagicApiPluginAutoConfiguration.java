@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.admin.server.Ma
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.cluster.starter.MagicAPIClusterConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.starter.MagicAPIConfAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.starter.MagicAPIDebeziumConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.dbbrowser.starter.MagicAPIDbBrowserConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.druid.starter.MagicAPIDruidConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.starter.MagicAPIDtpConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.starter.MagicAPIElasticSearchConfiguration;
@@ -41,6 +42,7 @@ import org.springframework.context.annotation.Import;
          MagicAPIKafkaConfiguration.class,
          MagicAPIPulsarConfiguration.class,
          MagicAPIDebeziumConfiguration.class,
+         MagicAPIDbBrowserConfiguration.class,
          MagicAPIS3Configuration.class,
          MagicAPITaskConfiguration.class,
          MagicAPIDtpConfiguration.class,
