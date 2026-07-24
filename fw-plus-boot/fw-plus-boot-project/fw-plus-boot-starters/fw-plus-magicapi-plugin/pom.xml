@@ -19,6 +19,7 @@
         <module>fw-plus-magicapi-plugin-vue3</module>
         <module>fw-plus-magicapi-plugin-swagger</module>
         <module>fw-plus-magicapi-plugin-debezium</module>
+        <module>fw-plus-magicapi-plugin-db</module>
         <module>fw-plus-magicapi-plugin-redis</module>
         <module>fw-plus-magicapi-plugin-mongo</module>
         <module>fw-plus-magicapi-plugin-s3</module>
