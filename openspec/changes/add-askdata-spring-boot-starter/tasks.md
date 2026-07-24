@@ -28,10 +28,10 @@
 
 ## 5. 多 Agent 与子 Agent 流程
 
-- [ ] 5.1 定义 `AskDataAgent`、`AskDataSubAgent`、`AskDataAgentDispatcher`、步骤上下文/结果和流程执行器接口。
-- [ ] 5.2 实现默认串行流程，并拆分元数据、SQL 生成、校验和执行步骤。
-- [ ] 5.3 实现默认子 Agent 派发器，支持同步执行、结果归并、超时记录和失败策略。
-- [ ] 5.4 允许应用通过 Spring Bean 替换单个 Agent 或子 Agent，默认运行时不强制依赖 Agents-Flex 或 Tinyflow。
+- [x] 5.1 定义 `AskDataAgent`、`AskDataSubAgent`、`AskDataAgentDispatcher`、步骤上下文/结果和流程执行器接口。
+- [x] 5.2 实现默认串行流程，并拆分元数据、SQL 生成、校验和执行步骤。
+- [x] 5.3 实现默认子 Agent 派发器，支持同步执行、结果归并、超时记录和失败策略。
+- [x] 5.4 允许应用通过 Spring Bean 替换单个 Agent 或子 Agent，默认运行时不强制依赖 Agents-Flex 或 Tinyflow。
 
 ## 6. 上下文压缩与恢复
 
@@ -53,6 +53,6 @@
 - [x] 8.2 增加 Prompt 构造和方言规则选择单元测试。
 - [x] 8.3 增加默认模型选择、指定模型选择和模型缺失错误的单元测试。
 - [ ] 8.4 增加 Spring 上下文测试，覆盖自动配置默认 Bean 和 Bean 替换。
-- [ ] 8.5 增加子 Agent 结果归并、超时、失败策略测试。
+- [x] 8.5 增加子 Agent 结果归并、超时、失败策略测试。
 - [ ] 8.6 增加上下文压缩、检查点写入、恢复继续和恢复失败测试。
 - [ ] 8.7 使用相关 Maven Wrapper 构建新模块和聚合模块。
