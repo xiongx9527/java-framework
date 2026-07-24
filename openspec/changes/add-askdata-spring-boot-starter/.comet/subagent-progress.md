@@ -25,6 +25,10 @@
 - Review result: needs fixes, 2 Critical and 2 Important findings.
 - Review-fix round: 1 of 1
 - Fixer: Zeno (019f92b4-2788-7730-a319-8bef3db918cb)
+- Fix commit: 58481c8
+- Fix RED evidence: DefaultAskDataSqlValidatorTest failed because AskDataDialect.applyLimit contract was missing.
+- Fix GREEN evidence: DefaultAskDataSqlValidatorTest passed 13 tests; Task 5 focused tests passed 14 tests.
+- Re-review package: .superpowers/sdd/review-85d339d..58481c8.diff
 - Unresolved Critical findings:
   - DefaultAskDataSqlValidator must reject writable SELECT INTO.
   - DefaultAskDataSqlValidator must reject or scan MySQL executable comments such as /*!50000; delete ... */.
