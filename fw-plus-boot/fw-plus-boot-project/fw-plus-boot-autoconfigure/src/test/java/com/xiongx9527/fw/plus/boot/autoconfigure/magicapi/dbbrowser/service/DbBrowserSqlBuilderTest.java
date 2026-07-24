@@ -70,6 +70,33 @@ class DbBrowserSqlBuilderTest {
 	}
 
 	@Test
+	void shouldUseDefaultOrderForSqlServerPaginationWithoutSort() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setPage(2);
+		request.setPageSize(20);
+
+		DbBrowserSqlBuilder.BuildResult result = sqlBuilder.buildPreviewSql(
+				connectionWithQuoteAndProductName("\"", "SQL Server"), request, allowedColumns, allowedObjects);
+
+		assertEquals("SELECT * FROM \"users\" ORDER BY 1 OFFSET 20 ROWS FETCH NEXT 20 ROWS ONLY",
+				result.getSql());
+	}
+
+	@Test
+	void shouldNotAppendDefaultOrderWhenSqlServerSortIsAllowed() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setSortColumn("name");
+		request.setSortDirection("DESC");
+
+		DbBrowserSqlBuilder.BuildResult result = sqlBuilder.buildPreviewSql(
+				connectionWithQuoteAndProductName("\"", "SQL Server"), request, allowedColumns, allowedObjects);
+
+		assertEquals("SELECT * FROM \"users\" ORDER BY \"name\" DESC OFFSET 0 ROWS FETCH NEXT 50 ROWS ONLY",
+				result.getSql());
+		assertFalse(result.getSql().contains("ORDER BY 1"));
+	}
+
+	@Test
 	void shouldAcceptQualifiedObjectFromWhitelist() throws Exception {
 		DbBrowserPreviewRequest request = baseRequest();
 		request.setCatalog("main");
@@ -114,7 +141,7 @@ class DbBrowserSqlBuilderTest {
 		DbBrowserSqlBuilder.BuildResult result = sqlBuilder.buildPreviewSql(connectionWithQuote("\""), request,
 				allowedColumns, Collections.singleton(DbBrowserSqlBuilder.allowedObject("TABLE", "a", "b.c", "users")));
 
-		assertEquals("SELECT * FROM \"a\".\"b.c\".\"users\" OFFSET 0 ROWS FETCH NEXT 50 ROWS ONLY",
+		assertEquals("SELECT * FROM \"a\".\"b.c\".\"users\" ORDER BY 1 OFFSET 0 ROWS FETCH NEXT 50 ROWS ONLY",
 				result.getSql());
 	}
 
