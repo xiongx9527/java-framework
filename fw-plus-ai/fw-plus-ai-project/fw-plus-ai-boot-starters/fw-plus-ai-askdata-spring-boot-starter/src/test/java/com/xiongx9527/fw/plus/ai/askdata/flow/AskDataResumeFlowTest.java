@@ -118,6 +118,26 @@ public class AskDataResumeFlowTest {
     }
 
     @Test
+    public void shouldRejectUnexecutedCheckpointWithRowCountWithoutExecutingSql() {
+        Fixture fixture = new Fixture();
+        AskDataCheckpoint checkpoint = fixture.validatedCheckpoint("resume-unexecuted-row-count", "1");
+        checkpoint.setCompletedSteps(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql",
+                "execute-sql"));
+        checkpoint.setCurrentStep("execute-sql");
+        checkpoint.setSqlExecuted(Boolean.FALSE);
+        checkpoint.setRowCount(Integer.valueOf(3));
+        fixture.store.save(checkpoint);
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-unexecuted-row-count");
+
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, result.getErrorCode());
+        assertEquals(0, fixture.executorCalls);
+    }
+
+    @Test
     public void shouldRejectNonContinuousCompletedStepsWithoutExecutingSql() {
         Fixture fixture = new Fixture();
         AskDataCheckpoint checkpoint = fixture.validatedCheckpoint("resume-gap", "1");

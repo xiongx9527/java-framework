@@ -406,8 +406,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return Boolean.TRUE.equals(checkpoint.getSqlValidated()) && checkpoint.getSqlExecuted() == null
                     && checkpoint.getRowCount() == null;
         }
-        return Boolean.TRUE.equals(checkpoint.getSqlValidated()) && checkpoint.getSqlExecuted() != null
-                && (!Boolean.TRUE.equals(checkpoint.getSqlExecuted()) || checkpoint.getRowCount() != null);
+        if (!Boolean.TRUE.equals(checkpoint.getSqlValidated()) || checkpoint.getSqlExecuted() == null) {
+            return false;
+        }
+        return Boolean.TRUE.equals(checkpoint.getSqlExecuted()) ? checkpoint.getRowCount() != null
+                : checkpoint.getRowCount() == null;
     }
 
     private boolean hasSuccessfulStep(List<AskDataStepLog> steps, String stepKey) {

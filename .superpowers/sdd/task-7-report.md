@@ -136,3 +136,61 @@ export PATH="$JAVA_HOME/bin:$PATH"
 - 命中已有构建风险：`fw-plus-ai-boot-autoconfigure` 的 3 条重复 LangChain4j 依赖 Maven 警告，范围外未修改。
 - 命中已有测试环境风险：SLF4J 未加载 `StaticLoggerBinder`，回退到 NOP logger；测试通过。
 - 未命中产品约束风险：未引入 Spring AI、AgentScope、Java 17 LangGraph4j 主线依赖，验证命令使用 Java 8。
+
+## Extra Review Fix（2026-07-24）
+
+### 状态
+
+DONE_WITH_CONCERNS
+
+### 修复内容
+
+- `DefaultAskDataFlowExecutor.isSafeCheckpoint` 对 `execute-sql` 检查点同时校验 `sqlExecuted` 与 `rowCount`：`sqlExecuted=false` 时必须没有行数，`sqlExecuted=true` 时必须有行数；不满足任一组合的恢复请求在执行 SQL 前返回 `RESUME_FAILED`。
+
+### 新增测试
+
+- 合法完整的 `execute-sql` 前缀中，`sqlExecuted=false` 但 `rowCount=3` 返回 `RESUME_FAILED`，且 SQL 执行器调用次数为零。
+
+### TDD 证据
+
+RED：
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
+export PATH="$JAVA_HOME/bin:$PATH"
+./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataResumeFlowTest test
+```
+
+结果：10 项测试中 1 项按预期失败。新增的“不执行 SQL 却带行数”检查点被旧逻辑当作成功恢复，未返回 `RESUME_FAILED`。
+
+GREEN（聚焦）：
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
+export PATH="$JAVA_HOME/bin:$PATH"
+./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataResumeFlowTest test
+```
+
+结果：10 项测试通过，0 failures，0 errors。
+
+GREEN（模块完整）：
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
+export PATH="$JAVA_HOME/bin:$PATH"
+./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter test
+```
+
+结果：55 项测试通过，0 failures，0 errors。
+
+### 本次变更文件
+
+- `fw-plus-ai/.../askdata/flow/DefaultAskDataFlowExecutor.java`
+- `fw-plus-ai/.../askdata/flow/AskDataResumeFlowTest.java`
+- `.superpowers/sdd/task-7-report.md`
+
+### 风险信号
+
+- 命中已有构建风险：`fw-plus-ai-boot-autoconfigure` 的 3 条重复 LangChain4j 依赖 Maven 警告，范围外未修改。
+- 命中已有测试环境风险：SLF4J 未加载 `StaticLoggerBinder`，回退到 NOP logger；测试通过。
+- 未命中产品约束风险：未引入 Spring AI、AgentScope、Java 17 LangGraph4j 主线依赖，验证命令使用 Java 8。
