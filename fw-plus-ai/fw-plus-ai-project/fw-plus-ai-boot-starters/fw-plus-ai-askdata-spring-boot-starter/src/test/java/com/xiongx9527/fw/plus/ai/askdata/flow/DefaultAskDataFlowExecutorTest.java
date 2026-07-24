@@ -91,6 +91,44 @@ public class DefaultAskDataFlowExecutorTest {
         assertEquals(0, dependencies.executorCalls);
     }
 
+    @Test
+    public void shouldContainVectorRetrieverFailureInResultWithoutExecutingSql() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.vectorRetriever = new AskDataVectorRetriever() {
+            @Override
+            public List<AskDataRetrievedDocument> retrieve(AskDataVectorQuery query) {
+                throw new IllegalStateException("vector unavailable");
+            }
+        };
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}").execute(request(true));
+
+        assertFalse(result.isSuccess());
+        assertEquals("VECTOR_RETRIEVAL_FAILED", result.getErrorCode());
+        assertEquals(Arrays.asList("metadata", "prompt"), stepKeys(result));
+        assertFalse(result.getSteps().get(1).isSuccess());
+        assertEquals(0, dependencies.executorCalls);
+    }
+
+    @Test
+    public void shouldContainDialectRegistryFailureInResultWithoutExecutingSql() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.dialectRegistry = new AskDataDialectRegistry() {
+            @Override
+            public AskDataDialect getDialect(String dialect) {
+                throw new IllegalStateException("dialect unavailable");
+            }
+        };
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}").execute(request(true));
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.SQL_REJECTED, result.getErrorCode());
+        assertEquals(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql"), stepKeys(result));
+        assertFalse(result.getSteps().get(3).isSuccess());
+        assertEquals(0, dependencies.executorCalls);
+    }
+
     private AskDataRequest request(boolean execute) {
         AskDataRequest request = new AskDataRequest();
         request.setQuestion("订单数量");
@@ -112,7 +150,8 @@ public class DefaultAskDataFlowExecutorTest {
     private static class StubDependencies {
 
         private final AskDataProperties properties = new AskDataProperties();
-        private final AskDataDialectRegistry dialectRegistry = new AskDataDialectRegistry();
+        private AskDataDialectRegistry dialectRegistry = new AskDataDialectRegistry();
+        private AskDataVectorRetriever vectorRetriever;
         private final List<String> retrieveTypes = new java.util.ArrayList<String>();
         private int executorCalls;
         private AskDataSqlValidationResult validationResult = AskDataSqlValidationResult.accepted(SQL);
@@ -155,13 +194,15 @@ public class DefaultAskDataFlowExecutorTest {
                             Collections.emptyList(), Collections.emptyList());
                 }
             };
-            AskDataVectorRetriever vectorRetriever = new AskDataVectorRetriever() {
-                @Override
-                public List<AskDataRetrievedDocument> retrieve(AskDataVectorQuery query) {
-                    retrieveTypes.add(query.getRetrieveType());
-                    return Collections.emptyList();
-                }
-            };
+            if (vectorRetriever == null) {
+                vectorRetriever = new AskDataVectorRetriever() {
+                    @Override
+                    public List<AskDataRetrievedDocument> retrieve(AskDataVectorQuery query) {
+                        retrieveTypes.add(query.getRetrieveType());
+                        return Collections.emptyList();
+                    }
+                };
+            }
             AskDataPromptTemplateProvider promptProvider = new AskDataPromptTemplateProvider() {
                 @Override
                 public String buildPrompt(AskDataRequest request, AskDataMetadata metadata,
