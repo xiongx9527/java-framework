@@ -58,7 +58,17 @@ test('DB 浏览树为命名空间和对象请求提供加载态与空态', async
     assert.match(component, /v-if="loading\.objects && namespaceKey\(namespace\) === loadingNamespaceKey"/)
     assert.match(component, /v-else-if="activeNamespace && namespaceKey\(namespace\) === namespaceKey\(activeNamespace\) && \(objectGroups\.every\(group => group\.items\.length === 0\) \|\| !hasFilteredObjects\)"/)
     assert.match(component, /const changePage = offset => \{ const targetPage = previewState\.page \+ offset; loadPreview\(\{ \.\.\.previewState, page: targetPage \}\) \}/)
-    assert.match(component, /const loadPreview = async \(state = previewState\)/)
-    assert.match(component, /Object\.assign\(previewState, state\)/)
     assert.match(component, /!hasFilteredObjects/)
+})
+
+test('DB 预览只在成功后提交查询状态，并在失败时恢复编辑态', async () => {
+    const component = await readFile(new URL('../src/components/magic-db-browser.vue', import.meta.url), 'utf8')
+    const loadPreviewFor = component.match(/const loadPreviewFor = async \(item, state\) => \{([\s\S]*?)\n\}/)
+
+    assert.match(component, /const previewDraft = reactive\(\{ sortColumn: '', sortDirection: 'ASC', filterColumn: '', filterValue: '' \}\)/)
+    assert.ok(loadPreviewFor)
+    assert.match(loadPreviewFor[1], /state\.filterColumn && state\.filterValue !== ''/)
+    assert.doesNotMatch(loadPreviewFor[1], /filterColumn\.value|filterValue\.value/)
+    assert.match(component, /preview\.value = loadedPreview\n\s*Object\.assign\(previewState, state\)/)
+    assert.match(component, /catch \(cause\) \{\s*restorePreviewDraft\(\)\s*reportError\(cause\)\s*\}/)
 })
