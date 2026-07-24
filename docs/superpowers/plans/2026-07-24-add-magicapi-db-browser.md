@@ -49,8 +49,8 @@ base-ref: bf45ed49f309cca5d18c623a03dab70c72cbfa1e
 ### 后端修改文件
 
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/resources/META-INF/spring.factories`，注册 DB 浏览插件自动配置。
-- Modify: 必要时调整 `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/pom.xml` 或同层聚合 POM，加入 DB 插件模块。
-- Modify: 必要时调整 Boot starter 依赖聚合，确保 DB 插件资源可进入最终包。
+- Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/pom.xml` 或同层聚合 POM，加入 DB 插件模块；若插件聚合 POM 已是唯一聚合入口，只修改该文件。
+- Modify: Boot starter 依赖聚合文件，确保 DB 插件资源可进入最终包；若现有插件自动配置通过 `spring.factories` 和插件模块 POM 自动纳入，则在 Task 4 提交说明中记录无需修改的判断。
 
 ### 前端新增 DB 插件文件
 
@@ -382,9 +382,9 @@ Expected: PASS。
 
 Run:
 ```bash
-cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-db/src/console && npm run build
-cd ../../fw-plus-magicapi-plugin-s3/src/console && npm run build
-cd ../../../fw-plus-magicapi-spring-boot-starter/src/console && npm run build
+(cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-db/src/console && npm run build)
+(cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-s3/src/console && npm run build)
+(cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/src/console && npm run build)
 ```
 
 Expected: 三个构建均 PASS。
