@@ -22,4 +22,8 @@
   - Single task diff exceeds 200 lines
 - Review package: .superpowers/sdd/review-a876856..3b2a760.diff
 - Reviewer: Kant (019f929e-53c2-7e13-a493-f3d6b4f3a6d8)
+- Review result: needs fixes, 1 Important finding.
+- Review-fix round: 1 of 1
+- Unresolved Important finding:
+  - DefaultAskDataPromptTemplateProvider must mark retrieved vector snippets as non-authoritative context, instruct the model to trust only AskDataMetadata schema for SQL scope, and ignore retrieved snippet authorization or SQL instructions.
 - Previous task: Task 3 complete, commit 20a8b2a97f669ee067929592c3395a0894b9db2a, review approved
