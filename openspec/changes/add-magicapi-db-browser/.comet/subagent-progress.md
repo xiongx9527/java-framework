@@ -234,3 +234,22 @@
 - Important: none.
 - Minor: none.
 - Task 5: complete (commits 7333a71..301c079, review clean)
+
+## Current Task 6
+
+- Plan task: Task 6: 清理宿主控制台 S3 专属 UI
+- OpenSpec mapping: 4.7 remove S3 business page and dedicated host entry from `fw-plus-magicapi-spring-boot-starter/src/console`, preserving generic plugin loading/mounting.
+- Stage: implementing
+- Brief: .superpowers/sdd/task-6-brief.md
+- Report: .superpowers/sdd/task-6-report.md
+- Base commit: 909413c
+- Risk signals: remove host S3-specific coupling only; do not break generic plugin `toolbars` rendering used by S3 and DB plugins.
+
+## Task 6 Review 1
+
+- Reviewer: 019f9328-be51-7e43-b916-9f6382c8743f
+- Verdict: approved
+- Critical: none.
+- Important: none.
+- Minor: none.
+- Task 6: complete (commits 909413c..2ebc347, review clean)
