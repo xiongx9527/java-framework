@@ -107,7 +107,11 @@
 
 #### Scenario: Keep framework independence
 - **WHEN** 应用只引入 AskData starter
-- **THEN** 系统 SHALL 不要求必须引入 Agents-Flex、Tinyflow 或其他特定工作流引擎才能运行默认问数流程
+- **THEN** 系统 SHALL 不要求必须引入 LangGraph4j、Agents-Flex、Tinyflow 或其他特定工作流引擎才能运行默认问数流程
+
+#### Scenario: Optional LangGraph4j JDK8 graph adapter
+- **WHEN** 当前 Java 8 AskData starter 需要外部图编排适配
+- **THEN** 系统 SHALL 只评估 JDK8 兼容的 LangGraph4j 构件，并保持适配为可选依赖，不得引入要求 Java 17+ 的 LangGraph4j 主线模块
 
 ### Requirement: Context compression and resumable execution
 系统 SHALL 提供可压缩、可持久化的 AskData 会话上下文，使多轮问数、多 agent 长流程和子 agent 执行可以在上下文增长时压缩历史信息，并在应用异常退出或重启后从最近稳定检查点继续操作。
