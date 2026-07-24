@@ -6,16 +6,22 @@
       <div v-else-if="sources.length === 0" class="db-state">{{ $i('db.empty') }}</div>
       <template v-else v-for="source in sources" :key="source.key">
         <button class="tree-node source" :class="{ selected: source.key === selectedSource }" @click="selectSource(source)">{{ source.name || source.key }}</button>
-        <template v-if="source.key === selectedSource">
-          <div v-for="namespace in namespaces" :key="namespaceKey(namespace)" class="namespace">
-            <button class="tree-node namespace-name" @click="loadNamespace(namespace)">{{ displayNamespace(namespace) }}</button>
-            <template v-if="activeNamespace && namespaceKey(namespace) === namespaceKey(activeNamespace)">
-              <template v-for="group in objectGroups" :key="group.type">
-                <div v-if="group.items.length" class="group-label">{{ $i(group.label) }}</div>
-                <button v-for="item in filteredItems(group.items)" :key="itemKey(item)" class="tree-node object" :class="{ selected: selectedObject && itemKey(item) === itemKey(selectedObject) }" @click="selectObject(item)">{{ item.name }}</button>
+        <template v-if="source.key === selectedSource || source.key === loadingSourceKey">
+          <div v-if="loading.namespaces && source.key === loadingSourceKey" class="db-state">{{ $i('db.loading') }}</div>
+          <div v-else-if="source.key === selectedSource && namespaces.length === 0" class="db-state">{{ $i('db.empty') }}</div>
+          <template v-else-if="source.key === selectedSource">
+            <div v-for="namespace in namespaces" :key="namespaceKey(namespace)" class="namespace">
+              <button class="tree-node namespace-name" @click="loadNamespace(namespace)">{{ displayNamespace(namespace) }}</button>
+              <div v-if="loading.objects && namespaceKey(namespace) === loadingNamespaceKey" class="db-state">{{ $i('db.loading') }}</div>
+              <div v-else-if="activeNamespace && namespaceKey(namespace) === namespaceKey(activeNamespace) && objectGroups.every(group => group.items.length === 0)" class="db-state">{{ $i('db.empty') }}</div>
+              <template v-else-if="activeNamespace && namespaceKey(namespace) === namespaceKey(activeNamespace)">
+                <template v-for="group in objectGroups" :key="group.type">
+                  <div v-if="group.items.length" class="group-label">{{ $i(group.label) }}</div>
+                  <button v-for="item in filteredItems(group.items)" :key="itemKey(item)" class="tree-node object" :class="{ selected: selectedObject && itemKey(item) === itemKey(selectedObject) }" @click="selectObject(item)">{{ item.name }}</button>
+                </template>
               </template>
-            </template>
-          </div>
+            </div>
+          </template>
         </template>
       </template>
       <div v-if="error" class="db-error">{{ error }}</div>
@@ -65,7 +71,9 @@ const objectFilter = ref('')
 const filterColumn = ref('')
 const filterValue = ref('')
 const error = ref('')
-const loading = reactive({ sources: false, detail: false, preview: false })
+const loadingSourceKey = ref('')
+const loadingNamespaceKey = ref('')
+const loading = reactive({ sources: false, namespaces: false, objects: false, detail: false, preview: false })
 const previewState = reactive({ page: 1, pageSize: 20, sortColumn: '', sortDirection: 'ASC' })
 const service = () => getDbBrowserService()
 const namespaceKey = namespace => `${namespace.catalog || ''}:${namespace.schema || ''}`
@@ -102,6 +110,8 @@ const loadDataSources = async () => {
 const selectSource = async source => {
   if (source.key === selectedSource.value) return
   error.value = ''
+  loadingSourceKey.value = source.key
+  loading.namespaces = true
   try {
     const loadedNamespaces = await service().listNamespaces(source.key) || []
     selectedSource.value = source.key
@@ -112,11 +122,16 @@ const selectSource = async source => {
     selectedObject.value = null
     detail.value = {}
     preview.value = { columns: [], rows: [], hasMore: false }
-  } catch (cause) { reportError(cause) }
+  } catch (cause) { reportError(cause) } finally {
+    loading.namespaces = false
+    loadingSourceKey.value = ''
+  }
 }
 const loadNamespace = async namespace => {
   error.value = ''
   const requestContext = context(namespace)
+  loadingNamespaceKey.value = namespaceKey(namespace)
+  loading.objects = true
   try {
     const [loadedObjects, loadedRoutines] = await Promise.all([
       service().listObjects(requestContext), service().listRoutines(requestContext)
@@ -127,7 +142,10 @@ const loadNamespace = async namespace => {
     selectedObject.value = null
     detail.value = {}
     preview.value = { columns: [], rows: [], hasMore: false }
-  } catch (cause) { reportError(cause) }
+  } catch (cause) { reportError(cause) } finally {
+    loading.objects = false
+    loadingNamespaceKey.value = ''
+  }
 }
 const selectObject = async item => {
   error.value = ''
