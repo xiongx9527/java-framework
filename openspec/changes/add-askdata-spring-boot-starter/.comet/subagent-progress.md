@@ -31,6 +31,9 @@
 - Re-review package: .superpowers/sdd/review-85d339d..58481c8.diff
 - Re-reviewer: Gibbs (019f92b9-094f-7172-aa92-05ec4baaa71b)
 - Re-review result: needs fixes, 1 Important finding remains after standard review-fix round.
+- User approved extra fix round: yes
+- Extra fix round: 2
+- Extra fixer: Dewey (019f92c1-0d20-7623-8bc9-39f92c476e50)
 - Unresolved Critical findings:
   - resolved: DefaultAskDataSqlValidator rejects writable SELECT INTO.
   - resolved: DefaultAskDataSqlValidator rejects MySQL executable comments such as /*!50000; delete ... */.
