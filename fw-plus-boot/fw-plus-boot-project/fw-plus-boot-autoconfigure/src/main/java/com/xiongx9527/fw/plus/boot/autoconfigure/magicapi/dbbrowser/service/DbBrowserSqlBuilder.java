@@ -35,6 +35,7 @@ public class DbBrowserSqlBuilder {
 		}
 
 		String quote = getIdentifierQuote(connection);
+		String databaseProductName = getDatabaseProductName(connection);
 		String objectIdentifier = resolveObjectIdentifier(request, allowedObjects, quote);
 		int page = request.getPage() == null || request.getPage() < 1 ? 1 : request.getPage();
 		int pageSize = normalizePageSize(request.getPageSize());
@@ -43,9 +44,26 @@ public class DbBrowserSqlBuilder {
 
 		appendFilters(sql, parameters, quote, request.getFilters(), allowedColumns);
 		appendSort(sql, quote, request.getSortColumn(), request.getSortDirection(), allowedColumns);
-		sql.append(" OFFSET ").append((long) (page - 1) * pageSize)
-				.append(" ROWS FETCH NEXT ").append(pageSize).append(" ROWS ONLY");
+		appendPagination(sql, databaseProductName, (long) (page - 1) * pageSize, pageSize);
 		return new BuildResult(sql.toString(), parameters, page, pageSize);
+	}
+
+	private void appendPagination(StringBuilder sql, String databaseProductName, long offset, int pageSize) {
+		if (supportsLimitOffset(databaseProductName)) {
+			sql.append(" LIMIT ").append(pageSize).append(" OFFSET ").append(offset);
+			return;
+		}
+		sql.append(" OFFSET ").append(offset).append(" ROWS FETCH NEXT ").append(pageSize).append(" ROWS ONLY");
+	}
+
+	private boolean supportsLimitOffset(String databaseProductName) {
+		if (databaseProductName == null) {
+			return false;
+		}
+		String normalizedProductName = databaseProductName.toLowerCase(Locale.ROOT);
+		return normalizedProductName.contains("mysql") || normalizedProductName.contains("mariadb")
+				|| normalizedProductName.contains("postgresql") || normalizedProductName.equals("h2")
+				|| normalizedProductName.contains("sqlite");
 	}
 
 	private String resolveObjectIdentifier(DbBrowserPreviewRequest request, Set<String> allowedObjects, String quote) {
@@ -138,6 +156,11 @@ public class DbBrowserSqlBuilder {
 			throw new IllegalArgumentException("Database does not support quoted identifiers");
 		}
 		return quote;
+	}
+
+	private String getDatabaseProductName(Connection connection) throws SQLException {
+		DatabaseMetaData metaData = connection.getMetaData();
+		return metaData == null ? null : metaData.getDatabaseProductName();
 	}
 
 	private int normalizePageSize(Integer requestedPageSize) {
