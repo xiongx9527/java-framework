@@ -13,10 +13,10 @@
             <div v-for="namespace in namespaces" :key="namespaceKey(namespace)" class="namespace">
               <button class="tree-node namespace-name" @click="loadNamespace(namespace)">{{ displayNamespace(namespace) }}</button>
               <div v-if="loading.objects && namespaceKey(namespace) === loadingNamespaceKey" class="db-state">{{ $i('db.loading') }}</div>
-              <div v-else-if="activeNamespace && namespaceKey(namespace) === namespaceKey(activeNamespace) && objectGroups.every(group => group.items.length === 0)" class="db-state">{{ $i('db.empty') }}</div>
+              <div v-else-if="activeNamespace && namespaceKey(namespace) === namespaceKey(activeNamespace) && (objectGroups.every(group => group.items.length === 0) || !hasFilteredObjects)" class="db-state">{{ $i('db.empty') }}</div>
               <template v-else-if="activeNamespace && namespaceKey(namespace) === namespaceKey(activeNamespace)">
                 <template v-for="group in objectGroups" :key="group.type">
-                  <div v-if="group.items.length" class="group-label">{{ $i(group.label) }}</div>
+                  <div v-if="filteredItems(group.items).length" class="group-label">{{ $i(group.label) }}</div>
                   <button v-for="item in filteredItems(group.items)" :key="itemKey(item)" class="tree-node object" :class="{ selected: selectedObject && itemKey(item) === itemKey(selectedObject) }" @click="selectObject(item)">{{ item.name }}</button>
                 </template>
               </template>
@@ -90,6 +90,7 @@ const filteredItems = items => {
   const query = objectFilter.value.trim().toLowerCase()
   return query ? items.filter(item => item.name.toLowerCase().includes(query)) : items
 }
+const hasFilteredObjects = computed(() => objectGroups.value.some(group => filteredItems(group.items).length > 0))
 const context = namespace => ({ key: selectedSource.value, catalog: namespace.catalog, schema: namespace.schema })
 const reportError = cause => { error.value = cause && cause.message ? cause.message : $i('db.loadFailed') }
 
@@ -167,14 +168,18 @@ const loadPreviewFor = async (item, state) => {
   const filters = filterColumn.value && filterValue.value !== '' ? [{ column: filterColumn.value, operator: 'like', value: `%${filterValue.value}%` }] : []
   try { return await service().preview({ ...context(item), objectName: item.name, objectType: item.type, ...state, filters }) || { columns: [], rows: [], hasMore: false } } finally { loading.preview = false }
 }
-const loadPreview = async () => {
+const loadPreview = async (state = previewState) => {
   if (!isPreviewable.value) return
   error.value = ''
-  try { preview.value = await loadPreviewFor(selectedObject.value, previewState) } catch (cause) { reportError(cause) }
+  try {
+    const loadedPreview = await loadPreviewFor(selectedObject.value, state)
+    preview.value = loadedPreview
+    Object.assign(previewState, state)
+  } catch (cause) { reportError(cause) }
 }
-const applyPreview = () => { previewState.page = 1; loadPreview() }
+const applyPreview = () => loadPreview({ ...previewState, page: 1 })
 const clearFilter = () => { filterColumn.value = ''; filterValue.value = ''; applyPreview() }
-const changePage = offset => { previewState.page += offset; loadPreview() }
+const changePage = offset => { const targetPage = previewState.page + offset; loadPreview({ ...previewState, page: targetPage }) }
 const isPrimaryKey = name => (detail.value.primaryKeys || []).includes(name)
 
 onMounted(loadDataSources)
