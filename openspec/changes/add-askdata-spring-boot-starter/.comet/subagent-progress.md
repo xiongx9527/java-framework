@@ -38,6 +38,7 @@
 - Extra fix RED evidence: DefaultAskDataFlowExecutorTest failed because dialect registry exception returned SQL_REJECTED instead of DIALECT_RESOLUTION_FAILED.
 - Extra fix GREEN evidence: DefaultAskDataFlowExecutorTest passed 7 tests; Task 6 focused tests passed 12 tests.
 - Extra re-review package: .superpowers/sdd/review-58ba604..09cd6e8.diff
+- Extra re-reviewer: Franklin (019f92eb-f2b9-70e1-9761-5463c8514a24)
 - Unresolved Important finding:
   - DefaultAskDataFlowExecutor must return a distinct dependency failure error code for AskDataDialectRegistry runtime exceptions instead of SQL_REJECTED.
   - resolved: AskDataVectorRetriever runtime exceptions return failed AskDataResult with step logs and error code; executor is not called.
