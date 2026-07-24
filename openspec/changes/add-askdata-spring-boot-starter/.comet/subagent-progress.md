@@ -8,15 +8,17 @@
 ## Current
 
 - Task: Task 7: 上下文压缩、检查点存储与崩溃后恢复
-- Stage: blocked
+- Stage: extra-task-review-fix
 - Implementer: Ampere (019f92ef-99d7-7223-958f-b0db11c4ee52)
 - Reviewer: Laplace (019f92fa-bee9-78a1-813f-204924871048)
 - Fixer: Dirac (019f92ff-d2c5-7b51-829f-dbeb50ef6718)
 - Re-reviewer: Singer (019f930a-bce0-7d82-8d1e-7d105117b190)
+- Extra fixer: Goodall (019f9346-7fbb-75e3-b777-255b3b5e5363)
 - Review result: Needs fixes, 3 Important findings, 1 Minor test coverage note
 - Fix result: DONE_WITH_CONCERNS, commit 820a4d6, focused tests 11 passed, module tests 54 passed, git diff --check clean
 - Re-review result: Needs fixes, 1 Important finding
 - Blocked reason: standard review-fix budget exhausted; execute-sql checkpoint accepts sqlExecuted=false with non-null rowCount
+- User override: user said "继续", allowing one extra fix round for the remaining Important finding
 - Implementation commit: 9d9dc6304191bb470bdf908b2086b40b8f8dd0c4
 - Changed files: conversation/*, DefaultAskDataFlowExecutor.java, AskDataStepContext.java, AskDataAutoConfiguration.java, conversation/resume tests
 - RED evidence: focused Java 8 Maven conversation/resume tests failed at testCompile because conversation types did not exist; later resume flow tests caught first checkpoint and compression failure gaps.
