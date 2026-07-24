@@ -58,6 +58,18 @@ class DbBrowserSqlBuilderTest {
 	}
 
 	@Test
+	void shouldUseLimitOffsetForMySql() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setPage(3);
+		request.setPageSize(20);
+
+		DbBrowserSqlBuilder.BuildResult result = sqlBuilder.buildPreviewSql(
+				connectionWithQuoteAndProductName("\"", "MySQL"), request, allowedColumns, allowedObjects);
+
+		assertEquals("SELECT * FROM \"users\" LIMIT 20 OFFSET 40", result.getSql());
+	}
+
+	@Test
 	void shouldAcceptQualifiedObjectFromWhitelist() throws Exception {
 		DbBrowserPreviewRequest request = baseRequest();
 		request.setCatalog("main");
@@ -178,10 +190,17 @@ class DbBrowserSqlBuilderTest {
 	}
 
 	private Connection connectionWithQuote(final String quote) {
+		return connectionWithQuoteAndProductName(quote, "SQL Server");
+	}
+
+	private Connection connectionWithQuoteAndProductName(final String quote, final String productName) {
 		final DatabaseMetaData metaData = (DatabaseMetaData) Proxy.newProxyInstance(
 				getClass().getClassLoader(), new Class<?>[]{DatabaseMetaData.class}, (proxy, method, args) -> {
 					if ("getIdentifierQuoteString".equals(method.getName())) {
 						return quote;
+					}
+					if ("getDatabaseProductName".equals(method.getName())) {
+						return productName;
 					}
 					throw new UnsupportedOperationException(method.getName());
 				});
