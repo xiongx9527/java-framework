@@ -24,6 +24,7 @@
 - Reviewer: Hypatia (019f92b0-2595-7a43-ac62-bd488df47e1a)
 - Review result: needs fixes, 2 Critical and 2 Important findings.
 - Review-fix round: 1 of 1
+- Fixer: Zeno (019f92b4-2788-7730-a319-8bef3db918cb)
 - Unresolved Critical findings:
   - DefaultAskDataSqlValidator must reject writable SELECT INTO.
   - DefaultAskDataSqlValidator must reject or scan MySQL executable comments such as /*!50000; delete ... */.
