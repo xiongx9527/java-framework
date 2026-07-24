@@ -8,6 +8,17 @@
 ## Current
 
 - Task: Task 5: SQL 安全校验、limit 策略与 JDBC 执行
-- Stage: implementing
+- Stage: task-review
 - Implementer: Beauvoir (019f92a8-e11d-7781-8e1a-a93bbf2d4894)
+- Implementation commit: 8ba0f54ffbc7f88e92bdfc76835d690d5bfab2df
+- Changed files: sql/*, AskDataAutoConfiguration.java, starter pom.xml, SQL tests, task-5-report.md
+- RED evidence: focused Java 8 Maven test failed at testCompile because DefaultAskDataSqlValidator did not exist; focused validator test later caught semicolon/comment LIMIT placement bug.
+- GREEN evidence: focused Java 8 Maven SQL tests passed, 10 tests; full starter module test passed, 25 tests.
+- Review mode: standard
+- Risk review: triggered
+- Risk signals:
+  - SQL and external-input security-sensitive behavior
+  - Public API contract change
+  - Single task diff exceeds 200 lines
+- Review package: .superpowers/sdd/review-eaf2f14..8ba0f54.diff
 - Previous task: Task 4 complete, commit 81a893f8c24902b1a02773e55f1e9ca59b843578, review approved
