@@ -72,6 +72,7 @@ const error = ref('')
 const loadingSourceKey = ref('')
 const loadingNamespaceKey = ref('')
 const sourceRequestSeq = ref(0)
+const dataSourcesRequestSeq = ref(0)
 const namespaceRequestSeq = ref(0)
 const objectRequestSeq = ref(0)
 const previewRequestSeq = ref(0)
@@ -105,10 +106,12 @@ const syncPreviewDraft = state => Object.assign(previewDraft, {
 const restorePreviewDraft = () => syncPreviewDraft(previewState)
 
 const loadDataSources = async () => {
+  const requestSeq = ++dataSourcesRequestSeq.value
   loading.sources = true
   error.value = ''
   try {
     const result = await service().listDataSources()
+    if (requestSeq !== dataSourcesRequestSeq.value) return
     sources.value = Array.isArray(result) ? result : []
     if (!sources.value.some(source => source.key === selectedSource.value)) {
       selectedSource.value = ''
@@ -116,7 +119,11 @@ const loadDataSources = async () => {
       activeNamespace.value = null
       selectedObject.value = null
     }
-  } catch (cause) { reportError(cause) } finally { loading.sources = false }
+  } catch (cause) {
+    if (requestSeq === dataSourcesRequestSeq.value) reportError(cause)
+  } finally {
+    if (requestSeq === dataSourcesRequestSeq.value) loading.sources = false
+  }
 }
 const selectSource = async source => {
   if (source.key === selectedSource.value && !loading.namespaces) return
@@ -195,9 +202,11 @@ const selectObject = async item => {
     if (requestSeq !== objectRequestSeq.value) return
     selectedObject.value = item
     detail.value = loadedDetail
-    preview.value = loadedPreview
-    Object.assign(previewState, initialPreviewState)
-    syncPreviewDraft(initialPreviewState)
+    if (previewRequestSeqForObject === previewRequestSeq.value) {
+      preview.value = loadedPreview
+      Object.assign(previewState, initialPreviewState)
+      syncPreviewDraft(initialPreviewState)
+    }
   } catch (cause) {
     if (requestSeq === objectRequestSeq.value) reportError(cause)
   } finally {
