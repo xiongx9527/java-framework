@@ -71,6 +71,10 @@ const objectFilter = ref('')
 const error = ref('')
 const loadingSourceKey = ref('')
 const loadingNamespaceKey = ref('')
+const sourceRequestSeq = ref(0)
+const namespaceRequestSeq = ref(0)
+const objectRequestSeq = ref(0)
+const previewRequestSeq = ref(0)
 const loading = reactive({ sources: false, namespaces: false, objects: false, detail: false, preview: false })
 const previewState = reactive({ page: 1, pageSize: 20, sortColumn: '', sortDirection: 'ASC', filterColumn: '', filterValue: '' })
 const previewDraft = reactive({ sortColumn: '', sortDirection: 'ASC', filterColumn: '', filterValue: '' })
@@ -115,12 +119,20 @@ const loadDataSources = async () => {
   } catch (cause) { reportError(cause) } finally { loading.sources = false }
 }
 const selectSource = async source => {
-  if (source.key === selectedSource.value) return
+  if (source.key === selectedSource.value && !loading.namespaces) return
+  const requestSeq = ++sourceRequestSeq.value
+  ++namespaceRequestSeq.value
+  ++objectRequestSeq.value
+  ++previewRequestSeq.value
   error.value = ''
   loadingSourceKey.value = source.key
   loading.namespaces = true
+  loading.objects = false
+  loading.detail = false
+  loading.preview = false
   try {
     const loadedNamespaces = await service().listNamespaces(source.key) || []
+    if (requestSeq !== sourceRequestSeq.value) return
     selectedSource.value = source.key
     namespaces.value = loadedNamespaces
     activeNamespace.value = null
@@ -129,63 +141,98 @@ const selectSource = async source => {
     selectedObject.value = null
     detail.value = {}
     preview.value = { columns: [], rows: [], hasMore: false }
-  } catch (cause) { reportError(cause) } finally {
-    loading.namespaces = false
-    loadingSourceKey.value = ''
+  } catch (cause) {
+    if (requestSeq === sourceRequestSeq.value) reportError(cause)
+  } finally {
+    if (requestSeq === sourceRequestSeq.value) {
+      loading.namespaces = false
+      loadingSourceKey.value = ''
+    }
   }
 }
 const loadNamespace = async namespace => {
+  const requestSeq = ++namespaceRequestSeq.value
+  ++objectRequestSeq.value
+  ++previewRequestSeq.value
   error.value = ''
   const requestContext = context(namespace)
   loadingNamespaceKey.value = namespaceKey(namespace)
   loading.objects = true
+  loading.detail = false
+  loading.preview = false
   try {
     const [loadedObjects, loadedRoutines] = await Promise.all([
       service().listObjects(requestContext), service().listRoutines(requestContext)
     ])
+    if (requestSeq !== namespaceRequestSeq.value) return
     activeNamespace.value = namespace
     objects.value = loadedObjects || []
     routines.value = loadedRoutines || []
     selectedObject.value = null
     detail.value = {}
     preview.value = { columns: [], rows: [], hasMore: false }
-  } catch (cause) { reportError(cause) } finally {
-    loading.objects = false
-    loadingNamespaceKey.value = ''
+  } catch (cause) {
+    if (requestSeq === namespaceRequestSeq.value) reportError(cause)
+  } finally {
+    if (requestSeq === namespaceRequestSeq.value) {
+      loading.objects = false
+      loadingNamespaceKey.value = ''
+    }
   }
 }
 const selectObject = async item => {
+  const requestSeq = ++objectRequestSeq.value
+  const previewRequestSeqForObject = ++previewRequestSeq.value
   error.value = ''
   loading.detail = true
+  loading.preview = true
   try {
     const loadedDetail = await service().getObjectDetail({ ...context(item), objectName: item.name, objectType: item.type }) || {}
     const initialPreviewState = { page: 1, pageSize: 20, sortColumn: '', sortDirection: 'ASC', filterColumn: '', filterValue: '' }
     const loadedPreview = ['TABLE', 'VIEW'].includes(item.type)
       ? await loadPreviewFor(item, initialPreviewState)
       : { columns: [], rows: [], hasMore: false }
+    if (requestSeq !== objectRequestSeq.value) return
     selectedObject.value = item
     detail.value = loadedDetail
     preview.value = loadedPreview
     Object.assign(previewState, initialPreviewState)
     syncPreviewDraft(initialPreviewState)
-  } catch (cause) { reportError(cause) } finally { loading.detail = false }
+  } catch (cause) {
+    if (requestSeq === objectRequestSeq.value) reportError(cause)
+  } finally {
+    if (requestSeq === objectRequestSeq.value) {
+      loading.detail = false
+    }
+    if (previewRequestSeqForObject === previewRequestSeq.value) {
+      loading.preview = false
+    }
+  }
 }
 const loadPreviewFor = async (item, state) => {
-  loading.preview = true
   const filters = state.filterColumn && state.filterValue !== '' ? [{ column: state.filterColumn, operator: 'like', value: `%${state.filterValue}%` }] : []
-  try { return await service().preview({ ...context(item), objectName: item.name, objectType: item.type, ...state, filters }) || { columns: [], rows: [], hasMore: false } } finally { loading.preview = false }
+  return await service().preview({ ...context(item), objectName: item.name, objectType: item.type, ...state, filters }) || { columns: [], rows: [], hasMore: false }
 }
 const loadPreview = async (state = previewState) => {
   if (!isPreviewable.value) return
+  const requestSeq = ++previewRequestSeq.value
+  const item = selectedObject.value
   error.value = ''
+  loading.preview = true
   try {
-    const loadedPreview = await loadPreviewFor(selectedObject.value, state)
+    const loadedPreview = await loadPreviewFor(item, state)
+    if (requestSeq !== previewRequestSeq.value) return
     preview.value = loadedPreview
     Object.assign(previewState, state)
     syncPreviewDraft(state)
   } catch (cause) {
+    if (requestSeq !== previewRequestSeq.value) return
     restorePreviewDraft()
     reportError(cause)
+  } finally {
+    if (requestSeq === previewRequestSeq.value) {
+      loading.preview = false
+    }
   }
 }
 const applyPreview = () => loadPreview({ ...previewState, ...previewDraft, page: 1 })
