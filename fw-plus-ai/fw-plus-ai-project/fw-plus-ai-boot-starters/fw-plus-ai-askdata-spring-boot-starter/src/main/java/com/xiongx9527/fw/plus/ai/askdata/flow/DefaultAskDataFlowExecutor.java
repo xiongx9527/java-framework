@@ -110,6 +110,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return checkpointFailure;
         }
 
+        return generateSqlAndValidate(request, result, context, metadata);
+    }
+
+    private AskDataResult generateSqlAndValidate(AskDataRequest request, AskDataResult result,
+            AskDataStepContext context, AskDataMetadata metadata) {
         int maxRows = maxRows(request);
         List<AskDataRetrievedDocument> documents;
         try {
@@ -165,7 +170,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         result.setChartType(textValue(modelJson, "chartType"));
         result.setBrief(textValue(modelJson, "brief"));
         result.addStep("generate-sql", "Generate SQL", true, "SQL generated");
-        checkpointFailure = saveCheckpoint(context, result, "generate-sql", null, null);
+        AskDataResult checkpointFailure = saveCheckpoint(context, result, "generate-sql", null, null);
         if (checkpointFailure != null) {
             return checkpointFailure;
         }
@@ -226,6 +231,20 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             result.addStep("validate-sql", "Validate SQL", true, "SQL validated");
             AskDataResult checkpointFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
             return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getSql()) : checkpointFailure;
+        }
+        if (contains(checkpoint, "metadata")) {
+            AskDataMetadata metadata;
+            try {
+                metadata = metadataProvider.load(request);
+            } catch (RuntimeException ex) {
+                return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
+            }
+            if (metadata == null) {
+                return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND,
+                        "AskData metadata was not found");
+            }
+            context.setMetadata(metadata);
+            return generateSqlAndValidate(request, result, context, metadata);
         }
         return failure(result, "resume", AskDataErrorCode.RESUME_FAILED,
                 "AskData checkpoint cannot restore the metadata required by the next step");
@@ -348,25 +367,56 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         result.setSql(checkpoint.getSql());
         result.setRowCount(checkpoint.getRowCount());
         result.setSteps(new ArrayList<AskDataStepLog>(checkpoint.getSteps()));
+        for (String completedStep : checkpoint.getCompletedSteps()) {
+            if (!hasSuccessfulStep(result.getSteps(), completedStep)) {
+                result.addStep(completedStep, completedStep, true, "Checkpoint restored");
+            }
+        }
     }
 
     private boolean isSafeCheckpoint(AskDataCheckpoint checkpoint) {
         List<String> completed = checkpoint.getCompletedSteps();
-        if (completed == null || completed.isEmpty()) {
+        if (completed == null || completed.isEmpty() || completed.size() > CHECKPOINT_STEPS.size()) {
             return false;
         }
-        for (String step : completed) {
-            if (!CHECKPOINT_STEPS.contains(step)) {
+        for (int index = 0; index < completed.size(); index++) {
+            if (!equals(CHECKPOINT_STEPS.get(index), completed.get(index))) {
                 return false;
             }
         }
-        if (contains(checkpoint, "generate-sql") && isBlank(checkpoint.getSql())) {
+        String currentStep = completed.get(completed.size() - 1);
+        if (!equals(currentStep, checkpoint.getCurrentStep())) {
             return false;
         }
-        if (contains(checkpoint, "validate-sql") && !Boolean.TRUE.equals(checkpoint.getSqlValidated())) {
+        if ("metadata".equals(currentStep)) {
+            return isBlank(checkpoint.getSql()) && checkpoint.getSqlValidated() == null
+                    && checkpoint.getSqlExecuted() == null && checkpoint.getRowCount() == null;
+        }
+        if ("prompt".equals(currentStep)) {
             return false;
         }
-        return !contains(checkpoint, "execute-sql") || Boolean.TRUE.equals(checkpoint.getSqlValidated());
+        if (isBlank(checkpoint.getSql()) || isBlank(checkpoint.getDialect())) {
+            return false;
+        }
+        if ("generate-sql".equals(currentStep)) {
+            return checkpoint.getSqlValidated() == null && checkpoint.getSqlExecuted() == null
+                    && checkpoint.getRowCount() == null;
+        }
+        if ("validate-sql".equals(currentStep)) {
+            return Boolean.TRUE.equals(checkpoint.getSqlValidated()) && checkpoint.getSqlExecuted() == null
+                    && checkpoint.getRowCount() == null;
+        }
+        return Boolean.TRUE.equals(checkpoint.getSqlValidated()) && checkpoint.getSqlExecuted() != null
+                && (!Boolean.TRUE.equals(checkpoint.getSqlExecuted()) || checkpoint.getRowCount() != null);
+    }
+
+    private boolean hasSuccessfulStep(List<AskDataStepLog> steps, String stepKey) {
+        for (AskDataStepLog step : steps) {
+            if (step.isSuccess() && equals(stepKey, step.getStepKey())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean contains(AskDataCheckpoint checkpoint, String step) {

@@ -1,11 +1,14 @@
 package com.xiongx9527.fw.plus.ai.askdata.conversation;
 
+import com.xiongx9527.fw.plus.ai.askdata.AskDataStepLog;
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertNotSame;
 
 public class AskDataConversationStoreTest {
 
@@ -19,10 +22,38 @@ public class AskDataConversationStoreTest {
         store.save(latest);
 
         AskDataCheckpoint loadedLatest = store.loadLatest("conversation-1");
-        assertSame(latest, loadedLatest);
+        assertNotSame(latest, loadedLatest);
         assertEquals("2", loadedLatest.getVersion());
-        assertSame(first, store.loadByResumeToken("resume-1"));
-        assertSame(latest, store.loadByResumeToken("resume-2"));
+        assertNotSame(first, store.loadByResumeToken("resume-1"));
+        assertNotSame(latest, store.loadByResumeToken("resume-2"));
+    }
+
+    @Test
+    public void shouldSnapshotCheckpointWhenSavingAndLoading() {
+        AskDataConversationStore store = new InMemoryAskDataConversationStore();
+        AskDataCheckpoint checkpoint = checkpoint("checkpoint-1", "resume-1", "1", 1000L);
+        checkpoint.setCompletedSteps(new ArrayList<String>(Arrays.asList("metadata")));
+        AskDataStepLog stepLog = new AskDataStepLog("metadata", "Metadata", true, "loaded");
+        checkpoint.setSteps(new ArrayList<AskDataStepLog>(Arrays.asList(stepLog)));
+
+        AskDataCheckpoint saved = store.save(checkpoint);
+        checkpoint.setSql("select forged");
+        checkpoint.getCompletedSteps().add("validate-sql");
+        checkpoint.getSteps().get(0).setMessage("mutated");
+        saved.getCompletedSteps().add("execute-sql");
+        saved.getSteps().get(0).setSuccess(false);
+
+        AskDataCheckpoint loaded = store.loadByResumeToken("resume-1");
+        assertEquals(null, loaded.getSql());
+        assertEquals(Arrays.asList("metadata"), loaded.getCompletedSteps());
+        assertEquals("loaded", loaded.getSteps().get(0).getMessage());
+        assertEquals(true, loaded.getSteps().get(0).isSuccess());
+
+        loaded.getCompletedSteps().add("generate-sql");
+        loaded.getSteps().get(0).setMessage("changed-after-load");
+        AskDataCheckpoint reloaded = store.loadByResumeToken("resume-1");
+        assertEquals(Arrays.asList("metadata"), reloaded.getCompletedSteps());
+        assertEquals("loaded", reloaded.getSteps().get(0).getMessage());
     }
 
     private AskDataCheckpoint checkpoint(String checkpointId, String resumeToken, String version, long createdAt) {

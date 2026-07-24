@@ -98,6 +98,70 @@ public class AskDataResumeFlowTest {
     }
 
     @Test
+    public void shouldNotExecuteSqlAgainWhenResumingExecutedCheckpoint() {
+        Fixture fixture = new Fixture();
+        AskDataCheckpoint checkpoint = fixture.validatedCheckpoint("resume-executed", "1");
+        checkpoint.setCompletedSteps(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql",
+                "execute-sql"));
+        checkpoint.setCurrentStep("execute-sql");
+        checkpoint.setSqlExecuted(Boolean.TRUE);
+        checkpoint.setRowCount(Integer.valueOf(3));
+        fixture.store.save(checkpoint);
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-executed");
+
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertTrue(result.isSuccess());
+        assertEquals(Integer.valueOf(3), result.getRowCount());
+        assertEquals(0, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectNonContinuousCompletedStepsWithoutExecutingSql() {
+        Fixture fixture = new Fixture();
+        AskDataCheckpoint checkpoint = fixture.validatedCheckpoint("resume-gap", "1");
+        checkpoint.setCompletedSteps(Arrays.asList("metadata", "validate-sql"));
+        checkpoint.setCurrentStep("validate-sql");
+        fixture.store.save(checkpoint);
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-gap");
+
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, result.getErrorCode());
+        assertEquals(0, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldResumeMetadataCheckpointByReloadingStructuredMetadata() {
+        Fixture fixture = new Fixture();
+        AskDataCheckpoint checkpoint = new AskDataCheckpoint();
+        checkpoint.setConversationId("conversation-1");
+        checkpoint.setCheckpointId("checkpoint-metadata");
+        checkpoint.setResumeToken("resume-metadata");
+        checkpoint.setVersion("1");
+        checkpoint.setDatasourceKey("orders");
+        checkpoint.setDialect("mysql");
+        checkpoint.setModelKey("model-1");
+        checkpoint.setCompletedSteps(Collections.singletonList("metadata"));
+        checkpoint.setCurrentStep("metadata");
+        fixture.store.save(checkpoint);
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-metadata");
+
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertTrue(result.isSuccess());
+        assertEquals(1, fixture.metadataCalls);
+        assertEquals(1, fixture.promptCalls);
+        assertEquals(1, fixture.modelCalls);
+        assertEquals(1, fixture.validatorCalls);
+        assertEquals(1, fixture.executorCalls);
+    }
+
+    @Test
     public void shouldCreateConversationCheckpointForNewRequest() {
         Fixture fixture = new Fixture();
 
@@ -168,7 +232,8 @@ public class AskDataResumeFlowTest {
             checkpoint.setModelKey("model-1");
             checkpoint.setSql("select * from orders limit 100");
             checkpoint.setSqlValidated(Boolean.TRUE);
-            checkpoint.setCompletedSteps(Arrays.asList("metadata", "generate-sql", "validate-sql"));
+            checkpoint.setCompletedSteps(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql"));
+            checkpoint.setCurrentStep("validate-sql");
             return checkpoint;
         }
 
