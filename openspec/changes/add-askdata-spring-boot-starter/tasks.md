@@ -1,8 +1,8 @@
 ## 1. Maven 模块接入
 
-- [ ] 1.1 在 `fw-plus-ai-boot-starters` 下新增 `fw-plus-ai-askdata-spring-boot-starter` 模块。
-- [ ] 1.2 将新模块接入 AI starter 聚合 POM，并接入 `fw-plus-ai` 使用的依赖管理。
-- [ ] 1.3 确认新模块继承现有 Java 8、Spring Boot 2.7.18、`${revision}` 和 flatten 约定。
+- [x] 1.1 在 `fw-plus-ai-boot-starters` 下新增 `fw-plus-ai-askdata-spring-boot-starter` 模块。
+- [x] 1.2 将新模块接入 AI starter 聚合 POM，并接入 `fw-plus-ai` 使用的依赖管理。
+- [x] 1.3 确认新模块继承现有 Java 8、Spring Boot 2.7.18、`${revision}` 和 flatten 约定。
 
 ## 2. 核心 API 与模型
 
