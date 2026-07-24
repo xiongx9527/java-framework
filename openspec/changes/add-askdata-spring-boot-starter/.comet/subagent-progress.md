@@ -8,7 +8,7 @@
 ## Current
 
 - Task: Task 5: SQL 安全校验、limit 策略与 JDBC 执行
-- Stage: task-review
+- Stage: blocked
 - Implementer: Beauvoir (019f92a8-e11d-7781-8e1a-a93bbf2d4894)
 - Implementation commit: 8ba0f54ffbc7f88e92bdfc76835d690d5bfab2df
 - Changed files: sql/*, AskDataAutoConfiguration.java, starter pom.xml, SQL tests, task-5-report.md
@@ -30,10 +30,12 @@
 - Fix GREEN evidence: DefaultAskDataSqlValidatorTest passed 13 tests; Task 5 focused tests passed 14 tests.
 - Re-review package: .superpowers/sdd/review-85d339d..58481c8.diff
 - Re-reviewer: Gibbs (019f92b9-094f-7172-aa92-05ec4baaa71b)
+- Re-review result: needs fixes, 1 Important finding remains after standard review-fix round.
 - Unresolved Critical findings:
-  - DefaultAskDataSqlValidator must reject writable SELECT INTO.
-  - DefaultAskDataSqlValidator must reject or scan MySQL executable comments such as /*!50000; delete ... */.
+  - resolved: DefaultAskDataSqlValidator rejects writable SELECT INTO.
+  - resolved: DefaultAskDataSqlValidator rejects MySQL executable comments such as /*!50000; delete ... */.
 - Unresolved Important findings:
-  - DefaultAskDataSqlValidator must apply row limit through AskDataDialect instead of hard-coded MySQL-style concatenation.
-  - DefaultAskDataSqlValidator must not append LIMIT inside a trailing line comment.
+  - DefaultAskDataSqlValidator must delegate existing row-limit detection to AskDataDialect instead of hard-coding top-level LIMIT detection.
+  - resolved: DefaultAskDataSqlValidator applies row limit through AskDataDialect.
+  - resolved: DefaultAskDataSqlValidator does not append LIMIT inside a trailing line comment.
 - Previous task: Task 4 complete, commit 81a893f8c24902b1a02773e55f1e9ca59b843578, review approved
