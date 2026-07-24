@@ -21,4 +21,5 @@
   - Public API contract change
   - Single task diff exceeds 200 lines
 - Review package: .superpowers/sdd/review-a876856..3b2a760.diff
+- Reviewer: Kant (019f929e-53c2-7e13-a493-f3d6b4f3a6d8)
 - Previous task: Task 3 complete, commit 20a8b2a97f669ee067929592c3395a0894b9db2a, review approved
