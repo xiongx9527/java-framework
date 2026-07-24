@@ -8,7 +8,7 @@
 ## Current
 
 - Task: Task 7: 上下文压缩、检查点存储与崩溃后恢复
-- Stage: extra-task-review-fix
+- Stage: done
 - Implementer: Ampere (019f92ef-99d7-7223-958f-b0db11c4ee52)
 - Reviewer: Laplace (019f92fa-bee9-78a1-813f-204924871048)
 - Fixer: Dirac (019f92ff-d2c5-7b51-829f-dbeb50ef6718)
@@ -21,6 +21,8 @@
 - Blocked reason: standard review-fix budget exhausted; execute-sql checkpoint accepts sqlExecuted=false with non-null rowCount
 - User override: user said "继续", allowing one extra fix round for the remaining Important finding
 - Extra fix result: DONE_WITH_CONCERNS, commit 63c94e8, AskDataResumeFlowTest 10 passed, module tests 55 passed, git diff --check clean
+- Extra re-review result: Approved, no Critical/Important/Minor findings
+- Checkoff result: plan Task 7 Step 1-11 PASS; OpenSpec 6.1-6.5 and 8.6 PASS
 - Implementation commit: 9d9dc6304191bb470bdf908b2086b40b8f8dd0c4
 - Changed files: conversation/*, DefaultAskDataFlowExecutor.java, AskDataStepContext.java, AskDataAutoConfiguration.java, conversation/resume tests
 - RED evidence: focused Java 8 Maven conversation/resume tests failed at testCompile because conversation types did not exist; later resume flow tests caught first checkpoint and compression failure gaps.
@@ -39,4 +41,5 @@
 - Re-review feedback: .superpowers/sdd/task-7-rereview-singer.md
 - Extra fix report: .superpowers/sdd/task-7-report.md#extra-review-fix-2026-07-24
 - Extra re-review package: .superpowers/sdd/review-b01d72f..63c94e8.diff
+- Extra re-review feedback: .superpowers/sdd/task-7-extra-rereview-linnaeus.md
 - Previous task: Task 6 complete, commit 09cd6e8, review approved

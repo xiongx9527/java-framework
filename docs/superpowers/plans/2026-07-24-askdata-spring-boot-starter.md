@@ -687,15 +687,15 @@ Commit message: `feat(askdata): add agent flow executor`.
 - Consumes: `conversationId`, `resumeToken`, step context and flow state.
 - Produces: stable checkpoints after each completed step and resume from latest safe checkpoint.
 
-- [ ] **Step 1: Write failing conversation store tests**
+- [x] **Step 1: Write failing conversation store tests**
 
 Assert `save`, `loadLatest(conversationId)`, `loadByResumeToken(resumeToken)`, version preservation, and latest checkpoint ordering.
 
-- [ ] **Step 2: Write failing compressor tests**
+- [x] **Step 2: Write failing compressor tests**
 
 Build a context with long prompt and raw model response. Assert compressed text length is below threshold and structured fields remain unchanged: `conversationId`, `modelKey`, `datasourceKey`, `dialect`, `sql`, `sqlValidated`, `completedSteps`, `errorCode`.
 
-- [ ] **Step 3: Write failing resume tests**
+- [x] **Step 3: Write failing resume tests**
 
 Cover:
 
@@ -706,13 +706,13 @@ request.setResumeToken("resume-validate");
 
 When checkpoint has completed `validate-sql` and `sqlValidated=true`, resume skips metadata, prompt, model and validator, then executes SQL or formats existing result. When checkpoint is missing, return `CHECKPOINT_NOT_FOUND`. When version mismatches, return `RESUME_FAILED`. When SQL was not validated, return `RESUME_FAILED` and do not execute.
 
-- [ ] **Step 4: Run conversation and resume tests and verify failure**
+- [x] **Step 4: Run conversation and resume tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataConversationStoreTest,DefaultAskDataContextCompressorTest,AskDataResumeFlowTest test`
 
 Expected: FAIL because conversation classes and resume flow do not exist.
 
-- [ ] **Step 5: Implement checkpoint model and store**
+- [x] **Step 5: Implement checkpoint model and store**
 
 Required signatures:
 
@@ -730,29 +730,29 @@ public interface AskDataContextCompressor {
 
 `AskDataCheckpoint` fields: `conversationId`, `checkpointId`, `resumeToken`, `requestSummary`, `modelKey`, `datasourceKey`, `dialect`, `List<String> completedSteps`, `currentStep`, `sql`, `Boolean sqlValidated`, `Boolean sqlExecuted`, `Integer rowCount`, `compressedSummary`, `List<AskDataStepLog> steps`, `errorCode`, `version`, `createdAt`.
 
-- [ ] **Step 6: Implement default compressor**
+- [x] **Step 6: Implement default compressor**
 
 Compress only text fields: prompt, raw model response, retrieved snippets and step details. Preserve structured fields by copying them separately into checkpoint fields. If compression fails, return `AskDataResult.failure(CONTEXT_COMPRESSION_FAILED, message)` from the flow.
 
-- [ ] **Step 7: Integrate checkpoints into flow**
+- [x] **Step 7: Integrate checkpoints into flow**
 
 After stable steps `metadata`, `generate-sql`, `validate-sql`, `execute-sql` and sub-agent merge, call `conversationStore.save(checkpoint)`. Generate `checkpointId` and `resumeToken` using `UUID.randomUUID().toString()`.
 
-- [ ] **Step 8: Implement resume entry**
+- [x] **Step 8: Implement resume entry**
 
 At flow start, if request has `resumeToken`, call `loadByResumeToken`; else if request has `conversationId`, call `loadLatest`. Validate version equals `AskDataProperties.Conversation.checkpointVersion`, validate completed step state, and continue from the first incomplete step. Do not repeat SQL execution when checkpoint has `sqlExecuted=true`; return stored result summary and proceed to `format-result`.
 
-- [ ] **Step 9: Register conversation beans**
+- [x] **Step 9: Register conversation beans**
 
 Register `InMemoryAskDataConversationStore` and `DefaultAskDataContextCompressor` with `@ConditionalOnMissingBean`.
 
-- [ ] **Step 10: Run tests**
+- [x] **Step 10: Run tests**
 
 Run the command from Step 4.
 
 Expected: PASS.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 Commit message: `feat(askdata): add checkpoints and resume flow`.
 

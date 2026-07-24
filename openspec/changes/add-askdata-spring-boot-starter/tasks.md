@@ -35,11 +35,11 @@
 
 ## 6. 上下文压缩与恢复
 
-- [ ] 6.1 定义 `AskDataConversationStore`、`AskDataContextCompressor`、`AskDataCheckpoint` 和 `AskDataResumeToken`。
-- [ ] 6.2 在流程关键步骤完成后写入检查点，记录会话 ID、请求摘要、模型 key、数据源 key、步骤状态、生成 SQL、压缩摘要和错误信息。
-- [ ] 6.3 实现默认上下文压缩策略，确保结构化字段不被摘要替代。
-- [ ] 6.4 实现恢复入口，通过 `conversationId` 或 `resumeToken` 从最近稳定检查点继续执行。
-- [ ] 6.5 对恢复失败、检查点缺失、版本不兼容和不安全 SQL 场景返回明确错误。
+- [x] 6.1 定义 `AskDataConversationStore`、`AskDataContextCompressor`、`AskDataCheckpoint` 和 `AskDataResumeToken`。
+- [x] 6.2 在流程关键步骤完成后写入检查点，记录会话 ID、请求摘要、模型 key、数据源 key、步骤状态、生成 SQL、压缩摘要和错误信息。
+- [x] 6.3 实现默认上下文压缩策略，确保结构化字段不被摘要替代。
+- [x] 6.4 实现恢复入口，通过 `conversationId` 或 `resumeToken` 从最近稳定检查点继续执行。
+- [x] 6.5 对恢复失败、检查点缺失、版本不兼容和不安全 SQL 场景返回明确错误。
 
 ## 7. Spring Boot 自动配置
 
@@ -54,5 +54,5 @@
 - [x] 8.3 增加默认模型选择、指定模型选择和模型缺失错误的单元测试。
 - [ ] 8.4 增加 Spring 上下文测试，覆盖自动配置默认 Bean 和 Bean 替换。
 - [x] 8.5 增加子 Agent 结果归并、超时、失败策略测试。
-- [ ] 8.6 增加上下文压缩、检查点写入、恢复继续和恢复失败测试。
+- [x] 8.6 增加上下文压缩、检查点写入、恢复继续和恢复失败测试。
 - [ ] 8.7 使用相关 Maven Wrapper 构建新模块和聚合模块。
