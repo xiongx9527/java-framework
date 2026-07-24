@@ -601,11 +601,11 @@ Commit message: `feat(askdata): add safe sql validation and execution`.
 - Consumes: model registry, metadata provider, vector retriever, prompt provider, SQL validator, SQL executor.
 - Produces: default step order `metadata -> prompt -> generate-sql -> validate-sql -> execute-sql -> format-result`.
 
-- [ ] **Step 1: Write failing dispatcher tests**
+- [x] **Step 1: Write failing dispatcher tests**
 
 Test synchronous sub-agent execution order, result aggregation, timeout flag when elapsed time exceeds request timeout, and failure policies `CONTINUE`, `DEGRADE`, `TERMINATE`.
 
-- [ ] **Step 2: Write failing flow tests**
+- [x] **Step 2: Write failing flow tests**
 
 Use stubs for metadata, prompt, model, validator and executor. Assert:
 
@@ -617,13 +617,13 @@ assertTrue(result.isSuccess());
 
 Also test model missing returns `MODEL_NOT_FOUND`, invalid model response returns `MODEL_RESPONSE_INVALID`, SQL rejected short-circuits before executor, and `execute=false` returns SQL without rows.
 
-- [ ] **Step 3: Run flow tests and verify failure**
+- [x] **Step 3: Run flow tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=SequentialAskDataAgentDispatcherTest,DefaultAskDataFlowExecutorTest test`
 
 Expected: FAIL because flow classes do not exist.
 
-- [ ] **Step 4: Implement Agent interfaces**
+- [x] **Step 4: Implement Agent interfaces**
 
 Required signatures:
 
@@ -646,25 +646,25 @@ public interface AskDataFlowExecutor {
 }
 ```
 
-- [ ] **Step 5: Implement sequential dispatcher**
+- [x] **Step 5: Implement sequential dispatcher**
 
 `SequentialAskDataAgentDispatcher` loops over sub-agents, records start/end millis, timeout flag, success flag, output summary and error message. `TERMINATE` stops and marks dispatch failed; `CONTINUE` keeps original error; `DEGRADE` stores degraded output summary from request.
 
-- [ ] **Step 6: Implement default flow executor**
+- [x] **Step 6: Implement default flow executor**
 
 `DefaultAskDataFlowExecutor` creates `AskDataStepContext`, loads metadata, retrieves vector documents for `schema`, `term`, `example`, builds Prompt, calls `AskDataModelRegistry.getChatModel(request.getModelKey())`, parses model JSON with Jackson already provided by Spring Boot, validates SQL, executes only when effective `execute` is true, and assembles `AskDataResult`.
 
-- [ ] **Step 7: Register flow beans**
+- [x] **Step 7: Register flow beans**
 
 Register `SequentialAskDataAgentDispatcher` and `DefaultAskDataFlowExecutor` with `@ConditionalOnMissingBean`.
 
-- [ ] **Step 8: Run tests**
+- [x] **Step 8: Run agent flow tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit agent flow executor**
 
 Commit message: `feat(askdata): add agent flow executor`.
 
