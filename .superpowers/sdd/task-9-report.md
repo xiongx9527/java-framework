@@ -104,3 +104,22 @@ rg -n "SQLBot|sqlbot|待定|稍后实现|补充细节" fw-plus-ai-project/fw-plu
 1. 每次 Maven 执行均报告 `fw-plus-ai-boot-autoconfigure/pom.xml` 中 `langchain4j-milvus`、`langchain4j-qdrant`、`langchain4j-redis` 的重复依赖声明。这是既存的上游 POM 警告，未导致本次构建失败，且不属于 AskData starter 的最小修复范围。
 2. Step 1 的自动配置测试输出 SLF4J `StaticLoggerBinder` 缺失提示，测试仍全部通过；该提示不影响测试结论。
 3. Step 3 的精确 Maven 命令不会构建聚合 POM 下的子模块，详见 Step 3 说明。该命令成功，但其“现有 starter 继续编译”的预期需要由更具递归语义的命令单独验证。
+
+## Step 3 补充验证
+
+命令：
+
+```bash
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
+export PATH="$JAVA_HOME/bin:$PATH"
+./mvnw -f fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml clean install -DskipTests
+```
+
+退出状态：`0`
+
+关键输出摘要：使用 Zulu OpenJDK `1.8.0_402` 执行，Maven `BUILD SUCCESS`，总耗时 `11.589 s`。直接以 `fw-plus-ai-boot-starters/pom.xml` 作为反应堆根 POM，实际构建并安装了其全部直接 starter 子模块：`fw-plus-ai-boot-starter`、`fw-plus-ai-magicapi-plugin`、`fw-plus-ai-langchain4j-open-ai-spring-boot-starter`、`fw-plus-ai-langchain4j-spring-boot-starter`、`fw-plus-ai-askdata-spring-boot-starter`。其中 Magic-API 聚合模块还递归构建并安装了 `milvus`、`qdrant`、`weaviate`、`langchain4j` 四个插件子模块，反应堆共 10 个模块全部成功。
+
+AskData starter 在本次补充验证中重新编译 53 个主源码文件和 15 个测试源码文件，并将 JAR 与 POM 安装至本地 Maven 仓库。`-DskipTests` 仅跳过测试执行，不跳过测试源码编译。
+
+风险：本补充命令已覆盖原 Step 3 未递归构建 starter 子模块的验证缺口。既有的上游重复依赖声明警告及测试日志中的 SLF4J `StaticLoggerBinder` 提示仍需跟踪，但均未导致本次构建失败，也没有显示为 AskData 引入的问题。
