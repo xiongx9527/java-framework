@@ -1,0 +1,33 @@
+export default {
+    db: {
+        title: '数据库浏览器',
+        datasource: '数据源',
+        namespace: '命名空间',
+        table: '表',
+        view: '视图',
+        procedure: '存储过程',
+        function: '函数',
+        objects: '对象',
+        columns: '字段',
+        indexes: '索引',
+        preview: '数据预览',
+        refresh: '刷新',
+        filter: '筛选',
+        apply: '应用',
+        clear: '清除',
+        previous: '上一页',
+        next: '下一页',
+        empty: '暂无数据',
+        loading: '加载中',
+        loadFailed: '加载失败',
+        name: '名称',
+        type: '类型',
+        remarks: '备注',
+        nullable: '可空',
+        defaultValue: '默认值',
+        primaryKey: '主键',
+        sort: '排序',
+        direction: '方向',
+        value: '值'
+    }
+}
