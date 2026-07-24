@@ -26,6 +26,12 @@ export const createS3BrowserService = request => ({
         path: file.path,
         fileName: file.filename || file.name
     })),
+    downloadFile: async (storageKey, file) => unwrap(await invoke(request, 'sendGet', `/s3/datasource/${storageKey}/generateUploadPresignedUrl`, {
+        url: file.url,
+        basePath: file.basePath,
+        path: file.path,
+        fileName: file.filename || file.name
+    })),
     deleteFile: (storageKey, url) => invoke(request, 'sendPost', `/s3/datasource/${storageKey}/delete`, { url })
 })
 

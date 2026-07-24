@@ -21,7 +21,10 @@ export const createDbBrowserService = request => ({
     listObjects: (context, type) => invoke(request, 'sendGet', '/db/browser/objects', { ...context, type }),
     listRoutines: (context, type) => invoke(request, 'sendGet', '/db/browser/routines', { ...context, type }),
     getObjectDetail: target => invoke(request, 'sendGet', '/db/browser/object/detail', target),
-    preview: requestBody => invoke(request, 'sendJson', '/db/browser/preview', requestBody)
+    preview: requestBody => {
+        const { key, datasourceKey, ...body } = requestBody || {}
+        return invoke(request, 'sendJson', '/db/browser/preview', { datasourceKey: datasourceKey || key, ...body })
+    }
 })
 
 export const getDbBrowserService = () => createDbBrowserService(activeRequest)

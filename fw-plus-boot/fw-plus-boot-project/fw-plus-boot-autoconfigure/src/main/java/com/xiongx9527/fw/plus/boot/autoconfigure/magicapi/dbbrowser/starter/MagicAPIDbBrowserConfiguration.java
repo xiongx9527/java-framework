@@ -17,6 +17,8 @@ import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 @Configuration
 @ConditionalOnProperty(prefix = "magic-api.plugin.db", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class MagicAPIDbBrowserConfiguration implements MagicPluginConfiguration {
+	private static final String DB_BROWSER_JAVASCRIPT = "magic-db.1.0.0.iife.js";
+	private static final String DB_BROWSER_RESOURCE = "magic-editor/plugins/" + DB_BROWSER_JAVASCRIPT;
 
 	private final ObjectProvider<DbBrowserService> dbBrowserServiceProvider;
 
@@ -38,7 +40,10 @@ public class MagicAPIDbBrowserConfiguration implements MagicPluginConfiguration 
 
 	@Override
 	public Plugin plugin() {
-		return new Plugin("db", "MagicDB", "magic-db.1.0.0.iife.js");
+		if (MagicAPIDbBrowserConfiguration.class.getClassLoader().getResource(DB_BROWSER_RESOURCE) == null) {
+			return new Plugin("db");
+		}
+		return new Plugin("db", "MagicDB", DB_BROWSER_JAVASCRIPT);
 	}
 
 	@Override

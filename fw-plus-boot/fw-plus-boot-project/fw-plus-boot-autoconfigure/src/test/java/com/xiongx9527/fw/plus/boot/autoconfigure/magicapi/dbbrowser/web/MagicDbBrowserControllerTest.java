@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.dbbrowser.service.DbBr
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.dbbrowser.service.DbBrowserSqlBuilder;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.dbbrowser.service.DefaultDbBrowserService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.MagicApiPluginAutoConfiguration;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -37,6 +38,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -98,6 +100,16 @@ class MagicDbBrowserControllerTest {
 	}
 
 	@Test
+	void previewRequestJsonContractUsesDatasourceKey() throws Exception {
+		DbBrowserPreviewRequest request = new ObjectMapper().readValue(
+				"{\"datasourceKey\":\"orders\",\"objectName\":\"items\",\"objectType\":\"TABLE\"}",
+				DbBrowserPreviewRequest.class);
+
+		assertEquals("orders", request.getDatasourceKey());
+		assertEquals("items", request.getObjectName());
+	}
+
+	@Test
 	void endpointsRejectRequestsWithoutViewPermissionAndPropagateServiceValidationErrors() throws Exception {
 		DbBrowserService deniedService = mock(DbBrowserService.class);
 		Object deniedController = controller(deniedService, false);
@@ -124,8 +136,8 @@ class MagicDbBrowserControllerTest {
 		Object configuration = configurationClass.getConstructor(ObjectProvider.class).newInstance(mock(ObjectProvider.class));
 		Plugin plugin = (Plugin) configurationClass.getMethod("plugin").invoke(configuration);
 		assertEquals("db", plugin.getName());
-		assertEquals("MagicDB", plugin.getGlobalName());
-		assertEquals("magic-db.1.0.0.iife.js", plugin.getJavascriptFilename());
+		assertNull(plugin.getGlobalName());
+		assertNull(plugin.getJavascriptFilename());
 
 		DbBrowserSqlBuilder sqlBuilder = (DbBrowserSqlBuilder) configurationClass.getMethod("dbBrowserSqlBuilder").invoke(configuration);
 		Object service = configurationClass.getMethod("dbBrowserService", MagicDynamicDataSource.class, DbBrowserSqlBuilder.class)

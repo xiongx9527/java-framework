@@ -14,6 +14,8 @@ export default {
             previewUrl: 'Preview URL',
             preview: 'Preview',
             previewFailed: 'Unable to generate preview URL',
+            download: 'Download',
+            downloadFailed: 'Unable to generate download URL',
             delete: 'Delete',
             confirmDelete: 'Delete {0}?',
             cancel: 'Cancel',

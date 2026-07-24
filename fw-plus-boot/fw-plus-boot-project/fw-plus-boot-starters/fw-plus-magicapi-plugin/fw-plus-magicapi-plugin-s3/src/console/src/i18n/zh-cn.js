@@ -14,6 +14,8 @@ export default {
             previewUrl: '预览链接',
             preview: '预览',
             previewFailed: '无法生成预览链接',
+            download: '下载',
+            downloadFailed: '无法生成下载链接',
             delete: '删除',
             confirmDelete: '确定要删除 {0} 吗？',
             cancel: '取消',

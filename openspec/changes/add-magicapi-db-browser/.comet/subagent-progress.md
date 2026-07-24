@@ -264,3 +264,14 @@
 - OpenSpec: `openspec validate add-magicapi-db-browser --strict` passed.
 - Whitespace: `git diff --check` passed.
 - Documentation: added `fw-plus-magicapi-spring-boot-starter/docs/magicapi-db-browser.md`.
+
+## Final Review Fixes
+
+- Source: final whole-branch review from reviewer `019f9330-cbdf-7fd3-9fde-e58d0a7cfe73`.
+- Critical: fixed DB preview request contract by mapping console `key` to backend `datasourceKey`; docs now use `datasourceKey`; added frontend service and backend DTO contract coverage.
+- Important: fixed DB qualified object rendering by product family, avoiding PostgreSQL/Oracle invalid catalog.schema.table names and MySQL schema qualification.
+- Important: fixed pagination selection by product/version; unsupported SQL Server before 2012 and Oracle before 12c now fail explicitly instead of emitting optimistic fallback SQL.
+- Important: added DB plugin artifact to Boot dependency management and sample dependencies; DB backend plugin registration only publishes the IIFE filename when the plugin resource is present.
+- Important: S3 plugin UI now keeps real backend-supported preview/download/delete/list behavior, adds stale list response guards, and marks the management toolbar `adminOnly`.
+- Important: host toolbar loading now filters plugin `adminOnly` toolbars through generic plugin metadata `adminEnabled` without S3-specific host logic.
+- Minor: fixed documentation build command paths to use repo-root sub shell commands.

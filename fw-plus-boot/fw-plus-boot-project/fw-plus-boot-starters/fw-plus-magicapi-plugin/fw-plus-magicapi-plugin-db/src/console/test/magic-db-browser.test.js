@@ -45,7 +45,7 @@ test('DB 浏览服务通过注入的 request 调用元数据和预览接口', as
         { method: 'GET', url: '/db/browser/objects', payload: { ...context, type: 'TABLE' } },
         { method: 'GET', url: '/db/browser/routines', payload: { ...context, type: 'FUNCTION' } },
         { method: 'GET', url: '/db/browser/object/detail', payload: target },
-        { method: 'POST', url: '/db/browser/preview', payload: preview }
+        { method: 'POST', url: '/db/browser/preview', payload: { datasourceKey: 'orders', catalog: 'shop', schema: 'public', objectName: 'items', objectType: 'TABLE', page: 2, pageSize: 20, sortColumn: 'id', sortDirection: 'DESC' } }
     ])
 })
 
