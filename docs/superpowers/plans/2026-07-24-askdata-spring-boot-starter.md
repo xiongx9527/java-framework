@@ -288,13 +288,13 @@ public final class AskDataErrorCode {
 
 Add `@EnableConfigurationProperties(AskDataProperties.class)` to `AskDataAutoConfiguration`.
 
-- [x] **Step 6: Run tests**
+- [x] **Step 6: Run model registry tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [x] **Step 7: Commit**
+- [x] **Step 7: Commit model registry implementation**
 
 Commit message: `feat(askdata): define core api and properties`.
 
@@ -314,7 +314,7 @@ Commit message: `feat(askdata): define core api and properties`.
 - Consumes: `AskDataProperties.getModel().getDefaultChatModel()`, `AskDataProperties.getModel().getDefaultEmbeddingModel()`, optional existing `LangChain4jModelInfo`.
 - Produces: `AskDataModelRegistry.getChatModel(String modelKey)` and `AskDataModelRegistry.getEmbeddingModel(String modelKey)`.
 
-- [ ] **Step 1: Write failing registry tests**
+- [x] **Step 1: Write failing registry tests**
 
 Create tests covering default model, request model, missing request model, and missing default model:
 
@@ -336,13 +336,13 @@ public void shouldSelectRequestLevelChatModelWhenModelKeyExists() {
 
 Also assert `getChatModel("missing")` throws `AskDataModelException` with error code `MODEL_NOT_FOUND`, and `getChatModel(null)` throws `DEFAULT_MODEL_NOT_CONFIGURED` when no default model exists.
 
-- [ ] **Step 2: Run focused model tests and verify failure**
+- [x] **Step 2: Run focused model tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=LangChain4jAskDataModelRegistryTest test`
 
 Expected: FAIL because model interfaces and registry do not exist.
 
-- [ ] **Step 3: Implement model interfaces and exception**
+- [x] **Step 3: Implement model interfaces and exception**
 
 Required signatures:
 
@@ -365,7 +365,7 @@ public interface AskDataModelRegistry {
 
 `AskDataModelResponse` contains `text`, `rawResponse`, `modelKey`. `AskDataModelException` contains `errorCode` and `message`.
 
-- [ ] **Step 4: Implement LangChain4j adapter**
+- [x] **Step 4: Implement LangChain4j adapter**
 
 `LangChain4jAskDataModelRegistry` reads `LangChain4jModelInfo.getChatLanguageModelMap()` and `getEmbeddingModelMap()`. It resolves `null` or blank `modelKey` to configured defaults, validates the resolved key, and adapts:
 
@@ -376,7 +376,7 @@ return prompt -> new AskDataModelResponse(chatLanguageModel.generate(prompt).tex
 
 For embeddings, call existing LangChain4j `EmbeddingModel.embed(text)` and convert vector values to `List<Float>`.
 
-- [ ] **Step 5: Register default model registry bean**
+- [x] **Step 5: Register default model registry bean**
 
 In `AskDataAutoConfiguration`, add:
 
@@ -389,13 +389,13 @@ public AskDataModelRegistry askDataModelRegistry(AskDataProperties properties,
 }
 ```
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run the command from Step 2.
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Commit message: `feat(askdata): add multi model registry`.
 
