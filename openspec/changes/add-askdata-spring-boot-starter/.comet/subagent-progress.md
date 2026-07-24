@@ -14,6 +14,7 @@
 - Fixer: Dirac (019f92ff-d2c5-7b51-829f-dbeb50ef6718)
 - Re-reviewer: Singer (019f930a-bce0-7d82-8d1e-7d105117b190)
 - Extra fixer: Goodall (019f9346-7fbb-75e3-b777-255b3b5e5363)
+- Extra re-reviewer: Linnaeus (019f934b-27b6-77b2-9a38-c5ac1b0d95a1)
 - Review result: Needs fixes, 3 Important findings, 1 Minor test coverage note
 - Fix result: DONE_WITH_CONCERNS, commit 820a4d6, focused tests 11 passed, module tests 54 passed, git diff --check clean
 - Re-review result: Needs fixes, 1 Important finding
@@ -37,4 +38,5 @@
 - Re-review package: .superpowers/sdd/review-7a8b60e..820a4d6.diff
 - Re-review feedback: .superpowers/sdd/task-7-rereview-singer.md
 - Extra fix report: .superpowers/sdd/task-7-report.md#extra-review-fix-2026-07-24
+- Extra re-review package: .superpowers/sdd/review-b01d72f..63c94e8.diff
 - Previous task: Task 6 complete, commit 09cd6e8, review approved
