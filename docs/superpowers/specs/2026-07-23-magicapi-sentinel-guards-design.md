@@ -2,6 +2,8 @@
 comet_change: add-magicapi-sentinel-guards
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-24-add-magicapi-sentinel-guards
+status: final
 ---
 
 # Magic-API Sentinel Guards 技术设计
