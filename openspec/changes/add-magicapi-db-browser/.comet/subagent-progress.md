@@ -8,7 +8,7 @@
 ## Current Task
 
 - Plan task: Task 1: 后端 DTO 与 SQL Builder 安全骨架
-- OpenSpec mapping: 1.1 定义 DB 浏览响应/请求 DTO；2.2 identifier 白名单校验和 quote 处理；2.3 安全过滤条件解析；2.4 pageSize 默认值和最大值限制；2.5 拒绝任意 SQL、写操作、DDL/DML、函数调用和存储过程调用入口。
+- OpenSpec mapping: 2.2 identifier 白名单校验和 quote 处理；2.3 安全过滤条件解析；2.4 pageSize 默认值和最大值限制；2.5 拒绝任意 SQL、写操作、DDL/DML、函数调用和存储过程调用入口。1.1 remains open until Task 2 adds the metadata DTOs for data sources, namespaces, objects, columns, indexes, and routines.
 - Stage: complete
 - Implementer: 019f9278-6f25-7612-b87e-0a5577cddcc4
 - Brief: .superpowers/sdd/task-1-brief.md
@@ -82,5 +82,5 @@
 - Critical: none.
 - Important: none.
 - Minor: none.
-- Cannot verify until later tasks: DefaultDbBrowserService must build allowedColumns/allowedObjects from JDBC metadata; preview execution must bind BuildResult parameters into PreparedStatement.
+- Cannot verify until later tasks: DefaultDbBrowserService must build allowedColumns/allowedObjects from JDBC metadata; preview execution must bind BuildResult parameters into PreparedStatement; metadata DTOs for data sources, namespaces, objects, columns, indexes, and routines still need to be added before OpenSpec 1.1 can be checked off.
 - Task 1: complete (commits 0708625..f9c0ad9, review clean)
