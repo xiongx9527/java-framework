@@ -8,7 +8,7 @@
 ## Current
 
 - Task: Task 6: 多 Agent、子 Agent dispatcher 与默认流程
-- Stage: task-review
+- Stage: blocked
 - Implementer: Euclid (019f92c8-fc22-7cf1-b0ef-22fb001ce07e)
 - Implementation commit: c8c52f7
 - Changed files: flow/*, AskDataAutoConfiguration.java, starter pom.xml, flow tests
@@ -30,6 +30,9 @@
 - Fix GREEN evidence: DefaultAskDataFlowExecutorTest passed 7 tests; Task 6 focused tests passed 12 tests.
 - Re-review package: .superpowers/sdd/review-c3d4b85..a441c00.diff
 - Re-reviewer: Feynman (019f92dd-df8c-7130-b17a-319962ece282)
+- Re-review result: needs fixes, 1 Important finding remains after standard review-fix round.
 - Unresolved Important finding:
-  - DefaultAskDataFlowExecutor must convert AskDataVectorRetriever and AskDataDialectRegistry runtime exceptions into failed AskDataResult with step logs and error code; executor must not be called.
+  - DefaultAskDataFlowExecutor must return a distinct dependency failure error code for AskDataDialectRegistry runtime exceptions instead of SQL_REJECTED.
+  - resolved: AskDataVectorRetriever runtime exceptions return failed AskDataResult with step logs and error code; executor is not called.
+  - resolved: AskDataDialectRegistry runtime exceptions are converted to failed AskDataResult with step logs; executor is not called.
 - Previous task: Task 5 complete, commit 1e9a4b3, review approved
