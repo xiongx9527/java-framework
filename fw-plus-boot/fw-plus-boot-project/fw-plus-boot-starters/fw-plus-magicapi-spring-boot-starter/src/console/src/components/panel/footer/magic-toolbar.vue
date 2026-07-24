@@ -72,22 +72,6 @@ const toolbars = reactive([
     { id: 'event', title: $i('toolbars.event'), icon: 'event', component: shallowRef(resolveDynamicComponent('magic-event')), style: { float: 'right'} }
 ])
 
-// 只有当constants.PLUGINS_DATA中包含s3插件时，才添加s3工具栏
-if (constants.PLUGINS_DATA.some(plugin => plugin.name === 's3' && plugin.adminEnabled === true)) {
-    toolbars.push({
-        id: 's3',
-        title: $i('toolbars.s3'),
-        icon: 's3',
-        component: shallowRef(resolveDynamicComponent('magic-s3')),
-        max: 1000,
-        min: 200,
-        value: 500,
-        fullscreen: true
-    })
-}
-
-
-
 // 只有当constants.PLUGINS_DATA中包含pulsar插件时，才添加pulsar工具栏
 if (constants.PLUGINS_DATA.some(plugin => plugin.name === 'pulsar'  && plugin.adminEnabled === true)) {
     toolbars.push({
