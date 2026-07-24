@@ -21,4 +21,5 @@
   - Public API contract change
   - Single task diff exceeds 200 lines
 - Review package: .superpowers/sdd/review-eaf2f14..8ba0f54.diff
+- Reviewer: Hypatia (019f92b0-2595-7a43-ac62-bd488df47e1a)
 - Previous task: Task 4 complete, commit 81a893f8c24902b1a02773e55f1e9ca59b843578, review approved
