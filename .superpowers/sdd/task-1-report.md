@@ -229,3 +229,58 @@ GREEN 命令与通过摘要:
 - Maven settings 存在既有 warning：`Unrecognised tag: 'repository'`。
 - 聚合模型存在既有 warning：`fw-plus-auth-satoken` 重复声明 `cn.dev33:sa-token-core`。
 - 测试运行中出现既有 SLF4J NOP logger 提示与 deprecated API 编译提示；本次修复未改动相关区域。
+
+---
+
+# Magic-API DB Browser Task 1 Report
+
+## 实现内容
+
+- 新增 Java 8 DTO：`DbBrowserPreviewRequest`、`DbBrowserPreviewResult`、`DbBrowserFilter`。
+- 新增 `DbBrowserSqlBuilder` 与 `BuildResult`，仅构造带分页的只读 `SELECT`。
+- 标识符必须来自对象或字段白名单，并使用 JDBC metadata 返回的 quote 字符引用。
+- 仅允许 `TABLE`/`VIEW` 预览；过滤操作符限定为 `eq`、`ne`、`like`、`gt`、`gte`、`lt`、`lte`、`isNull`、`isNotNull`；过滤值仅写入参数列表。
+- pageSize 默认 50，最大 200；排序仅允许白名单字段和 `ASC`/`DESC`。
+
+## RED 失败命令和摘要
+
+1. `cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest=DbBrowserSqlBuilderTest test`
+   - 失败：工作树缺失 `.mvn/wrapper/maven-wrapper.properties` 和 `maven-wrapper.jar`，无法启动 Maven Wrapper。
+2. `cd fw-plus-boot && mvn -f fw-plus-boot-project/fw-plus-boot-autoconfigure/pom.xml -Dtest=DbBrowserSqlBuilderTest test`
+   - 初始 RED：测试编译失败，`DbBrowserSqlBuilder` 和 DTO 不存在。
+   - 后续 RED：完整限定对象白名单场景被错误拒绝；函数类型未被拒绝。
+
+## GREEN 通过命令和摘要
+
+`cd fw-plus-boot && mvn -f fw-plus-boot-project/fw-plus-boot-autoconfigure/pom.xml -Dtest=DbBrowserSqlBuilderTest test`
+
+- 通过：6 tests, 0 failures, 0 errors, 0 skipped。
+
+## 测试结果
+
+- 未知排序字段拒绝。
+- 未知过滤字段拒绝。
+- 超限 pageSize 截断至最大值。
+- 过滤值不拼接到 SQL，而是保留在参数列表。
+- 支持完整限定对象白名单并 quote 标识符。
+- 拒绝函数对象类型。
+
+## 变更文件
+
+- `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/dbbrowser/model/DbBrowserFilter.java`
+- `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/dbbrowser/model/DbBrowserPreviewRequest.java`
+- `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/dbbrowser/model/DbBrowserPreviewResult.java`
+- `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/dbbrowser/service/DbBrowserSqlBuilder.java`
+- `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/dbbrowser/service/DbBrowserSqlBuilderTest.java`
+
+## 自审结果
+
+- 未接收任意 SQL 文本，未构造 DDL/DML，未调用函数或存储过程。
+- 对象、排序字段和过滤字段均受白名单约束；所有输出标识符均 quote。
+- `BuildResult` 对参数列表返回不可修改副本。
+- `git diff --check` 通过。
+
+## 风险信号
+
+- Maven Wrapper 文件缺失；根聚合执行系统 Maven 还会因 sample 模块缺少 `fw-plus-neo4j-jdbc` version 而在构建模型阶段失败。因此使用模块 POM 的等价系统 Maven 命令完成测试。
+- 当前分页 SQL 采用标准 `OFFSET ... FETCH NEXT` 语法；后续服务层接入多数据库方言时需要验证目标驱动支持情况。
