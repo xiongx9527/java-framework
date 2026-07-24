@@ -139,3 +139,72 @@
 - Important: none.
 - Minor: runtime anonymous request coverage is reflective rather than full Magic-API request-chain integration; final whole-branch review should decide if broader controller integration coverage is needed.
 - Task 3: complete (commits 6e1f616..882ca51, review clean)
+
+## Current Task 4
+
+- Plan task: Task 4: 新增 DB 插件 UI
+- OpenSpec mapping: 4.1 DB plugin console structure/service/icon/i18n; 4.2 datasource selector and object browser; 4.3 table/view details with columns, primary keys, indexes, and preview; 4.4 sorting/filtering/pagination/loading/empty/error states; 4.5 plugin build artifact `magic-db.1.0.0.iife.js`.
+- Stage: implementing
+- Brief: .superpowers/sdd/task-4-brief.md
+- Report: .superpowers/sdd/task-4-report.md
+- Base commit: bd632bc
+- Risk signals: plugin UI must live under `fw-plus-magicapi-plugin-db/src/console`; do not modify host console UI for DB; do not migrate S3 UI in this task.
+
+## Task 4 Review 1
+
+- Reviewer: 019f92e9-776f-7ad1-abdd-a132c9b8c250
+- Verdict: not approved
+- Important: source/namespace/object selection committed UI state before successful backend responses, losing loaded context on failure.
+- Fix commit: 3a719b fix: preserve db browser console context on load failure
+- Fix GREEN: npm test 1/1 passing; npm run build passing; git diff --check passing
+
+## Task 4 Review 2
+
+- Reviewer: 019f92ef-5f9a-7c33-b9b5-b9cf67ebea7e
+- Verdict: not approved
+- Important: object tree lacked namespace/object loading and empty states.
+- Fix commit: 7fb08a fix: show db browser tree loading and empty states
+- Fix GREEN: npm test 2/2 passing; npm run build passing; git diff --check passing
+
+## Task 4 Review 3
+
+- Reviewer: 019f92f4-dce6-7c51-9dfc-de3a40647248
+- Verdict: not approved
+- Important: preview pagination could show old rows with a new page number after request failure.
+- Fix commit: 175f51a fix: preserve db browser preview page on load failure
+- Fix GREEN: npm test 2/2 passing; npm run build passing; git diff --check passing
+
+## Task 4 Review 4
+
+- Reviewer: 019f92fa-4e18-78f3-8759-988bdc8f4cc4
+- Verdict: not approved
+- Important: preview sort/filter controls could show new query conditions with old preview data after request failure.
+- Fix commit: 394f456 fix: preserve db browser preview query state on failure
+- Fix GREEN: npm test 3/3 passing; npm run build passing; git diff --check passing
+
+## Task 4 Review 5
+
+- Reviewer: 019f9301-6cc0-78b3-b2f4-13736a5df81d
+- Verdict: not approved
+- Important: stale source/namespace/object/preview responses could overwrite newer user selections or preview state.
+- Fix commit: fdd569a fix: ignore stale db browser console responses
+- Fix GREEN: npm test 4/4 passing; npm run build passing; git diff --check passing
+
+## Task 4 Review 6
+
+- Reviewer: 019f9308-9b5d-7873-a503-b82c87659458
+- Verdict: not approved
+- Critical: object initial preview could overwrite a newer preview request.
+- Important: datasource refresh lacked stale response protection.
+- Fix commit: 7cac38b fix: close db browser stale response guards
+- Fix GREEN: npm test 4/4 passing; npm run build passing; git diff --check passing
+
+## Task 4 Review 7
+
+- Reviewer: 019f9310-6373-78c1-b246-132337e1618c
+- Verdict: approved
+- Critical: none.
+- Important: none.
+- Minor: none.
+- Coordinator confirmation: backend plugin registration matches `new Plugin("db", "MagicDB", "magic-db.1.0.0.iife.js")`; Task 4 diff did not touch host UI or S3 plugin UI.
+- Task 4: complete (commits bd632bc..7cac38b, review clean)
