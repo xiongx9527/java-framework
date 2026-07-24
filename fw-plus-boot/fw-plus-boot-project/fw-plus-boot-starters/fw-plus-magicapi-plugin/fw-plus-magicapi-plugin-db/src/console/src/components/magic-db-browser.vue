@@ -101,44 +101,58 @@ const loadDataSources = async () => {
 }
 const selectSource = async source => {
   if (source.key === selectedSource.value) return
-  selectedSource.value = source.key
-  activeNamespace.value = null
-  selectedObject.value = null
   error.value = ''
-  try { namespaces.value = await service().listNamespaces(source.key) || [] } catch (cause) { reportError(cause) }
+  try {
+    const loadedNamespaces = await service().listNamespaces(source.key) || []
+    selectedSource.value = source.key
+    namespaces.value = loadedNamespaces
+    activeNamespace.value = null
+    objects.value = []
+    routines.value = []
+    selectedObject.value = null
+    detail.value = {}
+    preview.value = { columns: [], rows: [], hasMore: false }
+  } catch (cause) { reportError(cause) }
 }
 const loadNamespace = async namespace => {
-  activeNamespace.value = namespace
-  selectedObject.value = null
   error.value = ''
   const requestContext = context(namespace)
   try {
     const [loadedObjects, loadedRoutines] = await Promise.all([
       service().listObjects(requestContext), service().listRoutines(requestContext)
     ])
+    activeNamespace.value = namespace
     objects.value = loadedObjects || []
     routines.value = loadedRoutines || []
+    selectedObject.value = null
+    detail.value = {}
+    preview.value = { columns: [], rows: [], hasMore: false }
   } catch (cause) { reportError(cause) }
 }
 const selectObject = async item => {
-  selectedObject.value = item
-  previewState.page = 1
-  detail.value = {}
   error.value = ''
   loading.detail = true
   try {
-    detail.value = await service().getObjectDetail({ ...context(item), objectName: item.name, objectType: item.type }) || {}
-    if (['TABLE', 'VIEW'].includes(item.type)) await loadPreview()
+    const loadedDetail = await service().getObjectDetail({ ...context(item), objectName: item.name, objectType: item.type }) || {}
+    const initialPreviewState = { ...previewState, page: 1 }
+    const loadedPreview = ['TABLE', 'VIEW'].includes(item.type)
+      ? await loadPreviewFor(item, initialPreviewState)
+      : { columns: [], rows: [], hasMore: false }
+    selectedObject.value = item
+    detail.value = loadedDetail
+    preview.value = loadedPreview
+    Object.assign(previewState, initialPreviewState)
   } catch (cause) { reportError(cause) } finally { loading.detail = false }
+}
+const loadPreviewFor = async (item, state) => {
+  loading.preview = true
+  const filters = filterColumn.value && filterValue.value !== '' ? [{ column: filterColumn.value, operator: 'like', value: `%${filterValue.value}%` }] : []
+  try { return await service().preview({ ...context(item), objectName: item.name, objectType: item.type, ...state, filters }) || { columns: [], rows: [], hasMore: false } } finally { loading.preview = false }
 }
 const loadPreview = async () => {
   if (!isPreviewable.value) return
-  loading.preview = true
   error.value = ''
-  const filters = filterColumn.value && filterValue.value !== '' ? [{ column: filterColumn.value, operator: 'like', value: `%${filterValue.value}%` }] : []
-  try {
-    preview.value = await service().preview({ ...context(selectedObject.value), objectName: selectedObject.value.name, objectType: selectedObject.value.type, ...previewState, filters }) || { columns: [], rows: [] }
-  } catch (cause) { reportError(cause) } finally { loading.preview = false }
+  try { preview.value = await loadPreviewFor(selectedObject.value, previewState) } catch (cause) { reportError(cause) }
 }
 const applyPreview = () => { previewState.page = 1; loadPreview() }
 const clearFilter = () => { filterColumn.value = ''; filterValue.value = ''; applyPreview() }
