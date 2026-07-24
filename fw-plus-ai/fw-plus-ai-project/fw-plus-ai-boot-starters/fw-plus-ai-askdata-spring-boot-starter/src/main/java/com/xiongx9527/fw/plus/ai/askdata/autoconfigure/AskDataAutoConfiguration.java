@@ -1,6 +1,10 @@
 package com.xiongx9527.fw.plus.ai.askdata.autoconfigure;
 
 import com.xiongx9527.fw.plus.ai.askdata.AskDataProperties;
+import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataAgentDispatcher;
+import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataFlowExecutor;
+import com.xiongx9527.fw.plus.ai.askdata.flow.DefaultAskDataFlowExecutor;
+import com.xiongx9527.fw.plus.ai.askdata.flow.SequentialAskDataAgentDispatcher;
 import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.askdata.metadata.EmptyAskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRegistry;
@@ -78,5 +82,21 @@ public class AskDataAutoConfiguration {
         }
         return new CompositeAskDataVectorRetriever(Collections.<AskDataVectorRetriever>singletonList(
                 new ContentRetrieverAskDataVectorRetriever(contentRetriever)), properties.getVector().getDefaultTopK());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataAgentDispatcher askDataAgentDispatcher() {
+        return new SequentialAskDataAgentDispatcher();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataFlowExecutor askDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+            AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+            AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor) {
+        return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
+                promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor);
     }
 }
