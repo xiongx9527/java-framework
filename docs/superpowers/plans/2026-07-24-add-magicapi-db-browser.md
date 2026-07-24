@@ -143,7 +143,7 @@ git commit -m "feat: add magicapi db browser sql builder"
 - Consumes: Task 1 DTO 和 `DbBrowserSqlBuilder`。
 - Produces: `listDataSources()`、`listNamespaces(String key)`、`listObjects(String key, String catalog, String schema, String type)`、`getObjectDetail(...)`、`preview(DbBrowserPreviewRequest)`。
 
-- [ ] **Step 1: 写元数据服务失败测试**
+- [x] **Step 1: 写元数据服务失败测试**
 
 使用 H2 或可控 DataSource 建表和视图，断言表/视图列表、字段、主键、索引和分页预览返回结构稳定。
 
@@ -154,15 +154,15 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: FAIL，原因是服务不存在。
 
-- [ ] **Step 2: 实现 `DefaultDbBrowserService`**
+- [x] **Step 2: 实现 `DefaultDbBrowserService`**
 
 从现有 `MagicDynamicDataSource` 获取已注册数据源连接；优先通过 `DatabaseMetaData` 读取 catalog、schema、tables、views、procedures、functions、columns、primary keys、indexes。驱动未返回的字段保持 null。
 
-- [ ] **Step 3: 接入只读预览**
+- [x] **Step 3: 接入只读预览**
 
 预览前读取目标表/视图元数据，生成 allowed object/columns，调用 SQL Builder，`PreparedStatement` 绑定参数，请求 `pageSize + 1` 判断 `hasMore`。
 
-- [ ] **Step 4: 跑服务测试**
+- [x] **Step 4: 跑服务测试**
 
 Run:
 ```bash
@@ -171,7 +171,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: PASS。
 
-- [ ] **Step 5: 提交 Task 2**
+- [x] **Step 5: 提交 Task 2**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/dbbrowser/service fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/dbbrowser/service
