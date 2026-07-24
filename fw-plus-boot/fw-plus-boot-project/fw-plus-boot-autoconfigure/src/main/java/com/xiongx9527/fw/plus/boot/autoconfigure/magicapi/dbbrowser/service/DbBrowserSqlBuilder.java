@@ -15,6 +15,18 @@ import java.util.Set;
 public class DbBrowserSqlBuilder {
 	public static final int DEFAULT_PAGE_SIZE = 50;
 	public static final int MAX_PAGE_SIZE = 200;
+	private static final String ALLOWED_OBJECT_PREFIX = "DBB1|";
+
+	public static String allowedObject(String type, String catalog, String schema, String objectName) {
+		if (isBlank(type)) {
+			throw new IllegalArgumentException("Object type is required");
+		}
+		if (isBlank(objectName)) {
+			throw new IllegalArgumentException("Object name is required");
+		}
+		return ALLOWED_OBJECT_PREFIX + encodeSegment(type.toUpperCase(Locale.ROOT)) + encodeSegment(catalog)
+				+ encodeSegment(schema) + encodeSegment(objectName);
+	}
 
 	public BuildResult buildPreviewSql(Connection connection, DbBrowserPreviewRequest request,
 			Set<String> allowedColumns, Set<String> allowedObjects) throws SQLException {
@@ -38,8 +50,8 @@ public class DbBrowserSqlBuilder {
 
 	private String resolveObjectIdentifier(DbBrowserPreviewRequest request, Set<String> allowedObjects, String quote) {
 		String objectName = request.getObjectName();
-		String qualifiedName = qualify(request.getCatalog(), request.getSchema(), objectName);
-		String trustedObjectType = resolveTrustedObjectType(qualifiedName, allowedObjects);
+		String trustedObjectType = resolveTrustedObjectType(request.getCatalog(), request.getSchema(), objectName,
+				allowedObjects);
 		if (trustedObjectType == null) {
 			throw new IllegalArgumentException("Unknown database object");
 		}
@@ -51,23 +63,17 @@ public class DbBrowserSqlBuilder {
 		return identifier.toString();
 	}
 
-	private String resolveTrustedObjectType(String qualifiedName, Set<String> allowedObjects) {
-		if (qualifiedName == null || qualifiedName.isEmpty()) {
+	private String resolveTrustedObjectType(String catalog, String schema, String objectName, Set<String> allowedObjects) {
+		if (isBlank(objectName)) {
 			return null;
 		}
-		for (String allowedObject : allowedObjects) {
-			if (allowedObject == null) {
-				continue;
-			}
-			int typeSeparator = allowedObject.indexOf(':');
-			if (typeSeparator <= 0 || typeSeparator == allowedObject.length() - 1) {
-				continue;
-			}
-			String objectType = allowedObject.substring(0, typeSeparator).toUpperCase(Locale.ROOT);
-			if (("TABLE".equals(objectType) || "VIEW".equals(objectType))
-					&& qualifiedName.equals(allowedObject.substring(typeSeparator + 1))) {
-				return objectType;
-			}
+		String tableKey = allowedObject("TABLE", catalog, schema, objectName);
+		if (allowedObjects.contains(tableKey)) {
+			return "TABLE";
+		}
+		String viewKey = allowedObject("VIEW", catalog, schema, objectName);
+		if (allowedObjects.contains(viewKey)) {
+			return "VIEW";
 		}
 		return null;
 	}
@@ -148,22 +154,12 @@ public class DbBrowserSqlBuilder {
 		return value;
 	}
 
-	private String qualify(String catalog, String schema, String objectName) {
-		StringBuilder qualifiedName = new StringBuilder();
-		appendIdentifierPart(qualifiedName, catalog);
-		appendIdentifierPart(qualifiedName, schema);
-		appendIdentifierPart(qualifiedName, objectName);
-		return qualifiedName.toString();
+	private static String encodeSegment(String value) {
+		return value == null ? "-1:" : value.length() + ":" + value;
 	}
 
-	private void appendIdentifierPart(StringBuilder qualifiedName, String part) {
-		if (part == null || part.trim().isEmpty()) {
-			return;
-		}
-		if (qualifiedName.length() > 0) {
-			qualifiedName.append('.');
-		}
-		qualifiedName.append(part);
+	private static boolean isBlank(String value) {
+		return value == null || value.trim().isEmpty();
 	}
 
 	private void appendQuotedIdentifierPart(StringBuilder identifier, String part, String quote) {
