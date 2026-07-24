@@ -38,6 +38,7 @@
 - Extra fix RED evidence: DefaultAskDataSqlValidatorTest failed because AskDataDialect.hasRowLimit contract was missing.
 - Extra fix GREEN evidence: DefaultAskDataSqlValidatorTest passed 14 tests; Task 5 focused tests passed 15 tests.
 - Extra re-review package: .superpowers/sdd/review-31e474d..1e9a4b3.diff
+- Extra re-reviewer: Hegel (019f92c5-8942-75f0-9aba-efd032b20ac1)
 - Unresolved Critical findings:
   - resolved: DefaultAskDataSqlValidator rejects writable SELECT INTO.
   - resolved: DefaultAskDataSqlValidator rejects MySQL executable comments such as /*!50000; delete ... */.
