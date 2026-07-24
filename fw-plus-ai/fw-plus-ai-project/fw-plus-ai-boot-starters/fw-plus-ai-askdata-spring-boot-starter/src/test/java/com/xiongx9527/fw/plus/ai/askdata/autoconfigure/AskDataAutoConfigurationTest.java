@@ -121,16 +121,24 @@ public class AskDataAutoConfigurationTest {
 
     @Test
     public void shouldGenerateSqlWhenSubAgentReturnsFailure() {
+        FailureAskDataSubAgent subAgent = new FailureAskDataSubAgent();
         withDefaultFlowDependencies()
-                .withBean(AskDataSubAgent.class, FailureAskDataSubAgent::new)
-                .run(context -> assertSuccessfulSql(context.getBean(AskDataService.class).ask(createRequest())));
+                .withBean(AskDataSubAgent.class, () -> subAgent)
+                .run(context -> {
+                    assertSuccessfulSql(context.getBean(AskDataService.class).ask(createRequest()));
+                    assertEquals(1, subAgent.getExecuteSubTaskInvocations());
+                });
     }
 
     @Test
     public void shouldGenerateSqlWhenSubAgentThrowsRuntimeException() {
+        ThrowingAskDataSubAgent subAgent = new ThrowingAskDataSubAgent();
         withDefaultFlowDependencies()
-                .withBean(AskDataSubAgent.class, ThrowingAskDataSubAgent::new)
-                .run(context -> assertSuccessfulSql(context.getBean(AskDataService.class).ask(createRequest())));
+                .withBean(AskDataSubAgent.class, () -> subAgent)
+                .run(context -> {
+                    assertSuccessfulSql(context.getBean(AskDataService.class).ask(createRequest()));
+                    assertEquals(1, subAgent.getExecuteSubTaskInvocations());
+                });
     }
 
     @Test
@@ -182,6 +190,7 @@ public class AskDataAutoConfigurationTest {
     private static class TestAskDataSubAgent implements AskDataSubAgent {
 
         private boolean executed;
+        private int executeSubTaskInvocations;
 
         @Override
         public String getName() {
@@ -195,8 +204,17 @@ public class AskDataAutoConfigurationTest {
 
         @Override
         public AskDataSubAgentResult executeSubTask(AskDataSubAgentRequest request) {
+            recordExecuteSubTaskInvocation();
             executed = true;
             return AskDataSubAgentResult.success("done");
+        }
+
+        protected void recordExecuteSubTaskInvocation() {
+            executeSubTaskInvocations++;
+        }
+
+        protected int getExecuteSubTaskInvocations() {
+            return executeSubTaskInvocations;
         }
     }
 
@@ -204,6 +222,7 @@ public class AskDataAutoConfigurationTest {
 
         @Override
         public AskDataSubAgentResult executeSubTask(AskDataSubAgentRequest request) {
+            recordExecuteSubTaskInvocation();
             return AskDataSubAgentResult.failure("sub-agent failed");
         }
     }
@@ -212,6 +231,7 @@ public class AskDataAutoConfigurationTest {
 
         @Override
         public AskDataSubAgentResult executeSubTask(AskDataSubAgentRequest request) {
+            recordExecuteSubTaskInvocation();
             throw new RuntimeException("sub-agent failed");
         }
     }

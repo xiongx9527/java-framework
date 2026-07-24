@@ -170,3 +170,52 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-s
 
 - `fw-plus-ai-boot-autoconfigure/pom.xml` 的 `langchain4j-milvus`、`langchain4j-qdrant`、`langchain4j-redis` 重复依赖声明。
 - 测试运行时缺少 `org.slf4j.impl.StaticLoggerBinder`，SLF4J 使用 NOP 日志实现。
+
+---
+
+## Extra Re-review Fix（Godel 子代理调用断言）
+
+### 状态
+
+`DONE_WITH_CONCERNS`
+
+### 修复内容
+
+- 在失败子代理和抛出异常子代理测试中保留测试替身实例。
+- 两个替身均记录 `executeSubTask` 调用次数，并在默认 Service/Flow 链路返回成功 SQL 后断言调用次数恰好为 `1`。
+- 未修改无子代理测试，也未修改生产代码。
+
+### TDD 证据
+
+#### RED
+
+无有效的 RED 失败。新增断言首次能够执行时即通过，证明默认 flow 已正确调用子代理并采用 `CONTINUE` 回退语义；未通过篡改生产代码或期望值伪造失败。
+
+首次执行曾因测试替身父类中的私有计数字段无法从子类静态类型读取而在 `testCompile` 失败；该失败属于新增测试辅助代码的可见性错误，不是行为断言失败。将其替换为受保护读取方法后，测试按预期通过。
+
+#### GREEN
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
+export PATH="$JAVA_HOME/bin:$PATH"
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai
+./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataAutoConfigurationTest test
+```
+
+结果：通过，`AskDataAutoConfigurationTest` 共 9 个测试全部成功。
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
+export PATH="$JAVA_HOME/bin:$PATH"
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai
+./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter test
+```
+
+结果：通过，模块共 68 个测试全部成功。
+
+### 风险信号
+
+已命中既有告警，未由本次改动引入：
+
+- `fw-plus-ai-boot-autoconfigure/pom.xml` 的 `langchain4j-milvus`、`langchain4j-qdrant`、`langchain4j-redis` 重复依赖声明。
+- 测试运行时缺少 `org.slf4j.impl.StaticLoggerBinder`，SLF4J 使用 NOP 日志实现。
