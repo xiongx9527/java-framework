@@ -20,7 +20,8 @@ class DbBrowserSqlBuilderTest {
 
 	private final DbBrowserSqlBuilder sqlBuilder = new DbBrowserSqlBuilder();
 	private final Set<String> allowedColumns = new HashSet<String>(Arrays.asList("id", "name"));
-	private final Set<String> allowedObjects = Collections.singleton("TABLE:users");
+	private final Set<String> allowedObjects = Collections.singleton(
+			DbBrowserSqlBuilder.allowedObject("TABLE", null, null, "users"));
 
 	@Test
 	void shouldRejectUnknownSortColumn() throws Exception {
@@ -63,7 +64,7 @@ class DbBrowserSqlBuilderTest {
 		request.setSchema("public");
 
 		DbBrowserSqlBuilder.BuildResult result = sqlBuilder.buildPreviewSql(connectionWithQuote("\""), request,
-				allowedColumns, Collections.singleton("VIEW:main.public.users"));
+				allowedColumns, Collections.singleton(DbBrowserSqlBuilder.allowedObject("VIEW", "main", "public", "users")));
 
 		assertTrueSqlIsReadOnly(result.getSql());
 		assertFalse(result.getSql().contains("main.public.users"));
@@ -78,6 +79,39 @@ class DbBrowserSqlBuilderTest {
 		assertThrows(IllegalArgumentException.class,
 				() -> sqlBuilder.buildPreviewSql(connectionWithQuote("\""), request, allowedColumns,
 						Collections.singleton("users")));
+	}
+
+	@Test
+	void shouldRejectDottedSchemaWhenWhitelistUsesDifferentIdentifierSegments() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setCatalog("a");
+		request.setSchema("b.c");
+		request.setObjectName(null);
+
+		assertThrows(IllegalArgumentException.class,
+				() -> sqlBuilder.buildPreviewSql(connectionWithQuote("\""), request, allowedColumns,
+						Collections.singleton("TABLE:a.b.c")));
+	}
+
+	@Test
+	void shouldAcceptDottedSchemaOnlyWhenWhitelistUsesSameIdentifierSegment() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setCatalog("a");
+		request.setSchema("b.c");
+
+		DbBrowserSqlBuilder.BuildResult result = sqlBuilder.buildPreviewSql(connectionWithQuote("\""), request,
+				allowedColumns, Collections.singleton(DbBrowserSqlBuilder.allowedObject("TABLE", "a", "b.c", "users")));
+
+		assertEquals("SELECT * FROM \"a\".\"b.c\".\"users\" OFFSET 0 ROWS FETCH NEXT 50 ROWS ONLY",
+				result.getSql());
+	}
+
+	@Test
+	void shouldEncodeNullBlankAndDottedIdentifierSegmentsWithoutCollision() {
+		assertFalse(DbBrowserSqlBuilder.allowedObject("TABLE", "a", null, "users")
+				.equals(DbBrowserSqlBuilder.allowedObject("TABLE", "a", "", "users")));
+		assertFalse(DbBrowserSqlBuilder.allowedObject("TABLE", "a", "b.c", "users")
+				.equals(DbBrowserSqlBuilder.allowedObject("TABLE", "a", "b", "c.users")));
 	}
 
 	@Test
@@ -97,6 +131,16 @@ class DbBrowserSqlBuilderTest {
 		assertThrows(IllegalArgumentException.class,
 				() -> sqlBuilder.buildPreviewSql(connectionWithQuote("\""), request, allowedColumns,
 						Collections.singleton("FUNCTION:users")));
+	}
+
+	@Test
+	void shouldRejectTableRequestWhenWhitelistedObjectIsView() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setObjectType("TABLE");
+
+		assertThrows(IllegalArgumentException.class,
+				() -> sqlBuilder.buildPreviewSql(connectionWithQuote("\""), request, allowedColumns,
+						Collections.singleton(DbBrowserSqlBuilder.allowedObject("VIEW", null, null, "users"))));
 	}
 
 	@Test
