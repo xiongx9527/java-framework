@@ -48,6 +48,16 @@ public class DefaultAskDataSqlValidatorTest {
     }
 
     @Test
+    public void shouldRejectWritableSelectInto() {
+        assertRejected("select * into audit_copy from orders");
+    }
+
+    @Test
+    public void shouldRejectMysqlExecutableComment() {
+        assertRejected("select 1 limit 1 /*!50000; delete from orders */");
+    }
+
+    @Test
     public void shouldAllowReadOnlySelectAndKeywordsInStringLiterals() {
         AskDataSqlValidationResult result = validator.validate("select 'drop table orders' as note", mysql, 100);
 
@@ -82,11 +92,34 @@ public class DefaultAskDataSqlValidatorTest {
     }
 
     @Test
+    public void shouldAddLimitThroughDialect() {
+        AskDataDialect fetchDialect = new AskDataDialect("fetch", "", "") {
+            @Override
+            public String applyLimit(String sql, int maxRows) {
+                return sql + " fetch first " + maxRows + " rows only";
+            }
+        };
+
+        AskDataSqlValidationResult result = validator.validate("select * from orders", fetchDialect, 100);
+
+        assertTrue(result.isValid());
+        assertEquals("select * from orders fetch first 100 rows only", result.getSql());
+    }
+
+    @Test
     public void shouldAddLimitBeforeTrailingCommentAfterSemicolon() {
         AskDataSqlValidationResult result = validator.validate("select * from orders; /* generated SQL */", mysql, 100);
 
         assertTrue(result.isValid());
         assertEquals("select * from orders limit 100", result.getSql());
+    }
+
+    @Test
+    public void shouldAddLimitBeforeTrailingLineComment() {
+        AskDataSqlValidationResult result = validator.validate("select * from orders -- generated", mysql, 100);
+
+        assertTrue(result.isValid());
+        assertEquals("select * from orders limit 100 -- generated", result.getSql());
     }
 
     private void assertRejected(String sql) {

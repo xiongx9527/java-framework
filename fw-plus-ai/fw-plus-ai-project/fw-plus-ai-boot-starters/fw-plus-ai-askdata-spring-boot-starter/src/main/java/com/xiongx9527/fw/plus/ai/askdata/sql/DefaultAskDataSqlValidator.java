@@ -26,9 +26,15 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
         if (scanResult.hasMultipleStatements) {
             return rejected("仅允许执行单条 SQL 查询");
         }
+        if (scanResult.hasExecutableComment) {
+            return rejected("不允许 MySQL 可执行注释");
+        }
         if (scanResult.firstKeyword == null || (!"select".equals(scanResult.firstKeyword)
                 && !"with".equals(scanResult.firstKeyword))) {
             return rejected("仅允许 SELECT 或 WITH 查询");
+        }
+        if (scanResult.hasSelectInto) {
+            return rejected("不允许 SELECT INTO 写入查询");
         }
         if (scanResult.dangerousKeyword != null) {
             return rejected("检测到危险关键字: " + scanResult.dangerousKeyword);
@@ -36,7 +42,13 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
 
         String normalizedSql = stripTrailingSemicolon(sql.trim(), scanResult.trailingSemicolonIndex);
         if (!scanResult.hasTopLevelLimit) {
-            normalizedSql = normalizedSql + " limit " + maxRows;
+            if (scanResult.trailingSemicolonIndex < 0 && scanResult.trailingLineCommentIndex >= 0) {
+                String trailingComment = normalizedSql.substring(scanResult.trailingLineCommentIndex).trim();
+                normalizedSql = normalizedSql.substring(0, scanResult.trailingLineCommentIndex).trim();
+                normalizedSql = dialect.applyLimit(normalizedSql, maxRows) + " " + trailingComment;
+            } else {
+                normalizedSql = dialect.applyLimit(normalizedSql, maxRows);
+            }
         }
         return AskDataSqlValidationResult.accepted(normalizedSql);
     }
@@ -69,7 +81,15 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
             } else if (current == '`') {
                 index = skipQuoted(sql, index, '`');
             } else if (current == '-' && index + 1 < sql.length() && sql.charAt(index + 1) == '-') {
+                int commentStart = index;
                 index = skipLineComment(sql, index + 2);
+                if (index == sql.length()) {
+                    result.trailingLineCommentIndex = commentStart;
+                }
+            } else if (current == '/' && index + 2 < sql.length() && sql.charAt(index + 1) == '*'
+                    && sql.charAt(index + 2) == '!') {
+                result.hasExecutableComment = true;
+                return result;
             } else if (current == '/' && index + 1 < sql.length() && sql.charAt(index + 1) == '*') {
                 index = skipBlockComment(sql, index + 2);
             } else if (current == ';') {
@@ -98,6 +118,10 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
                 }
                 if (DANGEROUS_KEYWORDS.contains(word)) {
                     result.dangerousKeyword = word;
+                    return result;
+                }
+                if ("into".equals(word)) {
+                    result.hasSelectInto = true;
                     return result;
                 }
                 if (depth == 0 && "limit".equals(word)) {
@@ -170,7 +194,10 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
         private String firstKeyword;
         private String dangerousKeyword;
         private boolean hasMultipleStatements;
+        private boolean hasExecutableComment;
+        private boolean hasSelectInto;
         private boolean hasTopLevelLimit;
         private int trailingSemicolonIndex = -1;
+        private int trailingLineCommentIndex = -1;
     }
 }
