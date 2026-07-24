@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.askdata.conversation.DefaultAskDataContextCompr
 import com.xiongx9527.fw.plus.ai.askdata.conversation.InMemoryAskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataAgentDispatcher;
 import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataFlowExecutor;
+import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataSubAgent;
 import com.xiongx9527.fw.plus.ai.askdata.flow.DefaultAskDataFlowExecutor;
 import com.xiongx9527.fw.plus.ai.askdata.flow.SequentialAskDataAgentDispatcher;
 import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider;
@@ -31,16 +32,25 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Collections;
+import java.util.stream.Collectors;
 
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "fw.plus.ai.askdata", name = "enabled", havingValue = "true", matchIfMissing = true)
-@EnableConfigurationProperties(AskDataProperties.class)
+@EnableConfigurationProperties
 public class AskDataAutoConfiguration {
+
+	@Bean
+	@ConfigurationProperties(prefix = "fw.plus.ai.askdata")
+	@ConditionalOnMissingBean
+	public AskDataProperties askDataProperties() {
+		return new AskDataProperties();
+	}
 
 	@Bean
 	@ConditionalOnMissingBean
@@ -94,8 +104,8 @@ public class AskDataAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AskDataAgentDispatcher askDataAgentDispatcher() {
-        return new SequentialAskDataAgentDispatcher();
+    public AskDataAgentDispatcher askDataAgentDispatcher(ObjectProvider<AskDataSubAgent> subAgentProvider) {
+        return new SequentialAskDataAgentDispatcher(subAgentProvider.orderedStream().collect(Collectors.toList()));
     }
 
     @Bean
@@ -116,9 +126,10 @@ public class AskDataAutoConfiguration {
             AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
-            AskDataContextCompressor contextCompressor) {
+            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher) {
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
-                promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor);
+                promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
+                agentDispatcher);
     }
 
     @Bean
