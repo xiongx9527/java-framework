@@ -13,6 +13,7 @@
 - Fixer: Locke (019f93a7-e3de-7e53-b846-f6b14047b3e5)
 - Reviewer: Ohm (019f93aa-3dd6-78e1-80f9-ae6d347cebd7)
 - Review fixer: Sagan (019f93ac-53da-7a61-83ba-1021b4ab5952)
+- Re-reviewer: Volta (019f93af-3bb6-7a82-93b2-113b1c426b93)
 - Review result: Needs fixes, 1 Important dependency evidence finding
 - Fix result: DONE, commit 511132a, unfiltered dependency tree passed and sqlbot/fit2cloud scan had no matches
 - Base commit: 21df54a
@@ -28,6 +29,7 @@
 - Review feedback: .superpowers/sdd/task-9-review-ohm.md
 - Review-fix round: 1 of 1
 - Fix report: .superpowers/sdd/task-9-report.md#step-4-supplement-unfiltered-dependency-tree
+- Re-review package: .superpowers/sdd/review-8f2d0f1a..511132aa.diff
 - Review mode: standard
 - Risk review: triggered
 - Risk signals:
