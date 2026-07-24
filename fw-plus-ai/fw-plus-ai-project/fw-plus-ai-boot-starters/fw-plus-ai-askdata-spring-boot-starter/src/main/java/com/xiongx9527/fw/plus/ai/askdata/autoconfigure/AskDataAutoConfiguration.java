@@ -1,6 +1,10 @@
 package com.xiongx9527.fw.plus.ai.askdata.autoconfigure;
 
 import com.xiongx9527.fw.plus.ai.askdata.AskDataProperties;
+import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataContextCompressor;
+import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataConversationStore;
+import com.xiongx9527.fw.plus.ai.askdata.conversation.DefaultAskDataContextCompressor;
+import com.xiongx9527.fw.plus.ai.askdata.conversation.InMemoryAskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataAgentDispatcher;
 import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataFlowExecutor;
 import com.xiongx9527.fw.plus.ai.askdata.flow.DefaultAskDataFlowExecutor;
@@ -92,11 +96,24 @@ public class AskDataAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public AskDataConversationStore askDataConversationStore() {
+        return new InMemoryAskDataConversationStore();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataContextCompressor askDataContextCompressor(AskDataProperties properties) {
+        return new DefaultAskDataContextCompressor(properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public AskDataFlowExecutor askDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
             AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
-            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor) {
+            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+            AskDataContextCompressor contextCompressor) {
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
-                promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor);
+                promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor);
     }
 }

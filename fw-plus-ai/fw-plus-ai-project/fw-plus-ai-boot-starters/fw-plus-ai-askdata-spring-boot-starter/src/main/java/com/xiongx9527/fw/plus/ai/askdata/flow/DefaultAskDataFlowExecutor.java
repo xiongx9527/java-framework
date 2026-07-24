@@ -6,6 +6,11 @@ import com.xiongx9527.fw.plus.ai.askdata.AskDataErrorCode;
 import com.xiongx9527.fw.plus.ai.askdata.AskDataProperties;
 import com.xiongx9527.fw.plus.ai.askdata.AskDataRequest;
 import com.xiongx9527.fw.plus.ai.askdata.AskDataResult;
+import com.xiongx9527.fw.plus.ai.askdata.AskDataStepLog;
+import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataCheckpoint;
+import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataCompressedContext;
+import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataContextCompressor;
+import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel;
@@ -23,10 +28,16 @@ import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorRetriever;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
+
+    private static final List<String> CHECKPOINT_STEPS = Arrays.asList("metadata", "prompt", "generate-sql",
+            "validate-sql", "execute-sql");
 
     private final AskDataProperties properties;
     private final AskDataModelRegistry modelRegistry;
@@ -36,12 +47,23 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private final AskDataDialectRegistry dialectRegistry;
     private final AskDataSqlValidator sqlValidator;
     private final AskDataSqlExecutor sqlExecutor;
+    private final AskDataConversationStore conversationStore;
+    private final AskDataContextCompressor contextCompressor;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
             AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor) {
+        this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
+                sqlValidator, sqlExecutor, null, null);
+    }
+
+    public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+            AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+            AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+            AskDataContextCompressor contextCompressor) {
         this.properties = properties;
         this.modelRegistry = modelRegistry;
         this.metadataProvider = metadataProvider;
@@ -50,12 +72,28 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         this.dialectRegistry = dialectRegistry;
         this.sqlValidator = sqlValidator;
         this.sqlExecutor = sqlExecutor;
+        this.conversationStore = conversationStore;
+        this.contextCompressor = contextCompressor;
     }
 
     @Override
     public AskDataResult execute(AskDataRequest request) {
         AskDataResult result = new AskDataResult();
+        if (request != null) {
+            result.setConversationId(request.getConversationId());
+        }
+        if (!isResumeRequested(request) && conversationStore != null && contextCompressor != null
+                && isBlank(result.getConversationId())) {
+            result.setConversationId(UUID.randomUUID().toString());
+        }
         AskDataStepContext context = new AskDataStepContext(request);
+        if (isResumeRequested(request)) {
+            return resume(request, result, context);
+        }
+        return executeNew(request, result, context);
+    }
+
+    private AskDataResult executeNew(AskDataRequest request, AskDataResult result, AskDataStepContext context) {
         AskDataMetadata metadata;
         try {
             metadata = metadataProvider.load(request);
@@ -67,6 +105,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         context.setMetadata(metadata);
         result.addStep("metadata", "Metadata", true, "Metadata loaded");
+        AskDataResult checkpointFailure = saveCheckpoint(context, result, "metadata", null, null);
+        if (checkpointFailure != null) {
+            return checkpointFailure;
+        }
 
         int maxRows = maxRows(request);
         List<AskDataRetrievedDocument> documents;
@@ -104,6 +146,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return failure(result, "generate-sql", AskDataErrorCode.MODEL_RESPONSE_INVALID,
                     "AskData model response is empty");
         }
+        context.setRawModelResponse(modelResponse.getText());
         result.setRawModelResponse(modelResponse.getText());
         JsonNode modelJson;
         try {
@@ -122,7 +165,74 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         result.setChartType(textValue(modelJson, "chartType"));
         result.setBrief(textValue(modelJson, "brief"));
         result.addStep("generate-sql", "Generate SQL", true, "SQL generated");
+        checkpointFailure = saveCheckpoint(context, result, "generate-sql", null, null);
+        if (checkpointFailure != null) {
+            return checkpointFailure;
+        }
 
+        return validateAndExecute(request, result, context, metadata, generatedSql);
+    }
+
+    private AskDataResult resume(AskDataRequest request, AskDataResult result, AskDataStepContext context) {
+        if (conversationStore == null) {
+            return failure(result, "resume", AskDataErrorCode.CHECKPOINT_NOT_FOUND, "AskData conversation store is not configured");
+        }
+        AskDataCheckpoint checkpoint = !isBlank(request.getResumeToken())
+                ? conversationStore.loadByResumeToken(request.getResumeToken())
+                : conversationStore.loadLatest(request.getConversationId());
+        if (checkpoint == null) {
+            return failure(result, "resume", AskDataErrorCode.CHECKPOINT_NOT_FOUND, "AskData checkpoint was not found");
+        }
+        if (!equals(checkpointVersion(), checkpoint.getVersion()) || !isSafeCheckpoint(checkpoint)) {
+            return failure(result, "resume", AskDataErrorCode.RESUME_FAILED,
+                    "AskData checkpoint does not contain a safe resumable state");
+        }
+        restoreResult(result, checkpoint);
+        context.setSql(checkpoint.getSql());
+        context.setSqlValidated(checkpoint.getSqlValidated());
+        context.setSqlExecuted(checkpoint.getSqlExecuted());
+        context.setRowCount(checkpoint.getRowCount());
+        context.setCompletedSteps(checkpoint.getCompletedSteps());
+        context.setStepLogs(checkpoint.getSteps());
+        context.setErrorCode(checkpoint.getErrorCode());
+        if (contains(checkpoint, "execute-sql")) {
+            result.addStep("execute-sql", "Execute SQL", true, "SQL execution already completed");
+            result.setSuccess(true);
+            result.addStep("format-result", "Format Result", true, "Result formatted");
+            return result;
+        }
+        if (contains(checkpoint, "validate-sql")) {
+            return executeValidatedSql(request, result, context, checkpoint.getSql());
+        }
+        if (contains(checkpoint, "generate-sql")) {
+            AskDataDialect dialect;
+            try {
+                dialect = dialectRegistry.getDialect(checkpoint.getDialect());
+            } catch (RuntimeException ex) {
+                return failure(result, "validate-sql", AskDataErrorCode.DIALECT_RESOLUTION_FAILED, message(ex));
+            }
+            AskDataSqlValidationResult validation;
+            try {
+                validation = sqlValidator.validate(checkpoint.getSql(), dialect, maxRows(request));
+            } catch (RuntimeException ex) {
+                return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
+            }
+            if (validation == null || !validation.isValid()) {
+                return validationFailure(result, validation);
+            }
+            context.setSql(validation.getSql());
+            context.setSqlValidated(Boolean.TRUE);
+            result.setSql(validation.getSql());
+            result.addStep("validate-sql", "Validate SQL", true, "SQL validated");
+            AskDataResult checkpointFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
+            return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getSql()) : checkpointFailure;
+        }
+        return failure(result, "resume", AskDataErrorCode.RESUME_FAILED,
+                "AskData checkpoint cannot restore the metadata required by the next step");
+    }
+
+    private AskDataResult validateAndExecute(AskDataRequest request, AskDataResult result, AskDataStepContext context,
+            AskDataMetadata metadata, String generatedSql) {
         AskDataDialect dialect;
         try {
             dialect = dialectRegistry.getDialect(dialect(request, metadata));
@@ -131,24 +241,27 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         AskDataSqlValidationResult validation;
         try {
-            validation = sqlValidator.validate(generatedSql, dialect, maxRows);
+            validation = sqlValidator.validate(generatedSql, dialect, maxRows(request));
         } catch (RuntimeException ex) {
             return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
         }
         if (validation == null || !validation.isValid()) {
-            String errorCode = validation == null || isBlank(validation.getErrorCode()) ? AskDataErrorCode.SQL_REJECTED
-                    : validation.getErrorCode();
-            String errorMessage = validation == null ? "AskData SQL validation failed" : validation.getMessage();
-            return failure(result, "validate-sql", errorCode, errorMessage);
+            return validationFailure(result, validation);
         }
         result.setSql(validation.getSql());
         context.setSql(validation.getSql());
+        context.setSqlValidated(Boolean.TRUE);
         result.addStep("validate-sql", "Validate SQL", true, "SQL validated");
+        AskDataResult checkpointFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
+        return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getSql()) : checkpointFailure;
+    }
 
+    private AskDataResult executeValidatedSql(AskDataRequest request, AskDataResult result, AskDataStepContext context,
+            String sql) {
         if (isExecutionEnabled(request)) {
             AskDataSqlExecutionResult execution;
             try {
-                execution = sqlExecutor.execute(request, validation.getSql());
+                execution = sqlExecutor.execute(request, sql);
             } catch (RuntimeException ex) {
                 return failure(result, "execute-sql", AskDataErrorCode.SQL_EXECUTION_FAILED, message(ex));
             }
@@ -161,13 +274,117 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             result.setColumns(execution.getColumns());
             result.setRows(execution.getRows());
             result.setRowCount(Integer.valueOf(execution.getRowCount()));
+            context.setRowCount(Integer.valueOf(execution.getRowCount()));
+            context.setSqlExecuted(Boolean.TRUE);
             result.addStep("execute-sql", "Execute SQL", true, "SQL executed");
         } else {
+            context.setSqlExecuted(Boolean.FALSE);
             result.addStep("execute-sql", "Execute SQL", true, "SQL execution skipped");
+        }
+        AskDataResult checkpointFailure = saveCheckpoint(context, result, "execute-sql", context.getSqlValidated(),
+                context.getSqlExecuted());
+        if (checkpointFailure != null) {
+            return checkpointFailure;
         }
         result.setSuccess(true);
         result.addStep("format-result", "Format Result", true, "Result formatted");
         return result;
+    }
+
+    private AskDataResult validationFailure(AskDataResult result, AskDataSqlValidationResult validation) {
+        String errorCode = validation == null || isBlank(validation.getErrorCode()) ? AskDataErrorCode.SQL_REJECTED
+                : validation.getErrorCode();
+        String errorMessage = validation == null ? "AskData SQL validation failed" : validation.getMessage();
+        return failure(result, "validate-sql", errorCode, errorMessage);
+    }
+
+    private AskDataResult saveCheckpoint(AskDataStepContext context, AskDataResult result, String currentStep,
+            Boolean sqlValidated, Boolean sqlExecuted) {
+        if (conversationStore == null || contextCompressor == null || isBlank(result.getConversationId())) {
+            return null;
+        }
+        try {
+            context.setCompletedSteps(completedSteps(result));
+            context.setStepLogs(result.getSteps());
+            context.setSqlValidated(sqlValidated == null ? context.getSqlValidated() : sqlValidated);
+            context.setSqlExecuted(sqlExecuted == null ? context.getSqlExecuted() : sqlExecuted);
+            context.setRowCount(result.getRowCount());
+            AskDataCompressedContext compressed = contextCompressor.compress(context);
+            AskDataCheckpoint checkpoint = new AskDataCheckpoint();
+            AskDataRequest request = context.getRequest();
+            checkpoint.setConversationId(result.getConversationId());
+            checkpoint.setCheckpointId(UUID.randomUUID().toString());
+            checkpoint.setResumeToken(UUID.randomUUID().toString());
+            checkpoint.setRequestSummary(request == null ? null : request.getQuestion());
+            checkpoint.setModelKey(request == null ? null : request.getModelKey());
+            checkpoint.setDatasourceKey(request == null ? null : request.getDatasourceKey());
+            checkpoint.setDialect(request != null && !isBlank(request.getDialect()) ? request.getDialect()
+                    : context.getMetadata() == null ? null : context.getMetadata().getDialect());
+            checkpoint.setCompletedSteps(context.getCompletedSteps());
+            checkpoint.setCurrentStep(currentStep);
+            checkpoint.setSql(context.getSql());
+            checkpoint.setSqlValidated(context.getSqlValidated());
+            checkpoint.setSqlExecuted(context.getSqlExecuted());
+            checkpoint.setRowCount(context.getRowCount());
+            checkpoint.setCompressedSummary(compressed == null ? null : compressed.getCompressedSummary());
+            checkpoint.setSteps(context.getStepLogs());
+            checkpoint.setErrorCode(result.getErrorCode());
+            checkpoint.setVersion(checkpointVersion());
+            checkpoint.setCreatedAt(new Date());
+            AskDataCheckpoint saved = conversationStore.save(checkpoint);
+            AskDataCheckpoint responseCheckpoint = saved == null ? checkpoint : saved;
+            result.setCheckpointId(responseCheckpoint.getCheckpointId());
+            result.setResumeToken(responseCheckpoint.getResumeToken());
+            return null;
+        } catch (RuntimeException ex) {
+            return failure(result, currentStep, AskDataErrorCode.CONTEXT_COMPRESSION_FAILED, message(ex));
+        }
+    }
+
+    private void restoreResult(AskDataResult result, AskDataCheckpoint checkpoint) {
+        result.setConversationId(checkpoint.getConversationId());
+        result.setCheckpointId(checkpoint.getCheckpointId());
+        result.setResumeToken(checkpoint.getResumeToken());
+        result.setSql(checkpoint.getSql());
+        result.setRowCount(checkpoint.getRowCount());
+        result.setSteps(new ArrayList<AskDataStepLog>(checkpoint.getSteps()));
+    }
+
+    private boolean isSafeCheckpoint(AskDataCheckpoint checkpoint) {
+        List<String> completed = checkpoint.getCompletedSteps();
+        if (completed == null || completed.isEmpty()) {
+            return false;
+        }
+        for (String step : completed) {
+            if (!CHECKPOINT_STEPS.contains(step)) {
+                return false;
+            }
+        }
+        if (contains(checkpoint, "generate-sql") && isBlank(checkpoint.getSql())) {
+            return false;
+        }
+        if (contains(checkpoint, "validate-sql") && !Boolean.TRUE.equals(checkpoint.getSqlValidated())) {
+            return false;
+        }
+        return !contains(checkpoint, "execute-sql") || Boolean.TRUE.equals(checkpoint.getSqlValidated());
+    }
+
+    private boolean contains(AskDataCheckpoint checkpoint, String step) {
+        return checkpoint.getCompletedSteps() != null && checkpoint.getCompletedSteps().contains(step);
+    }
+
+    private boolean isResumeRequested(AskDataRequest request) {
+        return request != null && (!isBlank(request.getResumeToken()) || !isBlank(request.getConversationId()));
+    }
+
+    private List<String> completedSteps(AskDataResult result) {
+        List<String> completed = new ArrayList<String>();
+        for (AskDataStepLog step : result.getSteps()) {
+            if (step.isSuccess()) {
+                completed.add(step.getStepKey());
+            }
+        }
+        return completed;
     }
 
     private AskDataResult failure(AskDataResult result, String stepKey, String errorCode, String errorMessage) {
@@ -219,6 +436,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return properties.getSql().isExecuteEnabled() && request != null && Boolean.TRUE.equals(request.getExecute());
     }
 
+    private String checkpointVersion() {
+        return properties.getConversation() == null ? "1" : properties.getConversation().getCheckpointVersion();
+    }
+
     private List<String> textValues(JsonNode node) {
         List<String> values = new ArrayList<String>();
         if (node != null && node.isArray()) {
@@ -238,6 +459,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
     private String message(RuntimeException ex) {
         return isBlank(ex.getMessage()) ? ex.getClass().getSimpleName() : ex.getMessage();
+    }
+
+    private boolean equals(String first, String second) {
+        return first == null ? second == null : first.equals(second);
     }
 
     private boolean isBlank(String value) {
