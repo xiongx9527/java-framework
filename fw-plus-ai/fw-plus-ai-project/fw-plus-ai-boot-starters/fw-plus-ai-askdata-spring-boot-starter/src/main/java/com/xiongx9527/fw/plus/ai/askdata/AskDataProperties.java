@@ -1,8 +1,5 @@
 package com.xiongx9527.fw.plus.ai.askdata;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
-@ConfigurationProperties(prefix = "fw.plus.ai.askdata")
 public class AskDataProperties {
 
     private boolean enabled = true;

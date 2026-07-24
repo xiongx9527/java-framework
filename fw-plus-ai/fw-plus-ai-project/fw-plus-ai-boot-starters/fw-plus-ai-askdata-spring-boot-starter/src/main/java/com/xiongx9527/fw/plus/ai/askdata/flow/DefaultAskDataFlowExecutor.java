@@ -49,6 +49,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private final AskDataSqlExecutor sqlExecutor;
     private final AskDataConversationStore conversationStore;
     private final AskDataContextCompressor contextCompressor;
+    private final AskDataAgentDispatcher agentDispatcher;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -56,7 +57,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor) {
         this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
-                sqlValidator, sqlExecutor, null, null);
+                sqlValidator, sqlExecutor, null, null, null);
     }
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -64,6 +65,15 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
             AskDataContextCompressor contextCompressor) {
+        this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
+                sqlValidator, sqlExecutor, conversationStore, contextCompressor, null);
+    }
+
+    public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+            AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+            AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher) {
         this.properties = properties;
         this.modelRegistry = modelRegistry;
         this.metadataProvider = metadataProvider;
@@ -74,6 +84,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         this.sqlExecutor = sqlExecutor;
         this.conversationStore = conversationStore;
         this.contextCompressor = contextCompressor;
+        this.agentDispatcher = agentDispatcher;
     }
 
     @Override
@@ -110,7 +121,23 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return checkpointFailure;
         }
 
+        dispatchSubAgents(context);
+
         return generateSqlAndValidate(request, result, context, metadata);
+    }
+
+    private void dispatchSubAgents(AskDataStepContext context) {
+        if (agentDispatcher == null) {
+            return;
+        }
+        AskDataProperties.Flow flow = properties == null ? null : properties.getFlow();
+        Integer timeout = flow == null ? null : flow.getDefaultSubAgentTimeoutMillis();
+        try {
+            agentDispatcher.dispatch(new AskDataDispatchRequest(Collections.<AskDataSubAgent>emptyList(), context,
+                    timeout == null ? 0L : timeout.longValue(), AskDataDispatchRequest.FailurePolicy.CONTINUE, null));
+        } catch (RuntimeException ignored) {
+            // Sub-agent dispatch is optional and must not interrupt the SQL generation flow.
+        }
     }
 
     private AskDataResult generateSqlAndValidate(AskDataRequest request, AskDataResult result,

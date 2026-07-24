@@ -1,6 +1,21 @@
 package com.xiongx9527.fw.plus.ai.askdata.flow;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class SequentialAskDataAgentDispatcher implements AskDataAgentDispatcher {
+
+    private final List<AskDataSubAgent> defaultSubAgents;
+
+    public SequentialAskDataAgentDispatcher() {
+        this(Collections.<AskDataSubAgent>emptyList());
+    }
+
+    public SequentialAskDataAgentDispatcher(List<AskDataSubAgent> defaultSubAgents) {
+        this.defaultSubAgents = defaultSubAgents == null ? Collections.<AskDataSubAgent>emptyList()
+                : new ArrayList<AskDataSubAgent>(defaultSubAgents);
+    }
 
     @Override
     public AskDataDispatchResult dispatch(AskDataDispatchRequest request) {
@@ -9,7 +24,8 @@ public class SequentialAskDataAgentDispatcher implements AskDataAgentDispatcher 
             dispatchResult.setSuccess(false);
             return dispatchResult;
         }
-        for (AskDataSubAgent subAgent : request.getSubAgents()) {
+        List<AskDataSubAgent> subAgents = request.getSubAgents().isEmpty() ? defaultSubAgents : request.getSubAgents();
+        for (AskDataSubAgent subAgent : subAgents) {
             AskDataSubAgentResult result = executeSubAgent(subAgent, request);
             dispatchResult.addResult(result);
             if (!result.isSuccess()) {
