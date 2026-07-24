@@ -97,6 +97,8 @@ AskData 流程需要支持长问题、多轮追问、多 agent 和子 agent 步�
 
 Aiflowy 的产品定位更接近“企业级 AI 应用开发平台”，后续 fw-plus-ai 如果要沉淀通用 AI 工作流，可以参考它的模型管理、工具节点、流程节点、应用编排和可观测性边界。本 change 只在 AskData 内部定义最小流程抽象，避免提前把 AskData 与未来通用工作流平台强耦合。
 
+后续 Java 17 / Spring Boot 3 线路可以在独立扩展 starter 或 adapter 模块中接入 Spring AI、LangGraph4j 主线和其它新能力。当前 Java 8 Starter 的接口命名、请求/结果模型、Agent 抽象和检查点模型需要保持足够稳定，使 Java 17 模块可以复用契约并替换底层编排实现，而不是重写 AskData 调用方 API。
+
 替代方案是在 AskData starter 中直接实现通用 AI workflow。该方案能一次覆盖更多未来能力，但会让智能问数 starter 承担平台职责，并阻塞当前 AskData MVP。
 
 ### Decision: MVP 先做保守 Text-to-SQL 和查询执行

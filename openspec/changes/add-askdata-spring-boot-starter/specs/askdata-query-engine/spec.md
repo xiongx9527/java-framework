@@ -59,6 +59,10 @@
 - **WHEN** 构建当前 Java 8 AskData starter
 - **THEN** 模块 SHALL 不引入 Spring AI 运行时依赖；Spring AI 只作为后续 Spring Boot 3 / Java 17 版本的适配方向记录
 
+#### Scenario: Preserve contracts for future Java 17 adapters
+- **WHEN** 后续新增 Java 17 / Spring Boot 3 AskData 扩展模块
+- **THEN** 该扩展 SHALL 能复用当前 AskData 请求、结果、模型注册、Agent 流程和检查点契约，并以 adapter 方式替换或增强底层 Spring AI、LangGraph4j 主线或其它新能力
+
 #### Scenario: Use default model
 - **WHEN** AskData 请求未指定模型 key 且系统已配置默认模型
 - **THEN** AskData 服务 SHALL 使用默认模型生成 SQL

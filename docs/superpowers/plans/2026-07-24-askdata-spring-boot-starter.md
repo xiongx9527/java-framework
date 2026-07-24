@@ -26,6 +26,7 @@ base-ref: bf45ed49f309cca5d18c623a03dab70c72cbfa1e
 - 多模型必须支持默认聊天模型、默认 embedding 模型和请求级 `modelKey` 覆盖；缺失时返回结构化错误。
 - 模型技术顺序固定为 LangChain4j、Spring AI（仅未来 Spring Boot 3 / Java 17 版本）、Agents-Flex、其它实现；当前 Java 8 Starter 不得引入 Spring AI 运行时依赖。
 - Agent 图编排可参考 LangGraph4j；当前 Java 8 Starter 只能评估 `langgraph4j-core-jdk8` 等 JDK8 兼容构件作为 optional 适配，不得引入 Java 17+ 的 LangGraph4j 1.8.x 主线模块或 Spring AI 相关 LangGraph4j 模块。
+- 后续 Java 17 / Spring Boot 3 新能力必须通过独立 adapter starter 或条件化 adapter 接入，并复用当前 AskData 请求、结果、模型注册、Agent 流程和检查点契约。
 - 向量召回只作为 Prompt 上下文片段输入，不直接扩大 SQL 可访问范围。
 - 检查点结构化字段不得被上下文摘要替代；恢复时无法确认上一步安全状态必须返回 `RESUME_FAILED`。
 - 当前计划创建阶段不得修改 OpenSpec、Design Doc 或源码；后续执行本计划时按任务修改代码和测试。
