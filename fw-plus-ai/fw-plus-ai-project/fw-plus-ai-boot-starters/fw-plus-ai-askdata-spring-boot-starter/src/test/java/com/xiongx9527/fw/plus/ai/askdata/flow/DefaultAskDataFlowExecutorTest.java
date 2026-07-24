@@ -123,7 +123,7 @@ public class DefaultAskDataFlowExecutorTest {
         AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}").execute(request(true));
 
         assertFalse(result.isSuccess());
-        assertEquals(AskDataErrorCode.SQL_REJECTED, result.getErrorCode());
+        assertEquals(AskDataErrorCode.DIALECT_RESOLUTION_FAILED, result.getErrorCode());
         assertEquals(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql"), stepKeys(result));
         assertFalse(result.getSteps().get(3).isSuccess());
         assertEquals(0, dependencies.executorCalls);

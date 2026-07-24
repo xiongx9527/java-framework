@@ -127,7 +127,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         try {
             dialect = dialectRegistry.getDialect(dialect(request, metadata));
         } catch (RuntimeException ex) {
-            return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
+            return failure(result, "validate-sql", AskDataErrorCode.DIALECT_RESOLUTION_FAILED, message(ex));
         }
         AskDataSqlValidationResult validation;
         try {
