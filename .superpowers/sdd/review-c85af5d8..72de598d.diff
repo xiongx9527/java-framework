@@ -1,0 +1,2218 @@
+# Review package: c85af5d8..72de598d
+
+## Commits
+72de598d fix(askdata): harden final safety and flow contracts
+
+## Files changed
+ .superpowers/sdd/final-fix-report.md               |  52 +++
+ .../autoconfigure/AskDataAutoConfiguration.java    |  33 +-
+ .../ai/askdata/conversation/AskDataCheckpoint.java |   9 +
+ .../InMemoryAskDataConversationStore.java          |   3 +
+ .../plus/ai/askdata/flow/AskDataStepContext.java   |   3 +
+ .../askdata/flow/DefaultAskDataFlowExecutor.java   | 173 +++++++--
+ .../plus/ai/askdata/sql/AskDataSqlValidator.java   |   6 +
+ .../ai/askdata/sql/DefaultAskDataSqlValidator.java | 400 +++++++++++++++++++--
+ .../ai/askdata/sql/JdbcAskDataSqlExecutor.java     |  27 +-
+ .../AskDataAutoConfigurationTest.java              |  38 ++
+ .../ai/askdata/flow/AskDataResumeFlowTest.java     |  89 +++++
+ .../flow/DefaultAskDataFlowExecutorTest.java       |  44 ++-
+ .../sql/DefaultAskDataSqlValidatorTest.java        |  77 ++++
+ .../ai/askdata/sql/JdbcAskDataSqlExecutorTest.java |  18 +
+ 14 files changed, 899 insertions(+), 73 deletions(-)
+
+## Diff
+diff --git a/.superpowers/sdd/final-fix-report.md b/.superpowers/sdd/final-fix-report.md
+new file mode 100644
+index 00000000..1bb2dac2
+--- /dev/null
++++ b/.superpowers/sdd/final-fix-report.md
+@@ -0,0 +1,52 @@
++# AskData Final Review Fix Report
++
++## 状态
++
++DONE_WITH_CONCERNS
++
++Critical 和 Important findings 已处理并补回归测试。保留的 concern 是：当前 `AskDataAgent` 只有名称、可变上下文和摘要结果，没有“替换哪个默认步骤”、结构化步骤输出、失败策略及恢复契约，因此本次实现了安全的主 Agent 扩展执行、日志与 checkpoint 归并，但没有允许它直接替换 SQL 生成/校验/执行步骤。完整替换能力需要独立 change 先扩展 Agent/step contract。
++
++## TDD 证据
++
++### RED
++
++1. `./mvnw ... -Dtest=DefaultAskDataSqlValidatorTest,JdbcAskDataSqlExecutorTest,DefaultAskDataFlowExecutorTest,AskDataResumeFlowTest,AskDataAutoConfigurationTest test`
++   - testCompile 失败，明确暴露缺失的 metadata 校验入口、`enforceLimit` 构造语义、checkpoint 身份字段和执行器物理上限。
++2. `./mvnw ... -Dtest=AskDataResumeFlowTest#shouldRejectResumeWhenEffectiveExecutionPolicyChanged test`
++   - 1 test failure；全局执行策略变化后当前实现仍恢复成功。
++3. `./mvnw ... -Dtest=DefaultAskDataSqlValidatorTest#shouldRejectSideEffectFunctions test`
++   - 1 test failure；双引号引用的 `nextval`/`setval` 可绕过原始词法扫描。
++
++### GREEN
++
++1. Starter 全量测试：84 tests，0 failures，0 errors，BUILD SUCCESS。
++2. Reactor `clean install -DskipTests`：9/9 modules SUCCESS，BUILD SUCCESS。
++3. `git diff --check`：通过。
++4. Java 9+ API 扫描：无匹配。
++5. SQLBot/占位文本扫描：无匹配。
++6. 验证 JVM：Zulu OpenJDK `1.8.0_402`。
++
++## Findings 处理
++
++### Critical
++
++- SQL 安全边界：实现 Java 8 保守词法/token 扫描，拒绝多语句、可执行注释、写关键字、`SELECT INTO`、`FOR UPDATE`/`FOR SHARE`/`LOCK IN SHARE MODE`、`setval`/`nextval` 等副作用函数（含 quoted identifier）；在 metadata 表列表非空时解析 CTE、子查询、`FROM`/`JOIN`/逗号表引用并拒绝未授权表。
++- Resume 安全：checkpoint 持久化并校验 question、datasourceKey、modelKey、有效 maxRows、有效 execute 和 dialect/conversationId；执行前保存 `EXECUTING`，恢复始终检查会话最新 checkpoint，遇到不确定执行状态返回 `RESUME_FAILED`，不重复执行。
++
++### Important
++
++- Agent/子 Agent：自动注入非 `AskDataSubAgent` 的主 Agent；消费 `AskDataDispatchResult`，把主/子 Agent 成功、失败、超时和输出写入 context attributes 与步骤日志；归并后保存 checkpoint。
++- maxRows：收紧超大顶层 `LIMIT`、拒绝 `LIMIT ALL`；JDBC `PreparedStatement#setMaxRows` 与 ResultSet 读取循环双层物理限行。
++- 模型错误码：单独捕获 `AskDataModelException`，保留 `DEFAULT_MODEL_NOT_CONFIGURED`、`MODEL_NOT_FOUND` 等原错误码。
++- execute 默认值：全局关闭始终跳过；全局开启时 request.execute 缺省执行，仅显式 false 跳过；checkpoint 比较有效执行决策。
++
++### Minor
++
++- 多个 `ContentRetriever` 使用 `orderedStream()` 全部适配并组合。
++- `sql.enforceLimit` 已接入默认 SQL validator；关闭时不改写 SQL，但 JDBC 物理限行仍生效。
++
++## 残余风险与边界
++
++- 未引入 AST。扫描器刻意保守，覆盖常见 SELECT/CTE、注释、引号、括号层级、表引用和顶层 LIMIT；数据库特有语法或未知副作用函数可能被拒绝或未列入 denylist。生产执行仍应使用数据库只读账号/只读事务作为最终权限边界。
++- metadata 表列表为空时视为“没有可执行的 scope 信息”，不会做表白名单约束；提供非空 metadata 时才强制白名单。
++- 主 Agent 当前作为默认流程前置扩展执行，不直接替换安全关键步骤。直接替换需要新增明确的 step key、结构化输出、失败策略和 checkpoint 恢复契约。
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/autoconfigure/AskDataAutoConfiguration.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/autoconfigure/AskDataAutoConfiguration.java
+index 126ec40b..a03e06aa 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/autoconfigure/AskDataAutoConfiguration.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/autoconfigure/AskDataAutoConfiguration.java
+@@ -1,20 +1,21 @@
+ package com.xiongx9527.fw.plus.ai.askdata.autoconfigure;
+ 
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataProperties;
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataService;
+ import com.xiongx9527.fw.plus.ai.askdata.DefaultAskDataService;
+ import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataContextCompressor;
+ import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataConversationStore;
+ import com.xiongx9527.fw.plus.ai.askdata.conversation.DefaultAskDataContextCompressor;
+ import com.xiongx9527.fw.plus.ai.askdata.conversation.InMemoryAskDataConversationStore;
+ import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataAgentDispatcher;
++import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataAgent;
+ import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataFlowExecutor;
+ import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataSubAgent;
+ import com.xiongx9527.fw.plus.ai.askdata.flow.DefaultAskDataFlowExecutor;
+ import com.xiongx9527.fw.plus.ai.askdata.flow.SequentialAskDataAgentDispatcher;
+ import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider;
+ import com.xiongx9527.fw.plus.ai.askdata.metadata.EmptyAskDataMetadataProvider;
+ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRegistry;
+ import com.xiongx9527.fw.plus.ai.askdata.model.LangChain4jAskDataModelRegistry;
+ import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialectRegistry;
+ import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataPromptTemplateProvider;
+@@ -30,21 +31,21 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model
+ import dev.langchain4j.rag.content.retriever.ContentRetriever;
+ import org.springframework.beans.factory.ObjectProvider;
+ import org.springframework.boot.autoconfigure.AutoConfiguration;
+ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+ import org.springframework.boot.context.properties.ConfigurationProperties;
+ import org.springframework.boot.context.properties.EnableConfigurationProperties;
+ import org.springframework.context.annotation.Bean;
+ import org.springframework.jdbc.core.JdbcTemplate;
+ 
+-import java.util.Collections;
++import java.util.List;
+ import java.util.stream.Collectors;
+ 
+ @AutoConfiguration
+ @ConditionalOnProperty(prefix = "fw.plus.ai.askdata", name = "enabled", havingValue = "true", matchIfMissing = true)
+ @EnableConfigurationProperties
+ public class AskDataAutoConfiguration {
+ 
+ 	@Bean
+ 	@ConfigurationProperties(prefix = "fw.plus.ai.askdata")
+ 	@ConditionalOnMissingBean
+@@ -72,41 +73,41 @@ public class AskDataAutoConfiguration {
+     }
+ 
+     @Bean
+     @ConditionalOnMissingBean
+     public AskDataPromptTemplateProvider askDataPromptTemplateProvider(AskDataDialectRegistry dialectRegistry) {
+         return new DefaultAskDataPromptTemplateProvider(dialectRegistry);
+     }
+ 
+     @Bean
+     @ConditionalOnMissingBean
+-    public AskDataSqlValidator askDataSqlValidator() {
+-        return new DefaultAskDataSqlValidator();
++    public AskDataSqlValidator askDataSqlValidator(AskDataProperties properties) {
++        return new DefaultAskDataSqlValidator(properties.getSql().isEnforceLimit());
+     }
+ 
+     @Bean
+     @ConditionalOnMissingBean
+-    public AskDataSqlExecutor askDataSqlExecutor(ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
+-        return new JdbcAskDataSqlExecutor(jdbcTemplateProvider);
++    public AskDataSqlExecutor askDataSqlExecutor(AskDataProperties properties,
++            ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
++        Integer defaultMaxRows = properties.getSql().getDefaultMaxRows();
++        return new JdbcAskDataSqlExecutor(jdbcTemplateProvider,
++                defaultMaxRows == null ? 100 : defaultMaxRows.intValue());
+     }
+ 
+     @Bean
+     @ConditionalOnMissingBean
+     public AskDataVectorRetriever askDataVectorRetriever(AskDataProperties properties,
+             ObjectProvider<ContentRetriever> contentRetrieverProvider) {
+-        ContentRetriever contentRetriever = contentRetrieverProvider.getIfAvailable();
+-        if (contentRetriever == null) {
+-            return new CompositeAskDataVectorRetriever(Collections.<AskDataVectorRetriever>emptyList(),
+-                    properties.getVector().getDefaultTopK());
+-        }
+-        return new CompositeAskDataVectorRetriever(Collections.<AskDataVectorRetriever>singletonList(
+-                new ContentRetrieverAskDataVectorRetriever(contentRetriever)), properties.getVector().getDefaultTopK());
++        List<AskDataVectorRetriever> retrievers = contentRetrieverProvider.orderedStream()
++                .map(ContentRetrieverAskDataVectorRetriever::new)
++                .collect(Collectors.<AskDataVectorRetriever>toList());
++        return new CompositeAskDataVectorRetriever(retrievers, properties.getVector().getDefaultTopK());
+     }
+ 
+     @Bean
+     @ConditionalOnMissingBean
+     public AskDataAgentDispatcher askDataAgentDispatcher(ObjectProvider<AskDataSubAgent> subAgentProvider) {
+         return new SequentialAskDataAgentDispatcher(subAgentProvider.orderedStream().collect(Collectors.toList()));
+     }
+ 
+     @Bean
+     @ConditionalOnMissingBean
+@@ -119,22 +120,26 @@ public class AskDataAutoConfiguration {
+     public AskDataContextCompressor askDataContextCompressor(AskDataProperties properties) {
+         return new DefaultAskDataContextCompressor(properties);
+     }
+ 
+     @Bean
+     @ConditionalOnMissingBean
+     public AskDataFlowExecutor askDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+             AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+-            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher) {
++            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
++            ObjectProvider<AskDataAgent> agentProvider) {
++        List<AskDataAgent> mainAgents = agentProvider.orderedStream()
++                .filter(agent -> !(agent instanceof AskDataSubAgent))
++                .collect(Collectors.toList());
+         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
+                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
+-                agentDispatcher);
++                agentDispatcher, mainAgents);
+     }
+ 
+     @Bean
+     @ConditionalOnMissingBean
+     public AskDataService askDataService(AskDataFlowExecutor flowExecutor) {
+         return new DefaultAskDataService(flowExecutor);
+     }
+ }
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/conversation/AskDataCheckpoint.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/conversation/AskDataCheckpoint.java
+index b9c92c89..cd164ba0 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/conversation/AskDataCheckpoint.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/conversation/AskDataCheckpoint.java
+@@ -8,20 +8,23 @@ import java.util.List;
+ 
+ public class AskDataCheckpoint {
+ 
+     private String conversationId;
+     private String checkpointId;
+     private String resumeToken;
+     private String requestSummary;
+     private String modelKey;
+     private String datasourceKey;
+     private String dialect;
++    private Integer maxRows;
++    private Boolean execute;
++    private String executionState;
+     private List<String> completedSteps = new ArrayList<String>();
+     private String currentStep;
+     private String sql;
+     private Boolean sqlValidated;
+     private Boolean sqlExecuted;
+     private Integer rowCount;
+     private String compressedSummary;
+     private List<AskDataStepLog> steps = new ArrayList<AskDataStepLog>();
+     private String errorCode;
+     private String version;
+@@ -34,20 +37,26 @@ public class AskDataCheckpoint {
+     public String getResumeToken() { return resumeToken; }
+     public void setResumeToken(String resumeToken) { this.resumeToken = resumeToken; }
+     public String getRequestSummary() { return requestSummary; }
+     public void setRequestSummary(String requestSummary) { this.requestSummary = requestSummary; }
+     public String getModelKey() { return modelKey; }
+     public void setModelKey(String modelKey) { this.modelKey = modelKey; }
+     public String getDatasourceKey() { return datasourceKey; }
+     public void setDatasourceKey(String datasourceKey) { this.datasourceKey = datasourceKey; }
+     public String getDialect() { return dialect; }
+     public void setDialect(String dialect) { this.dialect = dialect; }
++    public Integer getMaxRows() { return maxRows; }
++    public void setMaxRows(Integer maxRows) { this.maxRows = maxRows; }
++    public Boolean getExecute() { return execute; }
++    public void setExecute(Boolean execute) { this.execute = execute; }
++    public String getExecutionState() { return executionState; }
++    public void setExecutionState(String executionState) { this.executionState = executionState; }
+     public List<String> getCompletedSteps() { return completedSteps; }
+     public void setCompletedSteps(List<String> completedSteps) {
+         this.completedSteps = completedSteps == null ? new ArrayList<String>() : new ArrayList<String>(completedSteps);
+     }
+     public String getCurrentStep() { return currentStep; }
+     public void setCurrentStep(String currentStep) { this.currentStep = currentStep; }
+     public String getSql() { return sql; }
+     public void setSql(String sql) { this.sql = sql; }
+     public Boolean getSqlValidated() { return sqlValidated; }
+     public void setSqlValidated(Boolean sqlValidated) { this.sqlValidated = sqlValidated; }
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/conversation/InMemoryAskDataConversationStore.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/conversation/InMemoryAskDataConversationStore.java
+index 42f22eb5..d8f9e3dc 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/conversation/InMemoryAskDataConversationStore.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/conversation/InMemoryAskDataConversationStore.java
+@@ -68,20 +68,23 @@ public class InMemoryAskDataConversationStore implements AskDataConversationStor
+ 
+     private AskDataCheckpoint snapshot(AskDataCheckpoint source) {
+         AskDataCheckpoint target = new AskDataCheckpoint();
+         target.setConversationId(source.getConversationId());
+         target.setCheckpointId(source.getCheckpointId());
+         target.setResumeToken(source.getResumeToken());
+         target.setRequestSummary(source.getRequestSummary());
+         target.setModelKey(source.getModelKey());
+         target.setDatasourceKey(source.getDatasourceKey());
+         target.setDialect(source.getDialect());
++        target.setMaxRows(source.getMaxRows());
++        target.setExecute(source.getExecute());
++        target.setExecutionState(source.getExecutionState());
+         target.setCompletedSteps(source.getCompletedSteps());
+         target.setCurrentStep(source.getCurrentStep());
+         target.setSql(source.getSql());
+         target.setSqlValidated(source.getSqlValidated());
+         target.setSqlExecuted(source.getSqlExecuted());
+         target.setRowCount(source.getRowCount());
+         target.setCompressedSummary(source.getCompressedSummary());
+         target.setSteps(copyStepLogs(source.getSteps()));
+         target.setErrorCode(source.getErrorCode());
+         target.setVersion(source.getVersion());
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/flow/AskDataStepContext.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/flow/AskDataStepContext.java
+index 67c2f33d..4d8b6496 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/flow/AskDataStepContext.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/flow/AskDataStepContext.java
+@@ -14,20 +14,21 @@ public class AskDataStepContext {
+ 
+     private final AskDataRequest request;
+     private final Map<String, Object> attributes = new LinkedHashMap<String, Object>();
+     private AskDataMetadata metadata;
+     private List<AskDataRetrievedDocument> retrievedDocuments = new ArrayList<AskDataRetrievedDocument>();
+     private String prompt;
+     private String rawModelResponse;
+     private String sql;
+     private Boolean sqlValidated;
+     private Boolean sqlExecuted;
++    private String executionState;
+     private Integer rowCount;
+     private List<String> completedSteps = new ArrayList<String>();
+     private List<AskDataStepLog> stepLogs = new ArrayList<AskDataStepLog>();
+     private String errorCode;
+ 
+     public AskDataStepContext(AskDataRequest request) {
+         this.request = request;
+     }
+ 
+     public AskDataRequest getRequest() {
+@@ -76,20 +77,22 @@ public class AskDataStepContext {
+     }
+ 
+     public void setSql(String sql) {
+         this.sql = sql;
+     }
+ 
+     public Boolean getSqlValidated() { return sqlValidated; }
+     public void setSqlValidated(Boolean sqlValidated) { this.sqlValidated = sqlValidated; }
+     public Boolean getSqlExecuted() { return sqlExecuted; }
+     public void setSqlExecuted(Boolean sqlExecuted) { this.sqlExecuted = sqlExecuted; }
++    public String getExecutionState() { return executionState; }
++    public void setExecutionState(String executionState) { this.executionState = executionState; }
+     public Integer getRowCount() { return rowCount; }
+     public void setRowCount(Integer rowCount) { this.rowCount = rowCount; }
+     public List<String> getCompletedSteps() { return completedSteps; }
+     public void setCompletedSteps(List<String> completedSteps) {
+         this.completedSteps = completedSteps == null ? new ArrayList<String>() : new ArrayList<String>(completedSteps);
+     }
+     public List<AskDataStepLog> getStepLogs() { return stepLogs; }
+     public void setStepLogs(List<AskDataStepLog> stepLogs) {
+         this.stepLogs = stepLogs == null ? new ArrayList<AskDataStepLog>() : new ArrayList<AskDataStepLog>(stepLogs);
+     }
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/flow/DefaultAskDataFlowExecutor.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/flow/DefaultAskDataFlowExecutor.java
+index ca30961f..5470d2a8 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/flow/DefaultAskDataFlowExecutor.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/flow/DefaultAskDataFlowExecutor.java
+@@ -9,20 +9,21 @@ import com.xiongx9527.fw.plus.ai.askdata.AskDataResult;
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataStepLog;
+ import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataCheckpoint;
+ import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataCompressedContext;
+ import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataContextCompressor;
+ import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataConversationStore;
+ import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata;
+ import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider;
+ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel;
+ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelResponse;
+ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRegistry;
++import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelException;
+ import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialect;
+ import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialectRegistry;
+ import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataPromptTemplateProvider;
+ import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlExecutionResult;
+ import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlExecutor;
+ import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidationResult;
+ import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator;
+ import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRetrievedDocument;
+ import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorQuery;
+ import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorRetriever;
+@@ -31,67 +32,87 @@ import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.Collections;
+ import java.util.Date;
+ import java.util.List;
+ import java.util.UUID;
+ 
+ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
+ 
+     private static final List<String> CHECKPOINT_STEPS = Arrays.asList("metadata", "prompt", "generate-sql",
+             "validate-sql", "execute-sql");
++    private static final List<String> AGENT_CHECKPOINT_STEPS = Arrays.asList("metadata", "merge-sub-agents", "prompt",
++            "generate-sql", "validate-sql", "execute-sql");
++    private static final String EXECUTION_EXECUTING = "EXECUTING";
++    private static final String EXECUTION_COMPLETED = "COMPLETED";
++    private static final String EXECUTION_SKIPPED = "SKIPPED";
+ 
+     private final AskDataProperties properties;
+     private final AskDataModelRegistry modelRegistry;
+     private final AskDataMetadataProvider metadataProvider;
+     private final AskDataVectorRetriever vectorRetriever;
+     private final AskDataPromptTemplateProvider promptTemplateProvider;
+     private final AskDataDialectRegistry dialectRegistry;
+     private final AskDataSqlValidator sqlValidator;
+     private final AskDataSqlExecutor sqlExecutor;
+     private final AskDataConversationStore conversationStore;
+     private final AskDataContextCompressor contextCompressor;
+     private final AskDataAgentDispatcher agentDispatcher;
++    private final List<AskDataAgent> mainAgents;
+     private final ObjectMapper objectMapper = new ObjectMapper();
+ 
+     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+             AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor) {
+         this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
+-                sqlValidator, sqlExecutor, null, null, null);
++                sqlValidator, sqlExecutor, null, null, null, Collections.<AskDataAgent>emptyList());
+     }
+ 
+     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+             AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+             AskDataContextCompressor contextCompressor) {
+         this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
+-                sqlValidator, sqlExecutor, conversationStore, contextCompressor, null);
++                sqlValidator, sqlExecutor, conversationStore, contextCompressor, null,
++                Collections.<AskDataAgent>emptyList());
+     }
+ 
+     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+             AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+             AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher) {
++        this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
++                sqlValidator, sqlExecutor, conversationStore, contextCompressor, agentDispatcher,
++                Collections.<AskDataAgent>emptyList());
++    }
++
++    public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
++            AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
++            AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
++            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
++            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
++            List<AskDataAgent> mainAgents) {
+         this.properties = properties;
+         this.modelRegistry = modelRegistry;
+         this.metadataProvider = metadataProvider;
+         this.vectorRetriever = vectorRetriever;
+         this.promptTemplateProvider = promptTemplateProvider;
+         this.dialectRegistry = dialectRegistry;
+         this.sqlValidator = sqlValidator;
+         this.sqlExecutor = sqlExecutor;
+         this.conversationStore = conversationStore;
+         this.contextCompressor = contextCompressor;
+         this.agentDispatcher = agentDispatcher;
++        this.mainAgents = mainAgents == null ? Collections.<AskDataAgent>emptyList()
++                : new ArrayList<AskDataAgent>(mainAgents);
+     }
+ 
+     @Override
+     public AskDataResult execute(AskDataRequest request) {
+         AskDataResult result = new AskDataResult();
+         if (request != null) {
+             result.setConversationId(request.getConversationId());
+         }
+         if (!isResumeRequested(request) && conversationStore != null && contextCompressor != null
+                 && isBlank(result.getConversationId())) {
+@@ -114,37 +135,75 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
+         if (metadata == null) {
+             return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, "AskData metadata was not found");
+         }
+         context.setMetadata(metadata);
+         result.addStep("metadata", "Metadata", true, "Metadata loaded");
+         AskDataResult checkpointFailure = saveCheckpoint(context, result, "metadata", null, null);
+         if (checkpointFailure != null) {
+             return checkpointFailure;
+         }
+ 
+-        dispatchSubAgents(context);
++        AskDataResult agentFailure = runAgentsAndSaveCheckpoint(context, result);
++        if (agentFailure != null) {
++            return agentFailure;
++        }
+ 
+         return generateSqlAndValidate(request, result, context, metadata);
+     }
+ 
+-    private void dispatchSubAgents(AskDataStepContext context) {
+-        if (agentDispatcher == null) {
+-            return;
++    private AskDataResult runAgentsAndSaveCheckpoint(AskDataStepContext context, AskDataResult result) {
++        if (agentDispatcher == null && mainAgents.isEmpty()) {
++            return null;
+         }
+-        AskDataProperties.Flow flow = properties == null ? null : properties.getFlow();
+-        Integer timeout = flow == null ? null : flow.getDefaultSubAgentTimeoutMillis();
+-        try {
+-            agentDispatcher.dispatch(new AskDataDispatchRequest(Collections.<AskDataSubAgent>emptyList(), context,
+-                    timeout == null ? 0L : timeout.longValue(), AskDataDispatchRequest.FailurePolicy.CONTINUE, null));
+-        } catch (RuntimeException ignored) {
+-            // Sub-agent dispatch is optional and must not interrupt the SQL generation flow.
++        for (AskDataAgent agent : mainAgents) {
++            String name = agent == null ? "unknown" : agent.getName();
++            try {
++                AskDataStepResult stepResult = agent == null ? null : agent.execute(context);
++                boolean success = stepResult != null && stepResult.isSuccess();
++                String message = stepResult == null ? "Main agent returned no result"
++                        : success ? stepResult.getOutputSummary() : stepResult.getErrorMessage();
++                context.getAttributes().put("askData.mainAgent." + name, message);
++                result.addStep("agent:" + name, "Agent " + name, success, message);
++            } catch (RuntimeException ex) {
++                context.getAttributes().put("askData.mainAgent." + name, message(ex));
++                result.addStep("agent:" + name, "Agent " + name, false, message(ex));
++            }
++        }
++        AskDataDispatchResult dispatchResult = null;
++        if (agentDispatcher != null) {
++            AskDataProperties.Flow flow = properties == null ? null : properties.getFlow();
++            Integer timeout = flow == null ? null : flow.getDefaultSubAgentTimeoutMillis();
++            try {
++                dispatchResult = agentDispatcher.dispatch(new AskDataDispatchRequest(
++                        Collections.<AskDataSubAgent>emptyList(), context,
++                        timeout == null ? 0L : timeout.longValue(), AskDataDispatchRequest.FailurePolicy.CONTINUE, null));
++            } catch (RuntimeException ex) {
++                result.addStep("sub-agent:dispatcher", "Sub-agent dispatcher", false, message(ex));
++            }
++        }
++        if (dispatchResult != null) {
++            context.getAttributes().put("askData.subAgentResults", dispatchResult.getResults());
++            for (AskDataSubAgentResult subAgentResult : dispatchResult.getResults()) {
++                String name = subAgentResult.getAgentName() == null ? "unknown" : subAgentResult.getAgentName();
++                String message = subAgentResult.isSuccess() ? subAgentResult.getOutputSummary()
++                        : subAgentResult.getErrorMessage();
++                if (subAgentResult.isTimedOut()) {
++                    message = "Timed out: " + message;
++                }
++                context.getAttributes().put("askData.subAgent." + name, message);
++                result.addStep("sub-agent:" + name, "Sub-agent " + name, subAgentResult.isSuccess(), message);
++            }
+         }
++        result.addStep("merge-sub-agents", "Merge agents", true,
++                dispatchResult == null ? "Agent outputs merged" : "Merged " + dispatchResult.getResults().size()
++                        + " sub-agent result(s)");
++        return saveCheckpoint(context, result, "merge-sub-agents", null, null);
+     }
+ 
+     private AskDataResult generateSqlAndValidate(AskDataRequest request, AskDataResult result,
+             AskDataStepContext context, AskDataMetadata metadata) {
+         int maxRows = maxRows(request);
+         List<AskDataRetrievedDocument> documents;
+         try {
+             documents = retrieveDocuments(request);
+         } catch (RuntimeException ex) {
+             return failure(result, "prompt", AskDataErrorCode.VECTOR_RETRIEVAL_FAILED, message(ex));
+@@ -155,20 +214,22 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
+             prompt = promptTemplateProvider.buildPrompt(request, metadata, documents, maxRows);
+         } catch (RuntimeException ex) {
+             return failure(result, "prompt", AskDataErrorCode.MODEL_RESPONSE_INVALID, message(ex));
+         }
+         context.setPrompt(prompt);
+         result.addStep("prompt", "Prompt", true, "Prompt built");
+ 
+         AskDataChatModel model;
+         try {
+             model = modelRegistry.getChatModel(request == null ? null : request.getModelKey());
++        } catch (AskDataModelException ex) {
++            return failure(result, "generate-sql", ex.getErrorCode(), message(ex));
+         } catch (RuntimeException ex) {
+             return failure(result, "generate-sql", AskDataErrorCode.MODEL_NOT_FOUND, message(ex));
+         }
+         if (model == null) {
+             return failure(result, "generate-sql", AskDataErrorCode.MODEL_NOT_FOUND, "AskData chat model was not found");
+         }
+         AskDataModelResponse modelResponse;
+         try {
+             modelResponse = model.generate(prompt);
+         } catch (RuntimeException ex) {
+@@ -208,65 +269,86 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
+     private AskDataResult resume(AskDataRequest request, AskDataResult result, AskDataStepContext context) {
+         if (conversationStore == null) {
+             return failure(result, "resume", AskDataErrorCode.CHECKPOINT_NOT_FOUND, "AskData conversation store is not configured");
+         }
+         AskDataCheckpoint checkpoint = !isBlank(request.getResumeToken())
+                 ? conversationStore.loadByResumeToken(request.getResumeToken())
+                 : conversationStore.loadLatest(request.getConversationId());
+         if (checkpoint == null) {
+             return failure(result, "resume", AskDataErrorCode.CHECKPOINT_NOT_FOUND, "AskData checkpoint was not found");
+         }
+-        if (!equals(checkpointVersion(), checkpoint.getVersion()) || !isSafeCheckpoint(checkpoint)) {
++        AskDataCheckpoint latest = conversationStore.loadLatest(checkpoint.getConversationId());
++        if (latest != null) {
++            checkpoint = latest;
++        }
++        if (!requestIdentityMatches(request, checkpoint)) {
++            return failure(result, "resume", AskDataErrorCode.RESUME_FAILED,
++                    "AskData resume request does not match checkpoint identity");
++        }
++        if (!equals(checkpointVersion(), checkpoint.getVersion()) || !isSafeCheckpoint(checkpoint)
++                || EXECUTION_EXECUTING.equals(checkpoint.getExecutionState())) {
+             return failure(result, "resume", AskDataErrorCode.RESUME_FAILED,
+                     "AskData checkpoint does not contain a safe resumable state");
+         }
+         restoreResult(result, checkpoint);
+         context.setSql(checkpoint.getSql());
+         context.setSqlValidated(checkpoint.getSqlValidated());
+         context.setSqlExecuted(checkpoint.getSqlExecuted());
++        context.setExecutionState(checkpoint.getExecutionState());
+         context.setRowCount(checkpoint.getRowCount());
+         context.setCompletedSteps(checkpoint.getCompletedSteps());
+         context.setStepLogs(checkpoint.getSteps());
+         context.setErrorCode(checkpoint.getErrorCode());
+         if (contains(checkpoint, "execute-sql")) {
+             result.addStep("execute-sql", "Execute SQL", true, "SQL execution already completed");
+             result.setSuccess(true);
+             result.addStep("format-result", "Format Result", true, "Result formatted");
+             return result;
+         }
+         if (contains(checkpoint, "validate-sql")) {
+             return executeValidatedSql(request, result, context, checkpoint.getSql());
+         }
+         if (contains(checkpoint, "generate-sql")) {
++            AskDataMetadata metadata;
++            try {
++                metadata = metadataProvider.load(request);
++            } catch (RuntimeException ex) {
++                return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
++            }
++            if (metadata == null) {
++                return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND,
++                        "AskData metadata was not found");
++            }
++            context.setMetadata(metadata);
+             AskDataDialect dialect;
+             try {
+                 dialect = dialectRegistry.getDialect(checkpoint.getDialect());
+             } catch (RuntimeException ex) {
+                 return failure(result, "validate-sql", AskDataErrorCode.DIALECT_RESOLUTION_FAILED, message(ex));
+             }
+             AskDataSqlValidationResult validation;
+             try {
+-                validation = sqlValidator.validate(checkpoint.getSql(), dialect, maxRows(request));
++                validation = sqlValidator.validate(checkpoint.getSql(), dialect, maxRows(request), metadata);
+             } catch (RuntimeException ex) {
+                 return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
+             }
+             if (validation == null || !validation.isValid()) {
+                 return validationFailure(result, validation);
+             }
+             context.setSql(validation.getSql());
+             context.setSqlValidated(Boolean.TRUE);
+             result.setSql(validation.getSql());
+             result.addStep("validate-sql", "Validate SQL", true, "SQL validated");
+             AskDataResult checkpointFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
+             return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getSql()) : checkpointFailure;
+         }
+-        if (contains(checkpoint, "metadata")) {
++        if (contains(checkpoint, "metadata") || contains(checkpoint, "merge-sub-agents")) {
+             AskDataMetadata metadata;
+             try {
+                 metadata = metadataProvider.load(request);
+             } catch (RuntimeException ex) {
+                 return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
+             }
+             if (metadata == null) {
+                 return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND,
+                         "AskData metadata was not found");
+             }
+@@ -280,58 +362,65 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
+     private AskDataResult validateAndExecute(AskDataRequest request, AskDataResult result, AskDataStepContext context,
+             AskDataMetadata metadata, String generatedSql) {
+         AskDataDialect dialect;
+         try {
+             dialect = dialectRegistry.getDialect(dialect(request, metadata));
+         } catch (RuntimeException ex) {
+             return failure(result, "validate-sql", AskDataErrorCode.DIALECT_RESOLUTION_FAILED, message(ex));
+         }
+         AskDataSqlValidationResult validation;
+         try {
+-            validation = sqlValidator.validate(generatedSql, dialect, maxRows(request));
++            validation = sqlValidator.validate(generatedSql, dialect, maxRows(request), metadata);
+         } catch (RuntimeException ex) {
+             return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
+         }
+         if (validation == null || !validation.isValid()) {
+             return validationFailure(result, validation);
+         }
+         result.setSql(validation.getSql());
+         context.setSql(validation.getSql());
+         context.setSqlValidated(Boolean.TRUE);
+         result.addStep("validate-sql", "Validate SQL", true, "SQL validated");
+         AskDataResult checkpointFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
+         return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getSql()) : checkpointFailure;
+     }
+ 
+     private AskDataResult executeValidatedSql(AskDataRequest request, AskDataResult result, AskDataStepContext context,
+             String sql) {
+         if (isExecutionEnabled(request)) {
++            context.setExecutionState(EXECUTION_EXECUTING);
++            AskDataResult inFlightFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
++            if (inFlightFailure != null) {
++                return inFlightFailure;
++            }
+             AskDataSqlExecutionResult execution;
+             try {
+                 execution = sqlExecutor.execute(request, sql);
+             } catch (RuntimeException ex) {
+                 return failure(result, "execute-sql", AskDataErrorCode.SQL_EXECUTION_FAILED, message(ex));
+             }
+             if (execution == null || !execution.isSuccess()) {
+                 String errorCode = execution == null || isBlank(execution.getErrorCode())
+                         ? AskDataErrorCode.SQL_EXECUTION_FAILED : execution.getErrorCode();
+                 String errorMessage = execution == null ? "AskData SQL execution failed" : execution.getErrorMessage();
+                 return failure(result, "execute-sql", errorCode, errorMessage);
+             }
+             result.setColumns(execution.getColumns());
+             result.setRows(execution.getRows());
+             result.setRowCount(Integer.valueOf(execution.getRowCount()));
+             context.setRowCount(Integer.valueOf(execution.getRowCount()));
+             context.setSqlExecuted(Boolean.TRUE);
++            context.setExecutionState(EXECUTION_COMPLETED);
+             result.addStep("execute-sql", "Execute SQL", true, "SQL executed");
+         } else {
+             context.setSqlExecuted(Boolean.FALSE);
++            context.setExecutionState(EXECUTION_SKIPPED);
+             result.addStep("execute-sql", "Execute SQL", true, "SQL execution skipped");
+         }
+         AskDataResult checkpointFailure = saveCheckpoint(context, result, "execute-sql", context.getSqlValidated(),
+                 context.getSqlExecuted());
+         if (checkpointFailure != null) {
+             return checkpointFailure;
+         }
+         result.setSuccess(true);
+         result.addStep("format-result", "Format Result", true, "Result formatted");
+         return result;
+@@ -357,27 +446,30 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
+             context.setRowCount(result.getRowCount());
+             AskDataCompressedContext compressed = contextCompressor.compress(context);
+             AskDataCheckpoint checkpoint = new AskDataCheckpoint();
+             AskDataRequest request = context.getRequest();
+             checkpoint.setConversationId(result.getConversationId());
+             checkpoint.setCheckpointId(UUID.randomUUID().toString());
+             checkpoint.setResumeToken(UUID.randomUUID().toString());
+             checkpoint.setRequestSummary(request == null ? null : request.getQuestion());
+             checkpoint.setModelKey(request == null ? null : request.getModelKey());
+             checkpoint.setDatasourceKey(request == null ? null : request.getDatasourceKey());
++            checkpoint.setMaxRows(Integer.valueOf(maxRows(request)));
++            checkpoint.setExecute(Boolean.valueOf(isExecutionEnabled(request)));
+             checkpoint.setDialect(request != null && !isBlank(request.getDialect()) ? request.getDialect()
+                     : context.getMetadata() == null ? null : context.getMetadata().getDialect());
+             checkpoint.setCompletedSteps(context.getCompletedSteps());
+             checkpoint.setCurrentStep(currentStep);
+             checkpoint.setSql(context.getSql());
+             checkpoint.setSqlValidated(context.getSqlValidated());
+             checkpoint.setSqlExecuted(context.getSqlExecuted());
++            checkpoint.setExecutionState(context.getExecutionState());
+             checkpoint.setRowCount(context.getRowCount());
+             checkpoint.setCompressedSummary(compressed == null ? null : compressed.getCompressedSummary());
+             checkpoint.setSteps(context.getStepLogs());
+             checkpoint.setErrorCode(result.getErrorCode());
+             checkpoint.setVersion(checkpointVersion());
+             checkpoint.setCreatedAt(new Date());
+             AskDataCheckpoint saved = conversationStore.save(checkpoint);
+             AskDataCheckpoint responseCheckpoint = saved == null ? checkpoint : saved;
+             result.setCheckpointId(responseCheckpoint.getCheckpointId());
+             result.setResumeToken(responseCheckpoint.getResumeToken());
+@@ -396,55 +488,68 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
+         result.setSteps(new ArrayList<AskDataStepLog>(checkpoint.getSteps()));
+         for (String completedStep : checkpoint.getCompletedSteps()) {
+             if (!hasSuccessfulStep(result.getSteps(), completedStep)) {
+                 result.addStep(completedStep, completedStep, true, "Checkpoint restored");
+             }
+         }
+     }
+ 
+     private boolean isSafeCheckpoint(AskDataCheckpoint checkpoint) {
+         List<String> completed = checkpoint.getCompletedSteps();
+-        if (completed == null || completed.isEmpty() || completed.size() > CHECKPOINT_STEPS.size()) {
++        if (completed == null || completed.isEmpty()) {
++            return false;
++        }
++        List<String> expected = completed.contains("merge-sub-agents") ? AGENT_CHECKPOINT_STEPS : CHECKPOINT_STEPS;
++        if (completed.size() > expected.size()) {
+             return false;
+         }
+         for (int index = 0; index < completed.size(); index++) {
+-            if (!equals(CHECKPOINT_STEPS.get(index), completed.get(index))) {
++            if (!equals(expected.get(index), completed.get(index))) {
+                 return false;
+             }
+         }
+         String currentStep = completed.get(completed.size() - 1);
+         if (!equals(currentStep, checkpoint.getCurrentStep())) {
+             return false;
+         }
+         if ("metadata".equals(currentStep)) {
+             return isBlank(checkpoint.getSql()) && checkpoint.getSqlValidated() == null
+                     && checkpoint.getSqlExecuted() == null && checkpoint.getRowCount() == null;
+         }
++        if ("merge-sub-agents".equals(currentStep)) {
++            return isBlank(checkpoint.getSql()) && checkpoint.getSqlValidated() == null
++                    && checkpoint.getSqlExecuted() == null && checkpoint.getRowCount() == null
++                    && checkpoint.getExecutionState() == null;
++        }
+         if ("prompt".equals(currentStep)) {
+             return false;
+         }
+         if (isBlank(checkpoint.getSql()) || isBlank(checkpoint.getDialect())) {
+             return false;
+         }
+         if ("generate-sql".equals(currentStep)) {
+             return checkpoint.getSqlValidated() == null && checkpoint.getSqlExecuted() == null
+                     && checkpoint.getRowCount() == null;
+         }
+         if ("validate-sql".equals(currentStep)) {
+             return Boolean.TRUE.equals(checkpoint.getSqlValidated()) && checkpoint.getSqlExecuted() == null
+-                    && checkpoint.getRowCount() == null;
++                    && checkpoint.getRowCount() == null && (checkpoint.getExecutionState() == null
++                    || EXECUTION_EXECUTING.equals(checkpoint.getExecutionState()));
+         }
+         if (!Boolean.TRUE.equals(checkpoint.getSqlValidated()) || checkpoint.getSqlExecuted() == null) {
+             return false;
+         }
+-        return Boolean.TRUE.equals(checkpoint.getSqlExecuted()) ? checkpoint.getRowCount() != null
+-                : checkpoint.getRowCount() == null;
++        return Boolean.TRUE.equals(checkpoint.getSqlExecuted())
++                ? checkpoint.getRowCount() != null && (checkpoint.getExecutionState() == null
++                || EXECUTION_COMPLETED.equals(checkpoint.getExecutionState()))
++                : checkpoint.getRowCount() == null && (checkpoint.getExecutionState() == null
++                || EXECUTION_SKIPPED.equals(checkpoint.getExecutionState()));
+     }
+ 
+     private boolean hasSuccessfulStep(List<AskDataStepLog> steps, String stepKey) {
+         for (AskDataStepLog step : steps) {
+             if (step.isSuccess() && equals(stepKey, step.getStepKey())) {
+                 return true;
+             }
+         }
+         return false;
+     }
+@@ -453,21 +558,22 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
+         return checkpoint.getCompletedSteps() != null && checkpoint.getCompletedSteps().contains(step);
+     }
+ 
+     private boolean isResumeRequested(AskDataRequest request) {
+         return request != null && (!isBlank(request.getResumeToken()) || !isBlank(request.getConversationId()));
+     }
+ 
+     private List<String> completedSteps(AskDataResult result) {
+         List<String> completed = new ArrayList<String>();
+         for (AskDataStepLog step : result.getSteps()) {
+-            if (step.isSuccess()) {
++            if (step.isSuccess() && (CHECKPOINT_STEPS.contains(step.getStepKey())
++                    || "merge-sub-agents".equals(step.getStepKey()))) {
+                 completed.add(step.getStepKey());
+             }
+         }
+         return completed;
+     }
+ 
+     private AskDataResult failure(AskDataResult result, String stepKey, String errorCode, String errorMessage) {
+         result.setSuccess(false);
+         result.setErrorCode(errorCode);
+         result.setErrorMessage(errorMessage);
+@@ -506,21 +612,38 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
+     }
+ 
+     private String dialect(AskDataRequest request, AskDataMetadata metadata) {
+         if (request != null && !isBlank(request.getDialect())) {
+             return request.getDialect();
+         }
+         return metadata.getDialect();
+     }
+ 
+     private boolean isExecutionEnabled(AskDataRequest request) {
+-        return properties.getSql().isExecuteEnabled() && request != null && Boolean.TRUE.equals(request.getExecute());
++        return properties.getSql().isExecuteEnabled() && (request == null || !Boolean.FALSE.equals(request.getExecute()));
++    }
++
++    private boolean requestIdentityMatches(AskDataRequest request, AskDataCheckpoint checkpoint) {
++        if (request == null || checkpoint == null) {
++            return false;
++        }
++        if (!equals(request.getDatasourceKey(), checkpoint.getDatasourceKey())
++                || !equals(request.getModelKey(), checkpoint.getModelKey())
++                || !equals(request.getQuestion(), checkpoint.getRequestSummary())
++                || !equals(Integer.valueOf(maxRows(request)), checkpoint.getMaxRows())
++                || !equals(Boolean.valueOf(isExecutionEnabled(request)), checkpoint.getExecute())) {
++            return false;
++        }
++        if (!isBlank(request.getDialect()) && !equals(request.getDialect(), checkpoint.getDialect())) {
++            return false;
++        }
++        return isBlank(request.getConversationId()) || equals(request.getConversationId(), checkpoint.getConversationId());
+     }
+ 
+     private String checkpointVersion() {
+         return properties.getConversation() == null ? "1" : properties.getConversation().getCheckpointVersion();
+     }
+ 
+     private List<String> textValues(JsonNode node) {
+         List<String> values = new ArrayList<String>();
+         if (node != null && node.isArray()) {
+             for (JsonNode value : node) {
+@@ -534,18 +657,18 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
+ 
+     private String textValue(JsonNode node, String fieldName) {
+         JsonNode value = node == null ? null : node.get(fieldName);
+         return value != null && value.isTextual() ? value.asText() : null;
+     }
+ 
+     private String message(RuntimeException ex) {
+         return isBlank(ex.getMessage()) ? ex.getClass().getSimpleName() : ex.getMessage();
+     }
+ 
+-    private boolean equals(String first, String second) {
++    private boolean equals(Object first, Object second) {
+         return first == null ? second == null : first.equals(second);
+     }
+ 
+     private boolean isBlank(String value) {
+         return value == null || value.trim().length() == 0;
+     }
+ }
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/AskDataSqlValidator.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/AskDataSqlValidator.java
+index 5d2dd4c7..061cbf9a 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/AskDataSqlValidator.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/AskDataSqlValidator.java
+@@ -1,8 +1,14 @@
+ package com.xiongx9527.fw.plus.ai.askdata.sql;
+ 
+ import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialect;
++import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata;
+ 
+ public interface AskDataSqlValidator {
+ 
+     AskDataSqlValidationResult validate(String sql, AskDataDialect dialect, int maxRows);
++
++    default AskDataSqlValidationResult validate(String sql, AskDataDialect dialect, int maxRows,
++            AskDataMetadata metadata) {
++        return validate(sql, dialect, maxRows);
++    }
+ }
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/DefaultAskDataSqlValidator.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/DefaultAskDataSqlValidator.java
+index 7a4e66a2..fa979ee7 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/DefaultAskDataSqlValidator.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/DefaultAskDataSqlValidator.java
+@@ -1,144 +1,425 @@
+ package com.xiongx9527.fw.plus.ai.askdata.sql;
+ 
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataErrorCode;
++import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata;
++import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataTable;
+ import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialect;
+ 
++import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.HashSet;
++import java.util.List;
++import java.util.Locale;
+ import java.util.Set;
+ 
+ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
+ 
+     private static final Set<String> DANGEROUS_KEYWORDS = new HashSet<String>(Arrays.asList(
+             "insert", "update", "delete", "drop", "alter", "truncate", "create", "merge",
+             "grant", "revoke", "call", "exec", "execute", "set", "use", "begin", "commit", "rollback"));
++    private static final Set<String> SIDE_EFFECT_FUNCTIONS = new HashSet<String>(Arrays.asList(
++            "setval", "nextval", "pg_advisory_lock", "pg_try_advisory_lock", "get_lock", "release_lock",
++            "load_file", "sleep", "benchmark"));
++    private static final Set<String> FROM_TERMINATORS = new HashSet<String>(Arrays.asList(
++            "where", "group", "order", "having", "limit", "offset", "fetch", "union", "intersect",
++            "except", "returning", "for", "lock", "window", "qualify"));
++
++    private final boolean enforceLimit;
++
++    public DefaultAskDataSqlValidator() {
++        this(true);
++    }
++
++    public DefaultAskDataSqlValidator(boolean enforceLimit) {
++        this.enforceLimit = enforceLimit;
++    }
+ 
+     @Override
+     public AskDataSqlValidationResult validate(String sql, AskDataDialect dialect, int maxRows) {
++        return validate(sql, dialect, maxRows, null);
++    }
++
++    @Override
++    public AskDataSqlValidationResult validate(String sql, AskDataDialect dialect, int maxRows,
++            AskDataMetadata metadata) {
+         if (sql == null || sql.trim().length() == 0) {
+             return rejected("SQL 不能为空");
+         }
++        if (dialect == null) {
++            return rejected("SQL 方言不能为空");
++        }
+         if (maxRows <= 0) {
+             return rejected("最大返回行数必须大于 0");
+         }
+ 
+-        ScanResult scanResult = scan(sql.trim());
++        String trimmedSql = sql.trim();
++        ScanResult scanResult = scan(trimmedSql);
+         if (scanResult.hasMultipleStatements) {
+             return rejected("仅允许执行单条 SQL 查询");
+         }
+         if (scanResult.hasExecutableComment) {
+             return rejected("不允许 MySQL 可执行注释");
+         }
+         if (scanResult.firstKeyword == null || (!"select".equals(scanResult.firstKeyword)
+                 && !"with".equals(scanResult.firstKeyword))) {
+             return rejected("仅允许 SELECT 或 WITH 查询");
+         }
+         if (scanResult.hasSelectInto) {
+             return rejected("不允许 SELECT INTO 写入查询");
+         }
+         if (scanResult.dangerousKeyword != null) {
+             return rejected("检测到危险关键字: " + scanResult.dangerousKeyword);
+         }
++        if (scanResult.sideEffectFunction != null) {
++            return rejected("检测到副作用函数: " + scanResult.sideEffectFunction);
++        }
++        if (scanResult.hasLockClause) {
++            return rejected("不允许锁定查询");
++        }
+ 
+-        String normalizedSql = stripTrailingSemicolon(sql.trim(), scanResult.trailingSemicolonIndex);
+-        if (!dialect.hasRowLimit(normalizedSql)) {
+-            if (scanResult.trailingSemicolonIndex < 0 && scanResult.trailingLineCommentIndex >= 0) {
+-                String trailingComment = normalizedSql.substring(scanResult.trailingLineCommentIndex).trim();
+-                normalizedSql = normalizedSql.substring(0, scanResult.trailingLineCommentIndex).trim();
+-                normalizedSql = dialect.applyLimit(normalizedSql, maxRows) + " " + trailingComment;
+-            } else {
+-                normalizedSql = dialect.applyLimit(normalizedSql, maxRows);
++        List<Token> tokens = tokenize(trimmedSql);
++        String quotedSideEffectFunction = sideEffectFunction(tokens);
++        if (quotedSideEffectFunction != null) {
++            return rejected("检测到副作用函数: " + quotedSideEffectFunction);
++        }
++        AskDataSqlValidationResult scopeResult = validateMetadataScope(tokens, metadata);
++        if (scopeResult != null) {
++            return scopeResult;
++        }
++
++        String normalizedSql = stripTrailingSemicolon(trimmedSql, scanResult.trailingSemicolonIndex);
++        LimitClause limit = findTopLevelLimit(tokens);
++        if (limit != null && limit.all) {
++            return rejected("LIMIT ALL 不满足最大返回行数约束");
++        }
++        if (enforceLimit) {
++            if (limit != null && limit.rowCount > maxRows) {
++                normalizedSql = replace(normalizedSql, limit.valueStart, limit.valueEnd, String.valueOf(maxRows));
++            } else if (limit == null && !dialect.hasRowLimit(normalizedSql)) {
++                normalizedSql = appendLimit(normalizedSql, scanResult, dialect, maxRows);
+             }
+         }
+         return AskDataSqlValidationResult.accepted(normalizedSql);
+     }
+ 
++    private AskDataSqlValidationResult validateMetadataScope(List<Token> tokens, AskDataMetadata metadata) {
++        if (metadata == null || metadata.getTables() == null || metadata.getTables().isEmpty()) {
++            return null;
++        }
++        Set<String> allowedTables = new HashSet<String>();
++        for (AskDataTable table : metadata.getTables()) {
++            if (table != null && table.getName() != null) {
++                String normalized = normalizeIdentifier(table.getName());
++                allowedTables.add(normalized);
++                allowedTables.add(lastIdentifier(normalized));
++            }
++        }
++        Set<String> cteNames = collectCteNames(tokens);
++        boolean[] inFrom = new boolean[maxDepth(tokens) + 1];
++        boolean[] expectTable = new boolean[inFrom.length];
++        for (int index = 0; index < tokens.size(); index++) {
++            Token token = tokens.get(index);
++            if (token.depth >= inFrom.length) {
++                return rejected("SQL 嵌套层级超出安全校验范围");
++            }
++            String word = token.word();
++            if ("from".equals(word) || "join".equals(word)) {
++                inFrom[token.depth] = true;
++                expectTable[token.depth] = true;
++                continue;
++            }
++            if (word != null && FROM_TERMINATORS.contains(word)) {
++                inFrom[token.depth] = false;
++                expectTable[token.depth] = false;
++                continue;
++            }
++            if (inFrom[token.depth] && ",".equals(token.text)) {
++                expectTable[token.depth] = true;
++                continue;
++            }
++            if (!expectTable[token.depth]) {
++                continue;
++            }
++            if ("(".equals(token.text)) {
++                expectTable[token.depth] = false;
++                continue;
++            }
++            if (!token.identifier) {
++                return rejected("无法安全解析 FROM/JOIN 表达式");
++            }
++            StringBuilder tableName = new StringBuilder(token.text);
++            int cursor = index + 1;
++            while (cursor + 1 < tokens.size() && tokens.get(cursor).depth == token.depth
++                    && ".".equals(tokens.get(cursor).text) && tokens.get(cursor + 1).identifier) {
++                tableName.append('.').append(tokens.get(cursor + 1).text);
++                cursor += 2;
++            }
++            if (cursor < tokens.size() && "(".equals(tokens.get(cursor).text)) {
++                return rejected("不允许 FROM/JOIN 中的表函数");
++            }
++            index = cursor - 1;
++            String normalized = normalizeIdentifier(tableName.toString());
++            if (!allowedTables.contains(normalized) && !allowedTables.contains(lastIdentifier(normalized))
++                    && !cteNames.contains(normalized)) {
++                return rejected("SQL 访问了 metadata 未授权表: " + tableName);
++            }
++            expectTable[token.depth] = false;
++        }
++        return null;
++    }
++
++    private Set<String> collectCteNames(List<Token> tokens) {
++        Set<String> names = new HashSet<String>();
++        if (tokens.isEmpty() || !"with".equals(tokens.get(0).word())) {
++            return names;
++        }
++        int index = 1;
++        if (index < tokens.size() && "recursive".equals(tokens.get(index).word())) {
++            index++;
++        }
++        while (index < tokens.size()) {
++            Token alias = tokens.get(index);
++            if (alias.depth != 0 || !alias.identifier) {
++                break;
++            }
++            names.add(normalizeIdentifier(alias.text));
++            while (index < tokens.size() && !(tokens.get(index).depth == 0
++                    && "as".equals(tokens.get(index).word()))) {
++                index++;
++            }
++            if (index >= tokens.size()) {
++                break;
++            }
++            index++;
++            if (index >= tokens.size() || !"(".equals(tokens.get(index).text)) {
++                break;
++            }
++            index++;
++            while (index < tokens.size() && !(tokens.get(index).depth == 0
++                    && ")".equals(tokens.get(index).text))) {
++                index++;
++            }
++            index++;
++            if (index >= tokens.size() || tokens.get(index).depth != 0 || !",".equals(tokens.get(index).text)) {
++                break;
++            }
++            index++;
++        }
++        return names;
++    }
++
++    private LimitClause findTopLevelLimit(List<Token> tokens) {
++        LimitClause found = null;
++        for (int index = 0; index < tokens.size(); index++) {
++            Token token = tokens.get(index);
++            if (token.depth != 0 || !"limit".equals(token.word())) {
++                continue;
++            }
++            if (found != null || index + 1 >= tokens.size()) {
++                return new LimitClause(true, 0L, token.end, token.end);
++            }
++            Token value = tokens.get(index + 1);
++            if ("all".equals(value.word())) {
++                found = new LimitClause(true, 0L, value.start, value.end);
++                continue;
++            }
++            if (!isDigits(value.text)) {
++                return new LimitClause(true, 0L, value.start, value.end);
++            }
++            Token rowCount = value;
++            if (index + 3 < tokens.size() && ",".equals(tokens.get(index + 2).text)
++                    && isDigits(tokens.get(index + 3).text)) {
++                rowCount = tokens.get(index + 3);
++            }
++            try {
++                found = new LimitClause(false, Long.parseLong(rowCount.text), rowCount.start, rowCount.end);
++            } catch (NumberFormatException ex) {
++                return new LimitClause(true, 0L, rowCount.start, rowCount.end);
++            }
++        }
++        return found;
++    }
++
++    private String appendLimit(String sql, ScanResult scanResult, AskDataDialect dialect, int maxRows) {
++        if (scanResult.trailingSemicolonIndex < 0 && scanResult.trailingLineCommentIndex >= 0) {
++            String trailingComment = sql.substring(scanResult.trailingLineCommentIndex).trim();
++            String statement = sql.substring(0, scanResult.trailingLineCommentIndex).trim();
++            return dialect.applyLimit(statement, maxRows) + " " + trailingComment;
++        }
++        return dialect.applyLimit(sql, maxRows);
++    }
++
+     private AskDataSqlValidationResult rejected(String message) {
+         return AskDataSqlValidationResult.rejected(AskDataErrorCode.SQL_REJECTED, message);
+     }
+ 
++    private String replace(String value, int start, int end, String replacement) {
++        return value.substring(0, start) + replacement + value.substring(end);
++    }
++
+     private String stripTrailingSemicolon(String sql, int trailingSemicolonIndex) {
+         if (trailingSemicolonIndex >= 0) {
+             return sql.substring(0, trailingSemicolonIndex).trim();
+         }
+-        int index = sql.length() - 1;
+-        while (index >= 0 && Character.isWhitespace(sql.charAt(index))) {
+-            index--;
+-        }
+-        return index >= 0 && sql.charAt(index) == ';' ? sql.substring(0, index).trim() : sql;
++        return sql;
+     }
+ 
+     private ScanResult scan(String sql) {
+         ScanResult result = new ScanResult();
+-        int depth = 0;
++        List<String> words = new ArrayList<String>();
+         int index = 0;
+         while (index < sql.length()) {
+             char current = sql.charAt(index);
+             if (current == '\'') {
+                 index = skipQuoted(sql, index, '\'');
+-            } else if (current == '"') {
+-                index = skipQuoted(sql, index, '"');
+-            } else if (current == '`') {
+-                index = skipQuoted(sql, index, '`');
++            } else if (current == '"' || current == '`') {
++                index = skipQuoted(sql, index, current);
+             } else if (current == '-' && index + 1 < sql.length() && sql.charAt(index + 1) == '-') {
+                 int commentStart = index;
+                 index = skipLineComment(sql, index + 2);
+                 if (index == sql.length()) {
+                     result.trailingLineCommentIndex = commentStart;
+                 }
+             } else if (current == '/' && index + 2 < sql.length() && sql.charAt(index + 1) == '*'
+                     && sql.charAt(index + 2) == '!') {
+                 result.hasExecutableComment = true;
+                 return result;
+             } else if (current == '/' && index + 1 < sql.length() && sql.charAt(index + 1) == '*') {
+                 index = skipBlockComment(sql, index + 2);
+             } else if (current == ';') {
+                 if (hasCodeAfter(sql, index + 1)) {
+                     result.hasMultipleStatements = true;
+                     return result;
+                 }
+-                result.trailingSemicolonIndex = index;
+-                index++;
+-            } else if (current == '(') {
+-                depth++;
+-                index++;
+-            } else if (current == ')') {
+-                if (depth > 0) {
+-                    depth--;
+-                }
+-                index++;
++                result.trailingSemicolonIndex = index++;
+             } else if (isWordCharacter(current)) {
+                 int wordEnd = index + 1;
+                 while (wordEnd < sql.length() && isWordCharacter(sql.charAt(wordEnd))) {
+                     wordEnd++;
+                 }
+-                String word = sql.substring(index, wordEnd).toLowerCase();
++                String word = sql.substring(index, wordEnd).toLowerCase(Locale.ENGLISH);
+                 if (result.firstKeyword == null) {
+                     result.firstKeyword = word;
+                 }
++                words.add(word);
+                 if (DANGEROUS_KEYWORDS.contains(word)) {
+                     result.dangerousKeyword = word;
+                     return result;
+                 }
+                 if ("into".equals(word)) {
+                     result.hasSelectInto = true;
+                     return result;
+                 }
++                if (SIDE_EFFECT_FUNCTIONS.contains(word) && nextCodeCharacter(sql, wordEnd) == '(') {
++                    result.sideEffectFunction = word;
++                    return result;
++                }
+                 index = wordEnd;
+             } else {
+                 index++;
+             }
+         }
++        result.hasLockClause = containsSequence(words, "for", "update")
++                || containsSequence(words, "for", "share")
++                || containsSequence(words, "for", "no", "key", "update")
++                || containsSequence(words, "for", "key", "share")
++                || containsSequence(words, "lock", "in", "share", "mode");
+         return result;
+     }
+ 
++    private List<Token> tokenize(String sql) {
++        List<Token> tokens = new ArrayList<Token>();
++        int depth = 0;
++        int index = 0;
++        while (index < sql.length()) {
++            char current = sql.charAt(index);
++            if (Character.isWhitespace(current)) {
++                index++;
++            } else if (current == '\'') {
++                index = skipQuoted(sql, index, '\'');
++            } else if (current == '"' || current == '`') {
++                int end = skipQuoted(sql, index, current);
++                tokens.add(new Token(sql.substring(index + 1, Math.max(index + 1, end - 1)), depth, index, end, true));
++                index = end;
++            } else if (current == '-' && index + 1 < sql.length() && sql.charAt(index + 1) == '-') {
++                index = skipLineComment(sql, index + 2);
++            } else if (current == '/' && index + 1 < sql.length() && sql.charAt(index + 1) == '*') {
++                index = skipBlockComment(sql, index + 2);
++            } else if (current == '(') {
++                tokens.add(new Token("(", depth, index, index + 1, false));
++                depth++;
++                index++;
++            } else if (current == ')') {
++                depth = Math.max(0, depth - 1);
++                tokens.add(new Token(")", depth, index, index + 1, false));
++                index++;
++            } else if (current == ',' || current == '.') {
++                tokens.add(new Token(String.valueOf(current), depth, index, index + 1, false));
++                index++;
++            } else if (isWordCharacter(current)) {
++                int end = index + 1;
++                while (end < sql.length() && isWordCharacter(sql.charAt(end))) {
++                    end++;
++                }
++                tokens.add(new Token(sql.substring(index, end), depth, index, end, true));
++                index = end;
++            } else {
++                index++;
++            }
++        }
++        return tokens;
++    }
++
++    private int maxDepth(List<Token> tokens) {
++        int max = 0;
++        for (Token token : tokens) {
++            max = Math.max(max, token.depth);
++        }
++        return max;
++    }
++
++    private String sideEffectFunction(List<Token> tokens) {
++        for (int index = 0; index + 1 < tokens.size(); index++) {
++            Token token = tokens.get(index);
++            String normalized = normalizeIdentifier(token.text);
++            if (token.identifier && SIDE_EFFECT_FUNCTIONS.contains(normalized)
++                    && "(".equals(tokens.get(index + 1).text)) {
++                return normalized;
++            }
++        }
++        return null;
++    }
++
++    private boolean containsSequence(List<String> words, String... sequence) {
++        for (int index = 0; index + sequence.length <= words.size(); index++) {
++            boolean matches = true;
++            for (int offset = 0; offset < sequence.length; offset++) {
++                if (!sequence[offset].equals(words.get(index + offset))) {
++                    matches = false;
++                    break;
++                }
++            }
++            if (matches) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private char nextCodeCharacter(String sql, int index) {
++        while (index < sql.length() && Character.isWhitespace(sql.charAt(index))) {
++            index++;
++        }
++        return index < sql.length() ? sql.charAt(index) : '\0';
++    }
++
+     private int skipQuoted(String sql, int index, char quote) {
+         int cursor = index + 1;
+         while (cursor < sql.length()) {
+             if (sql.charAt(cursor) == quote) {
+                 if (cursor + 1 < sql.length() && sql.charAt(cursor + 1) == quote) {
+                     cursor += 2;
+                 } else {
+                     return cursor + 1;
+                 }
+             } else if (quote == '\'' && sql.charAt(cursor) == '\\' && cursor + 1 < sql.length()) {
+@@ -177,23 +458,80 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
+             } else if (current == '/' && index + 1 < sql.length() && sql.charAt(index + 1) == '*') {
+                 index = skipBlockComment(sql, index + 2);
+             } else {
+                 return true;
+             }
+         }
+         return false;
+     }
+ 
+     private boolean isWordCharacter(char value) {
+-        return Character.isLetterOrDigit(value) || value == '_';
++        return Character.isLetterOrDigit(value) || value == '_' || value == '$';
++    }
++
++    private boolean isDigits(String value) {
++        if (value == null || value.length() == 0) {
++            return false;
++        }
++        for (int index = 0; index < value.length(); index++) {
++            if (!Character.isDigit(value.charAt(index))) {
++                return false;
++            }
++        }
++        return true;
++    }
++
++    private String normalizeIdentifier(String value) {
++        return value == null ? null : value.replace("`", "").replace("\"", "").toLowerCase(Locale.ENGLISH);
++    }
++
++    private String lastIdentifier(String value) {
++        int separator = value == null ? -1 : value.lastIndexOf('.');
++        return separator < 0 ? value : value.substring(separator + 1);
+     }
+ 
+     private static class ScanResult {
+         private String firstKeyword;
+         private String dangerousKeyword;
++        private String sideEffectFunction;
+         private boolean hasMultipleStatements;
+         private boolean hasExecutableComment;
+         private boolean hasSelectInto;
++        private boolean hasLockClause;
+         private int trailingSemicolonIndex = -1;
+         private int trailingLineCommentIndex = -1;
+     }
++
++    private static class Token {
++        private final String text;
++        private final int depth;
++        private final int start;
++        private final int end;
++        private final boolean identifier;
++
++        private Token(String text, int depth, int start, int end, boolean identifier) {
++            this.text = text;
++            this.depth = depth;
++            this.start = start;
++            this.end = end;
++            this.identifier = identifier;
++        }
++
++        private String word() {
++            return identifier ? text.toLowerCase(Locale.ENGLISH) : null;
++        }
++    }
++
++    private static class LimitClause {
++        private final boolean all;
++        private final long rowCount;
++        private final int valueStart;
++        private final int valueEnd;
++
++        private LimitClause(boolean all, long rowCount, int valueStart, int valueEnd) {
++            this.all = all;
++            this.rowCount = rowCount;
++            this.valueStart = valueStart;
++            this.valueEnd = valueEnd;
++        }
++    }
+ }
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/JdbcAskDataSqlExecutor.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/JdbcAskDataSqlExecutor.java
+index 12fae28d..fc6167c7 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/JdbcAskDataSqlExecutor.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/JdbcAskDataSqlExecutor.java
+@@ -1,36 +1,49 @@
+ package com.xiongx9527.fw.plus.ai.askdata.sql;
+ 
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataColumn;
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataErrorCode;
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataRequest;
+ import org.springframework.beans.factory.ObjectProvider;
+ import org.springframework.jdbc.core.JdbcTemplate;
++import org.springframework.jdbc.core.PreparedStatementCreator;
+ import org.springframework.jdbc.core.ResultSetExtractor;
+ 
++import java.sql.Connection;
++import java.sql.PreparedStatement;
+ import java.sql.ResultSet;
+ import java.sql.ResultSetMetaData;
+ import java.sql.SQLException;
+ import java.util.ArrayList;
+ import java.util.LinkedHashMap;
+ import java.util.List;
+ import java.util.Map;
+ 
+ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
+ 
+     private final ObjectProvider<JdbcTemplate> jdbcTemplateProvider;
++    private final int defaultMaxRows;
+ 
+     public JdbcAskDataSqlExecutor(ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
++        this(jdbcTemplateProvider, 100);
++    }
++
++    public JdbcAskDataSqlExecutor(ObjectProvider<JdbcTemplate> jdbcTemplateProvider, int defaultMaxRows) {
+         this.jdbcTemplateProvider = jdbcTemplateProvider;
++        this.defaultMaxRows = defaultMaxRows > 0 ? defaultMaxRows : 100;
+     }
+ 
+     public JdbcAskDataSqlExecutor(final JdbcTemplate jdbcTemplate) {
++        this(jdbcTemplate, 100);
++    }
++
++    public JdbcAskDataSqlExecutor(final JdbcTemplate jdbcTemplate, int defaultMaxRows) {
+         this.jdbcTemplateProvider = new ObjectProvider<JdbcTemplate>() {
+             @Override
+             public JdbcTemplate getObject(Object... args) {
+                 return jdbcTemplate;
+             }
+ 
+             @Override
+             public JdbcTemplate getIfAvailable() {
+                 return jdbcTemplate;
+             }
+@@ -38,44 +51,54 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
+             @Override
+             public JdbcTemplate getIfUnique() {
+                 return jdbcTemplate;
+             }
+ 
+             @Override
+             public JdbcTemplate getObject() {
+                 return jdbcTemplate;
+             }
+         };
++        this.defaultMaxRows = defaultMaxRows > 0 ? defaultMaxRows : 100;
+     }
+ 
+     @Override
+     public AskDataSqlExecutionResult execute(AskDataRequest request, String sql) {
+         JdbcTemplate jdbcTemplate = jdbcTemplateProvider.getIfAvailable();
+         if (jdbcTemplate == null) {
+             return AskDataSqlExecutionResult.failure(AskDataErrorCode.SQL_EXECUTION_FAILED, "未配置 JdbcTemplate");
+         }
++        final int maxRows = request != null && request.getMaxRows() != null && request.getMaxRows().intValue() > 0
++                ? request.getMaxRows().intValue() : defaultMaxRows;
+         try {
+-            return jdbcTemplate.query(sql, new ResultSetExtractor<AskDataSqlExecutionResult>() {
++            return jdbcTemplate.query(new PreparedStatementCreator() {
++                @Override
++                public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
++                    PreparedStatement statement = connection.prepareStatement(sql);
++                    statement.setMaxRows(maxRows);
++                    return statement;
++                }
++            }, new ResultSetExtractor<AskDataSqlExecutionResult>() {
+                 @Override
+                 public AskDataSqlExecutionResult extractData(ResultSet resultSet) throws SQLException {
+                     ResultSetMetaData metadata = resultSet.getMetaData();
+                     int columnCount = metadata.getColumnCount();
+                     List<AskDataColumn> columns = new ArrayList<AskDataColumn>(columnCount);
+                     for (int index = 1; index <= columnCount; index++) {
+                         AskDataColumn column = new AskDataColumn();
+                         column.setName(metadata.getColumnLabel(index));
+                         column.setLabel(metadata.getColumnLabel(index));
+                         column.setType(metadata.getColumnTypeName(index));
+                         columns.add(column);
+                     }
+                     List<Map<String, Object>> rows = new ArrayList<Map<String, Object>>();
+-                    while (resultSet.next()) {
++                    while (rows.size() < maxRows && resultSet.next()) {
+                         Map<String, Object> row = new LinkedHashMap<String, Object>();
+                         for (int index = 1; index <= columnCount; index++) {
+                             row.put(columns.get(index - 1).getName(), resultSet.getObject(index));
+                         }
+                         rows.add(row);
+                     }
+                     return AskDataSqlExecutionResult.success(columns, rows);
+                 }
+             });
+         } catch (Exception ex) {
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/autoconfigure/AskDataAutoConfigurationTest.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/autoconfigure/AskDataAutoConfigurationTest.java
+index 6dd1fa8f..b57451c8 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/autoconfigure/AskDataAutoConfigurationTest.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/autoconfigure/AskDataAutoConfigurationTest.java
+@@ -1,19 +1,20 @@
+ package com.xiongx9527.fw.plus.ai.askdata.autoconfigure;
+ 
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataProperties;
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataRequest;
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataResult;
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataService;
+ import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataContextCompressor;
+ import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataConversationStore;
+ import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataAgentDispatcher;
++import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataAgent;
+ import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataFlowExecutor;
+ import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataStepContext;
+ import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataStepResult;
+ import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataSubAgent;
+ import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataSubAgentRequest;
+ import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataSubAgentResult;
+ import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata;
+ import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider;
+ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel;
+ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataEmbeddingModel;
+@@ -109,20 +110,48 @@ public class AskDataAutoConfigurationTest {
+     @Test
+     public void shouldDispatchUserSubAgentThroughDefaultFlow() {
+         TestAskDataSubAgent subAgent = new TestAskDataSubAgent();
+         withDefaultFlowDependencies()
+                 .withBean(AskDataSubAgent.class, () -> subAgent)
+                 .run(context -> {
+                     AskDataResult result = context.getBean(AskDataService.class).ask(createRequest());
+ 
+                     assertTrue(result.isSuccess());
+                     assertTrue(subAgent.executed);
++                    assertTrue(hasStep(result, "sub-agent:test-sub-agent"));
++                    assertTrue(hasStep(result, "merge-sub-agents"));
++                    assertTrue(context.getBean(AskDataConversationStore.class)
++                            .loadLatest(result.getConversationId()) != null);
++                });
++    }
++
++    @Test
++    public void shouldExecuteAndRecordCustomMainAgent() {
++        AskDataAgent mainAgent = new AskDataAgent() {
++            @Override
++            public String getName() {
++                return "custom-main";
++            }
++
++            @Override
++            public AskDataStepResult execute(AskDataStepContext context) {
++                context.getAttributes().put("custom-main", "ready");
++                return AskDataStepResult.success("main output");
++            }
++        };
++        withDefaultFlowDependencies()
++                .withBean(AskDataAgent.class, () -> mainAgent)
++                .run(context -> {
++                    AskDataResult result = context.getBean(AskDataService.class).ask(createRequest());
++
++                    assertTrue(result.isSuccess());
++                    assertTrue(hasStep(result, "agent:custom-main"));
+                 });
+     }
+ 
+     @Test
+     public void shouldGenerateSqlWhenSubAgentReturnsFailure() {
+         FailureAskDataSubAgent subAgent = new FailureAskDataSubAgent();
+         withDefaultFlowDependencies()
+                 .withBean(AskDataSubAgent.class, () -> subAgent)
+                 .run(context -> {
+                     assertSuccessfulSql(context.getBean(AskDataService.class).ask(createRequest()));
+@@ -180,20 +209,29 @@ public class AskDataAutoConfigurationTest {
+         request.setDatasourceKey("orders");
+         request.setExecute(Boolean.FALSE);
+         return request;
+     }
+ 
+     private void assertSuccessfulSql(AskDataResult result) {
+         assertTrue(result.isSuccess());
+         assertEquals(SQL, result.getSql());
+     }
+ 
++    private boolean hasStep(AskDataResult result, String stepKey) {
++        for (com.xiongx9527.fw.plus.ai.askdata.AskDataStepLog step : result.getSteps()) {
++            if (stepKey.equals(step.getStepKey())) {
++                return true;
++            }
++        }
++        return false;
++    }
++
+     private static class TestAskDataSubAgent implements AskDataSubAgent {
+ 
+         private boolean executed;
+         private int executeSubTaskInvocations;
+ 
+         @Override
+         public String getName() {
+             return "test-sub-agent";
+         }
+ 
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/flow/AskDataResumeFlowTest.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/flow/AskDataResumeFlowTest.java
+index 72c8fefd..3c76f5bc 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/flow/AskDataResumeFlowTest.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/flow/AskDataResumeFlowTest.java
+@@ -90,20 +90,75 @@ public class AskDataResumeFlowTest {
+         AskDataRequest request = fixture.request();
+         request.setResumeToken("resume-unvalidated");
+ 
+         AskDataResult result = fixture.executor().execute(request);
+ 
+         assertFalse(result.isSuccess());
+         assertEquals(AskDataErrorCode.RESUME_FAILED, result.getErrorCode());
+         assertEquals(0, fixture.executorCalls);
+     }
+ 
++    @Test
++    public void shouldRejectResumeWhenRequestIdentityDoesNotMatch() {
++        Fixture fixture = new Fixture();
++        fixture.store.save(fixture.validatedCheckpoint("resume-identity", "1"));
++        AskDataRequest request = fixture.request();
++        request.setResumeToken("resume-identity");
++        request.setDatasourceKey("other-datasource");
++
++        AskDataResult result = fixture.executor().execute(request);
++
++        assertFalse(result.isSuccess());
++        assertEquals(AskDataErrorCode.RESUME_FAILED, result.getErrorCode());
++        assertEquals(0, fixture.executorCalls);
++    }
++
++    @Test
++    public void shouldRejectResumeWhenQuestionModelRowsOrExecuteDoesNotMatch() {
++        assertIdentityMismatch("question");
++        assertIdentityMismatch("model");
++        assertIdentityMismatch("maxRows");
++        assertIdentityMismatch("execute");
++    }
++
++    @Test
++    public void shouldRejectResumeWhenEffectiveExecutionPolicyChanged() {
++        Fixture fixture = new Fixture();
++        fixture.store.save(fixture.validatedCheckpoint("resume-policy", "1"));
++        fixture.properties.getSql().setExecuteEnabled(false);
++        AskDataRequest request = fixture.request();
++        request.setResumeToken("resume-policy");
++
++        AskDataResult result = fixture.executor().execute(request);
++
++        assertFalse(result.isSuccess());
++        assertEquals(AskDataErrorCode.RESUME_FAILED, result.getErrorCode());
++        assertEquals(0, fixture.executorCalls);
++    }
++
++    @Test
++    public void shouldRejectResumeAfterExecutionWasStartedButCompletionWasNotCheckpointed() {
++        Fixture fixture = new Fixture();
++        fixture.failExecution = true;
++
++        AskDataResult first = fixture.executor().execute(fixture.requestWithoutConversation());
++        AskDataRequest resume = fixture.request();
++        resume.setConversationId(first.getConversationId());
++        resume.setResumeToken(null);
++        AskDataResult resumed = fixture.executor().execute(resume);
++
++        assertFalse(first.isSuccess());
++        assertFalse(resumed.isSuccess());
++        assertEquals(AskDataErrorCode.RESUME_FAILED, resumed.getErrorCode());
++        assertEquals(1, fixture.executorCalls);
++    }
++
+     @Test
+     public void shouldNotExecuteSqlAgainWhenResumingExecutedCheckpoint() {
+         Fixture fixture = new Fixture();
+         AskDataCheckpoint checkpoint = fixture.validatedCheckpoint("resume-executed", "1");
+         checkpoint.setCompletedSteps(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql",
+                 "execute-sql"));
+         checkpoint.setCurrentStep("execute-sql");
+         checkpoint.setSqlExecuted(Boolean.TRUE);
+         checkpoint.setRowCount(Integer.valueOf(3));
+         fixture.store.save(checkpoint);
+@@ -158,20 +213,23 @@ public class AskDataResumeFlowTest {
+     public void shouldResumeMetadataCheckpointByReloadingStructuredMetadata() {
+         Fixture fixture = new Fixture();
+         AskDataCheckpoint checkpoint = new AskDataCheckpoint();
+         checkpoint.setConversationId("conversation-1");
+         checkpoint.setCheckpointId("checkpoint-metadata");
+         checkpoint.setResumeToken("resume-metadata");
+         checkpoint.setVersion("1");
+         checkpoint.setDatasourceKey("orders");
+         checkpoint.setDialect("mysql");
+         checkpoint.setModelKey("model-1");
++        checkpoint.setRequestSummary("订单数量");
++        checkpoint.setMaxRows(Integer.valueOf(100));
++        checkpoint.setExecute(Boolean.TRUE);
+         checkpoint.setCompletedSteps(Collections.singletonList("metadata"));
+         checkpoint.setCurrentStep("metadata");
+         fixture.store.save(checkpoint);
+         AskDataRequest request = fixture.request();
+         request.setResumeToken("resume-metadata");
+ 
+         AskDataResult result = fixture.executor().execute(request);
+ 
+         assertTrue(result.isSuccess());
+         assertEquals(1, fixture.metadataCalls);
+@@ -212,51 +270,57 @@ public class AskDataResumeFlowTest {
+     private static class Fixture {
+ 
+         private final AskDataProperties properties = new AskDataProperties();
+         private final AskDataConversationStore store = new InMemoryAskDataConversationStore();
+         private final AskDataContextCompressor compressor = new DefaultAskDataContextCompressor(properties);
+         private int metadataCalls;
+         private int promptCalls;
+         private int modelCalls;
+         private int validatorCalls;
+         private int executorCalls;
++        private boolean failExecution;
+ 
+         private Fixture() {
+             properties.getSql().setExecuteEnabled(true);
+             properties.getConversation().setCheckpointVersion("1");
+         }
+ 
+         private AskDataRequest request() {
+             AskDataRequest request = new AskDataRequest();
+             request.setConversationId("conversation-1");
+             request.setDatasourceKey("orders");
+             request.setDialect("mysql");
+             request.setModelKey("model-1");
++            request.setQuestion("订单数量");
+             request.setExecute(Boolean.TRUE);
++            request.setMaxRows(Integer.valueOf(100));
+             return request;
+         }
+ 
+         private AskDataRequest requestWithoutConversation() {
+             AskDataRequest request = request();
+             request.setConversationId(null);
+             return request;
+         }
+ 
+         private AskDataCheckpoint validatedCheckpoint(String token, String version) {
+             AskDataCheckpoint checkpoint = new AskDataCheckpoint();
+             checkpoint.setConversationId("conversation-1");
+             checkpoint.setCheckpointId("checkpoint-1");
+             checkpoint.setResumeToken(token);
+             checkpoint.setVersion(version);
+             checkpoint.setDatasourceKey("orders");
+             checkpoint.setDialect("mysql");
+             checkpoint.setModelKey("model-1");
++            checkpoint.setRequestSummary("订单数量");
++            checkpoint.setMaxRows(Integer.valueOf(100));
++            checkpoint.setExecute(Boolean.TRUE);
+             checkpoint.setSql("select * from orders limit 100");
+             checkpoint.setSqlValidated(Boolean.TRUE);
+             checkpoint.setCompletedSteps(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql"));
+             checkpoint.setCurrentStep("validate-sql");
+             return checkpoint;
+         }
+ 
+         private DefaultAskDataFlowExecutor executor() {
+             return executor(compressor);
+         }
+@@ -315,18 +379,43 @@ public class AskDataResumeFlowTest {
+                 @Override
+                 public AskDataSqlValidationResult validate(String sql, AskDataDialect dialect, int maxRows) {
+                     validatorCalls++;
+                     return AskDataSqlValidationResult.accepted(sql);
+                 }
+             };
+             AskDataSqlExecutor sqlExecutor = new AskDataSqlExecutor() {
+                 @Override
+                 public AskDataSqlExecutionResult execute(AskDataRequest request, String sql) {
+                     executorCalls++;
++                    if (failExecution) {
++                        throw new IllegalStateException("connection lost after execute");
++                    }
+                     return AskDataSqlExecutionResult.success(Collections.emptyList(), Collections.emptyList());
+                 }
+             };
+             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
+                     promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, store, contextCompressor);
+         }
+     }
++
++    private void assertIdentityMismatch(String field) {
++        Fixture fixture = new Fixture();
++        fixture.store.save(fixture.validatedCheckpoint("resume-" + field, "1"));
++        AskDataRequest request = fixture.request();
++        request.setResumeToken("resume-" + field);
++        if ("question".equals(field)) {
++            request.setQuestion("客户数量");
++        } else if ("model".equals(field)) {
++            request.setModelKey("model-2");
++        } else if ("maxRows".equals(field)) {
++            request.setMaxRows(Integer.valueOf(50));
++        } else {
++            request.setExecute(Boolean.FALSE);
++        }
++
++        AskDataResult result = fixture.executor().execute(request);
++
++        assertFalse(result.isSuccess());
++        assertEquals(AskDataErrorCode.RESUME_FAILED, result.getErrorCode());
++        assertEquals(0, fixture.executorCalls);
++    }
+ }
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/flow/DefaultAskDataFlowExecutorTest.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/flow/DefaultAskDataFlowExecutorTest.java
+index 70b90f7c..8ae9a6d5 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/flow/DefaultAskDataFlowExecutorTest.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/flow/DefaultAskDataFlowExecutorTest.java
+@@ -3,20 +3,21 @@ package com.xiongx9527.fw.plus.ai.askdata.flow;
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataErrorCode;
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataProperties;
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataRequest;
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataResult;
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataStepLog;
+ import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata;
+ import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider;
+ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel;
+ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataEmbeddingModel;
+ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRegistry;
++import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelException;
+ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelResponse;
+ import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialect;
+ import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialectRegistry;
+ import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataPromptTemplateProvider;
+ import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlExecutionResult;
+ import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlExecutor;
+ import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidationResult;
+ import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator;
+ import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRetrievedDocument;
+ import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorQuery;
+@@ -52,20 +53,32 @@ public class DefaultAskDataFlowExecutorTest {
+ 
+     @Test
+     public void shouldReturnModelNotFoundWhenConfiguredModelIsMissing() {
+         StubDependencies dependencies = new StubDependencies();
+         AskDataResult result = dependencies.executor(null).execute(request(true));
+ 
+         assertFalse(result.isSuccess());
+         assertEquals(AskDataErrorCode.MODEL_NOT_FOUND, result.getErrorCode());
+     }
+ 
++    @Test
++    public void shouldPreserveModelRegistryErrorCode() {
++        StubDependencies dependencies = new StubDependencies();
++        dependencies.modelException = new AskDataModelException(AskDataErrorCode.DEFAULT_MODEL_NOT_CONFIGURED,
++                "default model missing");
++
++        AskDataResult result = dependencies.executor("unused").execute(request(true));
++
++        assertFalse(result.isSuccess());
++        assertEquals(AskDataErrorCode.DEFAULT_MODEL_NOT_CONFIGURED, result.getErrorCode());
++    }
++
+     @Test
+     public void shouldReturnInvalidResponseWhenModelDoesNotProduceJson() {
+         StubDependencies dependencies = new StubDependencies();
+         AskDataResult result = dependencies.executor("not json").execute(request(true));
+ 
+         assertFalse(result.isSuccess());
+         assertEquals(AskDataErrorCode.MODEL_RESPONSE_INVALID, result.getErrorCode());
+     }
+ 
+     @Test
+@@ -84,20 +97,44 @@ public class DefaultAskDataFlowExecutorTest {
+     public void shouldReturnSqlWithoutRowsWhenExecutionIsDisabledByRequest() {
+         StubDependencies dependencies = new StubDependencies();
+         AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}").execute(request(false));
+ 
+         assertTrue(result.isSuccess());
+         assertEquals(SQL, result.getSql());
+         assertTrue(result.getRows().isEmpty());
+         assertEquals(0, dependencies.executorCalls);
+     }
+ 
++    @Test
++    public void shouldExecuteWhenGloballyEnabledAndRequestExecuteIsMissing() {
++        StubDependencies dependencies = new StubDependencies();
++        AskDataRequest request = request(true);
++        request.setExecute(null);
++
++        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}").execute(request);
++
++        assertTrue(result.isSuccess());
++        assertEquals(1, dependencies.executorCalls);
++    }
++
++    @Test
++    public void shouldSkipWhenGloballyDisabledEvenIfRequestEnablesExecution() {
++        StubDependencies dependencies = new StubDependencies();
++        dependencies.globalExecutionEnabled = false;
++
++        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
++                .execute(request(true));
++
++        assertTrue(result.isSuccess());
++        assertEquals(0, dependencies.executorCalls);
++    }
++
+     @Test
+     public void shouldContainVectorRetrieverFailureInResultWithoutExecutingSql() {
+         StubDependencies dependencies = new StubDependencies();
+         dependencies.vectorRetriever = new AskDataVectorRetriever() {
+             @Override
+             public List<AskDataRetrievedDocument> retrieve(AskDataVectorQuery query) {
+                 throw new IllegalStateException("vector unavailable");
+             }
+         };
+ 
+@@ -147,27 +184,32 @@ public class DefaultAskDataFlowExecutorTest {
+         return keys;
+     }
+ 
+     private static class StubDependencies {
+ 
+         private final AskDataProperties properties = new AskDataProperties();
+         private AskDataDialectRegistry dialectRegistry = new AskDataDialectRegistry();
+         private AskDataVectorRetriever vectorRetriever;
+         private final List<String> retrieveTypes = new java.util.ArrayList<String>();
+         private int executorCalls;
++        private boolean globalExecutionEnabled = true;
++        private AskDataModelException modelException;
+         private AskDataSqlValidationResult validationResult = AskDataSqlValidationResult.accepted(SQL);
+ 
+         private DefaultAskDataFlowExecutor executor(final String modelResponse) {
+-            properties.getSql().setExecuteEnabled(true);
++            properties.getSql().setExecuteEnabled(globalExecutionEnabled);
+             AskDataModelRegistry modelRegistry = new AskDataModelRegistry() {
+                 @Override
+                 public AskDataChatModel getChatModel(String modelKey) {
++                    if (modelException != null) {
++                        throw modelException;
++                    }
+                     if (modelResponse == null) {
+                         return null;
+                     }
+                     return new AskDataChatModel() {
+                         @Override
+                         public AskDataModelResponse generate(String prompt) {
+                             return new AskDataModelResponse(modelResponse, modelResponse, "test-model");
+                         }
+                     };
+                 }
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/sql/DefaultAskDataSqlValidatorTest.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/sql/DefaultAskDataSqlValidatorTest.java
+index 43fd5f53..c373cce8 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/sql/DefaultAskDataSqlValidatorTest.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/sql/DefaultAskDataSqlValidatorTest.java
+@@ -1,17 +1,23 @@
+ package com.xiongx9527.fw.plus.ai.askdata.sql;
+ 
+ import com.xiongx9527.fw.plus.ai.askdata.AskDataErrorCode;
++import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata;
++import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataTable;
+ import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialect;
+ import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialectRegistry;
+ import org.junit.Test;
+ 
++import java.lang.reflect.Method;
++import java.util.Arrays;
++import java.util.Collections;
++
+ import static org.junit.Assert.assertEquals;
+ import static org.junit.Assert.assertFalse;
+ import static org.junit.Assert.assertTrue;
+ 
+ public class DefaultAskDataSqlValidatorTest {
+ 
+     private final DefaultAskDataSqlValidator validator = new DefaultAskDataSqlValidator();
+     private final AskDataDialect mysql = new AskDataDialectRegistry().getDialect("mysql");
+ 
+     @Test
+@@ -50,20 +56,69 @@ public class DefaultAskDataSqlValidatorTest {
+     @Test
+     public void shouldRejectWritableSelectInto() {
+         assertRejected("select * into audit_copy from orders");
+     }
+ 
+     @Test
+     public void shouldRejectMysqlExecutableComment() {
+         assertRejected("select 1 limit 1 /*!50000; delete from orders */");
+     }
+ 
++    @Test
++    public void shouldRejectSideEffectFunctions() {
++        assertRejected("select setval('order_seq', 10)");
++        assertRejected("select nextval('order_seq')");
++        assertRejected("select \"nextval\"('order_seq')");
++        assertRejected("select pg_catalog.\"setval\"('order_seq', 10)");
++    }
++
++    @Test
++    public void shouldRejectLockingQueries() {
++        assertRejected("select * from orders for update");
++        assertRejected("select * from orders for share");
++        assertRejected("select * from orders lock in share mode");
++    }
++
++    @Test
++    public void shouldRejectTablesOutsideMetadataScope() throws Exception {
++        AskDataMetadata metadata = new AskDataMetadata("mysql",
++                Collections.singletonList(new AskDataTable("orders", Collections.emptyList())),
++                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
++        Method method = DefaultAskDataSqlValidator.class.getMethod("validate", String.class, AskDataDialect.class,
++                Integer.TYPE, AskDataMetadata.class);
++
++        AskDataSqlValidationResult allowed = (AskDataSqlValidationResult) method.invoke(validator,
++                "select * from orders", mysql, Integer.valueOf(100), metadata);
++        AskDataSqlValidationResult rejected = (AskDataSqlValidationResult) method.invoke(validator,
++                "select * from users", mysql, Integer.valueOf(100), metadata);
++
++        assertTrue(allowed.isValid());
++        assertFalse(rejected.isValid());
++        assertEquals(AskDataErrorCode.SQL_REJECTED, rejected.getErrorCode());
++    }
++
++    @Test
++    public void shouldAllowMetadataScopedCteAndJoin() throws Exception {
++        AskDataMetadata metadata = new AskDataMetadata("mysql", Arrays.asList(
++                new AskDataTable("orders", Collections.emptyList()),
++                new AskDataTable("customers", Collections.emptyList())),
++                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
++        Method method = DefaultAskDataSqlValidator.class.getMethod("validate", String.class, AskDataDialect.class,
++                Integer.TYPE, AskDataMetadata.class);
++
++        AskDataSqlValidationResult result = (AskDataSqlValidationResult) method.invoke(validator,
++                "with recent as (select * from orders) select * from recent join customers on recent.id = customers.id",
++                mysql, Integer.valueOf(100), metadata);
++
++        assertTrue(result.isValid());
++    }
++
+     @Test
+     public void shouldAllowReadOnlySelectAndKeywordsInStringLiterals() {
+         AskDataSqlValidationResult result = validator.validate("select 'drop table orders' as note", mysql, 100);
+ 
+         assertTrue(result.isValid());
+         assertEquals("select 'drop table orders' as note limit 100", result.getSql());
+     }
+ 
+     @Test
+     public void shouldAllowReadOnlyWithQuery() {
+@@ -76,20 +131,42 @@ public class DefaultAskDataSqlValidatorTest {
+     }
+ 
+     @Test
+     public void shouldKeepExistingLimit() {
+         AskDataSqlValidationResult result = validator.validate("select * from orders limit 10", mysql, 100);
+ 
+         assertTrue(result.isValid());
+         assertEquals("select * from orders limit 10", result.getSql());
+     }
+ 
++    @Test
++    public void shouldTightenExistingLimitAboveMaximum() {
++        AskDataSqlValidationResult result = validator.validate("select * from orders limit 1000000", mysql, 100);
++
++        assertTrue(result.isValid());
++        assertEquals("select * from orders limit 100", result.getSql());
++    }
++
++    @Test
++    public void shouldRejectLimitAll() {
++        assertRejected("select * from orders limit all");
++    }
++
++    @Test
++    public void shouldHonorDisabledSqlLimitRewriting() {
++        AskDataSqlValidationResult result = new DefaultAskDataSqlValidator(false)
++                .validate("select * from orders", mysql, 100);
++
++        assertTrue(result.isValid());
++        assertEquals("select * from orders", result.getSql());
++    }
++
+     @Test
+     public void shouldAddLimitWhenMissing() {
+         AskDataSqlValidationResult result = validator.validate("select * from orders", mysql, 100);
+ 
+         assertTrue(result.isValid());
+         assertEquals("select * from orders limit 100", result.getSql());
+     }
+ 
+     @Test
+     public void shouldAddLimitThroughDialect() {
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/sql/JdbcAskDataSqlExecutorTest.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/sql/JdbcAskDataSqlExecutorTest.java
+index e5994b55..3c9bb503 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/sql/JdbcAskDataSqlExecutorTest.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/sql/JdbcAskDataSqlExecutorTest.java
+@@ -27,18 +27,36 @@ public class JdbcAskDataSqlExecutorTest {
+         assertEquals(2, result.getColumns().size());
+         assertEquals("ID", result.getColumns().get(0).getName());
+         assertEquals("BIGINT", result.getColumns().get(0).getType());
+         assertEquals("AMOUNT", result.getColumns().get(1).getName());
+         assertEquals("DECIMAL", result.getColumns().get(1).getType());
+         assertEquals(2, result.getRows().size());
+         assertEquals(Long.valueOf(1L), result.getRows().get(0).get("ID"));
+         assertEquals(2, result.getRowCount());
+     }
+ 
++    @Test
++    public void shouldPhysicallyLimitRowsToRequestMaximum() {
++        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource());
++        jdbcTemplate.execute("drop table if exists physical_limit_orders");
++        jdbcTemplate.execute("create table physical_limit_orders(id bigint)");
++        jdbcTemplate.update("insert into physical_limit_orders(id) values (1), (2), (3)");
++        JdbcAskDataSqlExecutor executor = new JdbcAskDataSqlExecutor(jdbcTemplate, 100);
++        AskDataRequest request = new AskDataRequest();
++        request.setMaxRows(Integer.valueOf(2));
++
++        AskDataSqlExecutionResult result = executor.execute(request,
++                "select id from physical_limit_orders order by id limit 1000");
++
++        assertTrue(result.isSuccess());
++        assertEquals(2, result.getRows().size());
++        assertEquals(2, result.getRowCount());
++    }
++
+     private DataSource dataSource() {
+         DriverManagerDataSource dataSource = new DriverManagerDataSource();
+         dataSource.setDriverClassName("org.h2.Driver");
+         dataSource.setUrl("jdbc:h2:mem:askdata;DB_CLOSE_DELAY=-1");
+         dataSource.setUsername("sa");
+         return dataSource;
+     }
+ }
