@@ -8,6 +8,10 @@ import com.xiongx9527.fw.plus.ai.askdata.model.LangChain4jAskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialectRegistry;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataPromptTemplateProvider;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.DefaultAskDataPromptTemplateProvider;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlExecutor;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator;
+import com.xiongx9527.fw.plus.ai.askdata.sql.DefaultAskDataSqlValidator;
+import com.xiongx9527.fw.plus.ai.askdata.sql.JdbcAskDataSqlExecutor;
 import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.vector.CompositeAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.vector.ContentRetrieverAskDataVectorRetriever;
@@ -18,6 +22,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Collections;
 
@@ -48,6 +53,18 @@ public class AskDataAutoConfiguration {
     @ConditionalOnMissingBean
     public AskDataPromptTemplateProvider askDataPromptTemplateProvider(AskDataDialectRegistry dialectRegistry) {
         return new DefaultAskDataPromptTemplateProvider(dialectRegistry);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataSqlValidator askDataSqlValidator() {
+        return new DefaultAskDataSqlValidator();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataSqlExecutor askDataSqlExecutor(ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
+        return new JdbcAskDataSqlExecutor(jdbcTemplateProvider);
     }
 
     @Bean
