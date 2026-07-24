@@ -2,7 +2,7 @@
 
 当前 `fw-plus-ai` 已包含 `fw-plus-ai-boot-dependencies`、`fw-plus-ai-boot-parent`、`fw-plus-ai-boot-autoconfigure`、`fw-plus-ai-boot-starters` 以及 LangChain4j/OpenAI/Magic-API AI 相关 starter。新能力必须作为这些模块的增量扩展，而不是另起一套不受 BOM 和自动配置体系管理的 AI 栈。
 
-SQLBot v1 提供了智能问数产品形态，核心包括数据源选择、表结构检索、Prompt 模板、Text-to-SQL、SQL 执行、图表配置和日志。Aiflowy、Agents-Flex、Tinyflow 提供 Java AI 应用平台、Agent 和流程编排参考，尤其适合作为多 agent 协同、基础 AI 工作流和流程节点扩展的设计参考；但它们的运行时版本和架构目标与本仓库不同。本设计只借鉴能力边界和扩展点，落地必须遵守 fw-plus 的 Java 8、Spring Boot 2.7.18、Maven Wrapper 和现有模块风格。
+SQLBot v1 提供了智能问数产品形态，核心包括数据源选择、表结构检索、Prompt 模板、Text-to-SQL、SQL 执行、图表配置和日志。Aiflowy、Agents-Flex、Tinyflow 提供 Java AI 应用平台、Agent 和流程编排参考，LangGraph4j 可作为 Java 版 LangGraph 的图编排参考，尤其适合作为多 agent 协同、基础 AI 工作流和流程节点扩展的设计参考；但它们的运行时版本和架构目标与本仓库不同。本设计只借鉴能力边界和扩展点，落地必须遵守 fw-plus 的 Java 8、Spring Boot 2.7.18、Maven Wrapper 和现有模块风格。
 
 ## Goals / Non-Goals
 
@@ -12,7 +12,7 @@ SQLBot v1 提供了智能问数产品形态，核心包括数据源选择、表�
 - 结合现有 `fw-plus-ai` BOM、父 POM 和 LangChain4j 依赖管理，提供 AskData 核心服务；模型调用主路径优先使用 LangChain4j。
 - 提供 Java 8 兼容的 API：自然语言问题输入，输出 SQL、查询数据、执行步骤和错误信息。
 - 提供可替换的数据源元数据提供器、SQL 执行器、模型调用器、Prompt 模板和 SQL 校验器。
-- 模型管理和向量能力优先复用现有 `fw-plus-ai` 模块；模型调用主要使用 LangChain4j。技术兜底顺序为 Spring AI（仅未来 Spring Boot 3 / Java 17 版本）、Agents-Flex、其他实现。当前 Java 8 Starter 不得引入 Spring AI 运行时依赖，也不得绕开现有模块新增平行体系。
+- 模型管理和向量能力优先复用现有 `fw-plus-ai` 模块；模型调用主要使用 LangChain4j。技术兜底顺序为 Spring AI（仅未来 Spring Boot 3 / Java 17 版本）、Agents-Flex、其他实现。当前 Java 8 Starter 不得引入 Spring AI 运行时依赖，也不得绕开现有模块新增平行体系。图编排如需外部库，优先评估 LangGraph4j JDK8 兼容版本；不使用 Java 17+ 的 LangGraph4j 主线模块。
 - 模型配置必须支持多个模型配置，并允许声明一个默认模型；请求可以显式指定模型 key，未指定时使用默认模型。
 - 提供多 agent 与子 agent 协作抽象，使选表、生成 SQL、校验、执行、结果解释等步骤可以独立实现，并允许主 Agent 在步骤内部派生子 Agent 处理子任务。
 - 提供可持久化的 AskData 会话上下文，支持自动压缩长上下文，并允许应用异常退出或重启后按会话恢复到最近稳定步骤继续操作。
@@ -53,6 +53,8 @@ AskData 的模型调用主路径接入现有 LangChain4j 相关 starter 和模�
 
 Spring AI、Agents-Flex、EasyAi 或其他实现只作为 `AskDataModelRegistry`、`AskDataChatModel`、`AskDataEmbeddingModel` 的可选适配来源，顺序为 Spring AI（仅未来 Spring Boot 3 / Java 17 版本）、Agents-Flex、其他实现。第一版 Java 8 默认自动配置不得因为缺少这些框架而失败，也不得直接依赖 Spring AI。
 
+LangGraph4j 主线 `1.8.x` 适合作为 Spring Boot 3 / Java 17 版本的图编排候选；当前 Java 8 Starter 如需引入图编排库，只能评估 `langgraph4j-core-jdk8` 这类 JDK8 兼容构件，且必须保持 optional，不得替代 AskData 自有轻量 Agent 接口。
+
 当前模型配置如果只能表达单个模型，需要改造成多模型注册表：每个模型有稳定 key、供应商/协议、模型名、端点、密钥和扩展参数；配置层提供 `default-model` 指向默认 key。AskData 请求可以携带 `modelKey` 覆盖默认模型。找不到请求指定模型时返回配置错误；未指定模型且默认模型缺失时启动或调用阶段返回明确错误。
 
 替代方案是 AskData starter 内置独立模型管理和向量存储配置。该方案隔离度高，但会造成重复配置、重复依赖和运维复杂度，也不符合“结合目前已有 fw-plus-ai 模块”的目标。
@@ -79,7 +81,7 @@ Spring AI、Agents-Flex、EasyAi 或其他实现只作为 `AskDataModelRegistry`
 
 ### Decision: 多 agent 与子 agent 协作先抽象接口，不绑定具体工作流引擎
 
-Starter 先定义 `AskDataAgent`、`AskDataSubAgent`、`AskDataAgentDispatcher`、`AskDataStepContext`、`AskDataStepResult` 和 `AskDataFlowExecutor` 等轻量接口。默认实现使用普通 Java 服务串行执行；子 agent 默认通过同步 dispatcher 顺序执行并归并结果，后续可适配线程池、Agents-Flex、Tinyflow 或自研流程编排，但本 change 不强依赖任何一个外部 Agent 框架。
+Starter 先定义 `AskDataAgent`、`AskDataSubAgent`、`AskDataAgentDispatcher`、`AskDataStepContext`、`AskDataStepResult` 和 `AskDataFlowExecutor` 等轻量接口。默认实现使用普通 Java 服务串行执行；子 agent 默认通过同步 dispatcher 顺序执行并归并结果，后续可适配线程池、LangGraph4j JDK8、Agents-Flex、Tinyflow 或自研流程编排，但本 change 不强依赖任何一个外部 Agent 框架。
 
 替代方案是直接引入 Agents-Flex 或 Tinyflow 作为运行时依赖。该方案可以更快获得完整 Agent 能力，但需要额外确认 Java 8、Spring Boot 2.7.18、许可证和依赖体积，容易把 Starter 变成平台级组件。
 
@@ -111,7 +113,7 @@ MVP 覆盖 SQLBot 智能问数最核心链路，不包含图表自动生成、�
 - [Risk] 与现有 fw-plus-ai 模块重复模型适配 -> 模型调用接口主路径适配现有 LangChain4j starter；Spring AI 仅作为未来 Spring Boot 3 / Java 17 线路，Agents-Flex 和其他框架只走可选适配。
 - [Risk] 现有模型管理或向量模块当前只适合 Magic-API 插件使用 -> 先抽象可复用 Java 服务接口或适配器，再让 AskData 依赖该接口。
 - [Risk] 多模型配置改造影响既有单模型使用者 -> 保留默认模型语义，使旧配置可以迁移为只有一个条目的模型注册表。
-- [Risk] SQLBot/Aiflowy/Agents-Flex/Tinyflow 参考项目版本栈不同 -> 只参考能力和边界，不把 JDK 17、Spring Boot 3 或完整平台架构带入本 change。
+- [Risk] SQLBot/Aiflowy/LangGraph4j/Agents-Flex/Tinyflow 参考项目版本栈不同 -> 只参考能力和边界，不把 JDK 17、Spring Boot 3 或完整平台架构带入本 change；LangGraph4j 主线 1.8.x 属于 Java 17+，Java 8 只能评估 JDK8 兼容构件。
 - [Risk] 多 agent/子 agent 协作过早绑定具体框架会放大依赖风险 -> 第一版只定义 fw-plus 自有轻量抽象，具体框架适配作为后续扩展。
 - [Risk] 自动压缩上下文可能丢失恢复所需信息 -> 结构化请求、SQL、模型 key、数据源 key、步骤状态和错误码不得被摘要替代，只允许压缩历史文本和可重放上下文。
 - [Risk] 应用崩溃后重复执行 SQL 可能造成风险 -> 默认恢复只允许从已校验步骤继续，执行步骤需要幂等标记和只读校验记录；无法确认时返回恢复错误。

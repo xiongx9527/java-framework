@@ -10,7 +10,7 @@ base-ref: bf45ed49f309cca5d18c623a03dab70c72cbfa1e
 
 **Goal:** 在现有 `fw-plus-ai` 体系内新增 Java 8 兼容的 `fw-plus-ai-askdata-spring-boot-starter`，提供自然语言问数、SQL 生成、可选执行、步骤日志、多模型选择、向量召回、多 Agent 流程、上下文压缩和崩溃恢复能力。
 
-**Architecture:** 新 starter 独立承载 AskData API、默认实现和自动配置，包名统一为 `com.xiongx9527.fw.plus.ai.askdata`，配置前缀为 `fw.plus.ai.askdata`。模型调用优先适配现有 `LangChain4jModelInfo` 注入的模型 Map，向量召回优先适配 Spring 容器中现有 LangChain4j `ContentRetriever` 或 `EmbeddingStore` Bean；工作流采用轻量 Agent 接口，默认同步串行执行。
+**Architecture:** 新 starter 独立承载 AskData API、默认实现和自动配置，包名统一为 `com.xiongx9527.fw.plus.ai.askdata`，配置前缀为 `fw.plus.ai.askdata`。模型调用优先适配现有 `LangChain4jModelInfo` 注入的模型 Map，向量召回优先适配 Spring 容器中现有 LangChain4j `ContentRetriever` 或 `EmbeddingStore` Bean；工作流采用轻量 Agent 接口，默认同步串行执行，外部图编排仅可选评估 LangGraph4j JDK8 兼容构件。
 
 **Tech Stack:** Java 8、Spring Boot 2.7.18、LangChain4j 0.35.0、Spring JDBC、JUnit、Spring Boot Test、Maven Wrapper。
 
@@ -25,6 +25,7 @@ base-ref: bf45ed49f309cca5d18c623a03dab70c72cbfa1e
 - 默认 SQL 执行策略保守：默认可关闭执行，只允许只读单语句查询，拒绝危险关键字，并强制默认行数限制。
 - 多模型必须支持默认聊天模型、默认 embedding 模型和请求级 `modelKey` 覆盖；缺失时返回结构化错误。
 - 模型技术顺序固定为 LangChain4j、Spring AI（仅未来 Spring Boot 3 / Java 17 版本）、Agents-Flex、其它实现；当前 Java 8 Starter 不得引入 Spring AI 运行时依赖。
+- Agent 图编排可参考 LangGraph4j；当前 Java 8 Starter 只能评估 `langgraph4j-core-jdk8` 等 JDK8 兼容构件作为 optional 适配，不得引入 Java 17+ 的 LangGraph4j 1.8.x 主线模块或 Spring AI 相关 LangGraph4j 模块。
 - 向量召回只作为 Prompt 上下文片段输入，不直接扩大 SQL 可访问范围。
 - 检查点结构化字段不得被上下文摘要替代；恢复时无法确认上一步安全状态必须返回 `RESUME_FAILED`。
 - 当前计划创建阶段不得修改 OpenSpec、Design Doc 或源码；后续执行本计划时按任务修改代码和测试。
