@@ -2,6 +2,7 @@
 change: add-magicapi-sentinel-guards
 design-doc: docs/superpowers/specs/2026-07-23-magicapi-sentinel-guards-design.md
 base-ref: 277ace4426d9e97d381526b95c712efb7b7142aa
+archived-with: 2026-07-24-add-magicapi-sentinel-guards
 ---
 
 # Magic-API Sentinel Guards Implementation Plan
