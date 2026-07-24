@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.askdata.autoconfigure;
 
 import com.xiongx9527.fw.plus.ai.askdata.AskDataProperties;
+import com.xiongx9527.fw.plus.ai.askdata.AskDataService;
+import com.xiongx9527.fw.plus.ai.askdata.DefaultAskDataService;
 import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.askdata.conversation.DefaultAskDataContextCompressor;
@@ -26,8 +28,9 @@ import com.xiongx9527.fw.plus.ai.askdata.vector.ContentRetrieverAskDataVectorRet
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.LangChain4jModelInfo;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -35,6 +38,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.Collections;
 
 @AutoConfiguration
+@ConditionalOnProperty(prefix = "fw.plus.ai.askdata", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(AskDataProperties.class)
 public class AskDataAutoConfiguration {
 
@@ -115,5 +119,11 @@ public class AskDataAutoConfiguration {
             AskDataContextCompressor contextCompressor) {
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataService askDataService(AskDataFlowExecutor flowExecutor) {
+        return new DefaultAskDataService(flowExecutor);
     }
 }
