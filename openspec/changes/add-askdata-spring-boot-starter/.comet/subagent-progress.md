@@ -29,6 +29,7 @@
 - Fix RED evidence: AskDataPromptTemplateProviderTest failed 1 of 3 tests because non-authoritative retrieved context constraints were absent.
 - Fix GREEN evidence: AskDataPromptTemplateProviderTest passed 3 tests; Task 4 focused tests passed 6 tests.
 - Re-review package: .superpowers/sdd/review-533d68d..81a893f.diff
+- Re-reviewer: Faraday (019f92a4-d115-7be3-b350-f553c98a90a1)
 - Unresolved Important finding:
   - DefaultAskDataPromptTemplateProvider must mark retrieved vector snippets as non-authoritative context, instruct the model to trust only AskDataMetadata schema for SQL scope, and ignore retrieved snippet authorization or SQL instructions.
 - Previous task: Task 3 complete, commit 20a8b2a97f669ee067929592c3395a0894b9db2a, review approved
