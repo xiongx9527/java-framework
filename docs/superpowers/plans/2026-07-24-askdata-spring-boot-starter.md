@@ -837,43 +837,43 @@ Commit message: `feat(askdata): wire service auto configuration`.
 - Consumes: all prior tasks.
 - Produces: verified starter module and aggregate AI build.
 
-- [ ] **Step 1: Run focused starter test suite**
+- [x] **Step 1: Run focused starter test suite**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter test`
 
 Expected: PASS. All AskData unit and context tests pass.
 
-- [ ] **Step 2: Run starter module install with upstream dependencies**
+- [x] **Step 2: Run starter module install with upstream dependencies**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -am clean install -DskipTests`
 
 Expected: PASS. Maven compiles upstream AI modules and installs the new starter.
 
-- [ ] **Step 3: Run AI starter aggregate compile**
+- [x] **Step 3: Run AI starter aggregate compile**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters -am clean install -DskipTests`
 
 Expected: PASS. Existing AI starters continue to compile with the new module entry.
 
-- [ ] **Step 4: Run dependency tree check for new starter**
+- [x] **Step 4: Run dependency tree check for new starter**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter dependency:tree -Dincludes=com.xiongx9527.fw.plus.ai,dev.langchain4j,org.springframework`
 
 Expected: output includes `fw-plus-ai-boot-autoconfigure`, `fw-plus-ai-langchain4j-spring-boot-starter`, Spring Boot 2.7.x managed dependencies, and LangChain4j 0.35.0 managed dependencies. Output does not include SQLBot runtime or UI dependencies.
 
-- [ ] **Step 5: Inspect Java 8 compatibility**
+- [x] **Step 5: Inspect Java 8 compatibility**
 
 Run: `cd fw-plus-ai && rg -n "List\\.of|Map\\.of|Map\\.copyOf|Set\\.of|Optional\\.orElseThrow\\(\\)" fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java`
 
 Expected: no matches.
 
-- [ ] **Step 6: Inspect forbidden marker text and brand leakage**
+- [x] **Step 6: Inspect forbidden marker text and brand leakage**
 
 Run: `cd fw-plus-ai && rg -n "SQLBot|sqlbot|待定|稍后实现|补充细节" fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter`
 
 Expected: no matches except test method names or comments deliberately asserting absence of SQLBot text.
 
-- [ ] **Step 7: Commit verification fixes**
+- [x] **Step 7: Commit verification fixes**
 
 If Steps 1-6 required test-only or compile-fix changes, commit message: `test(askdata): complete starter verification`.
 
