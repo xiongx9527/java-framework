@@ -58,6 +58,20 @@ class DbBrowserSqlBuilderTest {
 	}
 
 	@Test
+	void shouldAllowInternalPrefetchWithoutChangingPageOffset() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setPage(2);
+		request.setPageSize(DbBrowserSqlBuilder.MAX_PAGE_SIZE);
+
+		DbBrowserSqlBuilder.BuildResult result = sqlBuilder.buildPreviewSql(
+				connectionWithQuoteAndProductName("\"", "MySQL"), request, allowedColumns, allowedObjects,
+				DbBrowserSqlBuilder.MAX_PAGE_SIZE + 1);
+
+		assertEquals("SELECT * FROM \"users\" LIMIT 201 OFFSET 200", result.getSql());
+		assertEquals(DbBrowserSqlBuilder.MAX_PAGE_SIZE + 1, result.getPageSize());
+	}
+
+	@Test
 	void shouldUseLimitOffsetForMySql() throws Exception {
 		DbBrowserPreviewRequest request = baseRequest();
 		request.setPage(3);

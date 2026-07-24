@@ -30,6 +30,12 @@ public class DbBrowserSqlBuilder {
 
 	public BuildResult buildPreviewSql(Connection connection, DbBrowserPreviewRequest request,
 			Set<String> allowedColumns, Set<String> allowedObjects) throws SQLException {
+		int pageSize = normalizePageSize(request == null ? null : request.getPageSize());
+		return buildPreviewSql(connection, request, allowedColumns, allowedObjects, pageSize);
+	}
+
+	BuildResult buildPreviewSql(Connection connection, DbBrowserPreviewRequest request,
+			Set<String> allowedColumns, Set<String> allowedObjects, int internalPageSize) throws SQLException {
 		if (connection == null || request == null || allowedColumns == null || allowedObjects == null) {
 			throw new IllegalArgumentException("Preview request and metadata whitelist are required");
 		}
@@ -39,13 +45,14 @@ public class DbBrowserSqlBuilder {
 		String objectIdentifier = resolveObjectIdentifier(request, allowedObjects, quote);
 		int page = request.getPage() == null || request.getPage() < 1 ? 1 : request.getPage();
 		int pageSize = normalizePageSize(request.getPageSize());
+		int queryPageSize = normalizeInternalPageSize(internalPageSize, pageSize);
 		List<Object> parameters = new ArrayList<Object>();
 		StringBuilder sql = new StringBuilder("SELECT * FROM ").append(objectIdentifier);
 
 		appendFilters(sql, parameters, quote, request.getFilters(), allowedColumns);
 		boolean hasSort = appendSort(sql, quote, request.getSortColumn(), request.getSortDirection(), allowedColumns);
-		appendPagination(sql, databaseProductName, (long) (page - 1) * pageSize, pageSize, hasSort);
-		return new BuildResult(sql.toString(), parameters, page, pageSize);
+		appendPagination(sql, databaseProductName, (long) (page - 1) * pageSize, queryPageSize, hasSort);
+		return new BuildResult(sql.toString(), parameters, page, queryPageSize);
 	}
 
 	private void appendPagination(StringBuilder sql, String databaseProductName, long offset, int pageSize,
@@ -173,6 +180,13 @@ public class DbBrowserSqlBuilder {
 			return DEFAULT_PAGE_SIZE;
 		}
 		return Math.min(requestedPageSize, MAX_PAGE_SIZE);
+	}
+
+	private int normalizeInternalPageSize(int internalPageSize, int pageSize) {
+		if (internalPageSize < pageSize || internalPageSize > MAX_PAGE_SIZE + 1) {
+			throw new IllegalArgumentException("Internal page size must be between page size and maximum prefetch size");
+		}
+		return internalPageSize;
 	}
 
 	private String requireAllowed(String value, Set<String> allowedValues, String name) {
