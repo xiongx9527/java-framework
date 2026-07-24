@@ -41,7 +41,7 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
         }
 
         String normalizedSql = stripTrailingSemicolon(sql.trim(), scanResult.trailingSemicolonIndex);
-        if (!scanResult.hasTopLevelLimit) {
+        if (!dialect.hasRowLimit(normalizedSql)) {
             if (scanResult.trailingSemicolonIndex < 0 && scanResult.trailingLineCommentIndex >= 0) {
                 String trailingComment = normalizedSql.substring(scanResult.trailingLineCommentIndex).trim();
                 normalizedSql = normalizedSql.substring(0, scanResult.trailingLineCommentIndex).trim();
@@ -124,9 +124,6 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
                     result.hasSelectInto = true;
                     return result;
                 }
-                if (depth == 0 && "limit".equals(word)) {
-                    result.hasTopLevelLimit = true;
-                }
                 index = wordEnd;
             } else {
                 index++;
@@ -196,7 +193,6 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
         private boolean hasMultipleStatements;
         private boolean hasExecutableComment;
         private boolean hasSelectInto;
-        private boolean hasTopLevelLimit;
         private int trailingSemicolonIndex = -1;
         private int trailingLineCommentIndex = -1;
     }
