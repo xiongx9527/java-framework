@@ -180,7 +180,7 @@ Commit message: `feat(askdata): add starter module skeleton`.
 - Produces: `AskDataResult ask(AskDataRequest request)`.
 - Produces: `AskDataProperties.Model`, `AskDataProperties.Sql`, `AskDataProperties.Flow`, `AskDataProperties.Conversation`, `AskDataProperties.Vector`.
 
-- [ ] **Step 1: Write failing API model tests**
+- [x] **Step 1: Write failing API model tests**
 
 Create `AskDataApiModelTest`:
 
@@ -227,7 +227,7 @@ public class AskDataApiModelTest {
 }
 ```
 
-- [ ] **Step 2: Write failing properties binding test**
+- [x] **Step 2: Write failing properties binding test**
 
 Create `AskDataPropertiesBindingTest` with `ApplicationContextRunner`:
 
@@ -250,13 +250,13 @@ new ApplicationContextRunner()
     });
 ```
 
-- [ ] **Step 3: Run tests and verify failure**
+- [x] **Step 3: Run tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataApiModelTest,AskDataPropertiesBindingTest test`
 
 Expected: FAIL because API and properties classes do not exist.
 
-- [ ] **Step 4: Implement API and configuration model**
+- [x] **Step 4: Implement API and configuration model**
 
 Create Java 8 POJOs with getters/setters. Required signatures:
 
@@ -284,17 +284,17 @@ public final class AskDataErrorCode {
 
 `AskDataProperties` default values: `enabled=true`, `model.defaultChatModel="default"`, `model.defaultEmbeddingModel="embedding-default"`, `sql.executeEnabled=false`, `sql.defaultMaxRows=100`, `sql.enforceLimit=true`, `conversation.compressionThresholdChars=12000`, `conversation.checkpointVersion="1"`, `flow.defaultSubAgentTimeoutMillis=30000`, `vector.defaultTopK=5`.
 
-- [ ] **Step 5: Enable properties in auto-configuration**
+- [x] **Step 5: Enable properties in auto-configuration**
 
 Add `@EnableConfigurationProperties(AskDataProperties.class)` to `AskDataAutoConfiguration`.
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Commit message: `feat(askdata): define core api and properties`.
 
