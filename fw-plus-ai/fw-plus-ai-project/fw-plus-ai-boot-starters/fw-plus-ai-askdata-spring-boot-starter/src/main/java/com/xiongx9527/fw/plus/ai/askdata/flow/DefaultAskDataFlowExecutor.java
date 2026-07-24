@@ -16,6 +16,7 @@ import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelResponse;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRegistry;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelException;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialect;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialectRegistry;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataPromptTemplateProvider;
@@ -38,6 +39,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
     private static final List<String> CHECKPOINT_STEPS = Arrays.asList("metadata", "prompt", "generate-sql",
             "validate-sql", "execute-sql");
+    private static final List<String> AGENT_CHECKPOINT_STEPS = Arrays.asList("metadata", "merge-sub-agents", "prompt",
+            "generate-sql", "validate-sql", "execute-sql");
+    private static final String EXECUTION_EXECUTING = "EXECUTING";
+    private static final String EXECUTION_COMPLETED = "COMPLETED";
+    private static final String EXECUTION_SKIPPED = "SKIPPED";
 
     private final AskDataProperties properties;
     private final AskDataModelRegistry modelRegistry;
@@ -50,6 +56,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private final AskDataConversationStore conversationStore;
     private final AskDataContextCompressor contextCompressor;
     private final AskDataAgentDispatcher agentDispatcher;
+    private final List<AskDataAgent> mainAgents;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -57,7 +64,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor) {
         this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
-                sqlValidator, sqlExecutor, null, null, null);
+                sqlValidator, sqlExecutor, null, null, null, Collections.<AskDataAgent>emptyList());
     }
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -66,7 +73,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
             AskDataContextCompressor contextCompressor) {
         this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
-                sqlValidator, sqlExecutor, conversationStore, contextCompressor, null);
+                sqlValidator, sqlExecutor, conversationStore, contextCompressor, null,
+                Collections.<AskDataAgent>emptyList());
     }
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -74,6 +82,17 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
             AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher) {
+        this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
+                sqlValidator, sqlExecutor, conversationStore, contextCompressor, agentDispatcher,
+                Collections.<AskDataAgent>emptyList());
+    }
+
+    public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+            AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+            AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
+            List<AskDataAgent> mainAgents) {
         this.properties = properties;
         this.modelRegistry = modelRegistry;
         this.metadataProvider = metadataProvider;
@@ -85,6 +104,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         this.conversationStore = conversationStore;
         this.contextCompressor = contextCompressor;
         this.agentDispatcher = agentDispatcher;
+        this.mainAgents = mainAgents == null ? Collections.<AskDataAgent>emptyList()
+                : new ArrayList<AskDataAgent>(mainAgents);
     }
 
     @Override
@@ -121,23 +142,61 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return checkpointFailure;
         }
 
-        dispatchSubAgents(context);
+        AskDataResult agentFailure = runAgentsAndSaveCheckpoint(context, result);
+        if (agentFailure != null) {
+            return agentFailure;
+        }
 
         return generateSqlAndValidate(request, result, context, metadata);
     }
 
-    private void dispatchSubAgents(AskDataStepContext context) {
-        if (agentDispatcher == null) {
-            return;
+    private AskDataResult runAgentsAndSaveCheckpoint(AskDataStepContext context, AskDataResult result) {
+        if (agentDispatcher == null && mainAgents.isEmpty()) {
+            return null;
         }
-        AskDataProperties.Flow flow = properties == null ? null : properties.getFlow();
-        Integer timeout = flow == null ? null : flow.getDefaultSubAgentTimeoutMillis();
-        try {
-            agentDispatcher.dispatch(new AskDataDispatchRequest(Collections.<AskDataSubAgent>emptyList(), context,
-                    timeout == null ? 0L : timeout.longValue(), AskDataDispatchRequest.FailurePolicy.CONTINUE, null));
-        } catch (RuntimeException ignored) {
-            // Sub-agent dispatch is optional and must not interrupt the SQL generation flow.
+        for (AskDataAgent agent : mainAgents) {
+            String name = agent == null ? "unknown" : agent.getName();
+            try {
+                AskDataStepResult stepResult = agent == null ? null : agent.execute(context);
+                boolean success = stepResult != null && stepResult.isSuccess();
+                String message = stepResult == null ? "Main agent returned no result"
+                        : success ? stepResult.getOutputSummary() : stepResult.getErrorMessage();
+                context.getAttributes().put("askData.mainAgent." + name, message);
+                result.addStep("agent:" + name, "Agent " + name, success, message);
+            } catch (RuntimeException ex) {
+                context.getAttributes().put("askData.mainAgent." + name, message(ex));
+                result.addStep("agent:" + name, "Agent " + name, false, message(ex));
+            }
         }
+        AskDataDispatchResult dispatchResult = null;
+        if (agentDispatcher != null) {
+            AskDataProperties.Flow flow = properties == null ? null : properties.getFlow();
+            Integer timeout = flow == null ? null : flow.getDefaultSubAgentTimeoutMillis();
+            try {
+                dispatchResult = agentDispatcher.dispatch(new AskDataDispatchRequest(
+                        Collections.<AskDataSubAgent>emptyList(), context,
+                        timeout == null ? 0L : timeout.longValue(), AskDataDispatchRequest.FailurePolicy.CONTINUE, null));
+            } catch (RuntimeException ex) {
+                result.addStep("sub-agent:dispatcher", "Sub-agent dispatcher", false, message(ex));
+            }
+        }
+        if (dispatchResult != null) {
+            context.getAttributes().put("askData.subAgentResults", dispatchResult.getResults());
+            for (AskDataSubAgentResult subAgentResult : dispatchResult.getResults()) {
+                String name = subAgentResult.getAgentName() == null ? "unknown" : subAgentResult.getAgentName();
+                String message = subAgentResult.isSuccess() ? subAgentResult.getOutputSummary()
+                        : subAgentResult.getErrorMessage();
+                if (subAgentResult.isTimedOut()) {
+                    message = "Timed out: " + message;
+                }
+                context.getAttributes().put("askData.subAgent." + name, message);
+                result.addStep("sub-agent:" + name, "Sub-agent " + name, subAgentResult.isSuccess(), message);
+            }
+        }
+        result.addStep("merge-sub-agents", "Merge agents", true,
+                dispatchResult == null ? "Agent outputs merged" : "Merged " + dispatchResult.getResults().size()
+                        + " sub-agent result(s)");
+        return saveCheckpoint(context, result, "merge-sub-agents", null, null);
     }
 
     private AskDataResult generateSqlAndValidate(AskDataRequest request, AskDataResult result,
@@ -162,6 +221,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         AskDataChatModel model;
         try {
             model = modelRegistry.getChatModel(request == null ? null : request.getModelKey());
+        } catch (AskDataModelException ex) {
+            return failure(result, "generate-sql", ex.getErrorCode(), message(ex));
         } catch (RuntimeException ex) {
             return failure(result, "generate-sql", AskDataErrorCode.MODEL_NOT_FOUND, message(ex));
         }
@@ -215,7 +276,16 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (checkpoint == null) {
             return failure(result, "resume", AskDataErrorCode.CHECKPOINT_NOT_FOUND, "AskData checkpoint was not found");
         }
-        if (!equals(checkpointVersion(), checkpoint.getVersion()) || !isSafeCheckpoint(checkpoint)) {
+        AskDataCheckpoint latest = conversationStore.loadLatest(checkpoint.getConversationId());
+        if (latest != null) {
+            checkpoint = latest;
+        }
+        if (!requestIdentityMatches(request, checkpoint)) {
+            return failure(result, "resume", AskDataErrorCode.RESUME_FAILED,
+                    "AskData resume request does not match checkpoint identity");
+        }
+        if (!equals(checkpointVersion(), checkpoint.getVersion()) || !isSafeCheckpoint(checkpoint)
+                || EXECUTION_EXECUTING.equals(checkpoint.getExecutionState())) {
             return failure(result, "resume", AskDataErrorCode.RESUME_FAILED,
                     "AskData checkpoint does not contain a safe resumable state");
         }
@@ -223,6 +293,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         context.setSql(checkpoint.getSql());
         context.setSqlValidated(checkpoint.getSqlValidated());
         context.setSqlExecuted(checkpoint.getSqlExecuted());
+        context.setExecutionState(checkpoint.getExecutionState());
         context.setRowCount(checkpoint.getRowCount());
         context.setCompletedSteps(checkpoint.getCompletedSteps());
         context.setStepLogs(checkpoint.getSteps());
@@ -237,6 +308,17 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return executeValidatedSql(request, result, context, checkpoint.getSql());
         }
         if (contains(checkpoint, "generate-sql")) {
+            AskDataMetadata metadata;
+            try {
+                metadata = metadataProvider.load(request);
+            } catch (RuntimeException ex) {
+                return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
+            }
+            if (metadata == null) {
+                return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND,
+                        "AskData metadata was not found");
+            }
+            context.setMetadata(metadata);
             AskDataDialect dialect;
             try {
                 dialect = dialectRegistry.getDialect(checkpoint.getDialect());
@@ -245,7 +327,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             }
             AskDataSqlValidationResult validation;
             try {
-                validation = sqlValidator.validate(checkpoint.getSql(), dialect, maxRows(request));
+                validation = sqlValidator.validate(checkpoint.getSql(), dialect, maxRows(request), metadata);
             } catch (RuntimeException ex) {
                 return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
             }
@@ -259,7 +341,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataResult checkpointFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
             return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getSql()) : checkpointFailure;
         }
-        if (contains(checkpoint, "metadata")) {
+        if (contains(checkpoint, "metadata") || contains(checkpoint, "merge-sub-agents")) {
             AskDataMetadata metadata;
             try {
                 metadata = metadataProvider.load(request);
@@ -287,7 +369,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         AskDataSqlValidationResult validation;
         try {
-            validation = sqlValidator.validate(generatedSql, dialect, maxRows(request));
+            validation = sqlValidator.validate(generatedSql, dialect, maxRows(request), metadata);
         } catch (RuntimeException ex) {
             return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
         }
@@ -305,6 +387,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private AskDataResult executeValidatedSql(AskDataRequest request, AskDataResult result, AskDataStepContext context,
             String sql) {
         if (isExecutionEnabled(request)) {
+            context.setExecutionState(EXECUTION_EXECUTING);
+            AskDataResult inFlightFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
+            if (inFlightFailure != null) {
+                return inFlightFailure;
+            }
             AskDataSqlExecutionResult execution;
             try {
                 execution = sqlExecutor.execute(request, sql);
@@ -322,9 +409,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             result.setRowCount(Integer.valueOf(execution.getRowCount()));
             context.setRowCount(Integer.valueOf(execution.getRowCount()));
             context.setSqlExecuted(Boolean.TRUE);
+            context.setExecutionState(EXECUTION_COMPLETED);
             result.addStep("execute-sql", "Execute SQL", true, "SQL executed");
         } else {
             context.setSqlExecuted(Boolean.FALSE);
+            context.setExecutionState(EXECUTION_SKIPPED);
             result.addStep("execute-sql", "Execute SQL", true, "SQL execution skipped");
         }
         AskDataResult checkpointFailure = saveCheckpoint(context, result, "execute-sql", context.getSqlValidated(),
@@ -364,6 +453,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             checkpoint.setRequestSummary(request == null ? null : request.getQuestion());
             checkpoint.setModelKey(request == null ? null : request.getModelKey());
             checkpoint.setDatasourceKey(request == null ? null : request.getDatasourceKey());
+            checkpoint.setMaxRows(Integer.valueOf(maxRows(request)));
+            checkpoint.setExecute(Boolean.valueOf(isExecutionEnabled(request)));
             checkpoint.setDialect(request != null && !isBlank(request.getDialect()) ? request.getDialect()
                     : context.getMetadata() == null ? null : context.getMetadata().getDialect());
             checkpoint.setCompletedSteps(context.getCompletedSteps());
@@ -371,6 +462,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             checkpoint.setSql(context.getSql());
             checkpoint.setSqlValidated(context.getSqlValidated());
             checkpoint.setSqlExecuted(context.getSqlExecuted());
+            checkpoint.setExecutionState(context.getExecutionState());
             checkpoint.setRowCount(context.getRowCount());
             checkpoint.setCompressedSummary(compressed == null ? null : compressed.getCompressedSummary());
             checkpoint.setSteps(context.getStepLogs());
@@ -403,11 +495,15 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
     private boolean isSafeCheckpoint(AskDataCheckpoint checkpoint) {
         List<String> completed = checkpoint.getCompletedSteps();
-        if (completed == null || completed.isEmpty() || completed.size() > CHECKPOINT_STEPS.size()) {
+        if (completed == null || completed.isEmpty()) {
+            return false;
+        }
+        List<String> expected = completed.contains("merge-sub-agents") ? AGENT_CHECKPOINT_STEPS : CHECKPOINT_STEPS;
+        if (completed.size() > expected.size()) {
             return false;
         }
         for (int index = 0; index < completed.size(); index++) {
-            if (!equals(CHECKPOINT_STEPS.get(index), completed.get(index))) {
+            if (!equals(expected.get(index), completed.get(index))) {
                 return false;
             }
         }
@@ -418,6 +514,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if ("metadata".equals(currentStep)) {
             return isBlank(checkpoint.getSql()) && checkpoint.getSqlValidated() == null
                     && checkpoint.getSqlExecuted() == null && checkpoint.getRowCount() == null;
+        }
+        if ("merge-sub-agents".equals(currentStep)) {
+            return isBlank(checkpoint.getSql()) && checkpoint.getSqlValidated() == null
+                    && checkpoint.getSqlExecuted() == null && checkpoint.getRowCount() == null
+                    && checkpoint.getExecutionState() == null;
         }
         if ("prompt".equals(currentStep)) {
             return false;
@@ -431,13 +532,17 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         if ("validate-sql".equals(currentStep)) {
             return Boolean.TRUE.equals(checkpoint.getSqlValidated()) && checkpoint.getSqlExecuted() == null
-                    && checkpoint.getRowCount() == null;
+                    && checkpoint.getRowCount() == null && (checkpoint.getExecutionState() == null
+                    || EXECUTION_EXECUTING.equals(checkpoint.getExecutionState()));
         }
         if (!Boolean.TRUE.equals(checkpoint.getSqlValidated()) || checkpoint.getSqlExecuted() == null) {
             return false;
         }
-        return Boolean.TRUE.equals(checkpoint.getSqlExecuted()) ? checkpoint.getRowCount() != null
-                : checkpoint.getRowCount() == null;
+        return Boolean.TRUE.equals(checkpoint.getSqlExecuted())
+                ? checkpoint.getRowCount() != null && (checkpoint.getExecutionState() == null
+                || EXECUTION_COMPLETED.equals(checkpoint.getExecutionState()))
+                : checkpoint.getRowCount() == null && (checkpoint.getExecutionState() == null
+                || EXECUTION_SKIPPED.equals(checkpoint.getExecutionState()));
     }
 
     private boolean hasSuccessfulStep(List<AskDataStepLog> steps, String stepKey) {
@@ -460,7 +565,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private List<String> completedSteps(AskDataResult result) {
         List<String> completed = new ArrayList<String>();
         for (AskDataStepLog step : result.getSteps()) {
-            if (step.isSuccess()) {
+            if (step.isSuccess() && (CHECKPOINT_STEPS.contains(step.getStepKey())
+                    || "merge-sub-agents".equals(step.getStepKey()))) {
                 completed.add(step.getStepKey());
             }
         }
@@ -513,7 +619,24 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     }
 
     private boolean isExecutionEnabled(AskDataRequest request) {
-        return properties.getSql().isExecuteEnabled() && request != null && Boolean.TRUE.equals(request.getExecute());
+        return properties.getSql().isExecuteEnabled() && (request == null || !Boolean.FALSE.equals(request.getExecute()));
+    }
+
+    private boolean requestIdentityMatches(AskDataRequest request, AskDataCheckpoint checkpoint) {
+        if (request == null || checkpoint == null) {
+            return false;
+        }
+        if (!equals(request.getDatasourceKey(), checkpoint.getDatasourceKey())
+                || !equals(request.getModelKey(), checkpoint.getModelKey())
+                || !equals(request.getQuestion(), checkpoint.getRequestSummary())
+                || !equals(Integer.valueOf(maxRows(request)), checkpoint.getMaxRows())
+                || !equals(Boolean.valueOf(isExecutionEnabled(request)), checkpoint.getExecute())) {
+            return false;
+        }
+        if (!isBlank(request.getDialect()) && !equals(request.getDialect(), checkpoint.getDialect())) {
+            return false;
+        }
+        return isBlank(request.getConversationId()) || equals(request.getConversationId(), checkpoint.getConversationId());
     }
 
     private String checkpointVersion() {
@@ -541,7 +664,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return isBlank(ex.getMessage()) ? ex.getClass().getSimpleName() : ex.getMessage();
     }
 
-    private boolean equals(String first, String second) {
+    private boolean equals(Object first, Object second) {
         return first == null ? second == null : first.equals(second);
     }
 

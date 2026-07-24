@@ -1,9 +1,15 @@
 package com.xiongx9527.fw.plus.ai.askdata.sql;
 
 import com.xiongx9527.fw.plus.ai.askdata.AskDataErrorCode;
+import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata;
+import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialect;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialectRegistry;
 import org.junit.Test;
+
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -58,6 +64,55 @@ public class DefaultAskDataSqlValidatorTest {
     }
 
     @Test
+    public void shouldRejectSideEffectFunctions() {
+        assertRejected("select setval('order_seq', 10)");
+        assertRejected("select nextval('order_seq')");
+        assertRejected("select \"nextval\"('order_seq')");
+        assertRejected("select pg_catalog.\"setval\"('order_seq', 10)");
+    }
+
+    @Test
+    public void shouldRejectLockingQueries() {
+        assertRejected("select * from orders for update");
+        assertRejected("select * from orders for share");
+        assertRejected("select * from orders lock in share mode");
+    }
+
+    @Test
+    public void shouldRejectTablesOutsideMetadataScope() throws Exception {
+        AskDataMetadata metadata = new AskDataMetadata("mysql",
+                Collections.singletonList(new AskDataTable("orders", Collections.emptyList())),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        Method method = DefaultAskDataSqlValidator.class.getMethod("validate", String.class, AskDataDialect.class,
+                Integer.TYPE, AskDataMetadata.class);
+
+        AskDataSqlValidationResult allowed = (AskDataSqlValidationResult) method.invoke(validator,
+                "select * from orders", mysql, Integer.valueOf(100), metadata);
+        AskDataSqlValidationResult rejected = (AskDataSqlValidationResult) method.invoke(validator,
+                "select * from users", mysql, Integer.valueOf(100), metadata);
+
+        assertTrue(allowed.isValid());
+        assertFalse(rejected.isValid());
+        assertEquals(AskDataErrorCode.SQL_REJECTED, rejected.getErrorCode());
+    }
+
+    @Test
+    public void shouldAllowMetadataScopedCteAndJoin() throws Exception {
+        AskDataMetadata metadata = new AskDataMetadata("mysql", Arrays.asList(
+                new AskDataTable("orders", Collections.emptyList()),
+                new AskDataTable("customers", Collections.emptyList())),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        Method method = DefaultAskDataSqlValidator.class.getMethod("validate", String.class, AskDataDialect.class,
+                Integer.TYPE, AskDataMetadata.class);
+
+        AskDataSqlValidationResult result = (AskDataSqlValidationResult) method.invoke(validator,
+                "with recent as (select * from orders) select * from recent join customers on recent.id = customers.id",
+                mysql, Integer.valueOf(100), metadata);
+
+        assertTrue(result.isValid());
+    }
+
+    @Test
     public void shouldAllowReadOnlySelectAndKeywordsInStringLiterals() {
         AskDataSqlValidationResult result = validator.validate("select 'drop table orders' as note", mysql, 100);
 
@@ -81,6 +136,28 @@ public class DefaultAskDataSqlValidatorTest {
 
         assertTrue(result.isValid());
         assertEquals("select * from orders limit 10", result.getSql());
+    }
+
+    @Test
+    public void shouldTightenExistingLimitAboveMaximum() {
+        AskDataSqlValidationResult result = validator.validate("select * from orders limit 1000000", mysql, 100);
+
+        assertTrue(result.isValid());
+        assertEquals("select * from orders limit 100", result.getSql());
+    }
+
+    @Test
+    public void shouldRejectLimitAll() {
+        assertRejected("select * from orders limit all");
+    }
+
+    @Test
+    public void shouldHonorDisabledSqlLimitRewriting() {
+        AskDataSqlValidationResult result = new DefaultAskDataSqlValidator(false)
+                .validate("select * from orders", mysql, 100);
+
+        assertTrue(result.isValid());
+        assertEquals("select * from orders", result.getSql());
     }
 
     @Test

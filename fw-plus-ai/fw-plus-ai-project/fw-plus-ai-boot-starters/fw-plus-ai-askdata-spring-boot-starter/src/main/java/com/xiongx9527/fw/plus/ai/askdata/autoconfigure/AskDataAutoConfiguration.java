@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.askdata.conversation.DefaultAskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.askdata.conversation.InMemoryAskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataAgentDispatcher;
+import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataAgent;
 import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataFlowExecutor;
 import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataSubAgent;
 import com.xiongx9527.fw.plus.ai.askdata.flow.DefaultAskDataFlowExecutor;
@@ -37,7 +38,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @AutoConfiguration
@@ -79,27 +80,27 @@ public class AskDataAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AskDataSqlValidator askDataSqlValidator() {
-        return new DefaultAskDataSqlValidator();
+    public AskDataSqlValidator askDataSqlValidator(AskDataProperties properties) {
+        return new DefaultAskDataSqlValidator(properties.getSql().isEnforceLimit());
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public AskDataSqlExecutor askDataSqlExecutor(ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
-        return new JdbcAskDataSqlExecutor(jdbcTemplateProvider);
+    public AskDataSqlExecutor askDataSqlExecutor(AskDataProperties properties,
+            ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
+        Integer defaultMaxRows = properties.getSql().getDefaultMaxRows();
+        return new JdbcAskDataSqlExecutor(jdbcTemplateProvider,
+                defaultMaxRows == null ? 100 : defaultMaxRows.intValue());
     }
 
     @Bean
     @ConditionalOnMissingBean
     public AskDataVectorRetriever askDataVectorRetriever(AskDataProperties properties,
             ObjectProvider<ContentRetriever> contentRetrieverProvider) {
-        ContentRetriever contentRetriever = contentRetrieverProvider.getIfAvailable();
-        if (contentRetriever == null) {
-            return new CompositeAskDataVectorRetriever(Collections.<AskDataVectorRetriever>emptyList(),
-                    properties.getVector().getDefaultTopK());
-        }
-        return new CompositeAskDataVectorRetriever(Collections.<AskDataVectorRetriever>singletonList(
-                new ContentRetrieverAskDataVectorRetriever(contentRetriever)), properties.getVector().getDefaultTopK());
+        List<AskDataVectorRetriever> retrievers = contentRetrieverProvider.orderedStream()
+                .map(ContentRetrieverAskDataVectorRetriever::new)
+                .collect(Collectors.<AskDataVectorRetriever>toList());
+        return new CompositeAskDataVectorRetriever(retrievers, properties.getVector().getDefaultTopK());
     }
 
     @Bean
@@ -126,10 +127,14 @@ public class AskDataAutoConfiguration {
             AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
-            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher) {
+            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
+            ObjectProvider<AskDataAgent> agentProvider) {
+        List<AskDataAgent> mainAgents = agentProvider.orderedStream()
+                .filter(agent -> !(agent instanceof AskDataSubAgent))
+                .collect(Collectors.toList());
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
-                agentDispatcher);
+                agentDispatcher, mainAgents);
     }
 
     @Bean

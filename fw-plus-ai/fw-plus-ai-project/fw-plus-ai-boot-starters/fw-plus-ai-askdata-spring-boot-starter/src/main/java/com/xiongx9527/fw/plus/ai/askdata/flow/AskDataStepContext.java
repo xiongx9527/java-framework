@@ -21,6 +21,7 @@ public class AskDataStepContext {
     private String sql;
     private Boolean sqlValidated;
     private Boolean sqlExecuted;
+    private String executionState;
     private Integer rowCount;
     private List<String> completedSteps = new ArrayList<String>();
     private List<AskDataStepLog> stepLogs = new ArrayList<AskDataStepLog>();
@@ -83,6 +84,8 @@ public class AskDataStepContext {
     public void setSqlValidated(Boolean sqlValidated) { this.sqlValidated = sqlValidated; }
     public Boolean getSqlExecuted() { return sqlExecuted; }
     public void setSqlExecuted(Boolean sqlExecuted) { this.sqlExecuted = sqlExecuted; }
+    public String getExecutionState() { return executionState; }
+    public void setExecutionState(String executionState) { this.executionState = executionState; }
     public Integer getRowCount() { return rowCount; }
     public void setRowCount(Integer rowCount) { this.rowCount = rowCount; }
     public List<String> getCompletedSteps() { return completedSteps; }

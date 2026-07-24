@@ -5,8 +5,11 @@ import com.xiongx9527.fw.plus.ai.askdata.AskDataErrorCode;
 import com.xiongx9527.fw.plus.ai.askdata.AskDataRequest;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.core.ResultSetExtractor;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -18,12 +21,22 @@ import java.util.Map;
 public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
 
     private final ObjectProvider<JdbcTemplate> jdbcTemplateProvider;
+    private final int defaultMaxRows;
 
     public JdbcAskDataSqlExecutor(ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
+        this(jdbcTemplateProvider, 100);
+    }
+
+    public JdbcAskDataSqlExecutor(ObjectProvider<JdbcTemplate> jdbcTemplateProvider, int defaultMaxRows) {
         this.jdbcTemplateProvider = jdbcTemplateProvider;
+        this.defaultMaxRows = defaultMaxRows > 0 ? defaultMaxRows : 100;
     }
 
     public JdbcAskDataSqlExecutor(final JdbcTemplate jdbcTemplate) {
+        this(jdbcTemplate, 100);
+    }
+
+    public JdbcAskDataSqlExecutor(final JdbcTemplate jdbcTemplate, int defaultMaxRows) {
         this.jdbcTemplateProvider = new ObjectProvider<JdbcTemplate>() {
             @Override
             public JdbcTemplate getObject(Object... args) {
@@ -45,6 +58,7 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
                 return jdbcTemplate;
             }
         };
+        this.defaultMaxRows = defaultMaxRows > 0 ? defaultMaxRows : 100;
     }
 
     @Override
@@ -53,8 +67,17 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
         if (jdbcTemplate == null) {
             return AskDataSqlExecutionResult.failure(AskDataErrorCode.SQL_EXECUTION_FAILED, "未配置 JdbcTemplate");
         }
+        final int maxRows = request != null && request.getMaxRows() != null && request.getMaxRows().intValue() > 0
+                ? request.getMaxRows().intValue() : defaultMaxRows;
         try {
-            return jdbcTemplate.query(sql, new ResultSetExtractor<AskDataSqlExecutionResult>() {
+            return jdbcTemplate.query(new PreparedStatementCreator() {
+                @Override
+                public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
+                    PreparedStatement statement = connection.prepareStatement(sql);
+                    statement.setMaxRows(maxRows);
+                    return statement;
+                }
+            }, new ResultSetExtractor<AskDataSqlExecutionResult>() {
                 @Override
                 public AskDataSqlExecutionResult extractData(ResultSet resultSet) throws SQLException {
                     ResultSetMetaData metadata = resultSet.getMetaData();
@@ -68,7 +91,7 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
                         columns.add(column);
                     }
                     List<Map<String, Object>> rows = new ArrayList<Map<String, Object>>();
-                    while (resultSet.next()) {
+                    while (rows.size() < maxRows && resultSet.next()) {
                         Map<String, Object> row = new LinkedHashMap<String, Object>();
                         for (int index = 1; index <= columnCount; index++) {
                             row.put(columns.get(index - 1).getName(), resultSet.getObject(index));

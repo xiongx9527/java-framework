@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.askdata.AskDataService;
 import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.askdata.conversation.AskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataAgentDispatcher;
+import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataAgent;
 import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataFlowExecutor;
 import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataStepContext;
 import com.xiongx9527.fw.plus.ai.askdata.flow.AskDataStepResult;
@@ -116,6 +117,34 @@ public class AskDataAutoConfigurationTest {
 
                     assertTrue(result.isSuccess());
                     assertTrue(subAgent.executed);
+                    assertTrue(hasStep(result, "sub-agent:test-sub-agent"));
+                    assertTrue(hasStep(result, "merge-sub-agents"));
+                    assertTrue(context.getBean(AskDataConversationStore.class)
+                            .loadLatest(result.getConversationId()) != null);
+                });
+    }
+
+    @Test
+    public void shouldExecuteAndRecordCustomMainAgent() {
+        AskDataAgent mainAgent = new AskDataAgent() {
+            @Override
+            public String getName() {
+                return "custom-main";
+            }
+
+            @Override
+            public AskDataStepResult execute(AskDataStepContext context) {
+                context.getAttributes().put("custom-main", "ready");
+                return AskDataStepResult.success("main output");
+            }
+        };
+        withDefaultFlowDependencies()
+                .withBean(AskDataAgent.class, () -> mainAgent)
+                .run(context -> {
+                    AskDataResult result = context.getBean(AskDataService.class).ask(createRequest());
+
+                    assertTrue(result.isSuccess());
+                    assertTrue(hasStep(result, "agent:custom-main"));
                 });
     }
 
@@ -185,6 +214,15 @@ public class AskDataAutoConfigurationTest {
     private void assertSuccessfulSql(AskDataResult result) {
         assertTrue(result.isSuccess());
         assertEquals(SQL, result.getSql());
+    }
+
+    private boolean hasStep(AskDataResult result, String stepKey) {
+        for (com.xiongx9527.fw.plus.ai.askdata.AskDataStepLog step : result.getSteps()) {
+            if (stepKey.equals(step.getStepKey())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static class TestAskDataSubAgent implements AskDataSubAgent {

@@ -10,6 +10,7 @@ import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRegistry;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelException;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelResponse;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialect;
 import com.xiongx9527.fw.plus.ai.askdata.prompt.AskDataDialectRegistry;
@@ -60,6 +61,18 @@ public class DefaultAskDataFlowExecutorTest {
     }
 
     @Test
+    public void shouldPreserveModelRegistryErrorCode() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.modelException = new AskDataModelException(AskDataErrorCode.DEFAULT_MODEL_NOT_CONFIGURED,
+                "default model missing");
+
+        AskDataResult result = dependencies.executor("unused").execute(request(true));
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.DEFAULT_MODEL_NOT_CONFIGURED, result.getErrorCode());
+    }
+
+    @Test
     public void shouldReturnInvalidResponseWhenModelDoesNotProduceJson() {
         StubDependencies dependencies = new StubDependencies();
         AskDataResult result = dependencies.executor("not json").execute(request(true));
@@ -88,6 +101,30 @@ public class DefaultAskDataFlowExecutorTest {
         assertTrue(result.isSuccess());
         assertEquals(SQL, result.getSql());
         assertTrue(result.getRows().isEmpty());
+        assertEquals(0, dependencies.executorCalls);
+    }
+
+    @Test
+    public void shouldExecuteWhenGloballyEnabledAndRequestExecuteIsMissing() {
+        StubDependencies dependencies = new StubDependencies();
+        AskDataRequest request = request(true);
+        request.setExecute(null);
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}").execute(request);
+
+        assertTrue(result.isSuccess());
+        assertEquals(1, dependencies.executorCalls);
+    }
+
+    @Test
+    public void shouldSkipWhenGloballyDisabledEvenIfRequestEnablesExecution() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.globalExecutionEnabled = false;
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request(true));
+
+        assertTrue(result.isSuccess());
         assertEquals(0, dependencies.executorCalls);
     }
 
@@ -154,13 +191,18 @@ public class DefaultAskDataFlowExecutorTest {
         private AskDataVectorRetriever vectorRetriever;
         private final List<String> retrieveTypes = new java.util.ArrayList<String>();
         private int executorCalls;
+        private boolean globalExecutionEnabled = true;
+        private AskDataModelException modelException;
         private AskDataSqlValidationResult validationResult = AskDataSqlValidationResult.accepted(SQL);
 
         private DefaultAskDataFlowExecutor executor(final String modelResponse) {
-            properties.getSql().setExecuteEnabled(true);
+            properties.getSql().setExecuteEnabled(globalExecutionEnabled);
             AskDataModelRegistry modelRegistry = new AskDataModelRegistry() {
                 @Override
                 public AskDataChatModel getChatModel(String modelKey) {
+                    if (modelException != null) {
+                        throw modelException;
+                    }
                     if (modelResponse == null) {
                         return null;
                     }
