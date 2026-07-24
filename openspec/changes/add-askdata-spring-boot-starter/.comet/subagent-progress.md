@@ -28,4 +28,5 @@
   - DONE_WITH_CONCERNS
   - Public API contract change
 - Review package: .superpowers/sdd/review-e3c9fd4..20a8b2a.diff
+- Reviewer: Avicenna (019f9290-fcaf-7323-b922-de3932e768f4)
 - Previous task: Task 2 complete, commit 7242d88043de42ae1d646efd0d4fec5e80ae8df0, review approved
