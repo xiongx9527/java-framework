@@ -24,6 +24,7 @@
 - Reviewer: Fermat (019f92d4-fe2e-7ee0-9d18-94011acc1177)
 - Review result: needs fixes, 1 Important finding.
 - Review-fix round: 1 of 1
+- Fixer: Helmholtz (019f92d8-d571-7c21-a6ac-661be403a291)
 - Unresolved Important finding:
   - DefaultAskDataFlowExecutor must convert AskDataVectorRetriever and AskDataDialectRegistry runtime exceptions into failed AskDataResult with step logs and error code; executor must not be called.
 - Previous task: Task 5 complete, commit 1e9a4b3, review approved
