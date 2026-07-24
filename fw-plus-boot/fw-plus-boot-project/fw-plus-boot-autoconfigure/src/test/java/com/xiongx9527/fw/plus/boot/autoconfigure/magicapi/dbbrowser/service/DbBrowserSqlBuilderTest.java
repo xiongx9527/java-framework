@@ -97,6 +97,28 @@ class DbBrowserSqlBuilderTest {
 	}
 
 	@Test
+	void shouldRejectSqlServerOffsetFetchBeforeVersion2012() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> sqlBuilder.buildPreviewSql(connectionWithQuoteProductNameAndMajorVersion("\"", "Microsoft SQL Server", 10),
+						request, allowedColumns, allowedObjects));
+
+		assertEquals("Database pagination is not supported for Microsoft SQL Server 10", exception.getMessage());
+	}
+
+	@Test
+	void shouldRejectOracleOffsetFetchBeforeVersion12() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> sqlBuilder.buildPreviewSql(connectionWithQuoteProductNameAndMajorVersion("\"", "Oracle", 11),
+						request, allowedColumns, allowedObjects));
+
+		assertEquals("Database pagination is not supported for Oracle 11", exception.getMessage());
+	}
+
+	@Test
 	void shouldNotAppendDefaultOrderWhenSqlServerSortIsAllowed() throws Exception {
 		DbBrowserPreviewRequest request = baseRequest();
 		request.setSortColumn("name");
@@ -121,6 +143,60 @@ class DbBrowserSqlBuilderTest {
 
 		assertTrueSqlIsReadOnly(result.getSql());
 		assertFalse(result.getSql().contains("main.public.users"));
+	}
+
+	@Test
+	void shouldUseSchemaTableForPostgreSqlQualifiedObject() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setCatalog("orders_db");
+		request.setSchema("public");
+
+		DbBrowserSqlBuilder.BuildResult result = sqlBuilder.buildPreviewSql(
+				connectionWithQuoteAndProductName("\"", "PostgreSQL"), request, allowedColumns,
+				Collections.singleton(DbBrowserSqlBuilder.allowedObject("TABLE", "orders_db", "public", "users")));
+
+		assertEquals("SELECT * FROM \"public\".\"users\" LIMIT 50 OFFSET 0", result.getSql());
+	}
+
+	@Test
+	void shouldUseCatalogTableForMySqlQualifiedObject() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setCatalog("shop");
+		request.setSchema("ignored_schema");
+
+		DbBrowserSqlBuilder.BuildResult result = sqlBuilder.buildPreviewSql(
+				connectionWithQuoteAndProductName("`", "MySQL"), request, allowedColumns,
+				Collections.singleton(DbBrowserSqlBuilder.allowedObject("TABLE", "shop", "ignored_schema", "users")));
+
+		assertEquals("SELECT * FROM `shop`.`users` LIMIT 50 OFFSET 0", result.getSql());
+	}
+
+	@Test
+	void shouldUseCatalogSchemaTableForSqlServerQualifiedObject() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setCatalog("shop");
+		request.setSchema("dbo");
+
+		DbBrowserSqlBuilder.BuildResult result = sqlBuilder.buildPreviewSql(
+				connectionWithQuoteAndProductName("\"", "Microsoft SQL Server"), request, allowedColumns,
+				Collections.singleton(DbBrowserSqlBuilder.allowedObject("TABLE", "shop", "dbo", "users")));
+
+		assertEquals("SELECT * FROM \"shop\".\"dbo\".\"users\" ORDER BY 1 OFFSET 0 ROWS FETCH NEXT 50 ROWS ONLY",
+				result.getSql());
+	}
+
+	@Test
+	void shouldUseSchemaTableForOracleQualifiedObject() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setCatalog("ignored_catalog");
+		request.setSchema("APP");
+
+		DbBrowserSqlBuilder.BuildResult result = sqlBuilder.buildPreviewSql(
+				connectionWithQuoteProductNameAndMajorVersion("\"", "Oracle", 12), request, allowedColumns,
+				Collections.singleton(DbBrowserSqlBuilder.allowedObject("TABLE", "ignored_catalog", "APP", "users")));
+
+		assertEquals("SELECT * FROM \"APP\".\"users\" ORDER BY 1 OFFSET 0 ROWS FETCH NEXT 50 ROWS ONLY",
+				result.getSql());
 	}
 
 	@Test
@@ -235,6 +311,11 @@ class DbBrowserSqlBuilderTest {
 	}
 
 	private Connection connectionWithQuoteAndProductName(final String quote, final String productName) {
+		return connectionWithQuoteProductNameAndMajorVersion(quote, productName, 15);
+	}
+
+	private Connection connectionWithQuoteProductNameAndMajorVersion(final String quote, final String productName,
+			final int majorVersion) {
 		final DatabaseMetaData metaData = (DatabaseMetaData) Proxy.newProxyInstance(
 				getClass().getClassLoader(), new Class<?>[]{DatabaseMetaData.class}, (proxy, method, args) -> {
 					if ("getIdentifierQuoteString".equals(method.getName())) {
@@ -242,6 +323,9 @@ class DbBrowserSqlBuilderTest {
 					}
 					if ("getDatabaseProductName".equals(method.getName())) {
 						return productName;
+					}
+					if ("getDatabaseMajorVersion".equals(method.getName())) {
+						return majorVersion;
 					}
 					throw new UnsupportedOperationException(method.getName());
 				});

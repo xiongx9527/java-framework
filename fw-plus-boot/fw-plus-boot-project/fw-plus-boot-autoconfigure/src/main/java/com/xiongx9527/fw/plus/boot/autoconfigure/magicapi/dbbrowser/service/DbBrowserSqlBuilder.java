@@ -42,7 +42,8 @@ public class DbBrowserSqlBuilder {
 
 		String quote = getIdentifierQuote(connection);
 		String databaseProductName = getDatabaseProductName(connection);
-		String objectIdentifier = resolveObjectIdentifier(request, allowedObjects, quote);
+		int databaseMajorVersion = getDatabaseMajorVersion(connection);
+		String objectIdentifier = resolveObjectIdentifier(request, allowedObjects, quote, databaseProductName);
 		int page = request.getPage() == null || request.getPage() < 1 ? 1 : request.getPage();
 		int pageSize = normalizePageSize(request.getPageSize());
 		int queryPageSize = normalizeInternalPageSize(internalPageSize, pageSize);
@@ -51,15 +52,20 @@ public class DbBrowserSqlBuilder {
 
 		appendFilters(sql, parameters, quote, request.getFilters(), allowedColumns);
 		boolean hasSort = appendSort(sql, quote, request.getSortColumn(), request.getSortDirection(), allowedColumns);
-		appendPagination(sql, databaseProductName, (long) (page - 1) * pageSize, queryPageSize, hasSort);
+		appendPagination(sql, databaseProductName, databaseMajorVersion, (long) (page - 1) * pageSize, queryPageSize,
+				hasSort);
 		return new BuildResult(sql.toString(), parameters, page, queryPageSize);
 	}
 
-	private void appendPagination(StringBuilder sql, String databaseProductName, long offset, int pageSize,
-			boolean hasSort) {
+	private void appendPagination(StringBuilder sql, String databaseProductName, int databaseMajorVersion, long offset,
+			int pageSize, boolean hasSort) {
 		if (supportsLimitOffset(databaseProductName)) {
 			sql.append(" LIMIT ").append(pageSize).append(" OFFSET ").append(offset);
 			return;
+		}
+		if (!supportsOffsetFetch(databaseProductName, databaseMajorVersion)) {
+			throw new IllegalArgumentException("Database pagination is not supported for "
+					+ databaseProductLabel(databaseProductName, databaseMajorVersion));
 		}
 		if (!hasSort) {
 			sql.append(" ORDER BY 1");
@@ -77,7 +83,24 @@ public class DbBrowserSqlBuilder {
 				|| normalizedProductName.contains("sqlite");
 	}
 
-	private String resolveObjectIdentifier(DbBrowserPreviewRequest request, Set<String> allowedObjects, String quote) {
+	private boolean supportsOffsetFetch(String databaseProductName, int databaseMajorVersion) {
+		String normalizedProductName = normalizeProductName(databaseProductName);
+		if (normalizedProductName.contains("sql server")) {
+			return databaseMajorVersion >= 11;
+		}
+		if (normalizedProductName.contains("oracle")) {
+			return databaseMajorVersion >= 12;
+		}
+		return false;
+	}
+
+	private String databaseProductLabel(String databaseProductName, int databaseMajorVersion) {
+		String label = isBlank(databaseProductName) ? "unknown database" : databaseProductName;
+		return databaseMajorVersion > 0 ? label + " " + databaseMajorVersion : label;
+	}
+
+	private String resolveObjectIdentifier(DbBrowserPreviewRequest request, Set<String> allowedObjects, String quote,
+			String databaseProductName) {
 		String objectName = request.getObjectName();
 		String trustedObjectType = resolveTrustedObjectType(request.getCatalog(), request.getSchema(), objectName,
 				allowedObjects);
@@ -86,10 +109,31 @@ public class DbBrowserSqlBuilder {
 		}
 		validateRequestedObjectType(request.getObjectType(), trustedObjectType);
 		StringBuilder identifier = new StringBuilder();
-		appendQuotedIdentifierPart(identifier, request.getCatalog(), quote);
-		appendQuotedIdentifierPart(identifier, request.getSchema(), quote);
+		appendQualifiedObjectPrefix(identifier, request, quote, databaseProductName);
 		appendQuotedIdentifierPart(identifier, objectName, quote);
 		return identifier.toString();
+	}
+
+	private void appendQualifiedObjectPrefix(StringBuilder identifier, DbBrowserPreviewRequest request, String quote,
+			String databaseProductName) {
+		String normalizedProductName = normalizeProductName(databaseProductName);
+		if (normalizedProductName.contains("postgresql") || normalizedProductName.contains("oracle")) {
+			appendQuotedIdentifierPart(identifier, request.getSchema(), quote);
+			return;
+		}
+		if (normalizedProductName.contains("mysql") || normalizedProductName.contains("mariadb")) {
+			appendQuotedIdentifierPart(identifier, request.getCatalog(), quote);
+			return;
+		}
+		if (normalizedProductName.contains("sqlite")) {
+			return;
+		}
+		if (normalizedProductName.equals("h2")) {
+			appendQuotedIdentifierPart(identifier, request.getSchema(), quote);
+			return;
+		}
+		appendQuotedIdentifierPart(identifier, request.getCatalog(), quote);
+		appendQuotedIdentifierPart(identifier, request.getSchema(), quote);
 	}
 
 	private String resolveTrustedObjectType(String catalog, String schema, String objectName, Set<String> allowedObjects) {
@@ -175,6 +219,11 @@ public class DbBrowserSqlBuilder {
 		return metaData == null ? null : metaData.getDatabaseProductName();
 	}
 
+	private int getDatabaseMajorVersion(Connection connection) throws SQLException {
+		DatabaseMetaData metaData = connection.getMetaData();
+		return metaData == null ? 0 : metaData.getDatabaseMajorVersion();
+	}
+
 	private int normalizePageSize(Integer requestedPageSize) {
 		if (requestedPageSize == null || requestedPageSize < 1) {
 			return DEFAULT_PAGE_SIZE;
@@ -202,6 +251,10 @@ public class DbBrowserSqlBuilder {
 
 	private static boolean isBlank(String value) {
 		return value == null || value.trim().isEmpty();
+	}
+
+	private String normalizeProductName(String databaseProductName) {
+		return databaseProductName == null ? "" : databaseProductName.toLowerCase(Locale.ROOT);
 	}
 
 	private void appendQuotedIdentifierPart(StringBuilder identifier, String part, String quote) {

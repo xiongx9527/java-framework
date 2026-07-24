@@ -42,11 +42,22 @@ fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/
 magic-db.1.0.0.iife.js
 ```
 
-插件注册名与后端配置保持一致：
+插件资源存在时，注册名与后端配置保持一致：
 
 ```java
 new Plugin("db", "MagicDB", "magic-db.1.0.0.iife.js")
 ```
+
+使用应用需要引入 DB 插件 JAR 才会提供前端资源：
+
+```xml
+<dependency>
+    <groupId>com.xiongx9527.fw.plus.boot</groupId>
+    <artifactId>fw-plus-magicapi-plugin-db</artifactId>
+</dependency>
+```
+
+如果未引入该插件 JAR，后端不会公布不存在的 `magic-db.1.0.0.iife.js` 资源。
 
 宿主控制台不维护 DB 浏览业务页面、DB 专属工具栏逻辑或 DB 专属 i18n 文案。宿主只负责通用插件加载和挂载。
 
@@ -69,7 +80,7 @@ new Plugin("db", "MagicDB", "magic-db.1.0.0.iife.js")
 
 ```json
 {
-  "key": "default",
+  "datasourceKey": "default",
   "catalog": "catalog_name",
   "schema": "schema_name",
   "objectName": "sys_user",
@@ -106,17 +117,8 @@ fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/
 常用验证命令：
 
 ```bash
-cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure
-mvn -Dtest=MagicDbBrowserControllerTest,DefaultDbBrowserServiceTest,DbBrowserSqlBuilderTest test
-
-cd ../fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-db/src/console
-npm test
-npm run build
-
-cd ../fw-plus-magicapi-plugin-s3/src/console
-npm test
-npm run build
-
-cd ../../../fw-plus-magicapi-spring-boot-starter/src/console
-npm run build
+(cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure && mvn -Dtest=MagicDbBrowserControllerTest,DefaultDbBrowserServiceTest,DbBrowserSqlBuilderTest test)
+(cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-db/src/console && npm test && npm run build)
+(cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-s3/src/console && npm test && npm run build)
+(cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/src/console && npm run build)
 ```

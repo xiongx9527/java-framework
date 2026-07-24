@@ -112,6 +112,11 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-db</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-plugin-ws</artifactId>
         </dependency>
 

@@ -30,6 +30,7 @@ export default (opt) => {
     i18n.add('en', localEn)
     setS3BrowserRequest(opt.request)
     return {
+        name: 's3',
         datasources: [{
             type: 's3-datasource',
             icon: '#magic-s3-s3',
@@ -43,6 +44,7 @@ export default (opt) => {
             title: i18n.format('s3.browser.title'),
             icon: '#magic-s3-s3',
             component: MagicS3Browser,
+            adminOnly: true,
             allowClose: true,
             fullscreen: true
         }]
