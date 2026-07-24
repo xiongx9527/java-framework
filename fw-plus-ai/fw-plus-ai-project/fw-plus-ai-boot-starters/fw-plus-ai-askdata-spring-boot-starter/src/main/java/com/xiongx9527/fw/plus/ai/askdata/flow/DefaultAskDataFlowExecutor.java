@@ -32,7 +32,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.UUID;
 
 public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
@@ -455,6 +458,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             checkpoint.setDatasourceKey(request == null ? null : request.getDatasourceKey());
             checkpoint.setMaxRows(Integer.valueOf(maxRows(request)));
             checkpoint.setExecute(Boolean.valueOf(isExecutionEnabled(request)));
+            checkpoint.setRequestOptionsSnapshot(requestOptionsSnapshot(request));
             checkpoint.setDialect(request != null && !isBlank(request.getDialect()) ? request.getDialect()
                     : context.getMetadata() == null ? null : context.getMetadata().getDialect());
             checkpoint.setCompletedSteps(context.getCompletedSteps());
@@ -630,13 +634,122 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 || !equals(request.getModelKey(), checkpoint.getModelKey())
                 || !equals(request.getQuestion(), checkpoint.getRequestSummary())
                 || !equals(Integer.valueOf(maxRows(request)), checkpoint.getMaxRows())
-                || !equals(Boolean.valueOf(isExecutionEnabled(request)), checkpoint.getExecute())) {
+                || !equals(Boolean.valueOf(isExecutionEnabled(request)), checkpoint.getExecute())
+                || !optionsIdentityMatches(request, checkpoint)) {
             return false;
         }
         if (!isBlank(request.getDialect()) && !equals(request.getDialect(), checkpoint.getDialect())) {
             return false;
         }
         return isBlank(request.getConversationId()) || equals(request.getConversationId(), checkpoint.getConversationId());
+    }
+
+    private boolean optionsIdentityMatches(AskDataRequest request, AskDataCheckpoint checkpoint) {
+        String currentSnapshot = requestOptionsSnapshot(request);
+        String checkpointSnapshot = checkpoint.getRequestOptionsSnapshot();
+        return currentSnapshot != null && checkpointSnapshot != null && equals(currentSnapshot, checkpointSnapshot);
+    }
+
+    private String requestOptionsSnapshot(AskDataRequest request) {
+        try {
+            return normalizeOptionValue(request == null ? null : request.getOptions(),
+                    new IdentityHashMap<Object, Boolean>());
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    private String normalizeOptionValue(Object value, IdentityHashMap<Object, Boolean> ancestors) {
+        if (value == null) {
+            return "null";
+        }
+        if (value instanceof String || value instanceof Character) {
+            return jsonString(String.valueOf(value));
+        }
+        if (value instanceof Boolean) {
+            return value.toString();
+        }
+        if (isSafeOptionNumber(value)) {
+            return value.toString();
+        }
+        if (ancestors.containsKey(value)) {
+            throw new IllegalArgumentException("Cyclic AskData request options are not supported");
+        }
+        if (value instanceof Map) {
+            ancestors.put(value, Boolean.TRUE);
+            try {
+                Map<?, ?> source = (Map<?, ?>) value;
+                TreeMap<String, Object> ordered = new TreeMap<String, Object>();
+                for (Map.Entry<?, ?> entry : source.entrySet()) {
+                    if (!(entry.getKey() instanceof String)) {
+                        throw new IllegalArgumentException("AskData request option keys must be strings");
+                    }
+                    ordered.put((String) entry.getKey(), entry.getValue());
+                }
+                StringBuilder snapshot = new StringBuilder("{");
+                for (Map.Entry<String, Object> entry : ordered.entrySet()) {
+                    if (snapshot.length() > 1) {
+                        snapshot.append(',');
+                    }
+                    snapshot.append(jsonString(entry.getKey())).append(':')
+                            .append(normalizeOptionValue(entry.getValue(), ancestors));
+                }
+                return snapshot.append('}').toString();
+            } finally {
+                ancestors.remove(value);
+            }
+        }
+        if (value instanceof List) {
+            ancestors.put(value, Boolean.TRUE);
+            try {
+                StringBuilder snapshot = new StringBuilder("[");
+                for (Object entry : (List<?>) value) {
+                    if (snapshot.length() > 1) {
+                        snapshot.append(',');
+                    }
+                    snapshot.append(normalizeOptionValue(entry, ancestors));
+                }
+                return snapshot.append(']').toString();
+            } finally {
+                ancestors.remove(value);
+            }
+        }
+        if (value.getClass().isArray()) {
+            ancestors.put(value, Boolean.TRUE);
+            try {
+                StringBuilder snapshot = new StringBuilder("[");
+                int length = java.lang.reflect.Array.getLength(value);
+                for (int index = 0; index < length; index++) {
+                    if (index > 0) {
+                        snapshot.append(',');
+                    }
+                    snapshot.append(normalizeOptionValue(java.lang.reflect.Array.get(value, index), ancestors));
+                }
+                return snapshot.append(']').toString();
+            } finally {
+                ancestors.remove(value);
+            }
+        }
+        throw new IllegalArgumentException("Unsupported AskData request option value");
+    }
+
+    private boolean isSafeOptionNumber(Object value) {
+        if (value instanceof Float) {
+            return !((Float) value).isNaN() && !((Float) value).isInfinite();
+        }
+        if (value instanceof Double) {
+            return !((Double) value).isNaN() && !((Double) value).isInfinite();
+        }
+        return value instanceof Byte || value instanceof Short || value instanceof Integer || value instanceof Long
+                || value instanceof java.math.BigInteger || value instanceof java.math.BigDecimal;
+    }
+
+    private String jsonString(String value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("Unable to normalize AskData request options", ex);
+        }
     }
 
     private String checkpointVersion() {

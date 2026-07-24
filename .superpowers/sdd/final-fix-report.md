@@ -23,7 +23,7 @@ Critical 和 Important findings 已处理并补回归测试。保留的 concern 
 2. Reactor `clean install -DskipTests`：9/9 modules SUCCESS，BUILD SUCCESS。
 3. `git diff --check`：通过。
 4. Java 9+ API 扫描：无匹配。
-5. SQLBot/占位文本扫描：无匹配。
+5. 品牌或占位文本扫描：无匹配。
 6. 验证 JVM：Zulu OpenJDK `1.8.0_402`。
 
 ## Findings 处理
@@ -50,3 +50,25 @@ Critical 和 Important findings 已处理并补回归测试。保留的 concern 
 - 未引入 AST。扫描器刻意保守，覆盖常见 SELECT/CTE、注释、引号、括号层级、表引用和顶层 LIMIT；数据库特有语法或未知副作用函数可能被拒绝或未列入 denylist。生产执行仍应使用数据库只读账号/只读事务作为最终权限边界。
 - metadata 表列表为空时视为“没有可执行的 scope 信息”，不会做表白名单约束；提供非空 metadata 时才强制白名单。
 - 主 Agent 当前作为默认流程前置扩展执行，不直接替换安全关键步骤。直接替换需要新增明确的 step key、结构化输出、失败策略和 checkpoint 恢复契约。
+
+## 最终复审补充修复
+
+### Critical 1: SQL metadata scope 与只读缺口
+
+- metadata 中的简单表名仅授权同样简单的 SQL 表名；例如只授权 `orders` 时，`other_schema.orders` 会被拒绝。
+- metadata 中的 schema-qualified 表名只授权完全相同的 schema-qualified SQL 表名；不再按最后一段表名回退匹配。
+- 副作用函数拒绝列表补充 PostgreSQL 的 `pg_notify(...)` 与 `lo_unlink(...)`，并补充对应回归测试。
+- 数据库只读账号和只读事务仍是生产部署的最终权限防线；应用层校验用于减少错误 SQL 与已知绕过路径，不能替代数据库授权控制。
+
+### Critical 2: Resume options 身份缺口
+
+- checkpoint 保存 request options 的不可变、按 key 排序的规范化 JSON 摘要，并由内存会话存储快照保留。
+- resume 会比较 options 摘要；租户等 options 发生漂移时返回 `RESUME_FAILED`，且不会执行 SQL。
+- 仅接受 JSON 安全的标量、Map、List 和数组 options 值；循环结构、非字符串 Map key 或未知对象无法安全比较时，checkpoint 摘要为空，resume 按 fail-closed 返回 `RESUME_FAILED`。
+
+### 本轮 TDD 证据
+
+- RED：`./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest,AskDataResumeFlowTest test`，38 tests 中 4 个目标断言失败，覆盖 schema 绕过、`pg_notify`/`lo_unlink` 和租户 options 漂移。
+- RED：`./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataResumeFlowTest#shouldRejectResumeWhenOptionsCannotBeSafelyCompared test`，1 test failure，覆盖无法安全比较时的 fail-closed。
+- GREEN：聚焦测试 39 tests，0 failures，0 errors。
+- GREEN：starter 全量测试 88 tests，0 failures，0 errors，BUILD SUCCESS。

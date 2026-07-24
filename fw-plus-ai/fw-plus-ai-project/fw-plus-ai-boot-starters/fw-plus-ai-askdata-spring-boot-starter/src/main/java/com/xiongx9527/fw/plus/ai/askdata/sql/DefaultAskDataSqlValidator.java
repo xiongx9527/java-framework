@@ -19,7 +19,7 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
             "grant", "revoke", "call", "exec", "execute", "set", "use", "begin", "commit", "rollback"));
     private static final Set<String> SIDE_EFFECT_FUNCTIONS = new HashSet<String>(Arrays.asList(
             "setval", "nextval", "pg_advisory_lock", "pg_try_advisory_lock", "get_lock", "release_lock",
-            "load_file", "sleep", "benchmark"));
+            "pg_notify", "lo_unlink", "load_file", "sleep", "benchmark"));
     private static final Set<String> FROM_TERMINATORS = new HashSet<String>(Arrays.asList(
             "where", "group", "order", "having", "limit", "offset", "fetch", "union", "intersect",
             "except", "returning", "for", "lock", "window", "qualify"));
@@ -106,12 +106,16 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
         if (metadata == null || metadata.getTables() == null || metadata.getTables().isEmpty()) {
             return null;
         }
-        Set<String> allowedTables = new HashSet<String>();
+        Set<String> allowedSimpleTables = new HashSet<String>();
+        Set<String> allowedQualifiedTables = new HashSet<String>();
         for (AskDataTable table : metadata.getTables()) {
             if (table != null && table.getName() != null) {
                 String normalized = normalizeIdentifier(table.getName());
-                allowedTables.add(normalized);
-                allowedTables.add(lastIdentifier(normalized));
+                if (normalized.indexOf('.') >= 0) {
+                    allowedQualifiedTables.add(normalized);
+                } else {
+                    allowedSimpleTables.add(normalized);
+                }
             }
         }
         Set<String> cteNames = collectCteNames(tokens);
@@ -159,8 +163,10 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
             }
             index = cursor - 1;
             String normalized = normalizeIdentifier(tableName.toString());
-            if (!allowedTables.contains(normalized) && !allowedTables.contains(lastIdentifier(normalized))
-                    && !cteNames.contains(normalized)) {
+            boolean isQualified = normalized.indexOf('.') >= 0;
+            boolean authorized = isQualified ? allowedQualifiedTables.contains(normalized)
+                    : allowedSimpleTables.contains(normalized) || cteNames.contains(normalized);
+            if (!authorized) {
                 return rejected("SQL 访问了 metadata 未授权表: " + tableName);
             }
             expectTable[token.depth] = false;
@@ -482,11 +488,6 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
 
     private String normalizeIdentifier(String value) {
         return value == null ? null : value.replace("`", "").replace("\"", "").toLowerCase(Locale.ENGLISH);
-    }
-
-    private String lastIdentifier(String value) {
-        int separator = value == null ? -1 : value.lastIndexOf('.');
-        return separator < 0 ? value : value.substring(separator + 1);
     }
 
     private static class ScanResult {
