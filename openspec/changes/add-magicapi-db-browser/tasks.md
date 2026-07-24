@@ -27,7 +27,7 @@
 - [x] 4.3 实现表/视图详情页，展示字段、主键、索引和分页数据预览。
 - [x] 4.4 实现基础排序、过滤、分页、加载态、空状态和错误状态。
 - [x] 4.5 确保前端插件构建产物按现有 Magic-API 插件资源方式打包和加载。
-- [ ] 4.6 将宿主控制台中已有的 S3 文件管理 UI、S3 专属工具栏/状态栏入口和 S3 i18n 文案迁移到 `fw-plus-magicapi-plugin-s3/src/console`。
+- [x] 4.6 将宿主控制台中已有的 S3 文件管理 UI、S3 专属工具栏/状态栏入口和 S3 i18n 文案迁移到 `fw-plus-magicapi-plugin-s3/src/console`。
 - [ ] 4.7 清理 `fw-plus-magicapi-spring-boot-starter/src/console` 中的 S3 业务页面和专属入口，仅保留通用插件加载/挂载能力。
 
 ## 5. 测试与验证
