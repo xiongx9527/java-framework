@@ -37,12 +37,13 @@ public class DbBrowserSqlBuilder {
 	}
 
 	private String resolveObjectIdentifier(DbBrowserPreviewRequest request, Set<String> allowedObjects, String quote) {
-		validateObjectType(request.getObjectType());
 		String objectName = request.getObjectName();
 		String qualifiedName = qualify(request.getCatalog(), request.getSchema(), objectName);
-		if (objectName == null || (!allowedObjects.contains(objectName) && !allowedObjects.contains(qualifiedName))) {
+		String trustedObjectType = resolveTrustedObjectType(qualifiedName, allowedObjects);
+		if (trustedObjectType == null) {
 			throw new IllegalArgumentException("Unknown database object");
 		}
+		validateRequestedObjectType(request.getObjectType(), trustedObjectType);
 		StringBuilder identifier = new StringBuilder();
 		appendQuotedIdentifierPart(identifier, request.getCatalog(), quote);
 		appendQuotedIdentifierPart(identifier, request.getSchema(), quote);
@@ -50,12 +51,34 @@ public class DbBrowserSqlBuilder {
 		return identifier.toString();
 	}
 
-	private void validateObjectType(String objectType) {
+	private String resolveTrustedObjectType(String qualifiedName, Set<String> allowedObjects) {
+		if (qualifiedName == null || qualifiedName.isEmpty()) {
+			return null;
+		}
+		for (String allowedObject : allowedObjects) {
+			if (allowedObject == null) {
+				continue;
+			}
+			int typeSeparator = allowedObject.indexOf(':');
+			if (typeSeparator <= 0 || typeSeparator == allowedObject.length() - 1) {
+				continue;
+			}
+			String objectType = allowedObject.substring(0, typeSeparator).toUpperCase(Locale.ROOT);
+			if (("TABLE".equals(objectType) || "VIEW".equals(objectType))
+					&& qualifiedName.equals(allowedObject.substring(typeSeparator + 1))) {
+				return objectType;
+			}
+		}
+		return null;
+	}
+
+	private void validateRequestedObjectType(String objectType, String trustedObjectType) {
 		if (objectType == null || objectType.trim().isEmpty()) {
 			return;
 		}
 		String normalizedType = objectType.toUpperCase(Locale.ROOT);
-		if (!"TABLE".equals(normalizedType) && !"VIEW".equals(normalizedType)) {
+		if (!"TABLE".equals(normalizedType) && !"VIEW".equals(normalizedType)
+				|| !trustedObjectType.equals(normalizedType)) {
 			throw new IllegalArgumentException("Only table and view previews are supported");
 		}
 	}

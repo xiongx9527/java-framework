@@ -20,7 +20,7 @@ class DbBrowserSqlBuilderTest {
 
 	private final DbBrowserSqlBuilder sqlBuilder = new DbBrowserSqlBuilder();
 	private final Set<String> allowedColumns = new HashSet<String>(Arrays.asList("id", "name"));
-	private final Set<String> allowedObjects = Collections.singleton("users");
+	private final Set<String> allowedObjects = Collections.singleton("TABLE:users");
 
 	@Test
 	void shouldRejectUnknownSortColumn() throws Exception {
@@ -63,10 +63,40 @@ class DbBrowserSqlBuilderTest {
 		request.setSchema("public");
 
 		DbBrowserSqlBuilder.BuildResult result = sqlBuilder.buildPreviewSql(connectionWithQuote("\""), request,
-				allowedColumns, Collections.singleton("main.public.users"));
+				allowedColumns, Collections.singleton("VIEW:main.public.users"));
 
 		assertTrueSqlIsReadOnly(result.getSql());
 		assertFalse(result.getSql().contains("main.public.users"));
+	}
+
+	@Test
+	void shouldRejectUnqualifiedWhitelistEntryForQualifiedRequest() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setCatalog("other");
+		request.setSchema("private");
+
+		assertThrows(IllegalArgumentException.class,
+				() -> sqlBuilder.buildPreviewSql(connectionWithQuote("\""), request, allowedColumns,
+						Collections.singleton("users")));
+	}
+
+	@Test
+	void shouldRejectUntypedWhitelistEntry() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+
+		assertThrows(IllegalArgumentException.class,
+				() -> sqlBuilder.buildPreviewSql(connectionWithQuote("\""), request, allowedColumns,
+						Collections.singleton("users")));
+	}
+
+	@Test
+	void shouldRejectFunctionWhitelistEntryWhenClientClaimsTable() throws Exception {
+		DbBrowserPreviewRequest request = baseRequest();
+		request.setObjectType("TABLE");
+
+		assertThrows(IllegalArgumentException.class,
+				() -> sqlBuilder.buildPreviewSql(connectionWithQuote("\""), request, allowedColumns,
+						Collections.singleton("FUNCTION:users")));
 	}
 
 	@Test
