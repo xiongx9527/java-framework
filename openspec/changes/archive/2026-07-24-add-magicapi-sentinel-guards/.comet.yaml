@@ -16,14 +16,14 @@ plan: docs/superpowers/plans/2026-07-23-magicapi-sentinel-guards.md
 verify_result: pass
 verify_failures: 0
 verification_report: docs/superpowers/reports/2026-07-24-add-magicapi-sentinel-guards-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-07-23
 verified_at: 2026-07-23
 archive_confirmation: confirmed
 archived: true
 bound_branch: dev
 direct_override: null
-handoff_context: openspec/changes/add-magicapi-sentinel-guards/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-24-add-magicapi-sentinel-guards/.comet/handoff/design-context.json
 handoff_hash: a89708e9e31fd668c30c4f76437dc8b4cbab77384a3876c372b12b6c6980e6ca
 classic_profile: full
 classic_migration: 1
