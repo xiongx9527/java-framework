@@ -117,3 +117,25 @@
 - Important: none.
 - Minor: none.
 - Task 2: complete (commits 47cbfee..beeca69, review clean)
+
+## Current Task 3
+
+- Plan task: Task 3: 后端 Controller 与自动配置
+- OpenSpec mapping: 3.1 DB browser Controller endpoints; 3.2 Magic-API plugin configuration and controller registration; 3.3 console login and VIEW authorization; 3.4 error response handling.
+- Stage: complete
+- Brief: .superpowers/sdd/task-3-brief.md
+- Report: .superpowers/sdd/task-3-report.md
+- Base commit: 6e1f616
+- Implementer: 019f92cd-00f3-7bb0-9b52-f90f22090ed3
+- Implementer commit: 882ca51 feat: expose magicapi db browser endpoints
+- Implementer GREEN: system Maven MagicDbBrowserControllerTest 4/4 passing; MagicDbBrowserControllerTest + DefaultDbBrowserServiceTest + DbBrowserSqlBuilderTest 28/28 passing; git diff --check passing
+- Concerns: Maven wrapper missing; existing Maven settings and SLF4J warnings remain.
+
+## Task 3 Review 1
+
+- Reviewer: 019f92d7-a853-72b1-89aa-299a9427b63b
+- Verdict: approved
+- Critical: none.
+- Important: none.
+- Minor: runtime anonymous request coverage is reflective rather than full Magic-API request-chain integration; final whole-branch review should decide if broader controller integration coverage is needed.
+- Task 3: complete (commits 6e1f616..882ca51, review clean)
