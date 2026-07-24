@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.flow;
 
 import com.xiongx9527.fw.plus.ai.askdata.AskDataRequest;
+import com.xiongx9527.fw.plus.ai.askdata.AskDataStepLog;
 import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRetrievedDocument;
 
@@ -16,7 +17,14 @@ public class AskDataStepContext {
     private AskDataMetadata metadata;
     private List<AskDataRetrievedDocument> retrievedDocuments = new ArrayList<AskDataRetrievedDocument>();
     private String prompt;
+    private String rawModelResponse;
     private String sql;
+    private Boolean sqlValidated;
+    private Boolean sqlExecuted;
+    private Integer rowCount;
+    private List<String> completedSteps = new ArrayList<String>();
+    private List<AskDataStepLog> stepLogs = new ArrayList<AskDataStepLog>();
+    private String errorCode;
 
     public AskDataStepContext(AskDataRequest request) {
         this.request = request;
@@ -55,6 +63,14 @@ public class AskDataStepContext {
         this.prompt = prompt;
     }
 
+    public String getRawModelResponse() {
+        return rawModelResponse;
+    }
+
+    public void setRawModelResponse(String rawModelResponse) {
+        this.rawModelResponse = rawModelResponse;
+    }
+
     public String getSql() {
         return sql;
     }
@@ -62,4 +78,21 @@ public class AskDataStepContext {
     public void setSql(String sql) {
         this.sql = sql;
     }
+
+    public Boolean getSqlValidated() { return sqlValidated; }
+    public void setSqlValidated(Boolean sqlValidated) { this.sqlValidated = sqlValidated; }
+    public Boolean getSqlExecuted() { return sqlExecuted; }
+    public void setSqlExecuted(Boolean sqlExecuted) { this.sqlExecuted = sqlExecuted; }
+    public Integer getRowCount() { return rowCount; }
+    public void setRowCount(Integer rowCount) { this.rowCount = rowCount; }
+    public List<String> getCompletedSteps() { return completedSteps; }
+    public void setCompletedSteps(List<String> completedSteps) {
+        this.completedSteps = completedSteps == null ? new ArrayList<String>() : new ArrayList<String>(completedSteps);
+    }
+    public List<AskDataStepLog> getStepLogs() { return stepLogs; }
+    public void setStepLogs(List<AskDataStepLog> stepLogs) {
+        this.stepLogs = stepLogs == null ? new ArrayList<AskDataStepLog>() : new ArrayList<AskDataStepLog>(stepLogs);
+    }
+    public String getErrorCode() { return errorCode; }
+    public void setErrorCode(String errorCode) { this.errorCode = errorCode; }
 }
