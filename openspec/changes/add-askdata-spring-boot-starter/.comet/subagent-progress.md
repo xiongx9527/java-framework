@@ -8,7 +8,7 @@
 ## Current
 
 - Task: Task 8: AskDataService 默认实现与完整自动配置测试
-- Stage: extra-task-review-fix
+- Stage: blocked
 - Implementer: Cicero (019f934f-e955-74e1-b4b7-0603955d7a30)
 - Reviewer: Planck (019f9359-4bfa-7a21-97b6-4660cffda324)
 - Fixer: Euler (019f935c-c059-7513-b895-587219d3aa2e)
@@ -21,6 +21,8 @@
 - Blocked reason: standard review-fix budget exhausted; sub-agent failure/exception and no-sub-agent default chain tests missing
 - User override: user said "继续", allowing one extra fix round for the remaining test coverage finding
 - Extra fix result: DONE_WITH_CONCERNS, commit 6d123d2, AskDataAutoConfigurationTest 9 passed, module tests 68 passed, git diff --check clean
+- Extra re-review result: Needs fixes, 1 Important assertion gap
+- Blocked reason: user-approved extra fix did not fully satisfy review; failure/exception sub-agent tests do not assert sub-agent invocation
 - Base commit: e1441d2
 - Implementation commit: de7ae905a9a4cdd3b2bf7da8f2701fa584ef3b9e
 - Implementer result: DONE_WITH_CONCERNS, focused tests 8 passed, module tests 63 passed, git diff --check clean
@@ -37,6 +39,7 @@
 - Re-review feedback: .superpowers/sdd/task-8-rereview-wegener.md
 - Extra fix report: .superpowers/sdd/task-8-report.md#review-fix-wegener-important-test-coverage
 - Extra re-review package: .superpowers/sdd/review-d50a66d..6d123d2.diff
+- Extra re-review feedback: .superpowers/sdd/task-8-extra-rereview-godel.md
 - Review mode: standard
 - Risk review: triggered
 - Risk signals:
