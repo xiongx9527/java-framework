@@ -69,7 +69,12 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         result.addStep("metadata", "Metadata", true, "Metadata loaded");
 
         int maxRows = maxRows(request);
-        List<AskDataRetrievedDocument> documents = retrieveDocuments(request);
+        List<AskDataRetrievedDocument> documents;
+        try {
+            documents = retrieveDocuments(request);
+        } catch (RuntimeException ex) {
+            return failure(result, "prompt", AskDataErrorCode.VECTOR_RETRIEVAL_FAILED, message(ex));
+        }
         context.setRetrievedDocuments(documents);
         String prompt;
         try {
@@ -118,7 +123,12 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         result.setBrief(textValue(modelJson, "brief"));
         result.addStep("generate-sql", "Generate SQL", true, "SQL generated");
 
-        AskDataDialect dialect = dialectRegistry.getDialect(dialect(request, metadata));
+        AskDataDialect dialect;
+        try {
+            dialect = dialectRegistry.getDialect(dialect(request, metadata));
+        } catch (RuntimeException ex) {
+            return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
+        }
         AskDataSqlValidationResult validation;
         try {
             validation = sqlValidator.validate(generatedSql, dialect, maxRows);
