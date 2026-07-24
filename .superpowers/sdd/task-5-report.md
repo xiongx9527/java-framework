@@ -98,3 +98,46 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$
 
 - 构建仍报告 `fw-plus-ai-boot-autoconfigure` 的 3 条重复 LangChain4j 依赖声明警告，未在本任务范围内修改。
 - JDBC 聚焦测试仍提示缺少 SLF4J 绑定并使用 NOP logger；不影响测试结果。
+
+## 额外复审修复：方言限行检测
+
+### 修复内容
+
+- `AskDataDialect` 新增 Java 8 兼容的 `hasRowLimit(String sql)` 策略。默认实现忽略字符串、注释和子查询中的 `LIMIT`，仅识别顶层 `LIMIT`。
+- `DefaultAskDataSqlValidator` 在 SQL 规范化后通过 `dialect.hasRowLimit(...)` 决定是否追加，不再自行以 `hasTopLevelLimit` 作出决策。
+- 新增自定义 `FETCH FIRST ... ROWS ONLY` 方言测试：已有 `fetch first 10 rows only` 时保持原 SQL，缺失时追加 `fetch first 100 rows only`。
+
+### RED
+
+命令：
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest test
+```
+
+结果：失败。新增测试在 `@Override hasRowLimit` 处编译失败，证明生产方言契约尚未提供限行检测策略。
+
+### GREEN
+
+命令：
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest test
+```
+
+结果：通过，14 个测试、0 失败、0 错误。
+
+### Task 5 聚焦测试
+
+命令：
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest,JdbcAskDataSqlExecutorTest test
+```
+
+结果：通过，15 个测试、0 失败、0 错误。
+
+### 风险信号
+
+- 构建仍报告 `fw-plus-ai-boot-autoconfigure` 的 3 条重复 LangChain4j 依赖声明警告，未在本任务范围内修改。
+- JDBC 聚焦测试仍提示缺少 SLF4J 绑定并使用 NOP logger；不影响测试结果。

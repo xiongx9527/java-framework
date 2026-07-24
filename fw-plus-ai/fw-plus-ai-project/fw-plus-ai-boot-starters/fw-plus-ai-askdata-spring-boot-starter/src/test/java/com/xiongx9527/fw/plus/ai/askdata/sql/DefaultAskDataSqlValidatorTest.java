@@ -107,6 +107,30 @@ public class DefaultAskDataSqlValidatorTest {
     }
 
     @Test
+    public void shouldDelegateRowLimitDetectionToDialect() {
+        AskDataDialect fetchDialect = new AskDataDialect("fetch", "", "") {
+            @Override
+            public boolean hasRowLimit(String sql) {
+                return sql.toLowerCase().contains("fetch first") && sql.toLowerCase().contains("rows only");
+            }
+
+            @Override
+            public String applyLimit(String sql, int maxRows) {
+                return sql + " fetch first " + maxRows + " rows only";
+            }
+        };
+
+        AskDataSqlValidationResult existingLimit = validator.validate(
+                "select * from orders fetch first 10 rows only", fetchDialect, 100);
+        AskDataSqlValidationResult missingLimit = validator.validate("select * from orders", fetchDialect, 100);
+
+        assertTrue(existingLimit.isValid());
+        assertEquals("select * from orders fetch first 10 rows only", existingLimit.getSql());
+        assertTrue(missingLimit.isValid());
+        assertEquals("select * from orders fetch first 100 rows only", missingLimit.getSql());
+    }
+
+    @Test
     public void shouldAddLimitBeforeTrailingCommentAfterSemicolon() {
         AskDataSqlValidationResult result = validator.validate("select * from orders; /* generated SQL */", mysql, 100);
 
