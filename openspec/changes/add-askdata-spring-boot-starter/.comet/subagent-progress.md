@@ -21,4 +21,5 @@
   - Public API contract change
   - Single task diff exceeds 200 lines
 - Review package: .superpowers/sdd/review-d0808e0..c8c52f7.diff
+- Reviewer: Fermat (019f92d4-fe2e-7ee0-9d18-94011acc1177)
 - Previous task: Task 5 complete, commit 1e9a4b3, review approved
