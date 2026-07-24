@@ -12,6 +12,7 @@
 - Implementer: Cicero (019f934f-e955-74e1-b4b7-0603955d7a30)
 - Reviewer: Planck (019f9359-4bfa-7a21-97b6-4660cffda324)
 - Fixer: Euler (019f935c-c059-7513-b895-587219d3aa2e)
+- Re-reviewer: Wegener (019f9368-0c0c-7001-ad58-5e9f45f8b532)
 - Review result: Needs fixes, 2 Important findings
 - Fix result: DONE_WITH_CONCERNS, commit a4c727c, focused tests 10 passed, module tests 65 passed, git diff --check clean
 - Base commit: e1441d2
@@ -26,6 +27,7 @@
 - Review feedback: .superpowers/sdd/task-8-review-planck.md
 - Review-fix round: 1 of 1
 - Fix report: .superpowers/sdd/task-8-report.md#review-fix-planck-important
+- Re-review package: .superpowers/sdd/review-cba596e..a4c727c.diff
 - Review mode: standard
 - Risk review: triggered
 - Risk signals:
