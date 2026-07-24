@@ -148,13 +148,13 @@ public class DefaultDbBrowserService implements DbBrowserService {
 			Set<String> allowedObjects = Collections.singleton(DbBrowserSqlBuilder.allowedObject(object.getType(),
 					object.getCatalog(), object.getSchema(), object.getName()));
 			int pageSize = normalizePageSize(request.getPageSize());
-			DbBrowserPreviewRequest queryRequest = copyRequest(request, pageSize + 1);
+			DbBrowserPreviewRequest queryRequest = copyRequest(request, pageSize);
 			queryRequest.setCatalog(object.getCatalog());
 			queryRequest.setSchema(object.getSchema());
 			queryRequest.setObjectName(object.getName());
 			queryRequest.setObjectType(object.getType());
 			DbBrowserSqlBuilder.BuildResult buildResult = sqlBuilder.buildPreviewSql(connection, queryRequest,
-					allowedColumns, allowedObjects);
+					allowedColumns, allowedObjects, pageSize + 1);
 			return executePreview(connection, buildResult, pageSize, request);
 		} catch (SQLException e) {
 			throw metadataFailure(e);

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.List;
 
@@ -21,10 +22,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class DefaultDbBrowserServiceTest {
 
 	private DefaultDbBrowserService service;
+	private JdbcDataSource dataSource;
 
 	@BeforeEach
 	void setUp() throws Exception {
-		JdbcDataSource dataSource = new JdbcDataSource();
+		dataSource = new JdbcDataSource();
 		dataSource.setURL("jdbc:h2:mem:dbbrowser;DB_CLOSE_DELAY=-1");
 		dataSource.setUser("sa");
 		try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
@@ -91,6 +93,46 @@ class DefaultDbBrowserServiceTest {
 	}
 
 	@Test
+	void shouldReportMoreRowsWhenPreviewUsesMaximumPageSize() throws Exception {
+		try (Connection connection = dataSource.getConnection();
+			 PreparedStatement statement = connection.prepareStatement(
+					"INSERT INTO orders (id, customer_name, amount, note) VALUES (?, ?, ?, ?)")) {
+			for (int id = 4; id <= DbBrowserSqlBuilder.MAX_PAGE_SIZE + 1; id++) {
+				statement.setLong(1, id);
+				statement.setString(2, "Customer " + id);
+				statement.setBigDecimal(3, new java.math.BigDecimal("1.00"));
+				statement.setString(4, null);
+				statement.addBatch();
+			}
+			statement.executeBatch();
+		}
+
+		DbBrowserPreviewRequest request = previewRequest();
+		request.setPageSize(DbBrowserSqlBuilder.MAX_PAGE_SIZE);
+		request.setSortColumn("ID");
+		request.setSortDirection("ASC");
+
+		DbBrowserPreviewResult result = service.preview(request);
+
+		assertThat(result.getRows()).hasSize(DbBrowserSqlBuilder.MAX_PAGE_SIZE);
+		assertThat(result.isHasMore()).isTrue();
+	}
+
+	@Test
+	void shouldBindQuotedSqlFragmentAsFilterValue() {
+		DbBrowserPreviewRequest request = previewRequest();
+		DbBrowserFilter filter = new DbBrowserFilter();
+		filter.setColumn("CUSTOMER_NAME");
+		filter.setOperator("eq");
+		filter.setValue("Alice' OR 1=1 --");
+		request.setFilters(java.util.Collections.singletonList(filter));
+
+		DbBrowserPreviewResult result = service.preview(request);
+
+		assertThat(result.getRows()).isEmpty();
+	}
+
+	@Test
 	void shouldListRoutineMetadataWithoutInvocation() {
 		assertThat(service.listRoutines("orders", null, "PUBLIC", null)).isNotNull();
 	}
@@ -110,5 +152,15 @@ class DefaultDbBrowserServiceTest {
 		request.setObjectName("ORDERS");
 		request.setSortColumn("unknown_column");
 		assertThatThrownBy(() -> service.preview(request)).isInstanceOf(IllegalArgumentException.class);
+	}
+
+	private DbBrowserPreviewRequest previewRequest() {
+		DbBrowserPreviewRequest request = new DbBrowserPreviewRequest();
+		request.setDatasourceKey("orders");
+		request.setSchema("PUBLIC");
+		request.setObjectName("ORDERS");
+		request.setObjectType("TABLE");
+		request.setPage(1);
+		return request;
 	}
 }
