@@ -250,7 +250,7 @@ new ApplicationContextRunner()
     });
 ```
 
-- [x] **Step 3: Run tests and verify failure**
+- [x] **Step 3: Run vector prompt tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataApiModelTest,AskDataPropertiesBindingTest test`
 
@@ -424,7 +424,7 @@ Commit message: `feat(askdata): add multi model registry`.
 - Consumes: optional `ContentRetriever` Bean and `AskDataProperties.Vector`.
 - Produces: Prompt text including schema, terms, examples, vector documents, dialect rules, default read-only rule, and row limit rule.
 
-- [ ] **Step 1: Write failing vector test**
+- [x] **Step 1: Write failing vector test**
 
 Test default empty retriever and `ContentRetriever` adapter:
 
@@ -437,17 +437,17 @@ public void shouldReturnEmptyListWhenNoRetrieverIsAvailable() {
 }
 ```
 
-- [ ] **Step 2: Write failing Prompt and dialect tests**
+- [x] **Step 2: Write failing Prompt and dialect tests**
 
 Create metadata with one table `orders(id BIGINT, amount DECIMAL, created_at DATETIME)` and documents `术语: GMV = amount 求和`, `样例: 最近7天订单数`. Assert MySQL Prompt contains backtick identifier guidance, `LIMIT 100`, read-only single statement guidance, schema, terms, examples, and retrieved snippets. Assert PostgreSQL uses double quote guidance and ClickHouse uses `LIMIT` guidance.
 
-- [ ] **Step 3: Run tests and verify failure**
+- [x] **Step 3: Run tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataVectorRetrieverTest,AskDataPromptTemplateProviderTest test`
 
 Expected: FAIL because vector, metadata, prompt and dialect classes do not exist.
 
-- [ ] **Step 4: Implement vector Facade**
+- [x] **Step 4: Implement vector Facade**
 
 Required signatures:
 
@@ -464,7 +464,7 @@ public class AskDataVectorQuery {
 
 `CompositeAskDataVectorRetriever` calls delegates in order and concatenates non-null results. `ContentRetrieverAskDataVectorRetriever` adapts LangChain4j `ContentRetriever.retrieve(Query.from(question))` to `AskDataRetrievedDocument`.
 
-- [ ] **Step 5: Implement metadata model and empty provider**
+- [x] **Step 5: Implement metadata model and empty provider**
 
 Required signatures:
 
@@ -476,23 +476,23 @@ public interface AskDataMetadataProvider {
 
 `EmptyAskDataMetadataProvider.load()` returns `AskDataMetadata` with dialect from request and empty tables, terms, examples and prompt fragments.
 
-- [ ] **Step 6: Implement dialect registry and Prompt provider**
+- [x] **Step 6: Implement dialect registry and Prompt provider**
 
 `AskDataDialectRegistry` must include keys `mysql`, `postgresql`, `clickhouse`; unknown dialect returns MySQL only when request dialect is blank, otherwise returns a dialect object whose name is the provided value and whose limit rule uses `LIMIT`.
 
 `DefaultAskDataPromptTemplateProvider.buildPrompt(AskDataRequest request, AskDataMetadata metadata, List<AskDataRetrievedDocument> retrievedDocuments, int maxRows)` returns a single String that instructs the model to output JSON with keys `sql`, `tables`, `chartType`, `brief`.
 
-- [ ] **Step 7: Register metadata, vector, dialect and prompt beans**
+- [x] **Step 7: Register metadata, vector, dialect and prompt beans**
 
 Register `EmptyAskDataMetadataProvider`, `CompositeAskDataVectorRetriever`, `AskDataDialectRegistry`, and `DefaultAskDataPromptTemplateProvider` with `@ConditionalOnMissingBean`.
 
-- [ ] **Step 8: Run tests**
+- [x] **Step 8: Run vector prompt tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit vector prompt support**
 
 Commit message: `feat(askdata): add vector metadata prompt support`.
 

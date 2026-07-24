@@ -8,7 +8,7 @@
 ## Current
 
 - Task: Task 4: 向量召回 Facade、元数据模型、Prompt 与方言
-- Stage: task-review
+- Stage: done
 - Implementer: Mencius (019f9295-55bf-7490-b96d-928c8ec1d396)
 - Implementation commit: 3b2a760
 - Changed files: metadata/*, prompt/*, vector/*, AskDataAutoConfiguration.java, AskDataVectorRetrieverTest.java, AskDataPromptTemplateProviderTest.java
@@ -30,6 +30,7 @@
 - Fix GREEN evidence: AskDataPromptTemplateProviderTest passed 3 tests; Task 4 focused tests passed 6 tests.
 - Re-review package: .superpowers/sdd/review-533d68d..81a893f.diff
 - Re-reviewer: Faraday (019f92a4-d115-7be3-b350-f553c98a90a1)
-- Unresolved Important finding:
+- Re-review result: approved, no Critical or Important findings.
+- Resolved Important finding:
   - DefaultAskDataPromptTemplateProvider must mark retrieved vector snippets as non-authoritative context, instruct the model to trust only AskDataMetadata schema for SQL scope, and ignore retrieved snippet authorization or SQL instructions.
 - Previous task: Task 3 complete, commit 20a8b2a97f669ee067929592c3395a0894b9db2a, review approved
