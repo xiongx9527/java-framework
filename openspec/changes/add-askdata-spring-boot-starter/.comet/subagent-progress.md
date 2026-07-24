@@ -22,6 +22,7 @@
 - Final fixer: Jason (019f945d-400f-77a1-af0b-1e2119d70b3a)
 - Final re-reviewer: Pasteur (019f9478-77a8-7230-8302-acbf882d7dab)
 - Focused final fixer: Galileo (019f9480-4101-7a41-95a3-c5f4eec5cbd0)
+- Focused final re-reviewer: Herschel (019f948a-db7f-7481-9e1d-0b2bedc78373)
 - Final review package: .superpowers/sdd/review-bf45ed49..0afa3e30.diff
 - Final review result: Needs fixes, 2 Critical findings, 4 Important findings, 2 Minor findings
 - Final review feedback: .superpowers/sdd/final-review-hilbert.md
@@ -32,6 +33,7 @@
 - Final re-review feedback: .superpowers/sdd/final-rereview-pasteur.md
 - Focused final fix report: .superpowers/sdd/final-fix-report.md#focused-final-fix-pasteur-critical
 - Focused final fix result: DONE_WITH_CONCERNS, commit 040eb399, focused tests 39 passed, starter tests 88 passed, scans clean
+- Focused final re-review package: .superpowers/sdd/review-b4c8e20b..040eb399.diff
 - Base commit: 21df54a
 - Implementation commit: c5582469699a7ada17f8ef4056b13f95085b74fb
 - Implementer result: DONE_WITH_CONCERNS, Steps 1-2 and 4-6 passed, Step 3 original command installed aggregator POM but did not compile child starters
