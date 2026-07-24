@@ -43,15 +43,19 @@ public class DbBrowserSqlBuilder {
 		StringBuilder sql = new StringBuilder("SELECT * FROM ").append(objectIdentifier);
 
 		appendFilters(sql, parameters, quote, request.getFilters(), allowedColumns);
-		appendSort(sql, quote, request.getSortColumn(), request.getSortDirection(), allowedColumns);
-		appendPagination(sql, databaseProductName, (long) (page - 1) * pageSize, pageSize);
+		boolean hasSort = appendSort(sql, quote, request.getSortColumn(), request.getSortDirection(), allowedColumns);
+		appendPagination(sql, databaseProductName, (long) (page - 1) * pageSize, pageSize, hasSort);
 		return new BuildResult(sql.toString(), parameters, page, pageSize);
 	}
 
-	private void appendPagination(StringBuilder sql, String databaseProductName, long offset, int pageSize) {
+	private void appendPagination(StringBuilder sql, String databaseProductName, long offset, int pageSize,
+			boolean hasSort) {
 		if (supportsLimitOffset(databaseProductName)) {
 			sql.append(" LIMIT ").append(pageSize).append(" OFFSET ").append(offset);
 			return;
+		}
+		if (!hasSort) {
+			sql.append(" ORDER BY 1");
 		}
 		sql.append(" OFFSET ").append(offset).append(" ROWS FETCH NEXT ").append(pageSize).append(" ROWS ONLY");
 	}
@@ -135,10 +139,10 @@ public class DbBrowserSqlBuilder {
 		}
 	}
 
-	private void appendSort(StringBuilder sql, String quote, String sortColumn, String sortDirection,
+	private boolean appendSort(StringBuilder sql, String quote, String sortColumn, String sortDirection,
 			Set<String> allowedColumns) {
 		if (sortColumn == null || sortColumn.trim().isEmpty()) {
-			return;
+			return false;
 		}
 		String column = requireAllowed(sortColumn, allowedColumns, "sort column");
 		String direction = sortDirection == null || sortDirection.trim().isEmpty() ? "ASC"
@@ -147,6 +151,7 @@ public class DbBrowserSqlBuilder {
 			throw new IllegalArgumentException("Unsupported sort direction");
 		}
 		sql.append(" ORDER BY ").append(quoteIdentifier(column, quote)).append(' ').append(direction);
+		return true;
 	}
 
 	private String getIdentifierQuote(Connection connection) throws SQLException {
