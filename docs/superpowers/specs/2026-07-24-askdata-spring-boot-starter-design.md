@@ -231,6 +231,17 @@ public interface AskDataContextCompressor {
 - 检查点缺失、版本不兼容、状态不完整、或上一步 SQL 未通过安全校验时，返回 `RESUME_FAILED`，不得静默重新执行不确定步骤。
 - 已执行 SQL 的检查点需要记录执行完成标记和结果摘要；恢复时默认不重复执行已完成查询，只继续格式化或返回已有结果。
 
+## Java 17 后续演进
+
+当前 change 面向 Java 8 和 Spring Boot 2.7.18，先沉淀 AskData 的稳定核心契约。后续 Java 17 / Spring Boot 3 版本可以独立新增 adapter starter，例如 Spring AI adapter、LangGraph4j 主线图编排 adapter 或更完整的工作流 adapter。
+
+演进原则：
+
+- Java 17 模块复用 `AskDataRequest`、`AskDataResult`、模型注册、Agent 流程和检查点模型，不重写调用方 API。
+- 当前 Java 8 模块不引入 Spring AI 或 Java 17+ LangGraph4j 主线依赖。
+- 新能力通过 Spring Bean、条件化自动配置或 adapter 模块接入，使业务可以按运行时版本选择实现。
+- 如果 Java 17 模块引入更强图编排或状态恢复能力，也必须保持 SQL 安全、只读执行和恢复安全边界一致。
+
 ## 自动配置
 
 `AskDataAutoConfiguration` 注册条件化 Bean：
@@ -286,6 +297,7 @@ public interface AskDataContextCompressor {
 6. 实现默认 Agent Flow、子 Agent dispatcher 和 `AskDataService`。
 7. 实现上下文压缩、检查点存储和恢复入口。
 8. 补齐测试和 Maven Wrapper 验证。
+9. 在文档和接口注释中标明 Java 17 / Spring Boot 3 adapter 的扩展边界。
 
 ## 风险与缓解
 
