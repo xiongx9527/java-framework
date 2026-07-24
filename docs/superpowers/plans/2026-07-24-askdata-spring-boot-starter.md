@@ -70,7 +70,7 @@ base-ref: bf45ed49f309cca5d18c623a03dab70c72cbfa1e
 - Consumes: existing AI parent `com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-starters:${revision}`.
 - Produces: artifact `com.xiongx9527.fw.plus.ai:fw-plus-ai-askdata-spring-boot-starter:${revision}` and class `AskDataAutoConfiguration`.
 
-- [ ] **Step 1: Write failing registration test**
+- [x] **Step 1: Write failing registration test**
 
 Create `AskDataAutoConfigurationRegistrationTest`:
 
@@ -107,13 +107,13 @@ public class AskDataAutoConfigurationRegistrationTest {
 }
 ```
 
-- [ ] **Step 2: Run focused test and verify it fails**
+- [x] **Step 2: Run focused test and verify it fails**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataAutoConfigurationRegistrationTest test`
 
 Expected: FAIL because the module and metadata files do not exist.
 
-- [ ] **Step 3: Add Maven module**
+- [x] **Step 3: Add Maven module**
 
 Add `<module>fw-plus-ai-askdata-spring-boot-starter</module>` to `fw-plus-ai-boot-starters/pom.xml`, and add dependencyManagement entry:
 
@@ -127,7 +127,7 @@ Add `<module>fw-plus-ai-askdata-spring-boot-starter</module>` to `fw-plus-ai-boo
 
 Create new starter `pom.xml` with parent `fw-plus-ai-boot-starters` and dependencies on `fw-plus-ai-boot-autoconfigure`, `fw-plus-ai-langchain4j-spring-boot-starter`, `spring-boot-autoconfigure`, `spring-jdbc`, `langchain4j-core`, and optional `spring-boot-configuration-processor`.
 
-- [ ] **Step 4: Add minimal auto-configuration class and metadata**
+- [x] **Step 4: Add minimal auto-configuration class and metadata**
 
 Create:
 
@@ -154,13 +154,13 @@ Create `AutoConfiguration.imports` containing:
 com.xiongx9527.fw.plus.ai.askdata.autoconfigure.AskDataAutoConfiguration
 ```
 
-- [ ] **Step 5: Run registration test**
+- [x] **Step 5: Run registration test**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataAutoConfigurationRegistrationTest test`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Commit message: `feat(askdata): add starter module skeleton`.
 
