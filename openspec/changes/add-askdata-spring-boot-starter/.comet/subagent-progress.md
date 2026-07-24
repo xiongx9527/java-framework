@@ -22,4 +22,12 @@
   - Single task diff exceeds 200 lines
 - Review package: .superpowers/sdd/review-eaf2f14..8ba0f54.diff
 - Reviewer: Hypatia (019f92b0-2595-7a43-ac62-bd488df47e1a)
+- Review result: needs fixes, 2 Critical and 2 Important findings.
+- Review-fix round: 1 of 1
+- Unresolved Critical findings:
+  - DefaultAskDataSqlValidator must reject writable SELECT INTO.
+  - DefaultAskDataSqlValidator must reject or scan MySQL executable comments such as /*!50000; delete ... */.
+- Unresolved Important findings:
+  - DefaultAskDataSqlValidator must apply row limit through AskDataDialect instead of hard-coded MySQL-style concatenation.
+  - DefaultAskDataSqlValidator must not append LIMIT inside a trailing line comment.
 - Previous task: Task 4 complete, commit 81a893f8c24902b1a02773e55f1e9ca59b843578, review approved
