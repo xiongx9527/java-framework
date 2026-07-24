@@ -42,7 +42,7 @@
           <h4>{{ $i('db.indexes') }}</h4>
           <table class="metadata-table"><thead><tr><th>{{ $i('db.name') }}</th><th>{{ $i('db.columns') }}</th><th>{{ $i('db.direction') }}</th><th>{{ $i('db.type') }}</th></tr></thead>
             <tbody><tr v-for="index in detail.indexes || []" :key="`${index.name}-${index.columnName}`"><td>{{ index.name }}</td><td>{{ index.columnName }}</td><td>{{ index.ascOrDesc }}</td><td>{{ index.nonUnique ? 'NON_UNIQUE' : 'UNIQUE' }}</td></tr></tbody></table>
-          <div class="preview-heading"><h4>{{ $i('db.preview') }}</h4><label>{{ $i('db.sort') }}<select v-model="previewState.sortColumn"><option value="">-</option><option v-for="column in detail.columns || []" :key="column.name" :value="column.name">{{ column.name }}</option></select></label><select v-model="previewState.sortDirection"><option value="ASC">ASC</option><option value="DESC">DESC</option></select><select v-model="filterColumn"><option value="">{{ $i('db.filter') }}</option><option v-for="column in detail.columns || []" :key="column.name" :value="column.name">{{ column.name }}</option></select><input v-model="filterValue" :placeholder="$i('db.value')" /><button @click="applyPreview">{{ $i('db.apply') }}</button><button @click="clearFilter">{{ $i('db.clear') }}</button></div>
+          <div class="preview-heading"><h4>{{ $i('db.preview') }}</h4><label>{{ $i('db.sort') }}<select v-model="previewDraft.sortColumn"><option value="">-</option><option v-for="column in detail.columns || []" :key="column.name" :value="column.name">{{ column.name }}</option></select></label><select v-model="previewDraft.sortDirection"><option value="ASC">ASC</option><option value="DESC">DESC</option></select><select v-model="previewDraft.filterColumn"><option value="">{{ $i('db.filter') }}</option><option v-for="column in detail.columns || []" :key="column.name" :value="column.name">{{ column.name }}</option></select><input v-model="previewDraft.filterValue" :placeholder="$i('db.value')" /><button @click="applyPreview">{{ $i('db.apply') }}</button><button @click="clearFilter">{{ $i('db.clear') }}</button></div>
           <div v-if="loading.preview" class="db-state">{{ $i('db.loading') }}</div>
           <table v-else class="preview-table"><thead><tr><th v-for="column in preview.columns || []" :key="column">{{ column }}</th></tr></thead><tbody><tr v-for="(row, index) in preview.rows || []" :key="index"><td v-for="column in preview.columns || []" :key="column">{{ row[column] }}</td></tr></tbody></table>
           <div class="pagination"><button :disabled="previewState.page <= 1" @click="changePage(-1)">{{ $i('db.previous') }}</button><span>{{ previewState.page }}</span><button :disabled="!preview.hasMore" @click="changePage(1)">{{ $i('db.next') }}</button></div>
@@ -68,13 +68,12 @@ const selectedObject = ref(null)
 const detail = ref({})
 const preview = ref({ columns: [], rows: [], hasMore: false })
 const objectFilter = ref('')
-const filterColumn = ref('')
-const filterValue = ref('')
 const error = ref('')
 const loadingSourceKey = ref('')
 const loadingNamespaceKey = ref('')
 const loading = reactive({ sources: false, namespaces: false, objects: false, detail: false, preview: false })
-const previewState = reactive({ page: 1, pageSize: 20, sortColumn: '', sortDirection: 'ASC' })
+const previewState = reactive({ page: 1, pageSize: 20, sortColumn: '', sortDirection: 'ASC', filterColumn: '', filterValue: '' })
+const previewDraft = reactive({ sortColumn: '', sortDirection: 'ASC', filterColumn: '', filterValue: '' })
 const service = () => getDbBrowserService()
 const namespaceKey = namespace => `${namespace.catalog || ''}:${namespace.schema || ''}`
 const displayNamespace = namespace => namespace.schema || namespace.catalog || '(default)'
@@ -93,6 +92,13 @@ const filteredItems = items => {
 const hasFilteredObjects = computed(() => objectGroups.value.some(group => filteredItems(group.items).length > 0))
 const context = namespace => ({ key: selectedSource.value, catalog: namespace.catalog, schema: namespace.schema })
 const reportError = cause => { error.value = cause && cause.message ? cause.message : $i('db.loadFailed') }
+const syncPreviewDraft = state => Object.assign(previewDraft, {
+  sortColumn: state.sortColumn,
+  sortDirection: state.sortDirection,
+  filterColumn: state.filterColumn,
+  filterValue: state.filterValue
+})
+const restorePreviewDraft = () => syncPreviewDraft(previewState)
 
 const loadDataSources = async () => {
   loading.sources = true
@@ -153,7 +159,7 @@ const selectObject = async item => {
   loading.detail = true
   try {
     const loadedDetail = await service().getObjectDetail({ ...context(item), objectName: item.name, objectType: item.type }) || {}
-    const initialPreviewState = { ...previewState, page: 1 }
+    const initialPreviewState = { page: 1, pageSize: 20, sortColumn: '', sortDirection: 'ASC', filterColumn: '', filterValue: '' }
     const loadedPreview = ['TABLE', 'VIEW'].includes(item.type)
       ? await loadPreviewFor(item, initialPreviewState)
       : { columns: [], rows: [], hasMore: false }
@@ -161,11 +167,12 @@ const selectObject = async item => {
     detail.value = loadedDetail
     preview.value = loadedPreview
     Object.assign(previewState, initialPreviewState)
+    syncPreviewDraft(initialPreviewState)
   } catch (cause) { reportError(cause) } finally { loading.detail = false }
 }
 const loadPreviewFor = async (item, state) => {
   loading.preview = true
-  const filters = filterColumn.value && filterValue.value !== '' ? [{ column: filterColumn.value, operator: 'like', value: `%${filterValue.value}%` }] : []
+  const filters = state.filterColumn && state.filterValue !== '' ? [{ column: state.filterColumn, operator: 'like', value: `%${state.filterValue}%` }] : []
   try { return await service().preview({ ...context(item), objectName: item.name, objectType: item.type, ...state, filters }) || { columns: [], rows: [], hasMore: false } } finally { loading.preview = false }
 }
 const loadPreview = async (state = previewState) => {
@@ -175,10 +182,18 @@ const loadPreview = async (state = previewState) => {
     const loadedPreview = await loadPreviewFor(selectedObject.value, state)
     preview.value = loadedPreview
     Object.assign(previewState, state)
-  } catch (cause) { reportError(cause) }
+    syncPreviewDraft(state)
+  } catch (cause) {
+    restorePreviewDraft()
+    reportError(cause)
+  }
 }
-const applyPreview = () => loadPreview({ ...previewState, page: 1 })
-const clearFilter = () => { filterColumn.value = ''; filterValue.value = ''; applyPreview() }
+const applyPreview = () => loadPreview({ ...previewState, ...previewDraft, page: 1 })
+const clearFilter = () => {
+  previewDraft.filterColumn = ''
+  previewDraft.filterValue = ''
+  applyPreview()
+}
 const changePage = offset => { const targetPage = previewState.page + offset; loadPreview({ ...previewState, page: targetPage }) }
 const isPrimaryKey = name => (detail.value.primaryKeys || []).includes(name)
 
