@@ -8,7 +8,7 @@
 ## Current
 
 - Task: Task 9: Full verification and Maven build gates
-- Stage: final-review
+- Stage: final-fix
 - Implementer: Hooke (019f93a2-448e-71b2-b480-e9c6814985a6)
 - Fixer: Locke (019f93a7-e3de-7e53-b846-f6b14047b3e5)
 - Reviewer: Ohm (019f93aa-3dd6-78e1-80f9-ae6d347cebd7)
@@ -20,6 +20,8 @@
 - Checkoff result: plan Task 9 Step 1-7 PASS; OpenSpec 8.7 PASS
 - Final reviewer: Hilbert (019f9450-10d0-7170-8677-828f54b63bed)
 - Final review package: .superpowers/sdd/review-bf45ed49..0afa3e30.diff
+- Final review result: Needs fixes, 2 Critical findings, 4 Important findings, 2 Minor findings
+- Final review feedback: .superpowers/sdd/final-review-hilbert.md
 - Base commit: 21df54a
 - Implementation commit: c5582469699a7ada17f8ef4056b13f95085b74fb
 - Implementer result: DONE_WITH_CONCERNS, Steps 1-2 and 4-6 passed, Step 3 original command installed aggregator POM but did not compile child starters
