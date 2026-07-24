@@ -513,7 +513,7 @@ Commit message: `feat(askdata): add vector metadata prompt support`.
 - Consumes: `AskDataProperties.Sql`, `AskDataDialect`, generated SQL.
 - Produces: validated SQL and optional query result rows.
 
-- [ ] **Step 1: Write failing SQL validator tests**
+- [x] **Step 1: Write failing SQL validator tests**
 
 Cover empty SQL, semicolon multi-statement, comments hiding second statements, `INSERT`/`UPDATE`/`DELETE`/`DROP`/`ALTER`/`TRUNCATE`/`CREATE`/`MERGE`, read-only `SELECT`, existing `LIMIT`, and missing limit wrapping.
 
@@ -525,17 +525,17 @@ assertEquals(AskDataErrorCode.SQL_REJECTED, validator.validate("drop table user"
 assertEquals("select * from orders limit 100", validator.validate("select * from orders", mysql, 100).getSql());
 ```
 
-- [ ] **Step 2: Write failing JDBC executor test**
+- [x] **Step 2: Write failing JDBC executor test**
 
 Use embedded H2 through Spring JDBC test dependency if already available through Spring Boot parent. Create table `orders(id bigint, amount decimal)` and assert executor returns column names, column types, two rows and `rowCount=2`.
 
-- [ ] **Step 3: Run SQL tests and verify failure**
+- [x] **Step 3: Run SQL tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest,JdbcAskDataSqlExecutorTest test`
 
 Expected: FAIL because SQL classes do not exist.
 
-- [ ] **Step 4: Implement SQL validator**
+- [x] **Step 4: Implement SQL validator**
 
 Required signatures:
 
@@ -552,7 +552,7 @@ public class AskDataSqlValidationResult {
 
 Validation rules: trim non-empty SQL, reject more than one statement boundary, reject dangerous keywords outside string literals by using a character scanner, allow only SQL starting with `select` or `with`, and add limit through dialect when no limit is present.
 
-- [ ] **Step 5: Implement JDBC executor**
+- [x] **Step 5: Implement JDBC executor**
 
 Required signature:
 
@@ -564,17 +564,17 @@ public interface AskDataSqlExecutor {
 
 `JdbcAskDataSqlExecutor` uses `JdbcTemplate.query(sql, ResultSetExtractor)` and maps `ResultSetMetaData.getColumnLabel(i)`, `getColumnTypeName(i)`, and row values into `List<Map<String, Object>>`.
 
-- [ ] **Step 6: Register SQL beans**
+- [x] **Step 6: Register SQL beans**
 
 Register `DefaultAskDataSqlValidator` and `JdbcAskDataSqlExecutor` with `@ConditionalOnMissingBean`. Use `ObjectProvider<JdbcTemplate>` so the starter can load without a `DataSource`; when execution is requested without `JdbcTemplate`, return `SQL_EXECUTION_FAILED`.
 
-- [ ] **Step 7: Run tests**
+- [x] **Step 7: Run SQL tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit SQL safety support**
 
 Commit message: `feat(askdata): add safe sql validation and execution`.
 
