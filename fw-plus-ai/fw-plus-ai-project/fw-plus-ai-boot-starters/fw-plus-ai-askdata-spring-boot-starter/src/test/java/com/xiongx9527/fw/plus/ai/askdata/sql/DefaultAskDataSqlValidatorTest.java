@@ -69,6 +69,8 @@ public class DefaultAskDataSqlValidatorTest {
         assertRejected("select nextval('order_seq')");
         assertRejected("select \"nextval\"('order_seq')");
         assertRejected("select pg_catalog.\"setval\"('order_seq', 10)");
+        assertRejected("select pg_notify('events', 'order created')");
+        assertRejected("select lo_unlink(42)");
     }
 
     @Test
@@ -94,6 +96,41 @@ public class DefaultAskDataSqlValidatorTest {
         assertTrue(allowed.isValid());
         assertFalse(rejected.isValid());
         assertEquals(AskDataErrorCode.SQL_REJECTED, rejected.getErrorCode());
+    }
+
+    @Test
+    public void shouldRejectSchemaQualifiedTableWhenMetadataAllowsOnlySimpleTableName() throws Exception {
+        AskDataMetadata metadata = new AskDataMetadata("mysql",
+                Collections.singletonList(new AskDataTable("orders", Collections.emptyList())),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        Method method = DefaultAskDataSqlValidator.class.getMethod("validate", String.class, AskDataDialect.class,
+                Integer.TYPE, AskDataMetadata.class);
+
+        AskDataSqlValidationResult result = (AskDataSqlValidationResult) method.invoke(validator,
+                "select * from other_schema.orders", mysql, Integer.valueOf(100), metadata);
+
+        assertFalse(result.isValid());
+        assertEquals(AskDataErrorCode.SQL_REJECTED, result.getErrorCode());
+    }
+
+    @Test
+    public void shouldRequireExactSchemaQualifiedMetadataTableMatch() throws Exception {
+        AskDataMetadata metadata = new AskDataMetadata("mysql",
+                Collections.singletonList(new AskDataTable("reporting.orders", Collections.emptyList())),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        Method method = DefaultAskDataSqlValidator.class.getMethod("validate", String.class, AskDataDialect.class,
+                Integer.TYPE, AskDataMetadata.class);
+
+        AskDataSqlValidationResult allowed = (AskDataSqlValidationResult) method.invoke(validator,
+                "select * from reporting.orders", mysql, Integer.valueOf(100), metadata);
+        AskDataSqlValidationResult otherSchema = (AskDataSqlValidationResult) method.invoke(validator,
+                "select * from other_schema.orders", mysql, Integer.valueOf(100), metadata);
+        AskDataSqlValidationResult unqualified = (AskDataSqlValidationResult) method.invoke(validator,
+                "select * from orders", mysql, Integer.valueOf(100), metadata);
+
+        assertTrue(allowed.isValid());
+        assertFalse(otherSchema.isValid());
+        assertFalse(unqualified.isValid());
     }
 
     @Test

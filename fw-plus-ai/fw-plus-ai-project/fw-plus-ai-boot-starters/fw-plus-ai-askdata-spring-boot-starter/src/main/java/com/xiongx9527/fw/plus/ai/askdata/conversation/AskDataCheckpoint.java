@@ -17,6 +17,7 @@ public class AskDataCheckpoint {
     private String dialect;
     private Integer maxRows;
     private Boolean execute;
+    private String requestOptionsSnapshot;
     private String executionState;
     private List<String> completedSteps = new ArrayList<String>();
     private String currentStep;
@@ -48,6 +49,10 @@ public class AskDataCheckpoint {
     public void setMaxRows(Integer maxRows) { this.maxRows = maxRows; }
     public Boolean getExecute() { return execute; }
     public void setExecute(Boolean execute) { this.execute = execute; }
+    public String getRequestOptionsSnapshot() { return requestOptionsSnapshot; }
+    public void setRequestOptionsSnapshot(String requestOptionsSnapshot) {
+        this.requestOptionsSnapshot = requestOptionsSnapshot;
+    }
     public String getExecutionState() { return executionState; }
     public void setExecutionState(String executionState) { this.executionState = executionState; }
     public List<String> getCompletedSteps() { return completedSteps; }

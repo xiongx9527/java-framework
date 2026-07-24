@@ -29,7 +29,9 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -136,6 +138,49 @@ public class AskDataResumeFlowTest {
     }
 
     @Test
+    public void shouldRejectResumeWhenTenantOptionsDrift() {
+        Fixture fixture = new Fixture();
+        Map<String, Object> options = new HashMap<String, Object>();
+        options.put("tenantId", "tenant-a");
+        AskDataRequest initial = fixture.requestWithoutConversation();
+        initial.setOptions(options);
+
+        AskDataResult initialResult = fixture.executor().execute(initial);
+        options.put("tenantId", "tenant-b");
+        AskDataRequest resume = fixture.request();
+        resume.setConversationId(initialResult.getConversationId());
+        resume.setOptions(options);
+
+        AskDataResult resumed = fixture.executor().execute(resume);
+
+        assertTrue(initialResult.isSuccess());
+        assertFalse(resumed.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, resumed.getErrorCode());
+        assertEquals(1, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectResumeWhenOptionsCannotBeSafelyCompared() {
+        Fixture fixture = new Fixture();
+        Map<String, Object> options = new HashMap<String, Object>();
+        options.put("tenantContext", new Object());
+        AskDataRequest initial = fixture.requestWithoutConversation();
+        initial.setOptions(options);
+
+        AskDataResult initialResult = fixture.executor().execute(initial);
+        AskDataRequest resume = fixture.request();
+        resume.setConversationId(initialResult.getConversationId());
+        resume.setOptions(options);
+
+        AskDataResult resumed = fixture.executor().execute(resume);
+
+        assertTrue(initialResult.isSuccess());
+        assertFalse(resumed.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, resumed.getErrorCode());
+        assertEquals(1, fixture.executorCalls);
+    }
+
+    @Test
     public void shouldRejectResumeAfterExecutionWasStartedButCompletionWasNotCheckpointed() {
         Fixture fixture = new Fixture();
         fixture.failExecution = true;
@@ -223,6 +268,7 @@ public class AskDataResumeFlowTest {
         checkpoint.setRequestSummary("订单数量");
         checkpoint.setMaxRows(Integer.valueOf(100));
         checkpoint.setExecute(Boolean.TRUE);
+        checkpoint.setRequestOptionsSnapshot("null");
         checkpoint.setCompletedSteps(Collections.singletonList("metadata"));
         checkpoint.setCurrentStep("metadata");
         fixture.store.save(checkpoint);
@@ -314,6 +360,7 @@ public class AskDataResumeFlowTest {
             checkpoint.setRequestSummary("订单数量");
             checkpoint.setMaxRows(Integer.valueOf(100));
             checkpoint.setExecute(Boolean.TRUE);
+            checkpoint.setRequestOptionsSnapshot("null");
             checkpoint.setSql("select * from orders limit 100");
             checkpoint.setSqlValidated(Boolean.TRUE);
             checkpoint.setCompletedSteps(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql"));
