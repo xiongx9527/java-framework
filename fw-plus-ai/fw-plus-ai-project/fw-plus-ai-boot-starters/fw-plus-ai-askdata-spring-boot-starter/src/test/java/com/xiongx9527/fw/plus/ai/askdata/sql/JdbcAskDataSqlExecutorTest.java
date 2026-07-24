@@ -34,6 +34,24 @@ public class JdbcAskDataSqlExecutorTest {
         assertEquals(2, result.getRowCount());
     }
 
+    @Test
+    public void shouldPhysicallyLimitRowsToRequestMaximum() {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource());
+        jdbcTemplate.execute("drop table if exists physical_limit_orders");
+        jdbcTemplate.execute("create table physical_limit_orders(id bigint)");
+        jdbcTemplate.update("insert into physical_limit_orders(id) values (1), (2), (3)");
+        JdbcAskDataSqlExecutor executor = new JdbcAskDataSqlExecutor(jdbcTemplate, 100);
+        AskDataRequest request = new AskDataRequest();
+        request.setMaxRows(Integer.valueOf(2));
+
+        AskDataSqlExecutionResult result = executor.execute(request,
+                "select id from physical_limit_orders order by id limit 1000");
+
+        assertTrue(result.isSuccess());
+        assertEquals(2, result.getRows().size());
+        assertEquals(2, result.getRowCount());
+    }
+
     private DataSource dataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName("org.h2.Driver");

@@ -98,6 +98,61 @@ public class AskDataResumeFlowTest {
     }
 
     @Test
+    public void shouldRejectResumeWhenRequestIdentityDoesNotMatch() {
+        Fixture fixture = new Fixture();
+        fixture.store.save(fixture.validatedCheckpoint("resume-identity", "1"));
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-identity");
+        request.setDatasourceKey("other-datasource");
+
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, result.getErrorCode());
+        assertEquals(0, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectResumeWhenQuestionModelRowsOrExecuteDoesNotMatch() {
+        assertIdentityMismatch("question");
+        assertIdentityMismatch("model");
+        assertIdentityMismatch("maxRows");
+        assertIdentityMismatch("execute");
+    }
+
+    @Test
+    public void shouldRejectResumeWhenEffectiveExecutionPolicyChanged() {
+        Fixture fixture = new Fixture();
+        fixture.store.save(fixture.validatedCheckpoint("resume-policy", "1"));
+        fixture.properties.getSql().setExecuteEnabled(false);
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-policy");
+
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, result.getErrorCode());
+        assertEquals(0, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectResumeAfterExecutionWasStartedButCompletionWasNotCheckpointed() {
+        Fixture fixture = new Fixture();
+        fixture.failExecution = true;
+
+        AskDataResult first = fixture.executor().execute(fixture.requestWithoutConversation());
+        AskDataRequest resume = fixture.request();
+        resume.setConversationId(first.getConversationId());
+        resume.setResumeToken(null);
+        AskDataResult resumed = fixture.executor().execute(resume);
+
+        assertFalse(first.isSuccess());
+        assertFalse(resumed.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, resumed.getErrorCode());
+        assertEquals(1, fixture.executorCalls);
+    }
+
+    @Test
     public void shouldNotExecuteSqlAgainWhenResumingExecutedCheckpoint() {
         Fixture fixture = new Fixture();
         AskDataCheckpoint checkpoint = fixture.validatedCheckpoint("resume-executed", "1");
@@ -165,6 +220,9 @@ public class AskDataResumeFlowTest {
         checkpoint.setDatasourceKey("orders");
         checkpoint.setDialect("mysql");
         checkpoint.setModelKey("model-1");
+        checkpoint.setRequestSummary("订单数量");
+        checkpoint.setMaxRows(Integer.valueOf(100));
+        checkpoint.setExecute(Boolean.TRUE);
         checkpoint.setCompletedSteps(Collections.singletonList("metadata"));
         checkpoint.setCurrentStep("metadata");
         fixture.store.save(checkpoint);
@@ -219,6 +277,7 @@ public class AskDataResumeFlowTest {
         private int modelCalls;
         private int validatorCalls;
         private int executorCalls;
+        private boolean failExecution;
 
         private Fixture() {
             properties.getSql().setExecuteEnabled(true);
@@ -231,7 +290,9 @@ public class AskDataResumeFlowTest {
             request.setDatasourceKey("orders");
             request.setDialect("mysql");
             request.setModelKey("model-1");
+            request.setQuestion("订单数量");
             request.setExecute(Boolean.TRUE);
+            request.setMaxRows(Integer.valueOf(100));
             return request;
         }
 
@@ -250,6 +311,9 @@ public class AskDataResumeFlowTest {
             checkpoint.setDatasourceKey("orders");
             checkpoint.setDialect("mysql");
             checkpoint.setModelKey("model-1");
+            checkpoint.setRequestSummary("订单数量");
+            checkpoint.setMaxRows(Integer.valueOf(100));
+            checkpoint.setExecute(Boolean.TRUE);
             checkpoint.setSql("select * from orders limit 100");
             checkpoint.setSqlValidated(Boolean.TRUE);
             checkpoint.setCompletedSteps(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql"));
@@ -322,11 +386,36 @@ public class AskDataResumeFlowTest {
                 @Override
                 public AskDataSqlExecutionResult execute(AskDataRequest request, String sql) {
                     executorCalls++;
+                    if (failExecution) {
+                        throw new IllegalStateException("connection lost after execute");
+                    }
                     return AskDataSqlExecutionResult.success(Collections.emptyList(), Collections.emptyList());
                 }
             };
             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                     promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, store, contextCompressor);
         }
+    }
+
+    private void assertIdentityMismatch(String field) {
+        Fixture fixture = new Fixture();
+        fixture.store.save(fixture.validatedCheckpoint("resume-" + field, "1"));
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-" + field);
+        if ("question".equals(field)) {
+            request.setQuestion("客户数量");
+        } else if ("model".equals(field)) {
+            request.setModelKey("model-2");
+        } else if ("maxRows".equals(field)) {
+            request.setMaxRows(Integer.valueOf(50));
+        } else {
+            request.setExecute(Boolean.FALSE);
+        }
+
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, result.getErrorCode());
+        assertEquals(0, fixture.executorCalls);
     }
 }

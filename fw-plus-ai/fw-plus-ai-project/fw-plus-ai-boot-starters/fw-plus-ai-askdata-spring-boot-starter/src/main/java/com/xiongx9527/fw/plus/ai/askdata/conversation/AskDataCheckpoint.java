@@ -15,6 +15,9 @@ public class AskDataCheckpoint {
     private String modelKey;
     private String datasourceKey;
     private String dialect;
+    private Integer maxRows;
+    private Boolean execute;
+    private String executionState;
     private List<String> completedSteps = new ArrayList<String>();
     private String currentStep;
     private String sql;
@@ -41,6 +44,12 @@ public class AskDataCheckpoint {
     public void setDatasourceKey(String datasourceKey) { this.datasourceKey = datasourceKey; }
     public String getDialect() { return dialect; }
     public void setDialect(String dialect) { this.dialect = dialect; }
+    public Integer getMaxRows() { return maxRows; }
+    public void setMaxRows(Integer maxRows) { this.maxRows = maxRows; }
+    public Boolean getExecute() { return execute; }
+    public void setExecute(Boolean execute) { this.execute = execute; }
+    public String getExecutionState() { return executionState; }
+    public void setExecutionState(String executionState) { this.executionState = executionState; }
     public List<String> getCompletedSteps() { return completedSteps; }
     public void setCompletedSteps(List<String> completedSteps) {
         this.completedSteps = completedSteps == null ? new ArrayList<String>() : new ArrayList<String>(completedSteps);
