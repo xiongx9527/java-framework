@@ -71,6 +71,27 @@ export PATH="$JAVA_HOME/bin:$PATH"
 - 包含 LangChain4j `0.35.0`：`langchain4j` 与 `langchain4j-core`。
 - 该受 `-Dincludes` 限制的输出中未出现 SQLBot runtime 或 UI 依赖条目。
 
+### Step 4 补充未过滤依赖树验证
+
+命令：
+
+```bash
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
+export PATH="$JAVA_HOME/bin:$PATH"
+./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter dependency:tree
+```
+
+退出状态：`0`
+
+未过滤依赖树结果：Maven `BUILD SUCCESS`。完整输出保存至临时文件后执行：
+
+```bash
+rg -i "sqlbot|fit2cloud" /tmp/task-9-askdata-unfiltered-dependency-tree.log
+```
+
+该扫描退出状态：`1`（`rg` 无匹配的预期退出状态），无输出。完整依赖树中不存在 `SQLBot`、`sqlbot`、`com.fit2cloud` 或 `fit2cloud` 字样，因此未发现 SQLBot runtime 或 UI 依赖。原 Step 4 的 `-Dincludes` 输出仅用于核验预期的 fw-plus AI、Spring 和 LangChain4j 依赖版本；本补充验证作为无 SQLBot 依赖结论的依据。
+
 ## Step 5：Java 8 API 扫描
 
 命令：
