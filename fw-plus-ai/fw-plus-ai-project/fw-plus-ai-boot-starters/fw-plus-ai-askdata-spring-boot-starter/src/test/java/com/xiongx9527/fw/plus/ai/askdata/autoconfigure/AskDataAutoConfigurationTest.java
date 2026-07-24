@@ -29,10 +29,13 @@ import org.junit.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class AskDataAutoConfigurationTest {
+
+    private static final String SQL = "select count(*) from orders limit 100";
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(AskDataAutoConfiguration.class));
@@ -106,13 +109,44 @@ public class AskDataAutoConfigurationTest {
     @Test
     public void shouldDispatchUserSubAgentThroughDefaultFlow() {
         TestAskDataSubAgent subAgent = new TestAskDataSubAgent();
-        contextRunner
+        withDefaultFlowDependencies()
                 .withBean(AskDataSubAgent.class, () -> subAgent)
-                .withBean(AskDataMetadataProvider.class, () -> request -> new AskDataMetadata("mysql", null, null, null, null))
+                .run(context -> {
+                    AskDataResult result = context.getBean(AskDataService.class).ask(createRequest());
+
+                    assertTrue(result.isSuccess());
+                    assertTrue(subAgent.executed);
+                });
+    }
+
+    @Test
+    public void shouldGenerateSqlWhenSubAgentReturnsFailure() {
+        withDefaultFlowDependencies()
+                .withBean(AskDataSubAgent.class, FailureAskDataSubAgent::new)
+                .run(context -> assertSuccessfulSql(context.getBean(AskDataService.class).ask(createRequest())));
+    }
+
+    @Test
+    public void shouldGenerateSqlWhenSubAgentThrowsRuntimeException() {
+        withDefaultFlowDependencies()
+                .withBean(AskDataSubAgent.class, ThrowingAskDataSubAgent::new)
+                .run(context -> assertSuccessfulSql(context.getBean(AskDataService.class).ask(createRequest())));
+    }
+
+    @Test
+    public void shouldGenerateSqlWhenNoSubAgentIsRegistered() {
+        withDefaultFlowDependencies()
+                .run(context -> assertSuccessfulSql(context.getBean(AskDataService.class).ask(createRequest())));
+    }
+
+    private ApplicationContextRunner withDefaultFlowDependencies() {
+        return contextRunner
+                .withBean(AskDataMetadataProvider.class,
+                        () -> request -> new AskDataMetadata("mysql", null, null, null, null))
                 .withBean(AskDataModelRegistry.class, () -> new AskDataModelRegistry() {
                     @Override
                     public AskDataChatModel getChatModel(String modelKey) {
-                        return prompt -> new AskDataModelResponse("{\"sql\":\"select 1\"}", null, "test-model");
+                        return prompt -> new AskDataModelResponse("{\"sql\":\"" + SQL + "\"}", null, "test-model");
                     }
 
                     @Override
@@ -129,18 +163,20 @@ public class AskDataAutoConfigurationTest {
                     public String getDefaultEmbeddingModelKey() {
                         return "test-embedding-model";
                     }
-                })
-                .run(context -> {
-                    AskDataRequest request = new AskDataRequest();
-                    request.setQuestion("订单数量");
-                    request.setDatasourceKey("orders");
-                    request.setExecute(Boolean.FALSE);
-
-                    AskDataResult result = context.getBean(AskDataService.class).ask(request);
-
-                    assertTrue(result.isSuccess());
-                    assertTrue(subAgent.executed);
                 });
+    }
+
+    private AskDataRequest createRequest() {
+        AskDataRequest request = new AskDataRequest();
+        request.setQuestion("订单数量");
+        request.setDatasourceKey("orders");
+        request.setExecute(Boolean.FALSE);
+        return request;
+    }
+
+    private void assertSuccessfulSql(AskDataResult result) {
+        assertTrue(result.isSuccess());
+        assertEquals(SQL, result.getSql());
     }
 
     private static class TestAskDataSubAgent implements AskDataSubAgent {
@@ -161,6 +197,22 @@ public class AskDataAutoConfigurationTest {
         public AskDataSubAgentResult executeSubTask(AskDataSubAgentRequest request) {
             executed = true;
             return AskDataSubAgentResult.success("done");
+        }
+    }
+
+    private static class FailureAskDataSubAgent extends TestAskDataSubAgent {
+
+        @Override
+        public AskDataSubAgentResult executeSubTask(AskDataSubAgentRequest request) {
+            return AskDataSubAgentResult.failure("sub-agent failed");
+        }
+    }
+
+    private static class ThrowingAskDataSubAgent extends TestAskDataSubAgent {
+
+        @Override
+        public AskDataSubAgentResult executeSubTask(AskDataSubAgentRequest request) {
+            throw new RuntimeException("sub-agent failed");
         }
     }
 }
