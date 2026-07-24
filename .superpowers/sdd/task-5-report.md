@@ -54,3 +54,47 @@ export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$
 - 项目既有 `fw-plus-ai-boot-autoconfigure` POM 存在 3 条重复 LangChain4j 依赖声明警告，本任务未修改该文件。
 - 测试运行时缺少 SLF4J 绑定，使用 NOP logger；不影响测试结果。
 - 未发现 SQLBot 品牌、Spring AI 运行时依赖或 Java 9+ API。
+
+## SQL 安全修复复核
+
+### 修复内容
+
+- 拒绝可写 `SELECT INTO`，包括 `select * into audit_copy from orders`。
+- 保守拒绝 MySQL 可执行注释 `/*!...*/`，避免注释中包含的写操作绕过扫描。
+- 为 `AskDataDialect` 增加 Java 8 兼容的 `applyLimit` 策略；MySQL、PostgreSQL、ClickHouse 仍注册为 `LIMIT` 语法。
+- 识别无换行尾随 `--` 注释，在注释前通过方言追加行数限制。
+
+### RED
+
+命令：
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest test
+```
+
+结果：失败。新增方言委托测试在 `@Override applyLimit` 处无法编译，证明生产代码尚未提供行数限制策略契约。
+
+### GREEN
+
+命令：
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest test
+```
+
+结果：通过，13 个测试、0 失败、0 错误。
+
+### Task 5 聚焦测试
+
+命令：
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest,JdbcAskDataSqlExecutorTest test
+```
+
+结果：通过，14 个测试、0 失败、0 错误。
+
+### 风险信号
+
+- 构建仍报告 `fw-plus-ai-boot-autoconfigure` 的 3 条重复 LangChain4j 依赖声明警告，未在本任务范围内修改。
+- JDBC 聚焦测试仍提示缺少 SLF4J 绑定并使用 NOP logger；不影响测试结果。
