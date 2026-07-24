@@ -101,7 +101,7 @@ base-ref: bf45ed49f309cca5d18c623a03dab70c72cbfa1e
 - Produces: `DbBrowserPreviewRequest`、`DbBrowserPreviewResult`、`DbBrowserFilter`、`DbBrowserSqlBuilder.BuildResult`。
 - Produces: `DbBrowserSqlBuilder.buildPreviewSql(Connection, DbBrowserPreviewRequest, Set<String> allowedColumns, Set<String> allowedObjects)` 返回 SQL 和参数列表。
 
-- [ ] **Step 1: 写 SQL Builder 失败测试**
+- [x] **Step 1: 写 SQL Builder 失败测试**
 
 测试覆盖：未知排序字段被拒绝、未知过滤字段被拒绝、pageSize 超限被截断、过滤值进入参数列表而不是 SQL 字符串。
 
@@ -112,11 +112,11 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: FAIL，原因是 `DbBrowserSqlBuilder` 和 DTO 尚不存在。
 
-- [ ] **Step 2: 实现 DTO 和最小 SQL Builder**
+- [x] **Step 2: 实现 DTO 和最小 SQL Builder**
 
 实现 Java 8 POJO，使用 getter/setter，不用 `List.of()` 或 record。SQL Builder 只支持 SELECT 预览，操作符先实现 `eq`、`ne`、`like`、`gt`、`gte`、`lt`、`lte`、`isNull`、`isNotNull`。
 
-- [ ] **Step 3: 跑 SQL Builder 测试**
+- [x] **Step 3: 跑 SQL Builder 测试**
 
 Run:
 ```bash
@@ -125,7 +125,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: PASS。
 
-- [ ] **Step 4: 提交 Task 1**
+- [x] **Step 4: 提交 Task 1**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/dbbrowser fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/dbbrowser/service/DbBrowserSqlBuilderTest.java
