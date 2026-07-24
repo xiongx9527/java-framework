@@ -84,3 +84,36 @@
 - Minor: none.
 - Cannot verify until later tasks: DefaultDbBrowserService must build allowedColumns/allowedObjects from JDBC metadata; preview execution must bind BuildResult parameters into PreparedStatement; metadata DTOs for data sources, namespaces, objects, columns, indexes, and routines still need to be added before OpenSpec 1.1 can be checked off.
 - Task 1: complete (commits 0708625..f9c0ad9, review clean)
+
+## Current Task 2
+
+- Plan task: Task 2: 后端元数据服务
+- OpenSpec mapping: 1.1 remaining metadata DTOs; 1.2 MagicDynamicDataSource service entry; 1.3 DatabaseMetaData catalog/schema/table/view/function/procedure listing; 1.4 table/view columns, primary keys, and indexes; 2.1 preview execution with hasMore; later confirmation for 2.2 metadata-built whitelists and 2.3 PreparedStatement binding.
+- Stage: complete
+- Brief: .superpowers/sdd/task-2-brief.md
+- Report: .superpowers/sdd/task-2-report.md
+- Base commit: 47cbfee
+- Implementer: 019f92b0-60f0-77b1-9bd5-459b7caf5ea7
+- Implementer commit: 285f669 feat: add magicapi db metadata browser service
+- Implementer GREEN: system Maven DefaultDbBrowserServiceTest + DbBrowserSqlBuilderTest 21/21 passing; git diff --check passing
+- Concerns: Maven wrapper missing; H2 covers core paths, other JDBC drivers need later integration coverage.
+
+## Task 2 Review 1
+
+- Reviewer: 019f92bc-f90e-7ac0-a007-3dbce24c27cc
+- Verdict: not approved
+- Critical: none.
+- Important: pageSize=MAX_PAGE_SIZE could not report hasMore because internal prefetch pageSize+1 was capped back to MAX_PAGE_SIZE by DbBrowserSqlBuilder.
+- Minor: add filter value with quote/SQL fragment regression coverage.
+- Fix agent: 019f92bf-8254-7382-8e73-c6be90c3bbb8
+- Fix commit: beeca69 fix: preserve db browser hasMore at max page size
+- Fix GREEN: system Maven DefaultDbBrowserServiceTest + DbBrowserSqlBuilderTest 24/24 passing; git diff --check passing
+
+## Task 2 Review 2
+
+- Reviewer: 019f92c6-2276-7730-8798-2258ca117f17
+- Verdict: approved
+- Critical: none.
+- Important: none.
+- Minor: none.
+- Task 2: complete (commits 47cbfee..beeca69, review clean)
