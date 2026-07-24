@@ -190,19 +190,19 @@ git commit -m "feat: add magicapi db metadata browser service"
 - Consumes: Task 2 `DbBrowserService`。
 - Produces endpoints under `/db/browser/**` or `/db/datasource/**` following existing plugin Controller style.
 
-- [ ] **Step 1: 写 Controller 失败测试**
+- [x] **Step 1: 写 Controller 失败测试**
 
 覆盖 datasource 列表、对象列表、详情、预览、未知 datasource、未知列、未认证/无 VIEW 权限。
 
-- [ ] **Step 2: 实现 Controller 权限校验**
+- [x] **Step 2: 实现 Controller 权限校验**
 
 参照 `MagicS3Controller.platformOptions()` 的 `@Valid(requireLogin = true)` 和 `Authorization.VIEW` 检查方式，避免绕过控制台权限。
 
-- [ ] **Step 3: 实现 `MagicAPIDbBrowserConfiguration`**
+- [x] **Step 3: 实现 `MagicAPIDbBrowserConfiguration`**
 
 提供 `DbBrowserService` Bean、`Plugin("db", "MagicDB", "magic-db.1.0.0.iife.js")`，并通过 `controllerRegister()` 注册 `MagicDbBrowserController`。
 
-- [ ] **Step 4: 注册自动配置并跑测试**
+- [x] **Step 4: 注册自动配置并跑测试**
 
 Run:
 ```bash
@@ -211,7 +211,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: PASS。
 
-- [ ] **Step 5: 提交 Task 3**
+- [x] **Step 5: 提交 Task 3**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/dbbrowser fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/resources/META-INF/spring.factories fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/dbbrowser/web/MagicDbBrowserControllerTest.java
