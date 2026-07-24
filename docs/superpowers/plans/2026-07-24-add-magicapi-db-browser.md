@@ -2,6 +2,7 @@
 change: add-magicapi-db-browser
 design-doc: docs/superpowers/specs/2026-07-24-add-magicapi-db-browser-design.md
 base-ref: bf45ed49f309cca5d18c623a03dab70c72cbfa1e
+archived-with: 2026-07-24-add-magicapi-db-browser
 ---
 
 # Magic-API DB 只读浏览与插件 UI 归属实施计划
@@ -228,23 +229,23 @@ git commit -m "feat: expose magicapi db browser endpoints"
 - Consumes: Task 3 DB 浏览接口。
 - Produces: `magic-db.1.0.0.iife.js` 插件资源，注册 DB 管理入口、服务、图标、i18n、页面组件。
 
-- [ ] **Step 1: 复制 S3 插件 UI 的最小结构**
+- [x] **Step 1: 复制 S3 插件 UI 的最小结构**
 
 按 `fw-plus-magicapi-plugin-s3/src/console` 创建 DB 插件 `package.json`、`vite.config.js`、`src/index.js`、i18n、service、components 和 icon。
 
-- [ ] **Step 2: 实现 service 封装**
+- [x] **Step 2: 实现 service 封装**
 
 `magic-db-browser.js` 封装 `listDataSources`、`listNamespaces`、`listObjects`、`getObjectDetail`、`preview`，统一使用插件运行时注入的 `request`。
 
-- [ ] **Step 3: 实现 DB 浏览页面**
+- [x] **Step 3: 实现 DB 浏览页面**
 
 左侧展示数据源和对象树；右侧展示对象详情。表/视图展示字段、主键、索引、分页预览；函数/存储过程只展示元数据。
 
-- [ ] **Step 4: 实现排序、过滤、分页和状态**
+- [x] **Step 4: 实现排序、过滤、分页和状态**
 
 支持基础排序、简单过滤、加载态、空态、错误态；后端失败时保留当前数据源和已加载上下文。
 
-- [ ] **Step 5: 构建 DB 插件**
+- [x] **Step 5: 构建 DB 插件**
 
 Run:
 ```bash
@@ -253,7 +254,7 @@ cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plug
 
 Expected: PASS，生成 `dist/magic-db.1.0.0.iife.js`。
 
-- [ ] **Step 6: 提交 Task 4**
+- [x] **Step 6: 提交 Task 4**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-db fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/pom.xml
@@ -273,23 +274,23 @@ git commit -m "feat: add magicapi db browser console plugin"
 - Consumes: existing `MagicS3Controller` endpoints `/s3/datasource/availableStorages`、`/s3/datasource/{key}/listFilesResult`、`/delete`、`/generateUploadPresignedUrl`。
 - Produces: S3 插件 IIFE 自己注册文件管理入口和页面。
 
-- [ ] **Step 1: 从宿主页面迁移 S3 文件管理组件**
+- [x] **Step 1: 从宿主页面迁移 S3 文件管理组件**
 
 将宿主 `magic-s3.vue` 的文件浏览、搜索、存储选择、basePath 展示/编辑、列表、删除、预签名上传入口迁入 S3 插件组件。
 
-- [ ] **Step 2: 扩展 S3 service**
+- [x] **Step 2: 扩展 S3 service**
 
 在 S3 插件 service 中封装文件管理接口，保持 datasource 表单能力不回退。
 
-- [ ] **Step 3: 扩展 S3 插件注册**
+- [x] **Step 3: 扩展 S3 插件注册**
 
 在 `src/index.js` 中注册 S3 数据源表单和 S3 文件管理入口。入口只由插件产物提供，不依赖宿主专属 toolbar/status-bar 分支。
 
-- [ ] **Step 4: 迁移 S3 i18n 和图标引用**
+- [x] **Step 4: 迁移 S3 i18n 和图标引用**
 
 把宿主中的 S3 文件管理文案迁到 S3 插件 i18n；图标使用插件内 `s3.svg` 或 IIFE 注入 symbol。
 
-- [ ] **Step 5: 构建 S3 插件**
+- [x] **Step 5: 构建 S3 插件**
 
 Run:
 ```bash
@@ -298,7 +299,7 @@ cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plug
 
 Expected: PASS，生成 `dist/magic-s3.1.0.0.iife.js`。
 
-- [ ] **Step 6: 提交 Task 5**
+- [x] **Step 6: 提交 Task 5**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-s3/src/console
@@ -318,19 +319,19 @@ git commit -m "feat: move magic s3 file manager into plugin ui"
 - Consumes: Task 5 S3 插件入口。
 - Produces: 宿主控制台无 S3 业务页面和专属入口，只保留通用插件加载能力。
 
-- [ ] **Step 1: 删除宿主 S3 页面组件**
+- [x] **Step 1: 删除宿主 S3 页面组件**
 
 移除 `magic-s3.vue`，并删除所有直接引用。
 
-- [ ] **Step 2: 清理 toolbar/status-bar S3 专属逻辑**
+- [x] **Step 2: 清理 toolbar/status-bar S3 专属逻辑**
 
 删除 `hasS3Plugin`、`openS3`、`s3-datasource` 专属判断和 `resolveDynamicComponent('magic-s3')` 入口。保留通用插件数据驱动的加载逻辑。
 
-- [ ] **Step 3: 清理宿主 S3 i18n**
+- [x] **Step 3: 清理宿主 S3 i18n**
 
 删除宿主 `toolbars.s3` 和 `s3.*` 文件管理文案。不要删除插件通用文案。
 
-- [ ] **Step 4: 构建宿主控制台**
+- [x] **Step 4: 构建宿主控制台**
 
 Run:
 ```bash
@@ -339,7 +340,7 @@ cd fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spri
 
 Expected: PASS。
 
-- [ ] **Step 5: 源码检查**
+- [x] **Step 5: 源码检查**
 
 Run:
 ```bash
@@ -348,7 +349,7 @@ rg -n "magic-s3|s3-datasource|toolbars\.s3|openS3|hasS3Plugin" fw-plus-boot/fw-p
 
 Expected: 无宿主 S3 业务页面、入口和专属文案残留。
 
-- [ ] **Step 6: 提交 Task 6**
+- [x] **Step 6: 提交 Task 6**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/src/console
@@ -365,11 +366,11 @@ git commit -m "refactor: remove s3 business ui from magicapi host console"
 - Consumes: Tasks 1-6 全部产物。
 - Produces: 验证证据和任务勾选。
 
-- [ ] **Step 1: 更新说明文档**
+- [x] **Step 1: 更新说明文档**
 
 记录 DB 浏览只读范围、支持对象类型、数据预览限制、插件 UI 边界，以及 S3 文件管理 UI 已归属 S3 插件。
 
-- [ ] **Step 2: 运行后端目标测试**
+- [x] **Step 2: 运行后端目标测试**
 
 Run:
 ```bash
@@ -378,7 +379,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: PASS。
 
-- [ ] **Step 3: 运行前端构建**
+- [x] **Step 3: 运行前端构建**
 
 Run:
 ```bash
@@ -389,7 +390,7 @@ Run:
 
 Expected: 三个构建均 PASS。
 
-- [ ] **Step 4: 运行 OpenSpec 和 diff 检查**
+- [x] **Step 4: 运行 OpenSpec 和 diff 检查**
 
 Run:
 ```bash
@@ -399,11 +400,11 @@ git diff --check
 
 Expected: PASS。
 
-- [ ] **Step 5: 勾选 OpenSpec tasks**
+- [x] **Step 5: 勾选 OpenSpec tasks**
 
 按实际完成情况勾选 `openspec/changes/add-magicapi-db-browser/tasks.md` 中 1.1-5.7。
 
-- [ ] **Step 6: 提交 Task 7**
+- [x] **Step 6: 提交 Task 7**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/README.md openspec/changes/add-magicapi-db-browser/tasks.md
@@ -412,8 +413,8 @@ git commit -m "docs: document magicapi db browser plugin boundaries"
 
 ## 自检清单
 
-- [ ] 每个 OpenSpec requirement 都至少由一个任务覆盖。
-- [ ] DB/S3 插件 UI 都位于插件 `src/console`。
-- [ ] 宿主控制台没有 S3/DB 业务页面和专属入口。
-- [ ] DB 数据预览没有任意 SQL 输入，没有写操作入口。
-- [ ] 后端测试、前端构建、`openspec validate`、`git diff --check` 已通过。
+- [x] 每个 OpenSpec requirement 都至少由一个任务覆盖。
+- [x] DB/S3 插件 UI 都位于插件 `src/console`。
+- [x] 宿主控制台没有 S3/DB 业务页面和专属入口。
+- [x] DB 数据预览没有任意 SQL 输入，没有写操作入口。
+- [x] 后端测试、前端构建、`openspec validate`、`git diff --check` 已通过。

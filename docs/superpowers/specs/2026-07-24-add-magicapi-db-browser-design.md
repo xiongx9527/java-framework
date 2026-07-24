@@ -2,6 +2,8 @@
 comet_change: add-magicapi-db-browser
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-24-add-magicapi-db-browser
+status: final
 ---
 
 # Magic-API DB 只读浏览与插件 UI 归属设计
