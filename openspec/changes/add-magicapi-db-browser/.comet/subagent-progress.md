@@ -208,3 +208,29 @@
 - Minor: none.
 - Coordinator confirmation: backend plugin registration matches `new Plugin("db", "MagicDB", "magic-db.1.0.0.iife.js")`; Task 4 diff did not touch host UI or S3 plugin UI.
 - Task 4: complete (commits bd632bc..7cac38b, review clean)
+
+## Current Task 5
+
+- Plan task: Task 5: 迁移 S3 文件管理 UI 到 S3 插件 UI
+- OpenSpec mapping: 4.6 migrate existing S3 file browser UI, S3 toolbar/status entry, and S3 i18n text into `fw-plus-magicapi-plugin-s3/src/console`.
+- Stage: implementing
+- Brief: .superpowers/sdd/task-5-brief.md
+- Report: .superpowers/sdd/task-5-report.md
+- Base commit: 7333a71
+- Risk signals: keep host console cleanup for Task 6; do not remove host S3 UI in this task unless strictly required for plugin compatibility.
+
+## Task 5 Review 1
+
+- Reviewer: 019f931c-cc59-7f73-bd1e-fe3afd9c5c5c
+- Verdict: not approved
+- Important: preview endpoint was suspected to use upload-only presigned URL; folder delete path was suspected reachable.
+- Coordinator evidence: host S3 page already uses `/generateUploadPresignedUrl` for preview; backend method calls `generatePresignedUrlByUrl`; plugin folder click navigates and never assigns folders to `selectedFile`.
+
+## Task 5 Review 2
+
+- Reviewer: 019f931f-396f-7131-ad1b-3b1ff240049c
+- Verdict: approved
+- Critical: none.
+- Important: none.
+- Minor: none.
+- Task 5: complete (commits 7333a71..301c079, review clean)
