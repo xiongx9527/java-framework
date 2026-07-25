@@ -9,7 +9,7 @@
 **Goals:**
 
 - Kafka、Pulsar 管理页面及其业务文案完全归属各自插件 console。
-- 两个插件通过现有通用 toolbar 扩展点注册管理员入口。
+- 两个插件通过现有通用 toolbar 扩展点注册管理员入口，并通过通用 status bar 扩展点保留原状态栏入口。
 - 保持现有主题、布局、管理操作、API 路径和 `adminEnabled` 行为。
 - 宿主不再维护 Kafka/Pulsar 专属组件、入口或插件存在性判断。
 - Kafka、Pulsar、宿主集成采用互不重叠的 Agent 写入分区。
@@ -35,6 +35,8 @@
 
 Kafka、Pulsar 插件各新增一个 `id` 唯一的管理 toolbar，设置 `adminOnly: true`、`fullscreen: true` 和现有标题、图标。宿主既有通用 toolbar 收集逻辑继续根据插件 `adminEnabled` 过滤并追加入口，不再保留两个专属分支。
 
+两个插件同时注册 `statusBarItems`：Kafka 状态栏项继续打开 Kafka 官网，Pulsar 状态栏项通过宿主注入的 `bus` 和 `Message.ADD_FOOTER_TOOLBAR` 打开插件管理页面。宿主只负责通用收集和渲染，不保留 Kafka/Pulsar 专属判断。
+
 ### 4. 分区实施与集中集成
 
 - Kafka Agent 只修改 Kafka 插件 console 及其契约测试。
@@ -46,12 +48,12 @@ Kafka、Pulsar 插件各新增一个 `id` 唯一的管理 toolbar，设置 `admi
 
 - [迁移页面仍引用宿主内部模块] → 契约测试禁止插件页面出现指向宿主源码的相对导入，并实际执行插件构建。
 - [全局组件解析与原页面不同] → 保留原组件标签，使用宿主已注册组件；通过宿主构建和浏览器验证确认渲染。
-- [重复工具栏入口] → 插件入口加入后同步删除宿主 Kafka/Pulsar 专属 push 分支和状态栏工具栏注册。
+- [重复工具栏入口] → 插件入口加入后同步删除宿主 Kafka/Pulsar 专属 push 分支，状态栏入口由各插件通过通用扩展点注册。
 - [大文件迁移产生噪声] → 先按原样迁移，仅做依赖注入和路径适配，不夹带页面重构。
 
 ## Migration Plan
 
-1. 分别在 Kafka、Pulsar 插件中迁移页面、文案、运行时服务和 toolbar 元数据。
+1. 分别在 Kafka、Pulsar 插件中迁移页面、文案、运行时服务、toolbar 和 status bar 元数据。
 2. 删除宿主中对应页面及所有专属注册和文案。
 3. 构建两个插件和宿主控制台，验证插件产物随 Maven 资源阶段进入 `magic-editor/plugins`。
 4. 回滚时可恢复宿主页面和专属入口，同时移除插件 toolbar 元数据；后端无数据迁移。

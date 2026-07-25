@@ -40,6 +40,15 @@ test('Kafka 插件注册订阅编辑和独立管理工具栏', () => {
     assert.match(source, /fullscreen:\s*true/)
 })
 
+test('Kafka 插件注册状态栏入口并保持原官网跳转语义', () => {
+    const source = fs.readFileSync(pluginPath, 'utf8')
+    assert.match(source, /statusBarItems:\s*\[/)
+    assert.match(source, /icon:\s*'#magic-kafka-kafka'/)
+    assert.match(source, /title:\s*'Kafka'/)
+    assert.match(source, /displayKey:\s*'kafka'/)
+    assert.match(source, /onClick:\s*\(\)\s*=>\s*window\.open\('https:\/\/kafka\.apache\.org\/',\s*'_blank'\)/)
+})
+
 test('Kafka 管理页运行时适配保存宿主注入依赖', () => {
     assert.equal(fs.existsSync(runtimePath), true, 'Kafka 插件应提供运行时适配服务')
     const source = fs.readFileSync(runtimePath, 'utf8')

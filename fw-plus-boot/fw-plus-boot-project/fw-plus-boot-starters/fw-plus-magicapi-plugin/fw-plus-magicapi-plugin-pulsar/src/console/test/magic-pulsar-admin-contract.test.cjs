@@ -25,6 +25,15 @@ test('Pulsar 插件注册订阅编辑与独立管理 toolbar', () => {
     assert.match(source, /fullscreen:\s*true/)
 })
 
+test('Pulsar 插件注册状态栏入口并复用管理 toolbar', () => {
+    const source = fs.readFileSync(pluginPath, 'utf8')
+    const statusBarItemPattern = /statusBarItems:\s*\[\{\s*icon:\s*'#magic-pulsar-pulsar',\s*title:\s*'Pulsar',\s*displayKey:\s*'pulsar',\s*onClick:\s*\(\)\s*=>\s*runtime\.bus\.\$emit\(runtime\.Message\.ADD_FOOTER_TOOLBAR,\s*pulsarAdminToolbar\)\s*\}\]/
+
+    assert.match(source, /const pulsarAdminToolbar\s*=\s*\{/)
+    assert.match(source, statusBarItemPattern)
+    assert.match(source, /toolbars:\s*\[[\s\S]*pulsarAdminToolbar\s*\]/)
+})
+
 test('Pulsar 管理页面归属插件并使用插件运行时适配服务', () => {
     assert.equal(fs.existsSync(componentPath), true, 'Pulsar 管理页面应迁入插件组件目录')
     assert.equal(fs.existsSync(runtimePath), true, 'Pulsar 插件运行时适配服务应存在')

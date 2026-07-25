@@ -33,6 +33,12 @@ export default (opt) => {
     setMagicKafkaRuntime(opt)
     return {
         name: 'kafka',
+        statusBarItems: [{
+            icon: '#magic-kafka-kafka',
+            title: 'Kafka',
+            displayKey: 'kafka',
+            onClick: () => window.open('https://kafka.apache.org/', '_blank')
+        }],
         resource: [{
             type: 'kafka-subscribe',
             icon: '#magic-kafka-kafka',
