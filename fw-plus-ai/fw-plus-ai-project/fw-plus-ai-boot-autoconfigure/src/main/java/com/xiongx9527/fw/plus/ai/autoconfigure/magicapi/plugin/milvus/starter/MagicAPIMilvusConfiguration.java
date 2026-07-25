@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.milvus.module.Mil
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.milvus.service.MilvusDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.milvus.service.MilvusDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.milvus.web.MagicMilvusController;
+import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import io.milvus.v2.client.MilvusClientV2;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 @ConditionalOnClass(name = {"io.milvus.v2.client.MilvusClientV2","dev.langchain4j.store.embedding.milvus.MilvusEmbeddingStore"})
 @EnableConfigurationProperties(MagicAPIMilvueConfig.class)
 @Configuration
+@Deprecated
 public class MagicAPIMilvusConfiguration implements MagicPluginConfiguration {
 
     /** 
@@ -69,8 +71,9 @@ public class MagicAPIMilvusConfiguration implements MagicPluginConfiguration {
     @DependsOn(value={"magicDynamicMilvusDataSource"})
     public MilvusModule milvusModule(MagicDynamicMilvusDataSource magicDynamicMilvusDataSource,
                                      @Autowired(required = false) MilvusClientV2 milvusClientV2,
-                                     @Autowired(required = false) EmbeddingModel embeddingModel) {
-        return new MilvusModule(magicDynamicMilvusDataSource, milvusClientV2,embeddingModel);
+                                     @Autowired(required = false) EmbeddingModel embeddingModel,
+                                     @Autowired(required = false) EmbeddingStoreRegistry embeddingStoreRegistry) {
+        return new MilvusModule(magicDynamicMilvusDataSource, milvusClientV2, embeddingModel, embeddingStoreRegistry);
     }
 
 

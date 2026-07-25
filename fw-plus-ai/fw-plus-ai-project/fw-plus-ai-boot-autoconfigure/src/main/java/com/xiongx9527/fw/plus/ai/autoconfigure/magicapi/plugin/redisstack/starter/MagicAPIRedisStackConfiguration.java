@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.redisstack.starter;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.redisstack.module.RedisStackModule;
+import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.module.RedisModule;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,7 @@ import org.ssssssss.magicapi.core.model.Plugin;
 @ConditionalOnClass(name = {"org.springframework.data.redis.core.StringRedisTemplate","org.apache.commons.pool2.impl.GenericObjectPoolConfig",
         "org.ssssssss.magicapi.redis.RedisModule","dev.langchain4j.store.embedding.redis.RedisEmbeddingStore"})
 @Configuration
+@Deprecated
 public class MagicAPIRedisStackConfiguration implements MagicPluginConfiguration {
     /**
      * 返回一个表示RedisStack插件的Plugin对象。
@@ -39,7 +41,8 @@ public class MagicAPIRedisStackConfiguration implements MagicPluginConfiguration
      * @return 返回配置好的RedisStackModule实例。
      */
     @Bean
-    public RedisStackModule redisStackModule(RedisModule redisModule, @Autowired(required = false) EmbeddingModel embeddingModel) {
-        return new RedisStackModule(redisModule, embeddingModel);
+    public RedisStackModule redisStackModule(RedisModule redisModule, @Autowired(required = false) EmbeddingModel embeddingModel,
+                                             @Autowired(required = false) EmbeddingStoreRegistry embeddingStoreRegistry) {
+        return new RedisStackModule(redisModule, embeddingModel, embeddingStoreRegistry);
     }
 }

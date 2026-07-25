@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.module.Qdr
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.service.QdrantDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.service.QdrantDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.web.MagicQdrantController;
+import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import io.qdrant.client.QdrantClient;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 @ConditionalOnClass(name = {"io.qdrant.client.QdrantClient","dev.langchain4j.store.embedding.qdrant.QdrantEmbeddingStore"})
 @EnableConfigurationProperties(MagicAPIQdrantConfig.class)
 @Configuration
+@Deprecated
 public class MagicAPIQdrantConfiguration implements MagicPluginConfiguration {
 
     /** MagicAPI配置属性 */
@@ -62,8 +64,9 @@ public class MagicAPIQdrantConfiguration implements MagicPluginConfiguration {
     @DependsOn(value={"magicDynamicQdrantDataSource"})
     public QdrantModule qdrantModule(MagicDynamicQdrantDataSource magicDynamicQdrantDataSource,
                                      @Autowired(required = false) QdrantClient qdrantClient,
-                                     @Autowired(required = false) EmbeddingModel embeddingModel) {
-        return new QdrantModule(magicDynamicQdrantDataSource, qdrantClient, embeddingModel);
+                                     @Autowired(required = false) EmbeddingModel embeddingModel,
+                                     @Autowired(required = false) EmbeddingStoreRegistry embeddingStoreRegistry) {
+        return new QdrantModule(magicDynamicQdrantDataSource, qdrantClient, embeddingModel, embeddingStoreRegistry);
     }
 
     /**
