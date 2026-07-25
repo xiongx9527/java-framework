@@ -79,6 +79,13 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-langchain4j-store-embeding</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-openai</artifactId>
             <scope>compile</scope>
             <optional>true</optional>

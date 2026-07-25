@@ -187,6 +187,12 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-magicapi-plugin-vector</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
                 <artifactId>fw-plus-ai-magicapi-plugin-milvus</artifactId>
                 <version>${project.version}</version>
             </dependency>

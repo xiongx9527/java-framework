@@ -10,6 +10,7 @@
     </parent>
     <packaging>pom</packaging>
     <modules>
+        <module>fw-plus-ai-magicapi-plugin-vector</module>
         <module>fw-plus-ai-magicapi-plugin-milvus</module>
         <module>fw-plus-ai-magicapi-plugin-qdrant</module>
         <module>fw-plus-ai-magicapi-plugin-weaviate</module>
