@@ -2,6 +2,8 @@
 comet_change: add-askdata-spring-boot-starter
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-25-add-askdata-spring-boot-starter
+status: final
 ---
 
 # AskData Spring Boot Starter 技术设计
@@ -10,14 +12,14 @@ canonical_spec: openspec
 
 `fw-plus-ai` 目前已经包含 AI BOM、父 POM、自动配置、LangChain4j starter、OpenAI starter，以及 LangChain4j、Milvus、Qdrant、Weaviate 等 Magic-API AI 插件。AskData 的目标不是另起一套 AI 平台，而是在现有 `fw-plus-ai` 体系内增加一个 Java 8 兼容的智能问数核心 starter。
 
-参考项目分工如下：SQLBot 参考智能问数产品能力和 Text-to-SQL 链路；Aiflowy 参考 Java 企业级 AI 应用平台、模型管理、工作流和知识库/RAG 边界；Agents-Flex 与 Tinyflow 参考 Agent/流程编排思想。实现不直接搬入这些项目的运行时或品牌资源。
+参考项目分工如下：SQLBot 参考智能问数产品能力和 Text-to-SQL 链路；Aiflowy 参考 Java 企业级 AI 应用平台、模型管理、工作流和知识库/RAG 边界；LangGraph4j 参考 Java 版 LangGraph 图编排、状态和检查点能力；Agents-Flex 与 Tinyflow 参考 Agent/流程编排思想。实现不直接搬入这些项目的运行时或品牌资源。
 
 ## 设计目标
 
 - 新增 `fw-plus-ai-askdata-spring-boot-starter`，归入 `fw-plus-ai-boot-starters`。
 - 提供 `AskDataService`，支持自然语言问题生成 SQL、可选执行 SQL、返回结构化结果和步骤日志。
 - 支持多个模型配置、一个默认模型、请求级 `modelKey` 覆盖。
-- 模型调用主要使用 LangChain4j，向量召回优先复用现有 `fw-plus-ai` 能力；兜底适配顺序为 Spring AI（仅未来 Spring Boot 3 / Java 17 版本）、Agents-Flex、其它实现。当前 Java 8 Starter 不引入 Spring AI 运行时依赖。
+- 模型调用主要使用 LangChain4j，向量召回优先复用现有 `fw-plus-ai` 能力；兜底适配顺序为 Spring AI（仅未来 Spring Boot 3 / Java 17 版本）、Agents-Flex、其它实现。当前 Java 8 Starter 不引入 Spring AI 运行时依赖；图编排可评估 LangGraph4j JDK8 版本作为可选适配，但不引入 Java 17+ 的 LangGraph4j 主线模块。
 - 提供轻量多 Agent 与子 Agent 流程抽象，但第一版不强依赖 Agents-Flex/Tinyflow。
 - 支持自动上下文压缩和可恢复执行，应用异常退出或重启后可以从最近稳定检查点继续。
 - 默认执行保守 SQL 安全策略：只读单语句、危险关键字拒绝、默认行数限制、可关闭执行。
@@ -103,7 +105,7 @@ public interface AskDataModelRegistry {
 }
 ```
 
-默认实现优先适配现有 `LangChain4jModelInfo` 和 LangChain4j 模型 Bean。Spring AI、Agents-Flex、EasyAi 或其他实现只作为可选适配来源，技术顺序为 Spring AI（仅未来 Spring Boot 3 / Java 17 版本）、Agents-Flex、其它实现；当前 Java 8 Starter 不引入 Spring AI 运行时依赖。配置层支持：
+默认实现优先适配现有 `LangChain4jModelInfo` 和 LangChain4j 模型 Bean。Spring AI、Agents-Flex、EasyAi 或其他实现只作为可选适配来源，技术顺序为 Spring AI（仅未来 Spring Boot 3 / Java 17 版本）、Agents-Flex、其它实现；当前 Java 8 Starter 不引入 Spring AI 运行时依赖。LangGraph4j 主线适合未来 Java 17+ 线路；当前只允许评估 `langgraph4j-core-jdk8` 这类兼容构件作为可选图编排适配。配置层支持：
 
 ```yaml
 fw:
@@ -190,7 +192,7 @@ public interface AskDataAgentDispatcher {
 }
 ```
 
-主 Agent 可以在步骤内部派发子 Agent，用于表召回、术语召回、训练样例召回、SQL 修复、结果解释等子任务。默认 dispatcher 使用同步顺序执行，记录每个子任务的耗时、超时、错误和输出摘要，并按子任务失败策略决定继续、降级或终止主流程。第一版不把并行调度作为默认行为，但接口保留超时和聚合结果字段，后续可接线程池、Agents-Flex、Tinyflow 或通用 AI 工作流引擎。
+主 Agent 可以在步骤内部派发子 Agent，用于表召回、术语召回、训练样例召回、SQL 修复、结果解释等子任务。默认 dispatcher 使用同步顺序执行，记录每个子任务的耗时、超时、错误和输出摘要，并按子任务失败策略决定继续、降级或终止主流程。第一版不把并行调度作为默认行为，但接口保留超时和聚合结果字段，后续可接线程池、LangGraph4j JDK8、Agents-Flex、Tinyflow 或通用 AI 工作流引擎。
 
 默认串行步骤：
 
@@ -230,6 +232,17 @@ public interface AskDataContextCompressor {
 - 应用重启后，调用方携带 `conversationId` 或 `resumeToken` 时，从最近稳定检查点恢复，并从未完成的后续步骤继续执行。
 - 检查点缺失、版本不兼容、状态不完整、或上一步 SQL 未通过安全校验时，返回 `RESUME_FAILED`，不得静默重新执行不确定步骤。
 - 已执行 SQL 的检查点需要记录执行完成标记和结果摘要；恢复时默认不重复执行已完成查询，只继续格式化或返回已有结果。
+
+## Java 17 后续演进
+
+当前 change 面向 Java 8 和 Spring Boot 2.7.18，先沉淀 AskData 的稳定核心契约。后续 Java 17 / Spring Boot 3 版本可以独立新增 adapter starter，例如 Spring AI adapter、LangGraph4j 主线图编排 adapter 或更完整的工作流 adapter。
+
+演进原则：
+
+- Java 17 模块复用 `AskDataRequest`、`AskDataResult`、模型注册、Agent 流程和检查点模型，不重写调用方 API。
+- 当前 Java 8 模块不引入 Spring AI 或 Java 17+ LangGraph4j 主线依赖。
+- 新能力通过 Spring Bean、条件化自动配置或 adapter 模块接入，使业务可以按运行时版本选择实现。
+- 如果 Java 17 模块引入更强图编排或状态恢复能力，也必须保持 SQL 安全、只读执行和恢复安全边界一致。
 
 ## 自动配置
 
@@ -286,6 +299,7 @@ public interface AskDataContextCompressor {
 6. 实现默认 Agent Flow、子 Agent dispatcher 和 `AskDataService`。
 7. 实现上下文压缩、检查点存储和恢复入口。
 8. 补齐测试和 Maven Wrapper 验证。
+9. 在文档和接口注释中标明 Java 17 / Spring Boot 3 adapter 的扩展边界。
 
 ## 风险与缓解
 

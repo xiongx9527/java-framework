@@ -2,6 +2,7 @@
 change: add-askdata-spring-boot-starter
 design-doc: docs/superpowers/specs/2026-07-24-askdata-spring-boot-starter-design.md
 base-ref: bf45ed49f309cca5d18c623a03dab70c72cbfa1e
+archived-with: 2026-07-25-add-askdata-spring-boot-starter
 ---
 
 # AskData Spring Boot Starter Implementation Plan
@@ -10,7 +11,7 @@ base-ref: bf45ed49f309cca5d18c623a03dab70c72cbfa1e
 
 **Goal:** 在现有 `fw-plus-ai` 体系内新增 Java 8 兼容的 `fw-plus-ai-askdata-spring-boot-starter`，提供自然语言问数、SQL 生成、可选执行、步骤日志、多模型选择、向量召回、多 Agent 流程、上下文压缩和崩溃恢复能力。
 
-**Architecture:** 新 starter 独立承载 AskData API、默认实现和自动配置，包名统一为 `com.xiongx9527.fw.plus.ai.askdata`，配置前缀为 `fw.plus.ai.askdata`。模型调用优先适配现有 `LangChain4jModelInfo` 注入的模型 Map，向量召回优先适配 Spring 容器中现有 LangChain4j `ContentRetriever` 或 `EmbeddingStore` Bean；工作流采用轻量 Agent 接口，默认同步串行执行。
+**Architecture:** 新 starter 独立承载 AskData API、默认实现和自动配置，包名统一为 `com.xiongx9527.fw.plus.ai.askdata`，配置前缀为 `fw.plus.ai.askdata`。模型调用优先适配现有 `LangChain4jModelInfo` 注入的模型 Map，向量召回优先适配 Spring 容器中现有 LangChain4j `ContentRetriever` 或 `EmbeddingStore` Bean；工作流采用轻量 Agent 接口，默认同步串行执行，外部图编排仅可选评估 LangGraph4j JDK8 兼容构件。
 
 **Tech Stack:** Java 8、Spring Boot 2.7.18、LangChain4j 0.35.0、Spring JDBC、JUnit、Spring Boot Test、Maven Wrapper。
 
@@ -25,6 +26,8 @@ base-ref: bf45ed49f309cca5d18c623a03dab70c72cbfa1e
 - 默认 SQL 执行策略保守：默认可关闭执行，只允许只读单语句查询，拒绝危险关键字，并强制默认行数限制。
 - 多模型必须支持默认聊天模型、默认 embedding 模型和请求级 `modelKey` 覆盖；缺失时返回结构化错误。
 - 模型技术顺序固定为 LangChain4j、Spring AI（仅未来 Spring Boot 3 / Java 17 版本）、Agents-Flex、其它实现；当前 Java 8 Starter 不得引入 Spring AI 运行时依赖。
+- Agent 图编排可参考 LangGraph4j；当前 Java 8 Starter 只能评估 `langgraph4j-core-jdk8` 等 JDK8 兼容构件作为 optional 适配，不得引入 Java 17+ 的 LangGraph4j 1.8.x 主线模块或 Spring AI 相关 LangGraph4j 模块。
+- 后续 Java 17 / Spring Boot 3 新能力必须通过独立 adapter starter 或条件化 adapter 接入，并复用当前 AskData 请求、结果、模型注册、Agent 流程和检查点契约。
 - 向量召回只作为 Prompt 上下文片段输入，不直接扩大 SQL 可访问范围。
 - 检查点结构化字段不得被上下文摘要替代；恢复时无法确认上一步安全状态必须返回 `RESUME_FAILED`。
 - 当前计划创建阶段不得修改 OpenSpec、Design Doc 或源码；后续执行本计划时按任务修改代码和测试。
@@ -68,7 +71,7 @@ base-ref: bf45ed49f309cca5d18c623a03dab70c72cbfa1e
 - Consumes: existing AI parent `com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-starters:${revision}`.
 - Produces: artifact `com.xiongx9527.fw.plus.ai:fw-plus-ai-askdata-spring-boot-starter:${revision}` and class `AskDataAutoConfiguration`.
 
-- [ ] **Step 1: Write failing registration test**
+- [x] **Step 1: Write failing registration test**
 
 Create `AskDataAutoConfigurationRegistrationTest`:
 
@@ -105,13 +108,13 @@ public class AskDataAutoConfigurationRegistrationTest {
 }
 ```
 
-- [ ] **Step 2: Run focused test and verify it fails**
+- [x] **Step 2: Run focused test and verify it fails**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataAutoConfigurationRegistrationTest test`
 
 Expected: FAIL because the module and metadata files do not exist.
 
-- [ ] **Step 3: Add Maven module**
+- [x] **Step 3: Add Maven module**
 
 Add `<module>fw-plus-ai-askdata-spring-boot-starter</module>` to `fw-plus-ai-boot-starters/pom.xml`, and add dependencyManagement entry:
 
@@ -125,7 +128,7 @@ Add `<module>fw-plus-ai-askdata-spring-boot-starter</module>` to `fw-plus-ai-boo
 
 Create new starter `pom.xml` with parent `fw-plus-ai-boot-starters` and dependencies on `fw-plus-ai-boot-autoconfigure`, `fw-plus-ai-langchain4j-spring-boot-starter`, `spring-boot-autoconfigure`, `spring-jdbc`, `langchain4j-core`, and optional `spring-boot-configuration-processor`.
 
-- [ ] **Step 4: Add minimal auto-configuration class and metadata**
+- [x] **Step 4: Add minimal auto-configuration class and metadata**
 
 Create:
 
@@ -152,13 +155,13 @@ Create `AutoConfiguration.imports` containing:
 com.xiongx9527.fw.plus.ai.askdata.autoconfigure.AskDataAutoConfiguration
 ```
 
-- [ ] **Step 5: Run registration test**
+- [x] **Step 5: Run registration test**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataAutoConfigurationRegistrationTest test`
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Commit message: `feat(askdata): add starter module skeleton`.
 
@@ -178,7 +181,7 @@ Commit message: `feat(askdata): add starter module skeleton`.
 - Produces: `AskDataResult ask(AskDataRequest request)`.
 - Produces: `AskDataProperties.Model`, `AskDataProperties.Sql`, `AskDataProperties.Flow`, `AskDataProperties.Conversation`, `AskDataProperties.Vector`.
 
-- [ ] **Step 1: Write failing API model tests**
+- [x] **Step 1: Write failing API model tests**
 
 Create `AskDataApiModelTest`:
 
@@ -225,7 +228,7 @@ public class AskDataApiModelTest {
 }
 ```
 
-- [ ] **Step 2: Write failing properties binding test**
+- [x] **Step 2: Write failing properties binding test**
 
 Create `AskDataPropertiesBindingTest` with `ApplicationContextRunner`:
 
@@ -248,13 +251,13 @@ new ApplicationContextRunner()
     });
 ```
 
-- [ ] **Step 3: Run tests and verify failure**
+- [x] **Step 3: Run vector prompt tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataApiModelTest,AskDataPropertiesBindingTest test`
 
 Expected: FAIL because API and properties classes do not exist.
 
-- [ ] **Step 4: Implement API and configuration model**
+- [x] **Step 4: Implement API and configuration model**
 
 Create Java 8 POJOs with getters/setters. Required signatures:
 
@@ -282,17 +285,17 @@ public final class AskDataErrorCode {
 
 `AskDataProperties` default values: `enabled=true`, `model.defaultChatModel="default"`, `model.defaultEmbeddingModel="embedding-default"`, `sql.executeEnabled=false`, `sql.defaultMaxRows=100`, `sql.enforceLimit=true`, `conversation.compressionThresholdChars=12000`, `conversation.checkpointVersion="1"`, `flow.defaultSubAgentTimeoutMillis=30000`, `vector.defaultTopK=5`.
 
-- [ ] **Step 5: Enable properties in auto-configuration**
+- [x] **Step 5: Enable properties in auto-configuration**
 
 Add `@EnableConfigurationProperties(AskDataProperties.class)` to `AskDataAutoConfiguration`.
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run model registry tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit model registry implementation**
 
 Commit message: `feat(askdata): define core api and properties`.
 
@@ -312,7 +315,7 @@ Commit message: `feat(askdata): define core api and properties`.
 - Consumes: `AskDataProperties.getModel().getDefaultChatModel()`, `AskDataProperties.getModel().getDefaultEmbeddingModel()`, optional existing `LangChain4jModelInfo`.
 - Produces: `AskDataModelRegistry.getChatModel(String modelKey)` and `AskDataModelRegistry.getEmbeddingModel(String modelKey)`.
 
-- [ ] **Step 1: Write failing registry tests**
+- [x] **Step 1: Write failing registry tests**
 
 Create tests covering default model, request model, missing request model, and missing default model:
 
@@ -334,13 +337,13 @@ public void shouldSelectRequestLevelChatModelWhenModelKeyExists() {
 
 Also assert `getChatModel("missing")` throws `AskDataModelException` with error code `MODEL_NOT_FOUND`, and `getChatModel(null)` throws `DEFAULT_MODEL_NOT_CONFIGURED` when no default model exists.
 
-- [ ] **Step 2: Run focused model tests and verify failure**
+- [x] **Step 2: Run focused model tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=LangChain4jAskDataModelRegistryTest test`
 
 Expected: FAIL because model interfaces and registry do not exist.
 
-- [ ] **Step 3: Implement model interfaces and exception**
+- [x] **Step 3: Implement model interfaces and exception**
 
 Required signatures:
 
@@ -363,7 +366,7 @@ public interface AskDataModelRegistry {
 
 `AskDataModelResponse` contains `text`, `rawResponse`, `modelKey`. `AskDataModelException` contains `errorCode` and `message`.
 
-- [ ] **Step 4: Implement LangChain4j adapter**
+- [x] **Step 4: Implement LangChain4j adapter**
 
 `LangChain4jAskDataModelRegistry` reads `LangChain4jModelInfo.getChatLanguageModelMap()` and `getEmbeddingModelMap()`. It resolves `null` or blank `modelKey` to configured defaults, validates the resolved key, and adapts:
 
@@ -374,7 +377,7 @@ return prompt -> new AskDataModelResponse(chatLanguageModel.generate(prompt).tex
 
 For embeddings, call existing LangChain4j `EmbeddingModel.embed(text)` and convert vector values to `List<Float>`.
 
-- [ ] **Step 5: Register default model registry bean**
+- [x] **Step 5: Register default model registry bean**
 
 In `AskDataAutoConfiguration`, add:
 
@@ -387,13 +390,13 @@ public AskDataModelRegistry askDataModelRegistry(AskDataProperties properties,
 }
 ```
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run tests**
 
 Run the command from Step 2.
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Commit message: `feat(askdata): add multi model registry`.
 
@@ -422,7 +425,7 @@ Commit message: `feat(askdata): add multi model registry`.
 - Consumes: optional `ContentRetriever` Bean and `AskDataProperties.Vector`.
 - Produces: Prompt text including schema, terms, examples, vector documents, dialect rules, default read-only rule, and row limit rule.
 
-- [ ] **Step 1: Write failing vector test**
+- [x] **Step 1: Write failing vector test**
 
 Test default empty retriever and `ContentRetriever` adapter:
 
@@ -435,17 +438,17 @@ public void shouldReturnEmptyListWhenNoRetrieverIsAvailable() {
 }
 ```
 
-- [ ] **Step 2: Write failing Prompt and dialect tests**
+- [x] **Step 2: Write failing Prompt and dialect tests**
 
 Create metadata with one table `orders(id BIGINT, amount DECIMAL, created_at DATETIME)` and documents `术语: GMV = amount 求和`, `样例: 最近7天订单数`. Assert MySQL Prompt contains backtick identifier guidance, `LIMIT 100`, read-only single statement guidance, schema, terms, examples, and retrieved snippets. Assert PostgreSQL uses double quote guidance and ClickHouse uses `LIMIT` guidance.
 
-- [ ] **Step 3: Run tests and verify failure**
+- [x] **Step 3: Run tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataVectorRetrieverTest,AskDataPromptTemplateProviderTest test`
 
 Expected: FAIL because vector, metadata, prompt and dialect classes do not exist.
 
-- [ ] **Step 4: Implement vector Facade**
+- [x] **Step 4: Implement vector Facade**
 
 Required signatures:
 
@@ -462,7 +465,7 @@ public class AskDataVectorQuery {
 
 `CompositeAskDataVectorRetriever` calls delegates in order and concatenates non-null results. `ContentRetrieverAskDataVectorRetriever` adapts LangChain4j `ContentRetriever.retrieve(Query.from(question))` to `AskDataRetrievedDocument`.
 
-- [ ] **Step 5: Implement metadata model and empty provider**
+- [x] **Step 5: Implement metadata model and empty provider**
 
 Required signatures:
 
@@ -474,23 +477,23 @@ public interface AskDataMetadataProvider {
 
 `EmptyAskDataMetadataProvider.load()` returns `AskDataMetadata` with dialect from request and empty tables, terms, examples and prompt fragments.
 
-- [ ] **Step 6: Implement dialect registry and Prompt provider**
+- [x] **Step 6: Implement dialect registry and Prompt provider**
 
 `AskDataDialectRegistry` must include keys `mysql`, `postgresql`, `clickhouse`; unknown dialect returns MySQL only when request dialect is blank, otherwise returns a dialect object whose name is the provided value and whose limit rule uses `LIMIT`.
 
 `DefaultAskDataPromptTemplateProvider.buildPrompt(AskDataRequest request, AskDataMetadata metadata, List<AskDataRetrievedDocument> retrievedDocuments, int maxRows)` returns a single String that instructs the model to output JSON with keys `sql`, `tables`, `chartType`, `brief`.
 
-- [ ] **Step 7: Register metadata, vector, dialect and prompt beans**
+- [x] **Step 7: Register metadata, vector, dialect and prompt beans**
 
 Register `EmptyAskDataMetadataProvider`, `CompositeAskDataVectorRetriever`, `AskDataDialectRegistry`, and `DefaultAskDataPromptTemplateProvider` with `@ConditionalOnMissingBean`.
 
-- [ ] **Step 8: Run tests**
+- [x] **Step 8: Run vector prompt tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit vector prompt support**
 
 Commit message: `feat(askdata): add vector metadata prompt support`.
 
@@ -511,7 +514,7 @@ Commit message: `feat(askdata): add vector metadata prompt support`.
 - Consumes: `AskDataProperties.Sql`, `AskDataDialect`, generated SQL.
 - Produces: validated SQL and optional query result rows.
 
-- [ ] **Step 1: Write failing SQL validator tests**
+- [x] **Step 1: Write failing SQL validator tests**
 
 Cover empty SQL, semicolon multi-statement, comments hiding second statements, `INSERT`/`UPDATE`/`DELETE`/`DROP`/`ALTER`/`TRUNCATE`/`CREATE`/`MERGE`, read-only `SELECT`, existing `LIMIT`, and missing limit wrapping.
 
@@ -523,17 +526,17 @@ assertEquals(AskDataErrorCode.SQL_REJECTED, validator.validate("drop table user"
 assertEquals("select * from orders limit 100", validator.validate("select * from orders", mysql, 100).getSql());
 ```
 
-- [ ] **Step 2: Write failing JDBC executor test**
+- [x] **Step 2: Write failing JDBC executor test**
 
 Use embedded H2 through Spring JDBC test dependency if already available through Spring Boot parent. Create table `orders(id bigint, amount decimal)` and assert executor returns column names, column types, two rows and `rowCount=2`.
 
-- [ ] **Step 3: Run SQL tests and verify failure**
+- [x] **Step 3: Run SQL tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest,JdbcAskDataSqlExecutorTest test`
 
 Expected: FAIL because SQL classes do not exist.
 
-- [ ] **Step 4: Implement SQL validator**
+- [x] **Step 4: Implement SQL validator**
 
 Required signatures:
 
@@ -550,7 +553,7 @@ public class AskDataSqlValidationResult {
 
 Validation rules: trim non-empty SQL, reject more than one statement boundary, reject dangerous keywords outside string literals by using a character scanner, allow only SQL starting with `select` or `with`, and add limit through dialect when no limit is present.
 
-- [ ] **Step 5: Implement JDBC executor**
+- [x] **Step 5: Implement JDBC executor**
 
 Required signature:
 
@@ -562,17 +565,17 @@ public interface AskDataSqlExecutor {
 
 `JdbcAskDataSqlExecutor` uses `JdbcTemplate.query(sql, ResultSetExtractor)` and maps `ResultSetMetaData.getColumnLabel(i)`, `getColumnTypeName(i)`, and row values into `List<Map<String, Object>>`.
 
-- [ ] **Step 6: Register SQL beans**
+- [x] **Step 6: Register SQL beans**
 
 Register `DefaultAskDataSqlValidator` and `JdbcAskDataSqlExecutor` with `@ConditionalOnMissingBean`. Use `ObjectProvider<JdbcTemplate>` so the starter can load without a `DataSource`; when execution is requested without `JdbcTemplate`, return `SQL_EXECUTION_FAILED`.
 
-- [ ] **Step 7: Run tests**
+- [x] **Step 7: Run SQL tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit SQL safety support**
 
 Commit message: `feat(askdata): add safe sql validation and execution`.
 
@@ -599,11 +602,11 @@ Commit message: `feat(askdata): add safe sql validation and execution`.
 - Consumes: model registry, metadata provider, vector retriever, prompt provider, SQL validator, SQL executor.
 - Produces: default step order `metadata -> prompt -> generate-sql -> validate-sql -> execute-sql -> format-result`.
 
-- [ ] **Step 1: Write failing dispatcher tests**
+- [x] **Step 1: Write failing dispatcher tests**
 
 Test synchronous sub-agent execution order, result aggregation, timeout flag when elapsed time exceeds request timeout, and failure policies `CONTINUE`, `DEGRADE`, `TERMINATE`.
 
-- [ ] **Step 2: Write failing flow tests**
+- [x] **Step 2: Write failing flow tests**
 
 Use stubs for metadata, prompt, model, validator and executor. Assert:
 
@@ -615,13 +618,13 @@ assertTrue(result.isSuccess());
 
 Also test model missing returns `MODEL_NOT_FOUND`, invalid model response returns `MODEL_RESPONSE_INVALID`, SQL rejected short-circuits before executor, and `execute=false` returns SQL without rows.
 
-- [ ] **Step 3: Run flow tests and verify failure**
+- [x] **Step 3: Run flow tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=SequentialAskDataAgentDispatcherTest,DefaultAskDataFlowExecutorTest test`
 
 Expected: FAIL because flow classes do not exist.
 
-- [ ] **Step 4: Implement Agent interfaces**
+- [x] **Step 4: Implement Agent interfaces**
 
 Required signatures:
 
@@ -644,25 +647,25 @@ public interface AskDataFlowExecutor {
 }
 ```
 
-- [ ] **Step 5: Implement sequential dispatcher**
+- [x] **Step 5: Implement sequential dispatcher**
 
 `SequentialAskDataAgentDispatcher` loops over sub-agents, records start/end millis, timeout flag, success flag, output summary and error message. `TERMINATE` stops and marks dispatch failed; `CONTINUE` keeps original error; `DEGRADE` stores degraded output summary from request.
 
-- [ ] **Step 6: Implement default flow executor**
+- [x] **Step 6: Implement default flow executor**
 
 `DefaultAskDataFlowExecutor` creates `AskDataStepContext`, loads metadata, retrieves vector documents for `schema`, `term`, `example`, builds Prompt, calls `AskDataModelRegistry.getChatModel(request.getModelKey())`, parses model JSON with Jackson already provided by Spring Boot, validates SQL, executes only when effective `execute` is true, and assembles `AskDataResult`.
 
-- [ ] **Step 7: Register flow beans**
+- [x] **Step 7: Register flow beans**
 
 Register `SequentialAskDataAgentDispatcher` and `DefaultAskDataFlowExecutor` with `@ConditionalOnMissingBean`.
 
-- [ ] **Step 8: Run tests**
+- [x] **Step 8: Run agent flow tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit agent flow executor**
 
 Commit message: `feat(askdata): add agent flow executor`.
 
@@ -685,15 +688,15 @@ Commit message: `feat(askdata): add agent flow executor`.
 - Consumes: `conversationId`, `resumeToken`, step context and flow state.
 - Produces: stable checkpoints after each completed step and resume from latest safe checkpoint.
 
-- [ ] **Step 1: Write failing conversation store tests**
+- [x] **Step 1: Write failing conversation store tests**
 
 Assert `save`, `loadLatest(conversationId)`, `loadByResumeToken(resumeToken)`, version preservation, and latest checkpoint ordering.
 
-- [ ] **Step 2: Write failing compressor tests**
+- [x] **Step 2: Write failing compressor tests**
 
 Build a context with long prompt and raw model response. Assert compressed text length is below threshold and structured fields remain unchanged: `conversationId`, `modelKey`, `datasourceKey`, `dialect`, `sql`, `sqlValidated`, `completedSteps`, `errorCode`.
 
-- [ ] **Step 3: Write failing resume tests**
+- [x] **Step 3: Write failing resume tests**
 
 Cover:
 
@@ -704,13 +707,13 @@ request.setResumeToken("resume-validate");
 
 When checkpoint has completed `validate-sql` and `sqlValidated=true`, resume skips metadata, prompt, model and validator, then executes SQL or formats existing result. When checkpoint is missing, return `CHECKPOINT_NOT_FOUND`. When version mismatches, return `RESUME_FAILED`. When SQL was not validated, return `RESUME_FAILED` and do not execute.
 
-- [ ] **Step 4: Run conversation and resume tests and verify failure**
+- [x] **Step 4: Run conversation and resume tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataConversationStoreTest,DefaultAskDataContextCompressorTest,AskDataResumeFlowTest test`
 
 Expected: FAIL because conversation classes and resume flow do not exist.
 
-- [ ] **Step 5: Implement checkpoint model and store**
+- [x] **Step 5: Implement checkpoint model and store**
 
 Required signatures:
 
@@ -728,29 +731,29 @@ public interface AskDataContextCompressor {
 
 `AskDataCheckpoint` fields: `conversationId`, `checkpointId`, `resumeToken`, `requestSummary`, `modelKey`, `datasourceKey`, `dialect`, `List<String> completedSteps`, `currentStep`, `sql`, `Boolean sqlValidated`, `Boolean sqlExecuted`, `Integer rowCount`, `compressedSummary`, `List<AskDataStepLog> steps`, `errorCode`, `version`, `createdAt`.
 
-- [ ] **Step 6: Implement default compressor**
+- [x] **Step 6: Implement default compressor**
 
 Compress only text fields: prompt, raw model response, retrieved snippets and step details. Preserve structured fields by copying them separately into checkpoint fields. If compression fails, return `AskDataResult.failure(CONTEXT_COMPRESSION_FAILED, message)` from the flow.
 
-- [ ] **Step 7: Integrate checkpoints into flow**
+- [x] **Step 7: Integrate checkpoints into flow**
 
 After stable steps `metadata`, `generate-sql`, `validate-sql`, `execute-sql` and sub-agent merge, call `conversationStore.save(checkpoint)`. Generate `checkpointId` and `resumeToken` using `UUID.randomUUID().toString()`.
 
-- [ ] **Step 8: Implement resume entry**
+- [x] **Step 8: Implement resume entry**
 
 At flow start, if request has `resumeToken`, call `loadByResumeToken`; else if request has `conversationId`, call `loadLatest`. Validate version equals `AskDataProperties.Conversation.checkpointVersion`, validate completed step state, and continue from the first incomplete step. Do not repeat SQL execution when checkpoint has `sqlExecuted=true`; return stored result summary and proceed to `format-result`.
 
-- [ ] **Step 9: Register conversation beans**
+- [x] **Step 9: Register conversation beans**
 
 Register `InMemoryAskDataConversationStore` and `DefaultAskDataContextCompressor` with `@ConditionalOnMissingBean`.
 
-- [ ] **Step 10: Run tests**
+- [x] **Step 10: Run tests**
 
 Run the command from Step 4.
 
 Expected: PASS.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 Commit message: `feat(askdata): add checkpoints and resume flow`.
 
@@ -766,7 +769,7 @@ Commit message: `feat(askdata): add checkpoints and resume flow`.
 - Consumes: `AskDataFlowExecutor`.
 - Produces: `AskDataService.ask(AskDataRequest request)` and all default replaceable Spring Beans.
 
-- [ ] **Step 1: Write failing service tests**
+- [x] **Step 1: Write failing service tests**
 
 Assert null request, blank question, delegated success, and delegated failure:
 
@@ -778,19 +781,19 @@ assertEquals("select count(*) from orders limit 100", result.getSql());
 
 For blank question, assert `success=false`, `errorCode=MODEL_RESPONSE_INVALID`, and no flow delegation.
 
-- [ ] **Step 2: Write failing auto-configuration tests**
+- [x] **Step 2: Write failing auto-configuration tests**
 
 Using `ApplicationContextRunner`, assert default beans exist: `AskDataProperties`, `AskDataModelRegistry`, `AskDataVectorRetriever`, `AskDataMetadataProvider`, `AskDataPromptTemplateProvider`, `AskDataSqlValidator`, `AskDataSqlExecutor`, `AskDataFlowExecutor`, `AskDataConversationStore`, `AskDataContextCompressor`, `AskDataService`.
 
 Also register custom `AskDataSqlValidator` and custom `AskDataService` beans and assert `@ConditionalOnMissingBean` preserves user beans.
 
-- [ ] **Step 3: Run tests and verify failure**
+- [x] **Step 3: Run service and auto-configuration tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataServiceTest,AskDataAutoConfigurationTest test`
 
 Expected: FAIL because service and complete auto-configuration are missing.
 
-- [ ] **Step 4: Implement service**
+- [x] **Step 4: Implement service**
 
 Required class:
 
@@ -812,17 +815,17 @@ public class DefaultAskDataService implements AskDataService {
 }
 ```
 
-- [ ] **Step 5: Complete auto-configuration**
+- [x] **Step 5: Complete auto-configuration**
 
 Add `@ConditionalOnProperty(prefix = "fw.plus.ai.askdata", name = "enabled", havingValue = "true", matchIfMissing = true)`. Register every default Bean with `@ConditionalOnMissingBean`. Use `ObjectProvider` for optional dependencies: `LangChain4jModelInfo`, `ContentRetriever`, `JdbcTemplate`, custom sub-agents and custom delegates.
 
-- [ ] **Step 6: Run tests**
+- [x] **Step 6: Run service and auto-configuration tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit service auto-configuration implementation**
 
 Commit message: `feat(askdata): wire service auto configuration`.
 
@@ -835,43 +838,43 @@ Commit message: `feat(askdata): wire service auto configuration`.
 - Consumes: all prior tasks.
 - Produces: verified starter module and aggregate AI build.
 
-- [ ] **Step 1: Run focused starter test suite**
+- [x] **Step 1: Run focused starter test suite**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter test`
 
 Expected: PASS. All AskData unit and context tests pass.
 
-- [ ] **Step 2: Run starter module install with upstream dependencies**
+- [x] **Step 2: Run starter module install with upstream dependencies**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -am clean install -DskipTests`
 
 Expected: PASS. Maven compiles upstream AI modules and installs the new starter.
 
-- [ ] **Step 3: Run AI starter aggregate compile**
+- [x] **Step 3: Run AI starter aggregate compile**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters -am clean install -DskipTests`
 
 Expected: PASS. Existing AI starters continue to compile with the new module entry.
 
-- [ ] **Step 4: Run dependency tree check for new starter**
+- [x] **Step 4: Run dependency tree check for new starter**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter dependency:tree -Dincludes=com.xiongx9527.fw.plus.ai,dev.langchain4j,org.springframework`
 
 Expected: output includes `fw-plus-ai-boot-autoconfigure`, `fw-plus-ai-langchain4j-spring-boot-starter`, Spring Boot 2.7.x managed dependencies, and LangChain4j 0.35.0 managed dependencies. Output does not include SQLBot runtime or UI dependencies.
 
-- [ ] **Step 5: Inspect Java 8 compatibility**
+- [x] **Step 5: Inspect Java 8 compatibility**
 
 Run: `cd fw-plus-ai && rg -n "List\\.of|Map\\.of|Map\\.copyOf|Set\\.of|Optional\\.orElseThrow\\(\\)" fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java`
 
 Expected: no matches.
 
-- [ ] **Step 6: Inspect forbidden marker text and brand leakage**
+- [x] **Step 6: Inspect forbidden marker text and brand leakage**
 
 Run: `cd fw-plus-ai && rg -n "SQLBot|sqlbot|待定|稍后实现|补充细节" fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter`
 
 Expected: no matches except test method names or comments deliberately asserting absence of SQLBot text.
 
-- [ ] **Step 7: Commit verification fixes**
+- [x] **Step 7: Commit verification fixes**
 
 If Steps 1-6 required test-only or compile-fix changes, commit message: `test(askdata): complete starter verification`.
 
