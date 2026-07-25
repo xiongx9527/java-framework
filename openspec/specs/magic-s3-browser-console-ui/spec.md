@@ -4,7 +4,7 @@
 规范 S3 文件管理插件页面在 Magic 控制台中的布局、交互状态和错误提示行为，确保该页面保持插件 UI 边界、保留既有文件浏览操作，并在关键失败场景中通过弹窗向管理员展示可读错误。
 ## Requirements
 ### Requirement: S3 文件管理页面遵循 Magic 控制台风格
-S3 文件管理页面 SHALL 使用与原 magic-s3 数据源配置页面一致的控制台布局、控件、间距、边框和主题变量。页面 SHALL 避免独立应用式卡片、营销式布局或与宿主控制台不一致的视觉风格。
+S3 文件管理页面 SHALL 使用与原 magic-s3 数据源配置页面一致的控制台布局、控件、间距、边框和主题变量。页面 SHALL 避免独立应用式卡片、营销式布局或与宿主控制台不一致的视觉风格。S3 插件 UI SHALL 注册原状态栏 X-file-storage 外链入口，宿主状态栏 SHALL NOT 维护 S3 专属入口逻辑。
 
 #### Scenario: 页面打开后呈现控制台风格
 - **WHEN** 管理员通过 S3 插件工具栏打开文件管理页面
@@ -21,6 +21,14 @@ S3 文件管理页面 SHALL 使用与原 magic-s3 数据源配置页面一致的
 #### Scenario: 控制台前端资源使用同一次构建产物
 - **WHEN** Magic 控制台前端资源被 Maven 打包
 - **THEN** `magic-editor/index.html` 与其引用的 `assets` 文件来自同一次前端构建，避免 hash 资源引用后出现 404
+
+#### Scenario: S3 外链入口由插件 UI 注册
+- **WHEN** Magic 控制台加载 S3 插件 UI
+- **THEN** S3 插件 MUST 注册标题为 `X-file-storage` 的外链入口
+- **AND** 该入口 MUST 使用 S3 插件 icon
+- **AND** 点击该入口 MUST 在新标签页打开 `https://x-file-storage.xuyanwu.cn/`
+- **AND** 宿主状态栏 MAY 通过通用插件状态栏入口扩展点渲染该入口
+- **AND** 宿主 `magic-status-bar.vue` MUST NOT 维护 `hasS3Plugin`、`openS3()` 或 `s3-datasource` 的 S3 专属状态栏逻辑
 
 ### Requirement: S3 文件管理功能保持可用
 S3 文件管理页面 SHALL 保留现有文件浏览能力，包括选择存储、路径导航、搜索、加载更多、basePath 保存、预览、下载和删除。视觉调整 MUST NOT 移除或破坏这些已有功能。
@@ -65,3 +73,4 @@ S3 文件管理页面 SHALL 在加载存储、列文件、预览、下载、删�
 #### Scenario: 预览或下载失败时弹出错误
 - **WHEN** 管理员预览或下载文件失败
 - **THEN** 页面弹出错误提示，并保留当前文件列表和选择状态
+
