@@ -45,6 +45,20 @@ public class EmbeddingStoreAutoConfigurationTest {
     }
 
     @Test
+    public void shouldFailWhenMultipleStoresResolveToTheSameKey() {
+        this.contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.embedding-store.stores.knowledge.key=shared",
+                        "fw-plus.ai.langchain4j.embedding-store.stores.knowledge.provider=fake",
+                        "fw-plus.ai.langchain4j.embedding-store.stores.local-cache.key=shared",
+                        "fw-plus.ai.langchain4j.embedding-store.stores.local-cache.provider=fake")
+                .withBean(EmbeddingStoreProviderAdapter.class, FakeEmbeddingStoreProviderAdapter::new)
+                .run(context -> {
+                    assertTrue(hasCause(context.getStartupFailure(), "Duplicate embedding store key"));
+                });
+    }
+
+    @Test
     public void shouldFailWhenDefaultStoreIsInvalid() {
         this.contextRunner
                 .withPropertyValues(
