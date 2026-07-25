@@ -233,11 +233,11 @@ Commit message: `feat(vector): add embedding store registry foundation`.
 - Produces: provider names `redisstack`、`redis`、`milvus`、`elasticsearch`、`qdrant`、`weaviate`.
 - Produces: adapter-specific mapping from generic `properties` keys to LangChain4j builder methods.
 
-- [ ] **Step 1: Create starter module skeleton first if Task 3 has not created it**
+- [x] **Step 1: Create starter module skeleton first if Task 3 has not created it**
 
 If `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` does not exist yet, create only the directory and `pom.xml` needed for tests. The final Maven registration is still completed in Task 3.
 
-- [ ] **Step 2: Write failing adapter support tests**
+- [x] **Step 2: Write failing adapter support tests**
 
 Create `EmbeddingStoreProviderAdapterTest` and assert exact provider aliases:
 
@@ -253,13 +253,13 @@ public void shouldMatchProviderNamesCaseInsensitively() {
 }
 ```
 
-- [ ] **Step 3: Run adapter tests and verify failure**
+- [x] **Step 3: Run adapter tests and verify failure**
 
 Run: `cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -Dtest=EmbeddingStoreProviderAdapterTest test`
 
 Expected: FAIL because adapter classes do not exist.
 
-- [ ] **Step 4: Add provider dependencies without hardcoded versions**
+- [x] **Step 4: Add provider dependencies without hardcoded versions**
 
 In the starter POM, depend on `fw-plus-ai-langchain4j-store-embeding` and provider artifacts. Use Core dependencyManagement/LangChain4j BOM for versions:
 
@@ -293,11 +293,11 @@ In the starter POM, depend on `fw-plus-ai-langchain4j-store-embeding` and provid
 
 If `langchain4j-weaviate` is unavailable in LangChain4j `0.35.0`, replace it with the actual `0.35.0` artifact discovered from the local/remote BOM during implementation, and keep the artifact version inherited.
 
-- [ ] **Step 5: Implement minimal supports methods**
+- [x] **Step 5: Implement minimal supports methods**
 
 Implement each adapter with Java 8 compatible string checks and no Spring AI imports. `create(...)` should map only explicit, documented keys such as `host`、`port`、`uri`、`collectionName`、`indexName`、`dimension`、`metadataKeys`、`apiKey`、`grpcHost`、`grpcPort`、`className`、`scheme`、`username`、`password`.
 
-- [ ] **Step 6: Write provider builder smoke tests**
+- [x] **Step 6: Write provider builder smoke tests**
 
 Use lightweight configuration definitions to verify each adapter either creates an `EmbeddingStore<TextSegment>` without opening a network connection or fails with a clear `EmbeddingStoreException`. Assertions should check message text, not remote connectivity:
 
@@ -317,13 +317,13 @@ public void shouldWrapInvalidMilvusConfigurationWithProviderAndKey() {
 }
 ```
 
-- [ ] **Step 7: Run adapter tests**
+- [x] **Step 7: Run adapter tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 8: Scan provider adapter source for Java 9+ APIs**
+- [x] **Step 8: Scan provider adapter source for Java 9+ APIs**
 
 Run:
 
@@ -334,9 +334,10 @@ rg -n "List\\.of|Map\\.of|Set\\.of|copyOf|orElseThrow\\(\\)" fw-plus-project/fw-
 
 Expected: no output.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Commit message: `feat(vector): add embedding store provider adapters`.
+
 
 ### Task 3: Core Spring Boot starter 与 Maven/BOM 接入
 

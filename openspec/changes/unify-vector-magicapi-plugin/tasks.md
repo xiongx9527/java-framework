@@ -9,9 +9,9 @@
 ## 2. Provider adapter 接入
 
 - [x] 2.1 抽象 provider adapter/factory 接口，避免 Magic-API 插件直接维护 provider 连接构建逻辑。
-- [ ] 2.2 接入已有 Redis、Milvus、Elasticsearch provider 模块构建能力。
-- [ ] 2.3 为 Qdrant、Weaviate、RedisStack 补齐必要依赖或 adapter，并复用 LangChain4j 0.35.0 兼容 API。
-- [ ] 2.4 确认所有 provider adapter 不引入 Java 9+ API，也不依赖 Spring AI Java 17/Spring Boot 3 路径。
+- [x] 2.2 接入已有 Redis、Milvus、Elasticsearch provider 模块构建能力。
+- [x] 2.3 为 Qdrant、Weaviate、RedisStack 补齐必要依赖或 adapter，并复用 LangChain4j 0.35.0 兼容 API。
+- [x] 2.4 确认所有 provider adapter 不引入 Java 9+ API，也不依赖 Spring AI Java 17/Spring Boot 3 路径。
 
 ## 3. AI Magic-API 统一 vector 插件
 
