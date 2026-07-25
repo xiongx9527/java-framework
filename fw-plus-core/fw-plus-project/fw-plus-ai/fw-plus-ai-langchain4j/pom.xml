@@ -12,6 +12,18 @@
     <modules>
         <module>fw-plus-ai-langchain4j-core</module>
         <module>fw-plus-ai-langchain4j-openai</module>
+        <module>fw-plus-ai-langchain4j-anthropic</module>
+        <module>fw-plus-ai-langchain4j-ollama</module>
+        <module>fw-plus-ai-langchain4j-azure-ai-search</module>
+        <module>fw-plus-ai-langchain4j-azure-open-ai</module>
+        <module>fw-plus-ai-langchain4j-voyage-ai</module>
+        <module>fw-plus-ai-langchain4j-github-models</module>
+        <module>fw-plus-ai-langchain4j-vertex-ai-gemini</module>
+        <module>fw-plus-ai-langchain4j-elasticsearch</module>
+        <module>fw-plus-ai-langchain4j-redis</module>
+        <module>fw-plus-ai-langchain4j-qianfan</module>
+        <module>fw-plus-ai-langchain4j-milvus</module>
+        <module>fw-plus-ai-langchain4j-dashscope</module>
     </modules>
     <artifactId>fw-plus-ai-langchain4j</artifactId>
 
