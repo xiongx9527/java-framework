@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.redisstack.module;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.exception.MagicAPIVectorException;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.legacy.LegacyVectorModuleSupport;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module.VectorStoreOperations;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
@@ -14,56 +13,42 @@ import org.ssssssss.script.functions.DynamicAttribute;
 import java.util.Collection;
 
 @Deprecated
-public class RedisStackModule implements DynamicAttribute<RedisStackModule, VectorStoreOperations>, DynamicModule<VectorStoreOperations> {
+public class RedisStackModule implements DynamicAttribute<VectorStoreOperations, VectorStoreOperations>, DynamicModule<VectorStoreOperations> {
 
     public final RedisModule redisModule;
     private final LegacyVectorModuleSupport legacySupport;
-    private final VectorStoreOperations operations;
 
     @Deprecated
     public RedisStackModule(RedisModule redisModule, EmbeddingModel embeddingModel) {
-        this(redisModule, (LegacyVectorModuleSupport) null, null);
+        this(redisModule, new LegacyVectorModuleSupport(null, "redisstack"));
     }
 
     public RedisStackModule(RedisModule redisModule, EmbeddingModel embeddingModel, EmbeddingStoreRegistry registry) {
-        this(redisModule, new LegacyVectorModuleSupport(registry, "redisstack"), null);
+        this(redisModule, new LegacyVectorModuleSupport(registry, "redisstack"));
     }
 
-    private RedisStackModule(RedisModule redisModule, LegacyVectorModuleSupport legacySupport,
-                             VectorStoreOperations operations) {
+    private RedisStackModule(RedisModule redisModule, LegacyVectorModuleSupport legacySupport) {
         this.redisModule = redisModule;
         this.legacySupport = legacySupport;
-        this.operations = operations;
-    }
-
-    public VectorStoreOperations getOperations() {
-        return operations;
     }
 
     @Deprecated
     public EmbeddingStore buildEmbeddingStore(String indexName, Integer dimension, Collection<String> metadataKeys) {
-        return requireSupport().get(indexName).getEmbeddingStore();
+        throw LegacyVectorModuleSupport.unsupportedBuilder("redisstack");
     }
 
     @Deprecated
     public EmbeddingStore buildEmbeddingStore(String indexName, Integer dimension) {
-        return requireSupport().get(indexName).getEmbeddingStore();
+        throw LegacyVectorModuleSupport.unsupportedBuilder("redisstack");
     }
 
     @Override
-    public RedisStackModule getDynamicAttribute(String key) {
-        return new RedisStackModule(redisModule, requireSupport(), requireSupport().get(key));
+    public VectorStoreOperations getDynamicAttribute(String key) {
+        return legacySupport.get(key);
     }
 
     @Override
     public VectorStoreOperations getDynamicModule(MagicScriptContext context) {
-        return requireSupport().getDefault();
-    }
-
-    private LegacyVectorModuleSupport requireSupport() {
-        if (legacySupport == null) {
-            throw new MagicAPIVectorException("Legacy Magic-API vector provider 'redisstack' is deprecated; migrate script to import vector and access vector['default']. Missing key: default", null);
-        }
-        return legacySupport;
+        return legacySupport.getDefault();
     }
 }
