@@ -74,6 +74,19 @@
                 <artifactId>langchain4j-spring-boot-starter</artifactId>
                 <version>${langchain4j.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-open-ai-spring-boot-starter</artifactId>
+                <version>${langchain4j.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-anthropic-spring-boot-starter</artifactId>
+                <version>${langchain4j.version}</version>
+            </dependency>
+
             
             <!-- LangChain4j Vector Store Dependencies -->
             <dependency>
