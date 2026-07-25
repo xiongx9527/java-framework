@@ -52,3 +52,15 @@
 - Report: .superpowers/sdd/task-4-report.md
 - Review mode: thorough
 - Review/fix rounds: 1
+
+## Current Task
+
+- Task: Task 5: 旧向量插件兼容策略与迁移说明
+- Plan task text: Task 5: 旧向量插件兼容策略与迁移说明
+- Mapped OpenSpec task text: 3.4 迁移 Milvus/Qdrant/RedisStack/Weaviate 现有插件能力，移除或废弃重复 provider 构建逻辑; 4.1 旧脚本入口迁移策略; 4.2 配置示例和脚本访问说明
+- Stage: implementing
+- Base commit: 0e9294b4
+- Brief: .superpowers/sdd/task-5-brief.md
+- Report: .superpowers/sdd/task-5-report.md
+- Review mode: thorough
+- Review/fix rounds: 0
