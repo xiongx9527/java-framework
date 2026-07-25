@@ -8,7 +8,11 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import org.junit.Test;
+import org.ssssssss.script.MagicScript;
 import org.ssssssss.script.MagicScriptContext;
+import org.ssssssss.script.MagicScriptEngine;
+import org.ssssssss.script.MagicScriptEngineFactory;
+import org.ssssssss.script.functions.DynamicAttribute;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -25,11 +29,25 @@ public class VectorModuleTest {
     public void shouldReturnOperationsForExplicitKey() {
         EmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<TextSegment>();
         EmbeddingStoreRegistry registry = registryWith("knowledge", store, "knowledge");
-        VectorModule module = new VectorModule(registry);
+        DynamicAttribute<VectorModule, VectorStoreOperations> module = new VectorModule(registry);
 
-        VectorStoreOperations operations = module.getDynamicAttribute("knowledge");
+        VectorModule keyedModule = module.getDynamicAttribute("knowledge");
 
-        assertSame(store, operations.getEmbeddingStore());
+        assertSame(store, keyedModule.getOperations().getEmbeddingStore());
+    }
+
+    @Test
+    public void shouldResolveExplicitKeyThroughMagicScriptDynamicAttributeAccess() {
+        EmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<TextSegment>();
+        VectorModule module = new VectorModule(registryWith("knowledge", store, "knowledge"));
+        MagicScriptContext context = new MagicScriptContext();
+        context.set("vector", module);
+
+        Object result = MagicScript.create("return vector['knowledge'];", new MagicScriptEngine(new MagicScriptEngineFactory()))
+                .execute(context);
+
+        assertTrue(result instanceof VectorModule);
+        assertSame(store, ((VectorModule) result).getOperations().getEmbeddingStore());
     }
 
     @Test
