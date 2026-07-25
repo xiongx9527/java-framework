@@ -132,7 +132,7 @@ const installPlugin = () => {
       Promise.all((constants.PLUGINS_DATA).filter(it => it.javascriptFilename).map(plugin => new Promise(r => {
         bus.status('plugin.loading', true, plugin.name)
         loadPlugin(replaceURL(link + '/plugins/' + plugin.javascriptFilename)).then(() => {
-          constants.PLUGINS.push(window[plugin.globalName]({
+          const pluginInstance = window[plugin.globalName]({
             'i18n': { add: i18nAdd, format: $i },
             request,
             constants,
@@ -140,8 +140,13 @@ const installPlugin = () => {
             bus,
             modal,
             JavaClass,
-            monaco
-          }))
+            monaco,
+            pluginData: plugin
+          })
+          if(pluginInstance){
+            constants.PLUGINS.push(pluginInstance)
+            bus.$emit(Message.PLUGINS_CHANGED)
+          }
           bus.status('plugin.loaded', true, plugin.name)
           r();
         }).catch(e => {
