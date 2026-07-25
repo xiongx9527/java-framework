@@ -62,6 +62,60 @@ public class EmbeddingStoreProviderAdapterTest {
     }
 
     @Test
+    public void shouldMapMilvusLegacyTokenWhenApiKeyIsAbsent() {
+        EmbeddingStoreDefinition definition = definition("knowledge", "milvus");
+        definition.setDimension(768);
+        definition.getProperties().put("uri", "http://127.0.0.1:19530");
+        definition.getProperties().put("collectionName", "knowledge");
+        definition.getProperties().put("token", "legacy-token");
+
+        Object builder = new MilvusEmbeddingStoreProviderAdapter().configureBuilder(definition);
+
+        assertEquals("legacy-token", ReflectionTestUtils.getField(builder, "token"));
+    }
+
+    @Test
+    public void shouldPreferMilvusApiKeyOverLegacyToken() {
+        EmbeddingStoreDefinition definition = definition("knowledge", "milvus");
+        definition.setDimension(768);
+        definition.getProperties().put("uri", "http://127.0.0.1:19530");
+        definition.getProperties().put("collectionName", "knowledge");
+        definition.getProperties().put("token", "legacy-token");
+        definition.getProperties().put("apiKey", "new-api-key");
+
+        Object builder = new MilvusEmbeddingStoreProviderAdapter().configureBuilder(definition);
+
+        assertEquals("new-api-key", ReflectionTestUtils.getField(builder, "token"));
+    }
+
+    @Test
+    public void shouldMapQdrantLegacyUtlsWhenUseTlsIsAbsent() {
+        EmbeddingStoreDefinition definition = definition("knowledge", "qdrant");
+        definition.getProperties().put("host", "127.0.0.1");
+        definition.getProperties().put("port", 6334);
+        definition.getProperties().put("collectionName", "knowledge");
+        definition.getProperties().put("utls", true);
+
+        Object builder = new QdrantEmbeddingStoreProviderAdapter().configureBuilder(definition);
+
+        assertEquals(Boolean.TRUE, ReflectionTestUtils.getField(builder, "useTls"));
+    }
+
+    @Test
+    public void shouldPreferQdrantUseTlsOverLegacyUtls() {
+        EmbeddingStoreDefinition definition = definition("knowledge", "qdrant");
+        definition.getProperties().put("host", "127.0.0.1");
+        definition.getProperties().put("port", 6334);
+        definition.getProperties().put("collectionName", "knowledge");
+        definition.getProperties().put("utls", true);
+        definition.getProperties().put("useTls", false);
+
+        Object builder = new QdrantEmbeddingStoreProviderAdapter().configureBuilder(definition);
+
+        assertEquals(Boolean.FALSE, ReflectionTestUtils.getField(builder, "useTls"));
+    }
+
+    @Test
     public void shouldMapWeaviateLegacyOptionsFromProperties() {
         EmbeddingStoreDefinition definition = definition("knowledge", "weaviate");
         definition.getProperties().put("scheme", "http");

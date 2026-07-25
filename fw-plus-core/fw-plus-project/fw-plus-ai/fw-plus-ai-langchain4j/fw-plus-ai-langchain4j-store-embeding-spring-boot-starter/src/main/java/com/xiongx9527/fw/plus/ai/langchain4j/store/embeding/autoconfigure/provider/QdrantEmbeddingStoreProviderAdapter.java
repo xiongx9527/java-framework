@@ -37,6 +37,9 @@ public class QdrantEmbeddingStoreProviderAdapter implements EmbeddingStoreProvid
                 builder.payloadTextKey(payloadTextKey);
             }
             Boolean useTls = ProviderAdapterSupport.booleanProperty(definition, "useTls");
+            if (useTls == null) {
+                useTls = ProviderAdapterSupport.booleanProperty(definition, "utls");
+            }
             if (useTls != null) {
                 builder.useTls(useTls.booleanValue());
             }

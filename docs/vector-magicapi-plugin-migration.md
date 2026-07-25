@@ -20,6 +20,7 @@ fw-plus:
             properties:
               uri: http://127.0.0.1:19530
               collectionName: knowledge
+              apiKey: milvus-api-key
               indexType: HNSW
               metricType: COSINE
               consistencyLevel: EVENTUALLY
@@ -69,7 +70,9 @@ The example configures four providers and two independent Milvus instances. `def
 | --- | --- |
 | Qdrant `payloadTextKey` | `properties.payloadTextKey` |
 | Qdrant `host`, `port`, `apiKey` | `properties.host`, `properties.port`, `properties.apiKey` |
+| Qdrant `utls` | `properties.useTls` (兼容别名仍支持；新字段优先) |
 | Milvus `collectionName`, `dimension` | `properties.collectionName`, store `dimension` |
+| Milvus `token` | `properties.apiKey` (兼容别名仍支持；新字段优先) |
 | Milvus `indexType`, `metricType`, `consistencyLevel` | `properties.indexType`, `properties.metricType`, `properties.consistencyLevel` |
 | Milvus `retrieveEmbeddingsOnSearch`, `autoFlushOnInsert` | `properties.retrieveEmbeddingsOnSearch`, `properties.autoFlushOnInsert` |
 | Milvus `dbName` | `properties.databaseName` |
