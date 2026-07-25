@@ -24,3 +24,15 @@
 - RED/GREEN evidence: .superpowers/sdd/task-2-report.md
 - Review mode: thorough
 - Review/fix rounds: 0
+
+## Current Task
+
+- Task: Task 3: Core Spring Boot starter 与 Maven/BOM 接入
+- Plan task text: Task 3: Core Spring Boot starter 与 Maven/BOM 接入
+- Mapped OpenSpec task text: 1.1 新建 starter 并加入聚合 POM; 1.2 加入 fw-plus-dependencies dependencyManagement; 1.4 Spring Boot 2.7 自动配置; 1.5 部分自动配置测试
+- Stage: implementing
+- Base commit: a3e5d88b
+- Brief: .superpowers/sdd/task-3-brief.md
+- Report: .superpowers/sdd/task-3-report.md
+- Review mode: thorough
+- Review/fix rounds: 0
