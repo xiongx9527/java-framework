@@ -41,6 +41,7 @@ import MagicWebSocket from '../scripts/websocket.js'
 import modal from './common/dialog/magic-modal.js'
 import Socket from '../scripts/constants/socket.js'
 import Message from '../scripts/constants/message.js'
+import { installPlugin as registerPlugin } from '../scripts/plugin-loader.js'
 import { loadPlugin, randomString, replaceURL } from '../scripts/utils.js'
 import store from '../scripts/store.js'
 import * as monaco from 'monaco-editor'
@@ -132,7 +133,9 @@ const installPlugin = () => {
       Promise.all((constants.PLUGINS_DATA).filter(it => it.javascriptFilename).map(plugin => new Promise(r => {
         bus.status('plugin.loading', true, plugin.name)
         loadPlugin(replaceURL(link + '/plugins/' + plugin.javascriptFilename)).then(() => {
-          const pluginInstance = window[plugin.globalName]({
+          registerPlugin({
+            factory: window[plugin.globalName],
+			plugin,
             'i18n': { add: i18nAdd, format: $i },
             request,
             constants,
@@ -140,13 +143,8 @@ const installPlugin = () => {
             bus,
             modal,
             JavaClass,
-            monaco,
-            pluginData: plugin
+            monaco
           })
-          if(pluginInstance){
-            constants.PLUGINS.push(pluginInstance)
-            bus.$emit(Message.PLUGINS_CHANGED)
-          }
           bus.status('plugin.loaded', true, plugin.name)
           r();
         }).catch(e => {
