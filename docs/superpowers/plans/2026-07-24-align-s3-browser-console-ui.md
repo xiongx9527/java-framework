@@ -2,6 +2,7 @@
 change: align-s3-browser-console-ui
 design-doc: docs/superpowers/specs/2026-07-24-align-s3-browser-console-ui-design.md
 base-ref: a3bd4eee0aef7ec8270841cd03293a336e3dbf9b
+archived-with: 2026-07-24-align-s3-browser-console-ui
 ---
 
 # S3 文件管理控制台 UI 对齐实施计划
@@ -53,7 +54,7 @@ base-ref: a3bd4eee0aef7ec8270841cd03293a336e3dbf9b
 - Consumes: 现有 `servicePath`、`componentPath`、`pluginPath`、`hostToolbarPath` 常量。
 - Produces: 测试断言后续任务必须实现的源码契约：`setS3BrowserModal`、`getS3BrowserModal`、`extractErrorMessage`、`showError`、`modal.alert`、`modal.confirm`、Magic 控件、主题变量和具体 i18n key。
 
-- [ ] **Step 1: 扩展契约测试**
+- [x] **Step 1: 扩展契约测试**
 
 把 `magic-s3-browser-contract.test.cjs` 中现有 3 个测试保留，并追加以下测试：
 
@@ -114,7 +115,7 @@ test('S3 删除确认优先使用 Magic modal confirm 并保留内置降级', ()
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run:
 
@@ -125,7 +126,7 @@ npm test
 
 Expected: FAIL。失败点应集中在 `setS3BrowserModal`、`magic-select` / `magic-input`、`extractErrorMessage`、`showError`、`modal.alert`、`modal.confirm` 和新增 i18n key 未出现。
 
-- [ ] **Step 3: 复核 Task 1 覆盖 OpenSpec**
+- [x] **Step 3: 复核 Task 1 覆盖 OpenSpec**
 
 确认 `openspec/changes/align-s3-browser-console-ui/tasks.md` 中 1.1、1.2 由本任务覆盖，但此时不要勾选；勾选放到 Task 5 验证通过后统一完成。
 
@@ -143,7 +144,7 @@ Expected: FAIL。失败点应集中在 `setS3BrowserModal`、`magic-select` / `m
   - `getS3BrowserModal(): object | null`
   - `index.js` 在安装阶段调用 `setS3BrowserModal(opt.modal)`。
 
-- [ ] **Step 1: 更新服务模块**
+- [x] **Step 1: 更新服务模块**
 
 在 `magic-s3-browser.js` 中加入 modal 存储接口。保留所有已有 request API URL，不改变 `createS3BrowserService` 返回对象：
 
@@ -175,7 +176,7 @@ export const setS3BrowserModal = modal => {
 export const getS3BrowserModal = () => activeModal
 ```
 
-- [ ] **Step 2: 更新插件入口注入**
+- [x] **Step 2: 更新插件入口注入**
 
 在 `index.js` 中把 import 改为：
 
@@ -189,7 +190,7 @@ import { setS3BrowserModal, setS3BrowserRequest } from './service/magic-s3-brows
 setS3BrowserModal(opt.modal)
 ```
 
-- [ ] **Step 3: 运行契约测试确认本任务通过**
+- [x] **Step 3: 运行契约测试确认本任务通过**
 
 Run:
 
@@ -218,7 +219,7 @@ Expected: 与 modal 注入相关断言 PASS；UI 与错误 helper 相关断言�
   - `confirmDeleteFile(): void`
   - UI 使用 `magic-select`、`magic-input` 和控制台主题变量。
 
-- [ ] **Step 1: 更新 `<script setup>` import**
+- [x] **Step 1: 更新 `<script setup>` import**
 
 把浏览页 service import 改为：
 
@@ -226,7 +227,7 @@ Expected: 与 modal 注入相关断言 PASS；UI 与错误 helper 相关断言�
 import { getS3BrowserModal, getS3BrowserService } from '../service/magic-s3-browser.js'
 ```
 
-- [ ] **Step 2: 添加 storage select options 与错误 helper**
+- [x] **Step 2: 添加 storage select options 与错误 helper**
 
 在 `loading` 定义后加入：
 
@@ -261,7 +262,7 @@ const showError = (cause, fallbackKey) => {
 const displayError = cause => { error.value = cause && cause.message ? cause.message : $i('s3.browser.loadFailed') }
 ```
 
-- [ ] **Step 3: 把失败路径接入 `showError`**
+- [x] **Step 3: 把失败路径接入 `showError`**
 
 把 catch 分支替换为具体 fallback key：
 
@@ -288,7 +289,7 @@ const saveBasePath = () => {
 }
 ```
 
-- [ ] **Step 4: 删除失败保持当前列表和选中项**
+- [x] **Step 4: 删除失败保持当前列表和选中项**
 
 把 `deleteFile` 改名为 `confirmDeleteFile`，成功后才清空选择；catch 中不要清空 `selectedFile`、`deleteCandidate`、`items`：
 
@@ -311,7 +312,7 @@ const confirmDeleteFile = async () => {
 }
 ```
 
-- [ ] **Step 5: 删除确认优先使用 modal.confirm**
+- [x] **Step 5: 删除确认优先使用 modal.confirm**
 
 新增 `requestDeleteFile`，保留 `deleteCandidate` 降级：
 
@@ -330,7 +331,7 @@ const requestDeleteFile = () => {
 }
 ```
 
-- [ ] **Step 6: 重构模板为 Magic 控制台风格**
+- [x] **Step 6: 重构模板为 Magic 控制台风格**
 
 用以下结构替换 `<template>`，保持原有语义但移除原生 `select/input`：
 
@@ -395,7 +396,7 @@ const requestDeleteFile = () => {
 </template>
 ```
 
-- [ ] **Step 7: 重写样式为控制台变量和稳定布局**
+- [x] **Step 7: 重写样式为控制台变量和稳定布局**
 
 替换 `<style scoped>` 内容：
 
@@ -549,7 +550,7 @@ const requestDeleteFile = () => {
 }
 ```
 
-- [ ] **Step 8: 运行契约测试**
+- [x] **Step 8: 运行契约测试**
 
 Run:
 
@@ -571,7 +572,7 @@ Expected: UI、modal 注入、错误 helper 相关断言 PASS；若 i18n key 断
 - Consumes: `showError(cause, fallbackKey)` 使用的 `s3.browser.*` key。
 - Produces: 中英文一致的 browser 文案集合。
 
-- [ ] **Step 1: 更新中文 browser 文案**
+- [x] **Step 1: 更新中文 browser 文案**
 
 在 `zh-cn.js` 的 `s3.browser` 内加入或替换以下 key：
 
@@ -594,7 +595,7 @@ deleteFailed: '删除 S3 文件失败'
 
 保留已有 `title`、`selectStorage`、`path`、`basePath`、`save`、`search`、`searchAction`、`loading`、`empty`、`loadMore`、`previewUrl`、`preview`、`download`、`delete`、`confirmDelete`、`cancel`。
 
-- [ ] **Step 2: 更新英文 browser 文案**
+- [x] **Step 2: 更新英文 browser 文案**
 
 在 `en.js` 的 `s3.browser` 内加入或替换以下 key：
 
@@ -617,7 +618,7 @@ deleteFailed: 'Unable to delete S3 file'
 
 保留已有 `title`、`selectStorage`、`path`、`basePath`、`save`、`search`、`searchAction`、`loading`、`empty`、`loadMore`、`previewUrl`、`preview`、`download`、`delete`、`confirmDelete`、`cancel`。
 
-- [ ] **Step 3: 运行契约测试确认全部通过**
+- [x] **Step 3: 运行契约测试确认全部通过**
 
 Run:
 
@@ -639,7 +640,7 @@ Expected: `node --test test/*.test.cjs` 全部 PASS。
 - Consumes: Task 1-4 的源码变更。
 - Produces: 通过的测试、前端构建产物、Maven 资源复制产物、已勾选的 OpenSpec tasks。
 
-- [ ] **Step 1: 运行前端契约测试**
+- [x] **Step 1: 运行前端契约测试**
 
 Run:
 
@@ -650,7 +651,7 @@ npm test
 
 Expected: PASS，输出包含 `# pass` 且 `# fail 0`。
 
-- [ ] **Step 2: 运行前端构建**
+- [x] **Step 2: 运行前端构建**
 
 Run:
 
@@ -661,7 +662,7 @@ npm run build
 
 Expected: PASS，`dist/magic-s3.1.0.0.iife.js` 重新生成。
 
-- [ ] **Step 3: 验证 dist 产物包含关键更新**
+- [x] **Step 3: 验证 dist 产物包含关键更新**
 
 Run:
 
@@ -672,7 +673,7 @@ rg "S3 File Manager Error|S3 文件管理错误|setS3BrowserModal|magic-select|m
 
 Expected: 能匹配到错误标题、modal setter、Magic 控件或主题变量相关内容。
 
-- [ ] **Step 4: 运行 S3 插件 Maven package**
+- [x] **Step 4: 运行 S3 插件 Maven package**
 
 Run:
 
@@ -683,7 +684,7 @@ cd fw-plus-boot
 
 Expected: PASS，且新版 IIFE 被复制到 `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-s3/target/classes/magic-editor/plugins/magic-s3.1.0.0.iife.js`。
 
-- [ ] **Step 5: 验证 target/classes 产物包含关键更新**
+- [x] **Step 5: 验证 target/classes 产物包含关键更新**
 
 Run:
 
@@ -694,7 +695,7 @@ rg "S3 File Manager Error|S3 文件管理错误|setS3BrowserModal|main-border-co
 
 Expected: 能匹配到错误标题、modal setter 或主题变量相关内容。
 
-- [ ] **Step 6: 检查空白和无关 diff**
+- [x] **Step 6: 检查空白和无关 diff**
 
 Run:
 
@@ -706,7 +707,7 @@ git status --short
 
 Expected: `git diff --check` 无输出且退出码为 0；`git status --short` 只包含本 change 的源码、构建产物和 `tasks.md` 更新。若出现无关文件，保留用户既有改动，不要回退。
 
-- [ ] **Step 7: 勾选 OpenSpec tasks**
+- [x] **Step 7: 勾选 OpenSpec tasks**
 
 在 `openspec/changes/align-s3-browser-console-ui/tasks.md` 中把 1.1-4.4 全部改为已完成：
 
@@ -736,7 +737,7 @@ Expected: `git diff --check` 无输出且退出码为 0；`git status --short` �
 - [x] 4.4 检查目标文件 diff 和 `git diff --check`，确认未引入无关格式问题。
 ```
 
-- [ ] **Step 8: 最终复验**
+- [x] **Step 8: 最终复验**
 
 Run:
 
