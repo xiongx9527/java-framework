@@ -19,7 +19,7 @@ import store from '../../../scripts/store.js'
 import $i from '../../../scripts/i18n.js'
 import modal from '../../common/dialog/magic-modal.js'
 import {replaceURL} from "../../../scripts/utils";
-import { isValidStatusBarItem, stableSortByOrder } from '../../../scripts/plugin-extension.js'
+import { createPluginStatusBarItemsController } from '../../../scripts/plugin-extension.js'
 const props = defineProps({
     config: Object
 })
@@ -38,16 +38,14 @@ const hasAdminPlugin = ref(false)
 const hasSwaggerPlugin = ref(false)
 const hasEurekaPlugin = ref(false)
 const pluginStatusBarItems = ref([])
-const refreshPluginStatusBarItems = () => {
-    pluginStatusBarItems.value = constants.PLUGINS
-        .filter(plugin => plugin.statusBarItems && Array.isArray(plugin.statusBarItems))
-        .reduce((items, plugin) => items.concat(plugin.statusBarItems), [])
-}
+const { refresh: refreshPluginStatusBarItems } = createPluginStatusBarItemsController({
+    getPlugins: () => constants.PLUGINS,
+    getHeader: () => props.config.header,
+    setItems: items => pluginStatusBarItems.value = items,
+    subscribe: listener => bus.$on(Message.PLUGINS_CHANGED, listener)
+})
 const insertPluginStatusBarItems = array => {
-    const items = stableSortByOrder(pluginStatusBarItems.value
-        .filter(it => isValidStatusBarItem(it))
-        .filter(it => props.config.header[it.displayKey] !== false)
-    )
+    const items = pluginStatusBarItems.value
     if (items.length === 0) {
         return
     }
@@ -205,7 +203,6 @@ bus.$on(Message.LOGINED, () => {
     request.send('/user').success(value => user.value = value)
 })
 bus.$on(Message.STATUS, msg => content.value = msg)
-bus.$on(Message.PLUGINS_CHANGED, refreshPluginStatusBarItems)
 // 监听插件加载完成事件
 bus.$on(Message.STATUS, msg => {
     content.value = msg
