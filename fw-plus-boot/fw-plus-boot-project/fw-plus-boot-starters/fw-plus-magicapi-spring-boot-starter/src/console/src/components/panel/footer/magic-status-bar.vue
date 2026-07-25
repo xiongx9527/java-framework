@@ -38,6 +38,20 @@ const hasDruidPlugin = ref(false)
 const hasAdminPlugin = ref(false)
 const hasSwaggerPlugin = ref(false)
 const hasEurekaPlugin = ref(false)
+const pluginStatusBarItems = ref([])
+const refreshPluginStatusBarItems = () => {
+    pluginStatusBarItems.value = constants.PLUGINS
+        .filter(plugin => plugin.statusBarItems && Array.isArray(plugin.statusBarItems))
+        .reduce((items, plugin) => items.concat(plugin.statusBarItems), [])
+}
+const insertPluginStatusBarItems = array => {
+    const items = pluginStatusBarItems.value
+        .filter(it => props.config.header[it.displayKey] !== false)
+    if (items.length === 0) {
+        return
+    }
+    array.splice(0, 0, ...items)
+}
 const icons = [{
     icon: 'config',
     title: 'Config',
@@ -185,6 +199,7 @@ const navs = computed(() => {
         // 其他按钮根据配置显示
         return props.config.header[it.displayKey] !== false
     })
+    insertPluginStatusBarItems(array)
     user.value && user.value.id && user.value.username&& array.push({
         icon: 'logout',
         title: user.value.username,
@@ -225,6 +240,7 @@ bus.$on(Message.STATUS, msg => {
         hasAdminPlugin.value = checkPlugin('admin')
         hasSwaggerPlugin.value = checkPlugin('swagger')
         hasEurekaPlugin.value = checkPlugin('eureka')
+        refreshPluginStatusBarItems()
     }
 })
 
@@ -450,6 +466,7 @@ onMounted(() => {
     hasAdminPlugin.value = checkPlugin('admin')
     hasSwaggerPlugin.value = checkPlugin('swagger')
     hasEurekaPlugin.value = checkPlugin('eureka')
+    refreshPluginStatusBarItems()
 
     // 设置定时器，确保插件加载完成后能够检测到
     const timer = setInterval(() => {
@@ -468,6 +485,7 @@ onMounted(() => {
             hasAdminPlugin.value = checkPlugin('admin')
             hasSwaggerPlugin.value = checkPlugin('swagger')
             hasEurekaPlugin.value = checkPlugin('eureka')
+            refreshPluginStatusBarItems()
             clearInterval(timer)
         }
     }, 1000)

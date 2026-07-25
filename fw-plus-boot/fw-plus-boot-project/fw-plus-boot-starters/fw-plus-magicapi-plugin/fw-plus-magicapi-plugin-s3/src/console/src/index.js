@@ -32,6 +32,12 @@ export default (opt) => {
     setS3BrowserModal(opt.modal)
     return {
         name: 's3',
+        statusBarItems: [{
+            icon: '#magic-s3-s3',
+            title: 'X-file-storage',
+            displayKey: 's3',
+            onClick: () => window.open('https://x-file-storage.xuyanwu.cn/', '_blank')
+        }],
         datasources: [{
             type: 's3-datasource',
             icon: '#magic-s3-s3',
