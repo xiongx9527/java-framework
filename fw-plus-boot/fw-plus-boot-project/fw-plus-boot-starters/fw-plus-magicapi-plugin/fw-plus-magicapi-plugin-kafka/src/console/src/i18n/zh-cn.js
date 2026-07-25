@@ -54,6 +54,37 @@ export default {
                     other: '请输入 Kafka 访问相关配置，如： {xxxx: "yyyy"}'
                 }
             }
-        }
+        },
+        title: 'Kafka管理',
+        loading: '加载中...',
+        refresh: '刷新',
+        selectStorage: '选择存储',
+        loadStoragesFailed: '加载存储失败',
+        loadTopicsFailed: '加载主题失败',
+        loadTopicInfoFailed: '加载主题信息失败',
+        loadConsumerGroupsFailed: '加载消费者组失败',
+        noTopicInfo: '暂无主题信息',
+        fullscreen: '全屏',
+        exitFullscreen: '退出全屏',
+        noPlugin: '未安装Kafka插件',
+        noPluginSubtext: '请安装Kafka插件以使用Kafka管理功能',
+        consumerGroupOffset: '消费者组偏移量',
+        topic: '主题',
+        consumerGroup: '消费者组',
+        selectConsumerGroup: '选择消费者组',
+        resetOffsets: '重置偏移量',
+        resetOffsetsSuccess: '重置偏移量成功',
+        resetOffsetsFailed: '重置偏移量失败',
+        delete: '删除',
+        deleteTopic: '删除主题',
+        deleteTopicConfirm: '确定要删除主题 {0} 吗？',
+        deleteTopicSuccess: '删除主题成功',
+        deleteTopicFailed: '删除主题失败',
+        deletingTopic: '正在删除主题...',
+        cancel: '取消',
+        confirm: '确认',
+        close: '关闭',
+        pleaseSelect: '请选择',
+        pleaseSelectConsumerGroup: '请选择消费者组'
     }
 }

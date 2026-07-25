@@ -4,11 +4,13 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.service.DbBr
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.service.DbBrowserSqlBuilder;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.service.DefaultDbBrowserService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.web.MagicDbBrowserController;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
 import org.ssssssss.magicapi.core.model.Plugin;
@@ -18,6 +20,7 @@ import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 @Configuration
 @ConditionalOnClass({MagicPluginConfiguration.class, MagicDynamicDataSource.class})
 @ConditionalOnProperty(prefix = "magic-api.plugin.db", name = "enabled", havingValue = "true", matchIfMissing = true)
+@Conditional(MagicAPIDbBrowserAdminEnabledCondition.class)
 public class MagicAPIDbBrowserConfiguration implements MagicPluginConfiguration {
 	private static final String DB_BROWSER_JAVASCRIPT = "magic-db.1.0.0.iife.js";
 	private static final String DB_BROWSER_RESOURCE = "magic-editor/plugins/" + DB_BROWSER_JAVASCRIPT;
@@ -42,10 +45,15 @@ public class MagicAPIDbBrowserConfiguration implements MagicPluginConfiguration 
 
 	@Override
 	public Plugin plugin() {
+		Plugin plugin;
 		if (MagicAPIDbBrowserConfiguration.class.getClassLoader().getResource(DB_BROWSER_RESOURCE) == null) {
-			return new Plugin("db");
+			plugin = new Plugin("db");
+		} else {
+			plugin = new Plugin("db", "MagicDB", DB_BROWSER_JAVASCRIPT);
 		}
-		return new Plugin("db", "MagicDB", DB_BROWSER_JAVASCRIPT);
+		String adminEnabled = SpringUtils.getAppConfig("magic-api.plugin.db.admin.enabled", "false");
+		plugin.setAdminEnabled(Boolean.parseBoolean(adminEnabled));
+		return plugin;
 	}
 
 	@Override

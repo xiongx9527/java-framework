@@ -10,7 +10,7 @@
     </div>
 </template>
 <script setup>
-import { computed, ref, onMounted, shallowRef, resolveDynamicComponent } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import bus from '../../../scripts/bus.js'
 import Message from '../../../scripts/constants/message.js'
 import constants from '../../../scripts/constants.js'
@@ -31,13 +31,25 @@ const hasConfigPlugin = ref(false)
 const hasSatokenPlugin = ref(false)
 const hasWsPlugin = ref(false)
 const hasMqttPlugin = ref(false)
-const hasKafkaPlugin = ref(false)
-const hasPulsarPlugin = ref(false)
 const hasDebeziumPlugin = ref(false)
 const hasDruidPlugin = ref(false)
 const hasAdminPlugin = ref(false)
 const hasSwaggerPlugin = ref(false)
 const hasEurekaPlugin = ref(false)
+const pluginStatusBarItems = ref([])
+const refreshPluginStatusBarItems = () => {
+    pluginStatusBarItems.value = constants.PLUGINS
+        .filter(plugin => plugin.statusBarItems && Array.isArray(plugin.statusBarItems))
+        .reduce((items, plugin) => items.concat(plugin.statusBarItems), [])
+}
+const insertPluginStatusBarItems = array => {
+    const items = pluginStatusBarItems.value
+        .filter(it => props.config.header[it.displayKey] !== false)
+    if (items.length === 0) {
+        return
+    }
+    array.splice(0, 0, ...items)
+}
 const icons = [{
     icon: 'config',
     title: 'Config',
@@ -53,16 +65,6 @@ const icons = [{
     title: 'Dynamictp',
     displayKey: 'dtp',
     onClick: () => openDtp()
-},{
-    icon: 'kafka',
-    title: 'Kafka',
-    displayKey: 'kafka',
-    onClick: () => openKafka()
-},{
-    icon: 'pulsar',
-    title: 'Pulsar',
-    displayKey: 'pulsar',
-    onClick: () => openPulsar()
 },{
     icon: 'debezium',
     title: 'Debezium',
@@ -161,12 +163,6 @@ const navs = computed(() => {
         if (it.displayKey === 'mqtt') {
             return hasMqttPlugin.value && props.config.header[it.displayKey] !== false
         }
-        if (it.displayKey === 'kafka') {
-            return hasKafkaPlugin.value && props.config.header[it.displayKey] !== false
-        }
-        if (it.displayKey === 'pulsar') {
-            return hasPulsarPlugin.value && props.config.header[it.displayKey] !== false
-        }
         if (it.displayKey === 'debezium') {
             return hasDebeziumPlugin.value && props.config.header[it.displayKey] !== false
         }
@@ -185,6 +181,7 @@ const navs = computed(() => {
         // 其他按钮根据配置显示
         return props.config.header[it.displayKey] !== false
     })
+    insertPluginStatusBarItems(array)
     user.value && user.value.id && user.value.username&& array.push({
         icon: 'logout',
         title: user.value.username,
@@ -218,13 +215,12 @@ bus.$on(Message.STATUS, msg => {
         hasSatokenPlugin.value = checkPlugin('satoken')
         hasWsPlugin.value = checkPlugin('ws-subscribe')
         hasMqttPlugin.value = checkPlugin('mqtt-subscribe')
-        hasKafkaPlugin.value = checkPlugin('kafka-subscribe')
-        hasPulsarPlugin.value = checkPlugin('pulsar-subscribe')
         hasDebeziumPlugin.value = checkPlugin('debezium-datasource')
         hasDruidPlugin.value = checkPlugin('druid')
         hasAdminPlugin.value = checkPlugin('admin')
         hasSwaggerPlugin.value = checkPlugin('swagger')
         hasEurekaPlugin.value = checkPlugin('eureka')
+        refreshPluginStatusBarItems()
     }
 })
 
@@ -242,22 +238,6 @@ const openDtp = () => {
 
 const openLangchain4j = () => {
     window.open('https://docs.langchain4j.dev/', '_blank')
-}
-
-const openKafka = () => {
-  window.open('https://kafka.apache.org/', '_blank')
-}
-
-const openPulsar = () => {
-  bus.$emit(Message.ADD_FOOTER_TOOLBAR, {
-    id: 'pulsar', 
-    title: $i('pulsar.title'), 
-    icon: 'pulsar', 
-    component: shallowRef(resolveDynamicComponent('magic-pulsar')), 
-    max: 1000, 
-    min: 200, 
-    value: 500 
-  })
 }
 
 const openDebezium = () => {
@@ -443,13 +423,12 @@ onMounted(() => {
     hasSatokenPlugin.value = checkPlugin('satoken')
     hasWsPlugin.value = checkPlugin('ws-subscribe')
     hasMqttPlugin.value = checkPlugin('mqtt-subscribe')
-    hasKafkaPlugin.value = checkPlugin('kafka-subscribe')
-    hasPulsarPlugin.value = checkPlugin('pulsar-subscribe')
     hasDebeziumPlugin.value = checkPlugin('debezium-datasource')
     hasDruidPlugin.value = checkPlugin('druid')
     hasAdminPlugin.value = checkPlugin('admin')
     hasSwaggerPlugin.value = checkPlugin('swagger')
     hasEurekaPlugin.value = checkPlugin('eureka')
+    refreshPluginStatusBarItems()
 
     // 设置定时器，确保插件加载完成后能够检测到
     const timer = setInterval(() => {
@@ -461,13 +440,12 @@ onMounted(() => {
             hasConfigPlugin.value = checkPlugin('config')
             hasWsPlugin.value = checkPlugin('ws-subscribe')
             hasMqttPlugin.value = checkPlugin('mqtt-subscribe')
-            hasKafkaPlugin.value = checkPlugin('kafka-subscribe')
-            hasPulsarPlugin.value = checkPlugin('pulsar-subscribe')
             hasDebeziumPlugin.value = checkPlugin('debezium-datasource')
             hasDruidPlugin.value = checkPlugin('druid')
             hasAdminPlugin.value = checkPlugin('admin')
             hasSwaggerPlugin.value = checkPlugin('swagger')
             hasEurekaPlugin.value = checkPlugin('eureka')
+            refreshPluginStatusBarItems()
             clearInterval(timer)
         }
     }, 1000)

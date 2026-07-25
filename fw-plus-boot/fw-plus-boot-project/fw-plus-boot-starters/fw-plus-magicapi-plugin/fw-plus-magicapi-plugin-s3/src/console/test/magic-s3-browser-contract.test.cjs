@@ -58,6 +58,36 @@ test('S3 插件安装时注入 request 与 modal 且保留 toolbar 契约', () =
     assert.match(pluginSource, /setS3BrowserModal\(opt\.modal\)/)
 })
 
+test('S3 外链入口由插件 UI 注册且宿主不维护 S3 专属状态栏逻辑', () => {
+    const pluginSource = fs.readFileSync(pluginPath, 'utf8')
+    const hostStatusBarPath = path.join(__dirname, '../../../../../fw-plus-magicapi-spring-boot-starter/src/console/src/components/panel/footer/magic-status-bar.vue')
+    const hostStatusBarSource = fs.readFileSync(hostStatusBarPath, 'utf8')
+
+    assert.match(pluginSource, /statusBarItems:\s*\[/)
+    assert.match(pluginSource, /title:\s*'X-file-storage'/)
+    assert.match(pluginSource, /icon:\s*'#magic-s3-s3'/)
+    assert.match(pluginSource, /displayKey:\s*'s3'/)
+    assert.match(pluginSource, /window\.open\('https:\/\/x-file-storage\.xuyanwu\.cn\/', '_blank'\)/)
+    assert.match(hostStatusBarSource, /plugin\.statusBarItems/)
+    assert.doesNotMatch(hostStatusBarSource, /hasS3Plugin/)
+    assert.doesNotMatch(hostStatusBarSource, /openS3/)
+    assert.doesNotMatch(hostStatusBarSource, /s3-datasource/)
+})
+
+test('S3 外链入口通过响应式插件状态栏列表触发重新渲染', () => {
+    const hostStatusBarPath = path.join(__dirname, '../../../../../fw-plus-magicapi-spring-boot-starter/src/console/src/components/panel/footer/magic-status-bar.vue')
+    const hostStatusBarSource = fs.readFileSync(hostStatusBarPath, 'utf8')
+
+    assert.match(hostStatusBarSource, /const pluginStatusBarItems = ref\(\[\]\)/)
+    assert.match(hostStatusBarSource, /const refreshPluginStatusBarItems = \(\) => {/)
+    assert.match(hostStatusBarSource, /pluginStatusBarItems\.value = constants\.PLUGINS/)
+    assert.match(hostStatusBarSource, /const insertPluginStatusBarItems = array => {/)
+    assert.match(hostStatusBarSource, /array\.splice\(0, 0, \.\.\.items\)/)
+    assert.doesNotMatch(hostStatusBarSource, /pluginStatusBarItems\.value[\s\S]*\.forEach\(it => array\.push\(it\)\)/)
+    assert.doesNotMatch(hostStatusBarSource, /array\.findIndex\(it => it\.displayKey === 'repo'\)/)
+    assert.doesNotMatch(hostStatusBarSource, /constants\.PLUGINS\.filter\(plugin => plugin\.statusBarItems/)
+})
+
 test('S3 浏览器服务暴露 modal setter 且不改变后端接口契约', () => {
     const source = fs.readFileSync(servicePath, 'utf8')
     assert.match(source, /let activeModal = null/)

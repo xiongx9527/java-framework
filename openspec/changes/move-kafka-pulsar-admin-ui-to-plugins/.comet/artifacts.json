@@ -1,0 +1,6 @@
+{
+  "openspec_proposal": "openspec/changes/move-kafka-pulsar-admin-ui-to-plugins/proposal.md",
+  "openspec_design": "openspec/changes/move-kafka-pulsar-admin-ui-to-plugins/design.md",
+  "openspec_tasks": "openspec/changes/move-kafka-pulsar-admin-ui-to-plugins/tasks.md",
+  "openspec_delta_spec": "openspec/changes/move-kafka-pulsar-admin-ui-to-plugins/specs/magic-messaging-admin-console-ui/spec.md"
+}
