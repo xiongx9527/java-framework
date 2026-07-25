@@ -4,6 +4,8 @@ import MagicKafkaSubscribe from './service/magic-kafka-subscribe.js'
 import MagicKafkaDataSource from './service/magic-kafka-datasource.js'
 import MagicKafkaDatasourceInfo from './components/magic-kafka-datasource-info.vue'
 import MagicKafkaSubscribeInfo from './components/magic-kafka-subscribe-info.vue'
+import MagicKafka from './components/magic-kafka.vue'
+import { setMagicKafkaRuntime } from './service/magic-kafka-runtime.js'
 
 // Manually inject SVG icon (vite-plugin-svg-icons doesn't work in library/IIFE mode)
 if (typeof window !== 'undefined') {
@@ -28,7 +30,9 @@ export default (opt) => {
     const i18n = opt.i18n
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
+    setMagicKafkaRuntime(opt)
     return {
+        name: 'kafka',
         resource: [{
             type: 'kafka-subscribe',
             icon: '#magic-kafka-kafka',
@@ -48,6 +52,14 @@ export default (opt) => {
             title: 'kafka.subscribe.title',
             icon: '#magic-kafka-kafka',
             component: MagicKafkaSubscribeInfo
+        }, {
+            id: 'kafka',
+            title: i18n.format('kafka.title'),
+            icon: '#magic-kafka-kafka',
+            component: MagicKafka,
+            adminOnly: true,
+            allowClose: true,
+            fullscreen: true
         }]
     }
 }

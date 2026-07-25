@@ -1,6 +1,6 @@
 ## 1. Kafka 插件 UI 迁移
 
-- [ ] 1.1 将 Kafka 管理页面、业务文案和运行时依赖适配迁入 Kafka 插件 console，通过 `adminOnly` 管理 toolbar 注册入口，并增加插件边界契约测试与前端构建验证。
+- [x] 1.1 将 Kafka 管理页面、业务文案和运行时依赖适配迁入 Kafka 插件 console，通过 `adminOnly` 管理 toolbar 注册入口，并增加插件边界契约测试与前端构建验证。
 
 ## 2. Pulsar 插件 UI 迁移
 

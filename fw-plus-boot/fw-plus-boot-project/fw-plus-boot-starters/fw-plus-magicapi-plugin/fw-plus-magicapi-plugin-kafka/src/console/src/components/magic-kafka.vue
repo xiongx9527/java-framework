@@ -1,7 +1,7 @@
 <template>
   <div ref="containerRef" class="magic-kafka">
     <div v-if="!loading && !hasKafkaPlugin" class="magic-kafka-no-plugin">
-      <magic-icon icon="kafka" size="48px" />
+      <magic-icon icon="#magic-kafka-kafka" size="48px" />
       <p>{{ $i('kafka.noPlugin') }}</p>
       <p class="magic-kafka-no-plugin-subtext">{{ $i('kafka.noPluginSubtext') }}</p>
     </div>
@@ -14,7 +14,7 @@
           <div class="magic-kafka-header-storage">
             <div class="magic-kafka-storage-selector">
               <button class="magic-kafka-button" @click="toggleStorageMenu" :disabled="loading">
-                <magic-icon icon="kafka" size="16px" />
+                <magic-icon icon="#magic-kafka-kafka" size="16px" />
                 <span class="magic-kafka-button-text">{{ loading ? $i('kafka.loading') : (activeStorage ? activeStorage.name : $i('kafka.pleaseSelect')) }}</span>
                 <magic-icon icon="arrow-bottom" size="12px" />
               </button>
@@ -75,7 +75,7 @@
         </div>
         <div v-else>
           <div v-if="topicDetails">
-            <MagicMonacoEditor :value="formatJson(topicDetails)" language="json" :readonly="true" />
+            <magic-monaco-editor :value="formatJson(topicDetails)" language="json" :readonly="true" />
           </div>
           <div v-else class="magic-kafka-no-data">
             {{ $i('kafka.noTopicInfo') }}
@@ -124,15 +124,9 @@
 
 <script setup>
 import {computed, onMounted, onUnmounted, ref} from 'vue'
-import request from '../../../scripts/request.js'
-import $i from '../../../scripts/i18n.js'
-import MagicMonacoEditor from '../../common/magic-monaco-editor.vue'
-import MagicTable from '../../common/data/magic-table.js'
-import MagicTableColumn from '../../common/data/magic-table-column.vue'
-import MagicIcon from '../../common/icon/magic-icon.vue'
-import modal from '../../common/dialog/magic-modal.js'
-import bus from '../../../scripts/bus.js'
-import Message from '../../../scripts/constants/message.js'
+import { getMagicKafkaRuntime } from '../service/magic-kafka-runtime.js'
+
+const { request, modal, bus, Message, format: $i } = getMagicKafkaRuntime()
 
 // Constants
 let availableStorages = []
