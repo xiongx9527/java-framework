@@ -211,22 +211,8 @@
         </dependency>
 
         <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-milvus</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
             <groupId>io.qdrant</groupId>
             <artifactId>client</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-qdrant</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -381,13 +367,6 @@
         <dependency>
             <groupId>org.ssssssss</groupId>
             <artifactId>magic-api-plugin-redis</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-redis</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
