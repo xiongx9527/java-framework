@@ -1,0 +1,14 @@
+{
+  "change": "add-magicapi-db-browser",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "e7e788baee0b5b2520894379d493800111c6659ea5db4b090102d822df723cc4",
+  "files": [
+    { "path": "openspec/changes/add-magicapi-db-browser/proposal.md", "sha256": "336f72dc4141928cb9bd87aef16451998cdd1e418d05d062990974e578650935" },
+    { "path": "openspec/changes/add-magicapi-db-browser/design.md", "sha256": "788a4b1533ad5d71f3b0f3460f344e00a65404fccf88dab894353b1f11b7ba85" },
+    { "path": "openspec/changes/add-magicapi-db-browser/tasks.md", "sha256": "52144cc025e3e7b001d1c56edef6b8829f61edd1949aee50fd464ffad1acc70d" },
+    { "path": "openspec/changes/add-magicapi-db-browser/specs/magicapi-db-browser/spec.md", "sha256": "0053bfe3fa66ddb37db3345ca2004c2d01af7b53f0b5867854653ba411018321" }
+  ]
+}

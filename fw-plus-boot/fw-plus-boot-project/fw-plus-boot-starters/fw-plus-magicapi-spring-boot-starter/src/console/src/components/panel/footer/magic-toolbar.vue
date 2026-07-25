@@ -72,22 +72,6 @@ const toolbars = reactive([
     { id: 'event', title: $i('toolbars.event'), icon: 'event', component: shallowRef(resolveDynamicComponent('magic-event')), style: { float: 'right'} }
 ])
 
-// 只有当constants.PLUGINS_DATA中包含s3插件时，才添加s3工具栏
-if (constants.PLUGINS_DATA.some(plugin => plugin.name === 's3' && plugin.adminEnabled === true)) {
-    toolbars.push({
-        id: 's3',
-        title: $i('toolbars.s3'),
-        icon: 's3',
-        component: shallowRef(resolveDynamicComponent('magic-s3')),
-        max: 1000,
-        min: 200,
-        value: 500,
-        fullscreen: true
-    })
-}
-
-
-
 // 只有当constants.PLUGINS_DATA中包含pulsar插件时，才添加pulsar工具栏
 if (constants.PLUGINS_DATA.some(plugin => plugin.name === 'pulsar'  && plugin.adminEnabled === true)) {
     toolbars.push({
@@ -115,7 +99,10 @@ if (constants.PLUGINS_DATA.some(plugin => plugin.name === 'kafka' && plugin.admi
         fullscreen: true
     })
 }
-constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).map(it => it.toolbars).forEach(res => res.forEach(it => {
+const isPluginToolbarVisible = (toolbar, pluginData) => !toolbar.adminOnly || (pluginData && pluginData.adminEnabled === true)
+constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).forEach(plugin => {
+    const pluginData = constants.PLUGINS_DATA.find(item => item.name === plugin.name)
+    plugin.toolbars.filter(toolbar => isPluginToolbarVisible(toolbar, pluginData)).forEach(it => {
 	toolbars.unshift({
         id: it.id,
 		type: it.type,
@@ -125,7 +112,8 @@ constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).map(it => 
         fullscreen: it.fullscreen,
         allowClose: it.allowClose
 	})
-}))
+    })
+})
 const opened = ref({})
 const info = ref({})
 provide('opened', opened)

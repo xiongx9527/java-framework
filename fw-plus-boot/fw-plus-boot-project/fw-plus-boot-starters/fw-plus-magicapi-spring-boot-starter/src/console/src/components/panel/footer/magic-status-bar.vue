@@ -24,7 +24,6 @@ const props = defineProps({
 })
 const user = ref(null)
 const hasVue3Plugin = ref(false)
-const hasS3Plugin = ref(false)
 const hasLangchain4jPlugin = ref(false)
 const hasDtpPlugin = ref(false)
 const hasFreemarkerPlugin = ref(false)
@@ -69,11 +68,6 @@ const icons = [{
     title: 'Debezium',
     displayKey: 'debezium',
     onClick: () => openDebezium()
-},{
-    icon: 's3',
-    title: 'X-file-storage',
-    displayKey: 's3',
-    onClick: () => openS3()
 }, {
     icon: 'langchain4j',
     title: 'Langchain4j',
@@ -149,9 +143,6 @@ const navs = computed(() => {
         if (it.displayKey === 'dtp') {
             return hasDtpPlugin.value && props.config.header[it.displayKey] !== false
         }
-        if (it.displayKey === 's3') {
-            return hasS3Plugin.value && props.config.header[it.displayKey] !== false
-        }
         if (it.displayKey === 'langchain4j') {
             return hasLangchain4jPlugin.value && props.config.header[it.displayKey] !== false
         }
@@ -220,7 +211,6 @@ bus.$on(Message.STATUS, msg => {
     // 当插件加载完成时检查插件（检查包含"加载完毕"或"Loaded"的字符串）
     if (msg.includes('加载完毕') || msg.includes('Loaded')) {
         hasVue3Plugin.value = checkPlugin('vue3')
-        hasS3Plugin.value = checkPlugin('s3-datasource')
         hasLangchain4jPlugin.value = checkPlugin('langchain4j-datasource')
         hasDtpPlugin.value = checkPlugin('dtp-datasource')
         hasFreemarkerPlugin.value = checkPlugin('freemarker')
@@ -252,10 +242,6 @@ const openDtp = () => {
 
 const openLangchain4j = () => {
     window.open('https://docs.langchain4j.dev/', '_blank')
-}
-
-const openS3 = () => {
-    window.open('https://x-file-storage.xuyanwu.cn/', '_blank')
 }
 
 const openKafka = () => {
@@ -450,7 +436,6 @@ const checkPlugin = (pluginName) => {
 onMounted(() => {
     // 立即检查一次
     hasVue3Plugin.value = checkPlugin('vue3')
-    hasS3Plugin.value = checkPlugin('s3-datasource')
     hasLangchain4jPlugin.value = checkPlugin('langchain4j-datasource')
     hasDtpPlugin.value = checkPlugin('dtp-datasource')
     hasFreemarkerPlugin.value = checkPlugin('freemarker')
@@ -470,7 +455,6 @@ onMounted(() => {
     const timer = setInterval(() => {
         if (constants.PLUGINS.length > 0) {
             hasVue3Plugin.value = checkPlugin('vue3')
-            hasS3Plugin.value = checkPlugin('s3-datasource')
             hasLangchain4jPlugin.value = checkPlugin('langchain4j-datasource')
             hasDtpPlugin.value = checkPlugin('dtp-datasource')
             hasFreemarkerPlugin.value = checkPlugin('freemarker')

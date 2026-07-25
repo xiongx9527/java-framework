@@ -678,6 +678,12 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-db</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-redis</artifactId>
                 <version>${project.version}</version>
             </dependency>

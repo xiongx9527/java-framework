@@ -1,0 +1,14 @@
+{
+  "change": "align-s3-browser-console-ui",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "73c3f553cca132f9f945b03fe6256c00a29f9f092e9a71fb6e960b7ccdeffda2",
+  "files": [
+    { "path": "openspec/changes/align-s3-browser-console-ui/proposal.md", "sha256": "9c39c849190a9d2b0142b02a269cd4cf8e04dcef250ea0ebe12b6e86cd54774a" },
+    { "path": "openspec/changes/align-s3-browser-console-ui/design.md", "sha256": "897f1bf70257fd768e28ea78fd1c3abdc5cdbbc84252413c0f64d4ead544bd86" },
+    { "path": "openspec/changes/align-s3-browser-console-ui/tasks.md", "sha256": "59b36174875578d469d2aad1e8f454366ffc4e4076f3b656b7fa322e8175c2dd" },
+    { "path": "openspec/changes/align-s3-browser-console-ui/specs/magic-s3-browser-console-ui/spec.md", "sha256": "2584b19483fba47d383f38988e39e95a11590d11d3ebea4bbb953c2418d8cc90" }
+  ]
+}
