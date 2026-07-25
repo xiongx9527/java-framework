@@ -102,4 +102,9 @@ public class AiServiceScannerProcessor implements BeanDefinitionRegistryPostProc
     public void setEnvironment(Environment environment) {
         this.environment = environment;
     }
+
+    @Override
+    public void postProcessBeanFactory(ConfigurableListableBeanFactory configurableListableBeanFactory) throws BeansException {
+
+    }
 }
