@@ -18,13 +18,13 @@
 - [x] 3.1 新建统一 AI Magic-API vector 插件模块，并加入 `fw-plus-ai-magicapi-plugin` 聚合 POM。
 - [x] 3.2 在 `fw-plus-ai-boot-autoconfigure` 的 Magic-API plugin 包下实现统一 `vector` DynamicModule/配置入口。
 - [x] 3.3 让统一 vector 插件通过 Core registry/factory 获取 `EmbeddingStore<TextSegment>`，支持按 key 和默认 store 访问。
-- [ ] 3.4 迁移 Milvus、Qdrant、RedisStack、Weaviate 现有插件能力，移除或废弃重复 provider 构建逻辑。
+- [x] 3.4 迁移 Milvus、Qdrant、RedisStack、Weaviate 现有插件能力，移除或废弃重复 provider 构建逻辑。
 - [x] 3.5 将统一 vector 插件加入 AI boot dependencies，并调整旧分散插件的 BOM/聚合/兼容策略。
 
 ## 4. 兼容、文档与验证
 
-- [ ] 4.1 明确旧脚本入口迁移策略：兼容别名、薄壳委托或移除，并给出清晰错误/迁移提示。
-- [ ] 4.2 补充配置示例，覆盖多个向量 store、默认 store、同 provider 多实例和脚本侧 `vector` 访问方式。
+- [x] 4.1 明确旧脚本入口迁移策略：兼容别名、薄壳委托或移除，并给出清晰错误/迁移提示。
+- [x] 4.2 补充配置示例，覆盖多个向量 store、默认 store、同 provider 多实例和脚本侧 `vector` 访问方式。
 - [ ] 4.3 使用 Maven Wrapper 验证 Core LangChain4j 相关 reactor 构建。
 - [ ] 4.4 使用 Maven Wrapper 验证 AI boot autoconfigure 与 Magic-API plugin starter 相关 reactor 构建。
 - [ ] 4.5 运行 `openspec validate unify-vector-magicapi-plugin --strict` 并修复所有 OpenSpec 校验问题。
