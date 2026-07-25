@@ -681,7 +681,7 @@ Commit message: `feat(vector): add legacy magicapi vector compatibility`.
 - Consumes: all tasks above.
 - Produces: verified Core build, AI build, Java 8 compatibility scan, and strict OpenSpec validation.
 
-- [ ] **Step 1: Run Core focused reactor tests**
+- [x] **Step 1: Run Core focused reactor tests**
 
 Run:
 
@@ -692,7 +692,7 @@ cd fw-plus-core
 
 Expected: BUILD SUCCESS.
 
-- [ ] **Step 2: Run Core LangChain4j package build**
+- [x] **Step 2: Run Core LangChain4j package build**
 
 Run:
 
@@ -703,7 +703,7 @@ cd fw-plus-core
 
 Expected: BUILD SUCCESS.
 
-- [ ] **Step 3: Run AI Magic-API focused tests**
+- [x] **Step 3: Run AI Magic-API focused tests**
 
 Run:
 
@@ -714,7 +714,7 @@ cd fw-plus-ai
 
 Expected: BUILD SUCCESS.
 
-- [ ] **Step 4: Run AI plugin package build**
+- [x] **Step 4: Run AI plugin package build**
 
 Run:
 
@@ -725,7 +725,7 @@ cd fw-plus-ai
 
 Expected: BUILD SUCCESS.
 
-- [ ] **Step 5: Scan for Java 9+ APIs in touched Java packages**
+- [x] **Step 5: Scan for Java 9+ APIs in touched Java packages**
 
 Run:
 
@@ -738,7 +738,7 @@ rg -n "List\\.of|Map\\.of|Set\\.of|copyOf|orElseThrow\\(\\)" \
 
 Expected: no output.
 
-- [ ] **Step 6: Scan Magic-API plugin code for duplicated provider builders**
+- [x] **Step 6: Scan Magic-API plugin code for duplicated provider builders**
 
 Run:
 
@@ -749,7 +749,7 @@ rg -n "RedisEmbeddingStore\\.builder|MilvusEmbeddingStore\\.builder|QdrantEmbedd
 
 Expected: no output outside compatibility comments or Core provider adapter references.
 
-- [ ] **Step 7: Validate OpenSpec**
+- [x] **Step 7: Validate OpenSpec**
 
 Run:
 
@@ -759,11 +759,11 @@ openspec validate unify-vector-magicapi-plugin --strict
 
 Expected: passes with no validation errors.
 
-- [ ] **Step 8: Review OpenSpec task coverage without modifying tasks.md**
+- [x] **Step 8: Review OpenSpec task coverage without modifying tasks.md**
 
 Open `openspec/changes/unify-vector-magicapi-plugin/tasks.md` and verify every item maps to `OpenSpec Task Mapping` in this plan. Do not change checkbox state in `tasks.md`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Commit message: `test(vector): verify unified vector plugin change`.
 

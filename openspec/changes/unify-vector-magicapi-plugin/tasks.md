@@ -25,6 +25,6 @@
 
 - [x] 4.1 明确旧脚本入口迁移策略：兼容别名、薄壳委托或移除，并给出清晰错误/迁移提示。
 - [x] 4.2 补充配置示例，覆盖多个向量 store、默认 store、同 provider 多实例和脚本侧 `vector` 访问方式。
-- [ ] 4.3 使用 Maven Wrapper 验证 Core LangChain4j 相关 reactor 构建。
-- [ ] 4.4 使用 Maven Wrapper 验证 AI boot autoconfigure 与 Magic-API plugin starter 相关 reactor 构建。
-- [ ] 4.5 运行 `openspec validate unify-vector-magicapi-plugin --strict` 并修复所有 OpenSpec 校验问题。
+- [x] 4.3 使用 Maven Wrapper 验证 Core LangChain4j 相关 reactor 构建。
+- [x] 4.4 使用 Maven Wrapper 验证 AI boot autoconfigure 与 Magic-API plugin starter 相关 reactor 构建。
+- [x] 4.5 运行 `openspec validate unify-vector-magicapi-plugin --strict` 并修复所有 OpenSpec 校验问题。
