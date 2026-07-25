@@ -74,7 +74,7 @@ TBD - created by archiving change add-magicapi-db-browser. Update Purpose after 
 - **AND** 系统 MUST NOT 提供调用函数或存储过程的接口
 
 ### Requirement: Console plugin provides a DB browsing workflow
-系统 SHALL 通过 Magic-API DB 插件提供 DB 管理入口，使用户可以选择数据源、浏览对象树、查看对象详情并预览数据；DB 管理前端 UI、后端自动配置、Controller、Service 和模型 MUST 归属于 `fw-plus-magicapi-plugin-db` 插件模块，宿主 `fw-plus-boot-autoconfigure` 和 `fw-plus-magicapi-spring-boot-starter/src/console` MUST NOT 维护 DB 管理业务实现。
+系统 SHALL 通过 Magic-API DB 插件提供 DB 管理入口，使用户可以选择数据源、浏览对象树、查看对象详情并预览数据；DB 管理前端 UI MUST 归属于 `fw-plus-magicapi-plugin-db/src/console`，后端自动配置、Controller、Service 和模型 MUST 位于 `fw-plus-boot-autoconfigure` 的 `magicapi/plugin/db` 插件包下，宿主 `fw-plus-magicapi-spring-boot-starter/src/console` MUST NOT 维护 DB 管理业务实现。
 
 #### Scenario: User browses from datasource to data preview
 - **WHEN** 用户进入 DB 管理模块
@@ -102,6 +102,26 @@ TBD - created by archiving change add-magicapi-db-browser. Update Purpose after 
 - **WHEN** DB 插件注册控制台 toolbar
 - **THEN** 中文控制台入口名称 MUST 显示为 `db管理`
 
+#### Scenario: DB management toolbar is gated by admin configuration
+- **WHEN** `magic-api.plugin.db.admin.enabled` 配置为 `true`
+- **THEN** DB 插件元数据 MUST 将 `adminEnabled` 设置为 `true`
+- **AND** DB 插件 toolbar MUST 标记为 `adminOnly`
+- **AND** 宿主控制台 MUST 通过通用插件 toolbar 门控逻辑显示 DB 管理入口
+
+#### Scenario: DB management admin configuration is disabled by default
+- **WHEN** 未配置 `magic-api.plugin.db.admin.enabled`
+- **THEN** DB 插件元数据 MUST 将 `adminEnabled` 设置为 `false`
+- **AND** 宿主控制台 MUST NOT 因 DB 插件存在而默认显示 `adminOnly` 的 DB 管理入口
+
+#### Scenario: DB management backend starts only when admin configuration is enabled
+- **WHEN** `magic-api.plugin.db.admin.enabled` 未配置或配置为 `false`
+- **THEN** DB 管理后端配置 MUST NOT 装配
+- **AND** `/db/browser/**` 管理 Controller MUST NOT 注册
+- **WHEN** `magic-api.plugin.db.admin.enabled` 配置为 `true`
+- **AND** `magic-api.plugin.db.enabled` 未配置或配置为 `true`
+- **THEN** DB 管理后端配置 MUST 装配
+- **AND** DB 插件元数据 MUST 将 `adminEnabled` 设置为 `true`
+
 ### Requirement: S3 management UI belongs to the S3 plugin
 系统 SHALL 将现有 S3 文件管理 UI 归属到 `fw-plus-magicapi-plugin-s3/src/console` 插件 UI 中，宿主控制台只保留通用插件加载/挂载能力。
 
@@ -127,3 +147,4 @@ TBD - created by archiving change add-magicapi-db-browser. Update Purpose after 
 - **WHEN** Magic-API 脚本继续通过 `db` 模块访问数据源
 - **THEN** 脚本侧行为 MUST 保持兼容
 - **AND** DB 浏览模块 MUST NOT 改变脚本侧 `db` API
+

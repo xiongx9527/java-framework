@@ -56,6 +56,17 @@ test('DB 管理入口使用预期展示名称', () => {
     assert.equal(en.db.title, 'DB Management')
 })
 
+test('DB 管理入口通过通用 adminOnly 标记受 adminEnabled 门控', async () => {
+    const pluginSource = await readFile(new URL('../src/index.js', import.meta.url), 'utf8')
+    const hostToolbarSource = await readFile(new URL('../../../../../fw-plus-magicapi-spring-boot-starter/src/console/src/components/panel/footer/magic-toolbar.vue', import.meta.url), 'utf8')
+
+    assert.match(pluginSource, /id:\s*'db-browser'/)
+    assert.match(pluginSource, /adminOnly:\s*true/)
+    assert.match(hostToolbarSource, /isPluginToolbarVisible/)
+    assert.match(hostToolbarSource, /toolbar\.adminOnly/)
+    assert.match(hostToolbarSource, /pluginData\.adminEnabled === true/)
+})
+
 test('DB 浏览树为命名空间和对象请求提供加载态与空态', async () => {
     const component = await readFile(new URL('../src/components/magic-db-browser.vue', import.meta.url), 'utf8')
 

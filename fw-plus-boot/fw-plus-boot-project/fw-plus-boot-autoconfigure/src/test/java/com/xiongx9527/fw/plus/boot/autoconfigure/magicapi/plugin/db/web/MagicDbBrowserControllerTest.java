@@ -11,12 +11,20 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.model.DbBrow
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.service.DbBrowserService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.service.DbBrowserSqlBuilder;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.service.DefaultDbBrowserService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.starter.MagicAPIDbBrowserAdminEnabledCondition;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.starter.MagicAPIDbBrowserConfiguration;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.support.StaticApplicationContext;
+import org.springframework.core.env.MapPropertySource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.ssssssss.magicapi.core.annotation.Valid;
@@ -39,6 +47,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -141,11 +150,24 @@ class MagicDbBrowserControllerTest {
 		assertEquals("enabled", enabled.name()[0]);
 		assertEquals("true", enabled.havingValue());
 		assertTrue(enabled.matchIfMissing());
+		Conditional conditional = configurationClass.getAnnotation(Conditional.class);
+		assertNotNull(conditional);
+		assertTrue(Arrays.asList(conditional.value()).contains(MagicAPIDbBrowserAdminEnabledCondition.class));
 		Object configuration = configurationClass.getConstructor(ObjectProvider.class).newInstance(mock(ObjectProvider.class));
 		Plugin plugin = (Plugin) configurationClass.getMethod("plugin").invoke(configuration);
 		assertEquals("db", plugin.getName());
 		assertNull(plugin.getGlobalName());
 		assertNull(plugin.getJavascriptFilename());
+		assertFalse(plugin.getAdminEnabled());
+
+		StaticApplicationContext context = contextWithDbAdminEnabled("true");
+		try {
+			Plugin adminPlugin = (Plugin) configurationClass.getMethod("plugin").invoke(configuration);
+			assertTrue(adminPlugin.getAdminEnabled());
+		} finally {
+			context.close();
+			new SpringUtils().setApplicationContext(null);
+		}
 
 		DbBrowserSqlBuilder sqlBuilder = (DbBrowserSqlBuilder) configurationClass.getMethod("dbBrowserSqlBuilder").invoke(configuration);
 		Object service = configurationClass.getMethod("dbBrowserService", MagicDynamicDataSource.class, DbBrowserSqlBuilder.class)
@@ -156,6 +178,23 @@ class MagicDbBrowserControllerTest {
 		Import aggregatedPlugins = MagicApiPluginAutoConfiguration.class.getAnnotation(Import.class);
 		assertNotNull(aggregatedPlugins);
 		assertTrue(Arrays.asList(aggregatedPlugins.value()).contains(configurationClass));
+	}
+
+	@Test
+	void configurationStartsOnlyWhenDbAdminEnabled() {
+		ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(MagicAPIDbBrowserConfiguration.class))
+				.withBean(MagicDynamicDataSource.class, MagicDynamicDataSource::new);
+
+		contextRunner.run(context -> assertFalse(context.containsBean("magicAPIDbBrowserConfiguration")));
+
+		contextRunner.withPropertyValues("magic-api.plugin.db.admin.enabled=true")
+				.run(context -> assertTrue(context.containsBean("magicAPIDbBrowserConfiguration")));
+
+		contextRunner.withPropertyValues(
+						"magic-api.plugin.db.enabled=false",
+						"magic-api.plugin.db.admin.enabled=true")
+				.run(context -> assertFalse(context.containsBean("magicAPIDbBrowserConfiguration")));
 	}
 
 	private void assertEndpoint(Class<?> controllerClass, String methodName, Class<? extends Annotation> mappingType,
@@ -182,6 +221,14 @@ class MagicDbBrowserControllerTest {
 		Class<?> controllerClass = Class.forName(CONTROLLER_CLASS);
 		Constructor<?> constructor = controllerClass.getConstructor(MagicConfiguration.class, DbBrowserService.class);
 		return constructor.newInstance(configuration, service);
+	}
+
+	private StaticApplicationContext contextWithDbAdminEnabled(String adminEnabled) {
+		StaticApplicationContext context = new StaticApplicationContext();
+		context.getEnvironment().getPropertySources().addFirst(new MapPropertySource("dbAdminEnabled",
+				Collections.singletonMap("magic-api.plugin.db.admin.enabled", adminEnabled)));
+		new SpringUtils().setApplicationContext(context);
+		return context;
 	}
 
 	private Object invoke(Object target, String methodName, Object... arguments) throws Exception {
