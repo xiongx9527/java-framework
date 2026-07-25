@@ -1,6 +1,6 @@
 ## 1. 通用扩展契约
 
-- [ ] 1.1 实现 `statusBarItems` 与静态插件 `toolbars` 的稳定 `order` 语义、通用插件变更事件和边界测试。
+- [x] 1.1 实现 `statusBarItems` 与静态插件 `toolbars` 的稳定 `order` 语义、通用插件变更事件和边界测试。
 - [x] 1.2 为 `Plugin` 增加通用 `attributes`，并向 IIFE 工厂传入当前 `pluginData`。
 
 ## 2. 前端插件迁移
