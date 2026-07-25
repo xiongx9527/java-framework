@@ -55,6 +55,16 @@ public class DefaultEmbeddingStoreRegistryTest {
     }
 
     @Test
+    public void shouldRejectNullDefaultStoreConfiguration() {
+        EmbeddingStoreRegistry registry = new DefaultEmbeddingStoreRegistry(
+                Collections.<String, EmbeddingStore<TextSegment>>emptyMap(), null);
+
+        EmbeddingStoreException exception = assertThrows(EmbeddingStoreException.class, registry::getDefault);
+
+        assertEquals("Default embedding store is not configured", exception.getMessage());
+    }
+
+    @Test
     public void shouldRejectInvalidDefaultStoreKey() {
         EmbeddingStoreRegistry registry = new DefaultEmbeddingStoreRegistry(
                 Collections.<String, EmbeddingStore<TextSegment>>emptyMap(), "knowledge");

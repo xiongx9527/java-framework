@@ -48,6 +48,19 @@ public class DefaultEmbeddingStoreFactoryTest {
         assertTrue(exception.getMessage().contains("knowledge"));
     }
 
+    @Test
+    public void shouldIncludeProviderAndKeyWhenAdapterSupportCheckFails() {
+        EmbeddingStoreDefinition definition = definition("knowledge", "milvus");
+        EmbeddingStoreProviderAdapter adapter = new FailingSupportAdapter();
+        EmbeddingStoreFactory factory = new DefaultEmbeddingStoreFactory();
+
+        EmbeddingStoreException exception = assertThrows(EmbeddingStoreException.class,
+                () -> factory.create(definition, Collections.singletonList(adapter)));
+
+        assertTrue(exception.getMessage().contains("milvus"));
+        assertTrue(exception.getMessage().contains("knowledge"));
+    }
+
     private EmbeddingStoreDefinition definition(String key, String provider) {
         EmbeddingStoreDefinition definition = new EmbeddingStoreDefinition();
         definition.setKey(key);
@@ -76,6 +89,19 @@ public class DefaultEmbeddingStoreFactoryTest {
                 throw new IllegalStateException("adapter failure");
             }
             return store;
+        }
+    }
+
+    private static class FailingSupportAdapter implements EmbeddingStoreProviderAdapter {
+
+        @Override
+        public boolean supports(String provider) {
+            throw new IllegalStateException("adapter support failure");
+        }
+
+        @Override
+        public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition) {
+            return null;
         }
     }
 
