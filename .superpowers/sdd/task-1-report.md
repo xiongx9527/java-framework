@@ -87,3 +87,52 @@ DONE。已完成 Core 多向量 registry/factory 基础模型并提交实现。
 
 - 中：`fw-plus-core/.mvn/wrapper` 仍缺失，当前环境必须使用 Zulu 8 系统 Maven 作为替代验证路径。
 - 低：本任务只提供 registry/factory 基础模型；具体 Milvus、Qdrant、Weaviate 等 provider adapter 由后续任务实现和集成验证。
+
+## Review Fix
+
+### RED 失败命令与摘要
+
+1. 已先尝试 Maven Wrapper：
+
+   ```bash
+   cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
+   ```
+
+   失败：`.mvn/wrapper/maven-wrapper.properties` 与 `maven-wrapper.jar` 缺失，Wrapper 无法启动。
+
+2. 使用 Zulu 8 系统 Maven 运行新增 factory 测试：
+
+   ```bash
+   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
+   ```
+
+   失败：`shouldIncludeProviderAndKeyWhenAdapterSupportCheckFails` 预期 `EmbeddingStoreException`，实际收到 `IllegalStateException`，确认 `supports()` 异常未被转换。
+
+### GREEN 通过命令与摘要
+
+1. factory 测试：
+
+   ```bash
+   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
+   ```
+
+   通过：4 个测试，0 failures，0 errors。
+
+2. 目标模块全量测试：
+
+   ```bash
+   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding test
+   ```
+
+   通过：10 个测试，0 failures，0 errors，0 skipped。
+
+### 修改文件
+
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreFactory.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreFactoryTest.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreRegistryTest.java`
+- `.superpowers/sdd/task-1-report.md`
+
+### 提交哈希
+
+- `0a3f5ffd0d6c2d81cbed3d7194cbba217a5d1459` `fix(vector): wrap embedding store adapter support errors`
