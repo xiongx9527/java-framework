@@ -1,0 +1,22 @@
+# 子代理进度
+
+- 计划任务：Task 1: 公共运行时元数据与插件加载事件
+- OpenSpec 映射：1.2 为 Plugin 增加通用 attributes，并向 IIFE 工厂传入当前 pluginData；同时完成 1.1 中的通用插件变更事件部分
+- 当前阶段：done
+- 实现代理：019f98e8-d8af-7160-b1b9-95d7ae2df1e7（Poincare）
+- review_mode：thorough
+- 审查修复轮次：1/2
+- 实现基线：e547bd701b3e15c43762e3b8a41703f6caf9b119
+- 实现提交：c21eaee32082cf29644d19fe5286110013099967
+- 变更文件：Task 1 brief 指定的 6 个文件（含补充的模块 POM）
+- RED 证据：系统 Maven 下 PluginTest 因 getAttributes 不存在失败；前端插件加载契约因 pluginData 与 PLUGINS_CHANGED 不存在失败
+- GREEN 证据：PluginTest 1/1 通过；前端契约 3/3 通过；npm run build 通过
+- 已通过审查：Task 1 独立审查经第 1 轮修复后聚焦复审通过，Spec Compliance 通过，Task quality Approved
+- 审查代理：019f9931-cdc1-7632-8555-ca66b4a68fa2（Turing）
+- 修复代理：019f9935-29e4-7180-a228-92dc4a27e7ec（Archimedes）
+- 修复提交：aa7630eff4d9fd86d691177bc47b62851cf3249e
+- 修复 RED：运行时插件加载测试 1/4 通过、3/4 因辅助模块不存在失败
+- 修复 GREEN：聚焦测试 4/4、宿主测试 6/6、npm run build 通过
+- 聚焦复审代理：019f993a-df71-7451-b643-e1460aefb282（Noether）
+- 未解决反馈：无
+- 阻塞处置：确认 `fw-plus-magicapi` 缺少测试依赖；已将模块 POM 纳入 Task 1 文件范围，按同层模式添加 `spring-boot-starter-test`（test scope）
