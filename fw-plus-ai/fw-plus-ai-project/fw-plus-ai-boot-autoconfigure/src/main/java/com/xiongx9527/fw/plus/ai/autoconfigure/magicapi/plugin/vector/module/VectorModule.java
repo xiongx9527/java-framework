@@ -10,18 +10,28 @@ import org.ssssssss.script.MagicScriptContext;
 import org.ssssssss.script.functions.DynamicAttribute;
 
 @MagicModule("vector")
-public class VectorModule implements DynamicAttribute<VectorStoreOperations, VectorStoreOperations>, DynamicModule<VectorStoreOperations> {
+public class VectorModule implements DynamicAttribute<VectorModule, VectorStoreOperations>, DynamicModule<VectorStoreOperations> {
 
     private final EmbeddingStoreRegistry registry;
+    private final VectorStoreOperations operations;
 
     public VectorModule(EmbeddingStoreRegistry registry) {
+        this(registry, null);
+    }
+
+    private VectorModule(EmbeddingStoreRegistry registry, VectorStoreOperations operations) {
         this.registry = registry;
+        this.operations = operations;
+    }
+
+    public VectorStoreOperations getOperations() {
+        return operations;
     }
 
     @Override
-    public VectorStoreOperations getDynamicAttribute(String key) {
+    public VectorModule getDynamicAttribute(String key) {
         try {
-            return operations(registry.get(key));
+            return new VectorModule(registry, operations(registry.get(key)));
         } catch (RuntimeException e) {
             throw new MagicAPIVectorException("Unable to resolve vector store for key '" + key + "': " + e.getMessage(), e);
         }
