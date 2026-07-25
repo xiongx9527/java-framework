@@ -17,12 +17,11 @@
 - Task: Task 1: Core 多向量 registry/factory 基础模型
 - Plan task text: Task 1: Core 多向量 registry/factory 基础模型
 - Mapped OpenSpec task text: 1.3 在 fw-plus-ai-langchain4j-store-embeding 中补齐 Java 8 兼容的多向量配置模型、store definition、registry 和默认 store 选择能力; 1.5 部分测试; 2.1 provider adapter/factory 接口
-- Stage: implementing-fix
+- Stage: task-review
 - Base commit: 1b9c5d54
 - Implementation commits: 6a01d22f, afbeb99b
-- Review result: Needs fixes
-- Important finding: DefaultEmbeddingStoreFactory.findAdapter calls adapter.supports(provider) outside exception conversion; supports runtime exceptions must be wrapped as EmbeddingStoreException with provider/key. Add test.
-- Minor finding: add getDefault null default key test if touching registry tests.
+- Fix commits: 0a3f5ffd, fc941a41
+- Review result: pending re-review after fix
 - Brief: .superpowers/sdd/task-1-brief.md
 - Report: .superpowers/sdd/task-1-report.md
 - Review mode: thorough
