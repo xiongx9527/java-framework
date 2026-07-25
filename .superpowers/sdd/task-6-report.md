@@ -80,7 +80,7 @@ DONE_WITH_CONCERNS
 
 ## 提交
 
-- 待本报告通过 `test(vector): verify unified vector plugin change` 提交后填入提交 hash。
+- 验证报告提交：`32202b4b2be2bbfe50aa8b54c6150c78ce710e36`（`test(vector): verify unified vector plugin change`）。
 
 ## Concerns
 
