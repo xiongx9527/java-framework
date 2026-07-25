@@ -37,6 +37,7 @@ export default (opt) => {
             icon: '#magic-kafka-kafka',
             title: 'Kafka',
             displayKey: 'kafka',
+            order: 200,
             onClick: () => window.open('https://kafka.apache.org/', '_blank')
         }],
         resource: [{

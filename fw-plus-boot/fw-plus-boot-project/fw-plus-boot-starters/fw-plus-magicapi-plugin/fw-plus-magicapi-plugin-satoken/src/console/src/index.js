@@ -16,6 +16,13 @@ export default (opt) => {
     setJs(opt.monaco)
     setHtml(opt.monaco)
     return {
+        statusBarItems: [{
+            icon: '#magic-satoken-satoken',
+            title: 'Satoken',
+            displayKey: 'satoken',
+            order: 1400,
+            onClick: () => window.open('https://sa-token.cc/', '_blank')
+        }],
         // 左侧资源
         resource: [{
             // 资源类型，和后端存储结构一致

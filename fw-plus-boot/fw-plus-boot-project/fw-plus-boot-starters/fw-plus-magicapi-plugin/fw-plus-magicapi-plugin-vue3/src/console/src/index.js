@@ -17,6 +17,13 @@ export default (opt) => {
     setJs(opt.monaco) ;
     setHtml(opt.monaco) ;
     return {
+        statusBarItems: [{
+            icon: '#magic-vue3-vue',
+            title: 'Vue SFC',
+            displayKey: 'vue3',
+            order: 1300,
+            onClick: () => window.open('https://play.vuejs.org/', '_blank')
+        }],
         // 左侧资源
         resource: [{
             // 资源类型，和后端存储结构一致

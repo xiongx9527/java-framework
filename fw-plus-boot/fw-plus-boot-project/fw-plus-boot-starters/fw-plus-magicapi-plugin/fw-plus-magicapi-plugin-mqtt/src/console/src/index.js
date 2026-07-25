@@ -22,11 +22,30 @@ if (typeof window !== 'undefined') {
     }
 }
 
+const openMqtt = () => {
+    let link = `${location.protocol}//${location.host}${location.pathname}`.replace('/index.html', '')
+    const baseURL = import.meta.env.MAGIC_API_BASE_URL || './'
+    if (baseURL.startsWith('http')) {
+        link = baseURL
+    } else if (baseURL.startsWith('./')) {
+        link = window.location.pathname.replace(/\/index\.html$/, '')
+    }
+    const druidUrl = link + '/mqtt/index.html'
+    window.open(druidUrl, '_blank')
+}
+
 export default (opt) => {
     const i18n = opt.i18n
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
     return {
+        statusBarItems: [{
+            icon: '#magic-mqtt-mqtt',
+            title: 'Mqtt client',
+            displayKey: 'mqtt',
+            order: 1000,
+            onClick: () => openMqtt()
+        }],
         datasources: [{
             type: 'mqtt-datasource',
             icon: '#magic-mqtt-mqtt',

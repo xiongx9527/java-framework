@@ -18,6 +18,13 @@ export default (opt) => {
     setJs(opt.monaco)
     setHtml(opt.monaco)
     return {
+        statusBarItems: [{
+            icon: '#magic-freemarker-ftl',
+            title: 'Freemarker',
+            displayKey: 'freemarker',
+            order: 500,
+            onClick: () => window.open('https://freemarker.apache.org/', '_blank')
+        }],
         // 左侧资源
         resource: [{
             // 资源类型，和后端存储结构一致

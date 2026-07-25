@@ -47,6 +47,7 @@ export default (opt) => {
             icon: '#magic-pulsar-pulsar',
             title: 'Pulsar',
             displayKey: 'pulsar',
+            order: 300,
             onClick: () => runtime.bus.$emit(runtime.Message.ADD_FOOTER_TOOLBAR, pulsarAdminToolbar)
         }],
         resource: [{
