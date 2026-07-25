@@ -79,7 +79,7 @@ public class AiServiceScannerProcessor implements BeanDefinitionRegistryPostProc
     }
 
     private void removeAiServicesWithInactiveProfiles(BeanDefinitionRegistry registry) {
-        Stream var10000 = Arrays.stream(registry.getBeanDefinitionNames()).filter((beanName) -> {
+        Stream<String> inactiveBeanNames = Arrays.stream(registry.getBeanDefinitionNames()).filter((beanName) -> {
             try {
                 BeanDefinition beanDefinition = registry.getBeanDefinition(beanName);
                 if (beanDefinition.getBeanClassName() != null) {
@@ -96,7 +96,7 @@ public class AiServiceScannerProcessor implements BeanDefinitionRegistryPostProc
             return false;
         });
         Objects.requireNonNull(registry);
-        var10000.forEach(registry::removeBeanDefinition);
+        inactiveBeanNames.forEach(registry::removeBeanDefinition);
     }
 
     public void setEnvironment(Environment environment) {
