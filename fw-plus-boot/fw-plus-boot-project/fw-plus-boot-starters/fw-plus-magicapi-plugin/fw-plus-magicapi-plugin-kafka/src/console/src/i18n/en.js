@@ -53,6 +53,37 @@ export default {
                     other: 'Please Enter Kafka Other Config, eg: {xxxx: "yyyy"}'
                 }
             }
-        }
+        },
+        title: 'Kafka Management',
+        loading: 'Loading...',
+        refresh: 'Refresh',
+        selectStorage: 'Select Storage',
+        loadStoragesFailed: 'Failed to load storage',
+        loadTopicsFailed: 'Failed to load topics',
+        loadTopicInfoFailed: 'Failed to load topic information',
+        loadConsumerGroupsFailed: 'Failed to load consumer groups',
+        noTopicInfo: 'No topic information available',
+        fullscreen: 'Fullscreen',
+        exitFullscreen: 'Exit Fullscreen',
+        noPlugin: 'Kafka plugin not installed',
+        noPluginSubtext: 'Please install Kafka plugin to use Kafka management features',
+        consumerGroupOffset: 'Consumer Group Offset',
+        topic: 'Topic',
+        consumerGroup: 'Consumer Group',
+        selectConsumerGroup: 'Select Consumer Group',
+        resetOffsets: 'Reset Offsets',
+        resetOffsetsSuccess: 'Reset offsets success',
+        resetOffsetsFailed: 'Failed to reset offsets',
+        delete: 'Delete',
+        deleteTopic: 'Delete Topic',
+        deleteTopicConfirm: 'Are you sure you want to delete topic {0}?',
+        deleteTopicSuccess: 'Delete topic success',
+        deleteTopicFailed: 'Failed to delete topic',
+        deletingTopic: 'Deleting topic...',
+        cancel: 'Cancel',
+        confirm: 'Confirm',
+        close: 'Close',
+        pleaseSelect: 'Please select',
+        pleaseSelectConsumerGroup: 'Please select consumer group'
     }
 }

@@ -1,0 +1,53 @@
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+const test = require('node:test')
+
+const consoleRoot = path.join(__dirname, '..')
+const pluginPath = path.join(consoleRoot, 'src/index.js')
+const componentPath = path.join(consoleRoot, 'src/components/magic-kafka.vue')
+const runtimePath = path.join(consoleRoot, 'src/service/magic-kafka-runtime.js')
+const hostPagePath = path.join(__dirname, '../../../../../fw-plus-magicapi-spring-boot-starter/src/console/src/components/panel/main/magic-kafka.vue')
+
+test('Kafka 管理页归属插件且不再由宿主页面提供', () => {
+    assert.equal(fs.existsSync(componentPath), true, 'Kafka 插件应提供管理页面组件')
+    assert.equal(fs.existsSync(hostPagePath), false, '宿主不应保留 Kafka 管理页面')
+})
+
+test('Kafka 管理页仅使用插件运行时和宿主全局 Magic 组件', () => {
+    const source = fs.readFileSync(componentPath, 'utf8')
+    assert.match(source, /magic-kafka-runtime/)
+    assert.match(source, /<magic-monaco-editor/)
+    assert.match(source, /<magic-table/)
+    assert.match(source, /<magic-icon icon="#magic-kafka-kafka" size="48px"/)
+    assert.match(source, /<magic-icon icon="#magic-kafka-kafka" size="16px"/)
+    assert.doesNotMatch(source, /<magic-icon icon="kafka"/)
+    assert.doesNotMatch(source, /from\s+['"](?:\.\.\/)+scripts\//)
+    assert.doesNotMatch(source, /from\s+['"](?:\.\.\/)+components\/common\//)
+    assert.doesNotMatch(source, /import\s+Magic(?:MonacoEditor|Table|TableColumn|Icon)/)
+})
+
+test('Kafka 插件注册订阅编辑和独立管理工具栏', () => {
+    const source = fs.readFileSync(pluginPath, 'utf8')
+    assert.match(source, /name:\s*'kafka'/)
+    assert.match(source, /type:\s*'kafka-subscribe'/)
+    assert.match(source, /id:\s*'kafka'/)
+    assert.match(source, /title:\s*i18n\.format\('kafka\.title'\)/)
+    assert.match(source, /icon:\s*'#magic-kafka-kafka'/)
+    assert.match(source, /component:\s*MagicKafka/)
+    assert.match(source, /adminOnly:\s*true/)
+    assert.match(source, /allowClose:\s*true/)
+    assert.match(source, /fullscreen:\s*true/)
+})
+
+test('Kafka 管理页运行时适配保存宿主注入依赖', () => {
+    assert.equal(fs.existsSync(runtimePath), true, 'Kafka 插件应提供运行时适配服务')
+    const source = fs.readFileSync(runtimePath, 'utf8')
+    const pluginSource = fs.readFileSync(pluginPath, 'utf8')
+    assert.match(source, /request:\s*opt\.request/)
+    assert.match(source, /modal:\s*opt\.modal/)
+    assert.match(source, /bus:\s*opt\.bus/)
+    assert.match(source, /Message:\s*opt\.Message/)
+    assert.match(source, /format:\s*opt\.i18n\.format/)
+    assert.match(pluginSource, /setMagicKafkaRuntime\(opt\)/)
+})
