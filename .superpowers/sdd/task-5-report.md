@@ -1,143 +1,72 @@
 # Task 5 实施报告
 
-## 实现内容
+## 状态
 
-- 新增 SQL 校验接口、结果对象和默认实现：仅接受单条 `SELECT`/`WITH` 查询，忽略字符串字面量与注释中的关键字，拒绝危险关键字和多语句，并为无顶层 `LIMIT` 的查询追加行数限制。
-- 新增 JDBC SQL 执行接口、结果对象和实现：通过 `JdbcTemplate` 提取列标签、SQL 类型、行数据和行数；缺少 `JdbcTemplate` 时返回 `SQL_EXECUTION_FAILED`。
-- 在 `AskDataAutoConfiguration` 注册可覆盖的 SQL 校验器和执行器 bean；执行器通过 `ObjectProvider<JdbcTemplate>` 延迟获取依赖。
-- 增加 H2 测试依赖与 SQL 校验、JDBC 执行测试。
+DONE_WITH_CONCERNS
 
-## TDD 证据
+## RED 命令和失败摘要
 
-### RED 1
-
-命令：
+简报指定的 Maven Wrapper 命令：
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest,JdbcAskDataSqlExecutorTest test
+cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest test
 ```
 
-结果：失败。测试编译提示 `DefaultAskDataSqlValidator` 不存在，证明新测试在实现前会失败。
+失败：worktree 的 `fw-plus-ai/.mvn/wrapper/maven-wrapper.properties` 和 `maven-wrapper.jar` 缺失，Wrapper 无法启动。
 
-### RED 2
-
-命令：
+按简报规定使用 Zulu 8 系统 Maven 的替代命令：
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest test
+cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest test
 ```
 
-结果：失败。`shouldAddLimitBeforeTrailingCommentAfterSemicolon` 期望 `select * from orders limit 100`，实际输出在分号和注释后追加 `limit`。
+失败：测试编译找不到 `LegacyVectorModuleSupport`，符合实现前的预期 RED。
 
-### GREEN
-
-命令：
+## GREEN 命令和通过摘要
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest,JdbcAskDataSqlExecutorTest test
+cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest test
 ```
 
-结果：通过，10 个测试、0 失败、0 错误。
-
-## 全量验证
-
-命令：
+通过：2 个测试，0 failures，0 errors，0 skipped。
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter test
+cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest,VectorModuleTest,MagicAPIVectorConfigurationTest test
 ```
 
-结果：通过，25 个测试、0 失败、0 错误。
+通过：8 个测试，0 failures，0 errors，0 skipped。
 
-## 风险信号
-
-- 项目既有 `fw-plus-ai-boot-autoconfigure` POM 存在 3 条重复 LangChain4j 依赖声明警告，本任务未修改该文件。
-- 测试运行时缺少 SLF4J 绑定，使用 NOP logger；不影响测试结果。
-- 未发现 SQLBot 品牌、Spring AI 运行时依赖或 Java 9+ API。
-
-## SQL 安全修复复核
-
-### 修复内容
-
-- 拒绝可写 `SELECT INTO`，包括 `select * into audit_copy from orders`。
-- 保守拒绝 MySQL 可执行注释 `/*!...*/`，避免注释中包含的写操作绕过扫描。
-- 为 `AskDataDialect` 增加 Java 8 兼容的 `applyLimit` 策略；MySQL、PostgreSQL、ClickHouse 仍注册为 `LIMIT` 语法。
-- 识别无换行尾随 `--` 注释，在注释前通过方言追加行数限制。
-
-### RED
-
-命令：
+## Provider Builder 静态扫描结果
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest test
+cd fw-plus-ai
+rg -n "RedisEmbeddingStore\\.builder|MilvusEmbeddingStore\\.builder|QdrantEmbeddingStore\\.builder|WeaviateEmbeddingStore\\.builder" fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin
 ```
 
-结果：失败。新增方言委托测试在 `@Override applyLimit` 处无法编译，证明生产代码尚未提供行数限制策略契约。
+无输出。旧 Magic-API 插件源码不再调用 provider store builder。
 
-### GREEN
-
-命令：
+## Java 9+ API 扫描结果
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest test
+rg -n "\\b(List|Set|Map)\\.of\\(|\\.(copyOf|isBlank|strip|repeat|lines|transferTo|readAllBytes|readString|writeString|ofNullable)\\(|\\bvar\\b" fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/{vector,milvus,qdrant,redisstack,weaviate} fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy
 ```
 
-结果：通过，13 个测试、0 失败、0 错误。
+无输出，未发现本任务修改范围内的 Java 9+ API。
 
-### Task 5 聚焦测试
+## 修改文件列表
 
-命令：
+- `docs/vector-magicapi-plugin-migration.md`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy/LegacyVectorModuleSupport.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy/LegacyVectorModuleSupportTest.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/{milvus,qdrant,redisstack,weaviate}/module/*.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/{milvus,qdrant,redisstack,weaviate}/starter/*Configuration.java`
 
-```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest,JdbcAskDataSqlExecutorTest test
-```
+## 提交 Hash
 
-结果：通过，14 个测试、0 失败、0 错误。
+`ac2e8195ff6d2ffc22f3f43cf92052ec1db043cb` `feat(vector): add legacy magicapi vector compatibility`
 
-### 风险信号
+## 自检结论和 Concerns
 
-- 构建仍报告 `fw-plus-ai-boot-autoconfigure` 的 3 条重复 LangChain4j 依赖声明警告，未在本任务范围内修改。
-- JDBC 聚焦测试仍提示缺少 SLF4J 绑定并使用 NOP logger；不影响测试结果。
+四个旧配置和模块均已标记 `@Deprecated`，旧动态入口与旧 build 方法均通过 `LegacyVectorModuleSupport` 的 Core `EmbeddingStoreRegistry` 访问统一 `VectorStoreOperations`；数据源控制器和资源存储未删除。
 
-## 额外复审修复：方言限行检测
-
-### 修复内容
-
-- `AskDataDialect` 新增 Java 8 兼容的 `hasRowLimit(String sql)` 策略。默认实现忽略字符串、注释和子查询中的 `LIMIT`，仅识别顶层 `LIMIT`。
-- `DefaultAskDataSqlValidator` 在 SQL 规范化后通过 `dialect.hasRowLimit(...)` 决定是否追加，不再自行以 `hasTopLevelLimit` 作出决策。
-- 新增自定义 `FETCH FIRST ... ROWS ONLY` 方言测试：已有 `fetch first 10 rows only` 时保持原 SQL，缺失时追加 `fetch first 100 rows only`。
-
-### RED
-
-命令：
-
-```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest test
-```
-
-结果：失败。新增测试在 `@Override hasRowLimit` 处编译失败，证明生产方言契约尚未提供限行检测策略。
-
-### GREEN
-
-命令：
-
-```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest test
-```
-
-结果：通过，14 个测试、0 失败、0 错误。
-
-### Task 5 聚焦测试
-
-命令：
-
-```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8); export PATH="$JAVA_HOME/bin:$PATH"; cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-askdata-spring-boot-starter/fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest,JdbcAskDataSqlExecutorTest test
-```
-
-结果：通过，15 个测试、0 失败、0 错误。
-
-### 风险信号
-
-- 构建仍报告 `fw-plus-ai-boot-autoconfigure` 的 3 条重复 LangChain4j 依赖声明警告，未在本任务范围内修改。
-- JDBC 聚焦测试仍提示缺少 SLF4J 绑定并使用 NOP logger；不影响测试结果。
+现有 POM 仍报告 3 条重复 LangChain4j 依赖，测试运行期仍报告 SLF4J 多绑定；均为本任务外既有告警，未阻断本次测试。
