@@ -5,3 +5,4 @@ Task 1: complete (commits 1b9c5d54..fc941a41, review clean after focused re-revi
 Task 2: complete (commits afc09fc2..81d447bb, review clean)
 Task 3: complete (commits bfe20bf0..4c4243c0, review clean after duplicate-key coverage fix)
 Task 4: complete (commits 1bce235c..6c01abbd, review clean after dynamic-attribute contract fix)
+Task 5: complete (commits fbd44302..02cdb389, review clean after legacy delegation fix)
