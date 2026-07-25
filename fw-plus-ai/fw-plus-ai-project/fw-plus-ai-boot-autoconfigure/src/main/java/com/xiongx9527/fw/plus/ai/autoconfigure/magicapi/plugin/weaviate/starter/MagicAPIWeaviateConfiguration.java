@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.module.W
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.service.WeaviateDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.service.WeaviateDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.web.MagicWeaviateController;
+import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import io.weaviate.client.WeaviateClient;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 @ConditionalOnClass(name = {"io.weaviate.client.WeaviateClient","dev.langchain4j.store.embedding.weaviate.WeaviateEmbeddingStore"})
 @EnableConfigurationProperties(MagicAPIWeaviateConfig.class)
 @Configuration
+@Deprecated
 public class MagicAPIWeaviateConfiguration implements MagicPluginConfiguration {
 
     /** MagicAPI配置属性 */
@@ -67,8 +69,9 @@ public class MagicAPIWeaviateConfiguration implements MagicPluginConfiguration {
     @DependsOn(value={"magicDynamicWeaviateDataSource"})
     public WeaviateModule weaviateModule(MagicDynamicWeaviateDataSource magicDynamicWeaviateDataSource,
                                          @Autowired(required = false) WeaviateClient weaviateClient,
-                                         @Autowired(required = false) EmbeddingModel embeddingModel) {
-        return new WeaviateModule(magicDynamicWeaviateDataSource, weaviateClient, embeddingModel);
+                                         @Autowired(required = false) EmbeddingModel embeddingModel,
+                                         @Autowired(required = false) EmbeddingStoreRegistry embeddingStoreRegistry) {
+        return new WeaviateModule(magicDynamicWeaviateDataSource, weaviateClient, embeddingModel, embeddingStoreRegistry);
     }
 
     /**
