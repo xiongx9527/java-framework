@@ -1,5 +1,26 @@
 export default {
     s3: {
+        browser: {
+            title: 'S3 File Manager',
+            selectStorage: 'Select storage',
+            path: 'Path',
+            basePath: 'Base path',
+            save: 'Save',
+            search: 'Search files',
+            searchAction: 'Search',
+            loading: 'Loading...',
+            empty: 'No files found',
+            loadMore: 'Load more',
+            previewUrl: 'Preview URL',
+            preview: 'Preview',
+            previewFailed: 'Unable to generate preview URL',
+            download: 'Download',
+            downloadFailed: 'Unable to generate download URL',
+            delete: 'Delete',
+            confirmDelete: 'Delete {0}?',
+            cancel: 'Cancel',
+            loadFailed: 'Unable to load S3 files'
+        },
         datasource: {
             title: 'S3 DataSource',
             name: 'S3',

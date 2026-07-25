@@ -3,12 +3,13 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.service;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.MagicDynamicS3DataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.S3DataSourceInfo;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.ssssssss.magicapi.core.event.FileEvent;
 import org.ssssssss.magicapi.core.event.GroupEvent;
 import org.ssssssss.magicapi.core.service.AbstractMagicDynamicRegistry;
-import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,6 +22,8 @@ public class S3DataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
      * 用于动态管理和操作S3数据源的实例
      */
     private final MagicDynamicS3DataSource magicDynamicS3DataSource;
+
+    private final S3DataSourceInfoMagicResourceStorage s3DataSourceInfoMagicResourceStorage;
     
     /**
      * 构造函数
@@ -29,9 +32,38 @@ public class S3DataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
      * @param magicResourceStorage         MagicAPI资源存储器
      * @param magicDynamicS3DataSource S3数据源管理器
      */
-    public S3DataSourceMagicDynamicRegistry(MagicResourceStorage<S3DataSourceInfo> magicResourceStorage, MagicDynamicS3DataSource magicDynamicS3DataSource) {
+    public S3DataSourceMagicDynamicRegistry(S3DataSourceInfoMagicResourceStorage magicResourceStorage, MagicDynamicS3DataSource magicDynamicS3DataSource) {
         super(magicResourceStorage);
+        this.s3DataSourceInfoMagicResourceStorage = magicResourceStorage;
         this.magicDynamicS3DataSource = magicDynamicS3DataSource;
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void registerPersistedDataSources() {
+        try {
+            ListUtils.emptyIfNull(s3DataSourceInfoMagicResourceStorage.findAll()).forEach(this::registerPersistedDataSource);
+        } catch (Exception e) {
+            log.warn("加载已保存的 S3 数据源失败", e);
+        }
+    }
+
+    private void registerPersistedDataSource(S3DataSourceInfo entity) {
+        if (entity == null || StringUtils.isBlank(entity.getKey())) {
+            return;
+        }
+        try {
+            if (StringUtils.isBlank(entity.getId())) {
+                magicDynamicS3DataSource.destroyFileStorageServiceByKey(entity.getKey());
+                magicDynamicS3DataSource.buildFileStorageService(entity);
+                return;
+            }
+            boolean registered = register(entity);
+            if (!registered) {
+                log.warn("注册 S3 数据源失败: {}", entity.getKey());
+            }
+        } catch (Exception e) {
+            log.error("注册 S3 数据源失败: {}", entity.getKey(), e);
+        }
     }
 
     /**
@@ -44,7 +76,8 @@ public class S3DataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("处理 S3 数据源文件事件失败: {}", event, e);
         }
     }
 
@@ -58,7 +91,8 @@ public class S3DataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
     public void onGroupEvent(GroupEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("处理 S3 数据源分组事件失败: {}", event, e);
         }
     }
 
@@ -74,7 +108,8 @@ public class S3DataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
         magicDynamicS3DataSource.destroyFileStorageServiceByKey(entity.getKey());
         try {
             return super.register(entity);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("注册 S3 数据源失败: {}", entity == null ? null : entity.getKey(), e);
             return false;
         }
     }
@@ -93,7 +128,8 @@ public class S3DataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
         magicDynamicS3DataSource.buildFileStorageService(entity);
         try {
             return super.register(mappingNode);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("注册 S3 数据源映射失败: {}", entity == null ? null : entity.getKey(), e);
             return false;
         }
     }
@@ -109,7 +145,8 @@ public class S3DataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegist
         magicDynamicS3DataSource.destroyFileStorageServiceByKey(mappingNode.getEntity().getKey());
         try {
             super.unregister(mappingNode);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("注销 S3 数据源失败: {}", mappingNode.getEntity().getKey(), e);
         }
     }
 

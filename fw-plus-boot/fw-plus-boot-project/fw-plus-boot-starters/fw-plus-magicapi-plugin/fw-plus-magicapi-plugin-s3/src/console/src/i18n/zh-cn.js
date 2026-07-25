@@ -1,5 +1,26 @@
 export default {
     s3: {
+        browser: {
+            title: 'S3 文件管理',
+            selectStorage: '请选择存储',
+            path: '路径',
+            basePath: '基础路径',
+            save: '保存',
+            search: '搜索文件',
+            searchAction: '搜索',
+            loading: '加载中...',
+            empty: '暂无文件',
+            loadMore: '加载更多',
+            previewUrl: '预览链接',
+            preview: '预览',
+            previewFailed: '无法生成预览链接',
+            download: '下载',
+            downloadFailed: '无法生成下载链接',
+            delete: '删除',
+            confirmDelete: '确定要删除 {0} 吗？',
+            cancel: '取消',
+            loadFailed: '加载 S3 文件失败'
+        },
         datasource: {
             title: 'S3 数据源',
             name: 'S3 数据源',

@@ -1,0 +1,15 @@
+{
+  "name": "magic-db",
+  "version": "1.0.0",
+  "description": "Magic-API DB Browser Plugin",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^2.0.1",
+    "vite": "^2.7.10",
+    "vue": "^3.2.26"
+  }
+}
