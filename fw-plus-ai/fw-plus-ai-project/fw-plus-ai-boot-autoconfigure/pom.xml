@@ -16,7 +16,33 @@
         <main.basedir>${basedir}/../..</main.basedir>
     </properties>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.46</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
+
+        <!--lombok-->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.46</version>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
