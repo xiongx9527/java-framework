@@ -72,8 +72,10 @@
 - Task: Task 6: 端到端验证、兼容扫描与 OpenSpec 校验
 - Plan task text: Task 6: 端到端验证、兼容扫描与 OpenSpec 校验
 - Mapped OpenSpec task text: 4.3 Core LangChain4j reactor build; 4.4 AI boot autoconfigure and Magic-API plugin starter reactor build; 4.5 OpenSpec strict validation
-- Stage: verifying
+- Stage: done
 - Base commit: f1e86b47
+- Implementation commits: 32202b4b, 7c3fce46
+- Review result: approved
 - Brief: .superpowers/sdd/task-6-brief.md
 - Report: .superpowers/sdd/task-6-report.md
 - Review mode: thorough
