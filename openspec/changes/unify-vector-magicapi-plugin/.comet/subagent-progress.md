@@ -38,3 +38,15 @@
 - Report: .superpowers/sdd/task-3-report.md
 - Review mode: thorough
 - Review/fix rounds: 1
+
+## Current Task
+
+- Task: Task 4: AI Magic-API 统一 vector 插件
+- Plan task text: Task 4: AI Magic-API 统一 vector 插件
+- Mapped OpenSpec task text: 3.1 新建统一 AI Magic-API vector 插件模块; 3.2 实现统一 vector DynamicModule/配置入口; 3.3 通过 Core registry/factory 获取 EmbeddingStore 并支持按 key 和默认访问; 3.5 将统一 vector 插件加入 AI boot dependencies
+- Stage: implementing
+- Base commit: ce9fac33
+- Brief: .superpowers/sdd/task-4-brief.md
+- Report: .superpowers/sdd/task-4-report.md
+- Review mode: thorough
+- Review/fix rounds: 0
