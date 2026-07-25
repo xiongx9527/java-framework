@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import createDbBrowserService from '../src/service/magic-db-browser.js'
+import zhCN from '../src/i18n/zh-cn.js'
+import en from '../src/i18n/en.js'
 
 const createRequest = () => {
     const calls = []
@@ -47,6 +49,11 @@ test('DB 浏览服务通过注入的 request 调用元数据和预览接口', as
         { method: 'GET', url: '/db/browser/object/detail', payload: target },
         { method: 'POST', url: '/db/browser/preview', payload: { datasourceKey: 'orders', catalog: 'shop', schema: 'public', objectName: 'items', objectType: 'TABLE', page: 2, pageSize: 20, sortColumn: 'id', sortDirection: 'DESC' } }
     ])
+})
+
+test('DB 管理入口使用预期展示名称', () => {
+    assert.equal(zhCN.db.title, 'db管理')
+    assert.equal(en.db.title, 'DB Management')
 })
 
 test('DB 浏览树为命名空间和对象请求提供加载态与空态', async () => {

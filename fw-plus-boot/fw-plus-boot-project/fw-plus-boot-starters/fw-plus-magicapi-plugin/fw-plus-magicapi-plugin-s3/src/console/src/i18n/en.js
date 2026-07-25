@@ -2,15 +2,23 @@ export default {
     s3: {
         browser: {
             title: 'S3 File Manager',
+            storage: 'Storage',
+            select: 'Please select',
             selectStorage: 'Select storage',
             path: 'Path',
             basePath: 'Base path',
+            edit: 'Edit',
             save: 'Save',
+            searchLabel: 'File name',
             search: 'Search files',
             searchAction: 'Search',
+            refresh: 'Refresh',
             loading: 'Loading...',
             empty: 'No files found',
             loadMore: 'Load more',
+            folder: 'Folder',
+            file: 'File',
+            selectFile: 'Select a file',
             previewUrl: 'Preview URL',
             preview: 'Preview',
             previewFailed: 'Unable to generate preview URL',
@@ -19,7 +27,13 @@ export default {
             delete: 'Delete',
             confirmDelete: 'Delete {0}?',
             cancel: 'Cancel',
-            loadFailed: 'Unable to load S3 files'
+            errorTitle: 'S3 File Manager Error',
+            loadFailed: 'Unable to load S3 files',
+            loadStoragesFailed: 'Unable to load S3 storages',
+            listFilesFailed: 'Unable to load S3 files',
+            loadMoreFailed: 'Unable to load more S3 files',
+            saveBasePathFailed: 'Unable to save base path',
+            deleteFailed: 'Unable to delete S3 file'
         },
         datasource: {
             title: 'S3 DataSource',

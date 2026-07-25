@@ -1,4 +1,21 @@
 let activeRequest = null
+let activeModal = null
+
+const normalizeRequestError = (error, response, raw) => {
+    if (error instanceof Error) {
+        return error
+    }
+    if (error && typeof error === 'object') {
+        return error
+    }
+    if (response && typeof response === 'object') {
+        return response
+    }
+    if (raw instanceof Error) {
+        return raw
+    }
+    return new Error(error || 'Request failed')
+}
 
 const invoke = (request, method, url, params) => new Promise((resolve, reject) => {
     if (!request || typeof request[method] !== 'function') {
@@ -8,7 +25,7 @@ const invoke = (request, method, url, params) => new Promise((resolve, reject) =
     request[method](url, params)
         .success(resolve)
         .exception((code, message) => reject(new Error(message || String(code))))
-        .error((error) => reject(error instanceof Error ? error : new Error(String(error || 'Request failed'))))
+        .error((error, response, raw) => reject(normalizeRequestError(error, response, raw)))
 })
 
 const unwrap = response => response && response.data !== undefined ? response.data : response
@@ -16,6 +33,12 @@ const unwrap = response => response && response.data !== undefined ? response.da
 export const setS3BrowserRequest = request => {
     activeRequest = request
 }
+
+export const setS3BrowserModal = modal => {
+    activeModal = modal
+}
+
+export const getS3BrowserModal = () => activeModal
 
 export const createS3BrowserService = request => ({
     listStorages: async () => unwrap(await invoke(request, 'sendGet', '/s3/datasource/availableStorages')) || [],

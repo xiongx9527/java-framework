@@ -2,15 +2,23 @@ export default {
     s3: {
         browser: {
             title: 'S3 文件管理',
+            storage: '存储',
+            select: '请选择',
             selectStorage: '请选择存储',
             path: '路径',
             basePath: '基础路径',
+            edit: '编辑',
             save: '保存',
+            searchLabel: '文件名',
             search: '搜索文件',
             searchAction: '搜索',
+            refresh: '刷新',
             loading: '加载中...',
             empty: '暂无文件',
             loadMore: '加载更多',
+            folder: '目录',
+            file: '文件',
+            selectFile: '请选择文件',
             previewUrl: '预览链接',
             preview: '预览',
             previewFailed: '无法生成预览链接',
@@ -19,7 +27,13 @@ export default {
             delete: '删除',
             confirmDelete: '确定要删除 {0} 吗？',
             cancel: '取消',
-            loadFailed: '加载 S3 文件失败'
+            errorTitle: 'S3 文件管理错误',
+            loadFailed: '加载 S3 文件失败',
+            loadStoragesFailed: '加载 S3 存储失败',
+            listFilesFailed: '加载 S3 文件失败',
+            loadMoreFailed: '加载更多 S3 文件失败',
+            saveBasePathFailed: '保存基础路径失败',
+            deleteFailed: '删除 S3 文件失败'
         },
         datasource: {
             title: 'S3 数据源',

@@ -1,6 +1,6 @@
 export default {
     db: {
-        title: '数据库浏览器',
+        title: 'db管理',
         datasource: '数据源',
         namespace: '命名空间',
         table: '表',
