@@ -5,10 +5,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.starter.Ma
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.redisstack.starter.MagicAPIRedisStackConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.starter.MagicAPIVectorConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.starter.MagicAPIWeaviateConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
+@AutoConfigureAfter(name = "com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure.EmbeddingStoreAutoConfiguration")
 @Import({MagicAPIAiaConfiguration.class,
         MagicAPIVectorConfiguration.class,
         MagicAPIQdrantConfiguration.class,

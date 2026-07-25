@@ -20,15 +20,19 @@ public class WeaviateEmbeddingStoreProviderAdapter implements EmbeddingStoreProv
             ProviderAdapterSupport.requiredStringProperty(definition, "host");
             ProviderAdapterSupport.requiredIntegerProperty(definition, "port");
             ProviderAdapterSupport.requiredStringProperty(definition, "className");
-            return WeaviateEmbeddingStore.builder()
-                    .apiKey(ProviderAdapterSupport.stringProperty(definition, "apiKey"))
-                    .scheme(ProviderAdapterSupport.stringProperty(definition, "scheme"))
-                    .host(ProviderAdapterSupport.stringProperty(definition, "host"))
-                    .port(ProviderAdapterSupport.integerProperty(definition, "port"))
-                    .grpcPort(ProviderAdapterSupport.integerProperty(definition, "grpcPort"))
-                    .objectClass(ProviderAdapterSupport.stringProperty(definition, "className"))
-                    .metadataKeys(ProviderAdapterSupport.metadataKeys(definition))
-                    .build();
+            return new WeaviateEmbeddingStore(
+                    ProviderAdapterSupport.stringProperty(definition, "apiKey"),
+                    ProviderAdapterSupport.stringProperty(definition, "scheme"),
+                    ProviderAdapterSupport.stringProperty(definition, "host"),
+                    ProviderAdapterSupport.integerProperty(definition, "port"),
+                    ProviderAdapterSupport.booleanProperty(definition, "useGrpcForInserts"),
+                    ProviderAdapterSupport.booleanProperty(definition, "securedGrpc"),
+                    ProviderAdapterSupport.integerProperty(definition, "grpcPort"),
+                    ProviderAdapterSupport.stringProperty(definition, "className"),
+                    ProviderAdapterSupport.booleanProperty(definition, "avoidDups"),
+                    ProviderAdapterSupport.stringProperty(definition, "consistencyLevel"),
+                    ProviderAdapterSupport.metadataKeys(definition),
+                    ProviderAdapterSupport.stringProperty(definition, "textFieldName"));
         } catch (Exception ex) {
             throw ProviderAdapterSupport.exception(definition, ex);
         }

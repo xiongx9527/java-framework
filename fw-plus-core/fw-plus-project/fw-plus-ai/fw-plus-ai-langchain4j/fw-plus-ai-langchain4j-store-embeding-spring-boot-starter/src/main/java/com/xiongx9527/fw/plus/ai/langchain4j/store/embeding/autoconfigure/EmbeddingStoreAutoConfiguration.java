@@ -28,6 +28,7 @@ import java.util.Map;
 
 @Configuration
 @EnableConfigurationProperties(EmbeddingStoreProperties.class)
+@ConditionalOnProperty(prefix = "fw-plus.ai.langchain4j.embedding-store", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class EmbeddingStoreAutoConfiguration {
 
     private static final String PREFIX = "fw-plus.ai.langchain4j.embedding-store";
@@ -39,34 +40,37 @@ public class EmbeddingStoreAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean(EmbeddingStoreProviderAdapter.class)
+    @ConditionalOnMissingBean(name = "redisStackEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter redisStackEmbeddingStoreProviderAdapter() {
         return new RedisStackEmbeddingStoreProviderAdapter();
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "milvusEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter milvusEmbeddingStoreProviderAdapter() {
         return new MilvusEmbeddingStoreProviderAdapter();
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "elasticsearchEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter elasticsearchEmbeddingStoreProviderAdapter() {
         return new ElasticsearchEmbeddingStoreProviderAdapter();
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "qdrantEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter qdrantEmbeddingStoreProviderAdapter() {
         return new QdrantEmbeddingStoreProviderAdapter();
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "weaviateEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter weaviateEmbeddingStoreProviderAdapter() {
         return new WeaviateEmbeddingStoreProviderAdapter();
     }
 
     @Bean
     @ConditionalOnMissingBean(EmbeddingStoreRegistry.class)
-    @ConditionalOnProperty(prefix = PREFIX, name = "enabled", havingValue = "true", matchIfMissing = true)
     public EmbeddingStoreRegistry embeddingStoreRegistry(EmbeddingStoreProperties properties,
                                                          EmbeddingStoreFactory factory,
                                                          List<EmbeddingStoreProviderAdapter> adapters) {

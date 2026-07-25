@@ -2,9 +2,15 @@ package com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure.provi
 
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreException;
+import io.milvus.common.clientenum.ConsistencyLevelEnum;
+import io.milvus.param.IndexType;
+import io.milvus.param.MetricType;
+import dev.langchain4j.store.embedding.weaviate.WeaviateEmbeddingStore;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class EmbeddingStoreProviderAdapterTest {
@@ -40,6 +46,58 @@ public class EmbeddingStoreProviderAdapterTest {
         assertIncompleteConfiguration(new ElasticsearchEmbeddingStoreProviderAdapter(), "elasticsearch", "elasticsearch");
         assertIncompleteConfiguration(new QdrantEmbeddingStoreProviderAdapter(), "qdrant", "qdrant");
         assertIncompleteConfiguration(new WeaviateEmbeddingStoreProviderAdapter(), "weaviate", "weaviate");
+    }
+
+    @Test
+    public void shouldMapQdrantPayloadTextKeyFromProperties() {
+        EmbeddingStoreDefinition definition = definition("knowledge", "qdrant");
+        definition.getProperties().put("host", "127.0.0.1");
+        definition.getProperties().put("port", 6334);
+        definition.getProperties().put("collectionName", "knowledge");
+        definition.getProperties().put("payloadTextKey", "content");
+
+        Object builder = new QdrantEmbeddingStoreProviderAdapter().configureBuilder(definition);
+
+        assertEquals("content", ReflectionTestUtils.getField(builder, "payloadTextKey"));
+    }
+
+    @Test
+    public void shouldMapWeaviateLegacyOptionsFromProperties() {
+        EmbeddingStoreDefinition definition = definition("knowledge", "weaviate");
+        definition.getProperties().put("scheme", "http");
+        definition.getProperties().put("host", "127.0.0.1");
+        definition.getProperties().put("port", 8080);
+        definition.getProperties().put("className", "Knowledge");
+        definition.getProperties().put("avoidDups", true);
+        definition.getProperties().put("consistencyLevel", "ALL");
+        definition.getProperties().put("textFieldName", "content");
+
+        WeaviateEmbeddingStore store = (WeaviateEmbeddingStore) new WeaviateEmbeddingStoreProviderAdapter().create(definition);
+
+        assertEquals(Boolean.TRUE, ReflectionTestUtils.getField(store, "avoidDups"));
+        assertEquals("ALL", ReflectionTestUtils.getField(store, "consistencyLevel"));
+        assertEquals("content", ReflectionTestUtils.getField(store, "textFieldName"));
+    }
+
+    @Test
+    public void shouldMapMilvusLegacyOptionsFromProperties() {
+        EmbeddingStoreDefinition definition = definition("knowledge", "milvus");
+        definition.setDimension(768);
+        definition.getProperties().put("uri", "http://127.0.0.1:19530");
+        definition.getProperties().put("collectionName", "knowledge");
+        definition.getProperties().put("indexType", "HNSW");
+        definition.getProperties().put("metricType", "COSINE");
+        definition.getProperties().put("consistencyLevel", "EVENTUALLY");
+        definition.getProperties().put("retrieveEmbeddingsOnSearch", false);
+        definition.getProperties().put("autoFlushOnInsert", false);
+
+        Object builder = new MilvusEmbeddingStoreProviderAdapter().configureBuilder(definition);
+
+        assertEquals(IndexType.HNSW, ReflectionTestUtils.getField(builder, "indexType"));
+        assertEquals(MetricType.COSINE, ReflectionTestUtils.getField(builder, "metricType"));
+        assertEquals(ConsistencyLevelEnum.EVENTUALLY, ReflectionTestUtils.getField(builder, "consistencyLevel"));
+        assertEquals(Boolean.FALSE, ReflectionTestUtils.getField(builder, "retrieveEmbeddingsOnSearch"));
+        assertEquals(Boolean.FALSE, ReflectionTestUtils.getField(builder, "autoFlushOnInsert"));
     }
 
     private EmbeddingStoreDefinition definition(String key, String provider) {

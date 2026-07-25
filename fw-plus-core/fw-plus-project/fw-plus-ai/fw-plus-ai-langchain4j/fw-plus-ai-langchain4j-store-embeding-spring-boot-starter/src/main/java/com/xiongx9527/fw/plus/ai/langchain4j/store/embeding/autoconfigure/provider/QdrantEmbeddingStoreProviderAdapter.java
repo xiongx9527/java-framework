@@ -16,15 +16,31 @@ public class QdrantEmbeddingStoreProviderAdapter implements EmbeddingStoreProvid
     @Override
     public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition) {
         try {
+            return configureBuilder(definition).build();
+        } catch (Exception ex) {
+            throw ProviderAdapterSupport.exception(definition, ex);
+        }
+    }
+
+    QdrantEmbeddingStore.Builder configureBuilder(EmbeddingStoreDefinition definition) {
+        try {
             ProviderAdapterSupport.requiredStringProperty(definition, "host");
             Integer port = ProviderAdapterSupport.requiredIntegerProperty(definition, "port");
             ProviderAdapterSupport.requiredStringProperty(definition, "collectionName");
-            return QdrantEmbeddingStore.builder()
+            QdrantEmbeddingStore.Builder builder = QdrantEmbeddingStore.builder()
                     .host(ProviderAdapterSupport.stringProperty(definition, "host"))
                     .port(port.intValue())
                     .collectionName(ProviderAdapterSupport.stringProperty(definition, "collectionName"))
-                    .apiKey(ProviderAdapterSupport.stringProperty(definition, "apiKey"))
-                    .build();
+                    .apiKey(ProviderAdapterSupport.stringProperty(definition, "apiKey"));
+            String payloadTextKey = ProviderAdapterSupport.stringProperty(definition, "payloadTextKey");
+            if (payloadTextKey != null) {
+                builder.payloadTextKey(payloadTextKey);
+            }
+            Boolean useTls = ProviderAdapterSupport.booleanProperty(definition, "useTls");
+            if (useTls != null) {
+                builder.useTls(useTls.booleanValue());
+            }
+            return builder;
         } catch (Exception ex) {
             throw ProviderAdapterSupport.exception(definition, ex);
         }
