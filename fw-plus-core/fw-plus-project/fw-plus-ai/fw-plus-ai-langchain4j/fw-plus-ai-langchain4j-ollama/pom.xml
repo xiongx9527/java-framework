@@ -17,9 +17,15 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-ollama-spring-boot-starter</artifactId>
-            <version>0.35.0</version>
+            <artifactId>langchain4j-ollama</artifactId>
         </dependency>
     </dependencies>
 
