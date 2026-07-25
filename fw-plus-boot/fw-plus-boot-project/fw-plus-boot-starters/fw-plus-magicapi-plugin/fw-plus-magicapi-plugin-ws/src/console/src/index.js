@@ -29,11 +29,30 @@ if (typeof window !== 'undefined') {
     }
 }
 
+const openWs = () => {
+    let link = `${location.protocol}//${location.host}${location.pathname}`.replace('/index.html', '')
+    const baseURL = import.meta.env.MAGIC_API_BASE_URL || './'
+    if (baseURL.startsWith('http')) {
+        link = baseURL
+    } else if (baseURL.startsWith('./')) {
+        link = window.location.pathname.replace(/\/index\.html$/, '')
+    }
+    const druidUrl = link + '/ws/index.html'
+    window.open(druidUrl, '_blank')
+}
+
 export default (opt) => {
     const i18n = opt.i18n
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
     return {
+        statusBarItems: [{
+            icon: '#magic-ws-ws',
+            title: 'Websocket client',
+            displayKey: 'ws',
+            order: 900,
+            onClick: () => openWs()
+        }],
         resource: [{
             type: 'ws-subscribe',
             icon: '#magic-ws-ws',

@@ -46,6 +46,7 @@ test('Kafka 插件注册状态栏入口并保持原官网跳转语义', () => {
     assert.match(source, /icon:\s*'#magic-kafka-kafka'/)
     assert.match(source, /title:\s*'Kafka'/)
     assert.match(source, /displayKey:\s*'kafka'/)
+    assert.match(source, /order:\s*200/)
     assert.match(source, /onClick:\s*\(\)\s*=>\s*window\.open\('https:\/\/kafka\.apache\.org\/',\s*'_blank'\)/)
 })
 

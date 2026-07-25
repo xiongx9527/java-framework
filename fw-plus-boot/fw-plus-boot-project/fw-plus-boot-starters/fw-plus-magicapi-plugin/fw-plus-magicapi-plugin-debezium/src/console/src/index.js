@@ -27,6 +27,13 @@ export default (opt) => {
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
     return {
+        statusBarItems: [{
+            icon: '#magic-debezium-debezium',
+            title: 'Debezium',
+            displayKey: 'debezium',
+            order: 700,
+            onClick: () => window.open('https://debezium.io/', '_blank')
+        }],
         datasources: [{
             type: 'debezium-datasource',
             icon: '#magic-debezium-debezium',
