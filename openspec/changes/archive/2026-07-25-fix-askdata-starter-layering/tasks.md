@@ -1,0 +1,4 @@
+- [x] 复现 starter 承载业务源码的分层问题并记录 RED 证据。
+- [x] 将 AskData 源码、资源和测试迁移到 `fw-plus-ai-boot-autoconfigure`。
+- [x] 收敛 AskData starter POM，移除实现模块专属依赖。
+- [x] 运行结构检查、AskData 测试和 starter 编译验证。
