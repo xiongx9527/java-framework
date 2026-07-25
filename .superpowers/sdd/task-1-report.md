@@ -1,70 +1,89 @@
-# Task 1 Report
+# Task 1 实施报告
 
 ## 状态
 
-DONE
+DONE。已完成 Core 多向量 registry/factory 基础模型并提交实现。
 
-## 提交
+## RED 失败命令与摘要
 
-- 哈希：`3b87d2d2eace08dc85132fba818ad45c32b629af`
-- 信息：`feat(askdata): add starter module skeleton`
+1. 简报指定的 Maven Wrapper 命令：
 
-## 变更文件
+   ```bash
+   cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreRegistryTest test
+   ```
 
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/pom.xml`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/askdata/autoconfigure/AskDataAutoConfiguration.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/resources/META-INF/spring.factories`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/autoconfigure/AskDataAutoConfigurationRegistrationTest.java`
+   失败：`fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 与 `maven-wrapper.jar` 缺失，Wrapper 无法启动。
 
-## RED
+2. 按简报使用 Zulu 8 系统 Maven 替代命令：
 
-命令：
+   ```bash
+   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreRegistryTest test
+   ```
 
-```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
-export PATH="$JAVA_HOME/bin:$PATH"
-cd fw-plus-ai
-./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataAutoConfigurationRegistrationTest test
-```
+   失败：测试编译找不到 `EmbeddingStoreRegistry`、`DefaultEmbeddingStoreRegistry` 和 `EmbeddingStoreException`。JUnit Jupiter 与测试 fake `EmbeddingStore<TextSegment>` 均正常编译，失败原因符合 registry 尚未实现的预期。
 
-失败摘要：Maven 以 `Could not find the selected project in the reactor` 失败。失败原因是 AskData starter 模块及其 Maven 注册尚未存在，符合 RED 预期。
+3. factory RED：
 
-## GREEN
+   ```bash
+   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
+   ```
 
-依赖闭包验证命令：
+   失败：测试编译找不到 `EmbeddingStoreDefinition` 和 `EmbeddingStoreProviderAdapter`，符合 factory 基础模型尚未实现的预期。
 
-```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
-export PATH="$JAVA_HOME/bin:$PATH"
-cd fw-plus-ai
-./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -am -Dtest=AskDataAutoConfigurationRegistrationTest -Dsurefire.failIfNoSpecifiedTests=false test
-```
+## GREEN 通过命令与摘要
 
-通过摘要：`BUILD SUCCESS`；`AskDataAutoConfigurationRegistrationTest` 实际执行 1 个测试，`Failures: 0, Errors: 0, Skipped: 0`。
+1. registry 测试：
 
-任务指定命令：
+   ```bash
+   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreRegistryTest test
+   ```
 
-```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
-export PATH="$JAVA_HOME/bin:$PATH"
-cd fw-plus-ai
-./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataAutoConfigurationRegistrationTest test
-```
+   通过：4 个测试，0 failures，0 errors。
 
-通过摘要：在安装 AI 顶层父 POM 及目标上游模块到本地 Maven 仓库后，命令以 `BUILD SUCCESS` 完成；目标测试实际执行 1 次，零失败、零错误、零跳过。
+2. factory 测试：
 
-## 风险信号
+   ```bash
+   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
+   ```
 
-命中：是。
+   通过：3 个测试，0 failures，0 errors。
 
-- `fw-plus-ai-boot-autoconfigure/pom.xml` 已有 3 组重复依赖声明警告：`langchain4j-milvus`、`langchain4j-qdrant`、`langchain4j-redis`。该问题在新模块构建前已存在，未在 Task 1 范围内修改。
-- 初始直接模块构建缺少本地上游 SNAPSHOT 及 `fw-plus-ai-build` 父 POM；通过按依赖闭包构建并安装本地父 POM 后，任务指定命令通过。
-- 任务测试使用 JUnit 4，而 `spring-boot-starter-test` 引入的 JUnit Platform 组合在当前依赖图中无法发现测试。最终仅声明受 Spring Boot BOM 管理的 `junit:junit` 测试依赖，确认实际运行 1 个测试。
+3. 目标模块全量测试：
 
-## 顾虑
+   ```bash
+   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding test
+   ```
 
-- 本任务只验证了自动配置元数据同时注册在 `spring.factories` 与 `AutoConfiguration.imports`；不包含后续 AskData 数据访问、契约实现或 Java 17 / Spring Boot 3 adapter 功能。
-- 上游重复依赖警告仍可能影响未来 Maven 版本的构建稳定性，应在独立任务中处理。
+   通过：8 个测试，0 failures，0 errors，0 skipped。
+
+## 修改文件
+
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/pom.xml`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreProperties.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreDefinition.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreException.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreRegistry.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreRegistry.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreFactory.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreFactory.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreProviderAdapter.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreRegistryTest.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreFactoryTest.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStorePropertiesTest.java`
+
+## 提交哈希
+
+- `6a01d22f68a7997f6d2b2ab241f33134020dbc0d` `feat(vector): add embedding store registry foundation`
+
+## 自审结果
+
+- registry 使用防御性 `LinkedHashMap` 副本与 `Collections.unmodifiableMap`，并实现简报要求的三个精确错误消息。
+- factory 按 provider 选择 adapter；无适配器和 adapter 创建异常均抛出 `EmbeddingStoreException`，后者携带 provider 与 key。
+- `EmbeddingStoreProperties.stores` 初始化为空 `LinkedHashMap`；definition 包含 key、provider、enabled、dimension、metadataKeys、properties。
+- 测试中的 fake 实现实际 `EmbeddingStore<TextSegment>` 接口，没有使用不存在的 `InMemoryEmbeddingStore`。
+- 未修改 starter、provider adapter 实现、Magic-API 插件、聚合/BOM POM、OpenSpec artifacts、docs/superpowers/plans、docs/superpowers/specs 或 `.comet` 状态文件；未使用 Java 9+ API。
+
+## 风险信号清单
+
+- 中：`fw-plus-core/.mvn/wrapper` 仍缺失，当前环境必须使用 Zulu 8 系统 Maven 作为替代验证路径。
+- 低：本任务只提供 registry/factory 基础模型；具体 Milvus、Qdrant、Weaviate 等 provider adapter 由后续任务实现和集成验证。
