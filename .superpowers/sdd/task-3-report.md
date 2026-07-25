@@ -66,3 +66,33 @@ rg -n --glob '*.java' '\b(List|Set|Map)\.(of|copyOf)\s*\(|Optional\.orElseThrow\
 - starter 注册默认 factory、五个已有 provider adapter 及单一 registry；registry 仅在 `enabled=true` 或缺省时创建，并校验空 provider、重复 key、无效默认 key 和未知 provider。
 - `spring-boot-autoconfigure` 自身携带标准 Boot imports 元数据，元数据测试因此限定检查本 starter 自身的 classes 目录，避免将依赖资源误判为本模块新增文件。
 - 当前 worktree 缺少 Maven Wrapper，只能通过 `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn` 完成验证。
+
+## Task 3 Fixer：重复 key 回归测试
+
+### RED 命令与摘要
+
+```bash
+cd fw-plus-core
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -am -Dtest=EmbeddingStoreAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test
+```
+
+本次 fixer 针对已存在的重复 key 校验补测试；由于生产代码在测试前已经实现 `Duplicate embedding store key` 校验，未能观察到缺陷状态的失败 RED。新增测试首次运行即按预期捕获启动失败，故没有修改生产代码。
+
+### GREEN 命令与摘要
+
+使用上述命令完成验证：starter 反应堆构建 `BUILD SUCCESS`，`EmbeddingStoreAutoConfigurationTest` 共 5 项，`Failures: 0, Errors: 0`。日志确认两条配置均解析为 `shared` 后，启动失败原因为 `Duplicate embedding store key: shared`。
+
+### 改动文件
+
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/autoconfigure/EmbeddingStoreAutoConfigurationTest.java`
+
+新增单一 focused regression test `shouldFailWhenMultipleStoresResolveToTheSameKey`，使用两个 `fake` store 配置并显式设置相同的 `key=shared`。
+
+### 提交 hash
+
+- `f49e83b24f395789b8f068b8ee56b73c6ae85005` - `test(vector): cover duplicate embedding store keys`
+
+### Concerns
+
+- 没有生产代码改动。
+- RED 阶段无法按传统方式失败，因为目标校验已经存在；测试用于防止该校验回归。
