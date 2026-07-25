@@ -7,11 +7,11 @@ const dirname = path.dirname(fileURLToPath(import.meta.url))
 export default {
     base: './',
     build: {
+        target: 'esnext',
         minify: false,
         cssCodeSplit: true,
         outDir: 'dist',
         lib: {
-            target: 'esnext',
             formats: ['iife'],
             entry: path.resolve(dirname, 'src/index.js'),
             name: 'MagicLangchain4j',
