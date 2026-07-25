@@ -2,6 +2,8 @@
 comet_change: align-s3-browser-console-ui
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-24-align-s3-browser-console-ui
+status: final
 ---
 
 # S3 文件管理控制台 UI 对齐设计
