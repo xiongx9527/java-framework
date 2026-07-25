@@ -1,8 +1,10 @@
 # Magic-API Vector Plugin Migration
 
-The `milvus`, `qdrant`, `redisstack`, and `weaviate` Magic-API entries are deprecated compatibility wrappers. Keep vector store configuration in the Core embedding-store registry and use the `vector` module in scripts.
+The `milvus`, `qdrant`, `redisstack`, and `weaviate` Magic-API entries are deprecated compatibility wrappers. Configure stores in the Core embedding-store registry and use the `vector` module in scripts.
 
 ## Configuration
+
+`key`, `provider`, `dimension`, and `metadata-keys` are store definition fields. Provider-specific values must be nested under `properties`; do not put `uri` or `collection-name` directly under a store.
 
 ```yaml
 fw-plus:
@@ -10,13 +12,71 @@ fw-plus:
     langchain4j:
       embedding-store:
         enabled: true
-        default-store: knowledge
+        default-store: knowledge-milvus
         stores:
-          knowledge:
+          knowledge-milvus:
             provider: milvus
-            uri: http://127.0.0.1:19530
-            collection-name: knowledge
+            dimension: 768
+            properties:
+              uri: http://127.0.0.1:19530
+              collectionName: knowledge
+              indexType: HNSW
+              metricType: COSINE
+              consistencyLevel: EVENTUALLY
+              retrieveEmbeddingsOnSearch: false
+              autoFlushOnInsert: false
+          archive-milvus:
+            provider: milvus
+            dimension: 768
+            properties:
+              uri: http://127.0.0.1:19530
+              collectionName: archive
+              databaseName: archive_db
+          qdrant-main:
+            provider: qdrant
+            properties:
+              host: 127.0.0.1
+              port: 6334
+              collectionName: knowledge
+              payloadTextKey: content
+              useTls: false
+          redis-cache:
+            provider: redis
+            dimension: 768
+            metadata-keys:
+              - tenantId
+            properties:
+              host: 127.0.0.1
+              port: 6379
+              indexName: knowledge_index
+          weaviate-knowledge:
+            provider: weaviate
+            properties:
+              scheme: http
+              host: 127.0.0.1
+              port: 8080
+              className: Knowledge
+              avoidDups: true
+              consistencyLevel: ALL
+              textFieldName: content
 ```
+
+The example configures four providers and two independent Milvus instances. `default-store` selects the store returned by `import vector` without an explicit key. Store map keys and the optional `key` field must remain unique.
+
+## Legacy Option Mapping
+
+| Legacy provider option | Unified configuration |
+| --- | --- |
+| Qdrant `payloadTextKey` | `properties.payloadTextKey` |
+| Qdrant `host`, `port`, `apiKey` | `properties.host`, `properties.port`, `properties.apiKey` |
+| Milvus `collectionName`, `dimension` | `properties.collectionName`, store `dimension` |
+| Milvus `indexType`, `metricType`, `consistencyLevel` | `properties.indexType`, `properties.metricType`, `properties.consistencyLevel` |
+| Milvus `retrieveEmbeddingsOnSearch`, `autoFlushOnInsert` | `properties.retrieveEmbeddingsOnSearch`, `properties.autoFlushOnInsert` |
+| Milvus `dbName` | `properties.databaseName` |
+| Weaviate `avoidDups`, `consistencyLevel`, `textFieldName` | `properties.avoidDups`, `properties.consistencyLevel`, `properties.textFieldName` |
+| Weaviate `useGrpcForInserts`, `securedGrpc`, `grpcPort` | `properties.useGrpcForInserts`, `properties.securedGrpc`, `properties.grpcPort` |
+
+LangChain4j 0.35 does not expose a separate Weaviate gRPC host property. A legacy configuration that uses a gRPC host different from `host` is not directly supported by the unified starter; use the same host, provider-native configuration, or a custom `EmbeddingStoreProviderAdapter`.
 
 ## Script Migration
 
@@ -25,7 +85,7 @@ Use the unified module and an embedding-store key:
 ```javascript
 import vector;
 
-var store = vector['knowledge'].getOperations().getEmbeddingStore();
+var store = vector['knowledge-milvus'].getOperations().getEmbeddingStore();
 ```
 
 | Deprecated import | Replacement |

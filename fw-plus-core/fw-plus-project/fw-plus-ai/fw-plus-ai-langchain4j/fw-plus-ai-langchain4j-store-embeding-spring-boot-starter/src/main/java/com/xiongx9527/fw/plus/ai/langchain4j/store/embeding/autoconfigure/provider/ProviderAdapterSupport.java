@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreExcept
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 final class ProviderAdapterSupport {
 
@@ -30,6 +31,28 @@ final class ProviderAdapterSupport {
             return ((Number) value).intValue();
         }
         return Integer.valueOf(String.valueOf(value));
+    }
+
+    static Boolean booleanProperty(EmbeddingStoreDefinition definition, String name) {
+        Object value = definition.getProperties().get(name);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        return Boolean.valueOf(String.valueOf(value));
+    }
+
+    static <T extends Enum<T>> T enumProperty(EmbeddingStoreDefinition definition, String name, Class<T> type) {
+        Object value = definition.getProperties().get(name);
+        if (value == null) {
+            return null;
+        }
+        if (type.isInstance(value)) {
+            return type.cast(value);
+        }
+        return Enum.valueOf(type, String.valueOf(value).trim().toUpperCase(Locale.ROOT));
     }
 
     static String requiredStringProperty(EmbeddingStoreDefinition definition, String name) {
