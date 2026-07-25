@@ -17,8 +17,10 @@
 - Task: Task 2: Provider adapter 接入与 provider 配置映射
 - Plan task text: Task 2: Provider adapter 接入与 provider 配置映射
 - Mapped OpenSpec task text: 2.2 接入已有 Redis、Milvus、Elasticsearch provider 模块构建能力; 2.3 为 Qdrant、Weaviate、RedisStack 补齐必要依赖或 adapter; 2.4 Java 8/Spring AI 路径约束; 1.5 部分 provider 测试
-- Stage: implementing
-- Base commit: 462ca7ee
+- Stage: task-review
+- Base commit: afc09fc2
+- Implementation commits: 762b0b8a, 81d447bb
+- Concern: Weaviate 0.35.0 lacks grpcHost builder setter; Redis builder may connect on full build; POM may hardcode Jedis 5.0.0.
 - Brief: .superpowers/sdd/task-2-brief.md
 - Report: .superpowers/sdd/task-2-report.md
 - Review mode: thorough
