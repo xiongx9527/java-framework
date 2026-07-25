@@ -16,13 +16,12 @@
 
 - Task: Task 1: Core 多向量 registry/factory 基础模型
 - Plan task text: Task 1: Core 多向量 registry/factory 基础模型
-- Mapped OpenSpec task text: 1.3 在 fw-plus-ai-langchain4j-store-embeding 中补齐 Java 8 兼容的多向量配置模型、store definition、registry 和默认 store 选择能力; 1.5 部分测试; 2.1 provider adapter/factory 接口
-- Stage: task-review
+- Mapped OpenSpec task text: 1.3 在 fw-plus-ai-langchain4j-store-embeding 中补齐 Java 8 兼容的多向量配置模型、store definition、registry 和默认 store 选择能力; 2.1 抽象 provider adapter/factory 接口
+- Stage: done
 - Base commit: 1b9c5d54
 - Implementation commits: 6a01d22f, afbeb99b
 - Fix commits: 0a3f5ffd, fc941a41
-- Review result: pending re-review after fix
-- Brief: .superpowers/sdd/task-1-brief.md
-- Report: .superpowers/sdd/task-1-report.md
+- Review result: focused re-review approved
+- RED/GREEN evidence: .superpowers/sdd/task-1-report.md
 - Review mode: thorough
 - Review/fix rounds: 1

@@ -131,7 +131,7 @@ base-ref: c695308855f1512ebbcf705f965aaa4d2c352765
 - Produces: `boolean EmbeddingStoreProviderAdapter.supports(String provider)`
 - Produces: `EmbeddingStore<TextSegment> EmbeddingStoreProviderAdapter.create(EmbeddingStoreDefinition definition)`
 
-- [ ] **Step 1: Write failing registry tests**
+- [x] **Step 1: Write failing registry tests**
 
 Create `DefaultEmbeddingStoreRegistryTest` with fake `EmbeddingStore<TextSegment>` instances and assert:
 
@@ -156,13 +156,13 @@ public void shouldReturnStoreByKeyAndDefaultStore() {
 
 Add separate tests for unknown key, missing default key, and null/blank default access.
 
-- [ ] **Step 2: Run registry tests and verify failure**
+- [x] **Step 2: Run registry tests and verify failure**
 
 Run: `cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreRegistryTest test`
 
 Expected: FAIL because registry classes do not exist.
 
-- [ ] **Step 3: Implement registry and exception**
+- [x] **Step 3: Implement registry and exception**
 
 Implement `EmbeddingStoreException` as an unchecked exception carrying a concise message. Implement `DefaultEmbeddingStoreRegistry` with defensive `LinkedHashMap` copy, Java 8 compatible `Collections.unmodifiableMap`, and these exact error messages:
 
@@ -172,13 +172,13 @@ Default embedding store is not configured
 Default embedding store key is invalid: <key>
 ```
 
-- [ ] **Step 4: Run registry tests and verify pass**
+- [x] **Step 4: Run registry tests and verify pass**
 
 Run the same command from Step 2.
 
 Expected: PASS.
 
-- [ ] **Step 5: Write failing factory tests**
+- [x] **Step 5: Write failing factory tests**
 
 Create `DefaultEmbeddingStoreFactoryTest` with an inner fake adapter. Assert adapter selection by provider, unknown provider failure, and adapter exception message includes provider/key:
 
@@ -198,11 +198,11 @@ public void shouldCreateStoreWithMatchingProviderAdapter() {
 }
 ```
 
-- [ ] **Step 6: Implement definition, properties, adapter SPI, and factory**
+- [x] **Step 6: Implement definition, properties, adapter SPI, and factory**
 
 `EmbeddingStoreDefinition` must include `key`、`provider`、`enabled`、`dimension`、`metadataKeys`、`properties` fields. `EmbeddingStoreProperties` must include `enabled`、`defaultStore`、`stores` fields and initialize `stores` to an empty `LinkedHashMap`.
 
-- [ ] **Step 7: Run factory tests and full base-module tests**
+- [x] **Step 7: Run factory tests and full base-module tests**
 
 Run:
 
@@ -213,7 +213,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 Commit message: `feat(vector): add embedding store registry foundation`.
 
