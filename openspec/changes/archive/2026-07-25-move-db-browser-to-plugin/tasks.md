@@ -1,0 +1,4 @@
+- [x] 迁移 DB 管理 Java 源码和测试到 `fw-plus-boot-autoconfigure` 的 `magicapi/plugin/db` 目录。
+- [x] 由 `MagicApiPluginAutoConfiguration` 导入 DB 管理配置，确保 `fw-plus-magicapi-plugin-db` 只维护插件 UI。
+- [x] 将控制台入口名改为 `db管理` 并更新契约测试。
+- [x] 更新文档与 OpenSpec delta spec，运行相关验证。
