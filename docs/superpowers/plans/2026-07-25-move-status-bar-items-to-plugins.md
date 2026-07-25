@@ -102,7 +102,7 @@ Commit: `feat: add plugin runtime metadata and load event`
 - Produces: `isValidStatusBarItem(item)`。
 - Consumes: Task 1 的 `Message.PLUGINS_CHANGED`。
 
-- [ ] **Step 1: 编写排序和校验失败测试**
+- [x] **Step 1: 编写排序和校验失败测试**
 
 ```js
 assert.deepEqual(
@@ -119,13 +119,15 @@ assert.equal(isValidStatusBarItem({ icon: 'x', title: 'x', displayKey: 'x', onCl
 assert.equal(isValidStatusBarItem({ icon: 'x', title: 'x' }), false)
 ```
 
-- [ ] **Step 2: 运行失败测试**
+同时编写可执行的宿主行为测试：构造插件项和 header 配置，断言过滤与排序结果；模拟 `PLUGINS_CHANGED` 后插件集合变化，断言可见状态同步刷新。
+
+- [x] **Step 2: 运行 Task 2 失败测试**
 
 Run: `node --test test/plugin-extension.test.mjs`
 
 Expected: FAIL，模块不存在。
 
-- [ ] **Step 3: 实现稳定排序工具**
+- [x] **Step 3: 实现稳定排序工具**
 
 ```js
 export const stableSortByOrder = items => items
@@ -139,13 +141,13 @@ export const stableSortByOrder = items => items
   .map(entry => entry.item)
 ```
 
-- [ ] **Step 4: 接入状态栏和静态插件 toolbar**
+- [x] **Step 4: 接入状态栏和静态插件 toolbar**
 
-状态栏收集后先校验、按 `displayKey` 过滤、稳定排序，再 `array.splice(0, 0, ...items)`。挂载时刷新一次，并订阅 `Message.PLUGINS_CHANGED`。
+状态栏收集后先校验、按 `displayKey` 过滤、稳定排序，再 `array.splice(0, 0, ...items)`。将收集与事件刷新提取为可执行测试的通用函数；挂载时刷新一次，并订阅 `Message.PLUGINS_CHANGED`。
 
 Toolbar 只将 `constants.PLUGINS[*].toolbars` 扁平化、执行 `adminOnly` 过滤和稳定排序后追加到内置数组；动态事件处理保持原样。
 
-- [ ] **Step 5: 运行宿主测试与构建并提交**
+- [x] **Step 5: 运行宿主测试与构建并提交**
 
 Run: `npm test`
 
