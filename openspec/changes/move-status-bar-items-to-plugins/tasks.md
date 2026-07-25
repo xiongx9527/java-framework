@@ -6,7 +6,7 @@
 ## 2. 前端插件迁移
 
 - [x] 2.1 将 Config、Freemarker、DTP、WebSocket、MQTT、Debezium、Vue3、Sa-Token 的状态栏入口迁入各自 Boot 插件 console，并验证构建产物。
-- [ ] 2.2 将 LangChain4j 状态栏入口迁入 AI 插件前端资源，恢复可维护的构建来源并验证产物。
+- [x] 2.2 将 LangChain4j 状态栏入口迁入 AI 插件前端资源，恢复可维护的构建来源并验证产物。
 
 ## 3. 新增前端插件
 

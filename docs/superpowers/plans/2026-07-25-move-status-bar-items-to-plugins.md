@@ -230,16 +230,16 @@ Commit: `feat: move boot plugin status items into plugins`
 - Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/pom.xml`
 - Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-langchain4j/pom.xml`
 - Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-langchain4j/src/console/package.json`
-- Create: 同目录 `vite.config.js`、`src/index.js`、`src/assets/icon.js`、`test/langchain4j-plugin.test.mjs`
+- Create: 同目录 `vite.config.js`、`src/index.js`、`src/assets/icon.js`、`src/components/magic-langchain4j-datasource-info.vue`、`test/fixtures/legacy-contract.json`、`test/langchain4j-plugin.test.mjs`
 - Replace generated: `src/main/resources/magic-editor/plugins/magic-langchain4j.1.0.0.iife.js`
 
 **Interfaces:**
 - Produces: 全局工厂 `MagicLangchain4j`。
 - Produces: `langchain4j` 数据源扩展和 `order: 800` 的状态栏项。
 
-- [ ] **Step 1: 从现有 IIFE 固化失败契约**
+- [x] **Step 1: 从现有 IIFE 固化 Task 4 失败契约**
 
-测试必须先锁定现有插件名、数据源类型、组件注册和文件名，再要求新源码包含：
+测试必须先锁定现有插件名、数据源类型、组件注册和文件名，并从旧 Git 对象生成可提交的归一化行为快照，覆盖完整 locale、表单 render、service 成功/失败分支、scoped 样式和图标，再要求新源码包含：
 
 ```js
 statusBarItems: [{
@@ -251,25 +251,27 @@ statusBarItems: [{
 }]
 ```
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行 Task 4 失败测试**
 
 Run: `node --test test/langchain4j-plugin.test.mjs`
 
 Expected: FAIL，`src/console` 构建来源不存在。
 
-- [ ] **Step 3: 按现有 IIFE 行为恢复源码和 Vite 配置**
+- [x] **Step 3: 按现有 IIFE 行为恢复源码和 Vite 配置**
 
 Vite 输出固定为 `MagicLangchain4j` / `magic-langchain4j.1.0.0.iife.js`。POM 使用现有 Boot 插件相同的 npm build 与资源复制生命周期。
 
-- [ ] **Step 4: 运行测试、构建和产物对照**
+- [x] **Step 4: 运行 Task 4 测试、构建和产物对照**
 
-Run: `npm test`
+Run: `npm test`，并保留绑定提交的 RED/GREEN 原始日志。
 
 Run: `npm run build`
 
+Run: 使用系统 Maven 对直接子模块执行 `prepare-package`（wrapper 缺失时），保留 effective-POM、生命周期、资源复制、产物大小/SHA-256/`cmp` 的原始证据。
+
 Expected: 测试 PASS；新 IIFE 同时包含原数据源类型、SVG symbol 和状态栏项。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交 Task 4**
 
 Commit: `feat: restore langchain4j plugin console source`
 
