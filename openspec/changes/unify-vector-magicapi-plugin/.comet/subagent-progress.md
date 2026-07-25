@@ -29,10 +29,12 @@
 
 - Task: Task 3: Core Spring Boot starter 与 Maven/BOM 接入
 - Plan task text: Task 3: Core Spring Boot starter 与 Maven/BOM 接入
-- Mapped OpenSpec task text: 1.1 新建 starter 并加入聚合 POM; 1.2 加入 fw-plus-dependencies dependencyManagement; 1.4 Spring Boot 2.7 自动配置; 1.5 部分自动配置测试
-- Stage: implementing
-- Base commit: a3e5d88b
+- Mapped OpenSpec task text: 1.1 新建 starter 并加入聚合 POM; 1.2 加入 fw-plus-dependencies dependencyManagement; 1.4 Spring Boot 2.7 自动配置; 1.5 自动配置测试覆盖
+- Stage: done
+- Base commit: bfe20bf0
+- Implementation commits: 17b04fd8, ab7e3902, f49e83b2, 4c4243c0
+- Review result: approved after focused re-review
 - Brief: .superpowers/sdd/task-3-brief.md
 - Report: .superpowers/sdd/task-3-report.md
 - Review mode: thorough
-- Review/fix rounds: 0
+- Review/fix rounds: 1
