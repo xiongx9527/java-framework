@@ -4,7 +4,7 @@
 
 ## 2. Pulsar 插件 UI 迁移
 
-- [ ] 2.1 将 Pulsar 管理页面、业务文案和运行时依赖适配迁入 Pulsar 插件 console，通过 `adminOnly` 管理 toolbar 注册入口，并增加插件边界契约测试与前端构建验证。
+- [x] 2.1 将 Pulsar 管理页面、业务文案和运行时依赖适配迁入 Pulsar 插件 console，通过 `adminOnly` 管理 toolbar 注册入口，并增加插件边界契约测试与前端构建验证。
 
 ## 3. 宿主 UI 解耦
 

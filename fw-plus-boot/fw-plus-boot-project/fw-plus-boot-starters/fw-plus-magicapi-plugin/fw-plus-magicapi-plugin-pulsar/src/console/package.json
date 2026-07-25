@@ -4,7 +4,8 @@
   "description": "Magic-API Pulsar Plugin",
   "main": "index.js",
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "test": "node --test test/*.test.cjs"
   },
   "author": "",
   "license": "ISC",
