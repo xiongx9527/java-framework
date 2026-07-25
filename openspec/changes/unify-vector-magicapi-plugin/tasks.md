@@ -15,11 +15,11 @@
 
 ## 3. AI Magic-API 统一 vector 插件
 
-- [ ] 3.1 新建统一 AI Magic-API vector 插件模块，并加入 `fw-plus-ai-magicapi-plugin` 聚合 POM。
-- [ ] 3.2 在 `fw-plus-ai-boot-autoconfigure` 的 Magic-API plugin 包下实现统一 `vector` DynamicModule/配置入口。
-- [ ] 3.3 让统一 vector 插件通过 Core registry/factory 获取 `EmbeddingStore<TextSegment>`，支持按 key 和默认 store 访问。
+- [x] 3.1 新建统一 AI Magic-API vector 插件模块，并加入 `fw-plus-ai-magicapi-plugin` 聚合 POM。
+- [x] 3.2 在 `fw-plus-ai-boot-autoconfigure` 的 Magic-API plugin 包下实现统一 `vector` DynamicModule/配置入口。
+- [x] 3.3 让统一 vector 插件通过 Core registry/factory 获取 `EmbeddingStore<TextSegment>`，支持按 key 和默认 store 访问。
 - [ ] 3.4 迁移 Milvus、Qdrant、RedisStack、Weaviate 现有插件能力，移除或废弃重复 provider 构建逻辑。
-- [ ] 3.5 将统一 vector 插件加入 AI boot dependencies，并调整旧分散插件的 BOM/聚合/兼容策略。
+- [x] 3.5 将统一 vector 插件加入 AI boot dependencies，并调整旧分散插件的 BOM/聚合/兼容策略。
 
 ## 4. 兼容、文档与验证
 

@@ -480,7 +480,7 @@ Commit message: `feat(vector): add embedding store spring boot starter`.
 - Produces: MagicScript module `vector` supporting default access and `vector['knowledge']` access.
 - Produces: `VectorStoreOperations` wrapper around `EmbeddingStore<TextSegment>`.
 
-- [ ] **Step 1: Write failing plugin metadata test**
+- [x] **Step 1: Write failing plugin metadata test**
 
 Create `MagicAPIVectorConfigurationTest`:
 
@@ -497,7 +497,7 @@ public void shouldExposeSingleVectorPluginMetadata() {
 }
 ```
 
-- [ ] **Step 2: Write failing module access tests**
+- [x] **Step 2: Write failing module access tests**
 
 Create `VectorModuleTest` with fake registry:
 
@@ -527,13 +527,13 @@ public void shouldReturnDefaultOperationsWhenKeyIsMissing() {
 
 Add tests for unknown key and missing default store, expecting `MagicAPIVectorException` messages containing the key or default-store hint.
 
-- [ ] **Step 3: Run AI autoconfigure tests and verify failure**
+- [x] **Step 3: Run AI autoconfigure tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=MagicAPIVectorConfigurationTest,VectorModuleTest test`
 
 Expected: FAIL because vector classes do not exist.
 
-- [ ] **Step 4: Add vector plugin starter module**
+- [x] **Step 4: Add vector plugin starter module**
 
 Add `<module>fw-plus-ai-magicapi-plugin-vector</module>` to `fw-plus-ai-magicapi-plugin/pom.xml`. Create module POM inheriting `fw-plus-ai-magicapi-plugin` and depending on `fw-plus-ai-boot-autoconfigure` plus Core `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` through dependencyManagement.
 
@@ -547,7 +547,7 @@ Add AI BOM entry:
 </dependency>
 ```
 
-- [ ] **Step 5: Implement vector configuration and module**
+- [x] **Step 5: Implement vector configuration and module**
 
 `MagicAPIVectorConfiguration` should be conditional on `magic-api.plugin.vector.enabled=true` with `matchIfMissing=true`, and conditional on `EmbeddingStoreRegistry` class/bean. It registers:
 
@@ -557,21 +557,21 @@ Add AI BOM entry:
 
 `VectorModule` should implement `DynamicAttribute<VectorModule, VectorStoreOperations>` and `DynamicModule<VectorStoreOperations>`. Explicit key uses `registry.get(key)`, missing key uses `registry.getDefault()`.
 
-- [ ] **Step 6: Import vector configuration**
+- [x] **Step 6: Import vector configuration**
 
 Modify `MagicApiPluginAutoConfiguration` to import `MagicAPIVectorConfiguration`. Keep `MagicAPIAiaConfiguration` and old provider configurations until Task 5 handles compatibility.
 
-- [ ] **Step 7: Add minimal Magic-API editor plugin resource**
+- [x] **Step 7: Add minimal Magic-API editor plugin resource**
 
 Create `magic-vector.1.0.0.iife.js` following existing plugin resource naming style. It should expose the global name `MagicVector` and use the same plugin registration pattern as existing `magic-qdrant.1.0.0.iife.js`/`magic-weaviate.1.0.0.iife.js`.
 
-- [ ] **Step 8: Run vector plugin tests**
+- [x] **Step 8: Run vector plugin tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Commit message: `feat(vector): add unified magicapi vector plugin`.
 
