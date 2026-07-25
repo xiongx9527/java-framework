@@ -18,8 +18,10 @@
 - Plan task text: Task 1: Core 多向量 registry/factory 基础模型
 - Mapped OpenSpec task text: 1.3 在 fw-plus-ai-langchain4j-store-embeding 中补齐 Java 8 兼容的多向量配置模型、store definition、registry 和默认 store 选择能力; 1.5 部分测试; 2.1 provider adapter/factory 接口
 - Stage: implementing
-- Base commit: e633d6f1
+- Base commit: efc8c275
 - Brief: .superpowers/sdd/task-1-brief.md
 - Report: .superpowers/sdd/task-1-report.md
+- Previous attempt: BLOCKED because module lacked test dependencies and prompt forbade POM changes.
+- Resolution: Re-dispatch allows minimal test-scope POM changes in store-embeding only and requires local fake EmbeddingStore instead of InMemoryEmbeddingStore.
 - Review mode: thorough
 - Review/fix rounds: 0
