@@ -34,13 +34,17 @@ public class MilvusEmbeddingStoreProviderAdapter implements EmbeddingStoreProvid
             if (host != null && host.trim().length() == 0) {
                 throw new IllegalArgumentException("host must not be blank");
             }
+            String apiKey = ProviderAdapterSupport.stringProperty(definition, "apiKey");
+            if (apiKey == null) {
+                apiKey = ProviderAdapterSupport.stringProperty(definition, "token");
+            }
             MilvusEmbeddingStore.Builder builder = MilvusEmbeddingStore.builder()
                     .host(host)
                     .port(ProviderAdapterSupport.integerProperty(definition, "port"))
                     .uri(ProviderAdapterSupport.stringProperty(definition, "uri"))
                     .collectionName(ProviderAdapterSupport.stringProperty(definition, "collectionName"))
                     .dimension(ProviderAdapterSupport.integerProperty(definition, "dimension"))
-                    .token(ProviderAdapterSupport.stringProperty(definition, "apiKey"))
+                    .token(apiKey)
                     .username(ProviderAdapterSupport.stringProperty(definition, "username"))
                     .password(ProviderAdapterSupport.stringProperty(definition, "password"))
                     .databaseName(ProviderAdapterSupport.stringProperty(definition, "databaseName"));
