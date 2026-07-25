@@ -19,6 +19,7 @@ import store from '../../../scripts/store.js'
 import $i from '../../../scripts/i18n.js'
 import modal from '../../common/dialog/magic-modal.js'
 import {replaceURL} from "../../../scripts/utils";
+import { isValidStatusBarItem, stableSortByOrder } from '../../../scripts/plugin-extension.js'
 const props = defineProps({
     config: Object
 })
@@ -43,8 +44,10 @@ const refreshPluginStatusBarItems = () => {
         .reduce((items, plugin) => items.concat(plugin.statusBarItems), [])
 }
 const insertPluginStatusBarItems = array => {
-    const items = pluginStatusBarItems.value
+    const items = stableSortByOrder(pluginStatusBarItems.value
+        .filter(it => isValidStatusBarItem(it))
         .filter(it => props.config.header[it.displayKey] !== false)
+    )
     if (items.length === 0) {
         return
     }
@@ -202,6 +205,7 @@ bus.$on(Message.LOGINED, () => {
     request.send('/user').success(value => user.value = value)
 })
 bus.$on(Message.STATUS, msg => content.value = msg)
+bus.$on(Message.PLUGINS_CHANGED, refreshPluginStatusBarItems)
 // 监听插件加载完成事件
 bus.$on(Message.STATUS, msg => {
     content.value = msg
