@@ -14,14 +14,12 @@
 
 ## Current Task
 
-- Task: Task 1: Core 多向量 registry/factory 基础模型
-- Plan task text: Task 1: Core 多向量 registry/factory 基础模型
-- Mapped OpenSpec task text: 1.3 在 fw-plus-ai-langchain4j-store-embeding 中补齐 Java 8 兼容的多向量配置模型、store definition、registry 和默认 store 选择能力; 2.1 抽象 provider adapter/factory 接口
-- Stage: done
-- Base commit: 1b9c5d54
-- Implementation commits: 6a01d22f, afbeb99b
-- Fix commits: 0a3f5ffd, fc941a41
-- Review result: focused re-review approved
-- RED/GREEN evidence: .superpowers/sdd/task-1-report.md
+- Task: Task 2: Provider adapter 接入与 provider 配置映射
+- Plan task text: Task 2: Provider adapter 接入与 provider 配置映射
+- Mapped OpenSpec task text: 2.2 接入已有 Redis、Milvus、Elasticsearch provider 模块构建能力; 2.3 为 Qdrant、Weaviate、RedisStack 补齐必要依赖或 adapter; 2.4 Java 8/Spring AI 路径约束; 1.5 部分 provider 测试
+- Stage: implementing
+- Base commit: 462ca7ee
+- Brief: .superpowers/sdd/task-2-brief.md
+- Report: .superpowers/sdd/task-2-report.md
 - Review mode: thorough
-- Review/fix rounds: 1
+- Review/fix rounds: 0
