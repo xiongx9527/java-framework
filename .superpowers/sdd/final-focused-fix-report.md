@@ -27,7 +27,7 @@ cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Conten
 
 ## 提交
 
-`742f65ceb1f94921f823644750dd353f8a51d007`
+实现提交：`0556c33b66e024e7f36b5928bcb1d45b5b23c298`。
 
 ## Concerns
 
