@@ -3,3 +3,4 @@ Task 8: complete (commits 8772244..e0948cf, review clean after user-approved ext
 Task 9: complete (commits 21df54a..511132a, review clean after dependency evidence fix)
 Task 1: complete (commits 1b9c5d54..fc941a41, review clean after focused re-review)
 Task 2: complete (commits afc09fc2..81d447bb, review clean)
+Task 3: complete (commits bfe20bf0..4c4243c0, review clean after duplicate-key coverage fix)

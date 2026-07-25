@@ -356,7 +356,7 @@ Commit message: `feat(vector): add embedding store provider adapters`.
 - Produces: `EmbeddingStoreRegistry` bean when `fw-plus.ai.langchain4j.embedding-store.enabled=true` or missing.
 - Produces: Spring Boot 2.7 `spring.factories` registration only.
 
-- [ ] **Step 1: Write failing metadata test**
+- [x] **Step 1: Write failing metadata test**
 
 Create `EmbeddingStoreAutoConfigurationMetadataTest`:
 
@@ -370,7 +370,7 @@ public void shouldRegisterAutoConfigurationInSpringFactoriesOnly() throws Except
 }
 ```
 
-- [ ] **Step 2: Write failing auto-configuration tests**
+- [x] **Step 2: Write failing auto-configuration tests**
 
 Use `ApplicationContextRunner` to cover enabled=false, multiple stores, default store valid, default store invalid, unknown provider:
 
@@ -394,13 +394,13 @@ public void shouldCreateRegistryWithMultipleStoresAndDefaultKey() {
 }
 ```
 
-- [ ] **Step 3: Run focused tests and verify failure**
+- [x] **Step 3: Run focused tests and verify failure**
 
 Run: `cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -Dtest=EmbeddingStoreAutoConfigurationMetadataTest,EmbeddingStoreAutoConfigurationTest test`
 
 Expected: FAIL because starter module and auto-configuration are incomplete.
 
-- [ ] **Step 4: Register Maven module and dependencyManagement**
+- [x] **Step 4: Register Maven module and dependencyManagement**
 
 Add module after `fw-plus-ai-langchain4j-store-embeding` in `fw-plus-ai-langchain4j/pom.xml`:
 
@@ -418,7 +418,7 @@ Add Core BOM entry near existing LangChain4j modules:
 </dependency>
 ```
 
-- [ ] **Step 5: Implement auto-configuration**
+- [x] **Step 5: Implement auto-configuration**
 
 `EmbeddingStoreAutoConfiguration` should be `@Configuration`, `@EnableConfigurationProperties(EmbeddingStoreProperties.class)`, `@ConditionalOnProperty(prefix = "fw-plus.ai.langchain4j.embedding-store", name = "enabled", havingValue = "true", matchIfMissing = true)`. It should:
 
@@ -429,7 +429,7 @@ Add Core BOM entry near existing LangChain4j modules:
 - validate duplicate key, blank provider, invalid default store, unknown provider;
 - expose a single `EmbeddingStoreRegistry` bean.
 
-- [ ] **Step 6: Add `spring.factories`**
+- [x] **Step 6: Add `spring.factories`**
 
 Create:
 
@@ -438,13 +438,13 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure.EmbeddingStoreAutoConfiguration
 ```
 
-- [ ] **Step 7: Run starter tests**
+- [x] **Step 7: Run starter tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 8: Run Core LangChain4j reactor build**
+- [x] **Step 8: Run Core LangChain4j reactor build**
 
 Run:
 
@@ -455,7 +455,7 @@ cd fw-plus-core
 
 Expected: BUILD SUCCESS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Commit message: `feat(vector): add embedding store spring boot starter`.
 

@@ -1,10 +1,10 @@
 ## 1. Core 多向量 starter
 
-- [ ] 1.1 新建 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 模块，并加入 `fw-plus-ai-langchain4j` 聚合 POM。
-- [ ] 1.2 将新 starter 加入 `fw-plus-core/fw-plus-project/fw-plus-dependencies` dependencyManagement，版本使用 `${project.version}`。
+- [x] 1.1 新建 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 模块，并加入 `fw-plus-ai-langchain4j` 聚合 POM。
+- [x] 1.2 将新 starter 加入 `fw-plus-core/fw-plus-project/fw-plus-dependencies` dependencyManagement，版本使用 `${project.version}`。
 - [x] 1.3 在 `fw-plus-ai-langchain4j-store-embeding` 中补齐 Java 8 兼容的多向量配置模型、store definition、registry 和默认 store 选择能力。
-- [ ] 1.4 在 starter 中实现 Spring Boot 2.7 自动配置，支持 `enabled`、`default-store`、`stores` 多实例配置和启动期校验。
-- [ ] 1.5 添加单元测试覆盖多 provider、多 key、同 provider 多实例、默认 store、重复 key、未知 provider 和缺失默认 store。
+- [x] 1.4 在 starter 中实现 Spring Boot 2.7 自动配置，支持 `enabled`、`default-store`、`stores` 多实例配置和启动期校验。
+- [x] 1.5 添加单元测试覆盖多 provider、多 key、同 provider 多实例、默认 store、重复 key、未知 provider 和缺失默认 store。
 
 ## 2. Provider adapter 接入
 
