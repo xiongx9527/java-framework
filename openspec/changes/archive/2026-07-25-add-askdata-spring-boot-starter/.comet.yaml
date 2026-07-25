@@ -16,14 +16,14 @@ plan: docs/superpowers/plans/2026-07-24-askdata-spring-boot-starter.md
 verify_result: pass
 verify_failures: 0
 verification_report: docs/superpowers/reports/2026-07-24-add-askdata-spring-boot-starter-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-07-24
 verified_at: 2026-07-24
 archive_confirmation: confirmed
 archived: true
-bound_branch: feature/20260724/add-askdata-spring-boot-starter
+bound_branch: dev
 direct_override: null
-handoff_context: openspec/changes/add-askdata-spring-boot-starter/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-25-add-askdata-spring-boot-starter/.comet/handoff/design-context.json
 handoff_hash: 0f8f0d25e7ebba62e59588dd584e4980b600a638abad33fc7edda0e519450072
 classic_profile: full
 classic_migration: 1
