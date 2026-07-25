@@ -70,3 +70,63 @@ rg -n "\\b(List|Set|Map)\\.of\\(|\\.(copyOf|isBlank|strip|repeat|lines|transferT
 四个旧配置和模块均已标记 `@Deprecated`，旧动态入口与旧 build 方法均通过 `LegacyVectorModuleSupport` 的 Core `EmbeddingStoreRegistry` 访问统一 `VectorStoreOperations`；数据源控制器和资源存储未删除。
 
 现有 POM 仍报告 3 条重复 LangChain4j 依赖，测试运行期仍报告 SLF4J 多绑定；均为本任务外既有告警，未阻断本次测试。
+
+## Task 5 Fixer 补充报告
+
+### 状态
+
+DONE_WITH_CONCERNS
+
+### RED 命令和失败摘要
+
+```bash
+cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest test
+```
+
+失败符合预期：5 个测试中 3 个失败。四个旧模块动态属性返回旧模块对象而非 `VectorStoreOperations`；旧 `buildEmbeddingStore("legacy-collection", ...)` 尝试访问 registry；registry 内部故障被错误标记为 `Missing key`。
+
+### GREEN 命令和通过摘要
+
+```bash
+cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest test
+```
+
+通过：5 个测试，0 failures，0 errors，0 skipped。
+
+```bash
+cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest,VectorModuleTest,MagicAPIVectorConfigurationTest test
+```
+
+通过：11 个测试，0 failures，0 errors，0 skipped。
+
+### Provider Builder 扫描
+
+```bash
+cd fw-plus-ai
+rg -n "RedisEmbeddingStore\\.builder|MilvusEmbeddingStore\\.builder|QdrantEmbeddingStore\\.builder|WeaviateEmbeddingStore\\.builder" fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin
+```
+
+无输出。旧 Magic-API 插件没有 provider store builder 调用。
+
+### Java 9+ API 扫描
+
+```bash
+rg -n "\\b(List|Set|Map)\\.of\\(|\\.(copyOf|isBlank|strip|repeat|lines|transferTo|readAllBytes|readString|writeString|ofNullable)\\(|\\bvar\\b" fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/{vector,milvus,qdrant,redisstack,weaviate} fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy
+```
+
+无输出，未发现本次修改范围内的 Java 9+ API。
+
+### 改动文件
+
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy/LegacyVectorModuleSupport.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/{milvus,qdrant,redisstack,weaviate}/module/*Module.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy/LegacyVectorModuleSupportTest.java`
+
+### 提交 Hash
+
+`062c2b38c0b1abf28d03bde4e797461915e84047` `fix(vector): correct legacy module delegation`
+
+### Concerns
+
+- 未执行 Task 6 全量验证，仅执行要求的相关测试与扫描。
+- POM 仍有 3 条重复 LangChain4j 依赖告警，测试运行期仍有 SLF4J 多绑定告警；均为本任务外既有问题。
