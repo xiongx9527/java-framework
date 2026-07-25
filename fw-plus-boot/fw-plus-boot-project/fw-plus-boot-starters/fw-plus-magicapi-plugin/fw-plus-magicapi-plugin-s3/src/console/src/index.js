@@ -3,7 +3,7 @@ import localEn from './i18n/en.js'
 import MagicS3DataSource from './service/magic-s3-datasource.js'
 import MagicS3DatasourceInfo from './components/magic-s3-datasource-info.vue'
 import MagicS3Browser from './components/magic-s3-browser.vue'
-import { setS3BrowserRequest } from './service/magic-s3-browser.js'
+import { setS3BrowserModal, setS3BrowserRequest } from './service/magic-s3-browser.js'
 
 // 手动注入 SVG icon（vite-plugin-svg-icons 在 IIFE 库模式下无法工作）
 if (typeof window !== 'undefined') {
@@ -29,6 +29,7 @@ export default (opt) => {
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
     setS3BrowserRequest(opt.request)
+    setS3BrowserModal(opt.modal)
     return {
         name: 's3',
         datasources: [{

@@ -103,10 +103,10 @@ const isPluginToolbarVisible = (toolbar, pluginData) => !toolbar.adminOnly || (p
 constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).forEach(plugin => {
     const pluginData = constants.PLUGINS_DATA.find(item => item.name === plugin.name)
     plugin.toolbars.filter(toolbar => isPluginToolbarVisible(toolbar, pluginData)).forEach(it => {
-	toolbars.unshift({
+	toolbars.push({
         id: it.id,
-		type: it.type,
-		icon: it.icon,
+			type: it.type,
+			icon: it.icon,
 		title: $i(it.title),
         component: shallowRef(it.component),
         fullscreen: it.fullscreen,
