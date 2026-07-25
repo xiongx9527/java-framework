@@ -179,7 +179,7 @@ Commit: `refactor: sort plugin status bar and toolbar extensions`
 - Consumes: Task 2 的 `statusBarItems` 契约。
 - Produces: 11 个 Boot 插件状态栏项。
 
-- [ ] **Step 1: 编写全量失败契约测试**
+- [x] **Step 1: 编写 Task 3 全量失败契约测试**
 
 用表驱动读取每个 `index.js`，断言 `displayKey`、URL/站内动作和顺序：
 
@@ -192,13 +192,13 @@ const expectedOrders = {
 
 外链必须保持设计文档列出的现有地址；WebSocket/MQTT 的 URL 计算整体迁入各自插件。
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行 Task 3 测试确认失败**
 
 Run: `node --test test/plugin-status-bar.contract.test.mjs`，cwd 宿主 console。
 
 Expected: FAIL，至少 Config 等插件缺少 `statusBarItems` 和 `order`。
 
-- [ ] **Step 3: 在各插件入口增加状态栏项**
+- [x] **Step 3: 在各插件入口增加状态栏项**
 
 统一形态：
 
@@ -212,15 +212,15 @@ statusBarItems: [{
 }]
 ```
 
-- [ ] **Step 4: 运行契约测试和 11 个 Vite 构建**
+- [x] **Step 4: 运行契约测试和 11 个 Vite 构建**
 
 Run: 宿主 `node --test test/plugin-status-bar.contract.test.mjs`。
 
-Run: 在每个受影响插件 `src/console` 执行 `npm run build`。
+Run: 在每个受影响插件 `src/console` 执行 `npm run build`，并在任务证据目录保留命令、cwd、提交、退出码、日志与产物 SHA-256。
 
 Expected: 全部 PASS，IIFE 包含对应 symbol 和 `statusBarItems`。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交 Task 3**
 
 Commit: `feat: move boot plugin status items into plugins`
 

@@ -1,21 +1,19 @@
 # 子代理进度
 
-- 计划任务：Task 2: 通用状态栏与 Toolbar 稳定排序
-- OpenSpec 映射：1.1 实现 statusBarItems 与静态插件 toolbars 的稳定 order 语义、通用插件变更事件和边界测试；同时完成 5.1 中的宿主稳定排序部分
+- 计划任务：Task 3: 迁移现有 Boot 状态栏插件
+- OpenSpec 映射：2.1 将现有 Boot 插件状态栏入口迁入各自 console，并验证构建产物
 - 当前阶段：done
-- 实现代理：019f993f-1895-7233-9e17-1744e589010c（Leibniz）
+- 实现代理：019f9969-61b9-74e0-8700-a907ed652816（Singer）
 - review_mode：thorough
 - 审查修复轮次：1/2
-- 实现基线：323ceca6edce6fdd65b594089aaca3c7d1c919cf
-- 实现提交：76b81da71fb0de3c125e51eb49336c89be574242
-- 变更文件：Task 2 brief 指定的 5 个文件
-- RED 证据：扩展模块不存在；宿主边界缺少排序/监听；null 校验返回非布尔值
-- GREEN 证据：聚焦测试 5/5、宿主测试 8/8、npm run build 通过
-- 已通过审查：Task 2 独立审查经第 1 轮修复后聚焦复审通过，Spec Compliance 通过，Task quality Approved
-- 审查代理：019f9947-9417-7121-b0b1-c2f229771e50（Hooke）
-- 修复代理：019f995f-51bb-7d41-abac-cdb1d6507d62（Maxwell）
-- 修复提交：0b2ab657f812635158dc6703603d559d138e7581
-- 修复 RED：宿主行为测试 3/5 通过、2/5 因控制器不存在失败
-- 修复 GREEN：聚焦 7/7、宿主 10/10、npm run build 通过
-- 聚焦复审代理：019f9965-4de1-7d71-9d3a-5c60a4a8bc0a（Avicenna）
+- 实现基线：b30face77045b9286758ce0dbdafc991146b03d8
+- 实现提交：09f3a6abaf3a135137938c3de3ac51050462cf3d
+- 变更文件：11 个插件入口、3 个现有插件测试、宿主状态栏契约测试，共 15 个文件
+- RED 证据：插件状态契约 0/3，缺少 S3 order 与 WS/MQTT 动态动作
+- GREEN 证据：宿主 13/13、S3 15/15、Kafka 5/5、Pulsar 4/4、11/11 插件构建通过
+- 已通过审查：Task 3 代码与规格审查通过；第 1 轮证据修复后聚焦复审通过
+- 审查代理：019f9994-0dea-7063-b005-27f9292965b7（Gauss）
+- 证据修复代理：019f99a2-6e44-7781-8779-6e7271cb52ac（Ramanujan）
+- 证据修复结果：RED 3/3 在测试补丁基线失败；全部 GREEN 与 11/11 构建退出码 0；manifest、日志、产物大小与 SHA-256 已留档
+- 聚焦证据复审代理：019f99a9-6d1b-7360-a285-e043c84f0f0f（Einstein）
 - 未解决反馈：无
