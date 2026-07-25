@@ -18,6 +18,11 @@
 - **THEN** 它不包含 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`。
 - **AND** 它不包含 `META-INF/spring/org.springframework.boot.autoconfig.AutoConfiguration.imports`。
 
+#### Scenario: core BOM 管理新增 jar 模块
+- **WHEN** 检查 `fw-plus-core/fw-plus-project/fw-plus-dependencies` 的 dependencyManagement
+- **THEN** 它包含 Anthropic、Ollama、Azure AI Search、Azure OpenAI、Voyage AI、GitHub Models、Vertex AI Gemini、Elasticsearch、Redis、Qianfan、Milvus、DashScope 对应的 `fw-plus-ai-langchain4j-*` jar 模块。
+- **AND** 这些模块使用 `${project.version}` 作为版本。
+
 ### Requirement: 保持现有 LangChain4j 模块可构建
 系统 SHALL 在新增 starter 模块时保留 LangChain4j 聚合下已有的 `core` 和 `openai` 模块。
 
