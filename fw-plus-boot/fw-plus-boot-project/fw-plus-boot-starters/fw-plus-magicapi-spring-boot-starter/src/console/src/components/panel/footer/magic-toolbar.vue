@@ -72,33 +72,6 @@ const toolbars = reactive([
     { id: 'event', title: $i('toolbars.event'), icon: 'event', component: shallowRef(resolveDynamicComponent('magic-event')), style: { float: 'right'} }
 ])
 
-// 只有当constants.PLUGINS_DATA中包含pulsar插件时，才添加pulsar工具栏
-if (constants.PLUGINS_DATA.some(plugin => plugin.name === 'pulsar'  && plugin.adminEnabled === true)) {
-    toolbars.push({
-        id: 'pulsar',
-        title: $i('pulsar.title'),
-        icon: 'pulsar',
-        component: shallowRef(resolveDynamicComponent('magic-pulsar')),
-        max: 1000,
-        min: 200,
-        value: 500,
-        fullscreen: true
-    })
-}
-
-// 只有当constants.PLUGINS_DATA中包含kafka插件时，才添加kafka工具栏
-if (constants.PLUGINS_DATA.some(plugin => plugin.name === 'kafka' && plugin.adminEnabled === true)) {
-    toolbars.push({
-        id: 'kafka',
-        title: $i('kafka.title'),
-        icon: 'kafka',
-        component: shallowRef(resolveDynamicComponent('magic-kafka')),
-        max: 1000,
-        min: 200,
-        value: 500,
-        fullscreen: true
-    })
-}
 const isPluginToolbarVisible = (toolbar, pluginData) => !toolbar.adminOnly || (pluginData && pluginData.adminEnabled === true)
 constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).forEach(plugin => {
     const pluginData = constants.PLUGINS_DATA.find(item => item.name === plugin.name)

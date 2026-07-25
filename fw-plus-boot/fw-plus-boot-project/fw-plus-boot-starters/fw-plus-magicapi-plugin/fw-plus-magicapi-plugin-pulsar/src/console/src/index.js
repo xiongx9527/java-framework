@@ -4,6 +4,8 @@ import MagicPulsarSubscribe from './service/magic-pulsar-subscribe.js'
 import MagicPulsarDataSource from './service/magic-pulsar-datasource.js'
 import MagicPulsarDatasourceInfo from './components/magic-pulsar-datasource-info.vue'
 import MagicPulsarSubscribeInfo from './components/magic-pulsar-subscribe-info.vue'
+import MagicPulsar from './components/magic-pulsar.vue'
+import { getPulsarRuntime, setPulsarRuntime } from './service/magic-pulsar-runtime.js'
 
 // 手动注入 SVG icon（vite-plugin-svg-icons 在 IIFE 库模式下无法工作）
 if (typeof window !== 'undefined') {
@@ -28,7 +30,25 @@ export default (opt) => {
     const i18n = opt.i18n
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
+    setPulsarRuntime(opt)
+    const runtime = getPulsarRuntime()
+    const pulsarAdminToolbar = {
+        id: 'pulsar',
+        title: i18n.format('pulsar.title'),
+        icon: '#magic-pulsar-pulsar',
+        component: MagicPulsar,
+        adminOnly: true,
+        allowClose: true,
+        fullscreen: true
+    }
     return {
+        name: 'pulsar',
+        statusBarItems: [{
+            icon: '#magic-pulsar-pulsar',
+            title: 'Pulsar',
+            displayKey: 'pulsar',
+            onClick: () => runtime.bus.$emit(runtime.Message.ADD_FOOTER_TOOLBAR, pulsarAdminToolbar)
+        }],
         resource: [{
             type: 'pulsar-subscribe',
             icon: '#magic-pulsar-pulsar',
@@ -48,6 +68,6 @@ export default (opt) => {
             title: 'pulsar.subscribe.title',
             icon: '#magic-pulsar-pulsar',
             component: MagicPulsarSubscribeInfo
-        }]
+        }, pulsarAdminToolbar]
     }
 }

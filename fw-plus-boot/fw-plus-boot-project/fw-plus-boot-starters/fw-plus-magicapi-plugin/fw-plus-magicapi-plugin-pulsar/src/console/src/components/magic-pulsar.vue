@@ -1,7 +1,7 @@
 <template>
   <div ref="containerRef" class="magic-pulsar">
     <div v-if="!loading && !hasPulsarPlugin" class="magic-pulsar-no-plugin">
-      <magic-icon icon="pulsar" size="48px" />
+      <magic-icon icon="#magic-pulsar-pulsar" size="48px" />
       <p>{{ $i('pulsar.noPlugin') }}</p>
       <p class="magic-pulsar-no-plugin-subtext">{{ $i('pulsar.noPluginSubtext') }}</p>
     </div>
@@ -13,7 +13,7 @@
         <div class="magic-pulsar-header-storage">
           <div class="magic-pulsar-storage-selector">
             <button class="magic-pulsar-button" @click="toggleStorageMenu" :disabled="loading">
-              <magic-icon icon="pulsar" size="16px" />
+              <magic-icon icon="#magic-pulsar-pulsar" size="16px" />
               <span class="magic-pulsar-button-text">{{ loading ? $i('pulsar.loading') : (activeStorage ? activeStorage.name : $i('pulsar.selectStorage')) }}</span>
               <magic-icon icon="arrow-bottom" size="12px" />
             </button>
@@ -93,13 +93,13 @@
             <div class="magic-pulsar-details-header">
               <h3>{{ selectedTopic?.name }}</h3>
               <div class="magic-pulsar-details-actions">
-                <button class="magic-pulsar-details-action-button" @click="refreshTopicDetails" :title="$i('kafka.refresh')">
+                <button class="magic-pulsar-details-action-button" @click="refreshTopicDetails" :title="$i('pulsar.refresh')">
                   <magic-icon icon="refresh" size="16px" />
                 </button>
-                <button class="magic-pulsar-details-action-button" @click="resetConsumerGroupOffsets" :title="$i('kafka.resetOffsets')">
+                <button class="magic-pulsar-details-action-button" @click="resetConsumerGroupOffsets" :title="$i('pulsar.resetOffsets')">
                   <magic-icon icon="update" size="16px" />
                 </button>
-                <button class="magic-pulsar-details-action-button" @click="deleteTopic(selectedTopic)" :title="$i('kafka.delete')">
+                <button class="magic-pulsar-details-action-button" @click="deleteTopic(selectedTopic)" :title="$i('pulsar.delete')">
                   <magic-icon icon="delete" size="16px" />
                 </button>
                 <button class="magic-pulsar-details-close" @click="showTopicSidebar = false">
@@ -113,7 +113,7 @@
               </div>
               <div v-else>
                 <div v-if="topicDetails">
-                  <MagicMonacoEditor :value="formatJson(topicDetails)" language="json" :readonly="true" />
+                  <magic-monaco-editor :value="formatJson(topicDetails)" language="json" :readonly="true" />
                 </div>
                 <div v-else class="magic-pulsar-no-data">
                   {{ $i('pulsar.noTopicInfo') }}
@@ -217,7 +217,7 @@
   <div v-if="showConsumerGroupModal" class="magic-pulsar-modal-overlay" @click="showConsumerGroupModal = false">
     <div class="magic-pulsar-modal" @click.stop>
       <div class="magic-pulsar-modal-header">
-        <h3>{{ $i('kafka.resetOffsets') }}</h3>
+        <h3>{{ $i('pulsar.resetOffsets') }}</h3>
         <button class="magic-pulsar-modal-close" @click="showConsumerGroupModal = false">
           <magic-icon icon="close" size="16px" />
         </button>
@@ -229,7 +229,7 @@
         <div v-else>
           <div class="magic-pulsar-form-group">
               <select v-model="selectedConsumerGroup" class="magic-pulsar-select">
-                <option value="">{{ $i('kafka.pleaseSelectConsumerGroup') }}</option>
+                <option value="">{{ $i('pulsar.pleaseSelectConsumerGroup') }}</option>
                 <option v-for="group in consumerGroups" :key="group" :value="group">
                   {{ group }}
                 </option>
@@ -238,7 +238,7 @@
         </div>
       </div>
       <div class="magic-pulsar-modal-footer">
-        <button class="magic-pulsar-button magic-pulsar-button-primary" @click="confirmResetOffsets" :disabled="!selectedConsumerGroup" :title="$i('kafka.confirm')">
+        <button class="magic-pulsar-button magic-pulsar-button-primary" @click="confirmResetOffsets" :disabled="!selectedConsumerGroup" :title="$i('pulsar.confirm')">
           <magic-icon icon="save" size="16px" />
         </button>
       </div>
@@ -246,25 +246,11 @@
   </div>
 </template>
 
-<script>
-import MagicMonacoEditor from '../../common/magic-monaco-editor.vue'
-import MagicIcon from '../../common/icon/magic-icon.vue'
-
-export default {
-  components: {
-    MagicMonacoEditor,
-    MagicIcon
-  }
-}
-</script>
-
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import $i from '../../../scripts/i18n.js'
-import request from '../../../scripts/request.js'
-import bus from '../../../scripts/bus.js'
-import Message from '../../../scripts/constants/message.js'
-import modal from '../../common/dialog/magic-modal.js'
+import { getPulsarRuntime } from '../service/magic-pulsar-runtime.js'
+
+const { request, modal, bus, Message, format: $i } = getPulsarRuntime()
 
 // Global debug log
 console.log('MagicPulsar component loaded')
@@ -927,7 +913,7 @@ const loadConsumerGroups = (topic) => {
     .error((error) => {
       console.error('获取消费者组列表失败:', error)
       console.error('错误详情:', error)
-      console.warn($i('kafka.loadConsumerGroupsFailed'), error)
+      console.warn($i('pulsar.loadConsumerGroupsFailed'), error)
     })
     .end(() => {
       console.log('加载消费者组列表完成')
@@ -957,14 +943,14 @@ const confirmResetOffsets = () => {
   })
     .success(data => {
       console.log('重置消费者组偏移量成功:', data)
-      console.log($i('kafka.resetOffsetsSuccess'))
+      console.log($i('pulsar.resetOffsetsSuccess'))
       showConsumerGroupModal.value = false
       // 重新加载 topic 详情
       viewTopicDetails(selectedTopic.value)
     })
     .error((error) => {
       console.error('重置消费者组偏移量失败:', error)
-      console.warn($i('kafka.resetOffsetsFailed'), error)
+      console.warn($i('pulsar.resetOffsetsFailed'), error)
     })
     .end(() => {
       console.log('重置消费者组偏移量操作完成')
