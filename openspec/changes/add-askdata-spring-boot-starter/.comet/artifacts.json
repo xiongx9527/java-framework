@@ -1,8 +1,0 @@
-{
-  "openspec_proposal": "openspec/changes/add-askdata-spring-boot-starter/proposal.md",
-  "openspec_design": "openspec/changes/add-askdata-spring-boot-starter/design.md",
-  "openspec_tasks": "openspec/changes/add-askdata-spring-boot-starter/tasks.md",
-  "openspec_delta_spec": "openspec/changes/add-askdata-spring-boot-starter/specs/askdata-query-engine/spec.md",
-  "handoff_context": "openspec/changes/add-askdata-spring-boot-starter/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/add-askdata-spring-boot-starter/.comet/handoff/design-context.md"
-}
