@@ -7,8 +7,9 @@ Kafka 与 Pulsar 管理页面目前仍由 Magic-API 宿主控制台直接维护�
 - 将现有 Kafka 管理页面、运行时依赖和管理工具栏注册迁移到 `fw-plus-magicapi-plugin-kafka/src/console`。
 - 将现有 Pulsar 管理页面、运行时依赖和管理工具栏注册迁移到 `fw-plus-magicapi-plugin-pulsar/src/console`。
 - Kafka、Pulsar 插件通过通用 `toolbars` 元数据注册管理员管理入口，并沿用各自 `adminEnabled` 门控。
+- Kafka、Pulsar 插件通过通用 `statusBarItems` 元数据恢复原状态栏入口及点击行为。
 - 从宿主控制台移除 Kafka/Pulsar 专属管理页面、文案、工具栏和状态栏判断，宿主仅保留通用插件扩展机制。
-- 增加插件契约测试，覆盖页面归属、工具栏元数据、管理权限和宿主边界。
+- 增加插件契约测试，覆盖页面归属、工具栏与状态栏元数据、管理权限和宿主边界。
 
 ## Capabilities
 

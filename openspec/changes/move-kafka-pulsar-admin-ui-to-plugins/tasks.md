@@ -13,3 +13,7 @@
 ## 4. 集成验证
 
 - [x] 4.1 集成三组分区改动，运行 Kafka/Pulsar 插件测试与构建、宿主控制台构建、Maven 资源处理、OpenSpec 严格校验及差异检查。
+
+## 5. 状态栏入口迁移
+
+- [x] 5.1 在 Kafka、Pulsar 插件中注册 `statusBarItems`，保持原点击行为，并重新执行插件、宿主、Maven 资源与 OpenSpec 验证。
