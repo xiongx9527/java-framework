@@ -9,6 +9,7 @@
 - 每个新模块从 LangChain4j `0.35.0` 对应 starter jar 包复制自动配置 Java 源码。
 - 不复制 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`，避免模块被 Spring Boot 自动导入。
 - 每个新模块依赖对应的底层 `dev.langchain4j` provider/vector-store artifact，不再直接依赖外部 `*-spring-boot-starter`。
+- 将新增的 core 侧 `fw-plus-ai-langchain4j-*` jar 模块加入 `fw-plus-core/fw-plus-project/fw-plus-dependencies` 统一版本管理。
 - 本次变更不新增应用业务代码，也不改变现有 Java 公共 API 行为。
 
 ## 能力
@@ -20,6 +21,6 @@
 
 ## 影响范围
 
-- 影响代码：`fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j`。
+- 影响代码：`fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j`、`fw-plus-core/fw-plus-project/fw-plus-dependencies`。
 - 影响依赖：Anthropic、Ollama、Azure AI Search、Azure OpenAI、Voyage AI、GitHub Models、Vertex AI Gemini、Elasticsearch、Redis、Qianfan、Milvus、DashScope 对应的底层 LangChain4j provider/vector-store artifact。
 - 构建影响：core 侧 LangChain4j Maven reactor 会新增一批子模块。

@@ -9,6 +9,7 @@ core 侧 AI 层使用 `fw-plus-core/fw-plus-project/fw-plus-ai` 下的 Maven 聚
 - 从 `0.35.0` 的 starter jar 包复制 `src/main/java` 自动配置源码。
 - 不复制 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`，避免新增模块被自动导入。
 - 让新模块 POM 依赖底层 `langchain4j-*` provider/vector-store artifact，而不是外部 `*-spring-boot-starter`。
+- 将新增 jar 模块纳入 core 层 `fw-plus-dependencies` 的 dependencyManagement。
 - 保持 fw-plus-core 的 Java 8 和 Spring Boot 2.7.x 约束。
 
 **非目标：**
@@ -22,6 +23,7 @@ core 侧 AI 层使用 `fw-plus-core/fw-plus-project/fw-plus-ai` 下的 Maven 聚
 - 所有新模块放在 `fw-plus-ai-langchain4j` 下，因为本次请求明确指定 core 侧 LangChain4j 聚合路径。
 - 源码来自 LangChain4j `0.35.0` 的 starter jar 包；`vertex-ai-gemini` 也按用户后续要求统一使用 `0.35.0` jar 包内容。
 - 模块 POM 只声明底层 `langchain4j-*` artifact，版本由 core 层 `langchain4j-bom` 的 `0.35.0` 统一管理。
+- core 层 `fw-plus-dependencies` 使用 `${project.version}` 管理新增的 `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-*` jar 模块，与已有 `core/openai` 模块保持一致。
 - 模块命名使用 `fw-plus-ai-` 前缀并贴近 artifact 名称，例如 `fw-plus-ai-langchain4j-anthropic`。
 
 ## 风险 / 权衡
