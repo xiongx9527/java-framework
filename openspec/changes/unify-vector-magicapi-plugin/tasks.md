@@ -2,13 +2,13 @@
 
 - [ ] 1.1 新建 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 模块，并加入 `fw-plus-ai-langchain4j` 聚合 POM。
 - [ ] 1.2 将新 starter 加入 `fw-plus-core/fw-plus-project/fw-plus-dependencies` dependencyManagement，版本使用 `${project.version}`。
-- [ ] 1.3 在 `fw-plus-ai-langchain4j-store-embeding` 中补齐 Java 8 兼容的多向量配置模型、store definition、registry 和默认 store 选择能力。
+- [x] 1.3 在 `fw-plus-ai-langchain4j-store-embeding` 中补齐 Java 8 兼容的多向量配置模型、store definition、registry 和默认 store 选择能力。
 - [ ] 1.4 在 starter 中实现 Spring Boot 2.7 自动配置，支持 `enabled`、`default-store`、`stores` 多实例配置和启动期校验。
 - [ ] 1.5 添加单元测试覆盖多 provider、多 key、同 provider 多实例、默认 store、重复 key、未知 provider 和缺失默认 store。
 
 ## 2. Provider adapter 接入
 
-- [ ] 2.1 抽象 provider adapter/factory 接口，避免 Magic-API 插件直接维护 provider 连接构建逻辑。
+- [x] 2.1 抽象 provider adapter/factory 接口，避免 Magic-API 插件直接维护 provider 连接构建逻辑。
 - [ ] 2.2 接入已有 Redis、Milvus、Elasticsearch provider 模块构建能力。
 - [ ] 2.3 为 Qdrant、Weaviate、RedisStack 补齐必要依赖或 adapter，并复用 LangChain4j 0.35.0 兼容 API。
 - [ ] 2.4 确认所有 provider adapter 不引入 Java 9+ API，也不依赖 Spring AI Java 17/Spring Boot 3 路径。
