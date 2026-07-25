@@ -26,6 +26,7 @@ export default opt => {
             title: opt.i18n.format('db.title'),
             icon: '#magic-db-browser',
             component: MagicDbBrowser,
+            adminOnly: true,
             allowClose: true,
             fullscreen: true
         }]
