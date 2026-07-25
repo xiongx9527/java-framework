@@ -2,6 +2,7 @@
 change: add-askdata-spring-boot-starter
 design-doc: docs/superpowers/specs/2026-07-24-askdata-spring-boot-starter-design.md
 base-ref: bf45ed49f309cca5d18c623a03dab70c72cbfa1e
+archived-with: 2026-07-25-add-askdata-spring-boot-starter
 ---
 
 # AskData Spring Boot Starter Implementation Plan

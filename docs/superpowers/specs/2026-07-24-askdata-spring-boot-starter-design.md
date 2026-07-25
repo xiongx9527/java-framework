@@ -2,6 +2,8 @@
 comet_change: add-askdata-spring-boot-starter
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-25-add-askdata-spring-boot-starter
+status: final
 ---
 
 # AskData Spring Boot Starter 技术设计

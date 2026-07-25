@@ -19,8 +19,8 @@ verification_report: docs/superpowers/reports/2026-07-24-add-askdata-spring-boot
 branch_status: pending
 created_at: 2026-07-24
 verified_at: 2026-07-24
-archive_confirmation: pending
-archived: false
+archive_confirmation: confirmed
+archived: true
 bound_branch: feature/20260724/add-askdata-spring-boot-starter
 direct_override: null
 handoff_context: openspec/changes/add-askdata-spring-boot-starter/.comet/handoff/design-context.json
