@@ -10,7 +10,7 @@
     </div>
 </template>
 <script setup>
-import { computed, ref, onMounted, shallowRef, resolveDynamicComponent } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import bus from '../../../scripts/bus.js'
 import Message from '../../../scripts/constants/message.js'
 import constants from '../../../scripts/constants.js'
@@ -31,8 +31,6 @@ const hasConfigPlugin = ref(false)
 const hasSatokenPlugin = ref(false)
 const hasWsPlugin = ref(false)
 const hasMqttPlugin = ref(false)
-const hasKafkaPlugin = ref(false)
-const hasPulsarPlugin = ref(false)
 const hasDebeziumPlugin = ref(false)
 const hasDruidPlugin = ref(false)
 const hasAdminPlugin = ref(false)
@@ -67,16 +65,6 @@ const icons = [{
     title: 'Dynamictp',
     displayKey: 'dtp',
     onClick: () => openDtp()
-},{
-    icon: 'kafka',
-    title: 'Kafka',
-    displayKey: 'kafka',
-    onClick: () => openKafka()
-},{
-    icon: 'pulsar',
-    title: 'Pulsar',
-    displayKey: 'pulsar',
-    onClick: () => openPulsar()
 },{
     icon: 'debezium',
     title: 'Debezium',
@@ -175,12 +163,6 @@ const navs = computed(() => {
         if (it.displayKey === 'mqtt') {
             return hasMqttPlugin.value && props.config.header[it.displayKey] !== false
         }
-        if (it.displayKey === 'kafka') {
-            return hasKafkaPlugin.value && props.config.header[it.displayKey] !== false
-        }
-        if (it.displayKey === 'pulsar') {
-            return hasPulsarPlugin.value && props.config.header[it.displayKey] !== false
-        }
         if (it.displayKey === 'debezium') {
             return hasDebeziumPlugin.value && props.config.header[it.displayKey] !== false
         }
@@ -233,8 +215,6 @@ bus.$on(Message.STATUS, msg => {
         hasSatokenPlugin.value = checkPlugin('satoken')
         hasWsPlugin.value = checkPlugin('ws-subscribe')
         hasMqttPlugin.value = checkPlugin('mqtt-subscribe')
-        hasKafkaPlugin.value = checkPlugin('kafka-subscribe')
-        hasPulsarPlugin.value = checkPlugin('pulsar-subscribe')
         hasDebeziumPlugin.value = checkPlugin('debezium-datasource')
         hasDruidPlugin.value = checkPlugin('druid')
         hasAdminPlugin.value = checkPlugin('admin')
@@ -258,22 +238,6 @@ const openDtp = () => {
 
 const openLangchain4j = () => {
     window.open('https://docs.langchain4j.dev/', '_blank')
-}
-
-const openKafka = () => {
-  window.open('https://kafka.apache.org/', '_blank')
-}
-
-const openPulsar = () => {
-  bus.$emit(Message.ADD_FOOTER_TOOLBAR, {
-    id: 'pulsar', 
-    title: $i('pulsar.title'), 
-    icon: 'pulsar', 
-    component: shallowRef(resolveDynamicComponent('magic-pulsar')), 
-    max: 1000, 
-    min: 200, 
-    value: 500 
-  })
 }
 
 const openDebezium = () => {
@@ -459,8 +423,6 @@ onMounted(() => {
     hasSatokenPlugin.value = checkPlugin('satoken')
     hasWsPlugin.value = checkPlugin('ws-subscribe')
     hasMqttPlugin.value = checkPlugin('mqtt-subscribe')
-    hasKafkaPlugin.value = checkPlugin('kafka-subscribe')
-    hasPulsarPlugin.value = checkPlugin('pulsar-subscribe')
     hasDebeziumPlugin.value = checkPlugin('debezium-datasource')
     hasDruidPlugin.value = checkPlugin('druid')
     hasAdminPlugin.value = checkPlugin('admin')
@@ -478,8 +440,6 @@ onMounted(() => {
             hasConfigPlugin.value = checkPlugin('config')
             hasWsPlugin.value = checkPlugin('ws-subscribe')
             hasMqttPlugin.value = checkPlugin('mqtt-subscribe')
-            hasKafkaPlugin.value = checkPlugin('kafka-subscribe')
-            hasPulsarPlugin.value = checkPlugin('pulsar-subscribe')
             hasDebeziumPlugin.value = checkPlugin('debezium-datasource')
             hasDruidPlugin.value = checkPlugin('druid')
             hasAdminPlugin.value = checkPlugin('admin')
