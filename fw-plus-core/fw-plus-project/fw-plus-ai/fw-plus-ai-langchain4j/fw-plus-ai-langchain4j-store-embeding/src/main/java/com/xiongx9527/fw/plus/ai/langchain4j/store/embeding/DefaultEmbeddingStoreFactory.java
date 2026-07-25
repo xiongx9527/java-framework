@@ -12,7 +12,13 @@ public class DefaultEmbeddingStoreFactory implements EmbeddingStoreFactory {
         if (definition == null) {
             throw new EmbeddingStoreException("Embedding store definition must not be null");
         }
-        EmbeddingStoreProviderAdapter adapter = findAdapter(definition.getProvider(), adapters);
+        EmbeddingStoreProviderAdapter adapter;
+        try {
+            adapter = findAdapter(definition.getProvider(), adapters);
+        } catch (RuntimeException e) {
+            throw new EmbeddingStoreException("Failed to create embedding store for provider: "
+                    + definition.getProvider() + ", key: " + definition.getKey(), e);
+        }
         if (adapter == null) {
             throw new EmbeddingStoreException("Embedding store provider is not supported: " + definition.getProvider());
         }
