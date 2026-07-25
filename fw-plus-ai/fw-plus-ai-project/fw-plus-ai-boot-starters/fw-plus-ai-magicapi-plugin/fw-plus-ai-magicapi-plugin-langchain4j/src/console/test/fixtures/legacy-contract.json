@@ -305,6 +305,118 @@
             "height": "150px"
           }
         }
+      ],
+      "rerenderedTranslations": [
+        {
+          "labelKey": "rerendered:langchain4j.datasource.form.name",
+          "placeholderKey": "rerendered:langchain4j.datasource.form.placeholder.name",
+          "options": null
+        },
+        {
+          "labelKey": "rerendered:langchain4j.datasource.form.key",
+          "placeholderKey": "rerendered:langchain4j.datasource.form.placeholder.key",
+          "options": null
+        },
+        {
+          "labelKey": "rerendered:langchain4j.datasource.form.baseUrl",
+          "placeholderKey": "rerendered:langchain4j.datasource.form.placeholder.baseUrl",
+          "options": null
+        },
+        {
+          "labelKey": "rerendered:langchain4j.datasource.form.apiKey",
+          "placeholderKey": "rerendered:langchain4j.datasource.form.placeholder.apiKey",
+          "options": null
+        },
+        {
+          "labelKey": "rerendered:langchain4j.datasource.form.provider",
+          "placeholderKey": "rerendered:langchain4j.datasource.form.placeholder.provider",
+          "options": [
+            {
+              "text": "rerendered:langchain4j.datasource.extra.provider.OPENAI",
+              "value": "OPENAI"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.provider.QWEN",
+              "value": "QWEN"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.provider.HUGGING_FACE",
+              "value": "HUGGING_FACE"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.provider.OLLAMA",
+              "value": "OLLAMA"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.provider.ZHIPU",
+              "value": "ZHIPU"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.provider.QIANFAN",
+              "value": "QIANFAN"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.provider.LOCAL_AI",
+              "value": "LOCAL_AI"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.provider.GEMINI",
+              "value": "GEMINI"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.provider.AZURE_OPENAI",
+              "value": "AZURE_OPENAI"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.provider.ANTHROPIC",
+              "value": "ANTHROPIC"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.provider.ALL_MINI_LM_L6_V2_QUANTIZED",
+              "value": "ALL_MINI_LM_L6_V2_QUANTIZED"
+            }
+          ]
+        },
+        {
+          "labelKey": "rerendered:langchain4j.datasource.form.modelType",
+          "placeholderKey": "rerendered:langchain4j.datasource.form.placeholder.modelType",
+          "options": [
+            {
+              "text": "rerendered:langchain4j.datasource.extra.modelType.EMBEDDING",
+              "value": "EMBEDDING"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.modelType.CHAT",
+              "value": "CHAT"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.modelType.STREAMING_CHAT",
+              "value": "STREAMING_CHAT"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.modelType.LANGUAGE",
+              "value": "LANGUAGE"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.modelType.STREAMING_LANGUAGE",
+              "value": "STREAMING_LANGUAGE"
+            },
+            {
+              "text": "rerendered:langchain4j.datasource.extra.modelType.IMAGE",
+              "value": "IMAGE"
+            }
+          ]
+        },
+        {
+          "labelKey": "rerendered:langchain4j.datasource.form.modelName",
+          "placeholderKey": "rerendered:langchain4j.datasource.form.placeholder.modelName",
+          "options": null
+        },
+        {
+          "labelKey": "rerendered:langchain4j.datasource.form.other",
+          "placeholderKey": "rerendered:langchain4j.datasource.form.placeholder.other",
+          "options": null
+        }
       ]
     },
     "services": {

@@ -1,5 +1,5 @@
-import { defineComponent, h, inject, resolveComponent, unref } from 'vue'
 import { installLangchain4jIcon } from './assets/icon.js'
+import MagicLangchain4jDataSourceInfo from './components/magic-langchain4j-datasource-info.vue'
 
 const LANGCHAIN4J_MODEL_CLASS = 'com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo'
 
@@ -85,109 +85,6 @@ const localEn = {
     }
 }
 
-const modelTypes = ['EMBEDDING', 'CHAT', 'STREAMING_CHAT', 'LANGUAGE', 'STREAMING_LANGUAGE', 'IMAGE']
-const providers = [
-    'OPENAI',
-    'QWEN',
-    'HUGGING_FACE',
-    'OLLAMA',
-    'ZHIPU',
-    'QIANFAN',
-    'LOCAL_AI',
-    'GEMINI',
-    'AZURE_OPENAI',
-    'ANTHROPIC',
-    'ALL_MINI_LM_L6_V2_QUANTIZED'
-]
-
-const formRow = (label, control) => h('div', { class: 'magic-form-row' }, [h('label', label), control])
-
-const MagicLangchain4jDataSourceInfo = defineComponent({
-    name: 'magic-langchain4j-datasource-info',
-    __name: 'magic-langchain4j-datasource-info',
-    props: {
-        info: {
-            type: Object,
-            default: {
-                other: '{}'
-            }
-        }
-    },
-    setup(props) {
-        const $i = inject('i18n.format')
-        const info = props.info
-        const translate = key => unref($i)(key)
-
-        return () => {
-            const MagicInput = resolveComponent('magic-input')
-            const MagicSelect = resolveComponent('magic-select')
-            const MagicMonacoEditor = resolveComponent('magic-monaco-editor')
-            const modelTypeOptions = modelTypes.map(value => ({
-                text: translate(`langchain4j.datasource.extra.modelType.${value}`),
-                value
-            }))
-            const providerOptions = providers.map(value => ({
-                text: translate(`langchain4j.datasource.extra.provider.${value}`),
-                value
-            }))
-
-            return [
-                formRow(translate('langchain4j.datasource.form.name'), h(MagicInput, {
-                    value: info.name,
-                    'onUpdate:value': value => { info.name = value },
-                    placeholder: translate('langchain4j.datasource.form.placeholder.name'),
-                    width: '100%'
-                })),
-                formRow(translate('langchain4j.datasource.form.key'), h(MagicInput, {
-                    value: info.key,
-                    'onUpdate:value': value => { info.key = value },
-                    placeholder: translate('langchain4j.datasource.form.placeholder.key'),
-                    width: '100%'
-                })),
-                formRow(translate('langchain4j.datasource.form.baseUrl'), h(MagicInput, {
-                    value: info.baseUrl,
-                    'onUpdate:value': value => { info.baseUrl = value },
-                    placeholder: translate('langchain4j.datasource.form.placeholder.baseUrl'),
-                    width: '100%'
-                })),
-                formRow(translate('langchain4j.datasource.form.apiKey'), h(MagicInput, {
-                    value: info.apiKey,
-                    'onUpdate:value': value => { info.apiKey = value },
-                    placeholder: translate('langchain4j.datasource.form.placeholder.apiKey'),
-                    width: '100%'
-                })),
-                formRow(translate('langchain4j.datasource.form.provider'), h(MagicSelect, {
-                    value: info.provider,
-                    'onUpdate:value': value => { info.provider = value },
-                    placeholder: translate('langchain4j.datasource.form.placeholder.provider'),
-                    options: providerOptions,
-                    style: { width: '20px' }
-                })),
-                formRow(translate('langchain4j.datasource.form.modelType'), h(MagicSelect, {
-                    value: info.modelType,
-                    'onUpdate:value': value => { info.modelType = value },
-                    placeholder: translate('langchain4j.datasource.form.placeholder.modelType'),
-                    options: modelTypeOptions,
-                    width: '100%'
-                })),
-                formRow(translate('langchain4j.datasource.form.modelName'), h(MagicInput, {
-                    value: info.modelName,
-                    'onUpdate:value': value => { info.modelName = value },
-                    placeholder: translate('langchain4j.datasource.form.placeholder.modelName'),
-                    width: '100%'
-                })),
-                formRow(translate('langchain4j.datasource.form.other'), h(MagicMonacoEditor, {
-                    value: info.other,
-                    'onUpdate:value': value => { info.other = value },
-                    placeholder: translate('langchain4j.datasource.form.placeholder.other'),
-                    language: 'json',
-                    style: { height: '150px' }
-                }))
-            ]
-        }
-    }
-})
-
 const createLangchain4jDataSourceService = (request, $i, modal, JavaClass) => {
     let findResources
     JavaClass.setExtensionAttribute(LANGCHAIN4J_MODEL_CLASS, () => {
@@ -213,22 +110,7 @@ const createLangchain4jDataSourceService = (request, $i, modal, JavaClass) => {
     }
 }
 
-const installStyle = targetDocument => {
-    const style = targetDocument.createElement('style')
-    style.innerHTML = `
-.magic-langchain4j-info { display: flex; flex-direction: column; flex: 1; padding: 5px; }
-.magic-langchain4j-info form { display: flex; }
-.magic-langchain4j-info form label { display: inline-block; width: 100px; height: var(--magic-input-height); line-height: var(--magic-input-height); font-weight: 400; text-align: right; padding: 0 5px; }
-.magic-langchain4j-info form .magic-checkbox { width: 22px; height: 22px; }
-.magic-langchain4j-info form .magic-textarea { margin: 5px; }
-.magic-langchain4j-info form .magic-form-row.align-left label { text-align: left; width: 100%; }
-.magic-langchain4j-info form .magic-form-row.align-left .magic-checkbox { margin-left: 0 !important; }
-`
-    targetDocument.head.appendChild(style)
-}
-
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-    installStyle(document)
     installLangchain4jIcon(document)
 }
 

@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto'
 import vm from 'node:vm'
 
-const MODEL_CLASS = 'com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo'
 const SAMPLE_INFO = {
     name: 'Sample name',
     key: 'sample-key',
@@ -39,7 +38,7 @@ const normalizeCss = css => {
     }
 }
 
-const createVueRuntime = () => {
+const createVueRuntime = translationState => {
     const vnode = (kind, type, props, children) => ({
         kind,
         type,
@@ -52,12 +51,17 @@ const createVueRuntime = () => {
         createElementVNode: (type, props, children) => vnode('element', type, props, children),
         createVNode: (type, props, children) => vnode('component', type, props, children),
         defineComponent: component => component,
-        h: (type, props, children) => vnode('h', type, props, children),
+        h(type, props, children) {
+            if (arguments.length === 2 && (typeof props === 'string' || Array.isArray(props))) {
+                return vnode('h', type, null, props)
+            }
+            return vnode('h', type, props, children)
+        },
         inject: key => {
             if (key !== 'i18n.format') {
                 throw new Error(`Unexpected injection: ${key}`)
             }
-            return value => value
+            return value => `${translationState.prefix}${value}`
         },
         openBlock() {},
         resolveComponent: name => name,
@@ -150,37 +154,50 @@ const createOptions = requestResult => {
     return { observations, options }
 }
 
-const normalizeComponent = component => {
+const normalizeRows = (root, info, updateValues) => {
+    const rows = Array.isArray(root) ? root : root.children
+    return rows.map((row, index) => {
+        const label = row.children[0]
+        const control = row.children[1]
+        const props = control.props || {}
+        let updateField = null
+        if (updateValues) {
+            const before = clone(info)
+            props['onUpdate:value'](`updated-${index}`)
+            updateField = Object.keys(info).find(key => info[key] !== before[key])
+            info[updateField] = before[updateField]
+        }
+        return {
+            rowClass: row.props.class,
+            labelKey: label.children,
+            control: control.type,
+            value: props.value,
+            updateField,
+            placeholderKey: props.placeholder,
+            options: props.options ? clone(props.options) : null,
+            width: props.width || null,
+            language: props.language || null,
+            style: props.style ? clone(props.style) : null
+        }
+    })
+}
+
+const normalizeComponent = (component, translationState) => {
     const info = clone(SAMPLE_INFO)
     const render = component.setup({ info })
-    const root = render({}, [])
-    const rows = Array.isArray(root) ? root : root.children
+    const rows = normalizeRows(render({}, []), info, true)
+    translationState.prefix = 'rerendered:'
+    const rerenderedRows = normalizeRows(render({}, []), info, false)
 
     return {
         name: component.__name || component.name,
         defaultInfo: clone(component.props.info.default),
-        rows: rows.map((row, index) => {
-            const label = row.children[0]
-            const control = row.children[1]
-            const props = control.props || {}
-            const update = props['onUpdate:value']
-            const before = clone(info)
-            update(`updated-${index}`)
-            const updateField = Object.keys(info).find(key => info[key] !== before[key])
-            info[updateField] = before[updateField]
-            return {
-                rowClass: row.props.class,
-                labelKey: label.children,
-                control: control.type,
-                value: props.value,
-                updateField,
-                placeholderKey: props.placeholder,
-                options: props.options ? clone(props.options) : null,
-                width: props.width || null,
-                language: props.language || null,
-                style: props.style ? clone(props.style) : null
-            }
-        })
+        rows,
+        rerenderedTranslations: rerenderedRows.map(row => ({
+            labelKey: row.labelKey,
+            placeholderKey: row.placeholderKey,
+            options: row.options
+        }))
     }
 }
 
@@ -219,8 +236,9 @@ const normalizeService = (factory, requestResult) => {
 
 export const normalizePluginArtifact = (source, filename) => {
     const domObservations = { bodyNodes: [], headNodes: [], opened: [] }
+    const translationState = { prefix: '' }
     const context = {
-        Vue: createVueRuntime(),
+        Vue: createVueRuntime(translationState),
         document: createDocument(domObservations),
         window: {
             open(...args) {
@@ -270,7 +288,7 @@ export const normalizePluginArtifact = (source, filename) => {
                 componentName: datasource.component.__name || datasource.component.name
             }
         },
-        component: normalizeComponent(datasource.component),
+        component: normalizeComponent(datasource.component, translationState),
         services: {
             success: normalizeService(factory, 'ok'),
             failure: normalizeService(factory, 'connection refused')
@@ -288,5 +306,3 @@ export const normalizePluginArtifact = (source, filename) => {
         statusBarItems
     })
 }
-
-export const expectedModelClass = MODEL_CLASS
