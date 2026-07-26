@@ -36,7 +36,16 @@ public class ModelDataSourceInfo extends MagicEntity {
         definition.setBaseUrl(baseUrl);
         definition.setApiKey(apiKey);
         definition.setModelName(modelName);
-        definition.setProperties(new LinkedHashMap<String, Object>(properties));
+        Map<String, Object> definitionProperties = new LinkedHashMap<String, Object>();
+        if (properties != null) {
+            definitionProperties.putAll(properties);
+        }
+        putCredential(definitionProperties, "apiKey", apiKey);
+        putCredential(definitionProperties, "secretKey", secretKey);
+        putCredential(definitionProperties, "accessToken", accessToken);
+        putCredential(definitionProperties, "token", token);
+        putCredential(definitionProperties, "password", password);
+        definition.setProperties(definitionProperties);
         return definition;
     }
 
@@ -97,5 +106,11 @@ public class ModelDataSourceInfo extends MagicEntity {
                 || "accessToken".equalsIgnoreCase(propertyKey)
                 || "token".equalsIgnoreCase(propertyKey)
                 || "password".equalsIgnoreCase(propertyKey);
+    }
+
+    private void putCredential(Map<String, Object> target, String propertyKey, String value) {
+        if (value != null) {
+            target.put(propertyKey, value);
+        }
     }
 }

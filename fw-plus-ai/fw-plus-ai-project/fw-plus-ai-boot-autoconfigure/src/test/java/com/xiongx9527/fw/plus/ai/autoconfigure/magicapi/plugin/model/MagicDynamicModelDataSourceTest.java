@@ -75,6 +75,28 @@ class MagicDynamicModelDataSourceTest {
     }
 
     @Test
+    void createClientPassesDirectCredentialsToFactoryDefinitionProperties() {
+        RecordingFactory factory = new RecordingFactory();
+        MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
+                registryWith("boot", model("boot"), "boot"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+        ModelDataSourceInfo info = info("chat");
+        info.setApiKey("api-key");
+        info.setSecretKey("secret-key");
+        info.setAccessToken("access-token");
+        info.setToken("token");
+        info.setPassword("password");
+
+        dataSource.createClient(info);
+
+        assertEquals("api-key", factory.createdDefinition.getApiKey());
+        assertEquals("api-key", factory.createdDefinition.getProperties().get("apiKey"));
+        assertEquals("secret-key", factory.createdDefinition.getProperties().get("secretKey"));
+        assertEquals("access-token", factory.createdDefinition.getProperties().get("accessToken"));
+        assertEquals("token", factory.createdDefinition.getProperties().get("token"));
+        assertEquals("password", factory.createdDefinition.getProperties().get("password"));
+    }
+
+    @Test
     void createClientRejectsInvalidDefinitions() {
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
                 registryWith("boot", model("boot"), "boot"), new RecordingFactory(), Collections.<LangChain4jModelProviderAdapter>emptyList());
@@ -111,9 +133,11 @@ class MagicDynamicModelDataSourceTest {
 
     private static class RecordingFactory implements LangChain4jModelFactory {
         private final LangChain4jModel createdModel = new LangChain4jModel("fake", LangChain4jModelType.CHAT, "runtime");
+        private LangChain4jModelDefinition createdDefinition;
 
         @Override
         public LangChain4jModel create(LangChain4jModelDefinition definition, List<LangChain4jModelProviderAdapter> adapters) {
+            createdDefinition = definition;
             return createdModel;
         }
     }

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -34,17 +35,38 @@ class ModelDataSourceMagicDynamicRegistryTest {
     }
 
     @Test
-    void registerSameKeyDestroysBeforeCreatingRuntimeModel() {
+    void updateSameKeyDestroysBeforeEachCreate() {
         ModelDataSourceInfo info = info("chat");
         ModelDataSourceInfoMagicResourceStorage storage = mock(ModelDataSourceInfoMagicResourceStorage.class);
         when(storage.buildKey(info)).thenReturn("chat-0");
         MagicDynamicModelDataSource dataSource = mock(MagicDynamicModelDataSource.class);
 
-        new TestRegistry(storage, dataSource).registerRuntime(info);
+        TestRegistry registry = new TestRegistry(storage, dataSource);
+        registry.registerRuntime(info);
+        registry.registerRuntime(info);
 
         InOrder order = inOrder(dataSource);
         order.verify(dataSource).destroyClientByKey("chat");
         order.verify(dataSource).createClient(info);
+        order.verify(dataSource).destroyClientByKey("chat");
+        order.verify(dataSource).createClient(info);
+    }
+
+    @Test
+    void failedMappingRegistrationRollsBackRuntimeModel() {
+        ModelDataSourceInfo info = info("chat");
+        ModelDataSourceInfoMagicResourceStorage storage = mock(ModelDataSourceInfoMagicResourceStorage.class);
+        when(storage.buildKey(info)).thenReturn("chat-0");
+        MagicDynamicModelDataSource dataSource = mock(MagicDynamicModelDataSource.class);
+        TestRegistry registry = new TestRegistry(storage, dataSource);
+        registry.failMappingRegistration = true;
+
+        assertFalse(registry.registerRuntime(info));
+
+        InOrder order = inOrder(dataSource);
+        order.verify(dataSource).destroyClientByKey("chat");
+        order.verify(dataSource).createClient(info);
+        order.verify(dataSource).destroyClientByKey("chat");
     }
 
     @Test
@@ -67,6 +89,7 @@ class ModelDataSourceMagicDynamicRegistryTest {
     }
 
     private static class TestRegistry extends ModelDataSourceMagicDynamicRegistry {
+        private boolean failMappingRegistration;
         private TestRegistry(ModelDataSourceInfoMagicResourceStorage storage, MagicDynamicModelDataSource dataSource) {
             super(storage, dataSource);
         }
@@ -77,6 +100,11 @@ class ModelDataSourceMagicDynamicRegistryTest {
 
         private void unregisterRuntime(ModelDataSourceInfo info) {
             unregister(buildMappingNode(info));
+        }
+
+        @Override
+        protected boolean registerMapping(MappingNode<ModelDataSourceInfo> mappingNode) {
+            return !failMappingRegistration && super.registerMapping(mappingNode);
         }
     }
 }
