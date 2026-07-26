@@ -2,6 +2,7 @@
 change: move-status-bar-items-to-plugins
 design-doc: docs/superpowers/specs/2026-07-25-move-status-bar-items-to-plugins-design.md
 base-ref: a4d3a4a2c7b5962d0d5324761f353e75a5443df5
+archived-with: 2026-07-26-move-status-bar-items-to-plugins
 ---
 
 # Magic-API 插件状态栏与 Toolbar 排序实施计划
