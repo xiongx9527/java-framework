@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provi
 
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreException;
+import org.springframework.context.ApplicationContext;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +43,34 @@ final class ProviderAdapterSupport {
             return (Boolean) value;
         }
         return Boolean.valueOf(String.valueOf(value));
+    }
+
+    static <T> T beanProperty(EmbeddingStoreDefinition definition, String name, Class<T> type,
+                              ApplicationContext applicationContext) {
+        Object value = definition.getProperties().get(name);
+        if (value == null) {
+            return null;
+        }
+        if (type.isInstance(value)) {
+            return type.cast(value);
+        }
+        String beanName = String.valueOf(value);
+        if (beanName.trim().length() == 0) {
+            return null;
+        }
+        if (applicationContext == null) {
+            throw new IllegalArgumentException(name + " requires Spring ApplicationContext");
+        }
+        return applicationContext.getBean(beanName, type);
+    }
+
+    static <T> T requiredBeanProperty(EmbeddingStoreDefinition definition, String name, Class<T> type,
+                                      ApplicationContext applicationContext) {
+        T value = beanProperty(definition, name, type, applicationContext);
+        if (value == null) {
+            throw new IllegalArgumentException(name + " must be a bean name or " + type.getSimpleName() + " instance");
+        }
+        return value;
     }
 
     static <T extends Enum<T>> T enumProperty(EmbeddingStoreDefinition definition, String name, Class<T> type) {

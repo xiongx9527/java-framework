@@ -8,7 +8,7 @@ var MagicLangchain4j = function(vue) {
         JavaClass.setExtensionAttribute("com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo", () => {
             var _a;
             JavaClass.loadClass("com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo");
-            return findResources && (((_a = findResources("qdrant-datasource")[0]) == null ? void 0 : _a.children) || []).map((it) => {
+            return findResources && (((_a = findResources("vector-datasource")[0]) == null ? void 0 : _a.children) || []).map((it) => {
                 return {
                     name: it.key,
                     type: "com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo",

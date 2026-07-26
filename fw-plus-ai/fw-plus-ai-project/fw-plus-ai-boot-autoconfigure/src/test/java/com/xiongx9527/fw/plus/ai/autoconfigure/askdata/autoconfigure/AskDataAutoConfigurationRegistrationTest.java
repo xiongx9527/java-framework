@@ -13,17 +13,11 @@ import static org.junit.Assert.assertTrue;
 public class AskDataAutoConfigurationRegistrationTest {
 
     @Test
-    public void shouldRegisterAskDataAutoConfigurationInSpringFactoriesOnly() throws Exception {
+    public void shouldRegisterAskDataAutoConfigurationInSpringFactories() throws Exception {
         String factories = read("META-INF/spring.factories");
         String autoConfiguration = "com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration";
         assertTrue(factories.contains(autoConfiguration));
-        assertFalse(existsInAutoconfigure("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports"));
-    }
-
-    private boolean existsInAutoconfigure(String location) throws Exception {
-        File classesDirectory = new File(AskDataAutoConfiguration.class
-                .getProtectionDomain().getCodeSource().getLocation().toURI());
-        return new File(classesDirectory, location).isFile();
+        assertFalse(existsInSourceResources("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports"));
     }
 
     private String read(String path) throws Exception {
@@ -33,5 +27,12 @@ public class AskDataAutoConfigurationRegistrationTest {
         } finally {
             scanner.close();
         }
+    }
+
+    private boolean existsInSourceResources(String location) throws Exception {
+        File classesDirectory = new File(AskDataAutoConfiguration.class
+                .getProtectionDomain().getCodeSource().getLocation().toURI());
+        File moduleDirectory = classesDirectory.getParentFile().getParentFile();
+        return new File(new File(moduleDirectory, "src/main/resources"), location).isFile();
     }
 }

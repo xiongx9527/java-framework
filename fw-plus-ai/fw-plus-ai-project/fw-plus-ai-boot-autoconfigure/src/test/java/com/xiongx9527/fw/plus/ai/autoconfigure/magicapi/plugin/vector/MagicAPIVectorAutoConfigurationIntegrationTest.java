@@ -1,7 +1,10 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.model.MagicDynamicVectorDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module.VectorModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.service.VectorDataSourceInfoMagicResourceStorage;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.service.VectorDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.starter.MagicAPIVectorConfiguration;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter;
@@ -41,15 +44,15 @@ public class MagicAPIVectorAutoConfigurationIntegrationTest {
                 .withPropertyValues(
                         "fw.plus.magicapi.enabled=true",
                         "magic-api.plugin.aia.enabled=false",
-                        "magic-api.plugin.qdrant.enabled=false",
-                        "magic-api.plugin.redisstack.enabled=false",
-                        "magic-api.plugin.weaviate.enabled=false",
                         "fw-plus.ai.langchain4j.embedding-store.default-store=knowledge",
                         "fw-plus.ai.langchain4j.embedding-store.stores.knowledge.provider=fake")
                 .withBean(MagicAPIProperties.class, MagicAPIProperties::new)
                 .withBean(EmbeddingStoreProviderAdapter.class, FakeEmbeddingStoreProviderAdapter::new)
                 .run(context -> {
                     assertNotNull(context.getBean(EmbeddingStoreRegistry.class));
+                    assertNotNull(context.getBean(MagicDynamicVectorDataSource.class));
+                    assertNotNull(context.getBean(VectorDataSourceInfoMagicResourceStorage.class));
+                    assertNotNull(context.getBean(VectorDataSourceMagicDynamicRegistry.class));
                     assertNotNull(context.getBean(VectorModule.class));
                     MagicAPIVectorConfiguration configuration = context.getBean(MagicAPIVectorConfiguration.class);
                     Plugin plugin = configuration.plugin();

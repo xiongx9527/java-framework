@@ -8,7 +8,7 @@ subagent_dispatch: confirmed
 tdd_mode: tdd
 review_mode: thorough
 isolation: worktree
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: c695308855f1512ebbcf705f965aaa4d2c352765
 design_doc: docs/superpowers/specs/2026-07-25-unify-vector-magicapi-plugin-design.md

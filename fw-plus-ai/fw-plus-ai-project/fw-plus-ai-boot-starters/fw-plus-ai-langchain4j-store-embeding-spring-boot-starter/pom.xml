@@ -18,13 +18,17 @@
     <dependencies>
         <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-boot-autoconfigure</artifactId>
+            <artifactId>fw-plus-ai-boot-starter</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-store-embeding</artifactId>
         </dependency>
+
+        <!--
+        默认只引入自动配置与 fw-plus-ai-langchain4j-store-embeding 核心抽象，避免 starter
+        直接传递所有向量数据库 SDK。业务需要具体 provider 时，按 README 中的说明在应用侧显式引入。
 
         <dependency>
             <groupId>dev.langchain4j</groupId>
@@ -130,5 +134,6 @@
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-weaviate</artifactId>
         </dependency>
+        -->
     </dependencies>
 </project>
