@@ -202,6 +202,7 @@
         -->
 
         <langchain4j.version>0.35.0</langchain4j.version>
+        <jedis.version>5.0.0</jedis.version>
     </properties>
     <description>
         fw-plus 核心库依赖管理.
@@ -256,6 +257,11 @@
                 <version>${langchain4j.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>redis.clients</groupId>
+                <artifactId>jedis</artifactId>
+                <version>${jedis.version}</version>
             </dependency>
             <!--vesoft nebula-java 3.x client 配置管理-->
             <dependency>
@@ -1305,6 +1311,12 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-langchain4j-store-embeding</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-store-embeding-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
