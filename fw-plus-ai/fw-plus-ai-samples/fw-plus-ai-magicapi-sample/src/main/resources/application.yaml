@@ -6,13 +6,16 @@ spring:
       name: ai-sample
 
 
+fw:
+  plus:
+    uid:
+      enabled: false
+    web:
+      jackson:
+        write_longs_as_strings:
+          enabled: true
+
 fw-plus:
-  uid:
-    enabled: false
-  web:
-    jackson:
-      write_longs_as_strings:
-        enabled: true
   ai:
     langchain4j:
       model:
@@ -71,5 +74,4 @@ logging:
     org.apache.kafka: ERROR
     org.springframework.kafka: ERROR
     io.debezium: ERROR
-
 

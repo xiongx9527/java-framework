@@ -100,8 +100,8 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 ## 模型 API 版本边界
 
 本工程的模型扩展锁定 LangChain4j `0.35.0`。`CHAT` 使用
-`ChatLanguageModel`，`STREAMING_CHAT` 使用 `StreamingChatLanguageModel`；不要在
-当前版本中使用高版本 LangChain4j 的 `ChatModel` 或 `StreamingChatModel` 命名。
+`ChatLanguageModel`，`STREAMING_CHAT` 使用 `StreamingChatLanguageModel`；LangChain4j
+`1.x` 使用 `ChatModel` 和 `StreamingChatModel` 命名，当前版本不能引用这些类。
 
 `TextContent`、`ImageContent`、`AudioContent`、`VideoContent` 和
 `PdfFileContent` 均表示 Chat 请求可携带的多模态内容，而不是独立模型接口。因此
