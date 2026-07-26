@@ -1,138 +1,93 @@
-# Task 1 实施报告
+# Task 1: Core Model 模块契约报告
 
-## 状态
+## 实现内容
 
-DONE。已完成 Core 多向量 registry/factory 基础模型并提交实现。
+- 新增 `fw-plus-ai-langchain4j-model` Maven 模块，并注册到 LangChain4j 聚合 POM。
+- 在 Core BOM 中新增 `fw-plus-ai-langchain4j-model` 依赖管理。
+- 新增 `LangChain4jModelDefinition` JavaBean，包含 key、provider、modelType、enabled、baseUrl、apiKey、modelName 与默认空 `LinkedHashMap` properties。
+- 新增 `LangChain4jModelType` 六个模型类型枚举值。
+- 新增 `LangChain4jModel` 包装对象、provider adapter、factory、registry、exception 公共契约。
+- 未实现 `DefaultLangChain4jModelFactory`、`DefaultLangChain4jModelRegistry`，未引入 provider SDK、Spring Boot 自动配置或 Magic model 插件逻辑。
 
-## RED 失败命令与摘要
+## RED
 
-1. 简报指定的 Maven Wrapper 命令：
+命令：
 
-   ```bash
-   cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreRegistryTest test
-   ```
+```bash
+cd fw-plus-core
+./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model -am -Dtest=LangChain4jModelDefinitionTest test
+```
 
-   失败：`fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 与 `maven-wrapper.jar` 缺失，Wrapper 无法启动。
+结果：失败，未进入 Maven 项目解析或测试编译。
 
-2. 按简报使用 Zulu 8 系统 Maven 替代命令：
+失败摘要：当前 worktree 缺失 `fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 和 `fw-plus-core/.mvn/wrapper/maven-wrapper.jar`。Wrapper 下载 JAR 时因目标目录不存在失败，随后报 `java.lang.ClassNotFoundException: org.apache.maven.wrapper.MavenWrapperMain`。因此无法观察到预期的“新模块和类不存在”失败。
 
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreRegistryTest test
-   ```
+## GREEN
 
-   失败：测试编译找不到 `EmbeddingStoreRegistry`、`DefaultEmbeddingStoreRegistry` 和 `EmbeddingStoreException`。JUnit Jupiter 与测试 fake `EmbeddingStore<TextSegment>` 均正常编译，失败原因符合 registry 尚未实现的预期。
+命令：
 
-3. factory RED：
+```bash
+cd fw-plus-core
+./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model -am -Dtest=LangChain4jModelDefinitionTest test
+```
 
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
-   ```
+结果：失败，失败原因与 RED 相同，Wrapper 未启动，无法验证测试 GREEN。
 
-   失败：测试编译找不到 `EmbeddingStoreDefinition` 和 `EmbeddingStoreProviderAdapter`，符合 factory 基础模型尚未实现的预期。
+## 变更文件
 
-## GREEN 通过命令与摘要
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/pom.xml`
+- `fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelDefinition.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelType.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModel.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelProviderAdapter.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelFactory.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelRegistry.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelException.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelDefinitionTest.java`
 
-1. registry 测试：
+## 自查结果
 
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreRegistryTest test
-   ```
+- `git diff --check` 通过。
+- 三个受影响 POM 经 `xmllint --noout` 校验通过。
+- 新模块未包含 `DefaultLangChain4jModelFactory`、`DefaultLangChain4jModelRegistry` 或 Java 9+ API。
+- 模块仅声明 `langchain4j-core` 与测试依赖，未声明任何具体 provider SDK。
 
-   通过：4 个测试，0 failures，0 errors。
+## 风险信号自评
 
-2. factory 测试：
-
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
-   ```
-
-   通过：3 个测试，0 failures，0 errors。
-
-3. 目标模块全量测试：
-
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding test
-   ```
-
-   通过：8 个测试，0 failures，0 errors，0 skipped。
-
-## 修改文件
-
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/pom.xml`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreProperties.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreDefinition.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreException.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreRegistry.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreRegistry.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreFactory.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreFactory.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreProviderAdapter.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreRegistryTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreFactoryTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStorePropertiesTest.java`
-
-## 提交哈希
-
-- `6a01d22f68a7997f6d2b2ab241f33134020dbc0d` `feat(vector): add embedding store registry foundation`
-
-## 自审结果
-
-- registry 使用防御性 `LinkedHashMap` 副本与 `Collections.unmodifiableMap`，并实现简报要求的三个精确错误消息。
-- factory 按 provider 选择 adapter；无适配器和 adapter 创建异常均抛出 `EmbeddingStoreException`，后者携带 provider 与 key。
-- `EmbeddingStoreProperties.stores` 初始化为空 `LinkedHashMap`；definition 包含 key、provider、enabled、dimension、metadataKeys、properties。
-- 测试中的 fake 实现实际 `EmbeddingStore<TextSegment>` 接口，没有使用不存在的 `InMemoryEmbeddingStore`。
-- 未修改 starter、provider adapter 实现、Magic-API 插件、聚合/BOM POM、OpenSpec artifacts、docs/superpowers/plans、docs/superpowers/specs 或 `.comet` 状态文件；未使用 Java 9+ API。
-
-## 风险信号清单
-
-- 中：`fw-plus-core/.mvn/wrapper` 仍缺失，当前环境必须使用 Zulu 8 系统 Maven 作为替代验证路径。
-- 低：本任务只提供 registry/factory 基础模型；具体 Milvus、Qdrant、Weaviate 等 provider adapter 由后续任务实现和集成验证。
+高：Maven Wrapper 文件不在当前 worktree，指定测试命令无法启动，测试 GREEN 未得到验证。代码契约与 POM 结构已完成静态检查，但必须在恢复 `fw-plus-core/.mvn/wrapper/` 后重新运行指定命令。
 
 ## Review Fix
 
-### RED 失败命令与摘要
+### 修复内容
 
-1. 已先尝试 Maven Wrapper：
+- `LangChain4jModelType` 补齐 LangChain4j 0.35.0 core 中真实存在的八类模型接口：`CHAT`、`STREAMING_CHAT`、`EMBEDDING`、`IMAGE`、`LANGUAGE`、`STREAMING_LANGUAGE`、`MODERATION`、`SCORING`。
+- 未增加 `AUDIO`、`VIDEO`、`PDF`；它们属于 Chat 多模态内容类型，不是 0.35.0 的独立模型接口。
+- 未引用高版本的 `ChatModel` 或 `StreamingChatModel`。当前 core 契约继续使用 `Object` 包装模型实例，兼容 0.35.0 的 `ChatLanguageModel` 与 `StreamingChatLanguageModel`。
+- `LangChain4jModelDefinitionTest` 已从 JUnit 4 迁移至 JUnit Jupiter，继续使用现有 `spring-boot-starter-test`，未引入 `junit:junit`。
 
-   ```bash
-   cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
-   ```
+### RED
 
-   失败：`.mvn/wrapper/maven-wrapper.properties` 与 `maven-wrapper.jar` 缺失，Wrapper 无法启动。
+命令：
 
-2. 使用 Zulu 8 系统 Maven 运行新增 factory 测试：
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -Dtest=LangChain4jModelDefinitionTest test
+```
 
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
-   ```
+结果：失败。测试编译阶段无法解析 `org.junit.Test` 和 `org.junit.Assert`，证明模块的测试依赖仅提供 JUnit Jupiter，JUnit 4 导入不兼容。
 
-   失败：`shouldIncludeProviderAndKeyWhenAdapterSupportCheckFails` 预期 `EmbeddingStoreException`，实际收到 `IllegalStateException`，确认 `supports()` 异常未被转换。
+### GREEN
 
-### GREEN 通过命令与摘要
+命令：
 
-1. factory 测试：
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -Dtest=LangChain4jModelDefinitionTest test
+```
 
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
-   ```
+结果：通过。`LangChain4jModelDefinitionTest` 共运行 2 个测试，`Failures: 0`、`Errors: 0`、`Skipped: 0`。
 
-   通过：4 个测试，0 failures，0 errors。
+### 环境限制
 
-2. 目标模块全量测试：
-
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding test
-   ```
-
-   通过：10 个测试，0 failures，0 errors，0 skipped。
-
-### 修改文件
-
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreFactory.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreFactoryTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreRegistryTest.java`
-- `.superpowers/sdd/task-1-report.md`
-
-### 提交哈希
-
-- `0a3f5ffd0d6c2d81cbed3d7194cbba217a5d1459` `fix(vector): wrap embedding store adapter support errors`
+- Wrapper 命令 `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model -am -Dtest=LangChain4jModelDefinitionTest test` 仍无法启动：当前 worktree 缺失 `fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 与 `maven-wrapper.jar`，最终报 `ClassNotFoundException: org.apache.maven.wrapper.MavenWrapperMain`。
+- 聚合 `-am` 构建受基线中 cassandra、infinispan、neo4j 模块目录缺失影响；该问题不在本 Task 修复范围内，未修改这些模块。GREEN 以本次系统 Maven focused 命令为准。

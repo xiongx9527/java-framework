@@ -1,11 +1,11 @@
 package com.xiongx9527.fw.plus.ai.langchain4j.model;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LangChain4jModelDefinitionTest {
 
@@ -42,5 +42,7 @@ public class LangChain4jModelDefinitionTest {
         assertNotNull(LangChain4jModelType.valueOf("IMAGE"));
         assertNotNull(LangChain4jModelType.valueOf("LANGUAGE"));
         assertNotNull(LangChain4jModelType.valueOf("STREAMING_LANGUAGE"));
+        assertNotNull(LangChain4jModelType.valueOf("MODERATION"));
+        assertNotNull(LangChain4jModelType.valueOf("SCORING"));
     }
 }

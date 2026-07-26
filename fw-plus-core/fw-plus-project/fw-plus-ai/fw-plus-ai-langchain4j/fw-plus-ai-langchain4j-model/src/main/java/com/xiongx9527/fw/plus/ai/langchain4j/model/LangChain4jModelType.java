@@ -7,5 +7,7 @@ public enum LangChain4jModelType {
     EMBEDDING,
     IMAGE,
     LANGUAGE,
-    STREAMING_LANGUAGE
+    STREAMING_LANGUAGE,
+    MODERATION,
+    SCORING
 }
