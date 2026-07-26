@@ -7,7 +7,7 @@ build_pause: null
 subagent_dispatch: confirmed
 tdd_mode: tdd
 review_mode: standard
-isolation: null
+isolation: worktree
 verify_mode: null
 auto_transition: true
 base_ref: 7b1c788fd198b832c41ad83baf58e40bb5e5f8bb
@@ -21,7 +21,7 @@ created_at: 2026-07-26
 verified_at: null
 archive_confirmation: null
 archived: false
-bound_branch: null
+bound_branch: feature/20260726/extract-common-graph-jdbc
 direct_override: null
 handoff_context: openspec/changes/extract-common-graph-jdbc/.comet/handoff/design-context.json
 handoff_hash: 845303960383f83f363b5e2f9a1f9d8439189d54114162c622f1964d0dfcbdd3
