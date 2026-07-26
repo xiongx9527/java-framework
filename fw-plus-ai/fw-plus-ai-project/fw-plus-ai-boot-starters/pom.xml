@@ -13,8 +13,6 @@
     <modules>
         <module>fw-plus-ai-boot-starter</module>
         <module>fw-plus-ai-magicapi-plugin</module>
-        <module>fw-plus-ai-langchain4j-open-ai-spring-boot-starter</module>
-        <module>fw-plus-ai-langchain4j-spring-boot-starter</module>
         <module>fw-plus-ai-askdata-spring-boot-starter</module>
     </modules>
     <artifactId>fw-plus-ai-boot-starters</artifactId>
