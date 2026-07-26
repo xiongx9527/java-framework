@@ -14,7 +14,7 @@
 
 ## 4. 宿主解耦
 
-- [ ] 4.1 删除 `magic-status-bar.vue` 中全部 `hasXxxPlugin`、`checkPlugin`、专属图标项、点击函数、文案判断和轮询，只保留通用插件状态栏机制及边界测试。
+- [x] 4.1 删除 `magic-status-bar.vue` 中全部 `hasXxxPlugin`、`checkPlugin`、专属图标项、点击函数、文案判断和轮询，只保留通用插件状态栏机制及边界测试。
 
 ## 5. Toolbar 排序
 

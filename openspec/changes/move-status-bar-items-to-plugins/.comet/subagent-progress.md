@@ -1,26 +1,18 @@
 # 子代理进度
 
-- 计划任务：Task 6: 为所有静态插件 Toolbar 增加顺序
-- OpenSpec 映射：5.1 为所有现有静态插件 toolbar 补充明确 `order`，宿主稳定排序且不改变内置、动态 toolbar 和 `adminOnly` 行为
-- 实现代理：019f9dd0-7907-7af0-bcbd-f8c9a21fc20f（Dalton）
-- review_mode：thorough
-- 审查修复轮次：1/2
-- 实现基线：518a9da1
+- 计划任务：Task 7: 完成宿主专属逻辑清理与边界回归
+- OpenSpec 映射：4.1 删除 `magic-status-bar.vue` 中全部 `hasXxxPlugin`、`checkPlugin`、专属图标项、点击函数、文案判断和轮询，只保留通用插件状态栏机制及边界测试
 - 当前阶段：done
-- 实现提交：db57aa9a
-- 变更文件：14 个插件 `src/console/src/index.js` 和宿主 `plugin-toolbar-order.contract.test.mjs`
-- RED 证据：全量契约测试在 Config 首个 toolbar 缺少数值 `order` 时失败
-- GREEN 证据：宿主 14/14、DB 6/6、S3 15/15、Kafka 5/5、Pulsar 4/4，共 44 项通过
-- 风险信号：跨 14 个插件模块；提交 128 新增/1 删除，未超过 200 行
-- 实现顾虑：RabbitMQ 文件补充 EOF 换行；宿主存在既有模块类型警告
-- 已通过审查：Task 6 第 1 轮修复后聚焦复审通过，原 Important 已关闭，无新增 Critical/Important
-- 审查代理：019f9dd8-cc5e-7453-9be6-707c809c280d（Socrates）
-- 审查结果：Needs fixes（1 个 Important）
-- 未解决反馈：toolbar 契约测试使用文本/正则提取，可能被注释、字符串或嵌套 `order` 欺骗；需改为结构化 AST 检查并显式跳过 Pulsar 动态 toolbar
-- 修复代理：019f9ddb-32f2-7420-8418-0f17e288f023（Boyle）
-- 修复提交：76dae7e813a79c7c94c06994d13e0b1cdd0b0bb4
-- 修复 RED：注释、字符串和嵌套对象携带伪 `order` 时，旧 helper 产生假阳性，对抗测试 1/2 失败
-- 修复 GREEN：AST 契约 2/2、宿主全量 15/15、`git diff --check` 通过
-- 修复顾虑：新增直接开发依赖 `acorn`；仓库无已跟踪前端锁文件；既有依赖漏洞未处理
-- 聚焦复审代理：019f9de1-5c1a-73e2-aafa-48d20c097701（Boole）
-- 聚焦复审结果：Spec Compliance APPROVED；Code Quality APPROVED；最高严重级别无
+- 实现代理：019f9de5-9091-76d3-a314-9c5826a12d69（Mencius）
+- review_mode：thorough
+- 审查修复轮次：0/2
+- 实现基线：4c86b671
+- 实现提交：563965b7
+- 变更文件：`magic-status-bar.vue`、`host-boundary.contract.test.mjs`
+- RED 证据：宿主聚焦测试命中旧 `hasVue3Plugin` 并失败
+- GREEN 证据：聚焦 8/8、宿主全量 16/16、Vite build、`git diff --check` 通过
+- 风险信号：既有 Node ESM、Vite 非模块脚本和大产物块警告；无本任务代码风险信号
+- 已通过审查：Task 7 独立审查通过，Spec Compliance 与 Code Quality 均 APPROVED，无发现
+- 审查代理：019f9dea-a523-7050-8112-f653bd88cf57（Pauli）
+- 审查结果：APPROVED；最高严重级别无
+- 未解决反馈：无
