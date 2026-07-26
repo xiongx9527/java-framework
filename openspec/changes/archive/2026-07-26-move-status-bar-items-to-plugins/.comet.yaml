@@ -19,8 +19,8 @@ verification_report: docs/superpowers/reports/2026-07-26-move-status-bar-items-t
 branch_status: pending
 created_at: 2026-07-25
 verified_at: 2026-07-26
-archive_confirmation: pending
-archived: false
+archive_confirmation: confirmed
+archived: true
 bound_branch: dev
 direct_override: null
 handoff_context: openspec/changes/move-status-bar-items-to-plugins/.comet/handoff/design-context.json

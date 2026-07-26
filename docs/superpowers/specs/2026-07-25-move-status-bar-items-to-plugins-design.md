@@ -2,6 +2,8 @@
 comet_change: move-status-bar-items-to-plugins
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-26-move-status-bar-items-to-plugins
+status: final
 ---
 
 # Magic-API 插件状态栏与 Toolbar 排序技术设计
