@@ -907,7 +907,7 @@ git commit -m "fw-plus-core: 让 Neo4j JDBC 复用公共图 JDBC 支持"
   - Nebula 现有 public/package-visible 类名、方法签名和测试 fake executor 路径保持可用
   - `NebulaConnection`、`NebulaStatementImpl`、`NebulaPreparedStatementImpl` 继续使用原生 Nebula 执行器和 ResultSet 映射
 
-- [ ] **Step 1: 先跑 Nebula 迁移前回归基线**
+- [x] **Step 1: 先跑 Nebula 迁移前回归基线**
 
 Run:
 
@@ -918,7 +918,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`。如果某个测试依赖当前未安装的本地服务，它必须被拆出或按现有测试约定跳过；不要把真实 NebulaGraph 作为本任务验收条件。
 
-- [ ] **Step 2: 将 Nebula 生命周期委托公共生命周期**
+- [x] **Step 2: 将 Nebula 生命周期委托公共生命周期**
 
 `NebulaResourceLifecycle` 保留现有 `ThrowingCloseAction` 接口兼容层，并内部使用：
 
@@ -952,7 +952,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，重复 close 仍只关闭一次，关闭后访问仍抛出 `SQLException`。
 
-- [ ] **Step 3: 将 Nebula 不支持异常与 wrapper 委托公共模块**
+- [x] **Step 3: 将 Nebula 不支持异常与 wrapper 委托公共模块**
 
 `ExceptionBuilder.buildUnsupportedOperationException()` 改为返回：
 
@@ -971,7 +971,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，不支持能力仍抛出 `SQLFeatureNotSupportedException` 或现有测试认可的 `SQLException` 子类；`unwrap/isWrapperFor` 语义不变。
 
-- [ ] **Step 4: 将 Nebula 参数绑定与参数元数据委托公共模块**
+- [x] **Step 4: 将 Nebula 参数绑定与参数元数据委托公共模块**
 
 `NebulaParameterBindings` 内部增加：
 
@@ -992,7 +992,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，`setString/setNull/clearParameters/executeBatch` 与 fake executor 收到的绑定值保持不变。
 
-- [ ] **Step 5: 将 Nebula 空 metadata 结果集形状委托公共模块**
+- [x] **Step 5: 将 Nebula 空 metadata 结果集形状委托公共模块**
 
 在 `NebulaDatabaseMetaData` 中：
 
@@ -1021,7 +1021,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，空 schemas/catalogs/columns/primary keys/index info 的列名、列类型稳定；Nebula index 读取测试仍能通过 fake executor。
 
-- [ ] **Step 6: 跑 Nebula 本地稳定性与框架集成回归**
+- [x] **Step 6: 跑 Nebula 本地稳定性与框架集成回归**
 
 Run:
 
@@ -1032,7 +1032,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，重复 close、ResultSet 边界、wasNull、unsupported、DriverManager/JdbcTemplate/MyBatis 常见读取路径均通过本地 fake 或本地构造数据验证。
 
-- [ ] **Step 7: 验证 Nebula 协议能力未被公共层吸收**
+- [x] **Step 7: 验证 Nebula 协议能力未被公共层吸收**
 
 Run:
 
@@ -1044,7 +1044,7 @@ git diff --stat -- fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-nebula-jdb
 
 Expected: 只出现 `NebulaParameterBindings.java` 的小幅变更；`sql/parser`、`sql/query`、`sql/write`、`sql/trigger`、`sql/routine`、`mysql/replication` 不出现协议迁移或大规模重写。
 
-- [ ] **Step 8: 提交 Nebula 适配**
+- [x] **Step 8: 提交 Nebula 适配**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-nebula-jdbc/src/main/java \

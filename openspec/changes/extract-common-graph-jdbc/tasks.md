@@ -20,10 +20,10 @@
 
 ## 4. Nebula JDBC 适配
 
-- [ ] 4.1 将 Nebula JDBC 中可复用的资源状态、异常、参数绑定和元数据结果集形状接入公共模块
-- [ ] 4.2 保留 Nebula 连接池、nGQL/SQL 转换、原生 SDK 结果映射、SQL AST 和 MySQL 协议相关能力在 `fw-plus-nebula-jdbc`
-- [ ] 4.3 补充或更新 Nebula 本地稳定性测试，覆盖重复 close、ResultSet 边界、wasNull 和不支持能力异常
-- [ ] 4.4 补充或更新 Nebula 框架集成测试，覆盖 DriverManager、JdbcTemplate、MyBatis 常见读取路径和元数据映射
+- [x] 4.1 将 Nebula JDBC 中可复用的资源状态、异常、参数绑定和元数据结果集形状接入公共模块
+- [x] 4.2 保留 Nebula 连接池、nGQL/SQL 转换、原生 SDK 结果映射、SQL AST 和 MySQL 协议相关能力在 `fw-plus-nebula-jdbc`
+- [x] 4.3 补充或更新 Nebula 本地稳定性测试，覆盖重复 close、ResultSet 边界、wasNull 和不支持能力异常
+- [x] 4.4 补充或更新 Nebula 框架集成测试，覆盖 DriverManager、JdbcTemplate、MyBatis 常见读取路径和元数据映射
 
 ## 5. 验证与文档
 

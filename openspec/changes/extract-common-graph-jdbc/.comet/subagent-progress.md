@@ -7,13 +7,18 @@
 
 ## Current Task
 
-- Task: Task 4: Neo4j JDBC 适配公共模块
+- Task: Task 5: Nebula JDBC 保守接入公共模块
 - Stage: done
-- Brief: .superpowers/sdd/task-4-brief.md
-- Report: .superpowers/sdd/task-4-report.md
-- Implementer commit: 2220c07b
-- Reviewer: approved after re-review
-- Fix commit: 34e823b3
-- Fix targets: generated keys lifecycle/equals and stream parameter materialization
+- Brief: .superpowers/sdd/task-5-brief.md
+- Report: .superpowers/sdd/task-5-report.md
+- Implementer commit: a9cd12dc
+- Report commit: 0d461045
+- Review mode: standard
+- Risk expectation: cross-module/public API contract and JDBC compatibility
+- Risk signals: unsupported exception message changed to common text; public/common API and Nebula JDBC compatibility touched
 - Review rounds: 1
+- Reviewer: approved after fix re-review
+- Fix targets: add missing DirectNebulaSqlExecutor and graph aggregate verification; document Maven Wrapper fallback; restore Connection resource-name coverage
+- Fix commit: d8f77a21
+- Re-reviewer: approved
 - RED/GREEN evidence: recorded in report
