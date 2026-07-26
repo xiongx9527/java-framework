@@ -2,12 +2,9 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataErrorCode;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,38 +15,29 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 	private final Map<String, ChatLanguageModel> chatModels;
 	private final Map<String, EmbeddingModel> embeddingModels;
 
-	public LangChain4jAskDataModelRegistry(AskDataProperties properties, LangChain4jModelRegistry modelRegistry) {
+	public LangChain4jAskDataModelRegistry(AskDataProperties properties,
+			Map<String, ChatLanguageModel> directChatModels,
+			Map<String, EmbeddingModel> directEmbeddingModels,
+			List<LangChain4jAskDataModelSource> modelSources) {
 		this.properties = properties;
-		this.chatModels = chatModels(modelRegistry);
-		this.embeddingModels = embeddingModels(modelRegistry);
-	}
-
-	private Map<String, ChatLanguageModel> chatModels(LangChain4jModelRegistry modelRegistry) {
-		if (modelRegistry == null) {
-			return Collections.emptyMap();
-		}
-		Map<String, ChatLanguageModel> models = new LinkedHashMap<String, ChatLanguageModel>();
-		for (String key : modelRegistry.keys()) {
-			LangChain4jModel model = modelRegistry.get(key);
-			if (model != null && model.getModel() instanceof ChatLanguageModel) {
-				models.put(key, (ChatLanguageModel) model.getModel());
+		this.chatModels = new LinkedHashMap<String, ChatLanguageModel>();
+		this.embeddingModels = new LinkedHashMap<String, EmbeddingModel>();
+		if (modelSources != null) {
+			for (LangChain4jAskDataModelSource modelSource : modelSources) {
+				if (modelSource.getChatModels() != null) {
+					this.chatModels.putAll(modelSource.getChatModels());
+				}
+				if (modelSource.getEmbeddingModels() != null) {
+					this.embeddingModels.putAll(modelSource.getEmbeddingModels());
+				}
 			}
 		}
-		return models;
-	}
-
-	private Map<String, EmbeddingModel> embeddingModels(LangChain4jModelRegistry modelRegistry) {
-		if (modelRegistry == null) {
-			return Collections.emptyMap();
+		if (directChatModels != null) {
+			this.chatModels.putAll(directChatModels);
 		}
-		Map<String, EmbeddingModel> models = new LinkedHashMap<String, EmbeddingModel>();
-		for (String key : modelRegistry.keys()) {
-			LangChain4jModel model = modelRegistry.get(key);
-			if (model != null && model.getModel() instanceof EmbeddingModel) {
-				models.put(key, (EmbeddingModel) model.getModel());
-			}
+		if (directEmbeddingModels != null) {
+			this.embeddingModels.putAll(directEmbeddingModels);
 		}
-		return models;
 	}
 
 	@Override

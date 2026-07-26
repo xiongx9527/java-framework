@@ -6,7 +6,11 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -94,10 +98,39 @@ public class ModelDataSourceInfo extends MagicEntity {
         }
         for (Map.Entry<String, Object> entry : source.entrySet()) {
             if (!isSensitiveKey(entry.getKey())) {
-                result.put(entry.getKey(), entry.getValue());
+                result.put(entry.getKey(), sanitizeValue(entry.getValue()));
             }
         }
         return result;
+    }
+
+    private Object sanitizeValue(Object value) {
+        if (value instanceof Map) {
+            Map<Object, Object> result = new LinkedHashMap<Object, Object>();
+            for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
+                Object key = entry.getKey();
+                if (!(key instanceof String) || !isSensitiveKey((String) key)) {
+                    result.put(key, sanitizeValue(entry.getValue()));
+                }
+            }
+            return result;
+        }
+        if (value instanceof Collection) {
+            List<Object> result = new ArrayList<Object>();
+            for (Object item : (Collection<?>) value) {
+                result.add(sanitizeValue(item));
+            }
+            return result;
+        }
+        if (value != null && value.getClass().isArray()) {
+            int length = Array.getLength(value);
+            Object result = Array.newInstance(value.getClass().getComponentType(), length);
+            for (int index = 0; index < length; index++) {
+                Array.set(result, index, sanitizeValue(Array.get(value, index)));
+            }
+            return result;
+        }
+        return value;
     }
 
     private boolean isSensitiveKey(String propertyKey) {
