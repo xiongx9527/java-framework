@@ -1121,7 +1121,7 @@ git commit -m "feat: replace magic langchain4j plugin with model plugin"
   - Docs explain model starter minimal dependency, provider SDK explicit dependency rule, `model-datasource` JSON example, and migration from old Magic `langchain4j` plugin.
   - Verification record can be pasted into OpenSpec verification later without changing OpenSpec in this task.
 
-- [ ] **Task 9 Step 1: Add sample configuration**
+- [x] **Task 9 Step 1: Add sample configuration**
 
 Add this sample block to `application.yaml` using existing indentation style:
 
@@ -1150,7 +1150,7 @@ magic-api:
 
 If `fw-plus` or `magic-api.plugin` already exists, merge keys without duplicating top-level blocks.
 
-- [ ] **Task 9 Step 2: Add documentation examples**
+- [x] **Task 9 Step 2: Add documentation examples**
 
 Document this `model-datasource` resource example:
 
@@ -1183,7 +1183,7 @@ Document LangChain4j version compatibility:
 - 0.35.0 已有 `TextContent`、`ImageContent`、`AudioContent`、`VideoContent`、`PdfFileContent` 等多模态内容类型；高版本继续通过 Chat 请求承载多模态输入。
 - 不存在独立 `AudioModel` / `VideoModel`，不要在 `modelType` 中新增这两个值；音频、视频、PDF 是 Chat 输入内容能力。
 
-- [ ] **Task 9 Step 3: Run targeted core verification**
+- [x] **Task 9 Step 3: Run targeted core verification**
 
 Run:
 
@@ -1195,7 +1195,7 @@ cd fw-plus-core
 
 Expected: both commands PASS.
 
-- [ ] **Task 9 Step 4: Run targeted AI Boot verification**
+- [x] **Task 9 Step 4: Run targeted AI Boot verification**
 
 Run:
 
@@ -1207,7 +1207,7 @@ cd fw-plus-ai
 
 Expected: PASS. Vector plugin tests passing confirms model work did not regress vector behavior.
 
-- [ ] **Task 9 Step 5: Run module build verification**
+- [x] **Task 9 Step 5: Run module build verification**
 
 Run:
 
@@ -1220,7 +1220,7 @@ cd fw-plus-ai
 
 Expected: all commands PASS.
 
-- [ ] **Task 9 Step 6: Run source compatibility and migration scans**
+- [x] **Task 9 Step 6: Run source compatibility and migration scans**
 
 Run:
 
@@ -1235,11 +1235,11 @@ Expected:
 - Second `rg` returns no matches.
 - Third `rg` only shows masking, filtering, property mapping, or test-safe handling; no controller list/test response returns raw sensitive values.
 
-- [ ] **Task 9 Step 7: Capture verification notes**
+- [x] **Task 9 Step 7: Capture verification notes**
 
 Record command outputs in the implementation handoff or PR body. If a dependency cannot resolve from internal Nexus, capture the exact Maven coordinate and repository URL from the failing output, and do not mark the behavior as failed until dependency resolution is addressed.
 
-- [ ] **Task 9 Step 8: Commit this task during execution**
+- [x] **Task 9 Step 8: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-samples/fw-plus-ai-magicapi-sample/src/main/resources/application.yaml \
