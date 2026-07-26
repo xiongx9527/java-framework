@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.xiongx9527.fw.plus</groupId>
+    <artifactId>fw-plus-sample</artifactId>
+    <version>0.1.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Fw-Plus Samples</name>
+    <modules>
+        <module>fw-plus-boot-samples</module>
+        <module>fw-plus-cloud-samples</module>
+        <module>fw-plus-ai-samples</module>
+    </modules>
+</project>

@@ -11,7 +11,7 @@
 
 ## 项目概述
 
-fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Agents-Flex / Spring AI / EasyAi）集成、图数据库 JDBC 驱动等能力。使用 Maven 构建，当前版本 `0.1.1-SNAPSHOT`（通过 `${revision}` + `flatten-maven-plugin` 管理）。
+fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Agents-Flex / Spring AI / EasyAi）集成、图数据库 JDBC 驱动等能力。四个库层当前版本为 `0.1.1-SNAPSHOT`，通过 `${revision}` + `flatten-maven-plugin` 管理；`fw-plus-sample` 样例聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 `flatten-maven-plugin`。
 
 **Git 仓库结构**：当前工作区只有根目录一个 `.git` 仓库；`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 是同一仓库内的顶层 Maven 聚合目录，非 git submodule。当前工作区不包含旧文档曾提到的 `fw-plus-product/` 和独立 `resources/` 仓库。构建产物在各层之间通过 Maven 本地仓库（`~/.m2`）传递。
 
@@ -63,7 +63,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │   │   └── fw-plus-neo4j-jdbc/    # Neo4j JDBC 驱动
 │   │   ├── fw-plus-dify/         # Dify API 客户端
 │   │   └── fw-plus-dependencies/ # 统一版本管理（BOM）
-│   └── fw-plus-samples/          # Core 层示例
 │
 ├── fw-plus-boot/             # Spring Boot 自动配置层
 │   ├── fw-plus-boot-project/
@@ -110,12 +109,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       ├── fw-plus-redis-spring-boot-starter/         # Redis 缓存
 │   │       ├── fw-plus-template-spring-boot-starter/      # 模板引擎
 │   │       └── fw-plus-uid-spring-boot-starter/           # 分布式 UID
-│   └── fw-plus-boot-samples/  # Boot 示例项目（5 个）
-│       ├── fw-plus-jdbc-spring-boot-starter-sample
-│       ├── fw-plus-magicapi-spring-boot-starter-sample
-│       ├── fw-plus-mate-spring-boot-starter-sample
-│       ├── fw-plus-mp-spring-boot-starter-sample
-│       └── fw-plus-redis-spring-boot-starter-sample
 │
 ├── fw-plus-cloud/            # Spring Cloud 扩展层
 │   ├── fw-plus-cloud-project/
@@ -129,12 +122,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       ├── fw-plus-cloud-starter/                      # 通用 Cloud Starter（aggregator）
 │   │       ├── fw-plus-eureka-server-spring-cloud-starter/ # Eureka 注册中心
 │   │       └── fw-plus-magicapi-spring-cloud-starter/      # Magic-API Cloud 集成
-│   └── fw-plus-cloud-samples/        # Cloud 示例项目（5 个）
-│       ├── eureka-gateway-sample
-│       ├── eureka-server-sample
-│       ├── eureka-service-sample
-│       ├── nacos-gateway-sample
-│       └── nacos-server-sample        # Nacos Server 分发目录（非 Maven 子模块）
 │
 ├── fw-plus-ai/               # AI 集成层
 │   ├── fw-plus-ai-project/
@@ -152,8 +139,22 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │           ├── fw-plus-ai-magicapi-plugin-milvus/      # Milvus 向量数据库
 │   │           ├── fw-plus-ai-magicapi-plugin-qdrant/      # Qdrant 向量数据库
 │   │           └── fw-plus-ai-magicapi-plugin-weaviate/    # Weaviate 向量数据库
-│   └── fw-plus-ai-samples/              # AI 示例项目
-│       └── fw-plus-ai-magicapi-sample    # Magic-API AI 示例
+│
+├── fw-plus-sample/                    # 集中样例模块
+│   ├── fw-plus-boot-samples/          # Boot 示例项目（5 个）
+│   │   ├── fw-plus-jdbc-spring-boot-starter-sample
+│   │   ├── fw-plus-magicapi-spring-boot-starter-sample
+│   │   ├── fw-plus-mate-spring-boot-starter-sample
+│   │   ├── fw-plus-mp-spring-boot-starter-sample
+│   │   └── fw-plus-redis-spring-boot-starter-sample
+│   ├── fw-plus-cloud-samples/         # Cloud 示例项目（5 个）
+│   │   ├── eureka-gateway-sample
+│   │   ├── eureka-server-sample
+│   │   ├── eureka-service-sample
+│   │   ├── nacos-gateway-sample
+│   │   └── nacos-server-sample        # Nacos Server 分发目录（非 Maven 子模块）
+│   └── fw-plus-ai-samples/            # AI 示例项目
+│       └── fw-plus-ai-magicapi-sample # Magic-API AI 示例
 │
 ├── META-INF/sql/             # 根目录 SQL 辅助资源
 ├── docs/                     # 项目文档与执行计划
@@ -399,7 +400,7 @@ if (!list) { return; }
 
 ```bash
 # 全量编译（跳过测试）— 需在各模块目录下执行，根目录无统一 POM
-# 推荐使用各模块内置的 Maven Wrapper (mvnw)，无需系统安装 mvn
+# 四个库层各自带有 Maven Wrapper (mvnw)，无需系统安装 mvn
 cd fw-plus-core && ./mvnw clean install -DskipTests
 
 # 编译指定模块（需先进入对应层目录）
@@ -412,9 +413,9 @@ cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -Dski
 ./mvnw dependency:tree
 ```
 
-**构建顺序**：必须按 Core → Boot → Cloud / AI 顺序构建，下层依赖上层的 Maven 产物。根目录没有 pom.xml，不能在根目录直接执行 `mvn`。
+**构建顺序**：必须先按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖，下层依赖上层的 Maven 产物。`fw-plus-sample` 样例聚合目录不带 Wrapper，统一入口为 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate`。根目录没有 pom.xml，不能在根目录直接执行 `mvn`。
 
-**版本管理**：各顶层构建目录使用 `${revision}` 属性（当前值 `0.1.1-SNAPSHOT`）+ `flatten-maven-plugin` 解析版本占位符，无需手动替换版本号。
+**版本管理**：`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 四个库层使用 `${revision}` 属性（当前值 `0.1.1-SNAPSHOT`）+ `flatten-maven-plugin` 解析版本占位符；`fw-plus-sample` 聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 flatten。
 
 内部 Nexus 地址：`http://172.17.1.6:28081`，同时依赖 Jeecg 官方仓库（`https://maven.jeecg.org`）。
 
@@ -534,7 +535,7 @@ protected boolean register(MappingNode<T> mappingNode) {
    - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/` — 自动配置、插件、自定义模块
    - `fw-plus-cloud/fw-plus-cloud-project/fw-plus-cloud-autoconfigure/` — Cloud 层 Magic-API 自动配置（灰度发布、Eureka、Magic-API 集成）
    - `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/` — AI 层自动配置（LangChain4j、Agents-Flex、Spring AI、EasyAi、向量存储等 @MagicModule）
-   - `fw-plus-boot/fw-plus-boot-samples/fw-plus-magicapi-spring-boot-starter-sample/src/main/resources/` — Magic-API 示例项目中的 demo 脚本和资源定义
+   - `fw-plus-sample/fw-plus-boot-samples/fw-plus-magicapi-spring-boot-starter-sample/src/main/resources/` — Magic-API 示例项目中的 demo 脚本和资源定义
    - 外部 `resources/` 目录（仅在当前工作区实际挂载或单独检出后）— 实际运行的 API、函数、任务脚本
 
 优先使用 WebFetch 抓取上游 Gitee 页面获取最新 prompt 内容，再探索项目代码对比差异，最后更新 skill 文件。
