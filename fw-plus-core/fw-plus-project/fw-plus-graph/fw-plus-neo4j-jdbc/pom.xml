@@ -18,6 +18,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-graph-jdbc</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
             <version>${neo4j-java-driver.version}</version>
