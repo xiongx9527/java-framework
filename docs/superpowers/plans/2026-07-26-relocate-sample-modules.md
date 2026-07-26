@@ -59,13 +59,18 @@ test -f fw-plus-sample/pom.xml
 </project>
 ```
 
-在三个样例组 POM 的 `<parent>` 中、`<version>` 后加入：
+在三个样例组 POM 的 `<parent>` 中、`<version>` 后加入所属层根 POM 的显式相对路径：
 
 ```xml
-<relativePath />
+<!-- fw-plus-boot-samples -->
+<relativePath>../../fw-plus-boot/pom.xml</relativePath>
+<!-- fw-plus-cloud-samples -->
+<relativePath>../../fw-plus-cloud/pom.xml</relativePath>
+<!-- fw-plus-ai-samples -->
+<relativePath>../../fw-plus-ai/pom.xml</relativePath>
 ```
 
-这样 Maven 只从本地仓库解析对应的 `fw-plus-*-build`，不尝试把 `fw-plus-sample/pom.xml` 作为错误父 POM。
+这样 Maven 从所属层根 POM 解析对应的 `fw-plus-*-build` 及其 `revision` 属性，同时不会尝试把 `fw-plus-sample/pom.xml` 作为错误父 POM。
 
 - [ ] **Step 3: 重新运行结构检查和 Maven 模型解析**
 

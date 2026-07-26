@@ -7,7 +7,7 @@
         <groupId>com.xiongx9527.fw.plus.ai</groupId>
         <artifactId>fw-plus-ai-build</artifactId>
         <version>${revision}</version>
-        <relativePath />
+        <relativePath>../../fw-plus-ai/pom.xml</relativePath>
     </parent>
     <packaging>pom</packaging>
     <modules>
