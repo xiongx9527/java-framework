@@ -8,21 +8,22 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.ssssssss.magicapi.core.model.Plugin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class PluginFrontendMetadataTest {
 
 	@Test
-	void druidExposesFrontendFactoryMetadata() {
+	void druidDoesNotExposeMissingFrontendResource() {
 		Plugin plugin = new MagicAPIDruidConfiguration().plugin();
 
-		assertFrontendMetadata(plugin, "MagicDruid", "magic-druid.1.0.0.iife.js");
+		assertBackendOnlyMetadata(plugin, "druid");
 	}
 
 	@Test
-	void swaggerExposesFrontendFactoryMetadata() {
+	void swaggerDoesNotExposeMissingFrontendResource() {
 		Plugin plugin = new MagicSwaggerConfiguration(null, null, null, null, null).plugin();
 
-		assertFrontendMetadata(plugin, "MagicSwagger", "magic-swagger.1.0.0.iife.js");
+		assertBackendOnlyMetadata(plugin, "swagger");
 	}
 
 	@Test
@@ -32,12 +33,13 @@ class PluginFrontendMetadataTest {
 
 		Plugin plugin = configuration.plugin();
 
-		assertFrontendMetadata(plugin, "MagicAdmin", "magic-admin.1.0.0.iife.js");
+		assertBackendOnlyMetadata(plugin, "admin");
 		assertEquals("/custom-console", plugin.getAttributes().get("path"));
 	}
 
-	private void assertFrontendMetadata(Plugin plugin, String globalName, String javascriptFilename) {
-		assertEquals(globalName, plugin.getGlobalName());
-		assertEquals(javascriptFilename, plugin.getJavascriptFilename());
+	private void assertBackendOnlyMetadata(Plugin plugin, String name) {
+		assertEquals(name, plugin.getName());
+		assertNull(plugin.getGlobalName());
+		assertNull(plugin.getJavascriptFilename());
 	}
 }

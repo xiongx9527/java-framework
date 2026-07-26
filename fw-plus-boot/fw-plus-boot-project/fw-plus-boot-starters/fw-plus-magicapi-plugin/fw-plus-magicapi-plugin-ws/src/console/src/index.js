@@ -29,16 +29,14 @@ if (typeof window !== 'undefined') {
     }
 }
 
-const openWs = () => {
-    let link = `${location.protocol}//${location.host}${location.pathname}`.replace('/index.html', '')
-    const baseURL = import.meta.env.MAGIC_API_BASE_URL || './'
-    if (baseURL.startsWith('http')) {
-        link = baseURL
-    } else if (baseURL.startsWith('./')) {
-        link = window.location.pathname.replace(/\/index\.html$/, '')
-    }
-    const druidUrl = link + '/ws/index.html'
-    window.open(druidUrl, '_blank')
+const resolveWsUrl = (baseURL, pageURL) => {
+    const link = new URL(baseURL || './', pageURL).toString().replace(/\/+$/, '')
+    return link + '/ws/index.html'
+}
+
+const openWs = (baseURL) => {
+    const pageURL = `${location.protocol}//${location.host}${location.pathname}`
+    window.open(resolveWsUrl(baseURL, pageURL), '_blank')
 }
 
 export default (opt) => {
@@ -51,7 +49,7 @@ export default (opt) => {
             title: 'Websocket client',
             displayKey: 'ws',
             order: 900,
-            onClick: () => openWs()
+            onClick: () => openWs(opt.constants && opt.constants.BASE_URL)
         }],
         resource: [{
             type: 'ws-subscribe',

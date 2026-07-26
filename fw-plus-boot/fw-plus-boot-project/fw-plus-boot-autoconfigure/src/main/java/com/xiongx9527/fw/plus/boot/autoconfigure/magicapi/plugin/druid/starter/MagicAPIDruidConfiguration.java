@@ -24,6 +24,8 @@ import org.ssssssss.magicapi.core.model.Plugin;
         DruidWebStatFilterConfiguration.class,
         DruidFilterConfiguration.class})
 public class MagicAPIDruidConfiguration implements MagicPluginConfiguration {
+	private static final String JAVASCRIPT_FILENAME = "magic-druid.1.0.0.iife.js";
+	private static final String FRONTEND_RESOURCE = "magic-editor/plugins/" + JAVASCRIPT_FILENAME;
 
     /**
      * 获取插件实例
@@ -32,7 +34,10 @@ public class MagicAPIDruidConfiguration implements MagicPluginConfiguration {
      */
     @Override
     public Plugin plugin() {
-        return new Plugin("druid", "MagicDruid", "magic-druid.1.0.0.iife.js");
+		if (MagicAPIDruidConfiguration.class.getClassLoader().getResource(FRONTEND_RESOURCE) == null) {
+			return new Plugin("druid");
+		}
+		return new Plugin("druid", "MagicDruid", JAVASCRIPT_FILENAME);
     }
 
 

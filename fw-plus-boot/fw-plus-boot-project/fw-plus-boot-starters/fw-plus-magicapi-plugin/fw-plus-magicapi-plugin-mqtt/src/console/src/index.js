@@ -22,16 +22,14 @@ if (typeof window !== 'undefined') {
     }
 }
 
-const openMqtt = () => {
-    let link = `${location.protocol}//${location.host}${location.pathname}`.replace('/index.html', '')
-    const baseURL = import.meta.env.MAGIC_API_BASE_URL || './'
-    if (baseURL.startsWith('http')) {
-        link = baseURL
-    } else if (baseURL.startsWith('./')) {
-        link = window.location.pathname.replace(/\/index\.html$/, '')
-    }
-    const druidUrl = link + '/mqtt/index.html'
-    window.open(druidUrl, '_blank')
+const resolveMqttUrl = (baseURL, pageURL) => {
+    const link = new URL(baseURL || './', pageURL).toString().replace(/\/+$/, '')
+    return link + '/mqtt/index.html'
+}
+
+const openMqtt = (baseURL) => {
+    const pageURL = `${location.protocol}//${location.host}${location.pathname}`
+    window.open(resolveMqttUrl(baseURL, pageURL), '_blank')
 }
 
 export default (opt) => {
@@ -44,7 +42,7 @@ export default (opt) => {
             title: 'Mqtt client',
             displayKey: 'mqtt',
             order: 1000,
-            onClick: () => openMqtt()
+            onClick: () => openMqtt(opt.constants && opt.constants.BASE_URL)
         }],
         datasources: [{
             type: 'mqtt-datasource',

@@ -11,13 +11,17 @@ import org.ssssssss.magicapi.core.model.Plugin;
 @ConditionalOnClass(name = "org.springframework.cloud.netflix.eureka.server.EurekaServerMarkerConfiguration")
 @Configuration
 public class MagicAPIEurekaConfiguration implements MagicPluginConfiguration {
+	private static final String JAVASCRIPT_FILENAME = "magic-eureka.1.0.0.iife.js";
+	private static final String FRONTEND_RESOURCE = "magic-editor/plugins/" + JAVASCRIPT_FILENAME;
 
     @Value("${eureka.dashboard.path:/}")
     private String eurekaDashboardPath  = "/";
 
     @Override
     public Plugin plugin() {
-        Plugin plugin = new Plugin("eureka", "MagicEureka", "magic-eureka.1.0.0.iife.js");
+		Plugin plugin = MagicAPIEurekaConfiguration.class.getClassLoader().getResource(FRONTEND_RESOURCE) == null
+				? new Plugin("eureka")
+				: new Plugin("eureka", "MagicEureka", JAVASCRIPT_FILENAME);
         plugin.getAttributes().put("path", eurekaDashboardPath);
         return plugin;
     }
