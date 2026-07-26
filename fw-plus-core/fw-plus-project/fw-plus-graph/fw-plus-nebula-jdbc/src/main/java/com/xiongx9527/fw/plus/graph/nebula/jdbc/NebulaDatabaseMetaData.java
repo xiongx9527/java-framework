@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.graph.nebula.jdbc;
 
+import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcMetaDataSupport;
 import com.xiongx9527.fw.plus.graph.nebula.jdbc.client.NebulaNativeRecord;
 import com.xiongx9527.fw.plus.graph.nebula.jdbc.client.NebulaNativeResultSet;
 import com.xiongx9527.fw.plus.graph.nebula.jdbc.client.NebulaNativeValue;
@@ -671,15 +672,12 @@ public class NebulaDatabaseMetaData implements DatabaseMetaData {
 
 	@Override
 	public ResultSet getCatalogs() throws SQLException {
-		return emptyResultSet(new String[] {"TABLE_CAT"}, new int[] {Types.VARCHAR});
+		return GraphJdbcMetaDataSupport.emptyCatalogs();
 	}
 
 	@Override
 	public ResultSet getTableTypes() throws SQLException {
-		return rowsResultSet(
-				new String[] {"TABLE_TYPE"},
-				new int[] {Types.VARCHAR},
-				new Object[][] {{"TAG"}, {"EDGE"}});
+		return GraphJdbcMetaDataSupport.tableTypes("TAG", "EDGE");
 	}
 
 	@Override

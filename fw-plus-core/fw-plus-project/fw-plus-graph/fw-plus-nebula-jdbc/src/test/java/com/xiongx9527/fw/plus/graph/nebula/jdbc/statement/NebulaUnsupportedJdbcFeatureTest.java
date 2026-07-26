@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.graph.nebula.jdbc.statement;
 import com.xiongx9527.fw.plus.graph.nebula.jdbc.NebulaConnection;
 import com.xiongx9527.fw.plus.graph.nebula.jdbc.NebulaDatabaseMetaData;
 import com.xiongx9527.fw.plus.graph.nebula.jdbc.lifecycle.NebulaResourceLifecycle;
+import com.xiongx9527.fw.plus.graph.nebula.jdbc.utils.ExceptionBuilder;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
@@ -23,6 +24,14 @@ import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 
 public class NebulaUnsupportedJdbcFeatureTest {
+
+	@Test
+	public void unsupportedExceptionShouldUseCommonJdbcMessage() {
+		SQLException exception = ExceptionBuilder.buildUnsupportedOperationException();
+
+		assertTrue(exception instanceof SQLFeatureNotSupportedException);
+		assertEquals("Unsupported JDBC feature", exception.getMessage());
+	}
 
 	@Test
 	public void unsupportedConnectionFeaturesShouldThrowSqlFeatureNotSupportedException() throws Exception {
