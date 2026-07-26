@@ -12,7 +12,7 @@
 
 - 在 core 侧新增 `fw-plus-ai-langchain4j-model`，提供通用模型定义、模型类型、provider adapter、工厂和 registry 契约。
 - 在 AI Boot 层新增 model starter，并通过自动配置把 Spring Boot 配置映射为 model registry。
-- 在 Magic-API 中提供新的 `model-datasource` 动态资源与 model 脚本模块，使脚本能按 key 获取 Chat、Streaming Chat、Embedding、Image、Language 等模型。
+- 在 Magic-API 中提供新的 `model-datasource` 动态资源与 model 脚本模块，使脚本能按 key 获取 Chat、Streaming Chat、Embedding、Image、Language、Moderation、Scoring 等模型。
 - 参考但删除或替换现有 Magic-API LangChain4j 插件实现，避免继续维护两套模型定义、工厂、动态数据源和脚本入口。
 - 保持 provider SDK 按需引入，starter 不默认传递所有模型供应商依赖。
 
@@ -31,7 +31,7 @@
 在 `fw-plus-ai-langchain4j` 聚合下新增 `fw-plus-ai-langchain4j-model`，包名建议为 `com.xiongx9527.fw.plus.ai.langchain4j.model`。模块内容仿照 store 模块组织：
 
 - `LangChain4jModelDefinition`：保存 `key`、`provider`、`modelType`、`enabled`、`baseUrl`、`apiKey`、`modelName`、`properties` 等通用配置。
-- `LangChain4jModelType`：定义 `CHAT`、`STREAMING_CHAT`、`EMBEDDING`、`IMAGE`、`LANGUAGE`、`STREAMING_LANGUAGE`。
+- `LangChain4jModelType`：定义 `CHAT`、`STREAMING_CHAT`、`EMBEDDING`、`IMAGE`、`LANGUAGE`、`STREAMING_LANGUAGE`、`MODERATION`、`SCORING`。
 - `LangChain4jModel`：包装原生 LangChain4j model，暴露 `getModelType()`、`getProvider()`、`getModel()`。
 - `LangChain4jModelProviderAdapter`：以 provider + modelType 判断是否支持，并创建原生模型或包装模型。
 - `LangChain4jModelFactory` / `DefaultLangChain4jModelFactory`：选择 adapter、统一异常语义、禁止返回 null。
@@ -84,7 +84,7 @@ Magic 插件侧新增模型动态资源能力，资源类型明确为 `model-dat
 
 - [Risk] 删除旧 Magic-API LangChain4j 插件会破坏旧脚本路径和 `langchain4j-datasource` 资源。→ Mitigation: 在 proposal/spec/tasks 中明确为破坏性替换，更新样例、starter 依赖、前端插件和文档，提供迁移说明。
 - [Risk] provider SDK 缺失时 adapter bean 或模型创建可能失败。→ Mitigation: adapter 通过条件装配或运行期类检测隔离，错误信息包含 provider、modelType 和 key。
-- [Risk] 将模型类型抽象过宽可能导致 API 难以稳定。→ Mitigation: 第一版只覆盖当前已有类型：Chat、Streaming Chat、Embedding、Image、Language、Streaming Language，额外模型类型后续以兼容扩展方式加入。
+- [Risk] 将模型类型抽象过宽可能导致 API 难以稳定。→ Mitigation: 第一版覆盖 LangChain4j 0.35.0 core 中实际存在的模型接口：Chat、Streaming Chat、Embedding、Image、Language、Streaming Language、Moderation、Scoring；Audio、Video、PDF 等作为多模态 Chat 内容载体说明和使用，不抽象为不存在的独立模型接口。
 - [Risk] starter 不默认传递 provider SDK 会让首次使用多一步依赖配置。→ Mitigation: README 或示例说明最小依赖组合，并与 store starter 的既有边界保持一致。
 - [Risk] Magic 动态模型创建可能泄露 apiKey 等敏感字段到日志或前端响应。→ Mitigation: 控制器返回前过滤敏感字段，日志只打印 key、provider 和 modelType。
 
@@ -98,6 +98,12 @@ Magic 插件侧新增模型动态资源能力，资源类型明确为 `model-dat
 6. 分层运行 Maven Wrapper 验证：先 core 指定模块，再 AI Boot autoconfigure/starter 相关模块。
 
 Rollback 策略：若新 Magic model 插件验证失败，可回退本 change 中对旧 Magic LangChain4j 插件的删除/替换改动；不在同一运行态同时保留新旧双入口。
+
+## Version Notes
+
+- 当前实现以 LangChain4j 0.35.0 为编译目标：Chat 接口使用 `ChatLanguageModel`，流式 Chat 接口使用 `StreamingChatLanguageModel`。
+- 高版本 LangChain4j 已将上述接口演进为 `ChatModel` 与 `StreamingChatModel`；本 change 的 README/迁移文档必须说明该版本差异。
+- LangChain4j 0.35.0 与高版本均有 `ImageContent`、`AudioContent`、`VideoContent`、`PdfFileContent` 等多模态内容类型；它们通过 Chat 消息输入使用，不代表存在独立 `AudioModel` 或 `VideoModel`。
 
 ## Open Questions
 
