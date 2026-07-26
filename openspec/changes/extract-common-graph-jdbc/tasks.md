@@ -1,16 +1,16 @@
 ## 1. 模块与依赖结构
 
-- [ ] 1.1 在 `fw-plus-graph` 聚合下新增公共图 JDBC Maven 子模块，并确认模块顺序位于具体驱动之前
-- [ ] 1.2 为公共模块配置 Java 1.8 兼容的 POM、包名和测试依赖，不引入新的外部运行时依赖
-- [ ] 1.3 调整 `fw-plus-nebula-jdbc` 与 `fw-plus-neo4j-jdbc` POM，使两个具体驱动依赖公共图 JDBC 模块
+- [x] 1.1 在 `fw-plus-graph` 聚合下新增公共图 JDBC Maven 子模块，并确认模块顺序位于具体驱动之前
+- [x] 1.2 为公共模块配置 Java 1.8 兼容的 POM、包名和测试依赖，不引入新的外部运行时依赖
+- [x] 1.3 调整 `fw-plus-nebula-jdbc` 与 `fw-plus-neo4j-jdbc` POM，使两个具体驱动依赖公共图 JDBC 模块
 
 ## 2. 公共抽象标准层
 
-- [ ] 2.1 定义公共图 JDBC 执行抽象和结果抽象，用于连接具体驱动执行器与标准 JDBC 对象
-- [ ] 2.2 抽出默认 unsupported/default-value、unwrap/isWrapperFor、资源关闭状态和 JDBC 类型辅助逻辑
-- [ ] 2.3 抽出基础参数绑定、PreparedStatement 参数元数据和 batch 结果形状
-- [ ] 2.4 抽出只读 ResultSet 或 RowSet 构造工具，支持列名、列标签、列类型和空结果集
-- [ ] 2.5 抽出基础 DatabaseMetaData 结果集形状，包括 schemas、catalogs、table types、columns、primary keys 和 index info
+- [x] 2.1 定义公共图 JDBC 执行抽象和结果抽象，用于连接具体驱动执行器与标准 JDBC 对象
+- [x] 2.2 抽出默认 unsupported/default-value、unwrap/isWrapperFor、资源关闭状态和 JDBC 类型辅助逻辑
+- [x] 2.3 抽出基础参数绑定、PreparedStatement 参数元数据和 batch 结果形状
+- [x] 2.4 抽出只读 ResultSet 或 RowSet 构造工具，支持列名、列标签、列类型和空结果集
+- [x] 2.5 抽出基础 DatabaseMetaData 结果集形状，包括 schemas、catalogs、table types、columns、primary keys 和 index info
 
 ## 3. Neo4j JDBC 适配
 
@@ -27,6 +27,6 @@
 
 ## 5. 验证与文档
 
-- [ ] 5.1 运行公共模块和两个具体驱动模块的单元测试，确保不依赖真实 NebulaGraph 或 Neo4j 服务
-- [ ] 5.2 运行 `fw-plus-core` 中 `fw-plus-graph` 相关 Maven 构建命令，确认模块依赖顺序和 Java 1.8 编译通过
-- [ ] 5.3 检查 OpenSpec 规格关系，确认已有 Nebula 能力依赖公共抽象标准能力且未扩大到第三方图数据库实现
+- [x] 5.1 运行公共模块和两个具体驱动模块的单元测试，确保不依赖真实 NebulaGraph 或 Neo4j 服务
+- [x] 5.2 运行 `fw-plus-core` 中 `fw-plus-graph` 相关 Maven 构建命令，确认模块依赖顺序和 Java 1.8 编译通过
+- [x] 5.3 检查 OpenSpec 规格关系，确认已有 Nebula 能力依赖公共抽象标准能力且未扩大到第三方图数据库实现
