@@ -13,6 +13,7 @@
 - changed_files: DefaultLangChain4jModelFactory.java; DefaultLangChain4jModelRegistry.java; DefaultLangChain4jModelFactoryTest.java; DefaultLangChain4jModelRegistryTest.java
 - review_required: yes; risk signals: public API contract, diff greater than 200 lines
 - reviewer: 019f9e0b-5f7c-75b1-8075-57e60a5215de
+- fix_agent: 019f9e0d-4bb6-7eb2-99b8-10a399d55d21
 - review_package: /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-langchain4j-model-magicapi/.superpowers/sdd/review-8b31390d..8efca6fe.diff
 - red_green_evidence: RED focused tests failed because DefaultLangChain4jModelFactory did not exist; GREEN focused tests passed 9 tests and module tests passed 11 tests with Zulu 8
 - unresolved_feedback: Critical: DefaultLangChain4jModelFactory must preserve key/provider/modelType context when adapter.create throws LangChain4jModelException; add coverage for that path
