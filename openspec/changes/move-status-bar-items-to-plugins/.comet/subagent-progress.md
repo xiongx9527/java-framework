@@ -2,12 +2,12 @@
 
 - 计划任务：Task 8: 跨层集成验证和文档同步
 - OpenSpec 映射：6.1 运行受影响插件、宿主、Boot/Cloud/AI 构建，检查 IIFE 与 Maven 资源产物，完成浏览器交互、OpenSpec 严格验证和差异检查
-- 当前阶段：done
+- 当前阶段：final-fix
 - 实现代理：019f9def-70d6-71a0-8962-b6542242cd46（Zeno）
 - 并行前端验证代理：019f9df1-ecac-7e60-823d-b80efe285775（Lagrange），隔离 worktree `/tmp/fw-plus-task8-frontend`
 - 并行 Maven 验证代理：019f9df1-ed5e-7231-b788-f764643899a3（Rawls），隔离 worktree `/tmp/fw-plus-task8-maven`
 - review_mode：thorough
-- 审查修复轮次：0/2
+- 审查修复轮次：1/2
 - 实现基线：fea1a7caff2a11fbce7cf124eaa7aaed0d295547
 - 实现提交：无（Task 8 为验证任务；14 个既有插件 `dist/` 按仓库约定不跟踪）
 - 前端验证：23/23 console 构建通过；10 个真实测试脚本 67/67 通过；5 个 `npm test` 为既有失败占位脚本
@@ -21,4 +21,6 @@
 - AI JAR 专项代理：019f9e01-0487-7be1-b79f-4df15be61a09（Aristotle），隔离 worktree `/tmp/fw-plus-task8-ai`
 - 集成证据审查代理：019f9e19-66e3-7790-8412-6669cae9a466（Sartre）
 - 已通过审查：Sartre（019f9e19-66e3-7790-8412-6669cae9a466）完成 Task 8 独立集成证据审查，Spec Compliance 为 PASS，Evidence/Code Quality 为 PASS_WITH_MINOR_CONCERNS，总体 APPROVED；无 Critical/Important 问题
-- 未解决反馈：无
+- 最终审查代理：Locke（019f9e23-8c31-7173-adac-cded2ef2c94f）
+- 最终审查结果：CHANGES REQUESTED；0 Critical、2 Important、1 Minor
+- 未解决反馈：I1 新增 Druid/Admin/Swagger/Eureka 前端资源 artifact 未保证进入实际应用 classpath；I2 WebSocket/MQTT 插件未继承宿主开发模式后端基址
