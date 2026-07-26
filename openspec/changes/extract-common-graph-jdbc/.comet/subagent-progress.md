@@ -16,3 +16,7 @@
 - Risk expectation: final verification and public dependency boundary
 - Reviewer: approved
 - RED/GREEN evidence: recorded in report
+- Final reviewer: approved after fix re-review
+- Final fix targets: ResultSet proxy object contracts, Neo4j unwrap facade, ParameterMetaData signed compatibility, PreparedStatement addBatch(String) rejection
+- Final fix commit: 0874220f
+- Final fix report commit: 634d3549
