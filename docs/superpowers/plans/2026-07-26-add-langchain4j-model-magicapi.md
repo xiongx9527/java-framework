@@ -66,7 +66,7 @@ base-ref: 7b1c788fd198b832c41ad83baf58e40bb5e5f8bb
 - Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/provider/ProviderAdapterSupport.java`
 - Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/provider/ReflectiveLangChain4jModelProviderAdapter.java`
 - Create provider adapters under `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/provider/`:
-  `OpenAiModelProviderAdapter.java`, `AzureOpenAiModelProviderAdapter.java`, `DashScopeModelProviderAdapter.java`, `OllamaModelProviderAdapter.java`, `AnthropicModelProviderAdapter.java`, `QianfanModelProviderAdapter.java`, `ZhipuAiModelProviderAdapter.java`, `HuggingFaceModelProviderAdapter.java`, `LocalAiModelProviderAdapter.java`, `GeminiModelProviderAdapter.java`, `AllMiniLmModelProviderAdapter.java`.
+  `OpenAiModelProviderAdapter.java`, `AzureOpenAiModelProviderAdapter.java`, `DashScopeModelProviderAdapter.java`, `OllamaModelProviderAdapter.java`, `AnthropicModelProviderAdapter.java`, `QianfanModelProviderAdapter.java`, `ZhipuAiModelProviderAdapter.java`, `HuggingFaceModelProviderAdapter.java`, `LocalAiModelProviderAdapter.java`, `GeminiModelProviderAdapter.java`, `VoyageAiModelProviderAdapter.java`, `AllMiniLmModelProviderAdapter.java`.
 - Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelPropertiesTest.java`
 - Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelAutoConfigurationTest.java`
 - Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/provider/LangChain4jModelProviderAdapterTest.java`
@@ -124,7 +124,7 @@ base-ref: 7b1c788fd198b832c41ad83baf58e40bb5e5f8bb
 - Consumes: LangChain4j 0.35.0 基础接口包；不消费具体 provider SDK。
 - Produces:
   - `LangChain4jModelDefinition` fields: `String key`, `String provider`, `LangChain4jModelType modelType`, `boolean enabled`, `String baseUrl`, `String apiKey`, `String modelName`, `Map<String, Object> properties`
-  - `LangChain4jModelType` values: `CHAT`, `STREAMING_CHAT`, `EMBEDDING`, `IMAGE`, `LANGUAGE`, `STREAMING_LANGUAGE`
+  - `LangChain4jModelType` values: `CHAT`, `STREAMING_CHAT`, `EMBEDDING`, `IMAGE`, `LANGUAGE`, `STREAMING_LANGUAGE`, `MODERATION`, `SCORING`
   - `LangChain4jModel` constructor: `LangChain4jModel(String provider, LangChain4jModelType modelType, Object model)`
   - `LangChain4jModelProviderAdapter.supports(LangChain4jModelDefinition definition): boolean`
   - `LangChain4jModelProviderAdapter.create(LangChain4jModelDefinition definition): LangChain4jModel`
@@ -181,6 +181,8 @@ public class LangChain4jModelDefinitionTest {
         assertNotNull(LangChain4jModelType.valueOf("IMAGE"));
         assertNotNull(LangChain4jModelType.valueOf("LANGUAGE"));
         assertNotNull(LangChain4jModelType.valueOf("STREAMING_LANGUAGE"));
+        assertNotNull(LangChain4jModelType.valueOf("MODERATION"));
+        assertNotNull(LangChain4jModelType.valueOf("SCORING"));
     }
 }
 ```
@@ -694,12 +696,12 @@ Expected: FAIL because provider adapter support classes do not exist.
 - [ ] **Step 3: Implement reflective provider adapter support**
 
 Implement provider adapter classes so each adapter declares exact provider names:
-`openai`, `azure-openai`, `qwen`, `ollama`, `anthropic`, `qianfan`, `zhipu`, `hugging-face`, `local-ai`, `gemini`, `all-mini-lm-l6-v2-quantized`.
+`openai`, `azure-openai`, `qwen`, `ollama`, `anthropic`, `qianfan`, `zhipu`, `hugging-face`, `local-ai`, `gemini`, `voyage-ai`, `all-mini-lm-l6-v2-quantized`.
 
-For each provider, register only the model types backed by LangChain4j 0.35.0 classes already used by the old Magic plugin:
+For each provider, register only the model types backed by LangChain4j 0.35.0 classes present in this repository or in the existing 0.35.0 provider integrations:
 
 ```text
-openai: CHAT, STREAMING_CHAT, EMBEDDING, IMAGE, LANGUAGE, STREAMING_LANGUAGE
+openai: CHAT, STREAMING_CHAT, EMBEDDING, IMAGE, LANGUAGE, STREAMING_LANGUAGE, MODERATION
 azure-openai: CHAT, STREAMING_CHAT, EMBEDDING, IMAGE, LANGUAGE, STREAMING_LANGUAGE
 qwen: CHAT, STREAMING_CHAT, EMBEDDING, IMAGE, LANGUAGE, STREAMING_LANGUAGE
 ollama: CHAT, EMBEDDING, LANGUAGE
@@ -709,6 +711,7 @@ zhipu: CHAT, STREAMING_CHAT, EMBEDDING, IMAGE
 hugging-face: CHAT, EMBEDDING, LANGUAGE
 local-ai: CHAT, STREAMING_CHAT, EMBEDDING, LANGUAGE
 gemini: CHAT, EMBEDDING
+voyage-ai: EMBEDDING, SCORING
 all-mini-lm-l6-v2-quantized: EMBEDDING
 ```
 
@@ -1172,6 +1175,12 @@ Document this Magic script usage:
 import model;
 return model['chat-default'].getModel();
 ```
+
+Document LangChain4j version compatibility:
+- 本模块以 LangChain4j 0.35.0 编译，Chat 类型对应 `ChatLanguageModel`，Streaming Chat 类型对应 `StreamingChatLanguageModel`。
+- 高版本 LangChain4j 使用 `ChatModel` / `StreamingChatModel` 命名，当前版本不能引用这些类。
+- 0.35.0 已有 `TextContent`、`ImageContent`、`AudioContent`、`VideoContent`、`PdfFileContent` 等多模态内容类型；高版本继续通过 Chat 请求承载多模态输入。
+- 不存在独立 `AudioModel` / `VideoModel`，不要在 `modelType` 中新增这两个值；音频、视频、PDF 是 Chat 输入内容能力。
 
 - [ ] **Step 3: Run targeted core verification**
 

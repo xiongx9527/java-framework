@@ -28,7 +28,7 @@ canonical_spec: openspec
 
 核心类型：
 - `LangChain4jModelDefinition`：通用模型配置，字段包含 `key`、`provider`、`modelType`、`enabled`、`baseUrl`、`apiKey`、`modelName`、`properties`。
-- `LangChain4jModelType`：枚举 `CHAT`、`STREAMING_CHAT`、`EMBEDDING`、`IMAGE`、`LANGUAGE`、`STREAMING_LANGUAGE`。
+- `LangChain4jModelType`：枚举 `CHAT`、`STREAMING_CHAT`、`EMBEDDING`、`IMAGE`、`LANGUAGE`、`STREAMING_LANGUAGE`、`MODERATION`、`SCORING`。
 - `LangChain4jModel`：包装 provider、modelType 和原生 LangChain4j model。
 - `LangChain4jModelProviderAdapter`：SPI，按 provider/modelType 判断支持并创建模型。
 - `LangChain4jModelFactory` 与 `DefaultLangChain4jModelFactory`：统一 adapter 选择和错误语义。
@@ -109,6 +109,13 @@ key 冲突规则建议：Magic runtime 模型优先于 Spring Boot registry；�
 - `ModelDataSourceInfo.simple()` 和列表接口返回前应清理敏感字段。
 - 解析 `properties` 时保留 JSON/Map 结构错误信息，但不打印敏感值。
 - 所有新增代码避免 Java 9+ API。
+
+## 版本兼容说明
+
+- 当前实现以 LangChain4j 0.35.0 为编译目标：Chat 接口使用 `ChatLanguageModel`，流式 Chat 接口使用 `StreamingChatLanguageModel`。
+- 高版本 LangChain4j 已将上述接口演进为 `ChatModel` 与 `StreamingChatModel`；README 和迁移说明必须明确该差异，避免使用高版本类名编写 0.35 代码。
+- LangChain4j 0.35.0 与高版本均有 `ImageContent`、`AudioContent`、`VideoContent`、`PdfFileContent` 等多模态内容类型；它们通过 Chat 消息输入使用，不代表存在独立 `AudioModel` 或 `VideoModel`。
+- 当前完整模型类型覆盖 0.35.0 core 中真实存在的接口：Chat、Streaming Chat、Embedding、Image、Language、Streaming Language、Moderation、Scoring。
 
 ## 测试策略
 
