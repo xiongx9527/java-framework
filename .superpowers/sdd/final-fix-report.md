@@ -6,7 +6,7 @@ DONE_WITH_CONCERNS
 
 ## 提交
 
-`8d94a1c4` - `fix: resolve graph jdbc final review findings`
+`0874220f0fdcd70bc1a6288aa5914e2fce649c6f` - `fix: resolve graph jdbc final review findings`
 
 ## RED
 
