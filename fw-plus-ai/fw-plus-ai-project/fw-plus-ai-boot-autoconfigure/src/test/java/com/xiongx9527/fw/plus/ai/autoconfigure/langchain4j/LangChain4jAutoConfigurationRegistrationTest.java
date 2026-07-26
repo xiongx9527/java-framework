@@ -41,6 +41,7 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jCoreAutoConfiguration",
 				new String[] {
 						"dev.langchain4j.model.chat.ChatLanguageModel",
+						"dev.langchain4j.model.chat.StreamingChatLanguageModel",
 						"dev.langchain4j.service.spring.AiService"
 				});
 		EXPECTED_CLASS_CONDITIONS.put(
@@ -131,6 +132,26 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		Set<String> actualImports = importClassNames(LangChain4jAutoConfiguration.class);
 
 		assertEquals(new LinkedHashSet<String>(Arrays.asList(EXPECTED_IMPORTS)), actualImports);
+	}
+
+	@Test
+	public void shouldDeclareEnabledConditionOnRootAutoConfiguration() {
+		ConditionalOnProperty conditional = LangChain4jAutoConfiguration.class.getAnnotation(ConditionalOnProperty.class);
+
+		assertNotNull("LangChain4jAutoConfiguration should declare @ConditionalOnProperty", conditional);
+		assertEquals("fw.plus.ai.langchain4j", conditional.prefix());
+		assertEquals("true", conditional.havingValue());
+		assertTrue("LangChain4jAutoConfiguration should be enabled by default", conditional.matchIfMissing());
+		assertEquals("enabled", conditional.name()[0]);
+	}
+
+	@Test
+	public void shouldDeclareClassConditionOnRootAutoConfiguration() {
+		ConditionalOnClass conditional = LangChain4jAutoConfiguration.class.getAnnotation(ConditionalOnClass.class);
+
+		assertNotNull("LangChain4jAutoConfiguration should declare @ConditionalOnClass", conditional);
+		assertEquals(new LinkedHashSet<String>(Arrays.asList("dev.langchain4j.spring.LangChain4jAutoConfig")),
+				classNames(conditional.value()));
 	}
 
 	@Test
