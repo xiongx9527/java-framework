@@ -8,6 +8,10 @@ public final class JdbcWrapperSupport {
 	}
 
 	public static <T> T unwrap(Object target, Class<T> iface) throws SQLException {
+		if (iface != null && !GraphJdbcWrapperSupport.isWrapperFor(target, iface)) {
+			throw new SQLException("Cannot unwrap " + (target == null ? "null" : target.getClass().getName())
+					+ " to " + iface.getName() + ".");
+		}
 		return GraphJdbcWrapperSupport.unwrap(target, iface);
 	}
 
