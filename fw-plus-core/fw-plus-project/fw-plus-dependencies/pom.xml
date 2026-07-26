@@ -1228,6 +1228,11 @@
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-graph-jdbc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-nebula-jdbc</artifactId>
                 <version>${project.version}</version>
             </dependency>
