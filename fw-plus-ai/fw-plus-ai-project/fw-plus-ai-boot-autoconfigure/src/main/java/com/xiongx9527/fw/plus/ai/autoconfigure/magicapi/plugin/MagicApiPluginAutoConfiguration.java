@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
-@AutoConfigureAfter(name = "com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure.EmbeddingStoreAutoConfiguration")
+@AutoConfigureAfter(name = "com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration")
 @Import({MagicAPIAiaConfiguration.class,
         MagicAPIVectorConfiguration.class,
         MagicAPIQdrantConfiguration.class,

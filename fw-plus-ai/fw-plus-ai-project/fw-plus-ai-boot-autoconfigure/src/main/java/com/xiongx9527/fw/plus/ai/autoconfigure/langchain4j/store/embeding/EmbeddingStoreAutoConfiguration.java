@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding;
 
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.DefaultEmbeddingStoreFactory;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.DefaultEmbeddingStoreRegistry;
@@ -8,11 +8,12 @@ import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreFactor
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProperties;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure.provider.ElasticsearchEmbeddingStoreProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure.provider.MilvusEmbeddingStoreProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure.provider.QdrantEmbeddingStoreProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure.provider.RedisStackEmbeddingStoreProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure.provider.WeaviateEmbeddingStoreProviderAdapter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provider.ElasticsearchEmbeddingStoreProviderAdapter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provider.LangChain4jEmbeddingStoreProviderAdapter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provider.MilvusEmbeddingStoreProviderAdapter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provider.QdrantEmbeddingStoreProviderAdapter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provider.RedisStackEmbeddingStoreProviderAdapter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provider.WeaviateEmbeddingStoreProviderAdapter;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -67,6 +68,12 @@ public class EmbeddingStoreAutoConfiguration {
     @ConditionalOnMissingBean(name = "weaviateEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter weaviateEmbeddingStoreProviderAdapter() {
         return new WeaviateEmbeddingStoreProviderAdapter();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "langChain4jEmbeddingStoreProviderAdapter")
+    public EmbeddingStoreProviderAdapter langChain4jEmbeddingStoreProviderAdapter() {
+        return new LangChain4jEmbeddingStoreProviderAdapter();
     }
 
     @Bean

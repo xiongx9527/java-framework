@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.starter;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module.VectorModule;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.web.MagicVectorController;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -9,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
 import org.ssssssss.magicapi.core.model.Plugin;
+import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 @Configuration
 @ConditionalOnClass(EmbeddingStoreRegistry.class)
@@ -24,5 +26,10 @@ public class MagicAPIVectorConfiguration implements MagicPluginConfiguration {
     @Override
     public Plugin plugin() {
         return new Plugin("vector", "MagicVector", "magic-vector.1.0.0.iife.js");
+    }
+
+    @Override
+    public MagicControllerRegister controllerRegister() {
+        return (mapping, configuration) -> mapping.registerController(new MagicVectorController(configuration));
     }
 }
