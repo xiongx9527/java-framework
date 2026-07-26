@@ -22,6 +22,8 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.sql.SQLException;
 import java.sql.Struct;
+import java.io.ByteArrayInputStream;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialClob;
@@ -200,6 +202,78 @@ public class Neo4jDriverTest {
             assertEquals("GENERATED_KEY", generatedKeys.getMetaData().getColumnLabel(1));
             assertFalse(generatedKeys.next());
             generatedKeys.close();
+        }
+        finally {
+            Neo4jDriver.setExecutorFactory(null);
+        }
+    }
+
+    @Test
+    public void shouldKeepGeneratedKeysStatementLifecycleAndObjectContracts() throws Exception {
+        Neo4jDriver.setExecutorFactory(new FakeNeo4jQueryExecutorFactory());
+        try (Connection connection = new Neo4jDriver().connect("jdbc:neo4j://localhost:7687/neo4j", new Properties())) {
+            Statement statement = connection.createStatement();
+            assertTrue(statement.equals(statement));
+            assertEquals(System.identityHashCode(statement), statement.hashCode());
+            assertTrue(statement.toString().contains("GraphJdbcStatement"));
+            statement.close();
+            assertGeneratedKeysRejectClosedStatement(statement);
+
+            Statement connectionStatement = connection.createStatement();
+            connection.close();
+            assertGeneratedKeysRejectClosedStatement(connectionStatement);
+        }
+        finally {
+            Neo4jDriver.setExecutorFactory(null);
+        }
+    }
+
+    @Test
+    public void shouldMaterializeStreamParametersUsingTheirSetterAndLength() throws Exception {
+        FakeNeo4jQueryExecutorFactory factory = new FakeNeo4jQueryExecutorFactory();
+        Neo4jDriver.setExecutorFactory(factory);
+        try (Connection connection = new Neo4jDriver().connect("jdbc:neo4j://localhost:7687/neo4j", new Properties());
+             PreparedStatement statement = connection.prepareStatement(
+                     "RETURN ? AS blob, ? AS clob, ? AS binary, ? AS characters, ? AS ascii, ? AS unicode")) {
+            statement.setBlob(1, new ByteArrayInputStream("blob-rest".getBytes(StandardCharsets.UTF_8)), 4L);
+            statement.setClob(2, new StringReader("clob-rest"), 4L);
+            statement.setBinaryStream(3, new ByteArrayInputStream("bin-rest".getBytes(StandardCharsets.UTF_8)), 3L);
+            statement.setCharacterStream(4, new StringReader("chars-rest"), 5L);
+            statement.setAsciiStream(5, new ByteArrayInputStream("ascii-rest".getBytes(StandardCharsets.UTF_8)), 5L);
+            statement.setUnicodeStream(6, new ByteArrayInputStream("unicode-rest".getBytes(StandardCharsets.UTF_8)), 7);
+
+            statement.executeQuery();
+
+            assertEquals("blob", new String((byte[]) factory.getLastParameters().get("p1"), StandardCharsets.UTF_8));
+            assertEquals("clob", factory.getLastParameters().get("p2"));
+            assertEquals("bin", new String((byte[]) factory.getLastParameters().get("p3"), StandardCharsets.UTF_8));
+            assertEquals("chars", factory.getLastParameters().get("p4"));
+            assertEquals("ascii", factory.getLastParameters().get("p5"));
+            assertEquals("unicode", factory.getLastParameters().get("p6"));
+        }
+        finally {
+            Neo4jDriver.setExecutorFactory(null);
+        }
+    }
+
+    @Test
+    public void shouldSnapshotPreparedBatchParameterBindings() throws Exception {
+        FakeNeo4jQueryExecutorFactory factory = new FakeNeo4jQueryExecutorFactory();
+        Neo4jDriver.setExecutorFactory(factory);
+        try (Connection connection = new Neo4jDriver().connect("jdbc:neo4j://localhost:7687/neo4j", new Properties());
+             PreparedStatement statement = connection.prepareStatement("UPDATE Person SET name = ? WHERE id = ?")) {
+            statement.setString(1, "Alice");
+            statement.setInt(2, 1);
+            statement.addBatch();
+            statement.setString(1, "Bob");
+            statement.setInt(2, 2);
+            statement.addBatch();
+
+            assertEquals(2, statement.executeBatch().length);
+            assertEquals("Alice", factory.getExecutedParameters().get(0).get("p1"));
+            assertEquals(Integer.valueOf(1), factory.getExecutedParameters().get(0).get("p2"));
+            assertEquals("Bob", factory.getExecutedParameters().get(1).get("p1"));
+            assertEquals(Integer.valueOf(2), factory.getExecutedParameters().get(1).get("p2"));
         }
         finally {
             Neo4jDriver.setExecutorFactory(null);
@@ -585,6 +659,16 @@ public class Neo4jDriverTest {
         }
         finally {
             resultSet.close();
+        }
+    }
+
+    private static void assertGeneratedKeysRejectClosedStatement(Statement statement) throws Exception {
+        try {
+            statement.getGeneratedKeys();
+            org.junit.Assert.fail("Expected SQLException");
+        }
+        catch (SQLException expected) {
+            assertTrue(expected.getMessage().contains("closed"));
         }
     }
 }

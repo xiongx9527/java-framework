@@ -17,6 +17,7 @@ import java.sql.Ref;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLXML;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -46,7 +47,7 @@ final class Neo4jGraphJdbcExecutor implements GraphJdbcExecutor {
         StringBuilder sql = new StringBuilder();
         Map<String, Object> parameters = new LinkedHashMap<String, Object>();
         for (Map.Entry<Integer, Object> entry : bindings.asMap().entrySet()) {
-            parameters.put("p" + entry.getKey(), normalize(entry.getValue()));
+			parameters.put("p" + entry.getKey(), normalize(bindings.getBinding(entry.getKey().intValue())));
         }
         boolean inString = false;
         int parameterIndex = 1;
@@ -63,7 +64,9 @@ final class Neo4jGraphJdbcExecutor implements GraphJdbcExecutor {
             }
             else if (!inString && current == '?') {
                 String name = "p" + parameterIndex;
-                parameters.put(name, normalize(bindings.get(parameterIndex)));
+				if (!parameters.containsKey(name)) {
+					parameters.put(name, normalize(bindings.getBinding(parameterIndex)));
+				}
                 sql.append('$').append(name);
                 parameterIndex++;
             }
@@ -99,7 +102,13 @@ final class Neo4jGraphJdbcExecutor implements GraphJdbcExecutor {
         return named.toString();
     }
 
-    private static Object normalize(Object value) throws SQLException {
+    private static Object normalize(GraphJdbcParameterBindings.Binding binding) throws SQLException {
+        Object value = binding == null ? null : binding.getValue();
+        String setterName = binding == null ? null : binding.getSetterName();
+        long length = binding == null || binding.getLength() == null ? -1L : binding.getLength().longValue();
+		if (value == null) {
+			return null;
+		}
         if (value instanceof RowId) {
             return value.toString();
         }
@@ -118,11 +127,17 @@ final class Neo4jGraphJdbcExecutor implements GraphJdbcExecutor {
         if (value instanceof Blob) {
             return blobValue((Blob) value);
         }
+		if ("setAsciiStream".equals(setterName) && value instanceof InputStream) {
+			return new String(readBytes((InputStream) value, length), StandardCharsets.US_ASCII);
+		}
+		if ("setUnicodeStream".equals(setterName) && value instanceof InputStream) {
+			return new String(readBytes((InputStream) value, length), StandardCharsets.UTF_8);
+		}
         if (value instanceof InputStream) {
-            return readBytes((InputStream) value);
+			return readBytes((InputStream) value, length);
         }
         if (value instanceof Reader) {
-            return readString((Reader) value);
+			return readString((Reader) value, length);
         }
         return value;
     }
@@ -143,13 +158,24 @@ final class Neo4jGraphJdbcExecutor implements GraphJdbcExecutor {
         return clob.getSubString(1L, (int) length);
     }
 
-    private static byte[] readBytes(InputStream inputStream) throws SQLException {
+    private static byte[] readBytes(InputStream inputStream, long requestedLength) throws SQLException {
         try {
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             byte[] buffer = new byte[4096];
-            int read;
-            while ((read = inputStream.read(buffer)) >= 0) {
+			long remaining = requestedLength;
+			while (remaining != 0L) {
+				int max = buffer.length;
+				if (remaining > 0L && remaining < max) {
+					max = (int) remaining;
+				}
+				int read = inputStream.read(buffer, 0, max);
+				if (read < 0) {
+					break;
+				}
                 output.write(buffer, 0, read);
+				if (remaining > 0L) {
+					remaining -= read;
+				}
             }
             return output.toByteArray();
         }
@@ -158,13 +184,24 @@ final class Neo4jGraphJdbcExecutor implements GraphJdbcExecutor {
         }
     }
 
-    private static String readString(Reader reader) throws SQLException {
+    private static String readString(Reader reader, long requestedLength) throws SQLException {
         try {
             StringWriter writer = new StringWriter();
             char[] buffer = new char[4096];
-            int read;
-            while ((read = reader.read(buffer)) >= 0) {
+			long remaining = requestedLength;
+			while (remaining != 0L) {
+				int max = buffer.length;
+				if (remaining > 0L && remaining < max) {
+					max = (int) remaining;
+				}
+				int read = reader.read(buffer, 0, max);
+				if (read < 0) {
+					break;
+				}
                 writer.write(buffer, 0, read);
+				if (remaining > 0L) {
+					remaining -= read;
+				}
             }
             return writer.toString();
         }

@@ -126,11 +126,11 @@ public final class GraphJdbcStatementSupport {
 				return null;
 			}
 			if ("setNull".equals(name) && isParameterSetter(args)) {
-				bindings.bind(((Integer) args[0]).intValue(), null);
+				bindings.bind(((Integer) args[0]).intValue(), null, name, null);
 				return null;
 			}
 			if (isParameterSetter(args) && name.startsWith("set")) {
-				bindings.bind(((Integer) args[0]).intValue(), args[1]);
+				bindings.bind(((Integer) args[0]).intValue(), args[1], name, streamLength(name, args));
 				return null;
 			}
 			if ("addBatch".equals(name)) {
@@ -302,10 +302,25 @@ public final class GraphJdbcStatementSupport {
 			return args != null && args.length >= 2 && args[0] instanceof Integer;
 		}
 
+		private static Long streamLength(String setterName, Object[] args) {
+			if (args == null || args.length < 3 || !(args[2] instanceof Number)) {
+				return null;
+			}
+			if ("setAsciiStream".equals(setterName) || "setUnicodeStream".equals(setterName)
+					|| "setBinaryStream".equals(setterName) || "setCharacterStream".equals(setterName)
+					|| "setNCharacterStream".equals(setterName) || "setBlob".equals(setterName)
+					|| "setClob".equals(setterName) || "setNClob".equals(setterName)) {
+				return Long.valueOf(((Number) args[2]).longValue());
+			}
+			return null;
+		}
+
 		private static GraphJdbcParameterBindings copyOf(GraphJdbcParameterBindings source) {
 			GraphJdbcParameterBindings copy = new GraphJdbcParameterBindings();
 			for (Map.Entry<Integer, Object> entry : source.asMap().entrySet()) {
-				copy.bind(entry.getKey().intValue(), entry.getValue());
+				GraphJdbcParameterBindings.Binding binding = source.getBinding(entry.getKey().intValue());
+				copy.bind(entry.getKey().intValue(), entry.getValue(), binding == null ? null : binding.getSetterName(),
+						binding == null ? null : binding.getLength());
 			}
 			return copy;
 		}

@@ -7,16 +7,27 @@ import java.util.Map;
 public final class GraphJdbcParameterBindings {
 
 	private final Map<Integer, Object> values = new LinkedHashMap<Integer, Object>();
+	private final Map<Integer, Binding> bindings = new LinkedHashMap<Integer, Binding>();
 
 	public void bind(int parameterIndex, Object value) {
+		bind(parameterIndex, value, null, null);
+	}
+
+	public void bind(int parameterIndex, Object value, String setterName, Long length) {
 		if (parameterIndex < 1) {
 			throw new IllegalArgumentException("parameterIndex must be greater than 0");
 		}
-		values.put(Integer.valueOf(parameterIndex), value);
+		Integer index = Integer.valueOf(parameterIndex);
+		values.put(index, value);
+		bindings.put(index, new Binding(value, setterName, length));
 	}
 
 	public Object get(int parameterIndex) {
 		return values.get(Integer.valueOf(parameterIndex));
+	}
+
+	public Binding getBinding(int parameterIndex) {
+		return bindings.get(Integer.valueOf(parameterIndex));
 	}
 
 	public Map<Integer, Object> asMap() {
@@ -25,6 +36,7 @@ public final class GraphJdbcParameterBindings {
 
 	public void clear() {
 		values.clear();
+		bindings.clear();
 	}
 
 	public int size() {
@@ -58,5 +70,30 @@ public final class GraphJdbcParameterBindings {
 			}
 		}
 		return count;
+	}
+
+	public static final class Binding {
+
+		private final Object value;
+		private final String setterName;
+		private final Long length;
+
+		private Binding(Object value, String setterName, Long length) {
+			this.value = value;
+			this.setterName = setterName;
+			this.length = length;
+		}
+
+		public Object getValue() {
+			return value;
+		}
+
+		public String getSetterName() {
+			return setterName;
+		}
+
+		public Long getLength() {
+			return length;
+		}
 	}
 }
