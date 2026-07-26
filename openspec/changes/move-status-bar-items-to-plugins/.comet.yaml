@@ -1,6 +1,6 @@
 workflow: full
 language: zh-CN
-phase: build
+phase: verify
 context_compression: off
 build_mode: subagent-driven-development
 build_pause: null
@@ -8,7 +8,7 @@ subagent_dispatch: confirmed
 tdd_mode: tdd
 review_mode: thorough
 isolation: current
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: a4d3a4a2c7b5962d0d5324761f353e75a5443df5
 design_doc: docs/superpowers/specs/2026-07-25-move-status-bar-items-to-plugins-design.md
