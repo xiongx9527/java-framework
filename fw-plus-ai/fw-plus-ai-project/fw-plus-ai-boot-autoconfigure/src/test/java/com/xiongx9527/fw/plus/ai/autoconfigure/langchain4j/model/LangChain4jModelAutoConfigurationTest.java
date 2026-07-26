@@ -5,7 +5,7 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -13,10 +13,10 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.LinkedHashMap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LangChain4jModelAutoConfigurationTest {
 
@@ -51,6 +51,13 @@ public class LangChain4jModelAutoConfigurationTest {
                 .withConfiguration(AutoConfigurations.of(LangChain4jModelAutoConfiguration.class))
                 .withUserConfiguration(CustomRegistryConfiguration.class)
                 .run(context -> assertSame(context.getBean("customRegistry"), context.getBean(LangChain4jModelRegistry.class)));
+    }
+
+    @Test
+    public void shouldRegisterProviderAdapters() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(LangChain4jModelAutoConfiguration.class))
+                .run(context -> assertEquals(40, context.getBeansOfType(LangChain4jModelProviderAdapter.class).size()));
     }
 
     @Configuration

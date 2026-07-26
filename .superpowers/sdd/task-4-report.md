@@ -1,115 +1,46 @@
-# Task 4 Report: AI Magic-API Vector Plugin
+# Task 4 Report: Provider Adapter 迁移与 SDK 隔离
 
 ## Status
 
-DONE_WITH_CONCERNS
+BLOCKED
 
-## TDD Evidence
-
-### RED
-
-The requested Maven Wrapper command could not start because this worktree does not contain `fw-plus-ai/.mvn/wrapper/maven-wrapper.properties` or `maven-wrapper.jar`.
-
-Replacement command, as required when the Wrapper is unavailable:
+## RED
 
 ```bash
-cd fw-plus-ai
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -q -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=MagicAPIVectorConfigurationTest,VectorModuleTest test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelProviderAdapterTest,LangChain4jModelAutoConfigurationTest test
 ```
 
-Result: failed during test compilation because `MagicAPIVectorConfiguration`, `VectorModule`, `VectorStoreOperations`, `MagicAPIVectorException`, and the Core `EmbeddingStoreRegistry` API were unresolved. This is the expected failure before implementing the vector plugin and adding the Core registry compile dependency.
+结果：`BUILD FAILURE`。JUnit Jupiter 测试在编译阶段按预期失败，原因是 `ReflectiveLangChain4jModelProviderAdapter` 尚不存在。
 
-### GREEN
+## GREEN
 
-Before the AI test run, the Core registry artifacts were installed with the required Zulu 8 Maven fallback because the Wrapper is unavailable:
+同一 focused 命令在实现后能够完成主代码和测试代码编译，但 Surefire 2.22.2 报告 `Tests run: 0`，随后以 `No tests were executed!` 失败，未获得 GREEN 证据。
 
-```bash
-cd fw-plus-core
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding,fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -am install -DskipTests
-```
+依赖树证据显示：Jupiter API/Platform 为 `5.8.2/1.8.2`，但 Jupiter Engine 被解析为 `5.10.0`。该版本不兼容导致 JUnit Platform provider 无法执行 Jupiter 测试。
 
-Result: `BUILD SUCCESS` (9-module reactor).
+最终执行中 `git diff --check` 通过。
 
-```bash
-cd fw-plus-ai
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=MagicAPIVectorConfigurationTest,VectorModuleTest test
-```
+## 修改文件
 
-Result: `BUILD SUCCESS`; 5 tests run, 0 failures, 0 errors, 0 skipped.
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelAutoConfiguration.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/provider/ProviderAdapterSupport.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/provider/ReflectiveLangChain4jModelProviderAdapter.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/provider/LangChain4jModelProviderAdapterTest.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelAutoConfigurationTest.java`
+- `.superpowers/sdd/task-4-report.md`
 
-Additional starter packaging verification:
+## 提交
 
-```bash
-cd fw-plus-ai
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-vector -am package -DskipTests
-```
+`f01905602ca703012ccd2c785d60baff5626dde7` (`feat: add langchain4j model provider adapters`)
 
-Result: `BUILD SUCCESS` (10-module reactor).
+## 自检
 
-## Java 9+ API Scan
+- 未创建或修改任何 Magic-API/vector、starter、BOM、README、OpenSpec、plan、progress 文件。
+- 测试仅使用 `org.junit.jupiter.api.Test` 和 `org.junit.jupiter.api.Assertions`。
+- 未注册 Audio、Video、PDF、Moderation 或 Scoring provider adapter。
+- 未引用高版本 `ChatModel` 或 `StreamingChatModel`。
 
-Command:
+## 风险信号
 
-```bash
-rg -n '\\b(List|Set|Map)\\.of\\(|\\.copyOf\\(|\\.isBlank\\(|\\bvar\\s+' \
-  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector \
-  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector
-```
-
-Result: no matches.
-
-## Modified Files
-
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/MagicApiPluginAutoConfiguration.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/exception/MagicAPIVectorException.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/module/VectorModule.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/module/VectorStoreOperations.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/starter/MagicAPIVectorConfiguration.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/MagicAPIVectorConfigurationTest.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/VectorModuleTest.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/pom.xml`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-vector/pom.xml`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-vector/src/main/resources/magic-editor/plugins/magic-vector.1.0.0.iife.js`
-
-## Commit
-
-Implementation commit: `ea0a939da623013c7d36a14275d9e1a7ef26716e` (`feat(vector): add unified magicapi vector plugin`).
-
-## Self-check and Concerns
-
-The implementation adds only the unified `vector` entry and keeps old provider configurations unchanged. The worktree Maven Wrapper is incomplete, so all verification used Zulu 8 Maven; existing duplicate dependency and multiple SLF4J-binding warnings remain outside this task's scope.
-
-## Task 4 Fixer Update
-
-### RED
-
-```bash
-cd fw-plus-ai
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=VectorModuleTest test
-```
-
-Result: `BUILD FAILURE` during compilation. `VectorModule` could not implement `DynamicAttribute<VectorModule, VectorStoreOperations>` because `getDynamicAttribute(String)` returned `VectorStoreOperations` instead of `VectorModule`.
-
-### GREEN
-
-```bash
-cd fw-plus-ai
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=VectorModuleTest,MagicAPIVectorConfigurationTest test
-```
-
-Result: `BUILD SUCCESS`; 6 tests run, 0 failures, 0 errors, 0 skipped. `VectorModuleTest` now type-safely assigns `DynamicAttribute<VectorModule, VectorStoreOperations>` and executes `return vector['knowledge'];` through `MagicScript`.
-
-### Changed Files
-
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/module/VectorModule.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/VectorModuleTest.java`
-
-### Fix Commit
-
-`7c265b3525ca8ca4594e8dce3427d8fdf99b52ce` (`fix(vector): correct magicapi dynamic attribute contract`)
-
-### Concerns
-
-The Maven build continues to report pre-existing duplicate dependency declarations and multiple SLF4J bindings. They are outside Task 4 scope. No unresolved Task 4 concerns remain.
+- 当前用户限定范围禁止修改 POM，因此无法对齐 Jupiter Engine 与 API/Platform 版本，无法让指定 focused 命令实际执行 Jupiter 测试。
+- 当前提交缺少 GREEN 证据；需在允许调整测试依赖后重新执行 focused 命令。
