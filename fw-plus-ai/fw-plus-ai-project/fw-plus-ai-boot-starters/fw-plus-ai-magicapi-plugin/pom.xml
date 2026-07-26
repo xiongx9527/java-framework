@@ -11,7 +11,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>fw-plus-ai-magicapi-plugin-vector</module>
-        <module>fw-plus-ai-magicapi-plugin-langchain4j</module>
+        <module>fw-plus-ai-magicapi-plugin-model</module>
     </modules>
     <artifactId>fw-plus-ai-magicapi-plugin</artifactId>
 

@@ -1,0 +1,20 @@
+export default {
+    'model.datasource.title': 'Model',
+    'model.datasource.name': 'Model datasource',
+    'model.datasource.form.name': 'Name',
+    'model.datasource.form.key': 'Key',
+    'model.datasource.form.provider': 'Provider',
+    'model.datasource.form.modelType': 'Model type',
+    'model.datasource.form.enabled': 'Enabled',
+    'model.datasource.form.baseUrl': 'Base URL',
+    'model.datasource.form.apiKey': 'API key',
+    'model.datasource.form.modelName': 'Model name',
+    'model.datasource.form.properties': 'Properties',
+    'model.datasource.form.placeholder.name': 'Datasource name',
+    'model.datasource.form.placeholder.key': 'Example: qwen',
+    'model.datasource.form.placeholder.provider': 'Example: open-ai or dashscope',
+    'model.datasource.form.placeholder.baseUrl': 'Example: https://api.example.com/v1',
+    'model.datasource.form.placeholder.apiKey': 'API key',
+    'model.datasource.form.placeholder.modelName': 'Example: qwen-plus',
+    'model.datasource.form.placeholder.properties': 'JSON object'
+}

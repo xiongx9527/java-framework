@@ -2,11 +2,13 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataErrorCode;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.LangChain4jModelInfo;
+import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,12 +18,38 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 	private final Map<String, ChatLanguageModel> chatModels;
 	private final Map<String, EmbeddingModel> embeddingModels;
 
-	public LangChain4jAskDataModelRegistry(AskDataProperties properties, LangChain4jModelInfo modelInfo) {
+	public LangChain4jAskDataModelRegistry(AskDataProperties properties, LangChain4jModelRegistry modelRegistry) {
 		this.properties = properties;
-		this.chatModels = modelInfo == null || modelInfo.getChatLanguageModelMap() == null
-				? Collections.<String, ChatLanguageModel>emptyMap() : modelInfo.getChatLanguageModelMap();
-		this.embeddingModels = modelInfo == null || modelInfo.getEmbeddingModelMap() == null
-				? Collections.<String, EmbeddingModel>emptyMap() : modelInfo.getEmbeddingModelMap();
+		this.chatModels = chatModels(modelRegistry);
+		this.embeddingModels = embeddingModels(modelRegistry);
+	}
+
+	private Map<String, ChatLanguageModel> chatModels(LangChain4jModelRegistry modelRegistry) {
+		if (modelRegistry == null) {
+			return Collections.emptyMap();
+		}
+		Map<String, ChatLanguageModel> models = new LinkedHashMap<String, ChatLanguageModel>();
+		for (String key : modelRegistry.keys()) {
+			LangChain4jModel model = modelRegistry.get(key);
+			if (model != null && model.getModel() instanceof ChatLanguageModel) {
+				models.put(key, (ChatLanguageModel) model.getModel());
+			}
+		}
+		return models;
+	}
+
+	private Map<String, EmbeddingModel> embeddingModels(LangChain4jModelRegistry modelRegistry) {
+		if (modelRegistry == null) {
+			return Collections.emptyMap();
+		}
+		Map<String, EmbeddingModel> models = new LinkedHashMap<String, EmbeddingModel>();
+		for (String key : modelRegistry.keys()) {
+			LangChain4jModel model = modelRegistry.get(key);
+			if (model != null && model.getModel() instanceof EmbeddingModel) {
+				models.put(key, (EmbeddingModel) model.getModel());
+			}
+		}
+		return models;
 	}
 
 	@Override

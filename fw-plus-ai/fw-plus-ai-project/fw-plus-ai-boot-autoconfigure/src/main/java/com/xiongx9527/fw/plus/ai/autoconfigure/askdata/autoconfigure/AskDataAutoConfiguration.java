@@ -27,7 +27,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.JdbcAskDataSqlExecuto
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.CompositeAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.ContentRetrieverAskDataVectorRetriever;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.LangChain4jModelInfo;
+import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -56,8 +56,8 @@ public class AskDataAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public AskDataModelRegistry askDataModelRegistry(AskDataProperties properties,
-			ObjectProvider<LangChain4jModelInfo> modelInfoProvider) {
-		return new LangChain4jAskDataModelRegistry(properties, modelInfoProvider.getIfAvailable());
+			ObjectProvider<LangChain4jModelRegistry> modelRegistryProvider) {
+		return new LangChain4jAskDataModelRegistry(properties, modelRegistryProvider.getIfAvailable());
 	}
 
     @Bean
