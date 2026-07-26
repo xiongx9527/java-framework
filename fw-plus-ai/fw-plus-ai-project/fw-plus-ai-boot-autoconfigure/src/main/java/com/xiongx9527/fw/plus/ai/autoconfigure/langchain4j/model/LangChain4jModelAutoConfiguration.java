@@ -153,6 +153,13 @@ public class LangChain4jModelAutoConfiguration {
     public LangChain4jModelProviderAdapter geminiEmbeddingModelProviderAdapter() { return adapter("gemini", LangChain4jModelType.EMBEDDING, "dev.langchain4j.model.googleai.GoogleAiEmbeddingModel"); }
 
     @Bean
+    @ConditionalOnMissingBean(name = "voyageAiEmbeddingModelProviderAdapter")
+    public LangChain4jModelProviderAdapter voyageAiEmbeddingModelProviderAdapter() { return adapter("voyage-ai", LangChain4jModelType.EMBEDDING, "dev.langchain4j.model.voyageai.VoyageAiEmbeddingModel"); }
+    @Bean
+    @ConditionalOnMissingBean(name = "voyageAiScoringModelProviderAdapter")
+    public LangChain4jModelProviderAdapter voyageAiScoringModelProviderAdapter() { return adapter("voyage-ai", LangChain4jModelType.SCORING, "dev.langchain4j.model.voyageai.VoyageAiScoringModel"); }
+
+    @Bean
     @ConditionalOnMissingBean(name = "allMiniLmL6V2QuantizedEmbeddingModelProviderAdapter")
     public LangChain4jModelProviderAdapter allMiniLmL6V2QuantizedEmbeddingModelProviderAdapter() { return new ReflectiveLangChain4jModelProviderAdapter("all-mini-lm-l6-v2-quantized", LangChain4jModelType.EMBEDDING, "dev.langchain4j.model.embedding.onnx.allminilml6v2q.AllMiniLmL6V2QuantizedEmbeddingModel", null); }
 

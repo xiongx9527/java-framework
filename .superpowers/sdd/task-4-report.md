@@ -2,7 +2,7 @@
 
 ## Status
 
-BLOCKED
+RESOLVED
 
 ## RED
 
@@ -88,3 +88,30 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-p
 - 测试中仍出现 SLF4J 多绑定警告（`slf4j-simple` 与 `logback-classic`），为既存 classpath 噪声，未纳入本次修改。
 
 `git diff --check`：通过。
+
+## Fix Review 2
+
+第二轮 review 发现 `voyage-ai` 已列入 provider 清单和文件结构，但模型自动配置没有注册 adapter，矩阵测试也把它固定为零支持。
+
+### RED
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelProviderAdapterTest,LangChain4jModelAutoConfigurationTest -Dsurefire.printSummary=true test
+```
+
+关键输出：`Tests run: 8, Failures: 1, Errors: 0, Skipped: 0`；`shouldRegisterProviderAdapters` 对 `provider=voyage-ai, modelType=EMBEDDING` 断言期望 1、实际 0，`BUILD FAILURE`。
+
+### GREEN
+
+使用 `ReflectiveLangChain4jModelProviderAdapter` 的既有 `adapter(...)` 模式注册：
+
+- `voyage-ai / EMBEDDING` -> `dev.langchain4j.model.voyageai.VoyageAiEmbeddingModel`
+- `voyage-ai / SCORING` -> `dev.langchain4j.model.voyageai.VoyageAiScoringModel`
+
+同一矩阵测试覆盖这两个组合恰好一个 adapter 支持，并继续断言未声明组合（包括 `voyage-ai / CHAT` 和 `voyage-ai / MODERATION`）为零支持；未注册 MODERATION。
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelProviderAdapterTest,LangChain4jModelAutoConfigurationTest -Dsurefire.printSummary=true test
+```
+
+关键输出：`Tests run: 8, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。测试过程中出现的 `slf4j-simple` 与 `logback-classic` 多绑定警告为既存 classpath 噪声。

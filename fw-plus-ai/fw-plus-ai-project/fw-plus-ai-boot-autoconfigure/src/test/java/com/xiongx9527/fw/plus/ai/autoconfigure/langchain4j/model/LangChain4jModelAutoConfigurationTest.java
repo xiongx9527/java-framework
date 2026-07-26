@@ -93,7 +93,7 @@ public class LangChain4jModelAutoConfigurationTest {
         expected.put("hugging-face", types(LangChain4jModelType.CHAT, LangChain4jModelType.EMBEDDING, LangChain4jModelType.LANGUAGE));
         expected.put("local-ai", types(LangChain4jModelType.CHAT, LangChain4jModelType.EMBEDDING, LangChain4jModelType.LANGUAGE));
         expected.put("gemini", types(LangChain4jModelType.CHAT, LangChain4jModelType.EMBEDDING));
-        expected.put("voyage-ai", types());
+        expected.put("voyage-ai", types(LangChain4jModelType.EMBEDDING, LangChain4jModelType.SCORING));
         expected.put("all-mini-lm-l6-v2-quantized", types(LangChain4jModelType.EMBEDDING));
         return expected;
     }
