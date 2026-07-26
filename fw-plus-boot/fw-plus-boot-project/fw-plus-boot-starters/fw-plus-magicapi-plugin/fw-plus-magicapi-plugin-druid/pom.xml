@@ -13,6 +13,12 @@
         <main.basedir>${basedir}/../../../..</main.basedir>
     </properties>
     <build>
+		<resources>
+			<resource>
+				<directory>src/console/dist</directory>
+				<targetPath>magic-editor/plugins</targetPath>
+			</resource>
+		</resources>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -24,10 +30,4 @@
             </plugin>
         </plugins>
     </build>
-    <dependencies>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.boot</groupId>
-            <artifactId>fw-plus-jdbc-spring-boot-starter</artifactId>
-        </dependency>
-    </dependencies>
 </project>

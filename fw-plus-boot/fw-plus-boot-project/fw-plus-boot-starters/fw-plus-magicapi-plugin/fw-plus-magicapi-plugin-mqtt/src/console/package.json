@@ -4,7 +4,8 @@
   "description": "Magic-API MQTT Plugin",
   "main": "index.js",
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "test": "node --test test/open-target.test.mjs"
   },
   "author": "",
   "license": "ISC",

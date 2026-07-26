@@ -64,14 +64,14 @@ const plugins = [{
     title: 'Websocket client',
     displayKey: 'ws',
     order: 900,
-    action: /onClick:\s*\(\)\s*=>\s*openWs\(\)/
+    action: /onClick:\s*\(\)\s*=>\s*openWs\(opt\.constants\s*&&\s*opt\.constants\.BASE_URL\)/
 }, {
     name: 'mqtt',
     icon: '#magic-mqtt-mqtt',
     title: 'Mqtt client',
     displayKey: 'mqtt',
     order: 1000,
-    action: /onClick:\s*\(\)\s*=>\s*openMqtt\(\)/
+    action: /onClick:\s*\(\)\s*=>\s*openMqtt\(opt\.constants\s*&&\s*opt\.constants\.BASE_URL\)/
 }, {
     name: 'vue3',
     icon: '#magic-vue3-vue',
@@ -105,15 +105,13 @@ test('Boot 插件状态栏入口保持原标题、图标、显示键、动作和
 })
 
 for (const plugin of [{ name: 'ws', suffix: 'ws' }, { name: 'mqtt', suffix: 'mqtt' }]) {
-    test(`${plugin.name} 状态栏入口保留 MAGIC_API_BASE_URL 动态地址计算`, () => {
+    test(`${plugin.name} 状态栏入口使用插件工厂运行时后端基址`, () => {
         const pluginPath = path.join(pluginRoot, `fw-plus-magicapi-plugin-${plugin.name}/src/console/src/index.js`)
         const source = fs.readFileSync(pluginPath, 'utf8')
 
-        assert.match(source, /let link = `\$\{location\.protocol\}\/\/\$\{location\.host\}\$\{location\.pathname\}`\.replace\('\/index\.html', ''\)/)
-        assert.match(source, /const baseURL = import\.meta\.env\.MAGIC_API_BASE_URL \|\| '\.\/'/)
-        assert.match(source, /if \(baseURL\.startsWith\('http'\)\)\s*{\s*link = baseURL/)
-        assert.match(source, /else if \(baseURL\.startsWith\('\.\/'\)\)\s*{\s*link = window\.location\.pathname\.replace\(\/\\\/index\\\.html\$\/, ''\)/)
-        assert.match(source, new RegExp(`const druidUrl = link \\+ '/${plugin.suffix}/index\\.html'`))
-        assert.match(source, /window\.open\(druidUrl, '_blank'\)/)
+		assert.doesNotMatch(source, /import\.meta\.env\.MAGIC_API_BASE_URL/)
+		assert.match(source, new RegExp(`open${plugin.name === 'ws' ? 'Ws' : 'Mqtt'}\\(opt\\.constants\\s*&&\\s*opt\\.constants\\.BASE_URL\\)`))
+		assert.match(source, new RegExp(`return link \\+ '/${plugin.suffix}/index\\.html'`))
+		assert.match(source, new RegExp(`window\\.open\\(resolve${plugin.name === 'ws' ? 'Ws' : 'Mqtt'}Url\\(baseURL, pageURL\\), '_blank'\\)`))
     })
 }
