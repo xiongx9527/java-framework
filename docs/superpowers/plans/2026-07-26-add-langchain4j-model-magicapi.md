@@ -139,12 +139,12 @@ base-ref: 7b1c788fd198b832c41ad83baf58e40bb5e5f8bb
 ```java
 package com.xiongx9527.fw.plus.ai.langchain4j.model;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LangChain4jModelDefinitionTest {
 
@@ -246,12 +246,12 @@ git commit -m "feat: add langchain4j model core contracts"
 ```java
 package com.xiongx9527.fw.plus.ai.langchain4j.model;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class DefaultLangChain4jModelFactoryTest {
 
@@ -349,12 +349,12 @@ public class DefaultLangChain4jModelFactoryTest {
 ```java
 package com.xiongx9527.fw.plus.ai.langchain4j.model;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class DefaultLangChain4jModelRegistryTest {
 
@@ -458,12 +458,12 @@ git commit -m "feat: add langchain4j model factory and registry"
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model;
 
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.mock.env.MockEnvironment;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LangChain4jModelPropertiesTest {
 
@@ -501,13 +501,13 @@ Create tests with `ApplicationContextRunner`:
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model;
 
 import com.xiongx9527.fw.plus.ai.langchain4j.model.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LangChain4jModelAutoConfigurationTest {
 
@@ -630,9 +630,9 @@ git commit -m "feat: auto configure langchain4j model registry"
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.provider;
 
 import com.xiongx9527.fw.plus.ai.langchain4j.model.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class LangChain4jModelProviderAdapterTest {
 
