@@ -14,9 +14,9 @@
 
 ## 3. Neo4j JDBC 适配
 
-- [ ] 3.1 将 `Neo4jJdbcProxies` 中无 Neo4j 协议依赖的代理、元数据和结果集逻辑迁移到公共模块
-- [ ] 3.2 保留 Neo4j 连接配置、SQL-to-Cypher 转换、Cypher 执行器和 Java Driver 适配在 `fw-plus-neo4j-jdbc`
-- [ ] 3.3 补充或更新 Neo4j 本地测试，验证 DriverManager、Statement、PreparedStatement、参数绑定和元数据行为不变
+- [x] 3.1 将 `Neo4jJdbcProxies` 中无 Neo4j 协议依赖的代理、元数据和结果集逻辑迁移到公共模块
+- [x] 3.2 保留 Neo4j 连接配置、SQL-to-Cypher 转换、Cypher 执行器和 Java Driver 适配在 `fw-plus-neo4j-jdbc`
+- [x] 3.3 补充或更新 Neo4j 本地测试，验证 DriverManager、Statement、PreparedStatement、参数绑定和元数据行为不变
 
 ## 4. Nebula JDBC 适配
 
