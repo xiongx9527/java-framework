@@ -2,6 +2,8 @@
 
 `fw-plus-neo4j-jdbc` 是 fw-plus graph 模块下的 Neo4j JDBC 适配模块，面向 Java 8。底层使用 `org.neo4j.driver:neo4j-java-driver:4.4.26`，不依赖 Neo4j 官方新版 JDBC。
 
+该版本与 `fw-plus-ai-langchain4j-neo4j` 的 Java 8 覆盖依赖保持一致。若运行环境是 Java 17 及以上，并直接使用 LangChain4j `0.35.0` 原始 `langchain4j-neo4j`，则应按上游依赖使用 `org.neo4j.driver:neo4j-java-driver:5.15.0` 和 `org.neo4j:neo4j-cypher-dsl-schema-name-support:2023.7.0`，不要用本 JDBC 模块的 `4.4.26` 作为 LangChain4j Java 17 依赖版本。
+
 ## JDBC URL
 
 ```text
