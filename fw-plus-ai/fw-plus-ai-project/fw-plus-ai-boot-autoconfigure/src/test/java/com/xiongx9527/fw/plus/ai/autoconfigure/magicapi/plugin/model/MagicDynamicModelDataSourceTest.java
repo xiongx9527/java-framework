@@ -97,6 +97,21 @@ class MagicDynamicModelDataSourceTest {
     }
 
     @Test
+    void createClientAcceptsExplicitNullPropertiesWithoutPartialRuntimeState() {
+        RecordingFactory factory = new RecordingFactory();
+        MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
+                registryWith("boot", model("boot"), "boot"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+        ModelDataSourceInfo info = info("chat");
+        info.setProperties(null);
+
+        dataSource.createClient(info);
+
+        assertSame(factory.createdModel, dataSource.getModel("chat"));
+        assertEquals(1, dataSource.datasourceNodes().size());
+        assertTrue(dataSource.datasourceNodes().get(0).getProperties().isEmpty());
+    }
+
+    @Test
     void createClientRejectsInvalidDefinitions() {
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
                 registryWith("boot", model("boot"), "boot"), new RecordingFactory(), Collections.<LangChain4jModelProviderAdapter>emptyList());

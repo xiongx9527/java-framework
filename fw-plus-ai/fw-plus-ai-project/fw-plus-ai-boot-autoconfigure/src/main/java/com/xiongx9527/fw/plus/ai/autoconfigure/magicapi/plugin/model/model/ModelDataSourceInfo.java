@@ -59,7 +59,7 @@ public class ModelDataSourceInfo extends MagicEntity {
     @Override
     public ModelDataSourceInfo copy() {
         ModelDataSourceInfo info = copyBase(true);
-        info.setProperties(new LinkedHashMap<String, Object>(properties));
+        info.setProperties(properties == null ? new LinkedHashMap<String, Object>() : new LinkedHashMap<String, Object>(properties));
         return info;
     }
 
