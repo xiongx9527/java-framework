@@ -39,6 +39,29 @@ public class GraphJdbcRowSetsTest {
 	}
 
 	@Test
+	public void emptyGeneratedKeysShouldRejectOperationsAfterClose() throws Exception {
+		ResultSet rs = GraphJdbcRowSets.emptyGeneratedKeys();
+		assertFalse(rs.isClosed());
+		rs.close();
+		assertTrue(rs.isClosed());
+		rs.close();
+		try {
+			rs.next();
+			throw new AssertionError("next should reject a closed result set");
+		}
+		catch (java.sql.SQLException expected) {
+			// expected
+		}
+		try {
+			rs.getMetaData();
+			throw new AssertionError("getMetaData should reject a closed result set");
+		}
+		catch (java.sql.SQLException expected) {
+			// expected
+		}
+	}
+
+	@Test
 	public void resultShouldDefensivelyCopyRowsAndExposeState() {
 		List<String> columns = new ArrayList<String>(Arrays.asList("name"));
 		Map<String, Object> row = new LinkedHashMap<String, Object>();
