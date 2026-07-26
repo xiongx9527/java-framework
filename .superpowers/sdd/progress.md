@@ -1,2 +1,2 @@
 Task 1: complete (commits a2bc055a..3606cb2f, review clean)
-Task 2: task-review (commits 8b31390d..8efca6fe)
+Task 2: complete (commits 8b31390d..db6d3e82, review clean after exception-context fix)
