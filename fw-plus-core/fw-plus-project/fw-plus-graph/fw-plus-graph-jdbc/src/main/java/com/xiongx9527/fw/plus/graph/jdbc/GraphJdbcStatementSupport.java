@@ -227,7 +227,8 @@ public final class GraphJdbcStatementSupport {
 
 		private boolean isPreparedStringExecution(String name, Object[] args) {
 			return preparedSql != null && args != null && args.length > 0 && args[0] instanceof String
-					&& ("executeQuery".equals(name) || "executeUpdate".equals(name) || "execute".equals(name));
+					&& ("executeQuery".equals(name) || "executeUpdate".equals(name) || "execute".equals(name)
+							|| "addBatch".equals(name));
 		}
 
 		private void checkOpen() throws SQLException {

@@ -3,9 +3,11 @@ package com.xiongx9527.fw.plus.graph.neo4j.jdbc;
 import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcDefaults;
 import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcColumn;
 import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcMetaDataSupport;
+import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcParameterMetaData;
 import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcRowSets;
 import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcSqlPreprocessor;
 import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcStatementSupport;
+import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcWrapperSupport;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -156,6 +158,21 @@ final class Neo4jJdbcProxies {
                         if ("toString".equals(method.getName())) {
                             return statement.toString();
                         }
+						if ("unwrap".equals(method.getName())) {
+							return GraphJdbcWrapperSupport.unwrap(proxy, (Class<?>) args[0]);
+						}
+						if ("isWrapperFor".equals(method.getName())) {
+							return Boolean.valueOf(GraphJdbcWrapperSupport.isWrapperFor(proxy, (Class<?>) args[0]));
+						}
+						if ("getParameterMetaData".equals(method.getName())) {
+							try {
+								java.sql.ParameterMetaData parameterMetaData = (java.sql.ParameterMetaData) method.invoke(statement, args);
+								return new GraphJdbcParameterMetaData(parameterMetaData.getParameterCount(), true);
+							}
+							catch (InvocationTargetException exception) {
+								throw exception.getCause();
+							}
+						}
                         if ("getGeneratedKeys".equals(method.getName())) {
                             try {
                                 method.invoke(statement, args);

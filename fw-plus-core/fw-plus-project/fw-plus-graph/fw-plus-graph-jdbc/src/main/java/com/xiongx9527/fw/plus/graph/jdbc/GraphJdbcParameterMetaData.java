@@ -7,12 +7,18 @@ import java.sql.Types;
 public final class GraphJdbcParameterMetaData implements ParameterMetaData {
 
 	private final int parameterCount;
+	private final boolean signed;
 
 	public GraphJdbcParameterMetaData(int parameterCount) {
+		this(parameterCount, false);
+	}
+
+	public GraphJdbcParameterMetaData(int parameterCount, boolean signed) {
 		if (parameterCount < 0) {
 			throw new IllegalArgumentException("parameterCount must not be negative");
 		}
 		this.parameterCount = parameterCount;
+		this.signed = signed;
 	}
 
 	@Override
@@ -29,7 +35,7 @@ public final class GraphJdbcParameterMetaData implements ParameterMetaData {
 	@Override
 	public boolean isSigned(int parameter) throws SQLException {
 		checkParameterIndex(parameter);
-		return false;
+		return signed;
 	}
 
 	@Override

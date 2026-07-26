@@ -50,6 +50,13 @@ public class GraphJdbcStatementSupportTest {
 		catch (SQLException expected) {
 			assertTrue(expected.getMessage().contains("cannot be called on PreparedStatement"));
 		}
+		try {
+			statement.addBatch("UPDATE n SET name = 'Morpheus'");
+			fail("PreparedStatement addBatch(String) must fail");
+		}
+		catch (SQLException expected) {
+			assertTrue(expected.getMessage().contains("cannot be called on PreparedStatement"));
+		}
 	}
 
 	@Test

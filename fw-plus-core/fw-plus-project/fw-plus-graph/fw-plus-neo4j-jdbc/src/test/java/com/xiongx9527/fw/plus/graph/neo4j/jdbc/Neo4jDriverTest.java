@@ -195,6 +195,7 @@ public class Neo4jDriverTest {
             ParameterMetaData parameterMetaData = preparedStatement.getParameterMetaData();
             assertEquals(2, parameterMetaData.getParameterCount());
             assertEquals(ParameterMetaData.parameterModeIn, parameterMetaData.getParameterMode(1));
+            assertTrue(parameterMetaData.isSigned(1));
             assertEquals(java.sql.Types.JAVA_OBJECT, parameterMetaData.getParameterType(1));
             assertEquals(Object.class.getName(), parameterMetaData.getParameterClassName(1));
 
@@ -216,6 +217,12 @@ public class Neo4jDriverTest {
             assertTrue(statement.equals(statement));
             assertEquals(System.identityHashCode(statement), statement.hashCode());
             assertTrue(statement.toString().contains("GraphJdbcStatement"));
+			assertTrue(statement.isWrapperFor(Statement.class));
+			Statement unwrapped = statement.unwrap(Statement.class);
+			assertTrue(unwrapped == statement);
+			ResultSet generatedKeys = unwrapped.getGeneratedKeys();
+			assertEquals("GENERATED_KEY", generatedKeys.getMetaData().getColumnLabel(1));
+			generatedKeys.close();
             statement.close();
             assertGeneratedKeysRejectClosedStatement(statement);
 

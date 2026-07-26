@@ -69,6 +69,10 @@ public final class GraphJdbcRowSets {
 				new InvocationHandler() {
 					@Override
 					public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+						Object objectMethodResult = objectMethodResult(proxy, method, args, "GraphJdbcEmptyGeneratedKeysResultSet");
+						if (objectMethodResult != null) {
+							return objectMethodResult;
+						}
 						if ("close".equals(method.getName())) {
 							lifecycle.close(null);
 							return null;
@@ -100,6 +104,16 @@ public final class GraphJdbcRowSets {
 				new InvocationHandler() {
 					@Override
 					public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+						Object objectMethodResult = objectMethodResult(proxy, method, args, "GraphJdbcResultSet");
+						if (objectMethodResult != null) {
+							return objectMethodResult;
+						}
+						if ("isWrapperFor".equals(method.getName())) {
+							return Boolean.valueOf(GraphJdbcWrapperSupport.isWrapperFor(proxy, (Class<?>) args[0]));
+						}
+						if ("unwrap".equals(method.getName())) {
+							return GraphJdbcWrapperSupport.unwrap(proxy, (Class<?>) args[0]);
+						}
 						Object[] resolvedArgs = resolveColumnLabel(args, columnNamesByLabel);
 						try {
 							return method.invoke(rowSet, resolvedArgs);
@@ -129,6 +143,10 @@ public final class GraphJdbcRowSets {
 				new Class<?>[] {ResultSetMetaData.class}, new InvocationHandler() {
 					@Override
 					public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+						Object objectMethodResult = objectMethodResult(proxy, method, args, "GraphJdbcEmptyResultSetMetaData");
+						if (objectMethodResult != null) {
+							return objectMethodResult;
+						}
 						if ("getColumnCount".equals(method.getName())) {
 							return Integer.valueOf(0);
 						}
@@ -141,6 +159,22 @@ public final class GraphJdbcRowSets {
 						return GraphJdbcDefaults.defaultValue(method.getReturnType());
 					}
 				});
+	}
+
+	private static Object objectMethodResult(Object proxy, Method method, Object[] args, String description) {
+		if (!Object.class.equals(method.getDeclaringClass())) {
+			return null;
+		}
+		if ("equals".equals(method.getName())) {
+			return Boolean.valueOf(proxy == args[0]);
+		}
+		if ("hashCode".equals(method.getName())) {
+			return Integer.valueOf(System.identityHashCode(proxy));
+		}
+		if ("toString".equals(method.getName())) {
+			return description + "@" + Integer.toHexString(System.identityHashCode(proxy));
+		}
+		return null;
 	}
 
 	private static Object firstValue(List<Map<String, Object>> rows, String column) {

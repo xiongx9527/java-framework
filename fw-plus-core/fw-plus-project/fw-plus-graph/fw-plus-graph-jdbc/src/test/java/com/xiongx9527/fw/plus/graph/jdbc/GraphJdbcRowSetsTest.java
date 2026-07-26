@@ -12,6 +12,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class GraphJdbcRowSetsTest {
@@ -62,6 +63,28 @@ public class GraphJdbcRowSetsTest {
 	}
 
 	@Test
+	public void resultSetProxiesShouldKeepObjectContractsAndUseTheOuterWrapper() throws Exception {
+		ResultSet emptyGeneratedKeys = GraphJdbcRowSets.emptyGeneratedKeys();
+		assertTrue(emptyGeneratedKeys.equals(emptyGeneratedKeys));
+		assertEquals(System.identityHashCode(emptyGeneratedKeys), emptyGeneratedKeys.hashCode());
+		assertTrue(emptyGeneratedKeys.toString().contains("ResultSet"));
+		assertTrue(emptyGeneratedKeys.isWrapperFor(ResultSet.class));
+		assertSame(emptyGeneratedKeys, emptyGeneratedKeys.unwrap(ResultSet.class));
+		assertMetaDataObjectContracts(emptyGeneratedKeys.getMetaData());
+		emptyGeneratedKeys.close();
+		assertTrue(emptyGeneratedKeys.equals(emptyGeneratedKeys));
+		assertEquals(System.identityHashCode(emptyGeneratedKeys), emptyGeneratedKeys.hashCode());
+
+		ResultSet shaped = GraphJdbcRowSets.shapedResultSet(Arrays.asList(GraphJdbcColumn.of("nodeId", "id", Types.BIGINT)),
+				Arrays.asList(row("nodeId", Long.valueOf(7L))));
+		assertTrue(shaped.equals(shaped));
+		assertEquals(System.identityHashCode(shaped), shaped.hashCode());
+		assertTrue(shaped.toString().contains("ResultSet"));
+		assertTrue(shaped.isWrapperFor(ResultSet.class));
+		assertSame(shaped, shaped.unwrap(ResultSet.class));
+	}
+
+	@Test
 	public void resultShouldDefensivelyCopyRowsAndExposeState() {
 		List<String> columns = new ArrayList<String>(Arrays.asList("name"));
 		Map<String, Object> row = new LinkedHashMap<String, Object>();
@@ -95,5 +118,19 @@ public class GraphJdbcRowSetsTest {
 		assertEquals("id", rs.getMetaData().getColumnLabel(1));
 		assertEquals(Types.BIGINT, rs.getMetaData().getColumnType(1));
 		assertEquals(7L, rs.getLong("id"));
+	}
+
+	private static void assertMetaDataObjectContracts(java.sql.ResultSetMetaData metaData) throws Exception {
+		assertTrue(metaData.equals(metaData));
+		assertEquals(System.identityHashCode(metaData), metaData.hashCode());
+		assertTrue(metaData.toString().contains("ResultSetMetaData"));
+		assertTrue(metaData.isWrapperFor(java.sql.ResultSetMetaData.class));
+		assertSame(metaData, metaData.unwrap(java.sql.ResultSetMetaData.class));
+	}
+
+	private static Map<String, Object> row(String name, Object value) {
+		Map<String, Object> row = new LinkedHashMap<String, Object>();
+		row.put(name, value);
+		return row;
 	}
 }
