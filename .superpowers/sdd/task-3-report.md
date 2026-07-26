@@ -6,93 +6,59 @@ DONE
 
 ## RED 命令和失败摘要
 
-先确认 `fw-plus-core/.mvn/wrapper/` 缺失，故按任务要求使用 Zulu 8 系统 Maven：
-
 ```bash
-cd fw-plus-core
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -Dtest=EmbeddingStoreAutoConfigurationMetadataTest,EmbeddingStoreAutoConfigurationTest test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelPropertiesTest,LangChain4jModelAutoConfigurationTest test
 ```
 
-结果：失败，Maven 报告所选 starter 尚未处于 reactor 中。这符合 RED 预期：聚合 POM 尚未注册 starter，自动配置和 `spring.factories` 也尚未完成。
+结果：`BUILD FAILURE`。新增测试无法解析 `com.xiongx9527.fw.plus.ai.langchain4j.model` 包中的模型 API，原因是 autoconfigure POM 尚未声明 `fw-plus-ai-langchain4j-model` 依赖，且属性类和自动配置类尚未实现。
 
 ## GREEN 命令和通过摘要
 
-由于 Task 3 同时变更 core 的 `EmbeddingStoreProperties` 配置绑定注解，聚焦验证使用 `-am` 将 core 变更放入同一 reactor：
+当前 worktree 缺少 Maven Wrapper 文件，无法使用 `mvnw`；按任务约定使用 Zulu 8 系统 Maven。
+
+依赖准备：
 
 ```bash
-cd fw-plus-core
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -am -Dtest=EmbeddingStoreAutoConfigurationMetadataTest,EmbeddingStoreAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -DskipTests install
 ```
 
-结果：`BUILD SUCCESS`。新增测试共 5 项，`Failures: 0, Errors: 0`，覆盖 `spring.factories`、禁用开关、多 store 默认 key、无效默认 key 和未知 provider。
+结果：`BUILD SUCCESS`。
+
+focused 验证：
 
 ```bash
-cd fw-plus-core
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding,fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -am test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelPropertiesTest,LangChain4jModelAutoConfigurationTest test
 ```
 
-结果：`BUILD SUCCESS`。core store 模块 10 项测试、starter 模块 8 项测试均为 0 failures、0 errors。
+结果：`BUILD SUCCESS`，共执行 3 项测试，`Failures: 0, Errors: 0, Skipped: 0`。覆盖属性绑定、禁用模型过滤、默认模型获取以及用户自定义 Registry 回退。
 
-## Java 9+ API 扫描结果
+## 提交哈希
 
-```bash
-rg -n --glob '*.java' '\b(List|Set|Map)\.(of|copyOf)\s*\(|Optional\.orElseThrow\s*\(|\.isBlank\s*\(|\.strip\s*\(|\.lines\s*\(|\bvar\s+' \
-  fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java \
-  fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter/src/main/java \
-  fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter/src/test/java
-```
-
-结果：无输出，未发现扫描范围内的 Java 9+ API。另执行 `git diff --check`，通过。
+`e1a01c34` - `feat: auto configure langchain4j model registry`
 
 ## 修改文件列表
 
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/pom.xml`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreProperties.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/pom.xml`
-- `fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter/pom.xml`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/autoconfigure/EmbeddingStoreAutoConfiguration.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter/src/main/resources/META-INF/spring.factories`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/autoconfigure/EmbeddingStoreAutoConfigurationMetadataTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/autoconfigure/EmbeddingStoreAutoConfigurationTest.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/resources/META-INF/spring.factories`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelProperties.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelAutoConfiguration.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelPropertiesTest.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelAutoConfigurationTest.java`
 
-## 提交 hash
+## 自检结果
 
-- `17b04fd8b8bf42c314c5e7253e8045c8485abb03` - `feat(vector): add embedding store spring boot starter`
+- `LangChain4jModelProperties` 使用 `fw-plus.ai.langchain4j.model` 前缀，并包含 `enabled`、`defaultModel`、`models` 及完整内部 Model JavaBean 字段。
+- `LangChain4jModelAutoConfiguration` 按条件提供 Factory 和 Registry Bean；Registry 仅构建已启用模型，调用 Factory 与已注册 adapters，并校验默认模型 key。
+- `spring.factories` 注册位置位于 `LangChain4jAutoConfiguration` 后、Magic API 基础自动配置前。
+- `git diff --check` 通过。
 
-## 自检结论和 Concerns
+## 风险信号自报
 
-- `EmbeddingStoreProperties` 已按准确 prefix 绑定；自动配置仅通过 `META-INF/spring.factories` 注册，未创建两种错误的 imports 路径。
-- starter 注册默认 factory、五个已有 provider adapter 及单一 registry；registry 仅在 `enabled=true` 或缺省时创建，并校验空 provider、重复 key、无效默认 key 和未知 provider。
-- `spring-boot-autoconfigure` 自身携带标准 Boot imports 元数据，元数据测试因此限定检查本 starter 自身的 classes 目录，避免将依赖资源误判为本模块新增文件。
-- 当前 worktree 缺少 Maven Wrapper，只能通过 `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn` 完成验证。
-
-## Task 3 Fixer：重复 key 回归测试
-
-### RED 命令与摘要
-
-```bash
-cd fw-plus-core
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -am -Dtest=EmbeddingStoreAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test
-```
-
-本次 fixer 针对已存在的重复 key 校验补测试；由于生产代码在测试前已经实现 `Duplicate embedding store key` 校验，未能观察到缺陷状态的失败 RED。新增测试首次运行即按预期捕获启动失败，故没有修改生产代码。
-
-### GREEN 命令与摘要
-
-使用上述命令完成验证：starter 反应堆构建 `BUILD SUCCESS`，`EmbeddingStoreAutoConfigurationTest` 共 5 项，`Failures: 0, Errors: 0`。日志确认两条配置均解析为 `shared` 后，启动失败原因为 `Duplicate embedding store key: shared`。
-
-### 改动文件
-
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/autoconfigure/EmbeddingStoreAutoConfigurationTest.java`
-
-新增单一 focused regression test `shouldFailWhenMultipleStoresResolveToTheSameKey`，使用两个 `fake` store 配置并显式设置相同的 `key=shared`。
-
-### 提交 hash
-
-- `f49e83b24f395789b8f068b8ee56b73c6ae85005` - `test(vector): cover duplicate embedding store keys`
-
-### Concerns
-
-- 没有生产代码改动。
-- RED 阶段无法按传统方式失败，因为目标校验已经存在；测试用于防止该校验回归。
+- 公共 API：新增 Spring Boot 属性类、自动配置类及两个 Bean。
+- 跨模块：autoconfigure 新增对 core 模型模块的显式 `${revision}` 依赖。
+- 敏感信息：无。
+- 并发：无。
+- schema：无。
+- diff 超过 200 行：是，主要来自完整 JavaBean 访问器和 focused 测试。
+- DONE_WITH_CONCERNS：否。
+- 环境限制：Maven Wrapper 缺失，验证使用 Zulu 8 系统 Maven；测试过程输出已有多 SLF4J 绑定和 TestNG "No test suite found" 日志，但 Maven 最终实际执行 3 项目标测试并成功。
