@@ -1,0 +1,8 @@
+{
+  "openspec_proposal": "openspec/changes/extract-common-graph-jdbc/proposal.md",
+  "openspec_design": "openspec/changes/extract-common-graph-jdbc/design.md",
+  "openspec_tasks": "openspec/changes/extract-common-graph-jdbc/tasks.md",
+  "openspec_delta_spec": "openspec/changes/extract-common-graph-jdbc/specs/common-graph-jdbc-foundation/spec.md",
+  "handoff_context": "openspec/changes/extract-common-graph-jdbc/.comet/handoff/design-context.json",
+  "handoff_markdown": "openspec/changes/extract-common-graph-jdbc/.comet/handoff/design-context.md"
+}
