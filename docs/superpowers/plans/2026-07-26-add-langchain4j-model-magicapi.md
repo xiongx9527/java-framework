@@ -698,22 +698,23 @@ Expected: FAIL because provider adapter support classes do not exist.
 Implement provider adapter classes so each adapter declares exact provider names:
 `openai`, `azure-openai`, `qwen`, `ollama`, `anthropic`, `qianfan`, `zhipu`, `hugging-face`, `local-ai`, `gemini`, `voyage-ai`, `all-mini-lm-l6-v2-quantized`.
 
-For each provider, register only the model types backed by LangChain4j 0.35.0 classes present in this repository or in the existing 0.35.0 provider integrations:
+For each provider, register only the model types backed by LangChain4j 0.35.0 classes present in this repository or in the existing 0.35.0 provider integrations. Keep the core `LangChain4jModelType` enum complete (`MODERATION` and `SCORING` remain valid core types), but do not register provider adapters for Moderation or Scoring unless the exact 0.35.0 provider builder class is locally confirmed. Audio, Video and PDF are Chat multimodal content capabilities, not independent provider adapter model types.
 
 ```text
-openai: CHAT, STREAMING_CHAT, EMBEDDING, IMAGE, LANGUAGE, STREAMING_LANGUAGE, MODERATION
+openai: CHAT, STREAMING_CHAT, EMBEDDING, IMAGE, LANGUAGE, STREAMING_LANGUAGE
 azure-openai: CHAT, STREAMING_CHAT, EMBEDDING, IMAGE, LANGUAGE, STREAMING_LANGUAGE
 qwen: CHAT, STREAMING_CHAT, EMBEDDING, IMAGE, LANGUAGE, STREAMING_LANGUAGE
 ollama: CHAT, EMBEDDING, LANGUAGE
-anthropic: CHAT
+anthropic: CHAT, STREAMING_CHAT
 qianfan: CHAT, STREAMING_CHAT, EMBEDDING, LANGUAGE
 zhipu: CHAT, STREAMING_CHAT, EMBEDDING, IMAGE
 hugging-face: CHAT, EMBEDDING, LANGUAGE
-local-ai: CHAT, STREAMING_CHAT, EMBEDDING, LANGUAGE
+local-ai: CHAT, EMBEDDING, LANGUAGE
 gemini: CHAT, EMBEDDING
-voyage-ai: EMBEDDING, SCORING
 all-mini-lm-l6-v2-quantized: EMBEDDING
 ```
+
+Document that LangChain4j 0.35.0 core API contains `ModerationModel` and `ScoringModel`, but this migration does not expose them through provider adapters until a concrete 0.35.0 provider builder is verified in the current dependency set.
 
 Use class-name checks before reflective creation so an application without a provider SDK can still start.
 
