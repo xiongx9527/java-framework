@@ -1316,6 +1316,12 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-langchain4j-reactor</artifactId>
                 <version>${project.version}</version>
             </dependency>
