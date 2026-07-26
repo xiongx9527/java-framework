@@ -47,6 +47,7 @@ export default (opt) => {
             type: 'rabbitmq-subscribe',
             title: 'rabbitmq.subscribe.title',
             icon: '#magic-rabbitmq-rabbitmq',
+            order: 800,
             component: MagicRabbitMqSubscribeInfo
         }]
     }

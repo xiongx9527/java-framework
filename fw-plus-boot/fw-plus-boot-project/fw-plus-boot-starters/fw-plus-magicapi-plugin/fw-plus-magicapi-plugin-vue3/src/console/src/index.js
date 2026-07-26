@@ -41,6 +41,7 @@ export default (opt) => {
             type: 'vue3',
             title: 'vue.result',
             icon: 'run',
+            order: 1200,
             component: MagicVue3Result,
             fullscreen: true
         }, {
@@ -51,6 +52,7 @@ export default (opt) => {
             // 展示图标
             icon: '#magic-vue3-vue',
             // 对应的组件
+            order: 1210,
             component: MagicVue3Info
         }]
     }

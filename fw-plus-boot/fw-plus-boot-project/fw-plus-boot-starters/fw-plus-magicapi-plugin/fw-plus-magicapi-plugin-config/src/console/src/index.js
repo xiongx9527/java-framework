@@ -39,6 +39,7 @@ export default (opt) => {
             // 展示图标
             icon: '#magic-config-config',
             // 对应的组件
+            order: 100,
             component: MagicConfigInfo,
         }]
     }
