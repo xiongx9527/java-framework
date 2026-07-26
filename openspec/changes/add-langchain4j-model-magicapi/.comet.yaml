@@ -7,7 +7,7 @@ build_pause: null
 subagent_dispatch: confirmed
 tdd_mode: tdd
 review_mode: standard
-isolation: current
+isolation: worktree
 verify_mode: null
 auto_transition: true
 base_ref: 503828cdb93e2db76882d3765c8f01185be55668
@@ -21,7 +21,7 @@ created_at: 2026-07-26
 verified_at: null
 archive_confirmation: null
 archived: false
-bound_branch: dev
+bound_branch: feature/20260726/add-langchain4j-model-magicapi
 direct_override: false
 handoff_context: openspec/changes/add-langchain4j-model-magicapi/.comet/handoff/design-context.json
 handoff_hash: 67b8e4a5ecdfed8105d663a7ffd8c821f551c1d8eb59f6ebc5acc7bae74495ef
