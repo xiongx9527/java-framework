@@ -41,17 +41,16 @@ public class DefaultLangChain4jModelFactory implements LangChain4jModelFactory {
     }
 
     private LangChain4jModel create(LangChain4jModelProviderAdapter adapter, LangChain4jModelDefinition definition) {
+        LangChain4jModel model;
         try {
-            LangChain4jModel model = adapter.create(definition);
-            if (model == null) {
-                throw new LangChain4jModelException("Adapter returned null for " + context(definition));
-            }
-            return model;
-        } catch (LangChain4jModelException e) {
-            throw e;
+            model = adapter.create(definition);
         } catch (Exception e) {
             throw new LangChain4jModelException("Adapter failed to create model for " + context(definition), e);
         }
+        if (model == null) {
+            throw new LangChain4jModelException("Adapter returned null for " + context(definition));
+        }
+        return model;
     }
 
     private boolean isBlank(String value) {
