@@ -7,7 +7,7 @@
         <groupId>com.xiongx9527.fw.plus.boot</groupId>
         <artifactId>fw-plus-boot-build</artifactId>
         <version>${revision}</version>
-        <relativePath />
+        <relativePath>../../fw-plus-boot/pom.xml</relativePath>
     </parent>
     <packaging>pom</packaging>
     <modules>

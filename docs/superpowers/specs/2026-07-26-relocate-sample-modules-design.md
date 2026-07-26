@@ -34,7 +34,7 @@ fw-plus-sample/
 - Cloud 样例组继承 `com.xiongx9527.fw.plus.cloud:fw-plus-cloud-build`
 - AI 样例组继承 `com.xiongx9527.fw.plus.ai:fw-plus-ai-build`
 
-为避免 Maven 在新相对位置错误查找父 POM，三个样例组 POM 的父节点显式保留空 `relativePath`。新顶层聚合 POM不作为它们的 Maven 父 POM，仅提供统一构建入口。
+为避免 Maven 在新相对位置错误查找父 POM，三个样例组 POM 的父节点显式指向所属层根 POM：Boot 使用 `../../fw-plus-boot/pom.xml`，Cloud 使用 `../../fw-plus-cloud/pom.xml`，AI 使用 `../../fw-plus-ai/pom.xml`。这些路径使 Maven 能从所属层根 POM 解析 `revision`，同时不把新顶层聚合 POM 当作它们的 Maven 父 POM；新顶层聚合 POM仅提供统一构建入口。
 
 从 `fw-plus-core/pom.xml`、`fw-plus-boot/pom.xml`、`fw-plus-cloud/pom.xml` 和 `fw-plus-ai/pom.xml` 移除相应的样例 `<module>` 条目，使四个库层只聚合自身库代码。
 

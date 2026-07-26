@@ -7,7 +7,7 @@
         <groupId>com.xiongx9527.fw.plus.cloud</groupId>
         <artifactId>fw-plus-cloud-build</artifactId>
         <version>${revision}</version>
-        <relativePath />
+        <relativePath>../../fw-plus-cloud/pom.xml</relativePath>
     </parent>
     <packaging>pom</packaging>
     <modules>
