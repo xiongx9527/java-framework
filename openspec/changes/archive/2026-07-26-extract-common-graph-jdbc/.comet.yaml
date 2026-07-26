@@ -16,14 +16,14 @@ plan: docs/superpowers/plans/2026-07-26-extract-common-graph-jdbc.md
 verify_result: pass
 verify_failures: 0
 verification_report: docs/superpowers/reports/2026-07-26-extract-common-graph-jdbc-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-07-26
 verified_at: 2026-07-26
 archive_confirmation: confirmed
 archived: true
-bound_branch: feature/20260726/extract-common-graph-jdbc
+bound_branch: dev
 direct_override: null
-handoff_context: openspec/changes/extract-common-graph-jdbc/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-26-extract-common-graph-jdbc/.comet/handoff/design-context.json
 handoff_hash: 845303960383f83f363b5e2f9a1f9d8439189d54114162c622f1964d0dfcbdd3
 classic_profile: full
 classic_migration: 1
