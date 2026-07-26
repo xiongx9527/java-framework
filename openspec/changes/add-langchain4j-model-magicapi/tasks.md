@@ -9,15 +9,15 @@
 
 - [x] 2.1 在 `fw-plus-ai-langchain4j` 聚合 POM 注册 `fw-plus-ai-langchain4j-model`，保留现有用户未提交模块改动。
 - [x] 2.2 在 core dependencies BOM 中管理 `fw-plus-ai-langchain4j-model`，版本使用 `${project.version}`。
-- [ ] 2.3 在 AI Boot starters 聚合 POM 注册 `fw-plus-ai-langchain4j-model-spring-boot-starter`。
-- [ ] 2.4 在 AI Boot dependencies BOM 中管理 model starter，版本使用 `${project.version}`。
+- [x] 2.3 在 AI Boot starters 聚合 POM 注册 `fw-plus-ai-langchain4j-model-spring-boot-starter`。
+- [x] 2.4 在 AI Boot dependencies BOM 中管理 model starter，版本使用 `${project.version}`。
 
 ## 3. Spring Boot 自动配置与 starter
 
 - [x] 3.1 新增 model properties，支持 `default-model`、`models.<key>.provider`、`model-type`、`base-url`、`api-key`、`model-name`、`enabled` 和扩展 `properties`。
 - [x] 3.2 新增 model 自动配置，创建 `LangChain4jModelFactory`、provider adapters 和 `LangChain4jModelRegistry`。
 - [x] 3.3 参考现有 Magic-API LangChain4j 模型工厂，将可复用的 provider 创建逻辑迁移到新的 provider adapter 体系，并移除旧工厂依赖。
-- [ ] 3.4 新建 `fw-plus-ai-langchain4j-model-spring-boot-starter`，依赖 `fw-plus-ai-boot-starter` 与 `fw-plus-ai-langchain4j-model`，不默认传递全部 provider SDK。
+- [x] 3.4 新建 `fw-plus-ai-langchain4j-model-spring-boot-starter`，依赖 `fw-plus-ai-boot-starter` 与 `fw-plus-ai-langchain4j-model`，不默认传递全部 provider SDK。
 - [x] 3.5 为自动配置增加测试，覆盖条件装配、配置绑定、registry 创建、默认模型 key 校验和缺少 provider SDK 的隔离行为。
 
 ## 4. Magic-API 模型插件
