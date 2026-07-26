@@ -64,21 +64,24 @@ public final class GraphJdbcRowSets {
 	}
 
 	public static ResultSet emptyGeneratedKeys() throws SQLException {
+		final GraphJdbcLifecycle lifecycle = new GraphJdbcLifecycle();
 		return (ResultSet) Proxy.newProxyInstance(GraphJdbcRowSets.class.getClassLoader(), new Class<?>[] {ResultSet.class},
 				new InvocationHandler() {
 					@Override
 					public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+						if ("close".equals(method.getName())) {
+							lifecycle.close(null);
+							return null;
+						}
+						if ("isClosed".equals(method.getName())) {
+							return Boolean.valueOf(lifecycle.isClosed());
+						}
+						lifecycle.checkOpen("ResultSet");
 						if ("next".equals(method.getName())) {
 							return Boolean.FALSE;
 						}
 						if ("getMetaData".equals(method.getName())) {
 							return emptyMetaData();
-						}
-						if ("close".equals(method.getName())) {
-							return null;
-						}
-						if ("isClosed".equals(method.getName())) {
-							return Boolean.FALSE;
 						}
 						if ("isWrapperFor".equals(method.getName())) {
 							return Boolean.valueOf(GraphJdbcWrapperSupport.isWrapperFor(proxy, (Class<?>) args[0]));
