@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus.cloud</groupId>
+        <artifactId>fw-plus-cloud-build</artifactId>
+        <version>${revision}</version>
+        <relativePath>../../fw-plus-cloud/pom.xml</relativePath>
+    </parent>
+    <packaging>pom</packaging>
+    <modules>
+        <module>eureka-server-sample</module>
+        <module>eureka-gateway-sample</module>
+        <module>eureka-service-sample</module>
+        <module>nacos-gateway-sample</module>
+    </modules>
+    <artifactId>fw-plus-cloud-samples</artifactId>
+    <properties>
+        <main.basedir>${basedir}/../..</main.basedir>
+        <!--跳过test-->
+        <maven.test.skip>true</maven.test.skip>
+        <!--跳过javadoc生成-->
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <!--跳过install-->
+        <maven.install.skip>true</maven.install.skip>
+        <!--跳过deploy-->
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.cloud</groupId>
+                <artifactId>fw-plus-cloud-dependencies</artifactId>
+                <version>${revision}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
