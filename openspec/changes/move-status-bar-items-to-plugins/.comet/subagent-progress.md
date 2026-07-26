@@ -1,0 +1,26 @@
+# 子代理进度
+
+- 计划任务：Task 8: 跨层集成验证和文档同步
+- OpenSpec 映射：6.1 运行受影响插件、宿主、Boot/Cloud/AI 构建，检查 IIFE 与 Maven 资源产物，完成浏览器交互、OpenSpec 严格验证和差异检查
+- 当前阶段：final-fix
+- 实现代理：019f9def-70d6-71a0-8962-b6542242cd46（Zeno）
+- 并行前端验证代理：019f9df1-ecac-7e60-823d-b80efe285775（Lagrange），隔离 worktree `/tmp/fw-plus-task8-frontend`
+- 并行 Maven 验证代理：019f9df1-ed5e-7231-b788-f764643899a3（Rawls），隔离 worktree `/tmp/fw-plus-task8-maven`
+- review_mode：thorough
+- 审查修复轮次：1/2
+- 实现基线：fea1a7caff2a11fbce7cf124eaa7aaed0d295547
+- 实现提交：无（Task 8 为验证任务；14 个既有插件 `dist/` 按仓库约定不跟踪）
+- 前端验证：23/23 console 构建通过；10 个真实测试脚本 67/67 通过；5 个 `npm test` 为既有失败占位脚本
+- Maven 验证：Core 1/1、Boot 3/3、Cloud 1/1；Druid/Admin/Swagger/Eureka 四个 JAR 资源与哈希通过；Cloud 在线 Nexus 不可达后离线通过
+- 浏览器验证：16 个入口顺序、在线人数/内置入口位置、header 隐藏、Admin/Eureka 自定义路径、动态 toolbar、页面完整性通过；截图与请求日志已记录
+- 规格验证：`openspec validate --strict` 与 `git diff --check` 通过
+- IIFE 收尾：14/14 构建、21/21 toolbar order AST 审计、宿主 2/2、插件 30/30、逆序元数据静态/动态 toolbar 浏览器验证通过；构建产物按 `.gitignore` 清理且不强制纳入版本控制
+- AI JAR 收尾：安装同一 HEAD 的当前 0.1.1 Core BOM、16 个 Core LangChain4j 项目和 9 个 AI 上游项目后，标准离线 `package` 成功；JAR entry 与 source/dist/target 三段 `cmp` 一致，未使用 0.3 artifact
+- 当前未闭环：无；既有 wrapper 缺失、Nexus 不可达、占位测试脚本和依赖审计警告作为环境/技术债记录
+- IIFE 收尾代理：019f9e01-03c3-7c71-8fac-cdcd758254f0（Dirac）
+- AI JAR 专项代理：019f9e01-0487-7be1-b79f-4df15be61a09（Aristotle），隔离 worktree `/tmp/fw-plus-task8-ai`
+- 集成证据审查代理：019f9e19-66e3-7790-8412-6669cae9a466（Sartre）
+- 已通过审查：Sartre（019f9e19-66e3-7790-8412-6669cae9a466）完成 Task 8 独立集成证据审查，Spec Compliance 为 PASS，Evidence/Code Quality 为 PASS_WITH_MINOR_CONCERNS，总体 APPROVED；无 Critical/Important 问题
+- 最终审查代理：Locke（019f9e23-8c31-7173-adac-cded2ef2c94f）
+- 最终审查结果：CHANGES REQUESTED；0 Critical、2 Important、1 Minor
+- 未解决反馈：I1 新增 Druid/Admin/Swagger/Eureka 前端资源 artifact 未保证进入实际应用 classpath；I2 WebSocket/MQTT 插件未继承宿主开发模式后端基址

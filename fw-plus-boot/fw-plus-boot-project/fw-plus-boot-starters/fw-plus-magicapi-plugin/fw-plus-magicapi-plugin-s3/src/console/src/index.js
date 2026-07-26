@@ -36,6 +36,7 @@ export default (opt) => {
             icon: '#magic-s3-s3',
             title: 'X-file-storage',
             displayKey: 's3',
+            order: 100,
             onClick: () => window.open('https://x-file-storage.xuyanwu.cn/', '_blank')
         }],
         datasources: [{
@@ -50,6 +51,7 @@ export default (opt) => {
             id: 's3-browser',
             title: i18n.format('s3.browser.title'),
             icon: '#magic-s3-s3',
+            order: 1000,
             component: MagicS3Browser,
             adminOnly: true,
             allowClose: true,

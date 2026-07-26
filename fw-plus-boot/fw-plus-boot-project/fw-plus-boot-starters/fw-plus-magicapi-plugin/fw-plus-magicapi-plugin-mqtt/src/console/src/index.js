@@ -22,11 +22,28 @@ if (typeof window !== 'undefined') {
     }
 }
 
+const resolveMqttUrl = (baseURL, pageURL) => {
+    const link = new URL(baseURL || './', pageURL).toString().replace(/\/+$/, '')
+    return link + '/mqtt/index.html'
+}
+
+const openMqtt = (baseURL) => {
+    const pageURL = `${location.protocol}//${location.host}${location.pathname}`
+    window.open(resolveMqttUrl(baseURL, pageURL), '_blank')
+}
+
 export default (opt) => {
     const i18n = opt.i18n
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
     return {
+        statusBarItems: [{
+            icon: '#magic-mqtt-mqtt',
+            title: 'Mqtt client',
+            displayKey: 'mqtt',
+            order: 1000,
+            onClick: () => openMqtt(opt.constants && opt.constants.BASE_URL)
+        }],
         datasources: [{
             type: 'mqtt-datasource',
             icon: '#magic-mqtt-mqtt',

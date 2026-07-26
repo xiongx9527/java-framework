@@ -27,6 +27,13 @@ export default (opt) => {
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
     return {
+        statusBarItems: [{
+            icon: '#magic-dtp-dtp',
+            title: 'Dynamictp',
+            displayKey: 'dtp',
+            order: 600,
+            onClick: () => window.open('https://dynamictp.cn/', '_blank')
+        }],
         datasources: [{
             type: 'dtp-datasource',
             icon: '#magic-dtp-dtp',

@@ -47,6 +47,7 @@ export default (opt) => {
             icon: '#magic-pulsar-pulsar',
             title: 'Pulsar',
             displayKey: 'pulsar',
+            order: 300,
             onClick: () => runtime.bus.$emit(runtime.Message.ADD_FOOTER_TOOLBAR, pulsarAdminToolbar)
         }],
         resource: [{
@@ -67,6 +68,7 @@ export default (opt) => {
             type: 'pulsar-subscribe',
             title: 'pulsar.subscribe.title',
             icon: '#magic-pulsar-pulsar',
+            order: 700,
             component: MagicPulsarSubscribeInfo
         }, pulsarAdminToolbar]
     }
