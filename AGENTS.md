@@ -21,9 +21,10 @@ fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spri
 
 ## 模块结构
 
-各顶层 Maven 目录基本遵循相同布局：
+各库层顶层 Maven 目录基本遵循相同布局：
 - `fw-plus-{name}-project/` — 实际库代码
-- `fw-plus-{name}-samples/` — 示例/样例代码
+
+所有样例模块集中在根目录 `fw-plus-sample/` 下，按 Boot、Cloud、AI 分组。
 
 所有源码位于 `src/main/java`，资源位于 `src/main/resources`，源码编码统一为 UTF-8。
 
@@ -67,7 +68,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │   │   └── fw-plus-neo4j-jdbc/    # Neo4j JDBC 驱动
 │   │   ├── fw-plus-dify/         # Dify API 客户端
 │   │   └── fw-plus-dependencies/ # 统一版本管理（BOM）
-│   └── fw-plus-samples/          # Core 层示例
 │
 ├── fw-plus-boot/             # Spring Boot 自动配置层
 │   ├── fw-plus-boot-project/
@@ -114,12 +114,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       ├── fw-plus-redis-spring-boot-starter/         # Redis 缓存
 │   │       ├── fw-plus-template-spring-boot-starter/      # 模板引擎
 │   │       └── fw-plus-uid-spring-boot-starter/           # 分布式 UID
-│   └── fw-plus-boot-samples/  # Boot 示例项目（5 个）
-│       ├── fw-plus-jdbc-spring-boot-starter-sample
-│       ├── fw-plus-magicapi-spring-boot-starter-sample
-│       ├── fw-plus-mate-spring-boot-starter-sample
-│       ├── fw-plus-mp-spring-boot-starter-sample
-│       └── fw-plus-redis-spring-boot-starter-sample
 │
 ├── fw-plus-cloud/            # Spring Cloud 扩展层
 │   ├── fw-plus-cloud-project/
@@ -133,12 +127,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       ├── fw-plus-cloud-starter/                      # 通用 Cloud Starter（aggregator）
 │   │       ├── fw-plus-eureka-server-spring-cloud-starter/ # Eureka 注册中心
 │   │       └── fw-plus-magicapi-spring-cloud-starter/      # Magic-API Cloud 集成
-│   └── fw-plus-cloud-samples/        # Cloud 示例项目（5 个）
-│       ├── eureka-gateway-sample
-│       ├── eureka-server-sample
-│       ├── eureka-service-sample
-│       ├── nacos-gateway-sample
-│       └── nacos-server-sample        # Nacos Server 分发目录（非 Maven 子模块）
 │
 ├── fw-plus-ai/               # AI 集成层
 │   ├── fw-plus-ai-project/
@@ -156,8 +144,22 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │           ├── fw-plus-ai-magicapi-plugin-milvus/      # Milvus 向量数据库
 │   │           ├── fw-plus-ai-magicapi-plugin-qdrant/      # Qdrant 向量数据库
 │   │           └── fw-plus-ai-magicapi-plugin-weaviate/    # Weaviate 向量数据库
-│   └── fw-plus-ai-samples/              # AI 示例项目
-│       └── fw-plus-ai-magicapi-sample    # Magic-API AI 示例
+│
+├── fw-plus-sample/                    # 集中样例模块
+│   ├── fw-plus-boot-samples/          # Boot 示例项目（5 个）
+│   │   ├── fw-plus-jdbc-spring-boot-starter-sample
+│   │   ├── fw-plus-magicapi-spring-boot-starter-sample
+│   │   ├── fw-plus-mate-spring-boot-starter-sample
+│   │   ├── fw-plus-mp-spring-boot-starter-sample
+│   │   └── fw-plus-redis-spring-boot-starter-sample
+│   ├── fw-plus-cloud-samples/         # Cloud 示例项目（5 个）
+│   │   ├── eureka-gateway-sample
+│   │   ├── eureka-server-sample
+│   │   ├── eureka-service-sample
+│   │   ├── nacos-gateway-sample
+│   │   └── nacos-server-sample        # Nacos Server 分发目录（非 Maven 子模块）
+│   └── fw-plus-ai-samples/            # AI 示例项目
+│       └── fw-plus-ai-magicapi-sample # Magic-API AI 示例
 │
 ├── META-INF/sql/             # 根目录 SQL 辅助资源
 ├── docs/                     # 项目文档与执行计划
