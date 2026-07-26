@@ -42,10 +42,11 @@ public class ModelDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
 
     @Override
     public boolean register(ModelDataSourceInfo entity) {
-        dataSource.destroyClientByKey(entity.getKey());
         try {
+            dataSource.destroyClientByKey(entity.getKey());
             return super.register(entity);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("注册模型数据源失败，运行态模型可能未更新，异常类型: {}", e.getClass().getSimpleName());
             return false;
         }
     }
@@ -73,10 +74,11 @@ public class ModelDataSourceMagicDynamicRegistry extends AbstractMagicDynamicReg
 
     @Override
     protected void unregister(MappingNode<ModelDataSourceInfo> mappingNode) {
-        dataSource.destroyClientByKey(mappingNode.getEntity().getKey());
         try {
+            dataSource.destroyClientByKey(mappingNode.getEntity().getKey());
             super.unregister(mappingNode);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("注销模型数据源失败，运行态模型可能未完全清理，异常类型: {}", e.getClass().getSimpleName());
         }
     }
 

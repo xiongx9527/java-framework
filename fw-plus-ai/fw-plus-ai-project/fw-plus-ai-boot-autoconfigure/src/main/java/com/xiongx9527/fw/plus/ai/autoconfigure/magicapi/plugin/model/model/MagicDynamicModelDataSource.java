@@ -32,9 +32,10 @@ public class MagicDynamicModelDataSource {
 
     public void createClient(ModelDataSourceInfo info) {
         validate(info);
+        ModelDataSourceInfo runtimeInfo = info.copy();
         LangChain4jModel model = modelFactory.create(info.toDefinition(), providerAdapters);
         runtimeModels.put(info.getKey(), model);
-        runtimeInfos.put(info.getKey(), info.copy());
+        runtimeInfos.put(info.getKey(), runtimeInfo);
     }
 
     public void destroyClientByKey(String key) {
