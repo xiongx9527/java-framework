@@ -6,25 +6,37 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 
 为保持项目整体 Java 8 兼容性，本目录中除 `fw-plus-ai-langchain4j-store-embeding` 之外的模块，采用与 LangChain4j 原模块相同的包名和类名重写关键类，用本工程内的源码覆盖 `0.35` 中不兼容 Java 8 的实现。
 
-## 范围
+## 当前已覆盖的类包
 
-以下模块属于 LangChain4j 兼容覆盖模块：
+以下模块属于 LangChain4j `0.35` Java 8 兼容覆盖模块。覆盖方式是保留上游相同的 `dev.langchain4j.*` 包名和类名，在本工程重新编译出 Java 8 兼容版本。
 
-- `fw-plus-ai-langchain4j-anthropic`
-- `fw-plus-ai-langchain4j-azure-ai-search`
-- `fw-plus-ai-langchain4j-azure-open-ai`
-- `fw-plus-ai-langchain4j-core`
-- `fw-plus-ai-langchain4j-dashscope`
-- `fw-plus-ai-langchain4j-elasticsearch`
-- `fw-plus-ai-langchain4j-github-models`
-- `fw-plus-ai-langchain4j-milvus`
-- `fw-plus-ai-langchain4j-ollama`
-- `fw-plus-ai-langchain4j-openai`
-- `fw-plus-ai-langchain4j-qianfan`
-- `fw-plus-ai-langchain4j-reactor`
-- `fw-plus-ai-langchain4j-redis`
-- `fw-plus-ai-langchain4j-vertex-ai-gemini`
-- `fw-plus-ai-langchain4j-voyage-ai`
+| 本地模块 | 覆盖的上游 artifact | 覆盖包 | 覆盖类 |
+| --- | --- | --- | --- |
+| `fw-plus-ai-langchain4j-anthropic` | `langchain4j-anthropic-spring-boot-starter` | `dev.langchain4j.anthropic.spring` | `AutoConfig`, `ChatModelProperties`, `Properties` |
+| `fw-plus-ai-langchain4j-azure-ai-search` | `langchain4j-azure-ai-search-spring-boot-starter` | `dev.langchain4j.azure.aisearch.spring` | `AutoConfig`, `Properties` |
+| `fw-plus-ai-langchain4j-azure-open-ai` | `langchain4j-azure-open-ai-spring-boot-starter` | `dev.langchain4j.azure.openai.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `ImageModelProperties`, `Properties` |
+| `fw-plus-ai-langchain4j-core` | `langchain4j-spring-boot-starter` | `dev.langchain4j.spring`, `dev.langchain4j.service.spring`, `dev.langchain4j.rag.spring` | `LangChain4jAutoConfig`, `AiService`, `AiServiceFactory`, `AiServiceScannerProcessor`, `AiServiceWiringMode`, `AiServicesAutoConfig`, `ClassPathAiServiceScanner`, `RagAutoConfig`, `RagProperties`, `RetrievalProperties` |
+| `fw-plus-ai-langchain4j-dashscope` | `langchain4j-dashscope-spring-boot-starter` | `dev.langchain4j.dashscope.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties`, `TokenizerProperties` |
+| `fw-plus-ai-langchain4j-elasticsearch` | `langchain4j-elasticsearch-spring-boot-starter` | `dev.langchain4j.store.embedding.elasticsearch.spring` | `ElasticsearchClientHelper`, `ElasticsearchEmbeddingStoreAutoConfiguration`, `ElasticsearchEmbeddingStoreProperties` |
+| `fw-plus-ai-langchain4j-github-models` | `langchain4j-github-models-spring-boot-starter` | `dev.langchain4j.model.githubmodels.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `Properties` |
+| `fw-plus-ai-langchain4j-milvus` | `langchain4j-milvus-spring-boot-starter` | `dev.langchain4j.store.embedding.milvus.spring` | `MilvusEmbeddingStoreAutoConfiguration`, `MilvusEmbeddingStoreProperties` |
+| `fw-plus-ai-langchain4j-ollama` | `langchain4j-ollama-spring-boot-starter` | `dev.langchain4j.ollama.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties` |
+| `fw-plus-ai-langchain4j-openai` | `langchain4j-open-ai-spring-boot-starter` | `dev.langchain4j.openai.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `ImageModelProperties`, `LanguageModelProperties`, `ModerationModelProperties`, `Properties`, `ProxyProperties` |
+| `fw-plus-ai-langchain4j-qianfan` | `langchain4j-qianfan-spring-boot-starter` | `dev.langchain4j.qianfan.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties` |
+| `fw-plus-ai-langchain4j-reactor` | `langchain4j-reactor` | `dev.langchain4j.reactor` | `TokenStreamToFluxAdapter` |
+| `fw-plus-ai-langchain4j-redis` | `langchain4j-redis-spring-boot-starter` | `dev.langchain4j.store.embedding.redis.spring` | `RedisEmbeddingStoreAutoConfiguration`, `RedisEmbeddingStoreProperties` |
+| `fw-plus-ai-langchain4j-vertex-ai-gemini` | `langchain4j-vertex-ai-gemini` | `dev.langchain4j.vertexai.spring` | `AutoConfig`, `ChatModelProperties`, `Properties` |
+| `fw-plus-ai-langchain4j-voyage-ai` | `langchain4j-voyage-ai-spring-boot-starter` | `dev.langchain4j.voyageai.spring` | `AutoConfig`, `EmbeddingModelProperties`, `Properties`, `ScoringModelProperties` |
+
+## 待新增覆盖的类包
+
+以下 LangChain4j `0.35` artifact 已确认不是 Java 8 字节码，但当前目录尚未落地对应本地覆盖模块：
+
+| 待新增本地模块 | 需覆盖的上游 artifact | 需覆盖包 | 需覆盖类 |
+| --- | --- | --- | --- |
+| `fw-plus-ai-langchain4j-cassandra` | `langchain4j-cassandra` | `dev.langchain4j.store.embedding.astradb`, `dev.langchain4j.store.embedding.cassandra`, `dev.langchain4j.store.memory.chat.cassandra` | `AstraDbEmbeddingStore`, `CassandraEmbeddingStore`, `CassandraEmbeddingStore.Builder`, `CassandraEmbeddingStore.BuilderAstra`, `CassandraChatMemoryStore`, `CassandraChatMemoryStore.Builder`, `CassandraChatMemoryStore.BuilderAstra` |
+| `fw-plus-ai-langchain4j-infinispan` | `langchain4j-infinispan` | `dev.langchain4j.store.embedding.infinispan` | `InfinispanEmbeddingStore`, `InfinispanEmbeddingStore.Builder`, `InfinispanStoreConfiguration`, `LangChainInfinispanItem`, `LangChainItemMarshaller`, `LangChainMetadata`, `LangChainMetadataMarshaller`, `LangchainSchemaCreator` |
+| `fw-plus-ai-langchain4j-neo4j` | `langchain4j-neo4j` | `dev.langchain4j.rag.content.retriever.neo4j`, `dev.langchain4j.store.embedding.neo4j`, `dev.langchain4j.store.graph.neo4j` | `Neo4jContentRetriever`, `Neo4jContentRetriever.Neo4jContentRetrieverBuilder`, `Neo4jEmbeddingStore`, `Neo4jEmbeddingStore.Neo4jEmbeddingStoreBuilder`, `Neo4jEmbeddingUtils`, `Neo4jException`, `Neo4jGraph`, `Neo4jGraph.Neo4jGraphBuilder` |
 
 `fw-plus-ai-langchain4j-store-embeding` 是本工程自有的向量存储抽象与适配扩展，不属于上游 LangChain4j 类覆盖范围。
 
