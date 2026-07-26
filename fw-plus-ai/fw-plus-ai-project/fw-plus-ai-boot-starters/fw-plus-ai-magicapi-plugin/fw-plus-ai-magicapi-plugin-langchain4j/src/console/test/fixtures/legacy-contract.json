@@ -438,7 +438,7 @@
           }
         ],
         "resourceLookups": [
-          "qdrant-datasource"
+		  "vector-datasource"
         ],
         "loadedClasses": [
           "com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo",
@@ -477,7 +477,7 @@
           }
         ],
         "resourceLookups": [
-          "qdrant-datasource"
+		  "vector-datasource"
         ],
         "loadedClasses": [
           "com.jugui.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.Langchain4jDataSourceInfo",

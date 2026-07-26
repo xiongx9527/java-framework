@@ -261,7 +261,7 @@ var __vite_style__ = document.createElement('style');__vite_style__.innerHTML = 
         let findResources;
         JavaClass.setExtensionAttribute(LANGCHAIN4J_MODEL_CLASS, () => {
             JavaClass.loadClass(LANGCHAIN4J_MODEL_CLASS);
-            return findResources && (findResources('qdrant-datasource')[0]?.children || []).map(item => ({
+    		return findResources && (findResources('vector-datasource')[0]?.children || []).map(item => ({
                 name: item.key,
                 type: LANGCHAIN4J_MODEL_CLASS,
                 comment: item.name
