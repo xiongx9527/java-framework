@@ -97,6 +97,17 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 4. 若新增 LangChain4j 扩展覆盖模块，应同步更新本说明和上层 `LangChain4jAutoConfiguration` 的导入及启动条件。
 5. 若某个上游模块重新恢复 Java 8 兼容，也需要经过编译、自动配置测试和依赖冲突检查后，才能移除本地覆盖。
 
+## 模型 API 版本边界
+
+本工程的模型扩展锁定 LangChain4j `0.35.0`。`CHAT` 使用
+`ChatLanguageModel`，`STREAMING_CHAT` 使用 `StreamingChatLanguageModel`；不要在
+当前版本中使用高版本 LangChain4j 的 `ChatModel` 或 `StreamingChatModel` 命名。
+
+`TextContent`、`ImageContent`、`AudioContent`、`VideoContent` 和
+`PdfFileContent` 均表示 Chat 请求可携带的多模态内容，而不是独立模型接口。因此
+`modelType` 不新增 `AUDIO`、`VIDEO` 或 `PDF`，也不存在独立的 `AudioModel`、
+`VideoModel` 或 `PdfModel`。
+
 ## 验证建议
 
 修改本目录的兼容覆盖类后，至少验证：

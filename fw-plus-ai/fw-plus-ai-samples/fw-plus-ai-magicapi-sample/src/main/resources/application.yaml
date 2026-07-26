@@ -6,14 +6,27 @@ spring:
       name: ai-sample
 
 
-fw:
-  plus:
-    uid:
-      enabled: false
-    web:
-      jackson:
-        write_longs_as_strings:
-          enabled: true
+fw-plus:
+  uid:
+    enabled: false
+  web:
+    jackson:
+      write_longs_as_strings:
+        enabled: true
+  ai:
+    langchain4j:
+      model:
+        enabled: true
+        default-model: chat-default
+        models:
+          chat-default:
+            provider: openai
+            model-type: chat
+            base-url: http://localhost:11434/v1
+            api-key: demo
+            model-name: gpt-4o-mini
+            enabled: true
+            properties: {}
 
 magic-api:
   editor-config: classpath:./magic-editor-config.js
@@ -43,6 +56,8 @@ magic-api:
     logic-delete-column: is_del #逻辑删除列
     logic-delete-value: 1 #逻辑删除值
   plugin:
+    model:
+      enabled: true
     druid:
       aop-patterns:  /*
       stat-view-servlet:
@@ -56,6 +71,5 @@ logging:
     org.apache.kafka: ERROR
     org.springframework.kafka: ERROR
     io.debezium: ERROR
-
 
 
