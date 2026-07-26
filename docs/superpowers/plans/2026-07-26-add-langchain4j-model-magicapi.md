@@ -134,7 +134,7 @@ base-ref: 7b1c788fd198b832c41ad83baf58e40bb5e5f8bb
   - `LangChain4jModelRegistry.contains(String key): boolean`
   - `LangChain4jModelRegistry.keys(): Set<String>`
 
-- [ ] **Step 1: Write the failing contract test**
+- [x] **Task 1 Step 1: Write the failing contract test**
 
 ```java
 package com.xiongx9527.fw.plus.ai.langchain4j.model;
@@ -187,7 +187,7 @@ public class LangChain4jModelDefinitionTest {
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Task 1 Step 2: Run test to verify it fails**
 
 Run:
 
@@ -198,13 +198,13 @@ cd fw-plus-core
 
 Expected: FAIL because the new module and classes do not exist.
 
-- [ ] **Step 3: Create the module and public contracts**
+- [x] **Task 1 Step 3: Create the module and public contracts**
 
 Create the module POM, add `<module>fw-plus-ai-langchain4j-model</module>` to `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/pom.xml`, and add dependency management for `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-model:${project.version}` in `fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml`.
 
 Create the public classes and interfaces with the signatures listed in **Interfaces**. Use JavaBean getters/setters for `LangChain4jModelDefinition`; initialize `properties` as an empty `LinkedHashMap<String, Object>` when not provided.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Task 1 Step 4: Run test to verify it passes**
 
 Run:
 
@@ -215,7 +215,7 @@ cd fw-plus-core
 
 Expected: PASS, and no Java 9+ API compilation errors.
 
-- [ ] **Step 5: Commit this task during execution**
+- [x] **Task 1 Step 5: Commit this task during execution**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/pom.xml \
@@ -241,7 +241,7 @@ git commit -m "feat: add langchain4j model core contracts"
   - `DefaultLangChain4jModelRegistry(Map<String, LangChain4jModel> models, String defaultModelKey)` stores an unmodifiable copy.
   - Registry throws `LangChain4jModelException` when `defaultModelKey` is nonblank and missing from `models`.
 
-- [ ] **Step 1: Write failing factory tests**
+- [ ] **Task 2 Step 1: Write failing factory tests**
 
 ```java
 package com.xiongx9527.fw.plus.ai.langchain4j.model;
@@ -344,7 +344,7 @@ public class DefaultLangChain4jModelFactoryTest {
 }
 ```
 
-- [ ] **Step 2: Write failing registry tests**
+- [ ] **Task 2 Step 2: Write failing registry tests**
 
 ```java
 package com.xiongx9527.fw.plus.ai.langchain4j.model;
@@ -396,7 +396,7 @@ public class DefaultLangChain4jModelRegistryTest {
 }
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [ ] **Task 2 Step 3: Run tests to verify they fail**
 
 Run:
 
@@ -408,11 +408,11 @@ cd fw-plus-core
 
 Expected: FAIL because default factory and registry do not exist yet.
 
-- [ ] **Step 4: Implement factory and registry behavior**
+- [ ] **Task 2 Step 4: Implement factory and registry behavior**
 
 Implement `DefaultLangChain4jModelFactory` and `DefaultLangChain4jModelRegistry` exactly against the **Interfaces** block. Use `ArrayList`, `LinkedHashMap`, `LinkedHashSet`, `Collections.unmodifiableMap`, and `Collections.unmodifiableSet` for JDK 1.8 compatibility.
 
-- [ ] **Step 5: Run core model tests**
+- [ ] **Task 2 Step 5: Run core model tests**
 
 Run:
 
@@ -423,7 +423,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit this task during execution**
+- [ ] **Task 2 Step 6: Commit this task during execution**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model
@@ -452,7 +452,7 @@ git commit -m "feat: add langchain4j model factory and registry"
   - `LangChain4jModelAutoConfiguration.langChain4jModelFactory(): LangChain4jModelFactory` with `@ConditionalOnMissingBean`.
   - `LangChain4jModelAutoConfiguration.langChain4jModelRegistry(properties, factory, adapters): LangChain4jModelRegistry` with enabled model filtering and default key validation.
 
-- [ ] **Step 1: Write failing properties binding test**
+- [ ] **Task 3 Step 1: Write failing properties binding test**
 
 ```java
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model;
@@ -493,7 +493,7 @@ public class LangChain4jModelPropertiesTest {
 }
 ```
 
-- [ ] **Step 2: Write failing auto-configuration tests**
+- [ ] **Task 3 Step 2: Write failing auto-configuration tests**
 
 Create tests with `ApplicationContextRunner`:
 
@@ -570,7 +570,7 @@ public class LangChain4jModelAutoConfigurationTest {
 }
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [ ] **Task 3 Step 3: Run tests to verify they fail**
 
 Run:
 
@@ -581,11 +581,11 @@ cd fw-plus-ai
 
 Expected: FAIL because properties and auto-configuration do not exist.
 
-- [ ] **Step 4: Add dependencies and auto-configuration**
+- [ ] **Task 3 Step 4: Add dependencies and auto-configuration**
 
 Modify `fw-plus-ai-boot-autoconfigure/pom.xml` to depend on `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-model`. Implement properties and auto-configuration. Register `com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration` in `META-INF/spring.factories` after `LangChain4jAutoConfiguration` and before Magic-API base auto-configuration.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [ ] **Task 3 Step 5: Run tests to verify they pass**
 
 Run:
 
@@ -596,7 +596,7 @@ cd fw-plus-ai
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit this task during execution**
+- [ ] **Task 3 Step 6: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
@@ -624,7 +624,7 @@ git commit -m "feat: auto configure langchain4j model registry"
   - `ReflectiveLangChain4jModelProviderAdapter` supports provider/modelType metadata and instantiates LangChain4j builder classes only when the provider SDK class is present.
   - Bean methods in `LangChain4jModelAutoConfiguration` for each concrete adapter with `@ConditionalOnMissingBean`.
 
-- [ ] **Step 1: Write failing adapter tests**
+- [ ] **Task 4 Step 1: Write failing adapter tests**
 
 ```java
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.provider;
@@ -682,7 +682,7 @@ public class LangChain4jModelProviderAdapterTest {
 }
 ```
 
-- [ ] **Step 2: Run adapter tests to verify they fail**
+- [ ] **Task 4 Step 2: Run adapter tests to verify they fail**
 
 Run:
 
@@ -693,7 +693,7 @@ cd fw-plus-ai
 
 Expected: FAIL because provider adapter support classes do not exist.
 
-- [ ] **Step 3: Implement reflective provider adapter support**
+- [ ] **Task 4 Step 3: Implement reflective provider adapter support**
 
 Implement provider adapter classes so each adapter declares exact provider names:
 `openai`, `azure-openai`, `qwen`, `ollama`, `anthropic`, `qianfan`, `zhipu`, `hugging-face`, `local-ai`, `gemini`, `voyage-ai`, `all-mini-lm-l6-v2-quantized`.
@@ -717,11 +717,11 @@ all-mini-lm-l6-v2-quantized: EMBEDDING
 
 Use class-name checks before reflective creation so an application without a provider SDK can still start.
 
-- [ ] **Step 4: Wire adapters as beans**
+- [ ] **Task 4 Step 4: Wire adapters as beans**
 
 Add adapter bean methods to `LangChain4jModelAutoConfiguration`. The registry creation path must accept `List<LangChain4jModelProviderAdapter>` and pass it to `LangChain4jModelFactory.create`.
 
-- [ ] **Step 5: Run provider and auto-configuration tests**
+- [ ] **Task 4 Step 5: Run provider and auto-configuration tests**
 
 Run:
 
@@ -733,7 +733,7 @@ cd fw-plus-ai
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit this task during execution**
+- [ ] **Task 4 Step 6: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
@@ -759,11 +759,11 @@ git commit -m "feat: add langchain4j model provider adapters"
   - No direct dependencies on all concrete provider SDK artifacts.
   - `fw-plus-ai-boot-dependencies` manages the starter with `${project.version}`.
 
-- [ ] **Step 1: Write failing registration and dependency test**
+- [ ] **Task 5 Step 1: Write failing registration and dependency test**
 
 Extend `LangChain4jAutoConfigurationRegistrationTest` with assertions that `spring.factories` contains `LangChain4jModelAutoConfiguration` and that the new starter POM does not contain bulk provider artifacts such as `langchain4j-open-ai`, `langchain4j-ollama`, `langchain4j-dashscope`, `langchain4j-anthropic`, `langchain4j-azure-open-ai`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Task 5 Step 2: Run test to verify it fails**
 
 Run:
 
@@ -774,11 +774,11 @@ cd fw-plus-ai
 
 Expected: FAIL because the starter POM does not exist and registration assertion is not satisfied.
 
-- [ ] **Step 3: Create starter and BOM entries**
+- [ ] **Task 5 Step 3: Create starter and BOM entries**
 
 Create the starter module POM, register it in `fw-plus-ai-boot-starters/pom.xml`, and add dependency management in `fw-plus-ai-boot-dependencies/pom.xml`.
 
-- [ ] **Step 4: Add README usage sample**
+- [ ] **Task 5 Step 4: Add README usage sample**
 
 Document this minimal configuration in the new starter README:
 
@@ -801,7 +801,7 @@ fw-plus:
 
 State that provider SDK dependencies are introduced by the application when needed.
 
-- [ ] **Step 5: Run starter build and registration test**
+- [ ] **Task 5 Step 5: Run starter build and registration test**
 
 Run:
 
@@ -813,7 +813,7 @@ cd fw-plus-ai
 
 Expected: both commands PASS.
 
-- [ ] **Step 6: Commit this task during execution**
+- [ ] **Task 5 Step 6: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml \
@@ -851,7 +851,7 @@ git commit -m "feat: add langchain4j model starter"
   - `MagicDynamicModelDataSource.contains(String key): boolean`
   - `MagicDynamicModelDataSource.keys(): Set<String>`
 
-- [ ] **Step 1: Write failing dynamic data source tests**
+- [ ] **Task 6 Step 1: Write failing dynamic data source tests**
 
 Create tests that prove:
 
@@ -864,7 +864,7 @@ Create tests that prove:
 
 Use a fake `LangChain4jModelFactory` and fake `LangChain4jModelRegistry` in the test; no network call is allowed in this task.
 
-- [ ] **Step 2: Write failing resource registry tests**
+- [ ] **Task 6 Step 2: Write failing resource registry tests**
 
 Create tests that prove:
 
@@ -875,7 +875,7 @@ Create tests that prove:
 4. Updating the same key calls destroyClientByKey(key) before createClient(info).
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [ ] **Task 6 Step 3: Run tests to verify they fail**
 
 Run:
 
@@ -887,11 +887,11 @@ cd fw-plus-ai
 
 Expected: FAIL because Magic model classes do not exist.
 
-- [ ] **Step 4: Implement model datasource, storage, and registry**
+- [ ] **Task 6 Step 4: Implement model datasource, storage, and registry**
 
 Implement the classes listed in **Files**. Follow the existing Magic vector plugin style for storage and registry lifecycle, but use `model-datasource` as the folder and `LangChain4jModelDefinition` as the target definition.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [ ] **Task 6 Step 5: Run tests to verify they pass**
 
 Run:
 
@@ -903,7 +903,7 @@ cd fw-plus-ai
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit this task during execution**
+- [ ] **Task 6 Step 6: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/model \
@@ -937,7 +937,7 @@ git commit -m "feat: add magic model datasource registry"
   - Controller list response uses `ModelDataSourceInfo.simple()`.
   - Controller test endpoint calls `LangChain4jModelFactory.create(definition, adapters)` for real factory validation and masks sensitive fields on failure.
 
-- [ ] **Step 1: Write failing module tests**
+- [ ] **Task 7 Step 1: Write failing module tests**
 
 Create tests that prove:
 
@@ -948,7 +948,7 @@ Create tests that prove:
 4. getModel() returns the wrapped native LangChain4j model object.
 ```
 
-- [ ] **Step 2: Write failing controller/configuration tests**
+- [ ] **Task 7 Step 2: Write failing controller/configuration tests**
 
 Create tests that prove:
 
@@ -959,7 +959,7 @@ Create tests that prove:
 4. MagicModelController test endpoint calls the factory and returns no raw apiKey, secretKey, accessToken, token, or password in success or failure payloads.
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [ ] **Task 7 Step 3: Run tests to verify they fail**
 
 Run:
 
@@ -971,11 +971,11 @@ cd fw-plus-ai
 
 Expected: FAIL because module, controller, and configuration do not exist.
 
-- [ ] **Step 4: Implement module, controller, and configuration**
+- [ ] **Task 7 Step 4: Implement module, controller, and configuration**
 
 Implement the classes listed in **Files**. The configuration property prefix for the plugin is `magic-api.plugin.model.enabled`, with `havingValue = "true"` and `matchIfMissing = true`.
 
-- [ ] **Step 5: Run Magic model backend tests**
+- [ ] **Task 7 Step 5: Run Magic model backend tests**
 
 Run:
 
@@ -987,7 +987,7 @@ cd fw-plus-ai
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit this task during execution**
+- [ ] **Task 7 Step 6: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/MagicApiPluginAutoConfiguration.java \
@@ -1023,7 +1023,7 @@ git commit -m "feat: add magic model plugin backend"
   - Console form fields: `name`, `key`, `provider`, `modelType`, `enabled`, `baseUrl`, `apiKey`, `modelName`, `properties`.
   - Sample depends on `fw-plus-ai-magicapi-plugin-model` and no longer depends on `fw-plus-ai-magicapi-plugin-langchain4j`.
 
-- [ ] **Step 1: Write failing console contract test**
+- [ ] **Task 8 Step 1: Write failing console contract test**
 
 Create `magic-model-contract.test.cjs` asserting:
 
@@ -1049,7 +1049,7 @@ test('uses model datasource resource type and plugin name', () => {
 });
 ```
 
-- [ ] **Step 2: Run console test to verify it fails**
+- [ ] **Task 8 Step 2: Run console test to verify it fails**
 
 Run:
 
@@ -1060,15 +1060,15 @@ npm test
 
 Expected: FAIL because the console package does not exist.
 
-- [ ] **Step 3: Create model plugin module and console assets**
+- [ ] **Task 8 Step 3: Create model plugin module and console assets**
 
 Create `fw-plus-ai-magicapi-plugin-model` by carrying over the working vector console structure and replacing identifiers with `model`, `model-datasource`, and `magic-model.1.0.0.iife.js`. Keep controls for sensitive fields as password inputs and do not render raw secret values in list rows.
 
-- [ ] **Step 4: Delete old Magic LangChain4j plugin entry points**
+- [ ] **Task 8 Step 4: Delete old Magic LangChain4j plugin entry points**
 
 Remove old backend package `plugin/langchain4j` and old starter module `fw-plus-ai-magicapi-plugin-langchain4j`. Update `fw-plus-ai-magicapi-plugin/pom.xml` to replace the old module with `fw-plus-ai-magicapi-plugin-model`. Update `fw-plus-ai-boot-dependencies/pom.xml` and sample POM references from `fw-plus-ai-magicapi-plugin-langchain4j` to `fw-plus-ai-magicapi-plugin-model`.
 
-- [ ] **Step 5: Run console and Maven migration checks**
+- [ ] **Task 8 Step 5: Run console and Maven migration checks**
 
 Run:
 
@@ -1083,7 +1083,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-ai
 
 Expected: all commands PASS. Built JS asset exists at `src/main/resources/magic-editor/plugins/magic-model.1.0.0.iife.js`.
 
-- [ ] **Step 6: Run structural deletion check**
+- [ ] **Task 8 Step 6: Run structural deletion check**
 
 Run:
 
@@ -1095,7 +1095,7 @@ rg -n "langchain4j-datasource|MagicLangchain4j|@MagicModule\\(\"langchain4j\"\\)
 
 Expected: the two `test ! -d` commands exit 0. The `rg` command returns no matches.
 
-- [ ] **Step 7: Commit this task during execution**
+- [ ] **Task 8 Step 7: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin \
@@ -1120,7 +1120,7 @@ git commit -m "feat: replace magic langchain4j plugin with model plugin"
   - Docs explain model starter minimal dependency, provider SDK explicit dependency rule, `model-datasource` JSON example, and migration from old Magic `langchain4j` plugin.
   - Verification record can be pasted into OpenSpec verification later without changing OpenSpec in this task.
 
-- [ ] **Step 1: Add sample configuration**
+- [ ] **Task 9 Step 1: Add sample configuration**
 
 Add this sample block to `application.yaml` using existing indentation style:
 
@@ -1149,7 +1149,7 @@ magic-api:
 
 If `fw-plus` or `magic-api.plugin` already exists, merge keys without duplicating top-level blocks.
 
-- [ ] **Step 2: Add documentation examples**
+- [ ] **Task 9 Step 2: Add documentation examples**
 
 Document this `model-datasource` resource example:
 
@@ -1182,7 +1182,7 @@ Document LangChain4j version compatibility:
 - 0.35.0 已有 `TextContent`、`ImageContent`、`AudioContent`、`VideoContent`、`PdfFileContent` 等多模态内容类型；高版本继续通过 Chat 请求承载多模态输入。
 - 不存在独立 `AudioModel` / `VideoModel`，不要在 `modelType` 中新增这两个值；音频、视频、PDF 是 Chat 输入内容能力。
 
-- [ ] **Step 3: Run targeted core verification**
+- [ ] **Task 9 Step 3: Run targeted core verification**
 
 Run:
 
@@ -1194,7 +1194,7 @@ cd fw-plus-core
 
 Expected: both commands PASS.
 
-- [ ] **Step 4: Run targeted AI Boot verification**
+- [ ] **Task 9 Step 4: Run targeted AI Boot verification**
 
 Run:
 
@@ -1206,7 +1206,7 @@ cd fw-plus-ai
 
 Expected: PASS. Vector plugin tests passing confirms model work did not regress vector behavior.
 
-- [ ] **Step 5: Run module build verification**
+- [ ] **Task 9 Step 5: Run module build verification**
 
 Run:
 
@@ -1219,7 +1219,7 @@ cd fw-plus-ai
 
 Expected: all commands PASS.
 
-- [ ] **Step 6: Run source compatibility and migration scans**
+- [ ] **Task 9 Step 6: Run source compatibility and migration scans**
 
 Run:
 
@@ -1234,11 +1234,11 @@ Expected:
 - Second `rg` returns no matches.
 - Third `rg` only shows masking, filtering, property mapping, or test-safe handling; no controller list/test response returns raw sensitive values.
 
-- [ ] **Step 7: Capture verification notes**
+- [ ] **Task 9 Step 7: Capture verification notes**
 
 Record command outputs in the implementation handoff or PR body. If a dependency cannot resolve from internal Nexus, capture the exact Maven coordinate and repository URL from the failing output, and do not mark the behavior as failed until dependency resolution is addressed.
 
-- [ ] **Step 8: Commit this task during execution**
+- [ ] **Task 9 Step 8: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-samples/fw-plus-ai-magicapi-sample/src/main/resources/application.yaml \
