@@ -2,16 +2,26 @@
 
 - review_mode: standard
 - tdd_mode: tdd
-- current_task: Task 6: Magic model-datasource 动态资源与运行态 Registry
-- openspec_task: 4.1/4.2 model-datasource 动态资源、资源存储、动态注册器与运行态 Registry；后续 6.2 文档需说明 0.35 provider 矩阵限制
+- current_task: Task 7: Magic model 模块、Controller 与插件配置
+- openspec_task: 4.3/4.4/4.5 Magic model 脚本模块、控制器测试接口、插件配置与自动配置导入；后续 6.2 文档需说明 0.35 provider 矩阵限制
 - phase: ready-for-implementation
 - issue: none
-- base_commit: c29cbb9cd5ee71daebf4235d87bce05b51c3c529
+- base_commit: 8e90cac5fc55c0e568bf48be3b458fe954319d98
 - implementer: pending
 - report: pending
-- review_required: Task 5 approved; Task 6 pending implementation
-- red_green_evidence: Task 5 starter -am -DskipTests install passed 10 reactor projects; registration test passed 7 tests, 0 failures, 0 errors with Zulu 8 system Maven; git diff --check passed
+- review_required: Task 6 approved after lifecycle fixes; Task 7 pending implementation
+- red_green_evidence: Task 6 focused tests passed 10 tests, 0 failures, 0 errors with Zulu 8 system Maven; git diff --check passed
 - unresolved_feedback: none
+
+## Completed Task 6
+
+- commits: 836064f9..8e90cac5
+- implementation: 454882cb
+- fixes: ddaf06af, 8e90cac5
+- implementer: 019f9e69-d4ff-7b82-9870-1c54de1ca54f
+- reviewer: 019f9e74-0f81-7f41-b49b-908cf8a14ee9 approved after lifecycle fixes
+- GREEN: MagicDynamicModelDataSourceTest and ModelDataSourceMagicDynamicRegistryTest passed 10 tests, 0 failures, 0 errors with Zulu 8 system Maven
+- environment limits: fw-plus-ai/mvnw exists but wrapper properties/jar are missing; focused verification used system Maven
 
 ## Completed Task 5
 

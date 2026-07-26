@@ -852,7 +852,7 @@ git commit -m "feat: add langchain4j model starter"
   - `MagicDynamicModelDataSource.contains(String key): boolean`
   - `MagicDynamicModelDataSource.keys(): Set<String>`
 
-- [ ] **Task 6 Step 1: Write failing dynamic data source tests**
+- [x] **Task 6 Step 1: Write failing dynamic data source tests**
 
 Create tests that prove:
 
@@ -865,7 +865,7 @@ Create tests that prove:
 
 Use a fake `LangChain4jModelFactory` and fake `LangChain4jModelRegistry` in the test; no network call is allowed in this task.
 
-- [ ] **Task 6 Step 2: Write failing resource registry tests**
+- [x] **Task 6 Step 2: Write failing resource registry tests**
 
 Create tests that prove:
 
@@ -876,7 +876,7 @@ Create tests that prove:
 4. Updating the same key calls destroyClientByKey(key) before createClient(info).
 ```
 
-- [ ] **Task 6 Step 3: Run tests to verify they fail**
+- [x] **Task 6 Step 3: Run tests to verify they fail**
 
 Run:
 
@@ -888,11 +888,11 @@ cd fw-plus-ai
 
 Expected: FAIL because Magic model classes do not exist.
 
-- [ ] **Task 6 Step 4: Implement model datasource, storage, and registry**
+- [x] **Task 6 Step 4: Implement model datasource, storage, and registry**
 
 Implement the classes listed in **Files**. Follow the existing Magic vector plugin style for storage and registry lifecycle, but use `model-datasource` as the folder and `LangChain4jModelDefinition` as the target definition.
 
-- [ ] **Task 6 Step 5: Run tests to verify they pass**
+- [x] **Task 6 Step 5: Run tests to verify they pass**
 
 Run:
 
@@ -904,7 +904,7 @@ cd fw-plus-ai
 
 Expected: PASS.
 
-- [ ] **Task 6 Step 6: Commit this task during execution**
+- [x] **Task 6 Step 6: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/model \
