@@ -203,6 +203,9 @@
 
         <langchain4j.version>0.35.0</langchain4j.version>
         <jedis.version>5.0.0</jedis.version>
+        <datastax-java-driver.version>4.17.0</datastax-java-driver.version>
+        <infinispan.version>13.0.22.Final</infinispan.version>
+        <neo4j-java-driver.version>4.4.26</neo4j-java-driver.version>
     </properties>
     <description>
         fw-plus 核心库依赖管理.
@@ -257,6 +260,36 @@
                 <version>${langchain4j.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.datastax.oss</groupId>
+                <artifactId>java-driver-core</artifactId>
+                <version>${datastax-java-driver.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-api</artifactId>
+                <version>${infinispan.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-client-hotrod</artifactId>
+                <version>${infinispan.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-remote-query-client</artifactId>
+                <version>${infinispan.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-query-dsl</artifactId>
+                <version>${infinispan.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.neo4j.driver</groupId>
+                <artifactId>neo4j-java-driver</artifactId>
+                <version>${neo4j-java-driver.version}</version>
             </dependency>
             <dependency>
                 <groupId>redis.clients</groupId>
