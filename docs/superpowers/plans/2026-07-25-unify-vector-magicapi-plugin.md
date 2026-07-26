@@ -131,7 +131,7 @@ base-ref: c695308855f1512ebbcf705f965aaa4d2c352765
 - Produces: `boolean EmbeddingStoreProviderAdapter.supports(String provider)`
 - Produces: `EmbeddingStore<TextSegment> EmbeddingStoreProviderAdapter.create(EmbeddingStoreDefinition definition)`
 
-- [ ] **Step 1: Write failing registry tests**
+- [x] **Step 1: Write failing registry tests**
 
 Create `DefaultEmbeddingStoreRegistryTest` with fake `EmbeddingStore<TextSegment>` instances and assert:
 
@@ -156,13 +156,13 @@ public void shouldReturnStoreByKeyAndDefaultStore() {
 
 Add separate tests for unknown key, missing default key, and null/blank default access.
 
-- [ ] **Step 2: Run registry tests and verify failure**
+- [x] **Step 2: Run registry tests and verify failure**
 
 Run: `cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreRegistryTest test`
 
 Expected: FAIL because registry classes do not exist.
 
-- [ ] **Step 3: Implement registry and exception**
+- [x] **Step 3: Implement registry and exception**
 
 Implement `EmbeddingStoreException` as an unchecked exception carrying a concise message. Implement `DefaultEmbeddingStoreRegistry` with defensive `LinkedHashMap` copy, Java 8 compatible `Collections.unmodifiableMap`, and these exact error messages:
 
@@ -172,13 +172,13 @@ Default embedding store is not configured
 Default embedding store key is invalid: <key>
 ```
 
-- [ ] **Step 4: Run registry tests and verify pass**
+- [x] **Step 4: Run registry tests and verify pass**
 
 Run the same command from Step 2.
 
 Expected: PASS.
 
-- [ ] **Step 5: Write failing factory tests**
+- [x] **Step 5: Write failing factory tests**
 
 Create `DefaultEmbeddingStoreFactoryTest` with an inner fake adapter. Assert adapter selection by provider, unknown provider failure, and adapter exception message includes provider/key:
 
@@ -198,11 +198,11 @@ public void shouldCreateStoreWithMatchingProviderAdapter() {
 }
 ```
 
-- [ ] **Step 6: Implement definition, properties, adapter SPI, and factory**
+- [x] **Step 6: Implement definition, properties, adapter SPI, and factory**
 
 `EmbeddingStoreDefinition` must include `key`、`provider`、`enabled`、`dimension`、`metadataKeys`、`properties` fields. `EmbeddingStoreProperties` must include `enabled`、`defaultStore`、`stores` fields and initialize `stores` to an empty `LinkedHashMap`.
 
-- [ ] **Step 7: Run factory tests and full base-module tests**
+- [x] **Step 7: Run factory tests and full base-module tests**
 
 Run:
 
@@ -213,7 +213,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 Commit message: `feat(vector): add embedding store registry foundation`.
 
@@ -233,11 +233,11 @@ Commit message: `feat(vector): add embedding store registry foundation`.
 - Produces: provider names `redisstack`、`redis`、`milvus`、`elasticsearch`、`qdrant`、`weaviate`.
 - Produces: adapter-specific mapping from generic `properties` keys to LangChain4j builder methods.
 
-- [ ] **Step 1: Create starter module skeleton first if Task 3 has not created it**
+- [x] **Step 1: Create starter module skeleton first if Task 3 has not created it**
 
 If `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` does not exist yet, create only the directory and `pom.xml` needed for tests. The final Maven registration is still completed in Task 3.
 
-- [ ] **Step 2: Write failing adapter support tests**
+- [x] **Step 2: Write failing adapter support tests**
 
 Create `EmbeddingStoreProviderAdapterTest` and assert exact provider aliases:
 
@@ -253,13 +253,13 @@ public void shouldMatchProviderNamesCaseInsensitively() {
 }
 ```
 
-- [ ] **Step 3: Run adapter tests and verify failure**
+- [x] **Step 3: Run adapter tests and verify failure**
 
 Run: `cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -Dtest=EmbeddingStoreProviderAdapterTest test`
 
 Expected: FAIL because adapter classes do not exist.
 
-- [ ] **Step 4: Add provider dependencies without hardcoded versions**
+- [x] **Step 4: Add provider dependencies without hardcoded versions**
 
 In the starter POM, depend on `fw-plus-ai-langchain4j-store-embeding` and provider artifacts. Use Core dependencyManagement/LangChain4j BOM for versions:
 
@@ -293,11 +293,11 @@ In the starter POM, depend on `fw-plus-ai-langchain4j-store-embeding` and provid
 
 If `langchain4j-weaviate` is unavailable in LangChain4j `0.35.0`, replace it with the actual `0.35.0` artifact discovered from the local/remote BOM during implementation, and keep the artifact version inherited.
 
-- [ ] **Step 5: Implement minimal supports methods**
+- [x] **Step 5: Implement minimal supports methods**
 
 Implement each adapter with Java 8 compatible string checks and no Spring AI imports. `create(...)` should map only explicit, documented keys such as `host`、`port`、`uri`、`collectionName`、`indexName`、`dimension`、`metadataKeys`、`apiKey`、`grpcHost`、`grpcPort`、`className`、`scheme`、`username`、`password`.
 
-- [ ] **Step 6: Write provider builder smoke tests**
+- [x] **Step 6: Write provider builder smoke tests**
 
 Use lightweight configuration definitions to verify each adapter either creates an `EmbeddingStore<TextSegment>` without opening a network connection or fails with a clear `EmbeddingStoreException`. Assertions should check message text, not remote connectivity:
 
@@ -317,13 +317,13 @@ public void shouldWrapInvalidMilvusConfigurationWithProviderAndKey() {
 }
 ```
 
-- [ ] **Step 7: Run adapter tests**
+- [x] **Step 7: Run adapter tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 8: Scan provider adapter source for Java 9+ APIs**
+- [x] **Step 8: Scan provider adapter source for Java 9+ APIs**
 
 Run:
 
@@ -334,9 +334,10 @@ rg -n "List\\.of|Map\\.of|Set\\.of|copyOf|orElseThrow\\(\\)" fw-plus-project/fw-
 
 Expected: no output.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Commit message: `feat(vector): add embedding store provider adapters`.
+
 
 ### Task 3: Core Spring Boot starter 与 Maven/BOM 接入
 
@@ -355,7 +356,7 @@ Commit message: `feat(vector): add embedding store provider adapters`.
 - Produces: `EmbeddingStoreRegistry` bean when `fw-plus.ai.langchain4j.embedding-store.enabled=true` or missing.
 - Produces: Spring Boot 2.7 `spring.factories` registration only.
 
-- [ ] **Step 1: Write failing metadata test**
+- [x] **Step 1: Write failing metadata test**
 
 Create `EmbeddingStoreAutoConfigurationMetadataTest`:
 
@@ -369,7 +370,7 @@ public void shouldRegisterAutoConfigurationInSpringFactoriesOnly() throws Except
 }
 ```
 
-- [ ] **Step 2: Write failing auto-configuration tests**
+- [x] **Step 2: Write failing auto-configuration tests**
 
 Use `ApplicationContextRunner` to cover enabled=false, multiple stores, default store valid, default store invalid, unknown provider:
 
@@ -393,13 +394,13 @@ public void shouldCreateRegistryWithMultipleStoresAndDefaultKey() {
 }
 ```
 
-- [ ] **Step 3: Run focused tests and verify failure**
+- [x] **Step 3: Run focused tests and verify failure**
 
 Run: `cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -Dtest=EmbeddingStoreAutoConfigurationMetadataTest,EmbeddingStoreAutoConfigurationTest test`
 
 Expected: FAIL because starter module and auto-configuration are incomplete.
 
-- [ ] **Step 4: Register Maven module and dependencyManagement**
+- [x] **Step 4: Register Maven module and dependencyManagement**
 
 Add module after `fw-plus-ai-langchain4j-store-embeding` in `fw-plus-ai-langchain4j/pom.xml`:
 
@@ -417,7 +418,7 @@ Add Core BOM entry near existing LangChain4j modules:
 </dependency>
 ```
 
-- [ ] **Step 5: Implement auto-configuration**
+- [x] **Step 5: Implement auto-configuration**
 
 `EmbeddingStoreAutoConfiguration` should be `@Configuration`, `@EnableConfigurationProperties(EmbeddingStoreProperties.class)`, `@ConditionalOnProperty(prefix = "fw-plus.ai.langchain4j.embedding-store", name = "enabled", havingValue = "true", matchIfMissing = true)`. It should:
 
@@ -428,7 +429,7 @@ Add Core BOM entry near existing LangChain4j modules:
 - validate duplicate key, blank provider, invalid default store, unknown provider;
 - expose a single `EmbeddingStoreRegistry` bean.
 
-- [ ] **Step 6: Add `spring.factories`**
+- [x] **Step 6: Add `spring.factories`**
 
 Create:
 
@@ -437,13 +438,13 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
 com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure.EmbeddingStoreAutoConfiguration
 ```
 
-- [ ] **Step 7: Run starter tests**
+- [x] **Step 7: Run starter tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 8: Run Core LangChain4j reactor build**
+- [x] **Step 8: Run Core LangChain4j reactor build**
 
 Run:
 
@@ -454,7 +455,7 @@ cd fw-plus-core
 
 Expected: BUILD SUCCESS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Commit message: `feat(vector): add embedding store spring boot starter`.
 
@@ -479,7 +480,7 @@ Commit message: `feat(vector): add embedding store spring boot starter`.
 - Produces: MagicScript module `vector` supporting default access and `vector['knowledge']` access.
 - Produces: `VectorStoreOperations` wrapper around `EmbeddingStore<TextSegment>`.
 
-- [ ] **Step 1: Write failing plugin metadata test**
+- [x] **Step 1: Write failing plugin metadata test**
 
 Create `MagicAPIVectorConfigurationTest`:
 
@@ -496,7 +497,7 @@ public void shouldExposeSingleVectorPluginMetadata() {
 }
 ```
 
-- [ ] **Step 2: Write failing module access tests**
+- [x] **Step 2: Write failing module access tests**
 
 Create `VectorModuleTest` with fake registry:
 
@@ -526,13 +527,13 @@ public void shouldReturnDefaultOperationsWhenKeyIsMissing() {
 
 Add tests for unknown key and missing default store, expecting `MagicAPIVectorException` messages containing the key or default-store hint.
 
-- [ ] **Step 3: Run AI autoconfigure tests and verify failure**
+- [x] **Step 3: Run AI autoconfigure tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=MagicAPIVectorConfigurationTest,VectorModuleTest test`
 
 Expected: FAIL because vector classes do not exist.
 
-- [ ] **Step 4: Add vector plugin starter module**
+- [x] **Step 4: Add vector plugin starter module**
 
 Add `<module>fw-plus-ai-magicapi-plugin-vector</module>` to `fw-plus-ai-magicapi-plugin/pom.xml`. Create module POM inheriting `fw-plus-ai-magicapi-plugin` and depending on `fw-plus-ai-boot-autoconfigure` plus Core `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` through dependencyManagement.
 
@@ -546,7 +547,7 @@ Add AI BOM entry:
 </dependency>
 ```
 
-- [ ] **Step 5: Implement vector configuration and module**
+- [x] **Step 5: Implement vector configuration and module**
 
 `MagicAPIVectorConfiguration` should be conditional on `magic-api.plugin.vector.enabled=true` with `matchIfMissing=true`, and conditional on `EmbeddingStoreRegistry` class/bean. It registers:
 
@@ -556,21 +557,21 @@ Add AI BOM entry:
 
 `VectorModule` should implement `DynamicAttribute<VectorModule, VectorStoreOperations>` and `DynamicModule<VectorStoreOperations>`. Explicit key uses `registry.get(key)`, missing key uses `registry.getDefault()`.
 
-- [ ] **Step 6: Import vector configuration**
+- [x] **Step 6: Import vector configuration**
 
 Modify `MagicApiPluginAutoConfiguration` to import `MagicAPIVectorConfiguration`. Keep `MagicAPIAiaConfiguration` and old provider configurations until Task 5 handles compatibility.
 
-- [ ] **Step 7: Add minimal Magic-API editor plugin resource**
+- [x] **Step 7: Add minimal Magic-API editor plugin resource**
 
 Create `magic-vector.1.0.0.iife.js` following existing plugin resource naming style. It should expose the global name `MagicVector` and use the same plugin registration pattern as existing `magic-qdrant.1.0.0.iife.js`/`magic-weaviate.1.0.0.iife.js`.
 
-- [ ] **Step 8: Run vector plugin tests**
+- [x] **Step 8: Run vector plugin tests**
 
 Run the command from Step 3.
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Commit message: `feat(vector): add unified magicapi vector plugin`.
 
@@ -591,7 +592,7 @@ Commit message: `feat(vector): add unified magicapi vector plugin`.
 - Produces: old entry behavior that either delegates to registry by key or fails with a migration message.
 - Produces: migration documentation from old imports to `import vector`.
 
-- [ ] **Step 1: Write failing compatibility tests**
+- [x] **Step 1: Write failing compatibility tests**
 
 Create `LegacyVectorModuleSupportTest` and assert:
 
@@ -622,13 +623,13 @@ public void shouldTellUserToMigrateWhenLegacyKeyIsUnknown() {
 }
 ```
 
-- [ ] **Step 2: Run compatibility tests and verify failure**
+- [x] **Step 2: Run compatibility tests and verify failure**
 
 Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest test`
 
 Expected: FAIL because compatibility support does not exist.
 
-- [ ] **Step 3: Implement legacy support**
+- [x] **Step 3: Implement legacy support**
 
 Implement `LegacyVectorModuleSupport` as a small adapter around `EmbeddingStoreRegistry`. It must not call provider builders, datasource clients, or `RedisStackModule.buildEmbeddingStore(...)`. It returns `VectorStoreOperations` and wraps registry errors into messages like:
 
@@ -636,11 +637,11 @@ Implement `LegacyVectorModuleSupport` as a small adapter around `EmbeddingStoreR
 Legacy Magic-API vector provider '<provider>' is deprecated; migrate script to import vector and access vector['<key>']. Missing key: <key>
 ```
 
-- [ ] **Step 4: Deprecate old configurations and modules**
+- [x] **Step 4: Deprecate old configurations and modules**
 
 Add `@Deprecated` to old provider Magic-API configuration/module classes. For old module access methods, delegate to `LegacyVectorModuleSupport` when `EmbeddingStoreRegistry` is present. If a legacy module still needs old datasource browsing controllers during the transition, keep controllers isolated from embedding-store construction and document that they are datasource-management only.
 
-- [ ] **Step 5: Prevent duplicate provider construction**
+- [x] **Step 5: Prevent duplicate provider construction**
 
 Remove or stop using old Magic-API-side methods that build LangChain4j stores directly, including `RedisStackModule.buildEmbeddingStore(...)`, unless they delegate to Core registry. Add tests or static assertions that old module source does not call provider builders such as:
 
@@ -651,7 +652,7 @@ rg -n "RedisEmbeddingStore\\.builder|MilvusEmbeddingStore\\.builder|QdrantEmbedd
 
 Expected: no output outside Core provider adapter packages.
 
-- [ ] **Step 6: Add migration document**
+- [x] **Step 6: Add migration document**
 
 Create `docs/vector-magicapi-plugin-migration.md` with:
 
@@ -660,13 +661,13 @@ Create `docs/vector-magicapi-plugin-migration.md` with:
 - old `import milvus`/`import qdrant`/`import redisstack`/`import weaviate` mapping to `vector['key']`;
 - note that old entries are deprecated compatibility wrappers.
 
-- [ ] **Step 7: Run compatibility tests**
+- [x] **Step 7: Run compatibility tests**
 
 Run the command from Step 2.
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 Commit message: `feat(vector): add legacy magicapi vector compatibility`.
 
@@ -680,7 +681,7 @@ Commit message: `feat(vector): add legacy magicapi vector compatibility`.
 - Consumes: all tasks above.
 - Produces: verified Core build, AI build, Java 8 compatibility scan, and strict OpenSpec validation.
 
-- [ ] **Step 1: Run Core focused reactor tests**
+- [x] **Step 1: Run Core focused reactor tests**
 
 Run:
 
@@ -691,7 +692,7 @@ cd fw-plus-core
 
 Expected: BUILD SUCCESS.
 
-- [ ] **Step 2: Run Core LangChain4j package build**
+- [x] **Step 2: Run Core LangChain4j package build**
 
 Run:
 
@@ -702,7 +703,7 @@ cd fw-plus-core
 
 Expected: BUILD SUCCESS.
 
-- [ ] **Step 3: Run AI Magic-API focused tests**
+- [x] **Step 3: Run AI Magic-API focused tests**
 
 Run:
 
@@ -713,7 +714,7 @@ cd fw-plus-ai
 
 Expected: BUILD SUCCESS.
 
-- [ ] **Step 4: Run AI plugin package build**
+- [x] **Step 4: Run AI plugin package build**
 
 Run:
 
@@ -724,7 +725,7 @@ cd fw-plus-ai
 
 Expected: BUILD SUCCESS.
 
-- [ ] **Step 5: Scan for Java 9+ APIs in touched Java packages**
+- [x] **Step 5: Scan for Java 9+ APIs in touched Java packages**
 
 Run:
 
@@ -737,7 +738,7 @@ rg -n "List\\.of|Map\\.of|Set\\.of|copyOf|orElseThrow\\(\\)" \
 
 Expected: no output.
 
-- [ ] **Step 6: Scan Magic-API plugin code for duplicated provider builders**
+- [x] **Step 6: Scan Magic-API plugin code for duplicated provider builders**
 
 Run:
 
@@ -748,7 +749,7 @@ rg -n "RedisEmbeddingStore\\.builder|MilvusEmbeddingStore\\.builder|QdrantEmbedd
 
 Expected: no output outside compatibility comments or Core provider adapter references.
 
-- [ ] **Step 7: Validate OpenSpec**
+- [x] **Step 7: Validate OpenSpec**
 
 Run:
 
@@ -758,11 +759,11 @@ openspec validate unify-vector-magicapi-plugin --strict
 
 Expected: passes with no validation errors.
 
-- [ ] **Step 8: Review OpenSpec task coverage without modifying tasks.md**
+- [x] **Step 8: Review OpenSpec task coverage without modifying tasks.md**
 
 Open `openspec/changes/unify-vector-magicapi-plugin/tasks.md` and verify every item maps to `OpenSpec Task Mapping` in this plan. Do not change checkbox state in `tasks.md`.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Commit message: `test(vector): verify unified vector plugin change`.
 
