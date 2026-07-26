@@ -1,5 +1,8 @@
 package com.xiongx9527.fw.plus.graph.neo4j.jdbc;
 
+import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcExecutor;
+import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcParameterBindings;
+import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcResult;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -23,6 +26,8 @@ import java.nio.charset.StandardCharsets;
 import javax.sql.rowset.serial.SerialBlob;
 import javax.sql.rowset.serial.SerialClob;
 import java.util.HashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -120,6 +125,61 @@ public class Neo4jDriverTest {
         finally {
             Neo4jDriver.setExecutorFactory(null);
         }
+    }
+
+    @Test
+    public void shouldAdaptCommonBindingsToNeo4jNamedParameters() throws Exception {
+        GraphJdbcParameterBindings bindings = new GraphJdbcParameterBindings();
+        bindings.bind(1, "Morpheus");
+        final Map<String, Object> capturedParameters = new LinkedHashMap<String, Object>();
+        Neo4jQueryExecutor delegate = new Neo4jQueryExecutor() {
+            @Override
+            public Neo4jQueryResult execute(String cypher, Map<String, Object> parameters) {
+                capturedParameters.putAll(parameters);
+                Map<String, Object> row = new LinkedHashMap<String, Object>();
+                row.put("name", parameters.get("p1"));
+                return new Neo4jQueryResult(Collections.singletonList("name"), Collections.singletonList(row), -1);
+            }
+
+            @Override
+            public void setAutoCommit(boolean autoCommit) {
+            }
+
+            @Override
+            public boolean getAutoCommit() {
+                return true;
+            }
+
+            @Override
+            public void commit() {
+            }
+
+            @Override
+            public void rollback() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+
+        GraphJdbcExecutor executor;
+        try {
+            executor = (GraphJdbcExecutor) Class.forName(
+                    "com.xiongx9527.fw.plus.graph.neo4j.jdbc.Neo4jGraphJdbcExecutor")
+                    .getDeclaredConstructor(Neo4jQueryExecutor.class).newInstance(delegate);
+        }
+        catch (ClassNotFoundException expected) {
+            org.junit.Assert.fail("Neo4jGraphJdbcExecutor should adapt common bindings");
+            return;
+        }
+
+        GraphJdbcResult result = executor.execute("RETURN $p1 AS name", bindings);
+
+        assertEquals("Morpheus", capturedParameters.get("p1"));
+        assertFalse(capturedParameters.containsKey("1"));
+        assertTrue(result.hasResultSet());
+        assertEquals("Morpheus", result.getRows().get(0).get("name"));
     }
 
     @Test
@@ -470,6 +530,61 @@ public class Neo4jDriverTest {
         }
         finally {
             Neo4jDriver.setExecutorFactory(null);
+        }
+    }
+
+    @Test
+    public void shouldExposeMetadataShapesThroughCommonGraphJdbcSupport() throws Exception {
+        Neo4jDriver.setExecutorFactory(new FakeNeo4jQueryExecutorFactory());
+        try (Connection connection = DriverManager.getConnection("jdbc:neo4j://localhost:7687/neo4j", "neo4j", "password")) {
+            DatabaseMetaData metaData = connection.getMetaData();
+            assertColumns(metaData.getSchemas(), "TABLE_SCHEM", "TABLE_CATALOG");
+            assertColumns(metaData.getCatalogs(), "TABLE_CAT");
+            assertColumns(metaData.getColumns(null, null, null, null), "TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME",
+                    "COLUMN_NAME", "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH", "DECIMAL_DIGITS",
+                    "NUM_PREC_RADIX", "NULLABLE", "REMARKS", "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB",
+                    "CHAR_OCTET_LENGTH", "ORDINAL_POSITION", "IS_NULLABLE", "SCOPE_CATALOG", "SCOPE_SCHEMA",
+                    "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN");
+            ResultSet tableTypes = metaData.getTableTypes();
+            assertTrue(tableTypes.next());
+            assertEquals("NODE", tableTypes.getString("TABLE_TYPE"));
+            assertTrue(tableTypes.next());
+            assertEquals("RELATIONSHIP", tableTypes.getString("TABLE_TYPE"));
+            tableTypes.close();
+        }
+        finally {
+            Neo4jDriver.setExecutorFactory(null);
+        }
+    }
+
+    @Test
+    public void shouldKeepPreparedStatementParameterAndBatchBehavior() throws Exception {
+        Neo4jDriver.setExecutorFactory(new FakeNeo4jQueryExecutorFactory());
+        try (Connection connection = DriverManager.getConnection("jdbc:neo4j://localhost:7687/neo4j", "neo4j", "password");
+             PreparedStatement statement = connection.prepareStatement("RETURN ? AS name")) {
+            statement.setString(1, "Morpheus");
+            ResultSet resultSet = statement.executeQuery();
+            assertTrue(resultSet.next());
+            assertEquals("Morpheus", resultSet.getString("name"));
+            resultSet.close();
+            statement.clearParameters();
+            statement.setNull(1, java.sql.Types.VARCHAR);
+            statement.addBatch();
+            assertEquals(1, statement.executeBatch().length);
+        }
+        finally {
+            Neo4jDriver.setExecutorFactory(null);
+        }
+    }
+
+    private static void assertColumns(ResultSet resultSet, String... columns) throws Exception {
+        try {
+            for (int index = 0; index < columns.length; index++) {
+                assertEquals(columns[index], resultSet.getMetaData().getColumnLabel(index + 1));
+            }
+        }
+        finally {
+            resultSet.close();
         }
     }
 }
