@@ -1,14 +1,21 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Import;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.File;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -16,6 +23,23 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class LangChain4jAutoConfigurationRegistrationTest {
+
+	private static final String MODEL_AUTO_CONFIGURATION =
+			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration";
+
+	private static final String[] REQUIRED_STARTER_DEPENDENCIES = new String[] {
+			"fw-plus-ai-boot-starter",
+			"fw-plus-ai-boot-autoconfigure",
+			"fw-plus-ai-langchain4j-model"
+	};
+
+	private static final String[] PROVIDER_SDK_ARTIFACTS = new String[] {
+			"langchain4j-open-ai",
+			"langchain4j-ollama",
+			"langchain4j-dashscope",
+			"langchain4j-anthropic",
+			"langchain4j-azure-open-ai"
+	};
 
 	private static final String[] EXPECTED_IMPORTS = new String[] {
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jCoreAutoConfiguration",
@@ -179,6 +203,38 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		}
 	}
 
+	@Test
+	public void shouldRegisterModelAutoConfigurationInSpringFactories() throws Exception {
+		Properties factories = new Properties();
+		InputStream inputStream = getClass().getClassLoader().getResourceAsStream("META-INF/spring.factories");
+		assertNotNull("spring.factories should be present", inputStream);
+		try {
+			factories.load(inputStream);
+		} finally {
+			inputStream.close();
+		}
+
+		String autoConfigurations = factories.getProperty("org.springframework.boot.autoconfigure.EnableAutoConfiguration");
+		assertNotNull("EnableAutoConfiguration entries should be present", autoConfigurations);
+		assertTrue("LangChain4jModelAutoConfiguration should be registered",
+				Arrays.asList(autoConfigurations.replace("\\n", "").split("\\s*,\\s*")).contains(MODEL_AUTO_CONFIGURATION));
+	}
+
+	@Test
+	public void shouldKeepModelStarterProviderSdkDependenciesOptIn() throws Exception {
+		File starterPom = findModelStarterPom();
+		assertTrue("Model starter POM should exist: " + starterPom.getAbsolutePath(), starterPom.isFile());
+
+		Set<String> artifactIds = dependencyArtifactIds(starterPom);
+		for (String requiredDependency : REQUIRED_STARTER_DEPENDENCIES) {
+			assertTrue("Model starter should depend on " + requiredDependency, artifactIds.contains(requiredDependency));
+		}
+		for (String providerSdkArtifact : PROVIDER_SDK_ARTIFACTS) {
+			assertTrue("Model starter must not directly depend on " + providerSdkArtifact,
+					!artifactIds.contains(providerSdkArtifact));
+		}
+	}
+
 	private Set<String> importClassNames(Class<?> type) {
 		Import importAnnotation = type.getAnnotation(Import.class);
 		assertNotNull(importAnnotation);
@@ -196,5 +252,33 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 			classNames.add(type.getName());
 		}
 		return classNames;
+	}
+
+	private File findModelStarterPom() {
+		File currentDirectory = new File(System.getProperty("user.dir"));
+		while (currentDirectory != null) {
+			File starterPom = new File(currentDirectory,
+					"fw-plus-ai-project/fw-plus-ai-boot-starters/"
+							+ "fw-plus-ai-langchain4j-model-spring-boot-starter/pom.xml");
+			if (starterPom.isFile()) {
+				return starterPom;
+			}
+			currentDirectory = currentDirectory.getParentFile();
+		}
+		return new File("fw-plus-ai-langchain4j-model-spring-boot-starter/pom.xml");
+	}
+
+	private Set<String> dependencyArtifactIds(File pom) throws Exception {
+		Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom);
+		NodeList dependencies = document.getElementsByTagName("dependency");
+		Set<String> artifactIds = new LinkedHashSet<String>();
+		for (int index = 0; index < dependencies.getLength(); index++) {
+			Element dependency = (Element) dependencies.item(index);
+			NodeList artifactIdElements = dependency.getElementsByTagName("artifactId");
+			if (artifactIdElements.getLength() > 0) {
+				artifactIds.add(artifactIdElements.item(0).getTextContent().trim());
+			}
+		}
+		return artifactIds;
 	}
 }
