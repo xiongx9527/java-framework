@@ -22,4 +22,4 @@
 
 ## 6. 集成验证
 
-- [ ] 6.1 运行受影响插件、宿主、Boot/Cloud/AI 构建，检查 IIFE 与 Maven 资源产物，完成浏览器交互、OpenSpec 严格验证和差异检查。
+- [x] 6.1 运行受影响插件、宿主、Boot/Cloud/AI 构建，检查 IIFE 与 Maven 资源产物，完成浏览器交互、OpenSpec 严格验证和差异检查。

@@ -453,7 +453,7 @@ Commit: `refactor: remove plugin-specific status bar logic`
 - Consumes: Tasks 1-7 的全部实现。
 - Produces: 可审计的构建、浏览器和规格验证证据。
 
-- [ ] **Step 1: 运行所有受影响前端契约测试与构建**
+- [x] **Step 1: 运行所有受影响前端契约测试与构建**
 
 Run: 宿主及受影响插件 console 的 `npm test`（仅存在可运行测试脚本的模块）。
 
@@ -461,17 +461,17 @@ Run: 全部受影响 console 的 `npm run build`。
 
 Expected: 全部 PASS；每个目标 IIFE 非空。
 
-- [ ] **Step 2: 运行 Core、Boot、Cloud、AI 目标 Maven 测试和资源打包**
+- [x] **Step 2: 运行 Core、Boot、Cloud、AI 目标 Maven 测试和资源打包**
 
 按依赖顺序使用各顶层 `./mvnw`。若仓库 wrapper 文件缺失或损坏，记录事实后使用系统 `mvn` 执行同一目标命令。
 
 Expected: Java 测试 PASS，四个新增插件和 LangChain4j 的 IIFE 位于目标 JAR 的 `magic-editor/plugins/`。
 
-- [ ] **Step 3: 浏览器验证**
+- [x] **Step 3: 浏览器验证**
 
 启动示例应用和 console，验证：在线人数之后依次显示 16 个插件入口；内置入口位置不变；隐藏配置有效；Admin/Eureka 自定义路径有效；静态 plugin toolbar 顺序稳定；动态 toolbar 点击行为不变；页面无错误文本和图标缺失。
 
-- [ ] **Step 4: 运行规格和差异检查**
+- [x] **Step 4: 运行规格和差异检查**
 
 Run: `openspec validate move-status-bar-items-to-plugins --strict`
 
@@ -479,6 +479,6 @@ Run: `git diff --check`
 
 Expected: 全部 PASS。
 
-- [ ] **Step 5: 勾选 OpenSpec 任务并提交**
+- [x] **Step 5: 勾选 OpenSpec 任务并提交**
 
 只有对应验证完成后才勾选 `tasks.md`。提交消息：`test: verify plugin status and toolbar extensions`。
