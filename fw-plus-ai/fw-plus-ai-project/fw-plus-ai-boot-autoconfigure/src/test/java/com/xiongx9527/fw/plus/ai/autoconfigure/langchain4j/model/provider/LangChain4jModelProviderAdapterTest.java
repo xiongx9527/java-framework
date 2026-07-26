@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -47,6 +48,29 @@ public class LangChain4jModelProviderAdapterTest {
         assertEquals("http://localhost:11434/v1", nativeModel.getBaseUrl());
         assertEquals("demo", nativeModel.getApiKey());
         assertEquals("gpt-4o-mini", nativeModel.getModelName());
+    }
+
+    @Test
+    public void shouldNotUseBaseUrlAsEndpointWhenEndpointIsNotConfigured() {
+        ReflectiveLangChain4jModelProviderAdapter adapter = new ReflectiveLangChain4jModelProviderAdapter(
+                "qianfan", LangChain4jModelType.CHAT, EndpointModel.class.getName(), "builder");
+
+        EndpointModel nativeModel = (EndpointModel) adapter.create(definition("qianfan", LangChain4jModelType.CHAT)).getModel();
+
+        assertEquals("http://localhost:11434/v1", nativeModel.getBaseUrl());
+        assertNull(nativeModel.getEndpoint());
+    }
+
+    @Test
+    public void shouldUseExplicitEndpointWhenEndpointIsConfigured() {
+        ReflectiveLangChain4jModelProviderAdapter adapter = new ReflectiveLangChain4jModelProviderAdapter(
+                "qianfan", LangChain4jModelType.CHAT, EndpointModel.class.getName(), "builder");
+        LangChain4jModelDefinition definition = definition("qianfan", LangChain4jModelType.CHAT);
+        definition.getProperties().put("endpoint", "https://qianfan.example.com");
+
+        EndpointModel nativeModel = (EndpointModel) adapter.create(definition).getModel();
+
+        assertEquals("https://qianfan.example.com", nativeModel.getEndpoint());
     }
 
     private LangChain4jModelDefinition definition(String provider, LangChain4jModelType type) {
@@ -112,6 +136,49 @@ public class LangChain4jModelProviderAdapterTest {
 
             public TestModel build() {
                 return new TestModel(baseUrl, apiKey, modelName);
+            }
+        }
+    }
+
+    public static class EndpointModel {
+
+        private final String baseUrl;
+        private final String endpoint;
+
+        private EndpointModel(String baseUrl, String endpoint) {
+            this.baseUrl = baseUrl;
+            this.endpoint = endpoint;
+        }
+
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public String getEndpoint() {
+            return endpoint;
+        }
+
+        public static class Builder {
+
+            private String baseUrl;
+            private String endpoint;
+
+            public Builder baseUrl(String baseUrl) {
+                this.baseUrl = baseUrl;
+                return this;
+            }
+
+            public Builder endpoint(String endpoint) {
+                this.endpoint = endpoint;
+                return this;
+            }
+
+            public EndpointModel build() {
+                return new EndpointModel(baseUrl, endpoint);
             }
         }
     }

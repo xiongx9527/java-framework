@@ -37,7 +37,7 @@ public class ReflectiveLangChain4jModelProviderAdapter implements LangChain4jMod
         try {
             Object builder = builder(definition);
             builder = set(builder, "baseUrl", value(definition, "baseUrl"));
-            builder = set(builder, "endpoint", value(definition, "endpoint", "baseUrl"));
+            builder = set(builder, "endpoint", value(definition, "endpoint"));
             builder = set(builder, "apiKey", value(definition, "apiKey"));
             builder = set(builder, "accessToken", value(definition, "accessToken", "apiKey"));
             builder = set(builder, "secretKey", value(definition, "secretKey", "apiKey"));
