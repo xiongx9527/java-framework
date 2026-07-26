@@ -10,17 +10,20 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapt
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.provider.ReflectiveLangChain4jModelProviderAdapter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 @Configuration
+@ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry")
 @EnableConfigurationProperties(LangChain4jModelProperties.class)
 @ConditionalOnProperty(prefix = "fw-plus.ai.langchain4j.model", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class LangChain4jModelAutoConfiguration {
@@ -46,22 +49,22 @@ public class LangChain4jModelAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(name = "azureOpenAiChatModelProviderAdapter")
-    public LangChain4jModelProviderAdapter azureOpenAiChatModelProviderAdapter() { return adapter("azure-openai", LangChain4jModelType.CHAT, "dev.langchain4j.model.azure.AzureOpenAiChatModel"); }
+    public LangChain4jModelProviderAdapter azureOpenAiChatModelProviderAdapter() { return azureAdapter(LangChain4jModelType.CHAT, "dev.langchain4j.model.azure.AzureOpenAiChatModel"); }
     @Bean
     @ConditionalOnMissingBean(name = "azureOpenAiStreamingChatModelProviderAdapter")
-    public LangChain4jModelProviderAdapter azureOpenAiStreamingChatModelProviderAdapter() { return adapter("azure-openai", LangChain4jModelType.STREAMING_CHAT, "dev.langchain4j.model.azure.AzureOpenAiStreamingChatModel"); }
+    public LangChain4jModelProviderAdapter azureOpenAiStreamingChatModelProviderAdapter() { return azureAdapter(LangChain4jModelType.STREAMING_CHAT, "dev.langchain4j.model.azure.AzureOpenAiStreamingChatModel"); }
     @Bean
     @ConditionalOnMissingBean(name = "azureOpenAiEmbeddingModelProviderAdapter")
-    public LangChain4jModelProviderAdapter azureOpenAiEmbeddingModelProviderAdapter() { return adapter("azure-openai", LangChain4jModelType.EMBEDDING, "dev.langchain4j.model.azure.AzureOpenAiEmbeddingModel"); }
+    public LangChain4jModelProviderAdapter azureOpenAiEmbeddingModelProviderAdapter() { return azureAdapter(LangChain4jModelType.EMBEDDING, "dev.langchain4j.model.azure.AzureOpenAiEmbeddingModel"); }
     @Bean
     @ConditionalOnMissingBean(name = "azureOpenAiImageModelProviderAdapter")
-    public LangChain4jModelProviderAdapter azureOpenAiImageModelProviderAdapter() { return adapter("azure-openai", LangChain4jModelType.IMAGE, "dev.langchain4j.model.azure.AzureOpenAiImageModel"); }
+    public LangChain4jModelProviderAdapter azureOpenAiImageModelProviderAdapter() { return azureAdapter(LangChain4jModelType.IMAGE, "dev.langchain4j.model.azure.AzureOpenAiImageModel"); }
     @Bean
     @ConditionalOnMissingBean(name = "azureOpenAiLanguageModelProviderAdapter")
-    public LangChain4jModelProviderAdapter azureOpenAiLanguageModelProviderAdapter() { return adapter("azure-openai", LangChain4jModelType.LANGUAGE, "dev.langchain4j.model.azure.AzureOpenAiLanguageModel"); }
+    public LangChain4jModelProviderAdapter azureOpenAiLanguageModelProviderAdapter() { return azureAdapter(LangChain4jModelType.LANGUAGE, "dev.langchain4j.model.azure.AzureOpenAiLanguageModel"); }
     @Bean
     @ConditionalOnMissingBean(name = "azureOpenAiStreamingLanguageModelProviderAdapter")
-    public LangChain4jModelProviderAdapter azureOpenAiStreamingLanguageModelProviderAdapter() { return adapter("azure-openai", LangChain4jModelType.STREAMING_LANGUAGE, "dev.langchain4j.model.azure.AzureOpenAiStreamingLanguageModel"); }
+    public LangChain4jModelProviderAdapter azureOpenAiStreamingLanguageModelProviderAdapter() { return azureAdapter(LangChain4jModelType.STREAMING_LANGUAGE, "dev.langchain4j.model.azure.AzureOpenAiStreamingLanguageModel"); }
 
     @Bean
     @ConditionalOnMissingBean(name = "qwenChatModelProviderAdapter")
@@ -212,5 +215,10 @@ public class LangChain4jModelAutoConfiguration {
 
     private LangChain4jModelProviderAdapter adapter(String provider, LangChain4jModelType modelType, String builderClassName) {
         return new ReflectiveLangChain4jModelProviderAdapter(provider, modelType, builderClassName, "builder");
+    }
+
+    private LangChain4jModelProviderAdapter azureAdapter(LangChain4jModelType modelType, String builderClassName) {
+        return new ReflectiveLangChain4jModelProviderAdapter("azure-openai", modelType, builderClassName, "builder",
+                Collections.singletonMap("endpoint", "baseUrl"));
     }
 }

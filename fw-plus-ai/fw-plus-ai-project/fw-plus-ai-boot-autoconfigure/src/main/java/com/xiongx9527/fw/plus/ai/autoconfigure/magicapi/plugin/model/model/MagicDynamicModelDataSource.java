@@ -31,7 +31,12 @@ public class MagicDynamicModelDataSource {
     }
 
     public void createClient(ModelDataSourceInfo info) {
-        validate(info);
+        validateKey(info);
+        destroyClientByKey(info.getKey());
+        if (!info.isEnabled()) {
+            return;
+        }
+        validateEnabled(info);
         ModelDataSourceInfo runtimeInfo = info.copy();
         LangChain4jModel model = modelFactory.create(info.toDefinition(), providerAdapters);
         runtimeModels.put(info.getKey(), model);
@@ -63,7 +68,17 @@ public class MagicDynamicModelDataSource {
     }
 
     public LangChain4jModel getDefault() {
-        return springBootRegistry == null ? null : springBootRegistry.getDefault();
+        if (springBootRegistry == null) {
+            return null;
+        }
+        LangChain4jModel springDefault = springBootRegistry.getDefault();
+        for (String key : springBootRegistry.keys()) {
+            LangChain4jModel springModel = springBootRegistry.get(key);
+            if (springModel == springDefault || springModel.equals(springDefault)) {
+                return getModel(key);
+            }
+        }
+        return springDefault;
     }
 
     public boolean contains(String key) {
@@ -79,13 +94,16 @@ public class MagicDynamicModelDataSource {
         return Collections.unmodifiableSet(keys);
     }
 
-    private void validate(ModelDataSourceInfo info) {
+    private void validateKey(ModelDataSourceInfo info) {
         if (info == null) {
             throw new LangChain4jModelException("Model datasource must not be null");
         }
         if (isBlank(info.getKey())) {
             throw new LangChain4jModelException("Model datasource key must not be blank");
         }
+    }
+
+    private void validateEnabled(ModelDataSourceInfo info) {
         if (isBlank(info.getProvider())) {
             throw new LangChain4jModelException("Model datasource provider must not be blank: " + info.getKey());
         }

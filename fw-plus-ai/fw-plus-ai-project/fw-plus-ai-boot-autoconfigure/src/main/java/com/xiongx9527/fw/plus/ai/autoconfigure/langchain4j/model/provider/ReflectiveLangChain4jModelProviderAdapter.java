@@ -8,6 +8,10 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class ReflectiveLangChain4jModelProviderAdapter implements LangChain4jModelProviderAdapter {
 
@@ -15,13 +19,23 @@ public class ReflectiveLangChain4jModelProviderAdapter implements LangChain4jMod
     private final LangChain4jModelType modelType;
     private final String builderClassName;
     private final String builderMethod;
+    private final Map<String, String> propertyAliases;
 
     public ReflectiveLangChain4jModelProviderAdapter(String provider, LangChain4jModelType modelType,
                                                      String builderClassName, String builderMethod) {
+        this(provider, modelType, builderClassName, builderMethod, Collections.<String, String>emptyMap());
+    }
+
+    public ReflectiveLangChain4jModelProviderAdapter(String provider, LangChain4jModelType modelType,
+                                                     String builderClassName, String builderMethod,
+                                                     Map<String, String> propertyAliases) {
         this.provider = provider;
         this.modelType = modelType;
         this.builderClassName = builderClassName;
         this.builderMethod = builderMethod;
+        this.propertyAliases = propertyAliases == null
+                ? Collections.<String, String>emptyMap()
+                : Collections.unmodifiableMap(new LinkedHashMap<String, String>(propertyAliases));
     }
 
     @Override
@@ -45,6 +59,16 @@ public class ReflectiveLangChain4jModelProviderAdapter implements LangChain4jMod
             builder = set(builder, "deploymentName", value(definition, "deploymentName", "modelName"));
             builder = set(builder, "model", value(definition, "model", "modelName"));
             builder = set(builder, "modelId", value(definition, "modelId", "modelName"));
+            for (Map.Entry<String, String> alias : propertyAliases.entrySet()) {
+                if (value(definition, alias.getKey()) == null) {
+                    builder = set(builder, alias.getKey(), value(definition, alias.getValue()));
+                }
+            }
+            if (definition.getProperties() != null) {
+                for (Map.Entry<String, Object> property : definition.getProperties().entrySet()) {
+                    builder = setRequired(builder, property.getKey(), property.getValue());
+                }
+            }
             return new LangChain4jModel(provider, modelType, isDirectModel() ? builder : build(builder));
         } catch (Exception e) {
             throw new LangChain4jModelException("Failed to create LangChain4j model: provider=" + provider
@@ -66,14 +90,105 @@ public class ReflectiveLangChain4jModelProviderAdapter implements LangChain4jMod
         if (value == null) {
             return target;
         }
-        for (Method method : target.getClass().getMethods()) {
+        Method method = findSetter(target.getClass(), name, value);
+        if (method == null) {
+            return target;
+        }
+        Object result = method.invoke(target, convertValue(value, method.getParameterTypes()[0]));
+        return result == null ? target : result;
+    }
+
+    private Object setRequired(Object target, String name, Object value) throws Exception {
+        if (value == null) {
+            return target;
+        }
+        Method method = findSetter(target.getClass(), name, value);
+        if (method == null) {
+            throw new IllegalArgumentException("Builder property is not supported: " + name);
+        }
+        Object result = method.invoke(target, convertValue(value, method.getParameterTypes()[0]));
+        return result == null ? target : result;
+    }
+
+    private Method findSetter(Class<?> targetClass, String name, Object value) {
+        for (Method method : targetClass.getMethods()) {
             if (name.equals(method.getName()) && method.getParameterTypes().length == 1
-                    && method.getParameterTypes()[0].isAssignableFrom(value.getClass())) {
-                Object result = method.invoke(target, value);
-                return result == null ? target : result;
+                    && canConvert(value, method.getParameterTypes()[0])) {
+                return method;
             }
         }
-        return target;
+        return null;
+    }
+
+    private boolean canConvert(Object value, Class<?> targetType) {
+        if (value == null) {
+            return !targetType.isPrimitive();
+        }
+        Class<?> wrapperType = wrapperType(targetType);
+        if (wrapperType.isInstance(value) || String.class.equals(wrapperType)) {
+            return true;
+        }
+        if (Number.class.isAssignableFrom(wrapperType) && (value instanceof Number || value instanceof String)) {
+            return true;
+        }
+        if (Boolean.class.equals(wrapperType) && (value instanceof Boolean || value instanceof String)) {
+            return true;
+        }
+        return Duration.class.equals(wrapperType)
+                && (value instanceof Duration || value instanceof Number || value instanceof String);
+    }
+
+    private Object convertValue(Object value, Class<?> targetType) {
+        Class<?> wrapperType = wrapperType(targetType);
+        if (wrapperType.isInstance(value)) {
+            return value;
+        }
+        if (String.class.equals(wrapperType)) {
+            return String.valueOf(value);
+        }
+        if (Integer.class.equals(wrapperType)) {
+            return value instanceof Number ? Integer.valueOf(((Number) value).intValue()) : Integer.valueOf(String.valueOf(value));
+        }
+        if (Long.class.equals(wrapperType)) {
+            return value instanceof Number ? Long.valueOf(((Number) value).longValue()) : Long.valueOf(String.valueOf(value));
+        }
+        if (Double.class.equals(wrapperType)) {
+            return value instanceof Number ? Double.valueOf(((Number) value).doubleValue()) : Double.valueOf(String.valueOf(value));
+        }
+        if (Float.class.equals(wrapperType)) {
+            return value instanceof Number ? Float.valueOf(((Number) value).floatValue()) : Float.valueOf(String.valueOf(value));
+        }
+        if (Boolean.class.equals(wrapperType)) {
+            return value instanceof Boolean ? value : Boolean.valueOf(String.valueOf(value));
+        }
+        if (Duration.class.equals(wrapperType)) {
+            return value instanceof Number
+                    ? Duration.ofMillis(((Number) value).longValue())
+                    : Duration.parse(String.valueOf(value));
+        }
+        return value;
+    }
+
+    private Class<?> wrapperType(Class<?> type) {
+        if (!type.isPrimitive()) {
+            return type;
+        }
+        if (Integer.TYPE.equals(type)) {
+            return Integer.class;
+        }
+        if (Long.TYPE.equals(type)) {
+            return Long.class;
+        }
+        if (Double.TYPE.equals(type)) {
+            return Double.class;
+        }
+        if (Float.TYPE.equals(type)) {
+            return Float.class;
+        }
+        if (Boolean.TYPE.equals(type)) {
+            return Boolean.class;
+        }
+        return type;
     }
 
     private Object build(Object builder) throws Exception {

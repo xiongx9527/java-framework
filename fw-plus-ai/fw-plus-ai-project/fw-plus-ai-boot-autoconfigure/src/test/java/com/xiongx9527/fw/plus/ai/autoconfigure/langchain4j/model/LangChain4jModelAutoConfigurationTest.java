@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,17 @@ public class LangChain4jModelAutoConfigurationTest {
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(LangChain4jModelAutoConfiguration.class))
             .withUserConfiguration(FakeAdapterConfiguration.class);
+
+    @Test
+    public void shouldBackOffWhenOptionalModelCoreIsMissing() {
+        new ApplicationContextRunner()
+                .withClassLoader(new FilteredClassLoader("com.xiongx9527.fw.plus.ai.langchain4j.model"))
+                .withConfiguration(AutoConfigurations.of(LangChain4jModelAutoConfiguration.class))
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    assertFalse(context.containsBean("langChain4jModelRegistry"));
+                });
+    }
 
     @Test
     public void shouldCreateRegistryFromEnabledDefinitions() {
@@ -71,6 +83,20 @@ public class LangChain4jModelAutoConfigurationTest {
                         }
                     }
                 });
+    }
+
+    @Test
+    public void shouldBuildAzureModelUsingBaseUrlAsEndpoint() {
+        LangChain4jModelDefinition definition = definition("azure-openai", LangChain4jModelType.CHAT);
+        definition.setKey("azure-chat");
+        definition.setBaseUrl("https://example.openai.azure.com");
+        definition.setApiKey("test-api-key");
+        definition.setModelName("deployment-name");
+
+        LangChain4jModel model = new LangChain4jModelAutoConfiguration()
+                .azureOpenAiChatModelProviderAdapter().create(definition);
+
+        assertEquals("dev.langchain4j.model.azure.AzureOpenAiChatModel", model.getModel().getClass().getName());
     }
 
     private Map<String, Set<LangChain4jModelType>> expectedProviderTypes() {

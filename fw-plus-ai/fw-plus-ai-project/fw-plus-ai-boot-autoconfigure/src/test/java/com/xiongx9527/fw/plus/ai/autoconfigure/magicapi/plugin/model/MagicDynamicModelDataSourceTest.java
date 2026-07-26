@@ -12,6 +12,7 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,36 @@ class MagicDynamicModelDataSourceTest {
         assertSame(factory.createdModel, dataSource.getModel("chat"));
         dataSource.destroyClientByKey("chat");
         assertSame(bootModel, dataSource.getModel("chat"));
+    }
+
+    @Test
+    void runtimeModelOverridesSpringBootDefaultModel() {
+        LangChain4jModel bootModel = model("boot");
+        RecordingFactory factory = new RecordingFactory();
+        MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
+                registryWith("chat", bootModel, "chat"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+
+        dataSource.createClient(info("chat"));
+
+        assertSame(factory.createdModel, dataSource.getDefault());
+    }
+
+    @Test
+    void disabledResourceRemovesExistingRuntimeModelWithoutCreatingReplacement() {
+        LangChain4jModel bootModel = model("boot");
+        RecordingFactory factory = new RecordingFactory();
+        MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
+                registryWith("chat", bootModel, "chat"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+        dataSource.createClient(info("chat"));
+        ModelDataSourceInfo disabled = info("chat");
+        disabled.setEnabled(false);
+        factory.createdDefinition = null;
+
+        dataSource.createClient(disabled);
+
+        assertSame(bootModel, dataSource.getModel("chat"));
+        assertTrue(dataSource.datasourceNodes().isEmpty());
+        assertNull(factory.createdDefinition);
     }
 
     @Test
@@ -72,6 +103,36 @@ class MagicDynamicModelDataSourceTest {
         assertNull(node.getProperties().get("token"));
         assertNull(node.getProperties().get("password"));
         assertEquals("value", node.getProperties().get("safe"));
+    }
+
+    @Test
+    void datasourceNodesRecursivelyClearSensitiveProperties() {
+        MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
+                registryWith("boot", model("boot"), "boot"), new RecordingFactory(), Collections.<LangChain4jModelProviderAdapter>emptyList());
+        ModelDataSourceInfo info = info("chat");
+        Map<String, Object> credentials = new LinkedHashMap<String, Object>();
+        credentials.put("apiKey", "nested-api-key");
+        credentials.put("region", "cn-north-1");
+        Map<String, Object> nested = new LinkedHashMap<String, Object>();
+        nested.put("credentials", credentials);
+        nested.put("items", Arrays.<Object>asList(
+                Collections.<String, Object>singletonMap("password", "nested-password"),
+                Collections.<String, Object>singletonMap("safe", "kept")));
+        nested.put("array", new Object[] {Collections.<String, Object>singletonMap("token", "nested-token"), "plain"});
+        info.setProperties(nested);
+
+        dataSource.createClient(info);
+
+        Map<String, Object> sanitized = dataSource.datasourceNodes().get(0).getProperties();
+        Map<?, ?> sanitizedCredentials = (Map<?, ?>) sanitized.get("credentials");
+        List<?> sanitizedItems = (List<?>) sanitized.get("items");
+        Object[] sanitizedArray = (Object[]) sanitized.get("array");
+        assertNull(sanitizedCredentials.get("apiKey"));
+        assertEquals("cn-north-1", sanitizedCredentials.get("region"));
+        assertNull(((Map<?, ?>) sanitizedItems.get(0)).get("password"));
+        assertEquals("kept", ((Map<?, ?>) sanitizedItems.get(1)).get("safe"));
+        assertNull(((Map<?, ?>) sanitizedArray[0]).get("token"));
+        assertEquals("plain", sanitizedArray[1]);
     }
 
     @Test

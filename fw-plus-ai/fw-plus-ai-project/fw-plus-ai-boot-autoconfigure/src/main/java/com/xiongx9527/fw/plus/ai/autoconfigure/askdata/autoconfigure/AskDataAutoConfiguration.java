@@ -17,6 +17,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadataP
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.EmptyAskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.LangChain4jAskDataModelRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.LangChain4jAskDataModelSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialectRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataPromptTemplateProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.DefaultAskDataPromptTemplateProvider;
@@ -27,7 +28,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.JdbcAskDataSqlExecuto
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.CompositeAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.ContentRetrieverAskDataVectorRetriever;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -39,6 +41,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @AutoConfiguration
@@ -56,8 +59,11 @@ public class AskDataAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public AskDataModelRegistry askDataModelRegistry(AskDataProperties properties,
-			ObjectProvider<LangChain4jModelRegistry> modelRegistryProvider) {
-		return new LangChain4jAskDataModelRegistry(properties, modelRegistryProvider.getIfAvailable());
+			Map<String, ChatLanguageModel> chatModels,
+			Map<String, EmbeddingModel> embeddingModels,
+			ObjectProvider<LangChain4jAskDataModelSource> modelSourceProvider) {
+		return new LangChain4jAskDataModelRegistry(properties, chatModels, embeddingModels,
+				modelSourceProvider.orderedStream().collect(Collectors.toList()));
 	}
 
     @Bean

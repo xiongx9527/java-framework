@@ -6,6 +6,9 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelException;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+import java.util.Collections;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -71,6 +74,36 @@ public class LangChain4jModelProviderAdapterTest {
         EndpointModel nativeModel = (EndpointModel) adapter.create(definition).getModel();
 
         assertEquals("https://qianfan.example.com", nativeModel.getEndpoint());
+    }
+
+    @Test
+    public void shouldApplyExtensionPropertiesWithCommonTypeConversions() {
+        ReflectiveLangChain4jModelProviderAdapter adapter = new ReflectiveLangChain4jModelProviderAdapter(
+                "test", LangChain4jModelType.CHAT, PropertyModel.class.getName(), "builder");
+        LangChain4jModelDefinition definition = definition("test", LangChain4jModelType.CHAT);
+        definition.getProperties().put("temperature", "0.35");
+        definition.getProperties().put("maxTokens", Long.valueOf(2048L));
+        definition.getProperties().put("logRequests", "true");
+        definition.getProperties().put("timeout", "PT5S");
+
+        PropertyModel nativeModel = (PropertyModel) adapter.create(definition).getModel();
+
+        assertEquals(0.35D, nativeModel.getTemperature(), 0.0001D);
+        assertEquals(Integer.valueOf(2048), nativeModel.getMaxTokens());
+        assertTrue(nativeModel.isLogRequests());
+        assertEquals(Duration.ofSeconds(5L), nativeModel.getTimeout());
+    }
+
+    @Test
+    public void shouldUseConfiguredBaseUrlAliasForAzureEndpoint() {
+        ReflectiveLangChain4jModelProviderAdapter adapter = new ReflectiveLangChain4jModelProviderAdapter(
+                "azure-openai", LangChain4jModelType.CHAT, EndpointModel.class.getName(), "builder",
+                Collections.singletonMap("endpoint", "baseUrl"));
+
+        EndpointModel nativeModel = (EndpointModel) adapter.create(
+                definition("azure-openai", LangChain4jModelType.CHAT)).getModel();
+
+        assertEquals("http://localhost:11434/v1", nativeModel.getEndpoint());
     }
 
     private LangChain4jModelDefinition definition(String provider, LangChain4jModelType type) {
@@ -179,6 +212,73 @@ public class LangChain4jModelProviderAdapterTest {
 
             public EndpointModel build() {
                 return new EndpointModel(baseUrl, endpoint);
+            }
+        }
+    }
+
+    public static class PropertyModel {
+
+        private final double temperature;
+        private final Integer maxTokens;
+        private final boolean logRequests;
+        private final Duration timeout;
+
+        private PropertyModel(double temperature, Integer maxTokens, boolean logRequests, Duration timeout) {
+            this.temperature = temperature;
+            this.maxTokens = maxTokens;
+            this.logRequests = logRequests;
+            this.timeout = timeout;
+        }
+
+        public static Builder builder() {
+            return new Builder();
+        }
+
+        public double getTemperature() {
+            return temperature;
+        }
+
+        public Integer getMaxTokens() {
+            return maxTokens;
+        }
+
+        public boolean isLogRequests() {
+            return logRequests;
+        }
+
+        public Duration getTimeout() {
+            return timeout;
+        }
+
+        public static class Builder {
+
+            private double temperature;
+            private Integer maxTokens;
+            private boolean logRequests;
+            private Duration timeout;
+
+            public Builder temperature(double temperature) {
+                this.temperature = temperature;
+                return this;
+            }
+
+            public Builder maxTokens(Integer maxTokens) {
+                this.maxTokens = maxTokens;
+                return this;
+            }
+
+            public Builder logRequests(boolean logRequests) {
+                this.logRequests = logRequests;
+                return this;
+            }
+
+            public Builder timeout(Duration timeout) {
+                this.timeout = timeout;
+                return this;
+            }
+
+            public PropertyModel build() {
+                return new PropertyModel(temperature, maxTokens, logRequests, timeout);
             }
         }
     }
