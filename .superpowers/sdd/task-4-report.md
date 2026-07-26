@@ -66,3 +66,25 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-p
 关键输出：`LangChain4jModelProviderAdapterTest` 执行 3 个测试，`LangChain4jModelAutoConfigurationTest` 执行 3 个测试；汇总为 `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
 
 `git diff --check`：通过。
+
+## Fix Review
+
+### RED
+
+在新增 Qianfan 风格 fake builder 回归测试后，执行以下 focused 测试：
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelProviderAdapterTest,LangChain4jModelAutoConfigurationTest -Dsurefire.printSummary=true test
+```
+
+结果：`BUILD FAILURE`。`shouldNotUseBaseUrlAsEndpointWhenEndpointIsNotConfigured` 断言失败：预期 `endpoint` 为 `null`，实际为 `http://localhost:11434/v1`，证明旧实现将 `baseUrl` 错误回退到 `endpoint`。
+
+### GREEN
+
+移除 `endpoint` 的 `baseUrl` fallback 后，使用同一命令验证通过：`Tests run: 8, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+
+- `endpoint` 仅在 `properties.endpoint` 显式配置时写入；`baseUrl` 仍独立写入 builder。
+- `LangChain4jModelAutoConfigurationTest` 逐一构造 brief 中的 provider/modelType 定义，已声明组合断言恰好一个 adapter 支持，未声明组合断言零个支持，覆盖 Qianfan IMAGE 和 Anthropic EMBEDDING 等禁止组合。
+- 测试中仍出现 SLF4J 多绑定警告（`slf4j-simple` 与 `logback-classic`），为既存 classpath 噪声，未纳入本次修改。
+
+`git diff --check`：通过。

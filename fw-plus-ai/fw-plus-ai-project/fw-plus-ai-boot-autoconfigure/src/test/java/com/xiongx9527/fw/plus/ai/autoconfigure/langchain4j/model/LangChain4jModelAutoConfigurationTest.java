@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
+import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -12,6 +13,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -57,7 +61,66 @@ public class LangChain4jModelAutoConfigurationTest {
     public void shouldRegisterProviderAdapters() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(LangChain4jModelAutoConfiguration.class))
-                .run(context -> assertEquals(40, context.getBeansOfType(LangChain4jModelProviderAdapter.class).size()));
+                .run(context -> {
+                    Map<String, LangChain4jModelProviderAdapter> adapters = context.getBeansOfType(LangChain4jModelProviderAdapter.class);
+                    for (Map.Entry<String, Set<LangChain4jModelType>> entry : expectedProviderTypes().entrySet()) {
+                        for (LangChain4jModelType type : LangChain4jModelType.values()) {
+                            int supportCount = supportCount(adapters, definition(entry.getKey(), type));
+                            assertEquals(entry.getValue().contains(type) ? 1 : 0, supportCount,
+                                    "Unexpected support for provider=" + entry.getKey() + ", modelType=" + type);
+                        }
+                    }
+                });
+    }
+
+    private Map<String, Set<LangChain4jModelType>> expectedProviderTypes() {
+        Map<String, Set<LangChain4jModelType>> expected = new LinkedHashMap<String, Set<LangChain4jModelType>>();
+        expected.put("openai", types(LangChain4jModelType.CHAT, LangChain4jModelType.STREAMING_CHAT,
+                LangChain4jModelType.EMBEDDING, LangChain4jModelType.IMAGE, LangChain4jModelType.LANGUAGE,
+                LangChain4jModelType.STREAMING_LANGUAGE));
+        expected.put("azure-openai", types(LangChain4jModelType.CHAT, LangChain4jModelType.STREAMING_CHAT,
+                LangChain4jModelType.EMBEDDING, LangChain4jModelType.IMAGE, LangChain4jModelType.LANGUAGE,
+                LangChain4jModelType.STREAMING_LANGUAGE));
+        expected.put("qwen", types(LangChain4jModelType.CHAT, LangChain4jModelType.STREAMING_CHAT,
+                LangChain4jModelType.EMBEDDING, LangChain4jModelType.IMAGE, LangChain4jModelType.LANGUAGE,
+                LangChain4jModelType.STREAMING_LANGUAGE));
+        expected.put("ollama", types(LangChain4jModelType.CHAT, LangChain4jModelType.EMBEDDING, LangChain4jModelType.LANGUAGE));
+        expected.put("anthropic", types(LangChain4jModelType.CHAT, LangChain4jModelType.STREAMING_CHAT));
+        expected.put("qianfan", types(LangChain4jModelType.CHAT, LangChain4jModelType.STREAMING_CHAT,
+                LangChain4jModelType.EMBEDDING, LangChain4jModelType.LANGUAGE));
+        expected.put("zhipu", types(LangChain4jModelType.CHAT, LangChain4jModelType.STREAMING_CHAT,
+                LangChain4jModelType.EMBEDDING, LangChain4jModelType.IMAGE));
+        expected.put("hugging-face", types(LangChain4jModelType.CHAT, LangChain4jModelType.EMBEDDING, LangChain4jModelType.LANGUAGE));
+        expected.put("local-ai", types(LangChain4jModelType.CHAT, LangChain4jModelType.EMBEDDING, LangChain4jModelType.LANGUAGE));
+        expected.put("gemini", types(LangChain4jModelType.CHAT, LangChain4jModelType.EMBEDDING));
+        expected.put("voyage-ai", types());
+        expected.put("all-mini-lm-l6-v2-quantized", types(LangChain4jModelType.EMBEDDING));
+        return expected;
+    }
+
+    private Set<LangChain4jModelType> types(LangChain4jModelType... types) {
+        Set<LangChain4jModelType> result = new LinkedHashSet<LangChain4jModelType>();
+        for (LangChain4jModelType type : types) {
+            result.add(type);
+        }
+        return result;
+    }
+
+    private int supportCount(Map<String, LangChain4jModelProviderAdapter> adapters, LangChain4jModelDefinition definition) {
+        int count = 0;
+        for (LangChain4jModelProviderAdapter adapter : adapters.values()) {
+            if (adapter.supports(definition)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private LangChain4jModelDefinition definition(String provider, LangChain4jModelType type) {
+        LangChain4jModelDefinition definition = new LangChain4jModelDefinition();
+        definition.setProvider(provider);
+        definition.setModelType(type);
+        return definition;
     }
 
     @Configuration
