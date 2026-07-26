@@ -68,6 +68,7 @@ export default (opt) => {
             type: 'pulsar-subscribe',
             title: 'pulsar.subscribe.title',
             icon: '#magic-pulsar-pulsar',
+            order: 700,
             component: MagicPulsarSubscribeInfo
         }, pulsarAdminToolbar]
     }

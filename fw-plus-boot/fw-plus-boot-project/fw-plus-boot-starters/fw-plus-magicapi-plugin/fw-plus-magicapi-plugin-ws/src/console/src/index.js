@@ -71,6 +71,7 @@ export default (opt) => {
             type: 'ws-subscribe',
             title: 'ws.subscribe.title',
             icon: '#magic-ws-ws',
+            order: 1400,
             component: MagicWsSubscribeInfo
         }]
     }

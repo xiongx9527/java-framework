@@ -43,6 +43,7 @@ export default (opt) => {
             // 展示图标
             icon: 'satoken',
             // 对应的组件
+            order: 1100,
             component: MagicSatokenInfo,
         }]
     }

@@ -22,12 +22,14 @@ export default (opt) => {
             type: 'word',
             title: 'word.result',
             icon: 'run',
+            order: 1300,
             component: MagicWordResult
         }, {
             id: 'word-designer',
             type: 'word',
             title: 'word.designerTab',
             icon: '#magic-word-word',
+            order: 1310,
             component: MagicWordDesigner,
             fullscreen: true
         }, {
@@ -35,6 +37,7 @@ export default (opt) => {
             type: 'word',
             title: 'word.info',
             icon: '#magic-word-word',
+            order: 1320,
             component: MagicWordInfo
         }]
     }

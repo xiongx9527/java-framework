@@ -58,11 +58,13 @@ export default (opt) => {
             type: 'kafka-subscribe',
             title: 'kafka.subscribe.title',
             icon: '#magic-kafka-kafka',
+            order: 400,
             component: MagicKafkaSubscribeInfo
         }, {
             id: 'kafka',
             title: i18n.format('kafka.title'),
             icon: '#magic-kafka-kafka',
+            order: 410,
             component: MagicKafka,
             adminOnly: true,
             allowClose: true,

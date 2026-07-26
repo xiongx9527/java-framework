@@ -42,6 +42,7 @@ export default (opt) => {
             type: 'freemarker',
             title: 'freemarker.result',
             icon: 'run',
+            order: 300,
             component: MagicFreemarkerResult,
             fullscreen: true
         }, {
@@ -52,6 +53,7 @@ export default (opt) => {
             // 展示图标
             icon: '#magic-freemarker-ftl',
             // 对应的组件
+            order: 310,
             component: MagicFreemarkerInfo
         }]
     }
