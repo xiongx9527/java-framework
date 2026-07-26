@@ -405,7 +405,7 @@ Commit: `feat: order static plugin toolbars`
 - Consumes: Tasks 1-6 的完整插件扩展契约。
 - Produces: 不含任何插件专属名称和行为的宿主状态栏。
 
-- [ ] **Step 1: 扩展失败边界测试**
+- [x] **Step 1: 扩展失败边界测试**
 
 断言宿主不含：
 
@@ -421,17 +421,17 @@ const forbidden = [
 
 同时断言仍存在 `array.splice(0, 0, ...items)`、`config.header[it.displayKey]` 和 `Message.PLUGINS_CHANGED`。
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npm test -- --test-name-pattern="宿主"`
 
 Expected: FAIL，旧专属逻辑仍存在。
 
-- [ ] **Step 3: 删除全部专属状态、图标、函数、文案判断和轮询**
+- [x] **Step 3: 删除全部专属状态、图标、函数、文案判断和轮询**
 
 删除不再使用的 import；保留固定 Gitee、GitHub、QQ群、帮助和退出入口。
 
-- [ ] **Step 4: 运行宿主全量测试和构建**
+- [x] **Step 4: 运行宿主全量测试和构建**
 
 Run: `npm test`
 
@@ -439,7 +439,7 @@ Run: `npm run build`
 
 Expected: PASS。
 
-- [ ] **Step 5: 提交 Task 7**
+- [x] **Step 5: 提交 Task 7**
 
 Commit: `refactor: remove plugin-specific status bar logic`
 
