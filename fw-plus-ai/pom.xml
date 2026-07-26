@@ -19,7 +19,6 @@
 	<packaging>pom</packaging>
 	<modules>
 		<module>fw-plus-ai-project</module>
-		<module>fw-plus-ai-samples</module>
 	</modules>
 	<groupId>com.xiongx9527.fw.plus.ai</groupId>
 	<artifactId>fw-plus-ai-build</artifactId>

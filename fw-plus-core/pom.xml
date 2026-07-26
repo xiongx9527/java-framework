@@ -18,7 +18,6 @@
 	</parent>
 	<packaging>pom</packaging>
 	<modules>
-		<module>fw-plus-samples</module>
 		<module>fw-plus-project</module>
 	</modules>
 	<groupId>com.xiongx9527.fw.plus</groupId>
