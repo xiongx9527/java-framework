@@ -25,7 +25,7 @@ class FakeNeo4jQueryExecutorFactory implements Neo4jQueryExecutorFactory {
                             Collections.<Map<String, Object>>emptyList(), 1);
                 }
                 Map<String, Object> row = new LinkedHashMap<String, Object>();
-                row.put("name", "Alice");
+                row.put("name", parameters.containsKey("p1") ? parameters.get("p1") : "Alice");
                 row.put("marker", parameters.get("p2"));
                 return new Neo4jQueryResult(Arrays.asList("name", "marker"), Collections.singletonList(row), -1);
             }
