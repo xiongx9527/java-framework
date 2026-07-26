@@ -11,6 +11,7 @@
     </parent>
     <packaging>pom</packaging>
     <modules>
+        <module>fw-plus-graph-jdbc</module>
         <module>fw-plus-nebula-jdbc</module>
         <module>fw-plus-neo4j-jdbc</module>
     </modules>
