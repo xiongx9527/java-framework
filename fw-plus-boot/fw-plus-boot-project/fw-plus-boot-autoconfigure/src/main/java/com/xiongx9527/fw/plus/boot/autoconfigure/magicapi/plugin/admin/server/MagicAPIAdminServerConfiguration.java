@@ -31,6 +31,8 @@ public class MagicAPIAdminServerConfiguration implements MagicPluginConfiguratio
      */
     @Override
     public Plugin plugin() {
-        return new Plugin("admin",springbootAdminContextPath);
+        Plugin plugin = new Plugin("admin", "MagicAdmin", "magic-admin.1.0.0.iife.js");
+        plugin.getAttributes().put("path", springbootAdminContextPath);
+        return plugin;
     }
 }
