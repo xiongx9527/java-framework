@@ -1,0 +1,20 @@
+export default {
+    'model.datasource.title': 'Model',
+    'model.datasource.name': '模型数据源',
+    'model.datasource.form.name': '数据源名称',
+    'model.datasource.form.key': '数据源标识',
+    'model.datasource.form.provider': '提供商',
+    'model.datasource.form.modelType': '模型类型',
+    'model.datasource.form.enabled': '启用',
+    'model.datasource.form.baseUrl': '服务地址',
+    'model.datasource.form.apiKey': 'API Key',
+    'model.datasource.form.modelName': '模型名称',
+    'model.datasource.form.properties': '连接参数',
+    'model.datasource.form.placeholder.name': '请输入数据源名称',
+    'model.datasource.form.placeholder.key': '如 qwen',
+    'model.datasource.form.placeholder.provider': '如 open-ai 或 dashscope',
+    'model.datasource.form.placeholder.baseUrl': '如 https://api.example.com/v1',
+    'model.datasource.form.placeholder.apiKey': '请输入 API Key',
+    'model.datasource.form.placeholder.modelName': '如 qwen-plus',
+    'model.datasource.form.placeholder.properties': '请输入 JSON 对象'
+}

@@ -3,7 +3,6 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.MagicApiPluginAutoConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.starter.MagicAPILangchain4jConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.module.ModelModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.service.ModelDataSourceInfoMagicResourceStorage;
@@ -21,18 +20,16 @@ import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 
 import java.util.Arrays;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MagicAPIModelAutoConfigurationIntegrationTest {
 
     @Test
-    void importsModelConfigurationInsteadOfLegacyLangchain4jConfiguration() {
+    void importsModelConfiguration() {
         Import imported = MagicApiPluginAutoConfiguration.class.getAnnotation(Import.class);
 
         assertTrue(Arrays.asList(imported.value()).contains(MagicAPIModelConfiguration.class));
-        assertFalse(Arrays.asList(imported.value()).contains(MagicAPILangchain4jConfiguration.class));
     }
 
     @Test

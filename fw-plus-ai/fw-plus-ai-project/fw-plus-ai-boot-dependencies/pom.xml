@@ -289,7 +289,7 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-langchain4j</artifactId>
+                <artifactId>fw-plus-ai-magicapi-plugin-model</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
