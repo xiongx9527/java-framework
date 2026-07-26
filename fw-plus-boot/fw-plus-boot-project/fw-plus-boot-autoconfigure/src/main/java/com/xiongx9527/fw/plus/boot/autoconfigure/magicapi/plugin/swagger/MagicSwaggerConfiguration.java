@@ -82,7 +82,7 @@ public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 	 */
 	@Override
 	public Plugin plugin() {
-		return new Plugin("swagger");
+		return new Plugin("swagger", "MagicSwagger", "magic-swagger.1.0.0.iife.js");
 	}
 
 	/**

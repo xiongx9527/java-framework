@@ -9,6 +9,21 @@
         <version>${revision}</version>
     </parent>
     <artifactId>fw-plus-magicapi-plugin-swagger</artifactId>
+    <properties>
+        <main.basedir>${basedir}/../../../..</main.basedir>
+    </properties>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
     <dependencies>
         <dependency>
             <groupId>org.ssssssss</groupId>

@@ -32,7 +32,7 @@ public class MagicAPIDruidConfiguration implements MagicPluginConfiguration {
      */
     @Override
     public Plugin plugin() {
-        return new Plugin("druid");
+        return new Plugin("druid", "MagicDruid", "magic-druid.1.0.0.iife.js");
     }
 
 

@@ -17,6 +17,8 @@ public class MagicAPIEurekaConfiguration implements MagicPluginConfiguration {
 
     @Override
     public Plugin plugin() {
-        return new Plugin("eureka",eurekaDashboardPath);
+        Plugin plugin = new Plugin("eureka", "MagicEureka", "magic-eureka.1.0.0.iife.js");
+        plugin.getAttributes().put("path", eurekaDashboardPath);
+        return plugin;
     }
 }
