@@ -22,8 +22,8 @@
 
 ## 4. Magic-API 模型插件
 
-- [ ] 4.1 新增 Magic model 动态资源信息对象、资源存储和动态注册器，资源类型使用 `model-datasource`，资源定义转换为 `LangChain4jModelDefinition`。
-- [ ] 4.2 新增 Magic 动态模型数据源，合并 Spring Boot registry 与 Magic 运行态模型，明确 key 冲突和优先级规则。
+- [x] 4.1 新增 Magic model 动态资源信息对象、资源存储和动态注册器，资源类型使用 `model-datasource`，资源定义转换为 `LangChain4jModelDefinition`。
+- [x] 4.2 新增 Magic 动态模型数据源，合并 Spring Boot registry 与 Magic 运行态模型，明确 key 冲突和优先级规则。
 - [ ] 4.3 新增或调整 Magic 脚本模块，使脚本可按 key 获取 Chat、Streaming Chat、Embedding、Image、Language 和 Streaming Language 模型。
 - [ ] 4.4 新增 Magic 控制器测试接口和资源列表能力，响应与日志过滤 apiKey、secretKey、accessToken 等敏感字段。
 - [ ] 4.5 注册新的 Magic model 插件配置和前端资源，删除或替换旧 `langchain4j` 插件配置、脚本入口和 `langchain4j-datasource` 前端资源。
