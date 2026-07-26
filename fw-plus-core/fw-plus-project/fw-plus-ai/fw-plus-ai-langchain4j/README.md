@@ -49,9 +49,6 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 - `dev.langchain4j.spring.*`
 - `dev.langchain4j.openai.spring.*`
 - `dev.langchain4j.store.embedding.*.spring.*`
-- `dev.langchain4j.store.embedding.cassandra.*` / `dev.langchain4j.store.embedding.astradb.*`
-- `dev.langchain4j.store.embedding.infinispan.*`
-- `dev.langchain4j.store.embedding.neo4j.*` / `dev.langchain4j.store.graph.neo4j.*` / `dev.langchain4j.rag.content.retriever.neo4j.*`
 
 构建时，本工程会产出配套坐标的 Java 8 兼容类，供上层 `fw-plus-ai-boot-autoconfigure` 和 starter 依赖使用。这样可以避免 Java 8 环境加载到使用高版本 Java API 或高版本字节码的上游实现。Java 17 及以上环境不需要这些覆盖模块，应使用 LangChain4j 原始 artifact。
 

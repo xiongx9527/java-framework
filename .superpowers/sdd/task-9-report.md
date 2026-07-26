@@ -111,3 +111,8 @@ rg -n '1\.x|ChatModel|StreamingChatModel' fw-plus-ai/README.md fw-plus-ai/README
 
 结果：通过。YAML 可解析，四项配置结构均存在，三份 README 均明确包含 LangChain4j
 `1.x`、`ChatModel` 与 `StreamingChatModel`。
+
+## 最终复审修复
+
+- 删除 Core LangChain4j README “覆盖方式”中对当前工作树不存在的 Cassandra、Infinispan、Neo4j 覆盖包路径示例，保持文档与聚合 POM/BOM 一致。
+- 聚焦扫描 `rg -n 'fw-plus-ai-langchain4j-(cassandra|infinispan|neo4j)|store.embedding.cassandra|store.embedding.astradb|store.embedding.infinispan|store.embedding.neo4j|store.graph.neo4j|rag.content.retriever.neo4j' fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/README.md fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/pom.xml fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml` 无匹配。
