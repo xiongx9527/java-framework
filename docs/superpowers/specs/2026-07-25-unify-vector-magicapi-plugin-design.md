@@ -2,6 +2,8 @@
 comet_change: unify-vector-magicapi-plugin
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-26-unify-vector-magicapi-plugin
+status: final
 ---
 
 # 统一向量 Store Starter 与 Magic-API Vector 插件技术设计

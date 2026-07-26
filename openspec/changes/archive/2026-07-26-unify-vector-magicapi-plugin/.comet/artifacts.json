@@ -4,5 +4,6 @@
   "openspec_tasks": "openspec/changes/unify-vector-magicapi-plugin/tasks.md",
   "openspec_delta_spec": "openspec/changes/unify-vector-magicapi-plugin/specs/langchain4j-embedding-store-starter/spec.md",
   "handoff_context": "openspec/changes/unify-vector-magicapi-plugin/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/unify-vector-magicapi-plugin/.comet/handoff/design-context.md"
+  "handoff_markdown": "openspec/changes/unify-vector-magicapi-plugin/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-26-unify-vector-magicapi-plugin"
 }

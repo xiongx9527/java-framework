@@ -2,6 +2,7 @@
 change: unify-vector-magicapi-plugin
 design-doc: docs/superpowers/specs/2026-07-25-unify-vector-magicapi-plugin-design.md
 base-ref: c695308855f1512ebbcf705f965aaa4d2c352765
+archived-with: 2026-07-26-unify-vector-magicapi-plugin
 ---
 
 # 统一向量 Store Starter 与 Magic-API Vector 插件 Implementation Plan
