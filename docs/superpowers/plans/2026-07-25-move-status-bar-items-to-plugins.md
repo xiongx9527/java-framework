@@ -369,21 +369,21 @@ Commit: `feat: add status plugins for platform integrations`
 - Consumes: Task 2 的静态 toolbar 排序。
 - Produces: 所有现有静态插件 toolbar 的有限数值 `order`。
 
-- [ ] **Step 1: 编写全量失败契约测试**
+- [x] **Step 1: 编写全量失败契约测试**
 
 表驱动读取 14 个插件 `index.js`，逐一收集 `toolbars` 项并断言每项存在有限数值 `order`。基准顺序使用 100 间隔；同插件多个 toolbar 使用 10 间隔。
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `node --test test/plugin-toolbar-order.contract.test.mjs`
 
 Expected: FAIL，现有 toolbar 缺少 `order`。
 
-- [ ] **Step 3: 补充明确顺序**
+- [x] **Step 3: 补充明确顺序**
 
 只增加 `order`，不得修改 `id`、`type`、`component`、`adminOnly`、`fullscreen`、`allowClose` 或动态打开逻辑。
 
-- [ ] **Step 4: 运行排序、宿主和插件契约测试**
+- [x] **Step 4: 运行排序、宿主和插件契约测试**
 
 Run: 宿主 `npm test`。
 
@@ -391,7 +391,7 @@ Run: 已有可运行测试的 DB、S3、Kafka、Pulsar 插件 `npm test`。
 
 Expected: 全部 PASS。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交 Task 6**
 
 Commit: `feat: order static plugin toolbars`
 
@@ -439,7 +439,7 @@ Run: `npm run build`
 
 Expected: PASS。
 
-- [ ] **Step 5: 提交**
+- [ ] **Step 5: 提交 Task 7**
 
 Commit: `refactor: remove plugin-specific status bar logic`
 

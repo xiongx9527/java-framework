@@ -18,7 +18,7 @@
 
 ## 5. Toolbar 排序
 
-- [ ] 5.1 为所有现有静态插件 toolbar 补充明确 `order`，宿主稳定排序且不改变内置、动态 toolbar 和 `adminOnly` 行为。
+- [x] 5.1 为所有现有静态插件 toolbar 补充明确 `order`，宿主稳定排序且不改变内置、动态 toolbar 和 `adminOnly` 行为。
 
 ## 6. 集成验证
 

@@ -1,26 +1,26 @@
 # 子代理进度
 
-- 计划任务：Task 5: 创建 Druid、Admin、Swagger、Eureka 前端插件
-- OpenSpec 映射：3.1 创建四个独立前端插件、IIFE 和后端加载配置，覆盖 Admin/Eureka 自定义路径
-- 当前阶段：done
-- 实现代理：019f9a44-4d6b-7971-8df5-25d619049c9b（Franklin）
+- 计划任务：Task 6: 为所有静态插件 Toolbar 增加顺序
+- OpenSpec 映射：5.1 为所有现有静态插件 toolbar 补充明确 `order`，宿主稳定排序且不改变内置、动态 toolbar 和 `adminOnly` 行为
+- 实现代理：019f9dd0-7907-7af0-bcbd-f8c9a21fc20f（Dalton）
 - review_mode：thorough
 - 审查修复轮次：1/2
-- 实现基线：01421f8317198cfce6c24883d9d068fc4d390974
-- 实现提交：28ff0b52bededfce40f28101d2536ae5743b50eb
-- 变更文件：四个插件模块/console/IIFE、Boot/Cloud 后端元数据与测试、聚合 POM/BOM，共 36 个文件
-- RED 证据：前端 0/10、Boot 元数据 0/3、Cloud 元数据 0/1
-- GREEN 证据：前端 10/10、Boot 3/3、Cloud 1/1、4/4 构建与资源装配通过
-- 已通过审查：Task 5 第 1 轮修复后聚焦复审通过，3 个 Important 全部关闭
-- 审查代理：019f9c14-48d0-7b51-81f2-d993a7872e5a（Ptolemy）
-- 审查结果：Needs fixes（3 个 Important）
-- 未解决反馈：IIFE 未注入 MAGIC_API_BASE_URL；Druid/Swagger SVG 与宿主不一致；Eureka 位于 Boot 聚合且依赖 Cloud starter，形成跨层发布顺序环
-- 决策：采用 Cloud 聚合方案；Eureka artifact 移入 Cloud starters 聚合/BOM，Boot 删除对应模块/依赖，保持 `Core -> Boot -> Cloud` 发布顺序
-- 修复范围：同时显式注入并验证非默认 `MAGIC_API_BASE_URL`，以及恢复 Druid/Swagger 原宿主 SVG 内容
-- 修复代理：019f9d62-d519-7583-ab0e-a67af4825ff4（Linnaeus）
-- 修复提交：3a70d9a7bbd7e5eb7609a30a87a6c1a6801543d1
-- 修复 RED：四插件非默认基址产物行为失败；Druid/Swagger symbol 与宿主 SVG 不等价；Eureka 仍位于 Boot 聚合
-- 修复 GREEN：前端 18/18、Boot 3/3、Cloud 1/1；四个 Maven 资源包/JAR 装配及 Boot/Cloud 分层检查通过
-- 修复顾虑：内部 Nexus 超时，Maven 使用本地缓存离线验证；既有 Vite 漏洞与 Maven 警告未纳入本轮
-- 聚焦复审代理：019f9daf-8141-7ed0-af5c-c271a1eafc79（Sagan）
-- 聚焦复审结果：Spec Compliance PASS；Code Quality PASS；APPROVED；无新增 Critical/Important
+- 实现基线：518a9da1
+- 当前阶段：done
+- 实现提交：db57aa9a
+- 变更文件：14 个插件 `src/console/src/index.js` 和宿主 `plugin-toolbar-order.contract.test.mjs`
+- RED 证据：全量契约测试在 Config 首个 toolbar 缺少数值 `order` 时失败
+- GREEN 证据：宿主 14/14、DB 6/6、S3 15/15、Kafka 5/5、Pulsar 4/4，共 44 项通过
+- 风险信号：跨 14 个插件模块；提交 128 新增/1 删除，未超过 200 行
+- 实现顾虑：RabbitMQ 文件补充 EOF 换行；宿主存在既有模块类型警告
+- 已通过审查：Task 6 第 1 轮修复后聚焦复审通过，原 Important 已关闭，无新增 Critical/Important
+- 审查代理：019f9dd8-cc5e-7453-9be6-707c809c280d（Socrates）
+- 审查结果：Needs fixes（1 个 Important）
+- 未解决反馈：toolbar 契约测试使用文本/正则提取，可能被注释、字符串或嵌套 `order` 欺骗；需改为结构化 AST 检查并显式跳过 Pulsar 动态 toolbar
+- 修复代理：019f9ddb-32f2-7420-8418-0f17e288f023（Boyle）
+- 修复提交：76dae7e813a79c7c94c06994d13e0b1cdd0b0bb4
+- 修复 RED：注释、字符串和嵌套对象携带伪 `order` 时，旧 helper 产生假阳性，对抗测试 1/2 失败
+- 修复 GREEN：AST 契约 2/2、宿主全量 15/15、`git diff --check` 通过
+- 修复顾虑：新增直接开发依赖 `acorn`；仓库无已跟踪前端锁文件；既有依赖漏洞未处理
+- 聚焦复审代理：019f9de1-5c1a-73e2-aafa-48d20c097701（Boole）
+- 聚焦复审结果：Spec Compliance APPROVED；Code Quality APPROVED；最高严重级别无
