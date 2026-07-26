@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding;
 
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreException;
@@ -8,13 +8,13 @@ import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProvid
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;

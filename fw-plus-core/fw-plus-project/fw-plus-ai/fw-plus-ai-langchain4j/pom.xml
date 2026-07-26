@@ -25,7 +25,6 @@
         <module>fw-plus-ai-langchain4j-milvus</module>
         <module>fw-plus-ai-langchain4j-dashscope</module>
         <module>fw-plus-ai-langchain4j-store-embeding</module>
-        <module>fw-plus-ai-langchain4j-store-embeding-spring-boot-starter</module>
     </modules>
     <artifactId>fw-plus-ai-langchain4j</artifactId>
 

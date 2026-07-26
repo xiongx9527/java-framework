@@ -1,6 +1,6 @@
-package com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding;
 
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
 import java.io.File;
 import java.io.BufferedReader;
@@ -8,8 +8,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class EmbeddingStoreAutoConfigurationMetadataTest {
 
@@ -17,7 +17,7 @@ public class EmbeddingStoreAutoConfigurationMetadataTest {
     public void shouldRegisterAutoConfigurationInSpringFactoriesOnly() throws Exception {
         String factories = read("META-INF/spring.factories");
 
-        assertTrue(factories.contains("com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.autoconfigure.EmbeddingStoreAutoConfiguration"));
+        assertTrue(factories.contains("com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration"));
         assertFalse(existsInStarter("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports"));
         assertFalse(existsInStarter("META-INF/spring/org.springframework.boot.autoconfig.AutoConfiguration.imports"));
     }

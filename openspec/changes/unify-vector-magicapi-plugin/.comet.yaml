@@ -21,7 +21,7 @@ created_at: 2026-07-25
 verified_at: null
 archive_confirmation: null
 archived: false
-bound_branch: feature/20260725/unify-vector-magicapi-plugin
+bound_branch: dev
 direct_override: null
 handoff_context: openspec/changes/unify-vector-magicapi-plugin/.comet/handoff/design-context.json
 handoff_hash: 8baf27be52550d644995d8004c07a29c85579a8758c21546142baf60a6f48c2c

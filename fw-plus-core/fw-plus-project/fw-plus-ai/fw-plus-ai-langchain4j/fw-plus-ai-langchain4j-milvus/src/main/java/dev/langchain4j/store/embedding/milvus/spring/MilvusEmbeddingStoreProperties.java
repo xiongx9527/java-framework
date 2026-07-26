@@ -13,7 +13,7 @@ import static io.milvus.common.clientenum.ConsistencyLevelEnum.STRONG;
 @Getter
 @Setter
 @ConfigurationProperties(prefix = MilvusEmbeddingStoreProperties.PREFIX)
-public class MilvusEmbeddingStoreProperties extends EmbeddingStoreProperties {
+public class MilvusEmbeddingStoreProperties {
 
     static final String PREFIX = "langchain4j.milvus";
     static final String DEFAULT_HOST = "localhost";
