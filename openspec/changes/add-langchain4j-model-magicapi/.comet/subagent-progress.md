@@ -2,16 +2,26 @@
 
 - review_mode: standard
 - tdd_mode: tdd
-- current_task: Task 8: Magic Console 插件模块迁移与旧入口删除
-- openspec_task: 4.5/5.1/5.2/5.3 前端 model 插件、旧 langchain4j 入口删除和 Maven/sample 迁移；后续 6.2 文档需说明 0.35 provider 矩阵限制
+- current_task: Task 9: Documentation、Samples 配置与全量验证
+- openspec_task: 6.1/6.2/7.1/7.2/7.3/7.4 示例配置、README 文档、LangChain4j 0.35 与 1.x 命名说明，以及全量验证记录
 - phase: ready-for-implementation
 - issue: none
-- base_commit: 76dc9ed07b0b9b86a73c141975298874f991ec8a
+- base_commit: e7317ad2e18864078ba91e38603d91d348f155fe
 - implementer: pending
 - report: pending
-- review_required: Task 7 approved; Task 8 pending implementation
-- red_green_evidence: Task 7 focused tests passed 19 tests, 0 failures, 0 errors with Maven Wrapper; git diff --check passed
+- review_required: Task 8 approved after AskData JUnit Jupiter test fix; Task 9 pending implementation
+- red_green_evidence: Task 8 console contract test passed, AskData/Model integration tests passed 7 tests, console build passed, old entry structural scan passed, git diff --check passed
 - unresolved_feedback: none
+
+## Completed Task 8
+
+- commits: 0dba64bd..e7317ad2
+- implementation: a9b7bf51
+- fix: e7317ad2
+- implementer: 019f9ea2-d79f-7b60-b34e-48e135c52ff8
+- reviewer: 019f9eb3-deed-7320-b4f4-478b93d3d6e0 approved after AskData JUnit Jupiter fix
+- GREEN: model console contract test passed 1 test; LangChain4jAskDataModelRegistryTest and MagicAPIModelAutoConfigurationIntegrationTest passed 7 tests, 0 failures, 0 errors; console build passed after npm install; implementer reported model plugin Maven install and sample package passed; old langchain4j entry structural checks passed; git diff --check a9b7bf51..HEAD passed
+- environment notes: npm install/build generated local console artifacts that were cleaned after verification; Maven output included existing SLF4J/JDK warnings
 
 ## Completed Task 7
 

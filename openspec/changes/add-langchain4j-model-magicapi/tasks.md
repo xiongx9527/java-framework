@@ -26,13 +26,13 @@
 - [x] 4.2 新增 Magic 动态模型数据源，合并 Spring Boot registry 与 Magic 运行态模型，明确 key 冲突和优先级规则。
 - [x] 4.3 新增或调整 Magic 脚本模块，使脚本可按 key 获取 Chat、Streaming Chat、Embedding、Image、Language 和 Streaming Language 模型。
 - [x] 4.4 新增 Magic 控制器测试接口和资源列表能力，响应与日志过滤 apiKey、secretKey、accessToken 等敏感字段。
-- [ ] 4.5 注册新的 Magic model 插件配置和前端资源，删除或替换旧 `langchain4j` 插件配置、脚本入口和 `langchain4j-datasource` 前端资源。
+- [x] 4.5 注册新的 Magic model 插件配置和前端资源，删除或替换旧 `langchain4j` 插件配置、脚本入口和 `langchain4j-datasource` 前端资源。
 
 ## 5. 旧实现迁移与删除
 
-- [ ] 5.1 删除或替换旧 `com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j` 下重复的模型工厂、动态数据源、资源存储、控制器、脚本模块和配置类。
-- [ ] 5.2 更新 Magic 插件聚合、AI Boot BOM、starter 依赖和示例项目，使运行入口迁移到新的 model 插件 artifact。
-- [ ] 5.3 明确旧 `fw-plus-ai-magicapi-plugin-langchain4j` artifact 的处理方式：删除模块或改为指向新 model 插件的空壳迁移模块，避免同一运行态出现两套入口。
+- [x] 5.1 删除或替换旧 `com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j` 下重复的模型工厂、动态数据源、资源存储、控制器、脚本模块和配置类。
+- [x] 5.2 更新 Magic 插件聚合、AI Boot BOM、starter 依赖和示例项目，使运行入口迁移到新的 model 插件 artifact。
+- [x] 5.3 明确旧 `fw-plus-ai-magicapi-plugin-langchain4j` artifact 的处理方式：删除模块或改为指向新 model 插件的空壳迁移模块，避免同一运行态出现两套入口。
 
 ## 6. 兼容性与文档
 

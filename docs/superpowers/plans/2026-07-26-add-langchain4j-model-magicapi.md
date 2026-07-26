@@ -1024,7 +1024,7 @@ git commit -m "feat: add magic model plugin backend"
   - Console form fields: `name`, `key`, `provider`, `modelType`, `enabled`, `baseUrl`, `apiKey`, `modelName`, `properties`.
   - Sample depends on `fw-plus-ai-magicapi-plugin-model` and no longer depends on `fw-plus-ai-magicapi-plugin-langchain4j`.
 
-- [ ] **Task 8 Step 1: Write failing console contract test**
+- [x] **Task 8 Step 1: Write failing console contract test**
 
 Create `magic-model-contract.test.cjs` asserting:
 
@@ -1050,7 +1050,7 @@ test('uses model datasource resource type and plugin name', () => {
 });
 ```
 
-- [ ] **Task 8 Step 2: Run console test to verify it fails**
+- [x] **Task 8 Step 2: Run console test to verify it fails**
 
 Run:
 
@@ -1061,15 +1061,15 @@ npm test
 
 Expected: FAIL because the console package does not exist.
 
-- [ ] **Task 8 Step 3: Create model plugin module and console assets**
+- [x] **Task 8 Step 3: Create model plugin module and console assets**
 
 Create `fw-plus-ai-magicapi-plugin-model` by carrying over the working vector console structure and replacing identifiers with `model`, `model-datasource`, and `magic-model.1.0.0.iife.js`. Keep controls for sensitive fields as password inputs and do not render raw secret values in list rows.
 
-- [ ] **Task 8 Step 4: Delete old Magic LangChain4j plugin entry points**
+- [x] **Task 8 Step 4: Delete old Magic LangChain4j plugin entry points**
 
 Remove old backend package `plugin/langchain4j` and old starter module `fw-plus-ai-magicapi-plugin-langchain4j`. Update `fw-plus-ai-magicapi-plugin/pom.xml` to replace the old module with `fw-plus-ai-magicapi-plugin-model`. Update `fw-plus-ai-boot-dependencies/pom.xml` and sample POM references from `fw-plus-ai-magicapi-plugin-langchain4j` to `fw-plus-ai-magicapi-plugin-model`.
 
-- [ ] **Task 8 Step 5: Run console and Maven migration checks**
+- [x] **Task 8 Step 5: Run console and Maven migration checks**
 
 Run:
 
@@ -1084,7 +1084,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-ai
 
 Expected: all commands PASS. Built JS asset exists at `src/main/resources/magic-editor/plugins/magic-model.1.0.0.iife.js`.
 
-- [ ] **Task 8 Step 6: Run structural deletion check**
+- [x] **Task 8 Step 6: Run structural deletion check**
 
 Run:
 
@@ -1096,7 +1096,7 @@ rg -n "langchain4j-datasource|MagicLangchain4j|@MagicModule\\(\"langchain4j\"\\)
 
 Expected: the two `test ! -d` commands exit 0. The `rg` command returns no matches.
 
-- [ ] **Task 8 Step 7: Commit this task during execution**
+- [x] **Task 8 Step 7: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin \
