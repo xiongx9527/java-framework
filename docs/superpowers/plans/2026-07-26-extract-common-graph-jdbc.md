@@ -234,7 +234,7 @@ git commit -m "fw-plus-core: 新增公共图 JDBC 模块"
   - `public static ResultSet emptyPrimaryKeys() throws SQLException`
   - `public static ResultSet emptyIndexInfo() throws SQLException`
 
-- [ ] **Step 1: 先写公共默认行为失败测试**
+- [x] **Step 1: 先写公共默认行为失败测试**
 
 `GraphJdbcDefaultsTest.java` 覆盖：
 
@@ -270,7 +270,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: 编译失败，提示 `GraphJdbcDefaults` 或 `GraphJdbcWrapperSupport` 不存在。
 
-- [ ] **Step 2: 实现 `GraphJdbcDefaults` 与 `GraphJdbcWrapperSupport`**
+- [x] **Step 2: 实现 `GraphJdbcDefaults` 与 `GraphJdbcWrapperSupport`**
 
 实现要点：
 
@@ -331,7 +331,7 @@ public final class GraphJdbcDefaults {
 
 `GraphJdbcWrapperSupport.unwrap` 对可分配类型返回 `iface.cast(target)`，否则抛出 `SQLException("No wrapped object for " + iface.getName())`；`isWrapperFor` 返回 `iface != null && target != null && iface.isInstance(target)`。
 
-- [ ] **Step 3: 写生命周期失败测试**
+- [x] **Step 3: 写生命周期失败测试**
 
 `GraphJdbcLifecycleTest.java` 覆盖：
 
@@ -373,7 +373,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: 编译失败，提示 `GraphJdbcLifecycle` 不存在。
 
-- [ ] **Step 4: 实现 `GraphJdbcLifecycle`**
+- [x] **Step 4: 实现 `GraphJdbcLifecycle`**
 
 实现要求：
 
@@ -407,7 +407,7 @@ public final class GraphJdbcLifecycle {
 }
 ```
 
-- [ ] **Step 5: 写 RowSet 与元数据形状失败测试**
+- [x] **Step 5: 写 RowSet 与元数据形状失败测试**
 
 `GraphJdbcRowSetsTest.java` 覆盖：
 
@@ -478,7 +478,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: 编译失败，提示 RowSet/MetaData 支持类不存在。
 
-- [ ] **Step 6: 实现 `GraphJdbcColumn`、`GraphJdbcResult`、`GraphJdbcRowSets`、`GraphJdbcMetaDataSupport`**
+- [x] **Step 6: 实现 `GraphJdbcColumn`、`GraphJdbcResult`、`GraphJdbcRowSets`、`GraphJdbcMetaDataSupport`**
 
 实现边界：
 
@@ -518,7 +518,7 @@ public final class GraphJdbcResult {
 
 `GraphJdbcRowSets.resultSet` 复用现有 Neo4j 逻辑：如果 columns 为空且 rows 非空，则使用第一行 key 顺序；用 `RowSetProvider.newFactory().createCachedRowSet()` 与 `RowSetMetaDataImpl` 构造只读结果。`GraphJdbcMetaDataSupport` 的列数组和类型数组直接采用当前 `Neo4jJdbcProxies` 中 `emptyTablesResultSet`、`emptyColumnsResultSet`、`emptySchemasResultSet`、`emptyCatalogsResultSet`、`emptyPrimaryKeysResultSet`、`emptyIndexInfoResultSet` 的形状。
 
-- [ ] **Step 7: 跑公共基础能力测试**
+- [x] **Step 7: 跑公共基础能力测试**
 
 Run:
 
@@ -529,7 +529,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，4 个公共测试类全部通过。
 
-- [ ] **Step 8: 提交公共基础能力**
+- [x] **Step 8: 提交公共基础能力**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java \

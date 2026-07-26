@@ -7,11 +7,12 @@
 
 ## Current Task
 
-- Task: Task 1: 建立公共 Maven 模块与依赖顺序
+- Task: Task 2: 公共默认行为、生命周期与 RowSet/MetaData 基础能力
 - Stage: done
-- Brief: .superpowers/sdd/task-1-brief.md
-- Report: .superpowers/sdd/task-1-report.md
-- Implementer commit: 267ab5cb
-- Review: approved
-- Risk signals: DONE_WITH_CONCERNS; reviewed clean
+- Brief: .superpowers/sdd/task-2-brief.md
+- Report: .superpowers/sdd/task-2-report.md
+- Implementer commit: 3758de08
+- Fix commit: 47a7af58
+- Report commit: 962d291f
+- Review: approved after fix
 - RED/GREEN evidence: recorded in report
