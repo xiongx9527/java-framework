@@ -46,12 +46,13 @@ public class DefaultLangChain4jModelFactoryTest {
 
     @Test
     public void shouldWrapAdapterExceptionWithContext() {
+        ThrowingAdapter adapter = new ThrowingAdapter();
         LangChain4jModelException exception = assertThrows(LangChain4jModelException.class,
                 () -> factory.create(definition("chat"),
-                        Collections.<LangChain4jModelProviderAdapter>singletonList(new ThrowingAdapter())));
+                        Collections.<LangChain4jModelProviderAdapter>singletonList(adapter)));
 
         assertContext(exception);
-        assertTrue(exception.getCause().getMessage().contains("boom"));
+        assertSame(adapter.failure, exception.getCause());
     }
 
     @Test
@@ -109,12 +110,14 @@ public class DefaultLangChain4jModelFactoryTest {
     }
 
     private static class ThrowingAdapter implements LangChain4jModelProviderAdapter {
+        private final LangChain4jModelException failure = new LangChain4jModelException("boom");
+
         public boolean supports(LangChain4jModelDefinition definition) {
             return true;
         }
 
         public LangChain4jModel create(LangChain4jModelDefinition definition) {
-            throw new IllegalStateException("boom");
+            throw failure;
         }
     }
 }
