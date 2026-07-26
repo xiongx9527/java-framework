@@ -7,11 +7,13 @@
 
 ## Current Task
 
-- Task: Task 3: 公共执行抽象、参数绑定与 Statement/PreparedStatement 支持
+- Task: Task 4: Neo4j JDBC 适配公共模块
 - Stage: done
-- Brief: .superpowers/sdd/task-3-brief.md
-- Report: .superpowers/sdd/task-3-report.md
-- Implementer commit: 75e6001d
-- Review: approved
-- Minor notes: add explicit tests for PreparedStatement executeUpdate/execute(String) rejection and prepared batch parameter snapshots when convenient.
+- Brief: .superpowers/sdd/task-4-brief.md
+- Report: .superpowers/sdd/task-4-report.md
+- Implementer commit: 2220c07b
+- Reviewer: approved after re-review
+- Fix commit: 34e823b3
+- Fix targets: generated keys lifecycle/equals and stream parameter materialization
+- Review rounds: 1
 - RED/GREEN evidence: recorded in report

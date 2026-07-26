@@ -761,7 +761,7 @@ git commit -m "fw-plus-core: 提取图 JDBC Statement 公共支持"
   - Neo4j `Neo4jJdbcProxies.statement(...)` 和 `preparedStatement(...)` 仍返回标准 JDBC `Statement`/`PreparedStatement`
   - Neo4j SQL-to-Cypher、Java Driver session、事务和 `Neo4jConnectionConfig` 留在 Neo4j 模块内
 
-- [ ] **Step 1: 先增强 Neo4j 回归测试**
+- [x] **Step 1: 先增强 Neo4j 回归测试**
 
 在 `Neo4jDriverTest.java` 增加或保留以下断言：
 
@@ -805,7 +805,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: 当前实现通过已有场景；新增公共层依赖尚未接入前，新增“common support”命名测试可以先失败在行为断言或重复逻辑未下沉。
 
-- [ ] **Step 2: 新增 Neo4j 公共执行器适配类**
+- [x] **Step 2: 新增 Neo4j 公共执行器适配类**
 
 创建 `Neo4jGraphJdbcExecutor.java`：
 
@@ -830,7 +830,7 @@ final class Neo4jGraphJdbcExecutor implements GraphJdbcExecutor {
 
 若 `Neo4jQueryExecutor.execute` 当前参数类型不是 `Map<Integer,Object>`，在该适配类中完成最小转换，不修改 `Neo4jQueryExecutor` 的包可见接口，避免扩大 Neo4j 变更面。
 
-- [ ] **Step 3: 将 `Neo4jJdbcProxies` facade 委托公共模块**
+- [x] **Step 3: 将 `Neo4jJdbcProxies` facade 委托公共模块**
 
 `Neo4jJdbcProxies.statement(...)` 改为：
 
@@ -849,7 +849,7 @@ static Statement statement(Neo4jConnection connection, Neo4jQueryExecutor execut
 
 `preparedStatement(...)` 使用同一个 `GraphJdbcSqlPreprocessor`。保留 `databaseMetaData(...)` 中 Neo4j 产品名、版本、URL、用户名、事务能力等 Neo4j 专属返回值；把 `getTables/getColumns/getSchemas/getCatalogs/getTableTypes/getPrimaryKeys/getIndexInfo` 委托到 `GraphJdbcMetaDataSupport`。删除 `Neo4jJdbcProxies` 内部 `StatementHandler`、`resultSet`、`shapedResultSet`、`jdbcType`、`defaultValue`、空 metadata RowSet 方法。
 
-- [ ] **Step 4: 跑 Neo4j 本地回归**
+- [x] **Step 4: 跑 Neo4j 本地回归**
 
 Run:
 
@@ -860,7 +860,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，`Neo4jDriverTest` 中 DriverManager URL、Statement、PreparedStatement、参数绑定、batch、metadata 断言全部通过；不启动真实 Neo4j。
 
-- [ ] **Step 5: 验证 Neo4j 模块不新增服务入口变化**
+- [x] **Step 5: 验证 Neo4j 模块不新增服务入口变化**
 
 Run:
 
@@ -871,7 +871,7 @@ git diff -- fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-neo4j-jdbc/src/ma
 
 Expected: 无输出，表示 `java.sql.Driver` 服务声明未变。
 
-- [ ] **Step 6: 提交 Neo4j 适配**
+- [x] **Step 6: 提交 Neo4j 适配**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-neo4j-jdbc/src/main/java \
