@@ -2,8 +2,8 @@
 
 - [x] 1.1 新建 `fw-plus-ai-langchain4j-model` Maven 模块，保持父 POM、`main.basedir`、编码和 JDK 1.8 约束与相邻 LangChain4j 模块一致。
 - [x] 1.2 实现 `LangChain4jModelDefinition`、`LangChain4jModelType`、`LangChain4jModel`、`LangChain4jModelProviderAdapter`、`LangChain4jModelFactory`、`LangChain4jModelRegistry` 和模型异常类型。
-- [ ] 1.3 实现默认模型工厂和默认 registry，覆盖 adapter 选择、默认 key 校验、空返回防御和错误上下文。
-- [ ] 1.4 为 core 模型工厂和 registry 增加单元测试，覆盖成功创建、不支持 provider、adapter 异常、默认模型 key 无效等场景。
+- [x] 1.3 实现默认模型工厂和默认 registry，覆盖 adapter 选择、默认 key 校验、空返回防御和错误上下文。
+- [x] 1.4 为 core 模型工厂和 registry 增加单元测试，覆盖成功创建、不支持 provider、adapter 异常、默认模型 key 无效等场景。
 
 ## 2. Maven 聚合与 BOM
 

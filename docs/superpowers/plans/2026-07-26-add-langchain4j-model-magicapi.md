@@ -241,7 +241,7 @@ git commit -m "feat: add langchain4j model core contracts"
   - `DefaultLangChain4jModelRegistry(Map<String, LangChain4jModel> models, String defaultModelKey)` stores an unmodifiable copy.
   - Registry throws `LangChain4jModelException` when `defaultModelKey` is nonblank and missing from `models`.
 
-- [ ] **Task 2 Step 1: Write failing factory tests**
+- [x] **Task 2 Step 1: Write failing factory tests**
 
 ```java
 package com.xiongx9527.fw.plus.ai.langchain4j.model;
@@ -344,7 +344,7 @@ public class DefaultLangChain4jModelFactoryTest {
 }
 ```
 
-- [ ] **Task 2 Step 2: Write failing registry tests**
+- [x] **Task 2 Step 2: Write failing registry tests**
 
 ```java
 package com.xiongx9527.fw.plus.ai.langchain4j.model;
@@ -396,7 +396,7 @@ public class DefaultLangChain4jModelRegistryTest {
 }
 ```
 
-- [ ] **Task 2 Step 3: Run tests to verify they fail**
+- [x] **Task 2 Step 3: Run tests to verify they fail**
 
 Run:
 
@@ -408,11 +408,11 @@ cd fw-plus-core
 
 Expected: FAIL because default factory and registry do not exist yet.
 
-- [ ] **Task 2 Step 4: Implement factory and registry behavior**
+- [x] **Task 2 Step 4: Implement factory and registry behavior**
 
 Implement `DefaultLangChain4jModelFactory` and `DefaultLangChain4jModelRegistry` exactly against the **Interfaces** block. Use `ArrayList`, `LinkedHashMap`, `LinkedHashSet`, `Collections.unmodifiableMap`, and `Collections.unmodifiableSet` for JDK 1.8 compatibility.
 
-- [ ] **Task 2 Step 5: Run core model tests**
+- [x] **Task 2 Step 5: Run core model tests**
 
 Run:
 
@@ -423,7 +423,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Task 2 Step 6: Commit this task during execution**
+- [x] **Task 2 Step 6: Commit this task during execution**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model
