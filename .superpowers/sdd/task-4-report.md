@@ -44,3 +44,25 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-p
 
 - 当前用户限定范围禁止修改 POM，因此无法对齐 Jupiter Engine 与 API/Platform 版本，无法让指定 focused 命令实际执行 Jupiter 测试。
 - 当前提交缺少 GREEN 证据；需在允许调整测试依赖后重新执行 focused 命令。
+
+## Fix
+
+在 `fw-plus-ai-boot-autoconfigure` 模块内排除 `agents-flex-spring-boot-starter` 经 Groovy 引入的 `org.testng:testng`，并将 `junit-jupiter-api`、`junit-jupiter-engine` 和 `junit-jupiter-params` 显式固定为 Spring Boot 2.7.18 管理的 `${junit-jupiter.version}`（5.8.2）。未修改 Task 4 provider adapter、模型类型矩阵或测试语义。
+
+RED（修复前）：
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelProviderAdapterTest,LangChain4jModelAutoConfigurationTest -Dsurefire.printSummary=true test
+```
+
+关键输出：Surefire 2.22.2 选用 TestNG 后报告 `Tests run: 0`，并以 `No tests were executed!` 失败；排除 TestNG 后的中间复现为 `TestEngine with ID 'junit-jupiter' failed to discover tests`，dump 显示 `NoClassDefFoundError: org/junit/jupiter/api/io/CleanupMode`，对应 5.10.0 Engine 与 5.8.2 API/1.8.2 Platform 混用。
+
+GREEN：
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelProviderAdapterTest,LangChain4jModelAutoConfigurationTest -Dsurefire.printSummary=true test
+```
+
+关键输出：`LangChain4jModelProviderAdapterTest` 执行 3 个测试，`LangChain4jModelAutoConfigurationTest` 执行 3 个测试；汇总为 `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+
+`git diff --check`：通过。
