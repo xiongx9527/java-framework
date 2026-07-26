@@ -14,7 +14,15 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-p
 
 ## GREEN 命令和通过摘要
 
-当前 worktree 缺少 Maven Wrapper 文件，无法使用 `mvnw`；按任务约定使用 Zulu 8 系统 Maven。
+`fw-plus-ai/mvnw` 脚本存在，但 wrapper properties/jar 缺失，无法启动；按任务约定使用 Zulu 8 系统 Maven。
+
+尝试使用 Maven Wrapper：
+
+```bash
+cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=LangChain4jModelPropertiesTest,LangChain4jModelAutoConfigurationTest test
+```
+
+结果：启动失败。错误包含 `maven-wrapper.properties: No such file or directory`、`maven-wrapper.jar: No such file or directory` 和 `Could not find or load main class org.apache.maven.wrapper.MavenWrapperMain`。
 
 依赖准备：
 
@@ -61,4 +69,4 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-p
 - schema：无。
 - diff 超过 200 行：是，主要来自完整 JavaBean 访问器和 focused 测试。
 - DONE_WITH_CONCERNS：否。
-- 环境限制：Maven Wrapper 缺失，验证使用 Zulu 8 系统 Maven；测试过程输出已有多 SLF4J 绑定和 TestNG "No test suite found" 日志，但 Maven 最终实际执行 3 项目标测试并成功。
+- 环境限制：`fw-plus-ai/mvnw` 脚本存在，但 wrapper properties/jar 缺失，无法启动。执行 `cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=LangChain4jModelPropertiesTest,LangChain4jModelAutoConfigurationTest test` 时失败，错误包含 `maven-wrapper.properties: No such file or directory`、`maven-wrapper.jar: No such file or directory` 和 `Could not find or load main class org.apache.maven.wrapper.MavenWrapperMain`；因此 focused 验证使用 Zulu 8 系统 Maven，结果成功。测试过程输出已有多 SLF4J 绑定和 TestNG "No test suite found" 日志，但 Maven 最终实际执行 3 项目标测试并成功。
