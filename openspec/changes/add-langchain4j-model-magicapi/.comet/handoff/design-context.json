@@ -1,0 +1,14 @@
+{
+  "change": "add-langchain4j-model-magicapi",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "67b8e4a5ecdfed8105d663a7ffd8c821f551c1d8eb59f6ebc5acc7bae74495ef",
+  "files": [
+    { "path": "openspec/changes/add-langchain4j-model-magicapi/proposal.md", "sha256": "1a10b127088ee9eac9cc15744377b108bfc9215888591404f4e33567ab2f1d9e" },
+    { "path": "openspec/changes/add-langchain4j-model-magicapi/design.md", "sha256": "6acbb34b3479edee5d909ec6e6ae137fdd31af71a9073b97af9c44a3c70a0043" },
+    { "path": "openspec/changes/add-langchain4j-model-magicapi/tasks.md", "sha256": "1aa3bd1db7f754d68ebdb6c8abb294a8350107f1009674fd31ec3396154ffcc5" },
+    { "path": "openspec/changes/add-langchain4j-model-magicapi/specs/langchain4j-model-module/spec.md", "sha256": "ff889dca708eed3e43ccb65fe37b0f2b8dd75e945ed8832b1f8378268f50968d" }
+  ]
+}
