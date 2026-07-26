@@ -36,13 +36,13 @@
 
 ## 6. 兼容性与文档
 
-- [ ] 6.1 保持现有 `fw-plus-ai-langchain4j-store-embeding`、Magic vector 插件和已有 LangChain4j provider 模块行为不变。
-- [ ] 6.2 补充 README 或示例配置，说明 model starter 最小依赖、provider SDK 显式引入方式、旧 Magic LangChain4j 插件迁移方式和 `model-datasource` 配置示例。
+- [x] 6.1 保持现有 `fw-plus-ai-langchain4j-store-embeding`、Magic vector 插件和已有 LangChain4j provider 模块行为不变。
+- [x] 6.2 补充 README 或示例配置，说明 model starter 最小依赖、provider SDK 显式引入方式、旧 Magic LangChain4j 插件迁移方式和 `model-datasource` 配置示例。
 - [x] 6.3 检查所有新增 Java 代码避免使用 Java 9+ API，并保持包名、缩进和现有命名风格一致。
 
 ## 7. 验证
 
-- [ ] 7.1 在 `fw-plus-core` 下使用 Maven Wrapper 构建 `fw-plus-ai-langchain4j-model` 及受影响 core 模块。
-- [ ] 7.2 在 `fw-plus-ai` 下使用 Maven Wrapper 构建受影响的 boot autoconfigure、model starter 和 Magic model 插件模块。
-- [ ] 7.3 运行新增和受影响测试，至少覆盖 core model、boot autoconfigure、Magic model 插件、旧插件删除/替换迁移、现有 vector 插件兼容场景。
-- [ ] 7.4 记录验证命令、结果和任何环境限制，避免把依赖解析失败误判为功能失败。
+- [x] 7.1 在 `fw-plus-core` 下使用 Maven Wrapper 构建 `fw-plus-ai-langchain4j-model` 及受影响 core 模块。
+- [x] 7.2 在 `fw-plus-ai` 下使用 Maven Wrapper 构建受影响的 boot autoconfigure、model starter 和 Magic model 插件模块。
+- [x] 7.3 运行新增和受影响测试，至少覆盖 core model、boot autoconfigure、Magic model 插件、旧插件删除/替换迁移、现有 vector 插件兼容场景。
+- [x] 7.4 记录验证命令、结果和任何环境限制，避免把依赖解析失败误判为功能失败。

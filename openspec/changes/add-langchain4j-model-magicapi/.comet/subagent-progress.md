@@ -2,16 +2,26 @@
 
 - review_mode: standard
 - tdd_mode: tdd
-- current_task: Task 9: Documentation、Samples 配置与全量验证
-- openspec_task: 6.1/6.2/7.1/7.2/7.3/7.4 示例配置、README 文档、LangChain4j 0.35 与 1.x 命名说明，以及全量验证记录
+- current_task: Final whole-branch review
+- openspec_task: all implementation tasks complete; final review pending before verify/archive
 - phase: ready-for-implementation
 - issue: none
-- base_commit: e7317ad2e18864078ba91e38603d91d348f155fe
+- base_commit: 18dc0bb0
 - implementer: pending
 - report: pending
-- review_required: Task 8 approved after AskData JUnit Jupiter test fix; Task 9 pending implementation
-- red_green_evidence: Task 8 console contract test passed, AskData/Model integration tests passed 7 tests, console build passed, old entry structural scan passed, git diff --check passed
+- review_required: Task 9 complete after final doc consistency fix; whole-branch review pending
+- red_green_evidence: Core model and store-embeding Maven Wrapper tests passed with Zulu 8; AI Boot focused tests passed 27 tests; model starter, Magic model plugin, and sample builds passed; YAML/docs/source scans passed
 - unresolved_feedback: none
+
+## Completed Task 9
+
+- commits: 28e79338..18dc0bb0
+- implementation: 454aa41e
+- fixes: 7c8f6469, f487b1bf, 18dc0bb0
+- implementer: 019f9ec6-619a-79b3-aacf-09d377c0d08f
+- reviewers: 019f9ed0-ab01-7a12-a1dd-7cd6c18a34da found sample config and 1.x wording issues; 019f9ed6-3913-7a00-9fc4-fa70ae06f6a1 found core verification gap; 019f9ede-7924-72b1-a2be-43319fd6d6e6 found stale coverage-note examples; controller fixed final minor and verified scans
+- GREEN: application.yaml focused YAML structure passed; README 1.x naming checks passed; Java 8 API scan returned no matches; old Magic runtime entry scan returned no matches; stale cassandra/infinispan/neo4j module reference scan returned no matches; Zulu 8 Maven Wrapper core model test passed 11 tests and store-embeding test passed 10 tests; AI Boot focused tests passed 27 tests; model starter, Magic model plugin, and sample package builds passed
+- environment notes: default shell Java is Zulu 24, which fails old Lombok annotation processing in fw-plus-common; core verification must use Zulu 8 `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home`
 
 ## Completed Task 8
 
