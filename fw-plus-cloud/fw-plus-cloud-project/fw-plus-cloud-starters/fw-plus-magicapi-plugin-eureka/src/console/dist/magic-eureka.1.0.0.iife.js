@@ -18,9 +18,8 @@ var MagicEureka = function() {
   installIcon();
   const replaceURL = (url) => url.replace(/:?\/+/g, (value) => value.indexOf(":") > -1 ? value : "/");
   const resolveBase = () => {
-    var _a;
     let link = `${location.protocol}//${location.host}${location.pathname}`.replace("/index.html", "");
-    const baseURL = ((_a = { "BASE_URL": "./", "MODE": "production", "DEV": false, "PROD": true }) == null ? void 0 : _a.MAGIC_API_BASE_URL) || "./";
+    const baseURL = "./";
     if (baseURL.startsWith("http")) {
       link = new URL(baseURL).origin;
     } else if (baseURL.startsWith("./")) {

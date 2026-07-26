@@ -4,7 +4,7 @@
   "description": "Magic-API Eureka status plugin",
   "type": "module",
   "scripts": {
-    "test": "node --test test/status-bar.test.mjs",
+    "test": "node --test test/*.test.mjs",
     "build": "vite build"
   },
   "license": "ISC",
