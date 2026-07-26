@@ -32,7 +32,12 @@ cd fw-plus-core
 ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -am test
 ```
 
-结果：两条命令均未进入依赖解析、编译或测试。Maven 在反应堆项目读取阶段退出，因为 `fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/pom.xml` 声明的 `fw-plus-ai-langchain4j-cassandra`、`fw-plus-ai-langchain4j-infinispan`、`fw-plus-ai-langchain4j-neo4j` 子模块在当前工作树中不存在。这不是内部 Nexus 依赖解析失败，输出中没有缺失 Maven 坐标或仓库 URL；需先恢复或从聚合 POM 移除这些失效模块路径，再重跑两条 Core 命令。
+结果：初次运行时 Maven 在反应堆项目读取阶段退出，因为 `fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/pom.xml` 声明的 `fw-plus-ai-langchain4j-cassandra`、`fw-plus-ai-langchain4j-infinispan`、`fw-plus-ai-langchain4j-neo4j` 子模块在当前工作树中不存在。修复方式：移除这些失效 module 引用，并同步移除 core BOM 与 README 中对这三个当前不存在 artifact 的管理/说明。
+
+使用 Zulu 8 重跑两条 Maven Wrapper 命令后均通过：
+
+- `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model -am test`：`BUILD SUCCESS`；`fw-plus-ai-langchain4j-model` 测试 `Tests run: 11, Failures: 0, Errors: 0, Skipped: 0`；reactor 中 `fw-plus-common` 测试 `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`。
+- `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -am test`：`BUILD SUCCESS`；`fw-plus-ai-langchain4j-store-embeding` 测试 `Tests run: 10, Failures: 0, Errors: 0, Skipped: 0`；reactor 中 `fw-plus-common` 测试 `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`。
 
 ### Step 3：AI Boot 定向测试
 
@@ -82,9 +87,9 @@ rg -n 'apiKey|secretKey|accessToken|password|token' fw-plus-ai/fw-plus-ai-projec
 
 ## 最终状态与 Concerns
 
-总体状态：`DONE_WITH_CONCERNS`。
+总体状态：`DONE`。
 
-1. Core 的两项定向测试被当前工作树的聚合 POM 缺失三个子模块阻断，需恢复聚合完整性后重跑；该问题不是本任务文档/样例改动导致，也不是内部 Nexus 依赖解析失败。
+1. Core 的两项定向测试已在移除失效聚合模块引用后用 Zulu 8 + Maven Wrapper 重跑通过。
 2. Maven 构建模型插件会在控制台目录生成未跟踪的 `node_modules/`、`dist/` 和 `package-lock.json`。它们是构建副产物，未纳入本任务提交。
 3. 迁移文档必须提及旧入口，故 brief 的全目录旧入口 `rg` 会命中 README；排除 README 后的运行代码扫描无匹配。
 
