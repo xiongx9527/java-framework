@@ -14,12 +14,21 @@ public final class GraphJdbcParameterBindings {
 	}
 
 	public void bind(int parameterIndex, Object value, String setterName, Long length) {
+		bind(parameterIndex, value, setterName, length, null, null);
+	}
+
+	public void bind(int parameterIndex, Object value, int jdbcType, Integer scaleOrLength) {
+		bind(parameterIndex, value, null, null, Integer.valueOf(jdbcType), scaleOrLength);
+	}
+
+	private void bind(int parameterIndex, Object value, String setterName, Long length, Integer jdbcType,
+			Integer scaleOrLength) {
 		if (parameterIndex < 1) {
 			throw new IllegalArgumentException("parameterIndex must be greater than 0");
 		}
 		Integer index = Integer.valueOf(parameterIndex);
 		values.put(index, value);
-		bindings.put(index, new Binding(value, setterName, length));
+		bindings.put(index, new Binding(value, setterName, length, jdbcType, scaleOrLength));
 	}
 
 	public Object get(int parameterIndex) {
@@ -77,11 +86,15 @@ public final class GraphJdbcParameterBindings {
 		private final Object value;
 		private final String setterName;
 		private final Long length;
+		private final Integer jdbcType;
+		private final Integer scaleOrLength;
 
-		private Binding(Object value, String setterName, Long length) {
+		private Binding(Object value, String setterName, Long length, Integer jdbcType, Integer scaleOrLength) {
 			this.value = value;
 			this.setterName = setterName;
 			this.length = length;
+			this.jdbcType = jdbcType;
+			this.scaleOrLength = scaleOrLength;
 		}
 
 		public Object getValue() {
@@ -94,6 +107,14 @@ public final class GraphJdbcParameterBindings {
 
 		public Long getLength() {
 			return length;
+		}
+
+		public Integer getJdbcType() {
+			return jdbcType;
+		}
+
+		public Integer getScaleOrLength() {
+			return scaleOrLength;
 		}
 	}
 }

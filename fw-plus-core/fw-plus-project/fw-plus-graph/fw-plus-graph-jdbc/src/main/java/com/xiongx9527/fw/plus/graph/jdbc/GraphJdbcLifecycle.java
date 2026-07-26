@@ -14,9 +14,13 @@ public final class GraphJdbcLifecycle {
 		if (closed) {
 			return;
 		}
-		closed = true;
-		if (action != null) {
-			action.close();
+		try {
+			if (action != null) {
+				action.close();
+			}
+		}
+		finally {
+			closed = true;
 		}
 	}
 

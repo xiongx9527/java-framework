@@ -2,6 +2,9 @@ package com.xiongx9527.fw.plus.graph.jdbc;
 
 import org.junit.Test;
 
+import java.lang.reflect.Method;
+import java.sql.Types;
+
 import java.sql.ParameterMetaData;
 import java.sql.Types;
 
@@ -9,6 +12,18 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 public class GraphJdbcParameterBindingsTest {
+
+	@Test
+	public void typedBindingShouldRetainJdbcTypeAndScaleOrLength() throws Exception {
+		GraphJdbcParameterBindings bindings = new GraphJdbcParameterBindings();
+		Method bind = GraphJdbcParameterBindings.class.getMethod("bind", int.class, Object.class, int.class, Integer.class);
+		bind.invoke(bindings, Integer.valueOf(1), "Tim", Integer.valueOf(Types.VARCHAR), Integer.valueOf(32));
+
+		Object binding = bindings.getBinding(1);
+		assertEquals("Tim", binding.getClass().getMethod("getValue").invoke(binding));
+		assertEquals(Types.VARCHAR, ((Integer) binding.getClass().getMethod("getJdbcType").invoke(binding)).intValue());
+		assertEquals(Integer.valueOf(32), binding.getClass().getMethod("getScaleOrLength").invoke(binding));
+	}
 
 	@Test
 	public void bindingsShouldStoreByOneBasedParameterIndexAndClear() {

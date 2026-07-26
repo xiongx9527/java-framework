@@ -35,4 +35,18 @@ public class GraphJdbcLifecycleTest {
 		lifecycle.close(null);
 		lifecycle.checkOpen("Statement");
 	}
+
+	@Test
+	public void closeShouldKeepResourceOpenUntilActionCompletes() throws Exception {
+		final GraphJdbcLifecycle lifecycle = new GraphJdbcLifecycle();
+		final boolean[] closedDuringAction = new boolean[] {true};
+		lifecycle.close(new GraphJdbcLifecycle.ThrowingCloseAction() {
+			@Override
+			public void close() throws SQLException {
+				closedDuringAction[0] = lifecycle.isClosed();
+			}
+		});
+		assertEquals(false, closedDuringAction[0]);
+		assertTrue(lifecycle.isClosed());
+	}
 }
