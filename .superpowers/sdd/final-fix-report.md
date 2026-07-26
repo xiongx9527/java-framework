@@ -1,74 +1,66 @@
-# AskData Final Review Fix Report
+# extract-common-graph-jdbc 最终审查修复报告
 
 ## 状态
 
 DONE_WITH_CONCERNS
 
-Critical 和 Important findings 已处理并补回归测试。保留的 concern 是：当前 `AskDataAgent` 只有名称、可变上下文和摘要结果，没有“替换哪个默认步骤”、结构化步骤输出、失败策略及恢复契约，因此本次实现了安全的主 Agent 扩展执行、日志与 checkpoint 归并，但没有允许它直接替换 SQL 生成/校验/执行步骤。完整替换能力需要独立 change 先扩展 Agent/step contract。
+## 提交
 
-## TDD 证据
+`0874220f0fdcd70bc1a6288aa5914e2fce649c6f` - `fix: resolve graph jdbc final review findings`
 
-### RED
+## RED
 
-1. `./mvnw ... -Dtest=DefaultAskDataSqlValidatorTest,JdbcAskDataSqlExecutorTest,DefaultAskDataFlowExecutorTest,AskDataResumeFlowTest,AskDataAutoConfigurationTest test`
-   - testCompile 失败，明确暴露缺失的 metadata 校验入口、`enforceLimit` 构造语义、checkpoint 身份字段和执行器物理上限。
-2. `./mvnw ... -Dtest=AskDataResumeFlowTest#shouldRejectResumeWhenEffectiveExecutionPolicyChanged test`
-   - 1 test failure；全局执行策略变化后当前实现仍恢复成功。
-3. `./mvnw ... -Dtest=DefaultAskDataSqlValidatorTest#shouldRejectSideEffectFunctions test`
-   - 1 test failure；双引号引用的 `nextval`/`setval` 可绕过原始词法扫描。
+1. 公共代理与 PreparedStatement 重载：
 
-### GREEN
+   ```bash
+   JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml -pl fw-plus-graph-jdbc -Dtest=GraphJdbcRowSetsTest,GraphJdbcParameterBindingsTest,GraphJdbcStatementSupportTest test
+   ```
 
-1. Starter 全量测试：84 tests，0 failures，0 errors，BUILD SUCCESS。
-2. Reactor `clean install -DskipTests`：9/9 modules SUCCESS，BUILD SUCCESS。
-3. `git diff --check`：通过。
-4. Java 9+ API 扫描：无匹配。
-5. 品牌或占位文本扫描：无匹配。
-6. 验证 JVM：Zulu OpenJDK `1.8.0_402`。
+   结果：预期失败。`GraphJdbcRowSetsTest.resultSetProxiesShouldKeepObjectContractsAndUseTheOuterWrapper` 失败，证明空 generated-keys 代理未保持对象自反性；`GraphJdbcStatementSupportTest.preparedStatementShouldBindParametersAndRejectStringExecute` 失败，证明 `PreparedStatement.addBatch(String)` 被接受。
 
-## Findings 处理
+2. Neo4j facade 与参数元数据：
 
-### Critical
+   ```bash
+   JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml -pl fw-plus-neo4j-jdbc -am -DfailIfNoTests=false -Dtest=Neo4jDriverTest test
+   ```
 
-- SQL 安全边界：实现 Java 8 保守词法/token 扫描，拒绝多语句、可执行注释、写关键字、`SELECT INTO`、`FOR UPDATE`/`FOR SHARE`/`LOCK IN SHARE MODE`、`setval`/`nextval` 等副作用函数（含 quoted identifier）；在 metadata 表列表非空时解析 CTE、子查询、`FROM`/`JOIN`/逗号表引用并拒绝未授权表。
-- Resume 安全：checkpoint 持久化并校验 question、datasourceKey、modelKey、有效 maxRows、有效 execute 和 dialect/conversationId；执行前保存 `EXECUTING`，恢复始终检查会话最新 checkpoint，遇到不确定执行状态返回 `RESUME_FAILED`，不重复执行。
+   结果：预期失败。`shouldKeepGeneratedKeysStatementLifecycleAndObjectContracts` 失败，证明 `unwrap(Statement.class)` 未返回外层 facade；`shouldExposePreparedParameterMetadataAndGeneratedKeysShape` 失败，证明 Neo4j `ParameterMetaData.isSigned(1)` 从基线的 `true` 回归为 `false`。
 
-### Important
+## GREEN
 
-- Agent/子 Agent：自动注入非 `AskDataSubAgent` 的主 Agent；消费 `AskDataDispatchResult`，把主/子 Agent 成功、失败、超时和输出写入 context attributes 与步骤日志；归并后保存 checkpoint。
-- maxRows：收紧超大顶层 `LIMIT`、拒绝 `LIMIT ALL`；JDBC `PreparedStatement#setMaxRows` 与 ResultSet 读取循环双层物理限行。
-- 模型错误码：单独捕获 `AskDataModelException`，保留 `DEFAULT_MODEL_NOT_CONFIGURED`、`MODEL_NOT_FOUND` 等原错误码。
-- execute 默认值：全局关闭始终跳过；全局开启时 request.execute 缺省执行，仅显式 false 跳过；checkpoint 比较有效执行决策。
+1. 公共定向测试：同一公共模块命令通过，13 tests，0 failures，0 errors，0 skipped。
+2. Neo4j 定向测试：同一 Neo4j 命令通过，24 tests，0 failures，0 errors，0 skipped。
+3. 图 JDBC 聚合：
 
-### Minor
+   ```bash
+   JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml test
+   ```
 
-- 多个 `ContentRetriever` 使用 `orderedStream()` 全部适配并组合。
-- `sql.enforceLimit` 已接入默认 SQL validator；关闭时不改写 SQL，但 JDBC 物理限行仍生效。
+   通过。公共模块 21 tests，0 failures/errors/skipped；Nebula 244 tests，0 failures/errors，2 个既有 live smoke skipped；Neo4j 27 tests，0 failures/errors，3 个既有 live smoke skipped。
 
-## 残余风险与边界
+4. 边界扫描：公共模块的 `com.vesoft|org.neo4j|com.alibaba.druid|org.springframework|org.apache.ibatis` 扫描无命中；Java 9+ 集合工厂和无参 `orElseThrow()` 扫描无命中；`git diff --check` 通过。
 
-- 未引入 AST。扫描器刻意保守，覆盖常见 SELECT/CTE、注释、引号、括号层级、表引用和顶层 LIMIT；数据库特有语法或未知副作用函数可能被拒绝或未列入 denylist。生产执行仍应使用数据库只读账号/只读事务作为最终权限边界。
-- metadata 表列表为空时视为“没有可执行的 scope 信息”，不会做表白名单约束；提供非空 metadata 时才强制白名单。
-- 主 Agent 当前作为默认流程前置扩展执行，不直接替换安全关键步骤。直接替换需要新增明确的 step key、结构化输出、失败策略和 checkpoint 恢复契约。
+## 修复内容
 
-## 最终复审补充修复
+- `GraphJdbcRowSets` 的 ResultSet 和 ResultSetMetaData 动态代理优先处理 `equals`、`hashCode`、`toString`，并让 `unwrap/isWrapperFor` 以外层 ResultSet proxy 为准。
+- Neo4j 生成键 facade 显式处理 `unwrap/isWrapperFor`，保证接口 unwrap 返回 facade 本身，保持单列 `GENERATED_KEY` 形状及底层关闭状态检查。
+- `GraphJdbcParameterMetaData` 支持可配置的签名策略；Neo4j facade 使用 `true`，Nebula 既有 JDBC type 判断逻辑未修改。
+- PreparedStatement 的 `addBatch(String)` 与其他 String 执行重载一致抛出 `SQLException`。
 
-### Critical 1: SQL metadata scope 与只读缺口
+## 变更文件
 
-- metadata 中的简单表名仅授权同样简单的 SQL 表名；例如只授权 `orders` 时，`other_schema.orders` 会被拒绝。
-- metadata 中的 schema-qualified 表名只授权完全相同的 schema-qualified SQL 表名；不再按最后一段表名回退匹配。
-- 副作用函数拒绝列表补充 PostgreSQL 的 `pg_notify(...)` 与 `lo_unlink(...)`，并补充对应回归测试。
-- 数据库只读账号和只读事务仍是生产部署的最终权限防线；应用层校验用于减少错误 SQL 与已知绕过路径，不能替代数据库授权控制。
+- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcParameterMetaData.java`
+- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcRowSets.java`
+- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcStatementSupport.java`
+- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/test/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcRowSetsTest.java`
+- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/test/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcStatementSupportTest.java`
+- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-neo4j-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/neo4j/jdbc/Neo4jJdbcProxies.java`
+- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-neo4j-jdbc/src/test/java/com/xiongx9527/fw/plus/graph/neo4j/jdbc/Neo4jDriverTest.java`
+- `.superpowers/sdd/final-fix-report.md`
 
-### Critical 2: Resume options 身份缺口
+## 风险信号
 
-- checkpoint 保存 request options 的不可变、按 key 排序的规范化 JSON 摘要，并由内存会话存储快照保留。
-- resume 会比较 options 摘要；租户等 options 发生漂移时返回 `RESUME_FAILED`，且不会执行 SQL。
-- 仅接受 JSON 安全的标量、Map、List 和数组 options 值；循环结构、非字符串 Map key 或未知对象无法安全比较时，checkpoint 摘要为空，resume 按 fail-closed 返回 `RESUME_FAILED`。
-
-### 本轮 TDD 证据
-
-- RED：`./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=DefaultAskDataSqlValidatorTest,AskDataResumeFlowTest test`，38 tests 中 4 个目标断言失败，覆盖 schema 绕过、`pg_notify`/`lo_unlink` 和租户 options 漂移。
-- RED：`./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataResumeFlowTest#shouldRejectResumeWhenOptionsCannotBeSafelyCompared test`，1 test failure，覆盖无法安全比较时的 fail-closed。
-- GREEN：聚焦测试 39 tests，0 failures，0 errors。
-- GREEN：starter 全量测试 88 tests，0 failures，0 errors，BUILD SUCCESS。
+- Maven Wrapper 文件仍缺失，本次按允许的 Zulu 8 系统 Maven 回退执行验证。
+- 聚合中的 5 个真实服务 smoke 依既有条件跳过，未验证真实 NebulaGraph 或 Neo4j 连通性。
+- Nebula 测试仍输出既有 SLF4J `StaticLoggerBinder` 缺失警告；不影响测试结果。
+- `openspec/changes/extract-common-graph-jdbc/.comet/subagent-progress.md` 为已有用户改动，未修改且不会纳入提交。

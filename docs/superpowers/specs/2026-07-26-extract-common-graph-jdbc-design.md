@@ -2,6 +2,8 @@
 comet_change: extract-common-graph-jdbc
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-26-extract-common-graph-jdbc
+status: final
 ---
 
 # 抽象公共图数据库 JDBC 标准层设计

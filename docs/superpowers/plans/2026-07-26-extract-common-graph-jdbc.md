@@ -2,6 +2,7 @@
 change: extract-common-graph-jdbc
 design-doc: docs/superpowers/specs/2026-07-26-extract-common-graph-jdbc-design.md
 base-ref: 97f4d9d0c96697bcfcb7446ee9b89e92ff47dcea
+archived-with: 2026-07-26-extract-common-graph-jdbc
 ---
 
 # 抽象公共图数据库 JDBC 标准层实施计划
@@ -106,7 +107,7 @@ base-ref: 97f4d9d0c96697bcfcb7446ee9b89e92ff47dcea
 - Consumes: 现有 `fw-plus-graph` 聚合父 POM。
 - Produces: Maven artifact `com.xiongx9527.fw.plus:fw-plus-graph-jdbc:${revision}`，供 Neo4j/Nebula 模块依赖。
 
-- [ ] **Step 1: 写入公共模块 POM**
+- [x] **Step 1: 写入公共模块 POM**
 
 将 `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/pom.xml` 创建为：
 
@@ -138,7 +139,7 @@ base-ref: 97f4d9d0c96697bcfcb7446ee9b89e92ff47dcea
 </project>
 ```
 
-- [ ] **Step 2: 调整聚合模块顺序**
+- [x] **Step 2: 调整聚合模块顺序**
 
 把 `fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml` 的 `<modules>` 改为：
 
@@ -150,7 +151,7 @@ base-ref: 97f4d9d0c96697bcfcb7446ee9b89e92ff47dcea
     </modules>
 ```
 
-- [ ] **Step 3: 为 Nebula 与 Neo4j 增加公共模块依赖**
+- [x] **Step 3: 为 Nebula 与 Neo4j 增加公共模块依赖**
 
 在两个具体驱动 POM 的 `<dependencies>` 第一项加入：
 
@@ -164,7 +165,7 @@ base-ref: 97f4d9d0c96697bcfcb7446ee9b89e92ff47dcea
 
 保留 Nebula 现有 `fw-plus-common`、`com.vesoft`、Druid、Mockito、Spring JDBC、MyBatis 依赖；保留 Neo4j 现有 `org.neo4j.driver:neo4j-java-driver` 依赖。
 
-- [ ] **Step 4: 验证 Maven 可识别新模块**
+- [x] **Step 4: 验证 Maven 可识别新模块**
 
 Run:
 
@@ -175,7 +176,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`。首次执行时公共模块没有测试，Surefire 不应报错；若父 POM 要求至少一个测试，则先在 Task 2 的 Step 1 创建测试后再运行同一命令。
 
-- [ ] **Step 5: 提交模块骨架**
+- [x] **Step 5: 提交模块骨架**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml \
@@ -234,7 +235,7 @@ git commit -m "fw-plus-core: 新增公共图 JDBC 模块"
   - `public static ResultSet emptyPrimaryKeys() throws SQLException`
   - `public static ResultSet emptyIndexInfo() throws SQLException`
 
-- [ ] **Step 1: 先写公共默认行为失败测试**
+- [x] **Step 1: 先写公共默认行为失败测试**
 
 `GraphJdbcDefaultsTest.java` 覆盖：
 
@@ -270,7 +271,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: 编译失败，提示 `GraphJdbcDefaults` 或 `GraphJdbcWrapperSupport` 不存在。
 
-- [ ] **Step 2: 实现 `GraphJdbcDefaults` 与 `GraphJdbcWrapperSupport`**
+- [x] **Step 2: 实现 `GraphJdbcDefaults` 与 `GraphJdbcWrapperSupport`**
 
 实现要点：
 
@@ -331,7 +332,7 @@ public final class GraphJdbcDefaults {
 
 `GraphJdbcWrapperSupport.unwrap` 对可分配类型返回 `iface.cast(target)`，否则抛出 `SQLException("No wrapped object for " + iface.getName())`；`isWrapperFor` 返回 `iface != null && target != null && iface.isInstance(target)`。
 
-- [ ] **Step 3: 写生命周期失败测试**
+- [x] **Step 3: 写生命周期失败测试**
 
 `GraphJdbcLifecycleTest.java` 覆盖：
 
@@ -373,7 +374,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: 编译失败，提示 `GraphJdbcLifecycle` 不存在。
 
-- [ ] **Step 4: 实现 `GraphJdbcLifecycle`**
+- [x] **Step 4: 实现 `GraphJdbcLifecycle`**
 
 实现要求：
 
@@ -407,7 +408,7 @@ public final class GraphJdbcLifecycle {
 }
 ```
 
-- [ ] **Step 5: 写 RowSet 与元数据形状失败测试**
+- [x] **Step 5: 写 RowSet 与元数据形状失败测试**
 
 `GraphJdbcRowSetsTest.java` 覆盖：
 
@@ -478,7 +479,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: 编译失败，提示 RowSet/MetaData 支持类不存在。
 
-- [ ] **Step 6: 实现 `GraphJdbcColumn`、`GraphJdbcResult`、`GraphJdbcRowSets`、`GraphJdbcMetaDataSupport`**
+- [x] **Step 6: 实现 `GraphJdbcColumn`、`GraphJdbcResult`、`GraphJdbcRowSets`、`GraphJdbcMetaDataSupport`**
 
 实现边界：
 
@@ -518,7 +519,7 @@ public final class GraphJdbcResult {
 
 `GraphJdbcRowSets.resultSet` 复用现有 Neo4j 逻辑：如果 columns 为空且 rows 非空，则使用第一行 key 顺序；用 `RowSetProvider.newFactory().createCachedRowSet()` 与 `RowSetMetaDataImpl` 构造只读结果。`GraphJdbcMetaDataSupport` 的列数组和类型数组直接采用当前 `Neo4jJdbcProxies` 中 `emptyTablesResultSet`、`emptyColumnsResultSet`、`emptySchemasResultSet`、`emptyCatalogsResultSet`、`emptyPrimaryKeysResultSet`、`emptyIndexInfoResultSet` 的形状。
 
-- [ ] **Step 7: 跑公共基础能力测试**
+- [x] **Step 7: 跑公共基础能力测试**
 
 Run:
 
@@ -529,7 +530,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，4 个公共测试类全部通过。
 
-- [ ] **Step 8: 提交公共基础能力**
+- [x] **Step 8: 提交公共基础能力**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java \
@@ -565,7 +566,7 @@ git commit -m "fw-plus-core: 提取图 JDBC 公共基础能力"
   - `public static Statement statement(Connection connection, GraphJdbcExecutor executor, GraphJdbcSqlPreprocessor preprocessor, int resultSetType, int resultSetConcurrency, int resultSetHoldability)`
   - `public static PreparedStatement preparedStatement(Connection connection, GraphJdbcExecutor executor, GraphJdbcSqlPreprocessor preprocessor, String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)`
 
-- [ ] **Step 1: 写参数绑定失败测试**
+- [x] **Step 1: 写参数绑定失败测试**
 
 `GraphJdbcParameterBindingsTest.java` 覆盖：
 
@@ -605,7 +606,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: 编译失败，提示参数类不存在。
 
-- [ ] **Step 2: 实现参数绑定和参数元数据**
+- [x] **Step 2: 实现参数绑定和参数元数据**
 
 实现要求：
 
@@ -636,7 +637,7 @@ public final class GraphJdbcParameterBindings {
 
 `countQuestionMarks` 逐字符扫描，维护 single quote 和 double quote 状态，只统计未处于引号内的 `?`。`GraphJdbcParameterMetaData` 对所有参数返回 `Types.JAVA_OBJECT`、`ParameterMetaData.parameterModeIn`、`ParameterMetaData.parameterNullableUnknown`，`unwrap/isWrapperFor` 复用 `GraphJdbcWrapperSupport`。
 
-- [ ] **Step 3: 写 Statement 支持失败测试**
+- [x] **Step 3: 写 Statement 支持失败测试**
 
 `GraphJdbcStatementSupportTest.java` 覆盖：
 
@@ -695,7 +696,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: 编译失败，提示执行抽象或 Statement 支持类不存在。
 
-- [ ] **Step 4: 实现执行接口与 Statement/PreparedStatement 动态代理**
+- [x] **Step 4: 实现执行接口与 Statement/PreparedStatement 动态代理**
 
 实现边界：
 
@@ -724,7 +725,7 @@ setPoolable/isPoolable, unwrap, isWrapperFor
 
 PreparedStatement 的 `executeQuery(String)`、`executeUpdate(String)`、`execute(String)` 抛出 `SQLException(name + "(String) cannot be called on PreparedStatement.")`。执行时先调用 `preprocessor.preprocess(sql)`，再调用 `executor.execute(processedSql, bindings)`；有结果集时使用 `GraphJdbcRowSets.resultSet`，无结果集时返回 `updateCount`。
 
-- [ ] **Step 5: 跑公共 Statement 全量测试**
+- [x] **Step 5: 跑公共 Statement 全量测试**
 
 Run:
 
@@ -735,7 +736,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，公共模块 6 个测试类全部通过。
 
-- [ ] **Step 6: 提交公共 Statement 支持**
+- [x] **Step 6: 提交公共 Statement 支持**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java \
@@ -761,7 +762,7 @@ git commit -m "fw-plus-core: 提取图 JDBC Statement 公共支持"
   - Neo4j `Neo4jJdbcProxies.statement(...)` 和 `preparedStatement(...)` 仍返回标准 JDBC `Statement`/`PreparedStatement`
   - Neo4j SQL-to-Cypher、Java Driver session、事务和 `Neo4jConnectionConfig` 留在 Neo4j 模块内
 
-- [ ] **Step 1: 先增强 Neo4j 回归测试**
+- [x] **Step 1: 先增强 Neo4j 回归测试**
 
 在 `Neo4jDriverTest.java` 增加或保留以下断言：
 
@@ -805,7 +806,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: 当前实现通过已有场景；新增公共层依赖尚未接入前，新增“common support”命名测试可以先失败在行为断言或重复逻辑未下沉。
 
-- [ ] **Step 2: 新增 Neo4j 公共执行器适配类**
+- [x] **Step 2: 新增 Neo4j 公共执行器适配类**
 
 创建 `Neo4jGraphJdbcExecutor.java`：
 
@@ -830,7 +831,7 @@ final class Neo4jGraphJdbcExecutor implements GraphJdbcExecutor {
 
 若 `Neo4jQueryExecutor.execute` 当前参数类型不是 `Map<Integer,Object>`，在该适配类中完成最小转换，不修改 `Neo4jQueryExecutor` 的包可见接口，避免扩大 Neo4j 变更面。
 
-- [ ] **Step 3: 将 `Neo4jJdbcProxies` facade 委托公共模块**
+- [x] **Step 3: 将 `Neo4jJdbcProxies` facade 委托公共模块**
 
 `Neo4jJdbcProxies.statement(...)` 改为：
 
@@ -849,7 +850,7 @@ static Statement statement(Neo4jConnection connection, Neo4jQueryExecutor execut
 
 `preparedStatement(...)` 使用同一个 `GraphJdbcSqlPreprocessor`。保留 `databaseMetaData(...)` 中 Neo4j 产品名、版本、URL、用户名、事务能力等 Neo4j 专属返回值；把 `getTables/getColumns/getSchemas/getCatalogs/getTableTypes/getPrimaryKeys/getIndexInfo` 委托到 `GraphJdbcMetaDataSupport`。删除 `Neo4jJdbcProxies` 内部 `StatementHandler`、`resultSet`、`shapedResultSet`、`jdbcType`、`defaultValue`、空 metadata RowSet 方法。
 
-- [ ] **Step 4: 跑 Neo4j 本地回归**
+- [x] **Step 4: 跑 Neo4j 本地回归**
 
 Run:
 
@@ -860,7 +861,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，`Neo4jDriverTest` 中 DriverManager URL、Statement、PreparedStatement、参数绑定、batch、metadata 断言全部通过；不启动真实 Neo4j。
 
-- [ ] **Step 5: 验证 Neo4j 模块不新增服务入口变化**
+- [x] **Step 5: 验证 Neo4j 模块不新增服务入口变化**
 
 Run:
 
@@ -871,7 +872,7 @@ git diff -- fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-neo4j-jdbc/src/ma
 
 Expected: 无输出，表示 `java.sql.Driver` 服务声明未变。
 
-- [ ] **Step 6: 提交 Neo4j 适配**
+- [x] **Step 6: 提交 Neo4j 适配**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-neo4j-jdbc/src/main/java \
@@ -907,7 +908,7 @@ git commit -m "fw-plus-core: 让 Neo4j JDBC 复用公共图 JDBC 支持"
   - Nebula 现有 public/package-visible 类名、方法签名和测试 fake executor 路径保持可用
   - `NebulaConnection`、`NebulaStatementImpl`、`NebulaPreparedStatementImpl` 继续使用原生 Nebula 执行器和 ResultSet 映射
 
-- [ ] **Step 1: 先跑 Nebula 迁移前回归基线**
+- [x] **Step 1: 先跑 Nebula 迁移前回归基线**
 
 Run:
 
@@ -918,7 +919,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`。如果某个测试依赖当前未安装的本地服务，它必须被拆出或按现有测试约定跳过；不要把真实 NebulaGraph 作为本任务验收条件。
 
-- [ ] **Step 2: 将 Nebula 生命周期委托公共生命周期**
+- [x] **Step 2: 将 Nebula 生命周期委托公共生命周期**
 
 `NebulaResourceLifecycle` 保留现有 `ThrowingCloseAction` 接口兼容层，并内部使用：
 
@@ -952,7 +953,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，重复 close 仍只关闭一次，关闭后访问仍抛出 `SQLException`。
 
-- [ ] **Step 3: 将 Nebula 不支持异常与 wrapper 委托公共模块**
+- [x] **Step 3: 将 Nebula 不支持异常与 wrapper 委托公共模块**
 
 `ExceptionBuilder.buildUnsupportedOperationException()` 改为返回：
 
@@ -971,7 +972,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，不支持能力仍抛出 `SQLFeatureNotSupportedException` 或现有测试认可的 `SQLException` 子类；`unwrap/isWrapperFor` 语义不变。
 
-- [ ] **Step 4: 将 Nebula 参数绑定与参数元数据委托公共模块**
+- [x] **Step 4: 将 Nebula 参数绑定与参数元数据委托公共模块**
 
 `NebulaParameterBindings` 内部增加：
 
@@ -992,7 +993,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，`setString/setNull/clearParameters/executeBatch` 与 fake executor 收到的绑定值保持不变。
 
-- [ ] **Step 5: 将 Nebula 空 metadata 结果集形状委托公共模块**
+- [x] **Step 5: 将 Nebula 空 metadata 结果集形状委托公共模块**
 
 在 `NebulaDatabaseMetaData` 中：
 
@@ -1021,7 +1022,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，空 schemas/catalogs/columns/primary keys/index info 的列名、列类型稳定；Nebula index 读取测试仍能通过 fake executor。
 
-- [ ] **Step 6: 跑 Nebula 本地稳定性与框架集成回归**
+- [x] **Step 6: 跑 Nebula 本地稳定性与框架集成回归**
 
 Run:
 
@@ -1032,7 +1033,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`，重复 close、ResultSet 边界、wasNull、unsupported、DriverManager/JdbcTemplate/MyBatis 常见读取路径均通过本地 fake 或本地构造数据验证。
 
-- [ ] **Step 7: 验证 Nebula 协议能力未被公共层吸收**
+- [x] **Step 7: 验证 Nebula 协议能力未被公共层吸收**
 
 Run:
 
@@ -1044,7 +1045,7 @@ git diff --stat -- fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-nebula-jdb
 
 Expected: 只出现 `NebulaParameterBindings.java` 的小幅变更；`sql/parser`、`sql/query`、`sql/write`、`sql/trigger`、`sql/routine`、`mysql/replication` 不出现协议迁移或大规模重写。
 
-- [ ] **Step 8: 提交 Nebula 适配**
+- [x] **Step 8: 提交 Nebula 适配**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-nebula-jdbc/src/main/java \
@@ -1063,7 +1064,7 @@ git commit -m "fw-plus-core: 让 Nebula JDBC 复用公共图 JDBC 支持"
 - Consumes: Task 1-5 的所有产出。
 - Produces: 可交付状态：公共模块存在、两个具体驱动依赖公共模块、测试通过、公共模块无具体 SDK 依赖、OpenSpec tasks 可勾选。
 
-- [ ] **Step 1: 跑公共模块测试**
+- [x] **Step 1: 跑公共模块测试**
 
 Run:
 
@@ -1074,7 +1075,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`。
 
-- [ ] **Step 2: 跑 Neo4j 本地测试**
+- [x] **Step 2: 跑 Neo4j 本地测试**
 
 Run:
 
@@ -1085,7 +1086,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`。
 
-- [ ] **Step 3: 跑 Nebula 本地核心回归**
+- [x] **Step 3: 跑 Nebula 本地核心回归**
 
 Run:
 
@@ -1096,7 +1097,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`。
 
-- [ ] **Step 4: 跑 `fw-plus-graph` 聚合测试**
+- [x] **Step 4: 跑 `fw-plus-graph` 聚合测试**
 
 Run:
 
@@ -1107,7 +1108,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`。如果 `Neo4jLiveJdbcSmokeTest` 或 `NebulaLiveJdbcSmokeTest` 在当前 Surefire 配置中误运行并要求真实服务，先确认现有测试约定，再将 live smoke 测试限定到显式 profile 或按已有跳过机制处理；不要用真实服务可用性作为本 change 的成功条件。
 
-- [ ] **Step 5: 检查公共模块依赖边界**
+- [x] **Step 5: 检查公共模块依赖边界**
 
 Run:
 
@@ -1118,7 +1119,7 @@ rg -n "com\\.vesoft|org\\.neo4j|druid|springframework|mybatis|nebula|neo4j" fw-p
 
 Expected: 无输出。若测试类中字符串包含 `neo4j` 或 `nebula`，改为中性示例词，例如 `NODE`、`EDGE`、`graph`，保持公共模块无具体驱动命名。
 
-- [ ] **Step 6: 检查服务声明和对外入口未变**
+- [x] **Step 6: 检查服务声明和对外入口未变**
 
 Run:
 
@@ -1130,7 +1131,7 @@ git diff -- fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-nebula-jdbc/src/m
 
 Expected: 无输出。
 
-- [ ] **Step 7: 检查 OpenSpec tasks 可逐项勾选**
+- [x] **Step 7: 检查 OpenSpec tasks 可逐项勾选**
 
 对照 `openspec/changes/extract-common-graph-jdbc/tasks.md`：
 
@@ -1144,7 +1145,7 @@ Expected: 无输出。
 
 Expected: 每个 OpenSpec 条目都能映射到一个已执行任务；没有新增第三种图数据库驱动；没有把 Nebula SQL AST、MySQL 协议、binlog、trigger、routine 迁入公共模块。
 
-- [ ] **Step 8: 最终提交验证收口**
+- [x] **Step 8: 最终提交验证收口**
 
 ```bash
 git status --short
@@ -1159,10 +1160,10 @@ git commit -m "fw-plus-core: 抽象公共图数据库 JDBC 标准层"
 
 ## 自检清单
 
-- [ ] 公共模块 `fw-plus-graph-jdbc` 位于 `fw-plus-graph` 聚合中，且构建顺序早于 Nebula/Neo4j。
-- [ ] 公共模块没有具体图数据库 SDK、Druid、Spring、MyBatis 运行时依赖。
-- [ ] Neo4j 保留 URL、Driver、连接配置、SQL-to-Cypher、Java Driver 执行器。
-- [ ] Nebula 保留连接池、nGQL/SQL 转换、原生结果映射、SQL AST、MySQL 协议、binlog、trigger、routine。
-- [ ] 公共测试、Neo4j 本地测试、Nebula 本地稳定性与框架集成测试都通过。
-- [ ] 所有 Java 代码兼容 Java 1.8。
-- [ ] `META-INF/services/java.sql.Driver` 未变化。
+- [x] 公共模块 `fw-plus-graph-jdbc` 位于 `fw-plus-graph` 聚合中，且构建顺序早于 Nebula/Neo4j。
+- [x] 公共模块没有具体图数据库 SDK、Druid、Spring、MyBatis 运行时依赖。
+- [x] Neo4j 保留 URL、Driver、连接配置、SQL-to-Cypher、Java Driver 执行器。
+- [x] Nebula 保留连接池、nGQL/SQL 转换、原生结果映射、SQL AST、MySQL 协议、binlog、trigger、routine。
+- [x] 公共测试、Neo4j 本地测试、Nebula 本地稳定性与框架集成测试都通过。
+- [x] 所有 Java 代码兼容 Java 1.8。
+- [x] `META-INF/services/java.sql.Driver` 未变化。

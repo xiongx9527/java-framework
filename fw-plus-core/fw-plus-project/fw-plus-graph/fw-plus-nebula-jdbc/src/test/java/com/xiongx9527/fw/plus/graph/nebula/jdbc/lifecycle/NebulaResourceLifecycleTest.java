@@ -9,7 +9,6 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
-import java.sql.Savepoint;
 import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.Properties;
@@ -175,7 +174,6 @@ public class NebulaResourceLifecycleTest {
         assertClosedConnection(() -> connection.getTypeMap());
         assertClosedConnection(() -> connection.setTypeMap(null));
         assertClosedConnection(() -> connection.setHoldability(java.sql.ResultSet.CLOSE_CURSORS_AT_COMMIT));
-        assertClosedConnection(() -> connection.rollback((Savepoint) null));
         assertClosedConnection(() -> connection.getClientInfo());
         assertClosedConnection(() -> connection.getClientInfo("client"));
     }
@@ -216,13 +214,13 @@ public class NebulaResourceLifecycleTest {
     }
 
     private void assertClosedConnection(ThrowingJdbcAccess access) {
-        try {
-            access.call();
-            fail("Expected SQLException");
-        } catch (SQLException exception) {
-            assertTrue(exception.getMessage().contains("Connection"));
-        }
-    }
+		try {
+			access.call();
+			fail("Expected SQLException");
+		} catch (SQLException exception) {
+			assertTrue(exception.getMessage().contains("Connection"));
+		}
+	}
 
     @FunctionalInterface
     private interface ThrowingJdbcAccess {
