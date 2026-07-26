@@ -2,6 +2,7 @@
 change: extract-common-graph-jdbc
 design-doc: docs/superpowers/specs/2026-07-26-extract-common-graph-jdbc-design.md
 base-ref: 97f4d9d0c96697bcfcb7446ee9b89e92ff47dcea
+archived-with: 2026-07-26-extract-common-graph-jdbc
 ---
 
 # 抽象公共图数据库 JDBC 标准层实施计划
