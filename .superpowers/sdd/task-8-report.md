@@ -28,3 +28,23 @@
 ## 注意事项
 
 - 全工作树的 `git diff --check` 仍会报告用户已有的 `.superpowers/sdd/task-6-brief.md` 末尾空白；本任务未修改该文件。
+
+---
+
+## Review Fix: AskData 注册表测试执行
+
+### 修复内容
+
+- 将 `LangChain4jAskDataModelRegistryTest` 从 JUnit4 `org.junit.Test` 与 `org.junit.Assert` 迁移到 JUnit Jupiter。
+- 保留现有聊天模型按 key 选择、默认聊天模型回退、缺失模型报错和 Embedding 模型转 `List<Float>` 的行为覆盖。
+
+### TDD 证据
+
+- RED：迁移前执行指定 Maven 命令仅运行 `MagicAPIModelAutoConfigurationIntegrationTest` 的 2 个测试，未发现 `LangChain4jAskDataModelRegistryTest`。
+- GREEN：迁移后同一命令运行 7 个测试，其中 `LangChain4jAskDataModelRegistryTest` 5 个、Model 集成测试 2 个，全部通过。
+
+### 验证结果
+
+- `npm test`：通过，1 个 console 契约测试。
+- `git diff --check a9b7bf51..HEAD`：通过，无输出。
+- 全工作树 `git diff --check` 仅保留既有 `.superpowers/sdd/task-6-brief.md:88` 行尾空白提示。
