@@ -938,7 +938,7 @@ git commit -m "feat: add magic model datasource registry"
   - Controller list response uses `ModelDataSourceInfo.simple()`.
   - Controller test endpoint calls `LangChain4jModelFactory.create(definition, adapters)` for real factory validation and masks sensitive fields on failure.
 
-- [ ] **Task 7 Step 1: Write failing module tests**
+- [x] **Task 7 Step 1: Write failing module tests**
 
 Create tests that prove:
 
@@ -949,7 +949,7 @@ Create tests that prove:
 4. getModel() returns the wrapped native LangChain4j model object.
 ```
 
-- [ ] **Task 7 Step 2: Write failing controller/configuration tests**
+- [x] **Task 7 Step 2: Write failing controller/configuration tests**
 
 Create tests that prove:
 
@@ -960,7 +960,7 @@ Create tests that prove:
 4. MagicModelController test endpoint calls the factory and returns no raw apiKey, secretKey, accessToken, token, or password in success or failure payloads.
 ```
 
-- [ ] **Task 7 Step 3: Run tests to verify they fail**
+- [x] **Task 7 Step 3: Run tests to verify they fail**
 
 Run:
 
@@ -972,11 +972,11 @@ cd fw-plus-ai
 
 Expected: FAIL because module, controller, and configuration do not exist.
 
-- [ ] **Task 7 Step 4: Implement module, controller, and configuration**
+- [x] **Task 7 Step 4: Implement module, controller, and configuration**
 
 Implement the classes listed in **Files**. The configuration property prefix for the plugin is `magic-api.plugin.model.enabled`, with `havingValue = "true"` and `matchIfMissing = true`.
 
-- [ ] **Task 7 Step 5: Run Magic model backend tests**
+- [x] **Task 7 Step 5: Run Magic model backend tests**
 
 Run:
 
@@ -988,7 +988,7 @@ cd fw-plus-ai
 
 Expected: PASS.
 
-- [ ] **Task 7 Step 6: Commit this task during execution**
+- [x] **Task 7 Step 6: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/MagicApiPluginAutoConfiguration.java \

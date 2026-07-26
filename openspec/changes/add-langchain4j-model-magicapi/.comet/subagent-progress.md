@@ -2,16 +2,24 @@
 
 - review_mode: standard
 - tdd_mode: tdd
-- current_task: Task 7: Magic model 模块、Controller 与插件配置
-- openspec_task: 4.3/4.4/4.5 Magic model 脚本模块、控制器测试接口、插件配置与自动配置导入；后续 6.2 文档需说明 0.35 provider 矩阵限制
+- current_task: Task 8: Magic Console 插件模块迁移与旧入口删除
+- openspec_task: 4.5/5.1/5.2/5.3 前端 model 插件、旧 langchain4j 入口删除和 Maven/sample 迁移；后续 6.2 文档需说明 0.35 provider 矩阵限制
 - phase: ready-for-implementation
 - issue: none
-- base_commit: 8e90cac5fc55c0e568bf48be3b458fe954319d98
+- base_commit: 76dc9ed07b0b9b86a73c141975298874f991ec8a
 - implementer: pending
 - report: pending
-- review_required: Task 6 approved after lifecycle fixes; Task 7 pending implementation
-- red_green_evidence: Task 6 focused tests passed 10 tests, 0 failures, 0 errors with Zulu 8 system Maven; git diff --check passed
+- review_required: Task 7 approved; Task 8 pending implementation
+- red_green_evidence: Task 7 focused tests passed 19 tests, 0 failures, 0 errors with Maven Wrapper; git diff --check passed
 - unresolved_feedback: none
+
+## Completed Task 7
+
+- commits: 298e5eb3..76dc9ed0
+- implementer: 019f9e8b-c0f0-7f63-94c0-099889915260
+- reviewer: 019f9e9a-1528-7431-b2ae-ff40ebb46e69 approved
+- GREEN: MagicDynamicModelDataSourceTest, ModelDataSourceMagicDynamicRegistryTest, ModelModuleTest, MagicModelControllerTest, MagicAPIModelConfigurationTest, and MagicAPIModelAutoConfigurationIntegrationTest passed 19 tests, 0 failures, 0 errors with Maven Wrapper
+- environment notes: test output includes existing SLF4J multiple binding warnings and compiler warnings
 
 ## Completed Task 6
 

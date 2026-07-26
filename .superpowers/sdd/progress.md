@@ -4,3 +4,4 @@ Task 3: complete (commits 49f1edae..132e4265, review clean after verification-no
 Task 4: complete (commits 4f5a82bd..0efb3990, review clean after provider-mapping and voyage fixes)
 Task 5: complete (commits 0b10ac97..c29cbb9c, review clean)
 Task 6: complete (commits 836064f9..8e90cac5, review clean after lifecycle fixes)
+Task 7: complete (commits 298e5eb3..76dc9ed0, review clean)
