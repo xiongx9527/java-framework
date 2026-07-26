@@ -85,7 +85,7 @@ return model['chat-default'].getModel();
 ### LangChain4j 版本兼容性
 
 本模块锁定 LangChain4j `0.35.0`：`CHAT` 对应 `ChatLanguageModel`，
-`STREAMING_CHAT` 对应 `StreamingChatLanguageModel`。LangChain4j 高版本改用
+`STREAMING_CHAT` 对应 `StreamingChatLanguageModel`。LangChain4j `1.x` 改用
 `ChatModel` / `StreamingChatModel` 命名，当前版本不能引用这些类。
 
 LangChain4j `0.35.0` 已提供 `TextContent`、`ImageContent`、`AudioContent`、

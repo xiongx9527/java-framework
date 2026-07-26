@@ -87,8 +87,8 @@ and replace the dependency with `fw-plus-ai-magicapi-plugin-model`. Do not retai
 
 This module is compiled against LangChain4j `0.35.0`: `CHAT` maps to
 `ChatLanguageModel` and `STREAMING_CHAT` maps to `StreamingChatLanguageModel`.
-Later LangChain4j versions use the names `ChatModel` and `StreamingChatModel`;
-those types are not available in the current version.
+LangChain4j `1.x` uses the names `ChatModel` and `StreamingChatModel`; those
+types are not available in the current version.
 
 LangChain4j `0.35.0` already provides `TextContent`, `ImageContent`,
 `AudioContent`, `VideoContent`, and `PdfFileContent` for multimodal Chat input.
