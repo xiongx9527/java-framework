@@ -127,6 +127,8 @@ Admin 和 Eureka 当前把路径放入 `globalName`，与该字段“JS 全局�
 
 Druid 和 Swagger 使用固定站内路径，不需要后端 `attributes.path`。
 
+四个新增插件继续使用迁移前宿主的 `MAGIC_API_BASE_URL` 基址语义。该值必须由各插件 Vite 构建显式注入，不能依赖 Vite 默认不会暴露的 `import.meta.env` 字段；非默认基址构建后的 IIFE 必须实际打开该后端基址下的目标路径。
+
 ## 5. 插件模块落点
 
 ### 5.1 现有 console 源码
@@ -150,14 +152,14 @@ S3、Kafka、Pulsar 已有状态栏项，只补 `order` 并纳入统一契约。
 
 ### 5.3 Druid、Admin、Swagger、Eureka
 
-在 Boot 的 `fw-plus-magicapi-plugin` 聚合目录中为四个集成提供独立插件资源：
+按框架分层为四个集成提供独立插件资源：
 
-- 新建 `fw-plus-magicapi-plugin-druid`。
-- 新建 `fw-plus-magicapi-plugin-admin`。
-- 完善已存在但仅含 POM 的 `fw-plus-magicapi-plugin-swagger`。
-- 新建 `fw-plus-magicapi-plugin-eureka`。
+- 在 Boot 的 `fw-plus-magicapi-plugin` 聚合目录新建 `fw-plus-magicapi-plugin-druid`。
+- 在 Boot 的 `fw-plus-magicapi-plugin` 聚合目录新建 `fw-plus-magicapi-plugin-admin`。
+- 在 Boot 的 `fw-plus-magicapi-plugin` 聚合目录完善已存在但仅含 POM 的 `fw-plus-magicapi-plugin-swagger`。
+- 在 Cloud 的 `fw-plus-cloud-starters` 聚合目录新建 `fw-plus-magicapi-plugin-eureka`。
 
-每个模块使用现有插件 console 构建模式，产出独立 IIFE 和 SVG symbol。对应 Boot/Cloud Java 配置补 `globalName`、`javascriptFilename`；BOM 和聚合 POM 补齐模块坐标。Eureka 的后端配置仍归属 Cloud autoconfigure，前端资源模块可由 Cloud 使用方显式引入。
+每个模块使用现有插件 console 构建模式，产出独立 IIFE 和 SVG symbol。对应 Boot/Cloud Java 配置补 `globalName`、`javascriptFilename`；各自所属层的 BOM 和聚合 POM 补齐模块坐标。Eureka 插件依赖 Cloud Eureka starter，并由 Cloud 使用方显式引入；Boot 聚合和 Boot BOM 不得声明 Eureka 插件，从而保持 `Core -> Boot -> Cloud` 的可复现发布顺序。Druid 和 Swagger 的 symbol 必须从迁移前宿主 SVG 无损生成，仅允许 symbol 包装和等价压缩，不改变 `viewBox`、path 或视觉内容。
 
 ## 6. 加载与刷新时序
 
@@ -234,6 +236,8 @@ S3、Kafka、Pulsar 已有状态栏项，只补 `order` 并纳入统一契约。
 
 - 16 个状态栏插件检查 `icon`、`title`、`displayKey`、`order` 和 `onClick`。
 - 检查原有固定 URL 和站内 URL 解析语义。
+- 使用非默认 `MAGIC_API_BASE_URL` 构建四个新增插件，并执行 IIFE 验证实际跳转基址。
+- Druid、Swagger 检查迁移前后 SVG 的 `viewBox` 和归一化内容或哈希一致。
 - 检查 IIFE 同时包含状态栏声明和对应 SVG symbol。
 - 14 个现有静态 toolbar 插件检查明确 `order`。
 - LangChain4j 检查数据源扩展与状态栏声明同时存在。
@@ -244,6 +248,7 @@ S3、Kafka、Pulsar 已有状态栏项，只补 `order` 并纳入统一契约。
 - Druid、Admin、Swagger、Eureka 的 `plugin()` 测试。
 - Admin/Eureka 默认路径和自定义路径测试。
 - 新增模块 IIFE 在 Maven 包的 `magic-editor/plugins/` 中存在。
+- Boot 全量 reactor 不依赖任何 Cloud artifact，Eureka 插件只由 Cloud 聚合和 BOM 管理。
 
 ### 10.4 集成验证
 

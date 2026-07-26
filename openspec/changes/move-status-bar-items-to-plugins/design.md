@@ -26,11 +26,13 @@
 
 ### 2. 无 IIFE 集成补充最小前端插件
 
-Druid、Spring Boot Admin、Swagger、Eureka 分别增加独立前端插件模块和 IIFE。对应 Java `plugin()` 只提供 `globalName`、`javascriptFilename` 和通用运行时属性，不提供状态栏描述。LangChain4j 恢复 console 构建来源，禁止直接维护压缩产物。
+Druid、Spring Boot Admin、Swagger、Eureka 分别增加独立前端插件模块和 IIFE。Druid、Admin、Swagger 归 Boot 插件聚合，Eureka 归 Cloud starters 聚合；Boot 聚合和 BOM 不得反向依赖 Cloud。对应 Java `plugin()` 只提供 `globalName`、`javascriptFilename` 和通用运行时属性，不提供状态栏描述。LangChain4j 恢复 console 构建来源，禁止直接维护压缩产物。
 
 ### 3. 通用运行时属性传给前端工厂
 
 `Plugin` 增加通用 `attributes`，加载器调用 IIFE 工厂时传入当前 `pluginData`。Admin、Eureka 使用 `attributes.path` 传递配置路径，替代过去复用 `globalName` 存放路径的行为。
+
+四个新增插件的 Vite 构建显式注入 `MAGIC_API_BASE_URL`，确保构建后的 IIFE 在非默认后端基址场景仍保持迁移前跳转语义。
 
 ### 4. 状态栏和静态插件 toolbar 统一排序
 
@@ -47,7 +49,9 @@ Druid、Spring Boot Admin、Swagger、Eureka 分别增加独立前端插件模�
 ## Risks / Trade-offs
 
 - [Admin/Eureka 自定义路径丢失] -> 使用 `Plugin.attributes.path`，覆盖默认路径和自定义路径测试。
-- [插件 IIFE 图标不可用] -> 复用插件现有 SVG symbol，构建产物检查 symbol 与 `statusBarItems` 同时存在。
+- [插件 IIFE 图标不可用或视觉漂移] -> 从宿主原 SVG 无损生成 symbol，校验 `viewBox` 与归一化内容或哈希，并检查构建产物中 symbol 与 `statusBarItems` 同时存在。
+- [新增插件丢失自定义后端基址] -> Vite 显式注入 `MAGIC_API_BASE_URL`，使用非默认值构建并执行产物行为测试。
+- [Eureka 破坏分层发布顺序] -> Eureka artifact 归 Cloud starters 聚合和 Cloud BOM，Boot 不声明该模块或依赖，保持 `Core -> Boot -> Cloud`。
 - [加载时序导致入口缺失] -> 使用专用通用事件刷新，并覆盖初始加载、失败隔离和多插件场景。
 - [排序改变内置或动态 toolbar] -> 排序范围限定为静态插件 toolbar，并增加边界测试。
 - [跨层契约不一致] -> Java 元数据测试、前端契约测试和实际 IIFE/Maven 资源构建共同验证。

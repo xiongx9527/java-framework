@@ -1,21 +1,26 @@
 # 子代理进度
 
-- 计划任务：Task 4: 恢复 LangChain4j Console 构建来源
-- OpenSpec 映射：2.2 将 LangChain4j 状态栏入口迁入 AI 插件前端资源，恢复可维护构建来源并验证产物
+- 计划任务：Task 5: 创建 Druid、Admin、Swagger、Eureka 前端插件
+- OpenSpec 映射：3.1 创建四个独立前端插件、IIFE 和后端加载配置，覆盖 Admin/Eureka 自定义路径
 - 当前阶段：done
-- 实现代理：019f99ae-c6c1-72e1-b017-ce768054a4bf（Confucius）
+- 实现代理：019f9a44-4d6b-7971-8df5-25d619049c9b（Franklin）
 - review_mode：thorough
 - 审查修复轮次：1/2
-- 实现基线：8c4f3d4083bd86c83456c57493a610ce17fd5f5a（外部历史重写后的等价 Task 3 进度提交）
-- 实现提交：bfcabb2543ad2c70c67d7e05767325c1b513f912
-- 变更文件：AI 聚合/子模块 POM、LangChain4j console 源码/测试/Vite 配置、生成 IIFE，共 8 个文件
-- RED 证据：构建来源缺失；旧 IIFE 占位文案精确对照失败
-- GREEN 证据：npm test 3/3、npm run build、IIFE 冒烟与 diff check 通过
-- 已通过审查：Task 4 独立审查经第 1 轮修复后聚焦复审通过，所有 load-bearing 问题关闭
-- 审查代理：019f99c2-d226-7211-ad12-66e60e701e73（Lovelace）
-- 修复代理：019f99ce-af58-7a41-950c-e52c675e4be5（James）
-- 修复提交：66920e9d13143f3f20cad6cc32a9a66f7c10763b、3f340c12bf6028531e622882ae383a2e44144715
-- 修复 RED：fixture 测试暴露未 scoped 样式、无效 Vite target 与 locale 二次渲染 options 漂移
-- 修复 GREEN：npm test 3/3、Vite build、完整 fixture 对照、effective-POM 与 copy execution 通过；完整 prepare-package 在 execution 前被缺失 sibling 依赖阻断
-- 聚焦复审代理：019f9a02-0f1f-7822-86d8-971a043491f5（Parfit）
-- 未解决反馈：无；完整 prepare-package 的外部 sibling 依赖前置条件记录到 Task 8
+- 实现基线：01421f8317198cfce6c24883d9d068fc4d390974
+- 实现提交：28ff0b52bededfce40f28101d2536ae5743b50eb
+- 变更文件：四个插件模块/console/IIFE、Boot/Cloud 后端元数据与测试、聚合 POM/BOM，共 36 个文件
+- RED 证据：前端 0/10、Boot 元数据 0/3、Cloud 元数据 0/1
+- GREEN 证据：前端 10/10、Boot 3/3、Cloud 1/1、4/4 构建与资源装配通过
+- 已通过审查：Task 5 第 1 轮修复后聚焦复审通过，3 个 Important 全部关闭
+- 审查代理：019f9c14-48d0-7b51-81f2-d993a7872e5a（Ptolemy）
+- 审查结果：Needs fixes（3 个 Important）
+- 未解决反馈：IIFE 未注入 MAGIC_API_BASE_URL；Druid/Swagger SVG 与宿主不一致；Eureka 位于 Boot 聚合且依赖 Cloud starter，形成跨层发布顺序环
+- 决策：采用 Cloud 聚合方案；Eureka artifact 移入 Cloud starters 聚合/BOM，Boot 删除对应模块/依赖，保持 `Core -> Boot -> Cloud` 发布顺序
+- 修复范围：同时显式注入并验证非默认 `MAGIC_API_BASE_URL`，以及恢复 Druid/Swagger 原宿主 SVG 内容
+- 修复代理：019f9d62-d519-7583-ab0e-a67af4825ff4（Linnaeus）
+- 修复提交：3a70d9a7bbd7e5eb7609a30a87a6c1a6801543d1
+- 修复 RED：四插件非默认基址产物行为失败；Druid/Swagger symbol 与宿主 SVG 不等价；Eureka 仍位于 Boot 聚合
+- 修复 GREEN：前端 18/18、Boot 3/3、Cloud 1/1；四个 Maven 资源包/JAR 装配及 Boot/Cloud 分层检查通过
+- 修复顾虑：内部 Nexus 超时，Maven 使用本地缓存离线验证；既有 Vite 漏洞与 Maven 警告未纳入本轮
+- 聚焦复审代理：019f9daf-8141-7ed0-af5c-c271a1eafc79（Sagan）
+- 聚焦复审结果：Spec Compliance PASS；Code Quality PASS；APPROVED；无新增 Critical/Important
