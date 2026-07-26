@@ -100,6 +100,22 @@ test('宿主状态栏接入通用插件刷新控制器并在加载后刷新', as
     assert.match(statusBar, /refreshPluginStatusBarItems\(\)/)
 })
 
+test('宿主状态栏不保留插件专属逻辑，并继续使用通用插件契约', async () => {
+    const statusBar = await source('components/panel/footer/magic-status-bar.vue')
+    const forbidden = [
+        /has[A-Z]\w+Plugin/,
+        /checkPlugin/,
+        /open(Config|Ftl|Dtp|Langchain4j|Debezium|Satoken|Ws|Mqtt|Druid|Swagger|SpringBootAdmin|Eureka|Vue3)/,
+        /加载完毕|Loaded/,
+        /setInterval\(/
+    ]
+
+    forbidden.forEach(pattern => assert.doesNotMatch(statusBar, pattern))
+    assert.match(statusBar, /array\.splice\(0, 0, \.\.\.items\)/)
+    assert.match(statusBar, /config\.header\[it\.displayKey\]/)
+    assert.match(statusBar, /Message\.PLUGINS_CHANGED/)
+})
+
 test('宿主不再包含 Kafka 或 Pulsar 专属 UI 分支和文案', async () => {
     const [toolbar, statusBar, english, chinese] = await Promise.all([
         source('components/panel/footer/magic-toolbar.vue'),
