@@ -147,7 +147,22 @@ final class Neo4jJdbcProxies {
                 new InvocationHandler() {
                     @Override
                     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                        if ("equals".equals(method.getName())) {
+                            return Boolean.valueOf(proxy == args[0]);
+                        }
+                        if ("hashCode".equals(method.getName())) {
+                            return Integer.valueOf(System.identityHashCode(proxy));
+                        }
+                        if ("toString".equals(method.getName())) {
+                            return statement.toString();
+                        }
                         if ("getGeneratedKeys".equals(method.getName())) {
+                            try {
+                                method.invoke(statement, args);
+                            }
+                            catch (InvocationTargetException exception) {
+                                throw exception.getCause();
+                            }
                             return GraphJdbcRowSets.shapedResultSet(
                                     Collections.singletonList(GraphJdbcColumn.of("GENERATED_KEY", Types.JAVA_OBJECT)),
                                     Collections.<Map<String, Object>>emptyList());
