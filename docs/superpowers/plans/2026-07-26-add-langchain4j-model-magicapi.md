@@ -452,7 +452,7 @@ git commit -m "feat: add langchain4j model factory and registry"
   - `LangChain4jModelAutoConfiguration.langChain4jModelFactory(): LangChain4jModelFactory` with `@ConditionalOnMissingBean`.
   - `LangChain4jModelAutoConfiguration.langChain4jModelRegistry(properties, factory, adapters): LangChain4jModelRegistry` with enabled model filtering and default key validation.
 
-- [ ] **Task 3 Step 1: Write failing properties binding test**
+- [x] **Task 3 Step 1: Write failing properties binding test**
 
 ```java
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model;
@@ -493,7 +493,7 @@ public class LangChain4jModelPropertiesTest {
 }
 ```
 
-- [ ] **Task 3 Step 2: Write failing auto-configuration tests**
+- [x] **Task 3 Step 2: Write failing auto-configuration tests**
 
 Create tests with `ApplicationContextRunner`:
 
@@ -570,7 +570,7 @@ public class LangChain4jModelAutoConfigurationTest {
 }
 ```
 
-- [ ] **Task 3 Step 3: Run tests to verify they fail**
+- [x] **Task 3 Step 3: Run tests to verify they fail**
 
 Run:
 
@@ -581,11 +581,11 @@ cd fw-plus-ai
 
 Expected: FAIL because properties and auto-configuration do not exist.
 
-- [ ] **Task 3 Step 4: Add dependencies and auto-configuration**
+- [x] **Task 3 Step 4: Add dependencies and auto-configuration**
 
 Modify `fw-plus-ai-boot-autoconfigure/pom.xml` to depend on `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-model`. Implement properties and auto-configuration. Register `com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration` in `META-INF/spring.factories` after `LangChain4jAutoConfiguration` and before Magic-API base auto-configuration.
 
-- [ ] **Task 3 Step 5: Run tests to verify they pass**
+- [x] **Task 3 Step 5: Run tests to verify they pass**
 
 Run:
 
@@ -596,7 +596,7 @@ cd fw-plus-ai
 
 Expected: PASS.
 
-- [ ] **Task 3 Step 6: Commit this task during execution**
+- [x] **Task 3 Step 6: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
