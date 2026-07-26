@@ -5,6 +5,7 @@
 
 package com.xiongx9527.fw.plus.graph.nebula.jdbc;
 
+import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcParameterMetaData;
 import com.xiongx9527.fw.plus.graph.nebula.jdbc.statement.NebulaPreparedStatementImpl;
 import com.xiongx9527.fw.plus.graph.nebula.jdbc.sql.NebulaParameterBinding;
 import com.xiongx9527.fw.plus.graph.nebula.jdbc.utils.ExceptionBuilder;
@@ -17,9 +18,11 @@ import java.sql.Types;
 public class NebulaParameterMetaData implements ParameterMetaData{
 
     private NebulaPreparedStatementImpl preparedStatement;
+	private final GraphJdbcParameterMetaData delegate;
 
     private NebulaParameterMetaData(NebulaPreparedStatementImpl preparedStatement){
         this.preparedStatement = preparedStatement;
+		this.delegate = new GraphJdbcParameterMetaData(preparedStatement.getParametersNumber());
     }
 
     public static ParameterMetaData getInstance(NebulaPreparedStatementImpl preparedStatement){
@@ -32,7 +35,7 @@ public class NebulaParameterMetaData implements ParameterMetaData{
 
     @Override
     public int getParameterCount() throws SQLException {
-        return preparedStatement.getParametersNumber();
+		return delegate.getParameterCount();
     }
 
     @Override
@@ -51,8 +54,7 @@ public class NebulaParameterMetaData implements ParameterMetaData{
 
     @Override
     public int isNullable(int param) throws SQLException {
-        preparedStatement.getParameterBindings().get(param);
-        return ParameterMetaData.parameterNullableUnknown;
+		return delegate.isNullable(param);
     }
 
     @Override
@@ -109,8 +111,7 @@ public class NebulaParameterMetaData implements ParameterMetaData{
 
     @Override
     public int getParameterMode(int param) throws SQLException {
-        preparedStatement.getParameterBindings().get(param);
-        return ParameterMetaData.parameterModeIn;
+		return delegate.getParameterMode(param);
     }
 
     @Override

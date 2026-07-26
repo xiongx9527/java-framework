@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.graph.nebula.jdbc.sql;
 
+import com.xiongx9527.fw.plus.graph.jdbc.GraphJdbcParameterBindings;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -9,7 +10,7 @@ public class NebulaParameterBindings {
 	private static final NebulaParameterBindings EMPTY = new NebulaParameterBindings(0);
 
 	private final int size;
-	private final Map<Integer, NebulaParameterBinding> values = new LinkedHashMap<Integer, NebulaParameterBinding>();
+	private final GraphJdbcParameterBindings delegate = new GraphJdbcParameterBindings();
 
 	public NebulaParameterBindings(int size) {
 		if (size < 0) {
@@ -32,17 +33,17 @@ public class NebulaParameterBindings {
 
 	public void bind(int parameterIndex, Object value, int jdbcType, Integer scaleOrLength) throws SQLException {
 		checkIndex(parameterIndex);
-		values.put(parameterIndex, new NebulaParameterBinding(value, jdbcType, scaleOrLength));
+		delegate.bind(parameterIndex, value, jdbcType, scaleOrLength);
 	}
 
 	public NebulaParameterBinding get(int parameterIndex) throws SQLException {
 		checkIndex(parameterIndex);
-		return values.get(parameterIndex);
+		return toNebulaBinding(delegate.getBinding(parameterIndex));
 	}
 
 	public NebulaParameterBindings copy() throws SQLException {
 		NebulaParameterBindings copy = new NebulaParameterBindings(size);
-		for (Map.Entry<Integer, NebulaParameterBinding> entry : values.entrySet()) {
+		for (Map.Entry<Integer, NebulaParameterBinding> entry : asMap().entrySet()) {
 			copy.bind(
 					entry.getKey(),
 					entry.getValue().getValue(),
@@ -54,12 +55,16 @@ public class NebulaParameterBindings {
 	}
 
 	public Map<Integer, NebulaParameterBinding> asMap() {
-		return Collections.unmodifiableMap(values);
+		Map<Integer, NebulaParameterBinding> bindings = new LinkedHashMap<Integer, NebulaParameterBinding>();
+		for (Map.Entry<Integer, Object> entry : delegate.asMap().entrySet()) {
+			bindings.put(entry.getKey(), toNebulaBinding(delegate.getBinding(entry.getKey().intValue())));
+		}
+		return Collections.unmodifiableMap(bindings);
 	}
 
 	public void validateComplete() throws SQLException {
 		for (int index = 1; index <= size; index++) {
-			if (!values.containsKey(index)) {
+			if (delegate.getBinding(index) == null) {
 				throw new SQLException("Parameter " + index + " is not bound.");
 			}
 		}
@@ -69,5 +74,12 @@ public class NebulaParameterBindings {
 		if (parameterIndex < 1 || parameterIndex > size) {
 			throw new SQLException("Parameter index " + parameterIndex + " is out of range. Parameter count: " + size + ".");
 		}
+	}
+
+	private NebulaParameterBinding toNebulaBinding(GraphJdbcParameterBindings.Binding binding) {
+		if (binding == null) {
+			return null;
+		}
+		return new NebulaParameterBinding(binding.getValue(), binding.getJdbcType().intValue(), binding.getScaleOrLength());
 	}
 }
