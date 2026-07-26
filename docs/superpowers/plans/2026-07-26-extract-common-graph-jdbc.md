@@ -106,7 +106,7 @@ base-ref: 97f4d9d0c96697bcfcb7446ee9b89e92ff47dcea
 - Consumes: 现有 `fw-plus-graph` 聚合父 POM。
 - Produces: Maven artifact `com.xiongx9527.fw.plus:fw-plus-graph-jdbc:${revision}`，供 Neo4j/Nebula 模块依赖。
 
-- [ ] **Step 1: 写入公共模块 POM**
+- [x] **Step 1: 写入公共模块 POM**
 
 将 `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/pom.xml` 创建为：
 
@@ -138,7 +138,7 @@ base-ref: 97f4d9d0c96697bcfcb7446ee9b89e92ff47dcea
 </project>
 ```
 
-- [ ] **Step 2: 调整聚合模块顺序**
+- [x] **Step 2: 调整聚合模块顺序**
 
 把 `fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml` 的 `<modules>` 改为：
 
@@ -150,7 +150,7 @@ base-ref: 97f4d9d0c96697bcfcb7446ee9b89e92ff47dcea
     </modules>
 ```
 
-- [ ] **Step 3: 为 Nebula 与 Neo4j 增加公共模块依赖**
+- [x] **Step 3: 为 Nebula 与 Neo4j 增加公共模块依赖**
 
 在两个具体驱动 POM 的 `<dependencies>` 第一项加入：
 
@@ -164,7 +164,7 @@ base-ref: 97f4d9d0c96697bcfcb7446ee9b89e92ff47dcea
 
 保留 Nebula 现有 `fw-plus-common`、`com.vesoft`、Druid、Mockito、Spring JDBC、MyBatis 依赖；保留 Neo4j 现有 `org.neo4j.driver:neo4j-java-driver` 依赖。
 
-- [ ] **Step 4: 验证 Maven 可识别新模块**
+- [x] **Step 4: 验证 Maven 可识别新模块**
 
 Run:
 
@@ -175,7 +175,7 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
 
 Expected: `BUILD SUCCESS`。首次执行时公共模块没有测试，Surefire 不应报错；若父 POM 要求至少一个测试，则先在 Task 2 的 Step 1 创建测试后再运行同一命令。
 
-- [ ] **Step 5: 提交模块骨架**
+- [x] **Step 5: 提交模块骨架**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml \
