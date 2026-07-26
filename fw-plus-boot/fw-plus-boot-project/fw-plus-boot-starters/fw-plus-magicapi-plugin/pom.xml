@@ -20,7 +20,6 @@
         <module>fw-plus-magicapi-plugin-druid</module>
         <module>fw-plus-magicapi-plugin-swagger</module>
         <module>fw-plus-magicapi-plugin-admin</module>
-        <module>fw-plus-magicapi-plugin-eureka</module>
         <module>fw-plus-magicapi-plugin-debezium</module>
         <module>fw-plus-magicapi-plugin-db</module>
         <module>fw-plus-magicapi-plugin-redis</module>

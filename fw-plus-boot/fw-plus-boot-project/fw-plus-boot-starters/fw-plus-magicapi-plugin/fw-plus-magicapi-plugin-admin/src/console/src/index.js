@@ -6,7 +6,7 @@ const replaceURL = url => url.replace(/:?\/+/g, value => value.indexOf(':') > -1
 
 const resolveBase = () => {
     let link = `${location.protocol}//${location.host}${location.pathname}`.replace('/index.html', '')
-    const baseURL = import.meta.env?.MAGIC_API_BASE_URL || './'
+    const baseURL = typeof __MAGIC_API_BASE_URL__ === 'undefined' ? './' : __MAGIC_API_BASE_URL__
     if (baseURL.startsWith('http')) {
         link = new URL(baseURL).origin
     } else if (baseURL.startsWith('./')) {

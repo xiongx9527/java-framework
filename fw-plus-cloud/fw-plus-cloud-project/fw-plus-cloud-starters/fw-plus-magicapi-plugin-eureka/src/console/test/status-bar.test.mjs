@@ -1,5 +1,15 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
 import test from 'node:test'
+import { fileURLToPath } from 'node:url'
+import vm from 'node:vm'
+
+const consoleDirectory = fileURLToPath(new URL('..', import.meta.url))
+const viteCli = path.join(consoleDirectory, 'node_modules/vite/bin/vite.js')
+const iifeFile = path.join(consoleDirectory, 'dist/magic-eureka.1.0.0.iife.js')
+const customBaseURL = 'https://api.example.test:18443/backend/'
 
 const loadFactory = async () => {
     try {
@@ -20,6 +30,25 @@ const installBrowser = () => {
         location: globalThis.location,
         open: (...args) => opened.push(args)
     }
+    return opened
+}
+
+const executeCustomBaseIife = pluginData => {
+    execFileSync(process.execPath, [viteCli, 'build', '--mode', 'test'], {
+        cwd: consoleDirectory,
+        env: { ...process.env, MAGIC_API_BASE_URL: customBaseURL },
+        stdio: 'pipe'
+    })
+    const opened = []
+    const location = { protocol: 'https:', host: 'frontend.example.test', pathname: '/magic/index.html' }
+    const context = {
+        URL,
+        document: { getElementById: () => ({}) },
+        location,
+        window: { location, open: (...args) => opened.push(args) }
+    }
+    vm.runInNewContext(readFileSync(iifeFile, 'utf8'), context)
+    context.MagicEureka({ pluginData }).statusBarItems[0].onClick()
     return opened
 }
 
@@ -61,4 +90,10 @@ test('Eureka 从 pluginData.attributes.path 打开自定义路径', async () => 
     factory({ pluginData }).statusBarItems[0].onClick()
 
     assert.deepEqual(opened, [['https://example.test:9443/custom-console', '_blank']])
+})
+
+test('Eureka 非默认基址构建后的 IIFE 打开后端自定义路径', () => {
+    const pluginData = { attributes: { path: '/custom-console' } }
+
+    assert.deepEqual(executeCustomBaseIife(pluginData), [['https://api.example.test:18443/custom-console', '_blank']])
 })
