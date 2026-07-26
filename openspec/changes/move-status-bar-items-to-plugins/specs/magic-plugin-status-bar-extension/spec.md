@@ -53,6 +53,16 @@
 - **WHEN** 用户点击任一迁移后的插件状态栏项
 - **THEN** 控制台执行迁移前相同的外链或相对管理地址跳转
 
+#### Scenario: 使用非默认后端基址构建新增插件
+- **WHEN** Druid、Spring Boot Admin、Swagger 或 Eureka 使用非默认 `MAGIC_API_BASE_URL` 构建 IIFE
+- **THEN** 构建产物中的点击动作打开该后端基址下的目标路径
+- **AND** 不回退到当前前端页面的 origin
+
+#### Scenario: 迁移 Druid 和 Swagger 图标
+- **WHEN** Druid 或 Swagger 状态栏图标从宿主迁入插件 IIFE
+- **THEN** 新 symbol 保持原 SVG 的 `viewBox`、path 和视觉内容
+- **AND** 仅允许等价的 symbol 包装或无损压缩
+
 #### Scenario: 按声明顺序渲染插件入口
 - **WHEN** 多个有效状态栏项包含不同的 `order`
 - **THEN** 宿主按 `order` 数值升序稳定排列
@@ -73,6 +83,12 @@
 - **WHEN** 宿主请求插件列表
 - **THEN** Druid、Spring Boot Admin、Swagger、Eureka 返回有效的 `globalName` 和 `javascriptFilename`
 - **AND** 宿主可从 classpath 提供对应 IIFE 资源
+
+#### Scenario: 按框架分层装配 Eureka 插件
+- **WHEN** 按 `Core -> Boot -> Cloud` 顺序从干净依赖仓库构建各层
+- **THEN** Boot 聚合和 Boot BOM 不依赖 Eureka 插件或任何 Cloud artifact
+- **AND** Eureka 插件由 Cloud starters 聚合和 Cloud BOM 管理
+- **AND** Cloud 使用方可显式引入 Eureka 插件 artifact
 
 ### Requirement: 插件运行时属性传入前端工厂
 后端 `Plugin` SHALL 支持通用 `attributes`，插件加载器 SHALL 将当前插件元数据作为 `pluginData` 传入对应前端工厂。状态栏组件 MUST NOT 直接解析这些属性或插件名称。

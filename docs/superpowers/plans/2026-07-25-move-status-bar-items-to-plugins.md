@@ -280,14 +280,16 @@ Commit: `feat: restore langchain4j plugin console source`
 **Files:**
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-druid/pom.xml`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-admin/pom.xml`
-- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-eureka/pom.xml`
+- Create: `fw-plus-cloud/fw-plus-cloud-project/fw-plus-cloud-starters/fw-plus-magicapi-plugin-eureka/pom.xml`
 - Complete: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-swagger/pom.xml`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-druid/src/console/` 下的 `package.json`、`vite.config.js`、`src/index.js`、`src/assets/icon.js`、`test/status-bar.test.mjs`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-admin/src/console/` 下的 `package.json`、`vite.config.js`、`src/index.js`、`src/assets/icon.js`、`test/status-bar.test.mjs`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-swagger/src/console/` 下的 `package.json`、`vite.config.js`、`src/index.js`、`src/assets/icon.js`、`test/status-bar.test.mjs`
-- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-eureka/src/console/` 下的 `package.json`、`vite.config.js`、`src/index.js`、`src/assets/icon.js`、`test/status-bar.test.mjs`
+- Create: `fw-plus-cloud/fw-plus-cloud-project/fw-plus-cloud-starters/fw-plus-magicapi-plugin-eureka/src/console/` 下的 `package.json`、`vite.config.js`、`src/index.js`、`src/assets/icon.js`、`test/status-bar.test.mjs`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/pom.xml`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-dependencies/pom.xml`
+- Modify: `fw-plus-cloud/fw-plus-cloud-project/fw-plus-cloud-starters/pom.xml`
+- Modify: `fw-plus-cloud/fw-plus-cloud-project/fw-plus-cloud-dependencies/pom.xml`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/druid/starter/MagicAPIDruidConfiguration.java`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/admin/server/MagicAPIAdminServerConfiguration.java`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/swagger/MagicSwaggerConfiguration.java`
@@ -300,7 +302,7 @@ Commit: `feat: restore langchain4j plugin console source`
 - Consumes: Task 1 的 `pluginData.attributes.path`。
 - Produces: 状态栏顺序 Druid 1100、Swagger 1200、Admin 1500、Eureka 1600。
 
-- [ ] **Step 1: 编写四个前端失败测试和 Java 元数据失败测试**
+- [x] **Step 1: 编写四个前端失败测试和 Java 元数据失败测试**
 
 Admin/Eureka 前端测试必须覆盖默认路径与：
 
@@ -310,7 +312,9 @@ const pluginData = { attributes: { path: '/custom-console' } }
 
 Java 测试断言 `globalName`、`javascriptFilename` 和 Admin/Eureka 的 `attributes.path`，不允许继续把路径写入 `globalName`。
 
-- [ ] **Step 2: 运行失败测试**
+四个前端测试还必须使用非默认 `MAGIC_API_BASE_URL` 构建 IIFE，并执行产物验证真实点击目标；Druid/Swagger 测试必须锁定迁移前宿主 SVG 的 `viewBox` 和归一化内容或哈希。
+
+- [x] **Step 2: 运行失败测试**
 
 Run: 四个模块的 `npm test`。
 
@@ -320,23 +324,25 @@ Run: `mvn -Dtest=MagicAPIEurekaConfigurationTest test`，cwd `fw-plus-cloud/fw-p
 
 Expected: FAIL，模块/IIFE 元数据尚不存在。
 
-- [ ] **Step 3: 创建最小插件和后端加载配置**
+- [x] **Step 3: 创建最小插件和后端加载配置**
 
-Druid 打开 `/druid/login.html`，Swagger 打开 `/doc.html`；Admin/Eureka 从 `pluginData.attributes.path` 读取动态路径并沿用宿主原 `replaceURL`/基址规则。每个插件只返回 `name` 和 `statusBarItems`，不新增 toolbar。
+Druid 打开 `/druid/login.html`，Swagger 打开 `/doc.html`；Admin/Eureka 从 `pluginData.attributes.path` 读取动态路径并沿用宿主原 `replaceURL`/基址规则。四个 Vite 配置显式注入 `MAGIC_API_BASE_URL`。Druid/Swagger 从宿主原 SVG 无损生成 symbol，不改变 `viewBox`、path 或视觉内容。每个插件只返回 `name` 和 `statusBarItems`，不新增 toolbar。
 
-- [ ] **Step 4: 更新聚合 POM、BOM 和资源装配**
+- [x] **Step 4: 更新聚合 POM、BOM 和资源装配**
 
-Swagger 使用现有占位模块；其余三个加入聚合 `<modules>`。四个模块启用父 POM 的 npm/Vite 构建和资源复制插件。
+Swagger 使用现有 Boot 占位模块；Druid、Admin 加入 Boot 插件聚合和 Boot BOM。Eureka 模块移动到 Cloud starters，依赖 `fw-plus-eureka-server-spring-cloud-starter`，加入 Cloud starters 聚合和 Cloud BOM。Boot 插件聚合和 Boot BOM 删除 Eureka 模块/依赖，禁止 Boot 对 Cloud 形成反向发布前置。四个模块启用所属层父 POM 的 npm/Vite 构建和资源复制插件。
 
-- [ ] **Step 5: 运行前后端测试、四个构建和资源检查**
+- [x] **Step 5: 运行前后端测试、四个构建和资源检查**
 
 Run: 四个 `npm test && npm run build`。
 
 Run: Boot/Cloud 目标 Maven 测试。
 
-Expected: 全部 PASS，四个 IIFE 文件存在且名称与 Java 元数据一致。
+Run: 检查 Boot reactor 依赖图不含 Cloud artifact，并按 `Core -> Boot -> Cloud` 分层执行目标资源装配。
 
-- [ ] **Step 6: 提交**
+Expected: 全部 PASS，四个 IIFE 文件存在且名称与 Java 元数据一致；非默认基址产物行为通过；Druid/Swagger SVG 等价；Eureka 仅由 Cloud 聚合/BOM 管理。
+
+- [x] **Step 6: 提交**
 
 Commit: `feat: add status plugins for platform integrations`
 

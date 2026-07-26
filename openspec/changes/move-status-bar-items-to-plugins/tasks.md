@@ -10,7 +10,7 @@
 
 ## 3. 新增前端插件
 
-- [ ] 3.1 为 Druid、Spring Boot Admin、Swagger、Eureka 创建独立最小前端插件、IIFE 资源和后端加载配置，覆盖 Admin/Eureka 自定义路径。
+- [x] 3.1 为 Druid、Spring Boot Admin、Swagger、Eureka 创建独立最小前端插件、IIFE 资源和后端加载配置，覆盖 Admin/Eureka 自定义路径。
 
 ## 4. 宿主解耦
 
