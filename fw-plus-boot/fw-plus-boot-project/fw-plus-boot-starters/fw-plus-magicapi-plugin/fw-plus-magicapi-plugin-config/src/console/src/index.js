@@ -12,6 +12,13 @@ export default (opt) => {
     i18n.add('en', localEn)
     setYaml(opt.monaco)
     return {
+        statusBarItems: [{
+            icon: '#magic-config-config',
+            title: 'Config',
+            displayKey: 'config',
+            order: 400,
+            onClick: () => window.open('https://spring.io/projects/spring-cloud-config/', '_blank')
+        }],
         // 左侧资源
         resource: [{
             // 资源类型，和后端存储结构一致
@@ -32,6 +39,7 @@ export default (opt) => {
             // 展示图标
             icon: '#magic-config-config',
             // 对应的组件
+            order: 100,
             component: MagicConfigInfo,
         }]
     }

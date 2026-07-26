@@ -23,6 +23,7 @@ import bus from '../../../scripts/bus.js'
 import $i from '../../../scripts/i18n.js'
 import Message from '../../../scripts/constants/message.js'
 import constants from '../../../scripts/constants.js'
+import { stableSortByOrder } from '../../../scripts/plugin-extension.js'
 
 const navbar = ref(null)
 const isFullscreen = ref(false)
@@ -73,9 +74,11 @@ const toolbars = reactive([
 ])
 
 const isPluginToolbarVisible = (toolbar, pluginData) => !toolbar.adminOnly || (pluginData && pluginData.adminEnabled === true)
-constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).forEach(plugin => {
+const pluginToolbars = constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).reduce((items, plugin) => {
     const pluginData = constants.PLUGINS_DATA.find(item => item.name === plugin.name)
-    plugin.toolbars.filter(toolbar => isPluginToolbarVisible(toolbar, pluginData)).forEach(it => {
+    return items.concat(plugin.toolbars.filter(toolbar => isPluginToolbarVisible(toolbar, pluginData)))
+}, [])
+stableSortByOrder(pluginToolbars).forEach(it => {
 	toolbars.push({
         id: it.id,
 			type: it.type,
@@ -85,7 +88,6 @@ constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).forEach(pl
         fullscreen: it.fullscreen,
         allowClose: it.allowClose
 	})
-    })
 })
 const opened = ref({})
 const info = ref({})

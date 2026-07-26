@@ -17,6 +17,13 @@ export default (opt) => {
     setJs(opt.monaco) ;
     setHtml(opt.monaco) ;
     return {
+        statusBarItems: [{
+            icon: '#magic-vue3-vue',
+            title: 'Vue SFC',
+            displayKey: 'vue3',
+            order: 1300,
+            onClick: () => window.open('https://play.vuejs.org/', '_blank')
+        }],
         // 左侧资源
         resource: [{
             // 资源类型，和后端存储结构一致
@@ -34,6 +41,7 @@ export default (opt) => {
             type: 'vue3',
             title: 'vue.result',
             icon: 'run',
+            order: 1200,
             component: MagicVue3Result,
             fullscreen: true
         }, {
@@ -44,6 +52,7 @@ export default (opt) => {
             // 展示图标
             icon: '#magic-vue3-vue',
             // 对应的组件
+            order: 1210,
             component: MagicVue3Info
         }]
     }

@@ -27,7 +27,7 @@ test('Pulsar 插件注册订阅编辑与独立管理 toolbar', () => {
 
 test('Pulsar 插件注册状态栏入口并复用管理 toolbar', () => {
     const source = fs.readFileSync(pluginPath, 'utf8')
-    const statusBarItemPattern = /statusBarItems:\s*\[\{\s*icon:\s*'#magic-pulsar-pulsar',\s*title:\s*'Pulsar',\s*displayKey:\s*'pulsar',\s*onClick:\s*\(\)\s*=>\s*runtime\.bus\.\$emit\(runtime\.Message\.ADD_FOOTER_TOOLBAR,\s*pulsarAdminToolbar\)\s*\}\]/
+    const statusBarItemPattern = /statusBarItems:\s*\[\{\s*icon:\s*'#magic-pulsar-pulsar',\s*title:\s*'Pulsar',\s*displayKey:\s*'pulsar',\s*order:\s*300,\s*onClick:\s*\(\)\s*=>\s*runtime\.bus\.\$emit\(runtime\.Message\.ADD_FOOTER_TOOLBAR,\s*pulsarAdminToolbar\)\s*\}\]/
 
     assert.match(source, /const pulsarAdminToolbar\s*=\s*\{/)
     assert.match(source, statusBarItemPattern)

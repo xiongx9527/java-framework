@@ -16,6 +16,8 @@ import org.ssssssss.magicapi.core.model.Plugin;
 @ConditionalOnClass(name = "de.codecentric.boot.admin.server.config.AdminServerMarkerConfiguration")
 @Configuration
 public class MagicAPIAdminServerConfiguration implements MagicPluginConfiguration {
+	private static final String JAVASCRIPT_FILENAME = "magic-admin.1.0.0.iife.js";
+	private static final String FRONTEND_RESOURCE = "magic-editor/plugins/" + JAVASCRIPT_FILENAME;
 
     /**
      * Spring Boot Admin的上下文路径，从配置文件中读取
@@ -31,6 +33,10 @@ public class MagicAPIAdminServerConfiguration implements MagicPluginConfiguratio
      */
     @Override
     public Plugin plugin() {
-        return new Plugin("admin",springbootAdminContextPath);
+		Plugin plugin = MagicAPIAdminServerConfiguration.class.getClassLoader().getResource(FRONTEND_RESOURCE) == null
+				? new Plugin("admin")
+				: new Plugin("admin", "MagicAdmin", JAVASCRIPT_FILENAME);
+        plugin.getAttributes().put("path", springbootAdminContextPath);
+        return plugin;
     }
 }

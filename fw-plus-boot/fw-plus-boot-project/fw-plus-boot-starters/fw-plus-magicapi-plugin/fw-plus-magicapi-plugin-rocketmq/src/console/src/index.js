@@ -53,6 +53,7 @@ export default function (opt) {
             type: 'rocketmq-subscribe',
             title: 'rocketmq.subscribe.title',
             icon: '#magic-rocketmq-rocketmq',
+            order: 900,
             component: MagicRocketMqSubscribeInfo
         }]
     };

@@ -143,8 +143,8 @@
         -->
 
         <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>druid</artifactId>
+			<groupId>com.xiongx9527.fw.plus.boot</groupId>
+			<artifactId>fw-plus-jdbc-spring-boot-starter</artifactId>
         </dependency>
 
         <dependency>

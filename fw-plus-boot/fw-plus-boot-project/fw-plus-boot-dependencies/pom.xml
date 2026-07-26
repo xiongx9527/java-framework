@@ -666,7 +666,19 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-druid</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-swagger</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-admin</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

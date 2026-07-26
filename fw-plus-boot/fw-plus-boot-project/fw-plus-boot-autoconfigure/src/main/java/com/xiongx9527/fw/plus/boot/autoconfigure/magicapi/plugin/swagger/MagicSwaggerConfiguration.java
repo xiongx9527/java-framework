@@ -43,6 +43,8 @@ import java.util.Set;
 //org.ssssssss.magicapi.swagger
 @ConditionalOnClass({OpenAPI.class, GroupedOpenApi.class,org.ssssssss.magicapi.swagger.SwaggerConfig.class})
 public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
+	private static final String JAVASCRIPT_FILENAME = "magic-swagger.1.0.0.iife.js";
+	private static final String FRONTEND_RESOURCE = "magic-editor/plugins/" + JAVASCRIPT_FILENAME;
 
 	private final SwaggerConfig swaggerConfig;
 	private final MagicResourceService magicResourceService;
@@ -82,7 +84,10 @@ public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 	 */
 	@Override
 	public Plugin plugin() {
-		return new Plugin("swagger");
+		if (MagicSwaggerConfiguration.class.getClassLoader().getResource(FRONTEND_RESOURCE) == null) {
+			return new Plugin("swagger");
+		}
+		return new Plugin("swagger", "MagicSwagger", JAVASCRIPT_FILENAME);
 	}
 
 	/**

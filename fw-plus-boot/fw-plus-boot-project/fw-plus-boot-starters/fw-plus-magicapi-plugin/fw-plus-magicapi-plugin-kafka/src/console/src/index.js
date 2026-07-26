@@ -37,6 +37,7 @@ export default (opt) => {
             icon: '#magic-kafka-kafka',
             title: 'Kafka',
             displayKey: 'kafka',
+            order: 200,
             onClick: () => window.open('https://kafka.apache.org/', '_blank')
         }],
         resource: [{
@@ -57,11 +58,13 @@ export default (opt) => {
             type: 'kafka-subscribe',
             title: 'kafka.subscribe.title',
             icon: '#magic-kafka-kafka',
+            order: 400,
             component: MagicKafkaSubscribeInfo
         }, {
             id: 'kafka',
             title: i18n.format('kafka.title'),
             icon: '#magic-kafka-kafka',
+            order: 410,
             component: MagicKafka,
             adminOnly: true,
             allowClose: true,

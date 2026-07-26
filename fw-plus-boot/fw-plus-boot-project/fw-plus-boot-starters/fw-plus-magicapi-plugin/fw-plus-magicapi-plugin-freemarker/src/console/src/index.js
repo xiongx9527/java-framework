@@ -18,6 +18,13 @@ export default (opt) => {
     setJs(opt.monaco)
     setHtml(opt.monaco)
     return {
+        statusBarItems: [{
+            icon: '#magic-freemarker-ftl',
+            title: 'Freemarker',
+            displayKey: 'freemarker',
+            order: 500,
+            onClick: () => window.open('https://freemarker.apache.org/', '_blank')
+        }],
         // 左侧资源
         resource: [{
             // 资源类型，和后端存储结构一致
@@ -35,6 +42,7 @@ export default (opt) => {
             type: 'freemarker',
             title: 'freemarker.result',
             icon: 'run',
+            order: 300,
             component: MagicFreemarkerResult,
             fullscreen: true
         }, {
@@ -45,6 +53,7 @@ export default (opt) => {
             // 展示图标
             icon: '#magic-freemarker-ftl',
             // 对应的组件
+            order: 310,
             component: MagicFreemarkerInfo
         }]
     }
