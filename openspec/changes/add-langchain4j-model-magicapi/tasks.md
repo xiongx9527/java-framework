@@ -16,7 +16,7 @@
 
 - [x] 3.1 新增 model properties，支持 `default-model`、`models.<key>.provider`、`model-type`、`base-url`、`api-key`、`model-name`、`enabled` 和扩展 `properties`。
 - [x] 3.2 新增 model 自动配置，创建 `LangChain4jModelFactory`、provider adapters 和 `LangChain4jModelRegistry`。
-- [ ] 3.3 参考现有 Magic-API LangChain4j 模型工厂，将可复用的 provider 创建逻辑迁移到新的 provider adapter 体系，并移除旧工厂依赖。
+- [x] 3.3 参考现有 Magic-API LangChain4j 模型工厂，将可复用的 provider 创建逻辑迁移到新的 provider adapter 体系，并移除旧工厂依赖。
 - [ ] 3.4 新建 `fw-plus-ai-langchain4j-model-spring-boot-starter`，依赖 `fw-plus-ai-boot-starter` 与 `fw-plus-ai-langchain4j-model`，不默认传递全部 provider SDK。
 - [x] 3.5 为自动配置增加测试，覆盖条件装配、配置绑定、registry 创建、默认模型 key 校验和缺少 provider SDK 的隔离行为。
 
@@ -38,7 +38,7 @@
 
 - [ ] 6.1 保持现有 `fw-plus-ai-langchain4j-store-embeding`、Magic vector 插件和已有 LangChain4j provider 模块行为不变。
 - [ ] 6.2 补充 README 或示例配置，说明 model starter 最小依赖、provider SDK 显式引入方式、旧 Magic LangChain4j 插件迁移方式和 `model-datasource` 配置示例。
-- [ ] 6.3 检查所有新增 Java 代码避免使用 Java 9+ API，并保持包名、缩进和现有命名风格一致。
+- [x] 6.3 检查所有新增 Java 代码避免使用 Java 9+ API，并保持包名、缩进和现有命名风格一致。
 
 ## 7. 验证
 

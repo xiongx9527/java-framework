@@ -624,7 +624,7 @@ git commit -m "feat: auto configure langchain4j model registry"
   - `ReflectiveLangChain4jModelProviderAdapter` supports provider/modelType metadata and instantiates LangChain4j builder classes only when the provider SDK class is present.
   - Bean methods in `LangChain4jModelAutoConfiguration` for each concrete adapter with `@ConditionalOnMissingBean`.
 
-- [ ] **Task 4 Step 1: Write failing adapter tests**
+- [x] **Task 4 Step 1: Write failing adapter tests**
 
 ```java
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.provider;
@@ -682,7 +682,7 @@ public class LangChain4jModelProviderAdapterTest {
 }
 ```
 
-- [ ] **Task 4 Step 2: Run adapter tests to verify they fail**
+- [x] **Task 4 Step 2: Run adapter tests to verify they fail**
 
 Run:
 
@@ -693,7 +693,7 @@ cd fw-plus-ai
 
 Expected: FAIL because provider adapter support classes do not exist.
 
-- [ ] **Task 4 Step 3: Implement reflective provider adapter support**
+- [x] **Task 4 Step 3: Implement reflective provider adapter support**
 
 Implement provider adapter classes so each adapter declares exact provider names:
 `openai`, `azure-openai`, `qwen`, `ollama`, `anthropic`, `qianfan`, `zhipu`, `hugging-face`, `local-ai`, `gemini`, `voyage-ai`, `all-mini-lm-l6-v2-quantized`.
@@ -718,11 +718,11 @@ Document that LangChain4j 0.35.0 core API contains `ModerationModel` and `Scorin
 
 Use class-name checks before reflective creation so an application without a provider SDK can still start.
 
-- [ ] **Task 4 Step 4: Wire adapters as beans**
+- [x] **Task 4 Step 4: Wire adapters as beans**
 
 Add adapter bean methods to `LangChain4jModelAutoConfiguration`. The registry creation path must accept `List<LangChain4jModelProviderAdapter>` and pass it to `LangChain4jModelFactory.create`.
 
-- [ ] **Task 4 Step 5: Run provider and auto-configuration tests**
+- [x] **Task 4 Step 5: Run provider and auto-configuration tests**
 
 Run:
 
@@ -734,7 +734,7 @@ cd fw-plus-ai
 
 Expected: PASS.
 
-- [ ] **Task 4 Step 6: Commit this task during execution**
+- [x] **Task 4 Step 6: Commit this task during execution**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \

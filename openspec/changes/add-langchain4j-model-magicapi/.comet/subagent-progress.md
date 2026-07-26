@@ -2,16 +2,25 @@
 
 - review_mode: standard
 - tdd_mode: tdd
-- current_task: Task 4: Provider Adapter 迁移与 SDK 隔离
-- openspec_task: 3.3 迁移 provider 创建逻辑到 adapter 体系；6.3 检查 Java 9+ API；后续 6.2 文档需说明 0.35 provider 矩阵限制
-- phase: implementing
+- current_task: Task 5: Model Starter、BOM 与自动配置注册
+- openspec_task: 2.3/2.4/3.4 starter 与 BOM 注册；后续 6.2 文档需说明 0.35 provider 矩阵限制
+- phase: ready-for-implementation
 - issue: none
 - base_commit: 3b4aaba802a3488e36b7f3a58f0a7bcb81bdbfd6
 - implementer: 019f9e29-0aed-73d0-83b1-2c2e6e3f75cb
 - report: /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-langchain4j-model-magicapi/.superpowers/sdd/task-4-report.md
-- review_required: pending risk assessment
-- red_green_evidence: pending
+- review_required: Task 4 approved; Task 5 pending implementation
+- red_green_evidence: Task 4 focused tests passed 8 tests, 0 failures, 0 errors with Zulu 8 system Maven; git diff --check passed
 - unresolved_feedback: none
+
+## Completed Task 4
+
+- commits: 4f5a82bd..0efb3990
+- implementation: 5ec4c4cd
+- fixes: ef64d9e3, b7a58ed4, 0efb3990
+- reviewers: 019f9e41-1a1f-7881-a118-ae525b27dd5f found Qianfan endpoint and weak matrix tests; 019f9e49-2a2f-7233-9b70-5994142509d4 found missing voyage-ai adapter; 019f9e52-005a-7211-b053-c643088fb66e approved after fixes
+- GREEN: LangChain4jModelProviderAdapterTest and LangChain4jModelAutoConfigurationTest passed 8 tests, 0 failures, 0 errors with Zulu 8 system Maven
+- environment limits: fw-plus-ai/mvnw exists but wrapper properties/jar are missing; focused verification used system Maven
 
 ## Completed Task 3
 
