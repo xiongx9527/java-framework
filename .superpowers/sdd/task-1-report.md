@@ -1,138 +1,45 @@
-# Task 1 实施报告
+# Task 1 报告
 
 ## 状态
 
-DONE。已完成 Core 多向量 registry/factory 基础模型并提交实现。
+DONE_WITH_CONCERNS
 
-## RED 失败命令与摘要
+## RED
 
-1. 简报指定的 Maven Wrapper 命令：
+命令：
 
-   ```bash
-   cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreRegistryTest test
-   ```
+```bash
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/feature-20260726-extract-common-graph-jdbc/fw-plus-core/fw-plus-project/fw-plus-graph
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -pl fw-plus-graph-jdbc test
+```
 
-   失败：`fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 与 `maven-wrapper.jar` 缺失，Wrapper 无法启动。
+失败摘要：退出码 `1`。Maven 报告 `Could not find the selected project in the reactor: fw-plus-graph-jdbc`，证明修改前公共模块不存在且未被聚合。
 
-2. 按简报使用 Zulu 8 系统 Maven 替代命令：
+## GREEN
 
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreRegistryTest test
-   ```
+命令：
 
-   失败：测试编译找不到 `EmbeddingStoreRegistry`、`DefaultEmbeddingStoreRegistry` 和 `EmbeddingStoreException`。JUnit Jupiter 与测试 fake `EmbeddingStore<TextSegment>` 均正常编译，失败原因符合 registry 尚未实现的预期。
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml test
+```
 
-3. factory RED：
+通过摘要：退出码 `0`，reactor 顺序为 `fw-plus-graph`、`fw-plus-graph-jdbc`、`fw-plus-nebula-jdbc`、`fw-plus-neo4j-jdbc`，最终 `BUILD SUCCESS`。公共模块无源码和测试，Maven 输出 `No tests to run`；Nebula 测试 243 个、跳过 2 个，无失败；Neo4j 测试 21 个、跳过 3 个，无失败。
 
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
-   ```
+## 提交
 
-   失败：测试编译找不到 `EmbeddingStoreDefinition` 和 `EmbeddingStoreProviderAdapter`，符合 factory 基础模型尚未实现的预期。
+- 提交哈希：`267ab5cb`
+- 提交信息：`fw-plus-core: 新增公共图 JDBC 模块`
 
-## GREEN 通过命令与摘要
+## 变更文件
 
-1. registry 测试：
+- `fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml`
+- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/pom.xml`
+- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-nebula-jdbc/pom.xml`
+- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-neo4j-jdbc/pom.xml`
 
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreRegistryTest test
-   ```
+## 风险信号自评
 
-   通过：4 个测试，0 failures，0 errors。
-
-2. factory 测试：
-
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
-   ```
-
-   通过：3 个测试，0 failures，0 errors。
-
-3. 目标模块全量测试：
-
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding test
-   ```
-
-   通过：8 个测试，0 failures，0 errors，0 skipped。
-
-## 修改文件
-
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/pom.xml`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreProperties.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreDefinition.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreException.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreRegistry.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreRegistry.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreFactory.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreFactory.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStoreProviderAdapter.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreRegistryTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreFactoryTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/EmbeddingStorePropertiesTest.java`
-
-## 提交哈希
-
-- `6a01d22f68a7997f6d2b2ab241f33134020dbc0d` `feat(vector): add embedding store registry foundation`
-
-## 自审结果
-
-- registry 使用防御性 `LinkedHashMap` 副本与 `Collections.unmodifiableMap`，并实现简报要求的三个精确错误消息。
-- factory 按 provider 选择 adapter；无适配器和 adapter 创建异常均抛出 `EmbeddingStoreException`，后者携带 provider 与 key。
-- `EmbeddingStoreProperties.stores` 初始化为空 `LinkedHashMap`；definition 包含 key、provider、enabled、dimension、metadataKeys、properties。
-- 测试中的 fake 实现实际 `EmbeddingStore<TextSegment>` 接口，没有使用不存在的 `InMemoryEmbeddingStore`。
-- 未修改 starter、provider adapter 实现、Magic-API 插件、聚合/BOM POM、OpenSpec artifacts、docs/superpowers/plans、docs/superpowers/specs 或 `.comet` 状态文件；未使用 Java 9+ API。
-
-## 风险信号清单
-
-- 中：`fw-plus-core/.mvn/wrapper` 仍缺失，当前环境必须使用 Zulu 8 系统 Maven 作为替代验证路径。
-- 低：本任务只提供 registry/factory 基础模型；具体 Milvus、Qdrant、Weaviate 等 provider adapter 由后续任务实现和集成验证。
-
-## Review Fix
-
-### RED 失败命令与摘要
-
-1. 已先尝试 Maven Wrapper：
-
-   ```bash
-   cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
-   ```
-
-   失败：`.mvn/wrapper/maven-wrapper.properties` 与 `maven-wrapper.jar` 缺失，Wrapper 无法启动。
-
-2. 使用 Zulu 8 系统 Maven 运行新增 factory 测试：
-
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
-   ```
-
-   失败：`shouldIncludeProviderAndKeyWhenAdapterSupportCheckFails` 预期 `EmbeddingStoreException`，实际收到 `IllegalStateException`，确认 `supports()` 异常未被转换。
-
-### GREEN 通过命令与摘要
-
-1. factory 测试：
-
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -Dtest=DefaultEmbeddingStoreFactoryTest test
-   ```
-
-   通过：4 个测试，0 failures，0 errors。
-
-2. 目标模块全量测试：
-
-   ```bash
-   cd fw-plus-core && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding test
-   ```
-
-   通过：10 个测试，0 failures，0 errors，0 skipped。
-
-### 修改文件
-
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreFactory.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreFactoryTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/store/embeding/DefaultEmbeddingStoreRegistryTest.java`
-- `.superpowers/sdd/task-1-report.md`
-
-### 提交哈希
-
-- `0a3f5ffd0d6c2d81cbed3d7194cbba217a5d1459` `fix(vector): wrap embedding store adapter support errors`
+- 公共模块当前为空模块，没有独立测试覆盖；后续任务需要补充公共 JDBC 抽象及测试。
+- GREEN 中存在 SLF4J `StaticLoggerBinder` 缺失警告。
+- Nebula 和 Neo4j 的 live JDBC smoke test 分别跳过 2 个和 3 个，未覆盖真实外部数据库连接。
+- 以上警告和跳过项未导致本任务 Maven 构建失败。
