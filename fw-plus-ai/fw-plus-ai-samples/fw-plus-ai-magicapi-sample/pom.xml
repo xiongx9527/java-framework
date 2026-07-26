@@ -32,17 +32,7 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-milvus</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-qdrant</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-magicapi-plugin-weaviate</artifactId>
+            <artifactId>fw-plus-ai-magicapi-plugin-vector</artifactId>
         </dependency>
 
         <dependency>

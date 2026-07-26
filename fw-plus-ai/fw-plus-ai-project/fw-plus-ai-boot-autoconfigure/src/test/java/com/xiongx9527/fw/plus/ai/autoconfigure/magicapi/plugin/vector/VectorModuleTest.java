@@ -62,6 +62,22 @@ public class VectorModuleTest {
     }
 
     @Test
+    public void shouldExposeSpringBootDefaultStoreThroughGetEmbeddingStore() {
+        EmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<TextSegment>();
+        VectorModule module = new VectorModule(registryWith("knowledge", store, "knowledge"));
+
+        assertSame(store, module.getEmbeddingStore());
+    }
+
+    @Test
+    public void shouldExposeExplicitStoreThroughDynamicAttributeGetEmbeddingStore() {
+        EmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<TextSegment>();
+        VectorModule module = new VectorModule(registryWith("knowledge", store, "knowledge"));
+
+        assertSame(store, module.getDynamicAttribute("knowledge").getEmbeddingStore());
+    }
+
+    @Test
     public void shouldRejectUnknownStoreKey() {
         VectorModule module = new VectorModule(registryWith("knowledge", new InMemoryEmbeddingStore<TextSegment>(), "knowledge"));
 

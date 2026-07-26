@@ -14,12 +14,13 @@ import static org.junit.Assert.assertTrue;
 public class EmbeddingStoreAutoConfigurationMetadataTest {
 
     @Test
-    public void shouldRegisterAutoConfigurationInSpringFactoriesOnly() throws Exception {
+    public void shouldRegisterAutoConfigurationInSpringFactories() throws Exception {
         String factories = read("META-INF/spring.factories");
 
-        assertTrue(factories.contains("com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration"));
-        assertFalse(existsInStarter("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports"));
-        assertFalse(existsInStarter("META-INF/spring/org.springframework.boot.autoconfig.AutoConfiguration.imports"));
+        String autoConfiguration = "com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration";
+        assertTrue(factories.contains(autoConfiguration));
+        assertTrue(factories.contains("com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAutoConfiguration"));
+        assertFalse(existsInSourceResources("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports"));
     }
 
     private String read(String location) throws Exception {
@@ -37,9 +38,10 @@ public class EmbeddingStoreAutoConfigurationMetadataTest {
         }
     }
 
-    private boolean existsInStarter(String location) throws Exception {
+    private boolean existsInSourceResources(String location) throws Exception {
         File classesDirectory = new File(EmbeddingStoreAutoConfiguration.class
                 .getProtectionDomain().getCodeSource().getLocation().toURI());
-        return new File(classesDirectory, location).isFile();
+        File moduleDirectory = classesDirectory.getParentFile().getParentFile();
+        return new File(new File(moduleDirectory, "src/main/resources"), location).isFile();
     }
 }

@@ -61,6 +61,31 @@ public class EmbeddingStoreAutoConfigurationTest {
     }
 
     @Test
+    public void shouldRegisterDedicatedEmbeddingStoreProviderAdapters() {
+        this.contextRunner
+                .run(context -> {
+                    assertTrue(context.containsBean("astraDbEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("azureAiSearchEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("azureCosmosMongoVCoreEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("azureCosmosNoSqlEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("cassandraEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("chromaEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("couchbaseEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("inMemoryEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("infinispanEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("mongoDbEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("neo4jEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("openSearchEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("oracleEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("pgVectorEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("pineconeEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("tablestoreEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("vearchEmbeddingStoreProviderAdapter"));
+                    assertTrue(context.containsBean("vespaEmbeddingStoreProviderAdapter"));
+                });
+    }
+
+    @Test
     public void shouldCreateRegistryWithMultipleStoresAndDefaultKey() {
         this.contextRunner
                 .withPropertyValues(

@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreExcept
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import io.milvus.common.clientenum.ConsistencyLevelEnum;
 import io.milvus.param.IndexType;
 import io.milvus.param.MetricType;
@@ -35,33 +36,38 @@ public class EmbeddingStoreProviderAdapterTest {
         assertTrue(new ElasticsearchEmbeddingStoreProviderAdapter().supports("elasticsearch"));
         assertTrue(new QdrantEmbeddingStoreProviderAdapter().supports("qdrant"));
         assertTrue(new WeaviateEmbeddingStoreProviderAdapter().supports("weaviate"));
+        assertTrue(new AstraDbEmbeddingStoreProviderAdapter().supports("astra-db"));
+        assertTrue(new AzureAiSearchEmbeddingStoreProviderAdapter().supports("azure-ai-search"));
+        assertTrue(new AzureCosmosMongoVCoreEmbeddingStoreProviderAdapter().supports("azure-cosmos-mongo-vcore"));
+        assertTrue(new AzureCosmosNoSqlEmbeddingStoreProviderAdapter().supports("azure-cosmos-nosql"));
+        assertTrue(new CassandraEmbeddingStoreProviderAdapter().supports("cassandra"));
+        assertTrue(new ChromaEmbeddingStoreProviderAdapter().supports("chroma"));
+        assertTrue(new CouchbaseEmbeddingStoreProviderAdapter().supports("couchbase"));
+        assertTrue(new InMemoryEmbeddingStoreProviderAdapter().supports("in-memory"));
+        assertTrue(new InMemoryEmbeddingStoreProviderAdapter().supports("inmemory"));
+        assertTrue(new InMemoryEmbeddingStoreProviderAdapter().supports("memory"));
+        assertTrue(new InfinispanEmbeddingStoreProviderAdapter().supports("infinispan"));
+        assertTrue(new MongoDbEmbeddingStoreProviderAdapter().supports("mongodb-atlas"));
+        assertTrue(new MongoDbEmbeddingStoreProviderAdapter().supports("mongodb"));
+        assertTrue(new Neo4jEmbeddingStoreProviderAdapter().supports("neo4j"));
+        assertTrue(new OpenSearchEmbeddingStoreProviderAdapter().supports("opensearch"));
+        assertTrue(new OracleEmbeddingStoreProviderAdapter().supports("oracle"));
+        assertTrue(new PgVectorEmbeddingStoreProviderAdapter().supports("pgvector"));
+        assertTrue(new PgVectorEmbeddingStoreProviderAdapter().supports("postgres"));
+        assertTrue(new PgVectorEmbeddingStoreProviderAdapter().supports("postgresql"));
+        assertTrue(new PineconeEmbeddingStoreProviderAdapter().supports("pinecone"));
+        assertTrue(new TablestoreEmbeddingStoreProviderAdapter().supports("tablestore"));
+        assertTrue(new VearchEmbeddingStoreProviderAdapter().supports("vearch"));
+        assertTrue(new VespaEmbeddingStoreProviderAdapter().supports("vespa"));
     }
 
     @Test
-    public void shouldSupportAllRemainingLangChain4jEmbeddingStoreProviders() {
+    public void shouldOnlySupportExplicitGenericProviderMappings() {
         LangChain4jEmbeddingStoreProviderAdapter adapter = new LangChain4jEmbeddingStoreProviderAdapter();
 
-        assertTrue(adapter.supports("azure-ai-search"));
-        assertTrue(adapter.supports("azure-cosmos-mongo-vcore"));
-        assertTrue(adapter.supports("azure-cosmos-nosql"));
-        assertTrue(adapter.supports("cassandra"));
-        assertTrue(adapter.supports("astra-db"));
-        assertTrue(adapter.supports("chroma"));
-        assertTrue(adapter.supports("couchbase"));
-        assertTrue(adapter.supports("infinispan"));
-        assertTrue(adapter.supports("mongodb-atlas"));
-        assertTrue(adapter.supports("mongodb"));
-        assertTrue(adapter.supports("neo4j"));
-        assertTrue(adapter.supports("opensearch"));
-        assertTrue(adapter.supports("oracle"));
-        assertTrue(adapter.supports("pgvector"));
-        assertTrue(adapter.supports("postgres"));
-        assertTrue(adapter.supports("postgresql"));
-        assertTrue(adapter.supports("pinecone"));
-        assertTrue(adapter.supports("tablestore"));
-        assertTrue(adapter.supports("vearch"));
-        assertTrue(adapter.supports("vespa"));
+        assertFalse(adapter.supports("chroma"));
         assertFalse(adapter.supports("unknown"));
+        assertTrue(new LangChain4jEmbeddingStoreProviderAdapter(testProviderMappings()).supports("fake"));
     }
 
     @Test
@@ -103,6 +109,15 @@ public class EmbeddingStoreProviderAdapterTest {
     }
 
     @Test
+    public void shouldCreateInMemoryStoreWithDefaultConstructor() {
+        EmbeddingStoreDefinition definition = definition("memory", "in-memory");
+
+        EmbeddingStore<TextSegment> store = new InMemoryEmbeddingStoreProviderAdapter().create(definition);
+
+        assertTrue(store instanceof InMemoryEmbeddingStore);
+    }
+
+    @Test
     public void shouldWrapGenericStoreCreationFailureWithProviderAndKey() {
         LangChain4jEmbeddingStoreProviderAdapter adapter = new LangChain4jEmbeddingStoreProviderAdapter(testProviderMappings());
         EmbeddingStoreDefinition definition = definition("knowledge", "failing");
@@ -137,6 +152,12 @@ public class EmbeddingStoreProviderAdapterTest {
         assertIncompleteConfiguration(new ElasticsearchEmbeddingStoreProviderAdapter(), "elasticsearch", "elasticsearch");
         assertIncompleteConfiguration(new QdrantEmbeddingStoreProviderAdapter(), "qdrant", "qdrant");
         assertIncompleteConfiguration(new WeaviateEmbeddingStoreProviderAdapter(), "weaviate", "weaviate");
+        assertIncompleteConfiguration(new AzureAiSearchEmbeddingStoreProviderAdapter(), "azure-ai-search", "azure-ai-search");
+        assertIncompleteConfiguration(new AzureCosmosNoSqlEmbeddingStoreProviderAdapter(), "azure-cosmos-nosql", "azure-cosmos-nosql");
+        assertIncompleteConfiguration(new InfinispanEmbeddingStoreProviderAdapter(), "infinispan", "infinispan");
+        assertIncompleteConfiguration(new Neo4jEmbeddingStoreProviderAdapter(), "neo4j", "neo4j");
+        assertIncompleteConfiguration(new OracleEmbeddingStoreProviderAdapter(), "oracle", "oracle");
+        assertIncompleteConfiguration(new TablestoreEmbeddingStoreProviderAdapter(), "tablestore", "tablestore");
     }
 
     @Test

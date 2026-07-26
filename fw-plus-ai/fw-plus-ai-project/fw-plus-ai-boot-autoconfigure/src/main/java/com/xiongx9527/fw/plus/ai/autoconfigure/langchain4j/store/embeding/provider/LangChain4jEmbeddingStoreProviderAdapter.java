@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefini
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import org.springframework.context.ApplicationContext;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -23,12 +24,19 @@ public class LangChain4jEmbeddingStoreProviderAdapter implements EmbeddingStoreP
 
     private final Map<String, String> storeClasses;
 
+    private final ApplicationContext applicationContext;
+
     public LangChain4jEmbeddingStoreProviderAdapter() {
-        this(defaultStoreClasses());
+        this(defaultStoreClasses(), null);
     }
 
     LangChain4jEmbeddingStoreProviderAdapter(Map<String, String> storeClasses) {
+        this(storeClasses, null);
+    }
+
+    LangChain4jEmbeddingStoreProviderAdapter(Map<String, String> storeClasses, ApplicationContext applicationContext) {
         this.storeClasses = Collections.unmodifiableMap(new LinkedHashMap<String, String>(storeClasses));
+        this.applicationContext = applicationContext;
     }
 
     @Override
@@ -124,6 +132,10 @@ public class LangChain4jEmbeddingStoreProviderAdapter implements EmbeddingStoreP
 
     private Object createWithConstructorArgs(Class<?> storeClass, EmbeddingStoreDefinition definition) throws Exception {
         Object argsValue = definition.getProperties().get(CONSTRUCTOR_ARGS);
+        if (argsValue == null) {
+            Constructor<?> constructor = storeClass.getConstructor();
+            return constructor.newInstance();
+        }
         if (!(argsValue instanceof List)) {
             throw new IllegalArgumentException("builder method not found; constructorArgs list is required for "
                     + storeClass.getName());
@@ -188,6 +200,9 @@ public class LangChain4jEmbeddingStoreProviderAdapter implements EmbeddingStoreP
         if (Duration.class.equals(wrapperType) && (value instanceof Duration || value instanceof Number || value instanceof String)) {
             return true;
         }
+        if (applicationContext != null && value instanceof String) {
+            return true;
+        }
         return false;
     }
 
@@ -235,6 +250,9 @@ public class LangChain4jEmbeddingStoreProviderAdapter implements EmbeddingStoreP
                 return Duration.ofMillis(((Number) value).longValue());
             }
             return Duration.parse(String.valueOf(value));
+        }
+        if (applicationContext != null && value instanceof String) {
+            return applicationContext.getBean(String.valueOf(value), targetType);
         }
         return value;
     }
@@ -295,27 +313,6 @@ public class LangChain4jEmbeddingStoreProviderAdapter implements EmbeddingStoreP
     }
 
     private static Map<String, String> defaultStoreClasses() {
-        Map<String, String> mappings = new LinkedHashMap<String, String>();
-        mappings.put("azure-ai-search", "dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore");
-        mappings.put("azure-cosmos-mongo-vcore", "dev.langchain4j.store.embedding.azure.cosmos.mongo.vcore.AzureCosmosDbMongoVCoreEmbeddingStore");
-        mappings.put("azure-cosmos-nosql", "dev.langchain4j.store.embedding.azure.cosmos.nosql.AzureCosmosDbNoSqlEmbeddingStore");
-        mappings.put("cassandra", "dev.langchain4j.store.embedding.cassandra.CassandraEmbeddingStore");
-        mappings.put("astra-db", "dev.langchain4j.store.embedding.astradb.AstraDbEmbeddingStore");
-        mappings.put("chroma", "dev.langchain4j.store.embedding.chroma.ChromaEmbeddingStore");
-        mappings.put("couchbase", "dev.langchain4j.store.embedding.couchbase.CouchbaseEmbeddingStore");
-        mappings.put("infinispan", "dev.langchain4j.store.embedding.infinispan.InfinispanEmbeddingStore");
-        mappings.put("mongodb-atlas", "dev.langchain4j.store.embedding.mongodb.MongoDbEmbeddingStore");
-        mappings.put("mongodb", "dev.langchain4j.store.embedding.mongodb.MongoDbEmbeddingStore");
-        mappings.put("neo4j", "dev.langchain4j.store.embedding.neo4j.Neo4jEmbeddingStore");
-        mappings.put("opensearch", "dev.langchain4j.store.embedding.opensearch.OpenSearchEmbeddingStore");
-        mappings.put("oracle", "dev.langchain4j.store.embedding.oracle.OracleEmbeddingStore");
-        mappings.put("pgvector", "dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore");
-        mappings.put("postgres", "dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore");
-        mappings.put("postgresql", "dev.langchain4j.store.embedding.pgvector.PgVectorEmbeddingStore");
-        mappings.put("pinecone", "dev.langchain4j.store.embedding.pinecone.PineconeEmbeddingStore");
-        mappings.put("tablestore", "dev.langchain4j.store.embedding.tablestore.TablestoreEmbeddingStore");
-        mappings.put("vearch", "dev.langchain4j.store.embedding.vearch.VearchEmbeddingStore");
-        mappings.put("vespa", "dev.langchain4j.store.embedding.vespa.VespaEmbeddingStore");
-        return mappings;
+        return new LinkedHashMap<String, String>();
     }
 }

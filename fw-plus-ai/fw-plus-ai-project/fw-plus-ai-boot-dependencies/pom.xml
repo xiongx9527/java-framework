@@ -289,24 +289,6 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-milvus</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-qdrant</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
-                <artifactId>fw-plus-ai-magicapi-plugin-weaviate</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
                 <artifactId>fw-plus-ai-magicapi-plugin-langchain4j</artifactId>
                 <version>${project.version}</version>
             </dependency>
