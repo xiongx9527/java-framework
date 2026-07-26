@@ -4,18 +4,16 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.xiongx9527.fw.plus.cloud</groupId>
-        <artifactId>fw-plus-cloud-build</artifactId>
+        <groupId>com.xiongx9527.fw.plus.ai</groupId>
+        <artifactId>fw-plus-ai-build</artifactId>
         <version>${revision}</version>
+        <relativePath />
     </parent>
     <packaging>pom</packaging>
     <modules>
-        <module>eureka-server-sample</module>
-        <module>eureka-gateway-sample</module>
-        <module>eureka-service-sample</module>
-        <module>nacos-gateway-sample</module>
+        <module>fw-plus-ai-magicapi-sample</module>
     </modules>
-    <artifactId>fw-plus-cloud-samples</artifactId>
+    <artifactId>fw-plus-ai-samples</artifactId>
     <properties>
         <main.basedir>${basedir}/../..</main.basedir>
         <!--跳过test-->
@@ -29,20 +27,47 @@
     </properties>
     <dependencyManagement>
         <dependencies>
+
             <dependency>
-                <groupId>com.xiongx9527.fw.plus.cloud</groupId>
-                <artifactId>fw-plus-cloud-dependencies</artifactId>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-boot-dependencies</artifactId>
+                <version>${revision}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                <artifactId>fw-plus-ai-boot-dependencies</artifactId>
                 <version>${revision}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- swagger
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-boot-starter</artifactId>
+        </dependency>
+         -->
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-boot-starter</artifactId>
+        </dependency>
+
     </dependencies>
 
 </project>
