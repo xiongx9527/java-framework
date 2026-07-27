@@ -243,11 +243,11 @@ git commit -m "feat: add askdata capability registry"
 - Produces: model routing SPI and Java 17 remote runtime boundary
 - Consumes: `AskDataProjectContext`, capability registry
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试 Task 4**
 
 Cover route precedence: request model key, project key, datasource key, agent task key, default key. Cover infrastructure failure fallback and non-retryable rejection. Cover Remote Runtime payload includes `projectId`, `operatorId`, `conversationId`, `requestId`, `capabilityKey`, and audit correlation ID.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试 Task 4**
 
 ```bash
 cd fw-plus-core
@@ -256,15 +256,15 @@ cd fw-plus-core
 
 Expected: FAIL.
 
-- [ ] **Step 3: 实现 SPI**
+- [x] **Step 3: 实现 SPI Task 4**
 
 Implement interfaces and default route value objects only. Do not introduce HTTP client yet; Remote Runtime is a Core contract.
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证 Task 4**
 
 Run the same tests. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 4**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/model \
