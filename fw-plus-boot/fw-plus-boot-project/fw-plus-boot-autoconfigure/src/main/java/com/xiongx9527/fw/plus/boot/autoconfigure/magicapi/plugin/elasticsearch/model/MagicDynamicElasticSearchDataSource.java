@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.model;
 
-import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -41,10 +40,10 @@ public class MagicDynamicElasticSearchDataSource implements DisposableBean {
 
 
     /**
-     * 从 JSON 配置字符串中设置额外的客户端配置
+     * 设置额外的客户端配置
      *
      * @param builder RestClientBuilder实例，用于构建REST客户端
-     * @param otherJson 包含额外配置的JSON格式字符串
+     * @param configMap 额外配置对象
      *                  支持的配置项包括：
      *                  - compressionEnabled: 压缩功能开关（布尔值或字符串）
      *                  - metaHeaderEnabled: 元数据头功能开关（布尔值或字符串）
@@ -52,10 +51,8 @@ public class MagicDynamicElasticSearchDataSource implements DisposableBean {
      *                  - defaultHeaders: 默认请求头配置（Map<String, String>格式）
      *                  - requestConfig: 请求配置（包含connectTimeout、socketTimeout、connectionRequestTimeout等）
      */
-    private void setAdditionalConfig(RestClientBuilder builder, String otherJson) {
+    private void setAdditionalConfig(RestClientBuilder builder, Map<String, Object> configMap) {
         try {
-            Map<String, Object> configMap = JSON.parseObject(otherJson);
-
             // 处理布尔类型配置
             if (configMap.containsKey("compressionEnabled")) {
                 Object compressionEnabled = configMap.get("compressionEnabled");
@@ -135,7 +132,7 @@ public class MagicDynamicElasticSearchDataSource implements DisposableBean {
 
         } catch (Exception e) {
             // 记录日志但不抛出异常，避免影响主要功能
-            System.err.println("Failed to parse other config: " + e.getMessage());
+            log.warn("Failed to apply Elasticsearch properties", e);
         }
     }
 
@@ -172,10 +169,8 @@ public class MagicDynamicElasticSearchDataSource implements DisposableBean {
             builder.setPathPrefix(pathPrefix);
         }
 
-        String other = MagicAPIConfigUtils.getElasticSearchConfig(dataSourceInfo.getKey(), "other", dataSourceInfo.getOther());
-        if (StringUtils.isNotBlank(other)) {
-            setAdditionalConfig(builder, other);
-        }
+        String configuredProperties = MagicAPIConfigUtils.getElasticSearchConfig(dataSourceInfo.getKey(), "properties", null);
+        setAdditionalConfig(builder, MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties));
         return builder.build();
     }
 

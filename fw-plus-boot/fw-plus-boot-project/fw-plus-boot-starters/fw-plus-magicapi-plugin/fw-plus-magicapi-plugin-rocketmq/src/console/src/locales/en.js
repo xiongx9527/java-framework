@@ -44,7 +44,7 @@ export default {
                 secretKey: 'Secret Key',
                 extra: 'Type',
                 group: 'Group Name',
-                other: 'Other',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
@@ -53,7 +53,7 @@ export default {
                     secretKey: 'Please Enter Database password, Optional',
                     extra: 'Please Enter RocketMq Access Type',
                     group: 'Please Enter RocketMq Access Group, Optional',
-                    other: 'Please Enter RocketMq Other Config，eg： {xxxx: "yyyy"}'
+                    properties: 'JSON object, for example: {"sendMessageTimeout": 3000}'
                 }
             }
         }

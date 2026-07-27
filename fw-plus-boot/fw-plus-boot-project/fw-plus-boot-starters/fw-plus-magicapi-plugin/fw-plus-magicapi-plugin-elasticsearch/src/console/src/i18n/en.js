@@ -11,7 +11,7 @@ export default {
                 port: 'Port',
                 username: 'Username',
                 password: 'Password',
-                other: 'Other',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
@@ -23,7 +23,7 @@ export default {
                     database: 'Please Enter database, Required',
                     mode: 'Please Enter mode, Option',
                     clientType: 'Please Enter clientType, Option',
-                    other: 'Please Enter Elasticsearch Other Config, eg: {xxxx: "yyyy"}'
+                    properties: 'JSON object, for example: {"key": "value"}'
                 }
             }
         }

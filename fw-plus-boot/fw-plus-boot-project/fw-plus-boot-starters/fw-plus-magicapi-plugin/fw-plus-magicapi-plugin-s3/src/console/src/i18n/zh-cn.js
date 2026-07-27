@@ -51,7 +51,7 @@ export default {
                 tmpPath: '临时路径',
                 expirationSeconds: '有效期(秒)',
                 presignedUrlMethod: '预签名方法',
-                other: '其它',
+                properties: '连接参数',
                 placeholder: {
                     name: '名称，仅显示使用',
                     key: '数据源Key，必填',
@@ -65,7 +65,7 @@ export default {
                     tmpPath: '请输入临时路径，选填',
                     expirationSeconds: '请输入有效期(秒)，选填',
                     presignedUrlMethod: '请选择预签名方法，选填',
-                    other: '请输入 S3 访问相关配置，如： {xxxx: "yyyy"}'
+                    properties: '请输入 JSON 对象，如： {"key": "value"}'
                 }
             }
         }

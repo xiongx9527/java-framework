@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.common;
 
-import com.alibaba.fastjson.JSONValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqDataSourceInfo;
@@ -16,7 +15,6 @@ import org.ssssssss.magicapi.utils.IoUtils;
 import java.util.Map;
 import java.util.Objects;
 
-import static com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.config.KafkaCodeConstants.KAFKA_DATASOURCE_OTHER_MUST_BE_JSONOBJECT;
 import static com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.config.RabbitmqJsonCodeConstants.RABBITMQ_DATASOURCE_HOST_REQUIRED;
 import static com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.config.RabbitmqJsonCodeConstants.RABBITMQ_DATASOURCE_PORT_REQUIRED;
 
@@ -83,12 +81,6 @@ public interface BaseService extends MagicBaseService , JsonCodeConstants {
             }
         }
 
-        // 验证other字段是否为有效的JSON对象
-        if(StringUtils.isNotBlank(entity.getOther())) {
-            JSONValidator validator = JSONValidator.from(entity.getOther());
-            isTrue(validator.validate() && validator.getType() == JSONValidator.Type.Object,
-                    KAFKA_DATASOURCE_OTHER_MUST_BE_JSONOBJECT);
-        }
     }
 
     /**

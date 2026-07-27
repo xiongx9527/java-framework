@@ -35,7 +35,7 @@ export default {
                 password: 'Password',
                 extra: 'Type',
                 virtualHost: 'Virtual Host',
-                other: 'Other',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
@@ -45,7 +45,7 @@ export default {
                     password: 'Please Enter Datasource password, Optional',
                     extra: 'Please Enter RabbitMq Access Type',
                     virtualHost: 'Please Enter RabbitMq Virtual Host, Optional',
-                    other: 'Please Enter RabbitMq Other Config, eg: {xxxx: "yyyy"}'
+                    properties: 'JSON object, for example: {"key": "value"}'
                 }
             }
         }

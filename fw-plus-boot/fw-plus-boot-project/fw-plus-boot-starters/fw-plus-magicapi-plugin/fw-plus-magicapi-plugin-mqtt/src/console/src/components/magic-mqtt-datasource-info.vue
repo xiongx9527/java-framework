@@ -29,8 +29,8 @@
       <magic-input v-model:value="info.password" :placeholder="$i('mqtt.datasource.form.placeholder.password')" type="password" width="100%" />
     </div>
     <div class="magic-form-row">
-      <label>{{ $i('mqtt.datasource.form.other') }}</label>
-      <magic-monaco-editor v-model:value="info.other" :placeholder="$i('mqtt.datasource.form.placeholder.other')" language="json" style="height:150px" />
+      <label>{{ $i('mqtt.datasource.form.properties') }}</label>
+      <magic-monaco-editor v-model:value="info.propertiesText" :placeholder="$i('mqtt.datasource.form.placeholder.properties')" language="json" style="height:150px" />
     </div>
   </div>
 </template>
@@ -43,7 +43,7 @@ const $i = inject('i18n.format')
 const props = defineProps({
   info: {
     type: Object,
-    default: () => ({ other: '{}' })
+    default: () => ({ properties: {} })
   }
 })
 </script>

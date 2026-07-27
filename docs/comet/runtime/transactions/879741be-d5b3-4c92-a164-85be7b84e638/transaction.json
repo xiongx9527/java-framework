@@ -1,0 +1,27 @@
+{
+  "schema": "comet.native.transaction.v2",
+  "id": "879741be-d5b3-4c92-a164-85be7b84e638",
+  "kind": "archive",
+  "status": "committed",
+  "change": "replace-magic-entity-other-with-properties",
+  "createdAt": "2026-07-27T00:31:04.216Z",
+  "preflightHash": "bbaaa74ca3bf4b9da72bc93217cb5ff22df478863aac722524a137a851353fe5",
+  "operations": [
+    {
+      "id": "spec-1-magic-datasource-properties",
+      "type": "write",
+      "target": "specs/magic-datasource-properties/spec.md",
+      "staged": "runtime/transactions/879741be-d5b3-4c92-a164-85be7b84e638/staged/specs/magic-datasource-properties/spec.md",
+      "expectedTargetHash": null,
+      "stagedHash": "ce2cd25ca19667edffe2d50efa84f0b3038c0156b31e0f3deee98d71b509b80e"
+    },
+    {
+      "id": "archive-change",
+      "type": "move",
+      "source": "changes/replace-magic-entity-other-with-properties",
+      "target": "archive/2026-07-27-replace-magic-entity-other-with-properties",
+      "expectedSourceHash": "6fac9a2bc89df0f92c5ce6a0914c82768dde1e8497247aff287ff41ee0c0e9fa",
+      "expectedTargetHash": null
+    }
+  ]
+}

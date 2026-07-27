@@ -95,7 +95,7 @@ export default {
                 password: '密码',
                 tenant: '租户',
                 namespace: '命名空间',
-                other: '其它',
+                properties: '连接参数',
                 placeholder: {
                     name: '数据源名称，仅作显示用',
                     key: '数据源Key，后续代码中使用',
@@ -105,7 +105,7 @@ export default {
                     password: '请输入 Pulsar 访问密码，可选',
                     tenant: '请选择 Pulsar 租户',
                     namespace: '请输入 Pulsar 命名空间',
-                    other: '请输入 Pulsar 访问相关配置，如： {xxxx: "yyyy"}'
+                    properties: '请输入 JSON 对象，如： {"key": "value"}'
                 }
             }
         }

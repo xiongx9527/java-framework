@@ -42,7 +42,7 @@ export default {
                 password: 'Password',
                 extra: 'Type',
                 group: 'Group Id',
-                other: 'Other',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
@@ -50,7 +50,7 @@ export default {
                     username: 'Please Enter Kafka username, Optional',
                     password: 'Please Enter Kafka password, Optional',
                     extra: 'Please Enter Kafka Access Type',
-                    other: 'Please Enter Kafka Other Config, eg: {xxxx: "yyyy"}'
+                    properties: 'JSON object, for example: {"key": "value"}'
                 }
             }
         },
