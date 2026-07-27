@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,8 +39,8 @@ public class MagicDynamicModelDataSource {
         }
         validateEnabled(info);
         ModelDataSourceInfo runtimeInfo = info.copy();
-        LangChain4jModel model = modelFactory.create(info.toDefinition(), providerAdapters);
-        runtimeModels.put(info.getKey(), model);
+        Map<String, LangChain4jModel> models = createModels(info);
+        runtimeModels.putAll(models);
         runtimeInfos.put(info.getKey(), runtimeInfo);
     }
 
@@ -48,6 +49,11 @@ public class MagicDynamicModelDataSource {
             return;
         }
         runtimeModels.remove(key);
+        for (String runtimeKey : new ArrayList<String>(runtimeModels.keySet())) {
+            if (runtimeKey.startsWith(key + ".")) {
+                runtimeModels.remove(runtimeKey);
+            }
+        }
         runtimeInfos.remove(key);
     }
 
@@ -114,6 +120,43 @@ public class MagicDynamicModelDataSource {
         if (info.getModelType() == null) {
             throw new LangChain4jModelException("Model datasource model type must not be null: " + info.getKey());
         }
+        List<String> modelNames = info.modelNames();
+        if (modelNames.isEmpty()) {
+            throw new LangChain4jModelException("Model datasource modelName must not be empty: " + info.getKey());
+        }
+        for (String modelName : modelNames) {
+            if (isBlank(modelName)) {
+                throw new LangChain4jModelException("Model datasource modelName must not be blank: " + info.getKey());
+            }
+        }
+        if (modelNames.size() > 1 && !isBlank(info.getDefaultModelName()) && !modelNames.contains(info.getDefaultModelName().trim())) {
+            throw new LangChain4jModelException("Model datasource defaultModelName is invalid: "
+                    + info.getKey() + "." + info.getDefaultModelName());
+        }
+    }
+
+    private Map<String, LangChain4jModel> createModels(ModelDataSourceInfo info) {
+        List<String> modelNames = info.modelNames();
+        if (modelNames.size() <= 1) {
+            return Collections.singletonMap(info.getKey(), modelFactory.create(info.toDefinition(), providerAdapters));
+        }
+        Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
+        for (String modelName : modelNames) {
+            ModelDataSourceInfo.ModelConfig modelConfig = info.modelConfig(modelName);
+            if (modelConfig != null && Boolean.FALSE.equals(modelConfig.getEnabled())) {
+                continue;
+            }
+            String modelKey = info.getKey() + "." + modelName;
+            models.put(modelKey, modelFactory.create(info.toDefinition(modelKey, modelName, modelConfig), providerAdapters));
+        }
+        String defaultModelName = isBlank(info.getDefaultModelName()) ? modelNames.get(0) : info.getDefaultModelName().trim();
+        LangChain4jModel defaultModel = models.get(info.getKey() + "." + defaultModelName);
+        if (defaultModel == null) {
+            throw new LangChain4jModelException("Model datasource defaultModelName is invalid: "
+                    + info.getKey() + "." + defaultModelName);
+        }
+        models.put(info.getKey(), defaultModel);
+        return models;
     }
 
     private boolean isBlank(String value) {

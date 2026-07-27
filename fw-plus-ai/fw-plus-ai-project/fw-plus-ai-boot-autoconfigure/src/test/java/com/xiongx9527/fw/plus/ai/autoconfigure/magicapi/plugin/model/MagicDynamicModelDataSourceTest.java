@@ -84,6 +84,59 @@ class MagicDynamicModelDataSourceTest {
     }
 
     @Test
+    void createClientRegistersMultipleRuntimeModelsWithDefaultAlias() {
+        RecordingFactory factory = new RecordingFactory();
+        MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
+                registryWith("boot", model("boot"), "boot"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+        ModelDataSourceInfo info = info("chat-default");
+        info.setModelName(Arrays.asList("gpt-4o-mini", "qwen-plus"));
+        info.setDefaultModelName("qwen-plus");
+        Map<String, Object> sharedProperties = new LinkedHashMap<String, Object>();
+        sharedProperties.put("temperature", 0.2);
+        sharedProperties.put("maxTokens", 1024);
+        info.setProperties(sharedProperties);
+        ModelDataSourceInfo.ModelConfig qwen = new ModelDataSourceInfo.ModelConfig();
+        Map<String, Object> qwenProperties = new LinkedHashMap<String, Object>();
+        qwenProperties.put("temperature", 0.7);
+        qwen.setProperties(qwenProperties);
+        info.setModelConfigs(Collections.singletonMap("qwen-plus", qwen));
+
+        dataSource.createClient(info);
+
+        assertEquals("chat-default.gpt-4o-mini", factory.createdDefinitions.get(0).getKey());
+        assertEquals("gpt-4o-mini", factory.createdDefinitions.get(0).getModelName());
+        assertEquals(0.2, factory.createdDefinitions.get(0).getProperties().get("temperature"));
+        assertEquals(1024, factory.createdDefinitions.get(0).getProperties().get("maxTokens"));
+        assertEquals("chat-default.qwen-plus", factory.createdDefinitions.get(1).getKey());
+        assertEquals("qwen-plus", factory.createdDefinitions.get(1).getModelName());
+        assertEquals(0.7, factory.createdDefinitions.get(1).getProperties().get("temperature"));
+        assertEquals(1024, factory.createdDefinitions.get(1).getProperties().get("maxTokens"));
+        assertSame(factory.createdModels.get(1), dataSource.getModel("chat-default"));
+        assertSame(factory.createdModels.get(0), dataSource.getModel("chat-default.gpt-4o-mini"));
+        assertSame(factory.createdModels.get(1), dataSource.getModel("chat-default.qwen-plus"));
+        assertTrue(dataSource.keys().contains("chat-default"));
+        assertTrue(dataSource.keys().contains("chat-default.gpt-4o-mini"));
+        assertTrue(dataSource.keys().contains("chat-default.qwen-plus"));
+    }
+
+    @Test
+    void destroyClientByKeyRemovesRuntimeModelGroup() {
+        RecordingFactory factory = new RecordingFactory();
+        MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
+                registryWith("boot", model("boot"), "boot"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+        ModelDataSourceInfo info = info("chat-default");
+        info.setModelName(Arrays.asList("gpt-4o-mini", "qwen-plus"));
+        dataSource.createClient(info);
+
+        dataSource.destroyClientByKey("chat-default");
+
+        assertNull(dataSource.getModel("chat-default"));
+        assertNull(dataSource.getModel("chat-default.gpt-4o-mini"));
+        assertNull(dataSource.getModel("chat-default.qwen-plus"));
+        assertTrue(dataSource.datasourceNodes().isEmpty());
+    }
+
+    @Test
     void disabledResourceRemovesExistingRuntimeModelWithoutCreatingReplacement() {
         LangChain4jModel bootModel = model("boot");
         RecordingFactory factory = new RecordingFactory();
@@ -225,6 +278,7 @@ class MagicDynamicModelDataSourceTest {
         info.setProvider("fake");
         info.setModelType(LangChain4jModelType.CHAT);
         info.setEnabled(true);
+        info.setModelName(Collections.singletonList("default-model"));
         return info;
     }
 
@@ -240,12 +294,19 @@ class MagicDynamicModelDataSourceTest {
 
     private static class RecordingFactory implements LangChain4jModelFactory {
         private final LangChain4jModel createdModel = new LangChain4jModel("fake", LangChain4jModelType.CHAT, "runtime");
+        private final List<LangChain4jModel> createdModels = new java.util.ArrayList<LangChain4jModel>();
+        private final List<LangChain4jModelDefinition> createdDefinitions = new java.util.ArrayList<LangChain4jModelDefinition>();
         private LangChain4jModelDefinition createdDefinition;
 
         @Override
         public LangChain4jModel create(LangChain4jModelDefinition definition, List<LangChain4jModelProviderAdapter> adapters) {
             createdDefinition = definition;
-            return createdModel;
+            createdDefinitions.add(definition);
+            LangChain4jModel model = createdDefinitions.size() == 1
+                    ? createdModel
+                    : new LangChain4jModel("fake", definition.getModelType(), definition.getKey());
+            createdModels.add(model);
+            return model;
         }
     }
 

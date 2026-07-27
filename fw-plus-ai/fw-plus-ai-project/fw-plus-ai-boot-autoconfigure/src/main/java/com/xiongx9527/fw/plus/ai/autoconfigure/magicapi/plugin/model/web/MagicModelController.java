@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.web;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.ModelDataSourceInfo;
+import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelFactory;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
@@ -59,7 +60,9 @@ public class MagicModelController extends MagicController implements MagicExcept
     public JsonBean<Object> test(@RequestBody ModelDataSourceInfo definition) {
         try {
             validate(definition);
-            getModelFactory().create(definition.toDefinition(), getProviderAdapters());
+            for (LangChain4jModelDefinition modelDefinition : definitions(definition)) {
+                getModelFactory().create(modelDefinition, getProviderAdapters());
+            }
             return new JsonBean<Object>("ok");
         } catch (Exception e) {
             log.error("测试 Model 数据源失败，数据源 key: {}", safeKey(definition));
@@ -76,12 +79,35 @@ public class MagicModelController extends MagicController implements MagicExcept
         if (definition.getModelType() == null) {
             throw new IllegalArgumentException("modelType must not be null");
         }
+        List<String> modelNames = definition.modelNames();
+        if (modelNames.isEmpty()) {
+            throw new IllegalArgumentException("modelName must not be empty");
+        }
+        for (String modelName : modelNames) {
+            validateRequired(modelName, "modelName");
+        }
+        if (modelNames.size() > 1) {
+            String defaultModelName = isBlank(definition.getDefaultModelName())
+                    ? modelNames.get(0)
+                    : definition.getDefaultModelName().trim();
+            if (!modelNames.contains(defaultModelName)) {
+                throw new IllegalArgumentException("defaultModelName is invalid");
+            }
+            ModelDataSourceInfo.ModelConfig defaultConfig = definition.modelConfig(defaultModelName);
+            if (defaultConfig != null && Boolean.FALSE.equals(defaultConfig.getEnabled())) {
+                throw new IllegalArgumentException("defaultModelName is disabled");
+            }
+        }
     }
 
     private void validateRequired(String value, String field) {
-        if (value == null || value.trim().length() == 0) {
+        if (isBlank(value)) {
             throw new IllegalArgumentException(field + " must not be blank");
         }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().length() == 0;
     }
 
     private MagicDynamicModelDataSource getDataSource() {
@@ -103,5 +129,22 @@ public class MagicModelController extends MagicController implements MagicExcept
 
     private String safeKey(ModelDataSourceInfo definition) {
         return definition == null || definition.getKey() == null ? "unknown" : definition.getKey();
+    }
+
+    private List<LangChain4jModelDefinition> definitions(ModelDataSourceInfo definition) {
+        List<String> modelNames = definition.modelNames();
+        List<LangChain4jModelDefinition> definitions = new ArrayList<LangChain4jModelDefinition>();
+        if (modelNames.size() <= 1) {
+            definitions.add(definition.toDefinition());
+            return definitions;
+        }
+        for (String modelName : modelNames) {
+            ModelDataSourceInfo.ModelConfig modelConfig = definition.modelConfig(modelName);
+            if (modelConfig != null && Boolean.FALSE.equals(modelConfig.getEnabled())) {
+                continue;
+            }
+            definitions.add(definition.toDefinition(definition.getKey() + "." + modelName, modelName, modelConfig));
+        }
+        return definitions;
     }
 }

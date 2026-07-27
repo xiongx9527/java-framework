@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.ModelDataSourceInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.web.MagicModelController;
@@ -12,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.model.JsonBean;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -19,8 +22,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MagicModelControllerTest {
+
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     @Test
     void datasourceTestCallsFactoryAndDoesNotExposeCredentialsOnSuccess() {
@@ -39,6 +46,48 @@ class MagicModelControllerTest {
 
         assertEquals(-1, result.getCode());
         assertNoCredentials(String.valueOf(result));
+    }
+
+    @Test
+    void datasourceTestCreatesAllModelNameDefinitions() {
+        RecordingFactory factory = new RecordingFactory(false);
+        ModelDataSourceInfo definition = definition();
+        definition.setKey("chat-default");
+        definition.setModelName(Arrays.asList("gpt-4o-mini", "qwen-plus"));
+
+        JsonBean<Object> result = controller(factory).test(definition);
+
+        assertEquals(1, result.getCode());
+        assertEquals(2, factory.definitions.size());
+        assertEquals("chat-default.gpt-4o-mini", factory.definitions.get(0).getKey());
+        assertEquals("gpt-4o-mini", factory.definitions.get(0).getModelName());
+        assertEquals("chat-default.qwen-plus", factory.definitions.get(1).getKey());
+        assertEquals("qwen-plus", factory.definitions.get(1).getModelName());
+    }
+
+    @Test
+    void datasourceJsonRejectsLegacySingleModelNameString() {
+        String legacyJson = "{"
+                + "\"key\":\"chat\","
+                + "\"provider\":\"fake\","
+                + "\"modelType\":\"CHAT\","
+                + "\"modelName\":\"gpt-4o-mini\""
+                + "}";
+
+        assertThrows(Exception.class, () -> JSON.readValue(legacyJson, ModelDataSourceInfo.class));
+    }
+
+    @Test
+    void datasourceTestRejectsInvalidDefaultModelName() {
+        RecordingFactory factory = new RecordingFactory(false);
+        ModelDataSourceInfo definition = definition();
+        definition.setModelName(Arrays.asList("gpt-4o-mini", "qwen-plus"));
+        definition.setDefaultModelName("missing");
+
+        JsonBean<Object> result = controller(factory).test(definition);
+
+        assertEquals(-1, result.getCode());
+        assertTrue(factory.definitions.isEmpty());
     }
 
     @Test
@@ -72,6 +121,7 @@ class MagicModelControllerTest {
         definition.setKey("chat");
         definition.setProvider("fake");
         definition.setModelType(LangChain4jModelType.CHAT);
+        definition.setModelName(Collections.singletonList("gpt-4o-mini"));
         definition.setApiKey("api-key-secret");
         definition.setSecretKey("secret-key-secret");
         definition.setAccessToken("access-token-secret");
@@ -90,6 +140,7 @@ class MagicModelControllerTest {
 
     private static class RecordingFactory implements LangChain4jModelFactory {
         private final boolean fail;
+        private final List<LangChain4jModelDefinition> definitions = new ArrayList<LangChain4jModelDefinition>();
         private LangChain4jModelDefinition definition;
 
         private RecordingFactory(boolean fail) {
@@ -99,6 +150,7 @@ class MagicModelControllerTest {
         @Override
         public LangChain4jModel create(LangChain4jModelDefinition input, List<LangChain4jModelProviderAdapter> adapters) {
             definition = input;
+            definitions.add(input);
             if (fail) {
                 throw new IllegalStateException("failed with " + input.getApiKey() + " and " + input.getProperties().get("secretKey"));
             }

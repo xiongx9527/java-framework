@@ -24,7 +24,9 @@ public class ModelDataSourceInfo extends MagicEntity {
     private boolean enabled = true;
     private String baseUrl;
     private String apiKey;
-    private String modelName;
+    private List<String> modelName = new ArrayList<String>();
+    private String defaultModelName;
+    private Map<String, ModelConfig> modelConfigs = new LinkedHashMap<String, ModelConfig>();
     private String secretKey;
     private String accessToken;
     private String token;
@@ -32,25 +34,52 @@ public class ModelDataSourceInfo extends MagicEntity {
     private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
     public LangChain4jModelDefinition toDefinition() {
+        List<String> modelNames = modelNames();
+        String singleModelName = modelNames.isEmpty() ? null : modelNames.get(0);
+        return toDefinition(key, singleModelName, modelConfig(singleModelName));
+    }
+
+    public LangChain4jModelDefinition toDefinition(String definitionKey, String resolvedModelName, ModelConfig modelConfig) {
         LangChain4jModelDefinition definition = new LangChain4jModelDefinition();
-        definition.setKey(key);
-        definition.setProvider(provider);
-        definition.setModelType(modelType);
+        definition.setKey(definitionKey);
+        definition.setProvider(modelConfig != null && !isBlank(modelConfig.getProvider()) ? modelConfig.getProvider() : provider);
+        definition.setModelType(modelConfig != null && modelConfig.getModelType() != null ? modelConfig.getModelType() : modelType);
         definition.setEnabled(enabled);
-        definition.setBaseUrl(baseUrl);
-        definition.setApiKey(apiKey);
-        definition.setModelName(modelName);
+        definition.setBaseUrl(modelConfig != null && !isBlank(modelConfig.getBaseUrl()) ? modelConfig.getBaseUrl() : baseUrl);
+        definition.setApiKey(modelConfig != null && !isBlank(modelConfig.getApiKey()) ? modelConfig.getApiKey() : apiKey);
+        definition.setModelName(resolvedModelName);
         Map<String, Object> definitionProperties = new LinkedHashMap<String, Object>();
         if (properties != null) {
             definitionProperties.putAll(properties);
         }
-        putCredential(definitionProperties, "apiKey", apiKey);
+        if (modelConfig != null && modelConfig.getProperties() != null) {
+            definitionProperties.putAll(modelConfig.getProperties());
+        }
+        putCredential(definitionProperties, "apiKey", definition.getApiKey());
         putCredential(definitionProperties, "secretKey", secretKey);
         putCredential(definitionProperties, "accessToken", accessToken);
         putCredential(definitionProperties, "token", token);
         putCredential(definitionProperties, "password", password);
         definition.setProperties(definitionProperties);
         return definition;
+    }
+
+    public List<String> modelNames() {
+        List<String> names = new ArrayList<String>();
+        if (modelName == null) {
+            return names;
+        }
+        for (String name : modelName) {
+            names.add(name == null ? null : name.trim());
+        }
+        return names;
+    }
+
+    public ModelConfig modelConfig(String name) {
+        if (isBlank(name) || modelConfigs == null) {
+            return null;
+        }
+        return modelConfigs.get(name);
     }
 
     @Override
@@ -80,7 +109,9 @@ public class ModelDataSourceInfo extends MagicEntity {
         info.setModelType(modelType);
         info.setEnabled(enabled);
         info.setBaseUrl(baseUrl);
-        info.setModelName(modelName);
+        info.setModelName(modelName == null ? new ArrayList<String>() : new ArrayList<String>(modelName));
+        info.setDefaultModelName(defaultModelName);
+        info.setModelConfigs(copyModelConfigs(modelConfigs, includeSensitiveFields));
         if (includeSensitiveFields) {
             info.setApiKey(apiKey);
             info.setSecretKey(secretKey);
@@ -91,7 +122,18 @@ public class ModelDataSourceInfo extends MagicEntity {
         return info;
     }
 
-    private Map<String, Object> withoutSensitiveProperties(Map<String, Object> source) {
+    private Map<String, ModelConfig> copyModelConfigs(Map<String, ModelConfig> source, boolean includeSensitiveFields) {
+        Map<String, ModelConfig> result = new LinkedHashMap<String, ModelConfig>();
+        if (source == null) {
+            return result;
+        }
+        for (Map.Entry<String, ModelConfig> entry : source.entrySet()) {
+            result.put(entry.getKey(), entry.getValue() == null ? null : entry.getValue().copy(includeSensitiveFields));
+        }
+        return result;
+    }
+
+    private static Map<String, Object> withoutSensitiveProperties(Map<String, Object> source) {
         Map<String, Object> result = new LinkedHashMap<String, Object>();
         if (source == null) {
             return result;
@@ -104,7 +146,7 @@ public class ModelDataSourceInfo extends MagicEntity {
         return result;
     }
 
-    private Object sanitizeValue(Object value) {
+    private static Object sanitizeValue(Object value) {
         if (value instanceof Map) {
             Map<Object, Object> result = new LinkedHashMap<Object, Object>();
             for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
@@ -133,7 +175,7 @@ public class ModelDataSourceInfo extends MagicEntity {
         return value;
     }
 
-    private boolean isSensitiveKey(String propertyKey) {
+    private static boolean isSensitiveKey(String propertyKey) {
         return "apiKey".equalsIgnoreCase(propertyKey)
                 || "secretKey".equalsIgnoreCase(propertyKey)
                 || "accessToken".equalsIgnoreCase(propertyKey)
@@ -144,6 +186,36 @@ public class ModelDataSourceInfo extends MagicEntity {
     private void putCredential(Map<String, Object> target, String propertyKey, String value) {
         if (value != null) {
             target.put(propertyKey, value);
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().length() == 0;
+    }
+
+    @Data
+    public static class ModelConfig {
+
+        private Boolean enabled;
+        private String provider;
+        private LangChain4jModelType modelType;
+        private String baseUrl;
+        private String apiKey;
+        private Map<String, Object> properties = new LinkedHashMap<String, Object>();
+
+        private ModelConfig copy(boolean includeSensitiveFields) {
+            ModelConfig config = new ModelConfig();
+            config.setEnabled(enabled);
+            config.setProvider(provider);
+            config.setModelType(modelType);
+            config.setBaseUrl(baseUrl);
+            if (includeSensitiveFields) {
+                config.setApiKey(apiKey);
+                config.setProperties(properties == null ? new LinkedHashMap<String, Object>() : new LinkedHashMap<String, Object>(properties));
+            } else {
+                config.setProperties(withoutSensitiveProperties(properties));
+            }
+            return config;
         }
     }
 }
