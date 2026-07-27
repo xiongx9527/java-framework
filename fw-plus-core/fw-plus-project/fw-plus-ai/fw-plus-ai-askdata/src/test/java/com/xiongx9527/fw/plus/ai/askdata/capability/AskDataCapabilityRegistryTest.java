@@ -54,12 +54,14 @@ public class AskDataCapabilityRegistryTest {
 		final DefaultAskDataCapabilityRegistry registry = new DefaultAskDataCapabilityRegistry("1.0", false);
 		registry.register(provider(descriptor("chat", AskDataCapabilityType.MODEL, "1.0", "1.0", "1.0", 1, true)));
 
-		assertIllegalArgument("missing", new Runnable() {
+		IllegalArgumentException exception = captureIllegalArgument(new Runnable() {
 			@Override
 			public void run() {
 				registry.get("missing");
 			}
 		});
+		assertTrue(exception.getMessage().contains("missing"));
+		assertTrue(exception.getMessage().contains("chat"));
 	}
 
 	@Test
@@ -71,6 +73,40 @@ public class AskDataCapabilityRegistryTest {
 			public void run() {
 				registry.register(provider(descriptor("local-runtime", AskDataCapabilityType.RUNTIME_ADAPTER,
 						"1.0", "1.0", "1.0", 1, false)));
+			}
+		});
+	}
+
+	@Test
+	public void shouldAcceptSnapshotCoreVersionWithinReleaseRange() {
+		DefaultAskDataCapabilityRegistry registry = new DefaultAskDataCapabilityRegistry("0.1.1-SNAPSHOT", false);
+		registry.register(provider(descriptor("chat", AskDataCapabilityType.MODEL, "0.1.1-SNAPSHOT",
+				"0.1.1", "0.1.1", 1, true)));
+
+		assertEquals("chat", registry.get("chat").getKey());
+	}
+
+	@Test
+	public void shouldReturnUnmodifiableCapabilityList() {
+		DefaultAskDataCapabilityRegistry registry = new DefaultAskDataCapabilityRegistry("1.0", false);
+		registry.register(provider(descriptor("chat", AskDataCapabilityType.MODEL, "1.0", "1.0", "1.0", 1, true)));
+
+		List<AskDataCapabilityDescriptor> capabilities = registry.list(AskDataCapabilityType.MODEL);
+		boolean unsupported = false;
+		try {
+			capabilities.clear();
+		} catch (UnsupportedOperationException exception) {
+			unsupported = true;
+		}
+		assertTrue(unsupported, "能力列表必须不可修改");
+	}
+
+	@Test
+	public void shouldRejectUnsupportedVersionQualifier() {
+		assertIllegalArgument("版本格式非法", new Runnable() {
+			@Override
+			public void run() {
+				descriptor("chat", AskDataCapabilityType.MODEL, "1.0", "0.1.1-RC1", "1.0", 1, true);
 			}
 		});
 	}
@@ -91,11 +127,23 @@ public class AskDataCapabilityRegistryTest {
 	}
 
 	private static void assertIllegalArgument(String messagePart, Runnable action) {
+		captureIllegalArgument(action, messagePart);
+	}
+
+	private static IllegalArgumentException captureIllegalArgument(Runnable action) {
+		return captureIllegalArgument(action, null);
+	}
+
+	private static IllegalArgumentException captureIllegalArgument(Runnable action, String messagePart) {
 		try {
 			action.run();
 			fail("预期抛出 IllegalArgumentException");
 		} catch (IllegalArgumentException exception) {
-			assertTrue(exception.getMessage().contains(messagePart), "异常信息应包含: " + messagePart);
+			if (messagePart != null) {
+				assertTrue(exception.getMessage().contains(messagePart), "异常信息应包含: " + messagePart);
+			}
+			return exception;
 		}
+		throw new AssertionError("fail 应中止测试");
 	}
 }
