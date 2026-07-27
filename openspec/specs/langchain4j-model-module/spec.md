@@ -160,4 +160,3 @@ TBD - created by archiving change add-langchain4j-model-magicapi. Update Purpose
 - **AND** 它说明高版本 LangChain4j 使用 `ChatModel` / `StreamingChatModel`，这些类名不得在 0.35.0 编译代码中使用。
 - **AND** 它说明 `ImageContent`、`AudioContent`、`VideoContent`、`PdfFileContent` 等是 Chat 多模态输入内容，不是 LangChain4j 0.35.0 或当前 1.x 的独立 `AudioModel` / `VideoModel` / `PdfModel` 统一接口。
 - **AND** 它说明 `AUDIO`、`VIDEO`、`PDF` 是 fw-plus 为 Magic 资源和业务适配器保留的扩展 modelType，使用时需要自定义 `LangChain4jModelProviderAdapter` 接入厂商 SDK 或业务封装。
-
