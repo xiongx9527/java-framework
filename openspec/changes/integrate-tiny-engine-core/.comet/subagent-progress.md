@@ -11,9 +11,9 @@
 - OpenSpec mapping: 2.2
 - Stage: task-review
 - Implementer: DONE
-- Reviewer: pending
-- Review/fix rounds: 0
-- Review result: pending
+- Reviewer: CHANGES_REQUESTED
+- Review/fix rounds: 1
+- Review result: Important `TinyEngineHashUtils` sorts only the outer map; nested maps can still hash nondeterministically through `toString()`. Recursively normalize maps and add a nested map insertion-order regression test.
 
 ## Evidence
 
