@@ -33,6 +33,18 @@ class AskDataApiContractTest {
 	}
 
 	@Test
+	void 应拒绝Unicode空白问题和隔离标识() {
+		AskDataProjectContext context = new AskDataProjectContext("project-1", "operator-1");
+
+		assertThrows(IllegalArgumentException.class,
+				() -> new AskDataRequest(context, "\u2003"));
+		assertThrows(IllegalArgumentException.class,
+				() -> new AskDataProjectContext("\u2003", "operator-1"));
+		assertThrows(IllegalArgumentException.class,
+				() -> new AskDataProjectContext("project-1", "\u2003"));
+	}
+
+	@Test
 	void 公共契约不得绑定具体AI或Spring框架包() {
 		assertNotFrameworkType(AskDataService.class);
 		assertNotFrameworkType(AskDataRequest.class);
