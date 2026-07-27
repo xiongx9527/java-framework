@@ -48,6 +48,9 @@ class TinyEngineCommonContractTest {
 		assertEquals(1, new PageQueryVo<Object>().getCurrent());
 		assertEquals(PageQueryVo.PAGESIZE_MAX, query.getPageSize());
 		assertEquals(1, query.getCurrent());
+
+		query.setCurrent(-1);
+		assertEquals(1, query.getCurrent());
 		assertEquals(1, query.getPage().getCurrent());
 		assertNull(query.getData());
 	}
