@@ -15,7 +15,7 @@ import java.util.Set;
  */
 public final class AskDataSqlInterceptorChain {
 
-	private final List<AskDataSqlInterceptor> interceptors;
+	private final List<InterceptorNode> interceptors;
 	private final AskDataSqlValidator validator;
 	private final AskDataSqlAudit audit;
 
@@ -34,13 +34,13 @@ public final class AskDataSqlInterceptorChain {
 			throw new IllegalArgumentException("command 不能为空");
 		}
 		AskDataSqlCommand current = command;
-		for (AskDataSqlInterceptor interceptor : interceptors) {
-			AskDataSqlCommand rewritten = interceptor.intercept(current);
+		for (InterceptorNode interceptor : interceptors) {
+			AskDataSqlCommand rewritten = interceptor.interceptor.intercept(current);
 			if (rewritten == null) {
-				throw new IllegalArgumentException("SQL 插件不能返回 null: " + interceptor.getKey());
+				throw new IllegalArgumentException("SQL 插件不能返回 null: " + interceptor.key);
 			}
 			current = command.withSql(rewritten.getSql());
-			audit.record(interceptor.getKey(), "INTERCEPT");
+			audit.record(interceptor.key, "INTERCEPT");
 		}
 		audit.record("validator", "FINAL_VALIDATE");
 		AskDataSqlValidator.Result result = validator.validate(current);
@@ -53,25 +53,43 @@ public final class AskDataSqlInterceptorChain {
 		return current;
 	}
 
-	private static List<AskDataSqlInterceptor> sortAndValidate(List<AskDataSqlInterceptor> source) {
-		List<AskDataSqlInterceptor> copy = new ArrayList<AskDataSqlInterceptor>(source.size());
+	private static List<InterceptorNode> sortAndValidate(List<AskDataSqlInterceptor> source) {
+		List<InterceptorNode> copy = new ArrayList<InterceptorNode>(source.size());
 		Set<String> keys = new HashSet<String>();
 		for (AskDataSqlInterceptor interceptor : source) {
-			if (interceptor == null || interceptor.getKey() == null || interceptor.getKey().trim().length() == 0) {
+			if (interceptor == null) {
 				throw new IllegalArgumentException("interceptor key 不能为空白");
 			}
-			if (!keys.add(interceptor.getKey().trim())) {
-				throw new IllegalArgumentException("interceptor key 重复: " + interceptor.getKey());
+			String key = interceptor.getKey();
+			if (key == null || key.trim().length() == 0) {
+				throw new IllegalArgumentException("interceptor key 不能为空白");
 			}
-			copy.add(interceptor);
+			String trimmedKey = key.trim();
+			if (!keys.add(trimmedKey)) {
+				throw new IllegalArgumentException("interceptor key 重复: " + trimmedKey);
+			}
+			copy.add(new InterceptorNode(interceptor, trimmedKey, interceptor.getOrder()));
 		}
-		Collections.sort(copy, new Comparator<AskDataSqlInterceptor>() {
+		Collections.sort(copy, new Comparator<InterceptorNode>() {
 			@Override
-			public int compare(AskDataSqlInterceptor left, AskDataSqlInterceptor right) {
-				int order = left.getOrder() < right.getOrder() ? -1 : (left.getOrder() == right.getOrder() ? 0 : 1);
-				return order != 0 ? order : left.getKey().compareTo(right.getKey());
+			public int compare(InterceptorNode left, InterceptorNode right) {
+				int order = left.order < right.order ? -1 : (left.order == right.order ? 0 : 1);
+				return order != 0 ? order : left.key.compareTo(right.key);
 			}
 		});
 		return Collections.unmodifiableList(copy);
+	}
+
+	private static final class InterceptorNode {
+
+		private final AskDataSqlInterceptor interceptor;
+		private final String key;
+		private final int order;
+
+		private InterceptorNode(AskDataSqlInterceptor interceptor, String key, int order) {
+			this.interceptor = interceptor;
+			this.key = key;
+			this.order = order;
+		}
 	}
 }

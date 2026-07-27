@@ -34,6 +34,34 @@ public class AskDataSqlPipelineTest {
 	}
 
 	@Test
+	public void shouldAuditInterceptorWithConstructionTimeKeyWhenKeyChangesDuringExecution() {
+		AskDataSqlAudit audit = new AskDataSqlAudit();
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Collections.singletonList(
+				new AskDataSqlInterceptor() {
+					private int keyRequests;
+
+					@Override
+					public String getKey() {
+						return ++keyRequests <= 3 ? "stable" : "validator";
+					}
+
+					@Override
+					public int getOrder() {
+						return 1;
+					}
+
+					@Override
+					public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+						return command;
+					}
+				}), new PermissiveValidator(), audit);
+
+		chain.execute(command("select * from sales"));
+
+		assertEquals("stable", audit.getRecords().get(0).getInterceptorKey());
+	}
+
+	@Test
 	public void shouldKeepNamedParametersByName() {
 		AskDataSqlCommand command = new AskDataSqlCommand(new AskDataProjectContext("project-a", "operator-a"),
 				"select * from sales where tenant_id = :tenantId", Arrays.asList(
