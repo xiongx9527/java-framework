@@ -39,7 +39,7 @@ const localZhCN = {
                 provider: '\u670d\u52a1\u5546',
                 modelType: '\u6a21\u578b\u7c7b\u578b',
                 apiKey: 'API Key',
-                other: '\u5176\u4ed6\u914d\u7f6e',
+                properties: '\u8fde\u63a5\u53c2\u6570',
                 placeholder: {
                     name: '\u540d\u79f0\uff0c\u4ec5\u663e\u793a\u4f7f\u7528',
                     key: '\u6570\u636e\u6e90Key\uff0c\u5fc5\u586b',
@@ -48,7 +48,7 @@ const localZhCN = {
                     modelType: '\u8bf7\u8f93\u5165\u6a21\u578b\u7c7b\u578b\uff0c\u5fc5\u586b',
                     provider: '\u8bf7\u8f93\u5165\u670d\u52a1\u5546\uff0c\u5fc5\u586b',
                     apiKey: '\u8bf7\u8f93\u5165API Key\uff0c\u5fc5\u586b',
-                    other: '\u8bf7\u8f93\u5165 Langchain4j \u8bbf\u95ee\u76f8\u5173\u914d\u7f6e\uff0c\u5982\uff1a {xxxx: "yyyy"}'
+                    properties: '\u8bf7\u8f93\u5165 JSON \u5bf9\u8c61\uff0c\u5982\uff1a {"temperature": 0.7}'
                 }
             }
         }
@@ -69,7 +69,7 @@ const localEn = {
                 apiKey: 'API Key',
                 provider: 'Provider',
                 modelType: 'Model Type',
-                other: 'Other Config',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
@@ -78,7 +78,7 @@ const localEn = {
                     modelType: 'Please Enter Server Model Type, Required',
                     provider: 'Please Enter Server Provider, Required',
                     apiKey: 'Please Enter API Key, Required',
-                    other: 'Please Enter Langchain4j Other Config\uff0ceg\uff1a {xxxx: "yyyy"}'
+                    properties: 'JSON object, for example: {"temperature": 0.7}'
                 }
             }
         }

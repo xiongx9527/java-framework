@@ -33,8 +33,8 @@
       <magic-input v-model:value="info.rejectedPolicy" :placeholder="$i('dtp.datasource.form.placeholder.rejectedPolicy')" width="100%" />
     </div>
     <div class="magic-form-row">
-      <label>{{ $i('dtp.datasource.form.other') }}</label>
-      <magic-monaco-editor v-model:value="info.other" :placeholder="$i('dtp.datasource.form.placeholder.other')" language="json" style="height:150px" />
+      <label>{{ $i('dtp.datasource.form.properties') }}</label>
+      <magic-monaco-editor v-model:value="info.propertiesText" :placeholder="$i('dtp.datasource.form.placeholder.properties')" language="json" style="height:150px" />
     </div>
   </div>
 </template>
@@ -57,7 +57,7 @@ const queueTypeOptions = [
 const props = defineProps({
   info: {
     type: Object,
-    default: () => ({ other: '{}' })
+    default: () => ({ properties: {} })
   }
 })
 </script>

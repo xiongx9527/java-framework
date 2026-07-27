@@ -57,8 +57,8 @@
       <magic-select v-model:value="info.serverIdType" :placeholder="$i('debezium.datasource.form.placeholder.serverIdType')" :options="serverIdTypeOptions" width="100%" />
     </div>
     <div class="magic-form-row">
-      <label>{{ $i('debezium.datasource.form.other') }}</label>
-      <magic-monaco-editor v-model:value="info.other" :placeholder="$i('debezium.datasource.form.placeholder.other')" language="json" style="height:150px" />
+      <label>{{ $i('debezium.datasource.form.properties') }}</label>
+      <magic-monaco-editor v-model:value="info.propertiesText" :placeholder="$i('debezium.datasource.form.placeholder.properties')" language="json" style="height:150px" />
     </div>
   </div>
 </template>
@@ -72,7 +72,7 @@ const service = inject('service', {})['debezium-datasource']
 const props = defineProps({
   info: {
     type: Object,
-    default: () => ({ other: '{}' })
+    default: () => ({ properties: {} })
   }
 })
 

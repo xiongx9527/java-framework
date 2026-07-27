@@ -4,6 +4,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class Langchain4jDataSourceInfo extends MagicEntity {
@@ -40,7 +43,7 @@ public class Langchain4jDataSourceInfo extends MagicEntity {
     /**
      * 其它配置
      */
-    private String other;
+    private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
     /**
      * 创建一个简单的数据源信息对象副本
@@ -59,7 +62,7 @@ public class Langchain4jDataSourceInfo extends MagicEntity {
         dataSourceInfo.setBaseUrl(this.baseUrl);
         dataSourceInfo.setModelName(this.modelName);
         dataSourceInfo.setApiKey(this.apiKey);
-        dataSourceInfo.setOther(this.other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
     }
 
@@ -80,8 +83,14 @@ public class Langchain4jDataSourceInfo extends MagicEntity {
         dataSourceInfo.setBaseUrl(this.baseUrl);
         dataSourceInfo.setModelName(this.modelName);
         dataSourceInfo.setApiKey(this.apiKey);
-        dataSourceInfo.setOther(this.other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
+    }
+
+    private Map<String, Object> copyProperties() {
+        return this.properties == null
+                ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(this.properties);
     }
 
 }

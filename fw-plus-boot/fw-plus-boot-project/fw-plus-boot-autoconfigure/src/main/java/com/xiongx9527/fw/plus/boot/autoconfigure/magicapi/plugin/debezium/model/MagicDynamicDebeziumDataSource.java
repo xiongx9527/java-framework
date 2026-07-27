@@ -642,16 +642,9 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
      * @param dataSourceInfo 数据源配置信息
      * @return 包含其他配置项的Map
      */
-    private Map<String, Object> getOtherConfig(DebeziumDataSourceInfo dataSourceInfo) {
-        String other = dataSourceInfo.getOther();
-        other = dc(dataSourceInfo, "other", other);
-        if (StringUtils.isNotBlank(other)) {
-            JSONValidator validator = JSONValidator.from(other);
-            if (validator.validate() && validator.getType() == JSONValidator.Type.Object) {
-                return JSON.parseObject(other);
-            }
-        }
-        return new JSONObject();
+    private Map<String, Object> getPropertiesConfig(DebeziumDataSourceInfo dataSourceInfo) {
+        String configuredProperties = dc(dataSourceInfo, "properties", null);
+        return MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties);
     }
 
     /**
@@ -892,7 +885,7 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
         //   never                — 不捕获表结构，直接 streaming（不产生重复数据）
         //   initial              — 首次启动时做全量快照，之后从 offset 增量读取
         //   when_needed          — 有有效 offset 时从 offset 恢复，offset 失效时自动触发全量快照
-        props.setProperty("snapshot.mode", DEFAULT_SNAPSHOT_MODE); // 可通过 datasource JSON 的 other.snapshot.mode 覆盖
+        props.setProperty("snapshot.mode", DEFAULT_SNAPSHOT_MODE); // 可通过 datasource JSON 的 properties.snapshot.mode 覆盖
         props.setProperty("snapshot.delay.ms", String.valueOf(SNAPSHOT_DELAY_MS));
         props.setProperty("snapshot.lock.timeout.ms", String.valueOf(SNAPSHOT_LOCK_TIMEOUT_MS));
         props.setProperty("snapshot.locking.mode", SNAPSHOT_LOCKING_MODE);
@@ -905,7 +898,7 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
         props.setProperty("message.max.bytes", String.valueOf(MAX_REQUEST_SIZE));
 
         // 其它配置
-        Map<String, Object> otherProps = getOtherConfig(dataSourceInfo);
+        Map<String, Object> otherProps = getPropertiesConfig(dataSourceInfo);
         buildDbConfig(props);
         // 构建Kafka配置
         if (buildKafkaConfig) {
@@ -1062,7 +1055,7 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
         private final DebeziumDataSourceInfo dataSourceInfo;
         /**
          * 是否过滤 DDL 事件（schema snapshot / ALTER TABLE 等），默认 true。
-         * 可通过 datasource JSON 或 Apollo 的 other.filter.ddl.events=false 关闭。
+         * 可通过 datasource JSON 或 Apollo 的 properties.filter.ddl.events=false 关闭。
          */
         private final boolean filterDdlEvents;
 
@@ -1073,7 +1066,7 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
          */
         KafkaChangeConsumer(DebeziumDataSourceInfo dataSourceInfo) {
             this.dataSourceInfo = dataSourceInfo;
-            Map<String, Object> otherProps = getOtherConfig(dataSourceInfo);
+            Map<String, Object> otherProps = getPropertiesConfig(dataSourceInfo);
             Object filterDdl = otherProps != null ? otherProps.get("filter.ddl.events") : null;
             this.filterDdlEvents = filterDdl == null || !"false".equalsIgnoreCase(filterDdl.toString().trim());
         }
@@ -1094,7 +1087,7 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
                 props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, String.valueOf(KAFKA_PRODUCER_REQUEST_TIMEOUT_MS));
                 props.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, String.valueOf(KAFKA_PRODUCER_DELIVERY_TIMEOUT_MS));
 
-                Map<String, Object> otherProps = getOtherConfig(this.dataSourceInfo);
+                Map<String, Object> otherProps = getPropertiesConfig(this.dataSourceInfo);
                 if (MapUtils.isNotEmpty(otherProps)) {
                     Object kafka = otherProps.get("kafka");
                     if (kafka instanceof Map) {
@@ -1195,7 +1188,7 @@ public abstract class MagicDynamicDebeziumDataSource implements DisposableBean, 
         private void sendEvents(List<ChangeEvent<String, String>> records) {
             List<Map<String, Object>> values = records.stream()
                     .filter(e -> Objects.nonNull(e) && StringUtils.isNotBlank(e.value()))
-                    .filter(e -> !filterDdlEvents || !isDdlEvent(e.value())) // 过滤 DDL 事件（可通过 other.filter.ddl.events=false 关闭）
+                    .filter(e -> !filterDdlEvents || !isDdlEvent(e.value())) // 过滤 DDL 事件（可通过 properties.filter.ddl.events=false 关闭）
                     .map(e -> {
                         Map<String, Object> map = new HashMap<>();
                         map.put("key", e.key());

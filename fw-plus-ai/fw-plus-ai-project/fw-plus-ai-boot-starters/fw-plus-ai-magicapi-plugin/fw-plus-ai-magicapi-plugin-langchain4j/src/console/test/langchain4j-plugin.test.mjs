@@ -10,7 +10,32 @@ const fixtureUrl = new URL('./fixtures/legacy-contract.json', import.meta.url)
 
 const loadFixture = async () => JSON.parse(await readFile(fixtureUrl, 'utf8'))
 
-test('生成的 IIFE 完整保持旧插件行为并增加状态栏项', async () => {
+const expectedPropertiesContract = legacyContract => {
+    const expected = JSON.parse(JSON.stringify(legacyContract))
+    expected.locales.forEach(item => {
+        const form = item.messages.langchain4j.datasource.form
+        delete form.other
+        delete form.placeholder.other
+        if (item.locale === 'zh-cn') {
+            form.properties = '连接参数'
+            form.placeholder.properties = '请输入 JSON 对象，如： {"temperature": 0.7}'
+        } else {
+            form.properties = 'Properties'
+            form.placeholder.properties = 'JSON object, for example: {"temperature": 0.7}'
+        }
+    })
+    expected.component.defaultInfo = { properties: {} }
+    const propertiesRow = expected.component.rows[expected.component.rows.length - 1]
+    propertiesRow.labelKey = 'langchain4j.datasource.form.properties'
+    propertiesRow.updateField = 'propertiesText'
+    propertiesRow.placeholderKey = 'langchain4j.datasource.form.placeholder.properties'
+    const rerenderedProperties = expected.component.rerenderedTranslations[expected.component.rerenderedTranslations.length - 1]
+    rerenderedProperties.labelKey = 'rerendered:langchain4j.datasource.form.properties'
+    rerenderedProperties.placeholderKey = 'rerendered:langchain4j.datasource.form.placeholder.properties'
+    return expected
+}
+
+test('生成的 IIFE 保持旧插件行为并仅迁移 datasource properties 契约', async () => {
     const fixture = await loadFixture()
     const artifactPath = fileURLToPath(artifactUrl)
     const source = await readFile(artifactUrl, 'utf8')
@@ -23,7 +48,7 @@ test('生成的 IIFE 完整保持旧插件行为并增加状态栏项', async ()
         services: actual.services,
         styles: actual.styles,
         icon: actual.icon
-    }, fixture.legacyContract)
+    }, expectedPropertiesContract(fixture.legacyContract))
     assert.deepEqual(actual.statusBarItems, fixture.requiredAdditions.statusBarItems)
 })
 

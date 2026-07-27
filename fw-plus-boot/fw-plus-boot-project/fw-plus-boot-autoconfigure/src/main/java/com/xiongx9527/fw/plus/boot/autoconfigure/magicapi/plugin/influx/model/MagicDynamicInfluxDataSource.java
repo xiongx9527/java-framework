@@ -89,24 +89,17 @@ public class MagicDynamicInfluxDataSource implements DisposableBean {
             optionsBuilder.logLevel(LogLevel.BODY);
         }
 
-        String other = MagicAPIConfigUtils.getInfluxConfig(dataSourceInfo.getKey(), "other", dataSourceInfo.getOther());
+        String configuredProperties = MagicAPIConfigUtils.getInfluxConfig(dataSourceInfo.getKey(), "properties", null);
+        Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties);
         // 其他配置项处理，例如默认标签（defaultTag）
-        if (StringUtils.isNotBlank(other)) {
-            try {
-                Map<String,Object> otherJson = JSON.parseObject(other);
-                if (otherJson.containsKey("defaultTag")) {
-                    Object defaultTag = otherJson.get("defaultTag");
-                    if (defaultTag instanceof Map) {
-                        for (Map.Entry entry : ((Map<?, ?>) defaultTag).entrySet()) {
-                            if (entry.getKey() != null && entry.getValue() != null) {
-                                optionsBuilder.addDefaultTag(entry.getKey().toString(), entry.getValue().toString());
-                            }
-                            //optionsBuilder.addDefaultTag(entry.getKey(), entry.getValue());
-                        }
+        if (properties.containsKey("defaultTag")) {
+            Object defaultTag = properties.get("defaultTag");
+            if (defaultTag instanceof Map) {
+                for (Map.Entry<?, ?> entry : ((Map<?, ?>) defaultTag).entrySet()) {
+                    if (entry.getKey() != null && entry.getValue() != null) {
+                        optionsBuilder.addDefaultTag(entry.getKey().toString(), entry.getValue().toString());
                     }
                 }
-            } catch (Exception e) {
-                log.error("influx other error",e);
             }
         }
         return InfluxDBClientFactory.create(optionsBuilder.build());

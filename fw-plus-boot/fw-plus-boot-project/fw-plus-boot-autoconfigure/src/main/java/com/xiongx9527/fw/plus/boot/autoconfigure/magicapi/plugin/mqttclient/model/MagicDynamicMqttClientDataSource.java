@@ -57,11 +57,11 @@ public class MagicDynamicMqttClientDataSource implements DisposableBean {
                 .username(username)
                 .password(password);
 
-        String other = dataSourceInfo.getOther();
-        other = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "other", other);
-        if (StringUtils.isNotBlank(other)) {
+        String configuredProperties = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "properties", null);
+        Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties);
+        if (!properties.isEmpty()) {
             try {
-                JSONObject jsonObject = JSON.parseObject(other);
+                JSONObject jsonObject = new JSONObject(properties);
                 if (jsonObject.containsKey("keepAliveSec")) {
                     mqttClientCreator.keepAliveSecs(jsonObject.getIntValue("keepAliveSec"));
                 }
@@ -75,7 +75,7 @@ public class MagicDynamicMqttClientDataSource implements DisposableBean {
                     //mqttClient.ssl(jsonObject.getBooleanValue("ssl"));
                 }
             } catch (Exception e) {
-                log.warn("解析 other 配置失败: {}", e.getMessage(), e);
+                log.warn("应用 MQTT Client properties 失败: {}", e.getMessage(), e);
             }
         }
 

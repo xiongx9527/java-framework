@@ -3,6 +3,10 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class ElasticSearchDataSourceInfo extends MagicEntity {
@@ -46,7 +50,7 @@ public class ElasticSearchDataSourceInfo extends MagicEntity {
     /**
      * 其他参数
      */
-    private String other;
+    private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
     @Override
     public MagicEntity simple() {
@@ -59,7 +63,7 @@ public class ElasticSearchDataSourceInfo extends MagicEntity {
         dataSourceInfo.setUsername(this.username);
         dataSourceInfo.setScheme(this.scheme);
         dataSourceInfo.setPathPrefix(this.pathPrefix);
-        dataSourceInfo.setOther(this.other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
     }
 
@@ -74,8 +78,14 @@ public class ElasticSearchDataSourceInfo extends MagicEntity {
         dataSourceInfo.setUsername(this.username);
         dataSourceInfo.setScheme(this.scheme);
         dataSourceInfo.setPathPrefix(this.pathPrefix);
-        dataSourceInfo.setOther(this.other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
+    }
+
+    private Map<String, Object> copyProperties() {
+        return this.properties == null
+                ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(this.properties);
     }
 
 }

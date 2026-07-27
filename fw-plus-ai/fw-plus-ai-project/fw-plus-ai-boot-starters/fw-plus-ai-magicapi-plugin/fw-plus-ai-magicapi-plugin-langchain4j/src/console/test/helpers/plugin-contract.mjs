@@ -9,7 +9,7 @@ const SAMPLE_INFO = {
     provider: 'OPENAI',
     modelType: 'CHAT',
     modelName: 'sample-model',
-    other: '{"temperature":0.7}'
+    propertiesText: '{"temperature":0.7}'
 }
 
 const clone = value => JSON.parse(JSON.stringify(value))
@@ -188,10 +188,13 @@ const normalizeComponent = (component, translationState) => {
     const rows = normalizeRows(render({}, []), info, true)
     translationState.prefix = 'rerendered:'
     const rerenderedRows = normalizeRows(render({}, []), info, false)
+    const defaultInfo = typeof component.props.info.default === 'function'
+        ? component.props.info.default()
+        : component.props.info.default
 
     return {
         name: component.__name || component.name,
-        defaultInfo: clone(component.props.info.default),
+        defaultInfo: clone(defaultInfo),
         rows,
         rerenderedTranslations: rerenderedRows.map(row => ({
             labelKey: row.labelKey,

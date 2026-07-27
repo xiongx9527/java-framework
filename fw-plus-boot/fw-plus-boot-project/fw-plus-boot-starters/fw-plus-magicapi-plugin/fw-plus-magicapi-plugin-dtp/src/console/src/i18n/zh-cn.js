@@ -13,7 +13,7 @@ export default {
                 queueCapacity: '队列容量',
                 threadFactory: '线程工厂',
                 rejectedPolicy: '拒绝策略',
-                other: '其它',
+                properties: '连接参数',
                 placeholder: {
                     name: '名称，仅显示使用',
                     key: '数据源Key，必填',
@@ -23,7 +23,7 @@ export default {
                     queueCapacity: '队列容量，默认1000',
                     threadFactory: '线程工厂，默认DefaultThreadFactory',
                     rejectedPolicy: '拒绝策略，默认CallerRunsPolicy',
-                    other: ''
+                    properties: '请输入 JSON 对象，如： {"key": "value"}'
                 }
             }
         }

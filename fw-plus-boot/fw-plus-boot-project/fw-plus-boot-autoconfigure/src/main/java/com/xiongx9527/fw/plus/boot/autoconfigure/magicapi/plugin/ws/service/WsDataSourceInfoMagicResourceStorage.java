@@ -112,8 +112,6 @@ public class WsDataSourceInfoMagicResourceStorage implements MagicResourceStorag
 		validateRequiredField(entity.getName(), "name");
 		// 验证secret字段为必需字段
 		validateRequiredField(entity.getSecret(), "secret");
-		// 验证other字段是否为JSON格式 验证other字段为JSON格式
-		validateJSON(entity.getOther(), "other");
 		// 如果实体已存在，验证key不可修改
 		if (entity.getId() != null) {
 			WsDataSourceInfo oldWsDataSourceInfo = magicResourceService.file(entity.getId());

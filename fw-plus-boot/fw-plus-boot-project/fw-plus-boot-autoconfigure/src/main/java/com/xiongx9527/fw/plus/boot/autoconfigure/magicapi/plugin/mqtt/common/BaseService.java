@@ -22,8 +22,6 @@ public interface BaseService extends MagicBaseService {
         validateRequiredField(entity.getIp(), "ip");
         validateRequiredField(entity.getPort(), "port");
         validateRequiredField(entity.getWebPort(), "webPort");
-        // 如果配置内容不为空，则进行JSON格式校验
-        validateJSON(entity.getOther(),"其它配置");
     }
 
 

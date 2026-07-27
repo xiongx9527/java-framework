@@ -4,6 +4,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class InfluxDataSourceInfo extends MagicEntity {
@@ -37,7 +40,7 @@ public class InfluxDataSourceInfo extends MagicEntity {
     /**
      * 私有成员变量other，用于存储其他相关信息
      */
-    private String other;
+    private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
     @Override
     public MagicEntity simple() {
@@ -53,7 +56,7 @@ public class InfluxDataSourceInfo extends MagicEntity {
         dataSourceInfo.setToken(token);
         dataSourceInfo.setOrg(org);
         dataSourceInfo.setBucket(bucket);
-        dataSourceInfo.setOther(other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
     }
 
@@ -72,8 +75,14 @@ public class InfluxDataSourceInfo extends MagicEntity {
         dataSourceInfo.setToken(token);
         dataSourceInfo.setOrg(org);
         dataSourceInfo.setBucket(bucket);
-        dataSourceInfo.setOther(other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
+    }
+
+    private Map<String, Object> copyProperties() {
+        return this.properties == null
+                ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(this.properties);
     }
 
 }

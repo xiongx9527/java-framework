@@ -33,7 +33,7 @@ export default {
                 clientId: 'Client ID',
                 username: 'Username',
                 password: 'Password',
-                other: 'Other',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
@@ -42,7 +42,7 @@ export default {
                     clientId: 'Please Enter Client ID, Required',
                     username: 'Please Enter Username, Optional',
                     password: 'Please Enter Password, Optional',
-                    other: 'Please Enter Mqtt Client Other Config, eg: {xxxx: "yyyy"}'
+                    properties: 'JSON object, for example: {"key": "value"}'
                 }
             }
         }

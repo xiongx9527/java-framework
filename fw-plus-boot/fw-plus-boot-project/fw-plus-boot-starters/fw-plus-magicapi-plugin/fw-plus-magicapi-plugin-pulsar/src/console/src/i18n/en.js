@@ -95,7 +95,7 @@ export default {
                 password: 'Password',
                 tenant: 'Tenant',
                 namespace: 'Namespace',
-                other: 'Other',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
@@ -105,7 +105,7 @@ export default {
                     password: 'Please Enter Pulsar password, Optional',
                     tenant: 'Please Enter Pulsar Tenant',
                     namespace: 'Please Enter Pulsar Namespace',
-                    other: 'Please Enter Pulsar Other Config, eg: {xxxx: "yyyy"}'
+                    properties: 'JSON object, for example: {"key": "value"}'
                 }
             }
         }

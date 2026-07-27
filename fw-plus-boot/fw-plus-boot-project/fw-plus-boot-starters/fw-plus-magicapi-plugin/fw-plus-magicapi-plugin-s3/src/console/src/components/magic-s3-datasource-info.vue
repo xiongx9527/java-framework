@@ -45,8 +45,8 @@
       <magic-select v-model:value="info.presignedUrlMethod" :placeholder="$i('s3.datasource.form.placeholder.presignedUrlMethod')" :options="presignedUrlMethodOptions" width="100%" />
     </div>
     <div class="magic-form-row">
-      <label>{{ $i('s3.datasource.form.other') }}</label>
-      <magic-monaco-editor v-model:value="info.other" :placeholder="$i('s3.datasource.form.placeholder.other')" language="json" style="height:150px" />
+      <label>{{ $i('s3.datasource.form.properties') }}</label>
+      <magic-monaco-editor v-model:value="info.propertiesText" :placeholder="$i('s3.datasource.form.placeholder.properties')" language="json" style="height:150px" />
     </div>
   </div>
 </template>
@@ -60,7 +60,7 @@ const $i = inject('i18n.format')
 const props = defineProps({
   info: {
     type: Object,
-    default: () => ({ other: '{}' })
+    default: () => ({ properties: {} })
   }
 })
 

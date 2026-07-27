@@ -138,17 +138,8 @@ public class MagicDynamicPulsarDataSource implements DisposableBean {
                 throw new PulsarClientException("Pulsar servers 不能为空，key: " + info.getKey());
             }
             pulsarConfig.put("serviceUrl", "pulsar://" + servers);
-            String others = MagicAPIConfigUtils.getPulsarConfig(info.getKey(), "other", info.getOther());
-            // 添加其他必要配置
-            if (StringUtils.isNotBlank(others)) {
-                try {
-                    Map<String, Object> otherConfig = shadedMapper.readValue(others,
-                            new org.apache.pulsar.shade.com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>(){});
-                    pulsarConfig.putAll(otherConfig);
-                } catch (Exception e) {
-                    log.error("解析Pulsar配置失败", e);
-                }
-            }
+            String configuredProperties = MagicAPIConfigUtils.getPulsarConfig(info.getKey(), "properties", null);
+            pulsarConfig.putAll(MagicAPIConfigUtils.mergeProperties(info.getProperties(), configuredProperties));
 
             // 构建客户端
             this.pulsarClientMap.put(info.getKey(), PulsarClient.builder()

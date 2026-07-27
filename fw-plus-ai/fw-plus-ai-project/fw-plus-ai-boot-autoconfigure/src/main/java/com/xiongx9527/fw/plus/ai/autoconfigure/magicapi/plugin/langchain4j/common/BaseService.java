@@ -20,7 +20,6 @@ public interface BaseService extends MagicBaseService {
             validateRequiredField(entity.getApiKey(), "apiKey");
         }
         validateRequiredField(entity.getModelName(), "modelName");
-        validateJSON(entity.getOther(),"其它配置");
     }
 
 

@@ -19,7 +19,7 @@ export default {
                 password: '密码',
                 database: '数据库',
                 mode: '集群模式',
-                other: '其它',
+                properties: '连接参数',
                 placeholder: {
                     name: '名称，仅显示使用',
                     key: '数据源Key，必填',
@@ -30,7 +30,7 @@ export default {
                     database: '请输入数据库，必填',
                     mode: '集群模式，选填',
                     clientType: '客户端模式，选填',
-                    other: '请输入 Mongo 访问相关配置，如： {xxxx: "yyyy"}'
+                    properties: '请输入 JSON 对象，如： {"key": "value"}'
                 }
             }
         }

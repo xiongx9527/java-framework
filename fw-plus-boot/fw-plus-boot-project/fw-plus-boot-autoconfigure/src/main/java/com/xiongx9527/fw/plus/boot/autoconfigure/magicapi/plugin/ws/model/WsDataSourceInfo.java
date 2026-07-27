@@ -3,6 +3,9 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model;
 import lombok.Data;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 public class WsDataSourceInfo extends MagicEntity {
 	/**
@@ -23,7 +26,7 @@ public class WsDataSourceInfo extends MagicEntity {
 	/**
 	 * 其它配置
 	 */
-	private String other;
+	private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
 	@Override
 	public MagicEntity simple() {
@@ -32,7 +35,7 @@ public class WsDataSourceInfo extends MagicEntity {
 		dataSourceInfo.setKey(this.key);
 		dataSourceInfo.setDescription(this.description);
 		dataSourceInfo.setSecret(this.secret);
-		dataSourceInfo.setOther(this.other);
+		dataSourceInfo.setProperties(copyProperties());
 		return dataSourceInfo;
 	}
 
@@ -43,7 +46,13 @@ public class WsDataSourceInfo extends MagicEntity {
 		dataSourceInfo.setKey(this.key);
 		dataSourceInfo.setDescription(this.description);
 		dataSourceInfo.setSecret(this.secret);
-		dataSourceInfo.setOther(this.other);
+		dataSourceInfo.setProperties(copyProperties());
 		return dataSourceInfo;
+	}
+
+	private Map<String, Object> copyProperties() {
+		return this.properties == null
+				? new LinkedHashMap<String, Object>()
+				: new LinkedHashMap<String, Object>(this.properties);
 	}
 }

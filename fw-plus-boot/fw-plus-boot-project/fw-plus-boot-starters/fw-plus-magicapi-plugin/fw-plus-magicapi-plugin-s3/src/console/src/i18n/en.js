@@ -51,7 +51,7 @@ export default {
                 tmpPath: 'TmpPath',
                 expirationSeconds: 'ExpireSec',
                 presignedUrlMethod: 'Presigned',
-                other: 'Other',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
@@ -65,7 +65,7 @@ export default {
                     tmpPath: 'Please Enter Tmp Path, Optional',
                     expirationSeconds: 'Please Enter Expiration Seconds, Optional',
                     presignedUrlMethod: 'Please Select Presigned Method, Optional',
-                    other: 'Please Enter S3 Other Config, eg: {xxxx: "yyyy"}'
+                    properties: 'JSON object, for example: {"key": "value"}'
                 }
             }
         }

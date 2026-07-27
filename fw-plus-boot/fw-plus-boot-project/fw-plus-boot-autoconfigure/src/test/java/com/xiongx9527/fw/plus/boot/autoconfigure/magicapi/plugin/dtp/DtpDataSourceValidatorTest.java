@@ -4,6 +4,10 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.model.DtpDa
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.model.DtpDataSourceValidator;
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -58,18 +62,14 @@ class DtpDataSourceValidatorTest {
 	}
 
 	@Test
-	void validatesOtherJsonObject() {
-		DtpDataSourceInfo arrayJson = validInfo();
-		arrayJson.setOther("[]");
-		assertThatThrownBy(() -> DtpDataSourceValidator.validate(arrayJson))
-				.isInstanceOf(IllegalArgumentException.class)
-				.hasMessageContaining("other");
+	void copiesPropertiesWithoutSharingMutableMap() {
+		DtpDataSourceInfo source = validInfo();
+		DtpDataSourceInfo copy = (DtpDataSourceInfo) source.copy();
 
-		DtpDataSourceInfo invalidJson = validInfo();
-		invalidJson.setOther("{");
-		assertThatThrownBy(() -> DtpDataSourceValidator.validate(invalidJson))
-				.isInstanceOf(IllegalArgumentException.class)
-				.hasMessageContaining("other");
+		copy.getProperties().put("awaitTerminationSeconds", 2);
+
+		assertThat(source.getProperties()).containsEntry("awaitTerminationSeconds", 1);
+		assertThat(copy.getProperties()).containsEntry("awaitTerminationSeconds", 2);
 	}
 
 	@Test
@@ -91,7 +91,9 @@ class DtpDataSourceValidatorTest {
 		info.setQueueType("linked");
 		info.setQueueCapacity(128);
 		info.setRejectedPolicy("abort");
-		info.setOther("{\"awaitTerminationSeconds\":1}");
+		Map<String, Object> properties = new LinkedHashMap<String, Object>();
+		properties.put("awaitTerminationSeconds", 1);
+		info.setProperties(properties);
 		return info;
 	}
 }

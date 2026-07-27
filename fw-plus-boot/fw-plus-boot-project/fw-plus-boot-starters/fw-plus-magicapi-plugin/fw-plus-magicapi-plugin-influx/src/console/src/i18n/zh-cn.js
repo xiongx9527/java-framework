@@ -12,7 +12,7 @@ export default {
                 token: '访问令牌',
                 org: '组织',
                 bucket: '桶名称',
-                other: '其它',
+                properties: '连接参数',
                 placeholder: {
                     name: '名称，仅显示使用',
                     key: '数据源Key，必填',
@@ -22,7 +22,7 @@ export default {
                     token: '请输入访问令牌，选填',
                     org: '请输入组织名称，选填',
                     bucket: '请输入桶名称，选填',
-                    other: '请输入 Influx 访问相关配置，如： {xxxx: "yyyy"}'
+                    properties: '请输入 JSON 对象，如： {"key": "value"}'
                 }
             }
         }

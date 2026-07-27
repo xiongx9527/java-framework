@@ -1,7 +1,5 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.TypeReference;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.common.BaseService;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
@@ -13,7 +11,6 @@ import dev.langchain4j.model.language.LanguageModel;
 import dev.langchain4j.model.language.StreamingLanguageModel;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.DisposableBean;
 
 import java.util.ArrayList;
@@ -47,20 +44,14 @@ public class MagicDynamicLangchain4jDataSource implements BaseService, Disposabl
      */
     public LangChain4jModel buildModel(Langchain4jDataSourceInfo info) {
         // 创建属性映射表，用于存储模型配置参数
-        Map<String, Object> properties = new HashMap<>();
+        String configuredProperties = MagicAPIConfigUtils.getLangchain4jConfig(info.getKey(), "properties", null);
+        Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(info.getProperties(), configuredProperties);
         String baseUrl = info.getBaseUrl();
         baseUrl = MagicAPIConfigUtils.getLangchain4jConfig(info.getKey(), "baseUrl", baseUrl);
         String apiKey = info.getApiKey();
         apiKey = MagicAPIConfigUtils.getLangchain4jConfig(info.getKey(), "apiKey", apiKey);
         String modelName = info.getModelName();
         modelName = MagicAPIConfigUtils.getLangchain4jConfig(info.getKey(), "modelName", modelName);
-
-        // 如果存在其他配置参数，将其解析并添加到属性映射表中
-        String others = info.getOther();
-        others = MagicAPIConfigUtils.getLangchain4jConfig(info.getKey(), "other", others);
-        if (StringUtils.isNotBlank(others)) {
-            properties.putAll(JSON.parseObject(others, new TypeReference<Map<String, Object>>() {}));
-        }
 
         // 将基础配置参数添加到属性映射表中
         properties.put("baseUrl", baseUrl);
