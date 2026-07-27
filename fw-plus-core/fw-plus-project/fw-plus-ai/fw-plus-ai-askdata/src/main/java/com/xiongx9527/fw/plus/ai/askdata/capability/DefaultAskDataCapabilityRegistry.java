@@ -93,12 +93,12 @@ public class DefaultAskDataCapabilityRegistry implements AskDataCapabilityRegist
 	}
 
 	static int compareVersions(String left, String right) {
-		String[] leftParts = left.split("\\.");
-		String[] rightParts = right.split("\\.");
+		String[] leftParts = parseVersionParts(left);
+		String[] rightParts = parseVersionParts(right);
 		int length = Math.max(leftParts.length, rightParts.length);
 		for (int index = 0; index < length; index++) {
-			int leftPart = index < leftParts.length ? parseVersionPart(leftParts[index], left) : 0;
-			int rightPart = index < rightParts.length ? parseVersionPart(rightParts[index], right) : 0;
+			int leftPart = index < leftParts.length ? Integer.parseInt(leftParts[index]) : 0;
+			int rightPart = index < rightParts.length ? Integer.parseInt(rightParts[index]) : 0;
 			if (leftPart != rightPart) {
 				return leftPart < rightPart ? -1 : 1;
 			}
@@ -106,12 +106,26 @@ public class DefaultAskDataCapabilityRegistry implements AskDataCapabilityRegist
 		return 0;
 	}
 
-	private static int parseVersionPart(String part, String version) {
-		try {
-			return Integer.parseInt(part);
-		} catch (NumberFormatException exception) {
-			throw new IllegalArgumentException("版本格式非法: " + version, exception);
+	private static String[] parseVersionParts(String version) {
+		String numericVersion = version;
+		if (numericVersion.endsWith("-SNAPSHOT")) {
+			numericVersion = numericVersion.substring(0, numericVersion.length() - "-SNAPSHOT".length());
 		}
+		if (numericVersion.indexOf('-') >= 0) {
+			throw new IllegalArgumentException("版本格式非法: " + version);
+		}
+		String[] parts = numericVersion.split("\\.", -1);
+		for (String part : parts) {
+			if (part.length() == 0) {
+				throw new IllegalArgumentException("版本格式非法: " + version);
+			}
+			try {
+				Integer.parseInt(part);
+			} catch (NumberFormatException exception) {
+				throw new IllegalArgumentException("版本格式非法: " + version, exception);
+			}
+		}
+		return parts;
 	}
 
 	private static String requireNonBlank(String value, String fieldName) {
