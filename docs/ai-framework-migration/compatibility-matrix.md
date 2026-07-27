@@ -20,18 +20,23 @@
 
 当前仅验证 Core BOM 中立 artifact 的版本管理和 Java 8 reactor。中立模块的 `install` 只在 Task 2/Task 3 创建模块后执行；在此之前不得以不存在的 artifact 作为构建成功依据。
 
-以下命令证明 Core 的 effective POM 与声明的依赖中没有 Java 17 SDK；`rg` 必须无输出且以零状态退出：
+### 当前已验证的 Java 8 Core 命令
+
+以下命令在现有 Java 8 Core reactor 中可成功运行，用于验证 Core 构建基线、Core BOM 以及 effective POM 与声明依赖的隔离；`rg` 必须无输出且以零状态退出：
 
 ```bash
+./fw-plus-core/mvnw -f fw-plus-core/pom.xml validate
+./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-dependencies validate
 ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-dependencies help:effective-pom -Doutput=target/fw-plus-dependencies-effective-pom.xml
 ! rg -n -i 'spring-ai|spring-ai-alibaba|agentscope' fw-plus-core/fw-plus-project/fw-plus-dependencies/target/fw-plus-dependencies-effective-pom.xml
 ! rg -n -i --glob 'pom.xml' 'spring-ai|spring-ai-alibaba|agentscope' fw-plus-core/fw-plus-project
 ```
 
-以下 Java 17 命令是计划目标，待 Task 6 在 Java 17 独立 reactor 做 SDK 依赖树与编译探针；在 `fw-plus-ai-j17` 创建前当前不会执行成功：
+### Task 6 Java 17 计划命令
+
+以下命令仅是 Task 6 创建 Java 17 独立 reactor 后的 SDK 依赖树与编译探针。在 `fw-plus-ai-j17` reactor 创建前，因其 `pom.xml` 尚不存在而不能成功运行；这不代表真实 SDK adapter 已实现。
 
 ```bash
-./fw-plus-core/mvnw -f fw-plus-core/pom.xml validate
 ./fw-plus-core/mvnw -f fw-plus-ai-j17/pom.xml dependency:tree test
 ```
 
