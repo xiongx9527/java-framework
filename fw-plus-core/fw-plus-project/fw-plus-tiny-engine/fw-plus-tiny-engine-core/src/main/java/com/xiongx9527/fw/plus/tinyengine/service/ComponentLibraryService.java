@@ -8,4 +8,9 @@ import java.util.List;
 public interface ComponentLibraryService extends IService<ComponentLibrary> {
 
 	List<ComponentLibrary> queryAllComponentLibrary();
+	ComponentLibrary queryComponentLibraryById(Integer id);
+	List<ComponentLibrary> queryComponentLibraryByCondition(ComponentLibrary componentLibrary);
+	ComponentLibrary deleteComponentLibraryById(Integer id);
+	ComponentLibrary updateComponentLibraryById(ComponentLibrary componentLibrary);
+	ComponentLibrary createComponentLibrary(ComponentLibrary componentLibrary);
 }

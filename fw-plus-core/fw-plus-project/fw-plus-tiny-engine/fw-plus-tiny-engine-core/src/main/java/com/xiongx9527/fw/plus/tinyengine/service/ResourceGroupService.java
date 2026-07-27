@@ -8,4 +8,10 @@ import java.util.List;
 public interface ResourceGroupService extends IService<ResourceGroup> {
 
 	List<ResourceGroup> queryAllResourceGroupAndResource();
+	List<ResourceGroup> queryResourceGroupByAppId(Integer appId);
+	ResourceGroup queryResourceGroupById(Integer id);
+	List<ResourceGroup> queryResourceGroupByCondition(ResourceGroup resourceGroup);
+	ResourceGroup deleteResourceGroupById(Integer id);
+	ResourceGroup updateResourceGroupById(ResourceGroup resourceGroup);
+	ResourceGroup createResourceGroup(ResourceGroup resourceGroup);
 }

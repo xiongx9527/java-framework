@@ -8,4 +8,9 @@ import java.util.List;
 public interface PlatformService extends IService<Platform> {
 
 	List<Platform> queryAllPlatform();
+	Platform queryPlatformById(Integer id);
+	List<Platform> queryPlatformByCondition(Platform platform);
+	Platform deletePlatformById(Integer id);
+	Platform updatePlatformById(Platform platform);
+	Platform createPlatform(Platform platform);
 }

@@ -64,6 +64,9 @@ public interface PageMapper extends BaseMapper<Page> {
      */
     Integer updatePageById(Page page);
 
+	Integer updatePageOccupierIfAvailable(@Param("id") Integer id, @Param("userId") String userId,
+			@Param("occupierBy") String occupierBy);
+
     /**
      * 新增表pages数据
      *

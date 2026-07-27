@@ -2,49 +2,15 @@ package com.xiongx9527.fw.plus.tinyengine.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xiongx9527.fw.plus.tinyengine.common.model.PageQueryVo;
-import com.xiongx9527.fw.plus.tinyengine.mapper.AppExtensionMapper;
-import com.xiongx9527.fw.plus.tinyengine.mapper.AppMapper;
-import com.xiongx9527.fw.plus.tinyengine.mapper.BlockMapper;
-import com.xiongx9527.fw.plus.tinyengine.mapper.DatasourceMapper;
-import com.xiongx9527.fw.plus.tinyengine.mapper.I18nEntryMapper;
-import com.xiongx9527.fw.plus.tinyengine.mapper.I18nLangMapper;
-import com.xiongx9527.fw.plus.tinyengine.mapper.ModelMapper;
-import com.xiongx9527.fw.plus.tinyengine.mapper.PageHistoryMapper;
-import com.xiongx9527.fw.plus.tinyengine.mapper.PageMapper;
-import com.xiongx9527.fw.plus.tinyengine.mapper.ResourceGroupMapper;
-import com.xiongx9527.fw.plus.tinyengine.mapper.TaskRecordMapper;
-import com.xiongx9527.fw.plus.tinyengine.mapper.UserMapper;
-import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
-import com.xiongx9527.fw.plus.tinyengine.model.dto.CanvasDto;
-import com.xiongx9527.fw.plus.tinyengine.model.dto.DeleteI18nEntry;
-import com.xiongx9527.fw.plus.tinyengine.model.dto.I18nEntryDto;
-import com.xiongx9527.fw.plus.tinyengine.model.dto.I18nEntryListResult;
-import com.xiongx9527.fw.plus.tinyengine.model.dto.OperateI18nBatchEntries;
-import com.xiongx9527.fw.plus.tinyengine.model.dto.OperateI18nEntries;
-import com.xiongx9527.fw.plus.tinyengine.model.dto.PublishedPageVo;
-import com.xiongx9527.fw.plus.tinyengine.model.dto.SchemaI18n;
-import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
-import com.xiongx9527.fw.plus.tinyengine.model.entity.Block;
-import com.xiongx9527.fw.plus.tinyengine.model.entity.I18nEntry;
-import com.xiongx9527.fw.plus.tinyengine.model.entity.I18nLang;
-import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
-import com.xiongx9527.fw.plus.tinyengine.model.entity.PageHistory;
-import com.xiongx9527.fw.plus.tinyengine.model.entity.ResourceGroup;
-import com.xiongx9527.fw.plus.tinyengine.model.entity.TaskRecord;
-import com.xiongx9527.fw.plus.tinyengine.model.entity.User;
-import com.xiongx9527.fw.plus.tinyengine.service.impl.AppServiceImpl;
-import com.xiongx9527.fw.plus.tinyengine.service.impl.AppTemplateServiceImpl;
-import com.xiongx9527.fw.plus.tinyengine.service.impl.CanvasServiceImpl;
-import com.xiongx9527.fw.plus.tinyengine.service.impl.I18nEntryServiceImpl;
-import com.xiongx9527.fw.plus.tinyengine.service.impl.PageHistoryServiceImpl;
-import com.xiongx9527.fw.plus.tinyengine.service.impl.PageServiceImpl;
-import com.xiongx9527.fw.plus.tinyengine.service.impl.ResourceGroupServiceImpl;
-import com.xiongx9527.fw.plus.tinyengine.service.impl.TaskRecordServiceImpl;
+import com.xiongx9527.fw.plus.tinyengine.mapper.*;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.*;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.*;
+import com.xiongx9527.fw.plus.tinyengine.service.impl.*;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
 import com.xiongx9527.fw.plus.tinyengine.support.hook.TinyEngineSaveHook;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import org.mockito.invocation.Invocation;
 import org.springframework.stereotype.Service;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -55,9 +21,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -89,20 +57,10 @@ class TinyEngineServiceContractTest {
 			"PlatformService", "ResourceGroupService", "ResourceService", "TaskRecordService",
 			"TenantService", "UserService"
 	);
-	private static final List<String> DOMAIN_METHOD_NAMES = Arrays.asList(
-			"findAllAppExtension", "queryAllApp", "queryAllAppTemplate", "findAllBlockGroup",
-			"findAllBlockHistory", "queryAllBlock", "queryAllBusinessCategory", "lockCanvas",
-			"queryAllComponentLibrary", "findAllComponent", "queryAllDatasource", "findAllI18nEntry",
-			"queryAllI18nLang", "findAllMaterialHistory", "findAllMaterial", "queryModelByCondition",
-			"findAllPageHistory", "queryAllPage", "queryAllPageTemplate", "queryAllPlatformHistory",
-			"queryAllPlatform", "queryAllResourceGroupAndResource", "queryAllResource",
-			"queryAllTaskRecord", "findAllTenant", "queryAllUser"
-	);
 
 	@Test
 	void everyPublicServiceInterfaceHasSpringImplementation() {
-		for (int index = 0; index < SERVICE_NAMES.size(); index++) {
-			String serviceName = SERVICE_NAMES.get(index);
+		for (String serviceName : SERVICE_NAMES) {
 			Class<?> serviceType = loadClass(SERVICE_PACKAGE + serviceName);
 			Class<?> implementationType = loadClass(IMPLEMENTATION_PACKAGE + serviceName + "Impl");
 
@@ -112,61 +70,25 @@ class TinyEngineServiceContractTest {
 					implementationType.getName() + " must implement " + serviceType.getName());
 			assertNotNull(implementationType.getAnnotation(Service.class),
 					implementationType.getName() + " must be a Spring service");
-			String domainMethodName = DOMAIN_METHOD_NAMES.get(index);
-			assertTrue(Arrays.stream(serviceType.getMethods())
-					.anyMatch(method -> domainMethodName.equals(method.getName())),
-					serviceType.getName() + " must retain domain method " + domainMethodName);
 		}
 	}
 
 	@Test
-	void keyServicesExposeCompleteCoreSafeSignatures() {
-		assertMethod(AppTemplateService.class, "queryAllAppTemplate", AppDto.class,
-				Integer.class, Integer.class, String.class, App.class);
-		assertMethod(AppTemplateService.class, "queryAppTemplateById", App.class, Integer.class);
-		assertMethod(AppTemplateService.class, "createAppByTemplate", App.class, App.class);
-		assertMethod(AppTemplateService.class, "updateAppTemplateById", Integer.class, App.class);
-
-		assertMethod(PageService.class, "queryAllPage", List.class, Integer.class);
-		assertMethod(PageService.class, "queryPageById", Page.class, Integer.class);
-		assertMethod(PageService.class, "queryPageByCondition", List.class, Page.class);
-		assertMethod(PageService.class, "delPage", Page.class, Integer.class);
-		assertMethod(PageService.class, "createPage", Page.class, Page.class);
-		assertMethod(PageService.class, "createFolder", Page.class, Page.class);
-		assertMethod(PageService.class, "updatePage", Page.class, Page.class);
-		assertMethod(PageService.class, "update", Page.class, Page.class);
-
-		assertMethod(PageHistoryService.class, "findAllPageHistory", List.class);
-		assertMethod(PageHistoryService.class, "findPageHistoryById", PageHistory.class, Integer.class);
-		assertMethod(PageHistoryService.class, "findPageHistoryByCondition", List.class, PageHistory.class);
-		assertMethod(PageHistoryService.class, "deletePageHistoryById", Integer.class, Integer.class);
-		assertMethod(PageHistoryService.class, "updatePageHistoryById", Integer.class, PageHistory.class);
-		assertMethod(PageHistoryService.class, "createPageHistory", Integer.class, PageHistory.class);
-		assertMethod(PageHistoryService.class, "findPageHistoryByName", List.class, String.class, Integer.class);
-		assertMethod(PageHistoryService.class, "findLatestPublishPage", IPage.class, PageQueryVo.class);
-		assertMethod(PageHistoryService.class, "selectMaxVersionOfPageHistory", String.class,
-				String.class, Integer.class);
-
-		assertMethod(I18nEntryService.class, "findAllI18nEntry", I18nEntryListResult.class);
-		assertMethod(I18nEntryService.class, "findI18nEntryById", I18nEntryDto.class, Integer.class);
-		assertMethod(I18nEntryService.class, "findI18nEntryByCondition", List.class, I18nEntry.class);
-		assertMethod(I18nEntryService.class, "updateI18nEntryById", Integer.class, I18nEntry.class);
-		assertMethod(I18nEntryService.class, "formatEntriesList", SchemaI18n.class, List.class);
-		assertMethod(I18nEntryService.class, "create", List.class, OperateI18nEntries.class);
-		assertMethod(I18nEntryService.class, "bulkCreate", List.class, OperateI18nBatchEntries.class);
-		assertMethod(I18nEntryService.class, "bulkUpdate", List.class, OperateI18nEntries.class);
-		assertMethod(I18nEntryService.class, "deleteI18nEntriesByHostAndHostTypeAndKey", List.class,
-				DeleteI18nEntry.class);
-		assertMethod(I18nEntryService.class, "findI18nEntryByApp", I18nEntryListResult.class,
-				Integer.class, String.class);
-
-		assertMethod(TaskRecordService.class, "queryAllTaskRecord", List.class);
-		assertMethod(TaskRecordService.class, "queryTaskRecordById", TaskRecord.class, Integer.class);
-		assertMethod(TaskRecordService.class, "queryTaskRecordByCondition", List.class, TaskRecord.class);
-		assertMethod(TaskRecordService.class, "deleteTaskRecordById", Integer.class, Integer.class);
-		assertMethod(TaskRecordService.class, "updateTaskRecordById", Integer.class, TaskRecord.class);
-		assertMethod(TaskRecordService.class, "createTaskRecord", Integer.class, TaskRecord.class);
-		assertMethod(TaskRecordService.class, "status", List.class, int.class, String.class);
+	void everyServiceExposesCompleteCoreSafeSignatureTable() {
+		for (Map.Entry<Class<?>, List<ExpectedMethod>> entry : expectedServiceContracts().entrySet()) {
+			Class<?> serviceType = entry.getKey();
+			List<ExpectedMethod> expectedMethods = entry.getValue();
+			Set<String> actualMethods = new HashSet<String>();
+			for (Method method : serviceType.getDeclaredMethods()) {
+				actualMethods.add(methodKey(method.getName(), method.getParameterTypes()));
+			}
+			Set<String> expectedKeys = new HashSet<String>();
+			for (ExpectedMethod expected : expectedMethods) {
+				expectedKeys.add(methodKey(expected.name, expected.parameterTypes));
+				assertMethod(serviceType, expected);
+			}
+			assertEquals(expectedKeys, actualMethods, serviceType.getSimpleName() + " domain method table");
+		}
 	}
 
 	@Test
@@ -273,6 +195,85 @@ class TinyEngineServiceContractTest {
 	}
 
 	@Test
+	void appPaginationAndWritesKeepTenantBoundary() {
+		TinyEngineUserContext context = context("user-7", "tenant-9");
+		AppMapper mapper = mock(AppMapper.class);
+		AppServiceImpl service = new AppServiceImpl(context);
+		setBaseMapper(service, mapper);
+		App filter = new App();
+		filter.setName("demo");
+		when(mapper.queryAllAppByPage(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+				.thenReturn(Collections.<App>emptyList());
+		when(mapper.queryAppTotal("tenant-9")).thenReturn(0);
+		App created = new App();
+		created.setName("new-app");
+		when(mapper.queryAppByCondition(created)).thenReturn(Collections.<App>emptyList());
+		when(mapper.createApp(created)).thenReturn(1);
+
+		AppDto pageResult = invoke(service, "queryAllAppByPage",
+				new Class<?>[] {Integer.class, Integer.class, String.class, App.class},
+				Integer.MAX_VALUE, 5000, "id desc", filter);
+		App createResult = invoke(service, "createApp", new Class<?>[] {App.class}, created);
+
+		assertEquals(Integer.valueOf(0), pageResult.getTotal());
+		assertSame(created, createResult);
+		assertEquals("tenant-9", created.getTenantId());
+		assertFalse(created.getIsPublish());
+		verify(mapper).queryAllAppByPage(1000, Integer.MAX_VALUE, "demo", null, null, null,
+				"id desc", null, "tenant-9");
+		verify(mapper).createApp(created);
+	}
+
+	@Test
+	void coreCrudWritesDelegateAndReturnDomainValues() {
+		AppExtensionMapper extensionMapper = mock(AppExtensionMapper.class);
+		AppExtensionServiceImpl extensionService = new AppExtensionServiceImpl();
+		setBaseMapper(extensionService, extensionMapper);
+		AppExtension extension = new AppExtension();
+		when(extensionMapper.queryAppExtensionByCondition(extension)).thenReturn(Collections.<AppExtension>emptyList());
+		when(extensionMapper.createAppExtension(extension)).thenReturn(1);
+
+		BlockHistoryMapper historyMapper = mock(BlockHistoryMapper.class);
+		BlockHistoryServiceImpl historyService = new BlockHistoryServiceImpl();
+		setBaseMapper(historyService, historyMapper);
+		BlockHistory history = new BlockHistory();
+		when(historyMapper.createBlockHistory(history)).thenReturn(1);
+
+		PlatformMapper platformMapper = mock(PlatformMapper.class);
+		PlatformServiceImpl platformService = new PlatformServiceImpl();
+		setBaseMapper(platformService, platformMapper);
+		Platform platform = new Platform();
+		platform.setName("designer");
+		when(platformMapper.createPlatform(platform)).thenReturn(1);
+
+		assertSame(extension, invoke(extensionService, "createAppExtension",
+				new Class<?>[] {AppExtension.class}, extension));
+		assertEquals(Integer.valueOf(1), invoke(historyService, "createBlockHistory",
+				new Class<?>[] {BlockHistory.class}, history));
+		assertSame(platform, invoke(platformService, "createPlatform",
+				new Class<?>[] {Platform.class}, platform));
+		verify(extensionMapper).createAppExtension(extension);
+		verify(historyMapper).createBlockHistory(history);
+		verify(platformMapper).createPlatform(platform);
+	}
+
+	@Test
+	void resourceQueriesPassCurrentUserToMapper() {
+		ResourceMapper mapper = mock(ResourceMapper.class);
+		ResourceServiceImpl service = new ResourceServiceImpl();
+		setBaseMapper(service, mapper);
+		setFieldIfPresent(service, "userContext", context("user-7", "tenant-9"));
+		when(mapper.findResourceByResourceGroupId(12, "user-7"))
+				.thenReturn(Collections.<Resource>emptyList());
+
+		List<Resource> result = invoke(service, "queryResourceByResourceGroupId",
+				new Class<?>[] {Integer.class}, 12);
+
+		assertTrue(result.isEmpty());
+		verify(mapper).findResourceByResourceGroupId(12, "user-7");
+	}
+
+	@Test
 	void pageSaveInvokesHookOnlyAfterSuccessfulInsert() {
 		PageMapper mapper = mock(PageMapper.class);
 		TinyEngineSaveHook hook = mock(TinyEngineSaveHook.class);
@@ -347,21 +348,16 @@ class TinyEngineServiceContractTest {
 	}
 
 	@Test
-	void canvasLockAndUnlockPersistExpectedOccupier() {
-		PageMapper pageMapper = mock(PageMapper.class);
-		BlockMapper blockMapper = mock(BlockMapper.class);
+	void canvasLockAndUnlockUseGuardedAtomicUpdates() {
+		PageMapper pageMapper = mock(PageMapper.class, invocation ->
+				"updatePageOccupierIfAvailable".equals(invocation.getMethod().getName()) ? 1 : null);
+		BlockMapper blockMapper = mock(BlockMapper.class, invocation ->
+				"updateBlockOccupierIfAvailable".equals(invocation.getMethod().getName()) ? 1 : null);
 		UserMapper userMapper = mock(UserMapper.class);
 		TinyEngineUserContext context = context("user-7", "tenant-9");
 		User user = new User();
 		user.setId("user-7");
 		when(userMapper.queryUserById("user-7")).thenReturn(user);
-		Page page = new Page();
-		page.setId(31);
-		when(pageMapper.queryPageById(31)).thenReturn(page);
-		Block block = new Block();
-		block.setId(41);
-		block.setOccupierBy("user-7");
-		when(blockMapper.queryBlockById(41)).thenReturn(block);
 		CanvasServiceImpl service = new CanvasServiceImpl(pageMapper, blockMapper, userMapper, context);
 
 		CanvasDto lockResult = service.lockCanvas(31, "occupy", "page");
@@ -371,12 +367,27 @@ class TinyEngineServiceContractTest {
 		assertSame(user, lockResult.getOccupier());
 		assertEquals("success", unlockResult.getOperate());
 		assertNull(unlockResult.getOccupier());
-		ArgumentCaptor<Page> pageCaptor = ArgumentCaptor.forClass(Page.class);
-		verify(pageMapper).updatePageById(pageCaptor.capture());
-		assertEquals("user-7", pageCaptor.getValue().getOccupierBy());
-		ArgumentCaptor<Block> blockCaptor = ArgumentCaptor.forClass(Block.class);
-		verify(blockMapper).updateBlockById(blockCaptor.capture());
-		assertNull(blockCaptor.getValue().getOccupierBy());
+		assertInvocation(pageMapper, "updatePageOccupierIfAvailable", 31, "user-7", "user-7");
+		assertInvocation(blockMapper, "updateBlockOccupierIfAvailable", 41, "user-7", null);
+	}
+
+	@Test
+	void canvasRejectsConcurrentOccupancyWhenGuardedUpdateAffectsNoRows() {
+		PageMapper pageMapper = mock(PageMapper.class, invocation ->
+				"updatePageOccupierIfAvailable".equals(invocation.getMethod().getName()) ? 0 : null);
+		BlockMapper blockMapper = mock(BlockMapper.class);
+		UserMapper userMapper = mock(UserMapper.class);
+		TinyEngineUserContext context = context("user-7", "tenant-9");
+		Page page = new Page();
+		page.setId(31);
+		when(pageMapper.queryPageById(31)).thenReturn(page);
+		CanvasServiceImpl service = new CanvasServiceImpl(pageMapper, blockMapper, userMapper, context);
+
+		CanvasDto result = service.lockCanvas(31, "occupy", "page");
+
+		assertEquals("failed", result.getOperate());
+		assertNull(result.getOccupier());
+		assertInvocation(pageMapper, "updatePageOccupierIfAvailable", 31, "user-7", "user-7");
 	}
 
 	@Test
@@ -415,6 +426,218 @@ class TinyEngineServiceContractTest {
 		assertDoesNotThrow(() -> afterSave.invoke(noop, new Object[] {null}));
 	}
 
+	private static Map<Class<?>, List<ExpectedMethod>> expectedServiceContracts() {
+		Map<Class<?>, List<ExpectedMethod>> contracts = new LinkedHashMap<Class<?>, List<ExpectedMethod>>();
+		contracts.put(AppExtensionService.class, Arrays.asList(
+				method("findAllAppExtension", generic(List.class, AppExtension.class)),
+				method("findAppExtensionById", type(AppExtension.class), Integer.class),
+				method("findAppExtensionByCondition", generic(List.class, AppExtension.class), AppExtension.class),
+				method("deleteAppExtensionById", type(AppExtension.class), Integer.class),
+				method("updateAppExtensionById", type(AppExtension.class), AppExtension.class),
+				method("createAppExtension", type(AppExtension.class), AppExtension.class)));
+		contracts.put(AppService.class, Arrays.asList(
+				method("queryAllApp", generic(List.class, App.class)),
+				method("queryAllAppByPage", type(AppDto.class), Integer.class, Integer.class, String.class, App.class),
+				method("queryAppById", type(App.class), Integer.class),
+				method("queryAppByCondition", generic(List.class, App.class), App.class),
+				method("deleteAppById", type(App.class), Integer.class),
+				method("updateAppById", type(App.class), App.class),
+				method("createApp", type(App.class), App.class),
+				method("formatI18nEntrites", type(SchemaI18n.class), List.class, Integer.class, Integer.class)));
+		contracts.put(AppTemplateService.class, Arrays.asList(
+				method("queryAllAppTemplate", type(AppDto.class), Integer.class, Integer.class, String.class, App.class),
+				method("queryAppTemplateById", type(App.class), Integer.class),
+				method("createAppByTemplate", type(App.class), App.class),
+				method("updateAppTemplateById", type(Integer.class), App.class)));
+		contracts.put(BlockGroupService.class, Arrays.asList(
+				method("findAllBlockGroup", generic(List.class, BlockGroup.class)),
+				method("findBlockGroupById", type(BlockGroup.class), Integer.class),
+				method("findBlockGroupByCondition", generic(List.class, BlockGroupDto.class), BlockGroup.class),
+				method("deleteBlockGroupById", type(Integer.class), Integer.class),
+				method("updateBlockGroupById", type(Integer.class), BlockGroup.class),
+				method("createBlockGroup", type(BlockGroup.class), BlockGroup.class),
+				method("getBlockGroupByIdsOrAppId", generic(List.class, BlockGroup.class),
+						List.class, Integer.class, String.class)));
+		contracts.put(BlockHistoryService.class, Arrays.asList(
+				method("findAllBlockHistory", generic(List.class, BlockHistory.class)),
+				method("findBlockHistoryById", type(BlockHistory.class), Integer.class),
+				method("findBlockHistoryByCondition", generic(List.class, BlockHistory.class), BlockHistory.class),
+				method("deleteBlockHistoryById", type(Integer.class), Integer.class),
+				method("updateBlockHistoryById", type(Integer.class), BlockHistory.class),
+				method("createBlockHistory", type(Integer.class), BlockHistory.class)));
+		contracts.put(BlockService.class, Arrays.asList(
+				method("queryAllBlock", generic(List.class, Block.class)),
+				method("queryBlockById", type(BlockDto.class), Integer.class),
+				method("queryBlockByCondition", generic(List.class, Block.class), Block.class),
+				method("deleteBlockById", type(Integer.class), Integer.class),
+				method("updateBlockById", type(BlockDto.class), BlockParam.class),
+				method("createBlock", type(BlockDto.class), BlockParam.class),
+				method("findBlocksByPagetionList", generic(IPage.class, Block.class), BlockParamDto.class),
+				method("allTags", generic(List.class, String.class)),
+				method("findBlocksByConditionPagetion", generic(IPage.class, Block.class), Map.class),
+				method("getUsers", generic(List.class, User.class), List.class),
+				method("listNew", generic(List.class, Block.class), String.class, String.class),
+				method("getNotInGroupBlocks", generic(List.class, BlockDto.class), NotGroupDto.class),
+				method("getBlockByLabel", type(BlockDto.class), String.class, Integer.class),
+				method("deploy", type(BlockDto.class), BlockBuildDto.class)));
+		contracts.put(BusinessCategoryService.class, Arrays.asList(
+				method("queryAllBusinessCategory", generic(List.class, BusinessCategory.class)),
+				method("queryBusinessCategoryById", type(BusinessCategory.class), Integer.class),
+				method("queryBusinessCategoryByCondition", generic(List.class, BusinessCategory.class),
+						BusinessCategory.class),
+				method("deleteBusinessCategoryById", type(Integer.class), Integer.class),
+				method("updateBusinessCategoryById", type(Integer.class), BusinessCategory.class),
+				method("createBusinessCategory", type(Integer.class), BusinessCategory.class)));
+		contracts.put(CanvasService.class, Collections.singletonList(
+				method("lockCanvas", type(CanvasDto.class), Integer.class, String.class, String.class)));
+		contracts.put(ComponentLibraryService.class, Arrays.asList(
+				method("queryAllComponentLibrary", generic(List.class, ComponentLibrary.class)),
+				method("queryComponentLibraryById", type(ComponentLibrary.class), Integer.class),
+				method("queryComponentLibraryByCondition", generic(List.class, ComponentLibrary.class),
+						ComponentLibrary.class),
+				method("deleteComponentLibraryById", type(ComponentLibrary.class), Integer.class),
+				method("updateComponentLibraryById", type(ComponentLibrary.class), ComponentLibrary.class),
+				method("createComponentLibrary", type(ComponentLibrary.class), ComponentLibrary.class)));
+		contracts.put(ComponentService.class, Arrays.asList(
+				method("findAllComponent", generic(List.class, Component.class)),
+				method("findComponentById", type(Component.class), Integer.class),
+				method("findComponentByCondition", generic(List.class, Component.class), Component.class),
+				method("deleteComponentById", type(Integer.class), Integer.class),
+				method("updateComponentById", type(Integer.class), Component.class),
+				method("createComponent", type(Integer.class), Component.class),
+				method("parseBundle", type(BundleResultDto.class), BundleDto.class),
+				method("bulkCreate", type(FileResult.class), List.class),
+				method("custComponentBatchCreate", type(FileResult.class), CustComponentDto.class)));
+		contracts.put(DatasourceService.class, Arrays.asList(
+				method("queryAllDatasource", generic(List.class, Datasource.class)),
+				method("queryDatasourceById", type(Datasource.class), Integer.class),
+				method("queryDatasourceByCondition", generic(List.class, Datasource.class), Datasource.class),
+				method("deleteDatasourceById", type(Datasource.class), Integer.class),
+				method("updateDatasourceById", type(Datasource.class), Datasource.class),
+				method("createDatasource", type(Datasource.class), Datasource.class)));
+		contracts.put(I18nEntryService.class, Arrays.asList(
+				method("findAllI18nEntry", type(I18nEntryListResult.class)),
+				method("findI18nEntryById", type(I18nEntryDto.class), Integer.class),
+				method("findI18nEntryByCondition", generic(List.class, I18nEntryDto.class), I18nEntry.class),
+				method("updateI18nEntryById", type(Integer.class), I18nEntry.class),
+				method("formatEntriesList", type(SchemaI18n.class), List.class),
+				method("create", generic(List.class, I18nEntry.class), OperateI18nEntries.class),
+				method("bulkCreate", generic(List.class, I18nEntry.class), OperateI18nBatchEntries.class),
+				method("bulkUpdate", generic(List.class, I18nEntry.class), OperateI18nEntries.class),
+				method("deleteI18nEntriesByHostAndHostTypeAndKey", generic(List.class, I18nEntryDto.class),
+						DeleteI18nEntry.class),
+				method("findI18nEntryByApp", type(I18nEntryListResult.class), Integer.class, String.class)));
+		contracts.put(I18nLangService.class, Arrays.asList(
+				method("queryAllI18nLang", generic(List.class, I18nLang.class)),
+				method("queryI18nLangById", type(I18nLang.class), Integer.class),
+				method("queryI18nLangByCondition", generic(List.class, I18nLang.class), I18nLang.class),
+				method("deleteI18nLangById", type(Integer.class), Integer.class),
+				method("updateI18nLangById", type(Integer.class), I18nLang.class),
+				method("createI18nLang", type(Integer.class), I18nLang.class)));
+		contracts.put(MaterialHistoryService.class, Arrays.asList(
+				method("findAllMaterialHistory", generic(List.class, MaterialHistory.class)),
+				method("findMaterialHistoryById", type(MaterialHistory.class), Integer.class),
+				method("findMaterialHistoryByCondition", generic(List.class, MaterialHistory.class), MaterialHistory.class),
+				method("deleteMaterialHistoryById", type(MaterialHistory.class), Integer.class),
+				method("updateMaterialHistoryById", type(MaterialHistory.class), MaterialHistory.class),
+				method("createMaterialHistory", type(MaterialHistory.class), MaterialHistory.class)));
+		contracts.put(MaterialService.class, Arrays.asList(
+				method("queryAllMaterial", generic(List.class, Material.class)),
+				method("queryMaterialById", type(Material.class), Integer.class),
+				method("queryMaterialByCondition", generic(List.class, Material.class), Material.class),
+				method("deleteMaterialById", type(Material.class), Integer.class),
+				method("updateMaterialById", type(Material.class), Material.class),
+				method("createMaterial", type(Material.class), Material.class)));
+		contracts.put(ModelService.class, Arrays.asList(
+				method("queryModelById", type(Model.class), Integer.class),
+				method("getModelByName", generic(List.class, Model.class), String.class),
+				method("getModelByEnName", generic(List.class, Model.class), String.class),
+				method("pageQuery", generic(com.baomidou.mybatisplus.extension.plugins.pagination.Page.class, Model.class),
+						int.class, int.class, String.class, String.class),
+				method("getTableById", type(String.class), Integer.class),
+				method("getAllTable", type(String.class)),
+				method("getAllModelName", generic(List.class, String.class)),
+				method("queryModelByCondition", generic(List.class, Model.class), Model.class)));
+		contracts.put(PageHistoryService.class, Arrays.asList(
+				method("findAllPageHistory", generic(List.class, PageHistory.class)),
+				method("findPageHistoryById", type(PageHistory.class), Integer.class),
+				method("findPageHistoryByCondition", generic(List.class, PageHistory.class), PageHistory.class),
+				method("deletePageHistoryById", type(Integer.class), Integer.class),
+				method("updatePageHistoryById", type(Integer.class), PageHistory.class),
+				method("createPageHistory", type(Integer.class), PageHistory.class),
+				method("findPageHistoryByName", generic(List.class, PageHistory.class), String.class, Integer.class),
+				method("findLatestPublishPage", generic(IPage.class, PublishedPageVo.class), PageQueryVo.class),
+				method("selectMaxVersionOfPageHistory", type(String.class), String.class, Integer.class)));
+		contracts.put(PageService.class, Arrays.asList(
+				method("queryAllPage", generic(List.class, Page.class), Integer.class),
+				method("queryPageById", type(Page.class), Integer.class),
+				method("queryPageByCondition", generic(List.class, Page.class), Page.class),
+				method("delPage", type(Page.class), Integer.class),
+				method("createPage", type(Page.class), Page.class),
+				method("createFolder", type(Page.class), Page.class),
+				method("updatePage", type(Page.class), Page.class),
+				method("update", type(Page.class), Page.class)));
+		contracts.put(PageTemplateService.class, Arrays.asList(
+				method("queryAllPageTemplate", generic(List.class, PageTemplate.class), String.class, String.class),
+				method("queryPageTemplateById", type(PageTemplate.class), Integer.class),
+				method("queryPageTemplateByCondition", generic(List.class, PageTemplate.class), PageTemplate.class),
+				method("deletePageTemplateByIds", type(Integer.class), List.class),
+				method("updatePageTemplateById", type(Integer.class), PageTemplate.class),
+				method("createPageTemplate", type(PageTemplate.class), PageTemplate.class)));
+		contracts.put(PlatformHistoryService.class, Arrays.asList(
+				method("queryAllPlatformHistory", generic(List.class, PlatformHistory.class)),
+				method("queryPlatformHistoryById", type(PlatformHistory.class), Integer.class),
+				method("queryPlatformHistoryByCondition", generic(List.class, PlatformHistory.class), PlatformHistory.class),
+				method("deletePlatformHistoryById", type(PlatformHistory.class), Integer.class),
+				method("updatePlatformHistoryById", type(PlatformHistory.class), PlatformHistory.class),
+				method("createPlatformHistory", type(PlatformHistory.class), PlatformHistory.class)));
+		contracts.put(PlatformService.class, Arrays.asList(
+				method("queryAllPlatform", generic(List.class, Platform.class)),
+				method("queryPlatformById", type(Platform.class), Integer.class),
+				method("queryPlatformByCondition", generic(List.class, Platform.class), Platform.class),
+				method("deletePlatformById", type(Platform.class), Integer.class),
+				method("updatePlatformById", type(Platform.class), Platform.class),
+				method("createPlatform", type(Platform.class), Platform.class)));
+		contracts.put(ResourceGroupService.class, Arrays.asList(
+				method("queryAllResourceGroupAndResource", generic(List.class, ResourceGroup.class)),
+				method("queryResourceGroupByAppId", generic(List.class, ResourceGroup.class), Integer.class),
+				method("queryResourceGroupById", type(ResourceGroup.class), Integer.class),
+				method("queryResourceGroupByCondition", generic(List.class, ResourceGroup.class), ResourceGroup.class),
+				method("deleteResourceGroupById", type(ResourceGroup.class), Integer.class),
+				method("updateResourceGroupById", type(ResourceGroup.class), ResourceGroup.class),
+				method("createResourceGroup", type(ResourceGroup.class), ResourceGroup.class)));
+		contracts.put(ResourceService.class, Arrays.asList(
+				method("queryAllResource", generic(List.class, Resource.class)),
+				method("queryResourcesByNameAndDes", generic(List.class, Resource.class), String.class, String.class),
+				method("queryResourceById", type(Resource.class), Integer.class),
+				method("queryResourceByName", type(Resource.class), String.class),
+				method("queryResourceByResourceGroupId", generic(List.class, Resource.class), Integer.class),
+				method("deleteResourceById", type(Resource.class), Integer.class),
+				method("updateResourceById", type(Resource.class), Resource.class)));
+		contracts.put(TaskRecordService.class, Arrays.asList(
+				method("queryAllTaskRecord", generic(List.class, TaskRecord.class)),
+				method("queryTaskRecordById", type(TaskRecord.class), Integer.class),
+				method("queryTaskRecordByCondition", generic(List.class, TaskRecord.class), TaskRecord.class),
+				method("deleteTaskRecordById", type(Integer.class), Integer.class),
+				method("updateTaskRecordById", type(Integer.class), TaskRecord.class),
+				method("createTaskRecord", type(Integer.class), TaskRecord.class),
+				method("status", generic(List.class, generic(List.class, TaskRecord.class)), int.class, String.class)));
+		contracts.put(TenantService.class, Arrays.asList(
+				method("findAllTenant", generic(List.class, Tenant.class)),
+				method("findTenantById", type(Tenant.class), Integer.class),
+				method("findTenantByCondition", generic(List.class, Tenant.class), Tenant.class),
+				method("deleteTenantById", type(Integer.class), Integer.class),
+				method("updateTenantById", type(Integer.class), Tenant.class),
+				method("createTenant", type(Integer.class), Tenant.class)));
+		contracts.put(UserService.class, Arrays.asList(
+				method("queryAllUser", generic(List.class, User.class)),
+				method("queryUserById", type(User.class), String.class),
+				method("queryUserByCondition", generic(List.class, User.class), User.class),
+				method("deleteUserById", type(Integer.class), String.class),
+				method("updateUserById", type(Integer.class), User.class)));
+		return contracts;
+	}
+
 	private static Page page(int id, int appId, boolean isPage) {
 		Page page = new Page();
 		page.setId(id);
@@ -432,14 +655,61 @@ class TinyEngineServiceContractTest {
 		ReflectionTestUtils.setField(service, "baseMapper", mapper);
 	}
 
-	private static void assertMethod(Class<?> owner, String name, Class<?> returnType, Class<?>... parameterTypes) {
+	private static void setFieldIfPresent(Object target, String name, Object value) {
+		if (org.springframework.util.ReflectionUtils.findField(target.getClass(), name) != null) {
+			ReflectionTestUtils.setField(target, name, value);
+		}
+	}
+
+	private static void assertMethod(Class<?> owner, ExpectedMethod expected) {
 		try {
-			Method method = owner.getMethod(name, parameterTypes);
-			assertEquals(returnType, method.getReturnType(), owner.getSimpleName() + "#" + name + " return type");
+			Method method = owner.getDeclaredMethod(expected.name, expected.parameterTypes);
+			assertEquals(expected.returnType.rawType, method.getReturnType(),
+					owner.getSimpleName() + "#" + expected.name + " raw return type");
+			assertEquals(expected.returnType.typeName(), method.getGenericReturnType().getTypeName(),
+					owner.getSimpleName() + "#" + expected.name + " generic return type");
 		}
 		catch (NoSuchMethodException exception) {
-			throw new AssertionError("Missing core-safe service method " + owner.getName() + "#" + name, exception);
+			throw new AssertionError("Missing core-safe service method " + owner.getName() + "#" + expected.name,
+					exception);
 		}
+	}
+
+	private static ExpectedMethod method(String name, ExpectedType returnType, Class<?>... parameterTypes) {
+		return new ExpectedMethod(name, returnType, parameterTypes);
+	}
+
+	private static ExpectedType type(Class<?> rawType) {
+		return new ExpectedType(rawType, Collections.<ExpectedType>emptyList());
+	}
+
+	private static ExpectedType generic(Class<?> rawType, Class<?> argumentType) {
+		return generic(rawType, type(argumentType));
+	}
+
+	private static ExpectedType generic(Class<?> rawType, ExpectedType argumentType) {
+		return new ExpectedType(rawType, Collections.singletonList(argumentType));
+	}
+
+	private static String methodKey(String name, Class<?>[] parameterTypes) {
+		StringBuilder key = new StringBuilder(name).append('(');
+		for (int index = 0; index < parameterTypes.length; index++) {
+			if (index > 0) {
+				key.append(',');
+			}
+			key.append(parameterTypes[index].getName());
+		}
+		return key.append(')').toString();
+	}
+
+	private static void assertInvocation(Object mockObject, String methodName, Object... arguments) {
+		for (Invocation invocation : org.mockito.Mockito.mockingDetails(mockObject).getInvocations()) {
+			if (methodName.equals(invocation.getMethod().getName())
+					&& Arrays.equals(arguments, invocation.getArguments())) {
+				return;
+			}
+		}
+		throw new AssertionError("Missing mapper invocation " + methodName + Arrays.toString(arguments));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -487,5 +757,41 @@ class TinyEngineServiceContractTest {
 				&& !name.contains("servlet")
 				&& !name.contains("swagger")
 				&& !name.startsWith("jakarta."), location + " depends on forbidden type " + type.getName());
+	}
+
+	private static final class ExpectedMethod {
+		private final String name;
+		private final ExpectedType returnType;
+		private final Class<?>[] parameterTypes;
+
+		private ExpectedMethod(String name, ExpectedType returnType, Class<?>[] parameterTypes) {
+			this.name = name;
+			this.returnType = returnType;
+			this.parameterTypes = parameterTypes;
+		}
+	}
+
+	private static final class ExpectedType {
+		private final Class<?> rawType;
+		private final List<ExpectedType> arguments;
+
+		private ExpectedType(Class<?> rawType, List<ExpectedType> arguments) {
+			this.rawType = rawType;
+			this.arguments = arguments;
+		}
+
+		private String typeName() {
+			if (arguments.isEmpty()) {
+				return rawType.getName();
+			}
+			StringBuilder name = new StringBuilder(rawType.getName()).append('<');
+			for (int index = 0; index < arguments.size(); index++) {
+				if (index > 0) {
+					name.append(", ");
+				}
+				name.append(arguments.get(index).typeName());
+			}
+			return name.append('>').toString();
+		}
 	}
 }
