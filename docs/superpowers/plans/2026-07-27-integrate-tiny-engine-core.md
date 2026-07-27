@@ -217,11 +217,11 @@ git commit -m "feat: add tiny engine common contracts"
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineUtilityTest test`
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -DskipTests compile`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 Create tests covering JSON object/array round trip, schema helper behavior required by migrated DTOs, hash determinism, path traversal rejection in file security utilities, and TypeHandler null/empty JSON handling.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试**
 
 Run:
 
@@ -232,15 +232,15 @@ cd fw-plus-core
 
 Expected: FAIL because utilities and handlers do not exist.
 
-- [ ] **Step 3: 迁移工具类并替换不兼容 API**
+- [x] **Step 3: 迁移工具类并替换不兼容 API**
 
 Replace `String.isBlank()` with Java 8-compatible checks, replace `List.of()` / `Map.of()` with mutable construction plus defensive copies where needed, replace `InputStream.readAllBytes()` with buffered reads, and avoid `java.net.http.HttpClient`.
 
-- [ ] **Step 4: 迁移 TypeHandler**
+- [x] **Step 4: 迁移 TypeHandler**
 
 Move MyBatis TypeHandler classes into `common.typehandler`, update package names, and ensure handler FQCNs are stable for mapper XML references.
 
-- [ ] **Step 5: 运行测试与编译**
+- [x] **Step 5: 运行测试与编译**
 
 Run:
 
@@ -252,7 +252,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit Task 3**
+- [x] **Step 6: Commit Task 3**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core
