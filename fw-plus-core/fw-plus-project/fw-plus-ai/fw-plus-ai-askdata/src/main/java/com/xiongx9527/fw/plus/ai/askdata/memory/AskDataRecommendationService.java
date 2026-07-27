@@ -16,14 +16,64 @@ import java.util.Map;
  */
 public interface AskDataRecommendationService {
 
+	/**
+	 * 记录指定项目和操作人的个人推荐偏好。
+	 *
+	 * <p>实现必须以 {@code projectId + operatorId} 作为不可拆分的隔离键保存推荐，禁止将个人推荐提升为
+	 * 项目级通用建议，也不得被其他操作人读取。推荐内容不能为空白；持久化实现还应按实际部署要求保证
+	 * 访问控制和一致性。</p>
+	 *
+	 * @param context 含项目和操作人标识的隔离上下文，不能为空
+	 * @param recommendation 仅属于该操作人的推荐内容，不能为空白
+	 * @throws IllegalArgumentException 当参数为空或推荐内容为空白时抛出
+	 */
 	void record(AskDataProjectContext context, String recommendation);
 
+	/**
+	 * 查询当前项目和操作人的个人推荐。
+	 *
+	 * <p>该方法只允许返回与 {@code context} 完全匹配的个人推荐；没有个人记录时返回空列表。它不以项目级
+	 * 通用建议作为回退，调用方需要该能力时必须显式调用带策略参数的重载方法。</p>
+	 *
+	 * @param context 当前项目和操作人的隔离上下文，不能为空
+	 * @return 当前操作人的个人推荐；没有记录时返回空列表
+	 * @throws IllegalArgumentException 当 {@code context} 为 {@code null} 时抛出
+	 */
 	List<String> recommend(AskDataProjectContext context);
 
+	/**
+	 * 注册项目级、非个人化的通用建议。
+	 *
+	 * <p>通用建议只能在操作人身份缺失且调用方策略明确允许时作为回退，不能覆盖或混入任何操作人的个人
+	 * 推荐。实现必须按项目隔离通用建议，禁止跨项目共享。</p>
+	 *
+	 * @param projectId 项目唯一标识，不能为空白
+	 * @param recommendation 不含个人偏好的通用推荐内容，不能为空白
+	 * @throws IllegalArgumentException 当参数为空或空白时抛出
+	 */
 	void registerGeneric(String projectId, String recommendation);
 
+	/**
+	 * 按项目和可选操作人查询推荐，并由调用方显式决定是否允许通用建议回退。
+	 *
+	 * <p>当 {@code operatorId} 非空白时，必须只返回该项目和该操作人的个人推荐，即使没有记录也不得回退
+	 * 到通用建议。当 {@code operatorId} 缺失或仅包含空白字符时，只有 {@code allowGenericSuggestions}
+	 * 为 {@code true} 才可返回同项目的非个人通用建议；否则必须返回空列表。实现不得将该回退用于跨项目
+	 * 或跨操作人的数据。</p>
+	 *
+	 * @param projectId 项目唯一标识，不能为空白
+	 * @param operatorId 操作人唯一标识；为空或空白时视为身份缺失
+	 * @param allowGenericSuggestions 是否允许身份缺失时回退项目级通用建议
+	 * @return 符合隔离和回退规则的推荐列表；无匹配时返回空列表
+	 * @throws IllegalArgumentException 当 {@code projectId} 为空或空白时抛出
+	 */
 	List<String> recommend(String projectId, String operatorId, boolean allowGenericSuggestions);
 
+	/**
+	 * 创建用于契约测试和单节点开发的内存参考实现。
+	 *
+	 * @return 不具备跨进程持久化能力的内存实现
+	 */
 	static AskDataRecommendationService inMemory() {
 		return new InMemory();
 	}
@@ -62,7 +112,7 @@ public interface AskDataRecommendationService {
 		@Override
 		public synchronized List<String> recommend(String projectId, String operatorId, boolean allowGenericSuggestions) {
 			String normalizedProjectId = requireNonBlank(projectId, "projectId");
-			if (operatorId != null && operatorId.trim().length() > 0) {
+			if (!isBlank(operatorId)) {
 				return copyOf(personalRecommendations.get(new ScopeKey(normalizedProjectId, operatorId.trim())));
 			}
 			return allowGenericSuggestions ? copyOf(genericRecommendations.get(normalizedProjectId)) : Collections.<String>emptyList();
@@ -86,6 +136,19 @@ public interface AskDataRecommendationService {
 				throw new IllegalArgumentException(name + " 不能为空白");
 			}
 			return value.trim();
+		}
+
+		private static boolean isBlank(String value) {
+			if (value == null || value.length() == 0) {
+				return true;
+			}
+			for (int index = 0; index < value.length(); index++) {
+				char character = value.charAt(index);
+				if (!Character.isWhitespace(character) && !Character.isSpaceChar(character)) {
+					return false;
+				}
+			}
+			return true;
 		}
 	}
 
