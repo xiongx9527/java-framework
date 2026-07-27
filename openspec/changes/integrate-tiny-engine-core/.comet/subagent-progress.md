@@ -12,7 +12,7 @@
 - Stage: task-review
 - Implementer: Mendel DONE
 - Reviewer: Meitner completed first task review; Peirce re-review returned Needs fixes; Beauvoir final re-review returned Needs fixes
-- Fixer: Boole DONE; Rawls DONE; third fixer pending dispatch
+- Fixer: Boole DONE; Rawls DONE; Erdos dispatched
 - Review/fix rounds: 3
 - Review result: User approved third fix round after blocked final re-review
 
