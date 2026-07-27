@@ -42,12 +42,19 @@ class TinyEngineCommonContractTest {
 	void pageQueryShouldUseCoreOnlyDefaultsAndBounds() {
 		PageQueryVo<String> query = new PageQueryVo<String>();
 		query.setPageSize(PageQueryVo.PAGESIZE_MAX + 1);
-		query.setCurrent(3);
+		query.setCurrent(0);
 
 		assertEquals(PageQueryVo.PAGESIZE_DEFAULT, new PageQueryVo<Object>().getPageSize());
+		assertEquals(1, new PageQueryVo<Object>().getCurrent());
 		assertEquals(PageQueryVo.PAGESIZE_MAX, query.getPageSize());
-		assertEquals(3, query.getCurrent());
+		assertEquals(1, query.getCurrent());
+		assertEquals(1, query.getPage().getCurrent());
 		assertNull(query.getData());
+	}
+
+	@Test
+	void exceptionEnumShouldUseItsDeclaredCode() {
+		assertEquals("CM1110", ExceptionEnum.CM1110.getResultCode());
 	}
 
 	@Test
