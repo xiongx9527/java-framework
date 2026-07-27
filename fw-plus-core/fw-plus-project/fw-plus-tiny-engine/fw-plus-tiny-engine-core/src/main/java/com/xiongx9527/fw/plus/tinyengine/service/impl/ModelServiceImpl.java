@@ -3,6 +3,8 @@ package com.xiongx9527.fw.plus.tinyengine.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.xiongx9527.fw.plus.tinyengine.common.exception.ExceptionEnum;
+import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
 import com.xiongx9527.fw.plus.tinyengine.mapper.ModelMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Model;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.ParametersDto;
@@ -15,10 +17,16 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Collections;
 import java.util.StringJoiner;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements ModelService {
+	private static final Pattern SQL_IDENTIFIER = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
+	private static final Pattern SQL_DEFAULT_LITERAL = Pattern.compile(
+			"^(?:NULL|TRUE|FALSE|CURRENT_TIMESTAMP|[-+]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)|'(?:[^'\\\\\\r\\n]|'')*')$",
+			Pattern.CASE_INSENSITIVE);
+
 	@Autowired
 	private TinyEngineUserContext userContext;
 
@@ -106,19 +114,38 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
 	}
 
 	private String tableSql(Model model) {
-		StringBuilder sql = new StringBuilder("CREATE TABLE ").append(model.getNameEn()).append(" (");
+		String tableName = requireIdentifier(model.getNameEn(), "table");
+		StringBuilder sql = new StringBuilder("CREATE TABLE ").append(tableName).append(" (");
 		List<ParametersDto> fields = safeParameters(model);
 		for (int index = 0; index < fields.size(); index++) {
 			ParametersDto field = fields.get(index);
-			sql.append(field.getProp()).append(' ').append(sqlType(field.getType()));
+			sql.append(requireIdentifier(field.getProp(), "column")).append(' ').append(sqlType(field.getType()));
 			if (field.getDefaultValue() != null && !field.getDefaultValue().isEmpty()) {
-				sql.append(" DEFAULT ").append(field.getDefaultValue());
+				sql.append(" DEFAULT ").append(requireDefaultLiteral(field.getDefaultValue()));
 			}
 			if (index < fields.size() - 1) {
 				sql.append(", ");
 			}
 		}
 		return sql.append(");").toString();
+	}
+
+	private String requireIdentifier(String identifier, String kind) {
+		if (identifier == null || !SQL_IDENTIFIER.matcher(identifier).matches()) {
+			throw invalidDdl("Invalid SQL " + kind + " identifier");
+		}
+		return identifier;
+	}
+
+	private String requireDefaultLiteral(String defaultValue) {
+		if (!SQL_DEFAULT_LITERAL.matcher(defaultValue).matches()) {
+			throw invalidDdl("Invalid SQL default literal");
+		}
+		return defaultValue;
+	}
+
+	private ServiceException invalidDdl(String message) {
+		return new ServiceException(ExceptionEnum.CM002.getResultCode(), message);
 	}
 
 	private String sqlType(String javaType) {

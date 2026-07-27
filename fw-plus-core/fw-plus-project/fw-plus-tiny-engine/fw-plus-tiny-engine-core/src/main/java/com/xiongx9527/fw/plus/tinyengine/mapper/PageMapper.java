@@ -56,6 +56,8 @@ public interface PageMapper extends BaseMapper<Page> {
      */
     Integer deletePageById(@Param("id") Integer id);
 
+	Integer deletePageIfAvailable(@Param("id") Integer id, @Param("userId") String userId);
+
     /**
      * 根据主键id更新表pages数据
      *
