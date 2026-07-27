@@ -58,7 +58,10 @@ const modelTypeOptions = [
   { text: 'LANGUAGE', value: 'LANGUAGE' },
   { text: 'STREAMING_LANGUAGE', value: 'STREAMING_LANGUAGE' },
   { text: 'MODERATION', value: 'MODERATION' },
-  { text: 'SCORING', value: 'SCORING' }
+  { text: 'SCORING', value: 'SCORING' },
+  { text: 'AUDIO', value: 'AUDIO' },
+  { text: 'VIDEO', value: 'VIDEO' },
+  { text: 'PDF', value: 'PDF' }
 ]
 const propertiesText = ref('{}')
 

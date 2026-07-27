@@ -90,6 +90,8 @@ return model['chat-default'].getModel();
 
 LangChain4j `0.35.0` 已提供 `TextContent`、`ImageContent`、`AudioContent`、
 `VideoContent`、`PdfFileContent` 等 Chat 多模态内容类型；高版本仍通过 Chat
-请求承载多模态输入。音频、视频和 PDF 不是独立模型类型，不存在独立的
-`AudioModel` / `VideoModel`，因此不要在 `modelType` 中新增 `AUDIO`、`VIDEO`
-或 `PDF`。
+请求承载多模态输入。为便于 Magic 资源和业务扩展统一登记能力，`modelType`
+保留 `AUDIO`、`VIDEO`、`PDF` 三类扩展类型；但 LangChain4j `0.35.0` 和当前
+`1.x` 文档没有提供独立的 `AudioModel` / `VideoModel` / `PdfModel` 统一接口，
+框架默认不会为这三类注册内置 provider adapter。需要使用时可通过自定义
+`LangChain4jModelProviderAdapter` 接入厂商 SDK 或业务封装。

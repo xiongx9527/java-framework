@@ -86,6 +86,21 @@ public class LangChain4jModelAutoConfigurationTest {
     }
 
     @Test
+    public void shouldLeaveMultimodalExtensionTypesForCustomAdapters() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(LangChain4jModelAutoConfiguration.class))
+                .run(context -> {
+                    Map<String, LangChain4jModelProviderAdapter> adapters = context.getBeansOfType(LangChain4jModelProviderAdapter.class);
+                    assertEquals(0, supportCount(adapters, definition("openai", LangChain4jModelType.AUDIO)));
+                    assertEquals(0, supportCount(adapters, definition("openai", LangChain4jModelType.VIDEO)));
+                    assertEquals(0, supportCount(adapters, definition("openai", LangChain4jModelType.PDF)));
+                    assertEquals(0, supportCount(adapters, definition("gemini", LangChain4jModelType.AUDIO)));
+                    assertEquals(0, supportCount(adapters, definition("gemini", LangChain4jModelType.VIDEO)));
+                    assertEquals(0, supportCount(adapters, definition("gemini", LangChain4jModelType.PDF)));
+                });
+    }
+
+    @Test
     public void shouldBuildAzureModelUsingBaseUrlAsEndpoint() {
         LangChain4jModelDefinition definition = definition("azure-openai", LangChain4jModelType.CHAT);
         definition.setKey("azure-chat");

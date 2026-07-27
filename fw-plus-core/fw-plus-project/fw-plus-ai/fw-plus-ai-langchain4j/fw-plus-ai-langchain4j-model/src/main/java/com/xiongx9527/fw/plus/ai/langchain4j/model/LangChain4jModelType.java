@@ -9,5 +9,8 @@ public enum LangChain4jModelType {
     LANGUAGE,
     STREAMING_LANGUAGE,
     MODERATION,
-    SCORING
+    SCORING,
+    AUDIO,
+    VIDEO,
+    PDF
 }
