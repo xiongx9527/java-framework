@@ -1,0 +1,182 @@
+/**
+ * Copyright (c) 2023 - present TinyEngine Authors.
+ * Copyright (c) 2023 - present Huawei Cloud Computing Technologies Co., Ltd.
+ *
+ * Use of this source code is governed by an MIT-style license.
+ *
+ * THE OPEN SOURCE SOFTWARE IN THIS PRODUCT IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL,
+ * BUT WITHOUT ANY WARRANTY, WITHOUT EVEN THE IMPLIED WARRANTY OF MERCHANTABILITY OR FITNESS FOR
+ * A PARTICULAR PURPOSE. SEE THE APPLICABLE LICENSES FOR MORE DETAILS.
+ *
+ */
+
+package com.xiongx9527.fw.plus.tinyengine.model.dto;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+/**
+ * The type Schema config.
+ *
+ * @since 2024-10-20
+ */
+public class SchemaConfig {
+    // AppConfig
+    private Map<String, String> appConvert;
+    private List<String> appInclude;
+    private Map<String, String> appFormat;
+
+    // PageMetaConfig
+    private Map<String, String> pageMetaConvert;
+    private List<String> pageMetaInclude;
+    private Map<String, String> pageMetaFormat;
+
+    // PageContentConfig
+    private List<String> pageContentInclude;
+
+    // FolderConfig
+    private Map<String, String> folderConvert;
+    private List<String> folderInclude;
+    private Map<String, String> folderFormat;
+
+    /**
+     * Instantiates a new Schema config.
+     */
+    // Corrected constructor
+    public SchemaConfig() {
+        // Initialize AppConfig
+        this.appConvert = Stream
+                .of(new Object[][]{{"id", "appId"}, {"createdBy", "creator"}, {"created_at", "gmt_create"},
+                        {"updated_at", "gmt_modified"}})
+                .filter(data -> data[0] instanceof String && data[1] instanceof String) // 使用 instanceof 过滤
+                .collect(Collectors.toMap(data -> (String) data[0], data -> (String) data[1]));
+
+        this.appInclude = Arrays.asList("id", "name", "tenant", "git_group", "project_name", "is_demo", "description",
+                "createdBy", "created_at", "updated_at", "branch", "global_state");
+
+        this.appFormat = Stream.of(new Object[][]{{"id", "toFormatString"},
+                        {"created_at", "toLocalTimestamp"},
+                        {"updated_at", "toLocalTimestamp"},
+                        {"createdBy", "toCreatorName"},
+                        {"global_state", "toArrayValue"}})
+                .filter(data -> data[0] instanceof String && data[1] instanceof String) // 使用 instanceof 过滤
+                .collect(Collectors.toMap(data -> (String) data[0], data -> (String) data[1]));
+
+        // Initialize PageMetaConfig
+        this.pageMetaConvert = Stream
+                .of(new Object[][]{{"page_desc", "description"}, {"route", "router"}, {"isBody", "rootElement"},
+                        {"createdBy", "creator"}, {"created_at", "gmt_create"}, {"updated_at", "gmt_modified"}})
+                .filter(data -> data[0] instanceof String && data[1] instanceof String) // 使用 instanceof 过滤
+                .collect(Collectors.toMap(data -> (String) data[0], data -> (String) data[1]));
+
+        this.pageMetaInclude = Arrays.asList("id", "title", "page_desc", "createdBy", "parentId", "created_at",
+                "updated_at", "isHome", "isBody", "group", "route", "occupier");
+
+        this.pageMetaFormat = Stream
+                .of(new Object[][]{{"created_at", "toLocalTimestamp"}, {"updated_at", "toLocalTimestamp"},
+                        {"isBody", "toRootElement"}, {"group", "toGroupName"}, {"createdBy", "toCreatorName"}})
+                .filter(data -> data[0] instanceof String && data[1] instanceof String) // 使用 instanceof 过滤
+                .collect(Collectors.toMap(data -> (String) data[0], data -> (String) data[1]));
+
+        // Initialize PageContentConfig
+        this.pageContentInclude = Arrays.asList("fileName", "componentName", "props", "css", "children", "methods",
+                "state", "lifeCycles");
+
+        // Initialize FolderConfig
+        this.folderConvert = Stream
+                .of(new Object[][]{{"name", "folderName"}, {"route", "router"}, {"created_at", "gmt_create"},
+                        {"updated_at", "gmt_modified"}})
+                .filter(data -> data[0] instanceof String && data[1] instanceof String) // 使用 instanceof 过滤
+                .collect(Collectors.toMap(data -> (String) data[0], data -> (String) data[1]));
+
+        this.folderInclude = Arrays.asList("name", "route", "created_at", "updated_at", "id", "parentId", "depth");
+
+        this.folderFormat = Stream
+                .of(new Object[][]{{"created_at", "toLocalTimestamp"}, {"updated_at", "toLocalTimestamp"}})
+                .filter(data -> data[0] instanceof String && data[1] instanceof String) // 使用 instanceof 过滤
+                .collect(Collectors.toMap(data -> (String) data[0], data -> (String) data[1]));
+    }
+
+	public Map<String, String> getAppConvert() {
+		return appConvert;
+	}
+
+	public void setAppConvert(Map<String, String> appConvert) {
+		this.appConvert = appConvert;
+	}
+
+	public List<String> getAppInclude() {
+		return appInclude;
+	}
+
+	public void setAppInclude(List<String> appInclude) {
+		this.appInclude = appInclude;
+	}
+
+	public Map<String, String> getAppFormat() {
+		return appFormat;
+	}
+
+	public void setAppFormat(Map<String, String> appFormat) {
+		this.appFormat = appFormat;
+	}
+
+	public Map<String, String> getPageMetaConvert() {
+		return pageMetaConvert;
+	}
+
+	public void setPageMetaConvert(Map<String, String> pageMetaConvert) {
+		this.pageMetaConvert = pageMetaConvert;
+	}
+
+	public List<String> getPageMetaInclude() {
+		return pageMetaInclude;
+	}
+
+	public void setPageMetaInclude(List<String> pageMetaInclude) {
+		this.pageMetaInclude = pageMetaInclude;
+	}
+
+	public Map<String, String> getPageMetaFormat() {
+		return pageMetaFormat;
+	}
+
+	public void setPageMetaFormat(Map<String, String> pageMetaFormat) {
+		this.pageMetaFormat = pageMetaFormat;
+	}
+
+	public List<String> getPageContentInclude() {
+		return pageContentInclude;
+	}
+
+	public void setPageContentInclude(List<String> pageContentInclude) {
+		this.pageContentInclude = pageContentInclude;
+	}
+
+	public Map<String, String> getFolderConvert() {
+		return folderConvert;
+	}
+
+	public void setFolderConvert(Map<String, String> folderConvert) {
+		this.folderConvert = folderConvert;
+	}
+
+	public List<String> getFolderInclude() {
+		return folderInclude;
+	}
+
+	public void setFolderInclude(List<String> folderInclude) {
+		this.folderInclude = folderInclude;
+	}
+
+	public Map<String, String> getFolderFormat() {
+		return folderFormat;
+	}
+
+	public void setFolderFormat(Map<String, String> folderFormat) {
+		this.folderFormat = folderFormat;
+	}
+}
