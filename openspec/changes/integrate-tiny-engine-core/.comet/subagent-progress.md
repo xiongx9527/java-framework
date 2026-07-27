@@ -10,7 +10,7 @@
 - Task: Task 6: 迁移核心服务接口、实现与扩展点
 - OpenSpec mapping: 4.1, 4.2, 4.3, 4.4
 - Stage: implementing
-- Implementer: pending dispatch
+- Implementer: Mendel dispatched
 - Reviewer: pending
 - Fixer: pending
 - Review/fix rounds: 0
