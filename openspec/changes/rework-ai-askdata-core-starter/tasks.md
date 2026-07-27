@@ -1,6 +1,6 @@
 ## 1. Core API and compatibility
 
-- [ ] 1.1 在 `fw-plus-ai` 聚合中新增 `fw-plus-ai-askdata` 模块，并定义 AskData 请求、结果、错误、项目上下文及 Java 8 兼容的公开服务接口。
+- [x] 1.1 在 `fw-plus-ai` 聚合中新增 `fw-plus-ai-askdata` 模块，并定义 AskData 请求、结果、错误、项目上下文及 Java 8 兼容的公开服务接口。
 - [ ] 1.2 在 `fw-plus-ai-askdata` 定义模型、向量检索、推荐、Agent、图编排、元数据、检索、权限、SQL、审计和接口发布 SPI。
 - [ ] 1.3 定义版本化能力描述符、能力提供者和注册表，支持模型、向量、SQL、存储和事件插件的启动期选择、排序、冲突和兼容性校验。
 - [ ] 1.4 定义不可变 SQL 命令、受控片段、具名参数及类似 MyBatis 的阶段化 SQL 拦截器 SPI，禁止插件直接绕过安全校验或取得裸连接。
