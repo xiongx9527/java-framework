@@ -146,7 +146,7 @@ git commit -m "feat: add askdata core module"
 - Produces: `AskDataService#ask(AskDataRequest)`, `AskDataRequest`, `AskDataResult`, `AskDataError`, `AskDataProjectContext`
 - Consumes: no Spring types
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试 Task 2**
 
 Create `AskDataApiContractTest` asserting:
 
@@ -154,7 +154,7 @@ Create `AskDataApiContractTest` asserting:
 - `AskDataProjectContext` requires non-blank `projectId` and `operatorId`.
 - Public API class names do not start with `org.springframework`, `dev.langchain4j`, `io.agentscope`, or `org.springframework.ai`.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试 Task 2**
 
 ```bash
 cd fw-plus-core
@@ -163,11 +163,11 @@ cd fw-plus-core
 
 Expected: FAIL because classes do not exist.
 
-- [ ] **Step 3: 实现最小 API**
+- [x] **Step 3: 实现最小 API Task 2**
 
 Implement Java 8 POJOs with explicit constructors, getters, validation helpers, and detailed Chinese Javadoc. Avoid Lombok and Java 9+ collection factories.
 
-- [ ] **Step 4: 运行测试**
+- [x] **Step 4: 运行测试 Task 2**
 
 ```bash
 cd fw-plus-core
@@ -176,7 +176,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 2**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata
