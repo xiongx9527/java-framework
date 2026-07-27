@@ -19,5 +19,5 @@
 - RED evidence: `cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest=MagicAPIControllerJdbcOptionsTest test` failed because the new service-focused test referenced `MagicAPIManagementService` before production code existed.
 - GREEN evidence: `cd fw-plus-boot && ./mvnw -q -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest=MagicAPIControllerJdbcOptionsTest test` passed 5 tests, 0 failures, 0 errors, 0 skipped.
 - Risk signals: DONE_WITH_CONCERNS; public API/controller contract and authorization/external-input handling changed.
-- Review status: task reviewer required by standard risk trigger; dispatched reviewer 019fa34b-f887-7e13-9c41-1a3df0720565 (Hegel)
+- Review status: task reviewer required by standard risk trigger; reviewer 019fa34b-f887-7e13-9c41-1a3df0720565 (Hegel) stopped on dirty-worktree prompt; re-dispatched reviewer 019fa34d-3ed1-7c00-8cbb-878df50c778f (Einstein)
 - Review-fix round: 0/1
