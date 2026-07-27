@@ -47,7 +47,6 @@ private String imageUrl;
 @TableField(typeHandler = JsonArrayTypeHandler.class)
     private List<Integer> sortToolbar;
 private Boolean isDefault;
-@TableField(typeHandler = JsonObjectTypeHandler.class)
     private String prettierOpts;
 private String setDefaultBy;
 @TableField(typeHandler = JsonObjectTypeHandler.class)

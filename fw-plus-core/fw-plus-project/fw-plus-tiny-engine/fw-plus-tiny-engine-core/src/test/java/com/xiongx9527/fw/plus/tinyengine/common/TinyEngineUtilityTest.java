@@ -16,7 +16,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -112,6 +114,20 @@ class TinyEngineUtilityTest {
 	}
 
 	@Test
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	void objectTypeHandlerShouldAcceptOrdinaryHashMap() throws Exception {
+		JsonObjectTypeHandler handler = new JsonObjectTypeHandler();
+		Map<String, Object> expected = new HashMap<String, Object>();
+		expected.put("name", "home");
+		StringCapture capture = new StringCapture();
+
+		((org.apache.ibatis.type.BaseTypeHandler) handler).setNonNullParameter(capture.preparedStatement(), 1, expected,
+				JdbcType.VARCHAR);
+
+		assertEquals(expected, TinyEngineJsonUtils.parseObject(capture.value));
+	}
+
+	@Test
 	void arrayTypeHandlerShouldRoundTripAndTreatNullOrBlankJsonAsEmptyArray() throws Exception {
 		JsonArrayTypeHandler handler = new JsonArrayTypeHandler();
 		JSONArray expected = new JSONArray();
@@ -123,6 +139,20 @@ class TinyEngineUtilityTest {
 		assertEquals(expected, handler.getNullableResult(resultSet(capture.value), "payload"));
 		assertEquals(new JSONArray(), handler.getNullableResult(resultSet(null), "payload"));
 		assertEquals(new JSONArray(), handler.getNullableResult(resultSet("  "), "payload"));
+	}
+
+	@Test
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	void arrayTypeHandlerShouldAcceptOrdinaryArrayList() throws Exception {
+		JsonArrayTypeHandler handler = new JsonArrayTypeHandler();
+		List<String> expected = new ArrayList<String>();
+		expected.add("home");
+		StringCapture capture = new StringCapture();
+
+		((org.apache.ibatis.type.BaseTypeHandler) handler).setNonNullParameter(capture.preparedStatement(), 1, expected,
+				JdbcType.VARCHAR);
+
+		assertEquals(expected, TinyEngineJsonUtils.parseArray(capture.value));
 	}
 
 	private ResultSet resultSet(final String value) {

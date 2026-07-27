@@ -18,6 +18,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.xiongx9527.fw.plus.tinyengine.common.model.HistoryEntity;
+import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler;
 import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockVersionDto;
 
@@ -63,7 +64,7 @@ private Integer appId;
 private String npmName;
 @TableField(typeHandler = JsonObjectTypeHandler.class)
     private Map<String, Object> i18n;
-@TableField(typeHandler = JsonObjectTypeHandler.class)
+@TableField(typeHandler = JsonArrayTypeHandler.class)
     private List<BlockVersionDto> contentBlocks;
 
 	public Integer getId() {
