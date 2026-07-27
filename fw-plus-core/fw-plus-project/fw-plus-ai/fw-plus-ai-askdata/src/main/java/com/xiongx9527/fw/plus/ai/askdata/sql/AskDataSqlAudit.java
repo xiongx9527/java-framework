@@ -1,0 +1,49 @@
+package com.xiongx9527.fw.plus.ai.askdata.sql;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * SQL 插件管线的内存审计记录器。
+ *
+ * <p>每条记录保留 interceptor key 和 phase，供外部审计适配器转换为持久化事件；审计记录不携带
+ * 裸连接或可执行数据库对象。</p>
+ */
+public class AskDataSqlAudit {
+
+	private final List<Record> records = new ArrayList<Record>();
+
+	public synchronized void record(String interceptorKey, String phase) {
+		records.add(new Record(interceptorKey, phase));
+	}
+
+	public synchronized List<Record> getRecords() {
+		return Collections.unmodifiableList(new ArrayList<Record>(records));
+	}
+
+	public static final class Record {
+
+		private final String interceptorKey;
+		private final String phase;
+
+		private Record(String interceptorKey, String phase) {
+			if (interceptorKey == null || interceptorKey.trim().length() == 0) {
+				throw new IllegalArgumentException("interceptorKey 不能为空白");
+			}
+			if (phase == null || phase.trim().length() == 0) {
+				throw new IllegalArgumentException("phase 不能为空白");
+			}
+			this.interceptorKey = interceptorKey.trim();
+			this.phase = phase.trim();
+		}
+
+		public String getInterceptorKey() {
+			return interceptorKey;
+		}
+
+		public String getPhase() {
+			return phase;
+		}
+	}
+}
