@@ -1,13 +1,13 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model;
 
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
 import org.springframework.mock.env.MockEnvironment;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LangChain4jModelPropertiesTest {
 
@@ -33,5 +33,24 @@ public class LangChain4jModelPropertiesTest {
         assertEquals(LangChain4jModelType.CHAT, properties.getModels().get("chat-default").getModelType());
         assertEquals("gpt-4o-mini", properties.getModels().get("chat-default").getModelName());
         assertEquals("0.2", String.valueOf(properties.getModels().get("chat-default").getProperties().get("temperature")));
+    }
+
+    @Test
+    public void shouldBindMultimodalExtensionModelTypes() {
+        MockEnvironment environment = new MockEnvironment()
+                .withProperty("fw-plus.ai.langchain4j.model.models.audio.provider", "custom")
+                .withProperty("fw-plus.ai.langchain4j.model.models.audio.model-type", "audio")
+                .withProperty("fw-plus.ai.langchain4j.model.models.video.provider", "custom")
+                .withProperty("fw-plus.ai.langchain4j.model.models.video.model-type", "video")
+                .withProperty("fw-plus.ai.langchain4j.model.models.pdf.provider", "custom")
+                .withProperty("fw-plus.ai.langchain4j.model.models.pdf.model-type", "pdf");
+
+        LangChain4jModelProperties properties = new Binder(ConfigurationPropertySources.from(environment.getPropertySources()))
+                .bind("fw-plus.ai.langchain4j.model", LangChain4jModelProperties.class)
+                .get();
+
+        assertEquals(LangChain4jModelType.AUDIO, properties.getModels().get("audio").getModelType());
+        assertEquals(LangChain4jModelType.VIDEO, properties.getModels().get("video").getModelType());
+        assertEquals(LangChain4jModelType.PDF, properties.getModels().get("pdf").getModelType());
     }
 }

@@ -92,6 +92,10 @@ types are not available in the current version.
 
 LangChain4j `0.35.0` already provides `TextContent`, `ImageContent`,
 `AudioContent`, `VideoContent`, and `PdfFileContent` for multimodal Chat input.
-Later versions continue to carry multimodal input in Chat requests. Audio, video,
-and PDF are not standalone model types: there is no `AudioModel` or `VideoModel`,
-and `AUDIO`, `VIDEO`, and `PDF` must not be added to `modelType`.
+Later versions continue to carry multimodal input in Chat requests. `modelType`
+still reserves `AUDIO`, `VIDEO`, and `PDF` as fw-plus extension types for Magic
+resources and business adapters, but LangChain4j `0.35.0` and the current `1.x`
+documentation do not expose standalone `AudioModel`, `VideoModel`, or `PdfModel`
+interfaces. The framework therefore does not register built-in provider adapters
+for these three types; plug in a custom `LangChain4jModelProviderAdapter` when a
+provider SDK or application wrapper needs them.

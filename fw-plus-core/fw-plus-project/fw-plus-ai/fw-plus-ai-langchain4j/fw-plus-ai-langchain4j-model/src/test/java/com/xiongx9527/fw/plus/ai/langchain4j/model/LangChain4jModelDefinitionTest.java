@@ -44,5 +44,8 @@ public class LangChain4jModelDefinitionTest {
         assertNotNull(LangChain4jModelType.valueOf("STREAMING_LANGUAGE"));
         assertNotNull(LangChain4jModelType.valueOf("MODERATION"));
         assertNotNull(LangChain4jModelType.valueOf("SCORING"));
+        assertNotNull(LangChain4jModelType.valueOf("AUDIO"));
+        assertNotNull(LangChain4jModelType.valueOf("VIDEO"));
+        assertNotNull(LangChain4jModelType.valueOf("PDF"));
     }
 }

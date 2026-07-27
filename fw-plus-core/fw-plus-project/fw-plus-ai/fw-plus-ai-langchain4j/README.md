@@ -67,9 +67,12 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 `1.x` 使用 `ChatModel` 和 `StreamingChatModel` 命名，当前版本不能引用这些类。
 
 `TextContent`、`ImageContent`、`AudioContent`、`VideoContent` 和
-`PdfFileContent` 均表示 Chat 请求可携带的多模态内容，而不是独立模型接口。因此
-`modelType` 不新增 `AUDIO`、`VIDEO` 或 `PDF`，也不存在独立的 `AudioModel`、
-`VideoModel` 或 `PdfModel`。
+`PdfFileContent` 均表示 Chat 请求可携带的多模态内容，而不是独立模型接口。
+`modelType` 保留 `AUDIO`、`VIDEO`、`PDF` 三类 fw-plus 扩展类型，便于 Magic
+资源和业务适配器统一登记；但 LangChain4j `0.35.0` 和当前 `1.x` 文档没有
+独立的 `AudioModel`、`VideoModel` 或 `PdfModel` 统一接口，默认自动配置不会
+为这三类创建内置 provider adapter。需要使用时通过自定义
+`LangChain4jModelProviderAdapter` 接入厂商 SDK 或业务封装。
 
 ## 验证建议
 
