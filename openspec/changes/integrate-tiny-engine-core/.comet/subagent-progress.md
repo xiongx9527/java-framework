@@ -15,8 +15,9 @@
 - Review/fix rounds: 1
 - Fixer: DONE
 - Fix commit: b5bd8292faabf587c3a3b34d013da760f7825578
-- Re-review: pending
+- Re-review: CHANGES_REQUESTED
 - Review result: Critical JSON TypeHandlers use `JSONObject`/`JSONArray` generics but migrated model fields are `Map`/`List`, causing MyBatis bridge casts and `ClassCastException` on normal `HashMap`/`ArrayList` writes. Important: several JSON Map fields still use `JacksonTypeHandler`, and `BlockHistory.contentBlocks` / `Platform.prettierOpts` have wrong handler choices. Minor: model contract test does not verify TypeHandler assignment or explicit AI/Chat exclusions.
+- Re-review result: Important entities with JSON `Map`/`List` fields use field `typeHandler` annotations but lack `@TableName(autoResultMap = true)`, so MyBatis-Plus select mappings may not apply the TypeHandlers. Minor: add assertions that `Block`/`BlockDto`/`BlockParam.contentBlocks` remain String fields without JSON handlers.
 
 ## Evidence
 
