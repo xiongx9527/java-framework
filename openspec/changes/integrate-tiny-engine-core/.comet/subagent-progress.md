@@ -9,14 +9,15 @@
 
 - Task: Task 3: 迁移 Java 8 兼容工具与 TypeHandler
 - OpenSpec mapping: 2.2
-- Stage: task-review
+- Stage: done
 - Implementer: DONE
 - Reviewer: CHANGES_REQUESTED
 - Review/fix rounds: 1
 - Fixer: DONE
 - Fix commit: fe70d0dd506d26a6ae6af224100ccf213b7e602d
-- Re-review: pending
+- Re-review: APPROVED
 - Review result: Important `TinyEngineHashUtils` sorts only the outer map; nested maps can still hash nondeterministically through `toString()`. Recursively normalize maps and add a nested map insertion-order regression test.
+- Re-review result: APPROVED; no Critical, Important, or Minor findings. Cyclic references and custom object `toString()` stability were accepted as out-of-scope follow-up boundaries for current TinyEngine JSON-style migration data.
 
 ## Evidence
 
