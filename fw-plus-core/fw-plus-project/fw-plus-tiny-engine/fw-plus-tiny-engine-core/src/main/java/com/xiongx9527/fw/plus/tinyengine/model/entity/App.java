@@ -33,7 +33,7 @@ import java.util.Map;
  * @author zhangjuncao
  * @since 2024-10-17
  */
-@TableName("t_app")
+@TableName(value = "t_app", autoResultMap = true)
 public class App extends BaseEntity {
 private String name;
 private String appWebsite;

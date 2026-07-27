@@ -30,7 +30,7 @@ import java.util.Map;
  * @author zhangjuncao
  * @since 2024-10-17
  */
-@TableName("t_platform")
+@TableName(value = "t_platform", autoResultMap = true)
 public class Platform extends BaseEntity {
 private String name;
 @JsonProperty("published")

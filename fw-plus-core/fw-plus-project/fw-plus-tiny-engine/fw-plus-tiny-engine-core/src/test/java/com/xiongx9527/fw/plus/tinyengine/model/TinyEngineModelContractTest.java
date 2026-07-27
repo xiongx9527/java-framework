@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.tinyengine.model;
 
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler;
 import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockDto;
@@ -65,6 +66,36 @@ public class TinyEngineModelContractTest {
 	}
 
 	@Test
+	public void shouldEnableAutoResultMapForEntitiesWithJsonTypeHandlers() throws Exception {
+		InputStream inputStream = getClass().getClassLoader().getResourceAsStream(CHECKLIST);
+		assertNotNull(inputStream, "模型领域核对清单不存在");
+		BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+		String className;
+		while ((className = reader.readLine()) != null) {
+			className = className.trim();
+			if (className.startsWith("com.xiongx9527.fw.plus.tinyengine.model.entity.")) {
+				Class<?> entityClass = Class.forName(className);
+				for (Field field : entityClass.getDeclaredFields()) {
+					TableField tableField = field.getAnnotation(TableField.class);
+					if (tableField != null && isJsonTypeHandler(tableField.typeHandler())) {
+						TableName tableName = entityClass.getAnnotation(TableName.class);
+						assertNotNull(tableName, entityClass.getName() + " 缺少 TableName 注解");
+						assertTrue(tableName.autoResultMap(), entityClass.getName() + " 使用 JSON TypeHandler 时必须启用 autoResultMap");
+					}
+				}
+			}
+		}
+		reader.close();
+	}
+
+	@Test
+	public void shouldKeepBlockContentBlocksAsPlainStringsWithoutTypeHandlers() throws Exception {
+		assertPlainStringWithoutTypeHandler(Block.class, "contentBlocks");
+		assertPlainStringWithoutTypeHandler(BlockDto.class, "contentBlocks");
+		assertPlainStringWithoutTypeHandler(BlockParam.class, "contentBlocks");
+	}
+
+	@Test
 	public void shouldNotProvideAiOrChatDtos() {
 		assertClassIsAbsent("com.xiongx9527.fw.plus.tinyengine.model.dto.AiDto");
 		assertClassIsAbsent("com.xiongx9527.fw.plus.tinyengine.model.dto.ChatDto");
@@ -75,6 +106,16 @@ public class TinyEngineModelContractTest {
 		assertNotNull(tableField, modelClass.getName() + "#" + fieldName + " 缺少 TableField 注解");
 		assertTrue(expectedTypeHandler.equals(tableField.typeHandler()),
 				modelClass.getName() + "#" + fieldName + " TypeHandler 不匹配");
+	}
+
+	private boolean isJsonTypeHandler(Class<?> typeHandler) {
+		return JsonObjectTypeHandler.class.equals(typeHandler) || JsonArrayTypeHandler.class.equals(typeHandler);
+	}
+
+	private void assertPlainStringWithoutTypeHandler(Class<?> modelClass, String fieldName) throws Exception {
+		Field field = modelClass.getDeclaredField(fieldName);
+		assertTrue(String.class.equals(field.getType()), modelClass.getName() + "#" + fieldName + " 必须是 String");
+		assertNull(field.getAnnotation(TableField.class), modelClass.getName() + "#" + fieldName + " 不得配置 TableField TypeHandler");
 	}
 
 	private void assertClassIsAbsent(String className) {

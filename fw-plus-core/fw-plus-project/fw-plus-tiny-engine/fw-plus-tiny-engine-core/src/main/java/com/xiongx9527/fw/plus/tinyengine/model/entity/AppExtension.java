@@ -27,7 +27,7 @@ import java.util.Map;
  * @author lu -yg
  * @since 2024-10-17
  */
-@TableName("t_app_extension")
+@TableName(value = "t_app_extension", autoResultMap = true)
 public class AppExtension extends BaseEntity {
 private Integer platformId;
 private String name;

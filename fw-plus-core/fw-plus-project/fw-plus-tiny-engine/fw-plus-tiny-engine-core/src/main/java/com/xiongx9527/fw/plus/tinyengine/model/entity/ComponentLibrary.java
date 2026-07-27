@@ -29,7 +29,7 @@ import java.util.Map;
  * @author lu -yg
  * @since 2025-4-2
  */
-@TableName("t_component_library")
+@TableName(value = "t_component_library", autoResultMap = true)
 public class ComponentLibrary extends BaseEntity {
 private String version;
 private String name;
