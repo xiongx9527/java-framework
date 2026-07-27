@@ -7,10 +7,10 @@
 
 ## 2. 基础类型与工具迁移
 
-- [ ] 2.1 从 `tiny-engine-backend-java/base` 迁移公共基础类型，包括 Result、BaseEntity、HistoryEntity、PageQueryVo、异常枚举、ServiceException 和必要上下文抽象。
+- [x] 2.1 从 `tiny-engine-backend-java/base` 迁移公共基础类型，包括 Result、BaseEntity、HistoryEntity、PageQueryVo、异常枚举、ServiceException 和必要上下文抽象。
 - [ ] 2.2 迁移 TinyEngine 所需 TypeHandler、JSON/Schema/Hash/文件安全等工具类，并改造为 Java 8 可编译写法。
-- [ ] 2.3 将 `jakarta.*`、Spring Boot 3-only API 和 Java 17 写法替换为 Spring Boot 2.7 / Java 8 兼容实现。
-- [ ] 2.4 为迁移后的公共基础类型补充最小单元测试或编译验证覆盖。
+- [x] 2.3 将 `jakarta.*`、Spring Boot 3-only API 和 Java 17 写法替换为 Spring Boot 2.7 / Java 8 兼容实现。
+- [x] 2.4 为迁移后的公共基础类型补充最小单元测试或编译验证覆盖。
 
 ## 3. 领域模型、DTO 与持久化资源
 

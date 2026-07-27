@@ -153,11 +153,11 @@ git commit -m "feat: add tiny engine core module"
 **Validation:**
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineCommonContractTest test`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 Create `TinyEngineCommonContractTest` verifying `Result` success/failure shape, `ServiceException` carries error code/message, `PageQueryVo` defaults do not require Servlet/OpenAPI types, and `SystemTinyEngineUserContext#getCurrentUser()` returns a deterministic system user.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试**
 
 Run:
 
@@ -168,15 +168,15 @@ cd fw-plus-core
 
 Expected: FAIL because classes do not exist.
 
-- [ ] **Step 3: 迁移并改造公共类型**
+- [x] **Step 3: 迁移并改造公共类型**
 
 Migrate the public fields and methods needed by TinyEngine services into the new package. Remove `@ResponseStatus`, Swagger/OpenAPI annotations, Servlet types, Boot 3 imports, and direct login implementation references. Keep constructors/getters/setters Java 8 compatible.
 
-- [ ] **Step 4: 实现用户上下文 SPI**
+- [x] **Step 4: 实现用户上下文 SPI**
 
 Define `TinyEngineUserContext` as a replaceable interface. Provide `SystemTinyEngineUserContext` as the default core implementation with stable system user values so service code can run before Boot starter binds real Sa-Token/Security context.
 
-- [ ] **Step 5: 运行测试**
+- [x] **Step 5: 运行测试**
 
 Run:
 
@@ -187,7 +187,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit Task 2**
+- [x] **Step 6: Commit Task 2**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core
