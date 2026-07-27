@@ -8,4 +8,9 @@ import java.util.List;
 public interface BusinessCategoryService extends IService<BusinessCategory> {
 
 	List<BusinessCategory> queryAllBusinessCategory();
+	BusinessCategory queryBusinessCategoryById(Integer id);
+	List<BusinessCategory> queryBusinessCategoryByCondition(BusinessCategory businessCategory);
+	Integer deleteBusinessCategoryById(Integer id);
+	Integer updateBusinessCategoryById(BusinessCategory businessCategory);
+	Integer createBusinessCategory(BusinessCategory businessCategory);
 }

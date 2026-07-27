@@ -8,4 +8,9 @@ import java.util.List;
 public interface AppExtensionService extends IService<AppExtension> {
 
 	List<AppExtension> findAllAppExtension();
+	AppExtension findAppExtensionById(Integer id);
+	List<AppExtension> findAppExtensionByCondition(AppExtension appExtension);
+	AppExtension deleteAppExtensionById(Integer id);
+	AppExtension updateAppExtensionById(AppExtension appExtension);
+	AppExtension createAppExtension(AppExtension appExtension);
 }

@@ -4,8 +4,6 @@ import com.xiongx9527.fw.plus.tinyengine.mapper.BlockMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.PageMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.UserMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.CanvasDto;
-import com.xiongx9527.fw.plus.tinyengine.model.entity.Block;
-import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.User;
 import com.xiongx9527.fw.plus.tinyengine.service.CanvasService;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
@@ -35,29 +33,13 @@ public class CanvasServiceImpl implements CanvasService {
 		User user = currentUser();
 		String occupier = user.getId();
 		String nextOccupier = "occupy".equals(state) ? occupier : null;
-		boolean updated;
-		if ("page".equals(type)) {
-			Page page = pageMapper.queryPageById(id);
-			updated = page != null && canOperate(page.getOccupierBy(), occupier);
-			if (updated) {
-				Page changed = new Page();
-				changed.setId(id);
-				changed.setOccupierBy(nextOccupier);
-				pageMapper.updatePageById(changed);
-			}
-		} else {
-			Block block = blockMapper.queryBlockById(id);
-			updated = block != null && canOperate(block.getOccupierBy(), occupier);
-			if (updated) {
-				Block changed = new Block();
-				changed.setId(id);
-				changed.setOccupierBy(nextOccupier);
-				blockMapper.updateBlockById(changed);
-			}
-		}
+		Integer affected = "page".equals(type)
+				? pageMapper.updatePageOccupierIfAvailable(id, occupier, nextOccupier)
+				: blockMapper.updateBlockOccupierIfAvailable(id, occupier, nextOccupier);
+		boolean updated = affected != null && affected.intValue() == 1;
 		CanvasDto result = new CanvasDto();
 		result.setOperate(updated ? "success" : "failed");
-		result.setOccupier(nextOccupier == null ? null : user);
+		result.setOccupier(updated && nextOccupier != null ? user : null);
 		return result;
 	}
 
@@ -75,7 +57,4 @@ public class CanvasServiceImpl implements CanvasService {
 		return user;
 	}
 
-	private boolean canOperate(String currentOccupier, String userId) {
-		return currentOccupier == null || currentOccupier.equals(userId);
-	}
 }

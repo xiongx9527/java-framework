@@ -71,6 +71,9 @@ public interface BlockMapper extends BaseMapper<Block> {
      */
     Integer updateBlockById(Block block);
 
+	Integer updateBlockOccupierIfAvailable(@Param("id") Integer id, @Param("userId") String userId,
+			@Param("occupierBy") String occupierBy);
+
     /**
      * 新增表t_block数据
      *

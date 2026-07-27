@@ -22,4 +22,20 @@ import java.util.List;
 public class Child {
     List<Snippet> children;
     String group;
+
+	public List<Snippet> getChildren() {
+		return children;
+	}
+
+	public void setChildren(List<Snippet> children) {
+		this.children = children;
+	}
+
+	public String getGroup() {
+		return group;
+	}
+
+	public void setGroup(String group) {
+		this.group = group;
+	}
 }

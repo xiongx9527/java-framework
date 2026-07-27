@@ -8,4 +8,9 @@ import java.util.List;
 public interface DatasourceService extends IService<Datasource> {
 
 	List<Datasource> queryAllDatasource();
+	Datasource queryDatasourceById(Integer id);
+	List<Datasource> queryDatasourceByCondition(Datasource datasource);
+	Datasource deleteDatasourceById(Integer id);
+	Datasource updateDatasourceById(Datasource datasource);
+	Datasource createDatasource(Datasource datasource);
 }

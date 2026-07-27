@@ -15,4 +15,29 @@ public class BlockHistoryServiceImpl extends ServiceImpl<BlockHistoryMapper, Blo
 	public List<BlockHistory> findAllBlockHistory() {
 		return baseMapper.queryAllBlockHistory();
 	}
+
+	@Override
+	public BlockHistory findBlockHistoryById(Integer id) {
+		return baseMapper.queryBlockHistoryById(id);
+	}
+
+	@Override
+	public List<BlockHistory> findBlockHistoryByCondition(BlockHistory blockHistory) {
+		return baseMapper.queryBlockHistoryByCondition(blockHistory);
+	}
+
+	@Override
+	public Integer deleteBlockHistoryById(Integer id) {
+		return baseMapper.deleteBlockHistoryById(id);
+	}
+
+	@Override
+	public Integer updateBlockHistoryById(BlockHistory blockHistory) {
+		return baseMapper.updateBlockHistoryById(blockHistory);
+	}
+
+	@Override
+	public Integer createBlockHistory(BlockHistory blockHistory) {
+		return baseMapper.createBlockHistory(blockHistory);
+	}
 }

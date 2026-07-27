@@ -15,4 +15,29 @@ public class BusinessCategoryServiceImpl extends ServiceImpl<BusinessCategoryMap
 	public List<BusinessCategory> queryAllBusinessCategory() {
 		return baseMapper.queryAllBusinessCategory();
 	}
+
+	@Override
+	public BusinessCategory queryBusinessCategoryById(Integer id) {
+		return baseMapper.queryBusinessCategoryById(id);
+	}
+
+	@Override
+	public List<BusinessCategory> queryBusinessCategoryByCondition(BusinessCategory businessCategory) {
+		return baseMapper.queryBusinessCategoryByCondition(businessCategory);
+	}
+
+	@Override
+	public Integer deleteBusinessCategoryById(Integer id) {
+		return baseMapper.deleteBusinessCategoryById(id);
+	}
+
+	@Override
+	public Integer updateBusinessCategoryById(BusinessCategory businessCategory) {
+		return baseMapper.updateBusinessCategoryById(businessCategory);
+	}
+
+	@Override
+	public Integer createBusinessCategory(BusinessCategory businessCategory) {
+		return baseMapper.createBusinessCategory(businessCategory);
+	}
 }

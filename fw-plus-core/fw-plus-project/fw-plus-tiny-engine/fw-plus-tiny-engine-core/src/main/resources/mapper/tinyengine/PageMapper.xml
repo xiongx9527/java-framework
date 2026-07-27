@@ -296,6 +296,13 @@
         WHERE id = #{id}
     </update>
 
+	<update id="updatePageOccupierIfAvailable">
+		UPDATE t_page
+		SET occupier_by = #{occupierBy}
+		WHERE id = #{id}
+		  AND (occupier_by IS NULL OR occupier_by = #{userId})
+	</update>
+
     <!-- 新增表t_page数据 -->
     <insert id="createPage" useGeneratedKeys="true" keyProperty="id"
             parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.Page">
