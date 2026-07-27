@@ -11,9 +11,9 @@
 - OpenSpec mapping: 2.1, 2.3, 2.4
 - Stage: task-review
 - Implementer: DONE
-- Reviewer: pending
-- Review/fix rounds: 0
-- Review result: pending
+- Reviewer: CHANGES_REQUESTED
+- Review/fix rounds: 1
+- Review result: Important PageQueryVo default current page is 0 and should be 1 with normalization; Minor ExceptionEnum CM1110 returns CM110 and should be made consistent or covered by regression.
 
 ## Evidence
 
