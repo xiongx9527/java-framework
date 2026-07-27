@@ -1,0 +1,23 @@
+# Subagent Progress
+
+- Change: add-magicapi-webflux-support
+- Plan: docs/superpowers/plans/2026-07-27-magicapi-webflux-controller-servlet-isolation.md
+- Review mode: standard
+- TDD mode: tdd
+- Current plan task: Task 1: 公共管理服务与 Servlet 回归入口
+- OpenSpec task: 2.1 提取或复用 Magic-API 管理接口中的公共服务逻辑，避免 Servlet 与 WebFlux 两套入口复制业务处理。
+- Stage: task-review
+- Implementer agent: 019fa332-3f65-7e11-933b-10946e1f6373 (Sartre)
+- Base: b7ca47a76fc5ee07f1855cc9ffbe54d2e7747875
+- Implementation commits: abfda3d0, e8397bbe
+- Changed files observed:
+  - fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/controller/MagicAPIController.java
+  - fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/controller/MagicAPIManagementService.java
+  - fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/controller/MagicAPIRequestAccess.java
+  - fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/controller/ServletMagicAPIRequestAccess.java
+  - fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/controller/MagicAPIControllerJdbcOptionsTest.java
+- RED evidence: `cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest=MagicAPIControllerJdbcOptionsTest test` failed because the new service-focused test referenced `MagicAPIManagementService` before production code existed.
+- GREEN evidence: `cd fw-plus-boot && ./mvnw -q -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest=MagicAPIControllerJdbcOptionsTest test` passed 5 tests, 0 failures, 0 errors, 0 skipped.
+- Risk signals: DONE_WITH_CONCERNS; public API/controller contract and authorization/external-input handling changed.
+- Review status: task reviewer required by standard risk trigger; dispatched reviewer 019fa34b-f887-7e13-9c41-1a3df0720565 (Hegel)
+- Review-fix round: 0/1
