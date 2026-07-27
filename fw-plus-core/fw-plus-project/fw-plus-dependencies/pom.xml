@@ -1251,6 +1251,11 @@
                 <artifactId>fw-plus-dify</artifactId>
                 <version>${project.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-tiny-engine-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
