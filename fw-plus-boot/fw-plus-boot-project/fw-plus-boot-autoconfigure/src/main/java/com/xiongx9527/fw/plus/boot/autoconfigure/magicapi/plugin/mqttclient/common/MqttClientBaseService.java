@@ -15,7 +15,6 @@ public interface MqttClientBaseService extends MagicBaseService {
         validateRequiredField(entity.getKey(), "key");
         validateRequiredField(entity.getIp(), "ip");
         validateRequiredField(entity.getPort(), "port");
-        validateJSON(entity.getOther(), "其它配置");
     }
 
     default Map<String, Object> getConfig() {

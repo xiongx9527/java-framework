@@ -82,7 +82,7 @@ public class MagicPulsarController extends MagicController implements MagicExcep
                     copy.setServers(e.getServers());
                     copy.setTenant(e.getTenant());
                     copy.setNamespace(e.getTenant() + "/" + e.getNamespace());
-                    copy.setOther(e.getOther());
+                    copy.setProperties(e.getProperties());
                     copy.setId(e.getId());
                     return copy;
                 }).collect(Collectors.toList());

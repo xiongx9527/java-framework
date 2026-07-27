@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.producer;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaDataSourceInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -123,19 +122,8 @@ public class KafkaProducer {
         props.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "gzip");      // 使用 gzip 获得更高压缩比
         props.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "60000");   // 增加到 60秒
         props.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, "120000"); // 增加到 120秒
-        String other = dataSourceInfo.getOther();
-        other = MagicAPIConfigUtils.getKafkaConfig(dataSourceInfo.getKey(), "other", other);
-        // 处理额外配置信息
-        if (StringUtils.isNotBlank(other)) {
-            try {
-                Map<String, Object> otherProps = JsonUtils.readValue(other,
-                        new TypeReference<Map<String, Object>>() {});
-                props.putAll(otherProps);
-            } catch (Throwable e) {
-                // 记录日志并抛出异常或返回空配置
-                log.error("解析其他配置属性失败: {}", e.getMessage());
-            }
-        }
+        String configuredProperties = MagicAPIConfigUtils.getKafkaConfig(dataSourceInfo.getKey(), "properties", null);
+        props.putAll(MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties));
         String servers = dataSourceInfo.getServers();
         servers = MagicAPIConfigUtils.getKafkaConfig(dataSourceInfo.getKey(), "servers", servers);
         // 添加服务器地址配置

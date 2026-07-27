@@ -41,6 +41,7 @@ import bus from '../../../scripts/bus.js'
 import constants from '../../../scripts/constants.js'
 import Message from '../../../scripts/constants/message.js'
 import $i from '../../../scripts/i18n.js'
+import {normalizeDatasourceProperties, prepareDatasourceProperties} from '../../../scripts/service/datasource-properties.js'
 
 const props = defineProps({
 	/**
@@ -73,7 +74,7 @@ const buttons = [
 		onClick:() => {
 			dataResourceDialogTitle.value = $i('message.createDataSource', props.title)
 			saveButtonText.value = $i('message.create')
-			dataResourceObj.value = {}
+			dataResourceObj.value = prepareDatasourceProperties(props.type)
 			dataResourceDialogVisible.value = true
 			loading.value = false
 		}
@@ -82,10 +83,21 @@ const buttons = [
 			bus.$emit(Message.RELOAD_RESOURCE, props.type)
 		} },
 ]
-const doTest = () => {
-	service.doTest(dataResourceObj.value)
-}
 const { proxy } = getCurrentInstance()
+const normalizeDataResource = () => {
+	try {
+		return normalizeDatasourceProperties(props.type, dataResourceObj.value)
+	} catch (error) {
+		proxy.$alert($i(error.message))
+		return null
+	}
+}
+const doTest = () => {
+	const testObj = normalizeDataResource()
+	if(testObj) {
+		service.doTest(testObj)
+	}
+}
 const doSaveObj = (saveObj, msgId, msg) => {
 	// Default data source is not modifiable
 	if(saveObj.key === 'default' || saveObj.key === 'default_data_source' || !saveObj.key) {
@@ -114,8 +126,10 @@ const doSaveObj = (saveObj, msgId, msg) => {
 	})
 }
 const doSave = () => {
-	const saveObj = { ...dataResourceObj.value }
-	doSaveObj(saveObj, 'message.save',`${props.title}「${getFullPath(saveObj)}」`)
+	const saveObj = normalizeDataResource()
+	if(saveObj) {
+		doSaveObj(saveObj, 'message.save',`${props.title}「${getFullPath(saveObj)}」`)
+	}
 }
 const getFullPath = item => `${item.name}(${item.key})`
 const deleteNode = item => {
@@ -152,7 +166,7 @@ const onContextMenu = (item, event) => {
 				saveButtonText.value = $i('message.update')
 				dataResourceDialogVisible.value = true
 				bus.status('message.getDetail', `${props.title}「${getFullPath(item)}」`)
-				request.sendGet(`/resource/file/${item.id}`).success(data => dataResourceObj.value = data).end(() => {
+				request.sendGet(`/resource/file/${item.id}`).success(data => dataResourceObj.value = prepareDatasourceProperties(props.type, data)).end(() => {
 					loading.value = false
 				})
 			}

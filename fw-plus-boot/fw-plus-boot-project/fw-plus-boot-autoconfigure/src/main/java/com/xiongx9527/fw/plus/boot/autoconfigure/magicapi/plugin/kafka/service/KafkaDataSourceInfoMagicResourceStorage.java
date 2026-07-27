@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.service;
 
-import com.alibaba.fastjson.JSONValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaDataSourceInfo;
 import org.ssssssss.magicapi.core.config.JsonCodeConstants;
 import org.ssssssss.magicapi.core.model.MagicEntity;
@@ -124,12 +123,6 @@ public class KafkaDataSourceInfoMagicResourceStorage implements MagicResourceSto
                 .filter(it -> !it.getId().equals(entity.getId()))
                 .noneMatch(it -> Objects.equals(it.getKey(), entity.getKey()));
         isTrue(noneMatchKey, DS_KEY_CONFLICT);
-        // 如果other字段不为空，验证其是否为有效的JSON对象
-        if(StringUtils.isNotBlank(entity.getOther())) {
-            JSONValidator validator = JSONValidator.from(entity.getOther());
-            isTrue(validator.validate() && validator.getType() == JSONValidator.Type.Object,
-                    KAFKA_DATASOURCE_OTHER_MUST_BE_JSONOBJECT);
-        }
         if (entity.getId() != null) {
             KafkaDataSourceInfo oldKafkaDataSourceInfo =  magicResourceService.file(entity.getId());
             if (null != oldKafkaDataSourceInfo) {

@@ -1,8 +1,5 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.model;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONException;
-import com.alibaba.fastjson2.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
@@ -48,21 +45,6 @@ public final class DtpDataSourceValidator {
 		String rejectedPolicy = normalizeRejectedPolicy(info.getRejectedPolicy());
 		if (!isSupportedRejectedPolicy(rejectedPolicy)) {
 			throw new IllegalArgumentException("rejectedPolicy不支持: " + info.getRejectedPolicy());
-		}
-		validateOtherJson(info.getOther());
-	}
-
-	public static void validateOtherJson(String other) {
-		if (StringUtils.isBlank(other)) {
-			return;
-		}
-		try {
-			Object parsed = JSON.parse(other);
-			if (!(parsed instanceof JSONObject)) {
-				throw new IllegalArgumentException("other必须是JSON对象");
-			}
-		} catch (JSONException ex) {
-			throw new IllegalArgumentException("other必须是合法JSON对象", ex);
 		}
 	}
 

@@ -35,7 +35,7 @@ export default {
                     random: 'Random',
                     fixed: 'Fixed'
                 },
-                other: 'Other',
+                properties: 'Properties',
                 enabled: 'Enabled',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
@@ -49,7 +49,7 @@ export default {
                     includeTables: 'Please Enter Include Tables, eg: user,order',
                     excludeTables: 'Please Enter Exclude Tables, eg: user,order',
                     serverIdType: 'random / fixed, default: random',
-                    other: 'Please Enter Debezium Other Config, eg: {xxxx: "yyyy"}',
+                    properties: 'JSON object, for example: {"key": "value"}',
                     enabled: 'Enabled'
                 }
             }

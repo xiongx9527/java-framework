@@ -149,7 +149,6 @@ public class MagicWsController extends MagicController implements MagicException
         validateRequiredField(properties.getKey(), "key");
         validateRequiredField(properties.getName(), "name");
         validateRequiredField(properties.getSecret(), "secret");
-        validateJSON(properties.getOther(), "other");
     }
 
     private JsonBean<Object> failure(String message) {

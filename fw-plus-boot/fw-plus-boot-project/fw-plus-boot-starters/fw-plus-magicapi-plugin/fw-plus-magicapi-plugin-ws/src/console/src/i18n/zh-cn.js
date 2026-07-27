@@ -29,13 +29,13 @@ export default {
                 key: 'Key',
                 secret: '密钥',
                 description: '描述',
-                other: '其它',
+                properties: '连接参数',
                 placeholder: {
                     name: '请输入名称,必填',
                     key: '请输入Key,必填',
                     secret: '请输入密钥,必填',
                     description: '请输入描述',
-                    other: '请输入其它配置'
+                    properties: '请输入 JSON 对象，如： {"key": "value"}'
                 }
             }
         }

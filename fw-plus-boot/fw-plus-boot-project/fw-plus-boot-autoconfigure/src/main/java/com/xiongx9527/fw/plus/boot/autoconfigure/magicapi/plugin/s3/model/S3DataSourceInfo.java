@@ -4,6 +4,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class S3DataSourceInfo extends MagicEntity {
@@ -86,7 +89,7 @@ public class S3DataSourceInfo extends MagicEntity {
     /**
      * 其它配置
      */
-    private String other;
+    private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
     @Override
     public MagicEntity simple() {
@@ -107,7 +110,7 @@ public class S3DataSourceInfo extends MagicEntity {
         dataSourceInfo.setExpirationSeconds(this.expirationSeconds);
         dataSourceInfo.setPresignedUrlMethod(this.presignedUrlMethod);
         dataSourceInfo.setEndPointSchema(this.endPointSchema);
-        dataSourceInfo.setOther(this.other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
     }
 
@@ -130,8 +133,14 @@ public class S3DataSourceInfo extends MagicEntity {
         dataSourceInfo.setExpirationSeconds(this.expirationSeconds);
         dataSourceInfo.setPresignedUrlMethod(this.presignedUrlMethod);
         dataSourceInfo.setEndPointSchema(this.endPointSchema);
-        dataSourceInfo.setOther(this.other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
+    }
+
+    private Map<String, Object> copyProperties() {
+        return this.properties == null
+                ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(this.properties);
     }
 
 

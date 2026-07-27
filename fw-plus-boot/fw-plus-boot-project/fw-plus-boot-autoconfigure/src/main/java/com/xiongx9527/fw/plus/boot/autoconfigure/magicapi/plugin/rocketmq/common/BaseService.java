@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.common;
 
-import com.alibaba.fastjson.JSONValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqDataSourceInfo;
@@ -14,7 +13,6 @@ import org.ssssssss.magicapi.utils.IoUtils;
 
 import java.util.Objects;
 
-import static com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.config.KafkaCodeConstants.KAFKA_DATASOURCE_OTHER_MUST_BE_JSONOBJECT;
 import static com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.config.RocketmqJsonCodeConstants.ROCKETMQ_DATASOURCE_NAMESERVER_REQUIRED;
 
 public interface BaseService extends MagicBaseService, JsonCodeConstants {
@@ -78,11 +76,5 @@ public interface BaseService extends MagicBaseService, JsonCodeConstants {
             }
         }
 
-        // 验证other字段是否为有效的JSON对象
-        if(StringUtils.isNotBlank(entity.getOther())) {
-            JSONValidator validator = JSONValidator.from(entity.getOther());
-            isTrue(validator.validate() && validator.getType() == JSONValidator.Type.Object,
-                    KAFKA_DATASOURCE_OTHER_MUST_BE_JSONOBJECT);
-        }
     }
 }
