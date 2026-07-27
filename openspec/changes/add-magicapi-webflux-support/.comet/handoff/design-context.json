@@ -1,0 +1,14 @@
+{
+  "change": "add-magicapi-webflux-support",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "93487fd0742a3900e66a30f4eaa91967cce8e3d66a0884a9f0cad92debf46e09",
+  "files": [
+    { "path": "openspec/changes/add-magicapi-webflux-support/proposal.md", "sha256": "b93a9fa2ee4c38d2ceff94b30a1db807bc5ece1c65fc2837474e2f0094c287ab" },
+    { "path": "openspec/changes/add-magicapi-webflux-support/design.md", "sha256": "e192e645cfd987122419ef3619dc82ae979837fd10bea975beab0915987cf1fa" },
+    { "path": "openspec/changes/add-magicapi-webflux-support/tasks.md", "sha256": "41e85ccf46dfa2ac67474593a19c5225ac77185103b2878733c24e721f6f0abe" },
+    { "path": "openspec/changes/add-magicapi-webflux-support/specs/magicapi-webflux-controller-servlet-isolation/spec.md", "sha256": "25710ac6d79542930f7a8813e8c8db9b7fde4cc3f525c7a5db40581b12f06893" }
+  ]
+}
