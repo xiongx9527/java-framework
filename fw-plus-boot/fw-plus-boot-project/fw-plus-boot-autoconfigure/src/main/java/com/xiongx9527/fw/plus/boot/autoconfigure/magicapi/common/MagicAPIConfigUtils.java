@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONException;
 import com.alibaba.fastjson2.TypeReference;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -39,15 +40,22 @@ public class MagicAPIConfigUtils {
 
     public static Map<String, Object> mergeProperties(Map<String, Object> properties, String configuredProperties) {
         Map<String, Object> merged = new LinkedHashMap<String, Object>();
-        if (properties != null) {
-            merged.putAll(properties);
-        }
-        if (StringUtils.isNotBlank(configuredProperties)) {
-            Map<String, Object> configured = JSON.parseObject(configuredProperties,
-                    new TypeReference<Map<String, Object>>() {
-                    });
-            if (configured != null) {
-                merged.putAll(configured);
+        if (StringUtils.isBlank(configuredProperties)) {
+            if (properties != null) {
+                merged.putAll(properties);
+            }
+        } else {
+            try {
+                Map<String, Object> configured = JSON.parseObject(configuredProperties,
+                        new TypeReference<Map<String, Object>>() {
+                        });
+                if (configured != null) {
+                    merged.putAll(configured);
+                }
+            } catch (JSONException e) {
+                if (properties != null) {
+                    merged.putAll(properties);
+                }
             }
         }
         return merged;

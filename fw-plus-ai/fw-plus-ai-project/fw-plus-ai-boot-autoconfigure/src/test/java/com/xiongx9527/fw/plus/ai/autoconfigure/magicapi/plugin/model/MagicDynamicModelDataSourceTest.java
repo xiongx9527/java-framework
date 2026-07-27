@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model;
 
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.ModelDataSourceInfo;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
@@ -10,6 +11,9 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapt
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.springframework.boot.test.util.TestPropertyValues;
+import org.springframework.context.support.GenericApplicationContext;
 
 import java.util.Collections;
 import java.util.Arrays;
@@ -25,6 +29,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MagicDynamicModelDataSourceTest {
+
+    private GenericApplicationContext applicationContext;
+
+    @AfterEach
+    void tearDown() {
+        if (applicationContext != null) {
+            applicationContext.close();
+            new SpringUtils().setApplicationContext(null);
+        }
+    }
 
     @Test
     void runtimeModelOverridesSpringBootModelAndFallsBackAfterDestroy() {
@@ -257,6 +271,31 @@ class MagicDynamicModelDataSourceTest {
     }
 
     @Test
+    void createClientUsesModelConfigurationPropertiesInsteadOfDatasourceDefaults() {
+        configure("magic.api.model.chat.baseUrl=http://configured.example/v1",
+                "magic.api.model.chat.apiKey=configured-api-key",
+                "magic.api.model.chat.properties={\"timeout\":\"PT10S\",\"custom\":\"configured\"}");
+        RecordingFactory factory = new RecordingFactory();
+        MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
+                registryWith("boot", model("boot"), "boot"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+        ModelDataSourceInfo info = info("chat");
+        info.setBaseUrl("http://default.example/v1");
+        info.setApiKey("default-api-key");
+        info.setProperties(new LinkedHashMap<String, Object>() {{
+            put("timeout", "PT30S");
+            put("legacyOnly", "default-value");
+        }});
+
+        dataSource.createClient(info);
+
+        assertEquals("http://configured.example/v1", factory.createdDefinition.getBaseUrl());
+        assertEquals("configured-api-key", factory.createdDefinition.getApiKey());
+        assertEquals("PT10S", factory.createdDefinition.getProperties().get("timeout"));
+        assertEquals("configured", factory.createdDefinition.getProperties().get("custom"));
+        assertTrue(!factory.createdDefinition.getProperties().containsKey("legacyOnly"));
+    }
+
+    @Test
     void createClientRejectsInvalidDefinitions() {
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
                 registryWith("boot", model("boot"), "boot"), new RecordingFactory(), Collections.<LangChain4jModelProviderAdapter>emptyList());
@@ -280,6 +319,13 @@ class MagicDynamicModelDataSourceTest {
         info.setEnabled(true);
         info.setModelName(Collections.singletonList("default-model"));
         return info;
+    }
+
+    private void configure(String... properties) {
+        applicationContext = new GenericApplicationContext();
+        TestPropertyValues.of(properties).applyTo(applicationContext);
+        applicationContext.refresh();
+        new SpringUtils().setApplicationContext(applicationContext);
     }
 
     private LangChain4jModel model(String value) {
