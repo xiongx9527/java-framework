@@ -35,7 +35,7 @@ base-ref: 18be86e44a394e943c7177aa1cb7a1a27d8bcfb4
 - Consumes: 当前 `${revision}`、Java 8 Core parent 与 AI Boot BOM 属性。
 - Produces: 中立 artifact 的 BOM 坐标，以及 Java 17+ 适配线的版本和基线记录。
 
-- [ ] **Step 1: 记录当前有效 POM 和依赖树**
+- [x] **Step 1: 记录当前有效 POM 和依赖树**
 
 Run:
 ```bash
@@ -44,15 +44,15 @@ Run:
 ```
 Expected: 两个命令退出码为 `0`，输出文件可读取。
 
-- [ ] **Step 2: 写入 Java 17 对接矩阵的失败校验目标**
+- [x] **Step 2: 写入 Java 17 对接矩阵的失败校验目标**
 
 Create `docs/ai-framework-migration/compatibility-matrix.md`，先写明测试前的期望：Java 8 Core 不能传递引入 Boot 3 或目标 SDK；Java 17 artifact 必须单独构建。测试将在 Task 7 使该矩阵中的命令可执行。
 
-- [ ] **Step 3: 在 BOM 中注册中立 artifact**
+- [x] **Step 3: 在 BOM 中注册中立 artifact**
 
 Add `fw-plus-ai-model` 和 `fw-plus-ai-store-embedding` 到 Core dependencyManagement，版本使用 `${project.version}`；不要在 Java 8 BOM 中加入 Boot 3、Spring AI、Spring AI Alibaba 或 AgentScope 依赖。Java 17 target SDK 的版本管理仅位于 `fw-plus-ai-j17` parent。
 
-- [ ] **Step 4: 验证 BOM 变更**
+- [x] **Step 4: 验证 BOM 变更**
 
 Run:
 ```bash
@@ -60,15 +60,7 @@ Run:
 ```
 Expected: `BUILD SUCCESS`。
 
-- [ ] **Step 5: 安装中立模块供 Java 17 独立 reactor 解析**
-
-Run:
-```bash
-./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model -am install -DskipTests
-```
-Expected: `fw-plus-ai-model` 及其 reactor 依赖安装到本地 Maven 仓库。Task 6 依赖该产物，但不得将 Java 17 聚合加入 Java 8 Core reactor。
-
-- [ ] **Step 6: Commit**
+- [x] **Step 5: 提交 Task 1 基线**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml docs/ai-framework-migration/compatibility-matrix.md
@@ -127,9 +119,9 @@ Run the command from Step 2. Expected: `BUILD SUCCESS` and all registry tests pa
 
 Run:
 ```bash
-./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding -am install -DskipTests
+./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model -am install -DskipTests
 ```
-Expected: `fw-plus-ai-store-embedding` 及其 reactor 依赖安装到本地 Maven 仓库。
+Expected: `fw-plus-ai-model` 及其 reactor 依赖安装到本地 Maven 仓库。Task 6 依赖该产物，但不得将 Java 17 聚合加入 Java 8 Core reactor。
 
 - [ ] **Step 6: Commit**
 
@@ -176,7 +168,15 @@ rg -n 'dev\.langchain4j|org\.springframework\.ai|agentscope' fw-plus-core/fw-plu
 ```
 Expected: Maven success and no search output.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: 安装中立模块供 Java 17 独立 reactor 解析**
+
+Run:
+```bash
+./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding -am install -DskipTests
+```
+Expected: `fw-plus-ai-store-embedding` 及其 reactor 依赖安装到本地 Maven 仓库。
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/pom.xml fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding
