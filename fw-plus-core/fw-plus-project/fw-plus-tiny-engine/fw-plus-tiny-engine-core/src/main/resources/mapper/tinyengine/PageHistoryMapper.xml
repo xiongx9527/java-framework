@@ -1,0 +1,345 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xiongx9527.fw.plus.tinyengine.mapper.PageHistoryMapper">
+
+    <!-- 通用设置 -->
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Column_List">
+        id
+        , ref_id,version, name, app_id, route, page_content, is_body, parent_id, `group`, `depth`, is_page, is_default, message,
+        is_home, content_blocks, created_by, last_updated_by, created_time, last_updated_time, tenant_id, renter_id, site_id,is_published
+    </sql>
+
+    <!-- 通用条件列 -->
+    <sql id="PageHistoryByCondition">
+        <if test="page!=null">
+            AND ref_id = #{page}
+        </if>
+        <if test="version!=null and version!=''">
+            AND version = #{version}
+        </if>
+        <if test="name!=null and name!=''">
+            AND name = #{name}
+        </if>
+        <if test="app!=null">
+            AND app_id = #{app}
+        </if>
+        <if test="route!=null and route!=''">
+            AND route = #{route}
+        </if>
+        <if test="pageContent!=null and pageContent!=''">
+            AND page_content = #{pageContent}
+        </if>
+        <if test="isBody!=null">
+            AND is_body = #{isBody}
+        </if>
+        <if test="parentId!=null">
+            AND parent_id = #{parentId}
+        </if>
+        <if test="group!=null and group!=''">
+            AND `group` = #{group}
+        </if>
+        <if test="depth!=null">
+            AND `depth` = #{depth}
+        </if>
+        <if test="isPage!=null">
+            AND is_page = #{isPage}
+        </if>
+        <if test="isDefault!=null">
+            AND is_default = #{isDefault}
+        </if>
+        <if test="message!=null and message!=''">
+            AND message = #{message}
+        </if>
+        <if test="isHome!=null">
+            AND is_home = #{isHome}
+        </if>
+        <if test="contentBlocks!=null and contentBlocks!=''">
+            AND content_blocks = #{contentBlocks}
+        </if>
+        <if test="createdBy!=null and createdBy!=''">
+            AND created_by = #{createdBy}
+        </if>
+        <if test="lastUpdatedBy!=null and lastUpdatedBy!=''">
+            AND last_updated_by = #{lastUpdatedBy}
+        </if>
+        <if test="createdTime!=null">
+            AND created_time = #{createdTime}
+        </if>
+        <if test="lastUpdatedTime!=null">
+            AND last_updated_time = #{lastUpdatedTime}
+        </if>
+        <if test="tenantId!=null and tenantId!=''">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="renterId!=null and renterId!=''">
+            AND renter_id = #{renterId}
+        </if>
+        <if test="siteId!=null and siteId!=''">
+            AND site_id = #{siteId}
+        </if>
+        <if test="isPublished!=null">
+            AND is_published = #{isPublished}
+        </if>
+    </sql>
+
+    <!-- 通用设置列 -->
+    <sql id="PageHistorySetColumns">
+        <if test="page!=null">
+            ref_id = #{page},
+        </if>
+        <if test="version!=null and version!=''">
+            version = #{version}
+        </if>
+        <if test="name!=null and name!=''">
+            name = #{name},
+        </if>
+        <if test="app!=null">
+            app_id = #{app},
+        </if>
+        <if test="route!=null and route!=''">
+            route = #{route},
+        </if>
+        <if test="pageContent!=null and pageContent!=''">
+            page_content = #{pageContent},
+        </if>
+        <if test="isBody!=null">
+            is_body = #{isBody},
+        </if>
+        <if test="parentId!=null">
+            parent_id = #{parentId},
+        </if>
+        <if test="group!=null and group!=''">
+            `group`= #{group},
+        </if>
+        <if test="depth!=null">
+            `depth` = #{depth},
+        </if>
+        <if test="isPage!=null">
+            is_page = #{isPage},
+        </if>
+        <if test="isDefault!=null">
+            is_default = #{isDefault},
+        </if>
+        <if test="message!=null and message!=''">
+            message = #{message},
+        </if>
+        <if test="isHome!=null">
+            is_home = #{isHome},
+        </if>
+        <if test="contentBlocks!=null and contentBlocks!=''">
+            content_blocks = #{contentBlocks},
+        </if>
+        <if test="createdBy!=null and createdBy!=''">
+            created_by = #{createdBy},
+        </if>
+        <if test="lastUpdatedBy!=null and lastUpdatedBy!=''">
+            last_updated_by = #{lastUpdatedBy},
+        </if>
+        <if test="createdTime!=null">
+            created_time = #{createdTime},
+        </if>
+        <if test="lastUpdatedTime!=null">
+            last_updated_time = #{lastUpdatedTime},
+        </if>
+        <if test="tenantId!=null and tenantId!=''">
+            tenant_id = #{tenantId},
+        </if>
+        <if test="renterId!=null and renterId!=''">
+            renter_id = #{renterId},
+        </if>
+        <if test="siteId!=null and siteId!=''">
+            site_id = #{siteId},
+        </if>
+        <if test="isPublished!=null">
+            is_published = #{isPublished}
+        </if>
+    </sql>
+
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="PageHistoryMap" type="com.xiongx9527.fw.plus.tinyengine.model.entity.PageHistory">
+        <id column="id" property="id"/>
+        <result column="ref_id" property="page"/>
+        <result column="version" property="version"/>
+        <result column="name" property="name"/>
+        <result column="app_id" property="app"/>
+        <result column="route" property="route"/>
+        <result column="page_content" property="pageContent"/>
+        <result column="is_body" property="isBody"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="group" property="group"/>
+        <result column="depth" property="depth"/>
+        <result column="is_page" property="isPage"/>
+        <result column="is_default" property="isDefault"/>
+        <result column="message" property="message"/>
+        <result column="is_home" property="isHome"/>
+        <result column="content_blocks" property="contentBlocks"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="last_updated_by" property="lastUpdatedBy"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="last_updated_time" property="lastUpdatedTime"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="renter_id" property="renterId"/>
+        <result column="site_id" property="siteId"/>
+        <result column="is_published" property="isPublished"/>
+    </resultMap>
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="PageHistoryVoMap" type="com.xiongx9527.fw.plus.tinyengine.model.dto.PublishedPageVo">
+        <id column="ref_id" property="refId"/>
+        <result column="name" property="name"/>
+        <result column="app_id" property="appId"/>
+        <result column="route" property="route"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="group" property="group"/>
+        <result column="is_page" property="isPage"/>
+        <collection property="historyVersions" column="ref_id"
+                    ofType="com.xiongx9527.fw.plus.tinyengine.model.dto.PageHistoryVo"
+                    select="com.xiongx9527.fw.plus.tinyengine.mapper.PageHistoryMapper.findAllHistoryVersions">
+            <id column="id" property="id"/>
+            <result column="name" property="name"/>
+            <result column="ref_id" property="refId"/>
+            <result column="version" property="version"/>
+        </collection>
+    </resultMap>
+
+    <!-- 查询表t_page_history所有数据 -->
+    <select id="queryAllPageHistory" resultMap="PageHistoryMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_page_history
+    </select>
+
+    <!-- 根据主键id查询表t_page_history信息 -->
+    <select id="queryPageHistoryById" resultMap="PageHistoryMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_page_history
+        <where>
+            <if test="historyId != null">
+                AND id = #{historyId}
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据条件查询表t_page_history数据 -->
+    <select id="queryPageHistoryByCondition" resultMap="PageHistoryMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_page_history
+        WHERE 1=1
+        <include refid="PageHistoryByCondition"/>
+    </select>
+    <select id="queryPageHistoryByName" resultMap="PageHistoryMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_page_history
+        WHERE name like concat('%',#{name},'%')
+        and app_id = #{app}
+        and is_published = 1
+        ORDER BY last_updated_time ASC
+    </select>
+
+    <select id="queryPageHistoryByAppId" resultMap="PageHistoryMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_page_history
+        WHERE
+        app_id = #{appId}
+        and is_published = 1
+    </select>
+
+    <!-- 根据主键id删除表t_page_history数据 -->
+    <delete id="deletePageHistoryById">
+        DELETE
+        FROM t_page_history
+        WHERE id = #{id}
+    </delete>
+
+    <!-- 根据主键id更新表t_page_history数据 -->
+    <update id="updatePageHistoryById" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.PageHistory">
+        UPDATE t_page_history
+        <set>
+            <include refid="PageHistorySetColumns"/>
+        </set>
+        WHERE
+        id=#{id}
+    </update>
+
+    <!-- 新增表t_page_history数据 -->
+    <insert id="createPageHistory" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.PageHistory">
+        INSERT INTO t_page_history ( id
+        , ref_id
+        , version
+        , name
+        , app_id
+        , route
+        , page_content
+        , is_body
+        , parent_id
+        , `group`
+        , `depth`
+        , is_page
+        , is_default
+        , message
+        , is_home
+        , content_blocks
+        , created_by
+        , last_updated_by
+        , created_time
+        , last_updated_time
+        , tenant_id, renter_id
+        , site_id
+        , is_published)
+        VALUES ( #{id}
+        , #{page}
+        , #{version}
+        , #{name}
+        , #{app}
+        , #{route}
+        , #{pageContent}
+        , #{isBody}
+        , #{parentId}
+        , #{group}
+        , #{depth}
+        , #{isPage}
+        , #{isDefault}
+        , #{message}
+        , #{isHome}
+        , #{contentBlocks}
+        , #{createdBy}
+        , #{lastUpdatedBy}
+        , #{createdTime}
+        , #{lastUpdatedTime}
+        , #{tenantId}
+        , #{renterId}
+        , #{siteId}
+        , #{isPublished})
+    </insert>
+
+    <select id="findLatestPublishPage"  resultMap="PageHistoryVoMap">
+        SELECT
+        distinct ref_id,name, app_id, route, parent_id, `group`, is_page,is_published
+        FROM t_page_history
+        where app_id = #{pageHistory.appId}
+        and is_published = 1
+        <if test="pageHistory.refId!=null and pageHistory.refId!=''">
+            AND ref_id = #{pageHistory.refId}
+        </if>
+        <if test="pageHistory.name!=null and pageHistory.name!=''">
+            AND name like concat('%',#{pageHistory.name},'%')
+        </if>
+        order by created_time desc
+    </select>
+
+    <select id="findAllHistoryVersions"  resultType="com.xiongx9527.fw.plus.tinyengine.model.dto.PageHistoryVo">
+        SELECT
+        distinct id,ref_id,name, version
+        FROM t_page_history
+        where ref_id = #{ref_id}
+        and is_published = 1
+    </select>
+</mapper>
