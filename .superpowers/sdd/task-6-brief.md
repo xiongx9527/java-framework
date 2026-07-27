@@ -1,102 +1,88 @@
-### Task 6: 端到端验证、兼容扫描与 OpenSpec 校验
+### Task 6: Magic `model-datasource` 动态资源与运行态 Registry
 
 **Files:**
-- Modify: none required unless verification exposes defects in files changed by Tasks 1-5.
-- Test evidence: Maven output and OpenSpec validation output.
+- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/model/model/ModelDataSourceInfo.java`
+- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/model/model/MagicDynamicModelDataSource.java`
+- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/model/service/ModelDataSourceInfoMagicResourceStorage.java`
+- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/model/service/ModelDataSourceMagicDynamicRegistry.java`
+- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/model/MagicDynamicModelDataSourceTest.java`
+- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/model/ModelDataSourceMagicDynamicRegistryTest.java`
 
 **Interfaces:**
-- Consumes: all tasks above.
-- Produces: verified Core build, AI build, Java 8 compatibility scan, and strict OpenSpec validation.
+- Consumes:
+  - `LangChain4jModelDefinition`
+  - `LangChain4jModelFactory`
+  - `LangChain4jModelProviderAdapter`
+  - `LangChain4jModelRegistry`
+- Produces:
+  - `ModelDataSourceInfo.toDefinition(): LangChain4jModelDefinition`
+  - `ModelDataSourceInfo.simple(): ModelDataSourceInfo` returns a copy with sensitive fields removed.
+  - `ModelDataSourceInfoMagicResourceStorage.folder(): String` returns `model-datasource`.
+  - `MagicDynamicModelDataSource.createClient(ModelDataSourceInfo info): void`
+  - `MagicDynamicModelDataSource.destroyClientByKey(String key): void`
+  - `MagicDynamicModelDataSource.datasourceNodes(): List<ModelDataSourceInfo>`
+  - `MagicDynamicModelDataSource.getModel(String key): LangChain4jModel`
+  - `MagicDynamicModelDataSource.getDefault(): LangChain4jModel`
+  - `MagicDynamicModelDataSource.contains(String key): boolean`
+  - `MagicDynamicModelDataSource.keys(): Set<String>`
 
-- [ ] **Step 1: Run Core focused reactor tests**
+- [ ] **Task 6 Step 1: Write failing dynamic data source tests**
 
-Run:
+Create tests that prove:
 
-```bash
-cd fw-plus-core
-./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding,fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -am test
+```text
+1. runtime model with key "chat" overrides Spring Boot registry key "chat".
+2. destroyClientByKey("chat") removes runtime model and exposes Spring Boot registry key "chat" again.
+3. datasourceNodes() returns runtime nodes with apiKey, secretKey, accessToken, token, password cleared.
+4. createClient(null), blank key, blank provider, or null modelType throws LangChain4jModelException.
 ```
 
-Expected: BUILD SUCCESS.
+Use a fake `LangChain4jModelFactory` and fake `LangChain4jModelRegistry` in the test; no network call is allowed in this task.
 
-- [ ] **Step 2: Run Core LangChain4j package build**
+- [ ] **Task 6 Step 2: Write failing resource registry tests**
 
-Run:
+Create tests that prove:
 
-```bash
-cd fw-plus-core
-./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j -am -DskipTests package
+```text
+1. ModelDataSourceInfoMagicResourceStorage.folder() equals "model-datasource".
+2. ModelDataSourceMagicDynamicRegistry registers a new ModelDataSourceInfo by calling MagicDynamicModelDataSource.createClient(info).
+3. ModelDataSourceMagicDynamicRegistry unregisters by calling MagicDynamicModelDataSource.destroyClientByKey(key).
+4. Updating the same key calls destroyClientByKey(key) before createClient(info).
 ```
 
-Expected: BUILD SUCCESS.
-
-- [ ] **Step 3: Run AI Magic-API focused tests**
+- [ ] **Task 6 Step 3: Run tests to verify they fail**
 
 Run:
 
 ```bash
 cd fw-plus-ai
-./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure,fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-vector -am test
+./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=MagicDynamicModelDataSourceTest,ModelDataSourceMagicDynamicRegistryTest test
 ```
 
-Expected: BUILD SUCCESS.
+Expected: FAIL because Magic model classes do not exist.
 
-- [ ] **Step 4: Run AI plugin package build**
+- [ ] **Task 6 Step 4: Implement model datasource, storage, and registry**
+
+Implement the classes listed in **Files**. Follow the existing Magic vector plugin style for storage and registry lifecycle, but use `model-datasource` as the folder and `LangChain4jModelDefinition` as the target definition.
+
+- [ ] **Task 6 Step 5: Run tests to verify they pass**
 
 Run:
 
 ```bash
 cd fw-plus-ai
-./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin -am -DskipTests package
+./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=MagicDynamicModelDataSourceTest,ModelDataSourceMagicDynamicRegistryTest test
 ```
 
-Expected: BUILD SUCCESS.
+Expected: PASS.
 
-- [ ] **Step 5: Scan for Java 9+ APIs in touched Java packages**
-
-Run:
+- [ ] **Task 6 Step 6: Commit this task during execution**
 
 ```bash
-rg -n "List\\.of|Map\\.of|Set\\.of|copyOf|orElseThrow\\(\\)" \
-  fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding \
-  fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter \
-  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector
+git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/model \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/model
+git commit -m "feat: add magic model datasource registry"
 ```
 
-Expected: no output.
-
-- [ ] **Step 6: Scan Magic-API plugin code for duplicated provider builders**
-
-Run:
-
-```bash
-rg -n "RedisEmbeddingStore\\.builder|MilvusEmbeddingStore\\.builder|QdrantEmbeddingStore\\.builder|WeaviateEmbeddingStore\\.builder" \
-  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin
-```
-
-Expected: no output outside compatibility comments or Core provider adapter references.
-
-- [ ] **Step 7: Validate OpenSpec**
-
-Run:
-
-```bash
-openspec validate unify-vector-magicapi-plugin --strict
-```
-
-Expected: passes with no validation errors.
-
-- [ ] **Step 8: Review OpenSpec task coverage without modifying tasks.md**
-
-Open `openspec/changes/unify-vector-magicapi-plugin/tasks.md` and verify every item maps to `OpenSpec Task Mapping` in this plan. Do not change checkbox state in `tasks.md`.
-
-- [ ] **Step 9: Commit**
-
-Commit message: `test(vector): verify unified vector plugin change`.
-
-## Self-Review
-
-- Spec coverage: Design Doc goals are covered by Task 1-5; OpenSpec tasks `1.1` through `4.5` are mapped explicitly.
-- Placeholder scan: No task uses deferred-work marker language; unresolved artifact names such as `langchain4j-weaviate` are handled by an implementation-time dependency discovery step with a concrete fallback rule.
-- Type consistency: `EmbeddingStoreDefinition`、`EmbeddingStoreRegistry`、`EmbeddingStoreFactory`、`EmbeddingStoreProviderAdapter`、`VectorModule`、`VectorStoreOperations` names are introduced before downstream tasks consume them.
-- Compatibility strategy: Plan chooses the lower-risk Design Doc path, keeping old Magic-API provider entries as deprecated thin wrappers unless implementation proves a wrapper causes Maven cycles.

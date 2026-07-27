@@ -1,88 +1,72 @@
-# Task 6 验证报告
+# Task 6 Report: Magic model-datasource 动态资源与运行态 Registry
 
-## 状态
+## 实现内容
 
-DONE_WITH_CONCERNS
+- 新增 `ModelDataSourceInfo`，可转换为 `LangChain4jModelDefinition`，并在 `simple()` 中移除直接敏感字段及 `properties` 中的 `apiKey`、`secretKey`、`accessToken`、`token`、`password`。
+- 新增 `MagicDynamicModelDataSource`，运行态模型优先于 Spring Boot registry；删除运行态模型后自动回退 Spring registry。
+- 新增 `model-datasource` 资源存储和动态 registry；运行态更新在创建前先销毁同 key 客户端，注销时移除运行态客户端。
 
-所有 Task 6 要求的构建、测试、扫描和严格 OpenSpec 校验均已通过。worktree 中两个 Maven Wrapper 都缺少 `.mvn/wrapper/maven-wrapper.properties` 与 wrapper jar，因此 4 条 Maven 命令均按 brief 改用指定的 Zulu 8 Maven fallback。
+## TDD 证据
 
-## 环境
+### RED
 
-- Java: Zulu 8.76.0.17 (`1.8.0_402`)
-- Maven: 3.9.16
-- Worktree: `feature/20260725/unify-vector-magicapi-plugin`
+先新增两份目标测试。`fw-plus-ai/mvnw` 无法运行，因为 worktree 中缺少 `.mvn/wrapper/maven-wrapper.properties` 与 `maven-wrapper.jar`。使用等价命令：
 
-## Step 1: Core 聚焦 reactor 测试
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=MagicDynamicModelDataSourceTest,ModelDataSourceMagicDynamicRegistryTest test
+```
 
-- Wrapper 命令：`./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding,fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -am test`
-- Wrapper 结果：失败，缺少 `fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 和 `maven-wrapper.jar`。
-- Fallback：是。`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding,fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter -am test`
-- 结果：`BUILD SUCCESS`。目标基础模块 10 tests、starter 9 tests，均为 0 failures / 0 errors。
+首次运行在 test compile 阶段失败，原因是 `MagicDynamicModelDataSource`、`ModelDataSourceInfo` 和 registry/storage 类尚不存在。
 
-## Step 2: Core LangChain4j 聚合打包
+### GREEN
 
-- Wrapper 命令：`./mvnw -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j -am -DskipTests package`
-- Wrapper 结果：失败，缺少 `fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 和 `maven-wrapper.jar`。
-- Fallback：是。`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-langchain4j -am -DskipTests package`
-- 结果：`BUILD SUCCESS`。
+实现后使用同一条 JDK 8 Maven 命令验证通过：7 tests run，0 failures，0 errors，0 skipped。
 
-## Step 3: AI Magic-API 聚焦测试
+## 限制
 
-- Wrapper 命令：`./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure,fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-vector -am test`
-- Wrapper 结果：失败，缺少 `fw-plus-ai/.mvn/wrapper/maven-wrapper.properties` 和 `maven-wrapper.jar`。
-- Fallback：是。`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure,fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-vector -am test`
-- 结果：`BUILD SUCCESS`。`fw-plus-ai-boot-autoconfigure` 的 TestSuite 为 99 tests，0 failures / 0 errors。
+- 未进行网络调用；全部测试使用 fake factory/registry 或 mock 动态数据源。
+- `fw-plus-ai/mvnw` wrapper 文件缺失，无法作为本任务验证入口；已使用指定 JDK 8 的系统 Maven 完成等价聚焦验证。
 
-## Step 4: AI 插件聚合打包
+## 审查修复（2026-07-26）
 
-- Wrapper 命令：`./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin -am -DskipTests package`
-- Wrapper 结果：失败，缺少 `fw-plus-ai/.mvn/wrapper/maven-wrapper.properties` 和 `maven-wrapper.jar`。
-- Fallback：是。`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin -am -DskipTests package`
-- 结果：`BUILD SUCCESS`。
+### 修复内容
 
-## Step 5: Java 9+ API 扫描
+- FileEvent 和 GroupEvent 处理失败时记录 warn，仅记录固定上下文与异常类型，不记录异常消息、堆栈或数据源对象，避免凭据泄露。
+- 映射节点注册在 runtime client 创建后失败时立即销毁该 key 的 runtime client，避免 Magic 映射与运行态 registry 不一致。
+- `toDefinition()` 将直接配置的 `apiKey`、`secretKey`、`accessToken`、`token`、`password` 合并到 definition properties；`simple()` 继续移除直接字段和 properties 中的全部敏感键。
+- 同 key 更新测试改为连续两次完整注册，验证每次均为 destroy 后 create。
 
-- 命令：`rg -n "List\\.of|Map\\.of|Set\\.of|copyOf|orElseThrow\\(\\)" fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector`
-- Fallback：不适用。
-- 结果：无输出，`rg` 退出码 1（无匹配），符合 Java 8 兼容要求。
+### 审查修复验证
 
-## Step 6: 重复 provider builder 扫描
+先新增回滚和凭据传递测试。RED 阶段因测试所需的 `registerMapping` 生命周期边界尚不存在，test compile 失败；实现后执行：
 
-- 命令：`rg -n "RedisEmbeddingStore\\.builder|MilvusEmbeddingStore\\.builder|QdrantEmbeddingStore\\.builder|WeaviateEmbeddingStore\\.builder" fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin`
-- Fallback：不适用。
-- 结果：无输出，`rg` 退出码 1（无匹配）；Magic-API 插件未复制 provider builder 逻辑。
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=MagicDynamicModelDataSourceTest,ModelDataSourceMagicDynamicRegistryTest test
+```
 
-## Step 7: OpenSpec 严格校验
+GREEN：9 tests run，0 failures，0 errors，0 skipped。
 
-- 命令：`openspec validate unify-vector-magicapi-plugin --strict`
-- Fallback：不适用。
-- 结果：通过，输出为 `Change 'unify-vector-magicapi-plugin' is valid`。
+## 复审修复（2026-07-26，第二轮）
 
-## Step 8: OpenSpec 任务覆盖核对
+### 修复内容
 
-- 命令：读取 `openspec/changes/unify-vector-magicapi-plugin/tasks.md` 与 `docs/superpowers/plans/2026-07-25-unify-vector-magicapi-plugin.md` 的 `OpenSpec Task Mapping`。
-- Fallback：不适用。
-- 结果：19/19 个 OpenSpec 任务均有映射。已勾选 16 项；未勾选的 4.3、4.4、4.5 分别映射到 Task 6，符合本验证任务尚未回写 checkbox 的要求。未修改 `tasks.md`。
+- `register(ModelDataSourceInfo)` 保持 Magic registry 的 `false` 返回契约，但在捕获异常时以不含实体、异常消息或堆栈的 warn 记录失败信号。
+- `unregister(MappingNode)` 的异常处理同样增加不含敏感信息的 warn。
+- `ModelDataSourceInfo.copy()` 对显式 `properties: null` 返回空的 `LinkedHashMap`。
+- `MagicDynamicModelDataSource.createClient()` 先完成 runtime info copy，再创建并发布模型，避免 copy 失败时残留仅有 model 的运行态条目。
 
-## Maven Warning 摘要
+### TDD 与验证
 
-- Core Step 1 的 Spring `WARN` 来自断言未知 provider、重复 key、缺失默认 store 的预期启动失败场景；Surefire 结果为 0 failures / 0 errors。
-- AI Step 3 和 Step 4 均报告 `fw-plus-ai-boot-autoconfigure/pom.xml` 存在 `langchain4j-milvus`、`langchain4j-qdrant`、`langchain4j-redis` 重复依赖声明。`git blame` 显示三项均来自 `178e41eb9`（2026-07-01），早于本 change；构建成功，未扩大修复范围。
-- AI Step 3 还报告多 SLF4J binding 与 TestNG 的 `No test suite found` 日志，但最终 Surefire 为 99 tests、0 failures / 0 errors。
-- AI Step 4 报告多个既有空聚合 jar；打包成功。
+新增 `createClientAcceptsExplicitNullPropertiesWithoutPartialRuntimeState`。RED 阶段该测试在 `ModelDataSourceInfo.copy()` 的空 properties 构造处稳定触发 NPE；实现后执行：
 
-## 扫描与工作区
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=MagicDynamicModelDataSourceTest,ModelDataSourceMagicDynamicRegistryTest test
+```
 
-- Java 9+ API 扫描：无匹配。
-- Magic-API provider builder 扫描：无匹配。
-- 验证完成前工作区无实现改动；本报告是唯一新增文件。
-- 未修改代码。
-
-## 提交
-
-- 验证报告提交：`32202b4b2be2bbfe50aa8b54c6150c78ce710e36`（`test(vector): verify unified vector plugin change`）。
-
-## Concerns
-
-- 当前 worktree 缺失 Core 与 AI 的 Maven Wrapper 元数据和 jar，所有 Maven 验证只能使用指定 Zulu 8 Maven fallback。
-- Maven 仍有三个既有重复依赖 warning；它们不阻塞本次构建，但建议在独立维护任务中处理。
+GREEN：10 tests run，0 failures，0 errors，0 skipped。
