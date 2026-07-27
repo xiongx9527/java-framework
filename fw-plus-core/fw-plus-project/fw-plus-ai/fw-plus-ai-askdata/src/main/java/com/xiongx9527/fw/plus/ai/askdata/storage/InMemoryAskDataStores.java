@@ -71,6 +71,7 @@ public final class InMemoryAskDataStores {
 	private final AskDataMonitoringLogStore monitoringLogStore = new AskDataMonitoringLogStore() {
 		@Override
 		public void append(AskDataProjectContext context, MonitoringLog log) {
+			MonitoringLog checkedLog = requireValue(log, "monitoringLog");
 			ScopeKey key = scope(context);
 			List<MonitoringLog> logs = monitoringLogs.get(key);
 			if (logs == null) {
@@ -82,7 +83,7 @@ public final class InMemoryAskDataStores {
 				if (logs.size() >= MAX_MONITORING_LOGS_PER_SCOPE) {
 					logs.remove(0);
 				}
-				logs.add(requireValue(log, "monitoringLog"));
+				logs.add(checkedLog);
 			}
 		}
 

@@ -37,6 +37,19 @@ class AskDataStoreContractTest {
 	}
 
 	@Test
+	void 同一操作人在不同项目下不得读取彼此会话() {
+		InMemoryAskDataStores stores = InMemoryAskDataStores.singleNode();
+		AskDataProjectContext firstProjectContext = new AskDataProjectContext("project-a", "operator-a");
+		AskDataProjectContext secondProjectContext = new AskDataProjectContext("project-b", "operator-a");
+
+		stores.conversations().save(firstProjectContext, "conversation-1",
+				new AskDataConversationStore.Conversation("question", "answer"));
+
+		assertEquals("answer", stores.conversations().load(firstProjectContext, "conversation-1").getAnswer());
+		assertNull(stores.conversations().load(secondProjectContext, "conversation-1"));
+	}
+
+	@Test
 	void 集群模式必须拒绝内存实现() {
 		IllegalStateException exception = assertThrows(IllegalStateException.class,
 				new org.junit.jupiter.api.function.Executable() {
@@ -91,5 +104,26 @@ class AskDataStoreContractTest {
 
 		assertEquals(1000, stores.monitoringLogs().list(context).size());
 		assertEquals("trace-1", stores.monitoringLogs().list(context).get(0).getTraceId());
+	}
+
+	@Test
+	void 日志满容量后追加空值不得淘汰已有日志() {
+		InMemoryAskDataStores stores = InMemoryAskDataStores.singleNode();
+		AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
+
+		for (int index = 0; index < 1000; index++) {
+			stores.monitoringLogs().append(context,
+					new AskDataMonitoringLogStore.MonitoringLog("trace-" + index, "MODEL", "completed"));
+		}
+
+		assertThrows(IllegalArgumentException.class, new org.junit.jupiter.api.function.Executable() {
+			@Override
+			public void execute() {
+				stores.monitoringLogs().append(context, null);
+			}
+		});
+		assertEquals(1000, stores.monitoringLogs().list(context).size());
+		assertEquals("trace-0", stores.monitoringLogs().list(context).get(0).getTraceId());
+		assertEquals("trace-999", stores.monitoringLogs().list(context).get(999).getTraceId());
 	}
 }
