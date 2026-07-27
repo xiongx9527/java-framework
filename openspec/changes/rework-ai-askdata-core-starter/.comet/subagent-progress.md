@@ -2,15 +2,15 @@
 
 ## 当前任务
 
-- Plan task: `Task 4: 定义模型路由与 Remote Runtime SPI`
-- OpenSpec task mapping: `1.11 定义可替换 AI 运行时适配契约...` / `1.12 定义 Remote Runtime SPI...`（本任务只覆盖 Core 模型路由与 Remote Runtime 边界，后续适配文档和实现由后续任务继续）
+- Plan task: `Task 5: 定义存储、检查点、Agent 状态和监控日志 SPI`
+- OpenSpec task mapping: `1.5` / `1.6` / `5.3` 的 Core 存储契约子集（本任务只覆盖 Core SPI 与默认内存实现，JDBC/Redis/业务适配由后续任务继续）
 - Stage: `done`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `2053819d822a7f41f13c15f77d4801613c9ae134`
-- Implementer commit: `fade364bb7f2585e940eeebf8de03511397ba76e`
-- Task brief: `.superpowers/sdd/task-4-brief.md`
-- Implementer report: `.superpowers/sdd/askdata-task-4-report.md`
+- Base commit: `264869840aff6c80932eaa109decf6fbdba641cc`
+- Implementer commit: `628387a33331011f599a94c79e42180a8242fbd6`
+- Task brief: `.superpowers/sdd/task-5-brief.md`
+- Implementer report: `.superpowers/sdd/askdata-task-5-report.md`
 
 ## 派发记录
 
@@ -41,3 +41,9 @@
 - 2026-07-27：fix agent 返回 `DONE`，提交 `019b3e7e`；修复失败结果保留实际路由策略，重复 `modelKey` 时按层级继续降级，并补齐模型路由 SPI、错误分类、Java 17 Remote Runtime/审计边界中文 JavaDoc。协调者复跑 `AskDataModelRouterTest,AskDataRemoteRuntimeContractTest`，结果 8 项通过。
 - 2026-07-27：Task 4 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
 - 2026-07-27：已勾选 plan 中 Task 4 的 5 个 step；OpenSpec 1.11/1.12 仍包含后续适配文档、鉴权、错误映射和 Java 17 对接完整内容，本任务不单独勾选。
+- 2026-07-27：准备派发 Task 5 implementer。允许修改范围限定为 `fw-plus-ai-askdata` 模块内 storage 源码与对应测试；禁止修改其他 active change、TinyEngine、tiny-engine-backend-java。
+- 2026-07-27：implementer 返回 `DONE`，提交 `628387a3`；RED 为存储 SPI 缺失与监控日志容量未裁剪，GREEN 为 `AskDataStoreContractTest` 5 项通过。实现四类存储按 `projectId + operatorId` 隔离、集群拒绝内存实现、检查点严格推进、UNKNOWN SQL 不可重放、监控日志上限 1000。
+- 2026-07-27：Task 5 reviewer 返回 `Needs fixes`；Important 问题为监控日志满时 `append(null)` 会先淘汰有效日志再抛异常，以及四个公开 SPI 方法中文契约注释不足。当前 thorough 修复轮次：1/2。
+- 2026-07-27：fix agent 返回 `DONE`，提交 `326c5677`；RED 复现日志满 1000 后 `append(null)` 导致有效日志丢失，GREEN 为 `AskDataStoreContractTest` 7 项通过。协调者在 AskData 分支复跑同一测试，结果 7 项通过。
+- 2026-07-27：Task 5 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
+- 2026-07-27：已勾选 plan 中 Task 5 的 5 个 step；OpenSpec 1.5/1.6/5.3 仍包含租约、幂等、共享存储、生命周期事件和查询等后续内容，本任务不单独勾选。
