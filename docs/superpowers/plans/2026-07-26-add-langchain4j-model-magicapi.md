@@ -2,6 +2,7 @@
 change: add-langchain4j-model-magicapi
 design-doc: docs/superpowers/specs/2026-07-26-add-langchain4j-model-magicapi-design.md
 base-ref: 7b1c788fd198b832c41ad83baf58e40bb5e5f8bb
+archived-with: 2026-07-27-add-langchain4j-model-magicapi
 ---
 
 # LangChain4j Model Module 与 Magic Model 插件 Implementation Plan
