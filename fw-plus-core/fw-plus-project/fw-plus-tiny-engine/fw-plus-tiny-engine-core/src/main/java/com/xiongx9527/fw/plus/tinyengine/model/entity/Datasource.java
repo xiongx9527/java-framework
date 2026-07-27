@@ -30,7 +30,7 @@ import java.util.Map;
  * @author lu -yg
  * @since 2024-10-17
  */
-@TableName("t_datasource")
+@TableName(value = "t_datasource", autoResultMap = true)
 public class Datasource extends BaseEntity {
 private String name;
 @TableField(typeHandler = JsonObjectTypeHandler.class)

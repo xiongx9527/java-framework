@@ -27,7 +27,7 @@ import java.util.Map;
  * @author zhangjuncao
  * @since 2024-10-17
  */
-@TableName("t_page_template")
+@TableName(value = "t_page_template", autoResultMap = true)
 public class PageTemplate extends BaseEntity {
 private String name;
 @TableField(typeHandler = JsonObjectTypeHandler.class)

@@ -26,7 +26,7 @@ import java.util.List;
  *
  * @since 2025-07-17
  */
-@TableName("t_model")
+@TableName(value = "t_model", autoResultMap = true)
 public class Model extends BaseEntity {
 private Integer appId;
 private Integer platformId;
