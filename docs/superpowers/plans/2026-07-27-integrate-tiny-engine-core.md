@@ -345,15 +345,15 @@ git commit -m "feat: migrate tiny engine models"
 **Validation:**
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineMapperResourceTest,TinyEngineSqlScriptManifestTest test`
 
-- [ ] **Step 1: 写 Mapper/XML 失败测试**
+- [x] **Step 1: 写 Mapper/XML 失败测试**
 
 Create `TinyEngineMapperResourceTest` to scan `mapper/tinyengine/**/*.xml`, parse XML, and assert namespace starts with `com.xiongx9527.fw.plus.tinyengine.mapper.` and does not contain `com.tinyengine.it`.
 
-- [ ] **Step 2: 写 SQL manifest 失败测试**
+- [x] **Step 2: 写 SQL manifest 失败测试**
 
 Create `TinyEngineSqlScriptManifestTest` verifying `manifest.properties` exposes ordered scripts for `mysql`, `h2`, and `postgresql`, and every referenced resource exists on the classpath.
 
-- [ ] **Step 3: 运行失败测试**
+- [x] **Step 3: 运行失败测试**
 
 Run:
 
@@ -364,19 +364,19 @@ cd fw-plus-core
 
 Expected: FAIL because mapper and SQL resources do not exist.
 
-- [ ] **Step 4: 迁移 Mapper 接口**
+- [x] **Step 4: 迁移 Mapper 接口**
 
 Move Mapper interfaces into `com.xiongx9527.fw.plus.tinyengine.mapper`, update imports/generics for MyBatis-Plus 3.3.2, and keep mapper interfaces free of Boot starter concerns.
 
-- [ ] **Step 5: 迁移 Mapper XML**
+- [x] **Step 5: 迁移 Mapper XML**
 
 Move XML files into `src/main/resources/mapper/tinyengine/`, update namespace, resultMap type, parameterType, resultType, typeHandler FQCN, SQL fragments, and entity/DTO FQCNs.
 
-- [ ] **Step 6: 迁移 SQL 初始化资源**
+- [x] **Step 6: 迁移 SQL 初始化资源**
 
 Place SQL files under the three database directories. Implement `manifest.properties` with explicit ordered keys per database, for example `mysql.001=classpath:META-INF/tiny-engine/sql/mysql/001_schema.sql`. Do not execute SQL in core.
 
-- [ ] **Step 7: 运行测试**
+- [x] **Step 7: 运行测试**
 
 Run:
 
@@ -387,7 +387,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit Task 5**
+- [x] **Step 8: Commit Task 5**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core
