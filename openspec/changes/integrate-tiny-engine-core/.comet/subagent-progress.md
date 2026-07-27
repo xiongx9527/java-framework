@@ -11,10 +11,10 @@
 - OpenSpec mapping: 4.1, 4.2, 4.3, 4.4
 - Stage: task-review
 - Implementer: Mendel DONE
-- Reviewer: pending
-- Fixer: pending
-- Review/fix rounds: 0
-- Review result: pending
+- Reviewer: Meitner completed first task review
+- Fixer: pending dispatch
+- Review/fix rounds: 1
+- Review result: Needs fixes
 
 ## Evidence
 
@@ -24,3 +24,4 @@
 - Commits: afd87bd44dfb0aba1b1b60f6ebbd607e3b1848db
 - Changed files: core POM, 26 service interfaces, 26 service implementations, 2 hook classes, and `TinyEngineServiceContractTest`.
 - Risk signals: public service API contract, Spring service wiring, POM dependency change, diff over 200 lines.
+- Reviewer findings: Critical core service contracts are skeletal and miss core-safe source methods for templates, pages/history, I18n batch operations, and material task status; Important `PageServiceImpl#queryAllPage` lost `isHome` calculation; Important tests only check representative method names and do not verify signatures, mapper delegation, or behavior; Minor `AppTemplateServiceImpl` lost page-size cap and overflow protection.
