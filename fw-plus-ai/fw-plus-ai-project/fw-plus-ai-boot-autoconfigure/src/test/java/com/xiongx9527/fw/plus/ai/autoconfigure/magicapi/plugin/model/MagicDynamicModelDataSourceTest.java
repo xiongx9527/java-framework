@@ -53,6 +53,37 @@ class MagicDynamicModelDataSourceTest {
     }
 
     @Test
+    void runtimeModelOverridesSpringBootDefaultGroupAlias() {
+        LangChain4jModel bootModel = model("boot");
+        Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
+        models.put("chat-default", bootModel);
+        models.put("chat-default.openai", bootModel);
+        RecordingFactory factory = new RecordingFactory();
+        MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
+                new TestRegistry(models, "chat-default"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+
+        dataSource.createClient(info("chat-default"));
+
+        assertSame(factory.createdModel, dataSource.getDefault());
+    }
+
+    @Test
+    void runtimeGroupAliasDoesNotOverrideExplicitDefaultModelNameKey() {
+        LangChain4jModel bootDefaultModel = model("boot-default");
+        LangChain4jModel bootAliasModel = model("boot-alias");
+        Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
+        models.put("chat-default", bootAliasModel);
+        models.put("chat-default.qwen-plus", bootDefaultModel);
+        RecordingFactory factory = new RecordingFactory();
+        MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
+                new TestRegistry(models, "chat-default.qwen-plus"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+
+        dataSource.createClient(info("chat-default"));
+
+        assertSame(bootDefaultModel, dataSource.getDefault());
+    }
+
+    @Test
     void disabledResourceRemovesExistingRuntimeModelWithoutCreatingReplacement() {
         LangChain4jModel bootModel = model("boot");
         RecordingFactory factory = new RecordingFactory();
@@ -232,6 +263,9 @@ class MagicDynamicModelDataSourceTest {
 
         @Override
         public LangChain4jModel getDefault() { return models.get(defaultKey); }
+
+        @Override
+        public String getDefaultKey() { return defaultKey; }
 
         @Override
         public boolean contains(String key) { return models.containsKey(key); }

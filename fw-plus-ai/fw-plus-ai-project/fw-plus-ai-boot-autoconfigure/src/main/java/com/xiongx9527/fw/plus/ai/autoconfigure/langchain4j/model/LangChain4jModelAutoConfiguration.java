@@ -17,6 +17,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -179,28 +180,109 @@ public class LangChain4jModelAutoConfiguration {
                                                               List<LangChain4jModelProviderAdapter> adapters) {
         Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
         for (Map.Entry<String, LangChain4jModelProperties.Model> entry : properties.getModels().entrySet()) {
-            LangChain4jModelProperties.Model model = entry.getValue();
-            if (model == null || !model.isEnabled()) {
-                continue;
-            }
-            LangChain4jModelDefinition definition = definition(entry.getKey(), model);
-            models.put(definition.getKey(), factory.create(definition, adapters));
+            registerModel(models, entry.getKey(), entry.getValue(), factory, adapters);
         }
         validateDefaultModel(properties.getDefaultModel(), models);
         return new DefaultLangChain4jModelRegistry(models, properties.getDefaultModel());
     }
 
-    private LangChain4jModelDefinition definition(String key, LangChain4jModelProperties.Model model) {
+    private void registerModel(Map<String, LangChain4jModel> models, String key, LangChain4jModelProperties.Model model,
+                               LangChain4jModelFactory factory, List<LangChain4jModelProviderAdapter> adapters) {
+        if (model == null || !model.isEnabled()) {
+            return;
+        }
+        List<String> modelNames = modelNames(key, model);
+        if (modelNames.size() <= 1) {
+            String modelName = modelNames.isEmpty() ? null : modelNames.get(0);
+            registerSingleModel(models, key, model, modelName, factory, adapters);
+            return;
+        }
+        Map<String, LangChain4jModel> namedModels = new LinkedHashMap<String, LangChain4jModel>();
+        for (String modelName : modelNames) {
+            registerSingleModel(namedModels, key + "." + modelName, model, modelName, factory, adapters);
+        }
+        String defaultModelName = resolveDefaultModelName(key, model);
+        LangChain4jModel defaultModel = namedModels.get(key + "." + defaultModelName);
+        if (defaultModel == null) {
+            throw new LangChain4jModelException("Default model name is invalid: " + key + "." + defaultModelName);
+        }
+        putModel(models, key, defaultModel);
+        for (Map.Entry<String, LangChain4jModel> entry : namedModels.entrySet()) {
+            putModel(models, entry.getKey(), entry.getValue());
+        }
+    }
+
+    private void registerSingleModel(Map<String, LangChain4jModel> models, String key, LangChain4jModelProperties.Model model,
+                                     String modelName, LangChain4jModelFactory factory,
+                                     List<LangChain4jModelProviderAdapter> adapters) {
+        LangChain4jModelProperties.ModelConfig modelConfig = modelConfig(model, modelName);
+        if (modelConfig != null && Boolean.FALSE.equals(modelConfig.getEnabled())) {
+            return;
+        }
+        LangChain4jModelDefinition definition = definition(key, model, modelName, modelConfig);
+        putModel(models, definition.getKey(), factory.create(definition, adapters));
+    }
+
+    private String resolveDefaultModelName(String key, LangChain4jModelProperties.Model model) {
+        if (!isBlank(model.getDefaultModelName())) {
+            return model.getDefaultModelName();
+        }
+        List<String> modelNames = modelNames(key, model);
+        if (modelNames.isEmpty()) {
+            throw new LangChain4jModelException("Model name is not configured: " + key);
+        }
+        return modelNames.get(0);
+    }
+
+    private List<String> modelNames(String key, LangChain4jModelProperties.Model model) {
+        List<String> modelNames = new ArrayList<String>();
+        for (String modelName : model.modelNames()) {
+            if (isBlank(modelName)) {
+                throw new LangChain4jModelException("Model name must not be blank: " + key);
+            }
+            modelNames.add(modelName.trim());
+        }
+        return modelNames;
+    }
+
+    private void putModel(Map<String, LangChain4jModel> models, String key, LangChain4jModel model) {
+        if (models.containsKey(key)) {
+            throw new LangChain4jModelException("Model key is duplicated: " + key);
+        }
+        models.put(key, model);
+    }
+
+    private LangChain4jModelProperties.ModelConfig modelConfig(LangChain4jModelProperties.Model model, String modelName) {
+        if (isBlank(modelName) || model.getModelConfigs() == null) {
+            return null;
+        }
+        return model.getModelConfigs().get(modelName);
+    }
+
+    private LangChain4jModelDefinition definition(String key, LangChain4jModelProperties.Model model, String modelName,
+                                                  LangChain4jModelProperties.ModelConfig modelConfig) {
         LangChain4jModelDefinition definition = new LangChain4jModelDefinition();
         definition.setKey(key);
-        definition.setProvider(model.getProvider());
-        definition.setModelType(model.getModelType());
+        definition.setProvider(modelConfig != null && !isBlank(modelConfig.getProvider()) ? modelConfig.getProvider() : model.getProvider());
+        definition.setModelType(modelConfig != null && modelConfig.getModelType() != null ? modelConfig.getModelType() : model.getModelType());
         definition.setEnabled(model.isEnabled());
-        definition.setBaseUrl(model.getBaseUrl());
-        definition.setApiKey(model.getApiKey());
-        definition.setModelName(model.getModelName());
-        definition.setProperties(model.getProperties());
+        definition.setBaseUrl(modelConfig != null && !isBlank(modelConfig.getBaseUrl()) ? modelConfig.getBaseUrl() : model.getBaseUrl());
+        definition.setApiKey(modelConfig != null && !isBlank(modelConfig.getApiKey()) ? modelConfig.getApiKey() : model.getApiKey());
+        definition.setModelName(modelName);
+        definition.setProperties(properties(model, modelConfig));
         return definition;
+    }
+
+    private Map<String, Object> properties(LangChain4jModelProperties.Model model,
+                                           LangChain4jModelProperties.ModelConfig modelConfig) {
+        Map<String, Object> properties = new LinkedHashMap<String, Object>();
+        if (model.getProperties() != null) {
+            properties.putAll(model.getProperties());
+        }
+        if (modelConfig != null && modelConfig.getProperties() != null) {
+            properties.putAll(modelConfig.getProperties());
+        }
+        return properties;
     }
 
     private void validateDefaultModel(String defaultModel, Map<String, LangChain4jModel> models) {

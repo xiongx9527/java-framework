@@ -3,7 +3,10 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @ConfigurationProperties(prefix = "fw-plus.ai.langchain4j.model")
@@ -51,7 +54,11 @@ public class LangChain4jModelProperties {
 
         private String apiKey;
 
-        private String modelName;
+        private List<String> modelName = new ArrayList<String>();
+
+        private String defaultModelName;
+
+        private Map<String, ModelConfig> modelConfigs = new LinkedHashMap<String, ModelConfig>();
 
         private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
@@ -95,12 +102,98 @@ public class LangChain4jModelProperties {
             this.apiKey = apiKey;
         }
 
-        public String getModelName() {
+        public List<String> getModelName() {
             return modelName;
         }
 
-        public void setModelName(String modelName) {
-            this.modelName = modelName;
+        public void setModelName(List<String> modelName) {
+            this.modelName = modelName == null ? new ArrayList<String>() : new ArrayList<String>(modelName);
+        }
+
+        public Map<String, Object> getProperties() {
+            return properties;
+        }
+
+        public void setProperties(Map<String, Object> properties) {
+            this.properties = properties;
+        }
+
+        public String getDefaultModelName() {
+            return defaultModelName;
+        }
+
+        public void setDefaultModelName(String defaultModelName) {
+            this.defaultModelName = defaultModelName;
+        }
+
+        public Map<String, ModelConfig> getModelConfigs() {
+            return modelConfigs;
+        }
+
+        public void setModelConfigs(Map<String, ModelConfig> modelConfigs) {
+            this.modelConfigs = modelConfigs == null ? new LinkedHashMap<String, ModelConfig>() : modelConfigs;
+        }
+
+        public List<String> modelNames() {
+            if (modelName == null) {
+                return Collections.emptyList();
+            }
+            return modelName;
+        }
+    }
+
+    public static class ModelConfig {
+
+        private Boolean enabled;
+
+        private String provider;
+
+        private LangChain4jModelType modelType;
+
+        private String baseUrl;
+
+        private String apiKey;
+
+        private Map<String, Object> properties = new LinkedHashMap<String, Object>();
+
+        public Boolean getEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(Boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getProvider() {
+            return provider;
+        }
+
+        public void setProvider(String provider) {
+            this.provider = provider;
+        }
+
+        public LangChain4jModelType getModelType() {
+            return modelType;
+        }
+
+        public void setModelType(LangChain4jModelType modelType) {
+            this.modelType = modelType;
+        }
+
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public String getApiKey() {
+            return apiKey;
+        }
+
+        public void setApiKey(String apiKey) {
+            this.apiKey = apiKey;
         }
 
         public Map<String, Object> getProperties() {

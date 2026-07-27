@@ -3,6 +3,8 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.DefaultLangChain4jModelRegistry;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition;
+import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelException;
+import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelFactory;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
@@ -13,14 +15,18 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LangChain4jModelAutoConfigurationTest {
@@ -57,8 +63,113 @@ public class LangChain4jModelAutoConfigurationTest {
                     LangChain4jModelRegistry registry = context.getBean(LangChain4jModelRegistry.class);
                     assertTrue(registry.contains("chat"));
                     assertFalse(registry.contains("disabled"));
-                    assertEquals("fake-model", registry.getDefault().getModel());
+                    assertEquals("chat:gpt-4o-mini", registry.getDefault().getModel());
                 });
+    }
+
+    @Test
+    public void shouldCreateModelsFromMultipleModelNamesAndDefaultAlias() {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.model.enabled=true",
+                        "fw-plus.ai.langchain4j.model.default-model=chat-default",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.provider=openai",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-type=chat",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.base-url=http://localhost:11434/v1",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.api-key=demo",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-name[0]=gpt-4o-mini",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-name[1]=qwen-plus",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-name[2]=llama3.1"
+                )
+                .run(context -> {
+                    LangChain4jModelRegistry registry = context.getBean(LangChain4jModelRegistry.class);
+                    assertTrue(registry.contains("chat-default"));
+                    assertTrue(registry.contains("chat-default.gpt-4o-mini"));
+                    assertTrue(registry.contains("chat-default.qwen-plus"));
+                    assertTrue(registry.contains("chat-default.llama3.1"));
+                    assertSame(registry.get("chat-default.gpt-4o-mini"), registry.get("chat-default"));
+                    assertSame(registry.get("chat-default.gpt-4o-mini"), registry.getDefault());
+                    assertEquals("chat-default.qwen-plus:qwen-plus", registry.get("chat-default.qwen-plus").getModel());
+                    assertEquals("chat-default", registry.keys().iterator().next());
+                });
+    }
+
+    @Test
+    public void shouldAllowDefaultModelToReferenceModelNameKey() {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.model.enabled=true",
+                        "fw-plus.ai.langchain4j.model.default-model=chat-default.qwen-plus",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.provider=openai",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-type=chat",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-name[0]=gpt-4o-mini",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-name[1]=qwen-plus"
+                )
+                .run(context -> {
+                    LangChain4jModelRegistry registry = context.getBean(LangChain4jModelRegistry.class);
+                    assertSame(registry.get("chat-default.qwen-plus"), registry.getDefault());
+                    assertSame(registry.get("chat-default.gpt-4o-mini"), registry.get("chat-default"));
+                });
+    }
+
+    @Test
+    public void shouldUseConfiguredDefaultModelName() {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.model.enabled=true",
+                        "fw-plus.ai.langchain4j.model.default-model=chat-default",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.provider=openai",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-type=chat",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.default-model-name=qwen-plus",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-name[0]=gpt-4o-mini",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-name[1]=qwen-plus"
+                )
+                .run(context -> {
+                    LangChain4jModelRegistry registry = context.getBean(LangChain4jModelRegistry.class);
+                    assertTrue(registry.contains("chat-default"));
+                    assertTrue(registry.contains("chat-default.gpt-4o-mini"));
+                    assertTrue(registry.contains("chat-default.qwen-plus"));
+                    assertSame(registry.get("chat-default.qwen-plus"), registry.get("chat-default"));
+                    assertSame(registry.get("chat-default.qwen-plus"), registry.getDefault());
+                });
+    }
+
+    @Test
+    public void shouldMergePerModelNamePropertiesOverSharedProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.model.enabled=true",
+                        "fw-plus.ai.langchain4j.model.default-model=chat-default",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.provider=openai",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-type=chat",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-name[0]=gpt-4o-mini",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-name[1]=qwen-plus",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.properties.temperature=0.2",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.properties.maxTokens=1024",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-configs.qwen-plus.properties.temperature=0.7",
+                        "fw-plus.ai.langchain4j.model.models.chat-default.model-configs.qwen-plus.properties.maxTokens=2048"
+                )
+                .run(context -> {
+                    LangChain4jModelRegistry registry = context.getBean(LangChain4jModelRegistry.class);
+                    assertEquals("chat-default.gpt-4o-mini:gpt-4o-mini:0.2:1024",
+                            registry.get("chat-default.gpt-4o-mini").getModel());
+                    assertEquals("chat-default.qwen-plus:qwen-plus:0.7:2048",
+                            registry.get("chat-default.qwen-plus").getModel());
+                });
+    }
+
+    @Test
+    public void shouldFailWhenGeneratedModelNameKeyDuplicatesFlatModelKey() {
+        LangChain4jModelProperties properties = new LangChain4jModelProperties();
+        properties.getModels().put("chat-default.gpt-4o-mini", model("openai", LangChain4jModelType.CHAT, "gpt-4o-mini"));
+        properties.getModels().put("chat-default", model("openai", LangChain4jModelType.CHAT,
+                "gpt-4o-mini", "qwen-plus"));
+
+        LangChain4jModelException exception = assertThrows(LangChain4jModelException.class,
+                () -> new LangChain4jModelAutoConfiguration().langChain4jModelRegistry(properties, testFactory(),
+                        Collections.<LangChain4jModelProviderAdapter>emptyList()));
+
+        assertTrue(exception.getMessage().contains("Model key is duplicated: chat-default.gpt-4o-mini"));
     }
 
     @Test
@@ -164,6 +275,25 @@ public class LangChain4jModelAutoConfigurationTest {
         return definition;
     }
 
+    private LangChain4jModelProperties.Model model(String provider, LangChain4jModelType modelType, String... modelNames) {
+        LangChain4jModelProperties.Model model = new LangChain4jModelProperties.Model();
+        model.setProvider(provider);
+        model.setModelType(modelType);
+        model.setModelName(Arrays.asList(modelNames));
+        return model;
+    }
+
+    private LangChain4jModelFactory testFactory() {
+        return new LangChain4jModelFactory() {
+            @Override
+            public LangChain4jModel create(LangChain4jModelDefinition definition,
+                                           List<LangChain4jModelProviderAdapter> adapters) {
+                return new LangChain4jModel(definition.getProvider(), definition.getModelType(),
+                        definition.getKey() + ":" + definition.getModelName());
+            }
+        };
+    }
+
     @Configuration
     static class FakeAdapterConfiguration {
 
@@ -177,7 +307,12 @@ public class LangChain4jModelAutoConfigurationTest {
 
                 @Override
                 public LangChain4jModel create(LangChain4jModelDefinition definition) {
-                    return new LangChain4jModel(definition.getProvider(), definition.getModelType(), "fake-model");
+                    String value = definition.getKey() + ":" + definition.getModelName();
+                    if (definition.getProperties().containsKey("temperature")) {
+                        value = value + ":" + definition.getProperties().get("temperature")
+                                + ":" + definition.getProperties().get("maxTokens");
+                    }
+                    return new LangChain4jModel(definition.getProvider(), definition.getModelType(), value);
                 }
             };
         }

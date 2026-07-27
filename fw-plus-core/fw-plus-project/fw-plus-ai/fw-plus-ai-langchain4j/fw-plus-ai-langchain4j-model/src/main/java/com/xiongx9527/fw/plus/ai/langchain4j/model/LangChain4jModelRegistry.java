@@ -8,6 +8,10 @@ public interface LangChain4jModelRegistry {
 
     LangChain4jModel getDefault();
 
+    default String getDefaultKey() {
+        return null;
+    }
+
     boolean contains(String key);
 
     Set<String> keys();
