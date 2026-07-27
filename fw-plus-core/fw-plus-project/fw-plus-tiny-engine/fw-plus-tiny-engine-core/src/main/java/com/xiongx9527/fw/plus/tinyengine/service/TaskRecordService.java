@@ -8,4 +8,16 @@ import java.util.List;
 public interface TaskRecordService extends IService<TaskRecord> {
 
 	List<TaskRecord> queryAllTaskRecord();
+
+	TaskRecord queryTaskRecordById(Integer id);
+
+	List<TaskRecord> queryTaskRecordByCondition(TaskRecord taskRecord);
+
+	Integer deleteTaskRecordById(Integer id);
+
+	Integer updateTaskRecordById(TaskRecord taskRecord);
+
+	Integer createTaskRecord(TaskRecord taskRecord);
+
+	List<List<TaskRecord>> status(int taskTypeId, String uniqueIds);
 }

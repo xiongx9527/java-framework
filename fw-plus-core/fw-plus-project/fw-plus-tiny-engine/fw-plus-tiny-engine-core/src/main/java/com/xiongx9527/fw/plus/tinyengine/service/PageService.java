@@ -8,4 +8,18 @@ import java.util.List;
 public interface PageService extends IService<Page> {
 
 	List<Page> queryAllPage(Integer appId);
+
+	Page queryPageById(Integer id);
+
+	List<Page> queryPageByCondition(Page page);
+
+	Page delPage(Integer id);
+
+	Page createPage(Page page);
+
+	Page createFolder(Page page);
+
+	Page updatePage(Page page);
+
+	Page update(Page page);
 }
