@@ -14,7 +14,6 @@ package com.xiongx9527.fw.plus.tinyengine.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.xiongx9527.fw.plus.tinyengine.common.model.BaseEntity;
 import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler;
@@ -39,14 +38,14 @@ private String label;
     private String name;
 private String framework;
 
-    @TableField(typeHandler = JacksonTypeHandler.class)
+    @TableField(typeHandler = JsonObjectTypeHandler.class)
 private Map<String, Object> content;
 
-    @TableField(typeHandler = JacksonTypeHandler.class)
+    @TableField(typeHandler = JsonObjectTypeHandler.class)
 private Map<String, Object> assets;
 
     @JsonProperty("last_build_info")
-    @TableField(typeHandler = JacksonTypeHandler.class)
+    @TableField(typeHandler = JsonObjectTypeHandler.class)
 private Map<String, Object> lastBuildInfo;
 private String description;
 @TableField(typeHandler = JsonArrayTypeHandler.class)
