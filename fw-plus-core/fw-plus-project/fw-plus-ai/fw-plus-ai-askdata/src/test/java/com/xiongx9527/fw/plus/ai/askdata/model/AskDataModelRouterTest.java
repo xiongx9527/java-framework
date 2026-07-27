@@ -40,6 +40,29 @@ public class AskDataModelRouterTest {
 	}
 
 	@Test
+	public void shouldFallbackAfterTheFailedRoutePolicyWhenModelKeysAreDuplicated() {
+		AskDataModelRequest request = request("shared-model", "shared-model", "datasource-model", "task-model", "default-model");
+
+		AskDataModelResult requestRoute = router.route(request);
+		AskDataModelResult projectRoute = router.fallback(request,
+				AskDataModelResult.infrastructureFailure(requestRoute, "请求级模型网关暂不可用"));
+		AskDataModelResult datasourceRoute = router.fallback(request,
+				AskDataModelResult.infrastructureFailure(projectRoute, "项目级模型网关暂不可用"));
+
+		assertRoute(requestRoute, "shared-model", AskDataModelRoutePolicy.REQUEST_MODEL_KEY);
+		assertRoute(projectRoute, "shared-model", AskDataModelRoutePolicy.PROJECT_KEY);
+		assertRoute(datasourceRoute, "datasource-model", AskDataModelRoutePolicy.DATASOURCE_KEY);
+	}
+
+	@Test
+	public void shouldRejectWhenDatasourceTaskOrDefaultFailureHasNoFollowingCandidate() {
+		assertNoFallbackCandidate(request("", "", "datasource-model", "", ""),
+				AskDataModelRoutePolicy.DATASOURCE_KEY);
+		assertNoFallbackCandidate(request("", "", "", "task-model", ""), AskDataModelRoutePolicy.AGENT_TASK_KEY);
+		assertNoFallbackCandidate(request("", "", "", "", "default-model"), AskDataModelRoutePolicy.DEFAULT_KEY);
+	}
+
+	@Test
 	public void shouldRejectNonRetryableFailureWithoutFallback() {
 		AskDataModelRequest request = request("request-model", "project-model", "datasource-model", "task-model", "default-model");
 
@@ -74,5 +97,19 @@ public class AskDataModelRouterTest {
 		assertTrue(result.isRouted());
 		assertEquals(modelKey, result.getModelKey());
 		assertEquals(policy, result.getRoutePolicy());
+	}
+
+	private void assertNoFallbackCandidate(final AskDataModelRequest request, AskDataModelRoutePolicy policy) {
+		final AskDataModelResult route = router.route(request);
+		assertEquals(policy, route.getRoutePolicy());
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				new org.junit.jupiter.api.function.Executable() {
+					@Override
+					public void execute() {
+						router.fallback(request, AskDataModelResult.infrastructureFailure(route, "模型网关暂不可用"));
+					}
+				});
+		assertTrue(exception.getMessage().contains("不存在可用于基础设施故障降级"));
 	}
 }
