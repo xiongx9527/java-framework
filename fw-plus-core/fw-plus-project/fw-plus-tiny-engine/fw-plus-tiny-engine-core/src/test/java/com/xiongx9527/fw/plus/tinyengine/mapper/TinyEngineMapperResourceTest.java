@@ -1,13 +1,20 @@
 package com.xiongx9527.fw.plus.tinyengine.mapper;
 
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.builder.xml.XMLMapperBuilder;
+import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.Test;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
-import javax.xml.parsers.DocumentBuilderFactory;
+import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler;
+import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler;
+
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -20,91 +27,98 @@ public class TinyEngineMapperResourceTest {
 	private static final String MAPPER_PACKAGE = "com.xiongx9527.fw.plus.tinyengine.mapper.";
 	private static final String LEGACY_PACKAGE = "com.tiny" + "engine.it";
 	private static final String LEGACY_JSON_TYPE_HANDLER = "Jackson" + "TypeHandler";
-	private static final String[] MAPPER_NAMES = {
-		"AppExtensionMapper", "AppMapper", "AuthUsersUnitsRolesMapper", "BlockCarriersRelationMapper",
-		"BlockGroupBlockMapper", "BlockGroupMapper", "BlockHistoryMapper", "BlockMapper",
-		"BusinessCategoryMapper", "ComponentLibraryMapper", "ComponentMapper", "DatasourceMapper",
-		"I18nEntryMapper", "I18nLangMapper", "MaterialHistoryMapper", "MaterialMapper", "ModelMapper",
-		"PageHistoryMapper", "PageMapper", "PageTemplateMapper", "PlatformHistoryMapper", "PlatformMapper",
-		"ResourceGroupMapper", "ResourceGroupResourceMapper", "ResourceMapper", "TaskRecordMapper",
-		"TenantMapper", "UserMapper"
-	};
 
 	@Test
-	public void shouldPackageOneXmlForEveryMapperInterface() throws Exception {
-		for (String mapperName : MAPPER_NAMES) {
-			Class.forName(MAPPER_PACKAGE + mapperName);
-			InputStream inputStream = getClass().getClassLoader().getResourceAsStream(MAPPER_RESOURCE_ROOT + mapperName + ".xml");
-			assertNotNull(inputStream, mapperName + " 的 XML 资源不存在");
-			inputStream.close();
+	public void shouldPackageOneXmlForEveryMapperInterfaceAndParseAllMappersWithMyBatis() throws Exception {
+		PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver(getClass().getClassLoader());
+		Set<String> mapperNames = findMapperInterfaceNames(resolver);
+		Set<String> mapperXmlNames = new LinkedHashSet<String>();
+		Configuration configuration = new Configuration();
+		configuration.getTypeHandlerRegistry().register(JsonObjectTypeHandler.class);
+		configuration.getTypeHandlerRegistry().register(JsonArrayTypeHandler.class);
+
+		for (Resource resource : resolver.getResources("classpath*:" + MAPPER_RESOURCE_ROOT + "*.xml")) {
+			String mapperName = stripSuffix(resource.getFilename(), ".xml");
+			mapperXmlNames.add(mapperName);
+			assertMapperXmlUsesTinyEngineTypes(resource, mapperName);
+			InputStream inputStream = resource.getInputStream();
+			try {
+				new XMLMapperBuilder(inputStream, configuration, resource.getURL().toExternalForm(), configuration.getSqlFragments()).parse();
+			} finally {
+				inputStream.close();
+			}
 		}
+
+		assertFalse(mapperNames.isEmpty(), "必须扫描到 Tiny Engine Mapper 接口");
+		assertEquals(mapperNames, mapperXmlNames, "Mapper 接口与 XML 资源必须一一对应");
 	}
 
 	@Test
-	public void shouldKeepMapperXmlNamespacesAndTypeReferencesInsideTinyEngineCore() throws Exception {
-		int resourceCount = 0;
-		for (String mapperName : MAPPER_NAMES) {
-			String resourceName = MAPPER_RESOURCE_ROOT + mapperName + ".xml";
-			InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourceName);
-			assertNotNull(inputStream, resourceName + " 不存在");
-			String content = new String(readAll(inputStream), StandardCharsets.UTF_8);
-			assertFalse(content.contains(LEGACY_PACKAGE), resourceName + " 不得保留源项目包名");
-			assertFalse(content.contains(LEGACY_JSON_TYPE_HANDLER), resourceName + " 必须使用 Tiny Engine JSON TypeHandler");
-
-			Document document = parse(resourceName);
-			Element mapper = document.getDocumentElement();
-			assertEquals(MAPPER_PACKAGE + mapperName, mapper.getAttribute("namespace"));
-			assertTypeReferencesUseTinyEnginePackages(resourceName, document);
-			resourceCount++;
-		}
-		assertEquals(MAPPER_NAMES.length, resourceCount, "Mapper XML 数量必须与接口数量一致");
+	public void shouldExposeFindResourcesByAppIdWithNamedParameter() throws Exception {
+		Method method = ResourceMapper.class.getMethod("findResourcesByAppId", Integer.class);
+		Param parameter = method.getParameters()[0].getAnnotation(Param.class);
+		assertNotNull(parameter, "findResourcesByAppId 必须显式声明 MyBatis 参数名");
+		assertEquals("appId", parameter.value());
 	}
 
-	private Document parse(String resourceName) throws Exception {
-		InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourceName);
-		assertNotNull(inputStream, resourceName + " 不存在");
-		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-		factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false);
-		factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-		factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-		factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
-		factory.setXIncludeAware(false);
-		factory.setExpandEntityReferences(false);
+	@Test
+	public void shouldUseCreatedTimeForAppSorting() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+			.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
+		String content = readContent(resource);
+		assertFalse(content.contains("orderBy == 'create_time'"), "AppMapper 不得使用不存在的 create_time 排序字段");
+		assertEquals(2, count(content, "<when test=\"orderBy == 'created_time'\">A.created_time</when>"),
+			"普通应用与应用模板排序都必须支持 created_time");
+	}
+
+	private Set<String> findMapperInterfaceNames(PathMatchingResourcePatternResolver resolver) throws Exception {
+		Set<String> mapperNames = new LinkedHashSet<String>();
+		for (Resource resource : resolver.getResources("classpath*:com/xiongx9527/fw/plus/tinyengine/mapper/*Mapper.class")) {
+			String mapperName = stripSuffix(resource.getFilename(), ".class");
+			Class<?> mapperType = Class.forName(MAPPER_PACKAGE + mapperName);
+			assertTrue(mapperType.isInterface(), mapperType.getName() + " 必须是 Mapper 接口");
+			mapperNames.add(mapperName);
+		}
+		return mapperNames;
+	}
+
+	private void assertMapperXmlUsesTinyEngineTypes(Resource resource, String mapperName) throws Exception {
+		String resourceName = MAPPER_RESOURCE_ROOT + resource.getFilename();
+		String content = readContent(resource);
+		assertFalse(content.contains(LEGACY_PACKAGE), resourceName + " 不得保留源项目包名");
+		assertFalse(content.contains(LEGACY_JSON_TYPE_HANDLER), resourceName + " 必须使用 Tiny Engine JSON TypeHandler");
+		assertTrue(content.contains("namespace=\"" + MAPPER_PACKAGE + mapperName + "\""),
+			resourceName + " namespace 必须匹配 Mapper 接口");
+	}
+
+	private String readContent(Resource resource) throws Exception {
+		InputStream inputStream = resource.getInputStream();
 		try {
-			return factory.newDocumentBuilder().parse(inputStream);
+			java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+			byte[] buffer = new byte[1024];
+			int count;
+			while ((count = inputStream.read(buffer)) >= 0) {
+				outputStream.write(buffer, 0, count);
+			}
+			return new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
 		} finally {
 			inputStream.close();
 		}
 	}
 
-	private void assertTypeReferencesUseTinyEnginePackages(String resourceName, Document document) {
-		NodeList elements = document.getElementsByTagName("*");
-		for (int index = 0; index < elements.getLength(); index++) {
-			Element element = (Element) elements.item(index);
-			assertTypeReference(resourceName, element, "type");
-			assertTypeReference(resourceName, element, "parameterType");
-			assertTypeReference(resourceName, element, "resultType");
-			assertTypeReference(resourceName, element, "javaType");
-			assertTypeReference(resourceName, element, "typeHandler");
-		}
+	private String stripSuffix(String name, String suffix) {
+		assertNotNull(name, "classpath 资源必须包含文件名");
+		assertTrue(name.endsWith(suffix), name + " 必须以 " + suffix + " 结尾");
+		return name.substring(0, name.length() - suffix.length());
 	}
 
-	private void assertTypeReference(String resourceName, Element element, String attributeName) {
-		String value = element.getAttribute(attributeName);
-		if (value.startsWith("com.")) {
-			assertTrue(value.startsWith("com.xiongx9527.fw.plus.tinyengine."),
-				resourceName + " 的 " + attributeName + " 必须指向 Tiny Engine 新包名: " + value);
+	private int count(String content, String expected) {
+		int count = 0;
+		int index = 0;
+		while ((index = content.indexOf(expected, index)) >= 0) {
+			count++;
+			index += expected.length();
 		}
-	}
-
-	private byte[] readAll(InputStream inputStream) throws Exception {
-		java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
-		byte[] buffer = new byte[1024];
-		int count;
-		while ((count = inputStream.read(buffer)) >= 0) {
-			outputStream.write(buffer, 0, count);
-		}
-		inputStream.close();
-		return outputStream.toByteArray();
+		return count;
 	}
 }
