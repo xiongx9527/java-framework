@@ -42,6 +42,11 @@ public class DefaultLangChain4jModelRegistry implements LangChain4jModelRegistry
     }
 
     @Override
+    public String getDefaultKey() {
+        return defaultModelKey;
+    }
+
+    @Override
     public boolean contains(String key) {
         return models.containsKey(key);
     }

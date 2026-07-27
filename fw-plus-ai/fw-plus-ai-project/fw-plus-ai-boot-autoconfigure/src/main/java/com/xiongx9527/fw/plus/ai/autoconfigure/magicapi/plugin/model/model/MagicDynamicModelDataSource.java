@@ -71,6 +71,10 @@ public class MagicDynamicModelDataSource {
         if (springBootRegistry == null) {
             return null;
         }
+        String defaultKey = springBootRegistry.getDefaultKey();
+        if (!isBlank(defaultKey)) {
+            return getModel(defaultKey);
+        }
         LangChain4jModel springDefault = springBootRegistry.getDefault();
         for (String key : springBootRegistry.keys()) {
             LangChain4jModel springModel = springBootRegistry.get(key);
