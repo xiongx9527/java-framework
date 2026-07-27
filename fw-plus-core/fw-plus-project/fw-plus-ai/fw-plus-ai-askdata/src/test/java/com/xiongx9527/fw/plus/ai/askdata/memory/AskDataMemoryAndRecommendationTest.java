@@ -74,6 +74,21 @@ class AskDataMemoryAndRecommendationTest {
 				new Class[] {String.class, String.class, boolean.class}, "project-a", null, true));
 	}
 
+	@Test
+	void 空白操作人仅在策略允许时回退通用建议() throws Exception {
+		Object recommendations = invokeStatic("com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService", "inMemory");
+		invoke(recommendations, "registerGeneric", new Class[] {String.class, String.class}, "project-a", "generic");
+
+		assertTrue(((List<?>) invoke(recommendations, "recommend",
+				new Class[] {String.class, String.class, boolean.class}, "project-a", " ", false)).isEmpty());
+		assertEquals(Collections.singletonList("generic"), invoke(recommendations, "recommend",
+				new Class[] {String.class, String.class, boolean.class}, "project-a", " ", true));
+		assertTrue(((List<?>) invoke(recommendations, "recommend",
+				new Class[] {String.class, String.class, boolean.class}, "project-a", "\u3000", false)).isEmpty());
+		assertEquals(Collections.singletonList("generic"), invoke(recommendations, "recommend",
+				new Class[] {String.class, String.class, boolean.class}, "project-a", "\u3000", true));
+	}
+
 	private static Object entry(AskDataProjectContext context, String datasourceKey, String semanticVersion, String content)
 			throws Exception {
 		Class<?> entryType = Class.forName("com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry");
