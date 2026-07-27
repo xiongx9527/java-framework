@@ -11,9 +11,9 @@
 - OpenSpec mapping: 3.1, 3.5
 - Stage: implementing
 - Implementer: DONE
-- Reviewer: pending
-- Review/fix rounds: 0
-- Review result: pending
+- Reviewer: CHANGES_REQUESTED
+- Review/fix rounds: 1
+- Review result: Critical JSON TypeHandlers use `JSONObject`/`JSONArray` generics but migrated model fields are `Map`/`List`, causing MyBatis bridge casts and `ClassCastException` on normal `HashMap`/`ArrayList` writes. Important: several JSON Map fields still use `JacksonTypeHandler`, and `BlockHistory.contentBlocks` / `Platform.prettierOpts` have wrong handler choices. Minor: model contract test does not verify TypeHandler assignment or explicit AI/Chat exclusions.
 
 ## Evidence
 
