@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.tinyengine.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
 import com.xiongx9527.fw.plus.tinyengine.common.model.PageQueryVo;
 import com.xiongx9527.fw.plus.tinyengine.mapper.*;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.*;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.invocation.Invocation;
 import org.springframework.stereotype.Service;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -33,11 +35,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -348,6 +352,144 @@ class TinyEngineServiceContractTest {
 	}
 
 	@Test
+	void modelDdlRejectsUnsafeTableIdentifier() {
+		ModelMapper mapper = mock(ModelMapper.class);
+		ModelServiceImpl service = new ModelServiceImpl();
+		setBaseMapper(service, mapper);
+		Model model = model("users; DROP TABLE audit", new ParametersDto[0]);
+		when(mapper.selectById(1)).thenReturn(model);
+
+		ServiceException exception = assertThrows(ServiceException.class, () -> service.getTableById(1));
+
+		assertEquals("CM002", exception.getCode());
+	}
+
+	@Test
+	void modelDdlRejectsUnsafeColumnIdentifier() {
+		ModelMapper mapper = mock(ModelMapper.class);
+		ModelServiceImpl service = new ModelServiceImpl();
+		setBaseMapper(service, mapper);
+		ParametersDto field = new ParametersDto();
+		field.setProp("name) COMMENT 'injected'");
+		field.setType("String");
+		Model model = model("safe_table", field);
+		when(mapper.selectById(1)).thenReturn(model);
+
+		ServiceException exception = assertThrows(ServiceException.class, () -> service.getTableById(1));
+
+		assertEquals("CM002", exception.getCode());
+	}
+
+	@Test
+	void modelDdlRejectsUnsafeDefaultValue() {
+		ModelMapper mapper = mock(ModelMapper.class);
+		ModelServiceImpl service = new ModelServiceImpl();
+		setBaseMapper(service, mapper);
+		ParametersDto field = new ParametersDto();
+		field.setProp("status");
+		field.setType("String");
+		field.setDefaultValue("'active'); DROP TABLE audit; --");
+		Model model = model("safe_table", field);
+		when(mapper.selectById(1)).thenReturn(model);
+
+		ServiceException exception = assertThrows(ServiceException.class, () -> service.getTableById(1));
+
+		assertEquals("CM002", exception.getCode());
+	}
+
+	@Test
+	void tenantCreationRejectsNonNumericUserBeforeAnyInsert() {
+		TenantMapper mapper = mock(TenantMapper.class);
+		AuthUsersUnitsRolesMapper relationMapper = mock(AuthUsersUnitsRolesMapper.class);
+		TenantServiceImpl service = new TenantServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "userContext", context("not-a-number", "tenant-9"));
+		ReflectionTestUtils.setField(service, "authUsersUnitsRolesMapper", relationMapper);
+		Tenant tenant = new Tenant();
+		tenant.setNameEn("new-tenant");
+		doAnswer(invocation -> {
+			tenant.setId("12");
+			return 1;
+		}).when(mapper).createTenant(tenant);
+
+		ServiceException exception = assertThrows(ServiceException.class, () -> service.createTenant(tenant));
+
+		assertEquals("CM342", exception.getCode());
+		verify(mapper, never()).createTenant(any(Tenant.class));
+		verify(relationMapper, never()).createAuthUsersUnitsRoles(any(AuthUsersUnitsRoles.class));
+	}
+
+	@Test
+	void tenantCreationRejectsRelationInsertFailureAndIsTransactional() throws Exception {
+		TenantMapper mapper = mock(TenantMapper.class);
+		AuthUsersUnitsRolesMapper relationMapper = mock(AuthUsersUnitsRolesMapper.class);
+		TenantServiceImpl service = new TenantServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "userContext", context("7", "tenant-9"));
+		ReflectionTestUtils.setField(service, "authUsersUnitsRolesMapper", relationMapper);
+		Tenant tenant = new Tenant();
+		tenant.setNameEn("new-tenant");
+		doAnswer(invocation -> {
+			tenant.setId("12");
+			return 1;
+		}).when(mapper).createTenant(tenant);
+		when(relationMapper.createAuthUsersUnitsRoles(any(AuthUsersUnitsRoles.class))).thenReturn(0);
+
+		ServiceException exception = assertThrows(ServiceException.class, () -> service.createTenant(tenant));
+
+		assertEquals("CM001", exception.getCode());
+		verify(mapper).createTenant(tenant);
+		verify(relationMapper).createAuthUsersUnitsRoles(any(AuthUsersUnitsRoles.class));
+		Transactional transactional = TenantServiceImpl.class.getMethod("createTenant", Tenant.class)
+				.getAnnotation(Transactional.class);
+		assertNotNull(transactional);
+		assertTrue(Arrays.asList(transactional.rollbackFor()).contains(Exception.class));
+	}
+
+	@Test
+	void tenantCreationRequiresExactlyOneTenantRow() {
+		TenantMapper mapper = mock(TenantMapper.class);
+		AuthUsersUnitsRolesMapper relationMapper = mock(AuthUsersUnitsRolesMapper.class);
+		TenantServiceImpl service = new TenantServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "userContext", context("7", "tenant-9"));
+		ReflectionTestUtils.setField(service, "authUsersUnitsRolesMapper", relationMapper);
+		Tenant tenant = new Tenant();
+		tenant.setNameEn("new-tenant");
+		when(mapper.createTenant(tenant)).thenReturn(2);
+
+		ServiceException exception = assertThrows(ServiceException.class, () -> service.createTenant(tenant));
+
+		assertEquals("CM001", exception.getCode());
+		verify(relationMapper, never()).createAuthUsersUnitsRoles(any(AuthUsersUnitsRoles.class));
+	}
+
+	@Test
+	void pageDeletionRejectsAnotherUsersOccupancy() {
+		PageMapper mapper = mock(PageMapper.class, invocation -> {
+			if ("deletePageById".equals(invocation.getMethod().getName())) {
+				return 1;
+			}
+			if ("deletePageIfAvailable".equals(invocation.getMethod().getName())) {
+				return 0;
+			}
+			return null;
+		});
+		Page occupiedPage = page(31, 7, true);
+		occupiedPage.setOccupierBy("user-8");
+		when(mapper.queryPageById(31)).thenReturn(occupiedPage);
+		PageServiceImpl service = new PageServiceImpl();
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "userContext", context("user-7", "tenant-9"));
+
+		ServiceException exception = assertThrows(ServiceException.class, () -> service.delPage(31));
+
+		assertEquals("CM001", exception.getCode());
+		assertInvocation(mapper, "deletePageIfAvailable", 31, "user-7");
+		verify(mapper, never()).deletePageById(31);
+	}
+
+	@Test
 	void canvasLockAndUnlockUseGuardedAtomicUpdates() {
 		PageMapper pageMapper = mock(PageMapper.class, invocation ->
 				"updatePageOccupierIfAvailable".equals(invocation.getMethod().getName()) ? 1 : null);
@@ -644,6 +786,13 @@ class TinyEngineServiceContractTest {
 		page.setApp(appId);
 		page.setIsPage(isPage);
 		return page;
+	}
+
+	private static Model model(String nameEn, ParametersDto... parameters) {
+		Model model = new Model();
+		model.setNameEn(nameEn);
+		model.setParameters(Arrays.asList(parameters));
+		return model;
 	}
 
 	private static TinyEngineUserContext context(String userId, String tenantId) {

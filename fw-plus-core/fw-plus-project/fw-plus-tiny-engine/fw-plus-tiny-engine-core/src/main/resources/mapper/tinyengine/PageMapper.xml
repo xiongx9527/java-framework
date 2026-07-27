@@ -287,6 +287,13 @@
         WHERE id = #{id}
     </delete>
 
+	<delete id="deletePageIfAvailable">
+		DELETE
+		FROM t_page
+		WHERE id = #{id}
+		  AND (occupier_by IS NULL OR occupier_by = #{userId})
+	</delete>
+
     <!-- 根据主键id更新表t_page数据 -->
     <update id="updatePageById" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.Page">
         UPDATE t_page

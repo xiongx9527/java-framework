@@ -90,7 +90,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 				throw new ServiceException(ExceptionEnum.CM002.getResultCode(), "Folder is not empty");
 			}
 		}
-		if (baseMapper.deletePageById(id) < 1) {
+		if (!Integer.valueOf(1).equals(baseMapper.deletePageIfAvailable(id, getCurrentUserId()))) {
 			throw error(ExceptionEnum.CM001);
 		}
 		return page;
