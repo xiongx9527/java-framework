@@ -121,11 +121,8 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
     }
 
     private Map<String, Object> properties(VectorDataSourceInfo info) {
-        Map<String, Object> properties = new LinkedHashMap<String, Object>();
-        if (info.getProperties() != null) {
-            properties.putAll(info.getProperties());
-        }
-        mergeJsonProperties(properties, config(info, "properties", properties.isEmpty() ? null : JSON.toJSONString(properties)));
+        Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(
+                info.getProperties(), config(info, "properties", null));
         for (String propertyKey : CONFIG_PROPERTY_KEYS) {
             String value = config(info, propertyKey, stringValue(properties.get(propertyKey)));
             if (!isBlank(value)) {
@@ -133,14 +130,6 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
             }
         }
         return properties;
-    }
-
-    private void mergeJsonProperties(Map<String, Object> properties, String json) {
-        if (isBlank(json)) {
-            return;
-        }
-        properties.putAll(JSON.parseObject(json, new TypeReference<Map<String, Object>>() {
-        }));
     }
 
     private List<String> metadataKeys(VectorDataSourceInfo info) {
@@ -161,17 +150,7 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
     }
 
     private String config(VectorDataSourceInfo info, String configKey, String defaultValue) {
-        String provider = info.getProvider();
-        if ("milvus".equalsIgnoreCase(provider)) {
-            return MagicAPIConfigUtils.getMilvusConfig(info.getKey(), configKey, defaultValue);
-        }
-        if ("qdrant".equalsIgnoreCase(provider)) {
-            return MagicAPIConfigUtils.getQdrantConfig(info.getKey(), configKey, defaultValue);
-        }
-        if ("weaviate".equalsIgnoreCase(provider)) {
-            return MagicAPIConfigUtils.getWeaviateConfig(info.getKey(), configKey, defaultValue);
-        }
-        return defaultValue;
+        return MagicAPIConfigUtils.getVectorConfig(info.getKey(), configKey, defaultValue);
     }
 
     private String stringValue(Object value) {

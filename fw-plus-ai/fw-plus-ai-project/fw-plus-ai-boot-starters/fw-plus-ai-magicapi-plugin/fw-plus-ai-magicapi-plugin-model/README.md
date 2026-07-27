@@ -176,6 +176,22 @@ Magic 控制台中新增的数据源类型是 `model-datasource`，运行态资�
 
 列表输出会脱敏或移除 `apiKey`、`secretKey`、`accessToken`、`token`、`password`，`properties` 内同名敏感字段也会过滤。创建模型时这些凭证会合并到 `LangChain4jModelDefinition.properties`，供 provider adapter 使用。
 
+### 配置中心覆盖
+
+可通过 `magic.api.model.<key>.*` 覆盖运行态资源中的 `provider`、`modelType`、`baseUrl` 以及 `apiKey`、`secretKey`、`accessToken`、`token`、`password`。例如：
+
+```yaml
+magic:
+  api:
+    model:
+      local-chat:
+        baseUrl: http://localhost:11434/v1
+        apiKey: ${OPENAI_API_KEY:demo}
+        properties: '{"temperature":0.3,"maxTokens":1024}'
+```
+
+配置中心存在 `properties` JSON 时，其内容会完整替代资源文件中的 `properties`。其他字段仍按各自配置键覆盖资源值。
+
 ## MagicScript 用法
 
 ```javascript

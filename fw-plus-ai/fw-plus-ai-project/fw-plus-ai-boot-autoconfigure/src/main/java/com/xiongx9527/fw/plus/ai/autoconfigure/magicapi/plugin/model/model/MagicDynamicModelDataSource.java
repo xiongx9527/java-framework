@@ -1,10 +1,12 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelException;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelFactory;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
+import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,15 +35,16 @@ public class MagicDynamicModelDataSource {
 
     public void createClient(ModelDataSourceInfo info) {
         validateKey(info);
-        destroyClientByKey(info.getKey());
-        if (!info.isEnabled()) {
+        ModelDataSourceInfo configuredInfo = configured(info);
+        destroyClientByKey(configuredInfo.getKey());
+        if (!configuredInfo.isEnabled()) {
             return;
         }
-        validateEnabled(info);
-        ModelDataSourceInfo runtimeInfo = info.copy();
-        Map<String, LangChain4jModel> models = createModels(info);
+        validateEnabled(configuredInfo);
+        ModelDataSourceInfo runtimeInfo = configuredInfo.copy();
+        Map<String, LangChain4jModel> models = createModels(configuredInfo);
         runtimeModels.putAll(models);
-        runtimeInfos.put(info.getKey(), runtimeInfo);
+        runtimeInfos.put(configuredInfo.getKey(), runtimeInfo);
     }
 
     public void destroyClientByKey(String key) {
@@ -157,6 +160,31 @@ public class MagicDynamicModelDataSource {
         }
         models.put(info.getKey(), defaultModel);
         return models;
+    }
+
+    private ModelDataSourceInfo configured(ModelDataSourceInfo source) {
+        ModelDataSourceInfo info = source.copy();
+        info.setProvider(config(info, "provider", info.getProvider()));
+        info.setModelType(modelType(config(info, "modelType", info.getModelType() == null ? null : info.getModelType().name())));
+        info.setBaseUrl(config(info, "baseUrl", info.getBaseUrl()));
+        info.setApiKey(config(info, "apiKey", info.getApiKey()));
+        info.setSecretKey(config(info, "secretKey", info.getSecretKey()));
+        info.setAccessToken(config(info, "accessToken", info.getAccessToken()));
+        info.setToken(config(info, "token", info.getToken()));
+        info.setPassword(config(info, "password", info.getPassword()));
+        info.setProperties(MagicAPIConfigUtils.mergeProperties(info.getProperties(), config(info, "properties", null)));
+        return info;
+    }
+
+    private LangChain4jModelType modelType(String value) {
+        if (isBlank(value)) {
+            return null;
+        }
+        return LangChain4jModelType.valueOf(value.trim().toUpperCase());
+    }
+
+    private String config(ModelDataSourceInfo info, String configKey, String defaultValue) {
+        return MagicAPIConfigUtils.getModelConfig(info.getKey(), configKey, defaultValue);
     }
 
     private boolean isBlank(String value) {

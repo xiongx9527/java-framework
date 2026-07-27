@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector;
 
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.model.MagicDynamicVectorDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.model.VectorDataSourceInfo;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
@@ -9,7 +10,10 @@ import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegist
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.util.TestPropertyValues;
+import org.springframework.context.support.GenericApplicationContext;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -17,12 +21,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MagicDynamicVectorDataSourceTest {
+
+    private GenericApplicationContext applicationContext;
+
+    @AfterEach
+    public void tearDown() {
+        if (applicationContext != null) {
+            applicationContext.close();
+            new SpringUtils().setApplicationContext(null);
+        }
+    }
 
     @Test
     public void shouldUseSpringBootRegistryAsDefaultDataSource() {
@@ -74,6 +88,37 @@ public class MagicDynamicVectorDataSourceTest {
         assertFalse(hasNode(nodes, "other"));
     }
 
+    @Test
+    public void shouldUseVectorConfigurationPropertiesInsteadOfDatasourceDefaults() {
+        configure("magic.api.vector.runtime.properties={\"host\":\"configured-host\",\"custom\":\"configured\"}",
+                "magic.api.vector.runtime.apiKey=configured-api-key");
+        RecordingFactory factory = new RecordingFactory();
+        MagicDynamicVectorDataSource dataSource = new MagicDynamicVectorDataSource(
+                registryWith("boot", new InMemoryEmbeddingStore<TextSegment>(), "boot"), factory,
+                Collections.<EmbeddingStoreProviderAdapter>emptyList());
+        VectorDataSourceInfo info = new VectorDataSourceInfo();
+        info.setKey("runtime");
+        info.setProvider("in-memory");
+        Map<String, Object> defaults = new LinkedHashMap<String, Object>();
+        defaults.put("host", "default-host");
+        defaults.put("legacyOnly", "default-value");
+        info.setProperties(defaults);
+
+        dataSource.createClient(info);
+
+        assertEquals("configured-host", factory.definition.getProperties().get("host"));
+        assertEquals("configured", factory.definition.getProperties().get("custom"));
+        assertEquals("configured-api-key", factory.definition.getProperties().get("apiKey"));
+        assertFalse(factory.definition.getProperties().containsKey("legacyOnly"));
+    }
+
+    private void configure(String... properties) {
+        applicationContext = new GenericApplicationContext();
+        TestPropertyValues.of(properties).applyTo(applicationContext);
+        applicationContext.refresh();
+        new SpringUtils().setApplicationContext(applicationContext);
+    }
+
     private EmbeddingStoreRegistry registryWith(String key, EmbeddingStore<TextSegment> store, String defaultKey) {
         Map<String, EmbeddingStore<TextSegment>> stores = new LinkedHashMap<String, EmbeddingStore<TextSegment>>();
         stores.put(key, store);
@@ -91,9 +136,11 @@ public class MagicDynamicVectorDataSourceTest {
 
     private static class RecordingFactory implements EmbeddingStoreFactory {
         private final EmbeddingStore<TextSegment> createdStore = new InMemoryEmbeddingStore<TextSegment>();
+        private EmbeddingStoreDefinition definition;
 
         @Override
         public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition, List<EmbeddingStoreProviderAdapter> adapters) {
+            this.definition = definition;
             return createdStore;
         }
     }

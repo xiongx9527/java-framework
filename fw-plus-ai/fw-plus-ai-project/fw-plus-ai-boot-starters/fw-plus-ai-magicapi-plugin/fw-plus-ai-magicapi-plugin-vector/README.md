@@ -113,11 +113,20 @@ Magic 控制台中新增的数据源类型是 `vector-datasource`，运行态资
 
 常见 `properties` 字段包括：`host`、`port`、`uri`、`collectionName`、`apiKey`、`token`、`username`、`password`、`databaseName`、`indexType`、`metricType`、`consistencyLevel`、`retrieveEmbeddingsOnSearch`、`autoFlushOnInsert`、`payloadTextKey`、`useTls`、`utls`、`scheme`、`className`、`useGrpcForInserts`、`securedGrpc`、`grpcPort`、`avoidDups`、`textFieldName`。
 
-兼容旧配置中心时，`milvus`、`qdrant`、`weaviate` provider 还会读取这些路径补充配置：
+### 配置中心覆盖
 
-- `magic.api.milvus.<key>.*`
-- `magic.api.qdrant.<key>.*`
-- `magic.api.weaviate.<key>.*`
+可通过 `magic.api.vector.<key>.*` 覆盖运行态资源中的 `dimension`、`metadataKeys`、`properties` 和上述常见扩展属性。例如：
+
+```yaml
+magic:
+  api:
+    vector:
+      knowledge:
+        properties: '{"uri":"http://127.0.0.1:19530","collectionName":"knowledge"}'
+        apiKey: token
+```
+
+配置中心存在 `properties` JSON 时，其内容会完整替代资源文件中的 `properties`；单独配置的常见扩展属性仍会覆盖该 JSON 中的同名值。
 
 ## MagicScript 用法
 
