@@ -279,11 +279,11 @@ git commit -m "feat: add tiny engine utilities"
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineModelContractTest test`
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -DskipTests compile`
 
-- [ ] **Step 1: 写领域核对清单测试**
+- [x] **Step 1: 写领域核对清单测试**
 
 Create `TinyEngineModelContractTest` that loads `tinyengine/model-domain-checklist.txt` and asserts every listed class exists under `com.xiongx9527.fw.plus.tinyengine.model.entity` or `model.dto`.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试**
 
 Run:
 
@@ -294,15 +294,15 @@ cd fw-plus-core
 
 Expected: FAIL because migrated model classes do not exist.
 
-- [ ] **Step 3: 迁移实体**
+- [x] **Step 3: 迁移实体**
 
 Move entity classes by domain in small batches. Update package names, imports, table annotations, field annotations, inheritance from `BaseEntity` / `HistoryEntity`, and JSON field type references. Remove Web/OpenAPI annotations and any Controller-only validation assumptions.
 
-- [ ] **Step 4: 迁移 DTO**
+- [x] **Step 4: 迁移 DTO**
 
 Move request/response/service DTOs required by service interfaces. Keep DTOs free of Servlet/OpenAPI annotations; validation annotations may use `javax.validation.*` only when already managed and required by service code.
 
-- [ ] **Step 5: 运行测试与编译**
+- [x] **Step 5: 运行测试与编译**
 
 Run:
 
@@ -314,7 +314,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit Task 4**
+- [x] **Step 6: Commit Task 4**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core
