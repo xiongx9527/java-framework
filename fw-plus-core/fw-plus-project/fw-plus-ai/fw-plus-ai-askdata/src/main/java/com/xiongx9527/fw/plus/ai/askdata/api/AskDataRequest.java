@@ -50,9 +50,19 @@ public class AskDataRequest {
 	}
 
 	private static String requireNonBlank(String value, String fieldName) {
-		if (value == null || value.trim().length() == 0) {
+		if (value == null || isBlank(value)) {
 			throw new IllegalArgumentException(fieldName + " 不能为空白");
 		}
 		return value.trim();
+	}
+
+	private static boolean isBlank(String value) {
+		for (int index = 0; index < value.length(); index++) {
+			char character = value.charAt(index);
+			if (!Character.isWhitespace(character) && !Character.isSpaceChar(character)) {
+				return false;
+			}
+		}
+		return true;
 	}
 }
