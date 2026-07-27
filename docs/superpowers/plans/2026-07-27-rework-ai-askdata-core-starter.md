@@ -197,11 +197,11 @@ git commit -m "feat: define askdata core api contracts"
 - Produces: deterministic selection for models, vectors, SQL plugins, stores, runtime adapters, observability exporters
 - Consumes: Core API from Task 2
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试 Task 3**
 
 Test duplicate key rejection, incompatible version rejection, priority ordering, unknown key diagnostic, and cluster-incompatible capability rejection.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试 Task 3**
 
 ```bash
 cd fw-plus-core
@@ -210,15 +210,15 @@ cd fw-plus-core
 
 Expected: FAIL.
 
-- [ ] **Step 3: 实现能力注册表**
+- [x] **Step 3: 实现能力注册表 Task 3**
 
 Use immutable defensive copies, Java 8 collections, and Chinese Javadoc explaining why Core only sees descriptors and not vendor clients.
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证 Task 3**
 
 Run the same test. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 3**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/capability \

@@ -2,15 +2,15 @@
 
 ## 当前任务
 
-- Plan task: `Task 2: 定义 Core API 与上下文对象`
-- OpenSpec task mapping: `1.1 在 fw-plus-ai 聚合中新增 fw-plus-ai-askdata 模块，并定义 AskData 请求、结果、错误、项目上下文及 Java 8 兼容的公开服务接口。`（Task 1 已完成 Maven 模块创建，本任务完成 API 契约后再同步勾选）
+- Plan task: `Task 3: 定义能力注册表与版本协商`
+- OpenSpec task mapping: `1.3 定义版本化能力描述符、能力提供者和注册表，支持模型、向量、SQL、存储和事件插件的启动期选择、排序、冲突和兼容性校验。`
 - Stage: `done`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `9c48128246f99024d263c71136e9f0e5186cefc6`
-- Implementer commit: `199715ac8cb7e61eb3bac0f0b308685b80fa9637`
-- Task brief: `.superpowers/sdd/task-2-brief.md`
-- Implementer report: `.superpowers/sdd/task-2-report.md`
+- Base commit: `d0dbe61a7cd730dcad548b2152a3ff319275db65`
+- Implementer commit: `06d8fe95c0ce0679647a911893333e621ef1ff51`
+- Task brief: `.superpowers/sdd/task-3-brief.md`
+- Implementer report: `.superpowers/sdd/askdata-task-3-report.md`
 
 ## 派发记录
 
@@ -27,3 +27,11 @@
 - 2026-07-27：第二轮 fix agent 返回 `DONE`，提交 `6cec58dc`；RED 新增 3 项按预期失败，GREEN 为 `AskDataApiContractTest` 9 项通过。协调者在 AskData 分支复跑同一测试，结果 9 项通过。
 - 2026-07-27：Task 2 最终 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved；仅记录 Minor：三个 DTO 的私有校验辅助方法可补充更细中文注释，后续最终审查可统一关注。
 - 2026-07-27：已勾选 plan 中 Task 2 的 5 个 step，并同步勾选 OpenSpec task 1.1。
+- 2026-07-27：准备派发 Task 3 implementer。允许修改范围限定为 `fw-plus-ai-askdata` 模块内 capability 源码与对应测试；禁止修改其他 active change、TinyEngine、tiny-engine-backend-java。
+- 2026-07-27：implementer 返回 `DONE`，提交 `06d8fe95`；RED 为能力注册类型不存在，GREEN 为 `AskDataCapabilityRegistryTest` 5 项通过。implementer 风险备注：版本协商仅支持点分数字版本，尚未自动装配厂商 Provider。
+- 2026-07-27：Task 3 reviewer 返回 `Needs fixes`；Important 问题为当前 `0.1.1-SNAPSHOT` 无法参与版本协商，以及公开 SPI/构造器/getter 中文注释不足。当前 thorough 修复轮次：1/2。
+- 2026-07-27：fix agent 返回 `DONE`，提交 `4f434681`；RED 覆盖 SNAPSHOT 解析失败和非法限定词未校验，GREEN 为 `AskDataCapabilityRegistryTest` 8 项通过。协调者在 AskData 分支复跑同一测试，结果 8 项通过。
+- 2026-07-27：Task 3 re-reviewer 仍返回 `Needs fixes`；Important 问题为 `DefaultAskDataCapabilityRegistry` 两个公开构造器缺少中文 Javadoc。当前 thorough 修复轮次：2/2。
+- 2026-07-27：第二轮 fix agent 返回 `DONE`，提交 `01381635`；仅补充 `DefaultAskDataCapabilityRegistry` 公开构造器中文 Javadoc，`AskDataCapabilityRegistryTest` 8 项通过。协调者在 AskData 分支复跑同一测试，结果 8 项通过。
+- 2026-07-27：Task 3 最终 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
+- 2026-07-27：已勾选 plan 中 Task 3 的 5 个 step，并同步勾选 OpenSpec task 1.3。
