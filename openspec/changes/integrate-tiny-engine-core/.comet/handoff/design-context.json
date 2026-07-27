@@ -1,0 +1,14 @@
+{
+  "change": "integrate-tiny-engine-core",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "1397aac6720b6e6732d687637aaf489f1aaf8b22bd41d1230d4d99e846d3c068",
+  "files": [
+    { "path": "openspec/changes/integrate-tiny-engine-core/proposal.md", "sha256": "f9d54e9e68e1046d4f4346fc55816d9196c4f5b6ce6250673417326ac338f009" },
+    { "path": "openspec/changes/integrate-tiny-engine-core/design.md", "sha256": "8ab74a172e2d603a28745436c31e39d052d07c2b13430947169b68856bb3bf30" },
+    { "path": "openspec/changes/integrate-tiny-engine-core/tasks.md", "sha256": "d4d948abb5a21b1bfbb36f777f39e355e606e0da9ee81b8d16193ba7db361d73" },
+    { "path": "openspec/changes/integrate-tiny-engine-core/specs/tiny-engine-core-domain/spec.md", "sha256": "c2129008e2f97c076606b44d5db4e82b7f0254942b7fe0fc7ebc9af3600fb435" }
+  ]
+}
