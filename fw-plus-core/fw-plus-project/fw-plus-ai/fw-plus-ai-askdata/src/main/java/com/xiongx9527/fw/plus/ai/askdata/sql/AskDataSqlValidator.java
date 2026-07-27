@@ -8,6 +8,15 @@ package com.xiongx9527.fw.plus.ai.askdata.sql;
  */
 public interface AskDataSqlValidator {
 
+	/**
+	 * 校验 SQL 命令是否符合当前安全策略。
+	 *
+	 * <p>实现应基于命令中的 SQL、项目上下文、命名参数及授权对象进行判定；返回拒绝结果而非
+	 * {@code null}，以便插件链保留明确的失败分类。</p>
+	 *
+	 * @param command 待校验的最终 SQL 命令
+	 * @return 非空的校验结果
+	 */
 	Result validate(AskDataSqlCommand command);
 
 	enum FailureCategory {

@@ -14,10 +14,21 @@ public class AskDataSqlAudit {
 
 	private final List<Record> records = new ArrayList<Record>();
 
+	/**
+	 * 记录一次插件链处理阶段。
+	 *
+	 * @param interceptorKey 已校验的插件标识或固定阶段标识
+	 * @param phase 当前处理阶段
+	 */
 	public synchronized void record(String interceptorKey, String phase) {
 		records.add(new Record(interceptorKey, phase));
 	}
 
+	/**
+	 * 获取当前审计记录的不可修改快照。
+	 *
+	 * @return 按记录顺序排列的审计记录快照
+	 */
 	public synchronized List<Record> getRecords() {
 		return Collections.unmodifiableList(new ArrayList<Record>(records));
 	}
