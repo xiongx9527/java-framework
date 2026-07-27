@@ -9,12 +9,12 @@
 
 - Task: Task 6: 迁移核心服务接口、实现与扩展点
 - OpenSpec mapping: 4.1, 4.2, 4.3, 4.4
-- Stage: blocked
+- Stage: task-review
 - Implementer: Mendel DONE
 - Reviewer: Meitner completed first task review; Peirce re-review returned Needs fixes; Beauvoir final re-review returned Needs fixes
-- Fixer: Boole DONE; Rawls DONE
-- Review/fix rounds: 2
-- Review result: Blocked after 2 thorough review-fix rounds
+- Fixer: Boole DONE; Rawls DONE; third fixer pending dispatch
+- Review/fix rounds: 3
+- Review result: User approved third fix round after blocked final re-review
 
 ## Evidence
 
@@ -29,3 +29,4 @@
 - Re-review findings: Critical skeletal service contracts remain for 21 services including AppService, AppExtensionService, DatasourceService, UserService, MaterialService, and BlockHistoryService; Important service contract tests still do not cover complete signatures/generics for most services; Important Canvas lock is not atomic and ignores update row count.
 - Second fix evidence: Rawls committed `3f1eddeff58f016a2c71afd62ac7cad391759a21`; coordinator reran targeted tests with 17 passed, 0 failures, 0 errors; compile succeeded; production forbidden scan returned no matches, full scan only matched test assertion literals for `swagger` and `jakarta`; service interfaces now expose multiple core-safe methods instead of single-method skeletons.
 - Final re-review findings: Beauvoir confirmed previous skeleton/signature/Canvas findings are closed, but found 3 new Important issues: `ModelServiceImpl#tableSql` builds DDL from persisted model metadata without identifier/default validation; `TenantServiceImpl#createTenant` inserts tenant before parsing non-numeric user id and does not check relation insert or use a transaction; `PageServiceImpl#delPage` deletes by id without respecting canvas occupier/current-user lock.
+- User decision: user selected option 1 to continue an extra fix round for the 3 final Important findings.
