@@ -39,6 +39,7 @@
 - [x] 6.1 保持现有 `fw-plus-ai-langchain4j-store-embeding`、Magic vector 插件和已有 LangChain4j provider 模块行为不变。
 - [x] 6.2 补充 README 或示例配置，说明 model starter 最小依赖、provider SDK 显式引入方式、旧 Magic LangChain4j 插件迁移方式和 `model-datasource` 配置示例。
 - [x] 6.3 检查所有新增 Java 代码避免使用 Java 9+ API，并保持包名、缩进和现有命名风格一致。
+- [x] 6.4 根据多模态补充要求，保留 `AUDIO`、`VIDEO`、`PDF` 扩展 modelType，并说明它们需要自定义 provider adapter 接入。
 
 ## 7. 验证
 

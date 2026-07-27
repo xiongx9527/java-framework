@@ -31,7 +31,7 @@
 在 `fw-plus-ai-langchain4j` 聚合下新增 `fw-plus-ai-langchain4j-model`，包名建议为 `com.xiongx9527.fw.plus.ai.langchain4j.model`。模块内容仿照 store 模块组织：
 
 - `LangChain4jModelDefinition`：保存 `key`、`provider`、`modelType`、`enabled`、`baseUrl`、`apiKey`、`modelName`、`properties` 等通用配置。
-- `LangChain4jModelType`：定义 `CHAT`、`STREAMING_CHAT`、`EMBEDDING`、`IMAGE`、`LANGUAGE`、`STREAMING_LANGUAGE`、`MODERATION`、`SCORING`。
+- `LangChain4jModelType`：定义 `CHAT`、`STREAMING_CHAT`、`EMBEDDING`、`IMAGE`、`LANGUAGE`、`STREAMING_LANGUAGE`、`MODERATION`、`SCORING`，并保留 `AUDIO`、`VIDEO`、`PDF` 作为 fw-plus 扩展能力登记类型。
 - `LangChain4jModel`：包装原生 LangChain4j model，暴露 `getModelType()`、`getProvider()`、`getModel()`。
 - `LangChain4jModelProviderAdapter`：以 provider + modelType 判断是否支持，并创建原生模型或包装模型。
 - `LangChain4jModelFactory` / `DefaultLangChain4jModelFactory`：选择 adapter、统一异常语义、禁止返回 null。
@@ -84,7 +84,7 @@ Magic 插件侧新增模型动态资源能力，资源类型明确为 `model-dat
 
 - [Risk] 删除旧 Magic-API LangChain4j 插件会破坏旧脚本路径和 `langchain4j-datasource` 资源。→ Mitigation: 在 proposal/spec/tasks 中明确为破坏性替换，更新样例、starter 依赖、前端插件和文档，提供迁移说明。
 - [Risk] provider SDK 缺失时 adapter bean 或模型创建可能失败。→ Mitigation: adapter 通过条件装配或运行期类检测隔离，错误信息包含 provider、modelType 和 key。
-- [Risk] 将模型类型抽象过宽可能导致 API 难以稳定。→ Mitigation: 第一版覆盖 LangChain4j 0.35.0 core 中实际存在的模型接口：Chat、Streaming Chat、Embedding、Image、Language、Streaming Language、Moderation、Scoring；Audio、Video、PDF 等作为多模态 Chat 内容载体说明和使用，不抽象为不存在的独立模型接口。
+- [Risk] 将模型类型抽象过宽可能导致 API 难以稳定。→ Mitigation: 第一版内置 provider adapter 只覆盖 LangChain4j 0.35.0 core 中实际存在的模型接口：Chat、Streaming Chat、Embedding、Image、Language、Streaming Language、Moderation、Scoring；`AUDIO`、`VIDEO`、`PDF` 仅作为 fw-plus 扩展能力登记类型保留，默认不映射为不存在的 LangChain4j 独立模型接口。
 - [Risk] starter 不默认传递 provider SDK 会让首次使用多一步依赖配置。→ Mitigation: README 或示例说明最小依赖组合，并与 store starter 的既有边界保持一致。
 - [Risk] Magic 动态模型创建可能泄露 apiKey 等敏感字段到日志或前端响应。→ Mitigation: 控制器返回前过滤敏感字段，日志只打印 key、provider 和 modelType。
 
@@ -103,7 +103,8 @@ Rollback 策略：若新 Magic model 插件验证失败，可回退本 change �
 
 - 当前实现以 LangChain4j 0.35.0 为编译目标：Chat 接口使用 `ChatLanguageModel`，流式 Chat 接口使用 `StreamingChatLanguageModel`。
 - 高版本 LangChain4j 已将上述接口演进为 `ChatModel` 与 `StreamingChatModel`；本 change 的 README/迁移文档必须说明该版本差异。
-- LangChain4j 0.35.0 与高版本均有 `ImageContent`、`AudioContent`、`VideoContent`、`PdfFileContent` 等多模态内容类型；它们通过 Chat 消息输入使用，不代表存在独立 `AudioModel` 或 `VideoModel`。
+- LangChain4j 0.35.0 与高版本均有 `ImageContent`、`AudioContent`、`VideoContent`、`PdfFileContent` 等多模态内容类型；它们通过 Chat 消息输入使用，不代表存在独立 `AudioModel`、`VideoModel` 或 `PdfModel` 统一接口。
+- `AUDIO`、`VIDEO`、`PDF` 是 fw-plus 为 Magic 资源和业务适配器保留的扩展 `modelType`，默认自动配置不注册内置 provider adapter；需要使用时由业务自定义 `LangChain4jModelProviderAdapter` 接入厂商 SDK 或业务封装。
 
 ## Open Questions
 

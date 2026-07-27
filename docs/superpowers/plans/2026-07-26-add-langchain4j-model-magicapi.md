@@ -124,7 +124,7 @@ base-ref: 7b1c788fd198b832c41ad83baf58e40bb5e5f8bb
 - Consumes: LangChain4j 0.35.0 基础接口包；不消费具体 provider SDK。
 - Produces:
   - `LangChain4jModelDefinition` fields: `String key`, `String provider`, `LangChain4jModelType modelType`, `boolean enabled`, `String baseUrl`, `String apiKey`, `String modelName`, `Map<String, Object> properties`
-  - `LangChain4jModelType` values: `CHAT`, `STREAMING_CHAT`, `EMBEDDING`, `IMAGE`, `LANGUAGE`, `STREAMING_LANGUAGE`, `MODERATION`, `SCORING`
+  - `LangChain4jModelType` values: `CHAT`, `STREAMING_CHAT`, `EMBEDDING`, `IMAGE`, `LANGUAGE`, `STREAMING_LANGUAGE`, `MODERATION`, `SCORING`, `AUDIO`, `VIDEO`, `PDF`
   - `LangChain4jModel` constructor: `LangChain4jModel(String provider, LangChain4jModelType modelType, Object model)`
   - `LangChain4jModelProviderAdapter.supports(LangChain4jModelDefinition definition): boolean`
   - `LangChain4jModelProviderAdapter.create(LangChain4jModelDefinition definition): LangChain4jModel`
@@ -698,7 +698,7 @@ Expected: FAIL because provider adapter support classes do not exist.
 Implement provider adapter classes so each adapter declares exact provider names:
 `openai`, `azure-openai`, `qwen`, `ollama`, `anthropic`, `qianfan`, `zhipu`, `hugging-face`, `local-ai`, `gemini`, `voyage-ai`, `all-mini-lm-l6-v2-quantized`.
 
-For each provider, register only the model types backed by LangChain4j 0.35.0 classes present in this repository or in the existing 0.35.0 provider integrations. Keep the core `LangChain4jModelType` enum complete (`MODERATION` and `SCORING` remain valid core types), but do not register provider adapters for Moderation or Scoring unless the exact 0.35.0 provider builder class is locally confirmed. Audio, Video and PDF are Chat multimodal content capabilities, not independent provider adapter model types.
+For each provider, register only the model types backed by LangChain4j 0.35.0 classes present in this repository or in the existing 0.35.0 provider integrations. Keep the core `LangChain4jModelType` enum complete (`MODERATION` and `SCORING` remain valid core types). `AUDIO`, `VIDEO`, and `PDF` remain valid fw-plus extension model types for Magic resources and business adapters, but the default auto-configuration must not register provider adapters for them unless a real provider SDK or business wrapper is supplied through a custom `LangChain4jModelProviderAdapter`.
 
 ```text
 openai: CHAT, STREAMING_CHAT, EMBEDDING, IMAGE, LANGUAGE, STREAMING_LANGUAGE
@@ -1181,7 +1181,7 @@ Document LangChain4j version compatibility:
 - 本模块以 LangChain4j 0.35.0 编译，Chat 类型对应 `ChatLanguageModel`，Streaming Chat 类型对应 `StreamingChatLanguageModel`。
 - 高版本 LangChain4j 使用 `ChatModel` / `StreamingChatModel` 命名，当前版本不能引用这些类。
 - 0.35.0 已有 `TextContent`、`ImageContent`、`AudioContent`、`VideoContent`、`PdfFileContent` 等多模态内容类型；高版本继续通过 Chat 请求承载多模态输入。
-- 不存在独立 `AudioModel` / `VideoModel`，不要在 `modelType` 中新增这两个值；音频、视频、PDF 是 Chat 输入内容能力。
+- LangChain4j 0.35.0 和当前 1.x 文档没有独立 `AudioModel` / `VideoModel` / `PdfModel` 统一接口；`AUDIO`、`VIDEO`、`PDF` 是 fw-plus 为 Magic 资源和业务适配器保留的扩展 `modelType`，默认不注册内置 provider adapter。
 
 - [x] **Task 9 Step 3: Run targeted core verification**
 

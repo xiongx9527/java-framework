@@ -16,6 +16,7 @@
 - **WHEN** 检查 `fw-plus-ai-langchain4j-model` 源码
 - **THEN** 它提供模型定义、模型类型、provider adapter、模型工厂、模型 registry 和模型异常等通用类型。
 - **AND** 模型类型覆盖 LangChain4j 0.35.0 core 中真实存在的 Chat、Streaming Chat、Embedding、Image、Language、Streaming Language、Moderation 和 Scoring。
+- **AND** 模型类型保留 `AUDIO`、`VIDEO`、`PDF` 作为 fw-plus 扩展能力登记类型，但默认不把它们映射为 LangChain4j 内置 provider adapter。
 - **AND** 这些类型位于 `com.xiongx9527.fw.plus.ai.langchain4j.model` 包下。
 
 #### Scenario: 模型模块保持轻量依赖
@@ -80,7 +81,7 @@
 #### Scenario: Magic 脚本按 key 获取模型
 - **WHEN** Magic 脚本通过 model 模块访问已注册的模型 key
 - **THEN** 系统返回对应 LangChain4j 模型包装对象或受控访问对象。
-- **AND** 该对象可以根据 modelType 暴露 Chat、Streaming Chat、Embedding、Image、Language、Streaming Language、Moderation 或 Scoring 能力。
+- **AND** 该对象可以根据 modelType 暴露 Chat、Streaming Chat、Embedding、Image、Language、Streaming Language、Moderation、Scoring 或自定义扩展模型能力。
 
 #### Scenario: Spring Boot 模型与 Magic 动态模型共存
 - **WHEN** 同时存在 Spring Boot 配置模型和 Magic 动态创建模型
@@ -121,4 +122,5 @@
 - **WHEN** 检查 README 或迁移文档
 - **THEN** 它说明当前实现以 LangChain4j 0.35.0 编译，Chat 类型使用 `ChatLanguageModel`，Streaming Chat 类型使用 `StreamingChatLanguageModel`。
 - **AND** 它说明高版本 LangChain4j 使用 `ChatModel` / `StreamingChatModel`，这些类名不得在 0.35.0 编译代码中使用。
-- **AND** 它说明 `ImageContent`、`AudioContent`、`VideoContent`、`PdfFileContent` 等是 Chat 多模态输入内容，不是独立 `AudioModel` / `VideoModel` 模型类型。
+- **AND** 它说明 `ImageContent`、`AudioContent`、`VideoContent`、`PdfFileContent` 等是 Chat 多模态输入内容，不是 LangChain4j 0.35.0 或当前 1.x 的独立 `AudioModel` / `VideoModel` / `PdfModel` 统一接口。
+- **AND** 它说明 `AUDIO`、`VIDEO`、`PDF` 是 fw-plus 为 Magic 资源和业务适配器保留的扩展 modelType，使用时需要自定义 `LangChain4jModelProviderAdapter` 接入厂商 SDK 或业务封装。
