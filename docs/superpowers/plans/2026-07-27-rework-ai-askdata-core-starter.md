@@ -332,11 +332,11 @@ git commit -m "feat: add askdata state storage contracts"
 - Produces: MyBatis-like SQL plugin SPI with final safety boundary
 - Consumes: project/operator context and metadata descriptors
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试 Task 6**
 
 Cover plugin ordering, named parameter binding, multi-statement rejection, write SQL rejection, unauthorized object rejection, and final validation after plugin rewrite.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试 Task 6**
 
 ```bash
 cd fw-plus-core
@@ -345,15 +345,15 @@ cd fw-plus-core
 
 Expected: FAIL.
 
-- [ ] **Step 3: 实现管线契约**
+- [x] **Step 3: 实现管线契约 Task 6**
 
 Implement value objects and chain orchestration. Keep actual SQL parser pluggable; define validator result and failure categories now.
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证 Task 6**
 
 Run the same test. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 6**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql \

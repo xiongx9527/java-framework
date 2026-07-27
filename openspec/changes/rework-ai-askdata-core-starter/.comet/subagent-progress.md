@@ -2,15 +2,15 @@
 
 ## 当前任务
 
-- Plan task: `Task 5: 定义存储、检查点、Agent 状态和监控日志 SPI`
-- OpenSpec task mapping: `1.5` / `1.6` / `5.3` 的 Core 存储契约子集（本任务只覆盖 Core SPI 与默认内存实现，JDBC/Redis/业务适配由后续任务继续）
+- Plan task: `Task 6: 定义 SQL 命令、插件链和安全校验契约`
+- OpenSpec task mapping: `1.4` / `4.2` / `4.3` 的 Core SQL 管线契约子集（本任务只覆盖 Core SQL 命令、拦截器链与校验抽象，执行器和方言实现由后续任务继续）
 - Stage: `done`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `264869840aff6c80932eaa109decf6fbdba641cc`
-- Implementer commit: `628387a33331011f599a94c79e42180a8242fbd6`
-- Task brief: `.superpowers/sdd/task-5-brief.md`
-- Implementer report: `.superpowers/sdd/askdata-task-5-report.md`
+- Base commit: `5a2532fa1918f209da16f8e98bf02b239986366e`
+- Implementer commit: `5789032937656cd2ff783f5a3f5d031e90f17ec2`
+- Task brief: `.superpowers/sdd/task-6-brief.md`
+- Implementer report: `.superpowers/sdd/askdata-task-6-report.md`
 
 ## 派发记录
 
@@ -47,3 +47,11 @@
 - 2026-07-27：fix agent 返回 `DONE`，提交 `326c5677`；RED 复现日志满 1000 后 `append(null)` 导致有效日志丢失，GREEN 为 `AskDataStoreContractTest` 7 项通过。协调者在 AskData 分支复跑同一测试，结果 7 项通过。
 - 2026-07-27：Task 5 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
 - 2026-07-27：已勾选 plan 中 Task 5 的 5 个 step；OpenSpec 1.5/1.6/5.3 仍包含租约、幂等、共享存储、生命周期事件和查询等后续内容，本任务不单独勾选。
+- 2026-07-27：准备派发 Task 6 implementer。允许修改范围限定为 `fw-plus-ai-askdata` 模块内 sql 源码与对应测试；禁止修改其他 active change、TinyEngine、tiny-engine-backend-java。
+- 2026-07-27：implementer 返回 `DONE`，提交 `57890329`；RED 为 SQL 管线契约类型不存在，GREEN 为 `AskDataSqlPipelineTest` 6 项通过。风险备注：实际方言 SQL Parser、对象解析和执行绑定适配器由后续实现提供。
+- 2026-07-27：Task 6 reviewer 返回 `Needs fixes`；Critical 问题为插件可返回新 `AskDataSqlCommand` 篡改 context/参数/授权对象并让最终校验基于被扩权命令通过；Important 问题为排序比较可能整数溢出；Minor 为 `AskDataSqlInterceptor` 方法中文 Javadoc 不足。当前 thorough 修复轮次：1/2。
+- 2026-07-27：fix agent 返回 `DONE`，提交 `a8d31ce6`；RED 覆盖三种安全字段篡改与极值排序，GREEN 为 `AskDataSqlPipelineTest` 10 项通过。协调者在 AskData 分支复跑同一测试，结果 10 项通过。
+- 2026-07-27：Task 6 re-reviewer 仍返回 `Needs fixes`；Important 问题为插件 `getKey()` 可在构造校验后动态变化并伪造审计身份，需构造期快照 key；Minor 为 `AskDataSqlValidator`/`AskDataSqlAudit` 方法级中文 Javadoc 不足。当前 thorough 修复轮次：2/2。
+- 2026-07-27：第二轮 fix agent 返回 `DONE`，提交 `b7fdf7e4`；RED 覆盖动态 key 审计伪造，GREEN 为 `AskDataSqlPipelineTest` 11 项通过。协调者在 AskData 分支复跑同一测试，结果 11 项通过。
+- 2026-07-27：Task 6 最终 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
+- 2026-07-27：已勾选 plan 中 Task 6 的 5 个 step，并同步勾选 OpenSpec task 1.4；OpenSpec 4.2/4.3 仍包含执行、方言改写、安全强化和审计结果等后续内容，本任务不单独勾选。
