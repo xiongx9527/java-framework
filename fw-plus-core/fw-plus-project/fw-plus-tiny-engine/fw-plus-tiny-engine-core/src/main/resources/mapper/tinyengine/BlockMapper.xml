@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xiongx9527.fw.plus.tinyengine.mapper.BlockMapper">
+
+    <!-- 通用设置 -->
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Column_List">
+        id
+        , label, name, framework, content, assets, last_build_info, description, tags, latest_version,
+        latest_history_id, screenshot, path, occupier_by, is_official, `public`, is_default, tiny_reserved, npm_name,
+        i18n, platform_id, app_id, content_blocks, created_by, last_updated_by, created_time,
+        last_updated_time, tenant_id, renter_id, site_id
+    </sql>
+
+    <!-- 通用条件列 -->
+    <sql id="BlockByCondition">
+        <if test="label!=null and label!=''">
+            AND label = #{label}
+        </if>
+        <if test="name!=null and name!=''">
+            AND name = #{name}
+        </if>
+        <if test="framework!=null and framework!=''">
+            AND framework = #{framework}
+        </if>
+        <if test="content!=null and content!=''">
+            AND content = #{content}
+        </if>
+        <if test="assets!=null and assets!=''">
+            AND assets = #{assets}
+        </if>
+        <if test="lastBuildInfo!=null and lastBuildInfo!=''">
+            AND last_build_info = #{lastBuildInfo}
+        </if>
+        <if test="description!=null and description!=''">
+            AND description = #{description}
+        </if>
+        <if test="tags!=null and tags!=''">
+            AND tags = #{tags}
+        </if>
+        <if test="latestVersion!=null and latestVersion!=''">
+            AND latest_version = #{latestVersion}
+        </if>
+        <if test="latestHistoryId!=null and latestHistoryId!=''">
+            AND latest_history_id = #{latestHistoryId}
+        </if>
+        <if test="screenshot!=null and screenshot!=''">
+            AND screenshot = #{screenshot}
+        </if>
+        <if test="path!=null and path!=''">
+            AND path = #{path}
+        </if>
+        <if test="occupierBy!=null and occupierBy!=''">
+            AND occupier_by = #{occupierBy}
+        </if>
+        <if test="isOfficial!=null">
+            AND is_official = #{isOfficial}
+        </if>
+        <if test="publicStatus!=null">
+            AND `public` = #{publicStatus}
+        </if>
+        <if test="isDefault!=null">
+            AND is_default = #{isDefault}
+        </if>
+        <if test="isTinyReserved!=null">
+            AND tiny_reserved = #{isTinyReserved}
+        </if>
+        <if test="npmName!=null and npmName!=''">
+            AND npm_name = #{npmName}
+        </if>
+        <if test="i18n!=null and i18n!=''">
+            AND i18n = #{i18n}
+        </if>
+        <if test="platformId!=null">
+            AND platform_id = #{platformId}
+        </if>
+        <if test="appId!=null">
+            AND app_id = #{appId}
+        </if>
+        <if test="contentBlocks!=null and contentBlocks!=''">
+            AND content_blocks = #{contentBlocks}
+        </if>
+        <if test="createdBy!=null and createdBy!=''">
+            AND created_by = #{createdBy}
+        </if>
+        <if test="lastUpdatedBy!=null and lastUpdatedBy!=''">
+            AND last_updated_by = #{lastUpdatedBy}
+        </if>
+        <if test="createdTime!=null">
+            AND created_time = #{createdTime}
+        </if>
+        <if test="lastUpdatedTime!=null">
+            AND last_updated_time = #{lastUpdatedTime}
+        </if>
+        <if test="tenantId!=null and tenantId!=''">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="renterId!=null and renterId!=''">
+            AND renter_id = #{renterId}
+        </if>
+        <if test="siteId!=null and siteId!=''">
+            AND site_id = #{siteId}
+        </if>
+    </sql>
+
+    <!-- 通用设置列 -->
+    <sql id="BlockSetColumns">
+        <if test="label!=null and label!=''">
+            label = #{label},
+        </if>
+        <if test="name!=null and name!=''">
+            name = #{name},
+        </if>
+        <if test="framework!=null and framework!=''">
+            framework = #{framework},
+        </if>
+        <if test="content!=null and content!=''">
+            content = #{content},
+        </if>
+        <if test="assets!=null and assets!=''">
+            assets = #{assets},
+        </if>
+        <if test="lastBuildInfo!=null and lastBuildInfo!=''">
+            last_build_info = #{lastBuildInfo},
+        </if>
+        <if test="description!=null and description!=''">
+            description = #{description},
+        </if>
+        <if test="tags!=null and tags!=''">
+            tags = #{tags},
+        </if>
+        <if test="latestVersion!=null and latestVersion!=''">
+            latest_version = #{latestVersion},
+        </if>
+        <if test="latestHistoryId!=null and latestHistoryId!=''">
+            latest_history_id = #{latestHistoryId},
+        </if>
+        <if test="screenshot!=null and screenshot!=''">
+            screenshot = #{screenshot},
+        </if>
+        <if test="path!=null and path!=''">
+            path = #{path},
+        </if>
+        <if test="occupierBy!=''">
+            occupier_by = #{occupierBy},
+        </if>
+        <if test="isOfficial!=null">
+            is_official = #{isOfficial},
+        </if>
+        <if test="publicStatus!=null">
+            `public` = #{publicStatus},
+        </if>
+        <if test="isDefault!=null">
+            is_default = #{isDefault},
+        </if>
+        <if test="isTinyReserved!=null">
+            tiny_reserved = #{isTinyReserved},
+        </if>
+        <if test="npmName!=null and npmName!=''">
+            npm_name = #{npmName},
+        </if>
+        <if test="i18n!=null and i18n!=''">
+            i18n = #{i18n},
+        </if>
+        <if test="platformId!=null">
+            platform_id = #{platformId},
+        </if>
+        <if test="appId!=null and appId!=''">
+            app_id = #{appId},
+        </if>
+        <if test="contentBlocks!=null and contentBlocks!=''">
+            content_blocks = #{contentBlocks},
+        </if>
+        <if test="createdBy!=null and createdBy!=''">
+            created_by = #{createdBy},
+        </if>
+        <if test="lastUpdatedBy!=null and lastUpdatedBy!=''">
+            last_updated_by = #{lastUpdatedBy},
+        </if>
+        <if test="createdTime!=null">
+            created_time = #{createdTime},
+        </if>
+        <if test="lastUpdatedTime!=null">
+            last_updated_time = #{lastUpdatedTime},
+        </if>
+        <if test="tenantId!=null and tenantId!=''">
+            tenant_id = #{tenantId},
+        </if>
+        <if test="renterId!=null and renterId!=''">
+            renter_id = #{renterId},
+        </if>
+        <if test="siteId!=null and siteId!=''">
+            site_id = #{siteId},
+        </if>
+    </sql>
+
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BlockMap" type="com.xiongx9527.fw.plus.tinyengine.model.entity.Block">
+        <id column="id" property="id"/>
+        <result column="label" property="label"/>
+        <result column="name" property="name"/>
+        <result column="framework" property="framework"/>
+        <result column="content" property="content"/>
+        <result column="assets" property="assets"/>
+        <result column="last_build_info" property="lastBuildInfo"/>
+        <result column="description" property="description"/>
+        <result column="tags" property="tags"/>
+        <result column="latest_version" property="latestVersion"/>
+        <result column="latest_history_id" property="latestHistoryId"/>
+        <result column="screenshot" property="screenshot"/>
+        <result column="path" property="path"/>
+        <result column="occupier_by" property="occupierBy"/>
+        <result column="is_official" property="isOfficial"/>
+        <result column="public" property="publicStatus"/>
+        <result column="is_default" property="isDefault"/>
+        <result column="tiny_reserved" property="isTinyReserved"/>
+        <result column="npm_name" property="npmName"/>
+        <result column="i18n" property="i18n"/>
+        <result column="platform_id" property="platformId"/>
+        <result column="app_id" property="appId"/>
+        <result column="content_blocks" property="contentBlocks"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="last_updated_by" property="lastUpdatedBy"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="last_updated_time" property="lastUpdatedTime"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="renter_id" property="renterId"/>
+        <result column="site_id" property="siteId"/>
+    </resultMap>
+
+    <!-- 查询表t_block所有数据 -->
+    <select id="queryAllBlock" resultMap="BlockMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_block
+    </select>
+
+    <!-- 根据主键id查询表t_block信息 -->
+    <select id="queryBlockById" resultMap="BlockMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_block
+        <where>
+            id = #{id}
+        </where>
+    </select>
+
+    <!-- 根据条件查询表t_block数据 -->
+    <select id="queryBlockByCondition" resultMap="BlockMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_block
+        WHERE 1=1
+        <include refid="BlockByCondition"/>
+    </select>
+
+    <!--    根据区块分组appId查询表t_block信息-->
+    <select id="findBlocksByBlockGroupIdAppId" resultMap="BlockMap">
+        SELECT b.*
+        FROM t_block b
+                 left JOIN r_block_group_block rbgb ON b.id = rbgb.block_id
+                 left JOIN t_block_group bg ON rbgb.block_group_id = bg.id
+        WHERE bg.app_id = #{appId}
+        GROUP BY b.id
+    </select>
+    <select id="findBlockByBlockGroupId" resultMap="BlockMap">
+        SELECT b.* FROM t_block b
+        LEFT JOIN r_block_group_block bgb on bgb.block_id = b.id
+        LEFT JOIN t_block_group bg ON bgb.block_group_id = bg.id
+        <where>
+            <if test="blockGroupId != null and blockGroupId != ''">
+                AND bg.id = #{blockGroupId}
+            </if>
+            <if test="createdBy != null and createdBy != ''">
+                AND b.created_by = #{createdBy}
+            </if>
+        </where>
+        GROUP BY b.id
+    </select>
+    <!-- 根据name或者description模糊查询表t_block信息 -->
+    <select id="findBlocksByNameCnAndDes" resultMap="BlockMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_block
+        <where>
+            <if test="name != null and name != ''">
+                name like concat('%',#{name},'%')
+            </if>
+            <if test="description != null and description != ''">
+                or description like concat('%',#{description},'%')
+            </if>
+        </where>
+    </select>
+
+    <!-- 根据主键id删除表t_block数据 -->
+    <delete id="deleteBlockById">
+        DELETE
+        FROM t_block
+        WHERE id = #{id}
+    </delete>
+
+    <!-- 根据主键id更新表t_block数据 -->
+    <update id="updateBlockById" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.Block">
+        UPDATE t_block
+        <set>
+            <include refid="BlockSetColumns"/>
+        </set>
+        WHERE
+        id=#{id}
+    </update>
+
+    <!-- 新增表t_block数据 -->
+    <insert id="createBlock" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.Block">
+        INSERT INTO t_block ( id
+                            , label
+                            , name
+                            , framework
+                            , content
+                            , assets
+                            , last_build_info
+                            , description
+                            , tags
+                            , latest_version
+                            , latest_history_id
+                            , screenshot
+                            , path
+                            , occupier_by
+                            , is_official
+                            , `public`
+                            , is_default
+                            , tiny_reserved
+                            , npm_name
+                            , i18n
+                            , platform_id
+                            , app_id
+                            , content_blocks
+                            , created_by
+                            , last_updated_by
+                            , created_time
+                            , last_updated_time
+                            , tenant_id
+                            , renter_id
+                            , site_id)
+        VALUES ( #{id}
+               , #{label}
+               , #{name}
+               , #{framework}
+               , #{content}
+               , #{assets}
+               , #{lastBuildInfo}
+               , #{description}
+               , #{tags}
+               , #{latestVersion}
+               , #{latestHistoryId}
+               , #{screenshot}
+               , #{path}
+               , #{occupierBy}
+               , #{isOfficial}
+               , #{publicStatus}
+               , #{isDefault}
+               , #{isTinyReserved}
+               , #{npmName}
+               , #{i18n}
+               , #{platformId}
+               , #{appId}
+               , #{contentBlocks}
+               , #{createdBy}
+               , #{lastUpdatedBy}
+               , #{createdTime}
+               , #{lastUpdatedTime}
+               , #{tenantId}
+               , #{renterId}
+               , #{siteId})
+    </insert>
+</mapper>
