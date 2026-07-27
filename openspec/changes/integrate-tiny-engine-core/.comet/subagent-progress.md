@@ -15,8 +15,9 @@
 - Review/fix rounds: 1
 - Fixer: DONE
 - Fix commit: b03af1ceea47727f71c39e86c7165a47a5797606
-- Re-review: pending
+- Re-review: CHANGES_REQUESTED
 - Review result: Important PageQueryVo default current page is 0 and should be 1 with normalization; Minor ExceptionEnum CM1110 returns CM110 and should be made consistent or covered by regression. Fix normalized `PageQueryVo.current` to default/minimum 1, corrected `ExceptionEnum.CM1110`, and added regression assertions.
+- Re-review result: Minor test coverage gap; `TinyEngineCommonContractTest` covers `setCurrent(0)` but not a negative current value, so it does not fully lock the `<= 0` normalization contract.
 
 ## Evidence
 
