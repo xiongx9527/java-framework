@@ -288,11 +288,11 @@ git commit -m "feat: add askdata model routing contracts"
 - Produces: memory default for single-node, explicit cluster rejection contract
 - Consumes: `AskDataProjectContext`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试 Task 5**
 
 Test stores isolate by `projectId + operatorId`, reject cluster mode with memory implementation, preserve checkpoint version, and never mark uncertain SQL execution as replayable.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试 Task 5**
 
 ```bash
 cd fw-plus-core
@@ -301,15 +301,15 @@ cd fw-plus-core
 
 Expected: FAIL.
 
-- [ ] **Step 3: 实现 SPI 与内存实现**
+- [x] **Step 3: 实现 SPI 与内存实现 Task 5**
 
 Use synchronized maps or concurrent maps with bounded cleanup where needed. Add Chinese Javadoc explaining memory is for single-node only.
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证 Task 5**
 
 Run the same test. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 5**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/storage \
