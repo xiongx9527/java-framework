@@ -15,9 +15,9 @@
 ## 3. 领域模型、DTO 与持久化资源
 
 - [x] 3.1 迁移 TinyEngine 主要实体和 DTO，覆盖 app、page、page history、page template、canvas、block、block group、material、material history、component、component library、resource、resource group、business category、i18n、platform、tenant、user、extension、task record、model、datasource 和关联关系。
-- [ ] 3.2 迁移对应 Mapper 接口，并按 fw-plus-core 包名和 MyBatis/MyBatis-Plus 版本调整 import、泛型和注解。
-- [ ] 3.3 迁移对应 Mapper XML 到 TinyEngine core 模块资源目录，确保 namespace、resultMap、typeHandler 和 SQL 片段与迁移后包名一致。
-- [ ] 3.4 迁移 MySQL、H2、PostgreSQL 初始化 SQL 资源到模块 classpath 下的稳定位置，并记录资源路径，不在 core 中自动执行。
+- [x] 3.2 迁移对应 Mapper 接口，并按 fw-plus-core 包名和 MyBatis/MyBatis-Plus 版本调整 import、泛型和注解。
+- [x] 3.3 迁移对应 Mapper XML 到 TinyEngine core 模块资源目录，确保 namespace、resultMap、typeHandler 和 SQL 片段与迁移后包名一致。
+- [x] 3.4 迁移 MySQL、H2、PostgreSQL 初始化 SQL 资源到模块 classpath 下的稳定位置，并记录资源路径，不在 core 中自动执行。
 - [x] 3.5 建立实体、Mapper、XML、SQL 资源迁移核对清单，避免主领域对象遗漏。
 
 ## 4. 核心服务迁移

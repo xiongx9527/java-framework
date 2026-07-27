@@ -9,12 +9,12 @@
 
 - Task: Task 5: 迁移 Mapper 接口、XML 与 SQL 资源清单
 - OpenSpec mapping: 3.2, 3.3, 3.4
-- Stage: task-review
+- Stage: done
 - Implementer: DONE_WITH_CONCERNS
-- Reviewer: Linnaeus completed first task review
+- Reviewer: Linnaeus completed first task review; Leibniz re-review approved
 - Fixer: Schrodinger DONE
 - Review/fix rounds: 1
-- Review result: Fix completed; pending re-review
+- Review result: Approved
 
 ## Evidence
 
@@ -27,3 +27,4 @@
 - Concern: source PostgreSQL schema resource is empty; migrated resource is present in the manifest but has 0 bytes. Core only packages and exposes the script list; it does not execute SQL or auto-initialize databases.
 - Reviewer findings: Critical PostgreSQL manifest entry points to 0-byte resource; Important mapper test does not scan actual resources or load XML through MyBatis; Important default manifest includes `init_data_for_test_v1.0.0.sql`; Important `ResourceMapper.xml#findResourcesByAppId` has no mapper interface method; Minor AppMapper sort branch uses `create_time` while column is `created_time`.
 - Fix evidence: Schrodinger committed `fd7caf8da631832cdf70c1e8bae35609f042e6ed`; coordinator reran targeted tests with 8 passed, 0 failures, 0 errors; compile succeeded; forbidden scan returned no matches. PostgreSQL SQL resource is now non-empty, default MySQL/H2 manifest excludes `init_data_for_test_v1.0.0.sql`, `ResourceMapper#findResourcesByAppId` exists with `@Param("appId")`, and AppMapper sort branch uses `created_time`.
+- Re-review: Leibniz approved Task 5; all first-round Critical, Important, and Minor findings are closed.
