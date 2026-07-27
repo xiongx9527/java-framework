@@ -1,132 +1,80 @@
-# Task 5 实施报告
+# Task 5 Report: Model Starter、BOM 与自动配置注册
 
-## 状态
+## 实现内容
 
-DONE_WITH_CONCERNS
+- 新增 `fw-plus-ai-langchain4j-model-spring-boot-starter`，产物坐标为 `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter:${revision}`。
+- Starter 直接依赖 `fw-plus-ai-boot-starter`、`fw-plus-ai-boot-autoconfigure` 与 `fw-plus-ai-langchain4j-model`；后者按现有 AI 自动配置模块模式使用 `${revision}`。
+- 在 `fw-plus-ai-boot-starters` 聚合 POM 注册新模块，并在 `fw-plus-ai-boot-dependencies` BOM 中以 `${project.version}` 管理该 starter。
+- 新增 README 的最小模型配置，明确具体 provider SDK 由业务应用显式引入。
+- 扩展 `LangChain4jAutoConfigurationRegistrationTest`：校验 `spring.factories` 注册 `LangChain4jModelAutoConfiguration`，并通过 XML 结构解析校验 starter 的必要依赖与 provider SDK opt-in 边界。
+- 将该测试类切换为已存在的 JUnit Jupiter `@Test`。模块的 Surefire 使用 JUnit Platform 且没有 JUnit Vintage Engine，原 JUnit 4 注解不会被执行。
 
-## RED 命令和失败摘要
+## TDD Evidence
 
-简报指定的 Maven Wrapper 命令：
+### RED
 
-```bash
-cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest test
-```
-
-失败：worktree 的 `fw-plus-ai/.mvn/wrapper/maven-wrapper.properties` 和 `maven-wrapper.jar` 缺失，Wrapper 无法启动。
-
-按简报规定使用 Zulu 8 系统 Maven 的替代命令：
-
-```bash
-cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest test
-```
-
-失败：测试编译找不到 `LegacyVectorModuleSupport`，符合实现前的预期 RED。
-
-## GREEN 命令和通过摘要
-
-```bash
-cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest test
-```
-
-通过：2 个测试，0 failures，0 errors，0 skipped。
-
-```bash
-cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest,VectorModuleTest,MagicAPIVectorConfigurationTest test
-```
-
-通过：8 个测试，0 failures，0 errors，0 skipped。
-
-## Provider Builder 静态扫描结果
+先按 brief 尝试 Wrapper：
 
 ```bash
 cd fw-plus-ai
-rg -n "RedisEmbeddingStore\\.builder|MilvusEmbeddingStore\\.builder|QdrantEmbeddingStore\\.builder|WeaviateEmbeddingStore\\.builder" fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin
+./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=LangChain4jAutoConfigurationRegistrationTest test
 ```
 
-无输出。旧 Magic-API 插件源码不再调用 provider store builder。
+失败原因符合环境限制：`.mvn/wrapper/maven-wrapper.properties` 与 `maven-wrapper.jar` 缺失，最终报出 `ClassNotFoundException: org.apache.maven.wrapper.MavenWrapperMain`。
 
-## Java 9+ API 扫描结果
+使用等价的 Zulu 8 系统 Maven，并在将测试注解切换至 JUnit Jupiter 后得到实际 RED：
 
 ```bash
-rg -n "\\b(List|Set|Map)\\.of\\(|\\.(copyOf|isBlank|strip|repeat|lines|transferTo|readAllBytes|readString|writeString|ofNullable)\\(|\\bvar\\b" fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/{vector,milvus,qdrant,redisstack,weaviate} fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home \
+  mvn -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=LangChain4jAutoConfigurationRegistrationTest test
 ```
 
-无输出，未发现本任务修改范围内的 Java 9+ API。
+关键失败输出：
 
-## 修改文件列表
+```text
+Tests run: 7, Failures: 1, Errors: 0, Skipped: 0
+Model starter POM should exist: .../fw-plus-ai-langchain4j-model-spring-boot-starter/pom.xml
+```
 
-- `docs/vector-magicapi-plugin-migration.md`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy/LegacyVectorModuleSupport.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy/LegacyVectorModuleSupportTest.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/{milvus,qdrant,redisstack,weaviate}/module/*.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/{milvus,qdrant,redisstack,weaviate}/starter/*Configuration.java`
-
-## 提交 Hash
-
-`ac2e8195ff6d2ffc22f3f43cf92052ec1db043cb` `feat(vector): add legacy magicapi vector compatibility`
-
-## 自检结论和 Concerns
-
-四个旧配置和模块均已标记 `@Deprecated`，旧动态入口与旧 build 方法均通过 `LegacyVectorModuleSupport` 的 Core `EmbeddingStoreRegistry` 访问统一 `VectorStoreOperations`；数据源控制器和资源存储未删除。
-
-现有 POM 仍报告 3 条重复 LangChain4j 依赖，测试运行期仍报告 SLF4J 多绑定；均为本任务外既有告警，未阻断本次测试。
-
-## Task 5 Fixer 补充报告
-
-### 状态
-
-DONE_WITH_CONCERNS
-
-### RED 命令和失败摘要
+### GREEN
 
 ```bash
-cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home \
+  mvn -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-model-spring-boot-starter \
+  -am -DskipTests install
 ```
 
-失败符合预期：5 个测试中 3 个失败。四个旧模块动态属性返回旧模块对象而非 `VectorStoreOperations`；旧 `buildEmbeddingStore("legacy-collection", ...)` 尝试访问 registry；registry 内部故障被错误标记为 `Missing key`。
-
-### GREEN 命令和通过摘要
+关键通过输出：10 个 Reactor 项目均为 `SUCCESS`，包括 `fw-plus-ai-langchain4j-model-spring-boot-starter`，总结果为 `BUILD SUCCESS`。
 
 ```bash
-cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home \
+  mvn -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=LangChain4jAutoConfigurationRegistrationTest test
 ```
 
-通过：5 个测试，0 failures，0 errors，0 skipped。
+关键通过输出：
 
-```bash
-cd fw-plus-ai && JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest,VectorModuleTest,MagicAPIVectorConfigurationTest test
+```text
+Tests run: 7, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
 ```
 
-通过：11 个测试，0 failures，0 errors，0 skipped。
+## 文件变更
 
-### Provider Builder 扫描
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-model-spring-boot-starter/pom.xml`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-model-spring-boot-starter/README.md`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/LangChain4jAutoConfigurationRegistrationTest.java`
 
-```bash
-cd fw-plus-ai
-rg -n "RedisEmbeddingStore\\.builder|MilvusEmbeddingStore\\.builder|QdrantEmbeddingStore\\.builder|WeaviateEmbeddingStore\\.builder" fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin
-```
+## 自检结果
 
-无输出。旧 Magic-API 插件没有 provider store builder 调用。
+- `git diff --check` 通过，无空白错误。
+- `mvn dependency:tree '-Dincludes=dev.langchain4j:*'` 仅显示 `fw-plus-ai-langchain4j-model -> dev.langchain4j:langchain4j-core:0.35.0`，未出现 concrete provider SDK。
+- 未修改 Task 4 provider 矩阵、Magic runtime 或 plugin 文件。
 
-### Java 9+ API 扫描
+## concerns
 
-```bash
-rg -n "\\b(List|Set|Map)\\.of\\(|\\.(copyOf|isBlank|strip|repeat|lines|transferTo|readAllBytes|readString|writeString|ofNullable)\\(|\\bvar\\b" fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/{vector,milvus,qdrant,redisstack,weaviate} fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy
-```
-
-无输出，未发现本次修改范围内的 Java 9+ API。
-
-### 改动文件
-
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy/LegacyVectorModuleSupport.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/{milvus,qdrant,redisstack,weaviate}/module/*Module.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy/LegacyVectorModuleSupportTest.java`
-
-### 提交 Hash
-
-`062c2b38c0b1abf28d03bde4e797461915e84047` `fix(vector): correct legacy module delegation`
-
-### Concerns
-
-- 未执行 Task 6 全量验证，仅执行要求的相关测试与扫描。
-- POM 仍有 3 条重复 LangChain4j 依赖告警，测试运行期仍有 SLF4J 多绑定告警；均为本任务外既有问题。
+- `fw-plus-ai/mvnw` 继续不可用，原因是 Wrapper 配置和 jar 缺失；本任务所有 Maven 验证均以 Zulu 8 系统 Maven 完成。
+- `.superpowers/sdd/task-5-brief.md` 是调度产物，按用户说明保留且不纳入业务提交；本报告同样保持 gitignored，不强制提交。

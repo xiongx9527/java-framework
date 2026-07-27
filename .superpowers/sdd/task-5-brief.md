@@ -1,96 +1,81 @@
-### Task 5: 旧向量插件兼容策略与迁移说明
+### Task 5: Model Starter、BOM 与自动配置注册
 
 **Files:**
-- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/milvus/starter/MagicAPIMilvusConfiguration.java`
-- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/qdrant/starter/MagicAPIQdrantConfiguration.java`
-- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/redisstack/starter/MagicAPIRedisStackConfiguration.java`
-- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/weaviate/starter/MagicAPIWeaviateConfiguration.java`
-- Modify: existing `milvus`、`qdrant`、`redisstack`、`weaviate` module classes under `fw-plus-ai-boot-autoconfigure/src/main/java/.../plugin/*/module`
-- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy/LegacyVectorModuleSupport.java`
-- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/legacy/LegacyVectorModuleSupportTest.java`
-- Create: `docs/vector-magicapi-plugin-migration.md`
+- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-model-spring-boot-starter/pom.xml`
+- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-model-spring-boot-starter/README.md`
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml`
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml`
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/LangChain4jAutoConfigurationRegistrationTest.java`
 
 **Interfaces:**
-- Consumes: `EmbeddingStoreRegistry`.
-- Produces: old entry behavior that either delegates to registry by key or fails with a migration message.
-- Produces: migration documentation from old imports to `import vector`.
+- Consumes: Task 3 and Task 4 auto-configuration.
+- Produces:
+  - Maven artifact `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter:${revision}`
+  - Starter dependencies: `fw-plus-ai-boot-starter`, `fw-plus-ai-boot-autoconfigure`, `fw-plus-ai-langchain4j-model`
+  - No direct dependencies on all concrete provider SDK artifacts.
+  - `fw-plus-ai-boot-dependencies` manages the starter with `${project.version}`.
 
-- [ ] **Step 1: Write failing compatibility tests**
+- [ ] **Task 5 Step 1: Write failing registration and dependency test**
 
-Create `LegacyVectorModuleSupportTest` and assert:
+Extend `LangChain4jAutoConfigurationRegistrationTest` with assertions that `spring.factories` contains `LangChain4jModelAutoConfiguration` and that the new starter POM does not contain bulk provider artifacts such as `langchain4j-open-ai`, `langchain4j-ollama`, `langchain4j-dashscope`, `langchain4j-anthropic`, `langchain4j-azure-open-ai`.
 
-```java
-@Test
-public void shouldResolveLegacyProviderKeyThroughUnifiedRegistry() {
-    EmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<TextSegment>();
-    EmbeddingStoreRegistry registry = registryWith("knowledge", store, "knowledge");
-    LegacyVectorModuleSupport support = new LegacyVectorModuleSupport(registry, "milvus");
+- [ ] **Task 5 Step 2: Run test to verify it fails**
 
-    VectorStoreOperations operations = support.get("knowledge");
-
-    assertSame(store, operations.getEmbeddingStore());
-}
-
-@Test
-public void shouldTellUserToMigrateWhenLegacyKeyIsUnknown() {
-    LegacyVectorModuleSupport support = new LegacyVectorModuleSupport(emptyRegistry(), "qdrant");
-
-    try {
-        support.get("missing");
-        fail("Expected MagicAPIVectorException");
-    } catch (MagicAPIVectorException ex) {
-        assertTrue(ex.getMessage().contains("import vector"));
-        assertTrue(ex.getMessage().contains("missing"));
-        assertTrue(ex.getMessage().contains("qdrant"));
-    }
-}
-```
-
-- [ ] **Step 2: Run compatibility tests and verify failure**
-
-Run: `cd fw-plus-ai && ./mvnw -f fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -Dtest=LegacyVectorModuleSupportTest test`
-
-Expected: FAIL because compatibility support does not exist.
-
-- [ ] **Step 3: Implement legacy support**
-
-Implement `LegacyVectorModuleSupport` as a small adapter around `EmbeddingStoreRegistry`. It must not call provider builders, datasource clients, or `RedisStackModule.buildEmbeddingStore(...)`. It returns `VectorStoreOperations` and wraps registry errors into messages like:
-
-```text
-Legacy Magic-API vector provider '<provider>' is deprecated; migrate script to import vector and access vector['<key>']. Missing key: <key>
-```
-
-- [ ] **Step 4: Deprecate old configurations and modules**
-
-Add `@Deprecated` to old provider Magic-API configuration/module classes. For old module access methods, delegate to `LegacyVectorModuleSupport` when `EmbeddingStoreRegistry` is present. If a legacy module still needs old datasource browsing controllers during the transition, keep controllers isolated from embedding-store construction and document that they are datasource-management only.
-
-- [ ] **Step 5: Prevent duplicate provider construction**
-
-Remove or stop using old Magic-API-side methods that build LangChain4j stores directly, including `RedisStackModule.buildEmbeddingStore(...)`, unless they delegate to Core registry. Add tests or static assertions that old module source does not call provider builders such as:
+Run:
 
 ```bash
 cd fw-plus-ai
-rg -n "RedisEmbeddingStore\\.builder|MilvusEmbeddingStore\\.builder|QdrantEmbeddingStore\\.builder|WeaviateEmbeddingStore\\.builder" fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin
+./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=LangChain4jAutoConfigurationRegistrationTest test
 ```
 
-Expected: no output outside Core provider adapter packages.
+Expected: FAIL because the starter POM does not exist and registration assertion is not satisfied.
 
-- [ ] **Step 6: Add migration document**
+- [ ] **Task 5 Step 3: Create starter and BOM entries**
 
-Create `docs/vector-magicapi-plugin-migration.md` with:
+Create the starter module POM, register it in `fw-plus-ai-boot-starters/pom.xml`, and add dependency management in `fw-plus-ai-boot-dependencies/pom.xml`.
 
-- new configuration example using `fw-plus.ai.langchain4j.embedding-store.enabled/default-store/stores`;
-- `import vector` script example;
-- old `import milvus`/`import qdrant`/`import redisstack`/`import weaviate` mapping to `vector['key']`;
-- note that old entries are deprecated compatibility wrappers.
+- [ ] **Task 5 Step 4: Add README usage sample**
 
-- [ ] **Step 7: Run compatibility tests**
+Document this minimal configuration in the new starter README:
 
-Run the command from Step 2.
+```yaml
+fw-plus:
+  ai:
+    langchain4j:
+      model:
+        enabled: true
+        default-model: chat-default
+        models:
+          chat-default:
+            provider: openai
+            model-type: chat
+            base-url: http://localhost:11434/v1
+            api-key: demo
+            model-name: gpt-4o-mini
+            properties: {}
+```
 
-Expected: PASS.
+State that provider SDK dependencies are introduced by the application when needed.
 
-- [ ] **Step 8: Commit**
+- [ ] **Task 5 Step 5: Run starter build and registration test**
 
-Commit message: `feat(vector): add legacy magicapi vector compatibility`.
+Run:
+
+```bash
+cd fw-plus-ai
+./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-model-spring-boot-starter -am -DskipTests install
+./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=LangChain4jAutoConfigurationRegistrationTest test
+```
+
+Expected: both commands PASS.
+
+- [ ] **Task 5 Step 6: Commit this task during execution**
+
+```bash
+git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-model-spring-boot-starter \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/LangChain4jAutoConfigurationRegistrationTest.java
+git commit -m "feat: add langchain4j model starter"
+```
 
