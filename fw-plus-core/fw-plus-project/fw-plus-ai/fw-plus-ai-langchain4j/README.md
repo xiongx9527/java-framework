@@ -17,14 +17,11 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 | `fw-plus-ai-langchain4j-anthropic` | `langchain4j-anthropic-spring-boot-starter` | `dev.langchain4j.anthropic.spring` | `AutoConfig`, `ChatModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-azure-ai-search` | `langchain4j-azure-ai-search-spring-boot-starter` | `dev.langchain4j.azure.aisearch.spring` | `AutoConfig`, `Properties` |
 | `fw-plus-ai-langchain4j-azure-open-ai` | `langchain4j-azure-open-ai-spring-boot-starter` | `dev.langchain4j.azure.openai.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `ImageModelProperties`, `Properties` |
-| `fw-plus-ai-langchain4j-cassandra` | `langchain4j-cassandra` | `dev.langchain4j.store.embedding.astradb`, `dev.langchain4j.store.embedding.cassandra`, `dev.langchain4j.store.memory.chat.cassandra` | `AstraDbEmbeddingStore`, `CassandraEmbeddingStore`, `CassandraEmbeddingStore.Builder`, `CassandraEmbeddingStore.BuilderAstra`, `CassandraChatMemoryStore`, `CassandraChatMemoryStore.Builder`, `CassandraChatMemoryStore.BuilderAstra` |
 | `fw-plus-ai-langchain4j-core` | `langchain4j-spring-boot-starter` | `dev.langchain4j.spring`, `dev.langchain4j.service.spring`, `dev.langchain4j.rag.spring` | `LangChain4jAutoConfig`, `AiService`, `AiServiceFactory`, `AiServiceScannerProcessor`, `AiServiceWiringMode`, `AiServicesAutoConfig`, `ClassPathAiServiceScanner`, `RagAutoConfig`, `RagProperties`, `RetrievalProperties` |
 | `fw-plus-ai-langchain4j-dashscope` | `langchain4j-dashscope-spring-boot-starter` | `dev.langchain4j.dashscope.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties`, `TokenizerProperties` |
 | `fw-plus-ai-langchain4j-elasticsearch` | `langchain4j-elasticsearch-spring-boot-starter` | `dev.langchain4j.store.embedding.elasticsearch.spring` | `ElasticsearchClientHelper`, `ElasticsearchEmbeddingStoreAutoConfiguration`, `ElasticsearchEmbeddingStoreProperties` |
 | `fw-plus-ai-langchain4j-github-models` | `langchain4j-github-models-spring-boot-starter` | `dev.langchain4j.model.githubmodels.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `Properties` |
-| `fw-plus-ai-langchain4j-infinispan` | `langchain4j-infinispan` | `dev.langchain4j.store.embedding.infinispan` | `InfinispanEmbeddingStore`, `InfinispanEmbeddingStore.Builder`, `InfinispanStoreConfiguration`, `LangChainInfinispanItem`, `LangChainItemMarshaller`, `LangChainMetadata`, `LangChainMetadataMarshaller`, `LangchainSchemaCreator` |
 | `fw-plus-ai-langchain4j-milvus` | `langchain4j-milvus-spring-boot-starter` | `dev.langchain4j.store.embedding.milvus.spring` | `MilvusEmbeddingStoreAutoConfiguration`, `MilvusEmbeddingStoreProperties` |
-| `fw-plus-ai-langchain4j-neo4j` | `langchain4j-neo4j` | `dev.langchain4j.rag.content.retriever.neo4j`, `dev.langchain4j.store.embedding.neo4j`, `dev.langchain4j.store.graph.neo4j` | `Neo4jContentRetriever`, `Neo4jContentRetriever.Neo4jContentRetrieverBuilder`, `Neo4jEmbeddingStore`, `Neo4jEmbeddingStore.Neo4jEmbeddingStoreBuilder`, `Neo4jEmbeddingUtils`, `Neo4jException`, `Neo4jGraph`, `Neo4jGraph.Neo4jGraphBuilder` |
 | `fw-plus-ai-langchain4j-ollama` | `langchain4j-ollama-spring-boot-starter` | `dev.langchain4j.ollama.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties` |
 | `fw-plus-ai-langchain4j-openai` | `langchain4j-open-ai-spring-boot-starter` | `dev.langchain4j.openai.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `ImageModelProperties`, `LanguageModelProperties`, `ModerationModelProperties`, `Properties`, `ProxyProperties` |
 | `fw-plus-ai-langchain4j-qianfan` | `langchain4j-qianfan-spring-boot-starter` | `dev.langchain4j.qianfan.spring` | `AutoConfig`, `ChatModelProperties`, `EmbeddingModelProperties`, `LanguageModelProperties`, `Properties` |
@@ -43,37 +40,6 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 
 | 覆盖模块 | Java 8 覆盖依赖 | Java 17 及以上原始依赖 |
 | --- | --- | --- |
-| `fw-plus-ai-langchain4j-cassandra` | 不引入 `com.datastax.astra:astra-db-client`；纯 Cassandra 实现使用 `com.datastax.oss:java-driver-core:4.17.0` | 使用 `dev.langchain4j:langchain4j-cassandra:0.35.0`；上游依赖 `com.datastax.astra:astra-db-client:1.2.4`，其父 POM 管理 `com.datastax.oss:java-driver-core:4.17.0`，并直接声明 `com.fasterxml.jackson.core:jackson-core:2.16.1` |
-| `fw-plus-ai-langchain4j-infinispan` | 使用 `org.infinispan:infinispan-bom:13.0.22.Final`，覆盖 `infinispan-api`、`infinispan-client-hotrod`、`infinispan-remote-query-client`、`infinispan-query-dsl` | 使用 `dev.langchain4j:langchain4j-infinispan:0.35.0`；上游父 POM 管理 `org.infinispan:infinispan-bom:15.0.0.Final`，对应 Infinispan 依赖均为 `15.0.0.Final` |
-| `fw-plus-ai-langchain4j-neo4j` | 使用 `org.neo4j.driver:neo4j-java-driver:4.4.26`；不引入 `org.neo4j:neo4j-cypher-dsl-schema-name-support`，改为本地 Java 8 校验实现 | 使用 `dev.langchain4j:langchain4j-neo4j:0.35.0`；上游依赖 `org.neo4j.driver:neo4j-java-driver:5.15.0` 和 `org.neo4j:neo4j-cypher-dsl-schema-name-support:2023.7.0` |
-
-`fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-neo4j-jdbc` 是本工程自有 JDBC 适配模块，也面向 Java 8，并同样使用 `org.neo4j.driver:neo4j-java-driver:4.4.26`。它与 `fw-plus-ai-langchain4j-neo4j` 的 Java 8 覆盖依赖版本保持一致；但 Java 17 及以上使用 LangChain4j 原始 `langchain4j-neo4j` 时，仍应按上游版本恢复为 Neo4j driver `5.15.0` 和 schema name support `2023.7.0`。
-
-## Cassandra / AstraDB 兼容边界
-
-`langchain4j-cassandra` 上游 `0.35.0` 依赖 `com.datastax.astra:astra-db-client:1.2.4`。经 Maven Central 发布版本扫描，`astra-db-client` 从 `0.7.1` 到 `1.2.7` 均为 Java 11 字节码（class major 55），没有 Java 8 字节码版本。
-
-因此本工程不重写 `astra-db-client`，也不在 Java 8 覆盖模块中引入它：
-
-- `dev.langchain4j.store.embedding.cassandra.CassandraEmbeddingStore` 使用 `com.datastax.oss:java-driver-core:4.17.0` 重写为 Java 8 可编译的纯 Cassandra 版本。
-- `dev.langchain4j.store.memory.chat.cassandra.CassandraChatMemoryStore` 使用 `com.datastax.oss:java-driver-core:4.17.0` 重写为 Java 8 可编译的纯 Cassandra 版本。
-- `dev.langchain4j.store.embedding.astradb.AstraDbEmbeddingStore` 保留同名类作为 Java 8 占位入口，但 AstraDB 功能在 Java 8 下不可用，调用时会明确抛出 `UnsupportedOperationException`。
-- `builderAstra()` 入口保留为占位入口，Java 8 下调用 `build()` 会明确抛出 `UnsupportedOperationException`。
-
-如运行环境是 Java 17 或以上，请直接使用上游 `dev.langchain4j:langchain4j-cassandra:0.35.0` 和 `astra-db-client` 原始实现。
-
-## Infinispan 兼容边界
-
-`langchain4j-infinispan` 上游 `0.35.0` 使用 Infinispan `15.0.0.Final`，该版本为 Java 17 字节码（class major 61）。Java 8 覆盖模块改用仍支持 Java 8 的 `org.infinispan:13.0.22.Final` 依赖，并将上游 record 类改写为普通 Java 类。
-
-如运行环境是 Java 17 或以上，请直接使用上游 `dev.langchain4j:langchain4j-infinispan:0.35.0` 和 Infinispan 15 原始实现。
-
-## Neo4j 兼容边界
-
-`langchain4j-neo4j` 上游 `0.35.0` 使用 `org.neo4j.driver:neo4j-java-driver:5.15.0` 和 `neo4j-cypher-dsl-schema-name-support:2023.7.0`，两者均为 Java 17 字节码。Java 8 覆盖模块改用仍支持 Java 8 的 `org.neo4j.driver:neo4j-java-driver:4.4.26`，并将上游 Java 17 语法和 schema-name sanitizing 依赖改写为 Java 8 实现。
-
-如运行环境是 Java 17 或以上，请直接使用上游 `dev.langchain4j:langchain4j-neo4j:0.35.0` 和 Neo4j 5 原始实现。
-
 `fw-plus-ai-langchain4j-store-embeding` 是本工程自有的向量存储抽象与适配扩展，不属于上游 LangChain4j 类覆盖范围。
 
 ## 覆盖方式
@@ -83,9 +49,6 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 - `dev.langchain4j.spring.*`
 - `dev.langchain4j.openai.spring.*`
 - `dev.langchain4j.store.embedding.*.spring.*`
-- `dev.langchain4j.store.embedding.cassandra.*` / `dev.langchain4j.store.embedding.astradb.*`
-- `dev.langchain4j.store.embedding.infinispan.*`
-- `dev.langchain4j.store.embedding.neo4j.*` / `dev.langchain4j.store.graph.neo4j.*` / `dev.langchain4j.rag.content.retriever.neo4j.*`
 
 构建时，本工程会产出配套坐标的 Java 8 兼容类，供上层 `fw-plus-ai-boot-autoconfigure` 和 starter 依赖使用。这样可以避免 Java 8 环境加载到使用高版本 Java API 或高版本字节码的上游实现。Java 17 及以上环境不需要这些覆盖模块，应使用 LangChain4j 原始 artifact。
 
@@ -96,6 +59,20 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 3. 包名、类名、Spring Bean 名称和配置属性前缀应尽量与上游保持一致，确保自动配置和 starter 行为可替换。
 4. 若新增 LangChain4j 扩展覆盖模块，应同步更新本说明和上层 `LangChain4jAutoConfiguration` 的导入及启动条件。
 5. 若某个上游模块重新恢复 Java 8 兼容，也需要经过编译、自动配置测试和依赖冲突检查后，才能移除本地覆盖。
+
+## 模型 API 版本边界
+
+本工程的模型扩展锁定 LangChain4j `0.35.0`。`CHAT` 使用
+`ChatLanguageModel`，`STREAMING_CHAT` 使用 `StreamingChatLanguageModel`；LangChain4j
+`1.x` 使用 `ChatModel` 和 `StreamingChatModel` 命名，当前版本不能引用这些类。
+
+`TextContent`、`ImageContent`、`AudioContent`、`VideoContent` 和
+`PdfFileContent` 均表示 Chat 请求可携带的多模态内容，而不是独立模型接口。
+`modelType` 保留 `AUDIO`、`VIDEO`、`PDF` 三类 fw-plus 扩展类型，便于 Magic
+资源和业务适配器统一登记；但 LangChain4j `0.35.0` 和当前 `1.x` 文档没有
+独立的 `AudioModel`、`VideoModel` 或 `PdfModel` 统一接口，默认自动配置不会
+为这三类创建内置 provider adapter。需要使用时通过自定义
+`LangChain4jModelProviderAdapter` 接入厂商 SDK 或业务封装。
 
 ## 验证建议
 

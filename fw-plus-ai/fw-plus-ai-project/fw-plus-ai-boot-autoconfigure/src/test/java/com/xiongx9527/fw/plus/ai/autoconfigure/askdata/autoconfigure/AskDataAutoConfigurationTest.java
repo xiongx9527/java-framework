@@ -26,20 +26,36 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidationResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
-import org.junit.Test;
+import com.xiongx9527.fw.plus.ai.langchain4j.model.DefaultLangChain4jModelRegistry;
+import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
+import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.output.Response;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AskDataAutoConfigurationTest {
 
     private static final String SQL = "select count(*) from orders limit 100";
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(AutoConfigurations.of(AskDataAutoConfiguration.class));
+            .withConfiguration(AutoConfigurations.of(
+                    LangChain4jModelAskDataAutoConfiguration.class, AskDataAutoConfiguration.class));
 
     @Test
     public void shouldRegisterAllDefaultAskDataBeans() {
@@ -105,6 +121,40 @@ public class AskDataAutoConfigurationTest {
             assertSame(customProperties, context.getBean(AskDataProperties.class));
             assertTrue("custom-model".equals(context.getBean(AskDataModelRegistry.class).getDefaultChatModelKey()));
         });
+    }
+
+    @Test
+    public void shouldUseDirectLangChain4jBeansWithoutOptionalModelCore() {
+        contextRunner
+                .withClassLoader(new FilteredClassLoader("com.xiongx9527.fw.plus.ai.langchain4j.model"))
+                .withPropertyValues(
+                        "fw.plus.ai.askdata.model.default-chat-model=directChat",
+                        "fw.plus.ai.askdata.model.default-embedding-model=directEmbedding")
+                .withBean("directChat", ChatLanguageModel.class, () -> chatModel("direct-response"))
+                .withBean("directEmbedding", EmbeddingModel.class, () -> embeddingModel(0.3F, 0.7F))
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    AskDataModelRegistry registry = context.getBean(AskDataModelRegistry.class);
+                    assertEquals("direct-response", registry.getChatModel(null).generate("question").getText());
+                    assertEquals(java.util.Arrays.asList(0.3F, 0.7F), registry.getEmbeddingModel(null).embed("question"));
+                });
+    }
+
+    @Test
+    public void shouldUseModelsFromOptionalModelRegistry() {
+        Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
+        models.put("managed", new LangChain4jModel("test", LangChain4jModelType.CHAT,
+                chatModel("managed-response")));
+        LangChain4jModelRegistry modelRegistry = new DefaultLangChain4jModelRegistry(models, "managed");
+
+        contextRunner
+                .withPropertyValues("fw.plus.ai.askdata.model.default-chat-model=managed")
+                .withBean(LangChain4jModelRegistry.class, () -> modelRegistry)
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    assertEquals("managed-response", context.getBean(AskDataModelRegistry.class)
+                            .getChatModel(null).generate("question").getText());
+                });
     }
 
     @Test
@@ -223,6 +273,32 @@ public class AskDataAutoConfigurationTest {
             }
         }
         return false;
+    }
+
+    private ChatLanguageModel chatModel(final String response) {
+        return (ChatLanguageModel) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[] {ChatLanguageModel.class}, new InvocationHandler() {
+                    @Override
+                    public Object invoke(Object proxy, Method method, Object[] args) {
+                        if ("generate".equals(method.getName()) && method.getReturnType() == String.class) {
+                            return response;
+                        }
+                        throw new UnsupportedOperationException(method.toString());
+                    }
+                });
+    }
+
+    private EmbeddingModel embeddingModel(final float... values) {
+        return (EmbeddingModel) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[] {EmbeddingModel.class}, new InvocationHandler() {
+                    @Override
+                    public Object invoke(Object proxy, Method method, Object[] args) {
+                        if ("embed".equals(method.getName())) {
+                            return Response.from(Embedding.from(values));
+                        }
+                        throw new UnsupportedOperationException(method.toString());
+                    }
+                });
     }
 
     private static class TestAskDataSubAgent implements AskDataSubAgent {

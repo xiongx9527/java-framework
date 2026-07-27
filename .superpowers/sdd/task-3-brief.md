@@ -1,206 +1,176 @@
-### Task 3: 公共执行抽象、参数绑定与 Statement/PreparedStatement 支持
+### Task 3: Spring Boot Model Properties 与 Registry AutoConfiguration
 
 **Files:**
-- Create: `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcExecutor.java`
-- Create: `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcSqlPreprocessor.java`
-- Create: `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcParameterBindings.java`
-- Create: `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcParameterMetaData.java`
-- Create: `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcStatementSupport.java`
-- Test: `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/test/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcParameterBindingsTest.java`
-- Test: `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/test/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcStatementSupportTest.java`
+- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelProperties.java`
+- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelAutoConfiguration.java`
+- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelPropertiesTest.java`
+- Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelAutoConfigurationTest.java`
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml`
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/resources/META-INF/spring.factories`
 
 **Interfaces:**
-- Consumes: `GraphJdbcResult`, `GraphJdbcRowSets`, `GraphJdbcDefaults`, `GraphJdbcLifecycle`。
+- Consumes:
+  - `LangChain4jModelDefinition`
+  - `LangChain4jModelFactory`
+  - `LangChain4jModelProviderAdapter`
+  - `LangChain4jModelRegistry`
 - Produces:
-  - `public interface GraphJdbcExecutor { GraphJdbcResult execute(String sql, GraphJdbcParameterBindings bindings) throws SQLException; }`
-  - `public interface GraphJdbcSqlPreprocessor { String preprocess(String sql) throws SQLException; }`
-  - `public final class GraphJdbcParameterBindings`
-  - `public void bind(int parameterIndex, Object value)`
-  - `public Object get(int parameterIndex)`
-  - `public Map<Integer, Object> asMap()`
-  - `public void clear()`
-  - `public int size()`
-  - `public static int countQuestionMarks(String sql)`
-  - `public final class GraphJdbcParameterMetaData implements ParameterMetaData`
-  - `public final class GraphJdbcStatementSupport`
-  - `public static Statement statement(Connection connection, GraphJdbcExecutor executor, GraphJdbcSqlPreprocessor preprocessor, int resultSetType, int resultSetConcurrency, int resultSetHoldability)`
-  - `public static PreparedStatement preparedStatement(Connection connection, GraphJdbcExecutor executor, GraphJdbcSqlPreprocessor preprocessor, String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability)`
+  - `LangChain4jModelProperties` bound from prefix `fw-plus.ai.langchain4j.model`.
+  - `LangChain4jModelProperties.Model` nested JavaBean fields: `String provider`, `LangChain4jModelType modelType`, `boolean enabled`, `String baseUrl`, `String apiKey`, `String modelName`, `Map<String, Object> properties`.
+  - `LangChain4jModelAutoConfiguration.langChain4jModelFactory(): LangChain4jModelFactory` with `@ConditionalOnMissingBean`.
+  - `LangChain4jModelAutoConfiguration.langChain4jModelRegistry(properties, factory, adapters): LangChain4jModelRegistry` with enabled model filtering and default key validation.
 
-- [ ] **Step 1: 写参数绑定失败测试**
-
-`GraphJdbcParameterBindingsTest.java` 覆盖：
+- [ ] **Task 3 Step 1: Write failing properties binding test**
 
 ```java
-@Test
-public void bindingsShouldStoreByOneBasedParameterIndexAndClear() {
-    GraphJdbcParameterBindings bindings = new GraphJdbcParameterBindings();
-    bindings.bind(1, "Tom");
-    bindings.bind(2, null);
-    assertEquals("Tom", bindings.get(1));
-    assertNull(bindings.get(2));
-    assertEquals(Integer.valueOf(2), Integer.valueOf(bindings.size()));
-    bindings.clear();
-    assertEquals(Integer.valueOf(0), Integer.valueOf(bindings.size()));
-}
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model;
 
-@Test
-public void parameterMetadataShouldExposeCountAndNullableUnknown() throws Exception {
-    ParameterMetaData metaData = new GraphJdbcParameterMetaData(2);
-    assertEquals(2, metaData.getParameterCount());
-    assertEquals(ParameterMetaData.parameterNullableUnknown, metaData.isNullable(1));
-    assertEquals(Types.JAVA_OBJECT, metaData.getParameterType(1));
-}
+import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.context.properties.bind.Binder;
+import org.springframework.boot.context.properties.source.ConfigurationPropertySources;
+import org.springframework.mock.env.MockEnvironment;
 
-@Test
-public void countQuestionMarksShouldIgnoreQuotedText() {
-    assertEquals(2, GraphJdbcParameterBindings.countQuestionMarks("MATCH (n) WHERE n.name = ? AND n.note = '?' RETURN ?"));
+import static org.junit.jupiter.api.Assertions.*;
+
+public class LangChain4jModelPropertiesTest {
+
+    @Test
+    public void shouldBindModelProperties() {
+        MockEnvironment environment = new MockEnvironment()
+                .withProperty("fw-plus.ai.langchain4j.model.enabled", "true")
+                .withProperty("fw-plus.ai.langchain4j.model.default-model", "chat-default")
+                .withProperty("fw-plus.ai.langchain4j.model.models.chat-default.provider", "openai")
+                .withProperty("fw-plus.ai.langchain4j.model.models.chat-default.model-type", "chat")
+                .withProperty("fw-plus.ai.langchain4j.model.models.chat-default.base-url", "http://localhost:11434/v1")
+                .withProperty("fw-plus.ai.langchain4j.model.models.chat-default.api-key", "demo")
+                .withProperty("fw-plus.ai.langchain4j.model.models.chat-default.model-name", "gpt-4o-mini")
+                .withProperty("fw-plus.ai.langchain4j.model.models.chat-default.properties.temperature", "0.2");
+
+        LangChain4jModelProperties properties = new Binder(ConfigurationPropertySources.from(environment.getPropertySources()))
+                .bind("fw-plus.ai.langchain4j.model", LangChain4jModelProperties.class)
+                .get();
+
+        assertTrue(properties.isEnabled());
+        assertEquals("chat-default", properties.getDefaultModel());
+        assertEquals("openai", properties.getModels().get("chat-default").getProvider());
+        assertEquals(LangChain4jModelType.CHAT, properties.getModels().get("chat-default").getModelType());
+        assertEquals("gpt-4o-mini", properties.getModels().get("chat-default").getModelName());
+        assertEquals("0.2", String.valueOf(properties.getModels().get("chat-default").getProperties().get("temperature")));
+    }
 }
 ```
 
-Run:
+- [ ] **Task 3 Step 2: Write failing auto-configuration tests**
 
-```bash
-cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
-./mvnw -pl fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc -Dtest=GraphJdbcParameterBindingsTest test
-```
-
-Expected: 编译失败，提示参数类不存在。
-
-- [ ] **Step 2: 实现参数绑定和参数元数据**
-
-实现要求：
+Create tests with `ApplicationContextRunner`:
 
 ```java
-public final class GraphJdbcParameterBindings {
-    private final Map<Integer, Object> values = new LinkedHashMap<Integer, Object>();
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model;
 
-    public void bind(int parameterIndex, Object value) {
-        if (parameterIndex < 1) {
-            throw new IllegalArgumentException("parameterIndex must be greater than 0");
+import com.xiongx9527.fw.plus.ai.langchain4j.model.*;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+public class LangChain4jModelAutoConfigurationTest {
+
+    private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
+            .withConfiguration(AutoConfigurations.of(LangChain4jModelAutoConfiguration.class))
+            .withUserConfiguration(FakeAdapterConfiguration.class);
+
+    @Test
+    public void shouldCreateRegistryFromEnabledDefinitions() {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.model.enabled=true",
+                        "fw-plus.ai.langchain4j.model.default-model=chat",
+                        "fw-plus.ai.langchain4j.model.models.chat.provider=openai",
+                        "fw-plus.ai.langchain4j.model.models.chat.model-type=chat",
+                        "fw-plus.ai.langchain4j.model.models.chat.model-name=gpt-4o-mini",
+                        "fw-plus.ai.langchain4j.model.models.disabled.provider=openai",
+                        "fw-plus.ai.langchain4j.model.models.disabled.model-type=chat",
+                        "fw-plus.ai.langchain4j.model.models.disabled.enabled=false"
+                )
+                .run(context -> {
+                    LangChain4jModelRegistry registry = context.getBean(LangChain4jModelRegistry.class);
+                    assertTrue(registry.contains("chat"));
+                    assertFalse(registry.contains("disabled"));
+                    assertEquals("fake-model", registry.getDefault().getModel());
+                });
+    }
+
+    @Test
+    public void shouldBackOffWhenUserProvidesRegistry() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(LangChain4jModelAutoConfiguration.class))
+                .withUserConfiguration(CustomRegistryConfiguration.class)
+                .run(context -> assertSame(context.getBean("customRegistry"), context.getBean(LangChain4jModelRegistry.class)));
+    }
+
+    @Configuration
+    static class FakeAdapterConfiguration {
+        @Bean
+        LangChain4jModelProviderAdapter fakeAdapter() {
+            return new LangChain4jModelProviderAdapter() {
+                public boolean supports(LangChain4jModelDefinition definition) {
+                    return "openai".equals(definition.getProvider());
+                }
+
+                public LangChain4jModel create(LangChain4jModelDefinition definition) {
+                    return new LangChain4jModel(definition.getProvider(), definition.getModelType(), "fake-model");
+                }
+            };
         }
-        values.put(Integer.valueOf(parameterIndex), value);
     }
 
-    public Object get(int parameterIndex) {
-        return values.get(Integer.valueOf(parameterIndex));
-    }
-
-    public Map<Integer, Object> asMap() {
-        return Collections.unmodifiableMap(values);
-    }
-
-    public void clear() {
-        values.clear();
+    @Configuration
+    static class CustomRegistryConfiguration {
+        @Bean("customRegistry")
+        LangChain4jModelRegistry customRegistry() {
+            return new DefaultLangChain4jModelRegistry(new java.util.LinkedHashMap<String, LangChain4jModel>(), null);
+        }
     }
 }
 ```
 
-`countQuestionMarks` 逐字符扫描，维护 single quote 和 double quote 状态，只统计未处于引号内的 `?`。`GraphJdbcParameterMetaData` 对所有参数返回 `Types.JAVA_OBJECT`、`ParameterMetaData.parameterModeIn`、`ParameterMetaData.parameterNullableUnknown`，`unwrap/isWrapperFor` 复用 `GraphJdbcWrapperSupport`。
-
-- [ ] **Step 3: 写 Statement 支持失败测试**
-
-`GraphJdbcStatementSupportTest.java` 覆盖：
-
-```java
-@Test
-public void statementShouldExecuteQueryAndExposeResultSet() throws Exception {
-    RecordingExecutor executor = new RecordingExecutor(GraphJdbcResult.rows(Arrays.asList("name"),
-            Collections.<Map<String, Object>>singletonList(row("name", "Neo"))));
-    Statement statement = GraphJdbcStatementSupport.statement(null, executor, identity(),
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
-    ResultSet rs = statement.executeQuery("RETURN name");
-    assertEquals("RETURN name", executor.sql);
-    assertTrue(rs.next());
-    assertEquals("Neo", rs.getString("name"));
-    assertSame(rs, statement.getResultSet());
-    assertEquals(-1, statement.getUpdateCount());
-}
-
-@Test
-public void preparedStatementShouldBindParametersAndRejectStringExecute() throws Exception {
-    RecordingExecutor executor = new RecordingExecutor(GraphJdbcResult.updateCount(3));
-    PreparedStatement statement = GraphJdbcStatementSupport.preparedStatement(null, executor, identity(),
-            "UPDATE n SET name = ?", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-            ResultSet.CLOSE_CURSORS_AT_COMMIT);
-    statement.setString(1, "Trinity");
-    assertEquals(3, statement.executeUpdate());
-    assertEquals("Trinity", executor.bindings.get(1));
-    try {
-        statement.executeQuery("SELECT 1");
-        fail("PreparedStatement executeQuery(String) must fail");
-    } catch (SQLException expected) {
-        assertTrue(expected.getMessage().contains("cannot be called on PreparedStatement"));
-    }
-}
-
-@Test
-public void batchShouldReturnUpdateCountsAndClearBatch() throws Exception {
-    RecordingExecutor executor = new RecordingExecutor(GraphJdbcResult.updateCount(1));
-    Statement statement = GraphJdbcStatementSupport.statement(null, executor, identity(),
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, ResultSet.CLOSE_CURSORS_AT_COMMIT);
-    statement.addBatch("A");
-    statement.addBatch("B");
-    assertArrayEquals(new int[] {1, 1}, statement.executeBatch());
-    assertArrayEquals(new int[0], statement.executeBatch());
-}
-```
-
-测试内定义 `RecordingExecutor implements GraphJdbcExecutor`，记录最后一次 `sql` 与 `GraphJdbcParameterBindings bindings`；`identity()` 返回直接返回原 SQL 的 `GraphJdbcSqlPreprocessor`；`row(String, Object)` 返回 `LinkedHashMap<String,Object>`。
+- [ ] **Task 3 Step 3: Run tests to verify they fail**
 
 Run:
 
 ```bash
-cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
-./mvnw -pl fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc -Dtest=GraphJdbcStatementSupportTest test
+cd fw-plus-ai
+./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=LangChain4jModelPropertiesTest,LangChain4jModelAutoConfigurationTest test
 ```
 
-Expected: 编译失败，提示执行抽象或 Statement 支持类不存在。
+Expected: FAIL because properties and auto-configuration do not exist.
 
-- [ ] **Step 4: 实现执行接口与 Statement/PreparedStatement 动态代理**
+- [ ] **Task 3 Step 4: Add dependencies and auto-configuration**
 
-实现边界：
+Modify `fw-plus-ai-boot-autoconfigure/pom.xml` to depend on `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-model`. Implement properties and auto-configuration. Register `com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration` in `META-INF/spring.factories` after `LangChain4jAutoConfiguration` and before Magic-API base auto-configuration.
 
-```java
-public interface GraphJdbcExecutor {
-    GraphJdbcResult execute(String sql, GraphJdbcParameterBindings bindings) throws SQLException;
-}
-
-public interface GraphJdbcSqlPreprocessor {
-    String preprocess(String sql) throws SQLException;
-}
-```
-
-`GraphJdbcStatementSupport` 的代理处理方法必须覆盖当前 Neo4j 已有行为：
-
-```text
-executeQuery, executeUpdate, execute, close, isClosed, getResultSet, getUpdateCount,
-getConnection, clearParameters, setNull, setObject, setString, setInt, setLong,
-setBoolean, addBatch, clearBatch, executeBatch, getGeneratedKeys,
-getParameterMetaData, getResultSetType, getResultSetConcurrency,
-getResultSetHoldability, cancel, setMaxRows/getMaxRows, setMaxFieldSize/getMaxFieldSize,
-setFetchSize/getFetchSize, setFetchDirection/getFetchDirection,
-setQueryTimeout/getQueryTimeout, closeOnCompletion/isCloseOnCompletion,
-setPoolable/isPoolable, unwrap, isWrapperFor
-```
-
-PreparedStatement 的 `executeQuery(String)`、`executeUpdate(String)`、`execute(String)` 抛出 `SQLException(name + "(String) cannot be called on PreparedStatement.")`。执行时先调用 `preprocessor.preprocess(sql)`，再调用 `executor.execute(processedSql, bindings)`；有结果集时使用 `GraphJdbcRowSets.resultSet`，无结果集时返回 `updateCount`。
-
-- [ ] **Step 5: 跑公共 Statement 全量测试**
+- [ ] **Task 3 Step 5: Run tests to verify they pass**
 
 Run:
 
 ```bash
-cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core
-./mvnw -pl fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc test
+cd fw-plus-ai
+./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=LangChain4jModelPropertiesTest,LangChain4jModelAutoConfigurationTest test
 ```
 
-Expected: `BUILD SUCCESS`，公共模块 6 个测试类全部通过。
+Expected: PASS.
 
-- [ ] **Step 6: 提交公共 Statement 支持**
+- [ ] **Task 3 Step 6: Commit this task during execution**
 
 ```bash
-git add fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java \
-  fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/test/java
-git commit -m "fw-plus-core: 提取图 JDBC Statement 公共支持"
+git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/resources/META-INF/spring.factories \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model
+git commit -m "feat: auto configure langchain4j model registry"
 ```
 

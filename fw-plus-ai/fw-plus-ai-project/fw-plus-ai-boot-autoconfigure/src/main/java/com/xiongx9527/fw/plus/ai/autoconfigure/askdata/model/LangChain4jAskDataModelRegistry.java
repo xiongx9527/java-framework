@@ -2,11 +2,10 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataErrorCode;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.langchain4j.model.LangChain4jModelInfo;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 
-import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,12 +15,29 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 	private final Map<String, ChatLanguageModel> chatModels;
 	private final Map<String, EmbeddingModel> embeddingModels;
 
-	public LangChain4jAskDataModelRegistry(AskDataProperties properties, LangChain4jModelInfo modelInfo) {
+	public LangChain4jAskDataModelRegistry(AskDataProperties properties,
+			Map<String, ChatLanguageModel> directChatModels,
+			Map<String, EmbeddingModel> directEmbeddingModels,
+			List<LangChain4jAskDataModelSource> modelSources) {
 		this.properties = properties;
-		this.chatModels = modelInfo == null || modelInfo.getChatLanguageModelMap() == null
-				? Collections.<String, ChatLanguageModel>emptyMap() : modelInfo.getChatLanguageModelMap();
-		this.embeddingModels = modelInfo == null || modelInfo.getEmbeddingModelMap() == null
-				? Collections.<String, EmbeddingModel>emptyMap() : modelInfo.getEmbeddingModelMap();
+		this.chatModels = new LinkedHashMap<String, ChatLanguageModel>();
+		this.embeddingModels = new LinkedHashMap<String, EmbeddingModel>();
+		if (modelSources != null) {
+			for (LangChain4jAskDataModelSource modelSource : modelSources) {
+				if (modelSource.getChatModels() != null) {
+					this.chatModels.putAll(modelSource.getChatModels());
+				}
+				if (modelSource.getEmbeddingModels() != null) {
+					this.embeddingModels.putAll(modelSource.getEmbeddingModels());
+				}
+			}
+		}
+		if (directChatModels != null) {
+			this.chatModels.putAll(directChatModels);
+		}
+		if (directEmbeddingModels != null) {
+			this.embeddingModels.putAll(directEmbeddingModels);
+		}
 	}
 
 	@Override
