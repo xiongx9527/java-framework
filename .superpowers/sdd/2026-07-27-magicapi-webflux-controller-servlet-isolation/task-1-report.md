@@ -5,7 +5,7 @@
 - RED 失败摘要：新增 `MagicAPIManagementService` 行为测试后，生产类型尚未创建，测试编译无法解析该类型；这是预期的测试先行失败。
 - GREEN 通过命令：`cd fw-plus-boot && ./mvnw -q -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest=MagicAPIControllerJdbcOptionsTest test`
 - GREEN 通过摘要：`MagicAPIControllerJdbcOptionsTest` 共 5 项测试通过，0 failures，0 errors，0 skipped。
-- 提交哈希：PENDING
+- 提交哈希：abfda3d0
 - 变更文件列表：
   - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/controller/MagicAPIManagementService.java`
   - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/controller/MagicAPIRequestAccess.java`
