@@ -1,9 +1,9 @@
 ## 1. 模块与依赖准备
 
-- [ ] 1.1 确认 `fw-plus-core/fw-plus-project` 现有模块命名、父 POM、聚合 POM、BOM 和 Java 8 编译配置。
-- [ ] 1.2 新增 TinyEngine core Maven 模块，并接入 fw-plus-core 聚合 POM、父 POM和 BOM，版本遵循 `${revision}` / `0.1.1-SNAPSHOT`。
-- [ ] 1.3 收敛 TinyEngine core 依赖到 Spring Boot 2.7.18 与 fw-plus-core 兼容版本，排除 Spring Boot 3、Java 17、Jakarta EE 9+、LangChain4j 1.x、AI/RAG 专属依赖。
-- [ ] 1.4 确认没有修改 Magic-API 2.2.2 相关依赖版本。
+- [x] 1.1 确认 `fw-plus-core/fw-plus-project` 现有模块命名、父 POM、聚合 POM、BOM 和 Java 8 编译配置。
+- [x] 1.2 新增 TinyEngine core Maven 模块，并接入 fw-plus-core 聚合 POM、父 POM和 BOM，版本遵循 `${revision}` / `0.1.1-SNAPSHOT`。
+- [x] 1.3 收敛 TinyEngine core 依赖到 Spring Boot 2.7.18 与 fw-plus-core 兼容版本，排除 Spring Boot 3、Java 17、Jakarta EE 9+、LangChain4j 1.x、AI/RAG 专属依赖。
+- [x] 1.4 确认没有修改 Magic-API 2.2.2 相关依赖版本。
 
 ## 2. 基础类型与工具迁移
 

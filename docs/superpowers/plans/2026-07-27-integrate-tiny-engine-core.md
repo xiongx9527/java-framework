@@ -84,7 +84,7 @@ base-ref: 9c48128246f99024d263c71136e9f0e5186cefc6
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -DskipTests compile`
 - `cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-tiny-engine -am -DskipTests validate`
 
-- [ ] **Step 1: 记录失败基线**
+- [x] **Step 1: 记录失败基线**
 
 Run:
 
@@ -95,19 +95,19 @@ cd fw-plus-core
 
 Expected: FAIL，因为模块尚不存在或尚未接入聚合。
 
-- [ ] **Step 2: 创建聚合 POM**
+- [x] **Step 2: 创建聚合 POM**
 
 Create `fw-plus-core/fw-plus-project/fw-plus-tiny-engine/pom.xml` with parent `fw-plus-parent`, packaging `pom`, module `fw-plus-tiny-engine-core`, and `main.basedir` matching sibling aggregators.
 
-- [ ] **Step 3: 创建 core 子模块 POM**
+- [x] **Step 3: 创建 core 子模块 POM**
 
 Create `fw-plus-core/fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core/pom.xml` with parent `fw-plus-tiny-engine`, artifactId `fw-plus-tiny-engine-core`, Java 8 compatible dependencies only. Initial dependencies should be limited to existing managed dependencies needed for compile, such as `fw-plus-common`, MyBatis/MyBatis-Plus, Spring context/tx annotations, Hutool, Fastjson/Fastjson2, and test dependencies inherited or managed by the parent.
 
-- [ ] **Step 4: 注册聚合与 BOM**
+- [x] **Step 4: 注册聚合与 BOM**
 
 Modify `fw-plus-core/fw-plus-project/pom.xml` to add `<module>fw-plus-tiny-engine</module>`. Modify `fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml` to add dependency management for `fw-plus-tiny-engine-core` with version `${project.version}` unless surrounding fw-plus entries require `${revision}` for consistency.
 
-- [ ] **Step 5: 验证模块可编译**
+- [x] **Step 5: 验证模块可编译**
 
 Run:
 
@@ -118,7 +118,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit Task 1**
+- [x] **Step 6: Commit Task 1**
 
 ```bash
 git add fw-plus-core/fw-plus-project/pom.xml \
@@ -681,4 +681,3 @@ git commit -m "docs: document tiny engine core boundaries"
 - [ ] SQL safety: Task 7 establishes `TinyEngineSqlIdentifierValidator` before Task 8 migrates dynamic SQL providers.
 - [ ] Resource contract: Task 5 fixes mapper XML path and SQL manifest path for future Boot starter consumption.
 - [ ] Execution boundary: Do not mark OpenSpec `tasks.md` checkboxes until implementation and verification are actually complete.
-
