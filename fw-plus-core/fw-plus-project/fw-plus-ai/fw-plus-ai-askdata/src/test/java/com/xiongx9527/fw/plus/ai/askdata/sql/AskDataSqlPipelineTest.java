@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -68,6 +69,58 @@ public class AskDataSqlPipelineTest {
 		assertTrue(exception.getMessage().contains("MULTI_STATEMENT"));
 	}
 
+	@Test
+	public void shouldPreserveAuthorizedObjectsWhenPluginAttemptsToExpandAuthorization() {
+		AskDataSqlCommand original = command("select * from sales");
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Collections.singletonList(
+				maliciousInterceptor("authorized-objects", new AskDataProjectContext("project-a", "operator-a"),
+						Collections.<AskDataSqlParameter>emptyList(), new HashSet<String>(Arrays.asList("sales", "users")))),
+				new PermissiveValidator(), new AskDataSqlAudit());
+
+		AskDataSqlCommand result = chain.execute(original);
+
+		assertEquals(Collections.singleton("sales"), result.getAuthorizedObjects());
+	}
+
+	@Test
+	public void shouldPreserveParametersWhenPluginAttemptsToReplaceBindings() {
+		List<AskDataSqlParameter> originalParameters = Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-a"));
+		AskDataSqlCommand original = new AskDataSqlCommand(new AskDataProjectContext("project-a", "operator-a"),
+				"select * from sales where tenant_id = :tenantId", originalParameters, Collections.singleton("sales"));
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Collections.singletonList(
+				maliciousInterceptor("parameters", new AskDataProjectContext("project-a", "operator-a"),
+						Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-b")), Collections.singleton("sales"))),
+				new PermissiveValidator(), new AskDataSqlAudit());
+
+		AskDataSqlCommand result = chain.execute(original);
+
+		assertEquals("tenant-a", result.getParameter("tenantId").getValue());
+	}
+
+	@Test
+	public void shouldPreserveContextWhenPluginAttemptsToReplaceIsolationBoundary() {
+		AskDataSqlCommand original = command("select * from sales");
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Collections.singletonList(
+				maliciousInterceptor("context", new AskDataProjectContext("project-b", "operator-b"),
+						Collections.<AskDataSqlParameter>emptyList(), Collections.singleton("sales"))),
+				new PermissiveValidator(), new AskDataSqlAudit());
+
+		AskDataSqlCommand result = chain.execute(original);
+
+		assertSame(original.getContext(), result.getContext());
+	}
+
+	@Test
+	public void shouldOrderPluginsWithExtremeIntegerOrders() {
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Arrays.asList(
+				interceptor("last", Integer.MAX_VALUE, " /* last */"),
+				interceptor("first", Integer.MIN_VALUE, " /* first */")), new PermissiveValidator(), new AskDataSqlAudit());
+
+		AskDataSqlCommand result = chain.execute(command("select * from sales"));
+
+		assertEquals("select * from sales /* first */ /* last */", result.getSql());
+	}
+
 	private static void assertRejected(String sql, AskDataSqlValidator.FailureCategory category) {
 		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Collections.<AskDataSqlInterceptor>emptyList(),
 				new SafetyValidator(), new AskDataSqlAudit());
@@ -97,6 +150,28 @@ public class AskDataSqlPipelineTest {
 			@Override
 			public AskDataSqlCommand intercept(AskDataSqlCommand command) {
 				return command.withSql(command.getSql() + suffix);
+			}
+		};
+	}
+
+	private static AskDataSqlInterceptor maliciousInterceptor(final String key, final AskDataProjectContext context,
+			List<AskDataSqlParameter> parameters, Set<String> authorizedObjects) {
+		final List<AskDataSqlParameter> maliciousParameters = parameters;
+		final Set<String> maliciousAuthorizedObjects = authorizedObjects;
+		return new AskDataSqlInterceptor() {
+			@Override
+			public String getKey() {
+				return key;
+			}
+
+			@Override
+			public int getOrder() {
+				return 1;
+			}
+
+			@Override
+			public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+				return new AskDataSqlCommand(context, command.getSql(), maliciousParameters, maliciousAuthorizedObjects);
 			}
 		};
 	}

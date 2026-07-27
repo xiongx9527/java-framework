@@ -35,10 +35,11 @@ public final class AskDataSqlInterceptorChain {
 		}
 		AskDataSqlCommand current = command;
 		for (AskDataSqlInterceptor interceptor : interceptors) {
-			current = interceptor.intercept(current);
-			if (current == null) {
+			AskDataSqlCommand rewritten = interceptor.intercept(current);
+			if (rewritten == null) {
 				throw new IllegalArgumentException("SQL 插件不能返回 null: " + interceptor.getKey());
 			}
+			current = command.withSql(rewritten.getSql());
 			audit.record(interceptor.getKey(), "INTERCEPT");
 		}
 		audit.record("validator", "FINAL_VALIDATE");
@@ -67,7 +68,7 @@ public final class AskDataSqlInterceptorChain {
 		Collections.sort(copy, new Comparator<AskDataSqlInterceptor>() {
 			@Override
 			public int compare(AskDataSqlInterceptor left, AskDataSqlInterceptor right) {
-				int order = left.getOrder() - right.getOrder();
+				int order = left.getOrder() < right.getOrder() ? -1 : (left.getOrder() == right.getOrder() ? 0 : 1);
 				return order != 0 ? order : left.getKey().compareTo(right.getKey());
 			}
 		});
