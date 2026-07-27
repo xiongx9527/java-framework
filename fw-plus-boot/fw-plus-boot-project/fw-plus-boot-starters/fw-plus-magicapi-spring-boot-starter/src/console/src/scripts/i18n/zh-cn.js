@@ -235,10 +235,6 @@ export default {
         connected: '连接成功',
         connectFailed: '连接失败，错误原因：\r\n{0}',
         primary: '主数据源',
-        properties: {
-            invalidJson: '扩展配置必须是合法的 JSON 对象',
-            objectRequired: '扩展配置只接受 JSON 对象，不能使用数组、字符串或数字'
-        },
         form: {
             placeholder: {
                 name: '数据源名称，仅做显示使用',

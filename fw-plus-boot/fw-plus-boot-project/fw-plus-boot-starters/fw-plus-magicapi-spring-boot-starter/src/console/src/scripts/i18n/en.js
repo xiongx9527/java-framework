@@ -235,10 +235,6 @@ export default {
         connected: 'Connected',
         connectFailed: 'Failed to Connect, Reason:\r\n{0}',
         primary: 'Primary',
-        properties: {
-            invalidJson: 'Properties must be a valid JSON object',
-            objectRequired: 'Properties must be a JSON object, not an array, string, or number'
-        },
         form: {
             placeholder: {
                 name: 'DataSource Name, Only Display Use',

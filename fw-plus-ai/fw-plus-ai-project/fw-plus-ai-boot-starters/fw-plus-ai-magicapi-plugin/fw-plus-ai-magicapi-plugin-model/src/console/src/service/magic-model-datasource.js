@@ -12,9 +12,29 @@ const parseJsonObject = (value) => {
     return parsed
 }
 
+const parseJsonStringArray = (value) => {
+    if (!value) {
+        return []
+    }
+    const parsed = Array.isArray(value) ? value : JSON.parse(value)
+    if (!Array.isArray(parsed)) {
+        throw new Error('modelName must be a JSON string array')
+    }
+    parsed.forEach(item => {
+        if (typeof item !== 'string' || item.trim().length === 0) {
+            throw new Error('modelName must be a JSON string array')
+        }
+    })
+    return parsed.map(item => item.trim())
+}
+
 const normalize = (info) => {
     const payload = Object.assign({}, info || {})
+    payload.modelName = parseJsonStringArray(payload.modelNameText || payload.modelName)
+    payload.modelConfigs = parseJsonObject(payload.modelConfigsText || payload.modelConfigs)
     payload.properties = parseJsonObject(payload.propertiesText || payload.properties)
+    delete payload.modelNameText
+    delete payload.modelConfigsText
     delete payload.propertiesText
     return payload
 }

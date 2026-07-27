@@ -30,7 +30,15 @@
     </div>
     <div class="magic-form-row">
       <label>{{ $i('model.datasource.form.modelName') }}</label>
-      <magic-input v-model:value="info.modelName" :placeholder="$i('model.datasource.form.placeholder.modelName')" width="100%" />
+      <magic-monaco-editor v-model:value="modelNameText" :placeholder="$i('model.datasource.form.placeholder.modelName')" language="json" style="height:120px" />
+    </div>
+    <div class="magic-form-row">
+      <label>{{ $i('model.datasource.form.defaultModelName') }}</label>
+      <magic-input v-model:value="info.defaultModelName" :placeholder="$i('model.datasource.form.placeholder.defaultModelName')" width="100%" />
+    </div>
+    <div class="magic-form-row">
+      <label>{{ $i('model.datasource.form.modelConfigs') }}</label>
+      <magic-monaco-editor v-model:value="modelConfigsText" :placeholder="$i('model.datasource.form.placeholder.modelConfigs')" language="json" style="height:220px" />
     </div>
     <div class="magic-form-row">
       <label>{{ $i('model.datasource.form.properties') }}</label>
@@ -46,7 +54,7 @@ const $i = inject('i18n.format')
 const props = defineProps({
   info: {
     type: Object,
-    default: () => ({ enabled: true, modelType: 'CHAT', properties: {} })
+    default: () => ({ enabled: true, modelType: 'CHAT', modelName: [], modelConfigs: {}, properties: {} })
   }
 })
 
@@ -63,6 +71,8 @@ const modelTypeOptions = [
   { text: 'VIDEO', value: 'VIDEO' },
   { text: 'PDF', value: 'PDF' }
 ]
+const modelNameText = ref('[]')
+const modelConfigsText = ref('{}')
 const propertiesText = ref('{}')
 
 const formatJson = (value) => {
@@ -73,6 +83,12 @@ const formatJson = (value) => {
 }
 
 onMounted(() => {
+  if (!props.info.modelNameText) {
+    props.info.modelNameText = formatJson(props.info.modelName || [])
+  }
+  if (!props.info.modelConfigsText) {
+    props.info.modelConfigsText = formatJson(props.info.modelConfigs)
+  }
   if (!props.info.propertiesText) {
     props.info.propertiesText = formatJson(props.info.properties)
   }
@@ -82,7 +98,17 @@ onMounted(() => {
   if (!props.info.modelType) {
     props.info.modelType = 'CHAT'
   }
+  modelNameText.value = props.info.modelNameText
+  modelConfigsText.value = props.info.modelConfigsText
   propertiesText.value = props.info.propertiesText
+})
+
+watch(modelNameText, (value) => {
+  props.info.modelNameText = value
+})
+
+watch(modelConfigsText, (value) => {
+  props.info.modelConfigsText = value
 })
 
 watch(propertiesText, (value) => {

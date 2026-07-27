@@ -14,6 +14,10 @@ test('uses model datasource resource type and plugin name', () => {
 
   assert.match(files, /model-datasource/);
   assert.match(files, /MagicModel|magic-model/);
+  assert.match(files, /modelNameText/);
+  assert.match(files, /modelConfigsText/);
+  assert.match(files, /defaultModelName/);
+  assert.match(files, /modelName must be a JSON string array/);
   assert.doesNotMatch(files, new RegExp('langchain4j' + '-datasource'));
   assert.doesNotMatch(files, new RegExp('Magic' + 'Langchain4j'));
 });

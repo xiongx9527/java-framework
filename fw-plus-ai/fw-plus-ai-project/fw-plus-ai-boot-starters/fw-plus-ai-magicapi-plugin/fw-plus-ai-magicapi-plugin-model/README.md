@@ -133,10 +133,27 @@ Magic 控制台中新增的数据源类型是 `model-datasource`，运行态资�
   "enabled": true,
   "baseUrl": "http://localhost:11434/v1",
   "apiKey": "demo",
-  "modelName": "gpt-4o-mini",
+  "defaultModelName": "gpt-4o-mini",
+  "modelName": [
+    "gpt-4o-mini",
+    "qwen-plus"
+  ],
+  "modelConfigs": {
+    "gpt-4o-mini": {
+      "properties": {
+        "temperature": 0.2,
+        "maxTokens": 1024
+      }
+    },
+    "qwen-plus": {
+      "properties": {
+        "temperature": 0.7,
+        "maxTokens": 2048
+      }
+    }
+  },
   "properties": {
-    "temperature": 0.7,
-    "maxTokens": 2048
+    "timeout": "PT30S"
   }
 }
 ```
@@ -148,9 +165,14 @@ Magic 控制台中新增的数据源类型是 `model-datasource`，运行态资�
 - `provider`：provider 名称，必填。
 - `modelType`：模型类型，启用或测试时必填。
 - `enabled`：是否注册运行态模型，默认启用。
-- `baseUrl`、`apiKey`、`modelName`：通用模型连接字段。
+- `baseUrl`、`apiKey`：通用模型连接字段。
+- `modelName`：模型名列表，必须是 JSON 字符串数组；单模型也写成 `["gpt-4o-mini"]`。
+- `defaultModelName`：多个模型名时 `key` 默认别名指向的模型名；不填时使用 `modelName` 列表第一个。
+- `modelConfigs`：单个模型名自己的配置，支持覆盖 `provider`、`modelType`、`baseUrl`、`apiKey` 和 `properties`。
 - `secretKey`、`accessToken`、`token`、`password`：兼容不同厂商的认证字段。
 - `properties`：透传给 LangChain4j builder 或自定义 provider adapter 的扩展参数。
+
+注意这里说的是 Magic 动态资源 JSON。插件动态资源不兼容旧的单字符串 `modelName` 写法；旧配置必须迁移为 JSON 数组，单模型也要写成 `["gpt-4o-mini"]`。
 
 列表输出会脱敏或移除 `apiKey`、`secretKey`、`accessToken`、`token`、`password`，`properties` 内同名敏感字段也会过滤。创建模型时这些凭证会合并到 `LangChain4jModelDefinition.properties`，供 provider adapter 使用。
 
@@ -167,7 +189,8 @@ var wrapped = model.getModelObject();
 
 // 指定 Spring Boot registry 或 model-datasource 中的 key
 var qwen = model['chat-default.qwen-plus'].getModel();
-var dynamic = model['local-chat'].getModel();
+var dynamicDefault = model['local-chat'].getModel();
+var dynamicQwen = model['local-chat.qwen-plus'].getModel();
 ```
 
 `getModel()` 返回真实 LangChain4j 模型对象，脚本侧按 `modelType` 调用对应对象能力。当前插件不额外封装 chat、embedding、image 等快捷方法。
