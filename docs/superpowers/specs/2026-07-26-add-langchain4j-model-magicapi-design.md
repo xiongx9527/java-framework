@@ -2,6 +2,8 @@
 comet_change: add-langchain4j-model-magicapi
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-27-add-langchain4j-model-magicapi
+status: final
 ---
 
 # LangChain4j Model Module 与 Magic Model 插件技术设计

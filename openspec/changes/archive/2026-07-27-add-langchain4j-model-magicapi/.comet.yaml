@@ -19,8 +19,8 @@ verification_report: docs/superpowers/reports/2026-07-27-add-langchain4j-model-m
 branch_status: pending
 created_at: 2026-07-26
 verified_at: 2026-07-27
-archive_confirmation: pending
-archived: false
+archive_confirmation: confirmed
+archived: true
 bound_branch: feature/20260726/add-langchain4j-model-magicapi
 direct_override: false
 handoff_context: openspec/changes/add-langchain4j-model-magicapi/.comet/handoff/design-context.json

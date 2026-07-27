@@ -4,5 +4,6 @@
   "openspec_tasks": "openspec/changes/add-langchain4j-model-magicapi/tasks.md",
   "openspec_delta_spec": "openspec/changes/add-langchain4j-model-magicapi/specs/langchain4j-model-module/spec.md",
   "handoff_context": "openspec/changes/add-langchain4j-model-magicapi/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/add-langchain4j-model-magicapi/.comet/handoff/design-context.md"
+  "handoff_markdown": "openspec/changes/add-langchain4j-model-magicapi/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-27-add-langchain4j-model-magicapi"
 }
