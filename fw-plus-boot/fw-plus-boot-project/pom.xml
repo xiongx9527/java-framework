@@ -22,19 +22,4 @@
     <description>
         fw-plus-boot 核心组件.
     </description>
-
-    <build>
-        <resources>
-            <resource>
-                <directory>src/main/resources</directory>
-            </resource>
-            <resource>
-                <directory>src/main/java</directory>
-                <filtering>false</filtering>
-                <includes>
-                    <include>**/mapper/xml/*.xml</include>
-                </includes>
-            </resource>
-        </resources>
-    </build>
 </project>
