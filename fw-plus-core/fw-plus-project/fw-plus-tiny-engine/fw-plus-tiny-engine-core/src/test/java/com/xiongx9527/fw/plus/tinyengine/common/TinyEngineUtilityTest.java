@@ -73,6 +73,23 @@ class TinyEngineUtilityTest {
 	}
 
 	@Test
+	void hashUtilsShouldBeDeterministicAcrossNestedMapInsertionOrder() {
+		Map<String, Object> firstNested = new HashMap<String, Object>();
+		firstNested.put("Aa", "first");
+		firstNested.put("BB", "second");
+		Map<String, Object> first = new HashMap<String, Object>();
+		first.put("metadata", firstNested);
+
+		Map<String, Object> secondNested = new HashMap<String, Object>();
+		secondNested.put("BB", "second");
+		secondNested.put("Aa", "first");
+		Map<String, Object> second = new HashMap<String, Object>();
+		second.put("metadata", secondNested);
+
+		assertEquals(TinyEngineHashUtils.calculateMD5Hash(first), TinyEngineHashUtils.calculateMD5Hash(second));
+	}
+
+	@Test
 	void fileSecurityUtilsShouldRejectPathTraversal() {
 		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("../secret.json"));
 		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("pages/../../secret.json"));
