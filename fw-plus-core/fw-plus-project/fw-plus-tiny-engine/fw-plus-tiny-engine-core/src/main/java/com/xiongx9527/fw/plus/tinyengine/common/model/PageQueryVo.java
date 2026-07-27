@@ -8,7 +8,7 @@ public class PageQueryVo<T> {
 	public static final int PAGESIZE_DEFAULT = 10;
 
 	private int pageSize = PAGESIZE_DEFAULT;
-	private int current;
+	private int current = 1;
 	private T data;
 
 	public void setPageSize(int pageSize) {
@@ -25,7 +25,7 @@ public class PageQueryVo<T> {
 
 	public int getPageSize() { return pageSize; }
 	public int getCurrent() { return current; }
-	public void setCurrent(int current) { this.current = current; }
+	public void setCurrent(int current) { this.current = current <= 0 ? 1 : current; }
 	public T getData() { return data; }
 	public void setData(T data) { this.data = data; }
 
