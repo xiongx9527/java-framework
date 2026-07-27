@@ -17,7 +17,6 @@ public interface BaseService extends MagicBaseService {
         validateRequiredField(entity.getKey(), "key");
         validateRequiredField(entity.getHostname(), "hostname");
         validateRequiredField(entity.getPort(), "port");
-        validateJSON(entity.getOther(), "other");
     }
 
 

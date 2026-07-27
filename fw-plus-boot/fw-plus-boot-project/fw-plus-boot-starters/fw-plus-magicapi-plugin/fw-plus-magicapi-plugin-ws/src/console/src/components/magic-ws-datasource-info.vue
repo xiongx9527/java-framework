@@ -17,8 +17,8 @@
       <magic-input v-model:value="info.description" :placeholder="$i('ws.datasource.form.placeholder.description')" width="100%" />
     </div>
     <div class="magic-form-row">
-      <label>{{ $i('ws.datasource.form.other') }}</label>
-      <magic-monaco-editor v-model:value="info.other" :placeholder="$i('ws.datasource.form.placeholder.other')" language="json" style="height:150px" />
+      <label>{{ $i('ws.datasource.form.properties') }}</label>
+      <magic-monaco-editor v-model:value="info.propertiesText" :placeholder="$i('ws.datasource.form.placeholder.properties')" language="json" style="height:150px" />
     </div>
   </div>
 </template>
@@ -31,7 +31,7 @@ const $i = inject('i18n.format')
 const props = defineProps({
   info: {
     type: Object,
-    default: () => ({ other: '{}' })
+    default: () => ({ properties: {} })
   }
 })
 </script>

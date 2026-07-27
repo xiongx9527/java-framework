@@ -29,13 +29,13 @@ export default {
                 key: 'Key',
                 secret: 'Secret Key',
                 description: 'Description',
-                other: 'Other',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
                     secret: 'DataSource Secret Key, Required',
                     description: 'Please Enter WS Description, Option',
-                    other: 'Please Enter Other Config'
+                    properties: 'JSON object, for example: {"key": "value"}'
                 }
             }
         }

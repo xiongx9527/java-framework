@@ -4,6 +4,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class MongoDataSourceInfo extends MagicEntity {
@@ -45,7 +48,7 @@ public class MongoDataSourceInfo extends MagicEntity {
     /**
      * 其它配置
      */
-    private String other;
+    private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
     /**
      * 创建数据源信息的简单副本
@@ -67,7 +70,7 @@ public class MongoDataSourceInfo extends MagicEntity {
         dataSourceInfo.setHostname(this.hostname);
         dataSourceInfo.setPort(this.port);
         dataSourceInfo.setPassword(this.password);
-        dataSourceInfo.setOther(other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
     }
 
@@ -91,8 +94,14 @@ public class MongoDataSourceInfo extends MagicEntity {
         dataSourceInfo.setHostname(this.hostname);
         dataSourceInfo.setPort(this.port);
         dataSourceInfo.setPassword(this.password);
-        dataSourceInfo.setOther(other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
+    }
+
+    private Map<String, Object> copyProperties() {
+        return this.properties == null
+                ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(this.properties);
     }
 
 }

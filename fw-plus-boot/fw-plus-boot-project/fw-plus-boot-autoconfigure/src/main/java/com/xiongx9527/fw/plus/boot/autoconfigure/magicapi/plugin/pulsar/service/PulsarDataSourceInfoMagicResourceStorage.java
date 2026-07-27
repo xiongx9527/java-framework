@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.service;
 
-import com.alibaba.fastjson.JSONValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarDataSourceInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.ssssssss.magicapi.core.config.JsonCodeConstants;
@@ -123,13 +122,6 @@ public class PulsarDataSourceInfoMagicResourceStorage implements MagicResourceSt
                 .filter(it -> !it.getId().equals(entity.getId()))
                 .noneMatch(it -> Objects.equals(it.getKey(), entity.getKey()));
         isTrue(noneMatchKey, DS_KEY_CONFLICT);
-
-        // 验证other字段是否为合法的JSON对象
-        if(StringUtils.isNotBlank(entity.getOther())) {
-            JSONValidator validator = JSONValidator.from(entity.getOther());
-            isTrue(validator.validate() && validator.getType() == JSONValidator.Type.Object,
-                    PULSAR_DATASOURCE_OTHER_MUST_BE_JSONOBJECT);
-        }
 
         // 验证已存在数据源的key不可修改
         if (entity.getId() != null) {

@@ -102,17 +102,6 @@ class MagicWsControllerTest {
 	}
 
 	@Test
-	void datasourceTestShouldRejectInvalidOtherJson() {
-		WsDataSourceInfo dataSourceInfo = dataSourceInfo();
-		dataSourceInfo.setOther("not-json");
-
-		JsonBean<Object> result = controller(null, null, null).test(dataSourceInfo);
-
-		assertThat(result.getCode()).isEqualTo(-1);
-		assertThat(result.getMessage()).contains("other");
-	}
-
-	@Test
 	void datasourceTestShouldReturnOkWhenTokenSecretIsConfigured() {
 		BaseDynamicWebSocketHandler handler = mock(BaseDynamicWebSocketHandler.class);
 		MagicWsController controller = new MagicWsController(new MagicConfiguration(), null, null, null) {
@@ -168,7 +157,7 @@ class MagicWsControllerTest {
 		dataSourceInfo.setName("默认数据源");
 		dataSourceInfo.setKey("default");
 		dataSourceInfo.setSecret("secret");
-		dataSourceInfo.setOther("{}");
+		dataSourceInfo.setProperties(new HashMap<String, Object>());
 		return dataSourceInfo;
 	}
 }

@@ -13,7 +13,7 @@ export default {
                 queueCapacity: 'Capacity',
                 threadFactory: 'Factory',
                 rejectedPolicy: 'Rejected',
-                other: 'Other',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
@@ -23,7 +23,7 @@ export default {
                     queueCapacity: 'Queue Capacity, Default 1000',
                     threadFactory: 'Thread Factory, Default DefaultThreadFactory',
                     rejectedPolicy: 'Rejected Policy, Default CallerRunsPolicy',
-                    other: ''
+                    properties: 'JSON object, for example: {"key": "value"}'
                 }
             }
         }

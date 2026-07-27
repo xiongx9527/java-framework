@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.model;
 
-import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.dtp.common.BaseService;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
@@ -133,16 +132,13 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
      * @param client DtpExecutor实例
      * @param info 数据源信息对象
      */
-    private void configureDtpExecutorFromOtherInfo(DtpExecutor client, DtpDataSourceInfo info) {
-        String other = MagicAPIConfigUtils.getDtpConfig(info.getKey(), "other", info.getOther());
-        if (StringUtils.isEmpty(other)) {
-            return;
-        }
-        JSON.parseObject(other).forEach((key, value) -> {
+    private void configureDtpExecutorFromProperties(DtpExecutor client, DtpDataSourceInfo info) {
+        String configuredProperties = MagicAPIConfigUtils.getDtpConfig(info.getKey(), "properties", null);
+        MagicAPIConfigUtils.mergeProperties(info.getProperties(), configuredProperties).forEach((key, value) -> {
             try {
                 applyDtpExecutorConfiguration(client, key, value);
             } catch (Exception e) {
-                log.warn("Failed to configure DtpExecutor with other config key: {}, value: {}", key, value, e);
+                log.warn("Failed to configure DtpExecutor with properties key: {}, value: {}", key, value, e);
             }
         });
     }
@@ -167,7 +163,7 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
                 }
                 break;
             default:
-                log.debug("Unsupported other config key: {}", key);
+                log.debug("Unsupported properties key: {}", key);
                 break;
         }
     }
@@ -191,7 +187,7 @@ public class MagicDynamicDtpDataSource implements BaseService, DisposableBean {
                 createRejectedHandler(info)
         );
         client.setThreadPoolName(info.getKey());
-        configureDtpExecutorFromOtherInfo(client, info);
+        configureDtpExecutorFromProperties(client, info);
         return client;
     }
 

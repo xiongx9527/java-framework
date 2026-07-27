@@ -33,7 +33,7 @@ export default {
                 clientId: '客户端ID',
                 username: '用户名',
                 password: '密码',
-                other: '其它',
+                properties: '连接参数',
                 placeholder: {
                     name: '数据源名称，仅作显示用',
                     key: '数据源Key，后续代码中使用',
@@ -42,7 +42,7 @@ export default {
                     clientId: '请输入客户端ID，必填',
                     username: '请输入用户名,选填',
                     password: '请输入密码,选填',
-                    other: '请输入 Mqtt Client 访问相关配置，如： {xxxx: "yyyy"}'
+                    properties: '请输入 JSON 对象，如： {"key": "value"}'
                 }
             }
         }
