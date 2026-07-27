@@ -11,9 +11,10 @@
 - OpenSpec mapping: 3.2, 3.3, 3.4
 - Stage: task-review
 - Implementer: DONE_WITH_CONCERNS
-- Reviewer: pending
-- Review/fix rounds: 0
-- Review result: pending
+- Reviewer: Linnaeus completed first task review
+- Fixer: pending dispatch
+- Review/fix rounds: 1
+- Review result: Needs fixes
 
 ## Evidence
 
@@ -24,3 +25,4 @@
 - Changed files: 28 mapper interfaces, 28 mapper XML files, 25 SQL resources, `TinyEngineSqlScriptManifest`, SQL manifest, and 2 tests under `fw-plus-tiny-engine-core`.
 - Risk signals: SQL/schema resources, implementer `DONE_WITH_CONCERNS`, diff over 200 lines.
 - Concern: source PostgreSQL schema resource is empty; migrated resource is present in the manifest but has 0 bytes. Core only packages and exposes the script list; it does not execute SQL or auto-initialize databases.
+- Reviewer findings: Critical PostgreSQL manifest entry points to 0-byte resource; Important mapper test does not scan actual resources or load XML through MyBatis; Important default manifest includes `init_data_for_test_v1.0.0.sql`; Important `ResourceMapper.xml#findResourcesByAppId` has no mapper interface method; Minor AppMapper sort branch uses `create_time` while column is `created_time`.
