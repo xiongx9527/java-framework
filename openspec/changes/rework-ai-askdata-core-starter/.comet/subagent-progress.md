@@ -2,15 +2,15 @@
 
 ## 当前任务
 
-- Plan task: `Task 3: 定义能力注册表与版本协商`
-- OpenSpec task mapping: `1.3 定义版本化能力描述符、能力提供者和注册表，支持模型、向量、SQL、存储和事件插件的启动期选择、排序、冲突和兼容性校验。`
+- Plan task: `Task 4: 定义模型路由与 Remote Runtime SPI`
+- OpenSpec task mapping: `1.11 定义可替换 AI 运行时适配契约...` / `1.12 定义 Remote Runtime SPI...`（本任务只覆盖 Core 模型路由与 Remote Runtime 边界，后续适配文档和实现由后续任务继续）
 - Stage: `done`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `d0dbe61a7cd730dcad548b2152a3ff319275db65`
-- Implementer commit: `06d8fe95c0ce0679647a911893333e621ef1ff51`
-- Task brief: `.superpowers/sdd/task-3-brief.md`
-- Implementer report: `.superpowers/sdd/askdata-task-3-report.md`
+- Base commit: `2053819d822a7f41f13c15f77d4801613c9ae134`
+- Implementer commit: `fade364bb7f2585e940eeebf8de03511397ba76e`
+- Task brief: `.superpowers/sdd/task-4-brief.md`
+- Implementer report: `.superpowers/sdd/askdata-task-4-report.md`
 
 ## 派发记录
 
@@ -35,3 +35,9 @@
 - 2026-07-27：第二轮 fix agent 返回 `DONE`，提交 `01381635`；仅补充 `DefaultAskDataCapabilityRegistry` 公开构造器中文 Javadoc，`AskDataCapabilityRegistryTest` 8 项通过。协调者在 AskData 分支复跑同一测试，结果 8 项通过。
 - 2026-07-27：Task 3 最终 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
 - 2026-07-27：已勾选 plan 中 Task 3 的 5 个 step，并同步勾选 OpenSpec task 1.3。
+- 2026-07-27：准备派发 Task 4 implementer。允许修改范围限定为 `fw-plus-ai-askdata` 模块内 model/runtime 源码与对应测试；禁止修改其他 active change、TinyEngine、tiny-engine-backend-java。
+- 2026-07-27：implementer 返回 `DONE`，提交 `fade364b`；RED 为 Task 4 契约类型不存在，GREEN 为 `AskDataModelRouterTest,AskDataRemoteRuntimeContractTest` 共 6 项通过。风险备注：仅定义 Core SPI，HTTP、认证、能力装配和远程错误映射留给后续适配层。
+- 2026-07-27：Task 4 reviewer 返回 `Needs fixes`；Important 问题为 fallback 仅按 `modelKey` 定位失败候选，重复 key 时可能重复选择失败模型，以及公开 SPI/错误映射方法中文 Javadoc 不足。当前 thorough 修复轮次：1/2。
+- 2026-07-27：fix agent 返回 `DONE`，提交 `019b3e7e`；修复失败结果保留实际路由策略，重复 `modelKey` 时按层级继续降级，并补齐模型路由 SPI、错误分类、Java 17 Remote Runtime/审计边界中文 JavaDoc。协调者复跑 `AskDataModelRouterTest,AskDataRemoteRuntimeContractTest`，结果 8 项通过。
+- 2026-07-27：Task 4 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
+- 2026-07-27：已勾选 plan 中 Task 4 的 5 个 step；OpenSpec 1.11/1.12 仍包含后续适配文档、鉴权、错误映射和 Java 17 对接完整内容，本任务不单独勾选。
