@@ -461,7 +461,7 @@
         </where>
         ORDER BY
         <choose>
-            <when test="orderBy == 'create_time'">A.created_time</when>
+            <when test="orderBy == 'created_time'">A.created_time</when>
             <when test="orderBy == 'last_updated_time'">A.last_updated_time</when>
             <otherwise>A.id</otherwise>
         </choose>

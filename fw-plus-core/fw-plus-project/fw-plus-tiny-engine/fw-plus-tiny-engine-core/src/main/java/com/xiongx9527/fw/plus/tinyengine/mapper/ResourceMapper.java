@@ -42,6 +42,14 @@ public interface ResourceMapper extends BaseMapper<Resource> {
     List<Resource> findResourcesByNameAndDes(String name, String des);
 
     /**
+     * 根据应用 ID 查询资源。
+     *
+     * @param appId the app id
+     * @return the resources
+     */
+    List<Resource> findResourcesByAppId(@Param("appId") Integer appId);
+
+    /**
      * 根据主键id查询表t_resource数据
      *
      * @param id the id
