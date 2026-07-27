@@ -45,6 +45,32 @@ class AskDataApiContractTest {
 	}
 
 	@Test
+	void 应按Unicode空白规则规范化请求与隔离标识() {
+		AskDataProjectContext context = new AskDataProjectContext("\u2003project-1\u2003", "\u2003operator-1\u2003");
+		AskDataRequest request = new AskDataRequest(context, "\u2003查询项目数据\u2003");
+
+		assertEquals("project-1", context.getProjectId());
+		assertEquals("operator-1", context.getOperatorId());
+		assertEquals("查询项目数据", request.getQuestion());
+	}
+
+	@Test
+	void 应拒绝Unicode空白错误码和说明() {
+		assertThrows(IllegalArgumentException.class,
+				() -> new AskDataError("\u2003", "查询失败"));
+		assertThrows(IllegalArgumentException.class,
+				() -> new AskDataError("ASKDATA_FAILED", "\u2003"));
+	}
+
+	@Test
+	void 应按Unicode空白规则规范化错误码和说明() {
+		AskDataError error = new AskDataError("\u2003ASKDATA_FAILED\u2003", "\u2003查询失败\u2003");
+
+		assertEquals("ASKDATA_FAILED", error.getCode());
+		assertEquals("查询失败", error.getMessage());
+	}
+
+	@Test
 	void 公共契约不得绑定具体AI或Spring框架包() {
 		assertNotFrameworkType(AskDataService.class);
 		assertNotFrameworkType(AskDataRequest.class);

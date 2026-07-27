@@ -45,19 +45,29 @@ public class AskDataProjectContext {
 	}
 
 	private static String requireNonBlank(String value, String fieldName) {
-		if (value == null || isBlank(value)) {
+		if (value == null) {
 			throw new IllegalArgumentException(fieldName + " 不能为空白");
 		}
-		return value.trim();
+		String normalizedValue = trimWhitespace(value);
+		if (normalizedValue.length() == 0) {
+			throw new IllegalArgumentException(fieldName + " 不能为空白");
+		}
+		return normalizedValue;
 	}
 
-	private static boolean isBlank(String value) {
-		for (int index = 0; index < value.length(); index++) {
-			char character = value.charAt(index);
-			if (!Character.isWhitespace(character) && !Character.isSpaceChar(character)) {
-				return false;
-			}
+	private static String trimWhitespace(String value) {
+		int beginIndex = 0;
+		int endIndex = value.length();
+		while (beginIndex < endIndex && isWhitespace(value.charAt(beginIndex))) {
+			beginIndex++;
 		}
-		return true;
+		while (beginIndex < endIndex && isWhitespace(value.charAt(endIndex - 1))) {
+			endIndex--;
+		}
+		return value.substring(beginIndex, endIndex);
+	}
+
+	private static boolean isWhitespace(char character) {
+		return Character.isWhitespace(character) || Character.isSpaceChar(character);
 	}
 }
