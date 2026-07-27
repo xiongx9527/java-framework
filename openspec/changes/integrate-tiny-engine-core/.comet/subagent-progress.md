@@ -12,9 +12,9 @@
 - Stage: task-review
 - Implementer: DONE_WITH_CONCERNS
 - Reviewer: Linnaeus completed first task review
-- Fixer: Schrodinger dispatched
+- Fixer: Schrodinger DONE
 - Review/fix rounds: 1
-- Review result: Needs fixes
+- Review result: Fix completed; pending re-review
 
 ## Evidence
 
@@ -26,3 +26,4 @@
 - Risk signals: SQL/schema resources, implementer `DONE_WITH_CONCERNS`, diff over 200 lines.
 - Concern: source PostgreSQL schema resource is empty; migrated resource is present in the manifest but has 0 bytes. Core only packages and exposes the script list; it does not execute SQL or auto-initialize databases.
 - Reviewer findings: Critical PostgreSQL manifest entry points to 0-byte resource; Important mapper test does not scan actual resources or load XML through MyBatis; Important default manifest includes `init_data_for_test_v1.0.0.sql`; Important `ResourceMapper.xml#findResourcesByAppId` has no mapper interface method; Minor AppMapper sort branch uses `create_time` while column is `created_time`.
+- Fix evidence: Schrodinger committed `fd7caf8da631832cdf70c1e8bae35609f042e6ed`; coordinator reran targeted tests with 8 passed, 0 failures, 0 errors; compile succeeded; forbidden scan returned no matches. PostgreSQL SQL resource is now non-empty, default MySQL/H2 manifest excludes `init_data_for_test_v1.0.0.sql`, `ResourceMapper#findResourcesByAppId` exists with `@Param("appId")`, and AppMapper sort branch uses `created_time`.
