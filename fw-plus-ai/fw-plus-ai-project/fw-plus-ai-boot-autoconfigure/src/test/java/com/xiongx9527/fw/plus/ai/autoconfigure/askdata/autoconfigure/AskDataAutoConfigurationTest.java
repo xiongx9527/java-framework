@@ -99,9 +99,25 @@ public class AskDataAutoConfigurationTest {
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> new AskDataAutoConfiguration().askDataVectorRetriever(properties,
-                        new DefaultListableBeanFactory().getBeanProvider(ContentRetriever.class)));
+                        new DefaultListableBeanFactory().getBeanProvider(ContentRetriever.class),
+                        new DefaultListableBeanFactory().getBeanProvider(dev.langchain4j.store.embedding.EmbeddingStore.class),
+                        new DefaultListableBeanFactory().getBeanProvider(EmbeddingModel.class)));
 
         assertTrue(exception.getMessage().contains("向量"));
+    }
+
+    @Test
+    public void shouldAllowSharedVectorModeWhenClusterModeIsEnabled() {
+        AskDataProperties properties = new AskDataProperties();
+        properties.getState().setClusterMode(true);
+        properties.getVector().setStore("shared");
+
+        AskDataVectorRetriever retriever = new AskDataAutoConfiguration().askDataVectorRetriever(properties,
+                new DefaultListableBeanFactory().getBeanProvider(ContentRetriever.class),
+                new DefaultListableBeanFactory().getBeanProvider(dev.langchain4j.store.embedding.EmbeddingStore.class),
+                new DefaultListableBeanFactory().getBeanProvider(EmbeddingModel.class));
+
+        assertTrue(retriever != null);
     }
 
     @Test
