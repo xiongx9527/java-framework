@@ -543,15 +543,15 @@ git commit -m "feat: add tiny engine sql identifier guard"
 **Validation:**
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineDynamicSqlProviderTest,TinyEngineDynamicServiceContractTest test`
 
-- [ ] **Step 1: 写动态 SQL 安全失败测试**
+- [x] **Step 1: 写动态 SQL 安全失败测试**
 
 Create `TinyEngineDynamicSqlProviderTest` asserting query, insert, update, delete, create table, alter table, drop table, initialize table, describe structure, and batch insert paths call the validator before SQL string assembly.
 
-- [ ] **Step 2: 写动态服务契约失败测试**
+- [x] **Step 2: 写动态服务契约失败测试**
 
 Create `TinyEngineDynamicServiceContractTest` covering legal dynamic pagination query, legal insert/update/delete requests, table structure read request, and table lifecycle request using safe identifiers and bound values.
 
-- [ ] **Step 3: 运行失败测试**
+- [x] **Step 3: 运行失败测试**
 
 Run:
 
@@ -562,19 +562,19 @@ cd fw-plus-core
 
 Expected: FAIL because dynamic model implementation does not exist.
 
-- [ ] **Step 4: 迁移动态模型 DTO 与 DAO**
+- [x] **Step 4: 迁移动态模型 DTO 与 DAO**
 
 Move dynamic model request/response DTOs, DAO contracts, and metadata types into `dynamic.model` and `dynamic.mapper`. Keep all user supplied table/field/order values as data until they reach the validator.
 
-- [ ] **Step 5: 迁移并改造 SQL Provider**
+- [x] **Step 5: 迁移并改造 SQL Provider**
 
 Move SQL provider code into `dynamic.sql`. Every SQL path must validate identifiers through `TinyEngineSqlIdentifierValidator`; every user value must remain a MyBatis parameter binding such as `#{}` rather than direct string concatenation.
 
-- [ ] **Step 6: 迁移动态服务**
+- [x] **Step 6: 迁移动态服务**
 
 Move dynamic CRUD and table lifecycle services into `dynamic.service` and `dynamic.service.impl`. Services should compose model metadata, validator, and mapper/provider contracts without depending on Controller or starter code.
 
-- [ ] **Step 7: 运行测试**
+- [x] **Step 7: 运行测试**
 
 Run:
 
@@ -585,7 +585,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit Task 8**
+- [x] **Step 8: Commit Task 8**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core

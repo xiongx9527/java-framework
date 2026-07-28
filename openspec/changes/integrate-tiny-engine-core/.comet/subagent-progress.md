@@ -9,12 +9,12 @@
 
 - Task: Task 8: 迁移动态模型 DAO、服务与 SQL Provider
 - OpenSpec mapping: 5.1, 5.3, 5.4, 5.5
-- Stage: task-review
+- Stage: done
 - Implementer: Pauli DONE
-- Reviewer: Bacon needs fixes
-- Fixer: pending dispatch
+- Reviewer: Bacon needs fixes; Helmholtz re-review approved
+- Fixer: Kant DONE
 - Review/fix rounds: 1
-- Review result: Needs fixes
+- Review result: Approved
 
 ## Evidence
 
@@ -30,3 +30,6 @@
 - Changed files: dynamic model DTOs, `ModelDataMapper`, `DynamicService`, `DynamicModelService`, service implementations, `DynamicSqlProvider`, and dynamic provider/service contract tests.
 - Review package: `/tmp/integrate-tiny-engine-core-task-8-review-cc5182ff-ca929554.diff`
 - Review: Bacon found one Important issue: `TinyEngineDynamicSqlProviderTest` dangerous-input coverage only proves illegal table names, not malicious fields, condition keys, `orderBy`, or `orderType` rejection before SQL assembly.
+- Fix: Kant added legal-table dangerous identifier tests in `TinyEngineDynamicSqlProviderTest`; commit e105dd73261256d97d69452d28dd5a8ada3949d8.
+- Final GREEN: coordinator reran `./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineDynamicSqlProviderTest,TinyEngineDynamicServiceContractTest test` from `fw-plus-core`; 8 tests passed, 0 failures, 0 errors.
+- Re-review: Helmholtz approved Task 8; original Important closed, no Critical, Important, or Minor issues.
