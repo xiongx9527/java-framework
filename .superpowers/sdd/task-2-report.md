@@ -1,110 +1,68 @@
-# Task 2 执行报告
+# Task 2 修复报告：中立 AiModel 模块
 
-## 状态
+Status: DONE_WITH_CONCERNS
 
-DONE
+## 范围与提交
+
+- 实现提交：`dbdb54fc81294e6cfaf87b96f48d35b3ba0e68a0`（`fw-plus-ai-model: 补全 provider 与失败路径契约`）。
+- 修改范围仅为 `fw-plus-ai-model/**` 与本报告；未修改 OpenSpec、聚合 POM、BOM、AI Boot 或 LangChain4j 模块。
+- 旧报告中的 LangChain4j Task 2 证据与本任务无关，已从本报告移除；以下证据仅对应中立 `fw-plus-ai-model`。
+
+## 修复内容
+
+- `AiModel` 新增 `getProvider()`，门面现完整保留 key、framework、provider、type/capability 元数据；同步更新 fake 实现及断言。
+- 新增 `DefaultAiModelFactoryTest`，覆盖无支持 adapter、`supports` 抛异常、`create` 抛异常、`create` 返回 null 四条失败路径。
+- 四条路径均校验异常消息包含 `key=chat`、`framework=fake`、`provider=fake-provider`、`type=CHAT`；存在上游异常时校验原 cause 为同一对象，无上游异常时 cause 为 null。
 
 ## RED 证据
 
-命令：
+1. provider 契约 RED：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -Dtest=DefaultLangChain4jModelFactoryTest,DefaultLangChain4jModelRegistryTest test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model -Dtest=DefaultAiModelRegistryTest test
 ```
 
-结果：失败，退出码 `1`。测试编译阶段报告找不到 `DefaultLangChain4jModelFactory`，原因是该生产类在 RED 阶段尚未创建；失败原因与本任务待实现功能一致。
+退出码 `1`；测试编译明确报告 `AiModel.getProvider()` 不存在及 fake 的 `@Override` 无法覆盖，符合缺失接口契约预期。
 
-## GREEN 证据
-
-命令：
+2. Factory 失败边界 RED：先新增四项契约测试，并按 TDD 要求撤回先于测试存在的未验证错误处理，再运行：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -Dtest=DefaultLangChain4jModelFactoryTest,DefaultLangChain4jModelRegistryTest test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model -Dtest=DefaultAiModelFactoryTest test
 ```
 
-结果：成功，退出码 `0`。`DefaultLangChain4jModelFactoryTest` 5 项、`DefaultLangChain4jModelRegistryTest` 4 项，共 9 项通过。
+退出码 `1`，4/4 按预期失败：无支持 adapter 缺少上下文；`supports` 和 `create` 裸透传 `IllegalStateException`；null 返回未抛异常。
 
-模块回归命令：
+## GREEN 与安装证据
+
+- provider GREEN：同一 `DefaultAiModelRegistryTest` 命令退出码 `0`，3/3 通过。
+- Factory GREEN：同一 `DefaultAiModelFactoryTest` 命令退出码 `0`，4/4 通过。
+- JDK 8 模块回归：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model test
 ```
 
-结果：成功，退出码 `0`。模块共 11 项测试通过，失败、错误、跳过均为 0。
+退出码 `0`，7/7 通过，失败、错误、跳过均为 0。
 
-## 提交
-
-`8efca6fec6239bdde76b192f5c07ae826e7bd77e` - `feat: add langchain4j model factory and registry`
-
-## 修改文件
-
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/DefaultLangChain4jModelFactory.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/DefaultLangChain4jModelRegistry.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/model/DefaultLangChain4jModelFactoryTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/model/DefaultLangChain4jModelRegistryTest.java`
-
-## 自检结果
-
-- Factory 按适配器顺序选择首个支持项；对空或非法定义、无支持适配器、适配器异常和空返回均抛出带上下文的 `LangChain4jModelException`。
-- Registry 使用 `LinkedHashMap` 防御性复制并通过不可变 Map/Set 对外暴露；默认模型键不存在时失败，缺失模型键读取时失败。
-- 使用 JDK 1.8 API，未引入 provider SDK、Java 9+ API、`ChatModel` 或 `StreamingChatModel`。
-- `git diff --check` 和 `git diff --cached --check` 均通过。
-
-## 风险信号自报
-
-- 公共 API：命中。新增了 Task 1 已定义接口的公开实现类；行为已由单元测试覆盖。
-- 跨模块：未命中。仅修改 core 的单一 LangChain4j model 模块，未修改其它模块依赖或注册。
-- 敏感信息：未命中。没有新增密钥、端点、账号或其他凭据。
-- 并发：未命中。实现为构造后只读的 Registry，Factory 无共享可变状态。
-- Schema：未命中。未修改配置、数据库或外部数据结构。
-- Diff 大于 200 行：命中。四个新增类和测试合计 301 行，原因是任务要求的完整 Factory/Registry 行为及 TDD 覆盖。
-- DONE_WITH_CONCERNS：未命中。所有目标测试和模块回归均通过，未发现阻塞或遗留问题。
-
-## Fix Report
-
-### 修复内容
-
-- 新增测试覆盖 adapter.create 抛出 `LangChain4jModelException("boom")` 的路径，验证异常消息包含 `chat`、`openai`、`CHAT`，并验证原异常作为 cause 保留。
-- Factory 统一包装所有 `adapter.create` 抛出的 `Exception`，补充 key/provider/modelType 上下文；适配器返回 null 的原有错误仍保持带上下文。
-
-### RED/GREEN 证据
-
-RED 命令：
+- 目标模块单独安装：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -Dtest=DefaultLangChain4jModelFactoryTest test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model install -DskipTests
 ```
 
-结果：失败，退出码 `1`。`shouldWrapAdapterExceptionWithContext` 因现有 Factory 直接透传 `LangChain4jModelException("boom")`，消息缺少上下文，符合预期 RED。
+退出码 `0`。该结果仅证明目标模块可单独安装，不能替代 reactor 安装。
 
-GREEN 命令：
+- 计划中的 reactor 安装复核：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -Dtest=DefaultLangChain4jModelFactoryTest,DefaultLangChain4jModelRegistryTest test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model -am install -DskipTests
 ```
 
-结果：成功，退出码 `0`。Factory 5 项、Registry 4 项，共 9 项通过。
+本次退出码 `0`，8/8 reactor 模块通过，`fw-plus-common` 与 `fw-plus-ai-model` 均实际完成。审查指出的旧执行曾在未修改的 `fw-plus-common` Lombok 编译处失败且未到达目标模块；该历史失败不再被目标模块单独安装掩盖，也不冒充本次结果。
 
-模块回归命令：
+## 自审与风险
 
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml test
-```
-
-结果：成功，退出码 `0`。共 11 项通过，失败、错误、跳过均为 0。
-
-### 提交与修改文件
-
-- 修复提交：`0cfac6fb`（`fix: add langchain4j model factory exception context`）
-- 修改文件：
-  - `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/DefaultLangChain4jModelFactory.java`
-  - `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/model/DefaultLangChain4jModelFactoryTest.java`
-  - `.superpowers/sdd/task-2-report.md`
-
-### 风险信号
-
-- 公共 API：未修改，仅调整 Factory 异常包装行为并保留原异常 cause。
-- 跨模块：未命中，仅修改模型模块及其单元测试。
-- JDK 兼容性：未引入 Java 9+ API。
-- 敏感信息、Schema、并发：未命中。
-- concerns：无。指定 GREEN 测试和模块回归均通过。
+- `AiModel.class` 的 classfile major version 为 `52`；主源码未命中 LangChain4j、Spring AI 或 AgentScope 类型。
+- `getProvider()` 是公共接口新增抽象方法：仓库内唯一实现为已同步的测试 fake，但外部或后续 adapter 实现必须同步实现，存在源码/二进制兼容风险，因此状态为 `DONE_WITH_CONCERNS`。
+- reactor install 使用 `-DskipTests`，测试结论仅来自前述独立模块 test；两类证据未混用。
+- 未修改任务范围之外的既有脏文件。
