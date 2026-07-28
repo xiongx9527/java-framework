@@ -588,7 +588,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             checkpoint.setDatasourceKey(request == null ? null : request.getDatasourceKey());
             checkpoint.setMaxRows(Integer.valueOf(maxRows(request)));
             checkpoint.setExecute(Boolean.valueOf(isExecutionEnabled(request)));
-            checkpoint.setRequestOptionsSnapshot(requestOptionsSnapshot(request));
+            checkpoint.setRequestOptionsSnapshot(checkpointScopeSnapshot(request));
             checkpoint.setDialect(request != null && !isBlank(request.getDialect()) ? request.getDialect()
                     : context.getMetadata() == null ? null : context.getMetadata().getDialect());
             checkpoint.setCompletedSteps(context.getCompletedSteps());
@@ -808,9 +808,24 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     }
 
     private boolean optionsIdentityMatches(AskDataRequest request, AskDataCheckpoint checkpoint) {
-        String currentSnapshot = requestOptionsSnapshot(request);
+        String currentSnapshot = checkpointScopeSnapshot(request);
         String checkpointSnapshot = checkpoint.getRequestOptionsSnapshot();
         return currentSnapshot != null && checkpointSnapshot != null && equals(currentSnapshot, checkpointSnapshot);
+    }
+
+    /**
+     * 将项目、操作人与调用选项作为检查点恢复身份的一部分持久化。
+     *
+     * <p>恢复时重新计算该快照，因此旧版本中不含作用域的检查点会被安全拒绝。</p>
+     */
+    private String checkpointScopeSnapshot(AskDataRequest request) {
+        String optionsSnapshot = requestOptionsSnapshot(request);
+        AskDataProjectContext projectContext = request == null ? null : request.getProjectContext();
+        if (optionsSnapshot == null || projectContext == null) {
+            return null;
+        }
+        return "[" + jsonString(projectContext.getProjectId()) + "," + jsonString(projectContext.getOperatorId())
+                + "," + optionsSnapshot + "]";
     }
 
     private String requestOptionsSnapshot(AskDataRequest request) {

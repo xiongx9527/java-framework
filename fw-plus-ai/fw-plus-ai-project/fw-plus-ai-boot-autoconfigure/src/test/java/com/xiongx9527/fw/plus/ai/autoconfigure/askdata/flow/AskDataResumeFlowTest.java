@@ -116,6 +116,39 @@ public class AskDataResumeFlowTest {
     }
 
     @Test
+    public void shouldRejectResumeTokenWhenProjectScopeDoesNotMatch() {
+        Fixture fixture = new Fixture();
+        AskDataResult initial = fixture.executor().execute(fixture.requestWithoutConversation());
+        AskDataRequest resume = fixture.request();
+        resume.setConversationId(initial.getConversationId());
+        resume.setResumeToken(initial.getResumeToken());
+        resume.setProjectContext(new AskDataProjectContext("project-b", "operator-a"));
+
+        AskDataResult resumed = fixture.executor().execute(resume);
+
+        assertTrue(initial.isSuccess());
+        assertFalse(resumed.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, resumed.getErrorCode());
+        assertEquals(1, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectConversationResumeWhenOperatorScopeDoesNotMatch() {
+        Fixture fixture = new Fixture();
+        AskDataResult initial = fixture.executor().execute(fixture.requestWithoutConversation());
+        AskDataRequest resume = fixture.request();
+        resume.setConversationId(initial.getConversationId());
+        resume.setProjectContext(new AskDataProjectContext("project-a", "operator-b"));
+
+        AskDataResult resumed = fixture.executor().execute(resume);
+
+        assertTrue(initial.isSuccess());
+        assertFalse(resumed.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, resumed.getErrorCode());
+        assertEquals(1, fixture.executorCalls);
+    }
+
+    @Test
     public void shouldRejectResumeWhenQuestionModelRowsOrExecuteDoesNotMatch() {
         assertIdentityMismatch("question");
         assertIdentityMismatch("model");
@@ -269,7 +302,7 @@ public class AskDataResumeFlowTest {
         checkpoint.setRequestSummary("订单数量");
         checkpoint.setMaxRows(Integer.valueOf(100));
         checkpoint.setExecute(Boolean.TRUE);
-        checkpoint.setRequestOptionsSnapshot("null");
+        checkpoint.setRequestOptionsSnapshot("[\"project-a\",\"operator-a\",null]");
         checkpoint.setCompletedSteps(Collections.singletonList("metadata"));
         checkpoint.setCurrentStep("metadata");
         fixture.store.save(checkpoint);
@@ -362,7 +395,7 @@ public class AskDataResumeFlowTest {
             checkpoint.setRequestSummary("订单数量");
             checkpoint.setMaxRows(Integer.valueOf(100));
             checkpoint.setExecute(Boolean.TRUE);
-            checkpoint.setRequestOptionsSnapshot("null");
+            checkpoint.setRequestOptionsSnapshot("[\"project-a\",\"operator-a\",null]");
             checkpoint.setSql("select * from orders limit 100");
             checkpoint.setSqlValidated(Boolean.TRUE);
             checkpoint.setCompletedSteps(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql"));
