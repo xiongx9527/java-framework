@@ -109,6 +109,10 @@
 - **WHEN** 应用启用 AskData Java LangGraph 适配且存在经过 Java 8 验证的兼容构件
 - **THEN** 系统 SHALL 将主 Agent、子 Agent、检查点和失败分支编排为可观察的状态图
 
+#### Scenario: Optional LangGraph4j JDK8 graph adapter
+- **WHEN** 当前 Java 8 AskData starter 需要外部图编排适配，且应用提供经过 Java 8 验证的 LangGraph4j 或 Java LangGraph 兼容适配构件
+- **THEN** AskData SHALL 通过可选 adapter 对接该图编排能力；未提供兼容构件时 SHALL 保持默认顺序流程可用
+
 #### Scenario: Fall back when graph adapter is unavailable
 - **WHEN** 应用未启用 LangGraph 适配或兼容构件不在类路径中
 - **THEN** 系统 SHALL 回退到默认顺序流程，并记录图编排未启用的诊断信息
