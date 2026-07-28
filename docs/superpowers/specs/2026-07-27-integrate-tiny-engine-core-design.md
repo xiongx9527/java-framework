@@ -2,6 +2,8 @@
 comet_change: integrate-tiny-engine-core
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-28-integrate-tiny-engine-core
+status: final
 ---
 
 # TinyEngine Core 深度技术设计
