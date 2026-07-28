@@ -5,12 +5,17 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller.webflux.Mag
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller.webflux.WebFluxMagicAPIRequestAccess;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptions;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.starter.MagicAPIDebeziumConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.druid.starter.MagicAPIDruidConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurationImportFilter;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.web.reactive.context.StandardReactiveWebEnvironment;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.support.SpringFactoriesLoader;
@@ -28,6 +33,7 @@ import org.ssssssss.magicapi.core.model.Group;
 import org.ssssssss.magicapi.core.model.JsonBean;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
+import org.ssssssss.magicapi.core.web.RequestHandler;
 
 import java.net.InetSocketAddress;
 import java.util.Arrays;
@@ -58,12 +64,78 @@ class MagicAPIWebFluxControllerTest {
     @Test
     void startsReactiveAutoConfigurationFromFullChainWithoutManualMagicConfiguration() {
         new ReactiveWebApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(MagicAPIWebFluxAutoConfiguration.class))
+                .withConfiguration(AutoConfigurations.of(
+                        org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
+                        MagicAPIWebFluxAutoConfiguration.class))
                 .withPropertyValues("magic-api.resource.location=target/magic-api-webflux-test")
                 .run(context -> assertThat(context)
                         .hasSingleBean(MagicConfiguration.class)
                         .hasSingleBean(MagicResourceService.class)
-                        .hasSingleBean(MagicAPIWebFluxController.class));
+                        .hasSingleBean(MagicAPIWebFluxController.class)
+                        .hasSingleBean(RequestHandler.class)
+                        .hasBean("webFluxRequestMagicDynamicRegistry"));
+    }
+
+    @Test
+    void registersUpstreamWorkbenchAndResourceRoutesInReactiveHandlerMapping() {
+        new ReactiveWebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
+                        MagicAPIWebFluxAutoConfiguration.class))
+                .withPropertyValues("magic-api.resource.location=target/magic-api-webflux-routes-test")
+                .run(context -> {
+                    org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping mapping =
+                            context.getBean("requestMappingHandlerMapping",
+                                    org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping.class);
+                    assertThat(mapping.getHandlerMethods().keySet())
+                            .anyMatch(info -> hasPath(info, "/magic-api/web/plugins"))
+                            .anyMatch(info -> hasPath(info, "/magic-api/web/resource"))
+                            .anyMatch(info -> hasPath(info, "/magic-api/web/resource/file/{folder}/save"));
+                });
+    }
+
+    @Test
+    void registersPluginControllerRoutesInReactiveHandlerMapping() {
+        new ReactiveWebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
+                        MagicAPIWebFluxAutoConfiguration.class,
+                        MagicAPIDebeziumConfiguration.class))
+                .withPropertyValues("magic-api.resource.location=target/magic-api-webflux-plugin-routes-test")
+                .run(context -> {
+                    org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping mapping =
+                            context.getBean("requestMappingHandlerMapping",
+                                    org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping.class);
+                    assertThat(mapping.getHandlerMethods().keySet())
+                            .anyMatch(info -> hasPath(info, "/magic-api/web/debezium/datasource/connector-options"));
+                });
+    }
+
+    @Test
+    void registersMcpControllerRoutesInReactiveHandlerMapping() {
+        new ReactiveWebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
+                        MagicAPIWebFluxAutoConfiguration.class,
+                        MagicAPIMcpConfiguration.class))
+                .withPropertyValues("magic-api.resource.location=target/magic-api-webflux-mcp-routes-test")
+                .run(context -> {
+                    org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping mapping =
+                            context.getBean("requestMappingHandlerMapping",
+                                    org.springframework.web.reactive.result.method.annotation.RequestMappingHandlerMapping.class);
+                    assertThat(mapping.getHandlerMethods().keySet())
+                            .anyMatch(info -> hasPath(info, "/mcp"))
+                            .anyMatch(info -> hasPath(info, "/mcp/diagnostics/execute"));
+                });
+    }
+
+    @Test
+    void keepsDruidServletPluginOutOfReactiveWebContext() {
+        new ReactiveWebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(MagicAPIDruidConfiguration.class))
+                .run(context -> assertThat(context)
+                        .doesNotHaveBean(ServletRegistrationBean.class)
+                        .doesNotHaveBean(FilterRegistrationBean.class));
     }
 
     @Test
@@ -263,7 +335,7 @@ class MagicAPIWebFluxControllerTest {
         assertThat(access.getSession()).isNotNull();
         assertThat(access.getInputStream().read()).isEqualTo(-1);
         assertThat(access.getHttpInputMessage()).isNotNull();
-        assertThatThrownBy(() -> access.getHttpInputMessage().getBody()).isInstanceOf(java.io.IOException.class);
+        assertThat(access.getHttpInputMessage().getBody().read()).isEqualTo(-1);
         assertThatThrownBy(access::resolveMultipart).isInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(access::getUserPrincipal).isInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(access::getRequest).isInstanceOf(UnsupportedOperationException.class);
@@ -341,5 +413,12 @@ class MagicAPIWebFluxControllerTest {
                 .expectBody()
                 .jsonPath("$.code").isEqualTo(401)
                 .jsonPath("$.message").isEqualTo("token无效");
+    }
+
+    private boolean hasPath(org.springframework.web.reactive.result.method.RequestMappingInfo info,
+                            String path) {
+        return info.getPatternsCondition().getDirectPaths().contains(path)
+                || info.getPatternsCondition().getPatterns().stream()
+                        .anyMatch(pattern -> path.equals(pattern.getPatternString()));
     }
 }

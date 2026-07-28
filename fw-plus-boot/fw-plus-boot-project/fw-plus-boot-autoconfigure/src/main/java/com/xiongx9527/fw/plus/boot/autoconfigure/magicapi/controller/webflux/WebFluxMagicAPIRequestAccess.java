@@ -28,9 +28,15 @@ import java.util.List;
 public class WebFluxMagicAPIRequestAccess implements MagicAPIRequestAccess, MagicHttpServletRequest {
 
     private final ServerWebExchange exchange;
+    private final byte[] body;
 
     public WebFluxMagicAPIRequestAccess(ServerWebExchange exchange) {
+        this(exchange, new byte[0]);
+    }
+
+    public WebFluxMagicAPIRequestAccess(ServerWebExchange exchange, byte[] body) {
         this.exchange = exchange;
+        this.body = body == null ? new byte[0] : body;
     }
 
     @Override
@@ -85,7 +91,7 @@ public class WebFluxMagicAPIRequestAccess implements MagicAPIRequestAccess, Magi
 		return new HttpInputMessage() {
 			@Override
 			public InputStream getBody() throws IOException {
-				throw new IOException("WebFlux request body is not available as a blocking stream");
+				return new ByteArrayInputStream(body);
 			}
 
 			@Override
@@ -132,7 +138,7 @@ public class WebFluxMagicAPIRequestAccess implements MagicAPIRequestAccess, Magi
 
     @Override
     public InputStream getInputStream() {
-        return new ByteArrayInputStream(new byte[0]);
+        return new ByteArrayInputStream(body);
     }
 
     @Override

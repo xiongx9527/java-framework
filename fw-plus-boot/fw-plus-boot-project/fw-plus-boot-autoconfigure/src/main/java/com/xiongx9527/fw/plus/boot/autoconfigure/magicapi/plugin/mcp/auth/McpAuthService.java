@@ -5,4 +5,8 @@ import javax.servlet.http.HttpServletRequest;
 public interface McpAuthService {
 
 	McpPrincipal authenticate(HttpServletRequest request);
+
+	default McpPrincipal authenticate(String authorization) {
+		return authenticate((HttpServletRequest) null);
+	}
 }
