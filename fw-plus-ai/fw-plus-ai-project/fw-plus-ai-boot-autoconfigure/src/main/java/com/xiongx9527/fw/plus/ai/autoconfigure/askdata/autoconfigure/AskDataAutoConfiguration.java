@@ -46,7 +46,6 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -216,6 +215,33 @@ public class AskDataAutoConfiguration {
         return new DefaultAskDataSqlValidator(properties.getSql().isEnforceLimit());
     }
 
+    @Bean
+    @ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.class)
+    public com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreAskDataSqlValidator() {
+        return new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator() {
+            @Override
+            public Result validate(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand command) {
+                String normalizedSql = command.getSql().trim().toLowerCase();
+                if (normalizedSql.indexOf(';') >= 0) {
+                    return Result.failure(FailureCategory.MULTI_STATEMENT, "SQL 只允许单条语句");
+                }
+                if (normalizedSql.startsWith("insert") || normalizedSql.startsWith("update")
+                        || normalizedSql.startsWith("delete") || normalizedSql.startsWith("merge")
+                        || normalizedSql.startsWith("create") || normalizedSql.startsWith("drop")
+                        || normalizedSql.startsWith("alter")) {
+                    return Result.failure(FailureCategory.WRITE_SQL, "SQL 仅允许只读查询");
+                }
+                String[] tokens = normalizedSql.split("\\s+");
+                for (int index = 0; index < tokens.length - 1; index++) {
+                    if ("from".equals(tokens[index]) && !command.getAuthorizedObjects().contains(tokens[index + 1])) {
+                        return Result.failure(FailureCategory.UNAUTHORIZED_OBJECT, "对象未授权: " + tokens[index + 1]);
+                    }
+                }
+                return Result.success();
+            }
+        };
+    }
+
 	@Bean
 	@ConditionalOnMissingBean
 	public AskDataSqlExecutor askDataSqlExecutor(AskDataProperties properties,
@@ -244,7 +270,6 @@ public class AskDataAutoConfiguration {
      * 上下文、命名参数和授权对象，并在所有插件改写后强制调用最终校验器，插件不能绕过 SQL 安全边界。</p>
      */
     @Bean
-    @ConditionalOnBean(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.class)
     @ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain.class)
     public com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain askDataSqlInterceptorChain(
             ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor> interceptorProvider,

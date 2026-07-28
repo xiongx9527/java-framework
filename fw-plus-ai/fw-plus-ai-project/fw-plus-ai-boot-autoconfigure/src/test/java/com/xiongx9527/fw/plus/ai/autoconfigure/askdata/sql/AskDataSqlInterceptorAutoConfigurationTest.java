@@ -59,6 +59,21 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
     }
 
     @Test
+    public void shouldCreateInterceptorChainWithDefaultCoreValidator() {
+        AnnotationConfigApplicationContext context = contextWithDefaultCoreValidator(TenantInterceptorConfiguration.class);
+        try {
+            AskDataSqlInterceptorChain chain = context.getBeanProvider(AskDataSqlInterceptorChain.class)
+                    .getIfAvailable();
+
+            assertNotNull(chain);
+            assertEquals("select * from orders where tenant_id = :tenantId",
+                    chain.execute(command("select * from orders")).getSql());
+        } finally {
+            context.close();
+        }
+    }
+
+    @Test
     public void shouldRejectUnsafeSqlAfterPluginRewrite() {
         AnnotationConfigApplicationContext context = context(UnsafeInterceptorConfiguration.class);
         try {
@@ -99,6 +114,28 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
     }
 
     @Test
+    public void shouldApplyCoreOrderingAcrossMultipleSpringInterceptors() {
+        AnnotationConfigApplicationContext context = context(OrderedInterceptorConfiguration.class);
+        try {
+            AskDataSqlInterceptorChain chain = context.getBeanProvider(AskDataSqlInterceptorChain.class)
+                    .getIfAvailable();
+
+            assertNotNull(chain);
+            AskDataSqlCommand rewritten = chain.execute(command("select * from orders"));
+
+            assertEquals("select * from orders /* a-first */ /* b-same-order */ /* z-later */", rewritten.getSql());
+            List<AskDataSqlAudit.Record> records = context.getBean(AskDataSqlAudit.class).getRecords();
+            assertEquals(4, records.size());
+            assertEquals("a-first", records.get(0).getInterceptorKey());
+            assertEquals("b-same-order", records.get(1).getInterceptorKey());
+            assertEquals("z-later", records.get(2).getInterceptorKey());
+            assertEquals("FINAL_VALIDATE", records.get(3).getPhase());
+        } finally {
+            context.close();
+        }
+    }
+
+    @Test
     public void shouldExecuteFlowWithSqlRewrittenByCoreInterceptorChain() {
         AnnotationConfigApplicationContext context = flowContext(TenantInterceptorConfiguration.class);
         try {
@@ -130,6 +167,21 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
         }
     }
 
+    @Test
+    public void shouldRunBootValidatorAgainAfterCorePluginRewrite() {
+        AnnotationConfigApplicationContext context = flowContextWithCustomCoreValidator(
+                PermissiveCoreValidatorConfiguration.class, ForbiddenInterceptorConfiguration.class);
+        try {
+            AskDataResult result = context.getBean(AskDataFlowExecutor.class).execute(request());
+
+            assertFalse(result.isSuccess());
+            assertTrue(result.getErrorMessage().contains("metadata denied"));
+            assertNull(context.getBean(CapturingSqlExecutor.class).getExecutedSql());
+        } finally {
+            context.close();
+        }
+    }
+
     private AnnotationConfigApplicationContext context(Class<?> interceptorConfiguration) {
         AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
         context.register(SafetyValidatorConfiguration.class, interceptorConfiguration, AskDataAutoConfiguration.class);
@@ -137,9 +189,25 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
         return context;
     }
 
+    private AnnotationConfigApplicationContext contextWithDefaultCoreValidator(Class<?> interceptorConfiguration) {
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+        context.register(interceptorConfiguration, AskDataAutoConfiguration.class);
+        context.refresh();
+        return context;
+    }
+
     private AnnotationConfigApplicationContext flowContext(Class<?> interceptorConfiguration) {
         AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
         context.register(SafetyValidatorConfiguration.class, FlowConfiguration.class, interceptorConfiguration,
+                AskDataAutoConfiguration.class);
+        context.refresh();
+        return context;
+    }
+
+    private AnnotationConfigApplicationContext flowContextWithCustomCoreValidator(Class<?> coreValidatorConfiguration,
+            Class<?> interceptorConfiguration) {
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+        context.register(coreValidatorConfiguration, FlowConfiguration.class, interceptorConfiguration,
                 AskDataAutoConfiguration.class);
         context.refresh();
         return context;
@@ -234,6 +302,86 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
     }
 
     @Configuration
+    static class ForbiddenInterceptorConfiguration {
+
+        @Bean
+        @Order(10)
+        public AskDataSqlInterceptor forbiddenInterceptor() {
+            return new AskDataSqlInterceptor() {
+                @Override
+                public String getKey() {
+                    return "forbidden-rewrite";
+                }
+
+                @Override
+                public int getOrder() {
+                    return 10;
+                }
+
+                @Override
+                public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+                    return command.withSql("select * from forbidden");
+                }
+            };
+        }
+    }
+
+    @Configuration
+    static class PermissiveCoreValidatorConfiguration {
+
+        @Bean
+        public com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreAskDataSqlValidator() {
+            return new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator() {
+                @Override
+                public Result validate(AskDataSqlCommand command) {
+                    return Result.success();
+                }
+            };
+        }
+    }
+
+    @Configuration
+    static class OrderedInterceptorConfiguration {
+
+        @Bean
+        @Order(100)
+        public AskDataSqlInterceptor aFirstInterceptor() {
+            return orderedInterceptor("a-first", 10, " /* a-first */");
+        }
+
+        @Bean
+        @Order(0)
+        public AskDataSqlInterceptor bSameOrderInterceptor() {
+            return orderedInterceptor("b-same-order", 10, " /* b-same-order */");
+        }
+
+        @Bean
+        @Order(-100)
+        public AskDataSqlInterceptor zLaterInterceptor() {
+            return orderedInterceptor("z-later", 20, " /* z-later */");
+        }
+
+        private AskDataSqlInterceptor orderedInterceptor(final String key, final int order, final String suffix) {
+            return new AskDataSqlInterceptor() {
+                @Override
+                public String getKey() {
+                    return key;
+                }
+
+                @Override
+                public int getOrder() {
+                    return order;
+                }
+
+                @Override
+                public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+                    return command.withSql(command.getSql() + suffix);
+                }
+            };
+        }
+    }
+
+    @Configuration
     static class FlowConfiguration {
 
         @Bean
@@ -311,6 +459,15 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
             return new AskDataSqlValidator() {
                 @Override
                 public AskDataSqlValidationResult validate(String sql, AskDataDialect dialect, int maxRows) {
+                    return validate(sql, dialect, maxRows, null);
+                }
+
+                @Override
+                public AskDataSqlValidationResult validate(String sql, AskDataDialect dialect, int maxRows,
+                        AskDataMetadata metadata) {
+                    if (sql != null && sql.contains("forbidden")) {
+                        return AskDataSqlValidationResult.rejected("SQL_REJECTED", "metadata denied");
+                    }
                     return AskDataSqlValidationResult.accepted(sql);
                 }
             };

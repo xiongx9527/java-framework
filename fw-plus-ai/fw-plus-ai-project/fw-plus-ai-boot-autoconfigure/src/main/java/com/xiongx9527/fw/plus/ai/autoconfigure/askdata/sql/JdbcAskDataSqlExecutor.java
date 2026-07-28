@@ -7,6 +7,10 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCreator;
 import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterUtils;
+import org.springframework.jdbc.core.namedparam.ParsedSql;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -70,11 +74,18 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
         final int maxRows = request != null && request.getMaxRows() != null && request.getMaxRows().intValue() > 0
                 ? request.getMaxRows().intValue() : defaultMaxRows;
         try {
+            final SqlParameterSource parameterSource = parameterSource(request);
+            final ParsedSql parsedSql = NamedParameterUtils.parseSqlStatement(sql);
+            final String sqlToUse = NamedParameterUtils.substituteNamedParameters(parsedSql, parameterSource);
+            final Object[] values = NamedParameterUtils.buildValueArray(parsedSql, parameterSource, null);
             return jdbcTemplate.query(new PreparedStatementCreator() {
                 @Override
                 public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
-                    PreparedStatement statement = connection.prepareStatement(sql);
+                    PreparedStatement statement = connection.prepareStatement(sqlToUse);
                     statement.setMaxRows(maxRows);
+                    for (int index = 0; index < values.length; index++) {
+                        statement.setObject(index + 1, values[index]);
+                    }
                     return statement;
                 }
             }, new ResultSetExtractor<AskDataSqlExecutionResult>() {
@@ -104,5 +115,18 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
         } catch (Exception ex) {
             return AskDataSqlExecutionResult.failure(AskDataErrorCode.SQL_EXECUTION_FAILED, ex.getMessage());
         }
+    }
+
+    private SqlParameterSource parameterSource(AskDataRequest request) {
+        MapSqlParameterSource source = new MapSqlParameterSource();
+        if (request == null || request.getOptions() == null) {
+            return source;
+        }
+        for (Map.Entry<String, Object> entry : request.getOptions().entrySet()) {
+            if (entry.getKey() != null) {
+                source.addValue(entry.getKey(), entry.getValue());
+            }
+        }
+        return source;
     }
 }

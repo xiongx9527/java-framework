@@ -5,10 +5,13 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,10 +45,10 @@ public class AskDataSqlPipelineTest {
 				new AskDataSqlInterceptor() {
 					private int keyRequests;
 
-					@Override
-					public String getKey() {
-						return ++keyRequests <= 3 ? "stable" : "validator";
-					}
+						@Override
+						public String getKey() {
+							return keyRequests++ == 0 ? "stable" : "validator";
+						}
 
 					@Override
 					public int getOrder() {
@@ -112,6 +115,36 @@ public class AskDataSqlPipelineTest {
 	}
 
 	@Test
+	public void shouldDeepSnapshotNestedParameterValue() {
+		Calendar calendar = Calendar.getInstance();
+		calendar.setTimeInMillis(1000L);
+		List<Object> nestedList = new ArrayList<Object>();
+		nestedList.add(calendar);
+		Map<String, Object> source = new LinkedHashMap<String, Object>();
+		source.put("items", nestedList);
+
+		AskDataSqlParameter parameter = AskDataSqlParameter.of("payload", source);
+
+		calendar.setTimeInMillis(2000L);
+		nestedList.add("changed");
+		Map<?, ?> exposed = (Map<?, ?>) parameter.getValue();
+		List<?> exposedList = (List<?>) exposed.get("items");
+		((Calendar) exposedList.get(0)).setTimeInMillis(3000L);
+
+		Map<?, ?> snapshot = (Map<?, ?>) parameter.getValue();
+		List<?> snapshotList = (List<?>) snapshot.get("items");
+		assertEquals(1, snapshotList.size());
+		assertEquals(1000L, ((Calendar) snapshotList.get(0)).getTimeInMillis());
+		assertThrows(UnsupportedOperationException.class, () -> snapshot.clear());
+		assertThrows(UnsupportedOperationException.class, () -> snapshotList.clear());
+	}
+
+	@Test
+	public void shouldRejectParameterValueThatCannotBeSafelySnapshotted() {
+		assertThrows(IllegalArgumentException.class, () -> AskDataSqlParameter.of("unsafe", new StringBuilder("x")));
+	}
+
+	@Test
 	public void shouldRetainOnlyBoundedNumberOfAuditRecords() {
 		AskDataSqlAudit audit = new AskDataSqlAudit();
 		for (int index = 0; index < 1025; index++) {
@@ -146,6 +179,25 @@ public class AskDataSqlPipelineTest {
 				() -> chain.execute(command("select * from sales")));
 
 		assertTrue(exception.getMessage().contains("MULTI_STATEMENT"));
+	}
+
+	@Test
+	public void shouldFinalValidateWithOriginalSecurityBoundaryWhenPluginReplacesCommand() {
+		AskDataSqlAudit audit = new AskDataSqlAudit();
+		AskDataSqlCommand original = new AskDataSqlCommand(new AskDataProjectContext("project-a", "operator-a"),
+				"select * from sales where tenant_id = :tenantId",
+				Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-a")), Collections.singleton("sales"));
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Collections.singletonList(
+				maliciousSqlInterceptor("combined", new AskDataProjectContext("project-b", "operator-b"),
+						Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-b")),
+						Collections.singleton("users"), "select * from users where tenant_id = :tenantId")),
+				new SafetyValidator(), audit);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> chain.execute(original));
+
+		assertTrue(exception.getMessage().contains("UNAUTHORIZED_OBJECT"));
+		assertEquals("combined", audit.getRecords().get(0).getInterceptorKey());
+		assertEquals("FINAL_VALIDATE", audit.getRecords().get(1).getPhase());
 	}
 
 	@Test
@@ -235,6 +287,11 @@ public class AskDataSqlPipelineTest {
 
 	private static AskDataSqlInterceptor maliciousInterceptor(final String key, final AskDataProjectContext context,
 			List<AskDataSqlParameter> parameters, Set<String> authorizedObjects) {
+		return maliciousSqlInterceptor(key, context, parameters, authorizedObjects, null);
+	}
+
+	private static AskDataSqlInterceptor maliciousSqlInterceptor(final String key, final AskDataProjectContext context,
+			List<AskDataSqlParameter> parameters, Set<String> authorizedObjects, final String sql) {
 		final List<AskDataSqlParameter> maliciousParameters = parameters;
 		final Set<String> maliciousAuthorizedObjects = authorizedObjects;
 		return new AskDataSqlInterceptor() {
@@ -250,7 +307,8 @@ public class AskDataSqlPipelineTest {
 
 			@Override
 			public AskDataSqlCommand intercept(AskDataSqlCommand command) {
-				return new AskDataSqlCommand(context, command.getSql(), maliciousParameters, maliciousAuthorizedObjects);
+				String rewrittenSql = sql == null ? command.getSql() : sql;
+				return new AskDataSqlCommand(context, rewrittenSql, maliciousParameters, maliciousAuthorizedObjects);
 			}
 		};
 	}
