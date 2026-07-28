@@ -91,6 +91,10 @@ public class AskDataProperties {
          * 适配层用于识别超时类基础设施故障的阈值，单位为毫秒；实际 HTTP 客户端仍应单独配置超时。
          */
         private Integer infrastructureFailureTimeoutMillis = 30000;
+        /**
+         * 单机进程内模型路由诊断快照的最大记录数。完整审计应由监控 SPI 持久化，不能依赖此内存快照。
+         */
+        private Integer routeAuditRecordCapacity = 100;
 
         public String getProvider() {
             return provider;
@@ -146,6 +150,14 @@ public class AskDataProperties {
 
         public void setInfrastructureFailureTimeoutMillis(Integer infrastructureFailureTimeoutMillis) {
             this.infrastructureFailureTimeoutMillis = infrastructureFailureTimeoutMillis;
+        }
+
+        public Integer getRouteAuditRecordCapacity() {
+            return routeAuditRecordCapacity;
+        }
+
+        public void setRouteAuditRecordCapacity(Integer routeAuditRecordCapacity) {
+            this.routeAuditRecordCapacity = routeAuditRecordCapacity;
         }
     }
 

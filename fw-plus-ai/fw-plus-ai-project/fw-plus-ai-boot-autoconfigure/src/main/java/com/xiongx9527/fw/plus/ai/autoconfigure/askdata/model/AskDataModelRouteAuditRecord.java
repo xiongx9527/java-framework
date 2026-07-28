@@ -12,6 +12,7 @@ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy;
 public final class AskDataModelRouteAuditRecord {
 
 	private final String modelKey;
+	private final String provider;
 	private final AskDataModelRoutePolicy routePolicy;
 	private final String errorCode;
 	private final boolean retryable;
@@ -21,11 +22,12 @@ public final class AskDataModelRouteAuditRecord {
 	 *
 	 * @param result Core 路由或已分类失败结果，不能为空
 	 */
-	public AskDataModelRouteAuditRecord(AskDataModelResult result) {
+	public AskDataModelRouteAuditRecord(AskDataModelResult result, String provider) {
 		if (result == null) {
 			throw new IllegalArgumentException("result 不能为空");
 		}
 		this.modelKey = result.getModelKey();
+		this.provider = provider;
 		this.routePolicy = result.getRoutePolicy();
 		this.errorCode = result.getErrorCode();
 		this.retryable = result.isRetryable();
@@ -33,6 +35,10 @@ public final class AskDataModelRouteAuditRecord {
 
 	public String getModelKey() {
 		return modelKey;
+	}
+
+	public String getProvider() {
+		return provider;
 	}
 
 	public AskDataModelRoutePolicy getRoutePolicy() {
