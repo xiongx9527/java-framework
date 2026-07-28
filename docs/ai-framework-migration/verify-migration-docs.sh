@@ -65,6 +65,18 @@ for doc_name in $target_docs; do
 	done
 done
 
+agentscope_doc="$script_dir/agentscope-java17.md"
+if [[ -f "$agentscope_doc" ]]; then
+	require_literal "$agentscope_doc" "进程内 SDK adapter" "AgentScope 进程内 SDK 边界"
+	require_literal "$agentscope_doc" "不是外部 HTTP、MCP 或 A2A 桥接" "AgentScope 非桥接声明"
+
+	# 仅允许文档明确否定协议桥接；禁止把任一协议桥接表述为 AgentScope adapter 的实现路径。
+	if rg -n -i -- '(通过|使用|采用|作为).{0,40}(HTTP|MCP|A2A).{0,40}桥接|((HTTP|MCP|A2A).{0,40}桥接).{0,40}(作为|实现|提供|适配)' "$agentscope_doc"; then
+		print -u2 -- "禁止将 HTTP/MCP/A2A 桥接表述为 AgentScope 2 Java adapter 实现: ${agentscope_doc:t}"
+		failures=$((failures + 1))
+	fi
+fi
+
 if (( failures > 0 )); then
 	print -u2 -- "迁移文档校验失败: ${failures} 项"
 	exit 1
