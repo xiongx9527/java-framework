@@ -59,6 +59,18 @@ OpenSpec remains the canonical capability spec. This handoff is a deterministic,
 
 ```
 
+## Task 6 Verification Evidence (2026-07-28)
+
+- Gate: worktree `/Users/xiongxiao/Workspaces/Idea/codes/New/java-framework/.worktrees/fix-magicapi-plugin-sample-integration`; `HEAD=ba5805a022ebb8aa422d6af19a8a7be9eba20b77`; branch `hotfix/20260727/fix-magicapi-plugin-sample-integration`; Java `1.8.0_432`; Maven Wrapper `3.8.8`.
+- `./fw-plus-boot/mvnw -f fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/pom.xml -Dtest=MyBatisFlexConfigurationTest,MagicAPIMongoConfigurationTest,MagicAPIMqttClientConfigurationTest,MagicAPIRedisConfigurationTest,MagicAPIMcpConfigurationTest test`: exit `0`; 19 tests, failures `0`, errors `0`; `BUILD SUCCESS`; log `/tmp/fw-plus-magicapi-task6-boot-directed.log`.
+- `./fw-plus-ai/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=EmbeddingStoreAutoConfigurationTest,EmbeddingStoreAutoConfigurationMetadataTest test`: exit `0`; 11 tests, failures `0`, errors `0`; `BUILD SUCCESS`; log `/tmp/fw-plus-magicapi-task6-ai-directed.log`.
+- `./fw-plus-core/mvnw -f fw-plus-sample/fw-plus-boot-samples/fw-plus-magicapi-spring-boot-starter-sample/pom.xml test`: exit `0`; 6 tests, failures `0`, errors `0`; `BUILD SUCCESS`; log `/tmp/fw-plus-magicapi-task6-sample-directed-preinstall-rerun.log`.
+- `./fw-plus-core/mvnw -f fw-plus-core/pom.xml clean install`: exit `0`; 57 reactor entries; `BUILD SUCCESS`; log `/tmp/fw-plus-magicapi-task6-core-clean-install.log`.
+- `./fw-plus-boot/mvnw -f fw-plus-boot/pom.xml clean install`: exit `0`; 48 reactor entries; `BUILD SUCCESS`; boot-autoconfigure 373 tests, failures `0`, errors `0`; log `/tmp/fw-plus-magicapi-task6-boot-clean-install.log`.
+- `./fw-plus-cloud/mvnw -f fw-plus-cloud/pom.xml clean install`: exit `0`; 13 reactor entries; `BUILD SUCCESS`; log `/tmp/fw-plus-magicapi-task6-cloud-clean-install.log`.
+- `./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml clean install`: exit `1`; reactor `fw-plus-ai-boot-autoconfigure`; 92 tests, failures `1`, errors `0`; failed test `LangChain4jAutoConfigurationRegistrationTest.shouldKeepModelStarterProviderSdkDependenciesOptIn`; message `Model starter should depend on fw-plus-ai-boot-autoconfigure`; log `/tmp/fw-plus-magicapi-task6-ai-clean-install.log`.
+- Not run after the AI build exit `1`: `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml clean verify`; post-install target sample test; standalone `MagicapiSampleApplication`; health/editor HTTP checks; negative log scan; process termination; port release check.
+
 ## openspec/changes/fix-magicapi-plugin-sample-integration/design.md
 
 - Source: openspec/changes/fix-magicapi-plugin-sample-integration/design.md
@@ -104,3 +116,12 @@ Boot 层当前有 25 个 Magic-API 插件模块，AI 层当前有 vector、model
 - [ ] 3. 按 Core -> Boot -> Cloud/AI -> sample 完成分层构建，运行相关测试，并实际启动 sample 检查健康、Magic-API 宿主及全部插件装配结果。
 
 ```
+
+## Task 6 Verification Recovery (2026-07-28)
+
+- The initial AI RED evidence above remains historical. Commit `de9b09ac0a4da4f52496f052dec7ea421b53ccc4` removed the obsolete direct `fw-plus-ai-boot-autoconfigure` dependency expectation from `LangChain4jAutoConfigurationRegistrationTest`; current verification HEAD `d327f910dfa06f1eb8472819c443bc5336e903db` contains that commit.
+- `./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml clean install`: exit `0`; 15 reactor entries; `BUILD SUCCESS`; fw-plus-ai-boot-autoconfigure 92 tests, failures `0`, errors `0`; log `/tmp/fw-plus-magicapi-task6-ai-clean-install-resume.log`.
+- `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml clean verify`: exit `0`; 14 reactor entries; `BUILD SUCCESS`; target Magic-API sample 6 tests, failures `0`, errors `0`; log `/tmp/fw-plus-magicapi-task6-sample-clean-verify.log`.
+- `./fw-plus-core/mvnw -f fw-plus-sample/fw-plus-boot-samples/fw-plus-magicapi-spring-boot-starter-sample/pom.xml test`: exit `0`; 6 tests, failures `0`, errors `0`; `BUILD SUCCESS`; log `/tmp/fw-plus-magicapi-task6-sample-directed-postinstall.log`.
+- Standalone command: `./fw-plus-core/mvnw -f fw-plus-sample/fw-plus-boot-samples/fw-plus-magicapi-spring-boot-starter-sample/pom.xml org.springframework.boot:spring-boot-maven-plugin:2.7.18:run -Dspring-boot.run.profiles=all-plugins -Dspring-boot.run.arguments="--server.port=39089 --magic-api.resource.location=<mktemp-empty-dir>"`; sample PID `78195`; port `39089`; ready seconds `18`; health body `{"status":"UP"}`; editor title `magic-api`; log `/var/folders/p7/cg70fqfj1xz7rwplv4n19d_w0000gp/T//fw-plus-magicapi-task6.XXXXXX.log`.
+- Standalone negative scan pattern had no match; sample stopped by `TERM` within the bounded wait; `lsof -nP -iTCP:39089 -sTCP:LISTEN` had no output; the temporary resource directory cleanup returned successfully.
