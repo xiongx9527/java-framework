@@ -1,41 +1,15 @@
 # Subagent Progress
 
-- Plan task: `Task 5: 让真实 sample 主类完成离线全插件上下文与 HTTP 验证`
-- OpenSpec mapping: `2. 补齐 sample 整体测试 classpath 和可控启动配置；对发现的每个源码缺陷先补最小回归测试，再逐项修复并转绿。`
-- Stage: `done`
-- Implementer: `/root/task5_sample_context`
-- Dispatch: 已派发，requirements 为 SDD `task-5-brief.md`，报告写入 `task-5-report.md`。
+- Completed history: Task 1 `72b82393`；Task 2 `66d95573`；Task 3 `4d94882a`；Task 4 `191f5694`；Task 5 commits `3c9258f4`、`03548cea`、`4780c3c1`，两轮 thorough 修复复审通过，协调提交 `af1471fd`。
+- Plan task: `Task 6: 执行分层构建与独立 sample 进程验证`
+- OpenSpec mapping: `3. 按 Core -> Boot -> Cloud/AI -> sample 完成分层构建，运行相关测试，并实际启动 sample 检查健康、Magic-API 宿主及全部插件装配结果。`
+- Stage: `implementing`
+- Implementer: 待派发全新 Agent。
+- Dispatch requirements: SDD `task-6-brief.md`；只读预检 `task-6-preflight.md`；实现报告写入 `task-6-report.md`。
 - Review mode: `thorough`
-- Review/fix round: `1/2`
-- Base commit: `f6a32afc`
-- Existing changes: 未提交的 `application-all-plugins.yaml` 与 `MagicApiAllPluginsApplicationContextTest.java` 来自前一轮 RED；必须保留并增量续作。
-- RED evidence: `task-5-preflight-report.md` 已独立复现 Apollo 内网访问/长轮询；Boot 旧快照和 AI optional provider 缺类均已修复并安装当前快照。
-- Required fix: 先在主类仍有 `@EnableApolloConfig` 时重跑确认只剩 Apollo RED，再仅删除该 import/注解；不得禁用 27 插件或 embedding store。
-- RED progress: Boot MQTT 与 AI Milvus/Qdrant/Weaviate 前置修复已由 `javap` 确认且未复现；新增 `mybatisFlexModule` 无主数据源失败，profile 以既有 `magic.api.mybatis-flex.enabled=false` 关闭无数据源访问链。
-- External access investigation: 上下文可启动但 Apollo 仍访问 `172.17.17.185`、注册 PropertySource 并长轮询；同时观察 Mongo `127.0.0.1:27017` 与 Neo4j localhost driver，正在区分 Actuator health 探测和初始化连接并做最小 lifecycle/health 隔离。
-- Isolation decision: `management.health.defaults.enabled=false` + `ping.enabled=true` 关闭 Rabbit/ES/DataSource/Mongo/Neo4j/Redis 默认 health 外连；仅排除已证实会创建客户端的 Spring Boot Mongo/Neo4j 基础设施自动配置，不排除任何 fw-plus/Magic-API 插件自动配置。插件 artifact 与注册链保留，离线无数据源初始化信息须如实记录。
-- GREEN evidence: 完整 sample 4 tests，0 failures/errors，BUILD SUCCESS；health 与 Magic Editor 真实 HTTP 200；Apollo/循环/向量缺类/默认外服连接负向扫描无匹配。
-- Implementation commit: `3c9258f4`。
-- Changed files: sample 主类、`application-all-plugins.yaml`、真实上下文/HTTP 测试；OpenSpec 由协调者审查后勾选。
-- Implementer result: `COMPLETE`；仅三个 sample 白名单文件。
-- Risk signals: Mongo 基础设施排除后 Magic Mongo 模块内部捕获一次无 `MongoTemplate` 初始化错误，但插件 artifact/注册链保留且无外连；环境警告仍存在。
-- Reviewer: `/root/task5_sample_review`。
-- Review status: spec ❌，quality Needs fixes；Critical 0，Important 4。
-- Open findings: (1) `magic.api.mybatis-flex.enabled=false` 掩盖零主数据源源码缺陷；(2) Mongo 模块在无 `MongoTemplate` 时输出 ERROR；(3) 缺少全部插件自动配置导入的结构化断言；(4) OpenSpec 任务 2 待协调者审查后勾选。
-- Fix action: 第 1/2 轮派发全新 fixer；实现修复覆盖前三项，第四项由协调者处理。
-- Fixer: `/root/task5_fix_round1`；报告追加至 SDD `task-5-report.md`。
-- Fix RED evidence: `MyBatisFlexConfigurationTest` 1 test/1 failure，空 `DynamicRoutingDataSource` 精确触发 `CannotFindDataSourceException`；`MagicAPIMongoConfigurationTest` 1 test/1 failure，真实打印 Mongo 模块初始化 ERROR / `NoSuchBeanDefinitionException` 且错误存在 `mongoFunctions` Bean。生产代码尚未修改时取得。
-- Structured contract plan: 27 artifact 映射为 24 个实际激活 plugin name、2 个显式条件 backoff（admin/db）和 1 个 resource-only word artifact；同时断言 Mongo/Redis 默认模块条件 backoff。
-- Fix GREEN evidence: MyBatis-Flex + Mongo 定向 2 tests，0 failures/errors，BUILD SUCCESS；Boot autoconfigure install BUILD SUCCESS，均第 1 次修复通过。
-- Structured contract RED: 第 1 次 mutation 以 config 插件禁用导致 Config Server URI 在断言前失败，判为无效证据；第 2 次改用 freemarker 条件 backoff，结构断言精确捕获缺失 `freemarker` plugin。
-- Fix implementation commit: `03548cea`（8 个授权的 Boot/sample 源码与测试文件；无生成物）。
-- Fix GREEN evidence: Boot 五组共 19 tests，0 failures/errors；完整 sample 共 5 tests，0 failures/errors；独立 sample 端口 `39089`，18 秒就绪，health/editor HTTP 200，负向扫描 clean，端口释放且临时资源树已删除。
-- Re-reviewer: `/root/task5_rereview_round1`。
-- Re-review status: 第 1/2 轮 NEEDS FIXES；MyBatis-Flex 与 Mongo 两项 ADDRESSED；27 插件结构契约仍缺 DB Browser 自定义条件的实际 false 结果断言。
-- Fix round 2 action: 派发全新 fixer，仅补 DB Browser 条件结果契约并更正/补齐 mutation RED 与 GREEN 可复核证据；不得修改 plan/OpenSpec task。
-- Fix round 2 RED: `dbBrowserAdminConditionBacksOffForOfflineEnvironment` 在 `magic-api.plugin.db.admin.enabled=true` mutation 下 1 failure，`Expecting value to be false but was true`；日志 `/tmp/task5-db-browser-condition-direct-assertion-red.log`。
-- Fix round 2 GREEN: 目标方法 1/1；完整 sample classpath 2/2 + application context 4/4，共 6/6；日志 `/tmp/task5-db-browser-condition-green.log` 与 `/tmp/task5-sample-full-green-round2.log`。
-- Fix round 2 handoff: 原 fixer `/root/task5_fix_round2` 的写入 hook 缓存旧归档 change，现有单测试文件 diff 未提交；全新接管 Agent `/root/task5_fix_round2_finalize` 负责只读核验证据、追加 ignored 报告并提交，不再扩展代码范围。
-- Fix round 2 commit: `4780c3c1`，仅包含 `MagicApiAllPluginsApplicationContextTest.java`；提交前目标 GREEN 1/1，`git show --check` clean。
-- Re-review round 2: `/root/task5_rereview_round2` APPROVED；唯一 DB Browser 条件发现 ADDRESSED，fix range `03548cea..4780c3c1` 无新增 Critical/Important。
-- Task 5 completion: implementation/fix commits `f6a32afc..4780c3c1`；两轮 thorough 修复复审完成；plan Task 5 与 OpenSpec task 2 已勾选，待定向 `task-checkoff` 与协调提交。
+- Review/fix round: `0/2`
+- Base commit: `af1471fd`
+- Required sequence: Boot/AI/sample 定向回归；Core -> Boot -> Cloud -> AI -> Sample 串行全层构建；安装后 sample 再验证；独立 sample 进程 health/editor、负向日志扫描、TERM/KILL 有界退出、端口释放、递归空目录树清理。
+- Constraints: 不启动或访问真实外部中间件；不得禁用/移除 27 个插件；不得修改实现源码；只允许更新 `.comet/context.md`，OpenSpec/plan checkbox 由协调者在审查后处理。
+- Generated exclusions: 不暂存/提交 `node_modules/`、console `dist/`、`package-lock.json`、`.flattened-pom.xml`、`logDir_IS_UNDEFINED/`、`target/`、临时日志或资源目录。
+- Expected evidence: 每条 Maven 命令 exit code、reactor/test 汇总、目标 sample 非跳测；独立进程端口/就绪秒数、health/editor HTTP 200、负向扫描 clean、端口释放、资源树删除。
