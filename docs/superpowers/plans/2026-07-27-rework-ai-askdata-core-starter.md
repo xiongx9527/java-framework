@@ -585,11 +585,11 @@ git commit -m "feat: add askdata state and monitoring defaults"
 - Consumes: Core SQL pipeline
 - Produces: Spring-discovered SQL interceptors and final safety validation
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试 Task 12**
 
 Test custom interceptor adds tenant predicate through named parameters, final validator rejects unsafe plugin output, and audit records interceptor key and phase.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试 Task 12**
 
 ```bash
 cd fw-plus-ai
@@ -598,15 +598,15 @@ cd fw-plus-ai
 
 Expected: FAIL.
 
-- [ ] **Step 3: 实现桥接**
+- [x] **Step 3: 实现桥接 Task 12**
 
 Use `ObjectProvider<AskDataSqlInterceptor>` to collect ordered interceptors. Ensure final SQL always calls validator after plugins.
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证 Task 12**
 
 Run the same tests. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 12**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/sql \
