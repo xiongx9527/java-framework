@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.mybatisflex;
 
 import com.mybatisflex.core.datasource.DataSourceDecipher;
 import com.mybatisflex.core.datasource.DataSourceManager;
+import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
 import com.mybatisflex.core.logicdelete.LogicDeleteManager;
 import com.mybatisflex.core.logicdelete.LogicDeleteProcessor;
 import com.mybatisflex.core.table.DynamicSchemaProcessor;
@@ -114,6 +115,10 @@ public class MyBatisFlexConfiguration implements InitializingBean {
                                                 ObjectProvider<DatabaseIdProvider> databaseIdProvider,
                                                 org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource dynamicDataSource,
                                                 @Autowired(required = false) DataSource dataSource) throws Exception {
+		if (dataSource instanceof DynamicRoutingDataSource
+				&& ((DynamicRoutingDataSource) dataSource).getDataSources().isEmpty()) {
+			dataSource = null;
+		}
         return new MybatisFlexModule(interceptorsProvider,typeHandlersProvider,databaseIdProvider,
                 dynamicDataSource,this.myBatisFlexProperties,dataSource);
     }

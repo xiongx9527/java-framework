@@ -35,11 +35,6 @@ management:
       exposure:
         include: health
 
-magic:
-  api:
-    mybatis-flex:
-      enabled: false
-
 magic-api:
   resource:
     type: file

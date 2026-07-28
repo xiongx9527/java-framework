@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MagicApiAllPluginsClasspathTest {
 
-	private static final List<String> PLUGIN_ARTIFACTS = Arrays.asList(
+	static final List<String> PLUGIN_ARTIFACTS = Arrays.asList(
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-admin",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-config",
 			"com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-db",
