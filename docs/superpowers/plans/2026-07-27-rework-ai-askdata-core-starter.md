@@ -788,7 +788,7 @@ git commit -m "docs: add askdata feature matrix and test cases"
 - Consumes: all previous task deliverables
 - Produces: checked tasks and verification evidence
 
-- [ ] **Step 1: 运行 Core 测试**
+- [x] **Step 1: 运行 Core 测试**
 
 ```bash
 cd fw-plus-core
@@ -797,7 +797,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 2: 运行 AI 自动配置 AskData 测试**
+- [x] **Step 2: 运行 AI 自动配置 AskData 测试**
 
 ```bash
 cd fw-plus-ai
@@ -806,7 +806,7 @@ cd fw-plus-ai
 
 Expected: PASS.
 
-- [ ] **Step 3: 运行 Starter 打包**
+- [x] **Step 3: 运行 Starter 打包**
 
 ```bash
 cd fw-plus-ai
@@ -815,7 +815,7 @@ cd fw-plus-ai
 
 Expected: PASS.
 
-- [ ] **Step 4: 运行文档检查**
+- [x] **Step 4: 运行文档检查**
 
 ```bash
 rg -n "T[B]D|T[O]DO|待[补]|占[位]" docs/askdata/starter docs/superpowers/specs/2026-07-27-rework-ai-askdata-core-starter-design.md
@@ -823,11 +823,11 @@ rg -n "T[B]D|T[O]DO|待[补]|占[位]" docs/askdata/starter docs/superpowers/spe
 
 Expected: no output.
 
-- [ ] **Step 5: 勾选 OpenSpec tasks**
+- [x] **Step 5: 勾选 OpenSpec tasks**
 
 Only check tasks in `openspec/changes/rework-ai-askdata-core-starter/tasks.md` that have matching code, docs and test evidence.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add openspec/changes/rework-ai-askdata-core-starter/tasks.md docs/askdata/starter

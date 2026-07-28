@@ -27,7 +27,7 @@
 
 依据：Core 定向测试 52 项全绿；AI 自动配置 AskData 回归修复后 112 项全绿；Task 15/16 已审查通过的 Starter 文档、SQLBot/WrenAI 矩阵和测试用例文档均存在，且本次占位符扫描无输出。未勾选 Starter 集成、共享存储、外部导出及后续运行时能力，因为缺少完整实现或不属于本批次可验证范围。
 
-计划 Task 17：Step 1、Step 2、Step 3、Step 4、Step 5 已实际完成；Step 6 将由主会话提交本报告、OpenSpec 状态和计划进度后完成。
+计划 Task 17：Step 1、Step 2、Step 3、Step 4、Step 5、Step 6 均已完成。
 
 ## 修改文件
 
@@ -38,7 +38,7 @@
 ## 提交
 
 - 修复提交：`19e39cd1ace32af9ac32665e36535f55a33fed2a`（`test: isolate askdata monitoring log cluster check`）。
-- 验证状态提交由主会话创建。
+- 验证状态提交由主会话创建：`待提交`。
 
 ## 风险信号
 
