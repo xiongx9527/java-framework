@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -41,6 +42,7 @@ public class DefaultAiModelRegistryTest {
 
         assertSame(adapter.getModel(), registry.get("chat"));
         assertSame(adapter.getModel(), registry.getDefault());
+        assertEquals("fake-provider", registry.get("chat").getProvider());
     }
 
     private AiModelDefinition definition(String key) {
@@ -84,6 +86,11 @@ public class DefaultAiModelRegistryTest {
         @Override
         public String getFramework() {
             return "fake";
+        }
+
+        @Override
+        public String getProvider() {
+            return "fake-provider";
         }
 
         @Override

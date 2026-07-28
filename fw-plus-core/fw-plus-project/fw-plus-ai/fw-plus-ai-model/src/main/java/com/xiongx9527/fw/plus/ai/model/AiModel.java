@@ -6,5 +6,7 @@ public interface AiModel {
 
     String getFramework();
 
+    String getProvider();
+
     AiModelType getType();
 }
