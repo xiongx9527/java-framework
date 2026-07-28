@@ -1,14 +1,14 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.sql.DataSource;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JdbcAskDataSqlExecutorTest {
 

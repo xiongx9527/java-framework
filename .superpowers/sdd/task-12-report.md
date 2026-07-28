@@ -62,3 +62,30 @@ cd fw-plus-ai
 - Maven 在 JDK 24 下输出 Jansi/`sun.misc.Unsafe` 未来兼容性警告。
 - 测试类路径存在多个 SLF4J binding 警告。
 - 上述均为既有环境依赖信号；Task 12 的 3 项 JUnit Jupiter 测试已实际执行并通过。
+
+## 第一轮审查修复：JUnit Jupiter 发现性
+
+### RED
+
+在未修改测试类时执行指定命令：
+
+```bash
+cd fw-plus-ai
+./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=DefaultAskDataSqlValidatorTest,JdbcAskDataSqlExecutorTest,AskDataSqlInterceptorAutoConfigurationTest test
+```
+
+构建成功但 Surefire 仅发现并执行 `AskDataSqlInterceptorAutoConfigurationTest` 的 3 项测试；
+`DefaultAskDataSqlValidatorTest` 和 `JdbcAskDataSqlExecutorTest` 仍使用 JUnit 4，模块类路径没有
+JUnit Vintage Engine，因而没有执行。该结果证明原安全回归证据不完整。
+
+### GREEN
+
+将上述两个遗留测试类的 `@Test` 和断言静态导入从 JUnit 4 迁移至模块已有的 JUnit Jupiter API，
+不新增 Vintage 依赖，也不修改生产逻辑。再次执行同一命令，结果为 `BUILD SUCCESS`：
+
+- `DefaultAskDataSqlValidatorTest`：23 项。
+- `JdbcAskDataSqlExecutorTest`：2 项。
+- `AskDataSqlInterceptorAutoConfigurationTest`：3 项。
+- 合计：`Tests run: 28, Failures: 0, Errors: 0, Skipped: 0`。
+
+因此，SQL 校验器、JDBC 执行器和 SQL 插件链自动配置三类回归测试均已被实际发现并执行。
