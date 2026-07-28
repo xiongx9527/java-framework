@@ -55,6 +55,19 @@ public class AskDataMonitoringLogStoreTest {
     }
 
     @Test
+    public void shouldKeepScopesSeparateWhenIdsContainNulCharacters() {
+        InMemoryAskDataMonitoringLogStore store = new InMemoryAskDataMonitoringLogStore(2);
+        AskDataProjectContext first = new AskDataProjectContext("project\u0000operator", "a");
+        AskDataProjectContext second = new AskDataProjectContext("project", "operator\u0000a");
+
+        store.append(first, new AskDataMonitoringLogStore.MonitoringLog("trace-first", "STARTED", "first"));
+        store.append(second, new AskDataMonitoringLogStore.MonitoringLog("trace-second", "STARTED", "second"));
+
+        assertEquals("trace-first", store.list(first).get(0).getTraceId());
+        assertEquals("trace-second", store.list(second).get(0).getTraceId());
+    }
+
+    @Test
     public void shouldRejectDefaultMonitoringLogStoreInClusterModeWhenBusinessProvidesOtherSharedStores() {
         new ApplicationContextRunner()
                 .withUserConfiguration(AskDataAutoConfiguration.class)

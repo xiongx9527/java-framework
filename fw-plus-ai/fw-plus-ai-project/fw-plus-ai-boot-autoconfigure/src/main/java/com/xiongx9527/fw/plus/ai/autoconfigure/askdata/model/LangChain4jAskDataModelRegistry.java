@@ -203,10 +203,13 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 
 	private AskDataModelResult classifyFailure(AskDataModelResult routedResult, RuntimeException exception,
 			long elapsedMillis) {
-		if (!isInfrastructureTimeout(exception) && !isInfrastructureTimeout(elapsedMillis)) {
+		if (isNonRetryableFailure(exception)) {
 			return AskDataModelResult.nonRetryableFailure(routedResult.getModelKey(), "模型请求被拒绝");
 		}
-		return AskDataModelResult.infrastructureFailure(routedResult, "模型基础设施暂不可用");
+		if (isInfrastructureTimeout(exception) || isInfrastructureTimeout(elapsedMillis)) {
+			return AskDataModelResult.infrastructureFailure(routedResult, "模型基础设施暂不可用");
+		}
+		return AskDataModelResult.nonRetryableFailure(routedResult.getModelKey(), "模型请求被拒绝");
 	}
 
 	private AskDataModelException toModelException(AskDataModelResult failure) {
@@ -267,6 +270,18 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 		Throwable current = exception;
 		while (current != null) {
 			if (current instanceof TimeoutException || current instanceof java.net.SocketTimeoutException) {
+				return true;
+			}
+			current = current.getCause();
+		}
+		return false;
+	}
+
+	private boolean isNonRetryableFailure(Throwable exception) {
+		Throwable current = exception;
+		while (current != null) {
+			if (current instanceof IllegalArgumentException || current instanceof IllegalStateException
+					|| current instanceof SecurityException || current instanceof UnsupportedOperationException) {
 				return true;
 			}
 			current = current.getCause();
