@@ -5,9 +5,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.module.Mode
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.service.ModelDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.service.ModelDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.web.MagicModelController;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
+import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
+import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -22,17 +22,17 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 import java.util.List;
 
 @Configuration
-@ConditionalOnClass(LangChain4jModelRegistry.class)
-@ConditionalOnBean(LangChain4jModelRegistry.class)
+@ConditionalOnClass(AiModelRegistry.class)
+@ConditionalOnBean(AiModelRegistry.class)
 @ConditionalOnProperty(prefix = "magic-api.plugin.model", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(MagicAPIModelConfig.class)
 public class MagicAPIModelConfiguration implements MagicPluginConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public MagicDynamicModelDataSource magicDynamicModelDataSource(LangChain4jModelRegistry registry,
-                                                                    LangChain4jModelFactory modelFactory,
-                                                                    List<LangChain4jModelProviderAdapter> providerAdapters) {
+    public MagicDynamicModelDataSource magicDynamicModelDataSource(AiModelRegistry registry,
+                                                                    AiModelFactory modelFactory,
+                                                                    List<AiModelAdapter> providerAdapters) {
         return new MagicDynamicModelDataSource(registry, modelFactory, providerAdapters);
     }
 

@@ -6,17 +6,25 @@ import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreFactor
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProperties;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreFactory;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
+import java.util.Collections;
 import java.util.List;
 
 public class EmbeddingStoreAutoConfigurationTest {
@@ -104,6 +112,81 @@ public class EmbeddingStoreAutoConfigurationTest {
     }
 
     @Test
+    public void shouldMapLegacyPropertiesToNeutralRegistry() {
+        this.contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.embedding-store.default-store=knowledge",
+                        "fw-plus.ai.langchain4j.embedding-store.stores.knowledge.provider=fake")
+                .withBean(EmbeddingStoreProviderAdapter.class, FakeEmbeddingStoreProviderAdapter::new)
+                .run(context -> {
+                    AiEmbeddingStoreRegistry registry = context.getBean(AiEmbeddingStoreRegistry.class);
+                    assertTrue(registry.contains("knowledge"));
+                    assertEquals("knowledge", registry.getDefaultKey());
+                });
+    }
+
+    @Test
+    public void shouldCreateNeutralRegistryFromNeutralPropertiesOnly() {
+        this.contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.embedding-store.default-store=knowledge",
+                        "fw-plus.ai.embedding-store.stores.knowledge.framework=langchain4j",
+                        "fw-plus.ai.embedding-store.stores.knowledge.provider=fake",
+                        "fw-plus.ai.embedding-store.stores.knowledge.type=vector")
+                .withBean(EmbeddingStoreProviderAdapter.class, FakeEmbeddingStoreProviderAdapter::new)
+                .run(context -> assertTrue(context.getBean(AiEmbeddingStoreRegistry.class).contains("knowledge")));
+    }
+
+    @Test
+    public void shouldPreferNeutralStoreForSameKey() {
+        this.contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.embedding-store.default-store=knowledge",
+                        "fw-plus.ai.langchain4j.embedding-store.stores.knowledge.provider=fake",
+                        "fw-plus.ai.embedding-store.default-store=knowledge",
+                        "fw-plus.ai.embedding-store.stores.knowledge.framework=langchain4j",
+                        "fw-plus.ai.embedding-store.stores.knowledge.provider=neutral",
+                        "fw-plus.ai.embedding-store.stores.knowledge.type=vector")
+                .withBean(EmbeddingStoreProviderAdapter.class, FakeEmbeddingStoreProviderAdapter::new)
+                .run(context -> assertEquals("neutral",
+                        context.getBean(AiEmbeddingStoreRegistry.class).get("knowledge").getProvider()));
+    }
+
+    @Test
+    public void shouldNotRestoreDisabledNeutralStoreFromLegacyProperties() {
+        this.contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.embedding-store.stores.knowledge.provider=fake",
+                        "fw-plus.ai.embedding-store.stores.knowledge.enabled=false",
+                        "fw-plus.ai.embedding-store.stores.knowledge.framework=langchain4j",
+                        "fw-plus.ai.embedding-store.stores.knowledge.provider=fake",
+                        "fw-plus.ai.embedding-store.stores.knowledge.type=vector")
+                .withBean(EmbeddingStoreProviderAdapter.class, FakeEmbeddingStoreProviderAdapter::new)
+                .run(context -> assertFalse(context.getBean(AiEmbeddingStoreRegistry.class).contains("knowledge")));
+    }
+
+    @Test
+    public void shouldUseInjectedNeutralFactoryWhenCreatingRegistry() {
+        final AiEmbeddingStore expected = mock(AiEmbeddingStore.class);
+        AiEmbeddingStoreFactory factory = new AiEmbeddingStoreFactory() {
+            @Override
+            public AiEmbeddingStore create(AiEmbeddingStoreDefinition ignored,
+                                           List<AiEmbeddingStoreAdapter> adapters) {
+                return expected;
+            }
+        };
+
+        this.contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.embedding-store.stores.knowledge.framework=custom",
+                        "fw-plus.ai.embedding-store.stores.knowledge.provider=custom",
+                        "fw-plus.ai.embedding-store.stores.knowledge.type=vector")
+                .withBean(AiEmbeddingStoreFactory.class, () -> factory)
+                .run(context -> assertSame(expected,
+                        context.getBean(AiEmbeddingStoreRegistry.class).get("knowledge")));
+    }
+
+    @Test
     public void shouldBindProviderPropertiesUnderPropertiesMap() {
         this.contextRunner
                 .withPropertyValues(
@@ -145,14 +228,15 @@ public class EmbeddingStoreAutoConfigurationTest {
         this.contextRunner
                 .withPropertyValues("fw-plus.ai.langchain4j.embedding-store.stores.knowledge.provider=unknown")
                 .run(context -> {
-                    assertTrue(hasCause(context.getStartupFailure(), "Embedding store provider is not supported"));
+                    assertTrue(hasCause(context.getStartupFailure(), "provider=unknown"));
                 });
     }
 
     private boolean hasCause(Throwable throwable, String message) {
         Throwable current = throwable;
         while (current != null) {
-            if (current instanceof EmbeddingStoreException && current.getMessage().contains(message)) {
+            if ((current instanceof EmbeddingStoreException || current instanceof AiEmbeddingStoreException)
+                    && current.getMessage().contains(message)) {
                 return true;
             }
             current = current.getCause();
@@ -164,7 +248,7 @@ public class EmbeddingStoreAutoConfigurationTest {
 
         @Override
         public boolean supports(String provider) {
-            return "fake".equals(provider);
+            return "fake".equals(provider) || "neutral".equals(provider);
         }
 
         @Override

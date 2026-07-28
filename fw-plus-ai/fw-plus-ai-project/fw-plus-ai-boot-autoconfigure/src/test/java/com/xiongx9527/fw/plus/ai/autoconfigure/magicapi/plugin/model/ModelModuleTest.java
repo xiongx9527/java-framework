@@ -2,11 +2,12 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.module.ModelModule;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModel;
+import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.magicapi.core.model.Options;
@@ -29,37 +30,45 @@ class ModelModuleTest {
 
     @Test
     void dynamicAttributeReturnsWrappedModelForExplicitKey() {
-        LangChain4jModel chat = model("chat-native");
+        AiModel chat = model("chat");
         ModelModule module = new ModelModule(dataSource("chat", chat, "chat"));
 
         ModelModule resolved = module.getDynamicAttribute("chat");
 
         assertSame(chat, resolved.getModelObject());
-        assertSame(chat.getModel(), resolved.getModel());
+        assertSame(chat, resolved.getModel());
+        assertModel(resolved.getModel(), "chat");
     }
 
     @Test
     void dynamicModuleUsesDefaultDatasourceFromMagicContext() {
-        LangChain4jModel chat = model("chat-native");
+        AiModel chat = model("chat");
         ModelModule module = new ModelModule(dataSource("chat", chat, "chat"));
         MagicScriptContext context = new MagicScriptContext();
         context.set(Options.DEFAULT_DATA_SOURCE.getValue(), "chat");
 
-        assertSame(chat, module.getDynamicModule(context).getModelObject());
+        AiModel resolved = module.getDynamicModule(context).getModelObject();
+        assertSame(chat, resolved);
+        assertModel(resolved, "chat");
     }
 
-    private MagicDynamicModelDataSource dataSource(String key, LangChain4jModel model, String defaultKey) {
-        final Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
+    private MagicDynamicModelDataSource dataSource(String key, AiModel model, String defaultKey) {
+        final Map<String, AiModel> models = new LinkedHashMap<String, AiModel>();
         models.put(key, model);
-        return new MagicDynamicModelDataSource(new LangChain4jModelRegistry() {
+        return new MagicDynamicModelDataSource(new AiModelRegistry() {
             @Override
-            public LangChain4jModel get(String modelKey) {
+            public AiModel get(String modelKey) {
                 return models.get(modelKey);
             }
 
             @Override
-            public LangChain4jModel getDefault() {
+            public AiModel getDefault() {
                 return models.get(defaultKey);
+            }
+
+            @Override
+            public String getDefaultKey() {
+                return defaultKey;
             }
 
             @Override
@@ -71,16 +80,34 @@ class ModelModuleTest {
             public Set<String> keys() {
                 return models.keySet();
             }
-        }, new LangChain4jModelFactory() {
+        }, new AiModelFactory() {
             @Override
-            public LangChain4jModel create(com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition definition,
-                                           java.util.List<LangChain4jModelProviderAdapter> adapters) {
+            public AiModel create(AiModelDefinition definition, java.util.List<AiModelAdapter> adapters) {
                 return null;
             }
-        }, Collections.<LangChain4jModelProviderAdapter>emptyList());
+        }, Collections.<AiModelAdapter>emptyList());
     }
 
-    private LangChain4jModel model(Object nativeModel) {
-        return new LangChain4jModel("fake", LangChain4jModelType.CHAT, nativeModel);
+    private AiModel model(final String key) {
+        return new AiModel() {
+            @Override
+            public String getKey() { return key; }
+
+            @Override
+            public String getFramework() { return "fake-framework"; }
+
+            @Override
+            public String getProvider() { return "fake-provider"; }
+
+            @Override
+            public AiModelType getType() { return AiModelType.CHAT; }
+        };
+    }
+
+    private void assertModel(AiModel model, String key) {
+        assertEquals(key, model.getKey());
+        assertEquals("fake-framework", model.getFramework());
+        assertEquals("fake-provider", model.getProvider());
+        assertEquals(AiModelType.CHAT, model.getType());
     }
 }

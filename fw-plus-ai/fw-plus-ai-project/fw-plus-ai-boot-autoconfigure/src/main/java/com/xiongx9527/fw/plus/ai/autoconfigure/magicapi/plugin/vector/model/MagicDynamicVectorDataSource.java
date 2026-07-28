@@ -4,11 +4,16 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module.VectorStoreResolver;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreException;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreFactory;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingDocument;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingQuery;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingSearchResult;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 
@@ -30,27 +35,88 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
             "grpcPort", "avoidDups", "textFieldName"
     };
 
-    private final EmbeddingStoreRegistry springBootRegistry;
+    private final AiEmbeddingStoreRegistry springBootRegistry;
 
-    private final EmbeddingStoreFactory embeddingStoreFactory;
+    private final AiEmbeddingStoreFactory embeddingStoreFactory;
 
-    private final List<EmbeddingStoreProviderAdapter> providerAdapters;
+    private final List<AiEmbeddingStoreAdapter> providerAdapters;
 
-    private final Map<String, EmbeddingStore<TextSegment>> runtimeStores = new ConcurrentHashMap<String, EmbeddingStore<TextSegment>>();
+    private final Map<String, AiEmbeddingStore> runtimeStores = new ConcurrentHashMap<String, AiEmbeddingStore>();
 
     private final Map<String, VectorDataSourceInfo> runtimeInfos = new ConcurrentHashMap<String, VectorDataSourceInfo>();
 
-    public MagicDynamicVectorDataSource(EmbeddingStoreRegistry springBootRegistry,
-                                        EmbeddingStoreFactory embeddingStoreFactory,
-                                        List<EmbeddingStoreProviderAdapter> providerAdapters) {
+    public MagicDynamicVectorDataSource(AiEmbeddingStoreRegistry springBootRegistry,
+                                        AiEmbeddingStoreFactory embeddingStoreFactory,
+                                        List<AiEmbeddingStoreAdapter> providerAdapters) {
         this.springBootRegistry = springBootRegistry;
         this.embeddingStoreFactory = embeddingStoreFactory;
-        this.providerAdapters = providerAdapters == null ? Collections.<EmbeddingStoreProviderAdapter>emptyList() : providerAdapters;
+        this.providerAdapters = providerAdapters == null ? Collections.<AiEmbeddingStoreAdapter>emptyList() : providerAdapters;
+    }
+
+    /** @deprecated 生产自动配置已改用中立接口，仅保留旧源码的构造兼容。 */
+    @Deprecated
+    public MagicDynamicVectorDataSource(
+            final com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry registry,
+            final com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreFactory factory,
+            final List<com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter> adapters) {
+        this(legacyRegistry(registry), new AiEmbeddingStoreFactory() {
+            @Override
+            public AiEmbeddingStore create(AiEmbeddingStoreDefinition definition,
+                                           List<AiEmbeddingStoreAdapter> ignored) {
+                com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition legacy =
+                        new com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition();
+                legacy.setKey(definition.getKey());
+                legacy.setProvider(definition.getProvider());
+                legacy.setEnabled(definition.isEnabled());
+                Map<String, Object> properties = new LinkedHashMap<String, Object>(definition.getProperties());
+                Object dimension = properties.remove("dimension");
+                if (dimension != null) {
+                    legacy.setDimension(Integer.valueOf(String.valueOf(dimension)));
+                }
+                legacy.setProperties(properties);
+                return facade(definition.getKey(), definition.getProvider(), factory.create(legacy, adapters));
+            }
+        }, Collections.<AiEmbeddingStoreAdapter>emptyList());
+    }
+
+    private static AiEmbeddingStoreRegistry legacyRegistry(
+            final com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry registry) {
+        if (registry == null) {
+            return null;
+        }
+        return new AiEmbeddingStoreRegistry() {
+            @Override public AiEmbeddingStore get(String key) { return facade(key, "langchain4j", registry.get(key)); }
+            @Override public AiEmbeddingStore getDefault() { return facade("default", "langchain4j", registry.getDefault()); }
+            @Override public String getDefaultKey() { return null; }
+            @Override public boolean contains(String key) { return registry.contains(key); }
+            @Override public Set<String> keys() { return registry.keys(); }
+        };
+    }
+
+    private static AiEmbeddingStore facade(final String key, final String provider,
+                                           final EmbeddingStore<TextSegment> store) {
+        if (store == null) {
+            return null;
+        }
+        return new AiEmbeddingStore() {
+            @Override public String getKey() { return key; }
+            @Override public String getFramework() { return "langchain4j"; }
+            @Override public String getProvider() { return provider; }
+            @Override public AiEmbeddingStoreType getType() { return AiEmbeddingStoreType.VECTOR; }
+            @Override public String add(AiEmbeddingDocument document) { throw unsupported(); }
+            @Override public List<String> addAll(List<AiEmbeddingDocument> documents) { throw unsupported(); }
+            @Override public void remove(String id) { store.remove(id); }
+            @Override public void removeAll(List<String> ids) { store.removeAll(ids); }
+            @Override public AiEmbeddingSearchResult search(AiEmbeddingQuery query) { throw unsupported(); }
+            private AiEmbeddingStoreException unsupported() {
+                return new AiEmbeddingStoreException("Legacy constructor facade does not expose native operations");
+            }
+        };
     }
 
     public void createClient(VectorDataSourceInfo info) {
         validate(info);
-        EmbeddingStore<TextSegment> embeddingStore = embeddingStoreFactory.create(definition(info), providerAdapters);
+        AiEmbeddingStore embeddingStore = embeddingStoreFactory.create(definition(info), providerAdapters);
         runtimeStores.put(info.getKey(), embeddingStore);
         runtimeInfos.put(info.getKey(), copy(info));
     }
@@ -74,15 +140,15 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
         return nodes;
     }
 
-    public EmbeddingStore<TextSegment> get(String key) {
-        EmbeddingStore<TextSegment> runtimeStore = runtimeStores.get(key);
+    public AiEmbeddingStore get(String key) {
+        AiEmbeddingStore runtimeStore = runtimeStores.get(key);
         if (runtimeStore != null) {
             return runtimeStore;
         }
         return springBootRegistry.get(key);
     }
 
-    public EmbeddingStore<TextSegment> getDefault() {
+    public AiEmbeddingStore getDefault() {
         return springBootRegistry.getDefault();
     }
 
@@ -109,14 +175,23 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
         return target;
     }
 
-    private EmbeddingStoreDefinition definition(VectorDataSourceInfo info) {
-        EmbeddingStoreDefinition definition = new EmbeddingStoreDefinition();
+    private AiEmbeddingStoreDefinition definition(VectorDataSourceInfo info) {
+        AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
         definition.setKey(info.getKey());
+        definition.setFramework("langchain4j");
         definition.setProvider(info.getProvider());
+        definition.setType(AiEmbeddingStoreType.VECTOR);
         definition.setEnabled(info.isEnabled());
-        definition.setDimension(integerConfig(info, "dimension", info.getDimension()));
-        definition.setMetadataKeys(metadataKeys(info));
-        definition.setProperties(properties(info));
+        Map<String, Object> properties = properties(info);
+        Integer dimension = integerConfig(info, "dimension", info.getDimension());
+        if (dimension != null) {
+            properties.put("dimension", dimension);
+        }
+        List<String> metadataKeys = metadataKeys(info);
+        if (!metadataKeys.isEmpty()) {
+            properties.put("metadataKeys", metadataKeys);
+        }
+        definition.setProperties(properties);
         return definition;
     }
 
@@ -159,13 +234,13 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
 
     private void validate(VectorDataSourceInfo definition) {
         if (definition == null) {
-            throw new EmbeddingStoreException("Vector datasource must not be null");
+            throw new AiEmbeddingStoreException("Vector datasource must not be null");
         }
         if (isBlank(definition.getKey())) {
-            throw new EmbeddingStoreException("Vector datasource key must not be blank");
+            throw new AiEmbeddingStoreException("Vector datasource key must not be blank");
         }
         if (isBlank(definition.getProvider())) {
-            throw new EmbeddingStoreException("Vector datasource provider must not be blank: " + definition.getKey());
+            throw new AiEmbeddingStoreException("Vector datasource provider must not be blank: " + definition.getKey());
         }
     }
 

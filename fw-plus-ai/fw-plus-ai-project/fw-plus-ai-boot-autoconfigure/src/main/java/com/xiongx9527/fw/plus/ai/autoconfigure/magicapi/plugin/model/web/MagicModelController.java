@@ -2,9 +2,9 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.web;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.ModelDataSourceInfo;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
+import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,21 +24,21 @@ import java.util.Map;
 public class MagicModelController extends MagicController implements MagicExceptionHandler {
 
     private final MagicDynamicModelDataSource dataSource;
-    private final LangChain4jModelFactory modelFactory;
-    private final List<LangChain4jModelProviderAdapter> providerAdapters;
+    private final AiModelFactory modelFactory;
+    private final List<AiModelAdapter> providerAdapters;
 
     public MagicModelController(MagicConfiguration configuration) {
         this(configuration, null, null, null);
     }
 
-    public MagicModelController(MagicConfiguration configuration, LangChain4jModelFactory modelFactory,
-                                List<LangChain4jModelProviderAdapter> providerAdapters) {
+    public MagicModelController(MagicConfiguration configuration, AiModelFactory modelFactory,
+                                List<AiModelAdapter> providerAdapters) {
         this(configuration, null, modelFactory, providerAdapters);
     }
 
     public MagicModelController(MagicConfiguration configuration, MagicDynamicModelDataSource dataSource,
-                                LangChain4jModelFactory modelFactory,
-                                List<LangChain4jModelProviderAdapter> providerAdapters) {
+                                AiModelFactory modelFactory,
+                                List<AiModelAdapter> providerAdapters) {
         super(configuration);
         this.dataSource = dataSource;
         this.modelFactory = modelFactory;
@@ -60,7 +60,7 @@ public class MagicModelController extends MagicController implements MagicExcept
     public JsonBean<Object> test(@RequestBody ModelDataSourceInfo definition) {
         try {
             validate(definition);
-            for (LangChain4jModelDefinition modelDefinition : definitions(definition)) {
+            for (AiModelDefinition modelDefinition : definitions(definition)) {
                 getModelFactory().create(modelDefinition, getProviderAdapters());
             }
             return new JsonBean<Object>("ok");
@@ -114,28 +114,30 @@ public class MagicModelController extends MagicController implements MagicExcept
         return dataSource == null ? SpringUtils.getBean(MagicDynamicModelDataSource.class) : dataSource;
     }
 
-    private LangChain4jModelFactory getModelFactory() {
-        return modelFactory == null ? SpringUtils.getBean(LangChain4jModelFactory.class) : modelFactory;
+    private AiModelFactory getModelFactory() {
+        return modelFactory == null ? SpringUtils.getBean(AiModelFactory.class) : modelFactory;
     }
 
-    private List<LangChain4jModelProviderAdapter> getProviderAdapters() {
+    private List<AiModelAdapter> getProviderAdapters() {
         if (providerAdapters != null) {
             return providerAdapters;
         }
-        Map<String, LangChain4jModelProviderAdapter> adapters = SpringUtils.getBeansOfType(LangChain4jModelProviderAdapter.class);
-        return adapters == null ? Collections.<LangChain4jModelProviderAdapter>emptyList()
-                : new ArrayList<LangChain4jModelProviderAdapter>(adapters.values());
+        Map<String, AiModelAdapter> adapters = SpringUtils.getBeansOfType(AiModelAdapter.class);
+        return adapters == null ? Collections.<AiModelAdapter>emptyList()
+                : new ArrayList<AiModelAdapter>(adapters.values());
     }
 
     private String safeKey(ModelDataSourceInfo definition) {
         return definition == null || definition.getKey() == null ? "unknown" : definition.getKey();
     }
 
-    private List<LangChain4jModelDefinition> definitions(ModelDataSourceInfo definition) {
+    private List<AiModelDefinition> definitions(ModelDataSourceInfo definition) {
         List<String> modelNames = definition.modelNames();
-        List<LangChain4jModelDefinition> definitions = new ArrayList<LangChain4jModelDefinition>();
+        List<AiModelDefinition> definitions = new ArrayList<AiModelDefinition>();
         if (modelNames.size() <= 1) {
-            definitions.add(definition.toDefinition());
+            String modelName = modelNames.isEmpty() ? null : modelNames.get(0);
+            definitions.add(definition.toAiDefinition(definition.getKey(), modelName,
+                    definition.modelConfig(modelName)));
             return definitions;
         }
         for (String modelName : modelNames) {
@@ -143,7 +145,7 @@ public class MagicModelController extends MagicController implements MagicExcept
             if (modelConfig != null && Boolean.FALSE.equals(modelConfig.getEnabled())) {
                 continue;
             }
-            definitions.add(definition.toDefinition(definition.getKey() + "." + modelName, modelName, modelConfig));
+            definitions.add(definition.toAiDefinition(definition.getKey() + "." + modelName, modelName, modelConfig));
         }
         return definitions;
     }

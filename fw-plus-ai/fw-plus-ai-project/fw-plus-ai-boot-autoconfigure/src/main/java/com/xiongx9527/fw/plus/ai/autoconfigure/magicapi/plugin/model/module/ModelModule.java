@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.module;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
+import com.xiongx9527.fw.plus.ai.model.AiModel;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.magicapi.core.model.Options;
 import org.ssssssss.magicapi.modules.DynamicModule;
@@ -12,24 +12,23 @@ import org.ssssssss.script.functions.DynamicAttribute;
 public class ModelModule implements DynamicAttribute<ModelModule, ModelModule>, DynamicModule<ModelModule> {
 
     private final MagicDynamicModelDataSource dataSource;
-    private final LangChain4jModel model;
+    private final AiModel model;
 
     public ModelModule(MagicDynamicModelDataSource dataSource) {
         this(dataSource, null);
     }
 
-    private ModelModule(MagicDynamicModelDataSource dataSource, LangChain4jModel model) {
+    private ModelModule(MagicDynamicModelDataSource dataSource, AiModel model) {
         this.dataSource = dataSource;
         this.model = model;
     }
 
-    public LangChain4jModel getModelObject() {
+    public AiModel getModelObject() {
         return model == null ? dataSource.getDefault() : model;
     }
 
-    public Object getModel() {
-        LangChain4jModel resolved = getModelObject();
-        return resolved == null ? null : resolved.getModel();
+    public AiModel getModel() {
+        return getModelObject();
     }
 
     @Override
