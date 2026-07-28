@@ -1,48 +1,143 @@
 package com.xiongx9527.fw.plus.ai.langchain4j.store.embeding;
 
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
+import com.xiongx9527.fw.plus.ai.store.embedding.DefaultAiEmbeddingStoreFactory;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
-public class DefaultEmbeddingStoreFactory implements EmbeddingStoreFactory {
+public class DefaultEmbeddingStoreFactory implements EmbeddingStoreFactory, AiEmbeddingStoreAdapter {
+
+    private static final String FRAMEWORK = "langchain4j";
+    private static final String DIMENSION = "dimension";
+    private static final String METADATA_KEYS = "metadataKeys";
+
+    private final List<EmbeddingStoreProviderAdapter> providerAdapters;
+
+    public DefaultEmbeddingStoreFactory() {
+        this(Collections.<EmbeddingStoreProviderAdapter>emptyList());
+    }
+
+    public DefaultEmbeddingStoreFactory(List<EmbeddingStoreProviderAdapter> providerAdapters) {
+        this.providerAdapters = providerAdapters == null
+                ? Collections.<EmbeddingStoreProviderAdapter>emptyList()
+                : Collections.unmodifiableList(new ArrayList<EmbeddingStoreProviderAdapter>(providerAdapters));
+    }
 
     @Override
-    public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition, List<EmbeddingStoreProviderAdapter> adapters) {
-        if (definition == null) {
-            throw new EmbeddingStoreException("Embedding store definition must not be null");
-        }
-        EmbeddingStoreProviderAdapter adapter;
+    public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition,
+                                              List<EmbeddingStoreProviderAdapter> adapters) {
         try {
-            adapter = findAdapter(definition.getProvider(), adapters);
-        } catch (RuntimeException e) {
-            throw new EmbeddingStoreException("Failed to create embedding store for provider: "
-                    + definition.getProvider() + ", key: " + definition.getKey(), e);
-        }
-        if (adapter == null) {
-            throw new EmbeddingStoreException("Embedding store provider is not supported: " + definition.getProvider());
-        }
-        try {
-            EmbeddingStore<TextSegment> store = adapter.create(definition);
-            if (store == null) {
-                throw new IllegalStateException("Adapter returned null embedding store");
-            }
-            return store;
-        } catch (RuntimeException e) {
-            throw new EmbeddingStoreException("Failed to create embedding store for provider: "
-                    + definition.getProvider() + ", key: " + definition.getKey(), e);
+            AiEmbeddingStore store = new DefaultAiEmbeddingStoreFactory().create(toNeutral(definition),
+                    Collections.<AiEmbeddingStoreAdapter>singletonList(new DefaultEmbeddingStoreFactory(adapters)));
+            return ((LangChain4jAiEmbeddingStore) store).nativeStore();
+        } catch (AiEmbeddingStoreException e) {
+            throw new EmbeddingStoreException(e.getMessage(), e.getCause());
         }
     }
 
-    private EmbeddingStoreProviderAdapter findAdapter(String provider, List<EmbeddingStoreProviderAdapter> adapters) {
-        if (adapters == null) {
-            return null;
+    @Override
+    public boolean supports(AiEmbeddingStoreDefinition definition) {
+        return definition != null
+                && FRAMEWORK.equalsIgnoreCase(definition.getFramework())
+                && findAdapter(definition.getProvider()) != null;
+    }
+
+    @Override
+    public AiEmbeddingStore create(AiEmbeddingStoreDefinition definition) {
+        if (definition == null || !FRAMEWORK.equalsIgnoreCase(definition.getFramework())) {
+            throw new AiEmbeddingStoreException("LangChain4j store adapter does not support definition");
         }
-        for (EmbeddingStoreProviderAdapter adapter : adapters) {
+        EmbeddingStoreProviderAdapter adapter = findAdapter(definition.getProvider());
+        if (adapter == null) {
+            throw new AiEmbeddingStoreException("No LangChain4j store provider adapter supports " + context(definition));
+        }
+        EmbeddingStore<TextSegment> nativeStore;
+        try {
+            nativeStore = adapter.create(toLegacy(definition));
+        } catch (RuntimeException e) {
+            throw new AiEmbeddingStoreException("LangChain4j store provider adapter failed: "
+                    + context(definition) + ", causeType=" + e.getClass().getName());
+        }
+        if (nativeStore == null) {
+            throw new AiEmbeddingStoreException("LangChain4j store provider adapter returned null: "
+                    + context(definition));
+        }
+        return new LangChain4jAiEmbeddingStore(definition, nativeStore);
+    }
+
+    private EmbeddingStoreProviderAdapter findAdapter(String provider) {
+        for (EmbeddingStoreProviderAdapter adapter : providerAdapters) {
             if (adapter != null && adapter.supports(provider)) {
                 return adapter;
             }
         }
         return null;
+    }
+
+    static AiEmbeddingStoreDefinition toNeutral(EmbeddingStoreDefinition definition) {
+        if (definition == null) {
+            return null;
+        }
+        Map<String, Object> properties = definition.getProperties() == null
+                ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(definition.getProperties());
+        if (definition.getDimension() != null) {
+            properties.put(DIMENSION, definition.getDimension());
+        }
+        if (definition.getMetadataKeys() != null && !definition.getMetadataKeys().isEmpty()) {
+            properties.put(METADATA_KEYS, new ArrayList<String>(definition.getMetadataKeys()));
+        }
+        AiEmbeddingStoreDefinition neutral = new AiEmbeddingStoreDefinition();
+        neutral.setKey(definition.getKey());
+        neutral.setFramework(FRAMEWORK);
+        neutral.setProvider(definition.getProvider());
+        neutral.setType(AiEmbeddingStoreType.VECTOR);
+        neutral.setEnabled(definition.isEnabled());
+        neutral.setProperties(properties);
+        return neutral;
+    }
+
+    static EmbeddingStoreDefinition toLegacy(AiEmbeddingStoreDefinition definition) {
+        EmbeddingStoreDefinition legacy = new EmbeddingStoreDefinition();
+        legacy.setKey(definition.getKey());
+        legacy.setProvider(definition.getProvider());
+        legacy.setEnabled(definition.isEnabled());
+        Map<String, Object> properties = definition.getProperties() == null
+                ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(definition.getProperties());
+        Object dimension = properties.remove(DIMENSION);
+        if (dimension instanceof Number) {
+            legacy.setDimension(((Number) dimension).intValue());
+        } else if (dimension != null) {
+            legacy.setDimension(Integer.valueOf(String.valueOf(dimension)));
+        }
+        Object metadataKeys = properties.remove(METADATA_KEYS);
+        if (metadataKeys instanceof Collection<?>) {
+            List<String> keys = new ArrayList<String>();
+            for (Object key : (Collection<?>) metadataKeys) {
+                keys.add(String.valueOf(key));
+            }
+            legacy.setMetadataKeys(keys);
+        }
+        legacy.setProperties(properties);
+        return legacy;
+    }
+
+    private static String context(AiEmbeddingStoreDefinition definition) {
+        return "key=" + definition.getKey()
+                + ", framework=" + definition.getFramework()
+                + ", provider=" + definition.getProvider()
+                + ", type=" + definition.getType();
     }
 }

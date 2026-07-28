@@ -1,5 +1,10 @@
 package com.xiongx9527.fw.plus.ai.langchain4j.store.embeding;
 
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
+import com.xiongx9527.fw.plus.ai.store.embedding.DefaultAiEmbeddingStoreRegistry;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -16,6 +21,26 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DefaultEmbeddingStoreRegistryTest {
+
+    @Test
+    public void shouldResolveProviderAliasAndDefaultKeyThroughNeutralRegistry() {
+        AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
+        definition.setKey("knowledge.alias");
+        definition.setFramework("langchain4j");
+        definition.setProvider("milvus-compatible");
+        definition.setType(AiEmbeddingStoreType.VECTOR);
+        definition.setEnabled(true);
+        AiEmbeddingStoreAdapter adapter = new DefaultEmbeddingStoreFactory(
+                Collections.<EmbeddingStoreProviderAdapter>singletonList(
+                        new AliasAdapter(new FakeEmbeddingStore())));
+
+        DefaultAiEmbeddingStoreRegistry registry = new DefaultAiEmbeddingStoreRegistry(
+                Collections.singletonList(definition), "knowledge.alias", Collections.singletonList(adapter));
+
+        AiEmbeddingStore store = registry.get("knowledge.alias");
+        assertSame(store, registry.getDefault());
+        assertEquals("knowledge.alias", registry.getDefaultKey());
+    }
 
     @Test
     public void shouldReturnStoreByKeyAndDefaultStore() {
@@ -98,6 +123,24 @@ public class DefaultEmbeddingStoreRegistryTest {
         @Override
         public List<String> addAll(List<Embedding> embeddings, List<TextSegment> embedded) {
             return Collections.emptyList();
+        }
+    }
+
+    private static class AliasAdapter implements EmbeddingStoreProviderAdapter {
+        private final EmbeddingStore<TextSegment> store;
+
+        private AliasAdapter(EmbeddingStore<TextSegment> store) {
+            this.store = store;
+        }
+
+        @Override
+        public boolean supports(String provider) {
+            return "milvus-compatible".equals(provider);
+        }
+
+        @Override
+        public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition) {
+            return store;
         }
     }
 }
