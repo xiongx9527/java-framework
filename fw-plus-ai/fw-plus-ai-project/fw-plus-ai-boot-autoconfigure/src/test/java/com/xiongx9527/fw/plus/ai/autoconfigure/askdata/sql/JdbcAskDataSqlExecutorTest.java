@@ -7,6 +7,8 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.sql.DataSource;
 
+import java.util.Collections;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -50,6 +52,25 @@ public class JdbcAskDataSqlExecutorTest {
         assertTrue(result.isSuccess());
         assertEquals(2, result.getRows().size());
         assertEquals(2, result.getRowCount());
+    }
+
+    @Test
+    public void shouldBindNamedParametersFromRequestOptions() {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource());
+        jdbcTemplate.execute("drop table if exists named_parameter_orders");
+        jdbcTemplate.execute("create table named_parameter_orders(id bigint, amount decimal(10, 2))");
+        jdbcTemplate.update("insert into named_parameter_orders(id, amount) values (?, ?)", 1L, 12.50D);
+        jdbcTemplate.update("insert into named_parameter_orders(id, amount) values (?, ?)", 2L, 30.00D);
+        JdbcAskDataSqlExecutor executor = new JdbcAskDataSqlExecutor(jdbcTemplate);
+        AskDataRequest request = new AskDataRequest();
+        request.setOptions(Collections.<String, Object>singletonMap("minAmount", 20.00D));
+
+        AskDataSqlExecutionResult result = executor.execute(request,
+                "select id from named_parameter_orders where amount >= :minAmount order by id");
+
+        assertTrue(result.isSuccess());
+        assertEquals(1, result.getRows().size());
+        assertEquals(Long.valueOf(2L), result.getRows().get(0).get("ID"));
     }
 
     private DataSource dataSource() {

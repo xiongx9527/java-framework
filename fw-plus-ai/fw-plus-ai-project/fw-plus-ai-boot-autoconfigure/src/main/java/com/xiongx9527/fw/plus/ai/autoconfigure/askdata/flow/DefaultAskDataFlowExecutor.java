@@ -457,7 +457,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return result;
         }
         if (contains(checkpoint, "validate-sql")) {
-            return executeValidatedSql(request, result, context, checkpoint.getSql());
+            return revalidateCheckpointSqlAndExecute(request, result, context, checkpoint);
         }
         if (contains(checkpoint, "generate-sql")) {
             AskDataMetadata metadata;
@@ -509,6 +509,42 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         return failure(result, "resume", AskDataErrorCode.RESUME_FAILED,
                 "AskData checkpoint cannot restore the metadata required by the next step");
+    }
+
+    private AskDataResult revalidateCheckpointSqlAndExecute(AskDataRequest request, AskDataResult result,
+            AskDataStepContext context, AskDataCheckpoint checkpoint) {
+        AskDataMetadata metadata;
+        try {
+            metadata = metadataProvider.load(request);
+        } catch (RuntimeException ex) {
+            return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
+        }
+        if (metadata == null) {
+            return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND,
+                    "AskData metadata was not found");
+        }
+        context.setMetadata(metadata);
+        AskDataDialect dialect;
+        try {
+            dialect = dialectRegistry.getDialect(checkpoint.getDialect());
+        } catch (RuntimeException ex) {
+            return failure(result, "validate-sql", AskDataErrorCode.DIALECT_RESOLUTION_FAILED, message(ex));
+        }
+        AskDataSqlValidationResult validation;
+        try {
+            validation = validateSql(request, metadata, checkpoint.getSql(), dialect);
+        } catch (RuntimeException ex) {
+            return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
+        }
+        if (validation == null || !validation.isValid()) {
+            return validationFailure(result, validation);
+        }
+        context.setSql(validation.getSql());
+        context.setSqlValidated(Boolean.TRUE);
+        result.setSql(validation.getSql());
+        result.addStep("validate-sql", "Validate SQL", true, "SQL revalidated after resume");
+        AskDataResult checkpointFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
+        return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getSql()) : checkpointFailure;
     }
 
     private AskDataResult validateAndExecute(AskDataRequest request, AskDataResult result, AskDataStepContext context,
@@ -594,7 +630,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         AskDataSqlCommand command = new AskDataSqlCommand(request.getProjectContext(), validation.getSql(),
                 sqlParameters(request), authorizedObjects(metadata));
         AskDataSqlCommand rewritten = sqlInterceptorChain.execute(command);
-        return AskDataSqlValidationResult.accepted(rewritten.getSql());
+        return sqlValidator.validate(rewritten.getSql(), dialect, maxRows(request), metadata);
     }
 
     private List<AskDataSqlParameter> sqlParameters(AskDataRequest request) {
