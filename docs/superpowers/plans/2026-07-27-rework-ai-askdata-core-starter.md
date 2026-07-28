@@ -459,11 +459,11 @@ git commit -m "feat: add askdata observability contracts"
 - Consumes: Core contracts from Tasks 2-8
 - Produces: Spring Boot auto-configured beans that implement Core SPI
 
-- [ ] **Step 1: 写/调整失败测试**
+- [x] **Step 1: 写/调整失败测试 Task 9**
 
 Update existing tests so they import Core API where appropriate. Add a test asserting business-provided `AskDataService` still wins over default auto-configuration.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试 Task 9**
 
 ```bash
 cd fw-plus-ai
@@ -472,11 +472,11 @@ cd fw-plus-ai
 
 Expected: FAIL while imports and adapters are not migrated.
 
-- [ ] **Step 3: 添加 Core 依赖并迁移桥接**
+- [x] **Step 3: 添加 Core 依赖并迁移桥接 Task 9**
 
 Add dependency on `fw-plus-ai-askdata`. Move or wrap existing auto-config DTOs so external consumers see Core types. Keep compatibility constructors or adapters for old tests when needed.
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证 Task 9**
 
 Run all AskData auto-configure tests:
 
@@ -487,7 +487,7 @@ cd fw-plus-ai
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 9**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure

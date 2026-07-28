@@ -2,12 +2,12 @@
 
 ## 当前任务
 
-- Plan task: `Task 9: 将现有自动配置桥接到 Core 契约`
-- OpenSpec task mapping: `6.1` / `6.2` / `6.3` 的兼容桥接子集（本任务迁移现有自动配置对 Core 契约的引用，完整 Starter 默认实现由后续任务继续）
+- Plan task: `Task 10: 默认 LangChain4j/Ollama 模型适配`
+- OpenSpec task mapping: `3.1` / `3.2` 的默认模型适配子集（本任务只覆盖 LangChain4j/Ollama 默认逻辑模型 key 和可覆盖入口，完整熔断健康与兜底链由后续任务继续）
 - Stage: `task-implementation`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `e38367f34f3bfcbff089d62d8cae0027a1e12034`
+- Base commit: `7951b56208b4e6abbb34744d994b5ad79a90ae06`
 - Implementer commit: `待派发`
 - Task brief: `待生成`
 - Implementer report: `待生成`
@@ -67,3 +67,9 @@
 - 2026-07-28：fix agent 返回 `DONE`，提交 `e38367f`；新增 `AskDataEventPublisher.toStore(...)`，将事件转换为 storage 侧 `MonitoringLog` 并按原 `projectId + operatorId` 上下文追加。协调者复跑 `AskDataObservabilityContractTest`，结果 3 项通过。
 - 2026-07-28：Task 8 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
 - 2026-07-28：已勾选 plan 中 Task 8 的 5 个 step；OpenSpec 5.1/5.3/5.4 仍包含异步导出器、日志查询存储适配和完整授权查询等后续内容，本任务不单独勾选。
+- 2026-07-28：准备派发 Task 9 implementer。允许修改范围限定为 `fw-plus-ai-boot-autoconfigure` AskData 自动配置、POM 与对应测试；禁止修改其他 active change、TinyEngine、tiny-engine-backend-java。
+- 2026-07-28：implementer 返回 `DONE`，提交 `bbc2ebe`；RED 为自动配置尚未暴露 Core 契约和业务 Core 服务优先测试失败，GREEN 为 `*AskData*Test` 25 项通过。实现 Core 依赖、`CoreAskDataServiceAdapter` 与 Core `AskDataService` 自动配置桥接。
+- 2026-07-28：Task 9 reviewer 返回 `Needs fixes`；Critical 问题为适配器丢弃 Core `AskDataProjectContext`，以及旧流程错误消息可能泄漏 SQL/JDBC/存储细节。当前 thorough 修复轮次：1/2。
+- 2026-07-28：fix agent 返回 `DONE`，提交 `7951b56`；旧请求增加 Core 上下文承载字段，适配器原样传递 `projectId + operatorId` 上下文，并将 Core 失败文案收敛为受控消息。协调者复跑 `*AskData*Test`，结果 25 项通过。
+- 2026-07-28：Task 9 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
+- 2026-07-28：已勾选 plan 中 Task 9 的 5 个 step；OpenSpec 6.1/6.2/6.3 仍包含完整 Starter 依赖、默认 SPI 装配和兼容回归等后续内容，本任务不单独勾选。
