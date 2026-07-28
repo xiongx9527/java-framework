@@ -2,6 +2,8 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model;
 
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
@@ -60,6 +62,25 @@ public class ModelDataSourceInfo extends MagicEntity {
         putCredential(definitionProperties, "accessToken", accessToken);
         putCredential(definitionProperties, "token", token);
         putCredential(definitionProperties, "password", password);
+        definition.setProperties(definitionProperties);
+        return definition;
+    }
+
+    public AiModelDefinition toAiDefinition(String definitionKey, String resolvedModelName, ModelConfig modelConfig) {
+        LangChain4jModelDefinition legacy = toDefinition(definitionKey, resolvedModelName, modelConfig);
+        AiModelDefinition definition = new AiModelDefinition();
+        definition.setKey(legacy.getKey());
+        definition.setFramework("langchain4j");
+        definition.setProvider(legacy.getProvider());
+        definition.setType(legacy.getModelType() == null ? null : AiModelType.valueOf(legacy.getModelType().name()));
+        definition.setEnabled(legacy.isEnabled());
+        Map<String, Object> definitionProperties = new LinkedHashMap<String, Object>(legacy.getProperties());
+        if (legacy.getBaseUrl() != null) {
+            definitionProperties.put("baseUrl", legacy.getBaseUrl());
+        }
+        if (legacy.getModelName() != null) {
+            definitionProperties.put("modelName", legacy.getModelName());
+        }
         definition.setProperties(definitionProperties);
         return definition;
     }

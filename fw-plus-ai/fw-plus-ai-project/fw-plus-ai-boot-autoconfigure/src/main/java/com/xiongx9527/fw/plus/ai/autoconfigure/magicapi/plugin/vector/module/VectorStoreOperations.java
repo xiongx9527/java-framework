@@ -1,17 +1,16 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module;
 
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
 
 public class VectorStoreOperations {
 
-    private final EmbeddingStore<TextSegment> embeddingStore;
+    private final AiEmbeddingStore embeddingStore;
 
-    public VectorStoreOperations(EmbeddingStore<TextSegment> embeddingStore) {
+    public VectorStoreOperations(AiEmbeddingStore embeddingStore) {
         this.embeddingStore = embeddingStore;
     }
 
-    public EmbeddingStore<TextSegment> getEmbeddingStore() {
+    public AiEmbeddingStore getEmbeddingStore() {
         return embeddingStore;
     }
 }

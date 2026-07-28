@@ -10,10 +10,11 @@ import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefini
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
@@ -23,9 +24,9 @@ import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class MagicAPIVectorAutoConfigurationIntegrationTest {
 
@@ -50,7 +51,10 @@ public class MagicAPIVectorAutoConfigurationIntegrationTest {
                 .withBean(EmbeddingStoreProviderAdapter.class, FakeEmbeddingStoreProviderAdapter::new)
                 .run(context -> {
                     assertNotNull(context.getBean(EmbeddingStoreRegistry.class));
+                    AiEmbeddingStoreRegistry registry = context.getBean(AiEmbeddingStoreRegistry.class);
+                    assertTrue(registry.contains("knowledge"));
                     assertNotNull(context.getBean(MagicDynamicVectorDataSource.class));
+                    assertNotNull(context.getBean(MagicDynamicVectorDataSource.class).get("knowledge"));
                     assertNotNull(context.getBean(VectorDataSourceInfoMagicResourceStorage.class));
                     assertNotNull(context.getBean(VectorDataSourceMagicDynamicRegistry.class));
                     assertNotNull(context.getBean(VectorModule.class));

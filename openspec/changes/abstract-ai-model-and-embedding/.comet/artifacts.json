@@ -1,0 +1,8 @@
+{
+  "openspec_proposal": "openspec/changes/abstract-ai-model-and-embedding/proposal.md",
+  "openspec_design": "openspec/changes/abstract-ai-model-and-embedding/design.md",
+  "openspec_tasks": "openspec/changes/abstract-ai-model-and-embedding/tasks.md",
+  "openspec_delta_spec": "openspec/changes/abstract-ai-model-and-embedding/specs/ai-abstraction-contract-testing/spec.md",
+  "handoff_context": "openspec/changes/abstract-ai-model-and-embedding/.comet/handoff/design-context.json",
+  "handoff_markdown": "openspec/changes/abstract-ai-model-and-embedding/.comet/handoff/design-context.md"
+}

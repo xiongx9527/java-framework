@@ -10,6 +10,16 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapt
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.provider.ReflectiveLangChain4jModelProviderAdapter;
+import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelException;
+import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
+import com.xiongx9527.fw.plus.ai.model.DefaultAiModelFactory;
+import com.xiongx9527.fw.plus.ai.model.DefaultAiModelRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,9 +35,10 @@ import java.util.Map;
 
 @Configuration
 @ConditionalOnClass(name = "com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry")
-@EnableConfigurationProperties(LangChain4jModelProperties.class)
-@ConditionalOnProperty(prefix = "fw-plus.ai.langchain4j.model", name = "enabled", havingValue = "true", matchIfMissing = true)
+@EnableConfigurationProperties({LangChain4jModelProperties.class, AiModelProperties.class})
 public class LangChain4jModelAutoConfiguration {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(LangChain4jModelAutoConfiguration.class);
 
     @Bean
     @ConditionalOnMissingBean(name = "openAiChatModelProviderAdapter")
@@ -169,12 +180,26 @@ public class LangChain4jModelAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(LangChain4jModelFactory.class)
-    public LangChain4jModelFactory langChain4jModelFactory() {
-        return new DefaultLangChain4jModelFactory();
+    public DefaultLangChain4jModelFactory langChain4jModelFactory(List<LangChain4jModelProviderAdapter> adapters) {
+        return new DefaultLangChain4jModelFactory(adapters);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(AiModelFactory.class)
+    public AiModelFactory aiModelFactory() {
+        return new DefaultAiModelFactory();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "legacyLangChain4jModelAiAdapter")
+    public AiModelAdapter legacyLangChain4jModelAiAdapter(LangChain4jModelFactory factory,
+                                                          List<LangChain4jModelProviderAdapter> adapters) {
+        return new LegacyLangChain4jModelAiAdapter(factory, adapters);
     }
 
     @Bean
     @ConditionalOnMissingBean(LangChain4jModelRegistry.class)
+    @ConditionalOnProperty(prefix = "fw-plus.ai.langchain4j.model", name = "enabled", havingValue = "true", matchIfMissing = true)
     public LangChain4jModelRegistry langChain4jModelRegistry(LangChain4jModelProperties properties,
                                                               LangChain4jModelFactory factory,
                                                               List<LangChain4jModelProviderAdapter> adapters) {
@@ -184,6 +209,121 @@ public class LangChain4jModelAutoConfiguration {
         }
         validateDefaultModel(properties.getDefaultModel(), models);
         return new DefaultLangChain4jModelRegistry(models, properties.getDefaultModel());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(AiModelRegistry.class)
+    public AiModelRegistry aiModelRegistry(AiModelProperties neutralProperties,
+                                           LangChain4jModelProperties legacyProperties,
+                                           AiModelFactory factory,
+                                           List<AiModelAdapter> adapters,
+                                           LangChain4jModelFactory legacyFactory,
+                                           List<LangChain4jModelProviderAdapter> providerAdapters) {
+        Map<String, AiModelDefinition> definitions = new LinkedHashMap<String, AiModelDefinition>();
+        Map<String, AiModelDefinition> configuredDefinitions = new LinkedHashMap<String, AiModelDefinition>();
+        if (neutralProperties.isEnabled()) {
+            for (Map.Entry<String, AiModelProperties.Model> entry : neutralProperties.getModels().entrySet()) {
+                AiModelDefinition definition = entry.getValue();
+                if (definition == null) {
+                    continue;
+                }
+                if (isBlank(definition.getKey())) {
+                    definition.setKey(entry.getKey());
+                }
+                AiModelDefinition existing = configuredDefinitions.get(definition.getKey());
+                if (existing != null && existing.isEnabled() && definition.isEnabled()) {
+                    throw new AiModelException("Duplicate enabled model key: " + definition.getKey());
+                }
+                if (existing == null || (!existing.isEnabled() && definition.isEnabled())) {
+                    configuredDefinitions.put(definition.getKey(), definition);
+                }
+                if (definition.isEnabled()) {
+                    definitions.put(definition.getKey(), definition);
+                }
+            }
+        }
+        if (legacyProperties.isEnabled()) {
+            for (AiModelDefinition legacy : legacyDefinitions(legacyProperties)) {
+                AiModelDefinition neutral = configuredDefinitions.get(legacy.getKey());
+                if (neutral != null) {
+                    LOGGER.warn("忽略同 key 的旧 LangChain4j 模型配置，使用中立配置: key={}, framework={}, provider={}",
+                            neutral.getKey(), neutral.getFramework(), neutral.getProvider());
+                    continue;
+                }
+                definitions.put(legacy.getKey(), legacy);
+            }
+        }
+        String defaultKey = neutralProperties.isEnabled() && !isBlank(neutralProperties.getDefaultModel())
+                ? neutralProperties.getDefaultModel()
+                : legacyProperties.isEnabled() ? legacyProperties.getDefaultModel() : null;
+        List<AiModelAdapter> effectiveAdapters = new ArrayList<AiModelAdapter>(adapters);
+        boolean hasLegacyFactoryAdapter = false;
+        for (AiModelAdapter adapter : effectiveAdapters) {
+            if (adapter == legacyFactory || adapter instanceof LegacyLangChain4jModelAiAdapter) {
+                hasLegacyFactoryAdapter = true;
+                break;
+            }
+        }
+        if (!hasLegacyFactoryAdapter) {
+            effectiveAdapters.add(new LegacyLangChain4jModelAiAdapter(legacyFactory, providerAdapters));
+        }
+        Map<String, com.xiongx9527.fw.plus.ai.model.AiModel> models =
+                new LinkedHashMap<String, com.xiongx9527.fw.plus.ai.model.AiModel>();
+        for (AiModelDefinition definition : definitions.values()) {
+            models.put(definition.getKey(), factory.create(definition, effectiveAdapters));
+        }
+        return new DefaultAiModelRegistry(models, defaultKey);
+    }
+
+    private List<AiModelDefinition> legacyDefinitions(LangChain4jModelProperties properties) {
+        List<AiModelDefinition> result = new ArrayList<AiModelDefinition>();
+        for (Map.Entry<String, LangChain4jModelProperties.Model> entry : properties.getModels().entrySet()) {
+            LangChain4jModelProperties.Model model = entry.getValue();
+            if (model == null || !model.isEnabled()) {
+                continue;
+            }
+            List<String> names = modelNames(entry.getKey(), model);
+            if (names.size() <= 1) {
+                String name = names.isEmpty() ? null : names.get(0);
+                result.add(neutral(definition(entry.getKey(), model, name, modelConfig(model, name))));
+                continue;
+            }
+            String defaultName = resolveDefaultModelName(entry.getKey(), model);
+            for (String name : names) {
+                LangChain4jModelProperties.ModelConfig config = modelConfig(model, name);
+                if (config != null && Boolean.FALSE.equals(config.getEnabled())) {
+                    continue;
+                }
+                AiModelDefinition named = neutral(definition(entry.getKey() + "." + name, model, name, config));
+                result.add(named);
+                if (name.equals(defaultName)) {
+                    AiModelDefinition alias = neutral(definition(entry.getKey(), model, name, config));
+                    result.add(alias);
+                }
+            }
+        }
+        return result;
+    }
+
+    private AiModelDefinition neutral(LangChain4jModelDefinition legacy) {
+        AiModelDefinition neutral = new AiModelDefinition();
+        neutral.setKey(legacy.getKey());
+        neutral.setFramework("langchain4j");
+        neutral.setProvider(legacy.getProvider());
+        neutral.setType(legacy.getModelType() == null ? null : AiModelType.valueOf(legacy.getModelType().name()));
+        neutral.setEnabled(legacy.isEnabled());
+        Map<String, Object> properties = new LinkedHashMap<String, Object>(legacy.getProperties());
+        put(properties, "baseUrl", legacy.getBaseUrl());
+        put(properties, "apiKey", legacy.getApiKey());
+        put(properties, "modelName", legacy.getModelName());
+        neutral.setProperties(properties);
+        return neutral;
+    }
+
+    private void put(Map<String, Object> properties, String key, String value) {
+        if (value != null) {
+            properties.put(key, value);
+        }
     }
 
     private void registerModel(Map<String, LangChain4jModel> models, String key, LangChain4jModelProperties.Model model,

@@ -1,15 +1,14 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector;
 
-import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.model.MagicDynamicVectorDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.model.VectorDataSourceInfo;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreFactory;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.util.TestPropertyValues;
@@ -23,8 +22,9 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class MagicDynamicVectorDataSourceTest {
 
@@ -40,39 +40,40 @@ public class MagicDynamicVectorDataSourceTest {
 
     @Test
     public void shouldUseSpringBootRegistryAsDefaultDataSource() {
-        EmbeddingStore<TextSegment> bootStore = new InMemoryEmbeddingStore<TextSegment>();
+        AiEmbeddingStore bootStore = store("boot", "langchain4j", "in-memory");
         MagicDynamicVectorDataSource dataSource = new MagicDynamicVectorDataSource(
-                registryWith("boot", bootStore, "boot"), new RecordingFactory(), Collections.<EmbeddingStoreProviderAdapter>emptyList());
+                registryWith("boot", bootStore, "boot"), new RecordingFactory(),
+                Collections.<AiEmbeddingStoreAdapter>emptyList());
 
-        assertSame(bootStore, dataSource.getDefault());
-        assertSame(bootStore, dataSource.get("boot"));
+        assertStore(dataSource.getDefault(), "boot", "langchain4j", "in-memory");
+        assertStore(dataSource.get("boot"), "boot", "langchain4j", "in-memory");
     }
 
     @Test
     public void shouldRegisterMagicVectorDatasourceAtRuntime() {
-        EmbeddingStore<TextSegment> bootStore = new InMemoryEmbeddingStore<TextSegment>();
+        AiEmbeddingStore bootStore = store("boot", "langchain4j", "in-memory");
         RecordingFactory factory = new RecordingFactory();
         MagicDynamicVectorDataSource dataSource = new MagicDynamicVectorDataSource(
-                registryWith("boot", bootStore, "boot"), factory, Collections.<EmbeddingStoreProviderAdapter>emptyList());
+                registryWith("boot", bootStore, "boot"), factory, Collections.<AiEmbeddingStoreAdapter>emptyList());
         VectorDataSourceInfo info = new VectorDataSourceInfo();
         info.setKey("runtime");
         info.setProvider("in-memory");
 
         dataSource.createClient(info);
 
-        assertSame(factory.createdStore, dataSource.get("runtime"));
+        assertStore(dataSource.get("runtime"), "runtime", "langchain4j", "in-memory");
         assertTrue(dataSource.datasourceNodes().size() >= 2);
     }
 
     @Test
     public void shouldExposeSpringBootRegistryAsSingleDefaultDatasourceNode() {
-        Map<String, EmbeddingStore<TextSegment>> stores = new LinkedHashMap<String, EmbeddingStore<TextSegment>>();
-        stores.put("boot", new InMemoryEmbeddingStore<TextSegment>());
-        stores.put("other", new InMemoryEmbeddingStore<TextSegment>());
+        Map<String, AiEmbeddingStore> stores = new LinkedHashMap<String, AiEmbeddingStore>();
+        stores.put("boot", store("boot", "langchain4j", "in-memory"));
+        stores.put("other", store("other", "langchain4j", "in-memory"));
         MagicDynamicVectorDataSource dataSource = new MagicDynamicVectorDataSource(
                 new TestEmbeddingStoreRegistry(stores, "boot"),
                 new RecordingFactory(),
-                Collections.<EmbeddingStoreProviderAdapter>emptyList());
+                Collections.<AiEmbeddingStoreAdapter>emptyList());
         VectorDataSourceInfo info = new VectorDataSourceInfo();
         info.setKey("runtime");
         info.setName("运行时向量库");
@@ -94,8 +95,8 @@ public class MagicDynamicVectorDataSourceTest {
                 "magic.api.vector.runtime.apiKey=configured-api-key");
         RecordingFactory factory = new RecordingFactory();
         MagicDynamicVectorDataSource dataSource = new MagicDynamicVectorDataSource(
-                registryWith("boot", new InMemoryEmbeddingStore<TextSegment>(), "boot"), factory,
-                Collections.<EmbeddingStoreProviderAdapter>emptyList());
+                registryWith("boot", store("boot", "langchain4j", "in-memory"), "boot"), factory,
+                Collections.<AiEmbeddingStoreAdapter>emptyList());
         VectorDataSourceInfo info = new VectorDataSourceInfo();
         info.setKey("runtime");
         info.setProvider("in-memory");
@@ -119,10 +120,26 @@ public class MagicDynamicVectorDataSourceTest {
         new SpringUtils().setApplicationContext(applicationContext);
     }
 
-    private EmbeddingStoreRegistry registryWith(String key, EmbeddingStore<TextSegment> store, String defaultKey) {
-        Map<String, EmbeddingStore<TextSegment>> stores = new LinkedHashMap<String, EmbeddingStore<TextSegment>>();
+    private AiEmbeddingStoreRegistry registryWith(String key, AiEmbeddingStore store, String defaultKey) {
+        Map<String, AiEmbeddingStore> stores = new LinkedHashMap<String, AiEmbeddingStore>();
         stores.put(key, store);
         return new TestEmbeddingStoreRegistry(stores, defaultKey);
+    }
+
+    private static AiEmbeddingStore store(String key, String framework, String provider) {
+        AiEmbeddingStore store = mock(AiEmbeddingStore.class);
+        when(store.getKey()).thenReturn(key);
+        when(store.getFramework()).thenReturn(framework);
+        when(store.getProvider()).thenReturn(provider);
+        when(store.getType()).thenReturn(AiEmbeddingStoreType.VECTOR);
+        return store;
+    }
+
+    private void assertStore(AiEmbeddingStore store, String key, String framework, String provider) {
+        assertEquals(key, store.getKey());
+        assertEquals(framework, store.getFramework());
+        assertEquals(provider, store.getProvider());
+        assertEquals(AiEmbeddingStoreType.VECTOR, store.getType());
     }
 
     private boolean hasNode(List<VectorDataSourceInfo> nodes, String key) {
@@ -134,35 +151,41 @@ public class MagicDynamicVectorDataSourceTest {
         return false;
     }
 
-    private static class RecordingFactory implements EmbeddingStoreFactory {
-        private final EmbeddingStore<TextSegment> createdStore = new InMemoryEmbeddingStore<TextSegment>();
-        private EmbeddingStoreDefinition definition;
+    private static class RecordingFactory implements AiEmbeddingStoreFactory {
+        private AiEmbeddingStoreDefinition definition;
 
         @Override
-        public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition, List<EmbeddingStoreProviderAdapter> adapters) {
+        public AiEmbeddingStore create(AiEmbeddingStoreDefinition definition, List<AiEmbeddingStoreAdapter> adapters) {
             this.definition = definition;
-            return createdStore;
+            AiEmbeddingStore store = store(definition.getKey(), definition.getFramework(), definition.getProvider());
+            when(store.getType()).thenReturn(definition.getType());
+            return store;
         }
     }
 
-    private static class TestEmbeddingStoreRegistry implements EmbeddingStoreRegistry {
+    private static class TestEmbeddingStoreRegistry implements AiEmbeddingStoreRegistry {
 
-        private final Map<String, EmbeddingStore<TextSegment>> stores;
+        private final Map<String, AiEmbeddingStore> stores;
         private final String defaultKey;
 
-        private TestEmbeddingStoreRegistry(Map<String, EmbeddingStore<TextSegment>> stores, String defaultKey) {
+        private TestEmbeddingStoreRegistry(Map<String, AiEmbeddingStore> stores, String defaultKey) {
             this.stores = stores;
             this.defaultKey = defaultKey;
         }
 
         @Override
-        public EmbeddingStore<TextSegment> get(String key) {
+        public AiEmbeddingStore get(String key) {
             return stores.get(key);
         }
 
         @Override
-        public EmbeddingStore<TextSegment> getDefault() {
+        public AiEmbeddingStore getDefault() {
             return stores.get(defaultKey);
+        }
+
+        @Override
+        public String getDefaultKey() {
+            return defaultKey;
         }
 
         @Override

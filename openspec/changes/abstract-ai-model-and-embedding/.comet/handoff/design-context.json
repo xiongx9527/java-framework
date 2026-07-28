@@ -1,0 +1,22 @@
+{
+  "change": "abstract-ai-model-and-embedding",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "873415265c83a5389f104b90838e3927139e81c2fdefa77b62c0c48f296939f0",
+  "files": [
+    { "path": "openspec/changes/abstract-ai-model-and-embedding/proposal.md", "sha256": "8601d3032baae8ca03844b2ad4abb7a85710fa767db5568be07e12c1a364c01e" },
+    { "path": "openspec/changes/abstract-ai-model-and-embedding/design.md", "sha256": "aaae3e5accc062c6c2096a1ec7c960b3d5edadb5fbc10ef8636fb436f547c6c2" },
+    { "path": "openspec/changes/abstract-ai-model-and-embedding/tasks.md", "sha256": "a9c61177bb6c74e27abe901f94769183f1cd084c9ca6656b3deaf578d88018dc" },
+    { "path": "openspec/changes/abstract-ai-model-and-embedding/specs/ai-abstraction-contract-testing/spec.md", "sha256": "0fd7e0fc11f21751241da103ae8f724e0fe7d15c8314f1686b5b80684517d195" },
+    { "path": "openspec/changes/abstract-ai-model-and-embedding/specs/ai-framework-adapter-integration/spec.md", "sha256": "9c0618a224ddf6eb8c6e2edadb1be1fe4aac29704d7e17cdba13cdfa438d994d" },
+    { "path": "openspec/changes/abstract-ai-model-and-embedding/specs/ai-framework-migration-guide/spec.md", "sha256": "dcfc5173a43a9b3cdcc26db4130737921aebe7eb301c77800272d097129f3291" },
+    { "path": "openspec/changes/abstract-ai-model-and-embedding/specs/ai-framework-neutral-embedding-store-abstraction/spec.md", "sha256": "37168f5e915436b61a9e951c6274159698838e924174db47e4cc466a1514602d" },
+    { "path": "openspec/changes/abstract-ai-model-and-embedding/specs/ai-framework-neutral-model-abstraction/spec.md", "sha256": "21fb36ca3a99657dd0b12b2d0078947d220a22a8688968958cc79a3e6588ab8c" },
+    { "path": "openspec/changes/abstract-ai-model-and-embedding/specs/langchain4j-embedding-store-starter/spec.md", "sha256": "e091108501e4e197af7dc2e9354026019e47904e46fda8b8bf8ca54bbd1ec535" },
+    { "path": "openspec/changes/abstract-ai-model-and-embedding/specs/langchain4j-model-module/spec.md", "sha256": "6811e5da89fdfde9a30eefc90e7eba5998f111997245b8fa42b69e68aedb6492" },
+    { "path": "openspec/changes/abstract-ai-model-and-embedding/specs/langchain4j-starter-modules/spec.md", "sha256": "a19746f316a238b26f83294ee33395019f5e70f92ca997760836911cb64c1538" },
+    { "path": "openspec/changes/abstract-ai-model-and-embedding/specs/magicapi-unified-vector-plugin/spec.md", "sha256": "0f83d6d2e02e3acb8dcf0cf4456aa5a8611001d7f7d4245da0e6270392763dec" }
+  ]
+}
