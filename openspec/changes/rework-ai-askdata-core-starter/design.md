@@ -93,7 +93,7 @@ AskData 不把 SQL 限定为“模型生成后直接 JDBC 执行”。Core 定�
 
 监控日志不是可选的空发布器：每个对话必须产生 `ConversationStarted`、请求/子问题、模型路由、Agent 节点、SQL 校验/执行、检查点/恢复以及完成/失败等生命周期事件。事件均绑定 `projectId + operatorId + conversationId`，并可继续关联请求、子问题、图节点和实例。默认 `AskDataMonitoringLogStore` 为单机内存环形存储；业务可按能力 key 改用 JDBC、Redis、消息系统或自定义实现。读取授权由 `AskDataMonitoringLogAccessPolicy` SPI 决定：项目管理员可查本项目全部日志，跨项目平台管理员必须有业务显式授权，普通操作人默认没有监控日志查询权限。事件发布和外部导出异步失败隔离，脱敏后的本地监控日志仍须保留，不得阻塞或改变对话结果。
 
-LangSmith 导出器通过 OpenTelemetry 或其 Java tracing SDK 映射父子 run、模型 token 和成本元数据；Langfuse 导出器通过 OpenTelemetry 批量导出 trace、span 与 generation。两者均为可选依赖且异步失败隔离，导出失败只产生本地诊断事件，不得阻断 AskData 请求。
+LangSmith 和 Langfuse 只作为可选导出契约与适配方向：Core 事件、脱敏字段、批量异步、失败隔离和关联标识由 AskData 契约定义；真实 LangSmith/Langfuse SDK、OpenTelemetry Collector、租户凭据和外部链路连通由业务观测适配或后续 Starter 接入验证。导出失败只允许产生本地诊断事件，不得阻断 AskData 请求。
 
 原始问题、Prompt、SQL 结果和凭据不得默认写入事件；需要诊断时只允许受配置控制的脱敏摘要。集群实例通过相同关联标识上报事件，使监控层可重建一次图执行链路。
 

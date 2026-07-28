@@ -14,7 +14,7 @@ base_ref: ee4b759c483c2d92cffb8987fab00a0c8d8d269a
 design_doc: docs/superpowers/specs/2026-07-27-rework-ai-askdata-core-starter-design.md
 plan: docs/superpowers/plans/2026-07-27-rework-ai-askdata-core-starter.md
 verify_result: fail
-verify_failures: 3
+verify_failures: 4
 verification_report: null
 branch_status: pending
 created_at: 2026-07-27

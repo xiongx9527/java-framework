@@ -8,9 +8,10 @@
 | --- | --- | --- |
 | Java SDK 示例编译 | `cd docs/askdata/starter && javac -source 8 -target 8 -d .verify-plugin-sdk examples/AskDataPluginSdkExample.java` | 通过，Java 8 源码和目标版本均指定 |
 | Java SDK 示例执行 | `java -cp .verify-plugin-sdk AskDataPluginSdkExample` | 通过，输出 `PLUGIN_SDK_EXAMPLE_OK` |
-| Core 定向测试 | `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata test` | 2026-07-28 17:38 通过，71 项测试、0 failures、0 errors、0 skipped |
-| AI 自动配置定向测试 | `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure clean test -Dtest='*AskData*Test'` | 2026-07-28 17:47 通过，133 项测试、0 failures、0 errors、0 skipped；包含集群拒绝本地状态、SQL 安全、监控日志、模型路由、JDBC 查询超时和只读连接边界 |
-| Starter 打包 | `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -DskipTests package` | 2026-07-28 17:40 通过；空 Starter JAR 按当前模块结构生成，仍有本地 `fw-plus-ai-boot-autoconfigure:0.1.1-SNAPSHOT` POM invalid 历史警告 |
+| Core 定向测试 | `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata test` | 2026-07-28 17:56 通过，71 项测试、0 failures、0 errors、0 skipped |
+| AI 自动配置定向测试 | `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure clean test -Dtest='*AskData*Test'` | 2026-07-28 17:57 通过，133 项测试、0 failures、0 errors、0 skipped；包含集群拒绝本地状态、SQL 安全、监控日志、模型路由、JDBC 查询超时和只读连接边界 |
+| Starter 依赖链测试 | `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -am test` | 2026-07-28 18:03 通过，11 个 reactor 模块成功；AI 自动配置 196 项测试、0 failures、0 errors、0 skipped；AskData Starter 空源码模块按当前结构构建通过 |
+| OpenSpec 严格校验 | `openspec validate rework-ai-askdata-core-starter --strict` | 2026-07-28 18:02 通过 |
 | 未完成标记扫描 | 对目标目录执行精确模式扫描 | 通过，无匹配 |
 | Markdown 空白检查 | `git diff --check -- docs/askdata/starter` | 通过；全仓库检查另有既有 `.superpowers/sdd` EOF 空白 |
 | 提交文件范围 | `git diff-tree --no-commit-id --name-only -r HEAD` | 本次提交清单仅包含 `docs/askdata/starter/**` |
