@@ -75,6 +75,11 @@ final class LegacyEmbeddingStoreAiAdapter implements AiEmbeddingStoreAdapter {
 			}
 			Embedding embedding = Embedding.from(document.getVector().toArray());
 			if (document.getId() != null && !document.getId().trim().isEmpty()) {
+				if (document.getText() != null
+						|| (document.getMetadata() != null && !document.getMetadata().isEmpty())) {
+					throw new AiEmbeddingStoreException("LangChain4j 0.35 cannot preserve content or metadata "
+							+ "when adding an embedding with an explicit id: key=" + getKey());
+				}
 				store.add(document.getId(), embedding);
 				return document.getId();
 			}

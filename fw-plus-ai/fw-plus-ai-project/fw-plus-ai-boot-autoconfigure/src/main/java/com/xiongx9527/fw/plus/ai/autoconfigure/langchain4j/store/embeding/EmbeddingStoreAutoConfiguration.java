@@ -12,6 +12,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provid
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreFactory;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 import com.xiongx9527.fw.plus.ai.store.embedding.DefaultAiEmbeddingStoreFactory;
@@ -34,7 +35,6 @@ import java.util.Map;
 
 @Configuration
 @EnableConfigurationProperties({EmbeddingStoreProperties.class, AiEmbeddingStoreProperties.class})
-@ConditionalOnProperty(prefix = "fw-plus.ai.langchain4j.embedding-store", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class EmbeddingStoreAutoConfiguration {
 
     private static final String PREFIX = "fw-plus.ai.langchain4j.embedding-store";
@@ -198,6 +198,7 @@ public class EmbeddingStoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(EmbeddingStoreRegistry.class)
+    @ConditionalOnProperty(prefix = "fw-plus.ai.langchain4j.embedding-store", name = "enabled", havingValue = "true", matchIfMissing = true)
     public EmbeddingStoreRegistry embeddingStoreRegistry(EmbeddingStoreProperties properties,
                                                          EmbeddingStoreFactory factory,
                                                          List<EmbeddingStoreProviderAdapter> adapters) {
@@ -230,21 +231,29 @@ public class EmbeddingStoreAutoConfiguration {
                 if (isBlank(definition.getKey())) {
                     definition.setKey(entry.getKey());
                 }
-                configuredDefinitions.put(definition.getKey(), definition);
+                AiEmbeddingStoreDefinition existing = configuredDefinitions.get(definition.getKey());
+                if (existing != null && existing.isEnabled() && definition.isEnabled()) {
+                    throw new AiEmbeddingStoreException("Duplicate enabled store key: key=" + definition.getKey());
+                }
+                if (existing == null || (!existing.isEnabled() && definition.isEnabled())) {
+                    configuredDefinitions.put(definition.getKey(), definition);
+                }
                 if (definition.isEnabled()) {
                     definitions.put(definition.getKey(), definition);
                 }
             }
         }
-        for (EmbeddingStoreDefinition legacy : definitions(legacyProperties).values()) {
-            AiEmbeddingStoreDefinition mapped = neutral(legacy);
-            AiEmbeddingStoreDefinition configured = configuredDefinitions.get(mapped.getKey());
-            if (configured != null) {
-                LOGGER.warn("忽略同 key 的旧 LangChain4j 向量存储配置，使用中立配置: key={}, framework={}, provider={}",
-                        configured.getKey(), configured.getFramework(), configured.getProvider());
-                continue;
+        if (legacyProperties.isEnabled()) {
+            for (EmbeddingStoreDefinition legacy : definitions(legacyProperties).values()) {
+                AiEmbeddingStoreDefinition mapped = neutral(legacy);
+                AiEmbeddingStoreDefinition configured = configuredDefinitions.get(mapped.getKey());
+                if (configured != null) {
+                    LOGGER.warn("忽略同 key 的旧 LangChain4j 向量存储配置，使用中立配置: key={}, framework={}, provider={}",
+                            configured.getKey(), configured.getFramework(), configured.getProvider());
+                    continue;
+                }
+                definitions.put(mapped.getKey(), mapped);
             }
-            definitions.put(mapped.getKey(), mapped);
         }
         List<AiEmbeddingStoreAdapter> effectiveAdapters = new ArrayList<AiEmbeddingStoreAdapter>(adapters);
         boolean hasLangChain4jAdapter = false;
@@ -258,7 +267,8 @@ public class EmbeddingStoreAutoConfiguration {
             effectiveAdapters.add(new LegacyEmbeddingStoreAiAdapter(legacyFactory, providerAdapters));
         }
         String defaultKey = !isBlank(neutralProperties.getDefaultStore())
-                ? neutralProperties.getDefaultStore() : legacyProperties.getDefaultStore();
+                ? neutralProperties.getDefaultStore()
+                : legacyProperties.isEnabled() ? legacyProperties.getDefaultStore() : null;
         Map<String, com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore> stores =
                 new LinkedHashMap<String, com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore>();
         for (AiEmbeddingStoreDefinition definition : definitions.values()) {

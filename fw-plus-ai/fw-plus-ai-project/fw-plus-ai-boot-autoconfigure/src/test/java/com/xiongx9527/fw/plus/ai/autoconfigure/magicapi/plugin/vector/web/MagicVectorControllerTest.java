@@ -6,6 +6,9 @@ import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreFactory;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.model.JsonBean;
 
@@ -19,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
+@ExtendWith(OutputCaptureExtension.class)
 public class MagicVectorControllerTest {
 
     @Test
@@ -90,6 +94,30 @@ public class MagicVectorControllerTest {
 
         assertEquals(-1, result.getCode());
         assertFalse(String.valueOf(result).contains("vector-secret"));
+    }
+
+    @Test
+    public void datasourceTestShouldMaskIllegalArgumentExceptionFromFactory(CapturedOutput output) {
+        final String sensitiveMessage = "apiKey=api-secret, token=token-secret, password=password-secret";
+        AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
+        definition.setKey("knowledge");
+        definition.setFramework("langchain4j");
+        definition.setProvider("fake");
+        definition.setType(AiEmbeddingStoreType.VECTOR);
+        MagicVectorController controller = new MagicVectorController(new MagicConfiguration(),
+                new AiEmbeddingStoreFactory() {
+                    @Override
+                    public AiEmbeddingStore create(AiEmbeddingStoreDefinition input,
+                                                   java.util.List<AiEmbeddingStoreAdapter> adapters) {
+                        throw new IllegalArgumentException(sensitiveMessage);
+                    }
+                }, Collections.<AiEmbeddingStoreAdapter>emptyList());
+
+        JsonBean<Object> result = controller.test(definition);
+
+        assertEquals(-1, result.getCode());
+        assertFalse(String.valueOf(result).contains(sensitiveMessage));
+        assertFalse(output.getAll().contains(sensitiveMessage));
     }
 
     private MagicVectorController controller() {
