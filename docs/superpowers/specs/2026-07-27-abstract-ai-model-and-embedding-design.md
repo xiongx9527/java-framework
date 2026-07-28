@@ -10,7 +10,9 @@ canonical_spec: openspec
 
 本设计把现有 LangChain4j 专属模型和向量存储公共能力下沉为 Java 8 可用的中立核心。LangChain4j 保持完整默认实现，确保既有 Spring Boot 2.7 应用、配置、Magic-API 资源和脚本无需立即迁移。
 
-Spring AI、Spring AI Alibaba、AgentScope 2 Java 的首版不实现原生 model/store adapter。它们以同仓 Java 17+ / Spring Boot 3+ 独立 artifact 交付，完成 parent、BOM、starter、条件装配、诊断和迁移文档边界。真实 SDK adapter、能力声明和 SDK 契约测试属于后续 OpenSpec change，不能被首版文档描述为已经支持运行。
+Spring AI、Spring AI Alibaba、AgentScope 2 Java 的首版不实现原生 model/store adapter。它们只在同仓 Java 17 / Spring Boot 3.x 高版本独立 artifact 交付，完成 parent、BOM、starter、条件装配、诊断和迁移文档边界。真实 SDK adapter、能力声明和 SDK 契约测试属于后续 OpenSpec change，不能被首版文档描述为已经支持运行。
+
+现有 Spring Boot 2.7.18 路径可以使用 Java 17 运行，因此 Java 17 并不要求升级到 Boot 3。这里将 Spring AI 等目标框架放入 Boot 3.x 独立聚合，是目标 SDK 生态隔离和版本选择，不改变 Boot 2.7 的 LangChain4j 默认路径。
 
 ## 2. 模块布局与依赖方向
 
