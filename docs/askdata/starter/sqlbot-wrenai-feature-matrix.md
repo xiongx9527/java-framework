@@ -77,13 +77,13 @@
 | SQLBot | 外部系统对接 | Coze 对接 | FL §1.6 | SQLBot 优先 | MCP/嵌入/API 通用 | rework-ai-askdata-core-starter | api-mcp | 调用方注册待定义 | askdata_mcp_api | FLOW | EXT-03 | 外部集成预留 | Coze 联调未实现。 |
 | SQLBot | 外部系统对接 | n8n 对接 | FL §1.6 | SQLBot 优先 | MCP/嵌入/API 通用 | rework-ai-askdata-core-starter | api-mcp | 调用方注册待定义 | askdata_mcp_api | FLOW | EXT-04 | 外部集成预留 | n8n 工作流节点未实现。 |
 | SQLBot | X-Pack/企业能力 | 登录认证 | FL §1.7 | SQLBot 优先 | 不与宿主认证争夺所有权 | rework-ai-askdata-core-starter | enterprise | SSO/登录 API 待定义 | askdata_enterprise_integration | DB | ENT-03 | 后续实现 | 当前由宿主应用认证。 |
-| SQLBot | X-Pack/企业能力 | 平台对接 | FL §1.7 | SQLBot 优先 | 企业微信/钉钉/飞书统一接入 | rework-ai-askdata-core-starter | enterprise/console | 平台适配 SPI 待定义 | askdata_enterprise_integration | DB, FLOW | ENT-04 | 外部集成预留 | 未实现扫码、免登或同步。 |
-| SQLBot | X-Pack/企业能力 | 企业微信 | FL §1.7 | SQLBot 优先 | 平台对接子项 | rework-ai-askdata-core-starter | enterprise | OAuth2/组织同步待定义 | askdata_enterprise_integration | DB, FLOW | ENT-05 | 外部集成预留 | 企业 ID、应用密钥与可信域名变更需审计。 |
-| SQLBot | X-Pack/企业能力 | 钉钉 | FL §1.7 | SQLBot 优先 | 平台对接子项 | rework-ai-askdata-core-starter | enterprise | 免登/回调待定义 | askdata_enterprise_integration | DB, FLOW | ENT-06 | 外部集成预留 | AgentId/AppKey/AppSecret 不得明文保存。 |
-| SQLBot | X-Pack/企业能力 | 飞书 | FL §1.7 | SQLBot 优先 | 平台对接子项 | rework-ai-askdata-core-starter | enterprise | 网页应用/重定向待定义 | askdata_enterprise_integration | DB, FLOW | ENT-07 | 外部集成预留 | App ID/App Secret 变更需审计。 |
-| SQLBot | X-Pack/企业能力 | 扫码登录 | FL §1.7 | SQLBot 优先 | 企业平台统一体验 | rework-ai-askdata-core-starter | enterprise/console | 扫码回调待定义 | askdata_enterprise_integration | DB | ENT-08 | 后续实现 | 未实现权限映射。 |
-| SQLBot | X-Pack/企业能力 | 免登 | FL §1.7 | SQLBot 优先 | 企业平台统一体验 | rework-ai-askdata-core-starter | enterprise/console | PC/移动免登待定义 | askdata_enterprise_integration | DB | ENT-09 | 后续实现 | 不能缺失 projectId/operatorId 归属。 |
-| SQLBot | X-Pack/企业能力 | 组织用户同步 | FL §1.7 | SQLBot 优先 | 与 §1.2 同一能力 | rework-ai-askdata-core-starter | enterprise/governance | 同步任务待定义 | askdata_enterprise_integration, askdata_project_member | DB | ENT-10 | 外部集成预留 | 未实现组织、用户和权限映射。 |
+| SQLBot | X-Pack/企业能力 | 平台对接 | FL §1.7 | SQLBot 优先 | 企业微信/钉钉/飞书统一接入 | rework-ai-askdata-core-starter | enterprise/console | 业务 IAM/JustAuth 映射待定义 | askdata_enterprise_integration | DB, FLOW | ENT-04 | 外部集成预留 | AskData 不自研扫码、免登或 OAuth，只接收已认证 `projectId/operatorId`。 |
+| SQLBot | X-Pack/企业能力 | 企业微信 | FL §1.7 | SQLBot 优先 | 平台对接子项 | rework-ai-askdata-core-starter | enterprise | JustAuth 企业微信登录授权/组织同步 | askdata_enterprise_integration | DB, FLOW | ENT-05 | 外部集成预留 | 企业 ID、应用密钥与可信域名由业务 IAM/JustAuth 管理并审计。 |
+| SQLBot | X-Pack/企业能力 | 钉钉 | FL §1.7 | SQLBot 优先 | 平台对接子项 | rework-ai-askdata-core-starter | enterprise | JustAuth 钉钉登录授权/免登回调 | askdata_enterprise_integration | DB, FLOW | ENT-06 | 外部集成预留 | AgentId/AppKey/AppSecret 由业务 IAM/JustAuth 托管，不得明文保存。 |
+| SQLBot | X-Pack/企业能力 | 飞书 | FL §1.7 | SQLBot 优先 | 平台对接子项 | rework-ai-askdata-core-starter | enterprise | JustAuth 飞书网页应用/重定向 | askdata_enterprise_integration | DB, FLOW | ENT-07 | 外部集成预留 | App ID/App Secret 由业务 IAM/JustAuth 托管并审计。 |
+| SQLBot | X-Pack/企业能力 | 扫码登录 | FL §1.7 | SQLBot 优先 | 企业平台统一体验 | rework-ai-askdata-core-starter | enterprise/console | JustAuth 扫码回调后映射项目成员 | askdata_enterprise_integration | DB | ENT-08 | 后续实现 | AskData 不处理扫码协议，只校验业务传入的权限映射。 |
+| SQLBot | X-Pack/企业能力 | 免登 | FL §1.7 | SQLBot 优先 | 企业平台统一体验 | rework-ai-askdata-core-starter | enterprise/console | JustAuth 免登后映射 `projectId/operatorId` | askdata_enterprise_integration | DB | ENT-09 | 后续实现 | 不能缺失 projectId/operatorId 归属。 |
+| SQLBot | X-Pack/企业能力 | 组织用户同步 | FL §1.7 | SQLBot 优先 | 与 §1.2 同一能力 | rework-ai-askdata-core-starter | enterprise/governance | 业务 IAM/JustAuth 同步后写入项目成员 | askdata_enterprise_integration, askdata_project_member | DB | ENT-10 | 外部集成预留 | AskData 只使用同步后的成员和权限结果。 |
 | SQLBot | X-Pack/企业能力 | 参数配置 | FL §1.7 | SQLBot 优先 | 与 §1.1 企业配置合并 | rework-ai-askdata-core-starter | enterprise | 企业配置待定义 | askdata_plugin_registry | CFG, DB | ENT-11 | 后续实现 | Starter 配置不等于企业参数中心。 |
 | SQLBot | X-Pack/企业能力 | 外观设置 | FL §1.7 | SQLBot 优先 | 与 §1.1 外观合并 | rework-ai-askdata-core-starter | enterprise/console | 主题配置待定义 | askdata_project | DB | ENT-12 | 后续实现 | 未实现。 |
 | SQLBot | X-Pack/企业能力 | 操作日志 | FL §1.7 | SQLBot 优先 | 与 §1.1 管理日志合并 | rework-ai-askdata-core-starter | enterprise/observability | 管理审计 API 待定义 | askdata_sql_audit | SQL, DB | ENT-13 | 设计覆盖 | 监控日志不能替代企业管理员操作审计。 |
@@ -155,5 +155,5 @@
 ## 覆盖核对
 
 - `feature-list.md` 的 SQLBot 77 项和 WrenAI 59 项均在上表各有一行；重复条目没有被删除，而是在 `duplicatePolicy` 中写明以 SQLBot 为主的吸收方式。
-- DataEase、MCP、Dify、Coze、n8n、企业微信、钉钉、飞书均标记为外部集成预留或后续实现，不能据此认定已可用。
+- DataEase、MCP、Dify、Coze、n8n、企业微信、钉钉、飞书均标记为外部集成预留或后续实现；企业平台登录、扫码、免登和组织同步统一由业务 IAM/JustAuth 完成，不能据此认定 AskData 已内置这些协议。
 - Java 17 远程运行时为协议和治理设计：Java 8 / Spring Boot 2.7.18 主进程不直接引入 Java 17 专属依赖，任何具体适配器均需接入时验证。
