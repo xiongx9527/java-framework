@@ -40,8 +40,8 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
 
     private final MagicDynamicDataSource dynamicDataSource;
     private final MyBatisFlexProperties myBatisFlexProperties;
-    private final MagicDynamicDataSource.DataSourceNode dataSourceNode;
-    private final RowMapperInvoker rowMapperInvoker;
+    private volatile MagicDynamicDataSource.DataSourceNode dataSourceNode;
+    private volatile RowMapperInvoker rowMapperInvoker;
 
     /**
      * 构造函数，用于初始化MybatisFlexModule实例
@@ -134,6 +134,32 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
         return factory.getObject();
     }
 
+    private RowMapperInvoker rowMapperInvoker() {
+        RowMapperInvoker invoker = this.rowMapperInvoker;
+        if (invoker == null) {
+            synchronized (this) {
+                invoker = this.rowMapperInvoker;
+                if (invoker == null) {
+                    try {
+                        MagicDynamicDataSource.DataSourceNode node = this.dynamicDataSource.getDataSource();
+                        invoker = new RowMapperInvoker(sqlSessionFactory(node.getDataSource()));
+                        this.dataSourceNode = node;
+                        this.rowMapperInvoker = invoker;
+                    } catch (Exception exception) {
+                        throw new IllegalStateException(
+                                "MyBatis-Flex requires a configured default DataSource", exception);
+                    }
+                }
+            }
+        }
+        return invoker;
+    }
+
+    private MagicDynamicDataSource.DataSourceNode dataSourceNode() {
+        rowMapperInvoker();
+        return this.dataSourceNode;
+    }
+
     /**
      * 根据上下文中的数据源键获取对应的动态模块实例。
      *
@@ -174,7 +200,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * schema – 模式 tableName – 表名 row – 数据
      */
     public int insert(String schema, String tableName, Row row) {
-        return this.rowMapperInvoker.insert(schema, tableName, row);
+        return rowMapperInvoker().insert(schema, tableName, row);
     }
 
     /**
@@ -195,7 +221,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param args sql 参数
      */
     public int insertBySql(String sql, Object... args) {
-        return this.rowMapperInvoker.insertBySql(sql, args);
+        return rowMapperInvoker().insertBySql(sql, args);
     }
 
 
@@ -251,7 +277,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param rows      数据
      */
     public int insertBatchWithFirstRowColumns(String schema, String tableName, List<Row> rows) {
-        return this.rowMapperInvoker.insertBatchWithFirstRowColumns(schema, tableName, rows);
+        return rowMapperInvoker().insertBatchWithFirstRowColumns(schema, tableName, rows);
     }
 
     /**
@@ -271,7 +297,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param args 参数
      */
     public int deleteBySql(String sql, Object... args) {
-        return this.rowMapperInvoker.deleteBySql(sql, args);
+        return rowMapperInvoker().deleteBySql(sql, args);
     }
 
     /**
@@ -282,7 +308,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param row       主键 和 id值
      */
     public int deleteById(String schema, String tableName, Row row) {
-        return this.rowMapperInvoker.deleteById(schema, tableName, row);
+        return rowMapperInvoker().deleteById(schema, tableName, row);
     }
 
     /**
@@ -292,7 +318,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param row       主键 和 id值
      */
     public int deleteById(String tableName, Row row) {
-        return this.rowMapperInvoker.deleteById(null, tableName, row);
+        return rowMapperInvoker().deleteById(null, tableName, row);
     }
 
 
@@ -305,7 +331,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param id         主键值
      */
     public int deleteById(String schema, String tableName, String primaryKey, Object id) {
-        return this.rowMapperInvoker.deleteById(schema, tableName, primaryKey, id);
+        return rowMapperInvoker().deleteById(schema, tableName, primaryKey, id);
     }
 
     /**
@@ -329,7 +355,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param ids        id 集合
      */
     public int deleteBatchByIds(String schema, String tableName, String primaryKey, Collection<?> ids) {
-        return this.rowMapperInvoker.deleteBatchByIds(schema, tableName, primaryKey, ids);
+        return rowMapperInvoker().deleteBatchByIds(schema, tableName, primaryKey, ids);
     }
 
     /**
@@ -351,7 +377,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param whereColumns where 条件
      */
     public int deleteByMap(String schema, String tableName, Map<String, Object> whereColumns) {
-        return this.rowMapperInvoker.deleteByQuery(schema, tableName, new QueryWrapper().where(whereColumns));
+        return rowMapperInvoker().deleteByQuery(schema, tableName, new QueryWrapper().where(whereColumns));
     }
 
     /**
@@ -372,7 +398,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param condition 条件内容
      */
     public int deleteByCondition(String schema, String tableName, QueryCondition condition) {
-        return this.rowMapperInvoker.deleteByQuery(schema, tableName, new QueryWrapper().where(condition));
+        return rowMapperInvoker().deleteByQuery(schema, tableName, new QueryWrapper().where(condition));
     }
 
     /**
@@ -394,7 +420,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param queryWrapper query
      */
     public int deleteByQuery(String schema, String tableName, QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.deleteByQuery(schema, tableName, queryWrapper);
+        return rowMapperInvoker().deleteByQuery(schema, tableName, queryWrapper);
     }
 
     /**
@@ -414,7 +440,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param args sql 参数
      */
     public int updateBySql(String sql, Object... args) {
-        return this.rowMapperInvoker.updateBySql(sql, args);
+        return rowMapperInvoker().updateBySql(sql, args);
     }
 
 
@@ -425,7 +451,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      */
     public int[] updateBatch(String sql, BatchArgsSetter batchArgsSetter) {
         int batchSize = batchArgsSetter.getBatchSize();
-        return this.rowMapperInvoker.executeBatch(batchSize, batchSize, RowMapper.class
+        return rowMapperInvoker().executeBatch(batchSize, batchSize, RowMapper.class
                 , (mapper, index) -> mapper.updateBySql(sql, batchArgsSetter.getSqlArgs(index)));
 
     }
@@ -439,7 +465,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param row       id 及其内容
      */
     public int updateById(String schema, String tableName, Row row) {
-        return this.rowMapperInvoker.updateById(schema, tableName, row);
+        return rowMapperInvoker().updateById(schema, tableName, row);
     }
 
 
@@ -462,7 +488,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param whereColumns where 条件
      */
     public int updateByMap(String schema, String tableName, Row data, Map<String, Object> whereColumns) {
-        return this.rowMapperInvoker.updateByQuery(schema, tableName, data, new QueryWrapper().where(whereColumns));
+        return rowMapperInvoker().updateByQuery(schema, tableName, data, new QueryWrapper().where(whereColumns));
     }
 
 
@@ -486,7 +512,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param condition 条件
      */
     public int updateByCondition(String schema, String tableName, Row data, QueryCondition condition) {
-        return this.rowMapperInvoker.updateByQuery(schema, tableName, data, new QueryWrapper().where(condition));
+        return rowMapperInvoker().updateByQuery(schema, tableName, data, new QueryWrapper().where(condition));
     }
 
     /**
@@ -510,7 +536,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param queryWrapper queryWrapper 条件
      */
     public int updateByQuery(String schema, String tableName, Row data, QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.updateByQuery(schema, tableName, data, queryWrapper);
+        return rowMapperInvoker().updateByQuery(schema, tableName, data, queryWrapper);
     }
 
     /**
@@ -533,7 +559,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param rows      还有主键的数据
      */
     public int updateBatchById(String schema, String tableName, List<Row> rows) {
-        return this.rowMapperInvoker.updateBatchById(schema, tableName, rows);
+        return rowMapperInvoker().updateBatchById(schema, tableName, rows);
     }
 
     /**
@@ -583,7 +609,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @return 执行影响的行数
      */
     public <M> int[] executeBatch(int totalSize, int batchSize, Class<M> mapperClass, BiConsumer<M, Integer> consumer) {
-        return this.rowMapperInvoker.executeBatch(totalSize, batchSize, mapperClass, consumer);
+        return rowMapperInvoker().executeBatch(totalSize, batchSize, mapperClass, consumer);
     }
 
 
@@ -614,7 +640,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @return 返回每条执行是否成功的结果
      */
     public <M, E> int[] executeBatch(Collection<E> datas, int batchSize, Class<M> mapperClass, BiConsumer<M, E> consumer) {
-        return this.rowMapperInvoker.executeBatch(datas, batchSize, mapperClass, consumer);
+        return rowMapperInvoker().executeBatch(datas, batchSize, mapperClass, consumer);
     }
 
     /**
@@ -624,7 +650,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param args sql 参数
      */
     public Row selectOneBySql(String sql, Object... args) {
-        return this.rowMapperInvoker.selectOneBySql(sql, args);
+        return rowMapperInvoker().selectOneBySql(sql, args);
     }
 
 
@@ -636,7 +662,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param row       主键和 id 值
      */
     public Row selectOneById(String schema, String tableName, Row row) {
-        return this.rowMapperInvoker.selectOneById(schema, tableName, row);
+        return rowMapperInvoker().selectOneById(schema, tableName, row);
     }
 
     /**
@@ -659,7 +685,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param id         主键值
      */
     public Row selectOneById(String schema, String tableName, String primaryKey, Object id) {
-        return this.rowMapperInvoker.selectOneById(schema, tableName, primaryKey, id);
+        return rowMapperInvoker().selectOneById(schema, tableName, primaryKey, id);
     }
 
     /**
@@ -681,7 +707,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param whereColumns where条件
      */
     public Row selectOneByMap(String schema, String tableName, Map whereColumns) {
-        return this.rowMapperInvoker.selectOneByQuery(schema, tableName, new QueryWrapper().where(whereColumns).limit(1L));
+        return rowMapperInvoker().selectOneByQuery(schema, tableName, new QueryWrapper().where(whereColumns).limit(1L));
     }
 
 
@@ -703,7 +729,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param condition 条件
      */
     public Row selectOneByCondition(String schema, String tableName, QueryCondition condition) {
-        return this.rowMapperInvoker.selectOneByQuery(schema, tableName, new QueryWrapper().where(condition).limit(1L));
+        return rowMapperInvoker().selectOneByQuery(schema, tableName, new QueryWrapper().where(condition).limit(1L));
     }
 
     /**
@@ -725,7 +751,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param queryWrapper queryWrapper
      */
     public Row selectOneByQuery(String schema, String tableName, QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.selectOneByQuery(schema, tableName, queryWrapper);
+        return rowMapperInvoker().selectOneByQuery(schema, tableName, queryWrapper);
     }
 
     /**
@@ -749,7 +775,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
         if (queryTables == null || queryTables.isEmpty()) {
             throw FlexExceptions.wrap("table must not be null or empty in Db.selectOneByQuery");
         }
-        return this.rowMapperInvoker.selectOneByQuery(null, null, queryWrapper);
+        return rowMapperInvoker().selectOneByQuery(null, null, queryWrapper);
     }
 
 
@@ -760,7 +786,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param args sql 参数
      */
     public List<Row> selectListBySql(String sql, Object... args) {
-        return this.rowMapperInvoker.selectListBySql(sql, args);
+        return rowMapperInvoker().selectListBySql(sql, args);
     }
 
 
@@ -772,7 +798,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param whereColumns where 条件
      */
     public List<Row> selectListByMap(String schema, String tableName, Map<String, Object> whereColumns) {
-        return this.rowMapperInvoker.selectListByQuery(schema, tableName, new QueryWrapper().where(whereColumns));
+        return rowMapperInvoker().selectListByQuery(schema, tableName, new QueryWrapper().where(whereColumns));
     }
 
     /**
@@ -795,7 +821,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param count        数据量
      */
     public List<Row> selectListByMap(String schema, String tableName, Map<String, Object> whereColumns, Long count) {
-        return this.rowMapperInvoker.selectListByQuery(schema, tableName, new QueryWrapper().where(whereColumns).limit(count));
+        return rowMapperInvoker().selectListByQuery(schema, tableName, new QueryWrapper().where(whereColumns).limit(count));
     }
 
     /**
@@ -818,7 +844,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param condition where 条件
      */
     public List<Row> selectListByCondition(String schema, String tableName, QueryCondition condition) {
-        return this.rowMapperInvoker.selectListByQuery(schema, tableName, new QueryWrapper().where(condition));
+        return rowMapperInvoker().selectListByQuery(schema, tableName, new QueryWrapper().where(condition));
     }
 
 
@@ -841,7 +867,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param count     数据量
      */
     public List<Row> selectListByCondition(String schema, String tableName, QueryCondition condition, Long count) {
-        return this.rowMapperInvoker.selectListByQuery(schema, tableName, new QueryWrapper().where(condition).limit(count));
+        return rowMapperInvoker().selectListByQuery(schema, tableName, new QueryWrapper().where(condition).limit(count));
     }
 
     /**
@@ -864,7 +890,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param queryWrapper query 条件
      */
     public List<Row> selectListByQuery(String schema, String tableName, QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.selectListByQuery(schema, tableName, queryWrapper);
+        return rowMapperInvoker().selectListByQuery(schema, tableName, queryWrapper);
     }
 
     /**
@@ -888,7 +914,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
         if (queryTables == null || queryTables.isEmpty()) {
             throw FlexExceptions.wrap("table must not be null or empty in Db.selectListByQuery");
         }
-        return this.rowMapperInvoker.selectListByQuery(null, null, queryWrapper);
+        return rowMapperInvoker().selectListByQuery(null, null, queryWrapper);
     }
 
     /**
@@ -898,7 +924,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param tableName 表名
      */
     public List<Row> selectAll(String schema, String tableName) {
-        return this.rowMapperInvoker.selectAll(schema, tableName);
+        return rowMapperInvoker().selectAll(schema, tableName);
     }
 
     /**
@@ -907,7 +933,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param tableName 表名
      */
     public List<Row> selectAll(String tableName) {
-        return this.rowMapperInvoker.selectAll(null, tableName);
+        return rowMapperInvoker().selectAll(null, tableName);
     }
 
     /**
@@ -917,7 +943,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param args sql 参数
      */
     public Object selectObject(String sql, Object... args) {
-        return this.rowMapperInvoker.selectObject(sql, args);
+        return rowMapperInvoker().selectObject(sql, args);
     }
 
 
@@ -930,7 +956,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @return 数据内容
      */
     public Object selectObject(String schema, String tableName, QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.selectObjectByQuery(schema, tableName, queryWrapper);
+        return rowMapperInvoker().selectObjectByQuery(schema, tableName, queryWrapper);
     }
 
     /**
@@ -952,7 +978,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @return 数据内容
      */
     public Object selectObject(QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.selectObjectByQuery(null, null, queryWrapper);
+        return rowMapperInvoker().selectObjectByQuery(null, null, queryWrapper);
     }
 
     /**
@@ -962,7 +988,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @return 数据内容
      */
     public Map selectFirstAndSecondColumnsAsMap(QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.selectFirstAndSecondColumnsAsMapByQuery(null, null, queryWrapper);
+        return rowMapperInvoker().selectFirstAndSecondColumnsAsMapByQuery(null, null, queryWrapper);
     }
 
     /**
@@ -972,7 +998,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param args sql 参数
      */
     public Map selectFirstAndSecondColumnsAsMap(String sql, Object... args) {
-        return this.rowMapperInvoker.selectFirstAndSecondColumnsAsMap(sql, args);
+        return rowMapperInvoker().selectFirstAndSecondColumnsAsMap(sql, args);
     }
 
     /**
@@ -984,7 +1010,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @return 数据内容
      */
     public Map selectFirstAndSecondColumnsAsMap(String schema, String tableName, QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.selectFirstAndSecondColumnsAsMapByQuery(schema, tableName, queryWrapper);
+        return rowMapperInvoker().selectFirstAndSecondColumnsAsMapByQuery(schema, tableName, queryWrapper);
     }
 
     /**
@@ -1005,7 +1031,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param args sql 参数
      */
     public List<Object> selectObjectList(String sql, Object... args) {
-        return this.rowMapperInvoker.selectObjectList(sql, args);
+        return rowMapperInvoker().selectObjectList(sql, args);
     }
 
 
@@ -1018,7 +1044,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @return 数据内容
      */
     public List<Object> selectObjectList(String schema, String tableName, QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.selectObjectListByQuery(schema, tableName, queryWrapper);
+        return rowMapperInvoker().selectObjectListByQuery(schema, tableName, queryWrapper);
     }
 
     /**
@@ -1040,7 +1066,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @return 数据内容
      */
     public List<Object> selectObjectList(QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.selectObjectListByQuery(null, null, queryWrapper);
+        return rowMapperInvoker().selectObjectListByQuery(null, null, queryWrapper);
     }
 
 
@@ -1052,7 +1078,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param args sql 参数
      */
     public long selectCount(String sql, Object... args) {
-        return this.rowMapperInvoker.selectCount(sql, args);
+        return rowMapperInvoker().selectCount(sql, args);
     }
 
 
@@ -1064,7 +1090,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param condition 条件
      */
     public long selectCountByCondition(String schema, String tableName, QueryCondition condition) {
-        return this.rowMapperInvoker.selectCountByQuery(schema, tableName, new QueryWrapper().where(condition));
+        return rowMapperInvoker().selectCountByQuery(schema, tableName, new QueryWrapper().where(condition));
     }
 
     /**
@@ -1086,7 +1112,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param queryWrapper query 条件
      */
     public long selectCountByQuery(String schema, String tableName, QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.selectCountByQuery(schema, tableName, queryWrapper);
+        return rowMapperInvoker().selectCountByQuery(schema, tableName, queryWrapper);
     }
 
     /**
@@ -1111,7 +1137,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
         if (queryTables == null || queryTables.isEmpty()) {
             throw FlexExceptions.wrap("Query tables must not be null or empty in Db.selectCountByQuery");
         }
-        return this.rowMapperInvoker.selectCountByQuery(null, null, queryWrapper);
+        return rowMapperInvoker().selectCountByQuery(null, null, queryWrapper);
     }
 
 
@@ -1125,7 +1151,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param condition  条件
      */
     public Page<Row> paginate(String schema, String tableName, Number pageNumber, Number pageSize, QueryCondition condition) {
-        return this.rowMapperInvoker.paginate(schema, tableName, new Page<>(pageNumber, pageSize), QueryWrapper.create().where(condition));
+        return rowMapperInvoker().paginate(schema, tableName, new Page<>(pageNumber, pageSize), QueryWrapper.create().where(condition));
     }
 
 
@@ -1153,7 +1179,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param condition  条件
      */
     public Page<Row> paginate(String schema, String tableName, Number pageNumber, Number pageSize, Number totalRow, QueryCondition condition) {
-        return this.rowMapperInvoker.paginate(schema, tableName, new Page<>(pageNumber, pageSize, totalRow), QueryWrapper.create().where(condition));
+        return rowMapperInvoker().paginate(schema, tableName, new Page<>(pageNumber, pageSize, totalRow), QueryWrapper.create().where(condition));
     }
 
     /**
@@ -1180,7 +1206,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param queryWrapper 条件
      */
     public Page<Row> paginate(String schema, String tableName, Number pageNumber, Number pageSize, QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.paginate(schema, tableName, new Page<>(pageNumber, pageSize), queryWrapper);
+        return rowMapperInvoker().paginate(schema, tableName, new Page<>(pageNumber, pageSize), queryWrapper);
     }
 
     /**
@@ -1207,7 +1233,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param queryWrapper 条件
      */
     public Page<Row> paginate(String schema, String tableName, Number pageNumber, Number pageSize, Number totalRow, QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.paginate(schema, tableName, new Page<>(pageNumber, pageSize, totalRow), queryWrapper);
+        return rowMapperInvoker().paginate(schema, tableName, new Page<>(pageNumber, pageSize, totalRow), queryWrapper);
     }
 
     /**
@@ -1233,7 +1259,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @param queryWrapper 条件
      */
     public Page<Row> paginate(String schema, String tableName, Page<Row> page, QueryWrapper queryWrapper) {
-        return this.rowMapperInvoker.paginate(schema, tableName, page, queryWrapper);
+        return rowMapperInvoker().paginate(schema, tableName, page, queryWrapper);
     }
 
     /**
@@ -1272,7 +1298,7 @@ public class MybatisFlexModule implements DynamicAttribute<MybatisFlexModule, My
      * @return 基于当前数据源事务管理器创建的事务实例
      */
     public Transaction transaction() {
-        return new Transaction(this.dataSourceNode.getDataSourceTransactionManager());
+        return new Transaction(dataSourceNode().getDataSourceTransactionManager());
     }
 
 }
