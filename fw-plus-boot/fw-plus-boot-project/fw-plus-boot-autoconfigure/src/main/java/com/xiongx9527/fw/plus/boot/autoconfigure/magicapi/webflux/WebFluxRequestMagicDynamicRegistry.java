@@ -34,6 +34,8 @@ public class WebFluxRequestMagicDynamicRegistry extends AbstractMagicDynamicRegi
 		implements RequestHandler.ApiInfoRequestLookup {
 
 	private static final Logger logger = LoggerFactory.getLogger(WebFluxRequestMagicDynamicRegistry.class);
+	static final String BEST_MATCHING_PATTERN_ATTRIBUTE =
+			WebFluxRequestMagicDynamicRegistry.class.getName() + ".bestMatchingPattern";
 
 	private final MagicAPIWebFluxMapping mapping;
 	private final boolean allowOverride;
@@ -70,8 +72,7 @@ public class WebFluxRequestMagicDynamicRegistry extends AbstractMagicDynamicRegi
 
 	@Override
 	public ApiInfo getApiInfoFromRequest(MagicHttpServletRequest request) {
-		String pattern = Objects.toString(request.getAttribute(
-				org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE), request.getRequestURI());
+		String pattern = Objects.toString(request.getAttribute(BEST_MATCHING_PATTERN_ATTRIBUTE), request.getRequestURI());
 		String mappingKey = Objects.toString(request.getMethod(), "GET").toUpperCase() + ":" + pattern;
 		return getMapping(mappingKey);
 	}

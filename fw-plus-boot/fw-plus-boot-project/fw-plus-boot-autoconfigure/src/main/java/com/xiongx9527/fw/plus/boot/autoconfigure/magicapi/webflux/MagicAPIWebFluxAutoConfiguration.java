@@ -260,6 +260,12 @@ public class MagicAPIWebFluxAutoConfiguration implements WebFluxConfigurer {
         return new MagicAPIWebFluxController(managementService, configuration);
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public MagicAPIWebFluxExceptionHandler magicAPIWebFluxExceptionHandler() {
+        return new MagicAPIWebFluxExceptionHandler();
+    }
+
     static class EmptyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegistry {
 
         EmptyDataSourceMagicDynamicRegistry(MagicResourceStorage<DataSourceInfo> magicResourceStorage,

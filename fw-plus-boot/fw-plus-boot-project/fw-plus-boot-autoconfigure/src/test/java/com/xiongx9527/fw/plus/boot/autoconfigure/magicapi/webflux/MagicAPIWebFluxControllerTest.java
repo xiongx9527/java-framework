@@ -22,10 +22,14 @@ import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.http.HttpCookie;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.ssssssss.magicapi.core.config.Constants;
+import org.ssssssss.magicapi.core.config.JsonCodeConstants;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.context.MagicUser;
+import org.ssssssss.magicapi.core.exception.InvalidArgumentException;
 import org.ssssssss.magicapi.core.exception.MagicLoginException;
 import org.ssssssss.magicapi.core.interceptor.Authorization;
 import org.ssssssss.magicapi.core.interceptor.AuthorizationInterceptor;
@@ -33,6 +37,7 @@ import org.ssssssss.magicapi.core.model.Group;
 import org.ssssssss.magicapi.core.model.JsonBean;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
+import org.ssssssss.magicapi.core.web.MagicController;
 import org.ssssssss.magicapi.core.web.RequestHandler;
 
 import java.net.InetSocketAddress;
@@ -92,6 +97,38 @@ class MagicAPIWebFluxControllerTest {
                             .anyMatch(info -> hasPath(info, "/magic-api/web/resource"))
                             .anyMatch(info -> hasPath(info, "/magic-api/web/resource/file/{folder}/save"));
                 });
+    }
+
+    @Test
+    void registersMagicExceptionHandlerAdviceInReactiveContext() {
+        new ReactiveWebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration.class,
+                        MagicAPIWebFluxAutoConfiguration.class))
+                .withPropertyValues("magic-api.resource.location=target/magic-api-webflux-exception-advice-test")
+                .run(context -> assertThat(context)
+                        .hasSingleBean(MagicAPIWebFluxExceptionHandler.class));
+    }
+
+    @Test
+    void mapsMagicControllerExceptionsWithWebFluxExceptionAdvice() {
+        WebTestClient client = WebTestClient.bindToController(new ThrowingMagicController())
+                .controllerAdvice(new MagicAPIWebFluxExceptionHandler())
+                .build();
+
+        client.get().uri("/magic-test/invalid")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.code").isEqualTo(-10)
+                .jsonPath("$.message").isEqualTo("无权限操作.");
+
+        client.get().uri("/magic-test/error")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.code").isEqualTo(-1)
+                .jsonPath("$.message").isEqualTo("boom");
     }
 
     @Test
@@ -420,5 +457,23 @@ class MagicAPIWebFluxControllerTest {
         return info.getPatternsCondition().getDirectPaths().contains(path)
                 || info.getPatternsCondition().getPatterns().stream()
                         .anyMatch(pattern -> path.equals(pattern.getPatternString()));
+    }
+
+    @RequestMapping("/magic-test")
+    static class ThrowingMagicController extends MagicController {
+
+        ThrowingMagicController() {
+            super(new MagicConfiguration());
+        }
+
+        @GetMapping("/invalid")
+        public JsonBean<Void> invalid() {
+            throw new InvalidArgumentException(JsonCodeConstants.PERMISSION_INVALID);
+        }
+
+        @GetMapping("/error")
+        public JsonBean<Void> error() {
+            throw new IllegalStateException("boom");
+        }
     }
 }

@@ -30,27 +30,34 @@ public class MagicAPIWebFluxRequestHandler {
 							   @PathVariable(required = false) Map<String, Object> pathVariables,
 							   @RequestHeader(required = false) Map<String, Object> headers,
 							   @RequestParam(required = false) Map<String, Object> parameters) {
-		return body(exchange).flatMap(bytes -> Mono.fromCallable(() -> {
-			WebFluxMagicAPIRequestAccess request = new WebFluxMagicAPIRequestAccess(exchange, bytes);
-			WebFluxMagicAPIResponseAccess response = new WebFluxMagicAPIResponseAccess(exchange);
-			Object pattern = exchange.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
-			if (pattern != null) {
-				request.setAttribute(org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE,
-						pattern.toString());
-			}
-			Object value;
-			try {
-				value = requestHandler.invoke(request, response, pathVariables, headers, parameters);
-			} catch (Exception exception) {
-				throw exception;
-			} catch (Throwable throwable) {
-				throw new IllegalStateException(throwable);
-			}
-			if (value == null && response.body().length > 0) {
-				return ResponseEntity.ok().body(response.body());
-			}
-			return value;
-		}).subscribeOn(Schedulers.boundedElastic()));
+		return body(exchange).flatMap(bytes -> Mono.fromCallable(
+				() -> invokeBlocking(exchange, bytes, pathVariables, headers, parameters)
+		).subscribeOn(Schedulers.boundedElastic()));
+	}
+
+	private Object invokeBlocking(ServerWebExchange exchange,
+								  byte[] bytes,
+								  Map<String, Object> pathVariables,
+								  Map<String, Object> headers,
+								  Map<String, Object> parameters) throws Exception {
+		WebFluxMagicAPIRequestAccess request = new WebFluxMagicAPIRequestAccess(exchange, bytes);
+		WebFluxMagicAPIResponseAccess response = new WebFluxMagicAPIResponseAccess(exchange);
+		Object pattern = exchange.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
+		if (pattern != null) {
+			request.setAttribute(WebFluxRequestMagicDynamicRegistry.BEST_MATCHING_PATTERN_ATTRIBUTE, pattern.toString());
+		}
+		Object value;
+		try {
+			value = requestHandler.invoke(request, response, pathVariables, headers, parameters);
+		} catch (Exception exception) {
+			throw exception;
+		} catch (Throwable throwable) {
+			throw new IllegalStateException(throwable);
+		}
+		if (value == null && response.body().length > 0) {
+			return ResponseEntity.ok().body(response.body());
+		}
+		return value;
 	}
 
 	private Mono<byte[]> body(ServerWebExchange exchange) {
