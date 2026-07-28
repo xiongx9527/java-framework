@@ -308,3 +308,4 @@
 #### Scenario: Support SQLBot external integration capabilities
 - **WHEN** 团队验收 SQLBot 对接其他系统能力
 - **THEN** 文档与接口契约 SHALL 覆盖 SQLBot 文档中的全部外部系统对接能力，至少包括模型接入/Ollama、MCP Server、嵌入式对接、DataEase 接入、MaxKB、Dify、Coze、n8n、X-Pack 登录认证、平台对接、企业微信、钉钉、飞书、扫码登录、免登、组织用户同步和参数配置；MCP SHALL 覆盖 `mcp_start`、`mcp_question`、`mcp_ws_list`、`mcp_datasource_list`、SSE/Streamable HTTP、token/chat_id；嵌入 SHALL 覆盖基础/高级/页面嵌入、宿主凭证映射、跨域、appId/appSecret；DataEase SHALL 覆盖 `/de2api/sqlbot/datasource`、`x-de-token`、AES-Key、审计和联调测试
+- **AND** 企业微信、钉钉和飞书登录、扫码、免登、回调和组织同步 SHALL 由业务 IAM/JustAuth 适配完成；AskData SHALL 只接收已认证和授权映射后的 `projectId + operatorId` 及授权摘要，不在 Starter 内自研这些企业平台协议
