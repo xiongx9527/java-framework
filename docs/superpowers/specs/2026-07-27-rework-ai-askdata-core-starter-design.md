@@ -2,6 +2,8 @@
 comet_change: rework-ai-askdata-core-starter
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-28-rework-ai-askdata-core-starter
+status: final
 ---
 
 # fw-plus AskData Core Starter 重构设计
@@ -358,7 +360,7 @@ SQLBot 优先，WrenAI 必须覆盖。重复项采用 SQLBot 产品语义，吸�
 
 ## 15. 文档交付
 
-后续实现必须同步维护以下中文文档：
+实现和业务接入验证必须同步维护以下中文文档：
 
 - Starter 说明首页和已实现功能清单。
 - 架构与模块设计文档。

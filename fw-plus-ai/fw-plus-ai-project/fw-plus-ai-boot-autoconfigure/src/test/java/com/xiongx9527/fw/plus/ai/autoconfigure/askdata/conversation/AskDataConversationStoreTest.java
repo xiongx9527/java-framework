@@ -1,16 +1,99 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
-import org.junit.Test;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AskDataConversationStoreTest {
+
+    @Test
+    public void shouldProvideCoreMemoryStateStoresByDefaultOnSingleNode() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(AskDataAutoConfiguration.class)
+                .run(context -> {
+                    assertNotNull(context.getBean(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class));
+                    assertNotNull(context.getBean(AskDataCheckpointStore.class));
+                    assertNotNull(context.getBean(AskDataAgentStateStore.class));
+                });
+    }
+
+    @Test
+    public void shouldProvideRemainingCoreMemoryStateStoresWhenBusinessReplacesConversationStore() {
+        com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore customConversationStore =
+                new com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore() {
+                    @Override
+                    public void save(com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext context,
+                            String conversationId, Conversation conversation) {
+                    }
+
+                    @Override
+                    public Conversation load(com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext context,
+                            String conversationId) {
+                        return null;
+                    }
+                };
+
+        new ApplicationContextRunner()
+                .withUserConfiguration(AskDataAutoConfiguration.class)
+                .withBean("customCoreConversationStore",
+                        com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class,
+                        () -> customConversationStore)
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    assertSame(customConversationStore, context.getBean(
+                            com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class));
+                    assertNotNull(context.getBean(AskDataCheckpointStore.class));
+                    assertNotNull(context.getBean(AskDataAgentStateStore.class));
+                });
+    }
+
+    @Test
+    public void shouldRejectMemoryStateWhenClusterModeIsEnabled() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(AskDataAutoConfiguration.class)
+                .withPropertyValues("fw.plus.ai.askdata.state.cluster-mode=true")
+                .run(context -> {
+                    assertNotNull(context.getStartupFailure());
+                    assertTrue(context.getStartupFailure().getMessage().contains("集群模式"));
+                });
+    }
+
+    @Test
+    public void shouldRejectDisguisedStateAndVectorStoresWhenClusterModeIsEnabled() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(AskDataAutoConfiguration.class)
+                .withPropertyValues(
+                        "fw.plus.ai.askdata.state.cluster-mode=true",
+                        "fw.plus.ai.askdata.state.store=redis",
+                        "fw.plus.ai.askdata.vector.store=redis")
+                .run(context -> {
+                    assertNotNull(context.getStartupFailure());
+                    assertTrue(context.getStartupFailure().getMessage().contains("集群模式"));
+                });
+    }
+
+    @Test
+    public void shouldRetainOnlyConfiguredNumberOfCheckpointsPerConversation() {
+        AskDataConversationStore store = new InMemoryAskDataConversationStore(1);
+        store.save(checkpoint("checkpoint-1", "resume-1", "1", 1000L));
+        store.save(checkpoint("checkpoint-2", "resume-2", "2", 2000L));
+
+        assertEquals(null, store.loadByResumeToken("resume-1"));
+        assertEquals("checkpoint-2", store.loadLatest("conversation-1").getCheckpointId());
+    }
 
     @Test
     public void shouldLoadLatestCheckpointAndResumeTokenWhilePreservingVersion() {

@@ -1,0 +1,8 @@
+package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability;
+
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
+
+/** LangSmith 通用占位 exporter；不引入厂商 SDK。 */
+public class LangSmithAskDataObservationExporter implements AskDataObservationExporter {
+    @Override public void export(AskDataEvent event) { }
+}
