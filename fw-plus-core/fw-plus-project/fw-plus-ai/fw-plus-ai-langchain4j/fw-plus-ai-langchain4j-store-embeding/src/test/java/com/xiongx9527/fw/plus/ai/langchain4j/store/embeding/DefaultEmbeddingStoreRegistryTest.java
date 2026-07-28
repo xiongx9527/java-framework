@@ -60,13 +60,26 @@ public class DefaultEmbeddingStoreRegistryTest {
     }
 
     @Test
-    public void shouldRejectUnknownStoreKey() {
+    public void shouldRejectUnknownStoreKeyOrNullStore() {
         EmbeddingStoreRegistry registry = new DefaultEmbeddingStoreRegistry(
                 Collections.<String, EmbeddingStore<TextSegment>>emptyMap(), null);
 
         EmbeddingStoreException exception = assertThrows(EmbeddingStoreException.class, () -> registry.get("unknown"));
 
         assertEquals("Embedding store key is not registered: unknown", exception.getMessage());
+
+        Map<String, EmbeddingStore<TextSegment>> nullStores =
+                new LinkedHashMap<String, EmbeddingStore<TextSegment>>();
+        nullStores.put("null-store", null);
+        EmbeddingStoreRegistry nullRegistry = new DefaultEmbeddingStoreRegistry(nullStores, "null-store");
+
+        EmbeddingStoreException getException = assertThrows(EmbeddingStoreException.class,
+                () -> nullRegistry.get("null-store"));
+        EmbeddingStoreException defaultException = assertThrows(EmbeddingStoreException.class,
+                nullRegistry::getDefault);
+
+        assertTrue(getException.getMessage().contains("null-store"));
+        assertTrue(defaultException.getMessage().contains("null-store"));
     }
 
     @Test

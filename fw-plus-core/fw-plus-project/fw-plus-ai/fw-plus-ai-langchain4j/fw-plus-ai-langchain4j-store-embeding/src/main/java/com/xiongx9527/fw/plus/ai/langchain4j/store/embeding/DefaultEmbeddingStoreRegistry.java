@@ -28,7 +28,9 @@ public class DefaultEmbeddingStoreRegistry implements EmbeddingStoreRegistry {
         this.defaultStore = defaultStore;
         Map<String, AiEmbeddingStore> neutralStores = new LinkedHashMap<String, AiEmbeddingStore>();
         for (Map.Entry<String, EmbeddingStore<TextSegment>> entry : storeCopy.entrySet()) {
-            neutralStores.put(entry.getKey(), neutral(entry.getKey(), entry.getValue()));
+            if (entry.getValue() != null) {
+                neutralStores.put(entry.getKey(), neutral(entry.getKey(), entry.getValue()));
+            }
         }
         String validDefault = !isBlank(defaultStore) && neutralStores.containsKey(defaultStore) ? defaultStore : null;
         this.neutralRegistry = new DefaultAiEmbeddingStoreRegistry(neutralStores, validDefault);

@@ -16,6 +16,7 @@ import java.util.Set;
 public class DefaultLangChain4jModelRegistry implements LangChain4jModelRegistry {
 
     private final Map<String, LangChain4jModel> models;
+    private final String defaultModelKey;
     private final AiModelRegistry neutralRegistry;
 
     public DefaultLangChain4jModelRegistry(Map<String, LangChain4jModel> models, String defaultModelKey) {
@@ -23,16 +24,20 @@ public class DefaultLangChain4jModelRegistry implements LangChain4jModelRegistry
         if (models != null) {
             modelCopy.putAll(models);
         }
+        if (!isBlank(defaultModelKey) && !modelCopy.containsKey(defaultModelKey)) {
+            throw new LangChain4jModelException("Default model key does not exist: " + defaultModelKey);
+        }
         Map<String, AiModel> neutralModels = new LinkedHashMap<String, AiModel>();
         for (Map.Entry<String, LangChain4jModel> entry : modelCopy.entrySet()) {
-            neutralModels.put(entry.getKey(), neutral(entry.getKey(), entry.getValue()));
+            if (entry.getValue() != null) {
+                neutralModels.put(entry.getKey(), neutral(entry.getKey(), entry.getValue()));
+            }
         }
         this.models = Collections.unmodifiableMap(modelCopy);
-        try {
-            this.neutralRegistry = new DefaultAiModelRegistry(neutralModels, defaultModelKey);
-        } catch (AiModelException e) {
-            throw new LangChain4jModelException(e.getMessage(), e.getCause());
-        }
+        this.defaultModelKey = defaultModelKey;
+        String validDefault = !isBlank(defaultModelKey) && neutralModels.containsKey(defaultModelKey)
+                ? defaultModelKey : null;
+        this.neutralRegistry = new DefaultAiModelRegistry(neutralModels, validDefault);
     }
 
     @Override
@@ -47,9 +52,15 @@ public class DefaultLangChain4jModelRegistry implements LangChain4jModelRegistry
 
     @Override
     public LangChain4jModel getDefault() {
+        if (isBlank(defaultModelKey)) {
+            throw new LangChain4jModelException("Default model key is not configured");
+        }
+        if (!neutralRegistry.contains(defaultModelKey)) {
+            throw new LangChain4jModelException("Model key does not exist: " + defaultModelKey);
+        }
         try {
-            AiModel model = neutralRegistry.getDefault();
-            return models.get(model.getKey());
+            neutralRegistry.getDefault();
+            return models.get(defaultModelKey);
         } catch (AiModelException e) {
             throw new LangChain4jModelException(e.getMessage(), e.getCause());
         }
@@ -57,7 +68,7 @@ public class DefaultLangChain4jModelRegistry implements LangChain4jModelRegistry
 
     @Override
     public String getDefaultKey() {
-        return neutralRegistry.getDefaultKey();
+        return defaultModelKey;
     }
 
     @Override
@@ -79,5 +90,9 @@ public class DefaultLangChain4jModelRegistry implements LangChain4jModelRegistry
                 : AiModelType.valueOf(model.getModelType().name()));
         definition.setEnabled(true);
         return new LangChain4jAiModel(definition, model);
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }
