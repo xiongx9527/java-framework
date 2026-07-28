@@ -12,9 +12,9 @@
 - Stage: final-fix
 - Implementer: Laplace DONE
 - Reviewer: Mencius approved; Turing final review with fixes
-- Fixer: pending dispatch
+- Fixer: Darwin DONE
 - Review/fix rounds: 1
-- Review result: With fixes
+- Review result: pending re-review
 
 ## Evidence
 
@@ -38,3 +38,10 @@
 - Review: Mencius approved Task 9; no Critical, Important, or Minor issues.
 - Final review package: `/tmp/integrate-tiny-engine-core-final-review-9c481282-d5171970.diff`
 - Final review: Turing found 4 Important issues: H2 scripts are not executable, dynamic string column DDL emits bare `VARCHAR`/`CHAR`, `ModelServiceImpl` bypasses `TinyEngineSqlIdentifierValidator`, and the branch diff includes unrelated `fw-plus-ai-askdata` files.
+- Final fix: Darwin fixed the 4 Important issues in commits de67d52fe8dc992105500136d6c094ffc32ae658 and 8370b05a483999e26ce5cc0dad2de0d39fd5ec14.
+- Final fix verification:
+  - `./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineH2ManifestTest,TinyEngineDynamicSqlProviderTest,TinyEngineServiceContractTest test`: 32 tests passed, 0 failures, 0 errors.
+  - `./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core test`: 69 tests passed, 0 failures, 0 errors.
+  - `./mvnw -f fw-plus-project/pom.xml -pl fw-plus-tiny-engine -am -DskipTests install`: build success.
+  - `./mvnw -f fw-plus-project/pom.xml -DskipTests validate`: 59-module reactor validate success.
+  - `git diff --name-only 9c48128246f99024d263c71136e9f0e5186cefc6..HEAD | rg -i "askdata|fw-plus-ai" || true`: no output.
