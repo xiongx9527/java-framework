@@ -2,15 +2,15 @@
 
 ## 当前任务
 
-- Plan task: `Task 14: Starter POM、BOM 和兼容验证`
-- OpenSpec task mapping: `6.1` / `6.2` / `6.3` 的依赖装配和 Starter 打包验证子集（本任务覆盖 BOM/Starter 依赖树和 Java 8/Spring Boot 2.7 兼容构建，不引入 Java 17-only runtime）
+- Plan task: `Task 15: 编写 Starter 说明文档、流程图和数据库设计`
+- OpenSpec task mapping: 文档类任务（覆盖 Starter 使用说明、配置、运行时替换、Java 17 Remote Runtime、SQL 安全、存储矩阵、数据库设计和流程图）
 - Stage: `done`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `9e315029476e4afe70b10ce901af178339286bc1`
-- Implementer commit: `204829e2`
-- Task brief: `.superpowers/sdd/task-14-brief.md`
-- Implementer report: `.superpowers/sdd/task-14-report.md`
+- Base commit: `2744bd23e7fa076ac1f05796cb54f2708b892929`
+- Implementer commit: `6f74fd5b`
+- Task brief: `.superpowers/sdd/task-15-brief.md`
+- Implementer report: `.superpowers/sdd/task-15-report.md`
 
 ## 派发记录
 
@@ -103,3 +103,6 @@
 - 2026-07-28：准备派发 Task 14 implementer。允许修改范围限定为 AI BOM、AskData Starter POM 和必要的 AI project module ordering；禁止引入 Spring AI、Spring AI Alibaba、AgentScope Java 或 Java 17-only 依赖。
 - 2026-07-28：Task 14 implementer 返回 `DONE_WITH_CONCERNS`，提交 `204829e2`；基线 package 已通过但 Starter/BOM 缺少 Core AskData 显式装配，修复后同一 package 通过，额外 dependency:tree 确认 Core contract、LangChain4j 默认 adapter、autoconfigure 均为直接 compile 依赖。顾虑：本地 `fw-plus-ai-boot-autoconfigure:0.1.1-SNAPSHOT` POM 无效警告仍存在，不在本任务允许修改范围。已生成 review package `.superpowers/sdd/review-9e315029..204829e2.diff`。
 - 2026-07-28：Task 14 reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。已勾选 plan 中 Task 14 的 4 个 step；OpenSpec 6.1/6.2/6.3 仍包含完整 Starter 依赖、默认 SPI 装配和兼容回归等后续内容，本任务不单独勾选。
+- 2026-07-28：准备派发 Task 15 implementer。允许创建 `docs/askdata/starter/**` 和 `.superpowers/sdd/task-15-report.md`；必须包含详细中文说明、Mermaid 流程图、数据库设计和 Java 17 Remote Runtime 对接说明，禁止留下 TODO/待补/占位标记。
+- 2026-07-28：Task 15 implementer 返回 `DONE`，提交 `6f74fd5b`；创建 8 个 `docs/askdata/starter/**` 文档，覆盖配置、替换运行时、Java 17 Remote Runtime、SQL 安全、存储矩阵、数据库设计和流程图；`rg -n "T[B]D|T[O]DO|待[补]|占[位]" docs/askdata/starter` 无输出，`git diff --check -- docs/askdata/starter` 无输出。已生成 review package `.superpowers/sdd/review-2744bd23..6f74fd5b.diff`。
+- 2026-07-28：Task 15 reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。已勾选 plan 中 Task 15 的 5 个 step。
