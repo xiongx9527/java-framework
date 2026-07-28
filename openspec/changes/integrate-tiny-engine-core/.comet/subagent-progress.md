@@ -10,7 +10,7 @@
 - Task: Task 7: 建立动态 SQL 标识符校验器
 - OpenSpec mapping: 5.2
 - Stage: implementing
-- Implementer: pending dispatch
+- Implementer: Copernicus dispatched
 - Reviewer: pending
 - Fixer: pending
 - Review/fix rounds: 0
