@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.DefaultAskDa
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.InMemoryAskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadataProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
@@ -70,6 +71,31 @@ public class AskDataResumeFlowTest {
 
         AskDataRequest request = fixture.request();
         request.setResumeToken("resume-validate-rejected");
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.SQL_REJECTED, result.getErrorCode());
+        assertEquals(1, fixture.metadataCalls);
+        assertEquals(1, fixture.validatorCalls);
+        assertEquals(0, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectValidatedCheckpointWhenCurrentMetadataRevokesTableAccess() {
+        Fixture fixture = new Fixture();
+        fixture.metadataAuthorized = false;
+        fixture.coreSqlValidator = new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator() {
+            @Override
+            public Result validate(AskDataSqlCommand command) {
+                return command.getAuthorizedObjects().isEmpty()
+                        ? Result.failure(FailureCategory.UNAUTHORIZED_OBJECT, "table permission revoked")
+                        : Result.success();
+            }
+        };
+        fixture.store.save(fixture.validatedCheckpoint("resume-permission-revoked", "1"));
+
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-permission-revoked");
         AskDataResult result = fixture.executor().execute(request);
 
         assertFalse(result.isSuccess());
@@ -419,7 +445,9 @@ public class AskDataResumeFlowTest {
         private String executedSql;
         private boolean failExecution;
         private boolean rejectValidatedSql;
+        private boolean metadataAuthorized = true;
         private AskDataSqlInterceptorChain sqlInterceptorChain;
+        private com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreSqlValidator;
 
         private Fixture() {
             properties.getSql().setExecuteEnabled(true);
@@ -501,7 +529,10 @@ public class AskDataResumeFlowTest {
                 @Override
                 public AskDataMetadata load(AskDataRequest request) {
                     metadataCalls++;
-                    return new AskDataMetadata("mysql", Collections.emptyList(), Collections.emptyList(),
+                    List<AskDataTable> tables = metadataAuthorized
+                            ? Collections.singletonList(new AskDataTable("orders", Collections.emptyList()))
+                            : Collections.<AskDataTable>emptyList();
+                    return new AskDataMetadata("mysql", tables, Collections.emptyList(),
                             Collections.emptyList(), Collections.emptyList());
                 }
             };
@@ -543,7 +574,7 @@ public class AskDataResumeFlowTest {
             };
             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                     promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, store, contextCompressor,
-                    null, Collections.<AskDataAgent>emptyList(), null, null, sqlInterceptorChain);
+                    null, Collections.<AskDataAgent>emptyList(), null, null, sqlInterceptorChain, coreSqlValidator);
         }
     }
 
