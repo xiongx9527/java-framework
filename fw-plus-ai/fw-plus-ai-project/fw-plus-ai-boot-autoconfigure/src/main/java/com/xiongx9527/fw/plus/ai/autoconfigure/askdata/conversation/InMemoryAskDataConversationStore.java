@@ -10,10 +10,24 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class InMemoryAskDataConversationStore implements AskDataConversationStore {
 
+    private static final int DEFAULT_MAX_CHECKPOINTS_PER_CONVERSATION = 100;
+
+    private final int maxCheckpointsPerConversation;
     private final Map<String, List<AskDataCheckpoint>> checkpointsByConversation =
             new ConcurrentHashMap<String, List<AskDataCheckpoint>>();
     private final Map<String, AskDataCheckpoint> checkpointsByResumeToken =
             new ConcurrentHashMap<String, AskDataCheckpoint>();
+
+    public InMemoryAskDataConversationStore() {
+        this(DEFAULT_MAX_CHECKPOINTS_PER_CONVERSATION);
+    }
+
+    public InMemoryAskDataConversationStore(int maxCheckpointsPerConversation) {
+        if (maxCheckpointsPerConversation <= 0) {
+            throw new IllegalArgumentException("maxCheckpointsPerConversation must be greater than zero");
+        }
+        this.maxCheckpointsPerConversation = maxCheckpointsPerConversation;
+    }
 
     @Override
     public AskDataCheckpoint save(AskDataCheckpoint checkpoint) {
@@ -33,6 +47,12 @@ public class InMemoryAskDataConversationStore implements AskDataConversationStor
         }
         synchronized (checkpoints) {
             checkpoints.add(stored);
+            while (checkpoints.size() > maxCheckpointsPerConversation) {
+                AskDataCheckpoint evicted = checkpoints.remove(0);
+                if (!isBlank(evicted.getResumeToken())) {
+                    checkpointsByResumeToken.remove(evicted.getResumeToken(), evicted);
+                }
+            }
         }
         if (!isBlank(stored.getResumeToken())) {
             checkpointsByResumeToken.put(stored.getResumeToken(), stored);

@@ -31,6 +31,7 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
@@ -38,6 +39,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -47,6 +49,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AskDataAutoConfigurationTest {
@@ -83,6 +86,20 @@ public class AskDataAutoConfigurationTest {
             assertTrue(!context.containsBean("askDataModelRegistry"));
             assertTrue(!context.containsBean("askDataService"));
         });
+    }
+
+    @Test
+    public void shouldRejectDefaultVectorRetrieverWhenClusterModeIsEnabled() {
+        AskDataProperties properties = new AskDataProperties();
+        properties.getState().setClusterMode(true);
+        properties.getState().setStore("redis");
+        properties.getVector().setStore("memory");
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> new AskDataAutoConfiguration().askDataVectorRetriever(properties,
+                        new DefaultListableBeanFactory().getBeanProvider(ContentRetriever.class)));
+
+        assertTrue(exception.getMessage().contains("向量"));
     }
 
     @Test
@@ -188,6 +205,11 @@ public class AskDataAutoConfigurationTest {
                     assertTrue(hasStep(result, "merge-sub-agents"));
                     assertTrue(context.getBean(AskDataConversationStore.class)
                             .loadLatest(result.getConversationId()) != null);
+                    java.util.List<com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog> logs =
+                            context.getBean(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.class)
+                                    .list(new com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext("default", "default"));
+                    assertTrue(hasLifecycleEvent(logs, "CONVERSATION_STARTED"));
+                    assertTrue(hasLifecycleEvent(logs, "CONVERSATION_COMPLETED"));
                 });
     }
 
@@ -273,6 +295,7 @@ public class AskDataAutoConfigurationTest {
     private AskDataRequest createRequest() {
         AskDataRequest request = new AskDataRequest();
         request.setQuestion("订单数量");
+        request.setProjectContext(new com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext("default", "default"));
         request.setDatasourceKey("orders");
         request.setExecute(Boolean.FALSE);
         return request;
@@ -286,6 +309,17 @@ public class AskDataAutoConfigurationTest {
     private boolean hasStep(AskDataResult result, String stepKey) {
         for (com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog step : result.getSteps()) {
             if (stepKey.equals(step.getStepKey())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasLifecycleEvent(
+            java.util.List<com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog> logs,
+            String eventType) {
+        for (com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog log : logs) {
+            if (eventType.equals(log.getEventType())) {
                 return true;
             }
         }

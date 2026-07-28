@@ -42,4 +42,15 @@ public class AskDataMonitoringLogStoreTest {
                             monitoringLog));
                 });
     }
+
+    @Test
+    public void shouldRetainOnlyConfiguredNumberOfMonitoringLogsPerScope() {
+        AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
+        InMemoryAskDataMonitoringLogStore store = new InMemoryAskDataMonitoringLogStore(1);
+        store.append(context, new AskDataMonitoringLogStore.MonitoringLog("trace-1", "CONVERSATION_STARTED", "started"));
+        store.append(context, new AskDataMonitoringLogStore.MonitoringLog("trace-2", "CONVERSATION_COMPLETED", "completed"));
+
+        assertEquals(1, store.list(context).size());
+        assertEquals("trace-2", store.list(context).get(0).getTraceId());
+    }
 }

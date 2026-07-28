@@ -226,6 +226,10 @@ public class AskDataProperties {
 
         private Integer compressionThresholdChars = 12000;
         private String checkpointVersion = "1";
+        /**
+         * 单个会话在默认内存恢复存储中保留的检查点数量；超过该数量时淘汰最早检查点及其恢复令牌。
+         */
+        private Integer maxCheckpointsPerConversation = 100;
 
         public Integer getCompressionThresholdChars() {
             return compressionThresholdChars;
@@ -242,6 +246,14 @@ public class AskDataProperties {
         public void setCheckpointVersion(String checkpointVersion) {
             this.checkpointVersion = checkpointVersion;
         }
+
+        public Integer getMaxCheckpointsPerConversation() {
+            return maxCheckpointsPerConversation;
+        }
+
+        public void setMaxCheckpointsPerConversation(Integer maxCheckpointsPerConversation) {
+            this.maxCheckpointsPerConversation = maxCheckpointsPerConversation;
+        }
     }
 
     /**
@@ -255,6 +267,10 @@ public class AskDataProperties {
 
         private boolean clusterMode = false;
         private String store = "memory";
+        /**
+         * 单个项目与操作人范围内默认监控日志的最大保留数量。
+         */
+        private Integer monitoringLogCapacity = 1000;
 
         public boolean isClusterMode() {
             return clusterMode;
@@ -270,6 +286,14 @@ public class AskDataProperties {
 
         public void setStore(String store) {
             this.store = store;
+        }
+
+        public Integer getMonitoringLogCapacity() {
+            return monitoringLogCapacity;
+        }
+
+        public void setMonitoringLogCapacity(Integer monitoringLogCapacity) {
+            this.monitoringLogCapacity = monitoringLogCapacity;
         }
     }
 

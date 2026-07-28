@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConte
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.DefaultAskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.InMemoryAskDataConversationStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.InMemoryAskDataMonitoringLogStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataAgentDispatcher;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataAgent;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataFlowExecutor;
@@ -74,7 +75,8 @@ public class AskDataAutoConfiguration {
      * @return 单机默认状态集合
      */
     @Bean
-    @ConditionalOnMissingBean(InMemoryAskDataStores.class)
+    @ConditionalOnMissingBean({ com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class,
+            AskDataCheckpointStore.class, AskDataAgentStateStore.class })
     public InMemoryAskDataStores askDataInMemoryStores(AskDataProperties properties) {
         validateLocalStateConfiguration(properties);
         return InMemoryAskDataStores.singleNode();
@@ -116,8 +118,10 @@ public class AskDataAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(AskDataMonitoringLogStore.class)
-    public AskDataMonitoringLogStore askDataMonitoringLogStore(InMemoryAskDataStores stores) {
-        return stores.monitoringLogs();
+    public AskDataMonitoringLogStore askDataMonitoringLogStore(AskDataProperties properties) {
+        Integer capacity = properties.getState().getMonitoringLogCapacity();
+        return new InMemoryAskDataMonitoringLogStore(capacity == null || capacity.intValue() <= 0 ? 1000
+                : capacity.intValue());
     }
 
     /**
@@ -189,6 +193,7 @@ public class AskDataAutoConfiguration {
     @ConditionalOnMissingBean
     public AskDataVectorRetriever askDataVectorRetriever(AskDataProperties properties,
             ObjectProvider<ContentRetriever> contentRetrieverProvider) {
+        validateDefaultVectorConfiguration(properties);
         List<AskDataVectorRetriever> retrievers = contentRetrieverProvider.orderedStream()
                 .map(ContentRetrieverAskDataVectorRetriever::new)
                 .collect(Collectors.<AskDataVectorRetriever>toList());
@@ -203,8 +208,11 @@ public class AskDataAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AskDataConversationStore askDataConversationStore() {
-        return new InMemoryAskDataConversationStore();
+    public AskDataConversationStore askDataConversationStore(AskDataProperties properties) {
+        validateLegacyConversationConfiguration(properties);
+        Integer capacity = properties.getConversation().getMaxCheckpointsPerConversation();
+        return new InMemoryAskDataConversationStore(capacity == null || capacity.intValue() <= 0 ? 100
+                : capacity.intValue());
     }
 
     @Bean
@@ -220,13 +228,13 @@ public class AskDataAutoConfiguration {
             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
             AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
-            ObjectProvider<AskDataAgent> agentProvider) {
+            ObjectProvider<AskDataAgent> agentProvider, ObjectProvider<AskDataEventPublisher> eventPublisherProvider) {
         List<AskDataAgent> mainAgents = agentProvider.orderedStream()
                 .filter(agent -> !(agent instanceof AskDataSubAgent))
                 .collect(Collectors.toList());
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
-                agentDispatcher, mainAgents);
+                agentDispatcher, mainAgents, eventPublisherProvider.getIfAvailable());
     }
 
 	/**
@@ -266,15 +274,18 @@ public class AskDataAutoConfiguration {
         if (!properties.getState().isClusterMode()) {
             return;
         }
-        if (isMemoryStore(properties.getState().getStore())) {
-            throw new IllegalStateException("AskData 集群模式不能使用本地内存状态；请提供共享状态存储 SPI 实现");
-        }
-        if (isMemoryStore(properties.getVector().getStore())) {
-            throw new IllegalStateException("AskData 集群模式不能使用本地内存向量；请配置共享向量能力");
+        throw new IllegalStateException("AskData 集群模式不能使用默认本地内存状态；请提供共享状态存储 SPI 实现");
+    }
+
+    private void validateDefaultVectorConfiguration(AskDataProperties properties) {
+        if (properties.getState().isClusterMode()) {
+            throw new IllegalStateException("AskData 集群模式不能使用默认本地向量能力；请提供共享向量检索 SPI 实现");
         }
     }
 
-    private boolean isMemoryStore(String store) {
-        return store == null || "memory".equalsIgnoreCase(store.trim());
+    private void validateLegacyConversationConfiguration(AskDataProperties properties) {
+        if (properties.getState().isClusterMode()) {
+            throw new IllegalStateException("AskData 集群模式不能使用默认本地会话状态；请提供共享会话存储实现");
+        }
     }
 }
