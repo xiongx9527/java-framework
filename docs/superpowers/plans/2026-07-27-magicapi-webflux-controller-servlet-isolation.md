@@ -2,6 +2,7 @@
 change: add-magicapi-webflux-support
 design-doc: docs/superpowers/specs/2026-07-27-magicapi-webflux-controller-servlet-isolation-design.md
 base-ref: 18be86e44a394e943c7177aa1cb7a1a27d8bcfb4
+archived-with: 2026-07-28-add-magicapi-webflux-support
 ---
 
 # Magic-API WebFlux Controller 与 Servlet 隔离实施计划

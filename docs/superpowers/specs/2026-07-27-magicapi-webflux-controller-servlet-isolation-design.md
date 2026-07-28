@@ -2,6 +2,8 @@
 comet_change: add-magicapi-webflux-support
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-28-add-magicapi-webflux-support
+status: final
 ---
 
 # Magic-API WebFlux Controller 与 Servlet 隔离设计
