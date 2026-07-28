@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataErrorCode;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRequest;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelResult;
@@ -95,6 +96,14 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 		return properties.getModel().getDefaultEmbeddingModel();
 	}
 
+	@Override
+	public AskDataModelResponse generate(AskDataRequest request, String prompt) {
+		if (request == null) {
+			return AskDataModelRegistry.super.generate(null, prompt);
+		}
+		return generate(defaultChatModelRequest(request.getProjectContext(), request.getModelKey()), prompt);
+	}
+
 	/**
 	 * 使用 Core 的厂商无关路由结果执行聊天模型，并在基础设施错误时按配置进行受控降级。
 	 *
@@ -141,7 +150,7 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 	 * 使用自动配置的聊天候选创建默认 Core 路由请求。
 	 *
 	 * <p>Core 路由 SPI 固定支持五个优先级槽位；此入口按候选顺序填充，始终保留默认聊天 key 作为最后兜底。
-	 * provider 会同时记录在适配层审计结果中，便于区分同一逻辑 key 的不同厂商配置。</p>
+	 * provider 仅作为适配层的诊断标签记录在审计结果中，不参与模型源或适配器选择。</p>
 	 *
 	 * @param projectContext 当前项目和操作人隔离上下文，不能为空
 	 * @param prompt 待发送给模型的提示词；不会进入审计记录
@@ -218,10 +227,17 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 	}
 
 	private AskDataModelRequest defaultChatModelRequest(AskDataProjectContext projectContext) {
+		return defaultChatModelRequest(projectContext, null);
+	}
+
+	private AskDataModelRequest defaultChatModelRequest(AskDataProjectContext projectContext, String requestModelKey) {
 		if (projectContext == null) {
 			throw new IllegalArgumentException("projectContext 不能为空");
 		}
 		Set<String> candidates = new LinkedHashSet<String>();
+		if (hasText(requestModelKey)) {
+			candidates.add(requestModelKey.trim());
+		}
 		if (properties.getModel().getChatCandidates() != null) {
 			for (String candidate : properties.getModel().getChatCandidates()) {
 				if (hasText(candidate)) {

@@ -13,7 +13,6 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConte
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadataProvider;
-import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelResponse;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelException;
@@ -221,20 +220,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         context.setPrompt(prompt);
         result.addStep("prompt", "Prompt", true, "Prompt built");
 
-        AskDataChatModel model;
-        try {
-            model = modelRegistry.getChatModel(request == null ? null : request.getModelKey());
-        } catch (AskDataModelException ex) {
-            return failure(result, "generate-sql", ex.getErrorCode(), message(ex));
-        } catch (RuntimeException ex) {
-            return failure(result, "generate-sql", AskDataErrorCode.MODEL_NOT_FOUND, message(ex));
-        }
-        if (model == null) {
-            return failure(result, "generate-sql", AskDataErrorCode.MODEL_NOT_FOUND, "AskData chat model was not found");
-        }
         AskDataModelResponse modelResponse;
         try {
-            modelResponse = model.generate(prompt);
+            modelResponse = modelRegistry.generate(request, prompt);
+        } catch (AskDataModelException ex) {
+            return failure(result, "generate-sql", ex.getErrorCode(), message(ex));
         } catch (RuntimeException ex) {
             return failure(result, "generate-sql", AskDataErrorCode.MODEL_RESPONSE_INVALID, message(ex));
         }

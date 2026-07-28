@@ -64,7 +64,7 @@ public class AskDataProperties {
     public static class Model {
 
         /**
-         * 默认模型提供方标识，仅用于自动配置层选择对应适配器，不能传递给 Core 路由 SPI。
+         * 默认模型提供方诊断标签，仅写入自动配置层的路由审计记录，不参与模型源或适配器选择，不能传递给 Core 路由 SPI。
          */
         private String provider = "ollama";
         /**

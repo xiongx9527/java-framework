@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataErrorCode;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRequest;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy;
@@ -115,6 +116,24 @@ public class LangChain4jAskDataModelRegistryTest {
 	}
 
 	@Test
+	public void shouldRouteLegacyFlowRequestThroughCoreCandidates() {
+		AskDataProperties properties = new AskDataProperties();
+		properties.getModel().setChatCandidates(java.util.Arrays.asList("primary", "fallback"));
+		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		models.put("primary", failingChatModel(new RuntimeException(new TimeoutException("ollama timeout"))));
+		models.put("fallback", chatModel("fallback-response"));
+		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
+				modelRegistry(models, new HashMap<String, EmbeddingModel>()));
+		AskDataRequest request = new AskDataRequest();
+		request.setProjectContext(new AskDataProjectContext("project-9527", "operator-9527"));
+
+		AskDataModelResponse response = registry.generate(request, "question");
+
+		assertEquals("fallback", response.getModelKey());
+		assertEquals(2, registry.getRouteAuditRecords().size());
+	}
+
+	@Test
 	public void shouldNotFallbackWhenDisabledAfterTimeoutFailure() {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setFallbackEnabled(false);
@@ -151,6 +170,24 @@ public class LangChain4jAskDataModelRegistryTest {
 			assertEquals("MODEL_REQUEST_REJECTED", ex.getErrorCode());
 		}
 		assertEquals(1, registry.getRouteAuditRecords().size());
+	}
+
+	@Test
+	public void shouldFallbackWhenExecutionDurationReachesInfrastructureThreshold() {
+		AskDataProperties properties = new AskDataProperties();
+		properties.getModel().setInfrastructureFailureTimeoutMillis(1);
+		properties.getModel().setChatCandidates(java.util.Arrays.asList("primary", "fallback"));
+		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		models.put("primary", delayedFailingChatModel(new IllegalStateException("slow failure"), 5L));
+		models.put("fallback", chatModel("fallback-response"));
+		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
+				modelRegistry(models, new HashMap<String, EmbeddingModel>()));
+
+		AskDataModelResponse response = registry.generate(new AskDataProjectContext("project-9527", "operator-9527"),
+				"question");
+
+		assertEquals("fallback", response.getModelKey());
+		assertEquals("MODEL_INFRASTRUCTURE_FAILURE", registry.getRouteAuditRecords().get(0).getErrorCode());
 	}
 
 	@Test
@@ -291,6 +328,25 @@ public class LangChain4jAskDataModelRegistryTest {
 					@Override
 					public Object invoke(Object proxy, Method method, Object[] args) {
 						if ("generate".equals(method.getName())) {
+							throw exception;
+						}
+						throw new UnsupportedOperationException(method.toString());
+					}
+				});
+	}
+
+	private ChatLanguageModel delayedFailingChatModel(final RuntimeException exception, final long delayMillis) {
+		return (ChatLanguageModel) Proxy.newProxyInstance(getClass().getClassLoader(),
+				new Class<?>[] {ChatLanguageModel.class}, new InvocationHandler() {
+					@Override
+					public Object invoke(Object proxy, Method method, Object[] args) {
+						if ("generate".equals(method.getName())) {
+							try {
+								Thread.sleep(delayMillis);
+							} catch (InterruptedException interruptedException) {
+								Thread.currentThread().interrupt();
+								throw new IllegalStateException(interruptedException);
+							}
 							throw exception;
 						}
 						throw new UnsupportedOperationException(method.toString());

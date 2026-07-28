@@ -22,15 +22,15 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDocument;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DefaultAskDataFlowExecutorTest {
 
@@ -49,6 +49,16 @@ public class DefaultAskDataFlowExecutorTest {
         assertTrue(result.isSuccess());
         assertEquals(1, dependencies.executorCalls);
         assertEquals(Arrays.asList("schema", "term", "example"), dependencies.retrieveTypes);
+    }
+
+    @Test
+    public void shouldGenerateSqlThroughModelRegistryRoutingEntry() {
+        StubDependencies dependencies = new StubDependencies();
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request(true));
+
+        assertTrue(result.isSuccess());
+        assertTrue(dependencies.routedGenerateCalled);
     }
 
     @Test
@@ -193,11 +203,25 @@ public class DefaultAskDataFlowExecutorTest {
         private int executorCalls;
         private boolean globalExecutionEnabled = true;
         private AskDataModelException modelException;
+        private boolean routedGenerateCalled;
         private AskDataSqlValidationResult validationResult = AskDataSqlValidationResult.accepted(SQL);
 
         private DefaultAskDataFlowExecutor executor(final String modelResponse) {
             properties.getSql().setExecuteEnabled(globalExecutionEnabled);
             AskDataModelRegistry modelRegistry = new AskDataModelRegistry() {
+                @Override
+                public AskDataModelResponse generate(AskDataRequest request, String prompt) {
+                    routedGenerateCalled = true;
+                    if (modelException != null) {
+                        throw modelException;
+                    }
+                    if (modelResponse == null) {
+                        throw new AskDataModelException(AskDataErrorCode.MODEL_NOT_FOUND,
+                                "AskData chat model was not found");
+                    }
+                    return new AskDataModelResponse(modelResponse, modelResponse, "test-model");
+                }
+
                 @Override
                 public AskDataChatModel getChatModel(String modelKey) {
                     if (modelException != null) {
