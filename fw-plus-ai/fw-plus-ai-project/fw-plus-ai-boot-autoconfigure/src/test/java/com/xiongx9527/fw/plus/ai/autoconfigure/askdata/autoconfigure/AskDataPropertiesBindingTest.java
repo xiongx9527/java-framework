@@ -23,7 +23,9 @@ public class AskDataPropertiesBindingTest {
                         "fw.plus.ai.askdata.model.infrastructure-failure-timeout-millis=15000",
                         "fw.plus.ai.askdata.sql.execute-enabled=false",
                         "fw.plus.ai.askdata.sql.default-max-rows=200",
-                        "fw.plus.ai.askdata.conversation.compression-threshold-chars=8000")
+                        "fw.plus.ai.askdata.conversation.compression-threshold-chars=8000",
+                        "fw.plus.ai.askdata.conversation.max-checkpoints-per-conversation=10",
+                        "fw.plus.ai.askdata.state.monitoring-log-capacity=20")
                 .run(context -> {
                     AskDataProperties properties = context.getBean(AskDataProperties.class);
                     assertEquals("chat-default", properties.getModel().getDefaultChatModel());
@@ -37,6 +39,8 @@ public class AskDataPropertiesBindingTest {
                     assertEquals(Integer.valueOf(15000), properties.getModel().getInfrastructureFailureTimeoutMillis());
                     assertEquals(Integer.valueOf(200), properties.getSql().getDefaultMaxRows());
                     assertEquals(Integer.valueOf(8000), properties.getConversation().getCompressionThresholdChars());
+                    assertEquals(Integer.valueOf(10), properties.getConversation().getMaxCheckpointsPerConversation());
+                    assertEquals(Integer.valueOf(20), properties.getState().getMonitoringLogCapacity());
                 });
     }
 

@@ -26,6 +26,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDocument;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,6 +62,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private final AskDataContextCompressor contextCompressor;
     private final AskDataAgentDispatcher agentDispatcher;
     private final List<AskDataAgent> mainAgents;
+    private final AskDataEventPublisher eventPublisher;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -66,7 +70,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor) {
         this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
-                sqlValidator, sqlExecutor, null, null, null, Collections.<AskDataAgent>emptyList());
+                sqlValidator, sqlExecutor, null, null, null, Collections.<AskDataAgent>emptyList(), null);
     }
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -76,7 +80,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataContextCompressor contextCompressor) {
         this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
                 sqlValidator, sqlExecutor, conversationStore, contextCompressor, null,
-                Collections.<AskDataAgent>emptyList());
+                Collections.<AskDataAgent>emptyList(), null);
     }
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -86,7 +90,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher) {
         this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
                 sqlValidator, sqlExecutor, conversationStore, contextCompressor, agentDispatcher,
-                Collections.<AskDataAgent>emptyList());
+                Collections.<AskDataAgent>emptyList(), null);
     }
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -95,6 +99,16 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
             AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
             List<AskDataAgent> mainAgents) {
+        this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
+                sqlValidator, sqlExecutor, conversationStore, contextCompressor, agentDispatcher, mainAgents, null);
+    }
+
+    public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+            AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+            AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
+            List<AskDataAgent> mainAgents, AskDataEventPublisher eventPublisher) {
         this.properties = properties;
         this.modelRegistry = modelRegistry;
         this.metadataProvider = metadataProvider;
@@ -108,6 +122,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         this.agentDispatcher = agentDispatcher;
         this.mainAgents = mainAgents == null ? Collections.<AskDataAgent>emptyList()
                 : new ArrayList<AskDataAgent>(mainAgents);
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -121,10 +136,17 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             result.setConversationId(UUID.randomUUID().toString());
         }
         AskDataStepContext context = new AskDataStepContext(request);
+        publishLifecycleEvent(request, result, AskDataEvent.Type.CONVERSATION_STARTED, "AskData 对话已开始");
+        AskDataResult completed;
         if (isResumeRequested(request)) {
-            return resume(request, result, context);
+            publishLifecycleEvent(request, result, AskDataEvent.Type.RECOVERY_ATTEMPTED, "AskData 恢复已尝试");
+            completed = resume(request, result, context);
+        } else {
+            completed = executeNew(request, result, context);
         }
-        return executeNew(request, result, context);
+        publishLifecycleEvent(request, completed, completed.isSuccess() ? AskDataEvent.Type.CONVERSATION_COMPLETED
+                : AskDataEvent.Type.CONVERSATION_FAILED, completed.isSuccess() ? "AskData 对话已完成" : "AskData 对话失败");
+        return completed;
     }
 
     private AskDataResult executeNew(AskDataRequest request, AskDataResult result, AskDataStepContext context) {
@@ -573,6 +595,17 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         result.setErrorMessage(errorMessage);
         result.addStep(stepKey, stepKey, false, errorMessage);
         return result;
+    }
+
+    private void publishLifecycleEvent(AskDataRequest request, AskDataResult result, AskDataEvent.Type type,
+            String message) {
+        if (eventPublisher == null || request == null) {
+            return;
+        }
+        AskDataProjectContext projectContext = request.getProjectContext();
+        if (projectContext != null) {
+            eventPublisher.publish(new AskDataEvent(projectContext, result.getConversationId(), type, message));
+        }
     }
 
     private List<AskDataRetrievedDocument> retrieveDocuments(AskDataRequest request) {

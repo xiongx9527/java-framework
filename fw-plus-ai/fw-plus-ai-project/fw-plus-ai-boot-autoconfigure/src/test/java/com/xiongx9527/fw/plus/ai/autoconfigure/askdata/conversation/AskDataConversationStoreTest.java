@@ -41,6 +41,30 @@ public class AskDataConversationStoreTest {
     }
 
     @Test
+    public void shouldRejectDisguisedStateAndVectorStoresWhenClusterModeIsEnabled() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(AskDataAutoConfiguration.class)
+                .withPropertyValues(
+                        "fw.plus.ai.askdata.state.cluster-mode=true",
+                        "fw.plus.ai.askdata.state.store=redis",
+                        "fw.plus.ai.askdata.vector.store=redis")
+                .run(context -> {
+                    assertNotNull(context.getStartupFailure());
+                    assertTrue(context.getStartupFailure().getMessage().contains("集群模式"));
+                });
+    }
+
+    @Test
+    public void shouldRetainOnlyConfiguredNumberOfCheckpointsPerConversation() {
+        AskDataConversationStore store = new InMemoryAskDataConversationStore(1);
+        store.save(checkpoint("checkpoint-1", "resume-1", "1", 1000L));
+        store.save(checkpoint("checkpoint-2", "resume-2", "2", 2000L));
+
+        assertEquals(null, store.loadByResumeToken("resume-1"));
+        assertEquals("checkpoint-2", store.loadLatest("conversation-1").getCheckpointId());
+    }
+
+    @Test
     public void shouldLoadLatestCheckpointAndResumeTokenWhilePreservingVersion() {
         AskDataConversationStore store = new InMemoryAskDataConversationStore();
         AskDataCheckpoint first = checkpoint("checkpoint-1", "resume-1", "1", 1000L);
