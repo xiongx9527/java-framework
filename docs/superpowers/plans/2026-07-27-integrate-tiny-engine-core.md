@@ -2,6 +2,7 @@
 change: integrate-tiny-engine-core
 design-doc: docs/superpowers/specs/2026-07-27-integrate-tiny-engine-core-design.md
 base-ref: 9c48128246f99024d263c71136e9f0e5186cefc6
+archived-with: 2026-07-28-integrate-tiny-engine-core
 ---
 
 # TinyEngine Core Implementation Plan

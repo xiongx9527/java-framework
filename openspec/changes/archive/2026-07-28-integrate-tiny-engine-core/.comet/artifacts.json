@@ -4,5 +4,6 @@
   "openspec_tasks": "openspec/changes/integrate-tiny-engine-core/tasks.md",
   "openspec_delta_spec": "openspec/changes/integrate-tiny-engine-core/specs/tiny-engine-core-domain/spec.md",
   "handoff_context": "openspec/changes/integrate-tiny-engine-core/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/integrate-tiny-engine-core/.comet/handoff/design-context.md"
+  "handoff_markdown": "openspec/changes/integrate-tiny-engine-core/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-28-integrate-tiny-engine-core"
 }
