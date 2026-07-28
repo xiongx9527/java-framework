@@ -9,12 +9,12 @@
 
 - Task: Task 9: 范围排除、聚合验证与实现说明
 - OpenSpec mapping: 6.1, 6.2, 6.3, 6.4, 6.5
-- Stage: final-review
+- Stage: final-fix
 - Implementer: Laplace DONE
-- Reviewer: Mencius approved
-- Fixer: pending
-- Review/fix rounds: 0
-- Review result: Approved
+- Reviewer: Mencius approved; Turing final review with fixes
+- Fixer: pending dispatch
+- Review/fix rounds: 1
+- Review result: With fixes
 
 ## Evidence
 
@@ -37,3 +37,4 @@
 - Review package: `/tmp/integrate-tiny-engine-core-task-9-review-38b7110c-318a9963.diff`
 - Review: Mencius approved Task 9; no Critical, Important, or Minor issues.
 - Final review package: `/tmp/integrate-tiny-engine-core-final-review-9c481282-d5171970.diff`
+- Final review: Turing found 4 Important issues: H2 scripts are not executable, dynamic string column DDL emits bare `VARCHAR`/`CHAR`, `ModelServiceImpl` bypasses `TinyEngineSqlIdentifierValidator`, and the branch diff includes unrelated `fw-plus-ai-askdata` files.
