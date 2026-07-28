@@ -1,3 +1,3 @@
-- [ ] 1. 建立 Boot 25 个插件、AI 2 个插件、宿主入口和现有测试覆盖矩阵，记录 sample 聚合验证与首次启动 RED 证据。
+- [x] 1. 建立 Boot 25 个插件、AI 2 个插件、宿主入口和现有测试覆盖矩阵，记录 sample 聚合验证与首次启动 RED 证据。（证据：清单测试 2/2 通过，Boot=25、AI=2、runtime 27 无缺失；首次启动 RED 见 `logDir_IS_UNDEFINED/report-api-all-plugins.log`。）
 - [ ] 2. 补齐 sample 整体测试 classpath 和可控启动配置；对发现的每个源码缺陷先补最小回归测试，再逐项修复并转绿。
 - [ ] 3. 按 Core -> Boot -> Cloud/AI -> sample 完成分层构建，运行相关测试，并实际启动 sample 检查健康、Magic-API 宿主及全部插件装配结果。

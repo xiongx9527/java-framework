@@ -1,20 +1,21 @@
 # Subagent Progress
 
-- Plan task: `Task 2: 修复 MQTT Client resource storage 循环依赖`
-- OpenSpec mapping: `2. 补齐 sample 整体测试 classpath 和可控启动配置；对发现的每个源码缺陷先补最小回归测试，再逐项修复并转绿。`（由 Task 4 完成后统一勾选）
+- Plan task: `Task 3: 建立 27 插件聚合清单与 sample classpath 契约`
+- OpenSpec mapping: `1. 建立 Boot 25 个插件、AI 2 个插件、宿主入口和现有测试覆盖矩阵，记录 sample 聚合验证与首次启动 RED 证据。`
 - Stage: `done`
-- Implementer: `/root/task2_mqtt_cycle`
-- Dispatch: 已派发，requirements 为 SDD `task-2-brief.md`，报告写入 `task-2-report.md`。
+- Implementer: `/root/task3_plugin_matrix`
+- Dispatch: 已派发，requirements 为 SDD `task-3-brief.md`，报告写入 `task-3-report.md`。
 - Review mode: `thorough`
 - Review/fix round: `0/2`
-- Base commit: `1c945788`
-- RED evidence: 真实 sample 启动已复现 `magicResourceService -> mqttClientDataSourceInfoMagicResourceStorage -> magicResourceService`；implementer 仍须按 brief 写最小自动化 RED 并观察预期失败。
-- GREEN evidence: MQTT 定向 1 test 通过；MQTT/Redis/MCP 联合 17 tests 通过，均 0 failures / 0 errors。
-- Implementation commit: `66d95573`。
-- Changed files: MQTT Client 自动配置和对应真实拓扑测试。
-- Implementer result: `DONE`；既有 Maven settings 与多 SLF4J binding 警告不影响测试。
-- Risk signals: 未命中代码风险信号；环境警告已记录。
-- Reviewer: `/root/task2_mqtt_review`。
-- Review status: spec ✅，quality Approved；真实 service/storage 拓扑及同实例回填断言通过审查。
-- Open findings: 无 Critical/Important；1 项环境级 Minor（Maven settings / SLF4J binding 告警）延后由最终审查复核。
-- Checkoff: Task 2 的 6 个 plan checkbox 均通过 `comet state task-checkoff`；OpenSpec 任务 2 按计划留待 Task 4。
+- Base commit: `8e34af98`
+- Existing changes: sample POM 与 `MagicApiAllPluginsClasspathTest` 已有未提交实现；必须保留历史 9 artifact 缺失 RED，只增量补齐聚合器同步契约。
+- RED evidence: POM 补齐前 classpath 测试报告 9 个缺失 artifact；首次 sample 启动 RED 日志已记录。
+- GREEN evidence: `MagicApiAllPluginsClasspathTest` 2 tests 通过，Boot=25、AI=2、runtime 27 artifact 无缺失。
+- Implementation commit: `4d94882a`。
+- Changed files: sample POM 和 `MagicApiAllPluginsClasspathTest`；OpenSpec 由协调者审查后勾选。
+- Implementer result: `DONE`；任务外生成物未暂存，既有 Maven settings 警告不影响测试。
+- Risk signals: 未命中代码风险信号；聚合器 POM 仅只读。
+- Reviewer: `/root/task3_plugin_review`。
+- Review status: spec ✅，quality Approved；27 坐标、真实聚合器映射、JDK 8 DOM 安全解析和 sample POM scope 均通过审查。
+- Open findings: 无 Critical/Important/Minor；历史 9 artifact RED 原始终端输出未单独留档，提交差异显示新增 9 个依赖，当前 27/27 GREEN 可核验。
+- Checkoff: Task 3 的 5 个 plan checkbox 与 OpenSpec 任务 1 均通过 `comet state task-checkoff`。
