@@ -2,16 +2,16 @@
 
 ## 当前任务
 
-- Plan task: `Task 12: 实现 SQL 插件链桥接与安全测试`
-- OpenSpec task mapping: `4.2` / `4.3` 的自动配置默认实现子集（本任务覆盖 Spring 发现 SQL 拦截器、插件后最终安全校验和审计记录，完整方言改写与业务 SQL 执行适配由后续任务继续）
+- Plan task: `Task 13: 实现多提问、记忆和推荐默认桥接`
+- OpenSpec task mapping: `1.8` / `1.9` / `2.6` 的自动配置默认实现子集（本任务覆盖默认 flow 的显式多提问、长期记忆召回和按操作人隔离推荐桥接，完整排序画像/多 agent 调度由后续任务继续）
 - Stage: `done`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `6160e69e555aa78d1de4188679e68ee604940c64`
-- Implementer commit: `448ee045`
-- Fix round 1 commit: `e7374fff`
-- Task brief: `.superpowers/sdd/task-12-brief.md`
-- Implementer report: `.superpowers/sdd/task-12-report.md`
+- Base commit: `e4d75ee592fa24810eea2e748c7b081985de388e`
+- Implementer commit: `5f94c837`
+- Fix round 1 commit: `b52469d3`
+- Task brief: `.superpowers/sdd/task-13-brief.md`
+- Implementer report: `.superpowers/sdd/task-13-report.md`
 
 ## 派发记录
 
@@ -96,3 +96,8 @@
 - 2026-07-28：Task 12 reviewer 返回 `Needs fixes`；Important 问题为指定命令中的 `DefaultAskDataSqlValidatorTest`、`JdbcAskDataSqlExecutorTest` 因 JUnit4/Vintage 缺失未实际执行，SQL 校验器与 JDBC 执行器既有回归证据不完整。当前 thorough 修复轮次：1/2，准备派发 fix agent。
 - 2026-07-28：fix agent 返回 `DONE`，提交 `e7374fff`；将 `DefaultAskDataSqlValidatorTest`、`JdbcAskDataSqlExecutorTest` 迁移到 JUnit Jupiter，不新增 Vintage 依赖；同一指定命令实际执行 28 项测试（validator 23、JDBC 2、interceptor auto-config 3）且全部通过。已生成 re-review package `.superpowers/sdd/review-6160e69e..e7374fff.diff`。
 - 2026-07-28：Task 12 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。已勾选 plan 中 Task 12 的 5 个 step；OpenSpec 4.2/4.3 仍包含完整方言改写、只读执行、超时和结果审计等后续内容，本任务不单独勾选。
+- 2026-07-28：准备派发 Task 13 implementer。允许修改范围限定为 AskData 默认 flow、多提问/记忆/推荐自动配置桥接与对应测试；禁止修改其他 active change、TinyEngine、tiny-engine-backend-java 和旧 `.superpowers` 草稿。
+- 2026-07-28：Task 13 implementer 返回 `DONE`，提交 `5f94c837`；RED 为新增多提问/记忆/推荐测试出现 4 个预期断言失败，GREEN 为指定命令 `BUILD SUCCESS` 且 16 项测试通过。报告记录 `AskDataResumeFlowTest` 未被 Surefire 发现可执行用例。已生成 review package `.superpowers/sdd/review-e4d75ee5..5f94c837.diff`。
+- 2026-07-28：Task 13 reviewer 返回 `Needs fixes`；Important 问题为未接入 Core planner/复合问题计划，且 `AskDataResumeFlowTest` 未被 Surefire 实际执行；Minor 为 `AskDataRecommendationAdapter` 公开方法缺少中文 Javadoc。当前 thorough 修复轮次：1/2，准备派发 fix agent。
+- 2026-07-28：fix agent 返回 `DONE`，提交 `b52469d3`；接入可替换 Core `AskDataQuestionPlanner.simple()`，支持显式列表和中英文分号复合问题；迁移 `AskDataResumeFlowTest` 到 JUnit Jupiter 并补齐有效上下文；补充推荐 adapter 中文 Javadoc；同时修复多问题携带恢复令牌时误复制 `resumeToken` 的补充审查问题。指定命令实际执行 35 项（flow 12、resume 16、multi-question 7）且全部通过。已生成 re-review package `.superpowers/sdd/review-e4d75ee5..b52469d3.diff`。
+- 2026-07-28：Task 13 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。已勾选 plan 中 Task 13 的 5 个 step；OpenSpec 1.8/1.9/2.6 仍包含完整多 agent 调度、推荐画像排序和长期记忆存储适配等后续内容，本任务不单独勾选。

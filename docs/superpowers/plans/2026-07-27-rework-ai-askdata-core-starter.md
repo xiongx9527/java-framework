@@ -627,11 +627,11 @@ git commit -m "feat: wire askdata sql interceptor pipeline"
 - Consumes: Core planner, memory, recommendation contracts
 - Produces: flow support for single, explicit multi-question, compound question plan
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试 Task 13**
 
 Test explicit two-question request creates two audited child results. Test partial failure returns one success and one failure. Test memory recall filters another operator's entry.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试 Task 13**
 
 ```bash
 cd fw-plus-ai
@@ -640,15 +640,15 @@ cd fw-plus-ai
 
 Expected: FAIL.
 
-- [ ] **Step 3: 实现默认桥接**
+- [x] **Step 3: 实现默认桥接 Task 13**
 
 Add planner and aggregation hooks without changing default single-question behavior. Use project/operator context in all store calls.
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证 Task 13**
 
 Run the same tests. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 13**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata \
