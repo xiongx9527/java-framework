@@ -39,7 +39,8 @@ public class DefaultAiEmbeddingStoreFactory implements AiEmbeddingStoreFactory {
         try {
             return adapter.supports(definition);
         } catch (Exception e) {
-            throw new AiEmbeddingStoreException("Adapter failed while checking store support: " + context(definition), e);
+            throw new AiEmbeddingStoreException("Adapter failed while checking store support: "
+                    + context(definition) + ", causeType=" + e.getClass().getName());
         }
     }
 
@@ -48,7 +49,8 @@ public class DefaultAiEmbeddingStoreFactory implements AiEmbeddingStoreFactory {
         try {
             store = adapter.create(definition);
         } catch (Exception e) {
-            throw new AiEmbeddingStoreException("Adapter failed to create store: " + context(definition), e);
+            throw new AiEmbeddingStoreException("Adapter failed to create store: "
+                    + context(definition) + ", causeType=" + e.getClass().getName());
         }
         if (store == null) {
             throw new AiEmbeddingStoreException("Adapter returned null store: " + context(definition));
