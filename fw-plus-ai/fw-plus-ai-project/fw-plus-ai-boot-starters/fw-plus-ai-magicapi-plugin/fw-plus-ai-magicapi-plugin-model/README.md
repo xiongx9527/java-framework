@@ -197,10 +197,10 @@ magic:
 ```javascript
 import model;
 
-// 默认模型，来自 Spring Boot registry 的 default-model
+// 默认模型的中立 facade，来自 Spring Boot registry 的 default-model
 var chatModel = model.getModel();
 
-// 返回 fw-plus 包装对象 LangChain4jModel
+// 与 getModel() 相同，返回中立 AiModel facade
 var wrapped = model.getModelObject();
 
 // 指定 Spring Boot registry 或 model-datasource 中的 key
@@ -209,7 +209,15 @@ var dynamicDefault = model['local-chat'].getModel();
 var dynamicQwen = model['local-chat.qwen-plus'].getModel();
 ```
 
-`getModel()` 返回真实 LangChain4j 模型对象，脚本侧按 `modelType` 调用对应对象能力。当前插件不额外封装 chat、embedding、image 等快捷方法。
+`getModel()` 与 `getModelObject()` 返回中立 `AiModel` facade，只提供稳定的 `key`、`framework`、`provider`、`type`
+元数据；不再返回真实 LangChain4j 模型对象，也不提供 chat、embedding、image 等 SDK 专有快捷方法。
+
+这是一次破坏性变更：旧脚本中对 `model.getModel()` 或 `model['key'].getModel()` 返回值强转并调用
+LangChain4j API 的写法必须移除。若业务必须调用 LangChain4j 专有能力，应在 Java 应用层注入
+`LangChain4jModelRegistry` 或相应 adapter；不要把原生 SDK 对象经 Magic-API facade 传递。未来切换到
+Spring AI、Spring AI Alibaba 或 AgentScope 2 时，`model['key']` 保持不变，facade 元数据中的 `framework`
+才表示实际实现。需要立即回滚脚本兼容性时，回退到本抽象改造前的插件版本和旧 LangChain4j 契约，不能在
+当前 facade 上恢复原生对象暴露。
 
 ## 控制器接口
 
