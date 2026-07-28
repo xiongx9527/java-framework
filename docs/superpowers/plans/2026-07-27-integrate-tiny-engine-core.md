@@ -612,11 +612,11 @@ git commit -m "feat: migrate tiny engine dynamic model core"
 - `cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -pl fw-plus-tiny-engine -am -DskipTests install`
 - `cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -DskipTests validate`
 
-- [ ] **Step 1: 写范围排除测试**
+- [x] **Step 1: 写范围排除测试**
 
 Create `TinyEngineScopeBoundaryTest` scanning compiled classes/resources and source paths to assert the module does not contain `Controller`, `OpenAPI`, `Swagger`, `ServletFilter`, `SpringBootApplication`, `Docker`, `LangChain4j`, `VectorStorage`, `RAG`, `jakarta.`, or `com.tinyengine.it`.
 
-- [ ] **Step 2: 运行范围测试**
+- [x] **Step 2: 运行范围测试**
 
 Run:
 
@@ -627,11 +627,11 @@ cd fw-plus-core
 
 Expected: PASS after previous tasks are complete; if it fails, remove the out-of-scope dependency or class from core.
 
-- [ ] **Step 3: 编写 README**
+- [x] **Step 3: 编写 README**
 
 Document `fw-plus-tiny-engine-core` artifact coordinates, package root `com.xiongx9527.fw.plus.tinyengine`, mapper XML path `classpath*:mapper/tinyengine/**/*.xml`, SQL resource root `META-INF/tiny-engine/sql/`, `manifest.properties` ordering contract, `TinyEngineUserContext`, `TinyEngineSaveHook`, and dynamic SQL validation requirements.
 
-- [ ] **Step 4: 运行新增模块测试**
+- [x] **Step 4: 运行新增模块测试**
 
 Run:
 
@@ -642,7 +642,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 5: 运行 TinyEngine 聚合安装验证**
+- [x] **Step 5: 运行 TinyEngine 聚合安装验证**
 
 Run:
 
@@ -653,7 +653,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 6: 运行 core 聚合 validate**
+- [x] **Step 6: 运行 core 聚合 validate**
 
 Run:
 
@@ -664,7 +664,7 @@ cd fw-plus-core
 
 Expected: PASS. If full validation is blocked by an unrelated existing module or external dependency, record the failing module, command, and first actionable error in the implementation handoff.
 
-- [ ] **Step 7: Commit Task 9**
+- [x] **Step 7: Commit Task 9**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-tiny-engine

@@ -37,8 +37,8 @@
 
 ## 6. 范围排除与验证
 
-- [ ] 6.1 检查 TinyEngine core 模块不包含 AI Chat、RAG、VectorStorage、LangChain4j 1.x、Controller、OpenAPI、启动应用、Docker 和 Web 过滤器。
-- [ ] 6.2 运行 TinyEngine core 模块 Maven 编译，确认 Java 8 source/target 下通过。
-- [ ] 6.3 运行新增或受影响测试，确认主要领域映射、服务契约、SQL 资源引用和动态 SQL 安全边界通过验证。
-- [ ] 6.4 运行必要的 fw-plus-core 聚合层验证，确认新增模块注册没有破坏现有 core 构建。
-- [ ] 6.5 更新实现说明或模块 README，记录 TinyEngine core artifact、资源路径、范围排除项和后续 starter 接入边界。
+- [x] 6.1 检查 TinyEngine core 模块不包含 AI Chat、RAG、VectorStorage、LangChain4j 1.x、Controller、OpenAPI、启动应用、Docker 和 Web 过滤器。
+- [x] 6.2 运行 TinyEngine core 模块 Maven 编译，确认 Java 8 source/target 下通过。
+- [x] 6.3 运行新增或受影响测试，确认主要领域映射、服务契约、SQL 资源引用和动态 SQL 安全边界通过验证。
+- [x] 6.4 运行必要的 fw-plus-core 聚合层验证，确认新增模块注册没有破坏现有 core 构建。
+- [x] 6.5 更新实现说明或模块 README，记录 TinyEngine core artifact、资源路径、范围排除项和后续 starter 接入边界。
