@@ -114,3 +114,4 @@
 - 2026-07-28：Task 17 初次聚合验证发现 AI 自动配置 `*AskData*Test` 中 `AskDataMonitoringLogStoreTest#shouldRejectDefaultMonitoringLogStoreInClusterModeWhenBusinessProvidesOtherSharedStores` 失败；根因是测试夹具缺少集群模式必需的 `AskDataLongTermMemory` 与 `AskDataRecommendationService` 业务 SPI，导致启动先失败在长期记忆默认本地内存 Bean。
 - 2026-07-28：fix agent 完成测试夹具修复，提交 `19e39cd1`；RED 复现原失败，GREEN 指定监控日志集群测试通过，`*AskData*Test` 112 项通过。报告补充提交 `d29baa56`。
 - 2026-07-28：协调者复跑最终聚合验证：Core `fw-plus-ai-askdata` 测试 52 项通过；AI 自动配置 `*AskData*Test` 112 项通过；AskData Starter `-DskipTests package` 通过；文档占位符扫描无输出。已勾选 plan Task 17 的 6 个 step，并保留 OpenSpec 仅勾选有证据项。
+- 2026-07-28：Task 17 reviewer 返回 `Needs fixes`；Important 为监控日志集群测试不得使用 Core 默认 `inMemory()` 实现伪装共享 SPI，以及 OpenSpec 7.0-7.13 勾选需要逐项可定位证据。协调者将测试改为无状态业务替身，报告补充逐项证据表；`AskDataMonitoringLogStoreTest` 3 项通过，AI 自动配置 `*AskData*Test` 112 项通过。

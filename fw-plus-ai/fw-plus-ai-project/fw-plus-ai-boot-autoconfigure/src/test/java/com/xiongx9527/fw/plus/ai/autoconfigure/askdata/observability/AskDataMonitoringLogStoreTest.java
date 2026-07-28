@@ -70,10 +70,10 @@ public class AskDataMonitoringLogStoreTest {
                         () -> coreAgentStateStore())
                 .withBean("customLongTermMemory",
                         com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory.class,
-                        () -> com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory.inMemory())
+                        () -> sharedLongTermMemory())
                 .withBean("customRecommendationService",
                         com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService.class,
-                        () -> com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService.inMemory())
+                        () -> sharedRecommendationService())
                 .withBean("customVectorRetriever",
                         com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever.class,
                         () -> query -> java.util.Collections.emptyList())
@@ -122,6 +122,43 @@ public class AskDataMonitoringLogStoreTest {
             @Override
             public AgentState load(AskDataProjectContext context, String agentId) {
                 return null;
+            }
+        };
+    }
+
+    private com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory sharedLongTermMemory() {
+        return new com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory() {
+            @Override
+            public void remember(com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry entry) {
+            }
+
+            @Override
+            public java.util.List<com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry> find(
+                    AskDataProjectContext context, String datasourceKey, String semanticVersion) {
+                return java.util.Collections.emptyList();
+            }
+        };
+    }
+
+    private com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService sharedRecommendationService() {
+        return new com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService() {
+            @Override
+            public void record(AskDataProjectContext context, String recommendation) {
+            }
+
+            @Override
+            public java.util.List<String> recommend(AskDataProjectContext context) {
+                return java.util.Collections.emptyList();
+            }
+
+            @Override
+            public void registerGeneric(String projectId, String recommendation) {
+            }
+
+            @Override
+            public java.util.List<String> recommend(String projectId, String operatorId,
+                    boolean allowGenericSuggestions) {
+                return java.util.Collections.emptyList();
             }
         };
     }

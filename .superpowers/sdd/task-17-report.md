@@ -27,6 +27,24 @@
 
 依据：Core 定向测试 52 项全绿；AI 自动配置 AskData 回归修复后 112 项全绿；Task 15/16 已审查通过的 Starter 文档、SQLBot/WrenAI 矩阵和测试用例文档均存在，且本次占位符扫描无输出。未勾选 Starter 集成、共享存储、外部导出及后续运行时能力，因为缺少完整实现或不属于本批次可验证范围。
 
+| OpenSpec task | 勾选证据 |
+| --- | --- |
+| 1.7 | Core `fw-plus-ai-askdata` 定向测试 52 项通过，覆盖 API、能力注册、模型路由、Remote Runtime、状态、SQL、记忆推荐和观测契约；模块无 Spring 依赖编译。 |
+| 7.0 | `openspec/changes/rework-ai-askdata-core-starter/feature-list.md` 作为事实源；`docs/askdata/starter/sqlbot-wrenai-feature-matrix.md` 逐项映射 SQLBot 77 行、WrenAI 59 行。 |
+| 7.1 | `docs/askdata/starter/index.md` 与设计文档说明 Core、LangChain4j 适配、Starter、默认实现、业务覆盖边界和依赖关系。 |
+| 7.2 | `docs/askdata/starter/configuration.md` 与 `docs/askdata/starter/index.md` 覆盖快速开始、Ollama 默认模型、配置属性、单机/集群限制和安全注意事项。 |
+| 7.3 | `docs/askdata/starter/runtime-replacement.md`、`storage-matrix.md`、`sql-safety.md` 说明模型/向量/SQL/Agent/存储/观测插件替换、能力 key、Bean/SPI 覆盖和验证要求。 |
+| 7.4 | `docs/askdata/starter/sql-safety.md`、`flow-diagrams.md`、`storage-matrix.md` 覆盖 Doris SQL 安全、多问题/恢复、长期记忆、项目/操作人隔离、管理员监控日志和 LangSmith/Langfuse/OTel 观测边界。 |
+| 7.5 | `docs/askdata/starter/storage-matrix.md` 覆盖内存、JDBC/Redis/业务共享存储矩阵、迁移、故障恢复、容量和脱敏建议。 |
+| 7.6 | `docs/askdata/starter/sqlbot-wrenai-feature-matrix.md` 标注每项能力的模块、API/配置、存储、文档、测试、状态和限制，明确后续实现项。 |
+| 7.7 | `docs/askdata/starter/sqlbot-wrenai-feature-matrix.md` 覆盖 SQLBot 部署、项目、数据源、问数、仪表板、小助手、权限、术语、模型、训练、MCP、嵌入、DataEase、X-Pack、企业微信、钉钉、飞书和操作日志。 |
+| 7.8 | `docs/askdata/starter/sqlbot-wrenai-feature-matrix.md` 覆盖 WrenAI Text-to-SQL、Text-to-Chart、AI 摘要/报告、MDL、连接器、模型、语义索引、推荐、evaluation、dry-plan/dry-run、任务、dashboard 和遥测。 |
+| 7.9 | `docs/superpowers/specs/2026-07-27-rework-ai-askdata-core-starter-design.md` 与 `docs/askdata/starter/index.md` 覆盖模块边界、包结构、领域对象、SPI、默认实现、自动配置、异常/配置模型和前端联调边界。 |
+| 7.10 | `docs/askdata/starter/flow-diagrams.md` 使用 Mermaid 覆盖项目治理、数据源、训练/语义模型、问数、多提问、推荐、模型路由、多 Agent、SQL 安全、恢复、监控审计和前后端联调。 |
+| 7.11 | `docs/askdata/starter/database-design.md` 覆盖项目、成员、数据源、元数据、MDL、训练资产、会话、记忆、推荐、SQL 审计、监控日志、Agent 状态、模型/API Key、MCP/API、企业配置、操作日志和插件注册表。 |
+| 7.12 | `docs/askdata/starter/test-cases.md` 覆盖单元、契约、自动配置、SQL 安全、存储一致性、模型兜底、多 Agent/恢复、记忆推荐权限、监控审计、Java 17 和前端联调用例。 |
+| 7.13 | `docs/askdata/starter/runtime-replacement.md` 与 `docs/askdata/starter/java17-remote-runtime.md` 覆盖 LangChain4j/Ollama、Spring AI、Spring AI Alibaba、AgentScope Java 2.0+、业务自定义运行时和 Java 17 远程适配服务边界。 |
+
 计划 Task 17：Step 1、Step 2、Step 3、Step 4、Step 5、Step 6 均已完成。
 
 ## 修改文件
@@ -37,12 +55,12 @@
 
 ## 提交
 
-- 修复提交：`19e39cd1ace32af9ac32665e36535f55a33fed2a`（`test: isolate askdata monitoring log cluster check`）。
-- 验证状态提交由主会话创建：`待提交`。
+- 修复提交：`19e39cd1ace32af9ac32665e36535f55a33fed2a`（`test: isolate askdata monitoring log cluster check`）和 `d29baa56`（`test: fix askdata monitoring log cluster fixture`）。
+- 验证状态提交：`dd041913`；Task 17 计划与进度收尾提交：`75ee2731`。
 
 ## 风险信号
 
-- 公共流程/验证风险：本次测试通过 Bean 存在性验证自动配置让位关系，不模拟真实分布式存储的跨进程语义；该语义属于具体业务 SPI 实现的集成验证范围。
+- 公共流程/验证风险：本次测试通过无状态业务替身验证自动配置让位关系，不模拟真实分布式存储的跨进程语义；该语义属于具体业务 SPI 实现的集成验证范围。
 - 构建风险：Starter 打包虽通过，但本地 Maven 报告 `fw-plus-ai-boot-autoconfigure:0.1.1-SNAPSHOT` POM 无效警告。
 
 ---
