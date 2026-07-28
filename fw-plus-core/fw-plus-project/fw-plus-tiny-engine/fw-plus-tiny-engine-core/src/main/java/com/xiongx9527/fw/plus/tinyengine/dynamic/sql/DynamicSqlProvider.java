@@ -8,12 +8,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 public class DynamicSqlProvider {
-
-	private static final Pattern COLUMN_TYPE_PATTERN = Pattern.compile("^(?i)(VARCHAR|CHAR|TEXT|INTEGER|INT|BIGINT|DECIMAL|NUMERIC|DOUBLE|FLOAT|BOOLEAN|DATE|DATETIME|TIMESTAMP)$");
 
 	public String select(Map<String, Object> params) {
 		String tableName = tableName(params);
@@ -264,13 +262,35 @@ public class DynamicSqlProvider {
 				throw new IllegalArgumentException("Column definition must not be null");
 			}
 			String name = TinyEngineSqlIdentifierValidator.validateFieldName(column.getName());
-			String type = column.getType();
-			if (type == null || !COLUMN_TYPE_PATTERN.matcher(type).matches()) {
-				throw new TinyEngineSqlIdentifierException("Invalid SQL column type");
-			}
-			validatedColumns.add(new ValidatedColumn(name, type.toUpperCase(java.util.Locale.ROOT), column.isNullable()));
+			String type = validatedColumnType(column.getType());
+			validatedColumns.add(new ValidatedColumn(name, type, column.isNullable()));
 		}
 		return validatedColumns;
+	}
+
+	private String validatedColumnType(String type) {
+		String normalizedType = type == null ? "" : type.toUpperCase(Locale.ROOT);
+		switch (normalizedType) {
+			case "VARCHAR":
+				return "VARCHAR(255)";
+			case "CHAR":
+				return "CHAR(1)";
+			case "TEXT":
+			case "INTEGER":
+			case "INT":
+			case "BIGINT":
+			case "DECIMAL":
+			case "NUMERIC":
+			case "DOUBLE":
+			case "FLOAT":
+			case "BOOLEAN":
+			case "DATE":
+			case "DATETIME":
+			case "TIMESTAMP":
+				return normalizedType;
+			default:
+				throw new TinyEngineSqlIdentifierException("Invalid SQL column type");
+		}
 	}
 
 	private void appendColumn(StringBuilder sql, ValidatedColumn column) {

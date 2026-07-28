@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ExceptionEnum;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
+import com.xiongx9527.fw.plus.tinyengine.dynamic.sql.TinyEngineSqlIdentifierValidator;
 import com.xiongx9527.fw.plus.tinyengine.mapper.ModelMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Model;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.ParametersDto;
@@ -22,7 +23,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements ModelService {
-	private static final Pattern SQL_IDENTIFIER = Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
 	private static final Pattern SQL_DEFAULT_LITERAL = Pattern.compile(
 			"^(?:NULL|TRUE|FALSE|CURRENT_TIMESTAMP|[-+]?(?:[0-9]+(?:\\.[0-9]*)?|\\.[0-9]+)|'(?:[^'\\\\\\r\\n]|'')*')$",
 			Pattern.CASE_INSENSITIVE);
@@ -114,12 +114,13 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
 	}
 
 	private String tableSql(Model model) {
-		String tableName = requireIdentifier(model.getNameEn(), "table");
+		String tableName = TinyEngineSqlIdentifierValidator.validateTableName(model.getNameEn());
 		StringBuilder sql = new StringBuilder("CREATE TABLE ").append(tableName).append(" (");
 		List<ParametersDto> fields = safeParameters(model);
 		for (int index = 0; index < fields.size(); index++) {
 			ParametersDto field = fields.get(index);
-			sql.append(requireIdentifier(field.getProp(), "column")).append(' ').append(sqlType(field.getType()));
+			sql.append(TinyEngineSqlIdentifierValidator.validateFieldName(field.getProp()))
+					.append(' ').append(sqlType(field.getType()));
 			if (field.getDefaultValue() != null && !field.getDefaultValue().isEmpty()) {
 				sql.append(" DEFAULT ").append(requireDefaultLiteral(field.getDefaultValue()));
 			}
@@ -128,13 +129,6 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
 			}
 		}
 		return sql.append(");").toString();
-	}
-
-	private String requireIdentifier(String identifier, String kind) {
-		if (identifier == null || !SQL_IDENTIFIER.matcher(identifier).matches()) {
-			throw invalidDdl("Invalid SQL " + kind + " identifier");
-		}
-		return identifier;
 	}
 
 	private String requireDefaultLiteral(String defaultValue) {
