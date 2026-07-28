@@ -11,10 +11,10 @@
 - OpenSpec mapping: 5.1, 5.3, 5.4, 5.5
 - Stage: task-review
 - Implementer: Pauli DONE
-- Reviewer: pending dispatch
-- Fixer: pending
-- Review/fix rounds: 0
-- Review result: pending
+- Reviewer: Bacon needs fixes
+- Fixer: pending dispatch
+- Review/fix rounds: 1
+- Review result: Needs fixes
 
 ## Evidence
 
@@ -29,3 +29,4 @@
 - Commits: ca929554d5ab479bc1cf9d27b14857ee842976eb
 - Changed files: dynamic model DTOs, `ModelDataMapper`, `DynamicService`, `DynamicModelService`, service implementations, `DynamicSqlProvider`, and dynamic provider/service contract tests.
 - Review package: `/tmp/integrate-tiny-engine-core-task-8-review-cc5182ff-ca929554.diff`
+- Review: Bacon found one Important issue: `TinyEngineDynamicSqlProviderTest` dangerous-input coverage only proves illegal table names, not malicious fields, condition keys, `orderBy`, or `orderType` rejection before SQL assembly.
