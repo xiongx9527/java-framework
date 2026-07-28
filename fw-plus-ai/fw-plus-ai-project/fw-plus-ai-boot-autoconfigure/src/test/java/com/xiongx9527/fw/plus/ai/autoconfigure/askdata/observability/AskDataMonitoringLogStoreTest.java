@@ -68,6 +68,12 @@ public class AskDataMonitoringLogStoreTest {
                 .withBean("customCoreAgentStateStore",
                         com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore.class,
                         () -> coreAgentStateStore())
+                .withBean("customLongTermMemory",
+                        com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory.class,
+                        () -> com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory.inMemory())
+                .withBean("customRecommendationService",
+                        com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService.class,
+                        () -> com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService.inMemory())
                 .withBean("customVectorRetriever",
                         com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever.class,
                         () -> query -> java.util.Collections.emptyList())
