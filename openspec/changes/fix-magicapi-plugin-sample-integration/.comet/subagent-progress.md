@@ -25,4 +25,4 @@
 - Evidence commit: `a3a714e7 test(magicapi): record all-plugin verification`，仅包含 `.comet/context.md`。
 - Task reviewer: `/root/task6_review`，Spec ❌ / quality Needs fixes；Critical 0、Important 1、Minor 1。
 - Open finding: standalone health/editor HTTP code/body、TERM/KILL 分支、负向扫描、端口释放和安全清理只存在 context/report 声明，缺少可独立复核的原始命令状态；literal `XXXXXX` 日志名为 Minor。
-- Review/fix round: `1/2`，待派全新 fixer 仅重跑 standalone 并保留完整 transcript/sidecar、追加 context/report、修正展开日志名；不重跑全层 Maven。
+- Review/fix round: `1/2`，已派 `/root/task6_evidence_fix_round1` 仅重跑 standalone 并保留完整 transcript/sidecar、追加 context/report、修正展开日志名；不重跑全层 Maven。
