@@ -13,6 +13,7 @@ public class AskDataProperties {
     private Conversation conversation = new Conversation();
     private State state = new State();
     private Vector vector = new Vector();
+    private Observability observability = new Observability();
 
     public boolean isEnabled() {
         return enabled;
@@ -77,6 +78,9 @@ public class AskDataProperties {
     public void setVector(Vector vector) {
         this.vector = vector;
     }
+
+    public Observability getObservability() { return observability; }
+    public void setObservability(Observability observability) { this.observability = observability; }
 
     public static class Model {
 
@@ -320,5 +324,17 @@ public class AskDataProperties {
         public void setStore(String store) {
             this.store = store;
         }
+    }
+
+    public static class Observability {
+
+        /** 默认关闭外部导出；可选值为 otel、langfuse、langsmith。 */
+        private boolean enabled = false;
+        private List<String> exporters = new ArrayList<String>();
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public List<String> getExporters() { return exporters; }
+        public void setExporters(List<String> exporters) { this.exporters = exporters; }
     }
 }

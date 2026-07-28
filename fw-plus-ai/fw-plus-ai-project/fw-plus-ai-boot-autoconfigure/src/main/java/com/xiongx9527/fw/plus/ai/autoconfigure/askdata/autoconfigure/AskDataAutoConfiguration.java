@@ -9,6 +9,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConve
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.DefaultAskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.InMemoryAskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.InMemoryAskDataMonitoringLogStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AskDataMonitoringLogQueryService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AskDataObservationExporter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AsyncAskDataObservationExporter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.OpenTelemetryAskDataObservationExporter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.LangfuseAskDataObservationExporter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.LangSmithAskDataObservationExporter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataAgentDispatcher;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataAgent;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataFlowExecutor;
@@ -32,6 +38,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.JdbcAskDataSqlExecuto
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.CompositeAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.ContentRetrieverAskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.EmbeddingStoreAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory;
@@ -43,7 +50,10 @@ import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -55,6 +65,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -181,6 +192,35 @@ public class AskDataAutoConfiguration {
         return AskDataMonitoringLogAccessPolicy.projectAdministratorOnly();
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataMonitoringLogQueryService askDataMonitoringLogQueryService(AskDataMonitoringLogStore store) {
+        return new AskDataMonitoringLogQueryService(store);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "fw.plus.ai.askdata.vector", name = "store", havingValue = "memory", matchIfMissing = true)
+    @ConditionalOnMissingBean(value = {AskDataVectorRetriever.class, EmbeddingStore.class})
+    public EmbeddingStore<TextSegment> askDataInMemoryEmbeddingStore(AskDataProperties properties) {
+        validateDefaultVectorConfiguration(properties);
+        return new InMemoryEmbeddingStore<TextSegment>();
+    }
+
+    @Bean(name = "askDataObservationEventPublisher")
+    @ConditionalOnMissingBean(name = "askDataObservationEventPublisher")
+    public AskDataEventPublisher askDataObservationEventPublisher(AskDataProperties properties) {
+        List<AskDataObservationExporter> exporters = new ArrayList<AskDataObservationExporter>();
+        if (properties.getObservability().isEnabled()) {
+            for (String name : properties.getObservability().getExporters()) {
+                if ("otel".equalsIgnoreCase(name)) { exporters.add(new OpenTelemetryAskDataObservationExporter()); }
+                if ("langfuse".equalsIgnoreCase(name)) { exporters.add(new LangfuseAskDataObservationExporter()); }
+                if ("langsmith".equalsIgnoreCase(name)) { exporters.add(new LangSmithAskDataObservationExporter()); }
+            }
+        }
+        return new AsyncAskDataObservationExporter(exporters,
+                new org.springframework.core.task.SimpleAsyncTaskExecutor("askdata-observability-"));
+    }
+
 	@Bean
 	@ConditionalOnMissingBean
 	public AskDataModelRegistry askDataModelRegistry(AskDataProperties properties,
@@ -231,11 +271,13 @@ public class AskDataAutoConfiguration {
                         || normalizedSql.startsWith("alter")) {
                     return Result.failure(FailureCategory.WRITE_SQL, "SQL 仅允许只读查询");
                 }
-                String[] tokens = normalizedSql.split("\\s+");
-                for (int index = 0; index < tokens.length - 1; index++) {
-                    if ("from".equals(tokens[index]) || "join".equals(tokens[index])) {
-                        if (!command.getAuthorizedObjects().contains(tokens[index + 1])) {
-                            return Result.failure(FailureCategory.UNAUTHORIZED_OBJECT, "对象未授权: " + tokens[index + 1]);
+                List<String> tokens = coreSqlTokens(normalizedSql);
+                for (int index = 0; index < tokens.size() - 1; index++) {
+                    String token = tokens.get(index);
+                    if ("from".equals(token) || "join".equals(token)) {
+                        String object = coreObjectName(tokens.get(index + 1));
+                        if (object.length() == 0 || !command.getAuthorizedObjects().contains(object)) {
+                            return Result.failure(FailureCategory.UNAUTHORIZED_OBJECT, "对象未授权: " + object);
                         }
                     }
                 }
@@ -281,15 +323,27 @@ public class AskDataAutoConfiguration {
                 interceptorProvider.orderedStream().collect(Collectors.toList()), validator, audit);
     }
 
-	@Bean
+    @Bean
     @ConditionalOnMissingBean
     public AskDataVectorRetriever askDataVectorRetriever(AskDataProperties properties,
-            ObjectProvider<ContentRetriever> contentRetrieverProvider) {
+            ObjectProvider<ContentRetriever> contentRetrieverProvider,
+            ObjectProvider<EmbeddingStore> embeddingStoreProvider,
+            ObjectProvider<EmbeddingModel> embeddingModelProvider) {
         validateDefaultVectorConfiguration(properties);
         List<AskDataVectorRetriever> retrievers = contentRetrieverProvider.orderedStream()
                 .map(ContentRetrieverAskDataVectorRetriever::new)
                 .collect(Collectors.<AskDataVectorRetriever>toList());
+        EmbeddingStore<TextSegment> embeddingStore = embeddingStore(embeddingStoreProvider);
+        EmbeddingModel embeddingModel = embeddingModelProvider.getIfAvailable();
+        if (embeddingStore != null && embeddingModel != null) {
+            retrievers.add(new EmbeddingStoreAskDataVectorRetriever(embeddingStore, embeddingModel));
+        }
         return new CompositeAskDataVectorRetriever(retrievers, properties.getVector().getDefaultTopK());
+    }
+
+    @SuppressWarnings("unchecked")
+    private EmbeddingStore<TextSegment> embeddingStore(ObjectProvider<EmbeddingStore> embeddingStoreProvider) {
+        return embeddingStoreProvider == null ? null : (EmbeddingStore<TextSegment>) embeddingStoreProvider.getIfAvailable();
     }
 
     @Bean
@@ -323,14 +377,15 @@ public class AskDataAutoConfiguration {
             ObjectProvider<AskDataAgent> agentProvider,
             @Qualifier("askDataMonitoringLogEventPublisher") AskDataEventPublisher monitoringLogEventPublisher,
             ObjectProvider<AskDataEventPublisher> eventPublisherProvider, AskDataQuestionPlanner questionPlanner,
-            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain> sqlInterceptorChainProvider) {
+            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain> sqlInterceptorChainProvider,
+            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator> coreSqlValidatorProvider) {
         List<AskDataAgent> mainAgents = agentProvider.orderedStream()
                 .filter(agent -> !(agent instanceof AskDataSubAgent))
                 .collect(Collectors.toList());
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
                 agentDispatcher, mainAgents, combineEventPublishers(monitoringLogEventPublisher, eventPublisherProvider),
-                questionPlanner, sqlInterceptorChainProvider.getIfAvailable());
+                questionPlanner, sqlInterceptorChainProvider.getIfAvailable(), coreSqlValidatorProvider.getIfAvailable());
     }
 
 	/**
@@ -374,7 +429,7 @@ public class AskDataAutoConfiguration {
     }
 
     private void validateDefaultVectorConfiguration(AskDataProperties properties) {
-        if (properties.getState().isClusterMode()) {
+        if (properties.getState().isClusterMode() && "memory".equalsIgnoreCase(properties.getVector().getStore())) {
             throw new IllegalStateException("AskData 集群模式不能使用默认本地向量能力；请提供共享向量检索 SPI 实现");
         }
     }
@@ -388,14 +443,73 @@ public class AskDataAutoConfiguration {
     /**
      * 拒绝在集群节点中创建本地监控日志存储，避免基础审计记录只留在单个节点。
      */
-    private void validateDefaultMonitoringLogConfiguration(AskDataProperties properties) {
-        if (properties.getState().isClusterMode()) {
-            throw new IllegalStateException("AskData 集群模式不能使用默认本地监控日志；请提供共享 AskDataMonitoringLogStore 实现");
+	    private void validateDefaultMonitoringLogConfiguration(AskDataProperties properties) {
+	        if (properties.getState().isClusterMode()) {
+	            throw new IllegalStateException("AskData 集群模式不能使用默认本地监控日志；请提供共享 AskDataMonitoringLogStore 实现");
+	        }
+	    }
+
+    private List<String> coreSqlTokens(String sql) {
+        List<String> tokens = new ArrayList<String>();
+        String stripped = stripSqlComments(sql);
+        StringBuilder token = new StringBuilder();
+        for (int index = 0; index < stripped.length(); index++) {
+            char ch = stripped.charAt(index);
+            if (Character.isLetterOrDigit(ch) || ch == '_' || ch == '.' || ch == '`' || ch == '"'
+                    || ch == '[' || ch == ']') {
+                token.append(Character.toLowerCase(ch));
+            } else if (token.length() > 0) {
+                tokens.add(token.toString());
+                token.setLength(0);
+            }
         }
+        if (token.length() > 0) {
+            tokens.add(token.toString());
+        }
+        return tokens;
     }
 
-    /**
-     * 基础监控日志必须先写入，再调用业务提供的外部观测发布器。
+    private String stripSqlComments(String sql) {
+        StringBuilder stripped = new StringBuilder(sql.length());
+        for (int index = 0; index < sql.length(); index++) {
+            char ch = sql.charAt(index);
+            if (ch == '/' && index + 1 < sql.length() && sql.charAt(index + 1) == '*') {
+                stripped.append(' ');
+                index += 2;
+                while (index + 1 < sql.length() && !(sql.charAt(index) == '*' && sql.charAt(index + 1) == '/')) {
+                    index++;
+                }
+                if (index + 1 < sql.length()) {
+                    index++;
+                }
+                stripped.append(' ');
+            } else if (ch == '-' && index + 1 < sql.length() && sql.charAt(index + 1) == '-') {
+                stripped.append(' ');
+                index += 2;
+                while (index < sql.length() && sql.charAt(index) != '\n' && sql.charAt(index) != '\r') {
+                    index++;
+                }
+                stripped.append(' ');
+            } else {
+                stripped.append(ch);
+            }
+        }
+        return stripped.toString();
+    }
+
+    private String coreObjectName(String token) {
+        String object = token;
+        while (object.startsWith("`") || object.startsWith("\"") || object.startsWith("[")) {
+            object = object.substring(1);
+        }
+        while (object.endsWith("`") || object.endsWith("\"") || object.endsWith("]")) {
+            object = object.substring(0, object.length() - 1);
+        }
+        return object;
+    }
+
+	    /**
+	     * 基础监控日志必须先写入，再调用业务提供的外部观测发布器。
      *
      * <p>业务发布器属于非关键扩展边界，其运行时异常会被隔离，不能中断主对话或阻断后续生命周期日志。</p>
      */
