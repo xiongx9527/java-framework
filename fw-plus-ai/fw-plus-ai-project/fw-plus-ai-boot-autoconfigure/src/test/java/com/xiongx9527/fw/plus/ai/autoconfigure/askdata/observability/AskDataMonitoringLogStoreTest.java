@@ -53,4 +53,92 @@ public class AskDataMonitoringLogStoreTest {
         assertEquals(1, store.list(context).size());
         assertEquals("trace-2", store.list(context).get(0).getTraceId());
     }
+
+    @Test
+    public void shouldRejectDefaultMonitoringLogStoreInClusterModeWhenBusinessProvidesOtherSharedStores() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(AskDataAutoConfiguration.class)
+                .withPropertyValues("fw.plus.ai.askdata.state.cluster-mode=true")
+                .withBean("customCoreConversationStore",
+                        com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class,
+                        () -> coreConversationStore())
+                .withBean("customCoreCheckpointStore",
+                        com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore.class,
+                        () -> coreCheckpointStore())
+                .withBean("customCoreAgentStateStore",
+                        com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore.class,
+                        () -> coreAgentStateStore())
+                .withBean("customVectorRetriever",
+                        com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever.class,
+                        () -> query -> java.util.Collections.emptyList())
+                .withBean("customLegacyConversationStore",
+                        com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore.class,
+                        () -> legacyConversationStore())
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() != null);
+                    assertTrue(context.getStartupFailure().getMessage().contains("监控日志"));
+                });
+    }
+
+    private com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore coreConversationStore() {
+        return new com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore() {
+            @Override
+            public void save(AskDataProjectContext context, String conversationId, Conversation conversation) {
+            }
+
+            @Override
+            public Conversation load(AskDataProjectContext context, String conversationId) {
+                return null;
+            }
+        };
+    }
+
+    private com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore coreCheckpointStore() {
+        return new com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore() {
+            @Override
+            public Checkpoint save(AskDataProjectContext context, String checkpointId, Checkpoint checkpoint) {
+                return checkpoint;
+            }
+
+            @Override
+            public Checkpoint load(AskDataProjectContext context, String checkpointId) {
+                return null;
+            }
+        };
+    }
+
+    private com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore coreAgentStateStore() {
+        return new com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore() {
+            @Override
+            public void save(AskDataProjectContext context, String agentId, AgentState state) {
+            }
+
+            @Override
+            public AgentState load(AskDataProjectContext context, String agentId) {
+                return null;
+            }
+        };
+    }
+
+    private com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore legacyConversationStore() {
+        return new com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore() {
+            @Override
+            public com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataCheckpoint save(
+                    com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataCheckpoint checkpoint) {
+                return checkpoint;
+            }
+
+            @Override
+            public com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataCheckpoint loadLatest(
+                    String conversationId) {
+                return null;
+            }
+
+            @Override
+            public com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataCheckpoint loadByResumeToken(
+                    String resumeToken) {
+                return null;
+            }
+        };
+    }
 }
