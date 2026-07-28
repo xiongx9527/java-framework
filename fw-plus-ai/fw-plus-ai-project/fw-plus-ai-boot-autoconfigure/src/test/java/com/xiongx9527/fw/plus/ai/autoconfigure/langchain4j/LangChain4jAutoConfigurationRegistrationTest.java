@@ -28,8 +28,8 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration";
 
 	private static final String[] REQUIRED_STARTER_DEPENDENCIES = new String[] {
+			"fw-plus-ai-model-spring-boot-starter",
 			"fw-plus-ai-boot-starter",
-			"fw-plus-ai-boot-autoconfigure",
 			"fw-plus-ai-langchain4j-model"
 	};
 

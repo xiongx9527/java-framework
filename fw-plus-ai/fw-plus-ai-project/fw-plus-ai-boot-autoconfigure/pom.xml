@@ -78,6 +78,22 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-model</artifactId>
+            <version>${revision}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-store-embedding</artifactId>
+            <version>${revision}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-core</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
@@ -199,6 +215,7 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-cassandra</artifactId>
+            <version>${revision}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -206,6 +223,7 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-infinispan</artifactId>
+            <version>${revision}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -213,6 +231,7 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-neo4j</artifactId>
+            <version>${revision}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>

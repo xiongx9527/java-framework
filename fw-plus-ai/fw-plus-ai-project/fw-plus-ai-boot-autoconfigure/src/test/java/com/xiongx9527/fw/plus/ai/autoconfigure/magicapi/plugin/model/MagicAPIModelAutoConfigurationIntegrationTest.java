@@ -12,6 +12,7 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
@@ -45,7 +46,10 @@ class MagicAPIModelAutoConfigurationIntegrationTest {
                 .withBean(MagicAPIProperties.class, MagicAPIProperties::new)
                 .withBean(LangChain4jModelProviderAdapter.class, FakeModelProviderAdapter::new)
                 .run(context -> {
+                    AiModelRegistry registry = context.getBean(AiModelRegistry.class);
+                    assertTrue(registry.contains("chat"));
                     assertNotNull(context.getBean(MagicDynamicModelDataSource.class));
+                    assertNotNull(context.getBean(MagicDynamicModelDataSource.class).getModel("chat"));
                     assertNotNull(context.getBean(ModelDataSourceInfoMagicResourceStorage.class));
                     assertNotNull(context.getBean(ModelDataSourceMagicDynamicRegistry.class));
                     assertNotNull(context.getBean(ModelModule.class));

@@ -4,10 +4,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.exception.
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module.VectorModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module.VectorStoreOperations;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.ssssssss.script.MagicScript;
 import org.ssssssss.script.MagicScriptContext;
 import org.ssssssss.script.MagicScriptEngine;
@@ -19,9 +21,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class VectorModuleTest {
 
@@ -33,7 +36,8 @@ public class VectorModuleTest {
 
         VectorModule keyedModule = module.getDynamicAttribute("knowledge");
 
-        assertSame(store, keyedModule.getOperations().getEmbeddingStore());
+        assertStore(keyedModule.getOperations().getEmbeddingStore(), "knowledge");
+        assertNotSame(store, keyedModule.getOperations().getEmbeddingStore());
     }
 
     @Test
@@ -47,7 +51,7 @@ public class VectorModuleTest {
                 .execute(context);
 
         assertTrue(result instanceof VectorModule);
-        assertSame(store, ((VectorModule) result).getOperations().getEmbeddingStore());
+        assertStore(((VectorModule) result).getOperations().getEmbeddingStore(), "knowledge");
     }
 
     @Test
@@ -58,7 +62,7 @@ public class VectorModuleTest {
 
         VectorStoreOperations operations = module.getDynamicModule(new MagicScriptContext());
 
-        assertSame(store, operations.getEmbeddingStore());
+        assertStore(operations.getEmbeddingStore(), "default");
     }
 
     @Test
@@ -66,7 +70,7 @@ public class VectorModuleTest {
         EmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<TextSegment>();
         VectorModule module = new VectorModule(registryWith("knowledge", store, "knowledge"));
 
-        assertSame(store, module.getEmbeddingStore());
+        assertStore(module.getEmbeddingStore(), "default");
     }
 
     @Test
@@ -74,31 +78,32 @@ public class VectorModuleTest {
         EmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<TextSegment>();
         VectorModule module = new VectorModule(registryWith("knowledge", store, "knowledge"));
 
-        assertSame(store, module.getDynamicAttribute("knowledge").getEmbeddingStore());
+        assertStore(module.getDynamicAttribute("knowledge").getEmbeddingStore(), "knowledge");
     }
 
     @Test
     public void shouldRejectUnknownStoreKey() {
         VectorModule module = new VectorModule(registryWith("knowledge", new InMemoryEmbeddingStore<TextSegment>(), "knowledge"));
 
-        try {
-            module.getDynamicAttribute("unknown");
-            fail("Expected MagicAPIVectorException");
-        } catch (MagicAPIVectorException exception) {
-            assertTrue(exception.getMessage().contains("unknown"));
-        }
+        MagicAPIVectorException exception = assertThrows(MagicAPIVectorException.class,
+                () -> module.getDynamicAttribute("unknown"));
+        assertTrue(exception.getMessage().contains("unknown"));
     }
 
     @Test
     public void shouldRejectMissingDefaultStore() {
         VectorModule module = new VectorModule(registryWith(null, null, null));
 
-        try {
-            module.getDynamicModule(new MagicScriptContext());
-            fail("Expected MagicAPIVectorException");
-        } catch (MagicAPIVectorException exception) {
-            assertTrue(exception.getMessage().contains("default"));
-        }
+        MagicAPIVectorException exception = assertThrows(MagicAPIVectorException.class,
+                () -> module.getDynamicModule(new MagicScriptContext()));
+        assertTrue(exception.getMessage().contains("default"));
+    }
+
+    private void assertStore(AiEmbeddingStore store, String key) {
+        assertEquals(key, store.getKey());
+        assertEquals("langchain4j", store.getFramework());
+        assertEquals("langchain4j", store.getProvider());
+        assertEquals(AiEmbeddingStoreType.VECTOR, store.getType());
     }
 
     private EmbeddingStoreRegistry registryWith(String key, EmbeddingStore<TextSegment> store, String defaultKey) {

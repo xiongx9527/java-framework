@@ -1,25 +1,39 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.web;
 
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.DefaultEmbeddingStoreFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
-import org.junit.Test;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreFactory;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
+import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.model.JsonBean;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class MagicVectorControllerTest {
 
     @Test
+    public void controllerContractDoesNotExposeLangChain4jTypes() {
+        for (Field field : MagicVectorController.class.getDeclaredFields()) {
+            assertFalse(field.getGenericType().getTypeName().contains("langchain4j"));
+        }
+        for (Constructor<?> constructor : MagicVectorController.class.getDeclaredConstructors()) {
+            assertFalse(constructor.toGenericString().contains("langchain4j"));
+        }
+    }
+
+    @Test
     public void datasourceTestShouldRejectMissingProvider() {
-        EmbeddingStoreDefinition definition = new EmbeddingStoreDefinition();
+        AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
         definition.setKey("knowledge");
 
         JsonBean<Object> result = controller().test(definition);
@@ -30,7 +44,7 @@ public class MagicVectorControllerTest {
 
     @Test
     public void datasourceTestShouldRejectMissingKey() {
-        EmbeddingStoreDefinition definition = new EmbeddingStoreDefinition();
+        AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
         definition.setProvider("fake");
 
         JsonBean<Object> result = controller().test(definition);
@@ -41,9 +55,11 @@ public class MagicVectorControllerTest {
 
     @Test
     public void datasourceTestShouldReturnOkWhenProviderCreatesStore() {
-        EmbeddingStoreDefinition definition = new EmbeddingStoreDefinition();
+        AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
         definition.setKey("knowledge");
+        definition.setFramework("langchain4j");
         definition.setProvider("fake");
+        definition.setType(AiEmbeddingStoreType.VECTOR);
 
         JsonBean<Object> result = controller().test(definition);
 
@@ -51,21 +67,38 @@ public class MagicVectorControllerTest {
         assertEquals("ok", result.getData());
     }
 
-    private MagicVectorController controller() {
-        return new MagicVectorController(new MagicConfiguration(), new DefaultEmbeddingStoreFactory(),
-                Collections.<EmbeddingStoreProviderAdapter>singletonList(new FakeEmbeddingStoreProviderAdapter()));
+    @Test
+    public void datasourceTestShouldNotExposeCredentialsWhenFactoryFails() {
+        AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
+        definition.setKey("knowledge");
+        definition.setFramework("langchain4j");
+        definition.setProvider("fake");
+        definition.setType(AiEmbeddingStoreType.VECTOR);
+        java.util.Map<String, Object> properties = new LinkedHashMap<String, Object>();
+        properties.put("apiKey", "vector-secret");
+        definition.setProperties(properties);
+        MagicVectorController controller = new MagicVectorController(new MagicConfiguration(),
+                new AiEmbeddingStoreFactory() {
+                    @Override
+                    public AiEmbeddingStore create(AiEmbeddingStoreDefinition input,
+                                                   java.util.List<AiEmbeddingStoreAdapter> adapters) {
+                        throw new IllegalStateException("failed with " + input.getProperties().get("apiKey"));
+                    }
+                }, Collections.<AiEmbeddingStoreAdapter>emptyList());
+
+        JsonBean<Object> result = controller.test(definition);
+
+        assertEquals(-1, result.getCode());
+        assertFalse(String.valueOf(result).contains("vector-secret"));
     }
 
-    private static class FakeEmbeddingStoreProviderAdapter implements EmbeddingStoreProviderAdapter {
-
-        @Override
-        public boolean supports(String provider) {
-            return "fake".equals(provider);
-        }
-
-        @Override
-        public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition) {
-            return new InMemoryEmbeddingStore<TextSegment>();
-        }
+    private MagicVectorController controller() {
+        return new MagicVectorController(new MagicConfiguration(), new AiEmbeddingStoreFactory() {
+            @Override
+            public AiEmbeddingStore create(AiEmbeddingStoreDefinition definition,
+                                           java.util.List<AiEmbeddingStoreAdapter> adapters) {
+                return mock(AiEmbeddingStore.class);
+            }
+        }, Collections.<AiEmbeddingStoreAdapter>emptyList());
     }
 }

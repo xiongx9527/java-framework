@@ -3,8 +3,16 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.legacy;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.exception.MagicAPIVectorException;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module.VectorStoreOperations;
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingDocument;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingQuery;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingSearchResult;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+
+import java.util.List;
 
 public class LegacyVectorModuleSupport {
 
@@ -52,7 +60,32 @@ public class LegacyVectorModuleSupport {
     }
 
     private VectorStoreOperations operations(EmbeddingStore<TextSegment> embeddingStore) {
-        return new VectorStoreOperations(embeddingStore);
+        return new VectorStoreOperations(new LegacyStoreFacade(provider, embeddingStore));
+    }
+
+    private static final class LegacyStoreFacade implements AiEmbeddingStore {
+
+        private final String provider;
+        private final EmbeddingStore<TextSegment> store;
+
+        private LegacyStoreFacade(String provider, EmbeddingStore<TextSegment> store) {
+            this.provider = provider;
+            this.store = store;
+        }
+
+        @Override public String getKey() { return "legacy"; }
+        @Override public String getFramework() { return "langchain4j"; }
+        @Override public String getProvider() { return provider; }
+        @Override public AiEmbeddingStoreType getType() { return AiEmbeddingStoreType.VECTOR; }
+        @Override public String add(AiEmbeddingDocument document) { throw unsupported(); }
+        @Override public List<String> addAll(List<AiEmbeddingDocument> documents) { throw unsupported(); }
+        @Override public void remove(String id) { store.remove(id); }
+        @Override public void removeAll(List<String> ids) { store.removeAll(ids); }
+        @Override public AiEmbeddingSearchResult search(AiEmbeddingQuery query) { throw unsupported(); }
+
+        private AiEmbeddingStoreException unsupported() {
+            return new AiEmbeddingStoreException("Legacy vector facade only supports removal; migrate to the neutral registry");
+        }
     }
 
     private MagicAPIVectorException missingKey(String key) {
