@@ -26,6 +26,10 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDo
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -73,6 +77,44 @@ public class AskDataResumeFlowTest {
         assertEquals(1, fixture.metadataCalls);
         assertEquals(1, fixture.validatorCalls);
         assertEquals(0, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldNotRunSqlInterceptorsAgainWhenResumingValidatedCheckpoint() {
+        Fixture fixture = new Fixture();
+        final AskDataSqlAudit audit = new AskDataSqlAudit();
+        fixture.sqlInterceptorChain = new AskDataSqlInterceptorChain(Collections.singletonList(new AskDataSqlInterceptor() {
+            @Override
+            public String getKey() {
+                return "tenant-predicate";
+            }
+
+            @Override
+            public int getOrder() {
+                return 1;
+            }
+
+            @Override
+            public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+                return command.withSql(command.getSql() + " /* duplicate */");
+            }
+        }), new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator() {
+            @Override
+            public Result validate(AskDataSqlCommand command) {
+                return Result.success();
+            }
+        }, audit);
+        AskDataCheckpoint checkpoint = fixture.validatedCheckpoint("resume-non-idempotent-plugin", "1");
+        checkpoint.setSql("select * from orders where tenant_id = :tenantId limit 100");
+        fixture.store.save(checkpoint);
+
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-non-idempotent-plugin");
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertTrue(result.isSuccess());
+        assertEquals("select * from orders where tenant_id = :tenantId limit 100", fixture.executedSql);
+        assertTrue(audit.getRecords().isEmpty());
     }
 
     @Test
@@ -374,8 +416,10 @@ public class AskDataResumeFlowTest {
         private int modelCalls;
         private int validatorCalls;
         private int executorCalls;
+        private String executedSql;
         private boolean failExecution;
         private boolean rejectValidatedSql;
+        private AskDataSqlInterceptorChain sqlInterceptorChain;
 
         private Fixture() {
             properties.getSql().setExecuteEnabled(true);
@@ -490,6 +534,7 @@ public class AskDataResumeFlowTest {
                 @Override
                 public AskDataSqlExecutionResult execute(AskDataRequest request, String sql) {
                     executorCalls++;
+                    executedSql = sql;
                     if (failExecution) {
                         throw new IllegalStateException("connection lost after execute");
                     }
@@ -497,7 +542,8 @@ public class AskDataResumeFlowTest {
                 }
             };
             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
-                    promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, store, contextCompressor);
+                    promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, store, contextCompressor,
+                    null, Collections.<AskDataAgent>emptyList(), null, null, sqlInterceptorChain);
         }
     }
 

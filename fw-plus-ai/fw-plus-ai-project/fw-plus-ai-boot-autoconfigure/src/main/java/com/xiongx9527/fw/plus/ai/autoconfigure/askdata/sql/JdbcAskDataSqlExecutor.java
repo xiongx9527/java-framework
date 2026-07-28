@@ -5,14 +5,11 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataErrorCode;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementCreator;
-import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.PreparedStatementCallback;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterUtils;
-import org.springframework.jdbc.core.namedparam.ParsedSql;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -75,46 +72,45 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
                 ? request.getMaxRows().intValue() : defaultMaxRows;
         try {
             final SqlParameterSource parameterSource = parameterSource(request);
-            final ParsedSql parsedSql = NamedParameterUtils.parseSqlStatement(sql);
-            final String sqlToUse = NamedParameterUtils.substituteNamedParameters(parsedSql, parameterSource);
-            final Object[] values = NamedParameterUtils.buildValueArray(parsedSql, parameterSource, null);
-            return jdbcTemplate.query(new PreparedStatementCreator() {
+            NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+            return namedParameterJdbcTemplate.execute(sql, parameterSource,
+                    new PreparedStatementCallback<AskDataSqlExecutionResult>() {
                 @Override
-                public PreparedStatement createPreparedStatement(Connection connection) throws SQLException {
-                    PreparedStatement statement = connection.prepareStatement(sqlToUse);
+                public AskDataSqlExecutionResult doInPreparedStatement(PreparedStatement statement) throws SQLException {
                     statement.setMaxRows(maxRows);
-                    for (int index = 0; index < values.length; index++) {
-                        statement.setObject(index + 1, values[index]);
+                    ResultSet resultSet = statement.executeQuery();
+                    try {
+                        return extract(resultSet, maxRows);
+                    } finally {
+                        resultSet.close();
                     }
-                    return statement;
-                }
-            }, new ResultSetExtractor<AskDataSqlExecutionResult>() {
-                @Override
-                public AskDataSqlExecutionResult extractData(ResultSet resultSet) throws SQLException {
-                    ResultSetMetaData metadata = resultSet.getMetaData();
-                    int columnCount = metadata.getColumnCount();
-                    List<AskDataColumn> columns = new ArrayList<AskDataColumn>(columnCount);
-                    for (int index = 1; index <= columnCount; index++) {
-                        AskDataColumn column = new AskDataColumn();
-                        column.setName(metadata.getColumnLabel(index));
-                        column.setLabel(metadata.getColumnLabel(index));
-                        column.setType(metadata.getColumnTypeName(index));
-                        columns.add(column);
-                    }
-                    List<Map<String, Object>> rows = new ArrayList<Map<String, Object>>();
-                    while (rows.size() < maxRows && resultSet.next()) {
-                        Map<String, Object> row = new LinkedHashMap<String, Object>();
-                        for (int index = 1; index <= columnCount; index++) {
-                            row.put(columns.get(index - 1).getName(), resultSet.getObject(index));
-                        }
-                        rows.add(row);
-                    }
-                    return AskDataSqlExecutionResult.success(columns, rows);
                 }
             });
         } catch (Exception ex) {
             return AskDataSqlExecutionResult.failure(AskDataErrorCode.SQL_EXECUTION_FAILED, ex.getMessage());
         }
+    }
+
+    private AskDataSqlExecutionResult extract(ResultSet resultSet, int maxRows) throws SQLException {
+        ResultSetMetaData metadata = resultSet.getMetaData();
+        int columnCount = metadata.getColumnCount();
+        List<AskDataColumn> columns = new ArrayList<AskDataColumn>(columnCount);
+        for (int index = 1; index <= columnCount; index++) {
+            AskDataColumn column = new AskDataColumn();
+            column.setName(metadata.getColumnLabel(index));
+            column.setLabel(metadata.getColumnLabel(index));
+            column.setType(metadata.getColumnTypeName(index));
+            columns.add(column);
+        }
+        List<Map<String, Object>> rows = new ArrayList<Map<String, Object>>();
+        while (rows.size() < maxRows && resultSet.next()) {
+            Map<String, Object> row = new LinkedHashMap<String, Object>();
+            for (int index = 1; index <= columnCount; index++) {
+                row.put(columns.get(index - 1).getName(), resultSet.getObject(index));
+            }
+            rows.add(row);
+        }
+        return AskDataSqlExecutionResult.success(columns, rows);
     }
 
     private SqlParameterSource parameterSource(AskDataRequest request) {
