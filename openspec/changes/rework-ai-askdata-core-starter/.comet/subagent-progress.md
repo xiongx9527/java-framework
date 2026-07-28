@@ -2,15 +2,15 @@
 
 ## 当前任务
 
-- Plan task: `Task 16: 编写 SQLBot/WrenAI 功能矩阵和测试用例文档`
-- OpenSpec task mapping: 文档类任务（覆盖 SQLBot/WrenAI 功能矩阵、实现状态和测试用例）
+- Plan task: `Task 17: 运行聚合验证并更新 OpenSpec 任务状态`
+- OpenSpec task mapping: 聚合验证后勾选有对应代码、文档和测试证据的 OpenSpec 任务
 - Stage: `implementing`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `c01db8e0968504bdf61e679cfc6c36da1c848f40`
+- Base commit: `460e974731bb75b8856dcbc720545576bbf940a0`
 - Implementer commit: `待派发`
-- Task brief: `.superpowers/sdd/task-16-brief.md`
-- Implementer report: `.superpowers/sdd/task-16-report.md`
+- Task brief: `.superpowers/sdd/task-17-brief.md`
+- Implementer report: `.superpowers/sdd/task-17-report.md`
 
 ## 派发记录
 
@@ -110,3 +110,4 @@
 - 2026-07-28：恢复时发现 Task 16 实现已提交为 `fadb0863`，创建 `docs/askdata/starter/sqlbot-wrenai-feature-matrix.md` 和 `docs/askdata/starter/test-cases.md`，未修改 `feature-list.md`。报告记录 SQLBot 77 行、WrenAI 59 行，总计 136 行。
 - 2026-07-28：协调者只读核验：关键词检查 `rg -n "SQLBot|WrenAI|Java 17|DataEase|MCP|Dify|Coze|n8n|企业微信|钉钉|飞书" docs/askdata/starter/sqlbot-wrenai-feature-matrix.md` 命中全部名称；占位符扫描 `rg -n "T[B]D|T[O]DO|待[补]|占[位]" docs/askdata/starter/sqlbot-wrenai-feature-matrix.md docs/askdata/starter/test-cases.md` 无输出；矩阵 SQLBot 77 行、WrenAI 59 行且数据行列数一致。
 - 2026-07-28：Task 16 reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。已勾选 plan 中 Task 16 的 4 个 step；OpenSpec 7.7/7.8/7.12 留到 Task 17 聚合验证后统一勾选。
+- 2026-07-28：准备派发 Task 17 implementer。允许修改范围限定为 `openspec/changes/rework-ai-askdata-core-starter/tasks.md`、`docs/askdata/starter/**` 的验证状态行（如确需更新）以及 `.superpowers/sdd/task-17-report.md`；必须运行 Core 测试、AI 自动配置 AskData 测试、Starter 打包和文档占位符检查，并只勾选有代码、文档和测试证据的 OpenSpec tasks。禁止修改源码、TinyEngine、tiny-engine-backend-java、`.cc-connect` 和旧 `.superpowers` 草稿。
