@@ -23,9 +23,9 @@
 
 ## OpenSpec 状态
 
-已勾选：1.7；7.0、7.1、7.2、7.3、7.4、7.5、7.6、7.7、7.8、7.9、7.10、7.11、7.12、7.13。
+已勾选：1.7；7.0、7.1、7.2、7.4、7.6、7.7、7.8、7.9、7.10、7.11、7.12、7.13。
 
-依据：Core 定向测试 52 项全绿；AI 自动配置 AskData 回归修复后 112 项全绿；Task 15/16 已审查通过的 Starter 文档、SQLBot/WrenAI 矩阵和测试用例文档均存在，且本次占位符扫描无输出。未勾选 Starter 集成、共享存储、外部导出及后续运行时能力，因为缺少完整实现或不属于本批次可验证范围。
+依据：Core 定向测试 52 项全绿；AI 自动配置 AskData 回归修复后 112 项全绿；Task 15/16 已审查通过的 Starter 文档、SQLBot/WrenAI 矩阵和测试用例文档均存在，且本次占位符扫描无输出。未勾选 7.3 和 7.5，因为当前验证只证明对应文档存在且无占位符，尚未提供“可编译示例”或文档 Java/配置示例逐项验证命令。未勾选 Starter 集成、共享存储、外部导出及后续运行时能力，因为缺少完整实现或不属于本批次可验证范围。
 
 | OpenSpec task | 勾选证据 |
 | --- | --- |
@@ -33,9 +33,7 @@
 | 7.0 | `openspec/changes/rework-ai-askdata-core-starter/feature-list.md` 作为事实源；`docs/askdata/starter/sqlbot-wrenai-feature-matrix.md` 逐项映射 SQLBot 77 行、WrenAI 59 行。 |
 | 7.1 | `docs/askdata/starter/index.md` 与设计文档说明 Core、LangChain4j 适配、Starter、默认实现、业务覆盖边界和依赖关系。 |
 | 7.2 | `docs/askdata/starter/configuration.md` 与 `docs/askdata/starter/index.md` 覆盖快速开始、Ollama 默认模型、配置属性、单机/集群限制和安全注意事项。 |
-| 7.3 | `docs/askdata/starter/runtime-replacement.md`、`storage-matrix.md`、`sql-safety.md` 说明模型/向量/SQL/Agent/存储/观测插件替换、能力 key、Bean/SPI 覆盖和验证要求。 |
 | 7.4 | `docs/askdata/starter/sql-safety.md`、`flow-diagrams.md`、`storage-matrix.md` 覆盖 Doris SQL 安全、多问题/恢复、长期记忆、项目/操作人隔离、管理员监控日志和 LangSmith/Langfuse/OTel 观测边界。 |
-| 7.5 | `docs/askdata/starter/storage-matrix.md` 覆盖内存、JDBC/Redis/业务共享存储矩阵、迁移、故障恢复、容量和脱敏建议。 |
 | 7.6 | `docs/askdata/starter/sqlbot-wrenai-feature-matrix.md` 标注每项能力的模块、API/配置、存储、文档、测试、状态和限制，明确后续实现项。 |
 | 7.7 | `docs/askdata/starter/sqlbot-wrenai-feature-matrix.md` 覆盖 SQLBot 部署、项目、数据源、问数、仪表板、小助手、权限、术语、模型、训练、MCP、嵌入、DataEase、X-Pack、企业微信、钉钉、飞书和操作日志。 |
 | 7.8 | `docs/askdata/starter/sqlbot-wrenai-feature-matrix.md` 覆盖 WrenAI Text-to-SQL、Text-to-Chart、AI 摘要/报告、MDL、连接器、模型、语义索引、推荐、evaluation、dry-plan/dry-run、任务、dashboard 和遥测。 |

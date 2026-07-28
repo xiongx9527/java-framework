@@ -62,9 +62,9 @@
 - [x] 7.0 将 `feature-list.md` 作为 SQLBot 与 WrenAI 全功能清单事实源维护，并在正式说明文档中生成可追踪矩阵；每项功能必须记录来源、归属 change、模块、接口/配置、存储、文档、测试、状态和限制。
 - [x] 7.1 编写详细中文架构与模块文档，说明 Core、LangChain4j 适配、Starter、默认实现、业务覆盖边界和依赖关系。
 - [x] 7.2 编写快速开始、最小 Ollama 示例和完整配置属性参考；每项属性注明默认值、范围、单机/集群限制、失败表现和安全注意事项。
-- [x] 7.3 编写动态模型路由、候选/兜底、模型/向量/SQL/Agent/存储/观测插件 SDK、业务完整覆盖默认实现的开发文档和可编译示例。
+- [ ] 7.3 编写动态模型路由、候选/兜底、模型/向量/SQL/Agent/存储/观测插件 SDK、业务完整覆盖默认实现的开发文档和可编译示例。
 - [x] 7.4 编写 Doris SQL 安全、多 Agent、多提问、长期记忆、项目/操作人隔离、管理员监控日志、LangSmith/Langfuse、恢复和集群运维文档。
-- [x] 7.5 编写存储能力矩阵、迁移指南、故障恢复、排障、容量和脱敏建议，并验证文档中的 Java 与配置示例。
+- [ ] 7.5 编写存储能力矩阵、迁移指南、故障恢复、排障、容量和脱敏建议，并验证文档中的 Java 与配置示例。
 - [x] 7.6 维护 Starter 已实现功能清单，逐项标注模块、版本、公开配置/API、单机/集群支持、验证证据与限制，并将未实现或后续 change 能力单独列出。
 - [x] 7.7 建立并持续维护 SQLBot v1 全功能追踪矩阵，将 SQLBot 开源项目和 v1 文档的每项功能映射至本批次 change、实现模块、文档和验证证据；至少覆盖部署/命令行、工作空间/项目、数据源、智能问数、仪表板、小助手、权限、术语、模型配置、模型接入、训练检索、SQL 示例、Prompt、MCP Server、嵌入式对接、DataEase 接入、X-Pack 登录认证、平台对接、企业微信、钉钉、飞书、参数配置、外观设置和操作日志；矩阵存在缺项时不得宣称功能完整。
 - [x] 7.8 建立并持续维护 WrenAI 企业级 GenBI 全功能追踪矩阵，将自然语言问数、Text-to-SQL、Text-to-Chart、AI 摘要/报告、可嵌入 API、MDL 语义层、模型/列/关系/指标/视图、deploy manifest、数据源连接器、模型接入、语义索引、语义描述、关系推荐、问题推荐、instructions、SQL pair、ask feedback、evaluation、dry-plan、dry-run、metadata constraints、validate、model substitute、preview data、任务轮询、dashboard 和遥测映射至本批次 change、实现模块、文档和验证证据；与 SQLBot 重复时标记 SQLBot 优先。
