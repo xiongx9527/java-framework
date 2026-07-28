@@ -3,7 +3,7 @@
 - Completed history: Task 1 `72b82393`；Task 2 `66d95573`；Task 3 `4d94882a`；Task 4 `191f5694`；Task 5 commits `3c9258f4`、`03548cea`、`4780c3c1`，两轮 thorough 修复复审通过，协调提交 `af1471fd`。
 - Plan task: `Task 6: 执行分层构建与独立 sample 进程验证`
 - OpenSpec mapping: `3. 按 Core -> Boot -> Cloud/AI -> sample 完成分层构建，运行相关测试，并实际启动 sample 检查健康、Magic-API 宿主及全部插件装配结果。`
-- Stage: `blocked`
+- Stage: `implementing`
 - Implementer: `/root/task6_full_verification`。
 - Dispatch requirements: SDD `task-6-brief.md`；只读预检 `task-6-preflight.md`；实现报告写入 `task-6-report.md`。
 - Review mode: `thorough`
@@ -18,3 +18,5 @@
 - AI full-build RED: `LangChain4jAutoConfigurationRegistrationTest.shouldKeepModelStarterProviderSdkDependenciesOptIn` 失败，92 tests 中 1 failure；日志 `/tmp/fw-plus-magicapi-task6-ai-clean-install.log`。
 - Root cause correction: archived `langchain4j-model-module` spec 与 task 3.4 要求 model starter 直接依赖 `fw-plus-ai-boot-starter` 和 `fw-plus-ai-langchain4j-model`，不要求冗余直连 `fw-plus-ai-boot-autoconfigure`；commit `648d5f3a` 删除该直连后，`REQUIRED_STARTER_DEPENDENCIES` 未同步，故缺陷在过期测试契约而非 POM。
 - Recovery action: 已派 `/root/task6_ai_contract_fix` 仅同步测试清单并取得 targeted/autoconfigure GREEN；通过后恢复 Task 6，从 AI `clean install` 起继续，不重跑已通过 Core/Boot/Cloud。
+- AI contract fix: `de9b09ac test(ai): align model starter dependency contract`，仅修改 `LangChain4jAutoConfigurationRegistrationTest`；targeted 1/1、autoconfigure 92/92 GREEN，未修改 POM/生产源码。
+- Resume action: 恢复 `/root/task6_full_verification`，从 AI `clean install` 继续执行 sample 聚合、安装后 sample 与独立进程验证。
