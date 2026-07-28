@@ -2,6 +2,10 @@ package com.xiongx9527.fw.plus.ai.askdata.storage;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * AskData Agent 状态存储 SPI。
  *
@@ -32,10 +36,37 @@ public interface AskDataAgentStateStore {
 
 		private final String status;
 		private final String stage;
+		private final String compressedContext;
+		private final ContextCompressionStatus contextCompressionStatus;
+		private final List<NodeState> nodes;
+		private final List<SubTaskState> subTasks;
+		private final List<String> plan;
+		private final List<ToolSummary> toolSummaries;
+		private final List<ModelRouteAttempt> modelRouteAttempts;
+		private final List<StepLog> stepLogs;
 
 		public AgentState(String status, String stage) {
+			this(status, stage, null, ContextCompressionStatus.NOT_COMPRESSED, Collections.<NodeState>emptyList(),
+					Collections.<SubTaskState>emptyList(), Collections.<String>emptyList(),
+					Collections.<ToolSummary>emptyList(), Collections.<ModelRouteAttempt>emptyList(),
+					Collections.<StepLog>emptyList());
+		}
+
+		public AgentState(String status, String stage, String compressedContext,
+				ContextCompressionStatus contextCompressionStatus, List<NodeState> nodes, List<SubTaskState> subTasks,
+				List<String> plan, List<ToolSummary> toolSummaries, List<ModelRouteAttempt> modelRouteAttempts,
+				List<StepLog> stepLogs) {
 			this.status = status;
 			this.stage = stage;
+			this.compressedContext = compressedContext;
+			this.contextCompressionStatus = contextCompressionStatus == null ? ContextCompressionStatus.NOT_COMPRESSED
+					: contextCompressionStatus;
+			this.nodes = immutableCopy(nodes);
+			this.subTasks = immutableCopy(subTasks);
+			this.plan = immutableCopy(plan);
+			this.toolSummaries = immutableCopy(toolSummaries);
+			this.modelRouteAttempts = immutableCopy(modelRouteAttempts);
+			this.stepLogs = immutableCopy(stepLogs);
 		}
 
 		public String getStatus() {
@@ -45,5 +76,46 @@ public interface AskDataAgentStateStore {
 		public String getStage() {
 			return stage;
 		}
+
+		public String getCompressedContext() { return compressedContext; }
+		public ContextCompressionStatus getContextCompressionStatus() { return contextCompressionStatus; }
+		public List<NodeState> getNodes() { return nodes; }
+		public List<SubTaskState> getSubTasks() { return subTasks; }
+		public List<String> getPlan() { return plan; }
+		public List<ToolSummary> getToolSummaries() { return toolSummaries; }
+		public List<ModelRouteAttempt> getModelRouteAttempts() { return modelRouteAttempts; }
+		public List<StepLog> getStepLogs() { return stepLogs; }
+
+		private static <T> List<T> immutableCopy(List<T> values) {
+			return values == null ? Collections.<T>emptyList() : Collections.unmodifiableList(new ArrayList<T>(values));
+		}
+	}
+
+	enum ContextCompressionStatus { NOT_COMPRESSED, COMPRESSING, COMPRESSED, FAILED }
+
+	class NodeState {
+		private final String nodeId; private final String status;
+		public NodeState(String nodeId, String status) { this.nodeId = nodeId; this.status = status; }
+		public String getNodeId() { return nodeId; } public String getStatus() { return status; }
+	}
+	class SubTaskState {
+		private final String taskId; private final String name; private final String status;
+		public SubTaskState(String taskId, String name, String status) { this.taskId = taskId; this.name = name; this.status = status; }
+		public String getTaskId() { return taskId; } public String getName() { return name; } public String getStatus() { return status; }
+	}
+	class ToolSummary {
+		private final String toolName; private final String status; private final String summary;
+		public ToolSummary(String toolName, String status, String summary) { this.toolName = toolName; this.status = status; this.summary = summary; }
+		public String getToolName() { return toolName; } public String getStatus() { return status; } public String getSummary() { return summary; }
+	}
+	class ModelRouteAttempt {
+		private final String modelKey; private final String status; private final String detail;
+		public ModelRouteAttempt(String modelKey, String status, String detail) { this.modelKey = modelKey; this.status = status; this.detail = detail; }
+		public String getModelKey() { return modelKey; } public String getStatus() { return status; } public String getDetail() { return detail; }
+	}
+	class StepLog {
+		private final String step; private final String status; private final String detail;
+		public StepLog(String step, String status, String detail) { this.step = step; this.status = status; this.detail = detail; }
+		public String getStep() { return step; } public String getStatus() { return status; } public String getDetail() { return detail; }
 	}
 }

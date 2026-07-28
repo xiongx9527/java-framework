@@ -21,6 +21,9 @@ public final class InMemoryAskDataStores {
 	private final ConcurrentMap<ScopeKey, ConcurrentMap<String, AskDataConversationStore.Conversation>> conversations = new ConcurrentHashMap<ScopeKey, ConcurrentMap<String, AskDataConversationStore.Conversation>>();
 	private final ConcurrentMap<ScopeKey, ConcurrentMap<String, AskDataCheckpointStore.Checkpoint>> checkpoints = new ConcurrentHashMap<ScopeKey, ConcurrentMap<String, AskDataCheckpointStore.Checkpoint>>();
 	private final ConcurrentMap<ScopeKey, ConcurrentMap<String, AskDataAgentStateStore.AgentState>> agentStates = new ConcurrentHashMap<ScopeKey, ConcurrentMap<String, AskDataAgentStateStore.AgentState>>();
+	private final ConcurrentMap<ScopeKey, ConcurrentMap<String, Lease>> leases = new ConcurrentHashMap<ScopeKey, ConcurrentMap<String, Lease>>();
+	private final ConcurrentMap<ScopeKey, ConcurrentMap<String, AskDataIdempotencyKeyStore.IdempotencyRecord>> idempotencyKeys = new ConcurrentHashMap<ScopeKey, ConcurrentMap<String, AskDataIdempotencyKeyStore.IdempotencyRecord>>();
+	private final ConcurrentMap<ScopeKey, ConcurrentMap<String, AskDataAuditStateStore.AuditState>> auditStates = new ConcurrentHashMap<ScopeKey, ConcurrentMap<String, AskDataAuditStateStore.AuditState>>();
 	private final ConcurrentMap<ScopeKey, List<AskDataMonitoringLogStore.MonitoringLog>> monitoringLogs = new ConcurrentHashMap<ScopeKey, List<AskDataMonitoringLogStore.MonitoringLog>>();
 
 	private final AskDataConversationStore conversationStore = new AskDataConversationStore() {
@@ -65,6 +68,49 @@ public final class InMemoryAskDataStores {
 		public AgentState load(AskDataProjectContext context, String agentId) {
 			ConcurrentMap<String, AgentState> values = agentStates.get(scope(context));
 			return values == null ? null : values.get(requireId(agentId));
+		}
+	};
+
+	private final AskDataLeaseStore leaseStore = new AskDataLeaseStore() {
+		@Override
+		public boolean tryAcquire(AskDataProjectContext context, String resourceId, final String ownerId, long leaseDurationMillis) {
+			if (leaseDurationMillis < 1) { throw new IllegalArgumentException("leaseDurationMillis 必须大于 0"); }
+			final String checkedOwnerId = requireId(ownerId);
+			final long expiresAt = System.currentTimeMillis() + leaseDurationMillis;
+			final boolean[] acquired = new boolean[1];
+			mapFor(leases, context).compute(requireId(resourceId), (id, previous) -> {
+				if (previous == null || previous.expiresAt <= System.currentTimeMillis() || checkedOwnerId.equals(previous.ownerId)) {
+					acquired[0] = true; return new Lease(checkedOwnerId, expiresAt);
+				}
+				return previous;
+			});
+			return acquired[0];
+		}
+		@Override
+		public boolean release(AskDataProjectContext context, String resourceId, String ownerId) {
+			return mapFor(leases, context).remove(requireId(resourceId), new Lease(requireId(ownerId), 0L));
+		}
+	};
+
+	private final AskDataIdempotencyKeyStore idempotencyKeyStore = new AskDataIdempotencyKeyStore() {
+		@Override
+		public boolean recordIfAbsent(AskDataProjectContext context, String idempotencyKey, IdempotencyRecord record) {
+			return mapFor(idempotencyKeys, context).putIfAbsent(requireId(idempotencyKey), requireValue(record, "idempotencyRecord")) == null;
+		}
+		@Override
+		public IdempotencyRecord load(AskDataProjectContext context, String idempotencyKey) {
+			ConcurrentMap<String, IdempotencyRecord> values = idempotencyKeys.get(scope(context));
+			return values == null ? null : values.get(requireId(idempotencyKey));
+		}
+	};
+
+	private final AskDataAuditStateStore auditStateStore = new AskDataAuditStateStore() {
+		@Override
+		public void save(AskDataProjectContext context, String auditId, AuditState state) { mapFor(auditStates, context).put(requireId(auditId), requireValue(state, "auditState")); }
+		@Override
+		public AuditState load(AskDataProjectContext context, String auditId) {
+			ConcurrentMap<String, AuditState> values = auditStates.get(scope(context));
+			return values == null ? null : values.get(requireId(auditId));
 		}
 	};
 
@@ -124,6 +170,10 @@ public final class InMemoryAskDataStores {
 	public AskDataAgentStateStore agentStates() {
 		return agentStateStore;
 	}
+
+	public AskDataLeaseStore leases() { return leaseStore; }
+	public AskDataIdempotencyKeyStore idempotencyKeys() { return idempotencyKeyStore; }
+	public AskDataAuditStateStore auditStates() { return auditStateStore; }
 
 	public AskDataMonitoringLogStore monitoringLogs() {
 		return monitoringLogStore;
@@ -188,5 +238,12 @@ public final class InMemoryAskDataStores {
 		public int hashCode() {
 			return 31 * projectId.hashCode() + operatorId.hashCode();
 		}
+	}
+
+	private static final class Lease {
+		private final String ownerId; private final long expiresAt;
+		private Lease(String ownerId, long expiresAt) { this.ownerId = ownerId; this.expiresAt = expiresAt; }
+		@Override public boolean equals(Object object) { return object instanceof Lease && ownerId.equals(((Lease) object).ownerId); }
+		@Override public int hashCode() { return ownerId.hashCode(); }
 	}
 }
