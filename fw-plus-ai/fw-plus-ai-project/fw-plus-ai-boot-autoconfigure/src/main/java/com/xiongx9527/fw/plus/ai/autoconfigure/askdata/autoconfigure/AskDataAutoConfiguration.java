@@ -20,6 +20,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.EmptyAskDataMeta
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.LangChain4jAskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.LangChain4jAskDataModelSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataMemoryRecallAdapter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataRecommendationAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialectRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataPromptTemplateProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.DefaultAskDataPromptTemplateProvider;
@@ -31,6 +33,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetri
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.CompositeAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.ContentRetrieverAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
+import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory;
+import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataMonitoringLogAccessPolicy;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore;
@@ -66,6 +70,39 @@ public class AskDataAutoConfiguration {
 	public AskDataProperties askDataProperties() {
 		return new AskDataProperties();
 	}
+
+    /**
+     * 创建单节点默认长期记忆 SPI；业务可替换为持久化实现。
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataLongTermMemory askDataLongTermMemory(AskDataProperties properties) {
+        validateLocalStateConfiguration(properties);
+        return AskDataLongTermMemory.inMemory();
+    }
+
+    /**
+     * 创建单节点默认个人推荐 SPI；推荐始终由 Core 按项目和操作人隔离。
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataRecommendationService askDataRecommendationService(AskDataProperties properties) {
+        validateLocalStateConfiguration(properties);
+        return AskDataRecommendationService.inMemory();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataMemoryRecallAdapter askDataMemoryRecallAdapter(AskDataLongTermMemory memory) {
+        return new AskDataMemoryRecallAdapter(memory);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataRecommendationAdapter askDataRecommendationAdapter(
+            AskDataRecommendationService recommendationService) {
+        return new AskDataRecommendationAdapter(recommendationService);
+    }
 
     /**
      * 暴露默认的 Core 会话存储，供新 Core API 使用。
