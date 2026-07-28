@@ -23,34 +23,49 @@ public class DefaultEmbeddingStoreFactory implements EmbeddingStoreFactory, AiEm
     private static final String METADATA_KEYS = "metadataKeys";
 
     private final List<EmbeddingStoreProviderAdapter> providerAdapters;
+    private final FailureCapture failureCapture;
 
     public DefaultEmbeddingStoreFactory() {
         this(Collections.<EmbeddingStoreProviderAdapter>emptyList());
     }
 
     public DefaultEmbeddingStoreFactory(List<EmbeddingStoreProviderAdapter> providerAdapters) {
+        this(providerAdapters, null);
+    }
+
+    private DefaultEmbeddingStoreFactory(List<EmbeddingStoreProviderAdapter> providerAdapters,
+                                         FailureCapture failureCapture) {
         this.providerAdapters = providerAdapters == null
                 ? Collections.<EmbeddingStoreProviderAdapter>emptyList()
                 : Collections.unmodifiableList(new ArrayList<EmbeddingStoreProviderAdapter>(providerAdapters));
+        this.failureCapture = failureCapture;
     }
 
     @Override
     public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition,
                                               List<EmbeddingStoreProviderAdapter> adapters) {
+        FailureCapture capture = new FailureCapture();
         try {
             AiEmbeddingStore store = new DefaultAiEmbeddingStoreFactory().create(toNeutral(definition),
-                    Collections.<AiEmbeddingStoreAdapter>singletonList(new DefaultEmbeddingStoreFactory(adapters)));
+                    Collections.<AiEmbeddingStoreAdapter>singletonList(
+                            new DefaultEmbeddingStoreFactory(adapters, capture)));
             return ((LangChain4jAiEmbeddingStore) store).nativeStore();
         } catch (AiEmbeddingStoreException e) {
-            throw new EmbeddingStoreException(e.getMessage(), e.getCause());
+            throw new EmbeddingStoreException(e.getMessage(),
+                    capture.getFailure() == null ? e.getCause() : capture.getFailure());
         }
     }
 
     @Override
     public boolean supports(AiEmbeddingStoreDefinition definition) {
-        return definition != null
-                && FRAMEWORK.equalsIgnoreCase(definition.getFramework())
-                && findAdapter(definition.getProvider()) != null;
+        try {
+            return definition != null
+                    && FRAMEWORK.equalsIgnoreCase(definition.getFramework())
+                    && findAdapter(definition.getProvider()) != null;
+        } catch (RuntimeException e) {
+            capture(e);
+            throw e;
+        }
     }
 
     @Override
@@ -66,10 +81,12 @@ public class DefaultEmbeddingStoreFactory implements EmbeddingStoreFactory, AiEm
         try {
             nativeStore = adapter.create(toLegacy(definition));
         } catch (RuntimeException e) {
+            capture(e);
             throw new AiEmbeddingStoreException("LangChain4j store provider adapter failed: "
-                    + context(definition) + ", causeType=" + e.getClass().getName());
+                    + context(definition) + ", causeType=" + e.getClass().getName(), e);
         }
         if (nativeStore == null) {
+            capture(new IllegalStateException("Adapter returned null embedding store"));
             throw new AiEmbeddingStoreException("LangChain4j store provider adapter returned null: "
                     + context(definition));
         }
@@ -139,5 +156,26 @@ public class DefaultEmbeddingStoreFactory implements EmbeddingStoreFactory, AiEm
                 + ", framework=" + definition.getFramework()
                 + ", provider=" + definition.getProvider()
                 + ", type=" + definition.getType();
+    }
+
+    private void capture(RuntimeException failure) {
+        if (failureCapture != null) {
+            failureCapture.capture(failure);
+        }
+    }
+
+    private static final class FailureCapture {
+
+        private RuntimeException failure;
+
+        private void capture(RuntimeException failure) {
+            if (this.failure == null) {
+                this.failure = failure;
+            }
+        }
+
+        private RuntimeException getFailure() {
+            return failure;
+        }
     }
 }

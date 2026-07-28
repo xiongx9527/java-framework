@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingSearchResult;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingVector;
 import dev.langchain4j.data.embedding.Embedding;
@@ -33,19 +34,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class DefaultEmbeddingStoreFactoryTest {
 
     @Test
-    public void shouldExposeCompleteNeutralStoreWithoutNativeAccessor() {
+    public void shouldPreserveDocumentContentOrRejectUnsupportedExplicitId() {
         FakeEmbeddingStore nativeStore = new FakeEmbeddingStore();
         AiEmbeddingStoreAdapter adapter = new DefaultEmbeddingStoreFactory(
                 Collections.<EmbeddingStoreProviderAdapter>singletonList(new FakeAdapter("milvus-compatible", nativeStore)));
         AiEmbeddingStoreDefinition definition = neutralDefinition("knowledge.alias", "milvus-compatible");
 
         AiEmbeddingStore store = adapter.create(definition);
-        AiEmbeddingDocument document = new AiEmbeddingDocument("doc-1", "hello",
+        AiEmbeddingDocument document = new AiEmbeddingDocument(null, "hello",
                 Collections.<String, Object>singletonMap("tenant", "demo"),
                 new AiEmbeddingVector(new float[]{1.0f, 2.0f}));
 
-        assertEquals("doc-1", store.add(document));
-        assertEquals(Collections.singletonList("doc-1"), store.addAll(Collections.singletonList(document)));
+        assertEquals("generated-1", store.add(document));
+        assertEquals(Collections.singletonList("generated-2"), store.addAll(Collections.singletonList(document)));
         store.remove("doc-1");
         store.removeAll(Arrays.asList("doc-1", "doc-2"));
         AiEmbeddingSearchResult result = store.search(
@@ -55,12 +56,24 @@ public class DefaultEmbeddingStoreFactoryTest {
         assertEquals("langchain4j", store.getFramework());
         assertEquals("milvus-compatible", store.getProvider());
         assertEquals(AiEmbeddingStoreType.VECTOR, store.getType());
+        assertArrayEquals(new float[]{1.0f, 2.0f}, nativeStore.addedEmbedding.vector());
+        assertEquals("hello", nativeStore.addedSegment.text());
+        assertEquals("demo", nativeStore.addedSegment.metadata().getString("tenant"));
         assertArrayEquals(new float[]{1.0f, 2.0f}, nativeStore.searchRequest.queryEmbedding().vector());
         assertEquals(3, nativeStore.searchRequest.maxResults());
         assertEquals(0.7, nativeStore.searchRequest.minScore());
         assertEquals("match-1", result.getMatches().get(0).getEmbeddingId());
         assertEquals("matched", result.getMatches().get(0).getDocument().getText());
         assertFalse(hasPublicNativeAccessor(store));
+
+        AiEmbeddingDocument explicitId = new AiEmbeddingDocument("doc-1", "must-not-be-lost",
+                Collections.<String, Object>singletonMap("tenant", "secret"),
+                new AiEmbeddingVector(new float[]{1.0f, 2.0f}));
+        AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
+                () -> store.add(explicitId));
+
+        assertTrue(exception.getMessage().contains("explicit id"));
+        assertEquals(0, nativeStore.addWithIdCalls);
     }
 
     @Test
@@ -95,12 +108,14 @@ public class DefaultEmbeddingStoreFactoryTest {
 
         assertTrue(exception.getMessage().contains("milvus"));
         assertTrue(exception.getMessage().contains("knowledge"));
+        assertSame(((FakeAdapter) adapter).failure, exception.getCause());
+        assertFalse(exception.getMessage().contains(((FakeAdapter) adapter).failure.getMessage()));
     }
 
     @Test
     public void shouldIncludeProviderAndKeyWhenAdapterSupportCheckFails() {
         EmbeddingStoreDefinition definition = definition("knowledge", "milvus");
-        EmbeddingStoreProviderAdapter adapter = new FailingSupportAdapter();
+        FailingSupportAdapter adapter = new FailingSupportAdapter();
         EmbeddingStoreFactory factory = new DefaultEmbeddingStoreFactory();
 
         EmbeddingStoreException exception = assertThrows(EmbeddingStoreException.class,
@@ -108,6 +123,8 @@ public class DefaultEmbeddingStoreFactoryTest {
 
         assertTrue(exception.getMessage().contains("milvus"));
         assertTrue(exception.getMessage().contains("knowledge"));
+        assertSame(adapter.failure, exception.getCause());
+        assertFalse(exception.getMessage().contains(adapter.failure.getMessage()));
     }
 
     private EmbeddingStoreDefinition definition(String key, String provider) {
@@ -143,6 +160,7 @@ public class DefaultEmbeddingStoreFactoryTest {
 
         private final String provider;
         private final EmbeddingStore<TextSegment> store;
+        private final IllegalStateException failure = new IllegalStateException("sensitive adapter failure");
 
         private FakeAdapter(String provider, EmbeddingStore<TextSegment> store) {
             this.provider = provider;
@@ -157,7 +175,7 @@ public class DefaultEmbeddingStoreFactoryTest {
         @Override
         public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition) {
             if (store == null) {
-                throw new IllegalStateException("adapter failure");
+                throw failure;
             }
             return store;
         }
@@ -165,9 +183,11 @@ public class DefaultEmbeddingStoreFactoryTest {
 
     private static class FailingSupportAdapter implements EmbeddingStoreProviderAdapter {
 
+        private final IllegalStateException failure = new IllegalStateException("sensitive support failure");
+
         @Override
         public boolean supports(String provider) {
-            throw new IllegalStateException("adapter support failure");
+            throw failure;
         }
 
         @Override
@@ -179,6 +199,10 @@ public class DefaultEmbeddingStoreFactoryTest {
     private static class FakeEmbeddingStore implements EmbeddingStore<TextSegment> {
 
         private EmbeddingSearchRequest searchRequest;
+        private Embedding addedEmbedding;
+        private TextSegment addedSegment;
+        private int addWithIdCalls;
+        private int generatedIdSequence;
 
         @Override
         public String add(Embedding embedding) {
@@ -187,11 +211,14 @@ public class DefaultEmbeddingStoreFactoryTest {
 
         @Override
         public void add(String id, Embedding embedding) {
+            addWithIdCalls++;
         }
 
         @Override
         public String add(Embedding embedding, TextSegment embedded) {
-            return null;
+            this.addedEmbedding = embedding;
+            this.addedSegment = embedded;
+            return "generated-" + (++generatedIdSequence);
         }
 
         @Override

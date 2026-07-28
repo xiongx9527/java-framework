@@ -54,6 +54,11 @@ final class LangChain4jAiEmbeddingStore implements AiEmbeddingStore {
         requireDocument(document);
         Embedding embedding = embedding(document.getVector());
         if (!isBlank(document.getId())) {
+            if (document.getText() != null
+                    || (document.getMetadata() != null && !document.getMetadata().isEmpty())) {
+                throw new AiEmbeddingStoreException("LangChain4j 0.35 cannot preserve content or metadata "
+                        + "when adding an embedding with an explicit id: key=" + getKey());
+            }
             nativeStore.add(document.getId(), embedding);
             return document.getId();
         }
