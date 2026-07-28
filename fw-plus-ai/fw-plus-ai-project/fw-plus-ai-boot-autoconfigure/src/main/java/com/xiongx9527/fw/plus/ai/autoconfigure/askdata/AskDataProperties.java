@@ -186,6 +186,14 @@ public class AskDataProperties {
 
         private boolean executeEnabled = false;
         private Integer defaultMaxRows = 100;
+        /**
+         * JDBC 查询级超时，单位为秒。小于等于 0 表示不主动设置，由数据源或驱动决定。
+         */
+        private Integer queryTimeoutSeconds = 30;
+        /**
+         * 是否要求 SQL 执行连接处于只读状态。Starter 自动装配默认开启，避免误用可写业务账号执行问数 SQL。
+         */
+        private boolean readOnlyConnectionRequired = true;
         private boolean enforceLimit = true;
 
         public boolean isExecuteEnabled() {
@@ -202,6 +210,22 @@ public class AskDataProperties {
 
         public void setDefaultMaxRows(Integer defaultMaxRows) {
             this.defaultMaxRows = defaultMaxRows;
+        }
+
+        public Integer getQueryTimeoutSeconds() {
+            return queryTimeoutSeconds;
+        }
+
+        public void setQueryTimeoutSeconds(Integer queryTimeoutSeconds) {
+            this.queryTimeoutSeconds = queryTimeoutSeconds;
+        }
+
+        public boolean isReadOnlyConnectionRequired() {
+            return readOnlyConnectionRequired;
+        }
+
+        public void setReadOnlyConnectionRequired(boolean readOnlyConnectionRequired) {
+            this.readOnlyConnectionRequired = readOnlyConnectionRequired;
         }
 
         public boolean isEnforceLimit() {

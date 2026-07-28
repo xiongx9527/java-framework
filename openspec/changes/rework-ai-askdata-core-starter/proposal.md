@@ -13,7 +13,7 @@
 - 建立双基线功能追踪矩阵：SQLBot v1 全量功能矩阵为硬验收主线，覆盖开源与企业级后端能力；WrenAI 企业级 GenBI 增强矩阵为必须覆盖的补强基线。重复能力 SHALL 按 SQLBot 的项目、权限、训练、嵌入、MCP、系统和企业配置语义落地，WrenAI 的 MDL/语义层、上下文富化、dry-plan、结构化错误、推荐和部署治理能力作为后端增强实现。
 - 在 `fw-plus-core/fw-plus-project/fw-plus-ai` 新增独立 `fw-plus-ai-askdata` 模块，提供无 Spring 依赖的 AskData 领域对象、服务接口和 SPI；在现有 `fw-plus-ai-langchain4j` 提供 LangChain4j 适配，使业务方能够重新实现模型、向量检索、编排、元数据、检索、权限、存储、SQL 组装/执行、审计和对外接口。
 - 增加可选 LangGraph Java 编排适配，复用既有 `AskDataFlowExecutor`、`AskDataAgentDispatcher`、检查点和会话存储接口，实现可检查点、可恢复的多 Agent 执行图；未启用适配时保留既有顺序执行行为。
-- 扩展元数据、Prompt、连接器与方言规则，建立 SQLBot 和 WrenAI 已支持数据源的统一能力矩阵；MySQL、Oracle、PostgreSQL、SQL Server、ClickHouse、达梦、Apache Doris、AWS Redshift、Elasticsearch、Kingbase、StarRocks、Apache Hive、Excel/CSV、BigQuery、DuckDB、Snowflake 等均 SHALL 纳入支持和验证计划，任一未实现项必须在矩阵中标记阻塞或后续项，不得被 Doris 优先验证掩盖。
+- 扩展元数据、Prompt、连接器与方言规则，建立 SQLBot 和 WrenAI 已支持数据源的统一能力矩阵；MySQL、Oracle、PostgreSQL、SQL Server、ClickHouse、达梦、Apache Doris、AWS Redshift、Elasticsearch、Kingbase、StarRocks、Apache Hive、Excel/CSV、BigQuery、DuckDB、Snowflake 等均 SHALL 纳入支持和验证计划，任一需外部依赖或真实数据源验证的项必须在矩阵中标记验证状态，不得被 Doris 优先验证掩盖。
 - 增加类似 MyBatis 拦截器链的 SQL 插件扩展：业务插件可按阶段组装受控 SQL 片段、绑定参数、附加租户或数据范围条件、改写查询和映射结果；最终 SQL 仍必须经过统一的权限、只读、限行、超时和审计管线，避免生成 SQL 越权或造成资源失控。
 - 定义自动上下文压缩、可持久化检查点、幂等恢复和集群共享运行状态的核心契约；默认实现保持轻量且可替换，生产集群通过外部共享存储实现状态一致性。
 - 定义以项目为前提、以已认证操作人为第二层隔离的对话、长期记忆和推荐契约，支持事实、偏好、已确认问数和语义线索的存储、召回、过期与遗忘；所有会话必须绑定 `projectId + operatorId`，推荐在当前项目候选集中按操作人排序，后端和策略均可由业务插件扩展。
@@ -25,8 +25,8 @@
 - 每次对话必须记录完整监控日志，覆盖创建、提问、子问题、模型路由、Agent 节点、SQL、安全校验、恢复、完成与失败；日志按项目、操作人和会话关联，默认只对已授权管理员开放查询，并采用可替换、默认内存的异步存储。
 - 所有第三方集成、存储、模型、向量库、SQL 插件、图编排与推荐策略 SHALL 通过版本化 SPI 和能力注册表装配，禁止将具体实现、供应商类型或业务 SQL 规则写死在 Core 契约中。
 - 后端源码 SHALL 使用详细中文注释解释公开接口、SPI 扩展点、能力注册、模型路由、SQL 安全、权限隔离、状态恢复、集群存储、监控日志和前后端联调契约；注释用于说明业务语义、边界和风险，不得写成空泛的逐行翻译。
-- 提供可验收的详细 Starter 文档及已实现功能清单：架构与模块、依赖、完整配置、Ollama、模型路由、存储矩阵、插件 SDK、SQL 安全、多 Agent、多提问、长期记忆、管理员监控、集群、覆盖扩展、迁移、故障恢复和排障示例；清单只列经验证的实现并标记限制。`openspec/changes/rework-ai-askdata-core-starter/feature-list.md` SHALL 作为 SQLBot 与 WrenAI 全功能清单和后续追踪矩阵的设计期事实源；项目管理、成员权限、训练检索、REST/MCP 管理 API、企业集成、前端控制台与前后端联调按 Vue3 先行、后端对齐、最终联调的顺序在后续 change 闭环。
-- SQLBot 文档中出现的所有外部系统对接能力 SHALL 全部支持并进入追踪矩阵，当前至少包括模型接入/Ollama、MCP Server、嵌入式对接、DataEase 接入、X-Pack 登录认证、X-Pack 平台对接、X-Pack 参数配置、企业微信、钉钉、飞书、MaxKB、Dify、Coze、n8n 等对接方式；任一能力未实现或未验证时必须标记阻塞/后续，不得用泛化接口替代。
+- 提供可验收的详细 Starter 文档及已实现功能清单：架构与模块、依赖、完整配置、Ollama、模型路由、存储矩阵、插件 SDK、SQL 安全、多 Agent、多提问、长期记忆、管理员监控、集群、覆盖扩展、迁移、故障恢复和排障示例；清单只列经验证的实现并标记限制。`openspec/changes/rework-ai-askdata-core-starter/feature-list.md` SHALL 作为 SQLBot 与 WrenAI 全功能清单和追踪矩阵的事实源；项目管理、成员权限、训练检索、REST/MCP 管理 API、企业集成、前端控制台与前后端联调均在本 change 中以 Core 契约、发布 SPI、数据库设计、文档矩阵和测试用例闭环；真实 UI 与外部租户连通由业务模块按这些契约接入验证。
+- SQLBot 文档中出现的所有外部系统对接能力 SHALL 全部支持并进入追踪矩阵，当前至少包括模型接入/Ollama、MCP Server、嵌入式对接、DataEase 接入、X-Pack 登录认证、X-Pack 平台对接、X-Pack 参数配置、企业微信、钉钉、飞书、MaxKB、Dify、Coze、n8n 等对接方式；任一能力未完成真实外部联调时必须标记验证状态，不得用泛化接口替代具体契约。
 - 文档 SHALL 包含详细设计文档、技术流程图、业务流程图、数据库设计文档和测试用例文档。流程图必须覆盖业务问数闭环、管理员治理闭环、训练/语义模型闭环、模型路由与兜底、多 Agent 执行、SQL 安全、状态恢复、监控审计、模型接入、MCP Server、嵌入式集成、DataEase 集成、企业微信/钉钉/飞书平台对接、登录认证、参数配置和前后端联调；数据库设计文档必须覆盖后端 Starter 所需的项目、成员权限、数据源、语义模型/训练、会话、长期记忆、推荐、SQL 审计、监控日志、Agent 状态、模型/API Key、MCP/API、嵌入令牌、DataEase 对接、平台对接、登录认证、企业配置和扩展插件表结构；测试用例文档必须覆盖单元、集成、契约、故障恢复、安全、MCP/嵌入/DataEase/企业平台对接和前后端联调用例。
 - 保持 Java 服务 API 与自动配置方式兼容 Spring Boot 2.7.18 和 Java 8。
 

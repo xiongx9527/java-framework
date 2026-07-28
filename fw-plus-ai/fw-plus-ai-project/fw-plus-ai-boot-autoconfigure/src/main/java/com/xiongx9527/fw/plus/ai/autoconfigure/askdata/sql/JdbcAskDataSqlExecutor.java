@@ -23,14 +23,23 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
 
     private final ObjectProvider<JdbcTemplate> jdbcTemplateProvider;
     private final int defaultMaxRows;
+    private final int queryTimeoutSeconds;
+    private final boolean readOnlyConnectionRequired;
 
     public JdbcAskDataSqlExecutor(ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
         this(jdbcTemplateProvider, 100);
     }
 
     public JdbcAskDataSqlExecutor(ObjectProvider<JdbcTemplate> jdbcTemplateProvider, int defaultMaxRows) {
+        this(jdbcTemplateProvider, defaultMaxRows, 30, false);
+    }
+
+    public JdbcAskDataSqlExecutor(ObjectProvider<JdbcTemplate> jdbcTemplateProvider, int defaultMaxRows,
+            int queryTimeoutSeconds, boolean readOnlyConnectionRequired) {
         this.jdbcTemplateProvider = jdbcTemplateProvider;
         this.defaultMaxRows = defaultMaxRows > 0 ? defaultMaxRows : 100;
+        this.queryTimeoutSeconds = queryTimeoutSeconds > 0 ? queryTimeoutSeconds : 0;
+        this.readOnlyConnectionRequired = readOnlyConnectionRequired;
     }
 
     public JdbcAskDataSqlExecutor(final JdbcTemplate jdbcTemplate) {
@@ -38,6 +47,11 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
     }
 
     public JdbcAskDataSqlExecutor(final JdbcTemplate jdbcTemplate, int defaultMaxRows) {
+        this(jdbcTemplate, defaultMaxRows, 30, false);
+    }
+
+    public JdbcAskDataSqlExecutor(final JdbcTemplate jdbcTemplate, int defaultMaxRows, int queryTimeoutSeconds,
+            boolean readOnlyConnectionRequired) {
         this.jdbcTemplateProvider = new ObjectProvider<JdbcTemplate>() {
             @Override
             public JdbcTemplate getObject(Object... args) {
@@ -60,6 +74,8 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
             }
         };
         this.defaultMaxRows = defaultMaxRows > 0 ? defaultMaxRows : 100;
+        this.queryTimeoutSeconds = queryTimeoutSeconds > 0 ? queryTimeoutSeconds : 0;
+        this.readOnlyConnectionRequired = readOnlyConnectionRequired;
     }
 
     @Override
@@ -77,7 +93,14 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
                     new PreparedStatementCallback<AskDataSqlExecutionResult>() {
                 @Override
                 public AskDataSqlExecutionResult doInPreparedStatement(PreparedStatement statement) throws SQLException {
+                    if (readOnlyConnectionRequired && !statement.getConnection().isReadOnly()) {
+                        return AskDataSqlExecutionResult.failure(AskDataErrorCode.SQL_EXECUTION_FAILED,
+                                "AskData SQL 执行连接必须为只读连接");
+                    }
                     statement.setMaxRows(maxRows);
+                    if (queryTimeoutSeconds > 0) {
+                        statement.setQueryTimeout(queryTimeoutSeconds);
+                    }
                     ResultSet resultSet = statement.executeQuery();
                     try {
                         return extract(resultSet, maxRows);

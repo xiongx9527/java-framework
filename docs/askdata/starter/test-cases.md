@@ -1,6 +1,6 @@
 # AskData 测试用例
 
-本用例集把现有 Core/Starter 的实现边界与后续 SQLBot/WrenAI 交付的验收边界分开。除标为“当前证据”的用例外，其余均是后续实现必须补齐的测试，不能作为功能已实现的证明。
+本用例集把现有 Core/Starter 的实现边界与业务接入验收边界分开。除标为“当前证据”的用例外，其余均是业务接入真实组件时必须执行的测试，不能作为外部系统已联通的证明。
 
 ## 执行约定
 
@@ -32,7 +32,7 @@
 | AUD-01 | monitoring audit | 验证强制生命周期日志、脱敏和导出失败隔离。 | 记录型本地 Store 和失败的 Langfuse/LangSmith/OTel 导出器。 | 覆盖会话、路由、Agent、SQL、恢复、完成/失败事件。 | 每阶段有本地脱敏日志；外部导出失败不影响问数；敏感字段未落日志。 | 当前证据：监控 Store 测试和 `flow-diagrams.md`；后续导出适配器测试。 |
 | J17-01 | Java 17 remote runtime | 验证协议 payload、认证、版本协商与错误映射。 | Java 8 主进程、Java 17 桩服务、mTLS/JWT/HMAC 之一。 | 调用 HTTP/SSE/MCP/A2A/gRPC 中已选协议，发送兼容/不兼容版本和各类错误。 | 仅脱敏 DTO 出站；版本不兼容拒绝；网络/超时可重试，认证/输入/协议错误不可重试。 | 当前证据：`java17-remote-runtime.md`；后续每个传输实现 IT。 |
 | J17-02 | Java 17 remote runtime | 验证远程运行时不可扩权、不可改写路由、可灰度回退。 | 远程服务尝试更改项目、数据源或模型 key。 | 发送篡改响应、健康失败和熔断场景。 | 主进程拒绝越权字段；按项目/能力 key 灰度；回退至已验证 LangChain4j/Ollama。 | 后续补安全与灰度集成测试。 |
-| FE-01 | frontend integration | 验证控制台/嵌入式小助手只使用后端短期 token。 | Vue3 测试宿主页、token 服务桩。 | 以浮窗、全屏、区域嵌入加载；检查 localStorage、Cookie、Header。 | 不暴露 appSecret/宿主凭据；token 过期/越权被拒绝；项目/操作人上下文完整。 | 后续实现前端后补 Playwright 测试。 |
+| FE-01 | frontend integration | 验证控制台/嵌入式小助手只使用后端短期 token。 | Vue3 测试宿主页、token 服务桩。 | 以浮窗、全屏、区域嵌入加载；检查 localStorage、Cookie、Header。 | 不暴露 appSecret/宿主凭据；token 过期/越权被拒绝；项目/操作人上下文完整。 | 业务接入前端后补 Playwright 测试。 |
 | FE-02 | frontend integration | 验证 DataEase、MCP、Dify、Coze、n8n 接入的权限与结果契约。 | 各调用方桩、DataEase `x-de-token` 与 AES-Key 测试密钥。 | 调用 datasource、问数、流式/轮询接口，模拟无权和密钥轮换。 | 只返回授权数据源和脱敏结果；DataEase 固定接口兼容；所有调用进入 SQL 校验和审计。 | 后续为 MCP/API/嵌入发布模块建立契约 IT。 |
 | ENT-01 | frontend integration | 验证业务 IAM/JustAuth 完成企业微信、钉钉、飞书扫码/免登、组织同步后，将身份映射为 AskData 项目成员并完成配置审计。 | 测试租户或 JustAuth 回调桩。 | 由 JustAuth 执行登录、免登、同步、密钥轮换和成员撤销，再用已认证 `operatorId/projectId` 调用 AskData。 | AskData 不自研 OAuth/扫码协议；敏感配置只存引用；变更和失败写管理员审计。 | 业务 IAM/JustAuth 联调和 AskData 接口契约需要在测试租户运行。 |
 
@@ -40,4 +40,4 @@
 
 1. 当前 Core/Starter 改动至少执行 `UNIT-*`、`CONTRACT-*`、`AUTO-*`、`SQL-*`、`STORE-*`、`MODEL-*`、`AGENT-*`、`MEM-*` 和 `AUD-*` 的已实现范围。
 2. 接入任何 Java 17 运行时时，必须通过 `J17-*`，且不得以远程成功替代主进程 SQL 安全、项目权限或恢复授权验证。
-3. 发布 MCP、DataEase、Dify、Coze、n8n 或企业微信、钉钉、飞书能力前，必须通过相应 `FE-*`/`ENT-*` 集成测试；缺少测试则矩阵状态维持“外部集成预留”或“后续实现”。
+3. 发布 MCP、DataEase、Dify、Coze、n8n 或企业微信、钉钉、飞书能力前，必须通过相应 `FE-*`/`ENT-*` 集成测试；缺少测试则矩阵状态维持“业务集成契约覆盖”。

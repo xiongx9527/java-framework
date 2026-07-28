@@ -38,4 +38,4 @@ JustAuth 登录或免登成功后，业务 IAM 仍需完成成员映射和项目
 
 ## 联调顺序与验收
 
-先用 HTTP 桩验证业务 IAM/JustAuth 已认证身份到 `operatorId/projectId` 的映射、token、chat_id 和错误映射，再验证 MCP tool，随后验证 DataEase/嵌入，最后接入 MaxKB、Dify、Coze、n8n 和企业平台。企业平台联调顺序是 JustAuth 回调/扫码/免登、组织同步、业务授权映射、AskData 调用；AskData 不增加第二套 OAuth 流程。每个系统都要覆盖成功、过期、无权限、跨域拒绝、密钥轮换、超时、重复回调和审计查询；未完成这些断言时只能标记为外部集成预留。
+先用 HTTP 桩验证业务 IAM/JustAuth 已认证身份到 `operatorId/projectId` 的映射、token、chat_id 和错误映射，再验证 MCP tool，随后验证 DataEase/嵌入，最后接入 MaxKB、Dify、Coze、n8n 和企业平台。企业平台联调顺序是 JustAuth 回调/扫码/免登、组织同步、业务授权映射、AskData 调用；AskData 不增加第二套 OAuth 流程。每个系统都要覆盖成功、过期、无权限、跨域拒绝、密钥轮换、超时、重复回调和审计查询；未完成这些断言时只能标记为业务集成契约覆盖。

@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Prompt, connector and dialect rules
-系统 SHALL 提供可配置的 Prompt 模板、数据源连接器和数据库方言规则，使生成 SQL 遵守目标数据库的标识符引用、分页限制和只读查询约束。SQLBot 与 WrenAI 已支持的数据源 SHALL 进入统一能力矩阵；任一未实现或未验证项 SHALL 明确标记，不得以 Doris 或其他单一方言代表完整支持。
+系统 SHALL 提供可配置的 Prompt 模板、数据源连接器和数据库方言规则，使生成 SQL 遵守目标数据库的标识符引用、分页限制和只读查询约束。SQLBot 与 WrenAI 已支持的数据源 SHALL 进入统一能力矩阵；任一需真实数据源或外部依赖验证项 SHALL 明确标记，不得以 Doris 或其他单一方言代表完整支持。
 
 #### Scenario: Apply query limit policy
 - **WHEN** 请求未显式指定返回数量且默认查询限制启用
@@ -266,7 +266,7 @@
 - **THEN** `openspec/changes/rework-ai-askdata-core-starter/feature-list.md` SHALL 作为设计期功能清单事实源存在，并 SHALL 被正式说明文档转换为追踪矩阵；矩阵字段至少包含 product、category、feature、source、priority、duplicatePolicy、change、module、apiOrConfig、storage、docs、tests、status 和 limitation
 
 #### Scenario: Distinguish implementation from roadmap
-- **WHEN** 某项能力尚未实现、依赖尚未验证或属于后续 OpenSpec change
+- **WHEN** 某项能力需要真实租户、外部依赖或业务 UI 接入验证
 - **THEN** 文档 SHALL 在“未包含/后续能力”中单独说明，不得将其列入已实现功能清单
 
 #### Scenario: Trace every SQLBot v1 capability
@@ -274,7 +274,7 @@
 - **THEN** 文档 SHALL 提供以 `https://gitee.com/fit2cloud-feizhiyun/SQLBot` 和 `https://sqlbot.org/docs/v1/` 为基线的功能追踪矩阵，将每项功能映射到 batch change、实现模块、接口/配置、用户文档和验证证据；矩阵至少 SHALL 覆盖部署/命令行、工作空间/项目、数据源、智能问数、仪表板、小助手、权限、术语、模型配置、模型接入、训练检索、SQL 示例、Prompt、MCP Server、嵌入式对接、DataEase 接入、X-Pack 登录认证、平台对接、企业微信、钉钉、飞书、参数配置、外观设置和操作日志
 
 #### Scenario: Prevent incomplete SQLBot coverage claims
-- **WHEN** SQLBot v1 功能追踪矩阵中仍存在未归属、未实现或未验证的功能
+- **WHEN** SQLBot v1 功能追踪矩阵中仍存在未归属、需外部验证或业务接入状态不明的功能
 - **THEN** 项目 SHALL 标记该能力为阻塞或后续项，且不得宣称 SQLBot 功能已完整实现
 
 #### Scenario: Trace WrenAI enterprise GenBI capabilities

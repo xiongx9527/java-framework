@@ -291,8 +291,11 @@ public class AskDataAutoConfiguration {
 	public AskDataSqlExecutor askDataSqlExecutor(AskDataProperties properties,
 			ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
 		Integer defaultMaxRows = properties.getSql().getDefaultMaxRows();
+		Integer queryTimeoutSeconds = properties.getSql().getQueryTimeoutSeconds();
 		return new JdbcAskDataSqlExecutor(jdbcTemplateProvider,
-				defaultMaxRows == null ? 100 : defaultMaxRows.intValue());
+				defaultMaxRows == null ? 100 : defaultMaxRows.intValue(),
+				queryTimeoutSeconds == null ? 30 : queryTimeoutSeconds.intValue(),
+				properties.getSql().isReadOnlyConnectionRequired());
 	}
 
     /**

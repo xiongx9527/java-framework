@@ -25,6 +25,8 @@
 | --- | --- | --- |
 | `sql.execute-enabled` | `false` | 默认禁止执行 SQL。开启前必须提供只读数据源、对象授权和审计保留策略。 |
 | `sql.default-max-rows` | `100` | JDBC 默认物理返回行数上限；业务可按数据源收紧。 |
+| `sql.query-timeout-seconds` | `30` | JDBC `PreparedStatement` 查询超时。小于等于 0 时不主动设置，生产环境不建议关闭。 |
+| `sql.read-only-connection-required` | `true` | Starter 自动装配的 JDBC 执行器要求连接 `isReadOnly=true`；业务若关闭该检查，必须用只读账号和外部网关策略兜底。 |
 | `sql.enforce-limit` | `true` | 最终校验器强制物理限行；关闭前应进行风险评审。 |
 | `conversation.compression-threshold-chars` | `12000` | 达到阈值时由默认上下文压缩器处理。压缩结果不得越过项目和操作人边界。 |
 | `conversation.checkpoint-version` | `1` | 检查点结构版本；变更时应拒绝不兼容恢复或执行迁移。 |
@@ -82,5 +84,5 @@ fw:
 
 - 使用逻辑模型 key 管理密钥和厂商差异，日志仅记录 key、路由层级、稳定错误码和可重试标识。
 - 监控日志、SQL 审计和模型供应商诊断日志分层保存，禁止记录提示词全文、SQL 参数、会话令牌、裸连接或 API Key。
-- 将 `default-max-rows`、超时和 `top-k` 作为容量预算的一部分，根据真实查询和模型延迟压测调整。
-- 启用 SQL 执行前，用最小权限只读账号进行端到端校验，确认最终校验、限行和审计均已生效。
+- 将 `default-max-rows`、`query-timeout-seconds` 和 `top-k` 作为容量预算的一部分，根据真实查询和模型延迟压测调整。
+- 启用 SQL 执行前，用最小权限只读账号进行端到端校验，确认只读连接检查、最终校验、限行、超时和审计均已生效。
