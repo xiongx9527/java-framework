@@ -1,18 +1,24 @@
 package com.xiongx9527.fw.plus.boot.magicapi;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.admin.server.MagicAPIAdminServerConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.starter.MagicAPIDbBrowserAdminEnabledCondition;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.db.starter.MagicAPIDbBrowserConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.module.MongoModule;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.starter.MagicAPIMongoConfiguration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionEvaluationReport;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.core.type.AnnotationMetadata;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
@@ -108,6 +114,12 @@ class MagicApiAllPluginsApplicationContextTest {
 	}
 
 	@Test
+	void dbBrowserAdminConditionBacksOffForOfflineEnvironment() {
+		assertThat(new MagicAPIDbBrowserAdminEnabledCondition().matches(currentConditionContext(),
+				AnnotationMetadata.introspect(MagicAPIDbBrowserConfiguration.class))).isFalse();
+	}
+
+	@Test
 	void exposesHealthAndMagicEditor() {
 		ResponseEntity<String> health = restTemplate.getForEntity("/actuator/health", String.class);
 		assertThat(health.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -131,6 +143,35 @@ class MagicApiAllPluginsApplicationContextTest {
 		ConditionEvaluationReport.ConditionAndOutcomes outcomes = report.getConditionAndOutcomesBySource().get(source);
 		assertThat(outcomes).as("Condition outcomes for %s", source).isNotNull();
 		assertThat(outcomes.isFullMatch()).as("Expected %s to back off", source).isFalse();
+	}
+
+	private ConditionContext currentConditionContext() {
+		return new ConditionContext() {
+			@Override
+			public BeanDefinitionRegistry getRegistry() {
+				return (BeanDefinitionRegistry) applicationContext.getBeanFactory();
+			}
+
+			@Override
+			public ConfigurableListableBeanFactory getBeanFactory() {
+				return applicationContext.getBeanFactory();
+			}
+
+			@Override
+			public ConfigurableEnvironment getEnvironment() {
+				return environment;
+			}
+
+			@Override
+			public ResourceLoader getResourceLoader() {
+				return applicationContext;
+			}
+
+			@Override
+			public ClassLoader getClassLoader() {
+				return applicationContext.getClassLoader();
+			}
+		};
 	}
 
 	private static Map<String, String> activePluginConfigurations() {
