@@ -78,6 +78,11 @@ import model;
 return model['chat-default'].getModel();
 ```
 
+`getModel()` returns the neutral `AiModel` facade (`key`, `framework`, `provider`, and `type`), not a
+native LangChain4j model. Call LangChain4j-specific chat, streaming, or tool APIs from the Java application
+layer through `LangChain4jModelRegistry` or an adapter, rather than obtaining a native object from MagicScript.
+See the `fw-plus-ai-magicapi-plugin-model` README for the migration and rollback boundary.
+
 The former Magic `langchain4j` plugin and `langchain4j-datasource` resource type
 were removed. Migrate resources to `model-datasource`, import `model` in scripts,
 and replace the dependency with `fw-plus-ai-magicapi-plugin-model`. Do not retain

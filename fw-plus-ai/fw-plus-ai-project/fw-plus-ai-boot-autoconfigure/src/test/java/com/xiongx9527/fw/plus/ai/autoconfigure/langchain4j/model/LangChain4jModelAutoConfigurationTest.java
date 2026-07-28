@@ -8,8 +8,18 @@ import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelFactory;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
+import com.xiongx9527.fw.plus.ai.model.AiModel;
+import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelException;
+import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +32,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -29,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+@ExtendWith(OutputCaptureExtension.class)
 public class LangChain4jModelAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
@@ -65,6 +77,178 @@ public class LangChain4jModelAutoConfigurationTest {
                     assertFalse(registry.contains("disabled"));
                     assertEquals("chat:gpt-4o-mini", registry.getDefault().getModel());
                 });
+    }
+
+    @Test
+    public void shouldMapLegacyPropertiesToNeutralRegistry() {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.model.default-model=chat",
+                        "fw-plus.ai.langchain4j.model.models.chat.provider=openai",
+                        "fw-plus.ai.langchain4j.model.models.chat.model-type=chat")
+                .run(context -> {
+                    AiModelRegistry registry = context.getBean(AiModelRegistry.class);
+                    assertTrue(registry.contains("chat"));
+                    assertEquals("chat", registry.getDefaultKey());
+                    assertEquals("langchain4j", registry.getDefault().getFramework());
+                });
+    }
+
+    @Test
+    public void shouldCreateNeutralRegistryFromNeutralPropertiesOnly() {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.model.default-model=chat",
+                        "fw-plus.ai.model.models.chat.framework=langchain4j",
+                        "fw-plus.ai.model.models.chat.provider=openai",
+                        "fw-plus.ai.model.models.chat.type=chat")
+                .run(context -> {
+                    AiModelRegistry registry = context.getBean(AiModelRegistry.class);
+                    assertTrue(registry.contains("chat"));
+                    assertEquals(AiModelType.CHAT, registry.getDefault().getType());
+                });
+    }
+
+    @Test
+    public void shouldCreateNeutralRegistryWhenLegacyConfigurationIsDisabled() {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.model.enabled=false",
+                        "fw-plus.ai.model.default-model=chat",
+                        "fw-plus.ai.model.models.chat.framework=langchain4j",
+                        "fw-plus.ai.model.models.chat.provider=openai",
+                        "fw-plus.ai.model.models.chat.type=chat")
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    assertFalse(context.containsBean("langChain4jModelRegistry"));
+                    assertTrue(context.getBean(AiModelRegistry.class).contains("chat"));
+                });
+    }
+
+    @Test
+    public void shouldUseLegacyDefaultWhenNeutralConfigurationIsDisabled() {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.model.default-model=legacy-chat",
+                        "fw-plus.ai.langchain4j.model.models.legacy-chat.provider=openai",
+                        "fw-plus.ai.langchain4j.model.models.legacy-chat.model-type=chat",
+                        "fw-plus.ai.model.enabled=false",
+                        "fw-plus.ai.model.default-model=neutral-chat",
+                        "fw-plus.ai.model.models.neutral-chat.framework=langchain4j",
+                        "fw-plus.ai.model.models.neutral-chat.provider=openai",
+                        "fw-plus.ai.model.models.neutral-chat.type=chat")
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    AiModelRegistry registry = context.getBean(AiModelRegistry.class);
+                    assertEquals("legacy-chat", registry.getDefaultKey());
+                    assertTrue(registry.contains("legacy-chat"));
+                    assertFalse(registry.contains("neutral-chat"));
+                });
+    }
+
+    @Test
+    public void shouldFailForDuplicateEnabledNeutralModelKeyWithoutLeakingSecrets(CapturedOutput output) {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.model.models.primary.key=shared",
+                        "fw-plus.ai.model.models.primary.framework=langchain4j",
+                        "fw-plus.ai.model.models.primary.provider=openai",
+                        "fw-plus.ai.model.models.primary.type=chat",
+                        "fw-plus.ai.model.models.primary.properties.apiKey=primary-secret",
+                        "fw-plus.ai.model.models.secondary.key=shared",
+                        "fw-plus.ai.model.models.secondary.framework=langchain4j",
+                        "fw-plus.ai.model.models.secondary.provider=openai",
+                        "fw-plus.ai.model.models.secondary.type=chat",
+                        "fw-plus.ai.model.models.secondary.properties.apiKey=secondary-secret")
+                .run(context -> {
+                    assertTrue(hasCause(context.getStartupFailure(), AiModelException.class,
+                            "Duplicate enabled model key: shared"));
+                    assertFalse(output.getAll().contains("primary-secret"));
+                    assertFalse(output.getAll().contains("secondary-secret"));
+                });
+    }
+
+    @Test
+    public void shouldBridgeInjectedLegacyFactoryForRegistryAndRuntimeFactory() {
+        RecordingLegacyFactory legacyFactory = new RecordingLegacyFactory();
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.model.models.chat.framework=langchain4j",
+                        "fw-plus.ai.model.models.chat.provider=custom",
+                        "fw-plus.ai.model.models.chat.type=chat")
+                .withBean(LangChain4jModelFactory.class, () -> legacyFactory)
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    assertTrue(context.getBean(AiModelRegistry.class).contains("chat"));
+                    AiModelDefinition runtime = new AiModelDefinition();
+                    runtime.setKey("runtime-chat");
+                    runtime.setFramework("langchain4j");
+                    runtime.setProvider("custom");
+                    runtime.setType(AiModelType.CHAT);
+                    context.getBean(AiModelFactory.class).create(runtime,
+                            Arrays.asList(context.getBeansOfType(AiModelAdapter.class).values()
+                                    .toArray(new AiModelAdapter[0])));
+                    assertEquals(2, legacyFactory.calls.get());
+                });
+    }
+
+    @Test
+    public void shouldPreferNeutralDefinitionForSameKeyWithoutLeakingApiKey(CapturedOutput output) {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.model.default-model=chat",
+                        "fw-plus.ai.langchain4j.model.models.chat.provider=openai",
+                        "fw-plus.ai.langchain4j.model.models.chat.model-type=chat",
+                        "fw-plus.ai.langchain4j.model.models.chat.api-key=legacy-secret",
+                        "fw-plus.ai.model.default-model=chat",
+                        "fw-plus.ai.model.models.chat.framework=langchain4j",
+                        "fw-plus.ai.model.models.chat.provider=openai",
+                        "fw-plus.ai.model.models.chat.type=embedding")
+                .run(context -> {
+                    AiModelRegistry registry = context.getBean(AiModelRegistry.class);
+                    assertEquals(AiModelType.EMBEDDING, registry.get("chat").getType());
+                    assertTrue(output.getAll().contains("chat"));
+                    assertFalse(output.getAll().contains("legacy-secret"));
+                });
+    }
+
+    @Test
+    public void shouldNotRestoreDisabledNeutralDefinitionFromLegacyProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.model.models.chat.provider=openai",
+                        "fw-plus.ai.langchain4j.model.models.chat.model-type=chat",
+                        "fw-plus.ai.model.models.chat.enabled=false",
+                        "fw-plus.ai.model.models.chat.framework=langchain4j",
+                        "fw-plus.ai.model.models.chat.provider=openai",
+                        "fw-plus.ai.model.models.chat.type=chat")
+                .run(context -> assertFalse(context.getBean(AiModelRegistry.class).contains("chat")));
+    }
+
+    @Test
+    public void shouldUseInjectedNeutralFactoryWhenCreatingRegistry() {
+        AiModelProperties neutral = new AiModelProperties();
+        AiModelProperties.Model definition = new AiModelProperties.Model();
+        definition.setKey("chat");
+        definition.setFramework("custom");
+        definition.setProvider("custom");
+        definition.setType(AiModelType.CHAT);
+        neutral.getModels().put("chat", definition);
+        LangChain4jModelProperties legacy = new LangChain4jModelProperties();
+        final AiModel expected = new TestAiModel("chat");
+        AiModelFactory factory = new AiModelFactory() {
+            @Override
+            public AiModel create(AiModelDefinition ignored, List<AiModelAdapter> adapters) {
+                return expected;
+            }
+        };
+
+        AiModelRegistry registry = new LangChain4jModelAutoConfiguration().aiModelRegistry(
+                neutral, legacy, factory, Collections.<AiModelAdapter>emptyList(),
+                testFactory(),
+                Collections.<LangChain4jModelProviderAdapter>emptyList());
+
+        assertSame(expected, registry.get("chat"));
     }
 
     @Test
@@ -292,6 +476,43 @@ public class LangChain4jModelAutoConfigurationTest {
                         definition.getKey() + ":" + definition.getModelName());
             }
         };
+    }
+
+    private boolean hasCause(Throwable throwable, Class<? extends Throwable> type, String message) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (type.isInstance(current) && current.getMessage() != null && current.getMessage().contains(message)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private static class RecordingLegacyFactory implements LangChain4jModelFactory {
+
+        private final AtomicInteger calls = new AtomicInteger();
+
+        @Override
+        public LangChain4jModel create(LangChain4jModelDefinition definition,
+                                       List<LangChain4jModelProviderAdapter> adapters) {
+            calls.incrementAndGet();
+            return new LangChain4jModel(definition.getProvider(), definition.getModelType(), definition.getKey());
+        }
+    }
+
+    private static class TestAiModel implements AiModel {
+
+        private final String key;
+
+        private TestAiModel(String key) {
+            this.key = key;
+        }
+
+        @Override public String getKey() { return key; }
+        @Override public String getFramework() { return "custom"; }
+        @Override public String getProvider() { return "custom"; }
+        @Override public AiModelType getType() { return AiModelType.CHAT; }
     }
 
     @Configuration

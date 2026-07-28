@@ -1,9 +1,14 @@
-Task 1: complete (commits a2bc055a..3606cb2f, review clean)
-Task 2: complete (commits 8b31390d..db6d3e82, review clean after exception-context fix)
-Task 3: complete (commits 49f1edae..132e4265, review clean after verification-note fix)
-Task 4: complete (commits 4f5a82bd..0efb3990, review clean after provider-mapping and voyage fixes)
-Task 5: complete (commits 0b10ac97..c29cbb9c, review clean)
-Task 6: complete (commits 836064f9..8e90cac5, review clean after lifecycle fixes)
-Task 7: complete (commits 298e5eb3..76dc9ed0, review clean)
-Task 8: complete (commits 0dba64bd..e7317ad2, review clean after askdata test fix)
-Task 9: complete (commits 28e79338..18dc0bb0, review clean after sample config, core verification, and coverage-note fixes)
+# 子代理实施进度
+
+变更：`abstract-ai-model-and-embedding`
+计划：`docs/superpowers/plans/2026-07-27-abstract-ai-model-and-embedding.md`
+基线：`519787a1d737225d83ec8dab164370a3fbee0f2e`
+
+- Task 1：完成（`519787a1..2c9a8181`，两轮修复后审查通过）
+- Task 2：待执行
+- Task 3：待执行
+- Task 4：待执行
+- Task 5：待执行
+- Task 6：待执行
+- Task 7：待执行
+- Task 8：待执行

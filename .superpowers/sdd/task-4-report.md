@@ -1,117 +1,102 @@
-# Task 4 Report: Provider Adapter 迁移与 SDK 隔离
+# Task 4 实施报告
 
-## Status
+## 状态
 
-RESOLVED
+DONE
 
 ## RED
 
+先扩展既有四个测试类，覆盖中立 registry 的 provider/model alias、store default key、
+完整向量操作桥接，以及中立门面不公开 LangChain4j 原生 accessor。执行：
+
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelProviderAdapterTest,LangChain4jModelAutoConfigurationTest test
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home \
+./fw-plus-core/mvnw -f fw-plus-core/pom.xml \
+  -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model,fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding \
+  test
 ```
 
-结果：`BUILD FAILURE`。JUnit Jupiter 测试在编译阶段按预期失败，原因是 `ReflectiveLangChain4jModelProviderAdapter` 尚不存在。
+结果：`BUILD FAILURE`。store 测试编译明确报告
+`com.xiongx9527.fw.plus.ai.store.embedding` 不存在于模块依赖图，符合适配层尚未接入
+中立 SPI 的预期失败原因；model 因 reactor fail-fast 被跳过。
+
+本轮针对 task review 的三个 Important 分别补充独立 RED：
+
+1. `shouldPreserveDocumentContentOrRejectUnsupportedExplicitId`：无 id 文档的原生
+   `Embedding`/`TextSegment` 入参断言通过，但显式 id + text/metadata 未抛
+   `AiEmbeddingStoreException`，证明原实现静默丢弃内容。
+2. `shouldIncludeProviderAndKeyWhenAdapterCreationFails` 与
+   `shouldIncludeProviderAndKeyWhenAdapterSupportCheckFails`：旧
+   `EmbeddingStoreException.getCause()` 均为 `null`，证明中立桥接丢失原始异常；外层消息
+   的敏感 sentinel 不泄漏断言同时生效。
+3. `shouldFailWhenModelKeyIsMissingOrMappedToNull` 与
+   `shouldRejectUnknownStoreKeyOrNullStore`：model/store registry 的 `get` 均未抛受控异常，
+   证明 null 原生值被包装成了非空中立 wrapper。
 
 ## GREEN
 
-同一 focused 命令在实现后能够完成主代码和测试代码编译，但 Surefire 2.22.2 报告 `Tests run: 0`，随后以 `No tests were executed!` 失败，未获得 GREEN 证据。
+同一双模块命令在本轮修复后重新执行，结果：`BUILD SUCCESS`。
 
-依赖树证据显示：Jupiter API/Platform 为 `5.8.2/1.8.2`，但 Jupiter Engine 被解析为 `5.10.0`。该版本不兼容导致 JUnit Platform provider 无法执行 Jupiter 测试。
+- `fw-plus-ai-langchain4j-store-embeding`：12 项测试，0 failure / 0 error / 0 skipped。
+- `fw-plus-ai-langchain4j-model`：13 项测试，0 failure / 0 error / 0 skipped。
+- 合计 25 项测试全部通过。
 
-最终执行中 `git diff --check` 通过。
+本轮三个定向 GREEN 全部通过，随后完整回归保持 store 12/12、model 13/13。显式 id
+限制、provider `supports/create` 两条 cause 身份和脱敏断言、两个 registry 的 null
+`get/default` 受控异常均包含在这 25 项测试内，未增加或减少测试总数。
 
-## 修改文件
+## 兼容行为
 
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelAutoConfiguration.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/provider/ProviderAdapterSupport.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/provider/ReflectiveLangChain4jModelProviderAdapter.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/provider/LangChain4jModelProviderAdapterTest.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/model/LangChain4jModelAutoConfigurationTest.java`
-- `.superpowers/sdd/task-4-report.md`
+- 原 artifactId、旧 factory/registry 接口、provider adapter 接口和原生返回类型均保留。
+- `DefaultLangChain4jModelFactory` 同时实现 `AiModelAdapter`；旧入口先转换为
+  `AiModelDefinition` 并委托中立 factory，provider alias、model key/type 和
+  `baseUrl`/`apiKey`/`modelName` 映射保持。
+- `DefaultEmbeddingStoreFactory` 同时实现 `AiEmbeddingStoreAdapter`；旧 store 定义映射为
+  `framework=langchain4j`、`type=VECTOR`，provider alias、dimension、metadataKeys 和
+  properties 保持。
+- 两个旧 registry 的 key/default 解析委托中立 registry；旧异常类型与既有 store 错误文案保持。
+- 中立模型/store 返回包私有桥接类，公开方法签名只使用中立类型；LangChain4j 原生对象仅能由
+  同包兼容入口解包。向量桥接覆盖 add/addAll/remove/removeAll/search 和结果/metadata/vector 转换。
+- LangChain4j 0.35 无 `id + Embedding + TextSegment` 标准 SPI：无 id 文档完整传递
+  text/metadata；显式 id 且携带 text 或 metadata 时，在调用原生 store 前受控拒绝，不再静默丢失。
+- 旧 store factory 的中立桥接使用单次调用本地的 failure capture 保留原始 cause 身份，外层错误
+  仅包含受控 key/framework/provider/type/causeType 上下文，不拼接 cause message。
+- 旧 model/store registry 构建中立映射时跳过 null 原生值，`get/default` 继续抛旧异常类型，
+  不会返回 null 或非空 wrapper。
+
+## 依赖与 Java 8 证据
+
+`dependency:tree` 结果：
+
+```text
+fw-plus-ai-langchain4j-store-embeding
+\- com.xiongx9527.fw.plus:fw-plus-ai-store-embedding:0.1.1-SNAPSHOT:compile
+
+fw-plus-ai-langchain4j-model
+\- com.xiongx9527.fw.plus:fw-plus-ai-model:0.1.1-SNAPSHOT:compile
+```
+
+本轮四个改动类 `LangChain4jAiEmbeddingStore`、`DefaultEmbeddingStoreFactory`、
+`DefaultEmbeddingStoreRegistry`、`DefaultLangChain4jModelRegistry` 的 `javap -verbose` 均显示
+`major version: 52`。两个 LangChain4j 模块主代码未命中 `List.of`、`Map.of`、`Set.of`、
+`copyOf` 或无参 `Optional.orElseThrow()`；中立 model/store 主代码未命中 LangChain4j、
+Spring AI 或 AgentScope import。
 
 ## 提交
 
-`f01905602ca703012ccd2c785d60baff5626dde7` (`feat: add langchain4j model provider adapters`)
+- 实现 SHA：`8a2c4b7957f4863caa4e46803b4580877789b0da`
+- 提交标题：`fw-plus-ai: adapt langchain4j modules to neutral core`
+- 实现提交仅包含两个 LangChain4j model/store 模块下 12 个文件。
+- Important 修复 SHA：`0a0eec6e`
+- 修复提交标题：`fix(ai): harden langchain4j neutral bridges`
+- 修复提交仅包含两个 LangChain4j model/store 模块下 7 个源码/测试文件。
 
-## 自检
+## 风险
 
-- 未创建或修改任何 Magic-API/vector、starter、BOM、README、OpenSpec、plan、progress 文件。
-- 测试仅使用 `org.junit.jupiter.api.Test` 和 `org.junit.jupiter.api.Assertions`。
-- 未注册 Audio、Video、PDF、Moderation 或 Scoring provider adapter。
-- 未引用高版本 `ChatModel` 或 `StreamingChatModel`。
-
-## 风险信号
-
-- 当前用户限定范围禁止修改 POM，因此无法对齐 Jupiter Engine 与 API/Platform 版本，无法让指定 focused 命令实际执行 Jupiter 测试。
-- 当前提交缺少 GREEN 证据；需在允许调整测试依赖后重新执行 focused 命令。
-
-## Fix
-
-在 `fw-plus-ai-boot-autoconfigure` 模块内排除 `agents-flex-spring-boot-starter` 经 Groovy 引入的 `org.testng:testng`，并将 `junit-jupiter-api`、`junit-jupiter-engine` 和 `junit-jupiter-params` 显式固定为 Spring Boot 2.7.18 管理的 `${junit-jupiter.version}`（5.8.2）。未修改 Task 4 provider adapter、模型类型矩阵或测试语义。
-
-RED（修复前）：
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelProviderAdapterTest,LangChain4jModelAutoConfigurationTest -Dsurefire.printSummary=true test
-```
-
-关键输出：Surefire 2.22.2 选用 TestNG 后报告 `Tests run: 0`，并以 `No tests were executed!` 失败；排除 TestNG 后的中间复现为 `TestEngine with ID 'junit-jupiter' failed to discover tests`，dump 显示 `NoClassDefFoundError: org/junit/jupiter/api/io/CleanupMode`，对应 5.10.0 Engine 与 5.8.2 API/1.8.2 Platform 混用。
-
-GREEN：
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelProviderAdapterTest,LangChain4jModelAutoConfigurationTest -Dsurefire.printSummary=true test
-```
-
-关键输出：`LangChain4jModelProviderAdapterTest` 执行 3 个测试，`LangChain4jModelAutoConfigurationTest` 执行 3 个测试；汇总为 `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
-
-`git diff --check`：通过。
-
-## Fix Review
-
-### RED
-
-在新增 Qianfan 风格 fake builder 回归测试后，执行以下 focused 测试：
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelProviderAdapterTest,LangChain4jModelAutoConfigurationTest -Dsurefire.printSummary=true test
-```
-
-结果：`BUILD FAILURE`。`shouldNotUseBaseUrlAsEndpointWhenEndpointIsNotConfigured` 断言失败：预期 `endpoint` 为 `null`，实际为 `http://localhost:11434/v1`，证明旧实现将 `baseUrl` 错误回退到 `endpoint`。
-
-### GREEN
-
-移除 `endpoint` 的 `baseUrl` fallback 后，使用同一命令验证通过：`Tests run: 8, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
-
-- `endpoint` 仅在 `properties.endpoint` 显式配置时写入；`baseUrl` 仍独立写入 builder。
-- `LangChain4jModelAutoConfigurationTest` 逐一构造 brief 中的 provider/modelType 定义，已声明组合断言恰好一个 adapter 支持，未声明组合断言零个支持，覆盖 Qianfan IMAGE 和 Anthropic EMBEDDING 等禁止组合。
-- 测试中仍出现 SLF4J 多绑定警告（`slf4j-simple` 与 `logback-classic`），为既存 classpath 噪声，未纳入本次修改。
-
-`git diff --check`：通过。
-
-## Fix Review 2
-
-第二轮 review 发现 `voyage-ai` 已列入 provider 清单和文件结构，但模型自动配置没有注册 adapter，矩阵测试也把它固定为零支持。
-
-### RED
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelProviderAdapterTest,LangChain4jModelAutoConfigurationTest -Dsurefire.printSummary=true test
-```
-
-关键输出：`Tests run: 8, Failures: 1, Errors: 0, Skipped: 0`；`shouldRegisterProviderAdapters` 对 `provider=voyage-ai, modelType=EMBEDDING` 断言期望 1、实际 0，`BUILD FAILURE`。
-
-### GREEN
-
-使用 `ReflectiveLangChain4jModelProviderAdapter` 的既有 `adapter(...)` 模式注册：
-
-- `voyage-ai / EMBEDDING` -> `dev.langchain4j.model.voyageai.VoyageAiEmbeddingModel`
-- `voyage-ai / SCORING` -> `dev.langchain4j.model.voyageai.VoyageAiScoringModel`
-
-同一矩阵测试覆盖这两个组合恰好一个 adapter 支持，并继续断言未声明组合（包括 `voyage-ai / CHAT` 和 `voyage-ai / MODERATION`）为零支持；未注册 MODERATION。
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jModelProviderAdapterTest,LangChain4jModelAutoConfigurationTest -Dsurefire.printSummary=true test
-```
-
-关键输出：`Tests run: 8, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。测试过程中出现的 `slf4j-simple` 与 `logback-classic` 多绑定警告为既存 classpath 噪声。
+- LangChain4j 0.35 的 `EmbeddingStore` 没有同时接受自定义 id 与 `TextSegment` 的标准方法。
+  中立调用方若必须原子保留显式 id、文本和 metadata，需要使用具备专用扩展能力的 provider；
+  当前通用桥接会明确拒绝该组合。
+- 中立 model 门面当前只承载 key/framework/provider/type 元数据；真实模型调用仍由既有
+  LangChain4j 兼容入口处理，AI Boot/Magic-API 改造属于 Task 5。
+- 本任务未运行 AI Boot/Magic-API 集成测试，也未修改其装配；这里只证明 Core 两个 adapter
+  模块及旧入口回归。
