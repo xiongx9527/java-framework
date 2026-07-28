@@ -563,7 +563,7 @@ git commit -m "test(magicapi): start all plugins in sample"
 - Consumes: Tasks 1-5 的提交与本地 `0.1.1-SNAPSHOT` 依赖。
 - Produces: Core -> Boot -> Cloud / AI -> Sample 的完整构建证据，以及独立 sample 进程的健康、Magic-API Web、日志和端口释放证据。
 
-- [ ] **Step 1: 运行定向回归总集**
+- [x] **Step 1: 运行定向回归总集**
 
 ```bash
 ./fw-plus-boot/mvnw -f fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/pom.xml \
@@ -575,7 +575,7 @@ git commit -m "test(magicapi): start all plugins in sample"
 
 Expected: 三组命令均成功，0 failures / 0 errors。
 
-- [ ] **Step 2: 按层安装全部本地快照**
+- [x] **Step 2: 按层安装全部本地快照**
 
 ```bash
 ./fw-plus-core/mvnw -f fw-plus-core/pom.xml clean install
@@ -587,7 +587,7 @@ Expected: 三组命令均成功，0 failures / 0 errors。
 
 Expected: 所有 reactor `BUILD SUCCESS`，最终命令不使用 `-DskipTests`。Wrapper 不可用时改用系统 Maven 3.6.3 + JDK 8，并记录该入口差异。
 
-- [ ] **Step 3: 启动独立 sample 进程**
+- [x] **Step 3: 启动独立 sample 进程**
 
 选择从 `39089` 起第一个未监听端口，创建 `mktemp -d` 资源目录和 `mktemp` 日志文件：
 
@@ -625,7 +625,7 @@ cleanup_sample() {
 trap cleanup_sample EXIT
 ```
 
-- [ ] **Step 4: 有界轮询健康入口**
+- [x] **Step 4: 有界轮询健康入口**
 
 每 2 秒检查一次，首轮最多 60 次；若进程提前退出立即失败并输出 `${SAMPLE_LOG}` 末尾。
 
@@ -635,7 +635,7 @@ curl --fail --silent "http://127.0.0.1:${SAMPLE_PORT}/actuator/health"
 
 Expected: 120 秒目标窗口内返回 HTTP 200，body 包含 `"status":"UP"`。如进程仍存活但首次完整 classpath 启动尚未完成，可再轮询 60 次，240 秒为硬上限，并记录实际就绪时间。
 
-- [ ] **Step 5: 验证 Magic-API Web 与日志**
+- [x] **Step 5: 验证 Magic-API Web 与日志**
 
 ```bash
 curl --fail --silent "http://127.0.0.1:${SAMPLE_PORT}/magic-api/web/index.html"
@@ -661,7 +661,7 @@ if rg -n "Apollo-RemoteConfigLongPollService|172\\.17\\.17\\.185:8080|BeanCurren
 fi
 ```
 
-- [ ] **Step 6: 停止进程并确认端口释放**
+- [x] **Step 6: 停止进程并确认端口释放**
 
 向 `${SAMPLE_PID}` 发送 `TERM`，有界等待退出；仅在超时后发送 `KILL`。随后执行：
 
@@ -671,11 +671,11 @@ lsof -nP -iTCP:${SAMPLE_PORT} -sTCP:LISTEN
 
 Expected: 无输出，端口已释放。
 
-- [ ] **Step 7: 更新最终证据与任务状态**
+- [x] **Step 7: 更新最终证据与任务状态**
 
 将各层 Maven 结果、sample PID/端口、健康响应、Magic Editor 响应、负向日志扫描和端口释放写入 `.comet/context.md`。将 `tasks.md` 任务 3 标记为完成。
 
-- [ ] **Step 8: 提交验证证据**
+- [x] **Step 8: 提交验证证据**
 
 ```bash
 git add \
