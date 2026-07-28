@@ -133,15 +133,21 @@ magic:
 ```javascript
 import vector;
 
-// 默认向量存储，来自 Spring Boot registry 的 default-store
+// 默认向量存储的中立 facade，来自 Spring Boot registry 的 default-store
 var defaultStore = vector.getEmbeddingStore();
 
 // 指定 Spring Boot registry 或 vector-datasource 中的 key
 var knowledgeStore = vector['knowledge'].getEmbeddingStore();
 
-// 当前 VectorStoreOperations 只封装 getEmbeddingStore()
-// add/search/delete 等操作请调用 LangChain4j EmbeddingStore<TextSegment> 自身方法
+// 返回 AiEmbeddingStore facade，只读取稳定元数据：key/framework/provider/type
 ```
+
+`getEmbeddingStore()` 不再返回 LangChain4j `EmbeddingStore<TextSegment>`，因此旧脚本不能再直接调用
+`add`、`search`、`delete` 等原生方法。这是有意的破坏性变更，用于保证后续 framework 切换时
+`vector['key']` 的类型边界稳定。需要 LangChain4j 原生写入或检索能力时，应在 Java 应用层通过
+`EmbeddingStoreRegistry`/LangChain4j adapter 调用，不能从 Magic-API facade 取得原生对象。未来 Spring AI、
+Spring AI Alibaba 或 AgentScope 2 adapter 接入后，`vector['key']` 仍保持不变，`framework` 标识实际实现。
+如需紧急回滚旧 MagicScript，请回退到本改造前的插件版本和旧 `EmbeddingStore` 契约。
 
 动态资源与 Spring Boot registry 共存。按 key 获取时会先查 Magic 运行态 `vector-datasource`，再回退到 Spring Boot 的 `EmbeddingStoreRegistry`。默认 store 来自 registry 的 `default-store`。
 
@@ -197,6 +203,6 @@ Maven 在 `prepare-package` 阶段执行 `npm install` 和 `npm run build`，并
 ## 注意事项
 
 - 资源类型是 `vector-datasource`，统一通过 `vector` 模块按 key 访问。
-- 当前脚本侧只包装 `getEmbeddingStore()`，不声明未实现的检索、写入、删除快捷 API。
+- 当前脚本侧返回中立 `AiEmbeddingStore` facade，不声明检索、写入、删除等 SDK 专有 API。
 - 老的按 provider 分散的 Magic-API 向量入口应迁移到统一 `vector-datasource` 和 `vector['key']` 访问方式。
 - Java 8 应用不要默认引入 Java 17 字节码的 provider jar；需要时在业务应用侧按运行环境显式管理依赖。

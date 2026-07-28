@@ -77,6 +77,11 @@ import model;
 return model['chat-default'].getModel();
 ```
 
+`getModel()` 返回中立 `AiModel` facade（可读取 `key`、`framework`、`provider`、`type`），不再返回
+LangChain4j 原生模型对象。需要调用 LangChain4j 专有 chat、stream 或 tool API 的业务应在 Java 应用层注入
+`LangChain4jModelRegistry`/适配器，而不是从 MagicScript 取得原生对象。详情和回滚方式见
+`fw-plus-ai-magicapi-plugin-model` 的 README。
+
 旧版 Magic `langchain4j` 插件及其 `langchain4j-datasource` 资源类型已移除。
 迁移时将资源目录改为 `model-datasource`，脚本导入改为 `model`，并将依赖替换为
 `fw-plus-ai-magicapi-plugin-model`；不要继续使用 `MagicLangchain4j` 或

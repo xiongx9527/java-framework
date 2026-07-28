@@ -59,6 +59,10 @@ Java 8 Core/Boot -X-> Java 17 starter、Boot 3、目标 SDK
 - 未来中立配置使用 `fw-plus.ai.model` 与 `fw-plus.ai.embedding-store`，同 key 同时出现时以中立定义优先，迁移提示不得输出 properties 中的凭证。
 - 示例统一使用模型 key `knowledge-chat` 和 store key `knowledge`。切换 `framework` 不得改变 registry key、Magic-API 动态资源 key、`model['knowledge-chat']` 或 `vector['knowledge']`。
 - Java 业务代码面向 `AiModelRegistry`、`AiEmbeddingStoreRegistry` 和中立数据类型；任何 Spring AI `Document`、LangChain4j `TextSegment` 或目标 SDK 对象都不得跨越 adapter 边界。
+- Magic-API 的 `model['key'].getModel()`、`model['key'].getModelObject()` 与 `vector['key'].getEmbeddingStore()`
+  同样只返回中立 facade，不再返回 LangChain4j 原生对象。原先在 MagicScript 中直接调用原生模型或
+  `EmbeddingStore.add/search/delete` 的脚本是不兼容的，必须改为读取 facade 元数据，或把 SDK 专有调用移到
+  Java 应用层；紧急回滚需使用本改造前的插件版本，不能在 facade 中重新暴露 SDK 类型。
 
 ## 推荐顺序
 
