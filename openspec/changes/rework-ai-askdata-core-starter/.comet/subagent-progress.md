@@ -2,12 +2,12 @@
 
 ## 当前任务
 
-- Plan task: `Task 10: 默认 LangChain4j/Ollama 模型适配`
-- OpenSpec task mapping: `3.1` / `3.2` 的默认模型适配子集（本任务只覆盖 LangChain4j/Ollama 默认逻辑模型 key 和可覆盖入口，完整熔断健康与兜底链由后续任务继续）
+- Plan task: `Task 11: 实现默认状态、监控日志和集群保护`
+- OpenSpec task mapping: `2.1` / `2.4` / `5.3` 的自动配置默认实现子集（本任务覆盖单机内存默认、集群拒绝和监控日志默认落库，完整 JDBC/Redis/共享存储由后续任务继续）
 - Stage: `task-implementation`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `7951b56208b4e6abbb34744d994b5ad79a90ae06`
+- Base commit: `d6e0e25eba9e807a4f9b623dc766435406851e03`
 - Implementer commit: `待派发`
 - Task brief: `待生成`
 - Implementer report: `待生成`
@@ -73,3 +73,11 @@
 - 2026-07-28：fix agent 返回 `DONE`，提交 `7951b56`；旧请求增加 Core 上下文承载字段，适配器原样传递 `projectId + operatorId` 上下文，并将 Core 失败文案收敛为受控消息。协调者复跑 `*AskData*Test`，结果 25 项通过。
 - 2026-07-28：Task 9 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
 - 2026-07-28：已勾选 plan 中 Task 9 的 5 个 step；OpenSpec 6.1/6.2/6.3 仍包含完整 Starter 依赖、默认 SPI 装配和兼容回归等后续内容，本任务不单独勾选。
+- 2026-07-28：准备派发 Task 10 implementer。允许修改范围限定为 AskData 自动配置模型属性、model 包和对应模型/属性绑定测试；禁止修改 Core 和其他 active change。
+- 2026-07-28：implementer 返回 `DONE`，提交 `28b6600`；RED 为默认 Ollama key、路由执行、fallback 和审计记录 API 缺失，GREEN 为 `LangChain4jAskDataModelRegistryTest,AskDataPropertiesBindingTest` 共 10 项通过。
+- 2026-07-28：Task 10 reviewer 返回 `Needs fixes`；Important 问题为新增路由配置未接入运行时、故障分类过宽、审计记录无界且跨请求读取。当前 thorough 修复轮次：1/2。
+- 2026-07-28：fix agent 返回 `DONE`，提交 `9fce2ec`；接入候选、fallback 开关、超时分类、向量候选和审计容量裁剪。协调者复跑 `LangChain4jAskDataModelRegistryTest,AskDataPropertiesBindingTest`，结果 16 项通过。
+- 2026-07-28：Task 10 re-reviewer 仍返回 `Needs fixes`；Important 问题为默认 AskData flow 未使用新增路由入口，以及 provider 文档语义与实现不一致。当前 thorough 修复轮次：2/2。
+- 2026-07-28：第二轮 fix agent 返回 `DONE`，提交 `d6e0e25`；默认 flow 改为调用 `AskDataModelRegistry.generate(request, prompt)`，LangChain4j 注册表覆盖该入口执行 Core 路由、故障分类、降级和审计，并将 provider 明确为诊断标签。协调者复跑 `LangChain4jAskDataModelRegistryTest,DefaultAskDataFlowExecutorTest,AskDataPropertiesBindingTest`，结果 29 项通过。
+- 2026-07-28：Task 10 最终 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved；仅记录 Minor：`AskDataModelRegistry.generate` 默认方法中文 Javadoc 可进一步补充兼容行为、异常语义和覆盖约定。
+- 2026-07-28：已勾选 plan 中 Task 10 的 5 个 step；OpenSpec 3.1/3.2 仍包含完整模型健康、熔断、兜底链、项目/数据源/任务动态配置等后续内容，本任务不单独勾选。
