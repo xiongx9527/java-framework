@@ -2,15 +2,15 @@
 
 ## 当前任务
 
-- Plan task: `Task 6: 定义 SQL 命令、插件链和安全校验契约`
-- OpenSpec task mapping: `1.4` / `4.2` / `4.3` 的 Core SQL 管线契约子集（本任务只覆盖 Core SQL 命令、拦截器链与校验抽象，执行器和方言实现由后续任务继续）
-- Stage: `done`
+- Plan task: `Task 8: 定义观测事件和管理员监控日志契约`
+- OpenSpec task mapping: `5.1` / `5.3` / `5.4` 的 Core 契约子集（本任务只覆盖事件、发布与管理员监控日志访问契约，完整导出器和存储适配由后续任务继续）
+- Stage: `task-implementation`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `5a2532fa1918f209da16f8e98bf02b239986366e`
-- Implementer commit: `5789032937656cd2ff783f5a3f5d031e90f17ec2`
-- Task brief: `.superpowers/sdd/task-6-brief.md`
-- Implementer report: `.superpowers/sdd/askdata-task-6-report.md`
+- Base commit: `970cad78fd7baf839c847ba49642c4402894d2b2`
+- Implementer commit: `待派发`
+- Task brief: `待生成`
+- Implementer report: `待生成`
 
 ## 派发记录
 
@@ -55,3 +55,9 @@
 - 2026-07-27：第二轮 fix agent 返回 `DONE`，提交 `b7fdf7e4`；RED 覆盖动态 key 审计伪造，GREEN 为 `AskDataSqlPipelineTest` 11 项通过。协调者在 AskData 分支复跑同一测试，结果 11 项通过。
 - 2026-07-27：Task 6 最终 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
 - 2026-07-27：已勾选 plan 中 Task 6 的 5 个 step，并同步勾选 OpenSpec task 1.4；OpenSpec 4.2/4.3 仍包含执行、方言改写、安全强化和审计结果等后续内容，本任务不单独勾选。
+- 2026-07-27：准备派发 Task 7 implementer。允许修改范围限定为 `fw-plus-ai-askdata` 模块内 agent/memory 源码与对应测试；禁止修改其他 active change、TinyEngine、tiny-engine-backend-java。
+- 2026-07-27：implementer 返回 `DONE`，提交 `8ff838ff`；RED 为 planner/memory/recommendation 契约缺失，GREEN 为 `AskDataMemoryAndRecommendationTest` 5 项通过。覆盖单问题、显式多问题、分号复合问题、四维记忆过滤和 `projectId + operatorId` 推荐隔离。
+- 2026-07-27：Task 7 reviewer 返回 `Needs fixes`；行为与隔离边界通过，待补公开 SPI 方法级中文 Javadoc，并建议补空白 operatorId 通用建议回退测试。当前 thorough 修复轮次：1/2。
+- 2026-07-28：fix agent 返回 `DONE`，提交 `970cad78`；补齐多提问、长期记忆、按人推荐公开 SPI 方法级中文 Javadoc，并新增空白 `operatorId` 仅在策略允许时回退通用建议的契约测试。协调者在 AskData 分支复跑 `AskDataMemoryAndRecommendationTest`，结果 6 项通过。
+- 2026-07-28：Task 7 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
+- 2026-07-28：已勾选 plan 中 Task 7 的 5 个 step；OpenSpec 1.8/1.9/2.6 仍包含多提问完整调度、推荐排序画像和长期记忆存储适配等后续内容，本任务不单独勾选。
