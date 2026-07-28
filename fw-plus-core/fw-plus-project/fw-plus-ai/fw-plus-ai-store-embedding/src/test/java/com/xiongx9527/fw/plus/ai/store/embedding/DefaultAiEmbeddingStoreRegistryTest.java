@@ -2,6 +2,8 @@ package com.xiongx9527.fw.plus.ai.store.embedding;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -13,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -78,7 +81,7 @@ public class DefaultAiEmbeddingStoreRegistryTest {
 
     @Test
     public void shouldWrapSupportsExceptionWithSafeDefinitionContext() {
-        IllegalStateException cause = new IllegalStateException("supports failed");
+        IllegalStateException cause = new IllegalStateException("properties={password=top-secret-password}");
         AiEmbeddingStoreAdapter adapter = new StubAdapter() {
             @Override
             public boolean supports(AiEmbeddingStoreDefinition definition) {
@@ -91,13 +94,13 @@ public class DefaultAiEmbeddingStoreRegistryTest {
                         Collections.singletonList(adapter)));
 
         assertContext(exception, "knowledge");
-        assertSame(cause, exception.getCause());
+        assertNull(exception.getCause());
         assertNoSecrets(exception);
     }
 
     @Test
     public void shouldWrapCreateExceptionWithSafeDefinitionContext() {
-        IllegalStateException cause = new IllegalStateException("create failed");
+        IllegalStateException cause = new IllegalStateException("properties={password=top-secret-password}");
         AiEmbeddingStoreAdapter adapter = new StubAdapter() {
             @Override
             public boolean supports(AiEmbeddingStoreDefinition definition) {
@@ -115,7 +118,7 @@ public class DefaultAiEmbeddingStoreRegistryTest {
                         Collections.singletonList(adapter)));
 
         assertContext(exception, "knowledge");
-        assertSame(cause, exception.getCause());
+        assertNull(exception.getCause());
         assertNoSecrets(exception);
     }
 
@@ -192,8 +195,10 @@ public class DefaultAiEmbeddingStoreRegistryTest {
     }
 
     private void assertNoSecrets(AiEmbeddingStoreException exception) {
-        assertFalse(exception.getMessage().contains("top-secret-password"));
-        assertFalse(exception.getMessage().contains("properties"));
+        StringWriter output = new StringWriter();
+        exception.printStackTrace(new PrintWriter(output));
+        assertFalse(output.toString().contains("top-secret-password"));
+        assertFalse(output.toString().contains("properties="));
     }
 
     private static class FakeAdapter implements AiEmbeddingStoreAdapter {
