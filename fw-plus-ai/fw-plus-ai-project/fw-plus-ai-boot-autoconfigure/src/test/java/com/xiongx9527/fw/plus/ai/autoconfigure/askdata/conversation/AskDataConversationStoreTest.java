@@ -1,16 +1,44 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
-import org.junit.Test;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AskDataConversationStoreTest {
+
+    @Test
+    public void shouldProvideCoreMemoryStateStoresByDefaultOnSingleNode() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(AskDataAutoConfiguration.class)
+                .run(context -> {
+                    assertNotNull(context.getBean(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class));
+                    assertNotNull(context.getBean(AskDataCheckpointStore.class));
+                    assertNotNull(context.getBean(AskDataAgentStateStore.class));
+                });
+    }
+
+    @Test
+    public void shouldRejectMemoryStateWhenClusterModeIsEnabled() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(AskDataAutoConfiguration.class)
+                .withPropertyValues("fw.plus.ai.askdata.state.cluster-mode=true")
+                .run(context -> {
+                    assertNotNull(context.getStartupFailure());
+                    assertTrue(context.getStartupFailure().getMessage().contains("集群模式"));
+                });
+    }
 
     @Test
     public void shouldLoadLatestCheckpointAndResumeTokenWhilePreservingVersion() {
