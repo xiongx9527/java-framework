@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.observability;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
 
 /**
  * 供管理员审计和监控查询的已脱敏 AskData 日志。
@@ -72,5 +73,18 @@ public class AskDataMonitoringLog {
 	 */
 	public String getMessage() {
 		return message;
+	}
+
+	/**
+	 * 转换为监控日志存储 SPI 所使用的最小审计记录。
+	 *
+	 * <p>转换保留调用链标识、事件类型和已脱敏摘要；项目及操作人上下文由发布方作为
+	 * {@link AskDataMonitoringLogStore#append(AskDataProjectContext, AskDataMonitoringLogStore.MonitoringLog)}
+	 * 的独立参数传递，以保证存储实现按 {@code projectId + operatorId} 分区。</p>
+	 *
+	 * @return 可追加到监控日志存储的记录
+	 */
+	public AskDataMonitoringLogStore.MonitoringLog toStorageLog() {
+		return new AskDataMonitoringLogStore.MonitoringLog(traceId, eventType.name(), message);
 	}
 }

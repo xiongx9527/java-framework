@@ -1,11 +1,14 @@
 package com.xiongx9527.fw.plus.ai.askdata.observability;
 
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
+
 /**
  * AskData 观测事件发布 SPI。
  *
- * <p>实现可以将事件转换为 {@code AskDataMonitoringLogStore} 的存储记录，或接入任意外部
- * 观测系统；Core 不依赖具体观测厂商。实现发布前必须确认事件摘要已经脱敏，并保持
- * {@code projectId + operatorId} 的隔离边界。</p>
+ * <p>每个已发布事件必须形成一条已脱敏的基础监控日志，并通过
+ * {@link AskDataMonitoringLogStore#append(com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext,
+ * AskDataMonitoringLogStore.MonitoringLog)} 按 {@code projectId + operatorId} 写入。LangSmith、Langfuse、
+ * OpenTelemetry 等外部观测导出只能作为额外适配，不能替代基础日志存储；Core 不依赖任何具体观测厂商。</p>
  */
 public interface AskDataEventPublisher {
 
@@ -18,4 +21,32 @@ public interface AskDataEventPublisher {
 	 * @param event 已脱敏且携带隔离上下文的事件，不能为空
 	 */
 	void publish(AskDataEvent event);
+
+	/**
+	 * 创建将每个事件追加到基础监控日志存储的发布器。
+	 *
+	 * <p>该工厂是 Core 的强制观测路径：事件会先转换为 {@link AskDataMonitoringLog}，再转换为
+	 * 存储 SPI 使用的记录，并使用事件原有的项目和操作人上下文追加。调用方如需导出外部观测系统，
+	 * 应在此基础上组合额外发布器，不得跳过该存储发布器。</p>
+	 *
+	 * @param store 按项目和操作人隔离的监控日志存储，不能为空
+	 * @return 将事件持久化为已脱敏监控日志的发布器
+	 * @throws IllegalArgumentException 当存储为空时抛出
+	 */
+	static AskDataEventPublisher toStore(final AskDataMonitoringLogStore store) {
+		if (store == null) {
+			throw new IllegalArgumentException("store 不能为空");
+		}
+		return new AskDataEventPublisher() {
+			@Override
+			public void publish(AskDataEvent event) {
+				if (event == null) {
+					throw new IllegalArgumentException("event 不能为空");
+				}
+				AskDataMonitoringLog log = new AskDataMonitoringLog(event.getContext(), event.getTraceId(),
+						event.getType(), event.getMessage());
+				store.append(log.getContext(), log.toStorageLog());
+			}
+		};
+	}
 }
