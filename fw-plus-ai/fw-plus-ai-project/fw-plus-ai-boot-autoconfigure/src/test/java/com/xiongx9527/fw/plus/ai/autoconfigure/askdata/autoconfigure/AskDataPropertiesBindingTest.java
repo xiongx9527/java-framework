@@ -18,6 +18,7 @@ public class AskDataPropertiesBindingTest {
                         "fw.plus.ai.askdata.model.default-chat-model=chat-default",
                         "fw.plus.ai.askdata.model.default-embedding-model=embedding-default",
                         "fw.plus.ai.askdata.model.chat-candidates=chat-default,chat-fallback",
+						"fw.plus.ai.askdata.model.embedding-candidates=embedding-default,embedding-fallback",
                         "fw.plus.ai.askdata.model.fallback-enabled=false",
                         "fw.plus.ai.askdata.model.infrastructure-failure-timeout-millis=15000",
                         "fw.plus.ai.askdata.sql.execute-enabled=false",
@@ -30,10 +31,26 @@ public class AskDataPropertiesBindingTest {
                     assertEquals("ollama", properties.getModel().getProvider());
                     assertEquals(java.util.Arrays.asList("chat-default", "chat-fallback"),
                             properties.getModel().getChatCandidates());
+					assertEquals(java.util.Arrays.asList("embedding-default", "embedding-fallback"),
+							properties.getModel().getEmbeddingCandidates());
                     assertEquals(false, properties.getModel().isFallbackEnabled());
                     assertEquals(Integer.valueOf(15000), properties.getModel().getInfrastructureFailureTimeoutMillis());
                     assertEquals(Integer.valueOf(200), properties.getSql().getDefaultMaxRows());
                     assertEquals(Integer.valueOf(8000), properties.getConversation().getCompressionThresholdChars());
                 });
     }
+
+	@Test
+	public void shouldUseOllamaDefaultsWhenModelPropertiesAreNotOverridden() {
+		new ApplicationContextRunner()
+				.withUserConfiguration(AskDataAutoConfiguration.class)
+				.run(context -> {
+					AskDataProperties properties = context.getBean(AskDataProperties.class);
+					assertEquals("ollama", properties.getModel().getProvider());
+					assertEquals("qwen3:32b", properties.getModel().getDefaultChatModel());
+					assertEquals("bge-m3", properties.getModel().getDefaultEmbeddingModel());
+					assertEquals(java.util.Arrays.asList("qwen3:32b"), properties.getModel().getChatCandidates());
+					assertEquals(java.util.Arrays.asList("bge-m3"), properties.getModel().getEmbeddingCandidates());
+				});
+	}
 }

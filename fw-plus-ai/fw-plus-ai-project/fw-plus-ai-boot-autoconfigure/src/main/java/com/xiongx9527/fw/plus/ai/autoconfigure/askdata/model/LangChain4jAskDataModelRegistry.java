@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataErrorCode;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRequest;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelResult;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter;
@@ -13,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
 public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 
@@ -51,7 +55,8 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 
 	@Override
 	public AskDataChatModel getChatModel(String modelKey) {
-		final String resolvedKey = resolveModelKey(modelKey, getDefaultChatModelKey());
+		final String resolvedKey = resolveModelKey(modelKey, properties.getModel().getChatCandidates(),
+				getDefaultChatModelKey(), chatModels);
 		final ChatLanguageModel chatLanguageModel = chatModels.get(resolvedKey);
 		if (chatLanguageModel == null) {
 			throw modelNotFound("聊天", resolvedKey);
@@ -66,7 +71,8 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 
 	@Override
 	public AskDataEmbeddingModel getEmbeddingModel(String modelKey) {
-		final String resolvedKey = resolveModelKey(modelKey, getDefaultEmbeddingModelKey());
+		final String resolvedKey = resolveModelKey(modelKey, properties.getModel().getEmbeddingCandidates(),
+				getDefaultEmbeddingModelKey(), embeddingModels);
 		final EmbeddingModel embeddingModel = embeddingModels.get(resolvedKey);
 		if (embeddingModel == null) {
 			throw modelNotFound("向量", resolvedKey);
@@ -103,6 +109,7 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 	public AskDataModelResponse generate(AskDataModelRequest request, String prompt) {
 		AskDataModelResult routedResult = modelRouter.route(request);
 		while (true) {
+			long startedAt = System.currentTimeMillis();
 			try {
 				ChatLanguageModel chatLanguageModel = chatModels.get(routedResult.getModelKey());
 				if (chatLanguageModel == null) {
@@ -115,7 +122,8 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 				recordRoute(routedResult);
 				throw ex;
 			} catch (RuntimeException ex) {
-				AskDataModelResult failure = classifyFailure(routedResult, ex);
+				AskDataModelResult failure = classifyFailure(routedResult, ex,
+						System.currentTimeMillis() - startedAt);
 				recordRoute(failure);
 				if (!failure.isRetryable() || !properties.getModel().isFallbackEnabled()) {
 					throw toModelException(failure);
@@ -130,10 +138,24 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 	}
 
 	/**
+	 * 使用自动配置的聊天候选创建默认 Core 路由请求。
+	 *
+	 * <p>Core 路由 SPI 固定支持五个优先级槽位；此入口按候选顺序填充，始终保留默认聊天 key 作为最后兜底。
+	 * provider 会同时记录在适配层审计结果中，便于区分同一逻辑 key 的不同厂商配置。</p>
+	 *
+	 * @param projectContext 当前项目和操作人隔离上下文，不能为空
+	 * @param prompt 待发送给模型的提示词；不会进入审计记录
+	 * @return 成功响应及实际命中的逻辑模型 key
+	 */
+	public AskDataModelResponse generate(AskDataProjectContext projectContext, String prompt) {
+		return generate(defaultChatModelRequest(projectContext), prompt);
+	}
+
+	/**
 	 * 返回当前实例内的路由执行快照，供受控审计出口消费。
 	 *
-	 * <p>返回副本避免调用方改写共享记录；生产环境应在请求完成后将该快照交给合规审计存储，而不是把
-	 * 记录作为长期内存队列。</p>
+	 * <p>返回副本避免调用方改写共享记录。该快照仅用于本机诊断，且按配置容量裁剪；不得作为跨请求
+	 * 审计查询接口，完整记录应由监控 SPI 在请求完成时持久化。</p>
 	 *
 	 * @return 不可修改的路由记录快照
 	 */
@@ -143,12 +165,26 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 		}
 	}
 
-	private String resolveModelKey(String modelKey, String defaultModelKey) {
-		String resolvedKey = hasText(modelKey) ? modelKey : defaultModelKey;
+	private String resolveModelKey(String modelKey, List<String> candidates, String defaultModelKey,
+			Map<String, ?> registeredModels) {
+		String resolvedKey = hasText(modelKey) ? modelKey : resolveConfiguredModelKey(candidates, defaultModelKey,
+				registeredModels);
 		if (!hasText(resolvedKey)) {
 			throw new AskDataModelException(AskDataErrorCode.DEFAULT_MODEL_NOT_CONFIGURED, "未配置默认模型");
 		}
 		return resolvedKey;
+	}
+
+	private String resolveConfiguredModelKey(List<String> candidates, String defaultModelKey,
+			Map<String, ?> registeredModels) {
+		if (candidates != null) {
+			for (String candidate : candidates) {
+				if (hasText(candidate) && registeredModels.containsKey(candidate.trim())) {
+					return candidate.trim();
+				}
+			}
+		}
+		return defaultModelKey;
 	}
 
 	private AskDataModelException modelNotFound(String modelType, String modelKey) {
@@ -156,8 +192,9 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 				"未找到" + modelType + "模型: " + modelKey);
 	}
 
-	private AskDataModelResult classifyFailure(AskDataModelResult routedResult, RuntimeException exception) {
-		if (exception instanceof IllegalArgumentException) {
+	private AskDataModelResult classifyFailure(AskDataModelResult routedResult, RuntimeException exception,
+			long elapsedMillis) {
+		if (!isInfrastructureTimeout(exception) && !isInfrastructureTimeout(elapsedMillis)) {
 			return AskDataModelResult.nonRetryableFailure(routedResult.getModelKey(), "模型请求被拒绝");
 		}
 		return AskDataModelResult.infrastructureFailure(routedResult, "模型基础设施暂不可用");
@@ -168,7 +205,76 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 	}
 
 	private void recordRoute(AskDataModelResult result) {
-		routeAuditRecords.add(new AskDataModelRouteAuditRecord(result));
+		synchronized (routeAuditRecords) {
+			int capacity = getRouteAuditRecordCapacity();
+			if (capacity <= 0) {
+				return;
+			}
+			while (routeAuditRecords.size() >= capacity) {
+				routeAuditRecords.remove(0);
+			}
+			routeAuditRecords.add(new AskDataModelRouteAuditRecord(result, properties.getModel().getProvider()));
+		}
+	}
+
+	private AskDataModelRequest defaultChatModelRequest(AskDataProjectContext projectContext) {
+		if (projectContext == null) {
+			throw new IllegalArgumentException("projectContext 不能为空");
+		}
+		Set<String> candidates = new LinkedHashSet<String>();
+		if (properties.getModel().getChatCandidates() != null) {
+			for (String candidate : properties.getModel().getChatCandidates()) {
+				if (hasText(candidate)) {
+					candidates.add(candidate.trim());
+				}
+			}
+		}
+		String defaultKey = getDefaultChatModelKey();
+		boolean containsDefaultKey = hasText(defaultKey) && candidates.contains(defaultKey.trim());
+		if (hasText(defaultKey)) {
+			candidates.add(defaultKey.trim());
+		}
+		List<String> candidateList = new ArrayList<String>(candidates);
+		String[] routeKeys = new String[] { "", "", "", "", "" };
+		int candidateLimit = containsDefaultKey ? 5 : 4;
+		for (int index = 0; index < candidateList.size() && index < candidateLimit; index++) {
+			routeKeys[index] = candidateList.get(index);
+		}
+		if (hasText(defaultKey) && !contains(routeKeys, defaultKey)) {
+			routeKeys[4] = defaultKey;
+		}
+		return new AskDataModelRequest(projectContext, routeKeys[0], routeKeys[1], routeKeys[2], routeKeys[3],
+				routeKeys[4]);
+	}
+
+	private boolean isInfrastructureTimeout(Throwable exception) {
+		Throwable current = exception;
+		while (current != null) {
+			if (current instanceof TimeoutException || current instanceof java.net.SocketTimeoutException) {
+				return true;
+			}
+			current = current.getCause();
+		}
+		return false;
+	}
+
+	private boolean isInfrastructureTimeout(long elapsedMillis) {
+		Integer timeoutMillis = properties.getModel().getInfrastructureFailureTimeoutMillis();
+		return timeoutMillis != null && timeoutMillis.intValue() > 0 && elapsedMillis >= timeoutMillis.intValue();
+	}
+
+	private int getRouteAuditRecordCapacity() {
+		Integer capacity = properties.getModel().getRouteAuditRecordCapacity();
+		return capacity == null ? 0 : capacity.intValue();
+	}
+
+	private boolean contains(String[] values, String value) {
+		for (String item : values) {
+			if (value.equals(item)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private boolean hasText(String value) {

@@ -21,6 +21,7 @@ import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -75,7 +76,7 @@ public class LangChain4jAskDataModelRegistryTest {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setDefaultChatModel("fallback");
 		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
-		models.put("primary", failingChatModel(new IllegalStateException("ollama gateway unavailable")));
+		models.put("primary", failingChatModel(new RuntimeException(new TimeoutException("ollama timeout"))));
 		models.put("fallback", chatModel("fallback-response"));
 		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
 				modelRegistry(models, new HashMap<String, EmbeddingModel>()));
@@ -93,6 +94,82 @@ public class LangChain4jAskDataModelRegistryTest {
 		assertEquals("fallback", registry.getRouteAuditRecords().get(1).getModelKey());
 		assertEquals(AskDataModelRoutePolicy.DEFAULT_KEY,
 				registry.getRouteAuditRecords().get(1).getRoutePolicy());
+	}
+
+	@Test
+	public void shouldUseConfiguredChatCandidatesForDefaultRouteAndFallback() {
+		AskDataProperties properties = new AskDataProperties();
+		properties.getModel().setProvider("ollama");
+		properties.getModel().setChatCandidates(java.util.Arrays.asList("primary", "fallback"));
+		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		models.put("primary", failingChatModel(new RuntimeException(new TimeoutException("ollama timeout"))));
+		models.put("fallback", chatModel("fallback-response"));
+		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
+				modelRegistry(models, new HashMap<String, EmbeddingModel>()));
+
+		AskDataModelResponse response = registry.generate(new AskDataProjectContext("project-9527", "operator-9527"),
+				"question");
+
+		assertEquals("fallback", response.getModelKey());
+		assertEquals("ollama", registry.getRouteAuditRecords().get(0).getProvider());
+	}
+
+	@Test
+	public void shouldNotFallbackWhenDisabledAfterTimeoutFailure() {
+		AskDataProperties properties = new AskDataProperties();
+		properties.getModel().setFallbackEnabled(false);
+		properties.getModel().setChatCandidates(java.util.Arrays.asList("primary", "fallback"));
+		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		models.put("primary", failingChatModel(new RuntimeException(new TimeoutException("ollama timeout"))));
+		models.put("fallback", chatModel("fallback-response"));
+		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
+				modelRegistry(models, new HashMap<String, EmbeddingModel>()));
+
+		try {
+			registry.generate(new AskDataProjectContext("project-9527", "operator-9527"), "question");
+			fail("关闭兜底后超时错误不能切换模型");
+		} catch (AskDataModelException ex) {
+			assertEquals("MODEL_INFRASTRUCTURE_FAILURE", ex.getErrorCode());
+		}
+		assertEquals(1, registry.getRouteAuditRecords().size());
+	}
+
+	@Test
+	public void shouldNotFallbackAfterOrdinaryRuntimeException() {
+		AskDataProperties properties = new AskDataProperties();
+		properties.getModel().setChatCandidates(java.util.Arrays.asList("primary", "fallback"));
+		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		models.put("primary", failingChatModel(new IllegalStateException("unexpected failure")));
+		models.put("fallback", chatModel("fallback-response"));
+		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
+				modelRegistry(models, new HashMap<String, EmbeddingModel>()));
+
+		try {
+			registry.generate(new AskDataProjectContext("project-9527", "operator-9527"), "question");
+			fail("普通运行时错误不能切换模型");
+		} catch (AskDataModelException ex) {
+			assertEquals("MODEL_REQUEST_REJECTED", ex.getErrorCode());
+		}
+		assertEquals(1, registry.getRouteAuditRecords().size());
+	}
+
+	@Test
+	public void shouldKeepOnlyConfiguredNumberOfRouteAuditRecords() {
+		AskDataProperties properties = new AskDataProperties();
+		properties.getModel().setRouteAuditRecordCapacity(1);
+		properties.getModel().setChatCandidates(java.util.Arrays.asList("first", "second"));
+		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		models.put("first", chatModel("first-response"));
+		models.put("second", chatModel("second-response"));
+		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
+				modelRegistry(models, new HashMap<String, EmbeddingModel>()));
+
+		registry.generate(new AskDataProjectContext("project-1", "operator-1"), "question");
+		properties.getModel().setChatCandidates(java.util.Arrays.asList("second"));
+		registry.generate(new AskDataProjectContext("project-2", "operator-2"), "question");
+
+		assertEquals(1, registry.getRouteAuditRecords().size());
+		assertEquals("second", registry.getRouteAuditRecords().get(0).getModelKey());
 	}
 
 	@Test
@@ -158,6 +235,22 @@ public class LangChain4jAskDataModelRegistryTest {
 
 		assertEquals("embedding-default", registry.getDefaultEmbeddingModelKey());
 		assertEquals(java.util.Arrays.asList(0.1F, 0.2F), registry.getEmbeddingModel(null).embed("question"));
+	}
+
+	@Test
+	public void shouldUseConfiguredEmbeddingCandidateWhenModelKeyIsBlank() {
+		AskDataProperties properties = new AskDataProperties();
+		properties.getModel().setDefaultEmbeddingModel("embedding-default");
+		properties.getModel().setEmbeddingCandidates(java.util.Arrays.asList("embedding-priority",
+				"embedding-default"));
+		Map<String, EmbeddingModel> models = new HashMap<String, EmbeddingModel>();
+		models.put("embedding-priority", embeddingModel(0.3F, 0.5F));
+		models.put("embedding-default", embeddingModel(0.1F, 0.2F));
+
+		AskDataModelRegistry registry = registry(properties,
+				modelRegistry(new HashMap<String, ChatLanguageModel>(), models));
+
+		assertEquals(java.util.Arrays.asList(0.3F, 0.5F), registry.getEmbeddingModel(null).embed("question"));
 	}
 
 	@Test
