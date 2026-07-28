@@ -3,7 +3,7 @@
 - Completed history: Task 1 `72b82393`；Task 2 `66d95573`；Task 3 `4d94882a`；Task 4 `191f5694`；Task 5 commits `3c9258f4`、`03548cea`、`4780c3c1`，两轮 thorough 修复复审通过，协调提交 `af1471fd`。
 - Plan task: `Task 6: 执行分层构建与独立 sample 进程验证`
 - OpenSpec mapping: `3. 按 Core -> Boot -> Cloud/AI -> sample 完成分层构建，运行相关测试，并实际启动 sample 检查健康、Magic-API 宿主及全部插件装配结果。`
-- Stage: `task-review`
+- Stage: `implementing`
 - Implementer: `/root/task6_full_verification`。
 - Dispatch requirements: SDD `task-6-brief.md`；只读预检 `task-6-preflight.md`；实现报告写入 `task-6-report.md`。
 - Review mode: `thorough`
@@ -23,4 +23,6 @@
 - Resume GREEN: AI 15 reactor / autoconfigure 92 tests；sample 14 reactor / target 6 tests；post-install target 6 tests，全部 `BUILD SUCCESS`。
 - Standalone GREEN: port `39089`，18 秒就绪，health/editor HTTP 200，negative scan clean，TERM 退出、端口释放、空资源树清理通过。
 - Evidence commit: `a3a714e7 test(magicapi): record all-plugin verification`，仅包含 `.comet/context.md`。
-- Task reviewer: 待派发全新 reviewer，review package `review-af1471fd..a3a714e7.diff`，base `af1471fd`。
+- Task reviewer: `/root/task6_review`，Spec ❌ / quality Needs fixes；Critical 0、Important 1、Minor 1。
+- Open finding: standalone health/editor HTTP code/body、TERM/KILL 分支、负向扫描、端口释放和安全清理只存在 context/report 声明，缺少可独立复核的原始命令状态；literal `XXXXXX` 日志名为 Minor。
+- Review/fix round: `1/2`，待派全新 fixer 仅重跑 standalone 并保留完整 transcript/sidecar、追加 context/report、修正展开日志名；不重跑全层 Maven。
