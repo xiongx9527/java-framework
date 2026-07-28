@@ -27,8 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @ExtendWith(OutputCaptureExtension.class)
 public class EmbeddingStoreAutoConfigurationTest {
@@ -156,6 +158,51 @@ public class EmbeddingStoreAutoConfigurationTest {
                     assertTrue(context.getStartupFailure() == null);
                     assertFalse(context.containsBean("embeddingStoreRegistry"));
                     assertTrue(context.getBean(AiEmbeddingStoreRegistry.class).contains("knowledge"));
+                });
+    }
+
+    @Test
+    public void shouldUseLegacyDefaultWhenNeutralConfigurationIsDisabled() {
+        this.contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.embedding-store.default-store=legacy-store",
+                        "fw-plus.ai.langchain4j.embedding-store.stores.legacy-store.provider=fake",
+                        "fw-plus.ai.embedding-store.enabled=false",
+                        "fw-plus.ai.embedding-store.default-store=neutral-store",
+                        "fw-plus.ai.embedding-store.stores.neutral-store.framework=langchain4j",
+                        "fw-plus.ai.embedding-store.stores.neutral-store.provider=fake",
+                        "fw-plus.ai.embedding-store.stores.neutral-store.type=vector")
+                .withBean(EmbeddingStoreProviderAdapter.class, FakeEmbeddingStoreProviderAdapter::new)
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    AiEmbeddingStoreRegistry registry = context.getBean(AiEmbeddingStoreRegistry.class);
+                    assertEquals("legacy-store", registry.getDefaultKey());
+                    assertTrue(registry.contains("legacy-store"));
+                    assertFalse(registry.contains("neutral-store"));
+                });
+    }
+
+    @Test
+    public void shouldBridgeInjectedLegacyFactoryForRegistryAndRuntimeFactory() {
+        RecordingLegacyEmbeddingStoreFactory legacyFactory = new RecordingLegacyEmbeddingStoreFactory();
+        this.contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.embedding-store.stores.knowledge.framework=langchain4j",
+                        "fw-plus.ai.embedding-store.stores.knowledge.provider=custom",
+                        "fw-plus.ai.embedding-store.stores.knowledge.type=vector")
+                .withBean(EmbeddingStoreFactory.class, () -> legacyFactory)
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    assertTrue(context.getBean(AiEmbeddingStoreRegistry.class).contains("knowledge"));
+                    AiEmbeddingStoreDefinition runtime = new AiEmbeddingStoreDefinition();
+                    runtime.setKey("runtime-store");
+                    runtime.setFramework("langchain4j");
+                    runtime.setProvider("custom");
+                    runtime.setType(AiEmbeddingStoreType.VECTOR);
+                    context.getBean(AiEmbeddingStoreFactory.class).create(runtime,
+                            new ArrayList<AiEmbeddingStoreAdapter>(
+                                    context.getBeansOfType(AiEmbeddingStoreAdapter.class).values()));
+                    assertEquals(2, legacyFactory.calls.get());
                 });
     }
 
@@ -312,6 +359,18 @@ public class EmbeddingStoreAutoConfigurationTest {
                 }
             }
             throw new EmbeddingStoreException("Embedding store provider is not supported: redis");
+        }
+    }
+
+    private static class RecordingLegacyEmbeddingStoreFactory implements EmbeddingStoreFactory {
+
+        private final AtomicInteger calls = new AtomicInteger();
+
+        @Override
+        public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition,
+                                                  List<EmbeddingStoreProviderAdapter> adapters) {
+            calls.incrementAndGet();
+            return mock(EmbeddingStore.class);
         }
     }
 }

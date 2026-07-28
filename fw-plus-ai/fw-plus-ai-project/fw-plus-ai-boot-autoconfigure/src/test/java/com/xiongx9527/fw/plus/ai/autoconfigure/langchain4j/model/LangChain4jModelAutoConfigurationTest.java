@@ -126,6 +126,27 @@ public class LangChain4jModelAutoConfigurationTest {
     }
 
     @Test
+    public void shouldUseLegacyDefaultWhenNeutralConfigurationIsDisabled() {
+        contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.model.default-model=legacy-chat",
+                        "fw-plus.ai.langchain4j.model.models.legacy-chat.provider=openai",
+                        "fw-plus.ai.langchain4j.model.models.legacy-chat.model-type=chat",
+                        "fw-plus.ai.model.enabled=false",
+                        "fw-plus.ai.model.default-model=neutral-chat",
+                        "fw-plus.ai.model.models.neutral-chat.framework=langchain4j",
+                        "fw-plus.ai.model.models.neutral-chat.provider=openai",
+                        "fw-plus.ai.model.models.neutral-chat.type=chat")
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    AiModelRegistry registry = context.getBean(AiModelRegistry.class);
+                    assertEquals("legacy-chat", registry.getDefaultKey());
+                    assertTrue(registry.contains("legacy-chat"));
+                    assertFalse(registry.contains("neutral-chat"));
+                });
+    }
+
+    @Test
     public void shouldFailForDuplicateEnabledNeutralModelKeyWithoutLeakingSecrets(CapturedOutput output) {
         contextRunner
                 .withPropertyValues(
