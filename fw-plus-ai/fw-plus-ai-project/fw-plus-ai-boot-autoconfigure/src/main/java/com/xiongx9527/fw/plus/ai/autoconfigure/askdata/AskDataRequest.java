@@ -1,10 +1,17 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata;
 
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+
 import java.util.Map;
 
 public class AskDataRequest {
 
     private String question;
+    /**
+     * Core AskData 在桥接期间传入的项目与操作人隔离上下文，供旧流程内部的权限和审计逻辑读取。
+     * 调用方不得伪造该上下文，真实权限校验和审计执行仍由后续桥接或业务覆盖实现负责。
+     */
+    private AskDataProjectContext projectContext;
     private String datasourceKey;
     private String dialect;
     private String modelKey;
@@ -20,6 +27,14 @@ public class AskDataRequest {
 
     public void setQuestion(String question) {
         this.question = question;
+    }
+
+    public AskDataProjectContext getProjectContext() {
+        return projectContext;
+    }
+
+    public void setProjectContext(AskDataProjectContext projectContext) {
+        this.projectContext = projectContext;
     }
 
     public String getDatasourceKey() {

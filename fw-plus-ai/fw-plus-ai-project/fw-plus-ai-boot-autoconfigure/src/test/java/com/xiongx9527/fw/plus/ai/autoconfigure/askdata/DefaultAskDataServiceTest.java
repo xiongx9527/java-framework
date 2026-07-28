@@ -81,20 +81,25 @@ public class DefaultAskDataServiceTest {
         legacyResult.setBrief("订单总数为 10");
         flowExecutor.result = legacyResult;
         CoreAskDataServiceAdapter service = new CoreAskDataServiceAdapter(new DefaultAskDataService(flowExecutor));
+        AskDataProjectContext projectContext = new AskDataProjectContext("project-a", "operator-a");
 
         com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult result = service.ask(
                 new com.xiongx9527.fw.plus.ai.askdata.api.AskDataRequest(
-                        new AskDataProjectContext("project-a", "operator-a"), "订单数量"));
+                        projectContext, "订单数量"));
 
         assertTrue(result.isSuccess());
         assertEquals("订单总数为 10", result.getAnswer());
         assertEquals(1, flowExecutor.calls);
+        assertSame(projectContext, flowExecutor.request.getProjectContext());
+        assertEquals("project-a", flowExecutor.request.getProjectContext().getProjectId());
+        assertEquals("operator-a", flowExecutor.request.getProjectContext().getOperatorId());
     }
 
     @Test
     public void shouldAdaptLegacyFailureToCoreError() {
         RecordingFlowExecutor flowExecutor = new RecordingFlowExecutor();
-        flowExecutor.result = AskDataResult.failure(AskDataErrorCode.SQL_REJECTED, "仅允许查询语句");
+        flowExecutor.result = AskDataResult.failure(AskDataErrorCode.SQL_REJECTED,
+                "JDBC execute failed: select * from confidential_orders");
         CoreAskDataServiceAdapter service = new CoreAskDataServiceAdapter(new DefaultAskDataService(flowExecutor));
 
         com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult result = service.ask(
@@ -103,7 +108,9 @@ public class DefaultAskDataServiceTest {
 
         assertFalse(result.isSuccess());
         assertEquals(AskDataErrorCode.SQL_REJECTED, result.getError().getCode());
-        assertEquals("仅允许查询语句", result.getError().getMessage());
+        assertEquals("问数执行失败，请查看监控日志", result.getError().getMessage());
+        assertFalse(result.getError().getMessage().contains("JDBC"));
+        assertFalse(result.getError().getMessage().contains("confidential_orders"));
         assertEquals(1, flowExecutor.calls);
     }
 
@@ -111,10 +118,12 @@ public class DefaultAskDataServiceTest {
 
         private int calls;
         private AskDataResult result;
+        private AskDataRequest request;
 
         @Override
         public AskDataResult execute(AskDataRequest request) {
             calls++;
+            this.request = request;
             return result;
         }
     }
