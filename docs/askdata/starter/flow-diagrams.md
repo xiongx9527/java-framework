@@ -130,7 +130,8 @@ flowchart TB
     API --> Client[业务系统/前端 SDK]
     MCP --> Agent[MaxKB/Dify/Coze/n8n 等 Agent]
     Embed --> Host[宿主页面/DataEase]
-    Enterprise --> IdP[企业微信/钉钉/飞书/SSO]
+    Enterprise --> IdP[业务 IAM/JustAuth]
+    IdP --> Platforms[企业微信/钉钉/飞书/SSO]
     Client --> Guard[项目权限、SQL 安全、审计]
     Agent --> Guard
     Host --> Guard

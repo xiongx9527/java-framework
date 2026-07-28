@@ -25,7 +25,7 @@
 | 工作空间/项目 | 项目是所有数据、对话、记忆、推荐、审计的前提边界 | governance / core | Core 已定义 `projectId` 强制归属 |
 | 成员管理 | 支持项目成员、角色、授权关系 | governance / console | 前端组件化实现 |
 | 权限配置 | 支持数据源、表、列、行级权限 | governance | SQL 执行必须强制校验 |
-| 组织用户同步 | 支持企业微信、钉钉、飞书等组织用户同步 | enterprise | 平台对接能力的一部分 |
+| 组织用户同步 | 由业务 IAM/JustAuth 支持企业微信、钉钉、飞书等组织用户同步 | enterprise | AskData 只接收映射后的项目成员与权限 |
 
 ### 1.3 数据源与方言
 
@@ -108,13 +108,13 @@
 | 功能 | 要求 | 归属 change | 备注 |
 | --- | --- | --- | --- |
 | 登录认证 | 支持 X-Pack 登录认证能力 | enterprise | 不做 License 限制 |
-| 平台对接 | 支持企业微信、钉钉、飞书接入 | enterprise / console | 扫码登录、免登、组织用户同步 |
-| 企业微信 | 企业 ID、应用 ID、应用密钥、可信域名/IP、OAuth2 免登 | enterprise | 需审计配置变更 |
-| 钉钉 | AgentId、AppKey、AppSecret、回调域、免登 | enterprise | 需审计配置变更 |
-| 飞书 | App ID、App Secret、网页应用、重定向 URL、免登 | enterprise | 需审计配置变更 |
-| 扫码登录 | 支持平台扫码登录 | enterprise / console | 权限映射 |
-| 免登 | PC/移动端免密进入 AskData | enterprise / console | 项目/操作人归属不可缺失 |
-| 组织用户同步 | 同步组织、用户、应用权限 | enterprise / governance | 与项目成员权限衔接 |
+| 平台对接 | 企业微信、钉钉、飞书由业务 IAM/JustAuth 接入 | enterprise / console | AskData 不自研扫码、免登或 OAuth |
+| 企业微信 | JustAuth 企业微信登录授权、可信域名/IP 与组织同步 | enterprise | 业务 IAM 管理密钥并审计配置变更 |
+| 钉钉 | JustAuth 钉钉登录授权、回调、免登与组织同步 | enterprise | 业务 IAM 管理 AgentId/AppKey/AppSecret |
+| 飞书 | JustAuth 飞书网页应用、重定向 URL、免登与组织同步 | enterprise | 业务 IAM 管理 App ID/App Secret |
+| 扫码登录 | JustAuth 完成平台扫码登录 | enterprise / console | AskData 只接收权限映射 |
+| 免登 | JustAuth 完成 PC/移动端免登 | enterprise / console | 项目/操作人归属不可缺失 |
+| 组织用户同步 | 业务 IAM/JustAuth 同步组织、用户、应用权限 | enterprise / governance | 与项目成员权限衔接 |
 | 参数配置 | 企业参数、第三方参数、运行参数 | enterprise | 文档列默认值和风险 |
 | 外观设置 | 主题、外观和嵌入展示配置 | enterprise / console | 可覆盖主题 |
 | 操作日志 | 管理员操作日志和配置变更日志 | enterprise / observability | 与监控日志分开 |
