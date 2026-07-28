@@ -51,11 +51,28 @@ public class AskDataResumeFlowTest {
 
         assertTrue(result.isSuccess());
         assertEquals("select * from orders limit 100", result.getSql());
-        assertEquals(0, fixture.metadataCalls);
+        assertEquals(1, fixture.metadataCalls);
         assertEquals(0, fixture.promptCalls);
         assertEquals(0, fixture.modelCalls);
-        assertEquals(0, fixture.validatorCalls);
+        assertEquals(1, fixture.validatorCalls);
         assertEquals(1, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectValidatedCheckpointWhenCurrentSqlPolicyRejectsIt() {
+        Fixture fixture = new Fixture();
+        fixture.rejectValidatedSql = true;
+        fixture.store.save(fixture.validatedCheckpoint("resume-validate-rejected", "1"));
+
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-validate-rejected");
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.SQL_REJECTED, result.getErrorCode());
+        assertEquals(1, fixture.metadataCalls);
+        assertEquals(1, fixture.validatorCalls);
+        assertEquals(0, fixture.executorCalls);
     }
 
     @Test
@@ -358,6 +375,7 @@ public class AskDataResumeFlowTest {
         private int validatorCalls;
         private int executorCalls;
         private boolean failExecution;
+        private boolean rejectValidatedSql;
 
         private Fixture() {
             properties.getSql().setExecuteEnabled(true);
@@ -461,6 +479,10 @@ public class AskDataResumeFlowTest {
                 @Override
                 public AskDataSqlValidationResult validate(String sql, AskDataDialect dialect, int maxRows) {
                     validatorCalls++;
+                    if (rejectValidatedSql) {
+                        return AskDataSqlValidationResult.rejected(AskDataErrorCode.SQL_REJECTED,
+                                "current policy rejected checkpoint sql");
+                    }
                     return AskDataSqlValidationResult.accepted(sql);
                 }
             };
