@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
-### Requirement: 中立抽象、默认 adapter 与 Java 17 starter 骨架必须具备自动化测试
-系统 SHALL 为中立模型/store 核心、LangChain4j 默认 adapter 以及 Spring AI、Spring AI Alibaba、AgentScope 2 Java 的 Java 17 starter 骨架提供不依赖真实 API key 或远程向量库的自动化测试。
+### Requirement: 中立抽象、默认 adapter 与 Java 17 后续实施文档必须具备可验证证据
+系统 SHALL 为中立模型/store 核心、LangChain4j 默认 adapter 提供不依赖真实 API key 或远程向量库的自动化测试，并为 Spring AI、Spring AI Alibaba、AgentScope 2 Java 提供经脚本校验的后续实施文档。
 
 #### Scenario: 核心契约测试覆盖注册与失败路径
 - **WHEN** 执行中立核心模块测试
@@ -12,10 +12,10 @@
 - **THEN** 测试 SHALL 使用 SDK mock 或本地 fake 验证其声明支持的模型和向量能力。
 - **AND** 测试 SHALL 验证未声明能力被明确拒绝。
 
-#### Scenario: Java 17 starter 骨架验证发布边界
-- **WHEN** 执行 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java 的首版测试
-- **THEN** 测试 SHALL 验证 Java 17 编译、Spring Boot 3 条件装配、Java 8 依赖隔离和未实现 adapter 的明确诊断。
-- **AND** 测试 SHALL 不把真实 SDK model/store 契约伪装为已通过。
+#### Scenario: Java 17 后续实施文档验证发布边界
+- **WHEN** 执行 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java 的文档校验
+- **THEN** 校验 SHALL 验证 Java 17 / Spring Boot 3.x 前置条件、未来验证步骤、Java 8 隔离和未实现 adapter 的明确状态。
+- **AND** 文档 SHALL 不把真实 SDK model/store 契约或 Java 17 artifact 伪装为当前已交付。
 
 ### Requirement: 自动配置和 Magic-API 兼容性必须回归验证
 系统 SHALL 对配置兼容层、starter 条件装配和 Magic-API model/vector 插件建立集成测试。
