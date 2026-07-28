@@ -9,12 +9,12 @@
 
 - Task: Task 9: 范围排除、聚合验证与实现说明
 - OpenSpec mapping: 6.1, 6.2, 6.3, 6.4, 6.5
-- Stage: final-fix
+- Stage: done
 - Implementer: Laplace DONE
-- Reviewer: Mencius approved; Turing final review with fixes
+- Reviewer: Mencius approved; Turing final review with fixes; Halley final re-review approved
 - Fixer: Darwin DONE
 - Review/fix rounds: 1
-- Review result: pending re-review
+- Review result: Approved
 
 ## Evidence
 
@@ -45,3 +45,4 @@
   - `./mvnw -f fw-plus-project/pom.xml -pl fw-plus-tiny-engine -am -DskipTests install`: build success.
   - `./mvnw -f fw-plus-project/pom.xml -DskipTests validate`: 59-module reactor validate success.
   - `git diff --name-only 9c48128246f99024d263c71136e9f0e5186cefc6..HEAD | rg -i "askdata|fw-plus-ai" || true`: no output.
+- Final re-review: Halley approved; original 4 Important issues closed, no new Critical, Important, or Minor issues.
