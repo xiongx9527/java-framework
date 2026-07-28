@@ -2,16 +2,15 @@
 
 ## 当前任务
 
-- Plan task: `Task 13: 实现多提问、记忆和推荐默认桥接`
-- OpenSpec task mapping: `1.8` / `1.9` / `2.6` 的自动配置默认实现子集（本任务覆盖默认 flow 的显式多提问、长期记忆召回和按操作人隔离推荐桥接，完整排序画像/多 agent 调度由后续任务继续）
+- Plan task: `Task 14: Starter POM、BOM 和兼容验证`
+- OpenSpec task mapping: `6.1` / `6.2` / `6.3` 的依赖装配和 Starter 打包验证子集（本任务覆盖 BOM/Starter 依赖树和 Java 8/Spring Boot 2.7 兼容构建，不引入 Java 17-only runtime）
 - Stage: `done`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `e4d75ee592fa24810eea2e748c7b081985de388e`
-- Implementer commit: `5f94c837`
-- Fix round 1 commit: `b52469d3`
-- Task brief: `.superpowers/sdd/task-13-brief.md`
-- Implementer report: `.superpowers/sdd/task-13-report.md`
+- Base commit: `9e315029476e4afe70b10ce901af178339286bc1`
+- Implementer commit: `204829e2`
+- Task brief: `.superpowers/sdd/task-14-brief.md`
+- Implementer report: `.superpowers/sdd/task-14-report.md`
 
 ## 派发记录
 
@@ -101,3 +100,6 @@
 - 2026-07-28：Task 13 reviewer 返回 `Needs fixes`；Important 问题为未接入 Core planner/复合问题计划，且 `AskDataResumeFlowTest` 未被 Surefire 实际执行；Minor 为 `AskDataRecommendationAdapter` 公开方法缺少中文 Javadoc。当前 thorough 修复轮次：1/2，准备派发 fix agent。
 - 2026-07-28：fix agent 返回 `DONE`，提交 `b52469d3`；接入可替换 Core `AskDataQuestionPlanner.simple()`，支持显式列表和中英文分号复合问题；迁移 `AskDataResumeFlowTest` 到 JUnit Jupiter 并补齐有效上下文；补充推荐 adapter 中文 Javadoc；同时修复多问题携带恢复令牌时误复制 `resumeToken` 的补充审查问题。指定命令实际执行 35 项（flow 12、resume 16、multi-question 7）且全部通过。已生成 re-review package `.superpowers/sdd/review-e4d75ee5..b52469d3.diff`。
 - 2026-07-28：Task 13 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。已勾选 plan 中 Task 13 的 5 个 step；OpenSpec 1.8/1.9/2.6 仍包含完整多 agent 调度、推荐画像排序和长期记忆存储适配等后续内容，本任务不单独勾选。
+- 2026-07-28：准备派发 Task 14 implementer。允许修改范围限定为 AI BOM、AskData Starter POM 和必要的 AI project module ordering；禁止引入 Spring AI、Spring AI Alibaba、AgentScope Java 或 Java 17-only 依赖。
+- 2026-07-28：Task 14 implementer 返回 `DONE_WITH_CONCERNS`，提交 `204829e2`；基线 package 已通过但 Starter/BOM 缺少 Core AskData 显式装配，修复后同一 package 通过，额外 dependency:tree 确认 Core contract、LangChain4j 默认 adapter、autoconfigure 均为直接 compile 依赖。顾虑：本地 `fw-plus-ai-boot-autoconfigure:0.1.1-SNAPSHOT` POM 无效警告仍存在，不在本任务允许修改范围。已生成 review package `.superpowers/sdd/review-9e315029..204829e2.diff`。
+- 2026-07-28：Task 14 reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。已勾选 plan 中 Task 14 的 4 个 step；OpenSpec 6.1/6.2/6.3 仍包含完整 Starter 依赖、默认 SPI 装配和兼容回归等后续内容，本任务不单独勾选。
