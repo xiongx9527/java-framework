@@ -23,6 +23,7 @@ base-ref: 0cf101d618562f74db41dc5b7071e6714e1fd4fa
 - 不使用 `spring.main.allow-circular-references=true`、`@Lazy` 或新 BeanPostProcessor 绕过 MQTT 循环。
 - 每个新源码修复必须有对应 RED 证据；当前已完成的 AI/classpath 修改复用已保存的启动日志和测试记录，不回滚后重复制造失败。
 - 当前工作树已包含 AI 元数据/POM、sample POM 和 classpath 测试的未提交实现；执行各任务前先运行 `git diff -- <任务文件>`，在现有内容上增量修改，禁止用计划代码块整文件覆盖或回退这些改动。
+- Task 4 首轮执行已创建未提交的 `application-all-plugins.yaml` 与真实 sample 上下文测试，并保存 Apollo RED；新增 AI 前置修复不得修改、回退或暂存这两个 sample 文件。
 - 不提交 `node_modules/`、console `dist/`、`.flattened-pom.xml`、启动日志或临时资源目录。
 
 ---
@@ -321,7 +322,82 @@ git add \
 git commit -m "test(magicapi): cover all plugin artifacts in sample"
 ```
 
-### Task 4: 让真实 sample 主类完成离线全插件上下文与 HTTP 验证
+### Task 4: 让可选向量 SDK 缺失时 AI provider 自动配置可安全装配
+
+**Files:**
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/store/embeding/EmbeddingStoreAutoConfiguration.java`
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/store/embeding/EmbeddingStoreAutoConfigurationTest.java`
+
+**Interfaces:**
+- Consumes: embedding starter 不传递全部 provider SDK 的既有设计，以及直接链接 Redis、Milvus、Elasticsearch、Qdrant、Weaviate、Azure AI Search SDK 类型的 adapter。
+- Produces: 缺少具体 SDK 时仍可创建 `EmbeddingStoreRegistry`，只跳过对应 adapter Bean；Task 5 的真实 sample 不通过 profile 禁用 vector 插件。
+
+- [ ] **Step 1: 保留真实 sample 消费侧 RED 证据**
+
+读取 `.superpowers/sdd/2026-07-27-magicapi-plugin-sample-integration/task-4-report.md`，确认刷新 Boot 旧快照后真实 sample 失败为：
+
+```text
+BeanCreationException: milvusEmbeddingStoreProviderAdapter
+NoClassDefFoundError: dev/langchain4j/store/embedding/milvus/MilvusEmbeddingStore$Builder
+```
+
+确认 sample dependency tree 不包含 `langchain4j-milvus`，且 starter POM 明确不传递所有具体向量 SDK。禁止通过 profile 关闭 embedding store，也不在 sample 逐个补 SDK。
+
+- [ ] **Step 2: 编写缺少可选 SDK 的消费侧失败测试**
+
+在 `EmbeddingStoreAutoConfigurationTest` 中使用新的 `ApplicationContextRunner` 和 `FilteredClassLoader` 隐藏以下包：
+
+```text
+dev.langchain4j.store.embedding.redis
+dev.langchain4j.store.embedding.milvus
+dev.langchain4j.store.embedding.elasticsearch
+dev.langchain4j.store.embedding.qdrant
+dev.langchain4j.store.embedding.weaviate
+dev.langchain4j.store.embedding.azure.search
+```
+
+测试必须断言上下文无启动失败、`EmbeddingStoreRegistry` 存在、`inMemoryEmbeddingStoreProviderAdapter` 仍存在，并且上述 6 个直接链接型 adapter Bean 均不存在。不得过滤整个 `dev.langchain4j.store.embedding` 包。
+
+- [ ] **Step 3: 运行测试确认 RED**
+
+```bash
+./fw-plus-ai/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
+  -Dtest=EmbeddingStoreAutoConfigurationTest#shouldStartWithoutOptionalTypedProviderSdks test
+```
+
+Expected: FAIL，根因为 Milvus 或另一个被过滤的直接链接型 provider 类无法加载，而不是测试装配错误。
+
+- [ ] **Step 4: 对直接链接型 adapter 增加最小 classpath 条件**
+
+为 Redis、Milvus、Elasticsearch、Qdrant、Weaviate、Azure AI Search 的 6 个 `@Bean` 方法分别增加：
+
+```java
+@ConditionalOnClass(name = "对应 provider SDK 入口类全限定名")
+```
+
+入口类使用 Step 2 列出的包内实际 embedding store 类。使用 `name` 字符串避免条件解析提前加载缺失类型。不得给整个 `EmbeddingStoreAutoConfiguration` 加总开关，不修改反射型 provider、registry、factory 或公开 API。
+
+- [ ] **Step 5: 运行 AI 自动配置回归**
+
+```bash
+./fw-plus-ai/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
+  -Dtest=EmbeddingStoreAutoConfigurationTest,EmbeddingStoreAutoConfigurationMetadataTest test
+```
+
+Expected: 消费侧缺 SDK 测试与现有 embedding/元数据测试全部通过；完整测试 classpath 下既有 dedicated adapter 测试仍通过。
+
+- [ ] **Step 6: 安装 AI 自动配置快照并提交**
+
+```bash
+./fw-plus-ai/mvnw -f fw-plus-ai/fw-plus-ai-project/pom.xml \
+  -pl fw-plus-ai-boot-autoconfigure -DskipTests install
+git add \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/store/embeding/EmbeddingStoreAutoConfiguration.java \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j/store/embeding/EmbeddingStoreAutoConfigurationTest.java
+git commit -m "fix(ai): condition optional embedding providers"
+```
+
+### Task 5: 让真实 sample 主类完成离线全插件上下文与 HTTP 验证
 
 **Files:**
 - Modify: `fw-plus-sample/fw-plus-boot-samples/fw-plus-magicapi-spring-boot-starter-sample/src/main/java/com/xiongx9527/fw/plus/boot/magicapi/MagicapiSampleApplication.java`
@@ -477,14 +553,14 @@ git add \
 git commit -m "test(magicapi): start all plugins in sample"
 ```
 
-### Task 5: 执行分层构建与独立 sample 进程验证
+### Task 6: 执行分层构建与独立 sample 进程验证
 
 **Files:**
 - Modify: `openspec/changes/fix-magicapi-plugin-sample-integration/tasks.md`
 - Modify: `openspec/changes/fix-magicapi-plugin-sample-integration/.comet/context.md`（追加最终命令、结果、日志路径，不写主观总结）
 
 **Interfaces:**
-- Consumes: Tasks 1-4 的提交与本地 `0.1.1-SNAPSHOT` 依赖。
+- Consumes: Tasks 1-5 的提交与本地 `0.1.1-SNAPSHOT` 依赖。
 - Produces: Core -> Boot -> Cloud / AI -> Sample 的完整构建证据，以及独立 sample 进程的健康、Magic-API Web、日志和端口释放证据。
 
 - [ ] **Step 1: 运行定向回归总集**
@@ -615,6 +691,6 @@ git commit -m "test(magicapi): record all-plugin verification"
 ## Plan Self-Review
 
 - Spec coverage: AI 元数据、MQTT 循环、27 插件同步、Apollo 隔离、真实 sample 上下文、HTTP、分层构建和端口释放均有对应任务。
-- Dependency order: Tasks 1-3 可并行；Task 4 依赖 Tasks 1-3；Task 5 依赖 Tasks 1-4。
+- Dependency order: Tasks 1-3 可并行；Task 4 依赖 Tasks 1-3；Task 5 依赖 Tasks 1-4；Task 6 依赖 Tasks 1-5。
 - Type consistency: `MagicResourceService`、`MqttClientDataSourceInfoMagicResourceStorage`、`magic-api.resource.location`、`fw.plus.config.event.apollo-enabled` 在设计与任务中保持一致。
 - Scope: 不包含真实外部中间件读写，不新增 capability 或公共 API。
