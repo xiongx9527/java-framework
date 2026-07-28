@@ -16,6 +16,9 @@ import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -27,6 +30,7 @@ import static org.mockito.Mockito.mock;
 import java.util.Collections;
 import java.util.List;
 
+@ExtendWith(OutputCaptureExtension.class)
 public class EmbeddingStoreAutoConfigurationTest {
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
@@ -40,14 +44,15 @@ public class EmbeddingStoreAutoConfigurationTest {
     }
 
     @Test
-    public void shouldNotCreateStarterBeansWhenDisabled() {
+    public void shouldKeepNeutralInfrastructureWhenLegacyConfigurationIsDisabled() {
         this.contextRunner
                 .withPropertyValues("fw-plus.ai.langchain4j.embedding-store.enabled=false")
                 .run(context -> {
                     assertFalse(context.containsBean("embeddingStoreRegistry"));
-                    assertFalse(context.containsBean("embeddingStoreFactory"));
-                    assertTrue(context.getBeansOfType(EmbeddingStoreProviderAdapter.class).isEmpty());
-                    assertTrue(context.getBeansOfType(EmbeddingStoreFactory.class).isEmpty());
+                    assertTrue(context.containsBean("aiEmbeddingStoreRegistry"));
+                    assertTrue(context.containsBean("aiEmbeddingStoreFactory"));
+                    assertFalse(context.getBeansOfType(EmbeddingStoreProviderAdapter.class).isEmpty());
+                    assertFalse(context.getBeansOfType(EmbeddingStoreFactory.class).isEmpty());
                 });
     }
 
@@ -135,6 +140,45 @@ public class EmbeddingStoreAutoConfigurationTest {
                         "fw-plus.ai.embedding-store.stores.knowledge.type=vector")
                 .withBean(EmbeddingStoreProviderAdapter.class, FakeEmbeddingStoreProviderAdapter::new)
                 .run(context -> assertTrue(context.getBean(AiEmbeddingStoreRegistry.class).contains("knowledge")));
+    }
+
+    @Test
+    public void shouldCreateNeutralRegistryWhenLegacyConfigurationIsDisabled() {
+        this.contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.langchain4j.embedding-store.enabled=false",
+                        "fw-plus.ai.embedding-store.default-store=knowledge",
+                        "fw-plus.ai.embedding-store.stores.knowledge.framework=langchain4j",
+                        "fw-plus.ai.embedding-store.stores.knowledge.provider=fake",
+                        "fw-plus.ai.embedding-store.stores.knowledge.type=vector")
+                .withBean(EmbeddingStoreProviderAdapter.class, FakeEmbeddingStoreProviderAdapter::new)
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    assertFalse(context.containsBean("embeddingStoreRegistry"));
+                    assertTrue(context.getBean(AiEmbeddingStoreRegistry.class).contains("knowledge"));
+                });
+    }
+
+    @Test
+    public void shouldFailForDuplicateEnabledNeutralStoreKeyWithoutLeakingSecrets(CapturedOutput output) {
+        this.contextRunner
+                .withPropertyValues(
+                        "fw-plus.ai.embedding-store.stores.primary.key=shared",
+                        "fw-plus.ai.embedding-store.stores.primary.framework=langchain4j",
+                        "fw-plus.ai.embedding-store.stores.primary.provider=fake",
+                        "fw-plus.ai.embedding-store.stores.primary.type=vector",
+                        "fw-plus.ai.embedding-store.stores.primary.properties.apiKey=primary-store-secret",
+                        "fw-plus.ai.embedding-store.stores.secondary.key=shared",
+                        "fw-plus.ai.embedding-store.stores.secondary.framework=langchain4j",
+                        "fw-plus.ai.embedding-store.stores.secondary.provider=fake",
+                        "fw-plus.ai.embedding-store.stores.secondary.type=vector",
+                        "fw-plus.ai.embedding-store.stores.secondary.properties.apiKey=secondary-store-secret")
+                .withBean(EmbeddingStoreProviderAdapter.class, FakeEmbeddingStoreProviderAdapter::new)
+                .run(context -> {
+                    assertTrue(hasCause(context.getStartupFailure(), "Duplicate enabled store key: key=shared"));
+                    assertFalse(output.getAll().contains("primary-store-secret"));
+                    assertFalse(output.getAll().contains("secondary-store-secret"));
+                });
     }
 
     @Test

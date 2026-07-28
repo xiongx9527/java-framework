@@ -42,12 +42,14 @@ public class MagicVectorController extends MagicController implements MagicExcep
     public JsonBean<Object> test(@RequestBody AiEmbeddingStoreDefinition definition) {
         try {
             validate(definition);
-            getEmbeddingStoreFactory().create(definition, getProviderAdapters());
-            return new JsonBean<>("ok");
         } catch (IllegalArgumentException e) {
             log.error("测试 Vector 数据源参数无效，数据源 key: {}",
                     definition != null ? definition.getKey() : "unknown");
             return failure(e.getMessage());
+        }
+        try {
+            getEmbeddingStoreFactory().create(definition, getProviderAdapters());
+            return new JsonBean<>("ok");
         } catch (Exception e) {
             log.error("测试 Vector 数据源失败，数据源 key: {}, causeType: {}",
                     definition != null ? definition.getKey() : "unknown", e.getClass().getName());
