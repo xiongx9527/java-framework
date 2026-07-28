@@ -13,8 +13,8 @@
 
     <properties>
         <main.basedir>${basedir}/../../..</main.basedir>
-        <!--跳过test-->
-        <maven.test.skip>true</maven.test.skip>
+        <!--执行 Magic-API 全插件集成测试-->
+        <maven.test.skip>false</maven.test.skip>
         <!--跳过javadoc生成-->
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <!--跳过install-->
@@ -58,6 +58,41 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-admin</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-druid</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-dtp</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-influx</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-mqtt</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-mqttclient</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-task</artifactId>
         </dependency>
 
         <dependency>
@@ -135,12 +170,10 @@
             <artifactId>fw-plus-magicapi-plugin-redis</artifactId>
         </dependency>
 
-        <!--
         <dependency>
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-magicapi-plugin-mongo</artifactId>
         </dependency>
-        -->
 
         <dependency>
 			<groupId>com.xiongx9527.fw.plus.boot</groupId>
@@ -185,6 +218,18 @@
         </dependency>
 
         <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-model</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-vector</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <dependency>
             <groupId>cn.dev33</groupId>
             <artifactId>sa-token-spring-boot-starter</artifactId>
         </dependency>
@@ -212,6 +257,12 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-neo4j-jdbc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
 
 
