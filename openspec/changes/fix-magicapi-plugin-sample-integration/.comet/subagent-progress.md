@@ -3,7 +3,7 @@
 - Completed history: Task 1 `72b82393`；Task 2 `66d95573`；Task 3 `4d94882a`；Task 4 `191f5694`；Task 5 commits `3c9258f4`、`03548cea`、`4780c3c1`，两轮 thorough 修复复审通过，协调提交 `af1471fd`。
 - Plan task: `Task 6: 执行分层构建与独立 sample 进程验证`
 - OpenSpec mapping: `3. 按 Core -> Boot -> Cloud/AI -> sample 完成分层构建，运行相关测试，并实际启动 sample 检查健康、Magic-API 宿主及全部插件装配结果。`
-- Stage: `implementing`
+- Stage: `task-review`
 - Implementer: `/root/task6_full_verification`。
 - Dispatch requirements: SDD `task-6-brief.md`；只读预检 `task-6-preflight.md`；实现报告写入 `task-6-report.md`。
 - Review mode: `thorough`
@@ -26,3 +26,6 @@
 - Task reviewer: `/root/task6_review`，Spec ❌ / quality Needs fixes；Critical 0、Important 1、Minor 1。
 - Open finding: standalone health/editor HTTP code/body、TERM/KILL 分支、负向扫描、端口释放和安全清理只存在 context/report 声明，缺少可独立复核的原始命令状态；literal `XXXXXX` 日志名为 Minor。
 - Review/fix round: `1/2`，已派 `/root/task6_evidence_fix_round1` 仅重跑 standalone 并保留完整 transcript/sidecar、追加 context/report、修正展开日志名；不重跑全层 Maven。
+- Fix commit: `5bccd30c test(magicapi): retain standalone verification evidence`，仅 `.comet/context.md`。
+- Fix evidence: transcript `/tmp/fw-plus-magicapi-task6-round1-transcript.UPsIHl`；sidecars `/tmp/fw-plus-magicapi-task6-round1-sidecars.AjrSom`；expanded log `/tmp/fw-plus-magicapi-task6-round1-startup.pkzayR`；health/editor 200，negative rg exit 1/no match，TERM 3s/KILL_USED=0，lsof exit 1，guarded cleanup exits 0。
+- Scoped re-review: 待派，fix range `a3a714e7..5bccd30c`。
