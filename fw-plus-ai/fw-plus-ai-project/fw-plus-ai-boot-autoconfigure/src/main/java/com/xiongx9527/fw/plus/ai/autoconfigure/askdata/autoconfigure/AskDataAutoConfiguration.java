@@ -29,6 +29,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.JdbcAskDataSqlExecuto
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.CompositeAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.ContentRetrieverAskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataMonitoringLogAccessPolicy;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
@@ -56,6 +62,85 @@ public class AskDataAutoConfiguration {
 	public AskDataProperties askDataProperties() {
 		return new AskDataProperties();
 	}
+
+    /**
+     * 创建单机 AskData Core 状态集合。
+     *
+     * <p>该集合包含按 {@code projectId + operatorId} 隔离的会话、检查点、智能体状态和监控日志。它不共享进程间数据，
+     * 因而仅可在 {@code state.cluster-mode=false} 时作为默认值；集群模式选择内存状态或内存向量时必须在 Spring 启动期间
+     * 明确失败，不能将恢复、审计或授权范围静默降级到本地节点。</p>
+     *
+     * @param properties AskData 部署配置
+     * @return 单机默认状态集合
+     */
+    @Bean
+    @ConditionalOnMissingBean(InMemoryAskDataStores.class)
+    public InMemoryAskDataStores askDataInMemoryStores(AskDataProperties properties) {
+        validateLocalStateConfiguration(properties);
+        return InMemoryAskDataStores.singleNode();
+    }
+
+    /**
+     * 暴露默认的 Core 会话存储，供新 Core API 使用。
+     *
+     * <p>旧流程的 {@link AskDataConversationStore} 保持独立，以避免旧 DTO 泄漏到 Core 契约。业务若提供共享 Core 存储 SPI
+     * 实现，本 Bean 会让位；集群场景仍必须同时将状态和向量能力配置为非本地实现。</p>
+     */
+    @Bean
+    @ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class)
+    public com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore coreAskDataConversationStore(
+            InMemoryAskDataStores stores) {
+        return stores.conversations();
+    }
+
+    /**
+     * 暴露默认的 Core 检查点存储，保证恢复记录随项目和操作人共同分区。
+     */
+    @Bean
+    @ConditionalOnMissingBean(AskDataCheckpointStore.class)
+    public AskDataCheckpointStore askDataCheckpointStore(InMemoryAskDataStores stores) {
+        return stores.checkpoints();
+    }
+
+    /**
+     * 暴露默认的 Core 智能体状态存储，单机以外必须由共享存储 SPI 替换。
+     */
+    @Bean
+    @ConditionalOnMissingBean(AskDataAgentStateStore.class)
+    public AskDataAgentStateStore askDataAgentStateStore(InMemoryAskDataStores stores) {
+        return stores.agentStates();
+    }
+
+    /**
+     * 暴露默认的基础监控日志存储。日志由项目和操作人共同隔离，且只可保存已脱敏摘要。
+     */
+    @Bean
+    @ConditionalOnMissingBean(AskDataMonitoringLogStore.class)
+    public AskDataMonitoringLogStore askDataMonitoringLogStore(InMemoryAskDataStores stores) {
+        return stores.monitoringLogs();
+    }
+
+    /**
+     * 创建强制写入基础监控日志的生命周期事件发布器。
+     *
+     * <p>外部监控导出可另行组合，但不能替代本发布器；任何导出失败策略也不得改变本地脱敏日志的隔离和保存行为。</p>
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataEventPublisher askDataEventPublisher(AskDataMonitoringLogStore monitoringLogStore) {
+        return AskDataEventPublisher.toStore(monitoringLogStore);
+    }
+
+    /**
+     * 创建默认管理员日志访问策略。
+     *
+     * <p>仅宿主系统已授权的同项目管理员可读；普通操作人默认拒绝，跨项目管理员也必须由业务提供替代 SPI 显式授权。</p>
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataMonitoringLogAccessPolicy askDataMonitoringLogAccessPolicy() {
+        return AskDataMonitoringLogAccessPolicy.projectAdministratorOnly();
+    }
 
 	@Bean
 	@ConditionalOnMissingBean
@@ -176,4 +261,20 @@ public class AskDataAutoConfiguration {
 	public com.xiongx9527.fw.plus.ai.askdata.api.AskDataService askDataService(AskDataService legacyService) {
 		return new CoreAskDataServiceAdapter(legacyService);
 	}
+
+    private void validateLocalStateConfiguration(AskDataProperties properties) {
+        if (!properties.getState().isClusterMode()) {
+            return;
+        }
+        if (isMemoryStore(properties.getState().getStore())) {
+            throw new IllegalStateException("AskData 集群模式不能使用本地内存状态；请提供共享状态存储 SPI 实现");
+        }
+        if (isMemoryStore(properties.getVector().getStore())) {
+            throw new IllegalStateException("AskData 集群模式不能使用本地内存向量；请配置共享向量能力");
+        }
+    }
+
+    private boolean isMemoryStore(String store) {
+        return store == null || "memory".equalsIgnoreCase(store.trim());
+    }
 }

@@ -11,6 +11,7 @@ public class AskDataProperties {
     private Sql sql = new Sql();
     private Flow flow = new Flow();
     private Conversation conversation = new Conversation();
+    private State state = new State();
     private Vector vector = new Vector();
 
     public boolean isEnabled() {
@@ -51,6 +52,22 @@ public class AskDataProperties {
 
     public void setConversation(Conversation conversation) {
         this.conversation = conversation;
+    }
+
+    /**
+     * 获取 AskData 状态存储部署配置。
+     *
+     * <p>状态覆盖会话、检查点、智能体运行状态和基础监控日志。项目与操作人隔离由 Core 存储契约保证；本配置仅决定
+     * 自动配置是否可以使用当前进程内的默认实现，不能替代业务方对共享存储的授权、租约与恢复策略。</p>
+     *
+     * @return 不为空的状态部署配置
+     */
+    public State getState() {
+        return state;
+    }
+
+    public void setState(State state) {
+        this.state = state;
     }
 
     public Vector getVector() {
@@ -227,9 +244,42 @@ public class AskDataProperties {
         }
     }
 
+    /**
+     * AskData 状态存储部署配置。
+     *
+     * <p>默认 {@code memory} 只适用于单机临时状态。开启集群模式时，自动配置会在启动阶段拒绝该值，避免会话、恢复检查点、
+     * 智能体状态或审计日志被静默写入某一个节点的本地内存。JDBC、Redis 和自定义共享实现的具体装配将由后续适配层提供，
+     * 当前版本不会把它们伪装成可用实现。</p>
+     */
+    public static class State {
+
+        private boolean clusterMode = false;
+        private String store = "memory";
+
+        public boolean isClusterMode() {
+            return clusterMode;
+        }
+
+        public void setClusterMode(boolean clusterMode) {
+            this.clusterMode = clusterMode;
+        }
+
+        public String getStore() {
+            return store;
+        }
+
+        public void setStore(String store) {
+            this.store = store;
+        }
+    }
+
     public static class Vector {
 
         private Integer defaultTopK = 5;
+        /**
+         * 默认向量能力标识。memory 只用于单机开发或临时检索，进程重启后内容会丢失。
+         */
+        private String store = "memory";
 
         public Integer getDefaultTopK() {
             return defaultTopK;
@@ -237,6 +287,14 @@ public class AskDataProperties {
 
         public void setDefaultTopK(Integer defaultTopK) {
             this.defaultTopK = defaultTopK;
+        }
+
+        public String getStore() {
+            return store;
+        }
+
+        public void setStore(String store) {
+            this.store = store;
         }
     }
 }
