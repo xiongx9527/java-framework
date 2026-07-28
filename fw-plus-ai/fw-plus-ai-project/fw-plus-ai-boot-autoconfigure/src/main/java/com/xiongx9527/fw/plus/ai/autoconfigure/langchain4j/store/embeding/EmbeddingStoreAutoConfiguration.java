@@ -53,6 +53,13 @@ public class EmbeddingStoreAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean(name = "legacyEmbeddingStoreAiAdapter")
+    public AiEmbeddingStoreAdapter legacyEmbeddingStoreAiAdapter(EmbeddingStoreFactory factory,
+                                                                  List<EmbeddingStoreProviderAdapter> adapters) {
+        return new LegacyEmbeddingStoreAiAdapter(factory, adapters);
+    }
+
+    @Bean
     @ConditionalOnMissingBean(name = "redisStackEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter redisStackEmbeddingStoreProviderAdapter() {
         return new RedisStackEmbeddingStoreProviderAdapter();
@@ -256,17 +263,17 @@ public class EmbeddingStoreAutoConfiguration {
             }
         }
         List<AiEmbeddingStoreAdapter> effectiveAdapters = new ArrayList<AiEmbeddingStoreAdapter>(adapters);
-        boolean hasLangChain4jAdapter = false;
+        boolean hasLegacyFactoryAdapter = false;
         for (AiEmbeddingStoreAdapter adapter : effectiveAdapters) {
-            if (adapter instanceof DefaultEmbeddingStoreFactory) {
-                hasLangChain4jAdapter = true;
+            if (adapter == legacyFactory || adapter instanceof LegacyEmbeddingStoreAiAdapter) {
+                hasLegacyFactoryAdapter = true;
                 break;
             }
         }
-        if (!hasLangChain4jAdapter) {
+        if (!hasLegacyFactoryAdapter) {
             effectiveAdapters.add(new LegacyEmbeddingStoreAiAdapter(legacyFactory, providerAdapters));
         }
-        String defaultKey = !isBlank(neutralProperties.getDefaultStore())
+        String defaultKey = neutralProperties.isEnabled() && !isBlank(neutralProperties.getDefaultStore())
                 ? neutralProperties.getDefaultStore()
                 : legacyProperties.isEnabled() ? legacyProperties.getDefaultStore() : null;
         Map<String, com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore> stores =

@@ -253,7 +253,7 @@ public class LangChain4jModelAutoConfiguration {
                 definitions.put(legacy.getKey(), legacy);
             }
         }
-        String defaultKey = !isBlank(neutralProperties.getDefaultModel())
+        String defaultKey = neutralProperties.isEnabled() && !isBlank(neutralProperties.getDefaultModel())
                 ? neutralProperties.getDefaultModel()
                 : legacyProperties.isEnabled() ? legacyProperties.getDefaultModel() : null;
         List<AiModelAdapter> effectiveAdapters = new ArrayList<AiModelAdapter>(adapters);
