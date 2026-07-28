@@ -49,6 +49,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private static final String EXECUTION_EXECUTING = "EXECUTING";
     private static final String EXECUTION_COMPLETED = "COMPLETED";
     private static final String EXECUTION_SKIPPED = "SKIPPED";
+    private static final String MULTI_QUESTION_OPTION = "questions";
 
     private final AskDataProperties properties;
     private final AskDataModelRegistry modelRegistry;
@@ -127,6 +128,19 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
     @Override
     public AskDataResult execute(AskDataRequest request) {
+        List<String> questions = explicitQuestions(request);
+        if (questions.size() > 1) {
+            return executeMultiple(request, questions);
+        }
+        return executeSingle(request);
+    }
+
+    /**
+     * 执行兼容的单问题流程。
+     *
+     * <p>该路径保留原有的会话、恢复和步骤顺序；多问题仅在调用方显式提供问题列表时才会进入聚合流程。</p>
+     */
+    private AskDataResult executeSingle(AskDataRequest request) {
         AskDataResult result = new AskDataResult();
         if (request != null) {
             result.setConversationId(request.getConversationId());
@@ -151,6 +165,62 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         publishLifecycleEvent(request, completed, completed.isSuccess() ? AskDataEvent.Type.CONVERSATION_COMPLETED
                 : AskDataEvent.Type.CONVERSATION_FAILED, completed.isSuccess() ? "AskData 对话已完成" : "AskData 对话失败");
         return completed;
+    }
+
+    /**
+     * 将显式多问题拆分为相互独立的子请求。
+     *
+     * <p>子请求复用同一项目和操作人上下文，不会把其中任一问题的失败扩散到其他问题。每个子结果写入
+     * 独立审计步骤，聚合结果仅汇总是否全部成功，不合并敏感的模型输出或 SQL。</p>
+     */
+    private AskDataResult executeMultiple(AskDataRequest request, List<String> questions) {
+        AskDataResult aggregated = new AskDataResult();
+        if (request != null) {
+            aggregated.setConversationId(request.getConversationId());
+        }
+        boolean allSucceeded = true;
+        for (int index = 0; index < questions.size(); index++) {
+            AskDataResult child = executeSingle(copyForQuestion(request, questions.get(index)));
+            child.addStep("child-audit", "Child audit", child.isSuccess(), "Child question completed");
+            aggregated.getChildResults().add(child);
+            allSucceeded = allSucceeded && child.isSuccess();
+        }
+        aggregated.setSuccess(allSucceeded);
+        aggregated.addStep("multi-question", "Multi question", allSucceeded,
+                allSucceeded ? "All child questions completed" : "One or more child questions failed");
+        return aggregated;
+    }
+
+    private AskDataRequest copyForQuestion(AskDataRequest source, String question) {
+        AskDataRequest target = new AskDataRequest();
+        target.setQuestion(question);
+        target.setProjectContext(source == null ? null : source.getProjectContext());
+        target.setDatasourceKey(source == null ? null : source.getDatasourceKey());
+        target.setDialect(source == null ? null : source.getDialect());
+        target.setModelKey(source == null ? null : source.getModelKey());
+        target.setConversationId(source == null ? null : source.getConversationId());
+        target.setResumeToken(source == null ? null : source.getResumeToken());
+        target.setExecute(source == null ? null : source.getExecute());
+        target.setMaxRows(source == null ? null : source.getMaxRows());
+        target.setOptions(source == null ? null : source.getOptions());
+        return target;
+    }
+
+    private List<String> explicitQuestions(AskDataRequest request) {
+        if (request == null || request.getOptions() == null) {
+            return Collections.emptyList();
+        }
+        Object configuredQuestions = request.getOptions().get(MULTI_QUESTION_OPTION);
+        if (!(configuredQuestions instanceof Iterable<?>)) {
+            return Collections.emptyList();
+        }
+        List<String> questions = new ArrayList<String>();
+        for (Object configuredQuestion : (Iterable<?>) configuredQuestions) {
+            if (configuredQuestion instanceof String && !isBlank((String) configuredQuestion)) {
+                questions.add(((String) configuredQuestion).trim());
+            }
+        }
+        return questions;
     }
 
     private AskDataResult executeNew(AskDataRequest request, AskDataResult result, AskDataStepContext context) {
