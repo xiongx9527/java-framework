@@ -9,6 +9,9 @@ import org.ssssssss.magicapi.core.config.JsonCodeConstants;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.interceptor.Authorization;
 import org.ssssssss.magicapi.core.model.JsonBean;
+import org.ssssssss.magicapi.core.model.Group;
+import org.ssssssss.magicapi.core.model.MagicEntity;
+import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.datasource.model.DataSourceInfo;
 import org.ssssssss.magicapi.utils.JdbcUtils;
 
@@ -42,15 +45,28 @@ public class MagicAPIManagementService implements JsonCodeConstants {
 
     public JsonBean<Boolean> reloadResource(String resource, MagicAPIRequestAccess access) {
         isTrue(allowVisit(access, Authorization.RELOAD), PERMISSION_INVALID);
-        MyDefaultMagicResourceService service = (MyDefaultMagicResourceService) MagicConfiguration.getMagicResourceService();
-        service.refreshResource(resource);
+        MagicResourceService service = MagicConfiguration.getMagicResourceService();
+        if (service instanceof MyDefaultMagicResourceService) {
+            ((MyDefaultMagicResourceService) service).refreshResource(resource);
+        } else {
+            service.refresh();
+        }
         return new JsonBean<>(true);
     }
 
     public JsonBean<Boolean> reloadSingleResource(String type, String id, MagicAPIRequestAccess access) {
         isTrue(allowVisit(access, Authorization.RELOAD), PERMISSION_INVALID);
-        MyDefaultMagicResourceService service = (MyDefaultMagicResourceService) MagicConfiguration.getMagicResourceService();
-        return new JsonBean<>(service.refreshResourceById(type, id));
+        MagicResourceService service = MagicConfiguration.getMagicResourceService();
+        if (service instanceof MyDefaultMagicResourceService) {
+            return new JsonBean<>(((MyDefaultMagicResourceService) service).refreshResourceById(type, id));
+        }
+        MagicEntity entity = service.file(id);
+        Group group = entity == null ? null : service.getGroup(entity.getGroupId());
+        if (group == null || !type.equals(group.getType())) {
+            return new JsonBean<>(false);
+        }
+        service.refresh();
+        return new JsonBean<>(true);
     }
 
     public JsonBean<String> test(DataSourceInfo info) {

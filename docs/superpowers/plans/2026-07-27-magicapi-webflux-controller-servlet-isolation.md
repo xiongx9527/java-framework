@@ -65,7 +65,7 @@ base-ref: 18be86e44a394e943c7177aa1cb7a1a27d8bcfb4
 - Produces: `MagicAPIRequestAccess.getMagicUser()` and, if needed, `MagicAPIRequestAccess.asMagicHttpServletRequest()` for existing interceptor compatibility.
 - Consumes: `MagicConfiguration`, `MagicJdbcClassOptionProvider`, `MyDefaultMagicResourceService`, `JdbcUtils`, `MagicAPIConfigUtils`.
 
-- [ ] **Step 1: Add service-focused tests before extraction**
+- [x] **Step 1: Add service-focused tests before extraction**
 
 Add tests to `MagicAPIControllerJdbcOptionsTest` verifying current behavior still works through controller after delegation:
 
@@ -85,7 +85,7 @@ void controllerDelegatesOptionListWithoutChangingPayload() {
 }
 ```
 
-- [ ] **Step 2: Run the existing controller tests to capture baseline**
+- [x] **Step 2: Run the existing controller tests to capture baseline**
 
 Run:
 
@@ -95,7 +95,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: current tests pass before refactor; new delegation test initially fails only if helper/service class does not exist yet.
 
-- [ ] **Step 3: Create `MagicAPIRequestAccess` and Servlet adapter**
+- [x] **Step 3: Create `MagicAPIRequestAccess` and Servlet adapter**
 
 Implement minimal Java 8-compatible interfaces/classes:
 
@@ -128,7 +128,7 @@ public class ServletMagicAPIRequestAccess implements MagicAPIRequestAccess {
 
 If the final implementation can avoid exposing `asServletRequest()`, prefer that tighter interface; keep tests aligned.
 
-- [ ] **Step 4: Create `MagicAPIManagementService`**
+- [x] **Step 4: Create `MagicAPIManagementService`**
 
 Move non-Web business logic out of `MagicAPIController`:
 
@@ -154,7 +154,7 @@ boolean allowVisit(MagicAPIRequestAccess access, Authorization authorization) {
 
 If WebFlux cannot supply a real `MagicHttpServletRequest`, introduce an adapter in Task 3 and test it.
 
-- [ ] **Step 5: Thin `MagicAPIController` without changing annotations**
+- [x] **Step 5: Thin `MagicAPIController` without changing annotations**
 
 Keep existing annotations and method signatures where they are part of Servlet contract. Replace method bodies with service calls:
 
@@ -167,7 +167,7 @@ public JsonBean<MagicJdbcClassOptions> datasourceOptions(MagicHttpServletRequest
 }
 ```
 
-- [ ] **Step 6: Run controller tests**
+- [x] **Step 6: Run controller tests**
 
 Run:
 
@@ -177,7 +177,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit Task 1**
+- [x] **Step 7: Commit Task 1**
 
 ```bash
 git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/controller         fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/controller/MagicAPIControllerJdbcOptionsTest.java
@@ -195,7 +195,7 @@ git commit -m "feat: extract MagicAPI management service"
 - Consumes: current Servlet `MagicAPIBaseAutoConfiguration` path.
 - Produces: test proof that Servlet path remains current and WebFlux-only context excludes Servlet-only beans.
 
-- [ ] **Step 1: Write Servlet isolation tests**
+- [x] **Step 1: Write Servlet isolation tests**
 
 Create `MagicAPIServletIsolationAutoConfigurationTest` with ApplicationContextRunner/WebApplicationContextRunner tests. Include assertions:
 
@@ -212,7 +212,7 @@ assertThat(context).hasSingleBean(MagicAPIController.class);
 
 Use existing project test patterns from `MateWebMvcValidatorAutoConfigurationTest` and Magic-API plugin tests.
 
-- [ ] **Step 2: Add explicit Servlet condition to `AuthConfiguration`**
+- [x] **Step 2: Add explicit Servlet condition to `AuthConfiguration`**
 
 Add:
 
@@ -222,7 +222,7 @@ Add:
 
 Import `org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication`.
 
-- [ ] **Step 3: Review `MagicAPIBaseAutoConfiguration`**
+- [x] **Step 3: Review `MagicAPIBaseAutoConfiguration`**
 
 Confirm it already has:
 
@@ -232,7 +232,7 @@ Confirm it already has:
 
 Do not weaken this condition. If plugin imports create Servlet-only beans in WebFlux tests, add targeted Servlet conditions to those specific configuration classes instead of broadening the base config.
 
-- [ ] **Step 4: Run isolation tests**
+- [x] **Step 4: Run isolation tests**
 
 Run:
 
@@ -242,11 +242,10 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 2**
+- [x] **Step 5: Keep Task 2 changes uncommitted per user request**
 
 ```bash
-git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/filter/auth/AuthConfiguration.java         fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/MagicAPIServletIsolationAutoConfigurationTest.java
-git commit -m "fix: isolate MagicAPI servlet-only auth configuration"
+git diff --name-status -- fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/filter/auth/AuthConfiguration.java         fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/MagicAPIServletIsolationAutoConfigurationTest.java
 ```
 
 ### Task 3: WebFlux 管理接口新路径
@@ -262,7 +261,7 @@ git commit -m "fix: isolate MagicAPI servlet-only auth configuration"
 - Consumes: `MagicAPIManagementService` from Task 1.
 - Produces: WebFlux controller/handler exposing management endpoints through Reactive Web path.
 
-- [ ] **Step 1: Locate auto-configuration registration**
+- [x] **Step 1: Locate auto-configuration registration**
 
 Search:
 
@@ -272,7 +271,7 @@ rg -n "MagicAPIBaseAutoConfiguration|EnableAutoConfiguration" fw-plus-boot/fw-pl
 
 Record whether new `MagicAPIWebFluxAutoConfiguration` must be added to `META-INF/spring.factories` or imported from an existing aggregate configuration.
 
-- [ ] **Step 2: Write WebFlux controller tests first**
+- [x] **Step 2: Write WebFlux controller tests first**
 
 Test enabled/disabled registration and at least option list response:
 
@@ -287,7 +286,7 @@ client.get().uri("/magic-api/web/optionList")
 
 For disabled auto-config, use Reactive context runner with `fw.plus.magicapi.enabled=false` and assert the WebFlux controller bean is absent.
 
-- [ ] **Step 3: Implement `MagicAPIWebFluxAutoConfiguration`**
+- [x] **Step 3: Implement `MagicAPIWebFluxAutoConfiguration`**
 
 Use Reactive condition:
 
@@ -302,11 +301,11 @@ public class MagicAPIWebFluxAutoConfiguration {
 
 Register `MagicAPIManagementService` only if not already provided by common configuration, and register `MagicAPIWebFluxController`/handler.
 
-- [ ] **Step 4: Implement WebFlux request access**
+- [x] **Step 4: Implement WebFlux request access**
 
 Map `ServerWebExchange` to the minimal authorization context. If an exact `MagicHttpServletRequest` is unavoidable, create a narrow adapter class and cover it with tests. Keep it internal to the WebFlux controller package.
 
-- [ ] **Step 5: Implement WebFlux endpoints**
+- [x] **Step 5: Implement WebFlux endpoints**
 
 Expose paths matching the Servlet logical contract:
 
@@ -319,7 +318,7 @@ public Mono<JsonBean<List<List<String>>>> options() {
 
 For reload and datasource options, call service with `new WebFluxMagicAPIRequestAccess(exchange)`.
 
-- [ ] **Step 6: Run WebFlux tests**
+- [x] **Step 6: Run WebFlux tests**
 
 Run:
 
@@ -329,11 +328,10 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit Task 3**
+- [x] **Step 7: Keep Task 3 changes uncommitted per user request**
 
 ```bash
-git add fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/controller/webflux         fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/webflux         fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/resources         fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/webflux
-git commit -m "feat: add MagicAPI WebFlux management endpoints"
+git status --short --branch
 ```
 
 ### Task 4: Cloud/AI 条件边界复核
@@ -347,15 +345,15 @@ git commit -m "feat: add MagicAPI WebFlux management endpoints"
 - Consumes: Boot WebFlux management endpoint path.
 - Produces: no duplicated controller implementation in Cloud/AI; only condition boundary changes when necessary.
 
-- [ ] **Step 1: Verify current Cloud/AI behavior**
+- [x] **Step 1: Verify current Cloud/AI behavior**
 
 Confirm both classes currently use Servlet condition. If they only import plugin configurations that are Servlet-specific, leave them Servlet-only.
 
-- [ ] **Step 2: Add tests only for changed boundaries**
+- [x] **Step 2: No changed Cloud/AI boundaries, so no Cloud/AI tests added**
 
 If code changes are needed, add context runner tests proving Servlet context still imports the existing configuration and Reactive context does not create Servlet-only beans.
 
-- [ ] **Step 3: Run changed module tests**
+- [x] **Step 3: No changed Cloud/AI modules, so no Cloud/AI module tests required**
 
 For Cloud if changed:
 
@@ -369,7 +367,7 @@ For AI if changed:
 cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=*MagicAPI* test
 ```
 
-- [ ] **Step 4: Commit Task 4 if files changed**
+- [x] **Step 4: No-op Task 4 because Cloud/AI already remain Servlet-only**
 
 ```bash
 git add fw-plus-cloud/fw-plus-cloud-project/fw-plus-cloud-autoconfigure fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure
@@ -388,7 +386,7 @@ If no files changed, record the no-op reason in the final verification report in
 - Consumes: all previous tasks.
 - Produces: checked OpenSpec tasks and build evidence.
 
-- [ ] **Step 1: Run focused Boot tests**
+- [x] **Step 1: Run focused Boot tests**
 
 Run:
 
@@ -398,7 +396,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: PASS.
 
-- [ ] **Step 2: Run relevant existing Magic-API regression tests**
+- [x] **Step 2: Run relevant existing Magic-API regression tests**
 
 Run:
 
@@ -408,7 +406,7 @@ cd fw-plus-boot && ./mvnw -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -D
 
 Expected: PASS.
 
-- [ ] **Step 3: Run OpenSpec validation**
+- [x] **Step 3: Run OpenSpec validation**
 
 Run:
 
@@ -418,7 +416,7 @@ openspec validate add-magicapi-webflux-support --strict
 
 Expected: `Change 'add-magicapi-webflux-support' is valid`.
 
-- [ ] **Step 4: Check Java compatibility and dependency drift**
+- [x] **Step 4: Check Java compatibility and dependency drift**
 
 Run:
 
@@ -428,11 +426,11 @@ git diff -- fw-plus-boot fw-plus-cloud fw-plus-ai | rg -n "List\.of\(|Map\.of\(|
 
 Expected: no Java 9+ APIs introduced and no Magic-API dependency version changes.
 
-- [ ] **Step 5: Mark OpenSpec tasks complete only after verification**
+- [x] **Step 5: Mark OpenSpec tasks complete only after verification**
 
 Update `openspec/changes/add-magicapi-webflux-support/tasks.md` checkboxes corresponding to completed implementation work.
 
-- [ ] **Step 6: Commit final task sync**
+- [x] **Step 6: Keep final task sync uncommitted per user request**
 
 ```bash
 git add openspec/changes/add-magicapi-webflux-support/tasks.md
