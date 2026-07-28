@@ -409,7 +409,7 @@ git commit -m "fix(ai): condition optional embedding providers"
 - Consumes: Task 1 的可加载 AI 元数据、Task 2 的无循环 MQTT storage、Task 3 的 27 插件 runtime classpath。
 - Produces: `all-plugins` profile，以及真实 `MagicapiSampleApplication` 的离线完整上下文和 HTTP smoke test。
 
-- [ ] **Step 1: 新增离线 profile**
+- [x] **Step 1: 新增离线 profile**
 
 ```yaml
 server:
@@ -444,7 +444,7 @@ magic-api:
 
 profile 不设置任何真实服务地址，也不把 27 个插件从自动配置中排除。
 
-- [ ] **Step 2: 编写真实应用失败测试**
+- [x] **Step 2: 编写真实应用失败测试**
 
 ```java
 @SpringBootTest(
@@ -508,7 +508,7 @@ class MagicApiAllPluginsApplicationContextTest {
 
 补充 `IOException`、`Files`、`Path`、`Locale`、`StreamSupport`、`@AfterAll`、`@Autowired`、`@SpringBootTest`、`TestRestTemplate`、`@ActiveProfiles`、`@DynamicPropertySource`、`DynamicPropertyRegistry`、`ApplicationContext`、`ConfigurableEnvironment`、`PropertySource`、`HttpStatus`、`ResponseEntity`、`MagicResourceService` 和 AssertJ `assertThat` 的导入。`@AfterAll` 只删除该测试创建的空目录；若目录非空则测试清理失败，以暴露意外资源写入。
 
-- [ ] **Step 3: 运行测试确认 RED**
+- [x] **Step 3: 运行测试确认 RED**
 
 ```bash
 ./fw-plus-core/mvnw \
@@ -518,7 +518,7 @@ class MagicApiAllPluginsApplicationContextTest {
 
 Expected before sample 主类修复: FAIL，Apollo PropertySource 仍存在或日志出现 Apollo 内网访问；如果 Task 2 尚未完成，也会先复现 MQTT Bean 循环。
 
-- [ ] **Step 4: 移除 sample 主类冗余 Apollo 注解**
+- [x] **Step 4: 移除 sample 主类冗余 Apollo 注解**
 
 删除 `MagicapiSampleApplication` 中：
 
@@ -529,7 +529,7 @@ import com.ctrip.framework.apollo.spring.annotation.EnableApolloConfig;
 
 保留 `@SpringBootApplication` 和 `main` 方法不变。默认 `application.yaml` 的 `apollo.bootstrap.enabled=true` 继续负责正常 Apollo 启用语义。
 
-- [ ] **Step 5: 运行完整 sample 测试转 GREEN**
+- [x] **Step 5: 运行完整 sample 测试转 GREEN**
 
 ```bash
 ./fw-plus-core/mvnw \
@@ -538,11 +538,11 @@ import com.ctrip.framework.apollo.spring.annotation.EnableApolloConfig;
 
 Expected: classpath/聚合清单、完整上下文、健康和 Magic Editor 测试全部 PASS；日志无 Apollo 长轮询和 Bean 循环。
 
-- [ ] **Step 6: 更新 OpenSpec 任务 2**
+- [x] **Step 6: 更新 OpenSpec 任务 2**
 
 将 `tasks.md` 任务 2 标记为完成，并记录 MQTT RED/GREEN、Apollo 隔离和真实上下文/HTTP 测试命令。
 
-- [ ] **Step 7: 提交 sample 离线启动修复**
+- [x] **Step 7: 提交 sample 离线启动修复**
 
 ```bash
 git add \
