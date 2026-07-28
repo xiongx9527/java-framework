@@ -9,8 +9,16 @@
         <version>${revision}</version>
     </parent>
     <artifactId>fw-plus-ai-askdata</artifactId>
-    <properties>
-        <main.basedir>${basedir}/../../..</main.basedir>
-    </properties>
+	<properties>
+		<main.basedir>${basedir}/../../..</main.basedir>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
 
 </project>
