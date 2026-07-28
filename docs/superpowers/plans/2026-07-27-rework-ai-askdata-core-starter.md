@@ -753,15 +753,15 @@ git commit -m "docs: add askdata starter documentation"
 - Consumes: `feature-list.md`
 - Produces: formal implementation and verification matrix
 
-- [ ] **Step 1: 生成矩阵**
+- [x] **Step 1: 生成矩阵**
 
 Transform every item in `feature-list.md` into a row with fields: product, category, feature, source, priority, duplicatePolicy, change, module, apiOrConfig, storage, docs, tests, status, limitation.
 
-- [ ] **Step 2: 写测试用例**
+- [x] **Step 2: 写测试用例**
 
 Document unit, contract, auto-configuration, SQL safety, storage consistency, model fallback, multi-agent/recovery, memory/recommendation permissions, monitoring audit, Java 17 remote runtime and frontend integration test cases.
 
-- [ ] **Step 3: 检查缺项**
+- [x] **Step 3: 检查缺项**
 
 ```bash
 rg -n "SQLBot|WrenAI|Java 17|DataEase|MCP|Dify|Coze|n8n|企业微信|钉钉|飞书" docs/askdata/starter/sqlbot-wrenai-feature-matrix.md
@@ -769,7 +769,7 @@ rg -n "SQLBot|WrenAI|Java 17|DataEase|MCP|Dify|Coze|n8n|企业微信|钉钉|飞�
 
 Expected: output includes all required product/integration names.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/askdata/starter/sqlbot-wrenai-feature-matrix.md \
