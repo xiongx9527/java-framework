@@ -9,9 +9,9 @@
 
 - Task: Task 9: 范围排除、聚合验证与实现说明
 - OpenSpec mapping: 6.1, 6.2, 6.3, 6.4, 6.5
-- Stage: implementing
-- Implementer: pending dispatch
-- Reviewer: pending
+- Stage: task-review
+- Implementer: Laplace DONE
+- Reviewer: pending dispatch
 - Fixer: pending
 - Review/fix rounds: 0
 - Review result: pending
@@ -26,3 +26,12 @@
   - `cd fw-plus-core && ./mvnw -f fw-plus-project/pom.xml -DskipTests validate`
 - Required commit: `docs: document tiny engine core boundaries`
 - Risk signals: scope guard, repository-level validation, documentation contract for future Boot starter consumption.
+- Initial scope test: implementer reported first run passed because Tasks 1-8 already satisfied core boundary.
+- Coordinator verification:
+  - `./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineScopeBoundaryTest test`: 1 test passed, 0 failures, 0 errors.
+  - `./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core test`: 67 tests passed, 0 failures, 0 errors.
+  - `./mvnw -f fw-plus-project/pom.xml -pl fw-plus-tiny-engine -am -DskipTests install`: build success.
+  - `./mvnw -f fw-plus-project/pom.xml -DskipTests validate`: 59-module reactor validate success.
+- Commits: 318a9963
+- Changed files: `fw-plus-tiny-engine-core/README.md`, `TinyEngineScopeBoundaryTest`.
+- Review package: `/tmp/integrate-tiny-engine-core-task-9-review-38b7110c-318a9963.diff`
