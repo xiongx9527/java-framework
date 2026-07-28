@@ -1,12 +1,13 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataFlowExecutor;
-import org.junit.Test;
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DefaultAskDataServiceTest {
 
@@ -69,6 +70,40 @@ public class DefaultAskDataServiceTest {
         assertFalse(result.isSuccess());
         assertEquals(AskDataErrorCode.SQL_REJECTED, result.getErrorCode());
         assertSame(expected, result);
+        assertEquals(1, flowExecutor.calls);
+    }
+
+    @Test
+    public void shouldAdaptLegacySuccessToCoreResult() {
+        RecordingFlowExecutor flowExecutor = new RecordingFlowExecutor();
+        AskDataResult legacyResult = new AskDataResult();
+        legacyResult.setSuccess(true);
+        legacyResult.setBrief("订单总数为 10");
+        flowExecutor.result = legacyResult;
+        CoreAskDataServiceAdapter service = new CoreAskDataServiceAdapter(new DefaultAskDataService(flowExecutor));
+
+        com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult result = service.ask(
+                new com.xiongx9527.fw.plus.ai.askdata.api.AskDataRequest(
+                        new AskDataProjectContext("project-a", "operator-a"), "订单数量"));
+
+        assertTrue(result.isSuccess());
+        assertEquals("订单总数为 10", result.getAnswer());
+        assertEquals(1, flowExecutor.calls);
+    }
+
+    @Test
+    public void shouldAdaptLegacyFailureToCoreError() {
+        RecordingFlowExecutor flowExecutor = new RecordingFlowExecutor();
+        flowExecutor.result = AskDataResult.failure(AskDataErrorCode.SQL_REJECTED, "仅允许查询语句");
+        CoreAskDataServiceAdapter service = new CoreAskDataServiceAdapter(new DefaultAskDataService(flowExecutor));
+
+        com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult result = service.ask(
+                new com.xiongx9527.fw.plus.ai.askdata.api.AskDataRequest(
+                        new AskDataProjectContext("project-a", "operator-a"), "删除订单"));
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.SQL_REJECTED, result.getError().getCode());
+        assertEquals("仅允许查询语句", result.getError().getMessage());
         assertEquals(1, flowExecutor.calls);
     }
 

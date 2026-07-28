@@ -71,6 +71,7 @@ public class AskDataAutoConfigurationTest {
             assertTrue(context.getBean(AskDataConversationStore.class) != null);
             assertTrue(context.getBean(AskDataContextCompressor.class) != null);
             assertTrue(context.getBean(AskDataService.class) != null);
+            assertTrue(context.getBean(com.xiongx9527.fw.plus.ai.askdata.api.AskDataService.class) != null);
             assertTrue(context.getBean(AskDataDialectRegistry.class) != null);
             assertTrue(context.getBean(AskDataAgentDispatcher.class) != null);
         });
@@ -109,6 +110,22 @@ public class AskDataAutoConfigurationTest {
         contextRunner.withBean(AskDataService.class, () -> customService).run(context -> {
             assertSame(customService, context.getBean(AskDataService.class));
         });
+    }
+
+    @Test
+    public void shouldExposeCoreAskDataServiceAndPreferBusinessImplementation() {
+        com.xiongx9527.fw.plus.ai.askdata.api.AskDataService customService =
+                new com.xiongx9527.fw.plus.ai.askdata.api.AskDataService() {
+                    @Override
+                    public com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult ask(
+                            com.xiongx9527.fw.plus.ai.askdata.api.AskDataRequest request) {
+                        return com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult.success("业务实现");
+                    }
+                };
+
+        contextRunner.withBean(com.xiongx9527.fw.plus.ai.askdata.api.AskDataService.class, () -> customService)
+                .run(context -> assertSame(customService,
+                        context.getBean(com.xiongx9527.fw.plus.ai.askdata.api.AskDataService.class)));
     }
 
     @Test
