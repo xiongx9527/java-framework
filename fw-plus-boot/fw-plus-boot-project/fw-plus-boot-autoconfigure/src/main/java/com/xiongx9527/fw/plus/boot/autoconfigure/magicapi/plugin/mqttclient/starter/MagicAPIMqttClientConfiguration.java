@@ -12,7 +12,6 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.serv
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.web.MagicMqttClientController;
 import net.dreamlu.iot.mqtt.spring.client.MqttClientTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -22,7 +21,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
 import org.ssssssss.magicapi.core.model.Plugin;
-import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 @ConditionalOnProperty(prefix = "magic-api.plugin.mqttclient", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -39,11 +37,8 @@ public class MagicAPIMqttClientConfiguration implements MagicPluginConfiguration
 
     @Bean
     @ConditionalOnMissingBean
-    public MqttClientDataSourceInfoMagicResourceStorage mqttClientDataSourceInfoMagicResourceStorage(
-            @Lazy MagicResourceService magicResourceService) {
-        MqttClientDataSourceInfoMagicResourceStorage mqttClientDataSourceInfoMagicResourceStorage = new MqttClientDataSourceInfoMagicResourceStorage();
-        mqttClientDataSourceInfoMagicResourceStorage.setMagicResourceService(magicResourceService);
-        return mqttClientDataSourceInfoMagicResourceStorage;
+    public MqttClientDataSourceInfoMagicResourceStorage mqttClientDataSourceInfoMagicResourceStorage() {
+        return new MqttClientDataSourceInfoMagicResourceStorage();
     }
 
     @Bean

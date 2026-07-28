@@ -8,11 +8,13 @@ import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProvid
 import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -40,6 +42,30 @@ public class EmbeddingStoreAutoConfigurationTest {
                     assertFalse(context.containsBean("embeddingStoreFactory"));
                     assertTrue(context.getBeansOfType(EmbeddingStoreProviderAdapter.class).isEmpty());
                     assertTrue(context.getBeansOfType(EmbeddingStoreFactory.class).isEmpty());
+                });
+    }
+
+    @Test
+    public void shouldStartWithoutOptionalTypedProviderSdks() {
+        new ApplicationContextRunner()
+                .withClassLoader(new FilteredClassLoader(
+                        "dev.langchain4j.store.embedding.redis",
+                        "dev.langchain4j.store.embedding.milvus",
+                        "dev.langchain4j.store.embedding.elasticsearch",
+                        "dev.langchain4j.store.embedding.qdrant",
+                        "dev.langchain4j.store.embedding.weaviate",
+                        "dev.langchain4j.store.embedding.azure.search"))
+                .withUserConfiguration(EmbeddingStoreAutoConfiguration.class)
+                .run(context -> {
+                    assertNull(context.getStartupFailure());
+                    assertTrue(context.containsBean("embeddingStoreRegistry"));
+                    assertTrue(context.containsBean("inMemoryEmbeddingStoreProviderAdapter"));
+                    assertFalse(context.containsBean("redisStackEmbeddingStoreProviderAdapter"));
+                    assertFalse(context.containsBean("milvusEmbeddingStoreProviderAdapter"));
+                    assertFalse(context.containsBean("elasticsearchEmbeddingStoreProviderAdapter"));
+                    assertFalse(context.containsBean("qdrantEmbeddingStoreProviderAdapter"));
+                    assertFalse(context.containsBean("weaviateEmbeddingStoreProviderAdapter"));
+                    assertFalse(context.containsBean("azureAiSearchEmbeddingStoreProviderAdapter"));
                 });
     }
 
