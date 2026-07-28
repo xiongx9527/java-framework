@@ -37,6 +37,7 @@ Magic-API Boot 插件聚合器当前包含 25 个插件，AI 插件聚合器包�
 3. sample 主类移除冗余 `@EnableApolloConfig`，Apollo 是否启用只由现有 bootstrap 属性决定。
 4. 新增 `all-plugins` profile，关闭 Apollo 两条访问链并把 Magic-API 资源位置指向空的临时目录。
 5. 自动测试与真实进程 smoke test 都使用真实 `MagicapiSampleApplication`，不使用绕开主类的测试宿主。
+6. embedding starter 继续避免传递全部向量数据库 SDK；对直接链接可选 SDK 的 provider adapter Bean 增加 classpath 条件，缺少 SDK 时跳过对应 adapter，但保留 `EmbeddingStoreRegistry` 与 vector 插件装配。
 
 备选方案未采用：将 Apollo 注解移动到新的条件配置类会引入第二套开关；测试专用宿主无法证明真实 sample 主类可离线启动。
 
@@ -99,6 +100,8 @@ profile 不全局禁用 27 个插件。若某个第三方客户端在没有资�
 
 AI 自动配置 POM 中 cassandra、infinispan、neo4j 三个内部 artifact 当前不存在可解析版本且没有对应 reactor 模块。删除这些失效的可选依赖，保留实际存在的 provider/store 依赖；不为不存在模块伪造版本或空 artifact。
 
+真实 sample 消费 `fw-plus-ai-magicapi-plugin-vector` 时，embedding starter 按设计不传递所有具体向量 SDK，但 `EmbeddingStoreAutoConfiguration` 无条件创建 Redis、Milvus、Elasticsearch、Qdrant、Weaviate 和 Azure AI Search 等直接链接 SDK 类型的 adapter，导致 Spring 反射 Bean 时触发 `NoClassDefFoundError`。这些直接链接型 adapter 必须按其 SDK 入口类增加 `@ConditionalOnClass(name = ...)`；基于反射实现且不直接链接 SDK 类型的 adapter 保持现有注册行为。
+
 ## 测试策略
 
 ### 1. 根因回归测试
@@ -110,6 +113,8 @@ AI 自动配置 POM 中 cassandra、infinispan、neo4j 三个内部 artifact 当
 - 断言 MQTT Client storage 最终引用同一个 `MagicResourceService`，证明核心统一回填确实发生。
 
 AI 元数据测试同时读取 `spring.factories` 和 `AutoConfiguration.imports`，断言清单中的类全部可加载。
+
+AI embedding 自动配置增加消费侧 classpath 回归：通过 `FilteredClassLoader` 隐藏上述可选 SDK 包，要求上下文无启动失败、`EmbeddingStoreRegistry` 仍创建、缺失 SDK 对应 adapter Bean 不创建。该测试在修复前以 Milvus `Builder` 缺类形成 RED，修复后转 GREEN。
 
 ### 2. 插件清单与 classpath 契约
 
@@ -182,6 +187,7 @@ AI 元数据测试同时读取 `spring.factories` 和 `AutoConfiguration.imports
 
 - Boot 25 个、AI 2 个插件与 sample 依赖清单一致，27 个 artifact 均在运行时 classpath。
 - AI 两套自动配置元数据不再引用不存在的类，清单类全部可加载。
+- 缺少具体向量 SDK 的消费侧 classpath 仍能创建 embedding registry，且只跳过对应 provider adapter。
 - MQTT Client 最小回归测试证明无循环依赖且统一回填正确。
 - 真实 `MagicapiSampleApplication` 的完整上下文在 `all-plugins` profile 下离线启动成功。
 - Core、Boot、Cloud、AI、Sample 分层 Maven 测试与构建全部成功。

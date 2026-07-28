@@ -15,6 +15,7 @@ Boot 层当前有 25 个 Magic-API 插件模块，AI 层当前有 vector、model
 3. 自动校验每个插件 artifact 均进入依赖树，并通过 Spring 上下文、Magic-API 插件元数据或对应关键 bean 验证可装配插件；受显式条件控制的插件同时验证条件报告。
 4. 严格按 Core -> Boot -> Cloud/AI 顺序安装本地快照，再构建并启动 sample；启动后检查 Actuator 健康、Magic-API Web 入口和插件静态资源/管理入口。
 5. 若某插件启动失败，按 debug gate 先定位根因、增加最小失败测试，再做单一源码修复。
+6. AI embedding starter 保持不传递全部向量 SDK；直接引用可选 SDK 类型的 provider adapter Bean 按对应 SDK class 条件化，缺少具体 SDK 时 registry 与 vector 插件仍可装配。
 
 ## Non-Goals
 
