@@ -9,12 +9,12 @@
 
 - Task: Task 9: 范围排除、聚合验证与实现说明
 - OpenSpec mapping: 6.1, 6.2, 6.3, 6.4, 6.5
-- Stage: task-review
+- Stage: done
 - Implementer: Laplace DONE
-- Reviewer: pending dispatch
+- Reviewer: Mencius approved
 - Fixer: pending
 - Review/fix rounds: 0
-- Review result: pending
+- Review result: Approved
 
 ## Evidence
 
@@ -35,3 +35,4 @@
 - Commits: 318a9963
 - Changed files: `fw-plus-tiny-engine-core/README.md`, `TinyEngineScopeBoundaryTest`.
 - Review package: `/tmp/integrate-tiny-engine-core-task-9-review-38b7110c-318a9963.diff`
+- Review: Mencius approved Task 9; no Critical, Important, or Minor issues.
