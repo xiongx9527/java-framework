@@ -38,10 +38,8 @@ public class MagicAPIMqttClientConfiguration implements MagicPluginConfiguration
 
     @Bean
     @ConditionalOnMissingBean
-    public MqttClientDataSourceInfoMagicResourceStorage mqttClientDataSourceInfoMagicResourceStorage(MagicResourceService magicResourceService) {
-        MqttClientDataSourceInfoMagicResourceStorage mqttClientDataSourceInfoMagicResourceStorage = new MqttClientDataSourceInfoMagicResourceStorage();
-        mqttClientDataSourceInfoMagicResourceStorage.setMagicResourceService(magicResourceService);
-        return mqttClientDataSourceInfoMagicResourceStorage;
+    public MqttClientDataSourceInfoMagicResourceStorage mqttClientDataSourceInfoMagicResourceStorage() {
+        return new MqttClientDataSourceInfoMagicResourceStorage();
     }
 
     @Bean
