@@ -31,14 +31,19 @@ import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlParameter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
@@ -67,6 +72,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private final List<AskDataAgent> mainAgents;
     private final AskDataEventPublisher eventPublisher;
     private final AskDataQuestionPlanner questionPlanner;
+    private final AskDataSqlInterceptorChain sqlInterceptorChain;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -130,6 +136,18 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
             List<AskDataAgent> mainAgents, AskDataEventPublisher eventPublisher,
             AskDataQuestionPlanner questionPlanner) {
+        this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
+                sqlValidator, sqlExecutor, conversationStore, contextCompressor, agentDispatcher, mainAgents,
+                eventPublisher, questionPlanner, null);
+    }
+
+    public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+            AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+            AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
+            List<AskDataAgent> mainAgents, AskDataEventPublisher eventPublisher,
+            AskDataQuestionPlanner questionPlanner, AskDataSqlInterceptorChain sqlInterceptorChain) {
         this.properties = properties;
         this.modelRegistry = modelRegistry;
         this.metadataProvider = metadataProvider;
@@ -145,6 +163,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 : new ArrayList<AskDataAgent>(mainAgents);
         this.eventPublisher = eventPublisher;
         this.questionPlanner = questionPlanner == null ? AskDataQuestionPlanner.simple() : questionPlanner;
+        this.sqlInterceptorChain = sqlInterceptorChain;
     }
 
     @Override
@@ -460,7 +479,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             }
             AskDataSqlValidationResult validation;
             try {
-                validation = sqlValidator.validate(checkpoint.getSql(), dialect, maxRows(request), metadata);
+                validation = validateSql(request, metadata, checkpoint.getSql(), dialect);
             } catch (RuntimeException ex) {
                 return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
             }
@@ -502,7 +521,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         AskDataSqlValidationResult validation;
         try {
-            validation = sqlValidator.validate(generatedSql, dialect, maxRows(request), metadata);
+            validation = validateSql(request, metadata, generatedSql, dialect);
         } catch (RuntimeException ex) {
             return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
         }
@@ -564,6 +583,42 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 : validation.getErrorCode();
         String errorMessage = validation == null ? "AskData SQL validation failed" : validation.getMessage();
         return failure(result, "validate-sql", errorCode, errorMessage);
+    }
+
+    private AskDataSqlValidationResult validateSql(AskDataRequest request, AskDataMetadata metadata, String sql,
+            AskDataDialect dialect) {
+        AskDataSqlValidationResult validation = sqlValidator.validate(sql, dialect, maxRows(request), metadata);
+        if (validation == null || !validation.isValid() || sqlInterceptorChain == null) {
+            return validation;
+        }
+        AskDataSqlCommand command = new AskDataSqlCommand(request.getProjectContext(), validation.getSql(),
+                sqlParameters(request), authorizedObjects(metadata));
+        AskDataSqlCommand rewritten = sqlInterceptorChain.execute(command);
+        return AskDataSqlValidationResult.accepted(rewritten.getSql());
+    }
+
+    private List<AskDataSqlParameter> sqlParameters(AskDataRequest request) {
+        if (request == null || request.getOptions() == null || request.getOptions().isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<AskDataSqlParameter> parameters = new ArrayList<AskDataSqlParameter>();
+        for (Map.Entry<String, Object> entry : new TreeMap<String, Object>(request.getOptions()).entrySet()) {
+            parameters.add(AskDataSqlParameter.of(entry.getKey(), entry.getValue()));
+        }
+        return parameters;
+    }
+
+    private Set<String> authorizedObjects(AskDataMetadata metadata) {
+        Set<String> authorizedObjects = new LinkedHashSet<String>();
+        if (metadata == null || metadata.getTables() == null) {
+            return authorizedObjects;
+        }
+        for (com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable table : metadata.getTables()) {
+            if (table != null && !isBlank(table.getName())) {
+                authorizedObjects.add(table.getName());
+            }
+        }
+        return authorizedObjects;
     }
 
     private AskDataResult saveCheckpoint(AskDataStepContext context, AskDataResult result, String currentStep,

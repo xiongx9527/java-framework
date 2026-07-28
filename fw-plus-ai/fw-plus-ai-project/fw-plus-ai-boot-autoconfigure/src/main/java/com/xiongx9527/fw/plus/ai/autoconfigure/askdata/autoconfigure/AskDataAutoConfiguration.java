@@ -295,14 +295,15 @@ public class AskDataAutoConfiguration {
             AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
             ObjectProvider<AskDataAgent> agentProvider,
             @Qualifier("askDataMonitoringLogEventPublisher") AskDataEventPublisher monitoringLogEventPublisher,
-            ObjectProvider<AskDataEventPublisher> eventPublisherProvider, AskDataQuestionPlanner questionPlanner) {
+            ObjectProvider<AskDataEventPublisher> eventPublisherProvider, AskDataQuestionPlanner questionPlanner,
+            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain> sqlInterceptorChainProvider) {
         List<AskDataAgent> mainAgents = agentProvider.orderedStream()
                 .filter(agent -> !(agent instanceof AskDataSubAgent))
                 .collect(Collectors.toList());
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
                 agentDispatcher, mainAgents, combineEventPublishers(monitoringLogEventPublisher, eventPublisherProvider),
-                questionPlanner);
+                questionPlanner, sqlInterceptorChainProvider.getIfAvailable());
     }
 
 	/**
