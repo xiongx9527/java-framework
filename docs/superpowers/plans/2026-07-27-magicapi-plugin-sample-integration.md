@@ -334,7 +334,7 @@ git commit -m "test(magicapi): cover all plugin artifacts in sample"
 
 - [ ] **Step 1: 保留真实 sample 消费侧 RED 证据**
 
-读取 `.superpowers/sdd/2026-07-27-magicapi-plugin-sample-integration/task-4-report.md`，确认刷新 Boot 旧快照后真实 sample 失败为：
+读取 `.superpowers/sdd/2026-07-27-magicapi-plugin-sample-integration/task-5-preflight-report.md`，确认刷新 Boot 旧快照后真实 sample 失败为：
 
 ```text
 BeanCreationException: milvusEmbeddingStoreProviderAdapter
