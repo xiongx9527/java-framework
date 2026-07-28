@@ -1,0 +1,6 @@
+{
+  "id": "classic-archive:rework-ai-askdata-core-starter",
+  "stepId": "full.archive.execute",
+  "type": "checkpoint",
+  "ref": "rework-ai-askdata-core-starter"
+}

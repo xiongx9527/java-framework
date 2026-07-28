@@ -1,6 +1,6 @@
 ## MODIFIED Requirements
 
-### Requirement: Prompt, connector and dialect rules
+### Requirement: Prompt and dialect rules
 系统 SHALL 提供可配置的 Prompt 模板、数据源连接器和数据库方言规则，使生成 SQL 遵守目标数据库的标识符引用、分页限制和只读查询约束。SQLBot 与 WrenAI 已支持的数据源 SHALL 进入统一能力矩阵；任一需真实数据源或外部依赖验证项 SHALL 明确标记，不得以 Doris 或其他单一方言代表完整支持。
 
 #### Scenario: Apply query limit policy
@@ -22,6 +22,10 @@
 - **WHEN** 应用中存在可用 LangChain4j 模型 Bean 或 LangChain4j 模型注册信息
 - **THEN** AskData 默认模型注册表 SHALL 优先使用 LangChain4j 完成聊天模型和 embedding 模型适配
 
+#### Scenario: Optional fallback model adapters
+- **WHEN** LangChain4j 无法满足某个 AskData 模型能力且应用显式提供其他兼容模型适配 Bean、能力插件或远程运行时 key
+- **THEN** AskData SHALL 通过统一 Core SPI 使用该适配能力，当前 Java 8 Starter 不得要求核心流程直接依赖 Spring AI、Spring AI Alibaba、AgentScope Java、Agents-Flex、EasyAi 或其他框架
+
 #### Scenario: Replace runtime with Spring AI
 - **WHEN** 业务应用提供 Spring AI 适配能力并选择对应模型、embedding、向量存储或工具调用能力 key
 - **THEN** AskData SHALL 通过 Core SPI 使用 Spring AI 的 ChatModel、EmbeddingModel、VectorStore、ChatClient、Advisor 或 tool calling 能力，而 Core API 不暴露 Spring AI 类型
@@ -42,6 +46,10 @@
 - **WHEN** 业务应用仅依赖 `fw-plus-ai-askdata` Core API
 - **THEN** Core API SHALL 不暴露 Ollama、LangChain4j 或其他厂商类型；业务应用 SHALL 能使用能力 SPI 或 Spring Bean 替换 Starter 的 Ollama 默认适配
 
+#### Scenario: Keep Spring AI out of Java 8 starter runtime
+- **WHEN** 构建当前 Java 8 AskData starter
+- **THEN** 模块 SHALL 不引入 Spring AI 运行时依赖；Spring AI SHALL 通过业务适配、兼容适配模块或 Java 17 Remote Runtime SPI 接入
+
 #### Scenario: Preserve current starter model registration
 - **WHEN** 应用使用当前 fw-plus LangChain4j Starter 提供的模型注册信息
 - **THEN** AskData SHALL 无需重复模型配置即可发现并使用该聊天模型和 embedding 模型
@@ -57,6 +65,10 @@
 #### Scenario: Bridge a Java 17 runtime service
 - **WHEN** 业务方需要使用只能运行在 Java 17 或 Spring Boot 3.x+ 的 Spring AI、Spring AI Alibaba、AgentScope Java 2.0+ 能力
 - **THEN** AskData SHALL 通过 Remote Runtime SPI 对接独立 Java 17 适配服务，并通过 HTTP/SSE、MCP、A2A、gRPC 或消息队列传递项目、操作人、会话、能力 key、模型路由上下文、脱敏输入、流式事件、错误和审计关联；SQL 执行仍 SHALL 回到 Java 8 Starter 的统一安全管线
+
+#### Scenario: Preserve contracts for future Java 17 adapters
+- **WHEN** 后续新增 Java 17 / Spring Boot 3 AskData 扩展模块或独立适配服务
+- **THEN** 该扩展 SHALL 复用当前 AskData 请求、结果、模型注册、Agent 流程、项目权限、检查点和监控契约，并以 adapter 或 Remote Runtime 方式替换或增强底层 Spring AI、Spring AI Alibaba、AgentScope Java、Java LangGraph 或其它新能力
 
 #### Scenario: Reject incompatible embedded dependencies
 - **WHEN** 某个可选运行时依赖无法通过 Java 8 / Spring Boot 2.7.18 的编译、依赖解析和最小启动测试
@@ -77,33 +89,6 @@
 #### Scenario: No default model configured
 - **WHEN** AskData 请求未指定模型 key 且系统没有默认模型
 - **THEN** AskData 服务 SHALL 返回明确错误，说明缺少默认模型配置
-
-### Requirement: Dynamic model routing and resilient fallback
-系统 SHALL 支持按照请求显式模型 key、项目、数据源、Agent 任务和策略标签动态路由聊天模型与 embedding 模型。模型路由、候选链、熔断和兜底策略 SHALL 由可替换 Core SPI 表达，且不得将某个模型供应商或实例写死在流程中。
-
-#### Scenario: Route a model dynamically
-- **WHEN** 请求未显式指定模型 key，且项目、数据源或当前 Agent 任务配置了有效模型策略
-- **THEN** AskData 服务 SHALL 依照已定义优先级选择对应模型，并在响应、检查点和审计中记录最终模型 key 与路由原因
-
-#### Scenario: Switch after a primary model failure
-- **WHEN** 主模型发生连接失败、超时、限流、熔断打开或供应商不可用等可判定的基础设施故障
-- **THEN** 路由器 SHALL 按配置顺序且不重复地尝试候选模型，并记录每次尝试、故障分类和切换原因
-
-#### Scenario: Use an explicit fallback model
-- **WHEN** 主模型和候选模型均因可切换基础设施故障不可用，且策略配置了可用兜底模型
-- **THEN** 系统 SHALL 使用该兜底模型完成当前幂等模型节点，并标记响应与审计为兜底路径
-
-#### Scenario: Do not switch on a non-retryable model result
-- **WHEN** 模型因内容策略、输入不兼容、请求预算不足或返回明确业务拒绝而失败
-- **THEN** 系统 SHALL 返回该错误，不得隐式切换到候选或兜底模型
-
-#### Scenario: Exhaust all model candidates
-- **WHEN** 所有配置的主模型、候选模型和兜底模型均不可用
-- **THEN** 系统 SHALL 返回可诊断的模型不可用错误，并保留已尝试模型与故障分类；不得伪造结果或回退到未配置模型
-
-#### Scenario: Keep SQL execution outside model failover
-- **WHEN** SQL、工具或其他外部副作用节点已经开始执行
-- **THEN** 模型路由器 SHALL 不因该节点失败重新调用模型或重放该节点，且系统 SHALL 遵守 SQL 执行状态不确定保护
 
 ### Requirement: Multi-agent flow extension
 系统 SHALL 提供轻量的多 Agent 与子 Agent 协作抽象，使 AskData 流程中的选表、生成 SQL、SQL 校验、SQL 执行和结果解释可以由主 Agent、独立步骤、独立 Agent 或子 Agent 实现，并由流程执行器串联。系统 SHALL 提供可选 Java LangGraph 图编排适配，但默认流程不得强制依赖它。
@@ -135,21 +120,6 @@
 #### Scenario: Keep framework independence
 - **WHEN** 应用只引入 AskData starter
 - **THEN** 系统 SHALL 不要求必须引入 Java LangGraph、LangGraph4j、Agents-Flex、Tinyflow 或其他特定工作流引擎才能运行默认问数流程
-
-### Requirement: Multi-question execution and aggregation
-系统 SHALL 支持执行显式多问题和拆分后的复合问题；无依赖子问题可在受限并发度内执行，存在依赖的子问题 SHALL 按计划顺序执行。每个子问题 SHALL 独立遵守权限、模型路由、记忆、SQL 安全、超时、检查点与审计约束。
-
-#### Scenario: Execute independent questions concurrently
-- **WHEN** 一个多提问计划包含相互独立的子问题，且并发预算允许
-- **THEN** 系统 SHALL 在配置的最大并发度内调度这些子问题，并为每个子问题记录独立的模型、SQL 和执行状态
-
-#### Scenario: Respect question dependencies
-- **WHEN** 子问题计划声明一个问题依赖另一个问题的结果或完成状态
-- **THEN** 系统 SHALL 在依赖问题达到可用终态前不执行依赖问题，并在依赖失败时按计划记录跳过、降级或失败结果
-
-#### Scenario: Return partial multi-question results
-- **WHEN** 多提问请求中的部分子问题成功、失败、超时或被取消
-- **THEN** 系统 SHALL 返回按子问题 ID 对齐的结构化聚合结果和失败原因，不得将未完成子问题标记为成功
 
 ### Requirement: Context compression and resumable execution
 系统 SHALL 提供可压缩、可持久化的 AskData 会话上下文，使多轮问数、多 Agent 长流程和子 Agent 执行可以在上下文增长时压缩历史信息，并在应用异常退出、实例迁移或重启后从最近稳定检查点继续操作。系统 SHALL 支持内存、JDBC、Redis、向量存储注册表和业务自定义状态实现；集群部署 SHALL 使用共享存储和幂等租约，而非本地内存状态。
@@ -213,6 +183,50 @@
 - **WHEN** SQL 通过安全校验并允许执行
 - **THEN** 执行器 SHALL 以物理行数上限和查询超时执行 SQL，且返回受限执行的审计信息
 
+## ADDED Requirements
+
+### Requirement: Dynamic model routing and resilient fallback
+系统 SHALL 支持按照请求显式模型 key、项目、数据源、Agent 任务和策略标签动态路由聊天模型与 embedding 模型。模型路由、候选链、熔断和兜底策略 SHALL 由可替换 Core SPI 表达，且不得将某个模型供应商或实例写死在流程中。
+
+#### Scenario: Route a model dynamically
+- **WHEN** 请求未显式指定模型 key，且项目、数据源或当前 Agent 任务配置了有效模型策略
+- **THEN** AskData 服务 SHALL 依照已定义优先级选择对应模型，并在响应、检查点和审计中记录最终模型 key 与路由原因
+
+#### Scenario: Switch after a primary model failure
+- **WHEN** 主模型发生连接失败、超时、限流、熔断打开或供应商不可用等可判定的基础设施故障
+- **THEN** 路由器 SHALL 按配置顺序且不重复地尝试候选模型，并记录每次尝试、故障分类和切换原因
+
+#### Scenario: Use an explicit fallback model
+- **WHEN** 主模型和候选模型均因可切换基础设施故障不可用，且策略配置了可用兜底模型
+- **THEN** 系统 SHALL 使用该兜底模型完成当前幂等模型节点，并标记响应与审计为兜底路径
+
+#### Scenario: Do not switch on a non-retryable model result
+- **WHEN** 模型因内容策略、输入不兼容、请求预算不足或返回明确业务拒绝而失败
+- **THEN** 系统 SHALL 返回该错误，不得隐式切换到候选或兜底模型
+
+#### Scenario: Exhaust all model candidates
+- **WHEN** 所有配置的主模型、候选模型和兜底模型均不可用
+- **THEN** 系统 SHALL 返回可诊断的模型不可用错误，并保留已尝试模型与故障分类；不得伪造结果或回退到未配置模型
+
+#### Scenario: Keep SQL execution outside model failover
+- **WHEN** SQL、工具或其他外部副作用节点已经开始执行
+- **THEN** 模型路由器 SHALL 不因该节点失败重新调用模型或重放该节点，且系统 SHALL 遵守 SQL 执行状态不确定保护
+
+### Requirement: Multi-question execution and aggregation
+系统 SHALL 支持执行显式多问题和拆分后的复合问题；无依赖子问题可在受限并发度内执行，存在依赖的子问题 SHALL 按计划顺序执行。每个子问题 SHALL 独立遵守权限、模型路由、记忆、SQL 安全、超时、检查点与审计约束。
+
+#### Scenario: Execute independent questions concurrently
+- **WHEN** 一个多提问计划包含相互独立的子问题，且并发预算允许
+- **THEN** 系统 SHALL 在配置的最大并发度内调度这些子问题，并为每个子问题记录独立的模型、SQL 和执行状态
+
+#### Scenario: Respect question dependencies
+- **WHEN** 子问题计划声明一个问题依赖另一个问题的结果或完成状态
+- **THEN** 系统 SHALL 在依赖问题达到可用终态前不执行依赖问题，并在依赖失败时按计划记录跳过、降级或失败结果
+
+#### Scenario: Return partial multi-question results
+- **WHEN** 多提问请求中的部分子问题成功、失败、超时或被取消
+- **THEN** 系统 SHALL 返回按子问题 ID 对齐的结构化聚合结果和失败原因，不得将未完成子问题标记为成功
+
 ### Requirement: Extensible SQL composition and execution pipeline
 系统 SHALL 将 SQL 生成后的组装、参数绑定、方言改写、安全校验、执行准备、执行和结果映射组织为阶段化可扩展管线。SQL 插件 SHALL 通过 Core 能力注册表按确定性顺序参与，并且不得替代最终安全边界。
 
@@ -235,8 +249,6 @@
 #### Scenario: Map results without replacing execution safeguards
 - **WHEN** 业务应用注册 SQL 结果映射插件
 - **THEN** 插件 SHALL 在受限执行完成后映射结构化结果，且不得改变已记录的执行状态、行数上限、超时结论或审计事实
-
-## ADDED Requirements
 
 ### Requirement: AskData core operational documentation
 系统 SHALL 随 Starter 提供详细中文文档，覆盖架构与模块、依赖、快速开始、Ollama 默认厂商、完整配置属性、Java API、能力注册、业务覆盖、模型路由和兜底、向量、SQL 插件、Doris 安全、多 Agent、多提问、长期记忆、项目/操作人隔离、管理员监控、LangSmith/Langfuse、上下文压缩、恢复、单机/集群存储矩阵、迁移和排障。
