@@ -68,7 +68,7 @@ docs/ai-framework-migration/
 └── agentscope-java17.md
 ```
 
-`overview.md` 提供兼容矩阵：Java 8 / Boot 2.7 中立核心与 LangChain4j 完整支持；Java 17 / Boot 3+ 目标 artifact 骨架；后续真实 adapter 的状态。每个框架文档必须按同一顺序给出：
+`overview.md` 提供兼容矩阵：Java 8 / Boot 2.7 中立核心与 LangChain4j 完整支持；Java 17 / Boot 3+ 后续目标模块布局与实施蓝图（当前不存在且不可解析）；后续真实 adapter 的状态。每个框架文档必须按同一顺序给出：
 
 1. JDK、Spring Boot、SDK 和 Maven parent/BOM 前置条件。
 2. 后续 Java 17 aggregator 与 starter artifact 的计划引入方式，明确其当前不存在且未来不进入 Java 8 应用依赖图。
