@@ -7,21 +7,18 @@
 
 ## Current Task
 
-- Task: Task 7: 建立动态 SQL 标识符校验器
-- OpenSpec mapping: 5.2
-- Stage: done
-- Implementer: Copernicus DONE
-- Reviewer: Hypatia approved
+- Task: Task 8: 迁移动态模型 DAO、服务与 SQL Provider
+- OpenSpec mapping: 5.1, 5.3, 5.4, 5.5
+- Stage: implementing
+- Implementer: pending dispatch
+- Reviewer: pending
 - Fixer: pending
 - Review/fix rounds: 0
-- Review result: Approved
+- Review result: pending
 
 ## Evidence
 
-- RED: implementer reported expected failure because requested dynamic SQL validator types did not exist.
-- GREEN: coordinator reran `./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineSqlIdentifierValidatorTest test` from `fw-plus-core`; 7 tests passed, 0 failures, 0 errors.
-- Extra: coordinator reran `./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -DskipTests compile`; build success. Task dynamic forbidden API/framework scan returned no matches.
-- Commits: 8da5e817bd3ca2b5f185e53df808de05d71b32a2
-- Changed files: `TinyEngineSqlIdentifierValidator`, `TinyEngineSortDirection`, `TinyEngineSqlIdentifierException`, and `TinyEngineSqlIdentifierValidatorTest`.
-- Risk signals: public dynamic SQL safety API; security-sensitive input validation.
-- Review: Hypatia approved Task 7; no Critical, Important, or Minor issues.
+- Brief: `/tmp/integrate-tiny-engine-core-task-8-brief.md`
+- Required RED/GREEN command: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineDynamicSqlProviderTest,TinyEngineDynamicServiceContractTest test`
+- Required commit: `feat: migrate tiny engine dynamic model core`
+- Risk signals: dynamic SQL safety boundary, public dynamic CRUD/table lifecycle API, data/schema operations, diff likely exceeds 200 lines.
