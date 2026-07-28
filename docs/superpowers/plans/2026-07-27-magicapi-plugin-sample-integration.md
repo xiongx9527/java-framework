@@ -332,7 +332,7 @@ git commit -m "test(magicapi): cover all plugin artifacts in sample"
 - Consumes: embedding starter 不传递全部 provider SDK 的既有设计，以及直接链接 Redis、Milvus、Elasticsearch、Qdrant、Weaviate、Azure AI Search SDK 类型的 adapter。
 - Produces: 缺少具体 SDK 时仍可创建 `EmbeddingStoreRegistry`，只跳过对应 adapter Bean；Task 5 的真实 sample 不通过 profile 禁用 vector 插件。
 
-- [ ] **Step 1: 保留真实 sample 消费侧 RED 证据**
+- [x] **Step 1: 保留真实 sample 消费侧 RED 证据**
 
 读取 `.superpowers/sdd/2026-07-27-magicapi-plugin-sample-integration/task-5-preflight-report.md`，确认刷新 Boot 旧快照后真实 sample 失败为：
 
@@ -343,7 +343,7 @@ NoClassDefFoundError: dev/langchain4j/store/embedding/milvus/MilvusEmbeddingStor
 
 确认 sample dependency tree 不包含 `langchain4j-milvus`，且 starter POM 明确不传递所有具体向量 SDK。禁止通过 profile 关闭 embedding store，也不在 sample 逐个补 SDK。
 
-- [ ] **Step 2: 编写缺少可选 SDK 的消费侧失败测试**
+- [x] **Step 2: 编写缺少可选 SDK 的消费侧失败测试**
 
 在 `EmbeddingStoreAutoConfigurationTest` 中使用新的 `ApplicationContextRunner` 和 `FilteredClassLoader` 隐藏以下包：
 
@@ -358,7 +358,7 @@ dev.langchain4j.store.embedding.azure.search
 
 测试必须断言上下文无启动失败、`EmbeddingStoreRegistry` 存在、`inMemoryEmbeddingStoreProviderAdapter` 仍存在，并且上述 6 个直接链接型 adapter Bean 均不存在。不得过滤整个 `dev.langchain4j.store.embedding` 包。
 
-- [ ] **Step 3: 运行测试确认 RED**
+- [x] **Step 3: 运行 AI 消费侧测试确认 RED**
 
 ```bash
 ./fw-plus-ai/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
@@ -367,7 +367,7 @@ dev.langchain4j.store.embedding.azure.search
 
 Expected: FAIL，根因为 Milvus 或另一个被过滤的直接链接型 provider 类无法加载，而不是测试装配错误。
 
-- [ ] **Step 4: 对直接链接型 adapter 增加最小 classpath 条件**
+- [x] **Step 4: 对直接链接型 adapter 增加最小 classpath 条件**
 
 为 Redis、Milvus、Elasticsearch、Qdrant、Weaviate、Azure AI Search 的 6 个 `@Bean` 方法分别增加：
 
@@ -377,7 +377,7 @@ Expected: FAIL，根因为 Milvus 或另一个被过滤的直接链接型 provid
 
 入口类使用 Step 2 列出的包内实际 embedding store 类。使用 `name` 字符串避免条件解析提前加载缺失类型。不得给整个 `EmbeddingStoreAutoConfiguration` 加总开关，不修改反射型 provider、registry、factory 或公开 API。
 
-- [ ] **Step 5: 运行 AI 自动配置回归**
+- [x] **Step 5: 运行 AI 自动配置回归**
 
 ```bash
 ./fw-plus-ai/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
@@ -386,7 +386,7 @@ Expected: FAIL，根因为 Milvus 或另一个被过滤的直接链接型 provid
 
 Expected: 消费侧缺 SDK 测试与现有 embedding/元数据测试全部通过；完整测试 classpath 下既有 dedicated adapter 测试仍通过。
 
-- [ ] **Step 6: 安装 AI 自动配置快照并提交**
+- [x] **Step 6: 安装 AI 自动配置快照并提交**
 
 ```bash
 ./fw-plus-ai/mvnw -f fw-plus-ai/fw-plus-ai-project/pom.xml \

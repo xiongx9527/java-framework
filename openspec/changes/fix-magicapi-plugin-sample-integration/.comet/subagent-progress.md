@@ -1,21 +1,23 @@
 # Subagent Progress
 
-- Plan task: `Task 4: 让真实 sample 主类完成离线全插件上下文与 HTTP 验证`
-- OpenSpec mapping: `2. 补齐 sample 整体测试 classpath 和可控启动配置；对发现的每个源码缺陷先补最小回归测试，再逐项修复并转绿。`
-- Stage: `blocked`
-- Implementer: `/root/task4_sample_context`
+- Plan task: `Task 4: 让可选向量 SDK 缺失时 AI provider 自动配置可安全装配`
+- OpenSpec mapping: `2. 补齐 sample 整体测试 classpath 和可控启动配置；对发现的每个源码缺陷先补最小回归测试，再逐项修复并转绿。`（由 Task 5 完成后统一勾选）
+- Stage: `done`
+- Implementer: `/root/task4_ai_provider_conditions`
 - Dispatch: 已派发，requirements 为 SDD `task-4-brief.md`，报告写入 `task-4-report.md`。
 - Review mode: `thorough`
 - Review/fix round: `0/2`
-- Base commit: `2d14e783`
-- Dependencies: Task 1 AI 元数据、Task 2 MQTT 回填、Task 3 runtime 27 插件清单均完成并审查通过。
-- RED evidence: 首轮真实 sample 已复现 `@EnableApolloConfig` 在 bootstrap=false 时访问 `172.17.17.185:8080` 并启动 Apollo 长轮询；同时命中 MQTT 环，经 `javap` 确认为 `~/.m2` 中 Boot autoconfigure 旧快照仍保留 `MagicResourceService` 参数，当前工作树源码已修复。
-- GREEN evidence: 待 implementer 运行完整 sample 测试。
-- Implementation commit: 待提交。
-- Changed files: sample 主类、`application-all-plugins.yaml`、真实上下文/HTTP 测试；OpenSpec 由协调者审查后勾选。
-- Review status: 待派发。
-- Current action: 先刷新当前 Boot autoconfigure 本地快照，再重跑 RED 隔离 Apollo 根因；未发现 Apollo 外的真实中间件连接。
-- Local snapshot refresh: Boot autoconfigure `BUILD SUCCESS`，`javap` 确认 MQTT storage Bean 工厂为零参数；重跑后 MQTT 环消失，Apollo 访问/长轮询仍独立复现。
-- New failure: `NoClassDefFoundError: dev/langchain4j/store/embedding/milvus/MilvusEmbeddingStore$Builder`；starter 明确不传递具体向量 SDK，但 `EmbeddingStoreAutoConfiguration` 默认无条件创建所有 provider adapter。
-- Root-cause decision: 不通过 profile 禁用 embedding store，不在 sample 逐个补 SDK；先插入独立 AI 自动配置任务，按 provider SDK class 条件化并增加缺失 SDK 的消费侧上下文回归。
-- Open findings: Task 4 暂停在 RED 阶段，等待新增 AI 修复任务完成后由全新 implementer 恢复。
+- Base commit: `60ea4898`
+- RED evidence: 真实 sample 在无具体向量 SDK 的消费侧 classpath 触发 `MilvusEmbeddingStore$Builder` NoClassDefFoundError；原始证据见 SDD `task-5-preflight-report.md`。
+- Required fix: 只对 6 个直接链接可选 SDK 的 adapter Bean 增加基于字符串类名的 `@ConditionalOnClass`，保留 registry 与反射型 provider。
+- RED evidence detail: 先发现原测试类使用 JUnit 4 而模块仅启用 Jupiter，旧测试实际 `Tests run: 0`；迁移同一测试文件后，FilteredClassLoader 定向测试为 1 failure，证明缺少 SDK 时 `redisStackEmbeddingStoreProviderAdapter` 仍错误注册。配置类由父测试 ClassLoader 预加载，因此 RED 表现为 adapter 条件断言失败而非 sample 的 NoClassDef。
+- GREEN evidence: FilteredClassLoader 定向 1/1；自动配置与元数据 11/11；AI autoconfigure install `BUILD SUCCESS`。
+- Implementation commit: `191f5694`。
+- Changed files: `EmbeddingStoreAutoConfiguration.java` 与 `EmbeddingStoreAutoConfigurationTest.java`。
+- Preserved downstream work: sample 的 `application-all-plugins.yaml` 与 `MagicApiAllPluginsApplicationContextTest.java` 未提交 RED 文件不得修改或暂存。
+- Implementer result: `DONE`；仅两个白名单文件，sample RED 文件保持未跟踪且未修改。
+- Risk signals: JUnit4→Jupiter 使同文件原 10 个测试从静默 0 项变为实际执行；FilteredClassLoader RED 为错误 Bean 注册断言而非直接 NoClassDef，真实 sample 留待 Task 5。
+- Reviewer: `/root/task4_ai_provider_review`。
+- Review status: spec ✅，quality Approved；六个入口类、方法级条件时机、FilteredClassLoader、JUnit4→Jupiter 及已安装 JAR 均已核验。
+- Open findings: 无 Critical/Important；1 项环境级 Minor（Maven settings / SLF4J 告警）延后最终审查；真实 sample GREEN 留待 Task 5。
+- Checkoff: Task 4 的 6 个 plan checkbox 均通过 `comet state task-checkoff`；OpenSpec 任务 2 留待 Task 5 完整上下文与 HTTP 验证。
