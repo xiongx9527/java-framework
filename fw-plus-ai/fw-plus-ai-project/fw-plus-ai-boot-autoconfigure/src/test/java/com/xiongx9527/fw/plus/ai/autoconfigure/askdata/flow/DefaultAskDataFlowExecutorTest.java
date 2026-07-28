@@ -22,6 +22,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDocument;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -89,6 +90,31 @@ public class DefaultAskDataFlowExecutorTest {
 
         assertFalse(result.isSuccess());
         assertEquals(AskDataErrorCode.MODEL_RESPONSE_INVALID, result.getErrorCode());
+    }
+
+    @Test
+    public void shouldRejectRequestsWithoutValidProjectOperatorScopeBeforeMainFlow() {
+        StubDependencies dependencies = new StubDependencies();
+
+        AskDataRequest missingContext = request(true);
+        missingContext.setProjectContext(null);
+        AskDataRequest blankProject = request(true);
+        blankProject.setProjectContext(contextWithBlankProjectId());
+        AskDataRequest blankOperator = request(true);
+        blankOperator.setProjectContext(contextWithBlankOperatorId());
+
+        AskDataResult missingContextResult = dependencies.executor("unused").execute(missingContext);
+        AskDataResult blankProjectResult = dependencies.executor("unused").execute(blankProject);
+        AskDataResult blankOperatorResult = dependencies.executor("unused").execute(blankOperator);
+
+        assertFalse(missingContextResult.isSuccess());
+        assertEquals(AskDataErrorCode.MODEL_RESPONSE_INVALID, missingContextResult.getErrorCode());
+        assertFalse(blankProjectResult.isSuccess());
+        assertEquals(AskDataErrorCode.MODEL_RESPONSE_INVALID, blankProjectResult.getErrorCode());
+        assertFalse(blankOperatorResult.isSuccess());
+        assertEquals(AskDataErrorCode.MODEL_RESPONSE_INVALID, blankOperatorResult.getErrorCode());
+        assertEquals(0, dependencies.metadataCalls);
+        assertEquals(0, dependencies.executorCalls);
     }
 
     @Test
@@ -179,11 +205,30 @@ public class DefaultAskDataFlowExecutorTest {
     private AskDataRequest request(boolean execute) {
         AskDataRequest request = new AskDataRequest();
         request.setQuestion("订单数量");
+        request.setProjectContext(new AskDataProjectContext("default", "default"));
         request.setDatasourceKey("orders");
         request.setDialect("mysql");
         request.setModelKey("test-model");
         request.setExecute(Boolean.valueOf(execute));
         return request;
+    }
+
+    private AskDataProjectContext contextWithBlankProjectId() {
+        return new AskDataProjectContext("project", "operator") {
+            @Override
+            public String getProjectId() {
+                return " ";
+            }
+        };
+    }
+
+    private AskDataProjectContext contextWithBlankOperatorId() {
+        return new AskDataProjectContext("project", "operator") {
+            @Override
+            public String getOperatorId() {
+                return " ";
+            }
+        };
     }
 
     private List<String> stepKeys(AskDataResult result) {
@@ -200,6 +245,7 @@ public class DefaultAskDataFlowExecutorTest {
         private AskDataDialectRegistry dialectRegistry = new AskDataDialectRegistry();
         private AskDataVectorRetriever vectorRetriever;
         private final List<String> retrieveTypes = new java.util.ArrayList<String>();
+        private int metadataCalls;
         private int executorCalls;
         private boolean globalExecutionEnabled = true;
         private AskDataModelException modelException;
@@ -256,6 +302,7 @@ public class DefaultAskDataFlowExecutorTest {
             AskDataMetadataProvider metadataProvider = new AskDataMetadataProvider() {
                 @Override
                 public AskDataMetadata load(AskDataRequest request) {
+                    metadataCalls++;
                     return new AskDataMetadata("mysql", Collections.emptyList(), Collections.emptyList(),
                             Collections.emptyList(), Collections.emptyList());
                 }

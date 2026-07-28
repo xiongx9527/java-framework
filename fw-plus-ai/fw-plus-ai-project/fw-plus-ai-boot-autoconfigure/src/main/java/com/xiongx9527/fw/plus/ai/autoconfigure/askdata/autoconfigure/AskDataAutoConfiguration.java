@@ -290,6 +290,8 @@ public class AskDataAutoConfiguration {
 
     /**
      * 基础监控日志必须先写入，再调用业务提供的外部观测发布器。
+     *
+     * <p>业务发布器属于非关键扩展边界，其运行时异常会被隔离，不能中断主对话或阻断后续生命周期日志。</p>
      */
     private AskDataEventPublisher combineEventPublishers(final AskDataEventPublisher monitoringLogEventPublisher,
             ObjectProvider<AskDataEventPublisher> eventPublisherProvider) {
@@ -304,7 +306,11 @@ public class AskDataAutoConfiguration {
             public void publish(com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent event) {
                 monitoringLogEventPublisher.publish(event);
                 for (AskDataEventPublisher externalPublisher : externalPublishers) {
-                    externalPublisher.publish(event);
+                    try {
+                        externalPublisher.publish(event);
+                    } catch (RuntimeException ex) {
+                        // 外部观测导出失败不能影响已持久化的基础审计日志和业务对话。
+                    }
                 }
             }
         };

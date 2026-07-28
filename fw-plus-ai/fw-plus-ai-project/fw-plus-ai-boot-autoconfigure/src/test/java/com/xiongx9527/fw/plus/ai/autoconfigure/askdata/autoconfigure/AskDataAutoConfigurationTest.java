@@ -214,12 +214,15 @@ public class AskDataAutoConfigurationTest {
     }
 
     @Test
-    public void shouldPersistBaseMonitoringLogsBeforePublishingToCustomPublisher() {
+    public void shouldIsolateFailingCustomPublisherAfterPersistingBaseMonitoringLogs() {
         final java.util.concurrent.atomic.AtomicInteger customPublishCount =
                 new java.util.concurrent.atomic.AtomicInteger();
         withDefaultFlowDependencies()
                 .withBean(com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher.class,
-                        () -> event -> customPublishCount.incrementAndGet())
+                        () -> event -> {
+                            customPublishCount.incrementAndGet();
+                            throw new IllegalStateException("external exporter unavailable");
+                        })
                 .run(context -> {
                     AskDataResult result = context.getBean(AskDataService.class).ask(createRequest());
                     java.util.List<com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog> logs =

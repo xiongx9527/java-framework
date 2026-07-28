@@ -97,3 +97,33 @@ cd fw-plus-ai
 ```
 
 结果：38 tests，0 failures，0 errors。
+
+## 第三轮 Reviewer 修复 RED/GREEN
+
+### RED
+
+先新增两项回归：默认 flow 在缺少 `projectContext`、`projectId` 空白或 `operatorId` 空白时必须在元数据、模型和 SQL 主流程之前受控失败；外部 `AskDataEventPublisher` 抛出运行时异常时，基础监控日志仍需记录开始与完成事件，且主对话必须成功完成。
+
+执行：
+
+```bash
+cd fw-plus-ai
+./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=AskDataConversationStoreTest,AskDataMonitoringLogStoreTest,DefaultAskDataFlowExecutorTest,AskDataAutoConfigurationTest,AskDataPropertiesBindingTest test
+```
+
+结果：39 tests，1 failure，1 error。无效上下文请求仍进入元数据加载器（3 次）；外部发布器异常直接中断对话。两项失败均与复审问题一致。
+
+### GREEN
+
+- `DefaultAskDataFlowExecutor` 在生成会话、发布生命周期事件和进入恢复/主流程之前，强制校验 `projectContext`、`projectId`、`operatorId`。缺失或只包含 Unicode 空白的标识返回既有 `MODEL_RESPONSE_INVALID` 受控失败，不产生不可审计对话。
+- `combineEventPublishers` 保持基础日志先写入，对每个外部发布器的运行时异常做隔离，外部导出失败不会中断主流程或阻断后续生命周期日志。
+- 原有默认 flow 单测夹具补充有效项目与操作人上下文，以符合新的安全入口契约。
+
+执行同一命令通过：39 tests，0 failures，0 errors。
+
+## 第三轮自查
+
+- Core 未新增 Spring、模型 SDK 或存储厂商类型；实现保持 Java 8 兼容。
+- 有效请求仍按 `projectId + operatorId` 分区写入脱敏生命周期日志；无有效分区的请求在主流程前拒绝。
+- 集群模式的本地状态、向量和监控日志拒绝策略未改变。
