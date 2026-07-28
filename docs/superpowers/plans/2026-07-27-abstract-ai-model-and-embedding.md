@@ -10,13 +10,14 @@ base-ref: 18be86e44a394e943c7177aa1cb7a1a27d8bcfb4
 
 **Goal:** 将模型和向量存储公共能力迁出 LangChain4j，保留 LangChain4j 默认兼容实现，并交付 Java 17+ 目标框架 starter 骨架与迁移文档。
 
-**Architecture:** Java 8 Core 新增中立模型和向量存储模块，LangChain4j 模块只保留原生对象适配。AI Boot 和 Magic-API 依赖中立 registry；同仓 `fw-plus-ai-j17` 独立聚合使用 Java 17 / Spring Boot 3+，只提供 Spring AI、Spring AI Alibaba、AgentScope 2 Java 的 starter 骨架和明确诊断。
+**Architecture:** Java 8 Core 新增中立模型和向量存储模块，LangChain4j 模块只保留原生对象适配。AI Boot 和 Magic-API 依赖中立 registry；同仓 `fw-plus-ai-j17` 是 Java 17 / Spring Boot 3.x 高版本独立聚合，只提供 Spring AI、Spring AI Alibaba、AgentScope 2 Java 的 starter 骨架和明确诊断。
 
 **Tech Stack:** Java 8、Spring Boot 2.7.18、LangChain4j 0.35.0、Maven Wrapper、JUnit；Java 17、Spring Boot 3+、Spring AI/Spring AI Alibaba/AgentScope 2 Java starter 骨架。
 
 ## Global Constraints
 
 - Java 8 Core 公共 API 不得导入 `dev.langchain4j.*`、`org.springframework.ai.*` 或 AgentScope 类型。
+- Java 17 目标框架只在 `fw-plus-ai-j17` 的 Java 17 / Spring Boot 3.x 高版本线处理，不得回迁或传递污染 Java 8 / Boot 2.7 路径。
 - LangChain4j 是首版唯一完整 model/store adapter；Java 17 target artifact 不得宣称已提供真实原生 adapter。
 - 旧 `fw-plus.ai.langchain4j.model` 与 `fw-plus.ai.langchain4j.embedding-store` 保留兼容，中立配置同 key 优先。
 - Magic-API `model[...]`、`vector[...]`、动态资源 key 和默认访问方式保持兼容，错误和日志必须脱敏。
