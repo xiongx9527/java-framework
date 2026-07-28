@@ -2,6 +2,8 @@
 comet_change: rework-ai-askdata-core-starter
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-28-rework-ai-askdata-core-starter
+status: final
 ---
 
 # fw-plus AskData Core Starter 重构设计
