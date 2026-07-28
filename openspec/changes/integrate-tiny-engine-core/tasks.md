@@ -22,10 +22,10 @@
 
 ## 4. 核心服务迁移
 
-- [ ] 4.1 迁移 app/page/material/resource/i18n/platform/tenant/user/task/model/datasource 等核心服务接口。
-- [ ] 4.2 迁移对应服务实现，并剥离 Controller、OpenAPI、启动类、过滤器、定时任务和 profile 配置依赖。
-- [ ] 4.3 保留必要的扩展点，例如保存后 hook 或上下文读取接口，并避免引入上层 starter 自动配置职责。
-- [ ] 4.4 为核心服务编写可编译的单元测试或轻量集成测试，验证服务契约可被上层模块引用。
+- [x] 4.1 迁移 app/page/material/resource/i18n/platform/tenant/user/task/model/datasource 等核心服务接口。
+- [x] 4.2 迁移对应服务实现，并剥离 Controller、OpenAPI、启动类、过滤器、定时任务和 profile 配置依赖。
+- [x] 4.3 保留必要的扩展点，例如保存后 hook 或上下文读取接口，并避免引入上层 starter 自动配置职责。
+- [x] 4.4 为核心服务编写可编译的单元测试或轻量集成测试，验证服务契约可被上层模块引用。
 
 ## 5. 动态模型与 SQL 安全边界
 

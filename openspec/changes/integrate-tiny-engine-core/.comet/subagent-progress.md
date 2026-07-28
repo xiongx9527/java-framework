@@ -9,12 +9,12 @@
 
 - Task: Task 6: 迁移核心服务接口、实现与扩展点
 - OpenSpec mapping: 4.1, 4.2, 4.3, 4.4
-- Stage: task-review
+- Stage: done
 - Implementer: Mendel DONE
-- Reviewer: Meitner completed first task review; Peirce re-review returned Needs fixes; Beauvoir final re-review returned Needs fixes
+- Reviewer: Meitner completed first task review; Peirce re-review returned Needs fixes; Beauvoir final re-review returned Needs fixes; McClintock post-third-fix review approved
 - Fixer: Boole DONE; Rawls DONE; Erdos DONE
 - Review/fix rounds: 3
-- Review result: Third fix completed; pending final re-review
+- Review result: Approved
 
 ## Evidence
 
@@ -31,3 +31,4 @@
 - Final re-review findings: Beauvoir confirmed previous skeleton/signature/Canvas findings are closed, but found 3 new Important issues: `ModelServiceImpl#tableSql` builds DDL from persisted model metadata without identifier/default validation; `TenantServiceImpl#createTenant` inserts tenant before parsing non-numeric user id and does not check relation insert or use a transaction; `PageServiceImpl#delPage` deletes by id without respecting canvas occupier/current-user lock.
 - User decision: user selected option 1 to continue an extra fix round for the 3 final Important findings.
 - Third fix evidence: Erdos committed `0743736167c5d53cb6fb7d72bfdd3320ed602dd0`; coordinator reran targeted tests with 24 passed, 0 failures, 0 errors; compile succeeded; production forbidden scan returned no matches, full scan only matched test assertion literals for `swagger` and `jakarta`.
+- Post-third-fix review: McClintock approved Task 6; all final Important findings are closed, with no Critical, Important, or Minor issues remaining.

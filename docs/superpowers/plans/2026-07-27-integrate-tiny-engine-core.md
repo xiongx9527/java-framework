@@ -415,11 +415,11 @@ git commit -m "feat: migrate tiny engine persistence resources"
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineServiceContractTest test`
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -DskipTests compile`
 
-- [ ] **Step 1: 写服务契约失败测试**
+- [x] **Step 1: 写服务契约失败测试**
 
 Create `TinyEngineServiceContractTest` verifying every public service interface has an implementation class, implementations do not depend on controller packages, and extension points default to no-op behavior.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试**
 
 Run:
 
@@ -430,19 +430,19 @@ cd fw-plus-core
 
 Expected: FAIL because services do not exist.
 
-- [ ] **Step 3: 迁移服务接口**
+- [x] **Step 3: 迁移服务接口**
 
 Move service interfaces into `service`, keeping method signatures expressed in TinyEngine DTO/entity types only. Remove controller-specific response wrappers where service consumers should receive DTOs or domain objects.
 
-- [ ] **Step 4: 迁移服务实现**
+- [x] **Step 4: 迁移服务实现**
 
 Move service implementations into `service.impl`, keep Spring `@Service` and `org.springframework.transaction.annotation.Transactional` where needed, inject mapper interfaces and SPI interfaces, and remove Controller/OpenAPI/Servlet/Filter/profile/startup dependencies.
 
-- [ ] **Step 5: 增加 Hook 与上下文扩展点**
+- [x] **Step 5: 增加 Hook 与上下文扩展点**
 
 Implement `TinyEngineSaveHook` and `NoopTinyEngineSaveHook` for save-after extension behavior. Service implementations should depend on the interface so future Boot starter or business modules can override by Bean.
 
-- [ ] **Step 6: 运行测试与编译**
+- [x] **Step 6: 运行测试与编译**
 
 Run:
 
@@ -454,7 +454,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit Task 6**
+- [x] **Step 7: Commit Task 6**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core
