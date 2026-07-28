@@ -1,46 +1,48 @@
 # Task 17 聚合验证报告
 
-## STATUS: RESOLVED
+## STATUS: DONE
 
 ## TDD 说明
 
-本任务仅执行聚合验证和状态更新，不新增生产代码或测试源码。RED：无新增生产代码，不创建人工失败测试。GREEN：以下实际验证中 Core 测试、Starter 打包和文档占位符检查符合预期；AI 自动配置定向测试有 1 项失败，不能将本任务标记为完成。
+本任务以聚合验证和状态更新为主。初次 GREEN 发现 AI 自动配置定向测试存在 1 项失败，随后按 TDD/调试流程复现 RED，并通过测试夹具最小修复提交 `19e39cd1`。最终 Core 测试、AI 自动配置 AskData 测试、Starter 打包和文档占位符检查均符合预期。
 
 ## 验证结果
 
 | 命令 | 退出码 | 关键结果 |
 | --- | ---: | --- |
 | `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata test` | 0 | `BUILD SUCCESS`；52 项测试通过，0 failures、0 errors、0 skipped。 |
-| `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='*AskData*Test' test` | 1 | 112 项中 1 项失败：`AskDataMonitoringLogStoreTest#shouldRejectDefaultMonitoringLogStoreInClusterModeWhenBusinessProvidesOtherSharedStores`；其余 111 项通过。 |
+| `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='*AskData*Test' test` | 0 | 初次运行 112 项中 1 项失败；修复提交 `19e39cd1` 后复跑 112 项通过，0 failures、0 errors、0 skipped。 |
 | `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -DskipTests package` | 0 | `BUILD SUCCESS`；测试按参数跳过。Maven 同时报告本地 `fw-plus-ai-boot-autoconfigure:0.1.1-SNAPSHOT` POM 无效警告，Starter 仍成功打包。 |
 | `rg -n "T[B]D|T[O]DO|待[补]|占[位]" docs/askdata/starter docs/superpowers/specs/2026-07-27-rework-ai-askdata-core-starter-design.md` | 1 | 无输出；`rg` 以 1 表示未匹配，符合文档检查预期。 |
 
-## 失败定位
+## 失败定位与修复
 
 失败可稳定复现。该测试仅提供 Core 会话、检查点、Agent 状态、向量检索和旧会话 Store；它未提供 `AskDataLongTermMemory` 或 `AskDataRecommendationService`。集群模式下，`AskDataAutoConfiguration#askDataLongTermMemory` 会先调用 `validateLocalStateConfiguration`，因此启动失败消息为默认本地内存状态，而不是测试断言要求的“监控日志”。
 
-根因位于自动配置的默认 Bean 创建顺序与该测试的装配前提不一致。修复需要修改自动配置源码以改变验证/装配策略，或修改测试以提供完整共享 SPI；两者均超出 Task 17 允许范围，未作修改。
+根因位于测试装配前提不完整，而不是生产自动配置必须改变。修复已在 `AskDataMonitoringLogStoreTest` 中补齐长期记忆和推荐 SPI 夹具，使该测试继续故意缺失 `AskDataMonitoringLogStore`，从而精确覆盖监控日志集群拒绝分支。
 
 ## OpenSpec 状态
 
 已勾选：1.7；7.0、7.1、7.2、7.3、7.4、7.5、7.6、7.7、7.8、7.9、7.10、7.11、7.12、7.13。
 
-依据：Core 定向测试 52 项全绿；Task 15/16 已审查通过的 Starter 文档、SQLBot/WrenAI 矩阵和测试用例文档均存在，且本次占位符扫描无输出。未勾选 Starter 集成、共享存储、外部导出及后续运行时能力，因为缺少完整实现或本次自动配置回归未全绿。
+依据：Core 定向测试 52 项全绿；AI 自动配置 AskData 回归修复后 112 项全绿；Task 15/16 已审查通过的 Starter 文档、SQLBot/WrenAI 矩阵和测试用例文档均存在，且本次占位符扫描无输出。未勾选 Starter 集成、共享存储、外部导出及后续运行时能力，因为缺少完整实现或不属于本批次可验证范围。
 
-计划 Task 17：Step 1、Step 3、Step 4 已实际完成；Step 2 失败；Step 5 仅完成上述有证据的 OpenSpec 勾选；Step 6 未完成，未创建提交。
+计划 Task 17：Step 1、Step 2、Step 3、Step 4、Step 5 已实际完成；Step 6 将由主会话提交本报告、OpenSpec 状态和计划进度后完成。
 
 ## 修改文件
 
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/observability/AskDataMonitoringLogStoreTest.java`
 - `openspec/changes/rework-ai-askdata-core-starter/tasks.md`
 - `.superpowers/sdd/task-17-report.md`
 
 ## 提交
 
-未创建提交。Task 17 因必需的 AI 自动配置验证失败而阻塞；另一次仅暂存授权 OpenSpec 文件的提交尝试以退出码 `128` 失败，受管环境拒绝创建 `.git/index.lock`（`Operation not permitted`）。
+- 修复提交：`19e39cd1ace32af9ac32665e36535f55a33fed2a`（`test: isolate askdata monitoring log cluster check`）。
+- 验证状态提交由主会话创建。
 
 ## 风险信号
 
-- 公共流程/验证风险：自动配置集群模式下多个默认本地状态 SPI 的失败诊断受 Bean 创建顺序影响，可能掩盖业务实际遗漏的共享实现。
+- 公共流程/验证风险：本次测试通过 Bean 存在性验证自动配置让位关系，不模拟真实分布式存储的跨进程语义；该语义属于具体业务 SPI 实现的集成验证范围。
 - 构建风险：Starter 打包虽通过，但本地 Maven 报告 `fw-plus-ai-boot-autoconfigure:0.1.1-SNAPSHOT` POM 无效警告。
 
 ---
