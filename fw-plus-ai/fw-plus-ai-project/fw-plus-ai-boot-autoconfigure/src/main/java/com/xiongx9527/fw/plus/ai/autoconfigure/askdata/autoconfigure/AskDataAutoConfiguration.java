@@ -231,10 +231,12 @@ public class AskDataAutoConfiguration {
                         || normalizedSql.startsWith("alter")) {
                     return Result.failure(FailureCategory.WRITE_SQL, "SQL 仅允许只读查询");
                 }
-                String[] tokens = normalizedSql.split("\\s+");
-                for (int index = 0; index < tokens.length - 1; index++) {
-                    if ("from".equals(tokens[index]) && !command.getAuthorizedObjects().contains(tokens[index + 1])) {
-                        return Result.failure(FailureCategory.UNAUTHORIZED_OBJECT, "对象未授权: " + tokens[index + 1]);
+                if (!command.getAuthorizedObjects().isEmpty()) {
+                    String[] tokens = normalizedSql.split("\\s+");
+                    for (int index = 0; index < tokens.length - 1; index++) {
+                        if ("from".equals(tokens[index]) && !command.getAuthorizedObjects().contains(tokens[index + 1])) {
+                            return Result.failure(FailureCategory.UNAUTHORIZED_OBJECT, "对象未授权: " + tokens[index + 1]);
+                        }
                     }
                 }
                 return Result.success();
