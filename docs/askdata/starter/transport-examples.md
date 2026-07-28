@@ -1,6 +1,6 @@
 # HTTP、RPC、消息和 MCP 重实现示例
 
-业务可以重实现发布层，但只能调用一个受控的 `AskDataFacade`，不能直接调用模型、JDBC 连接或共享状态实现。下列伪接口展示输入、输出和边界；真实实现应将 `AskDataContext` 映射到 Core DTO。
+业务可以重实现发布层，但只能调用一个受控的 `AskDataFacade`，不能直接调用模型、JDBC 连接或共享状态实现。企业微信、钉钉、飞书的登录授权使用 [JustAuth](https://gitee.com/yadong.zhang/JustAuth) 由业务 IAM 完成；发布层只接收其已经认证和授权映射出的 `operatorId/projectId`，不新增自研扫码或 OAuth 协议。下列伪接口展示输入、输出和边界；真实实现应将 `AskDataContext` 映射到 Core DTO。
 
 ## 统一门面
 
@@ -21,6 +21,8 @@ final class AskDataRequest {
 门面执行项目授权、模型路由、记忆隔离、SQL 插件链、最终校验、审计和观测。发布层只负责协议解析、认证映射、超时、幂等和结果编码。
 
 ## HTTP/REST 与 SSE
+
+企业平台请求到达 HTTP 层前，业务 IAM/JustAuth 已完成回调、扫码或免登，并完成组织用户到项目成员的授权映射。HTTP 层只从可信的业务身份上下文取得 `operatorId/projectId`，不接受前端自行声明的管理员身份或未签名映射。
 
 ```text
 POST /api/askdata/v1/questions
@@ -47,4 +49,4 @@ Content-Type: application/json
 
 ## 重新实现验收
 
-同一组契约测试分别驱动 HTTP、RPC、消息和 MCP：成功问数、参数错误、认证失败、项目越权、模型超时、SQL 拒绝、重复请求、断线重连和部分失败。四种发布层的 `auditId`、稳定错误码、项目/操作人隔离和幂等语义必须一致。
+同一组契约测试分别驱动 HTTP、RPC、消息和 MCP：成功问数、参数错误、认证失败、项目越权、模型超时、SQL 拒绝、重复请求、断线重连和部分失败。企业平台另行由业务 IAM/JustAuth 验证回调、扫码、免登、组织同步、身份撤销和授权映射，然后用映射后的 `operatorId/projectId` 调用 AskData；不得在 AskData 发布层重复实现这些协议。四种发布层的 `auditId`、稳定错误码、项目/操作人隔离和幂等语义必须一致。

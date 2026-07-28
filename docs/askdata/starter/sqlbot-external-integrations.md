@@ -17,16 +17,16 @@
 
 ## X-Pack 与企业平台
 
-X-Pack 登录认证、平台对接和参数配置由宿主企业模块负责。平台适配器必须把外部身份映射为 AskData `projectId + operatorId`，并保存来源、同步批次、撤销时间和审计关联 ID。
+X-Pack 登录认证、平台对接和参数配置由宿主企业 IAM 负责。企业微信、钉钉、飞书统一推荐使用 [JustAuth](https://gitee.com/yadong.zhang/JustAuth) 完成登录授权、回调、扫码、免登和组织用户同步；AskData Starter 不自研扫码页面、OAuth 授权协议、回调签名协议或组织同步协议。业务 IAM/JustAuth 完成认证和授权后，只把已确认的 `projectId + operatorId` 及其授权摘要传入 AskData。
 
 | 能力 | 企业微信 | 钉钉 | 飞书 |
 | --- | --- | --- | --- |
-| 登录/免登 | OAuth/扫码回调 | 免登/回调 | 网页应用重定向 |
-| 组织同步 | 企业、部门、成员、停用 | 部门、成员、角色、停用 | 租户、部门、成员、停用 |
-| 密钥 | 企业 ID、应用凭证 | AppKey、AppSecret、AgentId | App ID、App Secret |
-| 必测 | 回调重放、可信域名、撤销 | 回调签名、免登过期 | 重定向白名单、租户隔离 |
+| JustAuth 来源 | 企业微信登录授权 | 钉钉登录授权 | 飞书登录授权 |
+| 业务 IAM/JustAuth 负责 | 扫码、回调、免登、企业/部门/成员同步 | 扫码、回调、免登、部门/成员/角色同步 | 扫码、回调、免登、租户/部门/成员同步 |
+| 传入 AskData | 已认证 `operatorId`、已授权 `projectId` | 已认证 `operatorId`、已授权 `projectId` | 已认证 `operatorId`、已授权 `projectId` |
+| 必测 | JustAuth 回调重放、可信域名、撤销 | JustAuth 回调签名、免登过期 | JustAuth 重定向白名单、租户隔离 |
 
-扫码登录和免登成功都不能直接创建管理员权限；先完成成员映射和项目授权。组织同步删除或停用成员时，已有 token、chat_id 和嵌入会话按策略失效。
+JustAuth 登录或免登成功后，业务 IAM 仍需完成成员映射和项目授权，不能直接创建 AskData 管理员权限。组织同步删除或停用成员时，业务 IAM 负责撤销外部身份和调用凭证；AskData 只依据收到的项目/操作人授权结果处理请求，已有 token、chat_id 和嵌入会话按业务策略失效。
 
 ## 参数与跨域
 
@@ -38,4 +38,4 @@ X-Pack 登录认证、平台对接和参数配置由宿主企业模块负责。�
 
 ## 联调顺序与验收
 
-先用 HTTP 桩验证认证、上下文、token、chat_id 和错误映射，再验证 MCP tool，随后验证 DataEase/嵌入，最后接入 MaxKB、Dify、Coze、n8n 和企业平台。每个系统都要覆盖成功、过期、无权限、跨域拒绝、密钥轮换、超时、重复回调和审计查询；未完成这些断言时只能标记为外部集成预留。
+先用 HTTP 桩验证业务 IAM/JustAuth 已认证身份到 `operatorId/projectId` 的映射、token、chat_id 和错误映射，再验证 MCP tool，随后验证 DataEase/嵌入，最后接入 MaxKB、Dify、Coze、n8n 和企业平台。企业平台联调顺序是 JustAuth 回调/扫码/免登、组织同步、业务授权映射、AskData 调用；AskData 不增加第二套 OAuth 流程。每个系统都要覆盖成功、过期、无权限、跨域拒绝、密钥轮换、超时、重复回调和审计查询；未完成这些断言时只能标记为外部集成预留。
