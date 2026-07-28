@@ -1,0 +1,21 @@
+# Subagent Progress
+
+- Plan task: `Task 1: 收敛 AI 自动配置元数据与失效依赖`
+- OpenSpec mapping: `1. 建立 Boot 25 个插件、AI 2 个插件、宿主入口和现有测试覆盖矩阵，记录 sample 聚合验证与首次启动 RED 证据。`（由 Task 3 完成后统一勾选）
+- Stage: `done`
+- Implementer: `/root/task1_ai_metadata`
+- Dispatch: 已派发，requirements 为 SDD `task-1-brief.md`，报告写入 `task-1-report.md`。
+- Review mode: `thorough`
+- Review/fix round: `0/2`
+- Base commit: `2fd1e8df`
+- Existing changes: AI POM、两套自动配置元数据及元数据测试；保留历史 RED，不回滚重做。
+- RED evidence: 首次 sample 启动日志记录不存在的 `Langchain4jOpenApiAutoConfiguration`；三个可选 artifact 不在 reactor。
+- GREEN evidence: `./fw-plus-ai/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=EmbeddingStoreAutoConfigurationMetadataTest test`；1 test，0 failures，0 errors，BUILD SUCCESS。
+- Implementation commit: `72b82393b363558b2d6da6a45335d1c988137b77`。
+- Changed files: AI autoconfigure POM、`spring.factories`、`AutoConfiguration.imports`、元数据测试。
+- Implementer result: `DONE_WITH_CONCERNS`；任务外生成物未暂存，既有 Maven settings 警告不影响通过结果。
+- Risk signals: 未命中代码风险信号；工作区保留任务外改动与生成物。
+- Reviewer: `/root/task1_ai_review`。
+- Review status: spec ✅，quality Approved；控制器已核对历史 RED、reactor 模块清单和 Surefire GREEN 报告。
+- Open findings: 无 Critical/Important；1 项环境级 Minor（用户 Maven settings 警告）延后由最终审查复核。
+- Checkoff: Task 1 的 5 个 plan checkbox 均通过 `comet state task-checkoff`；OpenSpec 任务 1 按计划留待 Task 3。

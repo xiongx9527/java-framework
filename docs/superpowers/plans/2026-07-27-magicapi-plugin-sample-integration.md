@@ -39,7 +39,7 @@ base-ref: 0cf101d618562f74db41dc5b7071e6714e1fd4fa
 - Consumes: AI reactor 当前实际存在的自动配置类和 provider/store 模块。
 - Produces: 两套 Spring Boot 元数据中均可加载的类清单，以及 sample 可解析的 AI `0.1.1-SNAPSHOT` 本地产物。
 
-- [ ] **Step 1: 审查并保留当前未提交实现与已有 RED 证据**
+- [x] **Step 1: 审查并保留当前未提交实现与已有 RED 证据**
 
 先执行：
 
@@ -62,7 +62,7 @@ com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.openapi.Langchain4jOpenApiAu
 
 同时确认 cassandra、infinispan、neo4j 三个 `com.xiongx9527.fw.plus` artifact 不在 AI/Core reactor，不能通过补虚假版本修复。
 
-- [ ] **Step 2: 校核元数据回归测试**
+- [x] **Step 2: 校核元数据回归测试**
 
 现有测试必须读取两套资源并逐项加载类；若 diff 尚未包含以下完整测试逻辑，再增量补齐相应方法：
 
@@ -93,11 +93,11 @@ private void assertClassNamesAreLoadable(String[] classNames) throws Exception {
 }
 ```
 
-- [ ] **Step 3: 保留最小实现修复**
+- [x] **Step 3: 保留最小实现修复**
 
 `spring.factories` 删除不存在的 `Langchain4jOpenApiAutoConfiguration`；`AutoConfiguration.imports` 用现存的 `LangChain4jAutoConfiguration` 替换它。POM 删除三个无 reactor、无受管版本的内部可选依赖，不调整其他 LangChain4j 依赖版本。
 
-- [ ] **Step 4: 运行 AI 定向测试**
+- [x] **Step 4: 运行 AI 定向测试**
 
 Run:
 
@@ -108,7 +108,7 @@ Run:
 
 Expected: `Tests run: 1, Failures: 0, Errors: 0`，两套清单无 `ClassNotFoundException`。
 
-- [ ] **Step 5: 提交 AI 修复**
+- [x] **Step 5: 提交 AI 修复**
 
 ```bash
 git add \
