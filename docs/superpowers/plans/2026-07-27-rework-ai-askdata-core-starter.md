@@ -375,11 +375,11 @@ git commit -m "feat: add askdata sql pipeline contracts"
 - Produces: multi-question plan, long-term memory and operator-scoped recommendation contracts
 - Consumes: `AskDataProjectContext`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试 Task 7**
 
 Cover single question, explicit multi-question list, compound question plan, memory filtering by project/operator/datasource/semantic version, and recommendation isolation between operators.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试 Task 7**
 
 ```bash
 cd fw-plus-core
@@ -388,15 +388,15 @@ cd fw-plus-core
 
 Expected: FAIL.
 
-- [ ] **Step 3: 实现契约**
+- [x] **Step 3: 实现契约 Task 7**
 
 Implement interfaces and simple in-memory reference implementation for contract tests. Document that recommendation may return generic non-personal suggestions only when operator identity is missing and policy permits it.
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证 Task 7**
 
 Run the same test. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 7**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/agent \
