@@ -480,15 +480,15 @@ git commit -m "feat: migrate tiny engine services"
 **Validation:**
 - `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineSqlIdentifierValidatorTest test`
 
-- [ ] **Step 1: 写危险输入失败测试**
+- [x] **Step 1: 写危险输入失败测试**
 
 Create tests rejecting semicolon, SQL comment, whitespace injection, quoted identifiers, function calls, expressions, parentheses, keyword concatenation, multi-statement fragments, invalid sort direction, invalid DDL column name, invalid batch field, and invalid condition key.
 
-- [ ] **Step 2: 写合法输入失败测试**
+- [x] **Step 2: 写合法输入失败测试**
 
 In the same test class, add legal cases for `app`, `page_template`, `tenant_user_01`, controlled multi-part names when explicitly allowed, and sort directions `ASC` / `DESC` in mixed case.
 
-- [ ] **Step 3: 运行失败测试**
+- [x] **Step 3: 运行失败测试**
 
 Run:
 
@@ -499,11 +499,11 @@ cd fw-plus-core
 
 Expected: FAIL because validator does not exist.
 
-- [ ] **Step 4: 实现校验器**
+- [x] **Step 4: 实现校验器**
 
 Implement the default regex `^[A-Za-z_][A-Za-z0-9_]*$`, normalize sort direction to uppercase, reject blank/null identifiers, and provide collection validation for field lists. Do not allow user-provided aggregate expressions such as `COUNT(*) as count`.
 
-- [ ] **Step 5: 运行测试**
+- [x] **Step 5: 运行测试**
 
 Run:
 
@@ -514,7 +514,7 @@ cd fw-plus-core
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit Task 7**
+- [x] **Step 6: Commit Task 7**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core
