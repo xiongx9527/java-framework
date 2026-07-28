@@ -675,9 +675,9 @@ git commit -m "docs: document tiny engine core boundaries"
 
 ## Self-Review Checklist
 
-- [ ] Spec coverage: Tasks 1-9 cover module/BOM, common types, utilities, model/DTO, mapper/XML/SQL resources, services, dynamic SQL guard, dynamic model migration, and final scope verification.
-- [ ] Scope check: No task implements Controller, starter, auto-configuration, AI/RAG, Docker, profile config, or Servlet filter.
-- [ ] Java compatibility: Every implementation task explicitly requires Java 8 and Spring Boot 2.7.18 compatibility.
-- [ ] SQL safety: Task 7 establishes `TinyEngineSqlIdentifierValidator` before Task 8 migrates dynamic SQL providers.
-- [ ] Resource contract: Task 5 fixes mapper XML path and SQL manifest path for future Boot starter consumption.
-- [ ] Execution boundary: Do not mark OpenSpec `tasks.md` checkboxes until implementation and verification are actually complete.
+- [x] Spec coverage: Tasks 1-9 cover module/BOM, common types, utilities, model/DTO, mapper/XML/SQL resources, services, dynamic SQL guard, dynamic model migration, and final scope verification.
+- [x] Scope check: No task implements Controller, starter, auto-configuration, AI/RAG, Docker, profile config, or Servlet filter.
+- [x] Java compatibility: Every implementation task explicitly requires Java 8 and Spring Boot 2.7.18 compatibility.
+- [x] SQL safety: Task 7 establishes `TinyEngineSqlIdentifierValidator` before Task 8 migrates dynamic SQL providers.
+- [x] Resource contract: Task 5 fixes mapper XML path and SQL manifest path for future Boot starter consumption.
+- [x] Execution boundary: Do not mark OpenSpec `tasks.md` checkboxes until implementation and verification are actually complete.
