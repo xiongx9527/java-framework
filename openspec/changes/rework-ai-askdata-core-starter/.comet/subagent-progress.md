@@ -2,18 +2,16 @@
 
 ## 当前任务
 
-- Plan task: `Task 11: 实现默认状态、监控日志和集群保护`
-- OpenSpec task mapping: `2.1` / `2.4` / `5.3` 的自动配置默认实现子集（本任务覆盖单机内存默认、集群拒绝和监控日志默认落库，完整 JDBC/Redis/共享存储由后续任务继续）
+- Plan task: `Task 12: 实现 SQL 插件链桥接与安全测试`
+- OpenSpec task mapping: `4.2` / `4.3` 的自动配置默认实现子集（本任务覆盖 Spring 发现 SQL 拦截器、插件后最终安全校验和审计记录，完整方言改写与业务 SQL 执行适配由后续任务继续）
 - Stage: `done`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `d6e0e25eba9e807a4f9b623dc766435406851e03`
-- Implementer commit: `86ed8d2c`
-- Fix round 1 commit: `49cd8a5c`
-- Fix round 2 commit: `a8bf5078`
-- Fix round 3 commit: `9a4b1277`
-- Task brief: `.superpowers/sdd/task-11-brief.md`
-- Implementer report: `.superpowers/sdd/askdata-task-11-report.md`
+- Base commit: `6160e69e555aa78d1de4188679e68ee604940c64`
+- Implementer commit: `448ee045`
+- Fix round 1 commit: `e7374fff`
+- Task brief: `.superpowers/sdd/task-12-brief.md`
+- Implementer report: `.superpowers/sdd/task-12-report.md`
 
 ## 派发记录
 
@@ -93,3 +91,8 @@
 - 2026-07-28：用户明确回复“继续修”，授权 Task 11 追加第三轮修复。第三轮仅允许修复缺少 `projectContext` 导致不可审计对话、扩展 `AskDataEventPublisher` 异常影响主流程两项最终复审问题，并继续要求 TDD RED/GREEN 证据。
 - 2026-07-28：第三轮 fix agent 返回 `DONE`，提交 `9a4b1277`；RED 覆盖无效 `projectContext/projectId/operatorId` 仍进入主流程、外部 `AskDataEventPublisher` 异常中断对话，GREEN 为 `AskDataConversationStoreTest,AskDataMonitoringLogStoreTest,DefaultAskDataFlowExecutorTest,AskDataAutoConfigurationTest,AskDataPropertiesBindingTest` 共 39 项通过。已生成复审包 `.superpowers/sdd/review-3dceff63..9a4b1277.diff`，准备第三轮授权后的 re-review。
 - 2026-07-28：第三轮 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。已勾选 plan 中 Task 11 的 5 个 step；OpenSpec 2.1/2.4/5.3 仍包含 JDBC/Redis/查询能力等后续完整内容，本任务不单独勾选。
+- 2026-07-28：准备派发 Task 12 implementer。允许修改范围限定为 AskData 自动配置层 SQL validator/executor/插件桥接与对应测试；禁止修改其他 active change、TinyEngine、tiny-engine-backend-java 和旧 `.superpowers` 草稿。
+- 2026-07-28：Task 12 implementer 返回 `DONE_WITH_CONCERNS`，提交 `448ee045`；RED 为新增 3 项 JUnit Jupiter 测试因 `AskDataSqlInterceptorChain` 未自动装配失败，GREEN 为同命令 `BUILD SUCCESS` 且新增 `AskDataSqlInterceptorAutoConfigurationTest` 3 项通过。顾虑：指定命令中的两个遗留 JUnit4 测试因当前 Surefire/JUnit Platform 缺少 Vintage 未被发现。已生成 review package `.superpowers/sdd/review-6160e69e..448ee045.diff`。
+- 2026-07-28：Task 12 reviewer 返回 `Needs fixes`；Important 问题为指定命令中的 `DefaultAskDataSqlValidatorTest`、`JdbcAskDataSqlExecutorTest` 因 JUnit4/Vintage 缺失未实际执行，SQL 校验器与 JDBC 执行器既有回归证据不完整。当前 thorough 修复轮次：1/2，准备派发 fix agent。
+- 2026-07-28：fix agent 返回 `DONE`，提交 `e7374fff`；将 `DefaultAskDataSqlValidatorTest`、`JdbcAskDataSqlExecutorTest` 迁移到 JUnit Jupiter，不新增 Vintage 依赖；同一指定命令实际执行 28 项测试（validator 23、JDBC 2、interceptor auto-config 3）且全部通过。已生成 re-review package `.superpowers/sdd/review-6160e69e..e7374fff.diff`。
+- 2026-07-28：Task 12 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。已勾选 plan 中 Task 12 的 5 个 step；OpenSpec 4.2/4.3 仍包含完整方言改写、只读执行、超时和结果审计等后续内容，本任务不单独勾选。
