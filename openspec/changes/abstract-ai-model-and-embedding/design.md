@@ -10,7 +10,7 @@
 
 - 将模型和向量存储的公共 API 下沉到 `fw-plus-ai-model` 与 `fw-plus-ai-store-embedding`，不暴露任何特定 AI 框架类型。
 - 保留 LangChain4j 作为默认完整实现；原 `fw-plus-ai-langchain4j-*` 模块变为适配模块和兼容入口。
-- 使 Spring AI、Spring AI Alibaba、AgentScope 2 Java 可作为进程内 SDK 适配器接入同一注册、配置、starter 与 Magic-API 生命周期。
+- 为 Spring AI、Spring AI Alibaba、AgentScope 2 Java 后续作为进程内 SDK 适配器接入同一注册、配置、starter 与 Magic-API 生命周期提供蓝图。
 - 保持旧 LangChain4j 配置、资源 key 与脚本访问可用，并提供从 LangChain4j 切换到其他框架的明确文档和回滚路径。
 - 为 API 契约、每个适配器能力、兼容层、自动配置、Magic-API 和 Maven 分层构建建立自动化测试。
 
@@ -19,6 +19,7 @@
 - 不迁移用户已有运行态 Magic-API 资源、密钥或业务代码。
 - 不把所有框架的原生 agent/workflow、tool、memory、graph 等高阶能力强行抽象为统一接口。
 - 不在公共模块传递具体厂商 SDK，也不承诺把不满足 Java 8/Spring Boot 2.7 前置条件的 SDK 编译进默认 LangChain4j 路径。
+- 本次不创建 Java 17 / Spring Boot 3.x reactor、parent、BOM、artifact、starter、自动配置或真实目标 SDK adapter。
 - 不改变向量数据库的 provider 连接协议或现有 Magic-API 资源格式，除非规格明确增加框架选择字段。
 
 ## Decisions
@@ -28,16 +29,15 @@
 新增 Core 模块：
 
 ```
-fw-plus-ai/
+fw-plus-ai/                                      # 本次 Java 8 交付
 ├── fw-plus-ai-model/
 ├── fw-plus-ai-store-embedding/
 ├── fw-plus-ai-langchain4j/
 │   ├── fw-plus-ai-langchain4j-model/
 │   └── fw-plus-ai-langchain4j-store-embeding/
-├── fw-plus-ai-spring-ai/                 # 新增可选适配聚合
-├── fw-plus-ai-spring-ai-alibaba/         # 新增可选适配聚合
-└── fw-plus-ai-agentscope/                # 新增可选适配聚合
 ```
+
+后续 change 才可在独立 Java 17 / Spring Boot 3.x reactor 创建 Spring AI、Spring AI Alibaba 与 AgentScope 2 Java 的 parent、BOM、starter 和 adapter。它们不是本次模块布局的一部分，不能加入 Java 8 Core reactor 或 Core BOM。
 
 `fw-plus-ai-model` 提供模型定义、能力类型、统一模型门面、工厂、注册表、异常和 `AiModelAdapter` SPI；`fw-plus-ai-store-embedding` 提供中立文档、向量、查询、匹配结果、store 门面、工厂、注册表和 `AiEmbeddingStoreAdapter` SPI。公共 API 使用 Java 8 可用类型，禁止导入 `dev.langchain4j.*`、`org.springframework.ai.*`、Spring AI Alibaba 或 AgentScope 类型。
 
@@ -49,7 +49,7 @@ fw-plus-ai/
 
 `fw-plus-ai-langchain4j-model` 与 `fw-plus-ai-langchain4j-store-embeding` 保留 artifact 兼容入口，但不再定义公共契约。它们依赖新的中立模块并注册 LangChain4j 实现，维持现有 provider、默认模型、store key 和 `EmbeddingStore<TextSegment>` 的适配行为。
 
-Spring AI、Spring AI Alibaba 和 AgentScope 2 Java 各自注册独立 adapter。每个 adapter 必须声明实际支持的模型/向量能力；配置请求未支持能力时必须在启动期报告框架、provider、key 和能力类型。禁止通过空实现伪造支持，也禁止由默认 LangChain4j adapter 隐式处理其他框架的配置。
+后续 change 中，Spring AI、Spring AI Alibaba 和 AgentScope 2 Java 各自注册独立 adapter。每个 adapter 必须声明实际支持的模型/向量能力；配置请求未支持能力时必须在启动期报告框架、provider、key 和能力类型。禁止通过空实现伪造支持，也禁止由默认 LangChain4j adapter 隐式处理其他框架的配置。AgentScope 2 Java 必须作为进程内 SDK 适配，不能以 HTTP、MCP 或 A2A 桥接替代。
 
 ### 3. 配置先中立、后兼容映射，且中立配置优先
 
@@ -59,7 +59,7 @@ Spring AI、Spring AI Alibaba 和 AgentScope 2 Java 各自注册独立 adapter�
 
 ### 4. starter 与 Magic-API 只依赖中立注册表
 
-新增中立 model/store starter；每个框架 adapter starter 仅带入其 adapter、可选 SDK 和条件自动配置。原 LangChain4j starter 继续可用，并转调中立 starter 加 LangChain4j adapter，保证默认用户无需改依赖即可升级。
+本次新增中立 model/store starter；原 LangChain4j starter 继续可用，并转调中立 starter 加 LangChain4j adapter，保证默认用户无需改依赖即可升级。后续 change 中，每个目标框架 adapter starter 才可带入其 adapter、可选 SDK 和条件自动配置；本次不提供这些 starter 或其启动诊断。
 
 Magic-API model 和 vector 插件改为注入中立 registry/factory。既有 `model-datasource`、向量 store key、`model[...]` 和 `vector[...]` 访问形式维持不变；资源定义可通过可选 `framework` 指定 adapter，未指定时按已解析的默认模型/store 选择。插件返回中立门面，provider 连接逻辑只允许位于对应 adapter 中。
 
@@ -83,12 +83,12 @@ Magic-API model 和 vector 插件改为注入中立 registry/factory。既有 `m
 
 1. 在 Core 聚合和 BOM 中新增中立模块，将公共类移动到中立包；把原 LangChain4j 模块改为适配器并保留兼容 artifact。
 2. 让 AI Boot、starter 和 Magic-API 切换到中立 registry/factory；先通过旧 LangChain4j 配置回归测试，再开放中立配置。
-3. 逐个增加 Spring AI、Spring AI Alibaba、AgentScope 2 Java adapter 和 starter，先完成依赖/JDK 编译前置验证，再补齐其声明能力的测试。
+3. 后续独立 change 再逐个增加 Spring AI、Spring AI Alibaba、AgentScope 2 Java adapter 和 starter，先完成 SDK 版本探针、依赖/JDK 编译前置验证，再补齐其声明能力的测试；本次不创建 Java 17 reactor 或执行这些构建。
 4. 发布迁移指南：业务方先替换或增加目标框架 starter，再将同一 key 的配置转换为中立格式并设置 `framework`，最后把 Java 代码从旧 registry/原生类型迁为中立 API。Magic-API key 与基础脚本无需变更。
 5. 回滚时移除目标框架 adapter/starter，恢复或保留旧 LangChain4j starter 和旧配置；兼容层确保同 key 的 LangChain4j 定义可重新生效。
 
 ## Open Questions
 
-- Spring AI、Spring AI Alibaba 和 AgentScope 2 Java 在目标版本上是否可同时满足 Java 8 与 Spring Boot 2.7.18；若不能，adapter 的发布基线和是否需要独立兼容分支需在实现前确认。
+- Spring AI、Spring AI Alibaba 和 AgentScope 2 Java 在目标 Java 17 / Spring Boot 3.x 版本组合上的实际兼容性，需由后续 change 的 SDK 版本探针确认；本次不对其发布坐标、JDK 或 Spring 基线作已验证承诺。
 - AgentScope 2 Java 对嵌入和向量存储的原生支持范围需以实际 SDK 版本验证；未支持部分只能声明为不支持，不能复用其他框架实现。
 - 旧 `fw-plus-ai-langchain4j-*` artifact 的弃用周期、是否增加新 artifact alias，以及中立配置的最终命名需在实现计划中结合下游使用情况确认。

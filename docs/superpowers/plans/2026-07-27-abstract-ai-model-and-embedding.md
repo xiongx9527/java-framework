@@ -8,17 +8,17 @@ base-ref: 18be86e44a394e943c7177aa1cb7a1a27d8bcfb4
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `subagent-driven-development` (recommended) or `executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将模型和向量存储公共能力迁出 LangChain4j，保留 LangChain4j 默认兼容实现，并交付 Java 17+ 目标框架 starter 骨架与迁移文档。
+**Goal:** 将模型和向量存储公共能力迁出 LangChain4j，保留 LangChain4j 默认兼容实现，并交付 Java 17 / Boot 3.x 后续实施蓝图与迁移文档。
 
-**Architecture:** Java 8 Core 新增中立模型和向量存储模块，LangChain4j 模块只保留原生对象适配。AI Boot 和 Magic-API 依赖中立 registry；同仓 `fw-plus-ai-j17` 是 Java 17 / Spring Boot 3.x 高版本独立聚合，只提供 Spring AI、Spring AI Alibaba、AgentScope 2 Java 的 starter 骨架和明确诊断。
+**Architecture:** Java 8 Core 新增中立模型和向量存储模块，LangChain4j 模块只保留原生对象适配。AI Boot 和 Magic-API 依赖中立 registry；Spring AI、Spring AI Alibaba、AgentScope 2 Java 的 Java 17 / Spring Boot 3.x reactor、parent、starter、自动配置与真实 adapter 均为后续 change 的蓝图，本次不创建。
 
-**Tech Stack:** Java 8、Spring Boot 2.7.18、LangChain4j 0.35.0、Maven Wrapper、JUnit；Java 17、Spring Boot 3+、Spring AI/Spring AI Alibaba/AgentScope 2 Java starter 骨架。
+**Tech Stack:** 本次为 Java 8、Spring Boot 2.7.18、LangChain4j 0.35.0、Maven Wrapper、JUnit；后续蓝图目标为 Java 17、Spring Boot 3+、Spring AI/Spring AI Alibaba/AgentScope 2 Java。
 
 ## Global Constraints
 
 - Java 8 Core 公共 API 不得导入 `dev.langchain4j.*`、`org.springframework.ai.*` 或 AgentScope 类型。
-- Java 17 目标框架只在 `fw-plus-ai-j17` 的 Java 17 / Spring Boot 3.x 高版本线处理，不得回迁或传递污染 Java 8 / Boot 2.7 路径。
-- LangChain4j 是首版唯一完整 model/store adapter；Java 17 target artifact 不得宣称已提供真实原生 adapter。
+- Java 17 目标框架只在后续 `fw-plus-ai-j17` 的 Java 17 / Spring Boot 3.x 高版本线处理，不得回迁或传递污染 Java 8 / Boot 2.7 路径；本次不创建该 reactor。
+- LangChain4j 是首版唯一完整 model/store adapter；本次不提供 Java 17 target artifact、starter、自动配置或真实原生 adapter。
 - 旧 `fw-plus.ai.langchain4j.model` 与 `fw-plus.ai.langchain4j.embedding-store` 保留兼容，中立配置同 key 优先。
 - Magic-API `model[...]`、`vector[...]`、动态资源 key 和默认访问方式保持兼容，错误和日志必须脱敏。
 - 每个 Java 修改任务先增加失败测试，再实现最小变更并运行目标模块测试；每个完成任务单独提交。
@@ -47,11 +47,11 @@ Expected: 两个命令退出码为 `0`，输出文件可读取。
 
 - [x] **Step 2: 写入 Java 17 对接矩阵的失败校验目标**
 
-Create `docs/ai-framework-migration/compatibility-matrix.md`，先写明测试前的期望：Java 8 Core 不能传递引入 Boot 3 或目标 SDK；Java 17 artifact 必须单独构建。测试将在 Task 7 使该矩阵中的命令可执行。
+Create `docs/ai-framework-migration/compatibility-matrix.md`，写明当前 Java 8 Core 不能传递引入 Boot 3 或目标 SDK，并记录未来 Java 17 artifact 的独立构建门槛。后续 Java 17 reactor 创建前，矩阵中的 Java 17 命令不得执行或视为本次验证。
 
 - [x] **Step 3: 在 BOM 中注册中立 artifact**
 
-Add `fw-plus-ai-model` 和 `fw-plus-ai-store-embedding` 到 Core dependencyManagement，版本使用 `${project.version}`；不要在 Java 8 BOM 中加入 Boot 3、Spring AI、Spring AI Alibaba 或 AgentScope 依赖。Java 17 target SDK 的版本管理仅位于 `fw-plus-ai-j17` parent。
+Add `fw-plus-ai-model` 和 `fw-plus-ai-store-embedding` 到 Core dependencyManagement，版本使用 `${project.version}`；不要在 Java 8 BOM 中加入 Boot 3、Spring AI、Spring AI Alibaba 或 AgentScope 依赖。目标 SDK 的版本管理仅能在后续 Java 17 parent 中实现，本次不创建该 parent。
 
 - [x] **Step 4: 验证 BOM 变更**
 
@@ -270,52 +270,27 @@ git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure fw-plus-ai/f
 git commit -m "fw-plus-ai: use neutral registries in boot and magicapi"
 ```
 
-### Task 6: 创建 Java 17+ 独立 artifact 与 starter 骨架
+### Task 6: 编写 Java 17 / Boot 3.x 后续实施蓝图（不实现）
 
 **Files:**
-- Create: `fw-plus-ai-j17/pom.xml`
-- Create: `fw-plus-ai-j17/fw-plus-ai-j17-parent/pom.xml`
-- Create: `fw-plus-ai-j17/fw-plus-ai-spring-ai-j17-starter/pom.xml`
-- Create: `fw-plus-ai-j17/fw-plus-ai-spring-ai-alibaba-j17-starter/pom.xml`
-- Create: `fw-plus-ai-j17/fw-plus-ai-agentscope-j17-starter/pom.xml`
-- Create: `fw-plus-ai-j17/*/src/main/java/com/xiongx9527/fw/plus/ai/j17/*UnavailableAutoConfiguration.java`
-- Test: `fw-plus-ai-j17/*/src/test/java/com/xiongx9527/fw/plus/ai/j17/*UnavailableAutoConfigurationTest.java`
+- Create: Java 17 / Boot 3.x 后续实施说明，位于 `docs/ai-framework-migration/`
+- Test: `docs/ai-framework-migration/verify-migration-docs.sh`
 
 **Interfaces:**
 - Consumes: published Java 8 neutral model/store artifacts.
-- Produces: Java 17 / Boot 3 starter coordinates and a deterministic diagnostic for every unimplemented native adapter.
+- Produces: Java 17 / Boot 3.x 后续模块布局、依赖边界、实施步骤、验证与回滚说明；本任务不产生 artifact、starter 或自动配置代码。
 
-- [ ] **Step 1: 写入 Java 17 骨架的失败测试**
+- [ ] **Step 1: 写入后续模块与依赖蓝图**
 
-For each starter, create a Boot 3 test that supplies `framework=spring-ai`, `spring-ai-alibaba`, or `agentscope` and asserts no partial adapter Bean exists; the failure message must name the framework and `docs/ai-framework-migration/`.
+Describe the future `fw-plus-ai-j17` aggregator, Java 17 / Boot 3.x parent, three optional starters, target SDK dependency management and their isolation from Java 8 Core. Do not create the reactor or POM files.
 
-- [ ] **Step 2: 运行 Java 17 测试确认初始失败**
+- [ ] **Step 2: 写明未来自动配置与 adapter 实施步骤**
 
-Run with a Java 17 `JAVA_HOME`:
-```bash
-./fw-plus-core/mvnw -f fw-plus-ai-j17/pom.xml test
-```
-Expected: reactor/modules do not yet exist.
+For Spring AI, Spring AI Alibaba and AgentScope 2 Java, document how a later change will bind neutral definitions, reject unimplemented capabilities, preserve business keys and avoid half-initialized Beans. Do not claim current code offers these diagnostics.
 
-- [ ] **Step 3: 实现独立聚合、parent 和三个 starter**
+- [ ] **Step 3: 写明未来验证与回滚步骤**
 
-Set `maven.compiler.release` to `17` only in `fw-plus-ai-j17-parent`. Each starter depends on the neutral artifact coordinates and uses an `*UnavailableAutoConfiguration` that fails only when its framework is explicitly enabled. Do not create a fake `AiModelAdapter` or `AiEmbeddingStoreAdapter` implementation.
-
-- [ ] **Step 4: 验证 Java 17 构建和 Java 8 隔离**
-
-Run:
-```bash
-./fw-plus-core/mvnw -f fw-plus-ai-j17/pom.xml test
-./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai dependency:tree
-```
-Expected: Java 17 reactor succeeds; Core dependency tree contains no Spring Boot 3, Spring AI, Spring AI Alibaba or AgentScope dependency.
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add fw-plus-ai-j17
-git commit -m "fw-plus-ai: add java17 adapter starter skeletons"
-```
+Document the future Java 17 build, dependency-tree and Boot 3 condition tests, plus the current Java 8 isolation check and rollback to LangChain4j. Mark all Java 17 commands as future-only until a later change creates the reactor.
 
 ### Task 7: 编写 LangChain4j 到 Java 17 的迁移文档
 
@@ -328,7 +303,7 @@ git commit -m "fw-plus-ai: add java17 adapter starter skeletons"
 - Modify: `docs/ai-framework-migration/compatibility-matrix.md`
 
 **Interfaces:**
-- Consumes: Task 5 stable key/config behavior and Task 6 artifact coordinates.
+- Consumes: Task 5 stable key/config behavior and Task 6 future artifact-coordinate blueprint.
 - Produces: an operational migration and rollback guide that cannot overstate Java 17 skeleton support.
 
 - [ ] **Step 1: 写入文档完整性校验脚本**
@@ -337,7 +312,7 @@ Create `docs/ai-framework-migration/verify-migration-docs.sh`. It SHALL loop ove
 
 - [ ] **Step 2: 写入四份迁移文档**
 
-`overview.md` must give the Java 8 / Java 17 compatibility matrix. Each target document must use the same business key as the LangChain4j example and state explicitly: the first Java 17 release supplies a starter skeleton only, so real model/store execution is unavailable until the subsequent adapter change.
+`overview.md` must give the Java 8 / Java 17 compatibility matrix. Each target document must use the same business key as the LangChain4j example and state explicitly: this change supplies documentation only; no Java 17 artifact, starter, automatic configuration or real model/store execution exists yet.
 
 - [ ] **Step 3: 运行文档校验**
 
@@ -354,12 +329,12 @@ git add docs/ai-framework-migration
 git commit -m "docs: add java17 ai framework migration guides"
 ```
 
-### Task 8: 全量回归、样例验证与交付检查
+### Task 8: Java 8 回归、样例验证与交付检查
 
 **Files:**
 - Modify: `openspec/changes/abstract-ai-model-and-embedding/tasks.md`
 - Modify: `docs/ai-framework-migration/compatibility-matrix.md`
-- Test: Core, AI Boot, Java 17 reactor and relevant samples
+- Test: Java 8 Core、AI Boot、迁移文档和相关 samples
 
 **Interfaces:**
 - Consumes: all previous tasks.
@@ -367,21 +342,22 @@ git commit -m "docs: add java17 ai framework migration guides"
 
 - [ ] **Step 1: 执行 Core 与 AI Boot 回归**
 
-Run:
+Run (按受影响模块执行，避免无关模块扩大回归时间):
 ```bash
-./fw-plus-core/mvnw -f fw-plus-core/pom.xml clean test
-./fw-plus-ai/mvnw -f fw-plus-ai/fw-plus-ai-project/pom.xml clean test
+./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model,fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding,fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model,fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -am test
+./fw-plus-ai/mvnw -f fw-plus-ai/fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure -am test -Dtest=LangChain4jModelAutoConfigurationTest,EmbeddingStoreAutoConfigurationTest,MagicAPIModelAutoConfigurationIntegrationTest,MagicAPIVectorAutoConfigurationIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false
 ```
 Expected: both commands exit with `0`.
 
-- [ ] **Step 2: 执行 Java 17 reactor 与样例聚合验证**
+- [ ] **Step 2: 执行样例与迁移文档验证**
 
 Run:
 ```bash
-./fw-plus-core/mvnw -f fw-plus-ai-j17/pom.xml clean test
 ./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate
+zsh -n docs/ai-framework-migration/verify-migration-docs.sh
+zsh docs/ai-framework-migration/verify-migration-docs.sh
 ```
-Expected: Java 17 skeleton tests and sample aggregation validate successfully.
+Expected: sample aggregation and documentation validation succeed. Java 17 reactor、SDK probe、Boot 3 条件装配与真实 adapter 测试均为后续 change 的门槛，当前不得作为本次构建要求。
 
 - [ ] **Step 3: 更新兼容矩阵与勾选 OpenSpec 任务**
 

@@ -8,7 +8,7 @@
 
 - 将模型定义、模型类型、工厂、注册表、异常和 provider 适配 SPI 从 `fw-plus-ai-langchain4j-model` 移至框架无关的 AI 模型模块；LangChain4j 模块保留为默认适配实现。
 - 将向量存储定义、工厂、注册表和 provider 适配 SPI 从 `fw-plus-ai-langchain4j-store-embeding` 移至框架无关的 AI 向量存储模块；LangChain4j `EmbeddingStore<TextSegment>` 仅存在于 LangChain4j 适配层。
-- 为 LangChain4j、Spring AI、Spring AI Alibaba 与 AgentScope 2 Java 定义统一的进程内 SDK 适配契约、能力声明和 starter 装配方式；本次默认实现为 LangChain4j。
+- 为 Spring AI、Spring AI Alibaba 与 AgentScope 2 Java 的后续进程内 SDK 适配定义契约、能力声明和 starter 装配蓝图；本次默认且唯一完整实现为 LangChain4j，不创建 Java 17 / Boot 3.x artifact、starter、自动配置或真实 adapter。
 - 将 AI starter 和 Magic-API model/vector 插件改为仅依赖中立注册表，并保持现有 `fw-plus.ai.langchain4j.*` 配置、资源 key 与脚本使用方式兼容。
 - 补齐从 LangChain4j 切换到其他适配框架的迁移文档，覆盖 Maven 依赖、配置、注册表访问、Magic-API 动态资源和脚本调用。
 - 补齐契约、默认适配、自动配置、Magic-API 插件和分层 Maven 构建的测试矩阵。
@@ -33,5 +33,5 @@
 ## Impact
 
 - 受影响模块包括 Core AI 的 LangChain4j 模型与向量 store 聚合、Core BOM、AI Boot 自动配置、AI Boot starter、AI Magic-API model/vector 插件及相应样例和测试。
-- 需要新增 Spring AI、Spring AI Alibaba、AgentScope 2 Java 的可选依赖管理和进程内 SDK 适配模块；不得把它们的具体 SDK 传递到默认 LangChain4j 使用路径。
+- 后续 change 需要在独立 Java 17 / Boot 3.x reactor 新增 Spring AI、Spring AI Alibaba、AgentScope 2 Java 的可选依赖管理和进程内 SDK 适配模块；本次仅交付其文档蓝图，且不得把目标 SDK 传递到默认 LangChain4j 使用路径。
 - 现有配置前缀、动态资源 key、脚本访问方式和 LangChain4j 行为需要回归验证；本次不迁移用户业务配置或运行态 Magic-API 资源。
