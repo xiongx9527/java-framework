@@ -17,4 +17,4 @@
 - Partial GREEN: Boot directed 19/19；AI directed 11/11；sample directed 6/6；Core 57 reactor、Boot 48 reactor（boot-autoconfigure 373 tests）、Cloud 13 reactor 均 `BUILD SUCCESS`。
 - AI full-build RED: `LangChain4jAutoConfigurationRegistrationTest.shouldKeepModelStarterProviderSdkDependenciesOptIn` 失败，92 tests 中 1 failure；日志 `/tmp/fw-plus-magicapi-task6-ai-clean-install.log`。
 - Root cause correction: archived `langchain4j-model-module` spec 与 task 3.4 要求 model starter 直接依赖 `fw-plus-ai-boot-starter` 和 `fw-plus-ai-langchain4j-model`，不要求冗余直连 `fw-plus-ai-boot-autoconfigure`；commit `648d5f3a` 删除该直连后，`REQUIRED_STARTER_DEPENDENCIES` 未同步，故缺陷在过期测试契约而非 POM。
-- Recovery action: 派全新 fixer 仅同步测试清单并取得 targeted/autoconfigure GREEN；通过后恢复 Task 6，从 AI `clean install` 起继续，不重跑已通过 Core/Boot/Cloud。
+- Recovery action: 已派 `/root/task6_ai_contract_fix` 仅同步测试清单并取得 targeted/autoconfigure GREEN；通过后恢复 Task 6，从 AI `clean install` 起继续，不重跑已通过 Core/Boot/Cloud。
