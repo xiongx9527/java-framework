@@ -229,7 +229,7 @@ git commit -m "fix(magicapi): remove mqtt client resource cycle"
 - Consumes: Boot 聚合器 25 个 `<module>` 与 AI 聚合器 2 个 `<module>`。
 - Produces: sample 运行时 27 个插件 artifact，以及聚合器新增插件时自动失败的同步契约。
 
-- [ ] **Step 1: 审查并保留现有 sample POM、classpath 测试与 RED 证据**
+- [x] **Step 1: 审查并保留现有 sample POM、classpath 测试与 RED 证据**
 
 ```bash
 git diff -- \
@@ -241,7 +241,7 @@ Expected: sample POM 已启用测试并补齐 Admin、Druid、DTP、Influx、Mon
 
 现有 `MagicApiAllPluginsClasspathTest` 在补 POM 前应报告 9 个缺失 artifact；该历史 RED 已记录，不回滚 POM 重跑。确认 sample POM 已补齐 Admin、Druid、DTP、Influx、Mongo、MQTT、MQTT Client、Task 和 AI 两个插件，并启用测试。
 
-- [ ] **Step 2: 新增聚合器同步测试**
+- [x] **Step 2: 新增聚合器同步测试**
 
 在现有 27 坐标清单上增加模块集合比较：
 
@@ -297,7 +297,7 @@ private Set<String> expectedArtifacts(String groupId) {
 
 补充 `DocumentBuilderFactory`、`NodeList`、`Files`、`Path`、`Paths`、`LinkedHashSet`、`Set` 的导入。`readModules` 返回聚合器模块目录名；这些目录名与当前 artifactId 一致，因此直接和 `expectedArtifacts(groupId)` 比较，不复制第二份手写清单。
 
-- [ ] **Step 3: 运行 sample 清单测试**
+- [x] **Step 3: 运行 sample 清单测试**
 
 ```bash
 ./fw-plus-core/mvnw \
@@ -307,11 +307,11 @@ private Set<String> expectedArtifacts(String groupId) {
 
 Expected: 两个测试 PASS；Boot=25、AI=2、runtime missing list 为空。
 
-- [ ] **Step 4: 更新 OpenSpec 任务 1**
+- [x] **Step 4: 更新 OpenSpec 任务 1**
 
 在 `openspec/changes/fix-magicapi-plugin-sample-integration/tasks.md` 将任务 1 标记为完成，并在同一行后追加简短证据：27 个 artifact 测试通过、首次 sample 启动 RED 日志路径已记录。
 
-- [ ] **Step 5: 提交 sample 清单契约**
+- [x] **Step 5: 提交 sample 清单契约**
 
 ```bash
 git add \
