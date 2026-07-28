@@ -4,7 +4,7 @@
 - Plan task: `Task 6: 执行分层构建与独立 sample 进程验证`
 - OpenSpec mapping: `3. 按 Core -> Boot -> Cloud/AI -> sample 完成分层构建，运行相关测试，并实际启动 sample 检查健康、Magic-API 宿主及全部插件装配结果。`
 - Stage: `implementing`
-- Implementer: 待派发全新 Agent。
+- Implementer: `/root/task6_full_verification`。
 - Dispatch requirements: SDD `task-6-brief.md`；只读预检 `task-6-preflight.md`；实现报告写入 `task-6-report.md`。
 - Review mode: `thorough`
 - Review/fix round: `0/2`
@@ -13,3 +13,4 @@
 - Constraints: 不启动或访问真实外部中间件；不得禁用/移除 27 个插件；不得修改实现源码；只允许更新 `.comet/context.md`，OpenSpec/plan checkbox 由协调者在审查后处理。
 - Generated exclusions: 不暂存/提交 `node_modules/`、console `dist/`、`package-lock.json`、`.flattened-pom.xml`、`logDir_IS_UNDEFINED/`、`target/`、临时日志或资源目录。
 - Expected evidence: 每条 Maven 命令 exit code、reactor/test 汇总、目标 sample 非跳测；独立进程端口/就绪秒数、health/editor HTTP 200、负向扫描 clean、端口释放、资源树删除。
+- Dispatch status: 已派发，串行执行，base `e70da470`。
