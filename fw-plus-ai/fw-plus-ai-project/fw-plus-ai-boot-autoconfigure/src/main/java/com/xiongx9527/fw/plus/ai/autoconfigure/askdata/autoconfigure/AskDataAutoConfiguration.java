@@ -41,6 +41,7 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -168,16 +169,45 @@ public class AskDataAutoConfiguration {
         return new DefaultAskDataSqlValidator(properties.getSql().isEnforceLimit());
     }
 
+	@Bean
+	@ConditionalOnMissingBean
+	public AskDataSqlExecutor askDataSqlExecutor(AskDataProperties properties,
+			ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
+		Integer defaultMaxRows = properties.getSql().getDefaultMaxRows();
+		return new JdbcAskDataSqlExecutor(jdbcTemplateProvider,
+				defaultMaxRows == null ? 100 : defaultMaxRows.intValue());
+	}
+
+    /**
+     * 暴露 SQL 插件链的审计记录器。
+     *
+     * <p>审计器只保存插件标识和处理阶段，不包含 SQL 参数、连接或其他敏感执行对象。业务可替换该 Bean
+     * 将记录转存到其审计基础设施。</p>
+     */
     @Bean
-    @ConditionalOnMissingBean
-    public AskDataSqlExecutor askDataSqlExecutor(AskDataProperties properties,
-            ObjectProvider<JdbcTemplate> jdbcTemplateProvider) {
-        Integer defaultMaxRows = properties.getSql().getDefaultMaxRows();
-        return new JdbcAskDataSqlExecutor(jdbcTemplateProvider,
-                defaultMaxRows == null ? 100 : defaultMaxRows.intValue());
+    @ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit.class)
+    public com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit askDataSqlAudit() {
+        return new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit();
     }
 
+    /**
+     * 将 Spring 管理的 SQL 插件桥接到 Core SQL 安全链。
+     *
+     * <p>插件按 Spring 顺序收集，再由 Core 按 SPI 顺序和 key 稳定排序。Core 链会保留输入命令的隔离
+     * 上下文、命名参数和授权对象，并在所有插件改写后强制调用最终校验器，插件不能绕过 SQL 安全边界。</p>
+     */
     @Bean
+    @ConditionalOnBean(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.class)
+    @ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain.class)
+    public com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain askDataSqlInterceptorChain(
+            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor> interceptorProvider,
+            com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator validator,
+            com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit audit) {
+        return new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain(
+                interceptorProvider.orderedStream().collect(Collectors.toList()), validator, audit);
+    }
+
+	@Bean
     @ConditionalOnMissingBean
     public AskDataVectorRetriever askDataVectorRetriever(AskDataProperties properties,
             ObjectProvider<ContentRetriever> contentRetrieverProvider) {
