@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.CoreAskDataServiceAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.DefaultAskDataService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore;
@@ -143,9 +144,36 @@ public class AskDataAutoConfiguration {
                 agentDispatcher, mainAgents);
     }
 
-    @Bean
-    @ConditionalOnMissingBean
-    public AskDataService askDataService(AskDataFlowExecutor flowExecutor) {
-        return new DefaultAskDataService(flowExecutor);
-    }
+	/**
+	 * 创建旧问数流程使用的兼容服务。
+	 *
+	 * <p>该 Bean 仅供当前自动配置内部流及仍依赖旧 DTO 的存量扩展使用；新业务代码应注入
+	 * Core 的 {@code com.xiongx9527.fw.plus.ai.askdata.api.AskDataService}。保留该适配边界可避免
+	 * 旧流程的模型、SQL 与会话实现类型泄漏到 Core 公共契约。</p>
+	 *
+	 * @param flowExecutor 旧流程执行器
+	 * @return 旧流程兼容服务
+	 */
+	@Bean
+	@ConditionalOnMissingBean
+	public AskDataService legacyAskDataService(AskDataFlowExecutor flowExecutor) {
+		return new DefaultAskDataService(flowExecutor);
+	}
+
+	/**
+	 * 创建面向外部消费者的 Core AskData 服务。
+	 *
+	 * <p>当业务自行提供 Core 服务实现时，本方法不会装配默认 Bean，确保业务可在其实现中完成项目、操作人权限、
+	 * 审计和恢复策略。默认实现只负责将稳定的 Core 输入输出与旧流程适配，绝不向 Core API 暴露 Spring、模型 SDK
+	 * 或数据存储厂商类型。</p>
+	 *
+	 * @param legacyService 已隔离的旧流程兼容服务
+	 * @return Core AskData 服务实现
+	 */
+	@Bean
+	@ConditionalOnMissingBean(value = com.xiongx9527.fw.plus.ai.askdata.api.AskDataService.class,
+			name = "askDataService")
+	public com.xiongx9527.fw.plus.ai.askdata.api.AskDataService askDataService(AskDataService legacyService) {
+		return new CoreAskDataServiceAdapter(legacyService);
+	}
 }

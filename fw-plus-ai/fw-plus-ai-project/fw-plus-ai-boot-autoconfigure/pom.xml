@@ -57,6 +57,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-askdata</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.dromara.easyai</groupId>
             <artifactId>easyAi</artifactId>
             <scope>compile</scope>
@@ -199,6 +205,7 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-cassandra</artifactId>
+            <version>${revision}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -206,6 +213,7 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-infinispan</artifactId>
+            <version>${revision}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
@@ -213,6 +221,7 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-neo4j</artifactId>
+            <version>${revision}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
