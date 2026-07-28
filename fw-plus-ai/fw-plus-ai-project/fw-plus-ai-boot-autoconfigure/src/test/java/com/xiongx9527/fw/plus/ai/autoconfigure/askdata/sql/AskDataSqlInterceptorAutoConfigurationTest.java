@@ -84,7 +84,7 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
             assertNotNull(chain);
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                     () -> chain.execute(new AskDataSqlCommand(new AskDataProjectContext("project-1", "operator-1"),
-                            "select * from orders", Collections.<AskDataSqlParameter>emptyList(),
+                            "select * from/*scope*/orders", Collections.<AskDataSqlParameter>emptyList(),
                             Collections.<String>emptySet())));
             assertTrue(exception.getMessage().contains("UNAUTHORIZED_OBJECT"));
         } finally {

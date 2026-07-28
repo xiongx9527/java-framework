@@ -73,6 +73,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private final AskDataEventPublisher eventPublisher;
     private final AskDataQuestionPlanner questionPlanner;
     private final AskDataSqlInterceptorChain sqlInterceptorChain;
+    private final com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreSqlValidator;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -148,6 +149,19 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
             List<AskDataAgent> mainAgents, AskDataEventPublisher eventPublisher,
             AskDataQuestionPlanner questionPlanner, AskDataSqlInterceptorChain sqlInterceptorChain) {
+        this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
+                sqlValidator, sqlExecutor, conversationStore, contextCompressor, agentDispatcher, mainAgents,
+                eventPublisher, questionPlanner, sqlInterceptorChain, null);
+    }
+
+    public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+            AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+            AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
+            List<AskDataAgent> mainAgents, AskDataEventPublisher eventPublisher,
+            AskDataQuestionPlanner questionPlanner, AskDataSqlInterceptorChain sqlInterceptorChain,
+            com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreSqlValidator) {
         this.properties = properties;
         this.modelRegistry = modelRegistry;
         this.metadataProvider = metadataProvider;
@@ -164,6 +178,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         this.eventPublisher = eventPublisher;
         this.questionPlanner = questionPlanner == null ? AskDataQuestionPlanner.simple() : questionPlanner;
         this.sqlInterceptorChain = sqlInterceptorChain;
+        this.coreSqlValidator = coreSqlValidator;
     }
 
     @Override
@@ -532,7 +547,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         AskDataSqlValidationResult validation;
         try {
-            validation = sqlValidator.validate(checkpoint.getSql(), dialect, maxRows(request), metadata);
+            validation = validateCheckpointSql(request, metadata, checkpoint.getSql(), dialect);
         } catch (RuntimeException ex) {
             return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
         }
@@ -631,6 +646,24 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 sqlParameters(request), authorizedObjects(metadata));
         AskDataSqlCommand rewritten = sqlInterceptorChain.execute(command);
         return sqlValidator.validate(rewritten.getSql(), dialect, maxRows(request), metadata);
+    }
+
+    private AskDataSqlValidationResult validateCheckpointSql(AskDataRequest request, AskDataMetadata metadata,
+            String sql, AskDataDialect dialect) {
+        AskDataSqlValidationResult validation = sqlValidator.validate(sql, dialect, maxRows(request), metadata);
+        if (validation == null || !validation.isValid() || coreSqlValidator == null) {
+            return validation;
+        }
+        AskDataSqlCommand command = new AskDataSqlCommand(request.getProjectContext(), validation.getSql(),
+                sqlParameters(request), authorizedObjects(metadata));
+        com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.Result result = coreSqlValidator.validate(command);
+        if (result == null) {
+            throw new IllegalArgumentException("SQL 校验器不能返回 null");
+        }
+        if (!result.isAccepted()) {
+            throw new IllegalArgumentException(result.getFailureCategory().name() + ": " + result.getMessage());
+        }
+        return validation;
     }
 
     private List<AskDataSqlParameter> sqlParameters(AskDataRequest request) {
