@@ -715,19 +715,19 @@ git commit -m "build: wire askdata starter dependencies"
 - Consumes: Design Doc and implemented public API
 - Produces: detailed Chinese documentation required by the spec
 
-- [ ] **Step 1: 写文档结构**
+- [x] **Step 1: 写文档结构 Task 15**
 
 Create the listed files with Chinese sections matching the Design Doc. Include Mermaid diagrams for business flow, technical flow, model fallback, Java 17 remote runtime, SQL safety, recovery, monitoring and external integrations.
 
-- [ ] **Step 2: 写数据库设计**
+- [x] **Step 2: 写数据库设计 Task 15**
 
 In `database-design.md`, document logical tables for project, member, datasource, metadata, MDL, training assets, conversation, memory, recommendation, SQL audit, monitoring log, agent state, model config, MCP/API, enterprise integration and plugin registry.
 
-- [ ] **Step 3: 写 Java 17 对接文档**
+- [x] **Step 3: 写 Java 17 对接文档 Task 15**
 
 In `java17-remote-runtime.md`, document official compatibility verification, remote deployment, capability registration, HTTP/SSE, MCP, A2A, gRPC, message queue options, auth, context payload, error mapping, audit and rollback.
 
-- [ ] **Step 4: 检查文档未完成标记**
+- [x] **Step 4: 检查文档未完成标记 Task 15**
 
 ```bash
 rg -n "T[B]D|T[O]DO|待[补]|占[位]" docs/askdata/starter
@@ -735,7 +735,7 @@ rg -n "T[B]D|T[O]DO|待[补]|占[位]" docs/askdata/starter
 
 Expected: no output.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 15**
 
 ```bash
 git add docs/askdata/starter
