@@ -505,11 +505,11 @@ git commit -m "refactor: bridge askdata autoconfigure to core contracts"
 - Consumes: Core model routing SPI
 - Produces: default LangChain4j/Ollama route implementation
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试 Task 10**
 
 Test default Ollama chat and embedding logical keys, explicit missing key error, infrastructure fallback, non-retryable no-switch behavior, and audit route record.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试 Task 10**
 
 ```bash
 cd fw-plus-ai
@@ -518,15 +518,15 @@ cd fw-plus-ai
 
 Expected: FAIL.
 
-- [ ] **Step 3: 实现默认配置和路由**
+- [x] **Step 3: 实现默认配置和路由 Task 10**
 
 Add properties for model route policy, candidates, fallback, timeout classification, and default Ollama labels. Keep provider-specific classes outside Core.
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证 Task 10**
 
 Run the same test and AskData property binding tests. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 10**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure
