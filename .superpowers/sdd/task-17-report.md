@@ -1,0 +1,108 @@
+# Task 17 聚合验证报告
+
+## STATUS: RESOLVED
+
+## TDD 说明
+
+本任务仅执行聚合验证和状态更新，不新增生产代码或测试源码。RED：无新增生产代码，不创建人工失败测试。GREEN：以下实际验证中 Core 测试、Starter 打包和文档占位符检查符合预期；AI 自动配置定向测试有 1 项失败，不能将本任务标记为完成。
+
+## 验证结果
+
+| 命令 | 退出码 | 关键结果 |
+| --- | ---: | --- |
+| `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata test` | 0 | `BUILD SUCCESS`；52 项测试通过，0 failures、0 errors、0 skipped。 |
+| `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='*AskData*Test' test` | 1 | 112 项中 1 项失败：`AskDataMonitoringLogStoreTest#shouldRejectDefaultMonitoringLogStoreInClusterModeWhenBusinessProvidesOtherSharedStores`；其余 111 项通过。 |
+| `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -DskipTests package` | 0 | `BUILD SUCCESS`；测试按参数跳过。Maven 同时报告本地 `fw-plus-ai-boot-autoconfigure:0.1.1-SNAPSHOT` POM 无效警告，Starter 仍成功打包。 |
+| `rg -n "T[B]D|T[O]DO|待[补]|占[位]" docs/askdata/starter docs/superpowers/specs/2026-07-27-rework-ai-askdata-core-starter-design.md` | 1 | 无输出；`rg` 以 1 表示未匹配，符合文档检查预期。 |
+
+## 失败定位
+
+失败可稳定复现。该测试仅提供 Core 会话、检查点、Agent 状态、向量检索和旧会话 Store；它未提供 `AskDataLongTermMemory` 或 `AskDataRecommendationService`。集群模式下，`AskDataAutoConfiguration#askDataLongTermMemory` 会先调用 `validateLocalStateConfiguration`，因此启动失败消息为默认本地内存状态，而不是测试断言要求的“监控日志”。
+
+根因位于自动配置的默认 Bean 创建顺序与该测试的装配前提不一致。修复需要修改自动配置源码以改变验证/装配策略，或修改测试以提供完整共享 SPI；两者均超出 Task 17 允许范围，未作修改。
+
+## OpenSpec 状态
+
+已勾选：1.7；7.0、7.1、7.2、7.3、7.4、7.5、7.6、7.7、7.8、7.9、7.10、7.11、7.12、7.13。
+
+依据：Core 定向测试 52 项全绿；Task 15/16 已审查通过的 Starter 文档、SQLBot/WrenAI 矩阵和测试用例文档均存在，且本次占位符扫描无输出。未勾选 Starter 集成、共享存储、外部导出及后续运行时能力，因为缺少完整实现或本次自动配置回归未全绿。
+
+计划 Task 17：Step 1、Step 3、Step 4 已实际完成；Step 2 失败；Step 5 仅完成上述有证据的 OpenSpec 勾选；Step 6 未完成，未创建提交。
+
+## 修改文件
+
+- `openspec/changes/rework-ai-askdata-core-starter/tasks.md`
+- `.superpowers/sdd/task-17-report.md`
+
+## 提交
+
+未创建提交。Task 17 因必需的 AI 自动配置验证失败而阻塞；另一次仅暂存授权 OpenSpec 文件的提交尝试以退出码 `128` 失败，受管环境拒绝创建 `.git/index.lock`（`Operation not permitted`）。
+
+## 风险信号
+
+- 公共流程/验证风险：自动配置集群模式下多个默认本地状态 SPI 的失败诊断受 Bean 创建顺序影响，可能掩盖业务实际遗漏的共享实现。
+- 构建风险：Starter 打包虽通过，但本地 Maven 报告 `fw-plus-ai-boot-autoconfigure:0.1.1-SNAPSHOT` POM 无效警告。
+
+---
+
+## Task 17 修复记录（2026-07-28）
+
+## STATUS: RESOLVED
+
+### 根因
+
+`AskDataMonitoringLogStoreTest#shouldRejectDefaultMonitoringLogStoreInClusterModeWhenBusinessProvidesOtherSharedStores`
+仅替换了 Core 会话、检查点、Agent 状态、向量和旧会话 SPI，漏掉同样受集群模式默认内存校验的
+`AskDataLongTermMemory` 与 `AskDataRecommendationService`；上下文因此先在 `askDataLongTermMemory` 失败，
+无法到达目标监控日志校验。
+
+### RED
+
+| 命令 | 退出码 | 关键结果 |
+| --- | ---: | --- |
+| `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='*AskData*Test' test` | 1 | 112 项中 1 项失败；失败 Bean 为 `askDataLongTermMemory`，消息为“默认本地内存状态”，断言未包含“监控日志”。 |
+
+### GREEN
+
+| 命令 | 退出码 | 关键结果 |
+| --- | ---: | --- |
+| `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=AskDataMonitoringLogStoreTest test` | 0 | 3 项通过；集群启动失败精确落在 `askDataMonitoringLogStore`，消息包含“默认本地监控日志”。 |
+| `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='*AskData*Test' test` | 0 | 112 项通过，0 failures、0 errors、0 skipped。 |
+
+### 修改文件
+
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/observability/AskDataMonitoringLogStoreTest.java`
+- `.superpowers/sdd/task-17-report.md`
+
+### 提交
+
+- 修复提交：`19e39cd1ace32af9ac32665e36535f55a33fed2a`（`test: isolate askdata monitoring log cluster check`）
+
+### 风险信号
+
+- 本测试只验证自动配置会让位于业务提供的 SPI；共享存储实现的跨节点语义仍由具体业务实现及其集成测试保证。
+- Maven 输出仍包含既有的多个 SLF4J binding 和 `EmbeddingStoreAutoConfigurationTest` 未检查操作告警；本次未修改这些范围外问题。
+
+## Blocker Fix（2026-07-28）
+
+### 根因和最小修复
+
+`shouldRejectDefaultMonitoringLogStoreInClusterModeWhenBusinessProvidesOtherSharedStores` 的夹具缺少
+`AskDataLongTermMemory` 和 `AskDataRecommendationService`。在集群模式下，自动配置会先创建并拒绝默认
+`AskDataLongTermMemory`，因此原断言无法到达缺失 `AskDataMonitoringLogStore` 的目标分支。
+
+测试夹具现显式提供这两个业务 SPI Bean，并继续故意不提供 `AskDataMonitoringLogStore`。未修改生产源码、POM、
+其他测试或 OpenSpec 任务清单。
+
+### TDD 验证证据
+
+| 阶段 | 命令 | 退出码 | 结果 |
+| --- | --- | ---: | --- |
+| RED | `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=AskDataMonitoringLogStoreTest#shouldRejectDefaultMonitoringLogStoreInClusterModeWhenBusinessProvidesOtherSharedStores test` | 1 | 临时移除上述两个 SPI 夹具后，启动首先在 `askDataLongTermMemory` 失败，消息为“默认本地内存状态”，监控日志断言失败。 |
+| GREEN | 同上 | 0 | 1 项通过；启动失败已落在 `askDataMonitoringLogStore`，消息包含“默认本地监控日志”。 |
+| GREEN 回归 | `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='*AskData*Test' test` | 0 | 112 项通过，0 failures、0 errors、0 skipped。 |
+
+### 剩余关注项
+
+- 测试通过 Bean 存在性验证自动配置让位关系，不模拟真实分布式存储的跨进程语义；该语义属于具体业务 SPI 实现的集成验证范围。
+- 本轮 Maven 仍输出既有的多 SLF4J 绑定、Jansi restricted method 和 `Unsafe` 警告，但不影响两次 GREEN 结果。
