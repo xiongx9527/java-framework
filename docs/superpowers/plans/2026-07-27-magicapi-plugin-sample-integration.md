@@ -129,7 +129,7 @@ git commit -m "fix(ai): repair auto-configuration metadata"
 - Consumes: Magic-API 2.2.2 `DefaultMagicResourceService(Resource, List<MagicResourceStorage<?>>, ApplicationEventPublisher)` 的统一 `setMagicResourceService(this)` 回填行为。
 - Produces: 无参 `mqttClientDataSourceInfoMagicResourceStorage()` Bean；完成服务构造后 storage 持有同一个 `MagicResourceService`。
 
-- [ ] **Step 1: 编写真实拓扑失败测试**
+- [x] **Step 1: 编写真实拓扑失败测试**
 
 ```java
 class MagicAPIMqttClientConfigurationTest {
@@ -170,7 +170,7 @@ class MagicAPIMqttClientConfigurationTest {
 
 使用 JUnit 5、AssertJ、`ReflectionTestUtils` 和 Mockito；不要 mock `MagicResourceService`，否则无法复现真实循环。
 
-- [ ] **Step 2: 运行测试确认 RED**
+- [x] **Step 2: 运行测试确认 RED**
 
 Run:
 
@@ -181,7 +181,7 @@ Run:
 
 Expected: FAIL，根因包含 `BeanCurrentlyInCreationException`，创建环为 `magicResourceService -> mqttClientDataSourceInfoMagicResourceStorage -> magicResourceService`。
 
-- [ ] **Step 3: 写入最小生产修复**
+- [x] **Step 3: 写入最小生产修复**
 
 ```java
 @Bean
@@ -193,13 +193,13 @@ public MqttClientDataSourceInfoMagicResourceStorage mqttClientDataSourceInfoMagi
 
 只删除工厂方法的 `MagicResourceService` 参数和手工 setter；不修改 storage 类型、动态注册器或事件时序。
 
-- [ ] **Step 4: 运行 MQTT 定向回归**
+- [x] **Step 4: 运行 MQTT 定向回归**
 
 重复 Step 2 命令。
 
 Expected: `MagicAPIMqttClientConfigurationTest` PASS，反射断言证明统一回填完成。
 
-- [ ] **Step 5: 运行相邻插件配置测试**
+- [x] **Step 5: 运行相邻插件配置测试**
 
 ```bash
 ./fw-plus-boot/mvnw -f fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/pom.xml \
@@ -208,7 +208,7 @@ Expected: `MagicAPIMqttClientConfigurationTest` PASS，反射断言证明统一�
 
 Expected: 所有测试通过，MQTT 修复未改变 Redis/MCP storage 的先创建行为。
 
-- [ ] **Step 6: 提交 MQTT 修复**
+- [x] **Step 6: 提交 MQTT 修复**
 
 ```bash
 git add \
