@@ -131,6 +131,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (request != null) {
             result.setConversationId(request.getConversationId());
         }
+        if (!hasValidProjectContext(request)) {
+            return failure(result, "request", AskDataErrorCode.MODEL_RESPONSE_INVALID,
+                    "AskData 请求缺少有效项目与操作人上下文");
+        }
         if (!isResumeRequested(request) && conversationStore != null && contextCompressor != null
                 && isBlank(result.getConversationId())) {
             result.setConversationId(UUID.randomUUID().toString());
@@ -606,6 +610,28 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (projectContext != null) {
             eventPublisher.publish(new AskDataEvent(projectContext, result.getConversationId(), type, message));
         }
+    }
+
+    private boolean hasValidProjectContext(AskDataRequest request) {
+        if (request == null || request.getProjectContext() == null) {
+            return false;
+        }
+        AskDataProjectContext projectContext = request.getProjectContext();
+        return !isBlankProjectScopeIdentifier(projectContext.getProjectId())
+                && !isBlankProjectScopeIdentifier(projectContext.getOperatorId());
+    }
+
+    private boolean isBlankProjectScopeIdentifier(String value) {
+        if (value == null || value.length() == 0) {
+            return true;
+        }
+        for (int index = 0; index < value.length(); index++) {
+            char character = value.charAt(index);
+            if (!Character.isWhitespace(character) && !Character.isSpaceChar(character)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private List<AskDataRetrievedDocument> retrieveDocuments(AskDataRequest request) {
