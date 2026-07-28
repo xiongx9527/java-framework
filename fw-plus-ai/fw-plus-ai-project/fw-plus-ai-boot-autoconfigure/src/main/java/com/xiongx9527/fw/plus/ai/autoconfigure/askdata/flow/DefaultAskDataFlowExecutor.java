@@ -532,7 +532,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         AskDataSqlValidationResult validation;
         try {
-            validation = validateSql(request, metadata, checkpoint.getSql(), dialect);
+            validation = sqlValidator.validate(checkpoint.getSql(), dialect, maxRows(request), metadata);
         } catch (RuntimeException ex) {
             return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
         }

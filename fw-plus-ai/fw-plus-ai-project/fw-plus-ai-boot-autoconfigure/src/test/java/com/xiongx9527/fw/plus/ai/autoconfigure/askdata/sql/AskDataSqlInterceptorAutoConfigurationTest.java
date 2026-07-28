@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -72,6 +73,25 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
             context.close();
         }
     }
+
+    @Test
+    public void shouldRejectTableAccessWhenDefaultCoreValidatorHasNoAuthorizedObjects() {
+        AnnotationConfigApplicationContext context = contextWithDefaultCoreValidator(NoopInterceptorConfiguration.class);
+        try {
+            AskDataSqlInterceptorChain chain = context.getBeanProvider(AskDataSqlInterceptorChain.class)
+                    .getIfAvailable();
+
+            assertNotNull(chain);
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                    () -> chain.execute(new AskDataSqlCommand(new AskDataProjectContext("project-1", "operator-1"),
+                            "select * from orders", Collections.<AskDataSqlParameter>emptyList(),
+                            Collections.<String>emptySet())));
+            assertTrue(exception.getMessage().contains("UNAUTHORIZED_OBJECT"));
+        } finally {
+            context.close();
+        }
+    }
+
 
     @Test
     public void shouldRejectUnsafeSqlAfterPluginRewrite() {
@@ -271,6 +291,30 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
                         throw new IllegalArgumentException("缺少 tenantId 命名参数");
                     }
                     return command.withSql(command.getSql() + " where tenant_id = :tenantId");
+                }
+            };
+        }
+    }
+
+    @Configuration
+    static class NoopInterceptorConfiguration {
+
+        @Bean
+        public AskDataSqlInterceptor noopInterceptor() {
+            return new AskDataSqlInterceptor() {
+                @Override
+                public String getKey() {
+                    return "noop";
+                }
+
+                @Override
+                public int getOrder() {
+                    return 1;
+                }
+
+                @Override
+                public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+                    return command;
                 }
             };
         }

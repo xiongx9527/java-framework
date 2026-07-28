@@ -16,6 +16,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataSubAgentReque
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataSubAgentResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadataProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
@@ -44,6 +45,7 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -292,7 +294,9 @@ public class AskDataAutoConfigurationTest {
     private ApplicationContextRunner withDefaultFlowDependencies() {
         return contextRunner
                 .withBean(AskDataMetadataProvider.class,
-                        () -> request -> new AskDataMetadata("mysql", null, null, null, null))
+                        () -> request -> new AskDataMetadata("mysql",
+                                Collections.singletonList(new AskDataTable("orders", Collections.emptyList())),
+                                null, null, null))
                 .withBean(AskDataModelRegistry.class, () -> new AskDataModelRegistry() {
                     @Override
                     public AskDataChatModel getChatModel(String modelKey) {

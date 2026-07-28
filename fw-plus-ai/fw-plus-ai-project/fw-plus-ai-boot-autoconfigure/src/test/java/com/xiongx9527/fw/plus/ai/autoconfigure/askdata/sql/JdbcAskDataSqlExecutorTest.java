@@ -7,6 +7,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.sql.DataSource;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -71,6 +72,27 @@ public class JdbcAskDataSqlExecutorTest {
         assertTrue(result.isSuccess());
         assertEquals(1, result.getRows().size());
         assertEquals(Long.valueOf(2L), result.getRows().get(0).get("ID"));
+    }
+
+    @Test
+    public void shouldBindCollectionNamedParametersFromRequestOptions() {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource());
+        jdbcTemplate.execute("drop table if exists collection_parameter_orders");
+        jdbcTemplate.execute("create table collection_parameter_orders(id bigint, amount decimal(10, 2))");
+        jdbcTemplate.update("insert into collection_parameter_orders(id, amount) values (?, ?)", 1L, 12.50D);
+        jdbcTemplate.update("insert into collection_parameter_orders(id, amount) values (?, ?)", 2L, 30.00D);
+        jdbcTemplate.update("insert into collection_parameter_orders(id, amount) values (?, ?)", 3L, 40.00D);
+        JdbcAskDataSqlExecutor executor = new JdbcAskDataSqlExecutor(jdbcTemplate);
+        AskDataRequest request = new AskDataRequest();
+        request.setOptions(Collections.<String, Object>singletonMap("ids", Arrays.asList(1L, 3L)));
+
+        AskDataSqlExecutionResult result = executor.execute(request,
+                "select id from collection_parameter_orders where id in (:ids) order by id");
+
+        assertTrue(result.isSuccess());
+        assertEquals(2, result.getRows().size());
+        assertEquals(Long.valueOf(1L), result.getRows().get(0).get("ID"));
+        assertEquals(Long.valueOf(3L), result.getRows().get(1).get("ID"));
     }
 
     private DataSource dataSource() {
