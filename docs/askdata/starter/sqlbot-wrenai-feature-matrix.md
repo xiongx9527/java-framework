@@ -12,13 +12,13 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | SQLBot | 基础与部署 | 产品介绍与工作原理 | FL §1.1 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | 文档 | AskData Starter 概述 | 无 | IDX | DOC-01 | 契约覆盖 | 仅 Starter 说明，不是完整产品控制台。 |
 | SQLBot | 基础与部署 | 安装部署 | FL §1.1 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | 业务模块 | Starter 装配/部署清单 | 无 | IDX, CFG | DOC-02 | 契约覆盖 | 需业务接入 SQLBot 安装器、默认账号或控制台。 |
-| SQLBot | 基础与部署 | 命令行工具 | FL §1.1 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | 业务模块 | 管理入口由业务适配定义 | 无 | IDX | DOC-03 | 业务适配覆盖 | 当前没有等价 CLI。 |
+| SQLBot | 基础与部署 | 命令行工具 | FL §1.1 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | 业务模块 | 管理入口由业务适配定义 | 无 | IDX | DOC-03 | 业务适配覆盖 | Starter 提供后端契约；CLI 由业务模块接入验证。 |
 | SQLBot | 基础与部署 | 参数配置 | FL §1.1 | SQLBot 优先 | 企业参数不与 Starter 配置混同 | rework-ai-askdata-core-starter | enterprise | 企业配置命名空间由业务适配定义 | askdata_plugin_registry | CFG, DB | ENT-01 | 业务适配覆盖 | 仅已有 Starter 默认配置，无 X-Pack 参数管理。 |
 | SQLBot | 基础与部署 | 外观设置 | FL §1.1 | SQLBot 优先 | SQLBot 品牌语义优先 | rework-ai-askdata-core-starter | console | 主题/品牌配置由业务适配定义 | askdata_project | DB | FE-01 | 业务适配覆盖 | 需业务接入验证控制台或品牌素材。 |
 | SQLBot | 基础与部署 | 操作日志 | FL §1.1 | SQLBot 优先 | 管理日志独立于监控日志 | rework-ai-askdata-core-starter | enterprise | 管理审计 API 由业务适配定义 | askdata_sql_audit | SQL, DB | AUD-01 | 契约覆盖 | 当前仅有范围隔离的内存监控日志，不是管理员操作日志。 |
 | SQLBot | 项目、组织与权限 | 工作空间/项目 | FL §1.2 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | Core | AskDataProjectContext | 内存/SPI；askdata_project | IDX, DB | CTX-01 | 已实现 | Core 强制 projectId/operatorId；项目实体和治理持久化需业务接入验证。 |
 | SQLBot | 项目、组织与权限 | 成员管理 | FL §1.2 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | governance/console | 成员角色 API 由业务适配定义 | askdata_project_member | DB | AUTH-01 | 业务适配覆盖 | 宿主应用负责真实成员和角色判定。 |
-| SQLBot | 项目、组织与权限 | 权限配置 | FL §1.2 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | governance | 对象授权解析 SPI | askdata_project_member, askdata_metadata | SQL, DB | AUTH-02 | 契约覆盖 | SQL 最终校验已实现边界；行列权限解析尚未提供。 |
+| SQLBot | 项目、组织与权限 | 权限配置 | FL §1.2 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | governance | 对象授权解析 SPI | askdata_project_member, askdata_metadata | SQL, DB | AUTH-02 | 契约覆盖 | SQL 最终校验已实现边界；行列权限解析由治理适配契约接入验证。 |
 | SQLBot | 项目、组织与权限 | 组织用户同步 | FL §1.2 | SQLBot 优先 | 与企业平台同步合并 | rework-ai-askdata-core-starter | enterprise | 同步任务/API 由业务适配定义 | askdata_enterprise_integration | DB | ENT-02 | 业务集成契约覆盖 | 需企业微信、钉钉、飞书业务凭据与映射。 |
 | SQLBot | 数据源与方言 | 数据源概览 | FL §1.3 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | console/governance | 数据源状态 API 由业务适配定义 | askdata_datasource | DB | CONN-01 | 业务适配覆盖 | Starter 不管理业务数据源。 |
 | SQLBot | 数据源与方言 | Excel/CSV | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | 文件连接器 SPI 由业务适配定义 | askdata_datasource, askdata_metadata | DB | CONN-02 | 业务适配覆盖 | 未定义文件上传、解析或权限策略实现。 |
@@ -30,7 +30,7 @@
 | SQLBot | 数据源与方言 | 达梦 | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | 方言/只读执行 SPI | askdata_datasource, askdata_metadata | SQL, DB | CONN-08 | 业务适配覆盖 | 需业务接入验证驱动、方言和验证。 |
 | SQLBot | 数据源与方言 | Apache Doris | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | 方言/只读执行 SPI | askdata_datasource, askdata_metadata | SQL, DB | CONN-09 | 契约覆盖 | 只是必须验证项，不表示已全量支持。 |
 | SQLBot | 数据源与方言 | AWS Redshift | FL §1.3 | SQLBot 优先 | 与 WrenAI Redshift 合并 | rework-ai-askdata-core-starter | governance/query-engine | 连接器 SPI 由业务适配定义 | askdata_datasource | DB | CONN-10 | 业务适配覆盖 | 需业务接入验证。 |
-| SQLBot | 数据源与方言 | Elasticsearch | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | SQL/DSL 安全边界由业务适配定义 | askdata_datasource, askdata_metadata | SQL, DB | CONN-11 | 业务适配覆盖 | 尚未定义 DSL 执行和安全实现。 |
+| SQLBot | 数据源与方言 | Elasticsearch | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | SQL/DSL 安全边界由业务适配定义 | askdata_datasource, askdata_metadata | SQL, DB | CONN-11 | 业务适配覆盖 | DSL 执行和安全实现由业务适配契约接入验证。 |
 | SQLBot | 数据源与方言 | Kingbase | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | 方言/只读执行 SPI | askdata_datasource | SQL, DB | CONN-12 | 业务适配覆盖 | 需业务接入验证。 |
 | SQLBot | 数据源与方言 | StarRocks | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | 方言/只读执行 SPI | askdata_datasource | SQL, DB | CONN-13 | 业务适配覆盖 | 需业务接入验证。 |
 | SQLBot | 数据源与方言 | Apache Hive | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | 方言/只读执行 SPI | askdata_datasource | SQL, DB | CONN-14 | 业务适配覆盖 | 需业务接入验证。 |
@@ -56,7 +56,7 @@
 | SQLBot | 模型与运行时 | AgentScope Java 2.0+ 替换 | FL §1.5 | SQLBot 优先 | 运行时替换共用 | rework-ai-askdata-core-starter | Core | Remote Runtime SPI | agent_state/SPI | RT, J17 | RT-03 | 契约覆盖 | 未验证目标版本，远程适配优先。 |
 | SQLBot | 模型与运行时 | Java 17 独立适配服务 | FL §1.5 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | remote-runtime | HTTP/SSE/MCP/A2A/gRPC/MQ | agent_state/SPI | J17, FLOW | RT-04 | 业务集成契约覆盖 | 仅定义协议、安全、审计和回滚要求。 |
 | SQLBot | 外部系统对接 | MCP Server | FL §1.6 | SQLBot 优先 | WrenAI API 仅补 SDK | rework-ai-askdata-core-starter | api-mcp | MCP 发布 SPI | askdata_mcp_api | FLOW | MCP-01 | 业务集成契约覆盖 | 需业务接入验证 MCP 服务端。 |
-| SQLBot | 外部系统对接 | `mcp_start` | FL §1.6 | SQLBot 优先 | SQLBot MCP 语义优先 | rework-ai-askdata-core-starter | api-mcp | mcp_start 由业务适配定义 | askdata_mcp_api, conversation | FLOW | MCP-02 | 业务集成契约覆盖 | 未提供 access_token/chat_id 接口。 |
+| SQLBot | 外部系统对接 | `mcp_start` | FL §1.6 | SQLBot 优先 | SQLBot MCP 语义优先 | rework-ai-askdata-core-starter | api-mcp | mcp_start 由业务适配定义 | askdata_mcp_api, conversation | FLOW | MCP-02 | 业务集成契约覆盖 | access_token/chat_id 接口由发布层适配契约接入验证。 |
 | SQLBot | 外部系统对接 | `mcp_question` | FL §1.6 | SQLBot 优先 | SQLBot MCP 语义优先 | rework-ai-askdata-core-starter | api-mcp | mcp_question 由业务适配定义 | conversation/sql_audit | FLOW | MCP-03 | 业务集成契约覆盖 | 结果、图表和图片 API 需业务接入验证。 |
 | SQLBot | 外部系统对接 | `mcp_ws_list` | FL §1.6 | SQLBot 优先 | SQLBot MCP 语义优先 | rework-ai-askdata-core-starter | api-mcp | mcp_ws_list 由业务适配定义 | askdata_project | DB | MCP-04 | 业务集成契约覆盖 | 需业务接入验证权限过滤接口。 |
 | SQLBot | 外部系统对接 | `mcp_datasource_list` | FL §1.6 | SQLBot 优先 | SQLBot MCP 语义优先 | rework-ai-askdata-core-starter | api-mcp | mcp_datasource_list 由业务适配定义 | askdata_datasource | DB | MCP-05 | 业务集成契约覆盖 | 需业务接入验证权限过滤接口。 |
@@ -108,7 +108,7 @@
 | WrenAI | MDL 语义层 | 指标 | FL §2.2 | WrenAI 增强 | SQLBot 术语/指标优先 | rework-ai-askdata-core-starter | training | 指标定义由业务适配定义 | askdata_mdl | DB | MDL-06 | 业务适配覆盖 | 需业务接入验证。 |
 | WrenAI | MDL 语义层 | 视图 | FL §2.2 | WrenAI 增强 | 需经过 SQL 安全 | rework-ai-askdata-core-starter | training/governance | 视图/preview/dry-plan 由业务适配定义 | askdata_mdl | SQL, DB | MDL-07 | 业务适配覆盖 | 需业务接入验证，不能绕过最终校验。 |
 | WrenAI | MDL 语义层 | deploy log | FL §2.2 | WrenAI 增强 | 独立于管理员操作日志 | rework-ai-askdata-core-starter | training/observability | 语义部署日志由业务适配定义 | askdata_mdl | DB | MDL-08 | 业务适配覆盖 | 需业务接入验证。 |
-| WrenAI | MDL 语义层 | 语义版本 | FL §2.2 | WrenAI 增强 | SQLBot 恢复/审计兼容 | rework-ai-askdata-core-starter | training | semanticVersion 契约 | askdata_mdl | DB, FLOW | MDL-09 | 契约覆盖 | 恢复契约要求比对版本；MDL 版本实现未提供。 |
+| WrenAI | MDL 语义层 | 语义版本 | FL §2.2 | WrenAI 增强 | SQLBot 恢复/审计兼容 | rework-ai-askdata-core-starter | training | semanticVersion 契约 | askdata_mdl | DB, FLOW | MDL-09 | 契约覆盖 | 恢复契约要求比对版本；MDL 版本由业务语义层接入验证。 |
 | WrenAI | 数据源与连接器 | Athena/Trino | FL §2.3 | WrenAI 增强 | 与 Trino 合并 | rework-ai-askdata-core-starter | governance/query-engine | 连接器 SPI 由业务适配定义 | askdata_datasource | DB | CONN-15 | 业务适配覆盖 | 需业务接入验证。 |
 | WrenAI | 数据源与连接器 | Redshift | FL §2.3 | WrenAI 增强 | 与 SQLBot AWS Redshift 合并 | rework-ai-askdata-core-starter | governance/query-engine | 连接器 SPI 由业务适配定义 | askdata_datasource | DB | CONN-10 | 业务适配覆盖 | 需业务接入验证。 |
 | WrenAI | 数据源与连接器 | BigQuery | FL §2.3 | WrenAI 增强 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | 连接器 SPI 由业务适配定义 | askdata_datasource | DB | CONN-16 | 业务适配覆盖 | 需业务接入验证。 |
@@ -138,7 +138,7 @@
 | WrenAI | 语义索引、推荐与评测 | instructions | FL §2.5 | WrenAI 增强 | 与 SQLBot Prompt/术语合并 | rework-ai-askdata-core-starter | training | 指令资产 SPI 由业务适配定义 | askdata_training_asset | DB | TRAIN-04 | 业务适配覆盖 | 需业务接入验证。 |
 | WrenAI | 语义索引、推荐与评测 | SQL pair | FL §2.5 | WrenAI 增强 | 与 SQLBot SQL 示例合并 | rework-ai-askdata-core-starter | training | SQL pair 部署由业务适配定义 | askdata_training_asset | DB | TRAIN-03 | 业务适配覆盖 | 功能清单是目标，不是当前实现证据。 |
 | WrenAI | 语义索引、推荐与评测 | ask feedback | FL §2.5 | WrenAI 增强 | SQLBot 个人隔离优先 | rework-ai-askdata-core-starter | training/observability | 反馈 API 由业务适配定义 | askdata_recommendation | DB | REC-02 | 业务适配覆盖 | 需业务接入验证。 |
-| WrenAI | 语义索引、推荐与评测 | evaluation | FL §2.5 | WrenAI 增强 | SQLBot 安全与质量验证优先 | rework-ai-askdata-core-starter | training/verify | 评测集/指标由业务适配定义 | askdata_training_asset | DB | EVAL-01 | 业务适配覆盖 | 尚无自动评测框架。 |
+| WrenAI | 语义索引、推荐与评测 | evaluation | FL §2.5 | WrenAI 增强 | SQLBot 安全与质量验证优先 | rework-ai-askdata-core-starter | training/verify | 评测集/指标由业务适配定义 | askdata_training_asset | DB | EVAL-01 | 业务适配覆盖 | 自动评测框架由业务评测适配契约接入验证。 |
 | WrenAI | 语义索引、推荐与评测 | dry-plan | FL §2.5 | WrenAI 增强 | SQLBot 最终校验优先 | rework-ai-askdata-core-starter | Core/query-engine | 计划分析 SPI 由业务适配定义 | askdata_sql_audit | SQL | SQL-02 | 契约覆盖 | SQL 校验已存在，不等于 dry-plan 实现。 |
 | WrenAI | 语义索引、推荐与评测 | dry-run | FL §2.5 | WrenAI 增强 | SQLBot 最终校验优先 | rework-ai-askdata-core-starter | Core/query-engine | 空跑 SPI 由业务适配定义 | askdata_sql_audit | SQL | SQL-03 | 业务适配覆盖 | 需业务接入验证。 |
 | WrenAI | 语义索引、推荐与评测 | metadata constraints | FL §2.5 | WrenAI 增强 | SQLBot 权限元数据优先 | rework-ai-askdata-core-starter | governance/training | 元数据约束 SPI 由业务适配定义 | askdata_metadata | DB | MDL-10 | 业务适配覆盖 | 需业务接入验证。 |
