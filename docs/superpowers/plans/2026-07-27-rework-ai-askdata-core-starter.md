@@ -667,7 +667,7 @@ git commit -m "feat: add askdata multi-question memory flow"
 - Produces: one starter that includes Core contract, LangChain4j default adapter, and autoconfiguration
 - Consumes: all previous tasks
 
-- [ ] **Step 1: 写失败验证**
+- [x] **Step 1: 写失败验证 Task 14**
 
 Run:
 
@@ -678,11 +678,11 @@ cd fw-plus-ai
 
 Expected before wiring: FAIL if dependency is missing.
 
-- [ ] **Step 2: 更新依赖**
+- [x] **Step 2: 更新依赖 Task 14**
 
 Add Core `fw-plus-ai-askdata` dependency to BOM and starter dependency tree. Do not add Spring AI, Spring AI Alibaba, AgentScope Java or Java 17-only dependencies.
 
-- [ ] **Step 3: 验证**
+- [x] **Step 3: 验证 Task 14**
 
 ```bash
 cd fw-plus-ai
@@ -691,7 +691,7 @@ cd fw-plus-ai
 
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit Task 14**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml \
