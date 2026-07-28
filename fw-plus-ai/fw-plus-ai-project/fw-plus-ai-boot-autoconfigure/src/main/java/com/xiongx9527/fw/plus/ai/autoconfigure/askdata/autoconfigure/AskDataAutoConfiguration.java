@@ -32,6 +32,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.JdbcAskDataSqlExecuto
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.CompositeAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.ContentRetrieverAskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService;
@@ -102,6 +103,15 @@ public class AskDataAutoConfiguration {
     public AskDataRecommendationAdapter askDataRecommendationAdapter(
             AskDataRecommendationService recommendationService) {
         return new AskDataRecommendationAdapter(recommendationService);
+    }
+
+    /**
+     * 提供不依赖模型的默认问题规划器，支持显式列表和中英文分号复合问题。
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataQuestionPlanner askDataQuestionPlanner() {
+        return AskDataQuestionPlanner.simple();
     }
 
     /**
@@ -285,13 +295,14 @@ public class AskDataAutoConfiguration {
             AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
             ObjectProvider<AskDataAgent> agentProvider,
             @Qualifier("askDataMonitoringLogEventPublisher") AskDataEventPublisher monitoringLogEventPublisher,
-            ObjectProvider<AskDataEventPublisher> eventPublisherProvider) {
+            ObjectProvider<AskDataEventPublisher> eventPublisherProvider, AskDataQuestionPlanner questionPlanner) {
         List<AskDataAgent> mainAgents = agentProvider.orderedStream()
                 .filter(agent -> !(agent instanceof AskDataSubAgent))
                 .collect(Collectors.toList());
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
-                agentDispatcher, mainAgents, combineEventPublishers(monitoringLogEventPublisher, eventPublisherProvider));
+                agentDispatcher, mainAgents, combineEventPublishers(monitoringLogEventPublisher, eventPublisherProvider),
+                questionPlanner);
     }
 
 	/**
