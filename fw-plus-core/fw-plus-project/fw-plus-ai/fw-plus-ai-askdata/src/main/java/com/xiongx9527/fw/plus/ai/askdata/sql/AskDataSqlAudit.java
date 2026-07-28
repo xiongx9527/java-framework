@@ -12,6 +12,8 @@ import java.util.List;
  */
 public class AskDataSqlAudit {
 
+	private static final int DEFAULT_RECORD_CAPACITY = 1024;
+
 	private final List<Record> records = new ArrayList<Record>();
 
 	/**
@@ -21,6 +23,9 @@ public class AskDataSqlAudit {
 	 * @param phase 当前处理阶段
 	 */
 	public synchronized void record(String interceptorKey, String phase) {
+		while (records.size() >= DEFAULT_RECORD_CAPACITY) {
+			records.remove(0);
+		}
 		records.add(new Record(interceptorKey, phase));
 	}
 

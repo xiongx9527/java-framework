@@ -173,21 +173,29 @@ public class LangChain4jAskDataModelRegistryTest {
 	}
 
 	@Test
-	public void shouldFallbackWhenExecutionDurationReachesInfrastructureThreshold() {
-		AskDataProperties properties = new AskDataProperties();
-		properties.getModel().setInfrastructureFailureTimeoutMillis(1);
-		properties.getModel().setChatCandidates(java.util.Arrays.asList("primary", "fallback"));
-		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
-		models.put("primary", delayedFailingChatModel(new IllegalStateException("slow failure"), 5L));
-		models.put("fallback", chatModel("fallback-response"));
-		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
-				modelRegistry(models, new HashMap<String, EmbeddingModel>()));
+	public void shouldNotFallbackWhenSlowBusinessAuthenticationInputOrPolicyFailure() {
+		RuntimeException[] failures = new RuntimeException[] {
+				new IllegalStateException("business failure"), new SecurityException("authentication failure"),
+				new IllegalArgumentException("input failure"), new UnsupportedOperationException("policy failure") };
+		for (RuntimeException failure : failures) {
+			AskDataProperties properties = new AskDataProperties();
+			properties.getModel().setInfrastructureFailureTimeoutMillis(1);
+			properties.getModel().setChatCandidates(java.util.Arrays.asList("primary", "fallback"));
+			Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+			models.put("primary", delayedFailingChatModel(failure, 5L));
+			models.put("fallback", chatModel("fallback-response"));
+			LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
+					modelRegistry(models, new HashMap<String, EmbeddingModel>()));
 
-		AskDataModelResponse response = registry.generate(new AskDataProjectContext("project-9527", "operator-9527"),
-				"question");
-
-		assertEquals("fallback", response.getModelKey());
-		assertEquals("MODEL_INFRASTRUCTURE_FAILURE", registry.getRouteAuditRecords().get(0).getErrorCode());
+			try {
+				registry.generate(new AskDataProjectContext("project-9527", "operator-9527"), "question");
+				fail("长耗时的不可重试错误不能切换模型: " + failure.getClass().getSimpleName());
+			} catch (AskDataModelException ex) {
+				assertEquals("MODEL_REQUEST_REJECTED", ex.getErrorCode());
+			}
+			assertEquals(1, registry.getRouteAuditRecords().size());
+			assertFalse(registry.getRouteAuditRecords().get(0).isRetryable());
+		}
 	}
 
 	@Test

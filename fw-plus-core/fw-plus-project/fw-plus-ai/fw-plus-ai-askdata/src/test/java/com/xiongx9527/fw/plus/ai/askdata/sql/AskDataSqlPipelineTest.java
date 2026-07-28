@@ -4,7 +4,9 @@ import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -69,6 +71,55 @@ public class AskDataSqlPipelineTest {
 
 		assertEquals("tenant-a", command.getParameter("tenantId").getValue());
 		assertEquals("tenantId", command.getParameters().get(0).getName());
+	}
+
+	@Test
+	public void shouldSnapshotArrayParameterValue() {
+		int[] source = new int[] { 1, 2 };
+		AskDataSqlParameter parameter = AskDataSqlParameter.of("ids", source);
+
+		source[0] = 9;
+		int[] exposed = (int[]) parameter.getValue();
+		exposed[1] = 8;
+
+		assertEquals(1, ((int[]) parameter.getValue())[0]);
+		assertEquals(2, ((int[]) parameter.getValue())[1]);
+	}
+
+	@Test
+	public void shouldSnapshotCollectionParameterValue() {
+		List<String> source = new ArrayList<String>();
+		source.add("tenant-a");
+		AskDataSqlParameter parameter = AskDataSqlParameter.of("tenants", source);
+
+		source.add("tenant-b");
+		List<?> exposed = (List<?>) parameter.getValue();
+
+		assertEquals(Collections.singletonList("tenant-a"), exposed);
+		assertThrows(UnsupportedOperationException.class, () -> exposed.clear());
+	}
+
+	@Test
+	public void shouldSnapshotDateParameterValue() {
+		Date source = new Date(1000L);
+		AskDataSqlParameter parameter = AskDataSqlParameter.of("createdAt", source);
+
+		source.setTime(2000L);
+		Date exposed = (Date) parameter.getValue();
+		exposed.setTime(3000L);
+
+		assertEquals(1000L, ((Date) parameter.getValue()).getTime());
+	}
+
+	@Test
+	public void shouldRetainOnlyBoundedNumberOfAuditRecords() {
+		AskDataSqlAudit audit = new AskDataSqlAudit();
+		for (int index = 0; index < 1025; index++) {
+			audit.record("plugin-" + index, "INTERCEPT");
+		}
+
+		assertEquals(1024, audit.getRecords().size());
+		assertEquals("plugin-1", audit.getRecords().get(0).getInterceptorKey());
 	}
 
 	@Test
