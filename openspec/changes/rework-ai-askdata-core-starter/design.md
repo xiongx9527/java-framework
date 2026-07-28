@@ -2,13 +2,13 @@
 
 `fw-plus-ai-askdata-spring-boot-starter` 已在 AI 聚合器和 BOM 中发布，自动配置模块已提供 LangChain4j 模型注册、顺序流程执行器、Agent 派发、上下文压缩和内存检查点。`fw-plus-core` 的 AI 聚合已提供 `fw-plus-ai-base`、`fw-plus-ai-mcp` 和 `fw-plus-ai-langchain4j` 边界，但尚无独立 AskData 模块，领域类型仍耦合在自动配置模块。系统仍缺少 SQLBot v1 所需的生产级编排、全量数据源/方言矩阵、安全恢复、外部系统对接和集群状态边界。
 
-该 change 必须保持 Spring Boot 2.7.18 与 Java 8 兼容，并作为项目管理、训练检索、REST/MCP、企业配置和控制台后续 change 的基础。`https://gitee.com/fit2cloud-feizhiyun/SQLBot` 与 `https://sqlbot.org/docs/v1/` 是整个批次的优先功能验收基线：每项开源和企业级功能都必须映射到 batch change、实现模块、文档和验证证据，全部闭环前不得宣称功能完整。Canner/WrenAI 的企业级 GenBI 能力也是必须覆盖的补强基线：MDL 语义模型、上下文富化、dry-plan、结构化错误、值画像、评测、推荐、Agent 生成/部署仪表盘和多数据源治理均进入追踪矩阵；与 SQLBot 重叠时采用 SQLBot 的产品边界和命名，吸收 WrenAI 的底层设计优势。
+该 change 必须保持 Spring Boot 2.7.18 与 Java 8 兼容，并作为项目管理、训练检索、REST/MCP、企业配置和控制台业务接入的基础。`https://gitee.com/fit2cloud-feizhiyun/SQLBot` 与 `https://sqlbot.org/docs/v1/` 是整个批次的优先功能验收基线：每项开源和企业级功能都必须映射到 batch change、实现模块、文档和验证证据，全部契约、默认实现和验证矩阵闭环前不得宣称功能完整；真实外部租户连通必须另记联调证据。Canner/WrenAI 的企业级 GenBI 能力也是必须覆盖的补强基线：MDL 语义模型、上下文富化、dry-plan、结构化错误、值画像、评测、推荐、Agent 生成/部署仪表盘和多数据源治理均进入追踪矩阵；与 SQLBot 重叠时采用 SQLBot 的产品边界和命名，吸收 WrenAI 的底层设计优势。
 
 本批次按“Vue3 组件化前端控制台 → 后端 Starter → 前后端联调”的顺序推进。前端先实现可复用组件、页面级交互、API SDK 与 Mock 服务；后端随后按前端契约实现真实 API、事件、数据库表、流程图、设计文档和测试用例，并在最终联调阶段闭环 SQLBot/WrenAI 功能矩阵。
 
 ### SQLBot 与 WrenAI 功能清单基线
 
-`feature-list.md` 是本 change 的 SQLBot 与 WrenAI 全功能清单事实源，也是后续正式文档追踪矩阵的设计期入口。该文件 SHALL 随后续实现持续维护，逐项映射来源、归属 change、实现模块、公开 API/配置、存储、文档、测试、状态和限制；任何未实现、未验证或需后续 change 的能力必须保留在矩阵中并标记状态，不得从清单中删除或用泛化接口掩盖。
+`feature-list.md` 是本 change 的 SQLBot 与 WrenAI 全功能清单事实源，也是后续正式文档追踪矩阵的设计期入口。该文件 SHALL 随本 change 实现和接入验证持续维护，逐项映射来源、归属 change、实现模块、公开 API/配置、存储、文档、测试、状态和限制；任何需真实租户、外部凭据或业务 UI 接入验证的能力必须保留在矩阵中并标记状态，不得从清单中删除或用泛化接口掩盖。
 
 SQLBot 功能清单 SHALL 作为优先验收主线维护，详见 `openspec/changes/rework-ai-askdata-core-starter/feature-list.md`。当前摘要至少包含：产品介绍/工作原理、安装部署和初始化、命令行工具、工作空间/项目、数据源概览、Excel/CSV、MySQL、Oracle、PostgreSQL、SQL Server、ClickHouse、达梦、Apache Doris、AWS Redshift、Elasticsearch、Kingbase、StarRocks、Apache Hive 数据源配置；智能问数、问数上下文、SQL 生成、结果解释、图表/图片渲染、仪表板、小助手应用、基础/高级小助手、权限配置、术语配置、AI 模型配置、模型接入、Ollama 部署模型接入；训练检索、SQL 示例、Prompt/自定义提示词、项目成员和数据权限；MCP Server、嵌入式对接、DataEase 接入、Web/弹窗/页面嵌入、API 对接、MaxKB/Dify/Coze/n8n 等外部 Agent 平台调用；X-Pack 登录认证、平台对接、企业微信、钉钉、飞书、扫码登录、免登、组织用户同步、参数配置、外观设置、操作日志和企业级审计。SQLBot 文档后续新增的任何对接或功能页面都 SHALL 进入该矩阵。
 
@@ -133,7 +133,7 @@ Agent 运行状态由独立 `AskDataAgentStateStore` 管理，至少包含图状
 
 方言注册表不以 Doris 作为支持范围上限，而是建立 SQLBot 与 WrenAI 的统一数据源/方言能力矩阵。矩阵第一批至少覆盖 SQLBot 文档中的 MySQL、Oracle、PostgreSQL、SQL Server、ClickHouse、达梦、Apache Doris、AWS Redshift、Elasticsearch、Kingbase、StarRocks、Apache Hive、Excel/CSV，并覆盖 WrenAI 公开仓库中的 BigQuery、DuckDB、Snowflake、Redshift、SQL Server、ClickHouse、Oracle、PostgreSQL、MySQL 等连接器。重复项合并到同一个能力 key；同名但行为不同的连接器必须说明驱动、认证、分页、schema、函数、时间类型和限制差异。
 
-每个数据源能力 SHALL 明确连接器状态、元数据同步能力、Prompt 方言规则、SQL 解析/校验规则、分页/limit 改写、只读执行方式、系统 schema 限制、表列/行权限支持、dry-plan 支持、结果类型映射、测试数据和验证证据。尚未实现或无法在 Java 8/Spring Boot 2.7.18 中验证的项必须在矩阵中标记“未实现/未验证/后续”，不得用 Doris、MySQL 或任意单一数据源的通过结果代表全量支持。
+每个数据源能力 SHALL 明确连接器状态、元数据同步能力、Prompt 方言规则、SQL 解析/校验规则、分页/limit 改写、只读执行方式、系统 schema 限制、表列/行权限支持、dry-plan 支持、结果类型映射、测试数据和验证证据。需真实数据源或外部依赖验证的项必须在矩阵中标记验证状态，不得用 Doris、MySQL 或任意单一数据源的通过结果代表全量支持。
 
 校验器先解析单个只读语句，再执行元数据允许表校验、系统 schema 限制、物理限行改写和超时设置。执行器使用只读账户和查询级超时；任何校验失败均不得建立执行连接。业务 SQL 插件仅能在明确阶段基于受控命令对象追加内容，追加后的 SQL 必须重新进入完整校验管线。
 
@@ -161,7 +161,7 @@ DataEase 接入 SHALL 兼容 SQLBot 文档定义的高级应用方式：SQLBot �
 
 每一项配置和扩展 SPI 必须包含用途、默认值、取值范围、单机/集群限制、最小示例和失败表现；安全、恢复、模型切换和存储选择必须给出明确的禁止行为。文档示例不得包含真实凭据，并在 CI 中执行或编译其 Java 配置片段。
 
-文档首页必须维护“已实现功能清单”，以模块和版本为单位列出实际可用能力、公开配置/API、支持的单机/集群模式、最小验证证据与已知限制；每次实现任务完成后同步更新。未实现、仅规划、可选依赖未验证或需后续 change 提供的能力不得标为已实现，应在独立的“未包含/后续能力”章节说明范围，避免将路线图误报为产品功能。
+文档首页必须维护“已实现功能清单”，以模块和版本为单位列出实际可用能力、公开配置/API、支持的单机/集群模式、最小验证证据与已知限制；每次实现任务完成后同步更新。仅完成契约但未完成真实外部联通、可选依赖未验证或需业务模块接入的能力不得标为默认可用，应在业务覆盖接口章节说明范围，避免将契约覆盖误报为外部系统已连通。
 
 文档同时维护 SQLBot v1 功能追踪矩阵，以 `https://gitee.com/fit2cloud-feizhiyun/SQLBot` 和 `https://sqlbot.org/docs/v1/` 为基线。矩阵逐项映射 SQLBot 功能到本批次 change、实现模块、公开接口/配置、用户文档和自动化或人工验证证据；缺失项必须标记阻塞，不能以“后续可能支持”代替。核心 change 仅交付问数底座，其余 SQLBot 功能由治理、训练检索、API/MCP、企业、观测和控制台 change 分别闭环；所有矩阵项完成才是“功能完整”的验收条件。
 

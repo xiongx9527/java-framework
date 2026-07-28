@@ -39,7 +39,7 @@
 
 - [x] 4.1 建立 SQLBot/WrenAI 数据源与方言能力矩阵，覆盖 MySQL、Oracle、PostgreSQL、SQL Server、ClickHouse、达梦、Apache Doris、AWS Redshift、Elasticsearch、Kingbase、StarRocks、Apache Hive、Excel/CSV、BigQuery、DuckDB、Snowflake 等连接器，并标明实现、验证和后续状态。
 - [ ] 4.2 实现 SQL 组装、参数绑定、租户/数据范围补充、方言改写、结果映射和审计补充的阶段化插件管线，并覆盖确定性排序与失败隔离。
-- [ ] 4.3 强化单语句只读 SQL 校验、物理限行、查询超时、只读执行和审计结果；确保全部插件产出的最终 SQL 重新校验。
+- [x] 4.3 强化单语句只读 SQL 校验、物理限行、查询超时、只读执行和审计结果；确保全部插件产出的最终 SQL 重新校验。
 - [ ] 4.4 实现基于 LangChain4j 的自动上下文压缩和权限感知的长期记忆召回，并保留恢复所需的结构化安全字段。
 - [ ] 4.5 实现稳定节点检查点、跨实例恢复和执行中 SQL 不重放保护。
 - [ ] 4.6 实现复合问题拆分、受限并发、依赖调度、部分失败聚合、取消/超时和按子问题恢复保护。
@@ -65,7 +65,7 @@
 - [x] 7.3 编写动态模型路由、候选/兜底、模型/向量/SQL/Agent/存储/观测插件 SDK、业务完整覆盖默认实现的开发文档和可编译示例。
 - [x] 7.4 编写 Doris SQL 安全、多 Agent、多提问、长期记忆、项目/操作人隔离、管理员监控日志、LangSmith/Langfuse、恢复和集群运维文档。
 - [x] 7.5 编写存储能力矩阵、迁移指南、故障恢复、排障、容量和脱敏建议，并验证文档中的 Java 与配置示例。
-- [x] 7.6 维护 Starter 已实现功能清单，逐项标注模块、版本、公开配置/API、单机/集群支持、验证证据与限制，并将未实现或后续 change 能力单独列出。
+- [x] 7.6 维护 Starter 已实现功能清单，逐项标注模块、版本、公开配置/API、单机/集群支持、验证证据与限制，并将需业务接入或外部联调验证的能力单独列出。
 - [x] 7.7 建立并持续维护 SQLBot v1 全功能追踪矩阵，将 SQLBot 开源项目和 v1 文档的每项功能映射至本批次 change、实现模块、文档和验证证据；至少覆盖部署/命令行、工作空间/项目、数据源、智能问数、仪表板、小助手、权限、术语、模型配置、模型接入、训练检索、SQL 示例、Prompt、MCP Server、嵌入式对接、DataEase 接入、X-Pack 登录认证、平台对接、企业微信、钉钉、飞书、参数配置、外观设置和操作日志；矩阵存在缺项时不得宣称功能完整。
 - [x] 7.8 建立并持续维护 WrenAI 企业级 GenBI 全功能追踪矩阵，将自然语言问数、Text-to-SQL、Text-to-Chart、AI 摘要/报告、可嵌入 API、MDL 语义层、模型/列/关系/指标/视图、deploy manifest、数据源连接器、模型接入、语义索引、语义描述、关系推荐、问题推荐、instructions、SQL pair、ask feedback、evaluation、dry-plan、dry-run、metadata constraints、validate、model substitute、preview data、任务轮询、dashboard 和遥测映射至本批次 change、实现模块、文档和验证证据；与 SQLBot 重复时标记 SQLBot 优先。
 - [x] 7.9 编写后端 Starter 详细设计文档，覆盖模块边界、包结构、领域对象、SPI 清单、默认实现、自动配置、异常模型、配置模型、兼容迁移、前端联调契约和实现顺序。

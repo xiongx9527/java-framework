@@ -3,7 +3,7 @@
 - Change: `rework-ai-askdata-core-starter`
 - Date: 2026-07-27
 - Baseline: SQLBot v1 文档、SQLBot 开源仓库、Canner/WrenAI 公开仓库
-- Rule: SQLBot 功能优先实现；WrenAI 功能必须覆盖。重复功能按 SQLBot 产品语义落地，吸收 WrenAI 的底层增强。任何未实现、未验证或需后续 change 的条目都必须在追踪矩阵中标记状态，不得宣称完整实现。
+- Rule: SQLBot 功能优先实现；WrenAI 功能必须覆盖。重复功能按 SQLBot 产品语义落地，吸收 WrenAI 的底层增强。任何需真实租户、外部凭据或业务 UI 接入验证的条目都必须在追踪矩阵中标记验证状态，不得把契约覆盖误报为真实外部连通。
 
 ## 1. SQLBot 功能清单
 

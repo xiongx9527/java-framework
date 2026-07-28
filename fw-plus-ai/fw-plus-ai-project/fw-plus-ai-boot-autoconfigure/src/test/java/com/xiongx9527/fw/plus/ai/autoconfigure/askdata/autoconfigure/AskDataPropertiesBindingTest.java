@@ -23,6 +23,8 @@ public class AskDataPropertiesBindingTest {
                         "fw.plus.ai.askdata.model.infrastructure-failure-timeout-millis=15000",
                         "fw.plus.ai.askdata.sql.execute-enabled=false",
                         "fw.plus.ai.askdata.sql.default-max-rows=200",
+                        "fw.plus.ai.askdata.sql.query-timeout-seconds=12",
+                        "fw.plus.ai.askdata.sql.read-only-connection-required=false",
                         "fw.plus.ai.askdata.conversation.compression-threshold-chars=8000",
                         "fw.plus.ai.askdata.conversation.max-checkpoints-per-conversation=10",
                         "fw.plus.ai.askdata.state.monitoring-log-capacity=20")
@@ -38,6 +40,8 @@ public class AskDataPropertiesBindingTest {
                     assertEquals(false, properties.getModel().isFallbackEnabled());
                     assertEquals(Integer.valueOf(15000), properties.getModel().getInfrastructureFailureTimeoutMillis());
                     assertEquals(Integer.valueOf(200), properties.getSql().getDefaultMaxRows());
+                    assertEquals(Integer.valueOf(12), properties.getSql().getQueryTimeoutSeconds());
+                    assertEquals(false, properties.getSql().isReadOnlyConnectionRequired());
                     assertEquals(Integer.valueOf(8000), properties.getConversation().getCompressionThresholdChars());
                     assertEquals(Integer.valueOf(10), properties.getConversation().getMaxCheckpointsPerConversation());
                     assertEquals(Integer.valueOf(20), properties.getState().getMonitoringLogCapacity());
@@ -55,6 +59,8 @@ public class AskDataPropertiesBindingTest {
 					assertEquals("bge-m3", properties.getModel().getDefaultEmbeddingModel());
 					assertEquals(java.util.Arrays.asList("qwen3:32b"), properties.getModel().getChatCandidates());
 					assertEquals(java.util.Arrays.asList("bge-m3"), properties.getModel().getEmbeddingCandidates());
+					assertEquals(Integer.valueOf(30), properties.getSql().getQueryTimeoutSeconds());
+					assertEquals(true, properties.getSql().isReadOnlyConnectionRequired());
 				});
 	}
 }
