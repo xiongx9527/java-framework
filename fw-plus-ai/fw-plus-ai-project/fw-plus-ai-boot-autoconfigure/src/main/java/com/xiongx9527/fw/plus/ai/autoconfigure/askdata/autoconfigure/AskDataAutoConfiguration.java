@@ -46,6 +46,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
@@ -65,24 +67,6 @@ public class AskDataAutoConfiguration {
 	}
 
     /**
-     * 创建单机 AskData Core 状态集合。
-     *
-     * <p>该集合包含按 {@code projectId + operatorId} 隔离的会话、检查点、智能体状态和监控日志。它不共享进程间数据，
-     * 因而仅可在 {@code state.cluster-mode=false} 时作为默认值；集群模式选择内存状态或内存向量时必须在 Spring 启动期间
-     * 明确失败，不能将恢复、审计或授权范围静默降级到本地节点。</p>
-     *
-     * @param properties AskData 部署配置
-     * @return 单机默认状态集合
-     */
-    @Bean
-    @ConditionalOnMissingBean({ com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class,
-            AskDataCheckpointStore.class, AskDataAgentStateStore.class })
-    public InMemoryAskDataStores askDataInMemoryStores(AskDataProperties properties) {
-        validateLocalStateConfiguration(properties);
-        return InMemoryAskDataStores.singleNode();
-    }
-
-    /**
      * 暴露默认的 Core 会话存储，供新 Core API 使用。
      *
      * <p>旧流程的 {@link AskDataConversationStore} 保持独立，以避免旧 DTO 泄漏到 Core 契约。业务若提供共享 Core 存储 SPI
@@ -91,8 +75,9 @@ public class AskDataAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class)
     public com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore coreAskDataConversationStore(
-            InMemoryAskDataStores stores) {
-        return stores.conversations();
+            AskDataProperties properties) {
+        validateLocalStateConfiguration(properties);
+        return InMemoryAskDataStores.singleNode().conversations();
     }
 
     /**
@@ -100,8 +85,9 @@ public class AskDataAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(AskDataCheckpointStore.class)
-    public AskDataCheckpointStore askDataCheckpointStore(InMemoryAskDataStores stores) {
-        return stores.checkpoints();
+    public AskDataCheckpointStore askDataCheckpointStore(AskDataProperties properties) {
+        validateLocalStateConfiguration(properties);
+        return InMemoryAskDataStores.singleNode().checkpoints();
     }
 
     /**
@@ -109,8 +95,9 @@ public class AskDataAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(AskDataAgentStateStore.class)
-    public AskDataAgentStateStore askDataAgentStateStore(InMemoryAskDataStores stores) {
-        return stores.agentStates();
+    public AskDataAgentStateStore askDataAgentStateStore(AskDataProperties properties) {
+        validateLocalStateConfiguration(properties);
+        return InMemoryAskDataStores.singleNode().agentStates();
     }
 
     /**
@@ -119,6 +106,7 @@ public class AskDataAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(AskDataMonitoringLogStore.class)
     public AskDataMonitoringLogStore askDataMonitoringLogStore(AskDataProperties properties) {
+        validateDefaultMonitoringLogConfiguration(properties);
         Integer capacity = properties.getState().getMonitoringLogCapacity();
         return new InMemoryAskDataMonitoringLogStore(capacity == null || capacity.intValue() <= 0 ? 1000
                 : capacity.intValue());
@@ -129,9 +117,9 @@ public class AskDataAutoConfiguration {
      *
      * <p>外部监控导出可另行组合，但不能替代本发布器；任何导出失败策略也不得改变本地脱敏日志的隔离和保存行为。</p>
      */
-    @Bean
-    @ConditionalOnMissingBean
-    public AskDataEventPublisher askDataEventPublisher(AskDataMonitoringLogStore monitoringLogStore) {
+    @Bean(name = "askDataMonitoringLogEventPublisher")
+    @Primary
+    public AskDataEventPublisher askDataMonitoringLogEventPublisher(AskDataMonitoringLogStore monitoringLogStore) {
         return AskDataEventPublisher.toStore(monitoringLogStore);
     }
 
@@ -228,13 +216,15 @@ public class AskDataAutoConfiguration {
             AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
             AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
-            ObjectProvider<AskDataAgent> agentProvider, ObjectProvider<AskDataEventPublisher> eventPublisherProvider) {
+            ObjectProvider<AskDataAgent> agentProvider,
+            @Qualifier("askDataMonitoringLogEventPublisher") AskDataEventPublisher monitoringLogEventPublisher,
+            ObjectProvider<AskDataEventPublisher> eventPublisherProvider) {
         List<AskDataAgent> mainAgents = agentProvider.orderedStream()
                 .filter(agent -> !(agent instanceof AskDataSubAgent))
                 .collect(Collectors.toList());
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
-                agentDispatcher, mainAgents, eventPublisherProvider.getIfAvailable());
+                agentDispatcher, mainAgents, combineEventPublishers(monitoringLogEventPublisher, eventPublisherProvider));
     }
 
 	/**
@@ -287,5 +277,36 @@ public class AskDataAutoConfiguration {
         if (properties.getState().isClusterMode()) {
             throw new IllegalStateException("AskData 集群模式不能使用默认本地会话状态；请提供共享会话存储实现");
         }
+    }
+
+    /**
+     * 拒绝在集群节点中创建本地监控日志存储，避免基础审计记录只留在单个节点。
+     */
+    private void validateDefaultMonitoringLogConfiguration(AskDataProperties properties) {
+        if (properties.getState().isClusterMode()) {
+            throw new IllegalStateException("AskData 集群模式不能使用默认本地监控日志；请提供共享 AskDataMonitoringLogStore 实现");
+        }
+    }
+
+    /**
+     * 基础监控日志必须先写入，再调用业务提供的外部观测发布器。
+     */
+    private AskDataEventPublisher combineEventPublishers(final AskDataEventPublisher monitoringLogEventPublisher,
+            ObjectProvider<AskDataEventPublisher> eventPublisherProvider) {
+        final List<AskDataEventPublisher> externalPublishers = eventPublisherProvider.orderedStream()
+                .filter(publisher -> publisher != monitoringLogEventPublisher)
+                .collect(Collectors.toList());
+        if (externalPublishers.isEmpty()) {
+            return monitoringLogEventPublisher;
+        }
+        return new AskDataEventPublisher() {
+            @Override
+            public void publish(com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent event) {
+                monitoringLogEventPublisher.publish(event);
+                for (AskDataEventPublisher externalPublisher : externalPublishers) {
+                    externalPublisher.publish(event);
+                }
+            }
+        };
     }
 }

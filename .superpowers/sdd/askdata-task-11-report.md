@@ -67,3 +67,33 @@ cd fw-plus-ai
 ```
 
 结果：34 tests，0 failures，0 errors。
+
+## 第二轮 Reviewer 修复 RED/GREEN
+
+### RED
+
+新增三项回归测试后，执行：
+
+```bash
+cd fw-plus-ai
+./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=AskDataConversationStoreTest,AskDataMonitoringLogStoreTest,DefaultAskDataFlowExecutorTest,AskDataAutoConfigurationTest,AskDataPropertiesBindingTest test
+```
+
+结果：38 tests，2 failures，1 error。集群模式在三个 Core 状态 SPI、向量和旧会话均由业务提供但缺少 `AskDataMonitoringLogStore` 时仍可启动；业务自定义 `AskDataEventPublisher` 会使基础监控日志为空；只替换一个 Core 状态 SPI 时其余默认 SPI 因依赖未创建的 `InMemoryAskDataStores` 无法启动。修正测试 Bean 名冲突后，三项均稳定为预期失败断言。
+
+### GREEN
+
+- 三个 Core 状态 SPI 以独立的单机内存默认工厂补齐，因此任意一个 SPI 被业务替换时，其余缺失 SPI 仍可装配；集群模式下任一默认工厂仍拒绝本地状态。
+- 默认监控日志存储在集群模式启动期拒绝，要求业务提供共享 `AskDataMonitoringLogStore`，不再因其余状态 SPI 已存在而静默落到节点内存。
+- 基础监控日志发布器固定为主发布器；默认 flow 会先写入该发布器，再调用业务自定义发布器，外部导出不能替代项目与操作人隔离的脱敏日志。
+
+验证：
+
+```bash
+cd fw-plus-ai
+./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=AskDataConversationStoreTest,AskDataMonitoringLogStoreTest,DefaultAskDataFlowExecutorTest,AskDataAutoConfigurationTest,AskDataPropertiesBindingTest test
+```
+
+结果：38 tests，0 failures，0 errors。

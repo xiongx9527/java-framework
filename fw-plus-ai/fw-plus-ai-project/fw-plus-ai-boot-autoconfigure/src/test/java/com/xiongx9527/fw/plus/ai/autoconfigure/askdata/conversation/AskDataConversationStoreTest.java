@@ -14,6 +14,7 @@ import java.util.Date;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AskDataConversationStoreTest {
@@ -24,6 +25,36 @@ public class AskDataConversationStoreTest {
                 .withUserConfiguration(AskDataAutoConfiguration.class)
                 .run(context -> {
                     assertNotNull(context.getBean(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class));
+                    assertNotNull(context.getBean(AskDataCheckpointStore.class));
+                    assertNotNull(context.getBean(AskDataAgentStateStore.class));
+                });
+    }
+
+    @Test
+    public void shouldProvideRemainingCoreMemoryStateStoresWhenBusinessReplacesConversationStore() {
+        com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore customConversationStore =
+                new com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore() {
+                    @Override
+                    public void save(com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext context,
+                            String conversationId, Conversation conversation) {
+                    }
+
+                    @Override
+                    public Conversation load(com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext context,
+                            String conversationId) {
+                        return null;
+                    }
+                };
+
+        new ApplicationContextRunner()
+                .withUserConfiguration(AskDataAutoConfiguration.class)
+                .withBean("customCoreConversationStore",
+                        com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class,
+                        () -> customConversationStore)
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    assertSame(customConversationStore, context.getBean(
+                            com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class));
                     assertNotNull(context.getBean(AskDataCheckpointStore.class));
                     assertNotNull(context.getBean(AskDataAgentStateStore.class));
                 });

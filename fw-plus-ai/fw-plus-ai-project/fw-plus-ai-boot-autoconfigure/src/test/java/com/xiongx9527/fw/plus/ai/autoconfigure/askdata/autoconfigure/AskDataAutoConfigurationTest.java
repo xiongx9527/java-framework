@@ -214,6 +214,27 @@ public class AskDataAutoConfigurationTest {
     }
 
     @Test
+    public void shouldPersistBaseMonitoringLogsBeforePublishingToCustomPublisher() {
+        final java.util.concurrent.atomic.AtomicInteger customPublishCount =
+                new java.util.concurrent.atomic.AtomicInteger();
+        withDefaultFlowDependencies()
+                .withBean(com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher.class,
+                        () -> event -> customPublishCount.incrementAndGet())
+                .run(context -> {
+                    AskDataResult result = context.getBean(AskDataService.class).ask(createRequest());
+                    java.util.List<com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog> logs =
+                            context.getBean(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.class)
+                                    .list(new com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext(
+                                            "default", "default"));
+
+                    assertTrue(result.isSuccess());
+                    assertTrue(hasLifecycleEvent(logs, "CONVERSATION_STARTED"));
+                    assertTrue(hasLifecycleEvent(logs, "CONVERSATION_COMPLETED"));
+                    assertTrue(customPublishCount.get() > 0);
+                });
+    }
+
+    @Test
     public void shouldExecuteAndRecordCustomMainAgent() {
         AskDataAgent mainAgent = new AskDataAgent() {
             @Override
