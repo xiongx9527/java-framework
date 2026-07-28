@@ -51,8 +51,14 @@ fw:
 - [Java 17 远程运行时](java17-remote-runtime.md)：不兼容运行时的远程接入协议和治理要求。
 - [SQL 安全](sql-safety.md)：插件链、最终校验、限行与审计。
 - [存储矩阵](storage-matrix.md)：默认内存、共享存储和容量规划。
+- [插件 SDK](plugin-sdk.md)：模型、向量、SQL、Agent、存储和观测扩展，以及 Java 8 可编译示例。
+- [存储运维](storage-operations.md)：迁移、故障恢复、容量、脱敏和验证步骤。
 - [数据库设计](database-design.md)：逻辑数据模型与持久化扩展点。
 - [流程图](flow-diagrams.md)：业务、技术、故障、恢复、监控与外部集成流程。
+- [SQLBot 外部系统](sqlbot-external-integrations.md)：模型、MCP、嵌入、企业平台和联调契约。
+- [接口重实现示例](transport-examples.md)：HTTP、RPC、消息和 MCP 的业务侧实现方式。
+- [问数调用示例](question-examples.md)：单问题、显式多问题、复合问题和部分失败。
+- [验证记录](verification.md)：已运行验证、需要运行的环境验证和当前风险。
 
 ## 后续可扩展与业务覆盖接口
 
