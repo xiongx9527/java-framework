@@ -34,7 +34,7 @@
 | J17-02 | Java 17 remote runtime | 验证远程运行时不可扩权、不可改写路由、可灰度回退。 | 远程服务尝试更改项目、数据源或模型 key。 | 发送篡改响应、健康失败和熔断场景。 | 主进程拒绝越权字段；按项目/能力 key 灰度；回退至已验证 LangChain4j/Ollama。 | 后续补安全与灰度集成测试。 |
 | FE-01 | frontend integration | 验证控制台/嵌入式小助手只使用后端短期 token。 | Vue3 测试宿主页、token 服务桩。 | 以浮窗、全屏、区域嵌入加载；检查 localStorage、Cookie、Header。 | 不暴露 appSecret/宿主凭据；token 过期/越权被拒绝；项目/操作人上下文完整。 | 后续实现前端后补 Playwright 测试。 |
 | FE-02 | frontend integration | 验证 DataEase、MCP、Dify、Coze、n8n 接入的权限与结果契约。 | 各调用方桩、DataEase `x-de-token` 与 AES-Key 测试密钥。 | 调用 datasource、问数、流式/轮询接口，模拟无权和密钥轮换。 | 只返回授权数据源和脱敏结果；DataEase 固定接口兼容；所有调用进入 SQL 校验和审计。 | 后续为 MCP/API/嵌入发布模块建立契约 IT。 |
-| ENT-01 | frontend integration | 验证企业微信、钉钉、飞书扫码/免登、组织同步和配置审计。 | 测试租户或 OAuth 回调桩。 | 执行登录、免登、同步、密钥轮换和成员撤销。 | 映射为 AskData 项目成员；敏感配置只存引用；变更和失败写管理员审计。 | 后续实现企业模块后补端到端测试。 |
+| ENT-01 | frontend integration | 验证业务 IAM/JustAuth 完成企业微信、钉钉、飞书扫码/免登、组织同步后，将身份映射为 AskData 项目成员并完成配置审计。 | 测试租户或 JustAuth 回调桩。 | 由 JustAuth 执行登录、免登、同步、密钥轮换和成员撤销，再用已认证 `operatorId/projectId` 调用 AskData。 | AskData 不自研 OAuth/扫码协议；敏感配置只存引用；变更和失败写管理员审计。 | 业务 IAM/JustAuth 联调和 AskData 接口契约需要在测试租户运行。 |
 
 ## 最小验收顺序
 
