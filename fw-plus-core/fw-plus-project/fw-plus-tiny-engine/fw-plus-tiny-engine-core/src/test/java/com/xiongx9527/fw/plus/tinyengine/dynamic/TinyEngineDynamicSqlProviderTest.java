@@ -152,6 +152,29 @@ class TinyEngineDynamicSqlProviderTest {
 				() -> provider.batchInsert("dynamic_customer", Collections.singletonList(Collections.<String, Object>singletonMap("name; DROP", "Alice"))));
 	}
 
+	@Test
+	void shouldMapControlledColumnTypesAndRejectRawTypeFragments() {
+		DynamicTableDefinition definition = new DynamicTableDefinition("dynamic_customer", Arrays.asList(
+				new DynamicColumnDefinition("display_name", "VARCHAR", false),
+				new DynamicColumnDefinition("code", "char", true),
+				new DynamicColumnDefinition("amount", "DECIMAL", true)));
+
+		String sql = provider.createTable(definition);
+
+		assertTrue(sql.contains("display_name VARCHAR(255) NOT NULL"));
+		assertTrue(sql.contains("code CHAR(1)"));
+		assertTrue(sql.contains("amount DECIMAL"));
+
+		String[] unsafeTypes = {
+				"VARCHAR(64)", "VARCHAR(255); DROP TABLE users", "TEXT COMMENT 'injected'", "INT UNSIGNED"
+		};
+		for (String unsafeType : unsafeTypes) {
+			DynamicTableDefinition unsafeDefinition = new DynamicTableDefinition("dynamic_customer",
+					Collections.singletonList(new DynamicColumnDefinition("unsafe_column", unsafeType, true)));
+			assertThrows(TinyEngineSqlIdentifierException.class, () -> provider.createTable(unsafeDefinition));
+		}
+	}
+
 	private Map<String, Object> baseCrudParams() {
 		Map<String, Object> params = new LinkedHashMap<String, Object>();
 		params.put("tableName", "dynamic_customer");

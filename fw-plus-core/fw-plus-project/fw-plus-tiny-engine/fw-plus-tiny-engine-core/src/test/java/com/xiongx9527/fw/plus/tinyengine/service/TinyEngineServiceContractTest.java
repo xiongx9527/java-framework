@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.tinyengine.service;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
 import com.xiongx9527.fw.plus.tinyengine.common.model.PageQueryVo;
+import com.xiongx9527.fw.plus.tinyengine.dynamic.sql.TinyEngineSqlIdentifierException;
 import com.xiongx9527.fw.plus.tinyengine.mapper.*;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.*;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.*;
@@ -352,20 +353,22 @@ class TinyEngineServiceContractTest {
 	}
 
 	@Test
-	void modelDdlRejectsUnsafeTableIdentifier() {
+	void modelDdlUsesCentralValidatorForTableIdentifier() {
 		ModelMapper mapper = mock(ModelMapper.class);
 		ModelServiceImpl service = new ModelServiceImpl();
 		setBaseMapper(service, mapper);
 		Model model = model("users; DROP TABLE audit", new ParametersDto[0]);
 		when(mapper.selectById(1)).thenReturn(model);
 
-		ServiceException exception = assertThrows(ServiceException.class, () -> service.getTableById(1));
+		TinyEngineSqlIdentifierException exception = assertThrows(TinyEngineSqlIdentifierException.class,
+				() -> service.getTableById(1));
 
-		assertEquals("CM002", exception.getCode());
+		assertEquals("TE_SQL_IDENTIFIER_INVALID", exception.getCode());
+		assertTrue(exception.getMessage().contains("table name"));
 	}
 
 	@Test
-	void modelDdlRejectsUnsafeColumnIdentifier() {
+	void modelDdlUsesCentralValidatorForFieldIdentifier() {
 		ModelMapper mapper = mock(ModelMapper.class);
 		ModelServiceImpl service = new ModelServiceImpl();
 		setBaseMapper(service, mapper);
@@ -375,9 +378,11 @@ class TinyEngineServiceContractTest {
 		Model model = model("safe_table", field);
 		when(mapper.selectById(1)).thenReturn(model);
 
-		ServiceException exception = assertThrows(ServiceException.class, () -> service.getTableById(1));
+		TinyEngineSqlIdentifierException exception = assertThrows(TinyEngineSqlIdentifierException.class,
+				() -> service.getTableById(1));
 
-		assertEquals("CM002", exception.getCode());
+		assertEquals("TE_SQL_IDENTIFIER_INVALID", exception.getCode());
+		assertTrue(exception.getMessage().contains("field name"));
 	}
 
 	@Test
