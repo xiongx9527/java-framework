@@ -2,12 +2,12 @@
 
 ## 当前任务
 
-- Plan task: `Task 8: 定义观测事件和管理员监控日志契约`
-- OpenSpec task mapping: `5.1` / `5.3` / `5.4` 的 Core 契约子集（本任务只覆盖事件、发布与管理员监控日志访问契约，完整导出器和存储适配由后续任务继续）
+- Plan task: `Task 9: 将现有自动配置桥接到 Core 契约`
+- OpenSpec task mapping: `6.1` / `6.2` / `6.3` 的兼容桥接子集（本任务迁移现有自动配置对 Core 契约的引用，完整 Starter 默认实现由后续任务继续）
 - Stage: `task-implementation`
 - Review mode: `thorough`
 - TDD mode: `tdd`
-- Base commit: `970cad78fd7baf839c847ba49642c4402894d2b2`
+- Base commit: `e38367f34f3bfcbff089d62d8cae0027a1e12034`
 - Implementer commit: `待派发`
 - Task brief: `待生成`
 - Implementer report: `待生成`
@@ -61,3 +61,9 @@
 - 2026-07-28：fix agent 返回 `DONE`，提交 `970cad78`；补齐多提问、长期记忆、按人推荐公开 SPI 方法级中文 Javadoc，并新增空白 `operatorId` 仅在策略允许时回退通用建议的契约测试。协调者在 AskData 分支复跑 `AskDataMemoryAndRecommendationTest`，结果 6 项通过。
 - 2026-07-28：Task 7 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
 - 2026-07-28：已勾选 plan 中 Task 7 的 5 个 step；OpenSpec 1.8/1.9/2.6 仍包含多提问完整调度、推荐排序画像和长期记忆存储适配等后续内容，本任务不单独勾选。
+- 2026-07-28：准备派发 Task 8 implementer。允许修改范围限定为 `fw-plus-ai-askdata` 模块内 observability 源码与对应测试；禁止修改其他 active change、TinyEngine、tiny-engine-backend-java。
+- 2026-07-28：implementer 返回 `DONE`，提交 `52a7b1c`；RED 为观测契约类型不存在，GREEN 为 `AskDataObservabilityContractTest` 2 项通过。实现厂商无关事件、发布 SPI、监控日志 DTO 与管理员访问策略。
+- 2026-07-28：Task 8 reviewer 返回 `Needs fixes`；Important 问题为事件发布契约未强制消费 `AskDataMonitoringLogStore`，无法保证每次事件形成脱敏监控日志并写入。当前 thorough 修复轮次：1/2。
+- 2026-07-28：fix agent 返回 `DONE`，提交 `e38367f`；新增 `AskDataEventPublisher.toStore(...)`，将事件转换为 storage 侧 `MonitoringLog` 并按原 `projectId + operatorId` 上下文追加。协调者复跑 `AskDataObservabilityContractTest`，结果 3 项通过。
+- 2026-07-28：Task 8 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。
+- 2026-07-28：已勾选 plan 中 Task 8 的 5 个 step；OpenSpec 5.1/5.3/5.4 仍包含异步导出器、日志查询存储适配和完整授权查询等后续内容，本任务不单独勾选。

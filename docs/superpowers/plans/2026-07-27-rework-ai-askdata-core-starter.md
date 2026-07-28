@@ -418,11 +418,11 @@ git commit -m "feat: add askdata memory and recommendation contracts"
 - Produces: vendor-neutral observability contracts and admin access policy
 - Consumes: storage SPI
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试 Task 8**
 
 Assert lifecycle events exist for conversation start, question planning, model route, agent node, SQL validation/execution, checkpoint, recovery, completion and failure. Assert project admin can read project logs and normal operator cannot read admin logs by default.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试 Task 8**
 
 ```bash
 cd fw-plus-core
@@ -431,15 +431,15 @@ cd fw-plus-core
 
 Expected: FAIL.
 
-- [ ] **Step 3: 实现观测契约**
+- [x] **Step 3: 实现观测契约 Task 8**
 
 Implement event DTOs and access policy interfaces. Do not depend on LangSmith, Langfuse or OpenTelemetry in Core.
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证 Task 8**
 
 Run the same test. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 8**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/observability \
