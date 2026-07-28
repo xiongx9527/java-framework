@@ -10,7 +10,7 @@
 - Task: Task 8: 迁移动态模型 DAO、服务与 SQL Provider
 - OpenSpec mapping: 5.1, 5.3, 5.4, 5.5
 - Stage: implementing
-- Implementer: pending dispatch
+- Implementer: Jason dispatch closed without visible changes; retry pending
 - Reviewer: pending
 - Fixer: pending
 - Review/fix rounds: 0
@@ -22,3 +22,4 @@
 - Required RED/GREEN command: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core -Dtest=TinyEngineDynamicSqlProviderTest,TinyEngineDynamicServiceContractTest test`
 - Required commit: `feat: migrate tiny engine dynamic model core`
 - Risk signals: dynamic SQL safety boundary, public dynamic CRUD/table lifecycle API, data/schema operations, diff likely exceeds 200 lines.
+- Dispatch note: first implementer stopped on Comet active-change ambiguity, then timed out without visible worktree changes or report; coordinator closed it before retrying.
