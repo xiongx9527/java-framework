@@ -25,7 +25,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDocument;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
-import org.junit.Test;
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,9 +34,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AskDataResumeFlowTest {
 
@@ -337,6 +338,7 @@ public class AskDataResumeFlowTest {
             request.setDialect("mysql");
             request.setModelKey("model-1");
             request.setQuestion("订单数量");
+            request.setProjectContext(new AskDataProjectContext("project-a", "operator-a"));
             request.setExecute(Boolean.TRUE);
             request.setMaxRows(Integer.valueOf(100));
             return request;

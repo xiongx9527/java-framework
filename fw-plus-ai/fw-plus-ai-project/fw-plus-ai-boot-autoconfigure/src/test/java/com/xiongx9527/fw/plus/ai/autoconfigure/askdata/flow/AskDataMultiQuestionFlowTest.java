@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataErrorCode;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataMemoryRecallAdapter;
@@ -44,8 +45,15 @@ public class AskDataMultiQuestionFlowTest {
 
     @Test
     public void shouldCreateAuditedChildResultsForExplicitTwoQuestionRequest() {
-        AskDataResult result = executor(false).execute(request(FIRST_QUESTION, SECOND_QUESTION));
+        assertAuditedChildResults(executor(false).execute(request(FIRST_QUESTION, SECOND_QUESTION)));
+    }
 
+    @Test
+    public void shouldCreateAuditedChildResultsForCompoundQuestionPlan() {
+        assertAuditedChildResults(executor(false).execute(compoundRequest()));
+    }
+
+    private void assertAuditedChildResults(AskDataResult result) {
         List<AskDataResult> children = result.getChildResults();
         assertEquals(2, children.size());
         assertTrue(children.get(0).isSuccess());
@@ -55,8 +63,8 @@ public class AskDataMultiQuestionFlowTest {
     }
 
     @Test
-    public void shouldKeepSuccessfulChildWhenAnotherExplicitQuestionFails() {
-        AskDataResult result = executor(true).execute(request(FIRST_QUESTION, SECOND_QUESTION));
+    public void shouldKeepSuccessfulChildWhenAnotherPlannedQuestionFails() {
+        AskDataResult result = executor(true).execute(compoundRequest());
 
         List<AskDataResult> children = result.getChildResults();
         assertFalse(result.isSuccess());
@@ -92,17 +100,48 @@ public class AskDataMultiQuestionFlowTest {
         assertEquals(Collections.singletonList("current operator"), adapter.recommend(current));
     }
 
+    @Test
+    public void shouldKeepSingleQuestionFlowWhenPlannerReturnsSingleQuestion() {
+        AskDataRequest request = baseRequest(FIRST_QUESTION);
+
+        AskDataResult result = executor(false).execute(request);
+
+        assertTrue(result.isSuccess());
+        assertTrue(result.getChildResults().isEmpty());
+    }
+
+    @Test
+    public void shouldRejectMultiQuestionRequestWithResumeTokenBeforeCreatingChildren() {
+        AskDataRequest request = request(FIRST_QUESTION, SECOND_QUESTION);
+        request.setResumeToken("resume-token");
+
+        AskDataResult result = executor(false).execute(request);
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, result.getErrorCode());
+        assertTrue(result.getChildResults().isEmpty());
+    }
+
     private AskDataRequest request(String... questions) {
+        AskDataRequest request = baseRequest(questions[0]);
+        Map<String, Object> options = new LinkedHashMap<String, Object>();
+        options.put("questions", Arrays.asList(questions));
+        request.setOptions(options);
+        return request;
+    }
+
+    private AskDataRequest compoundRequest() {
+        return baseRequest(FIRST_QUESTION + "；" + SECOND_QUESTION);
+    }
+
+    private AskDataRequest baseRequest(String question) {
         AskDataRequest request = new AskDataRequest();
-        request.setQuestion(questions[0]);
+        request.setQuestion(question);
         request.setProjectContext(new AskDataProjectContext("project-a", "operator-a"));
         request.setDatasourceKey("orders");
         request.setDialect("mysql");
         request.setModelKey("test-model");
         request.setExecute(Boolean.FALSE);
-        Map<String, Object> options = new LinkedHashMap<String, Object>();
-        options.put("questions", Arrays.asList(questions));
-        request.setOptions(options);
         return request;
     }
 

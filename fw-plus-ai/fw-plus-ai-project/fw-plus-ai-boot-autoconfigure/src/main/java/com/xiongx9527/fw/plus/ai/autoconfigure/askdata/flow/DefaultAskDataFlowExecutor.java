@@ -26,6 +26,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDocument;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlan;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
@@ -64,6 +66,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private final AskDataAgentDispatcher agentDispatcher;
     private final List<AskDataAgent> mainAgents;
     private final AskDataEventPublisher eventPublisher;
+    private final AskDataQuestionPlanner questionPlanner;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -110,6 +113,23 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
             AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
             List<AskDataAgent> mainAgents, AskDataEventPublisher eventPublisher) {
+        this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
+                sqlValidator, sqlExecutor, conversationStore, contextCompressor, agentDispatcher, mainAgents,
+                eventPublisher, AskDataQuestionPlanner.simple());
+    }
+
+    /**
+     * 创建支持问题计划的默认执行器。
+     *
+     * <p>规划器仅将问题划分为独立执行单元；每个单元仍复用同一项目和操作人上下文，不能改变隔离边界。</p>
+     */
+    public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+            AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+            AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
+            List<AskDataAgent> mainAgents, AskDataEventPublisher eventPublisher,
+            AskDataQuestionPlanner questionPlanner) {
         this.properties = properties;
         this.modelRegistry = modelRegistry;
         this.metadataProvider = metadataProvider;
@@ -124,12 +144,17 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         this.mainAgents = mainAgents == null ? Collections.<AskDataAgent>emptyList()
                 : new ArrayList<AskDataAgent>(mainAgents);
         this.eventPublisher = eventPublisher;
+        this.questionPlanner = questionPlanner == null ? AskDataQuestionPlanner.simple() : questionPlanner;
     }
 
     @Override
     public AskDataResult execute(AskDataRequest request) {
-        List<String> questions = explicitQuestions(request);
+        List<String> questions = plannedQuestions(request);
         if (questions.size() > 1) {
+            if (isResumeRequested(request)) {
+                return failure(new AskDataResult(), "multi-question", AskDataErrorCode.RESUME_FAILED,
+                        "AskData 多问题请求不支持恢复执行");
+            }
             return executeMultiple(request, questions);
         }
         return executeSingle(request);
@@ -138,7 +163,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     /**
      * 执行兼容的单问题流程。
      *
-     * <p>该路径保留原有的会话、恢复和步骤顺序；多问题仅在调用方显式提供问题列表时才会进入聚合流程。</p>
+     * <p>该路径保留原有的会话、恢复和步骤顺序；仅多问题计划会进入聚合流程。</p>
      */
     private AskDataResult executeSingle(AskDataRequest request) {
         AskDataResult result = new AskDataResult();
@@ -168,7 +193,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     }
 
     /**
-     * 将显式多问题拆分为相互独立的子请求。
+     * 将多问题计划拆分为相互独立的子请求。
      *
      * <p>子请求复用同一项目和操作人上下文，不会把其中任一问题的失败扩散到其他问题。每个子结果写入
      * 独立审计步骤，聚合结果仅汇总是否全部成功，不合并敏感的模型输出或 SQL。</p>
@@ -221,6 +246,25 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             }
         }
         return questions;
+    }
+
+    /**
+     * 将显式列表或复合问题转换为合法的 Core 问题计划。
+     *
+     * <p>无计划、无效计划或单问题计划均回退至原单问题流程，不会调用模型补充问题。</p>
+     */
+    private List<String> plannedQuestions(AskDataRequest request) {
+        if (request == null) {
+            return Collections.emptyList();
+        }
+        try {
+            List<String> explicitQuestions = explicitQuestions(request);
+            AskDataQuestionPlan plan = explicitQuestions.isEmpty()
+                    ? questionPlanner.plan(request.getQuestion()) : questionPlanner.plan(explicitQuestions);
+            return plan.isMultiQuestion() ? plan.getQuestions() : Collections.<String>emptyList();
+        } catch (IllegalArgumentException ex) {
+            return Collections.emptyList();
+        }
     }
 
     private AskDataResult executeNew(AskDataRequest request, AskDataResult result, AskDataStepContext context) {
