@@ -1,10 +1,19 @@
 package com.xiongx9527.fw.plus.ai.langchain4j.model;
 
+import com.xiongx9527.fw.plus.ai.model.AiModel;
+import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,6 +21,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class DefaultLangChain4jModelFactoryTest {
 
     private final DefaultLangChain4jModelFactory factory = new DefaultLangChain4jModelFactory();
+
+    @Test
+    public void shouldExposeLangChain4jAsNeutralAdapterWithoutNativeAccessor() {
+        Object nativeModel = new Object();
+        CapturingAdapter providerAdapter = new CapturingAdapter(
+                new LangChain4jModel("openai-compatible", LangChain4jModelType.CHAT, nativeModel));
+        AiModelAdapter adapter = new DefaultLangChain4jModelFactory(
+                Collections.<LangChain4jModelProviderAdapter>singletonList(providerAdapter));
+        AiModelDefinition definition = neutralDefinition("chat.alias", "openai-compatible", AiModelType.CHAT);
+
+        AiModel model = adapter.create(definition);
+
+        assertEquals("chat.alias", model.getKey());
+        assertEquals("langchain4j", model.getFramework());
+        assertEquals("openai-compatible", model.getProvider());
+        assertEquals(AiModelType.CHAT, model.getType());
+        assertEquals("alias-model", providerAdapter.definition.getModelName());
+        assertFalse(hasPublicNativeAccessor(model));
+    }
 
     @Test
     public void shouldCreateModelWithFirstSupportedAdapter() {
@@ -91,6 +119,29 @@ public class DefaultLangChain4jModelFactoryTest {
         return definition;
     }
 
+    private AiModelDefinition neutralDefinition(String key, String provider, AiModelType type) {
+        Map<String, Object> properties = new LinkedHashMap<String, Object>();
+        properties.put("modelName", "alias-model");
+        AiModelDefinition definition = new AiModelDefinition();
+        definition.setKey(key);
+        definition.setFramework("langchain4j");
+        definition.setProvider(provider);
+        definition.setType(type);
+        definition.setEnabled(true);
+        definition.setProperties(properties);
+        return definition;
+    }
+
+    private boolean hasPublicNativeAccessor(AiModel model) {
+        for (Method method : model.getClass().getMethods()) {
+            if ("getModel".equals(method.getName())
+                    || method.getReturnType().getName().startsWith("dev.langchain4j.")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static class FakeAdapter implements LangChain4jModelProviderAdapter {
         private final boolean supports;
         private final LangChain4jModel model;
@@ -118,6 +169,24 @@ public class DefaultLangChain4jModelFactoryTest {
 
         public LangChain4jModel create(LangChain4jModelDefinition definition) {
             throw failure;
+        }
+    }
+
+    private static class CapturingAdapter implements LangChain4jModelProviderAdapter {
+        private final LangChain4jModel model;
+        private LangChain4jModelDefinition definition;
+
+        private CapturingAdapter(LangChain4jModel model) {
+            this.model = model;
+        }
+
+        public boolean supports(LangChain4jModelDefinition definition) {
+            return "openai-compatible".equals(definition.getProvider());
+        }
+
+        public LangChain4jModel create(LangChain4jModelDefinition definition) {
+            this.definition = definition;
+            return model;
         }
     }
 }
