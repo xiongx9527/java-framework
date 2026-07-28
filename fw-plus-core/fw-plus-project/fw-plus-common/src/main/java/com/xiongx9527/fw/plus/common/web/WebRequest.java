@@ -109,6 +109,13 @@ public interface WebRequest {
     String[] getParameterValues(String name) ;
 
     /**
+     * 获取所有请求参数名称
+     *
+     * @return 包含所有请求参数名称的枚举对象
+     */
+    Enumeration<String> getParameterNames();
+
+    /**
      * 根据属性名称获取请求属性
      *
      * @param name 属性名称
@@ -138,4 +145,3 @@ public interface WebRequest {
      */
     WebRequestContextHolder.WebRequestDispatcher getRequestDispatcher(String path);
 }
-

@@ -158,6 +158,14 @@ public class WebMvcRequestContextHolder {
         }
 
         @Override
+        public Enumeration<String> getParameterNames() {
+            if (null!=this.request) {
+                return this.request.getParameterNames();
+            }
+            return Collections.emptyEnumeration();
+        }
+
+        @Override
         public Object getAttribute(String name) {
             if (null!=this.request) {
                 return this.request.getAttribute(name);

@@ -19,14 +19,13 @@ public class WebRequestContextHolder {
      * @return 解析后的查找路径，如果无法解析则返回null
      */
     public static String resolveAndCacheLookupPath(WebRequest request) {
-        // 判断是否为WebMvc环境
-        if (WebUtils.isWebMvc()) {
-            return WebUtils.defaultUrlPathHelper().resolveAndCacheLookupPath((javax.servlet.http.HttpServletRequest)request.getRequest());
-        } else if (WebUtils.isWebFlux()) {
-            // WebFlux环境下的处理逻辑（暂未实现）
-            //return WebFluxRequestContextHolder.resolveAndCacheLookupPath();
+        if (request == null || request.getRequest() == null) {
+            return null;
         }
-        return null;
+        if (request.getRequest() instanceof javax.servlet.http.HttpServletRequest) {
+            return WebUtils.defaultUrlPathHelper().resolveAndCacheLookupPath((javax.servlet.http.HttpServletRequest)request.getRequest());
+        }
+        return request.getRequestURI();
     }
 
     /**
@@ -36,14 +35,13 @@ public class WebRequestContextHolder {
      * @return 查找路径，如果无法获取则返回null
      */
     public static String getLookupPath(WebRequest request) {
-        // 判断是否为WebMvc环境
-        if (WebUtils.isWebMvc()) {
-            return WebUtils.defaultUrlPathHelper().getResolvedLookupPath((javax.servlet.http.HttpServletRequest)request.getRequest());
-        } else if (WebUtils.isWebFlux()) {
-            // WebFlux环境下的处理逻辑（暂未实现）
-            //return WebFluxRequestContextHolder.getLookupPath();
+        if (request == null || request.getRequest() == null) {
+            return null;
         }
-        return null;
+        if (request.getRequest() instanceof javax.servlet.http.HttpServletRequest) {
+            return WebUtils.defaultUrlPathHelper().getResolvedLookupPath((javax.servlet.http.HttpServletRequest)request.getRequest());
+        }
+        return request.getRequestURI();
     }
 
 
@@ -103,12 +101,13 @@ public class WebRequestContextHolder {
      * @return WebRequest对象，如果没有可用的请求上下文则返回null
      */
     public static WebRequest getRequest() {
-        // 检查是否为WebMvc环境
-        if (WebUtils.isWebMvc()) {
-            return WebMvcRequestContextHolder.getRequest();
-        } else if (WebUtils.isWebFlux()) {
-            // 检查是否为WebFlux环境
-            return WebFluxRequestContextHolder.getRequest();
+        WebRequest request = getMvcRequestIfPresent();
+        if (request != null && request.getRequest() != null) {
+            return request;
+        }
+        request = getFluxRequestIfPresent();
+        if (request != null && request.getRequest() != null) {
+            return request;
         }
         // 如果都不是，返回null
         return null;
@@ -125,15 +124,48 @@ public class WebRequestContextHolder {
      * @return WebResponse 当前请求的响应对象，如果无法确定当前框架类型或当前环境不支持Web请求，则返回null
      */
     public static WebResponse getResponse() {
-        // 检查当前环境是否为Web MVC框架
-        if (WebUtils.isWebMvc()) {
-            return WebMvcRequestContextHolder.getResponse();
-        } else if (WebUtils.isWebFlux()) {
-            // 检查当前环境是否为WebFlux框架
-            return WebFluxRequestContextHolder.getResponse();
+        WebResponse response = getMvcResponseIfPresent();
+        if (response != null && response.getResponse() != null) {
+            return response;
+        }
+        response = getFluxResponseIfPresent();
+        if (response != null && response.getResponse() != null) {
+            return response;
         }
         // 如果当前环境既不是Web MVC也不是WebFlux，返回null
         return null;
+    }
+
+    private static WebRequest getMvcRequestIfPresent() {
+        try {
+            return WebMvcRequestContextHolder.getRequest();
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
+    private static WebResponse getMvcResponseIfPresent() {
+        try {
+            return WebMvcRequestContextHolder.getResponse();
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
+    private static WebRequest getFluxRequestIfPresent() {
+        try {
+            return WebFluxRequestContextHolder.getRequest();
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
+    private static WebResponse getFluxResponseIfPresent() {
+        try {
+            return WebFluxRequestContextHolder.getResponse();
+        } catch (Throwable e) {
+            return null;
+        }
     }
 
 

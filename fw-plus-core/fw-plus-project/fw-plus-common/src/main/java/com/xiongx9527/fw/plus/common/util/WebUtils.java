@@ -6,9 +6,11 @@ import com.xiongx9527.fw.plus.common.web.WebRequest;
 import com.xiongx9527.fw.plus.common.web.WebRequestContextHolder;
 import com.xiongx9527.fw.plus.common.web.WebResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.MutablePropertyValues;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.PathMatcher;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.DataBinder;
 import org.springframework.web.bind.ServletRequestDataBinder;
 import org.springframework.web.util.UrlPathHelper;
 
@@ -16,6 +18,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Slf4j
 public abstract class WebUtils extends org.springframework.web.util.WebUtils {
@@ -38,6 +44,14 @@ public abstract class WebUtils extends org.springframework.web.util.WebUtils {
      * 标识是否支持WebMvc框架的标志位
      */
     private static boolean isWebMvc = false;
+
+    private static final int WEB_APPLICATION_TYPE_NONE = 0;
+
+    private static final int WEB_APPLICATION_TYPE_SERVLET = 1;
+
+    private static final int WEB_APPLICATION_TYPE_REACTIVE = 2;
+
+    private static volatile int webApplicationType = WEB_APPLICATION_TYPE_NONE;
 
     /**
      * 静态初始化块，用于检测当前环境中的Web框架类型
@@ -317,6 +331,36 @@ public abstract class WebUtils extends org.springframework.web.util.WebUtils {
         return binder.getBindingResult();
     }
 
+    /**
+     * 将Web请求参数绑定到指定的数据对象上，兼容Servlet和WebFlux请求。
+     *
+     * @param request Web请求对象，包含请求参数
+     * @param data 需要绑定请求参数的目标数据对象
+     * @return 返回绑定结果，包含数据对象及可能的验证错误信息
+     */
+    public static BindingResult bindRequestParameters(WebRequest request, Object data) {
+        Object nativeRequest = request == null ? null : request.getRequest();
+        if (nativeRequest instanceof javax.servlet.http.HttpServletRequest) {
+            return bindRequestParameters((javax.servlet.http.HttpServletRequest) nativeRequest, data);
+        }
+        DataBinder binder = new DataBinder(data);
+        binder.bind(new MutablePropertyValues(getParameterMap(request)));
+        return binder.getBindingResult();
+    }
+
+    private static Map<String, String[]> getParameterMap(WebRequest request) {
+        if (request == null) {
+            return Collections.emptyMap();
+        }
+        Map<String, String[]> parameters = new LinkedHashMap<>();
+        Enumeration<String> names = request.getParameterNames();
+        while (names != null && names.hasMoreElements()) {
+            String name = names.nextElement();
+            parameters.put(name, request.getParameterValues(name));
+        }
+        return parameters;
+    }
+
     public static void resultErrorResponse(WebRequest request, WebResponse response, int errorCode,Object result,String errPage) throws Throwable {
         // 判断是否为JSON请求
         if (WebUtils.isJsonRequest(request)) {
@@ -398,7 +442,13 @@ public abstract class WebUtils extends org.springframework.web.util.WebUtils {
      * @return boolean类型，true表示当前为WebFlux环境，false表示不是WebFlux环境
      */
     public static boolean isWebFlux() {
-        return isWebFlux;
+        if (webApplicationType == WEB_APPLICATION_TYPE_REACTIVE) {
+            return true;
+        }
+        if (webApplicationType == WEB_APPLICATION_TYPE_SERVLET) {
+            return false;
+        }
+        return isWebFlux && !isWebMvc;
     }
 
     /**
@@ -407,8 +457,27 @@ public abstract class WebUtils extends org.springframework.web.util.WebUtils {
      * @return boolean类型，true表示当前为WebMvc环境，false表示不是WebMvc环境
      */
     public static boolean isWebMvc() {
-        return isWebMvc;
+        if (webApplicationType == WEB_APPLICATION_TYPE_SERVLET) {
+            return true;
+        }
+        if (webApplicationType == WEB_APPLICATION_TYPE_REACTIVE) {
+            return false;
+        }
+        return isWebMvc && !isWebFlux;
     }
 
+    /**
+     * 标记当前应用为WebFlux运行环境。
+     */
+    public static void useWebFlux() {
+        webApplicationType = WEB_APPLICATION_TYPE_REACTIVE;
+    }
+
+    /**
+     * 标记当前应用为WebMvc运行环境。
+     */
+    public static void useWebMvc() {
+        webApplicationType = WEB_APPLICATION_TYPE_SERVLET;
+    }
 
 }
