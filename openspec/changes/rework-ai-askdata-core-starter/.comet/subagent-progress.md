@@ -116,3 +116,6 @@
 - 2026-07-28：协调者复跑最终聚合验证：Core `fw-plus-ai-askdata` 测试 52 项通过；AI 自动配置 `*AskData*Test` 112 项通过；AskData Starter `-DskipTests package` 通过；文档占位符扫描无输出。已勾选 plan Task 17 的 6 个 step，并保留 OpenSpec 仅勾选有证据项。
 - 2026-07-28：Task 17 reviewer 返回 `Needs fixes`；Important 为监控日志集群测试不得使用 Core 默认 `inMemory()` 实现伪装共享 SPI，以及 OpenSpec 7.0-7.13 勾选需要逐项可定位证据。协调者将测试改为无状态业务替身，报告补充逐项证据表；`AskDataMonitoringLogStoreTest` 3 项通过，AI 自动配置 `*AskData*Test` 112 项通过。
 - 2026-07-28：Task 17 re-reviewer 返回 `Needs fixes`；Important 为 7.3/7.5 缺少可编译示例或文档 Java/配置示例逐项验证证据。协调者保守取消 OpenSpec 7.3/7.5 勾选，并同步更新 Task 17 报告证据表。
+- 2026-07-28：最终 whole-branch reviewer 返回 `Needs fixes`，含 Critical：恢复链路未按 `projectId + operatorId` 隔离、Core SQL 插件链未接入真实 flow；Important：SQL 参数可变、审计/路由本地状态边界、监控日志 key 碰撞、慢速非重试错误 fallback、文档/OpenSpec 过度声明。
+- 2026-07-28：并行 fix agents 完成并提交：`5770754b` 强制恢复作用域并新增跨项目/跨操作人恢复拒绝测试；`36be8a24` 将 Core SQL interceptor chain 接入真实 flow 并新增真实 flow 插件/恶意 SQL 测试；`9a4f69fe` 加固 SQL 参数快照、审计容量、监控日志 ScopeKey、慢速非重试错误分类。
+- 2026-07-28：协调者复跑修复后验证：Core `fw-plus-ai-askdata` 测试 56 项通过；AI 自动配置 `*AskData*Test` 117 项通过；AskData Starter `-DskipTests package` 通过；文档占位符扫描无输出。剩余已知风险：Starter 打包仍有本地 `fw-plus-ai-boot-autoconfigure:0.1.1-SNAPSHOT` POM invalid 警告，真实共享存储/Java 17 Remote Runtime/外部系统联调不在本轮验证内。

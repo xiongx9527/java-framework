@@ -63,6 +63,30 @@
 
 ---
 
+## 最终审查修复记录（2026-07-28）
+
+### 修复提交
+
+- `5770754b`（`fix: enforce askdata resume scope`）：恢复检查点持久化并校验 `projectId + operatorId` 作用域，新增跨项目 token 与跨操作人 conversationId 恢复拒绝测试。
+- `36be8a24`（`fix: route askdata flow through sql interceptors`）：真实问数 flow 接入 Core SQL interceptor chain，新增自动配置真实 flow 插件改写与恶意写 SQL 拒绝测试。
+- `9a4f69fe`（`fix: harden askdata state and model boundaries`）：SQL 参数防御性快照/拒绝未知可变值、SQL 审计容量上限、监控日志不可碰撞 ScopeKey、慢速非重试错误不再 fallback。
+
+### 修复后验证
+
+| 命令 | 退出码 | 关键结果 |
+| --- | ---: | --- |
+| `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata test` | 0 | `BUILD SUCCESS`；56 项测试通过，0 failures、0 errors、0 skipped。 |
+| `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='*AskData*Test' test` | 0 | `BUILD SUCCESS`；117 项测试通过，0 failures、0 errors、0 skipped。 |
+| `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -DskipTests package` | 0 | `BUILD SUCCESS`；仍有本地 `fw-plus-ai-boot-autoconfigure:0.1.1-SNAPSHOT` POM invalid 警告。 |
+| `rg -n "T[B]D|T[O]DO|待[补]|占[位]" docs/askdata/starter docs/superpowers/specs/2026-07-27-rework-ai-askdata-core-starter-design.md` | 1 | 无输出；`rg` 以 1 表示未匹配，符合预期。 |
+
+### 剩余风险
+
+- 真实 JDBC/Redis/共享向量/业务存储 SPI 的跨进程一致性、Ollama/真实数据库只读账号、Java 17 Remote Runtime 和外部系统端到端联调仍不在本轮验证内。
+- `JdbcAskDataSqlExecutor` 当前仍以最终 SQL 字符串执行，Core 命令具名参数到 JDBC 绑定的完整适配需后续扩展。
+
+---
+
 ## Task 17 修复记录（2026-07-28）
 
 ## STATUS: RESOLVED
