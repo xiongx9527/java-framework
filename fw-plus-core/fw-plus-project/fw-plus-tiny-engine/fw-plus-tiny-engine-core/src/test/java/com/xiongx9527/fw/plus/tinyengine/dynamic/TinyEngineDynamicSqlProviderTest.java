@@ -67,6 +67,62 @@ class TinyEngineDynamicSqlProviderTest {
 	}
 
 	@Test
+	void shouldRejectUnsafeSelectFieldWithLegalTableNameBeforeBuildingSql() {
+		Map<String, Object> params = new LinkedHashMap<String, Object>();
+		params.put("tableName", "dynamic_customer");
+		params.put("fields", Collections.singletonList("name; DROP TABLE users"));
+		params.put("conditions", Collections.<String, Object>emptyMap());
+
+		assertThrows(TinyEngineSqlIdentifierException.class, () -> provider.select(params));
+	}
+
+	@Test
+	void shouldRejectUnsafeCrudFieldAndConditionIdentifiersWithLegalTableNameBeforeBuildingSql() {
+		String[] unsafeIdentifiers = {
+				"name; DROP TABLE users", "name/*comment*/", "display name", "LOWER(name)", "name UNION SELECT id"
+		};
+		for (String unsafeIdentifier : unsafeIdentifiers) {
+			Map<String, Object> unsafeField = baseCrudParams();
+			unsafeField.put("fields", Collections.singletonList(unsafeIdentifier));
+			assertThrows(TinyEngineSqlIdentifierException.class, () -> provider.select(unsafeField));
+
+			Map<String, Object> unsafeData = baseCrudParams();
+			unsafeData.put("data", Collections.<String, Object>singletonMap(unsafeIdentifier, "safe value"));
+			assertThrows(TinyEngineSqlIdentifierException.class, () -> provider.insert(unsafeData));
+			assertThrows(TinyEngineSqlIdentifierException.class, () -> provider.update(unsafeData));
+
+			Map<String, Object> unsafeConditions = baseCrudParams();
+			unsafeConditions.put("conditions", Collections.<String, Object>singletonMap(unsafeIdentifier, "safe value"));
+			assertThrows(TinyEngineSqlIdentifierException.class, () -> provider.select(unsafeConditions));
+			assertThrows(TinyEngineSqlIdentifierException.class, () -> provider.update(unsafeConditions));
+			assertThrows(TinyEngineSqlIdentifierException.class, () -> provider.delete(unsafeConditions));
+		}
+	}
+
+	@Test
+	void shouldRejectUnsafeOrderByAndOrderTypeWithLegalTableNameBeforeBuildingSql() {
+		String[] unsafeOrderByValues = {
+				"name; DROP TABLE users", "name/*comment*/", "display name", "LOWER(name)", "name UNION SELECT id"
+		};
+		for (String unsafeOrderBy : unsafeOrderByValues) {
+			Map<String, Object> params = baseCrudParams();
+			params.put("orderBy", unsafeOrderBy);
+			params.put("orderType", "ASC");
+			assertThrows(TinyEngineSqlIdentifierException.class, () -> provider.select(params));
+		}
+
+		String[] unsafeOrderTypeValues = {
+				"ASC; DROP TABLE users", "ASC/*comment*/", "ASC DESC", "LOWER(ASC)", "ASC UNION SELECT id"
+		};
+		for (String unsafeOrderType : unsafeOrderTypeValues) {
+			Map<String, Object> params = baseCrudParams();
+			params.put("orderBy", "name");
+			params.put("orderType", unsafeOrderType);
+			assertThrows(TinyEngineSqlIdentifierException.class, () -> provider.select(params));
+		}
+	}
+
+	@Test
 	void shouldGuardEveryTableLifecycleAndBatchPath() {
 		DynamicTableDefinition definition = new DynamicTableDefinition("dynamic_customer",
 				Collections.singletonList(new DynamicColumnDefinition("display_name", "VARCHAR", true)));
@@ -94,5 +150,14 @@ class TinyEngineDynamicSqlProviderTest {
 		assertThrows(TinyEngineSqlIdentifierException.class, () -> provider.describeTable("dynamic_customer; DROP TABLE users"));
 		assertThrows(TinyEngineSqlIdentifierException.class,
 				() -> provider.batchInsert("dynamic_customer", Collections.singletonList(Collections.<String, Object>singletonMap("name; DROP", "Alice"))));
+	}
+
+	private Map<String, Object> baseCrudParams() {
+		Map<String, Object> params = new LinkedHashMap<String, Object>();
+		params.put("tableName", "dynamic_customer");
+		params.put("fields", Collections.singletonList("name"));
+		params.put("conditions", Collections.<String, Object>emptyMap());
+		params.put("data", Collections.<String, Object>singletonMap("name", "safe value"));
+		return params;
 	}
 }
