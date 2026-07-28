@@ -64,12 +64,21 @@ public class RequestHandler extends MagicController {
 			CONTENT_TYPE, DATE, SERVER, SET_COOKIE, CONNECTION, CONTENT_LENGTH, CONTENT_ENCODING, TRANSFER_ENCODING, VARY);
 	private final ResultProvider resultProvider;
 
-	private final RequestMagicDynamicRegistry requestMagicDynamicRegistry;
+	private final ApiInfoRequestLookup apiInfoRequestLookup;
 
 	public RequestHandler(MagicConfiguration configuration, RequestMagicDynamicRegistry requestMagicDynamicRegistry) {
+		this(configuration, requestMagicDynamicRegistry::getApiInfoFromRequest);
+	}
+
+	public RequestHandler(MagicConfiguration configuration, ApiInfoRequestLookup apiInfoRequestLookup) {
 		super(configuration);
-		this.requestMagicDynamicRegistry = requestMagicDynamicRegistry;
+		this.apiInfoRequestLookup = apiInfoRequestLookup;
 		this.resultProvider = configuration.getResultProvider();
+	}
+
+	public interface ApiInfoRequestLookup {
+
+		ApiInfo getApiInfoFromRequest(MagicHttpServletRequest request);
 	}
 
 	/**
@@ -94,7 +103,7 @@ public class RequestHandler extends MagicController {
 		headers.putAll(defaultHeaders);
 		boolean requestedFromTest = configuration.isEnableWeb() && (clientId = request.getHeader(HEADER_REQUEST_CLIENT_ID)) != null && request.getHeader(HEADER_REQUEST_SCRIPT_ID) != null;
 		RequestEntity requestEntity = RequestEntity.create()
-				.info(requestMagicDynamicRegistry.getApiInfoFromRequest(request))
+				.info(apiInfoRequestLookup.getApiInfoFromRequest(request))
 				.request(request)
 				.response(response)
 				.requestedFromTest(requestedFromTest)

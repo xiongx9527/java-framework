@@ -55,11 +55,19 @@ public class McpSseStreamService {
 	}
 
 	public ResponseEntity<?> open(String accept, String sessionId) {
-		return open(accept, sessionId, null);
+		return open(accept, sessionId, (HttpServletRequest) null);
 	}
 
 	public ResponseEntity<?> open(String accept, String sessionId, HttpServletRequest request) {
-		ResponseEntity<?> authFailure = authenticate(request);
+		return open(accept, sessionId, request == null ? null : request.getHeader("Authorization"), request);
+	}
+
+	public ResponseEntity<?> open(String accept, String sessionId, String authorization) {
+		return open(accept, sessionId, authorization, null);
+	}
+
+	private ResponseEntity<?> open(String accept, String sessionId, String authorization, HttpServletRequest request) {
+		ResponseEntity<?> authFailure = authenticate(authorization, request);
 		if (authFailure != null) {
 			return authFailure;
 		}
@@ -129,11 +137,19 @@ public class McpSseStreamService {
 	}
 
 	private ResponseEntity<?> authenticate(HttpServletRequest request) {
+		return authenticate(request == null ? null : request.getHeader("Authorization"), request);
+	}
+
+	private ResponseEntity<?> authenticate(String authorization, HttpServletRequest request) {
 		if (authService == null) {
 			return null;
 		}
 		try {
-			authService.authenticate(request);
+			if (request == null) {
+				authService.authenticate(authorization);
+			} else {
+				authService.authenticate(request);
+			}
 			return null;
 		} catch (McpAuthorizationException e) {
 			return ResponseEntity.status(e.getStatus())

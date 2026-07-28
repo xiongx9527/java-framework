@@ -52,11 +52,22 @@ public class McpHttpTransportService {
 	}
 
 	public ResponseEntity<?> post(String accept, String protocolVersion, String sessionId, String origin, Object body) {
-		return post(accept, protocolVersion, sessionId, origin, body, null);
+		return post(accept, protocolVersion, sessionId, origin, body, (HttpServletRequest) null);
 	}
 
 	public ResponseEntity<?> post(String accept, String protocolVersion, String sessionId, String origin,
 								  Object body, HttpServletRequest request) {
+		return post(accept, protocolVersion, sessionId, origin, body,
+				request == null ? null : request.getHeader("Authorization"), request);
+	}
+
+	public ResponseEntity<?> post(String accept, String protocolVersion, String sessionId, String origin,
+								  Object body, String authorization) {
+		return post(accept, protocolVersion, sessionId, origin, body, authorization, null);
+	}
+
+	private ResponseEntity<?> post(String accept, String protocolVersion, String sessionId, String origin,
+								  Object body, String authorization, HttpServletRequest request) {
 		if (!isTrustedOrigin(origin)) {
 			return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
 		}
@@ -66,7 +77,7 @@ public class McpHttpTransportService {
 		McpPrincipal principal = null;
 		if (authService != null) {
 			try {
-				principal = authService.authenticate(request);
+				principal = request == null ? authService.authenticate(authorization) : authService.authenticate(request);
 			} catch (McpAuthorizationException e) {
 				return ResponseEntity.status(e.getStatus())
 						.header("WWW-Authenticate", "Bearer resource=\"" + properties.getAuth().getResource() + "\"")
@@ -117,14 +128,26 @@ public class McpHttpTransportService {
 	}
 
 	public ResponseEntity<?> delete(String sessionId) {
-		return delete(sessionId, null);
+		return delete(sessionId, (HttpServletRequest) null);
 	}
 
 	public ResponseEntity<?> delete(String sessionId, HttpServletRequest request) {
-		ResponseEntity<?> authFailure = authenticateOnly(request);
+		ResponseEntity<?> authFailure = authenticateOnly(request == null ? null : request.getHeader("Authorization"), request);
 		if (authFailure != null) {
 			return authFailure;
 		}
+		return deleteAuthenticated(sessionId);
+	}
+
+	public ResponseEntity<?> delete(String sessionId, String authorization) {
+		ResponseEntity<?> authFailure = authenticateOnly(authorization, null);
+		if (authFailure != null) {
+			return authFailure;
+		}
+		return deleteAuthenticated(sessionId);
+	}
+
+	private ResponseEntity<?> deleteAuthenticated(String sessionId) {
 		if (sessionId != null) {
 			sessionService.delete(sessionId);
 			if (sseStreamService != null) {
@@ -153,11 +176,19 @@ public class McpHttpTransportService {
 	}
 
 	ResponseEntity<?> authenticateOnly(HttpServletRequest request) {
+		return authenticateOnly(request == null ? null : request.getHeader("Authorization"), request);
+	}
+
+	ResponseEntity<?> authenticateOnly(String authorization, HttpServletRequest request) {
 		if (authService == null) {
 			return null;
 		}
 		try {
-			authService.authenticate(request);
+			if (request == null) {
+				authService.authenticate(authorization);
+			} else {
+				authService.authenticate(request);
+			}
 			return null;
 		} catch (McpAuthorizationException e) {
 			return ResponseEntity.status(e.getStatus())

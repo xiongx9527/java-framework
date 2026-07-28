@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.druid.stat.Drui
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.druid.stat.DruidStatViewServletConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.druid.stat.DruidWebStatFilterConfiguration;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -17,6 +18,7 @@ import org.ssssssss.magicapi.core.model.Plugin;
 @Slf4j
 @ConditionalOnProperty(prefix = "magic-api.plugin.druid", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name = {"com.alibaba.druid.pool.DruidDataSource"})
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @Configuration
 @EnableConfigurationProperties({DruidStatProperties.class})
 @Import({DruidSpringAopConfiguration.class,
