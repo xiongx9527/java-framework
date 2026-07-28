@@ -17,3 +17,4 @@ com.xiongx9527.fw.plus.boot.autoconfigure.config.nacos.NacosConfigChangeAutoConf
 com.xiongx9527.fw.plus.boot.autoconfigure.admin.server.AdminServerAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.MagicAPIWebFluxAutoConfiguration
+com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.starter.MagicAPIMongoModuleAutoConfiguration

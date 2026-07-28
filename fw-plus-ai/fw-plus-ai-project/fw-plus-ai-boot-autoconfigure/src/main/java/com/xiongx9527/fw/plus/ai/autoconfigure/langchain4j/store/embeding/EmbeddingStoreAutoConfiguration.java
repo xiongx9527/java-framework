@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegist
 import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provider.*;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -37,30 +38,35 @@ public class EmbeddingStoreAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnClass(name = "dev.langchain4j.store.embedding.redis.RedisEmbeddingStore")
     @ConditionalOnMissingBean(name = "redisStackEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter redisStackEmbeddingStoreProviderAdapter() {
         return new RedisStackEmbeddingStoreProviderAdapter();
     }
 
     @Bean
+    @ConditionalOnClass(name = "dev.langchain4j.store.embedding.milvus.MilvusEmbeddingStore")
     @ConditionalOnMissingBean(name = "milvusEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter milvusEmbeddingStoreProviderAdapter() {
         return new MilvusEmbeddingStoreProviderAdapter();
     }
 
     @Bean
+    @ConditionalOnClass(name = "dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore")
     @ConditionalOnMissingBean(name = "elasticsearchEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter elasticsearchEmbeddingStoreProviderAdapter() {
         return new ElasticsearchEmbeddingStoreProviderAdapter();
     }
 
     @Bean
+    @ConditionalOnClass(name = "dev.langchain4j.store.embedding.qdrant.QdrantEmbeddingStore")
     @ConditionalOnMissingBean(name = "qdrantEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter qdrantEmbeddingStoreProviderAdapter() {
         return new QdrantEmbeddingStoreProviderAdapter();
     }
 
     @Bean
+    @ConditionalOnClass(name = "dev.langchain4j.store.embedding.weaviate.WeaviateEmbeddingStore")
     @ConditionalOnMissingBean(name = "weaviateEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter weaviateEmbeddingStoreProviderAdapter() {
         return new WeaviateEmbeddingStoreProviderAdapter();
@@ -73,6 +79,7 @@ public class EmbeddingStoreAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnClass(name = "dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore")
     @ConditionalOnMissingBean(name = "azureAiSearchEmbeddingStoreProviderAdapter")
     public EmbeddingStoreProviderAdapter azureAiSearchEmbeddingStoreProviderAdapter(ApplicationContext applicationContext) {
         return new AzureAiSearchEmbeddingStoreProviderAdapter(applicationContext);

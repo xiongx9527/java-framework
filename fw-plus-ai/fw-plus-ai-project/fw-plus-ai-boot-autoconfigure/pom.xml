@@ -197,27 +197,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-cassandra</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-infinispan</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-ai-langchain4j-neo4j</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-azure-ai-search</artifactId>
             <scope>compile</scope>
