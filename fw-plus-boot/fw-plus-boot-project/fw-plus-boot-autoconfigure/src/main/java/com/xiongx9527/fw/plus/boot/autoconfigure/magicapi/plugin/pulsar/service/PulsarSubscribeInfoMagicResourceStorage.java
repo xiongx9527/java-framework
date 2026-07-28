@@ -1,7 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.service;
 
 import com.alibaba.fastjson.JSONValidator;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarSubscribeInfo;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
@@ -82,9 +81,9 @@ public class PulsarSubscribeInfoMagicResourceStorage extends AbstractPathMagicRe
         }
 
         // 验证数据源key是否存在
-        PulsarDataSourceInfoMagicResourceStorage kafkaDataSourceInfoMagicResourceStorage = SpringUtils.getBean(PulsarDataSourceInfoMagicResourceStorage.class);
-        Map<String, PulsarDataSourceInfo> kafkaDataSourceInfoMap = ListUtils.emptyIfNull(kafkaDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(PulsarDataSourceInfo::getKey, val->val,(k1, k2)->k1));
-        if (!kafkaDataSourceInfoMap.containsKey(entity.getKey())) {
+        PulsarDataSourceInfoMagicResourceStorage pulsarDataSourceInfoMagicResourceStorage = SpringUtils.getBean(PulsarDataSourceInfoMagicResourceStorage.class);
+        Map<String, PulsarDataSourceInfo> pulsarDataSourceInfoMap = ListUtils.emptyIfNull(pulsarDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(PulsarDataSourceInfo::getKey, val->val,(k1, k2)->k1));
+        if (!pulsarDataSourceInfoMap.containsKey(entity.getKey())) {
             throw new IllegalArgumentException(String.format("数据源key:%s 不存在", entity.getKey()));
         }
     }

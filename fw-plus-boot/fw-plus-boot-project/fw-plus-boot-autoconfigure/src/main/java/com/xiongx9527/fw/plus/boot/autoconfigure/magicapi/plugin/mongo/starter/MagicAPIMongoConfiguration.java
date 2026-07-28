@@ -5,13 +5,20 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.module.Mo
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.service.MongoDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.service.MongoDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.web.MagicMongoController;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
 import org.ssssssss.magicapi.core.model.Plugin;
@@ -23,13 +30,25 @@ import org.ssssssss.script.reflection.JavaReflection;
 
 @ConditionalOnProperty(prefix = "magic-api.plugin.mogno", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name = {"org.springframework.data.mongodb.core.MongoTemplate","org.ssssssss.magicapi.mongo.MongoModule"})
+@AutoConfigureBefore(MongoAutoConfiguration.class)
 @Configuration
 public class MagicAPIMongoConfiguration implements MagicPluginConfiguration {
 
     /**
+     * 覆盖 Spring Boot 自动配置的 MongoClient，设置为懒加载
+     * 避免在未配置 MongoDB 时自动连接
+     */
+    @Bean
+    @Lazy
+    @ConditionalOnMissingBean(MongoClient.class)
+    public MongoClient mongoClient(MongoClientSettings settings) {
+        return MongoClients.create(settings);
+    }
+
+    /**
      * 创建Mongo数据源动态管理器Bean
      * 用于动态创建、管理和销毁Mongo数据源连接
-     * 
+     *
      * @return MagicDynamicMongoDataSource Mongo数据源动态管理器实例
      */
     @Bean
@@ -85,8 +104,9 @@ public class MagicAPIMongoConfiguration implements MagicPluginConfiguration {
      * @return MongoModule Mongo模块实例
      */
     @Bean
+    @ConditionalOnBean(MongoTemplate.class)
     @ConditionalOnMissingBean
-    public MongoModule mongoFunctions(MongoTemplate mongoTemplate,MagicDynamicMongoDataSource magicDynamicMongoDataSource) {
+    public MongoModule mongoFunctions(@Lazy MongoTemplate mongoTemplate,MagicDynamicMongoDataSource magicDynamicMongoDataSource) {
         JavaReflection.registerMethodExtension(MongoCollection.class, new MongoCollectionExtension());
         JavaReflection.registerMethodExtension(FindIterable.class, new MongoFindIterableExtension());
         return new MongoModule(mongoTemplate,magicDynamicMongoDataSource);

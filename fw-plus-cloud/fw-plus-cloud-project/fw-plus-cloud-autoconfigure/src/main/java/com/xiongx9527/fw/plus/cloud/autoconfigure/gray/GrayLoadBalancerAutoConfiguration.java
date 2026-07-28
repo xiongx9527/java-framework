@@ -11,7 +11,6 @@ import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.cloud.client.loadbalancer.reactive.ReactiveLoadBalancer;
 import org.springframework.cloud.loadbalancer.blocking.client.BlockingLoadBalancerClient;
 import org.springframework.cloud.loadbalancer.support.LoadBalancerClientFactory;
-import org.springframework.cloud.openfeign.loadbalancer.LoadBalancerFeignRequestTransformer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -57,21 +56,15 @@ public class GrayLoadBalancerAutoConfiguration {
     }
 
     /**
-     * 创建支持重试功能的灰度负载均衡Feign客户端
+     * 在满足 Feign 和 RetryTemplate 类存在条件的前提下，创建并返回一个支持重试机制的灰度负载均衡 Feign 客户端。
+     * <p>
+     * 此客户端结合了 Feign 的调用能力与 Spring Cloud LoadBalancer 的负载均衡策略，并增加了重试机制的支持。
      *
-     * <p>该方法在以下条件下生效：
-     * <ul>
-     *   <li>classpath中存在RetryTemplate类</li>
-     *   <li>classpath中存在feign.Client类</li>
-     *   <li>classpath中存在EnableFeignClients类</li>
-     * </ul>
-     *
-     * @param loadBalancerClient 负载均衡客户端，用于服务发现和负载均衡
-     * @param discoveryClient 服务发现客户端，用于获取服务实例信息
-     * @param loadBalancedRetryFactory 负载均衡重试工厂，提供重试策略
-     * @param loadBalancerClientFactory 负载均衡客户端工厂，创建负载均衡器
-     * @param transformers 请求转换器列表，用于处理请求转换
-     * @return 支持重试功能的灰度负载均衡Feign客户端实例
+     * @param loadBalancerClient 标准的负载均衡客户端接口实现
+     * @param discoveryClient 服务发现客户端，用于查找目标服务实例
+     * @param loadBalancedRetryFactory 用于构造重试模板的工厂类
+     * @param loadBalancerClientFactory 负载均衡客户端工厂，提供更高级的负载均衡控制
+     * @return 支持重试机制的灰度负载均衡 Feign 客户端实例
      */
     @Primary
     @Bean
@@ -81,31 +74,23 @@ public class GrayLoadBalancerAutoConfiguration {
             LoadBalancerClient loadBalancerClient,
             DiscoveryClient discoveryClient,
             LoadBalancedRetryFactory loadBalancedRetryFactory,
-            LoadBalancerClientFactory loadBalancerClientFactory,
-            List<LoadBalancerFeignRequestTransformer> transformers) {
+            LoadBalancerClientFactory loadBalancerClientFactory) {
         return new GrayRetryableFeignBlockingLoadBalancerClient(new feign.Client.Default(null, null),
                 loadBalancerClient,
                 discoveryClient,
                 loadBalancedRetryFactory,
-                loadBalancerClientFactory,
-                transformers);
+                loadBalancerClientFactory);
     }
 
     /**
-     * 创建不支持重试功能的灰度负载均衡Feign客户端
+     * 当 RetryTemplate 类缺失但 Feign 相关依赖存在时，创建一个不带重试功能的基础灰度负载均衡 Feign 客户端。
+     * <p>
+     * 这个客户端适用于不需要复杂重试逻辑的应用场景，但仍保留了基于 Feign 的远程调用能力和基本负载均衡特性。
      *
-     * <p>该方法在以下条件下生效：
-     * <ul>
-     *   <li>classpath中不存在RetryTemplate类</li>
-     *   <li>classpath中存在feign.Client类</li>
-     *   <li>classpath中存在EnableFeignClients类</li>
-     * </ul>
-     *
-     * @param loadBalancerClient 负载均衡客户端，用于服务发现和负载均衡
-     * @param discoveryClient 服务发现客户端，用于获取服务实例信息
-     * @param loadBalancerClientFactory 负载均衡客户端工厂，创建负载均衡器
-     * @param transformers 请求转换器列表，用于处理请求转换
-     * @return 不支持重试功能的灰度负载均衡Feign客户端实例
+     * @param loadBalancerClient 标准的负载均衡客户端接口实现
+     * @param discoveryClient 服务发现客户端，用于查找目标服务实例
+     * @param loadBalancerClientFactory 负载均衡客户端工厂，提供负载均衡相关配置支持
+     * @return 不支持重试的基础灰度负载均衡 Feign 客户端实例
      */
     @Primary
     @Bean
@@ -114,13 +99,11 @@ public class GrayLoadBalancerAutoConfiguration {
     public GrayFeignBlockingLoadBalancerClient grayFeignBlockingLoadBalancerClient(
             LoadBalancerClient loadBalancerClient,
             DiscoveryClient discoveryClient,
-            LoadBalancerClientFactory loadBalancerClientFactory,
-            List<LoadBalancerFeignRequestTransformer> transformers) {
+            LoadBalancerClientFactory loadBalancerClientFactory) {
         return new GrayFeignBlockingLoadBalancerClient(new feign.Client.Default(null, null),
                 loadBalancerClient,
                 discoveryClient,
-                loadBalancerClientFactory,
-                transformers);
+                loadBalancerClientFactory);
     }
 
 

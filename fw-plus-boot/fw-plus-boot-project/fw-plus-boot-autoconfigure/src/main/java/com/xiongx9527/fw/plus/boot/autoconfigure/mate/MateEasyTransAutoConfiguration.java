@@ -19,9 +19,11 @@ import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -38,6 +40,7 @@ import org.springframework.web.client.RestTemplate;
 @ConditionalOnWebApplication
 @ConditionalOnProperty(prefix = "fw.plus.mate.easy-trans", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name = {"com.xiongx9527.fw.plus.easytrans.service.MateEasyTransTransService"})
+@Configuration(proxyBeanMethods = false)
 public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFactoryPostProcessor {
     //@Value("${fw.plus.mate.easy-trans.is-enable-redis:false}")
     //private boolean isEnableRedis;
@@ -57,6 +60,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * @return MateEasyTransTransService 返回配置的MateEasyTransTransService实例
      */
     @Bean
+    @ConditionalOnMissingBean
     public MateEasyTransTransService transService() {
         return new MateEasyTransTransService();
     }
@@ -92,6 +96,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * 这样做是为了确保所有依赖的组件都已经准备好，可以避免初始化错误或依赖注入的问题
      */
     @Bean
+    @ConditionalOnMissingBean
     @DependsOn({"springContextUtil"})
     public MateEasyTransAutoTransService autoTransService() {
         return new MateEasyTransAutoTransService();
@@ -106,6 +111,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * @return 返回一个配置好的MateEasyTransBothCacheService实例，它使用了提供的Redis缓存服务
      */
     @Bean
+    @ConditionalOnMissingBean
     public MateEasyTransBothCacheService bothCacheService(@Autowired(required = false) RedisCacheService redisCacheService) {
         return new MateEasyTransBothCacheService(redisCacheService);
     }
@@ -119,6 +125,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * @return MateEasyTransEnumTransService实例，用于枚举转换操作
      */
     @Bean
+    @ConditionalOnMissingBean
     public MateEasyTransDictionaryTransService dictionaryTransService(BothCacheService<String> bothCacheService,
                                                                       @Autowired(required = false) RedisCacheService<String> redisCacheService) {
         return new MateEasyTransDictionaryTransService(bothCacheService,redisCacheService);
@@ -133,6 +140,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * @return 新建的ReleaseTransCacheAdvice对象实例
      */
     @Bean
+    @ConditionalOnMissingBean
     public ReleaseTransCacheAdvice releaseTransCacheAdvice() {
         return new ReleaseTransCacheAdvice();
     }
@@ -145,6 +153,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * @return MateEasyTransEnumTransService 枚举转换服务的实例
      */
     @Bean
+    @ConditionalOnMissingBean
     public MateEasyTransEnumTransService enumTransService() {
         return new MateEasyTransEnumTransService();
     }
@@ -157,6 +166,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * @return MateEasyTransBooleanTransService的新实例，提供业务逻辑的实现
      */
     @Bean
+    @ConditionalOnMissingBean
     public MateEasyTransBooleanTransService booleanTransService() {
         return new MateEasyTransBooleanTransService();
     }
@@ -171,6 +181,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * @return 返回一个初始化完毕的SimpleTransService实例
      */
     @Bean
+    @ConditionalOnMissingBean
     @Primary
     @ConditionalOnBean({SimpleTransService.SimpleTransDiver.class})
     public MateEasyTransSimpleTransService simpleTransService(SimpleTransService.SimpleTransDiver dirver) {
@@ -211,6 +222,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * @return MateEasyTransTransCacheManager实例，用于管理事务缓存。
      */
     @Bean
+    @ConditionalOnMissingBean
     public MateEasyTransTransCacheManager transCacheManager(@Autowired(required = false) MateEasyTransRpcTransService rpcTransService,
                                                             @Autowired(required = false) MateEasyTransSimpleTransService simpleTransService,
                                                             @Autowired(required = false) RedisCacheService<String> redisCacheService) {
@@ -246,6 +258,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * @return 返回MateEasyTransProxyController的实例，用于处理传输代理控制
      */
     @Bean
+    @ConditionalOnMissingBean
     @ConditionalOnBean({SimpleTransService.SimpleTransDiver.class})
     public MateEasyTransProxyController transProxyController(SimpleTransService.SimpleTransDiver dirver) {
         MateEasyTransProxyController result = new MateEasyTransProxyController();
@@ -260,6 +273,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * @return MateEasyTransTransMethodArgAop的实例，用于拦截和处理方法参数
      */
     @Bean
+    @ConditionalOnMissingBean
     public MateEasyTransTransMethodArgAop mateEasyTransTransMethodArgAop(TransService transService) {
         return new MateEasyTransTransMethodArgAop(transService);
     }
@@ -271,6 +285,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * @return MateEasyTransTransMethodResultAop实例，用于处理翻译方法的结果
      */
     @Bean
+    @ConditionalOnMissingBean
     public MateEasyTransTransMethodResultAop transMethodResultAop(TransService transService) {
         return new MateEasyTransTransMethodResultAop(transService);
     }
@@ -315,6 +330,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
      * @return TransMessageListener 实例，用于监听和处理消息
      */
     @Bean
+    @ConditionalOnMissingBean
     public TransMessageListener transMessageListener() {
         return new TransMessageListener();
     }
@@ -334,6 +350,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
             havingValue = "true"
     )
     @Bean
+    @ConditionalOnMissingBean
     public RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory, MessageListenerAdapter listenerAdapter) {
         // 创建RedisMessageListenerContainer实例
         RedisMessageListenerContainer container = new RedisMessageListenerContainer();
@@ -362,6 +379,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
             havingValue = "true"
     )
     @Bean
+    @ConditionalOnMissingBean
     public MessageListenerAdapter listenerAdapter(TransMessageListener receiver, RedisTemplate redisTemplate) {
         // 创建MessageListenerAdapter实例，并指定消息处理方法为handelMsg
         MessageListenerAdapter result = new MessageListenerAdapter(receiver, "handelMsg");
@@ -383,6 +401,7 @@ public class MateEasyTransAutoConfiguration implements InitializingBean , BeanFa
             havingValue = "true"
     )
     @Bean
+    @ConditionalOnMissingBean
     public MateEasyTransRedisCacheService redisCacheService(RedisTemplate redisTemplate, MateEasyTransAutoTransService autoTransService) {
         // 创建RedisCacheService实例
         MateEasyTransRedisCacheService redisCacheService = new MateEasyTransRedisCacheService();

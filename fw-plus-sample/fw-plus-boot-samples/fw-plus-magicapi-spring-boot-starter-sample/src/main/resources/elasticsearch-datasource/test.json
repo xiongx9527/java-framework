@@ -1,0 +1,20 @@
+{
+  "properties" : { },
+  "id" : "44897aed07a94ab1a22b6d1b03aa5b73",
+  "script" : null,
+  "groupId" : "elasticsearch-datasource:0",
+  "name" : "test",
+  "createTime" : 1766972055180,
+  "updateTime" : 1767065599530,
+  "lock" : null,
+  "createBy" : null,
+  "updateBy" : null,
+  "key" : "test",
+  "scheme" : "http",
+  "hostname" : "172.17.240.242",
+  "port" : "9200",
+  "username" : "elastic",
+  "password" : "YbARbP9KE6XBLM8kPmIH",
+  "pathPrefix" : null,
+  "other" : null
+}

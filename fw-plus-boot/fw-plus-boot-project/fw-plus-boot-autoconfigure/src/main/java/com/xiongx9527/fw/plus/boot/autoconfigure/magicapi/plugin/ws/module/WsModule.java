@@ -1,11 +1,13 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.module;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.handler.BaseDynamicWebSocketHandler;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.model.WsDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.ws.service.WsDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.magicapi.core.model.Options;
@@ -73,11 +75,10 @@ public class WsModule implements DynamicAttribute<WsModule, WsModule> , DynamicM
         // 校验appId和密钥是否正确
         try {
             List<WsDataSourceInfo> dataSourceInfos = SpringUtils.getBean(WsDataSourceInfoMagicResourceStorage.class).findAll();
-            WsDataSourceInfo dataSourceInfo = dataSourceInfos.stream()
+            WsDataSourceInfo dataSourceInfo = ListUtils.emptyIfNull(dataSourceInfos).stream()
                     .filter(info -> {
-                        String mySecret = info.getSecret();
-                        mySecret = SpringUtils.getAppConfig(String.format("magic.api.ws.%s.secret",info.getKey()),mySecret);
-                        return info.getKey().equals(appId) && mySecret.equals(secret);
+                        String mySecret = MagicAPIConfigUtils.getWsConfig(info.getKey(), "secret", info.getSecret());
+                        return info.getKey().equals(appId) && java.util.Objects.equals(mySecret, secret);
                     })
                     .findFirst().orElse(null);
             if (Objects.isNull(dataSourceInfo)) {
@@ -93,16 +94,20 @@ public class WsModule implements DynamicAttribute<WsModule, WsModule> , DynamicM
             Date expireDate = new Date(expireMillis);
 
             SecretKeyAndSignatureAlgorithm secretKeyAndSignatureAlgorithm = getSecretKeyAndSignatureAlgorithm();
-            javax.crypto.SecretKey secretKey =secretKeyAndSignatureAlgorithm.getSecretKey();
+            if (secretKeyAndSignatureAlgorithm == null) {
+                throw new RuntimeException("Failed to obtain secret key and signature algorithm");
+            }
+            javax.crypto.SecretKey secretKey = secretKeyAndSignatureAlgorithm.getSecretKey();
             io.jsonwebtoken.SignatureAlgorithm algorithm = secretKeyAndSignatureAlgorithm.getAlgorithm();
-            
+
             io.jsonwebtoken.JwtBuilder builder = io.jsonwebtoken.Jwts.builder()
                     .setSubject(appId)
-                    //.claim("appId", appId)
                     .setIssuedAt(now)
                     .setExpiration(expireDate)
                     .signWith(algorithm, secretKey);
             return builder.compact();
+        } catch (SecurityException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to generate token", e);
             throw new RuntimeException("Failed to generate token", e);

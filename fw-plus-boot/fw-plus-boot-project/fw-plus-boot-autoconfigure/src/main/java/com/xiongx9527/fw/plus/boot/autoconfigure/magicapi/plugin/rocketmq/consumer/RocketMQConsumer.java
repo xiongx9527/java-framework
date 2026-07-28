@@ -1,9 +1,12 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.consumer;
 
 import com.alibaba.fastjson2.JSON;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqSubscribeScriptInfo;
+import com.xiongx9527.fw.plus.common.util.NetUtils;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
@@ -16,7 +19,6 @@ import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.ServiceState;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author zzy
  */
 @Slf4j
-public class RocketMQConsumer {
+public class RocketMQConsumer implements BaseService {
 
     /**
      * 数据源唯一标识符
@@ -106,6 +108,7 @@ public class RocketMQConsumer {
      */
     private void configureConsumer(DefaultMQPushConsumer consumer, RocketMqSubscribeScriptInfo subscribeScriptInfo) {
         String other = subscribeScriptInfo.getOther();
+        other = MagicAPIConfigUtils.getRocketMQSubscribeConfig(dataSourceInfo.getKey(), subscribeScriptInfo.getTopic(), "other", other);
         Map<String, Object> otherMap = new HashMap<>();
 
         if (StringUtils.isNotBlank(other)) {
@@ -197,17 +200,21 @@ public class RocketMQConsumer {
         // 去重：以 topic:group 作为唯一标识保留有效的订阅信息
         Map<String, RocketMqSubscribeScriptInfo> uniqueSubscribers = new LinkedHashMap<>();
         for (RocketMqSubscribeScriptInfo info : mqSubscribeScriptInfos) {
-            if (Objects.isNull(info) || !info.isEnabled()) {
+            Boolean enable = enable(info);
+            if (!Boolean.TRUE.equals(enable)) {
                 continue;
             }
-            String key = info.getTopic() + ":" + info.getGroup();
+            String group = info.getGroup();
+            group = MagicAPIConfigUtils.getRocketMQSubscribeConfig(dataSourceInfo.getKey(), info.getTopic(), "group", group);
+            String key = info.getTopic() + ":" + group;
             uniqueSubscribers.put(key, info);
         }
 
         // 遍历去重后的订阅信息，逐个创建消费者
-        for (RocketMqSubscribeScriptInfo subscribeScriptInfo : uniqueSubscribers.values()) {
-            String topicName = subscribeScriptInfo.getTopic();
-            String group = subscribeScriptInfo.getGroup();
+        for (RocketMqSubscribeScriptInfo info : uniqueSubscribers.values()) {
+            String topicName = info.getTopic();
+            String group = info.getGroup();
+            group = MagicAPIConfigUtils.getRocketMQSubscribeConfig(dataSourceInfo.getKey(), topicName, "group", group);
 
             if (StringUtils.isBlank(topicName) || StringUtils.isBlank(group)) {
                 continue;
@@ -229,7 +236,7 @@ public class RocketMQConsumer {
                     log.error("Error suspend consumer for topic: {}", topicName, e);
                 }
                 try {
-                    oldConsumer.unsubscribe(subscribeScriptInfo.getTopic());
+                    oldConsumer.unsubscribe(topicName);
                 } catch (Exception e) {
                     log.error("Error unsubscribe consumer for topic: {}", topicName, e);
                 }
@@ -247,11 +254,11 @@ public class RocketMQConsumer {
 
             // 根据是否有 ACL 凭据决定创建哪种类型的消费者
             String accessKey = dataSourceInfo.getAccessKey();
-            accessKey = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.host",dataSourceInfo.getKey()), accessKey);
+            accessKey = MagicAPIConfigUtils.getRocketMQConfig(dataSourceInfo.getKey(), "accessKey", accessKey);
             String secretKey = dataSourceInfo.getSecretKey();
-            secretKey = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.secretKey",dataSourceInfo.getKey()), secretKey);
+            secretKey = MagicAPIConfigUtils.getRocketMQConfig(dataSourceInfo.getKey(), "secretKey", secretKey);
             String nameServer = dataSourceInfo.getNameServer();
-            nameServer = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.nameServer",dataSourceInfo.getKey()), nameServer);
+            nameServer = MagicAPIConfigUtils.getRocketMQConfig(dataSourceInfo.getKey(), "nameServer", nameServer);
             DefaultMQPushConsumer consumer;
             if (StringUtils.isBlank(secretKey) || StringUtils.isBlank(accessKey)) {
                 consumer = new DefaultMQPushConsumer();
@@ -262,16 +269,19 @@ public class RocketMQConsumer {
 
             // 设置消费者基本属性
             consumer.setNamesrvAddr(nameServer);
-            consumer.setConsumerGroup(subscribeScriptInfo.getGroup());
+            consumer.setConsumerGroup(group);
 
             // 如果是广播模式，则动态生成一个唯一的消费者组名称避免冲突
-            if (subscribeScriptInfo.isBroadcast()) {
-                consumer.setConsumerGroup(subscribeScriptInfo.getGroup() + "-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0, 8));
+            if (info.isBroadcast()) {
+                String serviceName = SpringUtils.getApplicationName();
+                String serverPort = SpringUtils.getServerPort();
+                String macAddress = NetUtils.getMacAddress();
+                consumer.setConsumerGroup(info.getGroup() + "-broadcast-" + serviceName + "-" + serverPort + "-" + macAddress);
             }
 
             // 执行实际的订阅操作
-            consumer.subscribe(subscribeScriptInfo.getTopic(), subscribeScriptInfo.getTags());
-            configureConsumer(consumer, subscribeScriptInfo);
+            consumer.subscribe(topicName, info.getTags());
+            configureConsumer(consumer, info);
 
             // 注册消息监听器逻辑
             consumer.registerMessageListener((MessageListenerConcurrently) (msgs, context) -> {
@@ -397,6 +407,7 @@ public class RocketMQConsumer {
     public void unsubscribe(RocketMqSubscribeInfo subscribeScriptInfo) {
         String topic = subscribeScriptInfo.getTopic();
         String group = subscribeScriptInfo.getGroup();
+        group = MagicAPIConfigUtils.getRocketMQSubscribeConfig(dataSourceInfo.getKey(), subscribeScriptInfo.getTopic(), "group", group);
         // 检查参数是否为空
         if (StringUtils.isBlank(topic) || StringUtils.isBlank(group)) {
             return;

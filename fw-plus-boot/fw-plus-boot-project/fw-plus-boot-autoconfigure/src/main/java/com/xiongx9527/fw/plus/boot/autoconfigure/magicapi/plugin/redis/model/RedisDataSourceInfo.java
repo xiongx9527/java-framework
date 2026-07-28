@@ -4,6 +4,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class RedisDataSourceInfo extends MagicEntity {
@@ -50,7 +53,7 @@ public class RedisDataSourceInfo extends MagicEntity {
     /**
      * 其它配置
      */
-    private String other;
+    private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
     @Override
     public MagicEntity simple() {
@@ -59,9 +62,12 @@ public class RedisDataSourceInfo extends MagicEntity {
         dataSourceInfo.setKey(this.key);
         dataSourceInfo.setHostname(this.hostname);
         dataSourceInfo.setPort(this.port);
+        dataSourceInfo.setUsername(this.username);
         dataSourceInfo.setPassword(this.password);
+        dataSourceInfo.setDatabase(this.database);
         dataSourceInfo.setClientType(clientType);
-        dataSourceInfo.setOther(other);
+        dataSourceInfo.setMode(mode);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
     }
 
@@ -72,9 +78,18 @@ public class RedisDataSourceInfo extends MagicEntity {
         dataSourceInfo.setKey(this.key);
         dataSourceInfo.setHostname(this.hostname);
         dataSourceInfo.setPort(this.port);
+        dataSourceInfo.setUsername(this.username);
         dataSourceInfo.setPassword(this.password);
+        dataSourceInfo.setDatabase(this.database);
         dataSourceInfo.setClientType(clientType);
-        dataSourceInfo.setOther(other);
+        dataSourceInfo.setMode(mode);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
+    }
+
+    private Map<String, Object> copyProperties() {
+        return this.properties == null
+                ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(this.properties);
     }
 }

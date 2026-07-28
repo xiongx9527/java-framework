@@ -1,5 +1,6 @@
 import $i from './i18n.js'
 import Beautifier from './beautifier/javascript/beautifier.js'
+
 /**
  * 排序数组对象
  * @param {*} arr 排序的数据
@@ -187,7 +188,7 @@ export function copyToClipboard(value) {
 		var copyText = document.createElement('textarea')
 		copyText.style = 'position:absolute;left:-99999999px'
 		document.body.appendChild(copyText)
-		copyText.innerHTML = value
+		copyText.textContent = value
 		copyText.readOnly = false
 		copyText.select()
 		document.execCommand('copy')

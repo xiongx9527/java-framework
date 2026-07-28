@@ -8,6 +8,8 @@ export default {
         export: '导出',
         push: '推送',
         skin: '皮肤',
+        fullscreen: '全屏',
+        exitFullscreen: '退出全屏',
         reload: '重新加载所有数据',
         copy: '复制',
         searchText: '输入关键字搜索',
@@ -288,7 +290,6 @@ export default {
         log: '运行日志',
         history: '历史记录',
         aia: '代码助手',
-        tinyflow: 'AI工作流',
         event: '事件',
         global: '全局参数',
         response: '执行结果',
@@ -421,21 +422,5 @@ export default {
         confirmClearMessages: '确定要清理所有对话记录吗？',
         clearMessages: '清理消息',
         wsNotConnected: '（WebSocket未连接，请先连接服务）'
-    },
-    tinyflow: {
-        save: '保存',
-        run: '运行',
-        export: '导出',
-        fullscreen: '全屏',
-        exitFullscreen: '退出全屏',
-        results: '运行结果',
-        running: '工作流运行中...',
-        noResults: '暂无运行结果',
-        noNodes: '当前工作流没有节点',
-        selectWorkflow: '选择工作流',
-        loadWorkflowSuccess: '工作流加载成功',
-        loadWorkflowError: '工作流加载失败',
-        success: '操作成功',
-        error: '操作失败'
     }
 }

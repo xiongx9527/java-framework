@@ -5,6 +5,7 @@ import modal from '../components/common/dialog/magic-modal.js'
 import { default as $i, translateCode } from './i18n.js'
 import bus from './bus.js'
 import Message from './constants/message.js'
+import store from './store.js'
 
 // 全局请求计数器
 let requestCount = 0
@@ -178,7 +179,9 @@ class HttpRequest {
 			...requestConfig
 		}
 		_config.headers = _config.headers || {};
-		_config.headers[constants.HEADER_MAGIC_TOKEN] = constants.HEADER_MAGIC_TOKEN_VALUE
+		// 从 store 中读取 token，如果存在则使用 store 中的 token，否则使用 constants.HEADER_MAGIC_TOKEN_VALUE
+		const token = store.get(constants.STORE.token) || constants.HEADER_MAGIC_TOKEN_VALUE
+		_config.headers[constants.HEADER_MAGIC_TOKEN] = token
 		
 		// 动态控制loading显示
 		const showLoading = shouldShowLoading(requestConfig)

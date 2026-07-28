@@ -32,3 +32,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Magic-API 前端插件构建产物
+**/src/console/node_modules/
+**/src/console/dist/
+**/src/console/package-lock.json
+.flattened-pom.xml

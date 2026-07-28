@@ -33,8 +33,7 @@ public class MqttSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegis
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception e) {
-            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
+        } catch (Exception ignored) {
         }
     }
 
@@ -44,7 +43,10 @@ public class MqttSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegis
      */
     @EventListener(condition = "#event.type == 'mqtt-subscribe'")
     public void onGroupEvent(GroupEvent event) {
-        processEvent(event);
+            try {
+               processEvent(event);
+            } catch (Exception ignored) {
+            }
     }
 
     /**
@@ -56,7 +58,7 @@ public class MqttSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegis
     public boolean register(MqttSubscribeInfo entity) {
         try {
             return super.register(entity);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             return false;
         }
     }
@@ -68,7 +70,11 @@ public class MqttSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegis
      */
     @Override
     protected boolean register(MappingNode<MqttSubscribeInfo> mappingNode) {
-        return super.register(mappingNode);
+        try {
+            return super.register(mappingNode);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
@@ -77,7 +83,10 @@ public class MqttSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegis
      */
     @Override
     protected void unregister(MappingNode<MqttSubscribeInfo> mappingNode) {
-        super.unregister(mappingNode);
+        try {
+            super.unregister(mappingNode);
+        } catch (Exception ignored) {
+        }
     }
 
 

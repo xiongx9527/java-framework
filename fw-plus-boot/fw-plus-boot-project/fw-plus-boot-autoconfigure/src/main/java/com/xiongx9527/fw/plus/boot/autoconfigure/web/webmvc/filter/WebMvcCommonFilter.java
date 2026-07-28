@@ -1,15 +1,15 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.webmvc.filter;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.web.filter.WebCommonFilter;
+import com.xiongx9527.fw.plus.boot.common.web.ICommonFilterService;
+import com.xiongx9527.fw.plus.boot.common.web.MyHttpEncryptor;
+import com.xiongx9527.fw.plus.boot.common.web.MyHttpEncryptorProperties;
+import com.xiongx9527.fw.plus.boot.common.web.mvc.filter.WebMvcBaseRequestFilter;
+import com.xiongx9527.fw.plus.boot.common.web.mvc.http.DecryptWebMvcHttpServletRequestWrapper;
+import com.xiongx9527.fw.plus.boot.common.web.mvc.http.EncryptWebMvcHttpServletResponseWrapper;
 import com.xiongx9527.fw.plus.common.util.WebUtils;
 import com.xiongx9527.fw.plus.common.web.WebMvcRequestContextHolder;
 import com.xiongx9527.fw.plus.common.web.WebRequestContextHolder;
-import com.xiongx9527.fw.plus.boot.autoconfigure.web.filter.WebCommonFilter;
-import com.xiongx9527.fw.plus.boot.common.web.mvc.filter.WebMvcBaseRequestFilter;
-import com.xiongx9527.fw.plus.boot.common.web.ICommonFilterService;
-import com.xiongx9527.fw.plus.boot.common.web.mvc.http.DecryptWebMvcHttpServletRequestWrapper;
-import com.xiongx9527.fw.plus.boot.common.web.mvc.http.EncryptWebMvcHttpServletResponseWrapper;
-import com.xiongx9527.fw.plus.boot.common.web.MyHttpEncryptor;
-import com.xiongx9527.fw.plus.boot.common.web.MyHttpEncryptorProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
@@ -43,7 +43,7 @@ public class WebMvcCommonFilter extends WebMvcBaseRequestFilter implements WebCo
         MyHttpEncryptor encryptor = this.getMyHttpEncryptor();
         MyHttpEncryptorProperties encryptorProperties = this.getMyHttpEncryptorProperties();
         boolean enabled = (Objects.nonNull(encryptorProperties) && encryptorProperties.isEnabled())
-                && encryptor.isGolabal();
+                && Objects.nonNull(encryptor) && encryptor.isGolabal();
         if (enabled && Objects.nonNull(encryptorProperties.getExcludePaths())) {
             String requestPath = request.getServletPath();
             for (String url : encryptorProperties.getExcludePaths()) {
@@ -77,17 +77,15 @@ public class WebMvcCommonFilter extends WebMvcBaseRequestFilter implements WebCo
                 if (status != HttpStatus.OK.value() && status != HttpStatus.NOT_MODIFIED.value() && status != 0
                     && !WebUtils.isWebSocketRequest(WebRequestContextHolder.getWebMvcRequest(requestWrapper))) {
                     log.warn("error http response status. path={}, status={}", lookupPath, status);
-                }else{
-                    // 在请求处理后执行过滤操作
-                    webCommonFilterService.doFilterAfter();
-                    if (responseWrapper instanceof EncryptWebMvcHttpServletResponseWrapper) {
-                        try {
-                            ((EncryptWebMvcHttpServletResponseWrapper)responseWrapper).encryptAndWrite();
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
+                } else if (responseWrapper instanceof EncryptWebMvcHttpServletResponseWrapper) {
+                    try {
+                        ((EncryptWebMvcHttpServletResponseWrapper)responseWrapper).encryptAndWrite();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
                     }
                 }
+                // 在请求处理后执行过滤操作
+                webCommonFilterService.doFilterAfter();
 
             }
         }
@@ -100,8 +98,7 @@ public class WebMvcCommonFilter extends WebMvcBaseRequestFilter implements WebCo
      */
     @Override
     public int getOrder() {
-        // 返回Integer.MIN_VALUE-100以确保在所有排序场景中都处于最末位
-        return Integer.MIN_VALUE-100;
+        return Ordered.LOWEST_PRECEDENCE - 100;
     }
 
 }

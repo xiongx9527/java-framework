@@ -112,13 +112,11 @@ public class WsDataSourceInfoMagicResourceStorage implements MagicResourceStorag
 		validateRequiredField(entity.getName(), "name");
 		// 验证secret字段为必需字段
 		validateRequiredField(entity.getSecret(), "secret");
-		// 验证other字段是否为JSON格式 验证other字段为JSON格式
-		validateJSON(entity.getOther(), "other");
 		// 如果实体已存在，验证key不可修改
 		if (entity.getId() != null) {
-			WsDataSourceInfo oldKafkaDataSourceInfo = magicResourceService.file(entity.getId());
-			if (null != oldKafkaDataSourceInfo) {
-				if (!oldKafkaDataSourceInfo.getKey().equals(entity.getKey())) {
+			WsDataSourceInfo oldWsDataSourceInfo = magicResourceService.file(entity.getId());
+			if (null != oldWsDataSourceInfo) {
+				if (!oldWsDataSourceInfo.getKey().equals(entity.getKey())) {
 					throw new IllegalArgumentException("key不可修改");
 				}
 			}
@@ -134,11 +132,11 @@ public class WsDataSourceInfoMagicResourceStorage implements MagicResourceStorag
         if (key == null || magicResourceService == null) {
             return;
         }
-        // 获取所有已存在的数据源
-        boolean noneMatchKey = magicResourceService.listFiles(folder() + ":0").stream()
-                .map(it -> (WsDataSourceInfo)it)
-                .filter(it -> !it.getId().equals(currentId))
-                .noneMatch(it -> Objects.equals(it.getKey(), key));
+		// 获取所有已存在的数据源
+		boolean noneMatchKey = magicResourceService.listFiles(folder() + ":0").stream()
+				.map(it -> (WsDataSourceInfo)it)
+				.filter(it -> !Objects.equals(it.getId(), currentId))
+				.noneMatch(it -> Objects.equals(it.getKey(), key));
 
         if (!noneMatchKey) {
             throw new IllegalArgumentException(String.format("数据源唯一标识(key) '%s' 已存在，请使用其他唯一标识", key));

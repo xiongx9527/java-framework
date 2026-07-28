@@ -75,50 +75,6 @@ public class MPJSqlInjector extends MpSqlInjector {
 
 
     /**
-     * 获取方法列表（已废弃）
-     * <p>该方法在版本3.4.3.2后已被弃用，请使用{@link #getMethodList(Class, TableInfo)}替代</p>
-     *
-     * @param mapperClass Mapper接口类
-     * @return 方法列表
-     * @throws RuntimeException 当版本号大于等于3.4.3.2时抛出异常，提示使用新方法
-     */
-    @Override
-    @Deprecated
-    public List<AbstractMethod> getMethodList(Class<?> mapperClass) {
-        List<AbstractMethod> resultList = ListUtils.emptyIfNull(super.getMethodList(mapperClass));
-        // 检查版本号，3.4.3.2版本后方法签名已更改
-        if (VersionUtils.compare(VersionUtils.getVersion(), "3.4.3.2") >= 0) {
-            throw ExceptionUtils.mpe("DefaultSqlInjector 的 getMethodList(Class<?> mapperClass) 方法已在 3.4.3.2+ 改为getMethodList(Class<?> mapperClass, TableInfo tableInfo)\n", new Object[0]);
-        } else if (Objects.nonNull(this.sqlInjector)) {
-            // 使用自定义SQL注入器获取方法列表
-            List<AbstractMethod> methodList = AbstractMethodV3431.getMethod(this.sqlInjector, mapperClass);
-            resultList.addAll(this.methodFilter(methodList));
-        } else {
-            // 添加默认的CRUD方法
-            List<AbstractMethod> list = (List)Stream.of(new Insert(), new DeleteByMap(), new DeleteById(), new DeleteBatchByIds(), new UpdateById(), new SelectById(), new SelectBatchByIds(), new SelectByMap()).collect(Collectors.toList());
-            list.addAll(this.getWrapperMethod());
-            list.addAll(this.getJoinMethod());
-            resultList.addAll(list);
-        }
-        return resultList;
-    }
-
-    /**
-     * 获取方法列表
-     * <p>根据Mapper类和表信息获取SQL方法列表</p>
-     *
-     * @param mapperClass Mapper接口类
-     * @param tableInfo 表信息
-     * @return 过滤后的方法列表
-     */
-    @Deprecated
-    public List<AbstractMethod> getMethodList(Class<?> mapperClass, TableInfo tableInfo) {
-        return Objects.nonNull(this.sqlInjector) ? this.methodFilter(this.sqlInjector.getMethodList(mapperClass)) :
-                this.methodFilter(super.getMethodList(mapperClass));
-    }
-
-
-    /**
      * 获取方法列表。
      *
      * @param configuration 配置信息
@@ -126,9 +82,10 @@ public class MPJSqlInjector extends MpSqlInjector {
      * @param tableInfo     表信息
      * @return 方法列表
      */
+    @Override
     public List<AbstractMethod> getMethodList(Configuration configuration, Class<?> mapperClass, TableInfo tableInfo) {
-        return Objects.nonNull(this.sqlInjector) ? this.methodFilter(this.sqlInjector.getMethodList(mapperClass)):
-                this.methodFilter(super.getMethodList(mapperClass));
+        return Objects.nonNull(this.sqlInjector) ? this.methodFilter(this.sqlInjector.getMethodList(mapperClass, tableInfo)) :
+                this.methodFilter(super.getMethodList(configuration, mapperClass, tableInfo));
     }
 
     /**

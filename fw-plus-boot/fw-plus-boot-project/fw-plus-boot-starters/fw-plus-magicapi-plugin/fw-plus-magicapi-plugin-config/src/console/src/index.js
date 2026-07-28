@@ -4,6 +4,7 @@ import localEn from './i18n/en.js'
 import MagicConfigInfo from './components/magic-config-info.vue'
 import setYaml from './js/yaml'
 import 'vite-plugin-svg-icons/register'
+
 export default (opt) => {
     const i18n = opt.i18n
     // 添加i18n 国际化信息
@@ -11,6 +12,13 @@ export default (opt) => {
     i18n.add('en', localEn)
     setYaml(opt.monaco)
     return {
+        statusBarItems: [{
+            icon: '#magic-config-config',
+            title: 'Config',
+            displayKey: 'config',
+            order: 400,
+            onClick: () => window.open('https://spring.io/projects/spring-cloud-config/', '_blank')
+        }],
         // 左侧资源
         resource: [{
             // 资源类型，和后端存储结构一致
@@ -29,8 +37,9 @@ export default (opt) => {
             // 工具条展示的标题
             title: 'config.title',
             // 展示图标
-            icon: 'parameter',
+            icon: '#magic-config-config',
             // 对应的组件
+            order: 100,
             component: MagicConfigInfo,
         }]
     }

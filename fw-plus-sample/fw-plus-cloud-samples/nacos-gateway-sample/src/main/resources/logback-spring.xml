@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 获取 Spring Boot 应用属性 -->
+    <springProperty scope="context" name="appName" source="spring.application.name"/>
+    <!-- 获取 Spring Boot 应用环境 -->
+    <springProperty scope="context" name="env" source="spring.profiles.active"/>
+    <!-- 获取 Spring Boot 应用日志级别 -->
+    <springProperty scope="context" name="logLevel" source="logging.level.root" defaultValue="INFO"/>
+    <!-- 根据系统属性决定是否启用 Plumelog 上报 -->
+    <if condition='isDefined("log.appender.type") &amp;&amp; property("log.appender.type").equals("plumelog")'>
+        <then>
+            <if condition='isDefined("plumelog.appender.type") &amp;&amp; property("plumelog.appender.type").equals("LiteAppender")'>
+                <then>
+                    <!-- Plumelog Lite 异步 Appender - 根据源码的正确配置 -->
+                    <appender name="plumelog" class="com.plumelog.logback.appender.LiteAppender">
+                        <!-- 基础属性 -->
+                        <appName>${appName}</appName>
+                        <env>${env}</env>
+                        <runModel>${plumelog.lite.runModel:-1}</runModel>
+                        <expand>${plumelog.lite.expand}</expand>
+                        <plumelogHost>${plumelog.lite.host:-localhost}:${plumelog.port:-8891}</plumelogHost>
+                        <maxCount>${plumelog.lite.maxCount:-100}</maxCount>
+                        <logQueueSize>${plumelog.lite.logQueueSize:-10000}</logQueueSize>
+                        <threadPoolSize>${plumelog.lite.threadPoolSize:-1}</threadPoolSize>
+                        <compressor>${plumelog.lite.compressor:-false}</compressor>
+                    </appender>
+                </then>
+            </if>
+            <if condition='isDefined("plumelog.appender.type") &amp;&amp; property("plumelog.appender.type").equals("RedisAppender")'>
+                <then>
+                    <!-- Plumelog Redis异步 Appender - 根据源码的正确配置 -->
+                    <appender name="plumelog" class="com.plumelog.logback.appender.RedisAppender">
+                        <!-- 基础属性 -->
+                        <appName>${appName}</appName>
+                        <env>${env}</env>
+                        <redisHost>${plumelog.redis.redisHost}</redisHost>
+                        <redisPort>${plumelog.redis.redisPort}</redisPort>
+                        <redisAuth>${plumelog.redis.redisAuth}</redisAuth>
+                        <model>${plumelog.redis.model:-standalone}</model>
+                        <masterName>${plumelog.redis.masterName}</masterName>
+                        <redisDb>${plumelog.redis.redisDb:-0}</redisDb>
+                        <runModel>${plumelog.lite.runModel:-1}</runModel>
+                        <expand>${plumelog.lite.expand}</expand>
+                        <maxCount>${plumelog.lite.maxCount:-100}</maxCount>
+                        <logQueueSize>${plumelog.lite.logQueueSize:-10000}</logQueueSize>
+                        <threadPoolSize>${plumelog.lite.threadPoolSize:-1}</threadPoolSize>
+                        <compressor>${plumelog.compressor:-false}</compressor>
+                    </appender>
+                </then>
+            </if>
+            <if condition='isDefined("plumelog.appender.type") &amp;&amp; property("plumelog.appender.type").equals("KafkaAppender")'>
+                <then>
+                    <!-- Plumelog Kafka异步 Appender - 根据源码的正确配置 -->
+                    <appender name="plumelog" class="com.plumelog.logback.appender.KafkaAppender">
+                        <!-- 基础属性 -->
+                        <appName>${appName}</appName>
+                        <env>${env}</env>
+                        <kafkaHosts>${plumelog.kafka.kafkaHosts}</kafkaHosts>
+                        <expand>${plumelog.lite.expand}</expand>
+                        <maxCount>${plumelog.lite.maxCount:-100}</maxCount>
+                        <logQueueSize>${plumelog.lite.logQueueSize:-10000}</logQueueSize>
+                        <threadPoolSize>${plumelog.lite.threadPoolSize:-1}</threadPoolSize>
+                        <compressor>${plumelog.compressor:-false}</compressor>
+                    </appender>
+                </then>
+            </if>
+            <if condition='!isDefined("plumelog.appender.type")'>
+                <then>
+                    <!-- 默认 Plumelog Lite 异步 Appender - 根据源码的正确配置 -->
+                    <appender name="plumelog" class="com.plumelog.logback.appender.LiteAppender">
+                        <!-- 基础属性 -->
+                        <appName>${appName}</appName>
+                        <env>${env}</env>
+                        <runModel>${plumelog.lite.runModel:-1}</runModel>
+                        <expand>${plumelog.lite.expand}</expand>
+                        <plumelogHost>${plumelog.lite.host:-localhost}:${plumelog.port:-8891}</plumelogHost>
+                        <maxCount>${plumelog.lite.maxCount:-100}</maxCount>
+                        <logQueueSize>${plumelog.lite.logQueueSize:-10000}</logQueueSize>
+                        <threadPoolSize>${plumelog.lite.threadPoolSize:-1}</threadPoolSize>
+                        <compressor>${plumelog.lite.compressor:-false}</compressor>
+                    </appender>
+                </then>
+            </if>
+            <root level="${logLevel}">
+                <appender-ref ref="plumelog"/>
+            </root>
+        </then>
+    </if>
+
+    <!-- 本地输出日志 -->
+    <if condition='!isDefined("log.appender.type")'>
+        <then>
+            <!-- traceId的converter -->
+            <conversionRule conversionWord="traceId" converterClass="com.xiongx9527.fw.plus.common.trace.logback.TraceIdConverter" />
+            <!-- spanId的converter -->
+            <conversionRule conversionWord="spanId" converterClass="com.xiongx9527.fw.plus.common.trace.logback.SpanIdConverter" />
+            <!-- 输出格式 -->
+            <property name="logPattern" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [${appName}][%thread][%traceId][%spanId] %-5level %logger{40} - %msg%n" />
+
+            <!-- 控制台日志 -->
+            <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder>
+                    <pattern>${logPattern}</pattern>
+                </encoder>
+            </appender>
+
+            <!-- 文件日志目录 -->
+            <springProperty scope="context" name="logDir" source="logging.file.path"/>
+            <!-- 单个日志文件的最大Size -->
+            <springProperty scope="context" name="maxFileSize" source="logging.file.max-size" defaultValue="200MB"/>
+            <!-- 保留的归档文件的最大天数 -->
+            <springProperty scope="context" name="maxHistory" source="logging.file.max-history" defaultValue="30"/>
+            <!-- 所有归档日志文件的总大小 -->
+            <springProperty scope="context" name="totalSizeCap" source="logging.file.total-size-cap" defaultValue="0"/>
+
+            <!-- 一般日志 -->
+            <appender name="logfile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${logDir}/${appName}-${env}.log</file>
+                <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                    <fileNamePattern>${logDir}/${appName}-${env}.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                    <maxFileSize>${maxFileSize}</maxFileSize>
+                    <maxHistory>${maxHistory}</maxHistory>
+                    <totalSizeCap>${totalSizeCap}</totalSizeCap>
+                </rollingPolicy>
+                <encoder>
+                    <pattern>${logPattern}</pattern>
+                </encoder>
+            </appender>
+
+            <root level="${logLevel}">
+                <appender-ref ref="console"/>
+                <appender-ref ref="logfile"/>
+            </root>
+        </then>
+    </if>
+
+</configuration>

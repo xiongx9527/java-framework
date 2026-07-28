@@ -141,26 +141,47 @@ public interface BaseService extends MagicBaseService {
     /**
      * 获取WebSocket受信任的域名
      *
-     * @return 受信任的域名列表，如果配置中未指定则返回默认值"*"（允许所有域名）
+	 * @return 受信任的域名列表，如果配置中未指定则返回空字符串（不允许任意域名）
      */
-    default String getTrustedDomain() {
-        return getConfigValueAsString("websocket.trustedDomain","*");
-    }
+	default String getTrustedDomain() {
+		return getConfigValueAsString("websocket.trustedDomain","");
+	}
 
-    /**
-     * 获取WebSocket子协议数组
+	/**
+	 * 对敏感值做日志脱敏，避免 token、secret 等凭证被完整写入日志。
+	 *
+	 * @param value 敏感值
+	 * @return 脱敏后的值
+	 */
+	default String maskSensitiveValue(String value) {
+		if (StringUtils.isBlank(value)) {
+			return value;
+		}
+		if (value.length() <= 8) {
+			return "***";
+		}
+		return value.substring(0, 4) + "****" + value.substring(value.length() - 4);
+	}
+
+	/**
+	 * 获取WebSocket子协议数组
      *
      * @return 子协议字符串数组，如果未配置则返回空数组
      */
-    default String[] getSubProtocols() {
-        // 从配置中获取子协议配置值，默认为"chat,superchat"
-        String subProtocols = getConfigValueAsString("websocket.subProtocols","chat,superchat");
-        if (StringUtils.isNotBlank(subProtocols)) {
-            // 将逗号分隔的子协议字符串拆分为数组
-            return subProtocols.split(",");
-        }
-        return new String[0];
-    }
+	default String[] getSubProtocols() {
+		String subProtocols = getConfigValueAsString("websocket.subProtocols","");
+		if (StringUtils.isNotBlank(subProtocols)) {
+			java.util.List<String> protocols = new java.util.ArrayList<>();
+			for (String protocol : subProtocols.split(",")) {
+				String trimmedProtocol = protocol.trim();
+				if (StringUtils.isNotBlank(trimmedProtocol)) {
+					protocols.add(trimmedProtocol);
+				}
+			}
+			return protocols.toArray(new String[protocols.size()]);
+		}
+		return new String[0];
+	}
 
     /**
      * 获取Token过期时间（小时）
@@ -171,14 +192,18 @@ public interface BaseService extends MagicBaseService {
         return getConfigValueAsLong("token.expireHours",2L);
     }
 
-    /**
-     * 获取Token密钥
-     *
-     * @return Token密钥，如果配置中未指定则返回默认值"63XYwWBJF5P3GBCZfFLFWXGbSw4KpKSg"
-     */
-    default String getTokenSecret() {
-        return getConfigValueAsString("token.secret","63XYwWBJF5P3GBCZfFLFWXGbSw4KpKSg");
-    }
+	/**
+	 * 获取Token密钥
+	 *
+	 * @return Token密钥
+	 */
+	default String getTokenSecret() {
+		String tokenSecret = getConfigValueAsString("token.secret", "");
+		if (StringUtils.isBlank(tokenSecret)) {
+			throw new IllegalStateException("magic-api.plugin.ws.token.secret must be configured");
+		}
+		return tokenSecret;
+	}
 
     /**
      * 根据配置获取Token密钥和签名算法
@@ -241,98 +266,14 @@ public interface BaseService extends MagicBaseService {
      * @throws RuntimeException 当token验证失败或算法不可用时抛出此异常
      */
     default String validateAndExtractAppIdFromToken(String token) {
-        String defaultSecretKey = getTokenSecret();
-        byte[] keyBytes = defaultSecretKey.getBytes(java.nio.charset.StandardCharsets.UTF_8);
-
-        // 尝试使用不同长度的密钥和算法来验证token
-        // 按安全性从高到低尝试
-        // 首先尝试使用原始密钥（如果足够长）
-        if (keyBytes.length >= 64) {
-            // 尝试HS512
-            try {
-                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
-                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody();
-                return claims.getSubject();
-            } catch (Exception e) {
-                // 如果失败，继续尝试其他算法
-            }
-        }
-
-        if (keyBytes.length >= 48) {
-            // 尝试HS384
-            try {
-                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
-                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody();
-                return claims.getSubject();
-            } catch (Exception e) {
-                // 如果失败，继续尝试其他算法
-            }
-        }
-
-        if (keyBytes.length >= 32) {
-            // 尝试HS256
-            try {
-                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
-                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes))
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody();
-                return claims.getSubject();
-            } catch (Exception e) {
-                // 如果失败，继续尝试其他方法
-            }
-        }
-
-        // 如果原始密钥长度不足，尝试使用处理后的密钥
-        // 生成不同长度的密钥以匹配不同算法
+        SecretKeyAndSignatureAlgorithm keyAndAlg = getSecretKeyAndSignatureAlgorithm();
         try {
-            // 缓存常用的MessageDigest实例
-            java.security.MessageDigest sha512Digest = java.security.MessageDigest.getInstance("SHA-512");
-            java.security.MessageDigest sha384Digest = java.security.MessageDigest.getInstance("SHA-384");
-            java.security.MessageDigest sha256Digest = java.security.MessageDigest.getInstance("SHA-256");
-
-            // 为HS512生成64字节密钥
-            byte[] hs512KeyBytes = sha512Digest.digest(keyBytes);
-            try {
-                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
-                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(hs512KeyBytes))
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody();
-                return claims.getSubject();
-            } catch (Exception e) {
-                // 继续尝试其他方式
-            }
-
-            // 为HS384生成48字节密钥
-            byte[] hs384KeyBytes = sha384Digest.digest(keyBytes);
-            try {
-                io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
-                        .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(hs384KeyBytes))
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody();
-                return claims.getSubject();
-            } catch (Exception e) {
-                // 继续尝试其他方式
-            }
-
-            // 为HS256生成32字节密钥
-            byte[] hs256KeyBytes = sha256Digest.digest(keyBytes);
             io.jsonwebtoken.Claims claims = io.jsonwebtoken.Jwts.parser()
-                    .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(hs256KeyBytes))
+                    .setSigningKey(keyAndAlg.getSecretKey())
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
             return claims.getSubject();
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new RuntimeException("Failed to validate token due to missing algorithm", e);
         } catch (Exception e) {
             throw new RuntimeException("Failed to validate token", e);
         }
@@ -424,6 +365,15 @@ public interface BaseService extends MagicBaseService {
         // 默认并发级别为16，可以通过配置进行修改
         return getConfigValueAsInt("session.cache.concurrencyLevel", 16);
     }
+
+	/**
+	 * 获取延迟关闭调度线程池大小。
+	 *
+	 * @return 延迟关闭调度线程池大小，如果配置中未指定则返回默认值2
+	 */
+	default int getDelayedClosePoolSize() {
+		return getConfigValueAsInt("scheduler.delayedClosePoolSize", 2);
+	}
 
     /**
      * 获取会话延迟时间（毫秒）

@@ -31,6 +31,14 @@ public interface IAppChatClient extends IAppBaseClient {
     EventSource sendMessagesAsync(ParamMessage message, EventSourceListener listener);
 
     /**
+     * 发送对话消息（异步接收）
+     *
+     * @param message
+     * @return
+     */
+    EventSource sendMessagesAsync(ParamMessage message);
+
+    /**
      * 停止响应(仅支持流式模式)
      *
      * @param taskId 任务 ID，可在流式返回 Chunk 中获取

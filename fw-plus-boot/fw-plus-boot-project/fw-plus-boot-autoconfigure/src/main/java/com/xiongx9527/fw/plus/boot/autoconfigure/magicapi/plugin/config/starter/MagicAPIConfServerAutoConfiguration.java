@@ -27,12 +27,12 @@ public class MagicAPIConfServerAutoConfiguration {
      *
      * <p>该方法会创建一个MagicAPIEnvironmentRepository实例，用于管理MagicAPI的环境配置。</p>
      *
-     * @param environment 可配置的环境对象，用于获取Spring环境变量和属性配置
+     * @param storage 配置资源存储对象
      * @return 初始化完成的MagicAPI环境仓库实例，用于与配置服务器交互
      */
     @Bean
-    public MagicAPIEnvironmentRepository magicAPIEnvironmentRepository(ConfigMagicResourceStorage environment) {
-        return new MagicAPIEnvironmentRepository(environment);
+    public MagicAPIEnvironmentRepository magicAPIEnvironmentRepository(ConfigMagicResourceStorage storage) {
+        return new MagicAPIEnvironmentRepository(storage);
     }
 
 }

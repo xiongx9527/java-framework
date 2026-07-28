@@ -10,9 +10,8 @@
 	</parent>
 	<packaging>pom</packaging>
 	<modules>
-		<module>fw-plus-boot-samples</module>
 		<module>fw-plus-boot-project</module>
-	</modules>
+    </modules>
 	<groupId>com.xiongx9527.fw.plus.boot</groupId>
 	<artifactId>fw-plus-boot-build</artifactId>
 	<version>${revision}</version>
@@ -24,6 +23,7 @@
 		<maven.compiler.encoding>UTF-8</maven.compiler.encoding>
 		<maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
 		<cobertura-maven-plugin.version>2.7</cobertura-maven-plugin.version>
+		<flatten-maven-plugin.version>1.3.0</flatten-maven-plugin.version>
 	</properties>
 	<description>
 		fw-plus-boot 核心库管理.
@@ -35,20 +35,19 @@
 			<url>http://www.apache.org/licenses/LICENSE-2.0</url>
 		</license>
 	</licenses>
-	<!--开发者信息-->
-	<!--
+	<!--开发者信息
 	<developers>
 		<developer>
 			<id>jugui-tech nanchang group</id>
 			<name>巨龟科技南昌团队</name>
 			<organization>jugui-tech</organization>
-			<organizationUrl>https://gitee.com/xiongx9527-tech</organizationUrl>
+			<organizationUrl>https://gitee.com/jugui-tech</organizationUrl>
 			<email>xiongxiao@jugui-tech.com</email>
 		</developer>
 	</developers>
 	-->
-	<!--配置拉取仓库地址-->
 	<!--
+	配置拉取仓库地址
 	<repositories>
 		<repository>
 			<id>jugui-snapshot</id>
@@ -64,11 +63,8 @@
 				<enabled>true</enabled>
 			</snapshots>
 		</repository>
-
 	</repositories>
-	-->
-	<!--发布仓库地址-->
-	<!--
+    发布仓库地址
 	<distributionManagement>
 		<repository>
 			<id>jugui-release</id>
@@ -108,7 +104,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>flatten-maven-plugin</artifactId>
-				<version>1.3.0</version>
+				<version>${flatten-maven-plugin.version}</version>
 				<inherited>true</inherited>
 				<executions>
 					<execution>

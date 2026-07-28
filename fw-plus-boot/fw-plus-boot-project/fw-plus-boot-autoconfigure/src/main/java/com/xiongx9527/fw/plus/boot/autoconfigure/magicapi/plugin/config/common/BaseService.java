@@ -34,7 +34,7 @@ public interface BaseService extends MagicBaseService {
      * @throws IllegalArgumentException 当YAML格式不正确时抛出
      */
     default void validateFormat(String yamlStr) {
-        if (StringUtils.isNotBlank(yamlStr)  && yamlStr.trim().length() > 0) {
+        if (StringUtils.isNotBlank(yamlStr)) {
             try {
                 // 创建YAML解析器对象
                 Yaml yaml = new Yaml();

@@ -214,19 +214,20 @@ public class MyDefaultMagicResourceService extends DefaultMagicResourceService {
      */
     private <R> R writeLock(Supplier<R> supplier) {
         ReadWriteLock lock = getLock();
+        boolean acquired = false;
         try {
-            // 尝试获取写锁，超时时间为30秒
             if (!lock.writeLock().tryLock(WRITE_LOCK_TIMEOUT_SECONDS, java.util.concurrent.TimeUnit.SECONDS)) {
                 throw new RuntimeException("Failed to acquire write lock within 30 seconds");
             }
+            acquired = true;
             return supplier.get();
         } catch (InterruptedException e) {
-            // 恢复线程中断状态并抛出异常
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted while waiting for write lock", e);
         } finally {
-            // 确保写锁被释放
-            lock.writeLock().unlock();
+            if (acquired) {
+                lock.writeLock().unlock();
+            }
         }
     }
 
@@ -1295,5 +1296,20 @@ public class MyDefaultMagicResourceService extends DefaultMagicResourceService {
         this.readResource(resource);
     }
 
+    public boolean refreshResourceById(String type, String id) {
+        return writeLock(() -> {
+            MagicEntity entity = getFileCache().get(id);
+            MagicResourceStorage<?> storage = getStorages().get(type);
+            Resource file = getFileMappings().get(id);
+            if (entity == null || storage == null || file == null || !file.exists()) {
+                return false;
+            }
+            MagicEntity fresh = storage.readResource(file);
+            fresh.setId(id);
+            putFile(storage, fresh, file);
+            getPublisher().publishEvent(new FileEvent(type, EventAction.LOAD, fresh, type));
+            return true;
+        });
+    }
 
 }

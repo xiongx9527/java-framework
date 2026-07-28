@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.service.
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.service.PulsarSubscribeInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.service.PulsarSubscribeMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.web.MagicPulsarController;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.pulsar.client.api.Producer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -25,7 +26,7 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
  * @author zzy
  */
 @ConditionalOnProperty(prefix = "magic-api.plugin.pulsar", name = "enabled", havingValue = "true", matchIfMissing = true)
-@ConditionalOnClass(name={"org.apache.pulsar.client.api.Message"})
+@ConditionalOnClass(name={"org.apache.pulsar.client.api.PulsarClient","org.apache.pulsar.client.admin.PulsarAdmin"})
 //@Configuration
 @EnableConfigurationProperties(MagicPulsarConfig.class)
 public class MagicAPIPulsarConfiguration implements MagicPluginConfiguration {
@@ -111,9 +112,10 @@ public class MagicAPIPulsarConfiguration implements MagicPluginConfiguration {
     @DependsOn("pulsarDataSourceMagicDynamicRegistry")
     public PulsarSubscribeMagicDynamicRegistry pulsarSubscribeMagicDynamicRegistry(
             PulsarSubscribeInfoMagicResourceStorage pulsarSubscribeInfoMagicResourceStorage,
-            MagicDynamicPulsarDataSource magicDynamicPulsarDataSource) {
+            MagicDynamicPulsarDataSource magicDynamicPulsarDataSource,
+            PulsarDataSourceInfoMagicResourceStorage pulsarDataSourceInfoMagicResourceStorage) {
         return new PulsarSubscribeMagicDynamicRegistry(pulsarSubscribeInfoMagicResourceStorage,
-                magicDynamicPulsarDataSource);
+                magicDynamicPulsarDataSource, pulsarDataSourceInfoMagicResourceStorage, pulsarSubscribeInfoMagicResourceStorage);
     }
 
     /**
@@ -135,7 +137,10 @@ public class MagicAPIPulsarConfiguration implements MagicPluginConfiguration {
      */
     @Override
     public Plugin plugin() {
-        return new Plugin("pulsar", "MagicPulsar", "magic-pulsar.1.0.0.iife.js");
+        Plugin plugin = new Plugin("pulsar", "MagicPulsar", "magic-pulsar.1.0.0.iife.js");
+        String adminEnabled = SpringUtils.getAppConfig("magic-api.plugin.pulsar.admin.enabled", "false");
+        plugin.setAdminEnabled(Boolean.parseBoolean(adminEnabled));
+        return plugin;
     }
 
     /**

@@ -19,10 +19,12 @@ const cboId = new Date().getTime() + '' + Math.floor(Math.random() * 1000)
 </script>
 <style scoped>
 .magic-checkbox {
-    width: 100%;
-    height: 100%;
+    width: 16px;
+    height: 16px;
     text-align: center;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .magic-checkbox input {
@@ -32,10 +34,10 @@ const cboId = new Date().getTime() + '' + Math.floor(Math.random() * 1000)
 .magic-checkbox input + label {
     position: relative;
     color: #c9c9c9;
-    font-size: 12px;
-    height: var(--magic-input-height);
-    line-height: var(--magic-input-height);
-    width: var(--magic-input-height);
+    font-size: 14px;
+    height: 16px;
+    line-height: 16px;
+    width: 16px;
     user-select: none;
     display: inline-block;
 }
@@ -45,12 +47,12 @@ const cboId = new Date().getTime() + '' + Math.floor(Math.random() * 1000)
     background-color: var(--checkbox-background-color);
     border: 1px solid var(--checkbox-border-color);
     content: '';
-    width: calc(var(--magic-input-height) - 8px);
-    height: calc(var(--magic-input-height) - 8px);
-    line-height: calc(var(--magic-input-height) - 8px);
+    width: 14px;
+    height: 14px;
+    line-height: 14px;
     position: absolute;
-    top: 4px;
-    left: 4px;
+    top: 1px;
+    left: 1px;
     text-align: center;
     font-size: 12px;
     color: var(--checkbox-text-color);

@@ -1,0 +1,73 @@
+export default {
+    s3: {
+        browser: {
+            title: 'S3 File Manager',
+            storage: 'Storage',
+            select: 'Please select',
+            selectStorage: 'Select storage',
+            path: 'Path',
+            basePath: 'Base path',
+            edit: 'Edit',
+            save: 'Save',
+            searchLabel: 'File name',
+            search: 'Search files',
+            searchAction: 'Search',
+            refresh: 'Refresh',
+            loading: 'Loading...',
+            empty: 'No files found',
+            loadMore: 'Load more',
+            folder: 'Folder',
+            file: 'File',
+            selectFile: 'Select a file',
+            previewUrl: 'Preview URL',
+            preview: 'Preview',
+            previewFailed: 'Unable to generate preview URL',
+            download: 'Download',
+            downloadFailed: 'Unable to generate download URL',
+            delete: 'Delete',
+            confirmDelete: 'Delete {0}?',
+            cancel: 'Cancel',
+            errorTitle: 'S3 File Manager Error',
+            loadFailed: 'Unable to load S3 files',
+            loadStoragesFailed: 'Unable to load S3 storages',
+            listFilesFailed: 'Unable to load S3 files',
+            loadMoreFailed: 'Unable to load more S3 files',
+            saveBasePathFailed: 'Unable to save base path',
+            deleteFailed: 'Unable to delete S3 file'
+        },
+        datasource: {
+            title: 'S3 DataSource',
+            name: 'S3',
+            form: {
+                name: 'Name',
+                key: 'Key',
+                platform: 'Platform',
+                accessKey: 'AccessKey',
+                secretKey: 'SecretKey',
+                endPointSchema: 'EndPoint',
+                endPoint: 'EndPoint',
+                bucketName: 'Bucket',
+                basePath: 'BasePath',
+                tmpPath: 'TmpPath',
+                expirationSeconds: 'ExpireSec',
+                presignedUrlMethod: 'Presigned',
+                properties: 'Properties',
+                placeholder: {
+                    name: 'DataSource Name, Only Display Use',
+                    key: 'DataSource Key, Required',
+                    platform: 'Please Enter Platform, Required',
+                    accessKey: 'Please Enter AccessKey, Required',
+                    secretKey: 'Please Enter SecretKey, Required',
+                    endPointSchema: 'Please Enter EndPoint Schema, e.g: https, Optional',
+                    endPoint: 'Please Enter EndPoint, Required',
+                    bucketName: 'Please Enter Bucket Name, Required',
+                    basePath: 'Please Enter Base Path, Required',
+                    tmpPath: 'Please Enter Tmp Path, Optional',
+                    expirationSeconds: 'Please Enter Expiration Seconds, Optional',
+                    presignedUrlMethod: 'Please Select Presigned Method, Optional',
+                    properties: 'JSON object, for example: {"key": "value"}'
+                }
+            }
+        }
+    }
+}

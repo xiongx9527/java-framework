@@ -34,9 +34,8 @@ public class WsSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegistr
 	public void onFileEvent(FileEvent event) {
 		try {
 			processEvent(event);
-		} catch (Exception e) {
-			log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
-		}
+		} catch (Exception ignored) {
+        }
 	}
 
 
@@ -48,7 +47,10 @@ public class WsSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegistr
 	 */
 	@EventListener(condition = "#event.type == 'ws-subscribe'")
 	public void onGroupEvent(GroupEvent event) {
-		processEvent(event);
+		    try {
+		       processEvent(event);
+		    } catch (Exception ignored) {
+		    }
 	}
 
 
@@ -63,7 +65,7 @@ public class WsSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegistr
     public boolean register(WsSubscribeInfo entity) {
 		try {
 			return super.register(entity);
-		} catch (Exception e) {
+		} catch (Exception ignored) {
 			return false;
 		}
     }
@@ -78,7 +80,11 @@ public class WsSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegistr
      */
     @Override
     protected boolean register(MappingNode<WsSubscribeInfo> mappingNode) {
-        return super.register(mappingNode);
+        try {
+            return super.register(mappingNode);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
 	/**
@@ -89,6 +95,9 @@ public class WsSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegistr
 	 */
 	@Override
 	protected void unregister(MappingNode<WsSubscribeInfo> mappingNode) {
-		super.unregister(mappingNode);
+		try {
+		    super.unregister(mappingNode);
+		} catch (Exception ignored) {
+		}
 	}
 }

@@ -24,7 +24,7 @@ public interface KafkaCodeConstants extends JsonCodeConstants {
      * 错误码：30001005
      * 错误信息：订阅key不能为空
      */
-    public static JsonCode KAFKA_SUBSCRIBE_KEY_REQUIRED = new JsonCode(30001005, "订阅key不能为空");
+    public static final JsonCode KAFKA_SUBSCRIBE_KEY_REQUIRED = new JsonCode(30001005, "订阅key不能为空");
 
     /**
      * Kafka订阅主题不能为空错误码

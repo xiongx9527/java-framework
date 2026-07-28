@@ -1,26 +1,19 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.service;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.consumer.RabbitMQConsumer;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqSubscribeInfo;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqSubscribeScriptInfo;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model.RedisDataSourceInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.MagicDynamicRabbitMqDataSource;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqDataSourceInfo;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.context.event.EventListener;
 import org.ssssssss.magicapi.core.event.FileEvent;
 import org.ssssssss.magicapi.core.event.GroupEvent;
 import org.ssssssss.magicapi.core.service.AbstractMagicDynamicRegistry;
-import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.MagicDynamicRabbitMqDataSource;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqDataSourceInfo;
-import org.springframework.context.event.EventListener;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -107,23 +100,21 @@ public class RabbitMqDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
     @Override
     public boolean register(RabbitMqDataSourceInfo entity) {
         unregisterByEntity(entity);
-        return super.register(entity);
+        try {
+            return super.register(entity);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
-    /**
-     * 注册RabbitMQ数据源映射节点
-     * 提取节点中的实体信息并将其作为生产者添加到动态数据源中
-     * @param mappingNode RabbitMQ数据源映射节点，包含实体信息
-     * @return 生产者添加是否成功
-     */
     @Override
-    protected boolean register(AbstractMagicDynamicRegistry.MappingNode<RabbitMqDataSourceInfo> mappingNode) {
-        RabbitMqDataSourceInfo entity = mappingNode.getEntity();
-        log.info("注册 Rabbit 消息队列:[{}]开始执行", entity.getKey());
-        registerByEntity(entity);
-        log.info("注册 Rabbit 消息队列：[{}]完成执行", entity.getKey());
-        // 返回生产者和消费者是否都注册成功
-        return super.register(mappingNode);
+    protected boolean register(MappingNode<RabbitMqDataSourceInfo> mappingNode) {
+        registerByEntity(mappingNode.getEntity());
+        try {
+            return super.register(mappingNode);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
@@ -133,10 +124,11 @@ public class RabbitMqDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
      */
     @Override
     protected void unregister(AbstractMagicDynamicRegistry.MappingNode<RabbitMqDataSourceInfo> mappingNode) {
-        log.info("取消注册 Rabbit 消息队列:[{}]开始执行", mappingNode.getEntity().getKey());
         unregisterByEntity(mappingNode.getEntity());
-        log.info("取消注册 Rabbit 消息队列：[{}]完成执行", mappingNode.getEntity().getKey());
-        super.unregister(mappingNode);
+        try {
+            super.unregister(mappingNode);
+        } catch (Exception ignored) {
+        }
     }
 
     /**

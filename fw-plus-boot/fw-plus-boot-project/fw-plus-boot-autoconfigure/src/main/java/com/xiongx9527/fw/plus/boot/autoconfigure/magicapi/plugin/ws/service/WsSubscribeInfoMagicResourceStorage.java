@@ -9,6 +9,7 @@ import org.ssssssss.magicapi.core.service.AbstractPathMagicResourceStorage;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -65,15 +66,16 @@ public class WsSubscribeInfoMagicResourceStorage extends AbstractPathMagicResour
 		Map<String, List<WsSubscribeInfo>> map = ListUtils.emptyIfNull(findAll()).stream().collect(Collectors.groupingBy(WsSubscribeInfo::getKey));
 		// 检查同一key下业务标识的唯一性
 		if (map.containsKey(entity.getKey())) {
-			Map<String, WsSubscribeInfo> kafkaDataSourceInfoMap = ListUtils.emptyIfNull(map.get(entity.getKey())).stream().collect(Collectors.toMap(WsSubscribeInfo::getBusinessId, val -> val, (k1, k2) -> k1));
-			if (kafkaDataSourceInfoMap.containsKey(entity.getBusinessId()) && !kafkaDataSourceInfoMap.get(entity.getBusinessId()).getId().equals(entity.getId())) {
+			Map<String, WsSubscribeInfo> wsDataSourceInfoMap = ListUtils.emptyIfNull(map.get(entity.getKey())).stream().collect(Collectors.toMap(WsSubscribeInfo::getBusinessId, val -> val, (k1, k2) -> k1));
+			if (wsDataSourceInfoMap.containsKey(entity.getBusinessId())
+					&& (entity.getId() == null || !Objects.equals(wsDataSourceInfoMap.get(entity.getBusinessId()).getId(), entity.getId()))) {
 				throw new IllegalArgumentException(String.format("业务标识:%s 已存在", entity.getBusinessId()));
 			}
 		}
 		// 验证数据源key是否存在
-		WsDataSourceInfoMagicResourceStorage kafkaDataSourceInfoMagicResourceStorage = SpringUtils.getBean(WsDataSourceInfoMagicResourceStorage.class);
-		Map<String, WsDataSourceInfo> kafkaDataSourceInfoMap = ListUtils.emptyIfNull(kafkaDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(WsDataSourceInfo::getKey, val -> val, (k1, k2) -> k1));
-		if (!kafkaDataSourceInfoMap.containsKey(entity.getKey())) {
+		WsDataSourceInfoMagicResourceStorage wsDataSourceInfoMagicResourceStorage = SpringUtils.getBean(WsDataSourceInfoMagicResourceStorage.class);
+		Map<String, WsDataSourceInfo> wsDataSourceInfoMap = ListUtils.emptyIfNull(wsDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(WsDataSourceInfo::getKey, val -> val, (k1, k2) -> k1));
+		if (!wsDataSourceInfoMap.containsKey(entity.getKey())) {
 			throw new IllegalArgumentException(String.format("数据源key:%s 不存在", entity.getKey()));
 		}
 

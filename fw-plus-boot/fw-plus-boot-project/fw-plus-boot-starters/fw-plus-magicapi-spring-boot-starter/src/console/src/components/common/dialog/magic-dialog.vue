@@ -3,8 +3,8 @@
         <div class="magic-dialog" tabindex="1" :class="(shade ? 'magic-dialog__shade' : '') + (className ? ' ' + className : '')" @mousemove="onMousemove" @mouseup="onMouseup" @keydown="onKeydown">
             <div class="magic-dialog-main" :style="{ position, top, left, width, height,'max-width': maxWidth }" ref="dialog">
                 <div class="magic-dialog-header none-select" :class="{ moveable }" @mousedown="onMousedown">
-                    {{ title }}
-                    <span v-if="showClose" @mousedown.stop="close">
+                    <span class="magic-dialog-title">{{ title }}</span>
+                    <span v-if="showClose" class="magic-dialog-close" @mousedown.stop="close">
                         <magic-icon icon="close"/>
                     </span>
                 </div>
@@ -156,30 +156,37 @@ defineExpose({ close })
 .magic-dialog-header{
     height: 30px;
     line-height: 30px;
-    padding-left: 30px;
-    padding-right: 75px;
+    padding-left: 25px;
+    padding-right: 10px;
     background-position: 7px 7px;
     background-repeat: no-repeat;
     text-align: left;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
-.magic-dialog-header.moveable{
-    cursor: move;
+.magic-dialog-title{
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-.magic-dialog-header span{
-    display: inline-block;
+.magic-dialog-close{
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 30px;
-    position: absolute;
-    right: 0;
-    text-align: center;
     cursor: pointer;
     font-size: 12px;
     height: 30px;
-    line-height: 30px;
+    margin-left: 10px;
+    border-radius: 4px;
 }
-.magic-dialog-header span:hover{
+.magic-dialog-close:hover{
     background-color: #e81123;
 }
-.magic-dialog-header span:hover .magic-icon{
+.magic-dialog-close:hover .magic-icon{
     fill: #fff
 }
 .magic-dialog-body{

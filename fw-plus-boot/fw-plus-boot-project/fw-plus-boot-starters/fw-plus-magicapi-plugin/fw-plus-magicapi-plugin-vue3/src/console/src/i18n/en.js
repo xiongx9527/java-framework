@@ -4,13 +4,13 @@ export default {
         result: 'Vue3 Result',
         name: 'Vue3 Component',
         form: {
-            name: 'Vue3 Name',
+            name: 'Name',
             id: 'Id',
-            path: 'Vue3 Path',
-            jsDependences: 'Vue3 jsDependences',
-            cssDependences: 'Vue3 cssDependences',
-            params : 'Freemarker Test Params',
-            description: 'Vue3 Description',
+            path: 'Path',
+            jsDependences: 'JSDeps',
+            cssDependences: 'CSSDeps',
+            params : 'TestParams',
+            description: 'Description',
             placeholder: {
                 name: 'Please Enter Vue3 Name',
                 path: 'Please Enter Vue3 Path' ,
@@ -19,6 +19,11 @@ export default {
                 params: 'Enter the Vue3 parameter, which must be in JSON format.',
                 description: 'Please Enter Vue3 Description'
             }
+        },
+        navbars: {
+            jsDependences: 'JS Deps',
+            cssDependences: 'CSS Deps',
+            params: 'Params'
         }
     },
 }

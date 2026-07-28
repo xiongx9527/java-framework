@@ -1,14 +1,13 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.consumer;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqSubscribeScriptInfo;
+import com.xiongx9527.fw.plus.common.util.NetUtils;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.rabbitmq.client.Channel;
 import lombok.extern.slf4j.Slf4j;
@@ -21,14 +20,27 @@ import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.api.ChannelAwareMessageListener;
 
-@Slf4j
-public class RabbitMQConsumer {
-    private final String id;
-    private final String key;
-    private final String name;
-    private final Map<String,SimpleMessageListenerContainer> consumerMap = new ConcurrentHashMap<>();
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
+public class RabbitMQConsumer implements BaseService {
+    /** 消费者唯一标识 */
+    private final String id;
+    /** 消费者键值，用于配置关联 */
+    private final String key;
+    /** 消费者名称 */
+    private final String name;
+    /** 存储队列名与消息监听容器的映射关系，支持并发访问 */
+    private final Map<String, SimpleMessageListenerContainer> consumerMap = new ConcurrentHashMap<>();
+
+    /** RabbitMQ消费者服务，处理具体的消息消费逻辑 */
     private final RabbitMqConsumerService rabbitMqConsumerService;
+    /** RabbitMQ数据源配置信息 */
     private final RabbitMqDataSourceInfo dataSourceInfo;
 
     /**
@@ -54,16 +66,16 @@ public class RabbitMQConsumer {
      */
     private ConnectionFactory createConnectionFactory(RabbitMqDataSourceInfo dataSourceInfo) {
         String host = dataSourceInfo.getHost();
-        host = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.host",dataSourceInfo.getKey()), host);
+        host = MagicAPIConfigUtils.getRabbitMQConfig(dataSourceInfo.getKey(), "host", host);
         String portStr = dataSourceInfo.getPort();
-        portStr = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.port",dataSourceInfo.getKey()), portStr);
+        portStr = MagicAPIConfigUtils.getRabbitMQConfig(dataSourceInfo.getKey(), "port", portStr);
         int port = Integer.parseInt(portStr);
         String username = dataSourceInfo.getUsername();
-        username = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.username",dataSourceInfo.getKey()), username);
+        username = MagicAPIConfigUtils.getRabbitMQConfig(dataSourceInfo.getKey(), "username", username);
         String password = dataSourceInfo.getPassword();
-        password = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.password",dataSourceInfo.getKey()), password);
+        password = MagicAPIConfigUtils.getRabbitMQConfig(dataSourceInfo.getKey(), "password", password);
         String virtualHost = dataSourceInfo.getVirtualHost();
-        virtualHost = SpringUtils.getAppConfig(String.format("magic.api.rabbitmq.%s.virtualHost",dataSourceInfo.getKey()), virtualHost);
+        virtualHost = MagicAPIConfigUtils.getRabbitMQConfig(dataSourceInfo.getKey(), "virtualHost", virtualHost);
         CachingConnectionFactory connectionFactory = new CachingConnectionFactory();
         connectionFactory.setHost(host);
         connectionFactory.setPort(port);
@@ -208,25 +220,31 @@ public class RabbitMQConsumer {
      */
     private Map<String,SimpleMessageListenerContainer> createConsumer(RabbitMqConsumerService rabbitMqConsumerService, RabbitMqDataSourceInfo dataSourceInfo, List<RabbitMqSubscribeScriptInfo> subscribeScriptInfos) {
         Map<String,SimpleMessageListenerContainer> consumerMap = new ConcurrentHashMap<>();
-        subscribeScriptInfos.stream().forEach(info -> {
+        for (RabbitMqSubscribeScriptInfo info : subscribeScriptInfos) {
+            Boolean enable = enable(info);
+            if (!Boolean.TRUE.equals(enable)) {
+                continue;
+            }
             // 创建消息监听容器，并设置连接工厂
             SimpleMessageListenerContainer simpleMessageListenerContainer = new SimpleMessageListenerContainer(createConnectionFactory(dataSourceInfo));
-
             // 设置监听的队列名称列表
             simpleMessageListenerContainer.setQueueNames(info.getQueueName());
             if (info.isBroadcast()) {
+                String serviceName = SpringUtils.getApplicationName();
+                String serverPort = SpringUtils.getServerPort();
+                String macAddress = NetUtils.getMacAddress();
                 String queueName = info.getQueueName() ;
-                queueName += "-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+                queueName += "-broadcast-" + serviceName + "-" + serverPort + "-" + macAddress;
                 simpleMessageListenerContainer.setQueueNames(queueName);
             }
-
+            String other = info.getOther();
+            other = MagicAPIConfigUtils.getRabbitMQSubscribeConfig(info.getKey(), info.getQueueName(), "other", other);
             Map<String, Object> otherMap = new HashMap<>();
-            if (StringUtils.isNotBlank(info.getOther())) {
-                otherMap.putAll(JSON.parseObject(info.getOther(), new TypeReference<Map<String, Object>>() {}));
+            if (StringUtils.isNotBlank(other)) {
+                otherMap.putAll(JSON.parseObject(other, new TypeReference<Map<String, Object>>() {}));
             }
 
             configureConsumer(simpleMessageListenerContainer, otherMap);
-
             // 从 otherMap 获取重试配置
             Integer maxRetries = (Integer) otherMap.getOrDefault("maxRetries", 3);
             Long retryInterval = (Long) otherMap.getOrDefault("retryInterval", 5000L);
@@ -250,7 +268,7 @@ public class RabbitMQConsumer {
                 }
             });
             this.consumerMap.put(info.getQueueName(), simpleMessageListenerContainer);
-        });
+        }
         return consumerMap;
     }
 

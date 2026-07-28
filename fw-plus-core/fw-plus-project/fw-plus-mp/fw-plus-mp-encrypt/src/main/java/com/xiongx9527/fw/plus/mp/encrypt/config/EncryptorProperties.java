@@ -1,11 +1,7 @@
 package com.xiongx9527.fw.plus.mp.encrypt.config;
 
 import com.xiongx9527.fw.plus.common.encrypt.DefaultEncryptorProperties;
-import com.xiongx9527.fw.plus.common.mate.annotation.Algorithm;
-import com.xiongx9527.fw.plus.common.mate.annotation.FieldEncrypt;
 import lombok.Data;
-
-import java.io.Serializable;
 
 /**
  * 加密器配置属性类

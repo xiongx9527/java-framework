@@ -1,14 +1,18 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.web;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqSubscribeInfo;
-import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.Connection;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.config.WebSocketSessionManager;
 import org.ssssssss.magicapi.core.logging.MagicLoggerContext;
@@ -18,10 +22,6 @@ import org.ssssssss.magicapi.core.servlet.MagicHttpServletRequest;
 import org.ssssssss.magicapi.core.web.MagicController;
 import org.ssssssss.magicapi.core.web.MagicExceptionHandler;
 import org.ssssssss.magicapi.utils.ScriptManager;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.ssssssss.script.MagicScriptDebugContext;
 
 import java.nio.charset.StandardCharsets;
@@ -92,23 +92,23 @@ public class MagicRabbitMqController extends MagicController implements MagicExc
             validateField(properties);
             connectionFactory = new CachingConnectionFactory();
             String host = properties.getHost();
-            host = SpringUtils.getAppConfig(host, host);
+            host = MagicAPIConfigUtils.getRabbitMQConfig(properties.getKey(), "host", host);
             connectionFactory.setHost(host);
             String portStr = properties.getPort();
-            portStr = SpringUtils.getAppConfig(portStr, portStr);
+            portStr = MagicAPIConfigUtils.getRabbitMQConfig(properties.getKey(), "port", portStr);
             int port = Integer.parseInt(portStr);
             connectionFactory.setPort(port);
             if (StringUtils.isNotBlank(properties.getUsername()) && StringUtils.isNotBlank(properties.getPassword())) {
                 String username = properties.getUsername();
-                username = SpringUtils.getAppConfig(username, username);
+                username = MagicAPIConfigUtils.getRabbitMQConfig(properties.getKey(), "username", username);
                 String password = properties.getPassword() ;
-                password = SpringUtils.getAppConfig(password, password);
+                password = MagicAPIConfigUtils.getRabbitMQConfig(properties.getKey(), "password", password);
                 connectionFactory.setUsername(username);
                 connectionFactory.setPassword(password);
             }
             if (StringUtils.isNotBlank(properties.getVirtualHost())) {
                 String virtualHost = properties.getVirtualHost();
-                virtualHost = SpringUtils.getAppConfig(virtualHost, virtualHost);
+                virtualHost = MagicAPIConfigUtils.getRabbitMQConfig(properties.getKey(), "virtualHost", virtualHost);
                 connectionFactory.setVirtualHost(virtualHost);
             }
             connectionFactory.setPublisherConfirmType(CachingConnectionFactory.ConfirmType.CORRELATED);

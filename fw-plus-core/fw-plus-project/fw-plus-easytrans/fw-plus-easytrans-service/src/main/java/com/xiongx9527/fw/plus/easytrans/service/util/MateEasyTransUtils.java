@@ -9,7 +9,6 @@ import com.fhs.core.trans.util.ReflectUtils;
 import com.fhs.core.trans.vo.VO;
 import com.fhs.trans.service.impl.TransService;
 import com.fhs.trans.utils.TransUtil;
-import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.description.annotation.AnnotationDescription;
@@ -21,9 +20,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.CollectionUtils;
 
+import jakarta.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -101,60 +109,88 @@ public class MateEasyTransUtils extends TransUtil {
      * @throws InstantiationException 当实例化对象时发生错误
      */
     public static Collection transBatch(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {
+        Set<Object> transContext = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+        if (hasTransObjs != null) {
+            transContext.addAll(hasTransObjs);
+        }
+        return transBatch(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+    }
+
+    private static Collection transBatch(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<Object> transContext, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {
         Collection param = (Collection)object;
-        // 如果集合为null，直接返回null
         if (param == null) {
             return null;
-        // 如果集合非空且第一个元素不为空
-        } else if (!param.isEmpty() && param.iterator().next() != null) {
-            boolean isVo = false;
-            // 如果第一个元素是VO类型，执行批量转换和字段转换
-            if (param.iterator().next() instanceof VO) {
-                transService.transMore(new ArrayList(param), includeFields, excludeFields);
-
-                for(Object tempObject : param) {
-                    transFields(tempObject, transService, isProxy, hasTransObjs, includeFields, excludeFields);
-                }
-
-                isVo = true;
-            } else {
-                // 如果第一个元素不是VO类型，逐个转换每个对象
-                for(Object tempObject : param) {
-                    transOne(tempObject, transService, isProxy, hasTransObjs, includeFields, excludeFields);
-                }
-            }
-
-            // 如果需要代理且对象是VO类型，创建并返回代理后的VO对象集合
-            if (isProxy && isVo) {
-                Collection result = null;
-                // 根据输入集合的类型创建相应类型的集合
-                if (param instanceof List) {
-                    result = new ArrayList();
-                } else {
-                    if (!(param instanceof Set)) {
-                        return param;
-                    }
-
-                    result = new HashSet();
-                }
-
-                for(Object vo : param) {
-                    // 如果当前VO对象未被转换过，创建其代理对象并添加到结果集合中
-                    if (!contains(hasTransObjs, vo)) {
-                        hasTransObjs.add(vo);
-                        result.add(createProxyVo((VO)vo));
-                    }
-                }
-
-                return result;
-            } else {
-                // 如果不需要代理或对象不是VO类型，直接返回原始集合
-                return (Collection)object;
-            }
-        } else {
-            // 如果集合为空，直接返回空集合
+        }
+        if (param.isEmpty()) {
             return param;
         }
+
+        Object firstNonNull = firstNonNull(param);
+        if (firstNonNull == null) {
+            return param;
+        }
+
+        boolean isVo = firstNonNull instanceof VO;
+        if (isVo) {
+            ArrayList<VO> transMoreParam = new ArrayList<>();
+            for (Object tempObject : param) {
+                if (tempObject instanceof VO) {
+                    transMoreParam.add((VO) tempObject);
+                }
+            }
+            transService.transMore(transMoreParam, includeFields, excludeFields);
+            for (VO vo : transMoreParam) {
+                transContext.add(vo);
+                if (hasTransObjs != null) {
+                    hasTransObjs.add(vo);
+                }
+            }
+            for (Object tempObject : param) {
+                if (tempObject instanceof VO) {
+                    transFields(tempObject, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+                } else if (tempObject != null) {
+                    transOne(tempObject, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+                }
+            }
+        } else {
+            for (Object tempObject : param) {
+                if (tempObject != null) {
+                    transOne(tempObject, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+                }
+            }
+        }
+
+        if (isProxy && isVo) {
+            Collection result;
+            if (param instanceof List) {
+                result = new ArrayList();
+            } else if (param instanceof Set) {
+                result = new HashSet();
+            } else {
+                return param;
+            }
+
+            for (Object vo : param) {
+                if (vo == null) {
+                    result.add(null);
+                } else if (vo instanceof VO) {
+                    result.add(createProxyVo((VO)vo));
+                } else {
+                    result.add(vo);
+                }
+            }
+            return result;
+        }
+        return param;
+    }
+
+    private static Object firstNonNull(Collection collection) {
+        for (Object item : collection) {
+            if (item != null) {
+                return item;
+            }
+        }
+        return null;
     }
 
     /**
@@ -194,20 +230,6 @@ public class MateEasyTransUtils extends TransUtil {
      * @param obj 需要查找的对象
      * @return 如果列表中包含该对象，则返回true；否则返回false
      */
-    private static boolean contains(List<Object> list, Object obj) {
-        // 遍历列表中的每个元素
-        for(Object o : list) {
-            // 使用“==”操作符检查当前元素是否与指定对象相同
-            if (o == obj) {
-                // 如果找到相同的对象，返回true
-                return true;
-            }
-        }
-
-        // 如果遍历完列表后没有找到相同的对象，返回false
-        return false;
-    }
-
     /**
      * Converts a single object.
      *
@@ -226,56 +248,53 @@ public class MateEasyTransUtils extends TransUtil {
      * @throws InstantiationException If an instance of the object cannot be created during the conversion process.
      */
     public static Object transOne(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {
-        // If the object is null, return null directly
+        Set<Object> transContext = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+        if (hasTransObjs != null) {
+            transContext.addAll(hasTransObjs);
+        }
+        return transOne(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+    }
+
+    private static Object transOne(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<Object> transContext, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {
         if (object == null) {
             return null;
-        } else if (contains(hasTransObjs, object)) {
-            // If the object has already been converted, return the object directly to avoid repeated conversion
-            return object;
-        } else {
-            // Add the object to the list of converted objects
-            hasTransObjs.add(object);
-
-            // Determine if a proxy object needs to be created
-            boolean isVo = false;
-
-            // If it is a Map and map conversion is enabled, convert each value in the Map
-            if (transResultMap && object instanceof Map) {
-                Map tempMap = (Map)object;
-                for(Object key : tempMap.keySet()) {
-                    Object mapValue = tempMap.get(key);
-                    try {
-                        tempMap.put(key, transOne(mapValue, transService, isProxy, hasTransObjs, includeFields, excludeFields));
-                    } catch (Exception var12) {
-                        // Exception handling can be logged or processed as needed
-                    }
-                }
-                return object;
-            } else {
-                // If it is a VO instance, perform VO-specific conversion
-                if (object instanceof VO) {
-                    transService.transOne((VO)object, includeFields, excludeFields);
-                    transFields(object, transService, isProxy, hasTransObjs, includeFields, excludeFields);
-                    isVo = true;
-                } else {
-                    // If it is a Collection, call the batch conversion method
-                    if (object instanceof Collection) {
-                        return transBatch(object, transService, isProxy, hasTransObjs, includeFields, excludeFields);
-                    }
-
-                    // If it is a Java standard library type, return the object directly without conversion
-                    if (object.getClass().getName().startsWith("java.")) {
-                        return object;
-                    }
-
-                    // Perform field conversion for non-standard types
-                    transFields(object, transService, isProxy, hasTransObjs, includeFields, excludeFields);
-                }
-
-                // Based on whether a proxy is needed and whether it is a VO, decide whether to return a proxy object
-                return isProxy && isVo ? createProxyVo((VO)object) : object;
-            }
         }
+        if (transContext.contains(object)) {
+            return object;
+        }
+        transContext.add(object);
+        if (hasTransObjs != null) {
+            hasTransObjs.add(object);
+        }
+
+        boolean isVo = false;
+        if (transResultMap && object instanceof Map) {
+            Map tempMap = (Map)object;
+            for(Object key : tempMap.keySet()) {
+                Object mapValue = tempMap.get(key);
+                try {
+                    tempMap.put(key, transOne(mapValue, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields));
+                } catch (Exception var12) {
+                    // Exception handling can be logged or processed as needed
+                }
+            }
+            return object;
+        }
+
+        if (object instanceof VO) {
+            transService.transOne((VO)object, includeFields, excludeFields);
+            transFields(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+            isVo = true;
+        } else {
+            if (object instanceof Collection) {
+                return transBatch(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+            }
+            if (object.getClass().getName().startsWith("java.")) {
+                return object;
+            }
+            transFields(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+        }
+        return isProxy && isVo ? createProxyVo((VO)object) : object;
     }
 
     /**
@@ -293,6 +312,14 @@ public class MateEasyTransUtils extends TransUtil {
      * @throws InstantiationException 当通过反射创建对象实例失败时抛出
      */
     public static void transFields(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {
+        Set<Object> transContext = Collections.newSetFromMap(new IdentityHashMap<Object, Boolean>());
+        if (hasTransObjs != null) {
+            transContext.addAll(hasTransObjs);
+        }
+        transFields(object, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+    }
+
+    private static void transFields(Object object, TransService transService, boolean isProxy, ArrayList<Object> hasTransObjs, Set<Object> transContext, Set<String> includeFields, Set<String> excludeFields) throws IllegalAccessException, InstantiationException {
         // 检查对象是否为空
         if (object != null) {
             Object tempObj = null;
@@ -309,10 +336,12 @@ public class MateEasyTransUtils extends TransUtil {
                             // 如果字段值为List类型且不为空，则批量转换
                             if (Objects.nonNull(tempObj) && tempObj instanceof List) {
                                 List tempList = (List)tempObj;
-                                if (!CollectionUtils.isEmpty(tempList) && Objects.nonNull(tempList.get(0)) && tempList.get(0) instanceof VO) {
-                                    Collection transResult = transBatch(tempObj, transService, isProxy, hasTransObjs, includeFields, excludeFields);
-                                    tempList.clear();
-                                    tempList.addAll(transResult);
+                                if (!CollectionUtils.isEmpty(tempList) && firstNonNull(tempList) instanceof VO) {
+                                    Collection transResult = transBatch(tempObj, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields);
+                                    if (transResult != tempList) {
+                                        tempList.clear();
+                                        tempList.addAll(transResult);
+                                    }
                                 }
                             }
                         }
@@ -323,7 +352,7 @@ public class MateEasyTransUtils extends TransUtil {
                             tempObj = field.get(object);
 
                             try {
-                                field.set(object, transOne(tempObj, transService, isProxy, hasTransObjs, includeFields, excludeFields));
+                                field.set(object, transOne(tempObj, transService, isProxy, hasTransObjs, transContext, includeFields, excludeFields));
                             } catch (Exception e) {
                                 // 处理反射错误
                                 if (e.getClass().getName().contains("java.lang.reflect")) {
@@ -381,8 +410,13 @@ public class MateEasyTransUtils extends TransUtil {
                 // 定义Jackson和Fastjson注解以忽略序列化
                 AnnotationDescription jacksonIgnore = AnnotationDescription.Builder.ofType(JsonIgnore.class).build();
                 AnnotationDescription fastJsonIgnore = AnnotationDescription.Builder.ofType(JSONField.class).define("serialize", false).build();
+                String proxyClassName = vo.getClass().getSimpleName() + "DynamicTypeBuilder" + StringUtil.getUUID();
+                Package targetPackage = vo.getClass().getPackage();
+                if (targetPackage != null && targetPackage.getName().length() > 0) {
+                    proxyClassName = targetPackage.getName() + "." + proxyClassName;
+                }
                 // 使用ByteBuddy创建新类的构建器，设置父类为VO类，并添加忽略序列化的注解
-                DynamicType.Builder<? extends Object> builder = (new ByteBuddy()).subclass(vo.getClass()).name(vo.getClass().getSimpleName() + "DynamicTypeBuilder" + StringUtil.getUUID()).defineMethod("getTransMap", Map.class, 1).intercept(FixedValue.nullValue()).annotateMethod(new AnnotationDescription[]{jacksonIgnore, fastJsonIgnore});
+                DynamicType.Builder<? extends Object> builder = (new ByteBuddy()).subclass(vo.getClass()).name(proxyClassName).defineMethod("getTransMap", Map.class, 1).intercept(FixedValue.nullValue()).annotateMethod(new AnnotationDescription[]{jacksonIgnore, fastJsonIgnore});
 
                 // 根据VO的转换映射添加新字段到构建器
                 for(String property : vo.getTransMap().keySet()) {
@@ -424,6 +458,9 @@ public class MateEasyTransUtils extends TransUtil {
             try {
                 // 生成新的类
                 Class clazz = genNewClass(vo);
+                if (clazz == null) {
+                    return vo;
+                }
                 // 创建新类的实例
                 Object newObject = clazz.newInstance();
                 // 如果新创建的对象为空，则直接返回原VO对象

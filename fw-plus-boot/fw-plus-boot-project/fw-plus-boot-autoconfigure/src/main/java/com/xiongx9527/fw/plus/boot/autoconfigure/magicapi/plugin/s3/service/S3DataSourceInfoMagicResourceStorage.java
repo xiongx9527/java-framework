@@ -9,6 +9,7 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 import org.ssssssss.magicapi.utils.JsonUtils;
 
+import java.util.List;
 import java.util.Objects;
 
 public class S3DataSourceInfoMagicResourceStorage implements MagicResourceStorage<S3DataSourceInfo>, BaseService {
@@ -95,9 +96,9 @@ public class S3DataSourceInfoMagicResourceStorage implements MagicResourceStorag
 
         // 如果实体ID不为空，校验key字段不可修改
         if (entity.getId() != null) {
-            S3DataSourceInfo oldKafkaDataSourceInfo =  magicResourceService.file(entity.getId());
-            if (null != oldKafkaDataSourceInfo) {
-                if (!oldKafkaDataSourceInfo.getKey().equals(entity.getKey())) {
+            S3DataSourceInfo oldS3DataSourceInfo = magicResourceService.file(entity.getId());
+            if (null != oldS3DataSourceInfo) {
+                if (!oldS3DataSourceInfo.getKey().equals(entity.getKey())) {
                     throw new IllegalArgumentException("key不可修改");
                 }
             }
@@ -167,5 +168,12 @@ public class S3DataSourceInfoMagicResourceStorage implements MagicResourceStorag
     }
 
 
+    /**
+     * 查询所有S3数据源信息
+     * @return 返回S3数据源信息列表
+     */
+    public List<S3DataSourceInfo> findAll() {
+        return this.magicResourceService.files(folder());
+    }
 
 }

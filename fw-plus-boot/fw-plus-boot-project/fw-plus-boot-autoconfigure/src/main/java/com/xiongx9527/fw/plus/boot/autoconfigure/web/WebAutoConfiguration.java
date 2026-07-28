@@ -28,7 +28,10 @@ import org.springframework.context.annotation.Import;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.time.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Date;
 import java.util.TimeZone;
 
@@ -40,7 +43,7 @@ import java.util.TimeZone;
 public class WebAutoConfiguration {
 
     @Value("${fw.plus.web.timezone:GMT+8}")
-    private String timezone ;
+    private String timezone;
 
     /**
      * 数字类型转字符串
@@ -70,7 +73,7 @@ public class WebAutoConfiguration {
      * @return
      */
     @Bean
-    @ConditionalOnProperty(prefix = "fw.plus.web.jackson.write_bigdecimas_as_strings", name = "enabled", havingValue = "true", matchIfMissing = false)
+    @ConditionalOnProperty(prefix = "fw.plus.web.jackson.write_bigdecimals_as_strings", name = "enabled", havingValue = "true", matchIfMissing = false)
     public Jackson2ObjectMapperBuilderCustomizer writeBigDecimalsAsStringsJackson2ObjectMapperBuilderCustomizer() {
         return jacksonObjectMapperBuilder -> jacksonObjectMapperBuilder
                 .serializerByType(BigDecimal.class, ToStringSerializer.instance);
@@ -117,7 +120,7 @@ public class WebAutoConfiguration {
      * @return
      */
     @Bean
-    @ConditionalOnProperty(prefix = "fw.plus.web.write_bytes_as_strings", name = "enabled", havingValue = "true", matchIfMissing = false)
+    @ConditionalOnProperty(prefix = "fw.plus.web.jackson.write_bytes_as_strings", name = "enabled", havingValue = "true", matchIfMissing = false)
     public Jackson2ObjectMapperBuilderCustomizer writeBytesAsStringsJackson2ObjectMapperBuilderCustomizer() {
         return jacksonObjectMapperBuilder -> jacksonObjectMapperBuilder
                 .serializerByType(Byte.class, ToStringSerializer.instance)
@@ -129,7 +132,7 @@ public class WebAutoConfiguration {
      * @return
      */
     @Bean
-    @ConditionalOnProperty(prefix = "fw.plus.web.write_shorts_as_strings", name = "enabled", havingValue = "true", matchIfMissing = false)
+    @ConditionalOnProperty(prefix = "fw.plus.web.jackson.write_shorts_as_strings", name = "enabled", havingValue = "true", matchIfMissing = false)
     public Jackson2ObjectMapperBuilderCustomizer writeShortsAsStringsJackson2ObjectMapperBuilderCustomizer() {
         return jacksonObjectMapperBuilder -> jacksonObjectMapperBuilder
                 .serializerByType(Short.class, ToStringSerializer.instance)
@@ -179,7 +182,7 @@ public class WebAutoConfiguration {
                 public void serialize(LocalTime value, JsonGenerator gen, SerializerProvider serializers)
                         throws IOException {
                     if (value != null) {
-                        gen.writeNumber(value.atDate(LocalDate.now()).atZone(zoneId).toInstant().toEpochMilli());
+                        gen.writeNumber(value.atDate(LocalDate.now(zoneId)).atZone(zoneId).toInstant().toEpochMilli());
                     }
                 }
             });
@@ -204,12 +207,7 @@ public class WebAutoConfiguration {
     @ConditionalOnProperty(prefix = "fw.plus.web.jackson.ignore_null_and_empty_values", name = "enabled", havingValue = "true", matchIfMissing = false)
     @ConditionalOnMissingBean(name = "ignoreNullAndEmptyValuesJackson2ObjectMapperBuilderCustomizer")
     public Jackson2ObjectMapperBuilderCustomizer ignoreNullAndEmptyValuesJackson2ObjectMapperBuilderCustomizer() {
-        return builder -> {
-            // 忽略 null 值
-            builder.serializationInclusion(JsonInclude.Include.NON_NULL);
-            // 忽略空字符串
-            builder.serializationInclusion(JsonInclude.Include.NON_EMPTY);
-        };
+        return builder -> builder.serializationInclusion(JsonInclude.Include.NON_EMPTY);
     }
 
     /**

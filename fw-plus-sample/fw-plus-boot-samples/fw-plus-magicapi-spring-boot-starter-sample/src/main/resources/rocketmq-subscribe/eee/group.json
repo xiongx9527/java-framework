@@ -1,0 +1,14 @@
+{
+  "properties" : { },
+  "id" : "6e4ee83daab5410e9aa0c592723b42a0",
+  "name" : "eee",
+  "type" : "rocketmq-subscribe",
+  "parentId" : "0",
+  "path" : "eee",
+  "createTime" : 1765521521237,
+  "updateTime" : null,
+  "createBy" : null,
+  "updateBy" : null,
+  "paths" : [ ],
+  "options" : [ ]
+}

@@ -12,5 +12,18 @@ org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   com.xiongx9527.fw.plus.boot.autoconfigure.report.ReportAutoConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.MqttAutoConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.config.server.ConfigServerAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.config.client.ConfigClientAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.config.event.ConfigEventAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.config.apollo.ApolloConfigChangeAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.config.nacos.NacosConfigChangeAutoConfiguration,\
   com.xiongx9527.fw.plus.boot.autoconfigure.admin.server.AdminServerAutoConfiguration,\
-  com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
+  com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.MagicAPIWebFluxAutoConfiguration,\
+  com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.starter.MagicAPIMongoModuleAutoConfiguration
+
+org.springframework.boot.autoconfigure.AutoConfigurationImportFilter=\
+  com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.MagicAPIWebFluxImportFilter
+
+# Bootstrap Configuration
+org.springframework.cloud.bootstrap.BootstrapConfiguration=\
+  com.xiongx9527.fw.plus.boot.autoconfigure.config.client.ConfigClientBootstrapConfiguration

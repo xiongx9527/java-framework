@@ -1,19 +1,21 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.web.webflux.filter;
 
-import com.xiongx9527.fw.plus.common.util.WebUtils;
-import com.xiongx9527.fw.plus.common.web.WebFluxRequestContextHolder;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.filter.WebCommonFilter;
-import com.xiongx9527.fw.plus.boot.common.web.flux.filter.WebFluxBaseRequestFilter;
 import com.xiongx9527.fw.plus.boot.common.web.ICommonFilterService;
-import com.xiongx9527.fw.plus.boot.common.web.flux.http.DecryptWebFluxServerHttpRequestDecorator;
-import com.xiongx9527.fw.plus.boot.common.web.flux.http.EncryptWebFluxServerHttpResponDecorator;
 import com.xiongx9527.fw.plus.boot.common.web.MyHttpEncryptor;
 import com.xiongx9527.fw.plus.boot.common.web.MyHttpEncryptorProperties;
+import com.xiongx9527.fw.plus.boot.common.web.flux.filter.WebFluxBaseRequestFilter;
+import com.xiongx9527.fw.plus.boot.common.web.flux.http.DecryptWebFluxServerHttpRequestDecorator;
+import com.xiongx9527.fw.plus.boot.common.web.flux.http.EncryptWebFluxServerHttpResponDecorator;
+import com.xiongx9527.fw.plus.common.util.WebUtils;
+import com.xiongx9527.fw.plus.common.web.WebFluxRequestContextHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
@@ -33,12 +35,12 @@ public class WebFluxCommonFilter extends WebFluxBaseRequestFilter implements Web
      */
     @Override
     protected Mono<Void> doFilterInternal(ServerWebExchange exchange, WebFilterChain chain)  {
-        ICommonFilterService webCommonFilterService = this.getWebCommonFilterService();
-        Mono<Void> mono = null;
-        // 声明变量用于存储请求的查找路径
-        String lookupPath = null;
-        ServerWebExchange defaultServerWebExchange = exchange;
-        try {
+        return exchange.getFormData().defaultIfEmpty(new LinkedMultiValueMap<>()).flatMap(formData -> Mono.defer(() -> {
+            ICommonFilterService webCommonFilterService = this.getWebCommonFilterService();
+            // 声明变量用于存储请求的查找路径
+            String lookupPath = null;
+            ServerWebExchange defaultServerWebExchange = exchange;
+            exchange.getAttributes().put(WebFluxRequestContextHolder.FORM_DATA_ATTRIBUTE, formData);
             WebFluxRequestContextHolder.set(exchange);
             MyHttpEncryptor encryptor = this.getMyHttpEncryptor();
             MyHttpEncryptorProperties encryptorProperties = this.getMyHttpEncryptorProperties();
@@ -47,7 +49,7 @@ public class WebFluxCommonFilter extends WebFluxBaseRequestFilter implements Web
 
             // 判断是否启用全局加密功能，并排除特定路径
             boolean enabled = (Objects.nonNull(encryptorProperties) && encryptorProperties.isEnabled())
-                    && encryptor.isGolabal();
+                    && Objects.nonNull(encryptor) && encryptor.isGolabal();
             if (enabled && Objects.nonNull(encryptorProperties.getExcludePaths())) {
                 String requestPath = request.getPath().value();
                 for (String url : encryptorProperties.getExcludePaths()) {
@@ -73,28 +75,28 @@ public class WebFluxCommonFilter extends WebFluxBaseRequestFilter implements Web
                     .request(requestWrapper)
                     .response(responseWrapper)
                     .build();
+            defaultServerWebExchange.getAttributes().put(WebFluxRequestContextHolder.FORM_DATA_ATTRIBUTE, formData);
+            WebFluxRequestContextHolder.set(defaultServerWebExchange);
             // 在请求处理前执行过滤操作
             webCommonFilterService.doFilterBefore(new WebFluxRequestContextHolder.WebFluxRequest(defaultServerWebExchange), new WebFluxRequestContextHolder.WebFluxResponse(defaultServerWebExchange));
-        } finally {
-            try {
-                mono = chain.filter(defaultServerWebExchange);
-            } finally {
+            ServerWebExchange finalServerWebExchange = defaultServerWebExchange;
+            String finalLookupPath = lookupPath;
+            return chain.filter(finalServerWebExchange).doFinally(signalType -> {
                 try {
                     // 获取HTTP响应状态码
-                    int status = defaultServerWebExchange.getResponse().getStatusCode().value();
+                    HttpStatusCode statusCode = finalServerWebExchange.getResponse().getStatusCode();
+                    int status = statusCode != null ? statusCode.value() : 0;
                     // 如果响应状态码不是200（OK）或0（未设置状态码），则记录警告日志
-                    if (status != HttpStatus.OK.value() && status != HttpStatus.NOT_MODIFIED.value()  && status != 0) {
-                        log.warn("error http response status. path={}, status={}", lookupPath, status);
-                    } else {
-                        // 在请求处理后执行过滤操作
-                        webCommonFilterService.doFilterAfter();
+                    if (status != HttpStatus.OK.value() && status != HttpStatus.NOT_MODIFIED.value() && status != 0) {
+                        log.warn("error http response status. path={}, status={}", finalLookupPath, status);
                     }
+                    // 在请求处理后执行过滤操作
+                    webCommonFilterService.doFilterAfter();
                 } finally {
                     WebFluxRequestContextHolder.clear();
                 }
-            }
-        }
-        return mono;
+            });
+        }));
     }
 
 
@@ -105,8 +107,7 @@ public class WebFluxCommonFilter extends WebFluxBaseRequestFilter implements Web
      */
     @Override
     public int getOrder() {
-        // 返回Integer.MIN_VALUE减去100，确保获得比最小整数还小的值
-        return Integer.MIN_VALUE - 100;
+        return Ordered.LOWEST_PRECEDENCE - 100;
     }
 
 

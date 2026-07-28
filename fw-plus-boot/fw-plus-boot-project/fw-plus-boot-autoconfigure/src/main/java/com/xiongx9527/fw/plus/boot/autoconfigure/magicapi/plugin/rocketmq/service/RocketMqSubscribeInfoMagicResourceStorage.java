@@ -1,8 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.service;
 
 import com.alibaba.fastjson.JSONValidator;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model.RabbitMqDataSourceInfo;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.service.RabbitMqDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model.RocketMqSubscribeInfo;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
@@ -37,6 +35,10 @@ public class RocketMqSubscribeInfoMagicResourceStorage extends AbstractPathMagic
     @Override
     public Class<RocketMqSubscribeInfo> magicClass() {
         return RocketMqSubscribeInfo.class;
+    }
+
+    public List<RocketMqSubscribeInfo> findAll() {
+        return this.magicResourceService.files(folder());
     }
 
     @Override

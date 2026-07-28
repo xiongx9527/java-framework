@@ -1,0 +1,77 @@
+server:
+  port: 3089
+
+spring:
+  application:
+      name: ai-sample
+
+
+fw:
+  plus:
+    uid:
+      enabled: false
+    web:
+      jackson:
+        write_longs_as_strings:
+          enabled: true
+
+fw-plus:
+  ai:
+    langchain4j:
+      model:
+        enabled: true
+        default-model: chat-default
+        models:
+          chat-default:
+            provider: openai
+            model-type: chat
+            base-url: http://localhost:11434/v1
+            api-key: demo
+            model-name: gpt-4o-mini
+            enabled: true
+            properties: {}
+
+magic-api:
+  editor-config: classpath:./magic-editor-config.js
+  web: /magic-api/web
+  show-sql: true #配置打印SQL
+  sql-column-case: camel
+  persistence-response-body: false
+  cluster:
+    channel: magic-api:notify:channel
+  resource:
+    type: file  # 配置接口存储方式，file | database | git
+    location: /Users/xiongxiao/Workspace/Idea/codes/fw-plus/fw-plus-boot/fw-plus-boot-samples/fw-plus-magicapi-spring-boot-starter-sample/src/main/resources
+  prefix: /magic-api  # 前缀
+  backup: #备份相关配置
+    enable: false #是否启用
+  page:
+    page: current
+    size: size
+  cache:
+    enable: true  #开启缓存，默认是不开启的
+    ttl: 3600000 #有效期1小时，默认-1 即永不过期
+  response-code:
+    success: 200 #执行成功的code值
+    invalid: 400 #参数验证未通过的code值
+    exception: 500 #执行出现异常的code值
+  crud: # CRUD相关配置
+    logic-delete-column: is_del #逻辑删除列
+    logic-delete-value: 1 #逻辑删除值
+  plugin:
+    model:
+      enabled: true
+    druid:
+      aop-patterns:  /*
+      stat-view-servlet:
+        enabled: true
+        login-username: admin
+        login-password: 123456
+
+
+logging:
+  level:
+    org.apache.kafka: ERROR
+    org.springframework.kafka: ERROR
+    io.debezium: ERROR
+

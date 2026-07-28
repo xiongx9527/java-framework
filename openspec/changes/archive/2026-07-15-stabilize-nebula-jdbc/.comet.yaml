@@ -1,0 +1,34 @@
+workflow: full
+language: zh-CN
+phase: archive
+context_compression: off
+build_mode: subagent-driven-development
+build_pause: null
+subagent_dispatch: confirmed
+tdd_mode: tdd
+review_mode: standard
+isolation: worktree
+verify_mode: full
+auto_transition: true
+base_ref: bb0295974e02e3c324595eab127ae869abebb181
+design_doc: docs/superpowers/specs/2026-07-14-stabilize-nebula-jdbc-design.md
+plan: docs/superpowers/plans/2026-07-14-stabilize-nebula-jdbc.md
+verify_result: pass
+verification_report: docs/superpowers/reports/2026-07-16-stabilize-nebula-jdbc-verify.md
+branch_status: handled
+created_at: 2026-07-14
+verified_at: 2026-07-16
+archive_confirmation: null
+archived: true
+direct_override: null
+handoff_context: openspec/changes/stabilize-nebula-jdbc/.comet/handoff/design-context.json
+handoff_hash: cc59e56318bd82296647282f6b0402c55444a1c8eb6fdc6dffc9f6c214341f6e
+classic_profile: full
+classic_migration: 1
+run_id: ee5492d9-5007-484d-a2ff-ba33ed8f36cf
+build_command: JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+  mvn -f fw-plus-core/pom.xml -pl
+  fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc test
+verify_command: JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+  mvn -f fw-plus-core/pom.xml -pl
+  fw-plus-project/fw-plus-nebula/fw-plus-nebula-jdbc test

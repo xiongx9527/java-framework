@@ -1,9 +1,11 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.service;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.model.DebeziumDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.model.MagicDynamicDebeziumDataSource;
-import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.event.EventListener;
 import org.ssssssss.magicapi.core.event.FileEvent;
 import org.ssssssss.magicapi.core.event.GroupEvent;
@@ -12,15 +14,33 @@ import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.*;
 
 @Slf4j
-public class DebeziumDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegistry<DebeziumDataSourceInfo> {
+public class DebeziumDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegistry<DebeziumDataSourceInfo> implements InitializingBean, DisposableBean {
 
     /**
      * Debezium数据源动态注册器
      * 用于动态注册和管理Debezium数据源的监听引擎
      */
     private final MagicDynamicDebeziumDataSource magicDynamicDebeziumDataSource;
+
+    /**
+     * 已注册的数据源信息缓存，用于故障转移时恢复
+     */
+    private final Map<String, DebeziumDataSourceInfo> registeredSources = new ConcurrentHashMap<>();
+
+    /**
+     * 故障转移调度器
+     */
+    private ScheduledExecutorService failoverExecutor;
+    private ScheduledFuture<?> failoverTask;
+
+    /**
+     * 故障转移检查间隔（秒）
+     */
+    private static final int FAILOVER_CHECK_INTERVAL_SECONDS = 15;
 
     /**
      * 构造函数
@@ -35,6 +55,45 @@ public class DebeziumDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
     }
 
     /**
+     * 初始化故障转移调度任务
+     * 定期检查所有已注册且已启用的数据源，对于没有运行引擎的数据源尝试启动
+     */
+    @Override
+    public void afterPropertiesSet() {
+        failoverExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "debezium-failover-check");
+            t.setDaemon(true);
+            return t;
+        });
+        failoverTask = failoverExecutor.scheduleWithFixedDelay(() -> {
+            try {
+                for (Map.Entry<String, DebeziumDataSourceInfo> entry : registeredSources.entrySet()) {
+                    DebeziumDataSourceInfo info = entry.getValue();
+                    if (isEnabled(info) && !magicDynamicDebeziumDataSource.isEngineRunning(entry.getKey())) {
+                        log.debug("故障转移检查：尝试启动引擎 {}", entry.getKey());
+                        magicDynamicDebeziumDataSource.createEngineAndRun(info);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("故障转移检查异常", e);
+            }
+        }, FAILOVER_CHECK_INTERVAL_SECONDS, FAILOVER_CHECK_INTERVAL_SECONDS, TimeUnit.SECONDS);
+    }
+
+    /**
+     * 销毁故障转移调度任务
+     */
+    @Override
+    public void destroy() {
+        if (failoverTask != null) {
+            failoverTask.cancel(false);
+        }
+        if (failoverExecutor != null) {
+            failoverExecutor.shutdown();
+        }
+    }
+
+    /**
      * 处理文件事件
      * 当接收到类型为"debezium-datasource"的文件事件时，调用processEvent方法进行处理
      *
@@ -44,8 +103,7 @@ public class DebeziumDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception e) {
-            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
+        } catch (Exception ignored) {
         }
     }
 
@@ -57,7 +115,10 @@ public class DebeziumDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
      */
     @EventListener(condition = "#event.type == 'debezium-datasource'")
     public void onGroupEvent(GroupEvent event) {
-        processEvent(event);
+        try {
+            processEvent(event);
+        } catch (Exception ignored) {
+        }
     }
 
     /**
@@ -67,22 +128,32 @@ public class DebeziumDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
      * @param entity Debezium数据源信息对象
      */
     private void registerService(DebeziumDataSourceInfo entity) {
+        Boolean enable = isEnabled(entity);
+        if (Boolean.TRUE.equals(enable)) {
+            registeredSources.put(entity.getKey(), entity);
+            magicDynamicDebeziumDataSource.createEngineAndRun(entity);
+            log.info("已注册并启动 Debezium 数据源监听: {}", entity.getKey());
+        } else {
+            registeredSources.remove(entity.getKey());
+            magicDynamicDebeziumDataSource.destroyEngine(entity.getKey());
+            log.info("已注销 Debezium 数据源监听: {}", entity.getKey());
+        }
+    }
+
+    /**
+     * 判断数据源是否已启用（解析配置中的 enabled 值）
+     */
+    private boolean isEnabled(DebeziumDataSourceInfo entity) {
         Boolean enable = entity.isEnabled();
         if (enable != null) {
-            String enableStr = SpringUtils.getAppConfig(String.format("magic.api.debezium.%s.enabled", entity.getKey()), enable.toString());
+            String enableStr = MagicAPIConfigUtils.getDebeziumConfig(entity.getKey(), "enabled", enable.toString());
             try {
                 enable = Boolean.parseBoolean(enableStr);
             } catch (Exception e) {
                 enable = Boolean.FALSE;
             }
         }
-        if (Boolean.TRUE.equals(enable)) {
-            magicDynamicDebeziumDataSource.createEngineAndRun(entity);
-            log.info("已注册并启动 Debezium 数据源监听: {}", entity.getKey());
-        } else {
-            magicDynamicDebeziumDataSource.destroyEngine(entity.getKey());
-            log.info("已注销 Debezium 数据源监听: {}", entity.getKey());
-        }
+        return Boolean.TRUE.equals(enable);
     }
 
     /**
@@ -95,7 +166,11 @@ public class DebeziumDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
     @Override
     public boolean register(DebeziumDataSourceInfo entity) {
         magicDynamicDebeziumDataSource.destroyEngine(entity.getKey());
-        return super.register(entity);
+        try {
+            return super.register(entity);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
@@ -108,7 +183,11 @@ public class DebeziumDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
     @Override
     protected boolean register(MappingNode<DebeziumDataSourceInfo> mappingNode) {
         registerService(mappingNode.getEntity());
-        return super.register(mappingNode);
+        try {
+            return super.register(mappingNode);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
@@ -120,9 +199,13 @@ public class DebeziumDataSourceMagicDynamicRegistry extends AbstractMagicDynamic
     @Override
     protected void unregister(MappingNode<DebeziumDataSourceInfo> mappingNode) {
         DebeziumDataSourceInfo entity = mappingNode.getEntity();
+        registeredSources.remove(entity.getKey());
         magicDynamicDebeziumDataSource.destroyEngine(entity.getKey());
         log.info("已注销 Debezium 数据源监听: {}", entity.getKey());
-        super.unregister(mappingNode);
+        try {
+            super.unregister(mappingNode);
+        } catch (Exception ignored) {
+        }
     }
 
     /**

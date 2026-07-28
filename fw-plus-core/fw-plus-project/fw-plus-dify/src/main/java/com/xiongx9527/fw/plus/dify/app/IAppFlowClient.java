@@ -25,6 +25,13 @@ public interface IAppFlowClient extends IAppBaseClient {
     EventSource runStreaming(ParamMessage message, EventSourceListener listener);
 
     /**
+     * 执行工作流（流式模式）
+     * @param message
+     * @return
+     */
+    EventSource runStreaming(ParamMessage message);
+
+    /**
      * 执行工作流（阻塞模式）
      *
      * @param message ParamMessage

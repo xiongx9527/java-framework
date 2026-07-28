@@ -1,7 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.common;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicBaseService;
-import com.xiongx9527.fw.plus.common.util.SpringUtils;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarSubscribeInfo;
 
 public interface BaseService extends MagicBaseService {
     /**
@@ -16,9 +17,29 @@ public interface BaseService extends MagicBaseService {
      * @return 返回完整的Topic路径，用于在消息系统中唯一标识一个Topic
      */
     default String createTopicName(String tenant,String namespace,String topic) {
-        tenant = SpringUtils.getAppConfig(tenant,tenant);
-        namespace = SpringUtils.getAppConfig(namespace,namespace);
         return "persistent://" + tenant + "/" + namespace + "/" + topic;
+    }
+
+    /**
+     * 检查Pulsar订阅是否启用
+     * <p>
+     * 该方法首先从实体对象中获取启用状态，然后尝试从配置中心获取对应的配置值进行覆盖。
+     * 如果配置获取失败，则默认返回false。
+     * </p>
+     *
+     * @param entity Pulsar订阅信息实体，包含订阅的Key、Topic等配置信息
+     * @return boolean 订阅是否启用，true表示启用，false表示禁用
+     */
+    default boolean enable(PulsarSubscribeInfo entity) {
+        boolean enable = entity.isEnabled();
+        String enableStr = String.valueOf(enable);
+        try {
+            enableStr = MagicAPIConfigUtils.getPulsarSubscribeConfig(entity.getKey(), entity.getTopic(), "enabled", enableStr);
+            enable = Boolean.parseBoolean(enableStr);
+        } catch (Exception e) {
+            enable = false;
+        }
+        return enable;
     }
 
 

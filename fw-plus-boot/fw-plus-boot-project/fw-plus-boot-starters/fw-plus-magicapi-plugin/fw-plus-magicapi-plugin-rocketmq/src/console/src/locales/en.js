@@ -10,19 +10,27 @@ export default {
             title: 'RocketMq Subscribe Info',
             name: 'RocketMq Subscribe',
             form: {
-                key: 'DataSource Key',
+                key: 'DataSource',
+                broadcast: 'Broadcast',
                 topic: 'Topic',
-                tag: 'Tag',
+                tags: 'Tags',
+                group: 'Group',
                 name: 'Name',
                 path: 'Path',
                 placeholder: {
                     key: 'Please Enter DataSource Key',
                     topic: 'Please Enter Subscribe Topic',
-                    tag: 'Please Enter Subscribe Tag Expression',
+                    tags: 'Please Enter Subscribe Tags',
+                    group: 'Please Enter Subscribe Group',
                     name: 'Please Enter Name',
                     path: 'Please Enter Path',
-                    description: 'Please Enter RocketMq Subscribe Description'
+                    other: 'Please Enter RocketMq Other Config',
+                    params: 'Please Enter RocketMq Subscribe Params'
                 }
+            },
+            navbars: {
+                other: 'Other',
+                params: 'Subscribe Params'
             }
         },
         datasource: {
@@ -36,7 +44,7 @@ export default {
                 secretKey: 'Secret Key',
                 extra: 'Type',
                 group: 'Group Name',
-                other: 'Other Config',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
@@ -45,7 +53,7 @@ export default {
                     secretKey: 'Please Enter Database password, Optional',
                     extra: 'Please Enter RocketMq Access Type',
                     group: 'Please Enter RocketMq Access Group, Optional',
-                    other: 'Please Enter RocketMq Other Config，eg： {xxxx: "yyyy"}'
+                    properties: 'JSON object, for example: {"sendMessageTimeout": 3000}'
                 }
             }
         }

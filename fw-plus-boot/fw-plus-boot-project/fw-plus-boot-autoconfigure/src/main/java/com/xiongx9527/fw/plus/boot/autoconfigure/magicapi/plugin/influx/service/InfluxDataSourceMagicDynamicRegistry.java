@@ -46,9 +46,7 @@ public class InfluxDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
         try {
             // 处理文件事件的核心逻辑
             processEvent(event);
-        } catch (Exception e) {
-            // 记录处理文件事件时发生的异常信息
-            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
+        } catch (Exception ignored) {
         }
     }
 
@@ -60,8 +58,10 @@ public class InfluxDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
      */
     @EventListener(condition = "#event.type == 'influx-datasource'")
     public void onGroupEvent(GroupEvent event) {
-        // 处理符合条件的事件
-        processEvent(event);
+        try {
+            processEvent(event);
+        } catch (Exception ignored) {
+        }
     }
 
 
@@ -77,7 +77,11 @@ public class InfluxDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
     public boolean register(InfluxDataSourceInfo entity) {
         // 销毁已存在的同名InfluxDB客户端连接，确保使用最新的配置
         this.magicDynamicInfluxDataSource.destroyInfluxDBClientByKey(entity.getKey());
-        return super.register(entity);
+        try {
+            return super.register(entity);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
 
@@ -94,7 +98,11 @@ public class InfluxDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
         this.magicDynamicInfluxDataSource.destroyInfluxDBClientByKey(entity.getKey());
         // 构建新的InfluxDB客户端连接
         this.magicDynamicInfluxDataSource.buildInfluxDBClient(entity);
-        return super.register(mappingNode);
+        try {
+            return super.register(mappingNode);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
 
@@ -108,7 +116,10 @@ public class InfluxDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRe
         // 销毁指定key对应的InfluxDB客户端连接
         this.magicDynamicInfluxDataSource.destroyInfluxDBClientByKey(mappingNode.getEntity().getKey());
         // 调用父类的注销方法完成剩余的注销逻辑
-        super.unregister(mappingNode);
+        try {
+            super.unregister(mappingNode);
+        } catch (Exception ignored) {
+        }
     }
 
 

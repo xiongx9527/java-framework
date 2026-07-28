@@ -3,6 +3,9 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model;
 import lombok.Data;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 public class KafkaDataSourceInfo extends MagicEntity {
 
@@ -19,7 +22,7 @@ public class KafkaDataSourceInfo extends MagicEntity {
 	/**
 	 * 其他配置
 	 */
-	private String other;
+	private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
 
 	/**
@@ -35,7 +38,7 @@ public class KafkaDataSourceInfo extends MagicEntity {
 		// 设置Kafka连接所需的基本配置信息
 		dataSourceInfo.setKey(this.key);
 		dataSourceInfo.setServers(this.servers);
-		dataSourceInfo.setOther(this.other);
+		dataSourceInfo.setProperties(copyProperties());
 		return dataSourceInfo;
 	}
 
@@ -54,8 +57,14 @@ public class KafkaDataSourceInfo extends MagicEntity {
 		// 复制Kafka特有的属性
 		dataSourceInfo.setKey(this.key);
 		dataSourceInfo.setServers(this.servers);
-		dataSourceInfo.setOther(this.other);
+		dataSourceInfo.setProperties(copyProperties());
 		return dataSourceInfo;
+	}
+
+	private Map<String, Object> copyProperties() {
+		return this.properties == null
+				? new LinkedHashMap<String, Object>()
+				: new LinkedHashMap<String, Object>(this.properties);
 	}
 
 }

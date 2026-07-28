@@ -1,0 +1,14 @@
+{
+  "name": "magic-eureka",
+  "version": "1.0.0",
+  "description": "Magic-API Eureka status plugin",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "build": "vite build"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^2.7.10"
+  }
+}

@@ -2,11 +2,12 @@ package com.xiongx9527.fw.plus.template.excel;
 
 import cn.afterturn.easypoi.excel.ExcelExportUtil;
 import cn.afterturn.easypoi.excel.entity.TemplateExportParams;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.template.easypoi.EasyPoiExcel2Html;
-import com.xiongx9527.fw.plus.template.filechange.AbstractExcel2Pdf;
-import com.xiongx9527.fw.plus.template.openpdf.OpenPdfExcel2Pdf;
+import com.xiongx9527.fw.plus.template.filechange.AbstractExcel2Html;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.Workbook;
-import com.xiongx9527.fw.plus.template.filechange.AbstractExcel2Html ;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -20,26 +21,20 @@ public class ExcelParser extends ExcelAbstractParser {
      */
     private final AbstractExcel2Html excel2Html;
 
-    /** PDF转换器实例，用于将Excel文件转换为PDF格式 */
-    private final AbstractExcel2Pdf excel2Pdf;
-
     /**
      * Excel解析器构造函数
-     * 初始化Excel转PDF和Excel转HTML的转换器实例
+     * 初始化Excel转HTML的转换器实例
      */
     public ExcelParser() {
-        this.excel2Pdf = new OpenPdfExcel2Pdf();
         this.excel2Html = new EasyPoiExcel2Html();
     }
 
     /**
-     * 构造函数，使用指定的HTML转换器和PDF转换器初始化Excel解析器
+     * 构造函数，使用指定的HTML转换器初始化Excel解析器
      * @param excel2Html HTML转换器实例，用于将Excel转换为HTML格式
-     * @param excel2Pdf PDF转换器实例，用于将Excel转换为PDF格式
      */
-    public ExcelParser(AbstractExcel2Html excel2Html, AbstractExcel2Pdf excel2Pdf) {
+    public ExcelParser(AbstractExcel2Html excel2Html) {
         this.excel2Html = excel2Html;
-        this.excel2Pdf = excel2Pdf;
     }
 
     /**
@@ -55,6 +50,27 @@ public class ExcelParser extends ExcelAbstractParser {
             workbook.write(outputStream);
             return outputStream.toByteArray();
         }
+    }
+
+    /**
+     * 根据提供的映射关系解析Excel文档数据
+     *
+     * <p>该方法支持两种解析方式：
+     * 1. 如果提供了beanName参数，则从Spring容器中获取对应的ExcelAbstractParser实现类实例进行解析
+     * 2. 如果未提供beanName参数，则使用当前实例进行解析</p>
+     *
+     * @param beanName Spring容器中ExcelAbstractParser实现类的Bean名称，可为null或空字符串
+     * @param data 原始Excel文档的字节数组数据
+     * @param map 包含模板变量名和对应替换值的映射关系，键为变量名，值为替换内容
+     * @return 解析并替换后的Excel文档字节数组
+     * @throws Exception 当文档解析过程中发生错误时抛出异常
+     */
+    @Override
+    public byte[] parseByData(String beanName, byte[] data, Map<String, Object> map) throws Exception {
+        if (StringUtils.isNotBlank(beanName)) {
+            return SpringUtils.getBean(beanName, ExcelAbstractParser.class).parseByData(data, map);
+        }
+        return this.parseByData(data, map);
     }
 
     /**
@@ -89,7 +105,7 @@ public class ExcelParser extends ExcelAbstractParser {
      * @throws UnsupportedOperationException 当前实现不支持Excel到HTML的转换功能
      */
     @Override
-    public byte[] toHmtl(byte[] srcBytes) {
+    public byte[] toHtml(byte[] srcBytes) {
         try {
             return this.excel2Html.change(srcBytes);
         } catch (Exception e) {
@@ -105,11 +121,7 @@ public class ExcelParser extends ExcelAbstractParser {
      */
     @Override
     public byte[] toPdf(byte[] srcBytes) {
-        try {
-            return this.excel2Pdf.change(srcBytes);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        throw new UnsupportedOperationException("Excel to Pdf conversion is not supported");
     }
 
 }

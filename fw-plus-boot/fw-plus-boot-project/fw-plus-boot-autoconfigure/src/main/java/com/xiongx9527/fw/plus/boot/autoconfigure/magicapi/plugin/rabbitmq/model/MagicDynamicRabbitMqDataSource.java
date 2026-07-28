@@ -37,7 +37,9 @@ public class MagicDynamicRabbitMqDataSource {
      */
     private final RabbitMqConsumerService rabbitMqConsumerService;
 
-    /** 分布式锁 */
+    /**
+     * 用于加锁，防止消费者重复创建
+     */
     private final Lock lock  = new LocalLockModule();
 
     /**

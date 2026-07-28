@@ -5,7 +5,10 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model.Mag
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.model.RedisDataSourceInfo;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.connection.*;
+import org.springframework.data.redis.connection.RedisClusterConnection;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisSentinelConnection;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,14 +38,21 @@ public class MagicRedisController extends MagicController implements MagicExcept
     @RequestMapping("/redis/datasource/test")
     @ResponseBody
     public JsonBean<Object> test(@RequestBody RedisDataSourceInfo properties) {
-        MagicDynamicRedisDataSource magicDynamicRedisDataSource = SpringUtils.getBean(MagicDynamicRedisDataSource.class) ;
+        MagicDynamicRedisDataSource magicDynamicRedisDataSource = SpringUtils.getBean(MagicDynamicRedisDataSource.class);
         RedisConnectionFactory connectionFactory = null;
+        RedisConnection connection = null;
+        RedisClusterConnection clusterConnection = null;
+        RedisSentinelConnection sentinelConnection = null;
         try {
             // 验证传入的Redis配置字段是否合法
             validateField(properties);
 
             // 动态创建Redis连接工厂
             connectionFactory = magicDynamicRedisDataSource.createRedisConnectionFactory(properties);
+
+            if (connectionFactory == null) {
+                return new JsonBean<>("无法创建Redis连接工厂，请检查客户端类型配置");
+            }
 
             // 初始化连接工厂：根据具体实现类型调用其初始化方法
             if (connectionFactory instanceof LettuceConnectionFactory) {
@@ -52,28 +62,27 @@ public class MagicRedisController extends MagicController implements MagicExcept
             }
 
             String ping = null;
+            String mode = properties.getMode();
             try {
-                // 根据不同模式选择相应的连接方式进行测试
-                if ("standalone".equals(properties.getMode())) {
-                    // 单机模式配置
-                    RedisConnection connection = connectionFactory.getConnection();
+                // 根据不同模式选择相应的连接方式进行测试，默认使用单机模式
+                if (!"cluster".equals(mode) && !"sentinel".equals(mode)) {
+                    // 单机模式（默认）
+                    connection = connectionFactory.getConnection();
                     if (connection != null) {
                         ping = connection.ping();
                     }
-                } else if ("cluster".equals(properties.getMode())) {
-                    // 集群模式配置
-                    RedisClusterConnection clusterConnection = connectionFactory.getClusterConnection();
+                } else if ("cluster".equals(mode)) {
+                    // 集群模式
+                    clusterConnection = connectionFactory.getClusterConnection();
                     if (clusterConnection != null) {
                         ping = clusterConnection.ping();
                     }
-                } else if ("sentinel".equals(properties.getMode())) {
-                    // 哨兵模式配置
-                    RedisSentinelConnection sentinelConnection = connectionFactory.getSentinelConnection();
+                } else if ("sentinel".equals(mode)) {
+                    // 哨兵模式
+                    sentinelConnection = connectionFactory.getSentinelConnection();
                     if (sentinelConnection != null) {
-                        // 哨兵连接通常不支持ping命令，连接成功即表示正常
-                        // 我们可以通过获取主节点信息来验证连接
                         sentinelConnection.masters();
-                        ping = "PONG"; // 连接成功即表示正常
+                        ping = "PONG";
                     }
                 }
             } catch (Exception e) {
@@ -90,12 +99,26 @@ public class MagicRedisController extends MagicController implements MagicExcept
             log.error("测试Redis数据源配置失败", e);
             return new JsonBean<>(e.getMessage());
         } finally {
+            closeConnection(connection);
+            closeConnection(clusterConnection);
+            closeConnection(sentinelConnection);
             // 销毁临时创建的Redis连接工厂资源
             try {
                 magicDynamicRedisDataSource.destroyRedisConnectionFactory(connectionFactory);
             } catch (Exception e) {
                 log.error("销毁Redis数据源配置失败", e);
             }
+        }
+    }
+
+    private void closeConnection(AutoCloseable connection) {
+        if (connection == null) {
+            return;
+        }
+        try {
+            connection.close();
+        } catch (Exception e) {
+            log.warn("关闭Redis连接失败", e);
         }
     }
 

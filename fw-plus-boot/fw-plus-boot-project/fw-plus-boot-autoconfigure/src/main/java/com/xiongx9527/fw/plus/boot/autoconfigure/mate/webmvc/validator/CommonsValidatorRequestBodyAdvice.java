@@ -31,7 +31,7 @@ public class CommonsValidatorRequestBodyAdvice implements RequestBodyAdvice {
         return methodParameter.hasParameterAnnotation(org.springframework.web.bind.annotation.RequestBody.class)
                 // 检查方法参数是否有 @Valid 或 @Validated 注解，以确定是否需要进行数据验证
                 && (
-                    methodParameter.hasParameterAnnotation(javax.validation.Valid.class) ||
+                    methodParameter.hasParameterAnnotation(jakarta.validation.Valid.class) ||
                             methodParameter.hasParameterAnnotation(org.springframework.validation.annotation.Validated.class)
                 );
          **/
@@ -72,6 +72,8 @@ public class CommonsValidatorRequestBodyAdvice implements RequestBodyAdvice {
         if (ObjectUtils.isNotEmpty(body)) {
             CommonsValidatorHolder.set(CommonsValidator.FORM_DATA_KEY, body);
             CommonsValidatorHolder.set(CommonsValidator.METHOD_PARAMETER_KEY, parameter);
+        } else {
+            CommonsValidatorHolder.clear();
         }
         return body;
     }
@@ -89,6 +91,7 @@ public class CommonsValidatorRequestBodyAdvice implements RequestBodyAdvice {
      */
     @Override
     public Object handleEmptyBody(Object body, HttpInputMessage inputMessage, MethodParameter parameter, Type targetType, Class<? extends HttpMessageConverter<?>> converterType) {
+        CommonsValidatorHolder.clear();
         return body;
     }
 }

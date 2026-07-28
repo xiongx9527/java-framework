@@ -1,26 +1,24 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.service;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.consumer.KafkaConsumer;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.consumer.KafkaConsumerService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaSubscribeScriptInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.MagicDynamicKafkaDataSource;
-import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
+import org.springframework.context.event.EventListener;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
+import org.ssssssss.magicapi.core.event.EventAction;
 import org.ssssssss.magicapi.core.event.FileEvent;
 import org.ssssssss.magicapi.core.event.GroupEvent;
 import org.ssssssss.magicapi.core.service.AbstractMagicDynamicRegistry;
-import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
-import org.springframework.context.event.EventListener;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * Kafka 订阅 动态注册器
@@ -28,24 +26,20 @@ import java.util.stream.Stream;
  * @author zzy
  */
 @Slf4j
-public class KafkaSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegistry<KafkaSubscribeInfo> {
-    /**
-     * 魔法动态Kafka数据源的私有最终字段，用于在Kafka订阅魔法动态注册中处理数据源的动态配置
-     */
+public class KafkaSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegistry<KafkaSubscribeInfo> implements BaseService {
     private final MagicDynamicKafkaDataSource magicDynamicKafkaDataSource;
+    private final KafkaDataSourceInfoMagicResourceStorage kafkaDataSourceStorage;
+    private final KafkaSubscribeInfoMagicResourceStorage kafkaSubscribeStorage;
+    private final Set<String> pendingSubscribeKeys = ConcurrentHashMap.newKeySet();
 
-    /**
-     * 构造函数，用于初始化Kafka订阅魔法动态注册
-     *
-     * @param magicResourceStorage 存储Kafka订阅信息的魔法资源存储对象，用于管理订阅资源
-     * @param magicDynamicKafkaDataSource 魔法动态Kafka数据源对象，负责处理数据源的动态配置
-     */
     public KafkaSubscribeMagicDynamicRegistry(MagicResourceStorage<KafkaSubscribeInfo> magicResourceStorage,
-                                              MagicDynamicKafkaDataSource magicDynamicKafkaDataSource) {
-        // 调用父类构造函数初始化魔法资源存储
+                                              MagicDynamicKafkaDataSource magicDynamicKafkaDataSource,
+                                              KafkaDataSourceInfoMagicResourceStorage kafkaDataSourceStorage,
+                                              KafkaSubscribeInfoMagicResourceStorage kafkaSubscribeStorage) {
         super(magicResourceStorage);
-        // 初始化魔法动态Kafka数据源
         this.magicDynamicKafkaDataSource = magicDynamicKafkaDataSource;
+        this.kafkaDataSourceStorage = kafkaDataSourceStorage;
+        this.kafkaSubscribeStorage = kafkaSubscribeStorage;
     }
 
     /**
@@ -57,8 +51,7 @@ public class KafkaSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegi
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception e) {
-            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
+        } catch (Exception ignored) {
         }
     }
 
@@ -69,7 +62,10 @@ public class KafkaSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegi
      */
     @EventListener(condition = "#event.type == 'kafka-subscribe'")
     public void onGroupEvent(GroupEvent event) {
-        processEvent(event);
+        try {
+            processEvent(event);
+        } catch (Exception ignored) {
+        }
     }
 
     /**
@@ -85,56 +81,90 @@ public class KafkaSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegi
         }
     }
 
+
+
     /**
      * 根据实体注册Kafka订阅信息
      *
      * @param entity Kafka订阅信息实体
      */
     private void registerByEntity(KafkaSubscribeInfo entity) {
-        // 创建MagicResourceService实例
-        MagicResourceService resourceService = MagicConfiguration.getMagicResourceService();
-        // 获取相同Key的所有订阅，添加到消费实例中
-        String scriptName = resourceService.getScriptName(entity);
+        String scriptName = MagicConfiguration.getMagicResourceService().getScriptName(entity);
         unregisterByEntity(entity);
         // 如果订阅是启用状态，则进行注册
-        if (Boolean.TRUE.equals(entity.isEnabled())) {
+        if (enable(entity)) {
             try {
                 log.debug("Kafka 消息队列订阅:[{}]开始执行", scriptName);
-                KafkaDataSourceInfoMagicResourceStorage kafkaDataSourceInfoMagicResourceStorage = SpringUtils.getBean(KafkaDataSourceInfoMagicResourceStorage.class);
-                Map<String, KafkaDataSourceInfo> kafkaDataSourceInfoMap = ListUtils.emptyIfNull(kafkaDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(KafkaDataSourceInfo::getKey, val->val,(k1, k2)->k1));
+                Map<String, KafkaDataSourceInfo> kafkaDataSourceInfoMap = ListUtils.emptyIfNull(kafkaDataSourceStorage.findAll()).stream().collect(Collectors.toMap(KafkaDataSourceInfo::getKey, val -> val, (k1, k2) -> k1));
                 if(!kafkaDataSourceInfoMap.containsKey(entity.getKey())) {
-                    Thread.sleep(5000);
-                    kafkaDataSourceInfoMap = ListUtils.emptyIfNull(kafkaDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(KafkaDataSourceInfo::getKey, val->val,(k1, k2)->k1));
-                    if(!kafkaDataSourceInfoMap.containsKey(entity.getKey())) {
-                        log.warn("Kafka 订阅:[{}]执行出错, 未找到数据源[{}]", scriptName, entity.getKey());
-                        return ;
-                    }
+                    log.warn("Kafka 订阅:[{}]执行出错, 未找到数据源[{}], 加入待重试队列", scriptName, entity.getKey());
+                    this.pendingSubscribeKeys.add(entity.getKey());
+                    return ;
                 }
                 List<KafkaSubscribeScriptInfo> newSubscribeList = new ArrayList<>();
                 // 添加新的订阅信息
                 newSubscribeList.add(new KafkaSubscribeScriptInfo(entity, scriptName));
-                log.info("Kafka 订阅:[{}]开始执行========================================-=-=-=-==--=-=-=-==", scriptName);
                 magicDynamicKafkaDataSource.putConsumer(kafkaDataSourceInfoMap.get(entity.getKey()), newSubscribeList);
                 log.debug("Kafka 消息队列订阅:[{}]执行完毕", scriptName);
             } catch (Exception e) {
-                log.error("Kafka 消息队列订阅:[{}]执行出错, {}", scriptName, e);
+                log.error("Kafka 消息队列订阅:[{}]执行出错", scriptName, e);
             }
         }
     }
 
     /**
-     * 注册Kafka订阅信息，首先执行注销操作，然后调用父类的注册方法
+     * 注册Kafka订阅信息
      *
-     * @param entity Kafka订阅信息实体，包含需要注册的信息
-     * @return boolean 表示注册是否成功
+     * @param entity Kafka订阅信息实体
+     * @return boolean 注册是否成功
      */
     @Override
     public boolean register(KafkaSubscribeInfo entity) {
         registerByEntity(entity);
         try {
             return super.register(entity);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             return false;
+        }
+    }
+
+    /**
+     * 监听数据源事件，当数据源就绪后重新注册待重试的订阅
+     */
+    @EventListener(condition = "#event.type == 'kafka-datasource'")
+    public void onDataSourceFileEvent(FileEvent event) {
+        // 如果是删除事件，清理待重试队列中的对应 key
+        if (event.getAction() == EventAction.DELETE) {
+            if (!(event.getEntity() instanceof KafkaDataSourceInfo)) {
+                return;
+            }
+            KafkaDataSourceInfo entity = (KafkaDataSourceInfo) event.getEntity();
+            if (entity != null && entity.getKey() != null) {
+                this.pendingSubscribeKeys.remove(entity.getKey());
+            }
+            return;
+        }
+        if (this.pendingSubscribeKeys.isEmpty()) {
+            return;
+        }
+        try {
+            Map<String, KafkaDataSourceInfo> dsMap = ListUtils.emptyIfNull(kafkaDataSourceStorage.findAll()).stream()
+                    .collect(Collectors.toMap(KafkaDataSourceInfo::getKey, v -> v, (k1, k2) -> k1));
+
+            for (String dsKey : new HashSet<>(this.pendingSubscribeKeys)) {
+                if (!dsMap.containsKey(dsKey)) {
+                    continue;
+                }
+                List<KafkaSubscribeInfo> subscribes = ListUtils.emptyIfNull(kafkaSubscribeStorage.findAll()).stream()
+                        .filter(s -> dsKey.equals(s.getKey()))
+                        .collect(Collectors.toList());
+                for (KafkaSubscribeInfo subscribe : subscribes) {
+                    registerByEntity(subscribe);
+                }
+                this.pendingSubscribeKeys.remove(dsKey);
+            }
+        } catch (Exception e) {
+            log.error("处理数据源事件时发生错误", e);
         }
     }
 
@@ -146,19 +176,31 @@ public class KafkaSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegi
      */
     @Override
     protected boolean register(MappingNode<KafkaSubscribeInfo> mappingNode) {
-        //KafkaSubscribeInfo entity = mappingNode.getEntity();
-        //registerByEntity(entity);
-        return super.register(mappingNode);
+        try {
+            return super.register(mappingNode);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
-     * 重写 unregister 方法以取消注册 Kafka 订阅信息
+     * 取消注册Kafka订阅信息
      *
-     * @param mappingNode 包含 Kafka 订阅信息的映射节点
+     * @param mappingNode 包含Kafka订阅信息的映射节点
      */
     @Override
     protected void unregister(MappingNode<KafkaSubscribeInfo> mappingNode) {
-        unregisterByEntity(mappingNode.getEntity());
-        super.unregister(mappingNode);
+        KafkaSubscribeInfo entity = mappingNode.getEntity();
+        unregisterByEntity(entity);
+        // TODO: findAll() 全量扫描效率低，大数据量时应改为按 key 索引查找
+        boolean hasOther = ListUtils.emptyIfNull(kafkaSubscribeStorage.findAll()).stream()
+                .anyMatch(s -> entity.getKey().equals(s.getKey()) && !s.getId().equals(entity.getId()));
+        if (!hasOther) {
+            this.pendingSubscribeKeys.remove(entity.getKey());
+        }
+        try {
+            super.unregister(mappingNode);
+        } catch (Exception ignored) {
+        }
     }
 }

@@ -1,6 +1,6 @@
 <template>
-  <svg xmlns="http://www.w3.org/2000/svg" version="1.1" :width="item.width" height="12" font-size="10" font-weight="bolder" font-family="inherit">
-    <text :x="item.width / 2" y="8" :fill="item.color" style="dominant-baseline: middle;text-anchor:middle;" >{{ item.text }}</text>
+  <svg xmlns="http://www.w3.org/2000/svg" version="1.1" :width="item.width" height="100%" font-size="10" font-weight="bolder" font-family="inherit" style="vertical-align: middle; display: block;">
+    <text :x="item.width / 2" y="50%" :fill="item.color" style="dominant-baseline: middle;text-anchor:middle;" >{{ item.text }}</text>
   </svg>
 </template>
 <script setup>

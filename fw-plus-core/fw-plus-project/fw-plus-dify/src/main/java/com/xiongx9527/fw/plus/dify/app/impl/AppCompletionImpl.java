@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.dify.app.impl;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.dify.SimpleHttpClient;
+import com.xiongx9527.fw.plus.dify.app.DifyEventSourceBaseListener;
 import com.xiongx9527.fw.plus.dify.app.IAppCompletion;
 import com.xiongx9527.fw.plus.dify.app.params.ParamMessage;
 import com.xiongx9527.fw.plus.dify.app.types.DifyChatEvent;
@@ -14,9 +15,6 @@ import okhttp3.sse.EventSource;
 import okhttp3.sse.EventSourceListener;
 
 import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 
 @Slf4j
 public class AppCompletionImpl extends AppBaseClientImpl implements IAppCompletion {
@@ -44,7 +42,6 @@ public class AppCompletionImpl extends AppBaseClientImpl implements IAppCompleti
      */
     @Override
     public DifyChatResult sendMessages(ParamMessage message) {
-        formatMessage(message);
         String result = requestBlocking(AppRoutes.COMPLETION_MESSAGES, null, message.toMap());
         return DifyChatResult.builder().event(DifyChatEvent.message).payload(JSON.parseObject(result)).build();
     }
@@ -64,10 +61,38 @@ public class AppCompletionImpl extends AppBaseClientImpl implements IAppCompleti
      */
     @Override
     public EventSource sendMessagesAsync(ParamMessage message, EventSourceListener listener) {
-        formatMessage(message);
         return requestStreaming(AppRoutes.COMPLETION_MESSAGES, null, message.toMap(), listener);
     }
+    
+    /**
+     * 异步发送消息到 Dify 应用并监听流式响应事件（使用默认监听器）
+     * 
+     * <p>该方法用于向 Dify 应用发送对话消息，通过流式请求获取应用的实时响应，
+     * 并使用默认的 DifyEventSourceListener 处理响应事件。适用于不需要自定义
+     * 事件处理逻辑的常规流式对话场景。</p>
+     *
+     * @param message 参数消息对象，包含发送消息的详细信息和配置参数
+     *                该对象会被格式化后转换为 Map 结构发送到 Dify 服务端点
+     * @return EventSource 事件源对象，用于管理流式连接的生命周期
+     *         可通过该对象控制连接的开启、关闭等操作
+     */
+    @Override
+    public EventSource sendMessagesAsync(ParamMessage message) {
+        return sendMessagesAsync(message, new DifyEventSourceBaseListener());
+    }
 
+    /**
+     * 停止Dify应用的消息生成任务
+     *
+     * <p>该方法用于向Dify服务端发送停止请求，终止指定任务的message生成过程。
+     * 通过POST请求调用Dify API的stop端点，并解析返回结果判断操作是否成功。</p>
+     *
+     * @param taskId 任务ID，标识需要停止生成的特定任务
+     * @param user 用户标识，用于指明执行停止操作的用户
+     * @return Boolean值，表示停止操作是否成功
+     *         - true: 停止操作成功执行
+     *         - false: 停止操作失败或返回结果不是success
+     */
     @Override
     public Boolean stopGenerate(String taskId, String user) {
         String result = SimpleHttpClient.get(config).requestJson(
@@ -81,27 +106,6 @@ public class AppCompletionImpl extends AppBaseClientImpl implements IAppCompleti
 
         JSONObject json = JSON.parseObject(result);
         return "success".equalsIgnoreCase(json.getString("result"));
-    }
-
-    /**
-     * reset message params
-     * @param message ParamMessage
-     */
-    private void formatMessage(ParamMessage message) {
-        if (message.getQuery() != null) {
-            Map<String, Object> inputs = message.getInputs();
-
-            if (inputs == null) {
-                inputs = new HashMap<>();
-            }
-
-            if (!inputs.containsKey("query") || inputs.get("query") == null) {
-                inputs.put("query", message.getQuery());
-            }
-
-            message.setQuery(null);
-            message.setInputs(inputs);
-        }
     }
 
 }

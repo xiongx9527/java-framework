@@ -6,7 +6,8 @@
                     <div class="magic-toolbar-header">
                         <label>{{ toolbar.title }}</label>
                         <div class="magic-toolbar-header-buttons">
-                            <magic-icon icon="minimize" size="14px" :title="$i('message.hide')" @click="navbar.select(-1)"/>
+                            <magic-icon v-if="toolbar.fullscreen" :icon="isFullscreen ? 'fullscreen-exit' : 'fullscreen'" size="14px" :title="isFullscreen ? $i('message.exitFullscreen') : $i('message.fullscreen')" @click="toggleFullscreen"/>
+                            <magic-icon v-if="!isFullscreen" icon="minimize" size="14px" :title="$i('message.hide')" @click="navbar.select(-1)"/>
                             <magic-icon icon="close" :title="$i('editor.tab.close')" v-if="toolbar.allowClose" @click="closeTab(toolbar)"/>
                         </div>
                     </div>
@@ -17,12 +18,37 @@
     </div>
 </template>
 <script setup>
-import {  provide, reactive, ref, resolveDynamicComponent, shallowRef } from 'vue'
+import {onMounted, onUnmounted, provide, reactive, ref, resolveDynamicComponent, shallowRef} from 'vue'
 import bus from '../../../scripts/bus.js'
 import $i from '../../../scripts/i18n.js'
 import Message from '../../../scripts/constants/message.js'
 import constants from '../../../scripts/constants.js'
+import { stableSortByOrder } from '../../../scripts/plugin-extension.js'
+
 const navbar = ref(null)
+const isFullscreen = ref(false)
+
+function toggleFullscreen(event) {
+    const panel = event.target.closest('.magic-resizer-y')
+    if (!panel) return
+    if (isFullscreen.value) {
+        document.exitFullscreen()
+    } else {
+        panel.requestFullscreen()
+    }
+}
+
+function onFullscreenChange() {
+    isFullscreen.value = !!document.fullscreenElement
+}
+
+onMounted(() => {
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+})
+
+onUnmounted(() => {
+    document.removeEventListener('fullscreenchange', onFullscreenChange)
+})
 const toolbars = reactive([
     { type: 'api', title: $i('api.title'), icon: 'parameter', component: shallowRef(resolveDynamicComponent('magic-api-info')) },
 
@@ -47,40 +73,22 @@ const toolbars = reactive([
     { id: 'event', title: $i('toolbars.event'), icon: 'event', component: shallowRef(resolveDynamicComponent('magic-event')), style: { float: 'right'} }
 ])
 
-// 只有当constants.PLUGINS_DATA中包含aia插件时，才添加aia工具栏
-if (constants.PLUGINS_DATA.some(plugin => plugin.name === 'aia')) {
-    toolbars.push({
-        id: 'aia', 
-        title: $i('toolbars.aia'), 
-        icon: 'aia', 
-        component: shallowRef(resolveDynamicComponent('magic-aia')), 
-        max: 1000, 
-        min: 200, 
-        value: 500 
-    })
-}
-
-// 添加tinyflow工具栏
-{
-    toolbars.push({
-        id: 'tinyflow', 
-        title: $i('toolbars.tinyflow'), 
-        icon: 'tinyflow',
-        component: shallowRef(resolveDynamicComponent('magic-tinyflow')), 
-        max: 1000, 
-        min: 200, 
-        value: 500 
-    })
-}
-constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).map(it => it.toolbars).forEach(res => res.forEach(it => {
-	toolbars.unshift({
+const isPluginToolbarVisible = (toolbar, pluginData) => !toolbar.adminOnly || (pluginData && pluginData.adminEnabled === true)
+const pluginToolbars = constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).reduce((items, plugin) => {
+    const pluginData = constants.PLUGINS_DATA.find(item => item.name === plugin.name)
+    return items.concat(plugin.toolbars.filter(toolbar => isPluginToolbarVisible(toolbar, pluginData)))
+}, [])
+stableSortByOrder(pluginToolbars).forEach(it => {
+	toolbars.push({
         id: it.id,
-		type: it.type,
-		icon: it.icon,
+			type: it.type,
+			icon: it.icon,
 		title: $i(it.title),
-        component: shallowRef(it.component)
+        component: shallowRef(it.component),
+        fullscreen: it.fullscreen,
+        allowClose: it.allowClose
 	})
-}))
+})
 const opened = ref({})
 const info = ref({})
 provide('opened', opened)

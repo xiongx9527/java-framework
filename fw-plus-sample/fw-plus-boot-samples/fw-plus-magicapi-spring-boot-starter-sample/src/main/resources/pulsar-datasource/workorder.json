@@ -1,0 +1,18 @@
+{
+  "properties" : { },
+  "id" : "e5a452d3e8a144708ba0192ac28bd414",
+  "script" : null,
+  "groupId" : "pulsar-datasource:0",
+  "name" : "workorder",
+  "createTime" : 1772964287845,
+  "updateTime" : 1776585592851,
+  "lock" : null,
+  "createBy" : "admin",
+  "updateBy" : null,
+  "servers" : "172.17.17.185:6650",
+  "serviceUrls" : "http://172.17.17.185:6080",
+  "key" : "workorder",
+  "tenant" : "em-test",
+  "namespace" : "workorder",
+  "other" : null
+}

@@ -10,4 +10,3 @@ package com.xiongx9527.fw.plus.template.filechange;
  */
 public abstract class AbstractHtml2Pdf implements BaseFileChange {
 }
-

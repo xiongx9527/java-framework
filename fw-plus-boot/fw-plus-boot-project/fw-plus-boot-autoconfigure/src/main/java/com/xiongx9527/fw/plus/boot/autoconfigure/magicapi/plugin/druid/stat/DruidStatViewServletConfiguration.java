@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Bean;
  * @author lihengming [89921218@qq.com]
  */
 @ConditionalOnWebApplication
-@ConditionalOnProperty(name = "magic-api.plugin.druid.stat-view-servlet.enabled", havingValue = "true")
+@ConditionalOnProperty(prefix="magic-api.plugin.druid.stat-view-servlet",name = "enabled", havingValue = "true", matchIfMissing = true)
 public class DruidStatViewServletConfiguration {
 
     /**

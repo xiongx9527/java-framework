@@ -9,14 +9,12 @@ import org.springframework.cloud.client.ServiceInstance;
 import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.cloud.client.loadbalancer.*;
 import org.springframework.cloud.loadbalancer.support.LoadBalancerClientFactory;
-import org.springframework.cloud.openfeign.loadbalancer.LoadBalancerFeignRequestTransformer;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.Assert;
 
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Set;
 
 public class GrayFeignBlockingLoadBalancerClient implements feign.Client{
@@ -30,15 +28,13 @@ public class GrayFeignBlockingLoadBalancerClient implements feign.Client{
 
     private final LoadBalancerClientFactory loadBalancerClientFactory;
 
-    private final List<LoadBalancerFeignRequestTransformer> transformers;
-
-    public GrayFeignBlockingLoadBalancerClient(Client delegate, LoadBalancerClient loadBalancerClient, DiscoveryClient discoveryClient, LoadBalancerClientFactory loadBalancerClientFactory, List<LoadBalancerFeignRequestTransformer> transformers) {
+    public GrayFeignBlockingLoadBalancerClient(Client delegate, LoadBalancerClient loadBalancerClient, DiscoveryClient discoveryClient, LoadBalancerClientFactory loadBalancerClientFactory) {
         this.delegate = delegate;
         //this.loadBalancerClient = loadBalancerClient;
         this.loadBalancerClient = new GrayLoadBalancerClient(loadBalancerClient, discoveryClient);
         this.loadBalancerClientFactory = loadBalancerClientFactory;
-        this.transformers = transformers;
     }
+
 
     @Override
     public Response execute(Request request, Request.Options options) throws IOException {
@@ -64,31 +60,18 @@ public class GrayFeignBlockingLoadBalancerClient implements feign.Client{
             supportedLifecycleProcessors.forEach(lifecycle -> lifecycle
                     .onComplete(new CompletionContext<ResponseData, ServiceInstance, RequestDataContext>(
                             CompletionContext.Status.DISCARD, lbRequest, lbResponse)));
-            return Response.builder()
-                    .request(request)
-                    .status(HttpStatus.SERVICE_UNAVAILABLE.value())
-                    .body(message, StandardCharsets.UTF_8)
-                    .build();
+            return Response.builder().request(request).status(HttpStatus.SERVICE_UNAVAILABLE.value())
+                    .body(message, StandardCharsets.UTF_8).build();
         }
         String reconstructedUrl = loadBalancerClient.reconstructURI(instance, originalUri).toString();
-        Request newRequest = buildRequest(request, reconstructedUrl, instance);
-        return LoadBalancerUtils.executeWithLoadBalancerLifecycleProcessing(delegate, options, newRequest, lbRequest, lbResponse,
-                supportedLifecycleProcessors);
+        Request newRequest = buildRequest(request, reconstructedUrl);
+		return LoadBalancerUtils.executeWithLoadBalancerLifecycleProcessing(delegate, options, newRequest, lbRequest, lbResponse,
+				supportedLifecycleProcessors);
     }
 
     protected Request buildRequest(Request request, String reconstructedUrl) {
         return Request.create(request.httpMethod(), reconstructedUrl, request.headers(), request.body(),
                 request.charset(), request.requestTemplate());
-    }
-
-    protected Request buildRequest(Request request, String reconstructedUrl, ServiceInstance instance) {
-        Request newRequest = buildRequest(request, reconstructedUrl);
-        if (transformers != null) {
-            for (LoadBalancerFeignRequestTransformer transformer : transformers) {
-                newRequest = transformer.transformRequest(newRequest, instance);
-            }
-        }
-        return newRequest;
     }
 
     // Visible for Sleuth instrumentation

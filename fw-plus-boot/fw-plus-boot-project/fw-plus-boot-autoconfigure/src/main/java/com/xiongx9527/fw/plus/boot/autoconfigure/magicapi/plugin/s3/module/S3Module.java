@@ -2,7 +2,6 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.module;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.file.MyFileStorageService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.MagicDynamicS3DataSource;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.magicapi.core.model.Options;
@@ -10,7 +9,8 @@ import org.ssssssss.magicapi.modules.DynamicModule;
 import org.ssssssss.script.MagicScriptContext;
 import org.ssssssss.script.functions.DynamicAttribute;
 
-@Slf4j
+import java.util.Objects;
+
 @MagicModule("s3")
 public class S3Module implements DynamicAttribute<S3Module, S3Module>, DynamicModule<S3Module> {
 
@@ -58,7 +58,11 @@ public class S3Module implements DynamicAttribute<S3Module, S3Module>, DynamicMo
     public S3Module getDynamicModule(MagicScriptContext context) {
         String dataSourceKey = context.getString(Options.DEFAULT_DATA_SOURCE.getValue());
         if (StringUtils.isEmpty(dataSourceKey)) return this;
-        return new S3Module(magicDynamicS3DataSource,magicDynamicS3DataSource.getFileStorageService(dataSourceKey));
+        MyFileStorageService service = this.magicDynamicS3DataSource.getFileStorageService(dataSourceKey);
+        if (service == null) {
+            throw new IllegalArgumentException("未找到key为 '" + dataSourceKey + "' 的S3文件存储服务");
+        }
+        return new S3Module(this.magicDynamicS3DataSource, service);
     }
 
     /**
@@ -70,7 +74,15 @@ public class S3Module implements DynamicAttribute<S3Module, S3Module>, DynamicMo
      */
     @Override
     public S3Module getDynamicAttribute(String key) {
-        return new S3Module(magicDynamicS3DataSource, magicDynamicS3DataSource.getFileStorageService(key));
+        if (Objects.isNull(key) || Options.DEFAULT_DATA_SOURCE.getValue().equalsIgnoreCase(key)
+                || "default".equalsIgnoreCase(key)) {
+            return this;
+        }
+        MyFileStorageService service = this.magicDynamicS3DataSource.getFileStorageService(key);
+        if (service == null) {
+            throw new IllegalArgumentException("未找到key为 '" + key + "' 的S3文件存储服务");
+        }
+        return new S3Module(this.magicDynamicS3DataSource, service);
     }
 
 }

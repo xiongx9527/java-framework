@@ -23,4 +23,10 @@ public interface PulsarCodeConstants extends JsonCodeConstants {
 
     public static final JsonCode PULSAR_SUBSCRIBE_OTHER_MUST_BE_JSONOBJECT = new JsonCode(40001009, "订阅其它配置必须为JSONObject");
 
+    public static final JsonCode PULSAR_DATASOURCE_REFERENCED_BY_SUBSCRIBE = new JsonCode(40001010, "数据源被订阅配置引用，无法删除");
+
+    public static final JsonCode PULSAR_SUBSCRIBE_ENABLED_CANNOT_DELETE = new JsonCode(40001011, "订阅已启用，请先停用后再删除");
+
+    public static final JsonCode PULSAR_DATASOURCE_CONNECT_FAILED = new JsonCode(40001012, "数据源连接失败");
+
 }

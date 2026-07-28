@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.uid;
 
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * UidModuleConfiguration类用于配置UidModule相关的Bean

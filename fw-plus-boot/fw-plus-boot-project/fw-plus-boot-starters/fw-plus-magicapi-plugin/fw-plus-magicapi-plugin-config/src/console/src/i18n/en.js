@@ -1,6 +1,6 @@
 export default {
     config: {
-        title: 'Configuration Info',
+        title: 'Configuration',
         name: 'Configuration',
         form: {
             enabled: 'Enabled',
@@ -18,6 +18,9 @@ export default {
                 env: 'Please Enter Env',
                 description: 'Please Enter Configuration Description'
             }
+        },
+        navbars: {
+            description: 'Description'
         }
     }
 }

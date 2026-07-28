@@ -4,8 +4,6 @@ import lombok.Data;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.model.PathMagicEntity;
 
-import java.util.Objects;
-
 /**
  * 订阅信息
  *
@@ -79,20 +77,10 @@ public class KafkaSubscribeInfo extends PathMagicEntity {
      *
      * @return 返回一个新的KafkaSubscribeInfo对象，包含与当前对象相同的数据
      */
+    @Override
     public KafkaSubscribeInfo copy() {
         KafkaSubscribeInfo info = new KafkaSubscribeInfo();
-        super.copyTo(info);
-        info.setKey(this.key);
-        info.setTopic(this.topic);
-        info.setPartition(this.partition);
-        info.setEnabled(this.enabled);
-        info.setOther(this.other);
-        info.setParams(this.params);
-        info.setGroup(this.group);
-        info.setAckMode(this.ackMode);
-        info.setAckCount(this.ackCount);
-        info.setAckTime(this.ackTime);
-        info.setPath(null);
+        copyTo(info);
         return info;
     }
 
@@ -115,6 +103,8 @@ public class KafkaSubscribeInfo extends PathMagicEntity {
         info.setAckCount(this.ackCount);
         info.setAckTime(this.ackTime);
         info.setPath(null);
+        info.setConcurrency(this.concurrency);
+        info.setBroadcast(this.broadcast);
         return info;
     }
 
@@ -128,39 +118,6 @@ public class KafkaSubscribeInfo extends PathMagicEntity {
         KafkaSubscribeInfo info = new KafkaSubscribeInfo();
         super.simple(info);
         return info;
-    }
-
-    /**
-     * 比较当前对象与另一个对象是否相等
-     *
-     * @param o 要比较的对象
-     * @return 如果两个对象相等返回true，否则返回false
-     */
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        KafkaSubscribeInfo kafkaSubscribeInfo = (KafkaSubscribeInfo) o;
-        return Objects.equals(id, kafkaSubscribeInfo.id) &&
-                Objects.equals(path, kafkaSubscribeInfo.path) &&
-                Objects.equals(script, kafkaSubscribeInfo.script) &&
-                Objects.equals(name, kafkaSubscribeInfo.name) &&
-                Objects.equals(key, kafkaSubscribeInfo.key) &&
-                Objects.equals(topic, kafkaSubscribeInfo.topic) &&
-                Objects.equals(partition, kafkaSubscribeInfo.partition) &&
-                Objects.equals(other, kafkaSubscribeInfo.other) &&
-                Objects.equals(enabled, kafkaSubscribeInfo.enabled);
-    }
-
-    /**
-     * 计算当前对象的哈希码
-     *
-     * @return 返回基于对象关键属性计算出的哈希码值
-     */
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, path, script, name, groupId, topic, partition, enabled, other);
     }
 
 }

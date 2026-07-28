@@ -499,7 +499,6 @@ public abstract class AbstractRoutingRedisTemplate<K, V> extends RedisTemplate<K
         return determineTargetRedisTemplate().getClientList();
     }
 
-
     @Override
     public void setEnableTransactionSupport(boolean enableTransactionSupport) {
         determineTargetRedisTemplate().setEnableTransactionSupport(enableTransactionSupport);

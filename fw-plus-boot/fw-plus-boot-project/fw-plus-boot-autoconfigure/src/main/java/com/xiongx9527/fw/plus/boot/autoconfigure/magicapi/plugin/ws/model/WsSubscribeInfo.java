@@ -36,7 +36,6 @@ public class WsSubscribeInfo extends PathMagicEntity {
     public WsSubscribeInfo copyTo(WsSubscribeInfo info) {
         super.copyTo(info);
         info.setKey(this.key);
-        info.setKey(this.key);
         info.setEnabled(this.enabled);
         info.setDescription(this.description);
         info.setBusinessId(this.businessId);
@@ -47,26 +46,12 @@ public class WsSubscribeInfo extends PathMagicEntity {
     @Override
     public WsSubscribeInfo copy() {
         WsSubscribeInfo info = new WsSubscribeInfo();
-        this.copyTo(info);
-        info.setKey(this.key);
-        info.setKey(this.key);
-        info.setEnabled(this.enabled);
-        info.setDescription(this.description);
-        info.setBusinessId(this.businessId);
-        info.setPath(null);
-        return info;
+        return copyTo(info);
     }
 
     @Override
     public MagicEntity simple() {
         WsSubscribeInfo info = new WsSubscribeInfo();
-        this.copyTo(info);
-        info.setKey(this.key);
-        info.setKey(this.key);
-        info.setEnabled(this.enabled);
-        info.setDescription(this.description);
-        info.setBusinessId(this.businessId);
-        info.setPath(null);
-        return info;
+        return copyTo(info);
     }
 }

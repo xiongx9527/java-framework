@@ -3,18 +3,27 @@ package cn.afterturn.easypoi.word.parse;
 import cn.afterturn.easypoi.cache.WordCache;
 import cn.afterturn.easypoi.entity.ImageEntity;
 import cn.afterturn.easypoi.util.PoiPublicUtil;
+import cn.afterturn.easypoi.word.entity.ChartData;
 import cn.afterturn.easypoi.word.entity.MyXWPFDocument;
 import cn.afterturn.easypoi.word.entity.params.ExcelListEntity;
 import cn.afterturn.easypoi.word.parse.excel.ExcelEntityParse;
 import cn.afterturn.easypoi.word.parse.excel.ExcelMapParse;
 import cn.hutool.http.HttpUtil;
+import cn.hutool.json.JSONUtil;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ooxml.POIXMLDocumentPart;
 import org.apache.poi.xwpf.usermodel.*;
+import org.apache.xmlbeans.XmlCursor;
+import org.openxmlformats.schemas.drawingml.x2006.chart.CTTx;
+import org.openxmlformats.schemas.drawingml.x2006.main.CTRegularTextRun;
+import org.openxmlformats.schemas.drawingml.x2006.main.CTTextParagraph;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTDocument1;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.impl.CTDocument1Impl;
+
+import javax.xml.namespace.QName;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -420,6 +429,8 @@ public class ParseWord07 {
         }
         // 第四步解析所有文本框
         parseTextBoxes(doc, map);
+        // 第五步替换已有图表中的嵌入数据
+        replaceCharts(doc, map);
     }
 
     /**
@@ -855,6 +866,304 @@ public class ParseWord07 {
          */
         public static int getCacheSize() {
             return (int) CACHE.size();
+        }
+    }
+
+    /**
+     * 替换文档中已有图表的嵌入数据，通过图表的替换文字标题（wp:docPr title）匹配。
+     * title 支持直接 key 或 {{expr}} 占位符（含嵌套属性路径如 {{a.b.c}}），
+     * 占位符通过 PoiPublicUtil.getRealValue 解析。
+     */
+    private void replaceCharts(MyXWPFDocument doc, Map<String, Object> map) {
+        try {
+            List<XWPFChart> charts = findCharts(doc);
+            if (charts.isEmpty()) return;
+
+            // 第一步：替换所有图表的标题和说明中的占位符文本
+            for (XWPFChart chart : charts) {
+                replaceChartText(chart, map);
+            }
+
+            // 第二步：替换匹配图表的嵌入数据
+            Map<XWPFChart, String> chartTitles = extractChartDocPrTitles(doc);
+            if (chartTitles.isEmpty()) return;
+
+            for (Map.Entry<XWPFChart, String> entry : chartTitles.entrySet()) {
+                ChartData cd = resolveChartData(entry.getValue(), map);
+                if (cd != null) {
+                    try {
+                        doReplace(entry.getKey(), cd);
+                    } catch (Exception e) {
+                        log.warn("Failed to replace chart data for title: {}", entry.getValue(), e);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to replace charts", e);
+        }
+    }
+
+    /** 替换图表的标题(c:title)和说明(c:desc)中的占位符文本 */
+    private void replaceChartText(XWPFChart chart, Map<String, Object> map) {
+        try {
+            if (chart.getCTChart() == null) return;
+
+            // 替换标题中的占位符
+            if (chart.getCTChart().getTitle() != null) {
+                replaceTxBodyText(chart.getCTChart().getTitle().getTx(), map);
+            }
+
+            // 替换说明中的占位符 (c:desc 在 CTChart 上没有直接的 getter，通过 XmlCursor 查找)
+            XmlCursor cursor = chart.getCTChart().newCursor();
+            try {
+                String chartNs = "http://schemas.openxmlformats.org/drawingml/2006/chart";
+                if (cursor.toChild(chartNs, "desc")) {
+                    CTTx descTx = (CTTx) cursor.getObject();
+                    replaceTxBodyText(descTx, map);
+                }
+            } finally {
+                cursor.dispose();
+            }
+        } catch (Exception e) {
+            log.debug("Failed to replace chart text", e);
+        }
+    }
+
+    /** 替换 CTTx rich 文本中的 {{}} 占位符 */
+    private void replaceTxBodyText(CTTx tx, Map<String, Object> map) {
+        if (tx == null || tx.getRich() == null) return;
+        for (CTTextParagraph p : tx.getRich().getPList()) {
+            for (CTRegularTextRun r : p.getRList()) {
+                String text = r.getT();
+                if (text != null && text.contains(START_STR)) {
+                    try {
+                        r.setT(changeValues(text, map));
+                    } catch (Exception e) {
+                        log.debug("Failed to replace text in chart run", e);
+                    }
+                }
+            }
+        }
+    }
+
+    /** 从 wp:docPr title 解析 ChartData，支持直接 key、{{key}} 占位符、{{a.b.c}} 嵌套路径 */
+    private ChartData resolveChartData(String title, Map<String, Object> map) {
+        Object value = map.get(title);
+        if (value == null && title.startsWith(START_STR) && title.endsWith(END_STR)) {
+            try {
+                value = PoiPublicUtil.getRealValue(title, map);
+            } catch (Exception e) {
+                log.debug("Failed to resolve placeholder: {}", title);
+            }
+        }
+        if (value instanceof ChartData) return (ChartData) value;
+        if (value instanceof String) {
+            try {
+                return JSONUtil.toBean((String) value, ChartData.class);
+            } catch (Exception ignored) {}
+        }
+        return null;
+    }
+
+    /**
+     * 提取文档中每个图表的 wp:docPr title，返回 chart → title 映射。
+     * 在 document.xml 中查找包含 c:chart 引用的 drawing 元素，提取对应 wp:docPr 的 title 属性。
+     */
+    private Map<XWPFChart, String> extractChartDocPrTitles(MyXWPFDocument doc) {
+        Map<XWPFChart, String> result = new LinkedHashMap<>();
+        try {
+            Map<String, XWPFChart> rIdToChart = new HashMap<>();
+            for (POIXMLDocumentPart.RelationPart rp : doc.getRelationParts()) {
+                if (rp.getDocumentPart() instanceof XWPFChart) {
+                    rIdToChart.put(rp.getRelationship().getId(), (XWPFChart) rp.getDocumentPart());
+                }
+            }
+            if (rIdToChart.isEmpty()) return result;
+
+            String rNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+            XmlCursor cursor = doc.getDocument().getBody().newCursor();
+            try {
+                findChartDocsInBody(cursor, rNs, rIdToChart, result);
+            } finally {
+                cursor.dispose();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to extract chart titles from docPr", e);
+        }
+        return result;
+    }
+
+    /** 查找文档中所有图表，包括嵌套在表格、文本框等部件中的图表 */
+    private List<XWPFChart> findCharts(MyXWPFDocument doc) {
+        List<XWPFChart> charts = new ArrayList<>();
+        findChartsRecursive(doc, charts);
+        return charts;
+    }
+
+    private void findChartsRecursive(POIXMLDocumentPart parent, List<XWPFChart> charts) {
+        for (POIXMLDocumentPart part : parent.getRelations()) {
+            if (part instanceof XWPFChart) {
+                charts.add((XWPFChart) part);
+            }
+            findChartsRecursive(part, charts);
+        }
+    }
+
+    /** 递归遍历 body 的 XML 节点，找到 c:chart 元素并提取对应 wp:docPr 的 title */
+    private void findChartDocsInBody(XmlCursor cursor, String rNs,
+                                      Map<String, XWPFChart> rIdToChart,
+                                      Map<XWPFChart, String> result) {
+        String chartNs = "http://schemas.openxmlformats.org/drawingml/2006/chart";
+        String wpNs = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing";
+        cursor.push();
+        if (cursor.toFirstChild()) {
+            do {
+                if (!cursor.isStart()) continue;
+                if ("chart".equals(cursor.getName().getLocalPart()) && chartNs.equals(cursor.getName().getNamespaceURI())) {
+                    String rId = cursor.getAttributeText(new QName(rNs, "id"));
+                    if (rId != null) {
+                        // 向上导航到 wp:inline，再查找其子元素 wp:docPr 的 title 属性
+                        XmlCursor inline = cursor.newCursor();
+                        try {
+                            while (inline.toParent()) {
+                                if ("inline".equals(inline.getName().getLocalPart())
+                                        && wpNs.equals(inline.getName().getNamespaceURI())) {
+                                    XmlCursor docPr = inline.newCursor();
+                                    try {
+                                        if (docPr.toChild(wpNs, "docPr")) {
+                                            String rawTitle = docPr.getAttributeText(new QName("title"));
+                                            if (rawTitle != null && !rawTitle.isEmpty()) {
+                                                XWPFChart chart = rIdToChart.get(rId);
+                                                if (chart != null) {
+                                                    result.put(chart, rawTitle);
+                                                }
+                                            }
+                                        }
+                                    } finally {
+                                        docPr.dispose();
+                                    }
+                                    break;
+                                }
+                            }
+                        } finally {
+                            inline.dispose();
+                        }
+                    }
+                }
+                findChartDocsInBody(cursor, rNs, rIdToChart, result);
+            } while (cursor.toNextSibling());
+        }
+        cursor.pop();
+    }
+
+    /**
+     * 替换图表嵌入数据，直接更新图表 XML 中的缓存数据（strCache / numCache），
+     * 同时移除 externalData 引用，确保 Word 使用缓存数据而非嵌入式 Excel 数据。
+     */
+    private void doReplace(XWPFChart chart, ChartData data) {
+        try {
+            org.openxmlformats.schemas.drawingml.x2006.chart.CTPlotArea plotArea =
+                    chart.getCTChart().getPlotArea();
+            if (plotArea == null) return;
+
+            List<org.openxmlformats.schemas.drawingml.x2006.chart.CTBarSer> barSeries = null;
+            if (plotArea.getBarChartList() != null && !plotArea.getBarChartList().isEmpty()) {
+                barSeries = plotArea.getBarChartList().get(0).getSerList();
+            }
+            if (barSeries == null || barSeries.isEmpty()) return;
+
+            List<ChartData.Series> newSeries = data.getSeries();
+            if (newSeries == null || newSeries.isEmpty() || data.getCategories() == null) return;
+
+            int seriesCount = newSeries.size();
+            int existingCount = barSeries.size();
+
+            for (int i = 0; i < seriesCount; i++) {
+                ChartData.Series s = newSeries.get(i);
+                if (i < existingCount) {
+                    updateSeriesCache(barSeries.get(i), s.getName(), data.getCategories(), s.getValues());
+                }
+            }
+            while (barSeries.size() > seriesCount) {
+                barSeries.remove(barSeries.size() - 1);
+            }
+
+            // 移除 externalData 引用，避免 Word 使用嵌入式 Excel 的旧数据
+            removeExternalData(chart);
+        } catch (Exception e) {
+            log.warn("Failed to replace chart data via CT at {} {} ", e.getClass().getSimpleName(), e.getMessage());
+        }
+    }
+
+    /** 移除图表的 externalData 引用，使 Word 改用缓存数据 */
+    private void removeExternalData(XWPFChart chart) {
+        try {
+            if (chart.getCTChart() != null) {
+                XmlCursor cursor = chart.getCTChart().newCursor();
+                try {
+                    if (cursor.toParent()) {
+                        String chartNs = "http://schemas.openxmlformats.org/drawingml/2006/chart";
+                        if (cursor.toChild(chartNs, "externalData")) {
+                            cursor.removeXml();
+                        }
+                    }
+                } finally {
+                    cursor.dispose();
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Failed to remove externalData", e);
+        }
+    }
+
+    /** 更新单个系列的类别缓存和数值缓存 */
+    private void updateSeriesCache(
+            org.openxmlformats.schemas.drawingml.x2006.chart.CTBarSer ser,
+            String name, String[] categories, Number[] values) {
+
+        // 更新系列名称
+        if (name != null && ser.getTx() != null) {
+            updateStrCache(ser.getTx().getStrRef(), new String[]{name});
+        }
+
+        // 更新类别
+        if (ser.getCat() != null) {
+            updateStrCache(ser.getCat().getStrRef(), categories);
+        }
+
+        // 更新数值
+        if (ser.getVal() != null) {
+            updateNumCache(ser.getVal().getNumRef(), values);
+        }
+    }
+
+    private void updateStrCache(
+            org.openxmlformats.schemas.drawingml.x2006.chart.CTStrRef strRef,
+            String[] values) {
+        if (strRef == null || !strRef.isSetStrCache()) return;
+        org.openxmlformats.schemas.drawingml.x2006.chart.CTStrData cache = strRef.getStrCache();
+        cache.setPtArray(null);
+        cache.setPtCount(null);
+        cache.addNewPtCount().setVal(values.length);
+        for (int i = 0; i < values.length; i++) {
+            org.openxmlformats.schemas.drawingml.x2006.chart.CTStrVal pt = cache.addNewPt();
+            pt.setIdx(i);
+            pt.setV(values[i] != null ? values[i] : "");
+        }
+    }
+
+    private void updateNumCache(
+            org.openxmlformats.schemas.drawingml.x2006.chart.CTNumRef numRef,
+            Number[] values) {
+        if (numRef == null || !numRef.isSetNumCache()) return;
+        org.openxmlformats.schemas.drawingml.x2006.chart.CTNumData cache = numRef.getNumCache();
+        cache.setPtArray(null);
+        cache.setPtCount(null);
+        cache.addNewPtCount().setVal(values.length);
+        for (int i = 0; i < values.length; i++) {
+            org.openxmlformats.schemas.drawingml.x2006.chart.CTNumVal pt = cache.addNewPt();
+            pt.setIdx(i);
+            pt.setV(values[i] != null ? values[i].toString() : "0");
         }
     }
 

@@ -120,7 +120,9 @@ const showList = (container, selectList) => {
 .magic-select .magic-icon{
 	position: absolute;
 	right: 5px;
-	height: 100%;
+	top: 50%;
+	transform: translateY(-50%);
+	height: 1.3em;
 }
 
 .magic-select ul {

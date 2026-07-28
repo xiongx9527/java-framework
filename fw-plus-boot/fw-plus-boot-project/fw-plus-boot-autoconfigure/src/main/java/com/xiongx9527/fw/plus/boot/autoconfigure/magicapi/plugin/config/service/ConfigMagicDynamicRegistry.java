@@ -1,11 +1,13 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.service;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.config.event.ConfigChangeEvent;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.model.ConfigInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cloud.context.refresh.ContextRefresher;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
@@ -43,6 +45,9 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
     @Resource
     private ConfigurableEnvironment environment;
 
+    @Resource
+    private ApplicationEventPublisher eventPublisher;
+
     /**
      * 构造函数
      * 初始化ConfigMagicDynamicRegistry实例，主要负责处理配置的动态注册
@@ -62,8 +67,7 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception e) {
-            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
+        } catch (Exception ignored) {
         }
     }
 
@@ -76,7 +80,10 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
      */
     @EventListener(condition = "#event.type == 'config'")
     public void onGroupEvent(GroupEvent event) {
+            try {
         processEvent(event);
+            } catch (Exception ignored) {
+            }
     }
 
 
@@ -87,27 +94,22 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
      * @param info 配置信息实体，包含环境、应用ID、命名空间、配置内容等信息
      */
     private void registerByEntity(ConfigInfo info) {
-        MagicResourceService resourceService = MagicConfiguration.getMagicResourceService();
-        String scriptName = resourceService.getScriptName(info);
-        String propName  = removeUnderscores(info.getEnv()) + "_" + removeUnderscores(info.getAppId()) +"_" + removeUnderscores(info.getNamespace()) ; ;
+        String scriptName = resolveScriptName(info);
+        String propName  = buildPropName(info);
         try {
-            // 解析YAML配置并扁平化为Map结构
-            String yamlStr = info.getScript();
-            Map<String,Object> map = new HashMap<>();
-            if (StringUtils.isNotBlank(yamlStr)  && yamlStr.trim().length() > 0) {
-                Map<String, Object> loadedMap = yaml.loadAs(yamlStr, Map.class);
-                map = MapUtils.emptyIfNull(this.flattenYamlMap(MapUtils.emptyIfNull(loadedMap)));
-            }
-            // 更新环境变量：先移除旧配置再添加新配置
+            Map<String, Object> map = parseProperties(info);
+            boolean changed = false;
             if (this.environment.getPropertySources().contains(propName)) {
                 this.environment.getPropertySources().remove(propName);
+                changed = true;
             }
-            MapPropertySource propertySource = new MapPropertySource(propName, map);
             if (!info.isExternalFlag() && info.isEnabled()) {
-                this.environment.getPropertySources().addFirst(propertySource);
+                this.environment.getPropertySources().addFirst(new MapPropertySource(propName, map));
+                changed = true;
             }
-            // 触发配置刷新
-            this.contextRefresher.refresh();
+            if (changed) {
+                refreshAndPublish(map);
+            }
             log.info("配置文件:[{}]加载成功", scriptName);
         } catch (Exception e) {
             log.error("配置文件:[{}]发生错误: {}", scriptName, e.getMessage(), e);
@@ -122,18 +124,61 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
      * @param info 配置信息实体，包含环境、应用ID和命名空间等信息
      */
     private void unregisterByEntity(ConfigInfo info) {
-        String propName  = removeUnderscores(info.getEnv()) + "_" + removeUnderscores(info.getAppId()) +"_" + removeUnderscores(info.getNamespace()) ; ;
-        // 从环境属性源中移除对应的属性源（如果存在）
+        String propName = buildPropName(info);
         MutablePropertySources propertySources = this.environment.getPropertySources();
+        boolean removed = false;
         if (propertySources.contains(propName)) {
             propertySources.remove(propName);
+            removed = true;
         }
-        // 尝试刷新上下文以应用变更
+        Map<String, Object> properties = parsePropertiesForUnregister(info, propName);
+        if (removed || !properties.isEmpty()) {
+            try {
+                refreshAndPublish(properties);
+            } catch (Exception e) {
+                log.error("刷新上下文失败", e);
+            }
+        }
+    }
+
+    private Map<String, Object> parsePropertiesForUnregister(ConfigInfo info, String propName) {
         try {
-            this.contextRefresher.refresh();
+            return parseProperties(info);
         } catch (Exception e) {
-            log.error("刷新上下文失败", e);
+            log.warn("配置文件:[{}]取消注册时解析失败，已降级为空配置: {}", propName, e.getMessage(), e);
+            return new HashMap<>();
         }
+    }
+
+    private Map<String, Object> parseProperties(ConfigInfo info) {
+        Map<String, Object> map = new HashMap<>();
+        if (info == null || StringUtils.isBlank(info.getScript())) {
+            return map;
+        }
+        Map<String, Object> loadedMap = yaml.loadAs(info.getScript(), Map.class);
+        return this.flattenYamlMap(MapUtils.emptyIfNull(loadedMap));
+    }
+
+    private void refreshAndPublish(Map<String, Object> properties) {
+        this.contextRefresher.refresh();
+        publishConfigChangeEvent(properties);
+    }
+
+    private void publishConfigChangeEvent(Map<String, Object> properties) {
+        if (this.eventPublisher != null && properties != null && !properties.isEmpty()) {
+            this.eventPublisher.publishEvent(new ConfigChangeEvent(this, properties));
+        }
+    }
+
+    private String resolveScriptName(ConfigInfo info) {
+        MagicResourceService resourceService = MagicConfiguration.getMagicResourceService();
+        if (resourceService == null) {
+            return buildPropName(info);
+        }
+        return resourceService.getScriptName(info);
+    }
+    private String buildPropName(ConfigInfo info) {
+        return removeUnderscores(info.getEnv()) + "_" + removeUnderscores(info.getAppId()) + "_" + removeUnderscores(info.getNamespace());
     }
 
 
@@ -146,8 +191,6 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
      */
     @Override
     public boolean register(ConfigInfo info) {
-        unregisterByEntity(info);
-        registerByEntity(info);
         try {
             return super.register(info);
         } catch (Exception e) {
@@ -164,7 +207,15 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
      */
     @Override
     protected boolean register(MappingNode<ConfigInfo> mappingNode) {
-        return super.register(mappingNode);
+        try {
+            boolean result = super.register(mappingNode);
+            if (result) {
+                registerByEntity(mappingNode.getEntity());
+            }
+            return result;
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
 
@@ -177,7 +228,10 @@ public class ConfigMagicDynamicRegistry extends AbstractMagicDynamicRegistry<Con
     @Override
     protected void unregister(MappingNode<ConfigInfo> mappingNode) {
         unregisterByEntity(mappingNode.getEntity());
-        super.unregister(mappingNode);
+        try {
+            super.unregister(mappingNode);
+        } catch (Exception ignored) {
+        }
     }
 
 

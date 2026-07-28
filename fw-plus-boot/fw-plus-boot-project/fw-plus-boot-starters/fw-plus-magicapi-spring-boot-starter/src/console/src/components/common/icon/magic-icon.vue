@@ -20,7 +20,6 @@ const className = computed(() => props.icon&&props.icon.startsWith('#') ? props.
 svg {
 	width: 1.3em; 
 	height: 1.3em;
-	vertical-align: -0.25em;
 	overflow: hidden;
 	fill: var(--main-icon-color)
 }

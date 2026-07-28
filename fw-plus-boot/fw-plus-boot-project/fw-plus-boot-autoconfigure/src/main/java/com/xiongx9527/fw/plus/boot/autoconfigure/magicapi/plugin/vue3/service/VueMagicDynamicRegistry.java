@@ -29,8 +29,7 @@ public class VueMagicDynamicRegistry extends AbstractMagicDynamicRegistry<VueInf
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception e) {
-            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
+        } catch (Exception ignored) {
         }
     }
 
@@ -41,7 +40,10 @@ public class VueMagicDynamicRegistry extends AbstractMagicDynamicRegistry<VueInf
      */
     @EventListener(condition = "#event.type == 'vue3'")
     public void onGroupEvent(GroupEvent event) {
+            try {
         processEvent(event);
+            } catch (Exception ignored) {
+            }
     }
 
     /**
@@ -51,7 +53,11 @@ public class VueMagicDynamicRegistry extends AbstractMagicDynamicRegistry<VueInf
      */
     @Override
     public boolean register(VueInfo entity) {
-        return super.register(entity);
+        try {
+            return super.register(entity);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
@@ -61,7 +67,11 @@ public class VueMagicDynamicRegistry extends AbstractMagicDynamicRegistry<VueInf
      */
     @Override
     public boolean unregister(VueInfo entity){
-        return super.unregister(entity);
+        try {
+            return super.unregister(entity);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
@@ -71,7 +81,11 @@ public class VueMagicDynamicRegistry extends AbstractMagicDynamicRegistry<VueInf
      */
     @Override
     protected boolean register(MappingNode<VueInfo> mappingNode) {
-        return super.register(mappingNode);
+        try {
+            return super.register(mappingNode);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
@@ -80,7 +94,10 @@ public class VueMagicDynamicRegistry extends AbstractMagicDynamicRegistry<VueInf
      */
     @Override
     protected void unregister(MappingNode<VueInfo> mappingNode) {
-        super.unregister(mappingNode);
+        try {
+            super.unregister(mappingNode);
+        } catch (Exception ignored) {
+        }
     }
 
 }

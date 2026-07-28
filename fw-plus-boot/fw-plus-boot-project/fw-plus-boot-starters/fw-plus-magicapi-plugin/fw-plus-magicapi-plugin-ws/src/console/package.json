@@ -1,0 +1,17 @@
+{
+  "name": "magic-ws",
+  "version": "1.0.0",
+  "description": "Magic-API WebSocket Plugin",
+  "main": "index.js",
+  "scripts": {
+    "build": "vite build",
+    "test": "node --test test/open-target.test.mjs"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^2.0.1",
+    "vite": "^2.7.10",
+    "vue": "^3.2.26"
+  }
+}

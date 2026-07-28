@@ -32,3 +32,6 @@ build/
 
 ### VS Code ###
 .vscode/
+.flattened-pom.xml
+**/src/console/node_modules/
+**/src/console/dist/

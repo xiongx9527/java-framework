@@ -1,17 +1,18 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.service;
 
-import com.alibaba.fastjson.JSON;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicBaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.model.VueInfo;
 import lombok.Data;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.ssssssss.magicapi.core.model.Group;
 import org.ssssssss.magicapi.core.model.TreeNode;
 import org.ssssssss.magicapi.core.service.AbstractPathMagicResourceStorage;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class VueInfoMagicResourceStorage extends AbstractPathMagicResourceStorage<VueInfo> implements MagicBaseService {
@@ -148,10 +149,6 @@ public class VueInfoMagicResourceStorage extends AbstractPathMagicResourceStorag
                             childVue3ComponentInfo.setPid(vueInfo.getGroupId());
                             childVue3ComponentInfo.setIsGroup(0);
                             childVue3ComponentInfo.setName(vueInfo.getName()+" ("+vueInfo.getPath()+")");
-                            //childVue3ComponentInfo.setSourceCode(vueInfo.getScript());
-                            //childVue3ComponentInfo.setCompileJs(vueInfo.getCompileJs());
-                            //childVue3ComponentInfo.setCompileCss(vueInfo.getCompileCss());
-                            //childVue3ComponentInfo.setRemark(vueInfo.getDescription());
                             childVue3ComponentInfo.setCreateTime(vueInfo.getCreateTime());
                             childVue3ComponentInfo.setUpdateTime(vueInfo.getUpdateTime());
                             return childVue3ComponentInfo;
@@ -168,41 +165,6 @@ public class VueInfoMagicResourceStorage extends AbstractPathMagicResourceStorag
             vue3ComponentInfos.add(vue3ComponentInfo);
         }
         return vue3ComponentInfos;
-    }
-
-
-    /**
-     * 获取指定ID对应的Vue组件的最后历史记录信息
-     *
-     * @param id Vue组件的唯一标识符
-     * @return 返回该组件的最后一条历史记录信息，如果不存在则返回null
-     */
-    public VueInfo.Vue3ComponentHisInfo getLastCode(String id) {
-        // 获取指定ID的Vue信息
-        VueInfo vueInfo = magicResourceService.file(id);
-        if (null == vueInfo || StringUtils.isEmpty(vueInfo.getHistory())) {
-            return null;
-        }
-
-        try {
-            // 解析历史记录JSON数组
-            List<VueInfo.Vue3ComponentHisInfo> historyList = JSON.parseArray(vueInfo.getHistory(), VueInfo.Vue3ComponentHisInfo.class);
-
-            // 检查解析结果是否为空或列表是否为空
-            if (historyList == null || historyList.isEmpty()) {
-                return null;
-            }
-
-            // 按创建时间倒序排序，返回最新的记录
-            return historyList.stream()
-                    .filter(Objects::nonNull)
-                    .filter(history -> history.getCreateTime() != null)
-                    .max(Comparator.comparing(VueInfo.Vue3ComponentHisInfo::getCreateTime))
-                    .orElse(null);
-        } catch (Exception e) {
-            // 处理JSON解析异常或其他运行时异常
-            return null;
-        }
     }
 
     /**
@@ -225,84 +187,6 @@ public class VueInfoMagicResourceStorage extends AbstractPathMagicResourceStorag
         vue3ComponentInfo.setUpdateTime(vueInfo.getUpdateTime());
 
         return vue3ComponentInfo;
-    }
-
-    /**
-     * 获取Vue组件的历史记录信息
-     *
-     * @param id Vue组件的唯一标识符
-     * @return Vue3组件的历史信息列表，按创建时间倒序排列
-     */
-    public List<VueInfo.Vue3ComponentHisInfo> history(String id) {
-        // 获取指定ID的Vue资源信息
-        VueInfo vueInfo = magicResourceService.file(id);
-        // 解析历史记录JSON字符串为Vue3组件历史信息对象列表
-        List<VueInfo.Vue3ComponentHisInfo> historyList = JSON.parseArray(vueInfo.getHistory(), VueInfo.Vue3ComponentHisInfo.class);
-
-        // 按创建时间倒序排序
-        if (historyList != null && !historyList.isEmpty()) {
-            historyList.sort(Comparator.comparing(VueInfo.Vue3ComponentHisInfo::getCreateTime,
-                    Comparator.nullsLast(Comparator.reverseOrder())));
-        }
-
-        return historyList;
-    }
-
-    /**
-     * 保存Vue3组件代码及相关信息
-     *
-     * @param vue3ComponentInfo 包含Vue3组件信息的对象，包括源代码、编译后的CSS和JS等内容
-     */
-    public void saveCode(Vue3ComponentInfo vue3ComponentInfo) {
-        // 获取原有的Vue组件信息
-        VueInfo oldVueInfo = magicResourceService.file(vue3ComponentInfo.getId());
-
-        // 判空处理
-        if (oldVueInfo == null) {
-            throw new IllegalArgumentException("找不到对应的Vue组件信息，ID: " + vue3ComponentInfo.getId());
-        }
-
-        String sourceCode = vue3ComponentInfo.getSourceCode();
-
-        // 安全地解析历史记录列表
-        List<VueInfo.Vue3ComponentHisInfo> historyList;
-        try {
-            historyList = JSON.parseArray(oldVueInfo.getHistory(), VueInfo.Vue3ComponentHisInfo.class);
-        } catch (Exception e) {
-            historyList = new ArrayList<>(); // 出现异常则初始化为空列表
-        }
-        if (historyList == null) {
-            historyList = new ArrayList<>();
-        }
-
-        // 控制历史记录最大条数（示例保留最近10条）
-        final int MAX_HISTORY_SIZE = 10;
-        if (historyList.size() >= MAX_HISTORY_SIZE) {
-            historyList.remove(0); // 移除最早的一条
-        }
-
-        // 创建新的历史记录项并设置相关信息
-        VueInfo.Vue3ComponentHisInfo history = new VueInfo.Vue3ComponentHisInfo();
-        history.setId(UUID.randomUUID().toString());
-        history.setCreateTime(null!=oldVueInfo.getUpdateTime()?oldVueInfo.getUpdateTime():oldVueInfo.getCreateTime());       // 注意此处可能存在语义歧义
-        history.setUpdateTime(System.currentTimeMillis());      // 更新时间为当前时间更合理
-        history.setSourceCode(oldVueInfo.getScript());
-        history.setJsDependences(oldVueInfo.getJsDependences());
-        history.setCssDependences(oldVueInfo.getCssDependences());
-        history.setCreateBy(oldVueInfo.getCreateBy());
-        history.setUpdateBy(username);                          // 确保 username 已正确定义
-        historyList.add(history);
-
-        // 更新Vue组件信息
-        oldVueInfo.setScript(sourceCode);
-        oldVueInfo.setCompileCss(vue3ComponentInfo.getCompileCss());
-        oldVueInfo.setCompileJs(vue3ComponentInfo.getCompileJs());
-        oldVueInfo.setUpdateTime(System.currentTimeMillis());
-        oldVueInfo.setHistory(JSON.toJSONString(historyList));
-        oldVueInfo.setUpdateBy(username);                       // 同上确保已定义
-
-        // 保存更新后的Vue组件信息
-        magicResourceService.saveFile(oldVueInfo);
     }
 
 

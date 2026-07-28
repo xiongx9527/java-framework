@@ -1,13 +1,15 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.consumer;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.KafkaSubscribeScriptInfo;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.model.MagicDynamicKafkaDataSource;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -15,18 +17,24 @@ import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.listener.*;
+import org.springframework.kafka.listener.AcknowledgingMessageListener;
+import org.springframework.kafka.listener.ConcurrentMessageListenerContainer;
+import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.ssssssss.magicapi.utils.JsonUtils;
 
-import java.nio.ByteBuffer;
 import java.time.Duration;
+
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 /**
  * 消费者
@@ -34,16 +42,34 @@ import java.util.concurrent.TimeoutException;
  * @author zzy
  */
 @Slf4j
-public class KafkaConsumer {
+public class KafkaConsumer implements BaseService {
 
-    /**
-     * 重试次数header名称常量
-     */
+    /** 消息重试次数的Header键名 */
     private static final String RETRY_COUNT_HEADER = "retry_count";
 
+    /** 应用启动等待超时时间（秒） */
+    private static final long STARTUP_WAIT_TIMEOUT_SECONDS = 60;
+
+    /** 默认最大重试次数 */
+    static final int DEFAULT_MAX_RETRY_TIMES = 3;
+
+    /** 默认重试退避时间（毫秒） */
+    static final long DEFAULT_RETRY_BACKOFF_MS = 5000;
+
+    /** Ack模式映射表，将字符串模式名映射为ContainerProperties配置操作 */
+    private static final Map<String, Consumer<ContainerProperties>> ACK_MODE_MAP = new HashMap<>(8);
+    static {
+        ACK_MODE_MAP.put("BATCH", p -> p.setAckMode(ContainerProperties.AckMode.BATCH));
+        ACK_MODE_MAP.put("RECORD", p -> p.setAckMode(ContainerProperties.AckMode.RECORD));
+        ACK_MODE_MAP.put("COUNT", p -> p.setAckMode(ContainerProperties.AckMode.COUNT));
+        ACK_MODE_MAP.put("TIME", p -> p.setAckMode(ContainerProperties.AckMode.TIME));
+        ACK_MODE_MAP.put("COUNT_TIME", p -> p.setAckMode(ContainerProperties.AckMode.COUNT_TIME));
+        ACK_MODE_MAP.put("MANUAL", p -> p.setAckMode(ContainerProperties.AckMode.MANUAL));
+        ACK_MODE_MAP.put("MANUAL_IMMEDIATE", p -> p.setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE));
+    }
+
     /**
-     * Kafka消费者类
-     * 负责初始化消费者实例并处理来自Kafka的消息
+     * 唯一标识符
      */
     private final String id;
 
@@ -72,6 +98,21 @@ public class KafkaConsumer {
      */
     private final Map<String,Map<String,ConcurrentMessageListenerContainer>> consumerMap = new ConcurrentHashMap<>();
 
+    /** 正在消费中的消息数，key 为 topic:group 格式 */
+    private final Map<String, AtomicInteger> consumingCountMap = new ConcurrentHashMap<>();
+
+    /** 消费者操作锁，保护 create / unsubscribe / close 的并发安全 */
+    private final Object consumerLock = new Object();
+
+    /** 动态 Kafka 数据源引用，用于 DLT 发送 */
+    private final MagicDynamicKafkaDataSource magicDynamicKafkaDataSource;
+
+    /** 正在关闭中标记 */
+    private volatile boolean closing = false;
+
+    /** 关闭标记 */
+    private volatile boolean closed = false;
+
     /**
      * 构造函数，用于创建Kafka消费者的实例
      *
@@ -81,14 +122,15 @@ public class KafkaConsumer {
      */
     public KafkaConsumer(KafkaConsumerService kafkaConsumerService,
                          KafkaDataSourceInfo dataSourceInfo,
-                         List<KafkaSubscribeScriptInfo> subscribeScriptInfos) {
+                         List<KafkaSubscribeScriptInfo> subscribeScriptInfos,
+                         MagicDynamicKafkaDataSource magicDynamicKafkaDataSource) {
         this.kafkaConsumerService = kafkaConsumerService;
-        //this.consumer = createConsumer(kafkaConsumerService, dataSourceInfo, subscribeScriptInfos);
         this.dataSourceInfo = dataSourceInfo;
+        this.magicDynamicKafkaDataSource = magicDynamicKafkaDataSource;
         this.id = dataSourceInfo.getId();
         this.name = dataSourceInfo.getName();
         this.key = dataSourceInfo.getKey();
-        createConsumer(subscribeScriptInfos);
+        this.createConsumer(subscribeScriptInfos);
     }
 
     /**
@@ -110,22 +152,31 @@ public class KafkaConsumer {
         propsMap.put(ConsumerConfig.RETRY_BACKOFF_MS_CONFIG, 100); // 重试退避时间100ms
         propsMap.put(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, 1000); // 重连最大退避时间1000ms
         propsMap.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 10000); // 心跳间隔10000ms
-        propsMap.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30000); // 会话超时30000ms
+        propsMap.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30000);
+        String group = kafkaSubscribeInfo.getGroup();
+        group = MagicAPIConfigUtils.getKafkaSubscribeConfig(this.dataSourceInfo.getKey(), kafkaSubscribeInfo.getTopic(), "group", group);
 
-        if (StringUtils.isNotBlank(kafkaSubscribeInfo.getOther())) {
-            Map<String, Object> otherProps = JsonUtils.readValue(kafkaSubscribeInfo.getOther(),
-                    new TypeReference<Map<String, Object>>() {});
+        String broadcastStr = MagicAPIConfigUtils.getKafkaSubscribeConfig(this.dataSourceInfo.getKey(), kafkaSubscribeInfo.getTopic(), "broadcast", String.valueOf(kafkaSubscribeInfo.isBroadcast()));
+        boolean broadcast = false;
+        try {
+            broadcast = Boolean.parseBoolean(broadcastStr);
+        } catch (Exception ignored) {
+        }
+        if (broadcast) {
+            group = group + "-broadcast-" + getUniqueId();
+        }
+
+        String other = kafkaSubscribeInfo.getOther();
+        other = MagicAPIConfigUtils.getKafkaSubscribeConfig(this.dataSourceInfo.getKey(), kafkaSubscribeInfo.getTopic(), "other", other);
+        if (StringUtils.isNotBlank(other)) {
+            Map<String, Object> otherProps = JsonUtils.readValue(other,new TypeReference<Map<String, Object>>() {});
             propsMap.putAll(otherProps);
         }
 
-        String servers = dataSourceInfo.getServers();
-        servers = SpringUtils.getAppConfig(String.format("magic.api.kafka.%s.servers",dataSourceInfo.getKey()),servers);
+        String servers = this.dataSourceInfo.getServers();
+        servers = MagicAPIConfigUtils.getKafkaConfig(this.dataSourceInfo.getKey(), "servers", servers);
         propsMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, servers);
-        propsMap.put(ConsumerConfig.GROUP_ID_CONFIG, kafkaSubscribeInfo.getGroup());
-
-        if (kafkaSubscribeInfo.isBroadcast()) {
-            propsMap.put(ConsumerConfig.GROUP_ID_CONFIG, kafkaSubscribeInfo.getGroup() + "-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0, 8));
-        }
+        propsMap.put(ConsumerConfig.GROUP_ID_CONFIG, group);
 
         // 使用 ErrorHandlingDeserializer 包装 key 和 value 反序列化器
         propsMap.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
@@ -144,201 +195,238 @@ public class KafkaConsumer {
 
 
     /**
-     * 创建Kafka消费者
-     *
-     * 此方法负责根据提供的订阅信息列表初始化和启动Kafka消费者每个消费者都关联到特定的主题和消费者组
-     * 如果已经存在对应的消费者，会先停止并销毁现有的消费者，然后创建新的消费者并启动
-     *
-     * @param subscribeScriptInfos 包含订阅信息的列表，用于创建消费者
+     * 创建/刷新Kafka消费者。
+     * 会关闭不在新订阅列表中的旧消费者，防止连接泄漏。
      */
     public void createConsumer(List<KafkaSubscribeScriptInfo> subscribeScriptInfos) {
         if (CollectionUtils.isEmpty(subscribeScriptInfos)) {
             return;
         }
-        // 去重相同的 topic + group 组合
-        Map<String, KafkaSubscribeScriptInfo> uniqueSubscribers = new LinkedHashMap<>();
+
+        // 构建目标订阅集合
+        Map<String, KafkaSubscribeScriptInfo> targetSubscribers = new LinkedHashMap<>();
         for (KafkaSubscribeScriptInfo info : subscribeScriptInfos) {
-            if (Objects.isNull(info) || !info.isEnabled()) {
+            if (!Boolean.TRUE.equals(enable(info))) {
                 continue;
             }
-            String key = info.getTopic() + ":" + info.getGroup();
-            uniqueSubscribers.put(key, info);
+            String subscriptionName = MagicAPIConfigUtils.getKafkaSubscribeConfig(
+                    this.dataSourceInfo.getKey(), info.getTopic(), "group", info.getGroup());
+            String topicName = info.getTopic();
+            if (StringUtils.isBlank(topicName) || StringUtils.isBlank(subscriptionName)) {
+                continue;
+            }
+            targetSubscribers.putIfAbsent(topicName + ":" + subscriptionName, info);
         }
 
-        for (KafkaSubscribeScriptInfo subscribeScriptInfo : uniqueSubscribers.values()) {
-            String topicName = subscribeScriptInfo.getTopic();
-            String group = subscribeScriptInfo.getGroup();
-
-            if (StringUtils.isBlank(topicName) || StringUtils.isBlank(group)) {
-                continue;
+        synchronized (this.consumerLock) {
+            if (this.closing || this.closed) {
+                log.warn("Kafka 消费者正在关闭，跳过创建新消费者，key: {}", key);
+                return;
             }
-
-            Map<String, ConcurrentMessageListenerContainer> consumerTopicMap = this.consumerMap.get(topicName);
-            if (consumerTopicMap == null) {
-                consumerTopicMap = new HashMap<>(4);
-            }
-
-            ConcurrentMessageListenerContainer oldKafkaMessageListenerContainer = consumerTopicMap.get(group);
-            if (oldKafkaMessageListenerContainer != null) {
-                try {
-                    if (oldKafkaMessageListenerContainer.isRunning()) {
-                        oldKafkaMessageListenerContainer.stop();
+            // 关闭不再需要的旧消费者
+            for (Map.Entry<String, Map<String, ConcurrentMessageListenerContainer>> topicEntry : this.consumerMap.entrySet()) {
+                String existingTopic = topicEntry.getKey();
+                Map<String, ConcurrentMessageListenerContainer> existingGroups = topicEntry.getValue();
+                if (existingGroups == null) {
+                    continue;
+                }
+                Iterator<Map.Entry<String, ConcurrentMessageListenerContainer>> groupIter = existingGroups.entrySet().iterator();
+                while (groupIter.hasNext()) {
+                    Map.Entry<String, ConcurrentMessageListenerContainer> groupEntry = groupIter.next();
+                    String existingGroup = groupEntry.getKey();
+                    String compositeKey = existingTopic + ":" + existingGroup;
+                    if (!targetSubscribers.containsKey(compositeKey)) {
+                        ConcurrentMessageListenerContainer oldContainer = groupEntry.getValue();
+                        closeContainer(oldContainer, compositeKey);
+                        this.consumingCountMap.remove(compositeKey);
+                        groupIter.remove();
                     }
-                    oldKafkaMessageListenerContainer.destroy();
-                } catch (Exception e) {
-                    log.error("Failed to stop Kafka consumer", e);
-                } finally {
-                    consumerTopicMap.remove(group);
+                }
+                if (existingGroups.isEmpty()) {
+                    this.consumerMap.remove(existingTopic);
                 }
             }
-            ContainerProperties containerProperties = new ContainerProperties(topicName);
-            containerProperties.setAckMode(ContainerProperties.AckMode.BATCH);
-            String ackMode = subscribeScriptInfo.getAckMode();
-            if ("BATCH".equalsIgnoreCase(ackMode)) {
-                containerProperties.setAckMode(ContainerProperties.AckMode.BATCH);
-            } else if ("RECORD".equalsIgnoreCase(ackMode)) {
-                containerProperties.setAckMode(ContainerProperties.AckMode.RECORD);
-            } else if ("COUNT".equalsIgnoreCase(ackMode)) {
-                containerProperties.setAckMode(ContainerProperties.AckMode.COUNT);
-                if (subscribeScriptInfo.getAckCount() != null) {
-                    containerProperties.setAckCount(subscribeScriptInfo.getAckCount());
-                }
-            } else if ("TIME".equalsIgnoreCase(ackMode)) {
-                containerProperties.setAckMode(ContainerProperties.AckMode.TIME);
-                if (subscribeScriptInfo.getAckTime() != null) {
-                    containerProperties.setAckTime(subscribeScriptInfo.getAckTime());
-                }
-            } else if ("COUNT_TIME".equalsIgnoreCase(ackMode)) {
-                containerProperties.setAckMode(ContainerProperties.AckMode.COUNT_TIME);
-                if (subscribeScriptInfo.getAckCount() != null) {
-                    containerProperties.setAckCount(subscribeScriptInfo.getAckCount());
-                }
-                if (subscribeScriptInfo.getAckTime() != null) {
-                    containerProperties.setAckTime(subscribeScriptInfo.getAckTime());
-                }
-            }  else if ("MANUAL".equalsIgnoreCase(ackMode)) {
-                containerProperties.setAckMode(ContainerProperties.AckMode.MANUAL);
-            } else if ("MANUAL_IMMEDIATE".equalsIgnoreCase(ackMode)) {
-                containerProperties.setAckMode(ContainerProperties.AckMode.MANUAL);
-            }
-            containerProperties.setMessageListener(new MessageListenerAdapter(dataSourceInfo.getKey(), kafkaConsumerService,subscribeScriptInfo));
 
-            ConsumerFactory consumerFactory;
-            try {
-                consumerFactory = createConsumerFactory(subscribeScriptInfo);
-            } catch (Exception e) {
-                log.error("Failed to create consumer factory for topic: {}, group: {}", topicName, group, e);
+            // 创建新的消费者
+            for (KafkaSubscribeScriptInfo info : targetSubscribers.values()) {
+                String topicName = info.getTopic();
+                String group = MagicAPIConfigUtils.getKafkaSubscribeConfig(
+                        this.dataSourceInfo.getKey(), info.getTopic(), "group", info.getGroup());
+                tryCreateConsumer(info, topicName, group);
+            }
+        }
+    }
+
+    /**
+     * 尝试创建Kafka消费者，先创建新容器再替换旧容器，防止创建失败导致订阅丢失
+     */
+    private void tryCreateConsumer(KafkaSubscribeScriptInfo subscribeScriptInfo, String topicName, String group) {
+        try {
+            Map<String, ConcurrentMessageListenerContainer> consumerTopicMap =
+                    this.consumerMap.computeIfAbsent(topicName, k -> new ConcurrentHashMap<>());
+
+            ConcurrentMessageListenerContainer newContainer;
+            if (SpringUtils.isApplicationFullyStarted()) {
+                newContainer = createContainer(subscribeScriptInfo, topicName, group);
+            } else {
+                newContainer = waitForStartupAndCreate(subscribeScriptInfo, topicName, group);
+            }
+            if (newContainer == null) {
+                log.warn("创建消费者失败，保持现有消费者不变，topic: {}, group: {}", topicName, group);
                 return;
             }
 
-            ConcurrentMessageListenerContainer newContainer = new ConcurrentMessageListenerContainer(consumerFactory, containerProperties);
-            // 获取并发数配置，如果为空则使用默认值
-            Integer concurrency = subscribeScriptInfo.getConcurrency();
-            if (concurrency == null || concurrency <= 0) {
-                // 可以根据实际情况设置默认并发数
-                concurrency = Runtime.getRuntime().availableProcessors(); // 或其他合适的默认值
+            ConcurrentMessageListenerContainer oldContainer = consumerTopicMap.put(group, newContainer);
+            if (oldContainer != null) {
+                closeContainer(oldContainer, topicName + ":" + group);
             }
-            newContainer.setConcurrency(concurrency);
-            if (SpringUtils.isApplicationFullyStarted()) {
-                newContainer.start();
-            } else {
-                try {
-                    while (!SpringUtils.isApplicationFullyStarted()) {
-                        Thread.sleep(100);
-                    }
-                    newContainer.start();
-                    log.info("Kafka consumer started asynchronously for topic: {}", topicName);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    log.error("Interrupted while waiting for application startup", e);
-                } catch (Exception e) {
-                    log.error("Failed to start Kafka consumer asynchronously for topic: {}", topicName, e);
-                }
-            }
-
-            consumerTopicMap.put(group, newContainer);
-            this.consumerMap.put(topicName, consumerTopicMap);
+        } catch (Exception e) {
+            log.error("创建 Kafka 消费者失败，topic: {}, group: {}", topicName, group, e);
         }
     }
 
     /**
-     * 关闭所有Kafka消费者
-     *
-     * 此方法遍历存储所有消费者容器的映射表，对于每个消费者容器，如果其处于运行状态，
-     * 则停止并销毁该容器，以确保消费者能够优雅地关闭
-     * 如果在关闭过程中遇到任何错误，将记录错误信息
+     * 等待应用启动完成后创建消费者容器，带超时保护。
      */
-    public void close() {
-        if (MapUtils.isEmpty(consumerMap)) {
+    private ConcurrentMessageListenerContainer waitForStartupAndCreate(
+            KafkaSubscribeScriptInfo info, String topicName, String group) {
+        long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(STARTUP_WAIT_TIMEOUT_SECONDS);
+        try {
+            while (!SpringUtils.isApplicationFullyStarted()) {
+                if (System.currentTimeMillis() > deadline) {
+                    log.error("等待应用启动超时，topic: {}, group: {}", topicName, group);
+                    return null;
+                }
+                Thread.sleep(100);
+            }
+            ConcurrentMessageListenerContainer container = createContainer(info, topicName, group);
+            log.info("Kafka 消费者已异步创建，topic: {}, group: {}", topicName, group);
+            return container;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("等待应用启动时线程被中断", e);
+            return null;
+        } catch (Exception e) {
+            log.error("异步创建 Kafka 消费者失败，topic: {}, group: {}", topicName, group, e);
+            return null;
+        }
+    }
+
+    /**
+     * 创建Kafka消费者容器实例
+     */
+    private ConcurrentMessageListenerContainer createContainer(
+            KafkaSubscribeScriptInfo subscribeScriptInfo, String topicName, String group) {
+        String ackMode = subscribeScriptInfo.getAckMode();
+        ackMode = MagicAPIConfigUtils.getKafkaSubscribeConfig(
+                this.dataSourceInfo.getKey(), subscribeScriptInfo.getTopic(), "ackMode", ackMode);
+        if (ackMode == null || ackMode.isEmpty()) {
+            ackMode = "BATCH";
+        }
+
+        ContainerProperties containerProperties = new ContainerProperties(topicName);
+        Consumer<ContainerProperties> ackModeSetter = ACK_MODE_MAP.get(ackMode.toUpperCase());
+        if (ackModeSetter != null) {
+            ackModeSetter.accept(containerProperties);
+            if ("COUNT".equalsIgnoreCase(ackMode) && subscribeScriptInfo.getAckCount() != null) {
+                containerProperties.setAckCount(subscribeScriptInfo.getAckCount());
+            } else if ("TIME".equalsIgnoreCase(ackMode) && subscribeScriptInfo.getAckTime() != null) {
+                containerProperties.setAckTime(subscribeScriptInfo.getAckTime());
+            } else if ("COUNT_TIME".equalsIgnoreCase(ackMode)) {
+                if (subscribeScriptInfo.getAckCount() != null) {
+                    containerProperties.setAckCount(subscribeScriptInfo.getAckCount());
+                }
+                if (subscribeScriptInfo.getAckTime() != null) {
+                    containerProperties.setAckTime(subscribeScriptInfo.getAckTime());
+                }
+            }
+        }
+        containerProperties.setMessageListener(
+                new MessageListenerAdapter(this.dataSourceInfo.getKey(), kafkaConsumerService, subscribeScriptInfo,
+                        topicName + ":" + group, consumingCountMap, this.magicDynamicKafkaDataSource,
+                        () -> this.closing || this.closed));
+
+        ConsumerFactory consumerFactory;
+        try {
+            consumerFactory = createConsumerFactory(subscribeScriptInfo);
+        } catch (Exception e) {
+            log.error("创建消费者工厂失败，topic: {}, group: {}", topicName, group, e);
+            return null;
+        }
+
+        ConcurrentMessageListenerContainer newContainer = new ConcurrentMessageListenerContainer(consumerFactory, containerProperties);
+        Integer concurrency = subscribeScriptInfo.getConcurrency();
+        String concurrencyStr = MagicAPIConfigUtils.getKafkaSubscribeConfig(
+                this.dataSourceInfo.getKey(), subscribeScriptInfo.getTopic(), "concurrency",
+                String.valueOf(subscribeScriptInfo.getConcurrency()));
+        try {
+            concurrency = Integer.parseInt(concurrencyStr);
+        } catch (Exception e) {
+            //ignore
+        }
+        if (concurrency == null || concurrency <= 0) {
+            concurrency = Runtime.getRuntime().availableProcessors();
+        }
+        newContainer.setConcurrency(concurrency);
+        newContainer.start();
+        return newContainer;
+    }
+
+    /**
+     * 停止并销毁Kafka消费者容器
+     */
+    private void closeContainer(ConcurrentMessageListenerContainer container, Object containerKey) {
+        if (container == null) {
             return;
         }
-
-        for (Map.Entry<String, Map<String, ConcurrentMessageListenerContainer>> entry : consumerMap.entrySet()) {
-            String topicKey = entry.getKey();
-            Map<String, ConcurrentMessageListenerContainer> containerMap = entry.getValue();
-
-            if (MapUtils.isEmpty(containerMap)) {
-                continue;
-            }
-
-            closeConsumersForTopic(topicKey, containerMap);
-        }
-
-        consumerMap.clear();
-    }
-
-    /**
-     * 关闭指定主题的所有Kafka消费者容器
-     *
-     * @param topicKey 主题键值，用于标识需要关闭消费者的主题
-     * @param containerMap 消费者容器映射表，包含所有需要关闭的消费者容器
-     */
-    private void closeConsumersForTopic(String topicKey, Map<String, ConcurrentMessageListenerContainer> containerMap) {
-        // 遍历所有消费者容器并逐个关闭
-        for (Map.Entry<String, ConcurrentMessageListenerContainer> innerEntry : containerMap.entrySet()) {
-            String containerKey = innerEntry.getKey();
-            ConcurrentMessageListenerContainer container = innerEntry.getValue();
-
-            if (Objects.isNull(container)) {
-                continue;
-            }
-
-            try {
-                // 如果容器正在运行，则先停止容器
-                if (container.isRunning()) {
-                    // 使用 CompletableFuture 实现带超时的 stop 操作
-                    CompletableFuture<Void> stopFuture = CompletableFuture.runAsync(() -> {
-                        container.stop();
-                    });
-
-                    // 设置超时时间，例如10秒
-                    stopFuture.get(10, TimeUnit.SECONDS);
-                    log.info("Stopped Kafka consumer for topic: {}, container key: {}", topicKey, containerKey);
-                }
-                // 销毁容器资源
-                container.destroy();
-            } catch (TimeoutException e) {
-                log.warn("Timeout while stopping Kafka consumer for topic: {}, container key: {}. Forcing destroy.",
-                        topicKey, containerKey);
-                // 超时时直接销毁容器
-                forceDestroyContainer(container);
-            } catch (Exception e) {
-                log.error("Failed to close Kafka consumer for topic: {}, container key: {}", topicKey, containerKey, e);
-                // 异常时也尝试强制销毁
-                forceDestroyContainer(container);
-            }
-        }
-    }
-
-
-    /**
-     * 强制销毁容器
-     */
-    private void forceDestroyContainer(ConcurrentMessageListenerContainer container) {
         try {
+            if (container.isRunning()) {
+                CompletableFuture<Void> stopFuture = CompletableFuture.runAsync(container::stop);
+                stopFuture.get(10, TimeUnit.SECONDS);
+            }
             container.destroy();
-        } catch (Exception destroyException) {
-            log.error("Failed to force destroy Kafka consumer container", destroyException);
+        } catch (TimeoutException e) {
+            log.warn("停止 Kafka 消费者超时: {}, 强制销毁", containerKey);
+            try { container.destroy(); } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.warn("关闭 Kafka 消费者失败: {}", containerKey, e);
+            try { container.destroy(); } catch (Exception ignored) {}
+        }
+    }
+
+    /**
+     * 关闭所有Kafka消费者并清理资源
+     */
+    public void close() {
+        if (this.closed || this.closing) {
+            return;
+        }
+        this.closing = true;
+
+        // 等待正在消费中的消息处理完成，再关闭连接
+        waitForConsumingComplete();
+        synchronized (this.consumerLock) {
+            if (this.consumerMap.isEmpty()) {
+                this.closed = true;
+                this.closing = false;
+                return;
+            }
+
+            List<Map.Entry<String, ConcurrentMessageListenerContainer>> allContainers = new ArrayList<>();
+            for (Map.Entry<String, Map<String, ConcurrentMessageListenerContainer>> topicEntry : this.consumerMap.entrySet()) {
+                Map<String, ConcurrentMessageListenerContainer> containerMap = topicEntry.getValue();
+                if (containerMap != null) {
+                    allContainers.addAll(containerMap.entrySet());
+                }
+            }
+
+            for (Map.Entry<String, ConcurrentMessageListenerContainer> entry : allContainers) {
+                closeContainer(entry.getValue(), entry.getKey());
+            }
+            this.consumerMap.clear();
+            this.consumingCountMap.clear();
+            this.closed = true;
+            this.closing = false;
         }
     }
 
@@ -371,7 +459,83 @@ public class KafkaConsumer {
      * @return Kafka数据源信息对象
      */
     public KafkaDataSourceInfo getDataSourceInfo() {
-        return dataSourceInfo;
+        return this.dataSourceInfo;
+    }
+
+    /**
+     * 判断当前是否有消息正在消费中
+     */
+    public boolean isConsuming() {
+        for (AtomicInteger count : this.consumingCountMap.values()) {
+            if (count.get() > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 判断指定 consumer 是否有消息正在消费中
+     *
+     * @param consumeKey topic:group
+     */
+    public boolean isConsuming(String consumeKey) {
+        AtomicInteger count = this.consumingCountMap.get(consumeKey);
+        return count != null && count.get() > 0;
+    }
+
+    /**
+     * 等待正在消费中的消息处理完成，最多等待30秒
+     */
+    private void waitForConsumingComplete() {
+        long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30);
+        while (isConsuming()) {
+            if (System.currentTimeMillis() > deadline) {
+                log.warn("等待消费者处理完成超时，强制关闭，key: {}", key);
+                break;
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+    }
+
+    /**
+     * 等待指定 consumer 的消息处理完成，最多等待30秒
+     *
+     * @param consumeKey topic:group
+     */
+    private void waitForConsumingComplete(String consumeKey) {
+        long deadline = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30);
+        while (isConsuming(consumeKey)) {
+            if (System.currentTimeMillis() > deadline) {
+                log.warn("等待消费者处理完成超时，强制取消订阅，key: {}, consumeKey: {}", key, consumeKey);
+                break;
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+    }
+
+    /**
+     * 判断当前消费者是否正在关闭
+     */
+    public boolean isClosing() {
+        return this.closing;
+    }
+
+    /**
+     * 判断当前消费者是否已经关闭
+     */
+    public boolean isClosed() {
+        return this.closed;
     }
 
 
@@ -383,42 +547,32 @@ public class KafkaConsumer {
      */
     public void unsubscribe(KafkaSubscribeInfo subscribeScriptInfo) {
         String topic = subscribeScriptInfo.getTopic();
-        String group = subscribeScriptInfo.getGroup();
-        // 检查参数是否为空
+        String group = MagicAPIConfigUtils.getKafkaSubscribeConfig(
+                subscribeScriptInfo.getKey(), subscribeScriptInfo.getTopic(), "group", subscribeScriptInfo.getGroup());
+        String consumeKey = topic + ":" + group;
         if (StringUtils.isBlank(topic) || StringUtils.isBlank(group)) {
             return;
         }
-        // 检查消费者映射是否存在对应主题
-        Map<String, ConcurrentMessageListenerContainer> topicMap = consumerMap.get(topic);
-        if (topicMap == null) {
-            return;
-        }
 
-        // 检查是否存在对应组的消费者
-        ConcurrentMessageListenerContainer consumerWrapper = topicMap.get(group);
-        if (consumerWrapper == null) {
-            return;
-        }
+        // 等待该 consumer 正在处理的消息完成
+        waitForConsumingComplete(consumeKey);
 
-        try {
-            // 停止并销毁消费者
-            if (consumerWrapper.isRunning()) {
-                // 先暂停消费再停止，更优雅地关闭
-                consumerWrapper.pause();
-                consumerWrapper.stop();
+        synchronized (this.consumerLock) {
+            if (this.closing || this.closed) {
+                log.warn("Kafka 消费者正在关闭，跳过取消订阅，key: {}", key);
+                return;
             }
-            consumerWrapper.destroy();
-        } catch (Exception e) {
-            log.warn("Failed to close Kafka consumer for topic: {}, group: {}. This might be due to coordinator not aware of member.", topic, group, e);
-            // 忽略此类错误，因为消费者可能已经被协调器移除
-        }
-
-        // 移除组级别的消费者
-        topicMap.remove(group);
-
-        // 如果该主题下已无消费者组，则移除整个主题
-        if (topicMap.isEmpty()) {
-            consumerMap.remove(topic);
+            this.consumingCountMap.remove(consumeKey);
+            Map<String, ConcurrentMessageListenerContainer> groupConsumerMap = this.consumerMap.get(topic);
+            if (groupConsumerMap != null && !groupConsumerMap.isEmpty()) {
+                ConcurrentMessageListenerContainer container = groupConsumerMap.remove(group);
+                if (container != null) {
+                    closeContainer(container, topic + ":" + group);
+                }
+            }
+            if (groupConsumerMap == null || groupConsumerMap.isEmpty()) {
+                this.consumerMap.remove(topic);
+            }
         }
     }
 
@@ -430,15 +584,23 @@ public class KafkaConsumer {
 
         /** Kafka消费者服务实例，用于处理Kafka消息消费逻辑 */
         private final KafkaConsumerService kafkaConsumerService;
+
+        /** 消费键 topic:group，用于 consumingCountMap 跟踪 */
+        private final String consumeKey;
+
+        /** 正在消费中的消息计数器，引用 KafkaConsumer 的 consumingCountMap */
+        private final Map<String, AtomicInteger> consumingCountMap;
+
+        /** 动态数据源引用，用于 DLT 发送 */
+        private final MagicDynamicKafkaDataSource magicDynamicKafkaDataSource;
+
+        /** 消费者是否正在关闭检查 */
+        private final BooleanSupplier isShuttingDown;
+
         /**
          * 确认标志位
-         *
-         * 这是一个布尔类型的确认标志，用于标识某个操作或状态是否需要确认
-         * 当前初始化为null，表示尚未设置确认状态
-         *
-         * 注意：由于是Boolean包装类型且初始化为null，使用时需要进行空值判断
          */
-        private final Boolean acknowledgeFlag;
+        private final boolean acknowledgeFlag;
 
         /** 最大重试次数，当操作失败时允许的最大重试次数 */
         private final int maxRetryTimes;
@@ -446,49 +608,58 @@ public class KafkaConsumer {
         /** 重试退避时间（毫秒），每次重试之间的等待时间间隔 */
         private final long retryBackoffMs;
 
+        /** 死信主题，为空时不启用 DLT */
+        private final String deadLetterTopic;
+
         /**
          * 构造函数，初始化MessageListenerAdapter实例
          *
          * @param dataSourceKey 数据源键值，用于标识数据源
          * @param kafkaConsumerService Kafka消费者服务，用于处理Kafka消息消费逻辑
          * @param subscribeScriptInfo 订阅脚本信息，包含订阅相关的配置信息
+         * @param consumeKey 消费键（topic:group），用于消费跟踪
+         * @param consumingCountMap 消费计数映射引用
          */
-        public MessageListenerAdapter(String dataSourceKey, KafkaConsumerService kafkaConsumerService, KafkaSubscribeScriptInfo subscribeScriptInfo) {
+        public MessageListenerAdapter(String dataSourceKey, KafkaConsumerService kafkaConsumerService,
+                                       KafkaSubscribeScriptInfo subscribeScriptInfo,
+                                       String consumeKey, Map<String, AtomicInteger> consumingCountMap,
+                                       MagicDynamicKafkaDataSource magicDynamicKafkaDataSource,
+                                       BooleanSupplier isShuttingDown) {
             this.dataSourceKey = dataSourceKey;
             this.kafkaConsumerService = kafkaConsumerService;
+            this.consumeKey = consumeKey;
+            this.consumingCountMap = consumingCountMap;
+            this.magicDynamicKafkaDataSource = magicDynamicKafkaDataSource;
+            this.isShuttingDown = isShuttingDown;
             String ackMode = subscribeScriptInfo.getAckMode();
-            boolean tmpAcknowledgeFlag = true;
-            if (!"MANUAL".equalsIgnoreCase(ackMode) && !"MANUAL_IMMEDIATE".equalsIgnoreCase(ackMode)) {
-                tmpAcknowledgeFlag = false;
-            }
-            if (tmpAcknowledgeFlag) {
-                if (StringUtils.isNotBlank(subscribeScriptInfo.getOther())) {
-                    Map<String, Object> otherProps = JsonUtils.readValue(subscribeScriptInfo.getOther(),
-                            new TypeReference<Map<String, Object>>() {});
-                    Object enableAutoCommitObj = otherProps.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG);
-                    if (enableAutoCommitObj != null && enableAutoCommitObj instanceof Boolean) {
-                        tmpAcknowledgeFlag = !((Boolean) enableAutoCommitObj);
-                    }
+            ackMode = MagicAPIConfigUtils.getKafkaSubscribeConfig(subscribeScriptInfo.getKey(), subscribeScriptInfo.getTopic(), "ackMode", ackMode);
+            boolean tmpAcknowledgeFlag = "MANUAL".equalsIgnoreCase(ackMode) || "MANUAL_IMMEDIATE".equalsIgnoreCase(ackMode);
+            String other = MagicAPIConfigUtils.getKafkaSubscribeConfig(subscribeScriptInfo.getKey(), subscribeScriptInfo.getTopic(), "other", subscribeScriptInfo.getOther());
+            if (tmpAcknowledgeFlag && StringUtils.isNotBlank(other)) {
+                Map<String, Object> otherProps = JsonUtils.readValue(other,
+                        new TypeReference<Map<String, Object>>() {});
+                Object enableAutoCommitObj = otherProps.get(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG);
+                if (enableAutoCommitObj instanceof Boolean) {
+                    tmpAcknowledgeFlag = !((Boolean) enableAutoCommitObj);
                 }
             }
             acknowledgeFlag = tmpAcknowledgeFlag;
-            // 从 subscribeScriptInfo.getOther() 中获取重试配置
-            int maxRetryTimes = 3;  // 默认值
-            long retryBackoffMs = 5000;  // 默认值 5秒
+            int tmpMaxRetryTimes = DEFAULT_MAX_RETRY_TIMES;
+            long tmpRetryBackoffMs = DEFAULT_RETRY_BACKOFF_MS;
+            String tmpDeadLetterTopic = null;
 
             // 解析 other 配置中的重试参数
-            if (StringUtils.isNotBlank(subscribeScriptInfo.getOther())) {
+            if (StringUtils.isNotBlank(other)) {
                 try {
-                    Map<String, Object> otherConfig = JsonUtils.readValue(subscribeScriptInfo.getOther(),
+                    Map<String, Object> otherConfig = JsonUtils.readValue(other,
                             new TypeReference<Map<String, Object>>() {});
-
                     // 获取最大重试次数
                     Object maxRetriesObj = otherConfig.get("maxRetryTimes");
                     if (maxRetriesObj != null) {
                         if (maxRetriesObj instanceof Number) {
-                            maxRetryTimes = ((Number) maxRetriesObj).intValue();
+                            tmpMaxRetryTimes = ((Number) maxRetriesObj).intValue();
                         } else {
-                            maxRetryTimes = Integer.parseInt(maxRetriesObj.toString());
+                            tmpMaxRetryTimes = Integer.parseInt(maxRetriesObj.toString());
                         }
                     }
 
@@ -496,18 +667,25 @@ public class KafkaConsumer {
                     Object backoffObj = otherConfig.get("retryBackoffMs");
                     if (backoffObj != null) {
                         if (backoffObj instanceof Number) {
-                            retryBackoffMs = ((Number) backoffObj).longValue();
+                            tmpRetryBackoffMs = ((Number) backoffObj).longValue();
                         } else {
-                            retryBackoffMs = Long.parseLong(backoffObj.toString());
+                            tmpRetryBackoffMs = Long.parseLong(backoffObj.toString());
                         }
                     }
+
+                    // 获取死信主题
+                    Object dltObj = otherConfig.get("deadLetterTopic");
+                    if (dltObj != null) {
+                        tmpDeadLetterTopic = dltObj.toString();
+                    }
                 } catch (Exception e) {
-                    log.warn("Failed to parse retry configuration from other config, using defaults", e);
+                    log.warn("解析重试配置失败，使用默认值", e);
                 }
             }
 
-            this.maxRetryTimes = maxRetryTimes;
-            this.retryBackoffMs = retryBackoffMs;
+            this.maxRetryTimes = tmpMaxRetryTimes;
+            this.retryBackoffMs = tmpRetryBackoffMs;
+            this.deadLetterTopic = tmpDeadLetterTopic;
         }
 
         /**
@@ -528,7 +706,7 @@ public class KafkaConsumer {
                     return buffer.getInt();
                 } catch (Exception e) {
                     // 记录解析异常，但不影响主流程
-                    log.warn("Failed to parse retry count from header", e);
+                    log.warn("解析消息头重试次数失败", e);
                 }
             }
             return 0;
@@ -543,7 +721,7 @@ public class KafkaConsumer {
         private void resetRetryCount(ConsumerRecord<Object, Object> msg, int retryCount) {
             // 参数验证
             if (retryCount < 0) {
-                throw new IllegalArgumentException("retryCount must be non-negative");
+                throw new IllegalArgumentException("重试次数不能为负数");
             }
 
             // 重置已重试次数
@@ -561,34 +739,67 @@ public class KafkaConsumer {
          */
         @Override
         public void onMessage(ConsumerRecord<Object, Object> msg, Acknowledgment acknowledgment) {
+            if (isShuttingDown.getAsBoolean()) {
+                log.warn("消费者正在关闭，跳过消息处理，topic: {}", msg.topic());
+                if (acknowledgeFlag) {
+                    acknowledgment.nack(Duration.ofMillis(1000));
+                }
+                return;
+            }
+            AtomicInteger counter = consumingCountMap.computeIfAbsent(consumeKey, k -> new AtomicInteger());
+            counter.incrementAndGet();
             try {
-                // 记录消息的来源主题和偏移量，用于调试和监控
-                log.debug("Consuming message from topic: {}, offset: {}", msg.topic(), msg.offset());
-                // 调用Kafka消费者服务来处理消息
-                // 这里的dataSourceKey是消息来源的标识，用于特定数据源的配置和识别
+                log.debug("消费消息，topic: {}, offset: {}", msg.topic(), msg.offset());
                 boolean success = kafkaConsumerService.consume(dataSourceKey, msg);
-                // 根据消息处理结果进行确认或否定确认
                 if (success) {
                     if (acknowledgeFlag) {
                         acknowledgment.acknowledge();
                     }
                 } else {
-                    throw new RuntimeException("Consumption failed for message");
+                    throw new RuntimeException("消息消费失败");
                 }
             } catch (Exception e) {
-                log.error("Error consuming message from topic: {}, partition: {}, offset: {}",
+                log.error("消费消息失败，topic: {}, partition: {}, offset: {}",
                         msg.topic(), msg.partition(), msg.offset(), e);
                 if (acknowledgeFlag) {
                     int retryCount = getRetryCount(msg);
                     if (retryCount < maxRetryTimes) {
-                        resetRetryCount(msg, retryCount);
-                        acknowledgment.nack(Duration.ofDays(retryBackoffMs));
+                        resetRetryCount(msg, retryCount + 1);
+                        acknowledgment.nack(Duration.ofMillis(retryBackoffMs));
                     } else {
-                        log.warn("Max retry attempts reached for message. Acknowledging to avoid infinite retry. Topic: {}, Partition: {}, Offset: {}",
-                                msg.topic(), msg.partition(), msg.offset());
+                        sendToDeadLetter(msg, e);
                         acknowledgment.acknowledge();
                     }
+                } else {
+                    // 非手动确认模式下，必须将异常重新抛出，让 Spring Kafka 的 ErrorHandler 处理
+                    // 否则容器会认为消息消费成功并提交 offset，导致消息丢失
+                    throw e instanceof RuntimeException ? (RuntimeException) e : new RuntimeException(e);
                 }
+            } finally {
+                counter.decrementAndGet();
+            }
+        }
+
+        /**
+         * 将失败消息发送到死信主题。只有配置了 deadLetterTopic 时才生效。
+         */
+        private void sendToDeadLetter(ConsumerRecord<Object, Object> msg, Exception cause) {
+            String dltTopic = this.deadLetterTopic;
+            if (StringUtils.isBlank(dltTopic)) {
+                return;
+            }
+            try {
+                com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.producer.KafkaProducer jgProducer =
+                        this.magicDynamicKafkaDataSource.getProducer(this.dataSourceKey);
+                if (jgProducer != null) {
+                    jgProducer.sendAsync(dltTopic, (String) msg.key(), msg.value());
+                    log.info("已发送失败消息到 DLT，dltTopic: {}, originalTopic: {}, offset: {}",
+                            dltTopic, msg.topic(), msg.offset());
+                } else {
+                    log.warn("未找到数据源 {} 的生产者，无法发送 DLT", this.dataSourceKey);
+                }
+            } catch (Exception dltEx) {
+                log.error("发送消息到 DLT 失败，dltTopic: {}", dltTopic, dltEx);
             }
         }
     }

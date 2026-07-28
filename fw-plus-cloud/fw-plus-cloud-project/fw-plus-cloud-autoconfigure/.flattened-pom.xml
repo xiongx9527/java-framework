@@ -5,12 +5,12 @@
   <parent>
     <groupId>com.xiongx9527.fw.plus.cloud</groupId>
     <artifactId>fw-plus-cloud-parent</artifactId>
-    <version>0.3.0-SNAPSHOT</version>
+    <version>0.1.1-SNAPSHOT</version>
     <relativePath>../fw-plus-cloud-parent</relativePath>
   </parent>
   <groupId>com.xiongx9527.fw.plus.cloud</groupId>
   <artifactId>fw-plus-cloud-autoconfigure</artifactId>
-  <version>0.3.0-SNAPSHOT</version>
+  <version>0.1.1-SNAPSHOT</version>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -80,12 +80,6 @@
       <optional>true</optional>
     </dependency>
     <dependency>
-      <groupId>org.springframework.cloud</groupId>
-      <artifactId>spring-cloud-starter-sleuth</artifactId>
-      <scope>compile</scope>
-      <optional>true</optional>
-    </dependency>
-    <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-webmvc</artifactId>
       <scope>compile</scope>
@@ -120,6 +114,11 @@
       <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
       <scope>compile</scope>
       <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>

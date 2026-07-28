@@ -9,28 +9,28 @@
 
 ## 项目概述
 
-fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 3.5.8 和 Java 17，提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Agents-Flex / Spring AI / EasyAi）集成等能力。使用 Maven 构建，当前版本 `0.3.0-SNAPSHOT`（通过 `${revision}` + `flatten-maven-plugin` 管理）。
+fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Agents-Flex / Spring AI / EasyAi）集成、图数据库 JDBC 驱动等能力。四个库层当前版本为 `0.1.1-SNAPSHOT`，通过 `${revision}` + `flatten-maven-plugin` 管理；`fw-plus-sample` 样例聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 `flatten-maven-plugin`。
 
-**Git 仓库结构**：根目录和各模块（`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai`、`fw-plus-product`、`resources`）各自拥有独立的 `.git` 仓库，互为平级目录，非 git submodule。构建产物在各仓库间通过 Maven 本地仓库（`~/.m2`）传递，不依赖 SNAPSHOT 的自动更新机制。
+**Git 仓库结构**：当前工作区只有根目录一个 `.git` 仓库；`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 是同一仓库内的顶层 Maven 聚合目录，非 git submodule。当前工作区不包含旧文档曾提到的 `fw-plus-product/` 和独立 `resources/` 仓库。构建产物在各层之间通过 Maven 本地仓库（`~/.m2`）传递。
 
 各层 GroupId：
 - Core: `com.xiongx9527.fw.plus`
 - Boot: `com.xiongx9527.fw.plus.boot`
 - Cloud: `com.xiongx9527.fw.plus.cloud`
 - AI: `com.xiongx9527.fw.plus.ai`
-- Product: `com.xiongx9527.fw.plus.product`
 
 ## 模块结构
 
-Each module follows the same internal layout:
-- `fw-plus-{name}-project/` — the actual library code
-- `fw-plus-{name}-samples/` — sample/example usage
+各库层顶层 Maven 目录基本遵循相同布局：
+- `fw-plus-{name}-project/` — 实际库代码
 
-All source code is under `src/main/java`; resources under `src/main/resources`. Source encoding is UTF-8.
+所有样例模块集中在根目录 `fw-plus-sample/` 下，按 Boot、Cloud、AI 分组。
+
+所有源码位于 `src/main/java`，资源位于 `src/main/resources`，源码编码统一为 UTF-8。
 
 ```
 fw-plus/                      # 根目录（聚合项目，无统一父 POM）
-├── fw-plus-core/             # 核心库层（Java 17, Spring Boot 3.5.8）
+├── fw-plus-core/             # 核心库层（Java 1.8, Spring Boot 2.7.18）
 │   ├── fw-plus-project/
 │   │   ├── fw-plus-parent/       # Core 层父 POM
 │   │   ├── fw-plus-common/       # 公共工具：加密、UID、异常、序列化、SpringUtils
@@ -63,16 +63,16 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │   ├── fw-plus-auth/         # 认证相关
 │   │   │   ├── fw-plus-auth-base/     # 认证基础
 │   │   │   └── fw-plus-auth-satoken/  # Sa-Token 认证扩展
-│   │   ├── fw-plus-nebula/       # Nebula Graph
-│   │   │   └── fw-plus-nebula-jdbc/   # Nebula Graph JDBC 驱动
+│   │   ├── fw-plus-graph/        # 图数据库 JDBC 驱动
+│   │   │   ├── fw-plus-nebula-jdbc/   # Nebula Graph JDBC 驱动
+│   │   │   └── fw-plus-neo4j-jdbc/    # Neo4j JDBC 驱动
 │   │   ├── fw-plus-dify/         # Dify API 客户端
 │   │   └── fw-plus-dependencies/ # 统一版本管理（BOM）
-│   └── fw-plus-samples/          # Core 层示例
 │
 ├── fw-plus-boot/             # Spring Boot 自动配置层
 │   ├── fw-plus-boot-project/
 │   │   ├── fw-plus-boot/              # 集成自动配置（aggregator）
-│   │   ├── fw-plus-boot-autoconfigure/ # 核心自动配置（19 个 AutoConfiguration，含 JimuJsEnterpriseFilter）
+│   │   ├── fw-plus-boot-autoconfigure/ # 核心自动配置（spring.factories 注册 18 个顶层 AutoConfiguration，含 JimuJsEnterpriseFilter）
 │   │   ├── fw-plus-boot-common/       # Boot 公共类
 │   │   ├── fw-plus-boot-dependencies/ # Boot 层 BOM
 │   │   ├── fw-plus-boot-parent/       # Boot 层父 POM
@@ -84,7 +84,7 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       ├── fw-plus-jdbc-spring-boot-starter/          # JDBC 数据库
 │   │       ├── fw-plus-jimu-spring-boot-starter/          # JimuReport 积木报表
 │   │       ├── fw-plus-magicapi-spring-boot-starter/      # Magic-API 主引擎
-│   │       ├── fw-plus-magicapi-plugin/                   # Magic-API 插件（当前 reactor 接入 20 个）
+│   │       ├── fw-plus-magicapi-plugin/                   # Magic-API 插件（22 个）
 │   │       │   ├── fw-plus-magicapi-plugin-config/        # 配置中心
 │   │       │   ├── fw-plus-magicapi-plugin-debezium/      # Debezium CDC
 │   │       │   ├── fw-plus-magicapi-plugin-dtp/           # 动态线程池
@@ -92,18 +92,20 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       │   ├── fw-plus-magicapi-plugin-freemarker/    # Freemarker 模板
 │   │       │   ├── fw-plus-magicapi-plugin-influx/        # InfluxDB
 │   │       │   ├── fw-plus-magicapi-plugin-kafka/         # Kafka 消息队列
+│   │       │   ├── fw-plus-magicapi-plugin-mcp/           # MCP 协议支持
 │   │       │   ├── fw-plus-magicapi-plugin-mongo/         # MongoDB
 │   │       │   ├── fw-plus-magicapi-plugin-mqtt/          # MQTT 协议支持
+│   │       │   ├── fw-plus-magicapi-plugin-mqttclient/    # MQTT 客户端
 │   │       │   ├── fw-plus-magicapi-plugin-pulsar/        # Pulsar 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-rabbitmq/      # RabbitMQ 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-redis/         # Redis 缓存
 │   │       │   ├── fw-plus-magicapi-plugin-rocketmq/      # RocketMQ 消息队列
 │   │       │   ├── fw-plus-magicapi-plugin-s3/            # S3 对象存储
 │   │       │   ├── fw-plus-magicapi-plugin-satoken/       # Sa-Token 认证鉴权
-│   │       │   ├── fw-plus-magicapi-plugin-sse/           # Server-Sent Events
 │   │       │   ├── fw-plus-magicapi-plugin-swagger/       # Swagger API 文档
 │   │       │   ├── fw-plus-magicapi-plugin-task/          # 定时任务
 │   │       │   ├── fw-plus-magicapi-plugin-vue3/          # Vue3 前端资源
+│   │       │   ├── fw-plus-magicapi-plugin-word/          # Word 文档操作
 │   │       │   └── fw-plus-magicapi-plugin-ws/            # WebSocket
 │   │       ├── fw-plus-mate-spring-boot-starter/          # Mate 租户/数据权限
 │   │       ├── fw-plus-mp-spring-boot-starter/            # MyBatis-Plus 增强
@@ -112,12 +114,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       ├── fw-plus-redis-spring-boot-starter/         # Redis 缓存
 │   │       ├── fw-plus-template-spring-boot-starter/      # 模板引擎
 │   │       └── fw-plus-uid-spring-boot-starter/           # 分布式 UID
-│   └── fw-plus-boot-samples/  # Boot 示例项目（5 个）
-│       ├── fw-plus-jdbc-spring-boot-starter-sample
-│       ├── fw-plus-magicapi-spring-boot-starter-sample
-│       ├── fw-plus-mate-spring-boot-starter-sample
-│       ├── fw-plus-mp-spring-boot-starter-sample
-│       └── fw-plus-redis-spring-boot-starter-sample
 │
 ├── fw-plus-cloud/            # Spring Cloud 扩展层
 │   ├── fw-plus-cloud-project/
@@ -131,12 +127,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │       ├── fw-plus-cloud-starter/                      # 通用 Cloud Starter（aggregator）
 │   │       ├── fw-plus-eureka-server-spring-cloud-starter/ # Eureka 注册中心
 │   │       └── fw-plus-magicapi-spring-cloud-starter/      # Magic-API Cloud 集成
-│   └── fw-plus-cloud-samples/        # Cloud 示例项目（5 个）
-│       ├── eureka-gateway-sample
-│       ├── eureka-server-sample
-│       ├── eureka-service-sample
-│       ├── nacos-gateway-sample
-│       └── nacos-server-sample
 │
 ├── fw-plus-ai/               # AI 集成层
 │   ├── fw-plus-ai-project/
@@ -154,22 +144,31 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 │   │           ├── fw-plus-ai-magicapi-plugin-milvus/      # Milvus 向量数据库
 │   │           ├── fw-plus-ai-magicapi-plugin-qdrant/      # Qdrant 向量数据库
 │   │           └── fw-plus-ai-magicapi-plugin-weaviate/    # Weaviate 向量数据库
-│   └── fw-plus-ai-samples/              # AI 示例项目
-│       └── fw-plus-ai-magicapi-sample    # Magic-API AI 示例
 │
-├── fw-plus-product/          # 产品层（主要开发工作区）
-│   ├── fw-plus-product-common/             # 产品公共代码（含 SaTokenConfig 等）
-│   ├── fw-plus-product-dependencies/       # 产品依赖版本 BOM
-│   ├── fw-plus-product-parent/             # 产品 POM 父工程
-│   └── fw-plus-product-report/             # 报表产品（含 3 个独立 Spring Boot 应用）
-│       ├── fw-plus-product-report-api      # 报表 API 服务（端口 3081，MagicAPI + 拦截器 + SQL 初始化）
-│       ├── fw-plus-product-report-gateway  # 报表网关服务（端口 3080，Sa-Token OAuth2 认证）
-│       ├── fw-plus-product-report-jimu     # 积木报表 Web 服务（端口 3082，报表入口 + 业务配置）
-│       └── web/                            # 前端控制台
-│           └── magic-boot-naive/           # NaiveUI 前端（Vue3 + Vite）
+├── fw-plus-sample/                    # 集中样例模块
+│   ├── fw-plus-boot-samples/          # Boot 示例项目（5 个）
+│   │   ├── fw-plus-jdbc-spring-boot-starter-sample
+│   │   ├── fw-plus-magicapi-spring-boot-starter-sample
+│   │   ├── fw-plus-mate-spring-boot-starter-sample
+│   │   ├── fw-plus-mp-spring-boot-starter-sample
+│   │   └── fw-plus-redis-spring-boot-starter-sample
+│   ├── fw-plus-cloud-samples/         # Cloud 示例项目（5 个）
+│   │   ├── eureka-gateway-sample
+│   │   ├── eureka-server-sample
+│   │   ├── eureka-service-sample
+│   │   ├── nacos-gateway-sample
+│   │   └── nacos-server-sample        # Nacos Server 分发目录（非 Maven 子模块）
+│   └── fw-plus-ai-samples/            # AI 示例项目
+│       └── fw-plus-ai-magicapi-sample # Magic-API AI 示例
+│
+├── META-INF/sql/             # 根目录 SQL 辅助资源
+├── docs/                     # 项目文档与执行计划
+└── openspec/                 # OpenSpec 变更与规格文档
 ```
 
 ## Magic-API 资源目录详解
+
+> **注意**：当前工作区没有 `resources/` 目录。以下内容描述运行环境中可由 Magic-API 引擎动态加载的外部资源仓库/目录结构；只有在该目录实际挂载或单独检出后才可直接修改。
 
 `resources/` 目录下的每个子目录对应一种 Magic-API 资源类型，由对应的插件提供存储和动态注册能力。每个资源类型的文件格式、脚本语言各有不同。
 
@@ -223,12 +222,6 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 // fileStorageService.upload(...) / fileStorageService.generatePresignedUrlByUrl(url) / fileStorageService.delete(url)
 ```
 
-**`sse-datasource/`** — SSE 服务端连接
-```json
-{ "name": "xxx", "key": "xxx" }
-// import sse;  sse['xxx'].broadcastMessageToClient(clientId, eventName, msg)
-```
-
 **`ws-datasource/`** — WebSocket 服务端连接
 ```json
 { "name": "xxx", "key": "xxx" }
@@ -261,7 +254,7 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 
 **`task/`** — 定时任务，JSON 头部定义 `cron` 表达式，按 Cron 周期自动执行。
 
-**`sse-subscribe/`** 和 **`ws-subscribe/`** — SSE / WebSocket 事件处理，结构同上。
+**`ws-subscribe/`** — WebSocket 事件处理，结构同上。
 
 ### 特殊代码（非 magic-script 语言）
 
@@ -271,61 +264,56 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 
 | 类别 | 技术 |
 |------|------|
-| 基础框架 | Java 17, Spring Boot 3.5.8, Spring Cloud 2025.0.0, Spring Cloud Alibaba 2025.0.0.0 |
+| 基础框架 | Spring Boot 2.7.18, Spring Cloud 2021.0.9 |
 | ORM | MyBatis-Plus 3.3.2, MyBatis-Flex 1.11.4 |
 | 脚本引擎 | Magic-API 2.2.2（自行维护版本，非中央仓库版本） |
-| AI | LangChain4j 0.36.2, Agents-Flex 1.3.4, Spring AI 1.1.0, Spring AI Alibaba 1.1.2.2, EasyAi 1.4.9 |
+| AI | LangChain4j 0.35.0, Agents-Flex 1.3.4, Spring AI 1.0.1, EasyAi 1.4.9 |
 | 消息队列 | Kafka, Pulsar 2.11.2, RocketMQ 5.1.3, RabbitMQ, Mica MQTT 2.3.9 |
 | 数据库/存储 | MySQL, InfluxDB, Redis, Elasticsearch, Nebula Graph, Minio/S3 |
-| 工具库 | Hutool 5.8.34, EasyPoi 4.5.0, DynamicTp 1.2.1, Debezium 1.9.8.Final, JimuReport 2.3.0 |
+| 工具库 | Hutool 5.8.34, EasyPoi 4.5.0, DynamicTp 1.2.1（Core BOM）/ 1.2.2（Boot BOM）, Debezium 1.9.8.Final |
 | 模板引擎 | Freemarker, docx4j, OpenPDF |
 | 可观测性 | OpenTelemetry 1.56.0, Apollo 2.5.0 |
 | 认证鉴权 | Sa-Token 1.44.0, OAuth2 |
-| 前端 | Vue3, Vite, NaiveUI |
+| 前端 | Vue3, Vite（Magic-API 控制台与插件控制台） |
 
 ## 重要提醒
 
-- **Maven 构建**：当前工程按 Java 17 + Maven 构建。按依赖顺序构建：fw-plus-core → fw-plus-boot → fw-plus-cloud → fw-plus-ai → fw-plus-product。fw-plus-core 是底层依赖，各层级均有独立的父 POM。发版按版本号统一发，不单独发某个模块。
+- **Maven 构建**：`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 四个库层各自带有 `mvnw`（Maven Wrapper）；`fw-plus-sample` 样例聚合目录不带 Wrapper。按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖后，使用 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate` 作为样例统一入口。fw-plus-core 是底层依赖，各层级均有独立的父 POM。发版按版本号统一发，不单独发某个模块。
 - **Magic-API 版本**：使用自行维护的 2.2.2 版本，`org.ssssssss` 组的依赖通过 `<repositories>` 指向内部 Nexus 仓库（jugui-snapshot / jugui-release），请勿修改这些依赖的版本号。
-- **Java 17 约束**：项目已升级到 Spring Boot 3.x / Java 17，注意 Jakarta 包名迁移和 Spring Boot 3 兼容性，不要引入依赖于 Spring Boot 2 或 `javax.*` Servlet API 的旧实现。
-- **JavaParser 移除**：`fw-plus-javaparser` 和 MagicAPI Java 插件已不在当前 reactor 中，除非用户明确要求，不要恢复相关模块、POM module 或依赖。
+- **JDK 1.8 约束**：fw-plus-core 严格约束为 Java 1.8（compiler source/target = 1.8），不要引入 Java 9+ 的 API（如 `List.of()`、`Map.copyOf()`、`Optional.orElseThrow()` 等）。
 - **源文件编码**：所有 Java 源文件、资源文件统一使用 UTF-8 编码。
 - **文件路径**：不构造硬编码的跨平台文件路径，系统路径使用 `System.getProperty()` 或 `Path` API，资源路径使用 Spring `ResourceLoader` 或 `ClassPathResource`。
 - **自定义类**：项目中包含大量自定义类和注解（如 `Algorithm`、`FieldEncrypt` 等），修改相关代码时确保充分理解其用途。
-- **resources/**：该目录由 Magic-API 引擎动态加载（独立 git 仓库，不在当前工作区），修改 api/function/task 等脚本目录后即时生效，无需重启服务；修改 datasource/config 等配置目录后需要重启服务或触发配置刷新。
+- **resources/**：当前工作区未检出该目录；若在运行环境中单独挂载，Magic-API 会动态加载其中资源。修改 api/function/task 等脚本目录后通常即时生效，无需重启服务；修改 datasource/config 等配置目录后需要重启服务或触发配置刷新。
 
 ## 构建、测试与开发命令
 
 ```bash
 # 全量编译（跳过测试）— 需在各模块目录下执行，根目录无统一 POM
-# 当前已验证的 JDK 17 构建环境
-export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
-export PATH="$JAVA_HOME/bin:$PATH"
-
-# 全量编译（跳过测试）
-cd fw-plus-core && mvn clean install -DskipTests -Dcobertura.skip -Dmaven.javadoc.skip=true
+# 推荐使用各模块内置的 Maven Wrapper (mvnw)
+cd fw-plus-core && ./mvnw clean install -DskipTests
 
 # 编译指定模块
-cd fw-plus-core && mvn clean install -pl fw-plus-project/fw-plus-common -DskipTests -Dcobertura.skip -Dmaven.javadoc.skip=true
+cd fw-plus-core && ./mvnw clean install -pl fw-plus-project/fw-plus-common -DskipTests
 
 # 运行测试（Cobertura 覆盖率报告在 target/site/cobertura/）
-cd fw-plus-core && mvn clean test
+cd fw-plus-core && ./mvnw clean test
 
 # 发布到内网 Nexus 仓库（jugui-snapshot / jugui-release）
-cd fw-plus-core && mvn clean deploy -DskipTests -Dcobertura.skip -Dmaven.javadoc.skip=true
+cd fw-plus-core && ./mvnw clean deploy -DskipTests
 ```
 
-根目录没有统一 `pom.xml`，需进入各层目录执行 Maven 命令；如使用 Maven Wrapper，先确认对应层的 `mvnw` 在当前环境可用。
+四个库层顶层目录均包含 Maven Wrapper（`mvnw`）；`fw-plus-sample` 不包含 Wrapper，运行样例聚合器时使用 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate`。
 
 ## 编码风格与命名约定
 
-- **Java**: 目标 JDK 17，遵循标准 Java 编码规范。
+- **Java**: 目标 JDK 1.8，遵循标准 Java 编码规范。
 - **缩进**: 使用 Tab（与现有 `pom.xml` 文件一致），保持与周围文件风格统一。
 - **模块命名**: kebab-case — `fw-plus-core`、`fw-plus-boot`、`fw-plus-mp`。
 - **包命名**: `com.xiongx9527.fw.plus.*` — 如 `com.xiongx9527.fw.plus.mp`、`com.xiongx9527.fw.plus.common`。
-- **POM 属性**: 使用 `${revision}` 作为版本属性（flatten-maven-plugin 负责解析）。
+- **POM 属性**: 四个库层使用 `${revision}` 作为版本属性（flatten-maven-plugin 负责解析）；`fw-plus-sample` 聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 flatten。
 - **格式化**: 未找到显式的格式化配置，保持所编辑文件的现有风格。
-- **资源文件**: JSON 数据源定义位于 `resources/datasource/`（独立 git 仓库）。共享配置文件位于 `resources/config/`。
+- **资源文件**: 当前工作区未包含运行态 `resources/`。若单独检出该目录，JSON 数据源定义位于 `resources/datasource/`，共享配置文件位于 `resources/config/`。
 
 ## 测试指南
 
@@ -333,7 +321,7 @@ cd fw-plus-core && mvn clean deploy -DskipTests -Dcobertura.skip -Dmaven.javadoc
 - **覆盖率**: Cobertura（`cobertura-maven-plugin 2.7`）生成 HTML + XML 报告。
 - **测试位置**: 各 Maven 模块的 `src/test/java/` 目录。
 - **命名**: 遵循标准 Maven 约定 — 单元测试用 `*Test.java`，集成测试用 `*IT.java`。
-- **运行测试**: 从模块根目录执行 `mvn clean test`。
+- **运行测试**: 从模块根目录执行 `./mvnw clean test`。
 
 ## 提交与 PR 规范
 
@@ -350,3 +338,20 @@ cd fw-plus-core && mvn clean deploy -DskipTests -Dcobertura.skip -Dmaven.javadoc
 - **AI 代理配置**: `AGENTS.md`（本文件）和 `CLAUDE.md` 包含项目指南和 AI 助手配置。
 - **内部 Nexus**: `http://172.17.1.6:28081/` — 仓库 `jugui-snapshot` 和 `jugui-release`。
 - **许可证**: Apache 2.0。
+
+<comet-ambient-resume>
+<!-- Managed by Comet. Edits inside this block may be replaced by comet init/update. -->
+<!-- Contract: comet.resume_probe.v2 -->
+
+## Comet Ambient Resume
+
+In this repository, before starting work that may need code changes or investigation, pass the current user request to the read-only probe when a Comet workflow may already be active: `comet resume-probe . --stdin --json`.
+
+- If the user explicitly invokes any Comet Skill through the host (for example, `@comet`, `/comet`, `@comet-native`, or `/comet-hotfix`), that explicit invocation takes precedence over this resume protocol; do not run the resume probe, and enter the invoked Skill directly.
+- Trust only the returned `workflow`, `skill`, and `entrySource`; project configuration or the no-config compatibility fallback alone selects them. Do not scan or switch to the other workflow.
+- If the probe returns `auto_resume`, briefly state the selected active change and enter the permanent entry in `nextCommand`. Do not treat a state command as the resume entry or advance it blindly.
+- If the probe returns `ask_user`, ask one short question and wait.
+- If the current request did not explicitly invoke a Comet Skill and the probe returns `out_of_scope` or `none`, do not enter the Comet workflow.
+- If configuration or state is invalid and `nextCommand` is absent, stop and report the reason; do not guess another workflow.
+- Never attach unrelated work merely because an active change exists. The Native entry inspects uncommitted work; the probe does not attribute it automatically.
+</comet-ambient-resume>

@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.auth.*;
+import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.properties.FwPlusMqttServerSecurityProperties;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.service.IMqttService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.service.impl.MqttServiceImpl;
 import net.dreamlu.iot.mqtt.core.server.MqttServer;
@@ -19,7 +20,6 @@ import net.dreamlu.iot.mqtt.core.server.session.IMqttSessionManager;
 import net.dreamlu.iot.mqtt.core.server.session.InMemoryMqttSessionManager;
 import net.dreamlu.iot.mqtt.core.server.store.IMqttMessageStore;
 import net.dreamlu.iot.mqtt.core.server.store.InMemoryMqttMessageStore;
-import net.dreamlu.iot.mqtt.core.server.support.DefaultMqttServerAuthHandler;
 import net.dreamlu.iot.mqtt.spring.server.MqttServerCustomizer;
 import net.dreamlu.iot.mqtt.spring.server.MqttServerTemplate;
 import net.dreamlu.iot.mqtt.spring.server.config.MqttServerLauncher;
@@ -28,7 +28,6 @@ import net.dreamlu.iot.mqtt.spring.server.event.SpringEventMqttConnectStatusList
 import net.dreamlu.iot.mqtt.spring.server.event.SpringEventMqttMessageListener;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -43,7 +42,7 @@ import org.tio.core.ssl.SslConfig;
  * @author L.cm
  */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(MqttServerProperties.class)
+@EnableConfigurationProperties({MqttServerProperties.class, FwPlusMqttServerSecurityProperties.class})
 public class MqttServerConfiguration {
 
     /**
@@ -66,8 +65,8 @@ public class MqttServerConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public IMqttServerSubscribeValidator mqttSubscribeValidator() {
-        return new MqttSubscribeValidator();
+    public IMqttServerSubscribeValidator mqttSubscribeValidator(FwPlusMqttServerSecurityProperties securityProperties) {
+        return new MqttSubscribeValidator(securityProperties);
     }
 
     /**
@@ -78,8 +77,8 @@ public class MqttServerConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public IMqttServerPublishPermission mqttPublishPermission() {
-        return new MqttPublishPermission();
+    public IMqttServerPublishPermission mqttPublishPermission(FwPlusMqttServerSecurityProperties securityProperties) {
+        return new MqttPublishPermission(securityProperties);
     }
 
     /**
@@ -102,8 +101,9 @@ public class MqttServerConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public IMqttServerAuthHandler mqttServerAuthHandler() {
-        return new MqttAuthHandler();
+    public IMqttServerAuthHandler mqttServerAuthHandler(MqttServerProperties properties,
+                                                        FwPlusMqttServerSecurityProperties securityProperties) {
+        return new MqttAuthHandler(properties, securityProperties);
     }
 
     /**
@@ -115,7 +115,7 @@ public class MqttServerConfiguration {
      * @return IMqttConnectStatusListener MQTT连接状态监听器实例
      */
     @Bean
-    @ConditionalOnMissingClass(value = {"net.dreamlu.mica.redis.cache.MicaRedisCache"})
+    @ConditionalOnMissingBean
     public IMqttConnectStatusListener springEventMqttConnectStatusListener(ApplicationEventPublisher eventPublisher) {
         return new SpringEventMqttConnectStatusListener(eventPublisher);
     }
@@ -129,7 +129,7 @@ public class MqttServerConfiguration {
      * @return IMqttMessageListener MQTT消息监听器实例
      */
     @Bean
-    @ConditionalOnMissingClass(value = {"net.dreamlu.mica.redis.cache.MicaRedisCache"})
+    @ConditionalOnMissingBean
     public IMqttMessageListener springEventMqttMessageListener(ApplicationEventPublisher eventPublisher) {
         return new SpringEventMqttMessageListener(eventPublisher);
     }
@@ -160,6 +160,7 @@ public class MqttServerConfiguration {
      * @return 配置完成的 MqttServerCreator 实例，可用于创建和启动 MQTT 服务器
      */
     @Bean
+    @ConditionalOnMissingBean
     public MqttServerCreator mqttServerCreator(MqttServerProperties properties,
                                                ObjectProvider<IMqttServerAuthHandler> authHandlerObjectProvider,
                                                ObjectProvider<IMqttServerUniqueIdService> uniqueIdServiceObjectProvider,
@@ -212,12 +213,8 @@ public class MqttServerConfiguration {
         // 设置自定义消息监听器
         messageListenerObjectProvider.ifAvailable(serverCreator::messageListener);
 
-        // 设置认证处理器，若未提供则使用默认实现
-        IMqttServerAuthHandler authHandler = authHandlerObjectProvider.getIfAvailable(() -> {
-            MqttServerProperties.MqttAuth mqttAuth = properties.getAuth();
-            return mqttAuth.isEnable() ? new DefaultMqttServerAuthHandler(mqttAuth.getUsername(), mqttAuth.getPassword()) : null;
-        });
-        serverCreator.authHandler(authHandler);
+        // 设置认证处理器
+        authHandlerObjectProvider.ifAvailable(serverCreator::authHandler);
 
         // 设置唯一 ID 服务
         uniqueIdServiceObjectProvider.ifAvailable(serverCreator::uniqueIdService);
@@ -261,6 +258,7 @@ public class MqttServerConfiguration {
      * @return 返回构建好的MQTT服务器实例
      */
     @Bean
+    @ConditionalOnMissingBean
     @DependsOn(value={"mqttServerCreator"})
     public MqttServer mqttServer(MqttServerCreator mqttServerCreator) {
         return mqttServerCreator.build();
@@ -274,6 +272,7 @@ public class MqttServerConfiguration {
      * @return 返回MQTT服务器启动器实例
      */
     @Bean
+    @ConditionalOnMissingBean
     @DependsOn(value={"mqttServer"})
     public MqttServerLauncher mqttServerLauncher(MqttServer mqttServer) {
         return new MqttServerLauncher(mqttServer);
@@ -287,6 +286,7 @@ public class MqttServerConfiguration {
      * @return 返回MQTT服务器模板实例
      */
     @Bean
+    @ConditionalOnMissingBean
     @DependsOn(value={"mqttServer"})
     public MqttServerTemplate mqttServerTemplate(MqttServer mqttServer) {
         return new MqttServerTemplate(mqttServer);
@@ -299,7 +299,7 @@ public class MqttServerConfiguration {
      * @return IMqttSessionManager MQTT会话管理器实例
      */
     @Bean
-    @ConditionalOnMissingClass(value = {"net.dreamlu.mica.redis.cache.MicaRedisCache"})
+    @ConditionalOnMissingBean
     public IMqttSessionManager mqttSessionManager() {
         return new InMemoryMqttSessionManager();
     }
@@ -311,7 +311,7 @@ public class MqttServerConfiguration {
      * @return IMqttMessageStore MQTT消息存储器实例
      */
     @Bean
-    @ConditionalOnMissingClass(value = {"net.dreamlu.mica.redis.cache.MicaRedisCache"})
+    @ConditionalOnMissingBean
     public IMqttMessageStore mqttMessageStore() {
         return new InMemoryMqttMessageStore();
     }
@@ -324,10 +324,9 @@ public class MqttServerConfiguration {
      * @return IMqttService MQTT服务实例
      */
     @Bean
-    @ConditionalOnMissingClass(value = {"net.dreamlu.mica.redis.cache.MicaRedisCache"})
+    @ConditionalOnMissingBean
     public IMqttService mqttService(MqttServer mqttServer) {
         return new MqttServiceImpl(mqttServer);
     }
 
 }
-

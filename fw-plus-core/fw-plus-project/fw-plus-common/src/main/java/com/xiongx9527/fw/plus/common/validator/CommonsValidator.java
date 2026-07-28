@@ -6,8 +6,6 @@ import com.alibaba.fastjson2.JSONValidator;
 import com.google.common.base.Throwables;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.common.util.WebUtils;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
@@ -19,7 +17,8 @@ import org.hibernate.validator.internal.engine.constraintvalidation.ConstraintVa
 import org.hibernate.validator.internal.engine.path.NodeImpl;
 import org.hibernate.validator.internal.engine.path.PathImpl;
 import org.springframework.core.MethodParameter;
-import org.springframework.expression.*;
+import org.springframework.expression.EvaluationContext;
+import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.validation.BeanPropertyBindingResult;
@@ -27,6 +26,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
+import jakarta.validation.*;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.*;
@@ -44,7 +44,7 @@ public class CommonsValidator {
     private static Field constraintValidatorContextImplBasePathField = null;
 
     /**
-     * javax.validation验证器实例
+     * jakarta.validation验证器实例
      *
      * <p>用于执行Bean Validation规范定义的验证操作</p>
      */
@@ -62,7 +62,7 @@ public class CommonsValidator {
      *
      * <p>负责初始化验证器相关的组件：
      * 1. 调用init()方法进行自定义初始化
-     * 2. 构建默认的javax.validation验证器
+     * 2. 构建默认的jakarta.validation验证器
      * 3. 创建Spring表达式解析器</p>
      */
     static {
@@ -140,7 +140,7 @@ public class CommonsValidator {
      * @param violations Hibernate Validator校验结果，包含所有校验失败的信息
      * @param bindingResult Spring的绑定结果对象，用于存储校验错误信息
      */
-    public static <T> void constraintViolations2BindingResult(Set<ConstraintViolation<T>> violations, BindingResult bindingResult) {
+    public static <T> void constraintViolations2BindingResult(Set<ConstraintViolation<T>> violations,BindingResult bindingResult) {
         // 遍历ConstraintViolation对象集合
         for (ConstraintViolation<?> violation : violations) {
             // 获取校验失败的属性路径
@@ -257,7 +257,7 @@ public class CommonsValidator {
      */
     public static BindingResult bindingResult(Object data) {
         // 从请求中提取参数并绑定到data对象上
-        return WebUtils.bindRequestParameters((HttpServletRequest)WebUtils.getRequest().getRequest(), data);
+        return WebUtils.bindRequestParameters(WebUtils.getRequest(), data);
     }
 
     /**
@@ -431,10 +431,7 @@ public class CommonsValidator {
             if (CommonsValidatorAnn.DataValidType.OBJECT_IS_NOT_EMPTY.equals(annotation.dataValidType())) {
                 return ObjectUtils.isNotEmpty(fieldValue);
             }
-            // 非空验证
-            if (StringUtils.isNotBlank(annotation.regularExpressions())) {
-                return StringUtils.isNotBlank(fieldValue.toString());
-            }
+            
             // 忽略空值验证
             if (ObjectUtils.isEmpty(fieldValue) && annotation.ignoreEmpty()) {
                 return Boolean.TRUE;
@@ -442,7 +439,7 @@ public class CommonsValidator {
             // 正则表达式验证
             if (CommonsValidatorAnn.DataValidType.REGULAR_EXPRESSIONS.equals(annotation.dataValidType())
                     && StringUtils.isNotBlank(annotation.regularExpressions())) {
-                return ReUtil.isMatch(annotation.regularExpressions(),fieldValue.toString());
+                return ObjectUtils.isNotEmpty(fieldValue) && ReUtil.isMatch(annotation.regularExpressions(), fieldValue.toString());
             }
             // 表达式验证
             if (CommonsValidatorAnn.DataValidType.VALID_EXPRESSIONS.equals(annotation.dataValidType())
@@ -453,13 +450,13 @@ public class CommonsValidator {
             if (CommonsValidatorAnn.DataValidType.IS_ENUM_VALUE.equals(annotation.dataValidType())
                     && ObjectUtils.isNotEmpty(annotation.enumClass()) && StringUtils.isNotBlank(annotation.enumValueField())) {
                 return SpringUtils.getBean(IEnumValiatorService.class).isValid(annotation.enumClass(),
-                        annotation.enumValueField(),annotation.enumValueField());
+                        annotation.enumValueField(), fieldValue);
             }
             // 字典值验证
             if (CommonsValidatorAnn.DataValidType.IS_DICT_VALUE.equals(annotation.dataValidType())
                     && StringUtils.isNotBlank(annotation.dictKey())) {
-                return SpringUtils.getBean(IEnumValiatorService.class).isValid(annotation.enumClass(),
-                        annotation.enumValueField(),annotation.enumValueField());
+                return SpringUtils.getBean(IDictValiatorService.class).isValid(annotation.dictKey(),
+                        annotation.enumValueField(), fieldValue);
             }
             // 字符串是否为邮箱验证
             if (CommonsValidatorAnn.DataValidType.STRING_IS_EMAIL.equals(annotation.dataValidType())) {
@@ -473,7 +470,7 @@ public class CommonsValidator {
                 if (!(fieldValue instanceof String)) {
                     return Boolean.FALSE;
                 }
-                //return PhoneUtil.isMobile()
+                return PhoneUtil.isMobile(fieldValue.toString());
             }
             // 字符串是否为身份证号码验证
             if (CommonsValidatorAnn.DataValidType.STRING_IS_ID_CARD.equals(annotation.dataValidType())) {
@@ -572,24 +569,24 @@ public class CommonsValidator {
                 if (!(fieldValue instanceof String)) {
                     return Boolean.FALSE;
                 }
-                JSONValidator JsonValidator = JSONValidator.from(fieldValue.toString());
-                return JsonValidator.validate() && JsonValidator.getType() != JSONValidator.Type.Value;
+                JSONValidator jsonValidator = JSONValidator.from(fieldValue.toString());
+                return jsonValidator.validate();
             }
             // 字符串是否为JSON对象验证
             if (CommonsValidatorAnn.DataValidType.STRING_IS_JSONOBJECT.equals(annotation.dataValidType())) {
                 if (!(fieldValue instanceof String)) {
                     return Boolean.FALSE;
                 }
-                JSONValidator JsonValidator = JSONValidator.from(fieldValue.toString());
-                return JsonValidator.validate() && JsonValidator.getType() != JSONValidator.Type.Object;
+                JSONValidator jsonValidator = JSONValidator.from(fieldValue.toString());
+                return jsonValidator.validate() && jsonValidator.getType() == JSONValidator.Type.Object;
             }
             // 字符串是否为JSON数组验证
             if (CommonsValidatorAnn.DataValidType.STRING_IS_JSONARRAY.equals(annotation.dataValidType())) {
                 if (!(fieldValue instanceof String)) {
                     return Boolean.FALSE;
                 }
-                JSONValidator JsonValidator = JSONValidator.from(fieldValue.toString());
-                return JsonValidator.validate() && JsonValidator.getType() != JSONValidator.Type.Array;
+                JSONValidator jsonValidator = JSONValidator.from(fieldValue.toString());
+                return jsonValidator.validate() && jsonValidator.getType() == JSONValidator.Type.Array;
             }
             // 字符串是否为中文验证
             if (CommonsValidatorAnn.DataValidType.STRING_IS_CHINESE.equals(annotation.dataValidType())) {
@@ -744,7 +741,8 @@ public class CommonsValidator {
                 }
             }
         } catch (Throwable e){
-            log.error("isValid error ",e);
+            log.error("isValid error ", e);
+            return Boolean.FALSE;
         }
         return Boolean.TRUE;
     }

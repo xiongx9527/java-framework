@@ -2,7 +2,6 @@ package com.xiongx9527.fw.plus.common.web;
 
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.core.NamedThreadLocal;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.http.HttpCookie;
@@ -21,8 +20,19 @@ import java.util.*;
 
 public class WebFluxRequestContextHolder {
 
-    private static final ThreadLocal<ServerWebExchange> serverWebExchangeHolder =
-            new NamedThreadLocal<>("ServerWebExchange");
+    public static final String FORM_DATA_ATTRIBUTE = WebFluxRequestContextHolder.class.getName() + ".FORM_DATA";
+
+    private static final ThreadLocal<ServerWebExchange> serverWebExchangeHolder;
+
+	static {
+		ThreadLocal<ServerWebExchange> holder;
+		try {
+			holder = (ThreadLocal) Class.forName("com.alibaba.ttl.TransmittableThreadLocal").newInstance();
+		} catch (Throwable e) {
+			holder = new InheritableThreadLocal();
+		}
+		serverWebExchangeHolder = holder;
+	}
 
     private WebFluxRequestContextHolder(){
 
@@ -30,6 +40,7 @@ public class WebFluxRequestContextHolder {
 
     public static void set(ServerWebExchange exchange) {
         serverWebExchangeHolder.set(exchange);
+        com.xiongx9527.fw.plus.common.util.WebUtils.useWebFlux();
     }
 
     public static ServerWebExchange get() {
@@ -69,7 +80,7 @@ public class WebFluxRequestContextHolder {
         @Override
         public Object getSession() {
             if (this.exchange != null) {
-                this.exchange.getSession();
+                return this.exchange.getSession().block();
             }
             return null;
         }
@@ -79,13 +90,17 @@ public class WebFluxRequestContextHolder {
             if (this.exchange == null) {
                 return null;
             }
-            return this.exchange.getSession().subscribe(session -> session.getAttributes().get(name));
+            org.springframework.web.server.WebSession session = this.exchange.getSession().block();
+            return session == null ? null : session.getAttribute(name);
         }
 
         @Override
         public void setAttribute(String key, Object value) {
             if (this.exchange != null) {
-                this.exchange.getSession().subscribe(session -> session.getAttributes().put(key, value));
+                org.springframework.web.server.WebSession session = this.exchange.getSession().block();
+                if (session != null) {
+                    session.getAttributes().put(key, value);
+                }
             }
         }
     }
@@ -202,7 +217,7 @@ public class WebFluxRequestContextHolder {
         @Override
         public void setAttribute(String key, Object value) {
             if (this.exchange != null) {
-                this.exchange.getSession().subscribe(session -> session.getAttributes().put(key, value));
+                this.exchange.getAttributes().put(key, value);
             }
         }
 
@@ -225,15 +240,34 @@ public class WebFluxRequestContextHolder {
         @Override
         public String[] getParameterValues(String name) {
             if (this.exchange != null) {
-                return new String[]{this.exchange.getRequest().getQueryParams().getFirst(name)};
+                List<String> values = this.exchange.getRequest().getQueryParams().get(name);
+                if (values == null || values.isEmpty()) {
+                    values = getFormData().get(name);
+                }
+                return values == null || values.isEmpty() ? null : values.toArray(new String[0]);
             }
             return null;
         }
 
         @Override
+        public Enumeration<String> getParameterNames() {
+            if (this.exchange == null) {
+                return Collections.emptyEnumeration();
+            }
+            Set<String> names = new LinkedHashSet<>(this.exchange.getRequest().getQueryParams().keySet());
+            names.addAll(getFormData().keySet());
+            return Collections.enumeration(names);
+        }
+
+        private MultiValueMap<String, String> getFormData() {
+            MultiValueMap<String, String> formData = this.exchange.getAttribute(FORM_DATA_ATTRIBUTE);
+            return formData == null ? org.springframework.util.CollectionUtils.toMultiValueMap(new HashMap<String, List<String>>()) : formData;
+        }
+
+        @Override
         public Object getAttribute(String name) {
             if (this.exchange != null) {
-                return this.exchange.getSession().subscribe(session -> session.getAttributes().get(name));
+                return this.exchange.getAttribute(name);
             }
             return null;
         }
@@ -260,7 +294,7 @@ public class WebFluxRequestContextHolder {
         public WebCookie[] getCookies() {
             if (this.exchange != null) {
                 MultiValueMap<String, HttpCookie> cookies = this.exchange.getRequest().getCookies();
-                return cookies == null ? new WebFluxCookie[0] : cookies.values().stream().map(e-> new WebFluxCookie((HttpCookie)e) ).toArray((x$0) -> {
+                return cookies == null ? new WebCookie[0] : cookies.values().stream().flatMap(Collection::stream).map(WebFluxCookie::new).toArray((x$0) -> {
                     return new WebFluxCookie[x$0];
                 });
 

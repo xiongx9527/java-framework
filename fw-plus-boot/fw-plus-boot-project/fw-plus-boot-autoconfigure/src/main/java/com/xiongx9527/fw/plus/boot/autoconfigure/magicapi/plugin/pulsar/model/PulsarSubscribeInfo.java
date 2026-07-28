@@ -4,8 +4,6 @@ import lombok.Data;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.model.PathMagicEntity;
 
-import java.util.Objects;
-
 /**
  * 订阅信息
  *
@@ -72,18 +70,10 @@ public class PulsarSubscribeInfo extends PathMagicEntity {
      *
      * @return 返回一个新的 {@link PulsarSubscribeInfo} 对象，其属性与当前对象一致（path 除外）
      */
+    @Override
     public PulsarSubscribeInfo copy() {
         PulsarSubscribeInfo info = new PulsarSubscribeInfo();
-        super.copyTo(info);
-        info.setKey(this.key);
-        info.setTopic(this.topic);
-        info.setGroup(this.group);
-        info.setPartition(this.partition);
-        info.setEnabled(this.enabled);
-        info.setOther(this.other);
-        info.setParams(this.params);
-        info.setBatchIndexAcknowledgmentEnabled(this.batchIndexAcknowledgmentEnabled);
-        info.setPath(null);
+        copyTo(info);
         return info;
     }
 
@@ -100,6 +90,7 @@ public class PulsarSubscribeInfo extends PathMagicEntity {
         super.copyTo(info);
         info.setKey(this.key);
         info.setTopic(this.topic);
+        info.setBroadcast(this.broadcast);
         info.setGroup(this.group);
         info.setPartition(this.partition);
         info.setEnabled(this.enabled);
@@ -122,45 +113,6 @@ public class PulsarSubscribeInfo extends PathMagicEntity {
         PulsarSubscribeInfo info = new PulsarSubscribeInfo();
         super.simple(info);
         return info;
-    }
-
-    /**
-     * 判断两个对象是否相等。
-     * <p>
-     * 首先判断是否是同一个引用或类型不同，如果是则直接返回 false；接着比较所有关键属性是否相同。
-     *
-     * @param o 要比较的对象
-     * @return 如果两个对象在逻辑上相等则返回 true，否则返回 false
-     */
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-        PulsarSubscribeInfo pulsarSubscribeInfo = (PulsarSubscribeInfo) o;
-        // 比较各个关键字段是否一致
-        return Objects.equals(id, pulsarSubscribeInfo.id) &&
-                Objects.equals(path, pulsarSubscribeInfo.path) &&
-                Objects.equals(script, pulsarSubscribeInfo.script) &&
-                Objects.equals(name, pulsarSubscribeInfo.name) &&
-                Objects.equals(key, pulsarSubscribeInfo.key) &&
-                Objects.equals(topic, pulsarSubscribeInfo.topic) &&
-                Objects.equals(group, pulsarSubscribeInfo.group) &&
-                Objects.equals(partition, pulsarSubscribeInfo.partition) &&
-                Objects.equals(other, pulsarSubscribeInfo.other) &&
-                Objects.equals(enabled, pulsarSubscribeInfo.enabled);
-    }
-
-    /**
-     * 计算当前对象的哈希码。
-     * <p>
-     * 基于 id、path、script、name、groupId、topic、group、partition、enabled 和 other 字段计算得出。
-     *
-     * @return 当前对象的哈希码
-     */
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, path, script, name, groupId, topic,group, partition, enabled, other);
     }
 
 }

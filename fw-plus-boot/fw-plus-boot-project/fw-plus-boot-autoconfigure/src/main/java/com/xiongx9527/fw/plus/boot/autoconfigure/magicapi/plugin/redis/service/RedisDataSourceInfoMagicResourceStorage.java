@@ -26,7 +26,7 @@ public class RedisDataSourceInfoMagicResourceStorage implements MagicResourceSto
 
     @Override
     public Class<RedisDataSourceInfo> magicClass() {
-        return RedisDataSourceInfo. class;
+        return RedisDataSourceInfo.class;
     }
 
     @Override
@@ -46,7 +46,7 @@ public class RedisDataSourceInfoMagicResourceStorage implements MagicResourceSto
 
     @Override
     public String buildMappingKey(RedisDataSourceInfo info) {
-        return String.format("%s-%s", info.getKey(), info.getUpdateTime());
+        return String.format("%s-%s", info.getKey(), info.getUpdateTime() != null ? info.getUpdateTime() : "");
     }
 
     @Override
@@ -56,9 +56,9 @@ public class RedisDataSourceInfoMagicResourceStorage implements MagicResourceSto
         validateField(entity);
 
         if (entity.getId() != null) {
-            RedisDataSourceInfo oldKafkaDataSourceInfo =  magicResourceService.file(entity.getId());
-            if (null != oldKafkaDataSourceInfo) {
-                if (!oldKafkaDataSourceInfo.getKey().equals(entity.getKey())) {
+            RedisDataSourceInfo oldRedisDataSourceInfo = magicResourceService.file(entity.getId());
+            if (null != oldRedisDataSourceInfo) {
+                if (!oldRedisDataSourceInfo.getKey().equals(entity.getKey())) {
                     throw new IllegalArgumentException("key不可修改");
                 }
             }
@@ -78,7 +78,7 @@ public class RedisDataSourceInfoMagicResourceStorage implements MagicResourceSto
         // 获取所有已存在的数据源
         boolean noneMatchKey = magicResourceService.listFiles(folder() + ":0").stream()
                 .map(it -> (RedisDataSourceInfo)it)
-                .filter(it -> !it.getId().equals(currentId))
+                .filter(it -> currentId == null || !Objects.equals(it.getId(), currentId))
                 .noneMatch(it -> Objects.equals(it.getKey(), key));
 
         if (!noneMatchKey) {

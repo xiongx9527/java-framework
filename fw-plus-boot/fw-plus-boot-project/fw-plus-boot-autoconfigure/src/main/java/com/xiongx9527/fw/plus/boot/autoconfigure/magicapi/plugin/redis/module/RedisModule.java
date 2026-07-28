@@ -37,7 +37,7 @@ public class RedisModule extends org.ssssssss.magicapi.redis.RedisModule impleme
     @Value("${spring.redis.port:}")
     private String port;
     @Value("${spring.redis.username:}")
-    private String usermame;
+    private String username;
     @Value("${spring.redis.password:}")
     private String password;
     @Value("${spring.redis.database:}")
@@ -96,8 +96,14 @@ public class RedisModule extends org.ssssssss.magicapi.redis.RedisModule impleme
      * @return 配置完成的RedisModule实例。
      */
     private RedisModule createRedisModule(String key) {
+        RedisConnectionFactory connectionFactory = this.magicDynamicRedisDataSource.getRedisConnectionFactory(key);
+        if (connectionFactory == null) {
+            log.warn("未找到key为'{}'的Redis数据源，使用当前默认实例", key);
+            return this;
+        }
+
         // 初始化RedisModule实例，并传入动态数据源和连接工厂
-        RedisModule redisModule = new RedisModule(this.magicDynamicRedisDataSource, this.magicDynamicRedisDataSource.getRedisConnectionFactory(key));
+        RedisModule redisModule = new RedisModule(this.magicDynamicRedisDataSource, connectionFactory);
 
         // 获取指定key对应的数据源信息
         RedisDataSourceInfo redisDataSourceInfo = this.magicDynamicRedisDataSource.getRedisDataSourceInfo(key);
@@ -111,7 +117,6 @@ public class RedisModule extends org.ssssssss.magicapi.redis.RedisModule impleme
             redisModule.setDatabase(redisDataSourceInfo.getDatabase());
         }
 
-        // 返回配置好的RedisModule实例
         return redisModule;
     }
 
@@ -160,11 +165,11 @@ public class RedisModule extends org.ssssssss.magicapi.redis.RedisModule impleme
     }
 
     public String getUsername() {
-        return usermame; // 注意字段名拼写错误，应为 username
+        return username;
     }
 
     public void setUsername(String username) {
-        this.usermame = username; // 注意字段名拼写错误，应为 username
+        this.username = username;
     }
 
     public String getPassword() {

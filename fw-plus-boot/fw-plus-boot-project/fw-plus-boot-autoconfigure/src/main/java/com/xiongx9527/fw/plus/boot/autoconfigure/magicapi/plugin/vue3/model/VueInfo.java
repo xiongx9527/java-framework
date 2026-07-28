@@ -10,6 +10,7 @@ import java.util.Date;
 public class VueInfo extends PathMagicEntity {
 
 
+
     /**
      * JavaScript依赖资源字符串
      * 用于存储页面所需的JavaScript文件路径或内容
@@ -21,7 +22,6 @@ public class VueInfo extends PathMagicEntity {
      * 用于存储页面所需的CSS文件路径或内容
      */
     private String cssDependences;
-
 
     /**
      * 编译后的CSS样式字符串
@@ -47,12 +47,17 @@ public class VueInfo extends PathMagicEntity {
      */
     private String params;
 
-
-    /**
-     * 历史记录列表，用于存储Vue3组件信息的历史数据
-     * 该字段为私有成员变量，只能在当前类内部访问
-     */
-    private String history;
+//    /**
+//     * 自定义块JSON字符串
+//     * 用于存储SFC中的自定义块（如 &lt;i18n&gt;、&lt;route&gt; 等）
+//     */
+//    private String customBlocks;
+//
+//    /**
+//     * 样式元数据JSON字符串
+//     * 用于存储每个样式块的元信息（scoped、module、lang 等）
+//     */
+//    private String styleMeta;
 
 
     /**
@@ -73,7 +78,8 @@ public class VueInfo extends PathMagicEntity {
         info.setParams(this.params);
         info.setJsDependences(this.jsDependences);
         info.setCssDependences(this.cssDependences);
-        info.setHistory(this.history);
+//        info.setCustomBlocks(this.customBlocks);
+//        info.setStyleMeta(this.styleMeta);
         return info;
     }
 
@@ -96,7 +102,8 @@ public class VueInfo extends PathMagicEntity {
         info.setParams(this.params);
         info.setJsDependences(this.jsDependences);
         info.setCssDependences(this.cssDependences);
-        info.setHistory(this.history);
+//        info.setCustomBlocks(this.customBlocks);
+//        info.setStyleMeta(this.styleMeta);
         return info;
     }
 

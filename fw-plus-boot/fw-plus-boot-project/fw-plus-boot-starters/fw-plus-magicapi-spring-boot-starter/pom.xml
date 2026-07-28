@@ -15,6 +15,54 @@
         <main.basedir>${basedir}/../../..</main.basedir>
     </properties>
 
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <!-- 前端构建产物作为额外资源目录，由默认 resources:resources 在 process-resources 阶段自动复制到 target/classes -->
+                <directory>src/console/dist</directory>
+                <targetPath>magic-editor</targetPath>
+            </resource>
+        </resources>
+        <plugins>
+            <!-- 前端 console 构建（npm install + npm run build），在 generate-resources 阶段执行，确保 dist/ 在 process-resources 之前就绪 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>npm-install</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>exec</goal></goals>
+                        <configuration>
+                            <workingDirectory>${project.basedir}/src/console</workingDirectory>
+                            <executable>npm</executable>
+                            <arguments>
+                                <argument>install</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-build</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>exec</goal></goals>
+                        <configuration>
+                            <workingDirectory>${project.basedir}/src/console</workingDirectory>
+                            <executable>npm</executable>
+                            <arguments>
+                                <argument>run</argument>
+                                <argument>build</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
@@ -31,6 +79,7 @@
             <artifactId>fw-plus-boot-starter</artifactId>
         </dependency>
 
+        <!-- 未使用：无 JDBC 直接引用，按需启用 -->
         <!--
         <dependency>
             <groupId>org.springframework.boot</groupId>

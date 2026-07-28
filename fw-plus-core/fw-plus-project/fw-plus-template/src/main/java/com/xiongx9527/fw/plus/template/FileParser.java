@@ -14,6 +14,16 @@ public interface FileParser {
 
 
     /**
+     * 根据key解析数据并返回处理后的字节数组
+     * @param beanName
+     * @param data
+     * @param map
+     * @return
+     * @throws Exception
+     */
+    byte[] parseByData(String beanName , byte[] data, Map<String, Object> map) throws Exception ;
+
+    /**
      * 解析数据并返回处理后的字节数组
      *
      * @param data 待解析的原始字节数据

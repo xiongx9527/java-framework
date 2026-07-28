@@ -7,6 +7,8 @@
   position: absolute;
   top: 0;
   left: 0;
+  margin: 0;
+  padding: 0;
 }
 .magic-tree .magic-tree-item {
   height: 20px;
@@ -14,8 +16,8 @@
   transition: 0.3s;
   word-break: break-all;
   white-space: nowrap;
-  /* display: inline-flex;
-  min-width: 100%; */
+  display: inline-flex;
+  min-width: 100%;
 }
 .magic-tree .magic-tree-item:hover,
 .magic-tree .magic-tree-item.selected,
@@ -34,6 +36,9 @@
   /* min-width: 100%; */
   white-space: nowrap;
   word-break: break-all;
+  margin-bottom: -2px;
+  padding: 0;
+  line-height: 1;
 }
 .magic-tree .hide {
   opacity: 0;

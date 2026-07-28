@@ -1,0 +1,764 @@
+{
+  "schemaVersion": "nebula-sql-ast-coverage-matrix.v1",
+  "druid": {
+    "groupId": "com.alibaba",
+    "artifactId": "druid",
+    "version": "1.2.24",
+    "versionSource": "fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml",
+    "java8Compatible": true,
+    "java8Evidence": {
+      "jarSource": "https://repo1.maven.org/maven2/com/alibaba/druid/1.2.24/druid-1.2.24.jar",
+      "classCount": 1893,
+      "minMajorVersion": 52,
+      "maxMajorVersion": 52,
+      "maxMajorVersionMeaning": "Java 8"
+    },
+    "license": {
+      "name": "Apache 2",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.txt",
+      "source": "https://repo1.maven.org/maven2/com/alibaba/druid/1.2.24/druid-1.2.24.pom"
+    },
+    "verificationNotes": [
+      "许可证和 Java 8 兼容性证据已通过 Maven Central POM/JAR 直接检查完成。",
+      "已执行 ./mvnw -q dependency:get -Dartifact=com.alibaba:druid:1.2.24:pom -Dtransitive=false，但当前 worktree 缺少 .mvn/wrapper/maven-wrapper.properties 及 Maven Wrapper 主类，命令未进入依赖解析。",
+      "Maven Central POM https://repo1.maven.org/maven2/com/alibaba/druid/1.2.24/druid-1.2.24.pom 的 license block 验证为 Apache 2，许可证 URL 为 http://www.apache.org/licenses/LICENSE-2.0.txt。",
+      "Maven Central JAR https://repo1.maven.org/maven2/com/alibaba/druid/1.2.24/druid-1.2.24.jar 检查得到 class_count 1893，min_major 52，max_major 52；major version 52 表明字节码兼容 Java 8。"
+    ]
+  },
+  "artifacts": {
+    "json": "openspec/changes/define-nebula-sql-ast-coverage-matrix/artifacts/nebula-sql-ast-coverage-matrix.json",
+    "markdown": "openspec/changes/define-nebula-sql-ast-coverage-matrix/artifacts/nebula-sql-ast-coverage-matrix.md"
+  },
+  "supportLevels": [
+    "required",
+    "explicitlyUnsupported",
+    "deferred"
+  ],
+  "entryRequirements": {
+    "requiredFields": [
+      "id",
+      "category",
+      "druidAstType",
+      "sqlConstruct",
+      "exampleSql",
+      "nebulaAstKind",
+      "adapterRequirement",
+      "supportLevel",
+      "testCaseId",
+      "rawFallbackAllowed",
+      "notes"
+    ],
+    "rawFallbackAllowedRequired": true,
+    "rawFallbackAllowedValue": false,
+    "supportLevelAllowedValues": [
+      "required",
+      "explicitlyUnsupported",
+      "deferred"
+    ]
+  },
+  "categories": [
+    {
+      "id": "statement",
+      "description": "SELECT、INSERT、UPDATE、DELETE、DDL、SHOW、DESCRIBE 等语句节点。"
+    },
+    {
+      "id": "queryShape",
+      "description": "JOIN、子查询、UNION、GROUP BY、HAVING、ORDER BY、LIMIT 等查询结构。"
+    },
+    {
+      "id": "expression",
+      "description": "二元表达式、函数调用、字面量、列引用、别名、IN、LIKE、IS NULL、参数占位符。"
+    },
+    {
+      "id": "frameworkGenerated",
+      "description": "JDBC、MyBatis、JdbcTemplate 常见探测和动态 SQL 展开形态。"
+    },
+    {
+      "id": "unsupportedOrDeferred",
+      "description": "Druid 能解析但当前 Nebula SQL 路线明确不支持或延期的语法。"
+    }
+  ],
+  "enumeration": {
+    "sampleSqlDriven": true,
+    "reflectionGapCheck": true,
+    "reflectionGapCheckEvidence": {
+      "scanSource": "先用 Druid 1.2.24 的 SQLUtils.parseStatements(exampleSql, JdbcConstants.MYSQL) 解析全部 23 条 entries[].exampleSql，再通过 SQLASTVisitorAdapter.preVisit 对每棵 AST 做递归遍历并收集运行时类名；随后将该集合与 entries[].druidAstType 和 reflectedCandidates[].className 交叉核对。另以锁定 JAR 的 jar tf 类清单核对候选类存在性。",
+      "sampleEntryCount": 23,
+      "actualAstClassCount": 39,
+      "actualAstTraversal": "每条样例 SQL 均以 MYSQL 方言解析；从每个 SQLStatement 调用 accept(visitor)，visitor 的 preVisit 记录每个访问到的 SQLObject 具体运行时类名。Druid visitor 负责递归下降，不依赖私有字段或字符串匹配。",
+      "lockedJar": "/tmp/druid-1.2.24-review-check.jar",
+      "jarCoordinate": "com.alibaba:druid:1.2.24",
+      "jarSha256": "1db6e535ce91e4982f5d27882950e35811a3a3c7d58576c865b1cb088794fe0e",
+      "jarUse": "该本地路径仅为本次临时核验输入；可移植证据是 Maven 坐标、SHA-256、解析方法和矩阵中的处置记录，复核时可从 Maven Central 重新取得同一坐标的 JAR。",
+      "candidateSelection": "reflectedCandidates 必须包含每个实际遍历得到但未作为 entries[].druidAstType 的运行时 AST 类；现有 entry 主类型也保留其处置记录。矩阵外的语句/查询/表源容器、字面量和标识符不能静默忽略。",
+      "dispositionRule": "coveredByMatrix 表示该类本身是 entry 主验收类型；coveredByContainingEntry 表示该类由关联 entry 的结构化输出递归消费，不单独扩张 acceptance entry；excludedInternalContainer 表示 DDL/DML 内部组装节点不构成独立 SQL 构造；excludedLiteralOrIdentifier 表示叶子字面量、通配符、标识符或属性引用由其父表达式保留结构化值，但不单列 adapter acceptance entry；explicitlyUnsupported 和 deferred 分别沿用对应 entry 的明确拒绝或延期边界。"
+    },
+    "packages": [
+      "com.alibaba.druid.sql.ast",
+      "com.alibaba.druid.sql.dialect.mysql.ast"
+    ],
+    "sampleSqlGroups": [
+      {
+        "id": "select-basic",
+        "constructs": [
+          "SELECT 1",
+          "SELECT COUNT(*)",
+          "列别名",
+          "WHERE 条件",
+          "ORDER BY",
+          "LIMIT"
+        ]
+      },
+      {
+        "id": "select-complex",
+        "constructs": [
+          "JOIN",
+          "子查询",
+          "聚合",
+          "GROUP BY",
+          "HAVING",
+          "UNION",
+          "函数",
+          "表达式"
+        ]
+      },
+      {
+        "id": "write-and-ddl",
+        "constructs": [
+          "INSERT",
+          "UPDATE",
+          "DELETE",
+          "CREATE TABLE",
+          "DROP TABLE",
+          "SHOW",
+          "DESCRIBE"
+        ]
+      },
+      {
+        "id": "framework-generated",
+        "constructs": [
+          "? 参数",
+          "IN 参数列表",
+          "分页",
+          "metadata 探测 SQL",
+          "动态 SQL 展开后的条件组合"
+        ]
+      }
+    ]
+  },
+  "entries": [
+    {
+      "id": "SQL-STMT-SELECT-BASIC",
+      "category": "statement",
+      "druidAstType": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock",
+      "sqlConstruct": "基础 SELECT",
+      "exampleSql": "SELECT id, name FROM person WHERE age > ? ORDER BY name LIMIT 10",
+      "nebulaAstKind": "SelectStatement",
+      "adapterRequirement": "输出选择列、数据源、WHERE、ORDER BY、LIMIT 和参数占位符的结构化 AST。",
+      "supportLevel": "required",
+      "testCaseId": "parseSelectBasic",
+      "rawFallbackAllowed": false,
+      "notes": "覆盖 JDBC 参数占位符和分页。"
+    },
+    {
+      "id": "SQL-QUERY-JOIN",
+      "category": "queryShape",
+      "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLJoinTableSource",
+      "sqlConstruct": "JOIN",
+      "exampleSql": "SELECT p.id, o.amount FROM person p JOIN orders o ON p.id = o.person_id",
+      "nebulaAstKind": "JoinRelation",
+      "adapterRequirement": "输出左右表、JOIN 类型和 ON 条件表达式。",
+      "supportLevel": "required",
+      "testCaseId": "parseJoinRelation",
+      "rawFallbackAllowed": false,
+      "notes": "转换层是否能映射到 nGQL 不在本 change 判断。"
+    },
+    {
+      "id": "SQL-QUERY-SUBQUERY",
+      "category": "queryShape",
+      "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource",
+      "sqlConstruct": "FROM 子查询",
+      "exampleSql": "SELECT t.id FROM (SELECT id FROM person WHERE age > 18) t",
+      "nebulaAstKind": "SubquerySource",
+      "adapterRequirement": "输出子查询数据源和别名。",
+      "supportLevel": "required",
+      "testCaseId": "parseSubquerySource",
+      "rawFallbackAllowed": false,
+      "notes": "子查询语义支持由后续 parser-core 测试消费。"
+    },
+    {
+      "id": "SQL-QUERY-UNION",
+      "category": "queryShape",
+      "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLUnionQuery",
+      "sqlConstruct": "UNION",
+      "exampleSql": "SELECT id FROM person_a UNION SELECT id FROM person_b",
+      "nebulaAstKind": "UnionQuery",
+      "adapterRequirement": "输出 UNION 左右查询和 union 类型。",
+      "supportLevel": "required",
+      "testCaseId": "parseUnionQuery",
+      "rawFallbackAllowed": false,
+      "notes": "保留结构，不承诺 nGQL 映射。"
+    },
+    {
+      "id": "SQL-QUERY-GROUP-HAVING",
+      "category": "queryShape",
+      "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause",
+      "sqlConstruct": "GROUP BY / HAVING",
+      "exampleSql": "SELECT city, COUNT(*) c FROM person GROUP BY city HAVING COUNT(*) > 1",
+      "nebulaAstKind": "GroupByClause",
+      "adapterRequirement": "输出分组表达式和 HAVING 条件表达式。",
+      "supportLevel": "required",
+      "testCaseId": "parseGroupByHaving",
+      "rawFallbackAllowed": false,
+      "notes": "聚合函数由表达式条目覆盖。"
+    },
+    {
+      "id": "SQL-EXPR-BINARY",
+      "category": "expression",
+      "druidAstType": "com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr",
+      "sqlConstruct": "二元表达式",
+      "exampleSql": "SELECT * FROM person WHERE age >= ? AND status = 'ACTIVE'",
+      "nebulaAstKind": "BinaryExpression",
+      "adapterRequirement": "输出操作符、左右表达式和逻辑组合。",
+      "supportLevel": "required",
+      "testCaseId": "parseBinaryExpression",
+      "rawFallbackAllowed": false,
+      "notes": "覆盖 WHERE 中的比较和 AND 组合。"
+    },
+    {
+      "id": "SQL-EXPR-FUNCTION",
+      "category": "expression",
+      "druidAstType": "com.alibaba.druid.sql.ast.expr.SQLAggregateExpr",
+      "sqlConstruct": "聚合函数",
+      "exampleSql": "SELECT COUNT(*) FROM person",
+      "nebulaAstKind": "FunctionCallExpression",
+      "adapterRequirement": "输出函数名、参数列表和聚合标记。",
+      "supportLevel": "required",
+      "testCaseId": "parseAggregateFunction",
+      "rawFallbackAllowed": false,
+      "notes": "普通函数可复用函数调用表达式分类。"
+    },
+    {
+      "id": "SQL-EXPR-ALIAS",
+      "category": "expression",
+      "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLSelectItem",
+      "sqlConstruct": "列别名",
+      "exampleSql": "SELECT name AS display_name FROM person",
+      "nebulaAstKind": "SelectItem",
+      "adapterRequirement": "输出投影表达式和 alias。",
+      "supportLevel": "required",
+      "testCaseId": "parseSelectAlias",
+      "rawFallbackAllowed": false,
+      "notes": "覆盖 MyBatis/JdbcTemplate 常见列别名。"
+    },
+    {
+      "id": "SQL-EXPR-PARAMETER",
+      "category": "expression",
+      "druidAstType": "com.alibaba.druid.sql.ast.expr.SQLVariantRefExpr",
+      "sqlConstruct": "? 参数占位符",
+      "exampleSql": "SELECT * FROM person WHERE id = ?",
+      "nebulaAstKind": "ParameterExpression",
+      "adapterRequirement": "输出占位符索引或稳定参数节点，不得展开为字符串。",
+      "supportLevel": "required",
+      "testCaseId": "parseParameterPlaceholder",
+      "rawFallbackAllowed": false,
+      "notes": "JDBC PreparedStatement 基础能力。"
+    },
+    {
+      "id": "SQL-EXPR-IN",
+      "category": "expression",
+      "druidAstType": "com.alibaba.druid.sql.ast.expr.SQLInListExpr",
+      "sqlConstruct": "IN 条件",
+      "exampleSql": "SELECT * FROM person WHERE id IN (?, ?, ?)",
+      "nebulaAstKind": "InListExpression",
+      "adapterRequirement": "输出目标表达式和 IN 参数列表。",
+      "supportLevel": "required",
+      "testCaseId": "parseInListExpression",
+      "rawFallbackAllowed": false,
+      "notes": "覆盖 MyBatis 动态 IN 列表。"
+    },
+    {
+      "id": "SQL-FRAMEWORK-SELECT-ONE",
+      "category": "frameworkGenerated",
+      "druidAstType": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock",
+      "sqlConstruct": "SELECT 1",
+      "exampleSql": "SELECT 1",
+      "nebulaAstKind": "SelectStatement",
+      "adapterRequirement": "输出无表 SELECT 和数字字面量投影。",
+      "supportLevel": "required",
+      "testCaseId": "parseSelectOne",
+      "rawFallbackAllowed": false,
+      "notes": "常见连接探活 SQL。"
+    },
+    {
+      "id": "SQL-FRAMEWORK-COUNT",
+      "category": "frameworkGenerated",
+      "druidAstType": "com.alibaba.druid.sql.ast.expr.SQLAggregateExpr",
+      "sqlConstruct": "SELECT COUNT(*)",
+      "exampleSql": "SELECT COUNT(*) FROM person",
+      "nebulaAstKind": "FunctionCallExpression",
+      "adapterRequirement": "输出 COUNT 聚合函数和星号参数。",
+      "supportLevel": "required",
+      "testCaseId": "parseSelectCount",
+      "rawFallbackAllowed": false,
+      "notes": "分页插件和 JdbcTemplate 常见形态。"
+    },
+    {
+      "id": "SQL-FRAMEWORK-METADATA",
+      "category": "frameworkGenerated",
+      "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLShowColumnsStatement",
+      "sqlConstruct": "metadata 探测 SQL",
+      "exampleSql": "SHOW COLUMNS FROM person",
+      "nebulaAstKind": "MetadataStatement",
+      "adapterRequirement": "输出目标对象、列元数据探测动作和可选过滤条件的结构化 metadata 节点。",
+      "supportLevel": "required",
+      "testCaseId": "parseShowColumnsMetadata",
+      "rawFallbackAllowed": false,
+      "notes": "用于 JDBC metadata 和框架初始化探测。"
+    },
+    {
+      "id": "SQL-FRAMEWORK-DYNAMIC-WHERE",
+      "category": "frameworkGenerated",
+      "druidAstType": "com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr",
+      "sqlConstruct": "动态 SQL 展开后的条件组合",
+      "exampleSql": "SELECT * FROM person WHERE 1 = 1 AND name LIKE ? AND status = ?",
+      "nebulaAstKind": "BinaryExpression",
+      "adapterRequirement": "输出完整 WHERE 表达式树，不把动态来源作为特殊语义处理。",
+      "supportLevel": "required",
+      "testCaseId": "parseDynamicWhereExpression",
+      "rawFallbackAllowed": false,
+      "notes": "MyBatis 动态 SQL 展开后进入 parser 的是普通 SQL。"
+    },
+    {
+      "id": "SQL-STMT-INSERT",
+      "category": "statement",
+      "druidAstType": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement",
+      "sqlConstruct": "INSERT",
+      "exampleSql": "INSERT INTO person (id, name) VALUES (?, ?)",
+      "nebulaAstKind": "InsertStatement",
+      "adapterRequirement": "输出目标表、列列表和值列表。",
+      "supportLevel": "required",
+      "testCaseId": "parseInsertStatement",
+      "rawFallbackAllowed": false,
+      "notes": "转换层是否映射为点或边不在本 change 内判断。"
+    },
+    {
+      "id": "SQL-STMT-UPDATE",
+      "category": "statement",
+      "druidAstType": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement",
+      "sqlConstruct": "UPDATE",
+      "exampleSql": "UPDATE person SET name = ? WHERE id = ?",
+      "nebulaAstKind": "UpdateStatement",
+      "adapterRequirement": "输出目标表、赋值列表和 WHERE 条件。",
+      "supportLevel": "required",
+      "testCaseId": "parseUpdateStatement",
+      "rawFallbackAllowed": false,
+      "notes": "WHERE 表达式复用表达式 adapter。"
+    },
+    {
+      "id": "SQL-STMT-DELETE",
+      "category": "statement",
+      "druidAstType": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement",
+      "sqlConstruct": "DELETE",
+      "exampleSql": "DELETE FROM person WHERE id = ?",
+      "nebulaAstKind": "DeleteStatement",
+      "adapterRequirement": "输出目标表和 WHERE 条件。",
+      "supportLevel": "required",
+      "testCaseId": "parseDeleteStatement",
+      "rawFallbackAllowed": false,
+      "notes": "禁止 raw SQL 作为删除语义。"
+    },
+    {
+      "id": "SQL-STMT-CREATE-TABLE",
+      "category": "statement",
+      "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLCreateTableStatement",
+      "sqlConstruct": "CREATE TABLE",
+      "exampleSql": "CREATE TABLE person (id BIGINT PRIMARY KEY, name VARCHAR(64))",
+      "nebulaAstKind": "CreateSchemaStatement",
+      "adapterRequirement": "输出表名、列定义、约束和表选项的结构化建表节点。",
+      "supportLevel": "required",
+      "testCaseId": "parseCreateTableStatement",
+      "rawFallbackAllowed": false,
+      "notes": "基础 DDL 必须可表达，语义转换由后续 change 决定。"
+    },
+    {
+      "id": "SQL-STMT-DROP-TABLE",
+      "category": "statement",
+      "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLDropTableStatement",
+      "sqlConstruct": "DROP TABLE",
+      "exampleSql": "DROP TABLE person",
+      "nebulaAstKind": "DropSchemaStatement",
+      "adapterRequirement": "输出目标表、IF EXISTS 标记和删除动作的结构化 drop 节点。",
+      "supportLevel": "required",
+      "testCaseId": "parseDropTableStatement",
+      "rawFallbackAllowed": false,
+      "notes": "基础 DDL 覆盖项。"
+    },
+    {
+      "id": "SQL-STMT-SHOW-TABLES",
+      "category": "statement",
+      "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLShowTablesStatement",
+      "sqlConstruct": "SHOW TABLES",
+      "exampleSql": "SHOW TABLES",
+      "nebulaAstKind": "MetadataStatement",
+      "adapterRequirement": "输出 metadata 查询节点。",
+      "supportLevel": "required",
+      "testCaseId": "parseShowTablesStatement",
+      "rawFallbackAllowed": false,
+      "notes": "JDBC metadata 常见入口。"
+    },
+    {
+      "id": "SQL-STMT-DESCRIBE",
+      "category": "statement",
+      "druidAstType": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlExplainStatement",
+      "sqlConstruct": "DESCRIBE",
+      "exampleSql": "DESCRIBE person",
+      "nebulaAstKind": "MetadataStatement",
+      "adapterRequirement": "输出目标对象和描述动作。",
+      "supportLevel": "required",
+      "testCaseId": "parseDescribeStatement",
+      "rawFallbackAllowed": false,
+      "notes": "覆盖 DESCRIBE / DESC 形态。"
+    },
+    {
+      "id": "SQL-UNSUPPORTED-PROCEDURE",
+      "category": "unsupportedOrDeferred",
+      "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLCallStatement",
+      "sqlConstruct": "CALL / routine",
+      "exampleSql": "CALL refresh_person()",
+      "nebulaAstKind": "UnsupportedStatement",
+      "adapterRequirement": "返回结构化不支持错误，错误信息包含矩阵 ID。",
+      "supportLevel": "explicitlyUnsupported",
+      "testCaseId": "rejectRoutineCall",
+      "rawFallbackAllowed": false,
+      "notes": "routine 不在本路线当前范围。"
+    },
+    {
+      "id": "SQL-UNSUPPORTED-TRIGGER-DDL",
+      "category": "unsupportedOrDeferred",
+      "druidAstType": "com.alibaba.druid.sql.ast.statement.SQLCreateTriggerStatement",
+      "sqlConstruct": "CREATE TRIGGER",
+      "exampleSql": "CREATE TRIGGER trg BEFORE INSERT ON person FOR EACH ROW SET @x = 1",
+      "nebulaAstKind": "UnsupportedStatement",
+      "adapterRequirement": "CREATE TRIGGER 由 trigger DDL handler 在 SQL 执行入口处理；parser-core 必须返回结构化不支持错误而不是 raw fallback。",
+      "supportLevel": "explicitlyUnsupported",
+      "testCaseId": "rejectCreateTriggerInParserCore",
+      "rawFallbackAllowed": false,
+      "notes": "trigger DDL metadata 管理由 add-nebula-mysql-trigger-subset change 的 TriggerDdlHandler 负责。"
+    }
+  ],
+  "reflectedCandidates": [
+    {
+      "className": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-STMT-SELECT-BASIC",
+      "relatedEntryIds": [
+        "SQL-FRAMEWORK-SELECT-ONE"
+      ],
+      "reason": "基础 SELECT 与框架探活 SELECT 1 均已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLJoinTableSource",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-QUERY-JOIN",
+      "reason": "JOIN 查询结构已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-QUERY-SUBQUERY",
+      "reason": "FROM 子查询结构已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLUnionQuery",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-QUERY-UNION",
+      "reason": "UNION 查询结构已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLSelectGroupByClause",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-QUERY-GROUP-HAVING",
+      "reason": "GROUP BY 和 HAVING 结构已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-EXPR-BINARY",
+      "relatedEntryIds": [
+        "SQL-FRAMEWORK-DYNAMIC-WHERE"
+      ],
+      "reason": "二元和逻辑表达式已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLAggregateExpr",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-EXPR-FUNCTION",
+      "relatedEntryIds": [
+        "SQL-FRAMEWORK-COUNT"
+      ],
+      "reason": "聚合函数表达式已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLSelectItem",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-EXPR-ALIAS",
+      "reason": "投影和别名节点已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLVariantRefExpr",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-EXPR-PARAMETER",
+      "reason": "参数占位符节点已纳入 required 结构化输出边界，且不得展开为字符串。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLInListExpr",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-EXPR-IN",
+      "reason": "IN 参数列表表达式已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLShowColumnsStatement",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-FRAMEWORK-METADATA",
+      "reason": "SHOW COLUMNS 是 JDBC metadata 探测路径，已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-STMT-INSERT",
+      "reason": "INSERT DML 已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-STMT-UPDATE",
+      "reason": "UPDATE DML 已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-STMT-DELETE",
+      "reason": "DELETE DML 已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLCreateTableStatement",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-STMT-CREATE-TABLE",
+      "reason": "CREATE TABLE DDL 已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLDropTableStatement",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-STMT-DROP-TABLE",
+      "reason": "DROP TABLE DDL 已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLShowTablesStatement",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-STMT-SHOW-TABLES",
+      "reason": "SHOW TABLES metadata 查询已纳入 required 结构化输出边界。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLDescribeStatement",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-DESCRIBE",
+      "reason": "该类存在于 Druid 1.2.24 JAR，但 MYSQL 方言下当前 DESCRIBE person 样例的实际顶层 AST 是 MySqlExplainStatement；保留此候选用于反射类存在性记录，不将其作为本样例的主 AST。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLCallStatement",
+      "status": "explicitlyUnsupported",
+      "entryId": "SQL-UNSUPPORTED-PROCEDURE",
+      "reason": "CALL/routine 当前路线明确不支持，parser-core 必须返回结构化不支持错误。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLCreateTriggerStatement",
+      "status": "explicitlyUnsupported",
+      "entryId": "SQL-UNSUPPORTED-TRIGGER-DDL",
+      "reason": "CREATE TRIGGER 由 trigger DDL handler 在 SQL 执行入口处理，parser-core 不输出公共 trigger AST。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.SQLDataTypeImpl",
+      "status": "excludedInternalContainer",
+      "entryId": "SQL-STMT-CREATE-TABLE",
+      "reason": "CREATE TABLE 列定义中的具体数据类型载体由其父 DDL 节点递归消费，不构成独立 SQL 构造或 adapter acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.SQLLimit",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-SELECT-BASIC",
+      "reason": "LIMIT 是基础 SELECT 的已承诺结构化字段，由基础 SELECT adapter 递归输出，不单列验收 entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.SQLOrderBy",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-SELECT-BASIC",
+      "reason": "ORDER BY 容器由基础 SELECT 的结构化输出递归消费；排序语义已在该 entry 的 adapterRequirement 中承诺。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr",
+      "status": "coveredByContainingEntry",
+      "relatedEntryIds": [
+        "SQL-STMT-SELECT-BASIC",
+        "SQL-EXPR-BINARY",
+        "SQL-EXPR-PARAMETER",
+        "SQL-EXPR-IN",
+        "SQL-FRAMEWORK-DYNAMIC-WHERE"
+      ],
+      "reason": "SELECT * 投影由关联 SELECT 的选择列结构递归表达，不作为独立 SQL 构造或 adapter acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLCharExpr",
+      "status": "excludedLiteralOrIdentifier",
+      "entryId": "SQL-EXPR-BINARY",
+      "reason": "字符串字面量是父表达式的结构化叶子值；adapter 必须保留其类型和值边界，但无需为单一字面量建立 acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr",
+      "status": "excludedLiteralOrIdentifier",
+      "relatedEntryIds": [
+        "SQL-STMT-SELECT-BASIC",
+        "SQL-EXPR-BINARY",
+        "SQL-EXPR-ALIAS",
+        "SQL-QUERY-GROUP-HAVING"
+      ],
+      "reason": "列、表和别名标识符由其父语句或表达式以结构化名称递归消费；单一标识符不扩张为独立 adapter acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLIntegerExpr",
+      "status": "excludedLiteralOrIdentifier",
+      "relatedEntryIds": [
+        "SQL-STMT-SELECT-BASIC",
+        "SQL-FRAMEWORK-SELECT-ONE",
+        "SQL-FRAMEWORK-DYNAMIC-WHERE"
+      ],
+      "reason": "整数常量是 LIMIT、SELECT 1 和比较表达式的结构化叶子值，不单列为 adapter acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.expr.SQLPropertyExpr",
+      "status": "excludedLiteralOrIdentifier",
+      "entryId": "SQL-QUERY-JOIN",
+      "reason": "限定列引用如 p.id 由 JOIN/表达式 adapter 递归消费，不能作为独立 SQL 构造重复验收。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLAssignItem",
+      "status": "excludedInternalContainer",
+      "entryId": "SQL-UNSUPPORTED-TRIGGER-DDL",
+      "reason": "触发器体中的赋值组装节点随 CREATE TRIGGER handler 处置，不形成 parser-core 独立 acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLCharacterDataType",
+      "status": "excludedInternalContainer",
+      "entryId": "SQL-STMT-CREATE-TABLE",
+      "reason": "字符类型声明是 CREATE TABLE 列定义的内部组成，不是独立 SQL 构造。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLColumnDefinition",
+      "status": "excludedInternalContainer",
+      "entryId": "SQL-STMT-CREATE-TABLE",
+      "reason": "列定义由 CREATE TABLE adapter 作为 DDL 子结构递归消费，不单列 acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLColumnPrimaryKey",
+      "status": "excludedInternalContainer",
+      "entryId": "SQL-STMT-CREATE-TABLE",
+      "reason": "主键约束是列定义内部约束节点，由 CREATE TABLE 的结构化 DDL 输出承载。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLExprTableSource",
+      "status": "coveredByContainingEntry",
+      "relatedEntryIds": [
+        "SQL-STMT-SELECT-BASIC",
+        "SQL-QUERY-JOIN",
+        "SQL-STMT-INSERT",
+        "SQL-STMT-UPDATE",
+        "SQL-STMT-DELETE"
+      ],
+      "reason": "普通表源由关联语句和 JOIN 的数据源字段递归输出；它是容器，不单独定义 adapter acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLInsertStatement$ValuesClause",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-INSERT",
+      "reason": "INSERT VALUES 子句由 INSERT adapter 递归输出列与值，不作为独立 SQL 构造重复验收。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLSelect",
+      "status": "coveredByContainingEntry",
+      "relatedEntryIds": [
+        "SQL-STMT-SELECT-BASIC",
+        "SQL-QUERY-SUBQUERY",
+        "SQL-QUERY-UNION"
+      ],
+      "reason": "SQLSelect 是 SELECT 查询包装容器；其查询块、排序和 LIMIT 均由关联 entry 递归消费。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-SELECT-BASIC",
+      "reason": "排序项由 ORDER BY 容器和基础 SELECT 的结构化输出递归消费，不单列验收 entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLSelectStatement",
+      "status": "coveredByContainingEntry",
+      "relatedEntryIds": [
+        "SQL-STMT-SELECT-BASIC",
+        "SQL-FRAMEWORK-SELECT-ONE"
+      ],
+      "reason": "SQLSelectStatement 是顶层 SELECT 语句容器；实际适配边界由其查询块和查询结构 entry 定义。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLSetStatement",
+      "status": "excludedInternalContainer",
+      "entryId": "SQL-UNSUPPORTED-TRIGGER-DDL",
+      "reason": "样例中该 SET 语句属于触发器体，随 CREATE TRIGGER handler 处置，不形成独立 acceptance entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-UPDATE",
+      "reason": "UPDATE SET 项由 UPDATE adapter 递归输出赋值目标和值，不单列验收 entry。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement",
+      "status": "coveredByContainingEntry",
+      "entryId": "SQL-STMT-CREATE-TABLE",
+      "reason": "Druid 在 MYSQL 方言下为 CREATE TABLE 产出该具体子类；它由矩阵中的 CREATE TABLE 结构化 DDL entry 覆盖。"
+    },
+    {
+      "className": "com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlExplainStatement",
+      "status": "coveredByMatrix",
+      "entryId": "SQL-STMT-DESCRIBE",
+      "reason": "Druid 在 MYSQL 方言下将当前 DESCRIBE person 样例解析为该具体顶层语句类；DESCRIBE 的 metadata 语义由该 entry 处置。"
+    }
+  ],
+  "parserCoreConsumption": {
+    "matrixIsTestFactSource": true,
+    "markdownIsTestFactSource": false,
+    "requiredBehavior": {
+      "required": "解析 exampleSql，断言 Druid AST 类型被 adapter 覆盖，并产生 nebulaAstKind。",
+      "explicitlyUnsupported": "解析到该结构时返回结构化不支持错误，错误中包含矩阵 ID 或稳定错误码。",
+      "deferred": "不作为当前 parser-core 必过实现项，但测试报告或文档必须能说明延期原因。"
+    },
+    "rawSqlPolicy": {
+      "debugTraceAllowed": true,
+      "errorContextAllowed": true,
+      "defaultEnabled": false,
+      "explicitEnableRequired": true,
+      "redactionRequired": true,
+      "truncationRequired": true,
+      "bindingParameterValuesAllowed": false,
+      "semanticFallbackAllowed": false
+    },
+    "failureMessageFields": [
+      "id",
+      "druidAstType",
+      "exampleSql"
+    ]
+  },
+  "upgradePolicy": {
+    "rerunSampleSqlEnumeration": true,
+    "rerunReflectionGapCheck": true,
+    "reevaluateParserCoreAcceptanceBoundary": true
+  }
+}

@@ -32,6 +32,7 @@ import net.dreamlu.iot.mqtt.core.server.store.IMqttMessageStore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 
 /**
  * mica mqtt broker 配置
@@ -46,6 +47,7 @@ public class MqttBrokerConfiguration {
 	 * @return IMessageSerializer 消息序列化器实例
 	 */
 	@Bean
+	@ConditionalOnMissingBean
 	public IMessageSerializer messageSerializer() {
 		return new JsonMessageSerializer();
 	}
@@ -55,6 +57,7 @@ public class MqttBrokerConfiguration {
 	 * @return IMqttConnectStatusListener MQTT连接状态监听器实例
 	 */
 	@Bean
+	@ConditionalOnMissingBean
 	public IMqttConnectStatusListener mqttBrokerConnectListener() {
 		return new RedisMqttConnectStatusListener();
 	}
@@ -65,6 +68,7 @@ public class MqttBrokerConfiguration {
 	 * @return IMqttMessageStore MQTT消息存储实例
 	 */
 	@Bean
+	@ConditionalOnMissingBean
 	public IMqttMessageStore mqttMessageStore(IMessageSerializer messageSerializer) {
 		return new RedisMqttMessageStore(messageSerializer);
 	}
@@ -76,8 +80,11 @@ public class MqttBrokerConfiguration {
 	 * @return RedisMqttMessageExchangeReceiver Redis MQTT上行消息接收器实例
 	 */
 	@Bean
-	public RedisMqttMessageExchangeReceiver mqttMessageUpReceiver(IMessageSerializer messageSerializer,MqttServer mqttServer) {
-		return new RedisMqttMessageExchangeReceiver(messageSerializer, mqttServer, RedisKeys.REDIS_CHANNEL_EXCHANGE.getKey());
+	@ConditionalOnMissingBean
+	public RedisMqttMessageExchangeReceiver mqttMessageUpReceiver(IMessageSerializer messageSerializer,
+																  MqttServer mqttServer,
+																  RedisConnectionFactory redisConnectionFactory) {
+		return new RedisMqttMessageExchangeReceiver(messageSerializer, mqttServer, RedisKeys.REDIS_CHANNEL_EXCHANGE.getKey(), redisConnectionFactory);
 	}
 
 	/**
@@ -87,8 +94,11 @@ public class MqttBrokerConfiguration {
 	 * @return RedisMqttMessageDownReceiver Redis MQTT下行消息接收器实例
 	 */
 	@Bean
-	public RedisMqttMessageDownReceiver mqttMessageDownReceiver(IMessageSerializer messageSerializer,MqttServer mqttServer) {
-		return new RedisMqttMessageDownReceiver(messageSerializer, mqttServer,RedisKeys.REDIS_CHANNEL_DOWN.getKey());
+	@ConditionalOnMissingBean
+	public RedisMqttMessageDownReceiver mqttMessageDownReceiver(IMessageSerializer messageSerializer,
+																MqttServer mqttServer,
+																RedisConnectionFactory redisConnectionFactory) {
+		return new RedisMqttMessageDownReceiver(messageSerializer, mqttServer, RedisKeys.REDIS_CHANNEL_DOWN.getKey(), redisConnectionFactory);
 	}
 
 	/**
@@ -97,6 +107,7 @@ public class MqttBrokerConfiguration {
 	 * @return IMqttMessageDispatcher MQTT消息分发器实例
 	 */
 	@Bean
+	@ConditionalOnMissingBean
 	public IMqttMessageDispatcher mqttMessageDispatcher(IMessageSerializer messageSerializer) {
 		return new RedisMqttMessageDispatcher(messageSerializer, RedisKeys.REDIS_CHANNEL_EXCHANGE.getKey());
 	}
@@ -107,6 +118,7 @@ public class MqttBrokerConfiguration {
 	 * @return RedisMqttServerManage Redis MQTT服务器管理实例
 	 */
 	@Bean
+	@ConditionalOnMissingBean
 	public RedisMqttServerManage mqttServerManage(MqttServer mqttServer) {
 		return new RedisMqttServerManage(mqttServer);
 	}
@@ -117,6 +129,7 @@ public class MqttBrokerConfiguration {
 	 * @return 返回MQTT代理服务实例，用于处理MQTT协议相关的业务逻辑
 	 */
 	@Bean
+	@ConditionalOnMissingBean
 	public IMqttBrokerService mqttBrokerService() {
 		return new MqttBrokerServiceImpl();
 	}

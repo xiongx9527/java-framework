@@ -26,6 +26,36 @@
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
+
+        <dependency>
+            <groupId>org.jeecgframework.jimureport</groupId>
+            <artifactId>jimureport-spring-boot3-starter</artifactId>
+        </dependency>
+
+        <!-- 未使用：无 NoSQL 数据源功能引用，按需启用 -->
+        <!--
+        <dependency>
+            <groupId>org.jeecgframework.jimureport</groupId>
+            <artifactId>jimureport-nosql-starter</artifactId>
+        </dependency>
+        -->
+
+        <!-- 未使用：无 ECharts 图表功能引用，按需启用 -->
+        <!--
+        <dependency>
+            <groupId>org.jeecgframework.jimureport</groupId>
+            <artifactId>jimureport-echarts-starter</artifactId>
+        </dependency>
+        -->
+
+        <!-- 未使用：无 JimuBI 功能引用，按需启用 -->
+        <!--
+        <dependency>
+            <groupId>org.jeecgframework.jimureport</groupId>
+            <artifactId>jimubi-spring-boot-starter</artifactId>
+        </dependency>
+        -->
+
     </dependencies>
 
 </project>

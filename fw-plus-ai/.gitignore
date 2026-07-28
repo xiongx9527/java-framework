@@ -1,2 +1,5 @@
+target/
+.flattened-pom.xml
+
 /fw-plus-ai-samples/fw-plus-wrenai-langchain4j-sample/target/
 /fw-plus-ai-samples/fw-plus-wrenai-langchain4j-sample/logs/

@@ -1,22 +1,36 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller.MagicAPIController;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProperties;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.DataSourceBuilder;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.DruidDataSourceBuilder;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.MyDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.filter.auth.AuthConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock.Lock;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dify.DifyModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock.LockModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.mybatisflex.MyBatisFlexConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.template.TemplateModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.trace.TraceModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.uid.UidModuleConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.sse.SseModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.MagicApiPluginAutoConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ExceptionResultProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ParamProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ResultProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.key.MagicApiRequestKeyResolver;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.repeat.DefaultRepeatSubmitKeySuffixProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.repeat.RepeatSubmitKeyResolver;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.repeat.RepeatSubmitKeySuffixProvider;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.repeat.RepeatSubmitRequestInterceptor;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.sentinel.MagicApiSentinelGuardRequestInterceptor;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.sentinel.MagicApiSentinelResourceResolver;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.sentinel.MagicApiSentinelRuleManager;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.resource.MyDefaultMagicResourceService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.*;
@@ -39,7 +53,7 @@ import java.util.*;
 
 @Slf4j
 @ConditionalOnProperty(prefix = "fw.plus.magicapi", name = "enabled", havingValue = "true", matchIfMissing = true)
-@EnableConfigurationProperties(DataSourceProperties.class)
+@EnableConfigurationProperties({DataSourceProperties.class, MagicJdbcClassOptionProperties.class})
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnClass(name={"org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration"})
 @Configuration
@@ -50,6 +64,8 @@ import java.util.*;
 		 MyBatisFlexConfiguration.class,
 		 TemplateModuleConfiguration.class,
          MagicApiPluginAutoConfiguration.class,
+		 DifyModuleConfiguration.class,
+		 SseModuleConfiguration.class,
 		 TraceModuleConfiguration.class})
 public class MagicAPIBaseAutoConfiguration implements ApplicationRunner {
 
@@ -107,14 +123,77 @@ public class MagicAPIBaseAutoConfiguration implements ApplicationRunner {
         this.applicationContext = applicationContext;
     }
 
-    /**
-     * 配置并创建一个ExceptionResultProvider的Bean实例
+	/**
+	 * 配置并创建一个ParamProvider的Bean实例
+	 *
+	 * @return ParamProvider的实例，用于处理参数提供
+	 */
+	@Bean
+	public ParamProvider paramProvider() {
+		return new ParamProvider();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean(name = "defaultRepeatSubmitKeySuffixProvider")
+	public RepeatSubmitKeySuffixProvider defaultRepeatSubmitKeySuffixProvider() {
+		return new DefaultRepeatSubmitKeySuffixProvider();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public RepeatSubmitKeyResolver repeatSubmitKeyResolver(ApplicationContext applicationContext,
+														   @Qualifier("defaultRepeatSubmitKeySuffixProvider")
+														   RepeatSubmitKeySuffixProvider defaultSuffixProvider) {
+		return new RepeatSubmitKeyResolver(applicationContext, defaultSuffixProvider);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public RepeatSubmitRequestInterceptor repeatSubmitRequestInterceptor(Lock lock,
+																		 org.ssssssss.magicapi.core.interceptor.ResultProvider resultProvider,
+																		 RepeatSubmitKeyResolver keyResolver) {
+		return new RepeatSubmitRequestInterceptor(lock, resultProvider, keyResolver);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public MagicApiRequestKeyResolver magicApiRequestKeyResolver() {
+		return new MagicApiRequestKeyResolver();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public MagicApiSentinelResourceResolver magicApiSentinelResourceResolver() {
+		return new MagicApiSentinelResourceResolver();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public MagicApiSentinelRuleManager magicApiSentinelRuleManager() {
+		return new MagicApiSentinelRuleManager();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public MagicApiSentinelGuardRequestInterceptor magicApiSentinelGuardRequestInterceptor(
+			org.ssssssss.magicapi.core.interceptor.ResultProvider resultProvider,
+			MagicApiRequestKeyResolver keyResolver,
+			MagicApiSentinelResourceResolver resourceResolver,
+			MagicApiSentinelRuleManager ruleManager) {
+		return new MagicApiSentinelGuardRequestInterceptor(resultProvider, keyResolver, resourceResolver, ruleManager);
+	}
+
+
+	    /**
+	     * 创建ResultProvider Bean实例
      *
-     * @return ExceptionResultProvider的实例，用于处理异常结果
+     * 该方法用于向Spring容器中注册ResultProvider组件，用于统一处理MagicAPI的响应结果格式
+     *
+     * @return ResultProvider实例，用于构建统一的API响应结果
      */
-    @Bean
-    public ResultProvider resultProvider(@Autowired(required = false) ExceptionResultProvider exceptionResultProvider) {
-        return new ResultProvider(exceptionResultProvider);
+	@Bean
+    public ResultProvider resultProvider() {
+        return new ResultProvider(properties);
     }
 
 	/**
@@ -130,6 +209,13 @@ public class MagicAPIBaseAutoConfiguration implements ApplicationRunner {
 	@ConditionalOnClass(name={"com.alibaba.druid.pool.DruidDataSource"})
 	public DruidDataSourceBuilder magicDynamicDataSourceBuilder() {
 		return new DruidDataSourceBuilder();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean(MagicJdbcClassOptionProvider.class)
+	public MagicJdbcClassOptionProvider magicJdbcClassOptionProvider(MagicJdbcClassOptionProperties properties,
+																	 Map<String, DataSourceBuilder> dataSourceBuilderMap) {
+		return new MagicJdbcClassOptionProvider(properties, dataSourceBuilderMap, MagicAPIBaseAutoConfiguration.class.getClassLoader());
 	}
 
 	/**

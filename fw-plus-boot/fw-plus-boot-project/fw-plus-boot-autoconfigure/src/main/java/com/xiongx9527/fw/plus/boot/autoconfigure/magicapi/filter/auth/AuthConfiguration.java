@@ -1,12 +1,14 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.filter.auth;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 
 @ConditionalOnProperty(prefix = "magic.api.resource", name = "read-only", havingValue = "false", matchIfMissing = true)
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @Configuration
 public class AuthConfiguration {
 

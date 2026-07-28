@@ -1,7 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.model;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.TypeReference;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.RedisMqttMessageDownReceiver;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.RedisMqttMessageExchangeReceiver;
@@ -24,7 +23,6 @@ import net.dreamlu.iot.mqtt.core.server.store.InMemoryMqttMessageStore;
 import net.dreamlu.iot.mqtt.core.server.support.DefaultMqttConnectStatusListener;
 import net.dreamlu.iot.mqtt.core.server.support.DefaultMqttServerProcessor;
 import net.dreamlu.iot.mqtt.core.server.support.DefaultMqttServerUniqueIdServiceImpl;
-import net.dreamlu.iot.mqtt.spring.server.MqttServerTemplate;
 import net.dreamlu.iot.mqtt.spring.server.config.MqttServerProperties;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.DisposableBean;
@@ -45,17 +43,18 @@ import org.tio.utils.timer.TimerTaskService;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public abstract class BaseMagicDynamicMqttDataSource implements BaseService, DisposableBean {
 
     /**
-     * 存储客户端标识与对应 MQTT 服务端实例的映射关系。
-     * 使用线程安全的 ConcurrentHashMap 实现并发访问控制。
+     * 服务器实例集合，用于存储所有已创建的 MQTT 服务器实例。
      */
-    private final Map<String, MagicAPIMqttServer> clientMap = new ConcurrentHashMap<>();
+    private final Map<String, MagicAPIMqttServer> serverMap = new ConcurrentHashMap<>();
 
     /**
      * 存储数据源名称与对应 MQTT 数据源信息的映射关系。
@@ -74,11 +73,11 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
         MqttServerProperties mqttServerProperties = new MqttServerProperties();
         String name = info.getName();
         String ip = info.getIp();
-        ip = SpringUtils.getAppConfig(String.format("magic.api.mqtt.%s.ip",info.getKey()), ip);
+        ip = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "ip", ip);
         String port = info.getPort();
-        port = SpringUtils.getAppConfig(String.format("magic.api.mqtt.%s.port",info.getKey()), port);
+        port = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "port", port);
         String webPort = info.getWebPort();
-        webPort = SpringUtils.getAppConfig(String.format("magic.api.mqtt.%s.webPort",info.getKey()), webPort);
+        webPort = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "webPort", webPort);
         // 基础网络配置
         mqttServerProperties.setName(info.getName());
         mqttServerProperties.setIp(ip);
@@ -97,9 +96,9 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
             mqttServerProperties.setWebPort(8083);
         }
         String username = info.getUsername();
-        username = SpringUtils.getAppConfig(String.format("magic.api.mqtt.%s.username",info.getKey()), username);
+        username = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "username", username);
         String password = info.getPassword();
-        password = SpringUtils.getAppConfig(String.format("magic.api.mqtt.%s.password",info.getKey()), password);
+        password = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "password", password);
         // 如果用户名和密码都不为空，则配置MQTT认证信息
         if (StringUtils.isNotBlank(username) && StringUtils.isNotBlank(password)) {
             MqttServerProperties.MqttAuth mqttAuth = new MqttServerProperties.MqttAuth();
@@ -108,25 +107,21 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
             mqttAuth.setPassword(password);
             mqttServerProperties.setAuth(mqttAuth);
         }
-        String other = info.getOther();
-        other = SpringUtils.getAppConfig(String.format("magic.api.mqtt.%s.other",info.getKey()), other);
-        // 从 other JSON 字符串中解析配置信息
-        if (StringUtils.isNotBlank(other)) {
+        String configuredProperties = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "properties", null);
+        Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(info.getProperties(), configuredProperties);
+        if (!properties.isEmpty()) {
             try {
-                // 将 JSON 字符串转换为 Map
-                Map<String, Object> otherConfig = JSON.parseObject(other, new TypeReference<Map<String, Object>>() {});
-                // 连接管理配置 - 从 otherConfig 中获取
-                mqttServerProperties.setHeartbeatTimeout(getConfigValueAsLong(otherConfig, "heartbeatTimeout", getHeartbeatTimeout()));
-                mqttServerProperties.setKeepaliveBackoff(getConfigValueAsFloat(otherConfig, "keepaliveBackoff", getKeepaliveBackoff()));
-                mqttServerProperties.setMaxClientIdLength(getConfigValueAsInt(otherConfig, "maxClientIdLength", getMaxClientIdLength()));
+                mqttServerProperties.setHeartbeatTimeout(getConfigValueAsLong(properties, "heartbeatTimeout", getHeartbeatTimeout()));
+                mqttServerProperties.setKeepaliveBackoff(getConfigValueAsFloat(properties, "keepaliveBackoff", getKeepaliveBackoff()));
+                mqttServerProperties.setMaxClientIdLength(getConfigValueAsInt(properties, "maxClientIdLength", getMaxClientIdLength()));
 
                 // 缓冲区配置 - 从 otherConfig 中获取
-                long readBufferSize = getConfigValueAsLong(otherConfig, "readBufferSize", getReadBufferSize());
+                long readBufferSize = getConfigValueAsLong(properties, "readBufferSize", getReadBufferSize());
                 mqttServerProperties.setReadBufferSize(DataSize.ofBytes(readBufferSize));
-                long maxBytesInMessage = getConfigValueAsLong(otherConfig, "maxBytesInMessage", getMaxBytesInMessage());
+                long maxBytesInMessage = getConfigValueAsLong(properties, "maxBytesInMessage", getMaxBytesInMessage());
                 mqttServerProperties.setMaxBytesInMessage(DataSize.ofBytes(maxBytesInMessage));
 
-                String bufferAllocator = (String) otherConfig.getOrDefault("bufferAllocator", "");
+                String bufferAllocator = (String) properties.getOrDefault("bufferAllocator", "");
                 if (StringUtils.isNotBlank(bufferAllocator)) {
                     if ("HEAP".equalsIgnoreCase(bufferAllocator)) {
                         mqttServerProperties.setBufferAllocator(ByteBufferAllocator.HEAP);
@@ -136,25 +131,25 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
                 }
 
                 // 协议支持标志 - 从 otherConfig 中获取
-                if (otherConfig.containsKey("websocketEnable")) {
-                    mqttServerProperties.setWebsocketEnable((Boolean) otherConfig.get("websocketEnable"));
+                if (properties.containsKey("websocketEnable")) {
+                    mqttServerProperties.setWebsocketEnable((Boolean) properties.get("websocketEnable"));
                 }
 
-                if (otherConfig.containsKey("httpEnable")) {
-                    mqttServerProperties.setHttpEnable((Boolean) otherConfig.get("httpEnable"));
+                if (properties.containsKey("httpEnable")) {
+                    mqttServerProperties.setHttpEnable((Boolean) properties.get("httpEnable"));
                 }
 
-                if (otherConfig.containsKey("statEnable")) {
-                    mqttServerProperties.setStatEnable((Boolean) otherConfig.get("statEnable"));
+                if (properties.containsKey("statEnable")) {
+                    mqttServerProperties.setStatEnable((Boolean) properties.get("statEnable"));
                 }
 
-                if (otherConfig.containsKey("debug")) {
-                    mqttServerProperties.setDebug((Boolean) otherConfig.get("debug"));
+                if (properties.containsKey("debug")) {
+                    mqttServerProperties.setDebug((Boolean) properties.get("debug"));
                 }
 
                 // 解析 HTTP Basic 认证配置
-                if (otherConfig.containsKey("httpBasicAuth")) {
-                    Map<String, Object> httpBasicAuthMap = (Map<String, Object>) otherConfig.get("httpBasicAuth");
+                if (properties.containsKey("httpBasicAuth")) {
+                    Map<String, Object> httpBasicAuthMap = (Map<String, Object>) properties.get("httpBasicAuth");
                     MqttServerProperties.HttpBasicAuth httpBasicAuth = new MqttServerProperties.HttpBasicAuth();
                     httpBasicAuth.setEnable((Boolean) httpBasicAuthMap.getOrDefault("enable", false));
                     httpBasicAuth.setUsername((String) httpBasicAuthMap.getOrDefault("username", ""));
@@ -163,8 +158,8 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
                 }
 
                 // 解析 SSL 配置
-                if (otherConfig.containsKey("ssl")) {
-                    Map<String, Object> sslMap = (Map<String, Object>) otherConfig.get("ssl");
+                if (properties.containsKey("ssl")) {
+                    Map<String, Object> sslMap = (Map<String, Object>) properties.get("ssl");
                     MqttServerProperties.Ssl ssl = new MqttServerProperties.Ssl();
                     ssl.setEnabled((Boolean) sslMap.getOrDefault("enabled", false));
                     ssl.setKeystorePath((String) sslMap.getOrDefault("keystorePath", ""));
@@ -184,7 +179,7 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
                     mqttServerProperties.setSsl(ssl);
                 }
             } catch (Exception e) {
-                log.warn("解析 other 配置失败: {}", e.getMessage(), e);
+                log.warn("应用 MQTT properties 失败: {}", e.getMessage(), e);
             }
         }
 
@@ -266,16 +261,11 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
     public abstract IMqttMessageStore getIMqttMessageStore(String key);
 
     /**
-     * 根据提供的MQTT数据源信息构建并返回一个MQTT服务器模板实例。
-     * <p>
-     * 该方法会根据传入的 {@link MqttDataSourceInfo} 构建对应的 {@link MqttServerProperties}，
-     * 并使用这些配置创建一个 {@link MqttServer} 实例，最后封装为 {@link MqttServerTemplate} 返回。
-     * 在构建过程中，还会根据配置启用SSL、HTTP认证、自定义监听器等功能。
-     *
-     * @param info 包含MQTT服务器配置信息的数据源对象，不能为空
-     * @return 构建完成的 {@link MqttServer} 实例
+     * 构建MQTT服务器实例
+     * @param info
+     * @return
      */
-    public MagicAPIMqttServer buildClient(MqttDataSourceInfo info) {
+    public MagicAPIMqttServer buildServer(MqttDataSourceInfo info) {
         MqttServerProperties properties = buildMqttServerProperties(info);
 
         // 构建基础MQTT服务器配置
@@ -511,41 +501,38 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
 
 
     /**
-     * 创建MQTT客户端并存储到映射中
-     * @param info MQTT数据源信息，包含创建客户端所需的所有配置信息
+     * 创建MQTT服务器实例
+     * @param info
      */
-    public void createClient(MqttDataSourceInfo info) {
-        // 构建Weaviate客户端实例
-        MagicAPIMqttServer client = buildClient(info);
-        client.start();
+    public void createServer(MqttDataSourceInfo info) {
+        MagicAPIMqttServer server = buildServer(info);
+        server.start();
         // 将客户端实例按key存储到客户端映射中
-        this.clientMap.put(info.getKey(), client);
+        this.serverMap.put(info.getKey(), server);
         // 将数据源信息按key存储到信息映射中
         this.infoMap.put(info.getKey(), info);
     }
 
 
     /**
-     * 根据指定的键获取对应的MQTT客户端实例
      *
-     * @param key 用于查找MQTT客户端的键值
-     * @return 返回与指定键关联的MqttServer实例，如果不存在则返回null
+     * @param key
+     * @return
      */
-    public MagicAPIMqttServer getClient(String key) {
-        return this.clientMap.get(key);
+    public MagicAPIMqttServer getServer(String key) {
+        return this.serverMap.get(key);
     }
 
 
     /**
-     * 销毁MQTT客户端连接
-     *
-     * @param client MQTT服务器实例，需要被停止的客户端对象
+     * 销毁指定的MQTT服务器实例
+     * @param server
      */
-    public void destroyClient(MagicAPIMqttServer client) {
-        if (client != null) {
+    public void destroyServer(MagicAPIMqttServer server) {
+        if (server != null) {
             try {
                 // 停止MQTT服务器
-                client.stop();
+                server.stop();
             } catch (Exception e) {
                 log.error("Failed to stop MQTT server", e);
             }
@@ -576,65 +563,58 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
         return dataSourceInfoList;
     }
 
-
-
     /**
-     * 根据指定的键销毁客户端连接
+     * 根据指定的键销毁MQTT服务器实例
      *
-     * @param key 客户端的唯一标识键，用于查找和销毁对应的客户端实例
+     * @param key 服务器的唯一标识键，用于查找和销毁对应的服务器实例
      */
-    public void destroyClientByKey(String  key) {
+    public void destroyServerByKey(String  key) {
         // 参数校验，空key直接返回
         if (key == null) {
             return;
         }
         try {
-            // 从客户端映射表中获取并移除对应的客户端实例
-            MagicAPIMqttServer client = this.clientMap.get(key);
+            // 查找并获取指定键对应的客户端实例
+            MagicAPIMqttServer client = this.serverMap.get(key);
             if (client != null) {
                 try {
-                    // 安全地关闭客户端连接
-                    destroyClient(client);
+                    // 停止并销毁指定的MQTT服务器实例
+                    destroyServer(client);
                 } catch (Exception e) {
-                    log.warn("销毁数据源客户端失败: {}", e.getMessage(), e);
+                    log.error("Failed to stop MQTT server", e);
                 }
-                // 从映射表中移除客户端引用
-                this.clientMap.remove(key);
+                // 从映射表中移除服务器引用
+                this.serverMap.remove(key);
             }
             // 同时清理相关的配置信息
             this.infoMap.remove(key);
         } catch (Exception e) {
-            log.warn("销毁数据源客户端失败: {}", e.getMessage(), e);
+            log.warn("销毁数据源服务器失败: {}", e.getMessage(), e);
         }
     }
 
 
     /**
-     * 销毁方法，用于清理资源
-     * <p>
-     * 该方法会遍历所有客户端实例并逐一销毁，然后清空客户端映射表。
-     * 在销毁过程中如果发生异常，会记录警告日志但不会中断整个销毁流程。
-     * </p>
-     *
-     * @throws Exception 销毁过程中可能抛出的异常
+     * 销毁所有MQTT服务器实例
+     * @throws Exception
      */
     @Override
     public void destroy() throws Exception {
         // 遍历并销毁所有客户端实例
-        for (String key : new ArrayList<>(this.clientMap.keySet())) {
+        for (String key : new ArrayList<>(this.serverMap.keySet())) {
             try {
-                destroyClientByKey(key);
+                destroyServerByKey(key);
             } catch (Exception e) {
                 log.warn("销毁数据源客户端失败: {}", e.getMessage(), e);
             }
         }
 
-        // 清空客户端映射表
+
         try {
-            this.clientMap.clear();
+            this.serverMap.clear();
             this.infoMap.clear();
         } catch (Exception e) {
-            log.warn("销毁数据源客户端失败: {}", e.getMessage(), e);
+            log.error("Failed to destroy MQTT server", e);
         }
 
     }

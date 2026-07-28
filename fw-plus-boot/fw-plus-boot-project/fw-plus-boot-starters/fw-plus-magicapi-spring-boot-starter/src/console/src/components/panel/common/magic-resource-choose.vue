@@ -161,23 +161,8 @@ defineExpose({ selectAll, expand })
 .magic-resource-choose .magic-tree :deep(.magic-icon.root){
 	color: var(--main-icon-color)
 }
-.magic-resource-choose .magic-tree :deep(.magic-checkbox){
-	display: inline;
-	margin-right: 3px;
-}
-.magic-resource-choose .magic-tree :deep(.magic-checkbox input + label){
-	width: 12px !important;
-	height: 12px !important;
-}
 .magic-resource-choose .magic-tree :deep(.magic-tree-item){
 	padding-left: 5px;
-}
-.magic-resource-choose .magic-tree :deep(.magic-checkbox input + label::after){
-	width: 12px !important;
-	height: 12px !important;
-	line-height: 12px !important;
-	top: 0 !important;
-	left: 0 !important;
 }
 .magic-resource-choose :deep(.magic-tree label){
 	color: var(--resource-label-color);

@@ -8,6 +8,8 @@ export default {
         export: 'Export',
         push: 'Push',
         skin: 'Skin',
+        fullscreen: 'Fullscreen',
+        exitFullscreen: 'Exit Fullscreen',
         reload: 'reload all resources',
         copy: 'Copy',
         searchText: 'Enter keywords to search',
@@ -272,7 +274,6 @@ export default {
         log: 'Run Log',
         history: 'History',
         aia: 'AI Assistant',
-        tinyflow: 'AI Workflow',
         event: 'Event',
         global: 'Global Parameters',
         response: 'Response',
@@ -406,21 +407,5 @@ export default {
         confirmClearMessages: 'Are you sure you want to clear all chat messages?',
         clearMessages: 'Clear Messages',
         wsNotConnected: '(WebSocket not connected, please connect to the service first)'
-    },
-    tinyflow: {
-        save: 'Save',
-        run: 'Run',
-        export: 'Export',
-        fullscreen: 'Fullscreen',
-        exitFullscreen: 'Exit Fullscreen',
-        results: 'Run Results',
-        running: 'Workflow running...',
-        noResults: 'No results yet',
-        noNodes: 'Current workflow has no nodes',
-        selectWorkflow: 'Select Workflow',
-        loadWorkflowSuccess: 'Workflow loaded successfully',
-        loadWorkflowError: 'Failed to load workflow',
-        success: 'Operation successful',
-        error: 'Operation failed'
     }
 }

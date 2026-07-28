@@ -41,8 +41,7 @@ public class ElasticsearchDataSourceMagicDynamicRegistry extends AbstractMagicDy
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception e) {
-            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
+        } catch (Exception ignored) {
         }
     }
 
@@ -54,7 +53,10 @@ public class ElasticsearchDataSourceMagicDynamicRegistry extends AbstractMagicDy
      */
     @EventListener(condition = "#event.type == 'elasticsearch-datasource'")
     public void onGroupEvent(GroupEvent event) {
-        processEvent(event);
+            try {
+               processEvent(event);
+            } catch (Exception ignored) {
+            }
     }
 
     /**
@@ -67,7 +69,11 @@ public class ElasticsearchDataSourceMagicDynamicRegistry extends AbstractMagicDy
     @Override
     public boolean register(ElasticSearchDataSourceInfo entity) {
         magicElasticSearchDataSource.destroyByKey(entity.getKey());
-        return super.register(entity);
+        try {
+            return super.register(entity);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
@@ -85,7 +91,11 @@ public class ElasticsearchDataSourceMagicDynamicRegistry extends AbstractMagicDy
         magicElasticSearchDataSource.destroyByKey(entity.getKey());
         // 构建ElasticSearch REST客户端
         magicElasticSearchDataSource.buildElasticSearchRestClient(entity);
-        return super.register(mappingNode);
+        try {
+            return super.register(mappingNode);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
@@ -98,7 +108,10 @@ public class ElasticsearchDataSourceMagicDynamicRegistry extends AbstractMagicDy
     protected void unregister(MappingNode<ElasticSearchDataSourceInfo> mappingNode) {
         // 销毁对应key的数据源
         magicElasticSearchDataSource.destroyByKey(mappingNode.getEntity().getKey());
-        super.unregister(mappingNode);
+        try {
+            super.unregister(mappingNode);
+        } catch (Exception ignored) {
+        }
     }
 
     /**

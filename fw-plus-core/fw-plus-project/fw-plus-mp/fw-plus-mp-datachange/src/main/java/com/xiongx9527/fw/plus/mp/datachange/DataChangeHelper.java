@@ -366,7 +366,11 @@ public class DataChangeHelper {
         try {
             // 如果设置了日期格式且值为Date类型，则按照指定的日期格式进行格式化
             if(null != formmat.getDateFormat() && val instanceof Date) {
-                return formatDate((Date) val, formmat.getDateFormat());
+                try {
+                    return formatDate((Date) val, formmat.getDateFormat());
+                } catch (IllegalArgumentException e) {
+                    return val;
+                }
             }
             // 如果设置了枚举类，则将值转换为该枚举类对应的值
             else if(null != formmat.getEnumClass() && formmat.getEnumClass().isEnum()) {
@@ -412,7 +416,11 @@ public class DataChangeHelper {
             }
             // 如果字段有指定日期格式且值为Date类型，则使用指定的日期格式进行格式化
             if(null != field.getDateFormat() && val instanceof Date) {
-                return formatDate((Date) val, field.getDateFormat());
+                try {
+                    return formatDate((Date) val, field.getDateFormat());
+                } catch (IllegalArgumentException e) {
+                    return val;
+                }
             }
             // 如果字段有指定枚举类，则将值映射到枚举类的对应值
             else if(null != field.getEnumClass()) {

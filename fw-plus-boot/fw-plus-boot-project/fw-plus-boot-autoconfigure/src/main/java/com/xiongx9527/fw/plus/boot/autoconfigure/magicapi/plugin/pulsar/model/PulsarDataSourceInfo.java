@@ -3,6 +3,9 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model;
 import lombok.Data;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 public class PulsarDataSourceInfo extends MagicEntity {
 
@@ -10,6 +13,11 @@ public class PulsarDataSourceInfo extends MagicEntity {
 	 * 服务器地址
 	 */
 	private String servers;
+
+	/**
+	 * 服务http地址
+	 */
+	private String serviceUrls;
 
 	/**
 	 * 用户名
@@ -39,7 +47,7 @@ public class PulsarDataSourceInfo extends MagicEntity {
 	/**
 	 * 其他配置
 	 */
-	private String other;
+	private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
 	/**
 	 * 创建一个简单的数据源信息对象副本
@@ -56,8 +64,9 @@ public class PulsarDataSourceInfo extends MagicEntity {
 		dataSourceInfo.setKey(this.key);
 		dataSourceInfo.setTenant(this.tenant);
 		dataSourceInfo.setNamespace(this.namespace);
-		dataSourceInfo.setOther(this.other);
+		dataSourceInfo.setProperties(copyProperties());
 		dataSourceInfo.setServers(this.servers);
+		dataSourceInfo.setServiceUrls(this.serviceUrls);
 		return dataSourceInfo;
 	}
 
@@ -76,9 +85,16 @@ public class PulsarDataSourceInfo extends MagicEntity {
 		dataSourceInfo.setKey(this.key);
 		dataSourceInfo.setTenant(this.tenant);
 		dataSourceInfo.setNamespace(this.namespace);
-		dataSourceInfo.setOther(this.other);
+		dataSourceInfo.setProperties(copyProperties());
 		dataSourceInfo.setServers(this.servers);
+		dataSourceInfo.setServiceUrls(this.serviceUrls);
 		return dataSourceInfo;
+	}
+
+	private Map<String, Object> copyProperties() {
+		return this.properties == null
+				? new LinkedHashMap<String, Object>()
+				: new LinkedHashMap<String, Object>(this.properties);
 	}
 
 }

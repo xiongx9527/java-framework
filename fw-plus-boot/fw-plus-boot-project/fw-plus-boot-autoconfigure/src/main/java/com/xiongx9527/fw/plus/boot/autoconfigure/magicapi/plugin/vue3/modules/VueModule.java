@@ -3,7 +3,6 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.modules;
 import com.alibaba.fastjson2.JSON;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.model.VueInfo;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.service.VueInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.service.VueMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -15,10 +14,15 @@ import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
 @MagicModule("vue3")
 public class VueModule implements BaseService {
+
+    private static final Pattern VUE_IMPORT_PATTERN = Pattern.compile("await import\\('vue'\\)\\.then\\(m\\s*=>\\s*m\\.(\\w+)\\)");
 
     /**
      * Vue模块类
@@ -37,147 +41,50 @@ public class VueModule implements BaseService {
     }
 
 
-    // 构建 Composition API 示例
-    private String buildCompositionApiExample(String jsUrl) {
-        return "// 远程组件使用示例 - Composition API\n" +
-                "<template>\n" +
-                "  <div>\n" +
-                "    <h1>远程组件演示</h1>\n" +
-                "    <component :is=\"remoteComponent\" v-if=\"remoteComponent\" />\n" +
-                "    <div v-else>等待加载组件...</div>\n" +
-                "  </div>\n" +
-                "</template>\n" +
-                "<script setup>\n" +
-                "import { ref, onMounted, defineAsyncComponent } from 'vue';\n" +
-                "const remoteComponent = ref(null);\n" +
-                "onMounted(async () => {\n" +
-                "  try {\n" +
-                "    const module = await import(/* @vite-ignore */ '" + jsUrl + "');\n" +
-                "    remoteComponent.value = defineAsyncComponent(() => Promise.resolve(module.default));\n" +
-                "  } catch (error) {\n" +
-                "    console.error('加载远程组件失败:', error);\n" +
-                "    // 可在此处添加 UI 提示逻辑\n" +
-                "  }\n" +
-                "});\n" +
-                "</script>";
-    }
-
-    // 构建 Options API 示例
-    private String buildOptionsApiExample(String jsUrl) {
-        return "// 远程组件使用示例 - Options API\n" +
-                "<template>\n" +
-                "  <div>\n" +
-                "    <h1>远程组件演示</h1>\n" +
-                "    <component :is=\"remoteComponent\" v-if=\"remoteComponent\" />\n" +
-                "    <div v-else>等待加载组件...</div>\n" +
-                "  </div>\n" +
-                "</template>\n" +
-                "<script>\n" +
-                "import { ref, onMounted, defineAsyncComponent } from 'vue';\n" +
-                "export default {\n" +
-                "  name: 'RemoteDemo',\n" +
-                "  setup() {\n" +
-                "    const remoteComponent = ref(null);\n" +
-                "    onMounted(async () => {\n" +
-                "      try {\n" +
-                "        const module = await import(/* @vite-ignore */ '" + jsUrl + "');\n" +
-                "        remoteComponent.value = defineAsyncComponent(() => Promise.resolve(module.default));\n" +
-                "      } catch (error) {\n" +
-                "        console.error('加载远程组件失败:', error);\n" +
-                "        // 可在此处添加 UI 提示逻辑\n" +
-                "      }\n" +
-                "    });\n" +
-                "    return {\n" +
-                "      remoteComponent\n" +
-                "    };\n" +
-                "  }\n" +
-                "};\n" +
-                "</script>";
-    }
-
     /**
      * 创建组件的使用示例代码字符串，包含 Composition API 和 Options API 两种方式。
      * 示例中展示如何通过动态导入的方式加载远程 Vue 组件。
      *
-     * @param componentId 组件唯一标识符，用于构建远程组件的请求地址
+     * @param path Vue3组件ID或者路径
      * @return 包含两种使用方式（Composition API 和 Options API）的完整代码示例字符串
      */
-    private String createUsageExample(String componentId) {
-        // 构建远程组件 JS 文件的访问 URL
-        String jsUrl = properties.getWeb() + "/vue3/component/export.js?id=" + componentId;
+    private String createUsageExample(String path) {
+        String jsUrl = getWebBaseUrl() + getVue3ComponentPath() + normalizePath(path);
 
-        // 拼接并返回完整的使用示例代码，包括 Composition API 和 Options API 的实现方式
-        return "// 使用方法 - Composition API (推荐)\n" +
-                "<template>\n" +
-                "  <div>\n" +
-                "    <h1>远程组件演示</h1>\n" +
-                "    <component :is=\"remoteComponent\" v-if=\"remoteComponent\" />\n" +
-                "    <div v-else>等待加载组件...</div>\n" +
-                "  </div>\n" +
-                "</template>\n" +
+        return "// Composition API\n" +
                 "<script setup>\n" +
                 "import { ref, onMounted, defineAsyncComponent } from 'vue';\n" +
                 "const remoteComponent = ref(null);\n" +
                 "onMounted(async () => {\n" +
                 "  try {\n" +
-                "    const module = await import(/* @vite-ignore */ '" + jsUrl + "');\n" +
-                "    remoteComponent.value = defineAsyncComponent(() => Promise.resolve(module.default));\n" +
-                "  } catch (error) {\n" +
-                "    console.error('加载远程组件失败:', error);\n" +
+                "    const m = await import(/* @vite-ignore */ '" + jsUrl + "');\n" +
+                "    remoteComponent.value = defineAsyncComponent(() => Promise.resolve(m.default));\n" +
+                "  } catch (e) {\n" +
+                "    console.error('加载失败:', e);\n" +
                 "  }\n" +
                 "});\n" +
                 "</script>\n\n" +
 
-                "// 使用方法 - Options API\n" +
-                "<template>\n" +
-                "  <div>\n" +
-                "    <h1>远程组件演示</h1>\n" +
-                "    <component :is=\"remoteComponent\" v-if=\"remoteComponent\" />\n" +
-                "    <div v-else>等待加载组件...</div>\n" +
-                "  </div>\n" +
-                "</template>\n" +
+                "// Options API\n" +
                 "<script>\n" +
-                "import { ref, onMounted, defineAsyncComponent } from 'vue';\n" +
+                "import { defineAsyncComponent } from 'vue';\n" +
                 "export default {\n" +
-                "  name: 'RemoteDemo',\n" +
-                "  setup() {\n" +
-                "    const remoteComponent = ref(null);\n" +
-                "    onMounted(async () => {\n" +
-                "      try {\n" +
-                "        const module = await import(/* @vite-ignore */ '" + jsUrl + "');\n" +
-                "        remoteComponent.value = defineAsyncComponent(() => Promise.resolve(module.default));\n" +
-                "      } catch (error) {\n" +
-                "        console.error('加载远程组件失败:', error);\n" +
-                "      }\n" +
-                "    });\n" +
-                "    return {\n" +
-                "      remoteComponent\n" +
-                "    };\n" +
+                "  data() { return { remoteComponent: null }; },\n" +
+                "  async mounted() {\n" +
+                "    try {\n" +
+                "      const m = await import(/* @vite-ignore */ '" + jsUrl + "');\n" +
+                "      this.remoteComponent = defineAsyncComponent(() => Promise.resolve(m.default));\n" +
+                "    } catch (e) {\n" +
+                "      console.error('加载失败:', e);\n" +
+                "    }\n" +
                 "  }\n" +
                 "};\n" +
                 "</script>";
     }
 
     /**
-     * 创建远程使用示例
-     * @param jsUrl JavaScript文件的URL地址
-     * @return 返回组合API示例和选项API示例拼接而成的字符串，两个示例之间用两个换行符分隔
-     */
-    private String createRemoteUsageExample(String jsUrl) {
-        // 构建组合API使用示例
-        String compositionApiExample = buildCompositionApiExample(jsUrl);
-        // 构建选项API使用示例
-        String optionsApiExample = buildOptionsApiExample(jsUrl);
-        // 将两种API示例拼接返回
-        return compositionApiExample + "\n\n" + optionsApiExample;
-    }
-
-
-
-    /**
-     * 获取远程组件信息
      *
-     * @param vue3Id Vue3组件ID
+     * @param path Vue3组件ID或者路径
      * @return 包含组件信息的Map对象，包含以下键值对：
      *         - id: 组件ID
      *         - name: 组件名称
@@ -187,132 +94,234 @@ public class VueModule implements BaseService {
      *         - usage: 远程使用示例
      * @throws RuntimeException 当获取组件信息失败时抛出
      */
-    public Map<String,Object> getRemoteComponentInfo(String vue3Id) {
+    public Map<String,Object> getRemoteComponentInfo(String path) {
         try {
-            // 获取Vue组件信息
-            VueInfo entity = MagicConfiguration.getMagicResourceService().file(vue3Id);
+            // 按路径从动态注册表中获取，路径不匹配时回退到 id 查找
+            VueInfo entity = SpringUtils.getBean(VueMagicDynamicRegistry.class).getMapping(path);
             if (Objects.isNull(entity)) {
-                entity = SpringUtils.getBean(VueMagicDynamicRegistry.class).getMapping(vue3Id);
+                entity = MagicConfiguration.getMagicResourceService().file(path);
             }
             if (Objects.isNull(entity)) {
-                throw new IllegalArgumentException("Vue component not found for id: " + vue3Id);
+                throw new IllegalArgumentException("Vue component not found for path: " + path);
             }
 
             // 检查组件是否已编译
             if (StringUtils.isBlank(entity.getCompileJs())) {
-                throw new IllegalArgumentException("Vue component is not compiled for id: " + vue3Id);
+                throw new IllegalArgumentException("Vue component is not compiled for path: " + path);
             }
 
             // 构建远程访问URL相关信息
-            String baseUrl = properties.getWeb();
-            String jsUrl = baseUrl + "/vue3/component/export.js?id=" + vue3Id;
+            String baseUrl = getWebBaseUrl();
+            String jsUrl = baseUrl + getVue3ComponentPath() + normalizePath(path);
             Map<String, Object> result = new HashMap<>();
-            result.put("id", vue3Id);
+            result.put("id", entity.getId());
+            result.put("path", normalizePath(path));
             result.put("name", entity.getName());
-            result.put("jsUrl", SpringUtils.getBean(VueInfoMagicResourceStorage.class).buildMappingKey(entity));
-            //result.put("exportUrl", baseUrl + "/vue3/component/exportAsUrl?id=" + vue3Id);
+            result.put("jsUrl", jsUrl);
             result.put("createdTime", entity.getCreateTime());
-            result.put("usage", createRemoteUsageExample(jsUrl));
+            result.put("usage", createUsageExample(path));
 
             return result;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create exportable component for vue3Id: " + vue3Id, e);
+            throw new RuntimeException("Failed to create exportable component for path: " + path, e);
         }
     }
 
     /**
      * 创建可导出的Vue组件
      *
-     * @param vue3Id Vue组件的唯一标识符
+     * @param path Vue3组件ID或者路径
      * @return 返回可导出的组件字符串表示
      * @throws RuntimeException 当组件创建失败时抛出运行时异常
      * @throws IllegalArgumentException 当指定ID的Vue组件不存在或未编译时抛出非法参数异常
      */
-    public String createExportableComponent(String vue3Id) {
+    public String createExportableComponent(String path) {
         try {
-            // 获取Vue组件信息
-            VueInfo entity = MagicConfiguration.getMagicResourceService().file(vue3Id);
+            // 按路径从动态注册表中获取，路径不匹配时回退到 id 查找
+            VueInfo entity = SpringUtils.getBean(VueMagicDynamicRegistry.class).getMapping(path);
             if (Objects.isNull(entity)) {
-                entity = SpringUtils.getBean(VueMagicDynamicRegistry.class).getMapping(vue3Id);
+                entity = MagicConfiguration.getMagicResourceService().file(path);
             }
 
             // 验证Vue组件是否存在
             if (Objects.isNull(entity)) {
-                throw new IllegalArgumentException("Vue component not found for id: " + vue3Id);
+                throw new IllegalArgumentException("Vue component not found for path: " + path);
             }
 
             // 检查组件是否已编译
             if (StringUtils.isBlank(entity.getCompileJs())) {
-                throw new IllegalArgumentException("Vue component is not compiled for id: " + vue3Id);
+                throw new IllegalArgumentException("Vue component is not compiled for path: " + path);
+            }
+
+            // 解析依赖，实体未配置时使用默认值
+            String jsDependences = entity.getJsDependences();
+            if (StringUtils.isBlank(jsDependences)) {
+                jsDependences = getJsDependences();
+            }
+            String cssDependences = entity.getCssDependences();
+            if (StringUtils.isBlank(cssDependences)) {
+                cssDependences = getCssDependences();
             }
 
             // 创建可导出的组件
-            return createExportableComponent(entity.getCompileJs(), entity.getCompileCss(), entity.getId());
+            return createExportableComponent(entity.getCompileJs(), entity.getCompileCss(),
+                    jsDependences.split(","), cssDependences.split(","), path);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to create exportable component for vue3Id: " + vue3Id, e);
+            throw new RuntimeException("Failed to create exportable component for path: " + path, e);
         }
     }
 
     /**
      * 创建可导出的组件代码 - 返回有效的 ES 模块
      */
-    private String createExportableComponent(String compiledJs, String compiledCss, String componentId) {
+    private String createExportableComponent(String compiledJs, String compiledCss,
+                                              String[] jsDependences, String[] cssDependences, String path) {
         final String STYLE_ID_PREFIX = "magic-vue-";
 
-        // 安全地替换 Vue 动态导入语法（注意：当前正则较宽松）
-        String processedJs = compiledJs
-                .replaceAll("await import\\('vue'\\)\\.then\\(m\\s*=>\\s*m\\.(\\w+)\\)", "Vue.$1")
+        // CSS ID 不能包含路径分隔符，替换为 '-'，先规范化路径
+        String safeId = normalizePath(path).replace('/', '-');
+
+        // 安全地替换 Vue 动态导入语法
+        String processedJs = replaceVueImports(compiledJs)
                 .replace("export default", "const component =")
                 .trim();
 
         // 转义 CSS 内容中的反引号防止模板字符串注入
-        String escapedCss = (compiledCss != null) ? compiledCss.replace("`", "\\`") : "";
+        String escapedCss = (compiledCss != null) ? compiledCss.replaceAll("`", "\\\\`") : "";
 
-        // 构建样式注入逻辑
-        StringBuilder styleInjectionCode = new StringBuilder();
-        styleInjectionCode.append("// MagicVue 远程组件 - ").append(componentId).append("\n");
-        styleInjectionCode.append("// 自动注入样式\n");
-        styleInjectionCode.append("if (typeof document !== 'undefined' && document.head) {\n");
-        styleInjectionCode.append("    const styleId = '").append(STYLE_ID_PREFIX).append(componentId).append("';\n");
-        styleInjectionCode.append("    if (!document.getElementById(styleId)) {\n");
-        styleInjectionCode.append("        try {\n");
-        styleInjectionCode.append("            const style = document.createElement('style');\n");
-        styleInjectionCode.append("            style.id = styleId;\n");
-        styleInjectionCode.append("            style.textContent = `").append(escapedCss).append("`;\n");
-        styleInjectionCode.append("            document.head.appendChild(style);\n");
-        styleInjectionCode.append("        } catch (e) {\n");
-        styleInjectionCode.append("            console.warn('样式注入失败:', e);\n");
-        styleInjectionCode.append("        }\n");
-        styleInjectionCode.append("    }\n");
-        styleInjectionCode.append("}\n\n");
+        // 构建依赖加载 + 样式注入 + 组件导出
+        StringBuilder code = new StringBuilder();
+        code.append("// MagicVue 远程组件 - ").append(normalizePath(path)).append("\n");
+
+        // 依赖加载
+        boolean hasJsDeps = loadDependencies(code, jsDependences, cssDependences);
+        if (hasJsDeps) {
+            code.append("await Promise.all(_deps);\n\n");
+        } else {
+            code.append("\n");
+        }
+
+        // 样式注入
+        code.append("if (typeof document !== 'undefined' && document.head) {\n");
+        code.append("    const styleId = '").append(STYLE_ID_PREFIX).append(safeId).append("';\n");
+        code.append("    if (!document.getElementById(styleId)) {\n");
+        code.append("        try {\n");
+        code.append("            const style = document.createElement('style');\n");
+        code.append("            style.id = styleId;\n");
+        code.append("            style.textContent = `").append(escapedCss).append("`;\n");
+        code.append("            document.head.appendChild(style);\n");
+        code.append("        } catch (e) {\n");
+        code.append("            console.warn('样式注入失败:', e);\n");
+        code.append("        }\n");
+        code.append("    }\n");
+        code.append("}\n\n");
+
+        // useVue3Component 工具函数，供递归加载子组件使用
+        code.append(createUseVue3ComponentJs()).append("\n\n");
 
         // 组件定义及导出
-        styleInjectionCode.append("// 组件定义\n");
-        styleInjectionCode.append(processedJs).append(";\n\n");
-        styleInjectionCode.append("// 导出组件\n");
-        styleInjectionCode.append("export default component;");
+        code.append("// 组件定义\n");
+        code.append(processedJs).append(";\n\n");
+        code.append("// 导出组件\n");
+        code.append("export default component;");
 
-        return styleInjectionCode.toString();
+        return code.toString();
+    }
+
+    /**
+     * 生成依赖资源的动态加载代码（JS 和 CSS），返回 true 表示有 JS 依赖需要等待
+     */
+    private boolean loadDependencies(StringBuilder code, String[] jsDependences, String[] cssDependences) {
+        boolean hasJsDeps = false;
+        if (jsDependences != null && jsDependences.length > 0) {
+            for (String dependency : jsDependences) {
+                if (StringUtils.isBlank(dependency)) {
+                    continue;
+                }
+                String url = resolveUrl(dependency.trim());
+                if (!hasJsDeps) {
+                    code.append("var _deps=[];\n");
+                    code.append("function _loadScript(u){return new Promise(function(r,e){if(document.querySelector('script[src=\"'+u+'\"]')){r();return;}var s=document.createElement('script');s.src=u;s.onload=r;s.onerror=e;document.head.appendChild(s);});}\n");
+                    hasJsDeps = true;
+                }
+                code.append("_deps.push(_loadScript('").append(url).append("'));\n");
+            }
+        }
+        if (cssDependences != null && cssDependences.length > 0) {
+            for (String dependency : cssDependences) {
+                if (StringUtils.isBlank(dependency)) {
+                    continue;
+                }
+                String url = resolveUrl(dependency.trim());
+                code.append("if (typeof document !== 'undefined' && !document.querySelector('link[href=\"").append(url).append("\"]')) {\n");
+                code.append("    var link = document.createElement('link');\n");
+                code.append("    link.rel = 'stylesheet';\n");
+                code.append("    link.href = '").append(url).append("';\n");
+                code.append("    document.head.appendChild(link);\n");
+                code.append("}\n");
+            }
+        }
+        return hasJsDeps;
+    }
+
+    /**
+     * 获取 Web 基础 URL，确保不以 "/" 结尾
+     */
+    private String getWebBaseUrl() {
+        String web = properties.getWeb();
+        return web.endsWith("/") ? web.substring(0, web.length() - 1) : web;
+    }
+
+    /**
+     * 规范化路径，确保不以 "/" 开头
+     */
+    private static String normalizePath(String path) {
+        return path.startsWith("/") ? path.substring(1) : path;
+    }
+
+    /**
+     * 生成 useVue3Component 工具函数的 JS 代码
+     */
+    private String createUseVue3ComponentJs() {
+        return "const  useVue3Component=async(p)=>{const m=await import('" + getWebBaseUrl() + getVue3ComponentPath() + "'+p.replace(/^\\//,''));return m.default;};";
+    }
+
+    /**
+     * 解析依赖资源的完整URL地址
+     * <p>
+     * 如果传入的URL是相对路径（不以http://或https://开头），则将其拼接Web基础路径转换为绝对URL；
+     * 如果已经是完整的HTTP/HTTPS URL，则直接返回原值。
+     * </p>
+     *
+     * @param dependency 依赖资源的URL地址，可以是相对路径或完整的HTTP/HTTPS URL
+     * @return 解析后的完整URL地址
+     */
+    private String resolveUrl(String dependency) {
+        if (!dependency.startsWith("http://") && !dependency.startsWith("https://")) {
+            String baseUrl = properties.getWeb();
+            if (baseUrl.endsWith("/") && dependency.startsWith("/")) {
+                return baseUrl + dependency.substring(1);
+            } else if (baseUrl.endsWith("/") || dependency.startsWith("/")) {
+                return baseUrl + dependency;
+            } else {
+                return baseUrl + "/" + dependency;
+            }
+        }
+        return dependency;
     }
 
     /**
      * 替换所有 Vue 导入语句为全局 Vue 引用
      */
     private String replaceVueImports(String code) {
-        // 匹配 await import('vue').then(m => m.xxx) 模式
-        Pattern pattern = Pattern.compile("await import\\('vue'\\)\\.then\\(m\\s*=>\\s*m\\.(\\w+)\\)");
-        java.util.regex.Matcher matcher = pattern.matcher(code);
-
+        Matcher matcher = VUE_IMPORT_PATTERN.matcher(code);
         StringBuffer result = new StringBuffer();
         while (matcher.find()) {
-            String methodName = matcher.group(1);
-            matcher.appendReplacement(result, "Vue." + methodName);
+            matcher.appendReplacement(result, "Vue." + matcher.group(1));
         }
         matcher.appendTail(result);
         return result.toString();
     }
-
-
 
     /**
      * 根据提供的组件名称、编译后的 JavaScript 和 CSS 代码、依赖资源以及参数，
@@ -335,21 +344,28 @@ public class VueModule implements BaseService {
         String executableJs = compiledJs.replace("export default", "");
         // 动态替换所有 vue 导入为全局 Vue 引用
         executableJs = replaceVueImports(executableJs);
-        // 构建依赖库脚本标签
-        StringBuilder jsDependencyScripts = new StringBuilder();
-        if (jsDependences != null && jsDependences.length > 0) {
-            for (String dependency : jsDependences) {
-                if (StringUtils.isNotBlank(dependency)) {
-                    jsDependencyScripts.append("    <script src=\"").append(dependency).append("\"></script>\n");
-                }
-            }
-        }
-        // 构建CSS依赖库链接标签
+
+        // 处理 compiledCss 为 null 的情况
+        String safeCss = compiledCss != null ? compiledCss : "";
+
+        // 构建CSS依赖库链接标签（CSS 在 <head> 中正常加载）
         StringBuilder cssDependencyLinks = new StringBuilder();
         if (cssDependences != null && cssDependences.length > 0) {
             for (String dependency : cssDependences) {
                 if (StringUtils.isNotBlank(dependency)) {
-                    cssDependencyLinks.append("    <link rel=\"stylesheet\" href=\"").append(dependency).append("\">\n");
+                    cssDependencyLinks.append("    <link rel=\"stylesheet\" href=\"").append(resolveUrl(dependency)).append("\">\n");
+                }
+            }
+        }
+
+        // 构建 JS 依赖动态加载脚本（Blob URL iframe 中 <script src> 可能失败，改用动态注入）
+        StringBuilder jsLoader = new StringBuilder();
+        if (jsDependences != null && jsDependences.length > 0) {
+            jsLoader.append("        function _loadScript(u){return new Promise(function(r,e){if(document.querySelector('script[data-magic-deps=\"'+u+'\"]')){r();return;}var s=document.createElement('script');s.src=u;s.setAttribute('data-magic-deps',u);s.onload=r;s.onerror=function(){e(new Error('Failed to load: '+u));};document.head.appendChild(s);});}\n");
+            jsLoader.append("        var _deps=[];\n");
+            for (String dependency : jsDependences) {
+                if (StringUtils.isNotBlank(dependency)) {
+                    jsLoader.append("        _deps.push(_loadScript('").append(resolveUrl(dependency.trim())).append("'));\n");
                 }
             }
         }
@@ -359,25 +375,25 @@ public class VueModule implements BaseService {
                 "<head>\n" +
                 "    <meta charset=\"UTF-8\">\n" +
                 "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n" +
-                "    <title>" + name + "</title>\n" +
-                jsDependencyScripts.toString() +
-                cssDependencyLinks.toString() +  // 将CSS依赖链接添加到HTML头部
+                "    <title>" + escapeHtml4(name) + "</title>\n" +
+                cssDependencyLinks.toString() +
                 "    <style>\n" +
-                compiledCss + "\n" +    // 插入组件样式
+                safeCss + "\n" +
                 "    </style>\n" +
                 "</head>\n" +
                 "<body>\n" +
                 "    <div id=\"app\"></div>\n" +
                 "    <script>\n" +
-                "        const componentParams = " + paramsJson + ";\n" +  // 注入参数
+                jsLoader.toString() +
+                "        " + createUseVue3ComponentJs() + "\n" +
+                "        const componentParams = " + paramsJson + ";\n" +
                 "        async function initVueApp() {\n" +
                 "            try {\n" +
+                "                if (typeof _deps !== 'undefined') await Promise.all(_deps);\n" +
                 "                const component = await " + executableJs + ";\n" +
-                "                // 处理 <script setup> 组件的参数传递\n" +
                 "                if (typeof component === 'object') {\n" +
-                "                    // 对于使用 defineProps 的组件，直接传递 props\n" +
                 "                    const { createApp } = Vue;\n" +
-                "                    const app = createApp(component, componentParams);\n" +  // 通过 createApp 的第二个参数传递 props
+                "                    const app = createApp(component, componentParams);\n" +
                 "                    app.mount('#app');\n" +
                 "                } else {\n" +
                 "                    const { createApp } = Vue;\n" +
@@ -398,17 +414,16 @@ public class VueModule implements BaseService {
     /**
      * 根据组件ID和参数生成Vue组件的HTML视图页面
      *
-     * @param id 组件唯一标识符，用于查找对应的Vue组件信息
+     * @param path Vue3组件ID或者路径
      * @param params 页面渲染所需的参数集合，可包含组件初始化数据等
      * @return ResponseEntity<String> 包含完整HTML页面的响应实体，设置Content-Type为text/html
      * @throws IllegalArgumentException 当未找到对应组件或源码未编译时抛出异常
      */
-    public ResponseEntity<String> view(String id, Map<String, Object> params) {
-        // 获取Vue组件文件信息
-        VueInfo entity = MagicConfiguration.getMagicResourceService().file(id);
-        // 如果从MagicResourceService中未获取到，则尝试从VueMagicDynamicRegistry中获取映射
+    public ResponseEntity<String> view(String path, Map<String, Object> params) {
+        // 按路径从动态注册表中获取，路径不匹配时回退到 id 查找
+        VueInfo entity = SpringUtils.getBean(VueMagicDynamicRegistry.class).getMapping(path);
         if (Objects.isNull(entity)) {
-            entity = SpringUtils.getBean(VueMagicDynamicRegistry.class).getMapping(id);;
+            entity = MagicConfiguration.getMagicResourceService().file(path);
         }
         // 验证组件是否存在
         if (Objects.isNull(entity)) {

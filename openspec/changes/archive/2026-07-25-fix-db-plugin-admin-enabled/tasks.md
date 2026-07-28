@@ -1,0 +1,5 @@
+- [x] 增加 DB 插件 adminEnabled 配置回归测试，并确认旧实现失败。
+- [x] 在 DB 插件配置中读取 `magic-api.plugin.db.admin.enabled` 并设置到 `Plugin`。
+- [x] 将 DB 管理插件装配绑定到 `magic-api.plugin.db.admin.enabled=true`。
+- [x] 将 DB 插件 toolbar 标记为 `adminOnly`，并增加前端契约测试。
+- [x] 运行 DB 后端目标测试和基础检查。

@@ -10,6 +10,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 
 @Slf4j
@@ -38,11 +39,14 @@ public class WebFluxRequestMonitorHandler implements WebFilter, Ordered {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         long startTime = System.currentTimeMillis();
-        return chain.filter(exchange).doFinally(signalType -> {
-            long processingTime = System.currentTimeMillis() - startTime;
-            handleRequestCompletion(exchange, processingTime,
-                    signalType == SignalType.ON_ERROR ? new RuntimeException("Request failed") : null);
-        });
+        AtomicReference<Throwable> errorRef = new AtomicReference<>();
+        return chain.filter(exchange)
+                .doOnError(errorRef::set)
+                .doFinally(signalType -> {
+                    long processingTime = System.currentTimeMillis() - startTime;
+                    handleRequestCompletion(exchange, processingTime,
+                            signalType == SignalType.ON_ERROR ? errorRef.get() : null);
+                });
     }
 
     /**
@@ -56,13 +60,13 @@ public class WebFluxRequestMonitorHandler implements WebFilter, Ordered {
             return;
         }
 
-        // 检查处理时间是否超过阈值
-        for (Map.Entry<Long, String> entry : webProperties.getSlowRequest().getThresholdLevels().entrySet()) {
-            if (processingTime >= entry.getKey()) {
-                handleThresholdEvent(exchange, processingTime, entry);
-                break;
-            }
-        }
+        // 检查处理时间是否超过阈值（按 key 升序排列，取最高匹配阈值）
+        webProperties.getSlowRequest().getThresholdLevels()
+                .entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .filter(entry -> processingTime >= entry.getKey())
+                .reduce((first, second) -> second)
+                .ifPresent(entry -> handleThresholdEvent(exchange, processingTime, entry));
 
         if (throwable != null && webProperties.getSlowRequest().isPrintExceptionDetails()) {
             logExceptionDetails(exchange, processingTime, throwable);

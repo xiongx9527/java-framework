@@ -2,6 +2,7 @@ import request from '../request.js'
 import $i from '../i18n.js'
 import modal from '../../components/common/dialog/magic-modal.js'
 import JavaClass from '../editor/java-class.js'
+
 let findResources
 JavaClass.setExtensionAttribute('org.ssssssss.magicapi.modules.db.SQLModule', () => {
 	return findResources && (findResources('datasource')[0]?.children || []).filter(it => it.key).map(it => {
@@ -23,5 +24,6 @@ export default {
 				modal.alert($i('datasource.connectFailed', res), $i('datasource.test'))
 			}
 		})
-	}
+	},
+	doDelete: null
 }

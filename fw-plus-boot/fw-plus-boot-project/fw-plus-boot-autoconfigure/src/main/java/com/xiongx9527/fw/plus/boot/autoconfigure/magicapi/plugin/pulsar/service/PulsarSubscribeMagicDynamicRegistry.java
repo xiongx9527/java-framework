@@ -1,33 +1,32 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.service;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.consumer.PulsarConsumer;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.MagicDynamicPulsarDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.PulsarSubscribeScriptInfo;
-import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.ListUtils;
 import org.springframework.context.event.EventListener;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
+import org.ssssssss.magicapi.core.event.EventAction;
 import org.ssssssss.magicapi.core.event.FileEvent;
 import org.ssssssss.magicapi.core.event.GroupEvent;
 import org.ssssssss.magicapi.core.service.AbstractMagicDynamicRegistry;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * Kafka 订阅 动态注册器
+ * Pulsar 订阅 动态注册器
  *
  * @author zzy
  */
 @Slf4j
-public class PulsarSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegistry<PulsarSubscribeInfo> {
+public class PulsarSubscribeMagicDynamicRegistry extends AbstractMagicDynamicRegistry<PulsarSubscribeInfo> implements BaseService {
 
     /**
      * MagicDynamicPulsarDataSource实例，用于管理动态Pulsar数据源
@@ -35,16 +34,37 @@ public class PulsarSubscribeMagicDynamicRegistry extends AbstractMagicDynamicReg
      */
     private final MagicDynamicPulsarDataSource magicDynamicPulsarDataSource;
 
+    /**
+     * 数据源信息资源存储，用于查询数据源是否存在
+     */
+    private final PulsarDataSourceInfoMagicResourceStorage dataSourceStorage;
+
+    /**
+     * 订阅信息资源存储，用于查询使用相同数据源的订阅
+     */
+    private final PulsarSubscribeInfoMagicResourceStorage subscribeStorage;
+
+    /**
+     * 因数据源未就绪而等待重试的订阅 key 集合
+     */
+    private final Set<String> pendingSubscribeKeys = ConcurrentHashMap.newKeySet();
+
 
     /**
      * 构造函数，用于创建Pulsar订阅魔法动态注册器实例
      * @param magicResourceStorage 魔法资源存储器，用于存储Pulsar订阅信息
      * @param magicDynamicPulsarDataSource 魔法动态Pulsar数据源，用于管理Pulsar连接和订阅
+     * @param dataSourceStorage 数据源信息资源存储，用于查询数据源是否存在
+     * @param subscribeStorage 订阅信息资源存储，用于查询使用相同数据源的订阅
      */
     public PulsarSubscribeMagicDynamicRegistry(MagicResourceStorage<PulsarSubscribeInfo> magicResourceStorage,
-                                               MagicDynamicPulsarDataSource magicDynamicPulsarDataSource) {
+                                               MagicDynamicPulsarDataSource magicDynamicPulsarDataSource,
+                                               PulsarDataSourceInfoMagicResourceStorage dataSourceStorage,
+                                               PulsarSubscribeInfoMagicResourceStorage subscribeStorage) {
         super(magicResourceStorage);
         this.magicDynamicPulsarDataSource = magicDynamicPulsarDataSource;
+        this.dataSourceStorage = dataSourceStorage;
+        this.subscribeStorage = subscribeStorage;
     }
 
     /**
@@ -54,10 +74,8 @@ public class PulsarSubscribeMagicDynamicRegistry extends AbstractMagicDynamicReg
     @EventListener(condition = "#event.type == 'pulsar-subscribe'")
     public void onFileEvent(FileEvent event) {
         try {
-            // 处理文件事件
             processEvent(event);
-        } catch (Exception e) {
-            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
+        } catch (Exception ignored) {
         }
     }
 
@@ -67,8 +85,50 @@ public class PulsarSubscribeMagicDynamicRegistry extends AbstractMagicDynamicReg
      */
     @EventListener(condition = "#event.type == 'pulsar-subscribe'")
     public void onGroupEvent(GroupEvent event) {
-        // 处理组事件
-        processEvent(event);
+        try {
+            processEvent(event);
+        } catch (Exception ignored) {
+        }
+    }
+
+    /**
+     * 监听数据源事件，当数据源就绪后重新注册待重试的订阅
+     */
+    @EventListener(condition = "#event.type == 'pulsar-datasource'")
+    public void onDataSourceFileEvent(FileEvent event) {
+        // 如果是删除事件，清理待重试队列中的对应 key
+        if (event.getAction() == EventAction.DELETE) {
+            if (!(event.getEntity() instanceof PulsarDataSourceInfo)) {
+                return;
+            }
+            PulsarDataSourceInfo entity = (PulsarDataSourceInfo) event.getEntity();
+            if (entity != null && entity.getKey() != null) {
+                this.pendingSubscribeKeys.remove(entity.getKey());
+            }
+            return;
+        }
+        if (this.pendingSubscribeKeys.isEmpty()) {
+            return;
+        }
+        try {
+            Map<String, PulsarDataSourceInfo> dsMap = ListUtils.emptyIfNull(this.dataSourceStorage.findAll()).stream()
+                    .collect(Collectors.toMap(PulsarDataSourceInfo::getKey, v -> v, (k1, k2) -> k1));
+
+            for (String dsKey : new HashSet<>(this.pendingSubscribeKeys)) {
+                if (!dsMap.containsKey(dsKey)) {
+                    continue;
+                }
+                List<PulsarSubscribeInfo> subscribes = ListUtils.emptyIfNull(this.subscribeStorage.findAll()).stream()
+                        .filter(s -> dsKey.equals(s.getKey()))
+                        .collect(Collectors.toList());
+                for (PulsarSubscribeInfo subscribe : subscribes) {
+                    registerByEntity(subscribe);
+                }
+                this.pendingSubscribeKeys.remove(dsKey);
+            }
+        } catch (Exception e) {
+            log.error("处理数据源事件时发生错误", e);
+        }
     }
 
     /**
@@ -93,25 +153,20 @@ public class PulsarSubscribeMagicDynamicRegistry extends AbstractMagicDynamicReg
         String scriptName = MagicConfiguration.getMagicResourceService().getScriptName(entity);
         unregisterByEntity(entity);
         // 如果订阅是启用状态，则进行注册
-        if (Boolean.TRUE.equals(entity.isEnabled())) {
+        if (enable(entity)) {
             try {
                 log.info("Pulsar 消息队列订阅:[{}]开始执行", scriptName);
-                PulsarDataSourceInfoMagicResourceStorage pulsarDataSourceInfoMagicResourceStorage = SpringUtils.getBean(PulsarDataSourceInfoMagicResourceStorage.class);
-                Map<String, PulsarDataSourceInfo> pulsarDataSourceInfoMap = ListUtils.emptyIfNull(pulsarDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(PulsarDataSourceInfo::getKey, val->val,(k1, k2)->k1));
+                Map<String, PulsarDataSourceInfo> pulsarDataSourceInfoMap = ListUtils.emptyIfNull(this.dataSourceStorage.findAll()).stream().collect(Collectors.toMap(PulsarDataSourceInfo::getKey, val->val,(k1, k2)->k1));
                 if(!pulsarDataSourceInfoMap.containsKey(entity.getKey())) {
-                    Thread.sleep(5000);
-                    pulsarDataSourceInfoMap = ListUtils.emptyIfNull(pulsarDataSourceInfoMagicResourceStorage.findAll()).stream().collect(Collectors.toMap(PulsarDataSourceInfo::getKey, val->val,(k1, k2)->k1));
-                    if(!pulsarDataSourceInfoMap.containsKey(entity.getKey())) {
-                        log.warn("Pulsar 订阅:[{}]执行出错, 未找到数据源[{}]", scriptName, entity.getKey());
-                        return ;
-                    }
+                    log.warn("Pulsar 订阅:[{}]执行出错, 未找到数据源[{}], 加入待重试队列", scriptName, entity.getKey());
+                    this.pendingSubscribeKeys.add(entity.getKey());
+                    return ;
                 }
                 List<PulsarSubscribeScriptInfo> newSubscribeList = new ArrayList<>();
-                // 添加新的订阅信息
                 newSubscribeList.add(new PulsarSubscribeScriptInfo(entity, scriptName));
                 magicDynamicPulsarDataSource.putConsumer(pulsarDataSourceInfoMap.get(entity.getKey()), newSubscribeList);
             } catch (Exception e) {
-                log.error("pulsar 消息队列订阅:[{}]执行出错, {}", scriptName, e.getMessage());
+                log.error("pulsar 消息队列订阅:[{}]执行出错", scriptName, e);
             }
         } 
     }
@@ -127,7 +182,7 @@ public class PulsarSubscribeMagicDynamicRegistry extends AbstractMagicDynamicReg
         registerByEntity(entity);
         try {
             return super.register(entity);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
             return false;
         }
     }
@@ -141,12 +196,11 @@ public class PulsarSubscribeMagicDynamicRegistry extends AbstractMagicDynamicReg
      */
     @Override
     protected boolean register(MappingNode<PulsarSubscribeInfo> mappingNode) {
-        //PulsarSubscribeInfo entity = mappingNode.getEntity();
-        //PulsarConsumer consumer = this.magicDynamicPulsarDataSource.getConsumer(entity.getKey());
-        //if (Objects.isNull(consumer)) {
-        //    registerByEntity(mappingNode.getEntity());
-        //}
-        return super.register(mappingNode);
+        try {
+            return super.register(mappingNode);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
@@ -156,8 +210,18 @@ public class PulsarSubscribeMagicDynamicRegistry extends AbstractMagicDynamicReg
      */
     @Override
     protected void unregister(MappingNode<PulsarSubscribeInfo> mappingNode) {
-        unregisterByEntity(mappingNode.getEntity());
-        super.unregister(mappingNode);
+        PulsarSubscribeInfo entity = mappingNode.getEntity();
+        unregisterByEntity(entity);
+        // TODO: findAll() 全量扫描效率低，大数据量时应改为按 key 索引查找
+        boolean hasOther = ListUtils.emptyIfNull(this.subscribeStorage.findAll()).stream()
+                .anyMatch(s -> entity.getKey().equals(s.getKey()) && !s.getId().equals(entity.getId()));
+        if (!hasOther) {
+            this.pendingSubscribeKeys.remove(entity.getKey());
+        }
+        try {
+            super.unregister(mappingNode);
+        } catch (Exception ignored) {
+        }
     }
 
 }

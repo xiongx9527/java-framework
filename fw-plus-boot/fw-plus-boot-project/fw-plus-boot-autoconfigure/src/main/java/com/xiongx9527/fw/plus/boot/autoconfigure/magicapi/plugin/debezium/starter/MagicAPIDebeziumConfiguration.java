@@ -6,7 +6,10 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.model.
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.service.DebeziumDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.service.DebeziumDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.web.MagicDebeziumController;
-import org.springframework.boot.autoconfigure.condition.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
@@ -14,14 +17,14 @@ import org.ssssssss.magicapi.core.model.Plugin;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 @ConditionalOnProperty(prefix = "magic-api.plugin.debezium", name = "enabled", havingValue = "true", matchIfMissing = true)
-@ConditionalOnClass(name={"io.debezium.embedded.Connect","org.springframework.kafka.core.ProducerFactory"})
+@ConditionalOnClass(name={"io.debezium.engine.DebeziumEngine","org.springframework.kafka.core.ProducerFactory"})
 @Configuration
 public class MagicAPIDebeziumConfiguration implements MagicPluginConfiguration {
 
 
     /**
      * 创建集群模式的Debezium数据源管理器实例
-     * 当系统中存在StringRedisTemplate类时启用，表示使用集群模式
+     * 需要同时满足：Redis可用 且 显式开启选主开关
      *
      * @return MagicDynamicDebeziumDataSource 集群模式的Debezium数据源管理器实例
      */
@@ -33,12 +36,12 @@ public class MagicAPIDebeziumConfiguration implements MagicPluginConfiguration {
 
     /**
      * 创建独立模式的Debezium数据源管理器实例
-     * 当系统中不存在StringRedisTemplate类时启用，表示使用独立模式而非集群模式
+     * 当集群模式不满足条件时（Redis不可用或未开启选主），回退到独立模式
      *
      * @return MagicDynamicDebeziumDataSource 独立模式的Debezium数据源管理器实例
      */
     @Bean
-    @ConditionalOnMissingBean(type = {"com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.module.RedisModule"})
+    @ConditionalOnMissingBean(MagicDynamicDebeziumDataSource.class)
     public MagicDynamicDebeziumDataSource standaloneMagicDynamicDebeziumDataSource() {
         return new StandaloneMagicDynamicDebeziumDataSource();
     }

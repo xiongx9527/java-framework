@@ -4,11 +4,11 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.model.Pu
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.pulsar.service.PulsarSubscribeInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.pulsar.client.api.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.transaction.annotation.Transactional;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.utils.ScriptManager;
@@ -40,31 +40,28 @@ public interface PulsarConsumerService {
      * @param message 待处理的消息对象，包含消息数据
      * @return 消息消费结果，true表示消费成功，false表示消费失败
      */
-    @Transactional(rollbackFor = Throwable.class)
     default boolean consume(String key, Message<byte[]> message) {
-        MagicResourceService resourceService = MagicConfiguration.getMagicResourceService();
         PulsarSubscribeInfoMagicResourceStorage subscribeInfoMagicResourceStorage = SpringUtils.getBean(PulsarSubscribeInfoMagicResourceStorage.class);
-        Map<String, PulsarSubscribeInfo> subscribeScriptInfoMap = ListUtils.emptyIfNull(subscribeInfoMagicResourceStorage.findAll()).stream().filter(subscribeInfo -> StringUtils.equals(subscribeInfo.getKey(), key))
-                .collect(Collectors.toList()).stream().collect(Collectors.toMap(PulsarSubscribeInfo::getTopic, val -> val, (k1, k2) -> k1));
-        if (subscribeScriptInfoMap == null) {
+        Map<String, PulsarSubscribeInfo> subscribeScriptInfoMap = ListUtils.emptyIfNull(subscribeInfoMagicResourceStorage.findAll()).stream()
+                .filter(subscribeInfo -> StringUtils.equals(subscribeInfo.getKey(), key))
+                .collect(Collectors.toMap(PulsarSubscribeInfo::getTopic, val -> val, (k1, k2) -> k1));
+        if (MapUtils.isEmpty(subscribeScriptInfoMap)) {
             logger.warn("通过key:{}未找到对应的订阅脚本信息，请检查数据源是否正确", key);
             return false;
         }
         // 遍历所有订阅脚本信息并执行对应的脚本
+        // Pulsar topic 完整路径格式: persistent://tenant/namespace/topic
         for (PulsarSubscribeInfo subscribeScriptInfo : subscribeScriptInfoMap.values()) {
-            if (StringUtils.equals(subscribeScriptInfo.getTopic(), message.getTopicName())) {
+            if (StringUtils.equals(subscribeScriptInfo.getTopic(), message.getTopicName())
+                    || message.getTopicName().endsWith("/" + subscribeScriptInfo.getTopic())) {
                 MagicScriptContext magicScriptContext = new MagicScriptContext();
-                magicScriptContext.setScriptName(resourceService.getScriptName(subscribeScriptInfo));
+                magicScriptContext.setScriptName("pulsar/" + subscribeScriptInfo.getKey() + "/" + subscribeScriptInfo.getTopic() + "(" + subscribeScriptInfo.getName() + ")");
                 magicScriptContext.set("msg", message);
-                try {
-                    Object result = ScriptManager.executeScript(subscribeScriptInfo.getScript(), magicScriptContext);
-                    if (result != null && !Boolean.TRUE.equals(result)) {
-                        return false;
-                    }
-                    return true;
-                } catch (Exception e) {
-                    throw e;
+                Object result = ScriptManager.executeScript(subscribeScriptInfo.getScript(), magicScriptContext);
+                if (result != null && !Boolean.TRUE.equals(result)) {
+                    return false;
                 }
+                return true;
             }
         }
         // 如果没有执行任何脚本，则返回消费失败

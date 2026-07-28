@@ -20,7 +20,17 @@ public class RedisDbThreadLocalHelper {
      * 线程本地变量，用于存储当前线程的Redis数据库索引栈
      * 每个线程维护自己的数据库索引队列，实现线程安全的数据库切换
      */
-    private static final ThreadLocal<Deque<Integer>> THREAD_DB = new ThreadLocal<>();
+    private static final ThreadLocal<Deque<Integer>> THREAD_DB;
+
+	static {
+		ThreadLocal<Deque<Integer>> threadLocal;
+		try {
+			threadLocal = (ThreadLocal) Class.forName("com.alibaba.ttl.TransmittableThreadLocal").newInstance();
+		} catch (Throwable e) {
+			threadLocal = new InheritableThreadLocal<>();
+		}
+		THREAD_DB = threadLocal;
+	}
 
     /**
      * 更改当前线程 RedisTemplate db
@@ -28,6 +38,9 @@ public class RedisDbThreadLocalHelper {
      * @param db set current redis db
      */
     public static void set(int db) {
+		if (db < 0) {
+			throw new IllegalArgumentException("redis db index must not be negative.");
+		}
         Deque<Integer> deque = THREAD_DB.get();
         if (deque == null) {
             deque = new ArrayDeque<>();

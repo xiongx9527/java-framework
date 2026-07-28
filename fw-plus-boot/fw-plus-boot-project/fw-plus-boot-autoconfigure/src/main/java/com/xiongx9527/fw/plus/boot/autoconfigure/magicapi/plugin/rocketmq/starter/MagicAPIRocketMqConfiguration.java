@@ -13,15 +13,15 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.web.Ma
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
-import org.ssssssss.magicapi.core.model.Plugin;
-import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
+import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
+import org.ssssssss.magicapi.core.model.Plugin;
+import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 /**
  * @author zzy
@@ -71,9 +71,10 @@ public class MagicAPIRocketMqConfiguration implements MagicPluginConfiguration {
     @DependsOn("rocketMqDataSourceMagicDynamicRegistry")
     public RocketMqSubscribeMagicDynamicRegistry rocketMqSubscribeMagicDynamicRegistry(
             RocketMqSubscribeInfoMagicResourceStorage rocketMqSubscribeInfoMagicResourceStorage,
-            MagicDynamicRocketMqDataSource magicDynamicRocketMqDataSource) {
+            MagicDynamicRocketMqDataSource magicDynamicRocketMqDataSource,
+            RocketMqDataSourceInfoMagicResourceStorage rocketMqDataSourceInfoMagicResourceStorage) {
         return new RocketMqSubscribeMagicDynamicRegistry(rocketMqSubscribeInfoMagicResourceStorage,
-                magicDynamicRocketMqDataSource);
+                magicDynamicRocketMqDataSource, rocketMqDataSourceInfoMagicResourceStorage, rocketMqSubscribeInfoMagicResourceStorage);
     }
 
     @Bean

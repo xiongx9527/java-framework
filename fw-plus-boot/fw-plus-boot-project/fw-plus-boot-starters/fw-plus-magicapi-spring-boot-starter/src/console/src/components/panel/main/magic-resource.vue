@@ -53,13 +53,25 @@
 	</div>
 </template>
 <script setup>
-import { ref, toRaw, computed, getCurrentInstance, reactive, inject, nextTick, onMounted, resolveDynamicComponent, shallowRef } from 'vue'
+import {
+  computed,
+  getCurrentInstance,
+  inject,
+  nextTick,
+  onMounted,
+  reactive,
+  ref,
+  resolveDynamicComponent,
+  shallowRef,
+  toRaw
+} from 'vue'
 import bus from '../../../scripts/bus.js'
 import constants from '../../../scripts/constants.js'
 import request from '../../../scripts/request.js'
 import $i from '../../../scripts/i18n.js'
 import Message from '../../../scripts/constants/message.js'
-import { replaceURL, processTree, download, copyToClipboard } from '../../../scripts/utils.js'
+import {copyToClipboard, download, processTree, replaceURL} from '../../../scripts/utils.js'
+
 const magicBackupFileComponent = resolveDynamicComponent('magic-backup-file')
 const props = defineProps({
 	/**
@@ -189,6 +201,7 @@ const onItemClick = (item, force) => {
 					getIcon: config.getIcon,
 					runnable: config.runnable,
 					doTest: config.doTest,
+					doSave: config.doSave,
 					processSave: config.processSave || (e => e)
 				})
 				cachedItems.push(opened)
@@ -255,6 +268,18 @@ const deleteNode = (node, data) => {
 	} else {
 		data.forEach(it => deleteNode(node, it.children || []))
 	}
+}
+const executeResourceDelete = (item, msg) => {
+	request.send('/resource/delete', { id: item.id }).success(ret => {
+		if(!ret) {
+			bus.status('message.deleteFailed', false, msg)
+			proxy.$alert($i('message.deleteFailed', msg))
+		}else{
+			bus.status('message.deleteSuccess', true, msg)
+			deleteNode(item)
+			bus.$emit(Message.DELETE_FILE, item)
+		}
+	})
 }
 const updateNode = (node, data) => {
 	data = data || tree.value || []
@@ -484,7 +509,7 @@ const onContextMenu = (item, event) => {
 				label: $i('message.refresh'),
 				icon: 'refresh',
 				onClick: () => {
-					bus.$emit(Message.REFRESH_RESOURCE, item.id)
+					bus.$emit(Message.RELOAD_ITEM, {type: props.type, id: item.id})
 				}
 			},{
 				label: $i('resource.contextmenu.delete'),
@@ -493,16 +518,27 @@ const onContextMenu = (item, event) => {
 					const msg = `${props.title}「${getFullPath(item)}」`
 					proxy.$confirm($i('message.deleteTips', props.title), $i('message.deleteConfirm', msg), ()=> {
 						if(item.id){
-							request.send('/resource/delete', { id: item.id }).success(ret => {
-								if(!ret) {
+							if (typeof config.doDelete === 'function') {
+								try {
+									const result = config.doDelete(item)
+									if (result && typeof result.then === 'function') {
+										result.then(() => {
+											executeResourceDelete(item, msg)
+										}).catch((error) => {
+											console.error('删除前置操作失败:', error)
+											bus.status('message.deleteFailed', false, msg)
+											proxy.$alert(error.message || $i('message.deleteFailed', msg))
+										})
+										return
+									}
+								} catch (error) {
+									console.error('删除前置操作失败:', error)
 									bus.status('message.deleteFailed', false, msg)
-									proxy.$alert($i('message.deleteFailed', msg))
-								}else{
-									bus.status('message.deleteSuccess', true, msg)
-									deleteNode(item)
-									bus.$emit(Message.DELETE_FILE, item)
+									proxy.$alert(error.message || $i('message.deleteFailed', msg))
+									return
 								}
-							})
+							}
+							executeResourceDelete(item, msg)
 						}else{
 							bus.status('message.deleteSuccess', true, msg)
 							deleteNode(item)

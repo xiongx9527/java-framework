@@ -9,14 +9,11 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.cloud.config.environment.Environment;
-import org.springframework.cloud.config.server.environment.*;
+import org.springframework.cloud.config.server.environment.EnvironmentRepository;
 import org.springframework.core.env.MapPropertySource;
 import org.yaml.snakeyaml.Yaml;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -36,17 +33,10 @@ public class MagicAPIEnvironmentRepository implements EnvironmentRepository, Bas
     private final Yaml yaml = new Yaml();
 
 
-    /**
-     * Spring环境配置对象，用于访问和操作环境属性
-     */
-    private final ConfigMagicResourceStorage environment;
+    private final ConfigMagicResourceStorage configMagicResourceStorage;
 
-    /**
-     * 构造函数
-     * @param environment Spring环境配置对象，用于初始化环境仓库
-     */
-    public MagicAPIEnvironmentRepository(ConfigMagicResourceStorage environment) {
-        this.environment = environment;
+    public MagicAPIEnvironmentRepository(ConfigMagicResourceStorage configMagicResourceStorage) {
+        this.configMagicResourceStorage = configMagicResourceStorage;
     }
 
 
@@ -75,49 +65,38 @@ public class MagicAPIEnvironmentRepository implements EnvironmentRepository, Bas
         Map<String, Object> mergedProperties = new HashMap<>(16);
 
         // 添加空值检查
-        if (this.environment != null) {
-            List<ConfigInfo> allList = ListUtils.emptyIfNull(this.environment.findAll());
+        if (this.configMagicResourceStorage != null) {
+            List<ConfigInfo> allList = ListUtils.emptyIfNull(this.configMagicResourceStorage.findAll());
             // 获取指定应用和配置文件下的所有配置信息
-            List<ConfigInfo> selfList = allList.stream().filter(entity -> {
-                return !Boolean.TRUE.equals(entity.isCommonFlag()) && application.equals(entity.getAppId()) && profile.equals(entity.getEnv());
-            }).collect(Collectors.toList());
+            List<ConfigInfo> selfList = allList.stream().filter(entity ->
+                !Boolean.TRUE.equals(entity.isCommonFlag()) && application.equals(entity.getAppId()) && profile.equals(entity.getEnv())
+            ).collect(Collectors.toList());
             // 获取公共配置信息
-            List<ConfigInfo> commonList = allList.stream().filter(entity -> {
-                return Boolean.TRUE.equals(entity.isCommonFlag()) && profile.equals(entity.getEnv());
-            }).collect(Collectors.toList());
+            List<ConfigInfo> commonList = allList.stream().filter(entity ->
+                Boolean.TRUE.equals(entity.isCommonFlag()) && profile.equals(entity.getEnv())
+            ).collect(Collectors.toList());
 
-            List<ConfigInfo> myAllList = new java.util.ArrayList<>();
+            List<ConfigInfo> myAllList = new ArrayList<>();
             if (CollectionUtils.isNotEmpty(commonList)) {
                 myAllList.addAll(commonList);
             }
             if (CollectionUtils.isNotEmpty(selfList)) {
                 myAllList.addAll(selfList);
             }
-            Map<String, MapPropertySource> propertySourceMap = new HashMap<>();
+            List<MapPropertySource> propertySources = new ArrayList<>();
             for (ConfigInfo entity : myAllList) {
                 try {
-                    // 正确解析YAML配置为Map
                     Map<String, Object> yamlMap = yaml.loadAs(entity.getScript(), Map.class);
                     if (MapUtils.isNotEmpty(yamlMap)) {
-                        // 创建MapPropertySource并放入Map中
-                        MapPropertySource propertySource = new MapPropertySource(entity.getId(), yamlMap);
-                        propertySourceMap.put(entity.getId(), propertySource);
+                        propertySources.add(new MapPropertySource(entity.getId(), yamlMap));
                     }
                 } catch (Exception e) {
                     log.error("解析YAML配置失败: application={}, profile={}, configId={}", application, profile, entity.getId(), e);
                 }
             }
-            
-            if (propertySourceMap != null) {
-                propertySourceMap.values()
-                        .stream()
-                        .filter(Objects::nonNull)
-                        .forEach(propertySource -> {
-                            if (propertySource != null && MapUtils.isNotEmpty(propertySource.getSource())) {
-                                mergedProperties.putAll(propertySource.getSource());
-                            }
-                        });
-            }
+            propertySources.stream()
+                    .filter(Objects::nonNull)
+                    .forEach(ps -> mergedProperties.putAll(ps.getSource()));
         }
         
         // 如果合并后的配置属性不为空，则将其作为属性源添加到环境配置中

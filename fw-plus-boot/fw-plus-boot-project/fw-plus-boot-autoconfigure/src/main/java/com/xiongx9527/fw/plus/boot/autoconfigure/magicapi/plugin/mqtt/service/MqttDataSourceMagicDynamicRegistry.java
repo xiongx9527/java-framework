@@ -44,9 +44,7 @@ public class MqttDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegi
         try {
             // 处理文件事件的核心逻辑
             processEvent(event);
-        } catch (Exception e) {
-            // 记录事件处理过程中的异常信息
-            log.error("处理文件事件时发生错误: {}", e.getMessage(), e);
+        } catch (Exception ignored) {
         }
     }
 
@@ -58,8 +56,10 @@ public class MqttDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegi
      */
     @EventListener(condition = "#event.type == 'mqtt-datasource'")
     public void onGroupEvent(GroupEvent event) {
-        // 处理接收到的事件
-        processEvent(event);
+        try {
+            processEvent(event);
+        } catch (Exception ignored) {
+        }
     }
 
     /**
@@ -71,8 +71,12 @@ public class MqttDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegi
     @Override
     public boolean register(MqttDataSourceInfo entity) {
         // 销毁已存在的客户端连接
-        magicDynamicWeaviateDataSource.destroyClientByKey(entity.getKey());
-        return super.register(entity);
+        magicDynamicWeaviateDataSource.destroyServerByKey(entity.getKey());
+        try {
+            return super.register(entity);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
@@ -85,9 +89,13 @@ public class MqttDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegi
     protected boolean register(MappingNode<MqttDataSourceInfo> mappingNode) {
         MqttDataSourceInfo entity = mappingNode.getEntity();
         // 销毁旧的客户端连接并创建新的客户端连接
-        magicDynamicWeaviateDataSource.destroyClientByKey(entity.getKey());
-        magicDynamicWeaviateDataSource.createClient(entity);
-        return super.register(mappingNode);
+        magicDynamicWeaviateDataSource.destroyServerByKey(entity.getKey());
+        magicDynamicWeaviateDataSource.createServer(entity);
+        try {
+            return super.register(mappingNode);
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
     /**
@@ -98,9 +106,12 @@ public class MqttDataSourceMagicDynamicRegistry extends AbstractMagicDynamicRegi
     @Override
     protected void unregister(MappingNode<MqttDataSourceInfo> mappingNode) {
         // 销毁指定key的Weaviate客户端连接
-        magicDynamicWeaviateDataSource.destroyClientByKey(mappingNode.getEntity().getKey());
+        magicDynamicWeaviateDataSource.destroyServerByKey(mappingNode.getEntity().getKey());
         // 调用父类的注销方法完成剩余的注销逻辑
-        super.unregister(mappingNode);
+        try {
+            super.unregister(mappingNode);
+        } catch (Exception ignored) {
+        }
     }
 
     /**

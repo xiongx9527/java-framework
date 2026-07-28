@@ -1,68 +1,38 @@
 <template>
-  <div class="magic-freemarker-info" style="height: 100vh;">
+  <div class="magic-freemarker-info">
     <form>
-      <label>{{ $i('vue.form.id') }}</label>
-      <magic-input v-model:value="info.id" width="200px" readonly />
       <label>{{ $i('freemarker.form.name') }}</label>
       <magic-input v-model:value="info.name" :placeholder="$i('freemarker.form.placeholder.name')" width="200px"/>
       <label>{{$i('freemarker.form.path')}}</label>
-      <magic-input v-model:value="info.path" :placeholder="$i('freemarker.form.placeholder.path')" width="300px"/>
-      <label>{{$i('freemarker.form.description')}}</label>
-      <magic-input v-model:value="info.description" :placeholder="$i('freemarker.form.placeholder.description')" width="auto" style="flex:1"/>
+      <magic-input v-model:value="info.path" :placeholder="$i('freemarker.form.placeholder.path')" width="auto" style="flex:1"/>
     </form>
-
-
-    <div style="flex:1; padding-top:5px;">
-      <magic-textarea v-model:value="info.params" :placeholder="$i('freemarker.form.params')" />
-    </div>
-
   </div>
+  <magic-navbar direction="horizontal" ref="navbar" style="flex:1" :allow-close="false" tooltip-direction="bottom">
+    <magic-navbar-item v-for="(navbar, key) in navbars" :key="key" v-bind="navbar">
+      <component :is="navbar.component"/>
+    </magic-navbar-item>
+  </magic-navbar>
 </template>
 <script setup>
+import {inject} from 'vue'
+import MagicFreemarkerParams from './magic-freemarker-params.vue'
+import MagicFreemarkerDescription from './magic-freemarker-description.vue'
 
-import { inject } from 'vue'
 const $i = inject('i18n.format')
 const info = inject('info')
-
-/**
 const navbars = [{
-  title: $i('freemarker.form.params'),
-  component: resolveDynamicComponent('magic-freemarker-params')
+  title: $i('freemarker.navbars.params'),
+  component: MagicFreemarkerParams
 },{
-  title: $i('freemarker.result'),
-  component: resolveDynamicComponent('magic-freemarker-result')
+  title: $i('freemarker.form.description'),
+  component: MagicFreemarkerDescription
 }]
-
-
-import { resolveDynamicComponent, inject } from 'vue'
-const $i = inject('i18n.format')
-const info = inject('info')
-
-const params = info.params || {}
-console.log('params:{}', params)
-
-const navbars = [{
-  title: $i('freemarker.form.params'),
-  component: resolveDynamicComponent('magic-textarea'),
-  props: {
-    modelValue: info.params, // 绑定到 info.params
-    'onUpdate:modelValue': (value) => {
-      info.params = value
-      console.log('new params:{}', params)
-    } // 更新 info.params
-  }
-}]
-
- **/
-
-
-
 </script>
 <style scoped>
- .magic-freemarker-info{
-   display: flex;
-   flex-direction: column;
- }
+.magic-freemarker-info{
+  display: flex;
+  flex-direction: column;
+}
 .magic-freemarker-info form{
   display: flex;
   padding: 5px;

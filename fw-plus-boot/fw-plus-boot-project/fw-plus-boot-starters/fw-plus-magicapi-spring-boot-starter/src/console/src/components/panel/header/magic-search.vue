@@ -157,8 +157,10 @@ watch(keyword, (val) => {
 }
 .magic-search-result .magic-search-result-item {
   display: flex;
-  padding: 0 5px;
-  line-height: 20px;
+  align-items: center;
+  padding: 1px 5px;
+  height: 22px;
+  line-height: 22px;
 }
 .magic-search-result .magic-search-result-item:hover,
 .magic-search-result .magic-search-result-item.selected {
@@ -169,13 +171,20 @@ watch(keyword, (val) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
 }
 .magic-search-result .magic-search-result-item .label :deep(.keyword) {
   background: #FFDE7B;
   color: #000000;
 }
-.magic-search-result-item .name, .magic-search-result-item .line{
-  color: var(--resource-span-color)
+.magic-search-result .magic-search-result-item .name, .magic-search-result .magic-search-result-item .line {
+  color: var(--resource-span-color);
+  white-space: nowrap;
+  margin-left: 8px;
+  height: 22px;
+  display: flex;
+  align-items: center;
 }
 .magic-search-result .magic-search-result-item .line {
   padding-left: 5px;
@@ -184,7 +193,10 @@ watch(keyword, (val) => {
 .display-text {
   height: 30px;
   line-height: 30px;
+  display: flex;
+  align-items: center;
   border-top: 1px solid var(--main-border-color);
   border-bottom: 1px solid var(--main-border-color);
+  padding: 0 5px;
 }
 </style>

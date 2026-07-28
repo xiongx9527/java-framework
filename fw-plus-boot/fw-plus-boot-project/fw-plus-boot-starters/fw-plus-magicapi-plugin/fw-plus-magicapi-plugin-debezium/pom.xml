@@ -12,6 +12,20 @@
     <properties>
         <main.basedir>${basedir}/../../../..</main.basedir>
     </properties>
+    <build>
+        <plugins>
+            <!-- 前端 console 自动编译打包 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
 
         <dependency>
@@ -46,6 +60,8 @@
             <artifactId>debezium-connector-mysql</artifactId>
         </dependency>
 
+        <!-- 按需启用其他 connector -->
+        <!--
         <dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-postgres</artifactId>
@@ -70,6 +86,7 @@
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-db2</artifactId>
         </dependency>
+        -->
     </dependencies>
 
 </project>

@@ -31,6 +31,24 @@ public class SpringUtils implements ApplicationContextAware, SmartLifecycle {
      */
     private static final AtomicBoolean startupEventPublished = new AtomicBoolean(false);
 
+    /**
+     * 获取当前应用的名称
+     * 
+     * @return 应用名称，如果未配置则返回默认值
+     */
+    public static String getApplicationName() {
+        return getAppName();
+    }
+
+    /**
+     * 获取服务器端口号
+     * 
+     * @return 服务器端口号，从配置中获取 server.port 的值
+     */
+    public static String getServerPort() {
+        return getAppConfig("server.port");
+    }
+
     // ========== 应用生命周期事件 ==========
 
     /**

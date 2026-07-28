@@ -1,12 +1,12 @@
 export default function MagicRocketMqDataSource(request, $i, modal, JavaClass) {
     let findResources;
-    JavaClass.setExtensionAttribute('com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.module.RocketMqModule', () => {
-        JavaClass.loadClass('com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.module.RocketMqModule');
+    JavaClass.setExtensionAttribute('com.jugui.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.module.RocketMqModule', () => {
+        JavaClass.loadClass('com.jugui.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.module.RocketMqModule');
         return findResources && (findResources('rocketmq-datasource')[0]?.children || [])
             .filter((it) => it.key && it.extra === 'producer')
             .map((it) => ({
                 name: it.key,
-                type: 'com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.producer.RocketMqProducer',
+                type: 'com.jugui.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.producer.RocketMqProducer',
                 comment: it.name
             })) || [];
     });

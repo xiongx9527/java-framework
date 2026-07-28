@@ -276,6 +276,14 @@ bus.$on(Message.REFRESH_RESOURCE, id => {
 		Object.keys(data).forEach(key => resource.item[key] = data[key])
 	})
 })
+	bus.$on(Message.RELOAD_ITEM, ({type, id}) => {
+		const resource = findResource(id)
+		resource && request.sendGet(`/${type}/reload/${id}`).success(() => {
+			request.sendGet(`/resource/file/${id}`).success(data => {
+				Object.keys(data).forEach(key => resource.item[key] = data[key])
+			})
+		})
+	})
 </script>
 <style scoped>
 .magic-main {

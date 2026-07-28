@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.cloud.autoconfigure.gray;
 
-
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
@@ -33,16 +32,17 @@ final class LoadBalancerUtils {
 	}
 
 	static Response executeWithLoadBalancerLifecycleProcessing(Client feignClient, Request.Options options,
-															   Request feignRequest, org.springframework.cloud.client.loadbalancer.Request lbRequest,
-															   org.springframework.cloud.client.loadbalancer.Response<ServiceInstance> lbResponse,
-															   Set<LoadBalancerLifecycle> supportedLifecycleProcessors, boolean loadBalanced) throws IOException {
+			Request feignRequest, org.springframework.cloud.client.loadbalancer.Request lbRequest,
+			org.springframework.cloud.client.loadbalancer.Response<ServiceInstance> lbResponse,
+			Set<LoadBalancerLifecycle> supportedLifecycleProcessors, boolean loadBalanced)
+			throws IOException {
 		supportedLifecycleProcessors.forEach(lifecycle -> lifecycle.onStartRequest(lbRequest, lbResponse));
 		try {
 			Response response = feignClient.execute(feignRequest, options);
 			if (loadBalanced) {
-				supportedLifecycleProcessors
-						.forEach(lifecycle -> lifecycle.onComplete(new CompletionContext<>(CompletionContext.Status.SUCCESS,
-								lbRequest, lbResponse, buildResponseData(response))));
+				supportedLifecycleProcessors.forEach(
+						lifecycle -> lifecycle.onComplete(new CompletionContext<>(CompletionContext.Status.SUCCESS,
+							lbRequest, lbResponse, buildResponseData(response))));
 			}
 			return response;
 		}
@@ -70,12 +70,11 @@ final class LoadBalancerUtils {
 	}
 
 	static Response executeWithLoadBalancerLifecycleProcessing(Client feignClient, Request.Options options,
-															   Request feignRequest, org.springframework.cloud.client.loadbalancer.Request lbRequest,
-															   org.springframework.cloud.client.loadbalancer.Response<ServiceInstance> lbResponse,
-															   Set<LoadBalancerLifecycle> supportedLifecycleProcessors) throws IOException {
+			Request feignRequest, org.springframework.cloud.client.loadbalancer.Request lbRequest,
+			org.springframework.cloud.client.loadbalancer.Response<ServiceInstance> lbResponse,
+			Set<LoadBalancerLifecycle> supportedLifecycleProcessors) throws IOException {
 		return executeWithLoadBalancerLifecycleProcessing(feignClient, options, feignRequest, lbRequest, lbResponse,
 				supportedLifecycleProcessors, true);
 	}
 
 }
-

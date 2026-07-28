@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.core.injector.AbstractSqlInjector;
 import com.baomidou.mybatisplus.core.injector.DefaultSqlInjector;
 import com.baomidou.mybatisplus.core.injector.ISqlInjector;
 import com.baomidou.mybatisplus.core.injector.methods.SelectList;
+import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.ibatis.session.Configuration;
 
 import java.util.Arrays;
 import java.util.List;
@@ -46,13 +48,14 @@ public class MpSqlInjector extends DefaultSqlInjector {
      * @param mapperClass Mapper类的Class对象，用于获取该类中的方法信息
      * @return 返回一个包含多个AbstractMethod对象的列表，表示Mapper类中的方法
      */
-    public List<AbstractMethod> getMethodList(Class<?> mapperClass) {
+    @Override
+    public List<AbstractMethod> getMethodList(Configuration configuration, Class<?> mapperClass, TableInfo tableInfo) {
         // 获取父类方法列表，并处理为空的情况
-        List<AbstractMethod> list = ListUtils.emptyIfNull(super.getMethodList(mapperClass));
+        List<AbstractMethod> list = ListUtils.emptyIfNull(super.getMethodList(configuration, mapperClass, tableInfo));
 
         // 如果SqlInjector不为空，则获取SqlInjector中的方法列表，并进行过滤后添加到当前列表中
         if (null != sqlInjector) {
-            list.addAll(methodFilter(ListUtils.emptyIfNull(sqlInjector.getMethodList(mapperClass))));
+            list.addAll(methodFilter(ListUtils.emptyIfNull(sqlInjector.getMethodList(mapperClass, tableInfo))));
         }
 
         // 添加自定义方法

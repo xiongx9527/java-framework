@@ -15,7 +15,7 @@ public interface FileChange {
      * @param srcBytes 源字节数组，包含需要转换为HTML格式的数据
      * @return 转换后的HTML格式字节数组
      */
-    byte[] toHmtl(byte[] srcBytes);
+    byte[] toHtml(byte[] srcBytes);
 
 
     /**

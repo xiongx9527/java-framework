@@ -21,10 +21,9 @@ public abstract class SensitiveAopBase {
 
     /**
      * 处理控制器方法上的 FieldIgnoreSensitive 注解
-     * @param joinPoint
-     * @throws Throwable
+     * @param joinPoint 切点连接点
      */
-    protected void doControllerFieldIgnoreSensitive(ProceedingJoinPoint joinPoint) throws Throwable {
+    protected void doControllerFieldIgnoreSensitive(ProceedingJoinPoint joinPoint) {
         try {
             // 获取控制器类
             Class<?> controllerClass = joinPoint.getTarget().getClass();
@@ -33,9 +32,9 @@ public abstract class SensitiveAopBase {
             // 获取控制器方法
             Method controllerMethod = methodSignature.getMethod();
             // 获取类上的 FieldIgnoreSensitive 注解
-            FieldIgnoreSensitive classFieldIgnoreSensitive = (FieldIgnoreSensitive)controllerClass.getAnnotation(FieldIgnoreSensitive.class);
+            FieldIgnoreSensitive classFieldIgnoreSensitive = controllerClass.getAnnotation(FieldIgnoreSensitive.class);
             // 获取方法上的 FieldIgnoreSensitive 注解
-            FieldIgnoreSensitive methodFieldIgnoreSensitive = (FieldIgnoreSensitive)controllerMethod.getAnnotation(FieldIgnoreSensitive.class);
+            FieldIgnoreSensitive methodFieldIgnoreSensitive = controllerMethod.getAnnotation(FieldIgnoreSensitive.class);
             // 输出日志，判断注解是否存在
             log.debug("null != classFieldIgnoreSensitive:{}",(null != classFieldIgnoreSensitive));
             log.debug("null != methodFieldIgnoreSensitive:{}",(null != methodFieldIgnoreSensitive));
