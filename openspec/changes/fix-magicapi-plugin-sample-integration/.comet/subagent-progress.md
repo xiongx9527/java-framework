@@ -3,7 +3,7 @@
 - Completed history: Task 1 `72b82393`；Task 2 `66d95573`；Task 3 `4d94882a`；Task 4 `191f5694`；Task 5 commits `3c9258f4`、`03548cea`、`4780c3c1`，两轮 thorough 修复复审通过，协调提交 `af1471fd`。
 - Plan task: `Task 6: 执行分层构建与独立 sample 进程验证`
 - OpenSpec mapping: `3. 按 Core -> Boot -> Cloud/AI -> sample 完成分层构建，运行相关测试，并实际启动 sample 检查健康、Magic-API 宿主及全部插件装配结果。`
-- Stage: `final-review`
+- Stage: `build-complete`
 - Implementer: `/root/task6_full_verification`。
 - Dispatch requirements: SDD `task-6-brief.md`；只读预检 `task-6-preflight.md`；实现报告写入 `task-6-report.md`。
 - Review mode: `thorough`
@@ -31,3 +31,6 @@
 - Scoped re-review: `/root/task6_rereview_round1` DONE；原 Important ADDRESSED，Minor RESOLVED，无新增 Critical/Important。
 - Task 6 completion: commits `af1471fd..5bccd30c`；全层构建、AI RED/修复、sample 聚合与 standalone 可复核证据完成；plan Task 6 与 OpenSpec task 3 已勾选，待定向 `task-checkoff` 与协调提交。
 - Final review package: `.superpowers/sdd/2026-07-27-magicapi-plugin-sample-integration/review-18be86e4..cfaecfdf.diff`；base `18be86e44a394e943c7177aa1cb7a1a27d8bcfb4`，head `cfaecfdf9a1d74a7b05b19357944054707209152`；最终 reviewer 只读审查，不重跑全量 Maven。
+- Final review finding: Critical `0`；Important `1`，默认 Boot Mongo 路径可能因早期 `@ConditionalOnBean(MongoTemplate.class)` 永久缺少 `MongoModule`；deferred minor 均判定不阻塞。
+- Final review fix: `e789d206 fix(magicapi): preserve default mongo module registration`；有效 RED 为上下文已有 `MongoTemplate` 但 `MongoModule=0`；新增独立晚序自动配置，Mongo 正负 `2/2`、Boot 定向 `20/20`、安装后真实 sample `6/6` GREEN。
+- Final scoped re-review: 原 Important `ADDRESSED`，无新 Critical/Important、无 out-of-scope finding；build guard 最新 sample check 已记录并通过。
