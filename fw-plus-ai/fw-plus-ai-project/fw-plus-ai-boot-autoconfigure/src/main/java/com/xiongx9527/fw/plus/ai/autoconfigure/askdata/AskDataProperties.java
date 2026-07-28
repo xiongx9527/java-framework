@@ -1,5 +1,9 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class AskDataProperties {
 
     private boolean enabled = true;
@@ -59,8 +63,42 @@ public class AskDataProperties {
 
     public static class Model {
 
-        private String defaultChatModel = "default";
-        private String defaultEmbeddingModel = "embedding-default";
+        /**
+         * 默认模型提供方标识，仅用于自动配置层选择对应适配器，不能传递给 Core 路由 SPI。
+         */
+        private String provider = "ollama";
+        /**
+         * 默认 Ollama 聊天模型的逻辑 key。逻辑 key 可由应用替换为任意已注册的 LangChain4j 模型。
+         */
+        private String defaultChatModel = "qwen3:32b";
+        /**
+         * 默认 Ollama 向量模型的逻辑 key。向量模型与聊天模型独立注册，避免错误复用聊天能力。
+         */
+        private String defaultEmbeddingModel = "bge-m3";
+        /**
+         * 聊天模型候选顺序，供上层将项目、数据源、任务级配置组装为 Core 路由请求时使用。
+         */
+        private List<String> chatCandidates = new ArrayList<String>(Arrays.asList("qwen3:32b"));
+        /**
+         * 向量模型候选顺序，供向量检索适配器选择已注册模型时使用。
+         */
+        private List<String> embeddingCandidates = new ArrayList<String>(Arrays.asList("bge-m3"));
+        /**
+         * 是否允许已分类的基础设施失败切换到 Core 路由器给出的下一个候选。
+         */
+        private boolean fallbackEnabled = true;
+        /**
+         * 适配层用于识别超时类基础设施故障的阈值，单位为毫秒；实际 HTTP 客户端仍应单独配置超时。
+         */
+        private Integer infrastructureFailureTimeoutMillis = 30000;
+
+        public String getProvider() {
+            return provider;
+        }
+
+        public void setProvider(String provider) {
+            this.provider = provider;
+        }
 
         public String getDefaultChatModel() {
             return defaultChatModel;
@@ -76,6 +114,38 @@ public class AskDataProperties {
 
         public void setDefaultEmbeddingModel(String defaultEmbeddingModel) {
             this.defaultEmbeddingModel = defaultEmbeddingModel;
+        }
+
+        public List<String> getChatCandidates() {
+            return chatCandidates;
+        }
+
+        public void setChatCandidates(List<String> chatCandidates) {
+            this.chatCandidates = chatCandidates;
+        }
+
+        public List<String> getEmbeddingCandidates() {
+            return embeddingCandidates;
+        }
+
+        public void setEmbeddingCandidates(List<String> embeddingCandidates) {
+            this.embeddingCandidates = embeddingCandidates;
+        }
+
+        public boolean isFallbackEnabled() {
+            return fallbackEnabled;
+        }
+
+        public void setFallbackEnabled(boolean fallbackEnabled) {
+            this.fallbackEnabled = fallbackEnabled;
+        }
+
+        public Integer getInfrastructureFailureTimeoutMillis() {
+            return infrastructureFailureTimeoutMillis;
+        }
+
+        public void setInfrastructureFailureTimeoutMillis(Integer infrastructureFailureTimeoutMillis) {
+            this.infrastructureFailureTimeoutMillis = infrastructureFailureTimeoutMillis;
         }
     }
 
