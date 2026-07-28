@@ -1,6 +1,6 @@
 ## Context
 
-`fw-plus-ai-askdata-spring-boot-starter` 已在 AI 聚合器和 BOM 中发布，自动配置模块已提供 LangChain4j 模型注册、顺序流程执行器、Agent 派发、上下文压缩和内存检查点。`fw-plus-core` 的 AI 聚合已提供 `fw-plus-ai-base`、`fw-plus-ai-mcp` 和 `fw-plus-ai-langchain4j` 边界，但尚无独立 AskData 模块，领域类型仍耦合在自动配置模块。系统仍缺少 SQLBot v1 所需的生产级编排、全量数据源/方言矩阵、安全恢复、外部系统对接和集群状态边界。
+`fw-plus-ai-askdata-spring-boot-starter` 已在 AI 聚合器和 BOM 中发布，自动配置模块已提供 LangChain4j 模型注册、顺序流程执行器、Agent 派发、上下文压缩和内存检查点。本 change 已在 `fw-plus-core` 新增独立 `fw-plus-ai-askdata` 模块，领域类型、运行时 SPI、SQL 插件链、状态存储、观测事件、发布契约和 Remote Runtime 边界均迁入 Java 8 兼容 Core 契约；AI 自动配置层负责桥接默认 LangChain4j/Ollama、JDBC SQL 执行器、向量检索、监控日志、集群拒绝本地状态和业务可覆盖 Bean。
 
 该 change 必须保持 Spring Boot 2.7.18 与 Java 8 兼容，并作为项目管理、训练检索、REST/MCP、企业配置和控制台业务接入的基础。`https://gitee.com/fit2cloud-feizhiyun/SQLBot` 与 `https://sqlbot.org/docs/v1/` 是整个批次的优先功能验收基线：每项开源和企业级功能都必须映射到 batch change、实现模块、文档和验证证据，全部契约、默认实现和验证矩阵闭环前不得宣称功能完整；真实外部租户连通必须另记联调证据。Canner/WrenAI 的企业级 GenBI 能力也是必须覆盖的补强基线：MDL 语义模型、上下文富化、dry-plan、结构化错误、值画像、评测、推荐、Agent 生成/部署仪表盘和多数据源治理均进入追踪矩阵；与 SQLBot 重叠时采用 SQLBot 的产品边界和命名，吸收 WrenAI 的底层设计优势。
 

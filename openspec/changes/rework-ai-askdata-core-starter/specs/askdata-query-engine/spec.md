@@ -109,7 +109,7 @@
 系统 SHALL 提供轻量的多 Agent 与子 Agent 协作抽象，使 AskData 流程中的选表、生成 SQL、SQL 校验、SQL 执行和结果解释可以由主 Agent、独立步骤、独立 Agent 或子 Agent 实现，并由流程执行器串联。系统 SHALL 提供可选 Java LangGraph 图编排适配，但默认流程不得强制依赖它。
 
 #### Scenario: Execute default flow through steps
-- **WHEN** 应用未提供自定义 Agent、流程执行器或启用的 LangGraph 适配
+- **WHEN** 应用使用默认 Agent、流程执行器和顺序编排模式
 - **THEN** AskData 服务 SHALL 使用默认步骤顺序完成元数据获取、SQL 生成、SQL 校验和可选 SQL 执行
 
 #### Scenario: Replace one agent step
