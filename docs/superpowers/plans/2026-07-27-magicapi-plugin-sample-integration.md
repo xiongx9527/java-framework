@@ -2,6 +2,7 @@
 change: fix-magicapi-plugin-sample-integration
 design-doc: docs/superpowers/specs/2026-07-27-magicapi-plugin-sample-integration-design.md
 base-ref: 0cf101d618562f74db41dc5b7071e6714e1fd4fa
+archived-with: 2026-07-28-fix-magicapi-plugin-sample-integration
 ---
 
 # Magic-API 全插件 Sample 整体集成 Implementation Plan

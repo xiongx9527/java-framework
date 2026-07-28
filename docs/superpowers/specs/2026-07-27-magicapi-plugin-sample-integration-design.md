@@ -2,6 +2,8 @@
 comet_change: fix-magicapi-plugin-sample-integration
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-28-fix-magicapi-plugin-sample-integration
+status: final
 ---
 
 # Magic-API 全插件与 Sample 整体集成技术设计
