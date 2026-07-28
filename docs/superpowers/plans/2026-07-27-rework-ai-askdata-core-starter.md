@@ -545,11 +545,11 @@ git commit -m "feat: add askdata model routing defaults"
 - Consumes: Core storage and observability contracts
 - Produces: single-node memory defaults and cluster rejection diagnostics
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试 Task 11**
 
 Test memory default in single-node mode, startup failure in cluster mode with memory state, monitoring log lifecycle event persistence, and admin access policy.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试 Task 11**
 
 ```bash
 cd fw-plus-ai
@@ -558,15 +558,15 @@ cd fw-plus-ai
 
 Expected: FAIL.
 
-- [ ] **Step 3: 实现默认存储和诊断**
+- [x] **Step 3: 实现默认存储和诊断 Task 11**
 
 Wire memory stores with bounded retention properties. Add startup validator that fails when cluster mode uses local memory for required state categories.
 
-- [ ] **Step 4: 验证**
+- [x] **Step 4: 验证 Task 11**
 
 Run the same tests. Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit Task 11**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure

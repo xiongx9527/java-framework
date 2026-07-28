@@ -4,13 +4,14 @@
 
 - Plan task: `Task 11: 实现默认状态、监控日志和集群保护`
 - OpenSpec task mapping: `2.1` / `2.4` / `5.3` 的自动配置默认实现子集（本任务覆盖单机内存默认、集群拒绝和监控日志默认落库，完整 JDBC/Redis/共享存储由后续任务继续）
-- Stage: `blocked`
+- Stage: `done`
 - Review mode: `thorough`
 - TDD mode: `tdd`
 - Base commit: `d6e0e25eba9e807a4f9b623dc766435406851e03`
 - Implementer commit: `86ed8d2c`
 - Fix round 1 commit: `49cd8a5c`
 - Fix round 2 commit: `a8bf5078`
+- Fix round 3 commit: `9a4b1277`
 - Task brief: `.superpowers/sdd/task-11-brief.md`
 - Implementer report: `.superpowers/sdd/askdata-task-11-report.md`
 
@@ -89,3 +90,6 @@
 - 2026-07-28：Task 11 re-reviewer 返回 `Needs fixes`；Critical 问题为集群仍可能默认装配本地内存监控日志、自定义 `AskDataEventPublisher` 可绕过强制落库；Important 问题为单机部分替换 Core 状态 SPI 时剩余默认 Bean 依赖缺失。当前 thorough 修复轮次：2/2，已准备派发第二轮 fix agent。
 - 2026-07-28：第二轮 fix agent 返回 `DONE`，提交 `a8bf5078`；RED 覆盖集群缺少共享监控日志仍启动、自定义事件发布器绕过基础落库、单机部分替换 Core 状态 SPI 启动失败，GREEN 为 `AskDataConversationStoreTest,AskDataMonitoringLogStoreTest,DefaultAskDataFlowExecutorTest,AskDataAutoConfigurationTest,AskDataPropertiesBindingTest` 共 38 项通过。已生成复审包 `.superpowers/sdd/review-3dceff63..a8bf5078.diff`，准备最终 re-review。
 - 2026-07-28：Task 11 最终 re-reviewer 返回 `Needs fixes`；上一轮三项问题已修复，但仍有 Critical：默认 flow 在缺少 `projectContext` 时会正常执行但跳过监控日志；Important：扩展 `AskDataEventPublisher` 异常会中断主对话流程。由于 `review_mode=thorough` 的任务级修复轮次已达到 2/2，Task 11 按流程标记 `blocked`，等待用户授权是否追加第三轮修复或调整审查结论。
+- 2026-07-28：用户明确回复“继续修”，授权 Task 11 追加第三轮修复。第三轮仅允许修复缺少 `projectContext` 导致不可审计对话、扩展 `AskDataEventPublisher` 异常影响主流程两项最终复审问题，并继续要求 TDD RED/GREEN 证据。
+- 2026-07-28：第三轮 fix agent 返回 `DONE`，提交 `9a4b1277`；RED 覆盖无效 `projectContext/projectId/operatorId` 仍进入主流程、外部 `AskDataEventPublisher` 异常中断对话，GREEN 为 `AskDataConversationStoreTest,AskDataMonitoringLogStoreTest,DefaultAskDataFlowExecutorTest,AskDataAutoConfigurationTest,AskDataPropertiesBindingTest` 共 39 项通过。已生成复审包 `.superpowers/sdd/review-3dceff63..9a4b1277.diff`，准备第三轮授权后的 re-review。
+- 2026-07-28：第三轮 re-reviewer 审查通过，Spec Compliance ✅，Task quality Approved，Critical/Important/Minor 均无。已勾选 plan 中 Task 11 的 5 个 step；OpenSpec 2.1/2.4/5.3 仍包含 JDBC/Redis/查询能力等后续完整内容，本任务不单独勾选。
