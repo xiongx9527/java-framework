@@ -13,7 +13,6 @@
 
     <properties>
         <main.basedir>${basedir}/../../..</main.basedir>
-        <neo4j-java-driver.version>4.4.26</neo4j-java-driver.version>
     </properties>
 
     <dependencies>
@@ -24,7 +23,6 @@
         <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
-            <version>${neo4j-java-driver.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
