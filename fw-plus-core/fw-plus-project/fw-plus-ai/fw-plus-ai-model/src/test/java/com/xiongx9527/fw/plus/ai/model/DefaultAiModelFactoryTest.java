@@ -53,6 +53,45 @@ public class DefaultAiModelFactoryTest {
     }
 
     @Test
+    public void shouldCreateWithExactlyMatchingExplicitFramework() {
+        AiModelDefinition definition = definition();
+        StubAdapter matching = new StubAdapter("fake", true);
+
+        AiModel model = factory.create(definition, Arrays.<AiModelAdapter>asList(
+                new StubAdapter("other", true), matching));
+
+        assertSame(matching.model, model);
+    }
+
+    @Test
+    public void shouldNotCallSupportsOnAdapterWithDifferentExplicitFramework() {
+        AiModelDefinition definition = definition();
+        StubAdapter matching = new StubAdapter("fake", true);
+        AiModelAdapter mismatched = new StubAdapter("other", true) {
+            @Override
+            public boolean supports(AiModelDefinition ignored) {
+                throw new AssertionError("不应调用 framework 不匹配适配器的 supports");
+            }
+        };
+
+        AiModel model = factory.create(definition, Arrays.<AiModelAdapter>asList(mismatched, matching));
+
+        assertSame(matching.model, model);
+    }
+
+    @Test
+    public void shouldIncludeStableContextWhenDefinitionIsNull() {
+        AiModelException exception = assertThrows(AiModelException.class,
+                () -> factory.create(null, Collections.<AiModelAdapter>emptyList()));
+
+        assertTrue(exception.getMessage().contains("key=null"));
+        assertTrue(exception.getMessage().contains("framework=null"));
+        assertTrue(exception.getMessage().contains("provider=null"));
+        assertTrue(exception.getMessage().contains("type=null"));
+        assertTrue(exception.getMessage().contains("candidates=[]"));
+    }
+
+    @Test
     public void shouldIncludeDefinitionContextWhenNoAdapterSupportsModel() {
         AiModelException exception = assertThrows(AiModelException.class,
                 () -> factory.create(definition(), Collections.<AiModelAdapter>singletonList(new StubAdapter())));
