@@ -23,6 +23,11 @@ public class DefaultLangChain4jModelFactoryTest {
     private final DefaultLangChain4jModelFactory factory = new DefaultLangChain4jModelFactory();
 
     @Test
+    public void shouldExposeFrameworkForStrictNeutralSelection() {
+        assertEquals("langchain4j", factory.getFramework());
+    }
+
+    @Test
     public void shouldExposeLangChain4jAsNeutralAdapterWithoutNativeAccessor() {
         Object nativeModel = new Object();
         CapturingAdapter providerAdapter = new CapturingAdapter(
