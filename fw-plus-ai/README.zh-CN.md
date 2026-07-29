@@ -48,7 +48,7 @@ fw-plus:
         knowledge:
           framework: langchain4j
           provider: qdrant
-          type: QDRANT
+          type: VECTOR
           enabled: true
           properties:
             host: localhost

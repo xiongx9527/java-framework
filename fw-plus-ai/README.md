@@ -32,7 +32,7 @@ fw-plus:
         knowledge:
           framework: langchain4j
           provider: qdrant
-          type: QDRANT
+          type: VECTOR
           properties:
             host: localhost
             port: 6334

@@ -45,7 +45,7 @@ fw-plus:
         knowledge:
           framework: spring-ai
           provider: qdrant
-          type: QDRANT
+          type: VECTOR
           properties: {}
 ```
 
