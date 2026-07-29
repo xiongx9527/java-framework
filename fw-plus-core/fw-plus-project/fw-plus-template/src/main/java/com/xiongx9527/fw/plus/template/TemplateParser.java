@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.template.html.HtmlParser;
 import com.xiongx9527.fw.plus.template.word.WordAbstractParser;
 import com.xiongx9527.fw.plus.template.word.WordParser;
 
+import java.util.Collections;
 import java.util.Map;
 /**
  * TemplateParser类负责管理不同文件格式的解析器实例。
@@ -86,10 +87,12 @@ public class TemplateParser {
      * @return 解析后生成的新Word文档字节数组
      */
     public byte[] parseWordByData(byte[] data, Map<String, Object> map) {
+        requireData("Word", data);
+        WordAbstractParser parser = requireWordParser();
         try {
-            return this.wordParser.parseByData(data, map);
+            return parser.parseByData(data, safeMap(map));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to parse Word template from data", e);
         }
     }
 
@@ -100,12 +103,25 @@ public class TemplateParser {
      * @param map 用于替换或填充文档内容的参数映射
      * @return 解析后生成的新Word文档字节数组
      */
-    public byte[] parsWordByUrl(String url, Map<String, Object> map)  {
+    public byte[] parseWordByUrl(String url, Map<String, Object> map) {
+        requireUrl("Word", url);
+        WordAbstractParser parser = requireWordParser();
         try {
-            return this.wordParser.parseByUrl(url, map);
+            return parser.parseByUrl(url, safeMap(map));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to parse Word template from URL", e);
         }
+    }
+
+    /**
+     * 兼容旧拼写入口，委托至parseWordByUrl。
+     *
+     * @param url Word文档的网络地址
+     * @param map 用于替换或填充文档内容的参数映射
+     * @return 解析后生成的新Word文档字节数组
+     */
+    public byte[] parsWordByUrl(String url, Map<String, Object> map) {
+        return parseWordByUrl(url, map);
     }
 
 
@@ -117,10 +133,12 @@ public class TemplateParser {
      * @return 解析后生成的新Excel文档字节数组
      */
     public byte[] parseExcelByData(byte[] data, Map<String, Object> map) {
+        requireData("Excel", data);
+        ExcelAbstractParser parser = requireExcelParser();
         try {
-            return this.excelParser.parseByData(data, map);
+            return parser.parseByData(data, safeMap(map));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to parse Excel template from data", e);
         }
     }
 
@@ -132,10 +150,12 @@ public class TemplateParser {
      * @return 解析后生成的新Excel文档字节数组
      */
     public byte[] parseExcelByUrl(String url, Map<String, Object> map)  {
+        requireUrl("Excel", url);
+        ExcelAbstractParser parser = requireExcelParser();
         try {
-            return this.excelParser.parseByUrl(url, map);
+            return parser.parseByUrl(url, safeMap(map));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to parse Excel template from URL", e);
         }
     }
 
@@ -147,10 +167,12 @@ public class TemplateParser {
      * @return 解析后生成的新HTML文档字节数组
      */
     public byte[] parseHtmlByData(byte[] data, Map<String, Object> map) {
+        requireData("HTML", data);
+        HtmlAbstractParser parser = requireHtmlParser();
         try {
-            return this.htmlParser.parseByData(data, map);
+            return parser.parseByData(data, safeMap(map));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to parse HTML template from data", e);
         }
     }
 
@@ -162,11 +184,50 @@ public class TemplateParser {
      * @return 解析后生成的新HTML文档字节数组
      */
     public byte[] parseHtmlByUrl(String url, Map<String, Object> map)  {
+        requireUrl("HTML", url);
+        HtmlAbstractParser parser = requireHtmlParser();
         try {
-            return this.htmlParser.parseByUrl(url, map);
+            return parser.parseByUrl(url, safeMap(map));
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Failed to parse HTML template from URL", e);
         }
+    }
+
+    private WordAbstractParser requireWordParser() {
+        if (this.wordParser == null) {
+            throw new IllegalStateException("Word template parser is not available");
+        }
+        return this.wordParser;
+    }
+
+    private ExcelAbstractParser requireExcelParser() {
+        if (this.excelParser == null) {
+            throw new IllegalStateException("Excel template parser is not available");
+        }
+        return this.excelParser;
+    }
+
+    private HtmlAbstractParser requireHtmlParser() {
+        if (this.htmlParser == null) {
+            throw new IllegalStateException("HTML template parser is not available");
+        }
+        return this.htmlParser;
+    }
+
+    private void requireData(String type, byte[] data) {
+        if (data == null || data.length == 0) {
+            throw new IllegalArgumentException(type + " template data must not be empty");
+        }
+    }
+
+    private void requireUrl(String type, String url) {
+        if (url == null || url.trim().isEmpty()) {
+            throw new IllegalArgumentException(type + " template URL must not be blank");
+        }
+    }
+
+    private Map<String, Object> safeMap(Map<String, Object> map) {
+        return map == null ? Collections.emptyMap() : map;
     }
 
 }
