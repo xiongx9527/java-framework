@@ -2,7 +2,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.service;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.consumer.MqttClientConsumer;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.model.MagicDynamicMqttClientDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.model.MqttClientDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.model.MqttClientSubscribeInfo;
@@ -21,7 +20,6 @@ import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -39,23 +37,22 @@ public class MqttClientSubscribeMagicDynamicRegistry extends AbstractMagicDynami
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("处理 MQTT Client 订阅文件事件失败", e);
         }
     }
 
     @EventListener(condition = "#event.type == 'mqttclient-subscribe'")
     public void onGroupEvent(GroupEvent event) {
-            try {
-                processEvent(event);
-            } catch (Exception ignored) {
-            }
+        try {
+            processEvent(event);
+        } catch (Exception e) {
+            log.warn("处理 MQTT Client 订阅分组事件失败", e);
+        }
     }
 
     private void unregisterByEntity(MqttClientSubscribeInfo entity) {
-        MqttClientConsumer consumer = this.magicDynamicMqttClientDataSource.getConsumer(entity.getKey());
-        if (Objects.nonNull(consumer)) {
-            consumer.unsubscribe(entity);
-        }
+        this.magicDynamicMqttClientDataSource.unsubscribe(entity);
     }
 
     /**
@@ -113,10 +110,14 @@ public class MqttClientSubscribeMagicDynamicRegistry extends AbstractMagicDynami
 
     @Override
     public boolean register(MqttClientSubscribeInfo entity) {
-        registerByEntity(entity);
         try {
-            return super.register(entity);
-        } catch (Exception ignored) {
+            boolean result = super.register(entity);
+            if (result) {
+                registerByEntity(entity);
+            }
+            return result;
+        } catch (Exception e) {
+            log.error("MQTT Client 订阅:[{}]注册失败", entity.getTopic(), e);
             return false;
         }
     }
@@ -125,7 +126,8 @@ public class MqttClientSubscribeMagicDynamicRegistry extends AbstractMagicDynami
     protected boolean register(MappingNode<MqttClientSubscribeInfo> mappingNode) {
         try {
             return super.register(mappingNode);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("MQTT Client 订阅:[{}]映射注册失败", mappingNode.getEntity().getTopic(), e);
             return false;
         }
     }
@@ -135,7 +137,8 @@ public class MqttClientSubscribeMagicDynamicRegistry extends AbstractMagicDynami
         unregisterByEntity(mappingNode.getEntity());
         try {
             super.unregister(mappingNode);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.warn("MQTT Client 订阅:[{}]映射取消注册失败", mappingNode.getEntity().getTopic(), e);
         }
     }
 }

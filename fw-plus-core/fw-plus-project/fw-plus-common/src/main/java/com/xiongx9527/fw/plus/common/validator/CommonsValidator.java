@@ -26,7 +26,6 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.validation.*;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -258,7 +257,7 @@ public class CommonsValidator {
      */
     public static BindingResult bindingResult(Object data) {
         // 从请求中提取参数并绑定到data对象上
-        return WebUtils.bindRequestParameters((HttpServletRequest)WebUtils.getRequest().getRequest(), data);
+        return WebUtils.bindRequestParameters(WebUtils.getRequest(), data);
     }
 
     /**

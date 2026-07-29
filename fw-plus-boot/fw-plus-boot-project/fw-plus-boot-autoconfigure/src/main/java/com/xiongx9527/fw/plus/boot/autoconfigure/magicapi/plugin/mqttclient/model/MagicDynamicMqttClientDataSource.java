@@ -1,9 +1,8 @@
 
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.model;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.common.MqttClientConfigSupport;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.consumer.MqttClientConsumer;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.consumer.MqttClientConsumerService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.producer.MqttClientProducer;
@@ -20,6 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 @Slf4j
 public class MagicDynamicMqttClientDataSource implements DisposableBean {
@@ -27,6 +27,7 @@ public class MagicDynamicMqttClientDataSource implements DisposableBean {
     private final Map<String, MqttClientProducer> producerMap = new ConcurrentHashMap<>();
     private final Map<String, MqttClientConsumer> consumerMap = new ConcurrentHashMap<>();
     private final MqttClientConsumerService mqttClientConsumerService;
+    private boolean destroyed;
 
     public MagicDynamicMqttClientDataSource(MqttClientConsumerService mqttClientConsumerService) {
         this.mqttClientConsumerService = mqttClientConsumerService;
@@ -44,40 +45,16 @@ public class MagicDynamicMqttClientDataSource implements DisposableBean {
         username = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "username", username);
         String password = dataSourceInfo.getPassword();
         password = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "password", password);
-        int portInt;
-        try {
-            portInt = Integer.parseInt(port);
-        } catch (Exception e) {
-            portInt = 1883;
-        }
         MqttClientCreator mqttClientCreator = MqttClient.create()
                 .ip(ip)
-                .port(portInt)
+                .port(MqttClientConfigSupport.parsePort(port))
                 .clientId(clientId)
                 .username(username)
                 .password(password);
 
         String configuredProperties = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "properties", null);
         Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties);
-        if (!properties.isEmpty()) {
-            try {
-                JSONObject jsonObject = new JSONObject(properties);
-                if (jsonObject.containsKey("keepAliveSec")) {
-                    mqttClientCreator.keepAliveSecs(jsonObject.getIntValue("keepAliveSec"));
-                }
-                if (jsonObject.containsKey("reconnect")) {
-                    mqttClientCreator.reconnect(jsonObject.getBooleanValue("reconnect"));
-                }
-                if (jsonObject.containsKey("cleanSession")) {
-                    mqttClientCreator.cleanSession(jsonObject.getBooleanValue("cleanSession"));
-                }
-                if (jsonObject.containsKey("ssl")) {
-                    //mqttClient.ssl(jsonObject.getBooleanValue("ssl"));
-                }
-            } catch (Exception e) {
-                log.warn("应用 MQTT Client properties 失败: {}", e.getMessage(), e);
-            }
-        }
+        MqttClientConfigSupport.applyCommonOptions(mqttClientCreator, properties);
 
         MqttClientTemplate template = new MqttClientTemplate(mqttClientCreator);
         template.setApplicationContext(SpringUtils.getContext());
@@ -85,7 +62,11 @@ public class MagicDynamicMqttClientDataSource implements DisposableBean {
         return template;
     }
 
-    public boolean putProducer(MqttClientDataSourceInfo info) {
+    public synchronized boolean putProducer(MqttClientDataSourceInfo info) {
+        if (this.destroyed) {
+            log.warn("MQTT Client 数据源已销毁，拒绝注册生产者:[{}]", info.getKey());
+            return false;
+        }
         try {
             MqttClientProducer oldProducer = this.producerMap.put(info.getKey(), new MqttClientProducer(info));
             if (oldProducer != null) {
@@ -99,14 +80,22 @@ public class MagicDynamicMqttClientDataSource implements DisposableBean {
         return true;
     }
 
-    public boolean putConsumer(MqttClientDataSourceInfo info, List<MqttClientSubscribeScriptInfo> subscribeScriptInfos) {
+    public synchronized boolean putConsumer(MqttClientDataSourceInfo info, List<MqttClientSubscribeScriptInfo> subscribeScriptInfos) {
+        if (this.destroyed) {
+            log.warn("MQTT Client 数据源已销毁，拒绝注册消费者:[{}]", info.getKey());
+            return false;
+        }
         try {
-            MqttClientConsumer oldConsumer = this.consumerMap.get(info.getKey());
-            if (oldConsumer != null) {
-                oldConsumer.createConsumer(subscribeScriptInfos);
-            } else {
-                MqttClientConsumer consumer = new MqttClientConsumer(this.mqttClientConsumerService, info, subscribeScriptInfos);
+            MqttClientConsumer consumer = this.consumerMap.get(info.getKey());
+            if (consumer == null) {
+                consumer = new MqttClientConsumer(this.mqttClientConsumerService, info, null);
+                if (!consumer.addSubscriptions(subscribeScriptInfos)) {
+                    consumer.close();
+                    return false;
+                }
                 this.consumerMap.put(info.getKey(), consumer);
+            } else if (!consumer.addSubscriptions(subscribeScriptInfos)) {
+                return false;
             }
             log.info("注册 MQTT Client 消费者:[{}]完成执行", info.getKey());
         } catch (Throwable e) {
@@ -116,21 +105,68 @@ public class MagicDynamicMqttClientDataSource implements DisposableBean {
         return true;
     }
 
-    public void deleteProducer(String datasourceKey) {
-        if (datasourceKey != null && !datasourceKey.isEmpty()) {
-            MqttClientProducer producer = this.producerMap.remove(datasourceKey);
-            if (producer != null) {
-                producer.close();
+    public synchronized boolean replaceConsumer(MqttClientDataSourceInfo info,
+                                                List<MqttClientSubscribeScriptInfo> subscribeScriptInfos) {
+        if (this.destroyed) {
+            log.warn("MQTT Client 数据源已销毁，拒绝刷新消费者:[{}]", info.getKey());
+            return false;
+        }
+        MqttClientConsumer candidate = new MqttClientConsumer(this.mqttClientConsumerService, info, null);
+        try {
+            if (!candidate.addSubscriptions(subscribeScriptInfos)) {
+                candidate.close();
+                return false;
             }
+            MqttClientConsumer oldConsumer = this.consumerMap.put(info.getKey(), candidate);
+            if (oldConsumer != null) {
+                oldConsumer.close();
+            }
+            log.info("刷新 MQTT Client 消费者:[{}]完成执行", info.getKey());
+            return true;
+        } catch (Throwable e) {
+            candidate.close();
+            log.error("MQTT Client 消费者:[{}]刷新失败", info.getKey(), e);
+            return false;
         }
     }
 
-    public void deleteConsumer(String datasourceKey) {
-        if (datasourceKey != null && !datasourceKey.isEmpty()) {
-            MqttClientConsumer consumer = this.consumerMap.remove(datasourceKey);
-            if (consumer != null) {
-                consumer.close();
-            }
+    public synchronized boolean replaceConsumerFromSnapshot(MqttClientDataSourceInfo info,
+                                                            Supplier<List<MqttClientSubscribeScriptInfo>> snapshotSupplier) {
+        if (this.destroyed) {
+            log.warn("MQTT Client 数据源已销毁，拒绝刷新消费者:[{}]", info.getKey());
+            return false;
+        }
+        List<MqttClientSubscribeScriptInfo> snapshot = snapshotSupplier == null ? null : snapshotSupplier.get();
+        return replaceConsumer(info, snapshot);
+    }
+
+    public synchronized void deleteProducer(String datasourceKey) {
+        if (StringUtils.isBlank(datasourceKey)) {
+            return;
+        }
+        MqttClientProducer producer = this.producerMap.remove(datasourceKey);
+        if (producer != null) {
+            producer.close();
+        }
+    }
+
+    public synchronized void deleteConsumer(String datasourceKey) {
+        if (StringUtils.isBlank(datasourceKey)) {
+            return;
+        }
+        MqttClientConsumer consumer = this.consumerMap.remove(datasourceKey);
+        if (consumer != null) {
+            consumer.close();
+        }
+    }
+
+    public synchronized void unsubscribe(MqttClientSubscribeInfo subscribeInfo) {
+        if (subscribeInfo == null || StringUtils.isBlank(subscribeInfo.getKey())) {
+            return;
+        }
+        MqttClientConsumer consumer = this.consumerMap.get(subscribeInfo.getKey());
+        if (consumer != null) {
+            consumer.unsubscribe(subscribeInfo);
         }
     }
 
@@ -142,6 +178,7 @@ public class MagicDynamicMqttClientDataSource implements DisposableBean {
                 producers.add(new MqttClientProducer(mqttClientTemplate));
             }
         } catch (Exception e) {
+            log.debug("未找到默认 MQTT ClientTemplate，跳过默认 MQTT Client 数据源暴露", e);
         }
         return producers;
     }
@@ -155,7 +192,11 @@ public class MagicDynamicMqttClientDataSource implements DisposableBean {
     }
 
     @Override
-    public void destroy() throws Exception {
+    public synchronized void destroy() throws Exception {
+        if (this.destroyed) {
+            return;
+        }
+        this.destroyed = true;
         log.info("开始关闭所有 MQTT Client 生产者和消费者连接...");
         for (Map.Entry<String, MqttClientProducer> entry : this.producerMap.entrySet()) {
             try {

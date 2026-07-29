@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.starter
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.service.ConfigMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.web.MagicConfigController;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -16,6 +17,7 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.service.ConfigMagicDynamicRegistry;
 @ConditionalOnProperty(prefix = "magic-api.plugin.config", name = "enabled", havingValue = "true", matchIfMissing = true)
 @ConditionalOnClass(name={"org.springframework.cloud.context.refresh.ContextRefresher"})
+@ConditionalOnBean(type = "org.springframework.cloud.context.refresh.ContextRefresher")
 @Configuration
 @Import({MagicAPIConfServerAutoConfiguration.class})
 public class MagicAPIConfAutoConfiguration implements MagicPluginConfiguration {

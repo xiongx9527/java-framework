@@ -11,6 +11,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -103,6 +104,7 @@ public class MagicAPIMongoConfiguration implements MagicPluginConfiguration {
      * @return MongoModule Mongo模块实例
      */
     @Bean
+    @ConditionalOnBean(MongoTemplate.class)
     @ConditionalOnMissingBean
     public MongoModule mongoFunctions(@Lazy MongoTemplate mongoTemplate,MagicDynamicMongoDataSource magicDynamicMongoDataSource) {
         JavaReflection.registerMethodExtension(MongoCollection.class, new MongoCollectionExtension());

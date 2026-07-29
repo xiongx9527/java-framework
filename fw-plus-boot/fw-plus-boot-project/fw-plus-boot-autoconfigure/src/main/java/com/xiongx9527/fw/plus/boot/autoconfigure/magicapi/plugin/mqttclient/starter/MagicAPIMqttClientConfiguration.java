@@ -21,7 +21,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
 import org.ssssssss.magicapi.core.model.Plugin;
-import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 @ConditionalOnProperty(prefix = "magic-api.plugin.mqttclient", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -38,19 +37,18 @@ public class MagicAPIMqttClientConfiguration implements MagicPluginConfiguration
 
     @Bean
     @ConditionalOnMissingBean
-    public MqttClientDataSourceInfoMagicResourceStorage mqttClientDataSourceInfoMagicResourceStorage(MagicResourceService magicResourceService) {
-        MqttClientDataSourceInfoMagicResourceStorage mqttClientDataSourceInfoMagicResourceStorage = new MqttClientDataSourceInfoMagicResourceStorage();
-        mqttClientDataSourceInfoMagicResourceStorage.setMagicResourceService(magicResourceService);
-        return mqttClientDataSourceInfoMagicResourceStorage;
+    public MqttClientDataSourceInfoMagicResourceStorage mqttClientDataSourceInfoMagicResourceStorage() {
+        return new MqttClientDataSourceInfoMagicResourceStorage();
     }
 
     @Bean
     @ConditionalOnMissingBean
     public MqttClientDataSourceMagicDynamicRegistry mqttClientDataSourceMagicDynamicRegistry(
             MqttClientDataSourceInfoMagicResourceStorage mqttClientDataSourceInfoMagicResourceStorage,
-            MagicDynamicMqttClientDataSource magicDynamicMqttClientDataSource) {
+            MagicDynamicMqttClientDataSource magicDynamicMqttClientDataSource,
+            MqttClientSubscribeInfoMagicResourceStorage mqttClientSubscribeInfoMagicResourceStorage) {
         return new MqttClientDataSourceMagicDynamicRegistry(mqttClientDataSourceInfoMagicResourceStorage,
-                magicDynamicMqttClientDataSource);
+                magicDynamicMqttClientDataSource, mqttClientSubscribeInfoMagicResourceStorage);
     }
 
     @Bean

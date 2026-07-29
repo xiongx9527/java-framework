@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.web.webflux;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.properties.WebProperties;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.webflux.filter.WebFluxCommonFilter;
 import com.xiongx9527.fw.plus.boot.common.CommonAutoConfiguration;
+import com.xiongx9527.fw.plus.common.util.WebUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,7 @@ public class WebFluxAutoConfiguration extends CommonAutoConfiguration {
      */
     public WebFluxAutoConfiguration(WebProperties webProperties) {
         this.webProperties = webProperties;
+        WebUtils.useWebFlux();
     }
 
     /**
