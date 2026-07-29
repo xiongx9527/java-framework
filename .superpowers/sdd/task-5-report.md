@@ -19,3 +19,17 @@ DONE
 ## GREEN
 
 `git diff --check -- docs/askdata/starter openspec/changes/add-askdata-governance-permission-bridge` 已通过（退出码 0）。
+
+## 第 1 轮 review 修复（2026-07-29）
+
+### RED / 前置检查
+
+- 文档中的 `OrdersGovernanceProvider` 仅为 Markdown 片段；原 `javac` 命令只编译明确不冒充生产 API 的 `AskDataPluginSdkExample.java`，无法覆盖真实 `AskDataGovernanceProvider`、授权对象或行级参数 API。
+- 尝试运行 `./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=AskDataGovernanceBridgeDocumentationTest test` 时，新增示例尚不存在，且构建在测试编译前被既有 `LegacyEmbeddingStoreAiAdapter` 缺失 `AiEmbeddingStoreAdapter#getFramework()` 阻断。
+- `configuration.md` 将默认策略表述为“只允许同项目管理员”，与默认 `AskDataMonitoringLogAccessAuthorizer.denyAll()` 的 fail-closed 链路不一致。
+
+### GREEN
+
+- 新增 `AskDataGovernanceBridgeDocumentationExample`，直接使用真实 Core API 实现 `AskDataGovernanceProvider`，返回 `AskDataAuthorizationSummary.allow(...)`，覆盖 `sales.orders` 的 `id`、`amount` 列和 `region_id = :regionId` 的 `AskDataSqlParameter` 具名绑定。
+- `javac -source 8 -target 8 -cp fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/target/classes -d "$verify_dir" fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/documentation/AskDataGovernanceBridgeDocumentationExample.java` 通过；随后 `java -cp "$verify_dir":fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/target/classes com.xiongx9527.fw.plus.ai.autoconfigure.askdata.documentation.AskDataGovernanceBridgeDocumentationExample` 输出 `ASKDATA_GOVERNANCE_BRIDGE_EXAMPLE_OK`。
+- `plugin-sdk.md`、`sql-safety.md` 和 `configuration.md` 统一为：默认授权器 fail-closed；业务显式授权解析器确认管理员资格后，策略再逐条收窄日志边界；策略不会仅根据调用方角色识别管理员。

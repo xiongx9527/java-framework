@@ -45,7 +45,7 @@ SQL 审计应记录项目、操作人、会话、请求、数据源 key、语义
 
 管理员查看审计同样受项目范围约束，跨项目读取必须由业务授权。审计写入失败应采取显式失败策略，不得悄然放行未完成安全记录的生产查询。
 
-管理员监控日志查询还同时需要 `AskDataMonitoringLogAccessAuthorizer` 和 `AskDataMonitoringLogAccessPolicy`：前者向宿主 IAM 确认请求人是否为目标项目管理员，后者再约束可读日志范围。两者默认拒绝；不能信任调用方传入的管理员角色。成功查询会追加仅含项目范围和是否存在 trace 过滤条件的脱敏审计记录，不保存 trace 或日志正文。
+管理员监控日志查询还同时需要 `AskDataMonitoringLogAccessAuthorizer` 和 `AskDataMonitoringLogAccessPolicy`：默认授权器 fail-closed，不能信任调用方传入的管理员角色；业务必须显式向宿主 IAM 解析请求人、目标 scope 和角色声明。授权解析器确认管理员资格后，策略才逐条约束可读日志范围；默认策略只收窄已确认的同项目管理员范围，不自行放行管理员。成功查询会追加仅含项目范围和是否存在 trace 过滤条件的脱敏审计记录，不保存 trace 或日志正文。
 
 ## 业务扩展接口
 
