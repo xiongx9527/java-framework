@@ -27,6 +27,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidationResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.DefaultLangChain4jModelRegistry;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
@@ -79,6 +82,17 @@ public class AskDataAutoConfigurationTest {
             assertTrue(context.getBean(com.xiongx9527.fw.plus.ai.askdata.api.AskDataService.class) != null);
             assertTrue(context.getBean(AskDataDialectRegistry.class) != null);
             assertTrue(context.getBean(AskDataAgentDispatcher.class) != null);
+            assertTrue(context.getBean(AskDataGovernanceProvider.class)
+                    instanceof DefaultDenyAskDataGovernanceProvider);
+        });
+    }
+
+    @Test
+    public void shouldPreserveUserAskDataGovernanceProvider() {
+        AskDataGovernanceProvider customProvider = request -> AskDataAuthorizationSummary.deny("custom-deny");
+
+        contextRunner.withBean(AskDataGovernanceProvider.class, () -> customProvider).run(context -> {
+            assertSame(customProvider, context.getBean(AskDataGovernanceProvider.class));
         });
     }
 
@@ -309,6 +323,9 @@ public class AskDataAutoConfigurationTest {
 
     private ApplicationContextRunner withDefaultFlowDependencies() {
         return contextRunner
+                .withBean(AskDataGovernanceProvider.class,
+                        () -> request -> AskDataAuthorizationSummary.allow(Collections.emptyList(),
+                                Collections.emptyList()))
                 .withBean(AskDataMetadataProvider.class,
                         () -> request -> new AskDataMetadata("mysql",
                                 Collections.singletonList(new AskDataTable("orders", Collections.emptyList())),
