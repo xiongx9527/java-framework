@@ -75,4 +75,33 @@ class MagicAPIControllerJdbcOptionsTest {
                 Arrays.asList(Options.AVOID_REPEAT_SUBMIT_KEY_SUBFIX_SPRING_BEAN.getValue(), "避免重复提交的 Key 后缀（Spring Bean 名称）", "springbean"),
                 Arrays.asList(Options.AVOID_REPEAT_SUBMIT_MSG.getValue(), "避免重复提交提示信息", "重复提交，请稍后再试。"));
     }
+
+    @Test
+    void managementServiceOptionListKeepsRepeatSubmitTimeoutPayload() {
+        MagicAPIManagementService managementService = new MagicAPIManagementService(
+                new MagicConfiguration(), mock(MagicJdbcClassOptionProvider.class));
+
+        JsonBean<List<List<String>>> result = managementService.options();
+
+        @SuppressWarnings("unchecked")
+        List<List<String>> options = (List<List<String>>) result.getData();
+        assertThat(options).contains(Arrays.asList(
+                Options.AVOID_REPEAT_SUBMIT_TIMEOUT.getValue(),
+                "避免重复提交超时时间(毫秒)",
+                "1000"));
+    }
+
+    @Test
+    void controllerDelegatesOptionListWithoutChangingPayload() {
+        MagicAPIController controller = new MagicAPIController(new MagicConfiguration(), mock(MagicJdbcClassOptionProvider.class));
+
+        JsonBean<List<List<String>>> result = controller.options();
+
+        @SuppressWarnings("unchecked")
+        List<List<String>> options = (List<List<String>>) result.getData();
+        assertThat(options).contains(Arrays.asList(
+                Options.AVOID_REPEAT_SUBMIT_TIMEOUT.getValue(),
+                "避免重复提交超时时间(毫秒)",
+                "1000"));
+    }
 }

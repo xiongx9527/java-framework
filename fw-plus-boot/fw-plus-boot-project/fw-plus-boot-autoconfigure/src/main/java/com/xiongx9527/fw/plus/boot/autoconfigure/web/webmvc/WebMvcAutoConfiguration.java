@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.web.webmvc;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.properties.WebProperties;
 import com.xiongx9527.fw.plus.boot.autoconfigure.web.webmvc.filter.WebMvcCommonFilter;
 import com.xiongx9527.fw.plus.boot.common.CommonAutoConfiguration;
+import com.xiongx9527.fw.plus.common.util.WebUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.ApplicationListener;
@@ -25,6 +26,7 @@ public class WebMvcAutoConfiguration extends CommonAutoConfiguration implements 
 
     public WebMvcAutoConfiguration(WebProperties webProperties) {
         this.webProperties = webProperties;
+        WebUtils.useWebMvc();
     }
 
     /**

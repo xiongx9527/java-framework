@@ -16,67 +16,41 @@ import org.ssssssss.script.functions.DynamicAttribute;
 public class MqttModule implements DynamicAttribute<MqttModule, MqttModule>, DynamicModule<MqttModule> {
 
     /**
-     * MagicDynamicMqttDataSource实例，用于处理动态MQTT数据源相关的业务逻辑
-     * 该数据源支持运行时动态配置和管理MQTT连接
+     * 内置 MQTT 服务端动态数据源，用于按 Magic-API 资源配置管理多个 MqttServer。
      */
-    private final BaseMagicDynamicMqttDataSource magicDynamicWeaviateDataSource;
+    private final BaseMagicDynamicMqttDataSource magicDynamicMqttDataSource;
 
     /**
-     * MqttServer实例，用于管理MQTT服务器相关的配置和操作
-     * 包括服务器的启动、停止以及连接管理等功能
+     * 当前模块绑定的 MQTT 服务端实例；默认模块可能为空，按 key 切换后绑定具体服务端。
      */
     private final MqttServer mqttServer;
 
-    /**
-     * MQTT模块构造函数
-     *
-     * @param magicDynamicWeaviateDataSource 动态MQTT数据源实例，用于处理数据存储和检索
-     * @param mqttServer MQTT服务器实例，用于处理MQTT协议相关的通信
-     */
-    public MqttModule(BaseMagicDynamicMqttDataSource magicDynamicWeaviateDataSource, MqttServer mqttServer) {
-        this.magicDynamicWeaviateDataSource = magicDynamicWeaviateDataSource;
+    public MqttModule(BaseMagicDynamicMqttDataSource magicDynamicMqttDataSource, MqttServer mqttServer) {
+        this.magicDynamicMqttDataSource = magicDynamicMqttDataSource;
         this.mqttServer = mqttServer;
     }
 
 
     /**
-     * 获取MQTT服务器模板实例
-     *
-     * @return MqttServerTemplate MQTT服务器模板对象
+     * 获取当前绑定服务端的模板。
+     * 调用方需要确保当前模块已通过默认服务端或动态 key 绑定到 MqttServer。
      */
     public MqttServerTemplate getMqttServerTemplate() {
         return new MqttServerTemplate(this.mqttServer);
     }
 
-    /**
-     * 根据上下文获取动态MQTT模块
-     *
-     * @param context MagicScript上下文对象，用于获取数据源配置
-     * @return MqttModule 动态MQTT模块实例
-     */
     @Override
     public MqttModule getDynamicModule(MagicScriptContext context) {
-        // 从上下文中获取数据源键值
         String dataSourceKey = context.getString(Options.DEFAULT_DATA_SOURCE.getValue());
-        // 如果数据源键值为空，返回当前模块实例
-        if (StringUtils.isEmpty(dataSourceKey)) return this;
-        // 根据数据源键值创建新的MQTT模块实例
-        return new MqttModule(this.magicDynamicWeaviateDataSource, this.magicDynamicWeaviateDataSource.getServer(dataSourceKey).getMqttServer());
+        if (StringUtils.isEmpty(dataSourceKey)) {
+            return this;
+        }
+        return new MqttModule(this.magicDynamicMqttDataSource, this.magicDynamicMqttDataSource.getServer(dataSourceKey).getMqttServer());
     }
 
 
-    /**
-     * 根据键值获取动态MQTT模块属性
-     *
-     * @param key 数据源键值
-     * @return MqttModule 动态MQTT模块实例
-     */
     @Override
     public MqttModule getDynamicAttribute(String key) {
-        // 根据指定键值创建新的MQTT模块实例
-        return new MqttModule(this.magicDynamicWeaviateDataSource, this.magicDynamicWeaviateDataSource.getServer(key).getMqttServer());
+        return new MqttModule(this.magicDynamicMqttDataSource, this.magicDynamicMqttDataSource.getServer(key).getMqttServer());
     }
-
-
-
 }

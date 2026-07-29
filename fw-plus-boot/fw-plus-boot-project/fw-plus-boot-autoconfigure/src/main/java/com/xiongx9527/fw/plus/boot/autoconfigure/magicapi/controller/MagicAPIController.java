@@ -1,10 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProperties;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptions;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.enums.Options;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.resource.MyDefaultMagicResourceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -19,13 +17,9 @@ import org.ssssssss.magicapi.core.servlet.MagicHttpServletRequest;
 import org.ssssssss.magicapi.core.web.MagicController;
 import org.ssssssss.magicapi.core.web.MagicExceptionHandler;
 import org.ssssssss.magicapi.datasource.model.DataSourceInfo;
-import org.ssssssss.magicapi.utils.JdbcUtils;
 
-import java.sql.Connection;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 @RestController
 public class MagicAPIController extends MagicController implements MagicExceptionHandler {
 
@@ -36,7 +30,7 @@ public class MagicAPIController extends MagicController implements MagicExceptio
      */
     private final MagicConfiguration configuration ;
 
-    private final MagicJdbcClassOptionProvider magicJdbcClassOptionProvider;
+    private final MagicAPIManagementService managementService;
 
 
     /**
@@ -51,23 +45,10 @@ public class MagicAPIController extends MagicController implements MagicExceptio
     public MagicAPIController(MagicConfiguration configuration, MagicJdbcClassOptionProvider magicJdbcClassOptionProvider) {
         super(configuration);
         this.configuration = configuration;
-        this.magicJdbcClassOptionProvider = magicJdbcClassOptionProvider == null
+        MagicJdbcClassOptionProvider optionProvider = magicJdbcClassOptionProvider == null
                 ? new MagicJdbcClassOptionProvider(new MagicJdbcClassOptionProperties(), Collections.emptyMap(), MagicAPIController.class.getClassLoader())
                 : magicJdbcClassOptionProvider;
-    }
-
-    /**
-     * 检查用户是否有权限访问指定资源
-     * @param request HTTP请求对象
-     * @param authorization 授权信息
-     * @return 如果允许访问返回true，否则返回false
-     */
-    boolean allowVisit(MagicHttpServletRequest request, Authorization authorization) {
-        if (authorization == null) {
-            return true;
-        }
-        MagicUser magicUser = (MagicUser) request.getAttribute(Constants.ATTRIBUTE_MAGIC_USER);
-        return this.configuration.getAuthorizationInterceptor().allowVisit(magicUser, request, authorization);
+        this.managementService = new MagicAPIManagementService(configuration, optionProvider);
     }
 
     /**
@@ -111,16 +92,14 @@ public class MagicAPIController extends MagicController implements MagicExceptio
     @ResponseBody
     @Valid(requireLogin = false)
     public JsonBean<List<List<String>>> options() {
-        // 将Options枚举转换为包含value、name、defaultValue的列表集合
-        return new JsonBean<>(Stream.of(Options.values()).map(item -> Arrays.asList(item.getValue(), item.getName(), item.getDefaultValue())).collect(Collectors.toList()));
+        return managementService.options();
     }
 
     @GetMapping("${magic-api.web:/magic-api/web}/datasource/options")
     @ResponseBody
     @Valid(requireLogin = true)
     public JsonBean<MagicJdbcClassOptions> datasourceOptions(MagicHttpServletRequest request) {
-        isTrue(allowVisit(request, Authorization.VIEW), PERMISSION_INVALID);
-        return new JsonBean<>(magicJdbcClassOptionProvider.getOptions());
+        return managementService.datasourceOptions(new ServletMagicAPIRequestAccess(request));
     }
 
     /**
@@ -137,10 +116,7 @@ public class MagicAPIController extends MagicController implements MagicExceptio
     @GetMapping("${magic-api.web:/magic-api/web}/{resource}/reloadResource")
     @ResponseBody
     public JsonBean<Boolean> reloadResource(@PathVariable("resource") String resource, MagicHttpServletRequest request) {
-        isTrue(allowVisit(request, Authorization.RELOAD), PERMISSION_INVALID);
-        MyDefaultMagicResourceService service = (MyDefaultMagicResourceService)MagicConfiguration.getMagicResourceService();
-        service.refreshResource(resource);
-        return new JsonBean<>(true);
+        return managementService.reloadResource(resource, new ServletMagicAPIRequestAccess(request));
     }
 
     @GetMapping("${magic-api.web:/magic-api/web}/{type}/reload/{id}")
@@ -148,9 +124,7 @@ public class MagicAPIController extends MagicController implements MagicExceptio
     public JsonBean<Boolean> reloadSingleResource(@PathVariable("type") String type,
                                                    @PathVariable("id") String id,
                                                    MagicHttpServletRequest request) {
-        isTrue(allowVisit(request, Authorization.RELOAD), PERMISSION_INVALID);
-        MyDefaultMagicResourceService service = (MyDefaultMagicResourceService)MagicConfiguration.getMagicResourceService();
-        return new JsonBean<>(service.refreshResourceById(type, id));
+        return managementService.reloadSingleResource(type, id, new ServletMagicAPIRequestAccess(request));
     }
 
 
@@ -266,17 +240,7 @@ public class MagicAPIController extends MagicController implements MagicExceptio
     @RequestMapping("${magic-api.web:/magic-api/web}/datasource/myjdbc/test")
     @ResponseBody
     public JsonBean<String> test(@RequestBody DataSourceInfo info) {
-        try {
-            String url = MagicAPIConfigUtils.getDbConfig(info.getKey(), "url", info.getUrl());
-            String username = MagicAPIConfigUtils.getDbConfig(info.getKey(), "username", info.getUsername());
-            String password = MagicAPIConfigUtils.getDbConfig(info.getKey(), "password", info.getPassword());
-            String driverClassName = MagicAPIConfigUtils.getDbConfig(info.getKey(), "driverClassName", info.getDriverClassName());
-            Connection connection = JdbcUtils.getConnection(driverClassName, url, username, password);
-            JdbcUtils.close(connection);
-        } catch (Exception e) {
-            return new JsonBean<>(e.getMessage());
-        }
-        return new JsonBean<>("ok");
+        return managementService.test(info);
     }
 
 }

@@ -5,7 +5,6 @@ import cn.afterturn.easypoi.excel.entity.ImportParams;
 import cn.afterturn.easypoi.excel.entity.result.ExcelImportResult;
 import cn.afterturn.easypoi.excel.export.FwPlusExcelTransService;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 
 import java.io.InputStream;
 import java.util.List;
@@ -22,21 +21,19 @@ public class FwPlusExcelImportService extends ExcelImportService implements FwPl
      * @param excelImportResult Excel导入结果对象，包含成功和失败的导入记录列表
      * @param params 导入参数对象，指导如何进行导入和转换操作
      */
-    private void trans(ExcelImportResult excelImportResult,ImportParams params) {
-        // 确保导入结果和参数均有效，并且参数是FwPlusImportParams类型的实例
-        if (ObjectUtils.isNotEmpty(excelImportResult) && ObjectUtils.isNotEmpty(params) && params instanceof FwPlusImportParams) {
-            FwPlusImportParams fwPlusImportParams = (FwPlusImportParams) params;
-            // 检查是否需要进行转换操作
-            if (fwPlusImportParams.isNeedTrans()) {
-                // 如果成功导入的记录列表不为空，则执行转换操作
-                if (CollectionUtils.isNotEmpty(excelImportResult.getList())) {
-                    excelImportResult.setList((List)transImportCollection(fwPlusImportParams, excelImportResult.getList()));
-                }
-                // 如果失败导入的记录列表不为空，则执行转换操作
-                if (CollectionUtils.isNotEmpty(excelImportResult.getFailList())) {
-                    excelImportResult.setFailList((List)transImportCollection(fwPlusImportParams, excelImportResult.getFailList()));
-                }
-            }
+    private void trans(ExcelImportResult excelImportResult, ImportParams params) {
+        if (excelImportResult == null || !(params instanceof FwPlusImportParams)) {
+            return;
+        }
+        FwPlusImportParams fwPlusImportParams = (FwPlusImportParams) params;
+        if (!fwPlusImportParams.isNeedTrans()) {
+            return;
+        }
+        if (CollectionUtils.isNotEmpty(excelImportResult.getList())) {
+            excelImportResult.setList((List) transImportCollection(fwPlusImportParams, excelImportResult.getList()));
+        }
+        if (CollectionUtils.isNotEmpty(excelImportResult.getFailList())) {
+            excelImportResult.setFailList((List) transImportCollection(fwPlusImportParams, excelImportResult.getFailList()));
         }
     }
 

@@ -2,6 +2,7 @@ package cn.afterturn.easypoi.excel.export;
 
 import cn.afterturn.easypoi.excel.entity.ExportParams;
 import cn.afterturn.easypoi.excel.entity.FwPlusExportParams;
+import cn.afterturn.easypoi.excel.entity.params.ExcelExportEntity;
 import cn.afterturn.easypoi.handler.inter.IWriter;
 import org.apache.poi.ss.usermodel.Workbook;
 import java.util.*;
@@ -22,8 +23,20 @@ public class FwPlusExcelBatchExportService extends ExcelBatchExportService imple
     public void init(ExportParams entity, Class<?> pojoClass) {
         if (entity instanceof FwPlusExportParams) {
             fwPlusExportParams = (FwPlusExportParams) entity;
+        } else {
+            fwPlusExportParams = null;
         }
         super.init(entity, pojoClass);
+    }
+
+    @Override
+    public void init(ExportParams entity, List<ExcelExportEntity> excelParams) {
+        if (entity instanceof FwPlusExportParams) {
+            fwPlusExportParams = (FwPlusExportParams) entity;
+        } else {
+            fwPlusExportParams = null;
+        }
+        super.init(entity, excelParams);
     }
 
     /**

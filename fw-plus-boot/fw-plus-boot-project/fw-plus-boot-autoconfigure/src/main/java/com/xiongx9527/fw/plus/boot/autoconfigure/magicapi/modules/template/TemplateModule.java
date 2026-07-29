@@ -51,7 +51,7 @@ public class TemplateModule {
      * @return 解析后的Word文档字节数组
      */
     public byte[] parseWordByUrl(String url, Map<String, Object> map)  {
-        return this.templateParser.parsWordByUrl(url, map);
+        return this.templateParser.parseWordByUrl(url, map);
     }
 
     /**

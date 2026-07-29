@@ -18,10 +18,14 @@ public class SaTokenMcpAuthService implements McpAuthService {
 
 	@Override
 	public McpPrincipal authenticate(HttpServletRequest request) {
+		return authenticate(request == null ? null : request.getHeader("Authorization"));
+	}
+
+	@Override
+	public McpPrincipal authenticate(String authorization) {
 		if (!properties.getAuth().isEnabled()) {
 			return new McpPrincipal("anonymous", Collections.emptySet());
 		}
-		String authorization = request == null ? null : request.getHeader("Authorization");
 		if (authorization == null || !authorization.startsWith("Bearer ")) {
 			throw new McpAuthorizationException(401, "Missing bearer token");
 		}

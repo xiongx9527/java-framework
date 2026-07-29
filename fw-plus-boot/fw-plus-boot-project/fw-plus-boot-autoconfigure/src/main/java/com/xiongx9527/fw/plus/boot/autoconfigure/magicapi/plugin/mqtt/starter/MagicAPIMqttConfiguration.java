@@ -26,7 +26,8 @@ import org.ssssssss.magicapi.core.model.Plugin;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 @Slf4j
-@ConditionalOnProperty(prefix = "magic-api.plugin.mqtt", name = "enabled", havingValue = "true", matchIfMissing = true)
+// 内置 MQTT 服务端会监听端口并承担 Broker 职责；普通外连 Broker 场景请使用 mqttclient 插件。
+@ConditionalOnProperty(prefix = "magic-api.plugin.mqtt", name = "enabled", havingValue = "true", matchIfMissing = false)
 @ConditionalOnClass(name = {"net.dreamlu.iot.mqtt.spring.server.MqttServerTemplate"})
 @EnableConfigurationProperties(MagicAPIMqttConfig.class)
 @Configuration
@@ -79,9 +80,9 @@ public class MagicAPIMqttConfiguration implements MagicPluginConfiguration {
      */
     @Bean
     @DependsOn(value={"magicDynamicMqttDataSource"})
-    public MqttModule mqttModule(BaseMagicDynamicMqttDataSource magicDynamicWeaviateDataSource,
+    public MqttModule mqttModule(BaseMagicDynamicMqttDataSource magicDynamicMqttDataSource,
                                  @Autowired(required = false) MqttServer mqttServer) {
-        return new MqttModule(magicDynamicWeaviateDataSource, mqttServer);
+        return new MqttModule(magicDynamicMqttDataSource, mqttServer);
     }
 
     /**
