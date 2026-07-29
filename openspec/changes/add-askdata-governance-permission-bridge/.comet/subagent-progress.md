@@ -276,3 +276,22 @@ Task 6: Final Verification
 - GREEN: Core AskData tests 85/85 passed; AI reactor with -am and failIfNoTests=false passed 7/7 modules and 169 AskData tests; Starter package BUILD SUCCESS; OpenSpec strict validation passed; diff check passed.
 - Concern: neutral-ai implementation commits remain in branch history and would need a separate history split if the branch must be narrowed further; current Head compiles without relying on stale local SNAPSHOTs.
 - Stage: final-review
+
+## Final Re-review 2 Result
+
+- Reviewer: 019fada1-ba15-7013-bab8-6606ec5b2393
+- Review package: .superpowers/sdd/review-d9bc7694..6484d6fc.diff
+- Result: Not ready to merge
+- Critical: Core SQL interceptor chain can keep original broad authorizedObjects after authorizationSummary is narrowed; CTE/real alias ambiguity for qualified wildcard alias.* is not fail-closed.
+- Important: .superpowers/sdd/task-6-report.md still records old failed verification state and conflicts with current 85/169 test evidence.
+- Fix round: 3
+- Stage: final-fix
+
+## Final Review Fix 3 Result
+
+- Fix agent: 019fadaf-cc3d-7a91-924c-0d8c7d885abc
+- Status: DONE
+- Commit: 6c682b2d fix(askdata): close final authorization review gaps
+- RED: Core interceptor chain allowed a plugin to narrow the final summary while retaining broad table objects; SQL authorization processor allowed CTE/real alias collisions for qualified wildcard alias.*; task-6-report.md still described old failed verification.
+- GREEN: Core targeted AskDataSqlPipelineTest 24/24 passed; AI targeted validator/interceptor tests 41/41 passed; Core AskData tests 86/86 passed; AI reactor with -am and failIfNoTests=false passed 7/7 modules and 170 AskData tests; Starter package BUILD SUCCESS; OpenSpec strict validation passed; diff check passed.
+- Stage: final-review
