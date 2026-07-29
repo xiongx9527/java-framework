@@ -2,6 +2,7 @@
 change: add-askdata-governance-permission-bridge
 design-doc: docs/superpowers/specs/2026-07-29-add-askdata-governance-permission-bridge-design.md
 base-ref: d9bc76941b3eee14277238dedaf3f7146fd78d60
+archived-with: 2026-07-29-add-askdata-governance-permission-bridge
 ---
 
 # AskData Governance Permission Bridge Implementation Plan
