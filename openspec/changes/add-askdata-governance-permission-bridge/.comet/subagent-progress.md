@@ -106,4 +106,49 @@ Implementer dispatched. Waiting for DONE / DONE_WITH_CONCERNS / BLOCKED / NEEDS_
 ## Completed Task 3
 
 - Task 3: complete (commits 68d7bcb5, e6bb8695, 5e130174, e54b45f5; review clean after user-authorized extra targeted fix)
+- Progress commit: 1a4cd1b3
+
+## Current Task
+
+Task 4: Metadata, Row Predicate and Observability Access
+
+## Agent
+
+- Implementer: 019fac9d-79cf-7c22-847c-c7c2b9dd3471
+- Brief: .superpowers/sdd/task-4-brief.md
+- Report: .superpowers/sdd/task-4-report.md
+
+## Status
+
+- Implementer status: DONE_WITH_CONCERNS
+- Commit: 4f169136 fix(askdata): apply governance to metadata and monitoring access
+- RED: targeted Maven command blocked before tests by unrelated LegacyEmbeddingStoreAiAdapter compile issue; focused RED showed ordinary operator log read and unauthorized secret column leaks.
+- GREEN: focused javac + Surefire for AskDataMonitoringLogQueryServiceTest and DefaultAskDataFlowExecutorTest, 22/22 passed.
+- Concern: full Maven lifecycle remains blocked by unrelated LegacyEmbeddingStoreAiAdapter compile issue; platform admin role assignment remains host IAM responsibility.
+- Reviewer: 019faca7-df9a-7cc1-bcd0-db2823aad309
+- Review result: Needs fixes
+- Important 1: monitoring log query service trusts caller-supplied role and bypasses existing AskDataMonitoringLogAccessPolicy / auto-configured policy.
+- Important 2: successful administrator log reads are not audited.
+- Fix round: 1
+- Fix agent: 019facab-377c-78f3-abcd-23312ffc1b79
+- Fix status: DONE_WITH_CONCERNS
+- Fix commit: da5dfc16 fix(askdata): enforce monitored log access policy
+- Fix RED: focused compile/tests showed missing policy constructor/autoconfiguration and missing admin audit record.
+- Fix GREEN: focused javac + Surefire for AskDataMonitoringLogQueryServiceTest and DefaultAskDataFlowExecutorTest, 24/24 passed.
+- Re-reviewer: 019facb4-9d59-77e2-9d2a-c7064352d1e1
+- Re-review result: Needs fixes
+- Important: default monitoring log query path still converts caller-supplied PROJECT_ADMINISTRATOR / PLATFORM_ADMINISTRATOR enum to administrator=true, allowing role spoofing.
+- Fix round: 2
+- Fix agent round 2: 019facb7-0aec-7cf2-bc6f-97e6663a93f1
+- Fix status round 2: DONE_WITH_CONCERNS
+- Fix commit round 2: 66067eb6 fix(askdata): require explicit log query authorization
+- Fix RED round 2: forged PROJECT_ADMINISTRATOR role returned logs before fix.
+- Fix GREEN round 2: focused javac + Surefire for AskDataMonitoringLogQueryServiceTest and DefaultAskDataFlowExecutorTest, 28/28 passed.
+- Re-reviewer round 2: 019facbe-6f14-7200-8c3f-c3c879f572f3
+- Re-review result round 2: Approved
+- Stage: checkoff
+
+## Completed Task 4
+
+- Task 4: complete (commits 4f169136, da5dfc16, 66067eb6; review clean after 2 fix rounds)
 - Stage: done

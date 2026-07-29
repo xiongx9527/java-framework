@@ -163,27 +163,27 @@ Run: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/ma
 - Consumes: `AskDataAuthorizationSummary`.
 - Produces: authorization-aware metadata overload and admin monitoring log access checks.
 
-- [ ] **Step 1: Write failing metadata and monitoring tests**
+- [x] **Step 1: Write failing metadata and monitoring tests**
 
 Add tests asserting unauthorized columns are filtered before Prompt metadata, project admin can query only its project, platform admin receives only explicit scope, and ordinary operator is denied.
 
 Run: `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='AskDataMonitoringLogQueryServiceTest,DefaultAskDataFlowExecutorTest' test`
 Expected: FAIL for missing authorization-aware metadata/log behavior.
 
-- [ ] **Step 2: Add metadata overload without breaking existing providers**
+- [x] **Step 2: Add metadata overload without breaking existing providers**
 
 Add a default adapter path so existing `AskDataMetadataProvider.load(AskDataRequest)` implementations still work, while Flow can call an authorization-aware helper that filters returned metadata against `AskDataAuthorizationSummary`.
 
-- [ ] **Step 3: Wire monitoring log authorization**
+- [x] **Step 3: Wire monitoring log authorization**
 
 Make `AskDataMonitoringLogQueryService` consult governance access scope before returning logs. Ordinary operators receive an empty or denied result according to existing service error style; administrator queries are audited through monitoring events or audit store.
 
-- [ ] **Step 4: Run observability tests**
+- [x] **Step 4: Run observability tests**
 
 Run: `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='AskDataMonitoringLogQueryServiceTest,DefaultAskDataFlowExecutorTest' test`
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 4**
+- [x] **Step 5: Commit Task 4**
 
 Run: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata && git commit -m "fix(askdata): apply governance to metadata and monitoring access"`
 
