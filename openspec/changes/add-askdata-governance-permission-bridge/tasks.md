@@ -30,7 +30,7 @@
 
 ## 6. Verification
 
-- [ ] 6.1 运行 `openspec validate add-askdata-governance-permission-bridge --strict` 并修复所有 OpenSpec 问题。
-- [ ] 6.2 运行 Core AskData 相关 Maven 测试，确认 Java 8 Core 契约不引入框架类型。
+- [x] 6.1 运行 `openspec validate add-askdata-governance-permission-bridge --strict` 并修复所有 OpenSpec 问题。
+- [x] 6.2 运行 Core AskData 相关 Maven 测试，确认 Java 8 Core 契约不引入框架类型。
 - [ ] 6.3 运行 AI AskData 自动配置定向测试，确认默认拒绝、业务覆盖、SQL 权限和管理员日志查询行为通过。
-- [ ] 6.4 运行文档/矩阵状态扫描和 `git diff --check`，记录验证证据。
+- [x] 6.4 运行文档/矩阵状态扫描和 `git diff --check`，记录验证证据。
