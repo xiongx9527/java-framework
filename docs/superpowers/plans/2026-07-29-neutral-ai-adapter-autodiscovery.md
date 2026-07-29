@@ -22,6 +22,7 @@ base-ref: 90bab6c72486c4de08478fe38e68cf6884011fe7
 - 删除旧 `fw-plus-ai-langchain4j-model`、`fw-plus-ai-langchain4j-store-embeding` 及两个旧 starter；不得保留 POM 兼容别名或 `fw-plus.ai.langchain4j.*` 配置绑定。
 - LangChain4j starter 是 adapter 的 Spring Boot 集成实现，不是 adapter 的唯一装配形式。
 - Spring AI、Spring AI Alibaba、AgentScope 2.0 仅写 Java 17 / Boot 3 后续蓝图，本次不得加入 Java 8 reactor。
+- AskData 的依赖迁移、源码修改和回归测试不属于本次 change；它保持现状并由独立 change 处理。
 
 ---
 
@@ -234,7 +235,7 @@ git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters fw-plus-ai/fw-plu
  git commit -m "feat(ai): add langchain4j adapter boot starter"
 ```
 
-### Task 6: 改造 Magic-API 与 AskData 以只消费中立 registry
+### Task 6: 改造 Magic-API 以只消费中立 registry
 
 **Files:**
 - Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/model/model/MagicDynamicModelDataSource.java`
@@ -243,7 +244,6 @@ git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters fw-plus-ai/fw-plu
 - Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/vector/starter/MagicAPIVectorConfiguration.java`
 - Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-model/pom.xml`
 - Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-vector/pom.xml`
-- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/pom.xml`
 - Test: `MagicDynamicModelDataSourceTest`, `MagicDynamicVectorDataSourceTest`, `MagicAPIModelAutoConfigurationIntegrationTest`, `MagicAPIVectorAutoConfigurationIntegrationTest`
 
 - [ ] **Step 1: 写入 Magic-API 零原生类型和歧义失败测试**
@@ -254,20 +254,16 @@ git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters fw-plus-ai/fw-plu
 
 删除 model/vector plugin 对旧 starter 的依赖，按需要显式依赖中立 starter；所有创建和读取经中立 factory/registry，不再创建 legacy LangChain4j registry。
 
-- [ ] **Step 3: 迁移 AskData 的已删除 artifact 依赖**
-
-保留现有 Java 8 行为，但使 AskData starter/POM 不再编译依赖旧 model/store artifact。
-
-- [ ] **Step 4: 运行 Magic-API 与 AskData 目标测试**
+- [ ] **Step 3: 运行 Magic-API 目标测试**
 
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=MagicDynamicModelDataSourceTest,MagicDynamicVectorDataSourceTest,MagicAPIModelAutoConfigurationIntegrationTest,MagicAPIVectorAutoConfigurationIntegrationTest test`
 Expected: 目标集成测试通过。
 
-- [ ] **Step 5: 提交 Magic-API/AskData 任务**
+- [ ] **Step 4: 提交 Magic-API 任务**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project
-git commit -m "refactor(ai): use neutral registry from magicapi and askdata"
+git commit -m "refactor(ai): use neutral registry from magicapi"
 ```
 
 ### Task 7: 删除旧模块、清理全仓坐标并执行静态边界测试
@@ -341,7 +337,7 @@ git commit -m "docs(ai): document adapter migration and java17 roadmap"
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-adapter -am test`
 Expected: BUILD SUCCESS。
 
-- [ ] **Step 2: 用 JDK 8 运行 AI Boot 自动配置、Magic-API 与 AskData 测试**
+- [ ] **Step 2: 用 JDK 8 运行 AI Boot 自动配置与 Magic-API 测试**
 
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure test`
 Expected: BUILD SUCCESS，记录测试数量和失败数。

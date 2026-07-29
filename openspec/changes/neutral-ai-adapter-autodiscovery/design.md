@@ -1,6 +1,6 @@
 ## Context
 
-上一轮抽象已将模型和向量存储的业务契约放入 Java 8 的 `fw-plus-ai-model` 与 `fw-plus-ai-store-embedding`。但当前 AI Boot 自动配置仍在同一装配路径中直接创建 LangChain4j registry、factory 与原生 `EmbeddingStore<TextSegment>`，中立 starter 也传递旧 LangChain4j 模块。四个旧 artifact 仍被 BOM、聚合 POM、Magic-API、AskData starter 和样例引用。
+上一轮抽象已将模型和向量存储的业务契约放入 Java 8 的 `fw-plus-ai-model` 与 `fw-plus-ai-store-embedding`。但当前 AI Boot 自动配置仍在同一装配路径中直接创建 LangChain4j registry、factory 与原生 `EmbeddingStore<TextSegment>`，中立 starter 也传递旧 LangChain4j 模块。四个旧 artifact 仍被 BOM、聚合 POM、Magic-API 和样例引用。
 
 这使中立模块的依赖边界与运行时行为不一致：声明 `framework` 时不能明确验证适配器，未声明时也不能安全决定默认实现。未来的 Spring AI、Spring AI Alibaba 与 AgentScope 2 Java 需要 Java 17 / Spring Boot 3.x；把它们加入当前 Java 8 / Boot 2.7 reactor 会破坏基线。
 
@@ -8,7 +8,7 @@
 
 **Goals:**
 
-- 删除 4 个旧 LangChain4j model/store artifact 及其全部聚合、BOM、starter、Magic-API、AskData 和样例引用。
+- 删除 4 个旧 LangChain4j model/store artifact 及其全部聚合、BOM、starter、Magic-API 和样例引用。
 - 提供 `fw-plus-ai-langchain4j-adapter`，作为唯一包含 LangChain4j 类型的 Java 8 默认实现，并通过独立 adapter starter 显式安装。
 - 使模型与向量 store 的中立配置支持 adapter 发现：显式 framework 精确匹配；缺省 framework 时仅唯一候选可用；零或多候选必须失败。
 - 保证中立 Core、中立 starter、公共自动配置和 Magic-API 只依赖中立 registry/SPI，不出现具体 AI 框架的依赖、类型、包名或配置前缀。
@@ -19,6 +19,7 @@
 - 本次不实现 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java adapter，不升级 Java 8 / Spring Boot 2.7 基线，也不引入跨进程 AgentScope 协议。
 - 不兼容旧 artifact 或 `fw-plus.ai.langchain4j.*` 配置；这是一次明确的破坏性迁移。
 - 不改变具体 LangChain4j provider SDK 的现有职责，也不重写 Magic-API 的脚本语义。
+- 不迁移 AskData 的依赖、源码或测试；该模块留给独立 change。
 
 ## Decisions
 
@@ -63,12 +64,12 @@ model 与 vector 脚本模块、动态资源、控制器和 legacy support 一�
 ## Migration Plan
 
 1. 在 Core BOM、根 AI 聚合与 LangChain4j 聚合中注册统一 adapter，先建立中立 SPI 自动选择测试。
-2. 将 LangChain4j model/store 的 provider 实现与自动配置迁入 adapter 与 adapter starter，迁移 Magic-API、AskData starter、BOM 和样例依赖。
+2. 将 LangChain4j model/store 的 provider 实现与自动配置迁入 adapter 与 adapter starter，迁移 Magic-API、BOM 和样例依赖。
 3. 删除四个旧模块目录和所有坐标、旧配置绑定、兼容桥接代码；在构建中添加禁止旧 artifact/前缀/导入的断言。
 4. 发布迁移文档：应用显式添加 adapter starter；把旧 `fw-plus.ai.langchain4j.*` 配置改为中立 key；多 adapter 时指定 framework。
-5. 先运行 Core reactor 测试，再运行 AI Boot 自动配置与 Magic-API/AskData 目标测试；在新版本不可用时回退到包含旧模块的上一发行版本，而不是混装新旧 artifact。
+5. 先运行 Core reactor 测试，再运行 AI Boot 自动配置与 Magic-API 目标测试；在新版本不可用时回退到包含旧模块的上一发行版本，而不是混装新旧 artifact。
 
 ## Open Questions
 
 - Spring AI、Spring AI Alibaba 与 AgentScope 2 Java adapter 的 artifact 命名、BOM 版本和 provider 能力矩阵在 Java 17 / Boot 3 change 中确定。
-- 当前 AskData 直接使用 LangChain4j 的内部路径是否也应在同一后续 change 中改为中立模型门面；本次仅消除对已删除 artifact 的编译依赖并保持当前 Java 8 行为。
+- AskData 直接使用 LangChain4j 的内部路径和对旧 artifact 的依赖迁移由独立 change 决定；本次不修改 AskData。
