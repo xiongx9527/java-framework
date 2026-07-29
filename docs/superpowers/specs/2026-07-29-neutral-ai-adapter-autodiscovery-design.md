@@ -12,7 +12,7 @@ canonical_spec: openspec
 
 `fw-plus-ai-model`、`fw-plus-ai-store-embedding`、中立 starter、公共自动配置和 Magic-API model/vector 只允许使用 Java 8、中立门面和 registry。它们不得出现 LangChain4j、Spring AI、Spring AI Alibaba 或 AgentScope 2.0 的 POM 依赖、公开类型、导入、包名和配置前缀。
 
-Spring AI、Spring AI Alibaba、AgentScope 2.0 的实现不属于本次 Java 8 改造。后续在独立 Java 17 / Spring Boot 3.x reactor 实现，复用本设计定义的中立 SPI。AgentScope 2.0 采用进程内 Java SDK，业务方自行选择是否开启 agent 或 workflow 能力。AskData 的依赖迁移和回归测试也不属于本次 change，后续由独立 change 处理。
+Spring AI、Spring AI Alibaba、AgentScope 2.0 的实现不属于本次 Java 8 改造。后续在独立 Java 17 / Spring Boot 3.x reactor 实现，复用本设计定义的中立 SPI。AgentScope 2.0 采用进程内 Java SDK，业务方自行选择是否开启 agent 或 workflow 能力。AskData 模块保留，并在其他 adapter、Boot 与 Magic-API 工作完成且用户再次明确确认后，作为最后一个集成任务迁移依赖和回归测试。
 
 ## 2. 目标模块边界
 
@@ -71,8 +71,9 @@ LangChain4j adapter 自动配置只在 adapter 和所需 LangChain4j API 位于 
 1. 先建立中立选择器和单元测试，保持 factory 创建入口稳定。
 2. 将旧 model/store 中的 LangChain4j provider 构造、包装对象和转换逻辑迁入统一 adapter。
 3. 将所有 LangChain4j 自动配置、provider Bean 和条件装配迁入 adapter 自动配置。
-4. 将 provider 子模块、Magic-API model/vector starter、样例、聚合 POM 和 BOM 指向统一 adapter 或中立 API；AskData 保持现状，由独立 change 迁移。
-5. 最后删除旧目录、旧 POM 坐标、旧配置类、旧 registry 类型与兼容桥接。
+4. 将 provider 子模块、Magic-API model/vector starter、样例、聚合 POM 和 BOM 指向统一 adapter 或中立 API。
+5. 最后迁移 AskData starter 的旧 artifact 依赖并完成目标回归测试，再删除旧 artifact。
+6. 删除旧目录、旧 POM 坐标、旧配置类、旧 registry 类型与兼容桥接。
 
 Magic-API 的 `model[...]` 和 `vector[...]` 保持业务 key 语义。动态资源的 `framework` 使用同一选择器；缺省时仅唯一候选可用。脚本侧只取得中立门面，不再获得 `LangChain4jModel` 或 `EmbeddingStore<TextSegment>`。
 
@@ -89,7 +90,7 @@ Magic-API 的 `model[...]` 和 `vector[...]` 保持业务 key 语义。动态资
 - 中立 starter 在 classpath 不含 LangChain4j 时仍可加载中立 factory/registry；没有 adapter 的已启用 definition 按规则失败。
 - 引入 LangChain4j adapter starter 后，唯一候选自动创建模型/store；多个测试 adapter 时缺省 framework 失败、显式 `langchain4j` 成功。
 - Magic-API model/vector 动态资源只通过中立 registry 工作，且不暴露原生类型。
-- Magic-API 和样例在旧 artifact 删除后仍可通过目标测试编译和运行；AskData 不在本次测试范围。
+- AskData、Magic-API 和样例在旧 artifact 删除后仍可通过目标测试编译和运行。
 
 ### 6.3 静态与构建验证
 
