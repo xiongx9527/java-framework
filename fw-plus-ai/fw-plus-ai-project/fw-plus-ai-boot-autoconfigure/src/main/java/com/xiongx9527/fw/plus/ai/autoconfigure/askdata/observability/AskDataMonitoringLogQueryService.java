@@ -32,7 +32,7 @@ public class AskDataMonitoringLogQueryService {
         if (role == AskDataMonitoringLogAccessRole.PROJECT_ADMINISTRATOR) {
             return requester.getProjectId().equals(scope.getProjectId());
         }
-        return requester.getProjectId().equals(scope.getProjectId()) && requester.getOperatorId().equals(scope.getOperatorId());
+        return false;
     }
 
     private boolean isBlank(String value) { return value == null || value.trim().length() == 0; }
