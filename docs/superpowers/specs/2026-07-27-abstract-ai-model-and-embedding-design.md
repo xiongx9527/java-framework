@@ -2,6 +2,8 @@
 comet_change: abstract-ai-model-and-embedding
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-29-abstract-ai-model-and-embedding
+status: final
 ---
 
 # AI 模型与向量存储框架无关抽象设计

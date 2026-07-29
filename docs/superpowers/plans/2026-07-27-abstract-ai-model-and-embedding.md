@@ -2,6 +2,7 @@
 change: abstract-ai-model-and-embedding
 design-doc: docs/superpowers/specs/2026-07-27-abstract-ai-model-and-embedding-design.md
 base-ref: 18be86e44a394e943c7177aa1cb7a1a27d8bcfb4
+archived-with: 2026-07-29-abstract-ai-model-and-embedding
 ---
 
 # AI 模型与向量存储抽象实施计划
@@ -83,11 +84,11 @@ git commit -m "fw-plus-ai: add abstraction dependency baseline"
 - Consumes: Java 8 collection API、稳定模型 key、framework、provider 和能力类型。
 - Produces: `AiModelRegistry#get(String)`、`AiModelRegistry#getDefault()`、`AiModelAdapter#supports(AiModelDefinition)`、`AiModelAdapter#create(AiModelDefinition)`。
 
-- [ ] **Step 1: 写入 registry 的失败测试**
+- [x] **Step 1: 写入 registry 的失败测试**
 
 Create a fake `AiModelAdapter` in `DefaultAiModelRegistryTest` and assert: duplicate key throws an exception containing the key; missing default throws an exception containing the requested default key; supported definition resolves to the fake model.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试**
 
 Run:
 ```bash
@@ -95,7 +96,7 @@ Run:
 ```
 Expected: 先因模块或类型不存在失败。
 
-- [ ] **Step 3: 实现中立模型类型与 registry**
+- [x] **Step 3: 实现中立模型类型与 registry**
 
 Define the minimum Java 8 API:
 ```java
@@ -112,11 +113,11 @@ public interface AiModelAdapter {
 ```
 `DefaultAiModelRegistry` 使用 `LinkedHashMap`，只在构造完成后暴露不可变查询，不接收框架原生对象。
 
-- [ ] **Step 4: 运行模块测试**
+- [x] **Step 4: 运行模块测试**
 
 Run the command from Step 2. Expected: `BUILD SUCCESS` and all registry tests pass.
 
-- [ ] **Step 5: 安装中立模块供 Java 17 独立 reactor 解析**
+- [x] **Step 5: 安装中立模块供 Java 17 独立 reactor 解析**
 
 Run:
 ```bash
@@ -124,7 +125,7 @@ Run:
 ```
 Expected: `fw-plus-ai-model` 及其 reactor 依赖安装到本地 Maven 仓库。Task 6 依赖该产物，但不得将 Java 17 聚合加入 Java 8 Core reactor。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/pom.xml fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-model
@@ -145,11 +146,11 @@ git commit -m "fw-plus-ai: add neutral model core"
 - Consumes: 中立文本、metadata、向量、query/match DTO。
 - Produces: `AiEmbeddingStoreRegistry#get(String)`、`getDefault()`、`AiEmbeddingStoreAdapter#supports(AiEmbeddingStoreDefinition)`。
 
-- [ ] **Step 1: 写入默认 store 和重复 key 的失败测试**
+- [x] **Step 1: 写入默认 store 和重复 key 的失败测试**
 
 Use a fake store adapter. Assert default lookup returns the selected key, two enabled definitions with the same key fail, and a disabled/default mismatch fails without exposing properties.
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试**
 
 Run:
 ```bash
@@ -157,11 +158,11 @@ Run:
 ```
 Expected: 先因模块或中立类型不存在失败。
 
-- [ ] **Step 3: 实现中立 store API**
+- [x] **Step 3: 实现中立 store API**
 
 Expose `AiEmbeddingDocument`、`AiEmbeddingQuery`、`AiEmbeddingMatch` and an `AiEmbeddingStore` interface. Keep `EmbeddingStore<TextSegment>` and Spring AI `Document` out of every public signature.
 
-- [ ] **Step 4: 运行模块测试并检查 API 依赖**
+- [x] **Step 4: 运行模块测试并检查 API 依赖**
 
 Run the command from Step 2, then:
 ```bash
@@ -169,7 +170,7 @@ rg -n 'dev\.langchain4j|org\.springframework\.ai|agentscope' fw-plus-core/fw-plu
 ```
 Expected: Maven success and no search output.
 
-- [ ] **Step 5: 安装中立模块供 Java 17 独立 reactor 解析**
+- [x] **Step 5: 安装中立模块供 Java 17 独立 reactor 解析**
 
 Run:
 ```bash
@@ -177,7 +178,7 @@ Run:
 ```
 Expected: `fw-plus-ai-store-embedding` 及其 reactor 依赖安装到本地 Maven 仓库。
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/pom.xml fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding
@@ -197,11 +198,11 @@ git commit -m "fw-plus-ai: add neutral embedding store core"
 - Consumes: Task 2 `AiModelAdapter` and Task 3 `AiEmbeddingStoreAdapter`.
 - Produces: LangChain4j-only bridge implementations and compatibility adapters for existing artifact consumers.
 
-- [ ] **Step 1: 扩展现有测试以证明兼容行为**
+- [x] **Step 1: 扩展现有测试以证明兼容行为**
 
 Add assertions that existing provider/model aliases and embedding store default keys still resolve through the new neutral registry, while the returned framework-native object remains internal to the LangChain4j adapter.
 
-- [ ] **Step 2: 运行现有测试确认初始状态**
+- [x] **Step 2: 运行现有测试确认初始状态**
 
 Run:
 ```bash
@@ -209,15 +210,15 @@ Run:
 ```
 Expected: 新断言在适配层尚未接入中立 SPI 时失败。
 
-- [ ] **Step 3: 接入中立模块**
+- [x] **Step 3: 接入中立模块**
 
 Update both POMs to depend on the relevant neutral module. Convert factory/registry construction to delegate to the neutral definition and registry while keeping existing artifact coordinates and LangChain4j provider behavior.
 
-- [ ] **Step 4: 运行回归测试**
+- [x] **Step 4: 运行回归测试**
 
 Run the command from Step 2. Expected: `BUILD SUCCESS` and all existing plus new compatibility tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j
@@ -239,11 +240,11 @@ git commit -m "fw-plus-ai: adapt langchain4j modules to neutral core"
 - Consumes: neutral registries and legacy LangChain4j property classes.
 - Produces: neutral starter Beans, legacy-to-neutral mapping, Magic-API facade access without native store/model signatures.
 
-- [ ] **Step 1: 写入配置优先级和 Magic-API 兼容失败测试**
+- [x] **Step 1: 写入配置优先级和 Magic-API 兼容失败测试**
 
 Add test cases with (a) old LangChain4j properties only, (b) neutral properties only, and (c) both for the same key. Assert the neutral definition wins in case (c), a warning is available without the API key, and `model[...]`/`vector[...]` still resolve by key/default.
 
-- [ ] **Step 2: 运行对应 AI Boot 测试确认失败**
+- [x] **Step 2: 运行对应 AI Boot 测试确认失败**
 
 Run:
 ```bash
@@ -251,19 +252,19 @@ Run:
 ```
 Expected: 新优先级和中立 facade 断言失败。
 
-- [ ] **Step 3: 实现中立 starter 与兼容映射**
+- [x] **Step 3: 实现中立 starter 与兼容映射**
 
 Register neutral factory/registry Beans first. Map legacy prefixes only when no same-key neutral definition exists. Keep `LangChain4jModelProperties` and `EmbeddingStoreProperties` as compatibility inputs; do not log property maps containing credentials.
 
-- [ ] **Step 4: 改造 Magic-API 配置类**
+- [x] **Step 4: 改造 Magic-API 配置类**
 
 Change `MagicAPIModelConfiguration` and `MagicAPIVectorConfiguration` constructor/Bean signatures to use neutral registry/factory. Preserve resource names and script keys; return a controlled neutral facade and include key/framework/provider only in errors.
 
-- [ ] **Step 5: 运行 AI Boot 回归测试**
+- [x] **Step 5: 运行 AI Boot 回归测试**
 
 Run the command from Step 2. Expected: `BUILD SUCCESS` and all compatibility/integration tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters
@@ -280,15 +281,15 @@ git commit -m "fw-plus-ai: use neutral registries in boot and magicapi"
 - Consumes: published Java 8 neutral model/store artifacts.
 - Produces: Java 17 / Boot 3.x 后续模块布局、依赖边界、实施步骤、验证与回滚说明；本任务不产生 artifact、starter 或自动配置代码。
 
-- [ ] **Step 1: 写入后续模块与依赖蓝图**
+- [x] **Step 1: 写入后续模块与依赖蓝图**
 
 Describe the future `fw-plus-ai-j17` aggregator, Java 17 / Boot 3.x parent, three optional starters, target SDK dependency management and their isolation from Java 8 Core. Do not create the reactor or POM files.
 
-- [ ] **Step 2: 写明未来自动配置与 adapter 实施步骤**
+- [x] **Step 2: 写明未来自动配置与 adapter 实施步骤**
 
 For Spring AI, Spring AI Alibaba and AgentScope 2 Java, document how a later change will bind neutral definitions, reject unimplemented capabilities, preserve business keys and avoid half-initialized Beans. Do not claim current code offers these diagnostics.
 
-- [ ] **Step 3: 写明未来验证与回滚步骤**
+- [x] **Step 3: 写明未来验证与回滚步骤**
 
 Document the future Java 17 build, dependency-tree and Boot 3 condition tests, plus the current Java 8 isolation check and rollback to LangChain4j. Mark all Java 17 commands as future-only until a later change creates the reactor.
 
@@ -306,15 +307,15 @@ Document the future Java 17 build, dependency-tree and Boot 3 condition tests, p
 - Consumes: Task 5 stable key/config behavior and Task 6 future artifact-coordinate blueprint.
 - Produces: an operational migration and rollback guide that cannot overstate Java 17 skeleton support.
 
-- [ ] **Step 1: 写入文档完整性校验脚本**
+- [x] **Step 1: 写入文档完整性校验脚本**
 
 Create `docs/ai-framework-migration/verify-migration-docs.sh`. It SHALL loop over `spring-ai-java17.md`, `spring-ai-alibaba-java17.md` and `agentscope-java17.md`, then use `rg -q` to require these literal headings: `前置条件`, `Maven Parent 与 Starter`, `同 key 配置迁移`, `Java API 迁移`, `Magic-API 影响`, `验证`, `回滚`, `当前支持状态`.
 
-- [ ] **Step 2: 写入四份迁移文档**
+- [x] **Step 2: 写入四份迁移文档**
 
 `overview.md` must give the Java 8 / Java 17 compatibility matrix. Each target document must use the same business key as the LangChain4j example and state explicitly: this change supplies documentation only; no Java 17 artifact, starter, automatic configuration or real model/store execution exists yet.
 
-- [ ] **Step 3: 运行文档校验**
+- [x] **Step 3: 运行文档校验**
 
 Run:
 ```bash
@@ -322,7 +323,7 @@ zsh docs/ai-framework-migration/verify-migration-docs.sh
 ```
 Expected: exit code `0`; every target document contains the required headings and the first-release limitation.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/ai-framework-migration
@@ -340,7 +341,7 @@ git commit -m "docs: add java17 ai framework migration guides"
 - Consumes: all previous tasks.
 - Produces: reproducible build evidence and completed OpenSpec task checklist.
 
-- [ ] **Step 1: 执行 Core 与 AI Boot 回归**
+- [x] **Step 1: 执行 Core 与 AI Boot 回归**
 
 Run (按受影响模块执行，避免无关模块扩大回归时间):
 ```bash
@@ -349,7 +350,7 @@ Run (按受影响模块执行，避免无关模块扩大回归时间):
 ```
 Expected: both commands exit with `0`.
 
-- [ ] **Step 2: 执行样例与迁移文档验证**
+- [x] **Step 2: 执行样例与迁移文档验证**
 
 Run:
 ```bash
@@ -359,11 +360,11 @@ zsh docs/ai-framework-migration/verify-migration-docs.sh
 ```
 Expected: sample aggregation and documentation validation succeed. Java 17 reactor、SDK probe、Boot 3 条件装配与真实 adapter 测试均为后续 change 的门槛，当前不得作为本次构建要求。
 
-- [ ] **Step 3: 更新兼容矩阵与勾选 OpenSpec 任务**
+- [x] **Step 3: 更新兼容矩阵与勾选 OpenSpec 任务**
 
 Record the exact JDK/Maven commands and outcomes in the compatibility matrix. Check each completed `tasks.md` item only after its targeted tests and build evidence have passed.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add openspec/changes/abstract-ai-model-and-embedding/tasks.md docs/ai-framework-migration/compatibility-matrix.md

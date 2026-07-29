@@ -4,7 +4,7 @@
 TBD - created by archiving change add-langchain4j-starter-modules. Update Purpose after archive.
 ## Requirements
 ### Requirement: 暴露指定 LangChain4j starter 本地模块
-系统 SHALL 在 `fw-plus-ai-langchain4j` 下为每个用户指定的 LangChain4j Spring Boot starter 暴露一个 fw-plus Maven 模块，并在模块内保留对应 starter 自动配置代码。系统还 SHALL 暴露 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter`，用于统一管理多向量 store starter 能力。
+系统 SHALL 保留既有 LangChain4j provider/vector-store starter 模块，但框架通用模型和向量 store 契约 SHALL 由根 AI 聚合下的中立模块和 starter 提供。
 
 #### Scenario: 聚合 POM 注册指定 starter 模块
 - **WHEN** 检查 `fw-plus-ai-langchain4j` 聚合 POM
@@ -37,6 +37,16 @@ TBD - created by archiving change add-langchain4j-starter-modules. Update Purpos
 - **WHEN** 检查 `LangChain4jCoreAutoConfiguration`
 - **THEN** 它导入 `dev.langchain4j.spring.LangChain4jAutoConfig`。
 - **AND** 它具备 `enabled` 启动条件。
+
+#### Scenario: LangChain4j 聚合保持现有专用 starter
+- **WHEN** 检查 `fw-plus-ai-langchain4j` 聚合 POM
+- **THEN** 它 SHALL 继续列出既有 LangChain4j core、OpenAI、provider/vector-store 和兼容 store starter 模块。
+- **AND** 新增的框架无关模型/store 模块 SHALL 位于根 AI 聚合而不是 LangChain4j 聚合。
+
+#### Scenario: 默认 LangChain4j starter 组合中立核心和适配器
+- **WHEN** 应用引入 LangChain4j 模型或向量 store starter
+- **THEN** starter SHALL 引入所需中立核心/中立 starter以及对应 LangChain4j adapter。
+- **AND** starter SHALL 不传递 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java SDK。
 
 ### Requirement: 保持现有 LangChain4j 模块可构建
 系统 SHALL 在新增 starter 模块时保留 LangChain4j 聚合下已有的 `core` 和 `openai` 模块。

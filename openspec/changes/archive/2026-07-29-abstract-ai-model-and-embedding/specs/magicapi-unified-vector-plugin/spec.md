@@ -1,9 +1,9 @@
 ## MODIFIED Requirements
 
-### Requirement: 统一插件复用中立多向量 registry
+### Requirement: 统一插件复用 Core 多向量 registry
 系统 SHALL 让统一 Magic-API vector 插件委托框架无关的多向量 registry/factory 获取向量存储实例，而不直接依赖 LangChain4j `EmbeddingStore<TextSegment>` 或其 factory/registry。
 
-#### Scenario: 插件不重复构造 provider 或框架连接
+#### Scenario: 插件不重复构造 provider 连接
 - **WHEN** 插件需要访问 Milvus、Qdrant、RedisStack、Weaviate 或其他已注册向量 store
 - **THEN** 插件 SHALL 通过中立 registry/factory 获取中立 store 门面。
 - **AND** 插件自身不得复制 provider 或框架原生连接构建逻辑。
