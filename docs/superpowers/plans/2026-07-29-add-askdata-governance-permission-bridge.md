@@ -90,27 +90,27 @@ Run: `git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/mai
 - Consumes: Task 1 model classes.
 - Produces: `AskDataGovernanceProvider.authorize(AskDataAuthorizationRequest)`, `AskDataSqlCommand.getAuthorizationSummary()`, `AskDataSqlCommand.withAuthorizationSummary(...)`.
 
-- [ ] **Step 1: Write failing SQL authorization tests**
+- [x] **Step 1: Write failing SQL authorization tests**
 
 Add tests for default deny provider, command carrying authorization summary, interceptor attempting to replace summary with broader objects, and final chain rejecting the broader result.
 
 Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata -Dtest='AskDataGovernanceProviderTest,AskDataSqlPipelineTest' test`
 Expected: FAIL for missing provider and command authorization APIs.
 
-- [ ] **Step 2: Implement provider and command authorization APIs**
+- [x] **Step 2: Implement provider and command authorization APIs**
 
 `DefaultDenyAskDataGovernanceProvider.authorize` returns a deny summary with stable code such as `ASKDATA_GOVERNANCE_DENIED`. `AskDataSqlCommand` constructors retain binary compatibility by adding overloaded constructors and defaulting missing summary to `null` only for legacy tests that do not require authorization.
 
-- [ ] **Step 3: Harden interceptor chain**
+- [x] **Step 3: Harden interceptor chain**
 
 After each plugin, rebuild from the original command preserving context, parameters and authorization summary. If a plugin returns a command whose summary contains objects not present in the original summary or removes required row predicates, throw `IllegalArgumentException` before final validation.
 
-- [ ] **Step 4: Run Core SQL tests**
+- [x] **Step 4: Run Core SQL tests**
 
 Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata -Dtest='AskDataGovernanceProviderTest,AskDataSqlPipelineTest' test`
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 2**
+- [x] **Step 5: Commit Task 2**
 
 Run: `git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/security fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/test/java/com/xiongx9527/fw/plus/ai/askdata && git commit -m "fix(askdata): enforce governance boundaries in sql pipeline"`
 

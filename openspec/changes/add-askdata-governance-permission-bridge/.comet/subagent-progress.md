@@ -6,35 +6,53 @@
 - TDD mode: tdd
 - Current stage: implementing
 
+## Completed Tasks
+
+- Task 1: complete (commit 777b4c24, review clean, progress commit a3590ac5)
+
 ## Current Task
 
-Task 1: Core Governance Model
+Task 2: Core Governance Provider and SQL Boundary
 
 ## Agent
 
-- Implementer: 019fabe7-5f28-7bd1-9f8a-96e3dc3b21a1
-- Brief: .superpowers/sdd/task-1-brief.md
-- Report: .superpowers/sdd/task-1-report.md
+- Implementer: 019fabf0-81f9-7ac3-8e99-a72028c3a502
+- Brief: .superpowers/sdd/task-2-brief.md
+- Report: .superpowers/sdd/task-2-report.md
 
 ## Status
 
-Implementer returned NEEDS_CONTEXT due dirty worktree. Controller attributed current AskData artifacts to this change and neutral-ai-adapter-autodiscovery files as unrelated preserve-only; implementer resumed with Task 1-only stage/commit instructions.
+Implementer dispatched. Waiting for DONE / DONE_WITH_CONCERNS / BLOCKED / NEEDS_CONTEXT.
 
-## Task 1 Implementer Result
+## Task 2 Implementer Result
 
 - Status: DONE_WITH_CONCERNS
-- Commit: 777b4c24 feat(askdata): add governance authorization model
-- RED: AskDataGovernanceProviderTest compile failed with missing symbols before implementation
-- GREEN: AskDataGovernanceProviderTest 3 tests passed
+- Commit: 98e69494 fix(askdata): enforce governance boundaries in sql pipeline
+- GREEN: AskDataGovernanceProviderTest + AskDataSqlPipelineTest, 25 tests passed
 - Risk signals: Maven/Jansi/Guava future JDK warnings; task report uncommitted by scope
 - Stage: task-review
 
-## Task 1 Review Result
+## Task 2 Review Result
 
-- Reviewer: 019fabed-06e8-7cf1-b1b0-d1aa9da11d51
+- Reviewer: 019fabf7-27cb-7791-8900-8c0dfc74af9a
+- Result: Needs fixes
+- Critical: none
+- Important: Plugin can clear authorized objects without rejection; `containsAll(empty)` passes in `AskDataSqlInterceptorChain`.
+- Minor: none
+- Stage: fix-round-1
+
+## Task 2 Fix Result
+
+- Fix agent: 019fabf9-d1bd-7de2-a063-1e02044d4a44
+- Commit: 14c08490 fix(askdata): reject cleared sql authorization objects
+- GREEN: Task 2 targeted Maven tests 26/26 passed
+- Stage: re-review-round-1
+
+## Task 2 Re-review Result
+
+- Re-reviewer: 019fabfd-88e3-7c43-803e-2d01ba1381e1
 - Result: Approved
 - Critical: none
 - Important: none
 - Minor: none
-- Cannot verify from diff: default governance provider and SQL authorization narrowing are Task 2 scope
 - Stage: checkoff
