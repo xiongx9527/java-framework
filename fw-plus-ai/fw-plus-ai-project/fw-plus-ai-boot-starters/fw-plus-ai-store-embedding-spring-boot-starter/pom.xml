@@ -26,10 +26,5 @@
 			<artifactId>fw-plus-ai-store-embedding</artifactId>
 			<version>${revision}</version>
 		</dependency>
-		<dependency>
-			<groupId>com.xiongx9527.fw.plus</groupId>
-			<artifactId>fw-plus-ai-langchain4j-store-embeding</artifactId>
-			<version>${revision}</version>
-		</dependency>
 	</dependencies>
 </project>

@@ -27,11 +27,6 @@
 			<version>${revision}</version>
 		</dependency>
 		<dependency>
-			<groupId>com.xiongx9527.fw.plus</groupId>
-			<artifactId>fw-plus-ai-langchain4j-model</artifactId>
-			<version>${revision}</version>
-		</dependency>
-		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<scope>test</scope>
