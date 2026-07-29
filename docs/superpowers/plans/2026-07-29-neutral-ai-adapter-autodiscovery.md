@@ -140,25 +140,25 @@ git commit -m "feat(ai): select neutral embedding adapter deterministically"
 - Consumes Task 1/2 SPI.
 - Produces model/store adapter Beans with `getFramework()` returning `langchain4j` and no framework types in Core modules.
 
-- [ ] **Step 1: 为迁移后的 LangChain4j adapter 写失败测试**
+- [x] **Step 1: 为迁移后的 LangChain4j adapter 写失败测试**
 
 迁移现有 `DefaultLangChain4jModelFactoryTest`、`DefaultEmbeddingStoreFactoryTest`，新增断言 adapter framework 为 `langchain4j`。
 
-- [ ] **Step 2: 验证旧路径仍被测试引用且新模块不存在**
+- [x] **Step 2: 验证旧路径仍被测试引用且新模块不存在**
 
 Run: `rg -n 'fw-plus-ai-langchain4j-(model|store-embeding)' fw-plus-core/fw-plus-project/fw-plus-ai`
 Expected: 旧目录和引用仍存在，作为迁移前证据。
 
-- [ ] **Step 3: 创建统一 adapter 并迁移实现**
+- [x] **Step 3: 创建统一 adapter 并迁移实现**
 
 将 LangChain4j 包名迁为 `com.xiongx9527.fw.plus.ai.langchain4j.adapter`；保留 provider/type、多模型别名、多 store、默认 key 和异常 cause 行为。adapter POM 仅依赖中立 Core 与必要 LangChain4j API，不传递具体 provider SDK。
 
-- [ ] **Step 4: 运行 adapter 与 Core reactor 测试**
+- [x] **Step 4: 运行 adapter 与 Core reactor 测试**
 
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-adapter -am test`
 Expected: BUILD SUCCESS。
 
-- [ ] **Step 5: 提交统一 adapter 任务**
+- [x] **Step 5: 提交统一 adapter 任务**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml

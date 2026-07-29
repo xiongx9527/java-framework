@@ -13,9 +13,9 @@
 
 ## 3. LangChain4j 统一适配层
 
-- [ ] 3.1 新建 `fw-plus-ai-langchain4j-adapter`，迁移旧 model/store 的 LangChain4j 对象转换、provider 构造和中立 SPI 实现。
+- [x] 3.1 新建 `fw-plus-ai-langchain4j-adapter`，迁移旧 model/store 的 LangChain4j 对象转换、provider 构造和中立 SPI 实现。
 - [ ] 3.2 新建 LangChain4j adapter starter/隔离自动配置，使 LangChain4j SDK 与 adapter 均在 classpath 时才注册实现。
-- [ ] 3.3 保持现有 LangChain4j provider、多模型别名、多个 store、默认 key 与错误上下文行为，并为 adapter 编写目标测试。
+- [x] 3.3 保持现有 LangChain4j provider、多模型别名、多个 store、默认 key 与错误上下文行为，并为 adapter 编写目标测试。
 
 ## 4. 中立 Boot 与 Magic-API 边界
 
