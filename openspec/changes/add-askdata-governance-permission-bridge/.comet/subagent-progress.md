@@ -152,3 +152,38 @@ Task 4: Metadata, Row Predicate and Observability Access
 
 - Task 4: complete (commits 4f169136, da5dfc16, 66067eb6; review clean after 2 fix rounds)
 - Stage: done
+
+## Current Task
+
+Task 5: Documentation and OpenSpec Task Evidence
+
+## Agent
+
+- Brief: .superpowers/sdd/task-5-brief.md
+- Report: .superpowers/sdd/task-5-report.md
+
+## Status
+
+- Implementer: 019facc2-4464-7732-97aa-2210c43fc91c
+- Implementer status: DONE
+- Commit: d5cd1cc9 docs(askdata): document governance permission bridge
+- RED: docs/OpenSpec precheck found governance SPI/default deny/row predicate/Prompt filtering/monitoring log SPI docs missing and OpenSpec 1.1-5.3 unchecked.
+- GREEN: git diff --check -- docs/askdata/starter openspec/changes/add-askdata-governance-permission-bridge passed.
+- Reviewer: 019facc8-88af-7fc0-8e44-8f62bc553547
+- Review result: Needs fixes
+- Important 1: 5.3 lacks a verifiable compilable governance bridge example or test; Markdown snippet is not compiled by the documented command.
+- Important 2: administrator monitoring log default policy wording conflicts across docs and must be unified with actual fail-closed semantics.
+- Fix round: 1
+- Fix agent: 019facca-79af-7532-9b36-07d61fa10aff
+- Fix status: DONE_WITH_CONCERNS
+- Fix commit: 78ccb700 docs(askdata): add compilable governance bridge example
+- Fix RED: original docs compiled unrelated SDK example and contained conflicting administrator log default wording.
+- Fix GREEN: javac + java ran AskDataGovernanceBridgeDocumentationExample; docs diff check passed.
+- Re-reviewer: 019facd3-0172-70c0-9e54-9e3a6e196bb8
+- Re-review result: Approved
+- Stage: checkoff
+
+## Completed Task 5
+
+- Task 5: complete (commits d5cd1cc9, 78ccb700; review clean after 1 fix round)
+- Stage: done

@@ -200,24 +200,24 @@ Run: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/ma
 - Consumes: completed Tasks 1-4 behavior.
 - Produces: updated docs and checked OpenSpec implementation tasks.
 
-- [ ] **Step 1: Update docs with exact integration guidance**
+- [x] **Step 1: Update docs with exact integration guidance**
 
 Document `AskDataGovernanceProvider`, default deny behavior, development test Bean pattern, row predicate named parameters, admin monitoring log scope, and explicit non-goals for external systems.
 
-- [ ] **Step 2: Update feature matrix statuses**
+- [x] **Step 2: Update feature matrix statuses**
 
 Move governance-related rows to “默认拒绝 + 业务桥接可验证” or equivalent wording. Keep enterprise platform, DataEase, Dify, Coze, n8n and MCP real integrations marked as business integration contract or future change scope.
 
-- [ ] **Step 3: Check OpenSpec tasks that have completed implementation evidence**
+- [x] **Step 3: Check OpenSpec tasks that have completed implementation evidence**
 
 Mark tasks 1.1 through 5.3 only after the corresponding code/doc tests pass. Do not check verification tasks before running commands in Task 6.
 
-- [ ] **Step 4: Run docs diff check**
+- [x] **Step 4: Run docs diff check**
 
 Run: `git diff --check -- docs/askdata/starter openspec/changes/add-askdata-governance-permission-bridge`
 Expected: exit code 0.
 
-- [ ] **Step 5: Commit Task 5**
+- [x] **Step 5: Commit Task 5**
 
 Run: `git add docs/askdata/starter openspec/changes/add-askdata-governance-permission-bridge/tasks.md && git commit -m "docs(askdata): document governance permission bridge"`
 
