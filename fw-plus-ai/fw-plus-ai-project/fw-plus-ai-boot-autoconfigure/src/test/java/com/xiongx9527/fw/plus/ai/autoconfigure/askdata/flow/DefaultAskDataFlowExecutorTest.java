@@ -28,10 +28,12 @@ import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataRowPredicate;
 import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlParameter;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -194,6 +196,35 @@ public class DefaultAskDataFlowExecutorTest {
     }
 
     @Test
+    public void shouldDenyUnresolvedRowPredicateBeforeModelInvocation() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.governanceProvider = request -> allowedOrdersWithRowPredicate();
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request(true));
+
+        assertFalse(result.isSuccess());
+        assertEquals(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE, result.getErrorCode());
+        assertFalse(dependencies.routedGenerateCalled);
+        assertEquals(0, dependencies.executorCalls);
+    }
+
+    @Test
+    public void shouldDenyAuthorizedObjectsWithoutMetadataIntersectionBeforeSqlExecution() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.governanceProvider = request -> AskDataAuthorizationSummary.allow(Collections.singletonList(
+                new AskDataAuthorizedObject("orders", "unknown_table", "*")), Collections.emptyList());
+        dependencies.useDefaultSqlValidator = true;
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from payments\"}")
+                .execute(request(true));
+
+        assertFalse(result.isSuccess());
+        assertEquals(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE, result.getErrorCode());
+        assertEquals(0, dependencies.executorCalls);
+    }
+
+    @Test
     public void shouldShortCircuitBeforeExecutorWhenSqlIsRejected() {
         StubDependencies dependencies = new StubDependencies();
         dependencies.validationResult = AskDataSqlValidationResult.rejected(AskDataErrorCode.SQL_REJECTED, "only select allowed");
@@ -310,6 +341,13 @@ public class DefaultAskDataFlowExecutorTest {
     private static AskDataAuthorizationSummary allowedOrders() {
         return AskDataAuthorizationSummary.allow(Collections.singletonList(
                 new AskDataAuthorizedObject("orders", "orders", "*")), Collections.emptyList());
+    }
+
+    private static AskDataAuthorizationSummary allowedOrdersWithRowPredicate() {
+        AskDataAuthorizedObject orders = new AskDataAuthorizedObject("orders", "orders", "*");
+        AskDataRowPredicate predicate = new AskDataRowPredicate(orders, "tenant_id = :tenantId",
+                Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-a")));
+        return AskDataAuthorizationSummary.allow(Collections.singletonList(orders), Collections.singletonList(predicate));
     }
 
     private List<String> stepKeys(AskDataResult result) {
