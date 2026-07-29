@@ -160,14 +160,12 @@ public final class ExcelExportUtil {
     /** @deprecated */
     @Deprecated
     public static Workbook exportExcel(TemplateExportParams params, Class<?> pojoClass, Collection<?> dataSet, Map<String, Object> map) {
-        //transCollectionByTemplate(params, dataSet);
-        //TransUtils.transExportCollectionByTemplate();
-        //FwPlusTemplateExportParams
+        Collection<?> exportDataSet = dataSet;
         if (params instanceof FwPlusTemplateExportParams) {
             FwPlusTemplateExportParams fwPlusTemplateExportParams = (FwPlusTemplateExportParams)params;
-            TransUtils.transExportCollectionByTemplate(fwPlusTemplateExportParams, dataSet);
+            exportDataSet = TransUtils.transExportCollectionByTemplate(fwPlusTemplateExportParams, dataSet);
         }
-        return (new ExcelExportOfTemplateUtil()).createExcelByTemplate(params, pojoClass, dataSet, map);
+        return (new ExcelExportOfTemplateUtil()).createExcelByTemplate(params, pojoClass, exportDataSet, map);
     }
 
     /**

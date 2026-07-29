@@ -1,9 +1,8 @@
 
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.consumer;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.common.MqttClientConfigSupport;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.model.MqttClientDataSourceInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.model.MqttClientSubscribeInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.model.MqttClientSubscribeScriptInfo;
@@ -45,98 +44,60 @@ public class MqttClientConsumer {
     }
 
     public void createConsumer(List<MqttClientSubscribeScriptInfo> subscribeScriptInfos) {
+        addSubscriptions(subscribeScriptInfos);
+    }
+
+    public boolean addSubscriptions(List<MqttClientSubscribeScriptInfo> subscribeScriptInfos) {
         if (CollectionUtils.isEmpty(subscribeScriptInfos)) {
-            return;
+            return true;
         }
 
+        boolean successful = true;
         for (MqttClientSubscribeScriptInfo subscribeScriptInfo : subscribeScriptInfos) {
-            Boolean enable = subscribeScriptInfo.isEnabled();
-            if (enable != null) {
-                String enableStr = MagicAPIConfigUtils.getMqttClientSubscribeConfig(
-                        subscribeScriptInfo.getKey(), subscribeScriptInfo.getTopic(), "enabled", enable.toString());
-                try {
-                    enable = Boolean.parseBoolean(enableStr);
-                } catch (Exception e) {
-                    enable = Boolean.FALSE;
-                }
-            }
-            if (!Boolean.TRUE.equals(enable)) {
-                continue;
-            }
-
-            String topicName = subscribeScriptInfo.getTopic();
+            String topicName = subscribeScriptInfo == null ? null : subscribeScriptInfo.getTopic();
             if (StringUtils.isBlank(topicName)) {
                 continue;
             }
 
-            MqttClientTemplate oldTemplate = this.consumerMap.get(topicName);
-            if (oldTemplate != null) {
-                try {
-                    oldTemplate.unSubscribe(topicName);
-                    oldTemplate.destroy();
-                } catch (Exception e) {
-                    log.error("停止旧的MQTT客户端消费者失败, topic: {}", topicName, e);
-                }
-            }
-
+            MqttClientTemplate template = null;
             try {
-                String ip = dataSourceInfo.getIp();
-                ip = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "ip", ip);
-                String port = dataSourceInfo.getPort();
-                port = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "port", port);
-                String clientId = dataSourceInfo.getClientId();
-                clientId = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "clientId", clientId);
-                String username = dataSourceInfo.getUsername();
-                username = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "username", username);
-                String password = dataSourceInfo.getPassword();
-                password = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "password", password);
-
-                int portInt;
-                try {
-                    portInt = Integer.parseInt(port);
-                } catch (Exception e) {
-                    portInt = 1883;
+                Boolean enable = subscribeScriptInfo.isEnabled();
+                if (enable != null) {
+                    String enableStr = MagicAPIConfigUtils.getMqttClientSubscribeConfig(
+                            subscribeScriptInfo.getKey(), topicName, "enabled", enable.toString());
+                    enable = Boolean.parseBoolean(enableStr);
+                }
+                if (!Boolean.TRUE.equals(enable)) {
+                    unsubscribe(topicName);
+                    continue;
                 }
 
+                unsubscribe(topicName);
+
+                String ip = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "ip", dataSourceInfo.getIp());
+                String port = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "port", dataSourceInfo.getPort());
+                String clientId = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "clientId", dataSourceInfo.getClientId());
+                String username = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "username", dataSourceInfo.getUsername());
+                String password = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "password", dataSourceInfo.getPassword());
+
+                String subscribeClientId = MqttClientConfigSupport.buildSubscribeClientId(
+                        clientId, dataSourceInfo.getKey(), topicName);
                 MqttClientCreator mqttClientCreator = MqttClient.create()
                         .ip(ip)
-                        .port(portInt)
-                        .clientId(dataSourceInfo.getClientId())
+                        .port(MqttClientConfigSupport.parsePort(port))
+                        .clientId(subscribeClientId)
                         .username(username)
                         .password(password);
 
-                String other = subscribeScriptInfo.getOther();
-                other = MagicAPIConfigUtils.getMqttClientSubscribeConfig(dataSourceInfo.getKey(), topicName, "other", other);
-                if (StringUtils.isNotBlank(other)) {
-                    try {
-                        JSONObject jsonObject = JSON.parseObject(other);
-                        if (jsonObject.containsKey("keepAliveSec")) {
-                            mqttClientCreator.keepAliveSecs(jsonObject.getIntValue("keepAliveSec"));
-                        }
-                        if (jsonObject.containsKey("reconnect")) {
-                            mqttClientCreator.reconnect(jsonObject.getBooleanValue("reconnect"));
-                        }
-                        if (jsonObject.containsKey("cleanSession")) {
-                            mqttClientCreator.cleanSession(jsonObject.getBooleanValue("cleanSession"));
-                        }
-                        if (jsonObject.containsKey("ssl")) {
-                            //mqttClient.ssl(jsonObject.getBooleanValue("ssl"));
-                        }
-                    } catch (Exception e) {
-                        log.warn("解析 other 配置失败: {}", e.getMessage(), e);
-                    }
-                }
+                String other = MagicAPIConfigUtils.getMqttClientSubscribeConfig(
+                        dataSourceInfo.getKey(), topicName, "other", subscribeScriptInfo.getOther());
+                MqttClientConfigSupport.applyCommonOptions(mqttClientCreator, other);
 
-                MqttClientTemplate template = new MqttClientTemplate(mqttClientCreator);
+                template = new MqttClientTemplate(mqttClientCreator);
                 template.setApplicationContext(SpringUtils.getContext());
                 template.afterPropertiesSet();
                 String qosStr = MagicAPIConfigUtils.getMqttClientSubscribeConfig(dataSourceInfo.getKey(), topicName, "qos", subscribeScriptInfo.getQos());
-                MqttQoS qos = MqttQoS.QOS0;
-                try {
-                    int qosInt = Integer.parseInt(qosStr);
-                    if (qosInt == 1) qos = MqttQoS.QOS1;
-                    else if (qosInt == 2) qos = MqttQoS.QOS2;
-                } catch (Exception ignored) {}
+                MqttQoS qos = MqttClientConfigSupport.parseQos(qosStr);
 
                 final MqttClientConsumerService consumerService = this.mqttClientConsumerService;
                 final String dsKey = this.dataSourceInfo.getKey();
@@ -163,19 +124,32 @@ public class MqttClientConsumer {
                         log.info("MQTT Client consumer started for topic: {}", topicName);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
-                        log.error("Interrupted while waiting for application startup", e);
+                        throw e;
                     }
                 }
 
                 this.consumerMap.put(topicName, template);
+                template = null;
             } catch (Exception e) {
+                successful = false;
+                if (template != null) {
+                    try {
+                        template.destroy();
+                    } catch (Exception destroyException) {
+                        log.warn("清理未完成初始化的MQTT客户端消费者失败, topic: {}", topicName, destroyException);
+                    }
+                }
                 log.error("创建MQTT客户端消费者失败, topic: {}", topicName, e);
             }
         }
+        return successful;
     }
 
     public void unsubscribe(MqttClientSubscribeInfo subscribeInfo) {
-        String topic = subscribeInfo.getTopic();
+        unsubscribe(subscribeInfo.getTopic());
+    }
+
+    void unsubscribe(String topic) {
         if (StringUtils.isBlank(topic)) {
             return;
         }
@@ -183,21 +157,29 @@ public class MqttClientConsumer {
         if (template != null) {
             try {
                 template.unSubscribe(topic);
-                template.destroy();
             } catch (Exception e) {
                 log.warn("取消MQTT客户端订阅失败, topic: {}", topic, e);
+            }
+            try {
+                template.destroy();
+            } catch (Exception e) {
+                log.warn("销毁MQTT客户端消费者失败, topic: {}", topic, e);
             }
         }
     }
 
     public void close() {
         for (Map.Entry<String, MqttClientTemplate> entry : consumerMap.entrySet()) {
+            MqttClientTemplate template = entry.getValue();
             try {
-                MqttClientTemplate template = entry.getValue();
                 template.unSubscribe(entry.getKey());
+            } catch (Exception e) {
+                log.error("取消MQTT客户端订阅失败, topic: {}", entry.getKey(), e);
+            }
+            try {
                 template.destroy();
             } catch (Exception e) {
-                log.error("关闭MQTT客户端消费者失败, topic: {}", entry.getKey(), e);
+                log.error("销毁MQTT客户端消费者失败, topic: {}", entry.getKey(), e);
             }
         }
         consumerMap.clear();
