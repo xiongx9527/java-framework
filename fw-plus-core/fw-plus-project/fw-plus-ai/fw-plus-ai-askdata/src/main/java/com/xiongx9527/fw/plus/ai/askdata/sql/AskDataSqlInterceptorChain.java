@@ -62,7 +62,7 @@ public final class AskDataSqlInterceptorChain {
 		if (original == null) {
 			return;
 		}
-		if (rewritten == null || !original.getAuthorizedObjects().containsAll(rewritten.getAuthorizedObjects())
+		if (rewritten == null || !original.getAuthorizedObjects().equals(rewritten.getAuthorizedObjects())
 				|| !containsAllRequiredRowPredicates(rewritten, original)) {
 			throw new IllegalArgumentException("插件不能扩大或弱化 authorizationSummary");
 		}
