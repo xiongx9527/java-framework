@@ -1,4 +1,4 @@
-# extract-common-graph-jdbc 最终审查修复报告
+# AskData 治理权限桥接最终审查修复报告
 
 ## 状态
 
@@ -6,61 +6,40 @@ DONE_WITH_CONCERNS
 
 ## 提交
 
-`0874220f0fdcd70bc1a6288aa5914e2fce649c6f` - `fix: resolve graph jdbc final review findings`
+`9b50bff24aa34e894b2a92f49748e2802da6ac4e` - `fix(askdata): close governance bridge review gaps`
 
 ## RED
 
-1. 公共代理与 PreparedStatement 重载：
-
-   ```bash
-   JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml -pl fw-plus-graph-jdbc -Dtest=GraphJdbcRowSetsTest,GraphJdbcParameterBindingsTest,GraphJdbcStatementSupportTest test
-   ```
-
-   结果：预期失败。`GraphJdbcRowSetsTest.resultSetProxiesShouldKeepObjectContractsAndUseTheOuterWrapper` 失败，证明空 generated-keys 代理未保持对象自反性；`GraphJdbcStatementSupportTest.preparedStatementShouldBindParametersAndRejectStringExecute` 失败，证明 `PreparedStatement.addBatch(String)` 被接受。
-
-2. Neo4j facade 与参数元数据：
-
-   ```bash
-   JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml -pl fw-plus-neo4j-jdbc -am -DfailIfNoTests=false -Dtest=Neo4jDriverTest test
-   ```
-
-   结果：预期失败。`shouldKeepGeneratedKeysStatementLifecycleAndObjectContracts` 失败，证明 `unwrap(Statement.class)` 未返回外层 facade；`shouldExposePreparedParameterMetadataAndGeneratedKeysShape` 失败，证明 Neo4j `ParameterMetaData.isSigned(1)` 从基线的 `true` 回归为 `false`。
+- Core 契约补充 RED：授权请求/摘要缺少用途、数据源、授权版本、来源、管理员范围和绑定校验，监控日志缺真实归属与项目范围查询契约。
+- Starter SQL RED：只授权 `orders.id` 时 `SELECT secret FROM orders` 被放行；多表未限定列、CTE/真实别名冲突、插件新增行级参数和 JDBC 最终命令参数过滤存在越权或误拦截。
+- Flow/Metadata/Observability RED：行级谓词摘要被拒绝或丢失，自定义 MetadataProvider 可把未授权 terms/examples/promptFragments 带入 Prompt，治理拒绝未发布脱敏事件。
+- 日志查询治理 RED：原 Starter 独立授权 SPI 无法表达 Core 管理员范围，项目管理员不能查询本项目所有操作人，平台管理员范围和审计字段不完整。
 
 ## GREEN
 
-1. 公共定向测试：同一公共模块命令通过，13 tests，0 failures，0 errors，0 skipped。
-2. Neo4j 定向测试：同一 Neo4j 命令通过，24 tests，0 failures，0 errors，0 skipped。
-3. 图 JDBC 聚合：
-
-   ```bash
-   JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml test
-   ```
-
-   通过。公共模块 21 tests，0 failures/errors/skipped；Nebula 244 tests，0 failures/errors，2 个既有 live smoke skipped；Neo4j 27 tests，0 failures/errors，3 个既有 live smoke skipped。
-
-4. 边界扫描：公共模块的 `com.vesoft|org.neo4j|com.alibaba.druid|org.springframework|org.apache.ibatis` 扫描无命中；Java 9+ 集合工厂和无参 `orElseThrow()` 扫描无命中；`git diff --check` 通过。
+- `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata test`：84 tests，0 failures，0 errors，0 skipped。
+- `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='*AskData*Test' test`：163 tests，0 failures，0 errors，0 skipped。
+- `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -DskipTests package`：BUILD SUCCESS；保留既有 POM invalid 与空 starter JAR 警告。
+- `openspec validate add-askdata-governance-permission-bridge --strict`：通过。
+- `git diff --check -- fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure docs/askdata openspec/changes/add-askdata-governance-permission-bridge docs/superpowers/reports/2026-07-29-add-askdata-governance-permission-bridge-verify.md`：通过。
+- Java 8 文档示例编译并运行，输出 `ASKDATA_GOVERNANCE_BRIDGE_EXAMPLE_OK`。
 
 ## 修复内容
 
-- `GraphJdbcRowSets` 的 ResultSet 和 ResultSetMetaData 动态代理优先处理 `equals`、`hashCode`、`toString`，并让 `unwrap/isWrapperFor` 以外层 ResultSet proxy 为准。
-- Neo4j 生成键 facade 显式处理 `unwrap/isWrapperFor`，保证接口 unwrap 返回 facade 本身，保持单列 `GENERATED_KEY` 形状及底层关闭状态检查。
-- `GraphJdbcParameterMetaData` 支持可配置的签名策略；Neo4j facade 使用 `true`，Nebula 既有 JDBC type 判断逻辑未修改。
-- PreparedStatement 的 `addBatch(String)` 与其他 String 执行重载一致抛出 `SQLException`。
+- Core 授权模型补齐 `AskDataAuthorizationPurpose`、`AskDataAdministrativeScope`、数据源/用途绑定、拒绝码、授权版本和授权来源，并让摘要可校验是否绑定当前请求。
+- SQL 授权处理器按强类型授权对象执行列级 fail-closed 校验，覆盖别名、未限定列、CTE 冲突和插件改写；行级谓词注入为受控片段并检测具名参数冲突。
+- JDBC 执行器消费最终 `AskDataSqlCommand`，仅绑定最终 SQL 实际使用的请求参数和谓词参数。
+- Flow 在模型调用前后保留授权摘要事实源，执行不可覆盖的元数据净化，并为治理拒绝/异常发布脱敏监控事件。
+- 监控日志改为通过 Core governance 管理员范围授权，日志携带真实 owner context，查询审计记录主体、范围、结果数量和授权来源。
+- 文档、OpenSpec delta spec、功能矩阵和验证报告更新为 final review 修复后的行为与证据。
+- 用普通提交删除无关 `neutral-ai-adapter-autodiscovery` OpenSpec/设计产物，降低分支夹带范围。
 
-## 变更文件
+## 改动文件
 
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcParameterMetaData.java`
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcRowSets.java`
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcStatementSupport.java`
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/test/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcRowSetsTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/test/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcStatementSupportTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-neo4j-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/neo4j/jdbc/Neo4jJdbcProxies.java`
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-neo4j-jdbc/src/test/java/com/xiongx9527/fw/plus/graph/neo4j/jdbc/Neo4jDriverTest.java`
-- `.superpowers/sdd/final-fix-report.md`
+- 实现提交涉及 73 个路径；完整清单可用 `git show --name-only --format='' 9b50bff24aa34e894b2a92f49748e2802da6ac4e` 查看。
+- 主要范围：`fw-plus-core/.../askdata/security`、`observability`、`storage`、`sql`；`fw-plus-ai/.../askdata/flow`、`sql`、`observability`、`autoconfigure`；AskData Starter/Core 测试；`docs/askdata/starter`；`openspec/changes/add-askdata-governance-permission-bridge`。
 
-## 风险信号
+## 顾虑
 
-- Maven Wrapper 文件仍缺失，本次按允许的 Zulu 8 系统 Maven 回退执行验证。
-- 聚合中的 5 个真实服务 smoke 依既有条件跳过，未验证真实 NebulaGraph 或 Neo4j 连通性。
-- Nebula 测试仍输出既有 SLF4J `StaticLoggerBinder` 缺失警告；不影响测试结果。
-- `openspec/changes/extract-common-graph-jdbc/.comet/subagent-progress.md` 为已有用户改动，未修改且不会纳入提交。
+- Important 6 只用普通提交移除了明显无关的 neutral-ai OpenSpec/设计产物。`LegacyEmbeddingStoreAiAdapter#getFramework()` 保留，因为移除会让当前分支编译失败；彻底拆分其上游 neutral-ai 历史需要独立分支整理或历史重写，本次未执行。
+- Maven 仍输出 Jansi、Guava `Unsafe`、Starter 本地 POM invalid 和空 JAR 警告；验证命令退出码均为 0。
