@@ -256,3 +256,23 @@ Task 6: Final Verification
 - GREEN: Core AskData tests 84/84 passed; AI AskData targeted tests 163/163 passed; Starter package BUILD SUCCESS; OpenSpec strict validation passed; diff check passed; Java 8 documentation example printed ASKDATA_GOVERNANCE_BRIDGE_EXAMPLE_OK.
 - Concern: neutral-ai OpenSpec/Design artifacts were removed with a normal commit, but LegacyEmbeddingStoreAiAdapter#getFramework() remains because removing it breaks compilation; full upstream history split remains outside this final-fix commit.
 - Stage: final-review
+
+## Final Re-review Result
+
+- Reviewer: 019fad6a-503c-71e2-b42d-37c1e92ad6e4
+- Review package: .superpowers/sdd/review-d9bc7694..496a7ec7.diff
+- Result: Not ready to merge
+- Critical: column authorization still allows alias/empty-column bypasses; plugins can remove already-injected row predicates while retaining the authorization summary; LegacyEmbeddingStoreAiAdapter#getFramework() does not match the current Head Core interface and can compile only against stale local SNAPSHOTs.
+- Important: SQL authorization failures and monitoring-log authorization refusals lack required denial events; event-to-log conversion drops datasource and authorization audit dimensions; tasks/report remain PASS while these gaps are open.
+- Fix round: 2
+- Stage: final-fix
+
+## Final Re-review Fix Result
+
+- Fix agent: 019fad00-769a-7d61-8ecf-7a71506ec267
+- Status: DONE_WITH_CONCERNS
+- Commits: 5373c5f9 fix(askdata): close governance bridge re-review gaps; 7662cd32 chore(askdata): record governance re-review evidence
+- RED: column authorization allowed empty-column and select-alias bypasses; malicious plugins could remove injected row predicates; LegacyEmbeddingStoreAiAdapter used a stale getFramework override; SQL and monitoring-log denials missed governance/audit events and base log fields.
+- GREEN: Core AskData tests 85/85 passed; AI reactor with -am and failIfNoTests=false passed 7/7 modules and 169 AskData tests; Starter package BUILD SUCCESS; OpenSpec strict validation passed; diff check passed.
+- Concern: neutral-ai implementation commits remain in branch history and would need a separate history split if the branch must be narrowed further; current Head compiles without relying on stale local SNAPSHOTs.
+- Stage: final-review
