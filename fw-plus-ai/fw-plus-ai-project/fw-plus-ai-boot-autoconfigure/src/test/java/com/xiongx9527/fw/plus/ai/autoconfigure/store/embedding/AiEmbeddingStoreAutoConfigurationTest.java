@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding;
+package com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding;
 
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingDocument;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingMatch;
@@ -21,10 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class EmbeddingStoreAutoConfigurationTest {
+public class AiEmbeddingStoreAutoConfigurationTest {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withUserConfiguration(EmbeddingStoreAutoConfiguration.class);
+			.withUserConfiguration(AiEmbeddingStoreAutoConfiguration.class);
 
 	@Test
 	public void shouldKeepNeutralInfrastructureWhenLangChain4jAdapterIsMissing() {

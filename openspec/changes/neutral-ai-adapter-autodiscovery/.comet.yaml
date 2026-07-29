@@ -21,7 +21,7 @@ created_at: 2026-07-29
 verified_at: null
 archive_confirmation: null
 archived: false
-bound_branch: codex/feature/20260729/neutral-ai-adapter-autodiscovery
+bound_branch: codex/feature/20260729/neutral-ai-adapter-autodiscovery-finish
 direct_override: null
 handoff_context: openspec/changes/neutral-ai-adapter-autodiscovery/.comet/handoff/design-context.json
 handoff_hash: 620c57bbe78755061116165f1742fd0d55ff17b9727458facde6ece9c3ca82a0

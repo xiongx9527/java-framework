@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding;
+package com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding;
 
 import org.junit.Test;
 
@@ -11,15 +11,16 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class EmbeddingStoreAutoConfigurationMetadataTest {
+public class AiEmbeddingStoreAutoConfigurationMetadataTest {
 
     @Test
     public void shouldRegisterAutoConfigurationInSpringFactories() throws Exception {
         String factories = read("META-INF/spring.factories");
 
-        String autoConfiguration = "com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration";
+        String autoConfiguration = "com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration";
         assertTrue(factories.contains(autoConfiguration));
-        assertTrue(factories.contains("com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAutoConfiguration"));
+        assertFalse(factories.contains("com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAutoConfiguration"));
+        assertFalse(factories.contains("com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration"));
         assertFalse(existsInSourceResources("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports"));
     }
 
@@ -39,7 +40,7 @@ public class EmbeddingStoreAutoConfigurationMetadataTest {
     }
 
     private boolean existsInSourceResources(String location) throws Exception {
-        File classesDirectory = new File(EmbeddingStoreAutoConfiguration.class
+        File classesDirectory = new File(AiEmbeddingStoreAutoConfiguration.class
                 .getProtectionDomain().getCodeSource().getLocation().toURI());
         File moduleDirectory = classesDirectory.getParentFile().getParentFile();
         return new File(new File(moduleDirectory, "src/main/resources"), location).isFile();

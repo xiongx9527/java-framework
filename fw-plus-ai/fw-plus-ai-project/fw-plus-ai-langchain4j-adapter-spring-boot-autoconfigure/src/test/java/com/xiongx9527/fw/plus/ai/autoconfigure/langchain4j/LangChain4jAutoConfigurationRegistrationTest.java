@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -25,7 +26,7 @@ import static org.junit.Assert.assertTrue;
 public class LangChain4jAutoConfigurationRegistrationTest {
 
 	private static final String MODEL_AUTO_CONFIGURATION =
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration";
+			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration";
 
 	private static final String[] REQUIRED_STARTER_DEPENDENCIES = new String[] {
 			"fw-plus-ai-model-spring-boot-starter",
@@ -205,7 +206,7 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 	}
 
 	@Test
-	public void shouldRegisterModelAutoConfigurationInSpringFactories() throws Exception {
+	public void shouldRegisterAdapterAutoConfigurationInSpringFactories() throws Exception {
 		Properties factories = new Properties();
 		InputStream inputStream = getClass().getClassLoader().getResourceAsStream("META-INF/spring.factories");
 		assertNotNull("spring.factories should be present", inputStream);
@@ -217,8 +218,11 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 
 		String autoConfigurations = factories.getProperty("org.springframework.boot.autoconfigure.EnableAutoConfiguration");
 		assertNotNull("EnableAutoConfiguration entries should be present", autoConfigurations);
-		assertTrue("LangChain4jModelAutoConfiguration should be registered",
+		assertTrue("LangChain4jAdapterAutoConfiguration should be registered",
 				Arrays.asList(autoConfigurations.replace("\\n", "").split("\\s*,\\s*")).contains(MODEL_AUTO_CONFIGURATION));
+		assertTrue("Adapter root should not import legacy provider autoconfiguration eagerly",
+				!importClassNames(LangChain4jAdapterAutoConfiguration.class)
+						.contains(LangChain4jAutoConfiguration.class.getName()));
 	}
 
 	@Test

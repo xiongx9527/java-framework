@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model;
+package com.xiongx9527.fw.plus.ai.autoconfigure.model;
 
 import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
@@ -21,7 +21,7 @@ import java.util.Map;
 @Configuration
 @ConditionalOnClass(AiModelRegistry.class)
 @EnableConfigurationProperties(AiModelProperties.class)
-public class LangChain4jModelAutoConfiguration {
+public class AiModelAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean(AiModelFactory.class)

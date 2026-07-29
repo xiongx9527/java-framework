@@ -14,7 +14,31 @@ This release line removes the former LangChain4j model/store artifacts and their
 
 Replace both former core artifacts, `fw-plus-ai-langchain4j-model` and `fw-plus-ai-langchain4j-store-embeding`, with `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter`. Replace both former Boot starters with the adapter starter above. Do not mix a new adapter artifact with any of the four removed artifacts.
 
-Use `fw-plus.ai.model` and `fw-plus.ai.embedding-store`; the removed `fw-plus.ai.langchain4j.*` bindings are not supported. An omitted `framework` is valid only when exactly one installed adapter supports the provider/type. With more than one candidate, set `framework: langchain4j` explicitly. Magic-API keys such as `model['knowledge-chat']` and `vector['knowledge']` stay stable but expose only neutral facades, never native LangChain4j objects.
+Use `fw-plus.ai.model` and `fw-plus.ai.embedding-store`; the removed `fw-plus.ai.langchain4j.*` bindings are not supported. An omitted `framework` is valid only when exactly one installed adapter supports the provider/type. With more than one candidate, set `framework: langchain4j` explicitly.
+
+```yaml
+fw-plus:
+  ai:
+    model:
+      models:
+        knowledge-chat:
+          framework: langchain4j
+          provider: openai
+          type: CHAT
+          properties:
+            model-name: gpt-4o-mini
+    embedding-store:
+      stores:
+        knowledge:
+          framework: langchain4j
+          provider: qdrant
+          type: QDRANT
+          properties:
+            host: localhost
+            port: 6334
+```
+
+Magic-API keys such as `model['knowledge-chat']` and `vector['knowledge']` stay stable, but scripts expose only neutral facades and never native LangChain4j objects.
 
 AskData is retained and is not migrated by this documentation task. Spring AI, Spring AI Alibaba, and AgentScope 2 adapters are future Java 17 / Spring Boot 3 work, not artifacts implemented by this release.
 

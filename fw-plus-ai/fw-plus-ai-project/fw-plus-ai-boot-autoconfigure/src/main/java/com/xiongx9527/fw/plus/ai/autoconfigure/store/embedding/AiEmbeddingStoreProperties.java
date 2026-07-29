@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding;
+package com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding;
 
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
 import org.springframework.boot.context.properties.ConfigurationProperties;

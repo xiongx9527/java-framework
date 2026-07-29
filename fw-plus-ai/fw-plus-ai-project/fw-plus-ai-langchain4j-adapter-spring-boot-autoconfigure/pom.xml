@@ -23,6 +23,76 @@
 			<version>${revision}</version>
 		</dependency>
 		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-core</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-openai</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-anthropic</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-ollama</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-azure-ai-search</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-azure-open-ai</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-voyage-ai</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-github-models</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-vertex-ai-gemini</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-elasticsearch</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-redis</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-qianfan</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-milvus</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-dashscope</artifactId>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-autoconfigure</artifactId>
 		</dependency>

@@ -3,10 +3,22 @@
 set -eu
 
 script_dir=${0:A:h}
+repo_root=${script_dir:h:h}
 target_docs=(
 	"spring-ai-java17.md"
 	"spring-ai-alibaba-java17.md"
 	"agentscope-java17.md"
+)
+breaking_docs=(
+	"$script_dir/overview.md"
+	"$script_dir/compatibility-matrix.md"
+	"$repo_root/fw-plus-ai/README.md"
+	"$repo_root/fw-plus-ai/README.zh-CN.md"
+)
+framework_example_docs=(
+	"$script_dir/overview.md"
+	"$repo_root/fw-plus-ai/README.md"
+	"$repo_root/fw-plus-ai/README.zh-CN.md"
 )
 required_headings=(
 	"前置条件"
@@ -27,6 +39,19 @@ required_phrases=(
 	"model[...]"
 	"vector[...]"
 )
+breaking_required_phrases=(
+	"fw-plus.ai.model"
+	"fw-plus.ai.embedding-store"
+	"fw-plus-ai-langchain4j-adapter-spring-boot-starter"
+	"model["
+	"vector["
+)
+forbidden_migration_phrases=(
+	"旧 artifact、配置、Magic-API key 保持兼容"
+	"旧配置、优先级"
+	"兼容映射"
+	"现有 fw-plus-ai-langchain4j-* 模块与 AI Boot starter"
+)
 
 failures=0
 
@@ -45,6 +70,31 @@ for shared_doc in overview.md compatibility-matrix.md; do
 	if [[ ! -f "$script_dir/$shared_doc" ]]; then
 		print -u2 -- "缺失文档: $shared_doc"
 		failures=$((failures + 1))
+	fi
+done
+
+for doc_path in $breaking_docs; do
+	if [[ ! -f "$doc_path" ]]; then
+		print -u2 -- "缺失文档: $doc_path"
+		failures=$((failures + 1))
+		continue
+	fi
+
+	for phrase in $breaking_required_phrases; do
+		require_literal "$doc_path" "$phrase" "破坏性迁移配置说明"
+	done
+
+	for phrase in $forbidden_migration_phrases; do
+		if rg -n -F -- "$phrase" "$doc_path"; then
+			print -u2 -- "迁移文档残留旧兼容口径: ${doc_path:t} -> ${phrase}"
+			failures=$((failures + 1))
+		fi
+	done
+done
+
+for doc_path in $framework_example_docs; do
+	if [[ -f "$doc_path" ]]; then
+		require_literal "$doc_path" "framework: langchain4j" "显式 framework 示例"
 	fi
 done
 
