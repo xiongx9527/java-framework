@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>com.xiongx9527.fw.plus.ai</groupId>
+		<artifactId>fw-plus-ai-boot-starters</artifactId>
+		<version>${revision}</version>
+	</parent>
+	<artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-starter</artifactId>
+	<properties>
+		<main.basedir>${basedir}/../../..</main.basedir>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus.ai</groupId>
+			<artifactId>fw-plus-ai-model-spring-boot-starter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus.ai</groupId>
+			<artifactId>fw-plus-ai-store-embedding-spring-boot-starter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
+			<version>${revision}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus.ai</groupId>
+			<artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure</artifactId>
+		</dependency>
+	</dependencies>
+</project>
