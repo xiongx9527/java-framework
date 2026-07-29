@@ -123,6 +123,35 @@ public class AskDataSqlPipelineTest {
 	}
 
 	@Test
+	public void shouldRejectSqlForObjectRemovedByNarrowedAuthorizationSummary() {
+		AskDataAuthorizationRequest request = authorizationRequest();
+		AskDataAuthorizedObject orders = new AskDataAuthorizedObject("analytics", "orders", "id");
+		AskDataAuthorizedObject payments = new AskDataAuthorizedObject("analytics", "payments", "id");
+		AskDataAuthorizationSummary original = AskDataAuthorizationSummary.allow(request,
+				Arrays.asList(orders, payments), Collections.<AskDataRowPredicate>emptyList(),
+				"policy-v1", "iam-main", AskDataAdministrativeScope.none());
+		final AskDataAuthorizationSummary narrowed = AskDataAuthorizationSummary.allow(request,
+				Collections.singletonList(orders), Collections.<AskDataRowPredicate>emptyList(),
+				"policy-v1", "iam-main", AskDataAdministrativeScope.none());
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Collections.singletonList(
+				new AskDataSqlInterceptor() {
+					@Override public String getKey() { return "narrow-and-rewrite"; }
+					@Override public int getOrder() { return 1; }
+					@Override public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+						return command.withSql("select count(*) from payments")
+								.withAuthorizationSummary(narrowed);
+					}
+				}), new SafetyValidator(), new AskDataSqlAudit());
+		AskDataSqlCommand command = new AskDataSqlCommand(request.getProjectContext(),
+				"select count(*) from orders", Collections.<AskDataSqlParameter>emptyList(),
+				new HashSet<String>(Arrays.asList("orders", "payments")), original);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> chain.execute(command));
+
+		assertTrue(exception.getMessage().contains("UNAUTHORIZED_OBJECT"));
+	}
+
+	@Test
 	public void shouldOrderPluginsAndAuditEveryPhase() {
 		AskDataSqlAudit audit = new AskDataSqlAudit();
 		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Arrays.asList(
