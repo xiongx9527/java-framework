@@ -2,7 +2,9 @@ package com.xiongx9527.fw.plus.ai.store.embedding;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 
 public class DefaultAiEmbeddingStoreFactory implements AiEmbeddingStoreFactory {
 
@@ -46,9 +48,14 @@ public class DefaultAiEmbeddingStoreFactory implements AiEmbeddingStoreFactory {
         if (adapters == null) {
             return candidates;
         }
+        Set<AiEmbeddingStoreAdapter> discovered = Collections.newSetFromMap(
+                new IdentityHashMap<AiEmbeddingStoreAdapter, Boolean>());
         for (AiEmbeddingStoreAdapter adapter : adapters) {
             if (adapter != null) {
-                candidates.add(new AdapterCandidate(adapter, framework(adapter, definition, candidates)));
+                String framework = framework(adapter, definition, candidates);
+                if (discovered.add(adapter)) {
+                    candidates.add(new AdapterCandidate(adapter, framework));
+                }
             }
         }
         return candidates;

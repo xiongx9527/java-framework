@@ -1,68 +1,100 @@
-# Task 2 修复报告：中立 AiModel 模块
-
-Status: DONE_WITH_CONCERNS
-
-## 范围与提交
-
-- 实现提交：`dbdb54fc81294e6cfaf87b96f48d35b3ba0e68a0`（`fw-plus-ai-model: 补全 provider 与失败路径契约`）。
-- 修改范围仅为 `fw-plus-ai-model/**` 与本报告；未修改 OpenSpec、聚合 POM、BOM、AI Boot 或 LangChain4j 模块。
-- 旧报告中的 LangChain4j Task 2 证据与本任务无关，已从本报告移除；以下证据仅对应中立 `fw-plus-ai-model`。
-
-## 修复内容
-
-- `AiModel` 新增 `getProvider()`，门面现完整保留 key、framework、provider、type/capability 元数据；同步更新 fake 实现及断言。
-- 新增 `DefaultAiModelFactoryTest`，覆盖无支持 adapter、`supports` 抛异常、`create` 抛异常、`create` 返回 null 四条失败路径。
-- 四条路径均校验异常消息包含 `key=chat`、`framework=fake`、`provider=fake-provider`、`type=CHAT`；存在上游异常时校验原 cause 为同一对象，无上游异常时 cause 为 null。
+# Task 2 报告：向量 Store 选择器
 
 ## RED 证据
 
-1. provider 契约 RED：
+原定命令：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model -Dtest=DefaultAiModelRegistryTest test
+JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding -am -Dtest=DefaultAiEmbeddingStoreFactoryTest test
 ```
 
-退出码 `1`；测试编译明确报告 `AiModel.getProvider()` 不存在及 fake 的 `@Override` 无法覆盖，符合缺失接口契约预期。
+该命令首先在上游 `fw-plus-annotation` 失败，原因是 Surefire 对 `-Dtest` 施加到整个反应器且该模块没有匹配测试：`No tests were executed!`。
 
-2. Factory 失败边界 RED：先新增四项契约测试，并按 TDD 要求撤回先于测试存在的未验证错误处理，再运行：
+为使反应器抵达目标模块，保留相同命令并追加 `-DfailIfNoTests=false`。目标模块在 `DefaultAiEmbeddingStoreFactoryTest.java:102` 的 `getFramework()` `@Override` 处测试编译失败，证明生产接口尚未声明所需契约。
+
+## GREEN 证据
+
+目标工厂测试：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model -Dtest=DefaultAiModelFactoryTest test
+JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding -am -Dtest=DefaultAiEmbeddingStoreFactoryTest -DfailIfNoTests=false test
 ```
 
-退出码 `1`，4/4 按预期失败：无支持 adapter 缺少上下文；`supports` 和 `create` 裸透传 `IllegalStateException`；null 返回未抛异常。
+结果：`DefaultAiEmbeddingStoreFactoryTest` 4 个测试全部通过。
 
-## GREEN 与安装证据
-
-- provider GREEN：同一 `DefaultAiModelRegistryTest` 命令退出码 `0`，3/3 通过。
-- Factory GREEN：同一 `DefaultAiModelFactoryTest` 命令退出码 `0`，4/4 通过。
-- JDK 8 模块回归：
+模块回归测试：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model test
+JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding test
 ```
 
-退出码 `0`，7/7 通过，失败、错误、跳过均为 0。
+结果：13 个测试全部通过，失败 0、错误 0、跳过 0。
 
-- 目标模块单独安装：
+## 提交
+
+`4db8b7e8 feat(ai): select neutral embedding adapter deterministically`
+
+## 修改文件
+
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding/src/main/java/com/xiongx9527/fw/plus/ai/store/embedding/AiEmbeddingStoreAdapter.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding/src/main/java/com/xiongx9527/fw/plus/ai/store/embedding/DefaultAiEmbeddingStoreFactory.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding/src/test/java/com/xiongx9527/fw/plus/ai/store/embedding/DefaultAiEmbeddingStoreFactoryTest.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding/src/test/java/com/xiongx9527/fw/plus/ai/store/embedding/DefaultAiEmbeddingStoreRegistryTest.java`
+
+## 风险信号与顾虑
+
+- `AiEmbeddingStoreAdapter` 增加抽象方法，既有 registry 测试中的两个测试适配器已同步补齐 `getFramework()`；外部适配器实现方也需要实现该方法。
+- brief 的原始反应器命令会被上游无匹配测试阻断，验证时需追加 `-DfailIfNoTests=false`，或使用模块级回归命令。
+- 工厂异常只输出 key、framework、provider、type、候选 framework 与异常类型，不包含 `properties` 或原始异常信息。
+
+## 审查修复（后续提交）
+
+### RED 证据
+
+在 `DefaultAiEmbeddingStoreFactoryTest` 中先新增以下回归场景：
+
+- 空 framework 且零 adapter 时，错误诊断包含 key、framework、provider、type、candidateFrameworks，且不包含 `properties` 或密码值；
+- 同一 adapter 对象在列表中出现两次时，空 framework 仍只选择该唯一对象。
+
+执行：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model install -DskipTests
+JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding -am -Dtest=DefaultAiEmbeddingStoreFactoryTest -DfailIfNoTests=false test
 ```
 
-退出码 `0`。该结果仅证明目标模块可单独安装，不能替代 reactor 安装。
+结果：失败。`shouldUseDuplicatedStoreAdapterInstanceOnlyOnce` 抛出 `Multiple adapters support store`，诊断中的候选为重复的 `[framework-a, framework-a]`，证明旧实现按列表条目而不是 adapter 对象身份计数。
 
-- 计划中的 reactor 安装复核：
+### GREEN 与编译证据
+
+- 工厂目标测试使用上述命令通过：6 个测试，0 failure、0 error；
+- store 模块完整回归：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model -am install -DskipTests
+JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding test
 ```
 
-本次退出码 `0`，8/8 reactor 模块通过，`fw-plus-common` 与 `fw-plus-ai-model` 均实际完成。审查指出的旧执行曾在未修改的 `fw-plus-common` Lombok 编译处失败且未到达目标模块；该历史失败不再被目标模块单独安装掩盖，也不冒充本次结果。
+结果：15 个测试，0 failure、0 error；
 
-## 自审与风险
+- Core LangChain4j store 生产实现编译：
 
-- `AiModel.class` 的 classfile major version 为 `52`；主源码未命中 LangChain4j、Spring AI 或 AgentScope 类型。
-- `getProvider()` 是公共接口新增抽象方法：仓库内唯一实现为已同步的测试 fake，但外部或后续 adapter 实现必须同步实现，存在源码/二进制兼容风险，因此状态为 `DONE_WITH_CONCERNS`。
-- reactor install 使用 `-DskipTests`，测试结论仅来自前述独立模块 test；两类证据未混用。
-- 未修改任务范围之外的既有脏文件。
+```bash
+JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding -am -DskipTests compile
+```
+
+结果：10 个 reactor 项目全部成功；
+
+- 为让 AI Boot 使用当前 Core SPI，先以 JDK 8 安装 store 反应器，再编译 auto-configuration：
+
+```bash
+JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding -am -DskipTests install
+JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am -DskipTests compile
+```
+
+结果：Core install 的 8 个 reactor 项目成功；AI Boot compile 的 7 个 reactor 项目成功。
+
+### 修复内容与风险
+
+- `DefaultAiEmbeddingStoreFactory` 使用 `IdentityHashMap` 驱动的集合按 adapter 对象身份去重；不同 adapter 即使返回相同 framework 仍保留为真实歧义，显式 framework 的严格匹配逻辑不变；
+- `DefaultEmbeddingStoreFactory` 与 `LegacyEmbeddingStoreAiAdapter` 均显式返回稳定的 `langchain4j` framework，因此所有当前生产 `AiEmbeddingStoreAdapter` 实现均满足 SPI；
+- 中立 Core 未引入 LangChain4j 类型或依赖；
+- `AiEmbeddingStoreAdapter#getFramework()` 是新增抽象 SPI，外部实现者仍需按迁移契约补充该方法，旧二进制在调用时仍存在 `AbstractMethodError` 风险；本修复仅覆盖当前仓库生产实现，未启动整体 adapter 迁移。

@@ -37,6 +37,26 @@ public class DefaultAiEmbeddingStoreFactoryTest {
     }
 
     @Test
+    public void shouldRejectMissingStoreAdapterWhenFrameworkIsBlank() {
+        AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
+                () -> new DefaultAiEmbeddingStoreFactory().create(blankFrameworkDefinition(),
+                        Collections.<AiEmbeddingStoreAdapter>emptyList()));
+
+        assertContextAndCandidates(exception);
+    }
+
+    @Test
+    public void shouldUseDuplicatedStoreAdapterInstanceOnlyOnce() {
+        AiEmbeddingStore store = new TestStore();
+        AiEmbeddingStoreAdapter adapter = new TestAdapter("framework-a", true, store);
+
+        AiEmbeddingStore resolved = new DefaultAiEmbeddingStoreFactory().create(blankFrameworkDefinition(),
+                Arrays.asList(adapter, adapter));
+
+        assertSame(store, resolved);
+    }
+
+    @Test
     public void shouldIncludeStoreDefinitionContextInFailure() {
         AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
                 () -> new DefaultAiEmbeddingStoreFactory().create(definition("missing-framework"),
@@ -80,6 +100,8 @@ public class DefaultAiEmbeddingStoreFactoryTest {
         assertTrue(message.contains("provider=test-provider"));
         assertTrue(message.contains("type=VECTOR"));
         assertTrue(message.contains("candidateFrameworks="));
+        assertFalse(message.contains("properties"));
+        assertFalse(message.contains("top-secret-password"));
         for (String framework : frameworks) {
             assertTrue(message.contains(framework));
         }
