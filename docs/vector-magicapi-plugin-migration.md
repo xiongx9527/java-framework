@@ -5,61 +5,71 @@ The `milvus`, `qdrant`, `redisstack`, and `weaviate` Magic-API entries are depre
 ## Configuration
 
 `key`, `provider`, `dimension`, and `metadata-keys` are store definition fields. Provider-specific values must be nested under `properties`; do not put `uri` or `collection-name` directly under a store.
+Use the neutral `fw-plus.ai.embedding-store` prefix, set `framework: langchain4j`, and keep the store `type` as `VECTOR`; Qdrant, Milvus, Redis, and Weaviate are providers, not embedding-store types.
 
 ```yaml
 fw-plus:
   ai:
-    langchain4j:
-      embedding-store:
-        enabled: true
-        default-store: knowledge-milvus
-        stores:
-          knowledge-milvus:
-            provider: milvus
-            dimension: 768
-            properties:
-              uri: http://127.0.0.1:19530
-              collectionName: knowledge
-              apiKey: milvus-api-key
-              indexType: HNSW
-              metricType: COSINE
-              consistencyLevel: EVENTUALLY
-              retrieveEmbeddingsOnSearch: false
-              autoFlushOnInsert: false
-          archive-milvus:
-            provider: milvus
-            dimension: 768
-            properties:
-              uri: http://127.0.0.1:19530
-              collectionName: archive
-              databaseName: archive_db
-          qdrant-main:
-            provider: qdrant
-            properties:
-              host: 127.0.0.1
-              port: 6334
-              collectionName: knowledge
-              payloadTextKey: content
-              useTls: false
-          redis-cache:
-            provider: redis
-            dimension: 768
-            metadata-keys:
-              - tenantId
-            properties:
-              host: 127.0.0.1
-              port: 6379
-              indexName: knowledge_index
-          weaviate-knowledge:
-            provider: weaviate
-            properties:
-              scheme: http
-              host: 127.0.0.1
-              port: 8080
-              className: Knowledge
-              avoidDups: true
-              consistencyLevel: ALL
-              textFieldName: content
+    embedding-store:
+      enabled: true
+      default-store: knowledge-milvus
+      stores:
+        knowledge-milvus:
+          framework: langchain4j
+          provider: milvus
+          type: VECTOR
+          dimension: 768
+          properties:
+            uri: http://127.0.0.1:19530
+            collectionName: knowledge
+            apiKey: milvus-api-key
+            indexType: HNSW
+            metricType: COSINE
+            consistencyLevel: EVENTUALLY
+            retrieveEmbeddingsOnSearch: false
+            autoFlushOnInsert: false
+        archive-milvus:
+          framework: langchain4j
+          provider: milvus
+          type: VECTOR
+          dimension: 768
+          properties:
+            uri: http://127.0.0.1:19530
+            collectionName: archive
+            databaseName: archive_db
+        qdrant-main:
+          framework: langchain4j
+          provider: qdrant
+          type: VECTOR
+          properties:
+            host: 127.0.0.1
+            port: 6334
+            collectionName: knowledge
+            payloadTextKey: content
+            useTls: false
+        redis-cache:
+          framework: langchain4j
+          provider: redis
+          type: VECTOR
+          dimension: 768
+          metadata-keys:
+            - tenantId
+          properties:
+            host: 127.0.0.1
+            port: 6379
+            indexName: knowledge_index
+        weaviate-knowledge:
+          framework: langchain4j
+          provider: weaviate
+          type: VECTOR
+          properties:
+            scheme: http
+            host: 127.0.0.1
+            port: 8080
+            className: Knowledge
+            avoidDups: true
+            consistencyLevel: ALL
+            textFieldName: content
 ```
 
 The example configures four providers and two independent Milvus instances. `default-store` selects the store returned by `import vector` without an explicit key. Store map keys and the optional `key` field must remain unique.

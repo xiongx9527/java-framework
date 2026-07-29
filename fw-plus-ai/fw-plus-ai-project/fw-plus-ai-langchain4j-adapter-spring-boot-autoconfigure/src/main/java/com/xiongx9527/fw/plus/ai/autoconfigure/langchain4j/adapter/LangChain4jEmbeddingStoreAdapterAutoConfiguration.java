@@ -17,30 +17,40 @@ import java.util.List;
 public class LangChain4jEmbeddingStoreAdapterAutoConfiguration {
 
 	@Bean
+	@ConditionalOnClass(name = "dev.langchain4j.store.embedding.redis.RedisEmbeddingStore")
 	@ConditionalOnMissingBean(name = "redisStackEmbeddingStoreProviderAdapter")
 	public EmbeddingStoreProviderAdapter redisStackEmbeddingStoreProviderAdapter() {
 		return new RedisStackEmbeddingStoreProviderAdapter();
 	}
 
 	@Bean
+	@ConditionalOnClass(name = {
+			"dev.langchain4j.store.embedding.milvus.MilvusEmbeddingStore",
+			"io.milvus.common.clientenum.ConsistencyLevelEnum",
+			"io.milvus.param.IndexType",
+			"io.milvus.param.MetricType"
+	})
 	@ConditionalOnMissingBean(name = "milvusEmbeddingStoreProviderAdapter")
 	public EmbeddingStoreProviderAdapter milvusEmbeddingStoreProviderAdapter() {
 		return new MilvusEmbeddingStoreProviderAdapter();
 	}
 
 	@Bean
+	@ConditionalOnClass(name = "dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore")
 	@ConditionalOnMissingBean(name = "elasticsearchEmbeddingStoreProviderAdapter")
 	public EmbeddingStoreProviderAdapter elasticsearchEmbeddingStoreProviderAdapter() {
 		return new ElasticsearchEmbeddingStoreProviderAdapter();
 	}
 
 	@Bean
+	@ConditionalOnClass(name = "dev.langchain4j.store.embedding.qdrant.QdrantEmbeddingStore")
 	@ConditionalOnMissingBean(name = "qdrantEmbeddingStoreProviderAdapter")
 	public EmbeddingStoreProviderAdapter qdrantEmbeddingStoreProviderAdapter() {
 		return new QdrantEmbeddingStoreProviderAdapter();
 	}
 
 	@Bean
+	@ConditionalOnClass(name = "dev.langchain4j.store.embedding.weaviate.WeaviateEmbeddingStore")
 	@ConditionalOnMissingBean(name = "weaviateEmbeddingStoreProviderAdapter")
 	public EmbeddingStoreProviderAdapter weaviateEmbeddingStoreProviderAdapter() {
 		return new WeaviateEmbeddingStoreProviderAdapter();
@@ -53,6 +63,12 @@ public class LangChain4jEmbeddingStoreAdapterAutoConfiguration {
 	}
 
 	@Bean
+	@ConditionalOnClass(name = {
+			"dev.langchain4j.store.embedding.azure.search.AzureAiSearchEmbeddingStore",
+			"dev.langchain4j.rag.content.retriever.azure.search.AzureAiSearchFilterMapper",
+			"com.azure.core.credential.TokenCredential",
+			"com.azure.search.documents.indexes.models.SearchIndex"
+	})
 	@ConditionalOnMissingBean(name = "azureAiSearchEmbeddingStoreProviderAdapter")
 	public EmbeddingStoreProviderAdapter azureAiSearchEmbeddingStoreProviderAdapter(
 			ApplicationContext applicationContext) {

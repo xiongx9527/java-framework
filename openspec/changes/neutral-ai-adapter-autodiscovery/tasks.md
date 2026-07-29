@@ -2,7 +2,7 @@
 
 - [ ] 1.1 盘点四个旧 artifact 在 Core/AI BOM、聚合 POM、starter、Magic-API、AskData、样例和文档中的引用，建立删除清单。
 - [x] 1.2 为模型和向量 store adapter 选择器编写 RED 单元测试：显式 framework 匹配、唯一候选、零候选和多候选。
-- [ ] 1.3 为中立 starter/公共自动配置/Magic-API 的零具体框架依赖、导入、公开签名和配置前缀建立静态回归测试。
+- [x] 1.3 为中立 starter/公共自动配置/Magic-API 的零具体框架依赖、导入、公开签名和配置前缀建立静态回归测试。
 
 ## 2. 中立 SPI 与选择器
 
@@ -32,6 +32,6 @@
 
 ## 6. 迁移文档与验证
 
-- [ ] 6.1 编写中文破坏性迁移指南：旧坐标/配置映射、LangChain4j adapter 安装、自动发现错误诊断、Magic-API key 边界、回滚限制和测试命令。
-- [ ] 6.2 编写 Java 17 / Spring Boot 3.x 后续实施蓝图：独立 reactor/BOM、Jakarta 迁移、Spring AI、Spring AI Alibaba、AgentScope 2 进程内 SDK adapter SPI 与测试要求。
+- [x] 6.1 编写中文破坏性迁移指南：旧坐标/配置映射、LangChain4j adapter 安装、自动发现错误诊断、Magic-API key 边界、回滚限制和测试命令。
+- [x] 6.2 编写 Java 17 / Spring Boot 3.x 后续实施蓝图：独立 reactor/BOM、Jakarta 迁移、Spring AI、Spring AI Alibaba、AgentScope 2 进程内 SDK adapter SPI 与测试要求。
 - [ ] 6.3 运行 Core 目标 reactor、AI Boot 自动配置、Magic-API 与 AskData 目标测试、OpenSpec 严格校验和 Maven 依赖/源码边界检查，记录结果。
