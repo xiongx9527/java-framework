@@ -2,7 +2,7 @@
 
 本矩阵逐项追踪 `feature-list.md` 的 SQLBot 与 WrenAI 功能。产品语义以 **SQLBot 优先**：重复项保留 SQLBot 的项目、权限、MCP、嵌入和企业集成边界，WrenAI 只作为语义层、评测、生成或调度增强。本矩阵的状态用于区分当前 Starter 已交付能力类型：默认实现、SPI 契约、文档契约和需外部测试租户联调的业务集成。
 
-状态含义：**已实现**为当前 Core/Starter 已有默认实现并有自动化验证；**默认/SPI 覆盖**为已有基础 SPI 或单机默认实现，生产需业务共享实现；**契约覆盖**为接口、配置、存储、文档和测试契约已交付；**业务适配覆盖**为 Starter 已提供后端契约，具体 UI、CLI 或管理服务由业务模块接入；**业务集成契约覆盖**为外部系统协议边界和联调用例已交付，真实租户连通需业务凭据验证。
+状态含义：**已实现**为当前 Core/Starter 已有默认实现并有自动化验证；**默认/SPI 覆盖**为已有基础 SPI 或单机默认实现，生产需业务共享实现；**默认拒绝 + 业务桥接可验证**为 Core/Starter 默认拒绝、业务可通过治理 SPI 显式接入且有自动化验证，真实 IAM 数据仍由业务提供；**契约覆盖**为接口、配置、存储、文档和测试契约已交付；**业务适配覆盖**为 Starter 已提供后端契约，具体 UI、CLI 或管理服务由业务模块接入；**业务集成契约覆盖**为外部系统协议边界和联调用例已交付，真实租户连通需业务凭据验证。
 
 约定：`FL` 是 [功能清单](../../../openspec/changes/rework-ai-askdata-core-starter/feature-list.md)，`IDX`、`CFG`、`SQL`、`STORE`、`DB`、`RT`、`J17`、`FLOW` 分别是本目录的 index、configuration、sql-safety、storage-matrix、database-design、runtime-replacement、java17-remote-runtime、flow-diagrams。模块列的“业务模块”不是已存在模块；它表示当前 Starter 已提供后端契约，真实 UI、CLI、管理服务或外部租户连通由业务系统接入验证。
 
@@ -16,9 +16,9 @@
 | SQLBot | 基础与部署 | 参数配置 | FL §1.1 | SQLBot 优先 | 企业参数不与 Starter 配置混同 | rework-ai-askdata-core-starter | enterprise | 企业配置命名空间由业务适配定义 | askdata_plugin_registry | CFG, DB | ENT-01 | 业务适配覆盖 | 仅已有 Starter 默认配置，无 X-Pack 参数管理。 |
 | SQLBot | 基础与部署 | 外观设置 | FL §1.1 | SQLBot 优先 | SQLBot 品牌语义优先 | rework-ai-askdata-core-starter | console | 主题/品牌配置由业务适配定义 | askdata_project | DB | FE-01 | 业务适配覆盖 | 需业务接入验证控制台或品牌素材。 |
 | SQLBot | 基础与部署 | 操作日志 | FL §1.1 | SQLBot 优先 | 管理日志独立于监控日志 | rework-ai-askdata-core-starter | enterprise | 管理审计 API 由业务适配定义 | askdata_sql_audit | SQL, DB | AUD-01 | 契约覆盖 | 当前仅有范围隔离的内存监控日志，不是管理员操作日志。 |
-| SQLBot | 项目、组织与权限 | 工作空间/项目 | FL §1.2 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | Core | AskDataProjectContext | 内存/SPI；askdata_project | IDX, DB | CTX-01 | 已实现 | Core 强制 projectId/operatorId；项目实体和治理持久化需业务接入验证。 |
-| SQLBot | 项目、组织与权限 | 成员管理 | FL §1.2 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | governance/console | 成员角色 API 由业务适配定义 | askdata_project_member | DB | AUTH-01 | 业务适配覆盖 | 宿主应用负责真实成员和角色判定。 |
-| SQLBot | 项目、组织与权限 | 权限配置 | FL §1.2 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | governance | 对象授权解析 SPI | askdata_project_member, askdata_metadata | SQL, DB | AUTH-02 | 契约覆盖 | SQL 最终校验已实现边界；行列权限解析由治理适配契约接入验证。 |
+| SQLBot | 项目、组织与权限 | 工作空间/项目 | FL §1.2 | SQLBot 优先 | 不重复 | add-askdata-governance-permission-bridge | Core | AskDataProjectContext + AskDataGovernanceProvider | 内存/SPI；askdata_project | IDX, DB | CTX-01 | 默认拒绝 + 业务桥接可验证 | Core 强制 projectId/operatorId；默认拒绝，项目实体和治理持久化仍由业务接入。 |
+| SQLBot | 项目、组织与权限 | 成员管理 | FL §1.2 | SQLBot 优先 | 不重复 | add-askdata-governance-permission-bridge | governance/console | AskDataGovernanceProvider 映射成员角色 | askdata_project_member | DB | AUTH-01 | 默认拒绝 + 业务桥接可验证 | 宿主应用负责真实成员和角色判定；Starter 仅消费已确认授权摘要。 |
+| SQLBot | 项目、组织与权限 | 权限配置 | FL §1.2 | SQLBot 优先 | 不重复 | add-askdata-governance-permission-bridge | governance | AskDataAuthorizationSummary / AskDataAuthorizedObject / AskDataRowPredicate | askdata_project_member, askdata_metadata | SQL, DB | AUTH-02 | 默认拒绝 + 业务桥接可验证 | 行列授权先过滤元数据和 Prompt，行级谓词与最终 SQL 校验仍需业务治理落实。 |
 | SQLBot | 项目、组织与权限 | 组织用户同步 | FL §1.2 | SQLBot 优先 | 与企业平台同步合并 | rework-ai-askdata-core-starter | enterprise | 同步任务/API 由业务适配定义 | askdata_enterprise_integration | DB | ENT-02 | 业务集成契约覆盖 | 需企业微信、钉钉、飞书业务凭据与映射。 |
 | SQLBot | 数据源与方言 | 数据源概览 | FL §1.3 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | console/governance | 数据源状态 API 由业务适配定义 | askdata_datasource | DB | CONN-01 | 业务适配覆盖 | Starter 不管理业务数据源。 |
 | SQLBot | 数据源与方言 | Excel/CSV | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | 文件连接器 SPI 由业务适配定义 | askdata_datasource, askdata_metadata | DB | CONN-02 | 业务适配覆盖 | 未定义文件上传、解析或权限策略实现。 |
@@ -34,10 +34,10 @@
 | SQLBot | 数据源与方言 | Kingbase | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | 方言/只读执行 SPI | askdata_datasource | SQL, DB | CONN-12 | 业务适配覆盖 | 需业务接入验证。 |
 | SQLBot | 数据源与方言 | StarRocks | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | 方言/只读执行 SPI | askdata_datasource | SQL, DB | CONN-13 | 业务适配覆盖 | 需业务接入验证。 |
 | SQLBot | 数据源与方言 | Apache Hive | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | 方言/只读执行 SPI | askdata_datasource | SQL, DB | CONN-14 | 业务适配覆盖 | 需业务接入验证。 |
-| SQLBot | 智能问数与训练 | 智能问数 | FL §1.4 | SQLBot 优先 | WrenAI Text-to-SQL 增强 | rework-ai-askdata-core-starter | Core/Starter | AskDataService | 内存/SPI | IDX, FLOW | CORE-01 | 已实现 | 默认单项目流程；宿主承担真实数据权限。 |
+| SQLBot | 智能问数与训练 | 智能问数 | FL §1.4 | SQLBot 优先 | WrenAI Text-to-SQL 增强 | add-askdata-governance-permission-bridge | Core/Starter | AskDataService + AskDataGovernanceProvider | 内存/SPI | IDX, FLOW | CORE-01 | 默认拒绝 + 业务桥接可验证 | 默认单项目流程在模型调用前取授权摘要；宿主承担真实数据权限。 |
 | SQLBot | 智能问数与训练 | 多轮上下文 | FL §1.4 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | Core | 会话/压缩/检查点 SPI | 内存会话/检查点 | CFG, STORE | STATE-01 | 默认/SPI 覆盖 | 默认内存仅单机，压缩与共享持久化需业务实现。 |
 | SQLBot | 智能问数与训练 | 多提问 | FL §1.4 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | Core | 问题规划/聚合 | 子问题审计 | IDX, FLOW | CORE-02 | 已实现 | 恢复令牌的多提问请求受控拒绝。 |
-| SQLBot | 智能问数与训练 | SQL 安全 | FL §1.4 | SQLBot 优先 | WrenAI dry-plan/dry-run 增强 | rework-ai-askdata-core-starter | Core/Starter | SQL 校验器、插件、只读执行器 | 内存审计/SPI | SQL, FLOW | SQL-01 | 已实现 | 对象授权和生产审计落库由业务提供。 |
+| SQLBot | 智能问数与训练 | SQL 安全 | FL §1.4 | SQLBot 优先 | WrenAI dry-plan/dry-run 增强 | add-askdata-governance-permission-bridge | Core/Starter | SQL 校验器、插件、只读执行器、授权摘要 | 内存审计/SPI | SQL, FLOW | SQL-01 | 默认拒绝 + 业务桥接可验证 | 插件只能收窄授权；对象/行级谓词仍在最终 SQL 校验边界内。 |
 | SQLBot | 智能问数与训练 | 图表/图片渲染 | FL §1.4 | SQLBot 优先 | 与 WrenAI Text-to-Chart 合并 | rework-ai-askdata-core-starter | api-mcp/console | 图表 DTO/API 由业务适配定义 | 资源存储由业务适配定义 | FLOW | FE-02 | 业务适配覆盖 | 当前只返回受控问数结果，不渲染图表/图片。 |
 | SQLBot | 智能问数与训练 | 仪表板 | FL §1.4 | SQLBot 优先 | WrenAI 生成/调度增强 | rework-ai-askdata-core-starter | api-mcp/console | 仪表板 API 由业务适配定义 | 仪表板存储由业务适配定义 | DB | FE-03 | 业务适配覆盖 | 需业务接入验证。 |
 | SQLBot | 智能问数与训练 | 小助手应用 | FL §1.4 | SQLBot 优先 | 嵌入能力归 SQLBot | rework-ai-askdata-core-starter | console/api-mcp | 应用/嵌入 SPI 由业务适配定义 | askdata_mcp_api | FLOW | FE-04 | 业务集成契约覆盖 | 需业务接入 Vue3 组件或发布 API。 |
@@ -150,7 +150,7 @@
 | WrenAI | API、任务与仪表板 | 轮询结果 | FL §2.6 | WrenAI 增强 | 与流式 API 协调 | rework-ai-askdata-core-starter | api-mcp | 状态查询 API 由业务适配定义 | askdata_agent_state | FLOW | AGENT-02 | 业务适配覆盖 | 需业务接入验证。 |
 | WrenAI | API、任务与仪表板 | dashboard 生成 | FL §2.6 | WrenAI 增强 | SQLBot 仪表板优先 | rework-ai-askdata-core-starter | console/training | dashboard API 由业务适配定义 | 仪表板存储由业务适配定义 | DB | FE-03 | 业务适配覆盖 | 需业务接入验证。 |
 | WrenAI | API、任务与仪表板 | dashboard 调度 | FL §2.6 | WrenAI 增强 | SQLBot 仪表板优先 | rework-ai-askdata-core-starter | console/observability | 调度 API 由业务适配定义 | 仪表板存储/监控 | DB | FE-12 | 业务适配覆盖 | 需业务接入验证。 |
-| WrenAI | API、任务与仪表板 | 遥测 | FL §2.6 | WrenAI 增强 | SQLBot 监控日志优先 | rework-ai-askdata-core-starter | observability | 监控日志 SPI/异步导出 | 内存/SPI；askdata_monitoring_log | IDX, STORE, FLOW | AUD-02 | 默认/SPI 覆盖 | 本地脱敏日志已实现；LangSmith/Langfuse/OTel 导出需业务接入验证。 |
+| WrenAI | API、任务与仪表板 | 遥测 | FL §2.6 | WrenAI 增强 | SQLBot 监控日志优先 | add-askdata-governance-permission-bridge | observability | 监控日志 SPI/异步导出/管理员读取双 SPI | 内存/SPI；askdata_monitoring_log | IDX, STORE, FLOW | AUD-02 | 默认拒绝 + 业务桥接可验证 | 本地脱敏日志与查询审计已实现；管理员资格与外部导出仍需业务接入验证。 |
 
 ## 覆盖核对
 
