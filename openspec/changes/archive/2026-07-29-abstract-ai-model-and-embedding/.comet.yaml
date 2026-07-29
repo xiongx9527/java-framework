@@ -16,14 +16,14 @@ plan: docs/superpowers/plans/2026-07-27-abstract-ai-model-and-embedding.md
 verify_result: pass
 verify_failures: 0
 verification_report: docs/superpowers/reports/2026-07-29-abstract-ai-model-and-embedding-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-07-27
 verified_at: 2026-07-29
 archive_confirmation: confirmed
 archived: true
 bound_branch: dev
 direct_override: null
-handoff_context: openspec/changes/abstract-ai-model-and-embedding/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-29-abstract-ai-model-and-embedding/.comet/handoff/design-context.json
 handoff_hash: 873415265c83a5389f104b90838e3927139e81c2fdefa77b62c0c48f296939f0
 classic_profile: full
 classic_migration: 1
