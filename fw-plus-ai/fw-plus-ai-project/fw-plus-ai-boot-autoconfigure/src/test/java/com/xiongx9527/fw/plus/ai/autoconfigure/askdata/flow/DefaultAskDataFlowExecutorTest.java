@@ -5,6 +5,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataCheckpoint;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.InMemoryAskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
@@ -225,6 +228,26 @@ public class DefaultAskDataFlowExecutorTest {
     }
 
     @Test
+    public void shouldDenyCompletedCheckpointWhenCurrentMetadataDoesNotAuthorizeCheckpointSql() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.governanceProvider = request -> AskDataAuthorizationSummary.allow(Collections.singletonList(
+                new AskDataAuthorizedObject("orders", "unknown_table", "*")), Collections.emptyList());
+        dependencies.conversationStore = new InMemoryAskDataConversationStore();
+        dependencies.conversationStore.save(completedCheckpoint());
+        AskDataRequest request = request(true);
+        request.setConversationId("conversation-1");
+        request.setResumeToken("resume-executed");
+
+        AskDataResult result = dependencies.executor("unused").execute(request);
+
+        assertFalse(result.isSuccess());
+        assertEquals(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE, result.getErrorCode());
+        assertEquals(1, dependencies.metadataCalls);
+        assertEquals(0, dependencies.executorCalls);
+        assertEquals(null, result.getRowCount());
+    }
+
+    @Test
     public void shouldShortCircuitBeforeExecutorWhenSqlIsRejected() {
         StubDependencies dependencies = new StubDependencies();
         dependencies.validationResult = AskDataSqlValidationResult.rejected(AskDataErrorCode.SQL_REJECTED, "only select allowed");
@@ -350,6 +373,28 @@ public class DefaultAskDataFlowExecutorTest {
         return AskDataAuthorizationSummary.allow(Collections.singletonList(orders), Collections.singletonList(predicate));
     }
 
+    private static AskDataCheckpoint completedCheckpoint() {
+        AskDataCheckpoint checkpoint = new AskDataCheckpoint();
+        checkpoint.setConversationId("conversation-1");
+        checkpoint.setCheckpointId("checkpoint-executed");
+        checkpoint.setResumeToken("resume-executed");
+        checkpoint.setVersion("1");
+        checkpoint.setDatasourceKey("orders");
+        checkpoint.setDialect("mysql");
+        checkpoint.setModelKey("test-model");
+        checkpoint.setRequestSummary("订单数量");
+        checkpoint.setMaxRows(Integer.valueOf(100));
+        checkpoint.setExecute(Boolean.TRUE);
+        checkpoint.setRequestOptionsSnapshot("[\"default\",\"default\",null]");
+        checkpoint.setSql(SQL);
+        checkpoint.setSqlValidated(Boolean.TRUE);
+        checkpoint.setSqlExecuted(Boolean.TRUE);
+        checkpoint.setRowCount(Integer.valueOf(3));
+        checkpoint.setCompletedSteps(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql", "execute-sql"));
+        checkpoint.setCurrentStep("execute-sql");
+        return checkpoint;
+    }
+
     private List<String> stepKeys(AskDataResult result) {
         java.util.ArrayList<String> keys = new java.util.ArrayList<String>();
         for (AskDataStepLog step : result.getSteps()) {
@@ -373,6 +418,7 @@ public class DefaultAskDataFlowExecutorTest {
         private AskDataSqlValidationResult validationResult = AskDataSqlValidationResult.accepted(SQL);
         private AskDataGovernanceProvider governanceProvider = request -> allowedOrders();
         private AskDataAuthorizationSummary authorizationSummaryInSqlCommand;
+        private AskDataConversationStore conversationStore;
 
         private DefaultAskDataFlowExecutor executor(final String modelResponse) {
             properties.getSql().setExecuteEnabled(globalExecutionEnabled);
@@ -477,7 +523,7 @@ public class DefaultAskDataFlowExecutorTest {
                         }
                     }, new AskDataSqlAudit());
             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
-                    promptProvider, dialectRegistry, sqlValidator, sqlExecutor, null, null, null,
+                    promptProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, null, null,
                     Collections.<AskDataAgent>emptyList(), null,
                     com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner.simple(), sqlInterceptorChain,
                     null, governanceProvider);

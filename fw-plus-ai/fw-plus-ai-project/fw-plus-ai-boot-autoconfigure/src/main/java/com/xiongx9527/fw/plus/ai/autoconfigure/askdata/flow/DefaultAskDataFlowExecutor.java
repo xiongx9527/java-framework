@@ -488,21 +488,18 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return failure(result, "resume", AskDataErrorCode.RESUME_FAILED,
                     "AskData checkpoint does not contain a safe resumable state");
         }
-        restoreResult(result, checkpoint);
-        context.setSql(checkpoint.getSql());
-        context.setSqlValidated(checkpoint.getSqlValidated());
-        context.setSqlExecuted(checkpoint.getSqlExecuted());
-        context.setExecutionState(checkpoint.getExecutionState());
-        context.setRowCount(checkpoint.getRowCount());
-        context.setCompletedSteps(checkpoint.getCompletedSteps());
-        context.setStepLogs(checkpoint.getSteps());
-        context.setErrorCode(checkpoint.getErrorCode());
         if (contains(checkpoint, "execute-sql")) {
+            AskDataResult governanceFailure = revalidateCompletedCheckpoint(request, result, context, checkpoint);
+            if (governanceFailure != null) {
+                return governanceFailure;
+            }
+            restoreCheckpoint(result, context, checkpoint);
             result.addStep("execute-sql", "Execute SQL", true, "SQL execution already completed");
             result.setSuccess(true);
             result.addStep("format-result", "Format Result", true, "Result formatted");
             return result;
         }
+        restoreCheckpoint(result, context, checkpoint);
         if (contains(checkpoint, "validate-sql")) {
             return revalidateCheckpointSqlAndExecute(request, result, context, checkpoint);
         }
@@ -562,6 +559,33 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         return failure(result, "resume", AskDataErrorCode.RESUME_FAILED,
                 "AskData checkpoint cannot restore the metadata required by the next step");
+    }
+
+    private AskDataResult revalidateCompletedCheckpoint(AskDataRequest request, AskDataResult result,
+            AskDataStepContext context, AskDataCheckpoint checkpoint) {
+        AskDataMetadata metadata;
+        try {
+            metadata = metadataProvider.load(request);
+        } catch (RuntimeException ex) {
+            return governanceDeniedForMetadata(result);
+        }
+        if (metadata == null || !hasAuthorizedMetadata(request, metadata, authorizationSummary(context))) {
+            return governanceDeniedForMetadata(result);
+        }
+        context.setMetadata(metadata);
+        try {
+            AskDataDialect dialect = dialectRegistry.getDialect(checkpoint.getDialect());
+            AskDataSqlValidationResult validation = validateCheckpointSql(request, metadata, checkpoint.getSql(), dialect,
+                    authorizationSummary(context));
+            if (validation == null || !validation.isValid()) {
+                return governanceDeniedForMetadata(result);
+            }
+            context.setSql(validation.getSql());
+            context.setSqlValidated(Boolean.TRUE);
+        } catch (RuntimeException ex) {
+            return governanceDeniedForMetadata(result);
+        }
+        return null;
     }
 
     private AskDataResult revalidateCheckpointSqlAndExecute(AskDataRequest request, AskDataResult result,
@@ -850,6 +874,18 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 result.addStep(completedStep, completedStep, true, "Checkpoint restored");
             }
         }
+    }
+
+    private void restoreCheckpoint(AskDataResult result, AskDataStepContext context, AskDataCheckpoint checkpoint) {
+        restoreResult(result, checkpoint);
+        context.setSql(checkpoint.getSql());
+        context.setSqlValidated(checkpoint.getSqlValidated());
+        context.setSqlExecuted(checkpoint.getSqlExecuted());
+        context.setExecutionState(checkpoint.getExecutionState());
+        context.setRowCount(checkpoint.getRowCount());
+        context.setCompletedSteps(checkpoint.getCompletedSteps());
+        context.setStepLogs(checkpoint.getSteps());
+        context.setErrorCode(checkpoint.getErrorCode());
     }
 
     private boolean isSafeCheckpoint(AskDataCheckpoint checkpoint) {

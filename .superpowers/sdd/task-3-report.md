@@ -115,3 +115,45 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-ai && ./mvnw -pl
 
 - 必跑的完整 Maven 生命周期在主源码重新编译时被范围外文件 `LegacyEmbeddingStoreAiAdapter.java` 缺少 `AiEmbeddingStoreAdapter#getFramework()` 实现阻断；随后跳过主源码重编译的测试编译还被范围外的 `EmbeddingStoreAutoConfiguration` 缺失阻断。本轮未修改这些文件。
 - Maven/JDK 的 restricted-method、`Unsafe` 和 SLF4J 多绑定警告仍存在；未影响上述手工编译与目标 Surefire 回归。
+
+---
+
+## Critical 修复报告（第 3 轮）：已完成 SQL checkpoint 恢复重校验
+
+### 修复内容
+
+- 已完成 `execute-sql` checkpoint 不再直接恢复历史状态并标记成功；恢复前重新加载当前 metadata，要求当前授权对象与 metadata 表仍存在交集。
+- 该恢复路径使用当前授权摘要和受限 metadata 重新校验 checkpoint SQL；元数据加载、授权交集或 SQL 校验任一失败均 fail-closed，返回 `ASKDATA_GOVERNANCE_DENIED`，不调用 SQL executor。
+- 仅在重校验成功后恢复 checkpoint 结果，避免治理拒绝响应携带历史 row count 等结果字段。
+- 新增回归：历史 checkpoint 已执行 `orders` SQL，而当前 Provider 仅允许同 datasource 的 `unknown_table` 时，恢复返回治理拒绝，不返回历史结果且不执行 SQL。
+
+### RED 证据
+
+完整必跑命令先执行，但在测试前被范围外主源码编译错误阻断：
+
+```bash
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='AskDataAutoConfigurationTest,DefaultAskDataFlowExecutorTest' test
+```
+
+失败摘要：`LegacyEmbeddingStoreAiAdapter.java` 未实现范围外接口 `AiEmbeddingStoreAdapter#getFramework()`；未修改该文件。
+
+随后以 Maven 解析的 test classpath 手工编译本轮测试，并直接运行 Surefire：
+
+```bash
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-ai && javac -encoding UTF-8 -cp "$(cat /tmp/fw-plus-ai-boot-autoconfigure-test.cp):fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/classes:fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/test-classes" -d fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/test-classes fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/flow/DefaultAskDataFlowExecutorTest.java && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure surefire:test -Dtest='DefaultAskDataFlowExecutorTest'
+```
+
+结果：`BUILD FAILURE`；20 项中新增 `shouldDenyCompletedCheckpointWhenCurrentMetadataDoesNotAuthorizeCheckpointSql` 失败，实际为成功，证明旧路径直接返回了已完成 checkpoint。
+
+### GREEN 证据
+
+```bash
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-ai && javac -encoding UTF-8 -cp "$(cat /tmp/fw-plus-ai-boot-autoconfigure-test.cp):fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/classes" -d fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/classes fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/flow/DefaultAskDataFlowExecutor.java && javac -encoding UTF-8 -cp "$(cat /tmp/fw-plus-ai-boot-autoconfigure-test.cp):fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/classes:fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/test-classes" -d fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/test-classes fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/flow/DefaultAskDataFlowExecutorTest.java && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure surefire:test -Dtest='AskDataAutoConfigurationTest,DefaultAskDataFlowExecutorTest'
+```
+
+结果：`BUILD SUCCESS`；`AskDataAutoConfigurationTest` 17 项、`DefaultAskDataFlowExecutorTest` 20 项，共 37 项通过，0 failure、0 error、0 skipped。
+
+### 风险信号
+
+- 完整 Maven 生命周期仍被范围外 `LegacyEmbeddingStoreAiAdapter#getFramework()` 编译错误阻断；本轮未修改该文件。此前记录的 `EmbeddingStoreAutoConfiguration` 范围外问题也未纳入本轮修改。
+- Maven/JDK restricted-method、`Unsafe` 与 SLF4J 多绑定警告仍存在；不影响手工聚焦编译及 37 项目标 Surefire 回归。
