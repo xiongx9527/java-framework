@@ -21,6 +21,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialect;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialectRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataPromptTemplateProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutionResult;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlAuthorizationProcessor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidationResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
@@ -36,9 +37,12 @@ import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlParameter;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationPurpose;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataRowPredicate;
 import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
 
 import java.util.ArrayList;
@@ -46,6 +50,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +69,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private static final String EXECUTION_SKIPPED = "SKIPPED";
     private static final String MULTI_QUESTION_OPTION = "questions";
     private static final String AUTHORIZATION_SUMMARY_ATTRIBUTE = "askDataAuthorizationSummary";
+    private static final String GOVERNANCE_ERROR_VERSION = "governance-error-v1";
+    private static final String GOVERNANCE_ERROR_SOURCE = "governance-provider-error";
 
     private final AskDataProperties properties;
     private final AskDataModelRegistry modelRegistry;
@@ -340,8 +347,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (metadata == null) {
             return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, "AskData metadata was not found");
         }
-        if (!hasAuthorizedMetadata(request, metadata, authorizationSummary(context))) {
-            return governanceDeniedForMetadata(result);
+        metadata = authorizedMetadata(request, metadata, authorizationSummary(context));
+        if (!hasAuthorizedMetadata(metadata)) {
+            return governanceDeniedForMetadata(request, result, authorizationSummary(context));
         }
         context.setMetadata(metadata);
         result.addStep("metadata", "Metadata", true, "Metadata loaded");
@@ -514,8 +522,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND,
                         "AskData metadata was not found");
             }
-            if (!hasAuthorizedMetadata(request, metadata, authorizationSummary(context))) {
-                return governanceDeniedForMetadata(result);
+            metadata = authorizedMetadata(request, metadata, authorizationSummary(context));
+            if (!hasAuthorizedMetadata(metadata)) {
+                return governanceDeniedForMetadata(request, result, authorizationSummary(context));
             }
             context.setMetadata(metadata);
             AskDataDialect dialect;
@@ -538,7 +547,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             result.setSql(validation.getSql());
             result.addStep("validate-sql", "Validate SQL", true, "SQL validated");
             AskDataResult checkpointFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
-            return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getSql()) : checkpointFailure;
+            return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getCommand())
+                    : checkpointFailure;
         }
         if (contains(checkpoint, "metadata") || contains(checkpoint, "merge-sub-agents")) {
             AskDataMetadata metadata;
@@ -551,8 +561,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND,
                         "AskData metadata was not found");
             }
-            if (!hasAuthorizedMetadata(request, metadata, authorizationSummary(context))) {
-                return governanceDeniedForMetadata(result);
+            metadata = authorizedMetadata(request, metadata, authorizationSummary(context));
+            if (!hasAuthorizedMetadata(metadata)) {
+                return governanceDeniedForMetadata(request, result, authorizationSummary(context));
             }
             context.setMetadata(metadata);
             return generateSqlAndValidate(request, result, context, metadata);
@@ -567,10 +578,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         try {
             metadata = metadataProvider.load(request, authorizationSummary(context));
         } catch (RuntimeException ex) {
-            return governanceDeniedForMetadata(result);
+            return governanceDeniedForMetadata(request, result, authorizationSummary(context));
         }
-        if (metadata == null || !hasAuthorizedMetadata(request, metadata, authorizationSummary(context))) {
-            return governanceDeniedForMetadata(result);
+        metadata = authorizedMetadata(request, metadata, authorizationSummary(context));
+        if (!hasAuthorizedMetadata(metadata)) {
+            return governanceDeniedForMetadata(request, result, authorizationSummary(context));
         }
         context.setMetadata(metadata);
         try {
@@ -578,12 +590,12 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataSqlValidationResult validation = validateCheckpointSql(request, metadata, checkpoint.getSql(), dialect,
                     authorizationSummary(context));
             if (validation == null || !validation.isValid()) {
-                return governanceDeniedForMetadata(result);
+                return governanceDeniedForMetadata(request, result, authorizationSummary(context));
             }
             context.setSql(validation.getSql());
             context.setSqlValidated(Boolean.TRUE);
         } catch (RuntimeException ex) {
-            return governanceDeniedForMetadata(result);
+            return governanceDeniedForMetadata(request, result, authorizationSummary(context));
         }
         return null;
     }
@@ -600,8 +612,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND,
                     "AskData metadata was not found");
         }
-        if (!hasAuthorizedMetadata(request, metadata, authorizationSummary(context))) {
-            return governanceDeniedForMetadata(result);
+        metadata = authorizedMetadata(request, metadata, authorizationSummary(context));
+        if (!hasAuthorizedMetadata(metadata)) {
+                return governanceDeniedForMetadata(request, result, authorizationSummary(context));
         }
         context.setMetadata(metadata);
         AskDataDialect dialect;
@@ -625,7 +638,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         result.setSql(validation.getSql());
         result.addStep("validate-sql", "Validate SQL", true, "SQL revalidated after resume");
         AskDataResult checkpointFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
-        return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getSql()) : checkpointFailure;
+        return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getCommand())
+                : checkpointFailure;
     }
 
     private AskDataResult validateAndExecute(AskDataRequest request, AskDataResult result, AskDataStepContext context,
@@ -650,11 +664,16 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         context.setSqlValidated(Boolean.TRUE);
         result.addStep("validate-sql", "Validate SQL", true, "SQL validated");
         AskDataResult checkpointFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
-        return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getSql()) : checkpointFailure;
+        return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getCommand())
+                : checkpointFailure;
     }
 
     private AskDataResult executeValidatedSql(AskDataRequest request, AskDataResult result, AskDataStepContext context,
-            String sql) {
+            AskDataSqlCommand command) {
+        if (command == null) {
+            return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED,
+                    "AskData SQL validation did not produce a final command");
+        }
         if (isExecutionEnabled(request)) {
             context.setExecutionState(EXECUTION_EXECUTING);
             AskDataResult inFlightFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
@@ -663,7 +682,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             }
             AskDataSqlExecutionResult execution;
             try {
-                execution = sqlExecutor.execute(request, sql);
+                execution = sqlExecutor.execute(request, command);
             } catch (RuntimeException ex) {
                 return failure(result, "execute-sql", AskDataErrorCode.SQL_EXECUTION_FAILED, message(ex));
             }
@@ -709,28 +728,91 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
     private AskDataSqlValidationResult validateSql(AskDataRequest request, AskDataMetadata metadata, String sql,
             AskDataDialect dialect, AskDataAuthorizationSummary authorizationSummary) {
-        Set<String> authorizedObjects = authorizedObjects(request, authorizationSummary);
-        AskDataMetadata authorizedMetadata = authorizedMetadata(metadata, authorizedObjects);
+        AskDataMetadata authorizedMetadata = authorizedMetadata(request, metadata, authorizationSummary);
         AskDataSqlValidationResult validation = sqlValidator.validate(sql, dialect, maxRows(request), authorizedMetadata);
-        if (validation == null || !validation.isValid() || sqlInterceptorChain == null) {
+        if (validation == null || !validation.isValid()) {
             return validation;
         }
-        AskDataSqlCommand command = new AskDataSqlCommand(request.getProjectContext(), validation.getSql(),
-                sqlParameters(request), authorizedObjects, authorizationSummary);
-        AskDataSqlCommand rewritten = sqlInterceptorChain.execute(command);
-        return sqlValidator.validate(rewritten.getSql(), dialect, maxRows(request), authorizedMetadata);
+        AskDataSqlCommand command = governedCommand(request, validation.getSql(), authorizationSummary,
+                authorizationSummary == null ? Collections.<AskDataRowPredicate>emptyList()
+                        : authorizationSummary.getRowPredicates());
+        if (!command.getSql().equals(validation.getSql())) {
+            AskDataSqlValidationResult governedValidation = sqlValidator.validate(command.getSql(), dialect,
+                    maxRows(request), authorizedMetadata);
+            if (governedValidation == null || !governedValidation.isValid()) {
+                return governedValidation;
+            }
+            command = command.withSql(governedValidation.getSql());
+        }
+        if (sqlInterceptorChain != null) {
+            command = commandForInterceptors(request, command);
+            AskDataAuthorizationSummary originalSummary = command.getAuthorizationSummary();
+            AskDataSqlCommand rewritten = sqlInterceptorChain.execute(command);
+            AskDataAuthorizationSummary finalSummary = rewritten.getAuthorizationSummary();
+            command = governedCommand(request, rewritten.getSql(), finalSummary,
+                    additionalRowPredicates(originalSummary, finalSummary));
+            AskDataMetadata finalMetadata = authorizedMetadata(request, metadata, command.getAuthorizationSummary());
+            AskDataSqlValidationResult finalValidation = sqlValidator.validate(command.getSql(), dialect,
+                    maxRows(request), finalMetadata);
+            if (finalValidation == null || !finalValidation.isValid()) {
+                return finalValidation;
+            }
+            command = command.withSql(finalValidation.getSql());
+        }
+        validateCoreCommand(command);
+        return AskDataSqlValidationResult.accepted(command);
     }
 
     private AskDataSqlValidationResult validateCheckpointSql(AskDataRequest request, AskDataMetadata metadata,
             String sql, AskDataDialect dialect, AskDataAuthorizationSummary authorizationSummary) {
-        Set<String> authorizedObjects = authorizedObjects(request, authorizationSummary);
-        AskDataMetadata authorizedMetadata = authorizedMetadata(metadata, authorizedObjects);
+        AskDataMetadata authorizedMetadata = authorizedMetadata(request, metadata, authorizationSummary);
         AskDataSqlValidationResult validation = sqlValidator.validate(sql, dialect, maxRows(request), authorizedMetadata);
-        if (validation == null || !validation.isValid() || coreSqlValidator == null) {
+        if (validation == null || !validation.isValid()) {
             return validation;
         }
-        AskDataSqlCommand command = new AskDataSqlCommand(request.getProjectContext(), validation.getSql(),
-                sqlParameters(request), authorizedObjects, authorizationSummary);
+        AskDataSqlCommand command = governedCommand(request, validation.getSql(), authorizationSummary,
+                authorizationSummary == null ? Collections.<AskDataRowPredicate>emptyList()
+                        : authorizationSummary.getRowPredicates());
+        if (!command.getSql().equals(validation.getSql())) {
+            AskDataSqlValidationResult finalValidation = sqlValidator.validate(command.getSql(), dialect,
+                    maxRows(request), authorizedMetadata);
+            if (finalValidation == null || !finalValidation.isValid()) {
+                return finalValidation;
+            }
+            command = command.withSql(finalValidation.getSql());
+        }
+        validateCoreCommand(command);
+        return AskDataSqlValidationResult.accepted(command);
+    }
+
+    private AskDataSqlCommand governedCommand(AskDataRequest request, String sql,
+            AskDataAuthorizationSummary authorizationSummary, List<AskDataRowPredicate> predicatesToInject) {
+        String governedSql = AskDataSqlAuthorizationProcessor.injectRowPredicates(sql, request.getDatasourceKey(),
+                predicatesToInject);
+        return new AskDataSqlCommand(request.getProjectContext(), governedSql,
+                sqlParameters(request, authorizationSummary, governedSql),
+                authorizedObjects(request, authorizationSummary),
+                authorizationSummary);
+    }
+
+    private AskDataSqlCommand commandForInterceptors(AskDataRequest request, AskDataSqlCommand command) {
+        if (request == null || request.getOptions() == null || request.getOptions().isEmpty()) {
+            return command;
+        }
+        List<AskDataSqlParameter> parameters = new ArrayList<AskDataSqlParameter>(command.getParameters());
+        for (Map.Entry<String, Object> entry : new TreeMap<String, Object>(request.getOptions()).entrySet()) {
+            if (command.getParameter(entry.getKey()) == null) {
+                parameters.add(AskDataSqlParameter.of(entry.getKey(), entry.getValue()));
+            }
+        }
+        return new AskDataSqlCommand(command.getContext(), command.getSql(), parameters,
+                command.getAuthorizedObjects(), command.getAuthorizationSummary());
+    }
+
+    private void validateCoreCommand(AskDataSqlCommand command) {
+        if (coreSqlValidator == null) {
+            return;
+        }
         com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.Result result = coreSqlValidator.validate(command);
         if (result == null) {
             throw new IllegalArgumentException("SQL 校验器不能返回 null");
@@ -738,18 +820,111 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (!result.isAccepted()) {
             throw new IllegalArgumentException(result.getFailureCategory().name() + ": " + result.getMessage());
         }
-        return validation;
     }
 
-    private List<AskDataSqlParameter> sqlParameters(AskDataRequest request) {
-        if (request == null || request.getOptions() == null || request.getOptions().isEmpty()) {
+    private List<AskDataSqlParameter> sqlParameters(AskDataRequest request,
+            AskDataAuthorizationSummary authorizationSummary, String sql) {
+        Map<String, AskDataSqlParameter> parameters = new LinkedHashMap<String, AskDataSqlParameter>();
+        Set<String> referencedNames = namedParameterNames(sql);
+        if (request != null && request.getOptions() != null) {
+            for (Map.Entry<String, Object> entry : new TreeMap<String, Object>(request.getOptions()).entrySet()) {
+                if (referencedNames.contains(entry.getKey())) {
+                    addSqlParameter(parameters, AskDataSqlParameter.of(entry.getKey(), entry.getValue()));
+                }
+            }
+        }
+        if (authorizationSummary != null) {
+            for (AskDataRowPredicate predicate : authorizationSummary.getRowPredicates()) {
+                if (predicate == null || !equals(request.getDatasourceKey(),
+                        predicate.getAuthorizedObject().getDatasourceKey())) {
+                    continue;
+                }
+                for (AskDataSqlParameter parameter : predicate.getParameters()) {
+                    if (referencedNames.contains(parameter.getName())) {
+                        addSqlParameter(parameters, parameter);
+                    }
+                }
+            }
+        }
+        return new ArrayList<AskDataSqlParameter>(parameters.values());
+    }
+
+    private Set<String> namedParameterNames(String sql) {
+        Set<String> names = new LinkedHashSet<String>();
+        if (sql == null) {
+            return names;
+        }
+        for (int index = 0; index < sql.length(); index++) {
+            char current = sql.charAt(index);
+            if (current == '\'' || current == '"' || current == '`') {
+                index = skipQuotedSql(sql, index, current) - 1;
+            } else if (current == '-' && index + 1 < sql.length() && sql.charAt(index + 1) == '-') {
+                index = skipLineCommentSql(sql, index + 2) - 1;
+            } else if (current == '/' && index + 1 < sql.length() && sql.charAt(index + 1) == '*') {
+                index = skipBlockCommentSql(sql, index + 2) - 1;
+            } else if (current == ':' && (index == 0 || sql.charAt(index - 1) != ':')
+                    && index + 1 < sql.length() && Character.isJavaIdentifierStart(sql.charAt(index + 1))) {
+                int end = index + 2;
+                while (end < sql.length() && Character.isJavaIdentifierPart(sql.charAt(end))) {
+                    end++;
+                }
+                names.add(sql.substring(index + 1, end));
+                index = end - 1;
+            }
+        }
+        return names;
+    }
+
+    private int skipQuotedSql(String sql, int index, char quote) {
+        int cursor = index + 1;
+        while (cursor < sql.length()) {
+            if (sql.charAt(cursor) == quote) {
+                if (cursor + 1 < sql.length() && sql.charAt(cursor + 1) == quote) {
+                    cursor += 2;
+                    continue;
+                }
+                return cursor + 1;
+            }
+            cursor++;
+        }
+        return cursor;
+    }
+
+    private int skipLineCommentSql(String sql, int index) {
+        while (index < sql.length() && sql.charAt(index) != '\n' && sql.charAt(index) != '\r') {
+            index++;
+        }
+        return index;
+    }
+
+    private int skipBlockCommentSql(String sql, int index) {
+        while (index + 1 < sql.length()) {
+            if (sql.charAt(index) == '*' && sql.charAt(index + 1) == '/') {
+                return index + 2;
+            }
+            index++;
+        }
+        return sql.length();
+    }
+
+    private void addSqlParameter(Map<String, AskDataSqlParameter> parameters, AskDataSqlParameter parameter) {
+        if (parameters.put(parameter.getName(), parameter) != null) {
+            throw new IllegalArgumentException("命名参数冲突: " + parameter.getName());
+        }
+    }
+
+    private List<AskDataRowPredicate> additionalRowPredicates(AskDataAuthorizationSummary original,
+            AskDataAuthorizationSummary narrowed) {
+        if (narrowed == null || narrowed.getRowPredicates().isEmpty()) {
             return Collections.emptyList();
         }
-        List<AskDataSqlParameter> parameters = new ArrayList<AskDataSqlParameter>();
-        for (Map.Entry<String, Object> entry : new TreeMap<String, Object>(request.getOptions()).entrySet()) {
-            parameters.add(AskDataSqlParameter.of(entry.getKey(), entry.getValue()));
+        List<AskDataRowPredicate> additional = new ArrayList<AskDataRowPredicate>();
+        for (AskDataRowPredicate predicate : narrowed.getRowPredicates()) {
+            if (original == null || !original.getRowPredicates().contains(predicate)) {
+                additional.add(predicate);
+            }
         }
-        return parameters;
+        return additional;
     }
 
     private Set<String> authorizedObjects(AskDataRequest request, AskDataAuthorizationSummary authorizationSummary) {
@@ -765,27 +940,52 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return authorizedObjects;
     }
 
-    private AskDataMetadata authorizedMetadata(AskDataMetadata metadata, Set<String> authorizedObjects) {
-        if (metadata == null || metadata.getTables() == null || authorizedObjects == null) {
-            return metadata;
+    private AskDataMetadata authorizedMetadata(AskDataRequest request, AskDataMetadata metadata,
+            AskDataAuthorizationSummary authorizationSummary) {
+        if (metadata == null) {
+            return null;
         }
         List<AskDataTable> tables = new ArrayList<AskDataTable>();
         for (AskDataTable table : metadata.getTables()) {
-            if (table != null && authorizedObjects.contains(table.getName())) {
-                tables.add(table);
+            if (table == null) {
+                continue;
+            }
+            List<com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn> columns =
+                    new ArrayList<com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn>();
+            boolean tableAuthorized = false;
+            for (AskDataAuthorizedObject authorizedObject : authorizationSummary == null
+                    ? Collections.<AskDataAuthorizedObject>emptyList()
+                    : authorizationSummary.getAuthorizedObjects()) {
+                if (authorizedObject == null || request == null
+                        || !equals(request.getDatasourceKey(), authorizedObject.getDatasourceKey())
+                        || !equals(table.getName(), authorizedObject.getTableName())) {
+                    continue;
+                }
+                tableAuthorized = true;
+                for (com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn column
+                        : table.getColumns()) {
+                    if (column != null && ("*".equals(authorizedObject.getColumnName())
+                            || equals(column.getName(), authorizedObject.getColumnName()))
+                            && !columns.contains(column)) {
+                        columns.add(column);
+                    }
+                }
+            }
+            if (tableAuthorized) {
+                tables.add(new AskDataTable(table.getName(), columns));
             }
         }
-        return new AskDataMetadata(metadata.getDialect(), tables, metadata.getTerms(), metadata.getExamples(),
-                metadata.getPromptFragments());
+        return new AskDataMetadata(metadata.getDialect(), tables, Collections.<String>emptyList(),
+                Collections.<String>emptyList(), Collections.<String>emptyList());
     }
 
-    private boolean hasAuthorizedMetadata(AskDataRequest request, AskDataMetadata metadata,
+    private boolean hasAuthorizedMetadata(AskDataMetadata metadata) {
+        return metadata != null && !metadata.getTables().isEmpty();
+    }
+
+    private AskDataResult governanceDeniedForMetadata(AskDataRequest request, AskDataResult result,
             AskDataAuthorizationSummary authorizationSummary) {
-        AskDataMetadata authorizedMetadata = authorizedMetadata(metadata, authorizedObjects(request, authorizationSummary));
-        return authorizedMetadata != null && !authorizedMetadata.getTables().isEmpty();
-    }
-
-    private AskDataResult governanceDeniedForMetadata(AskDataResult result) {
+        publishGovernanceDenied(request, result, authorizationSummary, false);
         return failure(result, "authorize", DefaultDenyAskDataGovernanceProvider.DENIAL_CODE,
                 "AskData 请求未获授权");
     }
@@ -794,20 +994,46 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (governanceProvider == null) {
             return null;
         }
+        AskDataAuthorizationSummary authorizationSummary = null;
         try {
-            AskDataAuthorizationSummary authorizationSummary = governanceProvider
-                    .authorize(new AskDataAuthorizationRequest(request.getProjectContext()));
+            AskDataAuthorizationRequest authorizationRequest = new AskDataAuthorizationRequest(
+                    request.getProjectContext(), request.getDatasourceKey(), AskDataAuthorizationPurpose.QUERY,
+                    AskDataAdministrativeScope.none());
+            authorizationSummary = governanceProvider.authorize(authorizationRequest);
             if (authorizationSummary != null && authorizationSummary.isAllowed()
                     && !authorizedObjects(request, authorizationSummary).isEmpty()
-                    && authorizationSummary.getRowPredicates().isEmpty()) {
+                    && authorizationSummary.isBoundTo(authorizationRequest)) {
                 return authorizationSummary;
             }
         } catch (RuntimeException ex) {
-            // 治理服务异常按拒绝处理，且不向调用方泄露授权细节。
+            publishGovernanceDenied(request, result, null, true);
+            failure(result, "authorize", DefaultDenyAskDataGovernanceProvider.DENIAL_CODE,
+                    "AskData 请求未获授权");
+            return null;
         }
-        failure(result, "authorize", DefaultDenyAskDataGovernanceProvider.DENIAL_CODE,
+        publishGovernanceDenied(request, result, authorizationSummary, false);
+        String denialCode = authorizationSummary == null || isBlank(authorizationSummary.getDenialCode())
+                ? DefaultDenyAskDataGovernanceProvider.DENIAL_CODE : authorizationSummary.getDenialCode();
+        failure(result, "authorize", denialCode,
                 "AskData 请求未获授权");
         return null;
+    }
+
+    private void publishGovernanceDenied(AskDataRequest request, AskDataResult result,
+            AskDataAuthorizationSummary authorizationSummary, boolean providerError) {
+        if (eventPublisher == null || request == null || request.getProjectContext() == null) {
+            return;
+        }
+        String denialCode = authorizationSummary == null || isBlank(authorizationSummary.getDenialCode())
+                ? DefaultDenyAskDataGovernanceProvider.DENIAL_CODE : authorizationSummary.getDenialCode();
+        String version = providerError || authorizationSummary == null
+                ? GOVERNANCE_ERROR_VERSION : authorizationSummary.getAuthorizationVersion();
+        String source = providerError || authorizationSummary == null
+                ? GOVERNANCE_ERROR_SOURCE : authorizationSummary.getAuthorizationSource();
+        String traceId = result == null || isBlank(result.getConversationId())
+                ? UUID.randomUUID().toString() : result.getConversationId();
+        eventPublisher.publish(AskDataEvent.governanceDenied(request.getProjectContext(), traceId,
+                request.getDatasourceKey(), denialCode, version, source));
     }
 
     private AskDataAuthorizationSummary authorizationSummary(AskDataStepContext context) {

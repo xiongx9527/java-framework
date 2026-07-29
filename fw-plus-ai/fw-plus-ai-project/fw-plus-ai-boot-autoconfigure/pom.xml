@@ -62,6 +62,11 @@
             <version>${revision}</version>
         </dependency>
 
+		<dependency>
+			<groupId>com.github.jsqlparser</groupId>
+			<artifactId>jsqlparser</artifactId>
+		</dependency>
+
         <dependency>
             <groupId>org.dromara.easyai</groupId>
             <artifactId>easyAi</artifactId>

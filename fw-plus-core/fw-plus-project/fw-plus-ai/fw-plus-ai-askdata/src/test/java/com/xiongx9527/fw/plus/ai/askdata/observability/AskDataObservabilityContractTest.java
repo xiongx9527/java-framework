@@ -32,6 +32,20 @@ public class AskDataObservabilityContractTest {
 		assertTrue(eventTypes.contains(AskDataEvent.Type.RECOVERY_ATTEMPTED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.CONVERSATION_COMPLETED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.CONVERSATION_FAILED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.GOVERNANCE_DENIED));
+	}
+
+	@Test
+	public void shouldExposeSanitizedGovernanceDenialFields() {
+		AskDataEvent event = AskDataEvent.governanceDenied(
+				new AskDataProjectContext("project-a", "operator-a"), "conversation-1", "analytics",
+				"DATASOURCE_DENIED", "policy-v7", "iam-main");
+
+		assertEquals(AskDataEvent.Type.GOVERNANCE_DENIED, event.getType());
+		assertEquals("analytics", event.getDatasourceKey());
+		assertEquals("DATASOURCE_DENIED", event.getDenialCode());
+		assertEquals("policy-v7", event.getAuthorizationVersion());
+		assertEquals("iam-main", event.getAuthorizationSource());
 	}
 
 	@Test

@@ -68,6 +68,21 @@ public class AskDataMonitoringLogStoreTest {
     }
 
     @Test
+    public void shouldListAllOperatorsByProjectWithImmutableOwnership() {
+        InMemoryAskDataMonitoringLogStore store = new InMemoryAskDataMonitoringLogStore(2);
+        AskDataProjectContext first = new AskDataProjectContext("project-a", "operator-a");
+        AskDataProjectContext second = new AskDataProjectContext("project-a", "operator-b");
+        store.append(first, new AskDataMonitoringLogStore.MonitoringLog("trace-first", "STARTED", "first"));
+        store.append(second, new AskDataMonitoringLogStore.MonitoringLog("trace-second", "STARTED", "second"));
+
+        java.util.List<AskDataMonitoringLogStore.MonitoringLog> logs = store.listProject("project-a");
+
+        assertEquals(2, logs.size());
+        assertEquals("operator-a", logs.get(0).getContext().getOperatorId());
+        assertEquals("operator-b", logs.get(1).getContext().getOperatorId());
+    }
+
+    @Test
     public void shouldRejectDefaultMonitoringLogStoreInClusterModeWhenBusinessProvidesOtherSharedStores() {
         new ApplicationContextRunner()
                 .withUserConfiguration(AskDataAutoConfiguration.class)

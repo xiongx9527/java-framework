@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Governance bridge contracts
-系统 SHALL 在 Core AskData API 中定义治理权限桥接 SPI 和领域对象，用于表达项目成员、数据源授权、授权对象、列级授权、行级谓词、授权版本、授权来源和管理员日志查询范围。该契约 SHALL 保持 Java 8 兼容且不依赖 Spring、JustAuth、Sa-Token、Spring Security 或宿主 IAM 类型。
+系统 SHALL 在 Core AskData API 中定义治理权限桥接 SPI 和领域对象，用于表达项目成员、数据源授权、用途、授权对象、列级授权、行级谓词、拒绝码、授权版本、授权来源和管理员日志查询范围。授权摘要 SHALL 绑定 project/operator/dataSource/purpose/scope，受保护路径 SHALL 拒绝未绑定或绑定不一致的摘要。该契约 SHALL 保持 Java 8 兼容且不依赖 Spring、JustAuth、Sa-Token、Spring Security 或宿主 IAM 类型。
 
 #### Scenario: Business application provides governance bridge
 - **WHEN** 业务应用注册符合 Core 契约的治理授权实现

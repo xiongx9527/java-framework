@@ -85,6 +85,6 @@ public class AskDataMonitoringLog {
 	 * @return 可追加到监控日志存储的记录
 	 */
 	public AskDataMonitoringLogStore.MonitoringLog toStorageLog() {
-		return new AskDataMonitoringLogStore.MonitoringLog(traceId, eventType.name(), message);
+		return new AskDataMonitoringLogStore.MonitoringLog(context, traceId, eventType.name(), message);
 	}
 }

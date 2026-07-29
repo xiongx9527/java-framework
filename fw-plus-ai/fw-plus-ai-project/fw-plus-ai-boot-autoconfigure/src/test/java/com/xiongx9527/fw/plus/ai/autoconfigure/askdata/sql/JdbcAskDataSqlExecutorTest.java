@@ -1,6 +1,9 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlParameter;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.PreparedStatementCallback;
@@ -104,6 +107,28 @@ public class JdbcAskDataSqlExecutorTest {
         assertEquals(2, result.getRows().size());
         assertEquals(Long.valueOf(1L), result.getRows().get(0).get("ID"));
         assertEquals(Long.valueOf(3L), result.getRows().get(1).get("ID"));
+    }
+
+    @Test
+    public void shouldBindFinalCommandParametersInsteadOfRequestOptions() {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource());
+        jdbcTemplate.execute("drop table if exists governed_parameter_orders");
+        jdbcTemplate.execute("create table governed_parameter_orders(id bigint, tenant_id varchar(32))");
+        jdbcTemplate.update("insert into governed_parameter_orders(id, tenant_id) values (?, ?)", 1L, "tenant-a");
+        jdbcTemplate.update("insert into governed_parameter_orders(id, tenant_id) values (?, ?)", 2L, "tenant-b");
+        JdbcAskDataSqlExecutor executor = new JdbcAskDataSqlExecutor(jdbcTemplate);
+        AskDataRequest request = new AskDataRequest();
+        request.setOptions(Collections.<String, Object>singletonMap("tenantId", "tenant-b"));
+        AskDataSqlCommand command = new AskDataSqlCommand(new AskDataProjectContext("project-a", "operator-a"),
+                "select id from governed_parameter_orders where tenant_id = :tenantId",
+                Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-a")),
+                Collections.singleton("governed_parameter_orders"));
+
+        AskDataSqlExecutionResult result = executor.execute(request, command);
+
+        assertTrue(result.isSuccess());
+        assertEquals(1, result.getRows().size());
+        assertEquals(Long.valueOf(1L), result.getRows().get(0).get("ID"));
     }
 
     @Test

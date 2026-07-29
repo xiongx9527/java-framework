@@ -5,7 +5,7 @@
 
 #### Scenario: Filter metadata by authorized objects
 - **WHEN** AskData 为当前请求构建 Prompt 元数据
-- **THEN** 元数据提供器 SHALL 只返回授权摘要允许的数据源、表、列、业务描述和样例信息，不得向模型暴露未授权对象
+- **THEN** Flow SHALL 不可覆盖地只保留授权摘要允许的数据源、表和列；无法判定对象归属的术语、样例和 Prompt 片段 SHALL 默认丢弃，不得向模型暴露未授权对象
 
 #### Scenario: Preserve authorization through SQL plugins
 - **WHEN** SQL 插件链改写生成 SQL
@@ -17,4 +17,8 @@
 
 #### Scenario: Inject row predicates with parameters
 - **WHEN** 业务治理桥接提供行级数据范围条件
-- **THEN** SQL 管线 SHALL 使用受控 SQL 片段和具名参数表达该条件，不得要求业务通过字符串拼接动态值
+- **THEN** SQL 管线 SHALL 将受控 SQL 片段注入匹配表查询、与已有条件以 `AND` 合并，并从最终命令绑定具名参数；同名参数冲突、解析失败或谓词无法安全落实时 SHALL fail-closed
+
+#### Scenario: Reject unauthorized columns after model or plugin rewrite
+- **WHEN** 模型或 SQL 插件生成只引用授权表但包含未授权列或受限通配列的 SQL
+- **THEN** 最终校验 SHALL 解析列引用并拒绝该 SQL；受限列授权下无法安全解析或归属的 SQL SHALL fail-closed

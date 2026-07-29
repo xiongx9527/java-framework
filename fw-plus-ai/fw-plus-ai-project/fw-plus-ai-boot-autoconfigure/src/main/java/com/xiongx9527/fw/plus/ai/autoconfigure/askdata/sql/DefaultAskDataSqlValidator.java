@@ -86,6 +86,10 @@ public class DefaultAskDataSqlValidator implements AskDataSqlValidator {
         if (scopeResult != null) {
             return scopeResult;
         }
+        String columnScopeFailure = AskDataSqlAuthorizationProcessor.validateColumns(trimmedSql, metadata);
+        if (columnScopeFailure != null) {
+            return rejected(columnScopeFailure);
+        }
 
         String normalizedSql = stripTrailingSemicolon(trimmedSql, scanResult.trailingSemicolonIndex);
         LimitClause limit = findTopLevelLimit(tokens);

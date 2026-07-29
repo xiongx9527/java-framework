@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.observability;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
 
 /**
  * AskData 管理员监控日志读取权限 SPI。
@@ -24,6 +25,12 @@ public interface AskDataMonitoringLogAccessPolicy {
 	 */
 	boolean canRead(AskDataProjectContext requester, boolean projectAdministrator, AskDataMonitoringLog log);
 
+	default boolean canRead(AskDataProjectContext requester, AskDataAdministrativeScope administrativeScope,
+			AskDataMonitoringLog log) {
+		return canRead(requester, administrativeScope != null
+				&& !AskDataAdministrativeScope.none().equals(administrativeScope), log);
+	}
+
 	/**
 	 * 创建默认的项目管理员读取策略。
 	 *
@@ -35,13 +42,25 @@ public interface AskDataMonitoringLogAccessPolicy {
 	static AskDataMonitoringLogAccessPolicy projectAdministratorOnly() {
 		return new AskDataMonitoringLogAccessPolicy() {
 			@Override
-			public boolean canRead(AskDataProjectContext requester, boolean projectAdministrator,
-					AskDataMonitoringLog log) {
+				public boolean canRead(AskDataProjectContext requester, boolean projectAdministrator,
+						AskDataMonitoringLog log) {
 				if (requester == null || log == null || !projectAdministrator) {
 					return false;
 				}
-				return requester.getProjectId().equals(log.getContext().getProjectId());
-			}
-		};
+					return requester.getProjectId().equals(log.getContext().getProjectId());
+				}
+
+				@Override
+				public boolean canRead(AskDataProjectContext requester, AskDataAdministrativeScope administrativeScope,
+						AskDataMonitoringLog log) {
+					if (requester == null || administrativeScope == null || log == null
+							|| !administrativeScope.allowsProject(log.getContext().getProjectId())) {
+						return false;
+					}
+					return administrativeScope.isPlatformAdministrator()
+							|| administrativeScope.isProjectAdministrator()
+							&& requester.getProjectId().equals(log.getContext().getProjectId());
+				}
+			};
 	}
 }

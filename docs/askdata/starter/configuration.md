@@ -8,7 +8,7 @@
 
 开发和测试环境也应显式注册只覆盖测试数据源、表、列和参数化行级范围的 Bean，而不是通过 YAML 打开全局访问。例如测试 Bean 可仅授权 `demo.orders` 的 `id`、`amount`，并返回 `region_id = :regionId` 与 `AskDataSqlParameter.of("regionId", "test-region")`。这类 Bean 不能进入生产配置。
 
-管理员监控日志读取需要同时注册 `AskDataMonitoringLogAccessAuthorizer` 与 `AskDataMonitoringLogAccessPolicy`。默认 `AskDataMonitoringLogAccessAuthorizer` fail-closed，不会仅因调用方传入管理员 role 放行；业务必须显式提供授权解析器，核验请求人、目标 scope 和角色声明。只有解析器确认管理员资格后，`AskDataMonitoringLogAccessPolicy` 才逐条校验日志边界；默认策略只收窄已确认的同项目管理员范围，不自行识别或放行管理员。成功查询将写入脱敏审计，普通操作人和未被授权的跨项目管理员均不能依靠属性或请求参数取得日志。
+管理员监控日志读取复用 `AskDataGovernanceProvider`，没有 Starter 私有角色或授权器。业务治理 Bean 必须识别固定数据源 `askdata-monitoring-log`、用途 `MONITORING_LOG_QUERY` 和请求管理员范围，并返回绑定 project/operator/dataSource/purpose/scope、授权版本和来源的摘要。`AskDataMonitoringLogAccessPolicy` 再按日志固化的真实 owner context 逐条校验；项目管理员可查本项目所有操作人，平台管理员只能查摘要显式授权的项目，普通操作人默认拒绝。成功查询写入主体、范围、结果数量和授权来源的脱敏审计。
 
 ## 基础、模型与流程
 
@@ -52,7 +52,7 @@
 | `vector.default-top-k` | `5` | 默认召回数量，应结合语料规模、模型上下文与延迟压测调整。 |
 | `vector.store` | `memory` | 仅单机开发或临时检索；重启即丢失，不得在集群中静默使用。 |
 
-强制监控日志覆盖会话、请求、问题规划、模型路由/降级、Agent 节点、SQL 插件/校验/执行、检查点/恢复及完成/失败。默认管理员授权器 fail-closed；业务授权解析器显式确认资格后，默认访问策略才逐条收窄为同项目日志范围。跨项目查询必须由业务授权器和访问策略同时显式授予。
+强制监控日志覆盖治理拒绝/异常、会话、请求、问题规划、模型路由/降级、Agent 节点、SQL 插件/校验/执行、检查点/恢复及完成/失败。治理失败事件只携带请求/会话关联、数据源、拒绝码、授权版本和来源摘要，不记录凭据或原始参数值。管理员查询默认 fail-closed；治理摘要显式确认管理员范围后，访问策略才按日志真实归属逐条收窄。
 
 ## 单机示例
 

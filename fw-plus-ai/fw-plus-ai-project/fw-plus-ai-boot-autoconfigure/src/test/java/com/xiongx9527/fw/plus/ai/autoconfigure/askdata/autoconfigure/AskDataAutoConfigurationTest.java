@@ -27,9 +27,15 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidationResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationPurpose;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
 import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.DefaultLangChain4jModelRegistry;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
@@ -53,6 +59,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -94,6 +101,45 @@ public class AskDataAutoConfigurationTest {
         contextRunner.withBean(AskDataGovernanceProvider.class, () -> customProvider).run(context -> {
             assertSame(customProvider, context.getBean(AskDataGovernanceProvider.class));
         });
+    }
+
+    @Test
+    public void shouldRejectColumnOutsideStrongAuthorizationSummaryInCoreValidator() {
+        AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
+        AskDataAuthorizationRequest request = new AskDataAuthorizationRequest(context, "orders",
+                AskDataAuthorizationPurpose.QUERY, AskDataAdministrativeScope.none());
+        AskDataAuthorizationSummary summary = AskDataAuthorizationSummary.allow(request,
+                Collections.singletonList(new AskDataAuthorizedObject("orders", "orders", "id")),
+                Collections.emptyList(), "policy-v1", "iam-main", AskDataAdministrativeScope.none());
+        AskDataSqlCommand command = new AskDataSqlCommand(context, "select secret from orders",
+                Collections.emptyList(), Collections.singleton("orders"), summary);
+
+        com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.Result result =
+                new AskDataAutoConfiguration().coreAskDataSqlValidator().validate(command);
+
+        assertFalse(result.isAccepted());
+        assertEquals(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.FailureCategory.UNAUTHORIZED_OBJECT,
+                result.getFailureCategory());
+    }
+
+    @Test
+    public void shouldRejectAuthorizationSummaryBoundToAnotherOperatorInCoreValidator() {
+        AskDataProjectContext authorizedContext = new AskDataProjectContext("project-a", "operator-a");
+        AskDataAuthorizationRequest request = new AskDataAuthorizationRequest(authorizedContext, "orders",
+                AskDataAuthorizationPurpose.QUERY, AskDataAdministrativeScope.none());
+        AskDataAuthorizationSummary summary = AskDataAuthorizationSummary.allow(request,
+                Collections.singletonList(new AskDataAuthorizedObject("orders", "orders", "id")),
+                Collections.emptyList(), "policy-v1", "iam-main", AskDataAdministrativeScope.none());
+        AskDataSqlCommand command = new AskDataSqlCommand(
+                new AskDataProjectContext("project-a", "operator-b"), "select id from orders",
+                Collections.emptyList(), Collections.singleton("orders"), summary);
+
+        com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.Result result =
+                new AskDataAutoConfiguration().coreAskDataSqlValidator().validate(command);
+
+        assertFalse(result.isAccepted());
+        assertEquals(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.FailureCategory.POLICY_DENIED,
+                result.getFailureCategory());
     }
 
     @Test
@@ -324,9 +370,10 @@ public class AskDataAutoConfigurationTest {
     private ApplicationContextRunner withDefaultFlowDependencies() {
         return contextRunner
                 .withBean(AskDataGovernanceProvider.class,
-                        () -> request -> AskDataAuthorizationSummary.allow(Collections.singletonList(
+                        () -> request -> AskDataAuthorizationSummary.allow(request, Collections.singletonList(
                                 new com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject(
-                                        "orders", "orders", "*")), Collections.emptyList()))
+                                        "orders", "orders", "*")), Collections.emptyList(), "policy-v1",
+                                "test-governance", AskDataAdministrativeScope.none()))
                 .withBean(AskDataMetadataProvider.class,
                         () -> request -> new AskDataMetadata("mysql",
                                 Collections.singletonList(new AskDataTable("orders", Collections.emptyList())),

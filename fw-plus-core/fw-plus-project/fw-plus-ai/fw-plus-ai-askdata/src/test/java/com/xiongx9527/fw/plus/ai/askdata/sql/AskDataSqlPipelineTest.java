@@ -2,6 +2,9 @@ package com.xiongx9527.fw.plus.ai.askdata.sql;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationPurpose;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataRowPredicate;
 import org.junit.jupiter.api.Test;
@@ -75,6 +78,48 @@ public class AskDataSqlPipelineTest {
 				() -> chain.execute(commandWithAuthorizationSummary(originalSummary)));
 
 		assertTrue(exception.getMessage().contains("authorizationSummary"));
+	}
+
+	@Test
+	public void shouldPassNarrowedAuthorizationSummaryToNextPluginAndFinalValidator() {
+		AskDataAuthorizationRequest request = authorizationRequest();
+		AskDataAuthorizedObject tenantId = new AskDataAuthorizedObject("analytics", "sales", "tenant_id");
+		AskDataAuthorizedObject amount = new AskDataAuthorizedObject("analytics", "sales", "amount");
+		AskDataAuthorizationSummary original = AskDataAuthorizationSummary.allow(request,
+				Arrays.asList(tenantId, amount), Collections.<AskDataRowPredicate>emptyList(),
+				"policy-v1", "iam-main", AskDataAdministrativeScope.none());
+		AskDataRowPredicate narrowedPredicate = new AskDataRowPredicate(tenantId, "tenant_id = :tenantId",
+				Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-a")));
+		final AskDataAuthorizationSummary narrowed = AskDataAuthorizationSummary.allow(request,
+				Collections.singletonList(tenantId), Collections.singletonList(narrowedPredicate),
+				"policy-v1", "iam-main", AskDataAdministrativeScope.none());
+		final AskDataAuthorizationSummary[] seenBySecondPlugin = new AskDataAuthorizationSummary[1];
+		final AskDataAuthorizationSummary[] seenByValidator = new AskDataAuthorizationSummary[1];
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Arrays.asList(
+				interceptorReplacingAuthorizationSummary(narrowed),
+				new AskDataSqlInterceptor() {
+					@Override public String getKey() { return "observe-summary"; }
+					@Override public int getOrder() { return 2; }
+					@Override public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+						seenBySecondPlugin[0] = command.getAuthorizationSummary();
+						return command;
+					}
+				}), new AskDataSqlValidator() {
+					@Override public Result validate(AskDataSqlCommand command) {
+						seenByValidator[0] = command.getAuthorizationSummary();
+						return Result.success();
+					}
+				}, new AskDataSqlAudit());
+		AskDataSqlCommand command = new AskDataSqlCommand(request.getProjectContext(),
+				"select tenant_id from sales where tenant_id = :tenantId",
+				Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-a")),
+				Collections.singleton("sales"), original);
+
+		AskDataSqlCommand result = chain.execute(command);
+
+		assertSame(narrowed, seenBySecondPlugin[0]);
+		assertSame(narrowed, seenByValidator[0]);
+		assertSame(narrowed, result.getAuthorizationSummary());
 	}
 
 	@Test
@@ -340,6 +385,11 @@ public class AskDataSqlPipelineTest {
 		return AskDataAuthorizationSummary.allow(Collections.singletonList(
 				new AskDataAuthorizedObject("analytics", "sales", "tenant_id")),
 				Collections.<AskDataRowPredicate>emptyList());
+	}
+
+	private static AskDataAuthorizationRequest authorizationRequest() {
+		return new AskDataAuthorizationRequest(new AskDataProjectContext("project-a", "operator-a"), "analytics",
+				AskDataAuthorizationPurpose.QUERY, AskDataAdministrativeScope.none());
 	}
 
 	private static AskDataSqlInterceptor interceptorReplacingAuthorizationSummary(
