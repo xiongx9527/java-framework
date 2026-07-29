@@ -127,27 +127,27 @@ Run: `git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/mai
 - Consumes: `AskDataGovernanceProvider` from Task 2.
 - Produces: default deny Bean, Flow constructor overload accepting governance provider, authorization failure before model call.
 
-- [ ] **Step 1: Write failing Starter tests**
+- [x] **Step 1: Write failing Starter tests**
 
 Add tests asserting default governance provider Bean exists, custom Bean wins, missing authorization rejects before model registry is invoked, and authorized summary reaches SQL command creation.
 
 Run: `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='AskDataAutoConfigurationTest,DefaultAskDataFlowExecutorTest' test`
 Expected: FAIL until autoconfiguration and Flow constructor are updated.
 
-- [ ] **Step 2: Wire default and custom governance providers**
+- [x] **Step 2: Wire default and custom governance providers**
 
 Add an `@Bean @ConditionalOnMissingBean` returning `DefaultDenyAskDataGovernanceProvider`. Update `DefaultAskDataFlowExecutor` Bean construction to pass the provider. Preserve existing constructor overloads by delegating to the new full constructor.
 
-- [ ] **Step 3: Reject unauthorized requests before model invocation**
+- [x] **Step 3: Reject unauthorized requests before model invocation**
 
 At the start of `DefaultAskDataFlowExecutor.execute`, create `AskDataAuthorizationRequest`, call provider, and return controlled `AskDataResult` failure when denied. Record a step log or event summary without credentials or raw parameter values.
 
-- [ ] **Step 4: Run Starter flow tests**
+- [x] **Step 4: Run Starter flow tests**
 
 Run: `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='AskDataAutoConfigurationTest,DefaultAskDataFlowExecutorTest' test`
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 3**
+- [x] **Step 5: Commit Task 3**
 
 Run: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata && git commit -m "feat(askdata): wire governance provider into starter flow"`
 
