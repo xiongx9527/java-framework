@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadataProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
@@ -19,10 +20,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutionRe
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidationResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.DefaultAskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDocument;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
@@ -138,10 +141,36 @@ public class DefaultAskDataFlowExecutorTest {
     }
 
     @Test
+    public void shouldDenyOldConstructorPathWithoutGovernanceProviderBeforeModelInvocation() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.governanceProvider = null;
+
+        AskDataResult result = dependencies.executor("unused").execute(request(true));
+
+        assertFalse(result.isSuccess());
+        assertEquals(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE, result.getErrorCode());
+        assertFalse(dependencies.routedGenerateCalled);
+        assertEquals(0, dependencies.metadataCalls);
+    }
+
+    @Test
+    public void shouldRejectEmptyAuthorizedObjectsBeforeModelInvocation() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.governanceProvider = request -> AskDataAuthorizationSummary.allow(Collections.emptyList(),
+                Collections.emptyList());
+
+        AskDataResult result = dependencies.executor("unused").execute(request(true));
+
+        assertFalse(result.isSuccess());
+        assertEquals(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE, result.getErrorCode());
+        assertFalse(dependencies.routedGenerateCalled);
+        assertEquals(0, dependencies.metadataCalls);
+    }
+
+    @Test
     public void shouldPassAuthorizedSummaryToSqlCommand() {
         StubDependencies dependencies = new StubDependencies();
-        AskDataAuthorizationSummary expected = AskDataAuthorizationSummary.allow(Collections.emptyList(),
-                Collections.emptyList());
+        AskDataAuthorizationSummary expected = allowedOrders();
         dependencies.governanceProvider = request -> expected;
 
         AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
@@ -149,6 +178,19 @@ public class DefaultAskDataFlowExecutorTest {
 
         assertTrue(result.isSuccess());
         assertEquals(expected, dependencies.authorizationSummaryInSqlCommand);
+    }
+
+    @Test
+    public void shouldRejectTableOutsideGovernanceAuthorizedObjects() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.governanceProvider = request -> allowedOrders();
+        dependencies.useDefaultSqlValidator = true;
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from payments\"}")
+                .execute(request(true));
+
+        assertFalse(result.isSuccess());
+        assertEquals(0, dependencies.executorCalls);
     }
 
     @Test
@@ -265,6 +307,11 @@ public class DefaultAskDataFlowExecutorTest {
         };
     }
 
+    private static AskDataAuthorizationSummary allowedOrders() {
+        return AskDataAuthorizationSummary.allow(Collections.singletonList(
+                new AskDataAuthorizedObject("orders", "orders", "*")), Collections.emptyList());
+    }
+
     private List<String> stepKeys(AskDataResult result) {
         java.util.ArrayList<String> keys = new java.util.ArrayList<String>();
         for (AskDataStepLog step : result.getSteps()) {
@@ -284,8 +331,9 @@ public class DefaultAskDataFlowExecutorTest {
         private boolean globalExecutionEnabled = true;
         private AskDataModelException modelException;
         private boolean routedGenerateCalled;
+        private boolean useDefaultSqlValidator;
         private AskDataSqlValidationResult validationResult = AskDataSqlValidationResult.accepted(SQL);
-        private AskDataGovernanceProvider governanceProvider;
+        private AskDataGovernanceProvider governanceProvider = request -> allowedOrders();
         private AskDataAuthorizationSummary authorizationSummaryInSqlCommand;
 
         private DefaultAskDataFlowExecutor executor(final String modelResponse) {
@@ -339,7 +387,9 @@ public class DefaultAskDataFlowExecutorTest {
                 @Override
                 public AskDataMetadata load(AskDataRequest request) {
                     metadataCalls++;
-                    return new AskDataMetadata("mysql", Collections.emptyList(), Collections.emptyList(),
+                    return new AskDataMetadata("mysql", Arrays.asList(
+                            new AskDataTable("orders", Collections.emptyList()),
+                            new AskDataTable("payments", Collections.emptyList())), Collections.emptyList(),
                             Collections.emptyList(), Collections.emptyList());
                 }
             };
@@ -365,6 +415,9 @@ public class DefaultAskDataFlowExecutorTest {
                     return validationResult;
                 }
             };
+            if (useDefaultSqlValidator) {
+                sqlValidator = new DefaultAskDataSqlValidator();
+            }
             AskDataSqlExecutor sqlExecutor = new AskDataSqlExecutor() {
                 @Override
                 public AskDataSqlExecutionResult execute(AskDataRequest request, String sql) {
@@ -377,6 +430,11 @@ public class DefaultAskDataFlowExecutorTest {
                         @Override
                         public Result validate(AskDataSqlCommand command) {
                             authorizationSummaryInSqlCommand = command.getAuthorizationSummary();
+                            if (command.getSql().contains("payments")
+                                    && !command.getAuthorizedObjects().contains("payments")) {
+                                return Result.failure(FailureCategory.UNAUTHORIZED_OBJECT,
+                                        "payments is not authorized");
+                            }
                             return Result.success();
                         }
                     }, new AskDataSqlAudit());

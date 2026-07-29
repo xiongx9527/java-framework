@@ -324,8 +324,9 @@ public class AskDataAutoConfigurationTest {
     private ApplicationContextRunner withDefaultFlowDependencies() {
         return contextRunner
                 .withBean(AskDataGovernanceProvider.class,
-                        () -> request -> AskDataAuthorizationSummary.allow(Collections.emptyList(),
-                                Collections.emptyList()))
+                        () -> request -> AskDataAuthorizationSummary.allow(Collections.singletonList(
+                                new com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject(
+                                        "orders", "orders", "*")), Collections.emptyList()))
                 .withBean(AskDataMetadataProvider.class,
                         () -> request -> new AskDataMetadata("mysql",
                                 Collections.singletonList(new AskDataTable("orders", Collections.emptyList())),
