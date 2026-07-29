@@ -11,11 +11,6 @@ import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreFactory;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
-import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingDocument;
-import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingQuery;
-import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingSearchResult;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingStore;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,67 +46,6 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
         this.springBootRegistry = springBootRegistry;
         this.embeddingStoreFactory = embeddingStoreFactory;
         this.providerAdapters = providerAdapters == null ? Collections.<AiEmbeddingStoreAdapter>emptyList() : providerAdapters;
-    }
-
-    /** @deprecated 生产自动配置已改用中立接口，仅保留旧源码的构造兼容。 */
-    @Deprecated
-    public MagicDynamicVectorDataSource(
-            final com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry registry,
-            final com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreFactory factory,
-            final List<com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter> adapters) {
-        this(legacyRegistry(registry), new AiEmbeddingStoreFactory() {
-            @Override
-            public AiEmbeddingStore create(AiEmbeddingStoreDefinition definition,
-                                           List<AiEmbeddingStoreAdapter> ignored) {
-                com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition legacy =
-                        new com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition();
-                legacy.setKey(definition.getKey());
-                legacy.setProvider(definition.getProvider());
-                legacy.setEnabled(definition.isEnabled());
-                Map<String, Object> properties = new LinkedHashMap<String, Object>(definition.getProperties());
-                Object dimension = properties.remove("dimension");
-                if (dimension != null) {
-                    legacy.setDimension(Integer.valueOf(String.valueOf(dimension)));
-                }
-                legacy.setProperties(properties);
-                return facade(definition.getKey(), definition.getProvider(), factory.create(legacy, adapters));
-            }
-        }, Collections.<AiEmbeddingStoreAdapter>emptyList());
-    }
-
-    private static AiEmbeddingStoreRegistry legacyRegistry(
-            final com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry registry) {
-        if (registry == null) {
-            return null;
-        }
-        return new AiEmbeddingStoreRegistry() {
-            @Override public AiEmbeddingStore get(String key) { return facade(key, "langchain4j", registry.get(key)); }
-            @Override public AiEmbeddingStore getDefault() { return facade("default", "langchain4j", registry.getDefault()); }
-            @Override public String getDefaultKey() { return null; }
-            @Override public boolean contains(String key) { return registry.contains(key); }
-            @Override public Set<String> keys() { return registry.keys(); }
-        };
-    }
-
-    private static AiEmbeddingStore facade(final String key, final String provider,
-                                           final EmbeddingStore<TextSegment> store) {
-        if (store == null) {
-            return null;
-        }
-        return new AiEmbeddingStore() {
-            @Override public String getKey() { return key; }
-            @Override public String getFramework() { return "langchain4j"; }
-            @Override public String getProvider() { return provider; }
-            @Override public AiEmbeddingStoreType getType() { return AiEmbeddingStoreType.VECTOR; }
-            @Override public String add(AiEmbeddingDocument document) { throw unsupported(); }
-            @Override public List<String> addAll(List<AiEmbeddingDocument> documents) { throw unsupported(); }
-            @Override public void remove(String id) { store.remove(id); }
-            @Override public void removeAll(List<String> ids) { store.removeAll(ids); }
-            @Override public AiEmbeddingSearchResult search(AiEmbeddingQuery query) { throw unsupported(); }
-            private AiEmbeddingStoreException unsupported() {
-                return new AiEmbeddingStoreException("Legacy constructor facade does not expose native operations");
-            }
-        };
     }
 
     public void createClient(VectorDataSourceInfo info) {
@@ -167,18 +101,21 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
         VectorDataSourceInfo target = new VectorDataSourceInfo();
         target.setName(source.getName());
         target.setKey(source.getKey());
+        target.setFramework(source.getFramework());
         target.setProvider(source.getProvider());
         target.setEnabled(source.isEnabled());
         target.setDimension(source.getDimension());
-        target.setMetadataKeys(new ArrayList<String>(source.getMetadataKeys()));
-        target.setProperties(source.getProperties());
+        target.setMetadataKeys(source.getMetadataKeys() == null
+                ? new ArrayList<String>() : new ArrayList<String>(source.getMetadataKeys()));
+        target.setProperties(source.getProperties() == null
+                ? new LinkedHashMap<String, Object>() : new LinkedHashMap<String, Object>(source.getProperties()));
         return target;
     }
 
     private AiEmbeddingStoreDefinition definition(VectorDataSourceInfo info) {
         AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
         definition.setKey(info.getKey());
-        definition.setFramework("langchain4j");
+        definition.setFramework(info.getFramework());
         definition.setProvider(info.getProvider());
         definition.setType(AiEmbeddingStoreType.VECTOR);
         definition.setEnabled(info.isEnabled());
