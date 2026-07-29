@@ -50,7 +50,9 @@
 									<searchTransitive>true</searchTransitive>
 									<excludes>
 										<exclude>dev.langchain4j:*</exclude>
-										<exclude>io.milvus:*</exclude>
+										<exclude>io.milvus:milvus-sdk-java</exclude>
+										<exclude>io.qdrant:client</exclude>
+										<exclude>io.weaviate:client</exclude>
 									</excludes>
 									<includes>
 										<include>dev.langchain4j:langchain4j-core</include>
