@@ -26,7 +26,7 @@
 
 - [x] 5.1 更新 `docs/askdata/starter` 中治理权限、SQL 安全、配置、存储和外部系统边界文档，说明业务 IAM 如何映射到 Core 治理桥接。
 - [x] 5.2 更新 SQLBot/WrenAI 功能矩阵中工作空间/成员/权限/数据源/对象授权/管理员日志相关状态，不宣称企业微信、钉钉、飞书、DataEase、Dify、Coze、n8n 已真实联通。
-- [x] 5.3 补充可编译业务治理桥接示例或测试用例，展示数据源授权、列过滤和行级谓词参数绑定。
+- [x] 5.3 补充可编译业务治理桥接示例或测试用例，展示数据源授权、列过滤和行级谓词参数绑定（`AskDataGovernanceBridgeDocumentationExample`）。
 
 ## 6. Verification
 

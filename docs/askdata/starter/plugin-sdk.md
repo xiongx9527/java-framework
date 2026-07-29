@@ -73,20 +73,24 @@ final class OrdersGovernanceProvider implements AskDataGovernanceProvider {
 
 片段中的 `iam` 是业务服务，不是 Core API。`sqlFragment` 只能使用受控结构，绝不拼接 `regionId` 或其他动态值。当前 Starter 对未能落实到最终 SQL 的行级谓词 fail-closed；完整注入由业务治理层或后续增强实现时，必须继续通过最终 SQL 校验。元数据会先按摘要过滤，再构建 Prompt，因此未授权列不会进入模型上下文。
 
-管理员监控日志使用双 SPI：`AskDataMonitoringLogAccessAuthorizer` 必须根据请求人、目标 scope 和角色声明向宿主 IAM 确认管理员资格；`AskDataMonitoringLogAccessPolicy` 再限定可读日志。默认授权器和策略都拒绝未明确授权的读取，成功查询写入脱敏审计。不要以调用方提交的管理员角色、平台管理员标记或请求参数替代授权器的判断。
+管理员监控日志使用双 SPI：默认 `AskDataMonitoringLogAccessAuthorizer` fail-closed，不能仅因调用方传入管理员角色、平台管理员标记或请求参数而放行。业务必须显式提供授权解析器，根据请求人、目标 scope 和角色声明向宿主 IAM 确认管理员资格；只有该解析器返回允许后，`AskDataMonitoringLogAccessPolicy` 才逐条校验日志项目范围。默认策略只收窄已获宿主确认的同项目管理员范围，不识别管理员身份；成功查询写入脱敏审计。
 
 ## Java 8 可编译示例
 
-完整示例位于 [`examples/AskDataPluginSdkExample.java`](examples/AskDataPluginSdkExample.java)，包含六类插件的最小接口和实现：
+真实 Core 治理桥接示例位于 [`AskDataGovernanceBridgeDocumentationExample.java`](../../../fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/documentation/AskDataGovernanceBridgeDocumentationExample.java)，使用 `AskDataGovernanceProvider`、授权摘要、表列授权对象和具名行级参数。以下命令直接编译并运行该示例：
 
 ```bash
-cd docs/askdata/starter
-rm -rf .verify-plugin-sdk && mkdir .verify-plugin-sdk
-javac -source 8 -target 8 -d .verify-plugin-sdk examples/AskDataPluginSdkExample.java
-java -cp .verify-plugin-sdk AskDataPluginSdkExample
+cd /path/to/java-framework
+verify_dir=$(mktemp -d /tmp/askdata-governance-verify.XXXXXX)
+javac -source 8 -target 8 \
+  -cp fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/target/classes \
+  -d "$verify_dir" \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/documentation/AskDataGovernanceBridgeDocumentationExample.java
+java -cp "$verify_dir":fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/target/classes \
+  com.xiongx9527.fw.plus.ai.autoconfigure.askdata.documentation.AskDataGovernanceBridgeDocumentationExample
 ```
 
-成功输出 `PLUGIN_SDK_EXAMPLE_OK`。示例中的接口是文档契约样例，不冒充生产 API；接入真实 Core 时将参数映射到对应 `AskData*` DTO，并继续执行最终 SQL 校验和脱敏观测。
+成功输出 `ASKDATA_GOVERNANCE_BRIDGE_EXAMPLE_OK`。另一个 [`examples/AskDataPluginSdkExample.java`](examples/AskDataPluginSdkExample.java) 仍用于六类插件的文档契约样例，不冒充生产 API；它不是本节真实治理桥接 API 的编译证据。
 
 ## 生产接入顺序
 
