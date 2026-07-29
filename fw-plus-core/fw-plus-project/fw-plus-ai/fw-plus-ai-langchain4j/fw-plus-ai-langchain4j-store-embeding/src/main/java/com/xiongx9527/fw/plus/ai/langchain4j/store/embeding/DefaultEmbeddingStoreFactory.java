@@ -57,6 +57,11 @@ public class DefaultEmbeddingStoreFactory implements EmbeddingStoreFactory, AiEm
     }
 
     @Override
+    public String getFramework() {
+        return FRAMEWORK;
+    }
+
+    @Override
     public boolean supports(AiEmbeddingStoreDefinition definition) {
         try {
             return definition != null

@@ -35,6 +35,11 @@ final class LegacyEmbeddingStoreAiAdapter implements AiEmbeddingStoreAdapter {
 	}
 
 	@Override
+	public String getFramework() {
+		return "langchain4j";
+	}
+
+	@Override
 	public boolean supports(AiEmbeddingStoreDefinition definition) {
 		return definition != null && "langchain4j".equalsIgnoreCase(definition.getFramework());
 	}
