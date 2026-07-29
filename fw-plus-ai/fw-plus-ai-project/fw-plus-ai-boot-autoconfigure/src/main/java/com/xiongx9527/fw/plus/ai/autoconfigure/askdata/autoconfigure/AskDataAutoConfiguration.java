@@ -44,6 +44,8 @@ import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataMonitoringLogAccessPolicy;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
@@ -122,6 +124,15 @@ public class AskDataAutoConfiguration {
     @ConditionalOnMissingBean
     public AskDataQuestionPlanner askDataQuestionPlanner() {
         return AskDataQuestionPlanner.simple();
+    }
+
+    /**
+     * 在未接入业务权限服务时默认拒绝 AskData 请求，避免 Starter 以元数据推断代替授权。
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataGovernanceProvider askDataGovernanceProvider() {
+        return new DefaultDenyAskDataGovernanceProvider();
     }
 
     /**
@@ -381,14 +392,16 @@ public class AskDataAutoConfiguration {
             @Qualifier("askDataMonitoringLogEventPublisher") AskDataEventPublisher monitoringLogEventPublisher,
             ObjectProvider<AskDataEventPublisher> eventPublisherProvider, AskDataQuestionPlanner questionPlanner,
             ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain> sqlInterceptorChainProvider,
-            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator> coreSqlValidatorProvider) {
+            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator> coreSqlValidatorProvider,
+            AskDataGovernanceProvider governanceProvider) {
         List<AskDataAgent> mainAgents = agentProvider.orderedStream()
                 .filter(agent -> !(agent instanceof AskDataSubAgent))
                 .collect(Collectors.toList());
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
                 agentDispatcher, mainAgents, combineEventPublishers(monitoringLogEventPublisher, eventPublisherProvider),
-                questionPlanner, sqlInterceptorChainProvider.getIfAvailable(), coreSqlValidatorProvider.getIfAvailable());
+                questionPlanner, sqlInterceptorChainProvider.getIfAvailable(), coreSqlValidatorProvider.getIfAvailable(),
+                governanceProvider);
     }
 
 	/**

@@ -23,6 +23,12 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDo
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -115,6 +121,34 @@ public class DefaultAskDataFlowExecutorTest {
         assertEquals(AskDataErrorCode.MODEL_RESPONSE_INVALID, blankOperatorResult.getErrorCode());
         assertEquals(0, dependencies.metadataCalls);
         assertEquals(0, dependencies.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectDeniedRequestBeforeModelInvocation() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.governanceProvider = request ->
+                AskDataAuthorizationSummary.deny(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE);
+
+        AskDataResult result = dependencies.executor("unused").execute(request(true));
+
+        assertFalse(result.isSuccess());
+        assertEquals(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE, result.getErrorCode());
+        assertFalse(dependencies.routedGenerateCalled);
+        assertEquals(0, dependencies.metadataCalls);
+    }
+
+    @Test
+    public void shouldPassAuthorizedSummaryToSqlCommand() {
+        StubDependencies dependencies = new StubDependencies();
+        AskDataAuthorizationSummary expected = AskDataAuthorizationSummary.allow(Collections.emptyList(),
+                Collections.emptyList());
+        dependencies.governanceProvider = request -> expected;
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request(false));
+
+        assertTrue(result.isSuccess());
+        assertEquals(expected, dependencies.authorizationSummaryInSqlCommand);
     }
 
     @Test
@@ -251,6 +285,8 @@ public class DefaultAskDataFlowExecutorTest {
         private AskDataModelException modelException;
         private boolean routedGenerateCalled;
         private AskDataSqlValidationResult validationResult = AskDataSqlValidationResult.accepted(SQL);
+        private AskDataGovernanceProvider governanceProvider;
+        private AskDataAuthorizationSummary authorizationSummaryInSqlCommand;
 
         private DefaultAskDataFlowExecutor executor(final String modelResponse) {
             properties.getSql().setExecuteEnabled(globalExecutionEnabled);
@@ -336,8 +372,19 @@ public class DefaultAskDataFlowExecutorTest {
                     return AskDataSqlExecutionResult.success(Collections.emptyList(), Collections.emptyList());
                 }
             };
+            AskDataSqlInterceptorChain sqlInterceptorChain = new AskDataSqlInterceptorChain(Collections.emptyList(),
+                    new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator() {
+                        @Override
+                        public Result validate(AskDataSqlCommand command) {
+                            authorizationSummaryInSqlCommand = command.getAuthorizationSummary();
+                            return Result.success();
+                        }
+                    }, new AskDataSqlAudit());
             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
-                    promptProvider, dialectRegistry, sqlValidator, sqlExecutor);
+                    promptProvider, dialectRegistry, sqlValidator, sqlExecutor, null, null, null,
+                    Collections.<AskDataAgent>emptyList(), null,
+                    com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner.simple(), sqlInterceptorChain,
+                    null, governanceProvider);
         }
     }
 }

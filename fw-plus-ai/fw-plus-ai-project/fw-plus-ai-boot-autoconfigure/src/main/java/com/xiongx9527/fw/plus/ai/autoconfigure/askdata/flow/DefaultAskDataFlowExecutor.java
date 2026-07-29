@@ -34,6 +34,10 @@ import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlParameter;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,6 +61,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private static final String EXECUTION_COMPLETED = "COMPLETED";
     private static final String EXECUTION_SKIPPED = "SKIPPED";
     private static final String MULTI_QUESTION_OPTION = "questions";
+    private static final String AUTHORIZATION_SUMMARY_ATTRIBUTE = "askDataAuthorizationSummary";
 
     private final AskDataProperties properties;
     private final AskDataModelRegistry modelRegistry;
@@ -74,6 +79,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private final AskDataQuestionPlanner questionPlanner;
     private final AskDataSqlInterceptorChain sqlInterceptorChain;
     private final com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreSqlValidator;
+    private final AskDataGovernanceProvider governanceProvider;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -162,6 +168,20 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             List<AskDataAgent> mainAgents, AskDataEventPublisher eventPublisher,
             AskDataQuestionPlanner questionPlanner, AskDataSqlInterceptorChain sqlInterceptorChain,
             com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreSqlValidator) {
+        this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
+                sqlValidator, sqlExecutor, conversationStore, contextCompressor, agentDispatcher, mainAgents,
+                eventPublisher, questionPlanner, sqlInterceptorChain, coreSqlValidator, null);
+    }
+
+    public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+            AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+            AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
+            List<AskDataAgent> mainAgents, AskDataEventPublisher eventPublisher,
+            AskDataQuestionPlanner questionPlanner, AskDataSqlInterceptorChain sqlInterceptorChain,
+            com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreSqlValidator,
+            AskDataGovernanceProvider governanceProvider) {
         this.properties = properties;
         this.modelRegistry = modelRegistry;
         this.metadataProvider = metadataProvider;
@@ -179,6 +199,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         this.questionPlanner = questionPlanner == null ? AskDataQuestionPlanner.simple() : questionPlanner;
         this.sqlInterceptorChain = sqlInterceptorChain;
         this.coreSqlValidator = coreSqlValidator;
+        this.governanceProvider = governanceProvider;
     }
 
     @Override
@@ -208,11 +229,16 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return failure(result, "request", AskDataErrorCode.MODEL_RESPONSE_INVALID,
                     "AskData 请求缺少有效项目与操作人上下文");
         }
+        AskDataAuthorizationSummary authorizationSummary = authorize(request, result);
+        if (governanceProvider != null && authorizationSummary == null) {
+            return result;
+        }
         if (!isResumeRequested(request) && conversationStore != null && contextCompressor != null
                 && isBlank(result.getConversationId())) {
             result.setConversationId(UUID.randomUUID().toString());
         }
         AskDataStepContext context = new AskDataStepContext(request);
+        context.getAttributes().put(AUTHORIZATION_SUMMARY_ATTRIBUTE, authorizationSummary);
         publishLifecycleEvent(request, result, AskDataEvent.Type.CONVERSATION_STARTED, "AskData 对话已开始");
         AskDataResult completed;
         if (isResumeRequested(request)) {
@@ -494,7 +520,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             }
             AskDataSqlValidationResult validation;
             try {
-                validation = validateSql(request, metadata, checkpoint.getSql(), dialect);
+                validation = validateSql(request, metadata, checkpoint.getSql(), dialect, authorizationSummary(context));
             } catch (RuntimeException ex) {
                 return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
             }
@@ -547,7 +573,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         AskDataSqlValidationResult validation;
         try {
-            validation = validateCheckpointSql(request, metadata, checkpoint.getSql(), dialect);
+            validation = validateCheckpointSql(request, metadata, checkpoint.getSql(), dialect,
+                    authorizationSummary(context));
         } catch (RuntimeException ex) {
             return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
         }
@@ -572,7 +599,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         AskDataSqlValidationResult validation;
         try {
-            validation = validateSql(request, metadata, generatedSql, dialect);
+            validation = validateSql(request, metadata, generatedSql, dialect, authorizationSummary(context));
         } catch (RuntimeException ex) {
             return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
         }
@@ -638,24 +665,29 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
     private AskDataSqlValidationResult validateSql(AskDataRequest request, AskDataMetadata metadata, String sql,
             AskDataDialect dialect) {
+        return validateSql(request, metadata, sql, dialect, null);
+    }
+
+    private AskDataSqlValidationResult validateSql(AskDataRequest request, AskDataMetadata metadata, String sql,
+            AskDataDialect dialect, AskDataAuthorizationSummary authorizationSummary) {
         AskDataSqlValidationResult validation = sqlValidator.validate(sql, dialect, maxRows(request), metadata);
         if (validation == null || !validation.isValid() || sqlInterceptorChain == null) {
             return validation;
         }
         AskDataSqlCommand command = new AskDataSqlCommand(request.getProjectContext(), validation.getSql(),
-                sqlParameters(request), authorizedObjects(metadata));
+                sqlParameters(request), authorizedObjects(metadata), authorizationSummary);
         AskDataSqlCommand rewritten = sqlInterceptorChain.execute(command);
         return sqlValidator.validate(rewritten.getSql(), dialect, maxRows(request), metadata);
     }
 
     private AskDataSqlValidationResult validateCheckpointSql(AskDataRequest request, AskDataMetadata metadata,
-            String sql, AskDataDialect dialect) {
+            String sql, AskDataDialect dialect, AskDataAuthorizationSummary authorizationSummary) {
         AskDataSqlValidationResult validation = sqlValidator.validate(sql, dialect, maxRows(request), metadata);
         if (validation == null || !validation.isValid() || coreSqlValidator == null) {
             return validation;
         }
         AskDataSqlCommand command = new AskDataSqlCommand(request.getProjectContext(), validation.getSql(),
-                sqlParameters(request), authorizedObjects(metadata));
+                sqlParameters(request), authorizedObjects(metadata), authorizationSummary);
         com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.Result result = coreSqlValidator.validate(command);
         if (result == null) {
             throw new IllegalArgumentException("SQL 校验器不能返回 null");
@@ -688,6 +720,29 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             }
         }
         return authorizedObjects;
+    }
+
+    private AskDataAuthorizationSummary authorize(AskDataRequest request, AskDataResult result) {
+        if (governanceProvider == null) {
+            return null;
+        }
+        try {
+            AskDataAuthorizationSummary authorizationSummary = governanceProvider
+                    .authorize(new AskDataAuthorizationRequest(request.getProjectContext()));
+            if (authorizationSummary != null && authorizationSummary.isAllowed()) {
+                return authorizationSummary;
+            }
+        } catch (RuntimeException ex) {
+            // 治理服务异常按拒绝处理，且不向调用方泄露授权细节。
+        }
+        failure(result, "authorize", DefaultDenyAskDataGovernanceProvider.DENIAL_CODE,
+                "AskData 请求未获授权");
+        return null;
+    }
+
+    private AskDataAuthorizationSummary authorizationSummary(AskDataStepContext context) {
+        Object value = context.getAttributes().get(AUTHORIZATION_SUMMARY_ATTRIBUTE);
+        return value instanceof AskDataAuthorizationSummary ? (AskDataAuthorizationSummary) value : null;
     }
 
     private AskDataResult saveCheckpoint(AskDataStepContext context, AskDataResult result, String currentStep,
