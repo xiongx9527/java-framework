@@ -295,3 +295,14 @@ Task 6: Final Verification
 - RED: Core interceptor chain allowed a plugin to narrow the final summary while retaining broad table objects; SQL authorization processor allowed CTE/real alias collisions for qualified wildcard alias.*; task-6-report.md still described old failed verification.
 - GREEN: Core targeted AskDataSqlPipelineTest 24/24 passed; AI targeted validator/interceptor tests 41/41 passed; Core AskData tests 86/86 passed; AI reactor with -am and failIfNoTests=false passed 7/7 modules and 170 AskData tests; Starter package BUILD SUCCESS; OpenSpec strict validation passed; diff check passed.
 - Stage: final-review
+
+## Final Re-review 3 Result
+
+- Reviewer: 019fadbb-7918-74a1-801c-ae23752b7631
+- Review package: .superpowers/sdd/review-d9bc7694..92c6d6e7.diff
+- Result: With fixes
+- Critical: none; Core authorization summary narrowing and alias.* ambiguity blockers are closed.
+- Important: formal verification report and final-fix-report still used second-round 85/169 counts and needed alignment with current 86/170 evidence.
+- Fix commit: 0e493729 chore(askdata): align final verification reports
+- Fix verification: diff check for formal verification report and final-fix-report passed; no stale 85/169 current-result entries remain.
+- Stage: final-review
