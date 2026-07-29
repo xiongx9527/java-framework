@@ -2,6 +2,14 @@
 
 配置前缀为 `fw.plus.ai.askdata`。未指定的属性使用下表默认值。配置决定默认适配层行为，不替代宿主应用的认证、数据源权限、密钥托管和共享存储治理。
 
+## 治理 Bean 配置原则
+
+治理没有“生产全局放行”属性。未注册业务 `AskDataGovernanceProvider` 时，Starter 以默认拒绝实现返回 `ASKDATA_GOVERNANCE_DENIED`；生产环境必须显式注册业务治理 Bean，将宿主 IAM 的 `projectId + operatorId`、成员/角色、数据源、表列与数据域映射为 `AskDataAuthorizationSummary`、`AskDataAuthorizedObject` 和 `AskDataRowPredicate`。
+
+开发和测试环境也应显式注册只覆盖测试数据源、表、列和参数化行级范围的 Bean，而不是通过 YAML 打开全局访问。例如测试 Bean 可仅授权 `demo.orders` 的 `id`、`amount`，并返回 `region_id = :regionId` 与 `AskDataSqlParameter.of("regionId", "test-region")`。这类 Bean 不能进入生产配置。
+
+管理员监控日志读取需要同时注册 `AskDataMonitoringLogAccessAuthorizer` 与 `AskDataMonitoringLogAccessPolicy`。默认授权器恒拒绝，默认策略只允许已获宿主确认的同项目管理员读取；业务授权器应核验请求人、目标 scope 和角色声明，业务策略可在此基础上进一步收窄。成功查询将写入脱敏审计，普通操作人和未被授权的跨项目管理员均不能依靠属性或请求参数取得日志。
+
 ## 基础、模型与流程
 
 | 属性 | 默认值 | 说明与限制 |
@@ -44,7 +52,7 @@
 | `vector.default-top-k` | `5` | 默认召回数量，应结合语料规模、模型上下文与延迟压测调整。 |
 | `vector.store` | `memory` | 仅单机开发或临时检索；重启即丢失，不得在集群中静默使用。 |
 
-强制监控日志覆盖会话、请求、问题规划、模型路由/降级、Agent 节点、SQL 插件/校验/执行、检查点/恢复及完成/失败。默认访问策略只允许宿主系统已授权的同项目管理员查询；跨项目查询必须由业务覆盖访问策略显式授予。
+强制监控日志覆盖会话、请求、问题规划、模型路由/降级、Agent 节点、SQL 插件/校验/执行、检查点/恢复及完成/失败。默认访问策略只允许宿主系统已授权的同项目管理员查询；还必须由默认拒绝的管理员授权器确认管理员资格。跨项目查询必须由业务授权器和访问策略同时显式授予。
 
 ## 单机示例
 
