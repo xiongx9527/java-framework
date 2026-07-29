@@ -51,11 +51,9 @@ public class DefaultAiEmbeddingStoreFactory implements AiEmbeddingStoreFactory {
         Set<AiEmbeddingStoreAdapter> discovered = Collections.newSetFromMap(
                 new IdentityHashMap<AiEmbeddingStoreAdapter, Boolean>());
         for (AiEmbeddingStoreAdapter adapter : adapters) {
-            if (adapter != null) {
+            if (adapter != null && discovered.add(adapter)) {
                 String framework = framework(adapter, definition, candidates);
-                if (discovered.add(adapter)) {
-                    candidates.add(new AdapterCandidate(adapter, framework));
-                }
+                candidates.add(new AdapterCandidate(adapter, framework));
             }
         }
         return candidates;

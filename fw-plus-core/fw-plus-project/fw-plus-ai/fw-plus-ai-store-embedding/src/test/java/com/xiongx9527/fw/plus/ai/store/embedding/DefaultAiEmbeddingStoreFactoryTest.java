@@ -57,6 +57,18 @@ public class DefaultAiEmbeddingStoreFactoryTest {
     }
 
     @Test
+    public void shouldReadDuplicatedStoreAdapterFrameworkOnlyOnce() {
+        AiEmbeddingStore store = new TestStore();
+        TestAdapter adapter = new TestAdapter("framework-a", true, store);
+
+        AiEmbeddingStore resolved = new DefaultAiEmbeddingStoreFactory().create(blankFrameworkDefinition(),
+                Arrays.<AiEmbeddingStoreAdapter>asList(adapter, adapter));
+
+        assertSame(store, resolved);
+        assertEquals(1, adapter.getFrameworkCalls());
+    }
+
+    @Test
     public void shouldIncludeStoreDefinitionContextInFailure() {
         AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
                 () -> new DefaultAiEmbeddingStoreFactory().create(definition("missing-framework"),
@@ -115,6 +127,8 @@ public class DefaultAiEmbeddingStoreFactoryTest {
 
         private final AiEmbeddingStore store;
 
+        private int frameworkCalls;
+
         private TestAdapter(String framework, boolean supported, AiEmbeddingStore store) {
             this.framework = framework;
             this.supported = supported;
@@ -123,7 +137,12 @@ public class DefaultAiEmbeddingStoreFactoryTest {
 
         @Override
         public String getFramework() {
+            frameworkCalls++;
             return framework;
+        }
+
+        private int getFrameworkCalls() {
+            return frameworkCalls;
         }
 
         @Override

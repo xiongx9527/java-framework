@@ -98,3 +98,45 @@ JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus
 - `DefaultEmbeddingStoreFactory` 与 `LegacyEmbeddingStoreAiAdapter` 均显式返回稳定的 `langchain4j` framework，因此所有当前生产 `AiEmbeddingStoreAdapter` 实现均满足 SPI；
 - 中立 Core 未引入 LangChain4j 类型或依赖；
 - `AiEmbeddingStoreAdapter#getFramework()` 是新增抽象 SPI，外部实现者仍需按迁移契约补充该方法，旧二进制在调用时仍存在 `AbstractMethodError` 风险；本修复仅覆盖当前仓库生产实现，未启动整体 adapter 迁移。
+
+## 最终复审修复：身份去重优先于 framework 读取
+
+### RED 证据
+
+先在 `DefaultAiEmbeddingStoreFactoryTest` 新增
+`shouldReadDuplicatedStoreAdapterFrameworkOnlyOnce`，对同一个 adapter 对象重复输入时断言
+`getFramework()` 仅调用一次。
+
+执行：
+
+```bash
+JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding -am -Dtest=DefaultAiEmbeddingStoreFactoryTest -DfailIfNoTests=false test
+```
+
+结果：失败，新增测试断言 `expected: <1> but was: <2>`。这证明旧候选扫描在身份去重前读取了重复 adapter 的 framework。
+
+### GREEN 证据
+
+将 `DefaultAiEmbeddingStoreFactory.candidates(...)` 中的 `discovered.add(adapter)` 前移到
+`getFramework()` 调用之前，仅对首次发现的对象读取 framework 并创建候选；严格 framework 匹配和异常脱敏逻辑未变。
+
+使用上述工厂测试命令验证：7 个测试全部通过，失败 0、错误 0。
+
+完整模块回归：
+
+```bash
+JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding test
+```
+
+结果：16 个测试全部通过，失败 0、错误 0、跳过 0。
+
+### 修改文件
+
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding/src/main/java/com/xiongx9527/fw/plus/ai/store/embedding/DefaultAiEmbeddingStoreFactory.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding/src/test/java/com/xiongx9527/fw/plus/ai/store/embedding/DefaultAiEmbeddingStoreFactoryTest.java`
+- `.superpowers/sdd/task-2-report.md`
+
+### 风险
+
+- 身份去重刻意使用对象身份而非 `equals()`：不同 adapter 实例即使逻辑相等或 framework 相同，仍保留为真实多候选，符合既有歧义处理契约。
+- `getFramework()` 仍可能在首次发现 adapter 时抛出异常，工厂继续以不含 properties 的安全上下文包装该异常。
