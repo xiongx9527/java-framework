@@ -16,14 +16,14 @@ plan: docs/superpowers/plans/2026-07-29-add-askdata-governance-permission-bridge
 verify_result: pass
 verify_failures: 0
 verification_report: docs/superpowers/reports/2026-07-29-add-askdata-governance-permission-bridge-verify.md
-branch_status: pending
+branch_status: handled
 created_at: 2026-07-29
 verified_at: 2026-07-29
 archive_confirmation: confirmed
 archived: true
-bound_branch: feature/20260729/add-askdata-governance-permission-bridge
+bound_branch: dev
 direct_override: null
-handoff_context: openspec/changes/add-askdata-governance-permission-bridge/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-29-add-askdata-governance-permission-bridge/.comet/handoff/design-context.json
 handoff_hash: 5141e916eb61ebd7e3fc69ceaee88eff6b1af0bb43cdb782c628ce9053a598cf
 classic_profile: full
 classic_migration: 1
