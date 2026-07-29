@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConve
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.DefaultAskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.InMemoryAskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.InMemoryAskDataMonitoringLogStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AskDataMonitoringLogAccessAuthorizer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AskDataMonitoringLogQueryService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AskDataObservationExporter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AsyncAskDataObservationExporter;
@@ -203,11 +204,20 @@ public class AskDataAutoConfiguration {
         return AskDataMonitoringLogAccessPolicy.projectAdministratorOnly();
     }
 
+    /**
+     * 默认拒绝监控日志管理员资格，业务必须接入宿主授权系统后才可开放读取。
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataMonitoringLogAccessAuthorizer askDataMonitoringLogAccessAuthorizer() {
+        return AskDataMonitoringLogAccessAuthorizer.denyAll();
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public AskDataMonitoringLogQueryService askDataMonitoringLogQueryService(AskDataMonitoringLogStore store,
-            AskDataMonitoringLogAccessPolicy accessPolicy) {
-        return new AskDataMonitoringLogQueryService(store, accessPolicy);
+            AskDataMonitoringLogAccessPolicy accessPolicy, AskDataMonitoringLogAccessAuthorizer accessAuthorizer) {
+        return new AskDataMonitoringLogQueryService(store, accessPolicy, accessAuthorizer);
     }
 
     @Bean
