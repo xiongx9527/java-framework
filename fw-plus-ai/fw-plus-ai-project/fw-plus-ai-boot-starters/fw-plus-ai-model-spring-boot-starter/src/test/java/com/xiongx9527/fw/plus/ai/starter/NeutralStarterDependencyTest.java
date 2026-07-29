@@ -67,7 +67,9 @@ public class NeutralStarterDependencyTest {
 				"com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter");
 		assertBannedTransitiveDependencies("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml",
 				"dev.langchain4j:*",
-				"io.milvus:*");
+				"io.milvus:milvus-sdk-java",
+				"io.qdrant:client",
+				"io.weaviate:client");
 		assertAllowedDependency("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml",
 				"dev.langchain4j:langchain4j-core");
 	}
