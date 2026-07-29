@@ -1,12 +1,15 @@
-# AskData 治理权限桥接第二轮最终修复报告
+# AskData 治理权限桥接最终修复报告
 
 ## 状态
 
-DONE_WITH_CONCERNS
+DONE
 
 ## 提交
 
-实现提交：`5373c5f91eb1720c5f6d35da41560789007259a5` - `fix(askdata): close governance bridge re-review gaps`
+实现提交：
+
+- `5373c5f91eb1720c5f6d35da41560789007259a5` - `fix(askdata): close governance bridge re-review gaps`
+- `6c682b2d0863d0d1730af43098a5b3248484f064` - `fix(askdata): close final authorization review gaps`
 
 ## RED
 
@@ -15,15 +18,17 @@ DONE_WITH_CONCERNS
 - Head 自洽 RED：先安装当前 Core `fw-plus-ai-store-embedding`，再对 AI 执行 `clean compile`，`LegacyEmbeddingStoreAiAdapter.java:[44,9]` 报“方法不会覆盖或实现超类型的方法”。
 - 观测 RED：Core 基础监控日志缺 dataSource、拒绝码、授权版本、授权来源；SQL 授权失败只有普通生命周期事件；监控日志显式拒绝和治理异常返回空列表但不写拒绝审计。
 - 回归 RED：关键组合首次为 83 tests、1 error，自动配置的 Core 最终校验把授权对象 `*` 转换为普通列但丢失显式表级标记。
+- 第三轮授权边界 RED：Core 插件链允许插件收窄最终摘要后仍保留原始宽表对象；SQL 解析器允许 CTE/真实别名冲突下的限定通配符 `scoped.*`。
 
 ## GREEN
 
-- `DefaultAskDataSqlValidatorTest`：31 tests，全部通过；空/未知列 fail-closed，显式表级授权独立建模，SELECT 别名仅在所属查询块安全位置识别，CTE/真实别名冲突拒绝。
+- `DefaultAskDataSqlValidatorTest`：32 tests，全部通过；空/未知列 fail-closed，显式表级授权独立建模，SELECT 别名仅在所属查询块安全位置识别，CTE/真实别名冲突及限定通配符拒绝。
 - 恶意插件删除谓词定向测试：1 test，通过；插件后以最终收窄摘要为事实源重新落实全部必需谓词和具名参数。
 - 当前 Core 安装后的 AI `clean compile`：`BUILD SUCCESS`；`LegacyEmbeddingStoreAiAdapterTest` 2 tests 全绿。
 - Core 观测契约：5 tests 全绿；Flow 与日志查询：36 tests 全绿；关键组合回归：83 tests 全绿。
-- `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata test`：85 tests，0 failures，0 errors，0 skipped。
-- `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am -DfailIfNoTests=false -Dtest='*AskData*Test' test`：Reactor 7/7 成功，AskData 169 tests，0 failures，0 errors，0 skipped。
+- 第三轮 Core 授权收窄回归：`AskDataSqlPipelineTest` 24 tests，全部通过。
+- `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata test`：86 tests，0 failures，0 errors，0 skipped。
+- `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am -DfailIfNoTests=false -Dtest='*AskData*Test' test`：Reactor 7/7 成功，AskData 170 tests，0 failures，0 errors，0 skipped。
 - `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -DskipTests package`：`BUILD SUCCESS`。
 - `openspec validate add-askdata-governance-permission-bridge --strict`：通过。
 - `git diff --check -- ... .superpowers/sdd/final-fix-report.md`：通过。
@@ -34,14 +39,14 @@ DONE_WITH_CONCERNS
 - 插件后不再只注入新增谓词，而是从插件链最终摘要重新落实全部必需行级谓词；最终摘要继续传入最终元数据、命令和 Core 校验。
 - 移除 Legacy embedding adapter 对当前 Core 不存在方法的错误 `@Override`，测试改为验证框架支持判定。
 - SQL 授权失败发布脱敏治理事件；日志查询拒绝和治理异常写入同一 Core 观测存储；基础日志结构化保留数据源、拒绝码、授权版本和授权来源。
-- 文档和 OpenSpec 任务状态更新为第二轮复审后的行为与新鲜验证证据。
+- 文档和 OpenSpec 任务状态更新为第三轮最终授权修复后的行为与新鲜验证证据。
 
 ## 改动文件
 
 - Core：`AskDataEventPublisher.java`、`AskDataMonitoringLog.java`、`AskDataMonitoringLogStore.java`、`AskDataObservabilityContractTest.java`。
 - AI 实现：`AskDataAutoConfiguration.java`、`DefaultAskDataFlowExecutor.java`、`AskDataTable.java`、`AskDataMonitoringLogQueryService.java`、`AskDataSqlAuthorizationProcessor.java`、`LegacyEmbeddingStoreAiAdapter.java`。
 - AI 测试：`DefaultAskDataFlowExecutorTest.java`、`AskDataMonitoringLogQueryServiceTest.java`、`DefaultAskDataSqlValidatorTest.java`、`LegacyEmbeddingStoreAiAdapterTest.java`。
-- 文档：`docs/askdata/starter/sql-safety.md`、OpenSpec `tasks.md`、验证报告和本报告。
+- 文档：`docs/askdata/starter/sql-safety.md`、OpenSpec `tasks.md`、验证报告、Task 6 报告和本报告。
 
 ## 顾虑
 
