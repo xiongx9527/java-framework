@@ -19,7 +19,7 @@
 
 ## 4. 中立 Boot 与 Magic-API 边界
 
-- [ ] 4.1 将中立 model/store properties 与公共自动配置迁出 LangChain4j 包和依赖路径。
+- [x] 4.1 将中立 model/store properties 与公共自动配置迁出 LangChain4j 包和依赖路径。
 - [ ] 4.2 重构 Magic-API model/vector 动态资源、控制器和 legacy support，使其只使用中立 registry/门面并复用 adapter 选择规则。
 - [ ] 4.3 执行并补齐 Magic-API 与自动配置集成测试：唯一 LangChain4j adapter、多个 adapter 歧义、显式 framework 和无原生类型暴露。
 - [ ] 4.4 在其他 adapter、Boot 与 Magic-API 工作完成，并获得用户再次明确确认后，最后更新 AskData starter 与相关测试，移除对已删除 model/store artifact 的编译依赖并保留 Java 8 行为。
