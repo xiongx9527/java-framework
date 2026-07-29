@@ -236,3 +236,23 @@ Task 6: Final Verification
 
 - Task 6: complete (commits 27de5e1d, 69719f81, 90cff5fa; final AI AskData targeted tests 149/149 passed)
 - Stage: done
+
+## Final Whole-Branch Review
+
+- Reviewer: 019faced-f410-7822-aca0-14820718c1e2
+- Review package: .superpowers/sdd/review-d9bc7694..48913a26.diff
+- Result: Not ready to merge
+- Critical: SQL final validation does not enforce column authorization; row-level predicates are rejected or lost before execution.
+- Important: metadata prompt material can leak unowned terms/examples/fragments; authorization snapshots lack binding/version/source/admin scope fields; governance denials miss observability events; monitoring log project/admin scope is incomplete; tasks/report were marked PASS before these gaps were closed; branch includes unrelated neutral-ai change content.
+- Fix round: 1
+- Stage: final-fix
+
+## Final Review Fix Result
+
+- Fix agent: 019fad00-769a-7d61-8ecf-7a71506ec267
+- Status: DONE_WITH_CONCERNS
+- Commit: 9b50bff2 fix(askdata): close governance bridge review gaps
+- RED: Core authorization binding/admin scope/log owner contracts failed; SQL validator allowed unauthorized columns, ambiguous unqualified columns and CTE alias collisions; Flow rejected or dropped row predicates; metadata final filtering and governance denial events were missing; monitoring log queries used Starter-specific authorization instead of Core governance.
+- GREEN: Core AskData tests 84/84 passed; AI AskData targeted tests 163/163 passed; Starter package BUILD SUCCESS; OpenSpec strict validation passed; diff check passed; Java 8 documentation example printed ASKDATA_GOVERNANCE_BRIDGE_EXAMPLE_OK.
+- Concern: neutral-ai OpenSpec/Design artifacts were removed with a normal commit, but LegacyEmbeddingStoreAiAdapter#getFramework() remains because removing it breaks compilation; full upstream history split remains outside this final-fix commit.
+- Stage: final-review
