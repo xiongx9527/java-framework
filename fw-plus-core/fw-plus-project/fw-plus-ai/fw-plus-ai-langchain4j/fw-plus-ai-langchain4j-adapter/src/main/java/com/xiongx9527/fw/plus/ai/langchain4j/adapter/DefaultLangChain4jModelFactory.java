@@ -44,7 +44,7 @@ public class DefaultLangChain4jModelFactory implements LangChain4jModelFactory, 
         try {
             AiModel model = new DefaultAiModelFactory().create(toNeutral(definition),
                     Collections.<AiModelAdapter>singletonList(new DefaultLangChain4jModelFactory(adapters)));
-            return ((LangChain4jAiModel) model).nativeModel();
+            return ((LangChain4jAiModel) model).getNativeModel();
         } catch (AiModelException e) {
             AiModelException translated = e.getCause() instanceof AiModelException
                     ? (AiModelException) e.getCause() : e;

@@ -6,10 +6,14 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRequest;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.DefaultLangChain4jModelRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModel;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
+import com.xiongx9527.fw.plus.ai.model.DefaultAiModelRegistry;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -375,19 +379,28 @@ public class LangChain4jAskDataModelRegistryTest {
 				});
 	}
 
-	private LangChain4jModelRegistry modelRegistry(Map<String, ChatLanguageModel> chatModels,
+	private AiModelRegistry modelRegistry(Map<String, ChatLanguageModel> chatModels,
 			Map<String, EmbeddingModel> embeddingModels) {
-		Map<String, LangChain4jModel> models = new HashMap<String, LangChain4jModel>();
+		Map<String, AiModel> models = new HashMap<String, AiModel>();
 		for (Map.Entry<String, ChatLanguageModel> entry : chatModels.entrySet()) {
-			models.put(entry.getKey(), new LangChain4jModel("test", LangChain4jModelType.CHAT, entry.getValue()));
+			models.put(entry.getKey(), aiModel(entry.getKey(), LangChain4jModelType.CHAT, entry.getValue()));
 		}
 		for (Map.Entry<String, EmbeddingModel> entry : embeddingModels.entrySet()) {
-			models.put(entry.getKey(), new LangChain4jModel("test", LangChain4jModelType.EMBEDDING, entry.getValue()));
+			models.put(entry.getKey(), aiModel(entry.getKey(), LangChain4jModelType.EMBEDDING, entry.getValue()));
 		}
-		return new DefaultLangChain4jModelRegistry(models, null);
+		return new DefaultAiModelRegistry(models, null);
 	}
 
-	private AskDataModelRegistry registry(AskDataProperties properties, LangChain4jModelRegistry modelRegistry) {
+	private AiModel aiModel(String key, LangChain4jModelType type, Object nativeModel) {
+		AiModelDefinition definition = new AiModelDefinition();
+		definition.setKey(key);
+		definition.setFramework("langchain4j");
+		definition.setProvider("test");
+		definition.setType(AiModelType.valueOf(type.name()));
+		return new LangChain4jAiModel(definition, new LangChain4jModel("test", type, nativeModel));
+	}
+
+	private AskDataModelRegistry registry(AskDataProperties properties, AiModelRegistry modelRegistry) {
 		return new LangChain4jAskDataModelRegistry(properties,
 				Collections.<String, ChatLanguageModel>emptyMap(),
 				Collections.<String, EmbeddingModel>emptyMap(),

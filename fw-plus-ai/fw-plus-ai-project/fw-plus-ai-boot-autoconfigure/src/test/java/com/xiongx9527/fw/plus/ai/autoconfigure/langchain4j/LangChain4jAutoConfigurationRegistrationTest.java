@@ -29,8 +29,9 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 
 	private static final String[] REQUIRED_STARTER_DEPENDENCIES = new String[] {
 			"fw-plus-ai-model-spring-boot-starter",
-			"fw-plus-ai-boot-starter",
-			"fw-plus-ai-langchain4j-model"
+			"fw-plus-ai-store-embedding-spring-boot-starter",
+			"fw-plus-ai-langchain4j-adapter",
+			"fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure"
 	};
 
 	private static final String[] PROVIDER_SDK_ARTIFACTS = new String[] {
@@ -221,16 +222,16 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 	}
 
 	@Test
-	public void shouldKeepModelStarterProviderSdkDependenciesOptIn() throws Exception {
-		File starterPom = findModelStarterPom();
-		assertTrue("Model starter POM should exist: " + starterPom.getAbsolutePath(), starterPom.isFile());
+	public void shouldKeepAdapterStarterProviderSdkDependenciesOptIn() throws Exception {
+		File starterPom = findAdapterStarterPom();
+		assertTrue("Adapter starter POM should exist: " + starterPom.getAbsolutePath(), starterPom.isFile());
 
 		Set<String> artifactIds = dependencyArtifactIds(starterPom);
 		for (String requiredDependency : REQUIRED_STARTER_DEPENDENCIES) {
-			assertTrue("Model starter should depend on " + requiredDependency, artifactIds.contains(requiredDependency));
+			assertTrue("Adapter starter should depend on " + requiredDependency, artifactIds.contains(requiredDependency));
 		}
 		for (String providerSdkArtifact : PROVIDER_SDK_ARTIFACTS) {
-			assertTrue("Model starter must not directly depend on " + providerSdkArtifact,
+			assertTrue("Adapter starter must not directly depend on " + providerSdkArtifact,
 					!artifactIds.contains(providerSdkArtifact));
 		}
 	}
@@ -254,18 +255,18 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		return classNames;
 	}
 
-	private File findModelStarterPom() {
+	private File findAdapterStarterPom() {
 		File currentDirectory = new File(System.getProperty("user.dir"));
 		while (currentDirectory != null) {
 			File starterPom = new File(currentDirectory,
 					"fw-plus-ai-project/fw-plus-ai-boot-starters/"
-							+ "fw-plus-ai-langchain4j-model-spring-boot-starter/pom.xml");
+							+ "fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml");
 			if (starterPom.isFile()) {
 				return starterPom;
 			}
 			currentDirectory = currentDirectory.getParentFile();
 		}
-		return new File("fw-plus-ai-langchain4j-model-spring-boot-starter/pom.xml");
+		return new File("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml");
 	}
 
 	private Set<String> dependencyArtifactIds(File pom) throws Exception {
