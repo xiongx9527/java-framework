@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.sql;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,9 +24,15 @@ public final class AskDataSqlCommand {
 	private final List<AskDataSqlParameter> parameters;
 	private final Map<String, AskDataSqlParameter> parametersByName;
 	private final Set<String> authorizedObjects;
+	private final AskDataAuthorizationSummary authorizationSummary;
 
 	public AskDataSqlCommand(AskDataProjectContext context, String sql, List<AskDataSqlParameter> parameters,
 			Set<String> authorizedObjects) {
+		this(context, sql, parameters, authorizedObjects, null);
+	}
+
+	public AskDataSqlCommand(AskDataProjectContext context, String sql, List<AskDataSqlParameter> parameters,
+			Set<String> authorizedObjects, AskDataAuthorizationSummary authorizationSummary) {
 		if (context == null) {
 			throw new IllegalArgumentException("context 不能为空");
 		}
@@ -40,6 +47,7 @@ public final class AskDataSqlCommand {
 		this.parameters = copyParameters(parameters);
 		this.parametersByName = indexParameters(this.parameters);
 		this.authorizedObjects = copyAuthorizedObjects(authorizedObjects);
+		this.authorizationSummary = authorizationSummary;
 	}
 
 	public AskDataProjectContext getContext() {
@@ -62,6 +70,10 @@ public final class AskDataSqlCommand {
 		return authorizedObjects;
 	}
 
+	public AskDataAuthorizationSummary getAuthorizationSummary() {
+		return authorizationSummary;
+	}
+
 	/**
 	 * 返回仅替换 SQL 文本的新命令，保留隔离上下文、参数和授权对象。
 	 *
@@ -71,7 +83,11 @@ public final class AskDataSqlCommand {
 	 * @return 新命令
 	 */
 	public AskDataSqlCommand withSql(String rewrittenSql) {
-		return new AskDataSqlCommand(context, rewrittenSql, parameters, authorizedObjects);
+		return new AskDataSqlCommand(context, rewrittenSql, parameters, authorizedObjects, authorizationSummary);
+	}
+
+	public AskDataSqlCommand withAuthorizationSummary(AskDataAuthorizationSummary rewrittenAuthorizationSummary) {
+		return new AskDataSqlCommand(context, sql, parameters, authorizedObjects, rewrittenAuthorizationSummary);
 	}
 
 	private static List<AskDataSqlParameter> copyParameters(List<AskDataSqlParameter> source) {

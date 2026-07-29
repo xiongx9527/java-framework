@@ -1,5 +1,8 @@
 package com.xiongx9527.fw.plus.ai.askdata.sql;
 
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataRowPredicate;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -39,6 +42,7 @@ public final class AskDataSqlInterceptorChain {
 			if (rewritten == null) {
 				throw new IllegalArgumentException("SQL 插件不能返回 null: " + interceptor.key);
 			}
+			validateAuthorizationBoundary(current.getAuthorizationSummary(), rewritten.getAuthorizationSummary());
 			current = command.withSql(rewritten.getSql());
 			audit.record(interceptor.key, "INTERCEPT");
 		}
@@ -51,6 +55,38 @@ public final class AskDataSqlInterceptorChain {
 			throw new IllegalArgumentException(result.getFailureCategory().name() + ": " + result.getMessage());
 		}
 		return current;
+	}
+
+	private static void validateAuthorizationBoundary(AskDataAuthorizationSummary original,
+			AskDataAuthorizationSummary rewritten) {
+		if (original == null) {
+			return;
+		}
+		if (rewritten == null || !original.getAuthorizedObjects().containsAll(rewritten.getAuthorizedObjects())
+				|| !containsAllRequiredRowPredicates(rewritten, original)) {
+			throw new IllegalArgumentException("插件不能扩大或弱化 authorizationSummary");
+		}
+	}
+
+	private static boolean containsAllRequiredRowPredicates(AskDataAuthorizationSummary candidate,
+			AskDataAuthorizationSummary required) {
+		for (AskDataRowPredicate requiredPredicate : required.getRowPredicates()) {
+			if (!containsRowPredicate(candidate.getRowPredicates(), requiredPredicate)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private static boolean containsRowPredicate(List<AskDataRowPredicate> candidates, AskDataRowPredicate required) {
+		for (AskDataRowPredicate candidate : candidates) {
+			if (candidate.getAuthorizedObject().equals(required.getAuthorizedObject())
+					&& candidate.getSqlFragment().equals(required.getSqlFragment())
+					&& candidate.getParameters().equals(required.getParameters())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static List<InterceptorNode> sortAndValidate(List<AskDataSqlInterceptor> source) {

@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.askdata.security;
 
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlParameter;
 import org.junit.jupiter.api.Test;
 
@@ -12,6 +13,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class AskDataGovernanceProviderTest {
+
+	@Test
+	public void shouldDenyByDefaultWithStableGovernanceCode() {
+		AskDataGovernanceProvider provider = new DefaultDenyAskDataGovernanceProvider();
+
+		AskDataAuthorizationSummary summary = provider.authorize(
+				new AskDataAuthorizationRequest(new AskDataProjectContext("project-a", "operator-a")));
+
+		assertFalse(summary.isAllowed());
+		assertTrue(summary.getAuthorizedObjects().isEmpty());
+		assertTrue(summary.getRowPredicates().isEmpty());
+		assertTrue(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE.startsWith("ASKDATA_GOVERNANCE_"));
+	}
 
 	@Test
 	public void shouldRejectDeniedAuthorizationSummary() {
