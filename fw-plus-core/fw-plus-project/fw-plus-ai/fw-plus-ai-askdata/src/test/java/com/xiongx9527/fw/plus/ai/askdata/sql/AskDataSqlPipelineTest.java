@@ -1,6 +1,9 @@
 package com.xiongx9527.fw.plus.ai.askdata.sql;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataRowPredicate;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -20,6 +23,45 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AskDataSqlPipelineTest {
+
+	@Test
+	public void shouldCarryAuthorizationSummaryWhenSqlChanges() {
+		AskDataAuthorizationSummary summary = authorizationSummary();
+		AskDataSqlCommand command = commandWithAuthorizationSummary(summary);
+
+		AskDataSqlCommand rewritten = command.withSql("select * from sales where tenant_id = :tenantId");
+
+		assertSame(summary, rewritten.getAuthorizationSummary());
+	}
+
+	@Test
+	public void shouldRejectPluginThatExpandsAuthorizationSummaryObjects() {
+		AskDataAuthorizationSummary originalSummary = authorizationSummary();
+		AskDataAuthorizationSummary expandedSummary = AskDataAuthorizationSummary.allow(Arrays.asList(
+				new AskDataAuthorizedObject("analytics", "sales", "tenant_id"),
+				new AskDataAuthorizedObject("analytics", "users", "id")), originalSummary.getRowPredicates());
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Collections.singletonList(
+				interceptorReplacingAuthorizationSummary(expandedSummary)), new PermissiveValidator(), new AskDataSqlAudit());
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> chain.execute(commandWithAuthorizationSummary(originalSummary)));
+
+		assertTrue(exception.getMessage().contains("authorizationSummary"));
+	}
+
+	@Test
+	public void shouldRejectPluginThatRemovesRequiredRowPredicate() {
+		AskDataAuthorizationSummary originalSummary = authorizationSummary();
+		AskDataAuthorizationSummary weakenedSummary = AskDataAuthorizationSummary.allow(
+				originalSummary.getAuthorizedObjects(), Collections.<AskDataRowPredicate>emptyList());
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Collections.singletonList(
+				interceptorReplacingAuthorizationSummary(weakenedSummary)), new PermissiveValidator(), new AskDataSqlAudit());
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> chain.execute(commandWithAuthorizationSummary(originalSummary)));
+
+		assertTrue(exception.getMessage().contains("authorizationSummary"));
+	}
 
 	@Test
 	public void shouldOrderPluginsAndAuditEveryPhase() {
@@ -264,6 +306,40 @@ public class AskDataSqlPipelineTest {
 	private static AskDataSqlCommand command(String sql) {
 		return new AskDataSqlCommand(new AskDataProjectContext("project-a", "operator-a"), sql,
 				Collections.<AskDataSqlParameter>emptyList(), Collections.singleton("sales"));
+	}
+
+	private static AskDataSqlCommand commandWithAuthorizationSummary(AskDataAuthorizationSummary summary) {
+		return new AskDataSqlCommand(new AskDataProjectContext("project-a", "operator-a"),
+				"select * from sales where tenant_id = :tenantId",
+				Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-a")),
+				Collections.singleton("sales"), summary);
+	}
+
+	private static AskDataAuthorizationSummary authorizationSummary() {
+		AskDataAuthorizedObject object = new AskDataAuthorizedObject("analytics", "sales", "tenant_id");
+		AskDataRowPredicate predicate = new AskDataRowPredicate(object, "tenant_id = :tenantId",
+				Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-a")));
+		return AskDataAuthorizationSummary.allow(Collections.singletonList(object), Collections.singletonList(predicate));
+	}
+
+	private static AskDataSqlInterceptor interceptorReplacingAuthorizationSummary(
+			final AskDataAuthorizationSummary authorizationSummary) {
+		return new AskDataSqlInterceptor() {
+			@Override
+			public String getKey() {
+				return "authorization-summary";
+			}
+
+			@Override
+			public int getOrder() {
+				return 1;
+			}
+
+			@Override
+			public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+				return command.withAuthorizationSummary(authorizationSummary);
+			}
+		};
 	}
 
 	private static AskDataSqlInterceptor interceptor(final String key, final int order, final String suffix) {
