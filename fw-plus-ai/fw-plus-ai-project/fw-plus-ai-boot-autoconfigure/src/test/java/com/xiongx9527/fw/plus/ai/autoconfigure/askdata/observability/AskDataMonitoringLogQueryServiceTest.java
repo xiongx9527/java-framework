@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataMonitoringLogAcces
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
 import org.junit.jupiter.api.Test;
 
@@ -65,7 +66,7 @@ public class AskDataMonitoringLogQueryServiceTest {
     }
 
     @Test
-    public void shouldRejectOrdinaryOperatorAndWriteNoAuditLog() {
+    public void shouldRejectOrdinaryOperatorAndWriteSanitizedDenialAudit() {
         InMemoryAskDataMonitoringLogStore store = new InMemoryAskDataMonitoringLogStore(10);
         AskDataProjectContext owner = new AskDataProjectContext("project-a", "operator-a");
         AskDataProjectContext operator = new AskDataProjectContext("project-a", "operator-b");
@@ -75,7 +76,36 @@ public class AskDataMonitoringLogQueryServiceTest {
                         AskDataAuthorizationSummary.deny(request, "NOT_ADMIN", "policy-v1", "iam-main"));
 
         assertEquals(0, service.queryProject(operator, "project-a", AskDataMonitoringLogQuery.all()).size());
-        assertEquals(0, store.list(operator).size());
+        List<AskDataMonitoringLogStore.MonitoringLog> auditLogs = store.list(operator);
+        assertEquals(1, auditLogs.size());
+        assertEquals("GOVERNANCE_DENIED", auditLogs.get(0).getEventType());
+        assertEquals(AskDataMonitoringLogQueryService.MONITORING_LOG_DATASOURCE,
+                auditLogs.get(0).getDatasourceKey());
+        assertEquals("NOT_ADMIN", auditLogs.get(0).getDenialCode());
+        assertEquals("policy-v1", auditLogs.get(0).getAuthorizationVersion());
+        assertEquals("iam-main", auditLogs.get(0).getAuthorizationSource());
+        assertFalse(auditLogs.get(0).getMessage().contains("conversation-1"));
+    }
+
+    @Test
+    public void shouldAuditSanitizedDenialWhenGovernanceProviderFails() {
+        InMemoryAskDataMonitoringLogStore store = new InMemoryAskDataMonitoringLogStore(10);
+        AskDataProjectContext administrator = new AskDataProjectContext("project-a", "admin-a");
+        AskDataMonitoringLogQueryService service = new AskDataMonitoringLogQueryService(store,
+                AskDataMonitoringLogAccessPolicy.projectAdministratorOnly(), request -> {
+                    throw new IllegalStateException("credential=never-log-this");
+                });
+
+        assertEquals(0, service.queryProject(administrator, "project-a", AskDataMonitoringLogQuery.all()).size());
+
+        AskDataMonitoringLogStore.MonitoringLog auditLog = store.list(administrator).get(0);
+        assertEquals("GOVERNANCE_DENIED", auditLog.getEventType());
+        assertEquals(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE, auditLog.getDenialCode());
+        assertFalse(auditLog.getAuthorizationVersion() == null
+                || auditLog.getAuthorizationVersion().trim().isEmpty());
+        assertFalse(auditLog.getAuthorizationSource() == null
+                || auditLog.getAuthorizationSource().trim().isEmpty());
+        assertFalse(auditLog.getMessage().contains("never-log-this"));
     }
 
     @Test

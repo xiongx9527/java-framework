@@ -15,6 +15,10 @@ public class AskDataMonitoringLog {
 	private final String traceId;
 	private final AskDataEvent.Type eventType;
 	private final String message;
+	private final String datasourceKey;
+	private final String denialCode;
+	private final String authorizationVersion;
+	private final String authorizationSource;
 
 	/**
 	 * 创建一条已脱敏的监控日志。
@@ -27,6 +31,12 @@ public class AskDataMonitoringLog {
 	 */
 	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
 			String message) {
+		this(context, traceId, eventType, message, null, null, null, null);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource) {
 		if (context == null) {
 			throw new IllegalArgumentException("context 不能为空");
 		}
@@ -37,6 +47,10 @@ public class AskDataMonitoringLog {
 		this.traceId = traceId;
 		this.eventType = eventType;
 		this.message = message;
+		this.datasourceKey = datasourceKey;
+		this.denialCode = denialCode;
+		this.authorizationVersion = authorizationVersion;
+		this.authorizationSource = authorizationSource;
 	}
 
 	/**
@@ -75,6 +89,11 @@ public class AskDataMonitoringLog {
 		return message;
 	}
 
+	public String getDatasourceKey() { return datasourceKey; }
+	public String getDenialCode() { return denialCode; }
+	public String getAuthorizationVersion() { return authorizationVersion; }
+	public String getAuthorizationSource() { return authorizationSource; }
+
 	/**
 	 * 转换为监控日志存储 SPI 所使用的最小审计记录。
 	 *
@@ -85,6 +104,7 @@ public class AskDataMonitoringLog {
 	 * @return 可追加到监控日志存储的记录
 	 */
 	public AskDataMonitoringLogStore.MonitoringLog toStorageLog() {
-		return new AskDataMonitoringLogStore.MonitoringLog(context, traceId, eventType.name(), message);
+		return new AskDataMonitoringLogStore.MonitoringLog(context, traceId, eventType.name(), message,
+				datasourceKey, denialCode, authorizationVersion, authorizationSource);
 	}
 }

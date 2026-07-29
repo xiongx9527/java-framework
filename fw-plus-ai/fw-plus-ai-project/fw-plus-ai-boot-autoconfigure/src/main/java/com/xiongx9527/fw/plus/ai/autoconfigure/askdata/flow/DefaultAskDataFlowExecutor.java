@@ -537,10 +537,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             try {
                 validation = validateSql(request, metadata, checkpoint.getSql(), dialect, authorizationSummary(context));
             } catch (RuntimeException ex) {
-                return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
+                return validationFailure(request, result, AskDataSqlValidationResult.rejected(
+                        AskDataErrorCode.SQL_REJECTED, message(ex)), authorizationSummary(context));
             }
             if (validation == null || !validation.isValid()) {
-                return validationFailure(result, validation);
+                return validationFailure(request, result, validation, authorizationSummary(context));
             }
             context.setSql(validation.getSql());
             context.setSqlValidated(Boolean.TRUE);
@@ -628,10 +629,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             validation = validateCheckpointSql(request, metadata, checkpoint.getSql(), dialect,
                     authorizationSummary(context));
         } catch (RuntimeException ex) {
-            return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
+            return validationFailure(request, result, AskDataSqlValidationResult.rejected(
+                    AskDataErrorCode.SQL_REJECTED, message(ex)), authorizationSummary(context));
         }
         if (validation == null || !validation.isValid()) {
-            return validationFailure(result, validation);
+            return validationFailure(request, result, validation, authorizationSummary(context));
         }
         context.setSql(validation.getSql());
         context.setSqlValidated(Boolean.TRUE);
@@ -654,10 +656,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         try {
             validation = validateSql(request, metadata, generatedSql, dialect, authorizationSummary(context));
         } catch (RuntimeException ex) {
-            return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
+            return validationFailure(request, result, AskDataSqlValidationResult.rejected(
+                    AskDataErrorCode.SQL_REJECTED, message(ex)), authorizationSummary(context));
         }
         if (validation == null || !validation.isValid()) {
-            return validationFailure(result, validation);
+            return validationFailure(request, result, validation, authorizationSummary(context));
         }
         result.setSql(validation.getSql());
         context.setSql(validation.getSql());
@@ -714,10 +717,12 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return result;
     }
 
-    private AskDataResult validationFailure(AskDataResult result, AskDataSqlValidationResult validation) {
+    private AskDataResult validationFailure(AskDataRequest request, AskDataResult result,
+            AskDataSqlValidationResult validation, AskDataAuthorizationSummary authorizationSummary) {
         String errorCode = validation == null || isBlank(validation.getErrorCode()) ? AskDataErrorCode.SQL_REJECTED
                 : validation.getErrorCode();
         String errorMessage = validation == null ? "AskData SQL validation failed" : validation.getMessage();
+        publishGovernanceDenied(request, result, authorizationSummary, false, errorCode);
         return failure(result, "validate-sql", errorCode, errorMessage);
     }
 
@@ -746,11 +751,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         if (sqlInterceptorChain != null) {
             command = commandForInterceptors(request, command);
-            AskDataAuthorizationSummary originalSummary = command.getAuthorizationSummary();
             AskDataSqlCommand rewritten = sqlInterceptorChain.execute(command);
             AskDataAuthorizationSummary finalSummary = rewritten.getAuthorizationSummary();
             command = governedCommand(request, rewritten.getSql(), finalSummary,
-                    additionalRowPredicates(originalSummary, finalSummary));
+                    finalSummary == null ? Collections.<AskDataRowPredicate>emptyList()
+                            : finalSummary.getRowPredicates());
             AskDataMetadata finalMetadata = authorizedMetadata(request, metadata, command.getAuthorizationSummary());
             AskDataSqlValidationResult finalValidation = sqlValidator.validate(command.getSql(), dialect,
                     maxRows(request), finalMetadata);
@@ -913,20 +918,6 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
     }
 
-    private List<AskDataRowPredicate> additionalRowPredicates(AskDataAuthorizationSummary original,
-            AskDataAuthorizationSummary narrowed) {
-        if (narrowed == null || narrowed.getRowPredicates().isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<AskDataRowPredicate> additional = new ArrayList<AskDataRowPredicate>();
-        for (AskDataRowPredicate predicate : narrowed.getRowPredicates()) {
-            if (original == null || !original.getRowPredicates().contains(predicate)) {
-                additional.add(predicate);
-            }
-        }
-        return additional;
-    }
-
     private Set<String> authorizedObjects(AskDataRequest request, AskDataAuthorizationSummary authorizationSummary) {
         Set<String> authorizedObjects = new LinkedHashSet<String>();
         if (request == null || authorizationSummary == null || authorizationSummary.getAuthorizedObjects() == null) {
@@ -953,6 +944,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             List<com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn> columns =
                     new ArrayList<com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn>();
             boolean tableAuthorized = false;
+            boolean tableLevelAuthorized = false;
             for (AskDataAuthorizedObject authorizedObject : authorizationSummary == null
                     ? Collections.<AskDataAuthorizedObject>emptyList()
                     : authorizationSummary.getAuthorizedObjects()) {
@@ -962,6 +954,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                     continue;
                 }
                 tableAuthorized = true;
+                tableLevelAuthorized = tableLevelAuthorized || "*".equals(authorizedObject.getColumnName());
                 for (com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn column
                         : table.getColumns()) {
                     if (column != null && ("*".equals(authorizedObject.getColumnName())
@@ -972,7 +965,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 }
             }
             if (tableAuthorized) {
-                tables.add(new AskDataTable(table.getName(), columns));
+                tables.add(new AskDataTable(table.getName(), columns, tableLevelAuthorized));
             }
         }
         return new AskDataMetadata(metadata.getDialect(), tables, Collections.<String>emptyList(),
@@ -1021,11 +1014,17 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
     private void publishGovernanceDenied(AskDataRequest request, AskDataResult result,
             AskDataAuthorizationSummary authorizationSummary, boolean providerError) {
+        publishGovernanceDenied(request, result, authorizationSummary, providerError, null);
+    }
+
+    private void publishGovernanceDenied(AskDataRequest request, AskDataResult result,
+            AskDataAuthorizationSummary authorizationSummary, boolean providerError, String denialCodeOverride) {
         if (eventPublisher == null || request == null || request.getProjectContext() == null) {
             return;
         }
-        String denialCode = authorizationSummary == null || isBlank(authorizationSummary.getDenialCode())
-                ? DefaultDenyAskDataGovernanceProvider.DENIAL_CODE : authorizationSummary.getDenialCode();
+        String denialCode = !isBlank(denialCodeOverride) ? denialCodeOverride
+                : authorizationSummary == null || isBlank(authorizationSummary.getDenialCode())
+                        ? DefaultDenyAskDataGovernanceProvider.DENIAL_CODE : authorizationSummary.getDenialCode();
         String version = providerError || authorizationSummary == null
                 ? GOVERNANCE_ERROR_VERSION : authorizationSummary.getAuthorizationVersion();
         String source = providerError || authorizationSummary == null

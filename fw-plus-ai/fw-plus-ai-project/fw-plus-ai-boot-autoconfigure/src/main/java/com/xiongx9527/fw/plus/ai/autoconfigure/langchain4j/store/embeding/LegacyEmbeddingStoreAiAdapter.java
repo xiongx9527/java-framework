@@ -42,11 +42,6 @@ final class LegacyEmbeddingStoreAiAdapter implements AiEmbeddingStoreAdapter {
 	}
 
 	@Override
-	public String getFramework() {
-		return FRAMEWORK;
-	}
-
-	@Override
 	public AiEmbeddingStore create(AiEmbeddingStoreDefinition definition) {
 		EmbeddingStoreDefinition legacy = new EmbeddingStoreDefinition();
 		legacy.setKey(definition.getKey());

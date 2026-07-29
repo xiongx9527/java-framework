@@ -77,6 +77,22 @@ public class AskDataObservabilityContractTest {
 		assertEquals("已脱敏 SQL 校验摘要", log.getMessage());
 	}
 
+	@Test
+	public void shouldPreserveGovernanceDimensionsInStoredMonitoringLog() {
+		AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
+		AskDataEvent event = AskDataEvent.governanceDenied(context, "trace-2", "analytics",
+				"COLUMN_DENIED", "policy-v7", "iam-main");
+		RecordingMonitoringLogStore store = new RecordingMonitoringLogStore();
+
+		AskDataEventPublisher.toStore(store).publish(event);
+
+		AskDataMonitoringLogStore.MonitoringLog log = store.logs.get(0);
+		assertEquals("analytics", log.getDatasourceKey());
+		assertEquals("COLUMN_DENIED", log.getDenialCode());
+		assertEquals("policy-v7", log.getAuthorizationVersion());
+		assertEquals("iam-main", log.getAuthorizationSource());
+	}
+
 	private static class RecordingMonitoringLogStore implements AskDataMonitoringLogStore {
 		private AskDataProjectContext context;
 		private final List<MonitoringLog> logs = new ArrayList<MonitoringLog>();

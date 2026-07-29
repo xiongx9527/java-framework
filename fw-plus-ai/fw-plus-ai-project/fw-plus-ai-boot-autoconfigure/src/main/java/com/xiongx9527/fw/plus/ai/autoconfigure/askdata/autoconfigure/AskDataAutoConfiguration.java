@@ -363,7 +363,7 @@ public class AskDataAutoConfiguration {
         }
         List<AskDataTable> tables = new ArrayList<AskDataTable>();
         for (Map.Entry<String, List<AskDataColumn>> entry : columnsByTable.entrySet()) {
-            tables.add(new AskDataTable(entry.getKey(), entry.getValue()));
+            tables.add(new AskDataTable(entry.getKey(), entry.getValue(), containsColumn(entry.getValue(), "*")));
         }
         return new AskDataMetadata(null, tables, Collections.<String>emptyList(), Collections.<String>emptyList(),
                 Collections.<String>emptyList());

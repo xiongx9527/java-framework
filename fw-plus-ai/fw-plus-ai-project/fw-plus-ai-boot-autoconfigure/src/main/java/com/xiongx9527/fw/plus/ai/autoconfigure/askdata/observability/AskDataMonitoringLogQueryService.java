@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataMonitoringLog;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataMonitoringLogAccessPolicy;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
@@ -15,6 +16,7 @@ import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 public class AskDataMonitoringLogQueryService {
 
@@ -56,11 +58,13 @@ public class AskDataMonitoringLogQueryService {
         try {
             authorizationSummary = governanceProvider.authorize(authorizationRequest);
         } catch (RuntimeException ex) {
+            auditDenied(requester, null, true);
             return Collections.emptyList();
         }
         if (authorizationSummary == null || !authorizationSummary.isAllowed()
                 || !authorizationSummary.isBoundTo(authorizationRequest)
                 || !authorizationSummary.getAdministrativeScope().allowsProject(projectId)) {
+            auditDenied(requester, authorizationSummary, false);
             return Collections.emptyList();
         }
         List<AskDataMonitoringLogStore.MonitoringLog> result = new ArrayList<AskDataMonitoringLogStore.MonitoringLog>();
@@ -92,8 +96,24 @@ public class AskDataMonitoringLogQueryService {
             eventType = AskDataEvent.Type.AGENT_NODE_EXECUTED;
         }
         AskDataMonitoringLog monitoringLog = new AskDataMonitoringLog(log.getContext(), log.getTraceId(),
-                eventType, log.getMessage());
+                eventType, log.getMessage(), log.getDatasourceKey(), log.getDenialCode(),
+                log.getAuthorizationVersion(), log.getAuthorizationSource());
         return accessPolicy.canRead(requester, administrativeScope, monitoringLog);
+    }
+
+    private void auditDenied(AskDataProjectContext requester, AskDataAuthorizationSummary authorizationSummary,
+            boolean providerError) {
+        if (requester == null || store == null) {
+            return;
+        }
+        String denialCode = authorizationSummary == null || isBlank(authorizationSummary.getDenialCode())
+                ? DefaultDenyAskDataGovernanceProvider.DENIAL_CODE : authorizationSummary.getDenialCode();
+        String version = providerError || authorizationSummary == null
+                ? "governance-error-v1" : authorizationSummary.getAuthorizationVersion();
+        String source = providerError || authorizationSummary == null
+                ? "governance-provider-error" : authorizationSummary.getAuthorizationSource();
+        AskDataEventPublisher.toStore(store).publish(AskDataEvent.governanceDenied(requester,
+                UUID.randomUUID().toString(), MONITORING_LOG_DATASOURCE, denialCode, version, source));
     }
 
     private String traceFilterSummary(AskDataMonitoringLogQuery query) {
