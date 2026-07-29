@@ -2,6 +2,8 @@
 comet_change: add-askdata-governance-permission-bridge
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-29-add-askdata-governance-permission-bridge
+status: final
 ---
 
 # AskData 治理权限桥接深度设计
