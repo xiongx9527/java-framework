@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.web;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreFactory;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 import org.junit.jupiter.api.Test;
@@ -94,6 +95,31 @@ public class MagicVectorControllerTest {
 
         assertEquals(-1, result.getCode());
         assertFalse(String.valueOf(result).contains("vector-secret"));
+    }
+
+    @Test
+    public void datasourceTestShouldReportAmbiguousCandidateFrameworks() {
+        AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
+        definition.setKey("knowledge");
+        definition.setProvider("fake");
+        definition.setType(AiEmbeddingStoreType.VECTOR);
+        MagicVectorController controller = new MagicVectorController(new MagicConfiguration(),
+                new AiEmbeddingStoreFactory() {
+                    @Override
+                    public AiEmbeddingStore create(AiEmbeddingStoreDefinition input,
+                                                   java.util.List<AiEmbeddingStoreAdapter> adapters) {
+                        throw new AiEmbeddingStoreException(
+                                "Multiple adapters support store: key=knowledge, candidateFrameworks=[first, second], "
+                                        + "apiKey=controller-secret");
+                    }
+                }, Collections.<AiEmbeddingStoreAdapter>emptyList());
+
+        JsonBean<Object> result = controller.test(definition);
+
+        assertEquals(-1, result.getCode());
+        assertTrue(result.getMessage().contains("first"));
+        assertTrue(result.getMessage().contains("second"));
+        assertFalse(result.getMessage().contains("controller-secret"));
     }
 
     @Test

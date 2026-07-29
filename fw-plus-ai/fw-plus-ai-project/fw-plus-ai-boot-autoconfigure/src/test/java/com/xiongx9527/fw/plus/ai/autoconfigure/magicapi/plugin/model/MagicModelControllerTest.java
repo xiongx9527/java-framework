@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.ModelDataSourceInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.web.MagicModelController;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
 import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelException;
 import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
 import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import org.junit.jupiter.api.Test;
@@ -59,6 +59,24 @@ class MagicModelControllerTest {
 
         assertEquals(-1, result.getCode());
         assertNoCredentials(String.valueOf(result));
+    }
+
+    @Test
+    void datasourceTestReportsAmbiguousCandidateFrameworks() {
+        AiModelFactory factory = new AiModelFactory() {
+            @Override
+            public AiModel create(AiModelDefinition input, List<AiModelAdapter> adapters) {
+                throw new AiModelException(
+                        "Multiple adapters support key=chat, candidates=[first, second], apiKey=controller-secret");
+            }
+        };
+
+        JsonBean<Object> result = controller(factory).test(definition());
+
+        assertEquals(-1, result.getCode());
+        assertTrue(result.getMessage().contains("first"));
+        assertTrue(result.getMessage().contains("second"));
+        assertFalse(result.getMessage().contains("controller-secret"));
     }
 
     @Test
@@ -133,7 +151,7 @@ class MagicModelControllerTest {
         ModelDataSourceInfo definition = new ModelDataSourceInfo();
         definition.setKey("chat");
         definition.setProvider("fake");
-        definition.setModelType(LangChain4jModelType.CHAT);
+        definition.setModelType(AiModelType.CHAT);
         definition.setModelName(Collections.singletonList("gpt-4o-mini"));
         definition.setApiKey("api-key-secret");
         definition.setSecretKey("secret-key-secret");

@@ -80,7 +80,7 @@
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-langchain4j-store-embeding-spring-boot-starter</artifactId>
+            <artifactId>fw-plus-ai-store-embedding-spring-boot-starter</artifactId>
         </dependency>
     </dependencies>
 </project>
