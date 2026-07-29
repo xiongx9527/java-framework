@@ -231,27 +231,27 @@ Run: `git add docs/askdata/starter openspec/changes/add-askdata-governance-permi
 - Consumes: all implementation and docs.
 - Produces: verification report and fully checked tasks.
 
-- [ ] **Step 1: Run OpenSpec validation**
+- [x] **Step 1: Run OpenSpec validation**
 
 Run: `openspec validate add-askdata-governance-permission-bridge --strict`
 Expected: `Change 'add-askdata-governance-permission-bridge' is valid`.
 
-- [ ] **Step 2: Run Core targeted tests**
+- [x] **Step 2: Run Core targeted tests**
 
 Run: `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata test`
 Expected: BUILD SUCCESS with all AskData Core tests passing.
 
-- [ ] **Step 3: Run AI AskData targeted tests**
+- [x] **Step 3: Run AI AskData targeted tests**
 
 Run: `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='*AskData*Test' test`
 Expected: BUILD SUCCESS with AskData autoconfiguration tests passing.
 
-- [ ] **Step 4: Run Starter package check**
+- [x] **Step 4: Run Starter package check**
 
 Run: `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -DskipTests package`
 Expected: BUILD SUCCESS. Existing local POM warnings may be recorded if they do not fail the build.
 
-- [ ] **Step 5: Run static scans**
+- [x] **Step 5: Run static scans**
 
 Run: `git diff --check -- fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure docs/askdata openspec/changes/add-askdata-governance-permission-bridge`
 Expected: exit code 0.
@@ -259,11 +259,11 @@ Expected: exit code 0.
 Run: `! rg -n "TBD|TODO|后续实现|未实现|外部集成预留" docs/askdata/starter openspec/changes/add-askdata-governance-permission-bridge docs/superpowers/specs/2026-07-29-add-askdata-governance-permission-bridge-design.md`
 Expected: exit code 0.
 
-- [ ] **Step 6: Write verification report and check final tasks**
+- [x] **Step 6: Write verification report and check final tasks**
 
 Record commands, results, test counts, remaining external integration non-goals, and any accepted warnings in `docs/superpowers/reports/2026-07-29-add-askdata-governance-permission-bridge-verify.md`. Mark tasks 6.1 through 6.4 complete only after evidence is recorded.
 
-- [ ] **Step 7: Commit Task 6**
+- [x] **Step 7: Commit Task 6**
 
 Run: `git add openspec/changes/add-askdata-governance-permission-bridge/tasks.md docs/superpowers/reports/2026-07-29-add-askdata-governance-permission-bridge-verify.md && git commit -m "chore(askdata): record governance bridge verification"`
 

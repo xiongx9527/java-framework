@@ -187,3 +187,52 @@ Task 5: Documentation and OpenSpec Task Evidence
 
 - Task 5: complete (commits d5cd1cc9, 78ccb700; review clean after 1 fix round)
 - Stage: done
+
+## Current Task
+
+Task 6: Final Verification
+
+## Agent
+
+- Brief: .superpowers/sdd/task-6-brief.md
+- Report: .superpowers/sdd/task-6-report.md
+
+## Status
+
+- Stage: implementing
+
+## Task 6 Verification Result
+
+- Verifier: 019facd6-a162-7e80-995d-42f237f85890
+- Status: DONE_WITH_CONCERNS
+- Commit: 27de5e1d chore(askdata): record governance bridge verification evidence
+- Passed: OpenSpec strict validation, Core AskData tests, Starter package check, diff check, placeholder scan.
+- Failed: AI AskData targeted tests did not start because fw-plus-ai-boot-autoconfigure compilation failed in LegacyEmbeddingStoreAiAdapter missing AiEmbeddingStoreAdapter#getFramework().
+- Checked: 6.1, 6.2, 6.4
+- Unchecked: 6.3
+- Stage: verification-unblocker
+
+## Task 6 Verification Unblocker Result
+
+- Fix agent: 019facdd-0f7d-7fa1-ad9d-715b9b64fbb6
+- Status: DONE_WITH_CONCERNS
+- Commit: 69719f81 fix(ai): implement legacy embedding adapter framework key
+- RED: AI AskData targeted command failed at compile because LegacyEmbeddingStoreAiAdapter missed AiEmbeddingStoreAdapter#getFramework().
+- GREEN: LegacyEmbeddingStoreAiAdapterTest, 2/2 passed; AI AskData targeted command progressed to tests.
+- New blocker: AI AskData targeted command runs 149 tests with 28 failures in legacy AskData flow/resume/interceptor tests due to default governance deny.
+- Stage: verification-fix
+
+## Task 6 Verification Fixture Fix Result
+
+- Fix agent: 019face2-125c-7b33-839f-577733965c52
+- Status: DONE
+- Commit: 90cff5fa test(askdata): authorize legacy flow verification fixtures
+- RED: AI AskData targeted command ran 149 tests with 28 failures because legacy flow/resume/interceptor fixtures used the new default-deny provider without explicit authorization.
+- GREEN: `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='*AskData*Test' test` passed; 149 tests, 0 failures, 0 errors, 0 skipped.
+- Checked: 6.3
+- Stage: checkoff
+
+## Completed Task 6
+
+- Task 6: complete (commits 27de5e1d, 69719f81, 90cff5fa; final AI AskData targeted tests 149/149 passed)
+- Stage: done
