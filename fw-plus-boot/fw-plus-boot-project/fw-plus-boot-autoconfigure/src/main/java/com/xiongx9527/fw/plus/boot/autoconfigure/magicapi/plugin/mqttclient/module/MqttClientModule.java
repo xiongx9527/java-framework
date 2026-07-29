@@ -67,26 +67,34 @@ public class MqttClientModule implements DynamicAttribute<MqttClientModule, Mqtt
         return module;
     }
 
-    public boolean publish(String topic, Object payload) {
-        if (this.mqttClientProducer == null) {
-            throw new IllegalStateException("未找到可用的MQTT Client数据源");
+    private MqttClientProducer requireProducer() {
+        if (this.mqttClientProducer != null) {
+            return this.mqttClientProducer;
         }
-        return this.mqttClientProducer.publish(topic, payload);
+        String dataSourceKey = StringUtils.defaultIfBlank(this.key, "default");
+        throw new IllegalStateException("未找到可用的 MQTT Client 数据源: " + dataSourceKey);
+    }
+
+    public boolean publish(String topic, Object payload) {
+        return requireProducer().publish(topic, payload);
     }
 
     public boolean publish(String topic, Object payload, MqttQoS qos) {
-        if (this.mqttClientProducer == null) {
-            throw new IllegalStateException("未找到可用的MQTT Client数据源");
-        }
-        return this.mqttClientProducer.publish(topic, payload, qos);
+        return requireProducer().publish(topic, payload, qos);
     }
 
     public boolean publish(String topic, Object payload, int qos) {
         MqttQoS mqttQoS;
         switch (qos) {
-            case 1: mqttQoS = MqttQoS.QOS1; break;
-            case 2: mqttQoS = MqttQoS.QOS2; break;
-            default: mqttQoS = MqttQoS.QOS0; break;
+            case 1:
+                mqttQoS = MqttQoS.QOS1;
+                break;
+            case 2:
+                mqttQoS = MqttQoS.QOS2;
+                break;
+            default:
+                mqttQoS = MqttQoS.QOS0;
+                break;
         }
         return publish(topic, payload, mqttQoS);
     }

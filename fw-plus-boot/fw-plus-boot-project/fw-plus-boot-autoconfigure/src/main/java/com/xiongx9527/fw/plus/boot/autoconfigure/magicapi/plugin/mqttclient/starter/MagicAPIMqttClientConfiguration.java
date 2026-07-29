@@ -45,9 +45,10 @@ public class MagicAPIMqttClientConfiguration implements MagicPluginConfiguration
     @ConditionalOnMissingBean
     public MqttClientDataSourceMagicDynamicRegistry mqttClientDataSourceMagicDynamicRegistry(
             MqttClientDataSourceInfoMagicResourceStorage mqttClientDataSourceInfoMagicResourceStorage,
-            MagicDynamicMqttClientDataSource magicDynamicMqttClientDataSource) {
+            MagicDynamicMqttClientDataSource magicDynamicMqttClientDataSource,
+            MqttClientSubscribeInfoMagicResourceStorage mqttClientSubscribeInfoMagicResourceStorage) {
         return new MqttClientDataSourceMagicDynamicRegistry(mqttClientDataSourceInfoMagicResourceStorage,
-                magicDynamicMqttClientDataSource);
+                magicDynamicMqttClientDataSource, mqttClientSubscribeInfoMagicResourceStorage);
     }
 
     @Bean

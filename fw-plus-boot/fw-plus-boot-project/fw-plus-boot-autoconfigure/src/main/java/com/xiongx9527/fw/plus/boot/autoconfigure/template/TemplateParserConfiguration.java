@@ -10,7 +10,7 @@ import com.xiongx9527.fw.plus.template.word.WordAbstractParser;
 import com.xiongx9527.fw.plus.template.word.WordParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -25,7 +25,7 @@ public class TemplateParserConfiguration {
      */
     @Bean
     @ConditionalOnClass(name = "cn.afterturn.easypoi.word.parse.ParseWord07")
-    @ConditionalOnMissingClass
+    @ConditionalOnMissingBean(WordAbstractParser.class)
     public WordAbstractParser wordParser(@Autowired(required = false) AbstractWord2Html word2Html,
                                          @Autowired(required = false) AbstractWord2Pdf word2Pdf) {
         return new WordParser(word2Html, word2Pdf);
@@ -39,7 +39,7 @@ public class TemplateParserConfiguration {
      */
     @Bean
     @ConditionalOnClass(name = "cn.afterturn.easypoi.excel.ExcelImportUtil")
-    @ConditionalOnMissingClass
+    @ConditionalOnMissingBean(ExcelAbstractParser.class)
     public ExcelAbstractParser excelParser(@Autowired(required = false) AbstractExcel2Html excel2Html) {
         return new ExcelParser(excel2Html);
     }
@@ -52,7 +52,7 @@ public class TemplateParserConfiguration {
      */
     @Bean
     @ConditionalOnClass(name = "freemarker.template.Template")
-    @ConditionalOnMissingClass
+    @ConditionalOnMissingBean(HtmlAbstractParser.class)
     public HtmlAbstractParser htmlParser(@Autowired(required = false) AbstractHtml2Pdf html2Pdf) {
         return new HtmlParser(html2Pdf);
     }
@@ -69,7 +69,7 @@ public class TemplateParserConfiguration {
      * @return TemplateParser模板解析器实例
      */
     @Bean
-    @ConditionalOnMissingClass
+    @ConditionalOnMissingBean(TemplateParser.class)
     public TemplateParser templateParser(@Autowired(required = false) WordAbstractParser wordParser,
                                          @Autowired(required = false) ExcelAbstractParser excelParser,
                                          @Autowired(required = false) HtmlAbstractParser htmlParser) {

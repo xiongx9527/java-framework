@@ -1,9 +1,10 @@
 package cn.afterturn.easypoi.excel.export;
 
+import cn.afterturn.easypoi.excel.entity.FwPlusExcelTransParams;
 import cn.afterturn.easypoi.excel.entity.FwPlusExportParams;
 import cn.afterturn.easypoi.excel.entity.FwPlusImportParams;
-import cn.afterturn.easypoi.excel.entity.FwPlusTemplateExportParams;
 import cn.afterturn.easypoi.util.TransUtils;
+import org.apache.commons.collections4.CollectionUtils;
 
 import java.util.Collection;
 
@@ -22,13 +23,10 @@ public interface FwPlusExcelTransService {
      * @return 根据导出参数可能进行了转换的集合如果不需要转换，则返回原始集合
      */
     default Collection<?> transExportCollection(FwPlusExportParams exportParams, Collection coll) {
-        // 检查导出参数是否非空，并判断是否需要进行转换
-        if (null != exportParams && exportParams.isNeedTrans()) {
-            // 使用转换工具类TransUtils根据包含和排除的字段列表转换集合
-            return TransUtils.transCollection(coll, exportParams.getIncludeFields(), exportParams.getExcludeFields());
+        if (!shouldTrans(exportParams, coll)) {
+            return coll;
         }
-        // 如果不需要转换，直接返回原始集合
-        return coll;
+        return TransUtils.transCollection(coll, exportParams.getIncludeFields(), exportParams.getExcludeFields());
     }
 
     /**
@@ -41,15 +39,13 @@ public interface FwPlusExcelTransService {
      * @return 转换后的集合如果不需要转换，则直接返回原始集合
      */
     default Collection<?> transImportCollection(FwPlusImportParams importParams, Collection coll) {
-        // 检查导出参数是否非空，并判断是否需要进行转换
-        if (null != importParams && importParams.isNeedTrans()) {
-            // 使用转换工具类TransUtils根据包含和排除的字段列表转换集合
-            return TransUtils.transCollection(coll, importParams.getIncludeFields(), importParams.getExcludeFields());
+        if (!shouldTrans(importParams, coll)) {
+            return coll;
         }
-        // 如果不需要转换，直接返回原始集合
-        return coll;
+        return TransUtils.transCollection(coll, importParams.getIncludeFields(), importParams.getExcludeFields());
     }
 
-
-
+    default boolean shouldTrans(FwPlusExcelTransParams params, Collection coll) {
+        return params != null && params.isNeedTrans() && CollectionUtils.isNotEmpty(coll);
+    }
 }

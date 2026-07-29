@@ -31,6 +31,8 @@ public class FwPlusExcelExportService extends ExcelExportService implements FwPl
         // 这样处理是为了让类能够处理特定类型的ExportParams，从而实现更细致的控制和优化
         if (entity instanceof FwPlusExportParams) {
             fwPlusExportParams = (FwPlusExportParams) entity;
+        } else {
+            fwPlusExportParams = null;
         }
     }
 
