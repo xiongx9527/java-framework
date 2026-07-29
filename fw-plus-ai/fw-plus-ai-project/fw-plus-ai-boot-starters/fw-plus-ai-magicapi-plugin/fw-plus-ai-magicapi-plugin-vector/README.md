@@ -17,7 +17,7 @@ Magic-API 的 LangChain4j 向量存储插件，用于把 Spring Boot 中的 `Emb
 模块依赖：
 
 - `fw-plus-ai-boot-autoconfigure`：提供 Magic-API 插件后端配置、控制器、资源存储和动态注册。
-- `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter`：提供 `EmbeddingStoreRegistry`、向量 store 工厂和 provider adapter。
+- `fw-plus-ai-langchain4j-adapter-spring-boot-starter`：提供统一 LangChain4j adapter；向量 store 通过中立 `AiEmbeddingStoreRegistry` 暴露。
 
 具体向量数据库 SDK 不由本插件一次性全部引入。使用 Milvus、Qdrant、Weaviate、Redis、Elasticsearch、PGVector 等 provider 时，请在业务应用侧按需引入对应 LangChain4j 实现依赖。
 
@@ -48,7 +48,7 @@ magic-api:
 
 ## Spring Boot 向量存储配置
 
-如果向量 store 由 Spring Boot 配置创建，使用 `fw-plus.ai.langchain4j.embedding-store` 前缀：
+如果向量 store 由 Spring Boot 配置创建，使用 `fw-plus.ai.embedding-store` 前缀，并将 `framework` 设为 `langchain4j`：
 
 ```yaml
 fw-plus:

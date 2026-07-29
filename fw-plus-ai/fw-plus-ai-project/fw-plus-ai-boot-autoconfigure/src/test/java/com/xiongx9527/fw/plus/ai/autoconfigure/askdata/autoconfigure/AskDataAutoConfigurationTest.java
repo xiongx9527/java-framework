@@ -27,10 +27,14 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidationResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.DefaultLangChain4jModelRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModel;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
+import com.xiongx9527.fw.plus.ai.model.DefaultAiModelRegistry;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -178,7 +182,7 @@ public class AskDataAutoConfigurationTest {
     @Test
     public void shouldUseDirectLangChain4jBeansWithoutOptionalModelCore() {
         contextRunner
-                .withClassLoader(new FilteredClassLoader("com.xiongx9527.fw.plus.ai.langchain4j.model"))
+                .withClassLoader(new FilteredClassLoader("com.xiongx9527.fw.plus.ai.langchain4j.adapter"))
                 .withPropertyValues(
                         "fw.plus.ai.askdata.model.default-chat-model=directChat",
                         "fw.plus.ai.askdata.model.default-embedding-model=directEmbedding")
@@ -194,14 +198,19 @@ public class AskDataAutoConfigurationTest {
 
     @Test
     public void shouldUseModelsFromOptionalModelRegistry() {
-        Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
-        models.put("managed", new LangChain4jModel("test", LangChain4jModelType.CHAT,
-                chatModel("managed-response")));
-        LangChain4jModelRegistry modelRegistry = new DefaultLangChain4jModelRegistry(models, "managed");
+        Map<String, AiModel> models = new LinkedHashMap<String, AiModel>();
+        AiModelDefinition definition = new AiModelDefinition();
+        definition.setKey("managed");
+        definition.setFramework("langchain4j");
+        definition.setProvider("test");
+        definition.setType(AiModelType.CHAT);
+        models.put("managed", new LangChain4jAiModel(definition,
+                new LangChain4jModel("test", LangChain4jModelType.CHAT, chatModel("managed-response"))));
+        AiModelRegistry modelRegistry = new DefaultAiModelRegistry(models, "managed");
 
         contextRunner
                 .withPropertyValues("fw.plus.ai.askdata.model.default-chat-model=managed")
-                .withBean(LangChain4jModelRegistry.class, () -> modelRegistry)
+                .withBean(AiModelRegistry.class, () -> modelRegistry)
                 .run(context -> {
                     assertTrue(context.getStartupFailure() == null);
                     assertEquals("managed-response", context.getBean(AskDataModelRegistry.class)
