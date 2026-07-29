@@ -26,6 +26,7 @@
         <module>fw-plus-ai-langchain4j-dashscope</module>
         <module>fw-plus-ai-langchain4j-store-embeding</module>
         <module>fw-plus-ai-langchain4j-model</module>
+        <module>fw-plus-ai-langchain4j-adapter</module>
         <module>fw-plus-ai-langchain4j-reactor</module>
     </modules>
     <artifactId>fw-plus-ai-langchain4j</artifactId>
