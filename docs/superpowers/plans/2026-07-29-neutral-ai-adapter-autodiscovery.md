@@ -215,20 +215,22 @@ git commit -m "refactor(ai): isolate langchain4j boot autoconfiguration"
 - Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-store-embedding-spring-boot-starter/pom.xml`
 - Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/starter/NeutralStarterDependencyTest.java`
 
-- [ ] **Step 1: 写入 starter 依赖边界失败测试**
+- [x] **Step 1: 写入 starter 依赖边界失败测试**
 
 断言中立 starter 不解析 `dev.langchain4j` 与统一 adapter；adapter starter 解析 adapter 自动配置但不传递全部 provider SDK。
 
-- [ ] **Step 2: 实现 starter POM 与 BOM 注册**
+- [x] **Step 2: 实现 starter POM 与 BOM 注册**
+
+旧两个 starter 的消费者仍包括 Magic-API 与待用户确认迁移的 AskData；其目录、聚合和 BOM 删除已后移到最终清理任务，待消费者完成统一 adapter starter 切换后执行。
 
 adapter starter 依赖中立 model/store starter、统一 adapter 和 adapter 自动配置。删除两个旧 starter 的聚合/BOM 条目与目录。
 
-- [ ] **Step 3: 运行 starter dependency 测试**
+- [x] **Step 3: 运行 starter dependency 测试**
 
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter -am -Dtest=NeutralStarterDependencyTest test`
 Expected: 中立 starter 零 LangChain4j 传递依赖断言通过。
 
-- [ ] **Step 4: 提交 starter 任务**
+- [x] **Step 4: 提交 starter 任务**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies
