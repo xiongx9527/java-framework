@@ -30,6 +30,16 @@
             <groupId>com.vesoft</groupId>
             <artifactId>${vesoft-nebula-sdk.artifactId}</artifactId>
             <version>${vesoft-nebula-sdk.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.servlet</groupId>
+                    <artifactId>javax.servlet-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.annotation</groupId>
+                    <artifactId>javax.annotation-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.alibaba</groupId>
