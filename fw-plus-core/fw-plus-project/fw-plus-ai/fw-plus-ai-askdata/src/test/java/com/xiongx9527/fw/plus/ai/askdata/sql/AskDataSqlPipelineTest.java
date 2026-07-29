@@ -50,6 +50,20 @@ public class AskDataSqlPipelineTest {
 	}
 
 	@Test
+	public void shouldRejectPluginThatClearsAuthorizationSummaryObjectsWithoutRowPredicates() {
+		AskDataAuthorizationSummary originalSummary = authorizationSummaryWithoutRowPredicates();
+		AskDataAuthorizationSummary clearedSummary = AskDataAuthorizationSummary.allow(
+				Collections.<AskDataAuthorizedObject>emptyList(), Collections.<AskDataRowPredicate>emptyList());
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Collections.singletonList(
+				interceptorReplacingAuthorizationSummary(clearedSummary)), new PermissiveValidator(), new AskDataSqlAudit());
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> chain.execute(commandWithAuthorizationSummary(originalSummary)));
+
+		assertTrue(exception.getMessage().contains("authorizationSummary"));
+	}
+
+	@Test
 	public void shouldRejectPluginThatRemovesRequiredRowPredicate() {
 		AskDataAuthorizationSummary originalSummary = authorizationSummary();
 		AskDataAuthorizationSummary weakenedSummary = AskDataAuthorizationSummary.allow(
@@ -320,6 +334,12 @@ public class AskDataSqlPipelineTest {
 		AskDataRowPredicate predicate = new AskDataRowPredicate(object, "tenant_id = :tenantId",
 				Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-a")));
 		return AskDataAuthorizationSummary.allow(Collections.singletonList(object), Collections.singletonList(predicate));
+	}
+
+	private static AskDataAuthorizationSummary authorizationSummaryWithoutRowPredicates() {
+		return AskDataAuthorizationSummary.allow(Collections.singletonList(
+				new AskDataAuthorizedObject("analytics", "sales", "tenant_id")),
+				Collections.<AskDataRowPredicate>emptyList());
 	}
 
 	private static AskDataSqlInterceptor interceptorReplacingAuthorizationSummary(
