@@ -24,6 +24,41 @@ Change：`add-askdata-governance-permission-bridge`
 
 补充定向回归：SQL 校验、Flow、插件链、日志查询/存储和 Legacy embedding adapter 共 84 tests，0 failures，0 errors，0 skipped。
 
+## Comet Full Verify 结论
+
+| 维度 | 状态 | 结论 |
+| --- | --- | --- |
+| Completeness | PASS | `tasks.md` 22/22 已完成；4 个 delta spec 均已覆盖。 |
+| Correctness | PASS | 治理授权、默认拒绝、授权摘要绑定、SQL 行列权限、插件后最终校验、监控日志治理和文档示例均有实现与测试证据。 |
+| Coherence | PASS | `proposal.md`、`design.md`、`docs/superpowers/specs/2026-07-29-add-askdata-governance-permission-bridge-design.md`、delta spec 与实现一致；未发现规格/设计漂移。 |
+
+### Completeness
+
+- OpenSpec 状态显示 `progress.total=22`、`progress.complete=22`、`remaining=0`。
+- 涉及的 4 个能力规格均纳入验证：`askdata-agent-observability-contracts`、`askdata-core-contracts`、`askdata-governance-permission-bridge`、`askdata-query-engine`。
+- 最终验证命令覆盖 Core 契约、AI 自动配置、Starter 包装、OpenSpec strict、空白检查和 Java 8 文档示例。
+
+### Correctness
+
+- Core 治理 SPI 保持 Java 8 且不暴露 Spring、LangChain4j、IAM 或存储供应商类型；默认治理提供器 fail-closed。
+- 授权摘要绑定 `projectId`、`operatorId`、`dataSourceKey`、用途、管理员范围、版本和来源，并在 Flow 元数据、Prompt、SQL 插件链、最终 SQL 校验、执行和日志查询之间保持同一摘要。
+- SQL 授权覆盖未授权数据源/表/列、空或未知列集合、SELECT 别名污染、CTE 与真实别名冲突、`alias.*`、插件收窄摘要后访问被移除表、插件删除行级谓词后的最终谓词重落实。
+- 监控日志治理覆盖本项目管理员、平台管理员显式授权范围、普通操作人拒绝，以及拒绝/异常/SQL 授权失败的脱敏事件。
+- `AskDataGovernanceBridgeDocumentationExample` 通过 `javac -source 8 -target 8` 和运行验证，输出 `ASKDATA_GOVERNANCE_BRIDGE_EXAMPLE_OK`。
+
+### Coherence
+
+- 变更实现保持 Core 契约优先，业务 IAM 通过治理桥接 SPI 映射，不把业务权限框架引入 Core。
+- Starter 自动配置采用默认拒绝和 `@ConditionalOnMissingBean` 覆盖入口，与设计中的 fail-closed 和业务覆盖边界一致。
+- 文档与 SQLBot/WrenAI 矩阵明确外部系统联通非目标，未宣称企业微信、钉钉、飞书、DataEase、Dify、Coze、n8n 已真实联通。
+
+### Issues
+
+- Critical：无。
+- Important：无。
+- Minor：无。
+- 非阻塞环境警告：Maven/Jansi restricted method、Guava `sun.misc.Unsafe` 弃用、SLF4J multiple bindings、本地 `fw-plus-ai-boot-autoconfigure` POM invalid、Starter empty JAR 警告；均未导致验证命令失败。
+
 ## 已知警告与修复记录
 
 - Core 测试与 Starter 打包均出现 Jansi restricted method 和 Guava `sun.misc.Unsafe` 运行时弃用警告，命令正常结束。
