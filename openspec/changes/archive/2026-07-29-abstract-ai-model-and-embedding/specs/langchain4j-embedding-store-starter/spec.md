@@ -1,7 +1,16 @@
 ## MODIFIED Requirements
 
-### Requirement: LangChain4j 向量 store starter 作为中立向量抽象的默认适配
+### Requirement: 多向量存储 starter
 系统 SHALL 提供 `fw-plus-ai-store-embedding-spring-boot-starter` 作为中立向量 store starter，并保留 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 作为默认 LangChain4j adapter 和兼容入口。
+
+#### Scenario: 新 starter 进入 LangChain4j 聚合
+- **WHEN** 检查 `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j` 聚合 POM
+- **THEN** 它 SHALL 包含 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 子模块。
+
+#### Scenario: starter 引入基础 store 模块
+- **WHEN** 检查 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 的 POM
+- **THEN** 它 SHALL 依赖 `fw-plus-ai-langchain4j-store-embeding`。
+- **AND** 它 SHALL 使用 BOM 管理 LangChain4j 版本，不硬编码 provider 版本。
 
 #### Scenario: 聚合和 BOM 注册中立 starter 与 LangChain4j starter
 - **WHEN** 检查 Core AI 聚合和 Core BOM
