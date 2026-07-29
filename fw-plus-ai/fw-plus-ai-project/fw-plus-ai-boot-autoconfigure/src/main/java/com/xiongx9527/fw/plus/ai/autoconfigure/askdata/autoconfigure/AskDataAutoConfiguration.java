@@ -205,8 +205,9 @@ public class AskDataAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public AskDataMonitoringLogQueryService askDataMonitoringLogQueryService(AskDataMonitoringLogStore store) {
-        return new AskDataMonitoringLogQueryService(store);
+    public AskDataMonitoringLogQueryService askDataMonitoringLogQueryService(AskDataMonitoringLogStore store,
+            AskDataMonitoringLogAccessPolicy accessPolicy) {
+        return new AskDataMonitoringLogQueryService(store, accessPolicy);
     }
 
     @Bean

@@ -35,3 +35,38 @@ DONE_WITH_CONCERNS
 
 - 完整 Maven 生命周期被范围外 `LegacyEmbeddingStoreAiAdapter` 编译缺陷阻断，未修改该文件。
 - 监控日志管理员角色由宿主调用方传入；平台管理员可读取的边界仍由显式 `scope` 参数限定，宿主 IAM 必须负责授予该角色。
+
+---
+
+## 第 1 轮 Review 修复（Task 4）
+
+### 状态
+
+DONE_WITH_CONCERNS
+
+### RED
+
+1. `cd fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure && ../../mvnw dependency:build-classpath -Dmdep.includeScope=test -Dmdep.pathSeparator=: -Dmdep.outputFile=target/task-4-test.classpath && javac -source 8 -target 8 -cp "target/classes:$(tr -d '\n' < target/task-4-test.classpath)" -d target/test-classes src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/observability/AskDataMonitoringLogQueryServiceTest.java`
+   - 预期失败：新增测试使用的 `AskDataMonitoringLogQueryService(store, policy)` 构造器不存在，证明平台管理员角色此前可以绕过访问策略。
+2. 聚焦编译访问策略修复后，执行：
+   `../../mvnw surefire:test -Dtest='AskDataMonitoringLogQueryServiceTest'`
+   - 预期失败：`shouldWriteSanitizedAuditLogWhenAdministratorReadsMonitoringLogs` 断言管理员分区存在 1 条审计日志，实际为 0。
+3. 聚焦编译自动配置与测试：
+   `javac -source 8 -target 8 -cp "target/classes:$(tr -d '\n' < target/task-4-test.classpath)" -d target/classes src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/autoconfigure/AskDataAutoConfiguration.java && javac -source 8 -target 8 -cp "target/classes:$(tr -d '\n' < target/task-4-test.classpath)" -d target/test-classes src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/observability/AskDataMonitoringLogQueryServiceTest.java`
+   - 预期失败：自动配置的查询服务 Bean 方法只接收 store，不能传入已配置的访问策略。
+
+### GREEN
+
+1. 聚焦编译并执行：
+   `javac -source 8 -target 8 -cp "target/classes:$(tr -d '\n' < target/task-4-test.classpath)" -d target/classes src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/observability/AskDataMonitoringLogQueryService.java src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/autoconfigure/AskDataAutoConfiguration.java && javac -source 8 -target 8 -cp "target/classes:$(tr -d '\n' < target/task-4-test.classpath)" -d target/test-classes src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/observability/AskDataMonitoringLogQueryServiceTest.java src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/flow/DefaultAskDataFlowExecutorTest.java && ../../mvnw surefire:test -Dtest='AskDataMonitoringLogQueryServiceTest,DefaultAskDataFlowExecutorTest'`
+   - 结果：24 tests，0 failures，0 errors。
+
+### 修复内容
+
+- 查询服务新增 `AskDataMonitoringLogAccessPolicy` 依赖，并逐条将存储日志包装为 Core `AskDataMonitoringLog` 后调用策略判定；角色仅用于向策略传递管理员授权状态，不再直接越过项目边界。
+- 保留单参数构造器兼容性，其默认策略为 `projectAdministratorOnly()`；自动配置改为注入容器中可替换的策略 Bean。
+- 管理员查询完成后，在管理员自身的隔离分区追加 `MONITORING_LOG_QUERY` 审计日志。审计消息只含 scope 项目和 trace 筛选是否存在，不含原始 trace 值、参数或凭据；返回快照在写审计前已完成筛选，因此不会包含本次审计记录。
+
+### 风险与关注项
+
+- 完整 Maven 测试命令仍在编译阶段被范围外 `LegacyEmbeddingStoreAiAdapter` 未实现 `AiEmbeddingStoreAdapter#getFramework()` 阻断，未修改该范围外文件。
