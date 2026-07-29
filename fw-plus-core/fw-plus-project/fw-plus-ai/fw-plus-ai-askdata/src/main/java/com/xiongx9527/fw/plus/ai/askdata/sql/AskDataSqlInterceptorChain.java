@@ -1,12 +1,14 @@
 package com.xiongx9527.fw.plus.ai.askdata.sql;
 
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataRowPredicate;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -43,8 +45,9 @@ public final class AskDataSqlInterceptorChain {
 				throw new IllegalArgumentException("SQL 插件不能返回 null: " + interceptor.key);
 			}
 			validateAuthorizationBoundary(current.getAuthorizationSummary(), rewritten.getAuthorizationSummary());
-			current = current.withSql(rewritten.getSql())
-					.withAuthorizationSummary(rewritten.getAuthorizationSummary());
+			AskDataAuthorizationSummary authorizationSummary = rewritten.getAuthorizationSummary();
+			current = new AskDataSqlCommand(current.getContext(), rewritten.getSql(), current.getParameters(),
+					authorizedObjects(current, authorizationSummary), authorizationSummary);
 			audit.record(interceptor.key, "INTERCEPT");
 		}
 		audit.record("validator", "FINAL_VALIDATE");
@@ -56,6 +59,20 @@ public final class AskDataSqlInterceptorChain {
 			throw new IllegalArgumentException(result.getFailureCategory().name() + ": " + result.getMessage());
 		}
 		return current;
+	}
+
+	private static Set<String> authorizedObjects(AskDataSqlCommand command,
+			AskDataAuthorizationSummary authorizationSummary) {
+		if (authorizationSummary == null) {
+			return command.getAuthorizedObjects();
+		}
+		Set<String> authorizedObjects = new LinkedHashSet<String>();
+		for (AskDataAuthorizedObject authorizedObject : authorizationSummary.getAuthorizedObjects()) {
+			if (authorizedObject != null) {
+				authorizedObjects.add(authorizedObject.getTableName());
+			}
+		}
+		return authorizedObjects;
 	}
 
 	private static void validateAuthorizationBoundary(AskDataAuthorizationSummary original,

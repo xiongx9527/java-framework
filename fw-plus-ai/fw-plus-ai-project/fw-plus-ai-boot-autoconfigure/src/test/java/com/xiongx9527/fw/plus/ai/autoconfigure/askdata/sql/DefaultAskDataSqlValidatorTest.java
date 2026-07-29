@@ -201,6 +201,18 @@ public class DefaultAskDataSqlValidatorTest {
     }
 
     @Test
+    public void shouldRejectQualifiedWildcardWhenBaseTableAliasCollidesWithCteName() {
+        AskDataMetadata metadata = new AskDataMetadata("mysql", Collections.singletonList(
+                tableAuthorizedAtTableLevel("orders")),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+        String failure = AskDataSqlAuthorizationProcessor.validateColumns(
+                "with scoped as (select * from orders) select scoped.* from orders scoped", metadata);
+
+        assertEquals("SQL 通配列超出 metadata 授权范围", failure);
+    }
+
+    @Test
     public void shouldRejectSchemaQualifiedTableWhenMetadataAllowsOnlySimpleTableName() throws Exception {
         AskDataMetadata metadata = new AskDataMetadata("mysql",
                 Collections.singletonList(tableAuthorizedAtTableLevel("orders")),

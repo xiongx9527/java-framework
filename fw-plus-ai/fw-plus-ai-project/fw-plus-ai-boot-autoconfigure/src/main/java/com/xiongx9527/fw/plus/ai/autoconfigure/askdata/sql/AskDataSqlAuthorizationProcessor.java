@@ -350,6 +350,9 @@ public final class AskDataSqlAuthorizationProcessor {
                         }
                     }
                 } else {
+                    if (ambiguousQualifiers.contains(wildcardTable)) {
+                        return false;
+                    }
                     String tableName = aliases.containsKey(wildcardTable) ? aliases.get(wildcardTable) : wildcardTable;
                     if (!tableLevelTables.contains(tableName)) {
                         return false;
