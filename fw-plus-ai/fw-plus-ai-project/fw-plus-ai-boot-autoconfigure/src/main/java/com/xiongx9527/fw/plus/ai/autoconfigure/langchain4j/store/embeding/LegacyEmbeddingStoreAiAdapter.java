@@ -26,6 +26,8 @@ import java.util.Map;
 
 final class LegacyEmbeddingStoreAiAdapter implements AiEmbeddingStoreAdapter {
 
+	private static final String FRAMEWORK = "langchain4j";
+
 	private final EmbeddingStoreFactory factory;
 	private final List<EmbeddingStoreProviderAdapter> adapters;
 
@@ -36,7 +38,12 @@ final class LegacyEmbeddingStoreAiAdapter implements AiEmbeddingStoreAdapter {
 
 	@Override
 	public boolean supports(AiEmbeddingStoreDefinition definition) {
-		return definition != null && "langchain4j".equalsIgnoreCase(definition.getFramework());
+		return definition != null && FRAMEWORK.equalsIgnoreCase(definition.getFramework());
+	}
+
+	@Override
+	public String getFramework() {
+		return FRAMEWORK;
 	}
 
 	@Override

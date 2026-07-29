@@ -17,11 +17,20 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class LegacyEmbeddingStoreAiAdapterTest {
+
+	@Test
+	public void shouldExposeLangChain4jFramework() {
+		LegacyEmbeddingStoreAiAdapter adapter = new LegacyEmbeddingStoreAiAdapter(null,
+				Collections.<EmbeddingStoreProviderAdapter>emptyList());
+
+		assertEquals("langchain4j", adapter.getFramework());
+	}
 
 	@Test
 	public void shouldRejectExplicitIdWhenContentOrMetadataCannotBePreserved() {
