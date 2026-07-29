@@ -31,4 +31,36 @@
 			<artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure</artifactId>
 		</dependency>
 	</dependencies>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-enforcer-plugin</artifactId>
+				<version>3.4.1</version>
+				<executions>
+					<execution>
+						<id>enforce-resolved-dependency-boundaries</id>
+						<phase>validate</phase>
+						<goals>
+							<goal>enforce</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<bannedDependencies>
+									<searchTransitive>true</searchTransitive>
+									<excludes>
+										<exclude>dev.langchain4j:*</exclude>
+										<exclude>io.milvus:*</exclude>
+									</excludes>
+									<includes>
+										<include>dev.langchain4j:langchain4j-core</include>
+									</includes>
+								</bannedDependencies>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
 </project>

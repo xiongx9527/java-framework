@@ -57,6 +57,21 @@ public class NeutralStarterDependencyTest {
 				starterModules.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
 	}
 
+	@Test
+	public void shouldValidateResolvedTransitiveDependenciesAtBuildTime() throws Exception {
+		assertBannedTransitiveDependencies("fw-plus-ai-model-spring-boot-starter/pom.xml",
+				"dev.langchain4j:*",
+				"com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter");
+		assertBannedTransitiveDependencies("fw-plus-ai-store-embedding-spring-boot-starter/pom.xml",
+				"dev.langchain4j:*",
+				"com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter");
+		assertBannedTransitiveDependencies("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml",
+				"dev.langchain4j:*",
+				"io.milvus:*");
+		assertAllowedDependency("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml",
+				"dev.langchain4j:langchain4j-core");
+	}
+
 	private void assertDependencies(String pomName, String... requiredArtifacts) throws Exception {
 		Set<String> artifactIds = dependencies(findProjectFile(STARTERS_PATH + pomName), false);
 		for (String requiredArtifact : requiredArtifacts) {
@@ -125,6 +140,66 @@ public class NeutralStarterDependencyTest {
 			}
 		}
 		return moduleNames;
+	}
+
+	private void assertBannedTransitiveDependencies(String pomName, String... prohibitedDependencies) throws Exception {
+		Element bannedDependencies = bannedDependencies(findProjectFile(STARTERS_PATH + pomName));
+		assertTrue(pomName + " must resolve transitive dependencies before enforcing boundaries",
+				"true".equals(directChild(bannedDependencies, "searchTransitive").getTextContent().trim()));
+		Set<String> excludedDependencies = childTextContents(directChild(bannedDependencies, "excludes"), "exclude");
+		for (String prohibitedDependency : prohibitedDependencies) {
+			assertTrue(pomName + " must ban resolved dependency " + prohibitedDependency,
+					excludedDependencies.contains(prohibitedDependency));
+		}
+	}
+
+	private void assertAllowedDependency(String pomName, String allowedDependency) throws Exception {
+		Element bannedDependencies = bannedDependencies(findProjectFile(STARTERS_PATH + pomName));
+		Set<String> allowedDependencies = childTextContents(directChild(bannedDependencies, "includes"), "include");
+		assertTrue(pomName + " must allow " + allowedDependency + " as the sole LangChain4j transitive dependency",
+				allowedDependencies.contains(allowedDependency));
+	}
+
+	private Element bannedDependencies(File pom) throws Exception {
+		Element build = directChild(DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom).getDocumentElement(), "build");
+		Element plugins = directChild(build, "plugins");
+		NodeList pluginNodes = plugins.getChildNodes();
+		for (int index = 0; index < pluginNodes.getLength(); index++) {
+			Node pluginNode = pluginNodes.item(index);
+			if (pluginNode.getNodeType() != Node.ELEMENT_NODE || !"plugin".equals(pluginNode.getNodeName())) {
+				continue;
+			}
+			Element plugin = (Element) pluginNode;
+			if ("maven-enforcer-plugin".equals(directChild(plugin, "artifactId").getTextContent().trim())) {
+				NodeList executionNodes = directChild(plugin, "executions").getChildNodes();
+				for (int executionIndex = 0; executionIndex < executionNodes.getLength(); executionIndex++) {
+					Node executionNode = executionNodes.item(executionIndex);
+					if (executionNode.getNodeType() != Node.ELEMENT_NODE || !"execution".equals(executionNode.getNodeName())) {
+						continue;
+					}
+					Element execution = (Element) executionNode;
+					if ("enforce-resolved-dependency-boundaries".equals(directChild(execution, "id").getTextContent().trim())) {
+						assertTrue(pom + " must enforce resolved dependency boundaries during validate",
+								"validate".equals(directChild(execution, "phase").getTextContent().trim()));
+						return directChild(directChild(directChild(execution, "configuration"), "rules"), "bannedDependencies");
+					}
+				}
+				throw new IllegalStateException("Missing dependency boundary execution in " + pom);
+			}
+		}
+		throw new IllegalStateException("Missing maven-enforcer-plugin in " + pom);
+	}
+
+	private Set<String> childTextContents(Element parent, String childName) {
+		Set<String> textContents = new LinkedHashSet<String>();
+		NodeList children = parent.getChildNodes();
+		for (int index = 0; index < children.getLength(); index++) {
+			Node child = children.item(index);
+			if (child.getNodeType() == Node.ELEMENT_NODE && childName.equals(child.getNodeName())) {
+				textContents.add(child.getTextContent().trim());
+			}
+		}
+		return textContents;
 	}
 
 	private Element directChild(Element parent, String name) {
