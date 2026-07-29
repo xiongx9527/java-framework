@@ -33,6 +33,11 @@ final class LegacyLangChain4jModelAiAdapter implements AiModelAdapter {
     }
 
     @Override
+    public String getFramework() {
+        return FRAMEWORK;
+    }
+
+    @Override
     public boolean supports(AiModelDefinition definition) {
         return definition != null && FRAMEWORK.equalsIgnoreCase(definition.getFramework());
     }

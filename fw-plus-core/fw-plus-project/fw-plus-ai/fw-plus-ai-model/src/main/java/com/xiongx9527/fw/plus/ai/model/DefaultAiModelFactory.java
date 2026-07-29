@@ -30,7 +30,7 @@ public class DefaultAiModelFactory implements AiModelFactory {
 
     private void validateDefinition(AiModelDefinition definition) {
         if (definition == null) {
-            throw new AiModelException("Model definition must not be null");
+            throw new AiModelException("Model definition must not be null: " + context(null));
         }
         if (isBlank(definition.getKey())) {
             throw new AiModelException("Model definition key must not be blank: " + context(definition));
@@ -105,7 +105,7 @@ public class DefaultAiModelFactory implements AiModelFactory {
 
     private String context(AiModelDefinition definition, List<String> candidateFrameworks) {
         if (definition == null) {
-            return "definition=null, candidates=" + candidateFrameworks;
+            return "key=null, framework=null, provider=null, type=null, candidates=" + candidateFrameworks;
         }
         return "key=" + definition.getKey()
                 + ", framework=" + definition.getFramework()
