@@ -27,6 +27,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -130,6 +131,35 @@ public class DefaultEmbeddingStoreFactoryTest {
         assertTrue(exception.getMessage().contains("knowledge"));
         assertSame(adapter.failure, exception.getCause());
         assertFalse(exception.getMessage().contains(adapter.failure.getMessage()));
+    }
+
+    @Test
+    public void shouldPreserveProviderSupportFailureThroughNeutralFactory() {
+        FailingSupportAdapter providerAdapter = new FailingSupportAdapter();
+        AiEmbeddingStoreAdapter adapter = new DefaultEmbeddingStoreFactory(
+                Collections.<EmbeddingStoreProviderAdapter>singletonList(providerAdapter));
+
+        AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
+                () -> new com.xiongx9527.fw.plus.ai.store.embedding.DefaultAiEmbeddingStoreFactory()
+                        .create(neutralDefinition("knowledge", "milvus"),
+                                Collections.singletonList(adapter)));
+
+        assertSame(providerAdapter.failure, exception.getCause());
+    }
+
+    @Test
+    public void shouldPreserveProviderCreationFailureThroughNeutralFactory() {
+        FakeAdapter providerAdapter = new FakeAdapter("milvus", null);
+        AiEmbeddingStoreAdapter adapter = new DefaultEmbeddingStoreFactory(
+                Collections.<EmbeddingStoreProviderAdapter>singletonList(providerAdapter));
+
+        AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
+                () -> new com.xiongx9527.fw.plus.ai.store.embedding.DefaultAiEmbeddingStoreFactory()
+                        .create(neutralDefinition("knowledge", "milvus"),
+                                Collections.singletonList(adapter)));
+
+        assertNotNull(exception.getCause());
+        assertSame(providerAdapter.failure, exception.getCause().getCause());
     }
 
     private EmbeddingStoreDefinition definition(String key, String provider) {

@@ -10,6 +10,7 @@ import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,23 +24,36 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class DefaultEmbeddingStoreRegistryTest {
 
     @Test
-    public void shouldResolveProviderAliasAndDefaultKeyThroughNeutralRegistry() {
+    public void shouldResolveMultipleStoresProviderAliasAndDefaultKeyThroughNeutralRegistry() {
+        AiEmbeddingStoreDefinition knowledge = definition("knowledge.alias");
+        AiEmbeddingStoreDefinition archive = definition("archive.alias");
+        Map<String, EmbeddingStore<TextSegment>> nativeStores = new LinkedHashMap<String, EmbeddingStore<TextSegment>>();
+        nativeStores.put("knowledge.alias", new FakeEmbeddingStore());
+        nativeStores.put("archive.alias", new FakeEmbeddingStore());
+        AiEmbeddingStoreAdapter adapter = new DefaultEmbeddingStoreFactory(
+                Collections.<EmbeddingStoreProviderAdapter>singletonList(
+                        new AliasAdapter(nativeStores)));
+
+        DefaultAiEmbeddingStoreRegistry registry = new DefaultAiEmbeddingStoreRegistry(
+                Arrays.asList(knowledge, archive), "archive.alias", Collections.singletonList(adapter));
+
+        AiEmbeddingStore knowledgeStore = registry.get("knowledge.alias");
+        AiEmbeddingStore archiveStore = registry.get("archive.alias");
+        assertSame(archiveStore, registry.getDefault());
+        assertTrue(knowledgeStore != archiveStore);
+        assertEquals("archive.alias", registry.getDefaultKey());
+        assertEquals("milvus-compatible", knowledgeStore.getProvider());
+        assertEquals("milvus-compatible", archiveStore.getProvider());
+    }
+
+    private AiEmbeddingStoreDefinition definition(String key) {
         AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
-        definition.setKey("knowledge.alias");
+        definition.setKey(key);
         definition.setFramework("langchain4j");
         definition.setProvider("milvus-compatible");
         definition.setType(AiEmbeddingStoreType.VECTOR);
         definition.setEnabled(true);
-        AiEmbeddingStoreAdapter adapter = new DefaultEmbeddingStoreFactory(
-                Collections.<EmbeddingStoreProviderAdapter>singletonList(
-                        new AliasAdapter(new FakeEmbeddingStore())));
-
-        DefaultAiEmbeddingStoreRegistry registry = new DefaultAiEmbeddingStoreRegistry(
-                Collections.singletonList(definition), "knowledge.alias", Collections.singletonList(adapter));
-
-        AiEmbeddingStore store = registry.get("knowledge.alias");
-        assertSame(store, registry.getDefault());
-        assertEquals("knowledge.alias", registry.getDefaultKey());
+        return definition;
     }
 
     @Test
@@ -140,10 +154,10 @@ public class DefaultEmbeddingStoreRegistryTest {
     }
 
     private static class AliasAdapter implements EmbeddingStoreProviderAdapter {
-        private final EmbeddingStore<TextSegment> store;
+        private final Map<String, EmbeddingStore<TextSegment>> stores;
 
-        private AliasAdapter(EmbeddingStore<TextSegment> store) {
-            this.store = store;
+        private AliasAdapter(Map<String, EmbeddingStore<TextSegment>> stores) {
+            this.stores = stores;
         }
 
         @Override
@@ -153,7 +167,7 @@ public class DefaultEmbeddingStoreRegistryTest {
 
         @Override
         public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition) {
-            return store;
+            return stores.get(definition.getKey());
         }
     }
 }

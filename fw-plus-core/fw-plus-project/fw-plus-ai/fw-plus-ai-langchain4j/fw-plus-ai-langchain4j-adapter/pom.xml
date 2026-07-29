@@ -5,8 +5,9 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.xiongx9527.fw.plus</groupId>
-        <artifactId>fw-plus-ai-langchain4j</artifactId>
+        <artifactId>fw-plus-parent</artifactId>
         <version>${revision}</version>
+        <relativePath>../../../fw-plus-parent</relativePath>
     </parent>
 
     <artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
@@ -19,10 +20,22 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-model</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.xiongx9527.fw.plus</groupId>
+                    <artifactId>fw-plus-common</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-store-embedding</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.xiongx9527.fw.plus</groupId>
+                    <artifactId>fw-plus-common</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>

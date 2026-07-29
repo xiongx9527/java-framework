@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import com.xiongx9527.fw.plus.ai.model.DefaultAiModelRegistry;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -18,23 +19,33 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class DefaultLangChain4jModelRegistryTest {
 
     @Test
-    public void shouldResolveProviderAliasAndDefaultKeyThroughNeutralRegistry() {
-        AiModelDefinition definition = new AiModelDefinition();
-        definition.setKey("chat.alias");
-        definition.setFramework("langchain4j");
-        definition.setProvider("openai-compatible");
-        definition.setType(AiModelType.CHAT);
-        definition.setEnabled(true);
+    public void shouldResolveMultipleModelsProviderAliasAndDefaultKeyThroughNeutralRegistry() {
+        AiModelDefinition chat = definition("chat.alias", AiModelType.CHAT);
+        AiModelDefinition embedding = definition("embedding.alias", AiModelType.EMBEDDING);
         AiModelAdapter adapter = new DefaultLangChain4jModelFactory(
                 Collections.<LangChain4jModelProviderAdapter>singletonList(new AliasAdapter()));
 
         DefaultAiModelRegistry registry = new DefaultAiModelRegistry(
-                Collections.singletonList(definition), "chat.alias", Collections.singletonList(adapter));
+                Arrays.asList(chat, embedding), "embedding.alias", Collections.singletonList(adapter));
 
-        AiModel model = registry.get("chat.alias");
-        assertSame(model, registry.getDefault());
+        AiModel chatModel = registry.get("chat.alias");
+        AiModel embeddingModel = registry.get("embedding.alias");
+        assertSame(embeddingModel, registry.getDefault());
+        assertTrue(chatModel != embeddingModel);
         assertTrue(registry.contains("chat.alias"));
-        assertTrue(registry.keys().contains("chat.alias"));
+        assertTrue(registry.keys().contains("embedding.alias"));
+        assertTrue("openai-compatible".equals(chatModel.getProvider()));
+        assertTrue("openai-compatible".equals(embeddingModel.getProvider()));
+    }
+
+    private AiModelDefinition definition(String key, AiModelType type) {
+        AiModelDefinition definition = new AiModelDefinition();
+        definition.setKey(key);
+        definition.setFramework("langchain4j");
+        definition.setProvider("openai-compatible");
+        definition.setType(type);
+        definition.setEnabled(true);
+        return definition;
     }
 
     @Test
