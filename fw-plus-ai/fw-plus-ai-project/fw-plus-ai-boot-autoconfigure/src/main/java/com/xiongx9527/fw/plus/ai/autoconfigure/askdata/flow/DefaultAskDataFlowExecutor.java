@@ -333,7 +333,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private AskDataResult executeNew(AskDataRequest request, AskDataResult result, AskDataStepContext context) {
         AskDataMetadata metadata;
         try {
-            metadata = metadataProvider.load(request);
+            metadata = metadataProvider.load(request, authorizationSummary(context));
         } catch (RuntimeException ex) {
             return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
         }
@@ -506,7 +506,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (contains(checkpoint, "generate-sql")) {
             AskDataMetadata metadata;
             try {
-                metadata = metadataProvider.load(request);
+                metadata = metadataProvider.load(request, authorizationSummary(context));
             } catch (RuntimeException ex) {
                 return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
             }
@@ -543,7 +543,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (contains(checkpoint, "metadata") || contains(checkpoint, "merge-sub-agents")) {
             AskDataMetadata metadata;
             try {
-                metadata = metadataProvider.load(request);
+                metadata = metadataProvider.load(request, authorizationSummary(context));
             } catch (RuntimeException ex) {
                 return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
             }
@@ -565,7 +565,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataStepContext context, AskDataCheckpoint checkpoint) {
         AskDataMetadata metadata;
         try {
-            metadata = metadataProvider.load(request);
+            metadata = metadataProvider.load(request, authorizationSummary(context));
         } catch (RuntimeException ex) {
             return governanceDeniedForMetadata(result);
         }
@@ -592,7 +592,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataStepContext context, AskDataCheckpoint checkpoint) {
         AskDataMetadata metadata;
         try {
-            metadata = metadataProvider.load(request);
+            metadata = metadataProvider.load(request, authorizationSummary(context));
         } catch (RuntimeException ex) {
             return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
         }

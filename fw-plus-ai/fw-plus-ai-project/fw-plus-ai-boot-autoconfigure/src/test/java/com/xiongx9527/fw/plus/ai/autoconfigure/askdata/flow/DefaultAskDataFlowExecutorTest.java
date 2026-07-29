@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataCheckpoint;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.InMemoryAskDataConversationStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
@@ -170,6 +171,20 @@ public class DefaultAskDataFlowExecutorTest {
         assertEquals(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE, result.getErrorCode());
         assertFalse(dependencies.routedGenerateCalled);
         assertEquals(0, dependencies.metadataCalls);
+    }
+
+    @Test
+    public void shouldFilterUnauthorizedColumnsBeforeBuildingPrompt() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.governanceProvider = request -> AskDataAuthorizationSummary.allow(Collections.singletonList(
+                new AskDataAuthorizedObject("orders", "orders", "id")), Collections.emptyList());
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select id from orders\"}")
+                .execute(request(false));
+
+        assertTrue(result.isSuccess());
+        assertTrue(dependencies.prompt.contains("id bigint"));
+        assertFalse(dependencies.prompt.contains("secret varchar"));
     }
 
     @Test
@@ -414,6 +429,7 @@ public class DefaultAskDataFlowExecutorTest {
         private boolean globalExecutionEnabled = true;
         private AskDataModelException modelException;
         private boolean routedGenerateCalled;
+        private String prompt;
         private boolean useDefaultSqlValidator;
         private AskDataSqlValidationResult validationResult = AskDataSqlValidationResult.accepted(SQL);
         private AskDataGovernanceProvider governanceProvider = request -> allowedOrders();
@@ -472,7 +488,8 @@ public class DefaultAskDataFlowExecutorTest {
                 public AskDataMetadata load(AskDataRequest request) {
                     metadataCalls++;
                     return new AskDataMetadata("mysql", Arrays.asList(
-                            new AskDataTable("orders", Collections.emptyList()),
+                            new AskDataTable("orders", Arrays.asList(new AskDataColumn("id", "bigint"),
+                                    new AskDataColumn("secret", "varchar"))),
                             new AskDataTable("payments", Collections.emptyList())), Collections.emptyList(),
                             Collections.emptyList(), Collections.emptyList());
                 }
@@ -490,6 +507,13 @@ public class DefaultAskDataFlowExecutorTest {
                 @Override
                 public String buildPrompt(AskDataRequest request, AskDataMetadata metadata,
                         List<AskDataRetrievedDocument> documents, int maxRows) {
+                    StringBuilder observedMetadata = new StringBuilder();
+                    for (AskDataTable table : metadata.getTables()) {
+                        for (AskDataColumn column : table.getColumns()) {
+                            observedMetadata.append(column.getName()).append(" ").append(column.getType()).append("\n");
+                        }
+                    }
+                    prompt = observedMetadata.toString();
                     return "prompt";
                 }
             };
