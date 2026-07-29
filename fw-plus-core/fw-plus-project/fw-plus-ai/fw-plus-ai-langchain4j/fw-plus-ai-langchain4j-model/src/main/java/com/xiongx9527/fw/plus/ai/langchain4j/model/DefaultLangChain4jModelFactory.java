@@ -33,6 +33,11 @@ public class DefaultLangChain4jModelFactory implements LangChain4jModelFactory, 
     }
 
     @Override
+    public String getFramework() {
+        return FRAMEWORK;
+    }
+
+    @Override
     public LangChain4jModel create(LangChain4jModelDefinition definition,
                                    List<LangChain4jModelProviderAdapter> adapters) {
         validateLegacyDefinition(definition);
