@@ -340,6 +340,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (metadata == null) {
             return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, "AskData metadata was not found");
         }
+        if (!hasAuthorizedMetadata(request, metadata, authorizationSummary(context))) {
+            return governanceDeniedForMetadata(result);
+        }
         context.setMetadata(metadata);
         result.addStep("metadata", "Metadata", true, "Metadata loaded");
         AskDataResult checkpointFailure = saveCheckpoint(context, result, "metadata", null, null);
@@ -514,6 +517,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND,
                         "AskData metadata was not found");
             }
+            if (!hasAuthorizedMetadata(request, metadata, authorizationSummary(context))) {
+                return governanceDeniedForMetadata(result);
+            }
             context.setMetadata(metadata);
             AskDataDialect dialect;
             try {
@@ -548,6 +554,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND,
                         "AskData metadata was not found");
             }
+            if (!hasAuthorizedMetadata(request, metadata, authorizationSummary(context))) {
+                return governanceDeniedForMetadata(result);
+            }
             context.setMetadata(metadata);
             return generateSqlAndValidate(request, result, context, metadata);
         }
@@ -566,6 +575,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (metadata == null) {
             return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND,
                     "AskData metadata was not found");
+        }
+        if (!hasAuthorizedMetadata(request, metadata, authorizationSummary(context))) {
+            return governanceDeniedForMetadata(result);
         }
         context.setMetadata(metadata);
         AskDataDialect dialect;
@@ -743,6 +755,17 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 metadata.getPromptFragments());
     }
 
+    private boolean hasAuthorizedMetadata(AskDataRequest request, AskDataMetadata metadata,
+            AskDataAuthorizationSummary authorizationSummary) {
+        AskDataMetadata authorizedMetadata = authorizedMetadata(metadata, authorizedObjects(request, authorizationSummary));
+        return authorizedMetadata != null && !authorizedMetadata.getTables().isEmpty();
+    }
+
+    private AskDataResult governanceDeniedForMetadata(AskDataResult result) {
+        return failure(result, "authorize", DefaultDenyAskDataGovernanceProvider.DENIAL_CODE,
+                "AskData 请求未获授权");
+    }
+
     private AskDataAuthorizationSummary authorize(AskDataRequest request, AskDataResult result) {
         if (governanceProvider == null) {
             return null;
@@ -751,7 +774,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataAuthorizationSummary authorizationSummary = governanceProvider
                     .authorize(new AskDataAuthorizationRequest(request.getProjectContext()));
             if (authorizationSummary != null && authorizationSummary.isAllowed()
-                    && !authorizedObjects(request, authorizationSummary).isEmpty()) {
+                    && !authorizedObjects(request, authorizationSummary).isEmpty()
+                    && authorizationSummary.getRowPredicates().isEmpty()) {
                 return authorizationSummary;
             }
         } catch (RuntimeException ex) {
