@@ -9,7 +9,7 @@
 
 ## 项目概述
 
-fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Agents-Flex / Spring AI / EasyAi）集成、图数据库 JDBC 驱动等能力。四个库层当前版本为 `0.1.1-SNAPSHOT`，通过 `${revision}` + `flatten-maven-plugin` 管理；`fw-plus-sample` 样例聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 `flatten-maven-plugin`。
+fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 3.5.8，提供 Spring Boot 自动化配置、Spring Cloud 扩展、MyBatis-Plus/Flex 增强、Magic-API 插件、AI（LangChain4j / Agents-Flex / Spring AI / EasyAi）集成、图数据库 JDBC 驱动等能力。四个库层当前版本为 `0.3.0-SNAPSHOT`，通过 `${revision}` + `flatten-maven-plugin` 管理；`fw-plus-sample` 样例聚合器固定使用 `0.3.0-SNAPSHOT`，不使用 `flatten-maven-plugin`。
 
 **Git 仓库结构**：当前工作区只有根目录一个 `.git` 仓库；`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 是同一仓库内的顶层 Maven 聚合目录，非 git submodule。当前工作区不包含旧文档曾提到的 `fw-plus-product/` 和独立 `resources/` 仓库。构建产物在各层之间通过 Maven 本地仓库（`~/.m2`）传递。
 
@@ -30,7 +30,7 @@ fw-plus 是 9527 的 Java 开发框架，基于 Spring Boot 2.7.18，提供 Spri
 
 ```
 fw-plus/                      # 根目录（聚合项目，无统一父 POM）
-├── fw-plus-core/             # 核心库层（Java 1.8, Spring Boot 2.7.18）
+├── fw-plus-core/             # 核心库层（Java 17, Spring Boot 3.5.8）
 │   ├── fw-plus-project/
 │   │   ├── fw-plus-parent/       # Core 层父 POM
 │   │   ├── fw-plus-common/       # 公共工具：加密、UID、异常、序列化、SpringUtils
@@ -264,7 +264,7 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 
 | 类别 | 技术 |
 |------|------|
-| 基础框架 | Spring Boot 2.7.18, Spring Cloud 2021.0.9 |
+| 基础框架 | Spring Boot 3.5.8, Spring Cloud 2021.0.9 |
 | ORM | MyBatis-Plus 3.3.2, MyBatis-Flex 1.11.4 |
 | 脚本引擎 | Magic-API 2.2.2（自行维护版本，非中央仓库版本） |
 | AI | LangChain4j 0.35.0, Agents-Flex 1.3.4, Spring AI 1.0.1, EasyAi 1.4.9 |
@@ -280,7 +280,7 @@ fw-plus/                      # 根目录（聚合项目，无统一父 POM）
 
 - **Maven 构建**：`fw-plus-core`、`fw-plus-boot`、`fw-plus-cloud`、`fw-plus-ai` 四个库层各自带有 `mvnw`（Maven Wrapper）；`fw-plus-sample` 样例聚合目录不带 Wrapper。按 Core → Boot → Cloud / AI 顺序准备本地 Maven 依赖后，使用 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate` 作为样例统一入口。fw-plus-core 是底层依赖，各层级均有独立的父 POM。发版按版本号统一发，不单独发某个模块。
 - **Magic-API 版本**：使用自行维护的 2.2.2 版本，`org.ssssssss` 组的依赖通过 `<repositories>` 指向内部 Nexus 仓库（jugui-snapshot / jugui-release），请勿修改这些依赖的版本号。
-- **JDK 1.8 约束**：fw-plus-core 严格约束为 Java 1.8（compiler source/target = 1.8），不要引入 Java 9+ 的 API（如 `List.of()`、`Map.copyOf()`、`Optional.orElseThrow()` 等）。
+- **JDK 17 约束**：fw-plus-core 使用 Java 17（compiler source/target = 17）。
 - **源文件编码**：所有 Java 源文件、资源文件统一使用 UTF-8 编码。
 - **文件路径**：不构造硬编码的跨平台文件路径，系统路径使用 `System.getProperty()` 或 `Path` API，资源路径使用 Spring `ResourceLoader` 或 `ClassPathResource`。
 - **自定义类**：项目中包含大量自定义类和注解（如 `Algorithm`、`FieldEncrypt` 等），修改相关代码时确保充分理解其用途。
@@ -307,11 +307,11 @@ cd fw-plus-core && ./mvnw clean deploy -DskipTests
 
 ## 编码风格与命名约定
 
-- **Java**: 目标 JDK 1.8，遵循标准 Java 编码规范。
+- **Java**: 目标 JDK 17，遵循标准 Java 编码规范。
 - **缩进**: 使用 Tab（与现有 `pom.xml` 文件一致），保持与周围文件风格统一。
 - **模块命名**: kebab-case — `fw-plus-core`、`fw-plus-boot`、`fw-plus-mp`。
 - **包命名**: `com.xiongx9527.fw.plus.*` — 如 `com.xiongx9527.fw.plus.mp`、`com.xiongx9527.fw.plus.common`。
-- **POM 属性**: 四个库层使用 `${revision}` 作为版本属性（flatten-maven-plugin 负责解析）；`fw-plus-sample` 聚合器固定使用 `0.1.1-SNAPSHOT`，不使用 flatten。
+- **POM 属性**: 四个库层使用 `${revision}` 作为版本属性（flatten-maven-plugin 负责解析）；`fw-plus-sample` 聚合器固定使用 `0.3.0-SNAPSHOT`，不使用 flatten。
 - **格式化**: 未找到显式的格式化配置，保持所编辑文件的现有风格。
 - **资源文件**: 当前工作区未包含运行态 `resources/`。若单独检出该目录，JSON 数据源定义位于 `resources/datasource/`，共享配置文件位于 `resources/config/`。
 
