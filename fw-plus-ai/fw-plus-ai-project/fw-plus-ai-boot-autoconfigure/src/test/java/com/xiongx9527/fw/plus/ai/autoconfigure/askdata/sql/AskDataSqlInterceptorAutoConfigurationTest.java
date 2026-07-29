@@ -18,6 +18,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDo
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor;
@@ -475,6 +478,12 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
                             Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
                 }
             };
+        }
+
+        @Bean
+        public AskDataGovernanceProvider askDataGovernanceProvider() {
+            return request -> AskDataAuthorizationSummary.allow(Collections.singletonList(
+                    new AskDataAuthorizedObject("orders", "orders", "*")), Collections.emptyList());
         }
 
         @Bean
