@@ -4,7 +4,7 @@
 
 ## What Changes
 
-- **BREAKING** 删除 4 个旧 LangChain4j model/store artifact 及其聚合、BOM、starter、Magic-API 和样例引用。
+- **BREAKING** 删除 4 个旧 LangChain4j model/store artifact 及其聚合、BOM、starter、Magic-API 和样例引用；AskData 的依赖迁移留给独立 change。
 - 新增统一、可选的 LangChain4j adapter 模块，作为中立 API 的默认 Java 8 实现；它是唯一允许引用 LangChain4j 类型的实现层。
 - 中立 Core 模块、中立 starter、AI Boot 公共自动配置和 Magic-API 只依赖中立 API，不传递或引用 LangChain4j、Spring AI、Spring AI Alibaba、AgentScope 类型或配置前缀。
 - 新增 adapter 自动发现和选择规则：显式 `framework` 必须匹配已发现 adapter；未显式配置时仅一个候选可自动选用，零个或多个候选必须启动失败。
