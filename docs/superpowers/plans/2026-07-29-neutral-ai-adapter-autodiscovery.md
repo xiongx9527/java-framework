@@ -180,25 +180,25 @@ git commit -m "feat(ai): unify langchain4j model and store adapter"
 - Public neutral configuration exposes only `fw-plus.ai.model` and `fw-plus.ai.embedding-store`.
 - Adapter configuration is conditional on adapter + LangChain4j classpath and contributes adapter Beans only.
 
-- [ ] **Step 1: 写入中立 classpath 与 adapter 条件装配失败测试**
+- [x] **Step 1: 写入中立 classpath 与 adapter 条件装配失败测试**
 
 使用 `ApplicationContextRunner` 和 `FilteredClassLoader` 覆盖无 adapter、唯一 adapter、两个 fake adapter 和显式 `framework=langchain4j`。
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试**
 
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=LangChain4jModelAutoConfigurationTest,EmbeddingStoreAutoConfigurationTest test`
 Expected: 失败，直到条件配置与 selector 接通。
 
-- [ ] **Step 3: 迁移配置类与 properties 绑定**
+- [x] **Step 3: 迁移配置类与 properties 绑定**
 
 中立 factory/registry/properties 留在公共自动配置；所有 LangChain4j provider Bean、反射构造、原生类型和旧 properties 迁至 adapter 自动配置。删除旧 `fw-plus.ai.langchain4j.*` binding 与 legacy adapter。
 
-- [ ] **Step 4: 运行自动配置测试**
+- [x] **Step 4: 运行自动配置测试**
 
 Run: 使用 Step 2 命令。
 Expected: 目标测试通过且无旧前缀绑定。
 
-- [ ] **Step 5: 提交 Boot 拆分任务**
+- [x] **Step 5: 提交 Boot 拆分任务**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure
