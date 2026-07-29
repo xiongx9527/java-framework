@@ -19,7 +19,7 @@
 - 本次不实现 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java adapter，不升级 Java 8 / Spring Boot 2.7 基线，也不引入跨进程 AgentScope 协议。
 - 不兼容旧 artifact 或 `fw-plus.ai.langchain4j.*` 配置；这是一次明确的破坏性迁移。
 - 不改变具体 LangChain4j provider SDK 的现有职责，也不重写 Magic-API 的脚本语义。
-- 不迁移 AskData 的依赖、源码或测试；该模块留给独立 change。
+- AskData 模块保留；其依赖迁移与回归测试在 adapter、Boot 与 Magic-API 完成后作为最后一个集成任务执行。
 
 ## Decisions
 
@@ -65,11 +65,12 @@ model 与 vector 脚本模块、动态资源、控制器和 legacy support 一�
 
 1. 在 Core BOM、根 AI 聚合与 LangChain4j 聚合中注册统一 adapter，先建立中立 SPI 自动选择测试。
 2. 将 LangChain4j model/store 的 provider 实现与自动配置迁入 adapter 与 adapter starter，迁移 Magic-API、BOM 和样例依赖。
-3. 删除四个旧模块目录和所有坐标、旧配置绑定、兼容桥接代码；在构建中添加禁止旧 artifact/前缀/导入的断言。
-4. 发布迁移文档：应用显式添加 adapter starter；把旧 `fw-plus.ai.langchain4j.*` 配置改为中立 key；多 adapter 时指定 framework。
-5. 先运行 Core reactor 测试，再运行 AI Boot 自动配置与 Magic-API 目标测试；在新版本不可用时回退到包含旧模块的上一发行版本，而不是混装新旧 artifact。
+3. 最后迁移保留的 AskData starter 对旧 artifact 的依赖并运行回归测试。
+4. 删除四个旧模块目录和所有坐标、旧配置绑定、兼容桥接代码；在构建中添加禁止旧 artifact/前缀/导入的断言。
+5. 发布迁移文档：应用显式添加 adapter starter；把旧 `fw-plus.ai.langchain4j.*` 配置改为中立 key；多 adapter 时指定 framework。
+6. 先运行 Core reactor 测试，再运行 AI Boot 自动配置、Magic-API 与 AskData 目标测试；在新版本不可用时回退到包含旧模块的上一发行版本，而不是混装新旧 artifact。
 
 ## Open Questions
 
 - Spring AI、Spring AI Alibaba 与 AgentScope 2 Java adapter 的 artifact 命名、BOM 版本和 provider 能力矩阵在 Java 17 / Boot 3 change 中确定。
-- AskData 直接使用 LangChain4j 的内部路径和对旧 artifact 的依赖迁移由独立 change 决定；本次不修改 AskData。
+- AskData 内部 LangChain4j 使用是否在后续 change 进一步收敛为中立模型门面；本次只迁移其对已删除 artifact 的编译依赖并保留 Java 8 行为。

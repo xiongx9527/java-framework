@@ -22,7 +22,7 @@ base-ref: 90bab6c72486c4de08478fe38e68cf6884011fe7
 - 删除旧 `fw-plus-ai-langchain4j-model`、`fw-plus-ai-langchain4j-store-embeding` 及两个旧 starter；不得保留 POM 兼容别名或 `fw-plus.ai.langchain4j.*` 配置绑定。
 - LangChain4j starter 是 adapter 的 Spring Boot 集成实现，不是 adapter 的唯一装配形式。
 - Spring AI、Spring AI Alibaba、AgentScope 2.0 仅写 Java 17 / Boot 3 后续蓝图，本次不得加入 Java 8 reactor。
-- AskData 的依赖迁移、源码修改和回归测试不属于本次 change；它保持现状并由独立 change 处理。
+- AskData 模块不删除；在其他 adapter、Boot 与 Magic-API 工作完成并获得用户再次明确确认后，最后迁移其对旧 artifact 的依赖并执行回归测试。
 
 ---
 
@@ -37,7 +37,7 @@ base-ref: 90bab6c72486c4de08478fe38e68cf6884011fe7
 - Produces `String getFramework()` on `AiModelAdapter` and deterministic `DefaultAiModelFactory#create(AiModelDefinition, List<AiModelAdapter>)` selection.
 - Failure message includes `key`, `framework`, `provider`, `type` and candidate framework names.
 
-- [ ] **Step 1: 写入模型选择器失败测试**
+- [x] **Step 1: 写入模型选择器失败测试**
 
 ```java
 @Test
@@ -48,12 +48,12 @@ void shouldRejectMultipleCandidatesWhenFrameworkIsBlank() { }
 void shouldRejectMissingExplicitFramework() { }
 ```
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试**
 
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model -am -Dtest=DefaultAiModelFactoryTest test`
 Expected: 失败，原因是 `getFramework()` 和唯一候选规则尚不存在。
 
-- [ ] **Step 3: 实现最小选择契约和模型选择器**
+- [x] **Step 3: 实现最小选择契约和模型选择器**
 
 ```java
 public interface AiModelAdapter {
@@ -65,12 +65,12 @@ public interface AiModelAdapter {
 
 显式 framework 仅匹配同名 adapter；缺省 framework 仅接受一个 `supports` 候选；不使用 Bean 顺序或 LangChain4j 回退。
 
-- [ ] **Step 4: 运行模型选择器测试**
+- [x] **Step 4: 运行模型选择器测试**
 
 Run: 使用 Step 2 命令。
 Expected: `DefaultAiModelFactoryTest` 全部通过。
 
-- [ ] **Step 5: 提交模型选择器任务**
+- [x] **Step 5: 提交模型选择器任务**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-model
@@ -87,7 +87,7 @@ git commit -m "feat(ai): select neutral model adapter deterministically"
 **Interfaces:**
 - Produces `String getFramework()` on `AiEmbeddingStoreAdapter` and the same candidate rules as Task 1.
 
-- [ ] **Step 1: 写入 store 的唯一、零和多候选失败测试**
+- [x] **Step 1: 写入 store 的唯一、零和多候选失败测试**
 
 ```java
 @Test
@@ -98,12 +98,12 @@ void shouldRejectAmbiguousStoreAdapters() { }
 void shouldIncludeStoreDefinitionContextInFailure() { }
 ```
 
-- [ ] **Step 2: 运行失败测试**
+- [x] **Step 2: 运行失败测试**
 
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding -am -Dtest=DefaultAiEmbeddingStoreFactoryTest test`
 Expected: 失败，直到 store adapter 声明 framework 并实施选择器。
 
-- [ ] **Step 3: 实现 store 选择器并脱敏异常**
+- [x] **Step 3: 实现 store 选择器并脱敏异常**
 
 ```java
 public interface AiEmbeddingStoreAdapter {
@@ -113,12 +113,12 @@ public interface AiEmbeddingStoreAdapter {
 }
 ```
 
-- [ ] **Step 4: 运行 store 模块测试**
+- [x] **Step 4: 运行 store 模块测试**
 
 Run: 使用 Step 2 命令。
 Expected: 新增 factory 测试及既有 registry 测试全部通过。
 
-- [ ] **Step 5: 提交 store 选择器任务**
+- [x] **Step 5: 提交 store 选择器任务**
 
 ```bash
 git add fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding
@@ -266,7 +266,37 @@ git add fw-plus-ai/fw-plus-ai-project
 git commit -m "refactor(ai): use neutral registry from magicapi"
 ```
 
-### Task 7: 删除旧模块、清理全仓坐标并执行静态边界测试
+### Task 7: 经用户确认后最后迁移保留的 AskData starter
+
+**Files:**
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/pom.xml`
+- Test: AskData starter 现有目标测试与依赖树检查。
+
+- [ ] **Step 0: 等待用户明确确认**
+
+未获得确认时，不得派发或执行本任务；可继续本计划中不修改 AskData 的任务。
+
+- [ ] **Step 1: 写入 AskData 依赖迁移失败测试**
+
+断言 AskData starter 不再解析两个已删除的 LangChain4j model/store starter，且仍通过统一 LangChain4j adapter 获得既有模型能力。
+
+- [ ] **Step 2: 迁移 AskData starter 依赖**
+
+仅替换已删除的旧 model/store starter 坐标为统一 adapter starter；不删除 AskData 模块，不重写其内部 Java 8 行为或业务逻辑。
+
+- [ ] **Step 3: 运行 AskData 目标测试**
+
+Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -am test`
+Expected: BUILD SUCCESS。
+
+- [ ] **Step 4: 提交 AskData 集成任务**
+
+```bash
+git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter
+git commit -m "refactor(ai): migrate askdata to unified adapter starter"
+```
+
+### Task 8: 删除旧模块、清理全仓坐标并执行静态边界测试
 
 **Files:**
 - Delete: `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/`
@@ -297,7 +327,7 @@ git add -A fw-plus-core/fw-plus-project/fw-plus-ai fw-plus-ai/fw-plus-ai-project
 git commit -m "refactor(ai): remove legacy langchain4j model and store modules"
 ```
 
-### Task 8: 编写迁移与 Java 17 / Boot 3 后续文档
+### Task 9: 编写迁移与 Java 17 / Boot 3 后续文档
 
 **Files:**
 - Modify: `fw-plus-ai/README.zh-CN.md`
@@ -326,7 +356,7 @@ git add fw-plus-ai/README.md fw-plus-ai/README.zh-CN.md docs/ai-framework-migrat
 git commit -m "docs(ai): document adapter migration and java17 roadmap"
 ```
 
-### Task 9: 全量验收、任务勾选与最终审查
+### Task 10: 全量验收、任务勾选与最终审查
 
 **Files:**
 - Modify: `openspec/changes/neutral-ai-adapter-autodiscovery/tasks.md`
@@ -337,7 +367,7 @@ git commit -m "docs(ai): document adapter migration and java17 roadmap"
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-adapter -am test`
 Expected: BUILD SUCCESS。
 
-- [ ] **Step 2: 用 JDK 8 运行 AI Boot 自动配置与 Magic-API 测试**
+- [ ] **Step 2: 用 JDK 8 运行 AI Boot 自动配置、Magic-API 与 AskData 测试**
 
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure test`
 Expected: BUILD SUCCESS，记录测试数量和失败数。
