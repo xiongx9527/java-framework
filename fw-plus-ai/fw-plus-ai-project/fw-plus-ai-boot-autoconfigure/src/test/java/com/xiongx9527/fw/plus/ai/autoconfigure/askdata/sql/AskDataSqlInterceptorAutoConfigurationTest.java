@@ -18,6 +18,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDo
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationPurpose;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
@@ -86,9 +89,7 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
 
             assertNotNull(chain);
             IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                    () -> chain.execute(new AskDataSqlCommand(new AskDataProjectContext("project-1", "operator-1"),
-                            "select * from/*scope*/orders", Collections.<AskDataSqlParameter>emptyList(),
-                            Collections.<String>emptySet())));
+                    () -> chain.execute(commandWithoutAuthorizedObjects("select * from/*scope*/orders")));
             assertTrue(exception.getMessage().contains("UNAUTHORIZED_OBJECT"));
         } finally {
             context.close();
@@ -249,9 +250,25 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
     }
 
     private AskDataSqlCommand command(String sql) {
-        return new AskDataSqlCommand(new AskDataProjectContext("project-1", "operator-1"), sql,
+        AskDataProjectContext context = new AskDataProjectContext("project-1", "operator-1");
+        AskDataAuthorizationRequest request = new AskDataAuthorizationRequest(context, "orders",
+                AskDataAuthorizationPurpose.QUERY, AskDataAdministrativeScope.none());
+        AskDataAuthorizationSummary summary = AskDataAuthorizationSummary.allow(request,
+                Collections.singletonList(new AskDataAuthorizedObject("orders", "orders", "*")),
+                Collections.emptyList(), "policy-v1", "test-governance", AskDataAdministrativeScope.none());
+        return new AskDataSqlCommand(context, sql,
                 Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-1")),
-                Collections.singleton("orders"));
+                Collections.singleton("orders"), summary);
+    }
+
+    private AskDataSqlCommand commandWithoutAuthorizedObjects(String sql) {
+        AskDataProjectContext context = new AskDataProjectContext("project-1", "operator-1");
+        AskDataAuthorizationRequest request = new AskDataAuthorizationRequest(context, "orders",
+                AskDataAuthorizationPurpose.QUERY, AskDataAdministrativeScope.none());
+        AskDataAuthorizationSummary summary = AskDataAuthorizationSummary.allow(request, Collections.emptyList(),
+                Collections.emptyList(), "policy-v1", "test-governance", AskDataAdministrativeScope.none());
+        return new AskDataSqlCommand(context, sql, Collections.<AskDataSqlParameter>emptyList(),
+                Collections.<String>emptySet(), summary);
     }
 
     @Configuration
@@ -482,8 +499,9 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
 
         @Bean
         public AskDataGovernanceProvider askDataGovernanceProvider() {
-            return request -> AskDataAuthorizationSummary.allow(Collections.singletonList(
-                    new AskDataAuthorizedObject("orders", "orders", "*")), Collections.emptyList());
+            return request -> AskDataAuthorizationSummary.allow(request, Collections.singletonList(
+                    new AskDataAuthorizedObject("orders", "orders", "*")), Collections.emptyList(),
+                    "policy-v1", "test-governance", AskDataAdministrativeScope.none());
         }
 
         @Bean

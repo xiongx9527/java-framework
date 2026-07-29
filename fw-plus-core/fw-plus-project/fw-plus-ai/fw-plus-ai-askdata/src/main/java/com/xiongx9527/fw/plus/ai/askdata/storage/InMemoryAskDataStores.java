@@ -117,7 +117,7 @@ public final class InMemoryAskDataStores {
 	private final AskDataMonitoringLogStore monitoringLogStore = new AskDataMonitoringLogStore() {
 		@Override
 		public void append(AskDataProjectContext context, MonitoringLog log) {
-			MonitoringLog checkedLog = requireValue(log, "monitoringLog");
+			MonitoringLog checkedLog = requireValue(log, "monitoringLog").ownedBy(context);
 			ScopeKey key = scope(context);
 			List<MonitoringLog> logs = monitoringLogs.get(key);
 			if (logs == null) {
@@ -142,6 +142,22 @@ public final class InMemoryAskDataStores {
 			synchronized (logs) {
 				return new ArrayList<MonitoringLog>(logs);
 			}
+		}
+
+		@Override
+		public List<MonitoringLog> listProject(String projectId) {
+			String checkedProjectId = requireId(projectId);
+			List<MonitoringLog> result = new ArrayList<MonitoringLog>();
+			for (List<MonitoringLog> logs : monitoringLogs.values()) {
+				synchronized (logs) {
+					for (MonitoringLog log : logs) {
+						if (checkedProjectId.equals(log.getContext().getProjectId())) {
+							result.add(log);
+						}
+					}
+				}
+			}
+			return result;
 		}
 	};
 

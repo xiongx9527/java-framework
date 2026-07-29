@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.askdata.storage;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -30,15 +31,28 @@ public interface AskDataMonitoringLogStore {
 	List<MonitoringLog> list(AskDataProjectContext context);
 
 	/**
+	 * 获取项目内所有操作人的日志快照。管理员查询实现必须显式覆盖该方法。
+	 */
+	default List<MonitoringLog> listProject(String projectId) {
+		return Collections.emptyList();
+	}
+
+	/**
 	 * 监控日志的最小审计字段。
 	 */
 	class MonitoringLog {
 
+		private final AskDataProjectContext context;
 		private final String traceId;
 		private final String eventType;
 		private final String message;
 
 		public MonitoringLog(String traceId, String eventType, String message) {
+			this(null, traceId, eventType, message);
+		}
+
+		public MonitoringLog(AskDataProjectContext context, String traceId, String eventType, String message) {
+			this.context = context;
 			this.traceId = traceId;
 			this.eventType = eventType;
 			this.message = message;
@@ -46,6 +60,21 @@ public interface AskDataMonitoringLogStore {
 
 		public String getTraceId() {
 			return traceId;
+		}
+
+		public AskDataProjectContext getContext() {
+			return context;
+		}
+
+		public MonitoringLog ownedBy(AskDataProjectContext owner) {
+			if (owner == null) {
+				throw new IllegalArgumentException("owner 不能为空");
+			}
+			if (context != null && (!context.getProjectId().equals(owner.getProjectId())
+					|| !context.getOperatorId().equals(owner.getOperatorId()))) {
+				throw new IllegalArgumentException("监控日志归属与存储上下文不一致");
+			}
+			return context == null ? new MonitoringLog(owner, traceId, eventType, message) : this;
 		}
 
 		public String getEventType() {

@@ -36,6 +36,8 @@ AskData Core 只定义稳定的 Java 8 值对象和 SPI。Starter 默认把 Lang
 ```java
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationPurpose;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataRowPredicate;
@@ -52,28 +54,31 @@ final class OrdersGovernanceProvider implements AskDataGovernanceProvider {
 
     @Override
     public AskDataAuthorizationSummary authorize(AskDataAuthorizationRequest request) {
-        if (!iam.canReadOrders(request.getProjectContext().getProjectId(),
+        if (!"sales".equals(request.getDatasourceKey())
+                || !AskDataAuthorizationPurpose.QUERY.equals(request.getPurpose())
+                || !iam.canReadOrders(request.getProjectContext().getProjectId(),
                 request.getProjectContext().getOperatorId())) {
-            return AskDataAuthorizationSummary.deny("IAM_DENIED");
+            return AskDataAuthorizationSummary.deny(request, "IAM_DENIED", "policy-v1", "business-iam");
         }
         AskDataAuthorizedObject id = new AskDataAuthorizedObject("sales", "orders", "id");
         AskDataAuthorizedObject amount = new AskDataAuthorizedObject("sales", "orders", "amount");
-        AskDataRowPredicate predicate = new AskDataRowPredicate(id, "region_id = :regionId",
-                Collections.singletonList(AskDataSqlParameter.of("regionId", iam.regionId())));
-        return AskDataAuthorizationSummary.allow(Arrays.asList(id, amount),
-                Collections.singletonList(predicate));
+        AskDataRowPredicate predicate = new AskDataRowPredicate(id, "id >= :minimumOrderId",
+                Collections.singletonList(AskDataSqlParameter.of("minimumOrderId", iam.minimumOrderId())));
+        return AskDataAuthorizationSummary.allow(request, Arrays.asList(id, amount),
+                Collections.singletonList(predicate), "policy-v1", "business-iam",
+                AskDataAdministrativeScope.none());
     }
 
     interface BusinessIam {
         boolean canReadOrders(String projectId, String operatorId);
-        String regionId();
+        Long minimumOrderId();
     }
 }
 ```
 
-片段中的 `iam` 是业务服务，不是 Core API。`sqlFragment` 只能使用受控结构，绝不拼接 `regionId` 或其他动态值。当前 Starter 对未能落实到最终 SQL 的行级谓词 fail-closed；完整注入由业务治理层或后续增强实现时，必须继续通过最终 SQL 校验。元数据会先按摘要过滤，再构建 Prompt，因此未授权列不会进入模型上下文。
+片段中的 `iam` 是业务服务，不是 Core API。`sqlFragment` 只能使用受控结构，绝不拼接 `minimumOrderId` 或其他动态值；谓词引用的 `id` 也在授权列中。Starter 会把行级谓词注入最终 SQL、以具名参数绑定，并在插件后重新执行表列授权校验。Flow 还会不可覆盖地净化元数据；由于当前术语、样例和 Prompt 片段没有对象归属字段，这三类内容默认清空，不能由自定义 MetadataProvider 带回未授权列。
 
-管理员监控日志使用双 SPI：默认 `AskDataMonitoringLogAccessAuthorizer` fail-closed，不能仅因调用方传入管理员角色、平台管理员标记或请求参数而放行。业务必须显式提供授权解析器，根据请求人、目标 scope 和角色声明向宿主 IAM 确认管理员资格；只有该解析器返回允许后，`AskDataMonitoringLogAccessPolicy` 才逐条校验日志项目范围。默认策略只收窄已获宿主确认的同项目管理员范围，不识别管理员身份；成功查询写入脱敏审计。
+管理员监控日志不再使用 Starter 独立授权 SPI。业务在同一个 `AskDataGovernanceProvider` 中识别 `MONITORING_LOG_QUERY`，并返回与请求 project/operator、固定日志数据源、用途和管理员 scope 完整绑定的摘要。项目管理员范围只能包含本项目；平台管理员范围必须显式列出可查项目。Core `AskDataMonitoringLogAccessPolicy` 随后按日志真实 owner context 逐条收窄，成功查询写入主体、范围、结果数量和授权来源的脱敏审计。
 
 ## Java 8 可编译示例
 

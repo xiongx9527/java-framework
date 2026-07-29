@@ -9,7 +9,6 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConve
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.DefaultAskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.InMemoryAskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.InMemoryAskDataMonitoringLogStore;
-import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AskDataMonitoringLogAccessAuthorizer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AskDataMonitoringLogQueryService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AskDataObservationExporter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AsyncAskDataObservationExporter;
@@ -23,6 +22,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataSubAgent;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.DefaultAskDataFlowExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.SequentialAskDataAgentDispatcher;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadataProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.EmptyAskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.LangChain4jAskDataModelRegistry;
@@ -33,6 +35,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialectRegi
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataPromptTemplateProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.DefaultAskDataPromptTemplateProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutor;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlAuthorizationProcessor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.DefaultAskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.JdbcAskDataSqlExecutor;
@@ -46,6 +49,11 @@ import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataMonitoringLogAccessPolicy;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationPurpose;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
 import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore;
@@ -69,8 +77,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @AutoConfiguration
@@ -204,20 +216,11 @@ public class AskDataAutoConfiguration {
         return AskDataMonitoringLogAccessPolicy.projectAdministratorOnly();
     }
 
-    /**
-     * 默认拒绝监控日志管理员资格，业务必须接入宿主授权系统后才可开放读取。
-     */
-    @Bean
-    @ConditionalOnMissingBean
-    public AskDataMonitoringLogAccessAuthorizer askDataMonitoringLogAccessAuthorizer() {
-        return AskDataMonitoringLogAccessAuthorizer.denyAll();
-    }
-
     @Bean
     @ConditionalOnMissingBean
     public AskDataMonitoringLogQueryService askDataMonitoringLogQueryService(AskDataMonitoringLogStore store,
-            AskDataMonitoringLogAccessPolicy accessPolicy, AskDataMonitoringLogAccessAuthorizer accessAuthorizer) {
-        return new AskDataMonitoringLogQueryService(store, accessPolicy, accessAuthorizer);
+            AskDataMonitoringLogAccessPolicy accessPolicy, AskDataGovernanceProvider governanceProvider) {
+        return new AskDataMonitoringLogQueryService(store, accessPolicy, governanceProvider);
     }
 
     @Bean
@@ -283,6 +286,10 @@ public class AskDataAutoConfiguration {
         return new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator() {
             @Override
             public Result validate(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand command) {
+                AskDataAuthorizationSummary authorizationSummary = command.getAuthorizationSummary();
+                if (!hasValidQueryBinding(command, authorizationSummary)) {
+                    return Result.failure(FailureCategory.POLICY_DENIED, "授权摘要与当前 SQL 请求不匹配");
+                }
                 String normalizedSql = command.getSql().trim().toLowerCase();
                 if (normalizedSql.indexOf(';') >= 0) {
                     return Result.failure(FailureCategory.MULTI_STATEMENT, "SQL 只允许单条语句");
@@ -303,9 +310,72 @@ public class AskDataAutoConfiguration {
                         }
                     }
                 }
+                AskDataMetadata authorizationMetadata = authorizationMetadata(authorizationSummary);
+                String columnFailure = AskDataSqlAuthorizationProcessor.validateColumns(command.getSql(),
+                        authorizationMetadata);
+                if (columnFailure != null) {
+                    return Result.failure(FailureCategory.UNAUTHORIZED_OBJECT, columnFailure);
+                }
                 return Result.success();
             }
         };
+    }
+
+    private static boolean hasValidQueryBinding(
+            com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand command,
+            AskDataAuthorizationSummary authorizationSummary) {
+        if (command == null || authorizationSummary == null || !authorizationSummary.isAllowed()
+                || !AskDataAuthorizationPurpose.QUERY.equals(authorizationSummary.getPurpose())
+                || !AskDataAdministrativeScope.none().equals(authorizationSummary.getAdministrativeScope())) {
+            return false;
+        }
+        try {
+            AskDataAuthorizationRequest request = new AskDataAuthorizationRequest(command.getContext(),
+                    authorizationSummary.getDatasourceKey(), AskDataAuthorizationPurpose.QUERY,
+                    AskDataAdministrativeScope.none());
+            if (!authorizationSummary.isBoundTo(request)) {
+                return false;
+            }
+            Set<String> authorizedTables = new LinkedHashSet<String>();
+            for (AskDataAuthorizedObject object : authorizationSummary.getAuthorizedObjects()) {
+                if (object == null || !authorizationSummary.getDatasourceKey().equals(object.getDatasourceKey())) {
+                    return false;
+                }
+                authorizedTables.add(object.getTableName());
+            }
+            return command.getAuthorizedObjects().containsAll(authorizedTables);
+        } catch (RuntimeException ex) {
+            return false;
+        }
+    }
+
+    private static AskDataMetadata authorizationMetadata(AskDataAuthorizationSummary authorizationSummary) {
+        Map<String, List<AskDataColumn>> columnsByTable = new LinkedHashMap<String, List<AskDataColumn>>();
+        for (AskDataAuthorizedObject object : authorizationSummary.getAuthorizedObjects()) {
+            List<AskDataColumn> columns = columnsByTable.get(object.getTableName());
+            if (columns == null) {
+                columns = new ArrayList<AskDataColumn>();
+                columnsByTable.put(object.getTableName(), columns);
+            }
+            if (!containsColumn(columns, object.getColumnName())) {
+                columns.add(new AskDataColumn(object.getColumnName(), "authorized"));
+            }
+        }
+        List<AskDataTable> tables = new ArrayList<AskDataTable>();
+        for (Map.Entry<String, List<AskDataColumn>> entry : columnsByTable.entrySet()) {
+            tables.add(new AskDataTable(entry.getKey(), entry.getValue()));
+        }
+        return new AskDataMetadata(null, tables, Collections.<String>emptyList(), Collections.<String>emptyList(),
+                Collections.<String>emptyList());
+    }
+
+    private static boolean containsColumn(List<AskDataColumn> columns, String name) {
+        for (AskDataColumn column : columns) {
+            if (column != null && (name == null ? column.getName() == null : name.equals(column.getName()))) {
+                return true;
+            }
+        }
+        return false;
     }
 
 	@Bean

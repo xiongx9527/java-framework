@@ -34,13 +34,19 @@ public class AskDataEvent {
 		/** 对话已正常结束。 */
 		CONVERSATION_COMPLETED,
 		/** 对话已异常结束。 */
-		CONVERSATION_FAILED
+		CONVERSATION_FAILED,
+		/** 治理授权拒绝或解析失败。 */
+		GOVERNANCE_DENIED
 	}
 
 	private final AskDataProjectContext context;
 	private final String traceId;
 	private final Type type;
 	private final String message;
+	private final String datasourceKey;
+	private final String denialCode;
+	private final String authorizationVersion;
+	private final String authorizationSource;
 
 	/**
 	 * 创建一条已脱敏的生命周期事件。
@@ -52,6 +58,11 @@ public class AskDataEvent {
 	 * @throws IllegalArgumentException 当上下文或事件类型为空时抛出
 	 */
 	public AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message) {
+		this(context, traceId, type, message, null, null, null, null);
+	}
+
+	private AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message,
+			String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource) {
 		if (context == null) {
 			throw new IllegalArgumentException("context 不能为空");
 		}
@@ -62,6 +73,16 @@ public class AskDataEvent {
 		this.traceId = traceId;
 		this.type = type;
 		this.message = message;
+		this.datasourceKey = datasourceKey;
+		this.denialCode = denialCode;
+		this.authorizationVersion = authorizationVersion;
+		this.authorizationSource = authorizationSource;
+	}
+
+	public static AskDataEvent governanceDenied(AskDataProjectContext context, String traceId, String datasourceKey,
+			String denialCode, String authorizationVersion, String authorizationSource) {
+		return new AskDataEvent(context, traceId, Type.GOVERNANCE_DENIED, "AskData 治理拒绝", datasourceKey,
+				denialCode, authorizationVersion, authorizationSource);
 	}
 
 	/**
@@ -99,4 +120,9 @@ public class AskDataEvent {
 	public String getMessage() {
 		return message;
 	}
+
+	public String getDatasourceKey() { return datasourceKey; }
+	public String getDenialCode() { return denialCode; }
+	public String getAuthorizationVersion() { return authorizationVersion; }
+	public String getAuthorizationSource() { return authorizationSource; }
 }

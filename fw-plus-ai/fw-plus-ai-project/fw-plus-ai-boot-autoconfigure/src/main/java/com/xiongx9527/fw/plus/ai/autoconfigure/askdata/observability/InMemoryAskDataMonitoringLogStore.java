@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -41,7 +42,7 @@ public class InMemoryAskDataMonitoringLogStore implements AskDataMonitoringLogSt
             while (logs.size() >= capacityPerScope) {
                 logs.remove(0);
             }
-            logs.add(log);
+            logs.add(log.ownedBy(context));
         }
     }
 
@@ -57,6 +58,35 @@ public class InMemoryAskDataMonitoringLogStore implements AskDataMonitoringLogSt
         synchronized (logs) {
             return new ArrayList<MonitoringLog>(logs);
         }
+    }
+
+    @Override
+    public List<MonitoringLog> listProject(String projectId) {
+        if (projectId == null || projectId.trim().length() == 0) {
+            throw new IllegalArgumentException("projectId must not be blank");
+        }
+        List<ScopeKey> keys = new ArrayList<ScopeKey>();
+        for (ScopeKey key : logsByScope.keySet()) {
+            if (projectId.equals(key.projectId)) {
+                keys.add(key);
+            }
+        }
+        Collections.sort(keys, new Comparator<ScopeKey>() {
+            @Override
+            public int compare(ScopeKey left, ScopeKey right) {
+                return left.operatorId.compareTo(right.operatorId);
+            }
+        });
+        List<MonitoringLog> result = new ArrayList<MonitoringLog>();
+        for (ScopeKey key : keys) {
+            List<MonitoringLog> logs = logsByScope.get(key);
+            if (logs != null) {
+                synchronized (logs) {
+                    result.addAll(logs);
+                }
+            }
+        }
+        return result;
     }
 
     private static final class ScopeKey {

@@ -16,7 +16,7 @@
 - **THEN** 它们 SHALL 通过 Core 治理 SPI 映射为稳定授权摘要，Core 公共 API 不得暴露宿主框架类型或外部平台凭据
 
 ### Requirement: Project member and datasource authorization
-系统 SHALL 支持业务应用按项目成员、角色、数据源和资源范围授权 AskData 请求。授权摘要 SHALL 包含项目、操作人、数据源、授权对象、授权版本和可审计来源。
+系统 SHALL 支持业务应用按项目成员、角色、数据源和资源范围授权 AskData 请求。授权摘要 SHALL 包含项目、操作人、数据源、用途、管理员范围、授权对象、拒绝码、授权版本和可审计来源，并与当前请求严格绑定。
 
 #### Scenario: Allow an authorized datasource
 - **WHEN** 当前操作人在项目中被授权访问某个数据源
@@ -35,7 +35,7 @@
 
 #### Scenario: Project admin queries project logs
 - **WHEN** 项目管理员查询本项目 AskData 监控日志
-- **THEN** 系统 SHALL 返回该项目内脱敏日志，并保持项目过滤、授权来源和查询审计
+- **THEN** 系统 SHALL 返回该项目所有操作人的脱敏日志，并按日志不可变真实归属执行项目过滤，查询审计 SHALL 包含主体、范围、结果数量和授权来源
 
 #### Scenario: Platform admin queries allowed projects
 - **WHEN** 平台管理员发起跨项目监控日志查询

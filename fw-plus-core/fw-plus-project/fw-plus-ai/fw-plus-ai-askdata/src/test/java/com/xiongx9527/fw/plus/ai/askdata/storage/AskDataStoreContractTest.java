@@ -110,6 +110,27 @@ class AskDataStoreContractTest {
 	}
 
 	@Test
+	void 监控日志应携带不可变归属并支持项目范围读取() {
+		InMemoryAskDataStores stores = InMemoryAskDataStores.singleNode();
+		AskDataProjectContext first = new AskDataProjectContext("project-a", "operator-a");
+		AskDataProjectContext second = new AskDataProjectContext("project-a", "operator-b");
+		AskDataProjectContext otherProject = new AskDataProjectContext("project-b", "operator-c");
+		stores.monitoringLogs().append(first,
+				new AskDataMonitoringLogStore.MonitoringLog(first, "trace-a", "MODEL", "completed"));
+		stores.monitoringLogs().append(second,
+				new AskDataMonitoringLogStore.MonitoringLog(second, "trace-b", "MODEL", "completed"));
+		stores.monitoringLogs().append(otherProject,
+				new AskDataMonitoringLogStore.MonitoringLog(otherProject, "trace-c", "MODEL", "completed"));
+
+		java.util.List<AskDataMonitoringLogStore.MonitoringLog> logs =
+				stores.monitoringLogs().listProject("project-a");
+
+		assertEquals(2, logs.size());
+		assertEquals("project-a", logs.get(0).getContext().getProjectId());
+		assertTrue(!logs.get(0).getContext().getOperatorId().equals(logs.get(1).getContext().getOperatorId()));
+	}
+
+	@Test
 	void 日志满容量后追加空值不得淘汰已有日志() {
 		InMemoryAskDataStores stores = InMemoryAskDataStores.singleNode();
 		AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");

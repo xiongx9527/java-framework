@@ -43,7 +43,8 @@ public final class AskDataSqlInterceptorChain {
 				throw new IllegalArgumentException("SQL 插件不能返回 null: " + interceptor.key);
 			}
 			validateAuthorizationBoundary(current.getAuthorizationSummary(), rewritten.getAuthorizationSummary());
-			current = command.withSql(rewritten.getSql());
+			current = current.withSql(rewritten.getSql())
+					.withAuthorizationSummary(rewritten.getAuthorizationSummary());
 			audit.record(interceptor.key, "INTERCEPT");
 		}
 		audit.record("validator", "FINAL_VALIDATE");
@@ -62,7 +63,9 @@ public final class AskDataSqlInterceptorChain {
 		if (original == null) {
 			return;
 		}
-		if (rewritten == null || !original.getAuthorizedObjects().equals(rewritten.getAuthorizedObjects())
+		if (rewritten == null || !rewritten.isAllowed() || !original.hasSameBinding(rewritten)
+				|| (rewritten.getAuthorizedObjects().isEmpty() && !original.getAuthorizedObjects().isEmpty())
+				|| !original.getAuthorizedObjects().containsAll(rewritten.getAuthorizedObjects())
 				|| !containsAllRequiredRowPredicates(rewritten, original)) {
 			throw new IllegalArgumentException("插件不能扩大或弱化 authorizationSummary");
 		}

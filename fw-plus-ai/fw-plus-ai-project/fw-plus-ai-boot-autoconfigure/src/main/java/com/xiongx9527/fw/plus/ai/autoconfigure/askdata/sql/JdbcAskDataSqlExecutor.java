@@ -3,6 +3,8 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataColumn;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataErrorCode;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlParameter;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementCallback;
@@ -80,6 +82,18 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
 
     @Override
     public AskDataSqlExecutionResult execute(AskDataRequest request, String sql) {
+        return execute(request, sql, parameterSource(request));
+    }
+
+    @Override
+    public AskDataSqlExecutionResult execute(AskDataRequest request, AskDataSqlCommand command) {
+        if (command == null) {
+            return AskDataSqlExecutionResult.failure(AskDataErrorCode.SQL_EXECUTION_FAILED, "SQL command 不能为空");
+        }
+        return execute(request, command.getSql(), parameterSource(command));
+    }
+
+    private AskDataSqlExecutionResult execute(AskDataRequest request, String sql, SqlParameterSource parameterSource) {
         JdbcTemplate jdbcTemplate = jdbcTemplateProvider.getIfAvailable();
         if (jdbcTemplate == null) {
             return AskDataSqlExecutionResult.failure(AskDataErrorCode.SQL_EXECUTION_FAILED, "未配置 JdbcTemplate");
@@ -87,7 +101,6 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
         final int maxRows = request != null && request.getMaxRows() != null && request.getMaxRows().intValue() > 0
                 ? request.getMaxRows().intValue() : defaultMaxRows;
         try {
-            final SqlParameterSource parameterSource = parameterSource(request);
             NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
             return namedParameterJdbcTemplate.execute(sql, parameterSource,
                     new PreparedStatementCallback<AskDataSqlExecutionResult>() {
@@ -145,6 +158,14 @@ public class JdbcAskDataSqlExecutor implements AskDataSqlExecutor {
             if (entry.getKey() != null) {
                 source.addValue(entry.getKey(), entry.getValue());
             }
+        }
+        return source;
+    }
+
+    private SqlParameterSource parameterSource(AskDataSqlCommand command) {
+        MapSqlParameterSource source = new MapSqlParameterSource();
+        for (AskDataSqlParameter parameter : command.getParameters()) {
+            source.addValue(parameter.getName(), parameter.getValue());
         }
         return source;
     }

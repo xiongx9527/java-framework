@@ -27,6 +27,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDo
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
@@ -578,14 +580,15 @@ public class AskDataResumeFlowTest {
             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                     promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, store, contextCompressor,
                     null, Collections.<AskDataAgent>emptyList(), null, null, sqlInterceptorChain, coreSqlValidator,
-                    request -> allowedOrders());
+                    request -> allowedOrders(request));
         }
     }
 
-    private static AskDataAuthorizationSummary allowedOrders() {
-        return AskDataAuthorizationSummary.allow(Arrays.asList(
+    private static AskDataAuthorizationSummary allowedOrders(AskDataAuthorizationRequest request) {
+        return AskDataAuthorizationSummary.allow(request, Arrays.asList(
                 new AskDataAuthorizedObject("orders", "orders", "*"),
-                new AskDataAuthorizedObject("other-datasource", "orders", "*")), Collections.emptyList());
+                new AskDataAuthorizedObject("other-datasource", "orders", "*")), Collections.emptyList(),
+                "policy-v1", "test-governance", AskDataAdministrativeScope.none());
     }
 
     private void assertIdentityMismatch(String field) {

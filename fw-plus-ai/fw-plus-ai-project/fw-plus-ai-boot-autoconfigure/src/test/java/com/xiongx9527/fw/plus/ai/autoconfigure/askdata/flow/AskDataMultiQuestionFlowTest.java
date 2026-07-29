@@ -24,6 +24,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDo
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService;
@@ -214,12 +216,13 @@ public class AskDataMultiQuestionFlowTest {
         };
         return new DefaultAskDataFlowExecutor(new AskDataProperties(), modelRegistry, metadataProvider, vectorRetriever,
                 promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, null, null, null,
-                Collections.<AskDataAgent>emptyList(), null, null, null, null, request -> allowedOrders());
+                Collections.<AskDataAgent>emptyList(), null, null, null, null, request -> allowedOrders(request));
     }
 
-    private static AskDataAuthorizationSummary allowedOrders() {
-        return AskDataAuthorizationSummary.allow(Collections.singletonList(
-                new AskDataAuthorizedObject("orders", "orders", "*")), Collections.emptyList());
+    private static AskDataAuthorizationSummary allowedOrders(AskDataAuthorizationRequest request) {
+        return AskDataAuthorizationSummary.allow(request, Collections.singletonList(
+                new AskDataAuthorizedObject("orders", "orders", "*")), Collections.emptyList(),
+                "policy-v1", "test-governance", AskDataAdministrativeScope.none());
     }
 
     private boolean hasChildAuditStep(AskDataResult child) {
