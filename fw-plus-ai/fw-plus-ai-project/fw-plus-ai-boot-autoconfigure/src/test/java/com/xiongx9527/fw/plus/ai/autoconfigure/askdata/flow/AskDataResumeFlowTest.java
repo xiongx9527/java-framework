@@ -27,6 +27,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDo
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor;
@@ -99,9 +102,9 @@ public class AskDataResumeFlowTest {
         AskDataResult result = fixture.executor().execute(request);
 
         assertFalse(result.isSuccess());
-        assertEquals(AskDataErrorCode.SQL_REJECTED, result.getErrorCode());
+        assertEquals(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE, result.getErrorCode());
         assertEquals(1, fixture.metadataCalls);
-        assertEquals(1, fixture.validatorCalls);
+        assertEquals(0, fixture.validatorCalls);
         assertEquals(0, fixture.executorCalls);
     }
 
@@ -574,8 +577,15 @@ public class AskDataResumeFlowTest {
             };
             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                     promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, store, contextCompressor,
-                    null, Collections.<AskDataAgent>emptyList(), null, null, sqlInterceptorChain, coreSqlValidator);
+                    null, Collections.<AskDataAgent>emptyList(), null, null, sqlInterceptorChain, coreSqlValidator,
+                    request -> allowedOrders());
         }
+    }
+
+    private static AskDataAuthorizationSummary allowedOrders() {
+        return AskDataAuthorizationSummary.allow(Arrays.asList(
+                new AskDataAuthorizedObject("orders", "orders", "*"),
+                new AskDataAuthorizedObject("other-datasource", "orders", "*")), Collections.emptyList());
     }
 
     private void assertIdentityMismatch(String field) {

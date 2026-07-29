@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataMemoryRecal
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataRecommendationAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadataProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
@@ -26,6 +27,8 @@ import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -179,7 +182,8 @@ public class AskDataMultiQuestionFlowTest {
         AskDataMetadataProvider metadataProvider = new AskDataMetadataProvider() {
             @Override
             public AskDataMetadata load(AskDataRequest request) {
-                return new AskDataMetadata("mysql", Collections.emptyList(), Collections.emptyList(),
+                return new AskDataMetadata("mysql", Collections.singletonList(
+                        new AskDataTable("orders", Collections.emptyList())), Collections.emptyList(),
                         Collections.emptyList(), Collections.emptyList());
             }
         };
@@ -209,7 +213,13 @@ public class AskDataMultiQuestionFlowTest {
             }
         };
         return new DefaultAskDataFlowExecutor(new AskDataProperties(), modelRegistry, metadataProvider, vectorRetriever,
-                promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor);
+                promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, null, null, null,
+                Collections.<AskDataAgent>emptyList(), null, null, null, null, request -> allowedOrders());
+    }
+
+    private static AskDataAuthorizationSummary allowedOrders() {
+        return AskDataAuthorizationSummary.allow(Collections.singletonList(
+                new AskDataAuthorizedObject("orders", "orders", "*")), Collections.emptyList());
     }
 
     private boolean hasChildAuditStep(AskDataResult child) {
