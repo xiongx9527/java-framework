@@ -70,3 +70,37 @@ DONE_WITH_CONCERNS
 ### 风险与关注项
 
 - 完整 Maven 测试命令仍在编译阶段被范围外 `LegacyEmbeddingStoreAiAdapter` 未实现 `AiEmbeddingStoreAdapter#getFramework()` 阻断，未修改该范围外文件。
+
+---
+
+## 第 2 轮 Review 修复（Task 4）
+
+### 状态
+
+DONE_WITH_CONCERNS
+
+### RED
+
+1. 完整命令：
+   `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='AskDataMonitoringLogQueryServiceTest,DefaultAskDataFlowExecutorTest' test`
+   - 未进入测试执行：范围外 `LegacyEmbeddingStoreAiAdapter` 未实现 `AiEmbeddingStoreAdapter#getFramework()`，主编译失败。
+2. 聚焦测试：
+   `cd fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure && ../../mvnw dependency:build-classpath -Dmdep.includeScope=test -Dmdep.pathSeparator=: -Dmdep.outputFile=target/task-4-test.classpath && javac -source 8 -target 8 -cp "target/classes:$(tr -d '\n' < target/task-4-test.classpath)" -d target/test-classes src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/observability/AskDataMonitoringLogQueryServiceTest.java && ../../mvnw surefire:test -Dtest='AskDataMonitoringLogQueryServiceTest'`
+   - 预期失败：`shouldRejectForgedProjectAdministratorRoleByDefault` 期望 0 条日志，实际返回 1 条，证明旧实现直接信任调用方传入的管理员枚举。
+
+### GREEN
+
+1. 聚焦编译并执行：
+   `cd fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure && javac -source 8 -target 8 -cp "target/classes:$(tr -d '\n' < target/task-4-test.classpath)" -d target/classes src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/observability/AskDataMonitoringLogAccessAuthorizer.java src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/observability/AskDataMonitoringLogQueryService.java src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/autoconfigure/AskDataAutoConfiguration.java && javac -source 8 -target 8 -cp "target/classes:$(tr -d '\n' < target/task-4-test.classpath)" -d target/test-classes src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/observability/AskDataMonitoringLogQueryServiceTest.java src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/flow/DefaultAskDataFlowExecutorTest.java && ../../mvnw surefire:test -Dtest='AskDataMonitoringLogQueryServiceTest,DefaultAskDataFlowExecutorTest'`
+   - 结果：28 tests，0 failures，0 errors。
+
+### 修复内容
+
+- 新增 Starter-local `AskDataMonitoringLogAccessAuthorizer`。调用方角色仅作为解析输入，授权结果必须由宿主根据 requester、显式 scope 与角色确认。
+- 默认和旧构造器均使用 fail-closed 的拒绝授权解析器；未接入业务 IAM 时，伪造 `PROJECT_ADMINISTRATOR` 或 `PLATFORM_ADMINISTRATOR` 均不能读取日志或写查询审计。
+- 自动配置以 `@ConditionalOnMissingBean` 暴露默认拒绝解析器，并将可替换 Bean 注入查询服务。
+- 逐条日志边界仍由 `AskDataMonitoringLogAccessPolicy` 校验；传入的管理员布尔值来自授权解析器。测试覆盖自定义项目管理员、平台管理员显式 scope、策略边界和审计副作用。
+
+### 风险与关注项
+
+- 完整 Maven 生命周期仍由范围外 `LegacyEmbeddingStoreAiAdapter#getFramework()` 编译缺陷阻断，未修改范围外文件。
