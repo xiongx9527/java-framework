@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,11 +24,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class LegacyEmbeddingStoreAiAdapterTest {
 
 	@Test
-	public void shouldExposeLangChain4jFramework() {
+	public void shouldSupportOnlyLangChain4jDefinitions() {
 		LegacyEmbeddingStoreAiAdapter adapter = new LegacyEmbeddingStoreAiAdapter(null,
 				Collections.<EmbeddingStoreProviderAdapter>emptyList());
+		AiEmbeddingStoreDefinition langChain4j = definition();
+		AiEmbeddingStoreDefinition other = definition();
+		other.setFramework("other");
 
-		assertEquals("langchain4j", adapter.getFramework());
+		assertTrue(adapter.supports(langChain4j));
+		assertFalse(adapter.supports(other));
 	}
 
 	@Test

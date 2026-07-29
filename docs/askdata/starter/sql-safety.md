@@ -18,11 +18,11 @@ AskData 将 SQL 视为受控命令而非模型文本。模型、业务插件或�
 
 `AskDataGovernanceProvider` 是业务 IAM 到 AskData 的唯一数据访问授权桥接。业务实现根据 `AskDataAuthorizationRequest` 中已认证的 `AskDataProjectContext`（`projectId + operatorId`）、数据源、用途和管理员请求范围查询自己的成员、角色、数据域与策略，再返回 `AskDataAuthorizationSummary`。Core 不依赖 Spring Security、Sa-Token、JustAuth 或任何企业 IAM 类型。
 
-- `AskDataAuthorizedObject` 对应 IAM 判定后的一个数据源逻辑 key、表和列；列名可用 `*` 表示该表的全部列。业务 IAM 必须先完成项目归属判断，不能把调用方声称的数据源或角色直接当作授权事实。
+- `AskDataAuthorizedObject` 对应 IAM 判定后的一个数据源逻辑 key、表和列；列名可用 `*` 明确表示该表的全部列。空列集合不表示“允许全部列”，只有授权摘要中的显式 `*` 才会在最终元数据中保留表级授权标记；空或未知列范围一律 fail-closed。业务 IAM 必须先完成项目归属判断，不能把调用方声称的数据源或角色直接当作授权事实。
 - `AskDataAuthorizationSummary` 是一次请求的不可变授权快照。摘要必须绑定当前 project、operator、dataSource、purpose、administrative scope、授权版本和授权来源；拒绝摘要还必须有稳定拒绝码。受保护路径拒绝旧的未绑定兼容摘要。业务插件只能收窄对象或增加行级谓词，不能改变绑定、扩大对象或移除已有谓词；收窄后的摘要会传给后续插件和最终校验。
 - `AskDataRowPredicate` 对应 IAM 给某个已授权对象下发的行级范围。其 `sqlFragment` 必须是审核过的受控 SQL 片段，动态值必须使用 `AskDataSqlParameter.of("name", value)` 以 `:name` 具名参数传递，禁止拼接用户、模型、租户或角色值。
 
-例如，业务 IAM 可以把“项目 A 的 `sales` 数据源中 `orders` 表仅可读 `id`、`amount`，且只看授权订单区间”映射为两个 `AskDataAuthorizedObject` 与一个 `AskDataRowPredicate`；谓词可写为 `id >= :minimumOrderId`，参数为 `AskDataSqlParameter.of("minimumOrderId", minimumOrderId)`。Starter 使用 JSqlParser 将适用于当前数据源和表的谓词注入对应 `SELECT`；已有 `WHERE` 时以带括号的 `AND` 合并。模型、请求 option 和治理谓词出现同名参数时拒绝冲突，JDBC 只消费最终 `AskDataSqlCommand` 中被最终 SQL 实际引用的参数。
+例如，业务 IAM 可以把“项目 A 的 `sales` 数据源中 `orders` 表仅可读 `id`、`amount`，且只看授权订单区间”映射为两个 `AskDataAuthorizedObject` 与一个 `AskDataRowPredicate`；谓词可写为 `id >= :minimumOrderId`，参数为 `AskDataSqlParameter.of("minimumOrderId", minimumOrderId)`。Starter 使用 JSqlParser 将适用于当前数据源和表的谓词注入对应 `SELECT`；已有 `WHERE` 时以带括号的 `AND` 合并。每个插件完成后，Flow 以插件链最终收窄的授权摘要为事实源重新落实其中全部必需谓词，因此插件删除 `WHERE` 不能移除行级范围。模型、请求 option 和治理谓词出现同名参数时拒绝冲突，JDBC 只消费最终 `AskDataSqlCommand` 中被最终 SQL 实际引用的参数。
 
 元数据会在 Prompt 构建之前由 Flow 再次按授权摘要过滤表和列，业务自定义 `AskDataMetadataProvider` 不能覆盖这道净化。当前术语、样例和 Prompt 片段模型没有对象归属字段，Flow 无法证明其只属于授权对象，因此默认全部清空。最终 SQL 校验仍会重查授权对象和行级约束，所以元数据过滤不是 SQL 放行依据。
 
@@ -33,7 +33,7 @@ AskData 将 SQL 视为受控命令而非模型文本。模型、业务插件或�
 - 单语句：拒绝分号拼接、多语句和批量写入语义。
 - 只读：拒绝 `INSERT`、`UPDATE`、`DELETE`、`MERGE`、DDL、事务控制、存储过程和方言等价写操作。
 - 授权对象：只允许项目、数据源和数据范围授权的对象。
-- 授权列：模型 SQL 和每次插件改写后的 SQL 都解析列引用；`SELECT secret FROM orders` 在仅授权 `orders.id` 时必须拒绝，受限列授权下的 `*`/`table.*` 也必须拒绝。
+- 授权列：模型 SQL 和每次插件改写后的 SQL 都解析列引用；`SELECT secret FROM orders` 在仅授权 `orders.id` 时必须拒绝，受限列授权下的 `*`/`table.*` 也必须拒绝。SELECT 输出别名只在所属查询块的安全引用位置识别，不能遮蔽同名真实列；CTE 名与真实表别名冲突时拒绝。
 - 物理限行：强制添加或收紧 `LIMIT`/方言等价限制，默认最大 100 行。
 - 超时与资源：执行器使用只读账号、查询超时、连接池上限和结果集大小限制。
 - 方言：仅对已验证方言启用相应改写，未知方言拒绝执行而非猜测。
@@ -48,7 +48,7 @@ SQL 审计应记录项目、操作人、会话、请求、数据源 key、语义
 
 管理员查看审计同样受项目范围约束，跨项目读取必须由业务授权。审计写入失败应采取显式失败策略，不得悄然放行未完成安全记录的生产查询。
 
-管理员监控日志查询复用同一个 Core `AskDataGovernanceProvider`，以固定数据源 `askdata-monitoring-log` 和用途 `MONITORING_LOG_QUERY` 请求管理员范围，不能信任调用方传入的角色。`AskDataMonitoringLogAccessPolicy` 再依据每条日志固化的真实 owner context 收窄范围：项目管理员可读本项目所有操作人，平台管理员仅可读摘要显式列出的项目，普通用户默认拒绝。成功查询审计记录主体、管理员范围、结果数量、授权来源和是否存在 trace 过滤条件，不保存 trace、日志正文或参数值。
+管理员监控日志查询复用同一个 Core `AskDataGovernanceProvider`，以固定数据源 `askdata-monitoring-log` 和用途 `MONITORING_LOG_QUERY` 请求管理员范围，不能信任调用方传入的角色。`AskDataMonitoringLogAccessPolicy` 再依据每条日志固化的真实 owner context 收窄范围：项目管理员可读本项目所有操作人，平台管理员仅可读摘要显式列出的项目，普通用户默认拒绝。成功查询审计记录主体、管理员范围、结果数量、授权来源和是否存在 trace 过滤条件；拒绝和治理异常同样写入脱敏治理事件。基础日志结构化保留 dataSource、拒绝码、授权版本和授权来源，不保存 trace 过滤值、日志正文、凭据或参数值。
 
 ## 业务扩展接口
 

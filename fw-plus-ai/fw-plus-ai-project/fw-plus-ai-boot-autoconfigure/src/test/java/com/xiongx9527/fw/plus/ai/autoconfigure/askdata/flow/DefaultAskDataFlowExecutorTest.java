@@ -208,6 +208,31 @@ public class DefaultAskDataFlowExecutorTest {
     }
 
     @Test
+    public void shouldPublishGovernanceEventWhenSqlAuthorizationFails() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.governanceProvider = request -> allowed(request, Collections.singletonList(
+                new AskDataAuthorizedObject("orders", "orders", "id")), Collections.<AskDataRowPredicate>emptyList());
+        dependencies.useDefaultSqlValidator = true;
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select secret from orders\"}")
+                .execute(request(true));
+
+        assertFalse(result.isSuccess());
+        AskDataEvent event = null;
+        for (AskDataEvent candidate : dependencies.events) {
+            if (candidate.getType() == AskDataEvent.Type.GOVERNANCE_DENIED) {
+                event = candidate;
+            }
+        }
+        assertTrue(event != null);
+        assertEquals("orders", event.getDatasourceKey());
+        assertEquals(AskDataErrorCode.SQL_REJECTED, event.getDenialCode());
+        assertEquals("policy-v1", event.getAuthorizationVersion());
+        assertEquals("test-governance", event.getAuthorizationSource());
+        assertFalse(event.getMessage().contains("secret"));
+    }
+
+    @Test
     public void shouldRejectPluginRewriteToUnauthorizedColumn() {
         StubDependencies dependencies = new StubDependencies();
         dependencies.governanceProvider = request -> allowed(request, Collections.singletonList(
@@ -283,6 +308,28 @@ public class DefaultAskDataFlowExecutorTest {
         assertTrue(executedSql.contains("id > 10"));
         assertTrue(executedSql.contains("tenant_id = :tenantid"));
         assertTrue(executedSql.contains(" and "));
+    }
+
+    @Test
+    public void shouldReapplyRequiredRowPredicateAfterPluginDeletesWhereClause() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.governanceProvider = request -> allowedOrdersWithRowPredicate(request);
+        dependencies.useDefaultSqlValidator = true;
+        dependencies.sqlInterceptors = Collections.singletonList(new AskDataSqlInterceptor() {
+            @Override public String getKey() { return "delete-row-predicate"; }
+            @Override public int getOrder() { return 1; }
+            @Override public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+                assertTrue(command.getSql().toLowerCase().contains("tenant_id = :tenantid"));
+                return command.withSql("select id from orders");
+            }
+        });
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select id from orders\"}")
+                .execute(request(true));
+
+        assertTrue(result.isSuccess());
+        assertTrue(dependencies.executedCommand.getSql().toLowerCase().contains("tenant_id = :tenantid"));
+        assertEquals("tenant-a", dependencies.executedCommand.getParameter("tenantId").getValue());
     }
 
     @Test

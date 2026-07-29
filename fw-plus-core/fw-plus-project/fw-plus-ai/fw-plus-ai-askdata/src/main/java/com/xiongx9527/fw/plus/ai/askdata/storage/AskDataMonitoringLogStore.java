@@ -46,16 +46,29 @@ public interface AskDataMonitoringLogStore {
 		private final String traceId;
 		private final String eventType;
 		private final String message;
+		private final String datasourceKey;
+		private final String denialCode;
+		private final String authorizationVersion;
+		private final String authorizationSource;
 
 		public MonitoringLog(String traceId, String eventType, String message) {
-			this(null, traceId, eventType, message);
+			this(null, traceId, eventType, message, null, null, null, null);
 		}
 
 		public MonitoringLog(AskDataProjectContext context, String traceId, String eventType, String message) {
+			this(context, traceId, eventType, message, null, null, null, null);
+		}
+
+		public MonitoringLog(AskDataProjectContext context, String traceId, String eventType, String message,
+				String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource) {
 			this.context = context;
 			this.traceId = traceId;
 			this.eventType = eventType;
 			this.message = message;
+			this.datasourceKey = datasourceKey;
+			this.denialCode = denialCode;
+			this.authorizationVersion = authorizationVersion;
+			this.authorizationSource = authorizationSource;
 		}
 
 		public String getTraceId() {
@@ -74,7 +87,8 @@ public interface AskDataMonitoringLogStore {
 					|| !context.getOperatorId().equals(owner.getOperatorId()))) {
 				throw new IllegalArgumentException("监控日志归属与存储上下文不一致");
 			}
-			return context == null ? new MonitoringLog(owner, traceId, eventType, message) : this;
+			return context == null ? new MonitoringLog(owner, traceId, eventType, message, datasourceKey,
+					denialCode, authorizationVersion, authorizationSource) : this;
 		}
 
 		public String getEventType() {
@@ -84,5 +98,10 @@ public interface AskDataMonitoringLogStore {
 		public String getMessage() {
 			return message;
 		}
+
+		public String getDatasourceKey() { return datasourceKey; }
+		public String getDenialCode() { return denialCode; }
+		public String getAuthorizationVersion() { return authorizationVersion; }
+		public String getAuthorizationSource() { return authorizationSource; }
 	}
 }

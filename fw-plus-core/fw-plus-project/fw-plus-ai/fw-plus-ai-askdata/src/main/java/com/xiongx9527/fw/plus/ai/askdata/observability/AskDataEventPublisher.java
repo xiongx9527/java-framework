@@ -44,7 +44,8 @@ public interface AskDataEventPublisher {
 					throw new IllegalArgumentException("event 不能为空");
 				}
 				AskDataMonitoringLog log = new AskDataMonitoringLog(event.getContext(), event.getTraceId(),
-						event.getType(), event.getMessage());
+						event.getType(), event.getMessage(), event.getDatasourceKey(), event.getDenialCode(),
+						event.getAuthorizationVersion(), event.getAuthorizationSource());
 				store.append(log.getContext(), log.toStorageLog());
 			}
 		};
