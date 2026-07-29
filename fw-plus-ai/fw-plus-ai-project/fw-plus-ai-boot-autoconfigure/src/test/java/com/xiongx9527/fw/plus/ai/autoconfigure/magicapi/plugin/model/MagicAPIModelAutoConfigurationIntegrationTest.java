@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.model.AiModelAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.MagicApiPluginAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
@@ -36,7 +36,7 @@ class MagicAPIModelAutoConfigurationIntegrationTest {
     @Test
     void createsModelPluginBeansThroughAutoConfiguration() {
         new WebApplicationContextRunner()
-                .withConfiguration(AutoConfigurations.of(MagicAPIBaseAutoConfiguration.class, LangChain4jModelAutoConfiguration.class))
+                .withConfiguration(AutoConfigurations.of(MagicAPIBaseAutoConfiguration.class, AiModelAutoConfiguration.class))
                 .withPropertyValues(
                         "fw.plus.magicapi.enabled=true",
                         "magic-api.plugin.aia.enabled=false",

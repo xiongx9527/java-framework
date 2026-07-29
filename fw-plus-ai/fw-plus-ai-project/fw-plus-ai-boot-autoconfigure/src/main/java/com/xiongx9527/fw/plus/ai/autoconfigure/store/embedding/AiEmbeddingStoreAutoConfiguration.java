@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding;
+package com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding;
 
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
@@ -21,7 +21,7 @@ import java.util.Map;
 @Configuration
 @ConditionalOnClass(AiEmbeddingStoreRegistry.class)
 @EnableConfigurationProperties(AiEmbeddingStoreProperties.class)
-public class EmbeddingStoreAutoConfiguration {
+public class AiEmbeddingStoreAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean(AiEmbeddingStoreFactory.class)

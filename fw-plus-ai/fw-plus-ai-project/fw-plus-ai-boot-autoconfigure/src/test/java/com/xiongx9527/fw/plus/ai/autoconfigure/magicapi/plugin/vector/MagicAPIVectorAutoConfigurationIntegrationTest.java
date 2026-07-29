@@ -6,7 +6,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module.Vec
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.service.VectorDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.service.VectorDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.starter.MagicAPIVectorConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingDocument;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingQuery;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingSearchResult;
@@ -33,14 +33,14 @@ public class MagicAPIVectorAutoConfigurationIntegrationTest {
 
     private final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(MagicAPIBaseAutoConfiguration.class,
-                    EmbeddingStoreAutoConfiguration.class));
+                    AiEmbeddingStoreAutoConfiguration.class));
 
     @Test
     public void shouldCreateRegistryAndVectorPluginThroughAutoConfigurations() {
         List<String> autoConfigurations = SpringFactoriesLoader.loadFactoryNames(EnableAutoConfiguration.class,
                 getClass().getClassLoader());
         assertTrue(autoConfigurations.contains(MagicAPIBaseAutoConfiguration.class.getName()));
-        assertTrue(autoConfigurations.contains(EmbeddingStoreAutoConfiguration.class.getName()));
+        assertTrue(autoConfigurations.contains(AiEmbeddingStoreAutoConfiguration.class.getName()));
 
         this.contextRunner
                 .withPropertyValues(

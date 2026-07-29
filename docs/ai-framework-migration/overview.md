@@ -38,7 +38,7 @@ Spring Boot 应用至少安装统一 adapter starter：
 - `fw-plus.ai.langchain4j.model`
 - `fw-plus.ai.langchain4j.embedding-store`
 
-迁移到以下中立前缀。`properties` 是 adapter/provider 专属配置容器；中立 Core 不解释其中的凭证或连接参数。
+迁移到以下中立前缀：`fw-plus.ai.model` 和 `fw-plus.ai.embedding-store`。`properties` 是 adapter/provider 专属配置容器；中立 Core 不解释其中的凭证或连接参数。
 
 ```yaml
 fw-plus:

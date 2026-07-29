@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model;
+package com.xiongx9527.fw.plus.ai.autoconfigure.model;
 
 import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
 import org.springframework.boot.context.properties.ConfigurationProperties;
