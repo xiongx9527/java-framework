@@ -2,6 +2,8 @@
 comet_change: add-tiny-engine-boot-starter
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-30-add-tiny-engine-boot-starter
+status: final
 ---
 
 # TinyEngine Boot Starter 深度设计
