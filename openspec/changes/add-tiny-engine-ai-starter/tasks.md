@@ -36,8 +36,8 @@
 - [ ] 5.3 映射 TinyEngine Chat 参数，包括 model、messages、tools、stream、max_tokens、stream_options、presence_penalty、response_format、enable_thinking、tool_choice、parallel_tool_calls、enable_search、search_options 和 frequency_penalty。
 - [x] 5.4 对 Provider 不支持的参数实现忽略、转换或明确 unsupported 参数错误策略。
 - [x] 5.5 对不存在的模型 key 返回包含 key、Provider 和能力类型的明确错误。
-- [ ] 5.6 将 AskData 默认模型 registry 改为中立模型主路径，避免默认实现直接收集 `ChatLanguageModel` / `EmbeddingModel`。
-- [ ] 5.7 补充 AskData 模型 key 缺失、能力类型不匹配、adapter 缺失和业务自定义 `AskDataModelRegistry` 覆盖测试。
+- [x] 5.6 将 AskData 默认模型 registry 改为中立模型主路径，避免默认实现直接收集 `ChatLanguageModel` / `EmbeddingModel`。
+- [x] 5.7 补充 AskData 模型 key 缺失、能力类型不匹配、adapter 缺失和业务自定义 `AskDataModelRegistry` 覆盖测试。
 
 ## 6. RAG、知识库服务与 AskData 向量检索
 

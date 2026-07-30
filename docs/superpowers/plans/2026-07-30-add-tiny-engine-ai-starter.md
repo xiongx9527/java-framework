@@ -173,23 +173,23 @@ Commit: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure && 
 - Consumes: `AiModelRegistry`, `AiModelType.CHAT`, `AiModelType.EMBEDDING`.
 - Produces: Default `AskDataModelRegistry` without direct `Map<String, ChatLanguageModel>` / `Map<String, EmbeddingModel>` input.
 
-- [ ] **Task 4 Step 1: Write failing AskData model tests**
+- [x] **Task 4 Step 1: Write failing AskData model tests**
 
 Create test registry with neutral `AiModel` stubs for chat and embedding. Assert `getChatModel` and `getEmbeddingModel` resolve configured keys, missing key throws `AskDataModelException`, and custom `AskDataModelRegistry` bean prevents default registration.
 
-- [ ] **Task 4 Step 2: Implement `AiModelAskDataModelRegistry`**
+- [x] **Task 4 Step 2: Implement `AiModelAskDataModelRegistry`**
 
 Resolve candidate/default keys against `AiModelRegistry.keys()`. For LangChain4j default adapter, unwrap only inside this implementation when the model is `LangChain4jAiModel`; keep `AskDataModelRegistry` interface unchanged.
 
-- [ ] **Task 4 Step 3: Adjust `AskDataAutoConfiguration`**
+- [x] **Task 4 Step 3: Adjust `AskDataAutoConfiguration`**
 
 Change the default `askDataModelRegistry` bean signature to consume `AiModelRegistry` and optional model source only if still needed. Remove main-path direct collection of `ChatLanguageModel` / `EmbeddingModel` maps.
 
-- [ ] **Task 4 Step 4: Preserve optional compatibility**
+- [x] **Task 4 Step 4: Preserve optional compatibility**
 
 If keeping `LangChain4jAskDataModelRegistry`, isolate it behind `@ConditionalOnClass` and never make it the default when `AiModelRegistry` is present.
 
-- [ ] **Task 4 Step 5: Run tests and commit**
+- [x] **Task 4 Step 5: Run tests and commit**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=AiModelAskDataModelRegistryTest,AskDataAutoConfigurationTest,LangChain4jAskDataModelRegistryTest`
 
