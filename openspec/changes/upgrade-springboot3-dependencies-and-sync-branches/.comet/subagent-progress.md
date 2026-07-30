@@ -4,15 +4,15 @@
 - Plan: `docs/superpowers/plans/2026-07-30-springboot3-dependencies-and-branch-sync.md`
 - Review mode: `standard`
 - TDD mode: `tdd`
-- Current task: `Task 3: 验证并发布 dev`
-- OpenSpec mapping: `2.2`、`2.3`、`2.4`
+- Current task: `Task 4: 创建派生分支专用 worktree`
+- OpenSpec mapping: 无（执行环境准备）
 - Stage: `completed`
-- Implementer: `/root/task3_verify_push_dev`
-- Base commit: `998f3dfeee20238020410c09a41176bb3767ab55`
-- Implementation commits: `1c31eb8cf933a232b95b09f27ddd65249fccb11a`、`6283fc692dcca6eab95e4f41ad81408b9838ea7d`
-- Changed files: `.comet/evidence/build-verification.md`、`.comet/evidence/branch-sync.md`、`.comet/subagent-progress.md`
-- RED evidence: 发布前 `HEAD...origin/dev = 12 0`；Git HTTPS fetch/push 因 443 超时失败；目标对象 404，因此未执行 ref-only API fallback
-- GREEN evidence: Java 8 五层验证全部成功（1073 tests，0 failures/errors）；第二次普通非强制 push 后 `HEAD`、`origin/dev`、`ls-remote` 与 GitHub API 均为 `6283fc69`，ahead/behind `0 0`
-- Risk review triggered: `yes`（跨 Core / Boot / Cloud / AI / Sample 验证；状态 `DONE_WITH_CONCERNS`）
-- Review/fix round: `1/5`
-- Open findings: Important 1、Important 2 已处理；两个 Minor 按要求留待 ledger/final review
+- Implementer: `/root/task4_create_worktrees`
+- Base commit: `509e15c27e832a04ce300517052f6706f23a9e6d`
+- Implementation commits: 无（仅创建被忽略的 worktree）
+- Changed files: 无 Git tracked 文件；创建 `.worktrees/springboot2-sync` 与 `.worktrees/springboot3-upgrade`
+- RED evidence: 创建前两个目标路径不存在；本地 `springboot2` / `springboot3` 相对各自远端的 left-only 计数均为 0
+- GREEN evidence: `springboot2@3298231f`、`springboot3@b9457fc6` 分别绑定真实长期分支并与各自上游 `0 0`，主工作区保持 `dev@509e15c2`
+- Risk review triggered: `yes`（并行 `branch -f` 发生一次 `.git/config` 锁竞争，已确认无残留锁且上游配置正确）
+- Review/fix round: `0/5`（独立审查通过）
+- Open findings: 无
