@@ -25,8 +25,8 @@
 ## 4. Provider SPI
 
 - [x] 4.1 定义 Java 8 兼容的 TinyEngine AI Provider SPI、能力枚举、Provider registry 和 unsupported capability 错误模型。
-- [ ] 4.2 定义 TinyEngine Chat、Streaming Chat、RAG 检索、知识库写入、Embedding 和向量访问所需的请求/响应业务对象。
-- [ ] 4.3 在 SPI 中预留 Spring AI、Spring AI Alibaba、AgentScope2 Java 版和业务自定义 Provider 的运行时标识与扩展点。
+- [x] 4.2 定义 TinyEngine Chat、Streaming Chat、RAG 检索、知识库写入、Embedding 和向量访问所需的请求/响应业务对象。
+- [x] 4.3 在 SPI 中预留 Spring AI、Spring AI Alibaba、AgentScope2 Java 版和业务自定义 Provider 的运行时标识与扩展点。
 - [x] 4.4 覆盖 Provider 选择逻辑：默认使用 LangChain4j adapter，显式自定义 Provider 可替换默认运行时。
 
 ## 5. LangChain4j 默认 Provider 与 AskData 模型
