@@ -33,7 +33,16 @@ public class TinyEngineAiAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean(TinyEngineAiChatService.class)
 	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.chat", name = "enabled", havingValue = "true")
-	public TinyEngineAiChatService tinyEngineAiChatService(TinyEngineAiProviderRegistry providerRegistry) {
+	public TinyEngineAiChatService tinyEngineAiChatService(TinyEngineAiProviderRegistry providerRegistry,
+			TinyEngineAiProperties properties) {
+		String missingDependencyPolicy = normalizeMissingDependencyPolicy(properties.getMissingDependencyPolicy());
+		String unavailableReason = chatUnavailableReason(providerRegistry);
+		if (unavailableReason != null) {
+			if (isDegrade(missingDependencyPolicy)) {
+				return new UnavailableTinyEngineAiChatService(unavailableReason);
+			}
+			throw new IllegalStateException(unavailableReason);
+		}
 		return new DefaultTinyEngineAiChatService(providerRegistry);
 	}
 
@@ -89,6 +98,15 @@ public class TinyEngineAiAutoConfiguration {
 					+ "requires an available embedding model and embedding store";
 		}
 		return null;
+	}
+
+	private String chatUnavailableReason(TinyEngineAiProviderRegistry providerRegistry) {
+		try {
+			providerRegistry.requireCapability(TinyEngineAiCapability.CHAT);
+			return null;
+		} catch (RuntimeException ex) {
+			return "TinyEngine AI chat provider is unavailable: " + ex.getMessage();
+		}
 	}
 
 	private String normalizeMissingDependencyPolicy(String policy) {
@@ -151,6 +169,34 @@ public class TinyEngineAiAutoConfiguration {
 		}
 	}
 
+	private static final class UnavailableTinyEngineAiChatService implements TinyEngineAiChatService {
+		private final String unavailableReason;
+
+		private UnavailableTinyEngineAiChatService(String unavailableReason) {
+			this.unavailableReason = unavailableReason;
+		}
+
+		@Override
+		public boolean isAvailable() {
+			return false;
+		}
+
+		@Override
+		public String getUnavailableReason() {
+			return unavailableReason;
+		}
+
+		@Override
+		public TinyEngineChatResponse chat(TinyEngineChatRequest request) {
+			throw new IllegalStateException(unavailableReason);
+		}
+
+		@Override
+		public List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request) {
+			throw new IllegalStateException(unavailableReason);
+		}
+	}
+
 	private static final class UnavailableTinyEngineRagService implements TinyEngineRagService {
 		private final String unavailableReason;
 
@@ -170,7 +216,7 @@ public class TinyEngineAiAutoConfiguration {
 
 		@Override
 		public TinyEngineRagSearchResult search(TinyEngineRagRequest request) {
-			return new TinyEngineRagSearchResult(java.util.Collections.emptyList());
+			throw new IllegalStateException(unavailableReason);
 		}
 	}
 }

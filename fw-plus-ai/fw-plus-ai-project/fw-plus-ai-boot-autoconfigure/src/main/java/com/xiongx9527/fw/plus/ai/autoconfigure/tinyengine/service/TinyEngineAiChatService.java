@@ -8,6 +8,14 @@ import java.util.List;
 
 public interface TinyEngineAiChatService {
 
+	default boolean isAvailable() {
+		return true;
+	}
+
+	default String getUnavailableReason() {
+		return null;
+	}
+
 	TinyEngineChatResponse chat(TinyEngineChatRequest request);
 
 	List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request);

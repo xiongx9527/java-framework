@@ -112,7 +112,7 @@ fw-plus:
 `missing-dependency-policy` 支持：
 
 - `fail-fast`：默认值。RAG 缺少中立模型注册表、向量注册表或对应 key 时，启动失败并给出缺失能力诊断。
-- `degrade`：RAG Bean 保留为不可用状态，`isAvailable()` 返回 `false`，检索返回空结果；适合暂时只启用聊天的部署。
+- `degrade`：对应 Bean 保留为不可用状态，`isAvailable()` 返回 `false`，请求时抛出包含不可用原因的异常；适合暂时只启用部分能力但不伪造成功的部署。
 
 设置 `fw.plus.tiny-engine.ai.enabled=false` 时，TinyEngine AI 自动配置整体不生效，不创建 TinyEngine Chat、RAG、知识库服务和默认 provider Bean。单独设置 `chat.enabled=false` 或 `rag.enabled=false` 时，只关闭对应能力；聊天关闭不会要求向量依赖，RAG 关闭也不会创建 RAG/知识库服务。
 

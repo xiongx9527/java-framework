@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreA
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineAiChatService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineKnowledgeBaseService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineRagService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.TinyEngineRagRequest;
 import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
@@ -15,6 +16,7 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Collections;
 import java.util.Set;
@@ -47,6 +49,31 @@ public class TinyEngineAiAutoConfigurationTest {
 					assertTrue(context.getStartupFailure() == null);
 					assertTrue(context.getBeansOfType(TinyEngineAiChatService.class).size() == 1);
 					assertTrue(context.getBeansOfType(TinyEngineRagService.class).isEmpty());
+				});
+	}
+
+	@Test
+	public void shouldFailFastWhenChatProviderIsMissing() {
+		this.contextRunner
+				.withPropertyValues(
+						"fw.plus.tiny-engine.ai.chat.enabled=true",
+						"fw.plus.tiny-engine.ai.provider=missing")
+				.run(context -> assertTrue(hasCause(context.getStartupFailure(),
+						"TinyEngine AI chat provider is unavailable")));
+	}
+
+	@Test
+	public void shouldRegisterUnavailableChatServiceWhenExplicitlyDegraded() {
+		this.contextRunner
+				.withPropertyValues(
+						"fw.plus.tiny-engine.ai.chat.enabled=true",
+						"fw.plus.tiny-engine.ai.provider=missing",
+						"fw.plus.tiny-engine.ai.missing-dependency-policy=degrade")
+				.run(context -> {
+					assertTrue(context.getStartupFailure() == null);
+					TinyEngineAiChatService chatService = context.getBean(TinyEngineAiChatService.class);
+					assertTrue(!chatService.isAvailable());
+					assertTrue(chatService.getUnavailableReason().contains("chat provider"));
 				});
 	}
 
@@ -97,6 +124,7 @@ public class TinyEngineAiAutoConfigurationTest {
 					TinyEngineRagService ragService = context.getBean(TinyEngineRagService.class);
 					assertTrue(!ragService.isAvailable());
 					assertTrue(ragService.getUnavailableReason().contains("available embedding model"));
+					assertThrows(IllegalStateException.class, () -> ragService.search(new TinyEngineRagRequest()));
 				});
 	}
 
