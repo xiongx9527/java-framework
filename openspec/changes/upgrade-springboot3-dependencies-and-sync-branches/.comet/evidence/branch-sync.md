@@ -66,3 +66,17 @@
 - 工作区：`## dev...origin/dev`，无未提交文件。
 
 发布阻塞已经解除。本节的后续证据提交仍使用普通非强制 push；提交后以本地 `HEAD`、`git ls-remote`、GitHub API ref 和 ahead/behind 的再次一致性核验作为最终发布结果。
+
+## GREEN：第二次 evidence 发布核验
+
+- 第二次 evidence 提交：`6283fc692dcca6eab95e4f41ad81408b9838ea7d`（`docs(comet): 记录 dev 发布成功`）。
+- 普通非强制 `git push origin dev` 退出码 `0`，远端从 `1c31eb8c` 快进到 `6283fc69`；未使用 `--force`。
+- `git ls-remote --heads origin dev`：退出码 `0`，返回 `6283fc692dcca6eab95e4f41ad81408b9838ea7d refs/heads/dev`。
+- GitHub API `refs/heads/dev`：退出码 `0`，返回 `6283fc692dcca6eab95e4f41ad81408b9838ea7d`。
+- GitHub API `commits/dev`：退出码 `0`，返回 `6283fc692dcca6eab95e4f41ad81408b9838ea7d`。
+- 本地 `HEAD` 与 tracking `origin/dev`：均为 `6283fc692dcca6eab95e4f41ad81408b9838ea7d`。
+- `git merge-base --is-ancestor origin/dev HEAD`：退出码 `0`。
+- `git rev-list --left-right --count HEAD...origin/dev`：退出码 `0`，输出 `0 0`。
+- `git status --short --branch`：退出码 `0`，输出 `## dev...origin/dev`，无文件变化。
+
+以上 SHA 是本轮 review fix 之前已完成第二次非强制 push 的可复核结果。包含本节的修复提交自身 SHA 无法可靠内嵌；该提交在创建并推送后的最终 `HEAD` / `origin/dev` / `ls-remote` / GitHub API / ahead-behind 核验记录于 git-ignored SDD Task 3 报告。
