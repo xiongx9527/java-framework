@@ -41,6 +41,8 @@ public class NeutralStarterDependencyTest {
 				"fw-plus-ai-model-spring-boot-starter",
 				"fw-plus-ai-store-embedding-spring-boot-starter",
 				"fw-plus-ai-langchain4j-adapter",
+				"fw-plus-ai-boot-autoconfigure");
+		assertDoesNotDependOn("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml",
 				"fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure");
 		assertDoesNotDependOnGroup("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml", "dev.langchain4j");
 		assertDoesNotDependOnGroup("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml", "io.milvus");
@@ -52,9 +54,14 @@ public class NeutralStarterDependencyTest {
 				bomArtifacts.contains("fw-plus-ai-store-embedding-spring-boot-starter"));
 		assertTrue("AI Boot BOM must manage the unified LangChain4j adapter starter",
 				bomArtifacts.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
+		assertFalse("AI Boot BOM must not manage the removed LangChain4j adapter autoconfigure artifact",
+				bomArtifacts.contains("fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure"));
 		Set<String> starterModules = modules(findProjectFile(STARTERS_PATH + "pom.xml"));
 		assertTrue("AI starters aggregator must include the unified LangChain4j adapter starter",
 				starterModules.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
+		assertFalse("AI project reactor must not include the removed LangChain4j adapter autoconfigure module",
+				modules(findProjectFile("fw-plus-ai-project/pom.xml"))
+						.contains("fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure"));
 	}
 
 	@Test

@@ -18,6 +18,7 @@ public class LegacyAiArtifactBoundaryTest {
 	private static final List<String> LEGACY_MARKERS = Arrays.asList(
 			"fw-plus-ai-langchain4j-model",
 			"fw-plus-ai-langchain4j-store-embeding",
+			"fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure",
 			"fw-plus.ai.langchain4j.model",
 			"fw-plus.ai.langchain4j.embedding-store",
 			"com.xiongx9527.fw.plus.ai.langchain4j.model",
@@ -36,11 +37,17 @@ public class LegacyAiArtifactBoundaryTest {
 				"fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model",
 				"fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding",
 				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-model-spring-boot-starter",
-				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter");
+				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter",
+				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/"
+						+ "fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure");
 		for (String legacyDirectory : legacyDirectories) {
 			assertFalse("Legacy artifact directory must be deleted: " + legacyDirectory,
 					new File(projectRoot, legacyDirectory).exists());
 		}
+		File langChain4jPackage = new File(projectRoot,
+				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/"
+						+ "com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j");
+		assertTrue("Unified autoconfigure must own LangChain4j package", langChain4jPackage.isDirectory());
 
 		List<String> violations = new ArrayList<String>();
 		scanProductionFiles(projectRoot, new File(projectRoot, "fw-plus-core"), LEGACY_MARKERS, violations);
