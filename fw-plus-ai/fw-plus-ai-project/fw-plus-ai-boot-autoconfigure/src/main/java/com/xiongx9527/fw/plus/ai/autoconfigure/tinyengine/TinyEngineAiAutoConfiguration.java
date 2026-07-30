@@ -30,7 +30,14 @@ public class TinyEngineAiAutoConfiguration {
 	public TinyEngineRagService tinyEngineRagService(TinyEngineAiProperties properties,
 			ObjectProvider<AiModelRegistry> modelRegistryProvider,
 			ObjectProvider<AiEmbeddingStoreRegistry> storeRegistryProvider) {
-		validateRagDependencies(properties, modelRegistryProvider.getIfAvailable(), storeRegistryProvider.getIfAvailable());
+		String unavailableReason = ragUnavailableReason(properties, modelRegistryProvider.getIfAvailable(),
+				storeRegistryProvider.getIfAvailable());
+		if (unavailableReason != null) {
+			if (isDegrade(properties)) {
+				return new UnavailableTinyEngineRagService(unavailableReason);
+			}
+			throw new IllegalStateException(unavailableReason);
+		}
 		return new DefaultTinyEngineRagService();
 	}
 
@@ -41,22 +48,90 @@ public class TinyEngineAiAutoConfiguration {
 		return new DefaultTinyEngineKnowledgeBaseService();
 	}
 
-	private void validateRagDependencies(TinyEngineAiProperties properties, AiModelRegistry modelRegistry,
+	private String ragUnavailableReason(TinyEngineAiProperties properties, AiModelRegistry modelRegistry,
 			AiEmbeddingStoreRegistry storeRegistry) {
-		if (isFailFast(properties) && (modelRegistry == null || storeRegistry == null)) {
-			throw new IllegalStateException("TinyEngine AI RAG requires both AiModelRegistry and AiEmbeddingStoreRegistry");
+		validatePolicy(properties);
+		if (!containsModel(modelRegistry, modelKey(properties, modelRegistry))
+				|| !containsStore(storeRegistry, storeKey(properties, storeRegistry))) {
+			return "TinyEngine AI RAG requires both AiModelRegistry and AiEmbeddingStoreRegistry; "
+					+ "requires an available embedding model and embedding store";
 		}
+		return null;
 	}
 
-	private boolean isFailFast(TinyEngineAiProperties properties) {
+	private void validatePolicy(TinyEngineAiProperties properties) {
 		String policy = properties.getMissingDependencyPolicy();
-		return policy == null || "fail-fast".equalsIgnoreCase(policy.trim());
+		if (policy == null || "fail-fast".equalsIgnoreCase(policy.trim()) || "degrade".equalsIgnoreCase(policy.trim())) {
+			return;
+		}
+		throw new IllegalStateException("Unsupported TinyEngine AI missing dependency policy: " + policy);
+	}
+
+	private boolean isDegrade(TinyEngineAiProperties properties) {
+		return "degrade".equalsIgnoreCase(properties.getMissingDependencyPolicy());
+	}
+
+	private boolean containsModel(AiModelRegistry registry, String key) {
+		return registry != null && !isBlank(key) && registry.contains(key);
+	}
+
+	private boolean containsStore(AiEmbeddingStoreRegistry registry, String key) {
+		return registry != null && !isBlank(key) && registry.contains(key);
+	}
+
+	private String modelKey(TinyEngineAiProperties properties, AiModelRegistry registry) {
+		String embeddingKey = properties.getModel().getEmbeddingKey();
+		if (!isBlank(embeddingKey)) {
+			return embeddingKey;
+		}
+		String chatKey = properties.getModel().getChatKey();
+		return !isBlank(chatKey) ? chatKey : registry == null ? null : registry.getDefaultKey();
+	}
+
+	private String storeKey(TinyEngineAiProperties properties, AiEmbeddingStoreRegistry registry) {
+		String vectorStoreKey = properties.getVector().getStoreKey();
+		if (!isBlank(vectorStoreKey)) {
+			return vectorStoreKey;
+		}
+		String configuredStoreKey = properties.getStore().getStoreKey();
+		return !isBlank(configuredStoreKey) ? configuredStoreKey : registry == null ? null : registry.getDefaultKey();
+	}
+
+	private boolean isBlank(String value) {
+		return value == null || value.trim().length() == 0;
 	}
 
 	private static final class DefaultTinyEngineAiChatService implements TinyEngineAiChatService {
 	}
 
 	private static final class DefaultTinyEngineRagService implements TinyEngineRagService {
+		@Override
+		public boolean isAvailable() {
+			return true;
+		}
+
+		@Override
+		public String getUnavailableReason() {
+			return null;
+		}
+	}
+
+	private static final class UnavailableTinyEngineRagService implements TinyEngineRagService {
+		private final String unavailableReason;
+
+		private UnavailableTinyEngineRagService(String unavailableReason) {
+			this.unavailableReason = unavailableReason;
+		}
+
+		@Override
+		public boolean isAvailable() {
+			return false;
+		}
+
+		@Override
+		public String getUnavailableReason() {
+			return unavailableReason;
+		}
 	}
 
 	private static final class DefaultTinyEngineKnowledgeBaseService implements TinyEngineKnowledgeBaseService {

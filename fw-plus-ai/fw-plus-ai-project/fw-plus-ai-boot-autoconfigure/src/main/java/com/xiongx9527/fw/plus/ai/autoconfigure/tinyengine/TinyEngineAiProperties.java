@@ -59,8 +59,11 @@ public class TinyEngineAiProperties {
 
 	public static class Vector {
 		private boolean enabled;
+		private String storeKey;
 		public boolean isEnabled() { return enabled; }
 		public void setEnabled(boolean enabled) { this.enabled = enabled; }
+		public String getStoreKey() { return storeKey; }
+		public void setStoreKey(String storeKey) { this.storeKey = storeKey; }
 	}
 
 	public static class Model {

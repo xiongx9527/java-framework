@@ -1,18 +1,31 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.model.AiModelAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineAiChatService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineKnowledgeBaseService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineRagService;
+import com.xiongx9527.fw.plus.ai.model.AiModel;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Collections;
+import java.util.Set;
+
 public class TinyEngineAiAutoConfigurationTest {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
 			.withConfiguration(AutoConfigurations.of(TinyEngineAiAutoConfiguration.class));
+
+	private final ApplicationContextRunner neutralRegistryContextRunner = new ApplicationContextRunner()
+			.withConfiguration(AutoConfigurations.of(AiModelAutoConfiguration.class,
+					AiEmbeddingStoreAutoConfiguration.class, TinyEngineAiAutoConfiguration.class));
 
 	@Test
 	public void shouldNotCreateTinyEngineAiBeansWhenDisabled() {
@@ -44,6 +57,47 @@ public class TinyEngineAiAutoConfigurationTest {
 						"requires both AiModelRegistry and AiEmbeddingStoreRegistry")));
 	}
 
+	@Test
+	public void shouldFailFastWhenNeutralRegistriesContainNoConfiguredRagDependencies() {
+		this.neutralRegistryContextRunner
+				.withPropertyValues("fw.plus.tiny-engine.ai.rag.enabled=true")
+				.run(context -> assertTrue(hasCause(context.getStartupFailure(),
+						"requires an available embedding model and embedding store")));
+	}
+
+	@Test
+	public void shouldUseRegistryDefaultKeysWhenRagKeysAreNotConfigured() {
+		this.contextRunner
+				.withBean(AiModelRegistry.class, DefaultModelRegistry::new)
+				.withBean(AiEmbeddingStoreRegistry.class, DefaultStoreRegistry::new)
+				.withPropertyValues("fw.plus.tiny-engine.ai.rag.enabled=true")
+				.run(context -> assertTrue(context.getStartupFailure() == null));
+	}
+
+	@Test
+	public void shouldRejectUnknownMissingDependencyPolicy() {
+		this.contextRunner
+				.withPropertyValues(
+						"fw.plus.tiny-engine.ai.rag.enabled=true",
+						"fw.plus.tiny-engine.ai.missing-dependency-policy=ignore")
+				.run(context -> assertTrue(hasCause(context.getStartupFailure(),
+						"Unsupported TinyEngine AI missing dependency policy")));
+	}
+
+	@Test
+	public void shouldRegisterUnavailableRagServiceWhenExplicitlyDegraded() {
+		this.contextRunner
+				.withPropertyValues(
+						"fw.plus.tiny-engine.ai.rag.enabled=true",
+						"fw.plus.tiny-engine.ai.missing-dependency-policy=degrade")
+				.run(context -> {
+					assertTrue(context.getStartupFailure() == null);
+					TinyEngineRagService ragService = context.getBean(TinyEngineRagService.class);
+					assertTrue(!ragService.isAvailable());
+					assertTrue(ragService.getUnavailableReason().contains("available embedding model"));
+				});
+	}
+
 	private boolean hasCause(Throwable throwable, String message) {
 		Throwable current = throwable;
 		while (current != null) {
@@ -53,5 +107,21 @@ public class TinyEngineAiAutoConfigurationTest {
 			current = current.getCause();
 		}
 		return false;
+	}
+
+	private static final class DefaultModelRegistry implements AiModelRegistry {
+		@Override public AiModel get(String key) { return null; }
+		@Override public AiModel getDefault() { return null; }
+		@Override public String getDefaultKey() { return "default-model"; }
+		@Override public boolean contains(String key) { return "default-model".equals(key); }
+		@Override public Set<String> keys() { return Collections.singleton("default-model"); }
+	}
+
+	private static final class DefaultStoreRegistry implements AiEmbeddingStoreRegistry {
+		@Override public AiEmbeddingStore get(String key) { return null; }
+		@Override public AiEmbeddingStore getDefault() { return null; }
+		@Override public String getDefaultKey() { return "default-store"; }
+		@Override public boolean contains(String key) { return "default-store".equals(key); }
+		@Override public Set<String> keys() { return Collections.singleton("default-store"); }
 	}
 }
