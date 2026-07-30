@@ -11,7 +11,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -47,6 +49,21 @@ public class TinyEngineAiProviderRegistryTest {
 
 		assertEquals("TinyEngine AI provider 'langchain4j' does not support capability 'STREAMING_CHAT'",
 				exception.getMessage());
+	}
+
+	@Test
+	public void shouldExposeAllProviderCapabilityBoundaries() {
+		Set<TinyEngineAiCapability> expectedCapabilities = new HashSet<TinyEngineAiCapability>(Arrays.asList(
+				TinyEngineAiCapability.CHAT,
+				TinyEngineAiCapability.STREAMING_CHAT,
+				TinyEngineAiCapability.RAG_RETRIEVAL,
+				TinyEngineAiCapability.KNOWLEDGE_INDEXING,
+				TinyEngineAiCapability.EMBEDDING,
+				TinyEngineAiCapability.VECTOR_STORE,
+				TinyEngineAiCapability.AGENT_RUNTIME));
+
+		assertEquals(expectedCapabilities, new HashSet<TinyEngineAiCapability>(Arrays.asList(
+				TinyEngineAiCapability.values())));
 	}
 
 	@Test
