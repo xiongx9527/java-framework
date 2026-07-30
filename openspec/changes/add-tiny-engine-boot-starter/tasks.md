@@ -17,10 +17,10 @@
 
 ## 3. Starter 与依赖管理
 
-- [ ] 3.1 在 `fw-plus-boot-project/fw-plus-boot-starters` 新增 TinyEngine Spring Boot starter 模块。
-- [ ] 3.2 将 TinyEngine starter 接入 `fw-plus-boot-starters` 聚合 POM，并保持现有 `${revision}` 版本管理方式。
-- [ ] 3.3 为 TinyEngine starter 声明 `fw-plus-boot-starter`、`fw-plus-boot-autoconfigure` 间接能力、MyBatis-Plus/Web 相关依赖和 core TinyEngine 模块依赖。
-- [ ] 3.4 如仓库现有 BOM 需要，更新 `fw-plus-boot-dependencies` 以托管 TinyEngine starter 与 core TinyEngine 依赖。
+- [x] 3.1 在 `fw-plus-boot-project/fw-plus-boot-starters` 新增 TinyEngine Spring Boot starter 模块。
+- [x] 3.2 将 TinyEngine starter 接入 `fw-plus-boot-starters` 聚合 POM，并保持现有 `${revision}` 版本管理方式。
+- [x] 3.3 为 TinyEngine starter 声明 `fw-plus-boot-starter`、`fw-plus-boot-autoconfigure` 间接能力、MyBatis-Plus/Web 相关依赖和 core TinyEngine 模块依赖。
+- [x] 3.4 如仓库现有 BOM 需要，更新 `fw-plus-boot-dependencies` 以托管 TinyEngine starter 与 core TinyEngine 依赖。
 
 ## 4. 样例与验证
 
