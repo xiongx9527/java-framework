@@ -40,7 +40,7 @@ base-ref: 63ffe1c7815ac7f27b24f1c4d84d315425accc9c
 - Consumes: 当前 `dev` 上尚未发布的计划、清理和 Comet 提交，远端三个长期分支。
 - Produces: 基于最新 `origin/dev` 的本地 `dev`，以及三个远端基线 SHA/拓扑证据。
 
-- [ ] **Step 1: 冻结 rebase 前状态**
+- [x] **Step 1: 冻结 rebase 前状态**
 
 Run:
 
@@ -53,7 +53,7 @@ git stash list
 
 Expected: 当前分支为 `dev`；除本 change 已提交产物外工作区干净；记录未发布提交，不创建或删除 stash。
 
-- [ ] **Step 2: 有界重试获取三个远端分支**
+- [x] **Step 2: 有界重试获取三个远端分支**
 
 Run:
 
@@ -68,7 +68,7 @@ git rev-parse origin/dev origin/springboot2 origin/springboot3
 
 Expected: fetch 成功且三个远端引用都能解析；五次均失败则停止，不执行 rebase、merge 或 push。
 
-- [ ] **Step 3: 记录最新拓扑并确认 rebase 范围**
+- [x] **Step 3: 记录最新拓扑并确认 rebase 范围**
 
 Run:
 
@@ -84,7 +84,7 @@ Expected: 明确本地 `dev` 独有提交和远端新增提交；`springboot3` �
 
 在首次写 evidence 前运行 `mkdir -p openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/.comet/evidence`；目录创建后只用 `apply_patch` 创建或更新 evidence 文件。
 
-- [ ] **Step 4: 重放本地 dev 提交**
+- [x] **Step 4: 重放本地 dev 提交**
 
 Run:
 

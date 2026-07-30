@@ -1,12 +1,12 @@
 ## 1. 远端状态与执行准备
 
-- [ ] 1.1 记录当前工作区、三个本地/跟踪分支 SHA、共同祖先和未推送提交，确认 change 产物与已有依赖清理提交的归属
-- [ ] 1.2 成功获取远端 `dev`、`springboot2`、`springboot3` 最新对象，重新计算每个分支的 ahead/behind 和祖先关系
+- [x] 1.1 记录当前工作区、三个本地/跟踪分支 SHA、共同祖先和未推送提交，确认 change 产物与已有依赖清理提交的归属
+- [x] 1.2 成功获取远端 `dev`、`springboot2`、`springboot3` 最新对象，重新计算每个分支的 ahead/behind 和祖先关系
 - [ ] 1.3 建立固定版本断言与依赖升级排除清单，覆盖 Java/Spring 平台、Magic-API/Magic-Script、Spring AI 系列和两个 TinyEngine change
 
 ## 2. 整合、验证并推送 dev
 
-- [ ] 2.1 将本地 `dev` 提交重放到最新 `origin/dev`，解决冲突并保留远端 LangChain4j 自动配置迁移
+- [x] 2.1 将本地 `dev` 提交重放到最新 `origin/dev`，解决冲突并保留远端 LangChain4j 自动配置迁移
 - [ ] 2.2 检查 `dev` 的依赖清理结果，确认 LangChain4j 0.35.0 仅使用 Java 8 兼容模块且固定平台版本未变化
 - [ ] 2.3 按 Core → Boot → Cloud / AI → Sample 顺序完成 `dev` 的 Java 8 Maven 测试与构建验证
 - [ ] 2.4 提交必要的整合结果，非强制推送 `dev`，并确认远端 SHA 等于本地 HEAD
