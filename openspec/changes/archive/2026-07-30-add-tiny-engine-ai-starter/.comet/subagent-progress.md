@@ -1,0 +1,21 @@
+# add-tiny-engine-ai-starter subagent progress
+
+- Review mode: off
+- Build mode: subagent-driven-development
+- TDD mode: tdd
+- Current plan task: Verify fix: Provider capability 枚举完整性
+- Mapped OpenSpec tasks: 4.1 / Provider SPI 可表达多运行时边界
+- Stage: implementing
+- Base commit before dispatch: 1a366f8d
+- Implementer agent: Codex
+- Implementer brief: /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-tiny-engine-ai-starter/.superpowers/sdd/task-8-rest-brief.md
+- Implementer report: /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-tiny-engine-ai-starter/.superpowers/sdd/task-8-rest-report.md
+- Required behavior: REST routes are controlled by an independent web enabled switch and configurable base/endpoint paths; no hardcoded `/app-center/api/*` routes in TinyEngine AI production code.
+- Implementation commit: 3ee8989b (`feat(ai): add tiny engine ai web endpoints`)
+- Verification: TDD RED observed; focused REST tests (6) and `TinyEngine*Test` (25) passed; OpenSpec strict validation and required static scans passed.
+- Risk signal: existing Maven BOM duplicate dependency-management and SLF4J multiple-binding warnings remain outside this task's scope.
+- Verify failure: full verification found `TinyEngineAiCapability` only covered Chat and Streaming Chat, while the delta spec requires RAG Retrieval, Knowledge Indexing, Embedding, Vector Store and Agent Runtime capability boundaries too.
+- Fix brief: /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-tiny-engine-ai-starter/.superpowers/sdd/task-verify-fix-capability-brief.md
+- Fix complete: added the five missing provider capabilities and a complete enum-set regression test.
+- Verification: TDD RED observed; focused registry test (5) and `TinyEngine*Test` (26) passed; OpenSpec strict validation passed.
+- Risk signal: existing Maven duplicate dependency-management and SLF4J multiple-binding warnings remain outside this fix scope.

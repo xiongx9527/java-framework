@@ -1,50 +1,31 @@
-# Task 8 Report: Magic Console 插件模块迁移与旧入口删除
-
-## 完成内容
-
-- 新增 `fw-plus-ai-magicapi-plugin-model` Maven 模块及 `magic-model.1.0.0.iife.js` 控制台资源。
-- 控制台注册插件 `model` 和资源类型 `model-datasource`，表单包含 `name`、`key`、`provider`、`modelType`、`enabled`、`baseUrl`、`apiKey`、`modelName`、`properties`。
-- `apiKey` 使用密码输入控件；列表注册元数据不包含敏感字段。
-- 聚合 POM、AI BOM 与 MagicAPI 样例均从旧 LangChain4j 插件切换到 model 插件。
-- 删除旧 starter 模块和 `magicapi/plugin/langchain4j` 后端包。
-- AskData 原先依赖已删除的 `LangChain4jModelInfo`，已改用公共 `LangChain4jModelRegistry` 并按模型运行时类型提取聊天与向量模型。
-
-## TDD 记录
-
-1. 创建 `src/console/test/magic-model-contract.test.cjs`。
-2. 首次执行 `npm test` 失败，原因是新模块尚无 `package.json`，符合任务 brief 的 RED 预期。
-3. 实现控制台与模块后，`npm test` 通过。
+# Task 8 Report: 综合验证与 OpenSpec 任务收口
 
 ## 验证结果
 
-- `npm test`：通过，1 个契约测试。
-- `npm run build`：通过，生成 12.11 KiB `magic-model.1.0.0.iife.js`。
-- `./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-model -am -DskipTests install`：通过。
-- `./mvnw -pl fw-plus-ai-samples/fw-plus-ai-magicapi-sample -am -DskipTests package`：通过。
-- `./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=LangChain4jAskDataModelRegistryTest,MagicAPIModelAutoConfigurationIntegrationTest test`：通过；Surefire 实际执行 Model 集成测试 2 项，旧 JUnit4 AskData 测试已完成 `testCompile`，但未被当前 JUnit Platform 发现。
-- 旧模块目录、旧后端包目录与四项旧入口文本的结构检查均通过。
-- `git diff --check -- fw-plus-ai`：通过。
+- OpenSpec strict：`openspec validate add-tiny-engine-ai-starter --strict` 通过，输出 `Change 'add-tiny-engine-ai-starter' is valid`。
+- AI autoconfigure 聚焦测试：`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test '-Dtest=TinyEngine*Test,AiModelAskDataModelRegistryTest,AiEmbeddingStoreAskDataVectorRetrieverTest,AskDataAutoConfigurationTest'` 通过，42 tests，0 failures，0 errors。
+- Starter 测试：`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml -pl fw-plus-ai-tiny-engine-spring-boot-starter,fw-plus-ai-askdata-spring-boot-starter test` 通过，2 个 starter reactor 成功，2 tests，0 failures，0 errors。
+- 旧 LangChain4j model/store 与 Spring AI/Alibaba/AgentScope 硬依赖过滤后的 dependency tree 为空，两个 starter 构建成功。
+- Java 9+ API 扫描为空：未发现 `List.of`、`Map.of`、`Set.of`、`String.isBlank`、`InputStream.readAllBytes` 或 `java.net.http.HttpClient`。
 
-## 注意事项
+## 边界扫描说明
 
-- 全工作树的 `git diff --check` 仍会报告用户已有的 `.superpowers/sdd/task-6-brief.md` 末尾空白；本任务未修改该文件。
+- 旧 LangChain4j model/store 坐标扫描的命中仅来自 README 的负向边界警告，以及 starter dependency test 中的 `assertFalse` 断言。
+- Spring AI、Spring AI Alibaba、AgentScope 扫描命中仅来自 AskData starter dependency test 的负向断言。
+- README 中的 `AiEmbeddingStoreRegistry` 是当前中立向量注册表名称，不是旧 LangChain4j 原生 registry。
 
----
+## 工具差异
 
-## Review Fix: AskData 注册表测试执行
+本 worktree 的 `fw-plus-core/mvnw` 存在，但缺少 `fw-plus-core/.mvn/wrapper` 元数据，Maven Wrapper 无法启动。综合验证使用同一 JDK 8 下的系统 `mvn` 等价执行，并保留 wrapper 缺失作为环境差异说明。
 
-### 修复内容
+## 后续补齐
 
-- 将 `LangChain4jAskDataModelRegistryTest` 从 JUnit4 `org.junit.Test` 与 `org.junit.Assert` 迁移到 JUnit Jupiter。
-- 保留现有聊天模型按 key 选择、默认聊天模型回退、缺失模型报错和 Embedding 模型转 `List<Float>` 的行为覆盖。
+- 追加提交 `62d97284 feat(ai): complete tiny engine chat provider behavior` 实现了 LangChain4j 原生 Chat/Streaming Chat 调用。
+- TinyEngine Chat request 补齐 `model`/messages/stream/max_tokens/stream_options/presence_penalty/response_format/enable_thinking/tool_choice/parallel_tool_calls/enable_search/search_options/frequency_penalty 等字段；LangChain4j 0.35 泛型接口可表达的 messages 与 response_format 会传给原生 `ChatRequest`，其余字段进入响应 metadata 供上层诊断，tools 非空时明确 unsupported。
+- Chat 与 RAG 的 fail-fast/degrade 行为已统一：fail-fast 在启动阶段报缺失 Provider/model/store，degrade 注册不可用 Bean 且请求时抛出包含不可用原因的异常，不伪造成功。
+- 验证命令：`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test '-Dtest=TinyEngine*Test,AiModelAskDataModelRegistryTest,AiEmbeddingStoreAskDataVectorRetrieverTest,AskDataAutoConfigurationTest'` 通过，44 tests，0 failures，0 errors。
+- Java 9+ API、旧 LangChain4j model/store 坐标、Spring AI/Alibaba/AgentScope 硬依赖扫描为空。
 
-### TDD 证据
+## 未勾选范围
 
-- RED：迁移前执行指定 Maven 命令仅运行 `MagicAPIModelAutoConfigurationIntegrationTest` 的 2 个测试，未发现 `LangChain4jAskDataModelRegistryTest`。
-- GREEN：迁移后同一命令运行 7 个测试，其中 `LangChain4jAskDataModelRegistryTest` 5 个、Model 集成测试 2 个，全部通过。
-
-### 验证结果
-
-- `npm test`：通过，1 个 console 契约测试。
-- `git diff --check a9b7bf51..HEAD`：通过，无输出。
-- 全工作树 `git diff --check` 仅保留既有 `.superpowers/sdd/task-6-brief.md:88` 行尾空白提示。
+- REST 路由未实现，因此 `/app-center/api/*` 路由隔离项保持未勾。
