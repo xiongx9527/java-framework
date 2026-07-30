@@ -22,16 +22,11 @@
         <rocketmq.version>5.1.3</rocketmq.version>
         <!--pulsar版本号-->
         <pulsar-client.version>2.11.2</pulsar-client.version>
-        <!--  mysql-binlog-connector-java版本号 -->
-        <mysql-binlog-connector-java.version>0.30.1</mysql-binlog-connector-java.version>
-        <!--  lock4j版本号 -->
+		<!--  lock4j版本号 -->
         <lock4j.version>2.2.7</lock4j.version>
         <!--  debezium版本号 -->
         <debezium.version>1.9.8.Final</debezium.version>
-        <debezium-server.version>1.6.4.Final</debezium-server.version>
-        <!--  paimon版本号 -->
-        <paimon.version>1.2.0</paimon.version>
-        <!--  influxdb-sdk-java版本号 -->
+		<!--  influxdb-sdk-java版本号 -->
         <influxdb.version>6.7.0</influxdb.version>
         <!--  resilience4j版本号 -->
         <resilience4j.version>2.3.0</resilience4j.version>
@@ -41,11 +36,7 @@
         <sentinel.version>1.8.6</sentinel.version>
         <!--  elasticsearch版本号 -->
         <elasticsearch-sdk-java.version>8.19.8</elasticsearch-sdk-java.version>
-        <!--  langchain4j版本号 -->
-        <langchain4j.version>0.35.0</langchain4j.version>
-        <!--  tika版本号 -->
-        <tika.version>3.2.3</tika.version>
-        <!--  grpc版本号 -->
+		<!--  grpc版本号 -->
         <grpc.version>1.65.1</grpc.version>
         <!--  netty版本号 -->
         <netty.version>4.1.94.Final</netty.version>
@@ -89,13 +80,9 @@
         <spring-cloud-stream-redis.version>1.0.0.RELEASE</spring-cloud-stream-redis.version>
         <!-- spring-cloud-stream-rocketmq版本号 -->
         <spring-cloud-stream-rocketmq.version>2.3.0.RELEASE</spring-cloud-stream-rocketmq.version>
-        <!-- spring-cloud-stream-rocketmq版本号 -->
-        <alibaba-spring-cloud-starter-stream-rocketmq.version>2021.0.5.0</alibaba-spring-cloud-starter-stream-rocketmq.version>
-        <!-- spring-cloud-azure-starter-stream-eventhubs版本号 -->
-        <spring-cloud-azure-starter-stream-eventhubs.version>5.21.0</spring-cloud-azure-starter-stream-eventhubs.version>
-        <!-- spring-cloud-starter-stream-redis版本号 -->
-        <spring-cloud-starter-stream-redis.version>1.0.0.RELEASE</spring-cloud-starter-stream-redis.version>
-    </properties>
+		<!-- spring-cloud-azure-starter-stream-eventhubs版本号 -->
+		<spring-cloud-azure-starter-stream-eventhubs.version>5.21.0</spring-cloud-azure-starter-stream-eventhubs.version>
+	</properties>
     <name>Fw-Plus-Boot Dependencies</name>
     <description>
         fw-plus-boot 依赖库.

@@ -78,16 +78,6 @@
             <groupId>com.xiongx9527.fw.plus.boot</groupId>
             <artifactId>fw-plus-boot-starter</artifactId>
         </dependency>
-
-        <!-- 未使用：无 JDBC 直接引用，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-jdbc</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        -->
-
-    </dependencies>
+	</dependencies>
 
 </project>

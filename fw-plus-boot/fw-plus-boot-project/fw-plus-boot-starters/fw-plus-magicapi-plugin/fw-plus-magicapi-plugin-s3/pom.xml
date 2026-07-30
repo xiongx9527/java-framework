@@ -29,134 +29,19 @@
         </plugins>
     </build>
 
-    <dependencies>
+	<dependencies>
 
-        <!-- 核心包 -->
-        <dependency>
-            <groupId>org.dromara.x-file-storage</groupId>
-            <artifactId>x-file-storage-core</artifactId>
-        </dependency>
+		<!-- 核心包 -->
+		<dependency>
+			<groupId>org.dromara.x-file-storage</groupId>
+			<artifactId>x-file-storage-core</artifactId>
+		</dependency>
 
-        <!-- 未使用：Google Cloud Storage，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.google.cloud</groupId>
-            <artifactId>google-cloud-storage</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>jackson-dataformat-xml</artifactId>
-                    <groupId>com.fasterxml.jackson.dataformat</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        -->
+		<dependency>
+			<groupId>io.minio</groupId>
+			<artifactId>minio</artifactId>
+		</dependency>
 
-        <!-- 未使用：Azure Blob Storage，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.azure</groupId>
-            <artifactId>azure-storage-blob</artifactId>
-        </dependency>
-        -->
-
-        <!-- 未使用：华为云 OBS，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.huaweicloud</groupId>
-            <artifactId>esdk-obs-java</artifactId>
-        </dependency>
-        -->
-
-        <!-- 未使用：七牛云 Kodo，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.qiniu</groupId>
-            <artifactId>qiniu-java-sdk</artifactId>
-        </dependency>
-        -->
-
-        <!-- x-file-storage-core 中 WebDAV 类硬引用了 sardine 的 DavResource，按需启用 -->
-        <!--
-       <dependency>
-           <groupId>com.github.lookfirst</groupId>
-           <artifactId>sardine</artifactId>
-       </dependency>
-       -->
-
-       <!-- 未使用：百度云 BOS，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.baidubce</groupId>
-            <artifactId>bce-java-sdk</artifactId>
-            <exclusions>
-                <exclusion>
-                <exclusion>
-                    <artifactId>servlet-api</artifactId>
-                    <groupId>javax.servlet</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        -->
-
-        <!-- 未使用：SFTP，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.jcraft</groupId>
-            <artifactId>jsch</artifactId>
-        </dependency>
-        -->
-
-        <!-- 未使用：org.json，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>org.json</groupId>
-            <artifactId>json</artifactId>
-        </dependency>
-        -->
-
-        <!-- 未使用：AWS S3，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.dataformat</groupId>
-                    <artifactId>jackson-dataformat-xml</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        -->
-
-        <!-- 未使用：腾讯云 COS，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.qcloud</groupId>
-            <artifactId>cos_api</artifactId>
-        </dependency>
-        -->
-
-        <!-- 未使用：FTP/FTPS，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>commons-net</groupId>
-            <artifactId>commons-net</artifactId>
-        </dependency>
-        -->
-
-        <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-        </dependency>
-
-        <!-- OSS，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.aliyun.oss</groupId>
-            <artifactId>aliyun-sdk-oss</artifactId>
-        </dependency>
-        -->
-
-    </dependencies>
+	</dependencies>
 
 </project>
