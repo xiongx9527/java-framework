@@ -12,6 +12,8 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -207,22 +209,48 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 
 	@Test
 	public void shouldRegisterAdapterAutoConfigurationInSpringFactories() throws Exception {
+		String factoriesContent = read("META-INF/spring.factories");
+		String importsContent = read("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports");
 		Properties factories = new Properties();
-		InputStream inputStream = getClass().getClassLoader().getResourceAsStream("META-INF/spring.factories");
-		assertNotNull("spring.factories should be present", inputStream);
-		try {
-			factories.load(inputStream);
-		} finally {
-			inputStream.close();
-		}
+		factories.load(new java.io.StringReader(factoriesContent));
 
 		String autoConfigurations = factories.getProperty("org.springframework.boot.autoconfigure.EnableAutoConfiguration");
 		assertNotNull("EnableAutoConfiguration entries should be present", autoConfigurations);
 		assertTrue("LangChain4jAdapterAutoConfiguration should be registered",
 				Arrays.asList(autoConfigurations.replace("\\n", "").split("\\s*,\\s*")).contains(MODEL_AUTO_CONFIGURATION));
+		assertEquals("LangChain4jAdapterAutoConfiguration should occur once in spring.factories", 1,
+				occurrences(factoriesContent, MODEL_AUTO_CONFIGURATION));
+		assertEquals("LangChain4jAdapterAutoConfiguration should occur once in AutoConfiguration.imports", 1,
+				occurrences(importsContent, MODEL_AUTO_CONFIGURATION));
 		assertTrue("Adapter root should not import legacy provider autoconfiguration eagerly",
 				!importClassNames(LangChain4jAdapterAutoConfiguration.class)
 						.contains(LangChain4jAutoConfiguration.class.getName()));
+	}
+
+	private String read(String location) throws Exception {
+		InputStream inputStream = getClass().getClassLoader().getResourceAsStream(location);
+		assertNotNull(location + " should be present", inputStream);
+		try {
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			byte[] buffer = new byte[1024];
+			int length;
+			while ((length = inputStream.read(buffer)) >= 0) {
+				outputStream.write(buffer, 0, length);
+			}
+			return new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+		} finally {
+			inputStream.close();
+		}
+	}
+
+	private int occurrences(String content, String value) {
+		int count = 0;
+		int index = 0;
+		while ((index = content.indexOf(value, index)) >= 0) {
+			count++;
+			index += value.length();
+		}
+		return count;
 	}
 
 	@Test
