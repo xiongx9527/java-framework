@@ -4,15 +4,19 @@
 - Plan: `docs/superpowers/plans/2026-07-30-springboot3-dependencies-and-branch-sync.md`
 - Review mode: `standard`
 - TDD mode: `tdd`
-- Current task: `Task 5: 同步、验证并发布 springboot2`
-- OpenSpec mapping: `3.1`、`3.2`、`3.3`、`3.4`
-- Stage: `completed`
-- Implementer: `/root/task5_sync_springboot2`
-- Base commit: `3298231fe8ac00286b1661bb171fcc5f5ea49644`
-- Implementation commits: 快进至 `637c5951ac670865c47e132866070822f786647a`，无 Task 5 专属 merge commit
-- Changed files: springboot2 完整继承已发布 dev；主工作区两份 evidence 待最终文档提交
-- RED evidence: 合并前 `springboot2` 落后 `dev`，远端为 `3298231f`
-- GREEN evidence: Java 8 五层构建成功；LangChain4j core 0.35.0 且官方 starter 未解析；普通 push 后 HEAD/tracking/ls-remote 均为 `637c5951`，分叉 `0 0`
-- Risk review triggered: `yes`（跨分支同步与远端发布）
-- Review/fix round: `0/1`（Spec PASS；Task Quality PASS_WITH_CONCERNS）
-- Open findings: 无 Critical/Important；两项可审计性 Minor 已记录至 SDD ledger，原始构建日志仍在 `/tmp/task5-springboot2-*.log`
+- Current task: `Task 6: 将 dev 合并到 springboot3 并保留 Boot 3 历史`
+- OpenSpec mapping: `4.1`、`4.2`
+- Stage: `done`
+- Implementer: `/root/task6_merge_springboot3`
+- Base commit: `b9457fc69cc6fbeb1e4febf97e54e2b5d21c44f1`
+- Implementation commits: `78ab6524a96a8c2968b57a5940fbaa6901109392`、`0237dcd82c1635a7e522c18365029d31c1fb99ad`、`d16c4540`
+- Changed files: merge 带入最新 dev；冲突解决限于 `AskDataAutoConfigurationRegistrationTest.java`、Core BOM、JimuReport POM；修复提交仅调整 AI Boot 3 `AutoConfiguration.imports` 与对应注册测试
+- RED evidence: 合并前 `dev...springboot3` 为 `318 12`，双方均有独立历史
+- GREEN evidence: merge commit 为双父，dev 已为祖先，三个冲突文件 diff-check/XML/固定版本断言通过，LangChain4j 仍为 0.35.0，worktree 干净
+- Risk review triggered: `yes`（跨分支真实 merge 与多层 BOM 冲突边界）
+- Review/fix round: `2/2`（用户已授权超出 `standard` 默认预算的第二轮修复；上一轮提交 `0237dcd82c1635a7e522c18365029d31c1fb99ad` scoped re-review 未通过）
+- Open findings: Minor：额外 Maven 测试受缺失 `0.3.0-SNAPSHOT` 阻断，已在 task report 记录；无未解决 Critical/Important finding
+- User ruling: 选择 1；不修改 `add-tiny-engine-ai-starter`、`add-tiny-engine-boot-starter` 或无关归档 whitespace，Task 6 验证口径改为 `HEAD^2..HEAD` second-parent diff-check 加三个冲突文件定向 diff-check/XML/测试断言检查。
+- Re-review: Critical imports/test negative assertion finding partially fixed；测试正向断言已恢复，但 imports 包含缺失类，`standard` 模式 1/1 修复轮次后仍有 load-bearing finding。
+- User authorization: 用户回复“授权”，允许第二轮修复当前 load-bearing finding；仍不得修改 TinyEngine/无关归档/版本边界/Wrapper/构建插件/Nexus。
+- Extra repair re-review: `d16c4540` scoped re-review PASS，缺失类 imports finding 已解决，未引入新的 Critical/Important breakage。
