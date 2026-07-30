@@ -59,8 +59,8 @@
 
 - [x] 8.1 提供 TinyEngine AI Chat、RAG 搜索和知识库写入服务契约，供 Web 层或 TinyEngine core 复用。
 - [ ] 8.2 如实现 REST 路由，添加独立 web enabled 开关和 path prefix 配置，避免与宿主 `/app-center/api/*` 路由冲突。
-- [ ] 8.3 添加 sample 或文档，展示默认 LangChain4j adapter Chat、Streaming Chat、RAG、中立向量 store 配置、禁用 AI 和缺失依赖策略。
-- [ ] 8.4 更新 AskData 文档或 starter README，说明 AskData 使用当前中立 AI 模型/向量配置和默认 LangChain4j adapter 的方式。
+- [x] 8.3 添加 sample 或文档，展示默认 LangChain4j adapter Chat、Streaming Chat、RAG、中立向量 store 配置、禁用 AI 和缺失依赖策略。
+- [x] 8.4 更新 AskData 文档或 starter README，说明 AskData 使用当前中立 AI 模型/向量配置和默认 LangChain4j adapter 的方式。
 
 ## 9. 验证
 
