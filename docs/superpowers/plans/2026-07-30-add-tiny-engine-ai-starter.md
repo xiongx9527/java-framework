@@ -207,19 +207,19 @@ Commit: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure && 
 - Consumes: `AiEmbeddingStoreRegistry`, `AiEmbeddingStore`, `AiEmbeddingQuery`, `AiEmbeddingMatch`.
 - Produces: Default AskData vector retriever through neutral store registry.
 
-- [ ] **Task 5 Step 1: Write failing vector tests**
+- [x] **Task 5 Step 1: Write failing vector tests**
 
 Assert neutral retriever returns documents from `AiEmbeddingSearchResult`, handles blank query with empty list, and missing default store is diagnosed. Assert custom `AskDataVectorRetriever` bean overrides default.
 
-- [ ] **Task 5 Step 2: Implement neutral vector retriever**
+- [x] **Task 5 Step 2: Implement neutral vector retriever**
 
 Implement `AiEmbeddingStoreAskDataVectorRetriever` that resolves store key from AskData properties, builds `AiEmbeddingQuery`, maps `AiEmbeddingMatch.document().getText()` or equivalent content to `AskDataRetrievedDocument`, and never imports `dev.langchain4j.*`.
 
-- [ ] **Task 5 Step 3: Adjust default vector auto configuration**
+- [x] **Task 5 Step 3: Adjust default vector auto configuration**
 
 Make the default retriever consume `AiEmbeddingStoreRegistry`. Keep `ContentRetrieverAskDataVectorRetriever` and `EmbeddingStoreAskDataVectorRetriever` only as optional compatibility when their classes/beans are present.
 
-- [ ] **Task 5 Step 4: Run tests and commit**
+- [x] **Task 5 Step 4: Run tests and commit**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=AiEmbeddingStoreAskDataVectorRetrieverTest,AskDataVectorRetrieverTest,EmbeddingStoreAskDataVectorRetrieverTest,AskDataAutoConfigurationTest`
 
