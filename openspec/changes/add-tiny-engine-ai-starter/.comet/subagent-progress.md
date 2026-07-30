@@ -16,3 +16,6 @@
 - Risk signal: existing Maven BOM duplicate dependency-management and SLF4J multiple-binding warnings remain outside this task's scope.
 - Verify failure: full verification found `TinyEngineAiCapability` only covered Chat and Streaming Chat, while the delta spec requires RAG Retrieval, Knowledge Indexing, Embedding, Vector Store and Agent Runtime capability boundaries too.
 - Fix brief: /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-tiny-engine-ai-starter/.superpowers/sdd/task-verify-fix-capability-brief.md
+- Fix complete: added the five missing provider capabilities and a complete enum-set regression test.
+- Verification: TDD RED observed; focused registry test (5) and `TinyEngine*Test` (26) passed; OpenSpec strict validation passed.
+- Risk signal: existing Maven duplicate dependency-management and SLF4J multiple-binding warnings remain outside this fix scope.
