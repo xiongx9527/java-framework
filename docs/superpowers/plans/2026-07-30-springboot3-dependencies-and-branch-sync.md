@@ -12,7 +12,7 @@ base-ref: 63ffe1c7815ac7f27b24f1c4d84d315425accc9c
 
 **Architecture:** 主工作区固定在 `dev`，负责 Comet 状态、Java 8 基线和最终证据；`.worktrees/springboot2-sync` 与 `.worktrees/springboot3-upgrade` 分别承载两个派生分支。`springboot3` 先形成独立的 `dev` merge commit，再以独立提交导入 LangChain4j BOM 1.18.1、验证 1.18.1/1.18.1-beta28 双轨解析，并逐组处理其他兼容升级。
 
-**Tech Stack:** Git worktree、Java 8、Java 17、Maven Wrapper、Spring Boot 2.7.18/3.5.8、Spring Cloud 2021.0.9/2025.0.0、Spring Cloud Alibaba 2021.0.5.0/2025.0.0.0、LangChain4j 0.35.0/1.18.1、JUnit 5、Maven Versions/Dependency/Help Plugin。
+**Tech Stack:** Git worktree、Java 8、Java 17、系统 Maven 3.6.3、Spring Boot 2.7.18/3.5.8、Spring Cloud 2021.0.9/2025.0.0、Spring Cloud Alibaba 2021.0.5.0/2025.0.0.0、LangChain4j 0.35.0/1.18.1、JUnit 5、Maven Versions/Dependency/Help Plugin。
 
 ## Global Constraints
 
@@ -22,6 +22,7 @@ base-ref: 63ffe1c7815ac7f27b24f1c4d84d315425accc9c
 - `springboot3` 导入 `dev.langchain4j:langchain4j-bom:1.18.1`；稳定核心模块解析为 1.18.1，starter、向量库、解析器等集成模块由 BOM 解析为 1.18.1-beta28。
 - `spring-ai.version` 和 `spring-ai-alibaba.version` 均保留为 1.0.1；保留最新远端已有的 Spring AI/Spring AI Alibaba 集成声明。
 - 不升级 Maven、Maven Wrapper 或构建插件，不修改内部 Nexus 仓库配置。
+- 当前四层 `mvnw` 均缺少 `.mvn/wrapper` 运行文件；构建统一使用已安装的系统 Maven 3.6.3，不创建、修复或升级 Wrapper。
 - 不创建或修改 `add-tiny-engine-ai-starter`、`add-tiny-engine-boot-starter`，不创建新的 Spring AI/TinyEngine 模块。
 - 不为未使用的 `OptimisticLockerInterceptor` 新增替代实现；只在最新目标分支仍存在无效配置或多余依赖时删除。
 - 所有远端更新均为非强制更新；没有最新远端对象、祖先关系不成立或 compare 不是严格快进时停止推送。
@@ -176,11 +177,11 @@ export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
 java -version
 rg -n '<spring-boot-dependencies.version>2\.7\.18|<spring-cloud-dependencies.version>2021\.0\.9|<spring-cloud-alibaba-dependencies.version>2021\.0\.5\.0|<langchain4j.version>0\.35\.0|<magic-api.version>2\.2\.2|<magic-script.version>1\.9\.0' fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml
-./fw-plus-core/mvnw -f fw-plus-core/pom.xml dependency:get -Dartifact=dev.langchain4j:langchain4j-core:0.35.0
+mvn -f fw-plus-core/pom.xml dependency:get -Dartifact=dev.langchain4j:langchain4j-core:0.35.0
 java8_core_jar="$HOME/.m2/repository/dev/langchain4j/langchain4j-core/0.35.0/langchain4j-core-0.35.0.jar"
 java8_core_class=$(unzip -Z1 "$java8_core_jar" | awk '/\.class$/ {print; exit}')
 unzip -p "$java8_core_jar" "$java8_core_class" | head -c 8 | xxd
-./fw-plus-ai/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml dependency:tree -Dincludes=dev.langchain4j:langchain4j-spring-boot-starter -DoutputFile=target/java8-starter-tree.txt
+mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml dependency:tree -Dincludes=dev.langchain4j:langchain4j-spring-boot-starter -DoutputFile=target/java8-starter-tree.txt
 test ! -s fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/java8-starter-tree.txt
 ```
 
@@ -191,11 +192,13 @@ Expected: Java 为 1.8；所有 Java 8 固定版本均存在；LangChain4j core 
 Run:
 
 ```bash
-./fw-plus-core/mvnw -f fw-plus-core/pom.xml clean install
-./fw-plus-boot/mvnw -f fw-plus-boot/pom.xml clean install
-./fw-plus-cloud/mvnw -f fw-plus-cloud/pom.xml clean install
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml clean install
-./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f fw-plus-core/pom.xml clean install
+mvn -f fw-plus-boot/pom.xml clean install
+mvn -f fw-plus-cloud/pom.xml clean install
+mvn -f fw-plus-ai/pom.xml clean install
+mvn -f fw-plus-sample/pom.xml validate
 ```
 
 Expected: 五条命令退出码均为 0。使用 `apply_patch` 将 JDK、命令、退出码、测试总数和已知环境警告写入 `build-verification.md`。
@@ -317,11 +320,13 @@ Expected: 四个固定版本不变；Spring AI 两个 1.0.1 属性仍存在。
 Run:
 
 ```bash
-.worktrees/springboot2-sync/fw-plus-core/mvnw -f .worktrees/springboot2-sync/fw-plus-core/pom.xml clean install
-.worktrees/springboot2-sync/fw-plus-boot/mvnw -f .worktrees/springboot2-sync/fw-plus-boot/pom.xml clean install
-.worktrees/springboot2-sync/fw-plus-cloud/mvnw -f .worktrees/springboot2-sync/fw-plus-cloud/pom.xml clean install
-.worktrees/springboot2-sync/fw-plus-ai/mvnw -f .worktrees/springboot2-sync/fw-plus-ai/pom.xml clean install
-.worktrees/springboot2-sync/fw-plus-core/mvnw -f .worktrees/springboot2-sync/fw-plus-sample/pom.xml validate
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f .worktrees/springboot2-sync/fw-plus-core/pom.xml clean install
+mvn -f .worktrees/springboot2-sync/fw-plus-boot/pom.xml clean install
+mvn -f .worktrees/springboot2-sync/fw-plus-cloud/pom.xml clean install
+mvn -f .worktrees/springboot2-sync/fw-plus-ai/pom.xml clean install
+mvn -f .worktrees/springboot2-sync/fw-plus-sample/pom.xml validate
 ```
 
 Expected: 五条命令均退出 0；构建使用 Java 8。
@@ -331,7 +336,9 @@ Expected: 五条命令均退出 0；构建使用 Java 8。
 Run:
 
 ```bash
-.worktrees/springboot2-sync/fw-plus-ai/mvnw -f .worktrees/springboot2-sync/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml dependency:tree -Dincludes=dev.langchain4j:langchain4j-core,dev.langchain4j:langchain4j-spring-boot-starter -DoutputFile=target/java8-langchain4j-tree.txt
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f .worktrees/springboot2-sync/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml dependency:tree -Dincludes=dev.langchain4j:langchain4j-core,dev.langchain4j:langchain4j-spring-boot-starter -DoutputFile=target/java8-langchain4j-tree.txt
 rg -n 'dev\.langchain4j:langchain4j-core:.*:0\.35\.0' .worktrees/springboot2-sync/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/java8-langchain4j-tree.txt
 test "$(rg -c 'langchain4j-spring-boot-starter' .worktrees/springboot2-sync/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/java8-langchain4j-tree.txt || true)" -eq 0
 ```
@@ -523,7 +530,7 @@ Run:
 ```bash
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=SpringBoot3DependencyBaselineTest test
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=SpringBoot3DependencyBaselineTest test
 ```
 
 Expected: FAIL，错误明确指向 `langchain4j.version` 仍为 0.35.0 或逐 artifact `<version>` 尚未删除，而不是测试定位失败。
@@ -551,7 +558,7 @@ Run:
 ```bash
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=SpringBoot3DependencyBaselineTest test
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=SpringBoot3DependencyBaselineTest test
 ```
 
 Expected: `SpringBoot3DependencyBaselineTest` PASS，原始 POM 的固定版本和 BOM 管理结构均符合约束。
@@ -576,9 +583,11 @@ Expected: `SpringBoot3DependencyBaselineTest` PASS，原始 POM 的固定版本�
 Run:
 
 ```bash
-.worktrees/springboot3-upgrade/fw-plus-core/mvnw -f .worktrees/springboot3-upgrade/fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml help:effective-pom -Doutput=target/effective-pom.xml
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml help:effective-pom -Doutput=target/effective-pom.xml
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml dependency:tree -Dincludes=dev.langchain4j -DoutputFile=target/langchain4j-tree.txt
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f .worktrees/springboot3-upgrade/fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml help:effective-pom -Doutput=target/effective-pom.xml
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml help:effective-pom -Doutput=target/effective-pom.xml
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml dependency:tree -Dincludes=dev.langchain4j -DoutputFile=target/langchain4j-tree.txt
 rg -n -A 3 '<artifactId>langchain4j-(core|spring-boot-starter|qdrant|document-parser-apache-tika)</artifactId>' .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/target/effective-pom.xml
 rg -n 'dev\.langchain4j:langchain4j-core:.*:1\.18\.1' .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/langchain4j-tree.txt
 ```
@@ -590,7 +599,9 @@ Expected: effective POM 可生成；依赖树显示 `langchain4j-core:1.18.1`；
 Run:
 
 ```bash
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
 ```
 
 Expected: 两个测试类通过；如因 1.18.1 API 变化编译或启动失败，先记录精确类型/方法差异并进入 Step 3。
@@ -604,8 +615,10 @@ Expected: 两个测试类通过；如因 1.18.1 API 变化编译或启动失败�
 Run:
 
 ```bash
-.worktrees/springboot3-upgrade/fw-plus-core/mvnw -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml dependency:get -Dartifact=dev.langchain4j:langchain4j-core:1.18.1
-.worktrees/springboot3-upgrade/fw-plus-core/mvnw -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml dependency:get -Dartifact=dev.langchain4j:langchain4j-spring-boot-starter:1.18.1-beta28
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml dependency:get -Dartifact=dev.langchain4j:langchain4j-core:1.18.1
+mvn -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml dependency:get -Dartifact=dev.langchain4j:langchain4j-spring-boot-starter:1.18.1-beta28
 core_jar="$HOME/.m2/repository/dev/langchain4j/langchain4j-core/1.18.1/langchain4j-core-1.18.1.jar"
 starter_jar="$HOME/.m2/repository/dev/langchain4j/langchain4j-spring-boot-starter/1.18.1-beta28/langchain4j-spring-boot-starter-1.18.1-beta28.jar"
 core_class=$(unzip -Z1 "$core_jar" | awk '/\.class$/ {print; exit}')
@@ -647,8 +660,10 @@ Expected: 提交包含 BOM、基线测试及确有必要的最小适配，不混
 Run:
 
 ```bash
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
 for pom in fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml fw-plus-boot/fw-plus-boot-project/fw-plus-boot-dependencies/pom.xml fw-plus-cloud/fw-plus-cloud-project/fw-plus-cloud-dependencies/pom.xml fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml; do
-  .worktrees/springboot3-upgrade/fw-plus-core/mvnw -f ".worktrees/springboot3-upgrade/$pom" versions:display-property-updates -DallowSnapshots=false -DallowMajorUpdates=true
+  mvn -f ".worktrees/springboot3-upgrade/$pom" versions:display-property-updates -DallowSnapshots=false -DallowMajorUpdates=true
 done
 ```
 
@@ -673,10 +688,12 @@ Expected: 每个排除项在矩阵中标为“固定/排除”并写明精确基
 每组只用 `apply_patch` 修改该层已通过元数据与 Java 17 检查的版本属性，然后运行对应命令：
 
 ```bash
-.worktrees/springboot3-upgrade/fw-plus-core/mvnw -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml -DskipTests compile
-.worktrees/springboot3-upgrade/fw-plus-boot/mvnw -f .worktrees/springboot3-upgrade/fw-plus-boot/pom.xml -DskipTests compile
-.worktrees/springboot3-upgrade/fw-plus-cloud/mvnw -f .worktrees/springboot3-upgrade/fw-plus-cloud/pom.xml -DskipTests compile
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml -DskipTests compile
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml -DskipTests compile
+mvn -f .worktrees/springboot3-upgrade/fw-plus-boot/pom.xml -DskipTests compile
+mvn -f .worktrees/springboot3-upgrade/fw-plus-cloud/pom.xml -DskipTests compile
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml -DskipTests compile
 ```
 
 Expected: 当前组编译通过才保留；失败时只回退该属性，记录坐标、错误和保留旧版原因。需要局部 API 适配时，先在最接近失败调用点的测试中加入复现断言并确认失败，再仅修改报错调用点或自动配置条件，重新运行该单测和所属层 compile；需要公开 API、固定平台或无关重构时保留旧版。
@@ -687,8 +704,10 @@ Run:
 
 ```bash
 rg -n 'OptimisticLockerInterceptor|OptimisticLockerInnerInterceptor' .worktrees/springboot3-upgrade --glob '*.java' --glob '*.xml' --glob '*.yml' --glob '*.yaml'
-.worktrees/springboot3-upgrade/fw-plus-core/mvnw -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml dependency:analyze
-.worktrees/springboot3-upgrade/fw-plus-boot/mvnw -f .worktrees/springboot3-upgrade/fw-plus-boot/pom.xml dependency:analyze
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml dependency:analyze
+mvn -f .worktrees/springboot3-upgrade/fw-plus-boot/pom.xml dependency:analyze
 ```
 
 Expected: 只有静态引用、自动配置、SPI/反射/运行时职责和目标构建共同证明无用途时才删除直接依赖或无效配置；未使用拦截器不新增替代实现。Maven analyze 的 starter/BOM/runtime 误报记录在矩阵，不据此单独删除。
@@ -724,10 +743,10 @@ Run:
 ```bash
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=SpringBoot3DependencyBaselineTest,NeutralAiAutoConfigurationBoundaryTest test
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml help:effective-pom -Doutput=target/effective-pom.xml
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml dependency:tree -Dverbose -Dincludes=dev.langchain4j,org.springframework.ai,com.alibaba.cloud.ai -DoutputFile=target/ai-integration-tree.txt
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=SpringBoot3DependencyBaselineTest,NeutralAiAutoConfigurationBoundaryTest test
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml help:effective-pom -Doutput=target/effective-pom.xml
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml dependency:tree -Dverbose -Dincludes=dev.langchain4j,org.springframework.ai,com.alibaba.cloud.ai -DoutputFile=target/ai-integration-tree.txt
 rg -n '1\.18\.1|1\.18\.1-beta28|1\.0\.1|spring-boot.*3\.5\.8' .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/effective-pom.xml .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/ai-integration-tree.txt
 ```
 
@@ -738,8 +757,10 @@ Expected: 固定版本、公共中立边界和 LangChain4j 自动配置测试全
 Run:
 
 ```bash
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml org.apache.maven.plugins:maven-enforcer-plugin:3.5.0:enforce -Drules=dependencyConvergence
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml org.apache.maven.plugins:maven-enforcer-plugin:3.5.0:enforce -Drules=banDuplicatePomDependencyVersions
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml org.apache.maven.plugins:maven-enforcer-plugin:3.5.0:enforce -Drules=dependencyConvergence
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml org.apache.maven.plugins:maven-enforcer-plugin:3.5.0:enforce -Drules=banDuplicatePomDependencyVersions
 ```
 
 Expected: 两项检查通过；若发现升级前已存在且与本次无关的收敛告警，使用合并提交父节点运行同一命令证明其为基线问题，将完整坐标和对比结果记入依赖矩阵，不用排除项掩盖本次新增冲突。
@@ -749,11 +770,13 @@ Expected: 两项检查通过；若发现升级前已存在且与本次无关的�
 Run:
 
 ```bash
-.worktrees/springboot3-upgrade/fw-plus-core/mvnw -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml clean install
-.worktrees/springboot3-upgrade/fw-plus-boot/mvnw -f .worktrees/springboot3-upgrade/fw-plus-boot/pom.xml clean install
-.worktrees/springboot3-upgrade/fw-plus-cloud/mvnw -f .worktrees/springboot3-upgrade/fw-plus-cloud/pom.xml clean install
-.worktrees/springboot3-upgrade/fw-plus-ai/mvnw -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml clean install
-.worktrees/springboot3-upgrade/fw-plus-core/mvnw -f .worktrees/springboot3-upgrade/fw-plus-sample/pom.xml validate
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml clean install
+mvn -f .worktrees/springboot3-upgrade/fw-plus-boot/pom.xml clean install
+mvn -f .worktrees/springboot3-upgrade/fw-plus-cloud/pom.xml clean install
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml clean install
+mvn -f .worktrees/springboot3-upgrade/fw-plus-sample/pom.xml validate
 ```
 
 Expected: 五条命令退出 0。使用主工作区 `apply_patch` 将 JDK、命令、测试数、退出码和重试说明写入 `build-verification.md`。
