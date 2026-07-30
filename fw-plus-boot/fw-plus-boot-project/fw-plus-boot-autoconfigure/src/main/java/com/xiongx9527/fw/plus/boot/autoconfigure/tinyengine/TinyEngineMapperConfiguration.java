@@ -36,8 +36,10 @@ public class TinyEngineMapperConfiguration {
 	@Bean
 	@ConditionalOnMissingBean(name = "tinyEngineMapperLocationsCustomizer")
 	public MybatisPlusPropertiesCustomizer tinyEngineMapperLocationsCustomizer(TinyEngineProperties properties) {
-		return mybatisPlusProperties -> mybatisPlusProperties.setMapperLocations(
-				mergeMapperLocations(mybatisPlusProperties.getMapperLocations(), properties.getMapper().getMapperLocations()));
+		return mybatisPlusProperties -> {
+			mybatisPlusProperties.setMapperLocations(
+					mergeMapperLocations(mybatisPlusProperties.getMapperLocations(), properties.getMapper().getMapperLocations()));
+		};
 	}
 
 	private static String[] mergeMapperLocations(String[] existingLocations, String[] tinyEngineLocations) {
@@ -57,4 +59,5 @@ public class TinyEngineMapperConfiguration {
 			}
 		}
 	}
+
 }

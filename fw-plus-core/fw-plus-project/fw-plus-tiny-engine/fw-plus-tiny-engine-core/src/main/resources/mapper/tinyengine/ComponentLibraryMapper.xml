@@ -44,7 +44,7 @@
             AND CL.bundle = #{bundle}
         </if>
         <if test="others!=null and others!=''">
-            AND CL.`others` = #{others}
+            AND CL.`others` = #{others,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="thumbnail!=null and thumbnail!=''">
             AND CL.thumbnail = #{thumbnail}
@@ -117,7 +117,7 @@
             bundle = #{bundle},
         </if>
         <if test="others!=null and others!=''">
-            `others` = #{others},
+            `others` = #{others,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="thumbnail!=null and thumbnail!=''">
             thumbnail = #{thumbnail},
@@ -170,8 +170,8 @@
         <result column="script" property="script"/>
         <result column="css" property="css"/>
         <result column="bundle" property="bundle"/>
-        <result column="dependencies" property="dependencies"/>
-        <result column="others" property="others"/>
+        <result column="dependencies" property="dependencies" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="others" property="others" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="thumbnail" property="thumbnail"/>
         <result column="is_official" property="isOfficial"/>
         <result column="is_default" property="isDefault"/>
@@ -186,7 +186,7 @@
         <collection property="components" ofType="com.xiongx9527.fw.plus.tinyengine.model.entity.Component">
             <id column="componentId" property="id"/>
             <result column="componentVersion" property="version"/>
-            <result column="componentName" property="name"/>
+            <result column="componentName" property="name" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
             <result column="name_en" property="component"/>
             <result column="icon" property="icon"/>
             <result column="componentDescription" property="description"/>
@@ -195,19 +195,19 @@
             <result column="tags" property="tags"/>
             <result column="keywords" property="keywords"/>
             <result column="dev_mode" property="devMode"/>
-            <result column="npm" property="npm"/>
+            <result column="npm" property="npm" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
             <result column="group" property="group"/>
             <result column="category" property="category"/>
             <result column="priority" property="priority"/>
-            <result column="snippets" property="snippets"/>
-            <result column="schema_fragment" property="schemaFragment"/>
-            <result column="configure" property="configure"/>
+            <result column="snippets" property="snippets" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
+            <result column="schema_fragment" property="schemaFragment" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+            <result column="configure" property="configure" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
             <result column="componentPublic" property="publicStatus"/>
             <result column="componentFramework" property="framework"/>
             <result column="isOfficial" property="isOfficial"/>
             <result column="isDefault" property="isDefault"/>
             <result column="tiny_reserved" property="isTinyReserved"/>
-            <result column="component_metadata" property="componentMetadata"/>
+            <result column="component_metadata" property="componentMetadata" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
             <result column="library_id" property="libraryId"/>
             <result column="componentCreatedBy" property="createdBy"/>
             <result column="componentLastUpdatedBy" property="lastUpdatedBy"/>
@@ -358,8 +358,8 @@
                , #{script}
                , #{css}
                , #{bundle}
-               , #{dependencies}
-               , #{others}
+               , #{dependencies,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+               , #{others,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
                , #{thumbnail}
                , #{publicStatus}
                , #{isStarted}

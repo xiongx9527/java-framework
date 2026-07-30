@@ -17,6 +17,7 @@ TinyEngine 参考项目当前包含 `base` 与 `app` 两层，其中 `base` 提�
 
 - 不重复实现 TinyEngine core 领域模型、Service、Mapper、动态 SQL 或 SQL 脚本内容。
 - 不实现 TinyEngine AI Chat/RAG、向量检索或 LangChain4j 扩展。
+- 不新增 LangChain4j 专用 TinyEngine 依赖或接口；后续 TinyEngine AI/RAG 集成必须面向已归档的 `abstract-ai-model-and-embedding` 中立抽象（`fw-plus-ai-model`、`fw-plus-ai-store-embedding`）和当前 LangChain4j adapter starter。
 - 不迁移 `fw-plus-boot` 到 Spring Boot 3，不提升 JDK 到 17，不引入 Java 9+ API。
 - 不修改 Magic-API 2.2.2 依赖版本或 Magic-API 插件行为。
 
@@ -40,12 +41,16 @@ TinyEngine 参考项目当前包含 `base` 与 `app` 两层，其中 `base` 提�
 6. **样例验证放在 `fw-plus-sample/fw-plus-boot-samples`。**  
    新增 TinyEngine starter sample 或扩展 boot samples 聚合，使用 Spring Boot 2.7.18、Java 8 兼容写法验证 starter 接入。样例只验证 starter 装配和基础 REST/资源发现，不承担完整 TinyEngine 业务回归。
 
+7. **AI 边界跟随最新中立抽象。**
+   `abstract-ai-model-and-embedding` 已把公共模型与向量存储能力整理为 `fw-plus-ai-model`、`fw-plus-ai-store-embedding`，并将 LangChain4j 移到默认 adapter/starter。TinyEngine Boot starter 本 change 不实现 AI，但任何可选依赖、扩展点、文档或样例都不得重新引入旧 LangChain4j 专用 model/store 坐标；后续 AI starter 只能依赖中立 registry/factory，并由 LangChain4j adapter 或未来 Java 17 adapter 提供实现。
+
 ## Risks / Trade-offs
 
 - [Risk] `integrate-tiny-engine-core` 的包名、模块名或资源路径最终变化，导致 Boot 自动配置路径失配。 → Mitigation：实现前以 core change 的最终 POM、Service/Mapper 包和资源目录为准，并在 Boot 层单独确认 Controller 适配包与路由，任务中保留对这些路径的核对步骤。
 - [Risk] MyBatis-Plus 版本与参考项目不同，Mapper XML 或 TypeHandler 需要兼容调整。 → Mitigation：兼容调整应优先落在 core change；Boot change 只验证 XML 被加载并能在样例中通过基础查询/上下文启动。
 - [Risk] 自动注册 Controller 可能与宿主应用安全、路径或异常处理冲突。 → Mitigation：提供 `web.enabled` 子开关，并让关键 Bean 支持宿主覆盖；必要时提供 API base path 属性。
 - [Risk] SQL 初始化策略如果自动执行，可能对宿主数据库造成副作用。 → Mitigation：默认只保证 SQL 资源随 starter 可发现；自动初始化必须受显式属性控制，并在样例中使用 H2 或隔离库验证。
+- [Risk] TinyEngine 后续 AI 能力误接旧 LangChain4j 专用 artifact，重新制造框架耦合。 → Mitigation：本 change 明确禁止新增旧专用 AI 依赖；构建检查扫描 `fw-plus-ai-langchain4j-model`、`fw-plus-ai-langchain4j-store-embeding`、旧 starter 坐标和直接 provider SDK 依赖，后续 AI 能力转交 `add-tiny-engine-ai-starter` 并使用中立抽象。
 
 ## Migration Plan
 

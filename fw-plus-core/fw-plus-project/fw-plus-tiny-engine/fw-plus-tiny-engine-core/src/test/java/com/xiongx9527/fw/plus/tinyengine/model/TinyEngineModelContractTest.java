@@ -8,7 +8,9 @@ import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockParam;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Block;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockHistory;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Platform;
+import org.apache.ibatis.type.MappedTypes;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
@@ -18,6 +20,8 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -96,6 +100,23 @@ public class TinyEngineModelContractTest {
 	}
 
 	@Test
+	public void shouldUseExplicitJsonTypeHandlersWithoutBroadMappedTypes() throws Exception {
+		assertNoMappedTypes(JsonObjectTypeHandler.class);
+		assertNoMappedTypes(JsonArrayTypeHandler.class);
+		assertXmlContains("mapper/tinyengine/AppExtensionMapper.xml",
+				"#{content,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}");
+		assertXmlContains("mapper/tinyengine/PageMapper.xml",
+				"#{contentBlocks,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}");
+		assertXmlContains("mapper/tinyengine/ComponentLibraryMapper.xml",
+				"componentName\" property=\"name\" typeHandler=\"com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler\"");
+		assertXmlDoesNotContain("mapper/tinyengine/ComponentLibraryMapper.xml",
+				"#{name,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}");
+		TableField occupierField = Page.class.getDeclaredField("occupier").getAnnotation(TableField.class);
+		assertNotNull(occupierField, "Page#occupier 必须声明为非表字段，避免 MyBatis-Plus 自动 ResultMap 当作普通列解析");
+		assertFalse(occupierField.exist(), "Page#occupier 只应由 PageMapper.xml association 组装");
+	}
+
+	@Test
 	public void shouldNotProvideAiOrChatDtos() {
 		assertClassIsAbsent("com.xiongx9527.fw.plus.tinyengine.model.dto.AiDto");
 		assertClassIsAbsent("com.xiongx9527.fw.plus.tinyengine.model.dto.ChatDto");
@@ -116,6 +137,37 @@ public class TinyEngineModelContractTest {
 		Field field = modelClass.getDeclaredField(fieldName);
 		assertTrue(String.class.equals(field.getType()), modelClass.getName() + "#" + fieldName + " 必须是 String");
 		assertNull(field.getAnnotation(TableField.class), modelClass.getName() + "#" + fieldName + " 不得配置 TableField TypeHandler");
+	}
+
+	private void assertNoMappedTypes(Class<?> typeHandlerClass) {
+		MappedTypes mappedTypes = typeHandlerClass.getAnnotation(MappedTypes.class);
+		assertNull(mappedTypes, typeHandlerClass.getName() + " 不得 broad 映射 Map/List，避免污染宿主 MyBatis 全局 TypeHandler");
+	}
+
+	private void assertXmlContains(String resourceName, String expected) throws Exception {
+		String content = readClasspathResource(resourceName);
+		assertTrue(content.contains(expected), resourceName + " 必须显式声明 JSON TypeHandler");
+	}
+
+	private void assertXmlDoesNotContain(String resourceName, String unexpected) throws Exception {
+		String content = readClasspathResource(resourceName);
+		assertFalse(content.contains(unexpected), resourceName + " 不得为普通 String 字段声明 JSON TypeHandler");
+	}
+
+	private String readClasspathResource(String resourceName) throws Exception {
+		InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourceName);
+		assertNotNull(inputStream, resourceName + " 不存在");
+		try {
+			java.io.ByteArrayOutputStream outputStream = new java.io.ByteArrayOutputStream();
+			byte[] buffer = new byte[1024];
+			int count;
+			while ((count = inputStream.read(buffer)) >= 0) {
+				outputStream.write(buffer, 0, count);
+			}
+			return new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+		} finally {
+			inputStream.close();
+		}
 	}
 
 	private void assertClassIsAbsent(String className) {

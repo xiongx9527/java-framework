@@ -17,7 +17,7 @@
             AND name = #{name}
         </if>
         <if test="pageContent!=null and pageContent!=''">
-            AND page_content = #{pageContent}
+            AND page_content = #{pageContent,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="framework!=null and framework!=''">
             AND framework = #{framework}
@@ -75,7 +75,7 @@
             name = #{name},
         </if>
         <if test="pageContent!=null and pageContent!=''">
-            page_content = #{pageContent},
+            page_content = #{pageContent,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="framework!=null and framework!=''">
             framework = #{framework},
@@ -132,7 +132,7 @@
     <resultMap id="PageTemplateMap" type="com.xiongx9527.fw.plus.tinyengine.model.entity.PageTemplate">
         <id column="id" property="id"/>
         <result column="name" property="name"/>
-        <result column="page_content" property="pageContent"/>
+        <result column="page_content" property="pageContent" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="framework" property="framework"/>
         <result column="published" property="published"/>
         <result column="public" property="publicStatus"/>
@@ -228,7 +228,7 @@
         , site_id)
         VALUES ( #{id}
         , #{name}
-        , #{pageContent}
+        , #{pageContent,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         , #{framework}
         , #{published}
         , #{publicStatus}

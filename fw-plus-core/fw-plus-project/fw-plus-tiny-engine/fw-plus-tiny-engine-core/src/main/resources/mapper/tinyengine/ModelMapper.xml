@@ -31,10 +31,10 @@
             AND model_url = #{modelUrl}
         </if>
         <if test="parameters!=null and parameters!=''">
-            AND parameters = #{parameters}
+            AND parameters = #{parameters,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
         </if>
         <if test="method!=null and method!=''">
-            AND `method` = #{method}
+            AND `method` = #{method,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
         </if>
         <if test="description!=null and description!=''">
             AND description = #{description}
@@ -84,10 +84,10 @@
             model_url = #{modelUrl},
         </if>
         <if test="parameters!=null and parameters!=''">
-            parameters = #{parameters},
+            parameters = #{parameters,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler},
         </if>
         <if test="method!=null and method!=''">
-            `method` = #{method},
+            `method` = #{method,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler},
         </if>
         <if test="description!=null and description!=''">
             description = #{description},
@@ -125,8 +125,8 @@
         <result column="name_en" property="nameEn"/>
         <result column="version" property="version"/>
         <result column="model_url" property="modelUrl"/>
-        <result column="parameters" property="parameters"/>
-        <result column="method" property="method"/>
+        <result column="parameters" property="parameters" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
+        <result column="method" property="method" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
         <result column="description" property="description"/>
         <result column="created_by" property="createdBy"/>
         <result column="last_updated_by" property="lastUpdatedBy"/>
@@ -205,8 +205,8 @@
                , #{nameEn}
                , #{version}
                , #{modelUrl}
-               , #{parameters}
-               , #{method}
+               , #{parameters,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
+               , #{method,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
                , #{description}
                , #{createdBy}
                , #{lastUpdatedBy}

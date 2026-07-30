@@ -17,7 +17,7 @@
             AND name = #{name}
         </if>
         <if test="data!=null and data!=''">
-            AND `data` = #{data}
+            AND `data` = #{data,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="tpl!=null and tpl!=''">
             AND tpl = #{tpl}
@@ -60,7 +60,7 @@
             name = #{name},
         </if>
         <if test="data!=null and data!=''">
-            `data` = #{data},
+            `data` = #{data,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="tpl!=null and tpl!=''">
             tpl = #{tpl},
@@ -102,7 +102,7 @@
     <resultMap id="DatasourceMap" type="com.xiongx9527.fw.plus.tinyengine.model.entity.Datasource">
         <id column="id" property="id"/>
         <result column="name" property="name"/>
-        <result column="data" property="data"/>
+        <result column="data" property="data" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="tpl" property="tpl"/>
         <result column="app_id" property="app"/>
         <result column="platform_id" property="platformId"/>
@@ -178,7 +178,7 @@
         , site_id)
         VALUES ( #{id}
         , #{name}
-        , #{data}
+        , #{data,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         , #{tpl}
         , #{app}
         , #{platformId}

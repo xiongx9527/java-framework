@@ -24,15 +24,17 @@
 
 ## 4. 样例与验证
 
-- [ ] 4.1 在 `fw-plus-sample/fw-plus-boot-samples` 新增 TinyEngine starter 样例或测试模块，并接入样例聚合 POM。
-- [ ] 4.2 编写启用场景样例配置，验证 Spring Boot 2.7.18 应用上下文可启动，TinyEngine REST Controller、Mapper XML 和 SQL 资源可发现。
-- [ ] 4.3 编写禁用场景样例或测试，验证 `fw.plus.tiny-engine.enabled=false` 时 TinyEngine Controller 与 Service 未注册。
-- [ ] 4.4 使用 H2 或隔离测试数据源验证资源加载，避免默认自动修改宿主真实数据库。
+- [x] 4.1 在 `fw-plus-sample/fw-plus-boot-samples` 新增 TinyEngine starter 样例或测试模块，并接入样例聚合 POM。
+- [x] 4.2 编写启用场景样例配置，验证 Spring Boot 2.7.18 应用上下文可启动，TinyEngine REST Controller、Mapper XML 和 SQL 资源可发现。
+- [x] 4.3 编写禁用场景样例或测试，验证 `fw.plus.tiny-engine.enabled=false` 时 TinyEngine Controller 与 Service 未注册。
+- [x] 4.4 使用 H2 或隔离测试数据源验证资源加载，避免默认自动修改宿主真实数据库。
 
 ## 5. 构建检查
 
-- [ ] 5.1 运行 `./fw-plus-core/mvnw -f fw-plus-boot/pom.xml validate` 或等价 Boot 聚合校验，确认新增模块 POM 可解析。
-- [ ] 5.2 运行 TinyEngine starter 相关模块的编译/测试命令，确认自动配置与样例在 Java 8 约束下通过。
-- [ ] 5.3 运行 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate`，确认样例聚合器能解析 TinyEngine sample。
-- [ ] 5.4 检查未修改 Magic-API 2.2.2 版本，且未引入 Spring Boot 3 或 JDK 17 专属 API。
-- [ ] 5.5 检查 TinyEngine Boot starter、样例和文档未依赖旧 LangChain4j 专用 model/store artifact，且没有直接引入 AI provider SDK。
+- [x] 5.1 运行 `./fw-plus-core/mvnw -f fw-plus-boot/pom.xml validate` 或等价 Boot 聚合校验，确认新增模块 POM 可解析。
+- [x] 5.2 运行 TinyEngine starter 相关模块的编译/测试命令，确认自动配置与样例在 Java 8 约束下通过。
+- [x] 5.3 运行 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate`，确认样例聚合器能解析 TinyEngine sample。
+- [x] 5.4 检查未修改 Magic-API 2.2.2 版本，且未引入 Spring Boot 3 或 JDK 17 专属 API。
+- [x] 5.5 检查 TinyEngine Boot starter、样例和文档未依赖旧 LangChain4j 专用 model/store artifact，且没有直接引入 AI provider SDK。
+
+最新验证记录见 `docs/superpowers/reports/2026-07-30-add-tiny-engine-boot-starter-build.md`；2026-07-30 16:10-16:11 CST 重新通过 starter/sample validate、core/boot/sample 定向测试、AI 边界扫描和 `git diff --check`。

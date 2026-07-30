@@ -21,7 +21,7 @@
             AND version = #{version}
         </if>
         <if test="content!=null and content!=''">
-            AND content = #{content}
+            AND content = #{content,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="name!=null and name!=''">
             AND name = #{name}
@@ -33,13 +33,13 @@
             AND framework = #{framework}
         </if>
         <if test="assetsUrl!=null and assetsUrl!=''">
-            AND assets_url = #{assetsUrl}
+            AND assets_url = #{assetsUrl,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="imageUrl!=null and imageUrl!=''">
             AND image_url = #{imageUrl}
         </if>
         <if test="buildInfo!=null and buildInfo!=''">
-            AND build_info = #{buildInfo}
+            AND build_info = #{buildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="description!=null and description!=''">
             AND description = #{description}
@@ -88,7 +88,7 @@
             version = #{version},
         </if>
         <if test="content!=null and content!=''">
-            content = #{content},
+            content = #{content,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="name!=null and name!=''">
             name = #{name},
@@ -100,13 +100,13 @@
             framework = #{framework},
         </if>
         <if test="assetsUrl!=null and assetsUrl!=''">
-            assets_url = #{assetsUrl},
+            assets_url = #{assetsUrl,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="imageUrl!=null and imageUrl!=''">
             image_url = #{imageUrl},
         </if>
         <if test="buildInfo!=null and buildInfo!=''">
-            build_info = #{buildInfo}
+            build_info = #{buildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="description!=null and description!=''">
             description = #{description},
@@ -152,13 +152,13 @@
         <id column="id" property="id"/>
         <result column="ref_id" property="refId"/>
         <result column="version" property="version"/>
-        <result column="content" property="content"/>
+        <result column="content" property="content" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="name" property="name"/>
         <result column="npm_name" property="npmName"/>
         <result column="framework" property="framework"/>
-        <result column="assets_url" property="assetsUrl"/>
+        <result column="assets_url" property="assetsUrl" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="image_url" property="imageUrl"/>
-        <result column="build_info" property="buildInfo"/>
+        <result column="build_info" property="buildInfo" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="description" property="description"/>
         <result column="material_size" property="materialSize"/>
         <result column="tgz_url" property="tgzUrl"/>
@@ -233,13 +233,13 @@
         VALUES ( #{id}
                , #{refId}
                , #{version}
-               , #{content}
+               , #{content,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
                , #{name}
                , #{npmName}
                , #{framework}
-               , #{assetsUrl}
+               , #{assetsUrl,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
                , #{imageUrl}
-               , #{buildInfo}
+               , #{buildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
                , #{description}
                , #{materialSize}
                , #{tgzUrl}

@@ -1,0 +1,14 @@
+fw:
+  plus:
+    tiny-engine:
+      enabled: true
+      sql:
+        database: h2
+        auto-initialize: false
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:tiny_engine_sample;MODE=MySQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:

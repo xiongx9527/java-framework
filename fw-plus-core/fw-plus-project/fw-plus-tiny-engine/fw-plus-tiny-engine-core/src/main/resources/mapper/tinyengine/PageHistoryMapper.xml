@@ -29,7 +29,7 @@
             AND route = #{route}
         </if>
         <if test="pageContent!=null and pageContent!=''">
-            AND page_content = #{pageContent}
+            AND page_content = #{pageContent,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="isBody!=null">
             AND is_body = #{isBody}
@@ -56,7 +56,7 @@
             AND is_home = #{isHome}
         </if>
         <if test="contentBlocks!=null and contentBlocks!=''">
-            AND content_blocks = #{contentBlocks}
+            AND content_blocks = #{contentBlocks,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
         </if>
         <if test="createdBy!=null and createdBy!=''">
             AND created_by = #{createdBy}
@@ -102,7 +102,7 @@
             route = #{route},
         </if>
         <if test="pageContent!=null and pageContent!=''">
-            page_content = #{pageContent},
+            page_content = #{pageContent,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="isBody!=null">
             is_body = #{isBody},
@@ -129,7 +129,7 @@
             is_home = #{isHome},
         </if>
         <if test="contentBlocks!=null and contentBlocks!=''">
-            content_blocks = #{contentBlocks},
+            content_blocks = #{contentBlocks,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler},
         </if>
         <if test="createdBy!=null and createdBy!=''">
             created_by = #{createdBy},
@@ -166,7 +166,7 @@
         <result column="name" property="name"/>
         <result column="app_id" property="app"/>
         <result column="route" property="route"/>
-        <result column="page_content" property="pageContent"/>
+        <result column="page_content" property="pageContent" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="is_body" property="isBody"/>
         <result column="parent_id" property="parentId"/>
         <result column="group" property="group"/>
@@ -175,7 +175,7 @@
         <result column="is_default" property="isDefault"/>
         <result column="message" property="message"/>
         <result column="is_home" property="isHome"/>
-        <result column="content_blocks" property="contentBlocks"/>
+        <result column="content_blocks" property="contentBlocks" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
         <result column="created_by" property="createdBy"/>
         <result column="last_updated_by" property="lastUpdatedBy"/>
         <result column="created_time" property="createdTime"/>
@@ -300,7 +300,7 @@
         , #{name}
         , #{app}
         , #{route}
-        , #{pageContent}
+        , #{pageContent,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         , #{isBody}
         , #{parentId}
         , #{group}
@@ -309,7 +309,7 @@
         , #{isDefault}
         , #{message}
         , #{isHome}
-        , #{contentBlocks}
+        , #{contentBlocks,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
         , #{createdBy}
         , #{lastUpdatedBy}
         , #{createdTime}

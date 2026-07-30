@@ -124,6 +124,7 @@ public class TinyEngineProperties {
 		public void setMapperLocations(String[] mapperLocations) {
 			this.mapperLocations = mapperLocations;
 		}
+
 	}
 
 	public static class Resources {
