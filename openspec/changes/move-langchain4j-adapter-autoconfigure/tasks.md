@@ -20,7 +20,7 @@
 
 ## 4. 验证与交付证据
 
-- [ ] 4.1 在 JDK 8 下运行 `fw-plus-ai-boot-autoconfigure` 全量测试，确认迁移后的注册、模型/store adapter 和缺 SDK 场景全部通过。
-- [ ] 4.2 运行 LangChain4j adapter Starter 的 Maven Enforcer 与依赖树检查，确认只允许 `langchain4j-core` 且不传递 provider SDK。
-- [ ] 4.3 运行 AI 目标 Reactor validate/test、OpenSpec 严格校验、文档引用检查和 `git diff --check`。
-- [ ] 4.4 记录验证报告，列出删除坐标的破坏性影响、通过的测试数量和未触及的 Core/provider 行为。
+- [x] 4.1 在 JDK 8 下运行 `fw-plus-ai-boot-autoconfigure` 全量测试，确认迁移后的注册、模型/store adapter 和缺 SDK 场景全部通过。
+- [x] 4.2 运行 LangChain4j adapter Starter 的 Maven Enforcer 与依赖树检查，确认只允许 `langchain4j-core` 且不传递 provider SDK。
+- [x] 4.3 运行 AI 目标 Reactor validate/test、OpenSpec 严格校验、文档引用检查和 `git diff --check`。
+- [x] 4.4 记录验证报告，列出删除坐标的破坏性影响、通过的测试数量和未触及的 Core/provider 行为。
