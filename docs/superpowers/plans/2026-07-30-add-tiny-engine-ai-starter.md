@@ -301,35 +301,35 @@ Commit: `git add fw-plus-ai fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starte
 - Consumes: All prior task outputs.
 - Produces: Checked tasks, build evidence, dependency boundary evidence.
 
-- [ ] **Task 8 Step 1: Run strict OpenSpec validation**
+- [x] **Task 8 Step 1: Run strict OpenSpec validation**
 
 Run: `openspec validate add-tiny-engine-ai-starter --strict`
 
 Expected: `Change 'add-tiny-engine-ai-starter' is valid`.
 
-- [ ] **Task 8 Step 2: Run focused AI autoconfigure tests**
+- [x] **Task 8 Step 2: Run focused AI autoconfigure tests**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngine*Test,AiModelAskDataModelRegistryTest,AiEmbeddingStoreAskDataVectorRetrieverTest,AskDataAutoConfigurationTest`
 
 Expected: tests pass.
 
-- [ ] **Task 8 Step 3: Run starter tests**
+- [x] **Task 8 Step 3: Run starter tests**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml -pl fw-plus-ai-tiny-engine-spring-boot-starter,fw-plus-ai-askdata-spring-boot-starter test`
 
 Expected: tests pass.
 
-- [ ] **Task 8 Step 4: Run dependency boundary scans**
+- [x] **Task 8 Step 4: Run dependency boundary scans**
 
 Run: `rg -n "fw-plus-ai-langchain4j-model|fw-plus-ai-langchain4j-store-embeding|fw-plus-ai-langchain4j-model-spring-boot-starter|fw-plus-ai-langchain4j-store-embeding-spring-boot-starter" fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-tiny-engine-spring-boot-starter fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/tinyengine fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata`
 
 Expected: only negative assertions or optional compatibility comments, no main-path dependency.
 
-- [ ] **Task 8 Step 5: Mark OpenSpec tasks complete**
+- [x] **Task 8 Step 5: Mark OpenSpec tasks complete**
 
 Update `openspec/changes/add-tiny-engine-ai-starter/tasks.md` by checking completed items with exact evidence from commands above.
 
-- [ ] **Task 8 Step 6: Commit final task state**
+- [x] **Task 8 Step 6: Commit final task state**
 
 Run: `git add openspec/changes/add-tiny-engine-ai-starter/tasks.md && git commit -m "chore(ai): record tiny engine ai build verification"`
 

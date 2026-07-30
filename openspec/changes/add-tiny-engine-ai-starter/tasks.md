@@ -1,9 +1,9 @@
 ## 1. 前置确认
 
-- [ ] 1.1 确认 `integrate-tiny-engine-core` 已完成并提供 TinyEngine core 基础领域能力、通用契约和可被 AI 层引用的服务边界。
-- [ ] 1.2 盘点 `fw-plus-ai` 现有 `fw-plus-ai-model`、`fw-plus-ai-store-embedding`、中立 starter、AI Boot starter 聚合、AI Boot BOM 和 LangChain4j adapter/starter 的可复用边界。
-- [ ] 1.3 盘点 AskData 当前模型与向量耦合点，包括 `AskDataAutoConfiguration`、`LangChain4jAskDataModelRegistry`、`LangChain4jAskDataModelSource`、`EmbeddingStoreAskDataVectorRetriever` 和 AskData starter POM。
-- [ ] 1.4 确认目标模块仍使用 Java 8 与 Spring Boot 2.7.18，不引入与既有 LangChain4j 0.35.0、Spring AI 1.0.1 体系冲突的主线版本。
+- [x] 1.1 确认 `integrate-tiny-engine-core` 已完成并提供 TinyEngine core 基础领域能力、通用契约和可被 AI 层引用的服务边界。
+- [x] 1.2 盘点 `fw-plus-ai` 现有 `fw-plus-ai-model`、`fw-plus-ai-store-embedding`、中立 starter、AI Boot starter 聚合、AI Boot BOM 和 LangChain4j adapter/starter 的可复用边界。
+- [x] 1.3 盘点 AskData 当前模型与向量耦合点，包括 `AskDataAutoConfiguration`、`LangChain4jAskDataModelRegistry`、`LangChain4jAskDataModelSource`、`EmbeddingStoreAskDataVectorRetriever` 和 AskData starter POM。
+- [x] 1.4 确认目标模块仍使用 Java 8 与 Spring Boot 2.7.18，不引入与既有 LangChain4j 0.35.0、Spring AI 1.0.1 体系冲突的主线版本。
 
 ## 2. 模块与依赖
 
@@ -68,6 +68,6 @@
 - [x] 9.2 添加 TinyEngine Provider SPI 测试，覆盖默认 LangChain4j Provider、自定义 Provider 和 unsupported capability。
 - [x] 9.3 添加 TinyEngine RAG 服务测试，覆盖文档写入、格式过滤、按集合检索、跨集合检索和向量 store key 缺失错误。
 - [x] 9.4 添加 AskData 中立模型/向量边界测试，覆盖 `AiModelRegistry`、`AiEmbeddingStoreRegistry`、adapter 缺失、业务 Bean 覆盖和旧原生桥接隔离。
-- [ ] 9.5 运行相关 Maven Wrapper 编译或测试命令，确认 TinyEngine AI starter、AskData starter 及受影响 AI Boot 模块通过 Java 8 编译。
-- [ ] 9.6 检查新增源码不包含 Java 9+ API，并确认未新增 Spring AI、Spring AI Alibaba、AgentScope2 Java 版硬依赖。
-- [ ] 9.7 检查 TinyEngine AI starter 和 AskData starter 依赖树不包含旧 LangChain4j 专用 model/store artifact、旧 starter 坐标或直接 provider SDK 主路径依赖。
+- [x] 9.5 运行相关 Maven Wrapper 编译或测试命令，确认 TinyEngine AI starter、AskData starter 及受影响 AI Boot 模块通过 Java 8 编译。
+- [x] 9.6 检查新增源码不包含 Java 9+ API，并确认未新增 Spring AI、Spring AI Alibaba、AgentScope2 Java 版硬依赖。
+- [x] 9.7 检查 TinyEngine AI starter 和 AskData starter 依赖树不包含旧 LangChain4j 专用 model/store artifact、旧 starter 坐标或直接 provider SDK 主路径依赖。
