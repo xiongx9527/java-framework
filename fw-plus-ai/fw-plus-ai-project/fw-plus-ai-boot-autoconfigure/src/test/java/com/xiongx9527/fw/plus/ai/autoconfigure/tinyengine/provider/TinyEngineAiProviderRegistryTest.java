@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatMessage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatResponse;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatStreamChunk;
 import org.junit.jupiter.api.Test;
@@ -52,6 +53,7 @@ public class TinyEngineAiProviderRegistryTest {
 	public void shouldKeepTinyEngineDtosAndSpiFreeOfLangChain4jReferences() throws IOException {
 		assertFalse(classFileContains(TinyEngineAiProvider.class, "dev/langchain4j"));
 		assertFalse(classFileContains(TinyEngineChatRequest.class, "dev/langchain4j"));
+		assertFalse(classFileContains(TinyEngineChatMessage.class, "dev/langchain4j"));
 		assertFalse(classFileContains(TinyEngineChatResponse.class, "dev/langchain4j"));
 		assertFalse(classFileContains(TinyEngineChatStreamChunk.class, "dev/langchain4j"));
 	}
