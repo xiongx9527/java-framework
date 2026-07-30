@@ -1,8 +1,8 @@
 ## 1. 结构回归与迁移准备
 
-- [ ] 1.1 调整结构测试，先断言 AI Reactor、Boot BOM 和 Starter 不再引用 `fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure`，且统一 Boot autoconfigure 拥有 LangChain4j 注册入口。
-- [ ] 1.2 调整中立边界测试，仅允许 `com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.*` 包承载具体框架代码，并继续禁止中立 Starter 传递 adapter/provider SDK。
-- [ ] 1.3 运行目标结构测试并记录预期 RED，确认失败原因是旧模块与旧边界仍存在。
+- [x] 1.1 调整结构测试，先断言 AI Reactor、Boot BOM 和 Starter 不再引用 `fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure`，且统一 Boot autoconfigure 拥有 LangChain4j 注册入口。
+- [x] 1.2 调整中立边界测试，仅允许 `com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.*` 包承载具体框架代码，并继续禁止中立 Starter 传递 adapter/provider SDK。
+- [x] 1.3 运行目标结构测试并记录预期 RED，确认失败原因是旧模块与旧边界仍存在。
 
 ## 2. 自动配置模块合并
 
