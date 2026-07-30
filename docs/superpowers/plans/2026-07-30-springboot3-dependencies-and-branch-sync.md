@@ -373,7 +373,7 @@ Expected: 非强制推送成功且远端 SHA 等于 worktree HEAD。使用主工
 - Consumes: `.worktrees/springboot3-upgrade` 的最新 Boot 3 历史和已发布 `dev`。
 - Produces: 一个真实 merge commit，既包含最新 dev，又保留 Spring Boot 3 固定基线。
 
-- [ ] **Step 1: 重新确认独立历史**
+- [x] **Step 1: 重新确认独立历史**
 
 Run:
 
@@ -385,7 +385,7 @@ git log --oneline --left-right --cherry-pick dev...springboot3
 
 Expected: springboot3 worktree 干净且存在需保留的 Boot 3 独有提交。
 
-- [ ] **Step 2: 创建真实 merge commit**
+- [x] **Step 2: 创建真实 merge commit**
 
 Run:
 
@@ -395,7 +395,7 @@ git -C .worktrees/springboot3-upgrade merge --no-ff dev -m "merge: sync dev into
 
 Expected: 产生双父 merge commit。冲突解决保持 Java 17、Boot 3.5.8、Cloud 2025.0.0、Alibaba 2025.0.0.0、Magic-API 2.2.2、Magic-Script 1.9.0，同时带入 Spring AI 两个 1.0.1 属性；不得在冲突解决中完成 LangChain4j 升级。
 
-- [ ] **Step 3: 验证合并提交边界**
+- [x] **Step 3: 验证合并提交边界**
 
 Run:
 
