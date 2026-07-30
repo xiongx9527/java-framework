@@ -13,10 +13,42 @@
 - **THEN** 它 SHALL 依赖 `integrate-tiny-engine-core` 产出的 TinyEngine core 能力
 - **AND** 它 SHALL 不复制 TinyEngine core 的基础自动配置、结果模型或通用异常契约
 
+#### Scenario: starter 使用中立 AI 主路径
+- **WHEN** 检查 TinyEngine AI starter 的必需依赖和公开服务签名
+- **THEN** 它 SHALL 使用 `fw-plus-ai-model` 与 `fw-plus-ai-store-embedding` 的中立 registry、门面和 adapter SPI 表达模型与向量存储能力
+- **AND** 它 MUST NOT 将旧 `fw-plus-ai-langchain4j-model`、旧 `fw-plus-ai-langchain4j-store-embeding` 或旧 LangChain4j model/store starter 作为主路径依赖
+- **AND** 它 MUST NOT 在 TinyEngine AI 业务契约中暴露 LangChain4j、Spring AI、Spring AI Alibaba 或 AgentScope2 Java 版原生类型
+
 #### Scenario: starter 保持 Java 8 兼容
 - **WHEN** 编译 TinyEngine AI starter 及其自动配置模块
 - **THEN** 源码 SHALL 使用 Java 8 兼容 API
 - **AND** 源码 MUST NOT 使用 `List.of()`、`Map.of()`、`String.isBlank()`、`InputStream.readAllBytes()`、`java.net.http.HttpClient` 等 Java 9+ API
+
+### Requirement: AskData 使用当前中立 AI 模块
+系统 SHALL 将 AskData starter 与自动配置的默认模型和向量能力主路径对齐到 `fw-plus-ai-model` 与 `fw-plus-ai-store-embedding`。
+
+#### Scenario: AskData starter 依赖中立 AI 能力
+- **WHEN** 检查 `fw-plus-ai-askdata-spring-boot-starter` 的 POM 和依赖树
+- **THEN** starter SHALL 通过当前中立模型/向量模块和统一 LangChain4j adapter 获得默认 AI 能力
+- **AND** starter MUST NOT 依赖旧 LangChain4j model/store starter 坐标
+- **AND** starter MUST NOT 将 Spring AI、Spring AI Alibaba 或 AgentScope2 Java 版作为必需依赖
+
+#### Scenario: AskData 模型注册使用中立 registry
+- **WHEN** AskData 默认自动配置创建 `AskDataModelRegistry`
+- **THEN** 默认实现 SHALL 从 `AiModelRegistry` 获取 Chat 与 Embedding 模型门面
+- **AND** 默认自动配置 SHALL NOT 直接要求 `Map<String, ChatLanguageModel>` 或 `Map<String, EmbeddingModel>` 作为主路径输入
+- **AND** 模型 key 缺失或能力不匹配时错误 SHALL 包含 key、能力类型和 provider 诊断信息
+
+#### Scenario: AskData 向量检索使用中立 store registry
+- **WHEN** AskData 默认自动配置创建 `AskDataVectorRetriever`
+- **THEN** 默认实现 SHALL 从 `AiEmbeddingStoreRegistry` 获取中立向量 store 门面
+- **AND** 默认实现 SHALL NOT 直接绑定 LangChain4j `EmbeddingStore<TextSegment>` 作为主路径
+- **AND** 向量 store key 缺失、Embedding 能力缺失或查询失败时 SHALL 返回受控错误或空结果加不可用原因
+
+#### Scenario: AskData 保留业务覆盖点
+- **WHEN** 应用提供自定义 `AskDataModelRegistry` 或 `AskDataVectorRetriever` Bean
+- **THEN** AskData 默认中立实现 SHALL 让位
+- **AND** 兼容 LangChain4j 原生 `ContentRetriever` 或旧原生 store 的桥接若保留，SHALL 受 optional classpath 和 bean 条件隔离
 
 ### Requirement: AI 能力可独立启用和关闭
 系统 SHALL 提供 TinyEngine AI 配置属性，使 Chat、RAG 和向量能力可以按总开关与能力级开关独立启用或关闭。
@@ -24,7 +56,7 @@
 #### Scenario: 总开关关闭
 - **WHEN** 应用配置 TinyEngine AI 总开关为关闭
 - **THEN** 系统 SHALL 不创建 TinyEngine AI Chat、RAG、知识库向量化和 Provider 运行时 Bean
-- **AND** 现有 fw-plus-ai LangChain4j、Spring AI 或 Magic-API AI 能力 SHALL 不受该开关影响
+- **AND** 现有 fw-plus-ai 中立模型、向量 store、LangChain4j adapter、Spring AI、AskData 或 Magic-API AI 能力 SHALL 不受该开关影响
 
 #### Scenario: 仅启用 Chat
 - **WHEN** 应用启用 TinyEngine AI Chat 并关闭 RAG 和向量能力
@@ -33,25 +65,25 @@
 
 #### Scenario: 启用 RAG
 - **WHEN** 应用启用 TinyEngine AI RAG
-- **THEN** 系统 SHALL 校验可用的检索模型、Embedding 能力和向量存储配置
+- **THEN** 系统 SHALL 校验可用的检索模型、Embedding 能力和中立向量存储配置
 - **AND** 缺失必需依赖时 SHALL 按配置的缺失依赖策略 fail-fast 或 degrade
 
 ### Requirement: 默认 LangChain4j Provider
-系统 SHALL 提供 LangChain4j 默认 Provider，用于首版 TinyEngine AI Chat、Streaming Chat、RAG、Embedding 和向量存储能力。
+系统 SHALL 提供 LangChain4j 默认 Provider，用于首版 TinyEngine AI Chat、Streaming Chat、RAG、Embedding 和向量存储能力，但 TinyEngine AI starter 的业务契约 SHALL 面向中立 AI registry 和门面。
 
 #### Scenario: 默认 Provider 提供非流式 Chat
-- **WHEN** 应用引入 TinyEngine AI starter 并配置可用的 LangChain4j Chat 模型
+- **WHEN** 应用引入 TinyEngine AI starter、安装 LangChain4j adapter starter 并配置可用的中立 Chat 模型
 - **THEN** TinyEngine AI Chat 服务 SHALL 使用 LangChain4j Provider 返回非流式 Chat completion
 - **AND** 请求 SHALL 支持模型 key、messages、tools、temperature、max tokens、response format、tool choice 和停止词等 TinyEngine Chat 参数
 
 #### Scenario: 默认 Provider 提供流式 Chat
-- **WHEN** TinyEngine Chat 请求声明 stream 为 true 且配置可用的 LangChain4j Streaming Chat 模型
+- **WHEN** TinyEngine Chat 请求声明 stream 为 true 且配置可用的中立 Streaming Chat 模型
 - **THEN** TinyEngine AI Chat 服务 SHALL 返回可被 Web 层转换为 SSE 的流式响应
 - **AND** 流式响应 SHALL 不要求业务方直接使用 OpenAI 兼容 HTTP Client
 
-#### Scenario: LangChain4j Provider 复用模型 registry
-- **WHEN** TinyEngine AI 配置引用已有 LangChain4j 模型 registry key
-- **THEN** Provider SHALL 从 registry 获取对应 Chat、Streaming Chat 或 Embedding 模型
+#### Scenario: LangChain4j Provider 复用中立模型 registry
+- **WHEN** TinyEngine AI 配置引用 `AiModelRegistry` 中的模型 key
+- **THEN** Provider SHALL 从中立 registry 获取对应 Chat、Streaming Chat 或 Embedding 模型门面
 - **AND** 配置引用不存在的 key 时 SHALL 在启动期或首次使用时返回包含 key 和能力类型的明确错误
 
 ### Requirement: Provider SPI 可表达多运行时边界
@@ -78,7 +110,7 @@
 #### Scenario: 文档写入知识库
 - **WHEN** 应用提交支持格式的文档路径、文档集 ID 和目标集合
 - **THEN** 知识库服务 SHALL 加载文档、写入 source、format、timestamp、collection 等元数据，并按配置 chunk-size 与 chunk-overlap 切分
-- **AND** 服务 SHALL 调用 Provider 的 Embedding 能力和向量存储能力写入向量数据
+- **AND** 服务 SHALL 调用 Provider 的 Embedding 能力和中立向量存储能力写入向量数据
 
 #### Scenario: 不支持或不存在的文档
 - **WHEN** 文档路径不存在或格式不在配置支持列表内
