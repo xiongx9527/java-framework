@@ -10,7 +10,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SpringBoot3DependencyBaselineTest {
@@ -26,7 +25,7 @@ public class SpringBoot3DependencyBaselineTest {
         assertProperty(aiBom(), "langchain4j.version", "1.18.1");
         assertProperty(aiBom(), "spring-ai.version", "1.0.1");
         assertProperty(aiBom(), "spring-ai-alibaba.version", "1.0.1");
-        assertLangChain4jArtifactsUseBom(aiBom());
+        assertOnlyLangChain4jBomIsManaged(aiBom());
     }
 
     private void assertProperty(File pom, String name, String expected) throws Exception {
@@ -36,21 +35,24 @@ public class SpringBoot3DependencyBaselineTest {
         assertEquals(expected, property.getTextContent().trim(), name);
     }
 
-    private void assertLangChain4jArtifactsUseBom(File pom) throws Exception {
+    private void assertOnlyLangChain4jBomIsManaged(File pom) throws Exception {
         NodeList dependencies = document(pom).getElementsByTagName("dependency");
+        int managedArtifacts = 0;
         for (int index = 0; index < dependencies.getLength(); index++) {
             Element dependency = (Element) dependencies.item(index);
             if (!"dev.langchain4j".equals(text(dependency, "groupId"))) {
                 continue;
             }
             String artifactId = text(dependency, "artifactId");
-            Element version = directChild(dependency, "version");
             if ("langchain4j-bom".equals(artifactId)) {
-                assertEquals("${langchain4j.version}", version.getTextContent().trim());
+                assertEquals("${langchain4j.version}", text(dependency, "version"));
+                assertEquals("pom", text(dependency, "type"));
+                assertEquals("import", text(dependency, "scope"));
             } else {
-                assertNull(version, artifactId + " must inherit its version from langchain4j-bom");
+                managedArtifacts++;
             }
         }
+        assertEquals(0, managedArtifacts, "only langchain4j-bom may be declared in AI dependencyManagement");
     }
 
     private String text(Element parent, String name) {
