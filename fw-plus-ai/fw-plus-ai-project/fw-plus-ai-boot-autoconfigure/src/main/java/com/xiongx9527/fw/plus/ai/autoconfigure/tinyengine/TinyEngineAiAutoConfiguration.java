@@ -30,10 +30,11 @@ public class TinyEngineAiAutoConfiguration {
 	public TinyEngineRagService tinyEngineRagService(TinyEngineAiProperties properties,
 			ObjectProvider<AiModelRegistry> modelRegistryProvider,
 			ObjectProvider<AiEmbeddingStoreRegistry> storeRegistryProvider) {
+		String missingDependencyPolicy = normalizeMissingDependencyPolicy(properties.getMissingDependencyPolicy());
 		String unavailableReason = ragUnavailableReason(properties, modelRegistryProvider.getIfAvailable(),
 				storeRegistryProvider.getIfAvailable());
 		if (unavailableReason != null) {
-			if (isDegrade(properties)) {
+			if (isDegrade(missingDependencyPolicy)) {
 				return new UnavailableTinyEngineRagService(unavailableReason);
 			}
 			throw new IllegalStateException(unavailableReason);
@@ -50,7 +51,6 @@ public class TinyEngineAiAutoConfiguration {
 
 	private String ragUnavailableReason(TinyEngineAiProperties properties, AiModelRegistry modelRegistry,
 			AiEmbeddingStoreRegistry storeRegistry) {
-		validatePolicy(properties);
 		if (!containsModel(modelRegistry, modelKey(properties, modelRegistry))
 				|| !containsStore(storeRegistry, storeKey(properties, storeRegistry))) {
 			return "TinyEngine AI RAG requires both AiModelRegistry and AiEmbeddingStoreRegistry; "
@@ -59,24 +59,24 @@ public class TinyEngineAiAutoConfiguration {
 		return null;
 	}
 
-	private void validatePolicy(TinyEngineAiProperties properties) {
-		String policy = properties.getMissingDependencyPolicy();
-		if (policy == null || "fail-fast".equalsIgnoreCase(policy.trim()) || "degrade".equalsIgnoreCase(policy.trim())) {
-			return;
+	private String normalizeMissingDependencyPolicy(String policy) {
+		String normalizedPolicy = policy == null ? null : policy.trim();
+		if ("fail-fast".equalsIgnoreCase(normalizedPolicy) || "degrade".equalsIgnoreCase(normalizedPolicy)) {
+			return normalizedPolicy;
 		}
 		throw new IllegalStateException("Unsupported TinyEngine AI missing dependency policy: " + policy);
 	}
 
-	private boolean isDegrade(TinyEngineAiProperties properties) {
-		return "degrade".equalsIgnoreCase(properties.getMissingDependencyPolicy());
+	private boolean isDegrade(String missingDependencyPolicy) {
+		return "degrade".equalsIgnoreCase(missingDependencyPolicy);
 	}
 
 	private boolean containsModel(AiModelRegistry registry, String key) {
-		return registry != null && !isBlank(key) && registry.contains(key);
+		return registry != null && !isBlank(key) && registry.contains(key) && registry.get(key) != null;
 	}
 
 	private boolean containsStore(AiEmbeddingStoreRegistry registry, String key) {
-		return registry != null && !isBlank(key) && registry.contains(key);
+		return registry != null && !isBlank(key) && registry.contains(key) && registry.get(key) != null;
 	}
 
 	private String modelKey(TinyEngineAiProperties properties, AiModelRegistry registry) {

@@ -10,6 +10,7 @@ import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
@@ -66,12 +67,13 @@ public class TinyEngineAiAutoConfigurationTest {
 	}
 
 	@Test
-	public void shouldUseRegistryDefaultKeysWhenRagKeysAreNotConfigured() {
+	public void shouldFailFastWhenRegistryDefaultKeysResolveToNullDependencies() {
 		this.contextRunner
 				.withBean(AiModelRegistry.class, DefaultModelRegistry::new)
 				.withBean(AiEmbeddingStoreRegistry.class, DefaultStoreRegistry::new)
 				.withPropertyValues("fw.plus.tiny-engine.ai.rag.enabled=true")
-				.run(context -> assertTrue(context.getStartupFailure() == null));
+				.run(context -> assertTrue(hasCause(context.getStartupFailure(),
+						"requires an available embedding model and embedding store")));
 	}
 
 	@Test
@@ -96,6 +98,19 @@ public class TinyEngineAiAutoConfigurationTest {
 					assertTrue(!ragService.isAvailable());
 					assertTrue(ragService.getUnavailableReason().contains("available embedding model"));
 				});
+	}
+
+	@Test
+	public void shouldRegisterUnavailableRagServiceWhenDegradePolicyContainsWhitespace() {
+		TinyEngineAiProperties properties = new TinyEngineAiProperties();
+		properties.setMissingDependencyPolicy(" degrade ");
+		StaticListableBeanFactory beanFactory = new StaticListableBeanFactory();
+
+		TinyEngineRagService ragService = new TinyEngineAiAutoConfiguration().tinyEngineRagService(properties,
+				beanFactory.getBeanProvider(AiModelRegistry.class),
+				beanFactory.getBeanProvider(AiEmbeddingStoreRegistry.class));
+
+		assertTrue(!ragService.isAvailable());
 	}
 
 	private boolean hasCause(Throwable throwable, String message) {
