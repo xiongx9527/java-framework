@@ -168,7 +168,7 @@ Expected: 新提交只包含 AI Boot BOM 的两个属性或合并远端同类声
 - Consumes: 已重放并修复 Spring AI 属性的 `dev`。
 - Produces: Java 8 全层构建证据，以及与本地 HEAD 一致的 `origin/dev`。
 
-- [ ] **Step 1: 固定 Java 8 并断言平台版本**
+- [x] **Step 1: 固定 Java 8 并断言平台版本**
 
 Run:
 
@@ -187,7 +187,7 @@ test ! -s fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/jav
 
 Expected: Java 为 1.8；所有 Java 8 固定版本均存在；LangChain4j core class header 的 major 为 52（十六进制 `0034`）；依赖树不解析 Java 17 的 LangChain4j Spring Boot starter。
 
-- [ ] **Step 2: 按层构建 dev**
+- [x] **Step 2: 按层构建 dev**
 
 Run:
 
@@ -203,7 +203,7 @@ mvn -f fw-plus-sample/pom.xml validate
 
 Expected: 五条命令退出码均为 0。使用 `apply_patch` 将 JDK、命令、退出码、测试总数和已知环境警告写入 `build-verification.md`。
 
-- [ ] **Step 3: 非强制推送 dev 并独立核验**
+- [x] **Step 3: 非强制推送 dev 并独立核验**
 
 Run:
 
@@ -218,7 +218,7 @@ git rev-list --left-right --count HEAD...origin/dev
 
 Expected: push 不带 `--force`；远端 SHA 等于本地 HEAD；最终 ahead/behind 为 `0 0`。若 HTTPS 失败，仅在 API compare 证明 `behind_by=0`、目标提交对象已在远端且更新为严格快进时才允许 `force=false` 的引用更新。
 
-- [ ] **Step 4: 提交 dev 验证证据**
+- [x] **Step 4: 提交 dev 验证证据**
 
 Run:
 
