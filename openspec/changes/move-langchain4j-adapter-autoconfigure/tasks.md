@@ -13,8 +13,8 @@
 
 ## 3. 坐标与文档清理
 
-- [ ] 3.1 修改 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`，保留其公开坐标并将旧 autoconfigure 依赖替换为 `fw-plus-ai-boot-autoconfigure`。
-- [ ] 3.2 从 AI Reactor 和 Boot BOM 删除旧 autoconfigure module/坐标，并删除独立模块目录。
+- [x] 3.1 修改 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`，保留其公开坐标并将旧 autoconfigure 依赖替换为 `fw-plus-ai-boot-autoconfigure`。
+- [x] 3.2 从 AI Reactor 和 Boot BOM 删除旧 autoconfigure module/坐标，并删除独立模块目录。
 - [ ] 3.3 更新 Starter README、AI 迁移文档和验证命令，删除旧坐标并说明自动配置已归入统一 Boot autoconfigure。
 - [ ] 3.4 扩展旧 artifact 扫描，确保源码、POM、BOM、README 和当前验证命令不再把旧坐标当作可发布依赖。
 
