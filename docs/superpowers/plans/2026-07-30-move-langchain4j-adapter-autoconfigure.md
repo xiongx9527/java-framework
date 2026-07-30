@@ -124,7 +124,7 @@ git commit -m "test(ai): define consolidated autoconfigure boundary"
 - Consumes: 46 个生产类、4 个测试类以及旧模块 POM 中的编译依赖清单。
 - Produces: 统一模块内原包名可加载的 LangChain4j 配置类和完整 adapter 回归测试。
 
-- [ ] **Step 1: 移动 Java 源码和测试**
+- [x] **Step 1: 移动 Java 源码和测试**
 
 保持 `langchain4j/**` 相对目录不变，将旧模块的 main/test Java 树移动到统一模块对应 source root。移动后验证数量：
 
@@ -135,7 +135,7 @@ find fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/c
 
 Expected: `46` 与 `4`。
 
-- [ ] **Step 2: 合并 POM 依赖并去重**
+- [x] **Step 2: 合并 POM 依赖并去重**
 
 在统一 POM 保留已存在的 `fw-plus-ai-langchain4j-core`、`fw-plus-ai-langchain4j-adapter`、`langchain4j`、`langchain4j-core`，并把旧模块其余生产依赖迁入。具体框架/provider 依赖必须使用：
 
@@ -161,7 +161,7 @@ Expected: `46` 与 `4`。
 
 逐项覆盖旧 POM 的 wrapper/provider 列表，不改变版本属性；测试依赖只补缺失项。
 
-- [ ] **Step 3: 编译统一模块并运行 provider 单测**
+- [x] **Step 3: 编译统一模块并运行 provider 单测**
 
 Run:
 
@@ -175,7 +175,7 @@ mvn -f fw-plus-ai/pom.xml \
 
 Expected: BUILD SUCCESS；迁移测试全部通过，且无重复类编译错误。
 
-- [ ] **Step 4: 提交源码和依赖迁移**
+- [x] **Step 4: 提交源码和依赖迁移**
 
 ```bash
 git add \
