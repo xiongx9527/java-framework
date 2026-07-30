@@ -34,7 +34,7 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 			"fw-plus-ai-model-spring-boot-starter",
 			"fw-plus-ai-store-embedding-spring-boot-starter",
 			"fw-plus-ai-langchain4j-adapter",
-			"fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure"
+			"fw-plus-ai-boot-autoconfigure"
 	};
 
 	private static final String[] PROVIDER_SDK_ARTIFACTS = new String[] {
