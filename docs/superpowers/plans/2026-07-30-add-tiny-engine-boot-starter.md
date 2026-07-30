@@ -2,6 +2,7 @@
 change: add-tiny-engine-boot-starter
 design-doc: docs/superpowers/specs/2026-07-30-add-tiny-engine-boot-starter-design.md
 base-ref: 0212ccdebe60b458811d8ed0e3d20c47310a54d7
+archived-with: 2026-07-30-add-tiny-engine-boot-starter
 ---
 
 # TinyEngine Boot Starter Implementation Plan
