@@ -3,6 +3,10 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineAiChatService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineKnowledgeBaseService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineRagService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.DefaultTinyEngineKnowledgeBaseService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.DefaultTinyEngineRagService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.TinyEngineRagRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.TinyEngineRagSearchResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatResponse;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatStreamChunk;
@@ -62,14 +66,19 @@ public class TinyEngineAiAutoConfiguration {
 			}
 			throw new IllegalStateException(unavailableReason);
 		}
-		return new DefaultTinyEngineRagService();
+		return new DefaultTinyEngineRagService(storeRegistryProvider.getIfAvailable(),
+				storeKey(properties, storeRegistryProvider.getIfAvailable()), properties.getRag().getMaxResults(),
+				properties.getRag().getMinScore());
 	}
 
 	@Bean
 	@ConditionalOnMissingBean(TinyEngineKnowledgeBaseService.class)
 	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.rag", name = "enabled", havingValue = "true")
-	public TinyEngineKnowledgeBaseService tinyEngineKnowledgeBaseService() {
-		return new DefaultTinyEngineKnowledgeBaseService();
+	public TinyEngineKnowledgeBaseService tinyEngineKnowledgeBaseService(TinyEngineAiProperties properties,
+			ObjectProvider<AiEmbeddingStoreRegistry> storeRegistryProvider) {
+		AiEmbeddingStoreRegistry registry = storeRegistryProvider.getIfAvailable();
+		return new DefaultTinyEngineKnowledgeBaseService(registry, storeKey(properties, registry),
+				properties.getRag().getChunkSize(), properties.getRag().getChunkOverlap());
 	}
 
 	private String ragUnavailableReason(TinyEngineAiProperties properties, AiModelRegistry modelRegistry,
@@ -142,18 +151,6 @@ public class TinyEngineAiAutoConfiguration {
 		}
 	}
 
-	private static final class DefaultTinyEngineRagService implements TinyEngineRagService {
-		@Override
-		public boolean isAvailable() {
-			return true;
-		}
-
-		@Override
-		public String getUnavailableReason() {
-			return null;
-		}
-	}
-
 	private static final class UnavailableTinyEngineRagService implements TinyEngineRagService {
 		private final String unavailableReason;
 
@@ -170,8 +167,10 @@ public class TinyEngineAiAutoConfiguration {
 		public String getUnavailableReason() {
 			return unavailableReason;
 		}
-	}
 
-	private static final class DefaultTinyEngineKnowledgeBaseService implements TinyEngineKnowledgeBaseService {
+		@Override
+		public TinyEngineRagSearchResult search(TinyEngineRagRequest request) {
+			return new TinyEngineRagSearchResult(java.util.Collections.emptyList());
+		}
 	}
 }
