@@ -60,3 +60,44 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-p
 
 - 系统 Maven 在构建时报告既有 BOM 中 `fw-plus-ai-model` 与 `fw-plus-ai-store-embedding` 的重复 dependencyManagement 声明，以及既有 SLF4J 多绑定警告；目标测试仍成功。这些不是本任务修改引入。
 - Task 3 与 Task 6 需要将当前 marker 服务契约扩展为 Provider DTO/业务方法并替换占位实现。
+
+---
+
+# Task 2 Critical Fix Report
+
+## 修复内容
+
+- RAG 启动校验现在验证 Registry 内实际可用的模型和向量 store，而非只验证 Registry Bean 存在。解析顺序为 `model.embeddingKey`、`model.chatKey`、模型 Registry 默认 key，以及 `vector.storeKey`、兼容的 `store.storeKey`、store Registry 默认 key。
+- `missingDependencyPolicy` 只接受 `fail-fast` 或显式 `degrade`；空值保持默认 fail-fast，未知或空白值启动失败。
+- 显式 `degrade` 返回受控的不可用 RAG 服务，并通过 `isAvailable()` 与 `getUnavailableReason()` 暴露状态和原因，不再静默伪造可用服务。
+
+## RED/GREEN 证据
+
+### RED
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngineAiAutoConfigurationTest
+```
+
+结果：7 个测试中的空中立 Registry、默认 key 回退、未知策略和显式降级断言在实现前失败，确认原实现会接受空 Registry、跳过未知策略并伪装降级服务可用。
+
+### GREEN
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngineAiAutoConfigurationTest
+```
+
+结果：`BUILD SUCCESS`，7 tests，0 failures、0 errors、0 skipped；`git diff --check` 通过。
+
+## 变更文件
+
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/tinyengine/TinyEngineAiAutoConfiguration.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/tinyengine/TinyEngineAiProperties.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/tinyengine/service/TinyEngineRagService.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/tinyengine/TinyEngineAiAutoConfigurationTest.java`
+
+## 自审与风险信号
+
+- 仅修改 TinyEngine 自动配置、属性、RAG 契约及其测试；未修改资源注册、AskData、Provider SPI/DTO 或真实 RAG 业务逻辑。
+- 已检查新增代码未使用 Java 9+ API。
+- 既有 Maven BOM 重复 dependencyManagement 与 SLF4J 多绑定警告仍存在，目标测试成功，均非本修复引入。
