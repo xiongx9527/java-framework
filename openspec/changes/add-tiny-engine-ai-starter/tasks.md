@@ -32,8 +32,8 @@
 ## 5. LangChain4j 默认 Provider 与 AskData 模型
 
 - [x] 5.1 实现 LangChain4j Chat Provider，通过 `AiModelRegistry` 获取中立 Chat 模型门面。
-- [ ] 5.2 实现 LangChain4j Streaming Chat Provider，通过 `AiModelRegistry` 获取中立 Streaming Chat 模型门面，并返回可由 Web 层转换为 SSE 的流式响应。
-- [ ] 5.3 映射 TinyEngine Chat 参数，包括 model、messages、tools、stream、max_tokens、stream_options、presence_penalty、response_format、enable_thinking、tool_choice、parallel_tool_calls、enable_search、search_options 和 frequency_penalty。
+- [x] 5.2 实现 LangChain4j Streaming Chat Provider，通过 `AiModelRegistry` 获取中立 Streaming Chat 模型门面，并返回可由 Web 层转换为 SSE 的流式响应。
+- [x] 5.3 映射 TinyEngine Chat 参数，包括 model、messages、tools、stream、max_tokens、stream_options、presence_penalty、response_format、enable_thinking、tool_choice、parallel_tool_calls、enable_search、search_options 和 frequency_penalty。
 - [x] 5.4 对 Provider 不支持的参数实现忽略、转换或明确 unsupported 参数错误策略。
 - [x] 5.5 对不存在的模型 key 返回包含 key、Provider 和能力类型的明确错误。
 - [x] 5.6 将 AskData 默认模型 registry 改为中立模型主路径，避免默认实现直接收集 `ChatLanguageModel` / `EmbeddingModel`。
@@ -51,9 +51,9 @@
 
 ## 7. 失败与降级
 
-- [ ] 7.1 实现默认 fail-fast 策略，Chat 或 RAG 启用但缺少必需模型、Provider 或向量 store 时启动失败。
-- [ ] 7.2 实现显式 degrade 策略，注册降级实现并暴露能力不可用状态。
-- [ ] 7.3 确保降级模式下 Chat、RAG 或 AskData 向量检索请求不会静默伪造成功，响应或异常包含不可用原因。
+- [x] 7.1 实现默认 fail-fast 策略，Chat 或 RAG 启用但缺少必需模型、Provider 或向量 store 时启动失败。
+- [x] 7.2 实现显式 degrade 策略，注册降级实现并暴露能力不可用状态。
+- [x] 7.3 确保降级模式下 Chat、RAG 或 AskData 向量检索请求不会静默伪造成功，响应或异常包含不可用原因。
 
 ## 8. 兼容入口与样例
 
