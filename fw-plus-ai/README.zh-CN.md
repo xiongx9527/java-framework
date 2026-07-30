@@ -1,97 +1,66 @@
 # fw-plus-ai
 
-## LangChain4j 模型与 Magic-API
+## 中立 AI adapter 破坏性迁移
 
-`fw-plus-ai-langchain4j-model-spring-boot-starter` 根据
-`fw-plus.ai.langchain4j.model` 配置创建可复用的 LangChain4j 模型 Bean；
-`fw-plus-ai-magicapi-plugin-model` 将这些模型暴露给 Magic-API 的 `model`
-脚本模块，并支持在 `model-datasource` 资源中覆盖或新增模型配置。
+本发布线删除旧 LangChain4j model/store 坐标，不保留 POM 别名或旧配置前缀。`fw-plus-ai-model` 与 `fw-plus-ai-store-embedding` 是 Java 8 中立 API；LangChain4j 仍是默认的完整实现，但应用必须显式安装统一 adapter starter。
 
-### 最小依赖与配置
+| 已删除坐标 | 替代坐标 | 说明 |
+| --- | --- | --- |
+| `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-model` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 统一的模型与向量实现层 |
+| `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-store-embeding` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 注意旧 artifact 的 `embeding` 拼写 |
+| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter` | `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter` | 显式安装 LangChain4j Boot 集成 |
+| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` | `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter` | 同一统一 starter |
 
 ```xml
 <dependency>
     <groupId>com.xiongx9527.fw.plus.ai</groupId>
-    <artifactId>fw-plus-ai-langchain4j-model-spring-boot-starter</artifactId>
-    <version>${fw-plus-ai.version}</version>
-</dependency>
-<dependency>
-    <groupId>com.xiongx9527.fw.plus.ai</groupId>
-    <artifactId>fw-plus-ai-magicapi-plugin-model</artifactId>
+    <artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-starter</artifactId>
     <version>${fw-plus-ai.version}</version>
 </dependency>
 ```
 
-模型 Starter 不会传递引入 OpenAI、Ollama、DashScope、Anthropic 或 Azure OpenAI
-等 Provider SDK。应用选择某个 Provider 时，必须显式声明对应的 LangChain4j
-Provider 依赖。
+中立 starter `fw-plus-ai-model-spring-boot-starter` 与 `fw-plus-ai-store-embedding-spring-boot-starter` 仍可按需引入，但它们不会传递 LangChain4j 或任何 provider SDK。选择 OpenAI、Ollama、Qdrant 等 provider 时，应用仍需显式声明相应 SDK。
+
+## 中立配置与自动发现
+
+删除 `fw-plus.ai.langchain4j.model` 和 `fw-plus.ai.langchain4j.embedding-store`。使用 `fw-plus.ai.model`、`fw-plus.ai.embedding-store`；单一可支持 adapter 时可省略 `framework`，安装多个 adapter 后每一个定义都必须写明 framework。
 
 ```yaml
 fw-plus:
   ai:
-    langchain4j:
-      model:
-        enabled: true
-        default-model: chat-default
-        models:
-          chat-default:
-            provider: openai
-            model-type: chat
-            base-url: http://localhost:11434/v1
-            api-key: demo
-            model-name: gpt-4o-mini
-            enabled: true
-            properties: {}
-
-magic-api:
-  plugin:
     model:
       enabled: true
+      default-model: knowledge-chat
+      models:
+        knowledge-chat:
+          framework: langchain4j
+          provider: openai
+          type: CHAT
+          enabled: true
+          properties:
+            base-url: http://localhost:11434/v1
+            api-key: ${AI_API_KEY}
+            model-name: gpt-4o-mini
+    embedding-store:
+      enabled: true
+      default-store: knowledge
+      stores:
+        knowledge:
+          framework: langchain4j
+          provider: qdrant
+          type: VECTOR
+          enabled: true
+          properties:
+            host: localhost
+            port: 6334
 ```
 
-### Magic-API 资源与脚本
+选择规则对模型和向量 store 一致：显式 `framework` 只匹配同名 adapter；省略时仅一个支持该 provider/type 的 adapter 才能自动选择；零个或多个候选都失败。诊断包含 key、framework、provider、type 与候选 framework，不得包含 apiKey、token、secret 或完整连接串。
 
-在 Magic-API 的 `model-datasource` 资源目录创建模型数据源，例如
-`model-datasource/chat-default.json`：
+## Magic-API 与 AskData
 
-```json
-{
-  "name": "本地 OpenAI 兼容模型",
-  "key": "chat-default",
-  "provider": "openai",
-  "modelType": "CHAT",
-  "enabled": true,
-  "baseUrl": "http://localhost:11434/v1",
-  "apiKey": "demo",
-  "modelName": "gpt-4o-mini",
-  "properties": {
-    "temperature": 0.2
-  }
-}
-```
+`model['knowledge-chat']`、`vector['knowledge']` 和默认 key 的语义保持稳定。资源定义也可给出 `framework`，并遵循同一选择规则；脚本只得到中立 facade，不能取得 `LangChain4jModel` 或 `EmbeddingStore<TextSegment>`。SDK 专有调用应留在 Java adapter/业务层。
 
-脚本通过 `model` 模块取得指定模型：
+AskData 保留且本次不修改其源码。只有在 adapter、Boot 与 Magic-API 迁移完成并获得再次确认后，才迁移其旧 artifact 依赖并执行回归；当前不能将 AskData 视为已切换至其他 framework。
 
-```javascript
-import model;
-return model['chat-default'].getModel();
-```
-
-旧版 Magic `langchain4j` 插件及其 `langchain4j-datasource` 资源类型已移除。
-迁移时将资源目录改为 `model-datasource`，脚本导入改为 `model`，并将依赖替换为
-`fw-plus-ai-magicapi-plugin-model`；不要继续使用 `MagicLangchain4j` 或
-`@MagicModule("langchain4j")`。
-
-### LangChain4j 版本兼容性
-
-本模块锁定 LangChain4j `0.35.0`：`CHAT` 对应 `ChatLanguageModel`，
-`STREAMING_CHAT` 对应 `StreamingChatLanguageModel`。LangChain4j `1.x` 改用
-`ChatModel` / `StreamingChatModel` 命名，当前版本不能引用这些类。
-
-LangChain4j `0.35.0` 已提供 `TextContent`、`ImageContent`、`AudioContent`、
-`VideoContent`、`PdfFileContent` 等 Chat 多模态内容类型；高版本仍通过 Chat
-请求承载多模态输入。为便于 Magic 资源和业务扩展统一登记能力，`modelType`
-保留 `AUDIO`、`VIDEO`、`PDF` 三类扩展类型；但 LangChain4j `0.35.0` 和当前
-`1.x` 文档没有提供独立的 `AudioModel` / `VideoModel` / `PdfModel` 统一接口，
-框架默认不会为这三类注册内置 provider adapter。需要使用时可通过自定义
-`LangChain4jModelProviderAdapter` 接入厂商 SDK 或业务封装。
+完整迁移、回滚限制、诊断与 Java 17 / Boot 3 蓝图见 [迁移总览](../docs/ai-framework-migration/overview.md)。

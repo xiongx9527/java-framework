@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provider;
 
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreException;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreException;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreProviderAdapter;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.redis.RedisEmbeddingStore;

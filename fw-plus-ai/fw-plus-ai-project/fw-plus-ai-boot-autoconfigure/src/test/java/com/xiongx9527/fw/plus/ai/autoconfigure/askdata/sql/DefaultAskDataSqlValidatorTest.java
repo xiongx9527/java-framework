@@ -1,19 +1,20 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataErrorCode;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialect;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialectRegistry;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DefaultAskDataSqlValidatorTest {
 
@@ -83,7 +84,7 @@ public class DefaultAskDataSqlValidatorTest {
     @Test
     public void shouldRejectTablesOutsideMetadataScope() throws Exception {
         AskDataMetadata metadata = new AskDataMetadata("mysql",
-                Collections.singletonList(new AskDataTable("orders", Collections.emptyList())),
+                Collections.singletonList(tableAuthorizedAtTableLevel("orders")),
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         Method method = DefaultAskDataSqlValidator.class.getMethod("validate", String.class, AskDataDialect.class,
                 Integer.TYPE, AskDataMetadata.class);
@@ -99,9 +100,122 @@ public class DefaultAskDataSqlValidatorTest {
     }
 
     @Test
+    public void shouldRejectUnauthorizedSelectedColumnAgainstMetadataScope() {
+        AskDataMetadata metadata = new AskDataMetadata("mysql", Collections.singletonList(
+                new AskDataTable("orders", Collections.singletonList(new AskDataColumn("id", "bigint")))),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+        AskDataSqlValidationResult result = validator.validate("select secret from orders", mysql, 100, metadata);
+
+        assertFalse(result.isValid());
+        assertTrue(result.getMessage().contains("未授权列"));
+    }
+
+    @Test
+    public void shouldRejectColumnWhenAuthorizedMetadataHasNoExplicitColumns() {
+        AskDataMetadata metadata = new AskDataMetadata("mysql", Collections.singletonList(
+                new AskDataTable("orders", Collections.<AskDataColumn>emptyList())),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+        AskDataSqlValidationResult result = validator.validate("select id from orders", mysql, 100, metadata);
+
+        assertFalse(result.isValid());
+        assertTrue(result.getMessage().contains("未授权列"));
+    }
+
+    @Test
+    public void shouldAllowColumnOnlyForExplicitTableLevelAuthorization() {
+        AskDataMetadata metadata = new AskDataMetadata("mysql",
+                Collections.singletonList(tableAuthorizedAtTableLevel("orders")),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+        AskDataSqlValidationResult result = validator.validate("select id from orders", mysql, 100, metadata);
+
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void shouldRejectUnauthorizedFilterColumnAgainstMetadataScope() {
+        AskDataMetadata metadata = new AskDataMetadata("mysql", Collections.singletonList(
+                new AskDataTable("orders", Collections.singletonList(new AskDataColumn("id", "bigint")))),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+        AskDataSqlValidationResult result = validator.validate(
+                "select id from orders where secret = 'hidden'", mysql, 100, metadata);
+
+        assertFalse(result.isValid());
+        assertTrue(result.getMessage().contains("未授权列"));
+    }
+
+    @Test
+    public void shouldAllowAuthorizedColumnInsideFunctionAndAlias() {
+        AskDataMetadata metadata = new AskDataMetadata("mysql", Collections.singletonList(
+                new AskDataTable("orders", Collections.singletonList(new AskDataColumn("id", "bigint")))),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+        AskDataSqlValidationResult result = validator.validate(
+                "select max(o.id) as max_id from orders o order by max_id", mysql, 100, metadata);
+
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void shouldRejectRealColumnHiddenBySelectAliasInSameScope() {
+        AskDataMetadata metadata = new AskDataMetadata("mysql", Collections.singletonList(
+                new AskDataTable("orders", Collections.singletonList(new AskDataColumn("id", "bigint")))),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+        AskDataSqlValidationResult result = validator.validate(
+                "select id as secret, secret from orders", mysql, 100, metadata);
+
+        assertFalse(result.isValid());
+        assertTrue(result.getMessage().contains("未授权列"));
+    }
+
+    @Test
+    public void shouldRejectUnqualifiedColumnWithoutUniqueAuthorizedTable() {
+        AskDataMetadata metadata = new AskDataMetadata("mysql", Arrays.asList(
+                new AskDataTable("orders", Collections.singletonList(new AskDataColumn("id", "bigint"))),
+                new AskDataTable("customers", Collections.singletonList(new AskDataColumn("name", "varchar")))),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+        AskDataSqlValidationResult result = validator.validate(
+                "select id from orders join customers on orders.id = customers.name", mysql, 100, metadata);
+
+        assertFalse(result.isValid());
+        assertTrue(result.getMessage().contains("未授权列"));
+    }
+
+    @Test
+    public void shouldRejectBaseTableAliasThatCollidesWithCteName() {
+        AskDataMetadata metadata = new AskDataMetadata("mysql", Collections.singletonList(
+                new AskDataTable("orders", Collections.singletonList(new AskDataColumn("id", "bigint")))),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+        AskDataSqlValidationResult result = validator.validate(
+                "with scoped as (select id from orders) select scoped.secret from orders scoped",
+                mysql, 100, metadata);
+
+        assertFalse(result.isValid());
+        assertTrue(result.getMessage().contains("未授权列"));
+    }
+
+    @Test
+    public void shouldRejectQualifiedWildcardWhenBaseTableAliasCollidesWithCteName() {
+        AskDataMetadata metadata = new AskDataMetadata("mysql", Collections.singletonList(
+                tableAuthorizedAtTableLevel("orders")),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+
+        String failure = AskDataSqlAuthorizationProcessor.validateColumns(
+                "with scoped as (select * from orders) select scoped.* from orders scoped", metadata);
+
+        assertEquals("SQL 通配列超出 metadata 授权范围", failure);
+    }
+
+    @Test
     public void shouldRejectSchemaQualifiedTableWhenMetadataAllowsOnlySimpleTableName() throws Exception {
         AskDataMetadata metadata = new AskDataMetadata("mysql",
-                Collections.singletonList(new AskDataTable("orders", Collections.emptyList())),
+                Collections.singletonList(tableAuthorizedAtTableLevel("orders")),
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         Method method = DefaultAskDataSqlValidator.class.getMethod("validate", String.class, AskDataDialect.class,
                 Integer.TYPE, AskDataMetadata.class);
@@ -116,7 +230,7 @@ public class DefaultAskDataSqlValidatorTest {
     @Test
     public void shouldRequireExactSchemaQualifiedMetadataTableMatch() throws Exception {
         AskDataMetadata metadata = new AskDataMetadata("mysql",
-                Collections.singletonList(new AskDataTable("reporting.orders", Collections.emptyList())),
+                Collections.singletonList(tableAuthorizedAtTableLevel("reporting.orders")),
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         Method method = DefaultAskDataSqlValidator.class.getMethod("validate", String.class, AskDataDialect.class,
                 Integer.TYPE, AskDataMetadata.class);
@@ -136,8 +250,8 @@ public class DefaultAskDataSqlValidatorTest {
     @Test
     public void shouldAllowMetadataScopedCteAndJoin() throws Exception {
         AskDataMetadata metadata = new AskDataMetadata("mysql", Arrays.asList(
-                new AskDataTable("orders", Collections.emptyList()),
-                new AskDataTable("customers", Collections.emptyList())),
+                tableAuthorizedAtTableLevel("orders"),
+                tableAuthorizedAtTableLevel("customers")),
                 Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
         Method method = DefaultAskDataSqlValidator.class.getMethod("validate", String.class, AskDataDialect.class,
                 Integer.TYPE, AskDataMetadata.class);
@@ -264,5 +378,9 @@ public class DefaultAskDataSqlValidatorTest {
         AskDataSqlValidationResult result = validator.validate(sql, mysql, 100);
         assertFalse(result.isValid());
         assertEquals(AskDataErrorCode.SQL_REJECTED, result.getErrorCode());
+    }
+
+    private AskDataTable tableAuthorizedAtTableLevel(String tableName) {
+        return new AskDataTable(tableName, Collections.<AskDataColumn>emptyList(), true);
     }
 }

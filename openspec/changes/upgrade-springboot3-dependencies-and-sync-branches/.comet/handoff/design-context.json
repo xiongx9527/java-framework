@@ -1,0 +1,14 @@
+{
+  "change": "upgrade-springboot3-dependencies-and-sync-branches",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "fd6fc6ec4e00ab0872dbefc96254e92fb3c07b74fe51c75296aad50c852e6776",
+  "files": [
+    { "path": "openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/proposal.md", "sha256": "2eccce28e8d49627f10cc94d5beb761dce658afc053ec97280d00a99ef5b291b" },
+    { "path": "openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/design.md", "sha256": "fc164b0bb2414b7a687e736547bc4231bb5eeda01a22f08f94a51ec8bd8cec6a" },
+    { "path": "openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/tasks.md", "sha256": "377b2c0e9ba5e090f436b896f2d0ddf111f873815eda60be14d027ddc256afd1" },
+    { "path": "openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/specs/multi-branch-dependency-baselines/spec.md", "sha256": "63d8875289ca54802f6c1b848948383931b64599165d528daed00f110b3247e7" }
+  ]
+}

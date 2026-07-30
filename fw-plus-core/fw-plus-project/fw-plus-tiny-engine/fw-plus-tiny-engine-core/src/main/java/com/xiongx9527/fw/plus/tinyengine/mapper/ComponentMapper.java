@@ -1,0 +1,106 @@
+/**
+ * Copyright (c) 2023 - present TinyEngine Authors.
+ * Copyright (c) 2023 - present Huawei Cloud Computing Technologies Co., Ltd.
+ *
+ * Use of this source code is governed by an MIT-style license.
+ *
+ * THE OPEN SOURCE SOFTWARE IN THIS PRODUCT IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL,
+ * BUT WITHOUT ANY WARRANTY, WITHOUT EVEN THE IMPLIED WARRANTY OF MERCHANTABILITY OR FITNESS FOR
+ * A PARTICULAR PURPOSE. SEE THE APPLICABLE LICENSES FOR MORE DETAILS.
+ *
+ */
+
+package com.xiongx9527.fw.plus.tinyengine.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Component;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.MaterialComponent;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.MaterialHistoryComponent;
+
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+/**
+ * The interface Component mapper.
+ *
+ * @since 2024-10-20
+ */
+public interface ComponentMapper extends BaseMapper<Component> {
+    /**
+     * 查询表t_component所有信息
+     *
+     * @return the list
+     */
+    List<Component> queryAllComponent();
+
+    /**
+     * 根据主键id查询表t_component数据
+     *
+     * @param id the id
+     * @return the component
+     */
+    Component queryComponentById(@Param("id") Integer id);
+
+    /**
+     * 根据条件查询表t_component数据
+     *
+     * @param component the component
+     * @return the list
+     */
+    List<Component> queryComponentByCondition(Component component);
+
+    /**
+     * 根据主键id删除表t_component数据
+     *
+     * @param id the id
+     * @return the integer
+     */
+    Integer deleteComponentById(@Param("id") Integer id);
+
+    /**
+     * 根据主键id更新表t_component数据
+     *
+     * @param component the component
+     * @return the integer
+     */
+    Integer updateComponentById(Component component);
+
+    /**
+     * 新增表t_component数据
+     *
+     * @param component the component
+     * @return the integer
+     */
+    Integer createComponent(Component component);
+
+    /**
+     * Find user components by material history id list.
+     *
+     * @param id the id
+     * @return the list
+     */
+    List<Component> findUserComponentsByMaterialHistoryId(@Param("id") Integer id);
+
+    /**
+     * 新增表r_material_component数据
+     *
+     * @param materialComponent the materialComponent
+     * @return the integer
+     */
+    @Insert("INSERT INTO r_material_component (id,material_id,component_id )"
+            + "values (#{id},#{materialId},#{componentId})")
+    Integer createMaterialComponent(MaterialComponent materialComponent);
+
+
+    /**
+     * 新增表r_material_component数据
+     *
+     * @param materialHistoryComponent the materialHistoryComponent
+     * @return the integer
+     */
+    @Insert("INSERT INTO r_material_history_component (id,material_history_id,component_id )"
+            + "values (#{id},#{materialHistoryId},#{componentId})")
+    Integer createMaterialHistoryComponent(MaterialHistoryComponent materialHistoryComponent);
+}

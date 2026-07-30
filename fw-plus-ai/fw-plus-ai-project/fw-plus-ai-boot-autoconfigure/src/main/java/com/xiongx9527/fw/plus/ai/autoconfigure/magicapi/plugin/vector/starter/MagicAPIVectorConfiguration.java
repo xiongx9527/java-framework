@@ -5,9 +5,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module.Vec
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.service.VectorDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.service.VectorDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.web.MagicVectorController;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreFactory;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -21,16 +21,16 @@ import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 import java.util.List;
 
 @Configuration
-@ConditionalOnClass(EmbeddingStoreRegistry.class)
-@ConditionalOnBean(EmbeddingStoreRegistry.class)
+@ConditionalOnClass(AiEmbeddingStoreRegistry.class)
+@ConditionalOnBean(AiEmbeddingStoreRegistry.class)
 @ConditionalOnProperty(prefix = "magic-api.plugin.vector", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class MagicAPIVectorConfiguration implements MagicPluginConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public MagicDynamicVectorDataSource magicDynamicVectorDataSource(EmbeddingStoreRegistry registry,
-                                                                    EmbeddingStoreFactory embeddingStoreFactory,
-                                                                    List<EmbeddingStoreProviderAdapter> providerAdapters) {
+    public MagicDynamicVectorDataSource magicDynamicVectorDataSource(AiEmbeddingStoreRegistry registry,
+                                                                    AiEmbeddingStoreFactory embeddingStoreFactory,
+                                                                    List<AiEmbeddingStoreAdapter> providerAdapters) {
         return new MagicDynamicVectorDataSource(registry, embeddingStoreFactory, providerAdapters);
     }
 

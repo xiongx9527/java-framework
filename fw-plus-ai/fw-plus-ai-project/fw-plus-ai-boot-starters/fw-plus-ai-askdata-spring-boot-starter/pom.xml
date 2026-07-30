@@ -17,13 +17,24 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-askdata</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
             <artifactId>fw-plus-ai-boot-autoconfigure</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>com.xiongx9527.fw.plus.ai</groupId>
-            <artifactId>fw-plus-ai-langchain4j-model-spring-boot-starter</artifactId>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

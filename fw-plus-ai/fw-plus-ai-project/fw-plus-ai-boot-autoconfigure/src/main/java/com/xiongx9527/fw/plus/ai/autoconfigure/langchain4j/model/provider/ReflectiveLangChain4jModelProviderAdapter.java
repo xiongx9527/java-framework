@@ -1,10 +1,10 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.provider;
 
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelException;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelDefinition;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelException;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelProviderAdapter;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelType;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;

@@ -1,110 +1,89 @@
 # Task 2 执行报告
 
-## 状态
+## 实现内容
 
-DONE
+- 新增 `AskDataGovernanceProvider` SPI 与默认拒绝实现 `DefaultDenyAskDataGovernanceProvider`，拒绝码为 `ASKDATA_GOVERNANCE_DENIED`。
+- 为 `AskDataSqlCommand` 增加授权摘要字段、访问器、带摘要的兼容构造器和 `withAuthorizationSummary(...)`。
+- SQL 拦截器链在每个插件返回后校验授权摘要，拒绝扩大已授权对象或移除既有行级谓词的结果；最终命令继续使用原始命令的上下文、参数和授权摘要。
+- 新增默认拒绝、摘要携带、对象扩权拒绝和行级谓词移除拒绝测试。
 
-## RED 证据
-
-命令：
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -Dtest=DefaultLangChain4jModelFactoryTest,DefaultLangChain4jModelRegistryTest test
-```
-
-结果：失败，退出码 `1`。测试编译阶段报告找不到 `DefaultLangChain4jModelFactory`，原因是该生产类在 RED 阶段尚未创建；失败原因与本任务待实现功能一致。
-
-## GREEN 证据
+## RED
 
 命令：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -Dtest=DefaultLangChain4jModelFactoryTest,DefaultLangChain4jModelRegistryTest test
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata -Dtest='AskDataGovernanceProviderTest,AskDataSqlPipelineTest' test
 ```
 
-结果：成功，退出码 `0`。`DefaultLangChain4jModelFactoryTest` 5 项、`DefaultLangChain4jModelRegistryTest` 4 项，共 9 项通过。
+失败摘要：测试编译失败，缺少 `AskDataGovernanceProvider`、`DefaultDenyAskDataGovernanceProvider`、`AskDataSqlCommand.getAuthorizationSummary()`、带授权摘要的构造器与 `withAuthorizationSummary(...)`。
 
-模块回归命令：
+## GREEN
+
+命令：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml test
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata -Dtest='AskDataGovernanceProviderTest,AskDataSqlPipelineTest' test
 ```
 
-结果：成功，退出码 `0`。模块共 11 项测试通过，失败、错误、跳过均为 0。
+通过摘要：`BUILD SUCCESS`；`AskDataGovernanceProviderTest` 4 项、`AskDataSqlPipelineTest` 21 项，共 25 项测试通过。
 
-## 提交
+## 变更文件
 
-`8efca6fec6239bdde76b192f5c07ae826e7bd77e` - `feat: add langchain4j model factory and registry`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/security/AskDataGovernanceProvider.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/security/DefaultDenyAskDataGovernanceProvider.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/AskDataSqlCommand.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/AskDataSqlInterceptorChain.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/test/java/com/xiongx9527/fw/plus/ai/askdata/security/AskDataGovernanceProviderTest.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/test/java/com/xiongx9527/fw/plus/ai/askdata/sql/AskDataSqlPipelineTest.java`
 
-## 修改文件
+## 提交 SHA
 
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/DefaultLangChain4jModelFactory.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/DefaultLangChain4jModelRegistry.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/model/DefaultLangChain4jModelFactoryTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/model/DefaultLangChain4jModelRegistryTest.java`
-
-## 自检结果
-
-- Factory 按适配器顺序选择首个支持项；对空或非法定义、无支持适配器、适配器异常和空返回均抛出带上下文的 `LangChain4jModelException`。
-- Registry 使用 `LinkedHashMap` 防御性复制并通过不可变 Map/Set 对外暴露；默认模型键不存在时失败，缺失模型键读取时失败。
-- 使用 JDK 1.8 API，未引入 provider SDK、Java 9+ API、`ChatModel` 或 `StreamingChatModel`。
-- `git diff --check` 和 `git diff --cached --check` 均通过。
+`98e69494`
 
 ## 风险信号自报
 
-- 公共 API：命中。新增了 Task 1 已定义接口的公开实现类；行为已由单元测试覆盖。
-- 跨模块：未命中。仅修改 core 的单一 LangChain4j model 模块，未修改其它模块依赖或注册。
-- 敏感信息：未命中。没有新增密钥、端点、账号或其他凭据。
-- 并发：未命中。实现为构造后只读的 Registry，Factory 无共享可变状态。
-- Schema：未命中。未修改配置、数据库或外部数据结构。
-- Diff 大于 200 行：命中。四个新增类和测试合计 301 行，原因是任务要求的完整 Factory/Registry 行为及 TDD 覆盖。
-- DONE_WITH_CONCERNS：未命中。所有目标测试和模块回归均通过，未发现阻塞或遗留问题。
+- Maven/Jansi 和 Guava 在当前 JDK 输出未来兼容性警告；本次目标测试未受影响。
+- `openspec/changes/add-askdata-governance-permission-bridge/.comet/subagent-progress.md` 是主会话协调检查点，保持未修改、未暂存、未提交。
 
-## Fix Report
+## Task 2 Review 修复：禁止插件清空授权对象
 
-### 修复内容
+### 根因
 
-- 新增测试覆盖 adapter.create 抛出 `LangChain4jModelException("boom")` 的路径，验证异常消息包含 `chat`、`openai`、`CHAT`，并验证原异常作为 cause 保留。
-- Factory 统一包装所有 `adapter.create` 抛出的 `Exception`，补充 key/provider/modelType 上下文；适配器返回 null 的原有错误仍保持带上下文。
+`AskDataSqlInterceptorChain.validateAuthorizationBoundary(...)` 原先使用
+`original.getAuthorizedObjects().containsAll(rewritten.getAuthorizedObjects())` 校验对象范围。
+插件将授权对象改为空集时，该表达式恒为 `true`；在原摘要没有行级谓词的场景下，谓词校验也会通过，导致插件清空授权对象未被显式拒绝。
 
-### RED/GREEN 证据
+### RED
 
-RED 命令：
+命令：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -Dtest=DefaultLangChain4jModelFactoryTest test
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata -Dtest='AskDataGovernanceProviderTest,AskDataSqlPipelineTest' test
 ```
 
-结果：失败，退出码 `1`。`shouldWrapAdapterExceptionWithContext` 因现有 Factory 直接透传 `LangChain4jModelException("boom")`，消息缺少上下文，符合预期 RED。
+失败摘要：新增 `shouldRejectPluginThatClearsAuthorizationSummaryObjectsWithoutRowPredicates` 后，
+共 26 项测试中 1 项失败。失败信息为：预期抛出 `IllegalArgumentException`，实际未抛出；确认复现授权对象被清空而未拒绝的问题。
 
-GREEN 命令：
+### GREEN
+
+命令：
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -Dtest=DefaultLangChain4jModelFactoryTest,DefaultLangChain4jModelRegistryTest test
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata -Dtest='AskDataGovernanceProviderTest,AskDataSqlPipelineTest' test
 ```
 
-结果：成功，退出码 `0`。Factory 5 项、Registry 4 项，共 9 项通过。
+通过摘要：`BUILD SUCCESS`；`AskDataGovernanceProviderTest` 4 项、`AskDataSqlPipelineTest` 22 项，共 26 项测试通过。
 
-模块回归命令：
+### 变更文件
 
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml test
-```
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/sql/AskDataSqlInterceptorChain.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/test/java/com/xiongx9527/fw/plus/ai/askdata/sql/AskDataSqlPipelineTest.java`
 
-结果：成功，退出码 `0`。共 11 项通过，失败、错误、跳过均为 0。
+### 提交 SHA
 
-### 提交与修改文件
-
-- 修复提交：`0cfac6fb`（`fix: add langchain4j model factory exception context`）
-- 修改文件：
-  - `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/DefaultLangChain4jModelFactory.java`
-  - `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/model/DefaultLangChain4jModelFactoryTest.java`
-  - `.superpowers/sdd/task-2-report.md`
+`14c08490dafd5f3f5179c745d0e7366631110cb6` — `fix(askdata): reject cleared sql authorization objects`
 
 ### 风险信号
 
-- 公共 API：未修改，仅调整 Factory 异常包装行为并保留原异常 cause。
-- 跨模块：未命中，仅修改模型模块及其单元测试。
-- JDK 兼容性：未引入 Java 9+ API。
-- 敏感信息、Schema、并发：未命中。
-- concerns：无。指定 GREEN 测试和模块回归均通过。
+- Maven 运行期间继续出现 Jansi native access 与 Guava `sun.misc.Unsafe` 的未来兼容性警告；目标测试已通过，未由本修复引入。
+- 授权对象现在要求插件精确保持，当前 Task 2 的安全边界明确；未来若产品需要插件缩小授权范围，应先定义可审计的受限缩窄语义及对应测试。

@@ -1,9 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.exception.MagicAPIVectorException;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import org.ssssssss.magicapi.core.annotation.MagicModule;
 import org.ssssssss.magicapi.modules.DynamicModule;
 import org.ssssssss.script.MagicScriptContext;
@@ -15,7 +14,7 @@ public class VectorModule implements DynamicAttribute<VectorModule, VectorStoreO
     private final VectorStoreResolver resolver;
     private final VectorStoreOperations operations;
 
-    public VectorModule(EmbeddingStoreRegistry registry) {
+    public VectorModule(AiEmbeddingStoreRegistry registry) {
         this(new SpringBootVectorStoreResolver(registry), null);
     }
 
@@ -32,7 +31,7 @@ public class VectorModule implements DynamicAttribute<VectorModule, VectorStoreO
         return operations;
     }
 
-    public EmbeddingStore<TextSegment> getEmbeddingStore() {
+    public AiEmbeddingStore getEmbeddingStore() {
         if (operations != null) {
             return operations.getEmbeddingStore();
         }
@@ -57,25 +56,25 @@ public class VectorModule implements DynamicAttribute<VectorModule, VectorStoreO
         }
     }
 
-    private VectorStoreOperations operations(EmbeddingStore<TextSegment> embeddingStore) {
+    private VectorStoreOperations operations(AiEmbeddingStore embeddingStore) {
         return new VectorStoreOperations(embeddingStore);
     }
 
     private static class SpringBootVectorStoreResolver implements VectorStoreResolver {
 
-        private final EmbeddingStoreRegistry registry;
+        private final AiEmbeddingStoreRegistry registry;
 
-        private SpringBootVectorStoreResolver(EmbeddingStoreRegistry registry) {
+        private SpringBootVectorStoreResolver(AiEmbeddingStoreRegistry registry) {
             this.registry = registry;
         }
 
         @Override
-        public EmbeddingStore<TextSegment> get(String key) {
+        public AiEmbeddingStore get(String key) {
             return registry.get(key);
         }
 
         @Override
-        public EmbeddingStore<TextSegment> getDefault() {
+        public AiEmbeddingStore getDefault() {
             return registry.getDefault();
         }
     }

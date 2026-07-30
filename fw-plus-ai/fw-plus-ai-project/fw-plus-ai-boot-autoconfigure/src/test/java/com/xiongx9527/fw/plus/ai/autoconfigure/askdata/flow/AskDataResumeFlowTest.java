@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.DefaultAskDa
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.InMemoryAskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadataProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
@@ -25,7 +26,17 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDocument;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
-import org.junit.Test;
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,9 +44,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AskDataResumeFlowTest {
 
@@ -50,11 +61,91 @@ public class AskDataResumeFlowTest {
 
         assertTrue(result.isSuccess());
         assertEquals("select * from orders limit 100", result.getSql());
-        assertEquals(0, fixture.metadataCalls);
+        assertEquals(1, fixture.metadataCalls);
         assertEquals(0, fixture.promptCalls);
         assertEquals(0, fixture.modelCalls);
-        assertEquals(0, fixture.validatorCalls);
+        assertEquals(1, fixture.validatorCalls);
         assertEquals(1, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectValidatedCheckpointWhenCurrentSqlPolicyRejectsIt() {
+        Fixture fixture = new Fixture();
+        fixture.rejectValidatedSql = true;
+        fixture.store.save(fixture.validatedCheckpoint("resume-validate-rejected", "1"));
+
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-validate-rejected");
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.SQL_REJECTED, result.getErrorCode());
+        assertEquals(1, fixture.metadataCalls);
+        assertEquals(1, fixture.validatorCalls);
+        assertEquals(0, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectValidatedCheckpointWhenCurrentMetadataRevokesTableAccess() {
+        Fixture fixture = new Fixture();
+        fixture.metadataAuthorized = false;
+        fixture.coreSqlValidator = new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator() {
+            @Override
+            public Result validate(AskDataSqlCommand command) {
+                return command.getAuthorizedObjects().isEmpty()
+                        ? Result.failure(FailureCategory.UNAUTHORIZED_OBJECT, "table permission revoked")
+                        : Result.success();
+            }
+        };
+        fixture.store.save(fixture.validatedCheckpoint("resume-permission-revoked", "1"));
+
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-permission-revoked");
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertFalse(result.isSuccess());
+        assertEquals(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE, result.getErrorCode());
+        assertEquals(1, fixture.metadataCalls);
+        assertEquals(0, fixture.validatorCalls);
+        assertEquals(0, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldNotRunSqlInterceptorsAgainWhenResumingValidatedCheckpoint() {
+        Fixture fixture = new Fixture();
+        final AskDataSqlAudit audit = new AskDataSqlAudit();
+        fixture.sqlInterceptorChain = new AskDataSqlInterceptorChain(Collections.singletonList(new AskDataSqlInterceptor() {
+            @Override
+            public String getKey() {
+                return "tenant-predicate";
+            }
+
+            @Override
+            public int getOrder() {
+                return 1;
+            }
+
+            @Override
+            public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+                return command.withSql(command.getSql() + " /* duplicate */");
+            }
+        }), new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator() {
+            @Override
+            public Result validate(AskDataSqlCommand command) {
+                return Result.success();
+            }
+        }, audit);
+        AskDataCheckpoint checkpoint = fixture.validatedCheckpoint("resume-non-idempotent-plugin", "1");
+        checkpoint.setSql("select * from orders where tenant_id = :tenantId limit 100");
+        fixture.store.save(checkpoint);
+
+        AskDataRequest request = fixture.request();
+        request.setResumeToken("resume-non-idempotent-plugin");
+        AskDataResult result = fixture.executor().execute(request);
+
+        assertTrue(result.isSuccess());
+        assertEquals("select * from orders where tenant_id = :tenantId limit 100", fixture.executedSql);
+        assertTrue(audit.getRecords().isEmpty());
     }
 
     @Test
@@ -112,6 +203,39 @@ public class AskDataResumeFlowTest {
         assertFalse(result.isSuccess());
         assertEquals(AskDataErrorCode.RESUME_FAILED, result.getErrorCode());
         assertEquals(0, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectResumeTokenWhenProjectScopeDoesNotMatch() {
+        Fixture fixture = new Fixture();
+        AskDataResult initial = fixture.executor().execute(fixture.requestWithoutConversation());
+        AskDataRequest resume = fixture.request();
+        resume.setConversationId(initial.getConversationId());
+        resume.setResumeToken(initial.getResumeToken());
+        resume.setProjectContext(new AskDataProjectContext("project-b", "operator-a"));
+
+        AskDataResult resumed = fixture.executor().execute(resume);
+
+        assertTrue(initial.isSuccess());
+        assertFalse(resumed.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, resumed.getErrorCode());
+        assertEquals(1, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectConversationResumeWhenOperatorScopeDoesNotMatch() {
+        Fixture fixture = new Fixture();
+        AskDataResult initial = fixture.executor().execute(fixture.requestWithoutConversation());
+        AskDataRequest resume = fixture.request();
+        resume.setConversationId(initial.getConversationId());
+        resume.setProjectContext(new AskDataProjectContext("project-a", "operator-b"));
+
+        AskDataResult resumed = fixture.executor().execute(resume);
+
+        assertTrue(initial.isSuccess());
+        assertFalse(resumed.isSuccess());
+        assertEquals(AskDataErrorCode.RESUME_FAILED, resumed.getErrorCode());
+        assertEquals(1, fixture.executorCalls);
     }
 
     @Test
@@ -268,7 +392,7 @@ public class AskDataResumeFlowTest {
         checkpoint.setRequestSummary("订单数量");
         checkpoint.setMaxRows(Integer.valueOf(100));
         checkpoint.setExecute(Boolean.TRUE);
-        checkpoint.setRequestOptionsSnapshot("null");
+        checkpoint.setRequestOptionsSnapshot("[\"project-a\",\"operator-a\",null]");
         checkpoint.setCompletedSteps(Collections.singletonList("metadata"));
         checkpoint.setCurrentStep("metadata");
         fixture.store.save(checkpoint);
@@ -323,7 +447,12 @@ public class AskDataResumeFlowTest {
         private int modelCalls;
         private int validatorCalls;
         private int executorCalls;
+        private String executedSql;
         private boolean failExecution;
+        private boolean rejectValidatedSql;
+        private boolean metadataAuthorized = true;
+        private AskDataSqlInterceptorChain sqlInterceptorChain;
+        private com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreSqlValidator;
 
         private Fixture() {
             properties.getSql().setExecuteEnabled(true);
@@ -337,6 +466,7 @@ public class AskDataResumeFlowTest {
             request.setDialect("mysql");
             request.setModelKey("model-1");
             request.setQuestion("订单数量");
+            request.setProjectContext(new AskDataProjectContext("project-a", "operator-a"));
             request.setExecute(Boolean.TRUE);
             request.setMaxRows(Integer.valueOf(100));
             return request;
@@ -360,7 +490,7 @@ public class AskDataResumeFlowTest {
             checkpoint.setRequestSummary("订单数量");
             checkpoint.setMaxRows(Integer.valueOf(100));
             checkpoint.setExecute(Boolean.TRUE);
-            checkpoint.setRequestOptionsSnapshot("null");
+            checkpoint.setRequestOptionsSnapshot("[\"project-a\",\"operator-a\",null]");
             checkpoint.setSql("select * from orders limit 100");
             checkpoint.setSqlValidated(Boolean.TRUE);
             checkpoint.setCompletedSteps(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql"));
@@ -404,7 +534,10 @@ public class AskDataResumeFlowTest {
                 @Override
                 public AskDataMetadata load(AskDataRequest request) {
                     metadataCalls++;
-                    return new AskDataMetadata("mysql", Collections.emptyList(), Collections.emptyList(),
+                    List<AskDataTable> tables = metadataAuthorized
+                            ? Collections.singletonList(new AskDataTable("orders", Collections.emptyList()))
+                            : Collections.<AskDataTable>emptyList();
+                    return new AskDataMetadata("mysql", tables, Collections.emptyList(),
                             Collections.emptyList(), Collections.emptyList());
                 }
             };
@@ -426,6 +559,10 @@ public class AskDataResumeFlowTest {
                 @Override
                 public AskDataSqlValidationResult validate(String sql, AskDataDialect dialect, int maxRows) {
                     validatorCalls++;
+                    if (rejectValidatedSql) {
+                        return AskDataSqlValidationResult.rejected(AskDataErrorCode.SQL_REJECTED,
+                                "current policy rejected checkpoint sql");
+                    }
                     return AskDataSqlValidationResult.accepted(sql);
                 }
             };
@@ -433,6 +570,7 @@ public class AskDataResumeFlowTest {
                 @Override
                 public AskDataSqlExecutionResult execute(AskDataRequest request, String sql) {
                     executorCalls++;
+                    executedSql = sql;
                     if (failExecution) {
                         throw new IllegalStateException("connection lost after execute");
                     }
@@ -440,8 +578,17 @@ public class AskDataResumeFlowTest {
                 }
             };
             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
-                    promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, store, contextCompressor);
+                    promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, store, contextCompressor,
+                    null, Collections.<AskDataAgent>emptyList(), null, null, sqlInterceptorChain, coreSqlValidator,
+                    request -> allowedOrders(request));
         }
+    }
+
+    private static AskDataAuthorizationSummary allowedOrders(AskDataAuthorizationRequest request) {
+        return AskDataAuthorizationSummary.allow(request, Arrays.asList(
+                new AskDataAuthorizedObject("orders", "orders", "*"),
+                new AskDataAuthorizedObject("other-datasource", "orders", "*")), Collections.emptyList(),
+                "policy-v1", "test-governance", AskDataAdministrativeScope.none());
     }
 
     private void assertIdentityMismatch(String field) {

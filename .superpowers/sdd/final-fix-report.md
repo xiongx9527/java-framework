@@ -1,66 +1,54 @@
-# extract-common-graph-jdbc 最终审查修复报告
+# AskData 治理权限桥接最终修复报告
 
 ## 状态
 
-DONE_WITH_CONCERNS
+DONE
 
 ## 提交
 
-`0874220f0fdcd70bc1a6288aa5914e2fce649c6f` - `fix: resolve graph jdbc final review findings`
+实现提交：
+
+- `5373c5f91eb1720c5f6d35da41560789007259a5` - `fix(askdata): close governance bridge re-review gaps`
+- `6c682b2d0863d0d1730af43098a5b3248484f064` - `fix(askdata): close final authorization review gaps`
 
 ## RED
 
-1. 公共代理与 PreparedStatement 重载：
-
-   ```bash
-   JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml -pl fw-plus-graph-jdbc -Dtest=GraphJdbcRowSetsTest,GraphJdbcParameterBindingsTest,GraphJdbcStatementSupportTest test
-   ```
-
-   结果：预期失败。`GraphJdbcRowSetsTest.resultSetProxiesShouldKeepObjectContractsAndUseTheOuterWrapper` 失败，证明空 generated-keys 代理未保持对象自反性；`GraphJdbcStatementSupportTest.preparedStatementShouldBindParametersAndRejectStringExecute` 失败，证明 `PreparedStatement.addBatch(String)` 被接受。
-
-2. Neo4j facade 与参数元数据：
-
-   ```bash
-   JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml -pl fw-plus-neo4j-jdbc -am -DfailIfNoTests=false -Dtest=Neo4jDriverTest test
-   ```
-
-   结果：预期失败。`shouldKeepGeneratedKeysStatementLifecycleAndObjectContracts` 失败，证明 `unwrap(Statement.class)` 未返回外层 facade；`shouldExposePreparedParameterMetadataAndGeneratedKeysShape` 失败，证明 Neo4j `ParameterMetaData.isSigned(1)` 从基线的 `true` 回归为 `false`。
+- 列级授权 RED：`DefaultAskDataSqlValidatorTest` 31 tests 中 2 failures；空列集合错误表示全部列，`select id as secret, secret from orders` 中 SELECT 别名全局污染并放行真实 `secret`。
+- 行级谓词 RED：恶意插件收到已注入谓词后删除 `WHERE` 并保留摘要，最终命令未重新落实 `tenant_id = :tenantId`。
+- Head 自洽 RED：先安装当前 Core `fw-plus-ai-store-embedding`，再对 AI 执行 `clean compile`，`LegacyEmbeddingStoreAiAdapter.java:[44,9]` 报“方法不会覆盖或实现超类型的方法”。
+- 观测 RED：Core 基础监控日志缺 dataSource、拒绝码、授权版本、授权来源；SQL 授权失败只有普通生命周期事件；监控日志显式拒绝和治理异常返回空列表但不写拒绝审计。
+- 回归 RED：关键组合首次为 83 tests、1 error，自动配置的 Core 最终校验把授权对象 `*` 转换为普通列但丢失显式表级标记。
+- 第三轮授权边界 RED：Core 插件链允许插件收窄最终摘要后仍保留原始宽表对象；SQL 解析器允许 CTE/真实别名冲突下的限定通配符 `scoped.*`。
 
 ## GREEN
 
-1. 公共定向测试：同一公共模块命令通过，13 tests，0 failures，0 errors，0 skipped。
-2. Neo4j 定向测试：同一 Neo4j 命令通过，24 tests，0 failures，0 errors，0 skipped。
-3. 图 JDBC 聚合：
-
-   ```bash
-   JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-graph/pom.xml test
-   ```
-
-   通过。公共模块 21 tests，0 failures/errors/skipped；Nebula 244 tests，0 failures/errors，2 个既有 live smoke skipped；Neo4j 27 tests，0 failures/errors，3 个既有 live smoke skipped。
-
-4. 边界扫描：公共模块的 `com.vesoft|org.neo4j|com.alibaba.druid|org.springframework|org.apache.ibatis` 扫描无命中；Java 9+ 集合工厂和无参 `orElseThrow()` 扫描无命中；`git diff --check` 通过。
+- `DefaultAskDataSqlValidatorTest`：32 tests，全部通过；空/未知列 fail-closed，显式表级授权独立建模，SELECT 别名仅在所属查询块安全位置识别，CTE/真实别名冲突及限定通配符拒绝。
+- 恶意插件删除谓词定向测试：1 test，通过；插件后以最终收窄摘要为事实源重新落实全部必需谓词和具名参数。
+- 当前 Core 安装后的 AI `clean compile`：`BUILD SUCCESS`；`LegacyEmbeddingStoreAiAdapterTest` 2 tests 全绿。
+- Core 观测契约：5 tests 全绿；Flow 与日志查询：36 tests 全绿；关键组合回归：83 tests 全绿。
+- 第三轮 Core 授权收窄回归：`AskDataSqlPipelineTest` 24 tests，全部通过。
+- `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata test`：86 tests，0 failures，0 errors，0 skipped。
+- `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am -DfailIfNoTests=false -Dtest='*AskData*Test' test`：Reactor 7/7 成功，AskData 170 tests，0 failures，0 errors，0 skipped。
+- `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -DskipTests package`：`BUILD SUCCESS`。
+- `openspec validate add-askdata-governance-permission-bridge --strict`：通过。
+- `git diff --check -- ... .superpowers/sdd/final-fix-report.md`：通过。
 
 ## 修复内容
 
-- `GraphJdbcRowSets` 的 ResultSet 和 ResultSetMetaData 动态代理优先处理 `equals`、`hashCode`、`toString`，并让 `unwrap/isWrapperFor` 以外层 ResultSet proxy 为准。
-- Neo4j 生成键 facade 显式处理 `unwrap/isWrapperFor`，保证接口 unwrap 返回 facade 本身，保持单列 `GENERATED_KEY` 形状及底层关闭状态检查。
-- `GraphJdbcParameterMetaData` 支持可配置的签名策略；Neo4j facade 使用 `true`，Nebula 既有 JDBC type 判断逻辑未修改。
-- PreparedStatement 的 `addBatch(String)` 与其他 String 执行重载一致抛出 `SQLException`。
+- 授权元数据增加显式表级授权标记，空列集合不再表示全部列；列解析只允许当前查询块 `ORDER BY` 中的 SELECT 别名引用，真实表别名与 CTE/派生名冲突直接 fail-closed。
+- 插件后不再只注入新增谓词，而是从插件链最终摘要重新落实全部必需行级谓词；最终摘要继续传入最终元数据、命令和 Core 校验。
+- 移除 Legacy embedding adapter 对当前 Core 不存在方法的错误 `@Override`，测试改为验证框架支持判定。
+- SQL 授权失败发布脱敏治理事件；日志查询拒绝和治理异常写入同一 Core 观测存储；基础日志结构化保留数据源、拒绝码、授权版本和授权来源。
+- 文档和 OpenSpec 任务状态更新为第三轮最终授权修复后的行为与新鲜验证证据。
 
-## 变更文件
+## 改动文件
 
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcParameterMetaData.java`
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcRowSets.java`
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcStatementSupport.java`
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/test/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcRowSetsTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-graph-jdbc/src/test/java/com/xiongx9527/fw/plus/graph/jdbc/GraphJdbcStatementSupportTest.java`
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-neo4j-jdbc/src/main/java/com/xiongx9527/fw/plus/graph/neo4j/jdbc/Neo4jJdbcProxies.java`
-- `fw-plus-core/fw-plus-project/fw-plus-graph/fw-plus-neo4j-jdbc/src/test/java/com/xiongx9527/fw/plus/graph/neo4j/jdbc/Neo4jDriverTest.java`
-- `.superpowers/sdd/final-fix-report.md`
+- Core：`AskDataEventPublisher.java`、`AskDataMonitoringLog.java`、`AskDataMonitoringLogStore.java`、`AskDataObservabilityContractTest.java`。
+- AI 实现：`AskDataAutoConfiguration.java`、`DefaultAskDataFlowExecutor.java`、`AskDataTable.java`、`AskDataMonitoringLogQueryService.java`、`AskDataSqlAuthorizationProcessor.java`、`LegacyEmbeddingStoreAiAdapter.java`。
+- AI 测试：`DefaultAskDataFlowExecutorTest.java`、`AskDataMonitoringLogQueryServiceTest.java`、`DefaultAskDataSqlValidatorTest.java`、`LegacyEmbeddingStoreAiAdapterTest.java`。
+- 文档：`docs/askdata/starter/sql-safety.md`、OpenSpec `tasks.md`、验证报告、Task 6 报告和本报告。
 
-## 风险信号
+## 顾虑
 
-- Maven Wrapper 文件仍缺失，本次按允许的 Zulu 8 系统 Maven 回退执行验证。
-- 聚合中的 5 个真实服务 smoke 依既有条件跳过，未验证真实 NebulaGraph 或 Neo4j 连通性。
-- Nebula 测试仍输出既有 SLF4J `StaticLoggerBinder` 缺失警告；不影响测试结果。
-- `openspec/changes/extract-common-graph-jdbc/.comet/subagent-progress.md` 为已有用户改动，未修改且不会纳入提交。
+- Important 6 的历史范围顾虑仍在：此前已用普通提交移除明显无关的 neutral-ai OpenSpec/设计产物，但分支上游仍包含 neutral-ai 实现提交；彻底拆分需要历史整理，本轮按要求不扩大范围、不重写历史。
+- Starter package 仍输出既有的本地 autoconfigure POM invalid 和空 Starter JAR 警告；构建退出码为 0。

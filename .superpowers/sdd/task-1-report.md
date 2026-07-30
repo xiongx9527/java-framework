@@ -1,93 +1,46 @@
-# Task 1: Core Model 模块契约报告
+# Task 1 执行报告：Core Governance Model
 
 ## 实现内容
 
-- 新增 `fw-plus-ai-langchain4j-model` Maven 模块，并注册到 LangChain4j 聚合 POM。
-- 在 Core BOM 中新增 `fw-plus-ai-langchain4j-model` 依赖管理。
-- 新增 `LangChain4jModelDefinition` JavaBean，包含 key、provider、modelType、enabled、baseUrl、apiKey、modelName 与默认空 `LinkedHashMap` properties。
-- 新增 `LangChain4jModelType` 六个模型类型枚举值。
-- 新增 `LangChain4jModel` 包装对象、provider adapter、factory、registry、exception 公共契约。
-- 未实现 `DefaultLangChain4jModelFactory`、`DefaultLangChain4jModelRegistry`，未引入 provider SDK、Spring Boot 自动配置或 Magic model 插件逻辑。
+- 新增不可变的 `AskDataAuthorizationRequest`，封装并校验 `AskDataProjectContext`。
+- 新增不可变的 `AskDataAuthorizedObject`，以数据源、表、列三元组标识授权对象，并提供值相等比较。
+- 新增不可变的 `AskDataRowPredicate`，保存目标授权对象、SQL 片段和 `List<AskDataSqlParameter>` 参数化绑定值。
+- 新增不可变的 `AskDataAuthorizationSummary`，提供 `allow(...)`、`deny(...)`、防御性列表副本、不可变列表访问和三元对象匹配。
+- 新增 `AskDataGovernanceProviderTest`，覆盖拒绝结果、允许结果的防御性复制及三元对象匹配。
 
 ## RED
 
 命令：
 
 ```bash
-cd fw-plus-core
-./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model -am -Dtest=LangChain4jModelDefinitionTest test
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata -Dtest=AskDataGovernanceProviderTest test
 ```
 
-结果：失败，未进入 Maven 项目解析或测试编译。
-
-失败摘要：当前 worktree 缺失 `fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 和 `fw-plus-core/.mvn/wrapper/maven-wrapper.jar`。Wrapper 下载 JAR 时因目标目录不存在失败，随后报 `java.lang.ClassNotFoundException: org.apache.maven.wrapper.MavenWrapperMain`。因此无法观察到预期的“新模块和类不存在”失败。
+失败摘要：测试编译失败，`AskDataAuthorizationSummary`、`AskDataAuthorizedObject` 和 `AskDataRowPredicate` 等新模型不存在，共报告 21 个“找不到符号”错误，符合先写测试的预期。
 
 ## GREEN
 
 命令：
 
 ```bash
-cd fw-plus-core
-./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model -am -Dtest=LangChain4jModelDefinitionTest test
+cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata -Dtest=AskDataGovernanceProviderTest test
 ```
 
-结果：失败，失败原因与 RED 相同，Wrapper 未启动，无法验证测试 GREEN。
+通过摘要：Maven `BUILD SUCCESS`；`AskDataGovernanceProviderTest` 运行 3 个测试，失败 0、错误 0、跳过 0。
 
 ## 变更文件
 
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/pom.xml`
-- `fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelDefinition.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelType.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModel.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelProviderAdapter.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelFactory.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelRegistry.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/main/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelException.java`
-- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/src/test/java/com/xiongx9527/fw/plus/ai/langchain4j/model/LangChain4jModelDefinitionTest.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/security/AskDataAuthorizationRequest.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/security/AskDataAuthorizedObject.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/security/AskDataRowPredicate.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/main/java/com/xiongx9527/fw/plus/ai/askdata/security/AskDataAuthorizationSummary.java`
+- `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-askdata/src/test/java/com/xiongx9527/fw/plus/ai/askdata/security/AskDataGovernanceProviderTest.java`
 
-## 自查结果
+## 提交
 
-- `git diff --check` 通过。
-- 三个受影响 POM 经 `xmllint --noout` 校验通过。
-- 新模块未包含 `DefaultLangChain4jModelFactory`、`DefaultLangChain4jModelRegistry` 或 Java 9+ API。
-- 模块仅声明 `langchain4j-core` 与测试依赖，未声明任何具体 provider SDK。
+`777b4c24 feat(askdata): add governance authorization model`
 
-## 风险信号自评
+## 风险信号自报
 
-高：Maven Wrapper 文件不在当前 worktree，指定测试命令无法启动，测试 GREEN 未得到验证。代码契约与 POM 结构已完成静态检查，但必须在恢复 `fw-plus-core/.mvn/wrapper/` 后重新运行指定命令。
-
-## Review Fix
-
-### 修复内容
-
-- `LangChain4jModelType` 补齐 LangChain4j 0.35.0 core 中真实存在的八类模型接口：`CHAT`、`STREAMING_CHAT`、`EMBEDDING`、`IMAGE`、`LANGUAGE`、`STREAMING_LANGUAGE`、`MODERATION`、`SCORING`。
-- 未增加 `AUDIO`、`VIDEO`、`PDF`；它们属于 Chat 多模态内容类型，不是 0.35.0 的独立模型接口。
-- 未引用高版本的 `ChatModel` 或 `StreamingChatModel`。当前 core 契约继续使用 `Object` 包装模型实例，兼容 0.35.0 的 `ChatLanguageModel` 与 `StreamingChatLanguageModel`。
-- `LangChain4jModelDefinitionTest` 已从 JUnit 4 迁移至 JUnit Jupiter，继续使用现有 `spring-boot-starter-test`，未引入 `junit:junit`。
-
-### RED
-
-命令：
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -Dtest=LangChain4jModelDefinitionTest test
-```
-
-结果：失败。测试编译阶段无法解析 `org.junit.Test` 和 `org.junit.Assert`，证明模块的测试依赖仅提供 JUnit Jupiter，JUnit 4 导入不兼容。
-
-### GREEN
-
-命令：
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model/pom.xml -Dtest=LangChain4jModelDefinitionTest test
-```
-
-结果：通过。`LangChain4jModelDefinitionTest` 共运行 2 个测试，`Failures: 0`、`Errors: 0`、`Skipped: 0`。
-
-### 环境限制
-
-- Wrapper 命令 `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model -am -Dtest=LangChain4jModelDefinitionTest test` 仍无法启动：当前 worktree 缺失 `fw-plus-core/.mvn/wrapper/maven-wrapper.properties` 与 `maven-wrapper.jar`，最终报 `ClassNotFoundException: org.apache.maven.wrapper.MavenWrapperMain`。
-- 聚合 `-am` 构建受基线中 cassandra、infinispan、neo4j 模块目录缺失影响；该问题不在本 Task 修复范围内，未修改这些模块。GREEN 以本次系统 Maven focused 命令为准。
+- Maven 在当前 JDK 下输出了 `System::load` 和 `sun.misc.Unsafe` 的未来兼容性警告；本任务测试仍通过，且该警告来自 Maven/Jansi/Guava 依赖运行时，不由本次模型代码引入。
+- 工作区保留了用户归属的 Comet 与无关 change 未提交改动；本提交仅包含 Task 1 的五个指定文件。

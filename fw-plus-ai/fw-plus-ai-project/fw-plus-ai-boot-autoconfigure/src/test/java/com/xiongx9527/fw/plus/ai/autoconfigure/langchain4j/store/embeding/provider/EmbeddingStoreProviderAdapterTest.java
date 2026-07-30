@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provider;
 
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreException;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreException;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -273,7 +273,7 @@ public class EmbeddingStoreProviderAdapterTest {
         return definition;
     }
 
-    private void assertIncompleteConfiguration(com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter adapter,
+    private void assertIncompleteConfiguration(com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreProviderAdapter adapter,
                                                String key, String provider) {
         try {
             adapter.create(definition(key, provider));

@@ -3,13 +3,14 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.ModelDataSourceInfo;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelException;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModel;
+import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelException;
+import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
+import com.xiongx9527.fw.plus.ai.model.DefaultAiModelFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.boot.test.util.TestPropertyValues;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,67 +43,107 @@ class MagicDynamicModelDataSourceTest {
     }
 
     @Test
-    void runtimeModelOverridesSpringBootModelAndFallsBackAfterDestroy() {
-        LangChain4jModel bootModel = model("boot");
-        RecordingFactory factory = new RecordingFactory();
-        MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                registryWith("chat", bootModel, "chat"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+    void uniqueAdapterIsSelectedWhenFrameworkIsAbsent() {
+        MagicDynamicModelDataSource dataSource = dataSource(new FakeModelAdapter("first"));
 
         dataSource.createClient(info("chat"));
 
-        assertSame(factory.createdModel, dataSource.getModel("chat"));
+        assertModel(dataSource.getModel("chat"), "chat", "first", "fake", AiModelType.CHAT);
+    }
+
+    @Test
+    void multipleAdaptersWithoutFrameworkReportCandidateFrameworks() {
+        MagicDynamicModelDataSource dataSource = dataSource(
+                new FakeModelAdapter("first"), new FakeModelAdapter("second"));
+
+        AiModelException exception = assertThrows(AiModelException.class,
+                () -> dataSource.createClient(info("chat")));
+
+        assertTrue(exception.getMessage().contains("first"));
+        assertTrue(exception.getMessage().contains("second"));
+        assertFalse(dataSource.contains("chat"));
+    }
+
+    @Test
+    void explicitFrameworkSelectsMatchingAdapter() {
+        MagicDynamicModelDataSource dataSource = dataSource(
+                new FakeModelAdapter("first"), new FakeModelAdapter("second"));
+        ModelDataSourceInfo info = info("chat");
+        info.setFramework("second");
+
+        dataSource.createClient(info);
+
+        assertModel(dataSource.getModel("chat"), "chat", "second", "fake", AiModelType.CHAT);
+    }
+
+    @Test
+    void magicModelRuntimeContractsDoNotExposeNativeTypes() {
+        assertNeutralContract(MagicDynamicModelDataSource.class);
+        assertNeutralContract(ModelDataSourceInfo.class);
+    }
+
+    @Test
+    void runtimeModelOverridesSpringBootModelAndFallsBackAfterDestroy() {
+        AiModel bootModel = model("chat");
+        RecordingFactory factory = new RecordingFactory();
+        MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
+                registryWith("chat", bootModel, "chat"), factory, Collections.<AiModelAdapter>emptyList());
+
+        dataSource.createClient(info("chat"));
+
+        assertModel(dataSource.getModel("chat"), "chat", null, "fake", AiModelType.CHAT);
         dataSource.destroyClientByKey("chat");
-        assertSame(bootModel, dataSource.getModel("chat"));
+        assertModel(dataSource.getModel("chat"), "chat", "boot-framework", "boot-provider", AiModelType.CHAT);
     }
 
     @Test
     void runtimeModelOverridesSpringBootDefaultModel() {
-        LangChain4jModel bootModel = model("boot");
+        AiModel bootModel = model("chat");
         RecordingFactory factory = new RecordingFactory();
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                registryWith("chat", bootModel, "chat"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+                registryWith("chat", bootModel, "chat"), factory, Collections.<AiModelAdapter>emptyList());
 
         dataSource.createClient(info("chat"));
 
-        assertSame(factory.createdModel, dataSource.getDefault());
+        assertModel(dataSource.getDefault(), "chat", null, "fake", AiModelType.CHAT);
     }
 
     @Test
     void runtimeModelOverridesSpringBootDefaultGroupAlias() {
-        LangChain4jModel bootModel = model("boot");
-        Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
+        AiModel bootModel = model("chat-default");
+        Map<String, AiModel> models = new LinkedHashMap<String, AiModel>();
         models.put("chat-default", bootModel);
         models.put("chat-default.openai", bootModel);
         RecordingFactory factory = new RecordingFactory();
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                new TestRegistry(models, "chat-default"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+                new TestRegistry(models, "chat-default"), factory, Collections.<AiModelAdapter>emptyList());
 
         dataSource.createClient(info("chat-default"));
 
-        assertSame(factory.createdModel, dataSource.getDefault());
+        assertModel(dataSource.getDefault(), "chat-default", null, "fake", AiModelType.CHAT);
     }
 
     @Test
     void runtimeGroupAliasDoesNotOverrideExplicitDefaultModelNameKey() {
-        LangChain4jModel bootDefaultModel = model("boot-default");
-        LangChain4jModel bootAliasModel = model("boot-alias");
-        Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
+        AiModel bootDefaultModel = model("chat-default.qwen-plus");
+        AiModel bootAliasModel = model("chat-default");
+        Map<String, AiModel> models = new LinkedHashMap<String, AiModel>();
         models.put("chat-default", bootAliasModel);
         models.put("chat-default.qwen-plus", bootDefaultModel);
         RecordingFactory factory = new RecordingFactory();
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                new TestRegistry(models, "chat-default.qwen-plus"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+                new TestRegistry(models, "chat-default.qwen-plus"), factory, Collections.<AiModelAdapter>emptyList());
 
         dataSource.createClient(info("chat-default"));
 
-        assertSame(bootDefaultModel, dataSource.getDefault());
+        assertModel(dataSource.getDefault(), "chat-default.qwen-plus", "boot-framework", "boot-provider", AiModelType.CHAT);
     }
 
     @Test
     void createClientRegistersMultipleRuntimeModelsWithDefaultAlias() {
         RecordingFactory factory = new RecordingFactory();
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                registryWith("boot", model("boot"), "boot"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+                registryWith("boot", model("boot"), "boot"), factory, Collections.<AiModelAdapter>emptyList());
         ModelDataSourceInfo info = info("chat-default");
         info.setModelName(Arrays.asList("gpt-4o-mini", "qwen-plus"));
         info.setDefaultModelName("qwen-plus");
@@ -118,11 +160,17 @@ class MagicDynamicModelDataSourceTest {
         dataSource.createClient(info);
 
         assertEquals("chat-default.gpt-4o-mini", factory.createdDefinitions.get(0).getKey());
-        assertEquals("gpt-4o-mini", factory.createdDefinitions.get(0).getModelName());
+        assertNull(factory.createdDefinitions.get(0).getFramework());
+        assertEquals("fake", factory.createdDefinitions.get(0).getProvider());
+        assertEquals(AiModelType.CHAT, factory.createdDefinitions.get(0).getType());
+        assertEquals("gpt-4o-mini", factory.createdDefinitions.get(0).getProperties().get("modelName"));
         assertEquals(0.2, factory.createdDefinitions.get(0).getProperties().get("temperature"));
         assertEquals(1024, factory.createdDefinitions.get(0).getProperties().get("maxTokens"));
         assertEquals("chat-default.qwen-plus", factory.createdDefinitions.get(1).getKey());
-        assertEquals("qwen-plus", factory.createdDefinitions.get(1).getModelName());
+        assertNull(factory.createdDefinitions.get(1).getFramework());
+        assertEquals("fake", factory.createdDefinitions.get(1).getProvider());
+        assertEquals(AiModelType.CHAT, factory.createdDefinitions.get(1).getType());
+        assertEquals("qwen-plus", factory.createdDefinitions.get(1).getProperties().get("modelName"));
         assertEquals(0.7, factory.createdDefinitions.get(1).getProperties().get("temperature"));
         assertEquals(1024, factory.createdDefinitions.get(1).getProperties().get("maxTokens"));
         assertSame(factory.createdModels.get(1), dataSource.getModel("chat-default"));
@@ -137,7 +185,7 @@ class MagicDynamicModelDataSourceTest {
     void destroyClientByKeyRemovesRuntimeModelGroup() {
         RecordingFactory factory = new RecordingFactory();
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                registryWith("boot", model("boot"), "boot"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+                registryWith("boot", model("boot"), "boot"), factory, Collections.<AiModelAdapter>emptyList());
         ModelDataSourceInfo info = info("chat-default");
         info.setModelName(Arrays.asList("gpt-4o-mini", "qwen-plus"));
         dataSource.createClient(info);
@@ -152,10 +200,10 @@ class MagicDynamicModelDataSourceTest {
 
     @Test
     void disabledResourceRemovesExistingRuntimeModelWithoutCreatingReplacement() {
-        LangChain4jModel bootModel = model("boot");
+        AiModel bootModel = model("chat");
         RecordingFactory factory = new RecordingFactory();
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                registryWith("chat", bootModel, "chat"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+                registryWith("chat", bootModel, "chat"), factory, Collections.<AiModelAdapter>emptyList());
         dataSource.createClient(info("chat"));
         ModelDataSourceInfo disabled = info("chat");
         disabled.setEnabled(false);
@@ -163,7 +211,7 @@ class MagicDynamicModelDataSourceTest {
 
         dataSource.createClient(disabled);
 
-        assertSame(bootModel, dataSource.getModel("chat"));
+        assertModel(dataSource.getModel("chat"), "chat", "boot-framework", "boot-provider", AiModelType.CHAT);
         assertTrue(dataSource.datasourceNodes().isEmpty());
         assertNull(factory.createdDefinition);
     }
@@ -171,7 +219,7 @@ class MagicDynamicModelDataSourceTest {
     @Test
     void datasourceNodesClearDirectAndPropertySensitiveFields() {
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                registryWith("boot", model("boot"), "boot"), new RecordingFactory(), Collections.<LangChain4jModelProviderAdapter>emptyList());
+                registryWith("boot", model("boot"), "boot"), new RecordingFactory(), Collections.<AiModelAdapter>emptyList());
         ModelDataSourceInfo info = info("chat");
         info.setApiKey("api-key");
         info.setSecretKey("secret-key");
@@ -206,7 +254,7 @@ class MagicDynamicModelDataSourceTest {
     @Test
     void datasourceNodesRecursivelyClearSensitiveProperties() {
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                registryWith("boot", model("boot"), "boot"), new RecordingFactory(), Collections.<LangChain4jModelProviderAdapter>emptyList());
+                registryWith("boot", model("boot"), "boot"), new RecordingFactory(), Collections.<AiModelAdapter>emptyList());
         ModelDataSourceInfo info = info("chat");
         Map<String, Object> credentials = new LinkedHashMap<String, Object>();
         credentials.put("apiKey", "nested-api-key");
@@ -237,7 +285,7 @@ class MagicDynamicModelDataSourceTest {
     void createClientPassesDirectCredentialsToFactoryDefinitionProperties() {
         RecordingFactory factory = new RecordingFactory();
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                registryWith("boot", model("boot"), "boot"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+                registryWith("boot", model("boot"), "boot"), factory, Collections.<AiModelAdapter>emptyList());
         ModelDataSourceInfo info = info("chat");
         info.setApiKey("api-key");
         info.setSecretKey("secret-key");
@@ -247,7 +295,6 @@ class MagicDynamicModelDataSourceTest {
 
         dataSource.createClient(info);
 
-        assertEquals("api-key", factory.createdDefinition.getApiKey());
         assertEquals("api-key", factory.createdDefinition.getProperties().get("apiKey"));
         assertEquals("secret-key", factory.createdDefinition.getProperties().get("secretKey"));
         assertEquals("access-token", factory.createdDefinition.getProperties().get("accessToken"));
@@ -259,13 +306,13 @@ class MagicDynamicModelDataSourceTest {
     void createClientAcceptsExplicitNullPropertiesWithoutPartialRuntimeState() {
         RecordingFactory factory = new RecordingFactory();
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                registryWith("boot", model("boot"), "boot"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+                registryWith("boot", model("boot"), "boot"), factory, Collections.<AiModelAdapter>emptyList());
         ModelDataSourceInfo info = info("chat");
         info.setProperties(null);
 
         dataSource.createClient(info);
 
-        assertSame(factory.createdModel, dataSource.getModel("chat"));
+        assertModel(dataSource.getModel("chat"), "chat", null, "fake", AiModelType.CHAT);
         assertEquals(1, dataSource.datasourceNodes().size());
         assertTrue(dataSource.datasourceNodes().get(0).getProperties().isEmpty());
     }
@@ -277,7 +324,7 @@ class MagicDynamicModelDataSourceTest {
                 "magic.api.model.chat.properties={\"timeout\":\"PT10S\",\"custom\":\"configured\"}");
         RecordingFactory factory = new RecordingFactory();
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                registryWith("boot", model("boot"), "boot"), factory, Collections.<LangChain4jModelProviderAdapter>emptyList());
+                registryWith("boot", model("boot"), "boot"), factory, Collections.<AiModelAdapter>emptyList());
         ModelDataSourceInfo info = info("chat");
         info.setBaseUrl("http://default.example/v1");
         info.setApiKey("default-api-key");
@@ -288,8 +335,8 @@ class MagicDynamicModelDataSourceTest {
 
         dataSource.createClient(info);
 
-        assertEquals("http://configured.example/v1", factory.createdDefinition.getBaseUrl());
-        assertEquals("configured-api-key", factory.createdDefinition.getApiKey());
+        assertEquals("http://configured.example/v1", factory.createdDefinition.getProperties().get("baseUrl"));
+        assertEquals("configured-api-key", factory.createdDefinition.getProperties().get("apiKey"));
         assertEquals("PT10S", factory.createdDefinition.getProperties().get("timeout"));
         assertEquals("configured", factory.createdDefinition.getProperties().get("custom"));
         assertTrue(!factory.createdDefinition.getProperties().containsKey("legacyOnly"));
@@ -298,24 +345,24 @@ class MagicDynamicModelDataSourceTest {
     @Test
     void createClientRejectsInvalidDefinitions() {
         MagicDynamicModelDataSource dataSource = new MagicDynamicModelDataSource(
-                registryWith("boot", model("boot"), "boot"), new RecordingFactory(), Collections.<LangChain4jModelProviderAdapter>emptyList());
+                registryWith("boot", model("boot"), "boot"), new RecordingFactory(), Collections.<AiModelAdapter>emptyList());
 
-        assertThrows(LangChain4jModelException.class, () -> dataSource.createClient(null));
+        assertThrows(AiModelException.class, () -> dataSource.createClient(null));
         ModelDataSourceInfo blankKey = info(" ");
-        assertThrows(LangChain4jModelException.class, () -> dataSource.createClient(blankKey));
+        assertThrows(AiModelException.class, () -> dataSource.createClient(blankKey));
         ModelDataSourceInfo blankProvider = info("chat");
         blankProvider.setProvider(" ");
-        assertThrows(LangChain4jModelException.class, () -> dataSource.createClient(blankProvider));
+        assertThrows(AiModelException.class, () -> dataSource.createClient(blankProvider));
         ModelDataSourceInfo nullModelType = info("chat");
         nullModelType.setModelType(null);
-        assertThrows(LangChain4jModelException.class, () -> dataSource.createClient(nullModelType));
+        assertThrows(AiModelException.class, () -> dataSource.createClient(nullModelType));
     }
 
     private ModelDataSourceInfo info(String key) {
         ModelDataSourceInfo info = new ModelDataSourceInfo();
         info.setKey(key);
         info.setProvider("fake");
-        info.setModelType(LangChain4jModelType.CHAT);
+        info.setModelType(AiModelType.CHAT);
         info.setEnabled(true);
         info.setModelName(Collections.singletonList("default-model"));
         return info;
@@ -328,48 +375,71 @@ class MagicDynamicModelDataSourceTest {
         new SpringUtils().setApplicationContext(applicationContext);
     }
 
-    private LangChain4jModel model(String value) {
-        return new LangChain4jModel("fake", LangChain4jModelType.CHAT, value);
+    private AiModel model(String key) {
+        return new FakeAiModel(key, "boot-framework", "boot-provider", AiModelType.CHAT);
     }
 
-    private LangChain4jModelRegistry registryWith(String key, LangChain4jModel model, String defaultKey) {
-        Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
+    private AiModelRegistry registryWith(String key, AiModel model, String defaultKey) {
+        Map<String, AiModel> models = new LinkedHashMap<String, AiModel>();
         models.put(key, model);
         return new TestRegistry(models, defaultKey);
     }
 
-    private static class RecordingFactory implements LangChain4jModelFactory {
-        private final LangChain4jModel createdModel = new LangChain4jModel("fake", LangChain4jModelType.CHAT, "runtime");
-        private final List<LangChain4jModel> createdModels = new java.util.ArrayList<LangChain4jModel>();
-        private final List<LangChain4jModelDefinition> createdDefinitions = new java.util.ArrayList<LangChain4jModelDefinition>();
-        private LangChain4jModelDefinition createdDefinition;
+    private MagicDynamicModelDataSource dataSource(AiModelAdapter... adapters) {
+        return new MagicDynamicModelDataSource(
+                registryWith("boot", model("boot"), "boot"),
+                new DefaultAiModelFactory(), Arrays.asList(adapters));
+    }
+
+    private void assertNeutralContract(Class<?> type) {
+        for (java.lang.reflect.Field field : type.getDeclaredFields()) {
+            assertFalse(field.getGenericType().getTypeName().contains("langchain4j"));
+        }
+        for (java.lang.reflect.Constructor<?> constructor : type.getDeclaredConstructors()) {
+            assertFalse(constructor.toGenericString().contains("langchain4j"));
+        }
+        for (java.lang.reflect.Method method : type.getDeclaredMethods()) {
+            assertFalse(method.toGenericString().contains("langchain4j"));
+        }
+    }
+
+    private static void assertModel(AiModel model, String key, String framework, String provider, AiModelType type) {
+        assertEquals(key, model.getKey());
+        assertEquals(framework, model.getFramework());
+        assertEquals(provider, model.getProvider());
+        assertEquals(type, model.getType());
+    }
+
+    private static class RecordingFactory implements AiModelFactory {
+        private final List<AiModel> createdModels = new java.util.ArrayList<AiModel>();
+        private final List<AiModelDefinition> createdDefinitions = new java.util.ArrayList<AiModelDefinition>();
+        private AiModelDefinition createdDefinition;
 
         @Override
-        public LangChain4jModel create(LangChain4jModelDefinition definition, List<LangChain4jModelProviderAdapter> adapters) {
+        public AiModel create(AiModelDefinition definition, List<AiModelAdapter> adapters) {
             createdDefinition = definition;
             createdDefinitions.add(definition);
-            LangChain4jModel model = createdDefinitions.size() == 1
-                    ? createdModel
-                    : new LangChain4jModel("fake", definition.getModelType(), definition.getKey());
+            AiModel model = new FakeAiModel(
+                    definition.getKey(), definition.getFramework(), definition.getProvider(), definition.getType());
             createdModels.add(model);
             return model;
         }
     }
 
-    private static class TestRegistry implements LangChain4jModelRegistry {
-        private final Map<String, LangChain4jModel> models;
+    private static class TestRegistry implements AiModelRegistry {
+        private final Map<String, AiModel> models;
         private final String defaultKey;
 
-        private TestRegistry(Map<String, LangChain4jModel> models, String defaultKey) {
+        private TestRegistry(Map<String, AiModel> models, String defaultKey) {
             this.models = models;
             this.defaultKey = defaultKey;
         }
 
         @Override
-        public LangChain4jModel get(String key) { return models.get(key); }
+        public AiModel get(String key) { return models.get(key); }
 
         @Override
-        public LangChain4jModel getDefault() { return models.get(defaultKey); }
+        public AiModel getDefault() { return models.get(defaultKey); }
 
         @Override
         public String getDefaultKey() { return defaultKey; }
@@ -379,5 +449,54 @@ class MagicDynamicModelDataSourceTest {
 
         @Override
         public Set<String> keys() { return models.keySet(); }
+    }
+
+    private static class FakeAiModel implements AiModel {
+        private final String key;
+        private final String framework;
+        private final String provider;
+        private final AiModelType type;
+
+        private FakeAiModel(String key, String framework, String provider, AiModelType type) {
+            this.key = key;
+            this.framework = framework;
+            this.provider = provider;
+            this.type = type;
+        }
+
+        @Override
+        public String getKey() { return key; }
+
+        @Override
+        public String getFramework() { return framework; }
+
+        @Override
+        public String getProvider() { return provider; }
+
+        @Override
+        public AiModelType getType() { return type; }
+    }
+
+    private static class FakeModelAdapter implements AiModelAdapter {
+        private final String framework;
+
+        private FakeModelAdapter(String framework) {
+            this.framework = framework;
+        }
+
+        @Override
+        public String getFramework() {
+            return framework;
+        }
+
+        @Override
+        public boolean supports(AiModelDefinition definition) {
+            return "fake".equals(definition.getProvider());
+        }
+
+        @Override
+        public AiModel create(AiModelDefinition definition) {
+            return new FakeAiModel(definition.getKey(), framework, definition.getProvider(), definition.getType());
+        }
     }
 }

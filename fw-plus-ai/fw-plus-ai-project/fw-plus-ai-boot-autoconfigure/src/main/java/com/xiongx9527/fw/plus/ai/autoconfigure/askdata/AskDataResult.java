@@ -21,6 +21,13 @@ public class AskDataResult {
     private String resumeToken;
     private String checkpointId;
     private String rawModelResponse;
+    /**
+     * 显式多问题请求的子执行结果。
+     *
+     * <p>单问题请求保持为空列表，避免改变既有结果字段及其成功语义。每个子结果都保留自身的步骤审计，
+     * 聚合结果不会混入子问题的 SQL、模型响应或其他执行细节。</p>
+     */
+    private List<AskDataResult> childResults = new ArrayList<AskDataResult>();
 
     public static AskDataResult failure(String errorCode, String errorMessage) {
         AskDataResult result = new AskDataResult();
@@ -152,5 +159,13 @@ public class AskDataResult {
 
     public void setRawModelResponse(String rawModelResponse) {
         this.rawModelResponse = rawModelResponse;
+    }
+
+    public List<AskDataResult> getChildResults() {
+        return childResults;
+    }
+
+    public void setChildResults(List<AskDataResult> childResults) {
+        this.childResults = childResults == null ? new ArrayList<AskDataResult>() : childResults;
     }
 }

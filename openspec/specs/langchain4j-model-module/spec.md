@@ -3,102 +3,6 @@
 ## Purpose
 TBD - created by archiving change add-langchain4j-model-magicapi. Update Purpose after archive.
 ## Requirements
-### Requirement: 提供 core 侧 LangChain4j 模型抽象模块
-系统 SHALL 在 `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j` 下提供 `fw-plus-ai-langchain4j-model` Maven 模块，用于承载通用 LangChain4j 模型定义、创建、注册和查询契约。
-
-#### Scenario: 聚合 POM 注册模型模块
-- **WHEN** 检查 `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/pom.xml`
-- **THEN** 它列出 `fw-plus-ai-langchain4j-model` 子模块。
-
-#### Scenario: core BOM 管理模型模块 artifact
-- **WHEN** 检查 `fw-plus-core/fw-plus-project/fw-plus-dependencies` 的 dependencyManagement
-- **THEN** 它包含 `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-model`。
-- **AND** 该依赖使用 `${project.version}` 作为版本。
-
-#### Scenario: 模型模块提供通用契约
-- **WHEN** 检查 `fw-plus-ai-langchain4j-model` 源码
-- **THEN** 它提供模型定义、模型类型、provider adapter、模型工厂、模型 registry 和模型异常等通用类型。
-- **AND** 模型类型覆盖 LangChain4j 0.35.0 core 中真实存在的 Chat、Streaming Chat、Embedding、Image、Language、Streaming Language、Moderation 和 Scoring。
-- **AND** 模型类型保留 `AUDIO`、`VIDEO`、`PDF` 作为 fw-plus 扩展能力登记类型，但默认不把它们映射为 LangChain4j 内置 provider adapter。
-- **AND** 这些类型位于 `com.xiongx9527.fw.plus.ai.langchain4j.model` 包下。
-
-#### Scenario: 模型模块保持轻量依赖
-- **WHEN** 检查 `fw-plus-ai-langchain4j-model/pom.xml`
-- **THEN** 它依赖 LangChain4j core 模型类型所需的基础 artifact。
-- **AND** 它不默认依赖 OpenAI、Qwen、Ollama、DashScope、Azure、Anthropic 等具体 provider SDK。
-
-### Requirement: 模型工厂按 provider adapter 创建模型
-系统 SHALL 通过通用模型工厂按 provider 和 modelType 选择合适的 provider adapter，并返回可按 key 注册和获取的 LangChain4j 模型包装对象。
-
-#### Scenario: 使用匹配 adapter 创建模型
-- **WHEN** 调用默认模型工厂创建 provider 和 modelType 均被某个 adapter 支持的模型定义
-- **THEN** 工厂返回非 null 的 LangChain4j 模型包装对象。
-- **AND** 包装对象保留 provider、modelType 和原生 LangChain4j model。
-
-#### Scenario: provider 不支持时返回明确错误
-- **WHEN** 调用默认模型工厂创建没有任何 adapter 支持的模型定义
-- **THEN** 系统抛出模型异常。
-- **AND** 异常信息包含 provider、modelType 和 key。
-
-#### Scenario: adapter 创建失败时保留上下文
-- **WHEN** 匹配的 adapter 在创建模型时抛出运行期异常
-- **THEN** 系统抛出模型异常。
-- **AND** 异常保留原始 cause，并在消息中包含 provider、modelType 和 key。
-
-### Requirement: 提供 Spring Boot model starter 和自动配置
-系统 SHALL 提供 `fw-plus-ai-langchain4j-model-spring-boot-starter`，并在 AI Boot 自动配置层把应用配置转换为模型 registry。
-
-#### Scenario: starter 注册到 AI Boot 聚合
-- **WHEN** 检查 `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters` 聚合 POM
-- **THEN** 它列出 `fw-plus-ai-langchain4j-model-spring-boot-starter` 子模块。
-
-#### Scenario: AI Boot BOM 管理 starter artifact
-- **WHEN** 检查 `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies` 的 dependencyManagement
-- **THEN** 它包含 `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter`。
-- **AND** 该依赖使用 `${project.version}` 作为版本。
-
-#### Scenario: starter 只传递抽象和自动配置
-- **WHEN** 检查 `fw-plus-ai-langchain4j-model-spring-boot-starter/pom.xml`
-- **THEN** 它依赖 `fw-plus-ai-boot-starter` 和 `fw-plus-ai-langchain4j-model`。
-- **AND** 它不默认传递所有具体 provider SDK。
-
-#### Scenario: 自动配置创建模型 registry
-- **WHEN** 应用配置了启用状态的 LangChain4j model 定义
-- **THEN** 自动配置使用模型工厂创建模型并注册到 `LangChain4jModelRegistry`。
-- **AND** 默认模型 key 配置存在时，registry 的默认模型指向对应模型。
-
-#### Scenario: 自动配置校验默认模型 key
-- **WHEN** 应用配置了不存在的默认模型 key
-- **THEN** Spring Boot 启动阶段抛出明确异常。
-- **AND** 异常信息包含无效默认模型 key。
-
-#### Scenario: 同一配置节点注册多个模型名
-- **WHEN** 应用在同一个模型配置节点下把 `model-name` 配置为多个模型名
-- **THEN** 自动配置 MUST 为每个模型名创建独立模型实例。
-- **AND** 每个实例 MUST 使用 `<配置 key>.<modelName>` 作为 registry key。
-- **AND** 自动配置 MUST 把 `<配置 key>` 注册为该节点默认模型名的别名。
-
-#### Scenario: 同一配置节点指定默认模型名
-- **WHEN** 应用在多个 `model-name` 的配置节点下配置 `default-model-name`
-- **THEN** `<配置 key>` 别名 MUST 指向 `default-model-name` 对应的模型实例。
-- **AND** 未配置 `default-model-name` 时，`<配置 key>` 别名 MUST 指向 `model-name` 列表中的第一个模型名。
-
-#### Scenario: 单个模型名覆盖共享配置
-- **WHEN** 应用在模型配置节点下同时配置共享 `properties` 和 `model-configs.<modelName>.properties`
-- **THEN** 自动配置 MUST 先应用共享 `properties`。
-- **AND** 自动配置 MUST 再应用该 `modelName` 自己的 `properties`。
-- **AND** 单个模型名自己的同名 `properties` MUST 覆盖共享 `properties`。
-
-#### Scenario: 单个模型名覆盖通用连接配置
-- **WHEN** 应用在 `model-configs.<modelName>` 下配置 `provider`、`model-type`、`base-url` 或 `api-key`
-- **THEN** 自动配置 MUST 对该模型名使用覆盖后的通用配置。
-- **AND** 未覆盖的字段 MUST 继续继承父级模型配置节点。
-
-#### Scenario: 单模型配置保持兼容
-- **WHEN** 应用继续使用 `models.<key>.provider` 加单个 `model-name` 的旧配置方式
-- **THEN** 自动配置 MUST 继续把该模型注册为 `<key>`。
-- **AND** 该配置 MUST 不要求额外配置 `model-configs`。
-
 ### Requirement: Magic-API 支持动态模型资源和脚本访问
 系统 SHALL 为 Magic-API 提供新的 LangChain4j model 插件能力，使脚本可以通过 `model-datasource` 动态资源 key 获取模型，并与 Spring Boot registry 共存。
 
@@ -160,3 +64,16 @@ TBD - created by archiving change add-langchain4j-model-magicapi. Update Purpose
 - **AND** 它说明高版本 LangChain4j 使用 `ChatModel` / `StreamingChatModel`，这些类名不得在 0.35.0 编译代码中使用。
 - **AND** 它说明 `ImageContent`、`AudioContent`、`VideoContent`、`PdfFileContent` 等是 Chat 多模态输入内容，不是 LangChain4j 0.35.0 或当前 1.x 的独立 `AudioModel` / `VideoModel` / `PdfModel` 统一接口。
 - **AND** 它说明 `AUDIO`、`VIDEO`、`PDF` 是 fw-plus 为 Magic 资源和业务适配器保留的扩展 modelType，使用时需要自定义 `LangChain4jModelProviderAdapter` 接入厂商 SDK 或业务封装。
+
+### Requirement: 旧 LangChain4j model 模块和 starter 坐标已移除
+系统 SHALL 不再发布 `fw-plus-ai-langchain4j-model` 和 `fw-plus-ai-langchain4j-model-spring-boot-starter` 作为可用坐标；LangChain4j 模型能力 SHALL 由统一 LangChain4j adapter 和中立 `fw-plus.ai.model` 配置承担。
+
+#### Scenario: 应用迁移到统一 adapter starter
+- **WHEN** Boot 2.7 / Java 8 应用需要 LangChain4j 模型实现
+- **THEN** 应用 SHALL 引入 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
+- **AND** 不得继续引入已删除的 model artifact。
+
+#### Scenario: 模型创建由中立 factory 和 adapter 承担
+- **WHEN** 应用声明模型定义并选择 LangChain4j framework
+- **THEN** 中立 `AiModelFactory` SHALL 使用统一 LangChain4j adapter 创建模型门面。
+- **AND** 调用方不得引用旧 `LangChain4jModelRegistry` 公开坐标。

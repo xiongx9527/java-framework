@@ -2,9 +2,10 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.web;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.ModelDataSourceInfo;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
+import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelException;
+import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,21 +25,21 @@ import java.util.Map;
 public class MagicModelController extends MagicController implements MagicExceptionHandler {
 
     private final MagicDynamicModelDataSource dataSource;
-    private final LangChain4jModelFactory modelFactory;
-    private final List<LangChain4jModelProviderAdapter> providerAdapters;
+    private final AiModelFactory modelFactory;
+    private final List<AiModelAdapter> providerAdapters;
 
     public MagicModelController(MagicConfiguration configuration) {
         this(configuration, null, null, null);
     }
 
-    public MagicModelController(MagicConfiguration configuration, LangChain4jModelFactory modelFactory,
-                                List<LangChain4jModelProviderAdapter> providerAdapters) {
+    public MagicModelController(MagicConfiguration configuration, AiModelFactory modelFactory,
+                                List<AiModelAdapter> providerAdapters) {
         this(configuration, null, modelFactory, providerAdapters);
     }
 
     public MagicModelController(MagicConfiguration configuration, MagicDynamicModelDataSource dataSource,
-                                LangChain4jModelFactory modelFactory,
-                                List<LangChain4jModelProviderAdapter> providerAdapters) {
+                                AiModelFactory modelFactory,
+                                List<AiModelAdapter> providerAdapters) {
         super(configuration);
         this.dataSource = dataSource;
         this.modelFactory = modelFactory;
@@ -60,10 +61,14 @@ public class MagicModelController extends MagicController implements MagicExcept
     public JsonBean<Object> test(@RequestBody ModelDataSourceInfo definition) {
         try {
             validate(definition);
-            for (LangChain4jModelDefinition modelDefinition : definitions(definition)) {
+            for (AiModelDefinition modelDefinition : definitions(definition)) {
                 getModelFactory().create(modelDefinition, getProviderAdapters());
             }
             return new JsonBean<Object>("ok");
+        } catch (AiModelException e) {
+            log.error("测试 Model 数据源失败，数据源 key: {}, causeType: {}",
+                    safeKey(definition), e.getClass().getName());
+            return new JsonBean<Object>(-1, selectionFailureMessage(e.getMessage()), null);
         } catch (Exception e) {
             log.error("测试 Model 数据源失败，数据源 key: {}", safeKey(definition));
             return new JsonBean<Object>(-1, "模型数据源测试失败", null);
@@ -114,28 +119,61 @@ public class MagicModelController extends MagicController implements MagicExcept
         return dataSource == null ? SpringUtils.getBean(MagicDynamicModelDataSource.class) : dataSource;
     }
 
-    private LangChain4jModelFactory getModelFactory() {
-        return modelFactory == null ? SpringUtils.getBean(LangChain4jModelFactory.class) : modelFactory;
+    private AiModelFactory getModelFactory() {
+        return modelFactory == null ? SpringUtils.getBean(AiModelFactory.class) : modelFactory;
     }
 
-    private List<LangChain4jModelProviderAdapter> getProviderAdapters() {
+    private List<AiModelAdapter> getProviderAdapters() {
         if (providerAdapters != null) {
             return providerAdapters;
         }
-        Map<String, LangChain4jModelProviderAdapter> adapters = SpringUtils.getBeansOfType(LangChain4jModelProviderAdapter.class);
-        return adapters == null ? Collections.<LangChain4jModelProviderAdapter>emptyList()
-                : new ArrayList<LangChain4jModelProviderAdapter>(adapters.values());
+        Map<String, AiModelAdapter> adapters = SpringUtils.getBeansOfType(AiModelAdapter.class);
+        return adapters == null ? Collections.<AiModelAdapter>emptyList()
+                : new ArrayList<AiModelAdapter>(adapters.values());
     }
 
     private String safeKey(ModelDataSourceInfo definition) {
         return definition == null || definition.getKey() == null ? "unknown" : definition.getKey();
     }
 
-    private List<LangChain4jModelDefinition> definitions(ModelDataSourceInfo definition) {
+    private String selectionFailureMessage(String message) {
+        String candidates = safeCandidateList(message, "candidates=");
+        if (candidates == null) {
+            return "模型数据源测试失败";
+        }
+        if (message.startsWith("No adapter supports ")) {
+            return "No adapter supports model: candidates=" + candidates;
+        }
+        if (message.startsWith("Multiple adapters support ")) {
+            return "Multiple adapters support model: candidates=" + candidates;
+        }
+        return "模型数据源测试失败";
+    }
+
+    private String safeCandidateList(String message, String marker) {
+        if (message == null) {
+            return null;
+        }
+        int markerIndex = message.indexOf(marker);
+        int start = markerIndex < 0 ? -1 : markerIndex + marker.length();
+        int end = start < 0 ? -1 : message.indexOf(']', start);
+        if (start < 0 || end < start) {
+            return null;
+        }
+        String candidates = message.substring(start, end + 1);
+        if (!candidates.matches("\\[[A-Za-z0-9._, -]*\\]")) {
+            return null;
+        }
+        return candidates;
+    }
+
+    private List<AiModelDefinition> definitions(ModelDataSourceInfo definition) {
         List<String> modelNames = definition.modelNames();
-        List<LangChain4jModelDefinition> definitions = new ArrayList<LangChain4jModelDefinition>();
+        List<AiModelDefinition> definitions = new ArrayList<AiModelDefinition>();
         if (modelNames.size() <= 1) {
-            definitions.add(definition.toDefinition());
+            String modelName = modelNames.isEmpty() ? null : modelNames.get(0);
+            definitions.add(definition.toDefinition(definition.getKey(), modelName,
+                    definition.modelConfig(modelName)));
             return definitions;
         }
         for (String modelName : modelNames) {

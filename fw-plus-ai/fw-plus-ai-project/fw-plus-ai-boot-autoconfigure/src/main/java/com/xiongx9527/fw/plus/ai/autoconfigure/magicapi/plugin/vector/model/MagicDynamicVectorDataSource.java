@@ -4,13 +4,13 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.TypeReference;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module.VectorStoreResolver;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreException;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreFactory;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,27 +30,27 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
             "grpcPort", "avoidDups", "textFieldName"
     };
 
-    private final EmbeddingStoreRegistry springBootRegistry;
+    private final AiEmbeddingStoreRegistry springBootRegistry;
 
-    private final EmbeddingStoreFactory embeddingStoreFactory;
+    private final AiEmbeddingStoreFactory embeddingStoreFactory;
 
-    private final List<EmbeddingStoreProviderAdapter> providerAdapters;
+    private final List<AiEmbeddingStoreAdapter> providerAdapters;
 
-    private final Map<String, EmbeddingStore<TextSegment>> runtimeStores = new ConcurrentHashMap<String, EmbeddingStore<TextSegment>>();
+    private final Map<String, AiEmbeddingStore> runtimeStores = new ConcurrentHashMap<String, AiEmbeddingStore>();
 
     private final Map<String, VectorDataSourceInfo> runtimeInfos = new ConcurrentHashMap<String, VectorDataSourceInfo>();
 
-    public MagicDynamicVectorDataSource(EmbeddingStoreRegistry springBootRegistry,
-                                        EmbeddingStoreFactory embeddingStoreFactory,
-                                        List<EmbeddingStoreProviderAdapter> providerAdapters) {
+    public MagicDynamicVectorDataSource(AiEmbeddingStoreRegistry springBootRegistry,
+                                        AiEmbeddingStoreFactory embeddingStoreFactory,
+                                        List<AiEmbeddingStoreAdapter> providerAdapters) {
         this.springBootRegistry = springBootRegistry;
         this.embeddingStoreFactory = embeddingStoreFactory;
-        this.providerAdapters = providerAdapters == null ? Collections.<EmbeddingStoreProviderAdapter>emptyList() : providerAdapters;
+        this.providerAdapters = providerAdapters == null ? Collections.<AiEmbeddingStoreAdapter>emptyList() : providerAdapters;
     }
 
     public void createClient(VectorDataSourceInfo info) {
         validate(info);
-        EmbeddingStore<TextSegment> embeddingStore = embeddingStoreFactory.create(definition(info), providerAdapters);
+        AiEmbeddingStore embeddingStore = embeddingStoreFactory.create(definition(info), providerAdapters);
         runtimeStores.put(info.getKey(), embeddingStore);
         runtimeInfos.put(info.getKey(), copy(info));
     }
@@ -74,15 +74,15 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
         return nodes;
     }
 
-    public EmbeddingStore<TextSegment> get(String key) {
-        EmbeddingStore<TextSegment> runtimeStore = runtimeStores.get(key);
+    public AiEmbeddingStore get(String key) {
+        AiEmbeddingStore runtimeStore = runtimeStores.get(key);
         if (runtimeStore != null) {
             return runtimeStore;
         }
         return springBootRegistry.get(key);
     }
 
-    public EmbeddingStore<TextSegment> getDefault() {
+    public AiEmbeddingStore getDefault() {
         return springBootRegistry.getDefault();
     }
 
@@ -101,22 +101,34 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
         VectorDataSourceInfo target = new VectorDataSourceInfo();
         target.setName(source.getName());
         target.setKey(source.getKey());
+        target.setFramework(source.getFramework());
         target.setProvider(source.getProvider());
         target.setEnabled(source.isEnabled());
         target.setDimension(source.getDimension());
-        target.setMetadataKeys(new ArrayList<String>(source.getMetadataKeys()));
-        target.setProperties(source.getProperties());
+        target.setMetadataKeys(source.getMetadataKeys() == null
+                ? new ArrayList<String>() : new ArrayList<String>(source.getMetadataKeys()));
+        target.setProperties(source.getProperties() == null
+                ? new LinkedHashMap<String, Object>() : new LinkedHashMap<String, Object>(source.getProperties()));
         return target;
     }
 
-    private EmbeddingStoreDefinition definition(VectorDataSourceInfo info) {
-        EmbeddingStoreDefinition definition = new EmbeddingStoreDefinition();
+    private AiEmbeddingStoreDefinition definition(VectorDataSourceInfo info) {
+        AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
         definition.setKey(info.getKey());
+        definition.setFramework(info.getFramework());
         definition.setProvider(info.getProvider());
+        definition.setType(AiEmbeddingStoreType.VECTOR);
         definition.setEnabled(info.isEnabled());
-        definition.setDimension(integerConfig(info, "dimension", info.getDimension()));
-        definition.setMetadataKeys(metadataKeys(info));
-        definition.setProperties(properties(info));
+        Map<String, Object> properties = properties(info);
+        Integer dimension = integerConfig(info, "dimension", info.getDimension());
+        if (dimension != null) {
+            properties.put("dimension", dimension);
+        }
+        List<String> metadataKeys = metadataKeys(info);
+        if (!metadataKeys.isEmpty()) {
+            properties.put("metadataKeys", metadataKeys);
+        }
+        definition.setProperties(properties);
         return definition;
     }
 
@@ -159,13 +171,13 @@ public class MagicDynamicVectorDataSource implements VectorStoreResolver {
 
     private void validate(VectorDataSourceInfo definition) {
         if (definition == null) {
-            throw new EmbeddingStoreException("Vector datasource must not be null");
+            throw new AiEmbeddingStoreException("Vector datasource must not be null");
         }
         if (isBlank(definition.getKey())) {
-            throw new EmbeddingStoreException("Vector datasource key must not be blank");
+            throw new AiEmbeddingStoreException("Vector datasource key must not be blank");
         }
         if (isBlank(definition.getProvider())) {
-            throw new EmbeddingStoreException("Vector datasource provider must not be blank: " + definition.getKey());
+            throw new AiEmbeddingStoreException("Vector datasource provider must not be blank: " + definition.getKey());
         }
     }
 

@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model;
 
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
@@ -19,8 +19,9 @@ public class ModelDataSourceInfo extends MagicEntity {
 
     private String name;
     private String key;
+    private String framework;
     private String provider;
-    private LangChain4jModelType modelType;
+    private AiModelType modelType;
     private boolean enabled = true;
     private String baseUrl;
     private String apiKey;
@@ -33,21 +34,20 @@ public class ModelDataSourceInfo extends MagicEntity {
     private String password;
     private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
-    public LangChain4jModelDefinition toDefinition() {
+    public AiModelDefinition toDefinition() {
         List<String> modelNames = modelNames();
         String singleModelName = modelNames.isEmpty() ? null : modelNames.get(0);
         return toDefinition(key, singleModelName, modelConfig(singleModelName));
     }
 
-    public LangChain4jModelDefinition toDefinition(String definitionKey, String resolvedModelName, ModelConfig modelConfig) {
-        LangChain4jModelDefinition definition = new LangChain4jModelDefinition();
+    public AiModelDefinition toDefinition(String definitionKey, String resolvedModelName, ModelConfig modelConfig) {
+        AiModelDefinition definition = new AiModelDefinition();
         definition.setKey(definitionKey);
+        definition.setFramework(modelConfig != null && !isBlank(modelConfig.getFramework())
+                ? modelConfig.getFramework() : framework);
         definition.setProvider(modelConfig != null && !isBlank(modelConfig.getProvider()) ? modelConfig.getProvider() : provider);
-        definition.setModelType(modelConfig != null && modelConfig.getModelType() != null ? modelConfig.getModelType() : modelType);
+        definition.setType(modelConfig != null && modelConfig.getModelType() != null ? modelConfig.getModelType() : modelType);
         definition.setEnabled(enabled);
-        definition.setBaseUrl(modelConfig != null && !isBlank(modelConfig.getBaseUrl()) ? modelConfig.getBaseUrl() : baseUrl);
-        definition.setApiKey(modelConfig != null && !isBlank(modelConfig.getApiKey()) ? modelConfig.getApiKey() : apiKey);
-        definition.setModelName(resolvedModelName);
         Map<String, Object> definitionProperties = new LinkedHashMap<String, Object>();
         if (properties != null) {
             definitionProperties.putAll(properties);
@@ -55,7 +55,11 @@ public class ModelDataSourceInfo extends MagicEntity {
         if (modelConfig != null && modelConfig.getProperties() != null) {
             definitionProperties.putAll(modelConfig.getProperties());
         }
-        putCredential(definitionProperties, "apiKey", definition.getApiKey());
+        putCredential(definitionProperties, "baseUrl",
+                modelConfig != null && !isBlank(modelConfig.getBaseUrl()) ? modelConfig.getBaseUrl() : baseUrl);
+        putCredential(definitionProperties, "apiKey",
+                modelConfig != null && !isBlank(modelConfig.getApiKey()) ? modelConfig.getApiKey() : apiKey);
+        putCredential(definitionProperties, "modelName", resolvedModelName);
         putCredential(definitionProperties, "secretKey", secretKey);
         putCredential(definitionProperties, "accessToken", accessToken);
         putCredential(definitionProperties, "token", token);
@@ -105,6 +109,7 @@ public class ModelDataSourceInfo extends MagicEntity {
         }
         info.setName(name);
         info.setKey(key);
+        info.setFramework(framework);
         info.setProvider(provider);
         info.setModelType(modelType);
         info.setEnabled(enabled);
@@ -197,8 +202,9 @@ public class ModelDataSourceInfo extends MagicEntity {
     public static class ModelConfig {
 
         private Boolean enabled;
+        private String framework;
         private String provider;
-        private LangChain4jModelType modelType;
+        private AiModelType modelType;
         private String baseUrl;
         private String apiKey;
         private Map<String, Object> properties = new LinkedHashMap<String, Object>();
@@ -206,6 +212,7 @@ public class ModelDataSourceInfo extends MagicEntity {
         private ModelConfig copy(boolean includeSensitiveFields) {
             ModelConfig config = new ModelConfig();
             config.setEnabled(enabled);
+            config.setFramework(framework);
             config.setProvider(provider);
             config.setModelType(modelType);
             config.setBaseUrl(baseUrl);

@@ -16,6 +16,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataSubAgentReque
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataSubAgentResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadataProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
@@ -26,11 +27,20 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidationResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.DefaultLangChain4jModelRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModel;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
+import com.xiongx9527.fw.plus.ai.model.DefaultAiModelRegistry;
 import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
@@ -38,15 +48,18 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AskDataAutoConfigurationTest {
@@ -71,6 +84,7 @@ public class AskDataAutoConfigurationTest {
             assertTrue(context.getBean(AskDataConversationStore.class) != null);
             assertTrue(context.getBean(AskDataContextCompressor.class) != null);
             assertTrue(context.getBean(AskDataService.class) != null);
+            assertTrue(context.getBean(com.xiongx9527.fw.plus.ai.askdata.api.AskDataService.class) != null);
             assertTrue(context.getBean(AskDataDialectRegistry.class) != null);
             assertTrue(context.getBean(AskDataAgentDispatcher.class) != null);
         });
@@ -82,6 +96,36 @@ public class AskDataAutoConfigurationTest {
             assertTrue(!context.containsBean("askDataModelRegistry"));
             assertTrue(!context.containsBean("askDataService"));
         });
+    }
+
+    @Test
+    public void shouldRejectDefaultVectorRetrieverWhenClusterModeIsEnabled() {
+        AskDataProperties properties = new AskDataProperties();
+        properties.getState().setClusterMode(true);
+        properties.getState().setStore("redis");
+        properties.getVector().setStore("memory");
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+                () -> new AskDataAutoConfiguration().askDataVectorRetriever(properties,
+                        new DefaultListableBeanFactory().getBeanProvider(ContentRetriever.class),
+                        new DefaultListableBeanFactory().getBeanProvider(dev.langchain4j.store.embedding.EmbeddingStore.class),
+                        new DefaultListableBeanFactory().getBeanProvider(EmbeddingModel.class)));
+
+        assertTrue(exception.getMessage().contains("向量"));
+    }
+
+    @Test
+    public void shouldAllowSharedVectorModeWhenClusterModeIsEnabled() {
+        AskDataProperties properties = new AskDataProperties();
+        properties.getState().setClusterMode(true);
+        properties.getVector().setStore("shared");
+
+        AskDataVectorRetriever retriever = new AskDataAutoConfiguration().askDataVectorRetriever(properties,
+                new DefaultListableBeanFactory().getBeanProvider(ContentRetriever.class),
+                new DefaultListableBeanFactory().getBeanProvider(dev.langchain4j.store.embedding.EmbeddingStore.class),
+                new DefaultListableBeanFactory().getBeanProvider(EmbeddingModel.class));
+
+        assertTrue(retriever != null);
     }
 
     @Test
@@ -112,6 +156,22 @@ public class AskDataAutoConfigurationTest {
     }
 
     @Test
+    public void shouldExposeCoreAskDataServiceAndPreferBusinessImplementation() {
+        com.xiongx9527.fw.plus.ai.askdata.api.AskDataService customService =
+                new com.xiongx9527.fw.plus.ai.askdata.api.AskDataService() {
+                    @Override
+                    public com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult ask(
+                            com.xiongx9527.fw.plus.ai.askdata.api.AskDataRequest request) {
+                        return com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult.success("业务实现");
+                    }
+                };
+
+        contextRunner.withBean(com.xiongx9527.fw.plus.ai.askdata.api.AskDataService.class, () -> customService)
+                .run(context -> assertSame(customService,
+                        context.getBean(com.xiongx9527.fw.plus.ai.askdata.api.AskDataService.class)));
+    }
+
+    @Test
     public void shouldUseUserAskDataPropertiesForDefaultBeans() {
         AskDataProperties customProperties = new AskDataProperties();
         customProperties.getModel().setDefaultChatModel("custom-model");
@@ -126,7 +186,7 @@ public class AskDataAutoConfigurationTest {
     @Test
     public void shouldUseDirectLangChain4jBeansWithoutOptionalModelCore() {
         contextRunner
-                .withClassLoader(new FilteredClassLoader("com.xiongx9527.fw.plus.ai.langchain4j.model"))
+                .withClassLoader(new FilteredClassLoader("com.xiongx9527.fw.plus.ai.langchain4j.adapter"))
                 .withPropertyValues(
                         "fw.plus.ai.askdata.model.default-chat-model=directChat",
                         "fw.plus.ai.askdata.model.default-embedding-model=directEmbedding")
@@ -142,14 +202,19 @@ public class AskDataAutoConfigurationTest {
 
     @Test
     public void shouldUseModelsFromOptionalModelRegistry() {
-        Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
-        models.put("managed", new LangChain4jModel("test", LangChain4jModelType.CHAT,
-                chatModel("managed-response")));
-        LangChain4jModelRegistry modelRegistry = new DefaultLangChain4jModelRegistry(models, "managed");
+        Map<String, AiModel> models = new LinkedHashMap<String, AiModel>();
+        AiModelDefinition definition = new AiModelDefinition();
+        definition.setKey("managed");
+        definition.setFramework("langchain4j");
+        definition.setProvider("test");
+        definition.setType(AiModelType.CHAT);
+        models.put("managed", new LangChain4jAiModel(definition,
+                new LangChain4jModel("test", LangChain4jModelType.CHAT, chatModel("managed-response"))));
+        AiModelRegistry modelRegistry = new DefaultAiModelRegistry(models, "managed");
 
         contextRunner
                 .withPropertyValues("fw.plus.ai.askdata.model.default-chat-model=managed")
-                .withBean(LangChain4jModelRegistry.class, () -> modelRegistry)
+                .withBean(AiModelRegistry.class, () -> modelRegistry)
                 .run(context -> {
                     assertTrue(context.getStartupFailure() == null);
                     assertEquals("managed-response", context.getBean(AskDataModelRegistry.class)
@@ -171,6 +236,35 @@ public class AskDataAutoConfigurationTest {
                     assertTrue(hasStep(result, "merge-sub-agents"));
                     assertTrue(context.getBean(AskDataConversationStore.class)
                             .loadLatest(result.getConversationId()) != null);
+                    java.util.List<com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog> logs =
+                            context.getBean(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.class)
+                                    .list(new com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext("default", "default"));
+                    assertTrue(hasLifecycleEvent(logs, "CONVERSATION_STARTED"));
+                    assertTrue(hasLifecycleEvent(logs, "CONVERSATION_COMPLETED"));
+                });
+    }
+
+    @Test
+    public void shouldIsolateFailingCustomPublisherAfterPersistingBaseMonitoringLogs() {
+        final java.util.concurrent.atomic.AtomicInteger customPublishCount =
+                new java.util.concurrent.atomic.AtomicInteger();
+        withDefaultFlowDependencies()
+                .withBean(com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher.class,
+                        () -> event -> {
+                            customPublishCount.incrementAndGet();
+                            throw new IllegalStateException("external exporter unavailable");
+                        })
+                .run(context -> {
+                    AskDataResult result = context.getBean(AskDataService.class).ask(createRequest());
+                    java.util.List<com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog> logs =
+                            context.getBean(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.class)
+                                    .list(new com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext(
+                                            "default", "default"));
+
+                    assertTrue(result.isSuccess());
+                    assertTrue(hasLifecycleEvent(logs, "CONVERSATION_STARTED"));
+                    assertTrue(hasLifecycleEvent(logs, "CONVERSATION_COMPLETED"));
+                    assertTrue(customPublishCount.get() > 0);
                 });
     }
 
@@ -228,8 +322,15 @@ public class AskDataAutoConfigurationTest {
 
     private ApplicationContextRunner withDefaultFlowDependencies() {
         return contextRunner
+                .withBean(AskDataGovernanceProvider.class,
+                        () -> request -> AskDataAuthorizationSummary.allow(request, Collections.singletonList(
+                                new AskDataAuthorizedObject("orders", "orders", "*")),
+                                Collections.emptyList(), "policy-v1", "test-governance",
+                                AskDataAdministrativeScope.none()))
                 .withBean(AskDataMetadataProvider.class,
-                        () -> request -> new AskDataMetadata("mysql", null, null, null, null))
+                        () -> request -> new AskDataMetadata("mysql",
+                                Collections.singletonList(new AskDataTable("orders", Collections.emptyList())),
+                                null, null, null))
                 .withBean(AskDataModelRegistry.class, () -> new AskDataModelRegistry() {
                     @Override
                     public AskDataChatModel getChatModel(String modelKey) {
@@ -256,6 +357,7 @@ public class AskDataAutoConfigurationTest {
     private AskDataRequest createRequest() {
         AskDataRequest request = new AskDataRequest();
         request.setQuestion("订单数量");
+        request.setProjectContext(new com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext("default", "default"));
         request.setDatasourceKey("orders");
         request.setExecute(Boolean.FALSE);
         return request;
@@ -269,6 +371,17 @@ public class AskDataAutoConfigurationTest {
     private boolean hasStep(AskDataResult result, String stepKey) {
         for (com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog step : result.getSteps()) {
             if (stepKey.equals(step.getStepKey())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasLifecycleEvent(
+            java.util.List<com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog> logs,
+            String eventType) {
+        for (com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog log : logs) {
+            if (eventType.equals(log.getEventType())) {
                 return true;
             }
         }

@@ -6,6 +6,7 @@ import org.springframework.core.io.ClassPathResource;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AskDataAutoConfigurationRegistrationTest {
@@ -16,7 +17,7 @@ public class AskDataAutoConfigurationRegistrationTest {
         String imports = read("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports");
         String autoConfiguration = "com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration";
         assertTrue(factories.contains(autoConfiguration));
-        assertTrue(imports.contains(autoConfiguration));
+        assertFalse(imports.contains(autoConfiguration));
     }
 
     private String read(String path) throws Exception {

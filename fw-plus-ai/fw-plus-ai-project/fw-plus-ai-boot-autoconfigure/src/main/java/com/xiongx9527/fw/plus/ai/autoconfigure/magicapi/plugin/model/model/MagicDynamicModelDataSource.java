@@ -1,12 +1,12 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.common.MagicAPIConfigUtils;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelException;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelFactory;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModel;
+import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
+import com.xiongx9527.fw.plus.ai.model.AiModelException;
+import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,18 +19,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MagicDynamicModelDataSource {
 
-    private final LangChain4jModelRegistry springBootRegistry;
-    private final LangChain4jModelFactory modelFactory;
-    private final List<LangChain4jModelProviderAdapter> providerAdapters;
-    private final Map<String, LangChain4jModel> runtimeModels = new ConcurrentHashMap<String, LangChain4jModel>();
+    private final AiModelRegistry springBootRegistry;
+    private final AiModelFactory modelFactory;
+    private final List<AiModelAdapter> providerAdapters;
+    private final Map<String, AiModel> runtimeModels = new ConcurrentHashMap<String, AiModel>();
     private final Map<String, ModelDataSourceInfo> runtimeInfos = new ConcurrentHashMap<String, ModelDataSourceInfo>();
 
-    public MagicDynamicModelDataSource(LangChain4jModelRegistry springBootRegistry,
-                                       LangChain4jModelFactory modelFactory,
-                                       List<LangChain4jModelProviderAdapter> providerAdapters) {
+    public MagicDynamicModelDataSource(AiModelRegistry springBootRegistry,
+                                       AiModelFactory modelFactory,
+                                       List<AiModelAdapter> providerAdapters) {
         this.springBootRegistry = springBootRegistry;
         this.modelFactory = modelFactory;
-        this.providerAdapters = providerAdapters == null ? Collections.<LangChain4jModelProviderAdapter>emptyList() : providerAdapters;
+        this.providerAdapters = providerAdapters == null ? Collections.<AiModelAdapter>emptyList() : providerAdapters;
     }
 
     public void createClient(ModelDataSourceInfo info) {
@@ -42,7 +42,7 @@ public class MagicDynamicModelDataSource {
         }
         validateEnabled(configuredInfo);
         ModelDataSourceInfo runtimeInfo = configuredInfo.copy();
-        Map<String, LangChain4jModel> models = createModels(configuredInfo);
+        Map<String, AiModel> models = createModels(configuredInfo);
         runtimeModels.putAll(models);
         runtimeInfos.put(configuredInfo.getKey(), runtimeInfo);
     }
@@ -68,15 +68,15 @@ public class MagicDynamicModelDataSource {
         return nodes;
     }
 
-    public LangChain4jModel getModel(String key) {
-        LangChain4jModel model = runtimeModels.get(key);
+    public AiModel getModel(String key) {
+        AiModel model = runtimeModels.get(key);
         if (model != null) {
             return model;
         }
         return springBootRegistry == null ? null : springBootRegistry.get(key);
     }
 
-    public LangChain4jModel getDefault() {
+    public AiModel getDefault() {
         if (springBootRegistry == null) {
             return null;
         }
@@ -84,9 +84,9 @@ public class MagicDynamicModelDataSource {
         if (!isBlank(defaultKey)) {
             return getModel(defaultKey);
         }
-        LangChain4jModel springDefault = springBootRegistry.getDefault();
+        AiModel springDefault = springBootRegistry.getDefault();
         for (String key : springBootRegistry.keys()) {
-            LangChain4jModel springModel = springBootRegistry.get(key);
+            AiModel springModel = springBootRegistry.get(key);
             if (springModel == springDefault || springModel.equals(springDefault)) {
                 return getModel(key);
             }
@@ -109,41 +109,41 @@ public class MagicDynamicModelDataSource {
 
     private void validateKey(ModelDataSourceInfo info) {
         if (info == null) {
-            throw new LangChain4jModelException("Model datasource must not be null");
+            throw new AiModelException("Model datasource must not be null");
         }
         if (isBlank(info.getKey())) {
-            throw new LangChain4jModelException("Model datasource key must not be blank");
+            throw new AiModelException("Model datasource key must not be blank");
         }
     }
 
     private void validateEnabled(ModelDataSourceInfo info) {
         if (isBlank(info.getProvider())) {
-            throw new LangChain4jModelException("Model datasource provider must not be blank: " + info.getKey());
+            throw new AiModelException("Model datasource provider must not be blank: " + info.getKey());
         }
         if (info.getModelType() == null) {
-            throw new LangChain4jModelException("Model datasource model type must not be null: " + info.getKey());
+            throw new AiModelException("Model datasource model type must not be null: " + info.getKey());
         }
         List<String> modelNames = info.modelNames();
         if (modelNames.isEmpty()) {
-            throw new LangChain4jModelException("Model datasource modelName must not be empty: " + info.getKey());
+            throw new AiModelException("Model datasource modelName must not be empty: " + info.getKey());
         }
         for (String modelName : modelNames) {
             if (isBlank(modelName)) {
-                throw new LangChain4jModelException("Model datasource modelName must not be blank: " + info.getKey());
+                throw new AiModelException("Model datasource modelName must not be blank: " + info.getKey());
             }
         }
         if (modelNames.size() > 1 && !isBlank(info.getDefaultModelName()) && !modelNames.contains(info.getDefaultModelName().trim())) {
-            throw new LangChain4jModelException("Model datasource defaultModelName is invalid: "
+            throw new AiModelException("Model datasource defaultModelName is invalid: "
                     + info.getKey() + "." + info.getDefaultModelName());
         }
     }
 
-    private Map<String, LangChain4jModel> createModels(ModelDataSourceInfo info) {
+    private Map<String, AiModel> createModels(ModelDataSourceInfo info) {
         List<String> modelNames = info.modelNames();
         if (modelNames.size() <= 1) {
             return Collections.singletonMap(info.getKey(), modelFactory.create(info.toDefinition(), providerAdapters));
         }
-        Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
+        Map<String, AiModel> models = new LinkedHashMap<String, AiModel>();
         for (String modelName : modelNames) {
             ModelDataSourceInfo.ModelConfig modelConfig = info.modelConfig(modelName);
             if (modelConfig != null && Boolean.FALSE.equals(modelConfig.getEnabled())) {
@@ -153,9 +153,9 @@ public class MagicDynamicModelDataSource {
             models.put(modelKey, modelFactory.create(info.toDefinition(modelKey, modelName, modelConfig), providerAdapters));
         }
         String defaultModelName = isBlank(info.getDefaultModelName()) ? modelNames.get(0) : info.getDefaultModelName().trim();
-        LangChain4jModel defaultModel = models.get(info.getKey() + "." + defaultModelName);
+        AiModel defaultModel = models.get(info.getKey() + "." + defaultModelName);
         if (defaultModel == null) {
-            throw new LangChain4jModelException("Model datasource defaultModelName is invalid: "
+            throw new AiModelException("Model datasource defaultModelName is invalid: "
                     + info.getKey() + "." + defaultModelName);
         }
         models.put(info.getKey(), defaultModel);
@@ -164,6 +164,7 @@ public class MagicDynamicModelDataSource {
 
     private ModelDataSourceInfo configured(ModelDataSourceInfo source) {
         ModelDataSourceInfo info = source.copy();
+        info.setFramework(config(info, "framework", info.getFramework()));
         info.setProvider(config(info, "provider", info.getProvider()));
         info.setModelType(modelType(config(info, "modelType", info.getModelType() == null ? null : info.getModelType().name())));
         info.setBaseUrl(config(info, "baseUrl", info.getBaseUrl()));
@@ -176,11 +177,11 @@ public class MagicDynamicModelDataSource {
         return info;
     }
 
-    private LangChain4jModelType modelType(String value) {
+    private AiModelType modelType(String value) {
         if (isBlank(value)) {
             return null;
         }
-        return LangChain4jModelType.valueOf(value.trim().toUpperCase());
+        return AiModelType.valueOf(value.trim().toUpperCase());
     }
 
     private String config(ModelDataSourceInfo info, String configKey, String defaultValue) {

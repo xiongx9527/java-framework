@@ -19,6 +19,7 @@
         <module>fw-plus-jimu-spring-boot-starter</module>
         <module>fw-plus-file-storage-spring-boot-starter</module>
         <module>fw-plus-magicapi-spring-boot-starter</module>
+        <module>fw-plus-tiny-engine-spring-boot-starter</module>
         <module>fw-plus-magicapi-plugin</module>
         <module>fw-plus-uid-spring-boot-starter</module>
         <module>fw-plus-mqtt-server-spring-boot-starter</module>

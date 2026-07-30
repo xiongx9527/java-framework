@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -11,6 +12,8 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -25,11 +28,13 @@ import static org.junit.Assert.assertTrue;
 public class LangChain4jAutoConfigurationRegistrationTest {
 
 	private static final String MODEL_AUTO_CONFIGURATION =
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration";
+			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration";
 
 	private static final String[] REQUIRED_STARTER_DEPENDENCIES = new String[] {
-			"fw-plus-ai-boot-starter",
-			"fw-plus-ai-langchain4j-model"
+			"fw-plus-ai-model-spring-boot-starter",
+			"fw-plus-ai-store-embedding-spring-boot-starter",
+			"fw-plus-ai-langchain4j-adapter",
+			"fw-plus-ai-boot-autoconfigure"
 	};
 
 	private static final String[] PROVIDER_SDK_ARTIFACTS = new String[] {
@@ -203,33 +208,62 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 	}
 
 	@Test
-	public void shouldRegisterModelAutoConfigurationInSpringFactories() throws Exception {
+	public void shouldRegisterAdapterAutoConfigurationInSpringFactories() throws Exception {
+		String factoriesContent = read("META-INF/spring.factories");
+		String importsContent = read("META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports");
 		Properties factories = new Properties();
-		InputStream inputStream = getClass().getClassLoader().getResourceAsStream("META-INF/spring.factories");
-		assertNotNull("spring.factories should be present", inputStream);
-		try {
-			factories.load(inputStream);
-		} finally {
-			inputStream.close();
-		}
+		factories.load(new java.io.StringReader(factoriesContent));
 
 		String autoConfigurations = factories.getProperty("org.springframework.boot.autoconfigure.EnableAutoConfiguration");
 		assertNotNull("EnableAutoConfiguration entries should be present", autoConfigurations);
-		assertTrue("LangChain4jModelAutoConfiguration should be registered",
+		assertTrue("LangChain4jAdapterAutoConfiguration should be registered",
 				Arrays.asList(autoConfigurations.replace("\\n", "").split("\\s*,\\s*")).contains(MODEL_AUTO_CONFIGURATION));
+		assertEquals("LangChain4jAdapterAutoConfiguration should occur once in spring.factories", 1,
+				occurrences(factoriesContent, MODEL_AUTO_CONFIGURATION));
+		assertEquals("LangChain4jAdapterAutoConfiguration should occur once in AutoConfiguration.imports", 1,
+				occurrences(importsContent, MODEL_AUTO_CONFIGURATION));
+		assertTrue("Adapter root should not import legacy provider autoconfiguration eagerly",
+				!importClassNames(LangChain4jAdapterAutoConfiguration.class)
+						.contains(LangChain4jAutoConfiguration.class.getName()));
+	}
+
+	private String read(String location) throws Exception {
+		InputStream inputStream = getClass().getClassLoader().getResourceAsStream(location);
+		assertNotNull(location + " should be present", inputStream);
+		try {
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			byte[] buffer = new byte[1024];
+			int length;
+			while ((length = inputStream.read(buffer)) >= 0) {
+				outputStream.write(buffer, 0, length);
+			}
+			return new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+		} finally {
+			inputStream.close();
+		}
+	}
+
+	private int occurrences(String content, String value) {
+		int count = 0;
+		int index = 0;
+		while ((index = content.indexOf(value, index)) >= 0) {
+			count++;
+			index += value.length();
+		}
+		return count;
 	}
 
 	@Test
-	public void shouldKeepModelStarterProviderSdkDependenciesOptIn() throws Exception {
-		File starterPom = findModelStarterPom();
-		assertTrue("Model starter POM should exist: " + starterPom.getAbsolutePath(), starterPom.isFile());
+	public void shouldKeepAdapterStarterProviderSdkDependenciesOptIn() throws Exception {
+		File starterPom = findAdapterStarterPom();
+		assertTrue("Adapter starter POM should exist: " + starterPom.getAbsolutePath(), starterPom.isFile());
 
 		Set<String> artifactIds = dependencyArtifactIds(starterPom);
 		for (String requiredDependency : REQUIRED_STARTER_DEPENDENCIES) {
-			assertTrue("Model starter should depend on " + requiredDependency, artifactIds.contains(requiredDependency));
+			assertTrue("Adapter starter should depend on " + requiredDependency, artifactIds.contains(requiredDependency));
 		}
 		for (String providerSdkArtifact : PROVIDER_SDK_ARTIFACTS) {
-			assertTrue("Model starter must not directly depend on " + providerSdkArtifact,
+			assertTrue("Adapter starter must not directly depend on " + providerSdkArtifact,
 					!artifactIds.contains(providerSdkArtifact));
 		}
 	}
@@ -253,18 +287,18 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		return classNames;
 	}
 
-	private File findModelStarterPom() {
+	private File findAdapterStarterPom() {
 		File currentDirectory = new File(System.getProperty("user.dir"));
 		while (currentDirectory != null) {
 			File starterPom = new File(currentDirectory,
 					"fw-plus-ai-project/fw-plus-ai-boot-starters/"
-							+ "fw-plus-ai-langchain4j-model-spring-boot-starter/pom.xml");
+							+ "fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml");
 			if (starterPom.isFile()) {
 				return starterPom;
 			}
 			currentDirectory = currentDirectory.getParentFile();
 		}
-		return new File("fw-plus-ai-langchain4j-model-spring-boot-starter/pom.xml");
+		return new File("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml");
 	}
 
 	private Set<String> dependencyArtifactIds(File pom) throws Exception {

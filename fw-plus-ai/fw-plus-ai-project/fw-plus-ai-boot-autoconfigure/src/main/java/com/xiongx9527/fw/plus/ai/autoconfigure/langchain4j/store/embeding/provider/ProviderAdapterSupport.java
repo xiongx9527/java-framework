@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.provider;
 
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreException;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreException;
 import org.springframework.context.ApplicationContext;
 
 import java.util.ArrayList;
