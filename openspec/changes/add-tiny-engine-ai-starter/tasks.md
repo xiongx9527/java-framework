@@ -16,10 +16,10 @@
 
 ## 3. 配置与自动配置
 
-- [ ] 3.1 定义 TinyEngine AI 配置属性，覆盖总开关、Provider 选择、Chat/RAG/Vector 能力级开关、中立模型 key、中立向量 store key、RAG 参数和缺失依赖策略。
-- [ ] 3.2 实现自动配置条件，确保总开关关闭时不创建 TinyEngine AI Chat、RAG、知识库向量化和 Provider 运行时 Bean。
-- [ ] 3.3 实现能力级条件，支持只启用 Chat 而不要求 EmbeddingModel 或向量存储。
-- [ ] 3.4 实现 RAG 启用时的模型、Embedding 能力和中立向量 store 配置校验。
+- [x] 3.1 定义 TinyEngine AI 配置属性，覆盖总开关、Provider 选择、Chat/RAG/Vector 能力级开关、中立模型 key、中立向量 store key、RAG 参数和缺失依赖策略。
+- [x] 3.2 实现自动配置条件，确保总开关关闭时不创建 TinyEngine AI Chat、RAG、知识库向量化和 Provider 运行时 Bean。
+- [x] 3.3 实现能力级条件，支持只启用 Chat 而不要求 EmbeddingModel 或向量存储。
+- [x] 3.4 实现 RAG 启用时的模型、Embedding 能力和中立向量 store 配置校验。
 - [ ] 3.5 调整 AskData 默认自动配置，使 `AskDataModelRegistry` 和 `AskDataVectorRetriever` 默认从 `AiModelRegistry` / `AiEmbeddingStoreRegistry` 获取能力，并保留业务 Bean 覆盖点。
 
 ## 4. Provider SPI
@@ -57,14 +57,14 @@
 
 ## 8. 兼容入口与样例
 
-- [ ] 8.1 提供 TinyEngine AI Chat、RAG 搜索和知识库写入服务契约，供 Web 层或 TinyEngine core 复用。
+- [x] 8.1 提供 TinyEngine AI Chat、RAG 搜索和知识库写入服务契约，供 Web 层或 TinyEngine core 复用。
 - [ ] 8.2 如实现 REST 路由，添加独立 web enabled 开关和 path prefix 配置，避免与宿主 `/app-center/api/*` 路由冲突。
 - [ ] 8.3 添加 sample 或文档，展示默认 LangChain4j adapter Chat、Streaming Chat、RAG、中立向量 store 配置、禁用 AI 和缺失依赖策略。
 - [ ] 8.4 更新 AskData 文档或 starter README，说明 AskData 使用当前中立 AI 模型/向量配置和默认 LangChain4j adapter 的方式。
 
 ## 9. 验证
 
-- [ ] 9.1 添加 TinyEngine AI 自动配置条件测试，覆盖总开关关闭、仅 Chat 启用、RAG 启用缺依赖 fail-fast 和显式 degrade。
+- [x] 9.1 添加 TinyEngine AI 自动配置条件测试，覆盖总开关关闭、仅 Chat 启用、RAG 启用缺依赖 fail-fast 和显式 degrade。
 - [ ] 9.2 添加 TinyEngine Provider SPI 测试，覆盖默认 LangChain4j Provider、自定义 Provider 和 unsupported capability。
 - [ ] 9.3 添加 TinyEngine RAG 服务测试，覆盖文档写入、格式过滤、按集合检索、跨集合检索和向量 store key 缺失错误。
 - [ ] 9.4 添加 AskData 中立模型/向量边界测试，覆盖 `AiModelRegistry`、`AiEmbeddingStoreRegistry`、adapter 缺失、业务 Bean 覆盖和旧原生桥接隔离。
