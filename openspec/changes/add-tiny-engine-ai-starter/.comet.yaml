@@ -1,6 +1,6 @@
 workflow: full
 language: zh-CN
-phase: verify
+phase: build
 context_compression: off
 build_mode: subagent-driven-development
 build_pause: null
@@ -8,13 +8,13 @@ subagent_dispatch: confirmed
 tdd_mode: tdd
 review_mode: off
 isolation: current
-verify_mode: null
+verify_mode: full
 auto_transition: true
 base_ref: 18be86e44a394e943c7177aa1cb7a1a27d8bcfb4
 design_doc: docs/superpowers/specs/2026-07-30-add-tiny-engine-ai-starter-design.md
 plan: docs/superpowers/plans/2026-07-30-add-tiny-engine-ai-starter.md
-verify_result: pending
-verify_failures: 0
+verify_result: fail
+verify_failures: 1
 verification_report: null
 branch_status: pending
 created_at: 2026-07-27
