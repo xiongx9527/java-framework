@@ -63,6 +63,36 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-p
 
 ---
 
+# Task 2 Follow-up Fix Report
+
+## 修复内容
+
+- RAG 依赖现在要求 Registry 同时登记 key 且 `get(key)` 返回非空模型或向量 store；默认 key 映射到空实例时按 fail-fast 策略拒绝启动。
+- `missingDependencyPolicy` 统一 trim 后校验与使用；`" degrade "` 规范化为 `degrade` 并返回受控不可用 RAG 服务，空白和未知值仍拒绝启动。
+
+## RED/GREEN 证据
+
+### RED
+
+先修改 `TinyEngineAiAutoConfigurationTest`，再运行：
+
+```bash
+JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngineAiAutoConfigurationTest
+```
+
+结果：8 个测试中，默认 key 已登记但 `get()` 返回 `null` 的场景未 fail-fast；原始 `" degrade "` 通过校验后未进入受控降级，分别产生 1 个失败和 1 个错误。
+
+### GREEN
+
+同一命令结果：`BUILD SUCCESS`，8 tests，0 failures、0 errors、0 skipped。
+
+## 风险信号与顾虑
+
+- 目标测试仍输出既有 BOM 重复 dependencyManagement 与 SLF4J 多绑定警告，均非本修复引入。
+- 未修改 AskData、Provider SPI/DTO、真实 LangChain4j provider 或 Task 6 RAG 业务逻辑。
+
+---
+
 # Task 2 Critical Fix Report
 
 ## 修复内容
