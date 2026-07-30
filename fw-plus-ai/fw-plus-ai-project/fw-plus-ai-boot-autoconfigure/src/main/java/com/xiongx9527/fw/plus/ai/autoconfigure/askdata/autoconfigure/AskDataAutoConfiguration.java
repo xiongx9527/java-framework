@@ -27,8 +27,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.EmptyAskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
-import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.LangChain4jAskDataModelRegistry;
-import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.LangChain4jAskDataModelSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AiModelAskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataMemoryRecallAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataRecommendationAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialectRegistry;
@@ -59,7 +58,7 @@ import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
@@ -249,11 +248,8 @@ public class AskDataAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public AskDataModelRegistry askDataModelRegistry(AskDataProperties properties,
-			Map<String, ChatLanguageModel> chatModels,
-			Map<String, EmbeddingModel> embeddingModels,
-			ObjectProvider<LangChain4jAskDataModelSource> modelSourceProvider) {
-		return new LangChain4jAskDataModelRegistry(properties, chatModels, embeddingModels,
-				modelSourceProvider.orderedStream().collect(Collectors.toList()));
+			ObjectProvider<AiModelRegistry> modelRegistryProvider) {
+		return new AiModelAskDataModelRegistry(properties, modelRegistryProvider.getIfAvailable());
 	}
 
     @Bean
