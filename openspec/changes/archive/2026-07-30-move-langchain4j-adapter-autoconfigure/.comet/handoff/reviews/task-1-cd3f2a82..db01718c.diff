@@ -1,0 +1,190 @@
+# Review package: cd3f2a82..db01718c
+
+## Commits
+db01718c test(ai): define consolidated autoconfigure boundary
+
+## Files changed
+ .../ai/autoconfigure/NeutralAiAutoConfigurationBoundaryTest.java | 9 +++++++--
+ .../fw/plus/ai/starter/LegacyAiArtifactBoundaryTest.java         | 9 ++++++++-
+ .../fw/plus/ai/starter/NeutralStarterDependencyTest.java         | 7 +++++++
+ 3 files changed, 22 insertions(+), 3 deletions(-)
+
+## Diff
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/NeutralAiAutoConfigurationBoundaryTest.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/NeutralAiAutoConfigurationBoundaryTest.java
+index ab401d5d..4b04e8d6 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/NeutralAiAutoConfigurationBoundaryTest.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/NeutralAiAutoConfigurationBoundaryTest.java
+@@ -15,21 +15,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
+ public class NeutralAiAutoConfigurationBoundaryTest {
+ 
+ 	private static final List<String> PUBLIC_AUTOCONFIGURATION_MARKERS = Arrays.asList(
+ 			"dev.langchain4j",
+ 			"com.xiongx9527.fw.plus.ai.langchain4j",
+ 			"fw-plus.ai.langchain4j",
+ 			"fw.plus.ai.langchain4j");
+ 
+ 	private static final String[] REMOVED_PUBLIC_REGISTRATIONS = new String[] {
+ 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.openapi.Langchain4jOpenApiAutoConfiguration",
+-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAutoConfiguration",
+ 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration",
+ 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration"
+ 	};
+ 
+ 	@Test
+ 	public void shouldKeepPublicAutoConfigurationFreeOfLangChain4jImplementation() throws Exception {
+ 		File moduleDirectory = findModuleDirectory();
+ 		File sourceRoot = new File(moduleDirectory, "src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure");
+ 		List<String> violations = new ArrayList<String>();
+ 		scanProductionJava(moduleDirectory, sourceRoot, violations);
+@@ -41,20 +40,24 @@ public class NeutralAiAutoConfigurationBoundaryTest {
+ 	@Test
+ 	public void shouldRegisterOnlyNeutralModelAndStoreAutoConfigurations() throws Exception {
+ 		File moduleDirectory = findModuleDirectory();
+ 		File factories = new File(moduleDirectory, "src/main/resources/META-INF/spring.factories");
+ 		String content = read(factories);
+ 
+ 		assertTrue(content.contains("com.xiongx9527.fw.plus.ai.autoconfigure.model.AiModelAutoConfiguration"),
+ 				"AiModelAutoConfiguration should be registered");
+ 		assertTrue(content.contains("com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration"),
+ 				"AiEmbeddingStoreAutoConfiguration should be registered");
++		assertTrue(content.contains(
++				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter."
++						+ "LangChain4jAdapterAutoConfiguration"),
++				"LangChain4jAdapterAutoConfiguration should be registered");
+ 		for (String removedPublicRegistration : REMOVED_PUBLIC_REGISTRATIONS) {
+ 			assertTrue(!content.contains(removedPublicRegistration),
+ 					"Public spring.factories still registers concrete framework auto-configuration: "
+ 							+ removedPublicRegistration);
+ 		}
+ 	}
+ 
+ 	private void scanProductionJava(File moduleDirectory, File file, List<String> violations) throws IOException {
+ 		if (!file.exists() || isIgnored(file)) {
+ 			return;
+@@ -76,21 +79,23 @@ public class NeutralAiAutoConfigurationBoundaryTest {
+ 			if (read(file).contains(marker)) {
+ 				violations.add(relativePath + " -> " + marker);
+ 			}
+ 		}
+ 	}
+ 
+ 	private boolean isIgnored(File file) {
+ 		String path = file.getPath().replace(File.separatorChar, '/');
+ 		return file.isDirectory() && ("target".equals(file.getName())
+ 				|| path.contains("/autoconfigure/askdata/")
+-				|| path.endsWith("/autoconfigure/askdata"));
++				|| path.endsWith("/autoconfigure/askdata")
++				|| path.contains("/autoconfigure/langchain4j/")
++				|| path.endsWith("/autoconfigure/langchain4j"));
+ 	}
+ 
+ 	private String read(File file) throws IOException {
+ 		return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+ 	}
+ 
+ 	private String relativePath(File root, File file) {
+ 		return root.toPath().relativize(file.toPath()).toString().replace(File.separatorChar, '/');
+ 	}
+ 
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/starter/LegacyAiArtifactBoundaryTest.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/starter/LegacyAiArtifactBoundaryTest.java
+index e01f0664..89ada765 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/starter/LegacyAiArtifactBoundaryTest.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/starter/LegacyAiArtifactBoundaryTest.java
+@@ -11,43 +11,50 @@ import java.util.Arrays;
+ import java.util.List;
+ 
+ import static org.junit.Assert.assertFalse;
+ import static org.junit.Assert.assertTrue;
+ 
+ public class LegacyAiArtifactBoundaryTest {
+ 
+ 	private static final List<String> LEGACY_MARKERS = Arrays.asList(
+ 			"fw-plus-ai-langchain4j-model",
+ 			"fw-plus-ai-langchain4j-store-embeding",
++			"fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure",
+ 			"fw-plus.ai.langchain4j.model",
+ 			"fw-plus.ai.langchain4j.embedding-store",
+ 			"com.xiongx9527.fw.plus.ai.langchain4j.model",
+ 			"com.xiongx9527.fw.plus.ai.langchain4j.store.embeding");
+ 
+ 	private static final List<String> FRAMEWORK_MARKERS = Arrays.asList(
+ 			"dev.langchain4j",
+ 			"org.springframework.ai",
+ 			"com.alibaba.cloud.ai",
+ 			"io.agentscope");
+ 
+ 	@Test
+ 	public void shouldRemoveLegacyArtifactDirectoriesAndProductionReferences() throws Exception {
+ 		File projectRoot = findProjectRoot();
+ 		List<String> legacyDirectories = Arrays.asList(
+ 				"fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-model",
+ 				"fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-store-embeding",
+ 				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-model-spring-boot-starter",
+-				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter");
++				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-store-embeding-spring-boot-starter",
++				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/"
++						+ "fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure");
+ 		for (String legacyDirectory : legacyDirectories) {
+ 			assertFalse("Legacy artifact directory must be deleted: " + legacyDirectory,
+ 					new File(projectRoot, legacyDirectory).exists());
+ 		}
++		File langChain4jPackage = new File(projectRoot,
++				"fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/"
++						+ "com/xiongx9527/fw/plus/ai/autoconfigure/langchain4j");
++		assertTrue("Unified autoconfigure must own LangChain4j package", langChain4jPackage.isDirectory());
+ 
+ 		List<String> violations = new ArrayList<String>();
+ 		scanProductionFiles(projectRoot, new File(projectRoot, "fw-plus-core"), LEGACY_MARKERS, violations);
+ 		scanProductionFiles(projectRoot, new File(projectRoot, "fw-plus-ai"), LEGACY_MARKERS, violations);
+ 		scanProductionFiles(projectRoot, new File(projectRoot, "fw-plus-sample"), LEGACY_MARKERS, violations);
+ 		assertTrue("Production POM/Java/YAML files retain legacy AI references: " + violations,
+ 				violations.isEmpty());
+ 	}
+ 
+ 	@Test
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/starter/NeutralStarterDependencyTest.java b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/starter/NeutralStarterDependencyTest.java
+index 027f45d1..48524cb1 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/starter/NeutralStarterDependencyTest.java
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/starter/NeutralStarterDependencyTest.java
+@@ -34,34 +34,41 @@ public class NeutralStarterDependencyTest {
+ 		assertDoesNotDependOnGroup("fw-plus-ai-model-spring-boot-starter/pom.xml", "dev.langchain4j");
+ 		assertDoesNotDependOnGroup("fw-plus-ai-store-embedding-spring-boot-starter/pom.xml", "dev.langchain4j");
+ 	}
+ 
+ 	@Test
+ 	public void shouldExposeLangChain4jAdapterThroughSingleStarterWithoutProviderSdkDependencies() throws Exception {
+ 		assertDependencies("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml",
+ 				"fw-plus-ai-model-spring-boot-starter",
+ 				"fw-plus-ai-store-embedding-spring-boot-starter",
+ 				"fw-plus-ai-langchain4j-adapter",
++				"fw-plus-ai-boot-autoconfigure");
++		assertDoesNotDependOn("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml",
+ 				"fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure");
+ 		assertDoesNotDependOnGroup("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml", "dev.langchain4j");
+ 		assertDoesNotDependOnGroup("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml", "io.milvus");
+ 
+ 		Set<String> bomArtifacts = dependencies(findProjectFile("fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml"), true);
+ 		assertTrue("AI Boot BOM must manage neutral model starter",
+ 				bomArtifacts.contains("fw-plus-ai-model-spring-boot-starter"));
+ 		assertTrue("AI Boot BOM must manage neutral embedding store starter",
+ 				bomArtifacts.contains("fw-plus-ai-store-embedding-spring-boot-starter"));
+ 		assertTrue("AI Boot BOM must manage the unified LangChain4j adapter starter",
+ 				bomArtifacts.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
++		assertFalse("AI Boot BOM must not manage the removed LangChain4j adapter autoconfigure artifact",
++				bomArtifacts.contains("fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure"));
+ 		Set<String> starterModules = modules(findProjectFile(STARTERS_PATH + "pom.xml"));
+ 		assertTrue("AI starters aggregator must include the unified LangChain4j adapter starter",
+ 				starterModules.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
++		assertFalse("AI project reactor must not include the removed LangChain4j adapter autoconfigure module",
++				modules(findProjectFile("fw-plus-ai-project/pom.xml"))
++						.contains("fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure"));
+ 	}
+ 
+ 	@Test
+ 	public void shouldValidateResolvedTransitiveDependenciesAtBuildTime() throws Exception {
+ 		assertBannedTransitiveDependencies("fw-plus-ai-model-spring-boot-starter/pom.xml",
+ 				"dev.langchain4j:*",
+ 				"com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter");
+ 		assertBannedTransitiveDependencies("fw-plus-ai-store-embedding-spring-boot-starter/pom.xml",
+ 				"dev.langchain4j:*",
+ 				"com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter");

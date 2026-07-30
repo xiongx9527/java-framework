@@ -22,7 +22,6 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 
 	private static final String[] REMOVED_PUBLIC_REGISTRATIONS = new String[] {
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.openapi.Langchain4jOpenApiAutoConfiguration",
-			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jAutoConfiguration",
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.model.LangChain4jModelAutoConfiguration",
 			"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration"
 	};
@@ -48,6 +47,10 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 				"AiModelAutoConfiguration should be registered");
 		assertTrue(content.contains("com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration"),
 				"AiEmbeddingStoreAutoConfiguration should be registered");
+		assertTrue(content.contains(
+				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter."
+						+ "LangChain4jAdapterAutoConfiguration"),
+				"LangChain4jAdapterAutoConfiguration should be registered");
 		for (String removedPublicRegistration : REMOVED_PUBLIC_REGISTRATIONS) {
 			assertTrue(!content.contains(removedPublicRegistration),
 					"Public spring.factories still registers concrete framework auto-configuration: "
@@ -83,7 +86,9 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 		String path = file.getPath().replace(File.separatorChar, '/');
 		return file.isDirectory() && ("target".equals(file.getName())
 				|| path.contains("/autoconfigure/askdata/")
-				|| path.endsWith("/autoconfigure/askdata"));
+				|| path.endsWith("/autoconfigure/askdata")
+				|| path.contains("/autoconfigure/langchain4j/")
+				|| path.endsWith("/autoconfigure/langchain4j"));
 	}
 
 	private String read(File file) throws IOException {

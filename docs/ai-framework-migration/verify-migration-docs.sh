@@ -65,6 +65,7 @@ forbidden_migration_phrases=(
 	"兼容映射"
 	"现有 fw-plus-ai-langchain4j-* 模块与 AI Boot starter"
 )
+removed_autoconfigure_artifact="fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure"
 
 failures=0
 
@@ -122,6 +123,13 @@ for doc_path in $starter_docs; do
 	require_literal "$doc_path" "Spring AI Alibaba" "starter 后续 Spring AI Alibaba 迁移说明"
 	require_literal "$doc_path" "AgentScope 2 Java" "starter 后续 AgentScope 迁移说明"
 	require_literal "$doc_path" "回滚" "starter 回滚说明"
+done
+
+for doc_path in $breaking_docs $starter_docs; do
+	if rg -n -F -- "$removed_autoconfigure_artifact" "$doc_path"; then
+		print -u2 -- "文档仍引用已删除 autoconfigure artifact: ${doc_path:t}"
+		failures=$((failures + 1))
+	fi
 done
 
 for doc_path in $framework_example_docs; do
