@@ -16,6 +16,12 @@ TBD - created by archiving change abstract-ai-model-and-embedding. Update Purpos
 - **THEN** 示例 SHALL 以同一个模型或 store key 展示旧配置、框架无关配置和目标框架选择。
 - **AND** 示例 SHALL 说明 `model[...]`、`vector[...]` 与既有动态资源 key 如何保持稳定。
 
+#### Scenario: Starter 目录内可直接阅读迁移说明
+- **WHEN** 开发者只打开 AI model、embedding store 或 LangChain4j adapter starter 目录
+- **THEN** 对应 README SHALL 说明当前默认 LangChain4j 实现、`fw-plus.ai.model` 和 `fw-plus.ai.embedding-store` 中立配置入口。
+- **AND** README SHALL 说明后续切换到 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java 需要 Java 17 / Spring Boot 3.x adapter starter。
+- **AND** README SHALL 说明回滚到默认 LangChain4j 的依赖和 `framework` 配置步骤。
+
 ### Requirement: 文档说明破坏性升级与 Java 17 后续实施
 系统 SHALL 用中文文档说明被删除 artifact、配置前缀、替代 adapter、自动发现失败诊断、Magic-API key 保持边界、测试命令和回滚限制，并提供 Java 17 / Spring Boot 3.x adapter 的实施蓝图。
 

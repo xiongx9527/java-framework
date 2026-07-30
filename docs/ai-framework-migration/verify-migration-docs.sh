@@ -20,6 +20,11 @@ framework_example_docs=(
 	"$repo_root/fw-plus-ai/README.md"
 	"$repo_root/fw-plus-ai/README.zh-CN.md"
 )
+starter_docs=(
+	"$repo_root/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/README.md"
+	"$repo_root/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-store-embedding-spring-boot-starter/README.md"
+	"$repo_root/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter/README.md"
+)
 embedding_store_example_docs=(
 	"$script_dir/overview.md"
 	"$script_dir/spring-ai-java17.md"
@@ -98,6 +103,25 @@ for doc_path in $breaking_docs; do
 			failures=$((failures + 1))
 		fi
 	done
+done
+
+for doc_path in $starter_docs; do
+	if [[ ! -f "$doc_path" ]]; then
+		print -u2 -- "缺失 starter 文档: $doc_path"
+		failures=$((failures + 1))
+		continue
+	fi
+
+	require_literal "$doc_path" "当前支持状态" "starter 当前支持状态"
+	require_literal "$doc_path" "默认 LangChain4j" "starter 默认实现说明"
+	require_literal "$doc_path" "fw-plus.ai.model" "starter 模型配置前缀"
+	require_literal "$doc_path" "fw-plus.ai.embedding-store" "starter 向量配置前缀"
+	require_literal "$doc_path" "fw-plus-ai-langchain4j-adapter-spring-boot-starter" "starter 默认 adapter 坐标"
+	require_literal "$doc_path" "Java 17 / Spring Boot 3.x" "starter Java 17 后续边界"
+	require_literal "$doc_path" "Spring AI" "starter 后续 Spring AI 迁移说明"
+	require_literal "$doc_path" "Spring AI Alibaba" "starter 后续 Spring AI Alibaba 迁移说明"
+	require_literal "$doc_path" "AgentScope 2 Java" "starter 后续 AgentScope 迁移说明"
+	require_literal "$doc_path" "回滚" "starter 回滚说明"
 done
 
 for doc_path in $framework_example_docs; do
