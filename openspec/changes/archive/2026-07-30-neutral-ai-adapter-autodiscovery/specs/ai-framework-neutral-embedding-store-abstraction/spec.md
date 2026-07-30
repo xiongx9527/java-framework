@@ -13,7 +13,12 @@
 - **THEN** registry SHALL 按 key 返回独立的中立 store 门面。
 - **AND** 未指定 key 时 SHALL 返回默认 store。
 
-#### Scenario: store adapter 选择失败
-- **WHEN** 默认 store key 无效、没有 adapter、多个 adapter 或显式 framework 无法匹配
+#### Scenario: 默认 store 配置无效
+- **WHEN** 默认 store key 不存在或对应定义未启用
 - **THEN** 应用启动 SHALL 失败。
-- **AND** 错误 SHALL 包含无效 key 或选择上下文且不得泄漏凭证。
+- **AND** 错误 SHALL 包含无效 key 且不得泄漏凭证。
+
+#### Scenario: store adapter 选择失败
+- **WHEN** 没有 adapter、多个 adapter 或显式 framework 无法匹配
+- **THEN** 应用启动 SHALL 失败。
+- **AND** 错误 SHALL 包含选择上下文且不得泄漏凭证。
