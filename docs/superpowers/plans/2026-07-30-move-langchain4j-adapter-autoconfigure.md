@@ -38,7 +38,7 @@ base-ref: 0212ccdebe60b458811d8ed0e3d20c47310a54d7
 - Consumes: 现有 XML helper `dependencies(File, boolean)`、`modules(File)` 与源码扫描 helper。
 - Produces: 旧 autoconfigure 模块/坐标删除、目标包存在、包级中立边界的可执行结构契约。
 
-- [ ] **Step 1: 更新 Starter/BOM/Reactor 期望**
+- [x] **Step 1: 更新 Starter/BOM/Reactor 期望**
 
 将 adapter Starter 的必需依赖从旧坐标改为统一 autoconfigure，并增加旧坐标不得出现的断言：
 
@@ -57,7 +57,7 @@ assertFalse(modules(findProjectFile("fw-plus-ai-project/pom.xml"))
 
 把 `modules(...)` 的调用范围扩展到 AI project POM；helper 仍使用现有 DOM 解析，不新增字符串解析。
 
-- [ ] **Step 2: 把旧 autoconfigure artifact 纳入删除边界**
+- [x] **Step 2: 把旧 autoconfigure artifact 纳入删除边界**
 
 在 `LegacyAiArtifactBoundaryTest` 增加旧目录和 artifact marker：
 
@@ -74,7 +74,7 @@ File langChain4jPackage = new File(projectRoot,
 assertTrue("Unified autoconfigure must own LangChain4j package", langChain4jPackage.isDirectory());
 ```
 
-- [ ] **Step 3: 将中立边界收敛为包级隔离**
+- [x] **Step 3: 将中立边界收敛为包级隔离**
 
 `NeutralAiAutoConfigurationBoundaryTest.isIgnored(...)` 只新增 `autoconfigure/langchain4j` 精确目录例外，保留 AskData 既有例外；注册断言改为允许 adapter 根配置，但继续禁止已删除的 legacy model/store/openapi 配置：
 
@@ -89,7 +89,7 @@ assertTrue(content.contains(
 				+ "LangChain4jAdapterAutoConfiguration"));
 ```
 
-- [ ] **Step 4: 运行目标测试确认 RED**
+- [x] **Step 4: 运行目标测试确认 RED**
 
 Run:
 
@@ -103,7 +103,7 @@ mvn -f fw-plus-ai/pom.xml \
 
 Expected: FAIL；失败必须指向旧 module/BOM/Starter 依赖仍存在、目标 `langchain4j` 包尚不存在或 adapter 根配置尚未合并。若失败来自依赖下载或环境问题，先按 systematic-debugging 定位，不把环境失败记为 RED。
 
-- [ ] **Step 5: 提交 RED 测试**
+- [x] **Step 5: 提交 RED 测试**
 
 ```bash
 git add \
