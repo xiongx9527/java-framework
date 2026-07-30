@@ -2,6 +2,7 @@
 change: add-tiny-engine-ai-starter
 design-doc: docs/superpowers/specs/2026-07-30-add-tiny-engine-ai-starter-design.md
 base-ref: 0c0a12fa996bbdb4f327b77faa28c55fe9aeda72
+archived-with: 2026-07-30-add-tiny-engine-ai-starter
 ---
 
 # TinyEngine AI Starter 与 AskData 中立 AI 依赖 Implementation Plan

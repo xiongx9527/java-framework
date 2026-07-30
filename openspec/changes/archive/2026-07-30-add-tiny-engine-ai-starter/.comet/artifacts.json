@@ -4,5 +4,6 @@
   "openspec_tasks": "openspec/changes/add-tiny-engine-ai-starter/tasks.md",
   "openspec_delta_spec": "openspec/changes/add-tiny-engine-ai-starter/specs/tiny-engine-ai-starter/spec.md",
   "handoff_context": "openspec/changes/add-tiny-engine-ai-starter/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/add-tiny-engine-ai-starter/.comet/handoff/design-context.md"
+  "handoff_markdown": "openspec/changes/add-tiny-engine-ai-starter/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-30-add-tiny-engine-ai-starter"
 }
