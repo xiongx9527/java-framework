@@ -19,3 +19,9 @@ TBD - created by archiving change neutral-ai-adapter-autodiscovery. Update Purpo
 - **WHEN** 开发者评估 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java
 - **THEN** 文档 SHALL 说明其 adapter 本次未实现，必须在独立 Java 17 / Spring Boot 3.x reactor 中实现。
 - **AND** 文档 SHALL 说明 AgentScope 2 Java 使用进程内 SDK，业务决定是否采用其能力。
+
+#### Scenario: Starter 文档覆盖破坏性边界
+- **WHEN** 开发者查看中立 model/store starter 或统一 LangChain4j adapter starter
+- **THEN** 文档 SHALL 明确旧 model/store 专用 artifact 和 starter 不应继续使用。
+- **AND** 文档 SHALL 说明中立 starter 不携带具体 framework SDK，默认 LangChain4j 由 `fw-plus-ai-langchain4j-adapter-spring-boot-starter` 提供。
+- **AND** 文档 SHALL 说明 Spring AI、Spring AI Alibaba 和 AgentScope 2 Java 当前不是已交付实现。
