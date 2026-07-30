@@ -23,12 +23,12 @@ public class SpringBoot3DependencyBaselineTest {
         assertProperty(coreBom(), "spring-cloud-alibaba-dependencies.version", "2025.0.0.0");
         assertProperty(coreBom(), "magic-api.version", "2.2.2");
         assertProperty(coreBom(), "magic-script.version", "1.9.0");
-        assertProperty(coreBom(), "langchain4j.version", "1.18.1");
-        assertProperty(aiBom(), "langchain4j.version", "1.18.1");
+        assertProperty(coreBom(), "langchain4j.version", "1.18.0");
         assertProperty(aiBom(), "spring-ai.version", "1.0.1");
         assertProperty(aiBom(), "spring-ai-alibaba.version", "1.0.1");
-        assertLangChain4jManagement(coreBom());
-        assertLangChain4jManagement(aiBom());
+        assertCoreLangChain4jManagement();
+        assertImportedBom(aiBom(), "com.xiongx9527.fw.plus", "fw-plus-dependencies", "${project.version}");
+        assertNoDirectLangChain4jManagement(aiBom());
     }
 
     private void assertProperty(File pom, String name, String expected) throws Exception {
@@ -38,8 +38,8 @@ public class SpringBoot3DependencyBaselineTest {
         assertEquals(expected, property.getTextContent().trim(), name);
     }
 
-    private void assertLangChain4jManagement(File pom) throws Exception {
-        NodeList dependencies = document(pom).getElementsByTagName("dependency");
+    private void assertCoreLangChain4jManagement() throws Exception {
+        NodeList dependencies = document(coreBom()).getElementsByTagName("dependency");
         Map<String, String> managedArtifacts = new HashMap<>();
         for (int index = 0; index < dependencies.getLength(); index++) {
             Element dependency = (Element) dependencies.item(index);
@@ -60,7 +60,30 @@ public class SpringBoot3DependencyBaselineTest {
         expectedExceptions.put("langchain4j-qianfan", "0.36.2");
         expectedExceptions.put("langchain4j-dashscope", "0.36.2");
         assertEquals(expectedExceptions, managedArtifacts,
-                "only legacy LangChain4j exceptions may be declared outside langchain4j-bom");
+                "Core BOM must keep LangChain4j version overrides centralized");
+    }
+
+    private void assertImportedBom(File pom, String groupId, String artifactId, String version) throws Exception {
+        NodeList dependencies = document(pom).getElementsByTagName("dependency");
+        for (int index = 0; index < dependencies.getLength(); index++) {
+            Element dependency = (Element) dependencies.item(index);
+            if (groupId.equals(text(dependency, "groupId")) && artifactId.equals(text(dependency, "artifactId"))) {
+                assertEquals(version, text(dependency, "version"));
+                assertEquals("pom", text(dependency, "type"));
+                assertEquals("import", text(dependency, "scope"));
+                return;
+            }
+        }
+        assertTrue(false, artifactId + " should be imported in " + pom);
+    }
+
+    private void assertNoDirectLangChain4jManagement(File pom) throws Exception {
+        NodeList dependencies = document(pom).getElementsByTagName("dependency");
+        for (int index = 0; index < dependencies.getLength(); index++) {
+            Element dependency = (Element) dependencies.item(index);
+            assertTrue(!"dev.langchain4j".equals(text(dependency, "groupId")),
+                    "AI BOM must inherit LangChain4j management from Core BOM: " + text(dependency, "artifactId"));
+        }
     }
 
     private String text(Element parent, String name) {

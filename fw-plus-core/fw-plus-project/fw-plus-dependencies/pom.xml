@@ -196,7 +196,7 @@
         <protobuf-java.version>3.25.1</protobuf-java.version>
         <!--jakarta版本号-->
         <jakarta.version>6.0.0</jakarta.version>
-		<langchain4j.version>1.18.1</langchain4j.version>
+		<langchain4j.version>1.18.0</langchain4j.version>
         <jedis.version>5.0.0</jedis.version>
         <datastax-java-driver.version>4.17.0</datastax-java-driver.version>
         <infinispan.version>13.0.22.Final</infinispan.version>
@@ -1397,18 +1397,6 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-langchain4j-infinispan</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-model</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.xiongx9527.fw.plus</groupId>
-                <artifactId>fw-plus-ai-store-embedding</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
