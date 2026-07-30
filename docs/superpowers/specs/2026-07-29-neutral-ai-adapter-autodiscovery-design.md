@@ -2,6 +2,8 @@
 comet_change: neutral-ai-adapter-autodiscovery
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-30-neutral-ai-adapter-autodiscovery
+status: final
 ---
 
 # 中立 AI Adapter 自动发现技术设计

@@ -1,0 +1,12 @@
+{
+  "openspec_proposal": "openspec/changes/neutral-ai-adapter-autodiscovery/proposal.md",
+  "openspec_design": "openspec/changes/neutral-ai-adapter-autodiscovery/design.md",
+  "openspec_tasks": "openspec/changes/neutral-ai-adapter-autodiscovery/tasks.md",
+  "openspec_delta_spec": "openspec/changes/neutral-ai-adapter-autodiscovery/specs/ai-adapter-autodiscovery/spec.md",
+  "design_document": "docs/superpowers/specs/2026-07-29-neutral-ai-adapter-autodiscovery-design.md",
+  "build_plan": "docs/superpowers/plans/2026-07-29-neutral-ai-adapter-autodiscovery.md",
+  "build_tasks_complete": "openspec/changes/neutral-ai-adapter-autodiscovery/tasks.md",
+  "design_handoff": "openspec/changes/neutral-ai-adapter-autodiscovery/.comet/handoff/design-context.json",
+  "handoff_context": "openspec/changes/neutral-ai-adapter-autodiscovery/.comet/handoff/design-context.json",
+  "archive_directory": "openspec/changes/archive/2026-07-30-neutral-ai-adapter-autodiscovery"
+}

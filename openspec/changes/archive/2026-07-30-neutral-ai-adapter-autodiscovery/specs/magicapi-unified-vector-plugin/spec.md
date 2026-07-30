@@ -17,3 +17,8 @@
 - **WHEN** Magic-API 脚本使用 `vector['knowledge']` 或未指定 key 的默认访问方式
 - **THEN** 插件 SHALL 使用相同 key 或默认 store 返回对应中立操作对象。
 - **AND** 脚本侧不得获得框架原生对象。
+
+#### Scenario: provider 配置异常
+- **WHEN** 脚本访问的向量 store key 未注册、framework adapter 缺失或 provider 配置无效
+- **THEN** 插件 SHALL 返回包含缺失 key、framework 或 provider 的明确 Magic-API 运行时错误。
+- **AND** 错误不得暴露凭证。

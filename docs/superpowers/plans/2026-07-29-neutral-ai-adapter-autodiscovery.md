@@ -2,6 +2,7 @@
 change: neutral-ai-adapter-autodiscovery
 design-doc: docs/superpowers/specs/2026-07-29-neutral-ai-adapter-autodiscovery-design.md
 base-ref: 90bab6c72486c4de08478fe38e68cf6884011fe7
+archived-with: 2026-07-30-neutral-ai-adapter-autodiscovery
 ---
 
 # 中立 AI Adapter 自动发现实施计划
@@ -248,20 +249,20 @@ git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters fw-plus-ai/fw-plu
 - Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-vector/pom.xml`
 - Test: `MagicDynamicModelDataSourceTest`, `MagicDynamicVectorDataSourceTest`, `MagicAPIModelAutoConfigurationIntegrationTest`, `MagicAPIVectorAutoConfigurationIntegrationTest`
 
-- [ ] **Step 1: 写入 Magic-API 零原生类型和歧义失败测试**
+- [x] **Step 1: 写入 Magic-API 零原生类型和歧义失败测试**
 
 以 fake `AiModelRegistry` / `AiEmbeddingStoreRegistry` 注入动态资源；断言多候选错误包含候选 framework，脚本结果不返回 LangChain4j 类型。
 
-- [ ] **Step 2: 迁移 Magic-API POM 与运行时访问**
+- [x] **Step 2: 迁移 Magic-API POM 与运行时访问**
 
 删除 model/vector plugin 对旧 starter 的依赖，按需要显式依赖中立 starter；所有创建和读取经中立 factory/registry，不再创建 legacy LangChain4j registry。
 
-- [ ] **Step 3: 运行 Magic-API 目标测试**
+- [x] **Step 3: 运行 Magic-API 目标测试**
 
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=MagicDynamicModelDataSourceTest,MagicDynamicVectorDataSourceTest,MagicAPIModelAutoConfigurationIntegrationTest,MagicAPIVectorAutoConfigurationIntegrationTest test`
 Expected: 目标集成测试通过。
 
-- [ ] **Step 4: 提交 Magic-API 任务**
+- [x] **Step 4: 提交 Magic-API 任务**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project
@@ -274,24 +275,24 @@ git commit -m "refactor(ai): use neutral registry from magicapi"
 - Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/pom.xml`
 - Test: AskData starter 现有目标测试与依赖树检查。
 
-- [ ] **Step 0: 等待用户明确确认**
+- [x] **Step 0: 等待用户明确确认**
 
 未获得确认时，不得派发或执行本任务；可继续本计划中不修改 AskData 的任务。
 
-- [ ] **Step 1: 写入 AskData 依赖迁移失败测试**
+- [x] **Step 1: 写入 AskData 依赖迁移失败测试**
 
 断言 AskData starter 不再解析两个已删除的 LangChain4j model/store starter，且仍通过统一 LangChain4j adapter 获得既有模型能力。
 
-- [ ] **Step 2: 迁移 AskData starter 依赖**
+- [x] **Step 2: 迁移 AskData starter 依赖**
 
 仅替换已删除的旧 model/store starter 坐标为统一 adapter starter；不删除 AskData 模块，不重写其内部 Java 8 行为或业务逻辑。
 
-- [ ] **Step 3: 运行 AskData 目标测试**
+- [x] **Step 3: 运行 AskData 目标测试**
 
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -am test`
 Expected: BUILD SUCCESS。
 
-- [ ] **Step 4: 提交 AskData 集成任务**
+- [x] **Step 4: 提交 AskData 集成任务**
 
 ```bash
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter
@@ -309,20 +310,20 @@ git commit -m "refactor(ai): migrate askdata to unified adapter starter"
 - Modify: all POM/document/sample files returned by `rg -l 'fw-plus-ai-langchain4j-(model|store-embeding)'`
 - Create: static boundary test under the existing AI Boot starter test package.
 
-- [ ] **Step 1: 写入旧坐标和中立边界失败测试**
+- [x] **Step 1: 写入旧坐标和中立边界失败测试**
 
 断言 Core/AI BOM、聚合、starter 和源码中不含四个旧 artifact、旧前缀或具体 framework 导入；允许 LangChain4j adapter 专属路径出现 LangChain4j。
 
-- [ ] **Step 2: 删除旧模块并替换全部引用**
+- [x] **Step 2: 删除旧模块并替换全部引用**
 
 先替换所有 provider 子模块、样例与 POM 依赖，再删除目录。不得保留 deprecated forwarding POM。
 
-- [ ] **Step 3: 运行静态扫描与 Maven 依赖树检查**
+- [x] **Step 3: 运行静态扫描与 Maven 依赖树检查**
 
 Run: `rg -n 'fw-plus-ai-langchain4j-(model|store-embeding)(-spring-boot-starter)?|fw-plus\.ai\.langchain4j\.(model|embedding-store)' fw-plus-core fw-plus-ai fw-plus-sample docs`
 Expected: 仅迁移说明中的历史坐标允许出现，生产 POM/Java/YAML 不得出现。
 
-- [ ] **Step 4: 提交破坏性清理任务**
+- [x] **Step 4: 提交破坏性清理任务**
 
 ```bash
 git add -A fw-plus-core/fw-plus-project/fw-plus-ai fw-plus-ai/fw-plus-ai-project fw-plus-sample
@@ -339,19 +340,19 @@ git commit -m "refactor(ai): remove legacy langchain4j model and store modules"
 - Modify: `docs/ai-framework-migration/agentscope-java17.md`
 - Create: `docs/ai-framework-migration/spring-ai-alibaba-java17.md`
 
-- [ ] **Step 1: 写入 LangChain4j 破坏性迁移章节**
+- [x] **Step 1: 写入 LangChain4j 破坏性迁移章节**
 
 逐项映射四个删除坐标到统一 adapter 与 starter；给出 `fw-plus.ai.model`、`fw-plus.ai.embedding-store` 和多 adapter `framework` 配置示例；说明 `model[...]` / `vector[...]` key 稳定但原生类型不可用。
 
-- [ ] **Step 2: 写入失败诊断和回滚章节**
+- [x] **Step 2: 写入失败诊断和回滚章节**
 
 说明零候选、多候选、provider SDK 缺失、残留旧坐标的诊断命令；回滚到前一发布版本，禁止新旧 artifact 混装。
 
-- [ ] **Step 3: 写入 Java 17 后续实现蓝图**
+- [x] **Step 3: 写入 Java 17 后续实现蓝图**
 
 说明独立 parent/BOM/reactor、`jakarta.*`、Boot 3 注册、三类 adapter SPI/测试要求和 AgentScope 2.0 进程内 SDK 边界；明确本次不实现。
 
-- [ ] **Step 4: 提交文档任务**
+- [x] **Step 4: 提交文档任务**
 
 ```bash
 git add fw-plus-ai/README.md fw-plus-ai/README.zh-CN.md docs/ai-framework-migration
@@ -364,26 +365,26 @@ git commit -m "docs(ai): document adapter migration and java17 roadmap"
 - Modify: `openspec/changes/neutral-ai-adapter-autodiscovery/tasks.md`
 - Create: `docs/superpowers/reports/2026-07-29-neutral-ai-adapter-autodiscovery-verify.md`
 
-- [ ] **Step 1: 用 JDK 8 运行 Core adapter reactor**
+- [x] **Step 1: 用 JDK 8 运行 Core adapter reactor**
 
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-core/mvnw -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-adapter -am test`
 Expected: BUILD SUCCESS。
 
-- [ ] **Step 2: 用 JDK 8 运行 AI Boot 自动配置、Magic-API 与 AskData 测试**
+- [x] **Step 2: 用 JDK 8 运行 AI Boot 自动配置、Magic-API 与 AskData 测试**
 
 Run: `JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure test`
 Expected: BUILD SUCCESS，记录测试数量和失败数。
 
-- [ ] **Step 3: 执行边界、依赖树和 OpenSpec 验证**
+- [x] **Step 3: 执行边界、依赖树和 OpenSpec 验证**
 
 Run: `openspec validate neutral-ai-adapter-autodiscovery --type change --strict && git diff --check`
 Expected: 验证通过且无空白错误。
 
-- [ ] **Step 4: 逐项勾选完成任务并写验证报告**
+- [x] **Step 4: 逐项勾选完成任务并写验证报告**
 
 报告必须记录 JDK 8 环境、通过命令、失败/重试记录、旧坐标扫描结果、遗留风险和 Java 17 非实现边界。
 
-- [ ] **Step 5: 提交验收产物**
+- [x] **Step 5: 提交验收产物**
 
 ```bash
 git add openspec/changes/neutral-ai-adapter-autodiscovery/tasks.md docs/superpowers/reports/2026-07-29-neutral-ai-adapter-autodiscovery-verify.md
