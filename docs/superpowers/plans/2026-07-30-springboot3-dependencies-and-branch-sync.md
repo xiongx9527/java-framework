@@ -107,7 +107,7 @@ Expected: rebase 成功；若冲突，仅解决本地尚未发布的 change/依�
 - Consumes: 最新远端整合后的 AI Boot BOM。
 - Produces: `spring-ai.version=1.0.1` 与 `spring-ai-alibaba.version=1.0.1`，且不制造新的直接依赖。
 
-- [ ] **Step 1: 验证清理提交造成的缺口（RED）**
+- [x] **Step 1: 验证清理提交造成的缺口（RED）**
 
 Run:
 
@@ -118,7 +118,7 @@ test "$(rg -c '<spring-ai-alibaba\.version>1\.0\.1</spring-ai-alibaba\.version>'
 
 Expected: 至少一个断言失败，证明两个保留属性尚未同时存在；若远端已经恢复，两条均通过并跳到 Step 3，不重复添加。
 
-- [ ] **Step 2: 恢复两个版本属性**
+- [x] **Step 2: 恢复两个版本属性**
 
 使用 `apply_patch` 在 AI Boot BOM 的 `<properties>` 中加入以下精确内容，并保持周围 Tab/缩进风格：
 
@@ -131,7 +131,7 @@ Expected: 至少一个断言失败，证明两个保留属性尚未同时存在�
 
 不得为了引用属性新增 BOM、starter 或模块；远端已有的 Spring AI/Spring AI Alibaba 声明原样保留。
 
-- [ ] **Step 3: 验证属性与禁止范围（GREEN）**
+- [x] **Step 3: 验证属性与禁止范围（GREEN）**
 
 Run:
 
@@ -144,7 +144,7 @@ git diff -- fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml
 
 Expected: 两个属性各出现一次，diff 不包含 TinyEngine、Maven Wrapper、构建插件或新的 Spring AI 模块。
 
-- [ ] **Step 4: 提交 dev 修复**
+- [x] **Step 4: 提交 dev 修复**
 
 Run:
 
