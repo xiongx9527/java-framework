@@ -200,7 +200,7 @@ git commit -m "refactor(ai): move langchain4j autoconfigure sources"
 - Consumes: `LangChain4jAdapterAutoConfiguration` 现有条件装配。
 - Produces: Boot 2.7 双注册资源与“每类 adapter/provider 只产生一个 Bean”的回归契约。
 
-- [ ] **Step 1: 先补充双注册和去重断言**
+- [x] **Step 1: 先补充双注册和去重断言**
 
 把 `AiEmbeddingStoreAutoConfigurationMetadataTest` 的 imports 不存在断言改为读取该文件并检查 adapter 根配置。`LangChain4jAutoConfigurationRegistrationTest` 同时读取两个资源，并使用出现次数 helper：
 
@@ -226,7 +226,7 @@ assertEquals(1, context.getBeansOfType(AiModelAdapter.class).size());
 assertEquals(1, context.getBeansOfType(AiEmbeddingStoreAdapter.class).size());
 ```
 
-- [ ] **Step 2: 运行元数据测试确认 RED**
+- [x] **Step 2: 运行元数据测试确认 RED**
 
 Run:
 
@@ -240,7 +240,7 @@ mvn -f fw-plus-ai/pom.xml \
 
 Expected: FAIL，原因是统一模块尚无 imports 文件且 `spring.factories` 尚未注册 adapter 根配置。
 
-- [ ] **Step 3: 合并两个注册资源**
+- [x] **Step 3: 合并两个注册资源**
 
 在统一 `spring.factories` 的 `EnableAutoConfiguration` 列表末尾追加：
 
@@ -254,7 +254,7 @@ com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAu
 com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration
 ```
 
-- [ ] **Step 4: 运行注册、缺 SDK 和条件反射测试确认 GREEN**
+- [x] **Step 4: 运行注册、缺 SDK 和条件反射测试确认 GREEN**
 
 Run:
 
@@ -268,7 +268,7 @@ mvn -f fw-plus-ai/pom.xml \
 
 Expected: BUILD SUCCESS；缺 SDK 场景无 startup failure，六类 provider Bean 不注册，in-memory adapter 保留。
 
-- [ ] **Step 5: 提交双注册实现**
+- [x] **Step 5: 提交双注册实现**
 
 ```bash
 git add \

@@ -8,7 +8,7 @@
 
 - [x] 2.1 将独立模块的生产源码迁入 `fw-plus-ai-boot-autoconfigure`，保留现有 Java 包、类名、Bean 名称和条件注解。
 - [x] 2.2 将旧模块 POM 的编译依赖合并进统一 autoconfigure POM，并保持 adapter、LangChain4j wrapper 和 provider SDK 依赖为 optional。
-- [ ] 2.3 合并 `spring.factories` 与 `AutoConfiguration.imports`，确保 `LangChain4jAdapterAutoConfiguration` 在 Spring Boot 2.7 下保持注册。
+- [x] 2.3 合并 `spring.factories` 与 `AutoConfiguration.imports`，确保 `LangChain4jAdapterAutoConfiguration` 在 Spring Boot 2.7 下保持注册。
 - [x] 2.4 将四个 adapter 测试类迁入统一模块并修正模块目录定位，不削弱缺失 provider SDK 和精确 `@ConditionalOnClass` 回归。
 
 ## 3. 坐标与文档清理
