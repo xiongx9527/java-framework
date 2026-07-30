@@ -64,27 +64,27 @@ base-ref: 0c0a12fa996bbdb4f327b77faa28c55fe9aeda72
 - Consumes: Existing Maven reactor and AI Boot BOM.
 - Produces: `fw-plus-ai-tiny-engine-spring-boot-starter` artifact and dependency boundary tests.
 
-- [x] **Step 1: Write failing dependency tests**
+- [x] **Task 1 Step 1: Write failing dependency tests**
 
 Add assertions that TinyEngine AI starter contains `fw-plus-ai-model`, `fw-plus-ai-store-embedding`, `fw-plus-ai-boot-autoconfigure`, `fw-plus-tiny-engine-core`, and does not contain legacy starter coordinates. Extend AskData dependency test to assert no old LangChain4j model/store starter and no Spring AI/Spring AI Alibaba/AgentScope2 required dependency.
 
-- [x] **Step 2: Run tests to verify failure**
+- [x] **Task 1 Step 2: Run tests to verify failure**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/pom.xml test -Dtest=AskDataStarterDependencyTest`
 
 Expected: existing AskData test passes or new TinyEngine test cannot compile until module exists.
 
-- [x] **Step 3: Add starter module and BOM entries**
+- [x] **Task 1 Step 3: Add starter module and BOM entries**
 
 Create the TinyEngine AI starter POM with dependencies on AI autoconfigure, TinyEngine core, `fw-plus-ai-model-spring-boot-starter`, `fw-plus-ai-store-embedding-spring-boot-starter`, and `fw-plus-ai-langchain4j-adapter-spring-boot-starter`. Add module to starter aggregator and dependency management entry to AI Boot BOM.
 
-- [x] **Step 4: Run focused Maven validation**
+- [x] **Task 1 Step 4: Run focused Maven validation**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml -pl fw-plus-ai-tiny-engine-spring-boot-starter,fw-plus-ai-askdata-spring-boot-starter test`
 
 Expected: dependency tests pass.
 
-- [x] **Step 5: Commit**
+- [x] **Task 1 Step 5: Commit**
 
 Run: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml && git commit -m "feat(ai): add tiny engine ai starter module"`
 
@@ -102,23 +102,23 @@ Run: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters fw-plus-ai/
 - Consumes: Spring Boot conditional autoconfiguration.
 - Produces: Property prefix `fw.plus.tiny-engine.ai`, disabled/only-chat/RAG condition behavior, service interfaces.
 
-- [ ] **Step 1: Write failing autoconfiguration tests**
+- [x] **Task 2 Step 1: Write failing autoconfiguration tests**
 
 Use `ApplicationContextRunner` to assert: disabled total switch creates no TinyEngine AI beans; `chat.enabled=true` creates chat service without requiring vector store; `rag.enabled=true` without store/model fails fast with diagnostic message.
 
-- [ ] **Step 2: Add properties and marker service interfaces**
+- [x] **Task 2 Step 2: Add properties and marker service interfaces**
 
 Define nested properties: `enabled`, `provider`, `chat.enabled`, `rag.enabled`, `vector.enabled`, `model.chatKey`, `model.streamingChatKey`, `model.embeddingKey`, `vector.storeKey`, `missingDependencyPolicy`, and RAG chunk/search fields. Use Java 8 getters/setters.
 
-- [ ] **Step 3: Implement minimal autoconfiguration**
+- [x] **Task 2 Step 3: Implement minimal autoconfiguration**
 
 Register properties and conditional service beans. Initial service implementations may be package-private default classes that throw clear unsupported/unavailable exceptions until Provider tasks fill behavior.
 
-- [ ] **Step 4: Register autoconfiguration**
+- [x] **Task 2 Step 4: Register autoconfiguration**
 
 Add `TinyEngineAiAutoConfiguration` to `spring.factories` and `AutoConfiguration.imports` if Boot 2.7 import path is used by this module.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Task 2 Step 5: Run tests and commit**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngineAiAutoConfigurationTest`
 
@@ -138,23 +138,23 @@ Commit: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure && 
 - Consumes: `AiModelRegistry`, `AiModel`, `AiModelType`.
 - Produces: Provider registry, capability checks, default provider selection, unsupported capability errors.
 
-- [ ] **Step 1: Write provider registry tests**
+- [ ] **Task 3 Step 1: Write provider registry tests**
 
 Assert default provider key is `langchain4j`, custom provider can replace it, unsupported capability returns a deterministic exception containing provider and capability.
 
-- [ ] **Step 2: Define SPI and DTOs**
+- [ ] **Task 3 Step 2: Define SPI and DTOs**
 
 Add Java 8 interfaces/classes for chat request, chat response, streaming chunk, provider capability enum, provider registry. Keep DTOs free of `dev.langchain4j.*` imports.
 
-- [ ] **Step 3: Implement LangChain4j default provider through neutral registry**
+- [ ] **Task 3 Step 3: Implement LangChain4j default provider through neutral registry**
 
 Provider should resolve configured model key from `AiModelRegistry`, verify `AiModelType.CHAT` or `STREAMING_CHAT`, and only unwrap `LangChain4jAiModel` inside provider implementation. If unwrapping is impossible, return a clear unsupported framework/provider error.
 
-- [ ] **Step 4: Connect chat service to provider registry**
+- [ ] **Task 3 Step 4: Connect chat service to provider registry**
 
 `TinyEngineAiChatService` delegates to current provider and maps stream/non-stream requests.
 
-- [ ] **Step 5: Run tests and commit**
+- [ ] **Task 3 Step 5: Run tests and commit**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngineAiProviderRegistryTest,TinyEngineAiAutoConfigurationTest`
 
@@ -173,23 +173,23 @@ Commit: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure && 
 - Consumes: `AiModelRegistry`, `AiModelType.CHAT`, `AiModelType.EMBEDDING`.
 - Produces: Default `AskDataModelRegistry` without direct `Map<String, ChatLanguageModel>` / `Map<String, EmbeddingModel>` input.
 
-- [ ] **Step 1: Write failing AskData model tests**
+- [ ] **Task 4 Step 1: Write failing AskData model tests**
 
 Create test registry with neutral `AiModel` stubs for chat and embedding. Assert `getChatModel` and `getEmbeddingModel` resolve configured keys, missing key throws `AskDataModelException`, and custom `AskDataModelRegistry` bean prevents default registration.
 
-- [ ] **Step 2: Implement `AiModelAskDataModelRegistry`**
+- [ ] **Task 4 Step 2: Implement `AiModelAskDataModelRegistry`**
 
 Resolve candidate/default keys against `AiModelRegistry.keys()`. For LangChain4j default adapter, unwrap only inside this implementation when the model is `LangChain4jAiModel`; keep `AskDataModelRegistry` interface unchanged.
 
-- [ ] **Step 3: Adjust `AskDataAutoConfiguration`**
+- [ ] **Task 4 Step 3: Adjust `AskDataAutoConfiguration`**
 
 Change the default `askDataModelRegistry` bean signature to consume `AiModelRegistry` and optional model source only if still needed. Remove main-path direct collection of `ChatLanguageModel` / `EmbeddingModel` maps.
 
-- [ ] **Step 4: Preserve optional compatibility**
+- [ ] **Task 4 Step 4: Preserve optional compatibility**
 
 If keeping `LangChain4jAskDataModelRegistry`, isolate it behind `@ConditionalOnClass` and never make it the default when `AiModelRegistry` is present.
 
-- [ ] **Step 5: Run tests and commit**
+- [ ] **Task 4 Step 5: Run tests and commit**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=AiModelAskDataModelRegistryTest,AskDataAutoConfigurationTest,LangChain4jAskDataModelRegistryTest`
 
@@ -207,19 +207,19 @@ Commit: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure && 
 - Consumes: `AiEmbeddingStoreRegistry`, `AiEmbeddingStore`, `AiEmbeddingQuery`, `AiEmbeddingMatch`.
 - Produces: Default AskData vector retriever through neutral store registry.
 
-- [ ] **Step 1: Write failing vector tests**
+- [ ] **Task 5 Step 1: Write failing vector tests**
 
 Assert neutral retriever returns documents from `AiEmbeddingSearchResult`, handles blank query with empty list, and missing default store is diagnosed. Assert custom `AskDataVectorRetriever` bean overrides default.
 
-- [ ] **Step 2: Implement neutral vector retriever**
+- [ ] **Task 5 Step 2: Implement neutral vector retriever**
 
 Implement `AiEmbeddingStoreAskDataVectorRetriever` that resolves store key from AskData properties, builds `AiEmbeddingQuery`, maps `AiEmbeddingMatch.document().getText()` or equivalent content to `AskDataRetrievedDocument`, and never imports `dev.langchain4j.*`.
 
-- [ ] **Step 3: Adjust default vector auto configuration**
+- [ ] **Task 5 Step 3: Adjust default vector auto configuration**
 
 Make the default retriever consume `AiEmbeddingStoreRegistry`. Keep `ContentRetrieverAskDataVectorRetriever` and `EmbeddingStoreAskDataVectorRetriever` only as optional compatibility when their classes/beans are present.
 
-- [ ] **Step 4: Run tests and commit**
+- [ ] **Task 5 Step 4: Run tests and commit**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=AiEmbeddingStoreAskDataVectorRetrieverTest,AskDataVectorRetrieverTest,EmbeddingStoreAskDataVectorRetrieverTest,AskDataAutoConfigurationTest`
 
@@ -238,23 +238,23 @@ Commit: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure && 
 - Consumes: `AiModelRegistry`, `AiEmbeddingStoreRegistry`, `AiEmbeddingDocument`, `AiEmbeddingQuery`.
 - Produces: RAG search and knowledge indexing services using neutral store.
 
-- [ ] **Step 1: Write failing RAG tests**
+- [ ] **Task 6 Step 1: Write failing RAG tests**
 
 Assert search maps score/content/metadata, collection filter is applied through metadata conventions, missing store key fails fast by default, and degrade returns unavailable reason.
 
-- [ ] **Step 2: Write failing knowledge indexing tests**
+- [ ] **Task 6 Step 2: Write failing knowledge indexing tests**
 
 Assert unsupported format is counted as skipped, missing path is reported, supported text content is chunked with configured chunk size/overlap, and metadata includes `source`, `format`, `timestamp`, `collection`.
 
-- [ ] **Step 3: Implement RAG service**
+- [ ] **Task 6 Step 3: Implement RAG service**
 
 Use neutral `AiEmbeddingStore.search()` and TinyEngine DTOs. Keep collection filtering in service layer if store does not support metadata filtering directly.
 
-- [ ] **Step 4: Implement knowledge service**
+- [ ] **Task 6 Step 4: Implement knowledge service**
 
 Start with plain text/resource content support that is Java 8 compatible. Return diagnostic counts for loaded/skipped/failed.
 
-- [ ] **Step 5: Run tests and commit**
+- [ ] **Task 6 Step 5: Run tests and commit**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngineRagServiceTest,TinyEngineKnowledgeBaseServiceTest,TinyEngineAiAutoConfigurationTest`
 
@@ -271,19 +271,19 @@ Commit: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure && 
 - Consumes: Completed starter and AskData property names.
 - Produces: Chinese configuration examples for neutral model/store and LangChain4j adapter.
 
-- [ ] **Step 1: Document TinyEngine AI starter**
+- [ ] **Task 7 Step 1: Document TinyEngine AI starter**
 
 Include Maven dependency, `fw.plus.tiny-engine.ai.enabled`, model keys, vector store key, missing dependency policy, disable behavior, and note that LangChain4j is adapter/provider only.
 
-- [ ] **Step 2: Document AskData neutral AI configuration**
+- [ ] **Task 7 Step 2: Document AskData neutral AI configuration**
 
 Explain `fw.plus.ai.askdata` model/vector keys now resolve against `AiModelRegistry` and `AiEmbeddingStoreRegistry`. Show default LangChain4j adapter dependency and business Bean override options.
 
-- [ ] **Step 3: Add boundary warning**
+- [ ] **Task 7 Step 3: Add boundary warning**
 
 State that old LangChain4j model/store starter coordinates are not used by the current starter line.
 
-- [ ] **Step 4: Run docs grep checks and commit**
+- [ ] **Task 7 Step 4: Run docs grep checks and commit**
 
 Run: `rg -n "fw-plus-ai-langchain4j-model-spring-boot-starter|fw-plus-ai-langchain4j-store-embeding-spring-boot-starter|LangChain4jModelRegistry|EmbeddingStoreRegistry" fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-tiny-engine-spring-boot-starter fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter`
 
@@ -301,35 +301,35 @@ Commit: `git add fw-plus-ai fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starte
 - Consumes: All prior task outputs.
 - Produces: Checked tasks, build evidence, dependency boundary evidence.
 
-- [ ] **Step 1: Run strict OpenSpec validation**
+- [ ] **Task 8 Step 1: Run strict OpenSpec validation**
 
 Run: `openspec validate add-tiny-engine-ai-starter --strict`
 
 Expected: `Change 'add-tiny-engine-ai-starter' is valid`.
 
-- [ ] **Step 2: Run focused AI autoconfigure tests**
+- [ ] **Task 8 Step 2: Run focused AI autoconfigure tests**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngine*Test,AiModelAskDataModelRegistryTest,AiEmbeddingStoreAskDataVectorRetrieverTest,AskDataAutoConfigurationTest`
 
 Expected: tests pass.
 
-- [ ] **Step 3: Run starter tests**
+- [ ] **Task 8 Step 3: Run starter tests**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml -pl fw-plus-ai-tiny-engine-spring-boot-starter,fw-plus-ai-askdata-spring-boot-starter test`
 
 Expected: tests pass.
 
-- [ ] **Step 4: Run dependency boundary scans**
+- [ ] **Task 8 Step 4: Run dependency boundary scans**
 
 Run: `rg -n "fw-plus-ai-langchain4j-model|fw-plus-ai-langchain4j-store-embeding|fw-plus-ai-langchain4j-model-spring-boot-starter|fw-plus-ai-langchain4j-store-embeding-spring-boot-starter" fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-tiny-engine-spring-boot-starter fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/tinyengine fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata`
 
 Expected: only negative assertions or optional compatibility comments, no main-path dependency.
 
-- [ ] **Step 5: Mark OpenSpec tasks complete**
+- [ ] **Task 8 Step 5: Mark OpenSpec tasks complete**
 
 Update `openspec/changes/add-tiny-engine-ai-starter/tasks.md` by checking completed items with exact evidence from commands above.
 
-- [ ] **Step 6: Commit final task state**
+- [ ] **Task 8 Step 6: Commit final task state**
 
 Run: `git add openspec/changes/add-tiny-engine-ai-starter/tasks.md && git commit -m "chore(ai): record tiny engine ai build verification"`
 
