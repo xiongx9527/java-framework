@@ -7,9 +7,9 @@
 - `fw-plus-ai-model-spring-boot-starter`
 - `fw-plus-ai-store-embedding-spring-boot-starter`
 - `fw-plus-ai-langchain4j-adapter`
-- `fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure`
+- `fw-plus-ai-boot-autoconfigure`
 
-业务 Spring Boot 2.7 / Java 8 应用如果要使用默认实现，通常只需要引入本 starter，再按需引入具体 LangChain4j provider SDK。
+原独立 LangChain4j adapter autoconfigure artifact 已删除，其自动配置已合并到 `fw-plus-ai-boot-autoconfigure`。业务 Spring Boot 2.7 / Java 8 应用如果要使用默认实现，通常只需要引入本 starter，再按需引入具体 LangChain4j provider SDK。
 
 ```xml
 <dependency>
