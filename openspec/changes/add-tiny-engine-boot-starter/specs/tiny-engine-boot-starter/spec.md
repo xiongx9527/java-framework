@@ -11,6 +11,10 @@
 - **WHEN** 维护者检查 `fw-plus-boot-project/fw-plus-boot-starters`
 - **THEN** TinyEngine starter MUST 按现有 starter 模块风格接入聚合 POM，并继续使用 `${revision}` 版本体系
 
+#### Scenario: Starter follows neutral AI boundary
+- **WHEN** 维护者检查 TinyEngine Boot starter、样例和文档的 AI 相关依赖或扩展说明
+- **THEN** 系统 MUST NOT 新增旧 LangChain4j 专用 model/store artifact、旧 starter 坐标或直接 AI provider SDK 依赖，后续 TinyEngine AI/RAG 能力 MUST 通过 `fw-plus-ai-model` 与 `fw-plus-ai-store-embedding` 中立抽象衔接
+
 ### Requirement: TinyEngine auto-configuration registration
 系统 SHALL 在 `fw-plus-boot-autoconfigure` 中注册 TinyEngine 自动配置，并兼容当前 Spring Boot 2.7.18 使用的自动配置发现机制。
 

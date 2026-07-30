@@ -19,7 +19,7 @@
             AND version = #{version}
         </if>
         <if test="name!=null and name!=''">
-            AND name = #{name}
+            AND name = #{name,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="component!=null and component!=''">
             AND name_en = #{component}
@@ -46,7 +46,7 @@
             AND dev_mode = #{devMode}
         </if>
         <if test="npm!=null and npm!=''">
-            AND npm = #{npm}
+            AND npm = #{npm,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="group!=null and group!=''">
             AND `group` = #{group}
@@ -58,13 +58,13 @@
             AND priority = #{priority}
         </if>
         <if test="snippets!=null and snippets!=''">
-            AND snippets = #{snippets}
+            AND snippets = #{snippets,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
         </if>
         <if test="schemaFragment!=null and schemaFragment!=''">
-            AND schema_fragment = #{schemaFragment}
+            AND schema_fragment = #{schemaFragment,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="configure!=null and configure!=''">
-            AND configure = #{configure}
+            AND configure = #{configure,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="publicStatus!=null">
             AND `public` = #{publicStatus}
@@ -82,7 +82,7 @@
             AND tiny_reserved = #{isTinyReserved}
         </if>
         <if test="componentMetadata!=null and componentMetadata!=''">
-            AND component_metadata = #{componentMetadata}
+            AND component_metadata = #{componentMetadata,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="libraryId!=null">
             AND library_id = #{libraryId}
@@ -116,7 +116,7 @@
             version = #{version},
         </if>
         <if test="name!=null and name!=''">
-            name = #{name},
+            name = #{name,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="component!=null and component!=''">
             name_en = #{component},
@@ -143,7 +143,7 @@
             dev_mode = #{devMode},
         </if>
         <if test="npm!=null and npm!=''">
-            npm = #{npm},
+            npm = #{npm,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="group!=null and group!=''">
             `group` = #{group},
@@ -155,13 +155,13 @@
             priority = #{priority},
         </if>
         <if test="snippets!=null and snippets!=''">
-            snippets = #{snippets},
+            snippets = #{snippets,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler},
         </if>
         <if test="schemaFragment!=null and schemaFragment!=''">
-            schema_fragment = #{schemaFragment},
+            schema_fragment = #{schemaFragment,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="configure!=null and configure!=''">
-            configure = #{configure},
+            configure = #{configure,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="publicStatus!=null">
             `public` = #{publicStatus},
@@ -179,7 +179,7 @@
             tiny_reserved = #{isTinyReserved},
         </if>
         <if test="componentMetadata!=null and componentMetadata!=''">
-            component_metadata = #{componentMetadata},
+            component_metadata = #{componentMetadata,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="libraryId!=null">
             library_id = #{libraryId},
@@ -212,7 +212,7 @@
     <resultMap id="ComponentMap" type="com.xiongx9527.fw.plus.tinyengine.model.entity.Component">
         <id column="id" property="id"/>
         <result column="version" property="version"/>
-        <result column="name" property="name"/>
+        <result column="name" property="name" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="name_en" property="component"/>
         <result column="icon" property="icon"/>
         <result column="description" property="description"/>
@@ -221,19 +221,19 @@
         <result column="tags" property="tags"/>
         <result column="keywords" property="keywords"/>
         <result column="dev_mode" property="devMode"/>
-        <result column="npm" property="npm"/>
+        <result column="npm" property="npm" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="group" property="group"/>
         <result column="category" property="category"/>
         <result column="priority" property="priority"/>
-        <result column="snippets" property="snippets"/>
-        <result column="schema_fragment" property="schemaFragment"/>
-        <result column="configure" property="configure"/>
+        <result column="snippets" property="snippets" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
+        <result column="schema_fragment" property="schemaFragment" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="configure" property="configure" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="public" property="publicStatus"/>
         <result column="framework" property="framework"/>
         <result column="is_official" property="isOfficial"/>
         <result column="is_default" property="isDefault"/>
         <result column="tiny_reserved" property="isTinyReserved"/>
-        <result column="component_metadata" property="componentMetadata"/>
+        <result column="component_metadata" property="componentMetadata" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="library_id" property="libraryId"/>
         <result column="created_by" property="createdBy"/>
         <result column="last_updated_by" property="lastUpdatedBy"/>
@@ -332,7 +332,7 @@
         , site_id)
         VALUES ( #{id}
         , #{version}
-        , #{name}
+        , #{name,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         , #{component}
         , #{icon}
         , #{description}
@@ -341,19 +341,19 @@
         , #{tags}
         , #{keywords}
         , #{devMode}
-        , #{npm}
+        , #{npm,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         , #{group}
         , #{category}
         , #{priority}
-        , #{snippets}
-        , #{schemaFragment}
-        , #{configure}
+        , #{snippets,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
+        , #{schemaFragment,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        , #{configure,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         , #{publicStatus}
         , #{framework}
         , #{isOfficial}
         , #{isDefault}
         , #{isTinyReserved}
-        , #{componentMetadata}
+        , #{componentMetadata,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         , #{libraryId}
         , #{createdBy}
         , #{lastUpdatedBy}

@@ -16,6 +16,7 @@
         <module>fw-plus-jdbc-spring-boot-starter-sample</module>
         <module>fw-plus-redis-spring-boot-starter-sample</module>
         <module>fw-plus-magicapi-spring-boot-starter-sample</module>
+        <module>fw-plus-tiny-engine-spring-boot-starter-sample</module>
     </modules>
     <properties>
         <main.basedir>${basedir}/../..</main.basedir>

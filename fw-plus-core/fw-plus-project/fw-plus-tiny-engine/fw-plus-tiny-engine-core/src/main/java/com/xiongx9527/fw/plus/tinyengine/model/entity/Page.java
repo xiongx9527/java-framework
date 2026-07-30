@@ -35,33 +35,34 @@ import java.util.Map;
 @TableName(value = "t_page", autoResultMap = true)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Page extends BaseEntity {
-private String name;
-private Integer app;
-private String route;
-@JsonProperty("page_content")
-    @TableField(typeHandler = JsonObjectTypeHandler.class)
-    private Map<String, Object> pageContent;
-private Boolean isBody;
-private String parentId;
-private String group;
-private Integer depth;
-private Boolean isPage;
-private String occupierBy;
-private Boolean isDefault;
-@TableField(typeHandler = JsonArrayTypeHandler.class)
-    private List<BlockVersionDto> contentBlocks;
-private String latestVersion;
-private Integer latestHistoryId;
-private User occupier;
+	private String name;
+	private Integer app;
+	private String route;
+	@JsonProperty("page_content")
+	@TableField(typeHandler = JsonObjectTypeHandler.class)
+	private Map<String, Object> pageContent;
+	private Boolean isBody;
+	private String parentId;
+	private String group;
+	private Integer depth;
+	private Boolean isPage;
+	private String occupierBy;
+	private Boolean isDefault;
+	@TableField(typeHandler = JsonArrayTypeHandler.class)
+	private List<BlockVersionDto> contentBlocks;
+	private String latestVersion;
+	private Integer latestHistoryId;
+	@TableField(exist = false)
+	private User occupier;
 
-    @TableField(exist = false)
-    private Boolean isHome;
+	@TableField(exist = false)
+	private Boolean isHome;
 
-    @TableField(exist = false)
-    private Map<String, List<String>> assets;
+	@TableField(exist = false)
+	private Map<String, List<String>> assets;
 
-    @TableField(exist = false)
-    private String message;
+	@TableField(exist = false)
+	private String message;
 
 	public String getName() {
 		return name;

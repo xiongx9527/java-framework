@@ -105,11 +105,11 @@
             <result column="label" property="label"/>
             <result column="block_name" property="name"/>
             <result column="framework" property="framework"/>
-            <result column="content" property="content"/>
-            <result column="assets" property="assets"/>
-            <result column="last_build_info" property="lastBuildInfo"/>
+            <result column="content" property="content" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+            <result column="assets" property="assets" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+            <result column="last_build_info" property="lastBuildInfo" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
             <result column="block_description" property="description"/>
-            <result column="tags" property="tags"/>
+            <result column="tags" property="tags" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
             <result column="latest_version" property="latestVersion"/>
             <result column="latest_history_id" property="latestHistoryId"/>
             <result column="screenshot" property="screenshot"/>
@@ -120,7 +120,7 @@
             <result column="is_default" property="isDefault"/>
             <result column="tiny_reserved" property="isTinyReserved"/>
             <result column="npm_name" property="npmName"/>
-            <result column="i18n" property="i18n"/>
+            <result column="i18n" property="i18n" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
             <result column="block_platform_id" property="platformId"/>
             <result column="block_app_id" property="appId"/>
             <result column="content_blocks" property="contentBlocks"/>

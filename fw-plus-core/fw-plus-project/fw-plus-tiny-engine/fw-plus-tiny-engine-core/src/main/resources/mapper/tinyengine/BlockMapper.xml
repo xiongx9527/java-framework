@@ -25,19 +25,19 @@
             AND framework = #{framework}
         </if>
         <if test="content!=null and content!=''">
-            AND content = #{content}
+            AND content = #{content,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="assets!=null and assets!=''">
-            AND assets = #{assets}
+            AND assets = #{assets,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="lastBuildInfo!=null and lastBuildInfo!=''">
-            AND last_build_info = #{lastBuildInfo}
+            AND last_build_info = #{lastBuildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="description!=null and description!=''">
             AND description = #{description}
         </if>
         <if test="tags!=null and tags!=''">
-            AND tags = #{tags}
+            AND tags = #{tags,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
         </if>
         <if test="latestVersion!=null and latestVersion!=''">
             AND latest_version = #{latestVersion}
@@ -70,7 +70,7 @@
             AND npm_name = #{npmName}
         </if>
         <if test="i18n!=null and i18n!=''">
-            AND i18n = #{i18n}
+            AND i18n = #{i18n,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="platformId!=null">
             AND platform_id = #{platformId}
@@ -116,19 +116,19 @@
             framework = #{framework},
         </if>
         <if test="content!=null and content!=''">
-            content = #{content},
+            content = #{content,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="assets!=null and assets!=''">
-            assets = #{assets},
+            assets = #{assets,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="lastBuildInfo!=null and lastBuildInfo!=''">
-            last_build_info = #{lastBuildInfo},
+            last_build_info = #{lastBuildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="description!=null and description!=''">
             description = #{description},
         </if>
         <if test="tags!=null and tags!=''">
-            tags = #{tags},
+            tags = #{tags,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler},
         </if>
         <if test="latestVersion!=null and latestVersion!=''">
             latest_version = #{latestVersion},
@@ -161,7 +161,7 @@
             npm_name = #{npmName},
         </if>
         <if test="i18n!=null and i18n!=''">
-            i18n = #{i18n},
+            i18n = #{i18n,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="platformId!=null">
             platform_id = #{platformId},
@@ -202,11 +202,11 @@
         <result column="label" property="label"/>
         <result column="name" property="name"/>
         <result column="framework" property="framework"/>
-        <result column="content" property="content"/>
-        <result column="assets" property="assets"/>
-        <result column="last_build_info" property="lastBuildInfo"/>
+        <result column="content" property="content" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="assets" property="assets" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="last_build_info" property="lastBuildInfo" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="description" property="description"/>
-        <result column="tags" property="tags"/>
+        <result column="tags" property="tags" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
         <result column="latest_version" property="latestVersion"/>
         <result column="latest_history_id" property="latestHistoryId"/>
         <result column="screenshot" property="screenshot"/>
@@ -217,7 +217,7 @@
         <result column="is_default" property="isDefault"/>
         <result column="tiny_reserved" property="isTinyReserved"/>
         <result column="npm_name" property="npmName"/>
-        <result column="i18n" property="i18n"/>
+        <result column="i18n" property="i18n" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="platform_id" property="platformId"/>
         <result column="app_id" property="appId"/>
         <result column="content_blocks" property="contentBlocks"/>
@@ -355,11 +355,11 @@
                , #{label}
                , #{name}
                , #{framework}
-               , #{content}
-               , #{assets}
-               , #{lastBuildInfo}
+               , #{content,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+               , #{assets,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+               , #{lastBuildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
                , #{description}
-               , #{tags}
+               , #{tags,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
                , #{latestVersion}
                , #{latestHistoryId}
                , #{screenshot}
@@ -370,7 +370,7 @@
                , #{isDefault}
                , #{isTinyReserved}
                , #{npmName}
-               , #{i18n}
+               , #{i18n,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
                , #{platformId}
                , #{appId}
                , #{contentBlocks}

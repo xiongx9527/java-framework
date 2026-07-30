@@ -66,10 +66,21 @@ class TinyEngineAutoConfigurationTest {
 	}
 
 	@Test
+	void hostResourceControllerWinsEvenWhenBeanNameDiffers() {
+		contextRunner.withUserConfiguration(SqlSessionFactoryConfiguration.class, HostResourceControllerConfiguration.class)
+				.withPropertyValues("fw.plus.tiny-engine.enabled=true")
+				.run(context -> {
+					assertThat(context).hasSingleBean(TinyEngineResourceController.class);
+					assertThat(context).getBean(TinyEngineResourceController.class)
+							.isSameAs(context.getBean("customTinyEngineResourceController"));
+				});
+	}
+
+	@Test
 	void webDisabledDoesNotRegisterController() {
 		contextRunner.withPropertyValues(
-						"fw.plus.tiny-engine.enabled=true",
-						"fw.plus.tiny-engine.web.enabled=false")
+							"fw.plus.tiny-engine.enabled=true",
+							"fw.plus.tiny-engine.web.enabled=false")
 				.run(context -> assertThat(context).doesNotHaveBean(TinyEngineResourceController.class));
 	}
 
@@ -109,7 +120,22 @@ class TinyEngineAutoConfigurationTest {
 	void enabledRegistersCoreServicesWhenSqlSessionFactoryExists() {
 		contextRunner.withUserConfiguration(SqlSessionFactoryConfiguration.class)
 				.withPropertyValues("fw.plus.tiny-engine.enabled=true")
-				.run(context -> assertThat(context).hasSingleBean(ResourceService.class));
+				.run(context -> {
+					assertThat(context).hasSingleBean(ResourceService.class);
+					assertThat(context).hasSingleBean(TinyEngineResourceController.class);
+				});
+	}
+
+	@Test
+	void mapperDisabledDoesNotRegisterDefaultCoreServicesOrController() {
+		contextRunner.withUserConfiguration(SqlSessionFactoryConfiguration.class)
+				.withPropertyValues(
+						"fw.plus.tiny-engine.enabled=true",
+						"fw.plus.tiny-engine.mapper.enabled=false")
+				.run(context -> {
+					assertThat(context).doesNotHaveBean(ResourceService.class);
+					assertThat(context).doesNotHaveBean(TinyEngineResourceController.class);
+				});
 	}
 
 	@Test
@@ -130,11 +156,14 @@ class TinyEngineAutoConfigurationTest {
 					MybatisPlusPropertiesCustomizer customizer = context.getBean(MybatisPlusPropertiesCustomizer.class);
 					MybatisPlusProperties properties = new MybatisPlusProperties();
 					properties.setMapperLocations(new String[] {"classpath:/mapper/host/*.xml"});
+					properties.setTypeHandlersPackage("com.example.host.typehandler");
 
 					customizer.customize(properties);
 
 					assertThat(properties.getMapperLocations())
 							.contains("classpath:/mapper/host/*.xml", "classpath*:mapper/tinyengine/**/*.xml");
+					assertThat(properties.getTypeHandlersPackage())
+							.isEqualTo("com.example.host.typehandler");
 				});
 	}
 
@@ -206,6 +235,15 @@ class TinyEngineAutoConfigurationTest {
 		@Bean
 		ResourceService resourceService() {
 			return mock(ResourceService.class);
+		}
+	}
+
+	@Configuration
+	static class HostResourceControllerConfiguration {
+
+		@Bean
+		TinyEngineResourceController customTinyEngineResourceController(ResourceService resourceService) {
+			return new TinyEngineResourceController(resourceService);
 		}
 	}
 

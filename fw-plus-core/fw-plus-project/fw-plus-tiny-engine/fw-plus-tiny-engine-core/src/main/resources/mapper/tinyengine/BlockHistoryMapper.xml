@@ -33,13 +33,13 @@
             AND framework = #{framework}
         </if>
         <if test="content!=null and content!=''">
-            AND content = #{content}
+            AND content = #{content,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="assets!=null and assets!=''">
-            AND assets = #{assets}
+            AND assets = #{assets,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="buildInfo!=null and buildInfo!=''">
-            AND build_info = #{buildInfo}
+            AND build_info = #{buildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="screenshot!=null and screenshot!=''">
             AND screenshot = #{screenshot}
@@ -78,10 +78,10 @@
             AND npm_name = #{npmName}
         </if>
         <if test="i18n!=null and i18n!=''">
-            AND i18n = #{i18n}
+            AND i18n = #{i18n,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="contentBlocks!=null and contentBlocks!=''">
-            AND content_blocks = #{contentBlocks}
+            AND content_blocks = #{contentBlocks,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
         </if>
         <if test="createdBy!=null and createdBy!=''">
             AND created_by = #{createdBy}
@@ -127,13 +127,13 @@
             framework = #{framework},
         </if>
         <if test="content!=null and content!=''">
-            content = #{content},
+            content = #{content,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="assets!=null and assets!=''">
-            assets = #{assets},
+            assets = #{assets,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="buildInfo!=null and buildInfo!=''">
-            build_info = #{buildInfo},
+            build_info = #{buildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="screenshot!=null and screenshot!=''">
             screenshot = #{screenshot},
@@ -172,10 +172,10 @@
             npm_name = #{npmName},
         </if>
         <if test="i18n!=null and i18n!=''">
-            i18n = #{i18n},
+            i18n = #{i18n,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="contentBlocks!=null and contentBlocks!=''">
-            content_blocks = #{contentBlocks},
+            content_blocks = #{contentBlocks,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler},
         </if>
         <if test="createdBy!=null and createdBy!=''">
             created_by = #{createdBy},
@@ -210,9 +210,9 @@
         <result column="label" property="label"/>
         <result column="name" property="name"/>
         <result column="framework" property="framework"/>
-        <result column="content" property="content"/>
-        <result column="assets" property="assets"/>
-        <result column="build_info" property="buildInfo"/>
+        <result column="content" property="content" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="assets" property="assets" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="build_info" property="buildInfo" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="screenshot" property="screenshot"/>
         <result column="path" property="path"/>
         <result column="description" property="description"/>
@@ -225,8 +225,8 @@
         <result column="platform_id" property="platformId"/>
         <result column="app_id" property="appId"/>
         <result column="npm_name" property="npmName"/>
-        <result column="i18n" property="i18n"/>
-        <result column="content_blocks" property="contentBlocks"/>
+        <result column="i18n" property="i18n" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="content_blocks" property="contentBlocks" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
         <result column="created_by" property="createdBy"/>
         <result column="last_updated_by" property="lastUpdatedBy"/>
         <result column="created_time" property="createdTime"/>
@@ -331,9 +331,9 @@
                , #{label}
                , #{name}
                , #{framework}
-               , #{content}
-               , #{assets}
-               , #{buildInfo}
+               , #{content,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+               , #{assets,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+               , #{buildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
                , #{screenshot}
                , #{path}
                , #{description}
@@ -346,8 +346,8 @@
                , #{platformId}
                , #{appId}
                , #{npmName}
-               , #{i18n}
-               , #{contentBlocks}
+               , #{i18n,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+               , #{contentBlocks,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
                , #{createdBy}
                , #{lastUpdatedBy}
                , #{createdTime}

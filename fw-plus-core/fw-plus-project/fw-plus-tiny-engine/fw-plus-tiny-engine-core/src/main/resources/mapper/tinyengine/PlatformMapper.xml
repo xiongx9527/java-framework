@@ -22,7 +22,7 @@
             AND published = #{isPublish}
         </if>
         <if test="lastBuildInfo!=null and lastBuildInfo!=''">
-            AND last_build_info = #{lastBuildInfo}
+            AND last_build_info = #{lastBuildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="description!=null and description!=''">
             AND description = #{description}
@@ -40,10 +40,10 @@
             AND image_url = #{imageUrl}
         </if>
         <if test="sortPlugins!=null and sortPlugins!=''">
-            AND sort_plugins = #{sortPlugins}
+            AND sort_plugins = #{sortPlugins,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
         </if>
         <if test="sortToolbar!=null and sortToolbar!=''">
-            AND sort_toolbar = #{sortToolbar}
+            AND sort_toolbar = #{sortToolbar,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
         </if>
         <if test="isDefault!=null">
             AND is_default = #{isDefault}
@@ -55,7 +55,7 @@
             AND set_default_by = #{setDefaultBy}
         </if>
         <if test="appExtendConfig!=null and appExtendConfig!=''">
-            AND app_extend_config = #{appExtendConfig}
+            AND app_extend_config = #{appExtendConfig,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         </if>
         <if test="dataHash!=null and dataHash!=''">
             AND data_hash = #{dataHash}
@@ -104,7 +104,7 @@
             published = #{isPublish},
         </if>
         <if test="lastBuildInfo!=null and lastBuildInfo!=''">
-            last_build_info = #{lastBuildInfo},
+            last_build_info = #{lastBuildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="description!=null and description!=''">
             description = #{description},
@@ -122,10 +122,10 @@
             image_url = #{imageUrl},
         </if>
         <if test="sortPlugins!=null and sortPlugins!=''">
-            sort_plugins = #{sortPlugins},
+            sort_plugins = #{sortPlugins,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler},
         </if>
         <if test="sortToolbar!=null and sortToolbar!=''">
-            sort_toolbar = #{sortToolbar},
+            sort_toolbar = #{sortToolbar,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler},
         </if>
         <if test="isDefault!=null">
             is_default = #{isDefault},
@@ -137,7 +137,7 @@
             set_default_by = #{setDefaultBy},
         </if>
         <if test="appExtendConfig!=null and appExtendConfig!=''">
-            app_extend_config = #{appExtendConfig},
+            app_extend_config = #{appExtendConfig,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
         </if>
         <if test="dataHash!=null and dataHash!=''">
             data_hash = #{dataHash},
@@ -183,18 +183,18 @@
         <id column="id" property="id"/>
         <result column="name" property="name"/>
         <result column="published" property="isPublish"/>
-        <result column="last_build_info" property="lastBuildInfo"/>
+        <result column="last_build_info" property="lastBuildInfo" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="description" property="description"/>
         <result column="latest_version" property="latestVersion"/>
         <result column="latest_history_id" property="latestHistoryId"/>
         <result column="material_history_id" property="materialHistoryId"/>
         <result column="image_url" property="imageUrl"/>
-        <result column="sort_plugins" property="sortPlugins"/>
-        <result column="sort_toolbar" property="sortToolbar"/>
+        <result column="sort_plugins" property="sortPlugins" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
+        <result column="sort_toolbar" property="sortToolbar" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
         <result column="is_default" property="isDefault"/>
         <result column="prettier_opts" property="prettierOpts"/>
         <result column="set_default_by" property="setDefaultBy"/>
-        <result column="app_extend_config" property="appExtendConfig"/>
+        <result column="app_extend_config" property="appExtendConfig" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
         <result column="data_hash" property="dataHash"/>
         <result column="business_category_id" property="businessCategoryId"/>
         <result column="theme_id" property="themeId"/>
@@ -284,18 +284,18 @@
         VALUES ( #{id}
         , #{name}
         , #{isPublish}
-        , #{lastBuildInfo}
+        , #{lastBuildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         , #{description}
         , #{latestVersion}
         , #{latestHistoryId}
         , #{materialHistoryId}
         , #{imageUrl}
-        , #{sortPlugins}
-        , #{sortToolbar}
+        , #{sortPlugins,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
+        , #{sortToolbar,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
         , #{isDefault}
         , #{prettierOpts}
         , #{setDefaultBy}
-        , #{appExtendConfig}
+        , #{appExtendConfig,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
         , #{dataHash}
         , #{businessCategoryId}
         , #{themeId}
