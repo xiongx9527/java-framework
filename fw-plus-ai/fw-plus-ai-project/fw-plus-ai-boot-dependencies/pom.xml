@@ -19,9 +19,7 @@
         <qdrant-sdk-java.version>1.11.0</qdrant-sdk-java.version>
         <!--  weaviate版本号 -->
         <weaviate-sdk-java.version>4.6.0</weaviate-sdk-java.version>
-        <spring-ai.version>1.0.1</spring-ai.version>
-        <spring-ai-alibaba.version>1.0.1</spring-ai-alibaba.version>
-        <agents-flex.version>1.3.4</agents-flex.version>
+		<agents-flex.version>1.3.4</agents-flex.version>
         <easyAi.version>1.4.9</easyAi.version>
         <langchain4j.version>0.35.0</langchain4j.version>
     </properties>

@@ -40,48 +40,7 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- 未使用：poi-tl（Word模板），已由 EasyPoi 替代，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.deepoove</groupId>
-            <artifactId>poi-tl</artifactId>
-        </dependency>
-        -->
-
-        <!-- 未使用：ooxml-schemas（Word模板），已由 EasyPoi 替代，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>org.apache.poi</groupId>
-            <artifactId>ooxml-schemas</artifactId>
-            <version>1.4</version>
-        </dependency>
-        -->
-
-        <!-- 未使用：jfreechart（图表），按需启用 -->
-        <!--
-        <dependency>
-            <groupId>org.jfree</groupId>
-            <artifactId>jfreechart</artifactId>
-        </dependency>
-        -->
-
-        <!-- 未使用：zxing-core（二维码/条码），按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.google.zxing</groupId>
-            <artifactId>core</artifactId>
-        </dependency>
-        -->
-
-        <!-- 未使用：zxing-javase（二维码/条码），按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.google.zxing</groupId>
-            <artifactId>javase</artifactId>
-        </dependency>
-        -->
-
-        <dependency>
+		<dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>

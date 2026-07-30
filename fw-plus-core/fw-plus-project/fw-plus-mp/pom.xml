@@ -40,16 +40,7 @@
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>
-        <!-- 未使用：mybatis-plus 已作为传递依赖引入 extension，按需启用 -->
-        <!--
-        <dependency>
-            <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-extension</artifactId>
-            <scope>compile</scope>
-            <optional>true</optional>
-        </dependency>
-        -->
-        <dependency>
+		<dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-annotation</artifactId>
             <scope>compile</scope>
