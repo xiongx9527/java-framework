@@ -1,8 +1,9 @@
 ## 1. Core 依赖确认
 
-- [ ] 1.1 确认 `integrate-tiny-engine-core` 已提供 TinyEngine core 模块 artifactId、包名、Service、Mapper、Mapper XML 和 SQL 资源路径。
-- [ ] 1.2 核对 core TinyEngine 模块已兼容 Java 8、Spring Boot 2.7.18、MyBatis-Plus 版本体系，并确认 Boot change 不需要复制领域逻辑。
-- [ ] 1.3 明确需要从 Boot 层托管或传递的 TinyEngine core 依赖，以及是否需要在 Boot BOM 中增加依赖管理。
+- [x] 1.1 确认 `integrate-tiny-engine-core` 已提供 TinyEngine core 模块 artifactId、包名、Service、Mapper、Mapper XML 和 SQL 资源路径。
+- [x] 1.2 核对 core TinyEngine 模块已兼容 Java 8、Spring Boot 2.7.18、MyBatis-Plus 版本体系，并确认 Boot change 不需要复制领域逻辑。
+- [x] 1.3 明确需要从 Boot 层托管或传递的 TinyEngine core 依赖，以及是否需要在 Boot BOM 中增加依赖管理。
+- [x] 1.4 核对最新 `abstract-ai-model-and-embedding` 结果，确认 TinyEngine Boot starter 不新增旧 LangChain4j 专用 model/store 坐标；后续 AI/RAG 只通过 `fw-plus-ai-model`、`fw-plus-ai-store-embedding` 中立抽象衔接。
 
 ## 2. 自动配置
 
@@ -34,3 +35,4 @@
 - [ ] 5.2 运行 TinyEngine starter 相关模块的编译/测试命令，确认自动配置与样例在 Java 8 约束下通过。
 - [ ] 5.3 运行 `./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate`，确认样例聚合器能解析 TinyEngine sample。
 - [ ] 5.4 检查未修改 Magic-API 2.2.2 版本，且未引入 Spring Boot 3 或 JDK 17 专属 API。
+- [ ] 5.5 检查 TinyEngine Boot starter、样例和文档未依赖旧 LangChain4j 专用 model/store artifact，且没有直接引入 AI provider SDK。
