@@ -4,5 +4,6 @@
   "openspec_tasks": "openspec/changes/move-langchain4j-adapter-autoconfigure/tasks.md",
   "openspec_delta_spec": "openspec/changes/move-langchain4j-adapter-autoconfigure/specs/ai-neutral-starter-boundary/spec.md",
   "handoff_context": "openspec/changes/move-langchain4j-adapter-autoconfigure/.comet/handoff/design-context.json",
-  "handoff_markdown": "openspec/changes/move-langchain4j-adapter-autoconfigure/.comet/handoff/design-context.md"
+  "handoff_markdown": "openspec/changes/move-langchain4j-adapter-autoconfigure/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-30-move-langchain4j-adapter-autoconfigure"
 }

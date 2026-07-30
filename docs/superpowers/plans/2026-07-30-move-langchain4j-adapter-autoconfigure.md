@@ -2,6 +2,7 @@
 change: move-langchain4j-adapter-autoconfigure
 design-doc: docs/superpowers/specs/2026-07-30-move-langchain4j-adapter-autoconfigure-design.md
 base-ref: 0212ccdebe60b458811d8ed0e3d20c47310a54d7
+archived-with: 2026-07-30-move-langchain4j-adapter-autoconfigure
 ---
 
 # LangChain4j Adapter 自动配置合并 Implementation Plan
