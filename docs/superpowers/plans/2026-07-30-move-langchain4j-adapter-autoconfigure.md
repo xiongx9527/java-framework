@@ -12,7 +12,7 @@ base-ref: 0212ccdebe60b458811d8ed0e3d20c47310a54d7
 
 **Architecture:** 保留 `com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.*` 包级隔离，把原模块的源码、测试和 optional 编译依赖迁入统一 Boot autoconfigure。adapter Starter 改为显式依赖统一 autoconfigure；`spring.factories` 与 `AutoConfiguration.imports` 同时注册同一根配置，并用上下文测试证明不会产生重复 Bean。
 
-**Tech Stack:** Java 8、Spring Boot 2.7.18、Maven Reactor、JUnit 4/5、`ApplicationContextRunner`、`FilteredClassLoader`、Maven Enforcer、OpenSpec 1.6.0。
+**Tech Stack:** Java 8、Spring Boot 2.7.18、Maven 3.9.16 Reactor、JUnit 4/5、`ApplicationContextRunner`、`FilteredClassLoader`、Maven Enforcer、OpenSpec 1.6.0。
 
 ## Global Constraints
 
@@ -23,6 +23,7 @@ base-ref: 0212ccdebe60b458811d8ed0e3d20c47310a54d7
 - 保留 `fw-plus-ai-langchain4j-adapter-spring-boot-starter` 公开坐标，删除 `fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure` 坐标且不提供兼容 POM。
 - 保留现有 `com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.*` 包、类名、Bean 名称和条件注解。
 - 工作区中的 TinyEngine 及 `.superpowers/sdd` 改动不属于本 change，不得暂存、提交、格式化或回滚。
+- 当前检出未跟踪 `.mvn/wrapper` 文件，所有构建和测试命令使用已验证的系统 Maven 3.9.16 与 JDK 8。
 
 ---
 
@@ -94,7 +95,7 @@ Run:
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter,fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
   -am -DfailIfNoTests=false \
   -Dtest=NeutralStarterDependencyTest,LegacyAiArtifactBoundaryTest,NeutralAiAutoConfigurationBoundaryTest test
@@ -166,7 +167,7 @@ Run:
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am \
   -DfailIfNoTests=false \
   -Dtest=LangChain4jModelProviderAdapterTest,EmbeddingStoreProviderAdapterTest test
@@ -231,7 +232,7 @@ Run:
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am \
   -DfailIfNoTests=false \
   -Dtest=AiEmbeddingStoreAutoConfigurationMetadataTest,LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
@@ -259,7 +260,7 @@ Run:
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am \
   -DfailIfNoTests=false \
   -Dtest=AiEmbeddingStoreAutoConfigurationMetadataTest,LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest#shouldStartWhenOptionalEmbeddingStoreProviderSdksAreMissing+shouldDeclareClassConditionsOnDirectLinkedEmbeddingStoreProviderBeans test
@@ -317,7 +318,7 @@ Run:
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter \
   -am validate
 ```
@@ -398,18 +399,17 @@ git commit -m "docs(ai): document consolidated autoconfigure"
 ### Task 6: 完整验证、任务同步和验证报告
 
 **Files:**
-- Modify: `openspec/changes/move-langchain4j-adapter-autoconfigure/tasks.md`
 - Create: `docs/superpowers/reports/2026-07-30-move-langchain4j-adapter-autoconfigure-verify.md`
 
 **Interfaces:**
 - Consumes: 前五个任务的提交、测试与文档证据。
-- Produces: 可审计的 JDK 8 构建结果、OpenSpec 完成状态和验证报告。
+- Produces: 可审计的 JDK 8 构建结果和验证报告；OpenSpec 任务状态由主协调会话在验收证据通过后同步。
 
 - [ ] **Step 1: 运行统一 autoconfigure 全量测试**
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am test
 ```
 
@@ -419,7 +419,7 @@ Expected: BUILD SUCCESS，0 failures/0 errors；报告记录实际测试数量�
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure,fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter \
   -am test
 ```
@@ -436,15 +436,14 @@ git diff --check 0212ccdebe60b458811d8ed0e3d20c47310a54d7..HEAD
 
 Expected: OpenSpec valid、迁移文档通过、`git diff --check` 无输出。
 
-- [ ] **Step 4: 编写验证报告并同步 tasks**
+- [ ] **Step 4: 编写验证报告**
 
-报告必须列出：删除的公开坐标、46/4 文件迁移事实、双注册去重证据、缺 SDK 测试、Maven Enforcer、实际测试数量、未修改 Core/provider/AskData 边界和任何未执行验证。仅在对应证据真实通过后，把 `tasks.md` 的 15 项逐项改为 `[x]`。
+报告必须列出：删除的公开坐标、46/4 文件迁移事实、双注册去重证据、缺 SDK 测试、Maven Enforcer、实际测试数量、未修改 Core/provider/AskData 边界和任何未执行验证。实现代理不得修改 plan 或 OpenSpec 复选框；主协调会话仅在对应证据真实通过后同步这些状态。
 
 - [ ] **Step 5: 提交验证证据**
 
 ```bash
 git add \
-  openspec/changes/move-langchain4j-adapter-autoconfigure/tasks.md \
   docs/superpowers/reports/2026-07-30-move-langchain4j-adapter-autoconfigure-verify.md
 git commit -m "test(ai): verify consolidated autoconfigure"
 ```
