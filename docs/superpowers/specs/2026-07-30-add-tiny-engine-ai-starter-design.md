@@ -2,6 +2,8 @@
 comet_change: add-tiny-engine-ai-starter
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-30-add-tiny-engine-ai-starter
+status: final
 ---
 
 # TinyEngine AI Starter 与 AskData 中立 AI 依赖设计
