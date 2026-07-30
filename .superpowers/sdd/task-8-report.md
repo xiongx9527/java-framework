@@ -20,6 +20,6 @@
 
 ## 未勾选范围
 
-- 原生 Streaming Chat provider 调用与完整 TinyEngine Chat 参数映射仍未交付。
+- 原生 Streaming Chat provider 调用与完整 TinyEngine Chat 参数映射仍未交付，OpenSpec 5.2/5.3 保持未勾。
 - REST 路由未实现，因此 `/app-center/api/*` 路由隔离项保持未勾。
-- 默认 fail-fast/degrade 已覆盖 TinyEngine RAG 与相关测试；Chat 缺模型启动 fail-fast 未作为当前实现承诺，相关 OpenSpec 项保持未勾或等待后续细化。
+- 默认 fail-fast/degrade 已覆盖 TinyEngine RAG 与相关测试；Chat 缺模型启动 fail-fast 未作为当前实现承诺，OpenSpec 7.1/7.2/7.3 保持未勾或等待后续细化。
