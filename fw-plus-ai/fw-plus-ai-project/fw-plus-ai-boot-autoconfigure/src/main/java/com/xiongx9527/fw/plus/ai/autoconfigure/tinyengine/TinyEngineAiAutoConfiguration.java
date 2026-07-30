@@ -3,6 +3,13 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineAiChatService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineKnowledgeBaseService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineRagService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatResponse;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatStreamChunk;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.LangChain4jTinyEngineAiProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiCapability;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProviderRegistry;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import org.springframework.beans.factory.ObjectProvider;
@@ -12,6 +19,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.List;
+
 @Configuration
 @ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(TinyEngineAiProperties.class)
@@ -20,8 +29,22 @@ public class TinyEngineAiAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean(TinyEngineAiChatService.class)
 	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.chat", name = "enabled", havingValue = "true")
-	public TinyEngineAiChatService tinyEngineAiChatService() {
-		return new DefaultTinyEngineAiChatService();
+	public TinyEngineAiChatService tinyEngineAiChatService(TinyEngineAiProviderRegistry providerRegistry) {
+		return new DefaultTinyEngineAiChatService(providerRegistry);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean(TinyEngineAiProvider.class)
+	public TinyEngineAiProvider langChain4jTinyEngineAiProvider(ObjectProvider<AiModelRegistry> modelRegistryProvider,
+			TinyEngineAiProperties properties) {
+		return new LangChain4jTinyEngineAiProvider(modelRegistryProvider.getIfAvailable(), properties);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean(TinyEngineAiProviderRegistry.class)
+	public TinyEngineAiProviderRegistry tinyEngineAiProviderRegistry(List<TinyEngineAiProvider> providers,
+			TinyEngineAiProperties properties) {
+		return new TinyEngineAiProviderRegistry(providers, properties.getProvider());
 	}
 
 	@Bean
@@ -102,6 +125,21 @@ public class TinyEngineAiAutoConfiguration {
 	}
 
 	private static final class DefaultTinyEngineAiChatService implements TinyEngineAiChatService {
+		private final TinyEngineAiProviderRegistry providerRegistry;
+
+		private DefaultTinyEngineAiChatService(TinyEngineAiProviderRegistry providerRegistry) {
+			this.providerRegistry = providerRegistry;
+		}
+
+		@Override
+		public TinyEngineChatResponse chat(TinyEngineChatRequest request) {
+			return providerRegistry.requireCapability(TinyEngineAiCapability.CHAT).chat(request);
+		}
+
+		@Override
+		public List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request) {
+			return providerRegistry.requireCapability(TinyEngineAiCapability.STREAMING_CHAT).stream(request);
+		}
 	}
 
 	private static final class DefaultTinyEngineRagService implements TinyEngineRagService {
