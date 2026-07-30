@@ -292,7 +292,7 @@ Expected: 两个路径分别绑定 `springboot2`、`springboot3`，主工作区�
 - Consumes: `.worktrees/springboot2-sync` 和已发布 `dev`。
 - Produces: 保持 Java 8 固定基线的最新 `springboot2` 远端分支。
 
-- [ ] **Step 1: 选择安全合并方式**
+- [x] **Step 1: 选择安全合并方式**
 
 Run:
 
@@ -303,7 +303,7 @@ git merge-base --is-ancestor springboot2 dev
 
 Expected: worktree 干净；若祖先检查退出码为 0，执行 `git -C .worktrees/springboot2-sync merge --ff-only dev`；否则执行 `git -C .worktrees/springboot2-sync merge --no-ff dev -m "merge: sync dev into springboot2"`，保留派生分支独有历史。
 
-- [ ] **Step 2: 断言 Spring Boot 2/Java 8 基线**
+- [x] **Step 2: 断言 Spring Boot 2/Java 8 基线**
 
 Run:
 
@@ -315,7 +315,7 @@ rg -n '<spring-boot-dependencies.version>2\.7\.18|<spring-cloud-dependencies.ver
 
 Expected: 四个固定版本不变；Spring AI 两个 1.0.1 属性仍存在。
 
-- [ ] **Step 3: 按层构建 springboot2**
+- [x] **Step 3: 按层构建 springboot2**
 
 Run:
 
@@ -331,7 +331,7 @@ mvn -f .worktrees/springboot2-sync/fw-plus-sample/pom.xml validate
 
 Expected: 五条命令均退出 0；构建使用 Java 8。
 
-- [ ] **Step 4: 复核 springboot2 的 LangChain4j 字节码边界**
+- [x] **Step 4: 复核 springboot2 的 LangChain4j 字节码边界**
 
 Run:
 
@@ -345,7 +345,7 @@ test "$(rg -c 'langchain4j-spring-boot-starter' .worktrees/springboot2-sync/fw-p
 
 Expected: core 解析为 0.35.0，官方 Spring Boot starter 不在依赖树中；Java 8 core JAR 沿用 Task 3 已验证的 major 52 artifact。
 
-- [ ] **Step 5: 发布并核验 springboot2**
+- [x] **Step 5: 发布并核验 springboot2**
 
 Run:
 
