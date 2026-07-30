@@ -27,6 +27,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidationResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
@@ -40,10 +41,12 @@ import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import com.xiongx9527.fw.plus.ai.model.DefaultAiModelRegistry;
 import dev.langchain4j.data.embedding.Embedding;
-import dev.langchain4j.rag.content.retriever.ContentRetriever;
+import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
+import dev.langchain4j.store.embedding.EmbeddingStore;
+import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
@@ -107,9 +110,8 @@ public class AskDataAutoConfigurationTest {
 
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> new AskDataAutoConfiguration().askDataVectorRetriever(properties,
-                        new DefaultListableBeanFactory().getBeanProvider(ContentRetriever.class),
-                        new DefaultListableBeanFactory().getBeanProvider(dev.langchain4j.store.embedding.EmbeddingStore.class),
-                        new DefaultListableBeanFactory().getBeanProvider(EmbeddingModel.class)));
+                        new DefaultListableBeanFactory().getBeanProvider(AiEmbeddingStoreRegistry.class),
+                        new DefaultListableBeanFactory().getBeanProvider(AskDataModelRegistry.class)));
 
         assertTrue(exception.getMessage().contains("向量"));
     }
@@ -121,9 +123,8 @@ public class AskDataAutoConfigurationTest {
         properties.getVector().setStore("shared");
 
         AskDataVectorRetriever retriever = new AskDataAutoConfiguration().askDataVectorRetriever(properties,
-                new DefaultListableBeanFactory().getBeanProvider(ContentRetriever.class),
-                new DefaultListableBeanFactory().getBeanProvider(dev.langchain4j.store.embedding.EmbeddingStore.class),
-                new DefaultListableBeanFactory().getBeanProvider(EmbeddingModel.class));
+                new DefaultListableBeanFactory().getBeanProvider(AiEmbeddingStoreRegistry.class),
+                new DefaultListableBeanFactory().getBeanProvider(AskDataModelRegistry.class));
 
         assertTrue(retriever != null);
     }
@@ -156,6 +157,27 @@ public class AskDataAutoConfigurationTest {
     }
 
     @Test
+    public void shouldPreserveCustomAskDataVectorRetriever() {
+        AskDataVectorRetriever customRetriever = query -> Collections.singletonList(new com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDocument("custom"));
+
+        contextRunner.withBean(AskDataVectorRetriever.class, () -> customRetriever).run(context ->
+                assertSame(customRetriever, context.getBean(AskDataVectorRetriever.class)));
+    }
+
+    @Test
+    public void shouldNotUseDirectLangChain4jVectorBeansAsDefaultPath() {
+        InMemoryEmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<TextSegment>();
+        store.add(Embedding.from(new float[] {1.0F}), TextSegment.from("legacy vector document"));
+
+        contextRunner
+                .withBean("legacyEmbeddingStore", EmbeddingStore.class, () -> store)
+                .withBean("legacyEmbeddingModel", EmbeddingModel.class, () -> embeddingModel(1.0F))
+                .run(context -> assertTrue(context.getBean(AskDataVectorRetriever.class).retrieve(
+                        new com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery("term", "orders",
+                                "legacy", "legacy", 1, Collections.<String, Object>emptyMap())).isEmpty()));
+    }
+
+    @Test
     public void shouldExposeCoreAskDataServiceAndPreferBusinessImplementation() {
         com.xiongx9527.fw.plus.ai.askdata.api.AskDataService customService =
                 new com.xiongx9527.fw.plus.ai.askdata.api.AskDataService() {
@@ -184,7 +206,7 @@ public class AskDataAutoConfigurationTest {
     }
 
     @Test
-    public void shouldUseDirectLangChain4jBeansWithoutOptionalModelCore() {
+    public void shouldNotUseDirectLangChain4jBeansAsDefaultModelRegistryPath() {
         contextRunner
                 .withClassLoader(new FilteredClassLoader("com.xiongx9527.fw.plus.ai.langchain4j.adapter"))
                 .withPropertyValues(
@@ -195,9 +217,39 @@ public class AskDataAutoConfigurationTest {
                 .run(context -> {
                     assertTrue(context.getStartupFailure() == null);
                     AskDataModelRegistry registry = context.getBean(AskDataModelRegistry.class);
-                    assertEquals("direct-response", registry.getChatModel(null).generate("question").getText());
-                    assertEquals(java.util.Arrays.asList(0.3F, 0.7F), registry.getEmbeddingModel(null).embed("question"));
+                    assertThrows(com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelException.class,
+                            () -> registry.getChatModel(null));
+                    assertThrows(com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelException.class,
+                            () -> registry.getEmbeddingModel(null));
                 });
+    }
+
+    @Test
+    public void shouldPreserveCustomAskDataModelRegistry() {
+        AskDataModelRegistry customRegistry = new AskDataModelRegistry() {
+            @Override
+            public AskDataChatModel getChatModel(String modelKey) {
+                return prompt -> new AskDataModelResponse("custom", null, "custom");
+            }
+
+            @Override
+            public AskDataEmbeddingModel getEmbeddingModel(String modelKey) {
+                return text -> java.util.Collections.singletonList(1.0F);
+            }
+
+            @Override
+            public String getDefaultChatModelKey() {
+                return "custom";
+            }
+
+            @Override
+            public String getDefaultEmbeddingModelKey() {
+                return "custom";
+            }
+        };
+
+        contextRunner.withBean(AskDataModelRegistry.class, () -> customRegistry)
+                .run(context -> assertSame(customRegistry, context.getBean(AskDataModelRegistry.class)));
     }
 
     @Test
