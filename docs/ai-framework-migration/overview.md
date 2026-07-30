@@ -127,7 +127,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
   -pl fw-plus-project/fw-plus-ai/fw-plus-ai-model,fw-plus-project/fw-plus-ai/fw-plus-ai-store-embedding,fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-adapter -am test
 
 ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
-  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure,fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure -am test
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am test
 
 ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin -am test
