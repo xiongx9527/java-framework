@@ -104,3 +104,54 @@ DONE_WITH_CONCERNS
 ### 风险与关注项
 
 - 完整 Maven 生命周期仍由范围外 `LegacyEmbeddingStoreAiAdapter#getFramework()` 编译缺陷阻断，未修改范围外文件。
+
+---
+
+## AskData 模型注册中立化（本次实施）
+
+### 状态
+
+DONE_WITH_CONCERNS
+
+### 实现内容
+
+- 新增 `AiModelAskDataModelRegistry`，通过 `AiModelRegistry` 按配置候选和默认 key 解析 `CHAT`、`EMBEDDING` 能力。
+- 中立 `AiModel` 可直接实现 AskData chat/embedding 门面；仅在该默认实现内部对 `LangChain4jAiModel` 解包为当前默认运行时。
+- `AskDataAutoConfiguration#askDataModelRegistry` 改为注入 `ObjectProvider<AiModelRegistry>`，移除默认路径中 `Map<String, ChatLanguageModel>`、`Map<String, EmbeddingModel>` 和旧 source 的收集。
+- 保持 `AskDataModelRegistry` 接口不变，并以 `@ConditionalOnMissingBean` 验证业务自定义 Bean 覆盖默认实现。
+- 旧的直接 LangChain4j Spring Bean 测试改为断言其不再是默认 AskData 模型路径。
+
+### RED
+
+1. `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=AiModelAskDataModelRegistryTest`
+   - 预期失败：测试编译提示 `AiModelAskDataModelRegistry` 不存在，证明新增中立注册表测试先于实现。
+2. 默认实现落地后的指定组合测试首次执行：
+   `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=AiModelAskDataModelRegistryTest,AskDataAutoConfigurationTest,LangChain4jAskDataModelRegistryTest`
+   - 预期失败：旧测试仍要求无 `AiModelRegistry` 时直接收集 `ChatLanguageModel`/`EmbeddingModel`，与本任务的新主路径契约冲突。
+
+### GREEN
+
+1. `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=AiModelAskDataModelRegistryTest`
+   - 结果：2 tests，0 failures，0 errors。
+2. `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=AiModelAskDataModelRegistryTest,AskDataAutoConfigurationTest,LangChain4jAskDataModelRegistryTest`
+   - 结果：35 tests，0 failures，0 errors。
+
+### 变更文件
+
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/model/AiModelAskDataModelRegistry.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/autoconfigure/AskDataAutoConfiguration.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/model/AiModelAskDataModelRegistryTest.java`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/askdata/autoconfigure/AskDataAutoConfigurationTest.java`
+- `.superpowers/sdd/task-4-report.md`
+
+### 自审结果
+
+- `git diff --check` 通过。
+- 默认 Bean 的签名不再包含 `Map<String, ChatLanguageModel>` 或 `Map<String, EmbeddingModel>`。
+- `LangChain4jAskDataModelRegistry` 没有默认构造入口；新默认实现只在本地兼容分支引用 `LangChain4jAiModel`。
+- 未修改 TinyEngine、AskData vector、Task 5+、`openspec/**`、`docs/superpowers/**` 或 `.comet/**`。
+
+### 风险信号与顾虑
+
+- Maven 输出仍报告本地已安装 BOM 存在重复 dependencyManagement 项，以及测试类路径存在双 SLF4J binding；两者均为范围外环境警告，指定测试已实际执行并通过。
+- `AiModel` 本身只定义元数据，非 LangChain4j provider 需提供 AskData chat/embedding 门面或后续专用适配器，才能被 AskData 调用；当前行为会返回明确的 `AskDataModelException`，不会退回到直接收集 LangChain4j Bean。

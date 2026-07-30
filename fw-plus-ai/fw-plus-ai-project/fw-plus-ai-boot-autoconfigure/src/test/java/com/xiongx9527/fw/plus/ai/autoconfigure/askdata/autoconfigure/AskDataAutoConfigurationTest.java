@@ -184,7 +184,7 @@ public class AskDataAutoConfigurationTest {
     }
 
     @Test
-    public void shouldUseDirectLangChain4jBeansWithoutOptionalModelCore() {
+    public void shouldNotUseDirectLangChain4jBeansAsDefaultModelRegistryPath() {
         contextRunner
                 .withClassLoader(new FilteredClassLoader("com.xiongx9527.fw.plus.ai.langchain4j.adapter"))
                 .withPropertyValues(
@@ -195,9 +195,39 @@ public class AskDataAutoConfigurationTest {
                 .run(context -> {
                     assertTrue(context.getStartupFailure() == null);
                     AskDataModelRegistry registry = context.getBean(AskDataModelRegistry.class);
-                    assertEquals("direct-response", registry.getChatModel(null).generate("question").getText());
-                    assertEquals(java.util.Arrays.asList(0.3F, 0.7F), registry.getEmbeddingModel(null).embed("question"));
+                    assertThrows(com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelException.class,
+                            () -> registry.getChatModel(null));
+                    assertThrows(com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelException.class,
+                            () -> registry.getEmbeddingModel(null));
                 });
+    }
+
+    @Test
+    public void shouldPreserveCustomAskDataModelRegistry() {
+        AskDataModelRegistry customRegistry = new AskDataModelRegistry() {
+            @Override
+            public AskDataChatModel getChatModel(String modelKey) {
+                return prompt -> new AskDataModelResponse("custom", null, "custom");
+            }
+
+            @Override
+            public AskDataEmbeddingModel getEmbeddingModel(String modelKey) {
+                return text -> java.util.Collections.singletonList(1.0F);
+            }
+
+            @Override
+            public String getDefaultChatModelKey() {
+                return "custom";
+            }
+
+            @Override
+            public String getDefaultEmbeddingModelKey() {
+                return "custom";
+            }
+        };
+
+        contextRunner.withBean(AskDataModelRegistry.class, () -> customRegistry)
+                .run(context -> assertSame(customRegistry, context.getBean(AskDataModelRegistry.class)));
     }
 
     @Test
