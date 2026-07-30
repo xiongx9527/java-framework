@@ -7,8 +7,8 @@
 - Current task: `Task 1: 获取远端并将本地 dev 重放到最新基线`
 - OpenSpec mapping: `1.1`、`1.2`、`2.1`
 - Stage: `implementing`
-- Implementer: pending
-- Base commit: pending
+- Implementer: `task1_remote_rebase`
+- Base commit: `e23703edfa5f325cccaa208f0dc110ff1d1a4973`
 - Implementation commits: pending
 - Changed files: pending
 - RED evidence: pending
