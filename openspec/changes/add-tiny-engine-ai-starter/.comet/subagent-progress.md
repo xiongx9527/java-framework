@@ -5,9 +5,12 @@
 - TDD mode: tdd
 - Current plan task: Task 8 REST follow-up: TinyEngine AI REST 路由
 - Mapped OpenSpec tasks: 8.2
-- Stage: implementing
+- Stage: completed
 - Base commit before dispatch: 1a366f8d
-- Implementer agent: pending
+- Implementer agent: Codex
 - Implementer brief: /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-tiny-engine-ai-starter/.superpowers/sdd/task-8-rest-brief.md
 - Implementer report: /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-tiny-engine-ai-starter/.superpowers/sdd/task-8-rest-report.md
 - Required behavior: REST routes are controlled by an independent web enabled switch and configurable base/endpoint paths; no hardcoded `/app-center/api/*` routes in TinyEngine AI production code.
+- Implementation commit: 3ee8989b (`feat(ai): add tiny engine ai web endpoints`)
+- Verification: TDD RED observed; focused REST tests (6) and `TinyEngine*Test` (25) passed; OpenSpec strict validation and required static scans passed.
+- Risk signal: existing Maven BOM duplicate dependency-management and SLF4J multiple-binding warnings remain outside this task's scope.
