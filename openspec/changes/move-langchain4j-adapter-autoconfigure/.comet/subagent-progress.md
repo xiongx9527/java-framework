@@ -10,7 +10,7 @@
 
 - Plan task：`Task 6: 完整验证、任务同步和验证报告`
 - OpenSpec tasks：`4.1`、`4.2`、`4.3`、`4.4`
-- 阶段：`final-review`
+- 阶段：`done`
 - 派发基线：`e67dd62c`
 - 实现代理：`implement_task_6`
 - 任务简报：`.comet/handoff/tasks/task-6-brief.md`
@@ -21,7 +21,8 @@
 - GREEN 证据：JDK 8 超集 Reactor 298 项通过，0 failures/0 errors；adapter Starter 与 Enforcer 实际执行通过；OpenSpec、文档、旧坐标扫描和 diff 检查通过
 - 风险任务级审查：是（AskData 测试与 LangChain4j 注册资源的跨子系统边界修正）
 - 审查修复轮次：`0/1`
-- 未解决反馈：无；根因修复已提交，待最终超集 Reactor 复验
+- 未解决反馈：无
+- 最终轻量审查：`APPROVED`；Critical/Important/Minor 均无，可进入 Comet verify
 
 ## 已完成
 
