@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.model;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -12,6 +13,83 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class DefaultAiModelFactoryTest {
 
     private final DefaultAiModelFactory factory = new DefaultAiModelFactory();
+
+    @Test
+    public void shouldSelectOnlyCandidateWhenFrameworkIsBlank() {
+        AiModelAdapter unsupported = new StubAdapter("unsupported", false);
+        AiModelAdapter supported = new StubAdapter("only", true);
+        AiModelDefinition definition = definition();
+        definition.setFramework(" ");
+
+        AiModel model = factory.create(definition, Arrays.asList(unsupported, supported));
+
+        assertSame(((StubAdapter) supported).model, model);
+    }
+
+    @Test
+    public void shouldRejectMultipleCandidatesWhenFrameworkIsBlank() {
+        AiModelDefinition definition = definition();
+        definition.setFramework(null);
+
+        AiModelException exception = assertThrows(AiModelException.class,
+                () -> factory.create(definition, Arrays.<AiModelAdapter>asList(
+                        new StubAdapter("second", true), new StubAdapter("first", true))));
+
+        assertContext(exception, definition);
+        assertTrue(exception.getMessage().contains("candidates=[first, second]"));
+    }
+
+    @Test
+    public void shouldRejectMissingExplicitFramework() {
+        AiModelDefinition definition = definition();
+        definition.setFramework("missing");
+
+        AiModelException exception = assertThrows(AiModelException.class,
+                () -> factory.create(definition, Arrays.<AiModelAdapter>asList(
+                        new StubAdapter("second", true), new StubAdapter("first", true))));
+
+        assertContext(exception, definition);
+        assertTrue(exception.getMessage().contains("candidates=[first, second]"));
+    }
+
+    @Test
+    public void shouldCreateWithExactlyMatchingExplicitFramework() {
+        AiModelDefinition definition = definition();
+        StubAdapter matching = new StubAdapter("fake", true);
+
+        AiModel model = factory.create(definition, Arrays.<AiModelAdapter>asList(
+                new StubAdapter("other", true), matching));
+
+        assertSame(matching.model, model);
+    }
+
+    @Test
+    public void shouldNotCallSupportsOnAdapterWithDifferentExplicitFramework() {
+        AiModelDefinition definition = definition();
+        StubAdapter matching = new StubAdapter("fake", true);
+        AiModelAdapter mismatched = new StubAdapter("other", true) {
+            @Override
+            public boolean supports(AiModelDefinition ignored) {
+                throw new AssertionError("不应调用 framework 不匹配适配器的 supports");
+            }
+        };
+
+        AiModel model = factory.create(definition, Arrays.<AiModelAdapter>asList(mismatched, matching));
+
+        assertSame(matching.model, model);
+    }
+
+    @Test
+    public void shouldIncludeStableContextWhenDefinitionIsNull() {
+        AiModelException exception = assertThrows(AiModelException.class,
+                () -> factory.create(null, Collections.<AiModelAdapter>emptyList()));
+
+        assertTrue(exception.getMessage().contains("key=null"));
+        assertTrue(exception.getMessage().contains("framework=null"));
+        assertTrue(exception.getMessage().contains("provider=null"));
+        assertTrue(exception.getMessage().contains("type=null"));
+        assertTrue(exception.getMessage().contains("candidates=[]"));
+    }
 
     @Test
     public void shouldIncludeDefinitionContextWhenNoAdapterSupportsModel() {
@@ -88,22 +166,66 @@ public class DefaultAiModelFactoryTest {
     }
 
     private void assertContext(AiModelException exception) {
-        assertTrue(exception.getMessage().contains("key=chat"));
-        assertTrue(exception.getMessage().contains("framework=fake"));
-        assertTrue(exception.getMessage().contains("provider=fake-provider"));
-        assertTrue(exception.getMessage().contains("type=CHAT"));
+        assertContext(exception, definition());
+    }
+
+    private void assertContext(AiModelException exception, AiModelDefinition definition) {
+        assertTrue(exception.getMessage().contains("key=" + definition.getKey()));
+        assertTrue(exception.getMessage().contains("framework=" + definition.getFramework()));
+        assertTrue(exception.getMessage().contains("provider=" + definition.getProvider()));
+        assertTrue(exception.getMessage().contains("type=" + definition.getType()));
     }
 
     private static class StubAdapter implements AiModelAdapter {
 
+        private final String framework;
+
+        private final boolean supported;
+
+        private final AiModel model = new AiModel() {
+            @Override
+            public String getKey() {
+                return "chat";
+            }
+
+            @Override
+            public String getFramework() {
+                return framework;
+            }
+
+            @Override
+            public String getProvider() {
+                return "fake-provider";
+            }
+
+            @Override
+            public AiModelType getType() {
+                return AiModelType.CHAT;
+            }
+        };
+
+        private StubAdapter() {
+            this("fake", false);
+        }
+
+        private StubAdapter(String framework, boolean supported) {
+            this.framework = framework;
+            this.supported = supported;
+        }
+
+        @Override
+        public String getFramework() {
+            return framework;
+        }
+
         @Override
         public boolean supports(AiModelDefinition definition) {
-            return false;
+            return supported;
         }
 
         @Override
         public AiModel create(AiModelDefinition definition) {
-            return null;
+            return supported ? model : null;
         }
     }
 }

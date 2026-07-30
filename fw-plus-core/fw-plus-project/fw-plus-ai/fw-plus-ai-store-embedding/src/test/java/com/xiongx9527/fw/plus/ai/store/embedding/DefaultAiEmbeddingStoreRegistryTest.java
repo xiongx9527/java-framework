@@ -206,6 +206,11 @@ public class DefaultAiEmbeddingStoreRegistryTest {
         private final AiEmbeddingStore store = new FakeStore();
 
         @Override
+        public String getFramework() {
+            return "fake";
+        }
+
+        @Override
         public boolean supports(AiEmbeddingStoreDefinition definition) {
             return "fake".equals(definition.getFramework())
                     && "fake-provider".equals(definition.getProvider())
@@ -219,6 +224,11 @@ public class DefaultAiEmbeddingStoreRegistryTest {
     }
 
     private static class StubAdapter implements AiEmbeddingStoreAdapter {
+
+        @Override
+        public String getFramework() {
+            return "stub";
+        }
 
         @Override
         public boolean supports(AiEmbeddingStoreDefinition definition) {

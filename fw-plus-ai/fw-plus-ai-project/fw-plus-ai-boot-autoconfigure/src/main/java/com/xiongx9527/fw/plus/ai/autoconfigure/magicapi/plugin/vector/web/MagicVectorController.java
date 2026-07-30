@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.web;
 
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreFactory;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +51,10 @@ public class MagicVectorController extends MagicController implements MagicExcep
         try {
             getEmbeddingStoreFactory().create(definition, getProviderAdapters());
             return new JsonBean<>("ok");
+        } catch (AiEmbeddingStoreException e) {
+            log.error("测试 Vector 数据源失败，数据源 key: {}, causeType: {}",
+                    definition != null ? definition.getKey() : "unknown", e.getClass().getName());
+            return failure(selectionFailureMessage(e.getMessage()));
         } catch (Exception e) {
             log.error("测试 Vector 数据源失败，数据源 key: {}, causeType: {}",
                     definition != null ? definition.getKey() : "unknown", e.getClass().getName());
@@ -90,5 +95,36 @@ public class MagicVectorController extends MagicController implements MagicExcep
     private JsonBean<Object> failure(String message) {
         String failureMessage = message == null || message.trim().length() == 0 ? "操作失败" : message;
         return new JsonBean<Object>(-1, failureMessage, null);
+    }
+
+    private String selectionFailureMessage(String message) {
+        String candidates = safeCandidateList(message, "candidateFrameworks=");
+        if (candidates == null) {
+            return "向量数据源测试失败";
+        }
+        if (message.startsWith("No adapter supports store: ")) {
+            return "No adapter supports store: candidateFrameworks=" + candidates;
+        }
+        if (message.startsWith("Multiple adapters support store: ")) {
+            return "Multiple adapters support store: candidateFrameworks=" + candidates;
+        }
+        return "向量数据源测试失败";
+    }
+
+    private String safeCandidateList(String message, String marker) {
+        if (message == null) {
+            return null;
+        }
+        int markerIndex = message.indexOf(marker);
+        int start = markerIndex < 0 ? -1 : markerIndex + marker.length();
+        int end = start < 0 ? -1 : message.indexOf(']', start);
+        if (start < 0 || end < start) {
+            return null;
+        }
+        String candidates = message.substring(start, end + 1);
+        if (!candidates.matches("\\[[A-Za-z0-9._, -]*\\]")) {
+            return null;
+        }
+        return candidates;
     }
 }

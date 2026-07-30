@@ -4,7 +4,7 @@
 
 fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是兼顾功能和 Java 8 兼容性的较高可用版本；但本目录下部分扩展模块的 `0.35` 版本源码已经使用了 Java 8 不支持的类或方法。
 
-为保持项目整体 Java 8 兼容性，本目录中除 `fw-plus-ai-langchain4j-store-embeding` 之外的模块，采用与 LangChain4j 原模块相同的包名和类名重写关键类，用本工程内的源码覆盖 `0.35` 中不兼容 Java 8 的实现。
+为保持项目整体 Java 8 兼容性，本目录中的 provider 模块采用与 LangChain4j 原模块相同的包名和类名重写关键类，用本工程内的源码覆盖 `0.35` 中不兼容 Java 8 的实现。模型与向量能力统一由 `fw-plus-ai-langchain4j-adapter` 接入中立 SPI。
 
 这些覆盖模块只面向 Java 8 编译或运行环境。Java 17 及以上环境应优先使用 LangChain4j `0.35` 原始 artifact，不需要使用本目录的 Java 8 覆盖模块。
 
@@ -40,7 +40,7 @@ fw-plus-core 的基线是 Java 8。对 LangChain4j 来说，`0.35.x` 通常是�
 
 | 覆盖模块 | Java 8 覆盖依赖 | Java 17 及以上原始依赖 |
 | --- | --- | --- |
-`fw-plus-ai-langchain4j-store-embeding` 是本工程自有的向量存储抽象与适配扩展，不属于上游 LangChain4j 类覆盖范围。
+`fw-plus-ai-langchain4j-adapter` 是本工程自有的模型与向量适配扩展，不属于上游 LangChain4j 类覆盖范围。
 
 ## 覆盖方式
 
