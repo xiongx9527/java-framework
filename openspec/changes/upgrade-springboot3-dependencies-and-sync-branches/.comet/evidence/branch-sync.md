@@ -36,3 +36,20 @@
 关键输出：退出码 `0`。`origin/dev` 已是本地 `dev` 的祖先；在提交本证据后，工作区将再次检查为干净。
 
 本任务未执行 push、merge、强制更新、worktree 操作或 stash 修改。`origin/springboot3` 保持为获取到的 `b9457fc69cc6fbeb1e4febf97e54e2b5d21c44f1`，其相对 `origin/dev` 的 12 个独立提交未被覆盖。
+
+## RED：发布前差异
+
+- 构建验证完成时本地 `dev` HEAD：`4b2650f50a4f407baa6e5a04121be6173a0c5b9c`
+- 本地 tracking `origin/dev`：`0c0a12fa996bbdb4f327b77faa28c55fe9aeda72`
+- `git rev-list --left-right --count HEAD...origin/dev`：`12 0`（本地 ahead 12，behind 0）。
+- `git merge-base --is-ancestor 0c0a12fa996bbdb4f327b77faa28c55fe9aeda72 4b2650f50a4f407baa6e5a04121be6173a0c5b9c`：退出码 `0`，本地历史满足严格快进关系。
+
+## 发布尝试与阻塞证据
+
+1. `git fetch origin dev` 失败：`Failed to connect to github.com port 443 after 75011 ms`。这是 Git HTTPS 传输失败，不是分支冲突结论。
+2. GitHub CLI 认证和私有仓库读取成功；GitHub API 独立读取 `refs/heads/dev` 与 `commits/dev`，远端 SHA 均为 `0c0a12fa996bbdb4f327b77faa28c55fe9aeda72`。
+3. API 查询目标提交 `4b2650f50a4f407baa6e5a04121be6173a0c5b9c` 返回 `404`，`0c0a12fa...4b2650f5` compare 同样返回 `404`。目标对象尚未存在于 GitHub 对象库，因此 brief 要求的 `behind_by=0` compare 条件无法成立。
+4. `git push origin dev` 使用普通非强制推送，最终失败：`curl 28 Failed to connect to github.com port 443 after 75010 ms`，并出现 `send-pack: unexpected disconnect while reading sideband packet`。
+5. push 失败后再次通过 GitHub API 独立核验，远端 `dev` 仍为 `0c0a12fa996bbdb4f327b77faa28c55fe9aeda72`；本地仍为 `4b2650f50a4f407baa6e5a04121be6173a0c5b9c`，tracking 状态仍是 ahead 12。
+
+未执行 `--force`、GitHub API ref PATCH 或 Git Data API 对象上传。由于 ref-only fallback 的目标对象存在性与 compare 前置条件不成立，不能将本次状态记录为发布成功。证据提交完成后本地 HEAD 会前移，但在网络传输恢复并完成普通非强制 push、远端 SHA 等于最终本地 HEAD、ahead/behind 为 `0 0` 前，Task 3 保持 `BLOCKED_ON_PUBLISH`。
