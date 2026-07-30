@@ -10,6 +10,7 @@ public class TinyEngineAiProperties {
 	private String missingDependencyPolicy = "fail-fast";
 	private Chat chat = new Chat();
 	private Rag rag = new Rag();
+	private Web web = new Web();
 	private Vector vector = new Vector();
 	private Model model = new Model();
 	private Store store = new Store();
@@ -26,6 +27,8 @@ public class TinyEngineAiProperties {
 	public void setChat(Chat chat) { this.chat = chat == null ? new Chat() : chat; }
 	public Rag getRag() { return rag; }
 	public void setRag(Rag rag) { this.rag = rag == null ? new Rag() : rag; }
+	public Web getWeb() { return web; }
+	public void setWeb(Web web) { this.web = web == null ? new Web() : web; }
 	public Vector getVector() { return vector; }
 	public void setVector(Vector vector) { this.vector = vector == null ? new Vector() : vector; }
 	public Model getModel() { return model; }
@@ -55,6 +58,27 @@ public class TinyEngineAiProperties {
 		public void setMaxResults(int maxResults) { this.maxResults = maxResults; }
 		public double getMinScore() { return minScore; }
 		public void setMinScore(double minScore) { this.minScore = minScore; }
+	}
+
+	public static class Web {
+		private boolean enabled;
+		private String basePath = "/tiny-engine/ai";
+		private String chatPath = "/chat";
+		private String chatCompletionsPath = "/chat/completions";
+		private String encryptKeyPath = "/encrypt-key";
+		private String searchPath = "/search";
+		public boolean isEnabled() { return enabled; }
+		public void setEnabled(boolean enabled) { this.enabled = enabled; }
+		public String getBasePath() { return basePath; }
+		public void setBasePath(String basePath) { this.basePath = basePath; }
+		public String getChatPath() { return chatPath; }
+		public void setChatPath(String chatPath) { this.chatPath = chatPath; }
+		public String getChatCompletionsPath() { return chatCompletionsPath; }
+		public void setChatCompletionsPath(String chatCompletionsPath) { this.chatCompletionsPath = chatCompletionsPath; }
+		public String getEncryptKeyPath() { return encryptKeyPath; }
+		public void setEncryptKeyPath(String encryptKeyPath) { this.encryptKeyPath = encryptKeyPath; }
+		public String getSearchPath() { return searchPath; }
+		public void setSearchPath(String searchPath) { this.searchPath = searchPath; }
 	}
 
 	public static class Vector {

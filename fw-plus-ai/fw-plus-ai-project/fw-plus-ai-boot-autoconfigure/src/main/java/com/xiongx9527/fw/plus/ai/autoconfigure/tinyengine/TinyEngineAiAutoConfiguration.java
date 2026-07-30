@@ -18,7 +18,9 @@ import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,6 +31,16 @@ import java.util.List;
 @ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(TinyEngineAiProperties.class)
 public class TinyEngineAiAutoConfiguration {
+
+	@Bean
+	@ConditionalOnMissingBean
+	@ConditionalOnBean({ TinyEngineAiChatService.class, TinyEngineRagService.class })
+	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.web", name = "enabled", havingValue = "true")
+	public TinyEngineAiController tinyEngineAiController(TinyEngineAiChatService chatService,
+			TinyEngineRagService ragService) {
+		return new TinyEngineAiController(chatService, ragService);
+	}
 
 	@Bean
 	@ConditionalOnMissingBean(TinyEngineAiChatService.class)

@@ -116,6 +116,26 @@ fw-plus:
 
 设置 `fw.plus.tiny-engine.ai.enabled=false` 时，TinyEngine AI 自动配置整体不生效，不创建 TinyEngine Chat、RAG、知识库服务和默认 provider Bean。单独设置 `chat.enabled=false` 或 `rag.enabled=false` 时，只关闭对应能力；聊天关闭不会要求向量依赖，RAG 关闭也不会创建 RAG/知识库服务。
 
+## REST 兼容入口
+
+REST 路由默认关闭。启用后，Controller 仅在 Servlet Web 应用中且 Chat、RAG 服务均已注册时生效；总开关关闭时不会注册任何 TinyEngine AI 路由。所有路径可单独配置，默认前缀为 `/tiny-engine/ai`，不会占用宿主应用的既有 API 前缀。
+
+```yaml
+fw:
+  plus:
+    tiny-engine:
+      ai:
+        web:
+          enabled: true
+          base-path: /tiny-engine/ai
+          chat-path: /chat
+          chat-completions-path: /chat/completions
+          encrypt-key-path: /encrypt-key
+          search-path: /search
+```
+
+启用后提供 `POST` Chat、Chat Completions 和 Search 路由。Chat Completions 的 `stream=true` 返回现有服务生成的 chunk 列表；`stream=false` 时与 Chat 一样返回普通响应。Encrypt Key 路由当前明确返回 HTTP 501，因为 starter 未实现密钥解密，调用方不得将其当作成功结果。
+
 ## 旧坐标边界
 
 当前 starter line 不使用旧的 `fw-plus-ai-langchain4j-model-spring-boot-starter` 或 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 坐标。它们只能作为历史版本迁移提示，不能作为当前主路径或新增业务依赖；请使用 `fw-plus-ai-model-spring-boot-starter`、`fw-plus-ai-store-embedding-spring-boot-starter` 与统一的 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
