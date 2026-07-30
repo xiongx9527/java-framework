@@ -7,13 +7,13 @@
 
 ## 2. 自动配置
 
-- [ ] 2.1 在 `fw-plus-boot-autoconfigure` 新增 TinyEngine 自动配置包和顶层 AutoConfiguration。
-- [ ] 2.2 新增 `fw.plus.tiny-engine` 配置属性类，覆盖 `enabled`、`web.enabled`、`mapper.enabled`、`resources.enabled`、`sql.enabled`、API base path 或资源位置等必要配置。
-- [ ] 2.3 使用条件注解确保缺少 TinyEngine core classpath、非 Servlet Web 环境或总开关关闭时不注册 TinyEngine 相关 Bean。
-- [ ] 2.4 在 Boot 层实现 TinyEngine REST Controller 薄适配并注册暴露配置，Controller 委托 core Service，且允许宿主应用通过自定义 Bean 覆盖默认装配。
-- [ ] 2.5 注册 TinyEngine Mapper 扫描与 Mapper XML 资源加载配置，确保宿主无需手写 `@MapperScan` 或复制 XML。
-- [ ] 2.6 注册 TinyEngine SQL 资源发现能力，默认不自动修改宿主数据库，自动初始化必须受显式属性控制。
-- [ ] 2.7 将 TinyEngine 自动配置加入 `META-INF/spring.factories` 和 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`。
+- [x] 2.1 在 `fw-plus-boot-autoconfigure` 新增 TinyEngine 自动配置包和顶层 AutoConfiguration。
+- [x] 2.2 新增 `fw.plus.tiny-engine` 配置属性类，覆盖 `enabled`、`web.enabled`、`service.enabled`、`mapper.enabled`、`resources.enabled`、`sql.enabled`、API base path、Mapper XML 和 SQL manifest 位置等必要配置。
+- [x] 2.3 使用条件注解确保缺少 TinyEngine core classpath、非 Servlet Web 环境、缺少 `SqlSessionFactory` 或总开关关闭时不注册不安全的 TinyEngine Bean。
+- [x] 2.4 在 Boot 层实现 TinyEngine REST Controller 薄适配并注册暴露配置，Controller 委托 core Service，且允许宿主应用通过自定义 Bean 覆盖默认装配。
+- [x] 2.5 注册 TinyEngine Mapper 扫描与 Mapper XML 资源加载配置，确保宿主无需手写 `@MapperScan` 或复制 XML。
+- [x] 2.6 注册 TinyEngine SQL 资源发现能力，默认不自动修改宿主数据库，自动初始化必须受显式属性控制。
+- [x] 2.7 将 TinyEngine 自动配置加入 `META-INF/spring.factories` 和 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`。
 
 ## 3. Starter 与依赖管理
 
