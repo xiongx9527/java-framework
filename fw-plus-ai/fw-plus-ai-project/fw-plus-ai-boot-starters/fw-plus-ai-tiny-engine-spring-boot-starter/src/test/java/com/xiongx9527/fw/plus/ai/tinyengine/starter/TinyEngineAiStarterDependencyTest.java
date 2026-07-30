@@ -18,37 +18,39 @@ public class TinyEngineAiStarterDependencyTest {
 
 	@Test
 	public void shouldUseNeutralAiStartersWithoutLegacyLangChain4jStarters() throws Exception {
-		Set<String> dependencies = directDependencies(new File("pom.xml"));
+		Set<String> dependencies = directDependencyCoordinates(new File("pom.xml"));
 
 		assertTrue("TinyEngine starter must include AI auto-configuration",
-				dependencies.contains("fw-plus-ai-boot-autoconfigure"));
+				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-autoconfigure"));
 		assertTrue("TinyEngine starter must include TinyEngine core",
-				dependencies.contains("fw-plus-tiny-engine-core"));
+				dependencies.contains("com.xiongx9527.fw.plus:fw-plus-tiny-engine-core"));
 		assertTrue("TinyEngine starter must include the neutral AI model starter",
-				dependencies.contains("fw-plus-ai-model-spring-boot-starter"));
+				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-model-spring-boot-starter"));
 		assertTrue("TinyEngine starter must include the neutral embedding store starter",
-				dependencies.contains("fw-plus-ai-store-embedding-spring-boot-starter"));
+				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-store-embedding-spring-boot-starter"));
 		assertTrue("TinyEngine starter must use the unified LangChain4j adapter",
-				dependencies.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
+				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
 		assertFalse("TinyEngine starter must not depend on the legacy LangChain4j model starter",
-				dependencies.contains("fw-plus-ai-langchain4j-model-spring-boot-starter"));
+				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter"));
 		assertFalse("TinyEngine starter must not depend on the legacy LangChain4j embedding store starter",
-				dependencies.contains("fw-plus-ai-langchain4j-store-embeding-spring-boot-starter"));
+				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter"));
 	}
 
-	private Set<String> directDependencies(File pom) throws Exception {
+	private Set<String> directDependencyCoordinates(File pom) throws Exception {
 		Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom);
 		Element dependencies = directChild(document.getDocumentElement(), "dependencies");
-		Set<String> artifactIds = new LinkedHashSet<String>();
+		Set<String> dependencyCoordinates = new LinkedHashSet<String>();
 		NodeList dependencyNodes = dependencies.getChildNodes();
 		for (int index = 0; index < dependencyNodes.getLength(); index++) {
 			Node dependencyNode = dependencyNodes.item(index);
 			if (dependencyNode.getNodeType() != Node.ELEMENT_NODE || !"dependency".equals(dependencyNode.getNodeName())) {
 				continue;
 			}
-			artifactIds.add(directChild((Element) dependencyNode, "artifactId").getTextContent().trim());
+			Element dependency = (Element) dependencyNode;
+			dependencyCoordinates.add(directChild(dependency, "groupId").getTextContent().trim()
+					+ ":" + directChild(dependency, "artifactId").getTextContent().trim());
 		}
-		return artifactIds;
+		return dependencyCoordinates;
 	}
 
 	private Element directChild(Element parent, String name) {

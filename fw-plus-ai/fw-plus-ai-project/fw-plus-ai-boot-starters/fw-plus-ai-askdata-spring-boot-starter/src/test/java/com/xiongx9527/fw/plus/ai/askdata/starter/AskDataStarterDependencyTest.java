@@ -18,19 +18,19 @@ public class AskDataStarterDependencyTest {
 
 	@Test
 	public void shouldUseUnifiedLangChain4jAdapterWithoutLegacyStarters() throws Exception {
-		Set<String> dependencies = directDependencies(new File("pom.xml"));
+		Set<String> dependencies = directDependencyCoordinates(new File("pom.xml"));
 		Set<String> dependencyGroupIds = directDependencyGroupIds(new File("pom.xml"));
 
 		assertTrue("AskData starter must preserve the AskData Java 8 module",
-				dependencies.contains("fw-plus-ai-askdata"));
+				dependencies.contains("com.xiongx9527.fw.plus:fw-plus-ai-askdata"));
 		assertTrue("AskData starter must preserve its auto-configuration",
-				dependencies.contains("fw-plus-ai-boot-autoconfigure"));
+				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-autoconfigure"));
 		assertTrue("AskData starter must obtain model capabilities from the unified LangChain4j adapter",
-				dependencies.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
+				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
 		assertFalse("AskData starter must not depend on the legacy LangChain4j model starter",
-				dependencies.contains("fw-plus-ai-langchain4j-model-spring-boot-starter"));
+				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter"));
 		assertFalse("AskData starter must not depend on the legacy LangChain4j embedding store starter",
-				dependencies.contains("fw-plus-ai-langchain4j-store-embeding-spring-boot-starter"));
+				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter"));
 		assertFalse("AskData starter must not require Spring AI",
 				dependencyGroupIds.contains("org.springframework.ai"));
 		assertFalse("AskData starter must not require Spring AI Alibaba",
@@ -39,19 +39,21 @@ public class AskDataStarterDependencyTest {
 				dependencyGroupIds.contains("io.agentscope"));
 	}
 
-	private Set<String> directDependencies(File pom) throws Exception {
+	private Set<String> directDependencyCoordinates(File pom) throws Exception {
 		Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom);
 		Element dependencies = directChild(document.getDocumentElement(), "dependencies");
-		Set<String> artifactIds = new LinkedHashSet<String>();
+		Set<String> dependencyCoordinates = new LinkedHashSet<String>();
 		NodeList dependencyNodes = dependencies.getChildNodes();
 		for (int index = 0; index < dependencyNodes.getLength(); index++) {
 			Node dependencyNode = dependencyNodes.item(index);
 			if (dependencyNode.getNodeType() != Node.ELEMENT_NODE || !"dependency".equals(dependencyNode.getNodeName())) {
 				continue;
 			}
-			artifactIds.add(directChild((Element) dependencyNode, "artifactId").getTextContent().trim());
+			Element dependency = (Element) dependencyNode;
+			dependencyCoordinates.add(directChild(dependency, "groupId").getTextContent().trim()
+					+ ":" + directChild(dependency, "artifactId").getTextContent().trim());
 		}
-		return artifactIds;
+		return dependencyCoordinates;
 	}
 
 	private Set<String> directDependencyGroupIds(File pom) throws Exception {
