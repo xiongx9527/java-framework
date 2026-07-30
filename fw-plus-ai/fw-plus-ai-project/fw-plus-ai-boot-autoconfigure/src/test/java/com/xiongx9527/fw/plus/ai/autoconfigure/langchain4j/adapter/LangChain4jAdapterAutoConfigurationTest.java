@@ -10,9 +10,11 @@ import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreFactory;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.core.io.support.SpringFactoriesLoader;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -68,6 +70,23 @@ public class LangChain4jAdapterAutoConfigurationTest {
 			assertFalse(context.getBeansOfType(LangChain4jModelProviderAdapter.class).isEmpty());
 			assertFalse(context.getBeansOfType(EmbeddingStoreProviderAdapter.class).isEmpty());
 		});
+	}
+
+	@Test
+	public void shouldContributeSingleAdapterBeansWhenLoadedFromSpringFactoriesMetadata() throws Exception {
+		ClassLoader classLoader = getClass().getClassLoader();
+		Set<String> autoConfigurationNames = new LinkedHashSet<String>(
+				SpringFactoriesLoader.loadFactoryNames(EnableAutoConfiguration.class, classLoader));
+		assertTrue(autoConfigurationNames.contains(LangChain4jAdapterAutoConfiguration.class.getName()));
+
+		Class<?> autoConfiguration = Class.forName(LangChain4jAdapterAutoConfiguration.class.getName(), true, classLoader);
+		new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(autoConfiguration))
+				.run(context -> {
+					assertTrue(context.containsBean("openAiChatModelProviderAdapter"));
+					assertEquals(1, context.getBeansOfType(AiModelAdapter.class).size());
+					assertEquals(1, context.getBeansOfType(AiEmbeddingStoreAdapter.class).size());
+				});
 	}
 
 	@Test
