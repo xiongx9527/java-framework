@@ -18,3 +18,4 @@ com.xiongx9527.fw.plus.boot.autoconfigure.admin.server.AdminServerAutoConfigurat
 com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.MagicAPIWebFluxAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.starter.MagicAPIMongoModuleAutoConfiguration
+com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.TinyEngineAutoConfiguration
