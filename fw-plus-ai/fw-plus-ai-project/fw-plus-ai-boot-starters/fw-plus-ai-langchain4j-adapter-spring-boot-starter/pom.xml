@@ -28,7 +28,7 @@
 		</dependency>
 		<dependency>
 			<groupId>com.xiongx9527.fw.plus.ai</groupId>
-			<artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure</artifactId>
+			<artifactId>fw-plus-ai-boot-autoconfigure</artifactId>
 		</dependency>
 	</dependencies>
 	<build>
