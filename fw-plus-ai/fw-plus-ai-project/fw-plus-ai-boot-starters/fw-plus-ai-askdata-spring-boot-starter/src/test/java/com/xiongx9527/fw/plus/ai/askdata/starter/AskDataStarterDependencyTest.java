@@ -19,6 +19,7 @@ public class AskDataStarterDependencyTest {
 	@Test
 	public void shouldUseUnifiedLangChain4jAdapterWithoutLegacyStarters() throws Exception {
 		Set<String> dependencies = directDependencies(new File("pom.xml"));
+		Set<String> dependencyGroupIds = directDependencyGroupIds(new File("pom.xml"));
 
 		assertTrue("AskData starter must preserve the AskData Java 8 module",
 				dependencies.contains("fw-plus-ai-askdata"));
@@ -30,6 +31,12 @@ public class AskDataStarterDependencyTest {
 				dependencies.contains("fw-plus-ai-langchain4j-model-spring-boot-starter"));
 		assertFalse("AskData starter must not depend on the legacy LangChain4j embedding store starter",
 				dependencies.contains("fw-plus-ai-langchain4j-store-embeding-spring-boot-starter"));
+		assertFalse("AskData starter must not require Spring AI",
+				dependencyGroupIds.contains("org.springframework.ai"));
+		assertFalse("AskData starter must not require Spring AI Alibaba",
+				dependencyGroupIds.contains("com.alibaba.cloud.ai"));
+		assertFalse("AskData starter must not require AgentScope2",
+				dependencyGroupIds.contains("io.agentscope"));
 	}
 
 	private Set<String> directDependencies(File pom) throws Exception {
@@ -45,6 +52,21 @@ public class AskDataStarterDependencyTest {
 			artifactIds.add(directChild((Element) dependencyNode, "artifactId").getTextContent().trim());
 		}
 		return artifactIds;
+	}
+
+	private Set<String> directDependencyGroupIds(File pom) throws Exception {
+		Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom);
+		Element dependencies = directChild(document.getDocumentElement(), "dependencies");
+		Set<String> groupIds = new LinkedHashSet<String>();
+		NodeList dependencyNodes = dependencies.getChildNodes();
+		for (int index = 0; index < dependencyNodes.getLength(); index++) {
+			Node dependencyNode = dependencyNodes.item(index);
+			if (dependencyNode.getNodeType() != Node.ELEMENT_NODE || !"dependency".equals(dependencyNode.getNodeName())) {
+				continue;
+			}
+			groupIds.add(directChild((Element) dependencyNode, "groupId").getTextContent().trim());
+		}
+		return groupIds;
 	}
 
 	private Element directChild(Element parent, String name) {
