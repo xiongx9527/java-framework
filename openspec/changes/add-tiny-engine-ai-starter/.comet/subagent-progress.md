@@ -5,15 +5,19 @@
 - TDD mode: tdd
 - Current plan task: Task 2: TinyEngine AI 配置、自动配置入口与服务契约
 - Mapped OpenSpec tasks: 3.1, 3.2, 3.3, 3.4, 7.1, 7.2, 7.3, 8.1, 9.1
-- Stage: implementing
-- Base commit before dispatch: 8f0bcd76
+- Stage: blocked
+- Base commit before dispatch: 7d8e376f
 - Implementer agent: 019fb272-200c-7001-b6a9-c53ac1550a9b
+- Fix agent: 019fb27f-3a5b-7442-b1c2-b59f560c43f4
+- Reviewer agents: 019fb27c-d6e2-7e33-8721-7424a1dfcc3d, 019fb287-63a8-7703-96cc-a616c8725eee
 - Implementer report: /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-tiny-engine-ai-starter/.superpowers/sdd/task-2-report.md
-- Implementation commit: pending
-- Changed files: pending
-- RED evidence: pending
-- GREEN evidence: pending
-- Risk signals: pending
-- Task review triggered: pending
-- Review/fix rounds: 0
-- Unresolved reviewer feedback: none
+- Implementation commits: 7cbbe8b7, b1fcae6f
+- RED evidence: system Maven with JDK 8 failed before implementation; fix-stage RED covered empty registry, default key fallback, unknown policy, and explicit degrade assertions.
+- GREEN evidence: system Maven with JDK 8 passed `mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngineAiAutoConfigurationTest` with 7 tests, 0 failures/errors.
+- Risk signals: public API contract change; diff over 200 lines.
+- Task review triggered: yes, standard risk-triggered review.
+- Review/fix rounds: 1
+- Review result: blocked after standard-mode re-review.
+- Unresolved reviewer feedback:
+  - Critical: TinyEngineAiAutoConfiguration still treats registry.contains(key) as available and does not verify registry.get(key) returns an actual model/store.
+  - Important: missingDependencyPolicy validation trims value, but degrade branch does not use the normalized value; " degrade " is accepted but then fail-fast is used.
