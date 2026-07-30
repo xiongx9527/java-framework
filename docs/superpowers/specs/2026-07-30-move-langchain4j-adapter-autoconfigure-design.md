@@ -2,6 +2,8 @@
 comet_change: move-langchain4j-adapter-autoconfigure
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-07-30-move-langchain4j-adapter-autoconfigure
+status: final
 ---
 
 # LangChain4j Adapter 自动配置合并设计

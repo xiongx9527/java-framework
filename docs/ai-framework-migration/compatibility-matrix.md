@@ -44,7 +44,7 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-c
 
 ```bash
 ./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
-  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure,fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure -am test \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am test \
   -Dtest=LangChain4jModelAutoConfigurationTest,EmbeddingStoreAutoConfigurationTest,LangChain4jAdapterAutoConfigurationTest,MagicAPIModelAutoConfigurationIntegrationTest,MagicAPIVectorAutoConfigurationIntegrationTest
 ```
 

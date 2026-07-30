@@ -1,0 +1,293 @@
+# Review package: 3a22aad3..9176f789
+
+## Commits
+9176f789 refactor(ai): fold langchain4j autoconfigure module
+
+## Files changed
+ .../fw-plus-ai-boot-dependencies/pom.xml           |   6 -
+ .../pom.xml                                        |   2 +-
+ .../pom.xml                                        | 179 ---------------------
+ .../src/main/resources/META-INF/spring.factories   |   2 -
+ ...rk.boot.autoconfigure.AutoConfiguration.imports |   1 -
+ fw-plus-ai/fw-plus-ai-project/pom.xml              |   1 -
+ 6 files changed, 1 insertion(+), 190 deletions(-)
+
+## Diff
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml
+index 3e285399..f6f7fcf8 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml
+@@ -298,26 +298,20 @@
+                 <artifactId>fw-plus-ai-store-embedding-spring-boot-starter</artifactId>
+                 <version>${project.version}</version>
+             </dependency>
+ 
+             <dependency>
+                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                 <artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-starter</artifactId>
+                 <version>${project.version}</version>
+             </dependency>
+ 
+-            <dependency>
+-                <groupId>com.xiongx9527.fw.plus.ai</groupId>
+-                <artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure</artifactId>
+-                <version>${project.version}</version>
+-            </dependency>
+-
+             <dependency>
+                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                 <artifactId>fw-plus-ai-magicapi-plugin-vector</artifactId>
+                 <version>${project.version}</version>
+             </dependency>
+ 
+             <dependency>
+                 <groupId>com.xiongx9527.fw.plus.ai</groupId>
+                 <artifactId>fw-plus-ai-magicapi-plugin-model</artifactId>
+                 <version>${project.version}</version>
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml
+index 69e664e6..40b61288 100644
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml
++++ b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml
+@@ -21,21 +21,21 @@
+ 			<groupId>com.xiongx9527.fw.plus.ai</groupId>
+ 			<artifactId>fw-plus-ai-store-embedding-spring-boot-starter</artifactId>
+ 		</dependency>
+ 		<dependency>
+ 			<groupId>com.xiongx9527.fw.plus</groupId>
+ 			<artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
+ 			<version>${revision}</version>
+ 		</dependency>
+ 		<dependency>
+ 			<groupId>com.xiongx9527.fw.plus.ai</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure</artifactId>
++			<artifactId>fw-plus-ai-boot-autoconfigure</artifactId>
+ 		</dependency>
+ 	</dependencies>
+ 	<build>
+ 		<plugins>
+ 			<plugin>
+ 				<groupId>org.apache.maven.plugins</groupId>
+ 				<artifactId>maven-enforcer-plugin</artifactId>
+ 				<version>3.4.1</version>
+ 				<executions>
+ 					<execution>
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml
+deleted file mode 100644
+index c24d5b07..00000000
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml
++++ /dev/null
+@@ -1,179 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<project xmlns="http://maven.apache.org/POM/4.0.0"
+-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+-	<modelVersion>4.0.0</modelVersion>
+-	<parent>
+-		<groupId>com.xiongx9527.fw.plus.ai</groupId>
+-		<artifactId>fw-plus-ai-boot-parent</artifactId>
+-		<version>${revision}</version>
+-		<relativePath>../fw-plus-ai-boot-parent</relativePath>
+-	</parent>
+-
+-	<artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure</artifactId>
+-
+-	<properties>
+-		<main.basedir>${basedir}/../..</main.basedir>
+-	</properties>
+-
+-	<dependencies>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
+-			<version>${revision}</version>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-core</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-openai</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-anthropic</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-ollama</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-azure-ai-search</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-azure-open-ai</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-voyage-ai</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-github-models</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-vertex-ai-gemini</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-elasticsearch</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-redis</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-qianfan</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-milvus</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>com.xiongx9527.fw.plus</groupId>
+-			<artifactId>fw-plus-ai-langchain4j-dashscope</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>org.springframework.boot</groupId>
+-			<artifactId>spring-boot-autoconfigure</artifactId>
+-		</dependency>
+-		<dependency>
+-			<groupId>dev.langchain4j</groupId>
+-			<artifactId>langchain4j-azure-ai-search</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>dev.langchain4j</groupId>
+-			<artifactId>langchain4j-elasticsearch</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>dev.langchain4j</groupId>
+-			<artifactId>langchain4j-milvus</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>dev.langchain4j</groupId>
+-			<artifactId>langchain4j-qdrant</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>dev.langchain4j</groupId>
+-			<artifactId>langchain4j-redis</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>dev.langchain4j</groupId>
+-			<artifactId>langchain4j-weaviate</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>io.milvus</groupId>
+-			<artifactId>milvus-sdk-java</artifactId>
+-			<optional>true</optional>
+-		</dependency>
+-		<dependency>
+-			<groupId>org.springframework.boot</groupId>
+-			<artifactId>spring-boot-starter-test</artifactId>
+-			<scope>test</scope>
+-		</dependency>
+-		<dependency>
+-			<groupId>org.junit.jupiter</groupId>
+-			<artifactId>junit-jupiter-api</artifactId>
+-			<version>${junit-jupiter.version}</version>
+-			<scope>test</scope>
+-		</dependency>
+-		<dependency>
+-			<groupId>org.junit.jupiter</groupId>
+-			<artifactId>junit-jupiter-engine</artifactId>
+-			<version>${junit-jupiter.version}</version>
+-			<scope>test</scope>
+-		</dependency>
+-		<dependency>
+-			<groupId>org.junit.jupiter</groupId>
+-			<artifactId>junit-jupiter-params</artifactId>
+-			<version>${junit-jupiter.version}</version>
+-			<scope>test</scope>
+-		</dependency>
+-		<dependency>
+-			<groupId>junit</groupId>
+-			<artifactId>junit</artifactId>
+-			<scope>test</scope>
+-		</dependency>
+-		<dependency>
+-			<groupId>org.junit.vintage</groupId>
+-			<artifactId>junit-vintage-engine</artifactId>
+-			<version>${junit-jupiter.version}</version>
+-			<scope>test</scope>
+-		</dependency>
+-		<dependency>
+-			<groupId>org.junit.platform</groupId>
+-			<artifactId>junit-platform-launcher</artifactId>
+-			<scope>test</scope>
+-		</dependency>
+-		<dependency>
+-			<groupId>dev.langchain4j</groupId>
+-			<artifactId>langchain4j</artifactId>
+-			<scope>test</scope>
+-		</dependency>
+-	</dependencies>
+-</project>
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/src/main/resources/META-INF/spring.factories b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/src/main/resources/META-INF/spring.factories
+deleted file mode 100644
+index 48123ef5..00000000
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/src/main/resources/META-INF/spring.factories
++++ /dev/null
+@@ -1,2 +0,0 @@
+-org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+-  com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration
+diff --git a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports b/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+deleted file mode 100644
+index 6ea723c3..00000000
+--- a/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
++++ /dev/null
+@@ -1 +0,0 @@
+-com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration
+diff --git a/fw-plus-ai/fw-plus-ai-project/pom.xml b/fw-plus-ai/fw-plus-ai-project/pom.xml
+index 7499573c..c9202967 100644
+--- a/fw-plus-ai/fw-plus-ai-project/pom.xml
++++ b/fw-plus-ai/fw-plus-ai-project/pom.xml
+@@ -10,15 +10,14 @@
+     </parent>
+     <packaging>pom</packaging>
+     <artifactId>fw-plus-ai-project</artifactId>
+ 
+     <modules>
+         <module>fw-plus-ai-boot-dependencies</module>
+         <module>fw-plus-ai-boot-parent</module>
+         <module>fw-plus-ai-boot-common</module>
+         <module>fw-plus-ai-boot</module>
+         <module>fw-plus-ai-boot-autoconfigure</module>
+-		<module>fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure</module>
+         <module>fw-plus-ai-boot-starters</module>
+     </modules>
+ 
+ </project>

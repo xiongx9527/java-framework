@@ -2,6 +2,7 @@
 change: move-langchain4j-adapter-autoconfigure
 design-doc: docs/superpowers/specs/2026-07-30-move-langchain4j-adapter-autoconfigure-design.md
 base-ref: 0212ccdebe60b458811d8ed0e3d20c47310a54d7
+archived-with: 2026-07-30-move-langchain4j-adapter-autoconfigure
 ---
 
 # LangChain4j Adapter 自动配置合并 Implementation Plan
@@ -12,7 +13,7 @@ base-ref: 0212ccdebe60b458811d8ed0e3d20c47310a54d7
 
 **Architecture:** 保留 `com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.*` 包级隔离，把原模块的源码、测试和 optional 编译依赖迁入统一 Boot autoconfigure。adapter Starter 改为显式依赖统一 autoconfigure；`spring.factories` 与 `AutoConfiguration.imports` 同时注册同一根配置，并用上下文测试证明不会产生重复 Bean。
 
-**Tech Stack:** Java 8、Spring Boot 2.7.18、Maven Reactor、JUnit 4/5、`ApplicationContextRunner`、`FilteredClassLoader`、Maven Enforcer、OpenSpec 1.6.0。
+**Tech Stack:** Java 8、Spring Boot 2.7.18、Maven 3.9.16 Reactor、JUnit 4/5、`ApplicationContextRunner`、`FilteredClassLoader`、Maven Enforcer、OpenSpec 1.6.0。
 
 ## Global Constraints
 
@@ -23,6 +24,7 @@ base-ref: 0212ccdebe60b458811d8ed0e3d20c47310a54d7
 - 保留 `fw-plus-ai-langchain4j-adapter-spring-boot-starter` 公开坐标，删除 `fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure` 坐标且不提供兼容 POM。
 - 保留现有 `com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.*` 包、类名、Bean 名称和条件注解。
 - 工作区中的 TinyEngine 及 `.superpowers/sdd` 改动不属于本 change，不得暂存、提交、格式化或回滚。
+- 当前检出未跟踪 `.mvn/wrapper` 文件，所有构建和测试命令使用已验证的系统 Maven 3.9.16 与 JDK 8。
 
 ---
 
@@ -37,7 +39,7 @@ base-ref: 0212ccdebe60b458811d8ed0e3d20c47310a54d7
 - Consumes: 现有 XML helper `dependencies(File, boolean)`、`modules(File)` 与源码扫描 helper。
 - Produces: 旧 autoconfigure 模块/坐标删除、目标包存在、包级中立边界的可执行结构契约。
 
-- [ ] **Step 1: 更新 Starter/BOM/Reactor 期望**
+- [x] **Step 1: 更新 Starter/BOM/Reactor 期望**
 
 将 adapter Starter 的必需依赖从旧坐标改为统一 autoconfigure，并增加旧坐标不得出现的断言：
 
@@ -56,7 +58,7 @@ assertFalse(modules(findProjectFile("fw-plus-ai-project/pom.xml"))
 
 把 `modules(...)` 的调用范围扩展到 AI project POM；helper 仍使用现有 DOM 解析，不新增字符串解析。
 
-- [ ] **Step 2: 把旧 autoconfigure artifact 纳入删除边界**
+- [x] **Step 2: 把旧 autoconfigure artifact 纳入删除边界**
 
 在 `LegacyAiArtifactBoundaryTest` 增加旧目录和 artifact marker：
 
@@ -73,7 +75,7 @@ File langChain4jPackage = new File(projectRoot,
 assertTrue("Unified autoconfigure must own LangChain4j package", langChain4jPackage.isDirectory());
 ```
 
-- [ ] **Step 3: 将中立边界收敛为包级隔离**
+- [x] **Step 3: 将中立边界收敛为包级隔离**
 
 `NeutralAiAutoConfigurationBoundaryTest.isIgnored(...)` 只新增 `autoconfigure/langchain4j` 精确目录例外，保留 AskData 既有例外；注册断言改为允许 adapter 根配置，但继续禁止已删除的 legacy model/store/openapi 配置：
 
@@ -88,13 +90,13 @@ assertTrue(content.contains(
 				+ "LangChain4jAdapterAutoConfiguration"));
 ```
 
-- [ ] **Step 4: 运行目标测试确认 RED**
+- [x] **Step 4: 运行目标测试确认 RED**
 
 Run:
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter,fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
   -am -DfailIfNoTests=false \
   -Dtest=NeutralStarterDependencyTest,LegacyAiArtifactBoundaryTest,NeutralAiAutoConfigurationBoundaryTest test
@@ -102,7 +104,7 @@ JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
 
 Expected: FAIL；失败必须指向旧 module/BOM/Starter 依赖仍存在、目标 `langchain4j` 包尚不存在或 adapter 根配置尚未合并。若失败来自依赖下载或环境问题，先按 systematic-debugging 定位，不把环境失败记为 RED。
 
-- [ ] **Step 5: 提交 RED 测试**
+- [x] **Step 5: 提交 RED 测试**
 
 ```bash
 git add \
@@ -123,7 +125,7 @@ git commit -m "test(ai): define consolidated autoconfigure boundary"
 - Consumes: 46 个生产类、4 个测试类以及旧模块 POM 中的编译依赖清单。
 - Produces: 统一模块内原包名可加载的 LangChain4j 配置类和完整 adapter 回归测试。
 
-- [ ] **Step 1: 移动 Java 源码和测试**
+- [x] **Step 1: 移动 Java 源码和测试**
 
 保持 `langchain4j/**` 相对目录不变，将旧模块的 main/test Java 树移动到统一模块对应 source root。移动后验证数量：
 
@@ -134,7 +136,7 @@ find fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/c
 
 Expected: `46` 与 `4`。
 
-- [ ] **Step 2: 合并 POM 依赖并去重**
+- [x] **Step 2: 合并 POM 依赖并去重**
 
 在统一 POM 保留已存在的 `fw-plus-ai-langchain4j-core`、`fw-plus-ai-langchain4j-adapter`、`langchain4j`、`langchain4j-core`，并把旧模块其余生产依赖迁入。具体框架/provider 依赖必须使用：
 
@@ -160,13 +162,13 @@ Expected: `46` 与 `4`。
 
 逐项覆盖旧 POM 的 wrapper/provider 列表，不改变版本属性；测试依赖只补缺失项。
 
-- [ ] **Step 3: 编译统一模块并运行 provider 单测**
+- [x] **Step 3: 编译统一模块并运行 provider 单测**
 
 Run:
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am \
   -DfailIfNoTests=false \
   -Dtest=LangChain4jModelProviderAdapterTest,EmbeddingStoreProviderAdapterTest test
@@ -174,7 +176,7 @@ JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
 
 Expected: BUILD SUCCESS；迁移测试全部通过，且无重复类编译错误。
 
-- [ ] **Step 4: 提交源码和依赖迁移**
+- [x] **Step 4: 提交源码和依赖迁移**
 
 ```bash
 git add \
@@ -199,7 +201,7 @@ git commit -m "refactor(ai): move langchain4j autoconfigure sources"
 - Consumes: `LangChain4jAdapterAutoConfiguration` 现有条件装配。
 - Produces: Boot 2.7 双注册资源与“每类 adapter/provider 只产生一个 Bean”的回归契约。
 
-- [ ] **Step 1: 先补充双注册和去重断言**
+- [x] **Step 1: 先补充双注册和去重断言**
 
 把 `AiEmbeddingStoreAutoConfigurationMetadataTest` 的 imports 不存在断言改为读取该文件并检查 adapter 根配置。`LangChain4jAutoConfigurationRegistrationTest` 同时读取两个资源，并使用出现次数 helper：
 
@@ -225,13 +227,13 @@ assertEquals(1, context.getBeansOfType(AiModelAdapter.class).size());
 assertEquals(1, context.getBeansOfType(AiEmbeddingStoreAdapter.class).size());
 ```
 
-- [ ] **Step 2: 运行元数据测试确认 RED**
+- [x] **Step 2: 运行元数据测试确认 RED**
 
 Run:
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am \
   -DfailIfNoTests=false \
   -Dtest=AiEmbeddingStoreAutoConfigurationMetadataTest,LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
@@ -239,7 +241,7 @@ JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
 
 Expected: FAIL，原因是统一模块尚无 imports 文件且 `spring.factories` 尚未注册 adapter 根配置。
 
-- [ ] **Step 3: 合并两个注册资源**
+- [x] **Step 3: 合并两个注册资源**
 
 在统一 `spring.factories` 的 `EnableAutoConfiguration` 列表末尾追加：
 
@@ -253,13 +255,13 @@ com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAu
 com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration
 ```
 
-- [ ] **Step 4: 运行注册、缺 SDK 和条件反射测试确认 GREEN**
+- [x] **Step 4: 运行注册、缺 SDK 和条件反射测试确认 GREEN**
 
 Run:
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am \
   -DfailIfNoTests=false \
   -Dtest=AiEmbeddingStoreAutoConfigurationMetadataTest,LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest#shouldStartWhenOptionalEmbeddingStoreProviderSdksAreMissing+shouldDeclareClassConditionsOnDirectLinkedEmbeddingStoreProviderBeans test
@@ -267,7 +269,7 @@ JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
 
 Expected: BUILD SUCCESS；缺 SDK 场景无 startup failure，六类 provider Bean 不注册，in-memory adapter 保留。
 
-- [ ] **Step 5: 提交双注册实现**
+- [x] **Step 5: 提交双注册实现**
 
 ```bash
 git add \
@@ -288,7 +290,7 @@ git commit -m "test(ai): preserve langchain4j dual registration"
 - Consumes: Task 2/3 已迁移的类、测试和注册资源。
 - Produces: 只保留 adapter Starter 与统一 autoconfigure 的发布结构。
 
-- [ ] **Step 1: 替换 adapter Starter 依赖**
+- [x] **Step 1: 替换 adapter Starter 依赖**
 
 将旧依赖替换为：
 
@@ -301,30 +303,30 @@ git commit -m "test(ai): preserve langchain4j dual registration"
 
 保留 model/store Starter、Core adapter 和 Maven Enforcer 配置不变。
 
-- [ ] **Step 2: 删除 Reactor/BOM 坐标和旧目录**
+- [x] **Step 2: 删除 Reactor/BOM 坐标和旧目录**
 
 从 AI project `<modules>` 删除旧 module，从 Boot BOM `<dependencyManagement>` 删除旧 dependency。确认源码、测试和资源均已迁移后，删除旧模块剩余 POM/README/空目录。
 
-- [ ] **Step 3: 运行 Task 1 的结构测试确认 GREEN**
+- [x] **Step 3: 运行 Task 1 的结构测试确认 GREEN**
 
 Run Task 1 Step 4 的同一命令。
 
 Expected: BUILD SUCCESS；旧目录、module、BOM 和 Starter 依赖断言全部通过；中立包扫描只排除精确 `langchain4j` 子树。
 
-- [ ] **Step 4: 验证 Starter Enforcer**
+- [x] **Step 4: 验证 Starter Enforcer**
 
 Run:
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter \
   -am validate
 ```
 
 Expected: BUILD SUCCESS，日志包含 `BannedDependencies passed`；不得解析为 provider SDK 传递依赖。
 
-- [ ] **Step 5: 提交坐标切换与模块删除**
+- [x] **Step 5: 提交坐标切换与模块删除**
 
 ```bash
 git add \
@@ -348,11 +350,11 @@ git commit -m "refactor(ai): fold langchain4j autoconfigure module"
 - Consumes: 删除后的 Maven 坐标和统一模块测试命令。
 - Produces: 用户可执行的依赖迁移说明与自动拒绝旧坐标的文档验证。
 
-- [ ] **Step 1: 更新 Starter README 和构建命令**
+- [x] **Step 1: 更新 Starter README 和构建命令**
 
 README 依赖清单改为 `fw-plus-ai-boot-autoconfigure`，明确旧 autoconfigure artifact 已删除，业务仍只需引入 adapter Starter。`overview.md`、`compatibility-matrix.md` 和历史验证报告中的 `-pl` 命令只保留统一模块。
 
-- [ ] **Step 2: 扩展文档校验脚本**
+- [x] **Step 2: 扩展文档校验脚本**
 
 增加旧坐标变量和检查：
 
@@ -369,23 +371,26 @@ done
 
 对说明历史事实的归档 OpenSpec/Design Doc 不做全仓禁止；扫描范围只覆盖当前发布和迁移文档。
 
-- [ ] **Step 3: 运行文档校验与当前发布引用扫描**
+- [x] **Step 3: 运行文档校验与当前发布引用扫描**
 
 Run:
 
 ```bash
 docs/ai-framework-migration/verify-migration-docs.sh
-rg -n "fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure" \
+rg -n -F --glob 'pom.xml' \
+  'fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure' \
   fw-plus-ai/fw-plus-ai-project/pom.xml \
   fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies \
-  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters
+rg -n -F --glob '*.md' \
+  'fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure' \
   docs/ai-framework-migration \
   docs/superpowers/reports/2026-07-29-neutral-ai-adapter-autodiscovery-finish-verify.md
 ```
 
-Expected: 文档脚本输出 `迁移文档校验通过: 3 份目标框架文档`；`rg` 无匹配并以退出码 1 结束。
+Expected: 文档脚本输出 `迁移文档校验通过: 3 份目标框架文档`；两个 `rg` 分别扫描可发布 POM 与当前 Markdown，均无匹配并以退出码 1 结束。负向测试源码和校验脚本实现不属于发布引用扫描范围。
 
-- [ ] **Step 4: 提交文档和校验规则**
+- [x] **Step 4: 提交文档和校验规则**
 
 ```bash
 git add \
@@ -398,35 +403,34 @@ git commit -m "docs(ai): document consolidated autoconfigure"
 ### Task 6: 完整验证、任务同步和验证报告
 
 **Files:**
-- Modify: `openspec/changes/move-langchain4j-adapter-autoconfigure/tasks.md`
 - Create: `docs/superpowers/reports/2026-07-30-move-langchain4j-adapter-autoconfigure-verify.md`
 
 **Interfaces:**
 - Consumes: 前五个任务的提交、测试与文档证据。
-- Produces: 可审计的 JDK 8 构建结果、OpenSpec 完成状态和验证报告。
+- Produces: 可审计的 JDK 8 构建结果和验证报告；OpenSpec 任务状态由主协调会话在验收证据通过后同步。
 
-- [ ] **Step 1: 运行统一 autoconfigure 全量测试**
+- [x] **Step 1: 运行统一 autoconfigure 全量测试**
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -am test
 ```
 
 Expected: BUILD SUCCESS，0 failures/0 errors；报告记录实际测试数量。
 
-- [ ] **Step 2: 运行统一模块与 adapter Starter 目标 Reactor**
+- [x] **Step 2: 运行统一模块与 adapter Starter 目标 Reactor**
 
 ```bash
 JAVA_HOME=$(/usr/libexec/java_home -v 1.8) PATH="$JAVA_HOME/bin:$PATH" \
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml \
+mvn -f fw-plus-ai/pom.xml \
   -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure,fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter \
   -am test
 ```
 
 Expected: BUILD SUCCESS；Maven Enforcer 通过且迁移后的 4 个 adapter 测试类均在统一模块执行。
 
-- [ ] **Step 3: 执行规格、文档和 diff 校验**
+- [x] **Step 3: 执行规格、文档和 diff 校验**
 
 ```bash
 openspec validate move-langchain4j-adapter-autoconfigure --strict
@@ -436,20 +440,19 @@ git diff --check 0212ccdebe60b458811d8ed0e3d20c47310a54d7..HEAD
 
 Expected: OpenSpec valid、迁移文档通过、`git diff --check` 无输出。
 
-- [ ] **Step 4: 编写验证报告并同步 tasks**
+- [x] **Step 4: 编写验证报告**
 
-报告必须列出：删除的公开坐标、46/4 文件迁移事实、双注册去重证据、缺 SDK 测试、Maven Enforcer、实际测试数量、未修改 Core/provider/AskData 边界和任何未执行验证。仅在对应证据真实通过后，把 `tasks.md` 的 15 项逐项改为 `[x]`。
+报告必须列出：删除的公开坐标、46/4 文件迁移事实、双注册去重证据、缺 SDK 测试、Maven Enforcer、实际测试数量、未修改 Core/provider/AskData 边界和任何未执行验证。实现代理不得修改 plan 或 OpenSpec 复选框；主协调会话仅在对应证据真实通过后同步这些状态。
 
-- [ ] **Step 5: 提交验证证据**
+- [x] **Step 5: 提交验证证据**
 
 ```bash
 git add \
-  openspec/changes/move-langchain4j-adapter-autoconfigure/tasks.md \
   docs/superpowers/reports/2026-07-30-move-langchain4j-adapter-autoconfigure-verify.md
 git commit -m "test(ai): verify consolidated autoconfigure"
 ```
 
-- [ ] **Step 6: 最终状态检查**
+- [x] **Step 6: 最终状态检查**
 
 ```bash
 git status --short
