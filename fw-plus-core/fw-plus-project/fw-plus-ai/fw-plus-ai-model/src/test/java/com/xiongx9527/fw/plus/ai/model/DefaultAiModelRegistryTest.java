@@ -60,6 +60,11 @@ public class DefaultAiModelRegistryTest {
         private final AiModel model = new FakeAiModel();
 
         @Override
+        public String getFramework() {
+            return "fake";
+        }
+
+        @Override
         public boolean supports(AiModelDefinition definition) {
             return "fake".equals(definition.getFramework())
                     && "fake-provider".equals(definition.getProvider())

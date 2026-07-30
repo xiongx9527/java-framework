@@ -17,6 +17,8 @@ public class VectorDataSourceInfo extends MagicEntity {
 
     private String key;
 
+    private String framework;
+
     private String provider;
 
     private boolean enabled = true;
@@ -33,10 +35,12 @@ public class VectorDataSourceInfo extends MagicEntity {
         super.simple(dataSourceInfo);
         dataSourceInfo.setName(this.name);
         dataSourceInfo.setKey(this.key);
+        dataSourceInfo.setFramework(this.framework);
         dataSourceInfo.setProvider(this.provider);
         dataSourceInfo.setEnabled(this.enabled);
         dataSourceInfo.setDimension(this.dimension);
-        dataSourceInfo.setMetadataKeys(new ArrayList<String>(this.metadataKeys));
+        dataSourceInfo.setMetadataKeys(this.metadataKeys == null
+                ? new ArrayList<String>() : new ArrayList<String>(this.metadataKeys));
         return dataSourceInfo;
     }
 
@@ -46,11 +50,14 @@ public class VectorDataSourceInfo extends MagicEntity {
         super.copyTo(dataSourceInfo);
         dataSourceInfo.setName(this.name);
         dataSourceInfo.setKey(this.key);
+        dataSourceInfo.setFramework(this.framework);
         dataSourceInfo.setProvider(this.provider);
         dataSourceInfo.setEnabled(this.enabled);
         dataSourceInfo.setDimension(this.dimension);
-        dataSourceInfo.setMetadataKeys(new ArrayList<String>(this.metadataKeys));
-        dataSourceInfo.setProperties(new LinkedHashMap<String, Object>(this.properties));
+        dataSourceInfo.setMetadataKeys(this.metadataKeys == null
+                ? new ArrayList<String>() : new ArrayList<String>(this.metadataKeys));
+        dataSourceInfo.setProperties(this.properties == null
+                ? new LinkedHashMap<String, Object>() : new LinkedHashMap<String, Object>(this.properties));
         return dataSourceInfo;
     }
 }

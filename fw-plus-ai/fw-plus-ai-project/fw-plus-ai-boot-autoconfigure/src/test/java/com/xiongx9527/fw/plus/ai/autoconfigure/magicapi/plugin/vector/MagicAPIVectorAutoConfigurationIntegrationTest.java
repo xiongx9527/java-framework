@@ -6,14 +6,15 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.module.Vec
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.service.VectorDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.service.VectorDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.starter.MagicAPIVectorConfiguration;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreDefinition;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreProviderAdapter;
-import com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry;
-import com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.store.embeding.EmbeddingStoreAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingDocument;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingQuery;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingSearchResult;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreAdapter;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreDefinition;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -32,25 +33,25 @@ public class MagicAPIVectorAutoConfigurationIntegrationTest {
 
     private final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(MagicAPIBaseAutoConfiguration.class,
-                    EmbeddingStoreAutoConfiguration.class));
+                    AiEmbeddingStoreAutoConfiguration.class));
 
     @Test
     public void shouldCreateRegistryAndVectorPluginThroughAutoConfigurations() {
         List<String> autoConfigurations = SpringFactoriesLoader.loadFactoryNames(EnableAutoConfiguration.class,
                 getClass().getClassLoader());
         assertTrue(autoConfigurations.contains(MagicAPIBaseAutoConfiguration.class.getName()));
-        assertTrue(autoConfigurations.contains(EmbeddingStoreAutoConfiguration.class.getName()));
+        assertTrue(autoConfigurations.contains(AiEmbeddingStoreAutoConfiguration.class.getName()));
 
         this.contextRunner
                 .withPropertyValues(
                         "fw.plus.magicapi.enabled=true",
                         "magic-api.plugin.aia.enabled=false",
-                        "fw-plus.ai.langchain4j.embedding-store.default-store=knowledge",
-                        "fw-plus.ai.langchain4j.embedding-store.stores.knowledge.provider=fake")
+                        "fw-plus.ai.embedding-store.default-store=knowledge",
+                        "fw-plus.ai.embedding-store.stores.knowledge.provider=fake",
+                        "fw-plus.ai.embedding-store.stores.knowledge.type=vector")
                 .withBean(MagicAPIProperties.class, MagicAPIProperties::new)
-                .withBean(EmbeddingStoreProviderAdapter.class, FakeEmbeddingStoreProviderAdapter::new)
+                .withBean(AiEmbeddingStoreAdapter.class, FakeEmbeddingStoreAdapter::new)
                 .run(context -> {
-                    assertNotNull(context.getBean(EmbeddingStoreRegistry.class));
                     AiEmbeddingStoreRegistry registry = context.getBean(AiEmbeddingStoreRegistry.class);
                     assertTrue(registry.contains("knowledge"));
                     assertNotNull(context.getBean(MagicDynamicVectorDataSource.class));
@@ -64,16 +65,33 @@ public class MagicAPIVectorAutoConfigurationIntegrationTest {
                 });
     }
 
-    private static class FakeEmbeddingStoreProviderAdapter implements EmbeddingStoreProviderAdapter {
+    private static class FakeEmbeddingStoreAdapter implements AiEmbeddingStoreAdapter {
 
         @Override
-        public boolean supports(String provider) {
-            return "fake".equals(provider);
+        public String getFramework() {
+            return "fake-framework";
         }
 
         @Override
-        public EmbeddingStore<TextSegment> create(EmbeddingStoreDefinition definition) {
-            return new InMemoryEmbeddingStore<TextSegment>();
+        public boolean supports(AiEmbeddingStoreDefinition definition) {
+            return "fake".equals(definition.getProvider());
+        }
+
+        @Override
+        public AiEmbeddingStore create(final AiEmbeddingStoreDefinition definition) {
+            return new AiEmbeddingStore() {
+                @Override public String getKey() { return definition.getKey(); }
+                @Override public String getFramework() { return "fake-framework"; }
+                @Override public String getProvider() { return definition.getProvider(); }
+                @Override public AiEmbeddingStoreType getType() { return definition.getType(); }
+                @Override public String add(AiEmbeddingDocument document) { return "id"; }
+                @Override public List<String> addAll(List<AiEmbeddingDocument> documents) {
+                    return java.util.Collections.singletonList("id");
+                }
+                @Override public void remove(String id) { }
+                @Override public void removeAll(List<String> ids) { }
+                @Override public AiEmbeddingSearchResult search(AiEmbeddingQuery query) { return null; }
+            };
         }
     }
 }

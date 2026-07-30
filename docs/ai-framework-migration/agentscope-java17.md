@@ -1,112 +1,74 @@
-# 从 LangChain4j 迁移到 AgentScope 2 Java（Java 17）
+# AgentScope 2 Java adapter 后续实施蓝图（Java 17 / Boot 3）
+
+## 当前支持状态
+
+本次变更仅交付文档，不创建 Java 17 artifact、starter、自动配置或真实 model/store adapter。AgentScope 2 Java adapter 本次未实现；当前没有 `fw-plus-ai-agentscope-j17-starter`、Boot 3 自动配置或 SDK 兼容性结论。后续实现采用**进程内 SDK adapter**：adapter 在同一 JVM 中包装业务实际使用的模型、工具和 agent/workflow 能力。
+
+它不是外部 HTTP、MCP 或 A2A 桥接，也不是跨进程编排层。这些网络协议可以由业务另行部署，但不能代替中立 model/store SPI adapter，也不能据此声称 AgentScope adapter 已接通。
 
 ## 前置条件
 
-Spring Boot 2.7 可以运行在 Java 17；本方案选择 Spring Boot 3.x 是为了把 AgentScope 2 Java 及其高版本依赖隔离到目标生态，不代表 Java 17 必须使用 Boot 3。迁移前继续保留 Java 8 / Boot 2.7 / LangChain4j 默认线路。
-
-AgentScope 2 Java 在本方案中是进程内 SDK adapter，不是外部 HTTP、MCP 或 A2A 桥接。后续 change 必须先做 SDK 版本探针，验证其 Java/Boot 兼容性、发布坐标、模型 provider、同步/流式 API、工具调用与依赖冲突；不能用协议桥接测试替代 SDK 契约测试。
+Spring Boot 2.7 可以运行在 Java 17；后续仍选独立 Java 17 / Boot 3 reactor，以隔离 AgentScope 2 与 `jakarta.*`。在写入任何坐标前完成 SDK 版本探针，验证 SDK、JDK、Boot 3 与 Spring Framework 6 的兼容性。
 
 ## Maven Parent 与 Starter
 
-未来在独立 `fw-plus-ai-j17` reactor 中创建 Java 17 / Boot 3.x parent。计划 starter 坐标为 `com.xiongx9527.fw.plus.ai:fw-plus-ai-agentscope-j17-starter:${revision}`；该 artifact 当前不存在，不能加入应用 POM。
+后续在独立 reactor 创建：
 
-独立 parent 管理经探针确认的 AgentScope 2 Java SDK，starter 只依赖已发布的 Java 8 中立 model/store artifact 和必要 SDK。它不得进入 Core BOM、Java 8 reactor 或默认 LangChain4j 路径的传递依赖图。
+```text
+fw-plus-ai-j17/
+├── fw-plus-ai-j17-parent/                    # Java 17、Boot 3、插件
+├── fw-plus-ai-j17-dependencies/              # AgentScope 2 SDK 版本锁定
+├── fw-plus-ai-agentscope-j17-adapter/        # 仅在此处引用 AgentScope 类型
+├── fw-plus-ai-agentscope-j17-autoconfigure/  # Boot 3 条件 Bean
+└── fw-plus-ai-agentscope-j17-starter/        # 可选应用入口
+```
 
-后续自动配置仅在显式 `framework=agentscope`、SDK class 存在、adapter 唯一、provider 与能力经验证且配置完整时装配。缺失任一条件都必须在启动期给出诊断，不创建 registry 条目或半初始化 Bean，不把远程协议 client 或 LangChain4j 对象冒充 AgentScope adapter。
+parent/BOM 以 SDK 探针确认 Java 17、Spring Boot 3、Spring Framework 6 与 AgentScope 2 的实际版本组合。Boot 3 使用 `@AutoConfiguration` 和 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`，涉及 Web/validation/servlet 时使用 `jakarta.*`。不得把这些依赖带回 Java 8 Core BOM/reactor，也不得以 Boot 2 `spring.factories` 注册 future starter。
 
 ## 同 key 配置迁移
 
-旧 LangChain4j 模型配置继续保留同一业务 key：
-
-```yaml
-fw-plus:
-  ai:
-    langchain4j:
-      model:
-        default-model: knowledge-chat
-        models:
-          knowledge-chat:
-            provider: openai
-            model-type: chat
-            model-name: gpt-4o-mini
-      embedding-store:
-        default-store: knowledge
-        stores:
-          knowledge:
-            provider: qdrant
-```
-
-真实 AgentScope adapter 交付后，模型可按未来中立绑定约定切换，key `knowledge-chat` 不变：
+adapter 的 framework 标识为 `agentscope`，按经验证的 provider/type 实现 `AiModelAdapter` 和 `AiEmbeddingStoreAdapter`。AgentScope 原生对象、agent、tool、workflow、memory 或 session 只能驻留 adapter/业务 Java 17 层；中立 Core 和 Magic-API 继续仅使用 key、framework、provider、type 与中立 facade。
 
 ```yaml
 fw-plus:
   ai:
     model:
-      default-model: knowledge-chat
       models:
         knowledge-chat:
           framework: agentscope
-          provider: openai
-          type: chat
-          properties:
-            model-name: gpt-4o-mini
-    embedding-store:
-      default-store: knowledge
-      stores:
-        knowledge:
-          framework: langchain4j
-          provider: qdrant
-          type: vector
+          provider: verified-provider
+          type: CHAT
+          properties: {}
 ```
 
-在 SDK 版本探针证明 AgentScope 2 Java 具备可映射的向量 store 能力前，不得把 `knowledge` 改为 `framework=agentscope`。允许模型与 store 使用不同 framework，但两个 registry key 均保持稳定。同 key 的中立配置优先于旧配置，迁移日志不得输出凭证或完整 properties。
+只安装 AgentScope adapter 时，缺 framework 的定义可按唯一候选规则选择；同时安装多个 adapter 时必须显式 `framework: agentscope`。agent/workflow 是否启用是业务选择，不能隐式由 model/store 注册触发。未验证的工具调用、流式、embedding 或 vector 能力必须明确失败，而不是返回空代理或回退 LangChain4j。
 
 ## Java API 迁移
 
-业务代码依赖 `AiModelRegistry` 和 `AiEmbeddingStoreRegistry`，不直接依赖 AgentScope session/agent/model 类：
-
-```java
-AiModel model = aiModelRegistry.get("knowledge-chat");
-AiEmbeddingStore store = aiEmbeddingStoreRegistry.get("knowledge");
-AiEmbeddingSearchResult result = store.search(
-        new AiEmbeddingQuery(queryVector, 10, 0.75d));
-```
-
-当前 `AiModel` 仅包含 key/framework/provider/type 元数据，没有通用 agent、chat 或 tool-call 执行方法。后续 change 必须根据真实 SDK 能力扩展中立契约或引入经评审的能力门面，并由 adapter 内部持有 AgentScope 原生对象。不得暴露 AgentScope 类型到 Java 8 API，也不得把未验证的 agent orchestration 等同于普通 chat model 能力。
+业务代码只依赖 `AiModelRegistry`、`AiEmbeddingStoreRegistry` 与中立 facade。AgentScope 的 model、agent、tool、workflow、memory 与 session 类型留在 Java 17 adapter/业务层，不能泄漏到 Java 8 public API。
 
 ## Magic-API 影响
 
-Magic-API 的 `model[...]`、`vector[...]` 约定以及 `model['knowledge-chat']`、`vector['knowledge']` 和动态资源 key 均保持不变。模型切到 AgentScope 时，向量 store 可以继续由已经支持的 framework 提供，不要求两个 key 同时迁移。
-
-真实 AgentScope adapter 交付前，资源声明 `framework=agentscope` 必须受控失败；不得创建半初始化 Bean、空 agent、HTTP/MCP/A2A 替身或 LangChain4j 回退。错误只报告 key/framework/provider/能力并保持凭证脱敏。
+`model[...]` 和 `vector[...]` 的 key 不变，但 MagicScript 仅见中立 facade。缺 SDK class、缺配置、零/多候选或未支持能力必须以脱敏错误失败，不能注册半初始化 Bean、创建空代理或通过协议桥接回退。
 
 ## 验证
 
-当前只运行文档校验和 Java 8 隔离检查：
+1. SDK 版本探针：验证实际 Maven 坐标、Java 17 字节码、Boot 3/Jakarta 兼容性、模型 provider 和依赖冲突。
+2. 进程内 SDK 契约测试：以 SDK fake/mock 验证 adapter 对模型、工具、agent/workflow 生命周期的调用；不能以 HTTP/MCP/A2A 测试替代。
+3. 中立 SPI 测试：显式 framework、唯一/零/多候选、未支持 provider/type 与敏感信息脱敏，model 与 store 分别覆盖。
+4. Boot 3 条件装配：SDK class、provider 依赖、配置或唯一 adapter 缺失时，不注册 registry 条目、不创建半初始化 Bean、不启动 agent/workflow。
+5. 受控集成测试：至少一个真实模型 provider；若声明 embedding/vector 能力，还必须各自有真实后端验证。日志、诊断和 tracing 不得泄漏 token、secret、完整 endpoint。
+6. 隔离检查：Java 8 Core 的 effective POM 和 dependency tree 不得解析 AgentScope、Boot 3 或 Jakarta API。
+
+未来模块存在后才可执行以下模板：
 
 ```bash
-zsh docs/ai-framework-migration/verify-migration-docs.sh
-./fw-plus-core/mvnw -f fw-plus-core/pom.xml validate
-! rg -n -i --glob 'pom.xml' 'spring-ai|spring-ai-alibaba|agentscope' fw-plus-core/fw-plus-project
+./fw-plus-core/mvnw -f fw-plus-ai-j17/pom.xml \
+  -pl fw-plus-ai-agentscope-j17-adapter,fw-plus-ai-agentscope-j17-autoconfigure -am test
+./fw-plus-core/mvnw -f fw-plus-ai-j17/pom.xml \
+  -pl fw-plus-ai-agentscope-j17-starter dependency:tree test
 ```
-
-以下命令仅是未来 reactor 创建后的验收模板，当前不能成功运行：
-
-```bash
-./fw-plus-core/mvnw -f fw-plus-ai-j17/pom.xml -pl fw-plus-ai-agentscope-j17-starter dependency:tree test
-```
-
-未来测试至少覆盖：SDK 版本探针、Java 17 编译、Boot 3 条件装配、进程内 SDK 调用、同步/流式与工具能力的逐项声明、缺 SDK/adapter/provider 时无半初始化 Bean、真实模型端点、脱敏和 Java 8 依赖隔离。没有经验证的原生 store 能力时，不得注册 `AiEmbeddingStoreAdapter`。
 
 ## 回滚
 
-1. 停用 `knowledge-chat` 的 AgentScope 中立定义。
-2. 恢复同 key 的 `fw-plus.ai.langchain4j.model` 配置和既有 LangChain4j starter；`knowledge` store key 无需变化。
-3. 移除未来 AgentScope starter，不修改 Magic-API `model[...]`、`vector[...]` 或动态资源 key。
-4. 重新执行 LangChain4j model/store、Magic-API 与 Java 8 依赖隔离回归；确认没有残留 AgentScope SDK 依赖。
-
-## 当前支持状态
-
-本次变更仅交付文档，不创建 Java 17 artifact、starter、自动配置或真实 model/store adapter。
-
-当前完整默认实现仍是 LangChain4j。AgentScope 2 Java 的 Maven 坐标、版本、模型/agent 能力、向量能力与真实进程内调用均未形成验证证据；`framework=agentscope` 只是未来配置值，当前不可启用。
+在上述实现和证据完成前，AgentScope 2 是路线图而非当前可支持 framework。生产回滚必须使用完整的上一发布版本，不能把 Java 17 AgentScope starter 与现有 Java 8 / Boot 2 产物混装。

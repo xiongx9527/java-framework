@@ -3,11 +3,31 @@
 set -eu
 
 script_dir=${0:A:h}
+repo_root=${script_dir:h:h}
 target_docs=(
 	"spring-ai-java17.md"
 	"spring-ai-alibaba-java17.md"
 	"agentscope-java17.md"
 )
+breaking_docs=(
+	"$script_dir/overview.md"
+	"$script_dir/compatibility-matrix.md"
+	"$repo_root/fw-plus-ai/README.md"
+	"$repo_root/fw-plus-ai/README.zh-CN.md"
+)
+framework_example_docs=(
+	"$script_dir/overview.md"
+	"$repo_root/fw-plus-ai/README.md"
+	"$repo_root/fw-plus-ai/README.zh-CN.md"
+)
+embedding_store_example_docs=(
+	"$script_dir/overview.md"
+	"$script_dir/spring-ai-java17.md"
+	"$repo_root/fw-plus-ai/README.md"
+	"$repo_root/fw-plus-ai/README.zh-CN.md"
+	"$repo_root/docs/vector-magicapi-plugin-migration.md"
+)
+vector_magicapi_doc="$repo_root/docs/vector-magicapi-plugin-migration.md"
 required_headings=(
 	"前置条件"
 	"Maven Parent 与 Starter"
@@ -26,6 +46,19 @@ required_phrases=(
 	"半初始化 Bean"
 	"model[...]"
 	"vector[...]"
+)
+breaking_required_phrases=(
+	"fw-plus.ai.model"
+	"fw-plus.ai.embedding-store"
+	"fw-plus-ai-langchain4j-adapter-spring-boot-starter"
+	"model["
+	"vector["
+)
+forbidden_migration_phrases=(
+	"旧 artifact、配置、Magic-API key 保持兼容"
+	"旧配置、优先级"
+	"兼容映射"
+	"现有 fw-plus-ai-langchain4j-* 模块与 AI Boot starter"
 )
 
 failures=0
@@ -47,6 +80,52 @@ for shared_doc in overview.md compatibility-matrix.md; do
 		failures=$((failures + 1))
 	fi
 done
+
+for doc_path in $breaking_docs; do
+	if [[ ! -f "$doc_path" ]]; then
+		print -u2 -- "缺失文档: $doc_path"
+		failures=$((failures + 1))
+		continue
+	fi
+
+	for phrase in $breaking_required_phrases; do
+		require_literal "$doc_path" "$phrase" "破坏性迁移配置说明"
+	done
+
+	for phrase in $forbidden_migration_phrases; do
+		if rg -n -F -- "$phrase" "$doc_path"; then
+			print -u2 -- "迁移文档残留旧兼容口径: ${doc_path:t} -> ${phrase}"
+			failures=$((failures + 1))
+		fi
+	done
+done
+
+for doc_path in $framework_example_docs; do
+	if [[ -f "$doc_path" ]]; then
+		require_literal "$doc_path" "framework: langchain4j" "显式 framework 示例"
+	fi
+done
+
+for doc_path in $embedding_store_example_docs; do
+	if [[ -f "$doc_path" ]]; then
+		if rg -n -- 'type:[[:space:]]*QDRANT' "$doc_path"; then
+			print -u2 -- "向量 store type 必须使用 VECTOR，Qdrant 只能作为 provider: ${doc_path:t}"
+			failures=$((failures + 1))
+		fi
+		require_literal "$doc_path" "provider: qdrant" "Qdrant provider 示例"
+		require_literal "$doc_path" "type: VECTOR" "中立向量 store type 示例"
+	fi
+done
+
+if [[ -f "$vector_magicapi_doc" ]]; then
+	require_literal "$vector_magicapi_doc" "fw-plus.ai.embedding-store" "Magic-API vector 中立配置前缀"
+	require_literal "$vector_magicapi_doc" "framework: langchain4j" "Magic-API vector 显式 LangChain4j framework"
+	require_literal "$vector_magicapi_doc" "type: VECTOR" "Magic-API vector 中立 type"
+	if rg -n -F -- "fw-plus.ai.langchain4j.embedding-store" "$vector_magicapi_doc"; then
+		print -u2 -- "Magic-API vector 迁移文档仍使用旧 embedding-store 前缀: ${vector_magicapi_doc:t}"
+		failures=$((failures + 1))
+	fi
+fi
 
 for doc_name in $target_docs; do
 	doc_path="$script_dir/$doc_name"

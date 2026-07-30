@@ -1,10 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.common.MagicAPIConfigUtils;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
 import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
-import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
 import com.xiongx9527.fw.plus.ai.model.AiModelException;
 import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
@@ -33,70 +31,6 @@ public class MagicDynamicModelDataSource {
         this.springBootRegistry = springBootRegistry;
         this.modelFactory = modelFactory;
         this.providerAdapters = providerAdapters == null ? Collections.<AiModelAdapter>emptyList() : providerAdapters;
-    }
-
-    /** @deprecated 生产自动配置已改用中立接口，仅保留旧源码的构造兼容。 */
-    @Deprecated
-    public MagicDynamicModelDataSource(
-            com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry registry,
-            final com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelFactory factory,
-            final List<com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelProviderAdapter> adapters) {
-        this(legacyRegistry(registry), new AiModelFactory() {
-            @Override
-            public AiModel create(AiModelDefinition definition, List<AiModelAdapter> ignored) {
-                com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition legacy = legacy(definition);
-                return facade(definition.getKey(), factory.create(legacy, adapters));
-            }
-        }, Collections.<AiModelAdapter>emptyList());
-    }
-
-    private static AiModelRegistry legacyRegistry(
-            final com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry registry) {
-        if (registry == null) {
-            return null;
-        }
-        return new AiModelRegistry() {
-            @Override public AiModel get(String key) { return facade(key, registry.get(key)); }
-            @Override public AiModel getDefault() { return facade(registry.getDefaultKey(), registry.getDefault()); }
-            @Override public String getDefaultKey() { return registry.getDefaultKey(); }
-            @Override public boolean contains(String key) { return registry.contains(key); }
-            @Override public Set<String> keys() { return registry.keys(); }
-        };
-    }
-
-    private static com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition legacy(
-            AiModelDefinition definition) {
-        com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition legacy =
-                new com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition();
-        legacy.setKey(definition.getKey());
-        legacy.setProvider(definition.getProvider());
-        legacy.setModelType(definition.getType() == null ? null : LangChain4jModelType.valueOf(definition.getType().name()));
-        legacy.setEnabled(definition.isEnabled());
-        Map<String, Object> properties = new LinkedHashMap<String, Object>(definition.getProperties());
-        legacy.setBaseUrl(value(properties.remove("baseUrl")));
-        legacy.setApiKey(value(properties.remove("apiKey")));
-        legacy.setModelName(value(properties.remove("modelName")));
-        legacy.setProperties(properties);
-        return legacy;
-    }
-
-    private static AiModel facade(final String key,
-                                  final com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel model) {
-        if (model == null) {
-            return null;
-        }
-        return new AiModel() {
-            @Override public String getKey() { return key; }
-            @Override public String getFramework() { return "langchain4j"; }
-            @Override public String getProvider() { return model.getProvider(); }
-            @Override public AiModelType getType() {
-                return model.getModelType() == null ? null : AiModelType.valueOf(model.getModelType().name());
-            }
-        };
-    }
-
-    private static String value(Object value) {
-        return value == null ? null : String.valueOf(value);
     }
 
     public void createClient(ModelDataSourceInfo info) {
@@ -207,7 +141,7 @@ public class MagicDynamicModelDataSource {
     private Map<String, AiModel> createModels(ModelDataSourceInfo info) {
         List<String> modelNames = info.modelNames();
         if (modelNames.size() <= 1) {
-            return Collections.singletonMap(info.getKey(), modelFactory.create(neutral(info.toDefinition()), providerAdapters));
+            return Collections.singletonMap(info.getKey(), modelFactory.create(info.toDefinition(), providerAdapters));
         }
         Map<String, AiModel> models = new LinkedHashMap<String, AiModel>();
         for (String modelName : modelNames) {
@@ -216,7 +150,7 @@ public class MagicDynamicModelDataSource {
                 continue;
             }
             String modelKey = info.getKey() + "." + modelName;
-            models.put(modelKey, modelFactory.create(neutral(info.toDefinition(modelKey, modelName, modelConfig)), providerAdapters));
+            models.put(modelKey, modelFactory.create(info.toDefinition(modelKey, modelName, modelConfig), providerAdapters));
         }
         String defaultModelName = isBlank(info.getDefaultModelName()) ? modelNames.get(0) : info.getDefaultModelName().trim();
         AiModel defaultModel = models.get(info.getKey() + "." + defaultModelName);
@@ -228,29 +162,9 @@ public class MagicDynamicModelDataSource {
         return models;
     }
 
-    private AiModelDefinition neutral(com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelDefinition legacy) {
-        AiModelDefinition definition = new AiModelDefinition();
-        definition.setKey(legacy.getKey());
-        definition.setFramework("langchain4j");
-        definition.setProvider(legacy.getProvider());
-        definition.setType(legacy.getModelType() == null ? null : AiModelType.valueOf(legacy.getModelType().name()));
-        definition.setEnabled(legacy.isEnabled());
-        Map<String, Object> properties = new LinkedHashMap<String, Object>(legacy.getProperties());
-        put(properties, "baseUrl", legacy.getBaseUrl());
-        put(properties, "apiKey", legacy.getApiKey());
-        put(properties, "modelName", legacy.getModelName());
-        definition.setProperties(properties);
-        return definition;
-    }
-
-    private void put(Map<String, Object> properties, String key, String value) {
-        if (value != null) {
-            properties.put(key, value);
-        }
-    }
-
     private ModelDataSourceInfo configured(ModelDataSourceInfo source) {
         ModelDataSourceInfo info = source.copy();
+        info.setFramework(config(info, "framework", info.getFramework()));
         info.setProvider(config(info, "provider", info.getProvider()));
         info.setModelType(modelType(config(info, "modelType", info.getModelType() == null ? null : info.getModelType().name())));
         info.setBaseUrl(config(info, "baseUrl", info.getBaseUrl()));
@@ -263,11 +177,11 @@ public class MagicDynamicModelDataSource {
         return info;
     }
 
-    private LangChain4jModelType modelType(String value) {
+    private AiModelType modelType(String value) {
         if (isBlank(value)) {
             return null;
         }
-        return LangChain4jModelType.valueOf(value.trim().toUpperCase());
+        return AiModelType.valueOf(value.trim().toUpperCase());
     }
 
     private String config(ModelDataSourceInfo info, String configKey, String defaultValue) {

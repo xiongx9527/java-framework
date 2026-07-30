@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.Magic
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.ModelDataSourceInfo;
 import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
 import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelException;
 import com.xiongx9527.fw.plus.ai.model.AiModelFactory;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -64,6 +65,10 @@ public class MagicModelController extends MagicController implements MagicExcept
                 getModelFactory().create(modelDefinition, getProviderAdapters());
             }
             return new JsonBean<Object>("ok");
+        } catch (AiModelException e) {
+            log.error("测试 Model 数据源失败，数据源 key: {}, causeType: {}",
+                    safeKey(definition), e.getClass().getName());
+            return new JsonBean<Object>(-1, selectionFailureMessage(e.getMessage()), null);
         } catch (Exception e) {
             log.error("测试 Model 数据源失败，数据源 key: {}", safeKey(definition));
             return new JsonBean<Object>(-1, "模型数据源测试失败", null);
@@ -131,12 +136,43 @@ public class MagicModelController extends MagicController implements MagicExcept
         return definition == null || definition.getKey() == null ? "unknown" : definition.getKey();
     }
 
+    private String selectionFailureMessage(String message) {
+        String candidates = safeCandidateList(message, "candidates=");
+        if (candidates == null) {
+            return "模型数据源测试失败";
+        }
+        if (message.startsWith("No adapter supports ")) {
+            return "No adapter supports model: candidates=" + candidates;
+        }
+        if (message.startsWith("Multiple adapters support ")) {
+            return "Multiple adapters support model: candidates=" + candidates;
+        }
+        return "模型数据源测试失败";
+    }
+
+    private String safeCandidateList(String message, String marker) {
+        if (message == null) {
+            return null;
+        }
+        int markerIndex = message.indexOf(marker);
+        int start = markerIndex < 0 ? -1 : markerIndex + marker.length();
+        int end = start < 0 ? -1 : message.indexOf(']', start);
+        if (start < 0 || end < start) {
+            return null;
+        }
+        String candidates = message.substring(start, end + 1);
+        if (!candidates.matches("\\[[A-Za-z0-9._, -]*\\]")) {
+            return null;
+        }
+        return candidates;
+    }
+
     private List<AiModelDefinition> definitions(ModelDataSourceInfo definition) {
         List<String> modelNames = definition.modelNames();
         List<AiModelDefinition> definitions = new ArrayList<AiModelDefinition>();
         if (modelNames.size() <= 1) {
             String modelName = modelNames.isEmpty() ? null : modelNames.get(0);
-            definitions.add(definition.toAiDefinition(definition.getKey(), modelName,
+            definitions.add(definition.toDefinition(definition.getKey(), modelName,
                     definition.modelConfig(modelName)));
             return definitions;
         }
@@ -145,7 +181,7 @@ public class MagicModelController extends MagicController implements MagicExcept
             if (modelConfig != null && Boolean.FALSE.equals(modelConfig.getEnabled())) {
                 continue;
             }
-            definitions.add(definition.toAiDefinition(definition.getKey() + "." + modelName, modelName, modelConfig));
+            definitions.add(definition.toDefinition(definition.getKey() + "." + modelName, modelName, modelConfig));
         }
         return definitions;
     }

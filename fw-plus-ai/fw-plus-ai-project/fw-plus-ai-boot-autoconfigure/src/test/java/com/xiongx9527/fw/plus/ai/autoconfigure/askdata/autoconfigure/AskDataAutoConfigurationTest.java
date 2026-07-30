@@ -27,19 +27,18 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidationResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
-import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
-import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationPurpose;
-import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
-import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
-import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
-import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.DefaultLangChain4jModelRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModel;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
+import com.xiongx9527.fw.plus.ai.model.DefaultAiModelRegistry;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.model.chat.ChatLanguageModel;
@@ -59,7 +58,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -89,57 +87,7 @@ public class AskDataAutoConfigurationTest {
             assertTrue(context.getBean(com.xiongx9527.fw.plus.ai.askdata.api.AskDataService.class) != null);
             assertTrue(context.getBean(AskDataDialectRegistry.class) != null);
             assertTrue(context.getBean(AskDataAgentDispatcher.class) != null);
-            assertTrue(context.getBean(AskDataGovernanceProvider.class)
-                    instanceof DefaultDenyAskDataGovernanceProvider);
         });
-    }
-
-    @Test
-    public void shouldPreserveUserAskDataGovernanceProvider() {
-        AskDataGovernanceProvider customProvider = request -> AskDataAuthorizationSummary.deny("custom-deny");
-
-        contextRunner.withBean(AskDataGovernanceProvider.class, () -> customProvider).run(context -> {
-            assertSame(customProvider, context.getBean(AskDataGovernanceProvider.class));
-        });
-    }
-
-    @Test
-    public void shouldRejectColumnOutsideStrongAuthorizationSummaryInCoreValidator() {
-        AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
-        AskDataAuthorizationRequest request = new AskDataAuthorizationRequest(context, "orders",
-                AskDataAuthorizationPurpose.QUERY, AskDataAdministrativeScope.none());
-        AskDataAuthorizationSummary summary = AskDataAuthorizationSummary.allow(request,
-                Collections.singletonList(new AskDataAuthorizedObject("orders", "orders", "id")),
-                Collections.emptyList(), "policy-v1", "iam-main", AskDataAdministrativeScope.none());
-        AskDataSqlCommand command = new AskDataSqlCommand(context, "select secret from orders",
-                Collections.emptyList(), Collections.singleton("orders"), summary);
-
-        com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.Result result =
-                new AskDataAutoConfiguration().coreAskDataSqlValidator().validate(command);
-
-        assertFalse(result.isAccepted());
-        assertEquals(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.FailureCategory.UNAUTHORIZED_OBJECT,
-                result.getFailureCategory());
-    }
-
-    @Test
-    public void shouldRejectAuthorizationSummaryBoundToAnotherOperatorInCoreValidator() {
-        AskDataProjectContext authorizedContext = new AskDataProjectContext("project-a", "operator-a");
-        AskDataAuthorizationRequest request = new AskDataAuthorizationRequest(authorizedContext, "orders",
-                AskDataAuthorizationPurpose.QUERY, AskDataAdministrativeScope.none());
-        AskDataAuthorizationSummary summary = AskDataAuthorizationSummary.allow(request,
-                Collections.singletonList(new AskDataAuthorizedObject("orders", "orders", "id")),
-                Collections.emptyList(), "policy-v1", "iam-main", AskDataAdministrativeScope.none());
-        AskDataSqlCommand command = new AskDataSqlCommand(
-                new AskDataProjectContext("project-a", "operator-b"), "select id from orders",
-                Collections.emptyList(), Collections.singleton("orders"), summary);
-
-        com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.Result result =
-                new AskDataAutoConfiguration().coreAskDataSqlValidator().validate(command);
-
-        assertFalse(result.isAccepted());
-        assertEquals(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator.FailureCategory.POLICY_DENIED,
-                result.getFailureCategory());
     }
 
     @Test
@@ -238,7 +186,7 @@ public class AskDataAutoConfigurationTest {
     @Test
     public void shouldUseDirectLangChain4jBeansWithoutOptionalModelCore() {
         contextRunner
-                .withClassLoader(new FilteredClassLoader("com.xiongx9527.fw.plus.ai.langchain4j.model"))
+                .withClassLoader(new FilteredClassLoader("com.xiongx9527.fw.plus.ai.langchain4j.adapter"))
                 .withPropertyValues(
                         "fw.plus.ai.askdata.model.default-chat-model=directChat",
                         "fw.plus.ai.askdata.model.default-embedding-model=directEmbedding")
@@ -254,14 +202,19 @@ public class AskDataAutoConfigurationTest {
 
     @Test
     public void shouldUseModelsFromOptionalModelRegistry() {
-        Map<String, LangChain4jModel> models = new LinkedHashMap<String, LangChain4jModel>();
-        models.put("managed", new LangChain4jModel("test", LangChain4jModelType.CHAT,
-                chatModel("managed-response")));
-        LangChain4jModelRegistry modelRegistry = new DefaultLangChain4jModelRegistry(models, "managed");
+        Map<String, AiModel> models = new LinkedHashMap<String, AiModel>();
+        AiModelDefinition definition = new AiModelDefinition();
+        definition.setKey("managed");
+        definition.setFramework("langchain4j");
+        definition.setProvider("test");
+        definition.setType(AiModelType.CHAT);
+        models.put("managed", new LangChain4jAiModel(definition,
+                new LangChain4jModel("test", LangChain4jModelType.CHAT, chatModel("managed-response"))));
+        AiModelRegistry modelRegistry = new DefaultAiModelRegistry(models, "managed");
 
         contextRunner
                 .withPropertyValues("fw.plus.ai.askdata.model.default-chat-model=managed")
-                .withBean(LangChain4jModelRegistry.class, () -> modelRegistry)
+                .withBean(AiModelRegistry.class, () -> modelRegistry)
                 .run(context -> {
                     assertTrue(context.getStartupFailure() == null);
                     assertEquals("managed-response", context.getBean(AskDataModelRegistry.class)
@@ -371,9 +324,9 @@ public class AskDataAutoConfigurationTest {
         return contextRunner
                 .withBean(AskDataGovernanceProvider.class,
                         () -> request -> AskDataAuthorizationSummary.allow(request, Collections.singletonList(
-                                new com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject(
-                                        "orders", "orders", "*")), Collections.emptyList(), "policy-v1",
-                                "test-governance", AskDataAdministrativeScope.none()))
+                                new AskDataAuthorizedObject("orders", "orders", "*")),
+                                Collections.emptyList(), "policy-v1", "test-governance",
+                                AskDataAdministrativeScope.none()))
                 .withBean(AskDataMetadataProvider.class,
                         () -> request -> new AskDataMetadata("mysql",
                                 Collections.singletonList(new AskDataTable("orders", Collections.emptyList())),

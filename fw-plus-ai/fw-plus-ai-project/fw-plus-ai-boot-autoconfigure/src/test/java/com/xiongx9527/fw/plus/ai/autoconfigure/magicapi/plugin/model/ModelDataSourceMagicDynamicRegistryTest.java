@@ -4,7 +4,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.Magic
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.ModelDataSourceInfo;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.service.ModelDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.service.ModelDataSourceMagicDynamicRegistry;
-import com.xiongx9527.fw.plus.ai.langchain4j.model.LangChain4jModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
@@ -84,7 +84,7 @@ class ModelDataSourceMagicDynamicRegistryTest {
         ModelDataSourceInfo info = new ModelDataSourceInfo();
         info.setKey(key);
         info.setProvider("fake");
-        info.setModelType(LangChain4jModelType.CHAT);
+        info.setModelType(AiModelType.CHAT);
         return info;
     }
 

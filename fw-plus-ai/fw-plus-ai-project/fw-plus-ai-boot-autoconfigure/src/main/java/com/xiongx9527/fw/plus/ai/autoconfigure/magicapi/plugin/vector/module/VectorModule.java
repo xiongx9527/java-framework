@@ -18,41 +18,6 @@ public class VectorModule implements DynamicAttribute<VectorModule, VectorStoreO
         this(new SpringBootVectorStoreResolver(registry), null);
     }
 
-    /** @deprecated 生产自动配置已改用中立 registry，仅保留旧源码的构造兼容。 */
-    @Deprecated
-    public VectorModule(final com.xiongx9527.fw.plus.ai.langchain4j.store.embeding.EmbeddingStoreRegistry registry) {
-        this(new VectorStoreResolver() {
-            @Override public AiEmbeddingStore get(String key) {
-                return legacy(key, registry.get(key));
-            }
-            @Override public AiEmbeddingStore getDefault() {
-                return legacy("default", registry.getDefault());
-            }
-        }, null);
-    }
-
-    private static AiEmbeddingStore legacy(final String key,
-            final dev.langchain4j.store.embedding.EmbeddingStore<dev.langchain4j.data.segment.TextSegment> store) {
-        return new AiEmbeddingStore() {
-            @Override public String getKey() { return key; }
-            @Override public String getFramework() { return "langchain4j"; }
-            @Override public String getProvider() { return "langchain4j"; }
-            @Override public com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType getType() {
-                return com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType.VECTOR;
-            }
-            @Override public String add(com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingDocument document) { throw unsupported(); }
-            @Override public java.util.List<String> addAll(java.util.List<com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingDocument> documents) { throw unsupported(); }
-            @Override public void remove(String id) { store.remove(id); }
-            @Override public void removeAll(java.util.List<String> ids) { store.removeAll(ids); }
-            @Override public com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingSearchResult search(
-                    com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingQuery query) { throw unsupported(); }
-            private com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException unsupported() {
-                return new com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException(
-                        "Legacy constructor facade does not expose native operations");
-            }
-        };
-    }
-
     public VectorModule(VectorStoreResolver resolver) {
         this(resolver, null);
     }
