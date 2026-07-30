@@ -138,23 +138,23 @@ Commit: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure && 
 - Consumes: `AiModelRegistry`, `AiModel`, `AiModelType`.
 - Produces: Provider registry, capability checks, default provider selection, unsupported capability errors.
 
-- [ ] **Task 3 Step 1: Write provider registry tests**
+- [x] **Task 3 Step 1: Write provider registry tests**
 
 Assert default provider key is `langchain4j`, custom provider can replace it, unsupported capability returns a deterministic exception containing provider and capability.
 
-- [ ] **Task 3 Step 2: Define SPI and DTOs**
+- [x] **Task 3 Step 2: Define SPI and DTOs**
 
 Add Java 8 interfaces/classes for chat request, chat response, streaming chunk, provider capability enum, provider registry. Keep DTOs free of `dev.langchain4j.*` imports.
 
-- [ ] **Task 3 Step 3: Implement LangChain4j default provider through neutral registry**
+- [x] **Task 3 Step 3: Implement LangChain4j default provider through neutral registry**
 
 Provider should resolve configured model key from `AiModelRegistry`, verify `AiModelType.CHAT` or `STREAMING_CHAT`, and only unwrap `LangChain4jAiModel` inside provider implementation. If unwrapping is impossible, return a clear unsupported framework/provider error.
 
-- [ ] **Task 3 Step 4: Connect chat service to provider registry**
+- [x] **Task 3 Step 4: Connect chat service to provider registry**
 
 `TinyEngineAiChatService` delegates to current provider and maps stream/non-stream requests.
 
-- [ ] **Task 3 Step 5: Run tests and commit**
+- [x] **Task 3 Step 5: Run tests and commit**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngineAiProviderRegistryTest,TinyEngineAiAutoConfigurationTest`
 

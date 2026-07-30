@@ -24,18 +24,18 @@
 
 ## 4. Provider SPI
 
-- [ ] 4.1 定义 Java 8 兼容的 TinyEngine AI Provider SPI、能力枚举、Provider registry 和 unsupported capability 错误模型。
+- [x] 4.1 定义 Java 8 兼容的 TinyEngine AI Provider SPI、能力枚举、Provider registry 和 unsupported capability 错误模型。
 - [ ] 4.2 定义 TinyEngine Chat、Streaming Chat、RAG 检索、知识库写入、Embedding 和向量访问所需的请求/响应业务对象。
 - [ ] 4.3 在 SPI 中预留 Spring AI、Spring AI Alibaba、AgentScope2 Java 版和业务自定义 Provider 的运行时标识与扩展点。
-- [ ] 4.4 覆盖 Provider 选择逻辑：默认使用 LangChain4j adapter，显式自定义 Provider 可替换默认运行时。
+- [x] 4.4 覆盖 Provider 选择逻辑：默认使用 LangChain4j adapter，显式自定义 Provider 可替换默认运行时。
 
 ## 5. LangChain4j 默认 Provider 与 AskData 模型
 
-- [ ] 5.1 实现 LangChain4j Chat Provider，通过 `AiModelRegistry` 获取中立 Chat 模型门面。
+- [x] 5.1 实现 LangChain4j Chat Provider，通过 `AiModelRegistry` 获取中立 Chat 模型门面。
 - [ ] 5.2 实现 LangChain4j Streaming Chat Provider，通过 `AiModelRegistry` 获取中立 Streaming Chat 模型门面，并返回可由 Web 层转换为 SSE 的流式响应。
 - [ ] 5.3 映射 TinyEngine Chat 参数，包括 model、messages、tools、stream、max_tokens、stream_options、presence_penalty、response_format、enable_thinking、tool_choice、parallel_tool_calls、enable_search、search_options 和 frequency_penalty。
-- [ ] 5.4 对 Provider 不支持的参数实现忽略、转换或明确 unsupported 参数错误策略。
-- [ ] 5.5 对不存在的模型 key 返回包含 key、Provider 和能力类型的明确错误。
+- [x] 5.4 对 Provider 不支持的参数实现忽略、转换或明确 unsupported 参数错误策略。
+- [x] 5.5 对不存在的模型 key 返回包含 key、Provider 和能力类型的明确错误。
 - [ ] 5.6 将 AskData 默认模型 registry 改为中立模型主路径，避免默认实现直接收集 `ChatLanguageModel` / `EmbeddingModel`。
 - [ ] 5.7 补充 AskData 模型 key 缺失、能力类型不匹配、adapter 缺失和业务自定义 `AskDataModelRegistry` 覆盖测试。
 
@@ -65,7 +65,7 @@
 ## 9. 验证
 
 - [x] 9.1 添加 TinyEngine AI 自动配置条件测试，覆盖总开关关闭、仅 Chat 启用、RAG 启用缺依赖 fail-fast 和显式 degrade。
-- [ ] 9.2 添加 TinyEngine Provider SPI 测试，覆盖默认 LangChain4j Provider、自定义 Provider 和 unsupported capability。
+- [x] 9.2 添加 TinyEngine Provider SPI 测试，覆盖默认 LangChain4j Provider、自定义 Provider 和 unsupported capability。
 - [ ] 9.3 添加 TinyEngine RAG 服务测试，覆盖文档写入、格式过滤、按集合检索、跨集合检索和向量 store key 缺失错误。
 - [ ] 9.4 添加 AskData 中立模型/向量边界测试，覆盖 `AiModelRegistry`、`AiEmbeddingStoreRegistry`、adapter 缺失、业务 Bean 覆盖和旧原生桥接隔离。
 - [ ] 9.5 运行相关 Maven Wrapper 编译或测试命令，确认 TinyEngine AI starter、AskData starter 及受影响 AI Boot 模块通过 Java 8 编译。
