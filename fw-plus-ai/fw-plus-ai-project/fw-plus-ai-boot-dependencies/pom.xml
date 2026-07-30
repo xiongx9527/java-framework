@@ -70,6 +70,21 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-redis</artifactId>
+                <version>0.36.2</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-qianfan</artifactId>
+                <version>0.36.2</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-dashscope</artifactId>
+                <version>0.36.2</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.dromara.easyai</groupId>

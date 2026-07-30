@@ -257,6 +257,21 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-redis</artifactId>
+                <version>0.36.2</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-qianfan</artifactId>
+                <version>0.36.2</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-dashscope</artifactId>
+                <version>0.36.2</version>
+            </dependency>
+            <dependency>
                 <groupId>com.datastax.oss</groupId>
                 <artifactId>java-driver-core</artifactId>
                 <version>${datastax-java-driver.version}</version>

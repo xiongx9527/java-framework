@@ -8,6 +8,8 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,7 +27,8 @@ public class SpringBoot3DependencyBaselineTest {
         assertProperty(aiBom(), "langchain4j.version", "1.18.1");
         assertProperty(aiBom(), "spring-ai.version", "1.0.1");
         assertProperty(aiBom(), "spring-ai-alibaba.version", "1.0.1");
-        assertOnlyLangChain4jBomIsManaged(aiBom());
+        assertLangChain4jManagement(coreBom());
+        assertLangChain4jManagement(aiBom());
     }
 
     private void assertProperty(File pom, String name, String expected) throws Exception {
@@ -35,9 +38,9 @@ public class SpringBoot3DependencyBaselineTest {
         assertEquals(expected, property.getTextContent().trim(), name);
     }
 
-    private void assertOnlyLangChain4jBomIsManaged(File pom) throws Exception {
+    private void assertLangChain4jManagement(File pom) throws Exception {
         NodeList dependencies = document(pom).getElementsByTagName("dependency");
-        int managedArtifacts = 0;
+        Map<String, String> managedArtifacts = new HashMap<>();
         for (int index = 0; index < dependencies.getLength(); index++) {
             Element dependency = (Element) dependencies.item(index);
             if (!"dev.langchain4j".equals(text(dependency, "groupId"))) {
@@ -49,10 +52,15 @@ public class SpringBoot3DependencyBaselineTest {
                 assertEquals("pom", text(dependency, "type"));
                 assertEquals("import", text(dependency, "scope"));
             } else {
-                managedArtifacts++;
+                managedArtifacts.put(artifactId, text(dependency, "version"));
             }
         }
-        assertEquals(0, managedArtifacts, "only langchain4j-bom may be declared in AI dependencyManagement");
+        Map<String, String> expectedExceptions = new HashMap<>();
+        expectedExceptions.put("langchain4j-redis", "0.36.2");
+        expectedExceptions.put("langchain4j-qianfan", "0.36.2");
+        expectedExceptions.put("langchain4j-dashscope", "0.36.2");
+        assertEquals(expectedExceptions, managedArtifacts,
+                "only legacy LangChain4j exceptions may be declared outside langchain4j-bom");
     }
 
     private String text(Element parent, String name) {
