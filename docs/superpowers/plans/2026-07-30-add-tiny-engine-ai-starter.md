@@ -238,23 +238,23 @@ Commit: `git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure && 
 - Consumes: `AiModelRegistry`, `AiEmbeddingStoreRegistry`, `AiEmbeddingDocument`, `AiEmbeddingQuery`.
 - Produces: RAG search and knowledge indexing services using neutral store.
 
-- [ ] **Task 6 Step 1: Write failing RAG tests**
+- [x] **Task 6 Step 1: Write failing RAG tests**
 
 Assert search maps score/content/metadata, collection filter is applied through metadata conventions, missing store key fails fast by default, and degrade returns unavailable reason.
 
-- [ ] **Task 6 Step 2: Write failing knowledge indexing tests**
+- [x] **Task 6 Step 2: Write failing knowledge indexing tests**
 
 Assert unsupported format is counted as skipped, missing path is reported, supported text content is chunked with configured chunk size/overlap, and metadata includes `source`, `format`, `timestamp`, `collection`.
 
-- [ ] **Task 6 Step 3: Implement RAG service**
+- [x] **Task 6 Step 3: Implement RAG service**
 
 Use neutral `AiEmbeddingStore.search()` and TinyEngine DTOs. Keep collection filtering in service layer if store does not support metadata filtering directly.
 
-- [ ] **Task 6 Step 4: Implement knowledge service**
+- [x] **Task 6 Step 4: Implement knowledge service**
 
 Start with plain text/resource content support that is Java 8 compatible. Return diagnostic counts for loaded/skipped/failed.
 
-- [ ] **Task 6 Step 5: Run tests and commit**
+- [x] **Task 6 Step 5: Run tests and commit**
 
 Run: `JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngineRagServiceTest,TinyEngineKnowledgeBaseServiceTest,TinyEngineAiAutoConfigurationTest`
 

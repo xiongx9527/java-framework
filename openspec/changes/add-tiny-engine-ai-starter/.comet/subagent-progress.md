@@ -3,15 +3,15 @@
 - Review mode: off
 - Build mode: subagent-driven-development
 - TDD mode: tdd
-- Current plan task: Task 5: AskData 向量检索中立化
-- Mapped OpenSpec tasks: 3.5, 6.6, 6.7, 9.4
+- Current plan task: Task 6: TinyEngine RAG 与知识库服务
+- Mapped OpenSpec tasks: 6.1, 6.2, 6.3, 6.4, 6.5, 9.3
 - Stage: done
-- Base commit before dispatch: 29de9ed0
-- Implementer agent: 019fb2b2-e841-70d0-a4d6-ac8464bffccb
-- Implementer report: /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-tiny-engine-ai-starter/.superpowers/sdd/task-5-report.md
-- Implementation commit: 3906cc06
-- RED evidence: neutral retriever and default vector path tests failed before implementation; missing-registry diagnostic regression failed before fix.
-- GREEN evidence: system Maven with JDK 8 passed `mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=AiEmbeddingStoreAskDataVectorRetrieverTest,AskDataVectorRetrieverTest,EmbeddingStoreAskDataVectorRetrieverTest,AskDataAutoConfigurationTest` with 27 tests, 0 failures/errors.
-- Risk signals: AskData default vector retriever contract changed to neutral store registry main path.
+- Base commit before dispatch: 561c6847
+- Implementer agent: 019fb2c1-9e29-7a12-b219-5cbe313f7bb5
+- Implementer report: /Users/xiongxiao/Workspace/Idea/codes/java-framework/.worktrees/add-tiny-engine-ai-starter/.superpowers/sdd/task-6-report.md
+- Implementation commit: 21ae8407
+- RED evidence: TinyEngine RAG/knowledge tests failed before implementation; Maven Wrapper could not start in this worktree because wrapper metadata was missing.
+- GREEN evidence: system Maven with JDK 8 passed `mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngineRagServiceTest,TinyEngineKnowledgeBaseServiceTest,TinyEngineAiAutoConfigurationTest` with 13 tests, 0 failures/errors.
+- Risk signals: neutral `AiModel` does not expose embedding generation, so knowledge indexing writes text chunks with null vector and leaves vector creation to the configured neutral store/provider behavior.
 - Review result: skipped by review_mode=off; coordinator reran focused test.
-- Unresolved feedback: TinyEngine RAG/knowledge service remains for Task 6.
+- Unresolved feedback: Task 7 documentation must describe the neutral store boundary and current embedding-generation limitation.
