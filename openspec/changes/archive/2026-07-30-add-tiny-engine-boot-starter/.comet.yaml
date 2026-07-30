@@ -23,7 +23,7 @@ archive_confirmation: confirmed
 archived: true
 bound_branch: dev
 direct_override: null
-handoff_context: openspec/changes/add-tiny-engine-boot-starter/.comet/handoff/design-context.json
+handoff_context: openspec/changes/archive/2026-07-30-add-tiny-engine-boot-starter/.comet/handoff/design-context.json
 handoff_hash: 8da6c53ef62af2a8b7700ffa6297b3e4eff62d7f926c54095a140788e7e75902
 classic_profile: full
 classic_migration: 1
