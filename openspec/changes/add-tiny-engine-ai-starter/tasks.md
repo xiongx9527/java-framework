@@ -20,7 +20,7 @@
 - [x] 3.2 实现自动配置条件，确保总开关关闭时不创建 TinyEngine AI Chat、RAG、知识库向量化和 Provider 运行时 Bean。
 - [x] 3.3 实现能力级条件，支持只启用 Chat 而不要求 EmbeddingModel 或向量存储。
 - [x] 3.4 实现 RAG 启用时的模型、Embedding 能力和中立向量 store 配置校验。
-- [ ] 3.5 调整 AskData 默认自动配置，使 `AskDataModelRegistry` 和 `AskDataVectorRetriever` 默认从 `AiModelRegistry` / `AiEmbeddingStoreRegistry` 获取能力，并保留业务 Bean 覆盖点。
+- [x] 3.5 调整 AskData 默认自动配置，使 `AskDataModelRegistry` 和 `AskDataVectorRetriever` 默认从 `AiModelRegistry` / `AiEmbeddingStoreRegistry` 获取能力，并保留业务 Bean 覆盖点。
 
 ## 4. Provider SPI
 
@@ -46,8 +46,8 @@
 - [ ] 6.3 通过 `AiEmbeddingStoreRegistry` 按 key 获取中立向量 store，避免将 Chroma 或 LangChain4j 原生 store 作为 TinyEngine AI starter 的唯一主路径。
 - [ ] 6.4 支持按集合检索和跨集合检索，单集合失败时返回该集合的受控错误状态或空结果。
 - [ ] 6.5 对不存在或不支持格式的文档返回包含加载、跳过和失败数量的诊断信息。
-- [ ] 6.6 将 AskData 默认 vector retriever 改为中立向量 store 主路径，避免默认实现直接绑定 `EmbeddingStore<TextSegment>`。
-- [ ] 6.7 若保留 AskData LangChain4j 原生 `ContentRetriever` 或旧 store 桥接，确保其 optional classpath/bean 条件隔离且不进入 starter 必需依赖。
+- [x] 6.6 将 AskData 默认 vector retriever 改为中立向量 store 主路径，避免默认实现直接绑定 `EmbeddingStore<TextSegment>`。
+- [x] 6.7 若保留 AskData LangChain4j 原生 `ContentRetriever` 或旧 store 桥接，确保其 optional classpath/bean 条件隔离且不进入 starter 必需依赖。
 
 ## 7. 失败与降级
 
@@ -67,7 +67,7 @@
 - [x] 9.1 添加 TinyEngine AI 自动配置条件测试，覆盖总开关关闭、仅 Chat 启用、RAG 启用缺依赖 fail-fast 和显式 degrade。
 - [x] 9.2 添加 TinyEngine Provider SPI 测试，覆盖默认 LangChain4j Provider、自定义 Provider 和 unsupported capability。
 - [ ] 9.3 添加 TinyEngine RAG 服务测试，覆盖文档写入、格式过滤、按集合检索、跨集合检索和向量 store key 缺失错误。
-- [ ] 9.4 添加 AskData 中立模型/向量边界测试，覆盖 `AiModelRegistry`、`AiEmbeddingStoreRegistry`、adapter 缺失、业务 Bean 覆盖和旧原生桥接隔离。
+- [x] 9.4 添加 AskData 中立模型/向量边界测试，覆盖 `AiModelRegistry`、`AiEmbeddingStoreRegistry`、adapter 缺失、业务 Bean 覆盖和旧原生桥接隔离。
 - [ ] 9.5 运行相关 Maven Wrapper 编译或测试命令，确认 TinyEngine AI starter、AskData starter 及受影响 AI Boot 模块通过 Java 8 编译。
 - [ ] 9.6 检查新增源码不包含 Java 9+ API，并确认未新增 Spring AI、Spring AI Alibaba、AgentScope2 Java 版硬依赖。
 - [ ] 9.7 检查 TinyEngine AI starter 和 AskData starter 依赖树不包含旧 LangChain4j 专用 model/store artifact、旧 starter 坐标或直接 provider SDK 主路径依赖。
