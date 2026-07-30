@@ -157,3 +157,37 @@ cd /Users/xiongxiao/Workspace/Idea/codes/java-framework/fw-plus-ai && javac -enc
 
 - 完整 Maven 生命周期仍被范围外 `LegacyEmbeddingStoreAiAdapter#getFramework()` 编译错误阻断；本轮未修改该文件。此前记录的 `EmbeddingStoreAutoConfiguration` 范围外问题也未纳入本轮修改。
 - Maven/JDK restricted-method、`Unsafe` 与 SLF4J 多绑定警告仍存在；不影响手工聚焦编译及 37 项目标 Surefire 回归。
+
+---
+
+## TinyEngine Provider SPI 实施报告
+
+### 实现内容
+
+- 新增 TinyEngine 聊天/RAG DTO、Provider SPI、能力枚举和 Provider 注册表。
+- 新增默认 `langchain4j` Provider：从 `AiModelRegistry` 解析请求或配置模型 key，校验 `CHAT`/`STREAMING_CHAT` 类型，仅在该 Provider 内部解包 `LangChain4jAiModel`。
+- 当中立模型不是 LangChain4j 包装、原生模型缺失或调用映射尚未定义时，返回包含 provider、framework/provider 或 capability 的确定性异常，不会静默成功。
+- `TinyEngineAiChatService` 新增普通与流式方法，并委托当前 Provider Registry；自动配置注册默认 Provider 和可由 `fw.plus.tiny-engine.ai.provider` 覆盖的 Registry。
+
+### RED/GREEN
+
+- RED：`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngineAiProviderRegistryTest`。预期因 SPI、DTO、Registry 不存在而在测试编译阶段失败。
+- GREEN：`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml test -Dtest=TinyEngineAiProviderRegistryTest,TinyEngineAiAutoConfigurationTest`。12 tests, 0 failures, 0 errors。
+
+### 变更文件
+
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/tinyengine/**`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/tinyengine/provider/TinyEngineAiProviderRegistryTest.java`
+
+### 自审结果
+
+- 覆盖默认 `langchain4j` key、配置 provider 优先、未支持能力的确定性错误，以及 DTO/SPI 对 `dev.langchain4j.*` 的字节码边界检查。
+- `git diff --check` 通过；未修改 starter POM/BOM、OpenSpec、AskData 或 Task 6 RAG/知识库业务。
+
+### 风险信号
+
+- Maven 仍报告既有 BOM 重复依赖管理与多个 SLF4J binding 警告；本次未改动相关 POM/依赖。
+
+### 顾虑
+
+- 当前聊天 DTO 尚未定义 TinyEngine 到 LangChain4j 的完整请求/流式回调映射。因此默认 Provider 会完成模型校验和解包后明确报不可用；真实 native 调用留给具有完整传输契约的后续任务。

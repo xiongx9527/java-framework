@@ -1,0 +1,14 @@
+{
+  "change": "add-tiny-engine-ai-starter",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "1ea109414688fab81ec69a7032698450141c824f6c7121de501ce5a96cdd0445",
+  "files": [
+    { "path": "openspec/changes/add-tiny-engine-ai-starter/proposal.md", "sha256": "55396b7bc082e65c7af04840089b6e6c196fc953ff14ec72956c4be110bfa06d" },
+    { "path": "openspec/changes/add-tiny-engine-ai-starter/design.md", "sha256": "3e5edffb75488a26836fb6e245d6a9aae4e822fae4da7c69275b0d650c64e24f" },
+    { "path": "openspec/changes/add-tiny-engine-ai-starter/tasks.md", "sha256": "588a7abe09c61cc7f6f1126eb3416ecebe2547d8b9ac11dffb29b7669c29382b" },
+    { "path": "openspec/changes/add-tiny-engine-ai-starter/specs/tiny-engine-ai-starter/spec.md", "sha256": "01047310cd17506f8c2ba8bcafb8f49ed17d5935c315e7b65a7814417fdf5f64" }
+  ]
+}

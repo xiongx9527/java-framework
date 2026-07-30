@@ -27,8 +27,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.EmptyAskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
-import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.LangChain4jAskDataModelRegistry;
-import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.LangChain4jAskDataModelSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AiModelAskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataMemoryRecallAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataRecommendationAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialectRegistry;
@@ -40,9 +39,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.DefaultAskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.JdbcAskDataSqlExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AiEmbeddingStoreAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.CompositeAskDataVectorRetriever;
-import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.ContentRetrieverAskDataVectorRetriever;
-import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.EmbeddingStoreAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory;
@@ -59,12 +57,8 @@ import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.rag.content.retriever.ContentRetriever;
-import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -223,14 +217,6 @@ public class AskDataAutoConfiguration {
         return new AskDataMonitoringLogQueryService(store, accessPolicy, governanceProvider);
     }
 
-    @Bean
-    @ConditionalOnProperty(prefix = "fw.plus.ai.askdata.vector", name = "store", havingValue = "memory", matchIfMissing = true)
-    @ConditionalOnMissingBean(value = {AskDataVectorRetriever.class, EmbeddingStore.class})
-    public EmbeddingStore<TextSegment> askDataInMemoryEmbeddingStore(AskDataProperties properties) {
-        validateDefaultVectorConfiguration(properties);
-        return new InMemoryEmbeddingStore<TextSegment>();
-    }
-
     @Bean(name = "askDataObservationEventPublisher")
     @ConditionalOnMissingBean(name = "askDataObservationEventPublisher")
     public AskDataEventPublisher askDataObservationEventPublisher(AskDataProperties properties) {
@@ -249,11 +235,8 @@ public class AskDataAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public AskDataModelRegistry askDataModelRegistry(AskDataProperties properties,
-			Map<String, ChatLanguageModel> chatModels,
-			Map<String, EmbeddingModel> embeddingModels,
-			ObjectProvider<LangChain4jAskDataModelSource> modelSourceProvider) {
-		return new LangChain4jAskDataModelRegistry(properties, chatModels, embeddingModels,
-				modelSourceProvider.orderedStream().collect(Collectors.toList()));
+			ObjectProvider<AiModelRegistry> modelRegistryProvider) {
+		return new AiModelAskDataModelRegistry(properties, modelRegistryProvider.getIfAvailable());
 	}
 
     @Bean
@@ -421,24 +404,16 @@ public class AskDataAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public AskDataVectorRetriever askDataVectorRetriever(AskDataProperties properties,
-            ObjectProvider<ContentRetriever> contentRetrieverProvider,
-            ObjectProvider<EmbeddingStore> embeddingStoreProvider,
-            ObjectProvider<EmbeddingModel> embeddingModelProvider) {
+            ObjectProvider<AiEmbeddingStoreRegistry> embeddingStoreRegistryProvider,
+            ObjectProvider<AskDataModelRegistry> modelRegistryProvider) {
         validateDefaultVectorConfiguration(properties);
-        List<AskDataVectorRetriever> retrievers = contentRetrieverProvider.orderedStream()
-                .map(ContentRetrieverAskDataVectorRetriever::new)
-                .collect(Collectors.<AskDataVectorRetriever>toList());
-        EmbeddingStore<TextSegment> embeddingStore = embeddingStore(embeddingStoreProvider);
-        EmbeddingModel embeddingModel = embeddingModelProvider.getIfAvailable();
-        if (embeddingStore != null && embeddingModel != null) {
-            retrievers.add(new EmbeddingStoreAskDataVectorRetriever(embeddingStore, embeddingModel));
+        AiEmbeddingStoreRegistry registry = embeddingStoreRegistryProvider.getIfAvailable();
+        AskDataModelRegistry modelRegistry = modelRegistryProvider.getIfAvailable();
+        if (registry == null || modelRegistry == null) {
+            return new CompositeAskDataVectorRetriever(Collections.<AskDataVectorRetriever>emptyList(),
+                    properties.getVector().getDefaultTopK());
         }
-        return new CompositeAskDataVectorRetriever(retrievers, properties.getVector().getDefaultTopK());
-    }
-
-    @SuppressWarnings("unchecked")
-    private EmbeddingStore<TextSegment> embeddingStore(ObjectProvider<EmbeddingStore> embeddingStoreProvider) {
-        return embeddingStoreProvider == null ? null : (EmbeddingStore<TextSegment>) embeddingStoreProvider.getIfAvailable();
+        return new AiEmbeddingStoreAskDataVectorRetriever(registry, modelRegistry, properties.getVector().getStore());
     }
 
     @Bean

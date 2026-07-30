@@ -13,15 +13,15 @@
 
 ## 3. 合并、验证并推送 springboot2
 
-- [ ] 3.1 将本地 `springboot2` 同步到最新远端历史，再合并已验证的最新 `dev`
-- [ ] 3.2 解决合并冲突，保持 Java 8、既有 Spring 平台和 LangChain4j 0.35.0 基线
-- [ ] 3.3 按 Core → Boot → Cloud / AI → Sample 顺序完成 `springboot2` 的 Maven 测试与构建验证
-- [ ] 3.4 提交合并结果，非强制推送 `springboot2`，确认远端 SHA 等于本地 HEAD 且包含最新 `dev`
+- [x] 3.1 将本地 `springboot2` 同步到最新远端历史，再合并已验证的最新 `dev`
+- [x] 3.2 解决合并冲突，保持 Java 8、既有 Spring 平台和 LangChain4j 0.35.0 基线
+- [x] 3.3 按 Core → Boot → Cloud / AI → Sample 顺序完成 `springboot2` 的 Maven 测试与构建验证
+- [x] 3.4 提交合并结果，非强制推送 `springboot2`，确认远端 SHA 等于本地 HEAD 且包含最新 `dev`
 
 ## 4. 合并 dev 并升级 springboot3
 
-- [ ] 4.1 将本地 `springboot3` 同步到最新远端历史，再合并最新 `dev`，保留既有 Java 17 / Spring Boot 3 适配提交
-- [ ] 4.2 单独提交 `springboot3` 的分支同步结果，使合并冲突修复与依赖升级保持独立
+- [x] 4.1 将本地 `springboot3` 同步到最新远端历史，再合并最新 `dev`，保留既有 Java 17 / Spring Boot 3 适配提交
+- [x] 4.2 单独提交 `springboot3` 的分支同步结果，使合并冲突修复与依赖升级保持独立
 - [ ] 4.3 审计固定范围外的 POM 属性、BOM 管理项、直接依赖和 Maven 更新报告，形成兼容升级与保留旧版清单
 - [ ] 4.4 导入 LangChain4j BOM 1.18.1，移除冗余逐模块版本，并验证核心为 1.18.1、集成模块为 1.18.1-beta28
 - [ ] 4.5 升级其余与 Java 17 和固定 Spring 平台兼容的依赖，删除已证明未使用的直接依赖或旧拦截器配置
