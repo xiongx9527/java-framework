@@ -1,6 +1,6 @@
 ## MODIFIED Requirements
 
-### Requirement: 中立 Starter 与公共运行时保持具体框架零痕迹
+### Requirement: 中立 starter 与公共运行时保持具体框架零痕迹
 系统 SHALL 使 `fw-plus-ai-model`、`fw-plus-ai-store-embedding`、其所有中立 Starter、公共 API、Magic-API model/vector 实现以及 `fw-plus-ai-boot-autoconfigure` 中框架专属子包之外的代码只依赖中立 API 与 registry。具体框架自动配置 SHALL 隔离在统一 Boot autoconfigure artifact 的 `com.xiongx9527.fw.plus.ai.autoconfigure.<framework>.*` 子包，并通过 optional 依赖和 classpath 条件装配。
 
 #### Scenario: 中立 artifact 没有具体框架依赖或公开类型
