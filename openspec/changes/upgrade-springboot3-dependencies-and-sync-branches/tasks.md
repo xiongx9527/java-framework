@@ -13,10 +13,10 @@
 
 ## 3. 合并、验证并推送 springboot2
 
-- [ ] 3.1 将本地 `springboot2` 同步到最新远端历史，再合并已验证的最新 `dev`
-- [ ] 3.2 解决合并冲突，保持 Java 8、既有 Spring 平台和 LangChain4j 0.35.0 基线
-- [ ] 3.3 按 Core → Boot → Cloud / AI → Sample 顺序完成 `springboot2` 的 Maven 测试与构建验证
-- [ ] 3.4 提交合并结果，非强制推送 `springboot2`，确认远端 SHA 等于本地 HEAD 且包含最新 `dev`
+- [x] 3.1 将本地 `springboot2` 同步到最新远端历史，再合并已验证的最新 `dev`
+- [x] 3.2 解决合并冲突，保持 Java 8、既有 Spring 平台和 LangChain4j 0.35.0 基线
+- [x] 3.3 按 Core → Boot → Cloud / AI → Sample 顺序完成 `springboot2` 的 Maven 测试与构建验证
+- [x] 3.4 提交合并结果，非强制推送 `springboot2`，确认远端 SHA 等于本地 HEAD 且包含最新 `dev`
 
 ## 4. 合并 dev 并升级 springboot3
 
