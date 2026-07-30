@@ -242,7 +242,7 @@ Expected: 证据提交不包含凭据；再次核验 `origin/dev` SHA 等于本�
 - Consumes: 已发布的最新 `dev`，最新 `origin/springboot2` 与 `origin/springboot3`。
 - Produces: 分别绑定真实长期分支的两个干净 worktree。
 
-- [ ] **Step 1: 验证 worktree 目录安全性**
+- [x] **Step 1: 验证 worktree 目录安全性**
 
 Run:
 
@@ -255,7 +255,7 @@ test ! -e .worktrees/springboot3-upgrade
 
 Expected: `.worktrees` 被忽略，两个目标路径不存在，现有其他 worktree 不被修改。
 
-- [ ] **Step 2: 对齐本地派生分支的远端基线**
+- [x] **Step 2: 对齐本地派生分支的远端基线**
 
 Run:
 
@@ -268,7 +268,7 @@ git branch -f springboot3 origin/springboot3
 
 Expected: 两个本地分支没有未发布独有提交并快进到各自远端；若左侧计数非 0，停止并先审计本地独有提交，不覆盖分支。
 
-- [ ] **Step 3: 创建两个 worktree**
+- [x] **Step 3: 创建两个 worktree**
 
 Run:
 
