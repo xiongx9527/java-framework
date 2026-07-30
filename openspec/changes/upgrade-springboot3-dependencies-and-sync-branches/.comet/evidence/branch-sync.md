@@ -52,4 +52,17 @@
 4. `git push origin dev` 使用普通非强制推送，最终失败：`curl 28 Failed to connect to github.com port 443 after 75010 ms`，并出现 `send-pack: unexpected disconnect while reading sideband packet`。
 5. push 失败后再次通过 GitHub API 独立核验，远端 `dev` 仍为 `0c0a12fa996bbdb4f327b77faa28c55fe9aeda72`；本地仍为 `4b2650f50a4f407baa6e5a04121be6173a0c5b9c`，tracking 状态仍是 ahead 12。
 
-未执行 `--force`、GitHub API ref PATCH 或 Git Data API 对象上传。由于 ref-only fallback 的目标对象存在性与 compare 前置条件不成立，不能将本次状态记录为发布成功。证据提交完成后本地 HEAD 会前移，但在网络传输恢复并完成普通非强制 push、远端 SHA 等于最终本地 HEAD、ahead/behind 为 `0 0` 前，Task 3 保持 `BLOCKED_ON_PUBLISH`。
+截至首次证据提交时，未执行 `--force`、GitHub API ref PATCH 或 Git Data API 对象上传。由于 ref-only fallback 的目标对象存在性与 compare 前置条件不成立，当时不能将状态记录为发布成功，Task 3 暂记为 `BLOCKED_ON_PUBLISH`。
+
+## GREEN：有界重试发布成功
+
+- 首次证据提交：`1c31eb8cf933a232b95b09f27ddd65249fccb11a`
+- 再次执行带 90 秒外层超时的普通非强制 `git push origin dev`，成功将远端从 `0c0a12fa` 快进到 `1c31eb8c`；未使用 `--force`。
+- `git ls-remote --heads origin dev`：`1c31eb8cf933a232b95b09f27ddd65249fccb11a`
+- GitHub API `refs/heads/dev`：`1c31eb8cf933a232b95b09f27ddd65249fccb11a`
+- GitHub API `commits/dev`：`1c31eb8cf933a232b95b09f27ddd65249fccb11a`
+- 本地 `HEAD` 与 tracking `origin/dev`：均为 `1c31eb8cf933a232b95b09f27ddd65249fccb11a`
+- `git rev-list --left-right --count HEAD...origin/dev`：`0 0`
+- 工作区：`## dev...origin/dev`，无未提交文件。
+
+发布阻塞已经解除。本节的后续证据提交仍使用普通非强制 push；提交后以本地 `HEAD`、`git ls-remote`、GitHub API ref 和 ahead/behind 的再次一致性核验作为最终发布结果。
