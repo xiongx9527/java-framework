@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将 TinyEngine 生产设计器、MVC/WebFlux Controller 和 Magic-API `statusBarItems` 入口完整集成到可独立发布的 fw-plus starter。
+**Goal:** 将 TinyEngine 生产设计器、`tiny-engine-backend-java` 完整后端能力、MVC/WebFlux Controller 和 Magic-API `statusBarItems` 入口完整集成到可独立发布的 fw-plus starter。
 
-**Architecture:** `fw-plus-tiny-engine-spring-boot-starter` 内置可复现的 TinyEngine pnpm workspace 并把 `designer-demo/dist` 打入 classpath；`fw-plus-boot-autoconfigure` 提供共享业务 facade、互斥的 MVC/WebFlux Controller 与静态资源配置；`fw-plus-magicapi-plugin-tiny-engine` 只增加状态栏入口。Core 继续使用 MyBatis-Plus/JDBC，WebFlux 通过专用 bounded-elastic Scheduler 隔离阻塞调用。
+**Architecture:** `fw-plus-tiny-engine-spring-boot-starter` 内置可复现的 TinyEngine pnpm workspace 并把 `designer-demo/dist` 打入 classpath；`fw-plus-core` 承接 `tiny-engine-backend-java/base` 的领域模型、DTO、Mapper、SQL、Service、dynamic、用户体系 SPI 和可选 RAG/AI 契约；`fw-plus-boot-autoconfigure` 提供共享业务 facade、互斥的 MVC/WebFlux Controller、静态资源配置和 Spring 绑定。`fw-plus-magicapi-plugin-tiny-engine` 只增加状态栏入口；WebFlux 通过专用 bounded-elastic Scheduler 隔离阻塞调用。
 
 **Tech Stack:** Java 8、Spring Boot 2.7.18、Spring MVC、Spring WebFlux/Reactor、MyBatis-Plus、Maven、pnpm、Vue 3、Vite、Node test runner、JUnit 5、AssertJ、MockMvc、WebTestClient。
 
@@ -13,9 +13,13 @@
 - Core 和 Boot 新增 Java 源码必须兼容 Java 8，不使用 Java 9+ API。
 - 不修改 Magic-API `2.2.2` 及内部 Nexus 坐标。
 - 不触碰当前 `upgrade-springboot3-dependencies-and-sync-branches` 的 28 个无关脏文件。
-- 未获得用户明确授权前不创建分支、不提交、不推送；每个任务用定向 `git diff --check` 代替提交步骤。
+- 本次变更在独立 worktree 分支 `codex/integrate-tiny-engine-console-starter` 中实施；允许每个任务创建本地提交用于评审，不推送远端，不触碰主工作区无关脏文件。
 - TinyEngine 嵌入源码来源固定记录为 `/Users/xiongxiao/Workspace/Idea/codes/TinyEngine` 的提交 `484898fd0af3b0561c47ced9e159f3a9a0d1bee0`，后续同步必须更新来源清单。
+- TinyEngine 后端参考源固定记录为 `/Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java` 的 `release/v2.10.x` 分支、提交 `c116fa649122390baf212f53d82358617c63924d`；该仓库中的 `base`、`app`、Mapper XML、SQL、dynamic、login、rag、gateway/ai、deploy、documents、settings 和 `all-MiniLM-L6-v2` 资产必须进入覆盖矩阵，不能只迁 Controller。
+- 后端 Java 参考源中的每一类内容必须被标记为 `migrated`、`adapted` 或 `deferred-with-reason`；延后项必须写明原因、目标适配点、用户可见行为和后续任务。
 - TinyEngine workspace 只能使用 pnpm；不得改用 npm 或 yarn。
+- TinyEngine 上游当前提交没有 `pnpm-lock.yaml`；Task 1 不复制 `package-lock.json`，Task 2 必须用 pnpm 生成并提交 `pnpm-lock.yaml` 后再使用 `--frozen-lockfile`。
+- TinyEngine `src/console/**` 作为上游 vendored 源码保留原始 whitespace；starter 模块使用 `.gitattributes` 对该目录关闭 `git diff --check` 的 whitespace 检查。
 - 不复制 `.git`、`.codegraph`、`node_modules`、`dist`、缓存、测试报告或本地 IDE 文件。
 - Maven 正常构建不得读取 `/Users/xiongxiao/Workspace/Idea/codes/TinyEngine` 或任何外部绝对路径。
 - 通用 TinyEngine starter 不强制传递 `spring-boot-starter-web` 或 `spring-boot-starter-webflux`；宿主选择 WebApplicationType。
@@ -32,6 +36,8 @@
 - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/pom.xml`: pnpm 构建、资源打包和 Web 栈中立依赖。
 - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/api/`: 与 MVC/WebFlux 无关的 API facade 和外部能力 SPI。
 - `fw-plus-core/fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core/src/main/java/com/xiongx9527/fw/plus/tinyengine/support/auth/`: 用户体系中立模型、Provider SPI、权限和基础 Service。
+- `docs/tiny-engine/backend-source-coverage.md`: `tiny-engine-backend-java` 完整覆盖矩阵，记录 Java 包、Controller 路由、Service、Mapper/XML、SQL、配置、部署、文档和模型资产的迁移状态。
+- `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-backend-coverage.test.mjs`: 覆盖矩阵审计脚本，验证参考源清单没有被漏记。
 - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webmvc/`: Servlet Controller 与资源配置。
 - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webflux/`: Reactive Controller、资源配置和阻塞调度器。
 - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-tiny-engine/`: Magic-API `statusBarItems` 前端插件。
@@ -43,12 +49,14 @@
 
 **Files:**
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/scripts/sync-tiny-engine-console.sh`
+- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/.gitattributes`
+- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/.gitignore`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-source-sync.test.mjs`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/**`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/.tinyengine-source.properties`
 
 **Interfaces:**
-- Consumes: TinyEngine workspace path as the script's only positional argument.
+- Consumes: TinyEngine workspace path as the script's first positional argument and an optional target directory as the second positional argument for tests.
 - Produces: self-contained `src/console`, with `source.commit`, `source.repository`, and `source.syncedAt` metadata.
 
 - [ ] **Step 1: Write the failing Node contract test**
@@ -56,24 +64,68 @@
 ```js
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
+import { fileURLToPath } from 'node:url'
+
+const TEST_FILE = fileURLToPath(import.meta.url)
+const MODULE_ROOT = path.resolve(path.dirname(TEST_FILE), '../../..')
+const SYNC_SCRIPT = path.join(MODULE_ROOT, 'scripts/sync-tiny-engine-console.sh')
 
 test('sync copies build inputs and excludes local state', () => {
   const root = mkdtempSync(path.join(tmpdir(), 'tiny-engine-sync-'))
   const source = path.join(root, 'source')
+  const target = path.join(root, 'target')
   mkdirSync(path.join(source, 'designer-demo'), { recursive: true })
   mkdirSync(path.join(source, 'packages', 'demo'), { recursive: true })
+  mkdirSync(path.join(source, 'packages', 'build', 'vite-config'), { recursive: true })
+  mkdirSync(path.join(source, 'mockServer', 'build'), { recursive: true })
+  mkdirSync(path.join(source, 'mockServer', 'logs'), { recursive: true })
   mkdirSync(path.join(source, 'node_modules', 'bad'), { recursive: true })
   writeFileSync(path.join(source, 'package.json'), '{}')
-  writeFileSync(path.join(source, 'pnpm-lock.yaml'), 'lockfileVersion: 6.0')
+  writeFileSync(path.join(source, 'pnpm-workspace.yaml'), 'packages: []')
+  writeFileSync(path.join(source, 'package-lock.json'), '{}')
+  writeFileSync(path.join(source, '.env.local'), 'SQL_PASSWORD=admin')
+  writeFileSync(path.join(source, 'LICENSE'), 'MIT')
+  writeFileSync(path.join(source, 'packages', 'build', 'vite-config', 'package.json'), '{}')
+  writeFileSync(path.join(source, 'mockServer', 'build', 'dev-server.js'), 'export default {}')
+  writeFileSync(path.join(source, 'mockServer', 'logs', 'out.log'), 'local log')
+  writeFileSync(path.join(source, 'packages', 'demo', 'vite.config.ts.timestamp-1-cache.mjs'), 'cache')
+  execFileSync('git', ['init'], { cwd: source })
+  execFileSync('git', ['config', 'user.email', 'tiny-engine-sync@example.invalid'], { cwd: source })
+  execFileSync('git', ['config', 'user.name', 'TinyEngine Sync Test'], { cwd: source })
+  execFileSync('git', ['add', '.'], { cwd: source })
+  execFileSync('git', ['commit', '-m', 'fixture'], { cwd: source })
+  execFileSync('sh', [SYNC_SCRIPT, source, target], { cwd: MODULE_ROOT })
+  assert.match(readFileSync(path.join(target, '.tinyengine-source.properties'), 'utf8'), /source\.commit=[0-9a-f]{40}/)
+  assert.equal(existsSync(path.join(target, 'node_modules')), false)
+  assert.equal(existsSync(path.join(target, 'package-lock.json')), false)
+  assert.equal(existsSync(path.join(target, '.env.local')), false)
+  assert.equal(existsSync(path.join(target, 'mockServer/logs/out.log')), false)
+  assert.equal(existsSync(path.join(target, 'packages/demo/vite.config.ts.timestamp-1-cache.mjs')), false)
+  assert.equal(existsSync(path.join(target, 'designer-demo')), true)
+  assert.equal(existsSync(path.join(target, 'packages/build/vite-config/package.json')), true)
+  assert.equal(existsSync(path.join(target, 'mockServer/build/dev-server.js')), true)
+})
+
+test('sync rejects dirty tracked source files', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'tiny-engine-sync-dirty-'))
+  const source = path.join(root, 'source')
+  const target = path.join(root, 'target')
+  mkdirSync(path.join(source, 'designer-demo'), { recursive: true })
+  mkdirSync(path.join(source, 'packages'), { recursive: true })
+  writeFileSync(path.join(source, 'package.json'), '{}')
   writeFileSync(path.join(source, 'pnpm-workspace.yaml'), 'packages: []')
   writeFileSync(path.join(source, 'LICENSE'), 'MIT')
-  execFileSync('sh', [SYNC_SCRIPT, source], { cwd: MODULE_ROOT })
-  assert.match(readFileSync(path.join(CONSOLE_ROOT, '.tinyengine-source.properties'), 'utf8'), /source\.commit=/)
-  assert.equal(existsSync(path.join(CONSOLE_ROOT, 'node_modules')), false)
+  execFileSync('git', ['init'], { cwd: source })
+  execFileSync('git', ['config', 'user.email', 'tiny-engine-sync@example.invalid'], { cwd: source })
+  execFileSync('git', ['config', 'user.name', 'TinyEngine Sync Test'], { cwd: source })
+  execFileSync('git', ['add', '.'], { cwd: source })
+  execFileSync('git', ['commit', '-m', 'fixture'], { cwd: source })
+  writeFileSync(path.join(source, 'package.json'), '{"dirty":true}')
+  assert.throws(() => execFileSync('sh', [SYNC_SCRIPT, source, target], { cwd: MODULE_ROOT }), /TinyEngine source has uncommitted changes/)
 })
 ```
 
@@ -90,14 +142,16 @@ Expected: FAIL because `scripts/sync-tiny-engine-console.sh` does not exist.
 set -eu
 SOURCE_ROOT=${1:?usage: sync-tiny-engine-console.sh /path/to/TinyEngine}
 MODULE_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
-TARGET_ROOT="$MODULE_ROOT/src/console"
-for required in package.json pnpm-lock.yaml pnpm-workspace.yaml designer-demo packages LICENSE; do
+TARGET_ROOT=${2:-"$MODULE_ROOT/src/console"}
+for required in package.json pnpm-workspace.yaml designer-demo packages LICENSE; do
   test -e "$SOURCE_ROOT/$required" || { echo "missing TinyEngine input: $required" >&2; exit 2; }
 done
+test -z "$(git -C "$SOURCE_ROOT" status --porcelain --untracked-files=no)" || { echo "TinyEngine source has uncommitted changes" >&2; exit 3; }
 mkdir -p "$TARGET_ROOT"
 rsync -a --delete \
-  --exclude='.git/' --exclude='.codegraph/' --exclude='node_modules/' \
+  --exclude='.git/' --exclude='.codegraph/' --exclude='node_modules/' --exclude='package-lock.json' \
   --exclude='dist/' --exclude='coverage/' --exclude='.idea/' --exclude='.DS_Store' \
+  --exclude='.env.local' --exclude='*.timestamp-*.mjs' --exclude='logs/' \
   "$SOURCE_ROOT/" "$TARGET_ROOT/"
 SOURCE_COMMIT=$(git -C "$SOURCE_ROOT" rev-parse HEAD)
 SOURCE_URL=$(git -C "$SOURCE_ROOT" remote get-url origin 2>/dev/null || printf '%s' local)
@@ -117,11 +171,18 @@ node --test fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny
 sh fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/scripts/sync-tiny-engine-console.sh /Users/xiongxiao/Workspace/Idea/codes/TinyEngine
 ```
 
-Expected: test PASS; metadata contains `source.commit=484898fd0af3b0561c47ced9e159f3a9a0d1bee0`; no excluded directory exists under `src/console`.
+Expected: test PASS; metadata contains `source.commit=484898fd0af3b0561c47ced9e159f3a9a0d1bee0`; no excluded directory, `.env.local`, timestamp cache, log file or `package-lock.json` exists under `src/console`; `packages/build/vite-config/package.json`, `packages/build/vite-plugin-meta-comments/package.json` and `mockServer/build/dev-server.js` are tracked.
 
 - [ ] **Step 5: Check scope**
 
-Run: `git diff --check -- fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter`
+Create module `.gitattributes` with `src/console/** -whitespace` and module `.gitignore` with:
+
+```gitignore
+!src/console/**/build/
+!src/console/**/build/**
+```
+
+Then run: `git diff --check -- fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter`
 
 Expected: no output.
 
@@ -131,6 +192,7 @@ Expected: no output.
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/designer-demo/vite.config.js`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/designer-demo/package.json`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/package.json`
+- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/pnpm-lock.yaml`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-embedded-build.test.mjs`
 
 **Interfaces:**
@@ -140,6 +202,16 @@ Expected: no output.
 - [ ] **Step 1: Write RED build-config tests**
 
 ```js
+import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import path from 'node:path'
+import test from 'node:test'
+
+const TEST_FILE = fileURLToPath(import.meta.url)
+const MODULE_ROOT = path.resolve(path.dirname(TEST_FILE), '../../..')
+const CONSOLE_ROOT = path.join(MODULE_ROOT, 'src/console')
+
 test('fw-plus build is deterministic and deployable below a context path', () => {
   const rootPackage = JSON.parse(readFileSync(path.join(CONSOLE_ROOT, 'package.json')))
   assert.equal(rootPackage.scripts['build:fwplus'], 'pnpm --filter designer-demo build:fwplus')
@@ -172,7 +244,7 @@ const customConfig = {
 }
 ```
 
-Add designer script: `"build:fwplus": "cross-env NODE_OPTIONS=--max-old-space-size=10240 VITE_ORIGIN= vite build"`.
+Add designer script: `"build:fwplus": "cross-env NODE_OPTIONS=--max-old-space-size=10240 VITE_ORIGIN= vite build"`. Because the upstream commit does not contain `pnpm-lock.yaml`, run `pnpm install --lockfile-only` in `src/console` once after removing any accidental npm lock, commit the generated `pnpm-lock.yaml`, and use `pnpm install --frozen-lockfile` for all later verification.
 
 - [ ] **Step 4: Run frontend verification**
 
@@ -465,7 +537,159 @@ MVC methods call `TinyEngineUserSystemService` directly. WebFlux methods resolve
 
 Send concurrent WebTestClient requests with `token-a/tenant-a` and `token-b/tenant-b`; assert each response and downstream service call sees only its own principal. Expected: all targeted tests PASS.
 
-### Task 8: Shared TinyEngine API facade and MVC core workflow
+### Task 8: tiny-engine-backend-java 完整覆盖矩阵
+
+**Files:**
+- Create: `docs/tiny-engine/backend-source-coverage.md`
+- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-backend-coverage.test.mjs`
+- Test/read source: `/Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java`
+
+**Interfaces:**
+- Consumes: 后端参考源 `/Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java`，分支 `release/v2.10.x`，提交 `c116fa649122390baf212f53d82358617c63924d`。
+- Produces: 覆盖矩阵，后续 Core、MVC、WebFlux、sample 和 docs 任务必须按矩阵消项。
+
+- [ ] **Step 1: Write RED coverage-audit test**
+
+Create `tiny-engine-backend-coverage.test.mjs`:
+
+```js
+import assert from 'node:assert/strict'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import path from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import test from 'node:test'
+
+const TEST_FILE = fileURLToPath(import.meta.url)
+const MODULE_ROOT = path.resolve(path.dirname(TEST_FILE), '../../..')
+const REPO_ROOT = path.resolve(MODULE_ROOT, '../../../..')
+const COVERAGE_DOC = path.join(REPO_ROOT, 'docs/tiny-engine/backend-source-coverage.md')
+const BACKEND_ROOT = process.env.TINY_ENGINE_BACKEND_SOURCE || '/Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java'
+const REQUIRED_COMMIT = 'c116fa649122390baf212f53d82358617c63924d'
+
+function listFiles(root, predicate) {
+  const result = []
+  function walk(dir) {
+    for (const name of readdirSync(dir)) {
+      const full = path.join(dir, name)
+      const rel = path.relative(root, full)
+      if (rel.startsWith('.git') || rel.includes(`${path.sep}target${path.sep}`)) continue
+      const stat = statSync(full)
+      if (stat.isDirectory()) walk(full)
+      else if (predicate(rel)) result.push(rel.replaceAll(path.sep, '/'))
+    }
+  }
+  walk(root)
+  return result.sort()
+}
+
+test('backend coverage matrix records the exact source revision', () => {
+  assert.equal(existsSync(BACKEND_ROOT), true)
+  const commit = execFileSync('git', ['-C', BACKEND_ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+  assert.equal(commit, REQUIRED_COMMIT)
+  const status = execFileSync('git', ['-C', BACKEND_ROOT, 'status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim()
+  assert.equal(status, '')
+  const doc = readFileSync(COVERAGE_DOC, 'utf8')
+  assert.match(doc, new RegExp(REQUIRED_COMMIT))
+})
+
+test('backend coverage matrix does not omit package, config, deploy, document or model asset categories', () => {
+  const doc = readFileSync(COVERAGE_DOC, 'utf8')
+  const requiredCategories = [
+    'common', 'config', 'controller', 'dynamic', 'event', 'gateway/ai', 'login', 'mapper', 'model', 'rag', 'service',
+    'app/src/main/java', 'app/src/main/resources/application', 'app/src/main/resources/sql',
+    'docker-deploy-data', 'Dockerfile', 'docker-compose.yml', 'example-docker.yml',
+    'documents/agent', 'documents/tinyengine', 'settings', 'all-MiniLM-L6-v2'
+  ]
+  for (const category of requiredCategories) {
+    assert.match(doc, new RegExp(category.replaceAll('/', '\\\\/')), `missing category ${category}`)
+  }
+})
+
+test('backend coverage matrix lists every mapper xml and sql file', () => {
+  const doc = readFileSync(COVERAGE_DOC, 'utf8')
+  const mapperFiles = listFiles(path.join(BACKEND_ROOT, 'base/src/main/resources/mappers'), rel => rel.endsWith('.xml'))
+  const sqlFiles = listFiles(path.join(BACKEND_ROOT, 'app/src/main/resources/sql'), rel => rel.endsWith('.sql'))
+  for (const file of mapperFiles) assert.match(doc, new RegExp(file), `missing mapper ${file}`)
+  for (const file of sqlFiles) assert.match(doc, new RegExp(file), `missing sql ${file}`)
+})
+```
+
+- [ ] **Step 2: Run RED**
+
+Run:
+
+```bash
+node --test fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-backend-coverage.test.mjs
+```
+
+Expected: FAIL because `docs/tiny-engine/backend-source-coverage.md` does not yet record the backend source revision and full inventory.
+
+- [ ] **Step 3: Create the coverage matrix**
+
+Create `docs/tiny-engine/backend-source-coverage.md` with these sections and no omissions:
+
+```markdown
+# TinyEngine 后端源覆盖矩阵
+
+## 来源
+
+- 路径：`/Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java`
+- 分支：`release/v2.10.x`
+- 提交：`c116fa649122390baf212f53d82358617c63924d`
+- 状态：`git status --porcelain --untracked-files=no` 必须为空
+
+## 状态枚举
+
+- `migrated`：已迁入 fw-plus core/boot/starter/sample。
+- `adapted`：不按原样复制，但已映射为 fw-plus 契约、配置、文档、sample 或可选 Provider。
+- `deferred-with-reason`：本次不实现，已写明原因、用户可见行为和后续适配点。
+
+## 覆盖矩阵
+
+| 来源类别 | 来源路径 | 目标位置 | 状态 | 说明 |
+|---|---|---|---|---|
+| common | `base/src/main/java/com/tinyengine/it/common/**` | `fw-plus-tiny-engine-core/common` 与 Boot 错误处理 | migrated/adapted | `Result`、基础实体、异常、类型处理器、日志、Hash、JSON、Schema、文件安全必须逐项核对。 |
+| model | `base/src/main/java/com/tinyengine/it/model/**` | `fw-plus-tiny-engine-core/model` | migrated | 全部实体和 DTO 需要字段/JSON 契约覆盖。 |
+| mapper | `base/src/main/java/com/tinyengine/it/mapper/**` | `fw-plus-tiny-engine-core/mapper` | migrated | Java Mapper 集合必须与 XML 集合一致。 |
+| mapper-xml | `base/src/main/resources/mappers/*.xml` | `fw-plus-tiny-engine-core/src/main/resources/mapper/tinyengine/*.xml` | migrated | 列出 28 个 XML 文件。 |
+| service | `base/src/main/java/com/tinyengine/it/service/**` | `fw-plus-tiny-engine-core/service` 与 Boot facade | migrated/adapted | app/material/platform/extend 不得漏。 |
+| dynamic | `base/src/main/java/com/tinyengine/it/dynamic/**` | `fw-plus-tiny-engine-core/dynamic` 与 MVC/WebFlux API | migrated/adapted | ModelDataController 路由也要纳入 API 契约。 |
+| login | `base/src/main/java/com/tinyengine/it/login/**` | Core 用户体系 SPI 与可选 Boot 适配 | adapted | JWT/SM2/SM3/SSO 不固化到 Core。 |
+| rag-ai | `base/src/main/java/com/tinyengine/it/rag/**`, `gateway/ai/**`, `config/AiChatConfig.java`, `OpenAIConfig.java` | Core 可选 Provider 契约与 Boot unsupported fallback | adapted/deferred-with-reason | 无 Provider 时返回未配置，不伪造成功。 |
+| app-runtime | `app/src/main/java/**`, `app/src/main/resources/application*.yml`, `logback.xml`, `webapp/**` | sample、Boot 可覆盖 Bean、docs | adapted | 独立应用能力不按原样进入 starter。 |
+| sql | `app/src/main/resources/sql/**`, `docker-deploy-data/mysql/init/**` | Core SQL manifest 与 sample docs | migrated/adapted | 列出 H2/MySQL/PostgreSQL SQL 文件。 |
+| deploy | `Dockerfile`, `docker-compose.yml`, `example-docker.yml`, `docker-deploy-data/**` | `docs/tiny-engine/starter.md` | adapted | 写明 fw-plus 使用方式而非复制原部署。 |
+| documents | `documents/agent/**`, `documents/tinyengine/**` | `docs/tiny-engine/backend-source-coverage.md` 或后续组件文档 | adapted/deferred-with-reason | 文档资产不能从清单中消失。 |
+| model-assets | `all-MiniLM-L6-v2/**` | 可选 RAG/Embedding Provider 文档 | deferred-with-reason | 大体积模型不默认打进 starter。 |
+| settings | `settings/**`, `.codecheck/**`, `.github/**` | docs 或不迁移说明 | adapted/deferred-with-reason | 代码规范/CI 配置记录来源和处理方式。 |
+```
+
+Then append explicit subsections listing all 28 mapper XML file names and all 25 SQL file names from the reference source.
+
+- [ ] **Step 4: Run GREEN and reconcile current Core coverage**
+
+Run the Node test from Step 2. Then run:
+
+```bash
+comm -23 \
+  <(find /Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java/base/src/main/resources/mappers -maxdepth 1 -name '*.xml' -exec basename {} \; | sort) \
+  <(find fw-plus-core/fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core/src/main/resources/mapper/tinyengine -maxdepth 1 -name '*.xml' -exec basename {} \; | sort)
+```
+
+Expected: no output. If output exists, add the missing Mapper XML to the appropriate Core task before implementing MVC/WebFlux routes.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add docs/tiny-engine/backend-source-coverage.md \
+  fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-backend-coverage.test.mjs \
+  docs/superpowers/specs/2026-07-31-integrate-tiny-engine-console-starter-design.md \
+  docs/superpowers/plans/2026-07-31-integrate-tiny-engine-console-starter.md
+git commit -m "docs: add TinyEngine backend coverage matrix"
+```
+
+### Task 9: Shared TinyEngine App/Page API facade and MVC workflow
 
 **Files:**
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/api/TinyEngineApiFacade.java`
@@ -473,13 +697,11 @@ Send concurrent WebTestClient requests with `token-a/tenant-a` and `token-b/tena
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/api/TinyEngineExternalCapability.java`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webmvc/TinyEngineAppMvcController.java`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webmvc/TinyEnginePageMvcController.java`
-- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webmvc/TinyEngineMaterialMvcController.java`
-- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webmvc/TinyEngineModelMvcController.java`
-- Create tests: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webmvc/TinyEngineMvcApiContractTest.java`
+- Create test: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webmvc/TinyEngineAppPageMvcApiContractTest.java`
 
 **Interfaces:**
-- Consumes: existing `AppService`, `PageService`, `CanvasService`, `BlockService`, `BlockGroupService`, `TaskRecordService`, `BusinessCategoryService`, `ModelService`, `DatasourceService`, `ResourceService`, template and i18n services.
-- Produces: synchronous facade methods used by both Web stacks.
+- Consumes: existing `AppService`, `PageService`, `CanvasService` and app template/i18n services.
+- Produces: synchronous App/Page facade methods used by both Web stacks.
 
 - [ ] **Step 1: Write failing MVC contract tests for the minimum save loop**
 
@@ -506,15 +728,32 @@ verify(pageService).createPage(any(Page.class));
 
 - [ ] **Step 2: Run RED**
 
-Run: `./fw-plus-boot/mvnw -f fw-plus-boot/fw-plus-boot-project/pom.xml -pl fw-plus-boot-autoconfigure -Dtest=TinyEngineMvcApiContractTest test`
+Run: `./fw-plus-boot/mvnw -f fw-plus-boot/fw-plus-boot-project/pom.xml -pl fw-plus-boot-autoconfigure -Dtest=TinyEngineAppPageMvcApiContractTest test`
 
 - [ ] **Step 3: Implement facade and MVC controllers**
 
 Use `Result.success(value)` consistently. Set path IDs onto request objects before update calls. Return 404 when detail service returns null. Define `TinyEngineExternalCapability` for canvas lock, schema-to-code and preview metadata; its default implementation throws the project unsupported-capability exception instead of returning mock data.
 
-- [ ] **Step 4: Extend the contract to material/model routes**
+- [ ] **Step 4: Run GREEN**
 
-Implement and test these additional exact contracts:
+Expected: all App/Page MVC contract tests PASS, including create app -> create page -> update page -> reload page.
+
+### Task 10: Shared TinyEngine Material/Model MVC workflow
+
+**Files:**
+- Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/api/TinyEngineApiFacade.java`
+- Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/api/DefaultTinyEngineApiFacade.java`
+- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webmvc/TinyEngineMaterialMvcController.java`
+- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webmvc/TinyEngineModelMvcController.java`
+- Create test: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webmvc/TinyEngineMaterialModelMvcApiContractTest.java`
+
+**Interfaces:**
+- Consumes: App/Page facade foundation from Task 9 plus existing `BlockService`, `BlockGroupService`, `TaskRecordService`, `BusinessCategoryService`, `ModelService`, `DatasourceService`, `ResourceService`, template and i18n services.
+- Produces: synchronous material, model, data-source, resource, template and i18n facade methods used by both Web stacks.
+
+- [ ] **Step 1: Write RED material/model MVC contract tests**
+
+Implement and test these exact contracts:
 
 - Block: `GET /material-center/api/blocks`, `GET /material-center/api/block`, `GET /material-center/api/block/detail/{id}`, `POST /material-center/api/block/create`, `POST /material-center/api/block/update/{id}`, `GET /material-center/api/block/delete/{id}`, `POST /material-center/api/block/deploy`, `GET /material-center/api/block/tags`, `GET /material-center/api/block/notgroup/{groupId}`.
 - Block groups/categories: `GET /material-center/api/block-groups`, `POST /material-center/api/block-groups/create`, `POST /material-center/api/block-groups/update/{id}`, `GET /material-center/api/block-groups/delete/{id}`, `GET|POST|PUT|DELETE /material-center/api/block-categories` and `/{id}`.
@@ -522,13 +761,19 @@ Implement and test these additional exact contracts:
 - Data sources: `GET /app-center/api/sources/list/{appId}`, `GET /app-center/api/sources/detail/{id}`, `POST /app-center/api/sources/create`, `POST /app-center/api/sources/update/{id}`, `GET /app-center/api/sources/delete/{id}`.
 - Templates/resources/i18n: `GET|POST /app-center/api/app-template/list|create`, `GET|POST /material-center/api/resource-group/**`, `GET|POST /material-center/api/resource/**`, `GET|POST /app-center/api/i18n/entries`, `POST /app-center/api/apps/{appId}/i18n/entries/update`.
 
+- [ ] **Step 2: Run RED**
+
+Run: `./fw-plus-boot/mvnw -f fw-plus-boot/fw-plus-boot-project/pom.xml -pl fw-plus-boot-autoconfigure -Dtest=TinyEngineMaterialModelMvcApiContractTest test`
+
+- [ ] **Step 3: Implement material/model facade methods and MVC controllers**
+
 Map them respectively to `BlockService`, `BlockGroupService`, `BusinessCategoryService`, `ModelService`, `DatasourceService`, `AppTemplateService`, `ResourceGroupService`, `ResourceService` and `I18nEntryService`. Every Controller method delegates once to the facade and contains no database logic. User login/tenant, schema-to-code, preview/code generation, AI completion and external publish routes delegate to `TinyEngineExternalCapability` and return the stable unsupported response when no host adapter exists.
 
-- [ ] **Step 5: Run GREEN**
+- [ ] **Step 4: Run GREEN**
 
-Expected: all MVC contract tests PASS, including create app -> create page -> update page -> reload page.
+Run the Task 9 and Task 10 targeted MVC tests. Expected: all MVC API contract tests PASS.
 
-### Task 9: WebFlux Controllers with blocking isolation
+### Task 11: WebFlux Controllers with blocking isolation
 
 **Files:**
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webflux/TinyEngineAppWebFluxController.java`
@@ -538,7 +783,7 @@ Expected: all MVC contract tests PASS, including create app -> create page -> up
 - Create test: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webflux/TinyEngineWebFluxApiContractTest.java`
 
 **Interfaces:**
-- Consumes: every synchronous `TinyEngineApiFacade` method from Task 8 and `TinyEngineReactiveExecutor.submit` from Task 4.
+- Consumes: every synchronous `TinyEngineApiFacade` method from Task 9 and Task 10, plus `TinyEngineReactiveExecutor.submit` from Task 4.
 - Produces: matching `Mono<Result<T>>` endpoints.
 
 - [ ] **Step 1: Write RED WebFlux parity and thread tests**
@@ -553,7 +798,7 @@ client.get().uri("/app-center/api/apps/detail/1").exchange()
     .expectBody().jsonPath("$.data.id").isEqualTo(1);
 ```
 
-Assert all Task 8 mappings exist in Reactive `RequestMappingHandlerMapping` and no MVC Controller bean exists.
+Assert all Task 9 and Task 10 mappings exist in Reactive `RequestMappingHandlerMapping` and no MVC Controller bean exists.
 
 - [ ] **Step 2: Run RED**
 
@@ -581,7 +826,7 @@ Each method calls `executor.submit(() -> facade.method(arguments))`. Map `Timeou
 
 Run the targeted test plus all `TinyEngine*Test` tests. Expected: PASS and no facade call occurs on an event-loop thread.
 
-### Task 10: Magic-API TinyEngine `statusBarItems` plugin
+### Task 12: Magic-API TinyEngine `statusBarItems` plugin
 
 **Files:**
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-tiny-engine/pom.xml`
@@ -649,7 +894,7 @@ node --test fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magi
 
 Expected: Node test and Maven package PASS; JAR contains one TinyEngine plugin IIFE.
 
-### Task 11: Servlet/Reactive sample and end-to-end verification
+### Task 13: Servlet/Reactive sample and end-to-end verification
 
 **Files:**
 - Modify: `fw-plus-sample/fw-plus-boot-samples/fw-plus-tiny-engine-spring-boot-starter-sample/pom.xml`

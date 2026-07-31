@@ -1,21 +1,26 @@
 package com.xiongx9527.fw.plus.sample.tinyengine;
 
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.TinyEngineAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.TinyEngineResourceConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.web.TinyEngineResourceController;
 import com.xiongx9527.fw.plus.tinyengine.mapper.ResourceMapper;
 import com.xiongx9527.fw.plus.tinyengine.service.ResourceService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
+import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
+import java.lang.reflect.Field;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,6 +40,26 @@ class TinyEngineStarterSampleTest {
 					"spring.datasource.username=sa",
 					"fw.plus.tiny-engine.enabled=true",
 					"fw.plus.tiny-engine.sql.database=h2");
+
+	private final ReactiveWebApplicationContextRunner reactiveContextRunner = new ReactiveWebApplicationContextRunner()
+			.withConfiguration(AutoConfigurations.of(
+					DataSourceAutoConfiguration.class,
+					MybatisPlusAutoConfiguration.class,
+					WebFluxAutoConfiguration.class,
+					TinyEngineAutoConfiguration.class))
+			.withPropertyValues(
+					"spring.datasource.url=jdbc:h2:mem:tiny_engine_reactive_sample;MODE=MySQL;DB_CLOSE_DELAY=-1",
+					"spring.datasource.driver-class-name=org.h2.Driver",
+					"spring.datasource.username=sa",
+					"fw.plus.tiny-engine.enabled=true",
+					"fw.plus.tiny-engine.sql.database=h2");
+
+	@BeforeEach
+	void clearMyBatisPlusTableInfoCache() throws Exception {
+		Field cacheField = TableInfoHelper.class.getDeclaredField("TABLE_INFO_CACHE");
+		cacheField.setAccessible(true);
+		((Map<?, ?>) cacheField.get(null)).clear();
+	}
 
 	@Test
 	void enabledSampleStartsWithTinyEngineBeansAndResources() {
@@ -61,6 +86,18 @@ class TinyEngineStarterSampleTest {
 						assertThat(context).doesNotHaveBean(ResourceService.class);
 						assertThat(context).doesNotHaveBean(TinyEngineResourceController.class);
 					});
+	}
+
+	@Test
+	void reactiveSampleStartsWithTinyEngineWebFluxBeans() {
+		reactiveContextRunner.run(context -> {
+			assertThat(context).hasSingleBean(ResourceService.class);
+			assertThat(context).hasSingleBean(TinyEngineResourceController.class);
+			assertThat(context).hasBean("tinyEngineReactiveExecutor");
+			assertThat(context.getBean("tinyEngineReactiveExecutor").getClass().getName())
+					.isEqualTo("com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webflux.TinyEngineReactiveExecutor");
+			assertThat(context).doesNotHaveBean("tinyEngineServletWebConfiguration");
+		});
 	}
 
 	private static void assertTinyEngineResourcesRouteRegistered(RequestMappingHandlerMapping handlerMapping) {

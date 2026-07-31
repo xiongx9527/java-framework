@@ -1,135 +1,60 @@
-# Task 1 实施报告：模块注册与依赖边界
-
-## 状态
-
-`DONE_WITH_CONCERNS`
-
-提交：`495a10bb feat(ai): add tiny engine ai starter module`
+# Task 1 Report: TinyEngine Source Synchronization
 
 ## 实现内容
 
-- 新增 `fw-plus-ai-tiny-engine-spring-boot-starter`，直接依赖 AI 自动配置、`fw-plus-tiny-engine-core`、中立模型 starter、中立向量 store starter 与统一 LangChain4j adapter starter。
-- 将新 starter 注册到 AI Boot starter 聚合 POM，并在 AI Boot BOM 中按 `${project.version}` 管理。
-- 新增 TinyEngine 依赖边界测试，确认中立 starter 和统一 adapter 存在，旧 LangChain4j model/store starter 不存在。
-- 扩展 AskData 依赖边界测试，确认旧 starter 不存在，且不直接要求 Spring AI、Spring AI Alibaba 或 AgentScope2 的 groupId。
+- 新增 `scripts/sync-tiny-engine-console.sh`，接收 TinyEngine 来源目录和可选同步目标目录。
+- 脚本校验 `package.json`、`pnpm-workspace.yaml`、`designer-demo`、`packages`、`LICENSE`，再使用 `rsync --delete` 生成自包含的 console 源码。
+- 同步排除 `.git`、`.codegraph`、`node_modules`、`dist`、`coverage`、`.idea`、`.DS_Store` 与 `package-lock.json`。
+- 生成 `src/console/.tinyengine-source.properties`，记录来源仓库、提交和 UTC 同步时间。
+- 新增 Node 契约测试，使用临时 target 验证同步输入、`node_modules` 与 `package-lock.json` 排除，以及 `designer-demo` 和 commit 元数据保留。
+- 模块级 `.gitattributes` 将 `src/console/**` 标为 `-whitespace`，避免原样 vendored 上游文件的既有尾随空白导致 `git diff --check` 失败。
 
-## RED
+## TDD 证据
 
-按任务规定先尝试：
+- RED：在同步脚本不存在时运行 Node 测试，失败原因为 `scripts/sync-tiny-engine-console.sh: No such file or directory`。
+- RED：上游确认不提供 `pnpm-lock.yaml` 后，更新 fixture 使用 `package-lock.json`，运行测试失败原因为旧脚本仍报告 `missing TinyEngine input: pnpm-lock.yaml`。
+- GREEN：移除不成立的 `pnpm-lock.yaml` 输入要求并排除 `package-lock.json` 后，Node 测试通过（`pass 1`、`fail 0`）。
 
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/pom.xml test -Dtest=AskDataStarterDependencyTest
+## 测试与验证
+
+```text
+node --test fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-source-sync.test.mjs
+# 结果：pass 1, fail 0
+
+sh fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/scripts/sync-tiny-engine-console.sh /Users/xiongxiao/Workspace/Idea/codes/TinyEngine
+# 结果：完成
+
+rg -n '^source\\.(repository|commit|syncedAt)=' .../src/console/.tinyengine-source.properties
+# 结果：source.commit=484898fd0af3b0561c47ced9e159f3a9a0d1bee0
+
+find .../src/console -name <each excluded entry>
+# 结果：未发现 .git、.codegraph、node_modules、dist、coverage、.idea、.DS_Store、package-lock.json
+
+git diff --check -- fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter
+# 结果：无输出
 ```
-
-结果：未进入 Maven，失败原因为 worktree 缺少根 `.mvn/wrapper/maven-wrapper.properties` 和 `maven-wrapper.jar`。
-
-使用系统 Maven 运行等价 AskData 命令后，`AskDataStarterDependencyTest` 通过（1 run, 0 failures）。随后在尚未创建 TinyEngine POM 时运行等价命令：
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-tiny-engine-spring-boot-starter/pom.xml test -Dtest=TinyEngineAiStarterDependencyTest
-```
-
-结果：按预期失败，`POM file .../fw-plus-ai-tiny-engine-spring-boot-starter/pom.xml ... does not exist`。
-
-## GREEN
-
-按任务规定先尝试：
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home ./fw-plus-core/mvnw -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml -pl fw-plus-ai-tiny-engine-spring-boot-starter,fw-plus-ai-askdata-spring-boot-starter test
-```
-
-结果：同样因缺少根 `.mvn/wrapper` 文件而无法启动。
-
-系统 Maven 等价最终验证命令：
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml -pl fw-plus-ai-tiny-engine-spring-boot-starter,fw-plus-ai-askdata-spring-boot-starter test
-```
-
-结果：`BUILD SUCCESS`；AskData 与 TinyEngine 各执行 1 个测试，均为 0 failures、0 errors。未使用 `-am`，所需快照依赖已在本地 Maven 仓库可解析。
 
 ## 变更文件
 
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-tiny-engine-spring-boot-starter/pom.xml`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-tiny-engine-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/tinyengine/starter/TinyEngineAiStarterDependencyTest.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/starter/AskDataStarterDependencyTest.java`
-
-## 自审结果
-
-- `git diff --check` 通过。
-- 已检查新增源码，没有 Java 9+ API。
-- 新 starter 不包含旧 LangChain4j model/store starter，也没有 Spring AI、Spring AI Alibaba 或 AgentScope2 的必需依赖。
-- 提交仅包含上述 5 个授权文件，未暂存或提交 OpenSpec、Docs 或 Comet 现有脏改。
-- 单任务代码 diff 为 138 行，未超过 200 行。
-
-## 风险信号
-
-- 跨模块/跨子系统协调改动：是。涉及 Core 的 TinyEngine core artifact 与 AI Boot 的 starter 聚合、BOM 和 AskData 依赖边界。
-- 公共 API 契约或对外接口变更：是。新增公开 Maven starter 坐标。
-- 安全敏感面：否。
-- 并发/共享状态：否。
-- 数据/schema 迁移：否。
-- `DONE_WITH_CONCERNS`：是。
-- 单任务 diff 超过 200 行：否。
-
-## 顾虑
-
-- 规定的 Maven Wrapper 命令无法启动，因为当前 worktree 和父工作区均缺少根 `.mvn/wrapper` 文件；已使用相同 JDK 的系统 Maven 完成等价 GREEN 验证。
-- Maven 输出显示本地 `fw-plus-dependencies:0.1.1-SNAPSHOT` 已存在 `fw-plus-ai-model` 与 `fw-plus-ai-store-embedding` 的重复 dependencyManagement 警告；本任务未修改该 BOM，测试仍通过。
-
----
-
-## Task 1 review fix：完整 Maven 坐标依赖边界
-
-## 修复内容
-
-- TinyEngine 与 AskData starter 依赖测试现在均解析直接依赖的 `groupId:artifactId`，而不是仅解析 `artifactId`。
-- 两份测试的正向依赖与旧 LangChain4j starter 禁止项均使用完整 Maven 坐标断言，避免同名 artifact 来自错误 groupId 时被误判为正确。
-
-## RED
-
-先仅把测试期望改为完整坐标、保留旧的 artifactId 解析器，运行：
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml -pl fw-plus-ai-tiny-engine-spring-boot-starter,fw-plus-ai-askdata-spring-boot-starter test -Dtest=TinyEngineAiStarterDependencyTest,AskDataStarterDependencyTest
-```
-
-结果：预期 `BUILD FAILURE`；`AskDataStarterDependencyTest` 在 `AskData starter must preserve the AskData Java 8 module` 断言失败，证明裸 artifactId 解析不能满足完整坐标断言。
-
-为实际执行 TinyEngine 新增边界断言，临时将其 `fw-plus-ai-model-spring-boot-starter` 依赖替换为可解析但错误的 `junit:junit:4.13.2`，运行：
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml -pl fw-plus-ai-tiny-engine-spring-boot-starter test -Dtest=TinyEngineAiStarterDependencyTest
-```
-
-结果：预期 `BUILD FAILURE`；测试在 `TinyEngine starter must include the neutral AI model starter` 断言失败。随后立即恢复正确的 `com.xiongx9527.fw.plus.ai:fw-plus-ai-model-spring-boot-starter` POM 坐标，错误依赖未保留。
-
-## GREEN
-
-实现 `groupId:artifactId` 解析并恢复正确 POM 后，使用系统 Maven（worktree 中 Maven Wrapper 仍因缺少根 `.mvn/wrapper` 文件不可用）运行：
-
-```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml -pl fw-plus-ai-tiny-engine-spring-boot-starter,fw-plus-ai-askdata-spring-boot-starter test
-```
-
-结果：`BUILD SUCCESS`；AskData 与 TinyEngine 各执行 1 个测试，均为 0 failures、0 errors。
-
-## 变更文件
-
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-tiny-engine-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/tinyengine/starter/TinyEngineAiStarterDependencyTest.java`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/starter/AskDataStarterDependencyTest.java`
+- `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/scripts/sync-tiny-engine-console.sh`
+- `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-source-sync.test.mjs`
+- `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/.gitattributes`
+- `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/**`
 - `.superpowers/sdd/task-1-report.md`
 
-## 自审
+## 自评
 
-- 两份测试均对正向与旧 starter 负向依赖使用完整 `groupId:artifactId` 坐标。
-- 已核对 TinyEngine starter POM 相对 `495a10bb` 无差异，临时错误依赖已恢复。
-- 提交前仅暂存上述两份测试与本报告，不暂存 `openspec/**`、`docs/superpowers/**` 或 `.comet/**`。
+同步脚本不依赖 Maven 读取外部 TinyEngine 绝对路径；该路径只在手动同步命令中作为输入。测试的可选 target 参数确保不会删除真实 `src/console`。
 
-## 风险信号
+## 疑虑
 
-- Maven 继续报告既有 `fw-plus-dependencies` 中重复 dependencyManagement 警告；本次未触及该 BOM，指定测试通过。
-- Maven Wrapper 在该 worktree 不可用，最终验证使用指定 JDK 的系统 Maven。
+指定 TinyEngine 提交没有 `pnpm-lock.yaml`，且含 `package-lock.json`。本任务已按确认后的边界排除 `package-lock.json`，不生成 pnpm lockfile；Task 2 需要使用 pnpm 生成并提交该 lockfile 后再执行 frozen 构建。
+
+为保持 TinyEngine 源码同步保真，未清理上游已有的尾随空白；模块级 `.gitattributes` 已将这些 vendored 文件排除在 Git whitespace 检查之外。
+
+## 评审修复（2026-07-31）
+
+- 同步脚本现在先执行 `git status --porcelain --untracked-files=no`；来源存在已跟踪但未提交的改动时，以退出码 `3` 拒绝同步，保证 `source.commit` 与已复制内容一致。
+- rsync 继续排除既有的本地/构建状态，并新增 `.env.local`、`*.timestamp-*.mjs` 与 `logs/`；使用 `--delete-excluded` 清理目标目录中之前同步遗留的排除项。
+- starter 级 `.gitignore` 显式反忽略 `src/console/**/build/` 及其内容，以保留 TinyEngine workspace 的 `packages/build/vite-config`、`packages/build/vite-plugin-meta-comments` 和 `mockServer/build`。
+- Node 契约测试覆盖构建输入保留、`package-lock.json`/`.env.local`/日志/timestamp 排除（含目标端遗留项清理）以及已跟踪来源变脏时的拒绝同步。
