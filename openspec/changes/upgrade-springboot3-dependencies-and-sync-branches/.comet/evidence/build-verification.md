@@ -56,6 +56,8 @@ mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
 - RED 摘要：完整 main/test compile 后 Surefire 实际运行 `SpringBoot3DependencyBaselineTest` 1 项，`Failures: 1, Errors: 0, Skipped: 0`，进程退出码 `1`；预期断言为 `langchain4j.version ==> expected: <1.18.0> but was: <1.18.1>`。
 - 历史 XML 核对：`29295a5c` 的 AI BOM 仍直接导入 `langchain4j-bom` 并直接声明 Redis、Qianfan、DashScope `0.36.2`，而方案 A 要求这些管理只留在 Core BOM、AI BOM import Core BOM。Core BOM 本身已有 BOM 与三项例外；RED 因首个 `1.18.0` 版本断言提前终止，结构差异由同一历史 POM 的静态核对确认。
 - GREEN 在真实 `.worktrees/springboot3-upgrade` 的 `afa7a50f` 以完全相同命令执行：Surefire 运行 1 项，`Failures: 0, Errors: 0, Skipped: 0`，Maven `BUILD SUCCESS`，退出码 `0`。接管复核于 `2026-07-31T19:30:57+08:00` 再次执行该命令，结果仍为 1 项测试零失败、零错误、零跳过，`BUILD SUCCESS`，退出码 `0`；仅出现已记录的 Maven `settings.xml` 第 213 行 `repository` 标签警告。
+- Fix round 1/1 清理：先用 `git worktree list --porcelain`、逐路径 `git status --short` 与 `git rev-parse HEAD` 核对 Task 8 自建的两个 detached worktree。`current-with-old-boms` 位于 `/private/var/folders/p7/cg70fqfj1xz7rwplv4n19d_w0000gp/T/fw-plus-task8-baseline-current.Tmr05HO9qB/current-with-old-boms`，HEAD 为 `afa7a50f1f9062894c2aa14231c707a34d9722bd`，dirty 内容仅为历史 RED 的 Core/AI BOM 支架；`old-baseline` 位于 `/private/var/folders/p7/cg70fqfj1xz7rwplv4n19d_w0000gp/T/fw-plus-task8-baseline.5Po0PhTMO2/old-baseline`，HEAD 为 `29295a5c5926c7b7ab39590ae886319d7554c42d`，dirty 内容仅为 Task 8 基线测试及编译筛选支架。两者均按精确路径执行 `git worktree remove --force`，退出码均为 `0`。
+- 清理后复核：上述两个精确路径均不再出现在 `git worktree list --porcelain`，且文件系统检查均为 `missing`；未运行 `git worktree prune`，三个 `/private/tmp/fw-plus-task8-*` prunable 条目及其他 worktree 均未触碰。真实 `.worktrees/springboot3-upgrade` 仍为空状态，HEAD 保持 `afa7a50f1f9062894c2aa14231c707a34d9722bd`。
 
 ## springboot2 发布前复验
 
