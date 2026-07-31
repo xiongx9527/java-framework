@@ -132,4 +132,4 @@ fw:
 
 ## 旧坐标边界
 
-当前 starter line 不使用旧的 `fw-plus-ai-langchain4j-model-spring-boot-starter` 或 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 坐标。它们只能作为历史版本迁移提示，不能作为当前主路径或新增业务依赖；请使用 `fw-plus-ai-model-spring-boot-starter`、`fw-plus-ai-store-embedding-spring-boot-starter` 与统一的 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
+当前 starter line 不使用旧的 `fw-plus-ai-langchain4j-model-spring-boot-starter` 或 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 坐标。它们只能作为历史版本迁移提示，不能作为当前主路径或新增业务依赖。`fw-plus-ai-model-spring-boot-starter`、`fw-plus-ai-store-embedding-spring-boot-starter` 与统一的 `fw-plus-ai-langchain4j-adapter-spring-boot-starter` 是本 Starter 内部聚合的新坐标；业务已使用 `fw-plus-ai-tiny-engine-spring-boot-starter` 时无需单独声明。只有脱离 TinyEngine Starter、单独消费中立 model/store/adapter 能力时，才直接引入对应坐标。
