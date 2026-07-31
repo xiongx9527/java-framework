@@ -26,7 +26,7 @@
 - [x] 4.1 将本地 `springboot3` 同步到最新远端历史，再合并最新 `dev`，保留既有 Java 17 / Spring Boot 3 适配提交
 - [x] 4.2 单独提交 `springboot3` 的分支同步结果，使合并冲突修复与依赖升级保持独立
 - [ ] 4.3 审计固定范围外的 POM 属性、BOM 管理项、直接依赖和 Maven 更新报告，形成兼容升级与保留旧版清单
-- [ ] 4.4 在 Core BOM 导入 LangChain4j BOM 1.18.0，AI BOM 通过导入 Core BOM 继承管理；验证 AI BOM 不直接声明 `langchain4j.version` 或导入 LangChain4j BOM，三项例外由 Core BOM 显式覆盖 0.36.2，且消费模块不直接写版本
+- [x] 4.4 在 Core BOM 导入 LangChain4j BOM 1.18.0，AI BOM 通过导入 Core BOM 继承管理；验证 AI BOM 不直接声明 `langchain4j.version` 或导入 LangChain4j BOM，三项例外由 Core BOM 显式覆盖 0.36.2，且消费模块不直接写版本
 - [ ] 4.5 升级其余与 Java 17 和固定 Spring 平台兼容的依赖，删除已证明未使用的直接依赖或旧拦截器配置
 - [ ] 4.6 确认 Spring AI、Spring AI Alibaba、Magic-API 2.2.2、Magic-Script 1.9.0 和三个固定 Spring 平台版本均被保留
 

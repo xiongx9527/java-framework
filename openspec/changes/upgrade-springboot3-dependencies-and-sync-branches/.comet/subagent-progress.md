@@ -124,3 +124,26 @@
 - User authorization: 允许额外一轮修复测试命令 POM 路径
 - Open findings: `none`（1 条历史摘要措辞作为 Minor 留给最终 review）
 - Deferred Minor resolution: 已在后续计划契约校正中把历史摘要统一为实际 `fw-plus-ai-boot-autoconfigure` 模块/POM。
+
+## Spring Boot 3 依赖基线 TDD 证据
+
+- Task: `Task 8: 建立 Spring Boot 3 依赖基线回归测试`
+- OpenSpec mapping: `4.4`
+- Stage: `done`
+- Implementer: `/root/task8_baseline_evidence`（测试执行；最终回报因模型容量失败）
+- Finisher: `/root/task8_evidence_finish`
+- Evidence commit: `6ac84ef9`
+- Reviewer: `/root/task8_evidence_review`
+- Fix agent: `/root/task8_cleanup_fix`
+- Fix commit: `e7b125e3`
+- Re-reviewer: `/root/task8_cleanup_rereview`
+- Base commit: `4162aa68`
+- Historical RED baseline: `29295a5c`
+- Current GREEN baseline: `springboot3=afa7a50f`
+- Allowed tracked file: `.comet/evidence/build-verification.md`
+- Review mode: `standard`
+- Review/fix round: `1/1`
+- RED evidence: 临时当前源码 + 历史 BOM，1 test / 1 failure / exit 1
+- GREEN evidence: springboot3 `afa7a50f`，1 test / 0 failure / BUILD SUCCESS
+- Risk review triggered: `yes`（DONE_WITH_CONCERNS；临时 worktree 残留）
+- Open findings: `none`（既有 settings.xml 警告作为外部 Minor 保留）
