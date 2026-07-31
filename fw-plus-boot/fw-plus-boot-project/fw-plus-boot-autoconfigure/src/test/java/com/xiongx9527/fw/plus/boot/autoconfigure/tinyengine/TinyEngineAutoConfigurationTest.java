@@ -15,6 +15,7 @@ import org.mybatis.spring.mapper.MapperScannerConfigurer;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +35,9 @@ class TinyEngineAutoConfigurationTest {
 	private final ApplicationContextRunner nonWebContextRunner = new ApplicationContextRunner()
 			.withConfiguration(AutoConfigurations.of(TinyEngineAutoConfiguration.class));
 
+	private final ReactiveWebApplicationContextRunner reactiveContextRunner = new ReactiveWebApplicationContextRunner()
+			.withConfiguration(AutoConfigurations.of(TinyEngineAutoConfiguration.class));
+
 	@Test
 	void disabledByDefaultDoesNotRegisterTinyEngineWebBeans() {
 		contextRunner.run(context -> {
@@ -51,6 +55,13 @@ class TinyEngineAutoConfigurationTest {
 	@Test
 	void enabledRegistersControllerWhenResourceServiceExists() {
 		contextRunner.withUserConfiguration(ResourceServiceConfiguration.class)
+				.withPropertyValues("fw.plus.tiny-engine.enabled=true")
+				.run(context -> assertThat(context).hasSingleBean(TinyEngineResourceController.class));
+	}
+
+	@Test
+	void reactiveWebApplicationRegistersControllerWhenResourceServiceExists() {
+		reactiveContextRunner.withUserConfiguration(ResourceServiceConfiguration.class)
 				.withPropertyValues("fw.plus.tiny-engine.enabled=true")
 				.run(context -> assertThat(context).hasSingleBean(TinyEngineResourceController.class));
 	}

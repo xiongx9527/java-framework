@@ -2,11 +2,14 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.Duration;
+
 @ConfigurationProperties(prefix = "fw.plus.tiny-engine")
 public class TinyEngineProperties {
 
 	private boolean enabled = false;
 	private Web web = new Web();
+	private Webflux webflux = new Webflux();
 	private Service service = new Service();
 	private Mapper mapper = new Mapper();
 	private Resources resources = new Resources();
@@ -26,6 +29,14 @@ public class TinyEngineProperties {
 
 	public void setWeb(Web web) {
 		this.web = web;
+	}
+
+	public Webflux getWebflux() {
+		return webflux;
+	}
+
+	public void setWebflux(Webflux webflux) {
+		this.webflux = webflux;
 	}
 
 	public Service getService() {
@@ -79,6 +90,50 @@ public class TinyEngineProperties {
 
 		public void setBasePath(String basePath) {
 			this.basePath = basePath;
+		}
+	}
+
+	public static class Webflux {
+
+		private Scheduler scheduler = new Scheduler();
+
+		public Scheduler getScheduler() {
+			return scheduler;
+		}
+
+		public void setScheduler(Scheduler scheduler) {
+			this.scheduler = scheduler;
+		}
+
+		public static class Scheduler {
+
+			private int threadCount = 8;
+			private int queueCapacity = 256;
+			private Duration timeout = Duration.ofSeconds(30);
+
+			public int getThreadCount() {
+				return threadCount;
+			}
+
+			public void setThreadCount(int threadCount) {
+				this.threadCount = threadCount;
+			}
+
+			public int getQueueCapacity() {
+				return queueCapacity;
+			}
+
+			public void setQueueCapacity(int queueCapacity) {
+				this.queueCapacity = queueCapacity;
+			}
+
+			public Duration getTimeout() {
+				return timeout;
+			}
+
+			public void setTimeout(Duration timeout) {
+				this.timeout = timeout;
+			}
 		}
 	}
 
