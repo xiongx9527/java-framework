@@ -934,7 +934,7 @@ Expected: 最终 dev 提交包含 AskData 生产代码、POM、测试和契约�
 Run:
 
 ```bash
-git -C .worktrees/springboot2-sync fetch origin springboot2
+git -C .worktrees/springboot2-sync fetch origin '+refs/heads/springboot2:refs/remotes/origin/springboot2'
 git -C .worktrees/springboot2-sync merge --no-ff origin/springboot2 -m "merge: sync latest remote springboot2"
 git -C .worktrees/springboot2-sync merge --no-ff dev -m "merge: sync final dev AskData code into springboot2"
 export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
@@ -949,14 +949,14 @@ git -C .worktrees/springboot2-sync rev-list --left-right --count springboot2...o
 git -C .worktrees/springboot2-sync merge-base --is-ancestor dev springboot2
 ```
 
-Expected: 同步自身最新远端后，以非强制 merge 引入包含 AskData 生产代码、POM、测试和契约文档的已发布 dev；Java 8 下 AskDataStarterDependencyTest、AskDataAutoConfigurationTest、starter validate 和 NeutralAiAutoConfigurationBoundaryTest 通过，推送后远端 SHA 等于本地 HEAD、ahead/behind 为 `0 0`，且 dev 是 springboot2 的祖先。
+Expected: 显式 refspec 刷新 `refs/remotes/origin/springboot2` 后，才以非强制 merge 引入包含 AskData 生产代码、POM、测试和契约文档的已发布 dev；Java 8 下 AskDataStarterDependencyTest、AskDataAutoConfigurationTest、starter validate 和 NeutralAiAutoConfigurationBoundaryTest 通过，推送后远端 SHA 等于本地 HEAD、ahead/behind 为 `0 0`，且 dev 是 springboot2 的祖先。
 
 - [ ] **Step 4: 将最终 dev 文档提交同步到 springboot3**
 
 Run:
 
 ```bash
-git -C .worktrees/springboot3-upgrade fetch origin springboot3
+git -C .worktrees/springboot3-upgrade fetch origin '+refs/heads/springboot3:refs/remotes/origin/springboot3'
 git -C .worktrees/springboot3-upgrade merge --no-ff origin/springboot3 -m "merge: sync latest remote springboot3"
 git -C .worktrees/springboot3-upgrade merge --no-ff dev -m "merge: sync final dev AskData code into springboot3"
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
@@ -964,6 +964,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataStarterDependencyTest test
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter validate -DskipTests
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=AskDataAutoConfigurationTest,NeutralAiAutoConfigurationBoundaryTest,SpringBoot3DependencyBaselineTest test
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
 git -C .worktrees/springboot3-upgrade push origin springboot3
 git ls-remote --heads origin springboot3
 git -C .worktrees/springboot3-upgrade rev-parse HEAD
@@ -971,7 +972,7 @@ git -C .worktrees/springboot3-upgrade rev-list --left-right --count springboot3.
 git -C .worktrees/springboot3-upgrade merge-base --is-ancestor dev springboot3
 ```
 
-Expected: 同步自身最新远端后，以非强制 merge 引入包含 AskData 生产代码、POM、测试和契约文档的已发布 dev；Java 17 下 AskDataStarterDependencyTest、AskDataAutoConfigurationTest、starter validate、NeutralAiAutoConfigurationBoundaryTest 和 SpringBoot3DependencyBaselineTest 通过。基线测试确认 LangChain4j 1.18.0、三项 0.36.2 管理及现有 API 适配历史均被保留，推送后远端 SHA 等于本地 HEAD、ahead/behind 为 `0 0`，且 dev 是 springboot3 的祖先。
+Expected: 显式 refspec 刷新 `refs/remotes/origin/springboot3` 后，才以非强制 merge 引入包含 AskData 生产代码、POM、测试和契约文档的已发布 dev；Java 17 下 AskDataStarterDependencyTest、AskDataAutoConfigurationTest、starter validate、NeutralAiAutoConfigurationBoundaryTest、SpringBoot3DependencyBaselineTest、LangChain4jAutoConfigurationRegistrationTest 和 LangChain4jAdapterAutoConfigurationTest 通过。后两项使用 LangChain4j adapter autoconfigure POM 执行，验证合并后 API 适配仍可用；基线测试确认 LangChain4j 1.18.0、三项 0.36.2 管理及现有 API 适配历史均被保留，推送后远端 SHA 等于本地 HEAD、ahead/behind 为 `0 0`，且 dev 是 springboot3 的祖先。
 
 ---
 
@@ -1226,10 +1227,25 @@ Expected: 提交只包含依赖边界测试、AskData Starter POM 和 README。
 Run:
 
 ```bash
+legacy_version_major='1.18.'
+legacy_version_patch='1'
+legacy_beta_prefix='beta'
+legacy_beta_suffix='28'
+legacy_document_part_one='纯文'
+legacy_document_part_two='档'
+legacy_build_part_one='无需重复 Maven '
+legacy_build_part_two='构建'
+legacy_pattern="${legacy_version_major}${legacy_version_patch}|${legacy_beta_prefix}${legacy_beta_suffix}|${legacy_document_part_one}${legacy_document_part_two}|${legacy_build_part_one}${legacy_build_part_two}"
+legacy_contract_sources=(
+  openspec/changes/upgrade-springboot3-dependencies-and-sync-branches
+  docs/superpowers/specs/2026-07-30-springboot3-dependencies-and-branch-sync-design.md
+  docs/superpowers/plans/2026-07-30-springboot3-dependencies-and-branch-sync.md
+)
+rg -n "$legacy_pattern" "${legacy_contract_sources[@]}"
 rg -n '1\.18\.0|0\.36\.2|langchain4j-(redis|qianfan|dashscope)|langchain4j-bom' .worktrees/springboot3-upgrade/fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/SpringBoot3DependencyBaselineTest.java
 ```
 
-Expected: 现有差异记录说明先前契约与实现不一致；命令证明当前实现采用 Core BOM `1.18.0`，AI BOM 通过导入 Core BOM 继承管理，以及 Redis/Qianfan/DashScope `0.36.2` 显式覆盖。
+Expected: 第一条命令命中旧双轨版本和失效同步措辞；第二条命令证明当前实现采用 Core BOM `1.18.0`，AI BOM 通过导入 Core BOM 继承管理，以及 Redis/Qianfan/DashScope `0.36.2` 显式覆盖。
 
 - [ ] **Step 2: 统一修订活动契约**
 
@@ -1238,19 +1254,34 @@ Expected: 现有差异记录说明先前契约与实现不一致；命令证明�
 - `springboot3` 的 LangChain4j 主版本为 `1.18.0`，Core BOM 导入 `dev.langchain4j:langchain4j-bom:1.18.0`。
 - AI BOM 不直接管理 LangChain4j，而是通过导入 Core BOM 继承管理；AI BOM 不重复导入 LangChain4j BOM，也不声明 `langchain4j.version`。
 - `langchain4j-redis`、`langchain4j-qianfan`、`langchain4j-dashscope` 统一在 Core BOM dependencyManagement 显式固定为 `0.36.2`；消费模块不得写版本。
-- Task 12 的派生分支同步包含 AskData 生产代码、POM、测试和契约文档；`springboot2` 使用 Java 8、`springboot3` 使用 Java 17 重新执行 AskData Starter 测试、starter validate 与受影响自动配置定向测试，springboot3 另执行 SpringBoot3DependencyBaselineTest。
+- Task 12 在 merge `origin/springboot2` 或 `origin/springboot3` 前，使用显式 refspec 刷新对应 `refs/remotes/origin/<branch>`；派生分支同步包含 AskData 生产代码、POM、测试和契约文档。`springboot2` 使用 Java 8、`springboot3` 使用 Java 17 重新执行 AskData Starter 测试、starter validate 与受影响自动配置定向测试；springboot3 另使用实际 LangChain4j adapter autoconfigure POM 执行 LangChain4jAutoConfigurationRegistrationTest、LangChain4jAdapterAutoConfigurationTest 和 SpringBoot3DependencyBaselineTest。
 
 - [ ] **Step 3: 验证新契约（GREEN）**
 
 Run:
 
 ```bash
+legacy_version_major='1.18.'
+legacy_version_patch='1'
+legacy_beta_prefix='beta'
+legacy_beta_suffix='28'
+legacy_document_part_one='纯文'
+legacy_document_part_two='档'
+legacy_build_part_one='无需重复 Maven '
+legacy_build_part_two='构建'
+legacy_pattern="${legacy_version_major}${legacy_version_patch}|${legacy_beta_prefix}${legacy_beta_suffix}|${legacy_document_part_one}${legacy_document_part_two}|${legacy_build_part_one}${legacy_build_part_two}"
+legacy_contract_sources=(
+  openspec/changes/upgrade-springboot3-dependencies-and-sync-branches
+  docs/superpowers/specs/2026-07-30-springboot3-dependencies-and-branch-sync-design.md
+  docs/superpowers/plans/2026-07-30-springboot3-dependencies-and-branch-sync.md
+)
+test -z "$(rg -n "$legacy_pattern" "${legacy_contract_sources[@]}" || true)"
 rg -n '1\.18\.0|0\.36\.2' openspec/changes/upgrade-springboot3-dependencies-and-sync-branches docs/superpowers/specs/2026-07-30-springboot3-dependencies-and-branch-sync-design.md docs/superpowers/plans/2026-07-30-springboot3-dependencies-and-branch-sync.md
 openspec validate upgrade-springboot3-dependencies-and-sync-branches --strict
 git diff --check
 ```
 
-Expected: 新基线与三个例外均有明确契约，AI BOM 继承边界、消费模块版本边界和派生分支重新验证要求均明确；OpenSpec strict validate 和 diff check 通过。
+Expected: 旧双轨版本和失效同步措辞扫描为空，新基线与三个例外均有明确契约，AI BOM 继承边界、消费模块版本边界和派生分支重新验证要求均明确；OpenSpec strict validate 和 diff check 通过。
 
 - [ ] **Step 4: 提交契约修订**
 
