@@ -464,7 +464,7 @@ mvn -o -nsu -Dmaven-enforcer-plugin.version=3.4.1 -f fw-plus-ai/fw-plus-ai-proje
 
 Expected: 四条结构断言通过，Core BOM 属性求值为 `3.4.1`，三个目标模块均使用 `enforcer:3.4.1` 完成 Maven `validate`。当前工作区不能写外部 Maven 本地仓库，因此先用命令行属性覆盖验证目标插件版本；后续按 Core → AI 顺序安装时再由父链自然继承同一值。
 
-- [ ] **Step 4: 提交版本统一调整**
+- [x] **Step 4: 提交版本统一调整**
 
 Run:
 

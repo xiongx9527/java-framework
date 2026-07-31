@@ -34,6 +34,7 @@
 - Review/fix round: `0/1`
 - Review result: `/root/task7_enforcer_review` 已批准，无 Critical/Important/Minor finding
 - User ruling: `maven-enforcer-plugin.version=3.4.1` 必须统一声明在 Core BOM，三个 AI Starter POM 只引用该属性。
+- Plan checkoff: Task 7 Step 4 已由提交 `59fa92d1` 实现并在当前 `origin/dev` 保留；该提交包含同步整理的其他文件，不满足原计划“仅四个 POM”的原子提交形态，但当前代码、结构断言和 reviewer 结论均已闭环，记录偏差后勾选。
 
 ## Follow-up Exec Maven Plugin version unification
 
