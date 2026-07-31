@@ -42,8 +42,6 @@ public class TinyEngineAiStarterDependencyTest {
 	public void shouldKeepTinyEngineCoreAndLangChain4jStartersOutOfAiStarter() throws Exception {
 		Element aiStarter = pom(AI_STARTER_POM);
 
-		assertNotNull("TinyEngine AI starter must include AI auto-configuration",
-				findDirectDependency(aiStarter, "com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-autoconfigure"));
 		assertFalse("TinyEngine AI starter must obtain TinyEngine core transitively from the Boot starter",
 				containsDirectDependency(aiStarter, "com.xiongx9527.fw.plus:fw-plus-tiny-engine-core"));
 		assertFalse("TinyEngine AI starter must not depend on the legacy LangChain4j model starter",

@@ -22,10 +22,8 @@ public class NeutralStarterDependencyTest {
 	@Test
 	public void shouldKeepNeutralStartersFreeOfLangChain4jAndAdapterDependencies() throws Exception {
 		assertDependencies("fw-plus-ai-model-spring-boot-starter/pom.xml",
-				"fw-plus-ai-boot-autoconfigure",
 				"fw-plus-ai-model");
 		assertDependencies("fw-plus-ai-store-embedding-spring-boot-starter/pom.xml",
-				"fw-plus-ai-boot-autoconfigure",
 				"fw-plus-ai-store-embedding");
 		assertDoesNotDependOn("fw-plus-ai-model-spring-boot-starter/pom.xml",
 				"fw-plus-ai-langchain4j-model", "fw-plus-ai-langchain4j-adapter");
