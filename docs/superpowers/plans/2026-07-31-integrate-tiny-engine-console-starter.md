@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将 TinyEngine 生产设计器、MVC/WebFlux Controller 和 Magic-API `statusBarItems` 入口完整集成到可独立发布的 fw-plus starter。
+**Goal:** 将 TinyEngine 生产设计器、`tiny-engine-backend-java` 完整后端能力、MVC/WebFlux Controller 和 Magic-API `statusBarItems` 入口完整集成到可独立发布的 fw-plus starter。
 
-**Architecture:** `fw-plus-tiny-engine-spring-boot-starter` 内置可复现的 TinyEngine pnpm workspace 并把 `designer-demo/dist` 打入 classpath；`fw-plus-boot-autoconfigure` 提供共享业务 facade、互斥的 MVC/WebFlux Controller 与静态资源配置；`fw-plus-magicapi-plugin-tiny-engine` 只增加状态栏入口。Core 继续使用 MyBatis-Plus/JDBC，WebFlux 通过专用 bounded-elastic Scheduler 隔离阻塞调用。
+**Architecture:** `fw-plus-tiny-engine-spring-boot-starter` 内置可复现的 TinyEngine pnpm workspace 并把 `designer-demo/dist` 打入 classpath；`fw-plus-core` 承接 `tiny-engine-backend-java/base` 的领域模型、DTO、Mapper、SQL、Service、dynamic、用户体系 SPI 和可选 RAG/AI 契约；`fw-plus-boot-autoconfigure` 提供共享业务 facade、互斥的 MVC/WebFlux Controller、静态资源配置和 Spring 绑定。`fw-plus-magicapi-plugin-tiny-engine` 只增加状态栏入口；WebFlux 通过专用 bounded-elastic Scheduler 隔离阻塞调用。
 
 **Tech Stack:** Java 8、Spring Boot 2.7.18、Spring MVC、Spring WebFlux/Reactor、MyBatis-Plus、Maven、pnpm、Vue 3、Vite、Node test runner、JUnit 5、AssertJ、MockMvc、WebTestClient。
 
@@ -15,6 +15,8 @@
 - 不触碰当前 `upgrade-springboot3-dependencies-and-sync-branches` 的 28 个无关脏文件。
 - 本次变更在独立 worktree 分支 `codex/integrate-tiny-engine-console-starter` 中实施；允许每个任务创建本地提交用于评审，不推送远端，不触碰主工作区无关脏文件。
 - TinyEngine 嵌入源码来源固定记录为 `/Users/xiongxiao/Workspace/Idea/codes/TinyEngine` 的提交 `484898fd0af3b0561c47ced9e159f3a9a0d1bee0`，后续同步必须更新来源清单。
+- TinyEngine 后端参考源固定记录为 `/Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java` 的 `release/v2.10.x` 分支、提交 `c116fa649122390baf212f53d82358617c63924d`；该仓库中的 `base`、`app`、Mapper XML、SQL、dynamic、login、rag、gateway/ai、deploy、documents、settings 和 `all-MiniLM-L6-v2` 资产必须进入覆盖矩阵，不能只迁 Controller。
+- 后端 Java 参考源中的每一类内容必须被标记为 `migrated`、`adapted` 或 `deferred-with-reason`；延后项必须写明原因、目标适配点、用户可见行为和后续任务。
 - TinyEngine workspace 只能使用 pnpm；不得改用 npm 或 yarn。
 - TinyEngine 上游当前提交没有 `pnpm-lock.yaml`；Task 1 不复制 `package-lock.json`，Task 2 必须用 pnpm 生成并提交 `pnpm-lock.yaml` 后再使用 `--frozen-lockfile`。
 - TinyEngine `src/console/**` 作为上游 vendored 源码保留原始 whitespace；starter 模块使用 `.gitattributes` 对该目录关闭 `git diff --check` 的 whitespace 检查。
@@ -34,6 +36,8 @@
 - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/pom.xml`: pnpm 构建、资源打包和 Web 栈中立依赖。
 - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/api/`: 与 MVC/WebFlux 无关的 API facade 和外部能力 SPI。
 - `fw-plus-core/fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core/src/main/java/com/xiongx9527/fw/plus/tinyengine/support/auth/`: 用户体系中立模型、Provider SPI、权限和基础 Service。
+- `docs/tiny-engine/backend-source-coverage.md`: `tiny-engine-backend-java` 完整覆盖矩阵，记录 Java 包、Controller 路由、Service、Mapper/XML、SQL、配置、部署、文档和模型资产的迁移状态。
+- `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-backend-coverage.test.mjs`: 覆盖矩阵审计脚本，验证参考源清单没有被漏记。
 - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webmvc/`: Servlet Controller 与资源配置。
 - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webflux/`: Reactive Controller、资源配置和阻塞调度器。
 - `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-tiny-engine/`: Magic-API `statusBarItems` 前端插件。
@@ -533,7 +537,159 @@ MVC methods call `TinyEngineUserSystemService` directly. WebFlux methods resolve
 
 Send concurrent WebTestClient requests with `token-a/tenant-a` and `token-b/tenant-b`; assert each response and downstream service call sees only its own principal. Expected: all targeted tests PASS.
 
-### Task 8: Shared TinyEngine App/Page API facade and MVC workflow
+### Task 8: tiny-engine-backend-java 完整覆盖矩阵
+
+**Files:**
+- Create: `docs/tiny-engine/backend-source-coverage.md`
+- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-backend-coverage.test.mjs`
+- Test/read source: `/Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java`
+
+**Interfaces:**
+- Consumes: 后端参考源 `/Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java`，分支 `release/v2.10.x`，提交 `c116fa649122390baf212f53d82358617c63924d`。
+- Produces: 覆盖矩阵，后续 Core、MVC、WebFlux、sample 和 docs 任务必须按矩阵消项。
+
+- [ ] **Step 1: Write RED coverage-audit test**
+
+Create `tiny-engine-backend-coverage.test.mjs`:
+
+```js
+import assert from 'node:assert/strict'
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import path from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
+import test from 'node:test'
+
+const TEST_FILE = fileURLToPath(import.meta.url)
+const MODULE_ROOT = path.resolve(path.dirname(TEST_FILE), '../../..')
+const REPO_ROOT = path.resolve(MODULE_ROOT, '../../../..')
+const COVERAGE_DOC = path.join(REPO_ROOT, 'docs/tiny-engine/backend-source-coverage.md')
+const BACKEND_ROOT = process.env.TINY_ENGINE_BACKEND_SOURCE || '/Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java'
+const REQUIRED_COMMIT = 'c116fa649122390baf212f53d82358617c63924d'
+
+function listFiles(root, predicate) {
+  const result = []
+  function walk(dir) {
+    for (const name of readdirSync(dir)) {
+      const full = path.join(dir, name)
+      const rel = path.relative(root, full)
+      if (rel.startsWith('.git') || rel.includes(`${path.sep}target${path.sep}`)) continue
+      const stat = statSync(full)
+      if (stat.isDirectory()) walk(full)
+      else if (predicate(rel)) result.push(rel.replaceAll(path.sep, '/'))
+    }
+  }
+  walk(root)
+  return result.sort()
+}
+
+test('backend coverage matrix records the exact source revision', () => {
+  assert.equal(existsSync(BACKEND_ROOT), true)
+  const commit = execFileSync('git', ['-C', BACKEND_ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+  assert.equal(commit, REQUIRED_COMMIT)
+  const status = execFileSync('git', ['-C', BACKEND_ROOT, 'status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim()
+  assert.equal(status, '')
+  const doc = readFileSync(COVERAGE_DOC, 'utf8')
+  assert.match(doc, new RegExp(REQUIRED_COMMIT))
+})
+
+test('backend coverage matrix does not omit package, config, deploy, document or model asset categories', () => {
+  const doc = readFileSync(COVERAGE_DOC, 'utf8')
+  const requiredCategories = [
+    'common', 'config', 'controller', 'dynamic', 'event', 'gateway/ai', 'login', 'mapper', 'model', 'rag', 'service',
+    'app/src/main/java', 'app/src/main/resources/application', 'app/src/main/resources/sql',
+    'docker-deploy-data', 'Dockerfile', 'docker-compose.yml', 'example-docker.yml',
+    'documents/agent', 'documents/tinyengine', 'settings', 'all-MiniLM-L6-v2'
+  ]
+  for (const category of requiredCategories) {
+    assert.match(doc, new RegExp(category.replaceAll('/', '\\\\/')), `missing category ${category}`)
+  }
+})
+
+test('backend coverage matrix lists every mapper xml and sql file', () => {
+  const doc = readFileSync(COVERAGE_DOC, 'utf8')
+  const mapperFiles = listFiles(path.join(BACKEND_ROOT, 'base/src/main/resources/mappers'), rel => rel.endsWith('.xml'))
+  const sqlFiles = listFiles(path.join(BACKEND_ROOT, 'app/src/main/resources/sql'), rel => rel.endsWith('.sql'))
+  for (const file of mapperFiles) assert.match(doc, new RegExp(file), `missing mapper ${file}`)
+  for (const file of sqlFiles) assert.match(doc, new RegExp(file), `missing sql ${file}`)
+})
+```
+
+- [ ] **Step 2: Run RED**
+
+Run:
+
+```bash
+node --test fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-backend-coverage.test.mjs
+```
+
+Expected: FAIL because `docs/tiny-engine/backend-source-coverage.md` does not yet record the backend source revision and full inventory.
+
+- [ ] **Step 3: Create the coverage matrix**
+
+Create `docs/tiny-engine/backend-source-coverage.md` with these sections and no omissions:
+
+```markdown
+# TinyEngine 后端源覆盖矩阵
+
+## 来源
+
+- 路径：`/Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java`
+- 分支：`release/v2.10.x`
+- 提交：`c116fa649122390baf212f53d82358617c63924d`
+- 状态：`git status --porcelain --untracked-files=no` 必须为空
+
+## 状态枚举
+
+- `migrated`：已迁入 fw-plus core/boot/starter/sample。
+- `adapted`：不按原样复制，但已映射为 fw-plus 契约、配置、文档、sample 或可选 Provider。
+- `deferred-with-reason`：本次不实现，已写明原因、用户可见行为和后续适配点。
+
+## 覆盖矩阵
+
+| 来源类别 | 来源路径 | 目标位置 | 状态 | 说明 |
+|---|---|---|---|---|
+| common | `base/src/main/java/com/tinyengine/it/common/**` | `fw-plus-tiny-engine-core/common` 与 Boot 错误处理 | migrated/adapted | `Result`、基础实体、异常、类型处理器、日志、Hash、JSON、Schema、文件安全必须逐项核对。 |
+| model | `base/src/main/java/com/tinyengine/it/model/**` | `fw-plus-tiny-engine-core/model` | migrated | 全部实体和 DTO 需要字段/JSON 契约覆盖。 |
+| mapper | `base/src/main/java/com/tinyengine/it/mapper/**` | `fw-plus-tiny-engine-core/mapper` | migrated | Java Mapper 集合必须与 XML 集合一致。 |
+| mapper-xml | `base/src/main/resources/mappers/*.xml` | `fw-plus-tiny-engine-core/src/main/resources/mapper/tinyengine/*.xml` | migrated | 列出 28 个 XML 文件。 |
+| service | `base/src/main/java/com/tinyengine/it/service/**` | `fw-plus-tiny-engine-core/service` 与 Boot facade | migrated/adapted | app/material/platform/extend 不得漏。 |
+| dynamic | `base/src/main/java/com/tinyengine/it/dynamic/**` | `fw-plus-tiny-engine-core/dynamic` 与 MVC/WebFlux API | migrated/adapted | ModelDataController 路由也要纳入 API 契约。 |
+| login | `base/src/main/java/com/tinyengine/it/login/**` | Core 用户体系 SPI 与可选 Boot 适配 | adapted | JWT/SM2/SM3/SSO 不固化到 Core。 |
+| rag-ai | `base/src/main/java/com/tinyengine/it/rag/**`, `gateway/ai/**`, `config/AiChatConfig.java`, `OpenAIConfig.java` | Core 可选 Provider 契约与 Boot unsupported fallback | adapted/deferred-with-reason | 无 Provider 时返回未配置，不伪造成功。 |
+| app-runtime | `app/src/main/java/**`, `app/src/main/resources/application*.yml`, `logback.xml`, `webapp/**` | sample、Boot 可覆盖 Bean、docs | adapted | 独立应用能力不按原样进入 starter。 |
+| sql | `app/src/main/resources/sql/**`, `docker-deploy-data/mysql/init/**` | Core SQL manifest 与 sample docs | migrated/adapted | 列出 H2/MySQL/PostgreSQL SQL 文件。 |
+| deploy | `Dockerfile`, `docker-compose.yml`, `example-docker.yml`, `docker-deploy-data/**` | `docs/tiny-engine/starter.md` | adapted | 写明 fw-plus 使用方式而非复制原部署。 |
+| documents | `documents/agent/**`, `documents/tinyengine/**` | `docs/tiny-engine/backend-source-coverage.md` 或后续组件文档 | adapted/deferred-with-reason | 文档资产不能从清单中消失。 |
+| model-assets | `all-MiniLM-L6-v2/**` | 可选 RAG/Embedding Provider 文档 | deferred-with-reason | 大体积模型不默认打进 starter。 |
+| settings | `settings/**`, `.codecheck/**`, `.github/**` | docs 或不迁移说明 | adapted/deferred-with-reason | 代码规范/CI 配置记录来源和处理方式。 |
+```
+
+Then append explicit subsections listing all 28 mapper XML file names and all 25 SQL file names from the reference source.
+
+- [ ] **Step 4: Run GREEN and reconcile current Core coverage**
+
+Run the Node test from Step 2. Then run:
+
+```bash
+comm -23 \
+  <(find /Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java/base/src/main/resources/mappers -maxdepth 1 -name '*.xml' -exec basename {} \; | sort) \
+  <(find fw-plus-core/fw-plus-project/fw-plus-tiny-engine/fw-plus-tiny-engine-core/src/main/resources/mapper/tinyengine -maxdepth 1 -name '*.xml' -exec basename {} \; | sort)
+```
+
+Expected: no output. If output exists, add the missing Mapper XML to the appropriate Core task before implementing MVC/WebFlux routes.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add docs/tiny-engine/backend-source-coverage.md \
+  fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-backend-coverage.test.mjs \
+  docs/superpowers/specs/2026-07-31-integrate-tiny-engine-console-starter-design.md \
+  docs/superpowers/plans/2026-07-31-integrate-tiny-engine-console-starter.md
+git commit -m "docs: add TinyEngine backend coverage matrix"
+```
+
+### Task 9: Shared TinyEngine App/Page API facade and MVC workflow
 
 **Files:**
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/api/TinyEngineApiFacade.java`
@@ -582,7 +738,7 @@ Use `Result.success(value)` consistently. Set path IDs onto request objects befo
 
 Expected: all App/Page MVC contract tests PASS, including create app -> create page -> update page -> reload page.
 
-### Task 9: Shared TinyEngine Material/Model MVC workflow
+### Task 10: Shared TinyEngine Material/Model MVC workflow
 
 **Files:**
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/api/TinyEngineApiFacade.java`
@@ -592,7 +748,7 @@ Expected: all App/Page MVC contract tests PASS, including create app -> create p
 - Create test: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webmvc/TinyEngineMaterialModelMvcApiContractTest.java`
 
 **Interfaces:**
-- Consumes: App/Page facade foundation from Task 8 plus existing `BlockService`, `BlockGroupService`, `TaskRecordService`, `BusinessCategoryService`, `ModelService`, `DatasourceService`, `ResourceService`, template and i18n services.
+- Consumes: App/Page facade foundation from Task 9 plus existing `BlockService`, `BlockGroupService`, `TaskRecordService`, `BusinessCategoryService`, `ModelService`, `DatasourceService`, `ResourceService`, template and i18n services.
 - Produces: synchronous material, model, data-source, resource, template and i18n facade methods used by both Web stacks.
 
 - [ ] **Step 1: Write RED material/model MVC contract tests**
@@ -615,9 +771,9 @@ Map them respectively to `BlockService`, `BlockGroupService`, `BusinessCategoryS
 
 - [ ] **Step 4: Run GREEN**
 
-Run the Task 8 and Task 9 targeted MVC tests. Expected: all MVC API contract tests PASS.
+Run the Task 9 and Task 10 targeted MVC tests. Expected: all MVC API contract tests PASS.
 
-### Task 10: WebFlux Controllers with blocking isolation
+### Task 11: WebFlux Controllers with blocking isolation
 
 **Files:**
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webflux/TinyEngineAppWebFluxController.java`
@@ -627,7 +783,7 @@ Run the Task 8 and Task 9 targeted MVC tests. Expected: all MVC API contract tes
 - Create test: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/tinyengine/webflux/TinyEngineWebFluxApiContractTest.java`
 
 **Interfaces:**
-- Consumes: every synchronous `TinyEngineApiFacade` method from Task 8 and Task 9, plus `TinyEngineReactiveExecutor.submit` from Task 4.
+- Consumes: every synchronous `TinyEngineApiFacade` method from Task 9 and Task 10, plus `TinyEngineReactiveExecutor.submit` from Task 4.
 - Produces: matching `Mono<Result<T>>` endpoints.
 
 - [ ] **Step 1: Write RED WebFlux parity and thread tests**
@@ -642,7 +798,7 @@ client.get().uri("/app-center/api/apps/detail/1").exchange()
     .expectBody().jsonPath("$.data.id").isEqualTo(1);
 ```
 
-Assert all Task 8 and Task 9 mappings exist in Reactive `RequestMappingHandlerMapping` and no MVC Controller bean exists.
+Assert all Task 9 and Task 10 mappings exist in Reactive `RequestMappingHandlerMapping` and no MVC Controller bean exists.
 
 - [ ] **Step 2: Run RED**
 
@@ -670,7 +826,7 @@ Each method calls `executor.submit(() -> facade.method(arguments))`. Map `Timeou
 
 Run the targeted test plus all `TinyEngine*Test` tests. Expected: PASS and no facade call occurs on an event-loop thread.
 
-### Task 11: Magic-API TinyEngine `statusBarItems` plugin
+### Task 12: Magic-API TinyEngine `statusBarItems` plugin
 
 **Files:**
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-tiny-engine/pom.xml`
@@ -738,7 +894,7 @@ node --test fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magi
 
 Expected: Node test and Maven package PASS; JAR contains one TinyEngine plugin IIFE.
 
-### Task 12: Servlet/Reactive sample and end-to-end verification
+### Task 13: Servlet/Reactive sample and end-to-end verification
 
 **Files:**
 - Modify: `fw-plus-sample/fw-plus-boot-samples/fw-plus-tiny-engine-spring-boot-starter-sample/pom.xml`
