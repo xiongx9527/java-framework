@@ -10,6 +10,7 @@ public class TinyEngineProperties {
 	private boolean enabled = false;
 	private Web web = new Web();
 	private Webflux webflux = new Webflux();
+	private Security security = new Security();
 	private Service service = new Service();
 	private Mapper mapper = new Mapper();
 	private Resources resources = new Resources();
@@ -37,6 +38,14 @@ public class TinyEngineProperties {
 
 	public void setWebflux(Webflux webflux) {
 		this.webflux = webflux;
+	}
+
+	public Security getSecurity() {
+		return security;
+	}
+
+	public void setSecurity(Security security) {
+		this.security = security;
 	}
 
 	public Service getService() {
@@ -134,6 +143,19 @@ public class TinyEngineProperties {
 			public void setTimeout(Duration timeout) {
 				this.timeout = timeout;
 			}
+		}
+	}
+
+	public static class Security {
+
+		private boolean enabled = false;
+
+		public boolean isEnabled() {
+			return enabled;
+		}
+
+		public void setEnabled(boolean enabled) {
+			this.enabled = enabled;
 		}
 	}
 
