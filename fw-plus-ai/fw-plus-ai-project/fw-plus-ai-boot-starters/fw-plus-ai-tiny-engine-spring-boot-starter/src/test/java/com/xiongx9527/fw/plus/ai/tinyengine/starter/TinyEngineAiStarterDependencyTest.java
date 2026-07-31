@@ -10,35 +10,79 @@ import org.w3c.dom.NodeList;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.File;
-import java.util.LinkedHashSet;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class TinyEngineAiStarterDependencyTest {
 
-	@Test
-	public void shouldAggregateTinyEngineBootAndNeutralAiStarters() throws Exception {
-		Set<String> dependencies = directDependencyCoordinates(new File("pom.xml"));
+	private static final String AI_STARTER_POM = "fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/"
+			+ "fw-plus-ai-tiny-engine-spring-boot-starter/pom.xml";
+	private static final String AI_BOM_POM = "fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml";
+	private static final String BOOT_STARTER_POM = "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/"
+			+ "fw-plus-tiny-engine-spring-boot-starter/pom.xml";
 
-		assertTrue("TinyEngine AI starter must include AI auto-configuration",
-				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-autoconfigure"));
-		assertTrue("TinyEngine AI starter must include the existing TinyEngine Boot starter",
-				dependencies.contains("com.xiongx9527.fw.plus.boot:fw-plus-tiny-engine-spring-boot-starter"));
+	@Test
+	public void shouldDeclareRequiredAiStarterDependenciesAsDirectCompileNonOptionalAndVersionManaged() throws Exception {
+		Element aiStarter = pom(AI_STARTER_POM);
+
+		assertDirectCompileNonOptionalVersionManaged(aiStarter,
+				"com.xiongx9527.fw.plus.boot:fw-plus-tiny-engine-spring-boot-starter");
+		assertDirectCompileNonOptionalVersionManaged(aiStarter,
+				"com.xiongx9527.fw.plus.ai:fw-plus-ai-model-spring-boot-starter");
+		assertDirectCompileNonOptionalVersionManaged(aiStarter,
+				"com.xiongx9527.fw.plus.ai:fw-plus-ai-store-embedding-spring-boot-starter");
+		assertDirectCompileNonOptionalVersionManaged(aiStarter,
+				"com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter");
+	}
+
+	@Test
+	public void shouldKeepTinyEngineCoreAndLegacyLangChain4jStartersOutOfAiStarter() throws Exception {
+		Element aiStarter = pom(AI_STARTER_POM);
+
+		assertNotNull("TinyEngine AI starter must include AI auto-configuration",
+				findDirectDependency(aiStarter, "com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-autoconfigure"));
 		assertFalse("TinyEngine AI starter must obtain TinyEngine core transitively from the Boot starter",
-				dependencies.contains("com.xiongx9527.fw.plus:fw-plus-tiny-engine-core"));
-		assertTrue("TinyEngine AI starter must include the neutral AI model starter",
-				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-model-spring-boot-starter"));
-		assertTrue("TinyEngine AI starter must include the neutral embedding store starter",
-				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-store-embedding-spring-boot-starter"));
-		assertTrue("TinyEngine AI starter must use the unified LangChain4j adapter",
-				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
+				containsDirectDependency(aiStarter, "com.xiongx9527.fw.plus:fw-plus-tiny-engine-core"));
 		assertFalse("TinyEngine AI starter must not depend on the legacy LangChain4j model starter",
-				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter"));
+				containsDirectDependency(aiStarter,
+						"com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter"));
 		assertFalse("TinyEngine AI starter must not depend on the legacy LangChain4j embedding store starter",
-				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter"));
+				containsDirectDependency(aiStarter,
+						"com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter"));
+	}
+
+	@Test
+	public void shouldImportBootDependenciesBomFromAiBomDependencyManagement() throws Exception {
+		Element aiBom = pom(AI_BOM_POM);
+		Element dependencyManagement = directChild(aiBom, "dependencyManagement");
+		Element bootBom = findDirectDependency(directChild(dependencyManagement, "dependencies"),
+				"com.xiongx9527.fw.plus.boot:fw-plus-boot-dependencies");
+
+		assertNotNull("AI BOM must import the Boot BOM", bootBom);
+		assertEquals("AI BOM must import the matching Boot BOM version", "${project.version}",
+				directChildText(bootBom, "version"));
+		assertEquals("AI BOM must import the Boot BOM as a POM", "pom", directChildText(bootBom, "type"));
+		assertEquals("AI BOM must import the Boot BOM into dependency management", "import",
+				directChildText(bootBom, "scope"));
+	}
+
+	@Test
+	public void shouldKeepTinyEngineCoreOwnedByAiFreeBootStarter() throws Exception {
+		Element bootStarter = pom(BOOT_STARTER_POM);
+
+		assertDirectCompileNonOptional(bootStarter, "com.xiongx9527.fw.plus.boot:fw-plus-boot-starter");
+		assertDirectCompileNonOptional(bootStarter, "com.xiongx9527.fw.plus:fw-plus-tiny-engine-core");
+		assertDirectCompileNonOptional(bootStarter, "com.baomidou:mybatis-plus-boot-starter");
+		assertDirectCompileNonOptional(bootStarter, "org.springframework.boot:spring-boot-starter-web");
+		for (Element dependency : directDependencies(bootStarter)) {
+			assertFalse("TinyEngine Boot starter must not depend on the AI layer",
+					"com.xiongx9527.fw.plus.ai".equals(directChildText(dependency, "groupId")));
+		}
 	}
 
 	@Test
@@ -54,24 +98,93 @@ public class TinyEngineAiStarterDependencyTest {
 						"com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.TinyEngineAiAutoConfiguration"));
 	}
 
-	private Set<String> directDependencyCoordinates(File pom) throws Exception {
-		Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom);
-		Element dependencies = directChild(document.getDocumentElement(), "dependencies");
-		Set<String> dependencyCoordinates = new LinkedHashSet<String>();
-		NodeList dependencyNodes = dependencies.getChildNodes();
-		for (int index = 0; index < dependencyNodes.getLength(); index++) {
-			Node dependencyNode = dependencyNodes.item(index);
-			if (dependencyNode.getNodeType() != Node.ELEMENT_NODE || !"dependency".equals(dependencyNode.getNodeName())) {
-				continue;
+	private void assertDirectCompileNonOptionalVersionManaged(Element pom, String coordinate) {
+		Element dependency = findDirectDependency(pom, coordinate);
+		assertNotNull(coordinate + " must be a direct dependency", dependency);
+		assertCompileNonOptional(dependency, coordinate);
+		assertFalse(coordinate + " must inherit its version from dependency management",
+				hasDirectChild(dependency, "version"));
+	}
+
+	private void assertDirectCompileNonOptional(Element pom, String coordinate) {
+		Element dependency = findDirectDependency(pom, coordinate);
+		assertNotNull(coordinate + " must be a direct dependency", dependency);
+		assertCompileNonOptional(dependency, coordinate);
+	}
+
+	private void assertCompileNonOptional(Element dependency, String coordinate) {
+		String scope = directChildText(dependency, "scope");
+		String optional = directChildText(dependency, "optional");
+		assertTrue(coordinate + " must use Maven's default compile scope or explicit compile scope",
+				scope == null || "compile".equals(scope));
+		assertTrue(coordinate + " must be non-optional", optional == null || "false".equals(optional));
+	}
+
+	private boolean containsDirectDependency(Element pom, String coordinate) {
+		return findDirectDependency(pom, coordinate) != null;
+	}
+
+	private Element findDirectDependency(Element pom, String coordinate) {
+		Element dependencies = "dependencies".equals(pom.getNodeName()) ? pom : directChild(pom, "dependencies");
+		for (Element dependency : directDependencies(dependencies)) {
+			if (coordinate.equals(coordinate(dependency))) {
+				return dependency;
 			}
-			Element dependency = (Element) dependencyNode;
-			dependencyCoordinates.add(directChild(dependency, "groupId").getTextContent().trim()
-					+ ":" + directChild(dependency, "artifactId").getTextContent().trim());
 		}
-		return dependencyCoordinates;
+		return null;
+	}
+
+	private List<Element> directDependencies(Element pom) {
+		Element dependencies = "dependencies".equals(pom.getNodeName()) ? pom : directChild(pom, "dependencies");
+		List<Element> result = new ArrayList<Element>();
+		NodeList nodes = dependencies.getChildNodes();
+		for (int index = 0; index < nodes.getLength(); index++) {
+			Node node = nodes.item(index);
+			if (node.getNodeType() == Node.ELEMENT_NODE && "dependency".equals(node.getNodeName())) {
+				result.add((Element) node);
+			}
+		}
+		return result;
+	}
+
+	private String coordinate(Element dependency) {
+		return directChildText(dependency, "groupId") + ":" + directChildText(dependency, "artifactId");
+	}
+
+	private Element pom(String relativePath) throws Exception {
+		File file = new File(repositoryRoot(), relativePath);
+		return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file).getDocumentElement();
+	}
+
+	private File repositoryRoot() throws Exception {
+		File directory = new File(System.getProperty("user.dir")).getCanonicalFile();
+		while (directory != null) {
+			if (new File(directory, ".git").exists()) {
+				return directory;
+			}
+			directory = directory.getParentFile();
+		}
+		throw new IllegalStateException("Unable to locate repository root from " + System.getProperty("user.dir"));
+	}
+
+	private boolean hasDirectChild(Element parent, String name) {
+		return directChildOrNull(parent, name) != null;
+	}
+
+	private String directChildText(Element parent, String name) {
+		Element child = directChildOrNull(parent, name);
+		return child == null ? null : child.getTextContent().trim();
 	}
 
 	private Element directChild(Element parent, String name) {
+		Element child = directChildOrNull(parent, name);
+		if (child == null) {
+			throw new IllegalStateException("Missing " + name + " in " + parent.getNodeName());
+		}
+		return child;
+	}
+
+	private Element directChildOrNull(Element parent, String name) {
 		NodeList children = parent.getChildNodes();
 		for (int index = 0; index < children.getLength(); index++) {
 			Node child = children.item(index);
@@ -79,6 +192,6 @@ public class TinyEngineAiStarterDependencyTest {
 				return (Element) child;
 			}
 		}
-		throw new IllegalStateException("Missing " + name + " in " + parent.getNodeName());
+		return null;
 	}
 }

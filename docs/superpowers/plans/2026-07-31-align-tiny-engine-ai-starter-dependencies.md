@@ -95,7 +95,7 @@ Run:
   -Dtest=TinyEngineAiStarterDependencyTest test
 ```
 
-Expected: `shouldAggregateTinyEngineBootAndNeutralAiStarters` 因缺少 Boot Starter 且仍存在 Core 直连而失败；自动配置发现测试因找不到 `TinyEngineAutoConfiguration` 而失败。
+Expected: JDK 8 当前 reactor 基线为 `Tests run: 2, Failures: 1, Errors: 0`。唯一失败是 AI Starter 缺少 Boot Starter 直接依赖；自动配置发现测试因既有 `AI model starter -> AI boot starter -> Boot starter -> Boot autoconfigure` 路径在基线已经通过。
 
 - [ ] **Step 4: 提交 RED 测试**
 
@@ -158,7 +158,7 @@ Run:
   -Dtest=TinyEngineAiStarterDependencyTest test
 ```
 
-Expected: `Tests run: 2, Failures: 0, Errors: 0`，`BUILD SUCCESS`。
+Expected: `Tests run: 5, Failures: 0, Errors: 0`，`BUILD SUCCESS`。
 
 - [ ] **Step 4: 检查有效依赖树**
 
@@ -219,7 +219,7 @@ Run:
   -pl fw-plus-ai-boot-starters/fw-plus-ai-tiny-engine-spring-boot-starter test
 ```
 
-Expected: 模块全部测试通过并输出 `BUILD SUCCESS`。
+Expected: `Tests run: 5, Failures: 0, Errors: 0`，并输出 `BUILD SUCCESS`。
 
 - [ ] **Step 4: 验证 Boot Starter 没有 AI 反向依赖**
 
@@ -250,4 +250,3 @@ Expected: 无空白错误；仅包含设计/计划、AI BOM、AI Starter POM、�
 git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-tiny-engine-spring-boot-starter/README.md docs/superpowers/plans/2026-07-31-align-tiny-engine-ai-starter-dependencies.md
 git commit -m "docs(ai): 说明 TinyEngine Starter 聚合用法"
 ```
-
