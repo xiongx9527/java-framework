@@ -7,6 +7,9 @@ import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineUnsupportedCapab
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeoutException;
+
 public final class TinyEngineWebResponses {
 
 	private TinyEngineWebResponses() {
@@ -33,6 +36,10 @@ public final class TinyEngineWebResponses {
 		}
 		if (ex instanceof TinyEngineUnsupportedCapabilityException) {
 			return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body(Result.failed("501", ex.getMessage()));
+		}
+		if (ex instanceof TimeoutException || ex instanceof RejectedExecutionException) {
+			return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+					.body(Result.failed("503", "TinyEngine service is busy"));
 		}
 		return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Result.failed("500", ex.getMessage()));
 	}
