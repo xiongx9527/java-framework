@@ -10,6 +10,13 @@ const normalizePath = path => {
 
 const replaceURL = url => url.replace(/:?\/+/g, value => value.indexOf(':') > -1 ? value : '/')
 
+const normalizeURL = url => {
+    if (!url) {
+        return null
+    }
+    return url.endsWith('/') ? url : `${url}/`
+}
+
 const resolveBase = () => {
     let link = `${location.protocol}//${location.host}${location.pathname}`.replace('/index.html', '')
     const baseURL = typeof __MAGIC_API_BASE_URL__ === 'undefined' ? './' : __MAGIC_API_BASE_URL__
@@ -29,6 +36,11 @@ export default ({ pluginData = {} } = {}) => ({
         displayKey: 'tiny-engine',
         order: 1600,
         onClick: () => {
+            const url = normalizeURL(pluginData.attributes?.url)
+            if (url) {
+                window.open(url, '_blank')
+                return
+            }
             const link = resolveBase()
             const path = normalizePath(pluginData.attributes?.path)
             window.open(replaceURL(link + path), '_blank')
