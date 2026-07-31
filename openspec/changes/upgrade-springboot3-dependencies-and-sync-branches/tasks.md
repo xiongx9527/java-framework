@@ -11,6 +11,7 @@
 - [x] 2.2 检查 `dev` 的依赖清理结果，确认 LangChain4j 0.35.0 仅使用 Java 8 兼容模块且固定平台版本未变化
 - [x] 2.3 按 Core → Boot → Cloud / AI → Sample 顺序完成 `dev` 的 Java 8 Maven 测试与构建验证
 - [x] 2.4 提交必要的整合结果，非强制推送 `dev`，并确认远端 SHA 等于本地 HEAD
+- [ ] 2.5 移除 AskData Starter 对 LangChain4j Adapter Starter 的直接依赖，以中立依赖测试和 Java 8 Maven 构建锁定边界
 
 ## 3. 合并、验证并推送 springboot2
 

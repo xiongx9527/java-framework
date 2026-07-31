@@ -1099,3 +1099,60 @@ git commit -m "fix(build): 由父 POM 管理 Exec Maven Plugin 版本"
 ```
 
 Expected: 提交只包含 Core Dependencies 的 pluginManagement 和五处 `<version>` 删除。
+
+---
+
+### Task 15: 解耦 AskData Starter 与 LangChain4j Adapter Starter
+
+**Files:**
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/ai/askdata/starter/AskDataStarterDependencyTest.java`
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/pom.xml`
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/README.md`
+
+**Interfaces:**
+- Consumes: AskData Core、中立 AI Boot Starter，以及业务应用自行选择具体 Adapter 的现有架构。
+- Produces: 不直接依赖 LangChain4j Adapter Starter 的 AskData Starter；LangChain4j 使用方在应用侧显式组合 Adapter Starter。
+
+- [ ] **Step 1: 将现有依赖测试改为中立边界断言（RED）**
+
+重命名测试，使其表达 AskData Starter 保持具体 AI 框架中立；保留 AskData Core、AI Boot 自动配置以及 Spring AI 等禁止依赖断言，并将 LangChain4j Adapter Starter 的断言改为“不存在直接依赖”。
+
+Run:
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataStarterDependencyTest test
+```
+
+Expected: 测试因当前 POM 仍直接声明 `fw-plus-ai-langchain4j-adapter-spring-boot-starter` 而失败；失败原因不是测试定位或依赖解析错误。
+
+- [ ] **Step 2: 删除直接依赖并同步 README（GREEN）**
+
+从 AskData Starter POM 删除 LangChain4j Adapter Starter dependency。README 明确 AskData Starter 不默认带入具体 Adapter；需要 LangChain4j 的应用自行显式引入 Adapter Starter 和所需 provider SDK。
+
+- [ ] **Step 3: 验证依赖边界和 Java 8 构建**
+
+Run:
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataStarterDependencyTest test
+mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter validate -DskipTests
+git diff --check
+```
+
+Expected: 依赖测试与 validate 通过；AskData Starter POM 不再直接声明 Adapter Starter；README 只把 Adapter Starter 作为应用侧可选组合示例。
+
+- [ ] **Step 4: 提交解耦调整**
+
+Run:
+
+```bash
+git add fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter
+git diff --cached --check
+git commit -m "fix(ai): 解耦 AskData 与 LangChain4j Adapter Starter"
+```
+
+Expected: 提交只包含依赖边界测试、AskData Starter POM 和 README。
