@@ -6,7 +6,7 @@
 计划：`docs/superpowers/plans/2026-07-31-integrate-tiny-engine-console-starter.md`
 基线：`be77ca9d947a2e55f1c8a772d81238fe0e4013c8`
 
-- Task 1：待执行
+- Task 1：完成（`86df7e5..d62e4b9`，复审通过）
 - Task 2：待执行
 - Task 3：待执行
 - Task 4：待执行
