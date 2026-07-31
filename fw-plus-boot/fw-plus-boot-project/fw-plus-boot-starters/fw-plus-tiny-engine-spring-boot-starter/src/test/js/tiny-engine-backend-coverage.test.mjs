@@ -76,6 +76,16 @@ test('backend coverage matrix does not omit package, config, deploy, document or
   }
 })
 
+test('backend coverage matrix accounts for every tracked top-level source entry', () => {
+  const doc = readFileSync(COVERAGE_DOC, 'utf8')
+  const trackedEntries = execFileSync('git', ['-C', BACKEND_ROOT, 'ls-tree', '--name-only', 'HEAD'], {
+    encoding: 'utf8'
+  }).trim().split('\n').filter(Boolean)
+  for (const entry of trackedEntries) {
+    assert.match(doc, new RegExp(escapeRegExp(entry)), `missing top-level entry ${entry}`)
+  }
+})
+
 test('backend coverage matrix lists every mapper xml and sql file', () => {
   const doc = readFileSync(COVERAGE_DOC, 'utf8')
   const mapperFiles = listFiles(path.join(BACKEND_ROOT, 'base/src/main/resources/mappers'), rel => rel.endsWith('.xml'))
