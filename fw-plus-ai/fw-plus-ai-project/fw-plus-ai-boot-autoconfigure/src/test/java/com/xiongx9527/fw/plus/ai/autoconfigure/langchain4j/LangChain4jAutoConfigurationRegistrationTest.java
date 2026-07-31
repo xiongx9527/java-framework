@@ -121,8 +121,8 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		EXPECTED_CLASS_CONDITIONS.put(
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jVertexAiGeminiAutoConfiguration",
 				new String[] {
-						"dev.langchain4j.model.vertexai.VertexAiGeminiChatModel",
-						"dev.langchain4j.model.vertexai.VertexAiGeminiStreamingChatModel"
+						"dev.langchain4j.model.vertexai.gemini.VertexAiGeminiChatModel",
+						"dev.langchain4j.model.vertexai.gemini.VertexAiGeminiStreamingChatModel"
 				});
 		EXPECTED_CLASS_CONDITIONS.put(
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jElasticsearchEmbeddingStoreAutoConfiguration",
