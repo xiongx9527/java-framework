@@ -147,3 +147,24 @@
 - GREEN evidence: springboot3 `afa7a50f`，1 test / 0 failure / BUILD SUCCESS
 - Risk review triggered: `yes`（DONE_WITH_CONCERNS；临时 worktree 残留）
 - Open findings: `none`（既有 settings.xml 警告作为外部 Minor 保留）
+
+## LangChain4j 解析与适配证据
+
+- Task: `Task 9: 验证 LangChain4j 1.18.0 与三项显式覆盖`
+- OpenSpec mapping: `5.2`、`5.3`
+- Stage: `done`
+- Implementer: `/root/task9_langchain_evidence`
+- Base commit: `e2a8def8`
+- Spring Boot 3 HEAD: `afa7a50f`
+- Existing implementation commits: `0c44f893`、`d3303707`
+- Implementation commits: `springboot3=c26099f2`、`dev=73f13266`
+- Changed files: LangChain4j 注册测试的两条 Vertex AI Gemini 包名期望，以及 `.comet/evidence/springboot3-dependency-matrix.md`
+- RED evidence: 定向测试 13 项中 1 项失败，旧 `dev.langchain4j.model.vertexai.*` 期望与生产 `dev.langchain4j.model.vertexai.gemini.*` 不一致
+- GREEN evidence: LangChain4j 定向测试 13/13、Spring Boot 3 依赖基线测试 1/1、两个 effective POM、依赖树、OpenSpec strict 与两处 diff-check 均通过
+- Risk review triggered: `yes`（跨分支依赖契约与测试证据）
+- Review mode: `standard`
+- Reviewer: `/root/task9_langchain_review`
+- Review result: Spec Compliance 与 Task quality 均通过
+- Review/fix round: `0/1`
+- Minor (deferred): 依赖矩阵“AI BOM 只 import Core BOM”措辞不够精确；实际还 import Boot BOM，但 LangChain4j 管理只经 Core BOM 获得，不影响解析结论
+- Open findings: `none`

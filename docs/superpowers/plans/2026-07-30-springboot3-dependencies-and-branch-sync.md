@@ -677,7 +677,7 @@ Expected: `SpringBoot3DependencyBaselineTest` PASS，原始 POM 的固定版本�
 - Consumes: Core BOM 的 LangChain4j 1.18.0 管理、三项 0.36.2 显式覆盖和现有自定义适配层。
 - Produces: Core BOM、AI BOM、消费模块和有效 POM/依赖树一致的 Maven 证据，以及不改变公开 API 的兼容适配。
 
-- [ ] **Step 1: 生成有效 POM 与定向依赖树**
+- [x] **Step 1: 生成有效 POM 与定向依赖树**
 
 Run:
 
@@ -694,7 +694,7 @@ rg -n 'dev\.langchain4j:langchain4j-(redis|qianfan|dashscope):.*:0\.36\.2' .work
 
 Expected: 两个 effective POM 可生成；Core BOM 显示 LangChain4j BOM 1.18.0 和 Redis/Qianfan/DashScope 的 0.36.2 覆盖；AI BOM 不直接声明 langchain4j.version 或导入 LangChain4j BOM，而是导入 Core BOM；依赖树中的三项例外解析为 0.36.2。检查消费模块 POM，确认三项依赖不直接写版本；使用主工作区 `apply_patch` 将坐标与解析版本写入依赖矩阵。
 
-- [ ] **Step 2: 运行 LangChain4j 定向测试**
+- [x] **Step 2: 运行 LangChain4j 定向测试**
 
 Run:
 
@@ -706,11 +706,11 @@ mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-b
 
 Expected: 两个测试类通过；如因 LangChain4j API 变化编译或启动失败，先记录精确类型/方法差异并进入 Step 3。
 
-- [ ] **Step 3: 对确证的 API 差异做最小适配**
+- [x] **Step 3: 对确证的 API 差异做最小适配**
 
 对 Step 2 的每个失败，先在相邻测试中加入可复现断言并确认 RED，再用 `apply_patch` 仅修改报错调用点或 `@ConditionalOnClass` 边界；重新运行单个失败测试确认 GREEN。若修复需要公开 API、固定平台或无关重构，撤销该候选升级并在矩阵记录“保留旧版及原因”。
 
-- [ ] **Step 4: 验证 Core BOM 管理结构**
+- [x] **Step 4: 验证 Core BOM 管理结构**
 
 Run:
 
@@ -723,7 +723,7 @@ rg -n '<artifactId>langchain4j-(redis|qianfan|dashscope)</artifactId>' .worktree
 
 Expected: 基线测试确认 Core BOM 的 1.18.0、AI BOM 通过 Core BOM 继承且无直接 LangChain4j 管理、三项 Core 覆盖均为 0.36.2；逐个检查命中的消费模块，确认没有三项依赖的直接 `<version>`。该 XML 基线测试只锁定声明结构，解析结果仍以 Step 1 的有效 POM 与依赖树为准。
 
-- [ ] **Step 5: 提交 LangChain4j 升级**
+- [x] **Step 5: 提交 LangChain4j 升级**
 
 Run:
 
