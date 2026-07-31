@@ -234,7 +234,7 @@ git -C .worktrees/springboot3-upgrade merge-base --is-ancestor d3303707 HEAD
 | 层/属性 | 当前 | 候选 | 采用 | Java 17 | 固定平台冲突 | API 适配 | 判定/原因 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Cloud `servo-core.version` | 0.12.21 | 0.13.2 | 0.13.2 | 通过（Cloud） | 无 | 无 | A |
-| Cloud `io.github.openfeign.version` | 13.5 | 13.13 | 13.13 | 通过（Cloud） | 无 | 无 | A |
+| Cloud `io.github.openfeign.version` | 13.5 | 13.13 | 保留 | 通过（Cloud） | Spring Cloud OpenFeign 4.3.0 管理 Feign 13.6 | 不适用 | R5 |
 | AI `agents-flex.version` | 1.3.4 | 2.2.6 | 保留 | 未验证 | 无 | 主版本 API 未适配 | R2 |
 | AI `easyAi.version` | 1.4.9 | 1.6.8 | 保留 | 未验证 | 无 | AI 运行时未验收 | R1 |
 | AI `milvus-sdk-java.version` | 2.6.3 | 3.0.5 | 保留 | 未验证 | 无 | 主版本向量 API 未适配 | R2 |
