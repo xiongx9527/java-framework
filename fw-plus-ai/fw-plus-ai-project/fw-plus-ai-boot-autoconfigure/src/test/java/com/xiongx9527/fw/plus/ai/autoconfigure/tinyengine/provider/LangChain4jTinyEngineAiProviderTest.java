@@ -14,6 +14,8 @@ import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
@@ -50,8 +52,8 @@ public class LangChain4jTinyEngineAiProviderTest {
 		TinyEngineChatResponse response = provider.chat(request);
 
 		assertEquals("chat answer", response.getContent());
-		assertEquals("system prompt", chatModel.messages.get(0).text());
-		assertEquals("hello", chatModel.messages.get(1).text());
+		assertEquals("system prompt", text(chatModel.messages.get(0)));
+		assertEquals("hello", text(chatModel.messages.get(1)));
 		assertEquals("JSON", chatModel.request.responseFormat().type().name());
 		assertEquals("json_object", response.getMetadata().get("response_format"));
 		assertEquals(Integer.valueOf(128), response.getMetadata().get("max_tokens"));
@@ -68,7 +70,7 @@ public class LangChain4jTinyEngineAiProviderTest {
 
 		List<TinyEngineChatStreamChunk> chunks = provider.stream(request);
 
-		assertEquals("hello", streamingModel.messages.get(1).text());
+		assertEquals("hello", text(streamingModel.messages.get(1)));
 		assertEquals(3, chunks.size());
 		assertEquals("he", chunks.get(0).getContent());
 		assertEquals("llo", chunks.get(1).getContent());
@@ -104,6 +106,19 @@ public class LangChain4jTinyEngineAiProviderTest {
 		properties.getModel().setChatKey("chat-default");
 		properties.getModel().setStreamingChatKey("stream-default");
 		return new LangChain4jTinyEngineAiProvider(new SingleModelRegistry(model), properties);
+	}
+
+	private static String text(ChatMessage message) {
+		if (message instanceof SystemMessage) {
+			return ((SystemMessage) message).text();
+		}
+		if (message instanceof UserMessage) {
+			return ((UserMessage) message).singleText();
+		}
+		if (message instanceof AiMessage) {
+			return ((AiMessage) message).text();
+		}
+		throw new IllegalArgumentException("Unsupported message type: " + message.type());
 	}
 
 	private AiModel aiModel(String key, AiModelType type, LangChain4jModelType nativeType, Object nativeModel) {

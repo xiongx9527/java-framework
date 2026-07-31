@@ -27,6 +27,4 @@ public class Properties {
     @NestedConfigurationProperty
     EmbeddingModelProperties embeddingModel;
 
-    @NestedConfigurationProperty
-    TokenizerProperties tokenizer;
 }

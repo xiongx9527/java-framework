@@ -9,6 +9,8 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.CosineSimilarity;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.RelevanceScore;
 import lombok.Getter;
@@ -219,12 +221,19 @@ public class CassandraEmbeddingStore implements EmbeddingStore<TextSegment> {
         return findRelevant(embedding, maxResults, minScore);
     }
 
+    @Override
+    public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+        return new EmbeddingSearchResult<TextSegment>(
+                findRelevant(request.queryEmbedding(), request.maxResults(), request.minScore()));
+    }
+
     private void addInternal(String rowId, Embedding embedding, TextSegment textSegment) {
         String body = null;
         Map<String, String> metadata = null;
         if (textSegment != null) {
             body = textSegment.text();
-            metadata = textSegment.metadata().asMap();
+            metadata = textSegment.metadata().toMap().entrySet().stream()
+                    .collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, e -> String.valueOf(e.getValue())));
         }
         cassandraSession.execute("INSERT INTO " + tableName + " (" + ROW_ID + ", " + VECTOR + ", " + BODY_BLOB + ", " + METADATA_S
                 + ") VALUES (?, ?, ?, ?)", rowId, CqlVector.newInstance(embedding.vectorAsList()), body, metadata);

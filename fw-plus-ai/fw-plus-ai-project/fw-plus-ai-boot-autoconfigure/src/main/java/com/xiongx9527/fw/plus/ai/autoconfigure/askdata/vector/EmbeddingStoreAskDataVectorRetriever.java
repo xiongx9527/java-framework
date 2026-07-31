@@ -4,6 +4,7 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 
 import java.util.ArrayList;
@@ -30,7 +31,10 @@ public class EmbeddingStoreAskDataVectorRetriever implements AskDataVectorRetrie
         if (embedding == null) {
             return Collections.emptyList();
         }
-        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.findRelevant(embedding, query.getTopK() <= 0 ? 5 : query.getTopK());
+        List<EmbeddingMatch<TextSegment>> matches = embeddingStore.search(EmbeddingSearchRequest.builder()
+                .queryEmbedding(embedding)
+                .maxResults(query.getTopK() <= 0 ? 5 : query.getTopK())
+                .build()).matches();
         List<AskDataRetrievedDocument> documents = new ArrayList<AskDataRetrievedDocument>();
         for (EmbeddingMatch<TextSegment> match : matches) {
             if (match != null && match.embedded() != null) {

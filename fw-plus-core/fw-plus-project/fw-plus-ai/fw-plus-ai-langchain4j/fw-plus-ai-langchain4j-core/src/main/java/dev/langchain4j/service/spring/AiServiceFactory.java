@@ -8,8 +8,8 @@ package dev.langchain4j.service.spring;
 import dev.langchain4j.internal.Utils;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.ChatMemoryProvider;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.rag.RetrievalAugmentor;
 import dev.langchain4j.rag.content.retriever.ContentRetriever;
 import dev.langchain4j.service.AiServices;
@@ -18,8 +18,8 @@ import org.springframework.beans.factory.FactoryBean;
 
 class AiServiceFactory implements FactoryBean<Object> {
     private final Class<Object> aiServiceClass;
-    private ChatLanguageModel chatLanguageModel;
-    private StreamingChatLanguageModel streamingChatLanguageModel;
+    private ChatModel chatLanguageModel;
+    private StreamingChatModel streamingChatLanguageModel;
     private ChatMemory chatMemory;
     private ChatMemoryProvider chatMemoryProvider;
     private ContentRetriever contentRetriever;
@@ -30,11 +30,11 @@ class AiServiceFactory implements FactoryBean<Object> {
         this.aiServiceClass = aiServiceClass;
     }
 
-    public void setChatLanguageModel(ChatLanguageModel chatLanguageModel) {
+    public void setChatLanguageModel(ChatModel chatLanguageModel) {
         this.chatLanguageModel = chatLanguageModel;
     }
 
-    public void setStreamingChatLanguageModel(StreamingChatLanguageModel streamingChatLanguageModel) {
+    public void setStreamingChatLanguageModel(StreamingChatModel streamingChatLanguageModel) {
         this.streamingChatLanguageModel = streamingChatLanguageModel;
     }
 
@@ -61,11 +61,11 @@ class AiServiceFactory implements FactoryBean<Object> {
     public Object getObject() {
         AiServices<Object> builder = AiServices.builder(this.aiServiceClass);
         if (this.chatLanguageModel != null) {
-            builder = builder.chatLanguageModel(this.chatLanguageModel);
+            builder = builder.chatModel(this.chatLanguageModel);
         }
 
         if (this.streamingChatLanguageModel != null) {
-            builder = builder.streamingChatLanguageModel(this.streamingChatLanguageModel);
+            builder = builder.streamingChatModel(this.streamingChatLanguageModel);
         }
 
         if (this.chatMemory != null) {

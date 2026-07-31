@@ -7,6 +7,8 @@ import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 import com.xiongx9527.fw.plus.ai.store.embedding.DefaultAiEmbeddingStoreRegistry;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.junit.jupiter.api.Test;
 
@@ -150,6 +152,11 @@ public class DefaultEmbeddingStoreRegistryTest {
         @Override
         public List<String> addAll(List<Embedding> embeddings, List<TextSegment> embedded) {
             return Collections.emptyList();
+        }
+
+        @Override
+        public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+            return new EmbeddingSearchResult<TextSegment>(Collections.emptyList());
         }
     }
 

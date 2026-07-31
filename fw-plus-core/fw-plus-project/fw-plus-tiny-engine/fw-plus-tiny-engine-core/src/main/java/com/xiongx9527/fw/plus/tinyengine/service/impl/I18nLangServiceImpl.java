@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.tinyengine.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
 import com.xiongx9527.fw.plus.tinyengine.mapper.I18nLangMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.I18nLang;
 import com.xiongx9527.fw.plus.tinyengine.service.I18nLangService;

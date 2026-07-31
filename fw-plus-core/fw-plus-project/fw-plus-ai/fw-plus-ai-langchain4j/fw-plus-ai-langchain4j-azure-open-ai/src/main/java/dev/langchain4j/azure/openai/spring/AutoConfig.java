@@ -2,18 +2,14 @@ package dev.langchain4j.azure.openai.spring;
 
 import com.azure.core.http.ProxyOptions;
 import com.azure.core.util.Configuration;
-import dev.langchain4j.model.Tokenizer;
 import dev.langchain4j.model.azure.AzureOpenAiChatModel;
 import dev.langchain4j.model.azure.AzureOpenAiEmbeddingModel;
 import dev.langchain4j.model.azure.AzureOpenAiImageModel;
 import dev.langchain4j.model.azure.AzureOpenAiStreamingChatModel;
-import dev.langchain4j.model.azure.AzureOpenAiTokenizer;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.lang.Nullable;
 
 import java.time.Duration;
 
@@ -90,24 +86,23 @@ public class AutoConfig {
 
     @Bean
     @ConditionalOnProperty({Properties.PREFIX + ".embedding-model.api-key"})
-    AzureOpenAiEmbeddingModel openAiEmbeddingModelByApiKey(Properties properties, @Nullable Tokenizer tokenizer) {
-        return openAiEmbeddingModel(properties, tokenizer);
+    AzureOpenAiEmbeddingModel openAiEmbeddingModelByApiKey(Properties properties) {
+        return openAiEmbeddingModel(properties);
     }
 
     @Bean
     @ConditionalOnProperty({Properties.PREFIX + ".embedding-model.non-azure-api-key"})
-    AzureOpenAiEmbeddingModel openAiEmbeddingModelByNonAzureApiKey(Properties properties, @Nullable Tokenizer tokenizer) {
-        return openAiEmbeddingModel(properties, tokenizer);
+    AzureOpenAiEmbeddingModel openAiEmbeddingModelByNonAzureApiKey(Properties properties) {
+        return openAiEmbeddingModel(properties);
     }
 
-    AzureOpenAiEmbeddingModel openAiEmbeddingModel(Properties properties, Tokenizer tokenizer) {
+    AzureOpenAiEmbeddingModel openAiEmbeddingModel(Properties properties) {
         EmbeddingModelProperties embeddingModelProperties = properties.getEmbeddingModel();
         AzureOpenAiEmbeddingModel.Builder builder = AzureOpenAiEmbeddingModel.builder()
                 .endpoint(embeddingModelProperties.getEndpoint())
                 .apiKey(embeddingModelProperties.getApiKey())
                 .deploymentName(embeddingModelProperties.getDeploymentName())
                 .maxRetries(embeddingModelProperties.getMaxRetries())
-                .tokenizer(tokenizer)
                 .timeout(Duration.ofSeconds(embeddingModelProperties.getTimeout() == null ? 0 : embeddingModelProperties.getTimeout()))
                 .proxyOptions(ProxyOptions.fromConfiguration(Configuration.getGlobalConfiguration()))
                 .logRequestsAndResponses(embeddingModelProperties.getLogRequestsAndResponses() != null && embeddingModelProperties.getLogRequestsAndResponses());
@@ -151,10 +146,4 @@ public class AutoConfig {
         return builder.build();
     }
 
-
-    @Bean
-    @ConditionalOnMissingBean
-    AzureOpenAiTokenizer openAiTokenizer() {
-        return new AzureOpenAiTokenizer();
-    }
 }

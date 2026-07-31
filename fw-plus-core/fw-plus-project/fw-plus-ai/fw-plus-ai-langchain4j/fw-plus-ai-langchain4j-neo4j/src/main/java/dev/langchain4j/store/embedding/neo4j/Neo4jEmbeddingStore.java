@@ -3,6 +3,8 @@ package dev.langchain4j.store.embedding.neo4j;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import lombok.Builder;
 import lombok.Getter;
@@ -177,7 +179,6 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
         return ids;
     }
 
-    @Override
     public List<EmbeddingMatch<TextSegment>> findRelevant(Embedding referenceEmbedding, int maxResults, double minScore) {
         Value embeddingValue = Values.value(referenceEmbedding.vector());
 
@@ -194,6 +195,14 @@ public class Neo4jEmbeddingStore implements EmbeddingStore<TextSegment> {
                         params)
                     .list(item -> Neo4jEmbeddingUtils.toEmbeddingMatch(this, item));
         }
+    }
+
+    @Override
+    public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+        ensureNotNull(request, "request");
+        ensureNotNull(request.queryEmbedding(), "request.queryEmbedding");
+        return new EmbeddingSearchResult<TextSegment>(
+                findRelevant(request.queryEmbedding(), request.maxResults(), request.minScore()));
     }
 
     /*

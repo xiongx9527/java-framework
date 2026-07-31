@@ -101,13 +101,4 @@ public class AutoConfig {
                 .build();
     }
 
-    @Bean
-    @ConditionalOnProperty(Properties.PREFIX + ".tokenizer.api-key")
-    QwenTokenizer qwenTokenizer(Properties properties) {
-        TokenizerProperties tokenizerProperties = properties.getTokenizer();
-        return QwenTokenizer.builder()
-                .apiKey(tokenizerProperties.getApiKey())
-                .modelName(tokenizerProperties.getModelName())
-                .build();
-    }
 }

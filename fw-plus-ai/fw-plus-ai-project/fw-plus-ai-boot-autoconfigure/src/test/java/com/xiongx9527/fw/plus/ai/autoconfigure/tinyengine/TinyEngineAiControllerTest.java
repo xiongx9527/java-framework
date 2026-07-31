@@ -46,7 +46,7 @@ public class TinyEngineAiControllerTest {
 
 		ResponseStatusException exception = assertThrows(ResponseStatusException.class, controller::encryptKey);
 
-		assertEquals(HttpStatus.NOT_IMPLEMENTED, exception.getStatus());
+		assertEquals(HttpStatus.NOT_IMPLEMENTED, exception.getStatusCode());
 		assertEquals("TinyEngine AI encrypt key is not supported", exception.getReason());
 	}
 

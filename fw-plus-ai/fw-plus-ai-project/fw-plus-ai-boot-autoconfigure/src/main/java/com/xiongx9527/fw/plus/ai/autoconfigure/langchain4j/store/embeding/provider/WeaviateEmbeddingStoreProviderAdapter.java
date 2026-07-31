@@ -32,7 +32,8 @@ public class WeaviateEmbeddingStoreProviderAdapter implements EmbeddingStoreProv
                     ProviderAdapterSupport.booleanProperty(definition, "avoidDups"),
                     ProviderAdapterSupport.stringProperty(definition, "consistencyLevel"),
                     ProviderAdapterSupport.metadataKeys(definition),
-                    ProviderAdapterSupport.stringProperty(definition, "textFieldName"));
+                    ProviderAdapterSupport.stringProperty(definition, "textFieldName"),
+                    ProviderAdapterSupport.stringProperty(definition, "metadataFieldName"));
         } catch (Exception ex) {
             throw ProviderAdapterSupport.exception(definition, ex);
         }

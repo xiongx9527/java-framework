@@ -17,7 +17,12 @@ public class EmbeddingStoreAskDataVectorRetrieverTest {
     public void shouldRetrieveFromLangChain4jEmbeddingStore() {
         InMemoryEmbeddingStore<TextSegment> store = new InMemoryEmbeddingStore<TextSegment>();
         store.add(Embedding.from(new float[] {1.0F, 0.0F}), TextSegment.from("GMV means amount sum"));
-        EmbeddingModel model = texts -> Response.from(Collections.singletonList(Embedding.from(new float[] {1.0F, 0.0F})));
+        EmbeddingModel model = new EmbeddingModel() {
+            @Override
+            public Response<Embedding> embed(String text) {
+                return Response.from(Embedding.from(new float[] {1.0F, 0.0F}));
+            }
+        };
         AskDataVectorRetriever retriever = new EmbeddingStoreAskDataVectorRetriever(store, model);
 
         assertEquals("GMV means amount sum", retriever.retrieve(new AskDataVectorQuery("term", "orders", "shared",

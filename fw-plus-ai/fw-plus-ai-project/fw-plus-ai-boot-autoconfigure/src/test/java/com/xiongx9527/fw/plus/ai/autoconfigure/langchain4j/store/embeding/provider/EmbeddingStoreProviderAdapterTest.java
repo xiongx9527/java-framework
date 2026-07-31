@@ -4,6 +4,8 @@ import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreDefinition;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreException;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import dev.langchain4j.store.embedding.inmemory.InMemoryEmbeddingStore;
 import io.milvus.common.clientenum.ConsistencyLevelEnum;
@@ -386,6 +388,11 @@ public class EmbeddingStoreProviderAdapterTest {
         public List<String> addAll(List<Embedding> embeddings, List<TextSegment> embedded) {
             return Collections.emptyList();
         }
+
+        @Override
+        public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+            return new EmbeddingSearchResult<TextSegment>(Collections.emptyList());
+        }
     }
 
     public static class FailingGenericEmbeddingStore implements EmbeddingStore<TextSegment> {
@@ -424,6 +431,11 @@ public class EmbeddingStoreProviderAdapterTest {
         public List<String> addAll(List<Embedding> embeddings, List<TextSegment> embedded) {
             return Collections.emptyList();
         }
+
+        @Override
+        public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+            return new EmbeddingSearchResult<TextSegment>(Collections.emptyList());
+        }
     }
 
     public static class ConstructorOnlyEmbeddingStore implements EmbeddingStore<TextSegment> {
@@ -460,6 +472,11 @@ public class EmbeddingStoreProviderAdapterTest {
         @Override
         public List<String> addAll(List<Embedding> embeddings, List<TextSegment> embedded) {
             return Collections.emptyList();
+        }
+
+        @Override
+        public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+            return new EmbeddingSearchResult<TextSegment>(Collections.emptyList());
         }
     }
 }

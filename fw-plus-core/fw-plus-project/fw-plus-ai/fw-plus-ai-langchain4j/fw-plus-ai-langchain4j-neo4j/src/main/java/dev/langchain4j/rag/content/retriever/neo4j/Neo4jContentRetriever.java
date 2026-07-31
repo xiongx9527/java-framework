@@ -1,6 +1,6 @@
 package dev.langchain4j.rag.content.retriever.neo4j;
 
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.input.Prompt;
 import dev.langchain4j.model.input.PromptTemplate;
 import dev.langchain4j.rag.content.Content;
@@ -35,12 +35,12 @@ public class Neo4jContentRetriever implements ContentRetriever {
     private static final Pattern BACKTICKS_PATTERN = Pattern.compile("```(.*?)```", Pattern.MULTILINE | Pattern.DOTALL);
     private final Neo4jGraph graph;
 
-    private final ChatLanguageModel chatLanguageModel;
+    private final ChatModel chatLanguageModel;
 
     private final PromptTemplate promptTemplate;
 
     @Builder
-    public Neo4jContentRetriever(Neo4jGraph graph, ChatLanguageModel chatLanguageModel, PromptTemplate promptTemplate) {
+    public Neo4jContentRetriever(Neo4jGraph graph, ChatModel chatLanguageModel, PromptTemplate promptTemplate) {
 
         this.graph = ensureNotNull(graph, "graph");
         this.chatLanguageModel = ensureNotNull(chatLanguageModel, "chatLanguageModel");
@@ -63,7 +63,7 @@ public class Neo4jContentRetriever implements ContentRetriever {
         variables.put("schema", schema);
         variables.put("question", question);
         Prompt cypherPrompt = promptTemplate.apply(variables);
-        String cypherQuery = chatLanguageModel.generate(cypherPrompt.text());
+        String cypherQuery = chatLanguageModel.chat(cypherPrompt.text());
         Matcher matcher = BACKTICKS_PATTERN.matcher(cypherQuery);
         if (matcher.find()) {
             return matcher.group(1);

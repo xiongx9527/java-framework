@@ -4,6 +4,8 @@ import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingMatch;
+import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
+import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import org.infinispan.client.hotrod.RemoteCache;
 import org.infinispan.client.hotrod.RemoteCacheManager;
@@ -166,7 +168,6 @@ public class InfinispanEmbeddingStore implements EmbeddingStore<TextSegment> {
         return ids;
     }
 
-    @Override
     public List<EmbeddingMatch<TextSegment>> findRelevant(Embedding referenceEmbedding, int maxResults, double minScore) {
         Query<Object[]> query = Search.getQueryFactory(remoteCache).create("select i, score(i) from " + storeConfiguration.langchainItemFullType() + " i where i.embedding <-> " + Arrays.toString(referenceEmbedding.vector()) + "~" + storeConfiguration.distance());
         List<Object[]> hits = query.maxResults(maxResults).list();
@@ -190,6 +191,14 @@ public class InfinispanEmbeddingStore implements EmbeddingStore<TextSegment> {
         }).filter(Objects::nonNull).collect(Collectors.toList());
     }
 
+    @Override
+    public EmbeddingSearchResult<TextSegment> search(EmbeddingSearchRequest request) {
+        ensureNotNull(request, "request");
+        ensureNotNull(request.queryEmbedding(), "request.queryEmbedding");
+        return new EmbeddingSearchResult<TextSegment>(
+                findRelevant(request.queryEmbedding(), request.maxResults(), request.minScore()));
+    }
+
     private void addInternal(String id, Embedding embedding, TextSegment embedded) {
         addAllInternal(singletonList(id), singletonList(embedding), embedded == null ? null : singletonList(embedded));
     }
@@ -209,8 +218,8 @@ public class InfinispanEmbeddingStore implements EmbeddingStore<TextSegment> {
             Embedding embedding = embeddings.get(i);
             TextSegment textSegment = embedded == null ? null : embedded.get(i);
             if (textSegment != null) {
-                Set<LangChainMetadata> metadata = textSegment.metadata().asMap().entrySet().stream()
-                      .map(e -> new LangChainMetadata(e.getKey(), e.getValue())).collect(Collectors.toSet());
+                Set<LangChainMetadata> metadata = textSegment.metadata().toMap().entrySet().stream()
+                      .map(e -> new LangChainMetadata(e.getKey(), String.valueOf(e.getValue()))).collect(Collectors.toSet());
                 elements.put(id, new LangChainInfinispanItem(id, embedding.vector(), textSegment.text(), metadata));
             } else {
                 elements.put(id, new LangChainInfinispanItem(id, embedding.vector(), null, null));
