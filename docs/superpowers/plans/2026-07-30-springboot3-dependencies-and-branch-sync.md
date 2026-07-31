@@ -972,7 +972,7 @@ git -C .worktrees/springboot3-upgrade rev-list --left-right --count springboot3.
 git -C .worktrees/springboot3-upgrade merge-base --is-ancestor dev springboot3
 ```
 
-Expected: 显式 refspec 刷新 `refs/remotes/origin/springboot3` 后，才以非强制 merge 引入包含 AskData 生产代码、POM、测试和契约文档的已发布 dev；Java 17 下 AskDataStarterDependencyTest、AskDataAutoConfigurationTest、starter validate、NeutralAiAutoConfigurationBoundaryTest、SpringBoot3DependencyBaselineTest、LangChain4jAutoConfigurationRegistrationTest 和 LangChain4jAdapterAutoConfigurationTest 通过。后两项使用 LangChain4j adapter autoconfigure POM 执行，验证合并后 API 适配仍可用；基线测试确认 LangChain4j 1.18.0、三项 0.36.2 管理及现有 API 适配历史均被保留，推送后远端 SHA 等于本地 HEAD、ahead/behind 为 `0 0`，且 dev 是 springboot3 的祖先。
+Expected: 显式 refspec 刷新 `refs/remotes/origin/springboot3` 后，才以非强制 merge 引入包含 AskData 生产代码、POM、测试和契约文档的已发布 dev；Java 17 下 AskDataStarterDependencyTest、AskDataAutoConfigurationTest、starter validate、NeutralAiAutoConfigurationBoundaryTest、SpringBoot3DependencyBaselineTest、LangChain4jAutoConfigurationRegistrationTest 和 LangChain4jAdapterAutoConfigurationTest 通过。后两项使用实际 `fw-plus-ai-boot-autoconfigure` 模块/POM 执行，验证合并后 API 适配仍可用；基线测试确认 LangChain4j 1.18.0、三项 0.36.2 管理及现有 API 适配历史均被保留，推送后远端 SHA 等于本地 HEAD、ahead/behind 为 `0 0`，且 dev 是 springboot3 的祖先。
 
 ---
 
