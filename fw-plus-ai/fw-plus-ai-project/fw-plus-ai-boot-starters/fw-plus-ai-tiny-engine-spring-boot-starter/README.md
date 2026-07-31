@@ -51,17 +51,9 @@ fw:
 
 `model.embedding-key` 必须解析到可用的 embedding 模型；未配置时，RAG 会尝试使用 `AiModelRegistry` 的默认 key。`vector.store-key` 优先于 `store.store-key`；未配置时，RAG 会尝试使用 `AiEmbeddingStoreRegistry` 的默认 key。
 
-## LangChain4j 默认 adapter 示例
+## LangChain4j 默认 adapter 配置示例
 
-如果应用采用当前默认实现，可显式声明 adapter，并在中立配置中声明 provider：
-
-```xml
-<dependency>
-    <groupId>com.xiongx9527.fw.plus.ai</groupId>
-    <artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-starter</artifactId>
-    <version>${fw-plus-ai.version}</version>
-</dependency>
-```
+本 Starter 已传递引入默认的 LangChain4j adapter，业务无需重复声明 adapter 依赖。采用具体 provider 时，只需按 provider 文档额外添加对应 SDK；下面是在中立配置中选择默认 adapter 的示例：
 
 ```yaml
 fw-plus:
