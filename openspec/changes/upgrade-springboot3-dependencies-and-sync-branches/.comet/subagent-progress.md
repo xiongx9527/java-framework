@@ -70,3 +70,27 @@
 - Reviewer: `/root/task14_pluginmanagement_review`
 - Review result: `/root/task14_pluginmanagement_review` 已批准，无 Critical/Important；1 个证据留存 Minor 由主会话完整重跑验证覆盖
 - Open findings: `none`
+
+## AskData Starter 解耦
+
+- Task: `Task 14: 解耦 AskData Starter 与 LangChain4j Adapter Starter`
+- OpenSpec mapping: `2.5`
+- Stage: `done`
+- Implementer: `/root/task14_askdata_decouple`
+- Base commit: `aaeafc20d66149128fea2ce5ae313ab538f4a351`
+- Implementation commit: `1897d92150d71be153d8ba12ef2120a611bb2d4e`
+- Fix commit: `ea6d367662c82d1a317a4f99ea1fe242d0ab4400`
+- Changed files: AskData Starter 的依赖测试、上下文测试、POM、README，以及 AskData 中立/可选 LangChain4j 自动配置
+- Allowed files: AskData Starter 与 AskData 自动配置范围
+- RED evidence: `AskDataStarterDependencyTest` 因 POM 仍直接依赖 Adapter Starter 失败，1 test / 1 failure
+- GREEN evidence: `AskDataStarterDependencyTest` 1/1 通过，目标 Starter `validate` 通过，`git diff --check` 通过
+- Fix RED evidence: starter-only `AskDataStarterContextTest` 在缺少 LangChain4j 的真实 Starter classpath 上暴露 AskData 自动配置缺类/装配失败
+- Fix GREEN evidence: Java 8 下 Starter 2/2、AskData 自动配置定向回归 37/37、目标 Starter `validate` 与 `git diff --check` 通过
+- Review mode: `standard`
+- Risk review triggered: `yes`（implementer 返回 DONE_WITH_CONCERNS；顾虑仅为 Maven settings.xml 环境告警）
+- Review/fix round: `1/1 completed; scoped re-review passed`
+- Open findings: `none`
+- User ruling: 采用方案 A；AskData Starter 不直接或 optional 依赖 LangChain4j Adapter Starter，应用按需显式组合。
+- Reviewer: `/root/task14_askdata_review`
+- Fix agent: `/root/task14_askdata_fix`
+- Re-reviewer: `/root/task14_askdata_rereview`
