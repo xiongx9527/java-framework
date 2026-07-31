@@ -12,7 +12,7 @@ canonical_spec: openspec
 
 当前本地 dev 已有依赖清理提交，但本地跟踪引用落后于远端实际状态。缓存拓扑同时显示 springboot2 没有相对 dev 的独立提交，而 springboot3 保留多项独立适配提交。所有拓扑判断都必须在成功 fetch 后重算；缓存引用和 API 查询只作为诊断信息。
 
-依赖管理分布在 Core、Boot、Cloud、AI 四层 BOM/父 POM。当前 springboot3 的 Core BOM 与 AI Boot BOM 仍使用 LangChain4j 0.35.0，AI Boot BOM 还给 starter、向量库、解析器等 artifact 显式设置同一版本。这不符合 LangChain4j 1.18.1 的稳定核心与 beta 集成双轨版本模型。
+依赖管理分布在 Core、Boot、Cloud、AI 四层 BOM/父 POM。springboot3 的 Core BOM 使用 LangChain4j 1.18.0 并显式覆盖 Redis、Qianfan 与 DashScope 为 0.36.2；AI Boot BOM 不直接管理 LangChain4j，而是通过导入 Core BOM 继承管理。
 
 ## 2. 目标与边界
 
@@ -21,7 +21,7 @@ canonical_spec: openspec
 - 在不丢失任何远端提交的前提下发布 dev，再同步到 springboot2 与 springboot3。
 - 保持 Java 8 分支现有平台版本和 LangChain4j 0.35.0。
 - 保持 springboot3 的 Java 17、Spring Boot 3.5.8、Spring Cloud 2025.0.0、Spring Cloud Alibaba 2025.0.0.0。
-- 在 springboot3 使用 LangChain4j BOM 1.18.1，并让集成模块解析为 1.18.1-beta28。
+- 在 springboot3 的 Core BOM 使用 LangChain4j BOM 1.18.0；AI Boot BOM 通过导入 Core BOM 继承管理，Redis、Qianfan 与 DashScope 由 Core BOM 显式覆盖为 0.36.2。
 - 升级其他与目标 Java 和固定平台兼容的依赖，允许必要的小范围源码或自动配置适配。
 - 为每次合并、构建和推送留下可复核证据。
 
@@ -65,7 +65,7 @@ worktree 根目录由仓库现有约定和忽略规则决定。创建前必须�
                    - 单独的依赖升级提交
                    - Java 17 验证、推送
 
-全部代码任务完成后，主工作区在 dev 提交最终 Comet 任务状态和证据。该纯文档提交再次同步到两个派生分支，使最终 dev 成为二者祖先。纯文档同步只复核 Git 状态和祖先关系，不重复代码构建。
+全部代码任务完成后，主工作区在 dev 提交最终 Comet 任务状态和证据，并同步包含 AskData 生产代码的提交到两个派生分支，使最终 dev 成为二者祖先。同步后 springboot2 必须在 Java 8、springboot3 必须在 Java 17 重新执行与变更匹配的验证。
 
 ### 3.3 远端安全规则
 
@@ -84,7 +84,7 @@ worktree 根目录由仓库现有约定和忽略规则决定。创建前必须�
 | --- | --- | --- | --- | --- | --- |
 | dev | 8 | 2.7.18 | 2021.0.9 | 2021.0.5.0 | 0.35.0 |
 | springboot2 | 8 | 2.7.18 | 2021.0.9 | 2021.0.5.0 | 0.35.0 |
-| springboot3 | 17 | 3.5.8 | 2025.0.0 | 2025.0.0.0 | BOM 1.18.1 |
+| springboot3 | 17 | 3.5.8 | 2025.0.0 | 2025.0.0.0 | Core BOM 1.18.0；三项显式覆盖 0.36.2 |
 
 三个分支均保持 Magic-API 2.2.2、Magic-Script 1.9.0。固定基线必须通过源 POM 和 effective POM 双重断言。
 
@@ -96,27 +96,20 @@ dev 的依赖清理提交删除了 spring-ai.version=1.0.1 与 spring-ai-alibaba
 
 ### 4.3 LangChain4j BOM 结构
 
-springboot3 的 Core BOM 和 AI Boot BOM 分别保持自包含：
+springboot3 的 Core BOM 负责 LangChain4j 管理：
 
-- langchain4j.version 设为 1.18.1。
-- 导入 dev.langchain4j:langchain4j-bom:1.18.1。
-- 删除 starter、向量库、模型提供方、解析器等依赖上可由 BOM 管理的显式版本。
-- 不给所有 artifact 人工指定 1.18.1 或 1.18.1-beta28。
+- Core BOM 的 langchain4j.version 设为 1.18.0，并导入 dev.langchain4j:langchain4j-bom:1.18.0。
+- AI Boot BOM 不直接声明 langchain4j.version 或导入 LangChain4j BOM，而是通过导入 Core BOM 继承其管理；AI BOM 仍可导入其他既有 BOM。
+- 删除由 LangChain4j BOM 管理的依赖显式版本。
+- Core BOM 对 langchain4j-redis、langchain4j-qianfan 和 langchain4j-dashscope 显式固定为 0.36.2；消费模块不得为三项依赖直接写版本。
 
-两个层级都导入 BOM 是现有分层发布模式的延续，使各 BOM 单独消费时仍有完整依赖管理。通过自动断言保证两个 langchain4j.version 属性一致。
-
-有效 POM 和依赖树必须证明：
-
-- langchain4j-core 为 1.18.1。
-- langchain4j-spring-boot-starter 为 1.18.1-beta28。
-- 其他集成 artifact 遵循 BOM 的 1.18.1-beta28 轨道。
-- Spring Boot 仍由项目 BOM 约束为 3.5.8。
+有效 POM 和依赖树必须证明 Core BOM 的 1.18.0 管理、AI BOM 无直接 LangChain4j 管理，以及三项例外解析为 0.36.2；Spring Boot 仍由项目 BOM 约束为 3.5.8。
 
 ### 4.4 其他依赖升级算法
 
 1. 从最新合并结果收集所有非固定 dependency/BOM 版本属性。
 2. 使用 Maven 更新报告生成候选清单，不自动执行批量改写。
-3. 默认只考虑 GA 稳定版；用户指定的 LangChain4j beta28 是例外。
+3. 默认只考虑 GA 稳定版；LangChain4j 的三项显式覆盖保持为当前 Core BOM 中的 0.36.2。
 4. 检查候选 artifact 的 Java 字节码、传递依赖、固定平台冲突和公开 API 影响。
 5. 先修改版本并执行最小编译；需要时做局部源码或自动配置适配。
 6. 运行目标模块测试和全层构建后决定采用或回退。
@@ -146,7 +139,7 @@ Spring AI、Spring AI Alibaba、Magic-API/Magic-Script、内部自维护坐标�
 5. springboot3：合并最新 dev 的 merge commit。
 6. springboot3：LangChain4j BOM 与其他兼容依赖升级，可按独立依赖组拆分以便回滚。
 7. dev：最终 Comet 状态、依赖矩阵和验证证据。
-8. 两个派生分支：同步最终纯文档提交。
+8. 两个派生分支：同步包含 AskData 生产代码的最终 dev 提交，并使用对应 JDK 重新验证。
 
 依赖升级失败时只回退对应升级提交，不撤销已验证的分支同步。
 
@@ -163,7 +156,7 @@ Spring AI、Spring AI Alibaba、Magic-API/Magic-Script、内部自维护坐标�
 | Cloud 测试与 install | 必须 | 必须 | 必须 |
 | AI 测试与 install | 必须 | 必须 | 必须 |
 | Sample 聚合 validate | 必须 | 必须 | 必须 |
-| LangChain4j effective POM/依赖树 | 0.35.0 | 0.35.0 | 1.18.1 / beta28 |
+| LangChain4j effective POM/依赖树 | 0.35.0 | 0.35.0 | Core BOM 1.18.0；Redis/Qianfan/DashScope 0.36.2 |
 | AI 自动配置上下文 | 相关测试 | 相关测试 | 扩展验证 |
 
 四层构建顺序固定为 Core → Boot → Cloud / AI，最后执行 Sample 聚合验证，确保本地 Maven 仓库中的层间 SNAPSHOT 已刷新。
@@ -220,7 +213,7 @@ Spring AI、Spring AI Alibaba、Magic-API/Magic-Script、内部自维护坐标�
 - 三个分支均已按设计非强制推送且远端 SHA 已独立确认。
 - 最终 dev 是 springboot2 和 springboot3 的祖先。
 - Java 8 与 Java 17 分支分别满足其固定依赖基线。
-- springboot3 的 LangChain4j 解析结果符合 1.18.1 / 1.18.1-beta28 双轨规则。
+- springboot3 的有效 POM 和依赖树确认 Core BOM 的 1.18.0 管理、AI BOM 无直接 LangChain4j 管理、Redis/Qianfan/DashScope 解析为 0.36.2，且消费模块未直接写三项版本。
 - Spring AI 与 Spring AI Alibaba 的既有 1.0.1 版本属性仍存在，且未创建无关模块。
 - 所有接受的升级通过目标测试和分层构建；未升级项有明确兼容性原因。
 - OpenSpec、Git 差异和所有工作区状态检查通过。
