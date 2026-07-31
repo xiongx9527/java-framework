@@ -40,6 +40,23 @@
 
 上述警告未被本任务掩盖，也未在 Task 3 中修改源码或依赖配置。
 
+## Task 8：Spring Boot 3 依赖基线 RED/GREEN 证据
+
+- 执行日期：`2026-07-31`；JDK：Zulu `17`，`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home`；Maven：系统 Maven `3.6.3`。
+- 历史 BOM 基线：`29295a5c5926c7b7ab39590ae886319d7554c42d`；方案 A 结构提交：`0c44f8938d5a784876124b32670bc981554a574f`；当前验证 HEAD：`afa7a50f1f9062894c2aa14231c707a34d9722bd`。
+- RED 在 `mktemp -d` 创建的 detached worktree 中执行：以当前 `afa7a50f` 保留已适配 LangChain4j API 的可编译源码，仅通过 `apply_patch` 将 Core 与 AI BOM 还原为 `29295a5c` 的 Task 8 契约状态。该隔离树未改动真实 `springboot3-upgrade`。
+
+```bash
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
+export PATH="$JAVA_HOME/bin:$PATH"
+mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
+  -Dtest=SpringBoot3DependencyBaselineTest test
+```
+
+- RED 摘要：完整 main/test compile 后 Surefire 实际运行 `SpringBoot3DependencyBaselineTest` 1 项，`Failures: 1, Errors: 0, Skipped: 0`，进程退出码 `1`；预期断言为 `langchain4j.version ==> expected: <1.18.0> but was: <1.18.1>`。
+- 历史 XML 核对：`29295a5c` 的 AI BOM 仍直接导入 `langchain4j-bom` 并直接声明 Redis、Qianfan、DashScope `0.36.2`，而方案 A 要求这些管理只留在 Core BOM、AI BOM import Core BOM。Core BOM 本身已有 BOM 与三项例外；RED 因首个 `1.18.0` 版本断言提前终止，结构差异由同一历史 POM 的静态核对确认。
+- GREEN 在真实 `.worktrees/springboot3-upgrade` 的 `afa7a50f` 以完全相同命令执行：Surefire 运行 1 项，`Failures: 0, Errors: 0, Skipped: 0`，Maven `BUILD SUCCESS`，退出码 `0`。接管复核于 `2026-07-31T19:30:57+08:00` 再次执行该命令，结果仍为 1 项测试零失败、零错误、零跳过，`BUILD SUCCESS`，退出码 `0`；仅出现已记录的 Maven `settings.xml` 第 213 行 `repository` 标签警告。
+
 ## springboot2 发布前复验
 
 - 环境保持 Zulu JDK `1.8.0_432` 与系统 Maven `3.6.3`；固定版本断言再次命中 Boot `2.7.18`、Cloud `2021.0.9`、Alibaba `2021.0.5.0`、LangChain4j `0.35.0`，Spring AI 与 Spring AI Alibaba 均为 `1.0.1`。
