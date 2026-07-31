@@ -94,3 +94,31 @@
 - Reviewer: `/root/task14_askdata_review`
 - Fix agent: `/root/task14_askdata_fix`
 - Re-reviewer: `/root/task14_askdata_rereview`
+
+## 方案 A 契约修订
+
+- Task: `Task 15: 按方案 A 修订 Spring Boot 3 LangChain4j 契约`
+- OpenSpec mapping: `1.4`
+- Stage: `done`
+- Implementer: `/root/task15_contract_a`
+- Base commit: `3208ab8ddec030b27fa5161dc5909b10506d3576`
+- Implementation commit: `e98a2e57`
+- Allowed files: 活动 proposal/design/spec/tasks、设计文档和实施计划，共六份契约文档
+- Required baseline: LangChain4j `1.18.0`；Redis/Qianfan/DashScope `0.36.2`
+- Review mode: `standard`
+- Risk review triggered: `yes`（跨 OpenSpec、设计和执行计划的契约变更）
+- Reviewer: `/root/task15_contract_review`
+- Fix agent: `/root/task15_contract_fix`
+- Fix commit: `a5af145d`
+- Extra fix agent: `/root/task15_contract_fix2`
+- Extra fix commit: `679e0f722`
+- Extra re-reviewer: `/root/task15_contract_rereview2`
+- Final fix agent: `/root/task15_contract_fix3`
+- Final fix commit: `fd335a87e`
+- Final re-reviewer: `/root/task15_contract_rereview3`
+- Re-reviewer: `/root/task15_contract_rereview`
+- Review/fix round: `3/3`（用户 A 授权修复并继续；仅处理 extra fix 引入的单行验收措辞）
+- RED evidence: 旧双轨版本与失效同步描述扫描命中
+- GREEN evidence: 旧表述扫描为空，OpenSpec strict validate 与 `git diff --check` 通过
+- User authorization: 允许额外一轮修复测试命令 POM 路径
+- Open findings: `none`（1 条历史摘要措辞作为 Minor 留给最终 review）
