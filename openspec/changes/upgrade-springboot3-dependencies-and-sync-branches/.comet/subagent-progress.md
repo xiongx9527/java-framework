@@ -32,5 +32,22 @@
 - GREEN evidence: 四项结构断言、Core BOM 属性求值 `3.4.1`、三个目标 Starter 以 `enforcer:3.4.1` 离线 `validate`、`git diff --check` 通过
 - Risk review triggered: `yes`（跨 Core/AI 模块；reviewer `/root/task7_enforcer_review`）
 - Review/fix round: `0/1`
+- Reviewer: `/root/task14_exec_plugin_review`
 - Review result: `/root/task7_enforcer_review` 已批准，无 Critical/Important/Minor finding
 - User ruling: `maven-enforcer-plugin.version=3.4.1` 必须统一声明在 Core BOM，三个 AI Starter POM 只引用该属性。
+
+## Follow-up Exec Maven Plugin version unification
+
+- Plan task: `Task 14: 统一 Exec Maven Plugin 版本属性`
+- OpenSpec mapping: `1.4`
+- Stage: `done`
+- Implementer: `/root/task14_exec_plugin_version`
+- Base commit: `e934766f561ef9dfca7894cd13f5a86d9f0f8bc5`
+- Implementation commit: `7742ac8b94020857da4cd2c49ce7c9c8ce72ba95`
+- Allowed files: Core Dependencies POM；Boot MagicAPI Starter、Boot MagicAPI Plugin、Boot TinyEngine Starter、Cloud MagicAPI Plugin、AI MagicAPI Plugin POM
+- TDD mode: `tdd`；RED 为 5 处硬编码与属性缺失断言失败，GREEN 为结构断言、Core 父链安装、5 个属性求值与离线 validate 全部通过
+- Review mode: `standard`
+- Risk review triggered: `yes`（协调者复核为跨 Core、Boot、Cloud、AI Maven 父链；覆盖 implementer 的未命中自报）
+- Review/fix round: `0/1`（无需修复）
+- Review result: `/root/task14_exec_plugin_review` 已批准，Critical/Important/Minor 均无 finding
+- Open findings: `none`
