@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Import;
 @ConditionalOnWebApplication
 @EnableConfigurationProperties(TinyEngineProperties.class)
 @Import({TinyEngineCoreConfiguration.class, TinyEngineServiceConfiguration.class, TinyEngineMapperConfiguration.class,
-		TinyEngineResourceConfiguration.class,
+		TinyEngineResourceConfiguration.class, TinyEngineApiConfiguration.class,
 		com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webmvc.TinyEngineServletWebConfiguration.class,
 		com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webflux.TinyEngineReactiveWebConfiguration.class})
 public class TinyEngineAutoConfiguration {

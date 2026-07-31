@@ -20,6 +20,10 @@ public final class TinyEngineWebResponses {
 		return ResponseEntity.ok(Result.success());
 	}
 
+	public static ResponseEntity<Result<Object>> notFound(String message) {
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Result.failed("404", message));
+	}
+
 	public static ResponseEntity<Result<Object>> error(Throwable ex) {
 		if (ex instanceof TinyEngineUnauthenticatedException) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Result.failed("401", ex.getMessage()));
