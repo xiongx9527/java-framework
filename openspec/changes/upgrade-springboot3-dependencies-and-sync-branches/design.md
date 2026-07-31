@@ -65,6 +65,12 @@ Magic-API/Magic-Script、自维护内部坐标、Spring AI/Spring AI Alibaba 和
 
 推送后分别读取远端引用，确认远端 SHA 等于本地 HEAD，并确认 `dev` 是 `springboot2`、`springboot3` 的祖先。Git HTTPS 不可用时，仅在远端比较证明目标更新为严格快进后才允许使用非强制 API 更新；任何分叉或无法获取远端对象的情况都停止发布。
 
+### 7. AskData Starter 保持具体 AI 框架中立
+
+`fw-plus-ai-askdata-spring-boot-starter` 只组合 AskData Core 与中立 AI Boot 自动配置，不直接依赖
+`fw-plus-ai-langchain4j-adapter-spring-boot-starter`。LangChain4j 是业务应用可选择的 Adapter，
+由应用按需显式引入；不使用 `optional` 直接依赖伪装解耦，也不为本次边界修正新增组合 Starter。
+
 ## Risks / Trade-offs
 
 - [远端 Git 传输持续失败] → 保持本地提交和工作区完整，重复执行只读连通性检查；没有最新远端对象时不开始合并或更新远端引用。

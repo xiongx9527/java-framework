@@ -106,6 +106,12 @@
 - **THEN** 系统删除无效配置或对应多余依赖
 - **AND** 不为未使用能力新增替代实现
 
+#### Scenario: AskData 应用选择具体模型适配器
+- **WHEN** 应用只引入 `fw-plus-ai-askdata-spring-boot-starter`
+- **THEN** 该 Starter SHALL NOT 直接依赖 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`
+- **AND** 需要 LangChain4j 的应用 SHALL 自行显式引入 Adapter Starter
+- **AND** AskData SHALL 继续通过中立模型与向量注册表消费能力
+
 ### Requirement: 分层构建与远端结果可复核
 每个目标分支 SHALL 在推送前完成与变更范围相称的 Maven 验证，推送后 SHALL 核对本地 HEAD、远端 SHA 和分支祖先关系。
 

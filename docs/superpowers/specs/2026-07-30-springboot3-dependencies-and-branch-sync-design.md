@@ -128,6 +128,11 @@ springboot3 的 Core BOM 和 AI Boot BOM 分别保持自包含：
 - 不承担 BOM、starter、自动配置、SPI、反射或运行时插件职责。
 - Maven 分析和目标构建没有证明其必要。
 
+AskData Starter 的依赖边界是上述规则的明确实例：`fw-plus-ai-askdata-spring-boot-starter`
+只负责 AskData Core 与中立 AI 自动配置，不直接依赖
+`fw-plus-ai-langchain4j-adapter-spring-boot-starter`。需要 LangChain4j 的业务应用自行显式组合
+Adapter Starter；把该依赖标记为 `optional` 仍属于直接依赖，不满足边界。
+
 Spring AI、Spring AI Alibaba、Magic-API/Magic-Script、内部自维护坐标和两个 TinyEngine change 始终排除在自动删除范围外。
 
 ## 5. 提交边界
