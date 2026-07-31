@@ -489,7 +489,7 @@ Expected: 提交只包含 Core BOM 的统一属性和三个 Starter POM 的属�
 - Consumes: 两层 BOM 原始 XML。
 - Produces: `SpringBoot3DependencyBaselineTest`，断言固定平台、Spring AI 属性、LangChain4j BOM 和逐 artifact 版本删除规则。
 
-- [ ] **Step 1: 写入失败的基线测试（RED）**
+- [x] **Step 1: 写入失败的基线测试（RED）**
 
 使用 `apply_patch` 在 `.worktrees/springboot3-upgrade` 中创建以下完整测试类：
 
@@ -622,7 +622,7 @@ private File repositoryRoot() {
 }
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run:
 
@@ -634,7 +634,7 @@ mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-b
 
 Expected: FAIL，错误明确指向 `langchain4j.version` 仍为 0.35.0 或逐 artifact `<version>` 尚未删除，而不是测试定位失败。
 
-- [ ] **Step 3: 在 Core BOM 导入 1.18.0 并删除冗余版本**
+- [x] **Step 3: 在 Core BOM 导入 1.18.0 并删除冗余版本**
 
 使用 `apply_patch` 在 springboot3 worktree 的 Core BOM 中将 `<langchain4j.version>` 改为 `1.18.0` 并导入以下 BOM。AI BOM 不直接声明该属性或导入 LangChain4j BOM，而是通过导入 Core BOM 继承管理；Core BOM 显式覆盖 Redis、Qianfan 和 DashScope 为 `0.36.2`，消费模块不直接写三项版本：
 
@@ -650,7 +650,7 @@ Expected: FAIL，错误明确指向 `langchain4j.version` 仍为 0.35.0 或逐 a
 
 不得改变固定 Spring/Magic/Spring AI 属性。
 
-- [ ] **Step 4: 运行基线测试确认通过（GREEN）**
+- [x] **Step 4: 运行基线测试确认通过（GREEN）**
 
 Run:
 
