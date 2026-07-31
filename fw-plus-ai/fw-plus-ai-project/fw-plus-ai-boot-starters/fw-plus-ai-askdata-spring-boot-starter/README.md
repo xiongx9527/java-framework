@@ -20,6 +20,8 @@
 
 `model.default-chat-model`、`model.default-embedding-model` 是默认注册表 key；候选列表会优先选择已在 `AiModelRegistry` 中注册且类型匹配的 key。`vector.store` 解析到 `AiEmbeddingStoreRegistry` 的 store key。
 
+默认模型桥接只接受同时实现 `AiModel` 与 `AskDataChatModel` / `AskDataEmbeddingModel` 的中立实现，不反射或转换具体 SDK 类型。LangChain4j 模型的转换由应用显式引入 Adapter Starter 后启用的可选适配配置负责。
+
 ```yaml
 fw:
   plus:
