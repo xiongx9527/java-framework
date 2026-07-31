@@ -27,7 +27,7 @@ public class TinyEngineAiStarterDependencyTest {
 			+ "fw-plus-tiny-engine-spring-boot-starter/pom.xml";
 
 	@Test
-	public void shouldDeclareRequiredAiStarterDependenciesAsDirectCompileNonOptionalAndVersionManaged() throws Exception {
+	public void shouldDeclareRequiredNeutralAiStarterDependenciesAsDirectCompileNonOptionalAndVersionManaged() throws Exception {
 		Element aiStarter = pom(AI_STARTER_POM);
 
 		assertDirectCompileNonOptionalVersionManaged(aiStarter,
@@ -36,12 +36,10 @@ public class TinyEngineAiStarterDependencyTest {
 				"com.xiongx9527.fw.plus.ai:fw-plus-ai-model-spring-boot-starter");
 		assertDirectCompileNonOptionalVersionManaged(aiStarter,
 				"com.xiongx9527.fw.plus.ai:fw-plus-ai-store-embedding-spring-boot-starter");
-		assertDirectCompileNonOptionalVersionManaged(aiStarter,
-				"com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter");
 	}
 
 	@Test
-	public void shouldKeepTinyEngineCoreAndLegacyLangChain4jStartersOutOfAiStarter() throws Exception {
+	public void shouldKeepTinyEngineCoreAndLangChain4jStartersOutOfAiStarter() throws Exception {
 		Element aiStarter = pom(AI_STARTER_POM);
 
 		assertNotNull("TinyEngine AI starter must include AI auto-configuration",
@@ -54,6 +52,9 @@ public class TinyEngineAiStarterDependencyTest {
 		assertFalse("TinyEngine AI starter must not depend on the legacy LangChain4j embedding store starter",
 				containsDirectDependency(aiStarter,
 						"com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter"));
+		assertFalse("TinyEngine AI starter must not choose a concrete LangChain4j adapter for business applications",
+				containsDirectDependency(aiStarter,
+						"com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
 	}
 
 	@Test

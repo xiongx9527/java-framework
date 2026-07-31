@@ -2,16 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 让业务只引入 `fw-plus-ai-tiny-engine-spring-boot-starter` 时，同时获得现有 TinyEngine Boot Starter 与最新中立 AI Starter 的完整能力。
+**Goal:** 让业务只引入 `fw-plus-ai-tiny-engine-spring-boot-starter` 时，同时获得现有 TinyEngine Boot Starter 与最新中立 model/store Starter；具体 framework adapter 由业务应用显式选择。
 
-**Architecture:** AI 层 BOM 导入现有 Boot BOM，统一管理 Boot Starter 版本；TinyEngine AI Starter 将对 Core 的直接依赖替换为对现有 TinyEngine Boot Starter 的直接依赖。运行时代码保持不变，使用 POM 结构测试和 Spring Boot 自动配置发现测试锁定依赖方向与聚合行为。
+**Architecture:** AI 层 BOM 导入现有 Boot BOM，统一管理 Boot Starter 版本；TinyEngine AI Starter 将对 Core 的直接依赖替换为对现有 TinyEngine Boot Starter 的直接依赖，并只聚合中立 model/store Starter。运行时代码保持不变，使用 POM 结构测试和 Spring Boot 自动配置发现测试锁定依赖方向与聚合行为。
 
 **Tech Stack:** Java 8、Maven、Spring Boot 2.7.18、JUnit 4、SpringFactoriesLoader、LangChain4j 0.35.0
 
 ## Global Constraints
 
 - 必须复用 `fw-plus-tiny-engine-spring-boot-starter`，不得新建、复制、内嵌或重新实现 Boot Starter。
-- `fw-plus-ai-tiny-engine-spring-boot-starter` 必须直接依赖 Boot Starter、`fw-plus-ai-model-spring-boot-starter`、`fw-plus-ai-store-embedding-spring-boot-starter` 和 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
+- `fw-plus-ai-tiny-engine-spring-boot-starter` 必须直接依赖 Boot Starter、`fw-plus-ai-model-spring-boot-starter` 和 `fw-plus-ai-store-embedding-spring-boot-starter`。
+- `fw-plus-ai-tiny-engine-spring-boot-starter` 不得直接依赖 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`；具体 adapter/provider 由业务应用按需显式引入。
 - AI Starter 不得直接依赖 `fw-plus-tiny-engine-core`；Core 只能通过 Boot Starter 传递提供。
 - Boot Starter 不得依赖 AI 层。
 - TinyEngine 业务继续面向 `AiModelRegistry`、`AiEmbeddingStoreRegistry` 和中立门面；不得向公开接口泄漏 LangChain4j 原生类型。
@@ -48,12 +49,12 @@ public void shouldAggregateTinyEngineBootAndNeutralAiStarters() throws Exception
 			dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-model-spring-boot-starter"));
 	assertTrue("TinyEngine AI starter must include the neutral embedding store starter",
 			dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-store-embedding-spring-boot-starter"));
-	assertTrue("TinyEngine AI starter must use the unified LangChain4j adapter",
-			dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
 	assertFalse("TinyEngine AI starter must not depend on the legacy LangChain4j model starter",
 			dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter"));
 	assertFalse("TinyEngine AI starter must not depend on the legacy LangChain4j embedding store starter",
 			dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter"));
+	assertFalse("TinyEngine AI starter must not choose a concrete LangChain4j adapter for business applications",
+			dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
 }
 ```
 
@@ -170,7 +171,7 @@ Run:
   -Dincludes=com.xiongx9527.fw.plus.boot:fw-plus-tiny-engine-spring-boot-starter,com.xiongx9527.fw.plus:fw-plus-tiny-engine-core,com.xiongx9527.fw.plus.ai:fw-plus-ai-model-spring-boot-starter,com.xiongx9527.fw.plus.ai:fw-plus-ai-store-embedding-spring-boot-starter,com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter
 ```
 
-Expected: Boot Starter 为 AI Starter 的直接 compile 依赖；TinyEngine Core 只位于 Boot Starter 的传递依赖路径；三个中立 AI Starter 均为直接 compile 依赖。
+Expected: Boot Starter 为 AI Starter 的直接 compile 依赖；TinyEngine Core 只位于 Boot Starter 的传递依赖路径；model/store 两个中立 AI Starter 均为直接 compile 依赖；LangChain4j Adapter Starter 不在 AI Starter 直接依赖中。
 
 - [ ] **Step 5: 提交实现**
 
@@ -193,9 +194,9 @@ git commit -m "feat(ai): 聚合 TinyEngine Boot Starter"
 在 Maven 示例后将说明改为：
 
 ```markdown
-业务只需引入本 starter，即可同时获得现有 `fw-plus-tiny-engine-spring-boot-starter` 提供的 TinyEngine Boot、Web 与 MyBatis-Plus 基础装配，以及中立 model/store starter 和默认 LangChain4j adapter。Boot Starter 仍保持 AI-free，本 starter 仅通过 Maven 依赖聚合它，不复制或重新实现 Boot 配置。
+业务引入本 starter 后，可同时获得现有 `fw-plus-tiny-engine-spring-boot-starter` 提供的 TinyEngine Boot、Web 与 MyBatis-Plus 基础装配，以及中立 model/store starter。Boot Starter 仍保持 AI-free，本 starter 仅通过 Maven 依赖聚合它，不复制或重新实现 Boot 配置。
 
-使用具体 provider 时仍需按 provider 文档显式加入对应 SDK；starter 不会把所有 provider SDK 打包进来。
+业务必须按目标 framework/provider 显式加入对应 adapter starter 和 provider SDK；starter 不会替业务选择 LangChain4j，也不会把所有 provider SDK 打包进来。
 ```
 
 - [ ] **Step 2: 运行 TinyEngine AI 自动配置定向测试**
