@@ -1003,44 +1003,66 @@ Expected: build guard 全部通过，Comet 状态推进到 `verify`；随后按�
 
 **Interfaces:**
 - Consumes: Boot、Cloud、AI 经 `fw-plus-parent` 继承 Core Dependencies 属性的现有父 POM 链。
-- Produces: 单一 `exec-maven-plugin.version=3.1.0` 属性，五个直接声明插件版本的 POM 只引用该属性。
+- Produces: Core Dependencies 的 `build/pluginManagement` 统一管理 `exec-maven-plugin:3.1.0`，五个消费 POM 不再声明 `<version>`。
 
-- [x] **Step 1: 运行 Exec 插件硬编码边界断言（RED）**
+- [x] **Step 1: 验证子 POM 仍声明版本且父 POM 未管理插件（RED）**
 
 Run:
 
 ```bash
-test "$(rg -l -U '<groupId>org\.codehaus\.mojo</groupId>\s*<artifactId>exec-maven-plugin</artifactId>\s*<version>3\.1\.0</version>' --glob 'pom.xml' . | wc -l | tr -d ' ')" -eq 0
-test "$(rg -c '<exec-maven-plugin\.version>3\.1\.0</exec-maven-plugin\.version>' fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml || true)" -eq 1
-test "$(rg -l -U '<groupId>org\.codehaus\.mojo</groupId>\s*<artifactId>exec-maven-plugin</artifactId>\s*<version>\$\{exec-maven-plugin\.version\}</version>' --glob 'pom.xml' . | wc -l | tr -d ' ')" -eq 5
+test "$(rg -c '<exec-maven-plugin\.version>3\.1\.0</exec-maven-plugin\.version>' fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml)" -eq 1
+test "$(rg -l -U '<artifactId>exec-maven-plugin</artifactId>\s*<version>[^<]+</version>' \
+  fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/pom.xml \
+  fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/pom.xml \
+  fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/pom.xml \
+  fw-plus-cloud/fw-plus-cloud-project/fw-plus-cloud-starters/fw-plus-magicapi-plugin/pom.xml \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/pom.xml | wc -l | tr -d ' ')" -eq 0
+test "$(rg -c -U '(?s)<pluginManagement>.*?<artifactId>exec-maven-plugin</artifactId>\s*<version>\$\{exec-maven-plugin\.version\}</version>.*?</pluginManagement>' \
+  fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml || true)" -eq 1
 ```
 
-Expected: 断言失败，证明五个 POM 仍直接写死 `3.1.0`，Core Dependencies 尚无统一属性。
+Expected: 后两条断言失败，证明五个消费 POM 仍声明版本，Core Dependencies 尚未通过 `pluginManagement` 管理该插件。
 
-- [x] **Step 2: 增加统一属性并替换五处硬编码**
+- [x] **Step 2: 在父 POM 管理插件并删除五处版本声明**
 
-使用 `apply_patch` 在 Core Dependencies 的插件版本属性区加入：
+保留 Core Dependencies 已有属性：
 
 ```xml
 <exec-maven-plugin.version>3.1.0</exec-maven-plugin.version>
 ```
 
-五个 POM 的插件版本统一改为：
+在同一 POM 增加父级插件管理：
 
 ```xml
-<version>${exec-maven-plugin.version}</version>
+<build>
+    <pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+            </plugin>
+        </plugins>
+    </pluginManagement>
+</build>
 ```
 
-不得改变插件版本、执行阶段、goal、前端包管理器或其他插件配置。
+从五个消费 POM 的 `exec-maven-plugin` 声明中完全删除 `<version>`。不得改变执行阶段、goal、前端包管理器或其他插件配置。
 
-- [x] **Step 3: 验证 Exec 插件属性继承与无硬编码（GREEN）**
+- [x] **Step 3: 验证父级 pluginManagement 与有效 POM（GREEN）**
 
 Run:
 
 ```bash
-test "$(rg -l -U '<groupId>org\.codehaus\.mojo</groupId>\s*<artifactId>exec-maven-plugin</artifactId>\s*<version>3\.1\.0</version>' --glob 'pom.xml' . | wc -l | tr -d ' ')" -eq 0
 test "$(rg -c '<exec-maven-plugin\.version>3\.1\.0</exec-maven-plugin\.version>' fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml)" -eq 1
-test "$(rg -l -U '<groupId>org\.codehaus\.mojo</groupId>\s*<artifactId>exec-maven-plugin</artifactId>\s*<version>\$\{exec-maven-plugin\.version\}</version>' --glob 'pom.xml' . | wc -l | tr -d ' ')" -eq 5
+test "$(rg -l -U '<artifactId>exec-maven-plugin</artifactId>\s*<version>[^<]+</version>' \
+  fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/pom.xml \
+  fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/pom.xml \
+  fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/pom.xml \
+  fw-plus-cloud/fw-plus-cloud-project/fw-plus-cloud-starters/fw-plus-magicapi-plugin/pom.xml \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/pom.xml | wc -l | tr -d ' ')" -eq 0
+test "$(rg -c -U '(?s)<pluginManagement>.*?<artifactId>exec-maven-plugin</artifactId>\s*<version>\$\{exec-maven-plugin\.version\}</version>.*?</pluginManagement>' \
+  fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml)" -eq 1
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
 mvn -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-dependencies,fw-plus-project/fw-plus-parent -am install -DskipTests
@@ -1050,15 +1072,18 @@ for pom in \
   fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/pom.xml \
   fw-plus-cloud/fw-plus-cloud-project/fw-plus-cloud-starters/fw-plus-magicapi-plugin/pom.xml \
   fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/pom.xml; do
-  test "$(mvn -o -nsu -q -f "$pom" help:evaluate -Dexpression=exec-maven-plugin.version -DforceStdout)" = "3.1.0"
+  effective_pom="$(mktemp -t exec-plugin-effective).xml"
+  mvn -o -nsu -q -f "$pom" help:effective-pom -Doutput="$effective_pom"
+  test "$(xmllint --xpath \"string(/*[local-name()='project']/*[local-name()='build']/*[local-name()='plugins']/*[local-name()='plugin'][*[local-name()='artifactId']='exec-maven-plugin']/*[local-name()='version'])\" "$effective_pom")" = "3.1.0" || \
+    test "$(xmllint --xpath \"string(/*[local-name()='project']/*[local-name()='build']/*[local-name()='pluginManagement']/*[local-name()='plugins']/*[local-name()='plugin'][*[local-name()='artifactId']='exec-maven-plugin']/*[local-name()='version'])\" "$effective_pom")" = "3.1.0"
   mvn -o -nsu -f "$pom" validate -DskipTests
 done
 git diff --check
 ```
 
-Expected: Core 父链安装成功；五个目标 POM 均解析 `exec-maven-plugin.version=3.1.0` 并通过 `validate`；无格式错误。
+Expected: Core 父链安装成功；五个目标有效 POM 均由继承后的 plugin/pluginManagement 解析 `exec-maven-plugin:3.1.0` 并通过 `validate`；消费 POM 源文件没有插件 `<version>`。
 
-- [x] **Step 4: 提交 Exec 插件版本统一调整**
+- [x] **Step 4: 提交父级插件管理修正**
 
 Run:
 
@@ -1070,7 +1095,7 @@ git add fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml \
   fw-plus-cloud/fw-plus-cloud-project/fw-plus-cloud-starters/fw-plus-magicapi-plugin/pom.xml \
   fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/pom.xml
 git diff --cached --check
-git commit -m "chore(build): 统一 Exec Maven Plugin 版本"
+git commit -m "fix(build): 由父 POM 管理 Exec Maven Plugin 版本"
 ```
 
-Expected: 提交只包含一个统一属性和五处属性引用。
+Expected: 提交只包含 Core Dependencies 的 pluginManagement 和五处 `<version>` 删除。

@@ -3,7 +3,7 @@
 - [x] 1.1 记录当前工作区、三个本地/跟踪分支 SHA、共同祖先和未推送提交，确认 change 产物与已有依赖清理提交的归属
 - [x] 1.2 成功获取远端 `dev`、`springboot2`、`springboot3` 最新对象，重新计算每个分支的 ahead/behind 和祖先关系
 - [ ] 1.3 建立固定版本断言与依赖升级排除清单，覆盖 Java/Spring 平台、Magic-API/Magic-Script、Spring AI 系列和两个 TinyEngine change
-- [x] 1.4 将 `exec-maven-plugin` 的 `3.1.0` 统一为 Core 父链属性，并让 Boot、Cloud、AI 的直接插件声明引用该属性
+- [x] 1.4 在 Core 父 POM 的 `pluginManagement` 统一管理 `exec-maven-plugin:3.1.0`，Boot、Cloud、AI 的消费 POM 不声明插件版本
 
 ## 2. 整合、验证并推送 dev
 
