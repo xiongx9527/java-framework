@@ -51,18 +51,18 @@
 - **AND** 不得为追求更高版本修改固定平台基线
 
 ### Requirement: Spring Boot 3 按 LangChain4j BOM 管理稳定与集成模块
-`springboot3` SHALL 导入 `dev.langchain4j:langchain4j-bom:1.18.1`。稳定核心模块 SHALL 解析为 1.18.1；starter、向量库、文档解析器等集成模块 SHALL 由同一 BOM 解析为 1.18.1-beta28；被 BOM 覆盖的依赖 SHALL NOT 保留冗余的逐模块版本声明。
+`springboot3` SHALL 导入 `dev.langchain4j:langchain4j-bom:1.18.0`。稳定核心模块 SHALL 解析为 1.18.0；starter、向量库、文档解析器等 beta-only 集成模块 SHALL 由同一 BOM 解析为 1.18.0-beta28；`langchain4j-redis`、`langchain4j-qianfan`、`langchain4j-dashscope` SHALL 在 Core BOM 内固定为 0.36.2；被 BOM 覆盖的依赖 SHALL NOT 保留冗余的逐模块版本声明。
 
 #### Scenario: 解析 LangChain4j 核心与 starter
 - **WHEN** 生成 `springboot3` 的有效 POM 和依赖树
-- **THEN** `langchain4j-core` 解析为 1.18.1
-- **AND** `langchain4j-spring-boot-starter` 解析为 1.18.1-beta28
+- **THEN** `langchain4j-core` 解析为 1.18.0
+- **AND** `langchain4j-spring-boot-starter` 解析为 1.18.0-beta28
 - **AND** 两者均为 Java 17 可加载字节码
 
 #### Scenario: 集成模块由 BOM 管理
 - **WHEN** `springboot3` 声明 LangChain4j starter、向量库或解析器依赖
 - **THEN** 对应 dependency 不显式声明可由 BOM 管理的版本
-- **AND** Maven 解析结果与 LangChain4j BOM 1.18.1 的稳定/集成版本轨道一致
+- **AND** Maven 解析结果与 LangChain4j BOM 1.18.0 的稳定/集成版本轨道以及三个 0.36.2 例外一致
 
 #### Scenario: LangChain4j starter 建议更高 Spring Boot 版本
 - **WHEN** LangChain4j 集成模块的 POM 声明高于 3.5.8 的 Spring Boot 版本

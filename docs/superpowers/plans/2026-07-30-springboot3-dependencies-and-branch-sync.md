@@ -10,16 +10,16 @@ base-ref: 63ffe1c7815ac7f27b24f1c4d84d315425accc9c
 
 **Goal:** 安全发布 `dev`，将其同步到 `springboot2` 和 `springboot3`，并在固定 Java/Spring 平台版本不变的前提下完成 Spring Boot 3 分支的兼容依赖升级。
 
-**Architecture:** 主工作区固定在 `dev`，负责 Comet 状态、Java 8 基线和最终证据；`.worktrees/springboot2-sync` 与 `.worktrees/springboot3-upgrade` 分别承载两个派生分支。`springboot3` 先形成独立的 `dev` merge commit，再以独立提交导入 LangChain4j BOM 1.18.1、验证 1.18.1/1.18.1-beta28 双轨解析，并逐组处理其他兼容升级。
+**Architecture:** 主工作区固定在 `dev`，负责 Comet 状态、Java 8 基线和最终证据；`.worktrees/springboot2-sync` 与 `.worktrees/springboot3-upgrade` 分别承载两个派生分支。`springboot3` 先形成独立的 `dev` merge commit，再以独立提交导入 LangChain4j BOM 1.18.0、验证 1.18.0/1.18.0-beta28 双轨解析，并逐组处理其他兼容升级。
 
-**Tech Stack:** Git worktree、Java 8、Java 17、系统 Maven 3.6.3、Spring Boot 2.7.18/3.5.8、Spring Cloud 2021.0.9/2025.0.0、Spring Cloud Alibaba 2021.0.5.0/2025.0.0.0、LangChain4j 0.35.0/1.18.1、JUnit 5、Maven Versions/Dependency/Help Plugin。
+**Tech Stack:** Git worktree、Java 8、Java 17、系统 Maven 3.6.3、Spring Boot 2.7.18/3.5.8、Spring Cloud 2021.0.9/2025.0.0、Spring Cloud Alibaba 2021.0.5.0/2025.0.0.0、LangChain4j 0.35.0/1.18.0、JUnit 5、Maven Versions/Dependency/Help Plugin。
 
 ## Global Constraints
 
 - `dev` 和 `springboot2` 固定 Java 8、Spring Boot 2.7.18、Spring Cloud 2021.0.9、Spring Cloud Alibaba 2021.0.5.0、LangChain4j 0.35.0。
 - `springboot3` 固定 Java 17、Spring Boot 3.5.8、Spring Cloud 2025.0.0、Spring Cloud Alibaba 2025.0.0.0。
 - 三个分支固定 Magic-API 2.2.2 和 Magic-Script 1.9.0。
-- `springboot3` 导入 `dev.langchain4j:langchain4j-bom:1.18.1`；稳定核心模块解析为 1.18.1，starter、向量库、解析器等集成模块由 BOM 解析为 1.18.1-beta28。
+- `springboot3` 导入 `dev.langchain4j:langchain4j-bom:1.18.0`；稳定核心模块解析为 1.18.0，starter、向量库、解析器等 beta-only 集成模块由官方 BOM 解析为 1.18.0-beta28；`langchain4j-redis`、`langchain4j-qianfan`、`langchain4j-dashscope` 在 Core BOM 内单独固定为 0.36.2。
 - `spring-ai.version` 和 `spring-ai-alibaba.version` 均保留为 1.0.1；保留最新远端已有的 Spring AI/Spring AI Alibaba 集成声明。
 - 不升级 Maven、Maven Wrapper 或构建插件，不修改内部 Nexus 仓库配置。
 - 当前四层 `mvnw` 均缺少 `.mvn/wrapper` 运行文件；构建统一使用已安装的系统 Maven 3.6.3，不创建、修复或升级 Wrapper。
@@ -373,7 +373,7 @@ Expected: 非强制推送成功且远端 SHA 等于 worktree HEAD。使用主工
 - Consumes: `.worktrees/springboot3-upgrade` 的最新 Boot 3 历史和已发布 `dev`。
 - Produces: 一个真实 merge commit，既包含最新 dev，又保留 Spring Boot 3 固定基线。
 
-- [ ] **Step 1: 重新确认独立历史**
+- [x] **Step 1: 重新确认独立历史**
 
 Run:
 
@@ -385,7 +385,7 @@ git log --oneline --left-right --cherry-pick dev...springboot3
 
 Expected: springboot3 worktree 干净且存在需保留的 Boot 3 独有提交。
 
-- [ ] **Step 2: 创建真实 merge commit**
+- [x] **Step 2: 创建真实 merge commit**
 
 Run:
 
@@ -395,7 +395,7 @@ git -C .worktrees/springboot3-upgrade merge --no-ff dev -m "merge: sync dev into
 
 Expected: 产生双父 merge commit。冲突解决保持 Java 17、Boot 3.5.8、Cloud 2025.0.0、Alibaba 2025.0.0.0、Magic-API 2.2.2、Magic-Script 1.9.0，同时带入 Spring AI 两个 1.0.1 属性；不得在冲突解决中完成 LangChain4j 升级。
 
-- [ ] **Step 3: 验证合并提交边界**
+- [x] **Step 3: 验证合并提交边界**
 
 Run:
 
@@ -450,8 +450,7 @@ public void shouldKeepSpringBoot3DependencyBaseline() throws Exception {
     assertProperty(coreBom(), "spring-cloud-alibaba-dependencies.version", "2025.0.0.0");
     assertProperty(coreBom(), "magic-api.version", "2.2.2");
     assertProperty(coreBom(), "magic-script.version", "1.9.0");
-    assertProperty(coreBom(), "langchain4j.version", "1.18.1");
-    assertProperty(aiBom(), "langchain4j.version", "1.18.1");
+    assertProperty(coreBom(), "langchain4j.version", "1.18.0");
     assertProperty(aiBom(), "spring-ai.version", "1.0.1");
     assertProperty(aiBom(), "spring-ai-alibaba.version", "1.0.1");
     assertLangChain4jArtifactsUseBom(aiBom());
@@ -535,9 +534,9 @@ mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-b
 
 Expected: FAIL，错误明确指向 `langchain4j.version` 仍为 0.35.0 或逐 artifact `<version>` 尚未删除，而不是测试定位失败。
 
-- [ ] **Step 3: 导入 1.18.1 BOM 并删除冗余版本**
+- [ ] **Step 3: 导入 1.18.0 BOM 并删除冗余版本**
 
-使用 `apply_patch` 在 springboot3 worktree 的 Core BOM 和 AI BOM 中将 `<langchain4j.version>` 改为 `1.18.1`，确保两层各自导入以下 BOM，并删除 AI BOM 中除 `langchain4j-bom` 外所有 `dev.langchain4j` dependency 的 `<version>${langchain4j.version}</version>`：
+使用 `apply_patch` 在 springboot3 worktree 的 Core BOM 中将 `<langchain4j.version>` 改为 `1.18.0`，确保 Core BOM 导入以下 BOM，并删除 AI BOM 中与 Core BOM 重复的 `dev.langchain4j` dependency 管理项；`langchain4j-redis`、`langchain4j-qianfan`、`langchain4j-dashscope` 三个例外在 Core BOM 中显式固定为 `0.36.2`：
 
 ```xml
 <dependency>
@@ -565,7 +564,7 @@ Expected: `SpringBoot3DependencyBaselineTest` PASS，原始 POM 的固定版本�
 
 ---
 
-### Task 8: 验证 LangChain4j 1.18.1 / beta28 解析与适配边界
+### Task 8: 验证 LangChain4j 1.18.0 / beta28 解析与适配边界
 
 **Files:**
 - Verify/Modify: `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/**`
@@ -575,8 +574,8 @@ Expected: `SpringBoot3DependencyBaselineTest` PASS，原始 POM 的固定版本�
 - Create: `openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/.comet/evidence/springboot3-dependency-matrix.md`
 
 **Interfaces:**
-- Consumes: LangChain4j BOM 1.18.1 和现有自定义适配层。
-- Produces: core=1.18.1、集成 artifact=1.18.1-beta28 的 Maven 证据，以及不改变公开 API 的兼容适配。
+- Consumes: LangChain4j BOM 1.18.0 和现有自定义适配层。
+- Produces: core=1.18.0、beta-only 集成 artifact=1.18.0-beta28、三例外 artifact=0.36.2 的 Maven 证据，以及不改变公开 API 的兼容适配。
 
 - [ ] **Step 1: 生成有效 POM 与定向依赖树**
 
@@ -589,10 +588,10 @@ mvn -f .worktrees/springboot3-upgrade/fw-plus-core/fw-plus-project/fw-plus-depen
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/pom.xml help:effective-pom -Doutput=target/effective-pom.xml
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml dependency:tree -Dincludes=dev.langchain4j -DoutputFile=target/langchain4j-tree.txt
 rg -n -A 3 '<artifactId>langchain4j-(core|spring-boot-starter|qdrant|document-parser-apache-tika)</artifactId>' .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-dependencies/target/effective-pom.xml
-rg -n 'dev\.langchain4j:langchain4j-core:.*:1\.18\.1' .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/langchain4j-tree.txt
+rg -n 'dev\.langchain4j:langchain4j-core:.*:1\.18\.0' .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/langchain4j-tree.txt
 ```
 
-Expected: effective POM 可生成；依赖树显示 `langchain4j-core:1.18.1`；effective POM 显示 `langchain4j-spring-boot-starter`、`langchain4j-qdrant` 和 `langchain4j-document-parser-apache-tika` 为 `1.18.1-beta28`。使用主工作区 `apply_patch` 将坐标与解析版本写入依赖矩阵。
+Expected: effective POM 可生成；依赖树显示 `langchain4j-core:1.18.0`；effective POM 显示 `langchain4j-spring-boot-starter`、`langchain4j-qdrant` 和 `langchain4j-document-parser-apache-tika` 等 beta-only 集成模块为 `1.18.0-beta28`，三例外为 `0.36.2`。使用主工作区 `apply_patch` 将坐标与解析版本写入依赖矩阵。
 
 - [ ] **Step 2: 运行 LangChain4j 定向测试**
 
@@ -604,7 +603,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
 ```
 
-Expected: 两个测试类通过；如因 1.18.1 API 变化编译或启动失败，先记录精确类型/方法差异并进入 Step 3。
+Expected: 两个测试类通过；如因 1.18.0 API 变化编译或启动失败，先记录精确类型/方法差异并进入 Step 3。
 
 - [ ] **Step 3: 对确证的 API 差异做最小适配**
 
@@ -617,10 +616,10 @@ Run:
 ```bash
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
-mvn -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml dependency:get -Dartifact=dev.langchain4j:langchain4j-core:1.18.1
-mvn -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml dependency:get -Dartifact=dev.langchain4j:langchain4j-spring-boot-starter:1.18.1-beta28
-core_jar="$HOME/.m2/repository/dev/langchain4j/langchain4j-core/1.18.1/langchain4j-core-1.18.1.jar"
-starter_jar="$HOME/.m2/repository/dev/langchain4j/langchain4j-spring-boot-starter/1.18.1-beta28/langchain4j-spring-boot-starter-1.18.1-beta28.jar"
+mvn -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml dependency:get -Dartifact=dev.langchain4j:langchain4j-core:1.18.0
+mvn -f .worktrees/springboot3-upgrade/fw-plus-core/pom.xml dependency:get -Dartifact=dev.langchain4j:langchain4j-spring-boot-starter:1.18.0-beta28
+core_jar="$HOME/.m2/repository/dev/langchain4j/langchain4j-core/1.18.0/langchain4j-core-1.18.0.jar"
+starter_jar="$HOME/.m2/repository/dev/langchain4j/langchain4j-spring-boot-starter/1.18.0-beta28/langchain4j-spring-boot-starter-1.18.0-beta28.jar"
 core_class=$(unzip -Z1 "$core_jar" | awk '/\.class$/ {print; exit}')
 starter_class=$(unzip -Z1 "$starter_jar" | awk '/\.class$/ {print; exit}')
 unzip -p "$core_jar" "$core_class" | head -c 8 | xxd
@@ -679,7 +678,7 @@ springboot3_merge=$(git -C .worktrees/springboot3-upgrade rev-list --merges --fi
 git -C .worktrees/springboot3-upgrade diff --name-only "$springboot3_merge"..HEAD | rg 'add-tiny-engine-(ai|boot)-starter' && exit 1 || true
 ```
 
-从候选中排除 Spring Boot、Spring Cloud、Spring Cloud Alibaba、Magic-API、Magic-Script、Spring AI、Spring AI Alibaba、Maven/Wrapper/插件、内部自维护坐标和两个 TinyEngine change；预发布版只保留用户指定的 LangChain4j 1.18.1-beta28。
+从候选中排除 Spring Boot、Spring Cloud、Spring Cloud Alibaba、Magic-API、Magic-Script、Spring AI、Spring AI Alibaba、Maven/Wrapper/插件、内部自维护坐标和两个 TinyEngine change；LangChain4j beta-only 集成模块遵循官方 `1.18.0` BOM 解析结果，三例外固定为 `0.36.2`。
 
 Expected: 每个排除项在矩阵中标为“固定/排除”并写明精确基线；不修改 POM。
 
@@ -747,10 +746,10 @@ mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-b
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml help:effective-pom -Doutput=target/effective-pom.xml
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml dependency:tree -Dverbose -Dincludes=dev.langchain4j,org.springframework.ai,com.alibaba.cloud.ai -DoutputFile=target/ai-integration-tree.txt
-rg -n '1\.18\.1|1\.18\.1-beta28|1\.0\.1|spring-boot.*3\.5\.8' .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/effective-pom.xml .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/ai-integration-tree.txt
+rg -n '1\.18\.0|1\.18\.0-beta28|0\.36\.2|1\.0\.1|spring-boot.*3\.5\.8' .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/effective-pom.xml .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/ai-integration-tree.txt
 ```
 
-Expected: 固定版本、公共中立边界和 LangChain4j 自动配置测试全部通过；有效 POM/依赖树保持 Spring Boot 3.5.8、LangChain4j 1.18.1/beta28 及已有 Spring AI/Spring AI Alibaba 1.0.1 集成声明。
+Expected: 固定版本、公共中立边界和 LangChain4j 自动配置测试全部通过；有效 POM/依赖树保持 Spring Boot 3.5.8、LangChain4j 1.18.0/beta28、三例外 0.36.2 及已有 Spring AI/Spring AI Alibaba 1.0.1 集成声明。
 
 - [ ] **Step 2: 检查依赖收敛与重复声明**
 

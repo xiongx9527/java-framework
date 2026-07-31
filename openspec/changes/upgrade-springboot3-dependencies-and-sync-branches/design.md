@@ -2,9 +2,9 @@
 
 仓库以 `dev`、`springboot2`、`springboot3` 维护不同运行时基线。当前本地 `dev` 有一个依赖清理提交，但远端 `dev` 已从其共同祖先继续前进；`springboot3` 另有独立的 Java 17 / Spring Boot 3 适配提交。直接推送本地 `dev` 或用引用覆盖任一远端分支都会丢失历史。
 
-依赖管理横跨 Core、Boot、Cloud、AI 四层 BOM/父 POM，并通过本地 Maven 仓库按 Core → Boot → Cloud / AI 的顺序传递。Java 8 分支和 Java 17 分支不能共享同一套 LangChain4j 集成依赖：0.35.0 的基础模块可用于 Java 8，但官方 Spring Boot starter 为 Java 17 字节码；1.18.1 的核心模块和 1.18.1-beta28 的集成模块适用于 Java 17。Spring AI 与 Spring AI Alibaba 是需要保留的公开集成面，不能仅依据当前源码引用情况删除。
+依赖管理横跨 Core、Boot、Cloud、AI 四层 BOM/父 POM，并通过本地 Maven 仓库按 Core → Boot → Cloud / AI 的顺序传递。Java 8 分支和 Java 17 分支不能共享同一套 LangChain4j 集成依赖：0.35.0 的基础模块可用于 Java 8，但官方 Spring Boot starter 为 Java 17 字节码；1.18.0 的核心模块和 1.18.0-beta28 的 beta-only 集成模块适用于 Java 17，`langchain4j-redis`、`langchain4j-qianfan`、`langchain4j-dashscope` 三个例外固定为 0.36.2。Spring AI 与 Spring AI Alibaba 是需要保留的公开集成面，不能仅依据当前源码引用情况删除。
 
-当前关键未知项包括远端获取恢复后出现的实际合并冲突、`springboot3` 各候选依赖的最终可升级版本，以及 LangChain4j 1.18.1-beta28 starter 在项目固定 Spring Boot 3.5.8 下的编译和运行兼容性。这些未知项通过合并后审计和构建验证收敛，不改变本次范围。
+当前关键未知项包括远端获取恢复后出现的实际合并冲突、`springboot3` 各候选依赖的最终可升级版本，以及 LangChain4j 1.18.0-beta28 starter 在项目固定 Spring Boot 3.5.8 下的编译和运行兼容性。这些未知项通过合并后审计和构建验证收敛，不改变本次范围。
 
 ## Goals / Non-Goals
 
@@ -13,7 +13,7 @@
 - 安全整合并推送 `dev`，再把同一最新 `dev` 依次合并到 `springboot2` 和 `springboot3`。
 - 保留三个远端分支的已有提交和两个派生分支的独立适配历史，全程禁止未经验证的强制更新。
 - 保持 `dev` / `springboot2` 的 Java 8 与 LangChain4j 0.35.0 兼容基线。
-- 在 `springboot3` 中采用 Java 17 可用的 LangChain4j 1.18.1 BOM，并让集成模块解析到 1.18.1-beta28。
+- 在 `springboot3` 中采用 Java 17 可用的 LangChain4j 1.18.0 BOM，并让 beta-only 集成模块解析到 1.18.0-beta28，三例外固定为 0.36.2。
 - 在固定框架版本不变的前提下升级其他兼容依赖，删除已证明未使用的直接依赖。
 - 通过分层 Maven 构建、依赖解析、Git 祖先关系和远端 SHA 形成可复核证据。
 
@@ -41,11 +41,11 @@
 
 ### 3. LangChain4j 按官方 BOM 的稳定/集成版本轨道管理
 
-`springboot3` 导入 `dev.langchain4j:langchain4j-bom:1.18.1`，删除已被 BOM 覆盖的逐依赖 `<version>`。核心稳定 artifact 解析为 1.18.1，starter、向量库、文档解析器等仍处于 beta 轨道的集成 artifact 解析为 1.18.1-beta28。依赖树必须证明没有被其他 BOM 或传递依赖降级/升级到不同版本。
+`springboot3` 导入 `dev.langchain4j:langchain4j-bom:1.18.0`，删除已被 BOM 覆盖的逐依赖 `<version>`。核心稳定 artifact 解析为 1.18.0，starter、向量库、文档解析器等仍处于 beta 轨道的集成 artifact 解析为 1.18.0-beta28；`langchain4j-redis`、`langchain4j-qianfan`、`langchain4j-dashscope` 三个例外在 Core BOM 中固定为 0.36.2。依赖树必须证明没有被其他 BOM 或传递依赖降级/升级到不同版本。
 
 `dev` 和 `springboot2` 保持 LangChain4j 0.35.0，只使用已验证为 Java 8 字节码的模块，并继续由项目自身自动配置承接 Spring Boot 集成，不引入 Java 17 字节码的 0.35.0 官方 starter。
 
-备选方案是给每个 artifact 显式设置同一版本，但 1.18.1 同时存在稳定核心与 beta 集成版本，统一硬编码会产生不存在或不兼容的坐标，因此拒绝。
+备选方案是给每个 artifact 显式设置同一版本，但 1.18.0 同时存在稳定核心、beta 集成版本和三个旧集成例外，统一硬编码会产生不存在或不兼容的坐标，因此拒绝。
 
 ### 4. 固定平台 BOM 优先于第三方 starter 的传递建议
 
@@ -89,5 +89,5 @@ Magic-API/Magic-Script、自维护内部坐标、Spring AI/Spring AI Alibaba 和
 ## Open Questions
 
 - `springboot3` 中除固定基线外的最终候选升级清单，需要在成功合并最新 `dev` 后基于实际 POM 和 Maven 更新报告确定。
-- LangChain4j 1.18.1-beta28 starter 在 Spring Boot 3.5.8 下是否存在自动配置 API 差异，需要通过实际构建和上下文测试确认。
+- LangChain4j 1.18.0-beta28 starter 在 Spring Boot 3.5.8 下是否存在自动配置 API 差异，需要通过实际构建和上下文测试确认。
 - 当前 Git HTTPS 故障何时恢复不可预知；它只影响执行时机，不改变安全合并和非强制推送策略。

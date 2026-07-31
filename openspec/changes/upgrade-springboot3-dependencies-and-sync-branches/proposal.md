@@ -7,7 +7,7 @@
 - 提交并推送 `dev` 上已经完成的未使用 Maven 依赖清理，并先整合远端 `dev` 的新增提交，确保只进行快进安全的发布。
 - 将最新 `dev` 合并到 `springboot2`，保持 Java 8、Spring Boot 2.7.18 与 LangChain4j 0.35.0 基线，完成分层构建和推送。
 - 将最新 `dev` 合并到 `springboot3`，保留该分支已有的 Java 17 / Spring Boot 3 适配提交，并升级其余允许升级的依赖。
-- 在 `springboot3` 中导入 LangChain4j BOM 1.18.1：稳定核心模块由 BOM 管理为 1.18.1，starter、向量库、解析器等集成模块由 BOM 管理为 1.18.1-beta28，并移除冗余的逐依赖版本声明。
+- 在 `springboot3` 中导入 LangChain4j BOM 1.18.0：稳定核心模块由 BOM 管理为 1.18.0，starter、向量库、解析器等 beta-only 集成模块由 BOM 管理为 1.18.0-beta28；`langchain4j-redis`、`langchain4j-qianfan`、`langchain4j-dashscope` 三个例外在 BOM 内固定为 0.36.2，并移除冗余的逐依赖版本声明。
 - 保留 Spring AI 与 Spring AI Alibaba；保留 Spring Boot 3.5.8、Spring Cloud 2025.0.0、Spring Cloud Alibaba 2025.0.0.0、Magic-API 2.2.2 和 Magic-Script 1.9.0。
 - 对三个分支分别验证提交祖先关系、工作区状态、Maven 依赖解析和分层构建结果，推送后核对远端 SHA。
 - 本次不升级 Maven 工具本身，不创建或修改 `add-tiny-engine-ai-starter`、`add-tiny-engine-boot-starter`，也不删除仅因当前源码未直接引用但属于公开集成面的 Spring AI 依赖。
