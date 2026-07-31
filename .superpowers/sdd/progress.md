@@ -47,3 +47,4 @@ Task 8: complete (verification recorded, openspec valid, focused tests passed, d
 Task 8 follow-up: complete (commit 62d97284, chat provider/degrade tests passed)
 Task 8 REST follow-up: complete (commit 3ee8989b, TDD RED/GREEN recorded, TinyEngine focused tests and OpenSpec strict validation passed)
 Task 14 (`upgrade-springboot3-dependencies-and-sync-branches`): complete (commit 7742ac8b, standard risk review approved)
+Task 14 pluginManagement correction: complete (commit b5965d43, standard risk review approved; supersedes 7742ac8b child version references)
