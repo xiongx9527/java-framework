@@ -701,7 +701,7 @@ Run:
 ```bash
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
-mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
 ```
 
 Expected: 两个测试类通过；如因 LangChain4j API 变化编译或启动失败，先记录精确类型/方法差异并进入 Step 3。
@@ -838,7 +838,7 @@ Run:
 export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home
 export PATH="$JAVA_HOME/bin:$PATH"
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=SpringBoot3DependencyBaselineTest,NeutralAiAutoConfigurationBoundaryTest test
-mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml help:effective-pom -Doutput=target/effective-pom.xml
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml dependency:tree -Dverbose -Dincludes=dev.langchain4j,org.springframework.ai,com.alibaba.cloud.ai -DoutputFile=target/ai-integration-tree.txt
 rg -n '1\.18\.0|0\.36\.2|1\.0\.1|spring-boot.*3\.5\.8' .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/effective-pom.xml .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/target/ai-integration-tree.txt
@@ -964,7 +964,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -Dtest=AskDataStarterDependencyTest test
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter validate -DskipTests
 mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest=AskDataAutoConfigurationTest,NeutralAiAutoConfigurationBoundaryTest,SpringBoot3DependencyBaselineTest test
-mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-langchain4j-adapter-spring-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
+mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml -Dtest=LangChain4jAutoConfigurationRegistrationTest,LangChain4jAdapterAutoConfigurationTest test
 git -C .worktrees/springboot3-upgrade push origin springboot3
 git ls-remote --heads origin springboot3
 git -C .worktrees/springboot3-upgrade rev-parse HEAD
