@@ -4,6 +4,7 @@
 - [x] 1.2 成功获取远端 `dev`、`springboot2`、`springboot3` 最新对象，重新计算每个分支的 ahead/behind 和祖先关系
 - [ ] 1.3 建立固定版本断言与依赖升级排除清单，覆盖 Java/Spring 平台、Magic-API/Magic-Script、Spring AI 系列和两个 TinyEngine change
 - [x] 1.4 在 Core 父 POM 的 `pluginManagement` 统一管理 `exec-maven-plugin:3.1.0`，Boot、Cloud、AI 的消费 POM 不声明插件版本
+- [ ] 1.5 按用户确认的方案 A 修订 Spring Boot 3 LangChain4j 契约：主版本统一为 1.18.0，Redis/Qianfan/DashScope 例外固定为 0.36.2，并将后续派生分支同步改为代码同步后重新验证
 
 ## 2. 整合、验证并推送 dev
 
@@ -25,7 +26,7 @@
 - [x] 4.1 将本地 `springboot3` 同步到最新远端历史，再合并最新 `dev`，保留既有 Java 17 / Spring Boot 3 适配提交
 - [x] 4.2 单独提交 `springboot3` 的分支同步结果，使合并冲突修复与依赖升级保持独立
 - [ ] 4.3 审计固定范围外的 POM 属性、BOM 管理项、直接依赖和 Maven 更新报告，形成兼容升级与保留旧版清单
-- [ ] 4.4 导入 LangChain4j BOM 1.18.1，移除冗余逐模块版本，并验证核心为 1.18.1、集成模块为 1.18.1-beta28
+- [ ] 4.4 在 Core BOM 导入 LangChain4j BOM 1.18.0，AI BOM 通过导入 Core BOM 继承管理；验证 AI BOM 不直接声明 `langchain4j.version` 或导入 LangChain4j BOM，三项例外由 Core BOM 显式覆盖 0.36.2，且消费模块不直接写版本
 - [ ] 4.5 升级其余与 Java 17 和固定 Spring 平台兼容的依赖，删除已证明未使用的直接依赖或旧拦截器配置
 - [ ] 4.6 确认 Spring AI、Spring AI Alibaba、Magic-API 2.2.2、Magic-Script 1.9.0 和三个固定 Spring 平台版本均被保留
 
@@ -41,3 +42,4 @@
 - [ ] 6.1 独立读取三个远端分支 SHA，确认分别匹配已推送的本地提交
 - [ ] 6.2 确认最终 `dev` 是 `springboot2` 与 `springboot3` 的祖先，且两个派生分支原有独立提交仍存在
 - [ ] 6.3 确认工作区干净，并汇总三个分支的提交、构建结果、保留旧版原因和任何剩余风险
+- [ ] 6.4 最终 dev 同步包含 AskData 生产代码、POM、测试和契约文档；springboot2 以 Java 8、springboot3 以 Java 17 重新完成 AskData 与受影响自动配置验证，springboot3 另验证 LangChain4j 1.18.0 与三项 0.36.2 管理，并核对远端 SHA、`0 0` 与祖先关系

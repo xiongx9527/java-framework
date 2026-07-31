@@ -2,9 +2,9 @@
 
 仓库以 `dev`、`springboot2`、`springboot3` 维护不同运行时基线。当前本地 `dev` 有一个依赖清理提交，但远端 `dev` 已从其共同祖先继续前进；`springboot3` 另有独立的 Java 17 / Spring Boot 3 适配提交。直接推送本地 `dev` 或用引用覆盖任一远端分支都会丢失历史。
 
-依赖管理横跨 Core、Boot、Cloud、AI 四层 BOM/父 POM，并通过本地 Maven 仓库按 Core → Boot → Cloud / AI 的顺序传递。Java 8 分支和 Java 17 分支不能共享同一套 LangChain4j 集成依赖：0.35.0 的基础模块可用于 Java 8，但官方 Spring Boot starter 为 Java 17 字节码；1.18.1 的核心模块和 1.18.1-beta28 的集成模块适用于 Java 17。Spring AI 与 Spring AI Alibaba 是需要保留的公开集成面，不能仅依据当前源码引用情况删除。
+依赖管理横跨 Core、Boot、Cloud、AI 四层 BOM/父 POM，并通过本地 Maven 仓库按 Core → Boot → Cloud / AI 的顺序传递。Java 8 分支和 Java 17 分支不能共享同一套 LangChain4j 集成依赖：0.35.0 的基础模块可用于 Java 8，而 springboot3 的 Core BOM 使用 1.18.0；Redis、Qianfan 和 DashScope 由 Core BOM 显式覆盖为 0.36.2。Spring AI 与 Spring AI Alibaba 是需要保留的公开集成面，不能仅依据当前源码引用情况删除。
 
-当前关键未知项包括远端获取恢复后出现的实际合并冲突、`springboot3` 各候选依赖的最终可升级版本，以及 LangChain4j 1.18.1-beta28 starter 在项目固定 Spring Boot 3.5.8 下的编译和运行兼容性。这些未知项通过合并后审计和构建验证收敛，不改变本次范围。
+当前关键未知项包括远端获取恢复后出现的实际合并冲突，以及 `springboot3` 各候选依赖的最终可升级版本。这些未知项通过合并后审计和构建验证收敛，不改变本次范围。
 
 ## Goals / Non-Goals
 
@@ -13,7 +13,7 @@
 - 安全整合并推送 `dev`，再把同一最新 `dev` 依次合并到 `springboot2` 和 `springboot3`。
 - 保留三个远端分支的已有提交和两个派生分支的独立适配历史，全程禁止未经验证的强制更新。
 - 保持 `dev` / `springboot2` 的 Java 8 与 LangChain4j 0.35.0 兼容基线。
-- 在 `springboot3` 中采用 Java 17 可用的 LangChain4j 1.18.1 BOM，并让集成模块解析到 1.18.1-beta28。
+- 在 `springboot3` 的 Core BOM 中采用 LangChain4j 1.18.0 BOM；AI BOM 通过导入 Core BOM 继承管理，Redis、Qianfan 和 DashScope 由 Core BOM 显式覆盖为 0.36.2。
 - 在固定框架版本不变的前提下升级其他兼容依赖，删除已证明未使用的直接依赖。
 - 通过分层 Maven 构建、依赖解析、Git 祖先关系和远端 SHA 形成可复核证据。
 
@@ -39,13 +39,13 @@
 
 这样可以单独审查“同步了什么”和“升级了什么”，并在依赖升级失败时回退升级提交而不撤销分支同步。备选方案是在合并冲突中直接完成升级，提交边界模糊且难以回滚，因此拒绝。
 
-### 3. LangChain4j 按官方 BOM 的稳定/集成版本轨道管理
+### 3. LangChain4j 由 Core BOM 统一管理
 
-`springboot3` 导入 `dev.langchain4j:langchain4j-bom:1.18.1`，删除已被 BOM 覆盖的逐依赖 `<version>`。核心稳定 artifact 解析为 1.18.1，starter、向量库、文档解析器等仍处于 beta 轨道的集成 artifact 解析为 1.18.1-beta28。依赖树必须证明没有被其他 BOM 或传递依赖降级/升级到不同版本。
+`springboot3` 的 Core BOM 导入 `dev.langchain4j:langchain4j-bom:1.18.0`，并删除由该 BOM 覆盖的逐依赖 `<version>`。AI BOM 不直接声明 `langchain4j.version` 或导入 LangChain4j BOM，而是通过导入 Core BOM 继承管理。Core BOM 对 `langchain4j-redis`、`langchain4j-qianfan` 和 `langchain4j-dashscope` 显式覆盖为 0.36.2；消费模块不为三项例外写版本。有效 POM 和依赖树必须证明这些解析结果没有被其他 BOM 或传递依赖改变。
 
 `dev` 和 `springboot2` 保持 LangChain4j 0.35.0，只使用已验证为 Java 8 字节码的模块，并继续由项目自身自动配置承接 Spring Boot 集成，不引入 Java 17 字节码的 0.35.0 官方 starter。
 
-备选方案是给每个 artifact 显式设置同一版本，但 1.18.1 同时存在稳定核心与 beta 集成版本，统一硬编码会产生不存在或不兼容的坐标，因此拒绝。
+备选方案是由 AI BOM 再次直接管理 LangChain4j，或让消费模块分别声明三项例外的版本；这会造成重复管理并增加漂移风险，因此拒绝。
 
 ### 4. 固定平台 BOM 优先于第三方 starter 的传递建议
 
@@ -75,7 +75,7 @@ Magic-API/Magic-Script、自维护内部坐标、Spring AI/Spring AI Alibaba 和
 
 - [远端 Git 传输持续失败] → 保持本地提交和工作区完整，重复执行只读连通性检查；没有最新远端对象时不开始合并或更新远端引用。
 - [远端 `dev` 新提交与依赖清理冲突] → 在最新 `origin/dev` 上逐项解决，保留上游 LangChain4j 自动配置迁移，再重新运行 Java 8 全量验证。
-- [LangChain4j beta 集成模块与 Spring Boot 3.5.8 不兼容] → 由固定平台 BOM 覆盖后执行编译、测试和上下文启动；失败时记录具体 artifact/API 差异并停在依赖升级提交，不改变固定 Spring Boot 版本。
+- [LangChain4j 管理被其他 BOM 或传递依赖改变] → 生成有效 POM 和依赖树，核对 1.18.0 与三项 0.36.2 覆盖；不符合时定位管理来源并停在依赖升级提交，不改变固定 Spring Boot 版本。
 - [批量升级扩大回归面] → 按 BOM/属性分组、小步提交并保留升级前后的依赖树证据；不兼容项单独维持旧版。
 - [跨分支工作导致产物误带入] → 每次切换前要求工作区干净，核对当前分支和目标差异，禁止用 reset/force 覆盖已有工作。
 - [内部 Nexus 或外部仓库不可用] → 区分网络解析失败与代码失败；仅以完整依赖可解析环境中的成功构建作为通过证据。
@@ -88,12 +88,12 @@ Magic-API/Magic-Script、自维护内部坐标、Spring AI/Spring AI Alibaba 和
 4. 同步 `springboot2` 自身远端历史，合并最新 `dev`，解决冲突但保持 Java 8 基线；验证、提交并推送。
 5. 同步 `springboot3` 自身远端历史，合并最新 `dev` 并保留已有 Boot 3 适配；提交分支同步结果。
 6. 审计并升级 `springboot3` 允许变更的依赖，应用 LangChain4j BOM 规则，完成分层构建和自动配置验证后提交并推送。
-7. 核对三个远端 SHA、祖先关系和工作区状态，记录保留旧版的依赖及原因。
+7. 最终 dev 提交包含 AskData 生产代码、POM、测试和契约文档后，两个派生分支先同步各自远端，再以非强制 merge 引入 dev；springboot2 使用 Java 8、springboot3 使用 Java 17 分别执行 AskDataStarterDependencyTest、AskDataAutoConfigurationTest、starter validate 和 NeutralAiAutoConfigurationBoundaryTest，springboot3 另执行 SpringBoot3DependencyBaselineTest。
+8. 核对三个远端 SHA、ahead/behind、祖先关系和工作区状态，记录保留旧版的依赖及原因。
 
 回滚时只撤销对应分支尚未推送的提交；若已推送，则通过新 revert 提交回滚具体升级或合并，不强制重写远端历史。
 
 ## Open Questions
 
 - `springboot3` 中除固定基线外的最终候选升级清单，需要在成功合并最新 `dev` 后基于实际 POM 和 Maven 更新报告确定。
-- LangChain4j 1.18.1-beta28 starter 在 Spring Boot 3.5.8 下是否存在自动配置 API 差异，需要通过实际构建和上下文测试确认。
 - 当前 Git HTTPS 故障何时恢复不可预知；它只影响执行时机，不改变安全合并和非强制推送策略。
