@@ -410,7 +410,75 @@ Expected: HEAD 有两个父提交、`dev` 为祖先、工作区干净；合并�
 
 ---
 
-### Task 7: 建立 Spring Boot 3 依赖基线回归测试
+### Task 7: 统一 AI 层 Maven Enforcer 插件版本属性
+
+**Files:**
+- Modify: `fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml`
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/pom.xml`
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-store-embedding-spring-boot-starter/pom.xml`
+- Modify: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml`
+
+**Interfaces:**
+- Consumes: AI Starter 经 `fw-plus-parent`、Boot Parent、AI Parent 继承 Core BOM 属性的现有父 POM 链。
+- Produces: 单一 `maven-enforcer-plugin.version=3.4.1` 属性，三个 Starter POM 只引用该属性，不再直接写死插件版本。
+
+- [x] **Step 1: 运行硬编码边界断言（RED）**
+
+Run:
+
+```bash
+test "$(rg -l '<artifactId>maven-enforcer-plugin</artifactId>' fw-plus-ai --glob 'pom.xml' | wc -l | tr -d ' ')" -eq 3
+test "$(rg -l '<version>3\.4\.1</version>' fw-plus-ai --glob 'pom.xml' | wc -l | tr -d ' ')" -eq 0
+test "$(rg -c '<maven-enforcer-plugin\.version>3\.4\.1</maven-enforcer-plugin\.version>' fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml)" -eq 1
+```
+
+Expected: 后两条至少一条失败，证明 Enforcer 版本仍在三个子 POM 中写死且父 POM 尚无统一属性。
+
+- [x] **Step 2: 增加统一属性并替换三处硬编码**
+
+使用 `apply_patch` 在 Core BOM `fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml` 的插件版本属性区加入：
+
+```xml
+<maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
+```
+
+三个 Starter POM 的 Enforcer 插件版本统一改为：
+
+```xml
+<version>${maven-enforcer-plugin.version}</version>
+```
+
+- [x] **Step 3: 验证属性继承与无硬编码（GREEN）**
+
+Run:
+
+```bash
+test "$(rg -l '<artifactId>maven-enforcer-plugin</artifactId>' fw-plus-ai --glob 'pom.xml' | wc -l | tr -d ' ')" -eq 3
+test "$(rg -l '<version>3\.4\.1</version>' fw-plus-ai --glob 'pom.xml' | wc -l | tr -d ' ')" -eq 0
+test "$(rg -c '<maven-enforcer-plugin\.version>3\.4\.1</maven-enforcer-plugin\.version>' fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml)" -eq 1
+test "$(rg -l '<version>\$\{maven-enforcer-plugin\.version\}</version>' fw-plus-ai --glob 'pom.xml' | wc -l | tr -d ' ')" -eq 3
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+mvn -o -nsu -q -f fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml help:evaluate -Dexpression=maven-enforcer-plugin.version -DforceStdout
+mvn -o -nsu -Dmaven-enforcer-plugin.version=3.4.1 -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml -pl fw-plus-ai-model-spring-boot-starter,fw-plus-ai-store-embedding-spring-boot-starter,fw-plus-ai-langchain4j-adapter-spring-boot-starter validate -DskipTests
+```
+
+Expected: 四条结构断言通过，Core BOM 属性求值为 `3.4.1`，三个目标模块均使用 `enforcer:3.4.1` 完成 Maven `validate`。当前工作区不能写外部 Maven 本地仓库，因此先用命令行属性覆盖验证目标插件版本；后续按 Core → AI 顺序安装时再由父链自然继承同一值。
+
+- [ ] **Step 4: 提交版本统一调整**
+
+Run:
+
+```bash
+git add fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/pom.xml fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-store-embedding-spring-boot-starter/pom.xml fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml
+git diff --cached --check
+git commit -m "chore(ai): 统一 Maven Enforcer 插件版本"
+```
+
+Expected: 提交只包含 Core BOM 的统一属性和三个 Starter POM 的属性引用；派生分支在后续分支一致性任务中同步该提交。
+
+---
+
+### Task 8: 建立 Spring Boot 3 依赖基线回归测试
 
 **Files:**
 - Create: `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/ai/autoconfigure/SpringBoot3DependencyBaselineTest.java`
@@ -565,7 +633,7 @@ Expected: `SpringBoot3DependencyBaselineTest` PASS，原始 POM 的固定版本�
 
 ---
 
-### Task 8: 验证 LangChain4j 1.18.1 / beta28 解析与适配边界
+### Task 9: 验证 LangChain4j 1.18.1 / beta28 解析与适配边界
 
 **Files:**
 - Verify/Modify: `fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/**`
@@ -642,7 +710,7 @@ Expected: 提交包含 BOM、基线测试及确有必要的最小适配，不混
 
 ---
 
-### Task 9: 审计并逐组升级其他 Spring Boot 3 依赖
+### Task 10: 审计并逐组升级其他 Spring Boot 3 依赖
 
 **Files:**
 - Verify/Modify: `fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml`
@@ -726,7 +794,7 @@ Expected: 提交只包含矩阵中标记“采用”的依赖及其必要测试/
 
 ---
 
-### Task 10: 全量验证并发布 springboot3
+### Task 11: 全量验证并发布 springboot3
 
 **Files:**
 - Modify on `dev`: `openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/.comet/evidence/build-verification.md`
@@ -797,7 +865,7 @@ Expected: 非强制推送成功且远端 SHA 等于 worktree HEAD；把最终 SH
 
 ---
 
-### Task 11: 提交最终证据并同步纯文档提交
+### Task 12: 提交最终证据并同步纯文档提交
 
 **Files:**
 - Modify: `openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/tasks.md`
@@ -859,7 +927,7 @@ Expected: 合并只带入最终文档，无需重复 Maven 构建；非强制推
 
 ---
 
-### Task 12: 最终远端、祖先与工作区核验
+### Task 13: 最终远端、祖先与工作区核验
 
 **Files:**
 - Verify: `openspec/changes/upgrade-springboot3-dependencies-and-sync-branches/.comet/evidence/branch-sync.md`

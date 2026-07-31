@@ -1,56 +1,94 @@
-# Task 7 执行报告：文档、README 与样例配置
+# Task 7 执行报告：统一 AI 层 Maven Enforcer 插件版本属性
 
-## 文档内容摘要
+## 状态
 
-- 新增 TinyEngine starter README：包含 Maven 坐标、`fw.plus.tiny-engine.ai.enabled` 总开关、chat/streaming/embedding model key、vector store key、RAG chunk/search 配置、`fail-fast`/`degrade` 缺失依赖策略和禁用行为。
-- TinyEngine 文档明确模型走 `AiModelRegistry` / `fw-plus-ai-model`，向量走 `AiEmbeddingStoreRegistry` / `fw-plus-ai-store-embedding`；LangChain4j 仅作为默认 adapter/provider。
-- TinyEngine 文档如实说明 Task 6 边界：知识库服务写入文本 chunk，中立 AiModel 不向 TinyEngine 服务直接暴露 embedding 生成调用，向量生成/批量写入策略由中立 store/provider 承担。
-- 新增 AskData starter README：说明 `fw.plus.ai.askdata` 的模型 key、候选 key 和 `vector.store` 如何解析到两个中立 Registry；提供默认 LangChain4j adapter、provider SDK 和 `AskDataModelRegistry` / `AskDataVectorRetriever` / Registry Bean 覆盖示例。
-- 两份 README 均加入旧 LangChain4j model/store starter 坐标不是当前 starter line 主路径的边界警告。
+`BLOCKED`
 
-## grep 命令与结果
+四个指定 POM 的源修改和验证已完成，但子代理的 Git 元数据权限为只读，无法创建 `.git/index.lock`，故未能暂存或创建所要求的提交。
 
-按 brief 执行：
+## 提交
+
+无提交哈希。提交前命令失败：
 
 ```bash
-rg -n "fw-plus-ai-langchain4j-model-spring-boot-starter|fw-plus-ai-langchain4j-store-embeding-spring-boot-starter|LangChain4jModelRegistry|EmbeddingStoreRegistry" \
-  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-tiny-engine-spring-boot-starter \
-  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter
+git add fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/pom.xml \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-store-embedding-spring-boot-starter/pom.xml \
+  fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml
 ```
 
-结果：退出码 `0`，存在匹配。逐项检查如下：
+失败摘要：`fatal: Unable to create '.git/index.lock': Operation not permitted`。
 
-- 两份 README 中的旧坐标只出现在明确的“当前 starter line 不使用/不是当前主路径/不要混用”警告中，没有作为新增依赖或主配置示例。
-- 两个 starter 的既有 `*StarterDependencyTest.java` 中命中旧坐标，是断言旧坐标不得出现在 POM 的回归测试，不是文档主路径。
-- `EmbeddingStoreRegistry` 的匹配来自合法中立名称 `AiEmbeddingStoreRegistry`；未发现 README 使用旧 registry 名称 `LangChain4jModelRegistry`。
+## 变更文件
 
-补充检查：
+- `fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml`
+  - 新增唯一属性 `<maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>`。
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/pom.xml`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-store-embedding-spring-boot-starter/pom.xml`
+- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml`
+  - 三处 Enforcer 插件版本均改为 `${maven-enforcer-plugin.version}`。
+
+## RED
+
+执行简报 Step 1 的三条断言：
 
 ```bash
-git diff --check
+test "$(rg -l '<artifactId>maven-enforcer-plugin</artifactId>' fw-plus-ai --glob 'pom.xml' | wc -l | tr -d ' ')" -eq 3
+test "$(rg -l '<version>3\\.4\\.1</version>' fw-plus-ai --glob 'pom.xml' | wc -l | tr -d ' ')" -eq 0
+test "$(rg -c '<maven-enforcer-plugin\\.version>3\\.4\\.1</maven-enforcer-plugin\\.version>' fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml)" -eq 1
 ```
 
-结果：通过。
+结果：退出码 `1`。逐条复核后，第 1 条通过；第 2 条失败，因为三个 AI Starter 各有一个 `<version>3.4.1</version>` 硬编码；第 3 条失败，因为 Core BOM 尚无该属性。失败原因符合预期。
 
-## 修改文件
+## GREEN
 
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-tiny-engine-spring-boot-starter/README.md`
-- `fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter/README.md`
-- `.superpowers/sdd/task-7-report.md`
+结构断言已通过。简报第四条 `rg` 模式以 `\${...}` 转义时会将 `{` 解释为量词，因而固定报 `repetition quantifier expects a valid decimal`；使用语义等价、完整转义的模式完成验证：
 
-未修改源码、POM、版本号或无关文件；`.superpowers/sdd/task-7-brief.md` 仅按提交要求加入暂存范围。
+```bash
+set -e
+test "$(rg -l '<artifactId>maven-enforcer-plugin</artifactId>' fw-plus-ai --glob 'pom.xml' | wc -l | tr -d ' ')" -eq 3
+test "$(rg -l '<version>3\\.4\\.1</version>' fw-plus-ai --glob 'pom.xml' | wc -l | tr -d ' ')" -eq 0
+test "$(rg -c '<maven-enforcer-plugin\\.version>3\\.4\\.1</maven-enforcer-plugin\\.version>' fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml)" -eq 1
+test "$(rg -l '<version>\\$\\{maven-enforcer-plugin\\.version\\}</version>' fw-plus-ai --glob 'pom.xml' | wc -l | tr -d ' ')" -eq 3
+```
 
-## 自审结果
+结果：退出码 `0`，四条结构断言均通过。
 
-- 文档使用简体中文，并参考现有 model/store/adapter README 的配置风格。
-- Maven artifact 坐标与当前 starter POM 及已有依赖回归测试一致。
-- TinyEngine 的总开关、RAG 开关、model/store key、缺失依赖策略和 disable 行为均有说明和 YAML 示例。
-- AskData 主路径明确为两个中立 Registry，并覆盖默认 LangChain4j adapter 与业务 Bean 覆盖点。
-- 未将 LangChain4j 写成 TinyEngine/AskData 业务唯一实现，未夸大 embedding 生成能力。
-- 本任务只涉及文档，未运行 Maven 测试；已完成 brief 指定 docs grep 与 `git diff --check`。
+工作区 Core BOM 的属性求值：
 
-## 风险/疑问
+```bash
+export JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home
+mvn -o -nsu -q -f fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml help:evaluate -Dexpression=maven-enforcer-plugin.version -DforceStdout
+```
 
-- 具体 provider SDK、后端连接、向量维度和 schema 仍需业务应用按所选 adapter/provider 配置并进行真实环境验证；README 不替代 provider 文档。
-- Task 6 的中立 AiModel 尚不提供 TinyEngine 侧 embedding 生成调用，文档已保留该边界；后续若实现发生变化，需要同步更新知识库流程说明。
-- grep 因既有负向依赖断言和合法中立 Registry 名称而有匹配，未发现把旧 artifact/registry 当作当前主路径的文档内容。
+结果：退出码 `0`，输出 `3.4.1`。
+
+等价的正确聚合器验证：
+
+```bash
+mvn -o -nsu -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/pom.xml \
+  -pl fw-plus-ai-model-spring-boot-starter,fw-plus-ai-store-embedding-spring-boot-starter,fw-plus-ai-langchain4j-adapter-spring-boot-starter \
+  validate -DskipTests
+```
+
+结果：退出码 `0`，三个目标 Starter 全部 `BUILD SUCCESS`。简报的 `-f fw-plus-ai/pom.xml -pl fw-plus-ai-project/...` 变体失败，因为第三个模块未被该 root reactor 识别；以上命令以直接父聚合器精确选择相同三个模块。
+
+## 风险信号
+
+- 跨模块：命中。变更横跨 Core BOM 与三个 AI Starter；结构断言确认 Core 仅一处版本源、AI 仅三处属性引用。
+- 安全：未命中。无凭据、鉴权、网络或依赖来源变更。
+- 并发：未命中。仅 Maven POM 元数据，无运行时并发逻辑变更。
+- Schema：未命中。无配置绑定、数据库或序列化 schema 变更。
+- 公共 API：未命中。无 Java API、artifactId 或依赖坐标变更。
+- `DONE_WITH_CONCERNS`：未命中。本状态为 `BLOCKED`，原因是提交权限，不将未完成提交表述为完成。
+- diff 大于 200 行：未命中。POM 源差异共 4 行增删。
+
+## 顾虑
+
+- 当前 AI Starter 的离线 Maven 解析仍从 `/Users/xiongxiao/Workspace/Idea/maven/repo` 读取旧 Core BOM，实际执行 `enforcer:3.0.0`。为验证新 Core BOM 进入本地仓库后的 effective value，需要复制约 4.5GB 的缓存至独立临时仓库并安装；因环境成本过高，未执行，也未伪报 `3.4.1` 已在 AI effective POM 生效。
+- Maven 输出存在既有的 Core BOM `dependencyManagement` 重复声明警告（`fw-plus-ai-model`、`fw-plus-ai-store-embedding`）；本任务未修改其来源。
+- Git 暂存与提交仍待拥有 `.git` 写权限的主会话执行，严格提交消息应为 `chore(ai): 统一 Maven Enforcer 插件版本`。
+
+## 自审结论
+
+源改动严格限定为四个指定 POM，未新增重复属性，未改父链，未修改业务代码。RED 已观察到预期失败，结构 GREEN 与三目标模块等价离线 `validate` 均有退出码 `0` 证据。由于无法创建所需提交，本任务不能标记为完成。
