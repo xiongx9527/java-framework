@@ -19,3 +19,18 @@
 - Review/fix round: `completed`
 - Open findings: `none`
 - User ruling: `dev`、`springboot2`、`springboot3` 均需提交推送；Spring Boot 3 使用 Java 17 下 LangChain4j 高版本，最终统一为 `1.18.0`，三个例外在 BOM 内使用 `0.36.2`；Spring AI 与 Spring AI Alibaba 统一为 `1.0.1`。
+
+## Follow-up local submission
+
+- Task: `Task 7: 统一 AI 层 Maven Enforcer 插件版本属性`
+- OpenSpec mapping: `1.3`（固定版本断言与排除清单）
+- Stage: `submitted`
+- Implementer: `/root/task7_enforcer_version`
+- Base commit: `be77ca9d947a2e55f1c8a772d81238fe0e4013c8`
+- Changed files: Core BOM 与三个 AI Starter POM，共 4 个 POM
+- RED evidence: 三个 Starter 仍硬编码 `3.4.1` 且 Core BOM 尚无统一属性，结构断言按预期失败
+- GREEN evidence: 四项结构断言、Core BOM 属性求值 `3.4.1`、三个目标 Starter 以 `enforcer:3.4.1` 离线 `validate`、`git diff --check` 通过
+- Risk review triggered: `yes`（跨 Core/AI 模块；reviewer `/root/task7_enforcer_review`）
+- Review/fix round: `0/1`
+- Review result: `/root/task7_enforcer_review` 已批准，无 Critical/Important/Minor finding
+- User ruling: `maven-enforcer-plugin.version=3.4.1` 必须统一声明在 Core BOM，三个 AI Starter POM 只引用该属性。
