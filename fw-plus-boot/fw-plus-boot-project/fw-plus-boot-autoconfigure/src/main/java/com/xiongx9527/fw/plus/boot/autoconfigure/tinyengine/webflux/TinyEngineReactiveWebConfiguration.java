@@ -1,8 +1,11 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webflux;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.TinyEngineProperties;
+import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.web.TinyEngineCredentialExtractor;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.web.TinyEngineResourceController;
 import com.xiongx9527.fw.plus.tinyengine.service.ResourceService;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineUserSystemService;
+import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineRequestUserScope;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -24,6 +27,12 @@ import reactor.core.scheduler.Schedulers;
 public class TinyEngineReactiveWebConfiguration {
 
 	@Bean
+	@ConditionalOnMissingBean
+	public TinyEngineCredentialExtractor tinyEngineCredentialExtractor() {
+		return new TinyEngineCredentialExtractor();
+	}
+
+	@Bean
 	@ConditionalOnBean(ResourceService.class)
 	@ConditionalOnMissingBean
 	public TinyEngineResourceController tinyEngineResourceController(ResourceService resourceService) {
@@ -43,5 +52,15 @@ public class TinyEngineReactiveWebConfiguration {
 	public TinyEngineReactiveExecutor tinyEngineReactiveExecutor(
 			@Qualifier("tinyEngineBlockingScheduler") Scheduler scheduler, TinyEngineProperties properties) {
 		return new TinyEngineReactiveExecutor(scheduler, properties.getWebflux().getScheduler().getTimeout());
+	}
+
+	@Bean
+	@ConditionalOnBean({TinyEngineUserSystemService.class, TinyEngineReactiveExecutor.class,
+			TinyEngineRequestUserScope.class})
+	@ConditionalOnMissingBean
+	public TinyEngineUserWebFluxController tinyEngineUserWebFluxController(TinyEngineUserSystemService userSystemService,
+			TinyEngineCredentialExtractor credentialExtractor, TinyEngineReactiveExecutor executor,
+			TinyEngineRequestUserScope userScope) {
+		return new TinyEngineUserWebFluxController(userSystemService, credentialExtractor, executor, userScope);
 	}
 }
