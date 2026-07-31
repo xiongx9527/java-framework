@@ -14,7 +14,9 @@
 </dependency>
 ```
 
-starter 已接入中立 model/store starter，并带入默认 LangChain4j adapter。使用具体 provider 时仍需按 provider 文档显式加入对应 SDK；starter 不会把所有 provider SDK 打包进来。
+业务只需引入本 starter，即可同时获得现有 `fw-plus-tiny-engine-spring-boot-starter` 提供的 TinyEngine Boot、Web 与 MyBatis-Plus 基础装配，以及中立 model/store starter 和默认 LangChain4j adapter。Boot Starter 仍保持 AI-free，本 starter 仅通过 Maven 依赖聚合它，不复制或重新实现 Boot 配置。
+
+使用具体 provider 时仍需按 provider 文档显式加入对应 SDK；starter 不会把所有 provider SDK 打包进来。
 
 ## 最小配置
 
