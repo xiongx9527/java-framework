@@ -97,6 +97,22 @@ test('TinyEngine 支持 pluginData.attributes.path 覆盖入口', async () => {
   assert.deepEqual(opened, [['https://example.test:9443/custom-tiny/', '_blank']])
 })
 
+test('TinyEngine 支持 pluginData.attributes.url 打开外部前端', async () => {
+  const opened = installBrowser()
+  const factory = await loadFactory()
+
+  factory({
+    pluginData: {
+      attributes: {
+        url: 'https://tiny.example.test/designer',
+        path: '/ignored/'
+      }
+    }
+  }).statusBarItems[0].onClick()
+
+  assert.deepEqual(opened, [['https://tiny.example.test/designer/', '_blank']])
+})
+
 test('TinyEngine 非默认基址构建后的 IIFE 打开后端入口', () => {
   assert.deepEqual(executeCustomBaseIife({ pluginData: {} }), [['https://api.example.test:18443/tiny-engine/', '_blank']])
 })

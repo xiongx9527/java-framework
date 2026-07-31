@@ -9,6 +9,12 @@ var MagicTinyEngine = function() {
     return prefixed.endsWith("/") ? prefixed : `${prefixed}/`;
   };
   const replaceURL = (url) => url.replace(/:?\/+/g, (value) => value.indexOf(":") > -1 ? value : "/");
+  const normalizeURL = (url) => {
+    if (!url) {
+      return null;
+    }
+    return url.endsWith("/") ? url : `${url}/`;
+  };
   const resolveBase = () => {
     let link = `${location.protocol}//${location.host}${location.pathname}`.replace("/index.html", "");
     const baseURL = "./";
@@ -27,9 +33,14 @@ var MagicTinyEngine = function() {
       displayKey: "tiny-engine",
       order: 1600,
       onClick: () => {
-        var _a;
+        var _a, _b;
+        const url = normalizeURL((_a = pluginData.attributes) == null ? void 0 : _a.url);
+        if (url) {
+          window.open(url, "_blank");
+          return;
+        }
         const link = resolveBase();
-        const path = normalizePath((_a = pluginData.attributes) == null ? void 0 : _a.path);
+        const path = normalizePath((_b = pluginData.attributes) == null ? void 0 : _b.path);
         window.open(replaceURL(link + path), "_blank");
       }
     }]
