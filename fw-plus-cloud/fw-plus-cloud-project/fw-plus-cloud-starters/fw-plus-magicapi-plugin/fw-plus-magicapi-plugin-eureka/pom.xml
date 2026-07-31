@@ -5,12 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.xiongx9527.fw.plus.cloud</groupId>
-        <artifactId>fw-plus-cloud-starters</artifactId>
+        <artifactId>fw-plus-magicapi-plugin</artifactId>
         <version>${revision}</version>
     </parent>
     <artifactId>fw-plus-magicapi-plugin-eureka</artifactId>
     <properties>
-        <main.basedir>${basedir}/../../..</main.basedir>
+        <main.basedir>${basedir}/../../../..</main.basedir>
     </properties>
     <build>
 		<resources>
