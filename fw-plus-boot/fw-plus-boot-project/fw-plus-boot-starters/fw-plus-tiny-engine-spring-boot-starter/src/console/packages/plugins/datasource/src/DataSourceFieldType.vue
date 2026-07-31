@@ -1,0 +1,139 @@
+<template>
+  <div v-if="isOpen" class="step-select-first">
+    <div class="field-row field-row-border-bottom-none">
+      <div class="icon-and-text">
+        <div class="field-cell-type">
+          <icon-arrow-down></icon-arrow-down>
+        </div>
+        <div class="field-cell-name">
+          <span>选择字段类型</span>
+        </div>
+      </div>
+      <span class="btn" @click="cancelSelectType"> 取消 </span>
+    </div>
+    <div class="type-list">
+      <div v-for="fieldType in state.fieldTypes" :key="fieldType.name" class="type-item" @click="selectType(fieldType)">
+        <svg-icon :name="fieldType.icon" class="type-icon" />
+        <span>{{ fieldType.name }}</span>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+/* metaService: engine.plugins.collections.DataSourceFieldType */
+import { reactive, ref } from 'vue'
+import { iconArrowDown } from '@opentiny/vue-icon'
+import fieldTypes from './config'
+
+const isOpen = ref(false)
+
+export const open = () => {
+  isOpen.value = true
+}
+
+export const close = () => {
+  isOpen.value = false
+}
+
+export default {
+  components: {
+    iconArrowDown: iconArrowDown()
+  },
+  emits: ['cancel', 'select'],
+  setup(props, { emit }) {
+    const state = reactive({
+      fieldTypes
+    })
+
+    const selectType = (type) => {
+      close()
+      emit('select', type)
+    }
+
+    const cancelSelectType = () => {
+      close()
+      emit('cancel')
+    }
+
+    return {
+      state,
+      isOpen,
+      cancelSelectType,
+      selectType
+    }
+  }
+}
+</script>
+
+<style lang="less" scoped>
+.step-select-first {
+  border: 1px solid var(--te-datasource-common-border-color);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 46px;
+  svg {
+    color: var(--te-datasource-toolbar-icon-color);
+  }
+}
+.field-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  border-bottom: 2px solid var(--te-datasource-dialog-demo-border-color);
+  justify-content: space-between;
+  align-items: center;
+  &.field-row-border-bottom-none {
+    border-bottom: none;
+  }
+  .icon-and-text {
+    display: flex;
+    align-items: center;
+    .field-cell-type {
+      height: 20px;
+      display: flex;
+      align-items: center;
+      .tiny-svg {
+        fill: var(--te-datasource-field-cell-type-icon-color);
+      }
+    }
+    .field-cell-name {
+      margin-left: 5px;
+      font-weight: bold;
+      .description {
+        color: var(--te-datasource-input-icon-color);
+        margin-left: 5px;
+      }
+    }
+  }
+  .btn {
+    color: var(--te-datasource-common-text-color-primary);
+    font-size: 12px;
+    cursor: pointer;
+  }
+}
+
+.type-list {
+  display: flex;
+  gap: 8px;
+  grid-template-columns: repeat(6, 1fr);
+  .type-item {
+    width: 70px;
+    height: 70px;
+    padding: 12px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: column;
+    cursor: pointer;
+    background-color: var(--te-datasource-box-bg-color);
+    border-radius: 4px;
+    color: var(--te-datasource-dialog-font-text-color);
+    .type-icon {
+      font-size: 20px;
+    }
+  }
+}
+</style>

@@ -1,0 +1,31 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: Breaking Changes 🛠
+      labels:
+        - Semver-Major
+        - breaking-change
+    - title: Exciting New Features 🎉
+      labels:
+        - Semver-Minor
+        - feature
+        - enhancement
+    - title: Bug Fixes 🐛
+      labels:
+        - Semver-Patch
+        - bug
+    - title: "📖 Documentation"
+      labels:
+        - documentation
+    - title: "🔧 Maintenance"
+      labels:
+        - refactoring
+        - test
+        - unit-test
+        - chore
+        - ci
+    - title: "Other Changes"
+      labels: ["*"]
+      collapse: true

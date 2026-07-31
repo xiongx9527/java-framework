@@ -1,0 +1,186 @@
+/**
+ * Copyright (c) 2023 - present TinyEngine Authors.
+ * Copyright (c) 2023 - present Huawei Cloud Computing Technologies Co., Ltd.
+ *
+ * Use of this source code is governed by an MIT-style license.
+ *
+ * THE OPEN SOURCE SOFTWARE IN THIS PRODUCT IS DISTRIBUTED IN THE HOPE THAT IT WILL BE USEFUL,
+ * BUT WITHOUT ANY WARRANTY, WITHOUT EVEN THE IMPLIED WARRANTY OF MERCHANTABILITY OR FITNESS FOR
+ * A PARTICULAR PURPOSE. SEE THE APPLICABLE LICENSES FOR MORE DETAILS.
+ *
+ */
+
+/* metaService: engine.service.properties.useProperties */
+import { toRaw, shallowReactive, ref } from 'vue'
+import { constants } from '@opentiny/tiny-engine-utils'
+import { useCanvas, useMaterial, useTranslate } from '@opentiny/tiny-engine-meta-register'
+import type { Property, Schema } from '@opentiny/tiny-engine-plugin-materials'
+
+const { COMPONENT_NAME } = constants
+const propsUpdateKey = ref(0)
+
+const getSlotSwitch = (properties: Property[], slots: Record<string, any> = {}) => {
+  if (Object.keys(slots).length) {
+    properties.push({
+      label: {
+        zh_CN: '插槽信息'
+      },
+      description: {
+        zh_CN: '插槽信息'
+      },
+      content: [
+        {
+          property: 'slots',
+          labelPosition: 'none',
+          bindState: false,
+          widget: {
+            component: 'SlotConfigurator',
+            props: {
+              slots
+            }
+          },
+          description: {
+            zh_CN: '插槽开关'
+          }
+        }
+      ]
+    })
+  }
+}
+
+/**
+ * 合并元数据与pageSchema中的实际属性
+ * @param {*} pageProps 实际节点属性
+ * @param {*} groups 组件元数据
+ * @returns
+ */
+const mergeProps = (pageProps: Record<string, any> = {}, groups: Property[] = []) => {
+  const group = groups.map(({ content = [], ...group }) => {
+    return {
+      ...group,
+      content: (content || []).map(({ widget, ...prop }) => {
+        const { props, ...meta } = widget
+        const modelValue = pageProps[prop.property] === undefined ? prop.defaultValue : pageProps[prop.property]
+
+        return {
+          ...prop,
+          widget: { ...meta, props: { ...props, modelValue } }
+        }
+      })
+    }
+  })
+
+  return group
+}
+
+const translateProp = (value: { type: string }) => {
+  if (value?.type === 'i18n') {
+    return useTranslate().translate(value)
+  }
+
+  return value
+}
+
+/**
+ * 生成属性面版渲染数据
+ * @param {*} instance 画布上当前选中节点信息
+ */
+
+const properties = shallowReactive<{ schema: Schema | null; parent: Schema | null }>({
+  schema: null,
+  parent: null
+})
+
+const isPageOrBlock = (schema: Schema) =>
+  [COMPONENT_NAME.Block, COMPONENT_NAME.Page].includes(schema?.componentName || '')
+
+const getProps = (schema: Schema, parent: Schema) => {
+  // 1 现在选中的节点和当前节点一样，不需要重新计算, 2 默认进来由于scheme和properities.schema相等，因此判断如果是“页面或者区块”需要进入if判断
+  if (schema && (properties.schema !== schema || isPageOrBlock(schema))) {
+    const { props, componentName } = schema
+    // 若选中的是page或者 blcok，没有对应schema，ComponentName 给 div 设置根节点属性
+    const {
+      schema: metaSchema,
+      content,
+      properties
+    } = useMaterial().getMaterial(isPageOrBlock(schema) ? 'div' : componentName) || {}
+    const schemaProps = properties || metaSchema?.properties || content?.schema?.properties || []
+    const propGroups = [...schemaProps]
+
+    getSlotSwitch(propGroups, metaSchema?.slots)
+    useCanvas().pageState.properties = mergeProps(toRaw(props), propGroups)
+  } else if (!schema) {
+    useCanvas().pageState.properties = {}
+  }
+
+  properties.schema = schema
+  properties.parent = parent
+}
+
+const setProp = (name: string, value: unknown, type?: unknown) => {
+  if (!properties.schema) {
+    return
+  }
+
+  properties.schema.props = properties.schema.props || {}
+
+  const newProps = { ...(properties.schema.props || {}) }
+
+  let overwrite = false
+
+  if ((value === '' && type !== 'String') || value === undefined || value === null) {
+    delete newProps[name]
+    overwrite = true
+  } else {
+    newProps[name] = value
+  }
+
+  useCanvas().operateNode({
+    type: 'changeProps',
+    id: properties.schema.id || '',
+    value: { props: newProps },
+    option: { overwrite }
+  })
+
+  propsUpdateKey.value++
+}
+
+const getProp = (key: string) => {
+  return (properties.schema?.props || {})[key]
+}
+
+const delProp = (name: string) => {
+  const newProps = { ...(properties.schema?.props || {}) }
+
+  delete newProps[name]
+
+  useCanvas().operateNode({
+    type: 'changeProps',
+    id: properties.schema?.id || '',
+    value: { props: newProps },
+    option: { overwrite: true }
+  })
+  propsUpdateKey.value++
+}
+
+const setProps = (schema: Schema) => {
+  Object.entries(schema.props || {}).map(([key, value]) => setProp(key, value))
+}
+
+const getSchema = (parent: boolean) => {
+  return parent ? properties : properties.schema
+}
+
+export default function () {
+  return {
+    getProps,
+    getProp,
+    setProps,
+    mergeProps,
+    delProp,
+    setProp,
+    translateProp,
+    getSchema,
+    propsUpdateKey
+  }
+}
