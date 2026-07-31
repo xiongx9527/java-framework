@@ -12,6 +12,7 @@
     "build:plugin": "pnpm --filter @opentiny/tiny-engine-* --filter @opentiny/tiny-engine build",
     "build:alpha": "pnpm --filter designer-demo build:alpha",
     "build:prod": "pnpm --filter designer-demo build",
+    "build:fwplus": "pnpm --filter @opentiny/tiny-engine-* --filter @opentiny/tiny-engine --filter !@opentiny/tiny-engine-cli --filter !@opentiny/tiny-engine-mock build && pnpm --filter designer-demo build:fwplus",
     "buildComponentSchemas": "node scripts/buildComponentSchemas.js",
     "lint": "eslint . --ext .js,.mjs,.jsx,.ts,.mts,.tsx,.vue --fix",
     "format": "prettier --write --list-different **/*{.vue,.js,.mjs,.jsx,.ts,.mts,.tsx,.html,.json}",
@@ -56,13 +57,5 @@
   "engines": {
     "node": ">=16",
     "pnpm": ">=8"
-  },
-  "pnpm": {
-    "patchedDependencies": {
-      "@vue/repl@4.6.1": "patches/@vue__repl@4.6.1.patch"
-    },
-    "overrides": {
-      "rollup": "~4.44.0"
-    }
   }
 }

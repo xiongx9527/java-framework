@@ -13,8 +13,13 @@ export default defineConfig((configEnv) => {
   })
 
   const customConfig = {
+    base: './',
     envDir: './env',
     publicDir: path.resolve(__dirname, './public'),
+    build: {
+      outDir: 'dist',
+      emptyOutDir: true
+    },
     server: {
       port: 8090
     }
