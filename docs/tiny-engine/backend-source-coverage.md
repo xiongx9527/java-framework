@@ -37,6 +37,29 @@
 | documents | `documents/agent/**`, `documents/tinyengine/**` | TinyEngine 文档或后续组件资料 | adapted/deferred-with-reason | Harmony 和 TinyEngine 组件说明不能从清单中消失；默认不打入 starter 运行时。 |
 | model-assets | `all-MiniLM-L6-v2/**` | 可选 RAG/Embedding Provider 文档 | deferred-with-reason | ONNX 模型和 tokenizer 体积大且属于可选 AI 能力，starter 默认不内置；无 Provider 时 AI/RAG 接口返回未配置。 |
 | settings | `settings/**`, `.codecheck/**`, `.github/**` | docs 或不迁移说明 | adapted/deferred-with-reason | 代码规范、CI 和仓库模板只作为参考，不进入 fw-plus 发布产物。 |
+| repository-root | `.gitignore`, `README.md`, `README.zh-CN.md`, `CONTRIBUTING.md`, `CONTRIBUTING.zh-CN.md`, `logo.svg`, `pom.xml` | `docs/tiny-engine/**`、starter README/sample 文档或 Maven 坐标映射 | adapted/deferred-with-reason | 根文档、贡献说明、Logo、原聚合 POM 与忽略规则纳入清单；不作为运行时依赖复制，避免把原独立应用发布结构误并入 fw-plus starter。 |
+
+## tracked 顶层入口清单
+
+- `.codecheck`
+- `.github`
+- `.gitignore`
+- `CONTRIBUTING.md`
+- `CONTRIBUTING.zh-CN.md`
+- `Dockerfile`
+- `README.md`
+- `README.zh-CN.md`
+- `all-MiniLM-L6-v2`
+- `app`
+- `base`
+- `docker-compose.yml`
+- `docker-deploy-data`
+- `documents`
+- `example-docker.yml`
+- `logo.svg`
+- `pom.xml`
+- `settings`
+- `settings.xml`
 
 ## Java 包路径清单
 
