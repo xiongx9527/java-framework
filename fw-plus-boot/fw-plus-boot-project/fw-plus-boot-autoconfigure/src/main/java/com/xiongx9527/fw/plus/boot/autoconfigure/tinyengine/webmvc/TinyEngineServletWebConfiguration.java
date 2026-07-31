@@ -45,6 +45,20 @@ public class TinyEngineServletWebConfiguration {
 	}
 
 	@Bean
+	@ConditionalOnBean(TinyEngineApiFacade.class)
+	@ConditionalOnMissingBean
+	public TinyEngineMaterialMvcController tinyEngineMaterialMvcController(TinyEngineApiFacade facade) {
+		return new TinyEngineMaterialMvcController(facade);
+	}
+
+	@Bean
+	@ConditionalOnBean(TinyEngineApiFacade.class)
+	@ConditionalOnMissingBean
+	public TinyEngineModelMvcController tinyEngineModelMvcController(TinyEngineApiFacade facade) {
+		return new TinyEngineModelMvcController(facade);
+	}
+
+	@Bean
 	@ConditionalOnBean(TinyEngineUserSystemService.class)
 	@ConditionalOnMissingBean
 	public TinyEngineUserMvcController tinyEngineUserMvcController(TinyEngineUserSystemService userSystemService,
