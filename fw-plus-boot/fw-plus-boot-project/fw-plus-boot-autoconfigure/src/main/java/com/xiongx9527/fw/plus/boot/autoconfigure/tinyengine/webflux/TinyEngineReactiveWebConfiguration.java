@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webflux;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.TinyEngineProperties;
+import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFacade;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.web.TinyEngineCredentialExtractor;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.web.TinyEngineResourceController;
 import com.xiongx9527.fw.plus.tinyengine.service.ResourceService;
@@ -52,6 +53,38 @@ public class TinyEngineReactiveWebConfiguration {
 	public TinyEngineReactiveExecutor tinyEngineReactiveExecutor(
 			@Qualifier("tinyEngineBlockingScheduler") Scheduler scheduler, TinyEngineProperties properties) {
 		return new TinyEngineReactiveExecutor(scheduler, properties.getWebflux().getScheduler().getTimeout());
+	}
+
+	@Bean
+	@ConditionalOnBean({TinyEngineApiFacade.class, TinyEngineReactiveExecutor.class})
+	@ConditionalOnMissingBean
+	public TinyEngineAppWebFluxController tinyEngineAppWebFluxController(TinyEngineApiFacade facade,
+			TinyEngineReactiveExecutor executor) {
+		return new TinyEngineAppWebFluxController(facade, executor);
+	}
+
+	@Bean
+	@ConditionalOnBean({TinyEngineApiFacade.class, TinyEngineReactiveExecutor.class})
+	@ConditionalOnMissingBean
+	public TinyEnginePageWebFluxController tinyEnginePageWebFluxController(TinyEngineApiFacade facade,
+			TinyEngineReactiveExecutor executor) {
+		return new TinyEnginePageWebFluxController(facade, executor);
+	}
+
+	@Bean
+	@ConditionalOnBean({TinyEngineApiFacade.class, TinyEngineReactiveExecutor.class})
+	@ConditionalOnMissingBean
+	public TinyEngineMaterialWebFluxController tinyEngineMaterialWebFluxController(TinyEngineApiFacade facade,
+			TinyEngineReactiveExecutor executor) {
+		return new TinyEngineMaterialWebFluxController(facade, executor);
+	}
+
+	@Bean
+	@ConditionalOnBean({TinyEngineApiFacade.class, TinyEngineReactiveExecutor.class})
+	@ConditionalOnMissingBean
+	public TinyEngineModelWebFluxController tinyEngineModelWebFluxController(TinyEngineApiFacade facade,
+			TinyEngineReactiveExecutor executor) {
+		return new TinyEngineModelWebFluxController(facade, executor);
 	}
 
 	@Bean
