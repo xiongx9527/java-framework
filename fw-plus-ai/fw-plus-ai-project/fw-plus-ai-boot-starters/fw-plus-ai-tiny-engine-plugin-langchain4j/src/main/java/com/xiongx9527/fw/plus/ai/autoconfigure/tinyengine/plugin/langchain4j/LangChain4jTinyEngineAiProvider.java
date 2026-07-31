@@ -1,10 +1,12 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider;
+package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.plugin.langchain4j;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.TinyEngineAiProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatMessage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatResponse;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatStreamChunk;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiCapability;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProvider;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.model.AiModel;
@@ -42,7 +44,7 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 
 	@Override
 	public String getKey() {
-		return TinyEngineAiProviderRegistry.DEFAULT_PROVIDER_KEY;
+		return "langchain4j";
 	}
 
 	@Override

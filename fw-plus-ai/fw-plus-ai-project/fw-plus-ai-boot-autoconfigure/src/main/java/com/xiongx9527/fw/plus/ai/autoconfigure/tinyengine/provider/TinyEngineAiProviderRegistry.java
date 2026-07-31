@@ -6,8 +6,6 @@ import java.util.Map;
 
 public class TinyEngineAiProviderRegistry {
 
-	public static final String DEFAULT_PROVIDER_KEY = "langchain4j";
-
 	private final Map<String, TinyEngineAiProvider> providers = new LinkedHashMap<String, TinyEngineAiProvider>();
 	private final String defaultProviderKey;
 
@@ -19,7 +17,7 @@ public class TinyEngineAiProviderRegistry {
 				}
 			}
 		}
-		this.defaultProviderKey = isBlank(configuredProviderKey) ? DEFAULT_PROVIDER_KEY : configuredProviderKey.trim();
+		this.defaultProviderKey = resolveDefaultProviderKey(configuredProviderKey);
 	}
 
 	public String getDefaultProviderKey() {
@@ -31,6 +29,13 @@ public class TinyEngineAiProviderRegistry {
 	}
 
 	public TinyEngineAiProvider getProvider(String key) {
+		if (isBlank(key)) {
+			if (providers.size() > 1) {
+				throw new IllegalStateException("TinyEngine AI provider must be configured when multiple providers are available: "
+						+ joinProviderKeys());
+			}
+			throw new IllegalStateException("TinyEngine AI provider is not configured");
+		}
 		TinyEngineAiProvider provider = providers.get(key);
 		if (provider == null) {
 			throw new IllegalStateException("TinyEngine AI provider is not available: " + key);
@@ -49,5 +54,26 @@ public class TinyEngineAiProviderRegistry {
 
 	private boolean isBlank(String value) {
 		return value == null || value.trim().length() == 0;
+	}
+
+	private String resolveDefaultProviderKey(String configuredProviderKey) {
+		if (!isBlank(configuredProviderKey)) {
+			return configuredProviderKey.trim();
+		}
+		if (providers.size() == 1) {
+			return providers.keySet().iterator().next();
+		}
+		return null;
+	}
+
+	private String joinProviderKeys() {
+		StringBuilder builder = new StringBuilder();
+		for (String key : providers.keySet()) {
+			if (builder.length() > 0) {
+				builder.append(",");
+			}
+			builder.append(key);
+		}
+		return builder.toString();
 	}
 }

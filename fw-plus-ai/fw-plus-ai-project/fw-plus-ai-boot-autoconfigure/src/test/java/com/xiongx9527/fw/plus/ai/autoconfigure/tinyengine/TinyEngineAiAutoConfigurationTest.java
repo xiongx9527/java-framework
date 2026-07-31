@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineAiCh
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineKnowledgeBaseService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineRagService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.TinyEngineRagRequest;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProvider;
 import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
@@ -44,6 +45,7 @@ public class TinyEngineAiAutoConfigurationTest {
 	@Test
 	public void shouldCreateChatServiceWithoutVectorStore() {
 		this.contextRunner
+				.withBean(TinyEngineAiProvider.class, TestBusinessProvider::new)
 				.withPropertyValues("fw.plus.tiny-engine.ai.chat.enabled=true")
 				.run(context -> {
 					assertTrue(context.getStartupFailure() == null);
@@ -53,7 +55,15 @@ public class TinyEngineAiAutoConfigurationTest {
 	}
 
 	@Test
-	public void shouldFailFastWhenChatProviderIsMissing() {
+	public void shouldFailFastWhenChatProviderIsNotSuppliedByBusiness() {
+		this.contextRunner
+				.withPropertyValues("fw.plus.tiny-engine.ai.chat.enabled=true")
+				.run(context -> assertTrue(hasCause(context.getStartupFailure(),
+						"TinyEngine AI chat provider is unavailable")));
+	}
+
+	@Test
+	public void shouldFailFastWhenConfiguredChatProviderIsMissing() {
 		this.contextRunner
 				.withPropertyValues(
 						"fw.plus.tiny-engine.ai.chat.enabled=true",
@@ -166,5 +176,14 @@ public class TinyEngineAiAutoConfigurationTest {
 		@Override public String getDefaultKey() { return "default-store"; }
 		@Override public boolean contains(String key) { return "default-store".equals(key); }
 		@Override public Set<String> keys() { return Collections.singleton("default-store"); }
+	}
+
+	private static final class TestBusinessProvider implements TinyEngineAiProvider {
+		@Override public String getKey() { return "business"; }
+		@Override public boolean supports(com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiCapability capability) { return true; }
+		@Override public com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatResponse chat(
+				com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatRequest request) { return null; }
+		@Override public java.util.List<com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatStreamChunk> stream(
+				com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatRequest request) { return null; }
 	}
 }
