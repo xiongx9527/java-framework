@@ -1005,7 +1005,7 @@ Expected: build guard 全部通过，Comet 状态推进到 `verify`；随后按�
 - Consumes: Boot、Cloud、AI 经 `fw-plus-parent` 继承 Core Dependencies 属性的现有父 POM 链。
 - Produces: 单一 `exec-maven-plugin.version=3.1.0` 属性，五个直接声明插件版本的 POM 只引用该属性。
 
-- [x] **Step 1: 运行硬编码边界断言（RED）**
+- [x] **Step 1: 运行 Exec 插件硬编码边界断言（RED）**
 
 Run:
 
@@ -1033,7 +1033,7 @@ Expected: 断言失败，证明五个 POM 仍直接写死 `3.1.0`，Core Depende
 
 不得改变插件版本、执行阶段、goal、前端包管理器或其他插件配置。
 
-- [x] **Step 3: 验证属性继承与无硬编码（GREEN）**
+- [x] **Step 3: 验证 Exec 插件属性继承与无硬编码（GREEN）**
 
 Run:
 
@@ -1058,7 +1058,7 @@ git diff --check
 
 Expected: Core 父链安装成功；五个目标 POM 均解析 `exec-maven-plugin.version=3.1.0` 并通过 `validate`；无格式错误。
 
-- [x] **Step 4: 提交版本统一调整**
+- [x] **Step 4: 提交 Exec 插件版本统一调整**
 
 Run:
 
