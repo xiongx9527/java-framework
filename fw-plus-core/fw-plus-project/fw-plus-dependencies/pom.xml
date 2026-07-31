@@ -196,6 +196,7 @@
         <datastax-java-driver.version>4.17.0</datastax-java-driver.version>
         <infinispan.version>13.0.22.Final</infinispan.version>
         <neo4j-java-driver.version>4.4.26</neo4j-java-driver.version>
+        <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
     </properties>
     <description>
         fw-plus 核心库依赖管理.
