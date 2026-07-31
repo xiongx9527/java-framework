@@ -123,3 +123,4 @@
 - GREEN evidence: 旧表述扫描为空，OpenSpec strict validate 与 `git diff --check` 通过
 - User authorization: 允许额外一轮修复测试命令 POM 路径
 - Open findings: `none`（1 条历史摘要措辞作为 Minor 留给最终 review）
+- Deferred Minor resolution: 已在后续计划契约校正中把历史摘要统一为实际 `fw-plus-ai-boot-autoconfigure` 模块/POM。
