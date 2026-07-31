@@ -16,6 +16,8 @@
 - 本次变更在独立 worktree 分支 `codex/integrate-tiny-engine-console-starter` 中实施；允许每个任务创建本地提交用于评审，不推送远端，不触碰主工作区无关脏文件。
 - TinyEngine 嵌入源码来源固定记录为 `/Users/xiongxiao/Workspace/Idea/codes/TinyEngine` 的提交 `484898fd0af3b0561c47ced9e159f3a9a0d1bee0`，后续同步必须更新来源清单。
 - TinyEngine workspace 只能使用 pnpm；不得改用 npm 或 yarn。
+- TinyEngine 上游当前提交没有 `pnpm-lock.yaml`；Task 1 不复制 `package-lock.json`，Task 2 必须用 pnpm 生成并提交 `pnpm-lock.yaml` 后再使用 `--frozen-lockfile`。
+- TinyEngine `src/console/**` 作为上游 vendored 源码保留原始 whitespace；starter 模块使用 `.gitattributes` 对该目录关闭 `git diff --check` 的 whitespace 检查。
 - 不复制 `.git`、`.codegraph`、`node_modules`、`dist`、缓存、测试报告或本地 IDE 文件。
 - Maven 正常构建不得读取 `/Users/xiongxiao/Workspace/Idea/codes/TinyEngine` 或任何外部绝对路径。
 - 通用 TinyEngine starter 不强制传递 `spring-boot-starter-web` 或 `spring-boot-starter-webflux`；宿主选择 WebApplicationType。
@@ -43,6 +45,8 @@
 
 **Files:**
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/scripts/sync-tiny-engine-console.sh`
+- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/.gitattributes`
+- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/.gitignore`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-source-sync.test.mjs`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/**`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/.tinyengine-source.properties`
@@ -63,7 +67,7 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 const TEST_FILE = fileURLToPath(import.meta.url)
-const MODULE_ROOT = path.resolve(TEST_FILE, '../../..')
+const MODULE_ROOT = path.resolve(path.dirname(TEST_FILE), '../../..')
 const SYNC_SCRIPT = path.join(MODULE_ROOT, 'scripts/sync-tiny-engine-console.sh')
 
 test('sync copies build inputs and excludes local state', () => {
@@ -72,11 +76,19 @@ test('sync copies build inputs and excludes local state', () => {
   const target = path.join(root, 'target')
   mkdirSync(path.join(source, 'designer-demo'), { recursive: true })
   mkdirSync(path.join(source, 'packages', 'demo'), { recursive: true })
+  mkdirSync(path.join(source, 'packages', 'build', 'vite-config'), { recursive: true })
+  mkdirSync(path.join(source, 'mockServer', 'build'), { recursive: true })
+  mkdirSync(path.join(source, 'mockServer', 'logs'), { recursive: true })
   mkdirSync(path.join(source, 'node_modules', 'bad'), { recursive: true })
   writeFileSync(path.join(source, 'package.json'), '{}')
-  writeFileSync(path.join(source, 'pnpm-lock.yaml'), 'lockfileVersion: 6.0')
   writeFileSync(path.join(source, 'pnpm-workspace.yaml'), 'packages: []')
+  writeFileSync(path.join(source, 'package-lock.json'), '{}')
+  writeFileSync(path.join(source, '.env.local'), 'SQL_PASSWORD=admin')
   writeFileSync(path.join(source, 'LICENSE'), 'MIT')
+  writeFileSync(path.join(source, 'packages', 'build', 'vite-config', 'package.json'), '{}')
+  writeFileSync(path.join(source, 'mockServer', 'build', 'dev-server.js'), 'export default {}')
+  writeFileSync(path.join(source, 'mockServer', 'logs', 'out.log'), 'local log')
+  writeFileSync(path.join(source, 'packages', 'demo', 'vite.config.ts.timestamp-1-cache.mjs'), 'cache')
   execFileSync('git', ['init'], { cwd: source })
   execFileSync('git', ['config', 'user.email', 'tiny-engine-sync@example.invalid'], { cwd: source })
   execFileSync('git', ['config', 'user.name', 'TinyEngine Sync Test'], { cwd: source })
@@ -85,7 +97,31 @@ test('sync copies build inputs and excludes local state', () => {
   execFileSync('sh', [SYNC_SCRIPT, source, target], { cwd: MODULE_ROOT })
   assert.match(readFileSync(path.join(target, '.tinyengine-source.properties'), 'utf8'), /source\.commit=[0-9a-f]{40}/)
   assert.equal(existsSync(path.join(target, 'node_modules')), false)
+  assert.equal(existsSync(path.join(target, 'package-lock.json')), false)
+  assert.equal(existsSync(path.join(target, '.env.local')), false)
+  assert.equal(existsSync(path.join(target, 'mockServer/logs/out.log')), false)
+  assert.equal(existsSync(path.join(target, 'packages/demo/vite.config.ts.timestamp-1-cache.mjs')), false)
   assert.equal(existsSync(path.join(target, 'designer-demo')), true)
+  assert.equal(existsSync(path.join(target, 'packages/build/vite-config/package.json')), true)
+  assert.equal(existsSync(path.join(target, 'mockServer/build/dev-server.js')), true)
+})
+
+test('sync rejects dirty tracked source files', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'tiny-engine-sync-dirty-'))
+  const source = path.join(root, 'source')
+  const target = path.join(root, 'target')
+  mkdirSync(path.join(source, 'designer-demo'), { recursive: true })
+  mkdirSync(path.join(source, 'packages'), { recursive: true })
+  writeFileSync(path.join(source, 'package.json'), '{}')
+  writeFileSync(path.join(source, 'pnpm-workspace.yaml'), 'packages: []')
+  writeFileSync(path.join(source, 'LICENSE'), 'MIT')
+  execFileSync('git', ['init'], { cwd: source })
+  execFileSync('git', ['config', 'user.email', 'tiny-engine-sync@example.invalid'], { cwd: source })
+  execFileSync('git', ['config', 'user.name', 'TinyEngine Sync Test'], { cwd: source })
+  execFileSync('git', ['add', '.'], { cwd: source })
+  execFileSync('git', ['commit', '-m', 'fixture'], { cwd: source })
+  writeFileSync(path.join(source, 'package.json'), '{"dirty":true}')
+  assert.throws(() => execFileSync('sh', [SYNC_SCRIPT, source, target], { cwd: MODULE_ROOT }), /TinyEngine source has uncommitted changes/)
 })
 ```
 
@@ -103,13 +139,15 @@ set -eu
 SOURCE_ROOT=${1:?usage: sync-tiny-engine-console.sh /path/to/TinyEngine}
 MODULE_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
 TARGET_ROOT=${2:-"$MODULE_ROOT/src/console"}
-for required in package.json pnpm-lock.yaml pnpm-workspace.yaml designer-demo packages LICENSE; do
+for required in package.json pnpm-workspace.yaml designer-demo packages LICENSE; do
   test -e "$SOURCE_ROOT/$required" || { echo "missing TinyEngine input: $required" >&2; exit 2; }
 done
+test -z "$(git -C "$SOURCE_ROOT" status --porcelain --untracked-files=no)" || { echo "TinyEngine source has uncommitted changes" >&2; exit 3; }
 mkdir -p "$TARGET_ROOT"
 rsync -a --delete \
-  --exclude='.git/' --exclude='.codegraph/' --exclude='node_modules/' \
+  --exclude='.git/' --exclude='.codegraph/' --exclude='node_modules/' --exclude='package-lock.json' \
   --exclude='dist/' --exclude='coverage/' --exclude='.idea/' --exclude='.DS_Store' \
+  --exclude='.env.local' --exclude='*.timestamp-*.mjs' --exclude='logs/' \
   "$SOURCE_ROOT/" "$TARGET_ROOT/"
 SOURCE_COMMIT=$(git -C "$SOURCE_ROOT" rev-parse HEAD)
 SOURCE_URL=$(git -C "$SOURCE_ROOT" remote get-url origin 2>/dev/null || printf '%s' local)
@@ -129,11 +167,18 @@ node --test fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny
 sh fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/scripts/sync-tiny-engine-console.sh /Users/xiongxiao/Workspace/Idea/codes/TinyEngine
 ```
 
-Expected: test PASS; metadata contains `source.commit=484898fd0af3b0561c47ced9e159f3a9a0d1bee0`; no excluded directory exists under `src/console`.
+Expected: test PASS; metadata contains `source.commit=484898fd0af3b0561c47ced9e159f3a9a0d1bee0`; no excluded directory, `.env.local`, timestamp cache, log file or `package-lock.json` exists under `src/console`; `packages/build/vite-config/package.json`, `packages/build/vite-plugin-meta-comments/package.json` and `mockServer/build/dev-server.js` are tracked.
 
 - [ ] **Step 5: Check scope**
 
-Run: `git diff --check -- fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter`
+Create module `.gitattributes` with `src/console/** -whitespace` and module `.gitignore` with:
+
+```gitignore
+!src/console/**/build/
+!src/console/**/build/**
+```
+
+Then run: `git diff --check -- fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter`
 
 Expected: no output.
 
@@ -143,6 +188,7 @@ Expected: no output.
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/designer-demo/vite.config.js`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/designer-demo/package.json`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/package.json`
+- Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/console/pnpm-lock.yaml`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-tiny-engine-spring-boot-starter/src/test/js/tiny-engine-embedded-build.test.mjs`
 
 **Interfaces:**
@@ -159,7 +205,7 @@ import path from 'node:path'
 import test from 'node:test'
 
 const TEST_FILE = fileURLToPath(import.meta.url)
-const MODULE_ROOT = path.resolve(TEST_FILE, '../../..')
+const MODULE_ROOT = path.resolve(path.dirname(TEST_FILE), '../../..')
 const CONSOLE_ROOT = path.join(MODULE_ROOT, 'src/console')
 
 test('fw-plus build is deterministic and deployable below a context path', () => {
@@ -194,7 +240,7 @@ const customConfig = {
 }
 ```
 
-Add designer script: `"build:fwplus": "cross-env NODE_OPTIONS=--max-old-space-size=10240 VITE_ORIGIN= vite build"`.
+Add designer script: `"build:fwplus": "cross-env NODE_OPTIONS=--max-old-space-size=10240 VITE_ORIGIN= vite build"`. Because the upstream commit does not contain `pnpm-lock.yaml`, run `pnpm install --lockfile-only` in `src/console` once after removing any accidental npm lock, commit the generated `pnpm-lock.yaml`, and use `pnpm install --frozen-lockfile` for all later verification.
 
 - [ ] **Step 4: Run frontend verification**
 
