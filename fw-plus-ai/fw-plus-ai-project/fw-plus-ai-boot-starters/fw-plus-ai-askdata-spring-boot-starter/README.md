@@ -14,7 +14,7 @@
 </dependency>
 ```
 
-当前 starter 默认带入统一 LangChain4j adapter。LangChain4j 只是默认 adapter/provider；AskData 的 key、业务流程和覆盖点保持中立。
+当前 starter 不默认带入任何具体 AI 框架 Adapter。AskData 的 key、业务流程和覆盖点保持中立；业务应用按所选 AI 框架显式组合对应的 Adapter Starter 与 provider SDK。
 
 ## 中立模型与向量配置
 
@@ -43,7 +43,7 @@ fw:
           default-max-rows: 100
 ```
 
-默认 LangChain4j adapter 依赖：
+需要 LangChain4j 时，由业务应用显式引入 Adapter Starter：
 
 ```xml
 <dependency>
@@ -53,7 +53,7 @@ fw:
 </dependency>
 ```
 
-具体 LangChain4j provider SDK 由业务按需显式加入。例如 OpenAI 兼容模型：
+具体 LangChain4j provider SDK 也由业务按需显式加入。例如 OpenAI 兼容模型：
 
 ```xml
 <dependency>
@@ -93,4 +93,4 @@ public AskDataVectorRetriever askDataVectorRetriever(AiEmbeddingStoreRegistry st
 
 ## 旧坐标边界
 
-当前 starter line 不使用旧的 `fw-plus-ai-langchain4j-model-spring-boot-starter` 或 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 坐标。它们不是当前主路径，也不应在新应用中与中立 starter 混用；请使用本 starter、`fw-plus-ai-model` / `fw-plus-ai-store-embedding` 中立注册表和统一的 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
+当前 starter line 不使用旧的 `fw-plus-ai-langchain4j-model-spring-boot-starter` 或 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 坐标。它们不是当前主路径，也不应在新应用中与中立 starter 混用；请使用本 starter、`fw-plus-ai-model` / `fw-plus-ai-store-embedding` 中立注册表，并在应用侧按需组合 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
