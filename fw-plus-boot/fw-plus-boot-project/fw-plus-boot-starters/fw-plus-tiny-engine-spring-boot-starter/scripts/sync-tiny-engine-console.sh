@@ -9,11 +9,17 @@ for required in package.json pnpm-workspace.yaml designer-demo packages LICENSE;
 	test -e "$SOURCE_ROOT/$required" || { echo "missing TinyEngine input: $required" >&2; exit 2; }
 done
 
+test -z "$(git -C "$SOURCE_ROOT" status --porcelain --untracked-files=no)" || {
+	echo "TinyEngine source has uncommitted changes" >&2
+	exit 3
+}
+
 mkdir -p "$TARGET_ROOT"
-rsync -a --delete \
+rsync -a --delete --delete-excluded \
 	--exclude='.git/' --exclude='.codegraph/' --exclude='node_modules/' \
 	--exclude='dist/' --exclude='coverage/' --exclude='.idea/' --exclude='.DS_Store' \
-	--exclude='package-lock.json' \
+	--exclude='package-lock.json' --exclude='.env.local' --exclude='*.timestamp-*.mjs' \
+	--exclude='logs/' \
 	"$SOURCE_ROOT/" "$TARGET_ROOT/"
 
 SOURCE_COMMIT=$(git -C "$SOURCE_ROOT" rev-parse HEAD)
