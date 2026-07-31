@@ -18,6 +18,7 @@
         <module>fw-plus-ai-magicapi-plugin</module>
         <module>fw-plus-ai-askdata-spring-boot-starter</module>
         <module>fw-plus-ai-tiny-engine-spring-boot-starter</module>
+        <module>fw-plus-ai-tiny-engine-plugin-langchain4j</module>
     </modules>
     <artifactId>fw-plus-ai-boot-starters</artifactId>
 

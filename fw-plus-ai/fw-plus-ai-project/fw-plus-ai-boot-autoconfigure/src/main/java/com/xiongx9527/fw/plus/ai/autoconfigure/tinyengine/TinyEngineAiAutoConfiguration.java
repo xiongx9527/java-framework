@@ -10,7 +10,6 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.TinyEngineRagSearc
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatResponse;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatStreamChunk;
-import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.LangChain4jTinyEngineAiProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiCapability;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProviderRegistry;
@@ -43,6 +42,16 @@ public class TinyEngineAiAutoConfiguration {
 	}
 
 	@Bean
+	@ConditionalOnMissingBean
+	@ConditionalOnBean({ TinyEngineAiChatService.class, TinyEngineRagService.class })
+	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
+	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.web", name = "enabled", havingValue = "true")
+	public TinyEngineAiWebFluxController tinyEngineAiWebFluxController(TinyEngineAiChatService chatService,
+			TinyEngineRagService ragService) {
+		return new TinyEngineAiWebFluxController(chatService, ragService);
+	}
+
+	@Bean
 	@ConditionalOnMissingBean(TinyEngineAiChatService.class)
 	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.chat", name = "enabled", havingValue = "true")
 	public TinyEngineAiChatService tinyEngineAiChatService(TinyEngineAiProviderRegistry providerRegistry,
@@ -56,13 +65,6 @@ public class TinyEngineAiAutoConfiguration {
 			throw new IllegalStateException(unavailableReason);
 		}
 		return new DefaultTinyEngineAiChatService(providerRegistry);
-	}
-
-	@Bean
-	@ConditionalOnMissingBean(TinyEngineAiProvider.class)
-	public TinyEngineAiProvider langChain4jTinyEngineAiProvider(ObjectProvider<AiModelRegistry> modelRegistryProvider,
-			TinyEngineAiProperties properties) {
-		return new LangChain4jTinyEngineAiProvider(modelRegistryProvider.getIfAvailable(), properties);
 	}
 
 	@Bean
