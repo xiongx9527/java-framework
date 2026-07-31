@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" id="图层_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 132 132" style="enable-background:new 0 0 132 132;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:none;}
+	.st1{fill:currentColor;}
+</style>
+<rect id="size" class="st0" width="132" height="132"/>
+<path id="形状" class="st1" d="M103.1,16.5h-77c-8.3,0-15.1,6.8-15.1,15.1v55c0,8.4,6.8,15.1,15.1,15.1h77
+	c8.4,0,15.1-6.8,15.1-15.1v-55C118.2,23.3,111.5,16.5,103.1,16.5z M110,86.6c0,3.8-3.1,6.9-6.9,6.9h-77c-3.8,0-6.9-3.1-6.9-6.9v-55
+	c0-3.8,3.1-6.9,6.9-6.9h77c3.8,0,6.9,3.1,6.9,6.9V86.6z M99,116.9c0,2.3-1.9,4.1-4.1,4.1H34.4c-2.3,0-4.1-1.9-4.1-4.1
+	s1.9-4.1,4.1-4.1h60.5C97.1,112.8,99,114.6,99,116.9z"/>
+</svg>
