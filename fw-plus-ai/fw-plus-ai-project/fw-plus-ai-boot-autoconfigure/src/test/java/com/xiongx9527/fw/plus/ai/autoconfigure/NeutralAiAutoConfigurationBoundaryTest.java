@@ -88,7 +88,9 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 				|| path.contains("/autoconfigure/askdata/")
 				|| path.endsWith("/autoconfigure/askdata")
 				|| path.contains("/autoconfigure/langchain4j/")
-				|| path.endsWith("/autoconfigure/langchain4j"));
+				|| path.endsWith("/autoconfigure/langchain4j")
+				|| path.contains("/autoconfigure/tinyengine/provider/")
+				|| path.endsWith("/autoconfigure/tinyengine/provider"));
 	}
 
 	private String read(File file) throws IOException {

@@ -123,7 +123,7 @@
         <!--mybatis版本号-->
         <mybatis.version>3.5.19</mybatis.version>
         <!--mybatis-spring版本号-->
-        <mybatis-spring.version>2.1.2</mybatis-spring.version>
+        <mybatis-spring.version>3.0.5</mybatis-spring.version>
         <!--mybatis-plus版本号-->
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <!--mybatis-plus-join版本号-->
