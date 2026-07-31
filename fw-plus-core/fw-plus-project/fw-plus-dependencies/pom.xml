@@ -25,13 +25,13 @@
         <vesoft-java-client.version>3.8.4</vesoft-java-client.version>
         <vesoft-java-driver.version>5.3.0</vesoft-java-driver.version>
         <!--sa-token版本号-->
-        <sa-token.version>1.44.0</sa-token.version>
+        <sa-token.version>1.45.0</sa-token.version>
         <!--dynamic-tp版本号-->
         <dynamictp.version>1.2.1</dynamictp.version>
         <!--akali版本号-->
         <akali.version>1.1.5</akali.version>
         <!--java-diff-utils版本号-->
-        <java-diff-utils.version>4.16</java-diff-utils.version>
+        <java-diff-utils.version>4.17</java-diff-utils.version>
         <!--hotswap-agent版本号-->
         <hotswap-agent.version>2.0.2</hotswap-agent.version>
         <!--opentelemetry版本号-->
@@ -87,8 +87,8 @@
         <!--aviator版本号-->
         <aviator.version>5.4.3</aviator.version>
         <!--fastjson版本号-->
-        <fastjson.version>2.0.53</fastjson.version>
-        <fastjson2.version>2.0.53</fastjson2.version>
+        <fastjson.version>2.0.63</fastjson.version>
+        <fastjson2.version>2.0.63</fastjson2.version>
         <!--x-file-storage-spring版本号-->
         <x-file-storage-spring.version>2.2.1</x-file-storage-spring.version>
         <google-cloud-storage.version>2.60.0</google-cloud-storage.version>
@@ -97,17 +97,17 @@
         <jsch.version>0.1.55</jsch.version>
         <json.version>20250517</json.version>
         <qiniu-java-sdk.version>7.19.0</qiniu-java-sdk.version>
-        <sardine.version>5.10</sardine.version>
-        <aws-java-sdk-s3.version>1.12.794</aws-java-sdk-s3.version>
-        <bce-java-sdk.version>0.10.401</bce-java-sdk.version>
-        <cos_api.version>5.6.259</cos_api.version>
+        <sardine.version>5.13</sardine.version>
+        <aws-java-sdk-s3.version>1.12.797</aws-java-sdk-s3.version>
+        <bce-java-sdk.version>0.10.442</bce-java-sdk.version>
+        <cos_api.version>5.6.275</cos_api.version>
 
         <!--aliyun-sdk-oss版本号-->
-        <aliyun-sdk-oss.version>3.18.1</aliyun-sdk-oss.version>
+        <aliyun-sdk-oss.version>3.18.5</aliyun-sdk-oss.version>
         <!--minio版本号-->
         <minio.version>8.5.17</minio.version>
         <!--druid版本号-->
-        <druid.version>1.2.27</druid.version>
+        <druid.version>1.2.28</druid.version>
         <!--json-path版本号-->
         <json-path.version>2.9.0</json-path.version>
         <!--transmittable-thread-local版本号-->
@@ -136,7 +136,7 @@
         <!--pinyin4j版本号-->
         <pinyin4j.version>2.5.1</pinyin4j.version>
         <!--hutool版本号-->
-        <hutool.version>5.8.34</hutool.version>
+        <hutool.version>5.8.47</hutool.version>
         <!--easypoi版本号-->
         <easypoi.version>4.5.0</easypoi.version>
         <poi.version>4.1.2</poi.version>
@@ -151,8 +151,8 @@
         <bcprov-jdk14.version>1.64</bcprov-jdk14.version>
         <bcprov-jdk18on.version>1.78.1</bcprov-jdk18on.version>
         <antlr-runtime.version>3.5.3</antlr-runtime.version>
-        <zxing.core.version>3.5.3</zxing.core.version>
-        <jfreechart.version>1.5.4</jfreechart.version>
+        <zxing.core.version>3.5.4</zxing.core.version>
+        <jfreechart.version>1.5.6</jfreechart.version>
         <fontbox.version>3.0.3</fontbox.version>
         <!--xercesImpl版本号-->
         <xercesImpl.version>2.12.2</xercesImpl.version>
@@ -170,7 +170,7 @@
         <!--jodd-core版本号-->
         <jodd-core.version>5.0.13</jodd-core.version>
         <!--zstd-jni版本号-->
-        <zstd-jni.version>1.5.5-5</zstd-jni.version>
+        <zstd-jni.version>1.5.7-12</zstd-jni.version>
         <!--bcprov-jdk15on版本号-->
         <bcprov-jdk15on.version>1.69</bcprov-jdk15on.version>
         <!--kryo版本号-->

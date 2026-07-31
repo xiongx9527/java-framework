@@ -12,8 +12,8 @@
     <artifactId>fw-plus-cloud-dependencies</artifactId>
     <properties>
         <main.basedir>${basedir}/../..</main.basedir>
-        <servo-core.version>0.12.21</servo-core.version>
-        <io.github.openfeign.version>13.5</io.github.openfeign.version>
+        <servo-core.version>0.13.2</servo-core.version>
+        <io.github.openfeign.version>13.13</io.github.openfeign.version>
     </properties>
 
     <dependencyManagement>

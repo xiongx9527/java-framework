@@ -19,7 +19,7 @@
         <!--  jackson版本号 -->
         <jackson.version>2.20.1</jackson.version>
         <!--  RocketMQ版本号 -->
-        <rocketmq.version>5.1.3</rocketmq.version>
+        <rocketmq.version>5.3.2</rocketmq.version>
         <!--pulsar版本号-->
         <pulsar-client.version>2.11.2</pulsar-client.version>
 		<!--  lock4j版本号 -->
@@ -43,7 +43,7 @@
         <!-- wildfly版本号 -->
         <wildfly.version>1.7.0.Final</wildfly.version>
         <!--  jwt版本号 -->
-        <jjwt.version>0.12.7</jjwt.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <!--  dynamic-tp版本号 -->
         <dynamic-tp.version>1.2.2</dynamic-tp.version>
         <!--  kotlin版本号 -->
@@ -55,11 +55,11 @@
         <!--  jakarta activation版本号 -->
         <jakarta.activation.version>2.1.4</jakarta.activation.version>
         <!--  snappy-java版本号 -->
-        <snappy-java.version>1.1.8.4</snappy-java.version>
+        <snappy-java.version>1.1.10.8</snappy-java.version>
         <!--  jakarta ws.rs版本号 -->
         <jakarta.ws.rs.version>3.1.0</jakarta.ws.rs.version>
         <!--  jspecify版本号 -->
-        <jspecify.version>1.0.0</jspecify.version>
+        <jspecify.version>1.0.1</jspecify.version>
         <!--  netty-websocket版本号 -->
         <netty-websocket.version>0.12.0</netty-websocket.version>
         <!--  mica版本号 -->
@@ -67,7 +67,7 @@
         <!--  mica-mqtt版本号 -->
         <mica-mqtt.version>2.3.9</mica-mqtt.version>
         <!--  plumelog版本号 -->
-        <plumelog.version>3.5.2</plumelog.version>
+        <plumelog.version>3.5.3</plumelog.version>
         <!--  spring-boot-admin版本号 -->
         <spring-boot-admin.version>3.5.6</spring-boot-admin.version>
         <!--  atomikos版本号 -->
