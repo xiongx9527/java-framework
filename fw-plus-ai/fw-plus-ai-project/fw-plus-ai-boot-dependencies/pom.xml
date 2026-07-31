@@ -37,6 +37,14 @@
                 <scope>import</scope>
             </dependency>
 
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-boot-dependencies</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
             <!-- weaviate -->
             <dependency>
                 <groupId>io.weaviate</groupId>
