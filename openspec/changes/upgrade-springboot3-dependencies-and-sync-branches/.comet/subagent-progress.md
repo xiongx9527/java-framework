@@ -4,19 +4,18 @@
 - Plan: `docs/superpowers/plans/2026-07-30-springboot3-dependencies-and-branch-sync.md`
 - Review mode: `standard`
 - TDD mode: `tdd`
-- Current task: `Task 6: 将 dev 合并到 springboot3 并保留 Boot 3 历史`
-- OpenSpec mapping: `4.1`、`4.2`
+- Current task: `最终分支同步、Spring Boot 3 依赖适配、验证与发布`
+- OpenSpec mapping: `4.1`、`4.2`、`4.4`、`4.6`
 - Stage: `done`
-- Implementer: `/root/task6_merge_springboot3`
-- Base commit: `b9457fc69cc6fbeb1e4febf97e54e2b5d21c44f1`
-- Implementation commits: `78ab6524a96a8c2968b57a5940fbaa6901109392`、`0237dcd82c1635a7e522c18365029d31c1fb99ad`、`d16c4540`
-- Changed files: merge 带入最新 dev；冲突解决限于 `AskDataAutoConfigurationRegistrationTest.java`、Core BOM、JimuReport POM；修复提交仅调整 AI Boot 3 `AutoConfiguration.imports` 与对应注册测试
-- RED evidence: 合并前 `dev...springboot3` 为 `318 12`，双方均有独立历史
-- GREEN evidence: merge commit 为双父，dev 已为祖先，三个冲突文件 diff-check/XML/固定版本断言通过，LangChain4j 仍为 0.35.0，worktree 干净
-- Risk review triggered: `yes`（跨分支真实 merge 与多层 BOM 冲突边界）
-- Review/fix round: `2/2`（用户已授权超出 `standard` 默认预算的第二轮修复；上一轮提交 `0237dcd82c1635a7e522c18365029d31c1fb99ad` scoped re-review 未通过）
-- Open findings: Minor：额外 Maven 测试受缺失 `0.3.0-SNAPSHOT` 阻断，已在 task report 记录；无未解决 Critical/Important finding
-- User ruling: 选择 1；不修改 `add-tiny-engine-ai-starter`、`add-tiny-engine-boot-starter` 或无关归档 whitespace，Task 6 验证口径改为 `HEAD^2..HEAD` second-parent diff-check 加三个冲突文件定向 diff-check/XML/测试断言检查。
-- Re-review: Critical imports/test negative assertion finding partially fixed；测试正向断言已恢复，但 imports 包含缺失类，`standard` 模式 1/1 修复轮次后仍有 load-bearing finding。
-- User authorization: 用户回复“授权”，允许第二轮修复当前 load-bearing finding；仍不得修改 TinyEngine/无关归档/版本边界/Wrapper/构建插件/Nexus。
-- Extra repair re-review: `d16c4540` scoped re-review PASS，缺失类 imports finding 已解决，未引入新的 Critical/Important breakage。
+- Implementer: `/root`
+- Final commits:
+  - `dev`: `be77ca9d947a2e55f1c8a772d81238fe0e4013c8`
+  - `springboot2`: `580593819e4f291b714282c5d65688d735e17f97`
+  - `springboot3`: `d3303707e046bf00e4a354e6eeb5f3e12b1ac3b8`
+- Changed files: Core BOM 将 LangChain4j 主版本统一为 `1.18.0`，并在 BOM 内固定 `langchain4j-redis`、`langchain4j-qianfan`、`langchain4j-dashscope` 为 `0.36.2`；AI BOM 保留 Spring AI / Spring AI Alibaba `1.0.1` 并仅 import Core BOM；Spring Boot 3 适配 LangChain4j 1.18.x API 与 MyBatis-Plus 3.5.x 包路径。
+- RED evidence: `springboot3` AI 层先后暴露 Vertex AI Gemini 旧包名、EmbeddingStore `findRelevant(...)`、Weaviate 构造参数、测试桩旧接口、Spring 6 `ResponseStatusException#getStatus()` 等编译错误。
+- GREEN evidence: `springboot3` Core `64/64`、Boot `49/49`、AI `17/17`、Cloud `13/13` 均为 `BUILD SUCCESS`；`git diff --check` 通过；推送后 `springboot3` 本地与远端 SHA 均为 `d3303707e046bf00e4a354e6eeb5f3e12b1ac3b8`，ahead/behind 为 `0 0`。
+- Risk review triggered: `yes`（跨分支同步、BOM 版本管理、LangChain4j 主版本跨大版本迁移）
+- Review/fix round: `completed`
+- Open findings: `none`
+- User ruling: `dev`、`springboot2`、`springboot3` 均需提交推送；Spring Boot 3 使用 Java 17 下 LangChain4j 高版本，最终统一为 `1.18.0`，三个例外在 BOM 内使用 `0.36.2`；Spring AI 与 Spring AI Alibaba 统一为 `1.0.1`。

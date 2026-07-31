@@ -80,3 +80,19 @@
 - `git status --short --branch`：退出码 `0`，输出 `## dev...origin/dev`，无文件变化。
 
 以上 SHA 是本轮 review fix 之前已完成第二次非强制 push 的可复核结果。包含本节的修复提交自身 SHA 无法可靠内嵌；该提交在创建并推送后的最终 `HEAD` / `origin/dev` / `ls-remote` / GitHub API / ahead-behind 核验记录于 git-ignored SDD Task 3 报告。
+
+## GREEN：springboot2 快进同步与发布
+
+- 合并前 `dev` / `origin/dev` 为 `637c5951ac670865c47e132866070822f786647a`，本地与远端 `springboot2` 均为 `3298231fe8ac00286b1661bb171fcc5f5ea49644`。
+- `git merge-base --is-ancestor springboot2 dev` 退出码 `0`，因此在隔离 worktree 执行 `git merge --ff-only dev`；结果为 `3298231f..637c5951` 快进，无冲突、无 merge commit。
+- 推送前 `git fetch origin springboot2` 和 `git merge-base --is-ancestor origin/springboot2 springboot2` 均退出码 `0`；普通 `git push origin springboot2` 成功，未使用 `--force` 或 API ref 更新。
+- 独立核验：`git ls-remote --heads origin springboot2`、worktree `HEAD`、tracking `origin/springboot2` 均为 `637c5951ac670865c47e132866070822f786647a`；`git rev-list --left-right --count HEAD...@{u}` 为 `0 0`。
+- 最终 `git merge-base --is-ancestor dev springboot2` 退出码 `0`，worktree 状态为 `## springboot2...origin/springboot2`，无未提交变化。
+
+## 最终分支推送核验
+
+- `dev`：已提交并推送 `be77ca9d947a2e55f1c8a772d81238fe0e4013c8`（`chore(deps): 去除 AI BOM 重复依赖管理`）。
+- `springboot2`：已合并 `dev` 并推送 `580593819e4f291b714282c5d65688d735e17f97`（`merge: sync dev into springboot2`）。
+- `springboot3`：已合并 `dev`、完成 Boot 3 依赖适配并推送 `d3303707e046bf00e4a354e6eeb5f3e12b1ac3b8`（`chore(deps): 适配 LangChain4j 1.18.0`）。
+- `springboot3` 推送前核验 `git rev-list --left-right --count springboot3...origin/springboot3` 为 `369 0`，且 `origin/springboot3` 是本地分支祖先；普通 `git push origin springboot3` 成功，未使用 force。
+- 推送后核验：`git ls-remote --heads origin dev springboot2 springboot3` 分别返回上述三个 SHA；`springboot3` 本地 `HEAD` 与 `origin/springboot3` 均为 `d3303707e046bf00e4a354e6eeb5f3e12b1ac3b8`，ahead/behind 为 `0 0`。
