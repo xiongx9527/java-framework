@@ -168,3 +168,27 @@
 - Review/fix round: `0/1`
 - Minor (deferred): 依赖矩阵“AI BOM 只 import Core BOM”措辞不够精确；实际还 import Boot BOM，但 LangChain4j 管理只经 Core BOM 获得，不影响解析结论
 - Open findings: `none`
+
+## Spring Boot 3 其他依赖审计
+
+- Task: `Task 10: 审计并逐组升级其他 Spring Boot 3 依赖`
+- OpenSpec mapping: `4.4`、`4.5`、`4.6`、`5.2`、`5.3`
+- Stage: `done`
+- Implementer: `/root/task10_dependency_audit`
+- Base commit: `dev=e25d5517`、`springboot3=c26099f2`
+- Allowed tracked files: 四层 BOM、必要的相邻兼容适配/测试，以及 `.comet/evidence/springboot3-dependency-matrix.md`
+- Implementation commits: `springboot3=dfb6eb35`、`dev=22c802b0`
+- Changed files: Core、Boot、Cloud 三层 BOM 与依赖矩阵；AI BOM 无修改
+- Adopted properties: Core 14、Boot 5、Cloud 1、AI 0，共 20 项
+- GREEN evidence: 提交后 Core 64、Boot 49、Cloud 14、AI 17 模块 compile 全部成功；Core/Boot dependency:analyze 成功
+- Risk review triggered: `yes`（跨 Core/Boot/Cloud BOM，且 implementer 返回 DONE_WITH_CONCERNS）
+- Review mode: `standard`
+- Review/fix round: `1/1 completed; scoped re-review passed`
+- Reviewer: `/root/task10_dependency_review`
+- Review result: Spec Compliance 未通过，Task quality 需要修复
+- Open findings: `none`
+- Deferred Minor: Maven settings/checksum 告警与既有 npm audit 18 个漏洞/3 个待批准脚本不属于本任务改动，留给最终 review 分诊
+- Fix agent: `/root/task10_feign_fix`
+- Fix commits: `springboot3=800ea7df`、`dev=088fa8a5`
+- Fix RED/GREEN: `13.13/A` RED；`13.5/R5`、平台基线 `13.6`、其余 20 个采用项 GREEN；Cloud 14 模块 compile 成功
+- Re-reviewer: `/root/task10_feign_rereview`

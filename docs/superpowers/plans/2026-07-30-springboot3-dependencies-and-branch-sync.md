@@ -749,7 +749,7 @@ Expected: 提交包含 BOM、基线测试及确有必要的最小适配，不混
 - Consumes: 四层 BOM 的非固定版本属性和 Maven Central/内部 Nexus 可解析候选。
 - Produces: 每个候选的当前/候选/采用版本、Java/平台/API 判断与验证证据。
 
-- [ ] **Step 1: 生成四层更新报告**
+- [x] **Step 1: 生成四层更新报告**
 
 Run:
 
@@ -763,7 +763,7 @@ done
 
 Expected: 获得四层候选清单但不自动改写 POM。矩阵逐行记录 `属性/坐标 | 当前版本 | 候选版本 | 采用版本 | Java 17 | 固定平台冲突 | API 适配 | 证据/原因`。
 
-- [ ] **Step 2: 应用排除规则**
+- [x] **Step 2: 应用排除规则**
 
 Run:
 
@@ -777,7 +777,7 @@ git -C .worktrees/springboot3-upgrade diff --name-only "$springboot3_merge"..HEA
 
 Expected: 每个排除项在矩阵中标为“固定/排除”并写明精确基线；不修改 POM。
 
-- [ ] **Step 3: 按 Core、Boot、Cloud、AI 四组验证候选**
+- [x] **Step 3: 按 Core、Boot、Cloud、AI 四组验证候选**
 
 每组只用 `apply_patch` 修改该层已通过元数据与 Java 17 检查的版本属性，然后运行对应命令：
 
@@ -792,7 +792,7 @@ mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml -DskipTests compile
 
 Expected: 当前组编译通过才保留；失败时只回退该属性，记录坐标、错误和保留旧版原因。需要局部 API 适配时，先在最接近失败调用点的测试中加入复现断言并确认失败，再仅修改报错调用点或自动配置条件，重新运行该单测和所属层 compile；需要公开 API、固定平台或无关重构时保留旧版。
 
-- [ ] **Step 4: 验证未使用依赖删除边界**
+- [x] **Step 4: 验证未使用依赖删除边界**
 
 Run:
 
@@ -806,7 +806,7 @@ mvn -f .worktrees/springboot3-upgrade/fw-plus-boot/pom.xml dependency:analyze
 
 Expected: 只有静态引用、自动配置、SPI/反射/运行时职责和目标构建共同证明无用途时才删除直接依赖或无效配置；未使用拦截器不新增替代实现。Maven analyze 的 starter/BOM/runtime 误报记录在矩阵，不据此单独删除。
 
-- [ ] **Step 5: 提交其他兼容升级**
+- [x] **Step 5: 提交其他兼容升级**
 
 Run:
 
