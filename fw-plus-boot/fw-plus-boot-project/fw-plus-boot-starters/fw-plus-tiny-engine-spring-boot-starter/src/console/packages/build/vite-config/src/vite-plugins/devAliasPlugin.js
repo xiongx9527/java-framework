@@ -86,7 +86,7 @@ export const devAliasPlugin = (env, useSourceAlias) => {
   return {
     name: 'vite-plugin-dev-alias',
     config(config, { command }) {
-      // devAlias 只在 serve 模式下生效
+      // devAlias 只在 serve 模式下生效；fw-plus build 先执行 build:plugin 产出 workspace dist。
       if (command === 'serve') {
         return {
           resolve: {

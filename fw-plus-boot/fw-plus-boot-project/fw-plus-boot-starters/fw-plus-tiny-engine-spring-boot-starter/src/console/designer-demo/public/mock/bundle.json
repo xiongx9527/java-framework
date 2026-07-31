@@ -29442,7 +29442,7 @@
               "schema": {
                 "componentName": "TinyFileUpload",
                 "props": {
-                  "action": "http://localhost:8090/api/upload",
+                  "action": "/api/upload",
                   "data": {
                     "id": "123"
                   }
