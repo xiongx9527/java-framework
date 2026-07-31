@@ -39,3 +39,19 @@
 - 部分负向测试会按预期打印 Spring 上下文 WARN 或控制器 ERROR，Surefire 汇总仍为零失败、零错误。
 
 上述警告未被本任务掩盖，也未在 Task 3 中修改源码或依赖配置。
+
+## springboot2 发布前复验
+
+- 环境保持 Zulu JDK `1.8.0_432` 与系统 Maven `3.6.3`；固定版本断言再次命中 Boot `2.7.18`、Cloud `2021.0.9`、Alibaba `2021.0.5.0`、LangChain4j `0.35.0`，Spring AI 与 Spring AI Alibaba 均为 `1.0.1`。
+- 分层构建在 springboot2 同步后的 worktree 中完成：Core `64/64`、Boot `49/49`、Cloud `13/13`、AI `16/16` 均为 `BUILD SUCCESS`；Sample `15/15` 的 `validate` 为 `BUILD SUCCESS`。所有已执行测试的汇总为零失败、零错误、零跳过。
+- `fw-plus-ai-boot-autoconfigure` 的 `dependency:tree` 退出码 `0`；`langchain4j-core` 解析为 `0.35.0`，`langchain4j-spring-boot-starter` 计数为 `0`，维持 Java 8 依赖边界。
+- 构建清理后恢复了被 Maven 修改或删除的 tracked `.flattened-pom.xml`；只删除本轮新生成的 AI model console `dist/`、`node_modules/`、`package-lock.json` 及 Cloud eureka console `package-lock.json`。无法归因的其它 ignored 前端文件未触碰，最终 springboot2 worktree 干净。
+
+## springboot3 发布前复验
+
+- 环境使用 Zulu JDK `17` 与系统 Maven `3.6.3`；固定版本断言命中 Boot `3.5.8`、Cloud `2025.0.0`、Alibaba `2025.0.0.0`、LangChain4j 主版本 `1.18.0`。
+- Core BOM 管理 `langchain4j-bom:${langchain4j.version}`，并单独固定 `langchain4j-redis`、`langchain4j-qianfan`、`langchain4j-dashscope` 为 `0.36.2`；AI BOM 仅 import Core BOM，不再重复管理 `dev.langchain4j` 坐标。
+- Spring AI 与 Spring AI Alibaba 均保持 `1.0.1`；Magic-API / Magic-Script 固定版本未作为本轮变更点修改。
+- 分层构建完成：Core `64/64`、Boot `49/49`、AI `17/17`、Cloud `13/13` 均为 `BUILD SUCCESS`；`git diff --check` 无输出，退出码 `0`。
+- AI 构建中修复 LangChain4j 1.18.x API 迁移点：Vertex AI Gemini 包名、EmbeddingStore `search(...)`、Weaviate `metadataFieldName`、测试桩和 Spring 6 `ResponseStatusException#getStatusCode()`。
+- 构建清理后恢复 Maven 生成的 tracked `.flattened-pom.xml`，并删除本轮新生成的 untracked 前端 `dist/`、`node_modules/`、`package-lock.json`，最终 `springboot3` worktree 干净且与 `origin/springboot3` 同步。
