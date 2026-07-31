@@ -202,6 +202,17 @@
     <description>
         fw-plus 核心库依赖管理.
     </description>
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${exec-maven-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
     <dependencyManagement>
         <dependencies>
             <!--springboot 版本统一管理-->
