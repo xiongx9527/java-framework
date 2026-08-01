@@ -23,6 +23,7 @@ import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.Response;
 import org.junit.jupiter.api.Test;
@@ -109,6 +110,9 @@ public class LangChain4jTinyEngineAiProviderTest {
 		assertEquals("system prompt", text(chatModel.messages.get(0)));
 		assertEquals("hello", text(chatModel.messages.get(1)));
 		assertEquals("JSON", chatModel.request.responseFormat().type().name());
+		assertEquals(Integer.valueOf(128), chatModel.request.maxOutputTokens());
+		assertEquals(Double.valueOf(0.5D), chatModel.request.presencePenalty());
+		assertEquals(Double.valueOf(0.2D), chatModel.request.frequencyPenalty());
 		assertEquals("json_object", response.getMetadata().get("response_format"));
 		assertEquals(Integer.valueOf(128), response.getMetadata().get("max_tokens"));
 		assertEquals(Double.valueOf(0.5D), response.getMetadata().get("presence_penalty"));
@@ -117,19 +121,51 @@ public class LangChain4jTinyEngineAiProviderTest {
 
 	@Test
 	public void shouldInvokeNativeStreamingModelAndReturnSseConvertibleChunks() {
-		RecordingStreamingChatModel streamingModel = new RecordingStreamingChatModel();
+		RecordingNativeStreamingChatModel streamingModel = new RecordingNativeStreamingChatModel();
 		LangChain4jTinyEngineAiProvider provider = provider(aiModel("stream-default", AiModelType.STREAMING_CHAT,
 				LangChain4jModelType.STREAMING_CHAT, streamingModel));
 		TinyEngineChatRequest request = request("stream-default", true);
+		request.setResponseFormat("json_object");
+		request.setMaxTokens(Integer.valueOf(128));
+		request.setPresencePenalty(Double.valueOf(0.5D));
+		request.setFrequencyPenalty(Double.valueOf(0.2D));
 
 		List<TinyEngineChatStreamChunk> chunks = provider.stream(request);
 
 		assertEquals("hello", text(streamingModel.messages.get(1)));
+		assertEquals(ResponseFormat.JSON, streamingModel.request.responseFormat());
+		assertEquals(Integer.valueOf(128), streamingModel.request.maxOutputTokens());
+		assertEquals(Double.valueOf(0.5D), streamingModel.request.presencePenalty());
+		assertEquals(Double.valueOf(0.2D), streamingModel.request.frequencyPenalty());
 		assertEquals(3, chunks.size());
 		assertEquals("he", chunks.get(0).getContent());
 		assertEquals("llo", chunks.get(1).getContent());
 		assertEquals(true, chunks.get(2).isCompleted());
 		assertEquals("stream answer", chunks.get(2).getContent());
+	}
+
+	@Test
+	public void shouldInvokeLegacyGenerateOnlyStreamingChatLanguageModel() {
+		RecordingStreamingChatModel streamingModel = new RecordingStreamingChatModel();
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("stream-default", AiModelType.STREAMING_CHAT,
+				LangChain4jModelType.STREAMING_CHAT, streamingModel));
+
+		List<TinyEngineChatStreamChunk> chunks = provider.stream(request("stream-default", true));
+
+		assertEquals("hello", text(streamingModel.messages.get(1)));
+		assertEquals("stream answer", chunks.get(2).getContent());
+		assertEquals(true, chunks.get(2).isCompleted());
+	}
+
+	@Test
+	public void shouldPropagateNativeStreamingErrors() {
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("stream-default", AiModelType.STREAMING_CHAT,
+				LangChain4jModelType.STREAMING_CHAT, new ErrorStreamingChatModel()));
+
+		IllegalStateException exception = assertThrows(IllegalStateException.class,
+				() -> provider.stream(request("stream-default", true)));
+
+		assertEquals("stream failure", exception.getMessage());
 	}
 
 	@Test
@@ -212,6 +248,27 @@ public class LangChain4jTinyEngineAiProviderTest {
 			handler.onNext("he");
 			handler.onNext("llo");
 			handler.onComplete(Response.from(AiMessage.from("stream answer")));
+		}
+	}
+
+	private static final class RecordingNativeStreamingChatModel implements StreamingChatModel {
+		private List<ChatMessage> messages = Collections.emptyList();
+		private ChatRequest request;
+
+		@Override
+		public void chat(ChatRequest request, dev.langchain4j.model.chat.response.StreamingChatResponseHandler handler) {
+			this.request = request;
+			this.messages = request.messages();
+			handler.onPartialResponse("he");
+			handler.onPartialResponse("llo");
+			handler.onCompleteResponse(ChatResponse.builder().aiMessage(AiMessage.from("stream answer")).build());
+		}
+	}
+
+	private static final class ErrorStreamingChatModel implements StreamingChatModel {
+		@Override
+		public void chat(ChatRequest request, dev.langchain4j.model.chat.response.StreamingChatResponseHandler handler) {
+			handler.onError(new IllegalStateException("stream failure"));
 		}
 	}
 

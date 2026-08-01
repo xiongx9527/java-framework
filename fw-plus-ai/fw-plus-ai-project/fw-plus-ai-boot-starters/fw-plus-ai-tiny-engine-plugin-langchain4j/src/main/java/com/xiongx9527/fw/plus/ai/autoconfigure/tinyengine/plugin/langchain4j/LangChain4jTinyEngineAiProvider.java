@@ -18,12 +18,12 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.Response;
 
 import java.lang.reflect.Method;
@@ -100,15 +100,15 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 		final List<TinyEngineChatStreamChunk> chunks = new ArrayList<TinyEngineChatStreamChunk>();
 		final RuntimeException[] error = new RuntimeException[1];
 		final CountDownLatch completed = new CountDownLatch(1);
-		model.generate(messages(request), new StreamingResponseHandler<AiMessage>() {
+		model.chat(chatRequest(request), new StreamingChatResponseHandler() {
 			@Override
-			public void onNext(String token) {
+			public void onPartialResponse(String token) {
 				chunks.add(new TinyEngineChatStreamChunk(token, false));
 			}
 
 			@Override
-			public void onComplete(Response<AiMessage> response) {
-				AiMessage message = response == null ? null : response.content();
+			public void onCompleteResponse(ChatResponse response) {
+				AiMessage message = response == null ? null : response.aiMessage();
 				chunks.add(new TinyEngineChatStreamChunk(message == null ? null : message.text(), true));
 				completed.countDown();
 			}
@@ -129,6 +129,17 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 
 	private ChatRequest chatRequest(TinyEngineChatRequest request) {
 		ChatRequest.Builder builder = ChatRequest.builder().messages(messages(request));
+		if (request != null) {
+			if (request.getMaxTokens() != null) {
+				builder.maxOutputTokens(request.getMaxTokens());
+			}
+			if (request.getPresencePenalty() != null) {
+				builder.presencePenalty(request.getPresencePenalty());
+			}
+			if (request.getFrequencyPenalty() != null) {
+				builder.frequencyPenalty(request.getFrequencyPenalty());
+			}
+		}
 		ResponseFormat responseFormat = responseFormat(request);
 		if (responseFormat != null) {
 			builder.responseFormat(responseFormat);
