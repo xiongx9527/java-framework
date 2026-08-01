@@ -1,0 +1,204 @@
+<template>
+  <div class="manage-panel">
+    <div class="manage-panel-search">
+      <tiny-search v-model="state.searchValue" clearable placeholder="搜索" @update:modelValue="searchBridgeData">
+        <template #prefix>
+          <tiny-icon-search />
+        </template>
+      </tiny-search>
+    </div>
+    <div class="list lowcode-scrollbar">
+      <div
+        v-for="(item, index) in list"
+        :key="item.name"
+        :class="['list-item', index === state.activeIndex ? 'active' : '']"
+        @click.stop="openEdit(item, index)"
+      >
+        <svg-icon name="plugin-icon-tool" class="list-item-icon"></svg-icon>
+        <div class="item-label">{{ item.name }}</div>
+        <svg-button
+          class="setting-icon"
+          :hoverBgColor="false"
+          name="setting"
+          @click.stop="openEdit(item, index)"
+        ></svg-button>
+      </div>
+      <search-empty :isShow="!list.length" />
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+/* metaService: engine.plugins.bridge.BridgeManage */
+import { ref, reactive, watch } from 'vue'
+import { Search } from '@opentiny/vue'
+import { iconSearch } from '@opentiny/vue-icon'
+import { SearchEmpty, SvgButton } from '@opentiny/tiny-engine-common'
+import {
+  RESOURCE_TYPE,
+  ACTION_TYPE,
+  getResourcesByType,
+  setType,
+  setActionType,
+  setResource,
+  setCategory,
+  getType,
+  setResourceNamesByType,
+  getResource
+} from './js/resource'
+import { getMetaApi, META_SERVICE } from '@opentiny/tiny-engine-meta-register'
+
+export default {
+  components: {
+    TinySearch: Search,
+    TinyIconSearch: iconSearch(),
+    SearchEmpty,
+    SvgButton
+  },
+  props: {
+    name: {
+      type: String,
+      default: RESOURCE_TYPE.Util
+    }
+  },
+  emits: ['open'],
+  setup(props, { emit }) {
+    const list = ref([])
+    const state = reactive({
+      resourceList: [],
+      activeIndex: -1,
+      searchValue: ''
+    })
+
+    const filterResourceSearchValue = (resourceList = state.resourceList, searchValue = state.searchValue) =>
+      resourceList.filter((item) => item.name.toLowerCase().indexOf(searchValue.toLowerCase()) > -1)
+
+    const refresh = async (name) => {
+      state.resourceList = await getResourcesByType(name)
+      setResourceNamesByType(
+        name,
+        Array.isArray(state.resourceList) ? state.resourceList.map((resource) => resource.name) : []
+      )
+      list.value = filterResourceSearchValue(state.resourceList)
+    }
+
+    watch(
+      () => props.name,
+      () => {
+        refresh(props.name)
+      },
+      { immediate: true }
+    )
+
+    const { getUpdateCount, getLastOperation } = getMetaApi(META_SERVICE.UseUtils) || { getUpdateCount: ref(0) }
+    watch(getUpdateCount, async () => {
+      await refresh(props.name)
+
+      const { id, type } = getLastOperation()
+
+      if (['add', 'update'].includes(type) && String(id) === String(getResource()?.id)) {
+        const editItem = state.resourceList.find((item) => String(item.id) === String(id))
+
+        if (editItem) {
+          setResource(editItem)
+        }
+      }
+    })
+
+    const add = (type) => {
+      setActionType('')
+      setType(props.name)
+      setResource('')
+      setCategory(type)
+      emit('open')
+    }
+
+    const openRead = (item, index) => {
+      state.activeIndex = index
+      setResource(item)
+      setActionType(ACTION_TYPE.Edit)
+      emit('open')
+    }
+
+    const openEdit = (item, index) => {
+      state.activeIndex = index
+      setResource(item)
+      setActionType(ACTION_TYPE.Edit)
+      setType(props.name)
+      setCategory(item.type)
+      emit('open')
+    }
+
+    const searchBridgeData = (value) => {
+      list.value = filterResourceSearchValue(state.resourceList, value)
+    }
+
+    return {
+      state,
+      list,
+      add,
+      openRead,
+      openEdit,
+      refresh,
+      getType,
+      RESOURCE_TYPE,
+      searchBridgeData
+    }
+  }
+}
+</script>
+
+<style lang="less" scoped>
+.manage-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+
+  .manage-panel-search {
+    padding: 0 12px 12px 12px;
+  }
+
+  .add-button {
+    align-self: flex-end;
+    margin: 6px;
+  }
+
+  .list {
+    flex: 1;
+    border-top: 1px solid var(--te-bridge-list-border-color);
+    overflow: auto;
+    padding: 12px 0;
+  }
+
+  .list-item {
+    height: 24px;
+    line-height: 24px;
+    display: grid;
+    grid-template-columns: 16px 1fr auto;
+    column-gap: 8px;
+    align-items: center;
+    padding: 0 12px;
+    position: relative;
+    color: var(--te-bridge-list-text-color);
+    cursor: pointer;
+    font-size: 12px;
+
+    &:hover,
+    &.active {
+      background: var(--te-bridge-list-bg-color);
+      .setting-icon {
+        display: grid;
+      }
+    }
+
+    .setting-icon {
+      display: none;
+    }
+    .list-item-icon {
+      color: var(--te-bridge-list-icon-color);
+      margin-right: 8px;
+    }
+  }
+}
+</style>

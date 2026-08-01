@@ -22,18 +22,29 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class TinyEngineAiProviderRegistryTest {
 
 	@Test
-	public void shouldUseLangChain4jAsDefaultProviderKey() {
+	public void shouldUseOnlyProviderAsDefaultProviderKey() {
 		TinyEngineAiProviderRegistry registry = new TinyEngineAiProviderRegistry(
-				Collections.<TinyEngineAiProvider>singletonList(new TestProvider("langchain4j", true)), null);
+				Collections.<TinyEngineAiProvider>singletonList(new TestProvider("business", true)), null);
 
-		assertEquals("langchain4j", registry.getDefaultProviderKey());
-		assertEquals("langchain4j", registry.getDefaultProvider().getKey());
+		assertEquals("business", registry.getDefaultProviderKey());
+		assertEquals("business", registry.getDefaultProvider().getKey());
+	}
+
+	@Test
+	public void shouldRequireConfiguredProviderWhenMultipleProvidersExist() {
+		TinyEngineAiProviderRegistry registry = new TinyEngineAiProviderRegistry(Arrays.<TinyEngineAiProvider>asList(
+				new TestProvider("business-a", true), new TestProvider("business-b", true)), null);
+
+		IllegalStateException exception = assertThrows(IllegalStateException.class, registry::getDefaultProvider);
+
+		assertEquals("TinyEngine AI provider must be configured when multiple providers are available: business-a,business-b",
+				exception.getMessage());
 	}
 
 	@Test
 	public void shouldPreferConfiguredCustomProvider() {
 		TinyEngineAiProviderRegistry registry = new TinyEngineAiProviderRegistry(Arrays.<TinyEngineAiProvider>asList(
-				new TestProvider("langchain4j", true), new TestProvider("custom", true)), "custom");
+				new TestProvider("business", true), new TestProvider("custom", true)), "custom");
 
 		assertEquals("custom", registry.getDefaultProviderKey());
 		assertEquals("custom", registry.getDefaultProvider().getKey());
@@ -42,12 +53,12 @@ public class TinyEngineAiProviderRegistryTest {
 	@Test
 	public void shouldReportProviderAndCapabilityForUnsupportedCapability() {
 		TinyEngineAiProviderRegistry registry = new TinyEngineAiProviderRegistry(
-				Collections.<TinyEngineAiProvider>singletonList(new TestProvider("langchain4j", false)), null);
+				Collections.<TinyEngineAiProvider>singletonList(new TestProvider("business", false)), null);
 
 		IllegalStateException exception = assertThrows(IllegalStateException.class,
 				() -> registry.requireCapability(TinyEngineAiCapability.STREAMING_CHAT));
 
-		assertEquals("TinyEngine AI provider 'langchain4j' does not support capability 'STREAMING_CHAT'",
+		assertEquals("TinyEngine AI provider 'business' does not support capability 'STREAMING_CHAT'",
 				exception.getMessage());
 	}
 

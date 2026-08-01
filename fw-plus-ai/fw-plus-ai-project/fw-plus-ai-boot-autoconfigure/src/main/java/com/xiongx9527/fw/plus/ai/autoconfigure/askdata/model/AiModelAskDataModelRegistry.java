@@ -2,19 +2,13 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataErrorCode;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
-import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.model.AiModelType;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.embedding.EmbeddingModel;
 
 import java.util.List;
 
-/**
- * 从中立模型注册表解析 AskData 模型；LangChain4j 仅在此处作为默认运行时适配。
- */
+/** 从中立模型注册表解析实现 AskData 执行契约的模型。 */
 public class AiModelAskDataModelRegistry implements AskDataModelRegistry {
 
 	private final AskDataProperties properties;
@@ -33,12 +27,7 @@ public class AiModelAskDataModelRegistry implements AskDataModelRegistry {
 		if (model instanceof AskDataChatModel) {
 			return (AskDataChatModel) model;
 		}
-		Object nativeModel = nativeModel(model, resolvedKey);
-		if (!(nativeModel instanceof ChatLanguageModel)) {
-			throw unsupportedModel("聊天", resolvedKey);
-		}
-		final ChatLanguageModel chatLanguageModel = (ChatLanguageModel) nativeModel;
-		return prompt -> new AskDataModelResponse(chatLanguageModel.generate(prompt), null, resolvedKey);
+		throw unsupportedModel("聊天", resolvedKey);
 	}
 
 	@Override
@@ -49,12 +38,7 @@ public class AiModelAskDataModelRegistry implements AskDataModelRegistry {
 		if (model instanceof AskDataEmbeddingModel) {
 			return (AskDataEmbeddingModel) model;
 		}
-		Object nativeModel = nativeModel(model, resolvedKey);
-		if (!(nativeModel instanceof EmbeddingModel)) {
-			throw unsupportedModel("向量", resolvedKey);
-		}
-		final EmbeddingModel embeddingModel = (EmbeddingModel) nativeModel;
-		return text -> embeddingModel.embed(text).content().vectorAsList();
+		throw unsupportedModel("向量", resolvedKey);
 	}
 
 	@Override
@@ -98,14 +82,6 @@ public class AiModelAskDataModelRegistry implements AskDataModelRegistry {
 			throw new AskDataModelException(AskDataErrorCode.MODEL_NOT_FOUND, "未找到" + modelType + "模型: " + key);
 		}
 		return modelRegistry.get(key);
-	}
-
-	private Object nativeModel(AiModel model, String key) {
-		if (!(model instanceof LangChain4jAiModel)) {
-			throw unsupportedModel("", key);
-		}
-		LangChain4jModel nativeModel = ((LangChain4jAiModel) model).getNativeModel();
-		return nativeModel == null ? null : nativeModel.getModel();
 	}
 
 	private AskDataModelException unsupportedModel(String modelType, String key) {

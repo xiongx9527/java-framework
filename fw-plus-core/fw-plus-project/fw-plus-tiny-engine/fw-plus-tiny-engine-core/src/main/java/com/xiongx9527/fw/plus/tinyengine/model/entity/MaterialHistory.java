@@ -50,6 +50,7 @@ private String materialSize;
 private String tgzUrl;
 private String unzipTgzRootPathUrl;
 private String unzipTgzFiles;
+@TableField(exist = false)
 private List<Component> components;
 
 	public Map<String, Object> getContent() {

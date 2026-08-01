@@ -2,17 +2,20 @@
 
 ## 背景
 
-`fw-plus-tiny-engine-spring-boot-starter` 当前只声明了 Boot、TinyEngine Core、MyBatis-Plus 和 Web 依赖。TinyEngine Core 已包含实体、Mapper、Service、SQL 资源与基础自动配置，但 starter 未包含 TinyEngine 前端源码、生产构建产物或完整 Web API，应用引入 starter 后无法直接使用设计器。
+`fw-plus-tiny-engine-spring-boot-starter` 当前只声明了 Boot、TinyEngine Core、MyBatis-Plus 和 Web 依赖。TinyEngine Core 已包含实体、Mapper、Service、SQL 资源与基础自动配置，但 starter 仍需要补齐完整 Web API、MVC/WebFlux 适配、用户体系 SPI 和 Magic-API 入口。
 
-本次变更把 `/Users/xiongxiao/Workspace/Idea/codes/TinyEngine` 的生产设计器集成进 starter，采用 Magic-API console 的组织模式：前端源码归属于 Maven 模块，由 Maven 生命周期构建，生产产物随 JAR 发布。集成完成后不再依赖开发机上的 TinyEngine 绝对路径。
+2026-07-31 需求变更：TinyEngine 前端不再放入 starter。上游 `designer-demo` 是前端演示宿主壳，`mockServer` 是本地开发 mock 后端，二者均不进入 fw-plus starter 的源码、构建或发布产物。TinyEngine 前端由独立工程或外部静态站点部署，Magic-API 插件只提供 `statusBarItems` 入口跳转到配置地址。
+
+后端能力以 `/Users/xiongxiao/Workspace/Idea/codes/tiny-engine-backend-java` 为完整生产参考源，而不是只参考前端 `mockServer` 或只迁移 Controller。当前参考源为 `release/v2.10.x` 分支、提交 `c116fa649122390baf212f53d82358617c63924d`，工作区必须保持干净后再抽取能力清单。该仓库中的 `base`、`app`、Mapper XML、SQL、动态模型、登录、RAG/AI、部署配置、定时任务、过滤器、文档和模型资产都必须进入覆盖审计；不能直接内置到 fw-plus 的内容也必须明确写出适配目标或延后原因。
 
 ## 目标
 
-- starter 内置可独立构建的 TinyEngine pnpm workspace 源码。
-- Maven 构建自动生成前端生产产物并打入 JAR。
-- 启用 TinyEngine 后可通过 `/tiny-engine/` 打开设计器。
-- 前端资源和 API 支持宿主应用的 `server.servlet.context-path`。
+- starter 只内置 TinyEngine 后端能力，不内置 TinyEngine pnpm workspace、`designer-demo`、`mockServer` 或 `dist`。
+- Maven 构建不需要 Node、pnpm，也不读取 `/Users/xiongxiao/Workspace/Idea/codes/TinyEngine` 等外部前端路径。
+- TinyEngine 前端由独立工程或外部静态站点部署，并调用本 starter 暴露的后端 API。
+- Magic-API TinyEngine 入口可打开同源默认路径 `/tiny-engine/`，也可通过插件属性打开外部 TinyEngine 前端 URL。
 - Spring MVC 与 WebFlux Controller 覆盖生产设计器实际使用的 TinyEngine API，并复用现有 Core Service。
+- 后端 Java 参考项目的业务能力、数据模型、Mapper、SQL、配置、部署与辅助资产有完整覆盖矩阵，迁入、适配或显式延后均有记录。
 - TinyEngine Core 提供框架无关的用户、认证、租户和权限 SPI，供 Magic-API、Sa-Token、Spring Security 或业务 IAM 实现。
 - 提供独立 Magic-API TinyEngine 插件，在 Magic-API 控制台增加设计器入口。
 - 保持 `fw.plus.tiny-engine.enabled=false` 的默认关闭语义。
@@ -20,11 +23,12 @@
 
 ## 非目标
 
-- 不在运行时启动 Node.js、Vite 或 Koa mockServer。
-- 不把 TinyEngine 的 `.git`、`.codegraph`、`node_modules`、构建缓存或本地产物放入 starter。
-- 不改变 TinyEngine 上游仓库的构建和发布流程。
+- 不在构建期或运行时启动 Node.js、Vite、pnpm 或 Koa mockServer。
+- 不把 TinyEngine 前端源码、`.git`、`.codegraph`、`node_modules`、构建缓存、本地产物或 `dist` 放入 starter。
+- 不改变 TinyEngine 上游仓库的构建和发布流程；前端部署独立处理。
 - 不把 TinyEngine 业务实体、Mapper 或 Service 从 Core 移入 starter。
 - 不把 mockServer 中仅用于演示、伪造或外部平台代理的行为原样移植到 Java。
+- 不把 `tiny-engine-backend-java` 的独立 Spring Boot 应用、Docker Compose、Nginx 配置或本地模型目录按原样塞进 starter 运行时；这些内容必须被映射为 fw-plus sample、部署文档、可选适配器或显式非目标。
 
 ## 模块边界
 
@@ -32,13 +36,12 @@
 
 `fw-plus-tiny-engine-spring-boot-starter` 负责：
 
-- `src/console` 中的 TinyEngine 前端 workspace 源码与锁文件。
-- Maven `generate-resources` 阶段的 pnpm 安装与生产构建。
-- 将生产产物复制到 `META-INF/resources/tiny-engine/`。
-- 声明 TinyEngine Core、Boot 自动配置、Web 和 MyBatis-Plus 依赖。
-- classpath 资源存在性测试和前端来源清单。
+- 声明 TinyEngine Core、Boot 自动配置和 MyBatis-Plus 依赖。
+- 不强制传递 Servlet 或 WebFlux starter，由宿主应用显式选择 Web 技术栈。
+- 作为应用侧引入 TinyEngine 后端能力的公开入口。
+- 不包含 `src/console`、前端锁文件、pnpm 构建、静态资源复制或 classpath 前端资源测试。
 
-同步到 `src/console` 的内容包括生产构建所需的根配置、`designer-demo`、`packages`、`mockServer` workspace 包、`scripts`、`patches`、锁文件及许可证。同步排除 `.git`、`.codegraph`、`node_modules`、所有 `dist`、测试报告、编辑器缓存和临时文件。`mockServer` 仅用于满足 workspace 依赖解析及契约参考，不作为运行时进程发布。
+TinyEngine 前端源码不作为 Maven module 子目录同步。若后续需要前端，可作为独立工程、独立 artifact 或外部静态站点处理，不回到本 starter 内置发布模式。
 
 ### Core
 
@@ -50,6 +53,8 @@
 - 与 Servlet、静态资源和前端构建无关的业务逻辑。
 
 Core 保持 Java 8 和框架边界，不引入 Node、Vite 或前端依赖。
+
+`tiny-engine-backend-java/base` 中属于领域基础能力的内容优先落在 Core：公共模型与异常、类型处理器、实体、DTO、Mapper、Mapper XML、Service、动态模型、保存 Hook、SQL 安全工具、Schema/JSON/文件安全工具、RAG/AI 的中立数据对象和可选 Provider 契约。与具体 Spring Web、Servlet 过滤器、JWT、RestTemplate、Swagger、定时任务或部署环境绑定的内容不进入 Core，而是放到 Boot 自动配置、starter sample、文档或外部适配器。
 
 ### 用户体系 SPI
 
@@ -88,9 +93,7 @@ TinyEngine 不提供 Magic-API 或 Sa-Token 的内置实现。外部工具通过
 
 - TinyEngine 总开关、Web 开关、路径和资源配置。
 - TinyEngine Spring MVC Controller 与 Core Service 的装配。
-- TinyEngine WebFlux Controller、静态资源处理和阻塞调用调度器的装配。
-- `/tiny-engine` 到 `/tiny-engine/` 的规范化跳转。
-- classpath 静态资源和 SPA 入口映射。
+- TinyEngine WebFlux Controller 和阻塞调用调度器的装配。
 - 业务 Bean 覆盖默认 Controller/Adapter 时的让位条件。
 
 TinyEngine 通用自动配置不再限制为 `ConditionalOnWebApplication.Type.SERVLET`。Web 层拆为互斥的 Servlet 和 Reactive 子配置：Servlet 子配置只在 `Type.SERVLET` 注册，Reactive 子配置只在 `Type.REACTIVE` 且 WebFlux 类存在时注册。纯 WebFlux 应用不得加载 Servlet Controller、Servlet API 或 MVC 资源处理器。
@@ -101,40 +104,43 @@ TinyEngine 通用自动配置不再限制为 `ConditionalOnWebApplication.Type.S
 
 插件负责：
 
-- 依赖 `fw-plus-tiny-engine-spring-boot-starter`，确保入口对应的设计器和后端能力位于同一应用。
 - 在 `src/console` 中提供符合现有 Magic-API 插件协议的前端代码。
 - 通过 Magic-API 前端插件返回值的 `statusBarItems` 注册一个 TinyEngine 图标入口和中英文标题。
-- 点击后在新标签页打开宿主应用的 TinyEngine console 路径。
+- 点击后在新标签页打开同源默认 TinyEngine 路径或 `pluginData.attributes.url` 配置的外部前端地址。
 - 将构建产物打入 `magic-editor/plugins`，沿用 Magic-API 插件父 POM 的构建和资源复制机制。
 
-入口 URL 从浏览器当前页面和宿主 context-path 推导，并使用 TinyEngine 的 `web.console-path` 默认值 `/tiny-engine/`。不得硬编码协议、域名、端口或开发机路径。若 TinyEngine 被禁用或入口返回 404，插件显示明确提示，不影响 Magic-API 控制台其他功能。
+入口 URL 默认从浏览器当前页面和宿主 context-path 推导，默认打开 `/tiny-engine/`；也支持 `pluginData.attributes.path` 覆盖同源路径，或 `pluginData.attributes.url` 打开独立部署的 TinyEngine 前端。不得硬编码开发机路径。
 
 ## 前端构建与资源布局
 
-Maven 使用 `exec-maven-plugin`，在 `generate-resources` 阶段于 `src/console` 执行：
+本 starter 没有前端构建与资源布局。POM 不配置 `exec-maven-plugin` 执行 Node/pnpm，不把 `designer-demo/dist` 复制到 `META-INF/resources/tiny-engine/`，也不提供 `tiny-engine.frontend.skip` 之类的前端构建开关。
 
-1. `pnpm install --frozen-lockfile`
-2. `pnpm build:prod`
-
-随后由 Maven resources 处理把 `designer-demo/dist` 复制到 `META-INF/resources/tiny-engine/`。TinyEngine Vite 默认使用相对资源路径 `base: './'`，因此静态资源可随宿主 context-path 工作。前端 API 使用同源相对地址，不硬编码主机、端口或本地路径。
-
-构建失败必须使 Maven 构建失败。不得在缺少 pnpm、锁文件不一致或前端编译失败时静默打出不完整 JAR。为便于纯 Java 快速验证，可提供显式的 `tiny-engine.frontend.skip` Maven 属性，但发布和完整验证不得启用该属性。
+前端部署由独立工程负责。它可以选择同源 `/tiny-engine/`、网关路径或独立域名，但这属于外部部署和 Magic-API 入口配置，不属于 starter JAR 内容。
 
 ## 静态资源访问
 
-启用 `fw.plus.tiny-engine.enabled=true` 且 `fw.plus.tiny-engine.web.enabled=true` 后：
+starter 不注册 TinyEngine classpath 静态资源、SPA 首页或资源回退。`/tiny-engine/` 是否存在由外部前端部署、网关或宿主应用自行决定。
 
-- `GET /tiny-engine` 返回重定向到 `/tiny-engine/`。
-- `GET /tiny-engine/` 返回 classpath 中的 `index.html`。
-- `GET /tiny-engine/{asset}` 返回对应构建资源。
-- 前端若使用客户端路由，非 API 且无文件扩展名的 `/tiny-engine/**` 请求回退到 `index.html`。
-- 静态资源不存在时返回 404，不回退到外部文件系统。
+后端 API 仍由 MVC/WebFlux Controller 暴露，并遵守 `fw.plus.tiny-engine` 配置。后端实现不得从外部文件系统读取前端源码或 dist。
 
-资源映射必须基于 Spring `Resource`/classpath API，不拼接硬编码文件系统路径。
+## API 与后端能力适配
 
-## API 适配
+API 与后端能力适配以 `tiny-engine-backend-java` 的 Controller、Service、DTO、Result 模型、Mapper XML、SQL 和测试为主，以 TinyEngine 生产前端中的实际请求校验入口是否被使用，以 `mockServer/src/routes` 作为次级响应结构和路径兼容参考。不得只按 mockServer 生成假数据，也不得只迁 Controller 而漏掉 Service、Mapper、SQL、配置或辅助能力。
 
-API 适配以 TinyEngine 生产前端中的实际请求为主，以 `mockServer/src/routes` 为响应结构和路径兼容参考。第一阶段覆盖设计器核心闭环：
+后端参考源必须先形成覆盖矩阵，至少包含：
+
+- `base/src/main/java/com/tinyengine/it/common/**`：`Result`、基础实体、异常、日志注解、类型处理器、文件安全、Hash、Schema/JSON 工具；映射到 Core common/support 和 Boot 全局错误处理。
+- `base/src/main/java/com/tinyengine/it/model/**`：全部实体和 DTO；映射到 Core model，字段、JSON 结构和类型处理器需要有契约测试。
+- `base/src/main/java/com/tinyengine/it/mapper/**` 与 `base/src/main/resources/mappers/*.xml`：28 个 Mapper Java/XML；映射到 Core mapper 和资源目录，名称集合不得缺失。
+- `app/src/main/resources/sql/**`、`docker-deploy-data/mysql/init/**`：H2/MySQL/PostgreSQL DDL 与初始化数据；映射到 Core `META-INF/tiny-engine/sql` manifest 和 sample 初始化文档。
+- `base/src/main/java/com/tinyengine/it/service/**`：app/material/platform/service extend；映射到 Core Service 或可选能力 Provider。
+- `base/src/main/java/com/tinyengine/it/dynamic/**`：动态模型 Controller/DAO/DTO/Service/SQL Provider；映射到 Core dynamic 和 MVC/WebFlux API。
+- `base/src/main/java/com/tinyengine/it/login/**`：登录配置、SSO、密码策略、JWT/SM2/SM3 工具、LoginController/Service；抽象为 Core 用户体系 SPI 和可选 Boot 适配，不在 Core 固化具体 JWT/SSO 实现。
+- `base/src/main/java/com/tinyengine/it/rag/**`、`gateway/ai/**`、`config/AiChatConfig.java`、`OpenAIConfig.java`、`all-MiniLM-L6-v2/**`：RAG、向量存储、AI Chat、模型资产；基础请求/响应和 Provider 契约进 Core，具体 OpenAI/向量库/ONNX 模型加载作为可选适配或文档，不强制 starter 依赖。
+- `app/src/main/java/**`、`app/src/main/resources/application*.yml`、`logback.xml`、`checkstyle.xml`、`webapp/**`：独立应用启动、过滤器、OpenAPI、调度清理、环境配置和传统 webapp；映射到 sample、Boot 可覆盖 Bean 和运维文档，不作为通用 starter 强绑定。
+- `Dockerfile`、`docker-compose.yml`、`example-docker.yml`、`docker-deploy-data/**`、`documents/**`、`settings/**`：部署、MySQL 初始化、组件/AI 文档和代码规范；映射到 docs 或 sample 验证资料，不能默默丢弃。
+
+第一阶段覆盖设计器核心闭环：
 
 - 应用：列表、详情、创建、更新、删除、Schema 获取。
 - 页面：列表、详情、创建、更新、删除、历史与发布数据。
@@ -146,7 +152,7 @@ API 适配以 TinyEngine 生产前端中的实际请求为主，以 `mockServer/
 
 Controller 只负责协议映射、参数校验和响应包装，业务逻辑调用现有 Service。已有 Service 不足以实现的生产接口，应先扩展 Core 契约并添加单元测试，不在 Controller 中复制 mock 数据逻辑。
 
-平台认证、外部素材 CDN、AI 服务和代码生成等需要外部系统的能力使用明确的可选适配接口。宿主未提供适配器时返回稳定的“不支持/未配置”错误，不伪造成功。
+平台认证、外部素材 CDN、AI 服务、RAG/向量存储、本地模型、代码生成和发布等需要外部系统或大体积资产的能力使用明确的可选适配接口。宿主未提供适配器时返回稳定的“不支持/未配置”错误，不伪造成功。任何延后项必须在覆盖矩阵中标注“延后原因、目标适配点、用户可见行为和后续任务”，不能从清单中删除。
 
 ## WebMVC 与 WebFlux Controller
 
@@ -169,7 +175,6 @@ starter 不得通过同时传递 Servlet 与 Reactive starter 强迫 Spring Boot
 - `enabled`：总开关，默认 `false`。
 - `web.enabled`：Web 与静态资源开关，默认 `true`。
 - `web.base-path`：API 的宿主前缀，保持现有兼容语义。
-- `web.console-path`：设计器路径，默认 `/tiny-engine`。
 - `webflux.scheduler.thread-count`：阻塞 Core 调用线程数，提供保守默认值。
 - `webflux.scheduler.queue-capacity`：阻塞任务最大排队数，提供有界默认值。
 - `webflux.scheduler.timeout`：单次阻塞调用超时，默认使用明确的有限时长。
@@ -178,7 +183,7 @@ starter 不得通过同时传递 Servlet 与 Reactive starter 强迫 Spring Boot
 
 路径在绑定后统一规范化，拒绝空白、缺少前导 `/`、尾部重复 `/` 或包含路径穿越片段的非法值。Controller 映射与静态资源映射使用同一规范化结果。
 
-Magic-API 入口默认跟随 `web.console-path`。如果 Magic-API 前端插件无法在构建时读取 Spring 配置，则由同源轻量配置端点返回启用状态和 console 路径；插件不得复制第二套独立路径配置。
+Magic-API 入口默认打开同源 `/tiny-engine/`，也允许通过插件属性 `path` 覆盖同源路径，或通过 `url` 指向独立部署的前端。
 
 ## 错误处理
 
@@ -188,41 +193,32 @@ Magic-API 入口默认跟随 `web.console-path`。如果 Magic-API 前端插件�
 - 资源不存在返回 HTTP 404。
 - 未配置的外部能力返回 HTTP 501 或项目统一的不支持错误。
 - 数据库冲突和约束错误转换为受控业务错误，不泄漏 SQL、凭证或文件路径。
-- 前端构建错误直接终止 Maven 构建并保留 pnpm/Vite 原始诊断。
-- SPA 回退不得吞掉 API 404 或静态资源 404。
+- 不存在内置前端构建错误；Maven 构建失败只反映 Java/Maven 或 Magic-API 插件自身构建问题。
+- 后端 API 404 不由 TinyEngine starter 的 SPA 回退吞掉，因为 starter 不注册 SPA 回退。
 
 ## 上游同步
 
-提供一个显式同步脚本，从参数指定的 TinyEngine 工作区更新 `src/console`。脚本必须：
-
-- 校验源目录包含 `pnpm-lock.yaml`、`pnpm-workspace.yaml`、`designer-demo` 和 `packages`。
-- 使用固定排除清单，不复制本地依赖、Git 元数据和构建产物。
-- 写入来源提交 SHA、同步时间、许可证和排除清单。
-- 同步完成后提示运行前端构建、Maven 资源测试和差异检查。
-
-脚本只作为维护工具，Maven 正常构建不得调用外部 TinyEngine 路径。
+不提供 TinyEngine 前端源码同步脚本。上游 `/Users/xiongxiao/Workspace/Idea/codes/TinyEngine` 只作为外部前端工程，不参与 starter 构建。
 
 ## 测试与验收
 
-### 前端
+### 前端边界
 
-- 在 starter 的 `src/console` 执行 `pnpm install --frozen-lockfile`。
-- 执行 `pnpm build:prod`，确认生成 `designer-demo/dist/index.html` 和静态资源。
-- 校验构建产物不包含开发服务地址或本机绝对路径。
+- 确认 starter 模块不存在 `src/console`、`designer-demo`、`mockServer`、`pnpm-lock.yaml` 或前端 `dist`。
+- 确认 starter Maven 构建不执行 Node/pnpm，也不读取外部 TinyEngine 前端绝对路径。
 
 ### Maven 与打包
 
-- 构建 starter，检查 JAR 包含 `META-INF/resources/tiny-engine/index.html` 和关键资源。
-- 运行 classpath 资源测试，防止只在源码目录存在、JAR 中缺失。
-- 检查 starter 依赖树，确认未引入 Node/Koa 运行时或无关 provider SDK。
+- 构建 starter，检查 JAR 不包含 `META-INF/resources/tiny-engine/**`、`designer-demo`、`mockServer` 或前端源码。
+- 检查 starter 依赖树，确认未引入 Servlet/WebFlux starter、Node/Koa 运行时或无关 provider SDK。
 - 构建 `fw-plus-magicapi-plugin-tiny-engine`，检查 JAR 包含对应 `magic-editor/plugins` 前端产物。
-- 检查插件依赖树包含 TinyEngine starter，且没有重复打包 TinyEngine console 源码或产物。
+- 检查 Magic-API 插件没有重复打包 TinyEngine console 源码或产物。
 
 ### Spring
 
 - 自动配置测试覆盖默认关闭、显式启用、Web 关闭、自定义 Bean 覆盖、非法路径，以及 Servlet/Reactive 配置互斥。
-- MockMvc 覆盖入口重定向、首页、静态资源、SPA 回退、API 404 不回退。
-- `ReactiveWebApplicationContextRunner` 与 `WebTestClient` 覆盖 WebFlux Controller 路由、首页、静态资源、SPA 回退和 API 404。
+- MockMvc 覆盖后端 API 路由、错误处理和无内置静态资源边界。
+- `ReactiveWebApplicationContextRunner` 与 `WebTestClient` 覆盖 WebFlux Controller 路由、错误处理和无 Servlet 污染。
 - WebFlux 测试验证阻塞 Service 不在 Reactor Netty 事件循环执行，并覆盖 Scheduler 队列饱和、超时和自定义 Bean 覆盖。
 - 用户 SPI 契约测试覆盖登录、当前用户、退出、租户查询/切换、注册/找回密码不支持和权限拒绝。
 - MVC/WebFlux 用户接口契约测试使用同一测试 Provider，确认 token、用户和租户响应一致。
@@ -230,33 +226,31 @@ Magic-API 入口默认跟随 `web.console-path`。如果 Magic-API 前端插件�
 - 安全模式测试覆盖缺 Provider 启动失败、业务 Bean 覆盖和显式关闭后才允许 system 用户。
 - 纯 Reactive classpath 回归测试确认不创建 Servlet Controller、Servlet Filter 或 MVC ResourceHandler。
 - API 契约测试覆盖每个核心领域至少一个读写流程及错误响应。
-- TinyEngine 入口配置端点覆盖默认路径、自定义 context-path、自定义 console-path 和禁用状态。
+- 后端覆盖测试或审计脚本覆盖 `tiny-engine-backend-java` 的 Java 包、Controller 路由、Service、Mapper XML、SQL、配置、部署和文档/模型资产清单；每一项在覆盖矩阵中都有迁入、适配或显式延后记录。
+- TinyEngine 后端配置覆盖默认路径、自定义 context-path 和禁用状态。
 
 ### Magic-API 插件
 
 - 前端契约测试确认插件只返回一个 TinyEngine `statusBarItems` 入口，不返回 `resource`、`toolbars`，也不注册 Magic-Script 模块。
-- 验证入口 URL 从当前宿主地址和配置端点生成，不含固定域名或端口。
-- 验证 TinyEngine 禁用或入口不可达时给出受控提示，不阻断 Magic-API 控制台初始化。
+- 验证入口 URL 默认从当前宿主地址生成，也支持 `pluginData.attributes.path` 和 `pluginData.attributes.url`。
 
 ### 端到端
 
 - 分别以 Servlet 和 Reactive WebApplicationType 启动 TinyEngine sample，并启用数据库测试配置。
-- 在浏览器打开 `/tiny-engine/`，确认页面非空、资源无 404、控制台无启动错误。
 - 完成创建应用、创建页面、保存页面、重新加载并读取保存结果的最小闭环。
-- 在带 `server.servlet.context-path` 的配置下重复首页和核心 API 验证。
+- 在带 `server.servlet.context-path` 的配置下重复核心 API 验证。
 
 ## 实施顺序
 
-1. 建立 starter 前端目录、同步脚本、来源清单和许可证。
-2. 调整 TinyEngine Vite 生产配置并完成独立 pnpm 构建。
-3. 接入 Maven 生命周期和 JAR classpath 资源测试。
-4. 拆分 Servlet/Reactive 自动配置，完成两套静态资源、SPA 映射和 WebFlux 阻塞调度器。
-5. 在 Core 定义用户、认证、租户和权限 SPI，在 Boot 实现 MVC/WebFlux 用户接口与请求主体传播。
-6. 按生产前端请求清单实现 MVC/WebFlux Controller 适配和缺失 Core 契约。
-7. 新增 `fw-plus-magicapi-plugin-tiny-engine`、`statusBarItems` 入口和配置端点。
-8. 扩展 Servlet/WebFlux sample 配置、测试用户 Provider 与数据库测试数据。
-9. 运行前端、用户 SPI、Magic-API 插件、Maven、MockMvc、WebTestClient 和浏览器端到端验证。
+1. 移除 starter 内已同步的 TinyEngine 前端源码、构建脚本、资源打包和前端 classpath 测试。
+2. 拆分 Servlet/Reactive 自动配置，完成两套 Controller 和 WebFlux 阻塞调度器。
+3. 在 Core 定义用户、认证、租户和权限 SPI，在 Boot 实现 MVC/WebFlux 用户接口与请求主体传播。
+4. 建立 `tiny-engine-backend-java` 完整覆盖矩阵，先消项 Core 中已有/缺失的实体、DTO、Mapper、SQL、Service、dynamic、login、rag、app、deploy、documents 和模型资产。
+5. 按后端覆盖矩阵实现 MVC/WebFlux Controller 适配和缺失 Core 契约。
+6. 新增 `fw-plus-magicapi-plugin-tiny-engine`、`statusBarItems` 入口，并支持外部前端 URL。
+7. 扩展 Servlet/WebFlux sample 配置、测试用户 Provider 与数据库测试数据，并记录部署、SQL、外部能力与延后项。
+8. 运行用户 SPI、后端覆盖矩阵、Magic-API 插件、Maven、MockMvc 和 WebTestClient 验证。
 
 ## 完成标准
 
-只有同时满足以下条件才算完成：starter 在不引用外部 TinyEngine 路径的情况下可重复构建；JAR 内含完整生产设计器资源；同一 starter 在 Servlet 与纯 Reactive 应用中均可启动；两种 Web 栈的首页、静态资源、用户接口和核心 API 可访问；安全模式不回退 system 用户；WebFlux 不在事件循环执行阻塞 Core 调用且不串用请求主体；核心应用/页面保存闭环通过；Magic-API 插件能从控制台正确打开同一应用的 TinyEngine 设计器；API、静态资源、用户 SPI、插件入口和 context-path 测试通过；现有无关脏文件未被修改。
+只有同时满足以下条件才算完成：starter 在不引用外部 TinyEngine 前端路径、不执行 Node/pnpm 的情况下可重复构建；JAR 不包含 TinyEngine 前端源码、`designer-demo`、`mockServer` 或 `META-INF/resources/tiny-engine/**`；`tiny-engine-backend-java` 的 `base`、`app`、Mapper XML、SQL、dynamic、login、rag、deploy、documents 和模型资产均在覆盖矩阵中被迁入、适配或显式延后；同一 starter 在 Servlet 与纯 Reactive 应用中均可启动；两种 Web 栈的用户接口和核心 API 可访问；安全模式不回退 system 用户；WebFlux 不在事件循环执行阻塞 Core 调用且不串用请求主体；核心应用/页面保存闭环通过；Magic-API 插件能从控制台正确打开同源默认路径或外部 TinyEngine 前端 URL；API、用户 SPI、后端覆盖矩阵、插件入口和 context-path 测试通过；现有无关脏文件未被修改。

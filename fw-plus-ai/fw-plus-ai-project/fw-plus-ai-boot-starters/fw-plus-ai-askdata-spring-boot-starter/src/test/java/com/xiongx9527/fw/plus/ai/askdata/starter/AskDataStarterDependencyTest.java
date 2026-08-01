@@ -17,15 +17,15 @@ import static org.junit.Assert.assertTrue;
 public class AskDataStarterDependencyTest {
 
 	@Test
-	public void shouldUseUnifiedLangChain4jAdapterWithoutLegacyStarters() throws Exception {
+	public void shouldKeepAskDataStarterNeutralToConcreteAiFrameworks() throws Exception {
 		Set<String> dependencies = directDependencyCoordinates(new File("pom.xml"));
 		Set<String> dependencyGroupIds = directDependencyGroupIds(new File("pom.xml"));
 
 		assertTrue("AskData starter must preserve the AskData Java 8 module",
 				dependencies.contains("com.xiongx9527.fw.plus:fw-plus-ai-askdata"));
-		assertTrue("AskData starter must preserve its auto-configuration",
-				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-autoconfigure"));
-		assertTrue("AskData starter must obtain model capabilities from the unified LangChain4j adapter",
+		assertTrue("AskData starter must preserve the neutral AI Boot starter",
+				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-starter"));
+		assertFalse("AskData starter must not directly depend on the LangChain4j adapter starter",
 				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
 		assertFalse("AskData starter must not depend on the legacy LangChain4j model starter",
 				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter"));
