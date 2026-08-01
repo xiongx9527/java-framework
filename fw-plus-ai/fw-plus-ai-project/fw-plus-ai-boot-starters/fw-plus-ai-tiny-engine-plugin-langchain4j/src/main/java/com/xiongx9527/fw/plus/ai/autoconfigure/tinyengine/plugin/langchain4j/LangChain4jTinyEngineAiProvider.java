@@ -26,6 +26,7 @@ import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.Response;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -66,7 +67,8 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 	}
 
 	private ChatResponse chat(Object nativeModel, TinyEngineChatRequest request) {
-		if (nativeModel instanceof ChatLanguageModel) {
+		if (nativeModel instanceof ChatLanguageModel
+				&& !overridesChatRequest((ChatLanguageModel) nativeModel)) {
 			Response<AiMessage> response = ((ChatLanguageModel) nativeModel).generate(messages(request));
 			return response == null ? null : ChatResponse.builder().aiMessage(response.content())
 					.tokenUsage(response.tokenUsage()).finishReason(response.finishReason()).build();
@@ -76,6 +78,15 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 			throw new IllegalStateException("TinyEngine AI provider 'langchain4j' native CHAT model is not ChatLanguageModel");
 		}
 		return model.chat(chatRequest(request));
+	}
+
+	private boolean overridesChatRequest(ChatLanguageModel model) {
+		try {
+			Method method = model.getClass().getMethod("chat", ChatRequest.class);
+			return !ChatLanguageModel.class.equals(method.getDeclaringClass());
+		} catch (NoSuchMethodException ex) {
+			return false;
+		}
 	}
 
 	@Override

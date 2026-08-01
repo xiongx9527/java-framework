@@ -40,6 +40,20 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class LangChain4jTinyEngineAiProviderTest {
 
 	@Test
+	public void shouldPreserveResponseFormatForLegacyChatLanguageModelOverride() {
+		OverridingChatLanguageModel chatModel = new OverridingChatLanguageModel();
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("chat-default", AiModelType.CHAT,
+				LangChain4jModelType.CHAT, chatModel));
+		TinyEngineChatRequest request = request("chat-default", false);
+		request.setResponseFormat("json_object");
+
+		TinyEngineChatResponse response = provider.chat(request);
+
+		assertEquals("legacy chat answer", response.getContent());
+		assertEquals("JSON", chatModel.request.responseFormat().type().name());
+	}
+
+	@Test
 	public void shouldInvokeLegacyGenerateOnlyChatLanguageModel() {
 		GenerateOnlyChatLanguageModel chatModel = new GenerateOnlyChatLanguageModel();
 		LangChain4jTinyEngineAiProvider provider = provider(aiModel("chat-default", AiModelType.CHAT,
@@ -208,6 +222,24 @@ public class LangChain4jTinyEngineAiProviderTest {
 		public Response<AiMessage> generate(List<ChatMessage> messages) {
 			this.messages = messages;
 			return Response.from(AiMessage.from("legacy generate answer"));
+		}
+	}
+
+	private static final class OverridingChatLanguageModel extends BaseOverridingChatLanguageModel {
+	}
+
+	private static class BaseOverridingChatLanguageModel implements ChatLanguageModel {
+		protected ChatRequest request;
+
+		@Override
+		public Response<AiMessage> generate(List<ChatMessage> messages) {
+			return Response.from(AiMessage.from("legacy generate answer"));
+		}
+
+		@Override
+		public ChatResponse chat(ChatRequest request) {
+			this.request = request;
+			return ChatResponse.builder().aiMessage(AiMessage.from("legacy chat answer")).build();
 		}
 	}
 
