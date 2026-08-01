@@ -23,6 +23,7 @@ public class SpringBoot3DependencyBaselineTest {
         assertProperty(coreBom(), "spring-cloud-alibaba-dependencies.version", "2025.0.0.0");
         assertProperty(coreBom(), "magic-api.version", "2.2.2");
         assertProperty(coreBom(), "magic-script.version", "1.9.0");
+        assertProperty(coreBom(), "mybatis-plus.version", "3.5.16");
         assertProperty(coreBom(), "langchain4j.version", "1.18.0");
         assertProperty(aiBom(), "spring-ai.version", "1.0.1");
         assertProperty(aiBom(), "spring-ai-alibaba.version", "1.0.1");

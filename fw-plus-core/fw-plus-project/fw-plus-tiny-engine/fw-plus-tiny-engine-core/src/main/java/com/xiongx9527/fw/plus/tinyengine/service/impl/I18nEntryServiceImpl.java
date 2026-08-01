@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.tinyengine.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiongx9527.fw.plus.tinyengine.mapper.I18nEntryMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.I18nLangMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.DeleteI18nEntry;

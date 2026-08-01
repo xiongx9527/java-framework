@@ -62,6 +62,14 @@ class TinyEngineServiceContractTest {
 			"PlatformService", "ResourceGroupService", "ResourceService", "TaskRecordService",
 			"TenantService", "UserService"
 	);
+	private static final List<String> MYBATIS_PLUS_SERVICE_NAMES = Arrays.asList(
+			"AppExtensionService", "AppService", "AppTemplateService", "BlockGroupService",
+			"BlockHistoryService", "BlockService", "BusinessCategoryService", "ComponentLibraryService",
+			"ComponentService", "DatasourceService", "I18nEntryService", "I18nLangService",
+			"MaterialHistoryService", "MaterialService", "ModelService", "PageHistoryService",
+			"PageService", "PageTemplateService", "PlatformHistoryService", "PlatformService",
+			"ResourceGroupService", "ResourceService", "TaskRecordService", "TenantService", "UserService"
+	);
 
 	@Test
 	void everyPublicServiceInterfaceHasSpringImplementation() {
@@ -75,6 +83,21 @@ class TinyEngineServiceContractTest {
 					implementationType.getName() + " must implement " + serviceType.getName());
 			assertNotNull(implementationType.getAnnotation(Service.class),
 					implementationType.getName() + " must be a Spring service");
+		}
+	}
+
+	@Test
+	void everyMyBatisPlusServiceKeepsLegacyPublicParentTypes() {
+		for (String serviceName : MYBATIS_PLUS_SERVICE_NAMES) {
+			Class<?> serviceType = loadClass(SERVICE_PACKAGE + serviceName);
+			Class<?> implementationType = loadClass(IMPLEMENTATION_PACKAGE + serviceName + "Impl");
+			Class<?>[] parentInterfaces = serviceType.getInterfaces();
+
+			assertEquals(1, parentInterfaces.length, serviceType.getName() + " direct parent interface count");
+			assertEquals("com.baomidou.mybatisplus.extension.service.IService", parentInterfaces[0].getName(),
+					serviceType.getName() + " direct parent interface");
+			assertEquals("com.baomidou.mybatisplus.extension.service.impl.ServiceImpl",
+					implementationType.getSuperclass().getName(), implementationType.getName() + " direct parent class");
 		}
 	}
 

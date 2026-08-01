@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.tinyengine.service.impl;
 
 import com.alibaba.fastjson2.JSON;
-import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ExceptionEnum;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
 import com.xiongx9527.fw.plus.tinyengine.mapper.ComponentLibraryMapper;

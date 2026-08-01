@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.tinyengine.service.impl;
 
-import com.baomidou.mybatisplus.spring.service.impl.ServiceImpl;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiongx9527.fw.plus.tinyengine.mapper.BlockHistoryMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockHistory;
 import com.xiongx9527.fw.plus.tinyengine.service.BlockHistoryService;

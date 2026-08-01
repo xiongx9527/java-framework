@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.tinyengine.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.spring.service.IService;
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Model;
 
 import java.util.List;

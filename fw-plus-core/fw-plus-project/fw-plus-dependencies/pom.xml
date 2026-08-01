@@ -125,7 +125,7 @@
         <!--mybatis-spring版本号-->
         <mybatis-spring.version>3.0.5</mybatis-spring.version>
         <!--mybatis-plus版本号-->
-        <mybatis-plus.version>3.5.17</mybatis-plus.version>
+        <mybatis-plus.version>3.5.16</mybatis-plus.version>
         <!--mybatis-plus-join版本号-->
         <mybatis-plus-join.version>1.5.2</mybatis-plus-join.version>
         <!--mybatis-flux版本号-->
