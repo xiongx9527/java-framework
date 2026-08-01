@@ -18,9 +18,9 @@
     </license>
   </licenses>
   <properties>
-    <main.basedir>${basedir}/../..</main.basedir>
     <servo-core.version>0.12.21</servo-core.version>
     <io.github.openfeign.version>13.5</io.github.openfeign.version>
+    <main.basedir>${basedir}/../..</main.basedir>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -72,6 +72,11 @@
       <dependency>
         <groupId>com.xiongx9527.fw.plus.cloud</groupId>
         <artifactId>fw-plus-eureka-server-spring-cloud-starter</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.xiongx9527.fw.plus.cloud</groupId>
+        <artifactId>fw-plus-magicapi-plugin-eureka</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

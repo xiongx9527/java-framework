@@ -19,4 +19,4 @@ export * from './hooks'
 export { META_APP, META_SERVICE } from './constants'
 export { defineService, initServices } from './service'
 
-export type { ServiceOptions } from './service'
+export type { Service, ServiceOptions } from './service'

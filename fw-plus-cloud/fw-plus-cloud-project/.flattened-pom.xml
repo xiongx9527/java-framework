@@ -11,6 +11,7 @@
   <artifactId>fw-plus-cloud-project</artifactId>
   <version>0.1.1-SNAPSHOT</version>
   <packaging>pom</packaging>
+  <description>fw-plus-cloud 核心组件.</description>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>

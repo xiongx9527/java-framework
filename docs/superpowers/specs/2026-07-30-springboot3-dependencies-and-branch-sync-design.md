@@ -2,6 +2,8 @@
 comet_change: upgrade-springboot3-dependencies-and-sync-branches
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-08-01-upgrade-springboot3-dependencies-and-sync-branches
+status: final
 ---
 
 # Spring Boot 3 依赖升级与长期分支同步技术设计

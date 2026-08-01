@@ -1,6 +1,6 @@
 # fw-plus-tiny-engine-core
 
-`fw-plus-tiny-engine-core` 提供 TinyEngine 的领域模型、MyBatis-Plus 持久化接口、服务实现、动态模型访问和 SQL 资源。该模块是无 Web 运行时假设的底层库，供后续集成层按需装配。
+`fw-plus-tiny-engine-core` 提供 TinyEngine 的领域模型、MyBatis-Plus 持久化接口、服务实现和动态模型访问。该模块是无 Web 运行时假设的底层库，供后续集成层按需装配。
 
 ## 坐标与包结构
 
@@ -14,12 +14,11 @@
 
 Java 包根目录为 `com.xiongx9527.fw.plus.tinyengine`。领域模型位于 `model`，Mapper 位于 `mapper`，服务位于 `service`，动态模型能力位于 `dynamic`，可由集成层实现的扩展点位于 `support`。
 
-## 持久化与 SQL 资源
+## 持久化与 SQL 清单
 
 - Mapper XML 由集成层通过 `classpath*:mapper/tinyengine/**/*.xml` 加载。
-- 初始化与迁移 SQL 的资源根目录为 `META-INF/tiny-engine/sql/`。
-- `META-INF/tiny-engine/sql/manifest.properties` 是 SQL 资源清单。每个数据库使用 `<database>.<三位序号>` 作为键，`TinyEngineSqlScriptManifest` 按键的字典序返回脚本。因此新增脚本必须使用保持执行顺序的三位递增序号，且清单值必须指向模块内的 `classpath:` 资源。
-- 模块只提供 SQL 清单读取能力，不执行建表、迁移或初始化数据；调用方负责选择数据库、执行时机、事务与幂等策略。
+- `TinyEngineSqlScriptManifest` 提供 SQL 清单读取能力，实际初始化与迁移资源由 `fw-plus-tiny-engine-spring-boot-starter` 在 `META-INF/tiny-engine/sql/` 下统一提供。
+- core 不执行建表、迁移或初始化数据；集成层负责选择数据库、执行时机、事务与幂等策略。
 
 ## 扩展点
 

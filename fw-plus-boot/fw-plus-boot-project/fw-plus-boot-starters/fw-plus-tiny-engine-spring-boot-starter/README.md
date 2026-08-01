@@ -7,6 +7,7 @@
 - 提供 `fw-plus-tiny-engine-core` 的应用、页面、物料、模型、用户等后端接口能力。
 - 提供 Spring MVC 与 Spring WebFlux 两套 Controller 自动配置入口。
 - 提供中立用户体系 SPI，由宿主应用或 Magic-API、Sa-Token、Spring Security、IAM 等外部工具实现登录态与权限。
+- 在 `META-INF/tiny-engine/sql/` 中统一提供 MySQL、H2 与 PostgreSQL 的初始化、迁移脚本及 `manifest.properties` 清单。
 - 在源码目录 `src/console` 中按 Magic-API 插件的模式携带 TinyEngine 前端工程源码。
 - 在 Maven `prepare-package` 阶段执行 `pnpm install` 与 `pnpm run build:prod`，并把 `designer-demo/dist` 复制到 jar 的 `META-INF/resources/tiny-engine/`，对应运行入口 `/tiny-engine/`。
 
