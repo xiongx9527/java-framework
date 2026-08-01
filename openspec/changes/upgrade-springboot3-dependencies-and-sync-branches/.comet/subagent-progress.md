@@ -234,15 +234,17 @@
 
 - Task: `Task 12: 同步最终 dev 代码并重新验证派生分支`
 - OpenSpec mapping: `6.1`、`6.2`、`6.3`
-- Stage: `evidence commit pending`
+- Stage: `standard review fix 1/1 ready to commit`
 - Implementer: `/root/task12_takeover`
 - Base refs: `dev=0727ae5d`、`origin/dev=5c0213a1`、`springboot2=origin/springboot2=dc65ae77`、`springboot3=origin/springboot3=bca53b69`
 - Remote audit: dev ahead/behind `22/25`；本地/远端独有路径无业务交集，patch-id 无等价，merge-tree 无冲突；远端新增 Exec Maven Plugin/父 POM 管理修正
 - Review mode: `standard`
-- Review/fix round: `0/1`
-- Open findings: `pending`
+- Review/fix round: `1/1 implementing`
+- Open findings: `checkbox auditability Important addressed locally; publish and derived resync pending`
 - Replay/publish: `dev=aeb23243`，原远端 `5c0213a1`；普通 push 与显式 post-fetch 后 local/tracking/remote 一致、`0 0`
 - First derived sync: `springboot2=2e5b0075`（原 tip `dc65ae77`），`springboot3=9958c79f`（原 tip `bca53b69`）；两者普通 push 后均显式 fetch、三 SHA 一致、`0 0`，dev 与原 tip 祖先断言均通过
 - Targeted GREEN: Java 8 AskData 1/1、validate、AskData 19/19、Neutral 2/2；Java 17 AskData 1/1、validate、AskData 19/19、Neutral 3/3、baseline 1/1、LangChain4j 13/13
-- Next: 提交最终 dev evidence commit，再二次 `--no-ff` 同步到 springboot2/springboot3，运行受影响定向验证并完成 post-fetch 终态复核
+- Second derived sync before review: `dev=9837ccbe`、`springboot2=405c1ddb`、`springboot3=02d6addd`，均已普通 push、显式 post-fetch、三 SHA 一致和 `0 0`
+- Review RED/GREEN: guard RED 同时列出历史已完成 checkbox；fix 后 OpenSpec strict、diff-check 与逐项 task-checkoff 通过，guard 剩余失败仅对应 Task 13 的 6.1-6.4、Plan 四步及 build check
+- Next: 提交并推送 checkbox fix，再将最终 dev `--no-ff` 同步到 springboot2/springboot3，执行最终 classpath 定向验证与 post-fetch 核验
 - Deferred Minor: Maven settings 未识别 `repository`、既有 SLF4J/Commons Logging 与 exec plugin 警告，留给最终 review 分诊
