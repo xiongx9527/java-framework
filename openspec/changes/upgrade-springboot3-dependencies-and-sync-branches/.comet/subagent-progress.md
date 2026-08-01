@@ -1,5 +1,30 @@
 # Subagent Progress
 
+## Verify failure 1 remediation
+
+- Stage: `reviewed; ready for final verify and push`
+- Finding: LangChain4j 1.18 真实 `ChatModel` / `StreamingChatModel` 不会实现项目新增的旧接口子类型，AskData 与 TinyEngine 的 `instanceof` 检查会忽略或拒绝真实模型；兼容接口还静默忽略 tool 参数。
+- Severity: `IMPORTANT`（核心运行时正确性与公开兼容契约）
+- Verify failures: `1`
+- Worktree: `.worktrees/springboot3-upgrade`
+- Base commit: `1910142719c9e09962a0d4230bced963cdca0e2b`
+- TDD mode: `tdd`
+- Review mode: `standard`
+- Risk review triggered: `yes`（跨模块协调、公开 API/兼容契约）
+- Brief: `.superpowers/sdd/2026-07-30-springboot3-dependencies-and-branch-sync/verify-failure-1.md`
+- Implementer: `/root/fix_langchain4j_runtime_adapter`
+- Implementation commits: `7359a5fe`、`5a10fac3`、`c0907bee`、`d790fb31`
+- RED/GREEN: 原生 1.18 `ChatModel`、旧接口默认契约、generate-only legacy 与覆写 `chat(ChatRequest)` legacy 均先 RED；最终 adapter `3/3`、autoconfigure `40/40`、TinyEngine provider/plugin `10/10` 通过
+- Review/fix round: `1/1 completed; scoped re-review passed`
+- Reviewer: `/root/review_langchain4j_runtime_fix`
+- Review result: 原 2 个 Important 与 1 个 Minor 均已关闭；最终无 Critical/Important，Ready to merge
+- Open findings: `none`（LangChain4j remediation）
+- Starter boundary diagnosis: standalone 失败来自 `~/.m2` 陈旧 autoconfigure SNAPSHOT；AI reactor `-am` 使用当前 classes 后 `AskDataStarterContextTest 1/1` 通过，禁止通过加回 Adapter Starter 依赖规避
+- Full-reactor boundary fix: 首次 AI 全 reactor 在 autoconfigure `338/338` 通过后，被 Adapter Starter Enforcer 拒绝 `adapter -> compatibility core -> dev.langchain4j:langchain4j`；`d790fb31` 仅在 adapter 的 compatibility core 依赖上排除 aggregate，保留 direct `langchain4j-core`
+- Final fresh verification: Core adapter reactor `12/12`、adapter contract `3/3`；AI affected reactor `15/15`、LangChain4j autoconfigure `40/40`、AskData Starter `2/2`、TinyEngine provider/plugin `10/10`，Adapter Starter Enforcer passed
+- Dependency-boundary reviewer: `/root/review_langchain4j_runtime_fix`，无 Critical/Important，Ready to merge
+- Archive blocker: d3303707 的 25 个 public TinyEngine Service 接口/实现从已删除的旧 MyBatis-Plus `extension.service` API 迁至 `spring.service`，构成既有公开 ABI 漂移；本次 ahead 3 未扩大该漂移，可普通推送，但在兼容桥或用户批准修订规格前不得 Archive
+
 - Change: `upgrade-springboot3-dependencies-and-sync-branches`
 - Plan: `docs/superpowers/plans/2026-07-30-springboot3-dependencies-and-branch-sync.md`
 - Review mode: `standard`
