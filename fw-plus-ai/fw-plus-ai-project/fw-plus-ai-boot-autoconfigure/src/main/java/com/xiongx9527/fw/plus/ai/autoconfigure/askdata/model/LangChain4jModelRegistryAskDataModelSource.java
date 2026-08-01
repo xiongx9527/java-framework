@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model;
 
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jChatModelAdapter;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
@@ -22,8 +23,10 @@ public class LangChain4jModelRegistryAskDataModelSource implements LangChain4jAs
 				continue;
 			}
 			LangChain4jModel nativeModel = ((LangChain4jAiModel) model).getNativeModel();
-			if (nativeModel != null && nativeModel.getModel() instanceof ChatLanguageModel) {
-				chatModels.put(key, (ChatLanguageModel) nativeModel.getModel());
+			ChatLanguageModel chatModel = nativeModel == null ? null
+					: LangChain4jChatModelAdapter.asChatLanguageModel(nativeModel.getModel());
+			if (chatModel != null) {
+				chatModels.put(key, chatModel);
 			}
 			if (nativeModel != null && nativeModel.getModel() instanceof EmbeddingModel) {
 				embeddingModels.put(key, (EmbeddingModel) nativeModel.getModel());

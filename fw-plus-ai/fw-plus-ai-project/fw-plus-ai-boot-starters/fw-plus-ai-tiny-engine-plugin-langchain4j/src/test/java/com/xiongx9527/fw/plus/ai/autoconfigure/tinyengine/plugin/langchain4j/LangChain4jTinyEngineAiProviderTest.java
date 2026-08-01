@@ -18,7 +18,9 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.StreamingResponseHandler;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -36,6 +38,31 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class LangChain4jTinyEngineAiProviderTest {
+
+	@Test
+	public void shouldInvokePlainChatModelWithoutLegacyCompatibilityInterface() {
+		PlainChatModel chatModel = new PlainChatModel();
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("chat-default", AiModelType.CHAT,
+				LangChain4jModelType.CHAT, chatModel));
+
+		TinyEngineChatResponse response = provider.chat(request("chat-default", false));
+
+		assertEquals("plain chat answer", response.getContent());
+		assertEquals("hello", text(chatModel.messages.get(1)));
+	}
+
+	@Test
+	public void shouldInvokePlainStreamingChatModelWithoutLegacyCompatibilityInterface() {
+		PlainStreamingChatModel streamingModel = new PlainStreamingChatModel();
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("stream-default", AiModelType.STREAMING_CHAT,
+				LangChain4jModelType.STREAMING_CHAT, streamingModel));
+
+		List<TinyEngineChatStreamChunk> chunks = provider.stream(request("stream-default", true));
+
+		assertEquals("hello", text(streamingModel.messages.get(1)));
+		assertEquals("plain stream answer", chunks.get(1).getContent());
+		assertEquals(true, chunks.get(1).isCompleted());
+	}
 
 	@Test
 	public void shouldInvokeNativeChatModelWithMappedMessagesAndParameters() {
@@ -163,6 +190,27 @@ public class LangChain4jTinyEngineAiProviderTest {
 			handler.onNext("he");
 			handler.onNext("llo");
 			handler.onComplete(Response.from(AiMessage.from("stream answer")));
+		}
+	}
+
+	private static final class PlainChatModel implements ChatModel {
+		private List<ChatMessage> messages = Collections.emptyList();
+
+		@Override
+		public ChatResponse chat(ChatRequest request) {
+			this.messages = request.messages();
+			return ChatResponse.builder().aiMessage(AiMessage.from("plain chat answer")).build();
+		}
+	}
+
+	private static final class PlainStreamingChatModel implements StreamingChatModel {
+		private List<ChatMessage> messages = Collections.emptyList();
+
+		@Override
+		public void chat(ChatRequest request, dev.langchain4j.model.chat.response.StreamingChatResponseHandler handler) {
+			this.messages = request.messages();
+			handler.onPartialResponse("plain ");
+			handler.onCompleteResponse(ChatResponse.builder().aiMessage(AiMessage.from("plain stream answer")).build());
 		}
 	}
 }

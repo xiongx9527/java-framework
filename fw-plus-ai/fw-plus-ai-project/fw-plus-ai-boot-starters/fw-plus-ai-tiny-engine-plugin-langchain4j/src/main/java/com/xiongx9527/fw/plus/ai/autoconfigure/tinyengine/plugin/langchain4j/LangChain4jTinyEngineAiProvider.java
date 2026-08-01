@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatStr
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiCapability;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProvider;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jChatModelAdapter;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
@@ -55,11 +56,11 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 	@Override
 	public TinyEngineChatResponse chat(TinyEngineChatRequest request) {
 		LangChain4jModel nativeModel = resolveNativeModel(request, AiModelType.CHAT);
-		Object model = nativeModel.getModel();
-		if (!(model instanceof ChatLanguageModel)) {
+		ChatLanguageModel model = LangChain4jChatModelAdapter.asChatLanguageModel(nativeModel.getModel());
+		if (model == null) {
 			throw new IllegalStateException("TinyEngine AI provider 'langchain4j' native CHAT model is not ChatLanguageModel");
 		}
-		ChatResponse response = ((ChatLanguageModel) model).chat(chatRequest(request));
+		ChatResponse response = model.chat(chatRequest(request));
 		AiMessage message = response == null ? null : response.aiMessage();
 		Map<String, Object> metadata = requestMetadata(request);
 		if (response != null && response.finishReason() != null) {
@@ -71,14 +72,15 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 	@Override
 	public List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request) {
 		LangChain4jModel nativeModel = resolveNativeModel(request, AiModelType.STREAMING_CHAT);
-		Object model = nativeModel.getModel();
-		if (!(model instanceof StreamingChatLanguageModel)) {
+		StreamingChatLanguageModel model = LangChain4jChatModelAdapter
+				.asStreamingChatLanguageModel(nativeModel.getModel());
+		if (model == null) {
 			throw new IllegalStateException("TinyEngine AI provider 'langchain4j' native STREAMING_CHAT model is not StreamingChatLanguageModel");
 		}
 		final List<TinyEngineChatStreamChunk> chunks = new ArrayList<TinyEngineChatStreamChunk>();
 		final RuntimeException[] error = new RuntimeException[1];
 		final CountDownLatch completed = new CountDownLatch(1);
-		((StreamingChatLanguageModel) model).generate(messages(request), new StreamingResponseHandler<AiMessage>() {
+		model.generate(messages(request), new StreamingResponseHandler<AiMessage>() {
 			@Override
 			public void onNext(String token) {
 				chunks.add(new TinyEngineChatStreamChunk(token, false));

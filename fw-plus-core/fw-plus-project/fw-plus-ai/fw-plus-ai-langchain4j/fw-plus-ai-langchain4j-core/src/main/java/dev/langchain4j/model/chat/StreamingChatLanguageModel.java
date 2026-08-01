@@ -31,12 +31,12 @@ public interface StreamingChatLanguageModel extends StreamingChatModel {
 
     default void generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications,
                           StreamingResponseHandler<AiMessage> handler) {
-        generate(messages, handler);
+        throw new IllegalArgumentException("Tools are currently not supported by this model");
     }
 
     default void generate(List<ChatMessage> messages, ToolSpecification toolSpecification,
                           StreamingResponseHandler<AiMessage> handler) {
-        generate(messages, Collections.singletonList(toolSpecification), handler);
+        throw new IllegalArgumentException("Tools are currently not supported by this model");
     }
 
     @Override

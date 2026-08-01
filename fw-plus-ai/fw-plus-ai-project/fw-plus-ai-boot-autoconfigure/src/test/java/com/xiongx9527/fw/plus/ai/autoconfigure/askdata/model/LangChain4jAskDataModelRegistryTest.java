@@ -15,7 +15,11 @@ import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import com.xiongx9527.fw.plus.ai.model.DefaultAiModelRegistry;
 import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import org.junit.jupiter.api.Test;
@@ -33,6 +37,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class LangChain4jAskDataModelRegistryTest {
+
+	@Test
+	public void shouldExposePlainChatModelFromRegistryToAskData() {
+		AskDataProperties properties = new AskDataProperties();
+		properties.getModel().setDefaultChatModel("plain-chat");
+		AiModelRegistry modelRegistry = new DefaultAiModelRegistry(Collections.<String, AiModel>singletonMap("plain-chat",
+				aiModel("plain-chat", LangChain4jModelType.CHAT, new PlainChatModel())), null);
+
+		AskDataModelRegistry registry = registry(properties, modelRegistry);
+
+		assertEquals("plain-chat-response", registry.getChatModel(null).generate("question").getText());
+	}
 
 	@Test
 	public void shouldUseOllamaDefaultLogicalKeysForChatAndEmbeddingModels() {
@@ -411,5 +427,12 @@ public class LangChain4jAskDataModelRegistryTest {
 	private AskDataModelRequest request(String requestModelKey, String defaultKey) {
 		return new AskDataModelRequest(new AskDataProjectContext("project-9527", "operator-9527"), requestModelKey,
 				null, null, null, defaultKey);
+	}
+
+	private static final class PlainChatModel implements ChatModel {
+		@Override
+		public ChatResponse chat(ChatRequest request) {
+			return ChatResponse.builder().aiMessage(AiMessage.from("plain-chat-response")).build();
+		}
 	}
 }

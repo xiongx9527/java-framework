@@ -29,21 +29,16 @@ public interface ChatLanguageModel extends ChatModel {
     Response<AiMessage> generate(List<ChatMessage> messages);
 
     default Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
-        return generate(messages);
+        throw new IllegalArgumentException("Tools are currently not supported by this model");
     }
 
     default Response<AiMessage> generate(List<ChatMessage> messages, ToolSpecification toolSpecification) {
-        return generate(messages, Collections.singletonList(toolSpecification));
+        throw new IllegalArgumentException("Tools are currently not supported by this model");
     }
 
     @Override
     default ChatResponse chat(ChatRequest chatRequest) {
-        Response<AiMessage> response = generate(chatRequest.messages(), chatRequest.toolSpecifications());
-        return ChatResponse.builder()
-                .aiMessage(response.content())
-                .tokenUsage(response.tokenUsage())
-                .finishReason(response.finishReason())
-                .build();
+        throw new UnsupportedOperationException();
     }
 
     @Override
