@@ -113,3 +113,11 @@
 - 发布前 `.worktrees/springboot3-upgrade` 工作树为空，`git diff --check` 无输出；显式 refspec 刷新后，`origin/springboot3` 的 `d3f1ad3110c525bbd76db41ac80454b778b8c5fb` 是本地 `bca53b69` 的祖先。
 - 使用普通非强制 `git push origin springboot3` 成功推进远端。独立 `git ls-remote --heads origin refs/heads/springboot3`、本地 HEAD 和 `origin/springboot3` 均为 `bca53b69bba9ddc8f33ec848795fe1cc6c58e989`；`git rev-list --left-right --count springboot3...origin/springboot3` 为 `0 0`。
 - 直连 `curl https://github.com` 在 10 秒内超时，但 Git HTTPS 读取 macOS Keychain 凭据后完成推送；该环境网络信号保留为非代码风险。
+
+## Task 12：最终 dev 首轮发布与派生分支代码同步
+
+- `dev` 已将 23 个非 merge 提交重放到原远端 `5c0213a1` 之上；恢复分支 `codex/recovery-dev-pre-task12-9aa508b8` 保留旧 tip。首轮发布候选和远端均为 `aeb232434fa7748abc1fe2be3352a9b52eedd3b8`，显式 refspec fetch 后 local/tracking/`ls-remote` 三者一致，ahead/behind 为 `0 0`，原远端 `5c0213a1` 是最终候选祖先。
+- 默认 DNS 不可用时，仅对单条 Git 命令使用 `-c http.curloptResolve=github.com:443:<edge-ip>`；`140.82.112.3` 和 `4.237.22.38` 均经 `ls-remote` 实证可达。未持久化 Git 配置，未使用 GitHub API 更新 ref，未使用 `--force`。
+- `springboot2` 同步前远端 tip 为 `dc65ae7725773ac4a5575dc1ae1fc3fe8a4799d5`。merge commit `2e5b0075b29e6a28c6a989ae3d550e309d3c08f6` 的两个父提交精确为该远端 tip 和最终 `dev=aeb23243`。普通 push 后显式 refspec fetch；local/tracking/`ls-remote` 均为 `2e5b0075`，ahead/behind 为 `0 0`，`dev` 和原远端 tip 均是其祖先。
+- `springboot3` 同步前远端 tip 为 `bca53b69bba9ddc8f33ec848795fe1cc6c58e989`。先幂等合并最新 `origin/springboot3`，再以 `--no-ff` 合并最终 dev；5 个冲突只涉及 AskData 依赖边界测试和活动契约，解决后保留中立 AskData 边界及 Core BOM 方案 A。merge commit 为 `9958c79fd446f70763935f66967dd8c86d11fd42`。普通 push 后显式 refspec fetch；local/tracking/`ls-remote` 均为 `9958c79f`，ahead/behind 为 `0 0`，`dev` 和原远端 tip 均是其祖先。
+- 本节是最终 dev evidence commit 之前的可审计同步证据。包含本节的 evidence commit 会再次推进 dev；其后二次同步的最终远端 SHA、`0 0` 与祖先结果记录在 gitignored `task-12-report.md`，并由 Task 13 只读终态核验收口，避免无限证据提交循环。

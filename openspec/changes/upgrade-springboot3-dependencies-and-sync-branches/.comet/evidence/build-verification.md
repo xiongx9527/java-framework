@@ -89,3 +89,26 @@ mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
 - 审查修复提交：`bca53b69bba9ddc8f33ec848795fe1cc6c58e989`（`test(ai): 收紧中立边界契约`）。独立 scoped re-review 已确认两个 Important 均解决，AI `17/17` 为 GREEN。
 - 发布前在 `.worktrees/springboot3-upgrade` 完成工作树空状态和 `git diff --check` 核验；以显式 refspec 刷新 `refs/remotes/origin/springboot3` 后，`d3f1ad31` 是 `bca53b69` 的祖先。
 - 普通非强制 push 成功。独立 `git ls-remote`、本地 HEAD 与 tracking `origin/springboot3` 均为 `bca53b69bba9ddc8f33ec848795fe1cc6c58e989`，`git rev-list --left-right --count springboot3...origin/springboot3` 为 `0 0`。
+
+## Task 12：派生分支同步后的定向复验
+
+### springboot2 / Java 8
+
+- `java -version`：Zulu OpenJDK `1.8.0_432`（Zulu 8.82.0.21-CA）。两个 worktree 的 Maven 命令严格串行执行。
+- AskData Starter 依赖测试：`AskDataStarterDependencyTest` 1/1，通过。
+- AskData Starter `validate -DskipTests`：`BUILD SUCCESS`。
+- 受影响自动配置：`AskDataAutoConfigurationTest` 19/19、`NeutralAiAutoConfigurationBoundaryTest` 2/2，共 21/21，通过。
+
+### springboot3 / Java 17
+
+- `java -version`：Zulu OpenJDK `17.0.13`（Zulu17.54+21-CA）。所有 Maven 命令在 springboot2 完成后严格串行执行。
+- AskData Starter 依赖测试：`AskDataStarterDependencyTest` 1/1，通过。
+- AskData Starter `validate -DskipTests`：`BUILD SUCCESS`。
+- 受影响自动配置：`AskDataAutoConfigurationTest` 19/19、`NeutralAiAutoConfigurationBoundaryTest` 3/3、`SpringBoot3DependencyBaselineTest` 1/1，共 23/23，通过；结果由最新 Surefire XML 的 `tests/failures/errors/skipped` 属性复核。
+- 实际 `fw-plus-ai-boot-autoconfigure/pom.xml` 下的 API 适配测试：`LangChain4jAutoConfigurationRegistrationTest` 7/7、`LangChain4jAdapterAutoConfigurationTest` 6/6，共 13/13，`BUILD SUCCESS`。
+
+### 非阻断风险
+
+- 系统级和用户级 Maven `settings.xml` 第 213 行仍有无法识别的 `repository` 标签警告。
+- 两个分支均提示部分 `exec-maven-plugin` 消费模块缺少可见版本；这些文件来自已发布 dev 历史，本轮未扩大范围修改。
+- 测试 classpath 仍报告多个 SLF4J provider；Spring Boot 3 LangChain4j 测试另有 Commons Logging 与 `spring-jcl` 并存提示。所有上述测试汇总仍为零失败、零错误、零跳过。
