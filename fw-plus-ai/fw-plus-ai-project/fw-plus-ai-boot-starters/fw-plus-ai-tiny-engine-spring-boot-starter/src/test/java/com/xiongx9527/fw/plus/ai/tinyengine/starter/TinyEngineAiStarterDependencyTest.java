@@ -73,13 +73,16 @@ public class TinyEngineAiStarterDependencyTest {
 	}
 
 	@Test
-	public void shouldKeepTinyEngineCoreOwnedByAiFreeBootStarter() throws Exception {
+	public void shouldKeepTinyEngineCoreOwnedByAiFreeAndWebStackNeutralBootStarter() throws Exception {
 		Element bootStarter = pom(BOOT_STARTER_POM);
 
 		assertDirectCompileNonOptional(bootStarter, "com.xiongx9527.fw.plus.boot:fw-plus-boot-starter");
 		assertDirectCompileNonOptional(bootStarter, "com.xiongx9527.fw.plus:fw-plus-tiny-engine-core");
 		assertDirectCompileNonOptional(bootStarter, "com.baomidou:mybatis-plus-boot-starter");
-		assertDirectCompileNonOptional(bootStarter, "org.springframework.boot:spring-boot-starter-web");
+		assertFalse("TinyEngine Boot starter must not force the Servlet Web stack on applications",
+				containsDirectDependency(bootStarter, "org.springframework.boot:spring-boot-starter-web"));
+		assertFalse("TinyEngine Boot starter must not force the Reactive Web stack on applications",
+				containsDirectDependency(bootStarter, "org.springframework.boot:spring-boot-starter-webflux"));
 		for (Element dependency : directDependencies(bootStarter)) {
 			assertFalse("TinyEngine Boot starter must not depend on the AI layer",
 					"com.xiongx9527.fw.plus.ai".equals(directChildText(dependency, "groupId")));
