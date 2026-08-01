@@ -40,6 +40,18 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class LangChain4jTinyEngineAiProviderTest {
 
 	@Test
+	public void shouldInvokeLegacyGenerateOnlyChatLanguageModel() {
+		GenerateOnlyChatLanguageModel chatModel = new GenerateOnlyChatLanguageModel();
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("chat-default", AiModelType.CHAT,
+				LangChain4jModelType.CHAT, chatModel));
+
+		TinyEngineChatResponse response = provider.chat(request("chat-default", false));
+
+		assertEquals("legacy generate answer", response.getContent());
+		assertEquals("hello", text(chatModel.messages.get(1)));
+	}
+
+	@Test
 	public void shouldInvokePlainChatModelWithoutLegacyCompatibilityInterface() {
 		PlainChatModel chatModel = new PlainChatModel();
 		LangChain4jTinyEngineAiProvider provider = provider(aiModel("chat-default", AiModelType.CHAT,
@@ -169,13 +181,9 @@ public class LangChain4jTinyEngineAiProviderTest {
 		@Override public Set<String> keys() { return model == null ? Collections.<String>emptySet() : Collections.singleton(model.getKey()); }
 	}
 
-	private static final class RecordingChatModel implements ChatLanguageModel {
+	private static final class RecordingChatModel implements ChatModel {
 		private List<ChatMessage> messages = Collections.emptyList();
 		private ChatRequest request;
-		@Override public Response<AiMessage> generate(List<ChatMessage> messages) {
-			this.messages = messages;
-			return Response.from(AiMessage.from("chat answer"));
-		}
 		@Override public ChatResponse chat(ChatRequest request) {
 			this.request = request;
 			this.messages = request.messages();
@@ -190,6 +198,16 @@ public class LangChain4jTinyEngineAiProviderTest {
 			handler.onNext("he");
 			handler.onNext("llo");
 			handler.onComplete(Response.from(AiMessage.from("stream answer")));
+		}
+	}
+
+	private static final class GenerateOnlyChatLanguageModel implements ChatLanguageModel {
+		private List<ChatMessage> messages = Collections.emptyList();
+
+		@Override
+		public Response<AiMessage> generate(List<ChatMessage> messages) {
+			this.messages = messages;
+			return Response.from(AiMessage.from("legacy generate answer"));
 		}
 	}
 
