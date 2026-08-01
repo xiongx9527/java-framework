@@ -229,4 +229,16 @@
 - Final dev evidence commit: `7020766d`
 - Evidence corrections: Boot tests `444`；npm audit `14`（4 moderate、9 high、1 critical）；Task 11 报告终态已校正
 - Deferred Minors resolved: Task 11 报告终态与构建证据风险等级均已在发布证据更新中更正
+
+## 最终 dev 重放与派生分支同步
+
+- Task: `Task 12: 同步最终 dev 代码并重新验证派生分支`
+- OpenSpec mapping: `6.1`、`6.2`、`6.3`
+- Stage: `implementing`
+- Implementer: `pending nested dispatch`
+- Base refs: `dev=0727ae5d`、`origin/dev=5c0213a1`、`springboot2=origin/springboot2=dc65ae77`、`springboot3=origin/springboot3=bca53b69`
+- Remote audit: dev ahead/behind `22/25`；本地/远端独有路径无业务交集，patch-id 无等价，merge-tree 无冲突；远端新增 Exec Maven Plugin/父 POM 管理修正
+- Review mode: `standard`
+- Review/fix round: `0/1`
+- Open findings: `pending`
 - Deferred Minor: task-11-report 顶部仍标 BLOCKED；build-verification 将 npm audit 的 1 critical 低记为 moderate/high，留给最终 review 分诊
