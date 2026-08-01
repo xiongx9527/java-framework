@@ -1,12 +1,16 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["vite/client"]
+  },
   "include": [
     "./index.ts",
     "./js/**/*.ts",
     "./i18n/*.ts",
+    "./i18n/*.json",
     "./component/**/*.vue",
     "./component/**/*.ts",
     "./component/**/*.tsx",
-    "./composables/**/*.ts"
+    "./composable/**/*.ts"
   ]
 }

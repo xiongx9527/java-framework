@@ -1,9 +1,12 @@
-import { build } from 'vite'
+import { execFile } from 'node:child_process'
+import path from 'node:path'
+import { promisify } from 'node:util'
 
 const buildRE = /(?:\?|&)build=(?<name>.*?)(?:&|$)/
 const queryRE = /[?#].*$/
 
 const bundleCache = new WeakMap()
+const execFileAsync = promisify(execFile)
 
 function cleanUrl(url: string) {
   return url.replace(queryRE, '')
@@ -15,15 +18,16 @@ function saveEmitBundleAssets(config, asset) {
 
 async function bundleBuildEntry(config, options) {
   const viteConfigFile = options.customBuildConfig[options.buildConfig]
-  const {
-    output: [outputChunk, ...outputChunks]
-  } = await build({
-    configFile: viteConfigFile,
-    build: {
-      rollupOptions: {
-        input: options.entries
-      }
+  const workerFile = path.resolve(path.dirname(viteConfigFile), 'vite-build-entry-worker.mjs')
+  const { stdout } = await execFileAsync(process.execPath, [workerFile, viteConfigFile, JSON.stringify(options.entries)], {
+    cwd: config.root,
+    maxBuffer: 64 * 1024 * 1024
+  })
+  const [outputChunk, ...outputChunks] = JSON.parse(stdout).map((output) => {
+    if (output.type === 'asset' && output.encoding === 'base64') {
+      return { ...output, source: Buffer.from(output.source, 'base64') }
     }
+    return output
   })
 
   // handle sourceMap

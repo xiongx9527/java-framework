@@ -2,6 +2,7 @@
 change: upgrade-springboot3-dependencies-and-sync-branches
 design-doc: docs/superpowers/specs/2026-07-30-springboot3-dependencies-and-branch-sync-design.md
 base-ref: 63ffe1c7815ac7f27b24f1c4d84d315425accc9c
+archived-with: 2026-08-01-upgrade-springboot3-dependencies-and-sync-branches
 ---
 
 # Spring Boot 3 Dependency Upgrade And Branch Sync Implementation Plan

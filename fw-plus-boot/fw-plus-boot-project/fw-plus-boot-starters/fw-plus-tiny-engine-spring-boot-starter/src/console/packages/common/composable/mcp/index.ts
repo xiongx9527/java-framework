@@ -1,4 +1,5 @@
 import { useMessage, defineService, META_SERVICE, getAllMergeMeta } from '@opentiny/tiny-engine-meta-register'
+import type { Service } from '@opentiny/tiny-engine-meta-register'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { createTransportPair, createStreamProxy } from '@opentiny/next'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
@@ -222,7 +223,7 @@ const collectTools = (state: IState) => {
 }
 
 // 移除未使用的 @ts-expect-error 注释
-export default defineService<IState, IOptions>({
+const mcpService: Service<IState, IOptions> = defineService<IState, IOptions>({
   id: META_SERVICE.McpService,
   type: 'MetaService',
   options: {
@@ -261,3 +262,5 @@ export default defineService<IState, IOptions>({
     updateTool: (name: string, config?: UpdateToolConfig) => updateTool(state, name, config)
   })
 })
+
+export default mcpService

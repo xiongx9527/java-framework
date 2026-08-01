@@ -30,11 +30,28 @@
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-boot-starter</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
-            <!-- 前端 console 构建，按 magicapi-plugin 的 prepare-package 模式执行；TinyEngine 上游强制使用 pnpm -->
+            <!-- 前端 console 构建，TinyEngine 上游强制使用 pnpm -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -66,7 +83,7 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- 复制前端构建产物到 Spring Boot 静态资源目录，对应 Magic 插件默认入口 /tiny-engine/ -->
+            <!-- 复制前端构建产物到 classpath:/tiny-engine/，由后端映射到 /tiny-engine/** -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
@@ -76,7 +93,7 @@
                         <phase>prepare-package</phase>
                         <goals><goal>copy-resources</goal></goals>
                         <configuration>
-                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/tiny-engine</outputDirectory>
+                            <outputDirectory>${project.build.outputDirectory}/tiny-engine</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>src/console/designer-demo/dist</directory>

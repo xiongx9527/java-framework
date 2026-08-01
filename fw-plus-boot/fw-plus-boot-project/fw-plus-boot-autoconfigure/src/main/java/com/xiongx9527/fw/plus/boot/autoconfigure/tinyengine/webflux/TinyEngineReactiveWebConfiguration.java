@@ -15,6 +15,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.config.ResourceHandlerRegistry;
+import org.springframework.web.reactive.config.WebFluxConfigurer;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -25,7 +27,12 @@ import reactor.core.scheduler.Schedulers;
 		"reactor.core.scheduler.Scheduler"
 })
 @ConditionalOnProperty(prefix = "fw.plus.tiny-engine.web", name = "enabled", havingValue = "true", matchIfMissing = true)
-public class TinyEngineReactiveWebConfiguration {
+public class TinyEngineReactiveWebConfiguration implements WebFluxConfigurer {
+
+	@Override
+	public void addResourceHandlers(ResourceHandlerRegistry registry) {
+		registry.addResourceHandler("/tiny-engine/**").addResourceLocations("classpath:/tiny-engine/");
+	}
 
 	@Bean
 	@ConditionalOnMissingBean
