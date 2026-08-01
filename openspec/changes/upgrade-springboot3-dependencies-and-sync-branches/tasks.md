@@ -32,10 +32,10 @@
 
 ## 5. 验证并推送 springboot3
 
-- [ ] 5.1 在 Java 17 下按 Core → Boot → Cloud / AI → Sample 顺序完成 `springboot3` Maven 测试与构建
-- [ ] 5.2 验证 LangChain4j、Spring AI、Spring AI Alibaba 的有效 POM、依赖树、依赖收敛和关键自动配置上下文
-- [ ] 5.3 检查固定版本断言、无冗余 LangChain4j 版本、无意外 TinyEngine 变更以及 `git diff --check`
-- [ ] 5.4 提交 `springboot3` 依赖升级，非强制推送并确认远端 SHA 等于本地 HEAD
+- [x] 5.1 在 Java 17 下按 Core → Boot → Cloud / AI → Sample 顺序完成 `springboot3` Maven 测试与构建
+- [x] 5.2 验证 LangChain4j、Spring AI、Spring AI Alibaba 的有效 POM、依赖树、依赖收敛和关键自动配置上下文
+- [x] 5.3 检查固定版本断言、无冗余 LangChain4j 版本、无意外 TinyEngine 变更以及 `git diff --check`
+- [x] 5.4 提交 `springboot3` 依赖升级，非强制推送并确认远端 SHA 等于本地 HEAD
 
 ## 6. 最终一致性核验
 
