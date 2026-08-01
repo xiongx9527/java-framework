@@ -1,0 +1,138 @@
+<template>
+  <teleport :to="targetClass">
+    <div class="modal-wrapper">
+      <div :class="[isAlignBody ? '' : 'modal-mask']" @click="$emit('close')"></div>
+
+      <div
+        ref="modalContent"
+        :style="{ top: `${topStyle}px` }"
+        :class="['modal-content', { 'align-body': isAlignBody }, { 'modal-padding': isAlignBody }]"
+      >
+        <slot></slot>
+      </div>
+    </div>
+  </teleport>
+</template>
+
+<script>
+/* metaService: engine.setting.styles.ModalMask */
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useLayout } from '@opentiny/tiny-engine-meta-register'
+
+const modal = reactive({
+  left: 0,
+  top: 0
+})
+export const useModal = () => {
+  const setPosition = (event) => {
+    const panelWidth = window.getComputedStyle(document.body).getPropertyValue('--base-right-panel-width')
+    const innnerWidth = window.innerWidth
+    const modalHalfWidth = (parseInt(panelWidth) - 24) / 2
+    const x = event.x
+    const y = event.y
+    modal.top = y
+    if (x + modalHalfWidth > innnerWidth) {
+      modal.left = innnerWidth - (parseInt(panelWidth) - 24)
+    } else if (x - modalHalfWidth < innnerWidth - parseInt(panelWidth)) {
+      modal.left = innnerWidth - parseInt(panelWidth)
+    } else {
+      modal.left = x - modalHalfWidth
+    }
+  }
+
+  return { setPosition }
+}
+
+export default {
+  props: {
+    teleport: {
+      type: String,
+      default: '.right-panel-wrap'
+    }
+  },
+  setup(props) {
+    const isAlignBody = props.teleport === 'body'
+    const topStyle = ref(0)
+    const modalContent = ref(null)
+
+    const { PLUGIN_NAME, getPluginByLayout } = useLayout()
+
+    /**
+     * 根据所处位置判断目标挂载面板
+     */
+    const targetClass = computed(() => {
+      if (props.teleport) {
+        return props.teleport
+      }
+
+      const layout = getPluginByLayout(PLUGIN_NAME.Styles)
+      // 直接判断布局中是否包含 'left'，选择挂载面板
+      return layout.includes('left') ? '.left-panel-wrap' : '.right-panel-wrap'
+    })
+
+    const calculateTopStyle = (modalContent) => {
+      const innnerHeight = window.getComputedStyle(document.body).height
+      if (isAlignBody && modalContent) {
+        return modal.top < modalContent.offsetHeight
+          ? 40
+          : modal.top > parseInt(innnerHeight) - 400
+          ? modal.top - 364
+          : modal.top - modalContent.offsetHeight + 40
+      }
+      return modal.top - 34
+    }
+
+    onMounted(() => {
+      topStyle.value = calculateTopStyle(modalContent.value)
+    })
+
+    return {
+      targetClass,
+      modal,
+      modalContent,
+      topStyle,
+      isAlignBody
+    }
+  }
+}
+</script>
+
+<style lang="less" scoped>
+.modal-wrapper {
+  .modal-mask {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 999;
+  }
+
+  .modal-content {
+    position: absolute;
+    top: 0;
+    left: 16px;
+    z-index: 1000;
+    padding: 8px;
+    color: var(--te-styles-common-text-color-secondary);
+    border: 1px solid var(--te-styles-common-border-color);
+    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    background-color: var(--te-styles-common-bg-color);
+    overflow: auto;
+    max-height: 100%;
+    box-sizing: border-box;
+  }
+  .modal-padding {
+    padding: var(--te-styles-modal-padding-y) var(--te-styles-modal-padding-x);
+  }
+  .align-body {
+    right: calc(var(--te-styles-modal-right-offset-first) + var(--base-nav-panel-width));
+    left: calc(
+      100% - var(--te-styles-modal-right-offset-first) - var(--te-styles-modal-right-offset-second) -
+        var(--te-styles-modal-spacing) - var(--base-nav-panel-width)
+    );
+  }
+}
+</style>

@@ -1,0 +1,50 @@
+{
+  "name": "@opentiny/tiny-engine-configurator",
+  "version": "2.11.0",
+  "description": "",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "OpenTiny Team",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/opentiny/tiny-engine/issues"
+  },
+  "homepage": "https://opentiny.design/tiny-engine",
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.2",
+    "@vitejs/plugin-vue-jsx": "^4.0.1",
+    "vite": "^5.4.2"
+  },
+  "peerDependencies": {
+    "@opentiny/vue": "^3.20.0",
+    "@opentiny/vue-icon": "^3.20.0",
+    "@opentiny/vue-renderless": "^3.20.0",
+    "vue": "^3.4.15"
+  },
+  "dependencies": {
+    "@opentiny/tiny-engine-common": "workspace:*",
+    "@opentiny/tiny-engine-meta-register": "workspace:*",
+    "@opentiny/tiny-engine-plugin-i18n": "workspace:*",
+    "@opentiny/tiny-engine-utils": "workspace:*",
+    "@vue/shared": "^3.3.4",
+    "monaco-editor": "0.51.0",
+    "vue-draggable-next": "2.2.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/opentiny/tiny-engine",
+    "directory": "packages/configurator"
+  },
+  "files": [
+    "dist"
+  ]
+}

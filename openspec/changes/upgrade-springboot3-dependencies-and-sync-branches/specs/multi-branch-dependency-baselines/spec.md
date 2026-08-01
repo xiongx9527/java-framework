@@ -50,19 +50,19 @@
 - **THEN** 系统保留该依赖当前可兼容版本并记录原因
 - **AND** 不得为追求更高版本修改固定平台基线
 
-### Requirement: Spring Boot 3 按 LangChain4j BOM 管理稳定与集成模块
-`springboot3` SHALL 导入 `dev.langchain4j:langchain4j-bom:1.18.0`。稳定核心模块 SHALL 解析为 1.18.0；starter、向量库、文档解析器等 beta-only 集成模块 SHALL 由同一 BOM 解析为 1.18.0-beta28；`langchain4j-redis`、`langchain4j-qianfan`、`langchain4j-dashscope` SHALL 在 Core BOM 内固定为 0.36.2；被 BOM 覆盖的依赖 SHALL NOT 保留冗余的逐模块版本声明。
+### Requirement: Spring Boot 3 通过 Core BOM 管理 LangChain4j
+`springboot3` 的 Core BOM SHALL 声明 `langchain4j.version=1.18.0` 并导入 `dev.langchain4j:langchain4j-bom:1.18.0`。AI BOM SHALL NOT 直接声明 `langchain4j.version` 或导入 LangChain4j BOM，而 SHALL 通过导入 Core BOM 继承其 LangChain4j 管理。Core BOM SHALL 对 `langchain4j-redis`、`langchain4j-qianfan` 和 `langchain4j-dashscope` 显式覆盖版本 `0.36.2`；消费模块 SHALL NOT 为这三项依赖直接声明版本。
 
-#### Scenario: 解析 LangChain4j 核心与 starter
+#### Scenario: 解析 Core BOM 与 AI BOM 的 LangChain4j 管理
 - **WHEN** 生成 `springboot3` 的有效 POM 和依赖树
-- **THEN** `langchain4j-core` 解析为 1.18.0
-- **AND** `langchain4j-spring-boot-starter` 解析为 1.18.0-beta28
-- **AND** 两者均为 Java 17 可加载字节码
+- **THEN** Core BOM 导入 `dev.langchain4j:langchain4j-bom:1.18.0`
+- **AND** AI BOM 不直接声明 `langchain4j.version` 或导入 LangChain4j BOM，并通过导入 Core BOM 继承管理
+- **AND** `langchain4j-redis`、`langchain4j-qianfan` 与 `langchain4j-dashscope` 解析为 0.36.2
 
-#### Scenario: 集成模块由 BOM 管理
-- **WHEN** `springboot3` 声明 LangChain4j starter、向量库或解析器依赖
-- **THEN** 对应 dependency 不显式声明可由 BOM 管理的版本
-- **AND** Maven 解析结果与 LangChain4j BOM 1.18.0 的稳定/集成版本轨道以及三个 0.36.2 例外一致
+#### Scenario: 消费模块继承 Core BOM 的依赖管理
+- **WHEN** `springboot3` 消费 Redis、Qianfan 或 DashScope 依赖
+- **THEN** 消费模块不直接声明其版本
+- **AND** 有效 POM 与依赖树解析结果分别符合 Core BOM 的 1.18.0 管理和三项 0.36.2 显式覆盖
 
 #### Scenario: LangChain4j starter 建议更高 Spring Boot 版本
 - **WHEN** LangChain4j 集成模块的 POM 声明高于 3.5.8 的 Spring Boot 版本
@@ -106,6 +106,12 @@
 - **THEN** 系统删除无效配置或对应多余依赖
 - **AND** 不为未使用能力新增替代实现
 
+#### Scenario: AskData 应用选择具体模型适配器
+- **WHEN** 应用只引入 `fw-plus-ai-askdata-spring-boot-starter`
+- **THEN** 该 Starter SHALL NOT 直接依赖 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`
+- **AND** 需要 LangChain4j 的应用 SHALL 自行显式引入 Adapter Starter
+- **AND** AskData SHALL 继续通过中立模型与向量注册表消费能力
+
 ### Requirement: 分层构建与远端结果可复核
 每个目标分支 SHALL 在推送前完成与变更范围相称的 Maven 验证，推送后 SHALL 核对本地 HEAD、远端 SHA 和分支祖先关系。
 
@@ -118,6 +124,13 @@
 - **WHEN** `springboot3` 完成合并和依赖升级
 - **THEN** Core、Boot、Cloud、AI 和样例聚合验证在 Java 17 下通过
 - **AND** LangChain4j、Spring AI、Spring AI Alibaba 的依赖树和关键自动配置上下文验证通过
+
+#### Scenario: 最终 dev 同步包含 AskData 生产变更
+- **WHEN** 最终 dev 提交包含 AskData 生产代码、POM、测试和契约文档，并同步到派生分支
+- **THEN** 每个派生分支先同步自身最新远端，再以非强制 merge 引入已发布 dev
+- **AND** springboot2 在 Java 8 下、springboot3 在 Java 17 下重新运行 AskDataStarterDependencyTest、AskDataAutoConfigurationTest、starter validate 和 NeutralAiAutoConfigurationBoundaryTest
+- **AND** springboot3 另运行 SpringBoot3DependencyBaselineTest，确认 Core BOM 的 1.18.0 管理、三项 0.36.2 显式覆盖及既有 API 适配历史
+- **AND** 推送后远端 SHA 等于本地 HEAD、ahead/behind 为 `0 0`，且 dev 是两个派生分支的祖先
 
 #### Scenario: 推送完成
 - **WHEN** 任一目标分支推送命令返回成功

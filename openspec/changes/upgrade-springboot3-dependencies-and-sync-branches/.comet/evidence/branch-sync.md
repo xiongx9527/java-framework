@@ -96,3 +96,20 @@
 - `springboot3`：已合并 `dev`、完成 Boot 3 依赖适配并推送 `d3303707e046bf00e4a354e6eeb5f3e12b1ac3b8`（`chore(deps): 适配 LangChain4j 1.18.0`）。
 - `springboot3` 推送前核验 `git rev-list --left-right --count springboot3...origin/springboot3` 为 `369 0`，且 `origin/springboot3` 是本地分支祖先；普通 `git push origin springboot3` 成功，未使用 force。
 - 推送后核验：`git ls-remote --heads origin dev springboot2 springboot3` 分别返回上述三个 SHA；`springboot3` 本地 `HEAD` 与 `origin/springboot3` 均为 `d3303707e046bf00e4a354e6eeb5f3e12b1ac3b8`，ahead/behind 为 `0 0`。
+
+## Task 11：springboot3 最终非强制发布
+
+- 发布目标：本地 `springboot3` HEAD `d3f1ad3110c525bbd76db41ac80454b778b8c5fb`；提交链相对旧远端 `afa7a50f1f9062894c2aa14231c707a34d9722bd` 增加 5 个提交（`c26099f2`、`dfb6eb35`、`800ea7df`、`93bb0e02`、`d3f1ad31`），其中包含 Task 9/10/11 的依赖、Cloud、MyBatis-Spring 和 AI 契约修复。
+- 首次且成功的显式刷新命令：`git -C .worktrees/springboot3-upgrade fetch origin refs/heads/springboot3:refs/remotes/origin/springboot3`。刷新后 `refs/remotes/origin/springboot3` 为 `afa7a50f1f9062894c2aa14231c707a34d9722bd`。
+- 发布前安全断言：`git merge-base --is-ancestor refs/remotes/origin/springboot3 HEAD` 退出 0；`git rev-list --left-right --count HEAD...refs/remotes/origin/springboot3` 为 `5 0`。远端严格为本地祖先，故执行普通 `git -C .worktrees/springboot3-upgrade push origin springboot3`。
+- 普通 push 首次成功，将 `springboot3` 从 `afa7a50f..d3f1ad31` 快进；未执行 `--force`、rebase、merge、API ref 更新，也未推送 dev 或 springboot2。
+- 推送后独立核验：`git ls-remote --heads origin springboot3` 返回 `d3f1ad3110c525bbd76db41ac80454b778b8c5fb refs/heads/springboot3`；本地 HEAD 与 `refs/remotes/origin/springboot3` 均为该 SHA；`git rev-list --left-right --count HEAD...refs/remotes/origin/springboot3` 为 `0 0`；最终祖先断言退出 0。
+- 工作树核验：发布前后 `.worktrees/springboot3-upgrade` 均干净，`git diff --check` 无输出。主工作树既有 `.comet/subagent-progress.md` 协调检查点未读取、修改、暂存或提交；本次仅提交本文件与 `build-verification.md`。
+- 网络与重试：fetch、push 和 `ls-remote` 均首次成功，无网络异常和重试。
+
+## Task 11：审查修复后的最终发布校正
+
+- 审查修复提交：`bca53b69bba9ddc8f33ec848795fe1cc6c58e989`（`test(ai): 收紧中立边界契约`）。独立 scoped re-review 确认两个 Important 已解决，AI `17/17` 为 GREEN。
+- 发布前 `.worktrees/springboot3-upgrade` 工作树为空，`git diff --check` 无输出；显式 refspec 刷新后，`origin/springboot3` 的 `d3f1ad3110c525bbd76db41ac80454b778b8c5fb` 是本地 `bca53b69` 的祖先。
+- 使用普通非强制 `git push origin springboot3` 成功推进远端。独立 `git ls-remote --heads origin refs/heads/springboot3`、本地 HEAD 和 `origin/springboot3` 均为 `bca53b69bba9ddc8f33ec848795fe1cc6c58e989`；`git rev-list --left-right --count springboot3...origin/springboot3` 为 `0 0`。
+- 直连 `curl https://github.com` 在 10 秒内超时，但 Git HTTPS 读取 macOS Keychain 凭据后完成推送；该环境网络信号保留为非代码风险。
