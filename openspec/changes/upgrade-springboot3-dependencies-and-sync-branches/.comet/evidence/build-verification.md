@@ -112,3 +112,9 @@ mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
 - 系统级和用户级 Maven `settings.xml` 第 213 行仍有无法识别的 `repository` 标签警告。
 - 两个分支均提示部分 `exec-maven-plugin` 消费模块缺少可见版本；这些文件来自已发布 dev 历史，本轮未扩大范围修改。
 - 测试 classpath 仍报告多个 SLF4J provider；Spring Boot 3 LangChain4j 测试另有 Commons Logging 与 `spring-jcl` 并存提示。所有上述测试汇总仍为零失败、零错误、零跳过。
+
+## Task 13：构建证据复用边界
+
+- Task 12 已在当前生产树上串行完成 Java 8 / Java 17 定向验证：springboot2 的 AskData Starter 1/1、starter validate、AskData 19/19、Neutral 2/2；springboot3 的 AskData Starter 1/1、starter validate、AskData 19/19、Neutral 3/3、基线 1/1、LangChain4j API 适配 13/13，全部通过。
+- Task 13 重新执行三组生产树差异断言：`9837ccbe..a25ab807`、`405c1ddb..34de9413`、`02d6addd..5be07b08` 在所有 `src/main`、`src/test` 和 `pom.xml` 路径上均无差异；每组仅修改计划、OpenSpec tasks 和 subagent progress 文档。
+- 因当前生产源码、测试和 POM 与 Task 12 已验证树相同，本任务按计划不并行或重复运行 Maven。build guard 的 RED 仅为 OpenSpec 6.1-6.4、Plan Task 13 四步未勾，以及尚未记录 build check，不是构建失败。

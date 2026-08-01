@@ -989,7 +989,7 @@ Expected: 显式 refspec 刷新 `refs/remotes/origin/springboot3` 后，才以�
 - Consumes: 三个最终远端引用和三个工作区。
 - Produces: 可进入 Comet verify 阶段的最终一致状态。
 
-- [ ] **Step 1: 独立核对三个远端 SHA**
+- [x] **Step 1: 独立核对三个远端 SHA**
 
 Run:
 
@@ -1004,7 +1004,7 @@ git rev-list --left-right --count springboot3...origin/springboot3
 
 Expected: 三组本地/远端 SHA 一致，三组 ahead/behind 都为 `0 0`。
 
-- [ ] **Step 2: 验证最终祖先关系**
+- [x] **Step 2: 验证最终祖先关系**
 
 Run:
 
@@ -1015,7 +1015,7 @@ git merge-base --is-ancestor dev springboot3
 
 Expected: 两条命令退出 0，最终 `dev` 是两个派生分支的祖先。
 
-- [ ] **Step 3: 验证三个工作区干净**
+- [x] **Step 3: 验证三个工作区干净**
 
 Run:
 
@@ -1028,7 +1028,7 @@ git diff --check
 
 Expected: 三个工作区均无未说明改动；不移除任何非本次创建的 worktree。
 
-- [ ] **Step 4: 运行 build 阶段最终守卫**
+- [x] **Step 4: 运行 build 阶段最终守卫**
 
 Run:
 

@@ -121,3 +121,11 @@
 - `springboot2` 同步前远端 tip 为 `dc65ae7725773ac4a5575dc1ae1fc3fe8a4799d5`。merge commit `2e5b0075b29e6a28c6a989ae3d550e309d3c08f6` 的两个父提交精确为该远端 tip 和最终 `dev=aeb23243`。普通 push 后显式 refspec fetch；local/tracking/`ls-remote` 均为 `2e5b0075`，ahead/behind 为 `0 0`，`dev` 和原远端 tip 均是其祖先。
 - `springboot3` 同步前远端 tip 为 `bca53b69bba9ddc8f33ec848795fe1cc6c58e989`。先幂等合并最新 `origin/springboot3`，再以 `--no-ff` 合并最终 dev；5 个冲突只涉及 AskData 依赖边界测试和活动契约，解决后保留中立 AskData 边界及 Core BOM 方案 A。merge commit 为 `9958c79fd446f70763935f66967dd8c86d11fd42`。普通 push 后显式 refspec fetch；local/tracking/`ls-remote` 均为 `9958c79f`，ahead/behind 为 `0 0`，`dev` 和原远端 tip 均是其祖先。
 - 本节是最终 dev evidence commit 之前的可审计同步证据。包含本节的 evidence commit 会再次推进 dev；其后二次同步的最终远端 SHA、`0 0` 与祖先结果记录在 gitignored `task-12-report.md`，并由 Task 13 只读终态核验收口，避免无限证据提交循环。
+
+## Task 13：最终远端、祖先与工作区核验
+
+- 使用一次性 `http.curloptResolve`、HTTP/1.1 与低速超时访问 GitHub，未写入持久 Git 配置。`140.82.113.3` 的首次 `ls-remote` 成功，但首次 `dev` fetch 因 15 秒低速超时终止；切换到 `20.27.177.113` 后，针对 `dev`、`springboot2`、`springboot3` 的三条 `--no-tags --no-recurse-submodules` 显式 refspec fetch 均成功。
+- fetch 后 local/tracking/`ls-remote` 三方一致：`dev=a25ab8072d38a571db5dd9647a257213a99fe582`、`springboot2=34de9413ed02ca0daeebe12f95636b6a51d2fdcf`、`springboot3=5be07b0808d856b4ef1b8286ef08f693fbce43ea`；三组 ahead/behind 均为 `0 0`。
+- `dev` 是两个派生分支的祖先。原始派生 tip `dc65ae7725773ac4a5575dc1ae1fc3fe8a4799d5`、`bca53b69bba9ddc8f33ec848795fe1cc6c58e989`，Task 12 首轮 tip `2e5b0075b29e6a28c6a989ae3d550e309d3c08f6`、`9958c79fd446f70763935f66967dd8c86d11fd42`，以及前一轮 tip `405c1ddb1e11875368597fa0f8645fd87042cec6`、`02d6addd9ee069442bdc36142fad971fff6de770` 的祖先断言全部退出 `0`。
+- 主工作区、`.worktrees/springboot2-sync`、`.worktrees/springboot3-upgrade` 均为 clean，工作树和 index 的 `git diff --check` 均退出 `0`。历史 locked/prunable worktree 仅核对列表，未清理或修改。
+- 本节只记录 Task 13 checkoff 提交之前的远端事实；该提交及后续 Comet phase 状态提交的最终 SHA 记录在 gitignored `task-13-report.md`，避免 tracked evidence 自引用最终提交。
