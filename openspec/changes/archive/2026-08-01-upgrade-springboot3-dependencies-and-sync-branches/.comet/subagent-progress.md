@@ -1,5 +1,73 @@
 # Subagent Progress
 
+## Verify failure 3 remediation
+
+- Stage: `verified; ready for verify guard`
+- Finding: `TinyEngineAiStarterDependencyTest` 仍要求 Boot TinyEngine Starter 直接传递 MVC Web Starter，与后续双栈设计和公开消费文档冲突
+- Severity: `CRITICAL`（完整 Verify 的真实测试失败）
+- Verify failures: `3`
+- Worktree: `.worktrees/springboot3-upgrade`
+- Root-cause research: `/root/research_tinyengine_starter_failure` 与 `/root/review_tinyengine_starter_contract` 给出相反建议；主会话按提交顺序、后续设计文档、双栈自动配置和公开使用文档裁定旧测试过期
+- Required result: Boot TinyEngine Starter 同时不得直接依赖 `spring-boot-starter-web` 与 `spring-boot-starter-webflux`；宿主显式选栈
+- Production scope: 不修改生产 POM/代码，仅同步单个依赖边界测试
+- Brief: `.superpowers/sdd/2026-07-30-springboot3-dependencies-and-branch-sync/verify-failure-3.md`
+- Implementer: `/root/fix_tinyengine_web_contract`
+- Implementation commit: `ba7880e93495c60cb4366443f29507ad616fd00e`
+- Changed files: 仅 `TinyEngineAiStarterDependencyTest.java`
+- RED/GREEN: 旧契约 `5 tests / 1 failure`；新契约 `5/5`、reactor `BUILD SUCCESS`；`git diff --check` 通过
+- TDD mode: `tdd`
+- Review mode: `standard`
+- Risk review triggered: `yes`（公共 Maven 消费边界契约）
+- Reviewer: `/root/review_tinyengine_web_contract_fix`
+- Review/fix round: `0/1`
+- Review result: Spec Compliance PASS、Code Quality APPROVE；无 Critical/Important/Minor
+- Fresh controller verification: AI reactor 11 modules `BUILD SUCCESS`；目标测试 `5/5`
+- Publish verification: `HEAD = origin/springboot3 = GitHub API remote = ba7880e9`，ahead/behind `0 0`，worktree clean；普通 HTTP/1.1 push，无强推/API ref 更新
+- Final fresh verification: Boot TinyEngine `41/41`；AI autoconfigure `245/245`、AskData `2/2`、TinyEngine Starter `5/5`、plugin `12/12`；Core Adapter `17/17`、TinyEngine Core `78/78`；两个依赖树负向检查与 OpenSpec strict 通过
+- Open findings: `none`
+
+## Final whole-branch review fix 1
+
+- Stage: `reviewed; ready for fresh verify and push`
+- Finding: TinyEngine 的真实 LangChain4j 1.18 ChatModel 仅收到 messages/responseFormat，maxTokens 与 presence/frequency penalty 只回显 metadata；流式路径使用 messages-only generate，丢失完整 ChatRequest
+- Severity: `IMPORTANT`（公开请求参数被静默忽略，且流式/非流式不一致）
+- Root cause: `ChatRequest.Builder` 支持这些通用参数，但 provider 未映射；stream 未调用完整 `chat(ChatRequest, handler)`
+- Worktree: `.worktrees/springboot3-upgrade`
+- Base commit: `1654b5c0e90c8178ad8596cded814427d4f6d374`
+- Brief: `.superpowers/sdd/2026-07-30-springboot3-dependencies-and-branch-sync/final-review-fix-1.md`
+- TDD mode: `tdd`
+- Review mode: `standard`（最终 review 只允许一轮修复与 scoped re-review）
+- Reviewer: `/root/final_springboot3_review`
+- Implementer: `/root/fix_final_langchain_params`
+- Implementation commit: `04692fa1985ee04a781fe469ca92dda0e65df3d6`
+- RED/GREEN: native provider `8/2` RED；最终 provider `9/9`、plugin `12/12`、AskData dependency boundary `1/1` GREEN
+- Scoped re-review: 原唯一 Important CLOSED；无新增 Critical/Important，Ready to merge
+- Open findings: `none`（final whole-branch review）
+
+## Verify failure 2 remediation
+
+- Stage: `reviewed; ready for final whole-branch review and fresh verify`
+- Finding: Spring Boot 3 历史提交 `d3303707` 将 25 个 public TinyEngine Service 接口和 25 个 public 实现类从已删除的 MyBatis-Plus `extension.service` 类型迁移到 `spring.service` 类型，造成公开源码/ABI 漂移
+- Severity: `CRITICAL`（违反 active spec 对现有公开 API 兼容的 SHALL 要求）
+- Verify failures: `2`
+- Worktree: `.worktrees/springboot3-upgrade`
+- Verification report: `docs/superpowers/reports/2026-08-01-upgrade-springboot3-dependencies-and-sync-branches-verify.md`
+- TDD mode: `tdd`
+- Review mode: `standard`
+- Risk review triggered: `yes`（公共 API/ABI、跨 Core/TinyEngine 依赖）
+- Version researcher: `/root/research_mybatisplus_version_cutover`
+- Architecture researcher: `/root/research_tinyengine_abi_fix_options`
+- Research result: MyBatis-Plus `3.5.17` 是包迁移断点；`3.5.16` 是仍提供 Boot 3 Starter、Spring 6 集成并保留旧 service FQCN 的最新版本
+- Brief: `.superpowers/sdd/2026-07-30-springboot3-dependencies-and-branch-sync/verify-failure-2.md`
+- Implementer: `/root/fix_tinyengine_mybatis_api`
+- Implementation commit: `1654b5c0e90c8178ad8596cded814427d4f6d374`
+- RED/GREEN: Core 父类型契约 `25/1` 与 AI 版本基线 `1/1` 先 RED；最终 Core `25/25`、AI `1/1`、Boot TinyEngine `24/24` GREEN，dependency tree 解析 `mybatis-plus-spring:3.5.16`，生产 `spring.service` import 为 0
+- Review/fix round: `0/1`（无需修复）
+- Reviewer: `/root/review_tinyengine_mybatis_api`
+- Review result: Spec 与 Quality 均 APPROVED，无 Critical/Important；既有 Maven settings/编译警告记为范围外 Minor
+- Compatibility boundary: 仅恢复 `3.5.17` 包迁移造成的公开父类型漂移，不宣称完整兼容 MyBatis-Plus `3.3.2` 的所有继承方法二进制描述符
+- Open findings: `none`（Verify failure 2 remediation）
+
 ## Verify failure 1 remediation
 
 - Stage: `reviewed; ready for final verify and push`
