@@ -74,3 +74,12 @@ mvn -f fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/pom.xml \
 - 分层构建完成：Core `64/64`、Boot `49/49`、AI `17/17`、Cloud `13/13` 均为 `BUILD SUCCESS`；`git diff --check` 无输出，退出码 `0`。
 - AI 构建中修复 LangChain4j 1.18.x API 迁移点：Vertex AI Gemini 包名、EmbeddingStore `search(...)`、Weaviate `metadataFieldName`、测试桩和 Spring 6 `ResponseStatusException#getStatusCode()`。
 - 构建清理后恢复 Maven 生成的 tracked `.flattened-pom.xml`，并删除本轮新生成的 untracked 前端 `dist/`、`node_modules/`、`package-lock.json`，最终 `springboot3` worktree 干净且与 `origin/springboot3` 同步。
+
+## Task 11：Spring Boot 3 最终全层与 Sample 证据
+
+- 最终验证提交：`d3f1ad3110c525bbd76db41ac80454b778b8c5fb`；从发布前远端基线 `afa7a50f1f9062894c2aa14231c707a34d9722bd` 的提交链包含 `c26099f2`（Vertex AI Gemini 断言）、`dfb6eb35`（Task 9 的 Boot 3 兼容依赖）、`800ea7df`（Task 10 的 Feign 平台兼容）、`93bb0e02`（MyBatis-Spring 与 AI 边界）和 `d3f1ad31`（AI starter 契约）。
+- 环境：Zulu OpenJDK `17.0.13`，`JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-17.jdk/Contents/Home`；系统 Maven `3.6.3`。未使用 Wrapper。
+- 已有且与最终提交内容对应的 Task 11 重型命令均退出 0：Core `mvn -nsu -f fw-plus-core/pom.xml clean install` 为 `64/64`；Boot 同命令为 `49/49`，Surefire `447` tests 零 failure/error/skipped；Cloud 为 `14/14`，Surefire `1` test 零 failure/error/skipped；AI 为 `17/17`，autoconfigure `332` tests 和修复定向 `3/3`、`13/13` 均零 failure/error。有效 POM/AI 依赖树确认 Boot `3.5.8`、LangChain4j `1.18.0`、三项 `0.36.2` 覆盖、Spring AI 与 Spring AI Alibaba `1.0.1`；Enforcer `3.4.1` 的 `dependencyConvergence` 和 `banDuplicatePomDependencyVersions` 均通过 17/17 reactor。
+- 本轮补齐且新鲜执行：`mvn -nsu -f .worktrees/springboot3-upgrade/fw-plus-sample/pom.xml validate` 退出 0，15/15 reactor `SUCCESS`，`BUILD SUCCESS`，耗时 `1.119 s`；`validate` 不执行测试。`-nsu` 只禁止远程 SNAPSHOT 元数据更新，不跳过解析或验证；命令首次成功，无重试。
+- 前后复核：`git -C .worktrees/springboot3-upgrade status --short --branch` 为空，`git -C .worktrees/springboot3-upgrade diff --check` 无输出、退出 0。未改动 Spring Boot 3 源码、测试或 POM。
+- 已知非阻断风险：系统和用户 Maven settings.xml 的未知 `<repository>` 标签警告；此前测试的既有 SLF4J/Commons Logging、多种负向上下文日志及前端审计告警。它们均未使上述命令失败。
