@@ -247,3 +247,10 @@ git -C .worktrees/springboot3-upgrade merge-base --is-ancestor d3303707 HEAD
 - Core 与 Boot `dependency:analyze` 均为 `BUILD SUCCESS`（01:01 / 03:00）；分析器列出的 starter、BOM、内部模块、SPI/反射、自动配置和运行时依赖均未据此删除。
 - Spring Boot 3 工作树中的 OptimisticLocker 静态扫描只命中 `MpBaseAutoConfiguration` 的 `OptimisticLockerInnerInterceptor` 注册；保留直接依赖与自动配置，不新增替代实现。
 - 风险信号：Maven settings 两处未识别 `repository` 标签、阿里云若干元数据缺失 checksum、Boot 生命周期的 npm audit 报告 18 个既有漏洞和 3 个待批准脚本、以及未 `install` 新 Core SNAPSHOT 时下游仍可能解析本地仓库的旧 Core BOM。
+
+## Task 12：最终 dev 合并后的 Spring Boot 3 基线复核
+
+- `SpringBoot3DependencyBaselineTest` 在合并后的 `springboot3` 上 1/1 通过。测试源码硬锁 Core BOM `langchain4j.version=1.18.0`，并锁定 `langchain4j-redis`、`langchain4j-qianfan`、`langchain4j-dashscope` 三项例外均为 `0.36.2`。
+- 同一测试继续验证 AI BOM 不直接声明 `langchain4j.version` 或导入 LangChain4j BOM，而通过 Core BOM 获得 LangChain4j 管理；消费模块不为三项例外直接写版本。
+- 实际 `fw-plus-ai-boot-autoconfigure/pom.xml` 下 `LangChain4jAutoConfigurationRegistrationTest` 7/7、`LangChain4jAdapterAutoConfigurationTest` 6/6，共 13/13 通过，证明最终 dev 合并未破坏 1.18.0 API 注册与适配契约。
+- merge commit `9958c79fd446f70763935f66967dd8c86d11fd42` 已普通推送；push 后 local/tracking/`ls-remote` 一致且 ahead/behind 为 `0 0`。最终 evidence commit 的二次同步终态由 Task 12 报告和 Task 13 记录。
