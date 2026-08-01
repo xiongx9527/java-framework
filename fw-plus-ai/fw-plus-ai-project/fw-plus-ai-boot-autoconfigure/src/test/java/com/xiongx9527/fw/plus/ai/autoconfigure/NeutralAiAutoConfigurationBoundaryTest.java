@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class NeutralAiAutoConfigurationBoundaryTest {
@@ -58,6 +59,22 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 		}
 	}
 
+	@Test
+	public void shouldScanNeutralTinyEngineProvidersWhileIgnoringConcreteLangChain4jProvider() {
+		File moduleDirectory = findModuleDirectory();
+		File providerDirectory = new File(moduleDirectory,
+				"src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/tinyengine/provider");
+
+		assertFalse(isIgnored(new File(providerDirectory, "TinyEngineAiProvider.java")),
+				"TinyEngine provider SPI must remain in the neutral boundary scan");
+		assertFalse(isIgnored(new File(providerDirectory, "TinyEngineAiCapability.java")),
+				"TinyEngine capability enum must remain in the neutral boundary scan");
+		assertFalse(isIgnored(new File(providerDirectory, "TinyEngineAiProviderRegistry.java")),
+				"TinyEngine provider registry must remain in the neutral boundary scan");
+		assertTrue(isIgnored(new File(providerDirectory, "LangChain4jTinyEngineAiProvider.java")),
+				"Concrete LangChain4j provider must remain outside the neutral boundary scan");
+	}
+
 	private void scanProductionJava(File moduleDirectory, File file, List<String> violations) throws IOException {
 		if (!file.exists() || isIgnored(file)) {
 			return;
@@ -88,9 +105,8 @@ public class NeutralAiAutoConfigurationBoundaryTest {
 				|| path.contains("/autoconfigure/askdata/")
 				|| path.endsWith("/autoconfigure/askdata")
 				|| path.contains("/autoconfigure/langchain4j/")
-				|| path.endsWith("/autoconfigure/langchain4j")
-				|| path.contains("/autoconfigure/tinyengine/provider/")
-				|| path.endsWith("/autoconfigure/tinyengine/provider"));
+				|| path.endsWith("/autoconfigure/langchain4j"))
+				|| path.endsWith("/autoconfigure/tinyengine/provider/LangChain4jTinyEngineAiProvider.java");
 	}
 
 	private String read(File file) throws IOException {

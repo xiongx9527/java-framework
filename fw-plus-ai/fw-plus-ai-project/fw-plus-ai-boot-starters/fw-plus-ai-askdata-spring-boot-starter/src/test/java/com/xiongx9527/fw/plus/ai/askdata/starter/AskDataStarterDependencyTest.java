@@ -23,6 +23,8 @@ public class AskDataStarterDependencyTest {
 
 		assertTrue("AskData starter must preserve the AskData Java 8 module",
 				dependencies.contains("com.xiongx9527.fw.plus:fw-plus-ai-askdata"));
+		assertTrue("AskData starter must directly depend on the unified AI Boot starter",
+				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-starter"));
 		assertTrue("AskData starter must obtain model capabilities from the unified LangChain4j adapter",
 				dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
 		assertFalse("AskData starter must not depend on the legacy LangChain4j model starter",

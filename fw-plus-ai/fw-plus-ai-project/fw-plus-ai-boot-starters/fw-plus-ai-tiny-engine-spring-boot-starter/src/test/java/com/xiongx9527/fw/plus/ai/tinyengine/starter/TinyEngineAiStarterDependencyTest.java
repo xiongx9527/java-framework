@@ -33,6 +33,8 @@ public class TinyEngineAiStarterDependencyTest {
 		assertDirectCompileNonOptionalVersionManaged(aiStarter,
 				"com.xiongx9527.fw.plus.boot:fw-plus-tiny-engine-spring-boot-starter");
 		assertDirectCompileNonOptionalVersionManaged(aiStarter,
+				"com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-starter");
+		assertDirectCompileNonOptionalVersionManaged(aiStarter,
 				"com.xiongx9527.fw.plus.ai:fw-plus-ai-model-spring-boot-starter");
 		assertDirectCompileNonOptionalVersionManaged(aiStarter,
 				"com.xiongx9527.fw.plus.ai:fw-plus-ai-store-embedding-spring-boot-starter");
