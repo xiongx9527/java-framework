@@ -248,3 +248,18 @@
 - Review RED/GREEN: guard RED 同时列出历史已完成 checkbox；fix 后 OpenSpec strict、diff-check 与逐项 task-checkoff 通过，guard 剩余失败仅对应 Task 13 的 6.1-6.4、Plan 四步及 build check
 - Next: 提交并推送 checkbox fix，再将最终 dev `--no-ff` 同步到 springboot2/springboot3，执行最终 classpath 定向验证与 post-fetch 核验
 - Deferred Minor: Maven settings 未识别 `repository`、既有 SLF4J/Commons Logging 与 exec plugin 警告，留给最终 review 分诊
+
+## 最终远端、祖先与工作区核验
+
+- Task: `Task 13: 最终远端、祖先与工作区核验`
+- OpenSpec mapping: `6.1`、`6.2`、`6.3`、`6.4`
+- Stage: `implementing`
+- Implementer: `/root/task13_final_verification`
+- Base refs: `dev=a25ab807`、`springboot2=34de9413`、`springboot3=5be07b08`
+- Review mode: `standard`
+- RED evidence: build guard 退出 `1`，失败项精确为 OpenSpec 6.1-6.4、Plan Task 13 四步和未记录 build check；其余状态门禁全部通过
+- GREEN evidence: 三条独立显式 refspec fetch 成功；local/tracking/`ls-remote` 三方一致且三组 `0 0`；dev、原始派生 tip、Task 12 首轮及前一轮 tip 的祖先断言通过；三个工作区 clean 且工作树/index diff-check 通过
+- Build reuse: 三组相对 Task 12 前一轮的 `src/main`、`src/test`、`pom.xml` 差异均为零，复用 Task 12 已通过的 Java 8/17 定向验证，不重复运行 Maven
+- Risk review triggered: `yes`（跨三个远端分支的提交、合并与普通推送闭环；首次 edge fetch 发生有界低速超时）
+- Review/fix round: `0/1`
+- Open findings: `none`
