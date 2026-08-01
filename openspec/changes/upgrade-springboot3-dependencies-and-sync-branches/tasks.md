@@ -39,7 +39,7 @@
 
 ## 6. 最终一致性核验
 
-- [ ] 6.1 独立读取三个远端分支 SHA，确认分别匹配已推送的本地提交
-- [ ] 6.2 确认最终 `dev` 是 `springboot2` 与 `springboot3` 的祖先，且两个派生分支原有独立提交仍存在
-- [ ] 6.3 确认工作区干净，并汇总三个分支的提交、构建结果、保留旧版原因和任何剩余风险
-- [ ] 6.4 最终 dev 同步包含 AskData 生产代码、POM、测试和契约文档；springboot2 以 Java 8、springboot3 以 Java 17 重新完成 AskData 与受影响自动配置验证，springboot3 另验证 LangChain4j 1.18.0 与三项 0.36.2 管理，并核对远端 SHA、`0 0` 与祖先关系
+- [x] 6.1 独立读取三个远端分支 SHA，确认分别匹配已推送的本地提交
+- [x] 6.2 确认最终 `dev` 是 `springboot2` 与 `springboot3` 的祖先，且两个派生分支原有独立提交仍存在
+- [x] 6.3 确认工作区干净，并汇总三个分支的提交、构建结果、保留旧版原因和任何剩余风险
+- [x] 6.4 最终 dev 同步包含 AskData 生产代码、POM、测试和契约文档；springboot2 以 Java 8、springboot3 以 Java 17 重新完成 AskData 与受影响自动配置验证，springboot3 另验证 LangChain4j 1.18.0 与三项 0.36.2 管理，并核对远端 SHA、`0 0` 与祖先关系
