@@ -106,3 +106,10 @@
 - 推送后独立核验：`git ls-remote --heads origin springboot3` 返回 `d3f1ad3110c525bbd76db41ac80454b778b8c5fb refs/heads/springboot3`；本地 HEAD 与 `refs/remotes/origin/springboot3` 均为该 SHA；`git rev-list --left-right --count HEAD...refs/remotes/origin/springboot3` 为 `0 0`；最终祖先断言退出 0。
 - 工作树核验：发布前后 `.worktrees/springboot3-upgrade` 均干净，`git diff --check` 无输出。主工作树既有 `.comet/subagent-progress.md` 协调检查点未读取、修改、暂存或提交；本次仅提交本文件与 `build-verification.md`。
 - 网络与重试：fetch、push 和 `ls-remote` 均首次成功，无网络异常和重试。
+
+## Task 11：审查修复后的最终发布校正
+
+- 审查修复提交：`bca53b69bba9ddc8f33ec848795fe1cc6c58e989`（`test(ai): 收紧中立边界契约`）。独立 scoped re-review 确认两个 Important 已解决，AI `17/17` 为 GREEN。
+- 发布前 `.worktrees/springboot3-upgrade` 工作树为空，`git diff --check` 无输出；显式 refspec 刷新后，`origin/springboot3` 的 `d3f1ad3110c525bbd76db41ac80454b778b8c5fb` 是本地 `bca53b69` 的祖先。
+- 使用普通非强制 `git push origin springboot3` 成功推进远端。独立 `git ls-remote --heads origin refs/heads/springboot3`、本地 HEAD 和 `origin/springboot3` 均为 `bca53b69bba9ddc8f33ec848795fe1cc6c58e989`；`git rev-list --left-right --count springboot3...origin/springboot3` 为 `0 0`。
+- 直连 `curl https://github.com` 在 10 秒内超时，但 Git HTTPS 读取 macOS Keychain 凭据后完成推送；该环境网络信号保留为非代码风险。
