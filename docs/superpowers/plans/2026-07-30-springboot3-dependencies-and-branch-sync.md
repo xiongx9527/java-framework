@@ -906,7 +906,7 @@ Expected: 非强制推送成功且远端 SHA 等于 worktree HEAD；把最终 SH
 - Consumes: 三个已发布代码分支的 SHA、AskData 生产代码、POM、测试、契约文档和所有验证证据。
 - Produces: 包含 AskData 生产代码、POM、测试和契约文档的最终 dev 提交，并以非强制 merge 同步到两个派生分支后的重新验证证据。
 
-- [ ] **Step 1: 对照计划勾选 OpenSpec tasks**
+- [x] **Step 1: 对照计划勾选 OpenSpec tasks**
 
 逐项核对 `tasks.md`，只勾选已有命令/日志/提交证据的条目；使用 `apply_patch` 更新复选框。运行：
 
@@ -917,7 +917,7 @@ git diff --check
 
 Expected: strict validate 和 diff check 均通过，全部任务已有对应 evidence。
 
-- [ ] **Step 2: 提交并发布最终 dev**
+- [x] **Step 2: 提交并发布最终 dev**
 
 Run:
 
@@ -931,7 +931,7 @@ git ls-remote --heads origin dev
 
 Expected: 最终 dev 提交包含 AskData 生产代码、POM、测试和契约文档，已非强制推送且远端 dev SHA 等于本地 HEAD。
 
-- [ ] **Step 3: 将最终 dev 代码与契约同步到 springboot2**
+- [x] **Step 3: 将最终 dev 代码与契约同步到 springboot2**
 
 Run:
 
@@ -953,7 +953,7 @@ git -C .worktrees/springboot2-sync merge-base --is-ancestor dev springboot2
 
 Expected: 显式 refspec 刷新 `refs/remotes/origin/springboot2` 后，才以非强制 merge 引入包含 AskData 生产代码、POM、测试和契约文档的已发布 dev；Java 8 下 AskDataStarterDependencyTest、AskDataAutoConfigurationTest、starter validate 和 NeutralAiAutoConfigurationBoundaryTest 通过，推送后远端 SHA 等于本地 HEAD、ahead/behind 为 `0 0`，且 dev 是 springboot2 的祖先。
 
-- [ ] **Step 4: 将最终 dev 代码与契约同步到 springboot3**
+- [x] **Step 4: 将最终 dev 代码与契约同步到 springboot3**
 
 Run:
 
@@ -1164,7 +1164,7 @@ Expected: 提交只包含 Core Dependencies 的 pluginManagement 和五处 `<ver
 - Consumes: AskData Core、中立 AI Boot Starter，以及业务应用自行选择具体 Adapter 的现有架构。
 - Produces: 不直接依赖 LangChain4j Adapter Starter 的 AskData Starter；LangChain4j 使用方在应用侧显式组合 Adapter Starter。
 
-- [ ] **Step 1: 将现有依赖测试改为中立边界断言（RED）**
+- [x] **Step 1: 将现有依赖测试改为中立边界断言（RED）**
 
 重命名测试，使其表达 AskData Starter 保持具体 AI 框架中立；保留 AskData Core、AI Boot 自动配置以及 Spring AI 等禁止依赖断言，并将 LangChain4j Adapter Starter 的断言改为“不存在直接依赖”。
 
@@ -1178,11 +1178,11 @@ mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plu
 
 Expected: 测试因当前 POM 仍直接声明 `fw-plus-ai-langchain4j-adapter-spring-boot-starter` 而失败；失败原因不是测试定位或依赖解析错误。
 
-- [ ] **Step 2: 删除直接依赖并同步 README（GREEN）**
+- [x] **Step 2: 删除直接依赖并同步 README（GREEN）**
 
 从 AskData Starter POM 删除 LangChain4j Adapter Starter dependency。README 明确 AskData Starter 不默认带入具体 Adapter；需要 LangChain4j 的应用自行显式引入 Adapter Starter 和所需 provider SDK。
 
-- [ ] **Step 3: 验证依赖边界和 Java 8 构建**
+- [x] **Step 3: 验证依赖边界和 Java 8 构建**
 
 Run:
 
@@ -1196,7 +1196,7 @@ git diff --check
 
 Expected: 依赖测试与 validate 通过；AskData Starter POM 不再直接声明 Adapter Starter；README 只把 Adapter Starter 作为应用侧可选组合示例。
 
-- [ ] **Step 4: 提交解耦调整**
+- [x] **Step 4: 提交解耦调整**
 
 Run:
 
@@ -1224,7 +1224,7 @@ Expected: 提交只包含依赖边界测试、AskData Starter POM 和 README。
 - Consumes: 用户确认的方案 A，以及 `springboot3` 当前 Core BOM、AI BOM 和 `SpringBoot3DependencyBaselineTest` 已实现结构。
 - Produces: 与实际实现一致且可继续执行的唯一契约：Core BOM 管理 1.18.0，AI BOM 通过导入 Core BOM 继承管理，Redis/Qianfan/DashScope 由 Core BOM 显式覆盖为 0.36.2。
 
-- [ ] **Step 1: 记录契约差异与当前实现结构（RED）**
+- [x] **Step 1: 记录契约差异与当前实现结构（RED）**
 
 Run:
 
@@ -1249,7 +1249,7 @@ rg -n '1\.18\.0|0\.36\.2|langchain4j-(redis|qianfan|dashscope)|langchain4j-bom' 
 
 Expected: 第一条命令命中旧双轨版本和失效同步措辞；第二条命令证明当前实现采用 Core BOM `1.18.0`，AI BOM 通过导入 Core BOM 继承管理，以及 Redis/Qianfan/DashScope `0.36.2` 显式覆盖。
 
-- [ ] **Step 2: 统一修订活动契约**
+- [x] **Step 2: 统一修订活动契约**
 
 使用 `apply_patch` 修订上述六份文档，统一表达：
 
@@ -1258,7 +1258,7 @@ Expected: 第一条命令命中旧双轨版本和失效同步措辞；第二条�
 - `langchain4j-redis`、`langchain4j-qianfan`、`langchain4j-dashscope` 统一在 Core BOM dependencyManagement 显式固定为 `0.36.2`；消费模块不得写版本。
 - Task 12 在 merge `origin/springboot2` 或 `origin/springboot3` 前，使用显式 refspec 刷新对应 `refs/remotes/origin/<branch>`；派生分支同步包含 AskData 生产代码、POM、测试和契约文档。`springboot2` 使用 Java 8、`springboot3` 使用 Java 17 重新执行 AskData Starter 测试、starter validate 与受影响自动配置定向测试；springboot3 另使用实际 `fw-plus-ai-boot-autoconfigure` 模块/POM 执行 LangChain4jAutoConfigurationRegistrationTest、LangChain4jAdapterAutoConfigurationTest 和 SpringBoot3DependencyBaselineTest。
 
-- [ ] **Step 3: 验证新契约（GREEN）**
+- [x] **Step 3: 验证新契约（GREEN）**
 
 Run:
 
@@ -1285,7 +1285,7 @@ git diff --check
 
 Expected: 旧双轨版本和失效同步措辞扫描为空，新基线与三个例外均有明确契约，AI BOM 继承边界、消费模块版本边界和派生分支重新验证要求均明确；OpenSpec strict validate 和 diff check 通过。
 
-- [ ] **Step 4: 提交契约修订**
+- [x] **Step 4: 提交契约修订**
 
 Run:
 

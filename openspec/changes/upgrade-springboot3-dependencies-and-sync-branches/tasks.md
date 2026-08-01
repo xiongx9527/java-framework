@@ -2,9 +2,9 @@
 
 - [x] 1.1 记录当前工作区、三个本地/跟踪分支 SHA、共同祖先和未推送提交，确认 change 产物与已有依赖清理提交的归属
 - [x] 1.2 成功获取远端 `dev`、`springboot2`、`springboot3` 最新对象，重新计算每个分支的 ahead/behind 和祖先关系
-- [ ] 1.3 建立固定版本断言与依赖升级排除清单，覆盖 Java/Spring 平台、Magic-API/Magic-Script、Spring AI 系列和两个 TinyEngine change
+- [x] 1.3 建立固定版本断言与依赖升级排除清单，覆盖 Java/Spring 平台、Magic-API/Magic-Script、Spring AI 系列和两个 TinyEngine change
 - [x] 1.4 在 Core 父 POM 的 `pluginManagement` 统一管理 `exec-maven-plugin:3.1.0`，Boot、Cloud、AI 的消费 POM 不声明插件版本
-- [ ] 1.5 按用户确认的方案 A 修订 Spring Boot 3 LangChain4j 契约：主版本统一为 1.18.0，Redis/Qianfan/DashScope 例外固定为 0.36.2，并将后续派生分支同步改为代码同步后重新验证
+- [x] 1.5 按用户确认的方案 A 修订 Spring Boot 3 LangChain4j 契约：主版本统一为 1.18.0，Redis/Qianfan/DashScope 例外固定为 0.36.2，并将后续派生分支同步改为代码同步后重新验证
 
 ## 2. 整合、验证并推送 dev
 
@@ -12,7 +12,7 @@
 - [x] 2.2 检查 `dev` 的依赖清理结果，确认 LangChain4j 0.35.0 仅使用 Java 8 兼容模块且固定平台版本未变化
 - [x] 2.3 按 Core → Boot → Cloud / AI → Sample 顺序完成 `dev` 的 Java 8 Maven 测试与构建验证
 - [x] 2.4 提交必要的整合结果，非强制推送 `dev`，并确认远端 SHA 等于本地 HEAD
-- [ ] 2.5 移除 AskData Starter 对 LangChain4j Adapter Starter 的直接依赖，以中立依赖测试和 Java 8 Maven 构建锁定边界
+- [x] 2.5 移除 AskData Starter 对 LangChain4j Adapter Starter 的直接依赖，以中立依赖测试和 Java 8 Maven 构建锁定边界
 
 ## 3. 合并、验证并推送 springboot2
 
