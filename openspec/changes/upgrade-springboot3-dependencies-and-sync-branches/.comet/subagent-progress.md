@@ -192,3 +192,41 @@
 - Fix commits: `springboot3=800ea7df`、`dev=088fa8a5`
 - Fix RED/GREEN: `13.13/A` RED；`13.5/R5`、平台基线 `13.6`、其余 20 个采用项 GREEN；Cloud 14 模块 compile 成功
 - Re-reviewer: `/root/task10_feign_rereview`
+
+## Spring Boot 3 全量验证与首次发布
+
+- Task: `Task 11: 全量验证并发布 springboot3`
+- OpenSpec mapping: `5.1`、`5.2`、`5.3`、`5.4`
+- Stage: `done`
+- Implementer: `/root/task11_springboot3_verify_publish`
+- Base commits: `dev=9c55f150`、`springboot3=800ea7df`
+- Allowed tracked files: dev 的 `.comet/evidence/build-verification.md` 与 `.comet/evidence/branch-sync.md`
+- Review mode: `standard`
+- Review/fix round: `task review fix 1/1 completed; scoped re-review passed`
+- Initial result: `BLOCKED`（可自动修复，未推送）
+- Completed evidence: AI LangChain4j 13/13、baseline 1/1、effective POM/tree 成功；Core 64/64 install 成功；Enforcer 3.4.1 与两项规则通过
+- Open findings: `none`
+- Repair agent: `/root/task11_boundary_mybatis_fix`
+- Repair commit: `springboot3=93bb0e02`
+- Repair RED/GREEN: Neutral `2/1 -> 2/0`；TinyEngine `17/4 -> 17/0`；Core 64/64 install 成功；dependency tree 为 `mybatis-spring:3.0.5`
+- Continuation agent: `/root/task11_verify_publish_continuation`
+- Repair agent 2: `/root/task11_tinyengine_registration_fix`
+- Repair agent 3: `/root/task11_neutral_starter_contract_fix`
+- Repair commit 3: `springboot3=d3f1ad31`
+- Repair 3 GREEN: AskData 注册 1/1、Neutral 3/3、AskData starter 1/1、TinyEngine starter 5/5；AI clean install 17/17 success
+- Final continuation agent: `/root/task11_sample_push_evidence`
+- Final commits: `springboot3=d3f1ad31`、`dev=bb020844`
+- Final evidence: Core 64/64、Boot 49/49（447 tests）、Cloud 14/14、AI 17/17、Sample 15/15；AI 定向 3/3 与 13/13；Enforcer 3.4.1 两项通过；远端 SHA一致且 0/0
+- Risk review triggered: `yes`（跨 Core/Boot/AI 测试修复、五层全量验证、远端发布、DONE_WITH_CONCERNS）
+- Reviewer: `/root/task11_full_verify_review`
+- Review result: Spec Compliance 未通过，Task quality 需要修复；无 Critical，2 个 Important
+- Fix agent: `/root/task11_review_contract_fix`
+- Fix commit: `springboot3=bca53b69`
+- Fix GREEN: Neutral boundary 3/3、model/embedding 3/3、AskData 1/1、TinyEngine 5/5；AI clean install 17/17 success
+- Re-reviewer: `/root/askdata_neutral_path`
+- Re-review result: 两个 Important 均 RESOLVED，无新 Critical/Important
+- Post-review publish: `springboot3=bca53b69` 已普通推送；本地、tracking、ls-remote 一致且 0/0
+- Final dev evidence commit: `7020766d`
+- Evidence corrections: Boot tests `444`；npm audit `14`（4 moderate、9 high、1 critical）；Task 11 报告终态已校正
+- Deferred Minors resolved: Task 11 报告终态与构建证据风险等级均已在发布证据更新中更正
+- Deferred Minor: task-11-report 顶部仍标 BLOCKED；build-verification 将 npm audit 的 1 critical 低记为 moderate/high，留给最终 review 分诊

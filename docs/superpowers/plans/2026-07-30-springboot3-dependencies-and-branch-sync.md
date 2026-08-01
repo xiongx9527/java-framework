@@ -830,7 +830,7 @@ Expected: 提交只包含矩阵中标记“采用”的依赖及其必要测试/
 - Consumes: springboot3 的 merge commit、LangChain4j 提交和其他兼容升级提交。
 - Produces: Java 17 全层构建证据，以及与本地 HEAD 一致的 `origin/springboot3`。
 
-- [ ] **Step 1: 运行 AI 回归与固定版本测试**
+- [x] **Step 1: 运行 AI 回归与固定版本测试**
 
 Run:
 
@@ -846,7 +846,7 @@ rg -n '1\.18\.0|0\.36\.2|1\.0\.1|spring-boot.*3\.5\.8' .worktrees/springboot3-up
 
 Expected: 固定版本、公共中立边界和 LangChain4j 自动配置测试全部通过；有效 POM/依赖树保持 Spring Boot 3.5.8、Core BOM 的 LangChain4j 1.18.0 管理、三项 0.36.2 覆盖及已有 Spring AI/Spring AI Alibaba 1.0.1 集成声明。
 
-- [ ] **Step 2: 检查依赖收敛与重复声明**
+- [x] **Step 2: 检查依赖收敛与重复声明**
 
 Run:
 
@@ -861,7 +861,7 @@ mvn -f .worktrees/springboot3-upgrade/fw-plus-ai/pom.xml org.apache.maven.plugin
 
 Expected: 从继承属性求值得到 Enforcer `3.4.1`，两项检查通过；若发现升级前已存在且与本次无关的收敛告警，使用合并提交父节点运行同一命令证明其为基线问题，将完整坐标和对比结果记入依赖矩阵，不用排除项掩盖本次新增冲突。
 
-- [ ] **Step 3: 按层全量构建 springboot3**
+- [x] **Step 3: 按层全量构建 springboot3**
 
 Run:
 
@@ -877,7 +877,7 @@ mvn -f .worktrees/springboot3-upgrade/fw-plus-sample/pom.xml validate
 
 Expected: 五条命令退出 0。使用主工作区 `apply_patch` 将 JDK、命令、测试数、退出码和重试说明写入 `build-verification.md`。
 
-- [ ] **Step 4: 非强制发布 springboot3**
+- [x] **Step 4: 非强制发布 springboot3**
 
 Run:
 
