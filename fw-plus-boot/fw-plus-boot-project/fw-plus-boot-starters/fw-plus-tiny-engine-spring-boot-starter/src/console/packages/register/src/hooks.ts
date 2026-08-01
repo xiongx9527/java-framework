@@ -44,8 +44,9 @@ export const HOOK_NAME = {
 } as const
 
 type HookName = typeof HOOK_NAME[keyof typeof HOOK_NAME]
+type HookValue = Record<string, any> | ((...args: any[]) => any)
 
-const hooksState = {
+const hooksState: Record<HookName, HookValue> = {
   [HOOK_NAME.useLayout]: {},
   [HOOK_NAME.useCanvas]: {},
   [HOOK_NAME.useResource]: {},
@@ -70,10 +71,12 @@ const hooksState = {
 }
 
 const getHook = (hookName: HookName, args: any[]) => {
-  if (typeof hooksState[hookName] === 'function') {
-    return hooksState[hookName](...args)
+  const hook = hooksState[hookName]
+
+  if (typeof hook === 'function') {
+    return hook(...args)
   }
-  return hooksState[hookName]
+  return hook
 }
 
 export const useLayout = (...args: any[]): UseLayoutApi => getHook(HOOK_NAME.useLayout, args)
