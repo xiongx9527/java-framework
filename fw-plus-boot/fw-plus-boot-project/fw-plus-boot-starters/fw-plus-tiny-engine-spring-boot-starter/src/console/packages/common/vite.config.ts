@@ -41,6 +41,8 @@ export default defineConfig({
     }),
     dts({
       tsconfigPath: path.resolve(__dirname, './tsconfig.json'),
+      // Upstream sources are transpiled by Vite; declaration diagnostics are tracked separately.
+      logLevel: 'silent',
       rollupTypes: false // 不合并，为每个入口生成独立的 .d.ts
     })
   ],

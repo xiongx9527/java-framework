@@ -19,7 +19,7 @@ export interface ServiceOptions<T, K> {
 
 type GetState<T> = () => DeepReadonly<UnwrapNestedRefs<T>>
 type SetState<T> = (kv: Partial<T>) => void
-type Service<T, K> = Pick<ServiceOptions<T, K>, 'id' | 'type' | 'options'> & {
+export type Service<T, K> = Pick<ServiceOptions<T, K>, 'id' | 'type' | 'options'> & {
   apis: { getState: GetState<T>; setState: SetState<T> } & Record<string, (...args: any[]) => any>
 }
 

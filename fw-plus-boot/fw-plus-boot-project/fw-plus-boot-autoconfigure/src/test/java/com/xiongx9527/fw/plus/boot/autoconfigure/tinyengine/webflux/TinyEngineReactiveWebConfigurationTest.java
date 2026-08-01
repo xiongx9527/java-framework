@@ -10,9 +10,13 @@ import org.springframework.boot.test.context.runner.ReactiveWebApplicationContex
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.config.ResourceHandlerRegistration;
+import org.springframework.web.reactive.config.ResourceHandlerRegistry;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class TinyEngineReactiveWebConfigurationTest {
 
@@ -54,6 +58,30 @@ class TinyEngineReactiveWebConfigurationTest {
 						"fw.plus.tiny-engine.webflux.scheduler.queue-capacity=16",
 						"fw.plus.tiny-engine.webflux.scheduler.timeout=5s")
 				.run(context -> assertThat(context).hasSingleBean(TinyEngineReactiveExecutor.class));
+	}
+
+	@Test
+	void servletConfigurationMapsTinyEngineFrontendFromTinyEngineClasspathDirectory() {
+		org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry =
+				mock(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry.class);
+		org.springframework.web.servlet.config.annotation.ResourceHandlerRegistration registration =
+				mock(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistration.class);
+		when(registry.addResourceHandler("/tiny-engine/**")).thenReturn(registration);
+
+		new TinyEngineServletWebConfiguration().addResourceHandlers(registry);
+
+		verify(registration).addResourceLocations("classpath:/tiny-engine/");
+	}
+
+	@Test
+	void reactiveConfigurationMapsTinyEngineFrontendFromTinyEngineClasspathDirectory() {
+		ResourceHandlerRegistry registry = mock(ResourceHandlerRegistry.class);
+		ResourceHandlerRegistration registration = mock(ResourceHandlerRegistration.class);
+		when(registry.addResourceHandler("/tiny-engine/**")).thenReturn(registration);
+
+		new TinyEngineReactiveWebConfiguration().addResourceHandlers(registry);
+
+		verify(registration).addResourceLocations("classpath:/tiny-engine/");
 	}
 
 	@Configuration
