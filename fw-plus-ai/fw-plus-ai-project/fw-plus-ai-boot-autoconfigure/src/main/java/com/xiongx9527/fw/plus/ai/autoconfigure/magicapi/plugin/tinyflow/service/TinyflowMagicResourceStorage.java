@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.service;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.model.TinyflowResource;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflowValidator;
 import org.ssssssss.magicapi.core.model.MagicEntity;
@@ -12,6 +14,13 @@ import java.nio.charset.StandardCharsets;
 public final class TinyflowMagicResourceStorage implements MagicResourceStorage<TinyflowResource> {
 
 	public static final String FOLDER = "tinyflow";
+
+	private static final String ID = "id";
+	private static final String NAME = "name";
+	private static final String GROUP_ID = "groupId";
+	private static final String PATH = "path";
+	private static final String CONTENT = "content";
+	private static final String SCRIPT = "script";
 
 	private final TinyflowWorkflowValidator validator;
 
@@ -54,9 +63,15 @@ public final class TinyflowMagicResourceStorage implements MagicResourceStorage<
 
 	@Override
 	public TinyflowResource read(byte[] bytes) {
-		TinyflowResource resource = new TinyflowResource();
-		resource.setContent(new String(bytes, StandardCharsets.UTF_8));
-		return resource;
+		String json = new String(bytes, StandardCharsets.UTF_8);
+		JSONObject object = JSON.parseObject(json);
+		if (object == null) {
+			throw new IllegalArgumentException("Tinyflow workflow content must be a JSON object");
+		}
+		if (object.containsKey(CONTENT) || object.containsKey(SCRIPT)) {
+			return transportResource(object);
+		}
+		return physicalResource(object);
 	}
 
 	@Override
@@ -64,16 +79,41 @@ public final class TinyflowMagicResourceStorage implements MagicResourceStorage<
 		if (!(entity instanceof TinyflowResource)) {
 			throw new IllegalArgumentException("Tinyflow resource type is invalid");
 		}
-		String content = ((TinyflowResource) entity).getContent();
+		TinyflowResource resource = (TinyflowResource) entity;
+		String content = resource.getContent();
 		if (content == null) {
 			throw new IllegalArgumentException("Tinyflow workflow content must not be null");
 		}
-		return content.getBytes(StandardCharsets.UTF_8);
+		JSONObject workflow = JSON.parseObject(content);
+		if (workflow == null) {
+			throw new IllegalArgumentException("Tinyflow workflow content must be a JSON object");
+		}
+		workflow.remove(CONTENT);
+		workflow.remove(SCRIPT);
+		workflow.put(ID, resource.getId());
+		workflow.put(NAME, resource.getName());
+		workflow.put(GROUP_ID, resource.getGroupId());
+		workflow.put(PATH, resource.getPath());
+		return workflow.toJSONString().getBytes(StandardCharsets.UTF_8);
 	}
 
 	@Override
 	public TinyflowResource readResource(Resource resource) {
-		return read(resource.read());
+		TinyflowResource result = read(resource.read());
+		String resourceName = stripSuffix(resource.name());
+		if (isBlank(result.getName())) {
+			result.setName(resourceName);
+		}
+		if (isBlank(result.getId())) {
+			result.setId(resourceName);
+		}
+		if (isBlank(result.getGroupId())) {
+			result.setGroupId(FOLDER + ":0");
+		}
+		if (isBlank(result.getPath())) {
+			result.setPath(resourceName);
+		}
+		return result;
 	}
 
 	@Override
@@ -102,5 +142,35 @@ public final class TinyflowMagicResourceStorage implements MagicResourceStorage<
 
 	private boolean isBlank(String value) {
 		return value == null || value.trim().length() == 0;
+	}
+
+	private TinyflowResource transportResource(JSONObject object) {
+		TinyflowResource resource = metadata(object);
+		String content = object.getString(CONTENT);
+		resource.setContent(content == null ? object.getString(SCRIPT) : content);
+		return resource;
+	}
+
+	private TinyflowResource physicalResource(JSONObject object) {
+		TinyflowResource resource = metadata(object);
+		object.remove(ID);
+		object.remove(NAME);
+		object.remove(GROUP_ID);
+		object.remove(PATH);
+		resource.setContent(object.toJSONString());
+		return resource;
+	}
+
+	private TinyflowResource metadata(JSONObject object) {
+		TinyflowResource resource = new TinyflowResource();
+		resource.setId(object.getString(ID));
+		resource.setName(object.getString(NAME));
+		resource.setGroupId(object.getString(GROUP_ID));
+		resource.setPath(object.getString(PATH));
+		return resource;
+	}
+
+	private String stripSuffix(String name) {
+		return name != null && name.endsWith(suffix()) ? name.substring(0, name.length() - suffix().length()) : name;
 	}
 }
