@@ -2,7 +2,7 @@
 
 ## 目标
 
-系统应提供一种可选装的 Magic-API Resource 能力，用于保存、动态编译和加载 Java 8 实体源码。实体主要在 Magic-Script 中使用，可为普通 Java Bean，也可选择声明 Lombok、MyBatis-Plus 或 MyBatis-Flex 注解。源码更新成功后无需重启应用即可使用新版本。
+系统应提供一种可选装的 Magic-API Resource 能力，用于保存、动态编译和加载 Java 8 实体源码。实体主要在 Magic-Script 中使用，可为普通 Java Bean，也可选择声明 Lombok、MyBatis-Plus、MyBatis-Flex、Fastjson 或 Jackson 注解。源码更新成功后无需重启应用即可使用新版本。
 
 ## Java 源码 Resource
 
@@ -12,6 +12,7 @@
 - Resource 名称应与顶级公开类简单名一致；重复全限定类名、重复简单名别名、多个顶级公开类或名称不一致时应拒绝候选版本。
 - 普通 Java Bean 可以直接编译和发布，不要求 ORM 注解、Lombok 注解、接口或框架基类。
 - 源码可选择引用 MyBatis-Plus `@TableName`、`@TableId`、`@TableField` 和 MyBatis-Flex `@Table`、`@Id`、`@Column` 等当前项目版本提供的注解。
+- 源码可选择引用 Fastjson 1.x、Fastjson2 和 Jackson 当前项目版本提供的序列化注解。
 - 第一版不从数据库元数据生成源码，用户直接维护 Resource 中的 Java 源码。
 
 ## Lombok 注解处理
@@ -36,6 +37,16 @@
 - 当前注册表不得保留已退休代际的强引用；旧代际在不存在外部实例、请求或第三方缓存引用后应可被回收。
 - 系统应限制单个源码大小、单次代际源码总量、编译时长、诊断输出长度和并发编译数量。
 
+## JSON 注解兼容
+
+- 动态编译 classpath 应包含项目依赖管理中的 Fastjson 1.x、Fastjson2 和 Jackson 注解包。
+- Fastjson 1.x 应支持 `com.alibaba.fastjson.annotation.JSONField`、`JSONType` 等运行时注解。
+- Fastjson2 应支持 `com.alibaba.fastjson2.annotation.JSONField`、`JSONType` 等运行时注解。
+- Jackson 应支持 `com.fasterxml.jackson.annotation.JsonProperty`、`JsonIgnore`、`JsonFormat`、`JsonAlias`、`JsonInclude` 等运行时注解。
+- 当 Jackson databind 注解依赖可见时，源码可使用 `JsonSerialize` 和 `JsonDeserialize`；插件不得自行实例化用户声明的自定义序列化器执行不受控校验。
+- JSON 注解不需要 Java annotation processor，编译器应保留注解及其属性供对应序列化器运行时读取。
+- 测试应使用项目当前 Fastjson 1.x、Fastjson2 和 Jackson 序列化器验证字段重命名及忽略行为，而不只验证注解类可加载。
+
 ## 实体注册表
 
 - 注册表应以全限定类名作为稳定主键，记录 Resource 标识、源码摘要、代际版本和当前 `Class<?>`。
@@ -58,7 +69,7 @@
 ## ORM 兼容边界
 
 - 动态编译 classpath 应允许源码引用项目当前版本的 MyBatis-Plus 和 MyBatis-Flex 注解。
-- 普通实体、仅 MP 注解实体、仅 Flex 注解实体和双注解实体均可发布。
+- 普通实体、仅 MP 注解实体、仅 Flex 注解实体、双 ORM 注解实体和带 JSON 注解的实体均可发布。
 - 首期不要求存在表名、主键或字段注解，也不比较两套 ORM 映射是否一致。
 - 首期不调用 MyBatis-Plus `TableInfoHelper` 或 MyBatis-Flex `TableInfoFactory` 预热元数据，避免将已退休 ClassLoader 固定在 ORM 静态缓存中。
 - 首期不生成 Mapper、不注册实体专属 Mapper、不修改静态 Mapper，也不实现 CRUD、分页、Join 或 MP-Join。
@@ -93,6 +104,7 @@
 - 给定包含 Lombok `@Data` 和 `@NoArgsConstructor` 的源码，编译后 getter、setter 和无参构造器真实可用。
 - 给定包含 Lombok `@Builder` 的源码，生成的 builder 类型和方法可通过真实 Class 访问。
 - 给定仅使用 MP 注解、仅使用 Flex 注解或同时使用两套注解的源码，均可编译并通过 `javaClass()` 取得真实类型。
+- 给定 Fastjson 1.x、Fastjson2 或 Jackson 字段重命名和忽略注解，对应序列化器输出符合注解定义。
 - 给定两个互相引用的动态实体，它们在同一代际中编译并可互相解析。
 - 给定存在语法或 Lombok 错误的更新源码，系统返回带行列信息的诊断，旧版本继续可用。
 - 给定成功修改字段、方法或注解的源码，新访问的描述器使用新 Class，已开始调用中的旧描述器仍可完成。
