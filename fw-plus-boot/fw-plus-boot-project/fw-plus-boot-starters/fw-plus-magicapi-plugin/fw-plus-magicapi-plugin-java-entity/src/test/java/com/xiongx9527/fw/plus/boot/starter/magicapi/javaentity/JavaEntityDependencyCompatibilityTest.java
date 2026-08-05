@@ -9,6 +9,7 @@ class JavaEntityDependencyCompatibilityTest {
     @Test
     void pluginClasspathContainsSupportedEntityAnnotations() {
         assertDoesNotThrow(() -> Class.forName("lombok.Data"));
+        assertDoesNotThrow(() -> Class.forName("lombok.launch.AnnotationProcessorHider$AnnotationProcessor"));
         assertDoesNotThrow(() -> Class.forName("com.baomidou.mybatisplus.annotation.TableName"));
         assertDoesNotThrow(() -> Class.forName("com.mybatisflex.annotation.Table"));
         assertDoesNotThrow(() -> Class.forName("com.alibaba.fastjson.annotation.JSONField"));
