@@ -16,16 +16,23 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class DefaultTinyflowService implements TinyflowService {
+
+	private static final int WORKFLOW_LOCK_COUNT = 64;
 
 	private final TinyflowWorkflowValidator validator;
 	private final TinyflowWorkflowRepository workflowRepository;
 	private final InMemoryChainDefinitionRepository definitionRepository;
 	private final ChainExecutor chainExecutor;
 	private final Duration executionTimeout;
+	private final Set<String> knownInstanceIds = Collections.newSetFromMap(
+			new ConcurrentHashMap<String, Boolean>());
+	private final Object[] workflowLocks = createWorkflowLocks();
 
 	public DefaultTinyflowService(TinyflowWorkflowValidator validator,
 			TinyflowWorkflowRepository workflowRepository,
@@ -54,20 +61,26 @@ public class DefaultTinyflowService implements TinyflowService {
 	}
 
 	@Override
+	public void validate(TinyflowWorkflow workflow) {
+		validateDefinition(workflow);
+	}
+
+	@Override
 	public void register(TinyflowWorkflow workflow) {
-		if (workflow == null) {
-			throw new IllegalArgumentException("workflow must not be null");
+		ChainDefinition definition = validateDefinition(workflow);
+		synchronized (workflowLock(workflow.getId())) {
+			workflowRepository.save(workflow);
+			definitionRepository.register(definition);
 		}
-		ChainDefinition definition = validator.validate(workflow.getId(), workflow.getJson());
-		workflowRepository.save(workflow);
-		definitionRepository.register(definition);
 	}
 
 	@Override
 	public void remove(String workflowId) {
 		String normalizedId = requireId(workflowId, "workflowId");
-		workflowRepository.delete(normalizedId);
-		definitionRepository.remove(normalizedId);
+		synchronized (workflowLock(normalizedId)) {
+			workflowRepository.delete(normalizedId);
+			definitionRepository.remove(normalizedId);
+		}
 	}
 
 	@Override
@@ -91,7 +104,9 @@ public class DefaultTinyflowService implements TinyflowService {
 		TinyflowExecutionRequest request = request(workflowId, variables);
 		requireWorkflow(request.getTargetId());
 		try {
-			return new TinyflowAsyncResult(chainExecutor.executeAsync(request.getTargetId(), request.getVariables()));
+			String instanceId = chainExecutor.executeAsync(request.getTargetId(), request.getVariables());
+			knownInstanceIds.add(instanceId);
+			return new TinyflowAsyncResult(instanceId);
 		} catch (RuntimeException error) {
 			throw executionFailure("workflow", request.getTargetId(), error);
 		}
@@ -133,6 +148,13 @@ public class DefaultTinyflowService implements TinyflowService {
 		}
 	}
 
+	private ChainDefinition validateDefinition(TinyflowWorkflow workflow) {
+		if (workflow == null) {
+			throw new IllegalArgumentException("workflow must not be null");
+		}
+		return validator.validate(workflow.getId(), workflow.getJson());
+	}
+
 	private void requireWorkflow(String workflowId) {
 		if (workflowRepository.findById(workflowId) == null
 				|| definitionRepository.getChainDefinitionById(workflowId) == null) {
@@ -141,6 +163,9 @@ public class DefaultTinyflowService implements TinyflowService {
 	}
 
 	private void requireExecutionState(String instanceId) {
+		if (!knownInstanceIds.contains(instanceId)) {
+			throw new TinyflowException("Tinyflow execution instance not found: " + instanceId);
+		}
 		ChainState state = chainExecutor.getChainStateRepository().load(instanceId);
 		if (state == null || state.getChainDefinitionId() == null
 				|| state.getChainDefinitionId().trim().length() == 0) {
@@ -153,6 +178,7 @@ public class DefaultTinyflowService implements TinyflowService {
 	}
 
 	private TinyflowExecutionResult suspended(ChainSuspendException error) {
+		knownInstanceIds.add(error.getChainStateId());
 		return new TinyflowExecutionResult(error.getChainStateId(), Collections.<String, Object>emptyMap(), true);
 	}
 
@@ -205,5 +231,17 @@ public class DefaultTinyflowService implements TinyflowService {
 			throw new TinyflowException(fieldName + " must not be blank");
 		}
 		return id.trim();
+	}
+
+	private Object workflowLock(String workflowId) {
+		return workflowLocks[workflowId.hashCode() & (workflowLocks.length - 1)];
+	}
+
+	private static Object[] createWorkflowLocks() {
+		Object[] locks = new Object[WORKFLOW_LOCK_COUNT];
+		for (int index = 0; index < locks.length; index++) {
+			locks[index] = new Object();
+		}
+		return locks;
 	}
 }
