@@ -67,6 +67,56 @@ public class TinyflowWorkflowValidatorTest {
 	}
 
 	@Test
+	public void shouldRejectDuplicateNodeIds() {
+		String json = "{\"nodes\":["
+				+ "{\"id\":\"duplicate\",\"type\":\"startNode\"},"
+				+ "{\"id\":\"duplicate\",\"type\":\"endNode\"}],"
+				+ "\"edges\":[{\"id\":\"e1\",\"source\":\"duplicate\",\"target\":\"duplicate\"}]}";
+
+		TinyflowException error = assertThrows(TinyflowException.class,
+				() -> validator.validate("customer/duplicate", json));
+
+		assertTrue(error.getMessage().contains("customer/duplicate"));
+		assertTrue(error.getMessage().contains("duplicate"));
+	}
+
+	@Test
+	public void shouldRejectEdgeWhoseSourceNodeDoesNotExist() {
+		String json = "{\"nodes\":["
+				+ "{\"id\":\"start\",\"type\":\"startNode\"},"
+				+ "{\"id\":\"end\",\"type\":\"endNode\"}],"
+				+ "\"edges\":["
+				+ "{\"id\":\"valid\",\"source\":\"start\",\"target\":\"end\"},"
+				+ "{\"id\":\"dangling\",\"source\":\"missing\",\"target\":\"end\"}]}";
+
+		TinyflowException error = assertThrows(TinyflowException.class,
+				() -> validator.validate("customer/missing-source", json));
+
+		assertTrue(error.getMessage().contains("customer/missing-source"));
+		assertTrue(error.getMessage().contains("dangling"));
+		assertTrue(error.getMessage().contains("source"));
+		assertTrue(error.getMessage().contains("missing"));
+	}
+
+	@Test
+	public void shouldRejectEdgeWhoseTargetNodeDoesNotExist() {
+		String json = "{\"nodes\":["
+				+ "{\"id\":\"start\",\"type\":\"startNode\"},"
+				+ "{\"id\":\"end\",\"type\":\"endNode\"}],"
+				+ "\"edges\":["
+				+ "{\"id\":\"valid\",\"source\":\"start\",\"target\":\"end\"},"
+				+ "{\"id\":\"dangling\",\"source\":\"start\",\"target\":\"missing\"}]}";
+
+		TinyflowException error = assertThrows(TinyflowException.class,
+				() -> validator.validate("customer/missing-target", json));
+
+		assertTrue(error.getMessage().contains("customer/missing-target"));
+		assertTrue(error.getMessage().contains("dangling"));
+		assertTrue(error.getMessage().contains("target"));
+		assertTrue(error.getMessage().contains("missing"));
+	}
+
+	@Test
 	public void shouldReturnParsedDefinitionUsingResourceId() {
 		String json = "{\"nodes\":["
 				+ "{\"id\":\"start\",\"type\":\"startNode\"},"
