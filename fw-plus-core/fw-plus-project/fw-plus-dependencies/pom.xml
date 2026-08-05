@@ -192,6 +192,7 @@
         <!--jakarta版本号-->
         <jakarta.version>6.0.0</jakarta.version>
 		<langchain4j.version>0.35.0</langchain4j.version>
+        <tinyflow.version>2.0.7</tinyflow.version>
         <jedis.version>5.0.0</jedis.version>
         <datastax-java-driver.version>4.17.0</datastax-java-driver.version>
         <infinispan.version>13.0.22.Final</infinispan.version>
@@ -263,6 +264,11 @@
                 <version>${langchain4j.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>dev.tinyflow</groupId>
+                <artifactId>tinyflow-core</artifactId>
+                <version>${tinyflow.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.datastax.oss</groupId>
@@ -1236,6 +1242,21 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-store-embedding</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-tinyflow-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-tinyflow-local</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-tinyflow-dify</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
