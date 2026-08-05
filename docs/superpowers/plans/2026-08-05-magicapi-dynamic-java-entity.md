@@ -240,7 +240,7 @@
 
 **Interfaces:**
 - Consumes: `DynamicEntityRegistry#resolve(String)`.
-- Produces: `@MagicModule("entity") EntityModule implements DynamicAttribute<EntityModule, DynamicEntityDescriptor>, DynamicModule<EntityModule>`; descriptor methods `name()`, `version()`, `javaClass()`, `create()`, `create(Map<String,Object>)`.
+- Produces: `@MagicModule("entity") EntityModule implements DynamicAttribute<DynamicEntityDescriptor, EntityModule>, DynamicModule<EntityModule>`; descriptor methods `name()`, `version()`, `javaClass()`, `create()`, `create(Map<String,Object>)`.
 
 - [ ] **Step 1: Write failing descriptor creation tests**
 
