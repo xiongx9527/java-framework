@@ -26,14 +26,14 @@ public class DefaultTinyflowService implements TinyflowService {
 
 	private final TinyflowWorkflowValidator validator;
 	private final TinyflowWorkflowRepository workflowRepository;
-	private final InMemoryChainDefinitionRepository definitionRepository;
+	private final TinyflowChainDefinitionRepository definitionRepository;
 	private final ChainExecutor chainExecutor;
 	private final Duration executionTimeout;
 	private final Object[] workflowLocks = createWorkflowLocks();
 
 	public DefaultTinyflowService(TinyflowWorkflowValidator validator,
 			TinyflowWorkflowRepository workflowRepository,
-			InMemoryChainDefinitionRepository definitionRepository,
+			TinyflowChainDefinitionRepository definitionRepository,
 			ChainExecutor chainExecutor, Duration executionTimeout) {
 		if (validator == null) {
 			throw new IllegalArgumentException("validator must not be null");

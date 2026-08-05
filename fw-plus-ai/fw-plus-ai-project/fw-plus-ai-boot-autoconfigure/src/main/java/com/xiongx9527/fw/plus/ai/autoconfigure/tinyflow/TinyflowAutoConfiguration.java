@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.DefaultTinyflowService;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.InMemoryChainDefinitionRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.InMemoryTinyflowChainStateRepository;
+import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowChainDefinitionRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowChainStateRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowService;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
@@ -44,8 +45,8 @@ public class TinyflowAutoConfiguration {
 	}
 
 	@Bean
-	@ConditionalOnMissingBean
-	public InMemoryChainDefinitionRepository tinyflowChainDefinitionRepository() {
+	@ConditionalOnMissingBean(TinyflowChainDefinitionRepository.class)
+	public TinyflowChainDefinitionRepository tinyflowChainDefinitionRepository() {
 		return new InMemoryChainDefinitionRepository();
 	}
 
@@ -63,7 +64,7 @@ public class TinyflowAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public ChainExecutor tinyflowChainExecutor(InMemoryChainDefinitionRepository definitionRepository,
+	public ChainExecutor tinyflowChainExecutor(TinyflowChainDefinitionRepository definitionRepository,
 			TinyflowChainStateRepository stateRepository, NodeStateRepository nodeStateRepository) {
 		return new ChainExecutor(definitionRepository, stateRepository, nodeStateRepository);
 	}
@@ -77,7 +78,7 @@ public class TinyflowAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	public TinyflowService tinyflowService(TinyflowWorkflowValidator validator,
-			TinyflowWorkflowRepository workflowRepository, InMemoryChainDefinitionRepository definitionRepository,
+			TinyflowWorkflowRepository workflowRepository, TinyflowChainDefinitionRepository definitionRepository,
 			ChainExecutor chainExecutor, TinyflowProperties properties) {
 		return new DefaultTinyflowService(validator, workflowRepository, definitionRepository, chainExecutor,
 				properties.getExecutionTimeout());
@@ -101,8 +102,9 @@ public class TinyflowAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean(LlmProvider.class)
 	@org.springframework.boot.autoconfigure.condition.ConditionalOnBean(TinyflowModelProvider.class)
+	@ConditionalOnClass(name = "dev.tinyflow." + "lang" + "chain4j.provider.Langchain4jLlm")
 	public LlmProvider tinyflowLlmProvider(TinyflowModelProvider modelProvider) {
-		return new LangChain4jTinyflowLlmProvider(modelProvider);
+		return RegistryTinyflowLlmProvider.create(modelProvider);
 	}
 
 	@Bean

@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.tinyflow;
 
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
 import dev.tinyflow.core.llm.Llm;
@@ -15,7 +15,7 @@ public class LangChain4jTinyflowLlmProvider implements LlmProvider {
 
 	@Override
 	public Llm getChatModel(Object key) {
-		if (!(key instanceof String)) {
+		if (key != null && !(key instanceof String)) {
 			return null;
 		}
 		return new Langchain4jLlm(modelProvider.getChatModel((String) key));
