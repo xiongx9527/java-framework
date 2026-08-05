@@ -1,9 +1,7 @@
 import { Tinyflow } from '@tinyflow-ai/ui';
 import '@tinyflow-ai/ui/dist/index.css';
-import { createTinyflowHost } from './tinyflow-host.js';
+import { createTinyflowMount } from './tinyflow-host.js';
 
 window.FwPlusTinyflowUi = {
-	mount(options) {
-		return createTinyflowHost({ Tinyflow, ...options });
-	}
+	mount: createTinyflowMount(Tinyflow)
 };

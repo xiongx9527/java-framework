@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="../dist/tinyflow-ui.css">
+	<style>
+		html, body { height: 100%; margin: 0; }
+		#smoke-root { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; height: 100%; padding: 16px; box-sizing: border-box; }
+		.tinyflow-host { min-width: 320px; min-height: 320px; border: 1px solid #64748b; }
+	</style>
+</head>
+<body>
+	<div id="smoke-root">
+		<div id="first-host" class="tinyflow-host"></div>
+		<div id="second-host" class="tinyflow-host"></div>
+	</div>
+	<script src="../dist/tinyflow-ui.js"></script>
+	<script>
+		const firstHost = document.getElementById('first-host');
+		const secondHost = document.getElementById('second-host');
+		const first = window.FwPlusTinyflowUi.mount({
+			element: firstHost,
+			data: { nodes: [{ id: 'first', position: { x: 48, y: 48 }, data: { label: 'First' } }], edges: [] }
+		});
+		const second = window.FwPlusTinyflowUi.mount({
+			element: secondHost,
+			data: { nodes: [{ id: 'second', position: { x: 72, y: 72 }, data: { label: 'Second' } }], edges: [] }
+		});
+
+		requestAnimationFrame(() => requestAnimationFrame(() => {
+			const beforeDestroy = secondHost.querySelector('svg') !== null;
+			first.destroy();
+			requestAnimationFrame(() => {
+				window.tinyflowSmoke = {
+					firstDestroyed: firstHost.childElementCount === 0,
+					secondCanvasPresent: beforeDestroy && secondHost.querySelector('svg') !== null,
+					secondHeight: secondHost.getBoundingClientRect().height,
+					secondWidth: secondHost.getBoundingClientRect().width,
+					secondNodeCount: second.getData().nodes.length
+				};
+			});
+		}));
+	</script>
+</body>
+</html>
