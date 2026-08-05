@@ -24,3 +24,9 @@ export function createTinyflowHost(options) {
 		}
 	};
 }
+
+export function createTinyflowMount(OfficialTinyflow) {
+	return function mount(options) {
+		return createTinyflowHost({ ...options, Tinyflow: OfficialTinyflow });
+	};
+}
