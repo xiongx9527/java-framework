@@ -99,21 +99,31 @@ public final class TinyflowWorkflowValidator {
 	}
 
 	private void validateStartToEndPath(String resourceId, ChainDefinition definition) {
+		Set<String> nodeIds = new HashSet<String>();
 		Set<String> endIds = new HashSet<String>();
 		Queue<String> pending = new ArrayDeque<String>();
 		for (Node node : safe(definition.getNodes())) {
+			String nodeId = node.getId();
+			if (!nodeIds.add(nodeId)) {
+				throw invalid(resourceId, "duplicate node id " + nodeId);
+			}
 			if (node instanceof StartNode && node.getId() != null) {
-				pending.add(node.getId());
+				pending.add(nodeId);
 			}
 			if (node instanceof EndNode && node.getId() != null) {
-				endIds.add(node.getId());
+				endIds.add(nodeId);
 			}
 		}
 
 		Map<String, List<String>> targetsBySource = new HashMap<String, List<String>>();
 		for (Edge edge : safe(definition.getEdges())) {
-			if (edge.getSource() == null || edge.getTarget() == null) {
-				continue;
+			if (!nodeIds.contains(edge.getSource())) {
+				throw invalid(resourceId, "edge " + edge.getId() + " source node does not exist: "
+						+ edge.getSource());
+			}
+			if (!nodeIds.contains(edge.getTarget())) {
+				throw invalid(resourceId, "edge " + edge.getId() + " target node does not exist: "
+						+ edge.getTarget());
 			}
 			List<String> targets = targetsBySource.get(edge.getSource());
 			if (targets == null) {
