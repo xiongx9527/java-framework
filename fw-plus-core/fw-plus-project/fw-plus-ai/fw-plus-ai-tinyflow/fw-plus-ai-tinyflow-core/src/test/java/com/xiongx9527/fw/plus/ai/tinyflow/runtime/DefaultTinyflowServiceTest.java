@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.TinyflowException;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.InMemoryTinyflowWorkflowRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowExecutionResult;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflow;
+import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflowRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflowValidator;
 import dev.tinyflow.core.chain.Chain;
 import dev.tinyflow.core.chain.ChainConsts;
@@ -20,11 +21,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -90,6 +94,18 @@ public class DefaultTinyflowServiceTest {
 	public void tearDown() {
 		blockingGate.countDown();
 		Thread.interrupted();
+	}
+
+	@Test
+	public void shouldValidateWorkflowWithoutRegisteringOrReplacingIt() {
+		TinyflowWorkflow registered = workflow("flow-validate", SIMPLE_WORKFLOW);
+		service.register(registered);
+		Object registeredDefinition = definitionRepository.getChainDefinitionById("flow-validate");
+
+		service.validate(workflow("flow-validate", SUSPENDING_WORKFLOW));
+
+		assertSame(registered, workflowRepository.findById("flow-validate"));
+		assertSame(registeredDefinition, definitionRepository.getChainDefinitionById("flow-validate"));
 	}
 
 	@Test
@@ -171,6 +187,30 @@ public class DefaultTinyflowServiceTest {
 	}
 
 	@Test
+	public void shouldRejectUnknownResumeWithoutCreatingState() throws Exception {
+		String instanceId = "unknown-sync-" + System.nanoTime();
+		Map<String, ChainState> states = chainStateMap();
+		states.remove(instanceId);
+
+		assertThrows(TinyflowException.class,
+				() -> service.resume(instanceId, Collections.<String, Object>emptyMap()));
+
+		assertFalse(states.containsKey(instanceId));
+	}
+
+	@Test
+	public void shouldRejectUnknownAsyncResumeWithoutCreatingState() throws Exception {
+		String instanceId = "unknown-async-" + System.nanoTime();
+		Map<String, ChainState> states = chainStateMap();
+		states.remove(instanceId);
+
+		assertThrows(TinyflowException.class,
+				() -> service.resumeAsync(instanceId, Collections.<String, Object>emptyMap()));
+
+		assertFalse(states.containsKey(instanceId));
+	}
+
+	@Test
 	public void shouldRejectMissingWorkflowAndRemovedWorkflow() {
 		TinyflowException missing = assertThrows(TinyflowException.class,
 				() -> service.execute("missing-flow", Collections.<String, Object>emptyMap()));
@@ -203,8 +243,77 @@ public class DefaultTinyflowServiceTest {
 		assertEquals("Hello Still valid", result.getOutputs().get("greeting"));
 	}
 
+	@Test
+	public void shouldKeepRepositoriesConsistentWhenRegisterAndRemoveOverlap() throws Exception {
+		BlockingWorkflowRepository workflows = new BlockingWorkflowRepository();
+		InMemoryChainDefinitionRepository definitions = new InMemoryChainDefinitionRepository();
+		TinyflowService concurrentService = service(workflows, definitions);
+		AtomicReference<Throwable> failure = new AtomicReference<Throwable>();
+
+		Thread register = runAsync(failure,
+				() -> concurrentService.register(workflow("flow-race-remove", SIMPLE_WORKFLOW)));
+		assertTrue(workflows.awaitFirstSave());
+		Thread remove = runAsync(failure, () -> concurrentService.remove("flow-race-remove"));
+		workflows.awaitDeleteCompleted();
+		workflows.releaseFirstSave();
+		join(register);
+		join(remove);
+
+		assertNull(failure.get());
+		assertNull(workflows.findById("flow-race-remove"));
+		assertNull(definitions.getChainDefinitionById("flow-race-remove"));
+	}
+
+	@Test
+	public void shouldKeepLatestWorkflowAndDefinitionTogetherWhenRegistersOverlap() throws Exception {
+		BlockingWorkflowRepository workflows = new BlockingWorkflowRepository();
+		InMemoryChainDefinitionRepository definitions = new InMemoryChainDefinitionRepository();
+		TinyflowService concurrentService = service(workflows, definitions);
+		AtomicReference<Throwable> failure = new AtomicReference<Throwable>();
+		TinyflowWorkflow first = workflow("flow-race-register", SIMPLE_WORKFLOW);
+		TinyflowWorkflow second = workflow("flow-race-register", SUSPENDING_WORKFLOW);
+
+		Thread firstRegister = runAsync(failure, () -> concurrentService.register(first));
+		assertTrue(workflows.awaitFirstSave());
+		Thread secondRegister = runAsync(failure, () -> concurrentService.register(second));
+		workflows.awaitSecondSave();
+		workflows.releaseFirstSave();
+		join(firstRegister);
+		join(secondRegister);
+
+		assertNull(failure.get());
+		assertSame(second, workflows.findById("flow-race-register"));
+		TinyflowExecutionResult result = concurrentService.execute("flow-race-register",
+				Collections.<String, Object>emptyMap());
+		assertTrue(result.isSuspended());
+	}
+
 	private TinyflowWorkflow workflow(String id, String json) {
 		return new TinyflowWorkflow(id, "test/" + id, id, json);
+	}
+
+	private TinyflowService service(TinyflowWorkflowRepository workflows,
+			InMemoryChainDefinitionRepository definitions) {
+		ChainExecutor executor = new ChainExecutor(definitions, new InMemoryChainStateRepository(),
+				new InMemoryNodeStateRepository());
+		return new DefaultTinyflowService(validator, workflows, definitions, executor, Duration.ofSeconds(2));
+	}
+
+	private Thread runAsync(AtomicReference<Throwable> failure, Runnable action) {
+		Thread thread = new Thread(() -> {
+			try {
+				action.run();
+			} catch (Throwable error) {
+				failure.compareAndSet(null, error);
+			}
+		}, "tinyflow-service-test");
+		thread.start();
+		return thread;
+	}
+
+	private void join(Thread thread) throws InterruptedException {
+		thread.join(TimeUnit.SECONDS.toMillis(3));
+		assertFalse(thread.isAlive());
 	}
 
 	private void awaitStatus(String instanceId, ChainStatus expected) throws Exception {
@@ -218,6 +327,65 @@ public class DefaultTinyflowServiceTest {
 			Thread.sleep(10L);
 		}
 		assertEquals(expected, actual);
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, ChainState> chainStateMap() throws Exception {
+		Field field = InMemoryChainStateRepository.class.getDeclaredField("chainStateMap");
+		field.setAccessible(true);
+		return (Map<String, ChainState>) field.get(null);
+	}
+
+	private static final class BlockingWorkflowRepository extends InMemoryTinyflowWorkflowRepository {
+
+		private final AtomicInteger saveCount = new AtomicInteger();
+		private final CountDownLatch firstSaveStored = new CountDownLatch(1);
+		private final CountDownLatch secondSaveStored = new CountDownLatch(1);
+		private final CountDownLatch releaseFirstSave = new CountDownLatch(1);
+		private final CountDownLatch deleteCompleted = new CountDownLatch(1);
+
+		@Override
+		public void save(TinyflowWorkflow workflow) {
+			int invocation = saveCount.incrementAndGet();
+			super.save(workflow);
+			if (invocation == 1) {
+				firstSaveStored.countDown();
+				await(releaseFirstSave);
+			} else if (invocation == 2) {
+				secondSaveStored.countDown();
+			}
+		}
+
+		@Override
+		public void delete(String id) {
+			super.delete(id);
+			deleteCompleted.countDown();
+		}
+
+		private boolean awaitFirstSave() throws InterruptedException {
+			return firstSaveStored.await(2, TimeUnit.SECONDS);
+		}
+
+		private void awaitSecondSave() throws InterruptedException {
+			secondSaveStored.await(1, TimeUnit.SECONDS);
+		}
+
+		private void awaitDeleteCompleted() throws InterruptedException {
+			deleteCompleted.await(1, TimeUnit.SECONDS);
+		}
+
+		private void releaseFirstSave() {
+			releaseFirstSave.countDown();
+		}
+
+		private void await(CountDownLatch latch) {
+			try {
+				latch.await(3, TimeUnit.SECONDS);
+			} catch (InterruptedException error) {
+				Thread.currentThread().interrupt();
+				throw new AssertionError("Interrupted while controlling repository interleaving", error);
+			}
+		}
 	}
 
 	private static final class BlockingNodeParser extends BaseNodeParser<BlockingNode> {
