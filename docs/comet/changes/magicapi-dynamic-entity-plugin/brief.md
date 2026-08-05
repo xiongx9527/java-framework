@@ -65,7 +65,7 @@
 
 # Open questions
 
-无阻塞问题。
+无阻塞问题。用户已于 2026-08-05 确认按当前完整规格进入实现。
 
 # Verification expectations
 
