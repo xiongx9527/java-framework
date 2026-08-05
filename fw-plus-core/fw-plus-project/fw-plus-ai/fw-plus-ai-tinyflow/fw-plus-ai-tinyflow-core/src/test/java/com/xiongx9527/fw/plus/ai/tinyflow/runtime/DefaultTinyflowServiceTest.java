@@ -11,7 +11,8 @@ import dev.tinyflow.core.chain.Chain;
 import dev.tinyflow.core.chain.ChainConsts;
 import dev.tinyflow.core.chain.ChainState;
 import dev.tinyflow.core.chain.ChainStatus;
-import dev.tinyflow.core.chain.repository.InMemoryChainStateRepository;
+import dev.tinyflow.core.chain.repository.ChainStateField;
+import dev.tinyflow.core.chain.repository.ChainStateRepository;
 import dev.tinyflow.core.chain.repository.InMemoryNodeStateRepository;
 import dev.tinyflow.core.chain.runtime.ChainExecutor;
 import dev.tinyflow.core.node.BaseNode;
@@ -21,10 +22,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -69,7 +71,7 @@ public class DefaultTinyflowServiceTest {
 	private CountDownLatch blockingGate;
 	private InMemoryTinyflowWorkflowRepository workflowRepository;
 	private InMemoryChainDefinitionRepository definitionRepository;
-	private InMemoryChainStateRepository stateRepository;
+	private InMemoryTinyflowChainStateRepository stateRepository;
 	private ChainExecutor chainExecutor;
 	private TinyflowWorkflowValidator validator;
 	private TinyflowService service;
@@ -83,7 +85,7 @@ public class DefaultTinyflowServiceTest {
 		validator = new TinyflowWorkflowValidator(parser);
 		workflowRepository = new InMemoryTinyflowWorkflowRepository();
 		definitionRepository = new InMemoryChainDefinitionRepository();
-		stateRepository = new InMemoryChainStateRepository();
+		stateRepository = new InMemoryTinyflowChainStateRepository();
 		chainExecutor = new ChainExecutor(definitionRepository, stateRepository,
 				new InMemoryNodeStateRepository());
 		service = new DefaultTinyflowService(validator, workflowRepository, definitionRepository,
@@ -163,6 +165,29 @@ public class DefaultTinyflowServiceTest {
 	}
 
 	@Test
+	public void shouldResumeStateStoredBeforeServiceWasCreated() throws Exception {
+		PersistentChainStateRepository persistentStates = new PersistentChainStateRepository();
+		ChainExecutor firstExecutor = new ChainExecutor(definitionRepository, persistentStates,
+				new InMemoryNodeStateRepository());
+		TinyflowService firstService = new DefaultTinyflowService(validator, workflowRepository,
+				definitionRepository, firstExecutor, Duration.ofSeconds(2));
+		firstService.register(workflow("flow-recreated-service", SUSPENDING_WORKFLOW));
+		TinyflowAsyncResult started = firstService.executeAsync("flow-recreated-service",
+				Collections.<String, Object>emptyMap());
+		awaitStatus(persistentStates, started.getInstanceId(), ChainStatus.SUSPEND);
+		ChainExecutor recreatedExecutor = new ChainExecutor(definitionRepository, persistentStates,
+				new InMemoryNodeStateRepository());
+		TinyflowService recreatedService = new DefaultTinyflowService(validator, workflowRepository,
+				definitionRepository, recreatedExecutor, Duration.ofSeconds(2));
+
+		TinyflowExecutionResult resumed = recreatedService.resume(started.getInstanceId(),
+				Collections.<String, Object>singletonMap("confirm__approval", "yes"));
+
+		assertEquals(started.getInstanceId(), resumed.getInstanceId());
+		assertFalse(resumed.isSuspended());
+	}
+
+	@Test
 	public void shouldFailWithStableErrorWhenExecutionTimesOut() {
 		service.register(workflow("slow-flow", BLOCKING_WORKFLOW));
 		TinyflowService shortTimeoutService = new DefaultTinyflowService(validator, workflowRepository,
@@ -189,25 +214,23 @@ public class DefaultTinyflowServiceTest {
 	@Test
 	public void shouldRejectUnknownResumeWithoutCreatingState() throws Exception {
 		String instanceId = "unknown-sync-" + System.nanoTime();
-		Map<String, ChainState> states = chainStateMap();
-		states.remove(instanceId);
+		assertNull(stateRepository.find(instanceId));
 
 		assertThrows(TinyflowException.class,
 				() -> service.resume(instanceId, Collections.<String, Object>emptyMap()));
 
-		assertFalse(states.containsKey(instanceId));
+		assertNull(stateRepository.find(instanceId));
 	}
 
 	@Test
 	public void shouldRejectUnknownAsyncResumeWithoutCreatingState() throws Exception {
 		String instanceId = "unknown-async-" + System.nanoTime();
-		Map<String, ChainState> states = chainStateMap();
-		states.remove(instanceId);
+		assertNull(stateRepository.find(instanceId));
 
 		assertThrows(TinyflowException.class,
 				() -> service.resumeAsync(instanceId, Collections.<String, Object>emptyMap()));
 
-		assertFalse(states.containsKey(instanceId));
+		assertNull(stateRepository.find(instanceId));
 	}
 
 	@Test
@@ -294,7 +317,7 @@ public class DefaultTinyflowServiceTest {
 
 	private TinyflowService service(TinyflowWorkflowRepository workflows,
 			InMemoryChainDefinitionRepository definitions) {
-		ChainExecutor executor = new ChainExecutor(definitions, new InMemoryChainStateRepository(),
+		ChainExecutor executor = new ChainExecutor(definitions, new InMemoryTinyflowChainStateRepository(),
 				new InMemoryNodeStateRepository());
 		return new DefaultTinyflowService(validator, workflows, definitions, executor, Duration.ofSeconds(2));
 	}
@@ -317,23 +340,20 @@ public class DefaultTinyflowServiceTest {
 	}
 
 	private void awaitStatus(String instanceId, ChainStatus expected) throws Exception {
+		awaitStatus(stateRepository, instanceId, expected);
+	}
+
+	private void awaitStatus(ChainStateRepository states, String instanceId, ChainStatus expected) throws Exception {
 		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
 		ChainStatus actual = null;
 		while (System.nanoTime() < deadline) {
-			actual = stateRepository.load(instanceId).getStatus();
+			actual = states.load(instanceId).getStatus();
 			if (actual == expected) {
 				return;
 			}
 			Thread.sleep(10L);
 		}
 		assertEquals(expected, actual);
-	}
-
-	@SuppressWarnings("unchecked")
-	private Map<String, ChainState> chainStateMap() throws Exception {
-		Field field = InMemoryChainStateRepository.class.getDeclaredField("chainStateMap");
-		field.setAccessible(true);
-		return (Map<String, ChainState>) field.get(null);
 	}
 
 	private static final class BlockingWorkflowRepository extends InMemoryTinyflowWorkflowRepository {
@@ -385,6 +405,29 @@ public class DefaultTinyflowServiceTest {
 				Thread.currentThread().interrupt();
 				throw new AssertionError("Interrupted while controlling repository interleaving", error);
 			}
+		}
+	}
+
+	private static final class PersistentChainStateRepository implements ChainStateRepository {
+
+		private final Map<String, ChainState> states = new ConcurrentHashMap<String, ChainState>();
+
+		@Override
+		public ChainState load(String instanceId) {
+			ChainState state = states.get(instanceId);
+			if (state != null) {
+				return state;
+			}
+			ChainState created = new ChainState();
+			created.setInstanceId(instanceId);
+			ChainState existing = states.putIfAbsent(instanceId, created);
+			return existing == null ? created : existing;
+		}
+
+		@Override
+		public boolean tryUpdate(ChainState state, EnumSet<ChainStateField> fields) {
+			states.put(state.getInstanceId(), state);
+			return true;
 		}
 	}
 

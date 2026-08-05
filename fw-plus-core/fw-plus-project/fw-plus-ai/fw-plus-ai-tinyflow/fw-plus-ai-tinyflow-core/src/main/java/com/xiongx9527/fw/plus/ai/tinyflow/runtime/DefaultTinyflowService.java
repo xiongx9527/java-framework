@@ -10,14 +10,13 @@ import dev.tinyflow.core.chain.ChainDefinitionNotFoundException;
 import dev.tinyflow.core.chain.ChainState;
 import dev.tinyflow.core.chain.ChainStateNotFoundException;
 import dev.tinyflow.core.chain.ChainSuspendException;
+import dev.tinyflow.core.chain.repository.ChainStateRepository;
 import dev.tinyflow.core.chain.runtime.ChainExecutor;
 
 import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -30,8 +29,6 @@ public class DefaultTinyflowService implements TinyflowService {
 	private final InMemoryChainDefinitionRepository definitionRepository;
 	private final ChainExecutor chainExecutor;
 	private final Duration executionTimeout;
-	private final Set<String> knownInstanceIds = Collections.newSetFromMap(
-			new ConcurrentHashMap<String, Boolean>());
 	private final Object[] workflowLocks = createWorkflowLocks();
 
 	public DefaultTinyflowService(TinyflowWorkflowValidator validator,
@@ -105,7 +102,6 @@ public class DefaultTinyflowService implements TinyflowService {
 		requireWorkflow(request.getTargetId());
 		try {
 			String instanceId = chainExecutor.executeAsync(request.getTargetId(), request.getVariables());
-			knownInstanceIds.add(instanceId);
 			return new TinyflowAsyncResult(instanceId);
 		} catch (RuntimeException error) {
 			throw executionFailure("workflow", request.getTargetId(), error);
@@ -163,10 +159,10 @@ public class DefaultTinyflowService implements TinyflowService {
 	}
 
 	private void requireExecutionState(String instanceId) {
-		if (!knownInstanceIds.contains(instanceId)) {
-			throw new TinyflowException("Tinyflow execution instance not found: " + instanceId);
-		}
-		ChainState state = chainExecutor.getChainStateRepository().load(instanceId);
+		ChainStateRepository repository = chainExecutor.getChainStateRepository();
+		ChainState state = repository instanceof TinyflowChainStateRepository
+				? ((TinyflowChainStateRepository) repository).find(instanceId)
+				: repository.load(instanceId);
 		if (state == null || state.getChainDefinitionId() == null
 				|| state.getChainDefinitionId().trim().length() == 0) {
 			throw new TinyflowException("Tinyflow execution instance not found: " + instanceId);
@@ -178,7 +174,6 @@ public class DefaultTinyflowService implements TinyflowService {
 	}
 
 	private TinyflowExecutionResult suspended(ChainSuspendException error) {
-		knownInstanceIds.add(error.getChainStateId());
 		return new TinyflowExecutionResult(error.getChainStateId(), Collections.<String, Object>emptyMap(), true);
 	}
 
