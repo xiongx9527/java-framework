@@ -8,6 +8,8 @@ fw-plus 需要在 AI 模块中集成 Tinyflow，并通过 Magic-API 提供工作
 
 Tinyflow UI 使用官方 npm 包 `@tinyflow-ai/ui:1.3.6`。Starter 物理包含 UI 前端工程和构建产物，Magic-API Tinyflow 插件单向依赖 Starter。本次只修改并验证 `dev` 分支，不修改 `springboot2` 或 `springboot3` 工作树。
 
+本设计只定义 Tinyflow 与知识库的集成边界。本地知识库、Dify Provider、Dify External Knowledge API 和管理 UI 的完整设计见 `docs/superpowers/specs/2026-08-05-magicapi-knowledge-base-design.md`。
+
 ## 目标
 
 - 在 Core AI 聚合层新增独立 Tinyflow 模块。
@@ -15,6 +17,10 @@ Tinyflow UI 使用官方 npm 包 `@tinyflow-ai/ui:1.3.6`。Starter 物理包含 
 - 新增完整的 Tinyflow Spring Boot Starter，提供执行引擎、自动配置、扩展 SPI 和 UI 静态资源。
 - 新增 Magic-API Tinyflow 插件，通过 `resource` 保存原生工作流 JSON，通过 `toolbars` 打开全屏设计器。
 - 使用现有 `LangChain4jModelRegistry` 解析 Tinyflow LLM 节点的 `llmId`。
+- 使用现有 Model/Vector 注册中心向工作流设计器提供聊天模型、Embedding 模型和向量库选项。
+- 提供统一知识库 SPI，以及 `fw-plus-local` 和 `dify` 两个 Provider 实现。
+- 提供知识库管理 UI，复用现有 Embedding 模型和向量库完成文档向量化、删除和检索测试。
+- 支持在设计器中输入变量并真实测试已保存工作流，包含挂起和恢复场景。
 - 支持 Tinyflow 节点的后端解析器扩展和前端节点定义扩展。
 - 保持 Java 8、Spring Boot 2.7.18 和 Magic-API 2.2.2 兼容。
 
@@ -25,26 +31,30 @@ Tinyflow UI 使用官方 npm 包 `@tinyflow-ai/ui:1.3.6`。Starter 物理包含 
 - 不升级当前 LangChain4j、Spring Boot 或 Magic-API 版本。
 - 不新增数据库表或独立 Tinyflow 文件存储服务。
 - 不复制 Tinyflow UI 上游源码；UI 从固定 npm 版本构建。
+- 不在 Tinyflow Starter 中重复建设模型或向量数据源 CRUD，继续使用现有 Model/Vector 插件。
 - 不保证所有模型提供商都支持 Tinyflow 节点上的逐请求采样参数。
 - 不在首版提供持久化流程运行状态仓库，默认运行状态保存在内存中。
 
 ## 模块结构
 
-### Core Tinyflow 模块
+### Core Tinyflow 模块族
 
 新增：
 
 ```text
 fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/
+├── fw-plus-ai-tinyflow-core/
+├── fw-plus-ai-tinyflow-local/
+└── fw-plus-ai-tinyflow-dify/
 ```
 
-该模块进入 Core AI 聚合 POM 和 Core BOM，职责包括：
+聚合模块及三个子模块进入 Core AI 聚合 POM 和 Core BOM：
 
-- 依赖 `dev.tinyflow:tinyflow-core:2.0.7`。
-- 依赖现有 LangChain4j adapter/model 契约和 Java 8 兼容的 LangChain4j 0.35.0 核心制品。
-- 提供 Tinyflow 执行门面、定义注册契约、节点 Provider SPI 和稳定异常类型。
-- 提供 `dev.tinyflow.langchain4j.provider.Langchain4jLlm` 同名兼容类。
-- 不依赖 Spring、Magic-API、Servlet 或前端构建工具。
+- `fw-plus-ai-tinyflow-core` 依赖 `dev.tinyflow:tinyflow-core:2.0.7` 和 Java 8 兼容的 LangChain4j 0.35.0 契约，提供执行门面、节点 SPI、知识库 SPI、工作流仓库契约、稳定异常和 `Langchain4jLlm` 同名兼容类。
+- `fw-plus-ai-tinyflow-local` 依赖 core 及现有 `fw-plus-ai-model`、`fw-plus-ai-store-embedding` 契约，实现 Provider key 为 `fw-plus-local` 的本地知识库。
+- `fw-plus-ai-tinyflow-dify` 依赖 core 和现有 `fw-plus-dify`，实现 Provider key 为 `dify` 的知识库适配及 Dify External Knowledge 协议服务。
+
+三个模块均不依赖 Spring、Magic-API、Servlet 或前端构建工具。现有 `fw-plus-dify` 保持通用客户端定位，不反向依赖 Tinyflow。
 
 ### Tinyflow Starter
 
@@ -58,8 +68,10 @@ fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/
 Starter 是应用侧 Tinyflow 的完整入口，职责包括：
 
 - 引入 Core Tinyflow 模块和 AI Boot 自动配置。
+- 引入 local 与 dify Provider 实现，由配置和 Provider 注册表决定实际使用的知识库。
 - 引入项目现有 LangChain4j adapter starter，使 `LangChain4jModelRegistry` 成为默认模型来源。
 - 提供 `ChainParser`、`ChainExecutor`、默认定义仓库、默认状态仓库和 `TinyflowService` Bean。
+- 提供基于 `AiModelRegistry` 和 `AiEmbeddingStoreRegistry` 的默认模型/向量 Provider；业务或插件实现可替换默认 Provider。
 - 收集业务提供的 Tinyflow 节点 Provider 和可覆盖仓库 Bean。
 - 注册并在应用关闭时注销 Tinyflow `LlmManager` 中的 LangChain4j Provider。
 - 在 Starter 自身模块中构建并打包 Tinyflow UI。
@@ -80,7 +92,10 @@ fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/
 ```text
 fw-plus-ai-magicapi-plugin-tinyflow
     -> fw-plus-ai-tinyflow-spring-boot-starter
-        -> fw-plus-ai-tinyflow
+        -> fw-plus-ai-tinyflow-local
+            -> fw-plus-ai-tinyflow-core
+        -> fw-plus-ai-tinyflow-dify
+            -> fw-plus-ai-tinyflow-core
 ```
 
 插件职责包括：
@@ -88,7 +103,9 @@ fw-plus-ai-magicapi-plugin-tinyflow
 - 注册 Magic-API `tinyflow` 资源类型。
 - 注册 MagicScript `tinyflow` 模块。
 - 注册 `toolbars` 全屏设计器入口。
+- 注册 `toolbars` 知识库管理入口，管理界面以 `fw-plus-local` 为主。
 - 提供资源读取、保存、校验、测试运行和模型列表接口。
+- 实现 Starter 定义的模型、向量、知识库和工作流仓库接口，接入现有 Magic-API 动态资源。
 - 加载 Starter JAR 中的 Tinyflow UI JS/CSS，不复制 UI 包。
 
 ## Starter 自动配置
@@ -111,6 +128,39 @@ fw-plus-ai-magicapi-plugin-tinyflow
 自动配置必须使用 `@ConditionalOnClass`、`@ConditionalOnMissingBean` 和总开关保护。Starter 关闭时必须从静态 `LlmManager` 移除当前 Provider，避免测试上下文或应用重启后重复注册。
 
 默认状态仓库只保证单进程生命周期内的异步执行和恢复。需要跨重启恢复时，业务应用通过自定义 Bean 替换流程状态和节点状态仓库；首版不伪装成持久化实现。
+
+## 模型、向量与资源 SPI
+
+Core Tinyflow 模块定义稳定接口，Starter 和 Magic-API 插件通过接口协作，不让 Starter 依赖 Magic-API 的动态数据源类：
+
+- `TinyflowModelProvider`：按能力列出和解析现有聊天模型、Embedding 模型。
+- `TinyflowVectorStoreProvider`：列出和解析现有 `AiEmbeddingStore`。
+- `TinyflowKnowledgeProvider`：统一检索接口，通过 Provider key 路由 `fw-plus-local`、`dify` 和后续实现。
+- `TinyflowKnowledgeManagementProvider`：可选管理接口；当前由 `fw-plus-local` 实现。
+- `TinyflowKnowledgeProviderRegistry`：注册 Provider、校验重复 key 并按 key 解析。
+- `TinyflowKnowledgeRepository`：保存知识库定义、文档、chunk、任务和向量 ID。
+- `TinyflowWorkflowRepository`：按 ID/路径读取和保存 Tinyflow 原生 JSON。
+- `TinyflowDocumentParser`：把支持的文档格式解析为待切片文本。
+
+Starter 提供 `@ConditionalOnMissingBean` 的默认适配：`TinyflowModelProvider` 包装 `AiModelRegistry`，`TinyflowVectorStoreProvider` 包装 `AiEmbeddingStoreRegistry`。默认适配只暴露注册表中真实存在且类型匹配的条目。
+
+Magic-API Tinyflow 插件提供优先实现：
+
+- `MagicApiTinyflowModelProvider` 包装现有 `MagicDynamicModelDataSource`，同时看到 Spring Boot 注册模型和 `model-datasource` 动态模型。
+- `MagicApiTinyflowVectorStoreProvider` 包装现有 `MagicDynamicVectorDataSource`，同时看到 Spring Boot 注册向量库和 `vector-datasource` 动态向量库。
+- `MagicApiTinyflowKnowledgeRepository` 和 `MagicApiTinyflowWorkflowRepository` 包装 `MagicResourceService`。
+
+Magic-API 插件自动配置必须先于 Starter 默认 Provider 生效，或通过显式 Bean 优先级保证插件实现被选中。不得在 Starter 内反向引用 `MagicDynamicModelDataSource`、`MagicDynamicVectorDataSource` 或 `MagicResourceService`。
+
+设计器选项与执行解析使用同一 Provider：
+
+- LLM 节点的 `provider.llm` 只返回现有 CHAT 模型 key。
+- 知识库节点的向量化模型选项只返回现有 EMBEDDING 模型 key。
+- 知识库节点和知识库管理 UI 的向量库选项只返回现有向量库 key。
+- 知识库节点保存 `provider + knowledgeId`，执行端通过同一 `TinyflowKnowledgeProviderRegistry` 解析。
+- Provider 返回 key、名称、类型和 provider 等非敏感信息，不返回密钥或完整连接属性。
+
+这样 UI 中可选择的资源一定能由执行端按相同 key 解析，不存在 Tinyflow 私有模型配置或私有向量连接。
 
 ## LangChain4j 低版本适配
 
@@ -203,6 +253,8 @@ tinyflow.resume(instanceId, variables)
 
 Magic-API 插件通过 `toolbars` 注册 Tinyflow 图标入口。点击后在控制台内打开全屏 Vue 宿主组件，宿主动态加载 Starter 提供的 Tinyflow UI JS/CSS，并通过公开 `Tinyflow` 类挂载画布。
 
+插件同时注册独立的知识库 Toolbar 入口。知识库 UI 与工作流画布使用同一 Starter 前端工程和同一模型、向量、Provider 后端接口，但保持不同路由；知识库页面不嵌套在工作流画布卡片中。
+
 打开资源的数据流：
 
 1. Toolbar 宿主取得当前 Tinyflow 资源 ID。
@@ -242,7 +294,8 @@ Core 定义框架无关的 `TinyflowNodeProvider` SPI，至少提供节点 `type
 4. `TinyflowService` 调用 `ChainExecutor.execute`，传入变量和有限超时。
 5. LLM 节点通过 Tinyflow `LlmManager` 调用项目 LangChain4j Provider。
 6. Provider 按 `llmId` 解析 `ChatLanguageModel` 并返回文本。
-7. 执行结果清理 Tinyflow 内部状态字段后返回 MagicScript。
+7. Knowledge 节点按 `provider + knowledgeId` 解析 `fw-plus-local` 或 `dify`，找不到 Provider 或知识库时明确失败。
+8. 执行结果清理 Tinyflow 内部状态字段后返回 MagicScript。
 
 异步执行返回 Tinyflow 状态实例 ID。`resume` 使用实例 ID 恢复挂起流程。默认内存状态仓库不承诺应用重启后的恢复能力，接口和文档必须明确该边界。
 
@@ -266,6 +319,7 @@ Core 定义框架无关的 `TinyflowNodeProvider` SPI，至少提供节点 `type
 - 验证 `Langchain4jLlm` 的系统消息、文本、图片、空响应和异常转换。
 - 验证模型 key、默认模型、错误模型类型和缺失模型行为。
 - 验证未知节点预检查和自定义 `TinyflowNodeProvider` 覆盖行为。
+- 验证知识库 Provider 注册、`fw-plus-local`/`dify` 路由和缺失知识库错误。
 - 验证依赖树不包含 `tinyflow-support-langchain4j`。
 - 验证运行时只有一个同名 `Langchain4jLlm` 类来源。
 
@@ -286,6 +340,7 @@ Core 定义框架无关的 `TinyflowNodeProvider` SPI，至少提供节点 `type
 - 验证 `tinyflow[path].execute`、`executeAsync` 和 `resume` MagicScript 接口。
 - 验证插件前端元数据同时包含 `resource` 和 `toolbars`，且插件依赖 Starter。
 - 验证模型列表只返回可用聊天模型的非敏感元数据。
+- 验证知识库 Toolbar、资源类型和现有模型/向量资源选择。
 
 ### 前端与浏览器
 
@@ -297,7 +352,7 @@ Core 定义框架无关的 `TinyflowNodeProvider` SPI，至少提供节点 `type
 
 ## 构建与验收顺序
 
-1. 构建并安装 Core AI Tinyflow 模块及受影响的 Core BOM。
+1. 构建并安装 Core AI Tinyflow core、local、dify 子模块及受影响的 Core BOM。
 2. 构建 AI Boot 自动配置和 Tinyflow Starter，验证 UI npm 构建及 JAR 内容。
 3. 构建 Magic-API Tinyflow 插件和 AI 插件聚合器。
 4. 构建并启动现有 AI Magic-API sample。
@@ -306,4 +361,4 @@ Core 定义框架无关的 `TinyflowNodeProvider` SPI，至少提供节点 `type
 
 ## 完成标准
 
-只有同时满足以下条件才算完成：`dev` 中三个新增模块边界清晰且进入对应聚合器/BOM；Starter JAR 物理包含由 `@tinyflow-ai/ui:1.3.6` 构建的版本化 UI；Magic-API 插件单向依赖 Starter并注册 `resource` 与 `toolbars`；Tinyflow 原生 JSON可以创建、编辑、保存、重新加载和执行；LangChain4j 0.35.0 同名覆盖类通过假的聊天模型完成真实 Tinyflow LLM 节点流程；未知节点、缺失模型、非法资源和超时均返回明确错误；依赖树不存在官方 LangChain4j 适配器和重复类；Core、AI、插件、sample、Node 与浏览器验证通过；`springboot2` 和 `springboot3` 工作树未被修改。
+只有同时满足以下条件才算完成：`dev` 中 Tinyflow core、local、dify、Starter 和 Magic-API 插件边界清晰且进入对应聚合器/BOM；Starter JAR 物理包含由 `@tinyflow-ai/ui:1.3.6` 构建的版本化 UI；Magic-API 插件单向依赖 Starter 并注册工作流与知识库的 `resource`/`toolbars`；Tinyflow 原生 JSON 可以创建、编辑、保存、重新加载和执行；LangChain4j 0.35.0 同名覆盖类通过假的聊天模型完成真实 Tinyflow LLM 节点流程；Knowledge 节点可按 `provider + knowledgeId` 调用 local 与 Dify；未知节点、缺失模型、缺失知识库、非法资源和超时均返回明确错误；依赖树不存在官方 LangChain4j 适配器和重复类；Core、AI、插件、sample、Node 与浏览器验证通过；`springboot2` 和 `springboot3` 工作树未被修改。
