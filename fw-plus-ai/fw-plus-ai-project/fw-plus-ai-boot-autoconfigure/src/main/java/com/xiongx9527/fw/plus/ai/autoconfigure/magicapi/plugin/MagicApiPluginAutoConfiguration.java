@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.starter.MagicAPIModelConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.starter.MagicAPITinyflowConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.starter.MagicAPIVectorConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.context.annotation.Configuration;
@@ -12,7 +13,8 @@ import org.springframework.context.annotation.Import;
         "com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration"
 })
 @Import({MagicAPIModelConfiguration.class,
-        MagicAPIVectorConfiguration.class
+		MagicAPIVectorConfiguration.class,
+		MagicAPITinyflowConfiguration.class
 })
 public class MagicApiPluginAutoConfiguration {
 }
