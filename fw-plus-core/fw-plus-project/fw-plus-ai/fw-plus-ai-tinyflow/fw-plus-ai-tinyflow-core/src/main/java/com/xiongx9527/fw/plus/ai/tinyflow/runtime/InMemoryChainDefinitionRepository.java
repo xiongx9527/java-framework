@@ -6,7 +6,7 @@ import dev.tinyflow.core.chain.repository.ChainDefinitionRepository;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class InMemoryChainDefinitionRepository implements ChainDefinitionRepository {
+public class InMemoryChainDefinitionRepository implements TinyflowChainDefinitionRepository {
 
 	private final Map<String, ChainDefinition> definitions = new ConcurrentHashMap<String, ChainDefinition>();
 

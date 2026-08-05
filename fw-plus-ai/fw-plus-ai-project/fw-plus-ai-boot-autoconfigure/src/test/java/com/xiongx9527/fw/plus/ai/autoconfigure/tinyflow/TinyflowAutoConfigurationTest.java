@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow;
 
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.InMemoryTinyflowChainStateRepository;
+import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowChainDefinitionRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowChainStateRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowService;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
@@ -60,6 +61,21 @@ public class TinyflowAutoConfigurationTest {
 	}
 
 	@Test
+	public void shouldUseCustomWritableDefinitionRepositoryInsteadOfTheDefault() {
+		StubChainDefinitionRepository customRepository = new StubChainDefinitionRepository();
+
+		contextRunner.withBean(TinyflowChainDefinitionRepository.class, () -> customRepository)
+				.run(context -> {
+					assertTrue(context.getBeansOfType(TinyflowChainDefinitionRepository.class).size() == 1);
+					assertSame(customRepository, context.getBean(TinyflowChainDefinitionRepository.class));
+					assertSame(customRepository, context.getBean(ChainExecutor.class).getDefinitionRepository());
+					context.getBean(TinyflowService.class).register(new com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflow(
+							"custom-definition", "tinyflow/custom-definition", "custom-definition", SIMPLE_WORKFLOW));
+					assertNotNull(customRepository.getChainDefinitionById("custom-definition"));
+				});
+	}
+
+	@Test
 	public void shouldBackOffRuntimeServiceProviders() {
 		contextRunner.withBean(TinyflowService.class, StubTinyflowService::new)
 				.withBean(TinyflowModelProvider.class, StubTinyflowModelProvider::new)
@@ -106,6 +122,19 @@ public class TinyflowAutoConfigurationTest {
 			return super.tryUpdate(state, fields);
 		}
 	}
+
+	private static final class StubChainDefinitionRepository implements TinyflowChainDefinitionRepository {
+		private final java.util.Map<String, dev.tinyflow.core.chain.ChainDefinition> definitions =
+				new java.util.LinkedHashMap<String, dev.tinyflow.core.chain.ChainDefinition>();
+		@Override public dev.tinyflow.core.chain.ChainDefinition getChainDefinitionById(String id) { return definitions.get(id); }
+		@Override public void register(dev.tinyflow.core.chain.ChainDefinition definition) { definitions.put(definition.getId(), definition); }
+		@Override public void remove(String id) { definitions.remove(id); }
+	}
+
+	private static final String SIMPLE_WORKFLOW = "{\"nodes\":["
+			+ "{\"id\":\"start\",\"type\":\"startNode\"},"
+			+ "{\"id\":\"end\",\"type\":\"endNode\"}],"
+			+ "\"edges\":[{\"id\":\"e1\",\"source\":\"start\",\"target\":\"end\"}]}";
 
 	private static final class StubWorkflowRepository implements TinyflowWorkflowRepository {
 		@Override public com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflow findById(String id) { return null; }
