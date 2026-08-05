@@ -8,7 +8,7 @@
 - 新增保存完整 Java 源码的 `java-entity` Resource 类型，接入资源读取、保存、更新、删除和启动恢复生命周期。
 - 以 Java 8 为目标，在内存中对全部已启用实体源码执行代际编译和类加载。
 - 支持普通 Java 实体，不要求声明 ORM 注解或继承框架基类。
-- 支持 Lombok 注解处理，以及可选的 MyBatis-Plus、MyBatis-Flex 注解引用。
+- 支持 Lombok 注解处理，以及可选的 MyBatis-Plus、MyBatis-Flex、Fastjson 1.x、Fastjson2 和 Jackson 注解引用。
 - 提供 `entity` Magic-Script 模块，通过 `entity.User` 获取当前实体描述器，创建实例并取得真实 Java Class。
 - 支持同名实体源码热更新；候选代际完整成功后原子切换，失败时保留最后一次成功版本。
 - 提供与编译、并发切换、ClassLoader 生命周期和失败回滚风险匹配的自动化测试。
@@ -31,6 +31,7 @@
 - 用户可新建 `java-entity` Resource，并保存一个兼容 Java 8 的普通实体类完整源码。
 - 源码可使用 Lombok `@Data`、`@Builder`、`@NoArgsConstructor` 等注解，动态编译后生成的方法真实存在。
 - 源码可选择使用 MyBatis-Plus、MyBatis-Flex 或两套 ORM 注解，也可以完全不使用 ORM 注解。
+- 源码可使用 Fastjson 1.x、Fastjson2 和 Jackson 注解，动态实体经过对应序列化器处理时注解真实生效。
 - Magic-Script 可通过 `entity.User.create(map)` 创建实体，通过 `entity.User.javaClass()` 取得当前 `Class<?>`。
 - 多个实体源码可互相引用；保存任一源码后，全部实体在新的 ClassLoader 代际中重新编译并原子切换。
 - 语法错误、Lombok 处理错误、重复别名或类加载失败时返回带行列信息的诊断，不破坏最后一次成功版本。
@@ -56,6 +57,7 @@
 - 采用 JDK `JavaCompiler` 内存编译，不采用 Bean 元数据模拟、Instrumentation 热替换或仅导出 `.java` 文件。
 - 全部已启用实体源码按代际一起编译，以支持实体间引用和结构性热更新。
 - Lombok 作为插件运行时编译依赖，并在动态编译任务中启用注解处理。
+- Fastjson 1.x、Fastjson2 和 Jackson 注解作为插件受支持编译依赖，不引入额外注解处理器。
 - 普通实体与 ORM 注解实体同等可发布；ORM 注解不是激活前置条件。
 - 首期只发布动态 Class 和实体创建能力，不预热 ORM 元数据，不提供 CRUD、Join 或 Mapper。
 - `entity.<简单类名>` 只在别名唯一时可用；全限定类名始终是实体的稳定标识。
@@ -67,7 +69,7 @@
 
 # Verification expectations
 
-- 单元测试覆盖普通实体、Lombok、MP/Flex 可选注解、跨 Resource 引用、重复类名和重复别名。
+- 单元测试覆盖普通实体、Lombok、MP/Flex 可选注解、Fastjson/Jackson 注解、跨 Resource 引用、重复类名和重复别名。
 - 单元测试覆盖新增、修改、删除、并发读取、失败回滚和旧代际引用释放边界。
 - 集成测试覆盖 Magic-Script `entity.User`、`create(map)`、`javaClass()` 和源码热更新。
 - 验证目录 classpath 与 Spring Boot 可执行 JAR classpath 下的 Lombok 注解处理。

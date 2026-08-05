@@ -2,7 +2,7 @@
 
 ## 背景与范围
 
-首期交付一个独立的 Magic-API 插件，用 Resource 保存完整 Java 8 源码，并在运行时完成 Lombok 注解处理、编译、加载和热更新。实体主要在 Magic-Script 中使用，同时保留真实 `Class<?>`，供后续 MyBatis-Plus 和 MyBatis-Flex 能力接入。
+首期交付一个独立的 Magic-API 插件，用 Resource 保存完整 Java 8 源码，并在运行时完成 Lombok 注解处理、编译、加载和热更新。实体主要在 Magic-Script 中使用，同时保留真实 `Class<?>`，供后续 MyBatis-Plus 和 MyBatis-Flex 能力接入，并支持项目现有 Fastjson 1.x、Fastjson2 和 Jackson 序列化注解。
 
 首期明确不做 CRUD、分页、Join、MP-Join 或动态 Mapper，也不修改 MyBatis-Plus、MyBatis-Flex、MP-Join 和现有 `MybatisFlexModule`。
 
@@ -84,6 +84,12 @@ return {
 
 `create(map)` 使用无参构造器创建实例，优先调用 setter，再回退到非 static、非 final 的实例字段。未知属性、不可转换值或缺少无参构造器时返回带实体名和属性名的错误。
 
+## JSON 注解
+
+插件编译依赖覆盖项目同时使用的 Fastjson 1.x、Fastjson2 和 Jackson 注解。它们是运行时注解，不参与 Lombok processor path。动态实体 Class 保留注解及全部属性，由实际序列化器解释。
+
+测试分别使用三套项目当前序列化器验证字段重命名和忽略行为。Jackson databind 的 `JsonSerialize`、`JsonDeserialize` 可参与编译，但测试不执行用户自定义序列化器，避免把任意业务代码执行混入编译校验。
+
 ## ORM 兼容策略
 
 普通 Bean 与带 MP/Flex 注解的 Bean 使用同一编译路径。首期只保证注解可被动态编译并保留在真实 Class 上，不主动初始化两套 ORM 的元数据。
@@ -98,7 +104,8 @@ return {
 
 ## 测试策略
 
-- 编译器单元测试：普通 Bean、Lombok、MP/Flex 注解、跨源码引用和结构化诊断。
+- 编译器单元测试：普通 Bean、Lombok、MP/Flex 注解、Fastjson/Jackson 注解、跨源码引用和结构化诊断。
+- 序列化兼容测试：Fastjson 1.x、Fastjson2、Jackson 字段重命名和忽略行为。
 - 注册表单元测试：别名冲突、原子切换、删除和并发读取。
 - 热更新测试：新增/删除字段和方法、Lombok 变化、失败回滚、旧描述器一致性。
 - Magic 集成测试：`entity.User`、`create()`、`create(map)`、`javaClass()` 和版本变化。
