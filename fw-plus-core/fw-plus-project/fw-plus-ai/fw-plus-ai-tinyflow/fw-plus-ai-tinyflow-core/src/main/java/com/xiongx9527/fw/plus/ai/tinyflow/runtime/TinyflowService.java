@@ -7,6 +7,8 @@ import java.util.Map;
 
 public interface TinyflowService {
 
+	void validate(TinyflowWorkflow workflow);
+
 	void register(TinyflowWorkflow workflow);
 
 	void remove(String workflowId);
