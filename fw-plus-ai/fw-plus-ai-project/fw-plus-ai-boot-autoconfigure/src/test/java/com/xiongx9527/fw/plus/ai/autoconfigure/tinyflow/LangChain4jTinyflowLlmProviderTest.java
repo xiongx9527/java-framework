@@ -14,12 +14,16 @@ import com.xiongx9527.fw.plus.ai.tinyflow.TinyflowException;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
 import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import dev.tinyflow.core.llm.Llm;
+import dev.tinyflow.langchain4j.provider.Langchain4jLlm;
 import org.junit.Test;
 
-import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -33,18 +37,21 @@ import static org.junit.Assert.assertTrue;
 public class LangChain4jTinyflowLlmProviderTest {
 
 	@Test
-	public void shouldDelegateBlankKeysToTheDefaultChatModel() {
-		CapturingTinyflowModelProvider modelProvider = new CapturingTinyflowModelProvider();
+	public void shouldResolveBlankKeysToTheRealDefaultChatModelAndBackOffNonStringKeys() {
+		FixedChatLanguageModel defaultChatModel = new FixedChatLanguageModel("default-chat-response");
+		TinyflowModelProvider modelProvider = provider(models("default-chat", model("default-chat", AiModelType.CHAT,
+				LangChain4jModelType.CHAT, defaultChatModel)), "default-chat");
 		LangChain4jTinyflowLlmProvider provider = new LangChain4jTinyflowLlmProvider(modelProvider);
 
 		Llm defaultModel = provider.getChatModel(null);
 		Llm blankModel = provider.getChatModel("");
 
-		assertTrue(defaultModel != null);
-		assertTrue(blankModel != null);
-		assertEquals(2, modelProvider.getInvocationCount());
-		assertEquals(null, modelProvider.getRequestedKeys().get(0));
-		assertEquals("", modelProvider.getRequestedKeys().get(1));
+		assertTrue(defaultModel instanceof Langchain4jLlm);
+		assertTrue(blankModel instanceof Langchain4jLlm);
+		assertEquals("default-chat-response", defaultModel.chat(messageInfo("null key"), new Llm.ChatOptions(), null, null));
+		assertEquals("default-chat-response", blankModel.chat(messageInfo("blank key"), new Llm.ChatOptions(), null, null));
+		assertEquals(2, defaultChatModel.getInvocationCount());
+		assertEquals(null, provider.getChatModel(Integer.valueOf(1)));
 	}
 
 	@Test
@@ -88,7 +95,11 @@ public class LangChain4jTinyflowLlmProviderTest {
 	}
 
 	private LangChain4jRegistryTinyflowModelProvider provider(Map<String, AiModel> models) {
-		return new LangChain4jRegistryTinyflowModelProvider(new TestAiModelRegistry(models, "embedding"),
+		return provider(models, "embedding");
+	}
+
+	private LangChain4jRegistryTinyflowModelProvider provider(Map<String, AiModel> models, String defaultKey) {
+		return new LangChain4jRegistryTinyflowModelProvider(new TestAiModelRegistry(models, defaultKey),
 				new TestLangChain4jModelRegistry());
 	}
 
@@ -130,6 +141,26 @@ public class LangChain4jTinyflowLlmProviderTest {
 		}
 	}
 
+	private static final class FixedChatLanguageModel implements ChatLanguageModel {
+		private final String response;
+		private final java.util.List<java.util.List<ChatMessage>> invocations =
+				new ArrayList<java.util.List<ChatMessage>>();
+
+		private FixedChatLanguageModel(String response) {
+			this.response = response;
+		}
+
+		@Override
+		public Response<AiMessage> generate(java.util.List<ChatMessage> messages) {
+			invocations.add(new ArrayList<ChatMessage>(messages));
+			return Response.from(AiMessage.from(response));
+		}
+
+		private int getInvocationCount() {
+			return invocations.size();
+		}
+	}
+
 	private static final class TestAiModelRegistry implements AiModelRegistry {
 		private final Map<String, AiModel> models;
 		private final String defaultKey;
@@ -151,20 +182,10 @@ public class LangChain4jTinyflowLlmProviderTest {
 		@Override public Set<String> keys() { return Collections.emptySet(); }
 	}
 
-	private static final class CapturingTinyflowModelProvider implements TinyflowModelProvider {
-		private final java.util.List<String> requestedKeys = new java.util.ArrayList<String>();
-
-		@Override public java.util.List<com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelDescriptor> listChatModels() { return Collections.emptyList(); }
-		@Override public java.util.List<com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelDescriptor> listEmbeddingModels() { return Collections.emptyList(); }
-		@Override public dev.langchain4j.model.chat.ChatLanguageModel getChatModel(String key) {
-			requestedKeys.add(key);
-			return (dev.langchain4j.model.chat.ChatLanguageModel) Proxy.newProxyInstance(
-					getClass().getClassLoader(), new Class<?>[] { dev.langchain4j.model.chat.ChatLanguageModel.class },
-					(proxy, method, args) -> null);
-		}
-		@Override public TinyflowEmbeddingModel getEmbeddingModel(String key) { return null; }
-
-		private int getInvocationCount() { return requestedKeys.size(); }
-		private java.util.List<String> getRequestedKeys() { return requestedKeys; }
+	private static Llm.MessageInfo messageInfo(String message) {
+		Llm.MessageInfo messageInfo = new Llm.MessageInfo();
+		messageInfo.setMessage(message);
+		messageInfo.setImages(Collections.<String>emptyList());
+		return messageInfo;
 	}
 }

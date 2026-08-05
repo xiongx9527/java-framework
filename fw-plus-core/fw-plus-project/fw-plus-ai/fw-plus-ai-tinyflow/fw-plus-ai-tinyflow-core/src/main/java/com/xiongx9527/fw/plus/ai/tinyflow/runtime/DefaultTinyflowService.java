@@ -33,6 +33,14 @@ public class DefaultTinyflowService implements TinyflowService {
 
 	public DefaultTinyflowService(TinyflowWorkflowValidator validator,
 			TinyflowWorkflowRepository workflowRepository,
+			InMemoryChainDefinitionRepository definitionRepository,
+			ChainExecutor chainExecutor, Duration executionTimeout) {
+		this(validator, workflowRepository, (TinyflowChainDefinitionRepository) definitionRepository,
+				chainExecutor, executionTimeout);
+	}
+
+	public DefaultTinyflowService(TinyflowWorkflowValidator validator,
+			TinyflowWorkflowRepository workflowRepository,
 			TinyflowChainDefinitionRepository definitionRepository,
 			ChainExecutor chainExecutor, Duration executionTimeout) {
 		if (validator == null) {
