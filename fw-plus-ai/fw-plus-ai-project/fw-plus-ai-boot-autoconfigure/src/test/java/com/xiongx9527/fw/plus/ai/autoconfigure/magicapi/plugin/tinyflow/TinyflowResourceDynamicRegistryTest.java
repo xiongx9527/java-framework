@@ -4,6 +4,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.model.Ti
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.service.TinyflowMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.service.TinyflowResourceDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.starter.MagicAPITinyflowConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.starter.MagicAPITinyflowRuntimeAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow.TinyflowAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.service.MagicApiTinyflowWorkflowRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.TinyflowException;
@@ -19,21 +21,33 @@ import dev.tinyflow.core.chain.runtime.ChainExecutor;
 import dev.tinyflow.core.parser.ChainParser;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.condition.ConditionEvaluationReport;
+import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.ssssssss.magicapi.core.event.EventAction;
+import org.ssssssss.magicapi.core.event.FileEvent;
+import org.ssssssss.magicapi.core.service.MagicResourceService;
 
+import java.lang.reflect.Proxy;
 import java.time.Duration;
+import java.util.Arrays;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TinyflowResourceDynamicRegistryTest {
 
 	private final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(MagicAPIBaseAutoConfiguration.class, TinyflowAutoConfiguration.class));
+			.withConfiguration(AutoConfigurations.of(MagicAPIBaseAutoConfiguration.class, MagicAPITinyflowConfiguration.class,
+					TinyflowAutoConfiguration.class,
+					MagicAPITinyflowRuntimeAutoConfiguration.class))
+			.withBean(MagicResourceService.class, TinyflowResourceDynamicRegistryTest::magicResourceService);
 
 	private TinyflowWorkflowRepository workflows;
 	private InMemoryChainDefinitionRepository definitions;
@@ -53,10 +67,21 @@ public class TinyflowResourceDynamicRegistryTest {
 	@Test
 	public void shouldReplaceDefaultWorkflowRepositoryInMagicApiContext() {
 		contextRunner.run(context -> {
+			assertAutoConfigurationMatches(context, MagicAPITinyflowConfiguration.class);
+			assertAutoConfigurationMatches(context, MagicAPITinyflowRuntimeAutoConfiguration.class);
 			assertEquals(1, context.getBeansOfType(com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflowRepository.class).size());
 			assertTrue(context.getBean(com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflowRepository.class)
 					instanceof MagicApiTinyflowWorkflowRepository);
 		});
+	}
+
+	@Test
+	public void shouldRunTinyflowConfigurationsAfterBootMagicApiAutoConfiguration() {
+		String bootMagicApiConfiguration = "com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration";
+		assertTrue(Arrays.asList(MagicAPITinyflowConfiguration.class.getAnnotation(AutoConfigureAfter.class).name())
+				.contains(bootMagicApiConfiguration));
+		assertTrue(Arrays.asList(MagicAPITinyflowRuntimeAutoConfiguration.class
+				.getAnnotation(AutoConfigureAfter.class).name()).contains(bootMagicApiConfiguration));
 	}
 
 	@Test
@@ -110,6 +135,84 @@ public class TinyflowResourceDynamicRegistryTest {
 		assertEquals(validWorkflow(), workflows.findById("flow-id").getJson());
 	}
 
+	@Test
+	public void shouldReplaceRuntimeStateWhenFileSaveUpdatesTheSameIdAndPath() {
+		registry.onSaved(resource("flow-id", "orders/create", validWorkflow()));
+		Object previousDefinition = definitions.getChainDefinitionById("flow-id");
+		String updatedWorkflow = validWorkflowWithDifferentEdge();
+
+		registry.onFileEvent(new FileEvent("tinyflow", EventAction.SAVE,
+				resource("flow-id", "orders/create", updatedWorkflow)));
+
+		assertEquals(updatedWorkflow, registry.getMapping("orders/create").getContent());
+		assertEquals(updatedWorkflow, workflows.findById("flow-id").getJson());
+		assertTrue(previousDefinition != definitions.getChainDefinitionById("flow-id"));
+	}
+
+	@Test
+	public void shouldKeepMappingWorkflowAndDefinitionWhenFileSaveIsInvalid() {
+		TinyflowResource original = resource("flow-id", "orders/create", validWorkflow());
+		registry.onSaved(original);
+		Object previousDefinition = definitions.getChainDefinitionById("flow-id");
+
+		assertThrows(TinyflowException.class, () -> registry.onFileEvent(new FileEvent("tinyflow", EventAction.SAVE,
+				resource("flow-id", "orders/create", "{"))));
+
+		assertSame(original, registry.getMapping("orders/create"));
+		assertEquals(validWorkflow(), workflows.findById("flow-id").getJson());
+		assertSame(previousDefinition, definitions.getChainDefinitionById("flow-id"));
+	}
+
+	@Test
+	public void shouldNotCreateMagicTinyflowBeansWhenCoreTinyflowIsDisabled() {
+		contextRunner.withPropertyValues("fw.plus.ai.tinyflow.enabled=false")
+				.run(context -> assertNoMagicTinyflowBeans(context));
+	}
+
+	@Test
+	public void shouldNotCreateMagicTinyflowBeansWhenPluginIsDisabled() {
+		contextRunner.withPropertyValues("magic-api.plugin.tinyflow.enabled=false")
+				.run(context -> assertNoMagicTinyflowBeans(context));
+	}
+
+	@Test
+	public void shouldNotCreateMagicTinyflowBeansWhenTinyflowCoreIsMissing() {
+		contextRunner.withClassLoader(new FilteredClassLoader(ChainExecutor.class))
+				.run(context -> assertNoMagicTinyflowBeans(context));
+	}
+
+	@Test
+	public void shouldAllowRepositoryOnlyWhenCoreServiceIsMissing() {
+		new WebApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(MagicAPIBaseAutoConfiguration.class, MagicAPITinyflowConfiguration.class,
+						MagicAPITinyflowRuntimeAutoConfiguration.class))
+				.withBean(MagicResourceService.class, TinyflowResourceDynamicRegistryTest::magicResourceService)
+				.run(context -> {
+					assertTrue(context.containsBean("magicApiTinyflowWorkflowRepository"));
+					assertNoMagicTinyflowRuntimeBeans(context);
+				});
+	}
+
+	@Test
+	public void shouldNotCreateMagicTinyflowBeansWhenMagicServiceIsMissing() {
+		new WebApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(MagicAPIBaseAutoConfiguration.class, MagicAPITinyflowConfiguration.class,
+						TinyflowAutoConfiguration.class,
+						MagicAPITinyflowRuntimeAutoConfiguration.class))
+				.run(context -> assertNoMagicTinyflowBeans(context));
+	}
+
+	@Test
+	public void shouldBackOffMagicWorkflowRepositoryForCustomRepository() {
+		TinyflowWorkflowRepository customRepository = new MagicApiTinyflowWorkflowRepository();
+
+		contextRunner.withBean(TinyflowWorkflowRepository.class, () -> customRepository)
+				.run(context -> {
+					assertEquals(1, context.getBeansOfType(TinyflowWorkflowRepository.class).size());
+					assertSame(customRepository, context.getBean(TinyflowWorkflowRepository.class));
+				});
+	}
+
 	private TinyflowResource resource(String id, String path, String json) {
 		TinyflowResource resource = new TinyflowResource();
 		resource.setId(id);
@@ -124,4 +227,34 @@ public class TinyflowResourceDynamicRegistryTest {
 				+ "{\"id\":\"end\",\"type\":\"endNode\"}],"
 				+ "\"edges\":[{\"id\":\"e1\",\"source\":\"start\",\"target\":\"end\"}]}";
 	}
+
+	private String validWorkflowWithDifferentEdge() {
+		return "{\"nodes\":[{\"id\":\"start\",\"type\":\"startNode\"},"
+				+ "{\"id\":\"end\",\"type\":\"endNode\"}],"
+				+ "\"edges\":[{\"id\":\"e2\",\"source\":\"start\",\"target\":\"end\"}]}";
+	}
+
+	private void assertNoMagicTinyflowBeans(org.springframework.context.ApplicationContext context) {
+		assertFalse(context.containsBean("magicApiTinyflowWorkflowRepository"));
+		assertNoMagicTinyflowRuntimeBeans(context);
+	}
+
+	private void assertNoMagicTinyflowRuntimeBeans(org.springframework.context.ApplicationContext context) {
+		assertFalse(context.containsBean("tinyflowMagicResourceStorage"));
+		assertFalse(context.containsBean("tinyflowResourceDynamicRegistry"));
+	}
+
+	private void assertAutoConfigurationMatches(org.springframework.context.ConfigurableApplicationContext context,
+			Class<?> autoConfigurationClass) {
+		ConditionEvaluationReport.ConditionAndOutcomes outcomes = ConditionEvaluationReport.get(context.getBeanFactory())
+				.getConditionAndOutcomesBySource().get(autoConfigurationClass.getName());
+		assertTrue("Expected auto-configuration to match: " + autoConfigurationClass.getName(),
+				outcomes != null && outcomes.isFullMatch());
+	}
+
+	private static MagicResourceService magicResourceService() {
+		return (MagicResourceService) Proxy.newProxyInstance(MagicResourceService.class.getClassLoader(),
+				new Class<?>[]{MagicResourceService.class}, (proxy, method, arguments) -> null);
+	}
+
 }

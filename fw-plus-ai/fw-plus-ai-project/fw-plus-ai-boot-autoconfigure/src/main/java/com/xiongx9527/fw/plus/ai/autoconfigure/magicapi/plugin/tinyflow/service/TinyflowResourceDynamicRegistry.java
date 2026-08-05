@@ -72,6 +72,9 @@ public final class TinyflowResourceDynamicRegistry extends AbstractMagicDynamicR
 		if (existing != null && !resource.getId().equals(existing.getId())) {
 			throw new TinyflowException("Workflow path is ambiguous: " + resource.getPath());
 		}
+		if (existing != null) {
+			tinyflowService.register(workflow);
+		}
 		return super.register(resource);
 	}
 
