@@ -31,6 +31,9 @@ public class DynamicEntityRegistry {
     public DynamicEntityRegistry(JavaSourceAnalyzer analyzer, InMemoryJavaEntityCompiler compiler) {
         this.analyzer = analyzer;
         this.compiler = compiler;
+        if (!compiler.isAvailable()) {
+            status.set(DynamicEntityStatus.unavailable());
+        }
     }
 
     public boolean rebuild(Collection<JavaEntityInfo> entities) {

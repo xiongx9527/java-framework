@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.s
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.freemarker.starter.MagicAPIFreemarkerConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.influx.starter.MagicAPIInfluxConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.starter.MagicAPIKafkaConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.starter.MagicAPIJavaEntityConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.starter.MagicAPIMongoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.starter.MagicAPIMqttConfiguration;
@@ -40,6 +41,7 @@ import org.springframework.context.annotation.Import;
          MagicAPIRocketMqConfiguration.class,
          MagicAPIRabbitMqConfiguration.class,
          MagicAPIKafkaConfiguration.class,
+         MagicAPIJavaEntityConfiguration.class,
          MagicAPIPulsarConfiguration.class,
          MagicAPIDbBrowserConfiguration.class,
          MagicAPIDebeziumConfiguration.class,
