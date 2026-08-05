@@ -32,6 +32,7 @@ import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -142,6 +143,42 @@ public class TinyflowMagicResourceStorageTest {
 	}
 
 	@Test
+	public void shouldPersistServerGeneratedIdForCreateWithoutTransportId() throws Exception {
+		MagicRequestContextHolder previousContextHolder = WebUtils.magicRequestContextHolder;
+		WebUtils.magicRequestContextHolder = requestContextHolder();
+		try {
+			File rootDirectory = Files.createTempDirectory("tinyflow-magic-resource-create").toFile();
+			TinyflowWorkflowValidator validator = new TinyflowWorkflowValidator(ChainParser.builder().build());
+			TinyflowMagicResourceStorage lifecycleStorage = new TinyflowMagicResourceStorage(validator);
+			DefaultMagicResourceService firstService = service(rootDirectory, lifecycleStorage, registry(lifecycleStorage, validator));
+			firstService.refresh();
+
+			TinyflowResource created = lifecycleStorage.read(transferWithoutId("generated-flow", "tinyflow:0",
+					"orders/generated", validWorkflow()).getBytes(StandardCharsets.UTF_8));
+			assertNull(created.getId());
+			assertTrue(firstService.saveFile(created));
+			assertTrue(created.getId() != null && created.getId().trim().length() > 0);
+			String generatedId = created.getId();
+			String storedJson = new String(firstService.getResource().getResource("tinyflow/generated-flow.json").read(),
+					StandardCharsets.UTF_8);
+			assertTrue(storedJson.contains("\"id\":\"" + generatedId + "\""));
+
+			TinyflowMagicResourceStorage restartedStorage = new TinyflowMagicResourceStorage(validator);
+			DefaultMagicResourceService restartedService = service(rootDirectory, restartedStorage,
+					registry(restartedStorage, validator));
+			restartedService.refresh();
+
+			TinyflowResource recovered = restartedService.file(generatedId);
+			assertEquals(generatedId, recovered.getId());
+			assertEquals("generated-flow", recovered.getName());
+			assertEquals("orders/generated", recovered.getPath());
+			assertEquals(validWorkflow(), recovered.getContent());
+		} finally {
+			WebUtils.magicRequestContextHolder = previousContextHolder;
+		}
+	}
+
+	@Test
 	public void shouldRejectMalformedJsonBeforeResourceCanBePersisted() {
 		TinyflowResource resource = resource("flow-id", "orders/create", "{");
 
@@ -183,6 +220,11 @@ public class TinyflowMagicResourceStorageTest {
 				+ "\",\"path\":\"" + path + "\",\"content\":" + quote(content) + "}";
 	}
 
+	private String transferWithoutId(String name, String groupId, String path, String content) {
+		return "{\"name\":\"" + name + "\",\"groupId\":\"" + groupId
+				+ "\",\"path\":\"" + path + "\",\"content\":" + quote(content) + "}";
+	}
+
 	private String quote(String value) {
 		return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
 	}
@@ -215,6 +257,20 @@ public class TinyflowMagicResourceStorageTest {
 		return new DefaultMagicResourceService(new FileResource(rootDirectory, false, rootDirectory.getAbsolutePath()),
 				Collections.<MagicResourceStorage<? extends org.ssssssss.magicapi.core.model.MagicEntity>>singletonList(lifecycleStorage),
 				publisher);
+	}
+
+	private MagicRequestContextHolder requestContextHolder() {
+		return new MagicRequestContextHolder() {
+			@Override
+			public org.ssssssss.magicapi.core.servlet.MagicHttpServletRequest getRequest() {
+				return null;
+			}
+
+			@Override
+			public MagicHttpServletResponse getResponse() {
+				return null;
+			}
+		};
 	}
 
 }

@@ -124,6 +124,13 @@ public class TinyflowResourceDynamicRegistryTest {
 	}
 
 	@Test
+	public void shouldRejectResourcesWithoutIdBeforeRuntimeRegistration() {
+		TinyflowResource resource = resource(null, "orders/create", validWorkflow());
+
+		assertThrows(TinyflowException.class, () -> registry.onSaved(resource));
+	}
+
+	@Test
 	public void shouldKeepPreviousDefinitionWhenUpdatedJsonIsInvalid() {
 		registry.onSaved(resource("flow-id", "orders/create", validWorkflow()));
 		Object previousDefinition = definitions.getChainDefinitionById("flow-id");
