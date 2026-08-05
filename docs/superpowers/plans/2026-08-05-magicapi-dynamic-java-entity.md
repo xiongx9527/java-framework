@@ -30,7 +30,7 @@
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/pom.xml`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-dependencies/pom.xml`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/pom.xml`
-- Test: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/JavaEntityDependencyCompatibilityTest.java`
+- Test: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-java-entity/src/test/java/com/xiongx9527/fw/plus/boot/starter/magicapi/javaentity/JavaEntityDependencyCompatibilityTest.java`
 
 **Interfaces:**
 - Consumes: Boot BOM 中受管版本，以及 `fw-plus-boot-autoconfigure` 的集中业务实现边界。
@@ -38,7 +38,7 @@
 
 - [ ] **Step 1: Write the failing dependency compatibility test**
 
-  新建 `JavaEntityDependencyCompatibilityTest`，分别用 `Class.forName` 断言以下类型可见：`lombok.Data`、`com.baomidou.mybatisplus.annotation.TableName`、`com.mybatisflex.annotation.Table`、`com.alibaba.fastjson.annotation.JSONField`、`com.alibaba.fastjson2.annotation.JSONField`、`com.fasterxml.jackson.annotation.JsonProperty`、`com.fasterxml.jackson.databind.annotation.JsonSerialize`。
+  在新插件模块新建 `JavaEntityDependencyCompatibilityTest`，分别用 `Class.forName` 断言以下类型可见：`lombok.Data`、`com.baomidou.mybatisplus.annotation.TableName`、`com.mybatisflex.annotation.Table`、`com.alibaba.fastjson.annotation.JSONField`、`com.alibaba.fastjson2.annotation.JSONField`、`com.fasterxml.jackson.annotation.JsonProperty`、`com.fasterxml.jackson.databind.annotation.JsonSerialize`。
 
 - [ ] **Step 2: Run test and verify RED**
 

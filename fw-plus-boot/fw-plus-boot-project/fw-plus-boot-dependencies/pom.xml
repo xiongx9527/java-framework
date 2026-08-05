@@ -771,6 +771,12 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-java-entity</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!--
             <dependency>
                 <groupId>org.dromara.dynamictp</groupId>
