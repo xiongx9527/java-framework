@@ -65,6 +65,9 @@ public final class TinyflowResourceDynamicRegistry extends AbstractMagicDynamicR
 
 	@Override
 	public synchronized boolean register(TinyflowResource resource) {
+		if (resource == null || isBlank(resource.getId())) {
+			throw new TinyflowException("Tinyflow workflow id must not be blank");
+		}
 		getMagicResourceStorage().validate(resource);
 		TinyflowWorkflow workflow = workflow(resource);
 		tinyflowService.validate(workflow);
@@ -102,5 +105,9 @@ public final class TinyflowResourceDynamicRegistry extends AbstractMagicDynamicR
 
 	private String resourceId(TinyflowResource resource) {
 		return resource == null ? "<unknown>" : resource.getId();
+	}
+
+	private boolean isBlank(String value) {
+		return value == null || value.trim().length() == 0;
 	}
 }

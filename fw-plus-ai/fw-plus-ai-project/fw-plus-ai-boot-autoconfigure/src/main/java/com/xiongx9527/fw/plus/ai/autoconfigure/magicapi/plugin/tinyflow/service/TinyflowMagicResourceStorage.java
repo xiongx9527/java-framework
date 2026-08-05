@@ -126,9 +126,6 @@ public final class TinyflowMagicResourceStorage implements MagicResourceStorage<
 		if (resource == null) {
 			throw new IllegalArgumentException("Tinyflow resource must not be null");
 		}
-		if (isBlank(resource.getId())) {
-			throw new IllegalArgumentException("Tinyflow resource id must not be blank");
-		}
 		if (isBlank(resource.getPath())) {
 			throw new IllegalArgumentException("Tinyflow resource path must not be blank");
 		}
