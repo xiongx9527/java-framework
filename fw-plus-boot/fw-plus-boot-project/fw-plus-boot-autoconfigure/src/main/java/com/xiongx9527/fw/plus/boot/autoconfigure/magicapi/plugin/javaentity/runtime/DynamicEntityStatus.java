@@ -26,6 +26,12 @@ public final class DynamicEntityStatus {
         return new DynamicEntityStatus(version > 0L, version, diagnostics);
     }
 
+    static DynamicEntityStatus unavailable() {
+        return new DynamicEntityStatus(false, 0L, Collections.singletonList(
+                new JavaEntityDiagnostic("", 0, 0, "compiler.unavailable",
+                        "当前运行环境未提供 JDK JavaCompiler")));
+    }
+
     public boolean isAvailable() {
         return available;
     }

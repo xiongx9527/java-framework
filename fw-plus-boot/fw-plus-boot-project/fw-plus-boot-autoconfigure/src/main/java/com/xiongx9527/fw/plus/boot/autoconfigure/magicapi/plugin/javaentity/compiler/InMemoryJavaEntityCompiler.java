@@ -38,6 +38,10 @@ public class InMemoryJavaEntityCompiler {
         this.classpathResolver = new CompilationClasspathResolver(parentClassLoader);
     }
 
+    public boolean isAvailable() {
+        return compiler != null;
+    }
+
     public CompiledGeneration compile(long version, List<JavaSourceUnit> sourceUnits) {
         if (compiler == null) {
             throw new JavaEntityCompilationException(new JavaEntityDiagnostic("", 0, 0,
