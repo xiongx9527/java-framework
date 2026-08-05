@@ -28,9 +28,16 @@ public final class Langchain4jLlm implements Llm {
 
 	@Override
 	public String chat(MessageInfo message, ChatOptions options, LlmNode node, Chain chain) {
+		List<ChatMessage> messages;
+		try {
+			messages = toMessages(message);
+		} catch (RuntimeException e) {
+			throw new TinyflowException("Failed to map Tinyflow message to LangChain4j");
+		}
+
 		Response<AiMessage> response;
 		try {
-			response = chatLanguageModel.generate(toMessages(message));
+			response = chatLanguageModel.generate(messages);
 		} catch (RuntimeException e) {
 			throw new TinyflowException("LangChain4j model invocation failed", e);
 		}
