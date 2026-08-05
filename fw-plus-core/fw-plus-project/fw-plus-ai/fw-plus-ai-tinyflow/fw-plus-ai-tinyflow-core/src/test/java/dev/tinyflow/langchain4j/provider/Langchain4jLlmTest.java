@@ -18,6 +18,8 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -48,13 +50,32 @@ public class Langchain4jLlmTest {
 
 	@Test
 	public void shouldWrapModelException() {
-		IllegalStateException modelFailure = new IllegalStateException("model unavailable");
+		String sensitiveValue = "secret-value";
+		IllegalStateException modelFailure = new IllegalStateException("model failed with token=" + sensitiveValue);
 		Langchain4jLlm llm = new Langchain4jLlm(new ThrowingChatLanguageModel(modelFailure));
 
 		TinyflowException failure = assertThrows(TinyflowException.class,
 				() -> llm.chat(messageInfo(null, "question", null), new Llm.ChatOptions(), null, null));
 
 		assertSame(modelFailure, failure.getCause());
+		assertEquals("LangChain4j model invocation failed", failure.getMessage());
+		assertFalse(failure.getMessage().contains(sensitiveValue));
+	}
+
+	@Test
+	public void shouldRedactSensitiveInvalidImageUriFromMappingFailure() {
+		String sensitiveValue = "secret-value";
+		Langchain4jLlm llm = new Langchain4jLlm(
+				new CapturingChatLanguageModel(Response.from(AiMessage.from("unused"))));
+
+		TinyflowException failure = assertThrows(TinyflowException.class,
+				() -> llm.chat(messageInfo(null, "question",
+						"https://example.test/a b.png?token=" + sensitiveValue),
+						new Llm.ChatOptions(), null, null));
+
+		assertNull("mapping failure must not retain the URI-bearing cause", failure.getCause());
+		assertEquals("Failed to map Tinyflow message to LangChain4j", failure.getMessage());
+		assertFalse(failure.getMessage().contains(sensitiveValue));
 	}
 
 	@Test
