@@ -18,6 +18,7 @@ import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 import org.ssssssss.magicapi.datasource.service.DataSourceMagicDynamicRegistry;
 
 import javax.sql.DataSource;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -176,12 +177,21 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
             dataSourceBuilder = defaultDataSourceBuilder;
         }
         DataSource datasource = dataSourceBuilder.buildDataSource(type, properties);
-        for (MagicDataSourceDecorator decorator : dataSourceDecorators) {
-            datasource = decorator.decorate(info.getKey(), datasource);
-        }
-        DataSource oldDataSource = findDataSource(info.getKey());
-        if (oldDataSource != null) {
-            beforeRemove(info.getKey(), oldDataSource);
+        try {
+            for (MagicDataSourceDecorator decorator : dataSourceDecorators) {
+                DataSource decorated = decorator.decorate(info.getKey(), datasource);
+                if (decorated == null) {
+                    throw new IllegalStateException("DataSource decorator returned null");
+                }
+                datasource = decorated;
+            }
+            beforeRemove(findDataSources(info.getId(), info.getKey()));
+        } catch (RuntimeException e) {
+            closeNewDataSource(datasource, e);
+            throw e;
+        } catch (Error e) {
+            closeNewDataSource(datasource, e);
+            throw e;
         }
         // 将数据源加入动态数据源容器中
         magicDynamicDataSource.put(info.getId(), info.getKey(), info.getName(), datasource, info.getMaxRows());
@@ -195,24 +205,47 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
      */
     @Override
     protected void unregister(MappingNode<DataSourceInfo> mappingNode) {
-        DataSource dataSource = findDataSource(mappingNode.getMappingKey());
-        if (dataSource != null) {
-            beforeRemove(mappingNode.getMappingKey(), dataSource);
-        }
+        beforeRemove(findDataSources(null, mappingNode.getMappingKey()));
         magicDynamicDataSource.delete(mappingNode.getMappingKey());
     }
 
-    private DataSource findDataSource(String key) {
-        return magicDynamicDataSource.datasourceNodes().stream()
-                .filter(node -> Objects.equals(key, node.getKey()))
-                .map(MagicDynamicDataSource.DataSourceNode::getDataSource)
-                .findFirst()
-                .orElse(null);
+    private List<MagicDynamicDataSource.DataSourceNode> findDataSources(String id, String key) {
+        List<MagicDynamicDataSource.DataSourceNode> nodes = new ArrayList<>();
+        for (MagicDynamicDataSource.DataSourceNode node : magicDynamicDataSource.datasourceNodes()) {
+            if (Objects.equals(key, node.getKey()) || (id != null && Objects.equals(id, node.getId()))) {
+                nodes.add(node);
+            }
+        }
+        return nodes;
     }
 
-    private void beforeRemove(String key, DataSource dataSource) {
-        for (MagicDataSourceDecorator decorator : dataSourceDecorators) {
-            decorator.beforeRemove(key, dataSource);
+    private void beforeRemove(List<MagicDynamicDataSource.DataSourceNode> nodes) {
+        RuntimeException failure = null;
+        for (MagicDynamicDataSource.DataSourceNode node : nodes) {
+            for (MagicDataSourceDecorator decorator : dataSourceDecorators) {
+                try {
+                    decorator.beforeRemove(node.getKey(), node.getDataSource());
+                } catch (RuntimeException e) {
+                    if (failure == null) {
+                        failure = e;
+                    } else {
+                        failure.addSuppressed(e);
+                    }
+                }
+            }
+        }
+        if (failure != null) {
+            throw failure;
+        }
+    }
+
+    private void closeNewDataSource(DataSource dataSource, Throwable failure) {
+        if (dataSource instanceof AutoCloseable) {
+            try {
+                ((AutoCloseable) dataSource).close();
+            } catch (Exception e) {
+                failure.addSuppressed(e);
+            }
         }
     }
 
