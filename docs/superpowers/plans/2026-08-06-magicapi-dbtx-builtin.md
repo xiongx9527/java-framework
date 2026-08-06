@@ -299,12 +299,12 @@ mvn -f fw-plus-boot/fw-plus-boot-project/pom.xml \
 ./fw-plus-core/mvnw -f fw-plus-sample/pom.xml validate
 
 rg -n "fw-plus-magicapi-plugin-(dbtx|seata)|DbTxPluginMarker|SeataPluginMarker|magic-api\.plugin\.(dbtx|seata)" \
-  fw-plus-boot docs
+  fw-plus-boot docs/magicapi-dbtx.md
 
 git diff --check
 ```
 
-Expected: focused tests pass, main starter tests pass, sample aggregation validates, old artifact/marker/config references are absent, and `git diff --check` is clean. Report the existing Maven Wrapper metadata issue if the sample command cannot start; use the repository's verified system-Maven equivalent without claiming the Wrapper command passed.
+Expected: focused tests pass, main starter tests pass, sample aggregation validates, old artifact/marker/config references are absent from production code and the active user documentation, and `git diff --check` is clean. Historical design/implementation plans under `docs/superpowers` intentionally describe the removed names and are excluded from this active-reference scan. Report the existing Maven Wrapper metadata issue if the sample command cannot start; use the repository's verified system-Maven equivalent without claiming the Wrapper command passed.
 
 - [ ] **Step 5: Commit documentation and SQL**
 
