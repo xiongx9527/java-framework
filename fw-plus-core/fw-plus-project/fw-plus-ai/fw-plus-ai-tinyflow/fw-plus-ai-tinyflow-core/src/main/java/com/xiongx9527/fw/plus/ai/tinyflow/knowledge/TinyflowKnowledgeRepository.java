@@ -13,6 +13,8 @@ public interface TinyflowKnowledgeRepository {
 
 	void saveKnowledge(TinyflowKnowledgeDefinition definition, long expectedVersion);
 
+	void deleteKnowledge(String tenantId, String knowledgeId, long expectedVersion);
+
 	TinyflowDocument findBySourceAndChecksum(String tenantId, String knowledgeId, String sourceId, String checksum);
 
 	TinyflowDocument findActiveDocument(String tenantId, String knowledgeId, String sourceId);

@@ -8,6 +8,7 @@ import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -27,9 +28,11 @@ public final class DocxTinyflowDocumentParser implements TinyflowDocumentParser 
 
 	@Override
 	public TinyflowParsedDocument parse(InputStream input, ParseContext context) throws IOException {
+		TinyflowParserLimits limits = TinyflowParserLimits.from(context);
 		List<TinyflowParsedDocument.Section> sections = new ArrayList<TinyflowParsedDocument.Section>();
 		StringBuilder content = new StringBuilder();
-		try (XWPFDocument document = new XWPFDocument(input)) {
+		try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(limits.read(input)))) {
+			limits.checkDocxParagraphs(document.getParagraphs().size());
 			int paragraph = 0;
 			for (XWPFParagraph value : document.getParagraphs()) {
 				paragraph++;
@@ -41,13 +44,21 @@ public final class DocxTinyflowDocumentParser implements TinyflowDocumentParser 
 				}
 			}
 			int tableNumber = 0;
+			int totalRows = 0;
+			int totalCells = 0;
 			for (XWPFTable table : document.getTables()) {
 				tableNumber++;
+				limits.checkDocxTables(tableNumber);
 				int rowNumber = 0;
 				for (XWPFTableRow row : table.getRows()) {
 					rowNumber++;
+					totalRows++;
+					limits.checkDocxRows(totalRows);
 					StringBuilder rowText = new StringBuilder();
 					for (XWPFTableCell cell : row.getTableCells()) {
+						totalCells++;
+						limits.checkDocxCells(totalCells);
+						limits.checkField(cell.getText().length());
 						if (rowText.length() > 0) {
 							rowText.append('\t');
 						}
@@ -67,6 +78,7 @@ public final class DocxTinyflowDocumentParser implements TinyflowDocumentParser 
 		if (content.length() == 0) {
 			throw new IOException("DOCX contains no extractable text");
 		}
+		limits.checkText(content.toString());
 		return new TinyflowParsedDocument(context.getFileName(), content.toString(), sections,
 				TextMarkdownHtmlParser.parserMetadata("docx"));
 	}

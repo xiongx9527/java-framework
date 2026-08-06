@@ -9,10 +9,9 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 
-import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -38,34 +37,42 @@ public final class TabularTinyflowDocumentParser implements TinyflowDocumentPars
 	}
 
 	private TinyflowParsedDocument parseCsv(InputStream input, ParseContext context) throws IOException {
+		TinyflowParserLimits limits = TinyflowParserLimits.from(context);
+		String source = new String(limits.read(input), StandardCharsets.UTF_8);
 		List<TinyflowParsedDocument.Section> sections = new ArrayList<TinyflowParsedDocument.Section>();
 		StringBuilder content = new StringBuilder();
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
-			String line;
-			int row = 0;
-			while ((line = reader.readLine()) != null) {
-				row++;
-				String value = join(parseCsvRow(line));
-				if (!value.trim().isEmpty()) {
-					addRow(sections, content, "csv", row, value);
-				}
+		List<List<String>> rows = parseCsvRows(source, limits);
+		for (int index = 0; index < rows.size(); index++) {
+			String value = join(rows.get(index));
+			if (!value.trim().isEmpty()) {
+				addRow(sections, content, "csv", index + 1, value);
 			}
 		}
+		limits.checkText(content.toString());
 		return result(context, sections, content);
 	}
 
 	private TinyflowParsedDocument parseWorkbook(InputStream input, ParseContext context) throws IOException {
+		TinyflowParserLimits limits = TinyflowParserLimits.from(context);
 		List<TinyflowParsedDocument.Section> sections = new ArrayList<TinyflowParsedDocument.Section>();
 		StringBuilder content = new StringBuilder();
 		DataFormatter formatter = new DataFormatter(Locale.ROOT);
-		try (Workbook workbook = WorkbookFactory.create(input)) {
+		int rowCount = 0;
+		int cellCount = 0;
+		try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(limits.read(input)))) {
 			for (Sheet sheet : workbook) {
 				for (Row row : sheet) {
+					rowCount++;
+					limits.checkTabularRows(rowCount);
 					List<String> values = new ArrayList<String>();
 					int lastCell = Math.max(row.getLastCellNum(), 0);
 					for (int cellIndex = 0; cellIndex < lastCell; cellIndex++) {
+						cellCount++;
+						limits.checkTabularCells(cellCount);
 						Cell cell = row.getCell(cellIndex, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-						values.add(cell == null ? "" : formatter.formatCellValue(cell));
+						String value = cell == null ? "" : formatter.formatCellValue(cell);
+						limits.checkField(value.length());
+						values.add(value);
 					}
 					String value = join(values);
 					if (!value.trim().isEmpty()) {
@@ -76,6 +83,7 @@ public final class TabularTinyflowDocumentParser implements TinyflowDocumentPars
 		} catch (RuntimeException exception) {
 			throw new IOException("Unable to parse XLSX document", exception);
 		}
+		limits.checkText(content.toString());
 		return result(context, sections, content);
 	}
 
@@ -101,28 +109,113 @@ public final class TabularTinyflowDocumentParser implements TinyflowDocumentPars
 				"sheet:" + sheet + ",row:" + row, metadata));
 	}
 
-	private List<String> parseCsvRow(String line) {
+	private List<List<String>> parseCsvRows(String source, TinyflowParserLimits limits) throws IOException {
+		List<List<String>> rows = new ArrayList<List<String>>();
 		List<String> values = new ArrayList<String>();
 		StringBuilder value = new StringBuilder();
 		boolean quoted = false;
-		for (int index = 0; index < line.length(); index++) {
-			char current = line.charAt(index);
-			if (current == '"') {
-				if (quoted && index + 1 < line.length() && line.charAt(index + 1) == '"') {
-					value.append('"');
-					index++;
+		boolean afterQuote = false;
+		boolean fieldStarted = false;
+		boolean recordStarted = false;
+		int cells = 0;
+		for (int index = 0; index < source.length(); index++) {
+			char current = source.charAt(index);
+			boolean lineBreak = current == '\n' || current == '\r';
+			if (quoted) {
+				if (current == '"') {
+					if (index + 1 < source.length() && source.charAt(index + 1) == '"') {
+						value.append('"');
+						limits.checkField(value.length());
+						index++;
+					} else {
+						quoted = false;
+						afterQuote = true;
+					}
 				} else {
-					quoted = !quoted;
+					if (lineBreak) {
+						value.append('\n');
+						if (current == '\r' && index + 1 < source.length() && source.charAt(index + 1) == '\n') {
+							index++;
+						}
+					} else {
+						value.append(current);
+					}
+					limits.checkField(value.length());
 				}
-			} else if (current == ',' && !quoted) {
-				values.add(value.toString());
-				value.setLength(0);
+				continue;
+			}
+			if (afterQuote) {
+				if (current == ',') {
+					cells = addCsvField(values, value, limits, cells);
+					afterQuote = false;
+					fieldStarted = false;
+					recordStarted = true;
+					continue;
+				}
+				if (lineBreak) {
+					cells = addCsvField(values, value, limits, cells);
+					addCsvRow(rows, values, limits);
+					values = new ArrayList<String>();
+					afterQuote = false;
+					fieldStarted = false;
+					recordStarted = false;
+					if (current == '\r' && index + 1 < source.length() && source.charAt(index + 1) == '\n') {
+						index++;
+					}
+					continue;
+				}
+				throw new IOException("Malformed CSV: invalid character after closing quote");
+			}
+			if (current == '"') {
+				if (fieldStarted) {
+					throw new IOException("Malformed CSV: quote must start a field");
+				}
+				quoted = true;
+				fieldStarted = true;
+				recordStarted = true;
+			} else if (current == ',') {
+				cells = addCsvField(values, value, limits, cells);
+				fieldStarted = false;
+				recordStarted = true;
+			} else if (lineBreak) {
+				cells = addCsvField(values, value, limits, cells);
+				addCsvRow(rows, values, limits);
+				values = new ArrayList<String>();
+				fieldStarted = false;
+				recordStarted = false;
+				if (current == '\r' && index + 1 < source.length() && source.charAt(index + 1) == '\n') {
+					index++;
+				}
 			} else {
 				value.append(current);
+				limits.checkField(value.length());
+				fieldStarted = true;
+				recordStarted = true;
 			}
 		}
+		if (quoted) {
+			throw new IOException("Malformed CSV: unclosed quoted field");
+		}
+		if (recordStarted || afterQuote || !values.isEmpty() || value.length() > 0) {
+			addCsvField(values, value, limits, cells);
+			addCsvRow(rows, values, limits);
+		}
+		return rows;
+	}
+
+	private int addCsvField(List<String> values, StringBuilder value,
+			TinyflowParserLimits limits, int cells) throws IOException {
+		limits.checkField(value.length());
+		limits.checkTabularCells(++cells);
 		values.add(value.toString());
-		return values;
+		value.setLength(0);
+		return cells;
+	}
+
+	private void addCsvRow(List<List<String>> rows, List<String> values,
+			TinyflowParserLimits limits) throws IOException {
+		limits.checkTabularRows(rows.size() + 1);
+		rows.add(values);
 	}
 
 	private String join(List<String> values) {

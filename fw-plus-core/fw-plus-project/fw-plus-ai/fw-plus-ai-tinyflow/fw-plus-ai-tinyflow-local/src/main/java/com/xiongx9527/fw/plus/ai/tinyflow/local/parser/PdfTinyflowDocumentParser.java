@@ -25,9 +25,11 @@ public final class PdfTinyflowDocumentParser implements TinyflowDocumentParser {
 
 	@Override
 	public TinyflowParsedDocument parse(InputStream input, ParseContext context) throws IOException {
+		TinyflowParserLimits limits = TinyflowParserLimits.from(context);
 		List<TinyflowParsedDocument.Section> sections = new ArrayList<TinyflowParsedDocument.Section>();
 		StringBuilder content = new StringBuilder();
-		try (PDDocument document = Loader.loadPDF(TextMarkdownHtmlParser.readAll(input))) {
+		try (PDDocument document = Loader.loadPDF(limits.read(input))) {
+			limits.checkPdfPages(document.getNumberOfPages());
 			PDFTextStripper stripper = new PDFTextStripper();
 			for (int page = 1; page <= document.getNumberOfPages(); page++) {
 				stripper.setStartPage(page);
@@ -47,6 +49,7 @@ public final class PdfTinyflowDocumentParser implements TinyflowDocumentParser {
 		if (content.length() == 0) {
 			throw new IOException("PDF contains no extractable text");
 		}
+		limits.checkText(content.toString());
 		return new TinyflowParsedDocument(context.getFileName(), content.toString(), sections,
 				TextMarkdownHtmlParser.parserMetadata("pdf"));
 	}

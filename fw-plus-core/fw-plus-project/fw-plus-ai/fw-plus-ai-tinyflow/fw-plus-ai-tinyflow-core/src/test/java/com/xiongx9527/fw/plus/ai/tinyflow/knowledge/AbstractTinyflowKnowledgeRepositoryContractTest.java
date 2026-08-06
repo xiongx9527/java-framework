@@ -62,6 +62,26 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 	}
 
 	@Test
+	public void shouldDeleteKnowledgeWithExpectedVersionAndRejectStaleDelete() {
+		TinyflowKnowledgeDefinition initial = knowledge("tenant-a", "kb-delete");
+		repository.saveKnowledge(initial, 0L);
+		long staleVersion = repository.findKnowledgeVersion("tenant-a", "kb-delete");
+		TinyflowKnowledgeDefinition concurrent = TinyflowKnowledgeDefinition.builder()
+				.providerKey("local").tenantId("tenant-a").knowledgeId("kb-delete")
+				.name("Concurrent update").description("must survive stale delete").build();
+		repository.saveKnowledge(concurrent, staleVersion);
+
+		assertThrows(TinyflowKnowledgeRepository.OptimisticLockException.class,
+				() -> repository.deleteKnowledge("tenant-a", "kb-delete", staleVersion));
+		assertEquals("Concurrent update", repository.findKnowledge("tenant-a", "kb-delete").getName());
+		long currentVersion = repository.findKnowledgeVersion("tenant-a", "kb-delete");
+		repository.deleteKnowledge("tenant-a", "kb-delete", currentVersion);
+
+		assertNull(repository.findKnowledge("tenant-a", "kb-delete"));
+		assertEquals(0L, repository.findKnowledgeVersion("tenant-a", "kb-delete"));
+	}
+
+	@Test
 	public void shouldDeleteOnlyRequestedSourceVersionsWithinTenantAndKnowledge() {
 		repository.saveDocument(document("tenant-a", "kb-1", "source-1", "doc-a1", "sum-a1"));
 		repository.saveDocument(document("tenant-a", "kb-1", "source-1", "doc-a2", "sum-a2"));
@@ -161,9 +181,10 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 	protected TinyflowDocument document(String tenantId, String knowledgeId, String sourceId,
 			String documentId, String checksum) {
 		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
-		metadata.put("checksum", checksum);
+		metadata.put("checksum", "metadata-must-not-control-identity");
 		return TinyflowDocument.builder().tenantId(tenantId).knowledgeId(knowledgeId).sourceId(sourceId)
-				.sourceType("file").documentId(documentId).name(documentId).metadata(metadata).build();
+				.sourceType("file").documentId(documentId).checksum(checksum).name(documentId)
+				.metadata(metadata).build();
 	}
 
 	protected TinyflowChunk chunk(String tenantId, String knowledgeId, String documentId,

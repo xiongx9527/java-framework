@@ -14,14 +14,16 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class DefaultTinyflowIngestionService {
 
@@ -34,6 +36,7 @@ public final class DefaultTinyflowIngestionService {
 	private final IngestionIndex ingestionIndex;
 	private final Executor executor;
 	private final Map<String, TaskControl> controls = new ConcurrentHashMap<String, TaskControl>();
+	private final Map<String, TaskControl> inFlight = new ConcurrentHashMap<String, TaskControl>();
 
 	public DefaultTinyflowIngestionService(TinyflowKnowledgeRepository repository,
 			TinyflowObjectStorage objectStorage, TinyflowDocumentParser parser,
@@ -55,23 +58,37 @@ public final class DefaultTinyflowIngestionService {
 	public TinyflowIngestionTask importDocument(final TinyflowDocumentImport request) {
 		validate(request);
 		TinyflowDocument input = request.getDocument();
-		String checksum = requiredMetadata(input, "checksum");
-		TinyflowDocument same = repository.findBySourceAndChecksum(request.getTenantId(),
-				request.getKnowledgeId(), input.getSourceId(), checksum);
-		TinyflowDocument active = repository.findActiveDocument(request.getTenantId(),
-				request.getKnowledgeId(), input.getSourceId());
-		if (same != null && active != null && same.getDocumentId().equals(active.getDocumentId())) {
-			TinyflowIngestionTask completed = task(UUID.randomUUID().toString(), request, same.getDocumentId(),
-					"COMPLETED", "Document already imported", metadata("COMPLETED", 0, same.getChunks().size(), 0));
-			repository.saveTask(completed);
-			return completed;
+		String checksum = input.getChecksum();
+		String sourceKey = sourceKey(request, input.getSourceId());
+		final TaskControl control;
+		TinyflowIngestionTask pending;
+		synchronized (inFlight) {
+			TaskControl existing = inFlight.get(sourceKey);
+			if (existing != null && !isTerminal(existing.status)) {
+				if (checksum.equals(existing.document.getChecksum())) {
+					return snapshot(existing, existing.status, null, null);
+				}
+				throw new IllegalStateException("An import is already in progress for this source");
+			}
+			TinyflowDocument active = repository.findActiveDocument(request.getTenantId(),
+					request.getKnowledgeId(), input.getSourceId());
+			if (active != null && checksum.equals(active.getChecksum())) {
+				Map<String, Object> taskMetadata = metadata("COMPLETED", 0, active.getChunks().size(), 0);
+				taskMetadata.put("sourceId", active.getSourceId());
+				taskMetadata.put("checksum", active.getChecksum());
+				TinyflowIngestionTask completed = task(UUID.randomUUID().toString(), request, active.getDocumentId(),
+						"COMPLETED", "Document already imported", taskMetadata);
+				repository.saveTask(completed);
+				return completed;
+			}
+			TinyflowDocument document = createDocumentVersion(input, request, checksum);
+			repository.saveDocument(document);
+			control = new TaskControl(UUID.randomUUID().toString(), request, document,
+					retryCount(request, input.getSourceId(), checksum), sourceKey);
+			controls.put(control.taskId, control);
+			inFlight.put(sourceKey, control);
+			pending = transition(control, "PENDING", null, null);
 		}
-
-		TinyflowDocument document = createDocumentVersion(input, request, checksum);
-		repository.saveDocument(document);
-		final TaskControl control = new TaskControl(UUID.randomUUID().toString(), request, document);
-		controls.put(control.taskId, control);
-		TinyflowIngestionTask pending = save(control, "PENDING", null, null);
 		try {
 			executor.execute(new Runnable() {
 				@Override
@@ -81,6 +98,7 @@ public final class DefaultTinyflowIngestionService {
 			});
 		} catch (RuntimeException exception) {
 			fail(control, "PENDING");
+			inFlight.remove(sourceKey, control);
 		}
 		return pending;
 	}
@@ -91,20 +109,21 @@ public final class DefaultTinyflowIngestionService {
 				|| !control.request.getKnowledgeId().equals(knowledgeId)) {
 			throw new IllegalArgumentException("Ingestion task not found");
 		}
-		if (isTerminal(control.status)) {
-			return snapshot(control, control.status, null, null);
+		synchronized (control) {
+			if (isTerminal(control.status)) {
+				return snapshotLocked(control, control.status, null, null);
+			}
+			control.cancelled = true;
+			return transitionLocked(control, "CANCELLING", null, null);
 		}
-		control.cancelled.set(true);
-		return save(control, "CANCELLING", null, null);
 	}
 
 	private void process(TaskControl control) {
-		if (cancelled(control)) {
-			return;
-		}
 		try {
-			control.stage = "PARSING";
-			save(control, "PARSING", null, null);
+			if (!enterStage(control, "PARSING")) {
+				finishCancelled(control);
+				return;
+			}
 			TinyflowParsedDocument parsed;
 			try (InputStream input = openInput(control.document)) {
 				TinyflowDocumentParser.ParseContext context = new TinyflowDocumentParser.ParseContext(
@@ -114,13 +133,18 @@ public final class DefaultTinyflowIngestionService {
 						control.document.getName(), control.request.getOptions());
 				parsed = parser.parse(input, context);
 			}
-			control.parsedSectionCount = parsed.getSections().size();
-			if (cancelled(control)) {
+			synchronized (control) {
+				control.parsedSectionCount = parsed.getSections().size();
+			}
+			if (cancelRequested(control)) {
+				finishCancelled(control);
 				return;
 			}
 
-			control.stage = "CHUNKING";
-			save(control, "CHUNKING", null, null);
+			if (!enterStage(control, "CHUNKING")) {
+				finishCancelled(control);
+				return;
+			}
 			TinyflowChunkStrategy strategy = chunkStrategies.get(strategyKey(control.request));
 			if (strategy == null) {
 				throw new IllegalArgumentException("Unsupported chunk strategy");
@@ -132,24 +156,39 @@ public final class DefaultTinyflowIngestionService {
 					control.document.getTenantId(), control.document.getKnowledgeId(),
 					control.document.getSourceId(), control.document.getSourceType(),
 					control.document.getDocumentId(), chunkOptions));
-			control.chunkCount = chunks.size();
-			if (cancelled(control)) {
+			synchronized (control) {
+				control.chunkCount = chunks.size();
+			}
+			if (cancelRequested(control)) {
+				finishCancelled(control);
 				return;
 			}
 
-			control.stage = "EMBEDDING";
-			save(control, "EMBEDDING", null, null);
+			if (!enterStage(control, "EMBEDDING")) {
+				finishCancelled(control);
+				return;
+			}
 			ingestionIndex.embed(control.document.getTenantId(), control.document.getKnowledgeId(),
 					control.document.getDocumentId(), chunks);
-			if (cancelled(control)) {
+			if (cancelRequested(control)) {
+				finishCancelled(control);
 				return;
 			}
 
-			control.stage = "INDEXING";
-			save(control, "INDEXING", null, null);
-			ingestionIndex.index(control.document.getTenantId(), control.document.getKnowledgeId(),
-					control.document.getDocumentId(), chunks);
-			if (cancelled(control)) {
+			if (!enterStage(control, "INDEXING")) {
+				finishCancelled(control);
+				return;
+			}
+			Map<String, List<String>> indexed = ingestionIndex.index(control.document.getTenantId(),
+					control.document.getKnowledgeId(), control.document.getDocumentId(), chunks);
+			synchronized (control) {
+				control.indexedVectorIds = collectVectorIds(indexed);
+				control.indexed = true;
+			}
+			List<TinyflowChunk> indexedChunks = withVectorIds(chunks, indexed);
+			if (cancelRequested(control)) {
+				compensate(control);
+				finishCancelled(control);
 				return;
 			}
 
@@ -158,46 +197,110 @@ public final class DefaultTinyflowIngestionService {
 			TinyflowDocument completedDocument = TinyflowDocument.builder()
 					.tenantId(control.document.getTenantId()).knowledgeId(control.document.getKnowledgeId())
 					.sourceId(control.document.getSourceId()).sourceType(control.document.getSourceType())
-					.documentId(control.document.getDocumentId()).name(control.document.getName())
+					.documentId(control.document.getDocumentId()).checksum(control.document.getChecksum())
+					.name(control.document.getName())
 					.content(parsed.getContent()).sourceUri(control.document.getSourceUri())
 					.sourceVersion(control.document.getSourceVersion()).metadata(documentMetadata)
-					.chunks(chunks).build();
-			repository.saveChunks(chunks);
+					.chunks(indexedChunks).build();
+			repository.saveChunks(indexedChunks);
+			if (cancelRequested(control)) {
+				compensate(control);
+				finishCancelled(control);
+				return;
+			}
 			repository.saveDocument(completedDocument);
-			repository.activateDocumentVersion(completedDocument.getTenantId(), completedDocument.getKnowledgeId(),
-					completedDocument.getSourceId(), completedDocument.getDocumentId());
-			control.stage = "COMPLETED";
-			control.document = completedDocument;
-			save(control, "COMPLETED", null, null);
+			if (cancelRequested(control)) {
+				compensate(control);
+				finishCancelled(control);
+				return;
+			}
+			if (!activateAndComplete(control, completedDocument)) {
+				compensate(control);
+				finishCancelled(control);
+			}
 		} catch (Exception exception) {
+			compensate(control);
 			fail(control, control.stage);
+		} finally {
+			inFlight.remove(control.sourceKey, control);
 		}
 	}
 
-	private boolean cancelled(TaskControl control) {
-		if (!control.cancelled.get()) {
-			return false;
+	private boolean enterStage(TaskControl control, String stage) {
+		synchronized (control) {
+			if (control.cancelled || isTerminal(control.status)) {
+				return false;
+			}
+			control.stage = stage;
+			transitionLocked(control, stage, null, null);
+			return true;
 		}
-		control.stage = "CANCELLED";
-		save(control, "CANCELLED", null, null);
-		return true;
 	}
 
 	private void fail(TaskControl control, String failedStage) {
-		control.stage = "FAILED";
-		save(control, "FAILED", "Ingestion failed during " + safeStage(failedStage), safeStage(failedStage));
+		synchronized (control) {
+			if (control.cancelled) {
+				finishCancelledLocked(control);
+				return;
+			}
+			if (!isTerminal(control.status)) {
+				control.stage = "FAILED";
+				transitionLocked(control, "FAILED", "Ingestion failed during " + safeStage(failedStage),
+						safeStage(failedStage));
+			}
+		}
 	}
 
-	private TinyflowIngestionTask save(TaskControl control, String status, String message, String failedStage) {
-		TinyflowIngestionTask task = snapshot(control, status, message, failedStage);
+	private void finishCancelled(TaskControl control) {
+		synchronized (control) {
+			finishCancelledLocked(control);
+		}
+	}
+
+	private void finishCancelledLocked(TaskControl control) {
+		if (!isTerminal(control.status)) {
+			control.stage = "CANCELLED";
+			transitionLocked(control, "CANCELLED", null, null);
+		}
+	}
+
+	private boolean cancelRequested(TaskControl control) {
+		synchronized (control) {
+			return control.cancelled;
+		}
+	}
+
+	private TinyflowIngestionTask transition(TaskControl control, String status,
+			String message, String failedStage) {
+		synchronized (control) {
+			return transitionLocked(control, status, message, failedStage);
+		}
+	}
+
+	private TinyflowIngestionTask transitionLocked(TaskControl control, String status,
+			String message, String failedStage) {
+		if (!allowsTransition(control.status, status)) {
+			throw new IllegalStateException("Illegal ingestion status transition");
+		}
+		TinyflowIngestionTask task = snapshotLocked(control, status, message, failedStage);
 		control.status = status;
 		repository.saveTask(task);
 		return task;
 	}
 
 	private TinyflowIngestionTask snapshot(TaskControl control, String status, String message, String failedStage) {
-		return task(control.taskId, control.request, control.document.getDocumentId(), status, message,
-				metadata(status, control.parsedSectionCount, control.chunkCount, control.retryCount, failedStage));
+		synchronized (control) {
+			return snapshotLocked(control, status, message, failedStage);
+		}
+	}
+
+	private TinyflowIngestionTask snapshotLocked(TaskControl control, String status,
+			String message, String failedStage) {
+		Map<String, Object> taskMetadata = metadata(status, control.parsedSectionCount,
+				control.chunkCount, control.retryCount, failedStage);
+		taskMetadata.put("sourceId", control.document.getSourceId());
+		taskMetadata.put("checksum", control.document.getChecksum());
+		return task(control.taskId, control.request, control.document.getDocumentId(), status, message, taskMetadata);
 	}
 
 	private TinyflowIngestionTask task(String taskId, TinyflowDocumentImport request, String documentId,
@@ -224,13 +327,109 @@ public final class DefaultTinyflowIngestionService {
 		return metadata;
 	}
 
+	private boolean activateAndComplete(TaskControl control, TinyflowDocument completedDocument) {
+		synchronized (control) {
+			if (control.cancelled) {
+				return false;
+			}
+			repository.activateDocumentVersion(completedDocument.getTenantId(), completedDocument.getKnowledgeId(),
+					completedDocument.getSourceId(), completedDocument.getDocumentId());
+			control.stage = "COMPLETED";
+			control.document = completedDocument;
+			transitionLocked(control, "COMPLETED", null, null);
+			return true;
+		}
+	}
+
+	private void compensate(TaskControl control) {
+		final List<String> vectorIds;
+		synchronized (control) {
+			if (!control.indexed || control.compensationAttempted || control.indexedVectorIds.isEmpty()) {
+				return;
+			}
+			control.compensationAttempted = true;
+			vectorIds = new ArrayList<String>(control.indexedVectorIds);
+		}
+		TinyflowKnowledgeRepository.VectorCompensation compensation =
+				new TinyflowKnowledgeRepository.VectorCompensation(UUID.randomUUID().toString(),
+						control.document.getTenantId(), control.document.getKnowledgeId(),
+						control.document.getSourceId(), control.document.getDocumentId(), vectorIds, "delete");
+		try {
+			repository.saveVectorCompensation(compensation);
+		} catch (RuntimeException exception) {
+			return;
+		}
+		try {
+			ingestionIndex.delete(control.document.getTenantId(), control.document.getKnowledgeId(), vectorIds);
+			repository.deleteVectorCompensation(control.document.getTenantId(), control.document.getKnowledgeId(),
+					compensation.getCompensationId());
+		} catch (Exception ignored) {
+			// The durable compensation record is intentionally retained for a later retry.
+		}
+	}
+
+	private List<TinyflowChunk> withVectorIds(List<TinyflowChunk> chunks,
+			Map<String, List<String>> indexed) throws IOException {
+		if (indexed == null) {
+			throw new IOException("Index result is unavailable");
+		}
+		List<TinyflowChunk> result = new ArrayList<TinyflowChunk>();
+		for (TinyflowChunk chunk : chunks) {
+			List<String> vectorIds = indexed.get(chunk.getChunkId());
+			if (vectorIds == null || vectorIds.isEmpty()) {
+				throw new IOException("Index result is incomplete");
+			}
+			result.add(TinyflowChunk.builder().tenantId(chunk.getTenantId()).knowledgeId(chunk.getKnowledgeId())
+					.sourceId(chunk.getSourceId()).sourceType(chunk.getSourceType())
+					.documentId(chunk.getDocumentId()).chunkId(chunk.getChunkId()).content(chunk.getContent())
+					.sourceUri(chunk.getSourceUri()).sourceVersion(chunk.getSourceVersion())
+					.location(chunk.getLocation()).position(chunk.getPosition()).parentChunkId(chunk.getParentChunkId())
+					.tokenCount(chunk.getTokenCount()).metadata(chunk.getMetadata()).enabled(chunk.isEnabled())
+					.vectorIds(vectorIds).build());
+		}
+		return result;
+	}
+
+	private List<String> collectVectorIds(List<TinyflowChunk> chunks) {
+		Set<String> values = new LinkedHashSet<String>();
+		for (TinyflowChunk chunk : chunks) {
+			values.addAll(chunk.getVectorIds());
+		}
+		return new ArrayList<String>(values);
+	}
+
+	private List<String> collectVectorIds(Map<String, List<String>> indexed) {
+		if (indexed == null) {
+			return Collections.emptyList();
+		}
+		Set<String> values = new LinkedHashSet<String>();
+		for (List<String> vectorIds : indexed.values()) {
+			if (vectorIds != null) {
+				values.addAll(vectorIds);
+			}
+		}
+		return new ArrayList<String>(values);
+	}
+
+	private int retryCount(TinyflowDocumentImport request, String sourceId, String checksum) {
+		int count = 0;
+		for (TinyflowIngestionTask task : repository.findTasks(request.getTenantId(), request.getKnowledgeId())) {
+			if ("FAILED".equals(task.getStatus()) && sourceId.equals(task.getMetadata().get("sourceId"))
+					&& checksum.equals(task.getMetadata().get("checksum"))) {
+				count++;
+			}
+		}
+		return count;
+	}
+
 	private TinyflowDocument createDocumentVersion(TinyflowDocument input,
 			TinyflowDocumentImport request, String checksum) {
 		Map<String, Object> metadata = new LinkedHashMap<String, Object>(input.getMetadata());
 		metadata.put("checksum", checksum);
 		return TinyflowDocument.builder().tenantId(request.getTenantId()).knowledgeId(request.getKnowledgeId())
 				.sourceId(input.getSourceId()).sourceType(input.getSourceType())
-				.documentId(UUID.randomUUID().toString()).name(input.getName()).content(input.getContent())
+				.documentId(UUID.randomUUID().toString()).checksum(checksum)
+				.name(input.getName()).content(input.getContent())
 				.sourceUri(input.getSourceUri())
 				.sourceVersion(input.getSourceVersion() == null ? checksum : input.getSourceVersion())
 				.metadata(metadata).build();
@@ -269,15 +468,10 @@ public final class DefaultTinyflowIngestionService {
 				|| !request.getKnowledgeId().equals(document.getKnowledgeId())) {
 			throw new IllegalArgumentException("Document identity does not match import identity");
 		}
-		requiredMetadata(document, "checksum");
 	}
 
-	private String requiredMetadata(TinyflowDocument document, String key) {
-		Object value = document.getMetadata().get(key);
-		if (value == null || String.valueOf(value).trim().isEmpty()) {
-			throw new IllegalArgumentException(key + " must not be blank");
-		}
-		return String.valueOf(value);
+	private String sourceKey(TinyflowDocumentImport request, String sourceId) {
+		return request.getTenantId() + "|" + request.getKnowledgeId() + "|" + sourceId;
 	}
 
 	private String safeStage(String stage) {
@@ -288,29 +482,60 @@ public final class DefaultTinyflowIngestionService {
 		return "COMPLETED".equals(status) || "FAILED".equals(status) || "CANCELLED".equals(status);
 	}
 
+	private boolean allowsTransition(String current, String next) {
+		if (current.equals(next)) {
+			return "PENDING".equals(current);
+		}
+		if ("PENDING".equals(current)) {
+			return "PARSING".equals(next) || "CANCELLING".equals(next) || "FAILED".equals(next);
+		}
+		if ("PARSING".equals(current)) {
+			return "CHUNKING".equals(next) || "CANCELLING".equals(next) || "FAILED".equals(next);
+		}
+		if ("CHUNKING".equals(current)) {
+			return "EMBEDDING".equals(next) || "CANCELLING".equals(next) || "FAILED".equals(next);
+		}
+		if ("EMBEDDING".equals(current)) {
+			return "INDEXING".equals(next) || "CANCELLING".equals(next) || "FAILED".equals(next);
+		}
+		if ("INDEXING".equals(current)) {
+			return "COMPLETED".equals(next) || "CANCELLING".equals(next) || "FAILED".equals(next);
+		}
+		return "CANCELLING".equals(current) && "CANCELLED".equals(next);
+	}
+
 	public interface IngestionIndex {
 		void embed(String tenantId, String knowledgeId, String documentId,
 				List<TinyflowChunk> chunks) throws Exception;
 
-		void index(String tenantId, String knowledgeId, String documentId,
+		Map<String, List<String>> index(String tenantId, String knowledgeId, String documentId,
 				List<TinyflowChunk> chunks) throws Exception;
+
+		void delete(String tenantId, String knowledgeId, List<String> vectorIds) throws Exception;
 	}
 
 	private static final class TaskControl {
 		private final String taskId;
 		private final TinyflowDocumentImport request;
-		private final AtomicBoolean cancelled = new AtomicBoolean();
+		private final String sourceKey;
 		private TinyflowDocument document;
 		private String stage = "PENDING";
 		private String status = "PENDING";
+		private boolean cancelled;
+		private boolean indexed;
+		private boolean compensationAttempted;
+		private List<String> indexedVectorIds = Collections.emptyList();
 		private int parsedSectionCount;
 		private int chunkCount;
-		private int retryCount;
+		private final int retryCount;
 
-		private TaskControl(String taskId, TinyflowDocumentImport request, TinyflowDocument document) {
+		private TaskControl(String taskId, TinyflowDocumentImport request, TinyflowDocument document,
+				int retryCount, String sourceKey) {
 			this.taskId = taskId;
 			this.request = request;
 			this.document = document;
+			this.retryCount = retryCount;
+			this.sourceKey = sourceKey;
 		}
 	}
 }

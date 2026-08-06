@@ -54,6 +54,21 @@ public class TinyflowSourceIdentityTest {
 	}
 
 	@Test
+	public void shouldModelDocumentChecksumOutsideMetadata() {
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
+		metadata.put("checksum", "metadata-value-must-not-control-identity");
+
+		TinyflowDocument document = TinyflowDocument.builder().tenantId("tenant-1")
+				.knowledgeId("knowledge-1").sourceId("source-1").sourceType("file")
+				.documentId("doc-1").checksum("sha256-explicit").metadata(metadata).build();
+
+		assertEquals("sha256-explicit", document.getChecksum());
+		assertThrows(IllegalArgumentException.class, () -> TinyflowDocument.builder().tenantId("tenant-1")
+				.knowledgeId("knowledge-1").sourceId("source-1").sourceType("file")
+				.documentId("doc-2").checksum(" ").build());
+	}
+
+	@Test
 	public void shouldValidateKnowledgeRequestBoundaries() {
 		TinyflowKnowledgeRequest.Builder builder = TinyflowKnowledgeRequest.builder()
 				.providerKey("dify")
