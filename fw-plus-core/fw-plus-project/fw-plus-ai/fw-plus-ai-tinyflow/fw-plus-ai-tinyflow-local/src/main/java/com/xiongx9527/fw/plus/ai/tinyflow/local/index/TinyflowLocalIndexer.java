@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.tinyflow.local.index;
 import com.xiongx9527.fw.plus.ai.tinyflow.TinyflowException;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowChunk;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocument;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeDefinition;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.local.DefaultTinyflowIngestionService;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowEmbeddingModel;
@@ -70,12 +71,13 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 			try {
 				repository.saveChunks(mapped);
 			} catch (RuntimeException exception) {
-				recordCompensation(document, collectVectorIds(indexed), "INDEX_ROLLBACK");
+				recordCompensation(document, collectVectorIds(indexed), TinyflowVectorCompensator.INDEX_ROLLBACK);
 				throw new TinyflowException("Failed to persist indexed chunks", exception);
 			}
 			return mapped;
 		} catch (DefaultTinyflowIngestionService.IngestionIndex.PartialIndexException exception) {
-			recordCompensation(document, collectVectorIds(exception.getPartialResult()), "INDEX_ROLLBACK");
+			recordCompensation(document, collectVectorIds(exception.getPartialResult()),
+					TinyflowVectorCompensator.INDEX_ROLLBACK);
 			throw new TinyflowException("Failed to write vector index", exception);
 		} catch (Exception exception) {
 			throw exception instanceof TinyflowException ? (TinyflowException) exception
@@ -91,7 +93,8 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 			return withVectorIds(chunks, index(document.getTenantId(), document.getKnowledgeId(),
 					document.getDocumentId(), chunks));
 		} catch (DefaultTinyflowIngestionService.IngestionIndex.PartialIndexException exception) {
-			recordCompensation(document, collectVectorIds(exception.getPartialResult()), "INDEX_ROLLBACK");
+			recordCompensation(document, collectVectorIds(exception.getPartialResult()),
+					TinyflowVectorCompensator.INDEX_ROLLBACK);
 			throw new TinyflowException("Failed to write vector index", exception);
 		} catch (Exception exception) {
 			throw exception instanceof TinyflowException ? (TinyflowException) exception
@@ -120,9 +123,10 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 	@Override
 	public Map<String, List<String>> index(String tenantId, String knowledgeId, String documentId,
 			List<TinyflowChunk> chunks) throws Exception {
-		TinyflowVectorStore store = vectorStoreProvider.get(vectorStoreKey);
+		String resolvedStoreKey = resolveVectorStoreKey(tenantId, knowledgeId);
+		TinyflowVectorStore store = vectorStoreProvider.get(resolvedStoreKey);
 		if (store == null) {
-			throw new TinyflowException("Vector store is unavailable: " + vectorStoreKey);
+			throw new TinyflowException("Vector store is unavailable: " + resolvedStoreKey);
 		}
 		Map<String, float[]> values = embeddings.get(documentKey(tenantId, knowledgeId, documentId));
 		if (values == null) {
@@ -134,21 +138,18 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 			for (int from = 0; from < source.size(); from += batchSize) {
 				int to = Math.min(source.size(), from + batchSize);
 				List<TinyflowChunk> batch = source.subList(from, to);
-				List<TinyflowVectorDocument> documents = new ArrayList<TinyflowVectorDocument>();
 				for (TinyflowChunk chunk : batch) {
 					verifyChunkIdentity(tenantId, knowledgeId, documentId, chunk);
 					float[] vector = values.get(chunk.getChunkId());
 					if (vector == null) {
 						throw new TinyflowException("Embedding is unavailable for chunk " + chunk.getChunkId());
 					}
-					documents.add(new TinyflowVectorDocument(chunk.getChunkId(), chunk.getContent(), vector, metadata(chunk)));
-				}
-				List<String> vectorIds = store.addAll(documents);
-				if (vectorIds == null || vectorIds.size() != batch.size() || containsBlank(vectorIds)) {
-					throw new TinyflowException("Vector store returned an invalid vector id mapping");
-				}
-				for (int index = 0; index < batch.size(); index++) {
-					result.put(batch.get(index).getChunkId(), Collections.singletonList(vectorIds.get(index)));
+					String vectorId = store.add(new TinyflowVectorDocument(
+							chunk.getChunkId(), chunk.getContent(), vector, metadata(chunk)));
+					if (isBlank(vectorId)) {
+						throw new TinyflowException("Vector store returned an invalid vector id mapping");
+					}
+					result.put(chunk.getChunkId(), Collections.singletonList(vectorId));
 				}
 			}
 			return result;
@@ -165,20 +166,23 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 		if (vectorIds == null || vectorIds.isEmpty()) {
 			return;
 		}
-		TinyflowVectorStore store = vectorStoreProvider.get(vectorStoreKey);
+		String resolvedStoreKey = resolveVectorStoreKey(tenantId, knowledgeId);
+		TinyflowVectorStore store = vectorStoreProvider.get(resolvedStoreKey);
 		if (store == null) {
-			throw new TinyflowException("Vector store is unavailable: " + vectorStoreKey);
+			throw new TinyflowException("Vector store is unavailable: " + resolvedStoreKey);
 		}
 		store.removeAll(new ArrayList<String>(new LinkedHashSet<String>(vectorIds)));
 	}
 
 	void recordCompensation(TinyflowDocument document, List<String> vectorIds, String operation) {
-		if (vectorIds == null || vectorIds.isEmpty()) {
+		if ((vectorIds == null || vectorIds.isEmpty())
+				&& TinyflowVectorCompensator.INDEX_ROLLBACK.equals(operation)) {
 			return;
 		}
 		repository.saveVectorCompensation(new TinyflowKnowledgeRepository.VectorCompensation(
 				UUID.randomUUID().toString(), document.getTenantId(), document.getKnowledgeId(),
-				document.getSourceId(), document.getDocumentId(), vectorIds, operation));
+				document.getSourceId(), document.getDocumentId(),
+				vectorIds == null ? Collections.<String>emptyList() : vectorIds, operation));
 	}
 
 	private List<TinyflowChunk> withVectorIds(List<TinyflowChunk> chunks, Map<String, List<String>> indexed) {
@@ -218,6 +222,18 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 		return new ArrayList<String>(values);
 	}
 
+	private String resolveVectorStoreKey(String tenantId, String knowledgeId) {
+		TinyflowKnowledgeDefinition definition = repository.findKnowledge(tenantId, knowledgeId);
+		if (definition == null) {
+			return vectorStoreKey;
+		}
+		Object configured = definition.getMetadata().get(TinyflowKnowledgeMaintenanceService.VECTOR_STORE_KEY);
+		if (configured == null || isBlank(String.valueOf(configured))) {
+			throw new TinyflowException("Knowledge vectorStoreKey is required");
+		}
+		return String.valueOf(configured);
+	}
+
 	private List<TinyflowChunk> safeChunks(List<TinyflowChunk> chunks) {
 		return chunks == null ? Collections.<TinyflowChunk>emptyList() : chunks;
 	}
@@ -227,15 +243,6 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 				|| !documentId.equals(chunk.getDocumentId())) {
 			throw new TinyflowException("Chunk identity does not match index request");
 		}
-	}
-
-	private boolean containsBlank(List<String> values) {
-		for (String value : values) {
-			if (isBlank(value)) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	private static String documentKey(String tenantId, String knowledgeId, String documentId) {

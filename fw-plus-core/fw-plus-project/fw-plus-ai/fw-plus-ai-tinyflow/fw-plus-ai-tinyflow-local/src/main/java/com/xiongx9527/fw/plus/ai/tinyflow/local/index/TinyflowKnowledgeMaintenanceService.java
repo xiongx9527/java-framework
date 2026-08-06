@@ -44,20 +44,17 @@ public final class TinyflowKnowledgeMaintenanceService {
 		}
 		String storeKey = vectorStoreKey(definition);
 		TinyflowVectorStoreDescriptor descriptor = descriptor(storeKey);
-		if (!descriptor.isMetadataFilterSupported()) {
-			for (TinyflowKnowledgeDefinition existing : repository.findKnowledges(definition.getTenantId())) {
-				Object existingStore = existing.getMetadata().get(VECTOR_STORE_KEY);
-				if (storeKey.equals(String.valueOf(existingStore))
-						&& !definition.getKnowledgeId().equals(existing.getKnowledgeId())) {
-					throw new TinyflowException("Vector store does not support knowledge filtering: " + storeKey);
-				}
-			}
+		try {
+			repository.saveKnowledgeWithVectorStoreOwnership(
+					definition, 0L, storeKey, descriptor.isMetadataFilterSupported());
+		} catch (TinyflowKnowledgeRepository.VectorStoreOwnershipException exception) {
+			throw new TinyflowException("Vector store does not support knowledge filtering: " + storeKey, exception);
 		}
-		repository.saveKnowledge(definition, 0L);
 		return definition;
 	}
 
 	public void rebuild(String tenantId, String knowledgeId, String sourceId) {
+		descriptor(vectorStoreKey(requireKnowledge(tenantId, knowledgeId)));
 		TinyflowDocument active = repository.findActiveDocument(tenantId, knowledgeId, sourceId);
 		if (active == null) {
 			throw new TinyflowException("Active document was not found");
@@ -66,6 +63,7 @@ public final class TinyflowKnowledgeMaintenanceService {
 		if (sourceChunks.isEmpty()) {
 			throw new TinyflowException("Active document has no chunks");
 		}
+		List<TinyflowDocument> oldVersions = repository.findDocumentVersions(tenantId, knowledgeId, sourceId);
 		TinyflowDocument rebuilt = copyDocument(active, UUID.randomUUID().toString());
 		List<TinyflowChunk> rebuiltChunks = copyChunks(sourceChunks, rebuilt.getDocumentId());
 		List<TinyflowChunk> indexed = Collections.emptyList();
@@ -74,10 +72,13 @@ public final class TinyflowKnowledgeMaintenanceService {
 			repository.completeIngestion(rebuilt, indexed, task(rebuilt, "COMPLETED", null));
 		} catch (RuntimeException exception) {
 			if (!indexed.isEmpty()) {
-				indexer.recordCompensation(rebuilt, vectorIds(indexed), "INDEX_ROLLBACK");
+				indexer.recordCompensation(rebuilt, vectorIds(indexed), TinyflowVectorCompensator.INDEX_ROLLBACK);
 			}
 			throw exception instanceof TinyflowException ? (TinyflowException) exception
 					: new TinyflowException("Knowledge rebuild failed", exception);
+		}
+		for (TinyflowDocument oldVersion : oldVersions) {
+			cleanupOldVersion(oldVersion);
 		}
 	}
 
@@ -86,6 +87,7 @@ public final class TinyflowKnowledgeMaintenanceService {
 		if (active == null) {
 			return;
 		}
+		descriptor(vectorStoreKey(requireKnowledge(tenantId, knowledgeId)));
 		repository.saveTask(task(active, "DELETE_PENDING", "Deleting source vectors"));
 		List<String> vectorIds = vectorIdsForSource(tenantId, knowledgeId, sourceId);
 		try {
@@ -93,9 +95,29 @@ public final class TinyflowKnowledgeMaintenanceService {
 			repository.deleteDocumentsBySource(tenantId, knowledgeId, sourceId);
 			repository.saveTask(task(active, "DELETED", null));
 		} catch (Exception exception) {
-			indexer.recordCompensation(active, vectorIds, "DELETE_PENDING");
+			indexer.recordCompensation(active, vectorIds, TinyflowVectorCompensator.DELETE_PENDING);
 			throw new TinyflowException("Knowledge source deletion is pending compensation", exception);
 		}
+	}
+
+	private void cleanupOldVersion(TinyflowDocument document) {
+		List<String> vectorIds = vectorIds(repository.findChunksByDocument(
+				document.getTenantId(), document.getKnowledgeId(), document.getDocumentId()));
+		try {
+			indexer.delete(document.getTenantId(), document.getKnowledgeId(), vectorIds);
+			repository.deleteDocumentVersion(document.getTenantId(), document.getKnowledgeId(),
+					document.getSourceId(), document.getDocumentId());
+		} catch (Exception exception) {
+			indexer.recordCompensation(document, vectorIds, TinyflowVectorCompensator.DELETE_OLD_VERSION);
+		}
+	}
+
+	private TinyflowKnowledgeDefinition requireKnowledge(String tenantId, String knowledgeId) {
+		TinyflowKnowledgeDefinition definition = repository.findKnowledge(tenantId, knowledgeId);
+		if (definition == null) {
+			throw new TinyflowException("Knowledge was not found");
+		}
+		return definition;
 	}
 
 	private TinyflowVectorStoreDescriptor descriptor(String storeKey) {

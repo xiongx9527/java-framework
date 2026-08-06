@@ -70,7 +70,7 @@ public class TinyflowLocalIndexerTest {
 	public void shouldExposeWrittenFirstBatchForCompensationWhenLaterBatchFails() throws Exception {
 		MemoryRepository repository = new MemoryRepository();
 		RecordingStore store = new RecordingStore();
-		store.failOnAddCall = 2;
+		store.failOnDocumentCall = 2;
 		TinyflowLocalIndexer indexer = indexer(repository, store, true, true, 1);
 
 		TinyflowException error = assertThrows(TinyflowException.class,
@@ -78,6 +78,39 @@ public class TinyflowLocalIndexerTest {
 
 		assertTrue(error.getCause() instanceof Exception);
 		assertEquals(Collections.singletonList("vec-chunk-1"), repository.pendingVectorIds("tenant-a", "kb-1"));
+	}
+
+	@Test
+	public void shouldTrackEveryVectorWrittenBeforeFailureInsideOneBatch() {
+		MemoryRepository repository = new MemoryRepository();
+		RecordingStore store = new RecordingStore();
+		store.failOnDocumentCall = 3;
+		TinyflowLocalIndexer indexer = indexer(repository, store, true, true, 10);
+
+		assertThrows(TinyflowException.class,
+				() -> indexer.index(document("doc-partial"), chunks("doc-partial", 3)));
+
+		assertEquals(Arrays.asList("vec-chunk-1", "vec-chunk-2"),
+				repository.pendingVectorIds("tenant-a", "kb-1"));
+	}
+
+	@Test
+	public void shouldUseKnowledgeVectorStoreForIndexAndDelete() throws Exception {
+		MemoryRepository repository = new MemoryRepository();
+		RecordingStore defaultStore = new RecordingStore();
+		RecordingStore knowledgeStore = new RecordingStore();
+		RoutingStoreProvider stores = new RoutingStoreProvider(defaultStore, knowledgeStore);
+		repository.saveKnowledge(knowledge("store-b"), 0L);
+		TinyflowLocalIndexer indexer = new TinyflowLocalIndexer(repository, new FixedModelProvider(true),
+				stores, "model-a", "store-a", 10);
+
+		indexer.index(document("doc-route"), chunks("doc-route", 1));
+		indexer.delete("tenant-a", "kb-1", Collections.singletonList("vec-chunk-1"));
+
+		assertTrue(defaultStore.added.isEmpty());
+		assertTrue(defaultStore.removed.isEmpty());
+		assertEquals(1, knowledgeStore.added.size());
+		assertEquals(Collections.singletonList("vec-chunk-1"), knowledgeStore.removed);
 	}
 
 	static TinyflowLocalIndexer indexer(MemoryRepository repository, RecordingStore store,
@@ -102,6 +135,13 @@ public class TinyflowLocalIndexerTest {
 		return values;
 	}
 
+	static TinyflowKnowledgeDefinition knowledge(String storeKey) {
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
+		metadata.put(TinyflowKnowledgeMaintenanceService.VECTOR_STORE_KEY, storeKey);
+		return TinyflowKnowledgeDefinition.builder().providerKey("fw-plus-local").tenantId("tenant-a")
+				.knowledgeId("kb-1").name("Knowledge").metadata(metadata).build();
+	}
+
 	static final class FixedModelProvider implements TinyflowModelProvider {
 		private final boolean available;
 		FixedModelProvider(boolean available) { this.available = available; }
@@ -123,19 +163,40 @@ public class TinyflowLocalIndexerTest {
 		@Override public TinyflowVectorStore get(String key) { return available ? store : null; }
 	}
 
+	static final class RoutingStoreProvider implements TinyflowVectorStoreProvider {
+		private final Map<String, RecordingStore> stores = new LinkedHashMap<String, RecordingStore>();
+		RoutingStoreProvider(RecordingStore defaultStore, RecordingStore knowledgeStore) {
+			stores.put("store-a", defaultStore);
+			stores.put("store-b", knowledgeStore);
+		}
+		@Override public List<TinyflowVectorStoreDescriptor> list() {
+			return Arrays.asList(
+					new TinyflowVectorStoreDescriptor("store-a", "Store A", "memory", "test", false),
+					new TinyflowVectorStoreDescriptor("store-b", "Store B", "memory", "test", false));
+		}
+		@Override public TinyflowVectorStore get(String key) { return stores.get(key); }
+	}
+
 	static final class RecordingStore implements TinyflowVectorStore {
 		final List<TinyflowVectorDocument> added = new ArrayList<TinyflowVectorDocument>();
 		final List<String> removed = new ArrayList<String>();
 		int addCalls;
 		int failOnAddCall;
+		int documentCalls;
+		int failOnDocumentCall;
 		boolean failRemove;
 		@Override public List<String> addAll(List<TinyflowVectorDocument> documents) {
 			addCalls++;
 			if (failOnAddCall == addCalls) { throw new IllegalStateException("vector write failed"); }
-			added.addAll(documents);
 			List<String> ids = new ArrayList<String>();
-			for (TinyflowVectorDocument document : documents) { ids.add("vec-" + document.getId()); }
+			for (TinyflowVectorDocument document : documents) { ids.add(add(document)); }
 			return ids;
+		}
+		public String add(TinyflowVectorDocument document) {
+			documentCalls++;
+			if (failOnDocumentCall == documentCalls) { throw new IllegalStateException("vector write failed"); }
+			added.add(document);
+			return "vec-" + document.getId();
 		}
 		@Override public void removeAll(List<String> ids) {
 			if (failRemove) { throw new IllegalStateException("vector remove failed"); }
@@ -166,19 +227,24 @@ public class TinyflowLocalIndexerTest {
 		}
 
 		@Override public TinyflowKnowledgeDefinition findKnowledge(String tenantId, String knowledgeId) { return knowledge.get(key(tenantId, knowledgeId)); }
-		@Override public List<TinyflowKnowledgeDefinition> findKnowledges(String tenantId) {
-			List<TinyflowKnowledgeDefinition> values = new ArrayList<TinyflowKnowledgeDefinition>();
-			for (TinyflowKnowledgeDefinition definition : knowledge.values()) {
-				if (tenantId.equals(definition.getTenantId())) { values.add(definition); }
-			}
-			return values;
-		}
 		@Override public long findKnowledgeVersion(String tenantId, String knowledgeId) { Long value = versions.get(key(tenantId, knowledgeId)); return value == null ? 0L : value; }
 		@Override public void saveKnowledge(TinyflowKnowledgeDefinition definition, long expectedVersion) {
 			long actual = findKnowledgeVersion(definition.getTenantId(), definition.getKnowledgeId());
 			if (actual != expectedVersion) { throw new OptimisticLockException(expectedVersion, actual); }
 			knowledge.put(key(definition.getTenantId(), definition.getKnowledgeId()), definition);
 			versions.put(key(definition.getTenantId(), definition.getKnowledgeId()), actual + 1L);
+		}
+		@Override public synchronized void saveKnowledgeWithVectorStoreOwnership(TinyflowKnowledgeDefinition definition,
+				long expectedVersion, String vectorStoreKey, boolean metadataFilterSupported) {
+			for (TinyflowKnowledgeDefinition existing : knowledge.values()) {
+				Object existingStore = existing.getMetadata().get(TinyflowKnowledgeMaintenanceService.VECTOR_STORE_KEY);
+				if (!metadataFilterSupported && vectorStoreKey.equals(String.valueOf(existingStore))
+						&& !(definition.getTenantId().equals(existing.getTenantId())
+						&& definition.getKnowledgeId().equals(existing.getKnowledgeId()))) {
+					throw new VectorStoreOwnershipException(vectorStoreKey);
+				}
+			}
+			saveKnowledge(definition, expectedVersion);
 		}
 		@Override public void deleteKnowledge(String tenantId, String knowledgeId, long expectedVersion) { knowledge.remove(key(tenantId, knowledgeId)); versions.remove(key(tenantId, knowledgeId)); }
 		@Override public TinyflowDocument findBySourceAndChecksum(String tenantId, String knowledgeId, String sourceId, String checksum) {
@@ -203,6 +269,14 @@ public class TinyflowLocalIndexerTest {
 			for (TinyflowDocument document : new ArrayList<TinyflowDocument>(findDocumentVersions(tenantId, knowledgeId, sourceId))) { documents.remove(documentKey(tenantId, knowledgeId, document.getDocumentId())); }
 			active.remove(sourceKey(tenantId, knowledgeId, sourceId));
 			for (TinyflowChunk chunk : new ArrayList<TinyflowChunk>(storedChunks.values())) { if (tenantId.equals(chunk.getTenantId()) && knowledgeId.equals(chunk.getKnowledgeId()) && sourceId.equals(chunk.getSourceId())) { storedChunks.remove(chunkKey(tenantId, knowledgeId, chunk.getChunkId())); } }
+		}
+		@Override public void deleteDocumentVersion(String tenantId, String knowledgeId, String sourceId, String documentId) {
+			TinyflowDocument document = documents.get(documentKey(tenantId, knowledgeId, documentId));
+			if (document == null) { return; }
+			if (!sourceId.equals(document.getSourceId())) { throw new IllegalArgumentException("Document does not belong to source"); }
+			if (documentId.equals(active.get(sourceKey(tenantId, knowledgeId, sourceId)))) { throw new IllegalStateException("Active document version cannot be deleted"); }
+			documents.remove(documentKey(tenantId, knowledgeId, documentId));
+			for (TinyflowChunk chunk : new ArrayList<TinyflowChunk>(storedChunks.values())) { if (tenantId.equals(chunk.getTenantId()) && knowledgeId.equals(chunk.getKnowledgeId()) && documentId.equals(chunk.getDocumentId())) { storedChunks.remove(chunkKey(tenantId, knowledgeId, chunk.getChunkId())); } }
 		}
 		@Override public void saveChunks(List<TinyflowChunk> chunks) {
 			if (failNextChunkSave) { failNextChunkSave = false; throw new IllegalStateException("chunk persistence failed"); }

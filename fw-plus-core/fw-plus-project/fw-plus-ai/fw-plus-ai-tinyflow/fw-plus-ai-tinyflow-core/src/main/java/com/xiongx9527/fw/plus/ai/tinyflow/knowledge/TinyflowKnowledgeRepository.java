@@ -9,12 +9,17 @@ public interface TinyflowKnowledgeRepository {
 
 	TinyflowKnowledgeDefinition findKnowledge(String tenantId, String knowledgeId);
 
-	/** Returns the knowledge definitions visible to one tenant for cross-knowledge isolation checks. */
-	List<TinyflowKnowledgeDefinition> findKnowledges(String tenantId);
-
 	long findKnowledgeVersion(String tenantId, String knowledgeId);
 
 	void saveKnowledge(TinyflowKnowledgeDefinition definition, long expectedVersion);
+
+	/**
+	 * Atomically validates global vector-store ownership and saves the knowledge definition. A store
+	 * may have multiple owners only when metadata filtering is supported. Implementations must perform
+	 * the ownership check and the versioned save in one transaction or critical section.
+	 */
+	void saveKnowledgeWithVectorStoreOwnership(TinyflowKnowledgeDefinition definition, long expectedVersion,
+			String vectorStoreKey, boolean metadataFilterSupported);
 
 	void deleteKnowledge(String tenantId, String knowledgeId, long expectedVersion);
 
@@ -34,6 +39,9 @@ public interface TinyflowKnowledgeRepository {
 	void activateDocumentVersion(String tenantId, String knowledgeId, String sourceId, String documentId);
 
 	void deleteDocumentsBySource(String tenantId, String knowledgeId, String sourceId);
+
+	/** Deletes one inactive document version and all of its chunks. Repeating a completed deletion is a no-op. */
+	void deleteDocumentVersion(String tenantId, String knowledgeId, String sourceId, String documentId);
 
 	void saveChunks(List<TinyflowChunk> chunks);
 
@@ -107,5 +115,17 @@ public interface TinyflowKnowledgeRepository {
 
 		public long getExpectedVersion() { return expectedVersion; }
 		public long getActualVersion() { return actualVersion; }
+	}
+
+	final class VectorStoreOwnershipException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+		private final String vectorStoreKey;
+
+		public VectorStoreOwnershipException(String vectorStoreKey) {
+			super("Vector store is already owned and does not support metadata filtering: " + vectorStoreKey);
+			this.vectorStoreKey = TinyflowKnowledgeReference.requireText(vectorStoreKey, "vectorStoreKey");
+		}
+
+		public String getVectorStoreKey() { return vectorStoreKey; }
 	}
 }
