@@ -209,6 +209,36 @@ public class TinyflowLocalRetrieverTest {
 	}
 
 	@Test
+	public void shouldNotRewriteQueryWhenKnowledgeIsMissing() {
+		Fixture fixture = new Fixture();
+		fixture.knowledge = null;
+		FailingQueryRewriter rewriter = new FailingQueryRewriter();
+		TinyflowLocalRetriever retriever = new TinyflowLocalRetriever(fixture.repository, new ModelProvider(),
+				new StoreProvider(fixture.vectorStore), null, rewriter);
+
+		TinyflowKnowledgeResult result = retriever.retrieve(fixture.request("HYBRID", 3, null));
+
+		assertFalse(result.isKnowledgeExists());
+		assertTrue(result.getMatches().isEmpty());
+		assertEquals(0, rewriter.getCalls());
+	}
+
+	@Test
+	public void shouldNotRewriteQueryWhenKnowledgeIsDisabled() {
+		Fixture fixture = new Fixture();
+		fixture.knowledge = fixture.knowledge(false);
+		FailingQueryRewriter rewriter = new FailingQueryRewriter();
+		TinyflowLocalRetriever retriever = new TinyflowLocalRetriever(fixture.repository, new ModelProvider(),
+				new StoreProvider(fixture.vectorStore), null, rewriter);
+
+		TinyflowKnowledgeResult result = retriever.retrieve(fixture.request("HYBRID", 3, null));
+
+		assertTrue(result.isKnowledgeExists());
+		assertTrue(result.getMatches().isEmpty());
+		assertEquals(0, rewriter.getCalls());
+	}
+
+	@Test
 	public void shouldRewriteQueryForBothVectorAndKeywordRecall() {
 		Fixture fixture = new Fixture();
 		AtomicReference<String> embeddedQuery = new AtomicReference<String>();
@@ -337,6 +367,20 @@ public class TinyflowLocalRetrieverTest {
 			values.put((String) entries[index], entries[index + 1]);
 		}
 		return values;
+	}
+
+	private static final class FailingQueryRewriter implements TinyflowQueryRewriter {
+		private int calls;
+
+		@Override
+		public String rewrite(TinyflowKnowledgeRequest request) {
+			calls++;
+			throw new IllegalStateException("query rewriter must not be called");
+		}
+
+		private int getCalls() {
+			return calls;
+		}
 	}
 
 	private static void assertEveryMatchHasSourceIds(TinyflowKnowledgeResult result) {
