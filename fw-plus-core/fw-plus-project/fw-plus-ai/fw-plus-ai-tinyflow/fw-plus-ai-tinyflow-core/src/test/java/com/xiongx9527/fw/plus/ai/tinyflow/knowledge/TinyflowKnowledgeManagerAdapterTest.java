@@ -53,6 +53,51 @@ public class TinyflowKnowledgeManagerAdapterTest {
 		assertThrows(TinyflowException.class, () -> adapter.getKnowledge(reference));
 	}
 
+	@Test
+	public void shouldThrowWhenKnowledgeDoesNotExist() {
+		TinyflowKnowledgeManagerAdapter adapter = adapterReturning(TinyflowKnowledgeResult.notFound());
+		Knowledge knowledge = adapter.getKnowledge(reference("dify", "knowledge-missing"));
+
+		assertThrows(TinyflowException.class, () -> knowledge.search("question", 3, null, null));
+	}
+
+	@Test
+	public void shouldReturnEmptyListWhenKnowledgeExistsWithoutMatches() {
+		TinyflowKnowledgeManagerAdapter adapter = adapterReturning(TinyflowKnowledgeResult.empty());
+		Knowledge knowledge = adapter.getKnowledge(reference("dify", "knowledge-empty"));
+
+		assertEquals(Collections.emptyList(), knowledge.search("question", 3, null, null));
+	}
+
+	private TinyflowKnowledgeManagerAdapter adapterReturning(final TinyflowKnowledgeResult result) {
+		TinyflowKnowledgeProvider provider = new TinyflowKnowledgeProvider() {
+			@Override
+			public String getKey() {
+				return "dify";
+			}
+
+			@Override
+			public TinyflowKnowledgeCapabilities capabilities() {
+				return TinyflowKnowledgeCapabilities.retrievalOnly();
+			}
+
+			@Override
+			public TinyflowKnowledgeResult retrieve(TinyflowKnowledgeRequest request) {
+				return result;
+			}
+		};
+		return new TinyflowKnowledgeManagerAdapter(
+				new TinyflowKnowledgeProviderRegistry(Collections.singletonList(provider)));
+	}
+
+	private Map<String, Object> reference(String provider, String knowledgeId) {
+		Map<String, Object> reference = new LinkedHashMap<String, Object>();
+		reference.put("provider", provider);
+		reference.put("tenantId", "tenant-1");
+		reference.put("knowledgeId", knowledgeId);
+		return reference;
+	}
+
 	private TinyflowKnowledgeProvider provider(final String key,
 			AtomicReference<TinyflowKnowledgeRequest> captured) {
 		return new TinyflowKnowledgeProvider() {

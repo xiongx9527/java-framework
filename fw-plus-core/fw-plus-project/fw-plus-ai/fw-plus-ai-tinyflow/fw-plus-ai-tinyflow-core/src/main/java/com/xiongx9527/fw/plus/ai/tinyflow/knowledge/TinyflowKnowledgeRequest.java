@@ -28,7 +28,8 @@ public final class TinyflowKnowledgeRequest {
 		if (builder.topK <= 0) {
 			throw new IllegalArgumentException("topK must be greater than zero");
 		}
-		if (builder.threshold != null && (builder.threshold.doubleValue() < 0D
+		if (builder.threshold != null && (Double.isNaN(builder.threshold.doubleValue())
+				|| builder.threshold.doubleValue() < 0D
 				|| builder.threshold.doubleValue() > 1D)) {
 			throw new IllegalArgumentException("threshold must be between 0 and 1");
 		}

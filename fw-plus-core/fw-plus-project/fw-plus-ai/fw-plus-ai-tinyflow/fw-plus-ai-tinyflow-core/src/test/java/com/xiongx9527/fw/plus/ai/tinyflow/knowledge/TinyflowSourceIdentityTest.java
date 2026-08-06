@@ -61,6 +61,7 @@ public class TinyflowSourceIdentityTest {
 		assertThrows(IllegalArgumentException.class, () -> builder.topK(0).build());
 		assertThrows(IllegalArgumentException.class, () -> builder.topK(1).threshold(-0.01D).build());
 		assertThrows(IllegalArgumentException.class, () -> builder.threshold(1.01D).build());
+		assertThrows(IllegalArgumentException.class, () -> builder.threshold(Double.NaN).build());
 	}
 
 	private TinyflowChunk chunk(String sourceType) {
