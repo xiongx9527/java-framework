@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.serv
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
@@ -18,6 +19,7 @@ import org.ssssssss.magicapi.core.config.MagicConfiguration;
         name = "com.xiongx9527.fw.plus.boot.starter.magicapi.javaentity.JavaEntityPluginMarker")
 @ConditionalOnProperty(prefix = "magic-api.plugin.java-entity", name = "enabled",
         havingValue = "true", matchIfMissing = true)
+@EnableConfigurationProperties(JavaEntityProperties.class)
 public class MagicAPIJavaEntityConfiguration {
 
     @Bean
@@ -35,14 +37,16 @@ public class MagicAPIJavaEntityConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public DynamicEntityRegistry dynamicEntityRegistry(JavaSourceAnalyzer analyzer,
-                                                       InMemoryJavaEntityCompiler compiler) {
-        return new DynamicEntityRegistry(analyzer, compiler);
+                                                       InMemoryJavaEntityCompiler compiler,
+                                                       JavaEntityProperties properties) {
+        return new DynamicEntityRegistry(analyzer, compiler, properties);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public JavaEntityMagicResourceStorage javaEntityMagicResourceStorage(JavaSourceAnalyzer analyzer) {
-        return new JavaEntityMagicResourceStorage(analyzer);
+    public JavaEntityMagicResourceStorage javaEntityMagicResourceStorage(JavaSourceAnalyzer analyzer,
+                                                                         DynamicEntityRegistry registry) {
+        return new JavaEntityMagicResourceStorage(analyzer, registry);
     }
 
     @Bean

@@ -34,7 +34,7 @@
 - 源码可使用 Fastjson 1.x、Fastjson2 和 Jackson 注解，动态实体经过对应序列化器处理时注解真实生效。
 - Magic-Script 可通过 `entity.User.create(map)` 创建实体，通过 `entity.User.javaClass()` 取得当前 `Class<?>`。
 - 多个实体源码可互相引用；保存任一源码后，全部实体在新的 ClassLoader 代际中重新编译并原子切换。
-- 语法错误、Lombok 处理错误、重复别名或类加载失败时返回带行列信息的诊断，不破坏最后一次成功版本。
+- 语法错误、Lombok 处理错误、重复全限定类名或类加载失败时返回受限诊断，不破坏最后一次成功版本；冲突简单名只取消歧义别名。
 - 更新源码可增加或删除字段、方法和注解；新调用使用新版本，已开始的调用可继续使用旧版本。
 - 禁用插件后，现有 Magic-API、MyBatis-Plus、MyBatis-Flex 和静态 Mapper 保持原有行为。
 

@@ -5,8 +5,10 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.comp
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.model.JavaEntityInfo;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.runtime.DynamicEntityRegistry;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.ssssssss.magicapi.core.event.EventAction;
 import org.ssssssss.magicapi.core.event.FileEvent;
+import org.ssssssss.magicapi.core.event.MagicEvent;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,7 +26,7 @@ class JavaEntityMagicDynamicRegistryTest {
         RecordingEntityRegistry entityRegistry = new RecordingEntityRegistry();
         entityRegistry.minimumSources = 2;
         JavaEntityMagicResourceStorage storage =
-                new JavaEntityMagicResourceStorage(new JavaSourceAnalyzer());
+                new JavaEntityMagicResourceStorage(new JavaSourceAnalyzer(), entityRegistry);
         JavaEntityMagicDynamicRegistry registry =
                 new JavaEntityMagicDynamicRegistry(storage, entityRegistry);
 
@@ -41,7 +43,7 @@ class JavaEntityMagicDynamicRegistryTest {
     void fileEventsRebuildTheCurrentFullSnapshotAndIgnoreOtherResourceTypes() {
         RecordingEntityRegistry entityRegistry = new RecordingEntityRegistry();
         JavaEntityMagicDynamicRegistry registry = new JavaEntityMagicDynamicRegistry(
-                new JavaEntityMagicResourceStorage(new JavaSourceAnalyzer()), entityRegistry);
+                new JavaEntityMagicResourceStorage(new JavaSourceAnalyzer(), entityRegistry), entityRegistry);
         JavaEntityInfo user = entity("user", "User", "package demo; public class User {}" );
 
         registry.onFileEvent(new FileEvent("other", EventAction.CREATE, user));
@@ -62,11 +64,32 @@ class JavaEntityMagicDynamicRegistryTest {
         RecordingEntityRegistry entityRegistry = new RecordingEntityRegistry();
         entityRegistry.minimumSources = 2;
         JavaEntityMagicDynamicRegistry registry = new JavaEntityMagicDynamicRegistry(
-                new JavaEntityMagicResourceStorage(new JavaSourceAnalyzer()), entityRegistry);
+                new JavaEntityMagicResourceStorage(new JavaSourceAnalyzer(), entityRegistry), entityRegistry);
 
         assertFalse(registry.register(entity("broken", "Broken", "public class")));
 
         assertNull(registry.getMapping("Broken"));
+    }
+
+    @Test
+    void magicApiClearEventClearsTheWholeEntitySnapshot() {
+        RecordingEntityRegistry entityRegistry = new RecordingEntityRegistry();
+        JavaEntityMagicDynamicRegistry registry = new JavaEntityMagicDynamicRegistry(
+                new JavaEntityMagicResourceStorage(new JavaSourceAnalyzer(), entityRegistry), entityRegistry);
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+        context.getBeanFactory().registerSingleton("javaEntityMagicDynamicRegistry", registry);
+        context.refresh();
+        try {
+            assertTrue(registry.register(entity("user", "User", "public class User {}")));
+
+            context.publishEvent(new MagicEvent("clear", EventAction.CLEAR));
+
+            assertEquals(2, entityRegistry.rebuildCount);
+            assertTrue(entityRegistry.lastSnapshot.isEmpty());
+            assertNull(registry.getMapping("User"));
+        } finally {
+            context.close();
+        }
     }
 
     private static JavaEntityInfo entity(String id, String name, String source) {
