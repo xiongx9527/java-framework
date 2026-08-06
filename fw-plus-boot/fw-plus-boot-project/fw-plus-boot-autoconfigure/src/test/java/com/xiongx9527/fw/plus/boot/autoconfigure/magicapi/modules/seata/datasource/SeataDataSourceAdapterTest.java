@@ -3,8 +3,16 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.datasou
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxAwareDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceAdapter;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceDecorator;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception.DbTxErrorCode;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception.DbTxException;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.model.DbTxDefinition;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.coordinator.SeataDbTxCoordinator;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.coordinator.SeataTransaction;
+import io.seata.core.model.GlobalStatus;
+import io.seata.rm.datasource.DataSourceProxy;
 import io.seata.rm.datasource.SeataDataSourceProxy;
 import org.junit.jupiter.api.Test;
+import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
@@ -18,11 +26,13 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -61,8 +71,10 @@ class SeataDataSourceAdapterTest {
 	}
 
 	@Test
-	void reusesAnExistingSeataProxyWithoutInspectingOrProxyingItAgain() throws Exception {
+	void validatesTheTargetDatabaseBeforeReusingAnExistingSeataProxy() throws Exception {
+		MetadataDataSource target = new MetadataDataSource("jdbc:mysql://localhost:3306/orders");
 		SeataDataSourceProxy existing = mock(SeataDataSourceProxy.class);
+		when(existing.getTargetDataSource()).thenReturn(target);
 		AtomicInteger proxyCreations = new AtomicInteger();
 		SeataDataSourceAdapter adapter = new SeataDataSourceAdapter(dataSource -> {
 			proxyCreations.incrementAndGet();
@@ -71,7 +83,41 @@ class SeataDataSourceAdapterTest {
 		DbTxAwareDataSource aware = aware("orders", existing, adapter);
 
 		assertThat(aware.prepare("seata")).isSameAs(existing);
+		assertThat(target.connectionCount.get()).isOne();
 		assertThat(proxyCreations.get()).isZero();
+	}
+
+	@Test
+	void rejectsAnExistingUnsupportedProxyBeforeTransactionLookupBeginOrCallback() {
+		DataSourceProxy existing = mock(DataSourceProxy.class);
+		when(existing.getDbType()).thenReturn("h2");
+		SeataDataSourceAdapter adapter = new SeataDataSourceAdapter(dataSource -> {
+			throw new AssertionError("must not create a second proxy");
+		});
+		DbTxAwareDataSource aware = aware("orders", existing, adapter);
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		dynamicDataSource.put("orders", aware);
+		AtomicBoolean transactionLookup = new AtomicBoolean();
+		AtomicBoolean globalBegin = new AtomicBoolean();
+		AtomicBoolean callback = new AtomicBoolean();
+		SeataDbTxCoordinator coordinator = new SeataDbTxCoordinator(dynamicDataSource, () -> {
+			transactionLookup.set(true);
+			return new NoOpLauncher(globalBegin);
+		});
+
+		Throwable thrown = catchThrowable(() -> coordinator.execute(
+				new DbTxDefinition("seata", Collections.singletonList("orders"), 60000, "test"),
+				() -> {
+					callback.set(true);
+					return "unused";
+				}));
+
+		assertThat(thrown).isInstanceOf(DbTxException.class);
+		assertThat(((DbTxException) thrown).getCode()).isEqualTo(DbTxErrorCode.DBTX_BEGIN_FAILED);
+		assertThat(thrown).hasMessageContaining("orders");
+		assertThat(transactionLookup).isFalse();
+		assertThat(globalBegin).isFalse();
+		assertThat(callback).isFalse();
 	}
 
 	@Test
@@ -128,6 +174,43 @@ class SeataDataSourceAdapterTest {
 			DbTxDataSourceAdapter adapter) {
 		return new DbTxAwareDataSource(key, raw,
 				Collections.<DbTxDataSourceAdapter>singletonList(adapter));
+	}
+
+	private static final class NoOpLauncher implements SeataTransaction {
+
+		private final AtomicBoolean globalBegin;
+
+		private NoOpLauncher(AtomicBoolean globalBegin) {
+			this.globalBegin = globalBegin;
+		}
+
+		@Override
+		public boolean isLauncher() {
+			return true;
+		}
+
+		@Override
+		public void begin(int timeoutMs, String name) {
+			globalBegin.set(true);
+		}
+
+		@Override
+		public void commit() {
+		}
+
+		@Override
+		public void rollback() {
+		}
+
+		@Override
+		public String getXid() {
+			return "unused";
+		}
+
+		@Override
+		public GlobalStatus getGlobalStatus() {
+			return GlobalStatus.Begin;
+		}
 	}
 
 	private static final class MetadataDataSource implements DataSource, AutoCloseable {
