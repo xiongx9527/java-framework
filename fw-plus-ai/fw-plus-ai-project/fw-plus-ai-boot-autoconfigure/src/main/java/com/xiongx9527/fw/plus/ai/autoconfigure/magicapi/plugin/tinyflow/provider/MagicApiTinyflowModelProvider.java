@@ -64,7 +64,7 @@ public final class MagicApiTinyflowModelProvider implements TinyflowModelProvide
 		List<TinyflowModelDescriptor> result = new ArrayList<TinyflowModelDescriptor>();
 		for (String key : dataSource.keys()) {
 			AiModel model = dataSource.getModel(key);
-			if (model != null && requiredType.equals(model.getType())) {
+			if (supports(model, requiredType)) {
 				result.add(new TinyflowModelDescriptor(key, key, requiredType.name(), model.getProvider()));
 			}
 		}
@@ -73,10 +73,18 @@ public final class MagicApiTinyflowModelProvider implements TinyflowModelProvide
 
 	private Object nativeModel(String key, AiModelType type) {
 		AiModel model = dataSource.getModel(key);
-		if (model == null || !type.equals(model.getType()) || !(model instanceof LangChain4jAiModel)) {
+		if (!supports(model, type)) {
 			throw unavailable(type == AiModelType.CHAT ? "chat" : "embedding", key);
 		}
 		return ((LangChain4jAiModel) model).getNativeModel().getModel();
+	}
+
+	private boolean supports(AiModel model, AiModelType type) {
+		if (model == null || !type.equals(model.getType()) || !(model instanceof LangChain4jAiModel)) {
+			return false;
+		}
+		Object nativeModel = ((LangChain4jAiModel) model).getNativeModel().getModel();
+		return type == AiModelType.CHAT ? nativeModel instanceof ChatLanguageModel : nativeModel instanceof EmbeddingModel;
 	}
 
 	private TinyflowException unavailable(String capability, String key) {

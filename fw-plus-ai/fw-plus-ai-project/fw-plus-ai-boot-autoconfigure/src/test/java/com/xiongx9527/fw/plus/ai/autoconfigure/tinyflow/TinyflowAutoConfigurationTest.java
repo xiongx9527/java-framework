@@ -7,6 +7,9 @@ import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowChainStateRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowService;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflowRepository;
+import com.xiongx9527.fw.plus.ai.tinyflow.node.TinyflowNodeDescriptor;
+import com.xiongx9527.fw.plus.ai.tinyflow.node.TinyflowNodeProvider;
+import com.xiongx9527.fw.plus.ai.tinyflow.node.TinyflowNodeProviderRegistry;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelRegistry;
 import dev.tinyflow.core.chain.repository.ChainStateField;
 import dev.tinyflow.core.chain.ChainState;
@@ -28,6 +31,19 @@ public class TinyflowAutoConfigurationTest {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
 			.withConfiguration(AutoConfigurations.of(TinyflowAutoConfiguration.class));
+
+	@Test
+	public void shouldInstallSelectedCustomNodeParserBeforeWorkflowValidationAndExecution() {
+		contextRunner.withBean(TinyflowNodeProvider.class, CustomEndNodeProvider::new)
+				.run(context -> {
+					assertTrue(context.getBean(TinyflowNodeProviderRegistry.class).getProviders().containsKey("customEnd"));
+					assertTrue(context.getBean(dev.tinyflow.core.parser.ChainParser.class).getNodeParserMap().containsKey("customEnd"));
+					TinyflowService service = context.getBean(TinyflowService.class);
+					service.register(new com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflow("custom", "custom", "custom",
+							"{\"nodes\":[{\"id\":\"start\",\"type\":\"startNode\"},{\"id\":\"end\",\"type\":\"customEnd\"}],\"edges\":[{\"id\":\"edge\",\"source\":\"start\",\"target\":\"end\"}]}"));
+					assertFalse(service.execute("custom", java.util.Collections.<String, Object>emptyMap()).isSuspended());
+				});
+	}
 
 	@Test
 	public void shouldCreateTinyflowRuntimeBeansByDefault() {
@@ -167,6 +183,25 @@ public class TinyflowAutoConfigurationTest {
 
 	private static final class StubLlmProvider implements dev.tinyflow.core.llm.LlmProvider {
 		@Override public dev.tinyflow.core.llm.Llm getChatModel(Object key) { return null; }
+	}
+
+	private static final class CustomEndNodeProvider implements TinyflowNodeProvider {
+		@Override public String getType() { return "customEnd"; }
+		@Override public dev.tinyflow.core.parser.NodeParser<?> getParser() {
+			return new dev.tinyflow.core.parser.NodeParser<dev.tinyflow.core.node.EndNode>() {
+				@Override public dev.tinyflow.core.parser.ChainParser getChainParser() { return null; }
+				@Override public dev.tinyflow.core.node.EndNode parse(com.alibaba.fastjson.JSONObject node,
+						com.alibaba.fastjson.JSONObject chain, dev.tinyflow.core.parser.ChainParser parser) {
+					dev.tinyflow.core.node.EndNode result = new dev.tinyflow.core.node.EndNode();
+					result.setId(node.getString("id"));
+					return result;
+				}
+			};
+		}
+		@Override public TinyflowNodeDescriptor getDescriptor() {
+			return new TinyflowNodeDescriptor("customEnd", "Custom end", "Custom end", java.util.Collections.<String, Object>emptyMap());
+		}
+		@Override public int getOrder() { return 0; }
 	}
 
 	private void assertSingleBean(org.springframework.context.ApplicationContext context, Class<?> beanType) {
