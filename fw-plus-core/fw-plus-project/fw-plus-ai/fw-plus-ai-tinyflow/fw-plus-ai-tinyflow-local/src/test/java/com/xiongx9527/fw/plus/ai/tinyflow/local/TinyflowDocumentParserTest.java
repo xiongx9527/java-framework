@@ -22,6 +22,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -110,7 +112,9 @@ public class TinyflowDocumentParserTest {
 	public void shouldEnforceBoundedInputAndFormatSpecificLimits() throws Exception {
 		assertLimit("notes.txt", "text/plain", "12345".getBytes(StandardCharsets.UTF_8), "maxInputBytes", 4);
 		assertLimit("notes.txt", "text/plain", "12345".getBytes(StandardCharsets.UTF_8), "maxTextChars", 4);
+		assertLimit("notes.txt", "text/plain", "a\rb\rc".getBytes(StandardCharsets.UTF_8), "maxTextLines", 2);
 		assertLimit("manual.pdf", "application/pdf", pdfFixture(2), "maxPdfPages", 1);
+		assertLimit("manual.pdf", "application/pdf", pdfFixture(2), "maxTextChars", 5);
 		assertLimit("manual.docx",
 				"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 				docxFixture(2), "maxDocxParagraphs", 1);
@@ -118,6 +122,16 @@ public class TinyflowDocumentParserTest {
 		assertLimit("people.csv", "text/csv", "long".getBytes(StandardCharsets.UTF_8), "maxFieldChars", 3);
 		assertLimit("people.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 				xlsxFixture(1, 2), "maxTabularCells", 1);
+	}
+
+	@Test
+	public void shouldPreflightOfficeZipExpansionBeforePoiLoadsDocument() throws Exception {
+		assertLimit("bomb.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+				zipFixture(2, 1), "maxArchiveEntries", 1);
+		assertLimit("bomb.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+				zipFixture(1, 5), "maxArchiveEntryBytes", 4);
+		assertLimit("bomb.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+				zipFixture(2, 3), "maxArchiveInflatedBytes", 5);
 	}
 
 	@Test
@@ -231,6 +245,19 @@ public class TinyflowDocumentParserTest {
 				}
 			}
 			workbook.write(output);
+			return output.toByteArray();
+		}
+	}
+
+	private byte[] zipFixture(int entries, int bytesPerEntry) throws IOException {
+		try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+				ZipOutputStream zip = new ZipOutputStream(output)) {
+			for (int index = 0; index < entries; index++) {
+				zip.putNextEntry(new ZipEntry("entry-" + index));
+				zip.write(new byte[bytesPerEntry]);
+				zip.closeEntry();
+			}
+			zip.finish();
 			return output.toByteArray();
 		}
 	}

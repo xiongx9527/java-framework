@@ -22,6 +22,8 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 
 	protected abstract TinyflowKnowledgeRepository createRepository();
 
+	protected abstract void failNextCompletionAt(TinyflowKnowledgeRepository target, String step);
+
 	@Before
 	public void setUpRepository() {
 		repository = createRepository();
@@ -164,6 +166,80 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 		repository.saveTask(task("task-b", "tenant-b", "kb-1"));
 		assertEquals(1, repository.findTasks("tenant-a", "kb-1").size());
 		assertEquals("task-a", repository.findTasks("tenant-a", "kb-1").get(0).getTaskId());
+	}
+
+	@Test
+	public void shouldAtomicallyCompleteIngestionAndRollbackEveryFailedStep() {
+		for (String step : Arrays.asList("chunks", "document", "active", "task")) {
+			repository = createRepository();
+			CompletionFixture fixture = completionFixture();
+			prepareCompletion(fixture);
+			failNextCompletionAt(repository, step);
+
+			assertThrows(IllegalStateException.class, () -> repository.completeIngestion(
+					fixture.completedDocument, fixture.chunks, fixture.completedTask));
+			assertEquals("doc-old", repository.findActiveDocument("tenant-a", "kb-atomic", "source-1")
+					.getDocumentId());
+			assertTrue(repository.findChunksByDocument("tenant-a", "kb-atomic", "doc-new").isEmpty());
+			assertTrue(repository.findBySourceAndChecksum(
+					"tenant-a", "kb-atomic", "source-1", "sum-new").getChunks().isEmpty());
+			assertFalse(hasTaskStatus(repository.findTasks("tenant-a", "kb-atomic"), "COMPLETED"));
+		}
+
+		repository = createRepository();
+		CompletionFixture fixture = completionFixture();
+		prepareCompletion(fixture);
+		repository.completeIngestion(fixture.completedDocument, fixture.chunks, fixture.completedTask);
+
+		assertEquals("doc-new", repository.findActiveDocument("tenant-a", "kb-atomic", "source-1")
+				.getDocumentId());
+		assertEquals("chunk-new", repository.findChunksByDocument(
+				"tenant-a", "kb-atomic", "doc-new").get(0).getChunkId());
+		assertEquals(1, repository.findBySourceAndChecksum(
+				"tenant-a", "kb-atomic", "source-1", "sum-new").getChunks().size());
+		assertTrue(hasTaskStatus(repository.findTasks("tenant-a", "kb-atomic"), "COMPLETED"));
+	}
+
+	private CompletionFixture completionFixture() {
+		TinyflowChunk chunk = chunk("tenant-a", "kb-atomic", "doc-new", "chunk-new", "new", true, "vec-new");
+		TinyflowDocument completed = TinyflowDocument.builder().tenantId("tenant-a").knowledgeId("kb-atomic")
+				.sourceId("source-1").sourceType("file").documentId("doc-new").checksum("sum-new")
+				.name("new").content("new").chunks(Collections.singletonList(chunk)).build();
+		TinyflowIngestionTask task = TinyflowIngestionTask.builder().taskId("task-new").providerKey("local")
+				.tenantId("tenant-a").knowledgeId("kb-atomic").documentId("doc-new")
+				.status("COMPLETED").build();
+		return new CompletionFixture(completed, Collections.singletonList(chunk), task);
+	}
+
+	private void prepareCompletion(CompletionFixture fixture) {
+		repository.saveDocument(document("tenant-a", "kb-atomic", "source-1", "doc-old", "sum-old"));
+		repository.activateDocumentVersion("tenant-a", "kb-atomic", "source-1", "doc-old");
+		repository.saveDocument(document("tenant-a", "kb-atomic", "source-1", "doc-new", "sum-new"));
+		repository.saveTask(TinyflowIngestionTask.builder().taskId("task-new").providerKey("local")
+				.tenantId("tenant-a").knowledgeId("kb-atomic").documentId("doc-new")
+				.status("PENDING").build());
+	}
+
+	private boolean hasTaskStatus(List<TinyflowIngestionTask> tasks, String status) {
+		for (TinyflowIngestionTask task : tasks) {
+			if (status.equals(task.getStatus())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static final class CompletionFixture {
+		private final TinyflowDocument completedDocument;
+		private final List<TinyflowChunk> chunks;
+		private final TinyflowIngestionTask completedTask;
+
+		private CompletionFixture(TinyflowDocument completedDocument, List<TinyflowChunk> chunks,
+				TinyflowIngestionTask completedTask) {
+			this.completedDocument = completedDocument;
+			this.chunks = chunks;
+			this.completedTask = completedTask;
+		}
 	}
 
 	private void assertSwitchFailsAndActiveRemains(String tenantId, String knowledgeId,

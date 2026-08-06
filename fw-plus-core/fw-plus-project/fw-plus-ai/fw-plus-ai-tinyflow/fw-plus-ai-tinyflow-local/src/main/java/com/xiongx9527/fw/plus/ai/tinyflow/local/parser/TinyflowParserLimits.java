@@ -3,9 +3,15 @@ package com.xiongx9527.fw.plus.ai.tinyflow.local.parser;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocumentParser;
 
 import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 final class TinyflowParserLimits {
 
@@ -20,6 +26,9 @@ final class TinyflowParserLimits {
 	private static final int DEFAULT_MAX_TABULAR_ROWS = 100000;
 	private static final int DEFAULT_MAX_TABULAR_CELLS = 1000000;
 	private static final int DEFAULT_MAX_FIELD_CHARS = 100000;
+	private static final int DEFAULT_MAX_ARCHIVE_ENTRIES = 10000;
+	private static final int DEFAULT_MAX_ARCHIVE_ENTRY_BYTES = 16 * 1024 * 1024;
+	private static final int DEFAULT_MAX_ARCHIVE_INFLATED_BYTES = 64 * 1024 * 1024;
 
 	private final int maxInputBytes;
 	private final int maxTextChars;
@@ -32,6 +41,9 @@ final class TinyflowParserLimits {
 	private final int maxTabularRows;
 	private final int maxTabularCells;
 	private final int maxFieldChars;
+	private final int maxArchiveEntries;
+	private final int maxArchiveEntryBytes;
+	private final int maxArchiveInflatedBytes;
 
 	private TinyflowParserLimits(Map<String, Object> options) throws IOException {
 		maxInputBytes = limit(options, "maxInputBytes", DEFAULT_MAX_INPUT_BYTES);
@@ -45,6 +57,9 @@ final class TinyflowParserLimits {
 		maxTabularRows = limit(options, "maxTabularRows", DEFAULT_MAX_TABULAR_ROWS);
 		maxTabularCells = limit(options, "maxTabularCells", DEFAULT_MAX_TABULAR_CELLS);
 		maxFieldChars = limit(options, "maxFieldChars", DEFAULT_MAX_FIELD_CHARS);
+		maxArchiveEntries = limit(options, "maxArchiveEntries", DEFAULT_MAX_ARCHIVE_ENTRIES);
+		maxArchiveEntryBytes = limit(options, "maxArchiveEntryBytes", DEFAULT_MAX_ARCHIVE_ENTRY_BYTES);
+		maxArchiveInflatedBytes = limit(options, "maxArchiveInflatedBytes", DEFAULT_MAX_ARCHIVE_INFLATED_BYTES);
 	}
 
 	static TinyflowParserLimits from(TinyflowDocumentParser.ParseContext context) throws IOException {
@@ -70,11 +85,57 @@ final class TinyflowParserLimits {
 		return output.toByteArray();
 	}
 
+	Path copyToTempFile(InputStream input, String suffix) throws IOException {
+		if (input == null) {
+			throw new IllegalArgumentException("input must not be null");
+		}
+		Path path = Files.createTempFile("tinyflow-parser-", suffix);
+		try (OutputStream output = Files.newOutputStream(path)) {
+			byte[] buffer = new byte[4096];
+			int total = 0;
+			int read;
+			while ((read = input.read(buffer)) != -1) {
+				total += read;
+				check(total, maxInputBytes, "input byte");
+				output.write(buffer, 0, read);
+			}
+			return path;
+		} catch (IOException exception) {
+			Files.deleteIfExists(path);
+			throw exception;
+		}
+	}
+
+	byte[] readArchive(InputStream input) throws IOException {
+		byte[] bytes = read(input);
+		int entries = 0;
+		long totalInflated = 0L;
+		byte[] buffer = new byte[4096];
+		try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(bytes))) {
+			ZipEntry entry;
+			while ((entry = zip.getNextEntry()) != null) {
+				entries++;
+				check(entries, maxArchiveEntries, "archive entry count");
+				long entryInflated = 0L;
+				int read;
+				while ((read = zip.read(buffer)) != -1) {
+					entryInflated += read;
+					totalInflated += read;
+					check(entryInflated, maxArchiveEntryBytes, "archive entry byte");
+					check(totalInflated, maxArchiveInflatedBytes, "archive inflated byte");
+				}
+				zip.closeEntry();
+			}
+		}
+		return bytes;
+	}
+
 	void checkText(String value) throws IOException {
 		check(value.length(), maxTextChars, "text character");
 		int lines = value.isEmpty() ? 0 : 1;
 		for (int index = 0; index < value.length(); index++) {
-			if (value.charAt(index) == '\n') {
+			char current = value.charAt(index);
+			if (current == '\r' || current == '\n' && (index == 0 || value.charAt(index - 1) != '\r')) {
 				lines++;
 				check(lines, maxTextLines, "text line");
 			}
@@ -82,6 +143,7 @@ final class TinyflowParserLimits {
 	}
 
 	void checkField(int length) throws IOException { check(length, maxFieldChars, "field character"); }
+	void checkTextChars(int count) throws IOException { check(count, maxTextChars, "text character"); }
 	void checkPdfPages(int count) throws IOException { check(count, maxPdfPages, "PDF page"); }
 	void checkDocxParagraphs(int count) throws IOException { check(count, maxDocxParagraphs, "DOCX paragraph"); }
 	void checkDocxTables(int count) throws IOException { check(count, maxDocxTables, "DOCX table"); }
@@ -106,6 +168,12 @@ final class TinyflowParserLimits {
 	}
 
 	private static void check(int actual, int maximum, String subject) throws IOException {
+		if (actual > maximum) {
+			throw new IOException(subject + " limit exceeded");
+		}
+	}
+
+	private static void check(long actual, long maximum, String subject) throws IOException {
 		if (actual > maximum) {
 			throw new IOException(subject + " limit exceeded");
 		}

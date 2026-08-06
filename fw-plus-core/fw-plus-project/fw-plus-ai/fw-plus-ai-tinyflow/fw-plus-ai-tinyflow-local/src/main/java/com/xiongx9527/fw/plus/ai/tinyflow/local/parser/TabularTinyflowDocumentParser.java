@@ -59,7 +59,7 @@ public final class TabularTinyflowDocumentParser implements TinyflowDocumentPars
 		DataFormatter formatter = new DataFormatter(Locale.ROOT);
 		int rowCount = 0;
 		int cellCount = 0;
-		try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(limits.read(input)))) {
+		try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(limits.readArchive(input)))) {
 			for (Sheet sheet : workbook) {
 				for (Row row : sheet) {
 					rowCount++;

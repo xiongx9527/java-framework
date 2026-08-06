@@ -14,6 +14,11 @@ public class TinyflowKnowledgeRepositoryContractTest
 		return new InMemoryTinyflowKnowledgeRepository();
 	}
 
+	@Override
+	protected void failNextCompletionAt(TinyflowKnowledgeRepository target, String step) {
+		((InMemoryTinyflowKnowledgeRepository) target).failCompletionAt = step;
+	}
+
 	private static final class InMemoryTinyflowKnowledgeRepository implements TinyflowKnowledgeRepository {
 
 		private final Map<String, TinyflowKnowledgeDefinition> knowledge = new LinkedHashMap<String, TinyflowKnowledgeDefinition>();
@@ -24,6 +29,7 @@ public class TinyflowKnowledgeRepositoryContractTest
 		private final Map<String, TinyflowChunk> chunks = new LinkedHashMap<String, TinyflowChunk>();
 		private final List<TinyflowIngestionTask> tasks = new ArrayList<TinyflowIngestionTask>();
 		private final List<VectorCompensation> compensations = new ArrayList<VectorCompensation>();
+		private String failCompletionAt;
 
 		@Override
 		public TinyflowKnowledgeDefinition findKnowledge(String tenantId, String knowledgeId) {
@@ -197,6 +203,39 @@ public class TinyflowKnowledgeRepositoryContractTest
 		}
 
 		@Override
+		public void completeIngestion(TinyflowDocument completedDocument, List<TinyflowChunk> values,
+				TinyflowIngestionTask completedTask) {
+			synchronized (documentVersionLock) {
+				Map<String, TinyflowDocument> documentSnapshot =
+						new LinkedHashMap<String, TinyflowDocument>(documents);
+				Map<String, String> activeSnapshot = new LinkedHashMap<String, String>(activeDocuments);
+				Map<String, TinyflowChunk> chunkSnapshot = new LinkedHashMap<String, TinyflowChunk>(chunks);
+				List<TinyflowIngestionTask> taskSnapshot = new ArrayList<TinyflowIngestionTask>(tasks);
+				try {
+					saveChunks(values);
+					failCompletionAfter("chunks");
+					saveDocument(completedDocument);
+					failCompletionAfter("document");
+					activateDocumentVersion(completedDocument.getTenantId(), completedDocument.getKnowledgeId(),
+							completedDocument.getSourceId(), completedDocument.getDocumentId());
+					failCompletionAfter("active");
+					saveTask(completedTask);
+					failCompletionAfter("task");
+				} catch (RuntimeException exception) {
+					documents.clear();
+					documents.putAll(documentSnapshot);
+					activeDocuments.clear();
+					activeDocuments.putAll(activeSnapshot);
+					chunks.clear();
+					chunks.putAll(chunkSnapshot);
+					tasks.clear();
+					tasks.addAll(taskSnapshot);
+					throw exception;
+				}
+			}
+		}
+
+		@Override
 		public List<TinyflowIngestionTask> findTasks(String tenantId, String knowledgeId) {
 			List<TinyflowIngestionTask> result = new ArrayList<TinyflowIngestionTask>();
 			for (TinyflowIngestionTask task : tasks) {
@@ -249,6 +288,13 @@ public class TinyflowKnowledgeRepositoryContractTest
 
 		private static String chunkKey(String tenantId, String knowledgeId, String chunkId) {
 			return key(tenantId, knowledgeId) + "|" + chunkId;
+		}
+
+		private void failCompletionAfter(String step) {
+			if (step.equals(failCompletionAt)) {
+				failCompletionAt = null;
+				throw new IllegalStateException("Completion failed after " + step);
+			}
 		}
 
 	}
