@@ -15,6 +15,7 @@ public class TinyflowSourceIdentityTest {
 	@Test
 	public void shouldRequireAllChunkSourceIdentifiers() {
 		assertThrows(IllegalArgumentException.class, () -> TinyflowChunk.builder()
+				.tenantId("tenant-1").knowledgeId("knowledge-1")
 				.sourceId("source-1").sourceType("file").documentId("doc-1").content("text").build());
 	}
 
@@ -32,6 +33,8 @@ public class TinyflowSourceIdentityTest {
 		List<String> vectorIds = new ArrayList<String>();
 		vectorIds.add("vector-1");
 		TinyflowChunk chunk = TinyflowChunk.builder()
+				.tenantId("tenant-1")
+				.knowledgeId("knowledge-1")
 				.sourceId("source-1")
 				.sourceType("url")
 				.documentId("doc-1")
@@ -66,6 +69,8 @@ public class TinyflowSourceIdentityTest {
 
 	private TinyflowChunk chunk(String sourceType) {
 		return TinyflowChunk.builder()
+				.tenantId("tenant-1")
+				.knowledgeId("knowledge-1")
 				.sourceId("source-1")
 				.sourceType(sourceType)
 				.documentId("doc-1")

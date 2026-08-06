@@ -115,6 +115,8 @@ public class TinyflowKnowledgeManagerAdapterTest {
 			public TinyflowKnowledgeResult retrieve(TinyflowKnowledgeRequest request) {
 				captured.set(request);
 				TinyflowKnowledgeMatch match = TinyflowKnowledgeMatch.builder()
+						.tenantId(request.getTenantId())
+						.knowledgeId(request.getKnowledgeId())
 						.sourceId("source-1")
 						.sourceType("file")
 						.documentId("document-1")

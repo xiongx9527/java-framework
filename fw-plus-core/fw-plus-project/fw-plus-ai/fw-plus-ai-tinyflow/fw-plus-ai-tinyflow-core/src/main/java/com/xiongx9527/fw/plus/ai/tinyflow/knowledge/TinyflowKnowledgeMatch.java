@@ -9,7 +9,8 @@ public final class TinyflowKnowledgeMatch {
 	private final double score;
 
 	private TinyflowKnowledgeMatch(Builder builder) {
-		this.chunk = TinyflowChunk.builder().sourceId(builder.sourceId).sourceType(builder.sourceType)
+		this.chunk = TinyflowChunk.builder().tenantId(builder.tenantId).knowledgeId(builder.knowledgeId)
+				.sourceId(builder.sourceId).sourceType(builder.sourceType)
 				.documentId(builder.documentId).chunkId(builder.chunkId).content(builder.content)
 				.sourceUri(builder.sourceUri).sourceVersion(builder.sourceVersion).location(builder.location)
 				.position(builder.position).parentChunkId(builder.parentChunkId).tokenCount(builder.tokenCount)
@@ -21,6 +22,8 @@ public final class TinyflowKnowledgeMatch {
 	}
 
 	public static Builder builder() { return new Builder(); }
+	public String getTenantId() { return chunk.getTenantId(); }
+	public String getKnowledgeId() { return chunk.getKnowledgeId(); }
 	public String getSourceId() { return chunk.getSourceId(); }
 	public String getSourceType() { return chunk.getSourceType(); }
 	public String getDocumentId() { return chunk.getDocumentId(); }
@@ -39,6 +42,8 @@ public final class TinyflowKnowledgeMatch {
 	public TinyflowChunk getChunk() { return chunk; }
 
 	public static final class Builder {
+		private String tenantId;
+		private String knowledgeId;
 		private String sourceId;
 		private String sourceType;
 		private String documentId;
@@ -55,6 +60,8 @@ public final class TinyflowKnowledgeMatch {
 		private List<String> vectorIds;
 		private double score;
 
+		public Builder tenantId(String value) { this.tenantId = value; return this; }
+		public Builder knowledgeId(String value) { this.knowledgeId = value; return this; }
 		public Builder sourceId(String value) { this.sourceId = value; return this; }
 		public Builder sourceType(String value) { this.sourceType = value; return this; }
 		public Builder documentId(String value) { this.documentId = value; return this; }

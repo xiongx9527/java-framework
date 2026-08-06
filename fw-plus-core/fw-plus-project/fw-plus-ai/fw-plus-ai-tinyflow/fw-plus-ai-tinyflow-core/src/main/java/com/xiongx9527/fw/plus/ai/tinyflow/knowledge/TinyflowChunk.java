@@ -5,6 +5,8 @@ import java.util.Map;
 
 public final class TinyflowChunk {
 
+	private final String tenantId;
+	private final String knowledgeId;
 	private final String sourceId;
 	private final String sourceType;
 	private final String documentId;
@@ -21,6 +23,8 @@ public final class TinyflowChunk {
 	private final List<String> vectorIds;
 
 	private TinyflowChunk(Builder builder) {
+		this.tenantId = required(builder.tenantId, "tenantId");
+		this.knowledgeId = required(builder.knowledgeId, "knowledgeId");
 		this.sourceId = required(builder.sourceId, "sourceId");
 		this.sourceType = required(builder.sourceType, "sourceType");
 		this.documentId = required(builder.documentId, "documentId");
@@ -40,6 +44,8 @@ public final class TinyflowChunk {
 	public static Builder builder() { return new Builder(); }
 	static String required(String value, String name) { return TinyflowKnowledgeReference.requireText(value, name); }
 
+	public String getTenantId() { return tenantId; }
+	public String getKnowledgeId() { return knowledgeId; }
 	public String getSourceId() { return sourceId; }
 	public String getSourceType() { return sourceType; }
 	public String getDocumentId() { return documentId; }
@@ -56,6 +62,8 @@ public final class TinyflowChunk {
 	public List<String> getVectorIds() { return vectorIds; }
 
 	public static final class Builder {
+		private String tenantId;
+		private String knowledgeId;
 		private String sourceId;
 		private String sourceType;
 		private String documentId;
@@ -71,6 +79,8 @@ public final class TinyflowChunk {
 		private boolean enabled = true;
 		private List<String> vectorIds;
 
+		public Builder tenantId(String value) { this.tenantId = value; return this; }
+		public Builder knowledgeId(String value) { this.knowledgeId = value; return this; }
 		public Builder sourceId(String value) { this.sourceId = value; return this; }
 		public Builder sourceType(String value) { this.sourceType = value; return this; }
 		public Builder documentId(String value) { this.documentId = value; return this; }
