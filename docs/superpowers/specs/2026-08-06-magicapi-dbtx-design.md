@@ -192,8 +192,7 @@ Seata 2.0.0 不完整支持运行时注销已注册的数据源资源。尚未�
 - 回调必须保持同步同线程。DTP、线程池、异步消息和响应式线程切换不会继承 dbtx 上下文。
 
 ## 9. 异常模型
-
-基础设施错误使用 `DbTxException`，至少包含：
+🫛基础设施错误使用 `DbTxException`，至少包含：
 
 - `code`
 - `phase`
@@ -216,7 +215,15 @@ Seata 2.0.0 不完整支持运行时注销已注册的数据源资源。尚未�
 - `DBTX_NESTED_MODE_MISMATCH`
 - `DBTX_UNDECLARED_DATASOURCE`
 - `DBTX_ROLLBACK_ONLY`
-- `DBTX_COMMIT_FAILED`
+- `DBTX_COMMIT_FAILED🌶️
+-
+-
+-
+-
+-
+-
+-
+- `
 - `DBTX_HEURISTIC_MIXED`
 - `DBTX_ROLLBACK_FAILED`
 
