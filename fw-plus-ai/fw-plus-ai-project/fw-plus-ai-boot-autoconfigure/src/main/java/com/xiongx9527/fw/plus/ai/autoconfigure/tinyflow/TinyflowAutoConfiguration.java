@@ -3,6 +3,8 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
+import com.xiongx9527.fw.plus.ai.tinyflow.node.TinyflowNodeProvider;
+import com.xiongx9527.fw.plus.ai.tinyflow.node.TinyflowNodeProviderRegistry;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.DefaultTinyflowService;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.InMemoryChainDefinitionRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.InMemoryTinyflowChainStateRepository;
@@ -25,6 +27,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 @ConditionalOnClass(ChainExecutor.class)
@@ -52,8 +56,14 @@ public class TinyflowAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	public ChainParser tinyflowChainParser() {
-		return ChainParser.builder().build();
+	public TinyflowNodeProviderRegistry tinyflowNodeProviderRegistry(List<TinyflowNodeProvider> providers) {
+		return new TinyflowNodeProviderRegistry(providers);
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public ChainParser tinyflowChainParser(TinyflowNodeProviderRegistry registry) {
+		return ChainParser.builder().addParsers(registry.getParsers()).build();
 	}
 
 	@Bean

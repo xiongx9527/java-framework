@@ -4,8 +4,6 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.service.
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.service.TinyflowResourceDynamicRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.module.TinyflowModule;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow.TinyflowAutoConfiguration;
-import com.xiongx9527.fw.plus.ai.tinyflow.node.TinyflowNodeProvider;
-import com.xiongx9527.fw.plus.ai.tinyflow.node.TinyflowNodeProviderRegistry;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowService;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflowRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflowValidator;
@@ -18,8 +16,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
-
-import java.util.List;
 
 @Configuration
 @AutoConfigureAfter(value = TinyflowAutoConfiguration.class,
@@ -40,12 +36,6 @@ public class MagicAPITinyflowRuntimeAutoConfiguration {
 	public TinyflowResourceDynamicRegistry tinyflowResourceDynamicRegistry(TinyflowMagicResourceStorage storage,
 			TinyflowService tinyflowService) {
 		return new TinyflowResourceDynamicRegistry(storage, tinyflowService);
-	}
-
-	@Bean
-	@ConditionalOnMissingBean
-	public TinyflowNodeProviderRegistry tinyflowNodeProviderRegistry(List<TinyflowNodeProvider> providers) {
-		return new TinyflowNodeProviderRegistry(providers);
 	}
 
 	@Bean

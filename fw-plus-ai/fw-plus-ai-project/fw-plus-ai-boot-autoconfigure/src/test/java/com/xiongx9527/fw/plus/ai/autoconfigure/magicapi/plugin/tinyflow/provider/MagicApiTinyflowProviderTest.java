@@ -5,6 +5,10 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.model.Magi
 import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.model.AiModelType;
+import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
+import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelType;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
@@ -17,20 +21,40 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 class MagicApiTinyflowProviderTest {
 
 	@Test
 	void shouldMergeSpringModelRegistryAndExposeOnlyCapabilities() {
 		Map<String, AiModel> models = new LinkedHashMap<String, AiModel>();
-		models.put("chat-main", model("chat-main", AiModelType.CHAT));
-		models.put("embedding-main", model("embedding-main", AiModelType.EMBEDDING));
+		models.put("chat-main", nativeModel("chat-main", AiModelType.CHAT, new dev.langchain4j.model.chat.ChatLanguageModel() {
+			@Override public dev.langchain4j.model.output.Response<dev.langchain4j.data.message.AiMessage> generate(java.util.List<dev.langchain4j.data.message.ChatMessage> messages) { return null; }
+		}));
+		models.put("embedding-main", nativeModel("embedding-main", AiModelType.EMBEDDING, new dev.langchain4j.model.embedding.EmbeddingModel() {
+			@Override public dev.langchain4j.model.output.Response<java.util.List<dev.langchain4j.data.embedding.Embedding>> embedAll(java.util.List<dev.langchain4j.data.segment.TextSegment> segments) { return null; }
+		}));
+		models.put("plain-chat", model("plain-chat", AiModelType.CHAT));
 		MagicApiTinyflowModelProvider provider = new MagicApiTinyflowModelProvider(
 				new MagicDynamicModelDataSource(new ModelRegistry(models), null, Collections.emptyList()));
 
 		assertEquals("chat-main", provider.listChatModels().get(0).getKey());
 		assertEquals("embedding-main", provider.listEmbeddingModels().get(0).getKey());
+		assertEquals(1, provider.listChatModels().size());
+		assertEquals(1, provider.listEmbeddingModels().size());
+		assertSame(provider.getChatModel("chat-main"), provider.getChatModel(provider.listChatModels().get(0).getKey()));
+		assertFalse(provider.listChatModels().stream().anyMatch(model -> "plain-chat".equals(model.getKey())));
 		assertFalse(String.valueOf(provider.listChatModels()).contains("apiKey"));
+	}
+
+	private AiModel nativeModel(String key, AiModelType type, Object nativeModel) {
+		AiModelDefinition definition = new AiModelDefinition();
+		definition.setKey(key);
+		definition.setFramework("langchain4j");
+		definition.setProvider("test");
+		definition.setType(type);
+		LangChain4jModelType nativeType = type == AiModelType.CHAT ? LangChain4jModelType.CHAT : LangChain4jModelType.EMBEDDING;
+		return new LangChain4jAiModel(definition, new LangChain4jModel("test", nativeType, nativeModel));
 	}
 
 	@Test

@@ -18,10 +18,10 @@
   `MagicDynamicModelDataSource` 与 `MagicDynamicVectorDataSource`，两者均包含
   Spring registry 和 Magic 运行时数据源；接口只返回 Tinyflow descriptor，未返回
   `apiKey`、`secret`、`headers` 或内部 Bean。节点 properties 还会过滤这些敏感键。
-- `TinyflowModule` 与节点 provider registry 位于后置
-  `MagicAPITinyflowRuntimeAutoConfiguration`，避免前置配置在 Tinyflow core service
-  缺失时创建运行时 Bean。model/vector bridge 保持在前置配置，以便在
-  `TinyflowAutoConfiguration` 创建默认 provider 前接管并合并动态数据源。
+- `TinyflowModule` 位于后置 `MagicAPITinyflowRuntimeAutoConfiguration`，避免前置配置在
+  Tinyflow core service 缺失时创建 Magic 运行时 Bean。节点 provider registry 位于通用
+  `TinyflowAutoConfiguration`，确保解析器在校验和执行服务创建前已装配；model/vector
+  bridge 保持在前置配置，以便在默认 provider 创建前接管并合并动态数据源。
 
 ## Magic-API 2.2.2 实际接口核对
 
@@ -67,3 +67,62 @@ TinyflowAutoConfigurationTest,MagicDynamicVectorDataSourceTest,MagicModelControl
 - `git diff --check` 通过。
 - 新增生产 class 的 `javap -verbose` 均为 `major version: 52`。
 - 新增源码未使用 Java 9+ 集合工厂或不可变集合 API。
+
+## Fix Round 1
+
+### RED
+
+新增权限、模型能力和自定义节点回归用例后执行：
+
+```text
+mvn -Dstyle.color=never -f fw-plus-ai/pom.xml \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=MagicTinyflowControllerTest,MagicApiTinyflowProviderTest,TinyflowAutoConfigurationTest test
+```
+
+初始结果为 testCompile 失败：`MagicTinyflowController` 的管理方法尚未接收
+`MagicHttpServletRequest`，因此不能在接口调用路径中执行 Magic-API 授权校验。
+
+### 修复内容
+
+- 所有 Tinyflow 管理接口均添加 `@Valid(requireLogin = true, authorization = ...)`，并在
+  控制器中显式执行全局权限校验。resource get 在加载资源后使用实体 `VIEW`；save、
+  validate 以请求中的 transport resource 使用实体 `SAVE`；run 和 run-async 以已保存
+  resource 使用实体 `SAVE`；resume 在无法定位 resource 时至少校验全局 `SAVE`。权限异常
+  位于业务失败响应的捕获区之外，避免被伪装为普通执行失败。
+- `MagicApiTinyflowModelProvider` 使用同一 native capability predicate 过滤列表与解析：
+  CHAT 只接受实际 `ChatLanguageModel`，EMBEDDING 只接受实际 `EmbeddingModel`，普通
+  `AiModel` 不会出现在可选列表中。
+- `TinyflowNodeProviderRegistry` 前移到通用 `TinyflowAutoConfiguration`，并以
+  `ChainParser.builder().addParsers(registry.getParsers()).build()` 构造解析器。Magic
+  后置配置不再重复定义 registry，使 provider 选择在校验和执行服务创建前完成。
+- 节点描述的 properties 改为递归复制并过滤大小写无关的密码、token、authorization、
+  credential、accessKey、privateKey、apiKey、secret、headers 和 bean 等敏感键；嵌套
+  Map/List 同样处理，且不修改 provider 原始对象。
+
+### GREEN 与回归
+
+精确回归：
+
+```text
+mvn -Dstyle.color=never -f fw-plus-ai/pom.xml \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=MagicTinyflowControllerTest,MagicApiTinyflowProviderTest,TinyflowAutoConfigurationTest test
+```
+
+通过，19 tests，0 failures，0 errors，0 skipped。
+
+受影响回归：
+
+```text
+mvn -Dstyle.color=never -f fw-plus-ai/pom.xml \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=TinyflowModuleTest,TinyflowMagicResourceStorageTest,TinyflowResourceDynamicRegistryTest,\
+MagicTinyflowControllerTest,MagicApiTinyflowProviderTest,TinyflowAutoConfigurationTest,\
+MagicDynamicModelDataSourceTest,MagicDynamicVectorDataSourceTest,MagicModelControllerTest test
+```
+
+通过，78 tests，0 failures，0 errors，0 skipped。
+
+`javap -verbose` 已确认本轮四个变更生产 class 均为 `major version: 52`，并执行
+`git diff --check`。

@@ -17,9 +17,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.ssssssss.magicapi.core.annotation.Valid;
+import org.ssssssss.magicapi.core.config.Constants;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
+import org.ssssssss.magicapi.core.context.MagicUser;
+import org.ssssssss.magicapi.core.interceptor.Authorization;
 import org.ssssssss.magicapi.core.model.JsonBean;
+import org.ssssssss.magicapi.core.model.MagicEntity;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
+import org.ssssssss.magicapi.core.servlet.MagicHttpServletRequest;
 import org.ssssssss.magicapi.core.web.MagicController;
 import org.ssssssss.magicapi.core.web.MagicExceptionHandler;
 
@@ -58,17 +64,25 @@ public class MagicTinyflowController extends MagicController implements MagicExc
 
 	@RequestMapping("/tinyflow/resource/get")
 	@ResponseBody
-	public JsonBean<TinyflowResource> get(@RequestParam String id) {
+	@Valid(requireLogin = true, authorization = Authorization.VIEW)
+	public JsonBean<TinyflowResource> get(@RequestParam String id, MagicHttpServletRequest request) {
+		allowVisit(request, Authorization.VIEW);
+		TinyflowResource resource;
 		try {
-			return new JsonBean<TinyflowResource>(resource(id));
+			resource = resource(id);
 		} catch (RuntimeException error) {
 			return failure("Tinyflow 资源不存在");
 		}
+		allowVisit(request, Authorization.VIEW, resource);
+		return new JsonBean<TinyflowResource>(resource);
 	}
 
 	@RequestMapping("/tinyflow/resource/save")
 	@ResponseBody
-	public JsonBean<Object> save(@RequestBody TinyflowResource resource) {
+	@Valid(requireLogin = true, authorization = Authorization.SAVE)
+	public JsonBean<Object> save(@RequestBody TinyflowResource resource, MagicHttpServletRequest request) {
+		allowVisit(request, Authorization.SAVE);
+		allowVisit(request, Authorization.SAVE, resource);
 		try {
 			validateResource(resource);
 			if (!resources().saveFile(resource)) {
@@ -82,7 +96,10 @@ public class MagicTinyflowController extends MagicController implements MagicExc
 
 	@RequestMapping("/tinyflow/resource/validate")
 	@ResponseBody
-	public JsonBean<Object> validate(@RequestBody TinyflowResource resource) {
+	@Valid(requireLogin = true, authorization = Authorization.SAVE)
+	public JsonBean<Object> validate(@RequestBody TinyflowResource resource, MagicHttpServletRequest request) {
+		allowVisit(request, Authorization.SAVE);
+		allowVisit(request, Authorization.SAVE, resource);
 		try {
 			validateResource(resource);
 			return new JsonBean<Object>("ok");
@@ -93,9 +110,18 @@ public class MagicTinyflowController extends MagicController implements MagicExc
 
 	@RequestMapping("/tinyflow/run")
 	@ResponseBody
-	public JsonBean<TinyflowExecutionResult> run(@RequestBody TinyflowRunRequest request) {
+	@Valid(requireLogin = true, authorization = Authorization.SAVE)
+	public JsonBean<TinyflowExecutionResult> run(@RequestBody TinyflowRunRequest request,
+			MagicHttpServletRequest servletRequest) {
+		allowVisit(servletRequest, Authorization.SAVE);
+		TinyflowResource resource;
 		try {
-			TinyflowResource resource = resource(request == null ? null : request.getResourceId());
+			resource = resource(request == null ? null : request.getResourceId());
+		} catch (RuntimeException error) {
+			return failure("Tinyflow 执行失败");
+		}
+		allowVisit(servletRequest, Authorization.SAVE, resource);
+		try {
 			return new JsonBean<TinyflowExecutionResult>(service().execute(resource.getId(), variables(request)));
 		} catch (RuntimeException error) {
 			return failure("Tinyflow 执行失败");
@@ -104,9 +130,18 @@ public class MagicTinyflowController extends MagicController implements MagicExc
 
 	@RequestMapping("/tinyflow/run-async")
 	@ResponseBody
-	public JsonBean<TinyflowAsyncResult> runAsync(@RequestBody TinyflowRunRequest request) {
+	@Valid(requireLogin = true, authorization = Authorization.SAVE)
+	public JsonBean<TinyflowAsyncResult> runAsync(@RequestBody TinyflowRunRequest request,
+			MagicHttpServletRequest servletRequest) {
+		allowVisit(servletRequest, Authorization.SAVE);
+		TinyflowResource resource;
 		try {
-			TinyflowResource resource = resource(request == null ? null : request.getResourceId());
+			resource = resource(request == null ? null : request.getResourceId());
+		} catch (RuntimeException error) {
+			return failure("Tinyflow 异步执行失败");
+		}
+		allowVisit(servletRequest, Authorization.SAVE, resource);
+		try {
 			return new JsonBean<TinyflowAsyncResult>(service().executeAsync(resource.getId(), variables(request)));
 		} catch (RuntimeException error) {
 			return failure("Tinyflow 异步执行失败");
@@ -115,7 +150,10 @@ public class MagicTinyflowController extends MagicController implements MagicExc
 
 	@RequestMapping("/tinyflow/resume")
 	@ResponseBody
-	public JsonBean<TinyflowExecutionResult> resume(@RequestBody TinyflowRunRequest request) {
+	@Valid(requireLogin = true, authorization = Authorization.SAVE)
+	public JsonBean<TinyflowExecutionResult> resume(@RequestBody TinyflowRunRequest request,
+			MagicHttpServletRequest servletRequest) {
+		allowVisit(servletRequest, Authorization.SAVE);
 		try {
 			return new JsonBean<TinyflowExecutionResult>(service().resume(instanceId(request), variables(request)));
 		} catch (RuntimeException error) {
@@ -125,25 +163,33 @@ public class MagicTinyflowController extends MagicController implements MagicExc
 
 	@RequestMapping("/tinyflow/provider/llm")
 	@ResponseBody
-	public JsonBean<List<TinyflowModelDescriptor>> models() {
+	@Valid(requireLogin = true, authorization = Authorization.VIEW)
+	public JsonBean<List<TinyflowModelDescriptor>> models(MagicHttpServletRequest request) {
+		allowVisit(request, Authorization.VIEW);
 		return new JsonBean<List<TinyflowModelDescriptor>>(modelsProvider().listChatModels());
 	}
 
 	@RequestMapping("/tinyflow/provider/embedding")
 	@ResponseBody
-	public JsonBean<List<TinyflowModelDescriptor>> embeddingModels() {
+	@Valid(requireLogin = true, authorization = Authorization.VIEW)
+	public JsonBean<List<TinyflowModelDescriptor>> embeddingModels(MagicHttpServletRequest request) {
+		allowVisit(request, Authorization.VIEW);
 		return new JsonBean<List<TinyflowModelDescriptor>>(modelsProvider().listEmbeddingModels());
 	}
 
 	@RequestMapping("/tinyflow/provider/vector")
 	@ResponseBody
-	public JsonBean<List<TinyflowVectorStoreDescriptor>> vectorStores() {
+	@Valid(requireLogin = true, authorization = Authorization.VIEW)
+	public JsonBean<List<TinyflowVectorStoreDescriptor>> vectorStores(MagicHttpServletRequest request) {
+		allowVisit(request, Authorization.VIEW);
 		return new JsonBean<List<TinyflowVectorStoreDescriptor>>(vectorsProvider().list());
 	}
 
 	@RequestMapping("/tinyflow/nodes")
 	@ResponseBody
-	public JsonBean<List<TinyflowNodeDescriptor>> nodes() {
+	@Valid(requireLogin = true, authorization = Authorization.VIEW)
+	public JsonBean<List<TinyflowNodeDescriptor>> nodes(MagicHttpServletRequest request) {
+		allowVisit(request, Authorization.VIEW);
 		return new JsonBean<List<TinyflowNodeDescriptor>>(nodeDescriptors());
 	}
 
@@ -197,14 +243,51 @@ public class MagicTinyflowController extends MagicController implements MagicExc
 			return safe;
 		}
 		for (Map.Entry<String, Object> entry : properties.entrySet()) {
-			String key = entry.getKey();
-			String normalized = key == null ? "" : key.toLowerCase(Locale.ROOT);
-			if (!normalized.contains("apikey") && !normalized.contains("secret") && !normalized.contains("header")
-					&& !normalized.contains("bean")) {
-				safe.put(key, entry.getValue());
+			if (!sensitive(entry.getKey())) {
+				safe.put(entry.getKey(), sanitizeValue(entry.getValue()));
 			}
 		}
 		return safe;
+	}
+
+	private Object sanitizeValue(Object value) {
+		if (value instanceof Map) {
+			Map<?, ?> source = (Map<?, ?>) value;
+			Map<String, Object> safe = new LinkedHashMap<String, Object>();
+			for (Map.Entry<?, ?> entry : source.entrySet()) {
+				String key = entry.getKey() == null ? null : String.valueOf(entry.getKey());
+				if (!sensitive(key)) {
+					safe.put(key, sanitizeValue(entry.getValue()));
+				}
+			}
+			return safe;
+		}
+		if (value instanceof List) {
+			List<Object> safe = new ArrayList<Object>();
+			for (Object item : (List<?>) value) {
+				safe.add(sanitizeValue(item));
+			}
+			return safe;
+		}
+		return value;
+	}
+
+	private boolean sensitive(String key) {
+		String normalized = key == null ? "" : key.toLowerCase(Locale.ROOT);
+		return normalized.contains("password") || normalized.contains("token") || normalized.contains("authorization")
+				|| normalized.contains("credential") || normalized.contains("accesskey") || normalized.contains("privatekey")
+				|| normalized.contains("apikey") || normalized.contains("secret") || normalized.contains("header")
+				|| normalized.contains("bean");
+	}
+
+	private void allowVisit(MagicHttpServletRequest request, Authorization authorization) {
+		MagicUser user = (MagicUser) request.getAttribute(Constants.ATTRIBUTE_MAGIC_USER);
+		isTrue(configuration.getAuthorizationInterceptor().allowVisit(user, request, authorization), PERMISSION_INVALID);
+	}
+
+	private void allowVisit(MagicHttpServletRequest request, Authorization authorization, MagicEntity entity) {
+		MagicUser user = (MagicUser) request.getAttribute(Constants.ATTRIBUTE_MAGIC_USER);
+		isTrue(configuration.getAuthorizationInterceptor().allowVisit(user, request, authorization, entity), PERMISSION_INVALID);
 	}
 
 	private TinyflowService service() {
