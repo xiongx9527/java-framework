@@ -73,13 +73,47 @@ export function createToolbarResourceBinding(info, workbench, opened) {
 	const currentResource = () => injectedValue(info);
 	return {
 		async sync() {
-			if (opened && (!injectedValue(opened) || injectedValue(opened).type !== 'tinyflow')) return false;
 			const resource = currentResource();
+			const openedResource = injectedValue(opened);
+			if (opened && (!openedResource || openedResource.type !== 'tinyflow' || !openedResource.item || !resource || openedResource.item.id !== resource.id)) return false;
 			const id = resource && resource.id;
 			if (!id || id === loadedId) return false;
 			const loaded = await workbench.load(id);
 			if (loaded) loadedId = id;
 			return loaded;
+		}
+	};
+}
+
+export function createWorkbenchMountLifecycle(workbench) {
+	let disposed = false;
+	let generation = 0;
+	const isActive = value => !disposed && value === generation;
+	return {
+		async mount(loadUi, mountOptions) {
+			const currentGeneration = ++generation;
+			let ui;
+			try {
+				ui = await loadUi();
+			} catch (error) {
+				if (!isActive(currentGeneration)) return false;
+				throw error;
+			}
+			if (!isActive(currentGeneration)) return false;
+			const options = typeof mountOptions === 'function' ? mountOptions() : mountOptions;
+			if (!isActive(currentGeneration) || !options || !options.element) return false;
+			const host = ui.mount(options);
+			if (!isActive(currentGeneration)) {
+				if (host && typeof host.destroy === 'function') host.destroy();
+				return false;
+			}
+			workbench.attach(host);
+			return true;
+		},
+		dispose() {
+			disposed = true;
+			generation += 1;
+			workbench.destroy();
 		}
 	};
 }

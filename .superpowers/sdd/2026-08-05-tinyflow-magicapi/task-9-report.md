@@ -177,3 +177,41 @@
 4. The full Boot `-am` reactor was rerun and ended with exit code `1` in the concurrently modified `fw-plus-boot-autoconfigure` test suite: `MagicAPIServletIsolationAutoConfigurationTest` sees two `JavaSourceAnalyzer` beans (`javaEntitySourceAnalyzer`, `springBeanJavaSourceAnalyzer`), and `TinyEngineAutoConfigurationTest.sqlResourcesAreDiscoverableButNotAutoInitializedByDefault` fails its resource assertion. The Magic Starter was skipped; neither failure is changed in this round.
 
 5. The final Boot Starter JAR's active `magic-editor/index.html` references `assets/index.ae394546.js`, which contains `requestToolbarClose`, `removeToolbarByIdentity`, `beforeClose`, and `componentInstance`. The final Tinyflow plugin JAR contains only `magic-editor/plugins/magic-tinyflow.1.0.0.iife.js`, no Starter UI files, and retains only the direct Starter dependency.
+
+## Fix Round 3
+
+### Scope
+
+- Resource synchronization now requires the currently opened host resource to be a `tinyflow` item with the same ID as the latest `info`. `OPEN_GROUP` updates that only replace `info` with a group no longer load a different resource or invoke the dirty confirmation for the previously opened workflow.
+- The Tinyflow UI mount now has a disposal-aware lifecycle. It discards loader resolutions and rejections after unmount, avoids producing mount options from an unmounted canvas, and destroys a UI host created while disposal begins before attachment.
+- Component operations use a pending-operation counter and disposal guards, so stale asynchronous operations cannot clear a newer loading state or update UI state after unmount.
+
+### Regression Coverage
+
+1. The console regression suite adds the real `OPEN_GROUP` sequence: a dirty workflow remains loaded while `info` changes to Tinyflow, API, and other group IDs without another request or confirmation.
+2. The lifecycle coverage verifies deferred loader resolve/reject after disposal returns `false` without mounting or reading mount options, and verifies an already-created host is destroyed before it can attach.
+3. From a clean console directory, this Round 3 revision completed:
+
+   ```text
+   npm ci && npm test && npm run build
+   ```
+
+   Result: `tests 26`, `pass 26`, `fail 0`; the generated IIFE is `21.12 kB` before gzip.
+
+### Integration Verification
+
+1. The exact Zulu 8 AI reactor was rerun after the Round 3 code and completed with exit code `0` and `BUILD SUCCESS` at `2026-08-06T13:33:03+08:00`:
+
+   ```text
+   JAVA_HOME="$(/usr/libexec/java_home -v 1.8)" mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-tinyflow -am package -DskipTests=false
+   ```
+
+2. The Zulu 8 Magic Starter module package was rerun after the Round 3 code and completed with exit code `0` and `BUILD SUCCESS` at `2026-08-06T13:35:50+08:00`:
+
+   ```text
+   JAVA_HOME="$(/usr/libexec/java_home -v 1.8)" mvn -f fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/pom.xml package -DskipTests=false
+   ```
+
+3. JAR inspection confirms the final Boot Starter `magic-editor/index.html` activates `assets/index.07a100ea.js`; that asset contains `requestToolbarClose`, `removeToolbarByIdentity`, `beforeClose`, and `componentInstance`. The final Tinyflow JAR contains exactly `magic-editor/plugins/magic-tinyflow.1.0.0.iife.js` under the plugin resources, with no Starter UI entries. Its IIFE retains the Round 3 `createWorkbenchMountLifecycle`, `openedResource`, and `pendingOperations` logic.
+
+4. The required complete Boot `-am` reactor was rerun with Zulu 8 and ended with exit code `1` at `2026-08-06T13:41:41+08:00`, before the Magic Starter module. The concurrently modified `fw-plus-boot-autoconfigure` suite ran 513 tests and failed three: `TinyEngineAutoConfigurationTest.sqlResourcesAreDiscoverableButNotAutoInitializedByDefault`, `JavaEntityMagicResourceStorageTest.validateCompilesTheCompletePersistedCandidateBeforeSave` (the dynamic entity compiler reached its 30000 ms limit), and `MagicAPIServletIsolationAutoConfigurationTest.retainsServletAuthBeansAndMagicApiControllerInServletWebContext` (two `JavaSourceAnalyzer` beans: `javaEntitySourceAnalyzer` and `springBeanJavaSourceAnalyzer`). These failures are outside Round 3 and were not changed or staged.

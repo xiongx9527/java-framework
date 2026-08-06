@@ -12,7 +12,7 @@
 import { inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import TinyflowToolbar from './tinyflow-toolbar.vue';
 import { loadTinyflowUi } from '../service/tinyflow-ui-loader.js';
-import { createTinyflowService, createToolbarResourceBinding, createWorkbench, getTinyflowRuntime, tinyflowUiBaseUrl } from '../service/tinyflow-service.js';
+import { createTinyflowService, createToolbarResourceBinding, createWorkbench, createWorkbenchMountLifecycle, getTinyflowRuntime, tinyflowUiBaseUrl } from '../service/tinyflow-service.js';
 
 const $i = inject('i18n.format', key => key);
 const info = inject('info', ref(null));
@@ -31,53 +31,66 @@ const workbench = createWorkbench({
 	run: payload => service.run(payload),
 	confirmDiscard: async () => window.confirm($i('tinyflow.unsaved'))
 });
+const lifecycle = createWorkbenchMountLifecycle(workbench);
+let disposed = false;
+let pendingOperations = 0;
 const refresh = () => { resource.value = workbench.getResource(); };
 const failure = cause => { error.value = cause && cause.message ? cause.message : String(cause); };
+const beginOperation = () => {
+	pendingOperations += 1;
+	if (!disposed) {
+		loading.value = true;
+		error.value = '';
+	}
+};
+const finishOperation = () => {
+	pendingOperations = Math.max(0, pendingOperations - 1);
+	if (!disposed) loading.value = pendingOperations > 0;
+};
 
 const binding = createToolbarResourceBinding(info, workbench, opened);
 const injectedValue = value => value && typeof value === 'object' && 'value' in value ? value.value : value;
 const syncResource = async () => {
-	loading.value = true;
-	error.value = '';
+	beginOperation();
 	try {
-		if (await binding.sync()) {
+		if (!disposed && await binding.sync()) {
 			refresh();
 			dirty.value = workbench.isDirty();
 		}
 	} catch (cause) {
-		failure(cause);
+		if (!disposed) failure(cause);
 	} finally {
-		loading.value = false;
+		finishOperation();
 	}
 };
 
 const load = async id => {
-	loading.value = true;
-	error.value = '';
+	beginOperation();
 	try {
-		if (await workbench.load(id)) {
+		if (!disposed && await workbench.load(id)) {
 			refresh();
 			dirty.value = workbench.isDirty();
 		}
 	} catch (cause) {
-		failure(cause);
+		if (!disposed) failure(cause);
 	} finally {
-		loading.value = false;
+		finishOperation();
 	}
 };
 
 const save = async () => {
-	loading.value = true;
-	error.value = '';
+	beginOperation();
 	try {
-		await workbench.save();
-		refresh();
-		dirty.value = false;
-		result.value = $i('tinyflow.saveSuccess');
+		if (!disposed) {
+			await workbench.save();
+			refresh();
+			dirty.value = false;
+			result.value = $i('tinyflow.saveSuccess');
+		}
 	} catch (cause) {
-		failure(cause);
+		if (!disposed) failure(cause);
 	} finally {
-		loading.value = false;
+		finishOperation();
 	}
 };
 
@@ -91,22 +104,31 @@ const run = async () => {
 };
 
 onMounted(async () => {
-	loading.value = true;
+	beginOperation();
 	try {
-		const ui = await loadTinyflowUi({ window, document, baseUrl: tinyflowUiBaseUrl(runtime) });
-		workbench.attach(ui.mount({
-			element: canvas.value,
-			data: {},
-			onDataChange: data => { workbench.onDataChange(data); dirty.value = true; }
-		}));
+		await lifecycle.mount(
+			() => loadTinyflowUi({ window, document, baseUrl: tinyflowUiBaseUrl(runtime) }),
+			() => ({
+				element: canvas.value,
+				data: {},
+				onDataChange: data => {
+					if (disposed) return;
+					workbench.onDataChange(data);
+					dirty.value = true;
+				}
+			})
+		);
 	} catch (cause) {
-		failure(cause);
+		if (!disposed) failure(cause);
 	} finally {
-		loading.value = false;
+		finishOperation();
 	}
 });
 
 watch(() => [injectedValue(opened), injectedValue(info)], syncResource, { immediate: true });
 defineExpose({ beforeClose: () => workbench.close() });
-onBeforeUnmount(() => { workbench.destroy(); });
+onBeforeUnmount(() => {
+	disposed = true;
+	lifecycle.dispose();
+});
 </script>
