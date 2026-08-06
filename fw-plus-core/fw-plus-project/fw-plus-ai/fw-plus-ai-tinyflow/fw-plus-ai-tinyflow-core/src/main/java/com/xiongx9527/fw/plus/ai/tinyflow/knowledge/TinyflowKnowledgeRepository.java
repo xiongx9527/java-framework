@@ -21,15 +21,20 @@ public interface TinyflowKnowledgeRepository {
 
 	List<TinyflowDocument> findDocumentVersions(String tenantId, String knowledgeId, String sourceId);
 
+	/**
+	 * Atomically switches the active document version. Implementations must validate the complete
+	 * tenant/knowledge/source/document identity before changing state. A failed switch leaves the
+	 * previous active version unchanged, and concurrent readers observe either the old or new version.
+	 */
 	void activateDocumentVersion(String tenantId, String knowledgeId, String sourceId, String documentId);
 
 	void deleteDocumentsBySource(String tenantId, String knowledgeId, String sourceId);
 
 	void saveChunks(List<TinyflowChunk> chunks);
 
-	TinyflowChunk findChunk(String tenantId, String chunkId);
+	TinyflowChunk findChunk(String tenantId, String knowledgeId, String chunkId);
 
-	List<TinyflowChunk> findChunksByDocument(String tenantId, String documentId);
+	List<TinyflowChunk> findChunksByDocument(String tenantId, String knowledgeId, String documentId);
 
 	List<TinyflowChunk> findChunksByVectorIds(String tenantId, String knowledgeId, List<String> vectorIds);
 

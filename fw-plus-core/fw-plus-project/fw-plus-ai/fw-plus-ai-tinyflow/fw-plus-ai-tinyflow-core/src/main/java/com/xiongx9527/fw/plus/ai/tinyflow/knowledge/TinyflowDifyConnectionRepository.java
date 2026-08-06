@@ -1,7 +1,6 @@
 package com.xiongx9527.fw.plus.ai.tinyflow.knowledge;
 
 import java.util.List;
-import java.util.Map;
 
 public interface TinyflowDifyConnectionRepository {
 
@@ -20,17 +19,15 @@ public interface TinyflowDifyConnectionRepository {
 		private final String baseUrl;
 		private final String datasetId;
 		private final String credentialRef;
-		private final Map<String, Object> metadata;
 
 		public DifyConnection(String connectionId, String tenantId, String knowledgeId, String baseUrl,
-				String datasetId, String credentialRef, Map<String, Object> metadata) {
+				String datasetId, String credentialRef) {
 			this.connectionId = TinyflowKnowledgeReference.requireText(connectionId, "connectionId");
 			this.tenantId = TinyflowKnowledgeReference.requireText(tenantId, "tenantId");
 			this.knowledgeId = TinyflowKnowledgeReference.requireText(knowledgeId, "knowledgeId");
 			this.baseUrl = TinyflowKnowledgeReference.requireText(baseUrl, "baseUrl");
 			this.datasetId = TinyflowKnowledgeReference.requireText(datasetId, "datasetId");
 			this.credentialRef = TinyflowKnowledgeReference.requireText(credentialRef, "credentialRef");
-			this.metadata = TinyflowKnowledgeRequest.immutableMap(metadata);
 		}
 
 		public String getConnectionId() { return connectionId; }
@@ -39,6 +36,5 @@ public interface TinyflowDifyConnectionRepository {
 		public String getBaseUrl() { return baseUrl; }
 		public String getDatasetId() { return datasetId; }
 		public String getCredentialRef() { return credentialRef; }
-		public Map<String, Object> getMetadata() { return metadata; }
 	}
 }
