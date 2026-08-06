@@ -77,8 +77,18 @@ public final class TinyflowKnowledgeMaintenanceService {
 			throw exception instanceof TinyflowException ? (TinyflowException) exception
 					: new TinyflowException("Knowledge rebuild failed", exception);
 		}
+		TinyflowException cleanupFailure = null;
 		for (TinyflowDocument oldVersion : oldVersions) {
-			cleanupOldVersion(oldVersion);
+			try {
+				cleanupOldVersion(oldVersion);
+			} catch (TinyflowException exception) {
+				if (cleanupFailure == null) {
+					cleanupFailure = exception;
+				}
+			}
+		}
+		if (cleanupFailure != null) {
+			throw cleanupFailure;
 		}
 	}
 
@@ -90,12 +100,11 @@ public final class TinyflowKnowledgeMaintenanceService {
 		descriptor(vectorStoreKey(requireKnowledge(tenantId, knowledgeId)));
 		repository.saveTask(task(active, "DELETE_PENDING", "Deleting source vectors"));
 		List<String> vectorIds = vectorIdsForSource(tenantId, knowledgeId, sourceId);
+		TinyflowKnowledgeRepository.VectorCompensation compensation =
+				indexer.recordCompensation(active, vectorIds, TinyflowVectorCompensator.DELETE_PENDING);
 		try {
-			indexer.delete(tenantId, knowledgeId, vectorIds);
-			repository.deleteDocumentsBySource(tenantId, knowledgeId, sourceId);
-			repository.saveTask(task(active, "DELETED", null));
+			new TinyflowVectorCompensator(repository, indexer).complete(compensation);
 		} catch (Exception exception) {
-			indexer.recordCompensation(active, vectorIds, TinyflowVectorCompensator.DELETE_PENDING);
 			throw new TinyflowException("Knowledge source deletion is pending compensation", exception);
 		}
 	}
@@ -103,12 +112,12 @@ public final class TinyflowKnowledgeMaintenanceService {
 	private void cleanupOldVersion(TinyflowDocument document) {
 		List<String> vectorIds = vectorIds(repository.findChunksByDocument(
 				document.getTenantId(), document.getKnowledgeId(), document.getDocumentId()));
+		TinyflowKnowledgeRepository.VectorCompensation compensation =
+				indexer.recordCompensation(document, vectorIds, TinyflowVectorCompensator.DELETE_OLD_VERSION);
 		try {
-			indexer.delete(document.getTenantId(), document.getKnowledgeId(), vectorIds);
-			repository.deleteDocumentVersion(document.getTenantId(), document.getKnowledgeId(),
-					document.getSourceId(), document.getDocumentId());
+			new TinyflowVectorCompensator(repository, indexer).complete(compensation);
 		} catch (Exception exception) {
-			indexer.recordCompensation(document, vectorIds, TinyflowVectorCompensator.DELETE_OLD_VERSION);
+			throw new TinyflowException("Old document version cleanup is pending compensation", exception);
 		}
 	}
 

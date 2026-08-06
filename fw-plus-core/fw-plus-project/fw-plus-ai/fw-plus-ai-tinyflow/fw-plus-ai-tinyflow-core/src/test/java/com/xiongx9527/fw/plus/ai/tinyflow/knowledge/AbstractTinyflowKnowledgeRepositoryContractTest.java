@@ -254,6 +254,31 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 	}
 
 	@Test
+	public void shouldAtomicallyAdvanceVectorCompensationStage() {
+		TinyflowKnowledgeRepository.VectorCompensation compensation =
+				new TinyflowKnowledgeRepository.VectorCompensation(
+						"comp-stage", "tenant-a", "kb-1", "source-1", "doc-1",
+						Collections.singletonList("vec-1"), "DELETE_PENDING");
+		repository.saveVectorCompensation(compensation);
+
+		assertEquals(TinyflowKnowledgeRepository.VectorCompensation.VECTOR_PENDING,
+				repository.findVectorCompensations("tenant-a", "kb-1").get(0).getStage());
+		repository.advanceVectorCompensationStage("tenant-a", "kb-1", "comp-stage",
+				TinyflowKnowledgeRepository.VectorCompensation.VECTOR_PENDING,
+				TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING);
+		repository.advanceVectorCompensationStage("tenant-a", "kb-1", "comp-stage",
+				TinyflowKnowledgeRepository.VectorCompensation.VECTOR_PENDING,
+				TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING);
+
+		assertEquals(TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING,
+				repository.findVectorCompensations("tenant-a", "kb-1").get(0).getStage());
+		assertThrows(TinyflowKnowledgeRepository.CompensationStageException.class,
+				() -> repository.advanceVectorCompensationStage("tenant-a", "kb-1", "comp-stage",
+						TinyflowKnowledgeRepository.VectorCompensation.VECTOR_PENDING,
+						TinyflowKnowledgeRepository.VectorCompensation.TASK_PENDING));
+	}
+
+	@Test
 	public void shouldListTasksWithinTenantAndKnowledge() {
 		repository.saveTask(task("task-a", "tenant-a", "kb-1"));
 		repository.saveTask(task("task-b", "tenant-b", "kb-1"));

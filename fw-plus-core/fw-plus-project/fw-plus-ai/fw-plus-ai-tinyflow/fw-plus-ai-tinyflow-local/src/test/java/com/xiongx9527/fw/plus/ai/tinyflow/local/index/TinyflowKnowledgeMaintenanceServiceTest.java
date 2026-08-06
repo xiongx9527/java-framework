@@ -83,7 +83,8 @@ public class TinyflowKnowledgeMaintenanceServiceTest {
 		seedActive(repository);
 		store.failRemove = true;
 
-		maintenance.rebuild("tenant-a", "kb-1", "source-1");
+		assertThrows(TinyflowException.class,
+				() -> maintenance.rebuild("tenant-a", "kb-1", "source-1"));
 
 		assertFalse("doc-v1".equals(repository.findActiveDocument(
 				"tenant-a", "kb-1", "source-1").getDocumentId()));
@@ -95,6 +96,28 @@ public class TinyflowKnowledgeMaintenanceServiceTest {
 		new TinyflowVectorCompensator(repository, indexer).retry("tenant-a", "kb-1");
 
 		assertTrue(repository.findChunksByDocument("tenant-a", "kb-1", "doc-v1").isEmpty());
+		assertTrue(repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
+	}
+
+	@Test
+	public void shouldPersistCleanupForEveryOldVersionBeforeReportingFailure() {
+		TinyflowLocalIndexerTest.MemoryRepository repository = new TinyflowLocalIndexerTest.MemoryRepository();
+		TinyflowLocalIndexerTest.RecordingStore store = new TinyflowLocalIndexerTest.RecordingStore();
+		TinyflowLocalIndexer indexer = TinyflowLocalIndexerTest.indexer(repository, store, true, true, 10);
+		TinyflowKnowledgeMaintenanceService maintenance = new TinyflowKnowledgeMaintenanceService(repository, indexer,
+				new TinyflowLocalIndexerTest.FixedStoreProvider(store, true));
+		seedActive(repository);
+		repository.saveDocument(TinyflowLocalIndexerTest.document("doc-v0"));
+		repository.saveChunks(Collections.singletonList(oldVersionChunk()));
+		store.failRemove = true;
+
+		assertThrows(TinyflowException.class,
+				() -> maintenance.rebuild("tenant-a", "kb-1", "source-1"));
+
+		assertEquals(2, repository.findVectorCompensations("tenant-a", "kb-1").size());
+		store.failRemove = false;
+		new TinyflowVectorCompensator(repository, indexer).retry("tenant-a", "kb-1");
+		assertEquals(1, repository.findDocumentVersions("tenant-a", "kb-1", "source-1").size());
 		assertTrue(repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
 	}
 
@@ -114,6 +137,80 @@ public class TinyflowKnowledgeMaintenanceServiceTest {
 		new TinyflowVectorCompensator(repository, indexer).retry("tenant-a", "kb-1");
 
 		assertTrue(repository.findDocumentVersions("tenant-a", "kb-1", "source-1").isEmpty());
+		assertEquals("DELETED", lastTask(repository).getStatus());
+		assertTrue(repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
+	}
+
+	@Test
+	public void shouldResumeOldVersionCleanupAfterVectorDeletionWithoutDeletingVectorAgain() {
+		TinyflowLocalIndexerTest.MemoryRepository repository = new TinyflowLocalIndexerTest.MemoryRepository();
+		TinyflowLocalIndexerTest.RecordingStore store = new TinyflowLocalIndexerTest.RecordingStore();
+		TinyflowLocalIndexer indexer = TinyflowLocalIndexerTest.indexer(repository, store, true, true, 10);
+		TinyflowKnowledgeMaintenanceService maintenance = new TinyflowKnowledgeMaintenanceService(repository, indexer,
+				new TinyflowLocalIndexerTest.FixedStoreProvider(store, true));
+		seedActive(repository);
+		store.failRemove = true;
+		assertThrows(TinyflowException.class,
+				() -> maintenance.rebuild("tenant-a", "kb-1", "source-1"));
+		store.failRemove = false;
+		store.failOnRepeatedRemove = true;
+		repository.failNextDocumentVersionDelete = true;
+		TinyflowVectorCompensator compensator = new TinyflowVectorCompensator(repository, indexer);
+
+		compensator.retry("tenant-a", "kb-1");
+		assertFalse(repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
+		compensator.retry("tenant-a", "kb-1");
+
+		assertTrue(repository.findChunksByDocument("tenant-a", "kb-1", "doc-v1").isEmpty());
+		assertTrue(repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
+	}
+
+	@Test
+	public void shouldResumeDeletePendingAfterSourceDeletionFailureWithoutDeletingVectorAgain() {
+		TinyflowLocalIndexerTest.MemoryRepository repository = new TinyflowLocalIndexerTest.MemoryRepository();
+		TinyflowLocalIndexerTest.RecordingStore store = new TinyflowLocalIndexerTest.RecordingStore();
+		TinyflowLocalIndexer indexer = TinyflowLocalIndexerTest.indexer(repository, store, true, true, 10);
+		TinyflowKnowledgeMaintenanceService maintenance = new TinyflowKnowledgeMaintenanceService(repository, indexer,
+				new TinyflowLocalIndexerTest.FixedStoreProvider(store, true));
+		seedActive(repository);
+		store.failRemove = true;
+		assertThrows(TinyflowException.class,
+				() -> maintenance.deleteSource("tenant-a", "kb-1", "source-1"));
+		store.failRemove = false;
+		store.failOnRepeatedRemove = true;
+		repository.failNextSourceDelete = true;
+		TinyflowVectorCompensator compensator = new TinyflowVectorCompensator(repository, indexer);
+
+		compensator.retry("tenant-a", "kb-1");
+		assertFalse(repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
+		compensator.retry("tenant-a", "kb-1");
+
+		assertTrue(repository.findDocumentVersions("tenant-a", "kb-1", "source-1").isEmpty());
+		assertEquals("DELETED", lastTask(repository).getStatus());
+		assertTrue(repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
+	}
+
+	@Test
+	public void shouldResumeDeletePendingAfterDeletedTaskFailureWithoutRepeatingCompletedSteps() {
+		TinyflowLocalIndexerTest.MemoryRepository repository = new TinyflowLocalIndexerTest.MemoryRepository();
+		TinyflowLocalIndexerTest.RecordingStore store = new TinyflowLocalIndexerTest.RecordingStore();
+		TinyflowLocalIndexer indexer = TinyflowLocalIndexerTest.indexer(repository, store, true, true, 10);
+		TinyflowKnowledgeMaintenanceService maintenance = new TinyflowKnowledgeMaintenanceService(repository, indexer,
+				new TinyflowLocalIndexerTest.FixedStoreProvider(store, true));
+		seedActive(repository);
+		store.failRemove = true;
+		assertThrows(TinyflowException.class,
+				() -> maintenance.deleteSource("tenant-a", "kb-1", "source-1"));
+		store.failRemove = false;
+		store.failOnRepeatedRemove = true;
+		repository.failTaskStatusOnce = "DELETED";
+		TinyflowVectorCompensator compensator = new TinyflowVectorCompensator(repository, indexer);
+
+		compensator.retry("tenant-a", "kb-1");
+		assertTrue(repository.findDocumentVersions("tenant-a", "kb-1", "source-1").isEmpty());
+		assertFalse(repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
+		compensator.retry("tenant-a", "kb-1");
+
 		assertEquals("DELETED", lastTask(repository).getStatus());
 		assertTrue(repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
 	}

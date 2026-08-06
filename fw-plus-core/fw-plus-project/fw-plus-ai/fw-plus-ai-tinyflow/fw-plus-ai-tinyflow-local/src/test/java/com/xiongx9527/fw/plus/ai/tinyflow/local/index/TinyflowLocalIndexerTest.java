@@ -185,6 +185,7 @@ public class TinyflowLocalIndexerTest {
 		int documentCalls;
 		int failOnDocumentCall;
 		boolean failRemove;
+		boolean failOnRepeatedRemove;
 		@Override public List<String> addAll(List<TinyflowVectorDocument> documents) {
 			addCalls++;
 			if (failOnAddCall == addCalls) { throw new IllegalStateException("vector write failed"); }
@@ -200,6 +201,9 @@ public class TinyflowLocalIndexerTest {
 		}
 		@Override public void removeAll(List<String> ids) {
 			if (failRemove) { throw new IllegalStateException("vector remove failed"); }
+			if (failOnRepeatedRemove && !Collections.disjoint(removed, ids)) {
+				throw new IllegalStateException("vector was already removed");
+			}
 			removed.addAll(ids);
 		}
 		@Override public List<TinyflowVectorMatch> search(float[] vector, int maxResults, double minScore) {
@@ -217,6 +221,9 @@ public class TinyflowLocalIndexerTest {
 		final List<VectorCompensation> compensations = new ArrayList<VectorCompensation>();
 		boolean failNextChunkSave;
 		boolean failActivation;
+		boolean failNextDocumentVersionDelete;
+		boolean failNextSourceDelete;
+		String failTaskStatusOnce;
 
 		List<String> pendingVectorIds(String tenantId, String knowledgeId) {
 			List<String> values = new ArrayList<String>();
@@ -266,11 +273,13 @@ public class TinyflowLocalIndexerTest {
 			active.put(sourceKey(tenantId, knowledgeId, sourceId), documentId);
 		}
 		@Override public void deleteDocumentsBySource(String tenantId, String knowledgeId, String sourceId) {
+			if (failNextSourceDelete) { failNextSourceDelete = false; throw new IllegalStateException("source deletion failed"); }
 			for (TinyflowDocument document : new ArrayList<TinyflowDocument>(findDocumentVersions(tenantId, knowledgeId, sourceId))) { documents.remove(documentKey(tenantId, knowledgeId, document.getDocumentId())); }
 			active.remove(sourceKey(tenantId, knowledgeId, sourceId));
 			for (TinyflowChunk chunk : new ArrayList<TinyflowChunk>(storedChunks.values())) { if (tenantId.equals(chunk.getTenantId()) && knowledgeId.equals(chunk.getKnowledgeId()) && sourceId.equals(chunk.getSourceId())) { storedChunks.remove(chunkKey(tenantId, knowledgeId, chunk.getChunkId())); } }
 		}
 		@Override public void deleteDocumentVersion(String tenantId, String knowledgeId, String sourceId, String documentId) {
+			if (failNextDocumentVersionDelete) { failNextDocumentVersionDelete = false; throw new IllegalStateException("document version deletion failed"); }
 			TinyflowDocument document = documents.get(documentKey(tenantId, knowledgeId, documentId));
 			if (document == null) { return; }
 			if (!sourceId.equals(document.getSourceId())) { throw new IllegalArgumentException("Document does not belong to source"); }
@@ -290,7 +299,10 @@ public class TinyflowLocalIndexerTest {
 		}
 		@Override public List<TinyflowChunk> findChunksByVectorIds(String tenantId, String knowledgeId, List<String> vectorIds) { return Collections.emptyList(); }
 		@Override public void updateChunk(String tenantId, String knowledgeId, String chunkId, boolean enabled, String content, Map<String, Object> metadata) { throw new UnsupportedOperationException(); }
-		@Override public void saveTask(TinyflowIngestionTask task) { tasks.add(task); }
+		@Override public void saveTask(TinyflowIngestionTask task) {
+			if (task.getStatus().equals(failTaskStatusOnce)) { failTaskStatusOnce = null; throw new IllegalStateException("task persistence failed"); }
+			tasks.add(task);
+		}
 		@Override public void completeIngestion(TinyflowDocument document, List<TinyflowChunk> chunks, TinyflowIngestionTask task) {
 			Map<String, TinyflowDocument> documentSnapshot = new LinkedHashMap<String, TinyflowDocument>(documents);
 			Map<String, String> activeSnapshot = new LinkedHashMap<String, String>(active);
@@ -304,6 +316,22 @@ public class TinyflowLocalIndexerTest {
 			List<VectorCompensation> values = new ArrayList<VectorCompensation>();
 			for (VectorCompensation compensation : compensations) { if (tenantId.equals(compensation.getTenantId()) && knowledgeId.equals(compensation.getKnowledgeId())) { values.add(compensation); } }
 			return values;
+		}
+		@Override public void advanceVectorCompensationStage(String tenantId, String knowledgeId,
+				String compensationId, String expectedStage, String nextStage) {
+			for (int index = 0; index < compensations.size(); index++) {
+				VectorCompensation compensation = compensations.get(index);
+				if (tenantId.equals(compensation.getTenantId()) && knowledgeId.equals(compensation.getKnowledgeId())
+						&& compensationId.equals(compensation.getCompensationId())) {
+					if (nextStage.equals(compensation.getStage())) { return; }
+					if (!expectedStage.equals(compensation.getStage())) {
+						throw new CompensationStageException(expectedStage, compensation.getStage());
+					}
+					compensations.set(index, compensation.withStage(nextStage));
+					return;
+				}
+			}
+			throw new CompensationStageException(expectedStage, null);
 		}
 		@Override public void deleteVectorCompensation(String tenantId, String knowledgeId, String compensationId) {
 			for (VectorCompensation compensation : new ArrayList<VectorCompensation>(compensations)) { if (compensationId.equals(compensation.getCompensationId())) { compensations.remove(compensation); } }

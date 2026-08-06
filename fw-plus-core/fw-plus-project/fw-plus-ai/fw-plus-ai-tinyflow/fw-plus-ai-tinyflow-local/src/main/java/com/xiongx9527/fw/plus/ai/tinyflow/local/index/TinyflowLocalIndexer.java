@@ -174,15 +174,19 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 		store.removeAll(new ArrayList<String>(new LinkedHashSet<String>(vectorIds)));
 	}
 
-	void recordCompensation(TinyflowDocument document, List<String> vectorIds, String operation) {
+	TinyflowKnowledgeRepository.VectorCompensation recordCompensation(
+			TinyflowDocument document, List<String> vectorIds, String operation) {
 		if ((vectorIds == null || vectorIds.isEmpty())
 				&& TinyflowVectorCompensator.INDEX_ROLLBACK.equals(operation)) {
-			return;
+			return null;
 		}
-		repository.saveVectorCompensation(new TinyflowKnowledgeRepository.VectorCompensation(
+		TinyflowKnowledgeRepository.VectorCompensation compensation =
+				new TinyflowKnowledgeRepository.VectorCompensation(
 				UUID.randomUUID().toString(), document.getTenantId(), document.getKnowledgeId(),
 				document.getSourceId(), document.getDocumentId(),
-				vectorIds == null ? Collections.<String>emptyList() : vectorIds, operation));
+				vectorIds == null ? Collections.<String>emptyList() : vectorIds, operation);
+		repository.saveVectorCompensation(compensation);
+		return compensation;
 	}
 
 	private List<TinyflowChunk> withVectorIds(List<TinyflowChunk> chunks, Map<String, List<String>> indexed) {

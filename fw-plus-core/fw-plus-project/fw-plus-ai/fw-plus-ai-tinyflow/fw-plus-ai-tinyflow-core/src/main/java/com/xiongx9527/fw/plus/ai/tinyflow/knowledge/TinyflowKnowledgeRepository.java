@@ -70,9 +70,21 @@ public interface TinyflowKnowledgeRepository {
 
 	List<VectorCompensation> findVectorCompensations(String tenantId, String knowledgeId);
 
+	/**
+	 * Atomically advances a durable compensation stage. Repeating an already applied transition is a
+	 * no-op; any other stale expected stage must fail without changing the record.
+	 */
+	void advanceVectorCompensationStage(String tenantId, String knowledgeId, String compensationId,
+			String expectedStage, String nextStage);
+
 	void deleteVectorCompensation(String tenantId, String knowledgeId, String compensationId);
 
 	final class VectorCompensation {
+		public static final String VECTOR_PENDING = "VECTOR_PENDING";
+		public static final String RESOURCE_PENDING = "RESOURCE_PENDING";
+		public static final String TASK_PENDING = "TASK_PENDING";
+		public static final String COMPLETE = "COMPLETE";
+
 		private final String compensationId;
 		private final String tenantId;
 		private final String knowledgeId;
@@ -80,9 +92,16 @@ public interface TinyflowKnowledgeRepository {
 		private final String documentId;
 		private final List<String> vectorIds;
 		private final String operation;
+		private final String stage;
 
 		public VectorCompensation(String compensationId, String tenantId, String knowledgeId,
 				String sourceId, String documentId, List<String> vectorIds, String operation) {
+			this(compensationId, tenantId, knowledgeId, sourceId, documentId, vectorIds,
+					operation, VECTOR_PENDING);
+		}
+
+		public VectorCompensation(String compensationId, String tenantId, String knowledgeId,
+				String sourceId, String documentId, List<String> vectorIds, String operation, String stage) {
 			this.compensationId = TinyflowKnowledgeReference.requireText(compensationId, "compensationId");
 			this.tenantId = TinyflowKnowledgeReference.requireText(tenantId, "tenantId");
 			this.knowledgeId = TinyflowKnowledgeReference.requireText(knowledgeId, "knowledgeId");
@@ -91,6 +110,7 @@ public interface TinyflowKnowledgeRepository {
 			this.vectorIds = vectorIds == null ? Collections.<String>emptyList()
 					: Collections.unmodifiableList(new ArrayList<String>(vectorIds));
 			this.operation = TinyflowKnowledgeReference.requireText(operation, "operation");
+			this.stage = TinyflowKnowledgeReference.requireText(stage, "stage");
 		}
 
 		public String getCompensationId() { return compensationId; }
@@ -100,6 +120,12 @@ public interface TinyflowKnowledgeRepository {
 		public String getDocumentId() { return documentId; }
 		public List<String> getVectorIds() { return vectorIds; }
 		public String getOperation() { return operation; }
+		public String getStage() { return stage; }
+
+		public VectorCompensation withStage(String nextStage) {
+			return new VectorCompensation(compensationId, tenantId, knowledgeId, sourceId, documentId,
+					vectorIds, operation, nextStage);
+		}
 	}
 
 	final class OptimisticLockException extends RuntimeException {
@@ -127,5 +153,20 @@ public interface TinyflowKnowledgeRepository {
 		}
 
 		public String getVectorStoreKey() { return vectorStoreKey; }
+	}
+
+	final class CompensationStageException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+		private final String expectedStage;
+		private final String actualStage;
+
+		public CompensationStageException(String expectedStage, String actualStage) {
+			super("Compensation stage conflict: expected " + expectedStage + " but was " + actualStage);
+			this.expectedStage = expectedStage;
+			this.actualStage = actualStage;
+		}
+
+		public String getExpectedStage() { return expectedStage; }
+		public String getActualStage() { return actualStage; }
 	}
 }

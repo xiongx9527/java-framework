@@ -30,22 +30,56 @@ public final class TinyflowVectorCompensator {
 				repository.findVectorCompensations(tenantId, knowledgeId);
 		for (TinyflowKnowledgeRepository.VectorCompensation compensation : compensations) {
 			try {
-				if (!isSupported(compensation.getOperation())) {
-					continue;
-				}
-				indexer.delete(tenantId, knowledgeId, compensation.getVectorIds());
-				if (DELETE_OLD_VERSION.equals(compensation.getOperation())) {
-					repository.deleteDocumentVersion(tenantId, knowledgeId, compensation.getSourceId(),
-							compensation.getDocumentId());
-				} else if (DELETE_PENDING.equals(compensation.getOperation())) {
-					repository.deleteDocumentsBySource(tenantId, knowledgeId, compensation.getSourceId());
-					repository.saveTask(deletedTask(compensation));
-				}
-				repository.deleteVectorCompensation(tenantId, knowledgeId, compensation.getCompensationId());
+				complete(compensation);
 			} catch (Exception ignored) {
 				// The repository record remains the durable retry signal.
 			}
 		}
+	}
+
+	void complete(TinyflowKnowledgeRepository.VectorCompensation compensation) throws Exception {
+		if (compensation == null || !isSupported(compensation.getOperation())) {
+			return;
+		}
+		String stage = compensation.getStage();
+		if (TinyflowKnowledgeRepository.VectorCompensation.VECTOR_PENDING.equals(stage)) {
+			indexer.delete(compensation.getTenantId(), compensation.getKnowledgeId(), compensation.getVectorIds());
+			String nextStage = INDEX_ROLLBACK.equals(compensation.getOperation())
+					? TinyflowKnowledgeRepository.VectorCompensation.COMPLETE
+					: TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING;
+			advance(compensation, stage, nextStage);
+			stage = nextStage;
+		}
+		if (DELETE_OLD_VERSION.equals(compensation.getOperation())
+				&& TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING.equals(stage)) {
+			repository.deleteDocumentVersion(compensation.getTenantId(), compensation.getKnowledgeId(),
+					compensation.getSourceId(), compensation.getDocumentId());
+			advance(compensation, stage, TinyflowKnowledgeRepository.VectorCompensation.COMPLETE);
+			stage = TinyflowKnowledgeRepository.VectorCompensation.COMPLETE;
+		}
+		if (DELETE_PENDING.equals(compensation.getOperation())
+				&& TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING.equals(stage)) {
+			repository.deleteDocumentsBySource(
+					compensation.getTenantId(), compensation.getKnowledgeId(), compensation.getSourceId());
+			advance(compensation, stage, TinyflowKnowledgeRepository.VectorCompensation.TASK_PENDING);
+			stage = TinyflowKnowledgeRepository.VectorCompensation.TASK_PENDING;
+		}
+		if (DELETE_PENDING.equals(compensation.getOperation())
+				&& TinyflowKnowledgeRepository.VectorCompensation.TASK_PENDING.equals(stage)) {
+			repository.saveTask(deletedTask(compensation));
+			advance(compensation, stage, TinyflowKnowledgeRepository.VectorCompensation.COMPLETE);
+			stage = TinyflowKnowledgeRepository.VectorCompensation.COMPLETE;
+		}
+		if (TinyflowKnowledgeRepository.VectorCompensation.COMPLETE.equals(stage)) {
+			repository.deleteVectorCompensation(compensation.getTenantId(), compensation.getKnowledgeId(),
+					compensation.getCompensationId());
+		}
+	}
+
+	private void advance(TinyflowKnowledgeRepository.VectorCompensation compensation,
+			String expectedStage, String nextStage) {
+		repository.advanceVectorCompensationStage(compensation.getTenantId(), compensation.getKnowledgeId(),
+				compensation.getCompensationId(), expectedStage, nextStage);
 	}
 
 	private boolean isSupported(String operation) {
