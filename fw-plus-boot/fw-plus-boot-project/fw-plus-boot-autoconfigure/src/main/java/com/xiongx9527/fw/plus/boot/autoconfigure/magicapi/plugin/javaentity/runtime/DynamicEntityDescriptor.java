@@ -1,8 +1,5 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.runtime;
 
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -18,12 +15,14 @@ public final class DynamicEntityDescriptor {
     private final String resourceId;
     private final String sourceDigest;
     private final Class<?> type;
+    private final Map<String, Method> setters;
 
     DynamicEntityDescriptor(long version, String resourceId, String sourceDigest, Class<?> type) {
         this.version = version;
         this.resourceId = resourceId;
         this.sourceDigest = sourceDigest;
         this.type = type;
+        this.setters = discoverSetters(type);
     }
 
     public String name() {
@@ -60,7 +59,6 @@ public final class DynamicEntityDescriptor {
 
     public Object create(Map<String, Object> values) {
         Object instance = create();
-        Map<String, Method> setters = setters();
         for (Map.Entry<String, Object> entry : values == null
                 ? Collections.<String, Object>emptyMap().entrySet() : values.entrySet()) {
             assign(instance, setters, entry.getKey(), entry.getValue());
@@ -90,18 +88,30 @@ public final class DynamicEntityDescriptor {
         }
     }
 
-    private Map<String, Method> setters() {
-        try {
-            Map<String, Method> setters = new LinkedHashMap<>();
-            for (PropertyDescriptor descriptor : Introspector.getBeanInfo(type).getPropertyDescriptors()) {
-                if (descriptor.getWriteMethod() != null) {
-                    setters.put(descriptor.getName(), descriptor.getWriteMethod());
-                }
+    private static Map<String, Method> discoverSetters(Class<?> type) {
+        Map<String, Method> result = new LinkedHashMap<>();
+        for (Method method : type.getMethods()) {
+            if (Modifier.isStatic(method.getModifiers()) || method.getParameterTypes().length != 1) {
+                continue;
             }
-            return setters;
-        } catch (IntrospectionException exception) {
-            throw new IllegalStateException("无法分析动态实体 JavaBean 属性: " + type.getName(), exception);
+            String name = method.getName();
+            if (!name.startsWith("set") || name.length() <= 3) {
+                continue;
+            }
+            String property = decapitalize(name.substring(3));
+            if (!result.containsKey(property)) {
+                result.put(property, method);
+            }
         }
+        return Collections.unmodifiableMap(result);
+    }
+
+    private static String decapitalize(String name) {
+        if (name.length() > 1 && Character.isUpperCase(name.charAt(0))
+                && Character.isUpperCase(name.charAt(1))) {
+            return name;
+        }
+        return Character.toLowerCase(name.charAt(0)) + name.substring(1);
     }
 
     private Object convert(Object value, Class<?> targetType, String property) {

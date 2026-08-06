@@ -115,7 +115,7 @@ public class JavaEntityMagicDynamicRegistry implements MagicDynamicRegistry<Java
         }
     }
 
-    @EventListener(condition = "#event.type == 'java-entity' && "
+    @EventListener(condition = "#event.type == 'clear' && "
             + "#event.action == T(org.ssssssss.magicapi.core.event.EventAction).CLEAR")
     public void onClear(MagicEvent event) {
         snapshotLock.lock();

@@ -23,6 +23,7 @@ class MagicAPIJavaEntityConfigurationTest {
     void createsPluginBeansByDefault() {
         contextRunner.run(context -> {
             assertThat(context).hasSingleBean(InMemoryJavaEntityCompiler.class);
+            assertThat(context).hasSingleBean(JavaEntityProperties.class);
             assertThat(context).hasSingleBean(DynamicEntityRegistry.class);
             assertThat(context).hasSingleBean(JavaEntityMagicResourceStorage.class);
             assertThat(context).hasSingleBean(JavaEntityMagicDynamicRegistry.class);
