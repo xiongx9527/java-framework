@@ -65,6 +65,10 @@ class DynamicEntityRegistryTest {
         assertFalse(registry.status().isAvailable());
         assertEquals(0L, registry.status().getVersion());
         assertFalse(registry.status().getDiagnostics().isEmpty());
+        IllegalStateException unavailable = assertThrows(IllegalStateException.class,
+                () -> registry.resolve("User"));
+        assertTrue(unavailable.getMessage().contains("动态实体不可用"));
+        assertTrue(unavailable.getMessage().contains(registry.status().getDiagnostics().get(0).getMessage()));
     }
 
     @Test
