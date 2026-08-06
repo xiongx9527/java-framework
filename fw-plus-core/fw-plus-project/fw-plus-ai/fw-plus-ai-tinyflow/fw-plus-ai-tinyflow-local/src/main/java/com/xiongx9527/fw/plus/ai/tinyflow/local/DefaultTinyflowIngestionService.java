@@ -87,7 +87,13 @@ public final class DefaultTinyflowIngestionService {
 					retryCount(request, input.getSourceId(), checksum), sourceKey);
 			controls.put(control.taskId, control);
 			inFlight.put(sourceKey, control);
-			pending = transition(control, "PENDING", null, null);
+			try {
+				pending = transition(control, "PENDING", null, null);
+			} catch (RuntimeException exception) {
+				controls.remove(control.taskId, control);
+				inFlight.remove(sourceKey, control);
+				throw exception;
+			}
 		}
 		try {
 			executor.execute(new Runnable() {
@@ -97,8 +103,11 @@ public final class DefaultTinyflowIngestionService {
 				}
 			});
 		} catch (RuntimeException exception) {
-			fail(control, "PENDING");
-			inFlight.remove(sourceKey, control);
+			try {
+				fail(control, "PENDING");
+			} finally {
+				inFlight.remove(sourceKey, control);
+			}
 		}
 		return pending;
 	}
@@ -113,8 +122,9 @@ public final class DefaultTinyflowIngestionService {
 			if (isTerminal(control.status)) {
 				return snapshotLocked(control, control.status, null, null);
 			}
+			TinyflowIngestionTask task = transitionLocked(control, "CANCELLING", null, null);
 			control.cancelled = true;
-			return transitionLocked(control, "CANCELLING", null, null);
+			return task;
 		}
 	}
 
@@ -179,12 +189,16 @@ public final class DefaultTinyflowIngestionService {
 				finishCancelled(control);
 				return;
 			}
-			Map<String, List<String>> indexed = ingestionIndex.index(control.document.getTenantId(),
-					control.document.getKnowledgeId(), control.document.getDocumentId(), chunks);
-			synchronized (control) {
-				control.indexedVectorIds = collectVectorIds(indexed);
-				control.indexed = true;
+			Map<String, List<String>> indexed;
+			try {
+				indexed = ingestionIndex.index(control.document.getTenantId(),
+						control.document.getKnowledgeId(), control.document.getDocumentId(), chunks);
+			} catch (IngestionIndex.PartialIndexException exception) {
+				recordIndexedVectors(control, chunks, exception.getPartialResult());
+				throw exception;
 			}
+			recordIndexedVectors(control, chunks, indexed);
+			validateIndexKeys(chunks, indexed);
 			List<TinyflowChunk> indexedChunks = withVectorIds(chunks, indexed);
 			if (cancelRequested(control)) {
 				compensate(control);
@@ -202,19 +216,7 @@ public final class DefaultTinyflowIngestionService {
 					.content(parsed.getContent()).sourceUri(control.document.getSourceUri())
 					.sourceVersion(control.document.getSourceVersion()).metadata(documentMetadata)
 					.chunks(indexedChunks).build();
-			repository.saveChunks(indexedChunks);
-			if (cancelRequested(control)) {
-				compensate(control);
-				finishCancelled(control);
-				return;
-			}
-			repository.saveDocument(completedDocument);
-			if (cancelRequested(control)) {
-				compensate(control);
-				finishCancelled(control);
-				return;
-			}
-			if (!activateAndComplete(control, completedDocument)) {
+			if (!complete(control, completedDocument, indexedChunks)) {
 				compensate(control);
 				finishCancelled(control);
 			}
@@ -231,7 +233,6 @@ public final class DefaultTinyflowIngestionService {
 			if (control.cancelled || isTerminal(control.status)) {
 				return false;
 			}
-			control.stage = stage;
 			transitionLocked(control, stage, null, null);
 			return true;
 		}
@@ -244,7 +245,6 @@ public final class DefaultTinyflowIngestionService {
 				return;
 			}
 			if (!isTerminal(control.status)) {
-				control.stage = "FAILED";
 				transitionLocked(control, "FAILED", "Ingestion failed during " + safeStage(failedStage),
 						safeStage(failedStage));
 			}
@@ -259,7 +259,6 @@ public final class DefaultTinyflowIngestionService {
 
 	private void finishCancelledLocked(TaskControl control) {
 		if (!isTerminal(control.status)) {
-			control.stage = "CANCELLED";
 			transitionLocked(control, "CANCELLED", null, null);
 		}
 	}
@@ -283,8 +282,9 @@ public final class DefaultTinyflowIngestionService {
 			throw new IllegalStateException("Illegal ingestion status transition");
 		}
 		TinyflowIngestionTask task = snapshotLocked(control, status, message, failedStage);
-		control.status = status;
 		repository.saveTask(task);
+		control.status = status;
+		control.stage = status;
 		return task;
 	}
 
@@ -327,16 +327,20 @@ public final class DefaultTinyflowIngestionService {
 		return metadata;
 	}
 
-	private boolean activateAndComplete(TaskControl control, TinyflowDocument completedDocument) {
+	private boolean complete(TaskControl control, TinyflowDocument completedDocument,
+			List<TinyflowChunk> indexedChunks) {
 		synchronized (control) {
 			if (control.cancelled) {
 				return false;
 			}
-			repository.activateDocumentVersion(completedDocument.getTenantId(), completedDocument.getKnowledgeId(),
-					completedDocument.getSourceId(), completedDocument.getDocumentId());
-			control.stage = "COMPLETED";
+			if (!allowsTransition(control.status, "COMPLETED")) {
+				throw new IllegalStateException("Illegal ingestion status transition");
+			}
+			TinyflowIngestionTask completedTask = snapshotLocked(control, "COMPLETED", null, null);
+			repository.completeIngestion(completedDocument, indexedChunks, completedTask);
 			control.document = completedDocument;
-			transitionLocked(control, "COMPLETED", null, null);
+			control.status = "COMPLETED";
+			control.stage = "COMPLETED";
 			return true;
 		}
 	}
@@ -388,6 +392,39 @@ public final class DefaultTinyflowIngestionService {
 					.vectorIds(vectorIds).build());
 		}
 		return result;
+	}
+
+	private void recordIndexedVectors(TaskControl control, List<TinyflowChunk> chunks,
+			Map<String, List<String>> indexed) {
+		Set<String> expected = chunkIds(chunks);
+		Map<String, List<String>> currentBatch = new LinkedHashMap<String, List<String>>();
+		if (indexed != null) {
+			for (Map.Entry<String, List<String>> entry : indexed.entrySet()) {
+				if (expected.contains(entry.getKey())) {
+					currentBatch.put(entry.getKey(), entry.getValue());
+				}
+			}
+		}
+		List<String> vectorIds = collectVectorIds(currentBatch);
+		synchronized (control) {
+			control.indexedVectorIds = vectorIds;
+			control.indexed = !vectorIds.isEmpty();
+		}
+	}
+
+	private void validateIndexKeys(List<TinyflowChunk> chunks,
+			Map<String, List<String>> indexed) throws IOException {
+		if (indexed == null || !chunkIds(chunks).equals(indexed.keySet())) {
+			throw new IOException("Index result keys do not match current batch");
+		}
+	}
+
+	private Set<String> chunkIds(List<TinyflowChunk> chunks) {
+		Set<String> values = new LinkedHashSet<String>();
+		for (TinyflowChunk chunk : chunks) {
+			values.add(chunk.getChunkId());
+		}
+		return values;
 	}
 
 	private List<String> collectVectorIds(List<TinyflowChunk> chunks) {
@@ -512,6 +549,26 @@ public final class DefaultTinyflowIngestionService {
 				List<TinyflowChunk> chunks) throws Exception;
 
 		void delete(String tenantId, String knowledgeId, List<String> vectorIds) throws Exception;
+
+		final class PartialIndexException extends Exception {
+			private static final long serialVersionUID = 1L;
+			private final Map<String, List<String>> partialResult;
+
+			public PartialIndexException(String message, Map<String, List<String>> partialResult) {
+				super(message);
+				Map<String, List<String>> copy = new LinkedHashMap<String, List<String>>();
+				if (partialResult != null) {
+					for (Map.Entry<String, List<String>> entry : partialResult.entrySet()) {
+						List<String> vectorIds = entry.getValue() == null ? Collections.<String>emptyList()
+								: Collections.unmodifiableList(new ArrayList<String>(entry.getValue()));
+						copy.put(entry.getKey(), vectorIds);
+					}
+				}
+				this.partialResult = Collections.unmodifiableMap(copy);
+			}
+
+			public Map<String, List<String>> getPartialResult() { return partialResult; }
+		}
 	}
 
 	private static final class TaskControl {

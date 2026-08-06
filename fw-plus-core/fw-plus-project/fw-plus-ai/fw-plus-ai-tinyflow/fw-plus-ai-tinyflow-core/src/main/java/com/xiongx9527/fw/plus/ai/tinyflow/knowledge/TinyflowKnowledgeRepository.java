@@ -45,6 +45,14 @@ public interface TinyflowKnowledgeRepository {
 
 	void saveTask(TinyflowIngestionTask task);
 
+	/**
+	 * Atomically persists the indexed chunks, completed document, active document switch, and
+	 * completed task. If any write fails, implementations must leave all four resources exactly as
+	 * they were before this call so readers cannot observe a partially completed ingestion.
+	 */
+	void completeIngestion(TinyflowDocument completedDocument, List<TinyflowChunk> chunks,
+			TinyflowIngestionTask completedTask);
+
 	List<TinyflowIngestionTask> findTasks(String tenantId, String knowledgeId);
 
 	void saveVectorCompensation(VectorCompensation compensation);

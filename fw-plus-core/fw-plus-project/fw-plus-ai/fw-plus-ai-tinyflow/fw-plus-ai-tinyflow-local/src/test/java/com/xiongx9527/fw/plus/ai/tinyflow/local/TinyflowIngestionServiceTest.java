@@ -30,6 +30,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -236,22 +237,30 @@ public class TinyflowIngestionServiceTest {
 	}
 
 	@Test
-	public void shouldNotCompleteWhenCancellationArrivesAfterIndexBeforePersistence() throws Exception {
-		repository.blockSaveChunks = true;
+	public void shouldReturnCompletedWhenCancellationRacesWithAtomicCompletion() throws Exception {
+		repository.blockCompletion = true;
 		Executor asynchronous = command -> new Thread(command, "tinyflow-cancel-test").start();
 		DefaultTinyflowIngestionService concurrent = service(asynchronous, CompositeTinyflowDocumentParser.defaults());
 
 		TinyflowIngestionTask pending = concurrent.importDocument(
 				fileImport("source-cancel-race", "sha256-cancel-race", "content", null));
-		assertTrue(repository.saveChunksEntered.await(5, TimeUnit.SECONDS));
-		assertEquals("CANCELLING", concurrent.cancel("tenant-a", "kb-1", pending.getTaskId()).getStatus());
-		repository.releaseSaveChunks.countDown();
+		assertTrue(repository.completionEntered.await(5, TimeUnit.SECONDS));
+		AtomicReference<TinyflowIngestionTask> cancelResult = new AtomicReference<TinyflowIngestionTask>();
+		CountDownLatch cancelReturned = new CountDownLatch(1);
+		Thread cancelThread = new Thread(() -> {
+			cancelResult.set(concurrent.cancel("tenant-a", "kb-1", pending.getTaskId()));
+			cancelReturned.countDown();
+		}, "tinyflow-cancel-race-test");
+		cancelThread.start();
+		assertFalse(cancelReturned.await(100, TimeUnit.MILLISECONDS));
+		repository.releaseCompletion.countDown();
+		assertTrue(cancelReturned.await(5, TimeUnit.SECONDS));
 
 		TinyflowIngestionTask terminal = awaitTerminal(pending.getTaskId());
-		assertEquals("CANCELLED", terminal.getStatus());
-		assertFalse(statuses(pending.getTaskId()).contains("COMPLETED"));
-		assertEquals(1, index.deleteCalls.get());
-		assertTrue(index.compensationPresentAtDelete);
+		assertEquals("COMPLETED", terminal.getStatus());
+		assertEquals("COMPLETED", cancelResult.get().getStatus());
+		assertFalse(statuses(pending.getTaskId()).contains("CANCELLING"));
+		assertEquals(0, index.deleteCalls.get());
 		assertTrue(repository.compensations.isEmpty());
 	}
 
@@ -288,12 +297,116 @@ public class TinyflowIngestionServiceTest {
 		index.incompleteIndexResult = true;
 
 		TinyflowIngestionTask pending = service.importDocument(
-				fileImport("source-index-invalid", "sha256-index-invalid", "content", null));
+				fileImport("source-index-invalid", "sha256-index-invalid", "first\nsecond", null));
 
 		assertEquals("FAILED", latest(pending.getTaskId()).getStatus());
 		assertEquals(1, index.deleteCalls.get());
 		assertEquals(Collections.singletonList("vector-orphan"), index.lastDeletedVectorIds);
 		assertTrue(repository.compensations.isEmpty());
+	}
+
+	@Test
+	public void shouldCompensatePartialIndexFailureBeforeFailingTask() {
+		index.partialFailure = true;
+
+		TinyflowIngestionTask pending = service.importDocument(
+				fileImport("source-index-partial", "sha256-index-partial", "content", null));
+
+		assertEquals("FAILED", latest(pending.getTaskId()).getStatus());
+		assertEquals(1, index.deleteCalls.get());
+		assertTrue(index.compensationPresentAtDelete);
+		assertFalse(index.lastDeletedVectorIds.isEmpty());
+		assertTrue(repository.compensations.isEmpty());
+	}
+
+	@Test
+	public void shouldRetainPartialIndexCompensationWhenVectorDeletionFails() {
+		index.partialFailure = true;
+		index.failDelete = true;
+
+		TinyflowIngestionTask pending = service.importDocument(
+				fileImport("source-index-partial-delete", "sha256-index-partial-delete", "content", null));
+
+		assertEquals("FAILED", latest(pending.getTaskId()).getStatus());
+		assertEquals(1, repository.compensations.size());
+		assertFalse(repository.compensations.get(0).getVectorIds().isEmpty());
+	}
+
+	@Test
+	public void shouldRejectExtraIndexKeyWithoutDeletingItsVector() {
+		index.includeExtraKey = true;
+
+		TinyflowIngestionTask pending = service.importDocument(
+				fileImport("source-index-extra", "sha256-index-extra", "content", null));
+
+		assertEquals("FAILED", latest(pending.getTaskId()).getStatus());
+		assertEquals(1, index.deleteCalls.get());
+		assertFalse(index.lastDeletedVectorIds.contains("vector-existing-document"));
+	}
+
+	@Test
+	public void shouldRejectCumulativeIndexResultWithoutDeletingPreviousCallVectors() {
+		index.returnCumulative = true;
+		TinyflowIngestionTask first = service.importDocument(
+				fileImport("source-index-first", "sha256-index-first", "first", null));
+		String previousVectorId = repository.findChunksByDocument("tenant-a", "kb-1", first.getDocumentId())
+				.get(0).getVectorIds().get(0);
+
+		TinyflowIngestionTask second = service.importDocument(
+				fileImport("source-index-second", "sha256-index-second", "second", null));
+
+		assertEquals("FAILED", latest(second.getTaskId()).getStatus());
+		assertEquals(1, index.deleteCalls.get());
+		assertFalse(index.lastDeletedVectorIds.contains(previousVectorId));
+	}
+
+	@Test
+	public void shouldClearInFlightWhenPendingTaskPersistenceFailsAndAllowRetry() {
+		repository.failTaskStatusOnce = "PENDING";
+
+		assertThrows(IllegalStateException.class, () -> service.importDocument(
+				fileImport("source-pending-fail", "sha256-pending-fail", "content", null)));
+		TinyflowIngestionTask retry = service.importDocument(
+				fileImport("source-pending-fail", "sha256-pending-fail", "content", null));
+
+		assertNotNull(latest(retry.getTaskId()));
+		assertEquals("COMPLETED", latest(retry.getTaskId()).getStatus());
+		assertEquals(1, index.indexCalls.get());
+	}
+
+	@Test
+	public void shouldNotPublishCancellationWhenCancellingTaskPersistenceFails() {
+		ManualExecutor executor = new ManualExecutor();
+		DefaultTinyflowIngestionService queued = service(executor, CompositeTinyflowDocumentParser.defaults());
+		TinyflowIngestionTask pending = queued.importDocument(
+				fileImport("source-cancel-save-fail", "sha256-cancel-save-fail", "content", null));
+		repository.failTaskStatusOnce = "CANCELLING";
+
+		assertThrows(IllegalStateException.class,
+				() -> queued.cancel("tenant-a", "kb-1", pending.getTaskId()));
+		executor.runNext();
+
+		assertEquals("COMPLETED", latest(pending.getTaskId()).getStatus());
+		assertFalse(statuses(pending.getTaskId()).contains("CANCELLED"));
+	}
+
+	@Test
+	public void shouldNotHalfCommitChunksOrDocumentWhenActivationFails() {
+		TinyflowIngestionTask first = service.importDocument(
+				fileImport("source-complete-fail", "sha256-complete-old", "old", null));
+		repository.failActivation = true;
+
+		TinyflowIngestionTask second = service.importDocument(
+				fileImport("source-complete-fail", "sha256-complete-new", "new", null));
+
+		assertEquals("FAILED", latest(second.getTaskId()).getStatus());
+		assertEquals(first.getDocumentId(), repository.findActiveDocument(
+				"tenant-a", "kb-1", "source-complete-fail").getDocumentId());
+		assertTrue(repository.findChunksByDocument("tenant-a", "kb-1", second.getDocumentId()).isEmpty());
+		TinyflowDocument failedVersion = repository.findBySourceAndChecksum(
+				"tenant-a", "kb-1", "source-complete-fail", "sha256-complete-new");
+		assertTrue(failedVersion.getChunks().isEmpty());
+		assertEquals(1, index.deleteCalls.get());
 	}
 
 	@Test
@@ -349,7 +462,7 @@ public class TinyflowIngestionServiceTest {
 
 	private List<String> statuses(String taskId) {
 		List<String> statuses = new ArrayList<String>();
-		for (TinyflowIngestionTask task : repository.tasks) {
+		for (TinyflowIngestionTask task : repository.taskSnapshot()) {
 			if (taskId.equals(task.getTaskId())) {
 				statuses.add(task.getStatus());
 			}
@@ -359,7 +472,7 @@ public class TinyflowIngestionServiceTest {
 
 	private TinyflowIngestionTask latest(String taskId) {
 		TinyflowIngestionTask latest = null;
-		for (TinyflowIngestionTask task : repository.tasks) {
+		for (TinyflowIngestionTask task : repository.taskSnapshot()) {
 			if (taskId.equals(task.getTaskId())) {
 				latest = task;
 			}
@@ -397,10 +510,13 @@ public class TinyflowIngestionServiceTest {
 		private final AtomicInteger indexCalls = new AtomicInteger();
 		private final AtomicInteger deleteCalls = new AtomicInteger();
 		private final Map<String, List<String>> indexedVectorIds = new LinkedHashMap<String, List<String>>();
-		private List<String> lastDeletedVectorIds = Collections.emptyList();
-		private boolean compensationPresentAtDelete;
+		private volatile List<String> lastDeletedVectorIds = Collections.emptyList();
+		private volatile boolean compensationPresentAtDelete;
 		private boolean failDelete;
 		private boolean incompleteIndexResult;
+		private boolean partialFailure;
+		private boolean includeExtraKey;
+		private boolean returnCumulative;
 
 		private RecordingIndex(InMemoryRepository repository) {
 			this.repository = repository;
@@ -413,17 +529,29 @@ public class TinyflowIngestionServiceTest {
 
 		@Override
 		public Map<String, List<String>> index(String tenantId, String knowledgeId,
-				String documentId, List<TinyflowChunk> chunks) {
+				String documentId, List<TinyflowChunk> chunks) throws Exception {
 			indexCalls.incrementAndGet();
+			Map<String, List<String>> current = new LinkedHashMap<String, List<String>>();
 			for (TinyflowChunk chunk : chunks) {
-				indexedVectorIds.put(chunk.getChunkId(),
+				current.put(chunk.getChunkId(),
 						Collections.singletonList("vector-" + chunk.getChunkId()));
 			}
+			indexedVectorIds.putAll(current);
 			if (incompleteIndexResult) {
-				return Collections.singletonMap("unknown-chunk",
+				String firstChunkId = current.keySet().iterator().next();
+				return Collections.singletonMap(firstChunkId,
 						Collections.singletonList("vector-orphan"));
 			}
-			return new LinkedHashMap<String, List<String>>(indexedVectorIds);
+			Map<String, List<String>> result = returnCumulative
+					? new LinkedHashMap<String, List<String>>(indexedVectorIds) : current;
+			if (includeExtraKey) {
+				result.put("existing-document-chunk", Collections.singletonList("vector-existing-document"));
+			}
+			if (partialFailure) {
+				throw new DefaultTinyflowIngestionService.IngestionIndex.PartialIndexException(
+						"partial index failure", result);
+			}
+			return result;
 		}
 
 		@Override
@@ -485,27 +613,31 @@ public class TinyflowIngestionServiceTest {
 		private final Map<String, TinyflowDocument> documents = new LinkedHashMap<String, TinyflowDocument>();
 		private final Map<String, String> active = new LinkedHashMap<String, String>();
 		private final Map<String, TinyflowChunk> chunks = new LinkedHashMap<String, TinyflowChunk>();
-		private final List<TinyflowIngestionTask> tasks = new ArrayList<TinyflowIngestionTask>();
-		private final List<VectorCompensation> compensations = new ArrayList<VectorCompensation>();
-		private volatile boolean blockSaveChunks;
+		private final List<TinyflowIngestionTask> tasks =
+				Collections.synchronizedList(new ArrayList<TinyflowIngestionTask>());
+		private final List<VectorCompensation> compensations =
+				Collections.synchronizedList(new ArrayList<VectorCompensation>());
+		private volatile boolean blockCompletion;
 		private volatile boolean failSaveChunks;
 		private volatile boolean concurrentUpdateBeforeDelete;
-		private final CountDownLatch saveChunksEntered = new CountDownLatch(1);
-		private final CountDownLatch releaseSaveChunks = new CountDownLatch(1);
+		private volatile String failTaskStatusOnce;
+		private volatile boolean failActivation;
+		private final CountDownLatch completionEntered = new CountDownLatch(1);
+		private final CountDownLatch releaseCompletion = new CountDownLatch(1);
 
 		@Override
-		public TinyflowKnowledgeDefinition findKnowledge(String tenantId, String knowledgeId) {
+		public synchronized TinyflowKnowledgeDefinition findKnowledge(String tenantId, String knowledgeId) {
 			return knowledge.get(key(tenantId, knowledgeId));
 		}
 
 		@Override
-		public long findKnowledgeVersion(String tenantId, String knowledgeId) {
+		public synchronized long findKnowledgeVersion(String tenantId, String knowledgeId) {
 			Long version = knowledgeVersions.get(key(tenantId, knowledgeId));
 			return version == null ? 0L : version;
 		}
 
 		@Override
-		public void saveKnowledge(TinyflowKnowledgeDefinition definition, long expectedVersion) {
+		public synchronized void saveKnowledge(TinyflowKnowledgeDefinition definition, long expectedVersion) {
 			String key = key(definition.getTenantId(), definition.getKnowledgeId());
 			long actual = findKnowledgeVersion(definition.getTenantId(), definition.getKnowledgeId());
 			if (actual != expectedVersion) {
@@ -516,7 +648,7 @@ public class TinyflowIngestionServiceTest {
 		}
 
 		@Override
-		public void deleteKnowledge(String tenantId, String knowledgeId, long expectedVersion) {
+		public synchronized void deleteKnowledge(String tenantId, String knowledgeId, long expectedVersion) {
 			if (concurrentUpdateBeforeDelete) {
 				concurrentUpdateBeforeDelete = false;
 				TinyflowKnowledgeDefinition concurrent = TinyflowKnowledgeDefinition.builder()
@@ -534,7 +666,7 @@ public class TinyflowIngestionServiceTest {
 		}
 
 		@Override
-		public TinyflowDocument findBySourceAndChecksum(String tenantId, String knowledgeId,
+		public synchronized TinyflowDocument findBySourceAndChecksum(String tenantId, String knowledgeId,
 				String sourceId, String checksum) {
 			for (TinyflowDocument document : findDocumentVersions(tenantId, knowledgeId, sourceId)) {
 				if (checksum.equals(document.getChecksum())) {
@@ -545,18 +677,18 @@ public class TinyflowIngestionServiceTest {
 		}
 
 		@Override
-		public TinyflowDocument findActiveDocument(String tenantId, String knowledgeId, String sourceId) {
+		public synchronized TinyflowDocument findActiveDocument(String tenantId, String knowledgeId, String sourceId) {
 			String id = active.get(sourceKey(tenantId, knowledgeId, sourceId));
 			return id == null ? null : documents.get(documentKey(tenantId, knowledgeId, id));
 		}
 
 		@Override
-		public void saveDocument(TinyflowDocument document) {
+		public synchronized void saveDocument(TinyflowDocument document) {
 			documents.put(documentKey(document.getTenantId(), document.getKnowledgeId(), document.getDocumentId()), document);
 		}
 
 		@Override
-		public List<TinyflowDocument> findDocumentVersions(String tenantId, String knowledgeId, String sourceId) {
+		public synchronized List<TinyflowDocument> findDocumentVersions(String tenantId, String knowledgeId, String sourceId) {
 			List<TinyflowDocument> result = new ArrayList<TinyflowDocument>();
 			for (TinyflowDocument document : documents.values()) {
 				if (tenantId.equals(document.getTenantId()) && knowledgeId.equals(document.getKnowledgeId())
@@ -568,7 +700,12 @@ public class TinyflowIngestionServiceTest {
 		}
 
 		@Override
-		public void activateDocumentVersion(String tenantId, String knowledgeId, String sourceId, String documentId) {
+		public synchronized void activateDocumentVersion(String tenantId, String knowledgeId, String sourceId,
+				String documentId) {
+			if (failActivation) {
+				failActivation = false;
+				throw new IllegalStateException("Activation failed");
+			}
 			TinyflowDocument document = documents.get(documentKey(tenantId, knowledgeId, documentId));
 			if (document == null || !sourceId.equals(document.getSourceId())) {
 				throw new IllegalArgumentException("Document does not belong to source");
@@ -577,23 +714,12 @@ public class TinyflowIngestionServiceTest {
 		}
 
 		@Override
-		public void deleteDocumentsBySource(String tenantId, String knowledgeId, String sourceId) {
+		public synchronized void deleteDocumentsBySource(String tenantId, String knowledgeId, String sourceId) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void saveChunks(List<TinyflowChunk> values) {
-			if (blockSaveChunks) {
-				saveChunksEntered.countDown();
-				try {
-					if (!releaseSaveChunks.await(5, TimeUnit.SECONDS)) {
-						throw new IllegalStateException("Timed out waiting to release saveChunks");
-					}
-				} catch (InterruptedException exception) {
-					Thread.currentThread().interrupt();
-					throw new IllegalStateException("Interrupted", exception);
-				}
-			}
+		public synchronized void saveChunks(List<TinyflowChunk> values) {
 			if (failSaveChunks) {
 				throw new IllegalStateException("Chunk persistence failed");
 			}
@@ -603,12 +729,13 @@ public class TinyflowIngestionServiceTest {
 		}
 
 		@Override
-		public TinyflowChunk findChunk(String tenantId, String knowledgeId, String chunkId) {
+		public synchronized TinyflowChunk findChunk(String tenantId, String knowledgeId, String chunkId) {
 			return chunks.get(chunkKey(tenantId, knowledgeId, chunkId));
 		}
 
 		@Override
-		public List<TinyflowChunk> findChunksByDocument(String tenantId, String knowledgeId, String documentId) {
+		public synchronized List<TinyflowChunk> findChunksByDocument(String tenantId, String knowledgeId,
+				String documentId) {
 			List<TinyflowChunk> result = new ArrayList<TinyflowChunk>();
 			for (TinyflowChunk chunk : chunks.values()) {
 				if (tenantId.equals(chunk.getTenantId()) && knowledgeId.equals(chunk.getKnowledgeId())
@@ -620,23 +747,66 @@ public class TinyflowIngestionServiceTest {
 		}
 
 		@Override
-		public List<TinyflowChunk> findChunksByVectorIds(String tenantId, String knowledgeId, List<String> vectorIds) {
+		public synchronized List<TinyflowChunk> findChunksByVectorIds(String tenantId, String knowledgeId,
+				List<String> vectorIds) {
 			return Collections.emptyList();
 		}
 
 		@Override
-		public void updateChunk(String tenantId, String knowledgeId, String chunkId, boolean enabled,
+		public synchronized void updateChunk(String tenantId, String knowledgeId, String chunkId, boolean enabled,
 				String content, Map<String, Object> metadata) {
 			throw new UnsupportedOperationException();
 		}
 
 		@Override
-		public void saveTask(TinyflowIngestionTask task) {
+		public synchronized void saveTask(TinyflowIngestionTask task) {
+			if (task.getStatus().equals(failTaskStatusOnce)) {
+				failTaskStatusOnce = null;
+				throw new IllegalStateException("Task persistence failed");
+			}
 			tasks.add(task);
 		}
 
 		@Override
-		public List<TinyflowIngestionTask> findTasks(String tenantId, String knowledgeId) {
+		public synchronized void completeIngestion(TinyflowDocument completedDocument,
+				List<TinyflowChunk> values, TinyflowIngestionTask completedTask) {
+			if (blockCompletion) {
+				completionEntered.countDown();
+				try {
+					if (!releaseCompletion.await(5, TimeUnit.SECONDS)) {
+						throw new IllegalStateException("Timed out waiting to release completion");
+					}
+				} catch (InterruptedException exception) {
+					Thread.currentThread().interrupt();
+					throw new IllegalStateException("Interrupted", exception);
+				}
+			}
+			Map<String, TinyflowDocument> documentSnapshot =
+					new LinkedHashMap<String, TinyflowDocument>(documents);
+			Map<String, String> activeSnapshot = new LinkedHashMap<String, String>(active);
+			Map<String, TinyflowChunk> chunkSnapshot = new LinkedHashMap<String, TinyflowChunk>(chunks);
+			List<TinyflowIngestionTask> taskSnapshot = new ArrayList<TinyflowIngestionTask>(tasks);
+			try {
+				saveChunks(values);
+				saveDocument(completedDocument);
+				activateDocumentVersion(completedDocument.getTenantId(), completedDocument.getKnowledgeId(),
+						completedDocument.getSourceId(), completedDocument.getDocumentId());
+				saveTask(completedTask);
+			} catch (RuntimeException exception) {
+				documents.clear();
+				documents.putAll(documentSnapshot);
+				active.clear();
+				active.putAll(activeSnapshot);
+				chunks.clear();
+				chunks.putAll(chunkSnapshot);
+				tasks.clear();
+				tasks.addAll(taskSnapshot);
+				throw exception;
+			}
+		}
+
+		@Override
+		public synchronized List<TinyflowIngestionTask> findTasks(String tenantId, String knowledgeId) {
 			List<TinyflowIngestionTask> result = new ArrayList<TinyflowIngestionTask>();
 			for (TinyflowIngestionTask task : tasks) {
 				if (tenantId.equals(task.getTenantId()) && knowledgeId.equals(task.getKnowledgeId())) {
@@ -647,12 +817,12 @@ public class TinyflowIngestionServiceTest {
 		}
 
 		@Override
-		public void saveVectorCompensation(VectorCompensation compensation) {
+		public synchronized void saveVectorCompensation(VectorCompensation compensation) {
 			compensations.add(compensation);
 		}
 
 		@Override
-		public List<VectorCompensation> findVectorCompensations(String tenantId, String knowledgeId) {
+		public synchronized List<VectorCompensation> findVectorCompensations(String tenantId, String knowledgeId) {
 			List<VectorCompensation> result = new ArrayList<VectorCompensation>();
 			for (VectorCompensation compensation : compensations) {
 				if (tenantId.equals(compensation.getTenantId())
@@ -664,7 +834,8 @@ public class TinyflowIngestionServiceTest {
 		}
 
 		@Override
-		public void deleteVectorCompensation(String tenantId, String knowledgeId, String compensationId) {
+		public synchronized void deleteVectorCompensation(String tenantId, String knowledgeId,
+				String compensationId) {
 			for (VectorCompensation compensation : new ArrayList<VectorCompensation>(compensations)) {
 				if (tenantId.equals(compensation.getTenantId())
 						&& knowledgeId.equals(compensation.getKnowledgeId())
@@ -672,6 +843,10 @@ public class TinyflowIngestionServiceTest {
 					compensations.remove(compensation);
 				}
 			}
+		}
+
+		private synchronized List<TinyflowIngestionTask> taskSnapshot() {
+			return new ArrayList<TinyflowIngestionTask>(tasks);
 		}
 
 		private static String key(String tenantId, String knowledgeId) {

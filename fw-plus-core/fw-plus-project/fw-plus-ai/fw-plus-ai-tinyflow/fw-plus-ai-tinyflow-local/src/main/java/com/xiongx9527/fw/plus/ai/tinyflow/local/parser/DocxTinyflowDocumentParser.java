@@ -31,7 +31,7 @@ public final class DocxTinyflowDocumentParser implements TinyflowDocumentParser 
 		TinyflowParserLimits limits = TinyflowParserLimits.from(context);
 		List<TinyflowParsedDocument.Section> sections = new ArrayList<TinyflowParsedDocument.Section>();
 		StringBuilder content = new StringBuilder();
-		try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(limits.read(input)))) {
+		try (XWPFDocument document = new XWPFDocument(new ByteArrayInputStream(limits.readArchive(input)))) {
 			limits.checkDocxParagraphs(document.getParagraphs().size());
 			int paragraph = 0;
 			for (XWPFParagraph value : document.getParagraphs()) {
