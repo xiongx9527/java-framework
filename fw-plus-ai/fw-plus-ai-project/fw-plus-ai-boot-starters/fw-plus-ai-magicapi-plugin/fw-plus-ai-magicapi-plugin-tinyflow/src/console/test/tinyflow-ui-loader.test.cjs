@@ -23,6 +23,7 @@ test('loads the Starter UI with context-path-aware versioned CSS and JavaScript 
 	const browserWindow = {};
 	const document = documentWith((node) => {
 		appended.push(node);
+		if (node.tagName === 'link') node.onload();
 		if (node.tagName === 'script') {
 			browserWindow.FwPlusTinyflowUi = { version: '1.3.6', mount: () => ({}) };
 			node.onload();
@@ -48,7 +49,10 @@ test('reports missing Starter static resource and incompatible UI version', asyn
 	const missingWindow = {};
 	await assert.rejects(loadTinyflowUi({
 		window: missingWindow,
-		document: documentWith((node) => { if (node.tagName === 'script') node.onerror(); }),
+		document: documentWith((node) => {
+			if (node.tagName === 'link') node.onload();
+			if (node.tagName === 'script') node.onerror();
+		}),
 		baseUrl: '/ctx'
 	}), /加载 Tinyflow UI 失败/);
 
@@ -56,4 +60,14 @@ test('reports missing Starter static resource and incompatible UI version', asyn
 		window: { FwPlusTinyflowUi: { version: '1.3.5', mount: () => ({}) } },
 		baseUrl: '/ctx'
 	}), /版本不匹配/);
+});
+
+test('reports a missing Starter stylesheet before mounting a blank canvas', async () => {
+	const { loadTinyflowUi } = await loaderModule();
+
+	await assert.rejects(loadTinyflowUi({
+		window: {},
+		document: documentWith((node) => { if (node.tagName === 'link') node.onerror(); }),
+		baseUrl: '/console'
+	}), /加载 Tinyflow UI 样式失败/);
 });

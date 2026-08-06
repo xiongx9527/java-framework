@@ -37,6 +37,9 @@ const sendJson = (request, url, payload) => new Promise((resolve, reject) => {
 	if (typeof operation.error === 'function') {
 		operation.error(error => reject(error instanceof Error ? error : new Error(String(error || 'Tinyflow 请求失败'))));
 	}
+	if (typeof operation.exception === 'function') {
+		operation.exception(error => reject(error instanceof Error ? error : new Error(error && error.message ? error.message : String(error || 'Tinyflow 请求异常'))));
+	}
 });
 
 export function createTinyflowService(request) {
@@ -49,6 +52,23 @@ export function createTinyflowService(request) {
 		models: () => sendJson(request, '/tinyflow/provider/llm'),
 		embeddingModels: () => sendJson(request, '/tinyflow/provider/embedding'),
 		vectorStores: () => sendJson(request, '/tinyflow/provider/vector')
+	};
+}
+
+export const tinyflowUiBaseUrl = value => value && value.constants && value.constants.BASE_URL ? value.constants.BASE_URL : '';
+
+export function createToolbarResourceBinding(info, workbench) {
+	let loadedId = null;
+	const currentResource = () => info && typeof info === 'object' && 'value' in info ? info.value : info;
+	return {
+		async sync() {
+			const resource = currentResource();
+			const id = resource && resource.id;
+			if (!id || id === loadedId) return false;
+			const loaded = await workbench.load(id);
+			if (loaded) loadedId = id;
+			return loaded;
+		}
 	};
 }
 

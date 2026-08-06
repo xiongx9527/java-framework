@@ -86,3 +86,50 @@
 
 - `npm ci` reports two upstream audit findings, one moderate and one high. They were not changed because the console only uses the locked Vite/Vue build toolchain.
 - During the first full reactor attempt, `NeutralAiAutoConfigurationBoundaryTest` correctly exposed a preceding Task 8 boundary regression in `MagicApiTinyflowModelProvider`. That fix was delivered in `c36e6179`; the final exact reactor run above passed.
+
+## Fix Round 1
+
+### Scope
+
+- The shared Magic footer toolbar now preserves plugin `beforeClose` metadata, keeps each dynamic component instance, and waits for the hook before removing a closeable tab. A missing hook still closes immediately; `false`, a rejected hook, or a repeated concurrent click keeps the tab open.
+- The Tinyflow workbench observes the host-provided current resource, including a Vue ref whose `value` getter is inherited, loads the first open resource and tree switches without a watcher loop, and exposes `beforeClose()` so the shared host delegates to the real dirty-state confirmation path.
+- Magic `HttpResponse.exception(...)` now rejects the Tinyflow request promise. UI stylesheet failures show an explicit error, Starter asset URLs use `constants.BASE_URL`, and the toolbar resource ID input remains usable before a resource is loaded.
+
+### Regression Coverage
+
+1. Added shared-toolbar close tests for dirty cancellation, accepted close, legacy no-hook close, rejected hooks, and concurrent clicks.
+2. Added Tinyflow tests for `HttpResponse.exception`, host resource synchronization, `BASE_URL`, stylesheet failure, and built IIFE metadata.
+3. Verified the Tinyflow console with:
+
+   ```text
+   npm run build && npm test
+   ```
+
+   Result: `tests 18`, `pass 18`, `fail 0`. The IIFE is `18.22 kB` before gzip.
+
+### Integration Verification
+
+1. The exact Zulu 8 AI reactor completed successfully:
+
+   ```text
+   JAVA_HOME="$(/usr/libexec/java_home -v 1.8)" mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-tinyflow -am package -DskipTests=false
+   ```
+
+   A final rerun after the Vue ref compatibility regression ended with `BUILD SUCCESS` at `2026-08-06T12:54:16+08:00`.
+
+2. The Boot full reactor was attempted with the Magic Starter and `-am`, but it stopped in the unrelated `fw-plus-boot-autoconfigure` test compilation. Existing SpringBean tests referenced missing `magicapi.plugin.springbean` model/module/runtime/service packages, so the target Starter was skipped. This round does not modify that concurrent SpringBean work.
+
+3. The Magic Starter itself completed its normal Zulu 8 package flow without skipping tests:
+
+   ```text
+   JAVA_HOME="$(/usr/libexec/java_home -v 1.8)" mvn -f fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/pom.xml package -DskipTests=false
+   ```
+
+   It ended with `BUILD SUCCESS` at `2026-08-06T12:48:56+08:00`.
+
+4. The resulting Starter JAR's active `magic-editor/index.html` references `assets/index.637fdba1.js`; that bundle contains `requestToolbarClose`, `beforeClose`, and `componentInstance`. The Tinyflow plugin JAR contains only `magic-editor/plugins/magic-tinyflow.1.0.0.iife.js`, no Starter UI assets, and its embedded POM has only the direct `fw-plus-ai-tinyflow-spring-boot-starter` dependency.
+
+### Known Build Warnings
+
+- The existing Magic console Vite build reports the non-module `config-js` script and large chunk warnings.
+- npm reports inherited deprecated packages, audit findings, and pending native install-script approvals. No dependency changes were made in this round.

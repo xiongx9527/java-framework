@@ -50,6 +50,8 @@ test('loads resource data and confirms before replacing or closing dirty work', 
 	assert.equal(await workbench.close(), false);
 	assert.equal(calls.confirmations, 2);
 	assert.equal(calls.destroyed, 0);
+	assert.equal(workbench.getResource().id, 'saved-workflow');
+	assert.equal(workbench.isDirty(), true);
 });
 
 test('clears dirty only after save and destroys mounted UI on confirmed close', async () => {
@@ -87,4 +89,59 @@ test('destroys the mounted UI when the workbench unmounts', async () => {
 	workbench.destroy();
 
 	assert.equal(destroyed, 1);
+});
+
+test('settles a Magic HttpResponse exception and keeps the workflow dirty', async () => {
+	const { createTinyflowService, createWorkbench } = await workbenchModule();
+	const service = createTinyflowService({
+		sendJson() {
+			return {
+				success() { return this; },
+				error() { return this; },
+				exception(callback) { callback({ message: '保存被拒绝' }); return this; }
+			};
+		}
+	});
+	const workbench = createWorkbench({ save: resource => service.save(resource) });
+	workbench.onDataChange({ nodes: [{ id: 'changed' }] });
+
+	await assert.rejects(workbench.save(), /保存被拒绝/);
+
+	assert.equal(workbench.isDirty(), true);
+});
+
+test('reads the current host resource on first open and tree switch without a watcher loop', async () => {
+	const { createToolbarResourceBinding, createWorkbench } = await workbenchModule();
+	const loaded = [];
+	const info = { value: { id: 'first' } };
+	const workbench = createWorkbench({
+		load: async id => { loaded.push(id); return { id, content: '{"nodes":[]}' }; }
+	});
+	const binding = createToolbarResourceBinding(info, workbench);
+
+	assert.equal(await binding.sync(), true);
+	info.value = { id: 'second' };
+	assert.equal(await binding.sync(), true);
+	assert.equal(await binding.sync(), false);
+
+	assert.deepEqual(loaded, ['first', 'second']);
+	assert.equal(workbench.getResource().id, 'second');
+});
+
+test('reads a Vue-style injected ref whose value getter is on its prototype', async () => {
+	const { createToolbarResourceBinding, createWorkbench } = await workbenchModule();
+	const refPrototype = {};
+	Object.defineProperty(refPrototype, 'value', { get() { return this.current; } });
+	const info = Object.create(refPrototype);
+	info.current = { id: 'vue-ref-resource' };
+	const workbench = createWorkbench({ load: async id => ({ id, content: '{"nodes":[]}' }) });
+
+	assert.equal(await createToolbarResourceBinding(info, workbench).sync(), true);
+	assert.equal(workbench.getResource().id, 'vue-ref-resource');
+});
+
+test('uses the Magic constants base URL for Starter assets', async () => {
+	const { tinyflowUiBaseUrl } = await workbenchModule();
+
+	assert.equal(tinyflowUiBaseUrl({ constants: { BASE_URL: '/console' }, request: { baseURL: '/wrong' } }), '/console');
 });

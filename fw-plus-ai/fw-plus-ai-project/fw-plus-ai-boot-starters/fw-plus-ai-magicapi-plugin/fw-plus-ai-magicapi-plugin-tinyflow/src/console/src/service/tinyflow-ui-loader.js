@@ -14,12 +14,14 @@ const verifyUi = ui => {
 	return ui;
 };
 
-const appendStylesheet = (document, url) => {
+const appendStylesheet = (document, url) => new Promise((resolve, reject) => {
 	const link = document.createElement('link');
 	link.rel = 'stylesheet';
 	link.href = url;
+	link.onload = resolve;
+	link.onerror = () => reject(new Error(`加载 Tinyflow UI 样式失败：${url}`));
 	document.head.appendChild(link);
-};
+});
 
 const appendScript = (document, url) => new Promise((resolve, reject) => {
 	const script = document.createElement('script');
@@ -42,7 +44,7 @@ export async function loadTinyflowUi(options = {}) {
 	if (!document || !document.head || typeof document.createElement !== 'function') {
 		throw new Error('Tinyflow UI 加载失败：缺少 FwPlusTinyflowUi 构造器且无法加载静态资源');
 	}
-	appendStylesheet(document, resourceUrl(options.baseUrl, 'tinyflow-ui.css'));
+	await appendStylesheet(document, resourceUrl(options.baseUrl, 'tinyflow-ui.css'));
 	await appendScript(document, resourceUrl(options.baseUrl, 'tinyflow-ui.js'));
 	return verifyUi(browserWindow.FwPlusTinyflowUi);
 }

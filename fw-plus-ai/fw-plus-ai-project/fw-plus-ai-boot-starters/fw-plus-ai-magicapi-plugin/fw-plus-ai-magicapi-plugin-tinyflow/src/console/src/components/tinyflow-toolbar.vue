@@ -8,14 +8,12 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, watch } from 'vue';
 
 const props = defineProps({ resource: { type: Object, default: null }, dirty: Boolean, loading: Boolean });
 defineEmits(['load', 'save', 'run']);
-const resourceId = computed({
-	get: () => props.resource && props.resource.id ? props.resource.id : '',
-	set: value => {
-		if (props.resource) props.resource.id = value;
-	}
-});
+const resourceId = ref('');
+watch(() => props.resource && props.resource.id, value => {
+	resourceId.value = value || '';
+}, { immediate: true });
 </script>
