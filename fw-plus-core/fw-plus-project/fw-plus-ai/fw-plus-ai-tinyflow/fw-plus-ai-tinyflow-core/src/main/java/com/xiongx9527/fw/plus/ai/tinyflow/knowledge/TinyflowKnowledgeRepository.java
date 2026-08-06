@@ -9,6 +9,9 @@ public interface TinyflowKnowledgeRepository {
 
 	TinyflowKnowledgeDefinition findKnowledge(String tenantId, String knowledgeId);
 
+	/** Returns the knowledge definitions visible to one tenant for cross-knowledge isolation checks. */
+	List<TinyflowKnowledgeDefinition> findKnowledges(String tenantId);
+
 	long findKnowledgeVersion(String tenantId, String knowledgeId);
 
 	void saveKnowledge(TinyflowKnowledgeDefinition definition, long expectedVersion);
