@@ -1,10 +1,16 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.MagicDataSourceDecorator;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.coordinator.LocalDbTxCoordinator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxAwareDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceAdapter;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceDecorator;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception.DbTxException;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.model.DbTxDefinition;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DelegatingDataSource;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 import org.ssssssss.magicapi.datasource.model.DataSourceInfo;
 import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
@@ -17,10 +23,17 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -106,7 +119,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 	}
 
 	@Test
-	void replacementVetoRunsAllHooksKeepsOldWrapperOpenAndClosesNewChain() {
+	void replacementVetoRunsAllHooksKeepsOldWrapperOpenAndClosesNewChain() throws Exception {
 		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
 		CloseTrackingDataSource oldRaw = new CloseTrackingDataSource();
 		DbTxAwareDataSource oldAware = new DbTxAwareDataSource("orders", oldRaw,
@@ -127,6 +140,8 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		assertThat(dynamicDataSource.getDataSource("orders").getDataSource()).isSameAs(oldAware);
 		assertThat(oldRaw.closeCount).isZero();
 		assertThat(replacement.closeCount).isOne();
+		DbTxAwareDataSource.Lease lease = oldAware.acquireLease();
+		lease.close();
 	}
 
 	@Test
@@ -215,6 +230,222 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		assertThat(raw.closeCount).isOne();
 	}
 
+	@Test
+	void activeLocalTransactionVetoesReplacementAndCommitsThroughOriginalDataSource() throws Exception {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingH2DataSource oldRaw = h2DataSource("replace-old");
+		CloseTrackingH2DataSource replacementRaw = h2DataSource("replace-new");
+		JdbcTemplate oldJdbc = new JdbcTemplate(oldRaw);
+		JdbcTemplate replacementJdbc = new JdbcTemplate(replacementRaw);
+		oldJdbc.execute("create table tx_test(id integer primary key)");
+		replacementJdbc.execute("create table tx_test(id integer primary key)");
+		DbTxAwareDataSource oldAware = new DbTxAwareDataSource("orders", oldRaw,
+				Collections.<DbTxDataSourceAdapter>emptyList());
+		dynamicDataSource.put("old-id", "orders", "Old", oldAware, 100);
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(replacementRaw),
+				Collections.<MagicDataSourceDecorator>singletonList(
+						new DbTxDataSourceDecorator(Collections.<DbTxDataSourceAdapter>emptyList())));
+		LocalDbTxCoordinator coordinator = new LocalDbTxCoordinator(dynamicDataSource);
+		CountDownLatch callbackStarted = new CountDownLatch(1);
+		CountDownLatch releaseCallback = new CountDownLatch(1);
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		Future<Object> outcome = executor.submit(() -> {
+			try {
+				return coordinator.execute(localDefinition(), () -> {
+					callbackStarted.countDown();
+					if (!releaseCallback.await(5, TimeUnit.SECONDS)) {
+						throw new IllegalStateException("callback release timed out");
+					}
+					new JdbcTemplate(oldAware).update("insert into tx_test(id) values (1)");
+					return "committed";
+				});
+			} catch (Throwable failure) {
+				return failure;
+			}
+		});
+
+		assertThat(callbackStarted.await(5, TimeUnit.SECONDS)).isTrue();
+		Throwable replacementFailure = org.assertj.core.api.Assertions.catchThrowable(
+				() -> registry.registerDirect(info("new-id", "orders")));
+		int oldCloseCountWhileActive = oldRaw.closeCount;
+		DataSource nodeWhileActive = dynamicDataSource.getDataSource("orders").getDataSource();
+		releaseCallback.countDown();
+		Object transactionOutcome;
+		try {
+			transactionOutcome = outcome.get(5, TimeUnit.SECONDS);
+		} finally {
+			executor.shutdownNow();
+		}
+
+		assertThat(replacementFailure).isInstanceOf(IllegalStateException.class);
+		assertThat(oldCloseCountWhileActive).isZero();
+		assertThat(nodeWhileActive).isSameAs(oldAware);
+		assertThat(transactionOutcome).isEqualTo("committed");
+		assertThat(count(oldJdbc)).isOne();
+		assertThat(count(replacementJdbc)).isZero();
+		assertThat(replacementRaw.closeCount).isOne();
+
+		registry.unregisterDirect("orders");
+		assertThat(oldRaw.closeCount).isOne();
+	}
+
+	@Test
+	void activeLocalTransactionVetoesDeletionAndRollsBackThroughOriginalDataSource() throws Exception {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingH2DataSource oldRaw = h2DataSource("delete-old");
+		JdbcTemplate oldJdbc = new JdbcTemplate(oldRaw);
+		oldJdbc.execute("create table tx_test(id integer primary key)");
+		DbTxAwareDataSource oldAware = new DbTxAwareDataSource("orders", oldRaw,
+				Collections.<DbTxDataSourceAdapter>emptyList());
+		dynamicDataSource.put("old-id", "orders", "Old", oldAware, 100);
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(h2DataSource("unused")),
+				Collections.<MagicDataSourceDecorator>singletonList(
+						new DbTxDataSourceDecorator(Collections.<DbTxDataSourceAdapter>emptyList())));
+		LocalDbTxCoordinator coordinator = new LocalDbTxCoordinator(dynamicDataSource);
+		CountDownLatch callbackStarted = new CountDownLatch(1);
+		CountDownLatch releaseCallback = new CountDownLatch(1);
+		IllegalStateException callbackFailure = new IllegalStateException("rollback");
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		Future<Throwable> outcome = executor.submit(() -> {
+			try {
+				coordinator.execute(localDefinition(), () -> {
+					callbackStarted.countDown();
+					if (!releaseCallback.await(5, TimeUnit.SECONDS)) {
+						throw new IllegalStateException("callback release timed out");
+					}
+					new JdbcTemplate(oldAware).update("insert into tx_test(id) values (1)");
+					throw callbackFailure;
+				});
+				return null;
+			} catch (Throwable failure) {
+				return failure;
+			}
+		});
+
+		assertThat(callbackStarted.await(5, TimeUnit.SECONDS)).isTrue();
+		Throwable deleteFailure = org.assertj.core.api.Assertions.catchThrowable(
+				() -> registry.unregisterDirect("orders"));
+		int oldCloseCountWhileActive = oldRaw.closeCount;
+		DataSource nodeWhileActive = findDataSource(dynamicDataSource, "orders");
+		releaseCallback.countDown();
+		Throwable transactionFailure;
+		try {
+			transactionFailure = outcome.get(5, TimeUnit.SECONDS);
+		} finally {
+			executor.shutdownNow();
+		}
+
+		assertThat(deleteFailure).isInstanceOf(IllegalStateException.class);
+		assertThat(oldCloseCountWhileActive).isZero();
+		assertThat(nodeWhileActive).isSameAs(oldAware);
+		assertThat(transactionFailure).isSameAs(callbackFailure);
+		assertThat(count(oldJdbc)).isZero();
+
+		registry.unregisterDirect("orders");
+		assertThat(oldRaw.closeCount).isOne();
+	}
+
+	@Test
+	void replacementPassesTheDbTxDecorationStageWhenAnOuterDecoratorWrapsIt() throws Exception {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource oldRaw = new CloseTrackingDataSource();
+		CloseTrackingDataSource replacementRaw = new CloseTrackingDataSource();
+		PreparedVetoAdapter adapter = new PreparedVetoAdapter();
+		OuterDataSourceDecorator outer = new OuterDataSourceDecorator();
+		List<MagicDataSourceDecorator> decorators = new ArrayList<MagicDataSourceDecorator>();
+		decorators.add(new DbTxDataSourceDecorator(
+				Collections.<DbTxDataSourceAdapter>singletonList(adapter)));
+		decorators.add(outer);
+		TestRegistry registry = registry(dynamicDataSource,
+				new SequenceBuilder(oldRaw, replacementRaw), decorators);
+		assertThat(registry.registerDirect(info("old-id", "orders"))).isTrue();
+		DataSource oldNode = findDataSource(dynamicDataSource, "orders");
+		outer.dbTxStages.get(0).prepare("prepared");
+
+		Throwable failure = org.assertj.core.api.Assertions.catchThrowable(
+				() -> registry.registerDirect(info("new-id", "orders")));
+
+		assertThat(failure).isInstanceOf(IllegalStateException.class)
+				.hasRootCauseMessage("prepared stage veto");
+		assertThat(findDataSource(dynamicDataSource, "orders")).isSameAs(oldNode);
+		assertThat(oldRaw.closeCount).isZero();
+		assertThat(replacementRaw.closeCount).isOne();
+	}
+
+	@Test
+	void deletionPassesTheDbTxDecorationStageWhenAnOuterDecoratorWrapsIt() throws Exception {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource oldRaw = new CloseTrackingDataSource();
+		PreparedVetoAdapter adapter = new PreparedVetoAdapter();
+		OuterDataSourceDecorator outer = new OuterDataSourceDecorator();
+		List<MagicDataSourceDecorator> decorators = new ArrayList<MagicDataSourceDecorator>();
+		decorators.add(new DbTxDataSourceDecorator(
+				Collections.<DbTxDataSourceAdapter>singletonList(adapter)));
+		decorators.add(outer);
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(oldRaw), decorators);
+		assertThat(registry.registerDirect(info("old-id", "orders"))).isTrue();
+		DataSource oldNode = findDataSource(dynamicDataSource, "orders");
+		outer.dbTxStages.get(0).prepare("prepared");
+
+		Throwable failure = org.assertj.core.api.Assertions.catchThrowable(
+				() -> registry.unregisterDirect("orders"));
+
+		assertThat(failure).isInstanceOf(IllegalStateException.class)
+				.hasRootCauseMessage("prepared stage veto");
+		assertThat(findDataSource(dynamicDataSource, "orders")).isSameAs(oldNode);
+		assertThat(oldRaw.closeCount).isZero();
+	}
+
+	@Test
+	void releasesEarlierLeasesWhenALaterParticipantCannotBeAcquired() throws Exception {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		DbTxAwareDataSource first = new DbTxAwareDataSource("first", new CloseTrackingDataSource(),
+				Collections.<DbTxDataSourceAdapter>emptyList());
+		DbTxAwareDataSource second = new DbTxAwareDataSource("second", new CloseTrackingDataSource(),
+				Collections.<DbTxDataSourceAdapter>emptyList());
+		dynamicDataSource.put("first", first);
+		dynamicDataSource.put("second", second);
+		second.startRemove();
+		LocalDbTxCoordinator coordinator = new LocalDbTxCoordinator(dynamicDataSource);
+
+		Throwable failure = org.assertj.core.api.Assertions.catchThrowable(() -> coordinator.execute(
+				new DbTxDefinition("local", Arrays.asList("first", "second"),
+						60000, "partial-lease"),
+				() -> {
+					throw new AssertionError("callback must not run");
+				}));
+
+		assertThat(failure).isInstanceOf(DbTxException.class)
+				.hasMessageContaining("second");
+		first.beforeRemove();
+		first.cancelRemove();
+		second.cancelRemove();
+	}
+
+	private static DbTxDefinition localDefinition() {
+		return new DbTxDefinition("local", Collections.singletonList("orders"), 60000, "registry-test");
+	}
+
+	private static CloseTrackingH2DataSource h2DataSource(String name) {
+		DriverManagerDataSource delegate = new DriverManagerDataSource(
+				"jdbc:h2:mem:dbtx_registry_" + name + "_" + UUID.randomUUID()
+						+ ";DB_CLOSE_DELAY=-1", "sa", "");
+		return new CloseTrackingH2DataSource(delegate);
+	}
+
+	private static int count(JdbcTemplate jdbcTemplate) {
+		return jdbcTemplate.queryForObject("select count(*) from tx_test", Integer.class);
+	}
+
+	private static DataSource findDataSource(MagicDynamicDataSource dynamicDataSource, String key) {
+		for (MagicDynamicDataSource.DataSourceNode node : dynamicDataSource.datasourceNodes()) {
+			if (key.equals(node.getKey())) {
+				return node.getDataSource();
+			}
+		}
+		return null;
+	}
+
 	private static TestRegistry registry(MagicDynamicDataSource dynamicDataSource,
 			DataSourceBuilder builder, List<MagicDataSourceDecorator> decorators) {
 		MagicResourceStorage<DataSourceInfo> storage = mock(MagicResourceStorage.class);
@@ -277,6 +508,66 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		@Override
 		DataSource buildDataSource(String type, Map<String, Object> properties) {
 			throw new IllegalStateException("build failed");
+		}
+	}
+
+	private static final class SequenceBuilder extends DataSourceBuilder {
+
+		private final DataSource[] dataSources;
+		private int index;
+
+		private SequenceBuilder(DataSource... dataSources) {
+			this.dataSources = dataSources;
+		}
+
+		@Override
+		DataSource buildDataSource(String type, Map<String, Object> properties) {
+			return dataSources[index++];
+		}
+	}
+
+	private static final class PreparedVetoAdapter implements DbTxDataSourceAdapter {
+
+		@Override
+		public String getCoordinator() {
+			return "prepared";
+		}
+
+		@Override
+		public DataSource prepare(String key, DataSource dataSource) {
+			return dataSource;
+		}
+
+		@Override
+		public void beforeRemove(DataSource dataSource) {
+			throw new IllegalStateException("prepared stage veto");
+		}
+
+		@Override
+		public void close(DataSource dataSource) {
+		}
+	}
+
+	private static final class OuterDataSourceDecorator implements MagicDataSourceDecorator {
+
+		private final List<DbTxAwareDataSource> dbTxStages = new ArrayList<DbTxAwareDataSource>();
+
+		@Override
+		public DataSource decorate(String key, DataSource dataSource) {
+			dbTxStages.add((DbTxAwareDataSource) dataSource);
+			return new OuterDataSource(dataSource);
+		}
+	}
+
+	private static final class OuterDataSource extends DelegatingDataSource implements Closeable {
+
+		private OuterDataSource(DataSource delegate) {
+			super(delegate);
+		}
+
+		@Override
+		public void close() throws IOException {
+			((Closeable) getTargetDataSource()).close();
 		}
 	}
 
@@ -424,6 +715,20 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		@Override
 		public boolean isWrapperFor(Class<?> iface) {
 			return false;
+		}
+	}
+
+	private static final class CloseTrackingH2DataSource extends DelegatingDataSource implements Closeable {
+
+		private int closeCount;
+
+		private CloseTrackingH2DataSource(DataSource delegate) {
+			super(delegate);
+		}
+
+		@Override
+		public void close() {
+			closeCount++;
 		}
 	}
 }

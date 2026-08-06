@@ -170,6 +170,39 @@ class SeataDataSourceAdapterTest {
 		assertThat(raw.closeCount.get()).isOne();
 	}
 
+	@Test
+	void closesThePhysicalTargetOnceWhenUnusedWrappersReuseAnExistingSeataProxy() throws Exception {
+		MetadataDataSource target = new MetadataDataSource("jdbc:mysql://localhost:3306/orders");
+		SeataDataSourceProxy existing = mock(SeataDataSourceProxy.class);
+		when(existing.getTargetDataSource()).thenReturn(target);
+		SeataDataSourceAdapter adapter = new SeataDataSourceAdapter(dataSource -> {
+			throw new AssertionError("must reuse the existing proxy");
+		});
+		DbTxAwareDataSource first = aware("orders", existing, adapter);
+		DbTxAwareDataSource second = aware("orders-copy", existing, adapter);
+
+		first.close();
+		second.close();
+
+		assertThat(target.closeCount.get()).isOne();
+	}
+
+	@Test
+	void doesNotCloseThePhysicalTargetOfAPreparedExistingSeataProxy() throws Exception {
+		MetadataDataSource target = new MetadataDataSource("jdbc:mysql://localhost:3306/orders");
+		SeataDataSourceProxy existing = mock(SeataDataSourceProxy.class);
+		when(existing.getTargetDataSource()).thenReturn(target);
+		SeataDataSourceAdapter adapter = new SeataDataSourceAdapter(dataSource -> {
+			throw new AssertionError("must reuse the existing proxy");
+		});
+		DbTxAwareDataSource aware = aware("orders", existing, adapter);
+		aware.prepare("seata");
+
+		aware.close();
+
+		assertThat(target.closeCount.get()).isZero();
+	}
+
 	private static DbTxAwareDataSource aware(String key, DataSource raw,
 			DbTxDataSourceAdapter adapter) {
 		return new DbTxAwareDataSource(key, raw,

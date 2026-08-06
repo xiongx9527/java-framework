@@ -12,4 +12,11 @@ public interface DbTxDataSourceAdapter {
 	}
 
 	void close(DataSource dataSource) throws Exception;
+
+	/**
+	 * @return true when this adapter owns raw DataSource close handling, including an intentional no-op
+	 */
+	default boolean closeRawDataSource(DataSource dataSource) throws Exception {
+		return false;
+	}
 }

@@ -33,8 +33,16 @@ public class SeataDataSourceAdapter implements DbTxDataSourceAdapter {
 
 	private final DataSourceProxyFactory proxyFactory;
 
-	private final Set<DataSource> preparedDataSources = Collections.synchronizedSet(
-			Collections.newSetFromMap(new IdentityHashMap<DataSource, Boolean>()));
+	private final Object lifecycleMonitor = new Object();
+
+	private final Set<DataSource> preparedDataSources =
+			Collections.newSetFromMap(new IdentityHashMap<DataSource, Boolean>());
+
+	private final Set<DataSource> preparedPhysicalTargets =
+			Collections.newSetFromMap(new IdentityHashMap<DataSource, Boolean>());
+
+	private final Set<DataSource> closedPhysicalTargets =
+			Collections.newSetFromMap(new IdentityHashMap<DataSource, Boolean>());
 
 	public SeataDataSourceAdapter() {
 		this(new DataSourceProxyFactory() {
@@ -62,28 +70,35 @@ public class SeataDataSourceAdapter implements DbTxDataSourceAdapter {
 		if (dataSource == null) {
 			throw new IllegalArgumentException("DataSource must not be null: " + key);
 		}
-		String databaseType = databaseType(key, dataSource);
-		if (!SUPPORTED_DATABASES.contains(databaseType)) {
-			throw new IllegalStateException("DataSource " + key
-					+ " uses a database unsupported by Seata AT: " + databaseType);
+		synchronized (lifecycleMonitor) {
+			String databaseType = databaseType(key, dataSource);
+			if (!SUPPORTED_DATABASES.contains(databaseType)) {
+				throw new IllegalStateException("DataSource " + key
+						+ " uses a database unsupported by Seata AT: " + databaseType);
+			}
+			if (dataSource instanceof SeataDataSourceProxy) {
+				DataSource target = targetDataSource(key, (SeataDataSourceProxy) dataSource);
+				preparedDataSources.add(dataSource);
+				preparedPhysicalTargets.add(target);
+				return dataSource;
+			}
+			DataSource prepared = proxyFactory.create(dataSource);
+			if (!(prepared instanceof SeataDataSourceProxy)) {
+				throw new IllegalStateException("Seata DataSourceProxy factory returned an invalid proxy: " + key);
+			}
+			preparedDataSources.add(prepared);
+			preparedPhysicalTargets.add(dataSource);
+			return prepared;
 		}
-		if (dataSource instanceof SeataDataSourceProxy) {
-			preparedDataSources.add(dataSource);
-			return dataSource;
-		}
-		DataSource prepared = proxyFactory.create(dataSource);
-		if (!(prepared instanceof SeataDataSourceProxy)) {
-			throw new IllegalStateException("Seata DataSourceProxy factory returned an invalid proxy: " + key);
-		}
-		preparedDataSources.add(prepared);
-		return prepared;
 	}
 
 	@Override
 	public void beforeRemove(DataSource dataSource) {
-		if (preparedDataSources.contains(dataSource)) {
-			throw new IllegalStateException(
-					"A prepared Seata DataSource cannot be removed before restart");
+		synchronized (lifecycleMonitor) {
+			if (preparedDataSources.contains(dataSource)) {
+				throw new IllegalStateException(
+						"A prepared Seata DataSource cannot be removed before restart");
+			}
 		}
 	}
 
@@ -92,17 +107,35 @@ public class SeataDataSourceAdapter implements DbTxDataSourceAdapter {
 		// Seata 2.0 DataSourceProxy has no close/unregister contract. The wrapper owns the raw pool.
 	}
 
+	@Override
+	public boolean closeRawDataSource(DataSource dataSource) throws Exception {
+		if (!(dataSource instanceof SeataDataSourceProxy)) {
+			return false;
+		}
+		synchronized (lifecycleMonitor) {
+			if (preparedDataSources.contains(dataSource)) {
+				return true;
+			}
+			DataSource target = targetDataSource("reused", (SeataDataSourceProxy) dataSource);
+			if (preparedPhysicalTargets.contains(target)) {
+				return true;
+			}
+			if (!closedPhysicalTargets.add(target)) {
+				return true;
+			}
+			if (target instanceof AutoCloseable) {
+				((AutoCloseable) target).close();
+			}
+			return true;
+		}
+	}
+
 	private static String databaseType(String key, DataSource dataSource) {
 		if (dataSource instanceof DataSourceProxy) {
 			return normalizeDatabaseType(key, ((DataSourceProxy) dataSource).getDbType());
 		}
 		if (dataSource instanceof SeataDataSourceProxy) {
-			DataSource target = ((SeataDataSourceProxy) dataSource).getTargetDataSource();
-			if (target == null || target == dataSource) {
-				throw new IllegalStateException(
-						"Failed to inspect the target DataSource for Seata AT: " + key);
-			}
-			return databaseType(key, target);
+			return databaseType(key, targetDataSource(key, (SeataDataSourceProxy) dataSource));
 		}
 		try (Connection connection = dataSource.getConnection()) {
 			if (connection == null) {
@@ -120,6 +153,15 @@ public class SeataDataSourceAdapter implements DbTxDataSourceAdapter {
 			throw new IllegalStateException("Failed to identify the database for Seata AT: " + key,
 					exception);
 		}
+	}
+
+	private static DataSource targetDataSource(String key, SeataDataSourceProxy dataSource) {
+		DataSource target = dataSource.getTargetDataSource();
+		if (target == null || target == dataSource) {
+			throw new IllegalStateException(
+					"Failed to inspect the target DataSource for Seata AT: " + key);
+		}
+		return target;
 	}
 
 	private static String normalizeDatabaseType(String key, String databaseType) {

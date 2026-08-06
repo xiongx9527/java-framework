@@ -33,6 +33,10 @@ public class DbTxAwareDataSource implements DataSource, Closeable {
 
 	private volatile boolean closed;
 
+	private boolean removing;
+
+	private int activeLeaseCount;
+
 	public DbTxAwareDataSource(String key, DataSource rawDataSource,
 			Collection<? extends DbTxDataSourceAdapter> adapters) {
 		if (key == null || key.trim().isEmpty()) {
@@ -99,6 +103,9 @@ public class DbTxAwareDataSource implements DataSource, Closeable {
 			if (closed) {
 				return;
 			}
+			if (activeLeaseCount > 0) {
+				throw new IOException("DataSource has active local transactions: " + key);
+			}
 			closed = true;
 			List<Map.Entry<String, DataSource>> prepared =
 					new ArrayList<Map.Entry<String, DataSource>>(preparedDataSources.entrySet());
@@ -123,6 +130,9 @@ public class DbTxAwareDataSource implements DataSource, Closeable {
 
 	public void beforeRemove() throws Exception {
 		synchronized (preparedDataSources) {
+			if (activeLeaseCount > 0) {
+				throw new IllegalStateException("DataSource has active local transactions: " + key);
+			}
 			Exception failure = null;
 			for (Map.Entry<String, DataSource> entry : preparedDataSources.entrySet()) {
 				try {
@@ -137,6 +147,41 @@ public class DbTxAwareDataSource implements DataSource, Closeable {
 		}
 	}
 
+	public void startRemove() throws SQLException {
+		synchronized (preparedDataSources) {
+			ensureOpen();
+			if (activeLeaseCount > 0) {
+				throw new SQLException("DataSource has active local transactions: " + key);
+			}
+			removing = true;
+		}
+	}
+
+	public Lease acquireLease() throws SQLException {
+		synchronized (preparedDataSources) {
+			ensureOpen();
+			activeLeaseCount++;
+			return new Lease(this);
+		}
+	}
+
+	public void cancelRemove() {
+		synchronized (preparedDataSources) {
+			if (!closed) {
+				removing = false;
+			}
+		}
+	}
+
+	private void releaseLease() {
+		synchronized (preparedDataSources) {
+			if (activeLeaseCount <= 0) {
+				throw new IllegalStateException("DataSource lease underflow: " + key);
+			}
+			activeLeaseCount--;
+		}
+	}
+
 	private static Exception append(Exception failure, Exception next) {
 		if (failure == null) {
 			return next;
@@ -146,6 +191,11 @@ public class DbTxAwareDataSource implements DataSource, Closeable {
 	}
 
 	private void closeRawDataSource() throws Exception {
+		for (DbTxDataSourceAdapter adapter : adapters.values()) {
+			if (adapter.closeRawDataSource(rawDataSource)) {
+				return;
+			}
+		}
 		if (rawDataSource instanceof AutoCloseable) {
 			((AutoCloseable) rawDataSource).close();
 		}
@@ -154,6 +204,27 @@ public class DbTxAwareDataSource implements DataSource, Closeable {
 	private void ensureOpen() throws SQLException {
 		if (closed) {
 			throw new SQLException("DataSource is closed: " + key);
+		}
+		if (removing) {
+			throw new SQLException("DataSource is being removed: " + key);
+		}
+	}
+
+	public static final class Lease implements AutoCloseable {
+
+		private DbTxAwareDataSource owner;
+
+		private Lease(DbTxAwareDataSource owner) {
+			this.owner = owner;
+		}
+
+		@Override
+		public void close() {
+			DbTxAwareDataSource current = owner;
+			if (current != null) {
+				owner = null;
+				current.releaseLease();
+			}
 		}
 	}
 
