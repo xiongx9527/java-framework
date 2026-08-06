@@ -14,6 +14,12 @@ public class KnowledgeExternalContractTest {
         assertEquals("source_type", args.getMetadata_condition().getConditions().get(0).getName());
     }
 
+    public void testShouldReadStringTopKFromLegacyJsonClient() {
+        KnowledgeArgs args = JSON.parseObject("{\"retrieval_setting\":{\"top_k\":\"5\"}}", KnowledgeArgs.class);
+
+        assertEquals(Integer.valueOf(5), args.getRetrieval_setting().getTop_k());
+    }
+
     public void testShouldSerializeOfficialErrorFieldNames() {
         String json = JSON.toJSONString(new KnowledgeException(1001, "invalid authorization"));
 
