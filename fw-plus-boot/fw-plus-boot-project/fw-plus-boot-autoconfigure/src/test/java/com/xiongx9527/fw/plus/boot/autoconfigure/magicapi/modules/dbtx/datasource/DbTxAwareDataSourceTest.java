@@ -124,6 +124,59 @@ class DbTxAwareDataSourceTest {
 		assertThat(raw.closeCount.get()).isOne();
 	}
 
+	@Test
+	void invokesAdapterCloseWhenPreparedDelegateIsRawWithoutDoubleClosingRaw() throws Exception {
+		CountingDataSource raw = new CountingDataSource(mock(Connection.class));
+		RecordingAdapter adapter = new RecordingAdapter("seata", raw);
+		DbTxAwareDataSource aware = new DbTxAwareDataSource("a", raw,
+				Collections.<DbTxDataSourceAdapter>singletonList(adapter));
+		aware.prepare("seata");
+
+		aware.close();
+
+		assertThat(adapter.closeCount.get()).isOne();
+		assertThat(adapter.closedDataSource).isSameAs(raw);
+		assertThat(raw.closeCount.get()).isOne();
+	}
+
+	@Test
+	void closeProcessesEveryAdapterAndRawOnceWhenOneAdapterFails() throws Exception {
+		CountingDataSource raw = new CountingDataSource(mock(Connection.class));
+		RecordingAdapter failing = new RecordingAdapter("seata", new CountingDataSource(mock(Connection.class)));
+		failing.closeFailure = new IllegalStateException("seata close failed");
+		RecordingAdapter succeeding = new RecordingAdapter("other", new CountingDataSource(mock(Connection.class)));
+		DbTxAwareDataSource aware = new DbTxAwareDataSource("a", raw, Arrays.asList(failing, succeeding));
+		aware.prepare("seata");
+		aware.prepare("other");
+
+		assertThatThrownBy(aware::close)
+				.isInstanceOf(IOException.class)
+				.hasMessageContaining("a");
+		aware.close();
+
+		assertThat(failing.closeCount.get()).isOne();
+		assertThat(succeeding.closeCount.get()).isOne();
+		assertThat(raw.closeCount.get()).isOne();
+	}
+
+	@Test
+	void beforeRemoveValidatesWithoutClosingWrapperOrRawPool() throws Exception {
+		CountingDataSource raw = new CountingDataSource(mock(Connection.class));
+		RecordingAdapter adapter = new RecordingAdapter("seata", raw);
+		DbTxAwareDataSource aware = new DbTxAwareDataSource("a", raw,
+				Collections.<DbTxDataSourceAdapter>singletonList(adapter));
+		aware.prepare("seata");
+		DbTxDataSourceDecorator decorator = new DbTxDataSourceDecorator(
+				Collections.<DbTxDataSourceAdapter>singletonList(adapter));
+
+		decorator.beforeRemove("a", aware);
+
+		assertThat(adapter.beforeRemoveCount.get()).isOne();
+		assertThat(adapter.closeCount.get()).isZero();
+		assertThat(raw.closeCount.get()).isZero();
+		assertThat(aware.getConnection()).isSameAs(raw.connection);
+	}
+
 	private static DbTxDefinition definition(String coordinator, String... keys) {
 		return new DbTxDefinition(coordinator, Arrays.asList(keys), 60000, "test");
 	}
@@ -133,8 +186,10 @@ class DbTxAwareDataSourceTest {
 		private final String coordinator;
 		private final DataSource prepared;
 		private final AtomicInteger prepareCount = new AtomicInteger();
+		private final AtomicInteger beforeRemoveCount = new AtomicInteger();
 		private final AtomicInteger closeCount = new AtomicInteger();
 		private volatile DataSource closedDataSource;
+		private volatile RuntimeException closeFailure;
 
 		private RecordingAdapter(String coordinator, DataSource prepared) {
 			this.coordinator = coordinator;
@@ -152,10 +207,17 @@ class DbTxAwareDataSourceTest {
 			return prepared;
 		}
 
+		public void beforeRemove(DataSource dataSource) {
+			beforeRemoveCount.incrementAndGet();
+		}
+
 		@Override
 		public void close(DataSource dataSource) {
 			closedDataSource = dataSource;
 			closeCount.incrementAndGet();
+			if (closeFailure != null) {
+				throw closeFailure;
+			}
 		}
 	}
 

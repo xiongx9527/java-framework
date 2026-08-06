@@ -8,5 +8,8 @@ public interface DbTxDataSourceAdapter {
 
 	DataSource prepare(String key, DataSource dataSource);
 
+	default void beforeRemove(DataSource dataSource) throws Exception {
+	}
+
 	void close(DataSource dataSource) throws Exception;
 }

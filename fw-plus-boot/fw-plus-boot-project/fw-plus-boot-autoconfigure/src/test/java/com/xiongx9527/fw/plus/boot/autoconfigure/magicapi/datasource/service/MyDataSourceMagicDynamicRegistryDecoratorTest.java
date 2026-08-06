@@ -1,6 +1,9 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.MagicDataSourceDecorator;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxAwareDataSource;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceAdapter;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceDecorator;
 import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 import org.ssssssss.magicapi.datasource.model.DataSourceInfo;
@@ -21,6 +24,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -41,7 +45,8 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 		assertThat(registry.registerDirect(info("new-id", "orders"))).isTrue();
 
-		assertThat(events).containsExactly("decorate:first", "decorate:second", "remove:first", "remove:second");
+		assertThat(events).containsExactly("decorate:first", "decorate:second",
+				"remove:first:orders", "remove:second:orders");
 		assertThat(dynamicDataSource.getDataSource("orders").getDataSource()).isSameAs(replacement);
 		assertThat(oldDataSource.closeCount).isOne();
 	}
@@ -78,9 +83,89 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 		registry.unregisterDirect("orders");
 
-		assertThat(events).containsExactly("remove:only");
+		assertThat(events).containsExactly("remove:only:orders");
 		assertThat(dynamicDataSource.datasources()).doesNotContain("orders");
 		assertThat(oldDataSource.closeCount).isOne();
+	}
+
+	@Test
+	void notifiesOldKeyWhenSameIdMovesToANewKey() {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
+		CloseTrackingDataSource replacement = new CloseTrackingDataSource();
+		dynamicDataSource.put("same-id", "old-orders", "Old", oldDataSource, 100);
+		List<String> events = new ArrayList<String>();
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(replacement),
+				Collections.<MagicDataSourceDecorator>singletonList(new RecordingDecorator("only", events)));
+
+		assertThat(registry.registerDirect(info("same-id", "new-orders"))).isTrue();
+
+		assertThat(events).containsExactly("decorate:only", "remove:only:old-orders");
+		assertThat(dynamicDataSource.datasources()).contains("new-orders").doesNotContain("old-orders");
+		assertThat(oldDataSource.closeCount).isOne();
+	}
+
+	@Test
+	void replacementVetoRunsAllHooksKeepsOldWrapperOpenAndClosesNewChain() {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource oldRaw = new CloseTrackingDataSource();
+		DbTxAwareDataSource oldAware = new DbTxAwareDataSource("orders", oldRaw,
+				Collections.<DbTxDataSourceAdapter>emptyList());
+		CloseTrackingDataSource replacement = new CloseTrackingDataSource();
+		dynamicDataSource.put("old-id", "orders", "Old", oldAware, 100);
+		List<String> events = new ArrayList<String>();
+		List<MagicDataSourceDecorator> decorators = new ArrayList<MagicDataSourceDecorator>();
+		decorators.add(new DbTxDataSourceDecorator(Collections.<DbTxDataSourceAdapter>emptyList()));
+		decorators.add(new VetoDecorator("first", events));
+		decorators.add(new VetoDecorator("second", events));
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(replacement), decorators);
+
+		assertThatThrownBy(() -> registry.registerDirect(info("new-id", "orders")))
+				.isInstanceOf(IllegalStateException.class);
+
+		assertThat(events).containsExactly("remove:first:orders", "remove:second:orders");
+		assertThat(dynamicDataSource.getDataSource("orders").getDataSource()).isSameAs(oldAware);
+		assertThat(oldRaw.closeCount).isZero();
+		assertThat(replacement.closeCount).isOne();
+	}
+
+	@Test
+	void deleteVetoRunsAllHooksAndKeepsNodeOpen() {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
+		dynamicDataSource.put("old-id", "orders", "Old", oldDataSource, 100);
+		List<String> events = new ArrayList<String>();
+		List<MagicDataSourceDecorator> decorators = new ArrayList<MagicDataSourceDecorator>();
+		decorators.add(new VetoDecorator("first", events));
+		decorators.add(new VetoDecorator("second", events));
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(new CloseTrackingDataSource()), decorators);
+
+		assertThatThrownBy(() -> registry.unregisterDirect("orders"))
+				.isInstanceOf(IllegalStateException.class);
+
+		assertThat(events).containsExactly("remove:first:orders", "remove:second:orders");
+		assertThat(dynamicDataSource.getDataSource("orders").getDataSource()).isSameAs(oldDataSource);
+		assertThat(oldDataSource.closeCount).isZero();
+	}
+
+	@Test
+	void decoratorFailureClosesNewChainAndKeepsOldNode() {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
+		CloseTrackingDataSource replacement = new CloseTrackingDataSource();
+		dynamicDataSource.put("old-id", "orders", "Old", oldDataSource, 100);
+		List<MagicDataSourceDecorator> decorators = new ArrayList<MagicDataSourceDecorator>();
+		decorators.add(new DbTxDataSourceDecorator(Collections.<DbTxDataSourceAdapter>emptyList()));
+		decorators.add(new ThrowingDecorator());
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(replacement), decorators);
+
+		assertThatThrownBy(() -> registry.registerDirect(info("new-id", "orders")))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessage("decorate failed");
+
+		assertThat(dynamicDataSource.getDataSource("orders").getDataSource()).isSameAs(oldDataSource);
+		assertThat(oldDataSource.closeCount).isZero();
+		assertThat(replacement.closeCount).isOne();
 	}
 
 	private static TestRegistry registry(MagicDynamicDataSource dynamicDataSource,
@@ -166,7 +251,37 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 		@Override
 		public void beforeRemove(String key, DataSource dataSource) {
-			events.add("remove:" + name);
+			events.add("remove:" + name + ":" + key);
+		}
+	}
+
+	private static final class VetoDecorator implements MagicDataSourceDecorator {
+
+		private final String name;
+		private final List<String> events;
+
+		private VetoDecorator(String name, List<String> events) {
+			this.name = name;
+			this.events = events;
+		}
+
+		@Override
+		public DataSource decorate(String key, DataSource dataSource) {
+			return dataSource;
+		}
+
+		@Override
+		public void beforeRemove(String key, DataSource dataSource) {
+			events.add("remove:" + name + ":" + key);
+			throw new IllegalStateException("veto:" + name);
+		}
+	}
+
+	private static final class ThrowingDecorator implements MagicDataSourceDecorator {
+
+		@Override
+		public DataSource decorate(String key, DataSource dataSource) {
+			throw new IllegalStateException("decorate failed");
 		}
 	}
 

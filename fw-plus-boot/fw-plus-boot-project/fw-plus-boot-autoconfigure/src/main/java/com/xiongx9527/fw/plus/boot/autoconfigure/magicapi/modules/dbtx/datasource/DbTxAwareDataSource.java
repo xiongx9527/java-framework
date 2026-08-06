@@ -12,7 +12,9 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -97,21 +99,50 @@ public class DbTxAwareDataSource implements DataSource, Closeable {
 			if (closed) {
 				return;
 			}
+			closed = true;
+			List<Map.Entry<String, DataSource>> prepared =
+					new ArrayList<Map.Entry<String, DataSource>>(preparedDataSources.entrySet());
+			Exception failure = null;
+			for (Map.Entry<String, DataSource> entry : prepared) {
+				try {
+					adapters.get(entry.getKey()).close(entry.getValue());
+				} catch (Exception e) {
+					failure = append(failure, e);
+				}
+			}
 			try {
-				for (Map.Entry<String, DataSource> entry : preparedDataSources.entrySet()) {
-					if (entry.getValue() != rawDataSource) {
-						adapters.get(entry.getKey()).close(entry.getValue());
-					}
-				}
 				closeRawDataSource();
-				closed = true;
 			} catch (Exception e) {
-				if (e instanceof IOException) {
-					throw (IOException) e;
-				}
-				throw new IOException("Failed to close DataSource: " + key, e);
+				failure = append(failure, e);
+			}
+			if (failure != null) {
+				throw new IOException("Failed to close DataSource: " + key, failure);
 			}
 		}
+	}
+
+	public void beforeRemove() throws Exception {
+		synchronized (preparedDataSources) {
+			Exception failure = null;
+			for (Map.Entry<String, DataSource> entry : preparedDataSources.entrySet()) {
+				try {
+					adapters.get(entry.getKey()).beforeRemove(entry.getValue());
+				} catch (Exception e) {
+					failure = append(failure, e);
+				}
+			}
+			if (failure != null) {
+				throw failure;
+			}
+		}
+	}
+
+	private static Exception append(Exception failure, Exception next) {
+		if (failure == null) {
+			return next;
+		}
+		failure.addSuppressed(next);
+		return failure;
 	}
 
 	private void closeRawDataSource() throws Exception {

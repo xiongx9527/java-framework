@@ -1,7 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource;
 
 import javax.sql.DataSource;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -25,9 +24,9 @@ public class DbTxDataSourceDecorator implements MagicDataSourceDecorator {
 	public void beforeRemove(String key, DataSource dataSource) {
 		if (dataSource instanceof DbTxAwareDataSource) {
 			try {
-				((DbTxAwareDataSource) dataSource).close();
-			} catch (IOException e) {
-				throw new IllegalStateException("Failed to close DataSource before removal: " + key, e);
+				((DbTxAwareDataSource) dataSource).beforeRemove();
+			} catch (Exception e) {
+				throw new IllegalStateException("DataSource cannot be removed: " + key, e);
 			}
 		}
 	}
