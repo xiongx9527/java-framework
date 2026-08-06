@@ -20,9 +20,12 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class TinyflowDocumentParserTest {
@@ -103,6 +106,48 @@ public class TinyflowDocumentParserTest {
 		assertTrue(parsed.getContent().contains("PDF page one"));
 	}
 
+	@Test
+	public void shouldEnforceBoundedInputAndFormatSpecificLimits() throws Exception {
+		assertLimit("notes.txt", "text/plain", "12345".getBytes(StandardCharsets.UTF_8), "maxInputBytes", 4);
+		assertLimit("notes.txt", "text/plain", "12345".getBytes(StandardCharsets.UTF_8), "maxTextChars", 4);
+		assertLimit("manual.pdf", "application/pdf", pdfFixture(2), "maxPdfPages", 1);
+		assertLimit("manual.docx",
+				"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+				docxFixture(2), "maxDocxParagraphs", 1);
+		assertLimit("people.csv", "text/csv", "a\nb".getBytes(StandardCharsets.UTF_8), "maxTabularRows", 1);
+		assertLimit("people.csv", "text/csv", "long".getBytes(StandardCharsets.UTF_8), "maxFieldChars", 3);
+		assertLimit("people.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+				xlsxFixture(1, 2), "maxTabularCells", 1);
+	}
+
+	@Test
+	public void shouldParseMultilineCsvAndRejectMalformedQuotes() throws Exception {
+		TinyflowParsedDocument parsed = parse("notes.csv", "text/csv",
+				("name,note\r\nAlice,\"first line\nsecond \"\"quoted\"\" line\"")
+						.getBytes(StandardCharsets.UTF_8));
+
+		assertEquals(2, parsed.getSections().size());
+		assertTrue(parsed.getSections().get(1).getContent().contains("first line\nsecond \"quoted\" line"));
+		assertEquals(2, parsed.getSections().get(1).getMetadata().get("row"));
+		assertThrows(IOException.class, () -> parse("bad.csv", "text/csv",
+				"a,\"unclosed".getBytes(StandardCharsets.UTF_8)));
+		assertThrows(IOException.class, () -> parse("bad.csv", "text/csv",
+				"a,b\"illegal".getBytes(StandardCharsets.UTF_8)));
+	}
+
+	@Test
+	public void shouldPreserveHtmlNestedBlockListAndTableSeparators() throws Exception {
+		String html = "<div>Intro<ul><li>One</li><li><span>Two</span></li></ul>"
+				+ "<table><tr><th>Name</th><th>City</th></tr><tr><td>Alice</td><td>Shanghai</td></tr></table></div>";
+
+		TinyflowParsedDocument parsed = parse("nested.html", "text/html", html.getBytes(StandardCharsets.UTF_8));
+
+		assertTrue(parsed.getContent().contains("Intro\n"));
+		assertTrue(parsed.getContent().contains("One\nTwo\n"));
+		assertTrue(parsed.getContent().contains("Name\tCity"));
+		assertTrue(parsed.getContent().contains("Alice\tShanghai"));
+	}
+
 	private void assertTextFixture(String name, String mediaType, String value,
 			String expectedContent, int expectedLine) throws Exception {
 		TinyflowParsedDocument parsed = parse(name, mediaType, value.getBytes(StandardCharsets.UTF_8));
@@ -117,20 +162,38 @@ public class TinyflowDocumentParserTest {
 	}
 
 	private TinyflowDocumentParser.ParseContext context(String name, String mediaType) {
+		return context(name, mediaType, Collections.<String, Object>emptyMap());
+	}
+
+	private TinyflowDocumentParser.ParseContext context(String name, String mediaType, Map<String, Object> options) {
 		return new TinyflowDocumentParser.ParseContext("tenant-a", "kb-1", "source-1", "file",
-				"doc-1", mediaType, name, Collections.<String, Object>emptyMap());
+				"doc-1", mediaType, name, options);
+	}
+
+	private void assertLimit(String name, String mediaType, byte[] fixture, String key, int limit) {
+		Map<String, Object> options = new LinkedHashMap<String, Object>();
+		options.put(key, limit);
+		IOException exception = assertThrows(IOException.class, () -> parser.parse(
+				new ByteArrayInputStream(fixture), context(name, mediaType, options)));
+		assertTrue(exception.getMessage().toLowerCase().contains("limit"));
 	}
 
 	private byte[] pdfFixture() throws IOException {
+		return pdfFixture(1);
+	}
+
+	private byte[] pdfFixture(int pages) throws IOException {
 		try (PDDocument document = new PDDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-			PDPage page = new PDPage();
-			document.addPage(page);
-			try (PDPageContentStream content = new PDPageContentStream(document, page)) {
-				content.beginText();
-				content.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
-				content.newLineAtOffset(72, 700);
-				content.showText("PDF page one");
-				content.endText();
+			for (int index = 0; index < pages; index++) {
+				PDPage page = new PDPage();
+				document.addPage(page);
+				try (PDPageContentStream content = new PDPageContentStream(document, page)) {
+					content.beginText();
+					content.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+					content.newLineAtOffset(72, 700);
+					content.showText(index == 0 ? "PDF page one" : "PDF page " + (index + 1));
+					content.endText();
+				}
 			}
 			document.save(output);
 			return output.toByteArray();
@@ -138,22 +201,35 @@ public class TinyflowDocumentParserTest {
 	}
 
 	private byte[] docxFixture() throws IOException {
+		return docxFixture(1);
+	}
+
+	private byte[] docxFixture(int paragraphs) throws IOException {
 		try (XWPFDocument document = new XWPFDocument(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-			document.createParagraph().createRun().setText("DOCX paragraph");
+			for (int index = 0; index < paragraphs; index++) {
+				document.createParagraph().createRun().setText("DOCX paragraph " + (index + 1));
+			}
 			document.write(output);
 			return output.toByteArray();
 		}
 	}
 
 	private byte[] xlsxFixture() throws IOException {
+		return xlsxFixture(2, 2);
+	}
+
+	private byte[] xlsxFixture(int rows, int cells) throws IOException {
 		try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream output = new ByteArrayOutputStream()) {
 			Sheet sheet = workbook.createSheet("People");
-			Row header = sheet.createRow(0);
-			header.createCell(0).setCellValue("name");
-			header.createCell(1).setCellValue("city");
-			Row data = sheet.createRow(1);
-			data.createCell(0).setCellValue("Alice");
-			data.createCell(1).setCellValue("Shanghai");
+			for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
+				Row row = sheet.createRow(rowIndex);
+				for (int cellIndex = 0; cellIndex < cells; cellIndex++) {
+					String value = rowIndex == 1 && cellIndex == 0 ? "Alice"
+							: rowIndex == 1 && cellIndex == 1 ? "Shanghai"
+							: rowIndex == 0 && cellIndex == 0 ? "name" : "city";
+					row.createCell(cellIndex).setCellValue(value);
+				}
+			}
 			workbook.write(output);
 			return output.toByteArray();
 		}

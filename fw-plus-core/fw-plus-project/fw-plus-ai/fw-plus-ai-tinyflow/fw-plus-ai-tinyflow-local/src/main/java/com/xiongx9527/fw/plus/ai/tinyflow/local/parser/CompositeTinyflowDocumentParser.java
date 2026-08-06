@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowParsedDocument;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -44,7 +45,8 @@ public final class CompositeTinyflowDocumentParser implements TinyflowDocumentPa
 		if (parser == null) {
 			throw new IOException("Unsupported document format");
 		}
-		return parser.parse(input, context);
+		byte[] content = TinyflowParserLimits.from(context).read(input);
+		return parser.parse(new ByteArrayInputStream(content), context);
 	}
 
 	private TinyflowDocumentParser select(String mediaType, String fileName) {

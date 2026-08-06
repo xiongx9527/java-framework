@@ -10,6 +10,7 @@ public final class TinyflowDocument {
 	private final String sourceId;
 	private final String sourceType;
 	private final String documentId;
+	private final String checksum;
 	private final String name;
 	private final String content;
 	private final String sourceUri;
@@ -23,6 +24,7 @@ public final class TinyflowDocument {
 		this.sourceId = TinyflowChunk.required(builder.sourceId, "sourceId");
 		this.sourceType = TinyflowChunk.required(builder.sourceType, "sourceType");
 		this.documentId = TinyflowChunk.required(builder.documentId, "documentId");
+		this.checksum = TinyflowChunk.required(builder.checksum, "checksum");
 		this.name = builder.name;
 		this.content = builder.content;
 		this.sourceUri = builder.sourceUri;
@@ -37,6 +39,7 @@ public final class TinyflowDocument {
 	public String getSourceId() { return sourceId; }
 	public String getSourceType() { return sourceType; }
 	public String getDocumentId() { return documentId; }
+	public String getChecksum() { return checksum; }
 	public String getName() { return name; }
 	public String getContent() { return content; }
 	public String getSourceUri() { return sourceUri; }
@@ -50,6 +53,7 @@ public final class TinyflowDocument {
 		private String sourceId;
 		private String sourceType;
 		private String documentId;
+		private String checksum;
 		private String name;
 		private String content;
 		private String sourceUri;
@@ -61,6 +65,7 @@ public final class TinyflowDocument {
 		public Builder sourceId(String value) { this.sourceId = value; return this; }
 		public Builder sourceType(String value) { this.sourceType = value; return this; }
 		public Builder documentId(String value) { this.documentId = value; return this; }
+		public Builder checksum(String value) { this.checksum = value; return this; }
 		public Builder name(String value) { this.name = value; return this; }
 		public Builder content(String value) { this.content = value; return this; }
 		public Builder sourceUri(String value) { this.sourceUri = value; return this; }

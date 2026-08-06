@@ -64,15 +64,11 @@ public final class FwPlusLocalKnowledgeProvider implements TinyflowKnowledgeMana
 
 	@Override
 	public void delete(String tenantId, String knowledgeId) {
-		TinyflowKnowledgeDefinition existing = repository.findKnowledge(tenantId, knowledgeId);
-		if (existing == null) {
+		long version = repository.findKnowledgeVersion(tenantId, knowledgeId);
+		if (version == 0L) {
 			return;
 		}
-		TinyflowKnowledgeDefinition disabled = TinyflowKnowledgeDefinition.builder()
-				.providerKey(getKey()).tenantId(existing.getTenantId()).knowledgeId(existing.getKnowledgeId())
-				.name(existing.getName()).description(existing.getDescription()).metadata(existing.getMetadata())
-				.enabled(false).build();
-		repository.saveKnowledge(disabled, repository.findKnowledgeVersion(tenantId, knowledgeId));
+		repository.deleteKnowledge(tenantId, knowledgeId, version);
 	}
 
 	@Override

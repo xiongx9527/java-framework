@@ -36,22 +36,37 @@ public class TinyflowKnowledgeRepositoryContractTest
 			return version == null ? 0L : version;
 		}
 
-		@Override
-		public void saveKnowledge(TinyflowKnowledgeDefinition definition, long expectedVersion) {
-			String key = key(definition.getTenantId(), definition.getKnowledgeId());
-			long actualVersion = findKnowledgeVersion(definition.getTenantId(), definition.getKnowledgeId());
-			if (actualVersion != expectedVersion) {
-				throw new OptimisticLockException(expectedVersion, actualVersion);
+			@Override
+			public void saveKnowledge(TinyflowKnowledgeDefinition definition, long expectedVersion) {
+				synchronized (knowledge) {
+					String key = key(definition.getTenantId(), definition.getKnowledgeId());
+					long actualVersion = findKnowledgeVersion(definition.getTenantId(), definition.getKnowledgeId());
+					if (actualVersion != expectedVersion) {
+						throw new OptimisticLockException(expectedVersion, actualVersion);
+					}
+					knowledge.put(key, definition);
+					versions.put(key, actualVersion + 1L);
+				}
 			}
-			knowledge.put(key, definition);
-			versions.put(key, actualVersion + 1L);
-		}
+
+			@Override
+			public void deleteKnowledge(String tenantId, String knowledgeId, long expectedVersion) {
+				synchronized (knowledge) {
+					long actualVersion = findKnowledgeVersion(tenantId, knowledgeId);
+					if (actualVersion != expectedVersion) {
+						throw new OptimisticLockException(expectedVersion, actualVersion);
+					}
+					String key = key(tenantId, knowledgeId);
+					knowledge.remove(key);
+					versions.remove(key);
+				}
+			}
 
 		@Override
 		public TinyflowDocument findBySourceAndChecksum(String tenantId, String knowledgeId,
 				String sourceId, String checksum) {
 			for (TinyflowDocument document : findDocumentVersions(tenantId, knowledgeId, sourceId)) {
-				if (checksum.equals(document.getMetadata().get("checksum"))) {
+					if (checksum.equals(document.getChecksum())) {
 					return document;
 				}
 			}
