@@ -165,12 +165,19 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 		repository.saveDocument(document("tenant-a", "kb-1", "source-1", "doc-a2", "sum-a2"));
 		repository.saveDocument(document("tenant-a", "kb-1", "source-2", "doc-a3", "sum-a3"));
 		repository.saveDocument(document("tenant-b", "kb-1", "source-1", "doc-b1", "sum-b1"));
+		repository.saveChunks(Arrays.asList(
+				chunk("tenant-a", "kb-1", "doc-a1", "chunk-a1", "a1", true, "vec-a1"),
+				chunk("tenant-a", "kb-1", "doc-a2", "chunk-a2", "a2", true, "vec-a2"),
+				chunk("tenant-b", "kb-1", "doc-b1", "chunk-b1", "b1", true, "vec-b1")));
 
 		assertEquals(2, repository.findDocumentVersions("tenant-a", "kb-1", "source-1").size());
 		repository.deleteDocumentsBySource("tenant-a", "kb-1", "source-1");
 		assertTrue(repository.findDocumentVersions("tenant-a", "kb-1", "source-1").isEmpty());
+		assertTrue(repository.findChunksByDocument("tenant-a", "kb-1", "doc-a1").isEmpty());
+		assertTrue(repository.findChunksByDocument("tenant-a", "kb-1", "doc-a2").isEmpty());
 		assertEquals(1, repository.findDocumentVersions("tenant-a", "kb-1", "source-2").size());
 		assertEquals(1, repository.findDocumentVersions("tenant-b", "kb-1", "source-1").size());
+		assertEquals(1, repository.findChunksByDocument("tenant-b", "kb-1", "doc-b1").size());
 	}
 
 	@Test

@@ -32,7 +32,7 @@ public class TinyflowKnowledgeRepositoryContractTest
 		return (RepositoryConcurrencyProbe) target;
 	}
 
-	private static final class InMemoryTinyflowKnowledgeRepository
+	public static final class InMemoryTinyflowKnowledgeRepository
 			implements TinyflowKnowledgeRepository, RepositoryConcurrencyProbe {
 
 		private final Map<String, TinyflowKnowledgeDefinition> knowledge =
@@ -57,6 +57,11 @@ public class TinyflowKnowledgeRepositoryContractTest
 		private volatile Thread writerThread;
 		private volatile int readerEntryCount;
 		private volatile int writerEntryCount;
+		private volatile boolean failNextStageAdvance;
+
+		public void failNextStageAdvance() {
+			failNextStageAdvance = true;
+		}
 
 		@Override
 		public TinyflowKnowledgeDefinition findKnowledge(String tenantId, String knowledgeId) {
@@ -181,6 +186,13 @@ public class TinyflowKnowledgeRepositoryContractTest
 					}
 				}
 				activeDocuments.remove(sourceKey(tenantId, knowledgeId, sourceId));
+				for (TinyflowChunk chunk : new ArrayList<TinyflowChunk>(chunks.values())) {
+					if (tenantId.equals(chunk.getTenantId())
+							&& knowledgeId.equals(chunk.getKnowledgeId())
+							&& sourceId.equals(chunk.getSourceId())) {
+						chunks.remove(chunkKey(tenantId, knowledgeId, chunk.getChunkId()));
+					}
+				}
 			});
 		}
 
@@ -395,6 +407,10 @@ public class TinyflowKnowledgeRepositoryContractTest
 		public void advanceVectorCompensationStage(String tenantId, String knowledgeId,
 				String compensationId, String expectedStage, String nextStage) {
 			write(() -> {
+				if (failNextStageAdvance) {
+					failNextStageAdvance = false;
+					throw new IllegalStateException("stage persistence failed");
+				}
 				for (int index = 0; index < compensations.size(); index++) {
 					VectorCompensation compensation = compensations.get(index);
 					if (tenantId.equals(compensation.getTenantId())
