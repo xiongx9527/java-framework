@@ -34,7 +34,7 @@ export default opt => {
 			service: MagicTinyflowResource(opt.bus, opt.constants, i18n.format, opt.Message, opt.request)
 		}],
 		toolbars: [
-			{ type: 'tinyflow', title: 'tinyflow.workflow.title', icon: '#magic-tinyflow-flow', order: 600, component: TinyflowWorkbench,
+			{ type: 'tinyflow', title: 'tinyflow.workflow.title', icon: '#magic-tinyflow-flow', order: 600, component: TinyflowWorkbench, allowClose: true,
 				beforeClose: component => !component || typeof component.beforeClose !== 'function' || component.beforeClose() },
 			{ id: 'tinyflow-knowledge', title: 'tinyflow.knowledge.title', icon: '#magic-tinyflow-knowledge',
 				order: 610, component: TinyflowKnowledgeWorkbench, adminOnly: true, allowClose: true, fullscreen: true }

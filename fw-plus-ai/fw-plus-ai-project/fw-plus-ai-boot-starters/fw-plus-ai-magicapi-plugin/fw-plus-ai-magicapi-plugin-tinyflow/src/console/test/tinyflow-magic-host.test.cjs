@@ -57,6 +57,26 @@ test('Magic toolbar rejects a throwing hook and suppresses repeated close clicks
 	assert.equal(removed, 1);
 });
 
+test('Magic toolbar removes the intended tab after asynchronous close and reordering', async () => {
+	const { removeToolbarByIdentity, requestToolbarClose } = await toolbarCloseModule();
+	let releaseFirst;
+	let releaseSecond;
+	const first = { beforeClose: () => new Promise(resolve => { releaseFirst = resolve; }) };
+	const second = { beforeClose: () => new Promise(resolve => { releaseSecond = resolve; }) };
+	const toolbars = [first, second];
+
+	const closeFirst = requestToolbarClose(first, {}, () => removeToolbarByIdentity(toolbars, first));
+	const closeSecond = requestToolbarClose(second, {}, () => removeToolbarByIdentity(toolbars, second));
+	toolbars.reverse();
+	removeToolbarByIdentity(toolbars, second);
+	releaseSecond(true);
+	releaseFirst(true);
+
+	assert.equal(await closeSecond, false);
+	assert.equal(await closeFirst, true);
+	assert.deepEqual(toolbars, []);
+});
+
 test('built Tinyflow plugin exposes the current-resource workflow toolbar and close hook', () => {
 	const bundlePath = path.join(__dirname, '../dist/magic-tinyflow.1.0.0.iife.js');
 	const inserted = [];
@@ -78,6 +98,7 @@ test('built Tinyflow plugin exposes the current-resource workflow toolbar and cl
 
 	assert.equal(plugin.resource[0].type, 'tinyflow');
 	assert.equal(plugin.toolbars[0].type, 'tinyflow');
+	assert.equal(plugin.toolbars[0].allowClose, true);
 	assert.equal(typeof plugin.toolbars[0].beforeClose, 'function');
 	assert.equal(plugin.toolbars[1].id, 'tinyflow-knowledge');
 	assert.equal(inserted.length, 1);

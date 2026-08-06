@@ -133,3 +133,47 @@
 
 - The existing Magic console Vite build reports the non-module `config-js` script and large chunk warnings.
 - npm reports inherited deprecated packages, audit findings, and pending native install-script approvals. No dependency changes were made in this round.
+
+## Fix Round 2
+
+### Scope
+
+- Made the workflow toolbar genuinely closeable with `allowClose: true`; the shared footer close icon now invokes the exposed `beforeClose()` path, so clean work closes directly, dirty work asks for confirmation, cancellation preserves the tab, and confirmed close destroys the mounted UI.
+- Limited resource synchronization to an actively opened `tinyflow` resource. The workbench observes both host-provided `opened` and `info` refs, including Vue prototype-backed refs, so API/function/other toolbar changes cannot request Tinyflow data or trigger a dirty confirmation.
+- Added a load generation guard. When A and B overlap, only the newest Tinyflow load can update the resource, `loadedId`, canvas data, or dirty flag; a late success or failure from A is discarded.
+- Replaced the shared close callback's captured array index with identity-based removal. Concurrent close operations, reorder, add/remove activity, and a tab already removed while a hook awaits now cannot remove a different toolbar.
+- Updated Magic response exception handling for the actual `(code, message, response)` callback signature and use the supplied message safely.
+- Made `npm test` build the Tinyflow IIFE before executing its metadata test, so a clean `npm ci && npm test && npm run build` sequence does not depend on an untracked `dist/` directory.
+
+### RED/GREEN Coverage
+
+1. Added regression tests for the real workflow `allowClose` metadata and built IIFE, direct clean close, dirty confirmed/cancelled close, and shared close reorder/removal behavior.
+2. Added tests proving non-Tinyflow opened state performs no request or dirty confirmation, while Tinyflow resources still synchronize.
+3. Added delayed A/B load tests for both late success and late failure, with B remaining the only committed resource.
+4. Added a real three-argument `HttpResponse.exception(-1, message, response)` mock.
+5. From a clean Tinyflow console directory, verified:
+
+   ```text
+   npm ci && npm test && npm run build
+   ```
+
+   Result: `tests 23`, `pass 23`, `fail 0`; final IIFE size is `19.35 kB` before gzip.
+
+### Integration Verification
+
+1. Shared Magic console `npm run build` completed. Existing Vite warnings remain limited to the `config-js` non-module script and chunk-size advisory.
+2. The exact Zulu 8 AI reactor completed with exit code `0` and `BUILD SUCCESS` at `2026-08-06T13:09:55+08:00`:
+
+   ```text
+   JAVA_HOME="$(/usr/libexec/java_home -v 1.8)" mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-tinyflow -am package -DskipTests=false
+   ```
+
+3. The Zulu 8 Magic Starter module package completed with exit code `0` and `BUILD SUCCESS` at `2026-08-06T13:10:51+08:00`:
+
+   ```text
+   JAVA_HOME="$(/usr/libexec/java_home -v 1.8)" mvn -f fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/pom.xml package -DskipTests=false
+   ```
+
+4. The full Boot `-am` reactor was rerun and ended with exit code `1` in the concurrently modified `fw-plus-boot-autoconfigure` test suite: `MagicAPIServletIsolationAutoConfigurationTest` sees two `JavaSourceAnalyzer` beans (`javaEntitySourceAnalyzer`, `springBeanJavaSourceAnalyzer`), and `TinyEngineAutoConfigurationTest.sqlResourcesAreDiscoverableButNotAutoInitializedByDefault` fails its resource assertion. The Magic Starter was skipped; neither failure is changed in this round.
+
+5. The final Boot Starter JAR's active `magic-editor/index.html` references `assets/index.ae394546.js`, which contains `requestToolbarClose`, `removeToolbarByIdentity`, `beforeClose`, and `componentInstance`. The final Tinyflow plugin JAR contains only `magic-editor/plugins/magic-tinyflow.1.0.0.iife.js`, no Starter UI files, and retains only the direct Starter dependency.
