@@ -89,6 +89,25 @@ seata:
 
 `DbTxModule` 使用 `@MagicModule("dbtx")` 注册为 Spring Bean。Magic-API 会自动发现 Spring 容器中的 Magic 模块，无需修改资源加载器。
 
+自动配置模块的 Java 实现固定放在现有 `magicapi.modules` 目录，不放入 `magicapi.plugin`：
+
+```text
+com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx
+├── coordinator
+├── datasource
+├── exception
+├── model
+├── starter
+└── DbTxModule
+
+com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata
+├── coordinator
+├── datasource
+└── starter
+```
+
+独立 starter 工程中的 `DbTxPluginMarker` 和 `SeataPluginMarker` 仍位于各自 starter 包中，仅用于条件装配，不承载实现代码。
+
 ## 5. 核心组件
 
 ### 5.1 DbTxModule
