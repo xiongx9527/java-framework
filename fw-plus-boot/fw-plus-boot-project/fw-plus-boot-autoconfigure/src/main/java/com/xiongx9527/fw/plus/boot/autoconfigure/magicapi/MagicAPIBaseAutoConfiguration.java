@@ -10,6 +10,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.filter.auth.AuthConfig
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock.Lock;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dify.DifyModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock.LockModuleConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.MagicDataSourceDecorator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.mybatisflex.MyBatisFlexConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.template.TemplateModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.trace.TraceModuleConfiguration;
@@ -229,12 +230,14 @@ public class MagicAPIBaseAutoConfiguration implements ApplicationRunner {
 	@Bean
 	public DataSourceMagicDynamicRegistry magicDynamicRegistry(MagicResourceStorage<DataSourceInfo> magicResourceStorage,
 															   MagicDynamicDataSource magicDynamicDataSource,
-															   Map<String, DataSourceBuilder> dataSourceBuilderMap) {
+															   Map<String, DataSourceBuilder> dataSourceBuilderMap,
+															   List<MagicDataSourceDecorator> dataSourceDecorators) {
 		// 尝试加载支持的数据源类型，如果找到可用的则创建对应的注册器
 		for (String className : MyDataSourceMagicDynamicRegistry.DATA_SOURCE_TYPE_NAMES) {
 			try {
 				Class.forName(className);
-				return new MyDataSourceMagicDynamicRegistry(magicResourceStorage, magicDynamicDataSource,dataSourceBuilderMap);
+				return new MyDataSourceMagicDynamicRegistry(magicResourceStorage, magicDynamicDataSource,
+						dataSourceBuilderMap, dataSourceDecorators);
 			} catch (ClassNotFoundException e) {
 			}
 		}

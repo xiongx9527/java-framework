@@ -1,0 +1,225 @@
+package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service;
+
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.MagicDataSourceDecorator;
+import org.junit.jupiter.api.Test;
+import org.ssssssss.magicapi.core.service.MagicResourceStorage;
+import org.ssssssss.magicapi.datasource.model.DataSourceInfo;
+import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
+
+import javax.sql.DataSource;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+class MyDataSourceMagicDynamicRegistryDecoratorTest {
+
+	@Test
+	void appliesDecoratorsInOrderAndNotifiesBeforeReplacingOldNode() {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
+		CloseTrackingDataSource replacement = new CloseTrackingDataSource();
+		dynamicDataSource.put("old-id", "orders", "Old", oldDataSource, 100);
+		List<String> events = new ArrayList<String>();
+		List<MagicDataSourceDecorator> decorators = new ArrayList<MagicDataSourceDecorator>();
+		decorators.add(new RecordingDecorator("first", events));
+		decorators.add(new RecordingDecorator("second", events));
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(replacement), decorators);
+
+		assertThat(registry.registerDirect(info("new-id", "orders"))).isTrue();
+
+		assertThat(events).containsExactly("decorate:first", "decorate:second", "remove:first", "remove:second");
+		assertThat(dynamicDataSource.getDataSource("orders").getDataSource()).isSameAs(replacement);
+		assertThat(oldDataSource.closeCount).isOne();
+	}
+
+	@Test
+	void buildFailureKeepsOldNodeAndReturnsFalse() {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
+		dynamicDataSource.put("old-id", "orders", "Old", oldDataSource, 100);
+		List<String> events = new ArrayList<String>();
+		MagicResourceStorage<DataSourceInfo> storage = mock(MagicResourceStorage.class);
+		when(storage.buildKey(any(DataSourceInfo.class))).thenReturn("orders-resource");
+		Map<String, DataSourceBuilder> builders = new HashMap<String, DataSourceBuilder>();
+		builders.put("test", new FailingBuilder());
+		MyDataSourceMagicDynamicRegistry registry = new MyDataSourceMagicDynamicRegistry(
+				storage, dynamicDataSource, builders,
+				Collections.<MagicDataSourceDecorator>singletonList(new RecordingDecorator("only", events)));
+
+		assertThat(registry.register(info("new-id", "orders"))).isFalse();
+
+		assertThat(dynamicDataSource.getDataSource("orders").getDataSource()).isSameAs(oldDataSource);
+		assertThat(oldDataSource.closeCount).isZero();
+		assertThat(events).isEmpty();
+	}
+
+	@Test
+	void notifiesDecoratorsBeforeDeletingNode() {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
+		dynamicDataSource.put("old-id", "orders", "Old", oldDataSource, 100);
+		List<String> events = new ArrayList<String>();
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(new CloseTrackingDataSource()),
+				Collections.<MagicDataSourceDecorator>singletonList(new RecordingDecorator("only", events)));
+
+		registry.unregisterDirect("orders");
+
+		assertThat(events).containsExactly("remove:only");
+		assertThat(dynamicDataSource.datasources()).doesNotContain("orders");
+		assertThat(oldDataSource.closeCount).isOne();
+	}
+
+	private static TestRegistry registry(MagicDynamicDataSource dynamicDataSource,
+			DataSourceBuilder builder, List<MagicDataSourceDecorator> decorators) {
+		MagicResourceStorage<DataSourceInfo> storage = mock(MagicResourceStorage.class);
+		Map<String, DataSourceBuilder> builders = new HashMap<String, DataSourceBuilder>();
+		builders.put("test", builder);
+		return new TestRegistry(storage, dynamicDataSource, builders, decorators);
+	}
+
+	private static DataSourceInfo info(String id, String key) {
+		DataSourceInfo info = new DataSourceInfo();
+		info.setId(id);
+		info.setKey(key);
+		info.setName("Orders");
+		info.setType("test");
+		info.setUrl("jdbc:h2:mem:" + key);
+		info.setDriverClassName("org.h2.Driver");
+		info.setMaxRows(100);
+		return info;
+	}
+
+	private static final class TestRegistry extends MyDataSourceMagicDynamicRegistry {
+
+		private TestRegistry(MagicResourceStorage<DataSourceInfo> storage,
+				MagicDynamicDataSource dynamicDataSource,
+				Map<String, DataSourceBuilder> builders,
+				List<MagicDataSourceDecorator> decorators) {
+			super(storage, dynamicDataSource, builders, decorators);
+		}
+
+		private boolean registerDirect(DataSourceInfo info) {
+			MappingNode<DataSourceInfo> node = new MappingNode<DataSourceInfo>(info);
+			node.setMappingKey(info.getKey());
+			return register(node);
+		}
+
+		private void unregisterDirect(String key) {
+			DataSourceInfo info = info("old-id", key);
+			MappingNode<DataSourceInfo> node = new MappingNode<DataSourceInfo>(info);
+			node.setMappingKey(key);
+			unregister(node);
+		}
+	}
+
+	private static final class FixedBuilder extends DataSourceBuilder {
+
+		private final DataSource dataSource;
+
+		private FixedBuilder(DataSource dataSource) {
+			this.dataSource = dataSource;
+		}
+
+		@Override
+		DataSource buildDataSource(String type, Map<String, Object> properties) {
+			return dataSource;
+		}
+	}
+
+	private static final class FailingBuilder extends DataSourceBuilder {
+
+		@Override
+		DataSource buildDataSource(String type, Map<String, Object> properties) {
+			throw new IllegalStateException("build failed");
+		}
+	}
+
+	private static final class RecordingDecorator implements MagicDataSourceDecorator {
+
+		private final String name;
+		private final List<String> events;
+
+		private RecordingDecorator(String name, List<String> events) {
+			this.name = name;
+			this.events = events;
+		}
+
+		@Override
+		public DataSource decorate(String key, DataSource dataSource) {
+			events.add("decorate:" + name);
+			return dataSource;
+		}
+
+		@Override
+		public void beforeRemove(String key, DataSource dataSource) {
+			events.add("remove:" + name);
+		}
+	}
+
+	private static final class CloseTrackingDataSource implements DataSource, Closeable {
+
+		private int closeCount;
+
+		@Override
+		public Connection getConnection() throws SQLException {
+			throw new SQLException("not used");
+		}
+
+		@Override
+		public Connection getConnection(String username, String password) throws SQLException {
+			throw new SQLException("not used");
+		}
+
+		@Override
+		public void close() throws IOException {
+			closeCount++;
+		}
+
+		@Override
+		public PrintWriter getLogWriter() {
+			return null;
+		}
+
+		@Override
+		public void setLogWriter(PrintWriter out) {
+		}
+
+		@Override
+		public void setLoginTimeout(int seconds) {
+		}
+
+		@Override
+		public int getLoginTimeout() {
+			return 0;
+		}
+
+		@Override
+		public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+			throw new SQLFeatureNotSupportedException();
+		}
+
+		@Override
+		public <T> T unwrap(Class<T> iface) throws SQLException {
+			throw new SQLException("not a wrapper");
+		}
+
+		@Override
+		public boolean isWrapperFor(Class<?> iface) {
+			return false;
+		}
+	}
+}
