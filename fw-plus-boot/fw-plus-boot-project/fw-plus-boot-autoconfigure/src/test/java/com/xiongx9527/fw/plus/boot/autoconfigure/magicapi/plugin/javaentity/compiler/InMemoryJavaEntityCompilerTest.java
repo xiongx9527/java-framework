@@ -58,7 +58,7 @@ class InMemoryJavaEntityCompilerTest {
     @Test
     void mapsCompilerDiagnosticsBackToResource() {
         JavaSourceUnit broken = source("broken-resource", "Broken",
-                "package demo; public class Broken { MissingType value; }");
+                "package demo; import java.lang.NotAType; public class Broken { NotAType value; }");
 
         JavaEntityCompilationException exception = assertThrows(JavaEntityCompilationException.class,
                 () -> compiler.compile(1L, Collections.singletonList(broken)));
@@ -67,7 +67,7 @@ class InMemoryJavaEntityCompilerTest {
         assertEquals("broken-resource", diagnostic.getResourceId());
         assertTrue(diagnostic.getLine() > 0);
         assertTrue(diagnostic.getColumn() > 0);
-        assertTrue(diagnostic.getMessage().contains("MissingType"));
+        assertTrue(diagnostic.getMessage().contains("NotAType"));
     }
 
     @Test

@@ -5,11 +5,13 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.comp
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.model.JavaEntityInfo;
 import org.junit.jupiter.api.Test;
 
+import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -74,6 +76,39 @@ class DynamicEntityDescriptorTest {
                 () -> descriptor.create(Collections.<String, Object>singletonMap("age", "not-a-number")));
         assertTrue(wrongType.getMessage().contains("User"));
         assertTrue(wrongType.getMessage().contains("age"));
+    }
+
+    @Test
+    void propertyMetadataDoesNotRetainRetiredGenerationClassLoader() throws Exception {
+        WeakReference<ClassLoader> classLoader = createAndReleaseGeneration();
+
+        for (int attempt = 0; attempt < 40 && classLoader.get() != null; attempt++) {
+            System.gc();
+            System.runFinalization();
+            Thread.sleep(25L);
+        }
+
+        assertNull(classLoader.get(), "属性元数据不应通过全局缓存固定退休代际 ClassLoader");
+    }
+
+    private static WeakReference<ClassLoader> createAndReleaseGeneration() {
+        DynamicEntityRegistry registry = new DynamicEntityRegistry(
+                new JavaSourceAnalyzer(), new InMemoryJavaEntityCompiler());
+        try {
+            JavaEntityInfo info = new JavaEntityInfo();
+            info.setId("User");
+            info.setName("User");
+            info.setScript("package retired; public class User {"
+                    + " private String name;"
+                    + " public void setName(String value) { this.name = value; }"
+                    + " }");
+            assertTrue(registry.rebuild(Collections.singletonList(info)));
+            DynamicEntityDescriptor descriptor = registry.resolve("User");
+            descriptor.create(Collections.<String, Object>singletonMap("name", "Alice"));
+            return new WeakReference<>(descriptor.javaClass().getClassLoader());
+        } finally {
+            registry.close();
+        }
     }
 
     private static Object field(Object target, String name) throws Exception {
