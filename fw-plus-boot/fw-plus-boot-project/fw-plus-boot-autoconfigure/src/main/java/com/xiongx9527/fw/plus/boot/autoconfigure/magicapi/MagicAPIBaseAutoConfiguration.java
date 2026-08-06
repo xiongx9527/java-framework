@@ -11,6 +11,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock.Lock;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dify.DifyModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock.LockModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.MagicDataSourceDecorator;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.starter.MagicAPIDbTxConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.starter.MagicAPISeataConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.mybatisflex.MyBatisFlexConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.template.TemplateModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.trace.TraceModuleConfiguration;
@@ -67,7 +69,9 @@ import java.util.*;
          MagicApiPluginAutoConfiguration.class,
 		 DifyModuleConfiguration.class,
 		 SseModuleConfiguration.class,
-		 TraceModuleConfiguration.class})
+		 TraceModuleConfiguration.class,
+		 MagicAPIDbTxConfiguration.class,
+		 MagicAPISeataConfiguration.class})
 public class MagicAPIBaseAutoConfiguration implements ApplicationRunner {
 
 	/**

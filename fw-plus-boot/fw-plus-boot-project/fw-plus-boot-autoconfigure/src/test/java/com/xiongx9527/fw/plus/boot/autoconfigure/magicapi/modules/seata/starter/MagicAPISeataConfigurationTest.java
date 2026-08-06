@@ -30,26 +30,8 @@ class MagicAPISeataConfigurationTest {
 			.withUserConfiguration(DynamicDataSourceConfiguration.class);
 
 	@Test
-	void seataPluginCreatesCoordinatorAndAdapterAlongsideLocal() {
-		contextRunner.run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(MagicAPISeataProperties.class);
-			assertThat(context).hasSingleBean(DefaultSeataTransactionFactory.class);
-			assertThat(context).hasSingleBean(SeataDbTxCoordinator.class);
-			assertThat(context).hasSingleBean(SeataDataSourceAdapter.class);
-			assertThat(context).hasSingleBean(LocalDbTxCoordinator.class);
-			assertThat(context.getBean(DbTxCoordinatorRegistry.class).contains("local")).isTrue();
-			assertThat(context.getBean(DbTxCoordinatorRegistry.class).contains("seata")).isTrue();
-			assertThat(context.getBean(MagicAPISeataConfiguration.class).plugin().getName())
-					.isEqualTo("seata");
-			assertThat(context.getBean(MagicAPISeataConfiguration.class).plugin()
-					.getJavascriptFilename()).isNull();
-		});
-	}
-
-	@Test
 	void disabledSeataLeavesLocalCoordinatorAvailable() {
-		contextRunner.withPropertyValues("magic-api.plugin.seata.enabled=false")
+		contextRunner.withPropertyValues("magic-api.dbtx.seata-enabled=false")
 				.run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(DbTxModule.class);
@@ -62,8 +44,23 @@ class MagicAPISeataConfigurationTest {
 	}
 
 	@Test
+	void enabledSeataCreatesCoordinatorAndAdapterAlongsideLocal() {
+		contextRunner.withPropertyValues("magic-api.dbtx.seata-enabled=true")
+				.run(context -> {
+					assertThat(context).hasNotFailed();
+					assertThat(context).hasSingleBean(DefaultSeataTransactionFactory.class);
+					assertThat(context).hasSingleBean(SeataDbTxCoordinator.class);
+					assertThat(context).hasSingleBean(SeataDataSourceAdapter.class);
+					assertThat(context).hasSingleBean(LocalDbTxCoordinator.class);
+					assertThat(context.getBean(DbTxCoordinatorRegistry.class).contains("local")).isTrue();
+					assertThat(context.getBean(DbTxCoordinatorRegistry.class).contains("seata")).isTrue();
+				});
+	}
+
+	@Test
 	void missingSeataClassesKeepsLocalUsableAndRejectsExplicitSeata() {
 		contextRunner.withClassLoader(new FilteredClassLoader("io.seata"))
+				.withPropertyValues("magic-api.dbtx.seata-enabled=true")
 				.run(context -> {
 					assertThat(context).hasNotFailed();
 					assertThat(context).hasSingleBean(LocalDbTxCoordinator.class);
@@ -79,15 +76,6 @@ class MagicAPISeataConfigurationTest {
 								assertThat(exception).hasMessage("Coordinator is unavailable: seata");
 							});
 				});
-	}
-
-	@Test
-	void dbTxAndSeataMarkersCreateOnlyOneModule() {
-		contextRunner.run(context -> {
-			assertThat(context).hasNotFailed();
-			assertThat(context).hasSingleBean(DbTxModule.class);
-			assertThat(context.getBeansOfType(DbTxModule.class)).hasSize(1);
-		});
 	}
 
 	@Configuration(proxyBeanMethods = false)
