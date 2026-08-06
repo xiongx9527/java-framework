@@ -16,22 +16,28 @@ import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 @ConditionalOnProperty(prefix = "magic-api.dbtx", name = "seata-enabled", havingValue = "true")
 public class MagicAPISeataConfiguration {
 
-	@Bean
-	@ConditionalOnMissingBean
-	public SeataTransactionFactory seataTransactionFactory() {
-		return new DefaultSeataTransactionFactory();
-	}
+	@Configuration(proxyBeanMethods = false)
+	@ConditionalOnProperty(prefix = "magic-api.dbtx", name = "enabled",
+			havingValue = "true", matchIfMissing = true)
+	static class EnabledSeataConfiguration {
 
-	@Bean
-	@ConditionalOnMissingBean
-	public SeataDbTxCoordinator seataDbTxCoordinator(MagicDynamicDataSource dynamicDataSource,
-			SeataTransactionFactory transactionFactory) {
-		return new SeataDbTxCoordinator(dynamicDataSource, transactionFactory);
-	}
+		@Bean
+		@ConditionalOnMissingBean
+		public SeataTransactionFactory seataTransactionFactory() {
+			return new DefaultSeataTransactionFactory();
+		}
 
-	@Bean
-	@ConditionalOnMissingBean
-	public SeataDataSourceAdapter seataDataSourceAdapter() {
-		return new SeataDataSourceAdapter();
+		@Bean
+		@ConditionalOnMissingBean
+		public SeataDbTxCoordinator seataDbTxCoordinator(MagicDynamicDataSource dynamicDataSource,
+				SeataTransactionFactory transactionFactory) {
+			return new SeataDbTxCoordinator(dynamicDataSource, transactionFactory);
+		}
+
+		@Bean
+		@ConditionalOnMissingBean
+		public SeataDataSourceAdapter seataDataSourceAdapter() {
+			return new SeataDataSourceAdapter();
+		}
 	}
 }
