@@ -2,7 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.starter;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "magic-api.plugin.dbtx")
+@ConfigurationProperties(prefix = "magic-api.dbtx")
 public class DbTxProperties {
 
 	private boolean enabled = true;
@@ -10,6 +10,8 @@ public class DbTxProperties {
 	private String defaultCoordinator = "local";
 
 	private boolean localEnabled = true;
+
+	private boolean seataEnabled = false;
 
 	private int timeoutMs = 60000;
 
@@ -37,6 +39,14 @@ public class DbTxProperties {
 
 	public void setLocalEnabled(boolean localEnabled) {
 		this.localEnabled = localEnabled;
+	}
+
+	public boolean isSeataEnabled() {
+		return seataEnabled;
+	}
+
+	public void setSeataEnabled(boolean seataEnabled) {
+		this.seataEnabled = seataEnabled;
 	}
 
 	public int getTimeoutMs() {

@@ -7,29 +7,25 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.coordinat
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceAdapter;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceDecorator;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
-import org.ssssssss.magicapi.core.model.Plugin;
 import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 
 import java.util.stream.Collectors;
 
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(name =
-		"com.xiongx9527.fw.plus.boot.starter.magicapi.dbtx.DbTxPluginMarker")
-@ConditionalOnProperty(prefix = "magic-api.plugin.dbtx", name = "enabled",
+@ConditionalOnProperty(prefix = "magic-api.dbtx", name = "enabled",
 		havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(DbTxProperties.class)
-public class MagicAPIDbTxConfiguration implements MagicPluginConfiguration {
+public class MagicAPIDbTxConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
-	@ConditionalOnProperty(prefix = "magic-api.plugin.dbtx", name = "local-enabled",
+	@ConditionalOnProperty(prefix = "magic-api.dbtx", name = "local-enabled",
 			havingValue = "true", matchIfMissing = true)
 	public LocalDbTxCoordinator localDbTxCoordinator(MagicDynamicDataSource dynamicDataSource) {
 		return new LocalDbTxCoordinator(dynamicDataSource);
@@ -50,15 +46,15 @@ public class MagicAPIDbTxConfiguration implements MagicPluginConfiguration {
 	}
 
 	@Bean
+	public SmartInitializingSingleton dbTxDefaultCoordinatorValidator(
+			DbTxCoordinatorRegistry coordinatorRegistry, DbTxProperties properties) {
+		return () -> coordinatorRegistry.getRequired(properties.getDefaultCoordinator());
+	}
+
+	@Bean
 	@ConditionalOnMissingBean
 	public DbTxModule dbTxModule(DbTxCoordinatorRegistry coordinatorRegistry,
 			DbTxProperties properties) {
-		coordinatorRegistry.getRequired(properties.getDefaultCoordinator());
 		return new DbTxModule(coordinatorRegistry, properties);
-	}
-
-	@Override
-	public Plugin plugin() {
-		return new Plugin("dbtx");
 	}
 }

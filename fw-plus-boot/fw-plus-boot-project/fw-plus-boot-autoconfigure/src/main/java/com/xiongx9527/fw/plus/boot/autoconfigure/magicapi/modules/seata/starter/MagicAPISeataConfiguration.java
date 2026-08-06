@@ -7,23 +7,14 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.datasour
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
-import org.ssssssss.magicapi.core.model.Plugin;
 import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(name = {
-		"com.xiongx9527.fw.plus.boot.starter.magicapi.dbtx.DbTxPluginMarker",
-		"com.xiongx9527.fw.plus.boot.starter.magicapi.seata.SeataPluginMarker",
-		"io.seata.tm.api.GlobalTransactionContext"
-})
-@ConditionalOnProperty(prefix = "magic-api.plugin.seata", name = "enabled",
-		havingValue = "true", matchIfMissing = true)
-@EnableConfigurationProperties(MagicAPISeataProperties.class)
-public class MagicAPISeataConfiguration implements MagicPluginConfiguration {
+@ConditionalOnClass(name = "io.seata.tm.api.GlobalTransactionContext")
+@ConditionalOnProperty(prefix = "magic-api.dbtx", name = "seata-enabled", havingValue = "true")
+public class MagicAPISeataConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean
@@ -42,10 +33,5 @@ public class MagicAPISeataConfiguration implements MagicPluginConfiguration {
 	@ConditionalOnMissingBean
 	public SeataDataSourceAdapter seataDataSourceAdapter() {
 		return new SeataDataSourceAdapter();
-	}
-
-	@Override
-	public Plugin plugin() {
-		return new Plugin("seata");
 	}
 }
