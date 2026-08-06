@@ -55,7 +55,6 @@ public final class TinyflowLocalRetriever {
 		if (request == null) {
 			return TinyflowKnowledgeResult.notFound();
 		}
-		String effectiveQuery = effectiveQuery(request);
 		TinyflowKnowledgeDefinition knowledge = repository.findKnowledge(
 				request.getTenantId(), request.getKnowledgeId());
 		if (knowledge == null) {
@@ -64,6 +63,7 @@ public final class TinyflowLocalRetriever {
 		if (!knowledge.isEnabled()) {
 			return TinyflowKnowledgeResult.empty();
 		}
+		String effectiveQuery = effectiveQuery(request);
 		TinyflowLocalRetrievalOptions options = TinyflowLocalRetrievalOptions.from(request.getRetrievalOptions());
 		TinyflowLocalRetrievalOptions.Mode mode = options.getMode();
 		int candidateCount = options.candidateCount(request.getTopK());
