@@ -350,6 +350,29 @@ public class TinyflowKnowledgeRepositoryContractTest
 		}
 
 		@Override
+		public void advanceVectorCompensationStage(String tenantId, String knowledgeId,
+				String compensationId, String expectedStage, String nextStage) {
+			write(() -> {
+				for (int index = 0; index < compensations.size(); index++) {
+					VectorCompensation compensation = compensations.get(index);
+					if (tenantId.equals(compensation.getTenantId())
+							&& knowledgeId.equals(compensation.getKnowledgeId())
+							&& compensationId.equals(compensation.getCompensationId())) {
+						if (nextStage.equals(compensation.getStage())) {
+							return;
+						}
+						if (!expectedStage.equals(compensation.getStage())) {
+							throw new CompensationStageException(expectedStage, compensation.getStage());
+						}
+						compensations.set(index, compensation.withStage(nextStage));
+						return;
+					}
+				}
+				throw new CompensationStageException(expectedStage, null);
+			});
+		}
+
+		@Override
 		public void deleteVectorCompensation(String tenantId, String knowledgeId, String compensationId) {
 			write(() -> {
 				for (VectorCompensation compensation : new ArrayList<VectorCompensation>(compensations)) {
