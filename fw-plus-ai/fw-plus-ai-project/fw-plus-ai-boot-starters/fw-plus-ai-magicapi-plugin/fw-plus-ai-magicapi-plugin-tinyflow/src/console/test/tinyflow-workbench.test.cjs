@@ -80,6 +80,25 @@ test('clears dirty only after save and destroys mounted UI on confirmed close', 
 	assert.equal(calls.destroyed, 1);
 });
 
+test('closes a clean workbench directly and requires confirmation only for dirty work', async () => {
+	const { createWorkbench } = await workbenchModule();
+	let confirmations = 0;
+	let destroyed = 0;
+	const workbench = createWorkbench({ confirmDiscard: async () => { confirmations += 1; return true; } });
+	workbench.attach({ destroy() { destroyed += 1; } });
+
+	assert.equal(await workbench.close(), true);
+	assert.equal(confirmations, 0);
+	assert.equal(destroyed, 1);
+
+	const dirtyWorkbench = createWorkbench({ confirmDiscard: async () => { confirmations += 1; return true; } });
+	dirtyWorkbench.attach({ destroy() { destroyed += 1; } });
+	dirtyWorkbench.onDataChange({ nodes: [{ id: 'dirty' }] });
+	assert.equal(await dirtyWorkbench.close(), true);
+	assert.equal(confirmations, 1);
+	assert.equal(destroyed, 2);
+});
+
 test('destroys the mounted UI when the workbench unmounts', async () => {
 	const { createWorkbench } = await workbenchModule();
 	let destroyed = 0;
@@ -98,7 +117,7 @@ test('settles a Magic HttpResponse exception and keeps the workflow dirty', asyn
 			return {
 				success() { return this; },
 				error() { return this; },
-				exception(callback) { callback({ message: '保存被拒绝' }); return this; }
+				exception(callback) { callback(-1, '保存被拒绝', { message: '不应覆盖真实消息' }); return this; }
 			};
 		}
 	});
@@ -138,6 +157,77 @@ test('reads a Vue-style injected ref whose value getter is on its prototype', as
 
 	assert.equal(await createToolbarResourceBinding(info, workbench).sync(), true);
 	assert.equal(workbench.getResource().id, 'vue-ref-resource');
+});
+
+test('does not load or confirm dirty work until the host opens a Tinyflow resource', async () => {
+	const { createToolbarResourceBinding, createWorkbench } = await workbenchModule();
+	const loaded = [];
+	let confirmations = 0;
+	const info = { value: { id: 'api-resource' } };
+	const opened = { value: { type: 'api' } };
+	const workbench = createWorkbench({
+		load: async id => { loaded.push(id); return { id, content: '{"nodes":[]}' }; },
+		confirmDiscard: async () => { confirmations += 1; return false; }
+	});
+	workbench.onDataChange({ nodes: [{ id: 'dirty' }] });
+	const binding = createToolbarResourceBinding(info, workbench, opened);
+
+	assert.equal(await binding.sync(), false);
+	opened.value = { type: 'function' };
+	assert.equal(await binding.sync(), false);
+	assert.deepEqual(loaded, []);
+	assert.equal(confirmations, 0);
+
+	opened.value = { type: 'tinyflow' };
+	assert.equal(await binding.sync(), false);
+	assert.equal(confirmations, 1);
+});
+
+test('keeps only the newest resource when overlapping loads finish out of order', async () => {
+	const { createWorkbench } = await workbenchModule();
+	let resolveA;
+	let resolveB;
+	const painted = [];
+	const workbench = createWorkbench({
+		load: id => new Promise(resolve => {
+			if (id === 'A') resolveA = resolve;
+			else resolveB = resolve;
+		})
+	});
+	workbench.attach({ setData: data => painted.push(data) });
+	const loadingA = workbench.load('A');
+	await Promise.resolve();
+	const loadingB = workbench.load('B');
+	await Promise.resolve();
+	resolveB({ id: 'B', content: '{"nodes":[{"id":"B"}]}' });
+	assert.equal(await loadingB, true);
+	resolveA({ id: 'A', content: '{"nodes":[{"id":"A"}]}' });
+	assert.equal(await loadingA, false);
+
+	assert.equal(workbench.getResource().id, 'B');
+	assert.deepEqual(painted, [{ nodes: [{ id: 'B' }] }]);
+	assert.equal(workbench.isDirty(), false);
+});
+
+test('discards a stale load failure after a newer resource succeeds', async () => {
+	const { createWorkbench } = await workbenchModule();
+	let rejectA;
+	let resolveB;
+	const workbench = createWorkbench({
+		load: id => new Promise((resolve, reject) => {
+			if (id === 'A') rejectA = reject;
+			else resolveB = resolve;
+		})
+	});
+	const loadingA = workbench.load('A');
+	await Promise.resolve();
+	const loadingB = workbench.load('B');
+	await Promise.resolve();
+	resolveB({ id: 'B', content: '{"nodes":[]}' });
+	assert.equal(await loadingB, true);
+	rejectA(new Error('A 已过期'));
+	assert.equal(await loadingA, false);
+	assert.equal(workbench.getResource().id, 'B');
 });
 
 test('uses the Magic constants base URL for Starter assets', async () => {

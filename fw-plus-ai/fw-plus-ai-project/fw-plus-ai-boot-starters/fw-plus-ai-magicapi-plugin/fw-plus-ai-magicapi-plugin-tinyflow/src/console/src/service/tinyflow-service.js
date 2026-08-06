@@ -13,6 +13,15 @@ let runtime = null;
 export const setTinyflowRuntime = value => { runtime = value; };
 export const getTinyflowRuntime = () => runtime;
 
+const exceptionError = (code, message, response) => {
+	if (message instanceof Error) return message;
+	if (response instanceof Error) return response;
+	if (typeof message === 'string' && message) return new Error(message);
+	if (message && message.message) return new Error(message.message);
+	if (response && response.message) return new Error(response.message);
+	return new Error(code === undefined || code === null ? 'Tinyflow 请求异常' : `Tinyflow 请求异常：${code}`);
+};
+
 const sendJson = (request, url, payload) => new Promise((resolve, reject) => {
 	if (!request || typeof request.sendJson !== 'function') {
 		reject(new Error('Tinyflow 请求服务不可用'));
@@ -38,7 +47,7 @@ const sendJson = (request, url, payload) => new Promise((resolve, reject) => {
 		operation.error(error => reject(error instanceof Error ? error : new Error(String(error || 'Tinyflow 请求失败'))));
 	}
 	if (typeof operation.exception === 'function') {
-		operation.exception(error => reject(error instanceof Error ? error : new Error(error && error.message ? error.message : String(error || 'Tinyflow 请求异常'))));
+		operation.exception((code, message, response) => reject(exceptionError(code, message, response)));
 	}
 });
 
@@ -57,11 +66,14 @@ export function createTinyflowService(request) {
 
 export const tinyflowUiBaseUrl = value => value && value.constants && value.constants.BASE_URL ? value.constants.BASE_URL : '';
 
-export function createToolbarResourceBinding(info, workbench) {
+const injectedValue = source => source && typeof source === 'object' && 'value' in source ? source.value : source;
+
+export function createToolbarResourceBinding(info, workbench, opened) {
 	let loadedId = null;
-	const currentResource = () => info && typeof info === 'object' && 'value' in info ? info.value : info;
+	const currentResource = () => injectedValue(info);
 	return {
 		async sync() {
+			if (opened && (!injectedValue(opened) || injectedValue(opened).type !== 'tinyflow')) return false;
 			const resource = currentResource();
 			const id = resource && resource.id;
 			if (!id || id === loadedId) return false;
@@ -77,6 +89,7 @@ export function createWorkbench(options = {}) {
 	let host = null;
 	let data = null;
 	let dirty = false;
+	let loadGeneration = 0;
 
 	const currentData = () => host && typeof host.getData === 'function' ? host.getData() : data;
 	const discardIfNeeded = async () => !dirty || !options.confirmDiscard || await options.confirmDiscard();
@@ -100,9 +113,17 @@ export function createWorkbench(options = {}) {
 			return dirty;
 		},
 		async load(id) {
-			if (!await discardIfNeeded()) return false;
+			const generation = ++loadGeneration;
+			if (!await discardIfNeeded() || generation !== loadGeneration) return false;
 			if (typeof options.load !== 'function') throw new Error('Tinyflow 资源加载服务不可用');
-			const loaded = await options.load(id);
+			let loaded;
+			try {
+				loaded = await options.load(id);
+			} catch (error) {
+				if (generation !== loadGeneration) return false;
+				throw error;
+			}
+			if (generation !== loadGeneration) return false;
 			if (!loaded || typeof loaded.content !== 'string') throw new Error('Tinyflow 资源内容无效');
 			const loadedData = JSON.parse(loaded.content);
 			resource = Object.assign({}, loaded);
@@ -131,6 +152,7 @@ export function createWorkbench(options = {}) {
 			return true;
 		},
 		destroy() {
+			loadGeneration += 1;
 			if (host && typeof host.destroy === 'function') host.destroy();
 			host = null;
 		}

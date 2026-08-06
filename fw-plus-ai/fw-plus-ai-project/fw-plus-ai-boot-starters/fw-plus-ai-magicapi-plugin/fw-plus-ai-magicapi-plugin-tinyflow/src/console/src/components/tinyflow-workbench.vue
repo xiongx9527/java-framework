@@ -16,6 +16,7 @@ import { createTinyflowService, createToolbarResourceBinding, createWorkbench, g
 
 const $i = inject('i18n.format', key => key);
 const info = inject('info', ref(null));
+const opened = inject('opened', ref(null));
 const canvas = ref(null);
 const loading = ref(false);
 const error = ref('');
@@ -33,7 +34,8 @@ const workbench = createWorkbench({
 const refresh = () => { resource.value = workbench.getResource(); };
 const failure = cause => { error.value = cause && cause.message ? cause.message : String(cause); };
 
-const binding = createToolbarResourceBinding(info, workbench);
+const binding = createToolbarResourceBinding(info, workbench, opened);
+const injectedValue = value => value && typeof value === 'object' && 'value' in value ? value.value : value;
 const syncResource = async () => {
 	loading.value = true;
 	error.value = '';
@@ -104,7 +106,7 @@ onMounted(async () => {
 	}
 });
 
-watch(() => info && typeof info === 'object' && 'value' in info ? info.value : info, syncResource, { immediate: true });
+watch(() => [injectedValue(opened), injectedValue(info)], syncResource, { immediate: true });
 defineExpose({ beforeClose: () => workbench.close() });
 onBeforeUnmount(() => { workbench.destroy(); });
 </script>

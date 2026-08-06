@@ -24,7 +24,7 @@ import $i from '../../../scripts/i18n.js'
 import Message from '../../../scripts/constants/message.js'
 import constants from '../../../scripts/constants.js'
 import { stableSortByOrder } from '../../../scripts/plugin-extension.js'
-import { requestToolbarClose } from './magic-toolbar-close.js'
+import { removeToolbarByIdentity, requestToolbarClose } from './magic-toolbar-close.js'
 
 const navbar = ref(null)
 const isFullscreen = ref(false)
@@ -107,10 +107,9 @@ const setToolbarComponent = (toolbar, component) => {
 	toolbar.componentInstance = component
 }
 const closeTab = async toolbar => {
-  const index = toolbars.findIndex(it => it.id === toolbar.id)
-  if(index < 0) return false
-  const openedToolbar = toolbars[index]
-  const closed = await requestToolbarClose(openedToolbar, openedToolbar.componentInstance, () => toolbars.splice(index, 1))
+  const openedToolbar = toolbars.find(it => it === toolbar || (toolbar.id && it.id === toolbar.id))
+  if(!openedToolbar) return false
+  const closed = await requestToolbarClose(openedToolbar, openedToolbar.componentInstance, () => removeToolbarByIdentity(toolbars, openedToolbar))
   if (closed && navbar.value) navbar.value.select(-1)
   return closed
 }
