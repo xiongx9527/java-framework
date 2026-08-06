@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.starter.MagicAPIDbTxConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.starter.MagicAPISeataConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.admin.server.MagicAPIAdminServerConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.cluster.starter.MagicAPIClusterConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.config.starter.MagicAPIConfAutoConfiguration;
@@ -32,6 +34,8 @@ import org.springframework.context.annotation.Import;
 
 @Configuration
 @Import({MagicAPIConfAutoConfiguration.class,
+         MagicAPIDbTxConfiguration.class,
+         MagicAPISeataConfiguration.class,
          MagicAPIFreemarkerConfiguration.class,
          MagicAPIVueConfiguration.class,
          MagicSwaggerConfiguration.class,
