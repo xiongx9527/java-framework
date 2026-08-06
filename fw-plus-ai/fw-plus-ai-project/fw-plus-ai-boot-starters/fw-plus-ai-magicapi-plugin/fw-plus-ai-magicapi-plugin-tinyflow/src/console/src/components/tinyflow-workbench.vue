@@ -9,12 +9,13 @@
 </template>
 
 <script setup>
-import { inject, onBeforeUnmount, onMounted, ref } from 'vue';
+import { inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import TinyflowToolbar from './tinyflow-toolbar.vue';
 import { loadTinyflowUi } from '../service/tinyflow-ui-loader.js';
-import { createTinyflowService, createWorkbench, getTinyflowRuntime } from '../service/tinyflow-service.js';
+import { createTinyflowService, createToolbarResourceBinding, createWorkbench, getTinyflowRuntime, tinyflowUiBaseUrl } from '../service/tinyflow-service.js';
 
 const $i = inject('i18n.format', key => key);
+const info = inject('info', ref(null));
 const canvas = ref(null);
 const loading = ref(false);
 const error = ref('');
@@ -32,13 +33,30 @@ const workbench = createWorkbench({
 const refresh = () => { resource.value = workbench.getResource(); };
 const failure = cause => { error.value = cause && cause.message ? cause.message : String(cause); };
 
+const binding = createToolbarResourceBinding(info, workbench);
+const syncResource = async () => {
+	loading.value = true;
+	error.value = '';
+	try {
+		if (await binding.sync()) {
+			refresh();
+			dirty.value = workbench.isDirty();
+		}
+	} catch (cause) {
+		failure(cause);
+	} finally {
+		loading.value = false;
+	}
+};
+
 const load = async id => {
 	loading.value = true;
 	error.value = '';
 	try {
-		await workbench.load(id);
-		refresh();
-		dirty.value = false;
+		if (await workbench.load(id)) {
+			refresh();
+			dirty.value = workbench.isDirty();
+		}
 	} catch (cause) {
 		failure(cause);
 	} finally {
@@ -73,7 +91,7 @@ const run = async () => {
 onMounted(async () => {
 	loading.value = true;
 	try {
-		const ui = await loadTinyflowUi({ window, document, baseUrl: runtime.request && runtime.request.baseURL });
+		const ui = await loadTinyflowUi({ window, document, baseUrl: tinyflowUiBaseUrl(runtime) });
 		workbench.attach(ui.mount({
 			element: canvas.value,
 			data: {},
@@ -86,5 +104,7 @@ onMounted(async () => {
 	}
 });
 
+watch(() => info && typeof info === 'object' && 'value' in info ? info.value : info, syncResource, { immediate: true });
+defineExpose({ beforeClose: () => workbench.close() });
 onBeforeUnmount(() => { workbench.destroy(); });
 </script>
