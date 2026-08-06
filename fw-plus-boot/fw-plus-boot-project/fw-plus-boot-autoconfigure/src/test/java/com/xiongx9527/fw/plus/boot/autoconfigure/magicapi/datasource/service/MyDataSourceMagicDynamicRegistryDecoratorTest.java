@@ -168,6 +168,53 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		assertThat(replacement.closeCount).isOne();
 	}
 
+	@Test
+	void decoratorFailureRollsBackEverySuccessfulStageAndClosesRawOnce() {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource raw = new CloseTrackingDataSource();
+		List<String> cleanupEvents = new ArrayList<String>();
+		OwnedStageDecorator first = new OwnedStageDecorator("first", cleanupEvents);
+		OwnedStageDecorator second = new OwnedStageDecorator("second", cleanupEvents);
+		List<MagicDataSourceDecorator> decorators = new ArrayList<MagicDataSourceDecorator>();
+		decorators.add(first);
+		decorators.add(second);
+		decorators.add(new ThrowingDecorator());
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(raw), decorators);
+
+		assertThatThrownBy(() -> registry.registerDirect(info("new-id", "orders")))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessage("decorate failed");
+
+		assertThat(first.stage.closeCount).isOne();
+		assertThat(second.stage.closeCount).isOne();
+		assertThat(raw.closeCount).isOne();
+		assertThat(cleanupEvents).containsExactly("second", "first");
+	}
+
+	@Test
+	void cleanupFailureIsSuppressedAndRemainingStagesAndRawAreClosed() {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource raw = new CloseTrackingDataSource();
+		OwnedStageDecorator first = new OwnedStageDecorator();
+		OwnedStageDecorator second = new OwnedStageDecorator(new IOException("cleanup failed"));
+		List<MagicDataSourceDecorator> decorators = new ArrayList<MagicDataSourceDecorator>();
+		decorators.add(first);
+		decorators.add(second);
+		decorators.add(new ThrowingDecorator());
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(raw), decorators);
+
+		assertThatThrownBy(() -> registry.registerDirect(info("new-id", "orders")))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessage("decorate failed")
+				.satisfies(failure -> assertThat(failure.getSuppressed())
+						.extracting(Throwable::getMessage)
+						.containsExactly("cleanup failed"));
+
+		assertThat(first.stage.closeCount).isOne();
+		assertThat(second.stage.closeCount).isZero();
+		assertThat(raw.closeCount).isOne();
+	}
+
 	private static TestRegistry registry(MagicDynamicDataSource dynamicDataSource,
 			DataSourceBuilder builder, List<MagicDataSourceDecorator> decorators) {
 		MagicResourceStorage<DataSourceInfo> storage = mock(MagicResourceStorage.class);
@@ -282,6 +329,48 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		@Override
 		public DataSource decorate(String key, DataSource dataSource) {
 			throw new IllegalStateException("decorate failed");
+		}
+	}
+
+	private static final class OwnedStageDecorator implements MagicDataSourceDecorator {
+
+		private final CloseTrackingDataSource stage = new CloseTrackingDataSource();
+		private final String name;
+		private final List<String> cleanupEvents;
+		private final Exception cleanupFailure;
+
+		private OwnedStageDecorator() {
+			this(null, null, null);
+		}
+
+		private OwnedStageDecorator(Exception cleanupFailure) {
+			this(null, null, cleanupFailure);
+		}
+
+		private OwnedStageDecorator(String name, List<String> cleanupEvents) {
+			this(name, cleanupEvents, null);
+		}
+
+		private OwnedStageDecorator(String name, List<String> cleanupEvents, Exception cleanupFailure) {
+			this.name = name;
+			this.cleanupEvents = cleanupEvents;
+			this.cleanupFailure = cleanupFailure;
+		}
+
+		@Override
+		public DataSource decorate(String key, DataSource dataSource) {
+			return stage;
+		}
+
+		@Override
+		public void cleanupAfterDecorationFailure(String key, DataSource dataSource) throws Exception {
+			if (cleanupEvents != null) {
+				cleanupEvents.add(name);
+			}
+			if (cleanupFailure != null) {
+				throw cleanupFailure;
+			}
+			((AutoCloseable) dataSource).close();
 		}
 	}
 

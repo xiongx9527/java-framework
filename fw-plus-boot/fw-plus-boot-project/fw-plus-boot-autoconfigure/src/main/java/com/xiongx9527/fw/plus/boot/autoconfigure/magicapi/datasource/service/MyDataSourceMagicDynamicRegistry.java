@@ -176,21 +176,24 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
         if (Objects.isNull(dataSourceBuilder)) {
             dataSourceBuilder = defaultDataSourceBuilder;
         }
-        DataSource datasource = dataSourceBuilder.buildDataSource(type, properties);
+        DataSource rawDataSource = dataSourceBuilder.buildDataSource(type, properties);
+        DataSource datasource = rawDataSource;
+        List<DecorationStage> decorationStages = new ArrayList<>();
         try {
             for (MagicDataSourceDecorator decorator : dataSourceDecorators) {
                 DataSource decorated = decorator.decorate(info.getKey(), datasource);
                 if (decorated == null) {
                     throw new IllegalStateException("DataSource decorator returned null");
                 }
+                decorationStages.add(new DecorationStage(decorator, decorated));
                 datasource = decorated;
             }
             beforeRemove(findDataSources(info.getId(), info.getKey()));
         } catch (RuntimeException e) {
-            closeNewDataSource(datasource, e);
+            rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
             throw e;
         } catch (Error e) {
-            closeNewDataSource(datasource, e);
+            rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
             throw e;
         }
         // 将数据源加入动态数据源容器中
@@ -239,13 +242,43 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
         }
     }
 
-    private void closeNewDataSource(DataSource dataSource, Throwable failure) {
+    private void rollbackDecoration(String key, DataSource rawDataSource,
+            List<DecorationStage> decorationStages, Throwable failure) {
+        for (int i = decorationStages.size() - 1; i >= 0; i--) {
+            DecorationStage stage = decorationStages.get(i);
+            try {
+                stage.decorator.cleanupAfterDecorationFailure(key, stage.dataSource);
+            } catch (Throwable cleanupFailure) {
+                addSuppressed(failure, cleanupFailure);
+            }
+        }
+        closeRawDataSource(rawDataSource, failure);
+    }
+
+    private void closeRawDataSource(DataSource dataSource, Throwable failure) {
         if (dataSource instanceof AutoCloseable) {
             try {
                 ((AutoCloseable) dataSource).close();
-            } catch (Exception e) {
-                failure.addSuppressed(e);
+            } catch (Throwable cleanupFailure) {
+                addSuppressed(failure, cleanupFailure);
             }
+        }
+    }
+
+    private void addSuppressed(Throwable failure, Throwable cleanupFailure) {
+        if (cleanupFailure != failure) {
+            failure.addSuppressed(cleanupFailure);
+        }
+    }
+
+    private static final class DecorationStage {
+
+        private final MagicDataSourceDecorator decorator;
+        private final DataSource dataSource;
+
+        private DecorationStage(MagicDataSourceDecorator decorator, DataSource dataSource) {
+            this.decorator = decorator;
+            this.dataSource = dataSource;
         }
     }
 
