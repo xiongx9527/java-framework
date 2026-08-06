@@ -51,6 +51,11 @@ public interface TinyflowKnowledgeRepository {
 
 	List<TinyflowChunk> findChunksByVectorIds(String tenantId, String knowledgeId, List<String> vectorIds);
 
+	/** Returns at most {@code limit} chunks within one tenant and knowledge boundary. */
+	default List<TinyflowChunk> findChunks(String tenantId, String knowledgeId, int limit) {
+		throw new UnsupportedOperationException("Bounded chunk listing is not implemented");
+	}
+
 	void updateChunk(String tenantId, String knowledgeId, String chunkId, boolean enabled,
 			String content, Map<String, Object> metadata);
 

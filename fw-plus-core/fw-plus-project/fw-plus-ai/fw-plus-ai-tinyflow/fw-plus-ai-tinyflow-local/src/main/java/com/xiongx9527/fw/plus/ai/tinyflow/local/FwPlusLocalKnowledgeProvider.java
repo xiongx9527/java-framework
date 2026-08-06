@@ -8,11 +8,13 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeManagementP
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRequest;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeResult;
+import com.xiongx9527.fw.plus.ai.tinyflow.local.retrieval.TinyflowLocalRetriever;
 
 public final class FwPlusLocalKnowledgeProvider implements TinyflowKnowledgeManagementProvider {
 
 	private final TinyflowKnowledgeRepository repository;
 	private final DefaultTinyflowIngestionService ingestionService;
+	private final TinyflowLocalRetriever retriever;
 
 	public FwPlusLocalKnowledgeProvider(TinyflowKnowledgeRepository repository,
 			DefaultTinyflowIngestionService ingestionService) {
@@ -21,6 +23,26 @@ public final class FwPlusLocalKnowledgeProvider implements TinyflowKnowledgeMana
 		}
 		this.repository = repository;
 		this.ingestionService = ingestionService;
+		this.retriever = null;
+	}
+
+	public FwPlusLocalKnowledgeProvider(TinyflowKnowledgeRepository repository, TinyflowLocalRetriever retriever) {
+		if (repository == null || retriever == null) {
+			throw new IllegalArgumentException("repository and retriever must not be null");
+		}
+		this.repository = repository;
+		this.ingestionService = null;
+		this.retriever = retriever;
+	}
+
+	public FwPlusLocalKnowledgeProvider(TinyflowKnowledgeRepository repository,
+			DefaultTinyflowIngestionService ingestionService, TinyflowLocalRetriever retriever) {
+		if (repository == null || ingestionService == null || retriever == null) {
+			throw new IllegalArgumentException("repository, ingestionService and retriever must not be null");
+		}
+		this.repository = repository;
+		this.ingestionService = ingestionService;
+		this.retriever = retriever;
 	}
 
 	@Override
@@ -35,6 +57,9 @@ public final class FwPlusLocalKnowledgeProvider implements TinyflowKnowledgeMana
 
 	@Override
 	public TinyflowKnowledgeResult retrieve(TinyflowKnowledgeRequest request) {
+		if (retriever != null) {
+			return retriever.retrieve(request);
+		}
 		if (request == null || repository.findKnowledge(request.getTenantId(), request.getKnowledgeId()) == null) {
 			return TinyflowKnowledgeResult.notFound();
 		}
@@ -73,6 +98,9 @@ public final class FwPlusLocalKnowledgeProvider implements TinyflowKnowledgeMana
 
 	@Override
 	public TinyflowIngestionTask importDocument(TinyflowDocumentImport request) {
+		if (ingestionService == null) {
+			throw new IllegalStateException("Ingestion service is unavailable");
+		}
 		return ingestionService.importDocument(request);
 	}
 

@@ -17,6 +17,7 @@ public final class TinyflowDocument {
 	private final String sourceVersion;
 	private final Map<String, Object> metadata;
 	private final List<TinyflowChunk> chunks;
+	private final boolean enabled;
 
 	private TinyflowDocument(Builder builder) {
 		this.tenantId = TinyflowChunk.required(builder.tenantId, "tenantId");
@@ -31,6 +32,7 @@ public final class TinyflowDocument {
 		this.sourceVersion = builder.sourceVersion;
 		this.metadata = TinyflowKnowledgeRequest.immutableMap(builder.metadata);
 		this.chunks = TinyflowKnowledgeRequest.immutableList(builder.chunks);
+		this.enabled = builder.enabled;
 	}
 
 	public static Builder builder() { return new Builder(); }
@@ -46,6 +48,7 @@ public final class TinyflowDocument {
 	public String getSourceVersion() { return sourceVersion; }
 	public Map<String, Object> getMetadata() { return metadata; }
 	public List<TinyflowChunk> getChunks() { return chunks; }
+	public boolean isEnabled() { return enabled; }
 
 	public static final class Builder {
 		private String tenantId;
@@ -60,6 +63,7 @@ public final class TinyflowDocument {
 		private String sourceVersion;
 		private Map<String, Object> metadata;
 		private List<TinyflowChunk> chunks;
+		private boolean enabled = true;
 		public Builder tenantId(String value) { this.tenantId = value; return this; }
 		public Builder knowledgeId(String value) { this.knowledgeId = value; return this; }
 		public Builder sourceId(String value) { this.sourceId = value; return this; }
@@ -72,6 +76,7 @@ public final class TinyflowDocument {
 		public Builder sourceVersion(String value) { this.sourceVersion = value; return this; }
 		public Builder metadata(Map<String, Object> value) { this.metadata = value; return this; }
 		public Builder chunks(List<TinyflowChunk> value) { this.chunks = value; return this; }
+		public Builder enabled(boolean value) { this.enabled = value; return this; }
 		public TinyflowDocument build() { return new TinyflowDocument(this); }
 	}
 }
