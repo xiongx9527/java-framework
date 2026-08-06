@@ -57,12 +57,26 @@ public interface TinyflowKnowledgeRepository {
 	void saveTask(TinyflowIngestionTask task);
 
 	/**
+	 * Atomically persists a pending task and its durable vector compensation. If either write fails,
+	 * implementations must leave both collections unchanged.
+	 */
+	void saveTaskWithVectorCompensation(TinyflowIngestionTask task, VectorCompensation compensation);
+
+	/**
 	 * Atomically persists the indexed chunks, completed document, active document switch, and
 	 * completed task. If any write fails, implementations must leave all four resources exactly as
 	 * they were before this call so readers cannot observe a partially completed ingestion.
 	 */
 	void completeIngestion(TinyflowDocument completedDocument, List<TinyflowChunk> chunks,
 			TinyflowIngestionTask completedTask);
+
+	/**
+	 * Atomically completes ingestion and persists every compensation needed to clean the versions made
+	 * inactive by the active-document switch. A failure in any write, including compensation persistence,
+	 * must leave chunks, documents, active state, tasks, and compensations unchanged.
+	 */
+	void completeIngestionWithVectorCompensations(TinyflowDocument completedDocument, List<TinyflowChunk> chunks,
+			TinyflowIngestionTask completedTask, List<VectorCompensation> compensations);
 
 	List<TinyflowIngestionTask> findTasks(String tenantId, String knowledgeId);
 

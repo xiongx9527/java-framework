@@ -176,6 +176,16 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 
 	TinyflowKnowledgeRepository.VectorCompensation recordCompensation(
 			TinyflowDocument document, List<String> vectorIds, String operation) {
+		TinyflowKnowledgeRepository.VectorCompensation compensation =
+				createCompensation(document, vectorIds, operation);
+		if (compensation != null) {
+			repository.saveVectorCompensation(compensation);
+		}
+		return compensation;
+	}
+
+	TinyflowKnowledgeRepository.VectorCompensation createCompensation(
+			TinyflowDocument document, List<String> vectorIds, String operation) {
 		if ((vectorIds == null || vectorIds.isEmpty())
 				&& TinyflowVectorCompensator.INDEX_ROLLBACK.equals(operation)) {
 			return null;
@@ -185,7 +195,6 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 				UUID.randomUUID().toString(), document.getTenantId(), document.getKnowledgeId(),
 				document.getSourceId(), document.getDocumentId(),
 				vectorIds == null ? Collections.<String>emptyList() : vectorIds, operation);
-		repository.saveVectorCompensation(compensation);
 		return compensation;
 	}
 

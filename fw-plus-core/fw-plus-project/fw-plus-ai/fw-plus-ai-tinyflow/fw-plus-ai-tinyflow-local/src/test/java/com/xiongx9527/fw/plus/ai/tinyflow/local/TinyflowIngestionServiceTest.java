@@ -780,6 +780,23 @@ public class TinyflowIngestionServiceTest {
 		}
 
 		@Override
+		public synchronized void saveTaskWithVectorCompensation(TinyflowIngestionTask task,
+				VectorCompensation compensation) {
+			List<TinyflowIngestionTask> taskSnapshot = new ArrayList<TinyflowIngestionTask>(tasks);
+			List<VectorCompensation> compensationSnapshot = new ArrayList<VectorCompensation>(compensations);
+			try {
+				saveTask(task);
+				saveVectorCompensation(compensation);
+			} catch (RuntimeException exception) {
+				tasks.clear();
+				tasks.addAll(taskSnapshot);
+				compensations.clear();
+				compensations.addAll(compensationSnapshot);
+				throw exception;
+			}
+		}
+
+		@Override
 		public synchronized void completeIngestion(TinyflowDocument completedDocument,
 				List<TinyflowChunk> values, TinyflowIngestionTask completedTask) {
 			if (blockCompletion) {
@@ -813,6 +830,36 @@ public class TinyflowIngestionServiceTest {
 				chunks.putAll(chunkSnapshot);
 				tasks.clear();
 				tasks.addAll(taskSnapshot);
+				throw exception;
+			}
+		}
+
+		@Override
+		public synchronized void completeIngestionWithVectorCompensations(TinyflowDocument completedDocument,
+				List<TinyflowChunk> values, TinyflowIngestionTask completedTask,
+				List<VectorCompensation> cleanupCompensations) {
+			Map<String, TinyflowDocument> documentSnapshot =
+					new LinkedHashMap<String, TinyflowDocument>(documents);
+			Map<String, String> activeSnapshot = new LinkedHashMap<String, String>(active);
+			Map<String, TinyflowChunk> chunkSnapshot = new LinkedHashMap<String, TinyflowChunk>(chunks);
+			List<TinyflowIngestionTask> taskSnapshot = new ArrayList<TinyflowIngestionTask>(tasks);
+			List<VectorCompensation> compensationSnapshot = new ArrayList<VectorCompensation>(compensations);
+			try {
+				completeIngestion(completedDocument, values, completedTask);
+				for (VectorCompensation compensation : cleanupCompensations) {
+					saveVectorCompensation(compensation);
+				}
+			} catch (RuntimeException exception) {
+				documents.clear();
+				documents.putAll(documentSnapshot);
+				active.clear();
+				active.putAll(activeSnapshot);
+				chunks.clear();
+				chunks.putAll(chunkSnapshot);
+				tasks.clear();
+				tasks.addAll(taskSnapshot);
+				compensations.clear();
+				compensations.addAll(compensationSnapshot);
 				throw exception;
 			}
 		}

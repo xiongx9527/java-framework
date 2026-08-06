@@ -29,6 +29,8 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 
 	protected abstract void failNextCompletionAt(TinyflowKnowledgeRepository target, String step);
 
+	protected abstract void failNextCompensationStartAt(TinyflowKnowledgeRepository target, String step);
+
 	protected abstract RepositoryConcurrencyProbe concurrencyProbe(TinyflowKnowledgeRepository target);
 
 	protected interface RepositoryConcurrencyProbe {
@@ -279,6 +281,36 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 	}
 
 	@Test
+	public void shouldAtomicallyPersistPendingTaskAndVectorCompensation() {
+		for (String step : Arrays.asList("task", "compensation")) {
+			repository = createRepository();
+			TinyflowIngestionTask pendingTask = task("task-delete", "tenant-a", "kb-1");
+			TinyflowKnowledgeRepository.VectorCompensation compensation =
+					new TinyflowKnowledgeRepository.VectorCompensation(
+							"comp-delete", "tenant-a", "kb-1", "source-1", "doc-1",
+							Collections.singletonList("vec-1"), "DELETE_PENDING");
+			failNextCompensationStartAt(repository, step);
+
+			assertThrows(IllegalStateException.class,
+					() -> repository.saveTaskWithVectorCompensation(pendingTask, compensation));
+			assertTrue(repository.findTasks("tenant-a", "kb-1").isEmpty());
+			assertTrue(repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
+		}
+
+		repository = createRepository();
+		TinyflowIngestionTask pendingTask = task("task-delete", "tenant-a", "kb-1");
+		TinyflowKnowledgeRepository.VectorCompensation compensation =
+				new TinyflowKnowledgeRepository.VectorCompensation(
+						"comp-delete", "tenant-a", "kb-1", "source-1", "doc-1",
+						Collections.singletonList("vec-1"), "DELETE_PENDING");
+		repository.saveTaskWithVectorCompensation(pendingTask, compensation);
+
+		assertEquals("task-delete", repository.findTasks("tenant-a", "kb-1").get(0).getTaskId());
+		assertEquals("comp-delete", repository.findVectorCompensations(
+				"tenant-a", "kb-1").get(0).getCompensationId());
+	}
+
+	@Test
 	public void shouldListTasksWithinTenantAndKnowledge() {
 		repository.saveTask(task("task-a", "tenant-a", "kb-1"));
 		repository.saveTask(task("task-b", "tenant-b", "kb-1"));
@@ -288,26 +320,30 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 
 	@Test
 	public void shouldAtomicallyCompleteIngestionAndRollbackEveryFailedStep() {
-		for (String step : Arrays.asList("chunks", "document", "active", "task")) {
+		for (String step : Arrays.asList("chunks", "document", "active", "task", "compensation")) {
 			repository = createRepository();
 			CompletionFixture fixture = completionFixture();
 			prepareCompletion(fixture);
 			failNextCompletionAt(repository, step);
 
-			assertThrows(IllegalStateException.class, () -> repository.completeIngestion(
-					fixture.completedDocument, fixture.chunks, fixture.completedTask));
+			assertThrows(IllegalStateException.class, () -> repository.completeIngestionWithVectorCompensations(
+					fixture.completedDocument, fixture.chunks, fixture.completedTask,
+					Collections.singletonList(cleanupCompensation())));
 			assertEquals("doc-old", repository.findActiveDocument("tenant-a", "kb-atomic", "source-1")
 					.getDocumentId());
 			assertTrue(repository.findChunksByDocument("tenant-a", "kb-atomic", "doc-new").isEmpty());
 			assertTrue(repository.findBySourceAndChecksum(
 					"tenant-a", "kb-atomic", "source-1", "sum-new").getChunks().isEmpty());
 			assertFalse(hasTaskStatus(repository.findTasks("tenant-a", "kb-atomic"), "COMPLETED"));
+			assertTrue(repository.findVectorCompensations("tenant-a", "kb-atomic").isEmpty());
 		}
 
 		repository = createRepository();
 		CompletionFixture fixture = completionFixture();
 		prepareCompletion(fixture);
-		repository.completeIngestion(fixture.completedDocument, fixture.chunks, fixture.completedTask);
+		repository.completeIngestionWithVectorCompensations(
+				fixture.completedDocument, fixture.chunks, fixture.completedTask,
+				Collections.singletonList(cleanupCompensation()));
 
 		assertEquals("doc-new", repository.findActiveDocument("tenant-a", "kb-atomic", "source-1")
 				.getDocumentId());
@@ -316,6 +352,8 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 		assertEquals(1, repository.findBySourceAndChecksum(
 				"tenant-a", "kb-atomic", "source-1", "sum-new").getChunks().size());
 		assertTrue(hasTaskStatus(repository.findTasks("tenant-a", "kb-atomic"), "COMPLETED"));
+		assertEquals("comp-old", repository.findVectorCompensations(
+				"tenant-a", "kb-atomic").get(0).getCompensationId());
 	}
 
 	@Test
@@ -560,6 +598,12 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 				.tenantId("tenant-a").knowledgeId("kb-atomic").documentId("doc-new")
 				.status("COMPLETED").message("completed").metadata(metadata("task", "completed")).build();
 		return new CompletionFixture(completed, Collections.singletonList(chunk), task);
+	}
+
+	private TinyflowKnowledgeRepository.VectorCompensation cleanupCompensation() {
+		return new TinyflowKnowledgeRepository.VectorCompensation(
+				"comp-old", "tenant-a", "kb-atomic", "source-1", "doc-old",
+				Collections.singletonList("vector-old"), "DELETE_OLD_VERSION");
 	}
 
 	private void prepareCompletion(CompletionFixture fixture) {

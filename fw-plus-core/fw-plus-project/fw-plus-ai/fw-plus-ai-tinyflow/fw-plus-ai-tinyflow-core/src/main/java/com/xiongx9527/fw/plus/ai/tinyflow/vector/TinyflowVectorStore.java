@@ -15,6 +15,10 @@ public interface TinyflowVectorStore {
 
 	List<String> addAll(List<TinyflowVectorDocument> documents);
 
+	/**
+	 * Removes the requested vector ids idempotently. Duplicate or already missing ids must be
+	 * treated as successfully removed so a durable compensation can be retried after an uncertain result.
+	 */
 	void removeAll(List<String> ids);
 
 	List<TinyflowVectorMatch> search(float[] vector, int maxResults, double minScore);
