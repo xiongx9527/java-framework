@@ -228,6 +228,32 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 	}
 
 	@Test
+	public void shouldSearchKeywordChunksWithinTenantKnowledgeQueryAndLimit() {
+		repository.saveChunks(Arrays.asList(
+				chunk("tenant-a", "kb-1", "doc-a", "chunk-alpha", "alpha guide", true, "vec-alpha"),
+				chunk("tenant-a", "kb-1", "doc-b", "chunk-beta", "beta guide", true, "vec-beta"),
+				chunk("tenant-a", "kb-2", "doc-c", "chunk-other-kb", "alpha other", true, "vec-other-kb"),
+				chunk("tenant-b", "kb-1", "doc-d", "chunk-other-tenant", "alpha other", true,
+						"vec-other-tenant")));
+
+		List<TinyflowKnowledgeMatch> alpha = repository.searchChunksByKeyword(
+				"tenant-a", "kb-1", "alpha", 1);
+		List<TinyflowKnowledgeMatch> beta = repository.searchChunksByKeyword(
+				"tenant-a", "kb-1", "beta", 10);
+
+		assertEquals(1, alpha.size());
+		assertEquals("chunk-alpha", alpha.get(0).getChunkId());
+		assertEquals(1, beta.size());
+		assertEquals("chunk-beta", beta.get(0).getChunkId());
+		for (TinyflowKnowledgeMatch match : alpha) {
+			assertEquals("tenant-a", match.getTenantId());
+			assertEquals("kb-1", match.getKnowledgeId());
+			assertTrue(Double.isFinite(match.getScore()));
+			assertTrue(match.getScore() >= 0D && match.getScore() <= 1D);
+		}
+	}
+
+	@Test
 	public void shouldUpdateChunkWithoutLosingSourceIdentityOrChangingMetadataShape() {
 		repository.saveChunks(Collections.singletonList(
 				chunk("tenant-a", "kb-1", "doc-1", "chunk-1", "old", true, "vec-1")));
@@ -341,6 +367,8 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 			assertTrue(repository.findChunksByDocument("tenant-a", "kb-atomic", "doc-new").isEmpty());
 			assertTrue(repository.findBySourceAndChecksum(
 					"tenant-a", "kb-atomic", "source-1", "sum-new").getChunks().isEmpty());
+			assertFalse(repository.findBySourceAndChecksum(
+					"tenant-a", "kb-atomic", "source-1", "sum-new").isEnabled());
 			assertFalse(hasTaskStatus(repository.findTasks("tenant-a", "kb-atomic"), "COMPLETED"));
 			assertTrue(repository.findVectorCompensations("tenant-a", "kb-atomic").isEmpty());
 		}
@@ -555,7 +583,7 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 		return Arrays.<Object>asList(document.getTenantId(), document.getKnowledgeId(), document.getSourceId(),
 				document.getSourceType(), document.getDocumentId(), document.getChecksum(), document.getName(),
 				document.getContent(), document.getSourceUri(), document.getSourceVersion(), document.getMetadata(),
-				chunkSignatures);
+				document.isEnabled(), chunkSignatures);
 	}
 
 	private List<Object> chunkSignature(TinyflowChunk chunk) {
@@ -620,7 +648,7 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 		repository.saveDocument(TinyflowDocument.builder().tenantId("tenant-a").knowledgeId("kb-atomic")
 				.sourceId("source-1").sourceType("file-pending").documentId("doc-new").checksum("sum-new")
 				.name("name-pending").content("content-pending").sourceUri("s3://pending")
-				.sourceVersion("version-pending").metadata(metadata("document", "pending"))
+				.sourceVersion("version-pending").metadata(metadata("document", "pending")).enabled(false)
 				.chunks(Collections.<TinyflowChunk>emptyList()).build());
 		repository.saveTask(TinyflowIngestionTask.builder().taskId("task-new").providerKey("local")
 				.tenantId("tenant-a").knowledgeId("kb-atomic").documentId("doc-new")
@@ -662,7 +690,8 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 		return TinyflowDocument.builder().tenantId(tenantId).knowledgeId(knowledgeId).sourceId(sourceId)
 				.sourceType("file-" + marker).documentId(documentId).checksum(checksum).name("name-" + marker)
 				.content("content-" + marker).sourceUri("s3://" + marker).sourceVersion("version-" + marker)
-				.metadata(metadata("document", marker)).chunks(Collections.singletonList(embeddedChunk)).build();
+				.metadata(metadata("document", marker)).chunks(Collections.singletonList(embeddedChunk))
+				.enabled(false).build();
 	}
 
 	private TinyflowChunk richChunk(String tenantId, String knowledgeId, String sourceId,

@@ -18,6 +18,7 @@ public final class TinyflowKnowledgeRequest {
 	private final Double threshold;
 	private final List<TinyflowMetadataCondition> metadataConditions;
 	private final Map<String, Object> metadata;
+	private final Map<String, Object> retrievalOptions;
 	private final Chain chain;
 
 	private TinyflowKnowledgeRequest(Builder builder) {
@@ -37,6 +38,7 @@ public final class TinyflowKnowledgeRequest {
 		this.threshold = builder.threshold;
 		this.metadataConditions = immutableList(builder.metadataConditions);
 		this.metadata = immutableMap(builder.metadata);
+		this.retrievalOptions = immutableMap(builder.retrievalOptions);
 		this.chain = builder.chain;
 	}
 
@@ -61,6 +63,7 @@ public final class TinyflowKnowledgeRequest {
 	public Double getThreshold() { return threshold; }
 	public List<TinyflowMetadataCondition> getMetadataConditions() { return metadataConditions; }
 	public Map<String, Object> getMetadata() { return metadata; }
+	public Map<String, Object> getRetrievalOptions() { return retrievalOptions; }
 	public Chain getChain() { return chain; }
 
 	static <T> List<T> immutableList(List<T> values) {
@@ -82,6 +85,7 @@ public final class TinyflowKnowledgeRequest {
 		private Double threshold;
 		private List<TinyflowMetadataCondition> metadataConditions;
 		private Map<String, Object> metadata;
+		private Map<String, Object> retrievalOptions;
 		private Chain chain;
 
 		public Builder providerKey(String value) { this.providerKey = value; return this; }
@@ -92,6 +96,7 @@ public final class TinyflowKnowledgeRequest {
 		public Builder threshold(Double value) { this.threshold = value; return this; }
 		public Builder metadataConditions(List<TinyflowMetadataCondition> value) { this.metadataConditions = value; return this; }
 		public Builder metadata(Map<String, Object> value) { this.metadata = value; return this; }
+		public Builder retrievalOptions(Map<String, Object> value) { this.retrievalOptions = value; return this; }
 		public Builder chain(Chain value) { this.chain = value; return this; }
 		public TinyflowKnowledgeRequest build() { return new TinyflowKnowledgeRequest(this); }
 	}

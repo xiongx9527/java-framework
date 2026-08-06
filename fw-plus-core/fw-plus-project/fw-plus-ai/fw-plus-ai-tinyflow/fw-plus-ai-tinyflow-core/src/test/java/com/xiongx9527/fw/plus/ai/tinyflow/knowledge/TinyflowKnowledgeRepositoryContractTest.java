@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -264,6 +265,36 @@ public class TinyflowKnowledgeRepositoryContractTest
 				}
 				return result;
 			});
+		}
+
+		@Override
+		public List<TinyflowKnowledgeMatch> searchChunksByKeyword(
+				String tenantId, String knowledgeId, String query, int limit) {
+			return read(() -> {
+				List<TinyflowKnowledgeMatch> result = new ArrayList<TinyflowKnowledgeMatch>();
+				String term = query.toLowerCase(Locale.ROOT);
+				for (TinyflowChunk chunk : chunks.values()) {
+					if (result.size() >= limit) {
+						break;
+					}
+					if (tenantId.equals(chunk.getTenantId()) && knowledgeId.equals(chunk.getKnowledgeId())
+							&& chunk.getContent().toLowerCase(Locale.ROOT).contains(term)) {
+						result.add(match(chunk, 1D));
+					}
+				}
+				return result;
+			});
+		}
+
+		private TinyflowKnowledgeMatch match(TinyflowChunk chunk, double score) {
+			return TinyflowKnowledgeMatch.builder().tenantId(chunk.getTenantId())
+					.knowledgeId(chunk.getKnowledgeId()).sourceId(chunk.getSourceId())
+					.sourceType(chunk.getSourceType()).documentId(chunk.getDocumentId())
+					.chunkId(chunk.getChunkId()).content(chunk.getContent()).sourceUri(chunk.getSourceUri())
+					.sourceVersion(chunk.getSourceVersion()).location(chunk.getLocation())
+					.position(chunk.getPosition()).parentChunkId(chunk.getParentChunkId())
+					.tokenCount(chunk.getTokenCount()).metadata(chunk.getMetadata()).enabled(chunk.isEnabled())
+					.vectorIds(chunk.getVectorIds()).score(score).build();
 		}
 
 		@Override
