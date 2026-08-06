@@ -28,11 +28,19 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 
 	protected abstract void failNextCompletionAt(TinyflowKnowledgeRepository target, String step);
 
-	protected abstract void pauseNextCompletionAfter(TinyflowKnowledgeRepository target, String step);
+	protected abstract RepositoryConcurrencyProbe concurrencyProbe(TinyflowKnowledgeRepository target);
 
-	protected abstract void awaitCompletionPaused(TinyflowKnowledgeRepository target) throws InterruptedException;
-
-	protected abstract void releaseCompletion(TinyflowKnowledgeRepository target);
+	protected interface RepositoryConcurrencyProbe {
+		void pauseNextCompletionAfter(String step);
+		void awaitCompletionPaused() throws InterruptedException;
+		void releaseCompletion();
+		void expectReaderEntry();
+		void awaitReaderEntered() throws InterruptedException;
+		void awaitReaderBlocked();
+		void expectWriterEntry();
+		void awaitWriterEntered() throws InterruptedException;
+		void awaitWriterBlocked();
+	}
 
 	@Before
 	public void setUpRepository() {
@@ -214,7 +222,8 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 	public void shouldNeverExposePartiallyCompletedIngestionToConcurrentReaders() throws Exception {
 		CompletionFixture fixture = completionFixture();
 		prepareCompletion(fixture);
-		pauseNextCompletionAfter(repository, "chunks");
+		RepositoryConcurrencyProbe probe = concurrencyProbe(repository);
+		probe.pauseNextCompletionAfter("chunks");
 		AtomicReference<Throwable> completionFailure = new AtomicReference<Throwable>();
 		CountDownLatch completionDone = new CountDownLatch(1);
 		Thread completion = new Thread(() -> {
@@ -227,14 +236,11 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 			}
 		}, "tinyflow-repository-completion");
 		completion.start();
-		awaitCompletionPaused(repository);
 
 		AtomicReference<CompletionObservation> observation = new AtomicReference<CompletionObservation>();
 		AtomicReference<Throwable> readerFailure = new AtomicReference<Throwable>();
-		CountDownLatch readerStarted = new CountDownLatch(1);
 		CountDownLatch readerDone = new CountDownLatch(1);
 		Thread reader = new Thread(() -> {
-			readerStarted.countDown();
 			try {
 				observation.set(observeCompletion(repository));
 			} catch (Throwable throwable) {
@@ -243,20 +249,22 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 				readerDone.countDown();
 			}
 		}, "tinyflow-repository-reader");
-		reader.start();
-		assertTrue(readerStarted.await(5, TimeUnit.SECONDS));
-		boolean returnedWhilePaused = readerDone.await(200, TimeUnit.MILLISECONDS);
-		releaseCompletion(repository);
+		try {
+			probe.awaitCompletionPaused();
+			probe.expectReaderEntry();
+			reader.start();
+			probe.awaitReaderEntered();
+			probe.awaitReaderBlocked();
+			assertEquals("Reader returned while completion was paused", 1L, readerDone.getCount());
+		} finally {
+			probe.releaseCompletion();
+		}
 
 		assertTrue(completionDone.await(5, TimeUnit.SECONDS));
 		assertTrue(readerDone.await(5, TimeUnit.SECONDS));
 		assertNull(completionFailure.get());
 		assertNull(readerFailure.get());
-		if (returnedWhilePaused) {
-			assertOldCompletionObservation(observation.get());
-		} else {
-			assertNewCompletionObservation(observation.get());
-		}
+		assertNewCompletionObservation(observation.get());
 		assertNewCompletionObservation(observeCompletion(repository));
 	}
 
@@ -266,13 +274,7 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 			repository = createRepository();
 			CompletionFixture fixture = completionFixture();
 			prepareCompletion(fixture);
-			repository.saveKnowledge(knowledge("tenant-a", "kb-atomic"), 0L);
-			repository.saveChunks(Arrays.asList(
-					chunk("tenant-a", "kb-atomic", "doc-old", "chunk-old", "old", true, "vec-old"),
-					chunk("tenant-a", "kb-atomic", "doc-new", "chunk-new", "pending", false, "vec-pending")));
-			repository.saveTask(TinyflowIngestionTask.builder().taskId("task-history").providerKey("local")
-					.tenantId("tenant-a").knowledgeId("kb-atomic").documentId("doc-old")
-					.status("FAILED").message("historical").build());
+			prepareRollbackSnapshotData();
 			RepositorySnapshot before = repositorySnapshot(repository);
 			failNextCompletionAt(repository, step);
 
@@ -287,7 +289,8 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 	public void shouldPreserveConcurrentWriterAfterFailedCompletionRollback() throws Exception {
 		CompletionFixture fixture = completionFixture();
 		prepareCompletion(fixture);
-		pauseNextCompletionAfter(repository, "chunks");
+		RepositoryConcurrencyProbe probe = concurrencyProbe(repository);
+		probe.pauseNextCompletionAfter("chunks");
 		failNextCompletionAt(repository, "document");
 		AtomicReference<Throwable> completionFailure = new AtomicReference<Throwable>();
 		CountDownLatch completionDone = new CountDownLatch(1);
@@ -301,7 +304,6 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 			}
 		}, "tinyflow-repository-failing-completion");
 		completion.start();
-		awaitCompletionPaused(repository);
 
 		TinyflowChunk writerChunk = chunk(
 				"tenant-a", "kb-atomic", "doc-writer", "chunk-writer", "writer", true, "vec-writer");
@@ -320,9 +322,16 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 				writerDone.countDown();
 			}
 		}, "tinyflow-repository-writer");
-		writer.start();
-		writerDone.await(200, TimeUnit.MILLISECONDS);
-		releaseCompletion(repository);
+		try {
+			probe.awaitCompletionPaused();
+			probe.expectWriterEntry();
+			writer.start();
+			probe.awaitWriterEntered();
+			probe.awaitWriterBlocked();
+			assertEquals("Writer returned while rollback was pending", 1L, writerDone.getCount());
+		} finally {
+			probe.releaseCompletion();
+		}
 
 		assertTrue(completionDone.await(5, TimeUnit.SECONDS));
 		assertTrue(writerDone.await(5, TimeUnit.SECONDS));
@@ -346,13 +355,6 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 				active.getDocumentId(), hasCompletedTask);
 	}
 
-	private void assertOldCompletionObservation(CompletionObservation observation) {
-		assertFalse(observation.hasNewChunk);
-		assertEquals(0, observation.documentChunkCount);
-		assertEquals("doc-old", observation.activeDocumentId);
-		assertFalse(observation.hasCompletedTask);
-	}
-
 	private void assertNewCompletionObservation(CompletionObservation observation) {
 		assertTrue(observation.hasNewChunk);
 		assertEquals(1, observation.documentChunkCount);
@@ -361,60 +363,78 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 	}
 
 	private RepositorySnapshot repositorySnapshot(TinyflowKnowledgeRepository target) {
-		TinyflowKnowledgeDefinition knowledge = target.findKnowledge("tenant-a", "kb-atomic");
-		long knowledgeVersion = target.findKnowledgeVersion("tenant-a", "kb-atomic");
-		TinyflowDocument active = target.findActiveDocument("tenant-a", "kb-atomic", "source-1");
-		List<String> documents = new ArrayList<String>();
-		for (TinyflowDocument document : target.findDocumentVersions(
-				"tenant-a", "kb-atomic", "source-1")) {
-			documents.add(documentSignature(document));
-		}
-		Collections.sort(documents);
-		List<String> chunks = new ArrayList<String>();
-		for (String documentId : Arrays.asList("doc-old", "doc-new")) {
-			for (TinyflowChunk chunk : target.findChunksByDocument(
-					"tenant-a", "kb-atomic", documentId)) {
-				chunks.add(chunkSignature(chunk));
+		Map<String, List<Object>> knowledge = new LinkedHashMap<String, List<Object>>();
+		Map<String, Long> knowledgeVersions = new LinkedHashMap<String, Long>();
+		Map<String, String> activeDocuments = new LinkedHashMap<String, String>();
+		Map<String, List<Object>> documents = new LinkedHashMap<String, List<Object>>();
+		Map<String, List<Object>> chunks = new LinkedHashMap<String, List<Object>>();
+		Map<List<Object>, Integer> tasks = new LinkedHashMap<List<Object>, Integer>();
+		for (RepositoryScope scope : snapshotScopes()) {
+			String knowledgeKey = scope.tenantId + "|" + scope.knowledgeId;
+			if (!knowledge.containsKey(knowledgeKey)) {
+				TinyflowKnowledgeDefinition definition = target.findKnowledge(scope.tenantId, scope.knowledgeId);
+				knowledge.put(knowledgeKey, definition == null ? null : knowledgeSignature(definition));
+				knowledgeVersions.put(knowledgeKey,
+						target.findKnowledgeVersion(scope.tenantId, scope.knowledgeId));
+				for (TinyflowIngestionTask task : target.findTasks(scope.tenantId, scope.knowledgeId)) {
+					increment(tasks, taskSignature(task));
+				}
+			}
+			TinyflowDocument active = target.findActiveDocument(
+					scope.tenantId, scope.knowledgeId, scope.sourceId);
+			activeDocuments.put(scope.key(), active == null ? null : active.getDocumentId());
+			for (TinyflowDocument document : target.findDocumentVersions(
+					scope.tenantId, scope.knowledgeId, scope.sourceId)) {
+				String documentKey = knowledgeKey + "|" + document.getDocumentId();
+				documents.put(documentKey, documentSignature(document));
+				for (TinyflowChunk chunk : target.findChunksByDocument(
+						scope.tenantId, scope.knowledgeId, document.getDocumentId())) {
+					chunks.put(documentKey + "|" + chunk.getChunkId(), chunkSignature(chunk));
+				}
 			}
 		}
-		Collections.sort(chunks);
-		List<String> tasks = new ArrayList<String>();
-		for (TinyflowIngestionTask task : target.findTasks("tenant-a", "kb-atomic")) {
-			tasks.add(task.getTaskId() + "|" + task.getProviderKey() + "|" + task.getTenantId()
-					+ "|" + task.getKnowledgeId() + "|" + task.getDocumentId() + "|"
-					+ task.getStatus() + "|" + task.getMessage() + "|" + task.getMetadata());
-		}
-		Collections.sort(tasks);
-		return new RepositorySnapshot(knowledge == null ? null : knowledge.getName(), knowledgeVersion,
-				active == null ? null : active.getDocumentId(), documents, chunks, tasks);
+		return new RepositorySnapshot(knowledge, knowledgeVersions, activeDocuments, documents, chunks, tasks);
 	}
 
-	private String documentSignature(TinyflowDocument document) {
-		List<String> chunkIds = new ArrayList<String>();
+	private List<Object> knowledgeSignature(TinyflowKnowledgeDefinition definition) {
+		return Arrays.<Object>asList(definition.getProviderKey(), definition.getTenantId(),
+				definition.getKnowledgeId(), definition.getName(), definition.getDescription(),
+				definition.getMetadata(), definition.isEnabled());
+	}
+
+	private List<Object> documentSignature(TinyflowDocument document) {
+		List<List<Object>> chunkSignatures = new ArrayList<List<Object>>();
 		for (TinyflowChunk chunk : document.getChunks()) {
-			chunkIds.add(chunk.getChunkId());
+			chunkSignatures.add(chunkSignature(chunk));
 		}
-		Collections.sort(chunkIds);
-		return document.getTenantId() + "|" + document.getKnowledgeId() + "|" + document.getSourceId()
-				+ "|" + document.getSourceType() + "|" + document.getDocumentId() + "|"
-				+ document.getChecksum() + "|" + document.getName() + "|" + document.getContent()
-				+ "|" + document.getSourceUri() + "|" + document.getSourceVersion() + "|"
-				+ document.getMetadata() + "|" + chunkIds;
+		return Arrays.<Object>asList(document.getTenantId(), document.getKnowledgeId(), document.getSourceId(),
+				document.getSourceType(), document.getDocumentId(), document.getChecksum(), document.getName(),
+				document.getContent(), document.getSourceUri(), document.getSourceVersion(), document.getMetadata(),
+				chunkSignatures);
 	}
 
-	private String chunkSignature(TinyflowChunk chunk) {
-		return chunk.getTenantId() + "|" + chunk.getKnowledgeId() + "|" + chunk.getSourceId()
-				+ "|" + chunk.getSourceType() + "|" + chunk.getDocumentId() + "|" + chunk.getChunkId()
-				+ "|" + chunk.getContent() + "|" + chunk.getSourceUri() + "|" + chunk.getSourceVersion()
-				+ "|" + chunk.getLocation() + "|" + chunk.getPosition() + "|" + chunk.getParentChunkId()
-				+ "|" + chunk.getTokenCount() + "|" + chunk.getMetadata() + "|" + chunk.isEnabled()
-				+ "|" + chunk.getVectorIds();
+	private List<Object> chunkSignature(TinyflowChunk chunk) {
+		return Arrays.<Object>asList(chunk.getTenantId(), chunk.getKnowledgeId(), chunk.getSourceId(),
+				chunk.getSourceType(), chunk.getDocumentId(), chunk.getChunkId(), chunk.getContent(),
+				chunk.getSourceUri(), chunk.getSourceVersion(), chunk.getLocation(), chunk.getPosition(),
+				chunk.getParentChunkId(), chunk.getTokenCount(), chunk.getMetadata(), chunk.isEnabled(),
+				chunk.getVectorIds());
+	}
+
+	private List<Object> taskSignature(TinyflowIngestionTask task) {
+		return Arrays.<Object>asList(task.getTaskId(), task.getProviderKey(), task.getTenantId(),
+				task.getKnowledgeId(), task.getDocumentId(), task.getStatus(), task.getMessage(), task.getMetadata());
+	}
+
+	private void increment(Map<List<Object>, Integer> values, List<Object> signature) {
+		Integer count = values.get(signature);
+		values.put(signature, count == null ? 1 : count + 1);
 	}
 
 	private void assertRepositorySnapshotEquals(RepositorySnapshot expected, RepositorySnapshot actual) {
-		assertEquals(expected.knowledgeName, actual.knowledgeName);
-		assertEquals(expected.knowledgeVersion, actual.knowledgeVersion);
-		assertEquals(expected.activeDocumentId, actual.activeDocumentId);
+		assertEquals(expected.knowledge, actual.knowledge);
+		assertEquals(expected.knowledgeVersions, actual.knowledgeVersions);
+		assertEquals(expected.activeDocuments, actual.activeDocuments);
 		assertEquals(expected.documents, actual.documents);
 		assertEquals(expected.chunks, actual.chunks);
 		assertEquals(expected.tasks, actual.tasks);
@@ -430,23 +450,99 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 	}
 
 	private CompletionFixture completionFixture() {
-		TinyflowChunk chunk = chunk("tenant-a", "kb-atomic", "doc-new", "chunk-new", "new", true, "vec-new");
+		TinyflowChunk chunk = richChunk("tenant-a", "kb-atomic", "source-1", "doc-new", "chunk-new", "new");
 		TinyflowDocument completed = TinyflowDocument.builder().tenantId("tenant-a").knowledgeId("kb-atomic")
 				.sourceId("source-1").sourceType("file").documentId("doc-new").checksum("sum-new")
-				.name("new").content("new").chunks(Collections.singletonList(chunk)).build();
+				.name("new").content("new-content").sourceUri("s3://atomic/new")
+				.sourceVersion("source-version-new").metadata(metadata("document", "completed"))
+				.chunks(Collections.singletonList(chunk)).build();
 		TinyflowIngestionTask task = TinyflowIngestionTask.builder().taskId("task-new").providerKey("local")
 				.tenantId("tenant-a").knowledgeId("kb-atomic").documentId("doc-new")
-				.status("COMPLETED").build();
+				.status("COMPLETED").message("completed").metadata(metadata("task", "completed")).build();
 		return new CompletionFixture(completed, Collections.singletonList(chunk), task);
 	}
 
 	private void prepareCompletion(CompletionFixture fixture) {
-		repository.saveDocument(document("tenant-a", "kb-atomic", "source-1", "doc-old", "sum-old"));
+		repository.saveDocument(richDocument(
+				"tenant-a", "kb-atomic", "source-1", "doc-old", "sum-old", "old"));
 		repository.activateDocumentVersion("tenant-a", "kb-atomic", "source-1", "doc-old");
-		repository.saveDocument(document("tenant-a", "kb-atomic", "source-1", "doc-new", "sum-new"));
+		repository.saveDocument(TinyflowDocument.builder().tenantId("tenant-a").knowledgeId("kb-atomic")
+				.sourceId("source-1").sourceType("file-pending").documentId("doc-new").checksum("sum-new")
+				.name("name-pending").content("content-pending").sourceUri("s3://pending")
+				.sourceVersion("version-pending").metadata(metadata("document", "pending"))
+				.chunks(Collections.<TinyflowChunk>emptyList()).build());
 		repository.saveTask(TinyflowIngestionTask.builder().taskId("task-new").providerKey("local")
 				.tenantId("tenant-a").knowledgeId("kb-atomic").documentId("doc-new")
-				.status("PENDING").build());
+				.status("PENDING").message("pending").metadata(metadata("task", "pending")).build());
+	}
+
+	private void prepareRollbackSnapshotData() {
+		repository.saveKnowledge(TinyflowKnowledgeDefinition.builder().providerKey("local")
+				.tenantId("tenant-a").knowledgeId("kb-atomic").name("Atomic knowledge")
+				.description("must be restored exactly").metadata(metadata("scope", "atomic"))
+				.enabled(false).build(), 0L);
+		repository.saveKnowledge(TinyflowKnowledgeDefinition.builder().providerKey("remote")
+				.tenantId("tenant-b").knowledgeId("kb-unrelated").name("Unrelated knowledge")
+				.description("must remain untouched").metadata(metadata("scope", "unrelated"))
+				.enabled(true).build(), 0L);
+		repository.saveDocument(richDocument(
+				"tenant-a", "kb-atomic", "source-extra", "doc-extra", "sum-extra", "extra"));
+		repository.activateDocumentVersion("tenant-a", "kb-atomic", "source-extra", "doc-extra");
+		repository.saveDocument(richDocument(
+				"tenant-b", "kb-unrelated", "source-unrelated", "doc-unrelated", "sum-unrelated", "unrelated"));
+		repository.activateDocumentVersion(
+				"tenant-b", "kb-unrelated", "source-unrelated", "doc-unrelated");
+		repository.saveChunks(Arrays.asList(
+				richChunk("tenant-a", "kb-atomic", "source-1", "doc-old", "chunk-old", "old"),
+				richChunk("tenant-a", "kb-atomic", "source-1", "doc-new", "chunk-pending", "pending"),
+				richChunk("tenant-a", "kb-atomic", "source-extra", "doc-extra", "chunk-extra", "extra"),
+				richChunk("tenant-b", "kb-unrelated", "source-unrelated",
+						"doc-unrelated", "chunk-unrelated", "unrelated")));
+		repository.saveTask(richTask("task-history", "tenant-a", "kb-atomic", "doc-old", "FAILED"));
+		repository.saveTask(richTask("task-extra", "tenant-a", "kb-atomic", "doc-extra", "COMPLETED"));
+		repository.saveTask(richTask(
+				"task-unrelated", "tenant-b", "kb-unrelated", "doc-unrelated", "COMPLETED"));
+	}
+
+	private TinyflowDocument richDocument(String tenantId, String knowledgeId, String sourceId,
+			String documentId, String checksum, String marker) {
+		TinyflowChunk embeddedChunk = richChunk(
+				tenantId, knowledgeId, sourceId, documentId, "embedded-" + marker, "embedded-" + marker);
+		return TinyflowDocument.builder().tenantId(tenantId).knowledgeId(knowledgeId).sourceId(sourceId)
+				.sourceType("file-" + marker).documentId(documentId).checksum(checksum).name("name-" + marker)
+				.content("content-" + marker).sourceUri("s3://" + marker).sourceVersion("version-" + marker)
+				.metadata(metadata("document", marker)).chunks(Collections.singletonList(embeddedChunk)).build();
+	}
+
+	private TinyflowChunk richChunk(String tenantId, String knowledgeId, String sourceId,
+			String documentId, String chunkId, String marker) {
+		return TinyflowChunk.builder().tenantId(tenantId).knowledgeId(knowledgeId).sourceId(sourceId)
+				.sourceType("file-" + marker).documentId(documentId).chunkId(chunkId).content("content-" + marker)
+				.sourceUri("s3://" + marker).sourceVersion("version-" + marker).location("page:" + marker)
+				.position(marker.length()).parentChunkId("parent-" + marker).tokenCount(marker.length() + 10)
+				.metadata(metadata("chunk", marker)).enabled(false)
+				.vectorIds(Arrays.asList("vector-" + marker, "vector-" + marker + "-2")).build();
+	}
+
+	private TinyflowIngestionTask richTask(String taskId, String tenantId, String knowledgeId,
+			String documentId, String status) {
+		return TinyflowIngestionTask.builder().taskId(taskId).providerKey("local-" + taskId)
+				.tenantId(tenantId).knowledgeId(knowledgeId).documentId(documentId).status(status)
+				.message("message-" + taskId).metadata(metadata("task", taskId)).build();
+	}
+
+	private Map<String, Object> metadata(String key, String value) {
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
+		metadata.put(key, value);
+		metadata.put("labels", Arrays.asList(value + "-one", value + "-two"));
+		return metadata;
+	}
+
+	private List<RepositoryScope> snapshotScopes() {
+		return Arrays.asList(
+				new RepositoryScope("tenant-a", "kb-atomic", "source-1"),
+				new RepositoryScope("tenant-a", "kb-atomic", "source-extra"),
+				new RepositoryScope("tenant-b", "kb-unrelated", "source-unrelated"));
 	}
 
 	private boolean hasTaskStatus(List<TinyflowIngestionTask> tasks, String status) {
@@ -474,21 +570,38 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 	}
 
 	private static final class RepositorySnapshot {
-		private final String knowledgeName;
-		private final long knowledgeVersion;
-		private final String activeDocumentId;
-		private final List<String> documents;
-		private final List<String> chunks;
-		private final List<String> tasks;
+		private final Map<String, List<Object>> knowledge;
+		private final Map<String, Long> knowledgeVersions;
+		private final Map<String, String> activeDocuments;
+		private final Map<String, List<Object>> documents;
+		private final Map<String, List<Object>> chunks;
+		private final Map<List<Object>, Integer> tasks;
 
-		private RepositorySnapshot(String knowledgeName, long knowledgeVersion, String activeDocumentId,
-				List<String> documents, List<String> chunks, List<String> tasks) {
-			this.knowledgeName = knowledgeName;
-			this.knowledgeVersion = knowledgeVersion;
-			this.activeDocumentId = activeDocumentId;
+		private RepositorySnapshot(Map<String, List<Object>> knowledge, Map<String, Long> knowledgeVersions,
+				Map<String, String> activeDocuments, Map<String, List<Object>> documents,
+				Map<String, List<Object>> chunks, Map<List<Object>, Integer> tasks) {
+			this.knowledge = knowledge;
+			this.knowledgeVersions = knowledgeVersions;
+			this.activeDocuments = activeDocuments;
 			this.documents = documents;
 			this.chunks = chunks;
 			this.tasks = tasks;
+		}
+	}
+
+	private static final class RepositoryScope {
+		private final String tenantId;
+		private final String knowledgeId;
+		private final String sourceId;
+
+		private RepositoryScope(String tenantId, String knowledgeId, String sourceId) {
+			this.tenantId = tenantId;
+			this.knowledgeId = knowledgeId;
+			this.sourceId = sourceId;
+		}
+
+		private String key() {
+			return tenantId + "|" + knowledgeId + "|" + sourceId;
 		}
 	}
 
