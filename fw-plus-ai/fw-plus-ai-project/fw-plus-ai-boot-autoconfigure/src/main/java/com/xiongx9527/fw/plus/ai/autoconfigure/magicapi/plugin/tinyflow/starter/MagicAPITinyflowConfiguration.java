@@ -1,14 +1,11 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.starter;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.service.MagicApiTinyflowWorkflowRepository;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.provider.MagicApiTinyflowModelProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.provider.MagicApiTinyflowVectorStoreProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.web.MagicTinyflowController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.model.MagicDynamicVectorDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow.TinyflowAutoConfiguration;
-import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflowRepository;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
@@ -38,13 +35,6 @@ public class MagicAPITinyflowConfiguration implements MagicPluginConfiguration {
 	@ConditionalOnMissingBean
 	public TinyflowWorkflowRepository magicApiTinyflowWorkflowRepository() {
 		return new MagicApiTinyflowWorkflowRepository();
-	}
-
-	@Bean
-	@ConditionalOnMissingBean
-	@ConditionalOnBean(MagicDynamicModelDataSource.class)
-	public TinyflowModelProvider magicApiTinyflowModelProvider(MagicDynamicModelDataSource dataSource) {
-		return new MagicApiTinyflowModelProvider(dataSource);
 	}
 
 	@Bean
