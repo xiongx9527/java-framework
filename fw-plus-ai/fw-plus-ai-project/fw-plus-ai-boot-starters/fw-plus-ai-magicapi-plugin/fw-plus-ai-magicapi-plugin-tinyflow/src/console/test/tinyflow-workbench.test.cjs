@@ -133,13 +133,15 @@ test('reads the current host resource on first open and tree switch without a wa
 	const { createToolbarResourceBinding, createWorkbench } = await workbenchModule();
 	const loaded = [];
 	const info = { value: { id: 'first' } };
+	const opened = { value: { type: 'tinyflow', item: { id: 'first' } } };
 	const workbench = createWorkbench({
 		load: async id => { loaded.push(id); return { id, content: '{"nodes":[]}' }; }
 	});
-	const binding = createToolbarResourceBinding(info, workbench);
+	const binding = createToolbarResourceBinding(info, workbench, opened);
 
 	assert.equal(await binding.sync(), true);
 	info.value = { id: 'second' };
+	opened.value = { type: 'tinyflow', item: { id: 'second' } };
 	assert.equal(await binding.sync(), true);
 	assert.equal(await binding.sync(), false);
 
@@ -178,9 +180,35 @@ test('does not load or confirm dirty work until the host opens a Tinyflow resour
 	assert.deepEqual(loaded, []);
 	assert.equal(confirmations, 0);
 
-	opened.value = { type: 'tinyflow' };
+	opened.value = { type: 'tinyflow', item: { id: 'api-resource' } };
 	assert.equal(await binding.sync(), false);
 	assert.equal(confirmations, 1);
+});
+
+test('ignores OPEN_GROUP info updates while opened still identifies the previous Tinyflow file', async () => {
+	const { createToolbarResourceBinding, createWorkbench } = await workbenchModule();
+	const loaded = [];
+	let confirmations = 0;
+	const info = { value: { id: 'workflow-file' } };
+	const opened = { value: { type: 'tinyflow', item: { id: 'workflow-file' } } };
+	const workbench = createWorkbench({
+		load: async id => { loaded.push(id); return { id, content: '{"nodes":[]}' }; },
+		confirmDiscard: async () => { confirmations += 1; return false; }
+	});
+	const binding = createToolbarResourceBinding(info, workbench, opened);
+
+	assert.equal(await binding.sync(), true);
+	workbench.onDataChange({ nodes: [{ id: 'dirty' }] });
+	info.value = { id: 'tinyflow-group' };
+	assert.equal(await binding.sync(), false);
+	info.value = { id: 'api-group' };
+	assert.equal(await binding.sync(), false);
+	info.value = { id: 'other-group' };
+	assert.equal(await binding.sync(), false);
+
+	assert.deepEqual(loaded, ['workflow-file']);
+	assert.equal(confirmations, 0);
+	assert.equal(workbench.getResource().id, 'workflow-file');
 });
 
 test('keeps only the newest resource when overlapping loads finish out of order', async () => {
@@ -228,6 +256,45 @@ test('discards a stale load failure after a newer resource succeeds', async () =
 	rejectA(new Error('A 已过期'));
 	assert.equal(await loadingA, false);
 	assert.equal(workbench.getResource().id, 'B');
+});
+
+test('does not mount or report loader completion after disposal', async () => {
+	const { createWorkbench, createWorkbenchMountLifecycle } = await workbenchModule();
+	let resolveLoader;
+	let rejectLoader;
+	let mountCalls = 0;
+	let optionCalls = 0;
+	const workbench = createWorkbench();
+	const lifecycle = createWorkbenchMountLifecycle(workbench);
+	const pendingMount = lifecycle.mount(() => new Promise(resolve => { resolveLoader = resolve; }), () => { optionCalls += 1; return { element: 'canvas' }; });
+	lifecycle.dispose();
+	resolveLoader({ mount() { mountCalls += 1; return { destroy() {} }; } });
+	assert.equal(await pendingMount, false);
+	assert.equal(optionCalls, 0);
+	assert.equal(mountCalls, 0);
+
+	const rejectedLifecycle = createWorkbenchMountLifecycle(createWorkbench());
+	const pendingReject = rejectedLifecycle.mount(() => new Promise((resolve, reject) => { rejectLoader = reject; }), () => ({ element: 'canvas' }));
+	rejectedLifecycle.dispose();
+	rejectLoader(new Error('加载失败'));
+	assert.equal(await pendingReject, false);
+});
+
+test('destroys a host created while disposal begins before attachment', async () => {
+	const { createWorkbench, createWorkbenchMountLifecycle } = await workbenchModule();
+	let destroyed = 0;
+	const workbench = createWorkbench();
+	const lifecycle = createWorkbenchMountLifecycle(workbench);
+	const mounted = await lifecycle.mount(async () => ({
+		mount() {
+			lifecycle.dispose();
+			return { destroy() { destroyed += 1; } };
+		}
+	}), () => ({ element: 'canvas' }));
+
+	assert.equal(mounted, false);
+	assert.equal(destroyed, 1);
+	assert.equal(workbench.getResource(), null);
 });
 
 test('uses the Magic constants base URL for Starter assets', async () => {
