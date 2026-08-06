@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.provider;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.tinyflow;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;

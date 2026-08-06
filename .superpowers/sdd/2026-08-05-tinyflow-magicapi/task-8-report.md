@@ -126,3 +126,56 @@ MagicDynamicModelDataSourceTest,MagicDynamicVectorDataSourceTest,MagicModelContr
 
 `javap -verbose` 已确认本轮四个变更生产 class 均为 `major version: 52`，并执行
 `git diff --check`。
+
+## Fix Round 2
+
+### RED
+
+Task 9 的完整反应堆构建暴露了边界回归。先执行：
+
+```text
+mvn -Dstyle.color=never -f fw-plus-ai/pom.xml \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=NeutralAiAutoConfigurationBoundaryTest test
+```
+
+稳定失败：公共 `magicapi.plugin.tinyflow.provider.MagicApiTinyflowModelProvider` 直接引用
+`LangChain4jAiModel`、`ChatLanguageModel` 和 `EmbeddingModel`，违反公共自动配置只能通过
+中立 registry/门面的边界。随后新增动态模型优先装配与 adapter 缺失退让测试；新增专属
+provider/configuration 尚不存在时，测试按预期在 testCompile 阶段失败。
+
+### 修复内容
+
+- 将 Magic Tinyflow 的 LangChain4j bridge 移至
+  `com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.tinyflow`，公共 Magic Tinyflow
+  配置不再导入或实例化 LangChain4j 具体实现。
+- 新增 `MagicApiTinyflowLangChain4jAutoConfiguration`，在
+  `MagicAPITinyflowConfiguration` 之后、`TinyflowAutoConfiguration` 之前装配，并以
+  adapter registry、Magic dynamic model data source、Magic resource 和插件开关为条件。
+  因此动态 CHAT/EMBEDDING 列表与同 key 的 get 解析继续使用同一个 bridge，同时会优先
+  于默认 Tinyflow provider；缺少 adapter 时两项公共配置均退让且不发生类链接失败。
+- 在 `spring.factories` 中将该 LangChain4j 专属配置置于公共 Magic 配置与 Tinyflow 默认
+  自动配置之间。
+
+### GREEN 与回归
+
+```text
+mvn -Dstyle.color=never -f fw-plus-ai/pom.xml \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure \
+  -Dtest=NeutralAiAutoConfigurationBoundaryTest,TinyflowModuleTest,\
+TinyflowMagicResourceStorageTest,TinyflowResourceDynamicRegistryTest,\
+MagicTinyflowControllerTest,MagicApiTinyflowProviderTest,TinyflowAutoConfigurationTest,\
+MagicDynamicModelDataSourceTest,MagicDynamicVectorDataSourceTest,MagicModelControllerTest test
+```
+
+通过，82 tests，0 failures，0 errors，0 skipped。
+
+```text
+mvn -Dstyle.color=never -f fw-plus-ai/pom.xml \
+  -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/\
+fw-plus-ai-magicapi-plugin-tinyflow -am package -DskipTests=false
+```
+
+通过，15/15 reactor modules 为 SUCCESS，总耗时 03:50；Tinyflow Starter 的 npm test、npm build
+以及 Magic Tinyflow console 的 npm build 均完成。npm audit 报告 2 项依赖漏洞，未在本轮修改
+依赖或生成文件。
