@@ -631,17 +631,6 @@ public class TinyflowIngestionServiceTest {
 		}
 
 		@Override
-		public synchronized List<TinyflowKnowledgeDefinition> findKnowledges(String tenantId) {
-			List<TinyflowKnowledgeDefinition> result = new ArrayList<TinyflowKnowledgeDefinition>();
-			for (TinyflowKnowledgeDefinition definition : knowledge.values()) {
-				if (tenantId.equals(definition.getTenantId())) {
-					result.add(definition);
-				}
-			}
-			return result;
-		}
-
-		@Override
 		public synchronized long findKnowledgeVersion(String tenantId, String knowledgeId) {
 			Long version = knowledgeVersions.get(key(tenantId, knowledgeId));
 			return version == null ? 0L : version;
@@ -656,6 +645,12 @@ public class TinyflowIngestionServiceTest {
 			}
 			knowledge.put(key, definition);
 			knowledgeVersions.put(key, actual + 1L);
+		}
+
+		@Override
+		public synchronized void saveKnowledgeWithVectorStoreOwnership(TinyflowKnowledgeDefinition definition,
+				long expectedVersion, String vectorStoreKey, boolean metadataFilterSupported) {
+			saveKnowledge(definition, expectedVersion);
 		}
 
 		@Override
@@ -727,6 +722,12 @@ public class TinyflowIngestionServiceTest {
 		@Override
 		public synchronized void deleteDocumentsBySource(String tenantId, String knowledgeId, String sourceId) {
 			throw new UnsupportedOperationException();
+		}
+
+		@Override
+		public synchronized void deleteDocumentVersion(String tenantId, String knowledgeId,
+				String sourceId, String documentId) {
+			// This ingestion fixture never creates version-cleanup compensation.
 		}
 
 		@Override

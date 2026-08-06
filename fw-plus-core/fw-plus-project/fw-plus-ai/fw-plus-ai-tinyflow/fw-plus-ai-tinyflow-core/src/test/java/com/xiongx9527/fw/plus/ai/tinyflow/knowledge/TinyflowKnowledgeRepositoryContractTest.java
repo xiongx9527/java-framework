@@ -33,6 +33,8 @@ public class TinyflowKnowledgeRepositoryContractTest
 		private final Map<String, TinyflowKnowledgeDefinition> knowledge =
 				new LinkedHashMap<String, TinyflowKnowledgeDefinition>();
 		private final Map<String, Long> versions = new LinkedHashMap<String, Long>();
+		private final Map<String, VectorStoreOwnership> vectorStoreOwnerships =
+				new LinkedHashMap<String, VectorStoreOwnership>();
 		private final Map<String, TinyflowDocument> documents = new LinkedHashMap<String, TinyflowDocument>();
 		private final Map<String, String> activeDocuments = new LinkedHashMap<String, String>();
 		private final Map<String, TinyflowChunk> chunks = new LinkedHashMap<String, TinyflowChunk>();
@@ -53,19 +55,6 @@ public class TinyflowKnowledgeRepositoryContractTest
 		@Override
 		public TinyflowKnowledgeDefinition findKnowledge(String tenantId, String knowledgeId) {
 			return read(() -> knowledge.get(key(tenantId, knowledgeId)));
-		}
-
-		@Override
-		public List<TinyflowKnowledgeDefinition> findKnowledges(String tenantId) {
-			return read(() -> {
-				List<TinyflowKnowledgeDefinition> result = new ArrayList<TinyflowKnowledgeDefinition>();
-				for (TinyflowKnowledgeDefinition definition : knowledge.values()) {
-					if (tenantId.equals(definition.getTenantId())) {
-						result.add(definition);
-					}
-				}
-				return result;
-			});
 		}
 
 		@Override
@@ -90,6 +79,24 @@ public class TinyflowKnowledgeRepositoryContractTest
 		}
 
 		@Override
+		public void saveKnowledgeWithVectorStoreOwnership(TinyflowKnowledgeDefinition definition,
+				long expectedVersion, String vectorStoreKey, boolean metadataFilterSupported) {
+			write(() -> {
+				String ownerKey = key(definition.getTenantId(), definition.getKnowledgeId());
+				for (Map.Entry<String, VectorStoreOwnership> entry : vectorStoreOwnerships.entrySet()) {
+					VectorStoreOwnership ownership = entry.getValue();
+					if (!ownerKey.equals(entry.getKey()) && vectorStoreKey.equals(ownership.vectorStoreKey)
+							&& (!metadataFilterSupported || !ownership.metadataFilterSupported)) {
+						throw new VectorStoreOwnershipException(vectorStoreKey);
+					}
+				}
+				saveKnowledge(definition, expectedVersion);
+				vectorStoreOwnerships.put(ownerKey,
+						new VectorStoreOwnership(vectorStoreKey, metadataFilterSupported));
+			});
+		}
+
+		@Override
 		public void deleteKnowledge(String tenantId, String knowledgeId, long expectedVersion) {
 			write(() -> {
 				long actualVersion = findKnowledgeVersion(tenantId, knowledgeId);
@@ -97,9 +104,10 @@ public class TinyflowKnowledgeRepositoryContractTest
 					throw new OptimisticLockException(expectedVersion, actualVersion);
 				}
 				String key = key(tenantId, knowledgeId);
-				knowledge.remove(key);
-				versions.remove(key);
-			});
+					knowledge.remove(key);
+					versions.remove(key);
+					vectorStoreOwnerships.remove(key);
+				});
 		}
 
 		@Override
@@ -167,6 +175,31 @@ public class TinyflowKnowledgeRepositoryContractTest
 					}
 				}
 				activeDocuments.remove(sourceKey(tenantId, knowledgeId, sourceId));
+			});
+		}
+
+		@Override
+		public void deleteDocumentVersion(String tenantId, String knowledgeId,
+				String sourceId, String documentId) {
+			write(() -> {
+				String documentKey = documentKey(tenantId, knowledgeId, documentId);
+				TinyflowDocument document = documents.get(documentKey);
+				if (document == null) {
+					return;
+				}
+				if (!sourceId.equals(document.getSourceId())) {
+					throw new IllegalArgumentException("Document does not belong to source");
+				}
+				if (documentId.equals(activeDocuments.get(sourceKey(tenantId, knowledgeId, sourceId)))) {
+					throw new IllegalStateException("Active document version cannot be deleted");
+				}
+				documents.remove(documentKey);
+				for (TinyflowChunk chunk : new ArrayList<TinyflowChunk>(chunks.values())) {
+					if (tenantId.equals(chunk.getTenantId()) && knowledgeId.equals(chunk.getKnowledgeId())
+							&& documentId.equals(chunk.getDocumentId())) {
+						chunks.remove(chunkKey(tenantId, knowledgeId, chunk.getChunkId()));
+					}
+				}
 			});
 		}
 
@@ -499,6 +532,16 @@ public class TinyflowKnowledgeRepositoryContractTest
 
 		private interface RepositoryMutation {
 			void execute();
+		}
+
+		private static final class VectorStoreOwnership {
+			private final String vectorStoreKey;
+			private final boolean metadataFilterSupported;
+
+			private VectorStoreOwnership(String vectorStoreKey, boolean metadataFilterSupported) {
+				this.vectorStoreKey = vectorStoreKey;
+				this.metadataFilterSupported = metadataFilterSupported;
+			}
 		}
 	}
 }

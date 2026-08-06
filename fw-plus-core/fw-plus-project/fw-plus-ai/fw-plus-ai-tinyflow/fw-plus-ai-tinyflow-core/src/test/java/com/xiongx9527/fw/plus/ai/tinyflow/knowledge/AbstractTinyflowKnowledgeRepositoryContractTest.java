@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
@@ -102,6 +103,61 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 	}
 
 	@Test
+	public void shouldRejectExclusiveVectorStoreOwnershipAcrossTenants() {
+		repository.saveKnowledgeWithVectorStoreOwnership(
+				knowledge("tenant-a", "kb-owner"), 0L, "store-exclusive", false);
+
+		assertThrows(TinyflowKnowledgeRepository.VectorStoreOwnershipException.class,
+				() -> repository.saveKnowledgeWithVectorStoreOwnership(
+						knowledge("tenant-b", "kb-contender"), 0L, "store-exclusive", false));
+		assertNotNull(repository.findKnowledge("tenant-a", "kb-owner"));
+		assertNull(repository.findKnowledge("tenant-b", "kb-contender"));
+	}
+
+	@Test
+	public void shouldAtomicallyGrantExclusiveVectorStoreToOnlyOneConcurrentOwner() throws Exception {
+		CountDownLatch start = new CountDownLatch(1);
+		CountDownLatch finished = new CountDownLatch(2);
+		AtomicInteger successes = new AtomicInteger();
+		AtomicInteger conflicts = new AtomicInteger();
+		AtomicReference<Throwable> unexpected = new AtomicReference<Throwable>();
+		Runnable tenantA = ownershipAttempt(start, finished, successes, conflicts, unexpected,
+				"tenant-a", "kb-a", "store-race");
+		Runnable tenantB = ownershipAttempt(start, finished, successes, conflicts, unexpected,
+				"tenant-b", "kb-b", "store-race");
+		new Thread(tenantA, "tinyflow-store-owner-a").start();
+		new Thread(tenantB, "tinyflow-store-owner-b").start();
+
+		start.countDown();
+		assertTrue(finished.await(5, TimeUnit.SECONDS));
+
+		assertNull(unexpected.get());
+		assertEquals(1, successes.get());
+		assertEquals(1, conflicts.get());
+		assertTrue((repository.findKnowledge("tenant-a", "kb-a") != null)
+				^ (repository.findKnowledge("tenant-b", "kb-b") != null));
+	}
+
+	private Runnable ownershipAttempt(CountDownLatch start, CountDownLatch finished,
+			AtomicInteger successes, AtomicInteger conflicts, AtomicReference<Throwable> unexpected,
+			String tenantId, String knowledgeId, String storeKey) {
+		return () -> {
+			try {
+				start.await();
+				repository.saveKnowledgeWithVectorStoreOwnership(
+						knowledge(tenantId, knowledgeId), 0L, storeKey, false);
+				successes.incrementAndGet();
+			} catch (TinyflowKnowledgeRepository.VectorStoreOwnershipException expected) {
+				conflicts.incrementAndGet();
+			} catch (Throwable throwable) {
+				unexpected.compareAndSet(null, throwable);
+			} finally {
+				finished.countDown();
+			}
+		};
+	}
+
+	@Test
 	public void shouldDeleteOnlyRequestedSourceVersionsWithinTenantAndKnowledge() {
 		repository.saveDocument(document("tenant-a", "kb-1", "source-1", "doc-a1", "sum-a1"));
 		repository.saveDocument(document("tenant-a", "kb-1", "source-1", "doc-a2", "sum-a2"));
@@ -113,6 +169,25 @@ public abstract class AbstractTinyflowKnowledgeRepositoryContractTest {
 		assertTrue(repository.findDocumentVersions("tenant-a", "kb-1", "source-1").isEmpty());
 		assertEquals(1, repository.findDocumentVersions("tenant-a", "kb-1", "source-2").size());
 		assertEquals(1, repository.findDocumentVersions("tenant-b", "kb-1", "source-1").size());
+	}
+
+	@Test
+	public void shouldDeleteOnlySpecifiedInactiveDocumentVersionAndItsChunks() {
+		repository.saveDocument(document("tenant-a", "kb-1", "source-1", "doc-old", "sum-old"));
+		repository.saveDocument(document("tenant-a", "kb-1", "source-1", "doc-active", "sum-active"));
+		repository.saveChunks(Arrays.asList(
+				chunk("tenant-a", "kb-1", "doc-old", "chunk-old", "old", true, "vec-old"),
+				chunk("tenant-a", "kb-1", "doc-active", "chunk-active", "active", true, "vec-active")));
+		repository.activateDocumentVersion("tenant-a", "kb-1", "source-1", "doc-active");
+
+		repository.deleteDocumentVersion("tenant-a", "kb-1", "source-1", "doc-old");
+		repository.deleteDocumentVersion("tenant-a", "kb-1", "source-1", "doc-old");
+
+		assertTrue(repository.findChunksByDocument("tenant-a", "kb-1", "doc-old").isEmpty());
+		assertNull(repository.findBySourceAndChecksum("tenant-a", "kb-1", "source-1", "sum-old"));
+		assertEquals("doc-active", repository.findActiveDocument(
+				"tenant-a", "kb-1", "source-1").getDocumentId());
+		assertEquals(1, repository.findChunksByDocument("tenant-a", "kb-1", "doc-active").size());
 	}
 
 	@Test
