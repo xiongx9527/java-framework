@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class TinyflowKnowledgeRepositoryContractTest
 		extends AbstractTinyflowKnowledgeRepositoryContractTest {
@@ -22,268 +23,426 @@ public class TinyflowKnowledgeRepositoryContractTest
 	}
 
 	@Override
-	protected void pauseNextCompletionAfter(TinyflowKnowledgeRepository target, String step) {
-		((InMemoryTinyflowKnowledgeRepository) target).pauseCompletionAfter = step;
+	protected RepositoryConcurrencyProbe concurrencyProbe(TinyflowKnowledgeRepository target) {
+		return (RepositoryConcurrencyProbe) target;
 	}
 
-	@Override
-	protected void awaitCompletionPaused(TinyflowKnowledgeRepository target) throws InterruptedException {
-		if (!((InMemoryTinyflowKnowledgeRepository) target).completionPaused.await(5, TimeUnit.SECONDS)) {
-			throw new AssertionError("Completion did not reach the configured pause");
-		}
-	}
+	private static final class InMemoryTinyflowKnowledgeRepository
+			implements TinyflowKnowledgeRepository, RepositoryConcurrencyProbe {
 
-	@Override
-	protected void releaseCompletion(TinyflowKnowledgeRepository target) {
-		((InMemoryTinyflowKnowledgeRepository) target).releaseCompletion.countDown();
-	}
-
-	private static final class InMemoryTinyflowKnowledgeRepository implements TinyflowKnowledgeRepository {
-
-		private final Map<String, TinyflowKnowledgeDefinition> knowledge = new LinkedHashMap<String, TinyflowKnowledgeDefinition>();
+		private final Map<String, TinyflowKnowledgeDefinition> knowledge =
+				new LinkedHashMap<String, TinyflowKnowledgeDefinition>();
 		private final Map<String, Long> versions = new LinkedHashMap<String, Long>();
 		private final Map<String, TinyflowDocument> documents = new LinkedHashMap<String, TinyflowDocument>();
 		private final Map<String, String> activeDocuments = new LinkedHashMap<String, String>();
 		private final Map<String, TinyflowChunk> chunks = new LinkedHashMap<String, TinyflowChunk>();
 		private final List<TinyflowIngestionTask> tasks = new ArrayList<TinyflowIngestionTask>();
 		private final List<VectorCompensation> compensations = new ArrayList<VectorCompensation>();
-		private String failCompletionAt;
-		private String pauseCompletionAfter;
+		private final ReentrantLock repositoryLock = new ReentrantLock(true);
+		private volatile String failCompletionAt;
+		private volatile String pauseCompletionAfter;
 		private final CountDownLatch completionPaused = new CountDownLatch(1);
 		private final CountDownLatch releaseCompletion = new CountDownLatch(1);
+		private volatile CountDownLatch readerEntered;
+		private volatile CountDownLatch writerEntered;
+		private volatile Thread readerThread;
+		private volatile Thread writerThread;
+		private volatile int readerEntryCount;
+		private volatile int writerEntryCount;
 
 		@Override
-		public synchronized TinyflowKnowledgeDefinition findKnowledge(String tenantId, String knowledgeId) {
-			return knowledge.get(key(tenantId, knowledgeId));
+		public TinyflowKnowledgeDefinition findKnowledge(String tenantId, String knowledgeId) {
+			return read(() -> knowledge.get(key(tenantId, knowledgeId)));
 		}
 
 		@Override
-		public synchronized long findKnowledgeVersion(String tenantId, String knowledgeId) {
-			Long version = versions.get(key(tenantId, knowledgeId));
-			return version == null ? 0L : version;
+		public long findKnowledgeVersion(String tenantId, String knowledgeId) {
+			return read(() -> {
+				Long version = versions.get(key(tenantId, knowledgeId));
+				return version == null ? 0L : version;
+			});
 		}
 
 		@Override
-		public synchronized void saveKnowledge(TinyflowKnowledgeDefinition definition, long expectedVersion) {
-			String key = key(definition.getTenantId(), definition.getKnowledgeId());
-			long actualVersion = findKnowledgeVersion(definition.getTenantId(), definition.getKnowledgeId());
-			if (actualVersion != expectedVersion) {
-				throw new OptimisticLockException(expectedVersion, actualVersion);
-			}
-			knowledge.put(key, definition);
-			versions.put(key, actualVersion + 1L);
+		public void saveKnowledge(TinyflowKnowledgeDefinition definition, long expectedVersion) {
+			write(() -> {
+				String key = key(definition.getTenantId(), definition.getKnowledgeId());
+				long actualVersion = findKnowledgeVersion(definition.getTenantId(), definition.getKnowledgeId());
+				if (actualVersion != expectedVersion) {
+					throw new OptimisticLockException(expectedVersion, actualVersion);
+				}
+				knowledge.put(key, definition);
+				versions.put(key, actualVersion + 1L);
+			});
 		}
 
 		@Override
-		public synchronized void deleteKnowledge(String tenantId, String knowledgeId, long expectedVersion) {
-			long actualVersion = findKnowledgeVersion(tenantId, knowledgeId);
-			if (actualVersion != expectedVersion) {
-				throw new OptimisticLockException(expectedVersion, actualVersion);
-			}
-			String key = key(tenantId, knowledgeId);
-			knowledge.remove(key);
-			versions.remove(key);
+		public void deleteKnowledge(String tenantId, String knowledgeId, long expectedVersion) {
+			write(() -> {
+				long actualVersion = findKnowledgeVersion(tenantId, knowledgeId);
+				if (actualVersion != expectedVersion) {
+					throw new OptimisticLockException(expectedVersion, actualVersion);
+				}
+				String key = key(tenantId, knowledgeId);
+				knowledge.remove(key);
+				versions.remove(key);
+			});
 		}
 
 		@Override
-		public synchronized TinyflowDocument findBySourceAndChecksum(String tenantId, String knowledgeId,
+		public TinyflowDocument findBySourceAndChecksum(String tenantId, String knowledgeId,
 				String sourceId, String checksum) {
-			for (TinyflowDocument document : findDocumentVersions(tenantId, knowledgeId, sourceId)) {
+			return read(() -> {
+				for (TinyflowDocument document : findDocumentVersions(tenantId, knowledgeId, sourceId)) {
 					if (checksum.equals(document.getChecksum())) {
-					return document;
+						return document;
+					}
 				}
-			}
-			return null;
+				return null;
+			});
 		}
 
 		@Override
-		public synchronized TinyflowDocument findActiveDocument(String tenantId, String knowledgeId, String sourceId) {
-			String documentId = activeDocuments.get(sourceKey(tenantId, knowledgeId, sourceId));
-			return documentId == null ? null : documents.get(documentKey(tenantId, knowledgeId, documentId));
+		public TinyflowDocument findActiveDocument(String tenantId, String knowledgeId, String sourceId) {
+			return read(() -> {
+				String documentId = activeDocuments.get(sourceKey(tenantId, knowledgeId, sourceId));
+				return documentId == null ? null : documents.get(documentKey(tenantId, knowledgeId, documentId));
+			});
 		}
 
 		@Override
-		public synchronized void saveDocument(TinyflowDocument document) {
-			documents.put(documentKey(document.getTenantId(), document.getKnowledgeId(), document.getDocumentId()), document);
+		public void saveDocument(TinyflowDocument document) {
+			write(() -> documents.put(
+					documentKey(document.getTenantId(), document.getKnowledgeId(), document.getDocumentId()), document));
 		}
 
 		@Override
-		public synchronized List<TinyflowDocument> findDocumentVersions(String tenantId, String knowledgeId,
-				String sourceId) {
-			List<TinyflowDocument> result = new ArrayList<TinyflowDocument>();
-			for (TinyflowDocument document : documents.values()) {
-				if (tenantId.equals(document.getTenantId())
-						&& knowledgeId.equals(document.getKnowledgeId())
-						&& sourceId.equals(document.getSourceId())) {
-					result.add(document);
+		public List<TinyflowDocument> findDocumentVersions(String tenantId, String knowledgeId, String sourceId) {
+			return read(() -> {
+				List<TinyflowDocument> result = new ArrayList<TinyflowDocument>();
+				for (TinyflowDocument document : documents.values()) {
+					if (tenantId.equals(document.getTenantId())
+							&& knowledgeId.equals(document.getKnowledgeId())
+							&& sourceId.equals(document.getSourceId())) {
+						result.add(document);
+					}
 				}
-			}
-			return result;
+				return result;
+			});
 		}
 
 		@Override
-		public synchronized void activateDocumentVersion(String tenantId, String knowledgeId,
+		public void activateDocumentVersion(String tenantId, String knowledgeId,
 				String sourceId, String documentId) {
-			TinyflowDocument document = documents.get(documentKey(tenantId, knowledgeId, documentId));
-			if (document == null || !sourceId.equals(document.getSourceId())) {
-				throw new IllegalArgumentException("Document does not belong to source");
-			}
-			activeDocuments.put(sourceKey(tenantId, knowledgeId, sourceId), documentId);
-		}
-
-		@Override
-		public synchronized void deleteDocumentsBySource(String tenantId, String knowledgeId, String sourceId) {
-			for (TinyflowDocument document : new ArrayList<TinyflowDocument>(documents.values())) {
-				if (tenantId.equals(document.getTenantId())
-						&& knowledgeId.equals(document.getKnowledgeId())
-						&& sourceId.equals(document.getSourceId())) {
-					documents.remove(documentKey(tenantId, knowledgeId, document.getDocumentId()));
+			write(() -> {
+				TinyflowDocument document = documents.get(documentKey(tenantId, knowledgeId, documentId));
+				if (document == null || !sourceId.equals(document.getSourceId())) {
+					throw new IllegalArgumentException("Document does not belong to source");
 				}
-			}
-			activeDocuments.remove(sourceKey(tenantId, knowledgeId, sourceId));
+				activeDocuments.put(sourceKey(tenantId, knowledgeId, sourceId), documentId);
+			});
 		}
 
 		@Override
-		public synchronized void saveChunks(List<TinyflowChunk> values) {
-			for (TinyflowChunk chunk : values) {
-				chunks.put(chunkKey(chunk.getTenantId(), chunk.getKnowledgeId(), chunk.getChunkId()), chunk);
-			}
-		}
-
-		@Override
-		public synchronized TinyflowChunk findChunk(String tenantId, String knowledgeId, String chunkId) {
-			return chunks.get(chunkKey(tenantId, knowledgeId, chunkId));
-		}
-
-		@Override
-		public synchronized List<TinyflowChunk> findChunksByDocument(String tenantId, String knowledgeId,
-				String documentId) {
-			List<TinyflowChunk> result = new ArrayList<TinyflowChunk>();
-			for (TinyflowChunk chunk : chunks.values()) {
-				if (tenantId.equals(chunk.getTenantId())
-						&& knowledgeId.equals(chunk.getKnowledgeId())
-						&& documentId.equals(chunk.getDocumentId())) {
-					result.add(chunk);
+		public void deleteDocumentsBySource(String tenantId, String knowledgeId, String sourceId) {
+			write(() -> {
+				for (TinyflowDocument document : new ArrayList<TinyflowDocument>(documents.values())) {
+					if (tenantId.equals(document.getTenantId())
+							&& knowledgeId.equals(document.getKnowledgeId())
+							&& sourceId.equals(document.getSourceId())) {
+						documents.remove(documentKey(tenantId, knowledgeId, document.getDocumentId()));
+					}
 				}
-			}
-			return result;
+				activeDocuments.remove(sourceKey(tenantId, knowledgeId, sourceId));
+			});
 		}
 
 		@Override
-		public synchronized List<TinyflowChunk> findChunksByVectorIds(String tenantId, String knowledgeId,
+		public void saveChunks(List<TinyflowChunk> values) {
+			write(() -> {
+				for (TinyflowChunk chunk : values) {
+					chunks.put(chunkKey(chunk.getTenantId(), chunk.getKnowledgeId(), chunk.getChunkId()), chunk);
+				}
+			});
+		}
+
+		@Override
+		public TinyflowChunk findChunk(String tenantId, String knowledgeId, String chunkId) {
+			return read(() -> chunks.get(chunkKey(tenantId, knowledgeId, chunkId)));
+		}
+
+		@Override
+		public List<TinyflowChunk> findChunksByDocument(String tenantId, String knowledgeId, String documentId) {
+			return read(() -> {
+				List<TinyflowChunk> result = new ArrayList<TinyflowChunk>();
+				for (TinyflowChunk chunk : chunks.values()) {
+					if (tenantId.equals(chunk.getTenantId())
+							&& knowledgeId.equals(chunk.getKnowledgeId())
+							&& documentId.equals(chunk.getDocumentId())) {
+						result.add(chunk);
+					}
+				}
+				return result;
+			});
+		}
+
+		@Override
+		public List<TinyflowChunk> findChunksByVectorIds(String tenantId, String knowledgeId,
 				List<String> vectorIds) {
-			List<TinyflowChunk> result = new ArrayList<TinyflowChunk>();
-			for (TinyflowChunk chunk : chunks.values()) {
-				if (tenantId.equals(chunk.getTenantId())
-						&& knowledgeId.equals(chunk.getKnowledgeId())
-						&& !Collections.disjoint(chunk.getVectorIds(), vectorIds)) {
-					result.add(chunk);
+			return read(() -> {
+				List<TinyflowChunk> result = new ArrayList<TinyflowChunk>();
+				for (TinyflowChunk chunk : chunks.values()) {
+					if (tenantId.equals(chunk.getTenantId())
+							&& knowledgeId.equals(chunk.getKnowledgeId())
+							&& !Collections.disjoint(chunk.getVectorIds(), vectorIds)) {
+						result.add(chunk);
+					}
 				}
-			}
-			return result;
+				return result;
+			});
 		}
 
 		@Override
-		public synchronized void updateChunk(String tenantId, String knowledgeId, String chunkId,
+		public void updateChunk(String tenantId, String knowledgeId, String chunkId,
 				boolean enabled, String content, Map<String, Object> metadata) {
-			String key = chunkKey(tenantId, knowledgeId, chunkId);
-			TinyflowChunk original = chunks.get(key);
-			if (original == null) {
-				throw new IllegalArgumentException("Chunk not found");
-			}
-			TinyflowChunk updated = TinyflowChunk.builder()
-					.tenantId(original.getTenantId())
-					.knowledgeId(original.getKnowledgeId())
-					.sourceId(original.getSourceId())
-					.sourceType(original.getSourceType())
-					.documentId(original.getDocumentId())
-					.chunkId(original.getChunkId())
-					.content(content)
-					.sourceUri(original.getSourceUri())
-					.sourceVersion(original.getSourceVersion())
-					.location(original.getLocation())
-					.position(original.getPosition())
-					.parentChunkId(original.getParentChunkId())
-					.tokenCount(original.getTokenCount())
-					.metadata(metadata)
-					.enabled(enabled)
-					.vectorIds(original.getVectorIds())
-					.build();
-			chunks.put(key, updated);
+			write(() -> {
+				String key = chunkKey(tenantId, knowledgeId, chunkId);
+				TinyflowChunk original = chunks.get(key);
+				if (original == null) {
+					throw new IllegalArgumentException("Chunk not found");
+				}
+				TinyflowChunk updated = TinyflowChunk.builder()
+						.tenantId(original.getTenantId())
+						.knowledgeId(original.getKnowledgeId())
+						.sourceId(original.getSourceId())
+						.sourceType(original.getSourceType())
+						.documentId(original.getDocumentId())
+						.chunkId(original.getChunkId())
+						.content(content)
+						.sourceUri(original.getSourceUri())
+						.sourceVersion(original.getSourceVersion())
+						.location(original.getLocation())
+						.position(original.getPosition())
+						.parentChunkId(original.getParentChunkId())
+						.tokenCount(original.getTokenCount())
+						.metadata(metadata)
+						.enabled(enabled)
+						.vectorIds(original.getVectorIds())
+						.build();
+				chunks.put(key, updated);
+			});
 		}
 
 		@Override
-		public synchronized void saveTask(TinyflowIngestionTask task) {
-			tasks.add(task);
+		public void saveTask(TinyflowIngestionTask task) {
+			write(() -> tasks.add(task));
 		}
 
 		@Override
-		public synchronized void completeIngestion(TinyflowDocument completedDocument, List<TinyflowChunk> values,
+		public void completeIngestion(TinyflowDocument completedDocument, List<TinyflowChunk> values,
 				TinyflowIngestionTask completedTask) {
-			Map<String, TinyflowDocument> documentSnapshot =
-					new LinkedHashMap<String, TinyflowDocument>(documents);
-			Map<String, String> activeSnapshot = new LinkedHashMap<String, String>(activeDocuments);
-			Map<String, TinyflowChunk> chunkSnapshot = new LinkedHashMap<String, TinyflowChunk>(chunks);
-			List<TinyflowIngestionTask> taskSnapshot = new ArrayList<TinyflowIngestionTask>(tasks);
+			write(() -> {
+				Map<String, TinyflowDocument> documentSnapshot =
+						new LinkedHashMap<String, TinyflowDocument>(documents);
+				Map<String, String> activeSnapshot = new LinkedHashMap<String, String>(activeDocuments);
+				Map<String, TinyflowChunk> chunkSnapshot = new LinkedHashMap<String, TinyflowChunk>(chunks);
+				List<TinyflowIngestionTask> taskSnapshot = new ArrayList<TinyflowIngestionTask>(tasks);
+				try {
+					saveChunks(values);
+					afterCompletionStep("chunks");
+					saveDocument(completedDocument);
+					afterCompletionStep("document");
+					activateDocumentVersion(completedDocument.getTenantId(), completedDocument.getKnowledgeId(),
+							completedDocument.getSourceId(), completedDocument.getDocumentId());
+					afterCompletionStep("active");
+					saveTask(completedTask);
+					afterCompletionStep("task");
+				} catch (RuntimeException exception) {
+					documents.clear();
+					documents.putAll(documentSnapshot);
+					activeDocuments.clear();
+					activeDocuments.putAll(activeSnapshot);
+					chunks.clear();
+					chunks.putAll(chunkSnapshot);
+					tasks.clear();
+					tasks.addAll(taskSnapshot);
+					throw exception;
+				}
+			});
+		}
+
+		@Override
+		public List<TinyflowIngestionTask> findTasks(String tenantId, String knowledgeId) {
+			return read(() -> {
+				List<TinyflowIngestionTask> result = new ArrayList<TinyflowIngestionTask>();
+				for (TinyflowIngestionTask task : tasks) {
+					if (tenantId.equals(task.getTenantId()) && knowledgeId.equals(task.getKnowledgeId())) {
+						result.add(task);
+					}
+				}
+				return result;
+			});
+		}
+
+		@Override
+		public void saveVectorCompensation(VectorCompensation compensation) {
+			write(() -> compensations.add(compensation));
+		}
+
+		@Override
+		public List<VectorCompensation> findVectorCompensations(String tenantId, String knowledgeId) {
+			return read(() -> {
+				List<VectorCompensation> result = new ArrayList<VectorCompensation>();
+				for (VectorCompensation compensation : compensations) {
+					if (tenantId.equals(compensation.getTenantId())
+							&& knowledgeId.equals(compensation.getKnowledgeId())) {
+						result.add(compensation);
+					}
+				}
+				return result;
+			});
+		}
+
+		@Override
+		public void deleteVectorCompensation(String tenantId, String knowledgeId, String compensationId) {
+			write(() -> {
+				for (VectorCompensation compensation : new ArrayList<VectorCompensation>(compensations)) {
+					if (tenantId.equals(compensation.getTenantId())
+							&& knowledgeId.equals(compensation.getKnowledgeId())
+							&& compensationId.equals(compensation.getCompensationId())) {
+						compensations.remove(compensation);
+					}
+				}
+			});
+		}
+
+		@Override
+		public void pauseNextCompletionAfter(String step) {
+			pauseCompletionAfter = step;
+		}
+
+		@Override
+		public void awaitCompletionPaused() throws InterruptedException {
+			await(completionPaused, "Completion did not reach the configured pause");
+		}
+
+		@Override
+		public void releaseCompletion() {
+			releaseCompletion.countDown();
+		}
+
+		@Override
+		public void expectReaderEntry() {
+			readerThread = null;
+			readerEntryCount = 0;
+			readerEntered = new CountDownLatch(1);
+		}
+
+		@Override
+		public void awaitReaderEntered() throws InterruptedException {
+			await(readerEntered, "Reader did not enter the repository read path");
+		}
+
+		@Override
+		public void awaitReaderBlocked() {
+			awaitBlocked(readerThread, "Reader", true);
+		}
+
+		@Override
+		public void expectWriterEntry() {
+			writerThread = null;
+			writerEntryCount = 0;
+			writerEntered = new CountDownLatch(1);
+		}
+
+		@Override
+		public void awaitWriterEntered() throws InterruptedException {
+			await(writerEntered, "Writer did not enter the repository write path");
+		}
+
+		@Override
+		public void awaitWriterBlocked() {
+			awaitBlocked(writerThread, "Writer", false);
+		}
+
+		private <T> T read(RepositoryOperation<T> operation) {
+			recordReaderEntry();
+			repositoryLock.lock();
 			try {
-				saveChunks(values);
-				afterCompletionStep("chunks");
-				saveDocument(completedDocument);
-				afterCompletionStep("document");
-				activateDocumentVersion(completedDocument.getTenantId(), completedDocument.getKnowledgeId(),
-						completedDocument.getSourceId(), completedDocument.getDocumentId());
-				afterCompletionStep("active");
-				saveTask(completedTask);
-				afterCompletionStep("task");
-			} catch (RuntimeException exception) {
-				documents.clear();
-				documents.putAll(documentSnapshot);
-				activeDocuments.clear();
-				activeDocuments.putAll(activeSnapshot);
-				chunks.clear();
-				chunks.putAll(chunkSnapshot);
-				tasks.clear();
-				tasks.addAll(taskSnapshot);
-				throw exception;
+				return operation.execute();
+			} finally {
+				repositoryLock.unlock();
 			}
 		}
 
-		@Override
-		public synchronized List<TinyflowIngestionTask> findTasks(String tenantId, String knowledgeId) {
-			List<TinyflowIngestionTask> result = new ArrayList<TinyflowIngestionTask>();
-			for (TinyflowIngestionTask task : tasks) {
-				if (tenantId.equals(task.getTenantId()) && knowledgeId.equals(task.getKnowledgeId())) {
-					result.add(task);
+		private void write(RepositoryMutation mutation) {
+			recordWriterEntry();
+			repositoryLock.lock();
+			try {
+				mutation.execute();
+			} finally {
+				repositoryLock.unlock();
+			}
+		}
+
+		private void recordReaderEntry() {
+			CountDownLatch entered = readerEntered;
+			if (entered != null) {
+				if (readerThread == null) {
+					readerThread = Thread.currentThread();
+					readerEntryCount = 1;
+					entered.countDown();
+				} else if (readerThread == Thread.currentThread()) {
+					readerEntryCount++;
 				}
 			}
-			return result;
 		}
 
-		@Override
-		public synchronized void saveVectorCompensation(VectorCompensation compensation) {
-			compensations.add(compensation);
-		}
-
-		@Override
-		public synchronized List<VectorCompensation> findVectorCompensations(String tenantId, String knowledgeId) {
-			List<VectorCompensation> result = new ArrayList<VectorCompensation>();
-			for (VectorCompensation compensation : compensations) {
-				if (tenantId.equals(compensation.getTenantId())
-						&& knowledgeId.equals(compensation.getKnowledgeId())) {
-					result.add(compensation);
+		private void recordWriterEntry() {
+			CountDownLatch entered = writerEntered;
+			if (entered != null) {
+				if (writerThread == null) {
+					writerThread = Thread.currentThread();
+					writerEntryCount = 1;
+					entered.countDown();
+				} else if (writerThread == Thread.currentThread()) {
+					writerEntryCount++;
 				}
 			}
-			return result;
 		}
 
-		@Override
-		public synchronized void deleteVectorCompensation(String tenantId, String knowledgeId, String compensationId) {
-			for (VectorCompensation compensation : new ArrayList<VectorCompensation>(compensations)) {
-				if (tenantId.equals(compensation.getTenantId())
-						&& knowledgeId.equals(compensation.getKnowledgeId())
-						&& compensationId.equals(compensation.getCompensationId())) {
-					compensations.remove(compensation);
+		private void awaitBlocked(Thread thread, String actor, boolean reader) {
+			if (thread == null) {
+				throw new AssertionError(actor + " entry was not recorded");
+			}
+			if (entryCount(reader) != 1) {
+				throw new AssertionError(actor + " reached another repository path before blocking");
+			}
+			long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
+			while (!repositoryLock.hasQueuedThread(thread)) {
+				if (entryCount(reader) != 1) {
+					throw new AssertionError(actor + " reached another repository path before blocking");
 				}
+				if (!thread.isAlive()) {
+					throw new AssertionError(actor + " returned before blocking on the repository lock");
+				}
+				if (System.nanoTime() >= deadline) {
+					throw new AssertionError(actor + " did not block on the repository lock");
+				}
+				Thread.yield();
+			}
+			if (entryCount(reader) != 1) {
+				throw new AssertionError(actor + " reached another repository path before blocking");
+			}
+		}
+
+		private int entryCount(boolean reader) {
+			return reader ? readerEntryCount : writerEntryCount;
+		}
+
+		private void await(CountDownLatch latch, String failureMessage) throws InterruptedException {
+			if (latch == null || !latch.await(5, TimeUnit.SECONDS)) {
+				throw new AssertionError(failureMessage);
 			}
 		}
 
@@ -321,5 +480,12 @@ public class TinyflowKnowledgeRepositoryContractTest
 			}
 		}
 
+		private interface RepositoryOperation<T> {
+			T execute();
+		}
+
+		private interface RepositoryMutation {
+			void execute();
+		}
 	}
 }
