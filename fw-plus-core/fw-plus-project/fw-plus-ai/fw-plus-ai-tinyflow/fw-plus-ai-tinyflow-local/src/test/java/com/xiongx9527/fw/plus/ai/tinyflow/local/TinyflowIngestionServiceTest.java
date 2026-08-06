@@ -631,6 +631,17 @@ public class TinyflowIngestionServiceTest {
 		}
 
 		@Override
+		public synchronized List<TinyflowKnowledgeDefinition> findKnowledges(String tenantId) {
+			List<TinyflowKnowledgeDefinition> result = new ArrayList<TinyflowKnowledgeDefinition>();
+			for (TinyflowKnowledgeDefinition definition : knowledge.values()) {
+				if (tenantId.equals(definition.getTenantId())) {
+					result.add(definition);
+				}
+			}
+			return result;
+		}
+
+		@Override
 		public synchronized long findKnowledgeVersion(String tenantId, String knowledgeId) {
 			Long version = knowledgeVersions.get(key(tenantId, knowledgeId));
 			return version == null ? 0L : version;

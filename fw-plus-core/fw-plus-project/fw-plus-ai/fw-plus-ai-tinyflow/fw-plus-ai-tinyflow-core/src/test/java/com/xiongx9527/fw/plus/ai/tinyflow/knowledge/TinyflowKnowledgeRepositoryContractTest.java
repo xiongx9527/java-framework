@@ -56,6 +56,19 @@ public class TinyflowKnowledgeRepositoryContractTest
 		}
 
 		@Override
+		public List<TinyflowKnowledgeDefinition> findKnowledges(String tenantId) {
+			return read(() -> {
+				List<TinyflowKnowledgeDefinition> result = new ArrayList<TinyflowKnowledgeDefinition>();
+				for (TinyflowKnowledgeDefinition definition : knowledge.values()) {
+					if (tenantId.equals(definition.getTenantId())) {
+						result.add(definition);
+					}
+				}
+				return result;
+			});
+		}
+
+		@Override
 		public long findKnowledgeVersion(String tenantId, String knowledgeId) {
 			return read(() -> {
 				Long version = versions.get(key(tenantId, knowledgeId));

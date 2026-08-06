@@ -1,0 +1,165 @@
+package com.xiongx9527.fw.plus.ai.tinyflow.local.index;
+
+import com.xiongx9527.fw.plus.ai.tinyflow.TinyflowException;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowChunk;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocument;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowIngestionTask;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeDefinition;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
+import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreDescriptor;
+import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/** Coordinates create, rebuild and source deletion while preserving an old active version on failure. */
+public final class TinyflowKnowledgeMaintenanceService {
+
+	public static final String VECTOR_STORE_KEY = "vectorStoreKey";
+
+	private final TinyflowKnowledgeRepository repository;
+	private final TinyflowLocalIndexer indexer;
+	private final TinyflowVectorStoreProvider vectorStoreProvider;
+
+	public TinyflowKnowledgeMaintenanceService(TinyflowKnowledgeRepository repository,
+			TinyflowLocalIndexer indexer, TinyflowVectorStoreProvider vectorStoreProvider) {
+		if (repository == null || indexer == null || vectorStoreProvider == null) {
+			throw new IllegalArgumentException("Maintenance dependencies must not be null");
+		}
+		this.repository = repository;
+		this.indexer = indexer;
+		this.vectorStoreProvider = vectorStoreProvider;
+	}
+
+	public TinyflowKnowledgeDefinition create(TinyflowKnowledgeDefinition definition) {
+		if (definition == null) {
+			throw new IllegalArgumentException("definition must not be null");
+		}
+		if (repository.findKnowledge(definition.getTenantId(), definition.getKnowledgeId()) != null) {
+			throw new TinyflowException("Knowledge already exists");
+		}
+		String storeKey = vectorStoreKey(definition);
+		TinyflowVectorStoreDescriptor descriptor = descriptor(storeKey);
+		if (!descriptor.isMetadataFilterSupported()) {
+			for (TinyflowKnowledgeDefinition existing : repository.findKnowledges(definition.getTenantId())) {
+				Object existingStore = existing.getMetadata().get(VECTOR_STORE_KEY);
+				if (storeKey.equals(String.valueOf(existingStore))
+						&& !definition.getKnowledgeId().equals(existing.getKnowledgeId())) {
+					throw new TinyflowException("Vector store does not support knowledge filtering: " + storeKey);
+				}
+			}
+		}
+		repository.saveKnowledge(definition, 0L);
+		return definition;
+	}
+
+	public void rebuild(String tenantId, String knowledgeId, String sourceId) {
+		TinyflowDocument active = repository.findActiveDocument(tenantId, knowledgeId, sourceId);
+		if (active == null) {
+			throw new TinyflowException("Active document was not found");
+		}
+		List<TinyflowChunk> sourceChunks = repository.findChunksByDocument(tenantId, knowledgeId, active.getDocumentId());
+		if (sourceChunks.isEmpty()) {
+			throw new TinyflowException("Active document has no chunks");
+		}
+		TinyflowDocument rebuilt = copyDocument(active, UUID.randomUUID().toString());
+		List<TinyflowChunk> rebuiltChunks = copyChunks(sourceChunks, rebuilt.getDocumentId());
+		List<TinyflowChunk> indexed = Collections.emptyList();
+		try {
+			indexed = indexer.indexForAtomicComplete(rebuilt, rebuiltChunks);
+			repository.completeIngestion(rebuilt, indexed, task(rebuilt, "COMPLETED", null));
+		} catch (RuntimeException exception) {
+			if (!indexed.isEmpty()) {
+				indexer.recordCompensation(rebuilt, vectorIds(indexed), "INDEX_ROLLBACK");
+			}
+			throw exception instanceof TinyflowException ? (TinyflowException) exception
+					: new TinyflowException("Knowledge rebuild failed", exception);
+		}
+	}
+
+	public void deleteSource(String tenantId, String knowledgeId, String sourceId) {
+		TinyflowDocument active = repository.findActiveDocument(tenantId, knowledgeId, sourceId);
+		if (active == null) {
+			return;
+		}
+		repository.saveTask(task(active, "DELETE_PENDING", "Deleting source vectors"));
+		List<String> vectorIds = vectorIdsForSource(tenantId, knowledgeId, sourceId);
+		try {
+			indexer.delete(tenantId, knowledgeId, vectorIds);
+			repository.deleteDocumentsBySource(tenantId, knowledgeId, sourceId);
+			repository.saveTask(task(active, "DELETED", null));
+		} catch (Exception exception) {
+			indexer.recordCompensation(active, vectorIds, "DELETE_PENDING");
+			throw new TinyflowException("Knowledge source deletion is pending compensation", exception);
+		}
+	}
+
+	private TinyflowVectorStoreDescriptor descriptor(String storeKey) {
+		for (TinyflowVectorStoreDescriptor descriptor : vectorStoreProvider.list()) {
+			if (storeKey.equals(descriptor.getKey())) {
+				if (vectorStoreProvider.get(storeKey) == null) {
+					throw new TinyflowException("Vector store is unavailable: " + storeKey);
+				}
+				return descriptor;
+			}
+		}
+		throw new TinyflowException("Vector store is not configured: " + storeKey);
+	}
+
+	private String vectorStoreKey(TinyflowKnowledgeDefinition definition) {
+		Object value = definition.getMetadata().get(VECTOR_STORE_KEY);
+		if (value == null || String.valueOf(value).trim().isEmpty()) {
+			throw new TinyflowException("Knowledge vectorStoreKey is required");
+		}
+		return String.valueOf(value);
+	}
+
+	private TinyflowDocument copyDocument(TinyflowDocument source, String documentId) {
+		return TinyflowDocument.builder().tenantId(source.getTenantId()).knowledgeId(source.getKnowledgeId())
+				.sourceId(source.getSourceId()).sourceType(source.getSourceType()).documentId(documentId)
+				.checksum(source.getChecksum()).name(source.getName()).content(source.getContent())
+				.sourceUri(source.getSourceUri()).sourceVersion(source.getSourceVersion())
+				.metadata(source.getMetadata()).build();
+	}
+
+	private List<TinyflowChunk> copyChunks(List<TinyflowChunk> source, String documentId) {
+		List<TinyflowChunk> values = new ArrayList<TinyflowChunk>();
+		for (TinyflowChunk chunk : source) {
+			values.add(TinyflowChunk.builder().tenantId(chunk.getTenantId()).knowledgeId(chunk.getKnowledgeId())
+					.sourceId(chunk.getSourceId()).sourceType(chunk.getSourceType()).documentId(documentId)
+					.chunkId(UUID.randomUUID().toString()).content(chunk.getContent()).sourceUri(chunk.getSourceUri())
+					.sourceVersion(chunk.getSourceVersion()).location(chunk.getLocation()).position(chunk.getPosition())
+					.parentChunkId(chunk.getParentChunkId()).tokenCount(chunk.getTokenCount()).metadata(chunk.getMetadata())
+					.enabled(chunk.isEnabled()).build());
+		}
+		return values;
+	}
+
+	private TinyflowIngestionTask task(TinyflowDocument document, String status, String message) {
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
+		metadata.put("sourceId", document.getSourceId());
+		return TinyflowIngestionTask.builder().taskId(UUID.randomUUID().toString()).providerKey("fw-plus-local")
+				.tenantId(document.getTenantId()).knowledgeId(document.getKnowledgeId()).documentId(document.getDocumentId())
+				.status(status).message(message).metadata(metadata).build();
+	}
+
+	private List<String> vectorIds(List<TinyflowChunk> chunks) {
+		List<String> values = new ArrayList<String>();
+		for (TinyflowChunk chunk : chunks) {
+			values.addAll(chunk.getVectorIds());
+		}
+		return values;
+	}
+
+	private List<String> vectorIdsForSource(String tenantId, String knowledgeId, String sourceId) {
+		List<String> values = new ArrayList<String>();
+		for (TinyflowDocument document : repository.findDocumentVersions(tenantId, knowledgeId, sourceId)) {
+			values.addAll(vectorIds(repository.findChunksByDocument(tenantId, knowledgeId, document.getDocumentId())));
+		}
+		return values;
+	}
+}
