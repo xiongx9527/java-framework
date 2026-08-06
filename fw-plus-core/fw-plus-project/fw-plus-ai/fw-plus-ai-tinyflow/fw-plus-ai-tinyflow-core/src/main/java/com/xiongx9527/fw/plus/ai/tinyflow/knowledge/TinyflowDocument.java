@@ -5,6 +5,8 @@ import java.util.Map;
 
 public final class TinyflowDocument {
 
+	private final String tenantId;
+	private final String knowledgeId;
 	private final String sourceId;
 	private final String sourceType;
 	private final String documentId;
@@ -16,6 +18,8 @@ public final class TinyflowDocument {
 	private final List<TinyflowChunk> chunks;
 
 	private TinyflowDocument(Builder builder) {
+		this.tenantId = TinyflowChunk.required(builder.tenantId, "tenantId");
+		this.knowledgeId = TinyflowChunk.required(builder.knowledgeId, "knowledgeId");
 		this.sourceId = TinyflowChunk.required(builder.sourceId, "sourceId");
 		this.sourceType = TinyflowChunk.required(builder.sourceType, "sourceType");
 		this.documentId = TinyflowChunk.required(builder.documentId, "documentId");
@@ -28,6 +32,8 @@ public final class TinyflowDocument {
 	}
 
 	public static Builder builder() { return new Builder(); }
+	public String getTenantId() { return tenantId; }
+	public String getKnowledgeId() { return knowledgeId; }
 	public String getSourceId() { return sourceId; }
 	public String getSourceType() { return sourceType; }
 	public String getDocumentId() { return documentId; }
@@ -39,6 +45,8 @@ public final class TinyflowDocument {
 	public List<TinyflowChunk> getChunks() { return chunks; }
 
 	public static final class Builder {
+		private String tenantId;
+		private String knowledgeId;
 		private String sourceId;
 		private String sourceType;
 		private String documentId;
@@ -48,6 +56,8 @@ public final class TinyflowDocument {
 		private String sourceVersion;
 		private Map<String, Object> metadata;
 		private List<TinyflowChunk> chunks;
+		public Builder tenantId(String value) { this.tenantId = value; return this; }
+		public Builder knowledgeId(String value) { this.knowledgeId = value; return this; }
 		public Builder sourceId(String value) { this.sourceId = value; return this; }
 		public Builder sourceType(String value) { this.sourceType = value; return this; }
 		public Builder documentId(String value) { this.documentId = value; return this; }
