@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.tinyflow.local.retrieval;
 
+import com.xiongx9527.fw.plus.ai.tinyflow.TinyflowException;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowChunk;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocument;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeDefinition;
@@ -9,6 +10,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRequest;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeResult;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowMetadataCondition;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowReranker;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowQueryRewriter;
 import com.xiongx9527.fw.plus.ai.tinyflow.local.FwPlusLocalKnowledgeProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelDescriptor;
@@ -23,16 +25,20 @@ import org.junit.Test;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class TinyflowLocalRetrieverTest {
@@ -202,6 +208,119 @@ public class TinyflowLocalRetrieverTest {
 		assertTrue(provider.retrieve(fixture.request("VECTOR", 2, null)).getMatches().isEmpty());
 	}
 
+	@Test
+	public void shouldRewriteQueryForBothVectorAndKeywordRecall() {
+		Fixture fixture = new Fixture();
+		AtomicReference<String> embeddedQuery = new AtomicReference<String>();
+		TinyflowModelProvider recordingModels = new TinyflowModelProvider() {
+			@Override public List<TinyflowModelDescriptor> listChatModels() { return Collections.emptyList(); }
+			@Override public List<TinyflowModelDescriptor> listEmbeddingModels() { return Collections.emptyList(); }
+			@Override public ChatLanguageModel getChatModel(String key) { return null; }
+			@Override
+			public TinyflowEmbeddingModel getEmbeddingModel(String key) {
+				return text -> {
+					embeddedQuery.set(text);
+					return new float[] { 1F, 0F };
+				};
+			}
+		};
+		TinyflowLocalRetriever retriever = new TinyflowLocalRetriever(fixture.repository, recordingModels,
+				new StoreProvider(fixture.vectorStore), null, request -> "rewritten query");
+
+		retriever.retrieve(fixture.request("HYBRID", 3, null));
+
+		assertEquals("rewritten query", embeddedQuery.get());
+		assertEquals("rewritten query", fixture.lastKeywordQuery);
+	}
+
+	@Test
+	public void shouldUseOriginalQueryWhenRewriterIsAbsent() {
+		Fixture fixture = new Fixture();
+
+		fixture.retriever.retrieve(fixture.request("KEYWORD", 3, null));
+
+		assertEquals("TinyFlow", fixture.lastKeywordQuery);
+	}
+
+	@Test
+	public void shouldRejectFailedOrBlankQueryRewrite() {
+		Fixture fixture = new Fixture();
+		List<TinyflowQueryRewriter> rewriters = new ArrayList<TinyflowQueryRewriter>();
+		rewriters.add(request -> null);
+		rewriters.add(request -> "  ");
+		rewriters.add(request -> { throw new IllegalStateException("rewrite failed"); });
+		for (TinyflowQueryRewriter rewriter : rewriters) {
+			TinyflowLocalRetriever retriever = new TinyflowLocalRetriever(fixture.repository, new ModelProvider(),
+					new StoreProvider(fixture.vectorStore), null, rewriter);
+
+			assertThrows(TinyflowException.class,
+					() -> retriever.retrieve(fixture.request("HYBRID", 3, null)));
+		}
+	}
+
+	@Test
+	public void shouldParseTypedRetrievalOptionsAndRejectInvalidValues() {
+		TinyflowLocalRetrievalOptions defaults = TinyflowLocalRetrievalOptions.from(
+				Collections.<String, Object>emptyMap());
+		assertEquals(TinyflowLocalRetrievalOptions.Mode.VECTOR, defaults.getMode());
+		assertEquals(5, defaults.getCandidateMultiplier());
+		assertEquals(200, defaults.getMaxCandidateCount());
+		assertEquals(TinyflowLocalRetrievalOptions.FusionMode.RRF, defaults.getFusionMode());
+		assertEquals("and", defaults.getMetadataLogic());
+		assertEquals(0.5D, defaults.getVectorWeight(), 0D);
+		assertEquals(0.5D, defaults.getKeywordWeight(), 0D);
+
+		TinyflowLocalRetrievalOptions configured = TinyflowLocalRetrievalOptions.from(options(
+				"retrievalMode", "hybrid", "candidateMultiplier", new BigDecimal("3.0"),
+				"maxCandidateCount", Long.valueOf(150L), "fusionMode", "weighted",
+				"metadataLogic", "OR", "vectorWeight", new BigDecimal("0.7"),
+				"keywordWeight", Double.valueOf(0.3D)));
+		assertEquals(TinyflowLocalRetrievalOptions.Mode.HYBRID, configured.getMode());
+		assertEquals(3, configured.getCandidateMultiplier());
+		assertEquals(150, configured.getMaxCandidateCount());
+		assertEquals(TinyflowLocalRetrievalOptions.FusionMode.WEIGHTED, configured.getFusionMode());
+		assertEquals("or", configured.getMetadataLogic());
+
+		List<Map<String, Object>> invalid = Arrays.asList(
+				options("retrievalMode", "semantic"),
+				options("fusionMode", "average"),
+				options("metadataLogic", "xor"),
+				options("metadataLogic", null),
+				options("candidateMultiplier", Integer.valueOf(0)),
+				options("candidateMultiplier", Integer.valueOf(-1)),
+				options("candidateMultiplier", new BigDecimal("1.5")),
+				options("maxCandidateCount", Integer.valueOf(0)),
+				options("maxCandidateCount", Integer.valueOf(201)),
+				options("maxCandidateCount", Double.valueOf(Double.NaN)),
+				options("vectorWeight", Double.valueOf(Double.POSITIVE_INFINITY)),
+				options("keywordWeight", Double.valueOf(Double.NaN)),
+				options("vectorWeight", Double.valueOf(-0.1D), "keywordWeight", Double.valueOf(1.1D)),
+				options("vectorWeight", Double.valueOf(0.7D), "keywordWeight", Double.valueOf(0.4D)),
+				options("candidateMultipler", Integer.valueOf(5)));
+		for (Map<String, Object> values : invalid) {
+			assertThrows(IllegalArgumentException.class, () -> TinyflowLocalRetrievalOptions.from(values));
+		}
+	}
+
+	@Test
+	public void shouldKeepBusinessMetadataSeparateFromRetrievalOptionsAndKnowledgeKeys() {
+		Fixture fixture = new Fixture();
+		Map<String, Object> businessMetadata = options(
+				"retrievalMode", "KEYWORD", "candidateMultiplier", Double.valueOf(-1D),
+				"embeddingModelKey", "request-must-not-override",
+				"vectorStoreKey", "request-must-not-override");
+		TinyflowKnowledgeRequest request = TinyflowKnowledgeRequest.builder().providerKey("fw-plus-local")
+				.tenantId("tenant-a").knowledgeId("knowledge-a").query("TinyFlow")
+				.topK(3).metadata(businessMetadata).build();
+
+		TinyflowKnowledgeResult result = fixture.retriever.retrieve(request);
+
+		assertFalse(result.getMatches().isEmpty());
+		assertNull(fixture.lastKeywordQuery);
+		assertEquals(businessMetadata, request.getMetadata());
+		assertTrue(request.getRetrievalOptions().isEmpty());
+	}
+
 	private static TinyflowKnowledgeMatch copy(TinyflowKnowledgeMatch match, double score) {
 		TinyflowChunk chunk = match.getChunk();
 		return TinyflowKnowledgeMatch.builder().tenantId(chunk.getTenantId()).knowledgeId(chunk.getKnowledgeId())
@@ -210,6 +329,14 @@ public class TinyflowLocalRetrieverTest {
 				.sourceVersion(chunk.getSourceVersion()).location(chunk.getLocation()).position(chunk.getPosition())
 				.parentChunkId(chunk.getParentChunkId()).tokenCount(chunk.getTokenCount()).metadata(chunk.getMetadata())
 				.enabled(chunk.isEnabled()).vectorIds(chunk.getVectorIds()).score(score).build();
+	}
+
+	private static Map<String, Object> options(Object... entries) {
+		Map<String, Object> values = new LinkedHashMap<String, Object>();
+		for (int index = 0; index < entries.length; index += 2) {
+			values.put((String) entries[index], entries[index + 1]);
+		}
+		return values;
 	}
 
 	private static void assertEveryMatchHasSourceIds(TinyflowKnowledgeResult result) {
@@ -250,6 +377,7 @@ public class TinyflowLocalRetrieverTest {
 		private TinyflowReranker reranker;
 		private TinyflowLocalRetriever retriever;
 		private boolean returnKeywordOverflow;
+		private String lastKeywordQuery;
 
 		private Fixture() {
 			knowledge = knowledge(true);
@@ -300,7 +428,7 @@ public class TinyflowLocalRetrieverTest {
 			options.put("metadataLogic", logic);
 			return TinyflowKnowledgeRequest.builder().providerKey("fw-plus-local")
 					.tenantId("tenant-a").knowledgeId("knowledge-a").query("TinyFlow")
-					.topK(topK).threshold(threshold).metadataConditions(conditions).metadata(options).build();
+					.topK(topK).threshold(threshold).metadataConditions(conditions).retrievalOptions(options).build();
 		}
 
 		private TinyflowKnowledgeRequest requestWithDefaultCandidates(String mode, int topK) {
@@ -308,7 +436,7 @@ public class TinyflowLocalRetrieverTest {
 			options.put("retrievalMode", mode);
 			return TinyflowKnowledgeRequest.builder().providerKey("fw-plus-local")
 					.tenantId("tenant-a").knowledgeId("knowledge-a").query("TinyFlow")
-					.topK(topK).metadata(options).build();
+					.topK(topK).retrievalOptions(options).build();
 		}
 
 		private TinyflowKnowledgeDefinition knowledge(boolean enabled) {
@@ -326,17 +454,23 @@ public class TinyflowLocalRetrieverTest {
 			if ("findKnowledge".equals(name)) {
 				return "tenant-a".equals(args[0]) && "knowledge-a".equals(args[1]) ? knowledge : null;
 			}
-			if ("findChunks".equals(name)) {
+			if ("searchChunksByKeyword".equals(name)) {
+				lastKeywordQuery = (String) args[2];
 				if (returnKeywordOverflow) {
-					List<TinyflowChunk> overflow = new ArrayList<TinyflowChunk>();
-					for (int index = 0; index < ((Integer) args[2]).intValue(); index++) {
-						overflow.add(findChunk("chunk-b"));
+					List<TinyflowKnowledgeMatch> overflow = new ArrayList<TinyflowKnowledgeMatch>();
+					for (int index = 0; index < ((Integer) args[3]).intValue(); index++) {
+						overflow.add(TinyflowKeywordRetriever.match(findChunk("chunk-b"), 1D));
 					}
-					overflow.add(findChunk("chunk-c"));
+					overflow.add(TinyflowKeywordRetriever.match(findChunk("chunk-c"), 1D));
 					return overflow;
 				}
-				return new ArrayList<TinyflowChunk>(chunks.subList(0,
-						Math.min(chunks.size(), ((Integer) args[2]).intValue())));
+				List<TinyflowKnowledgeMatch> matches = new ArrayList<TinyflowKnowledgeMatch>();
+				for (TinyflowChunk chunk : chunks) {
+					if (chunk.getContent().toLowerCase().contains(lastKeywordQuery.toLowerCase())) {
+						matches.add(TinyflowKeywordRetriever.match(chunk, 1D));
+					}
+				}
+				return matches.subList(0, Math.min(matches.size(), ((Integer) args[3]).intValue()));
 			}
 			if ("findChunksByVectorIds".equals(name)) {
 				List<?> ids = (List<?>) args[2];

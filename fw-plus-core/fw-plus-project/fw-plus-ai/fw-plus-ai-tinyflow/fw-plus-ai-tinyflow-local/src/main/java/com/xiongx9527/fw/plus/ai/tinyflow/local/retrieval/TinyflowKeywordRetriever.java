@@ -9,11 +9,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 public final class TinyflowKeywordRetriever {
 
@@ -26,57 +23,32 @@ public final class TinyflowKeywordRetriever {
 		this.repository = repository;
 	}
 
-	public List<TinyflowKnowledgeMatch> retrieve(TinyflowKnowledgeRequest request, int candidateCount) {
-		Set<String> terms = terms(request.getQuery());
-		if (terms.isEmpty()) {
+	public List<TinyflowKnowledgeMatch> retrieve(
+			TinyflowKnowledgeRequest request, String query, int candidateCount) {
+		if (query == null || query.trim().isEmpty()) {
 			return Collections.emptyList();
 		}
 		Map<String, TinyflowKnowledgeMatch> matches = new LinkedHashMap<String, TinyflowKnowledgeMatch>();
-		List<TinyflowChunk> chunks = repository.findChunks(
-				request.getTenantId(), request.getKnowledgeId(), candidateCount);
-		int size = chunks == null ? 0 : Math.min(chunks.size(), candidateCount);
+		List<TinyflowKnowledgeMatch> candidates = repository.searchChunksByKeyword(
+				request.getTenantId(), request.getKnowledgeId(), query, candidateCount);
+		int size = candidates == null ? 0 : Math.min(candidates.size(), candidateCount);
 		for (int index = 0; index < size; index++) {
-			TinyflowChunk chunk = chunks.get(index);
-			if (chunk == null) {
+			TinyflowKnowledgeMatch candidate = candidates.get(index);
+			if (candidate == null) {
 				continue;
 			}
-			double score = score(chunk.getContent(), terms);
-			if (score <= 0D) {
-				continue;
+			double score = candidate.getScore();
+			if (Double.isNaN(score) || Double.isInfinite(score) || score < 0D || score > 1D) {
+				throw new IllegalStateException("Keyword repository returned an invalid score");
 			}
-			TinyflowKnowledgeMatch candidate = match(chunk, score);
-			TinyflowKnowledgeMatch existing = matches.get(chunk.getChunkId());
+			TinyflowKnowledgeMatch existing = matches.get(candidate.getChunkId());
 			if (existing == null || score > existing.getScore()) {
-				matches.put(chunk.getChunkId(), candidate);
+				matches.put(candidate.getChunkId(), candidate);
 			}
 		}
 		List<TinyflowKnowledgeMatch> result = new ArrayList<TinyflowKnowledgeMatch>(matches.values());
 		Collections.sort(result, SCORE_DESCENDING);
 		return result;
-	}
-
-	private Set<String> terms(String query) {
-		Set<String> result = new LinkedHashSet<String>();
-		if (query == null) {
-			return result;
-		}
-		for (String value : query.toLowerCase(Locale.ROOT).split("[^\\p{L}\\p{N}]+")) {
-			if (!value.isEmpty()) {
-				result.add(value);
-			}
-		}
-		return result;
-	}
-
-	private double score(String content, Set<String> terms) {
-		String text = content == null ? "" : content.toLowerCase(Locale.ROOT);
-		int matched = 0;
-		for (String term : terms) {
-			if (text.contains(term)) {
-				matched++;
-			}
-		}
-		return (double) matched / (double) terms.size();
 	}
 
 	static TinyflowKnowledgeMatch match(TinyflowChunk chunk, double score) {

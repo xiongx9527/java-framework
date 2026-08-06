@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowChunk;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocument;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowIngestionTask;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeDefinition;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeMatch;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelDescriptor;
@@ -316,6 +317,7 @@ public class TinyflowLocalIndexerTest {
 			return values;
 		}
 		@Override public List<TinyflowChunk> findChunksByVectorIds(String tenantId, String knowledgeId, List<String> vectorIds) { return Collections.emptyList(); }
+		@Override public List<TinyflowKnowledgeMatch> searchChunksByKeyword(String tenantId, String knowledgeId, String query, int limit) { return Collections.emptyList(); }
 		@Override public void updateChunk(String tenantId, String knowledgeId, String chunkId, boolean enabled, String content, Map<String, Object> metadata) { throw new UnsupportedOperationException(); }
 		@Override public void saveTask(TinyflowIngestionTask task) {
 			if ("task".equals(failCompensationStartAt) && "DELETE_PENDING".equals(task.getStatus())) {

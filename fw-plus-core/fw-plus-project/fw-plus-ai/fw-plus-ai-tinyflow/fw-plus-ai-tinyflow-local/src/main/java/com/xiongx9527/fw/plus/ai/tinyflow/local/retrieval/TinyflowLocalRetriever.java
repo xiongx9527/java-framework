@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.tinyflow.local.retrieval;
 
+import com.xiongx9527.fw.plus.ai.tinyflow.TinyflowException;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowChunk;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocument;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeDefinition;
@@ -8,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRequest;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeResult;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowReranker;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowQueryRewriter;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorMatch;
@@ -18,23 +20,26 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 public final class TinyflowLocalRetriever {
-	private static final int DEFAULT_CANDIDATE_MULTIPLIER = 5;
-	private static final int HARD_MAX_CANDIDATE_COUNT = 200;
-
 	private final TinyflowKnowledgeRepository repository;
 	private final TinyflowModelProvider modelProvider;
 	private final TinyflowVectorStoreProvider vectorStoreProvider;
 	private final TinyflowReranker reranker;
+	private final TinyflowQueryRewriter queryRewriter;
 	private final TinyflowKeywordRetriever keywordRetriever;
 	private final TinyflowHybridFusion fusion = new TinyflowHybridFusion();
 	private final TinyflowMetadataPredicate metadataPredicate = new TinyflowMetadataPredicate();
 
 	public TinyflowLocalRetriever(TinyflowKnowledgeRepository repository, TinyflowModelProvider modelProvider,
 			TinyflowVectorStoreProvider vectorStoreProvider, TinyflowReranker reranker) {
+		this(repository, modelProvider, vectorStoreProvider, reranker, null);
+	}
+
+	public TinyflowLocalRetriever(TinyflowKnowledgeRepository repository, TinyflowModelProvider modelProvider,
+			TinyflowVectorStoreProvider vectorStoreProvider, TinyflowReranker reranker,
+			TinyflowQueryRewriter queryRewriter) {
 		if (repository == null || modelProvider == null || vectorStoreProvider == null) {
 			throw new IllegalArgumentException("Retriever dependencies must not be null");
 		}
@@ -42,6 +47,7 @@ public final class TinyflowLocalRetriever {
 		this.modelProvider = modelProvider;
 		this.vectorStoreProvider = vectorStoreProvider;
 		this.reranker = reranker;
+		this.queryRewriter = queryRewriter;
 		this.keywordRetriever = new TinyflowKeywordRetriever(repository);
 	}
 
@@ -49,6 +55,7 @@ public final class TinyflowLocalRetriever {
 		if (request == null) {
 			return TinyflowKnowledgeResult.notFound();
 		}
+		String effectiveQuery = effectiveQuery(request);
 		TinyflowKnowledgeDefinition knowledge = repository.findKnowledge(
 				request.getTenantId(), request.getKnowledgeId());
 		if (knowledge == null) {
@@ -57,34 +64,34 @@ public final class TinyflowLocalRetriever {
 		if (!knowledge.isEnabled()) {
 			return TinyflowKnowledgeResult.empty();
 		}
-		String mode = option(request, "retrievalMode", "VECTOR").toUpperCase(Locale.ROOT);
-		if (!"VECTOR".equals(mode) && !"KEYWORD".equals(mode) && !"HYBRID".equals(mode)) {
-			throw new IllegalArgumentException("Unsupported retrieval mode: " + mode);
-		}
-		int candidateCount = candidateCount(request);
+		TinyflowLocalRetrievalOptions options = TinyflowLocalRetrievalOptions.from(request.getRetrievalOptions());
+		TinyflowLocalRetrievalOptions.Mode mode = options.getMode();
+		int candidateCount = options.candidateCount(request.getTopK());
 		List<TinyflowKnowledgeMatch> vectors = Collections.emptyList();
 		List<TinyflowKnowledgeMatch> keywords = Collections.emptyList();
-		if (!"KEYWORD".equals(mode)) {
-			vectors = filter(request, vectorMatches(request, knowledge, candidateCount));
+		if (mode != TinyflowLocalRetrievalOptions.Mode.KEYWORD) {
+			vectors = filter(request, vectorMatches(request, knowledge, effectiveQuery, candidateCount),
+					options.getMetadataLogic());
 		}
-		if (!"VECTOR".equals(mode)) {
-			keywords = filter(request, keywordRetriever.retrieve(request, candidateCount));
+		if (mode != TinyflowLocalRetrievalOptions.Mode.VECTOR) {
+			keywords = filter(request, keywordRetriever.retrieve(request, effectiveQuery, candidateCount),
+					options.getMetadataLogic());
 		}
 		List<TinyflowKnowledgeMatch> matches;
-		if ("VECTOR".equals(mode)) {
+		if (mode == TinyflowLocalRetrievalOptions.Mode.VECTOR) {
 			matches = fusion.normalize(vectors);
-		} else if ("KEYWORD".equals(mode)) {
+		} else if (mode == TinyflowLocalRetrievalOptions.Mode.KEYWORD) {
 			matches = fusion.normalize(keywords);
 		} else {
-			matches = fusion.fuse(vectors, keywords, option(request, "fusionMode", "RRF"),
-					doubleOption(request, "vectorWeight", 0.5D),
-					doubleOption(request, "keywordWeight", 0.5D));
+			matches = fusion.fuse(vectors, keywords, options.getFusionMode().name(),
+					options.getVectorWeight(), options.getKeywordWeight());
 		}
 		if (reranker != null && !matches.isEmpty()) {
 			matches = filter(request, bounded(reranker.rerank(request,
-					Collections.unmodifiableList(new ArrayList<TinyflowKnowledgeMatch>(matches))), candidateCount));
+					Collections.unmodifiableList(new ArrayList<TinyflowKnowledgeMatch>(matches))), candidateCount),
+					options.getMetadataLogic());
 		}
-		matches = expandParents(request, matches);
+		matches = expandParents(request, matches, options.getMetadataLogic());
 		List<TinyflowKnowledgeMatch> result = new ArrayList<TinyflowKnowledgeMatch>();
 		for (TinyflowKnowledgeMatch match : matches) {
 			if (request.getThreshold() == null || match.getScore() >= request.getThreshold().doubleValue()) {
@@ -99,15 +106,15 @@ public final class TinyflowLocalRetriever {
 	}
 
 	private List<TinyflowKnowledgeMatch> vectorMatches(TinyflowKnowledgeRequest request,
-			TinyflowKnowledgeDefinition knowledge, int candidateCount) {
-		String embeddingKey = option(request, knowledge, "embeddingModelKey");
-		String storeKey = option(request, knowledge, "vectorStoreKey");
+			TinyflowKnowledgeDefinition knowledge, String query, int candidateCount) {
+		String embeddingKey = knowledgeOption(knowledge, "embeddingModelKey");
+		String storeKey = knowledgeOption(knowledge, "vectorStoreKey");
 		TinyflowEmbeddingModel model = modelProvider.getEmbeddingModel(embeddingKey);
 		TinyflowVectorStore store = vectorStoreProvider.get(storeKey);
 		if (model == null || store == null) {
 			throw new IllegalStateException("Embedding model or vector store is unavailable");
 		}
-		float[] vector = model.embed(request.getQuery());
+		float[] vector = model.embed(query);
 		if (vector == null || vector.length == 0) {
 			throw new IllegalStateException("Embedding model returned an empty vector");
 		}
@@ -156,6 +163,22 @@ public final class TinyflowLocalRetriever {
 		return new ArrayList<TinyflowKnowledgeMatch>(chunks.values());
 	}
 
+	private String effectiveQuery(TinyflowKnowledgeRequest request) {
+		if (queryRewriter == null) {
+			return request.getQuery();
+		}
+		final String rewritten;
+		try {
+			rewritten = queryRewriter.rewrite(request);
+		} catch (RuntimeException exception) {
+			throw new TinyflowException("Tinyflow query rewrite failed", exception);
+		}
+		if (rewritten == null || rewritten.trim().isEmpty()) {
+			throw new TinyflowException("Tinyflow query rewriter returned a blank query");
+		}
+		return rewritten;
+	}
+
 	private List<TinyflowKnowledgeMatch> bounded(List<TinyflowKnowledgeMatch> matches, int limit) {
 		if (matches == null || matches.isEmpty()) {
 			return Collections.emptyList();
@@ -164,15 +187,14 @@ public final class TinyflowLocalRetriever {
 	}
 
 	private List<TinyflowKnowledgeMatch> filter(TinyflowKnowledgeRequest request,
-			List<TinyflowKnowledgeMatch> candidates) {
+			List<TinyflowKnowledgeMatch> candidates, String metadataLogic) {
 		Map<String, TinyflowKnowledgeMatch> filtered = new LinkedHashMap<String, TinyflowKnowledgeMatch>();
 		if (candidates == null) {
 			return new ArrayList<TinyflowKnowledgeMatch>();
 		}
-		String logic = option(request, "metadataLogic", "and");
 		for (TinyflowKnowledgeMatch match : candidates) {
 			if (!active(request, match.getChunk()) || !metadataPredicate.test(
-					match.getMetadata(), request.getMetadataConditions(), logic)) {
+					match.getMetadata(), request.getMetadataConditions(), metadataLogic)) {
 				continue;
 			}
 			TinyflowKnowledgeMatch current = filtered.get(match.getChunkId());
@@ -196,7 +218,7 @@ public final class TinyflowLocalRetriever {
 	}
 
 	private List<TinyflowKnowledgeMatch> expandParents(TinyflowKnowledgeRequest request,
-			List<TinyflowKnowledgeMatch> matches) {
+			List<TinyflowKnowledgeMatch> matches, String metadataLogic) {
 		Map<String, TinyflowKnowledgeMatch> expanded = new LinkedHashMap<String, TinyflowKnowledgeMatch>();
 		for (TinyflowKnowledgeMatch match : matches) {
 			TinyflowChunk chunk = match.getChunk();
@@ -204,7 +226,7 @@ public final class TinyflowLocalRetriever {
 				TinyflowChunk parent = repository.findChunk(
 						request.getTenantId(), request.getKnowledgeId(), chunk.getParentChunkId());
 				if (!active(request, parent) || !metadataPredicate.test(parent.getMetadata(),
-						request.getMetadataConditions(), option(request, "metadataLogic", "and"))) {
+						request.getMetadataConditions(), metadataLogic)) {
 					continue;
 				}
 				match = TinyflowKeywordRetriever.match(parent, match.getScore());
@@ -217,57 +239,11 @@ public final class TinyflowLocalRetriever {
 		return new ArrayList<TinyflowKnowledgeMatch>(expanded.values());
 	}
 
-	private int candidateCount(TinyflowKnowledgeRequest request) {
-		int multiplier = intOption(request, "candidateMultiplier", DEFAULT_CANDIDATE_MULTIPLIER);
-		int configuredMaximum = intOption(request, "maxCandidateCount", HARD_MAX_CANDIDATE_COUNT);
-		if (multiplier <= 0) {
-			multiplier = DEFAULT_CANDIDATE_MULTIPLIER;
-		}
-		if (configuredMaximum <= 0) {
-			configuredMaximum = HARD_MAX_CANDIDATE_COUNT;
-		}
-		long multiplied = (long) request.getTopK() * (long) multiplier;
-		return (int) Math.min(Math.min(multiplied, configuredMaximum), HARD_MAX_CANDIDATE_COUNT);
-	}
-
-	private String option(TinyflowKnowledgeRequest request, TinyflowKnowledgeDefinition knowledge, String key) {
-		Object requestValue = request.getMetadata().get(key);
-		Object value = requestValue == null ? knowledge.getMetadata().get(key) : requestValue;
+	private String knowledgeOption(TinyflowKnowledgeDefinition knowledge, String key) {
+		Object value = knowledge.getMetadata().get(key);
 		if (value == null || String.valueOf(value).trim().isEmpty()) {
 			throw new IllegalArgumentException(key + " is required");
 		}
 		return String.valueOf(value).trim();
-	}
-
-	private String option(TinyflowKnowledgeRequest request, String key, String defaultValue) {
-		Object value = request.getMetadata().get(key);
-		return value == null || String.valueOf(value).trim().isEmpty()
-				? defaultValue : String.valueOf(value).trim();
-	}
-
-	private int intOption(TinyflowKnowledgeRequest request, String key, int defaultValue) {
-		Object value = request.getMetadata().get(key);
-		if (value == null) {
-			return defaultValue;
-		}
-		try {
-			return value instanceof Number ? ((Number) value).intValue()
-					: Integer.parseInt(String.valueOf(value));
-		} catch (NumberFormatException exception) {
-			throw new IllegalArgumentException(key + " must be an integer", exception);
-		}
-	}
-
-	private double doubleOption(TinyflowKnowledgeRequest request, String key, double defaultValue) {
-		Object value = request.getMetadata().get(key);
-		if (value == null) {
-			return defaultValue;
-		}
-		try {
-			return value instanceof Number ? ((Number) value).doubleValue()
-					: Double.parseDouble(String.valueOf(value));
-		} catch (NumberFormatException exception) {
-			throw new IllegalArgumentException(key + " must be a number", exception);
-		}
 	}
 }

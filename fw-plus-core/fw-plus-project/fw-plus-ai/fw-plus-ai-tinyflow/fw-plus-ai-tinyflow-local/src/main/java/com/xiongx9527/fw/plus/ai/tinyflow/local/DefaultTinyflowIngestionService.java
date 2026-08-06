@@ -215,7 +215,7 @@ public final class DefaultTinyflowIngestionService {
 					.name(control.document.getName())
 					.content(parsed.getContent()).sourceUri(control.document.getSourceUri())
 					.sourceVersion(control.document.getSourceVersion()).metadata(documentMetadata)
-					.chunks(indexedChunks).build();
+					.chunks(indexedChunks).enabled(control.document.isEnabled()).build();
 			if (!complete(control, completedDocument, indexedChunks)) {
 				compensate(control);
 				finishCancelled(control);
@@ -469,7 +469,7 @@ public final class DefaultTinyflowIngestionService {
 				.name(input.getName()).content(input.getContent())
 				.sourceUri(input.getSourceUri())
 				.sourceVersion(input.getSourceVersion() == null ? checksum : input.getSourceVersion())
-				.metadata(metadata).build();
+				.metadata(metadata).enabled(input.isEnabled()).build();
 	}
 
 	private InputStream openInput(TinyflowDocument document) throws IOException {

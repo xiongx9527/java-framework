@@ -52,7 +52,7 @@ public final class FwPlusLocalKnowledgeProvider implements TinyflowKnowledgeMana
 
 	@Override
 	public TinyflowKnowledgeCapabilities capabilities() {
-		return TinyflowKnowledgeCapabilities.of(false, true, true);
+		return TinyflowKnowledgeCapabilities.of(retriever != null, true, ingestionService != null);
 	}
 
 	@Override

@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -18,36 +19,61 @@ public class TinyflowMetadataPredicateTest {
 	private final TinyflowMetadataPredicate predicate = new TinyflowMetadataPredicate();
 
 	@Test
-	public void shouldEvaluateEveryDifyMetadataOperator() {
+	public void shouldEvaluateTrueFalseNullEmptyAndNullExpectedForEveryDifyOperator() {
 		for (Object[] arguments : allDifyOperators()) {
 			String operator = (String) arguments[0];
-			String field = (String) arguments[1];
+			Object trueActual = arguments[1];
 			Object expectedValue = arguments[2];
-			boolean expected = ((Boolean) arguments[3]).booleanValue();
-			assertResult(expected, predicate.test(metadata(), condition(field, operator, expectedValue)));
+			Object falseActual = arguments[3];
+			boolean nullActual = ((Boolean) arguments[4]).booleanValue();
+			boolean emptyActual = ((Boolean) arguments[5]).booleanValue();
+			boolean nullExpected = ((Boolean) arguments[6]).booleanValue();
+
+			assertEquals(operator + " true", true,
+					predicate.test(valueMetadata(trueActual), condition("value", operator, expectedValue)));
+			assertEquals(operator + " false", false,
+					predicate.test(valueMetadata(falseActual), condition("value", operator, expectedValue)));
+			assertEquals(operator + " null actual", nullActual,
+					predicate.test(valueMetadata(null), condition("value", operator, expectedValue)));
+			assertEquals(operator + " empty actual", emptyActual,
+					predicate.test(valueMetadata(""), condition("value", operator, expectedValue)));
+			assertEquals(operator + " null expected", nullExpected,
+					predicate.test(valueMetadata(trueActual), condition("value", operator, null)));
 		}
 	}
 
 	static List<Object[]> allDifyOperators() {
 		return Arrays.asList(
-				new Object[] { "contains", "title", "Flow", Boolean.TRUE },
-				new Object[] { "not contains", "title", "Java", Boolean.TRUE },
-				new Object[] { "start with", "title", "Tiny", Boolean.TRUE },
-				new Object[] { "end with", "title", "Guide", Boolean.TRUE },
-				new Object[] { "is", "category", "manual", Boolean.TRUE },
-				new Object[] { "is not", "category", "faq", Boolean.TRUE },
-				new Object[] { "in", "category", Arrays.asList("faq", "manual"), Boolean.TRUE },
-				new Object[] { "not in", "category", Arrays.asList("faq", "article"), Boolean.TRUE },
-				new Object[] { "empty", "empty", null, Boolean.TRUE },
-				new Object[] { "not empty", "title", null, Boolean.TRUE },
-				new Object[] { "=", "page", "12", Boolean.TRUE },
-				new Object[] { "≠", "page", Integer.valueOf(8), Boolean.TRUE },
-				new Object[] { ">", "page", "11.5", Boolean.TRUE },
-				new Object[] { "<", "page", Integer.valueOf(13), Boolean.TRUE },
-				new Object[] { "≥", "published", "2026-08-05", Boolean.TRUE },
-				new Object[] { "≤", "published", "2026-08-05T23:59:59Z", Boolean.TRUE },
-				new Object[] { "before", "published", "2026-08-06T00:00:00Z", Boolean.TRUE },
-				new Object[] { "after", "published", "2026-08-04", Boolean.TRUE });
+				new Object[] { "contains", "TinyFlow Guide", "Flow", "Tiny Guide", false, false, false },
+				new Object[] { "not contains", "TinyFlow Guide", "Java", "Java Guide", false, false, false },
+				new Object[] { "start with", "TinyFlow Guide", "Tiny", "Flow Tiny", false, false, false },
+				new Object[] { "end with", "TinyFlow Guide", "Guide", "Guide Book", false, false, false },
+				new Object[] { "is", "manual", "manual", "faq", false, false, false },
+				new Object[] { "is not", "manual", "faq", "faq", false, false, false },
+				new Object[] { "in", "manual", Arrays.asList("faq", "manual"), "article", false, false, false },
+				new Object[] { "not in", "manual", Arrays.asList("faq", "article"), "faq", false, false, false },
+				new Object[] { "empty", "", "ignored", "value", true, true, true },
+				new Object[] { "not empty", "value", "ignored", "", false, false, true },
+				new Object[] { "=", Integer.valueOf(12), "12", Integer.valueOf(13), false, false, false },
+				new Object[] { "≠", Integer.valueOf(12), Integer.valueOf(8), Integer.valueOf(8), false, false, false },
+				new Object[] { ">", Integer.valueOf(12), "11.5", "11.5", false, false, false },
+				new Object[] { "<", Integer.valueOf(12), Integer.valueOf(13), Integer.valueOf(13), false, false, false },
+				new Object[] { "≥", "2026-08-05T10:15:30Z", "2026-08-05", "2026-08-04", false, false, false },
+				new Object[] { "≤", "2026-08-05T10:15:30Z", "2026-08-05T23:59:59Z", "2026-08-06", false, false, false },
+				new Object[] { "before", "2026-08-05T10:15:30Z", "2026-08-06T00:00:00Z", "2026-08-06", false, false, false },
+				new Object[] { "after", "2026-08-05T10:15:30Z", "2026-08-04", "2026-08-04", false, false, false });
+	}
+
+	@Test
+	public void shouldTreatCollectionMapAndArrayShapesAsEmpty() {
+		for (Object empty : Arrays.asList(Collections.emptyList(), Collections.emptyMap(), new Object[0])) {
+			assertTrue(predicate.test(valueMetadata(empty), condition("value", "empty", null)));
+			assertFalse(predicate.test(valueMetadata(empty), condition("value", "not empty", null)));
+			assertFalse(predicate.test(valueMetadata(empty), condition("value", "is not", "value")));
+			assertFalse(predicate.test(valueMetadata(empty), condition("value", "not contains", "value")));
+			assertFalse(predicate.test(valueMetadata(empty),
+					condition("value", "not in", Collections.singletonList("value"))));
+		}
 	}
 
 	@Test
@@ -97,6 +123,12 @@ public class TinyflowMetadataPredicateTest {
 		metadata.put("page", Integer.valueOf(12));
 		metadata.put("published", "2026-08-05T10:15:30Z");
 		metadata.put("empty", "");
+		return metadata;
+	}
+
+	private static Map<String, Object> valueMetadata(Object value) {
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
+		metadata.put("value", value);
 		return metadata;
 	}
 

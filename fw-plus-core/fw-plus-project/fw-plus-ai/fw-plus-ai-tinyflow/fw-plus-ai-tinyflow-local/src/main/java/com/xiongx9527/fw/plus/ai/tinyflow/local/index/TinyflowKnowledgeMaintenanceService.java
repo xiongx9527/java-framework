@@ -171,7 +171,7 @@ public final class TinyflowKnowledgeMaintenanceService {
 				.sourceId(source.getSourceId()).sourceType(source.getSourceType()).documentId(documentId)
 				.checksum(source.getChecksum()).name(source.getName()).content(source.getContent())
 				.sourceUri(source.getSourceUri()).sourceVersion(source.getSourceVersion())
-				.metadata(source.getMetadata()).build();
+				.metadata(source.getMetadata()).enabled(source.isEnabled()).build();
 	}
 
 	private List<TinyflowChunk> copyChunks(List<TinyflowChunk> source, String documentId) {

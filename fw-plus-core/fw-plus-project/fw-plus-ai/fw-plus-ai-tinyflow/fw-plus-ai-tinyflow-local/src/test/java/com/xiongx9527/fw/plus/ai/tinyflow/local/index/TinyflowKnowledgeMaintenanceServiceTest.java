@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.tinyflow.local.index;
 
 import com.xiongx9527.fw.plus.ai.tinyflow.TinyflowException;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowChunk;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocument;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowIngestionTask;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeDefinition;
 import org.junit.Test;
@@ -71,6 +72,23 @@ public class TinyflowKnowledgeMaintenanceServiceTest {
 		assertTrue(repository.findChunksByDocument("tenant-a", "kb-1", "doc-v1").isEmpty());
 		assertTrue(repository.findChunksByDocument("tenant-a", "kb-1", "doc-v0").isEmpty());
 		assertTrue(store.removed.containsAll(Arrays.asList("vec-old-1", "vec-old-2", "vec-old-v0")));
+	}
+
+	@Test
+	public void shouldKeepDisabledDocumentDisabledAfterRebuild() {
+		TinyflowLocalIndexerTest.MemoryRepository repository = new TinyflowLocalIndexerTest.MemoryRepository();
+		TinyflowLocalIndexerTest.RecordingStore store = new TinyflowLocalIndexerTest.RecordingStore();
+		TinyflowKnowledgeMaintenanceService maintenance = new TinyflowKnowledgeMaintenanceService(repository,
+				TinyflowLocalIndexerTest.indexer(repository, store, true, true, 10),
+				new TinyflowLocalIndexerTest.FixedStoreProvider(store, true));
+		seedActive(repository);
+		repository.saveDocument(TinyflowDocument.builder().tenantId("tenant-a").knowledgeId("kb-1")
+				.sourceId("source-1").sourceType("file").documentId("doc-v1")
+				.checksum("checksum-doc-v1").name("fixture.txt").content("fixture").enabled(false).build());
+
+		maintenance.rebuild("tenant-a", "kb-1", "source-1");
+
+		assertFalse(repository.findActiveDocument("tenant-a", "kb-1", "source-1").isEnabled());
 	}
 
 	@Test

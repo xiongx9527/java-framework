@@ -7,11 +7,20 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocumentImport;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocumentParser;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowIngestionTask;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeDefinition;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeMatch;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowObjectStorage;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowParsedDocument;
 import com.xiongx9527.fw.plus.ai.tinyflow.local.chunk.NormalChunkStrategy;
 import com.xiongx9527.fw.plus.ai.tinyflow.local.parser.CompositeTinyflowDocumentParser;
+import com.xiongx9527.fw.plus.ai.tinyflow.local.retrieval.TinyflowLocalRetriever;
+import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowEmbeddingModel;
+import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelDescriptor;
+import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
+import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStore;
+import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreDescriptor;
+import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
+import dev.langchain4j.model.chat.ChatLanguageModel;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -78,6 +87,16 @@ public class TinyflowIngestionServiceTest {
 		assertEquals(v1.getSourceId(), v2.getSourceId());
 		assertNotEquals(v1.getDocumentId(), v2.getDocumentId());
 		assertEquals(2, repository.findDocumentVersions("tenant-a", "kb-1", "source-1").size());
+	}
+
+	@Test
+	public void shouldKeepDisabledDocumentDisabledThroughIngestionCopies() {
+		TinyflowIngestionTask task = service.importDocument(
+				fileImport("source-disabled", "sha256-disabled", "disabled content", null, false));
+
+		TinyflowDocument active = repository.findActiveDocument("tenant-a", "kb-1", "source-disabled");
+		assertEquals("COMPLETED", latest(task.getTaskId()).getStatus());
+		assertFalse(active.isEnabled());
 	}
 
 	@Test
@@ -425,6 +444,24 @@ public class TinyflowIngestionServiceTest {
 	}
 
 	@Test
+	public void shouldReportCapabilitiesForEveryConstructorMode() {
+		TinyflowLocalRetriever retriever = emptyRetriever();
+		FwPlusLocalKnowledgeProvider ingestionOnly = new FwPlusLocalKnowledgeProvider(repository, service);
+		FwPlusLocalKnowledgeProvider retrievalOnly = new FwPlusLocalKnowledgeProvider(repository, retriever);
+		FwPlusLocalKnowledgeProvider full = new FwPlusLocalKnowledgeProvider(repository, service, retriever);
+
+		assertFalse(ingestionOnly.capabilities().supportsRetrieval());
+		assertTrue(ingestionOnly.capabilities().supportsManagement());
+		assertTrue(ingestionOnly.capabilities().supportsDocumentImport());
+		assertTrue(retrievalOnly.capabilities().supportsRetrieval());
+		assertTrue(retrievalOnly.capabilities().supportsManagement());
+		assertFalse(retrievalOnly.capabilities().supportsDocumentImport());
+		assertTrue(full.capabilities().supportsRetrieval());
+		assertTrue(full.capabilities().supportsManagement());
+		assertTrue(full.capabilities().supportsDocumentImport());
+	}
+
+	@Test
 	public void shouldRejectStaleProviderDeleteAndKeepConcurrentKnowledgeUpdate() {
 		FwPlusLocalKnowledgeProvider provider = new FwPlusLocalKnowledgeProvider(repository, service);
 		provider.create(definition("Initial", true));
@@ -443,13 +480,33 @@ public class TinyflowIngestionServiceTest {
 		return new DefaultTinyflowIngestionService(repository, storage, parser, strategies, index, executor);
 	}
 
+	private TinyflowLocalRetriever emptyRetriever() {
+		TinyflowModelProvider models = new TinyflowModelProvider() {
+			@Override public List<TinyflowModelDescriptor> listChatModels() { return Collections.emptyList(); }
+			@Override public List<TinyflowModelDescriptor> listEmbeddingModels() { return Collections.emptyList(); }
+			@Override public ChatLanguageModel getChatModel(String key) { return null; }
+			@Override public TinyflowEmbeddingModel getEmbeddingModel(String key) { return null; }
+		};
+		TinyflowVectorStoreProvider stores = new TinyflowVectorStoreProvider() {
+			@Override public List<TinyflowVectorStoreDescriptor> list() { return Collections.emptyList(); }
+			@Override public TinyflowVectorStore get(String key) { return null; }
+		};
+		return new TinyflowLocalRetriever(repository, models, stores, null);
+	}
+
 	private TinyflowDocumentImport fileImport(String sourceId, String checksum, String content, String objectKey) {
+		return fileImport(sourceId, checksum, content, objectKey, true);
+	}
+
+	private TinyflowDocumentImport fileImport(String sourceId, String checksum, String content,
+			String objectKey, boolean enabled) {
 		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
 		metadata.put("checksum", checksum);
 		metadata.put("mediaType", "text/plain");
 		TinyflowDocument document = TinyflowDocument.builder().tenantId("tenant-a").knowledgeId("kb-1")
 				.sourceId(sourceId).sourceType("file").documentId("request-document")
-				.checksum(checksum).name("fixture.txt").content(content).sourceUri(objectKey).metadata(metadata).build();
+				.checksum(checksum).name("fixture.txt").content(content).sourceUri(objectKey).metadata(metadata)
+				.enabled(enabled).build();
 		return TinyflowDocumentImport.builder().providerKey("fw-plus-local").tenantId("tenant-a")
 				.knowledgeId("kb-1").document(document)
 				.options(Collections.<String, Object>singletonMap("chunkStrategy", "normal")).build();
@@ -761,6 +818,12 @@ public class TinyflowIngestionServiceTest {
 		@Override
 		public synchronized List<TinyflowChunk> findChunksByVectorIds(String tenantId, String knowledgeId,
 				List<String> vectorIds) {
+			return Collections.emptyList();
+		}
+
+		@Override
+		public synchronized List<TinyflowKnowledgeMatch> searchChunksByKeyword(
+				String tenantId, String knowledgeId, String query, int limit) {
 			return Collections.emptyList();
 		}
 

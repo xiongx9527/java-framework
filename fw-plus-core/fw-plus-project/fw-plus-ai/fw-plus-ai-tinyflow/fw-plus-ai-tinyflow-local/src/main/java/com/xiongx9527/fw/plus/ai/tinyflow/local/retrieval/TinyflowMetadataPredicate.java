@@ -52,14 +52,14 @@ public final class TinyflowMetadataPredicate {
 		if ("not empty".equals(operator)) {
 			return !isEmpty(actual);
 		}
+		if (isEmpty(actual) || expected == null) {
+			return false;
+		}
 		if ("is".equals(operator) || "=".equals(operator)) {
 			return equalValues(actual, expected);
 		}
 		if ("is not".equals(operator) || "≠".equals(operator)) {
-			return actual != null && expected != null && !equalValues(actual, expected);
-		}
-		if (actual == null || expected == null) {
-			return false;
+			return !equalValues(actual, expected);
 		}
 		if ("contains".equals(operator) || "not contains".equals(operator)) {
 			boolean contains = contains(actual, expected);
@@ -72,9 +72,6 @@ public final class TinyflowMetadataPredicate {
 			return String.valueOf(actual).endsWith(String.valueOf(expected));
 		}
 		if ("in".equals(operator) || "not in".equals(operator)) {
-			if (isEmpty(actual)) {
-				return false;
-			}
 			Boolean member = memberOf(actual, expected);
 			return member != null && ("in".equals(operator) ? member.booleanValue() : !member.booleanValue());
 		}
