@@ -30,6 +30,7 @@
 - Delete: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/fw-plus-magicapi-plugin-seata/`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/pom.xml`
 - Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-dependencies/pom.xml`
+- Modify: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/pom.xml`
 - Create: `fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/src/test/java/com/xiongx9527/fw/plus/boot/starter/magicapi/MagicApiDbTxBuiltinClasspathTest.java`
 
 **Interfaces:**
@@ -38,6 +39,10 @@
 - Proves: the main starter exposes `DbTxModule`, `LocalDbTxCoordinator`, and Spring `DataSourceTransactionManager` without exposing Seata as a transitive dependency.
 
 - [ ] **Step 1: Write the main starter classpath contract test**
+
+Add `spring-boot-starter-test` with `test` scope to the main starter so the
+module can host this contract test. This test-only dependency must not change
+the main starter's consumer dependency graph.
 
 ```java
 @Test
@@ -76,22 +81,22 @@ Remove exactly these aggregator entries:
 <module>fw-plus-magicapi-plugin-seata</module>
 ```
 
-Remove exactly the two matching Boot BOM dependencies. Delete both module directories, including POMs, marker classes, and marker tests. Do not add replacement artifacts or dependencies to the main starter.
+Remove exactly the two matching Boot BOM dependencies. Delete both module directories, including POMs, marker classes, and marker tests. Do not add replacement artifacts or production dependencies to the main starter; the Step 1 test-scoped dependency is allowed.
 
 - [ ] **Step 4: Verify the cleaned reactor and classpath**
 
 Run the commands from Steps 1-2 again, then:
 
 ```bash
-rg -n "fw-plus-magicapi-plugin-(dbtx|seata)|DbTxPluginMarker|SeataPluginMarker" \
+rg -n "fw-plus-magicapi-plugin-(dbtx|seata)" \
   fw-plus-boot/fw-plus-boot-project
 ```
 
-Expected: classpath test passes, Seata remains absent from the main starter dependency tree, and the repository scan prints no production/POM references.
+Expected: classpath test passes, Seata remains absent from the main starter dependency tree, and the repository scan prints no artifact/POM references. Marker and old configuration references in autoconfigure are intentionally removed by Task 2, then checked by Task 3's final scan.
 
 - [ ] **Step 5: Commit the artifact cleanup**
 
-Stage only both deleted module directories, the two precise shared-POM hunks, and the new main-starter test. Confirm no Spring Bean, Java Entity, MyBatis, TinyFlow, README, frontend, or other user changes are staged.
+Stage only both deleted module directories, the two precise shared-POM hunks, the main-starter test dependency hunk, and the new main-starter test. Confirm no Spring Bean, Java Entity, MyBatis, TinyFlow, README, frontend, or other user changes are staged.
 
 ```bash
 git commit -m "refactor(magicapi): 移除 dbtx 与 Seata 临时插件"
