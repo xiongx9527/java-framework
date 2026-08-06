@@ -23,6 +23,11 @@ public class TinyflowKnowledgeRepositoryContractTest
 	}
 
 	@Override
+	protected void failNextCompensationStartAt(TinyflowKnowledgeRepository target, String step) {
+		((InMemoryTinyflowKnowledgeRepository) target).failCompensationStartAt = step;
+	}
+
+	@Override
 	protected RepositoryConcurrencyProbe concurrencyProbe(TinyflowKnowledgeRepository target) {
 		return (RepositoryConcurrencyProbe) target;
 	}
@@ -42,6 +47,7 @@ public class TinyflowKnowledgeRepositoryContractTest
 		private final List<VectorCompensation> compensations = new ArrayList<VectorCompensation>();
 		private final ReentrantLock repositoryLock = new ReentrantLock(true);
 		private volatile String failCompletionAt;
+		private volatile String failCompensationStartAt;
 		private volatile String pauseCompletionAfter;
 		private final CountDownLatch completionPaused = new CountDownLatch(1);
 		private final CountDownLatch releaseCompletion = new CountDownLatch(1);
@@ -285,14 +291,44 @@ public class TinyflowKnowledgeRepositoryContractTest
 		}
 
 		@Override
+		public void saveTaskWithVectorCompensation(TinyflowIngestionTask task,
+				VectorCompensation compensation) {
+			write(() -> {
+				List<TinyflowIngestionTask> taskSnapshot = new ArrayList<TinyflowIngestionTask>(tasks);
+				List<VectorCompensation> compensationSnapshot = new ArrayList<VectorCompensation>(compensations);
+				try {
+					saveTask(task);
+					afterCompensationStartStep("task");
+					saveVectorCompensation(compensation);
+					afterCompensationStartStep("compensation");
+				} catch (RuntimeException exception) {
+					tasks.clear();
+					tasks.addAll(taskSnapshot);
+					compensations.clear();
+					compensations.addAll(compensationSnapshot);
+					throw exception;
+				}
+			});
+		}
+
+		@Override
 		public void completeIngestion(TinyflowDocument completedDocument, List<TinyflowChunk> values,
 				TinyflowIngestionTask completedTask) {
+			completeIngestionWithVectorCompensations(
+					completedDocument, values, completedTask, Collections.<VectorCompensation>emptyList());
+		}
+
+		@Override
+		public void completeIngestionWithVectorCompensations(TinyflowDocument completedDocument,
+				List<TinyflowChunk> values, TinyflowIngestionTask completedTask,
+				List<VectorCompensation> cleanupCompensations) {
 			write(() -> {
 				Map<String, TinyflowDocument> documentSnapshot =
 						new LinkedHashMap<String, TinyflowDocument>(documents);
 				Map<String, String> activeSnapshot = new LinkedHashMap<String, String>(activeDocuments);
 				Map<String, TinyflowChunk> chunkSnapshot = new LinkedHashMap<String, TinyflowChunk>(chunks);
 				List<TinyflowIngestionTask> taskSnapshot = new ArrayList<TinyflowIngestionTask>(tasks);
+				List<VectorCompensation> compensationSnapshot = new ArrayList<VectorCompensation>(compensations);
 				try {
 					saveChunks(values);
 					afterCompletionStep("chunks");
@@ -303,6 +339,10 @@ public class TinyflowKnowledgeRepositoryContractTest
 					afterCompletionStep("active");
 					saveTask(completedTask);
 					afterCompletionStep("task");
+					for (VectorCompensation compensation : cleanupCompensations) {
+						saveVectorCompensation(compensation);
+					}
+					afterCompletionStep("compensation");
 				} catch (RuntimeException exception) {
 					documents.clear();
 					documents.putAll(documentSnapshot);
@@ -312,6 +352,8 @@ public class TinyflowKnowledgeRepositoryContractTest
 					chunks.putAll(chunkSnapshot);
 					tasks.clear();
 					tasks.addAll(taskSnapshot);
+					compensations.clear();
+					compensations.addAll(compensationSnapshot);
 					throw exception;
 				}
 			});
@@ -546,6 +588,13 @@ public class TinyflowKnowledgeRepositoryContractTest
 					Thread.currentThread().interrupt();
 					throw new IllegalStateException("Interrupted while pausing completion", exception);
 				}
+			}
+		}
+
+		private void afterCompensationStartStep(String step) {
+			if (step.equals(failCompensationStartAt)) {
+				failCompensationStartAt = null;
+				throw new IllegalStateException("Compensation start failed after " + step);
 			}
 		}
 

@@ -64,12 +64,15 @@ public final class TinyflowKnowledgeMaintenanceService {
 			throw new TinyflowException("Active document has no chunks");
 		}
 		List<TinyflowDocument> oldVersions = repository.findDocumentVersions(tenantId, knowledgeId, sourceId);
+		List<TinyflowKnowledgeRepository.VectorCompensation> cleanupCompensations =
+				cleanupCompensations(oldVersions);
 		TinyflowDocument rebuilt = copyDocument(active, UUID.randomUUID().toString());
 		List<TinyflowChunk> rebuiltChunks = copyChunks(sourceChunks, rebuilt.getDocumentId());
 		List<TinyflowChunk> indexed = Collections.emptyList();
 		try {
 			indexed = indexer.indexForAtomicComplete(rebuilt, rebuiltChunks);
-			repository.completeIngestion(rebuilt, indexed, task(rebuilt, "COMPLETED", null));
+			repository.completeIngestionWithVectorCompensations(
+					rebuilt, indexed, task(rebuilt, "COMPLETED", null), cleanupCompensations);
 		} catch (RuntimeException exception) {
 			if (!indexed.isEmpty()) {
 				indexer.recordCompensation(rebuilt, vectorIds(indexed), TinyflowVectorCompensator.INDEX_ROLLBACK);
@@ -78,9 +81,9 @@ public final class TinyflowKnowledgeMaintenanceService {
 					: new TinyflowException("Knowledge rebuild failed", exception);
 		}
 		TinyflowException cleanupFailure = null;
-		for (TinyflowDocument oldVersion : oldVersions) {
+		for (TinyflowKnowledgeRepository.VectorCompensation compensation : cleanupCompensations) {
 			try {
-				cleanupOldVersion(oldVersion);
+				cleanupOldVersion(compensation);
 			} catch (TinyflowException exception) {
 				if (cleanupFailure == null) {
 					cleanupFailure = exception;
@@ -98,10 +101,15 @@ public final class TinyflowKnowledgeMaintenanceService {
 			return;
 		}
 		descriptor(vectorStoreKey(requireKnowledge(tenantId, knowledgeId)));
-		repository.saveTask(task(active, "DELETE_PENDING", "Deleting source vectors"));
 		List<String> vectorIds = vectorIdsForSource(tenantId, knowledgeId, sourceId);
 		TinyflowKnowledgeRepository.VectorCompensation compensation =
-				indexer.recordCompensation(active, vectorIds, TinyflowVectorCompensator.DELETE_PENDING);
+				indexer.createCompensation(active, vectorIds, TinyflowVectorCompensator.DELETE_PENDING);
+		try {
+			repository.saveTaskWithVectorCompensation(
+					task(active, "DELETE_PENDING", "Deleting source vectors"), compensation);
+		} catch (Exception exception) {
+			throw new TinyflowException("Knowledge source deletion could not be started", exception);
+		}
 		try {
 			new TinyflowVectorCompensator(repository, indexer).complete(compensation);
 		} catch (Exception exception) {
@@ -109,16 +117,25 @@ public final class TinyflowKnowledgeMaintenanceService {
 		}
 	}
 
-	private void cleanupOldVersion(TinyflowDocument document) {
-		List<String> vectorIds = vectorIds(repository.findChunksByDocument(
-				document.getTenantId(), document.getKnowledgeId(), document.getDocumentId()));
-		TinyflowKnowledgeRepository.VectorCompensation compensation =
-				indexer.recordCompensation(document, vectorIds, TinyflowVectorCompensator.DELETE_OLD_VERSION);
+	private void cleanupOldVersion(TinyflowKnowledgeRepository.VectorCompensation compensation) {
 		try {
 			new TinyflowVectorCompensator(repository, indexer).complete(compensation);
 		} catch (Exception exception) {
 			throw new TinyflowException("Old document version cleanup is pending compensation", exception);
 		}
+	}
+
+	private List<TinyflowKnowledgeRepository.VectorCompensation> cleanupCompensations(
+			List<TinyflowDocument> documents) {
+		List<TinyflowKnowledgeRepository.VectorCompensation> compensations =
+				new ArrayList<TinyflowKnowledgeRepository.VectorCompensation>();
+		for (TinyflowDocument document : documents) {
+			List<String> vectorIds = vectorIds(repository.findChunksByDocument(
+					document.getTenantId(), document.getKnowledgeId(), document.getDocumentId()));
+			compensations.add(indexer.createCompensation(
+					document, vectorIds, TinyflowVectorCompensator.DELETE_OLD_VERSION));
+		}
+		return compensations;
 	}
 
 	private TinyflowKnowledgeDefinition requireKnowledge(String tenantId, String knowledgeId) {
