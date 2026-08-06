@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.JSONValidator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.MagicDataSourceDecorator;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -17,6 +18,7 @@ import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 import org.ssssssss.magicapi.datasource.service.DataSourceMagicDynamicRegistry;
 
 import javax.sql.DataSource;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,8 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
      * 魔法动态数据源实例，用于实现动态数据源切换功能
      */
     private final MagicDynamicDataSource magicDynamicDataSource;
+
+    private final List<MagicDataSourceDecorator> dataSourceDecorators;
 
     /**
      * 当前类的类加载器实例
@@ -70,8 +74,18 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
      */
     public MyDataSourceMagicDynamicRegistry(MagicResourceStorage<DataSourceInfo> magicResourceStorage, MagicDynamicDataSource magicDynamicDataSource
             ,Map<String,DataSourceBuilder> dataSourceBuilderMap) {
+        this(magicResourceStorage, magicDynamicDataSource, dataSourceBuilderMap,
+                Collections.<MagicDataSourceDecorator>emptyList());
+    }
+
+    public MyDataSourceMagicDynamicRegistry(MagicResourceStorage<DataSourceInfo> magicResourceStorage,
+            MagicDynamicDataSource magicDynamicDataSource, Map<String,DataSourceBuilder> dataSourceBuilderMap,
+            List<MagicDataSourceDecorator> dataSourceDecorators) {
         super(magicResourceStorage,magicDynamicDataSource);
         this.magicDynamicDataSource = magicDynamicDataSource;
+        this.dataSourceDecorators = dataSourceDecorators == null
+                ? Collections.<MagicDataSourceDecorator>emptyList()
+                : Collections.unmodifiableList(new java.util.ArrayList<>(dataSourceDecorators));
         if (MapUtils.isNotEmpty(dataSourceBuilderMap)) {
             this.dataSourceBuilderMap.putAll(dataSourceBuilderMap);
         }
@@ -87,7 +101,8 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
     public void onFileEvent(FileEvent event) {
         try {
             processEvent(event);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("Failed to process Magic-API data source event", e);
         }
     }
 
@@ -102,7 +117,9 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
     public boolean register(DataSourceInfo entity) {
         try {
             return super.register(entity);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.error("Failed to register Magic-API data source: {}",
+                    entity == null ? null : entity.getKey(), e);
             return false;
         }
     }
@@ -159,6 +176,13 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
             dataSourceBuilder = defaultDataSourceBuilder;
         }
         DataSource datasource = dataSourceBuilder.buildDataSource(type, properties);
+        for (MagicDataSourceDecorator decorator : dataSourceDecorators) {
+            datasource = decorator.decorate(info.getKey(), datasource);
+        }
+        DataSource oldDataSource = findDataSource(info.getKey());
+        if (oldDataSource != null) {
+            beforeRemove(info.getKey(), oldDataSource);
+        }
         // 将数据源加入动态数据源容器中
         magicDynamicDataSource.put(info.getId(), info.getKey(), info.getName(), datasource, info.getMaxRows());
         return true;
@@ -171,7 +195,25 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
      */
     @Override
     protected void unregister(MappingNode<DataSourceInfo> mappingNode) {
+        DataSource dataSource = findDataSource(mappingNode.getMappingKey());
+        if (dataSource != null) {
+            beforeRemove(mappingNode.getMappingKey(), dataSource);
+        }
         magicDynamicDataSource.delete(mappingNode.getMappingKey());
+    }
+
+    private DataSource findDataSource(String key) {
+        return magicDynamicDataSource.datasourceNodes().stream()
+                .filter(node -> Objects.equals(key, node.getKey()))
+                .map(MagicDynamicDataSource.DataSourceNode::getDataSource)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void beforeRemove(String key, DataSource dataSource) {
+        for (MagicDataSourceDecorator decorator : dataSourceDecorators) {
+            decorator.beforeRemove(key, dataSource);
+        }
     }
 
     /**
