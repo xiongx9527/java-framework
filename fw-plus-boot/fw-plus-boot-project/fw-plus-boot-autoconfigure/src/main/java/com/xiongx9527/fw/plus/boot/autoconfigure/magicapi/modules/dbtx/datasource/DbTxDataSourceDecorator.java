@@ -30,4 +30,22 @@ public class DbTxDataSourceDecorator implements MagicDataSourceDecorator {
 			}
 		}
 	}
+
+	@Override
+	public void startRemove(String key, DataSource dataSource) {
+		if (dataSource instanceof DbTxAwareDataSource) {
+			try {
+				((DbTxAwareDataSource) dataSource).startRemove();
+			} catch (Exception e) {
+				throw new IllegalStateException("DataSource cannot be removed: " + key, e);
+			}
+		}
+	}
+
+	@Override
+	public void afterRemoveFailure(String key, DataSource dataSource) {
+		if (dataSource instanceof DbTxAwareDataSource) {
+			((DbTxAwareDataSource) dataSource).cancelRemove();
+		}
+	}
 }

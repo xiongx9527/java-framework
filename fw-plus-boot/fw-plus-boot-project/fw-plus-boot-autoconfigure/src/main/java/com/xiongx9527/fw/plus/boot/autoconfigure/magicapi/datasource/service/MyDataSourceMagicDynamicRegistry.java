@@ -21,6 +21,7 @@ import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -46,7 +47,10 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
      */
     private final MagicDynamicDataSource magicDynamicDataSource;
 
-    private final List<MagicDataSourceDecorator> dataSourceDecorators;
+	private final List<MagicDataSourceDecorator> dataSourceDecorators;
+
+	private final Map<DataSource, List<DecorationStage>> registeredDecorationStages =
+			Collections.synchronizedMap(new IdentityHashMap<DataSource, List<DecorationStage>>());
 
     /**
      * 当前类的类加载器实例
@@ -179,6 +183,7 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
         DataSource rawDataSource = dataSourceBuilder.buildDataSource(type, properties);
         DataSource datasource = rawDataSource;
         List<DecorationStage> decorationStages = new ArrayList<>();
+		List<MagicDynamicDataSource.DataSourceNode> replacedNodes = Collections.emptyList();
         try {
             for (MagicDataSourceDecorator decorator : dataSourceDecorators) {
                 DataSource decorated = decorator.decorate(info.getKey(), datasource);
@@ -188,7 +193,8 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
                 decorationStages.add(new DecorationStage(decorator, decorated));
                 datasource = decorated;
             }
-            beforeRemove(findDataSources(info.getId(), info.getKey()));
+			replacedNodes = findDataSources(info.getId(), info.getKey());
+			beforeRemove(replacedNodes);
         } catch (RuntimeException e) {
             rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
             throw e;
@@ -197,8 +203,21 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
             throw e;
         }
         // 将数据源加入动态数据源容器中
-        magicDynamicDataSource.put(info.getId(), info.getKey(), info.getName(), datasource, info.getMaxRows());
-        return true;
+		try {
+			magicDynamicDataSource.put(info.getId(), info.getKey(), info.getName(), datasource, info.getMaxRows());
+		} catch (RuntimeException e) {
+			afterRemoveFailure(replacedNodes, e);
+			rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
+			throw e;
+		} catch (Error e) {
+			afterRemoveFailure(replacedNodes, e);
+			rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
+			throw e;
+		}
+		forgetDecorationStages(replacedNodes);
+		registeredDecorationStages.put(datasource,
+				Collections.unmodifiableList(new ArrayList<DecorationStage>(decorationStages)));
+		return true;
     }
 
     /**
@@ -207,9 +226,20 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
      * @param mappingNode 需要取消注册的数据源映射节点
      */
     @Override
-    protected void unregister(MappingNode<DataSourceInfo> mappingNode) {
-        beforeRemove(findDataSources(null, mappingNode.getMappingKey()));
-        magicDynamicDataSource.delete(mappingNode.getMappingKey());
+	protected void unregister(MappingNode<DataSourceInfo> mappingNode) {
+		List<MagicDynamicDataSource.DataSourceNode> nodes =
+				findDataSources(null, mappingNode.getMappingKey());
+		beforeRemove(nodes);
+		try {
+			magicDynamicDataSource.delete(mappingNode.getMappingKey());
+		} catch (RuntimeException e) {
+			afterRemoveFailure(nodes, e);
+			throw e;
+		} catch (Error e) {
+			afterRemoveFailure(nodes, e);
+			throw e;
+		}
+		forgetDecorationStages(nodes);
     }
 
     private List<MagicDynamicDataSource.DataSourceNode> findDataSources(String id, String key) {
@@ -222,25 +252,72 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
         return nodes;
     }
 
-    private void beforeRemove(List<MagicDynamicDataSource.DataSourceNode> nodes) {
-        RuntimeException failure = null;
-        for (MagicDynamicDataSource.DataSourceNode node : nodes) {
-            for (MagicDataSourceDecorator decorator : dataSourceDecorators) {
-                try {
-                    decorator.beforeRemove(node.getKey(), node.getDataSource());
-                } catch (RuntimeException e) {
-                    if (failure == null) {
-                        failure = e;
-                    } else {
-                        failure.addSuppressed(e);
-                    }
-                }
+	private void beforeRemove(List<MagicDynamicDataSource.DataSourceNode> nodes) {
+		RuntimeException failure = null;
+		for (MagicDynamicDataSource.DataSourceNode node : nodes) {
+			for (DecorationStage stage : decorationStages(node)) {
+				try {
+					stage.decorator.startRemove(node.getKey(), stage.dataSource);
+				} catch (RuntimeException e) {
+					failure = append(failure, e);
+				}
+			}
+		}
+		for (MagicDynamicDataSource.DataSourceNode node : nodes) {
+			for (DecorationStage stage : decorationStages(node)) {
+				try {
+					stage.decorator.beforeRemove(node.getKey(), stage.dataSource);
+				} catch (RuntimeException e) {
+					failure = append(failure, e);
+				}
             }
         }
-        if (failure != null) {
-            throw failure;
-        }
-    }
+		if (failure != null) {
+			afterRemoveFailure(nodes, failure);
+			throw failure;
+		}
+	}
+
+	private RuntimeException append(RuntimeException failure, RuntimeException next) {
+		if (failure == null) {
+			return next;
+		}
+		failure.addSuppressed(next);
+		return failure;
+	}
+
+	private void afterRemoveFailure(List<MagicDynamicDataSource.DataSourceNode> nodes, Throwable failure) {
+		for (int nodeIndex = nodes.size() - 1; nodeIndex >= 0; nodeIndex--) {
+			MagicDynamicDataSource.DataSourceNode node = nodes.get(nodeIndex);
+			List<DecorationStage> stages = decorationStages(node);
+			for (int stageIndex = stages.size() - 1; stageIndex >= 0; stageIndex--) {
+				try {
+					DecorationStage stage = stages.get(stageIndex);
+					stage.decorator.afterRemoveFailure(node.getKey(), stage.dataSource);
+				} catch (Throwable cleanupFailure) {
+					addSuppressed(failure, cleanupFailure);
+				}
+			}
+		}
+	}
+
+	private List<DecorationStage> decorationStages(MagicDynamicDataSource.DataSourceNode node) {
+		List<DecorationStage> stages = registeredDecorationStages.get(node.getDataSource());
+		if (stages != null) {
+			return stages;
+		}
+		List<DecorationStage> fallback = new ArrayList<DecorationStage>(dataSourceDecorators.size());
+		for (MagicDataSourceDecorator decorator : dataSourceDecorators) {
+			fallback.add(new DecorationStage(decorator, node.getDataSource()));
+		}
+		return fallback;
+	}
+
+	private void forgetDecorationStages(List<MagicDynamicDataSource.DataSourceNode> nodes) {
+		for (MagicDynamicDataSource.DataSourceNode node : nodes) {
+			registeredDecorationStages.remove(node.getDataSource());
+		}
+	}
 
     private void rollbackDecoration(String key, DataSource rawDataSource,
             List<DecorationStage> decorationStages, Throwable failure) {

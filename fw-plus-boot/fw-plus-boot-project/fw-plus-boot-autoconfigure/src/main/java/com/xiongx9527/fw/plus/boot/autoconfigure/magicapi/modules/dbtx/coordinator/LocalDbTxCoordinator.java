@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.coordinator;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxAwareDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception.DbTxErrorCode;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception.DbTxException;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.model.DbTxContext;
@@ -13,6 +14,8 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
 
+import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -47,45 +50,114 @@ public class LocalDbTxCoordinator implements DbTxCoordinator {
 		}
 		ensureNoAmbientTransaction();
 
-		List<TransactionHandle> transactions = begin(definition);
-		Object result;
+		List<Participant> participants = participants(definition);
+		List<DbTxAwareDataSource.Lease> leases = acquireLeases(participants);
 		try {
-			result = callback.execute();
-		} catch (Throwable callbackFailure) {
-			rollbackAndSuppress(transactions, transactions.size() - 1, callbackFailure);
-			throw callbackFailure;
-		}
+			List<TransactionHandle> transactions = begin(definition, participants);
+			Object result;
+			try {
+				result = callback.execute();
+			} catch (Throwable callbackFailure) {
+				rollbackAndSuppress(transactions, transactions.size() - 1, callbackFailure);
+				throw callbackFailure;
+			}
 
-		DbTxContext context = DbTxContextHolder.current();
-		if (context != null && context.isRollbackOnly()) {
-			DbTxException rollbackOnly = new DbTxException(DbTxErrorCode.DBTX_ROLLBACK_ONLY,
-					"The dbtx transaction is marked rollback-only");
-			rollbackAndSuppress(transactions, transactions.size() - 1, rollbackOnly);
-			throw rollbackOnly;
-		}
+			DbTxContext context = DbTxContextHolder.current();
+			if (context != null && context.isRollbackOnly()) {
+				DbTxException rollbackOnly = new DbTxException(DbTxErrorCode.DBTX_ROLLBACK_ONLY,
+						"The dbtx transaction is marked rollback-only");
+				rollbackAndSuppress(transactions, transactions.size() - 1, rollbackOnly);
+				throw rollbackOnly;
+			}
 
-		commit(transactions);
-		return result;
+			commit(transactions);
+			return result;
+		} finally {
+			releaseLeases(leases);
+		}
 	}
 
-	private List<TransactionHandle> begin(DbTxDefinition definition) {
+	private List<Participant> participants(DbTxDefinition definition) {
 		List<String> keys = new ArrayList<>(definition.getDataSourceKeys());
 		Collections.sort(keys);
-		List<TransactionHandle> transactions = new ArrayList<>(keys.size());
+		List<Participant> participants = new ArrayList<>(keys.size());
 		for (String key : keys) {
 			try {
 				MagicDynamicDataSource.DataSourceNode node = dynamicDataSource.getDataSource(key);
-				DataSourceTransactionManager manager = node.getDataSourceTransactionManager();
+				participants.add(new Participant(key, node, dbTxDataSource(node.getDataSource())));
+			} catch (Throwable resolveFailure) {
+				throw new DbTxException(DbTxErrorCode.DBTX_BEGIN_FAILED,
+						"Failed to resolve local transaction DataSource: " + key, resolveFailure);
+			}
+		}
+		return participants;
+	}
+
+	private List<DbTxAwareDataSource.Lease> acquireLeases(List<Participant> participants) {
+		List<DbTxAwareDataSource.Lease> leases = new ArrayList<DbTxAwareDataSource.Lease>();
+		for (Participant participant : participants) {
+			if (participant.dataSource == null) {
+				continue;
+			}
+			try {
+				leases.add(participant.dataSource.acquireLease());
+			} catch (Throwable acquisitionFailure) {
+				releaseLeases(leases);
+				throw new DbTxException(DbTxErrorCode.DBTX_BEGIN_FAILED,
+						"Failed to acquire local transaction DataSource: " + participant.key,
+						acquisitionFailure);
+			}
+		}
+		return leases;
+	}
+
+	private static DbTxAwareDataSource dbTxDataSource(DataSource dataSource) throws SQLException {
+		if (dataSource instanceof DbTxAwareDataSource) {
+			return (DbTxAwareDataSource) dataSource;
+		}
+		if (dataSource.isWrapperFor(DbTxAwareDataSource.class)) {
+			return dataSource.unwrap(DbTxAwareDataSource.class);
+		}
+		return null;
+	}
+
+	private static void releaseLeases(List<DbTxAwareDataSource.Lease> leases) {
+		for (int index = leases.size() - 1; index >= 0; index--) {
+			leases.get(index).close();
+		}
+	}
+
+	private List<TransactionHandle> begin(DbTxDefinition definition, List<Participant> participants) {
+		List<TransactionHandle> transactions = new ArrayList<>(participants.size());
+		for (Participant participant : participants) {
+			try {
+				DataSourceTransactionManager manager = participant.node.getDataSourceTransactionManager();
 				TransactionStatus status = manager.getTransaction(transactionDefinition(definition));
-				transactions.add(new TransactionHandle(key, manager, status));
+				transactions.add(new TransactionHandle(participant.key, manager, status));
 			} catch (Throwable beginFailure) {
 				DbTxException exception = new DbTxException(DbTxErrorCode.DBTX_BEGIN_FAILED,
-						"Failed to begin local transaction for DataSource: " + key, beginFailure);
+						"Failed to begin local transaction for DataSource: " + participant.key, beginFailure);
 				rollbackAndSuppress(transactions, transactions.size() - 1, exception);
 				throw exception;
 			}
 		}
 		return transactions;
+	}
+
+	private static final class Participant {
+
+		private final String key;
+
+		private final MagicDynamicDataSource.DataSourceNode node;
+
+		private final DbTxAwareDataSource dataSource;
+
+		private Participant(String key, MagicDynamicDataSource.DataSourceNode node,
+				DbTxAwareDataSource dataSource) {
+			this.key = key;
+			this.node = node;
+			this.dataSource = dataSource;
+		}
 	}
 
 	private void commit(List<TransactionHandle> transactions) {
