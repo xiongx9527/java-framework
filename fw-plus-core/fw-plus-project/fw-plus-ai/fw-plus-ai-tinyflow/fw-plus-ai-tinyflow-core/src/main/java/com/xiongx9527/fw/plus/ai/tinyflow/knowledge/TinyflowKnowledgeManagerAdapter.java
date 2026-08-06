@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.tinyflow.knowledge;
 
+import com.xiongx9527.fw.plus.ai.tinyflow.TinyflowException;
 import dev.tinyflow.core.knowledge.Knowledge;
 import dev.tinyflow.core.knowledge.KnowledgeProvider;
 
@@ -30,6 +31,9 @@ public final class TinyflowKnowledgeManagerAdapter implements KnowledgeProvider 
 	private List<Map<String, Object>> toMaps(TinyflowKnowledgeResult result) {
 		if (result == null) {
 			throw new IllegalStateException("Tinyflow knowledge provider returned null result");
+		}
+		if (!result.isKnowledgeExists()) {
+			throw new TinyflowException("Tinyflow knowledge does not exist");
 		}
 		List<Map<String, Object>> values = new ArrayList<Map<String, Object>>();
 		for (TinyflowKnowledgeMatch match : result.getMatches()) {
