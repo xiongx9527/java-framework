@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.model.MagicDynamicModelDataSource;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.model.MagicDynamicVectorDataSource;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.storage.TinyflowChunkMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.storage.TinyflowDifyConnectionMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.storage.TinyflowDocumentMagicResourceStorage;
@@ -7,6 +9,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledg
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.storage.TinyflowKnowledgeKeyMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.storage.TinyflowKnowledgeMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow.dify.TinyflowKnowledgeAccessKeyService;
+import com.xiongx9527.fw.plus.ai.model.AiModel;
+import com.xiongx9527.fw.plus.ai.model.AiModelType;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowChunk;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocument;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocumentImport;
@@ -19,8 +24,10 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRequest;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeResult;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowObjectStorage;
+import com.xiongx9527.fw.plus.ai.tinyflow.local.DefaultTinyflowIngestionService;
 import com.xiongx9527.fw.plus.ai.tinyflow.local.index.TinyflowKnowledgeMaintenanceService;
 import com.xiongx9527.fw.plus.ai.tinyflow.local.index.TinyflowLocalIndexer;
+import com.xiongx9527.fw.plus.ai.tinyflow.local.index.TinyflowVectorCompensator;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelDescriptor;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
@@ -29,6 +36,8 @@ import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreDescriptor;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorDocument;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorMatch;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.MagicDynamicS3DataSource;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model.S3DataSourceInfo;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,6 +60,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -60,6 +70,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DefaultMagicTinyflowKnowledgeOperationsTest {
 
@@ -121,6 +133,35 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 				.tenantId("tenant-a").knowledgeId("kb-s3").name("Missing S3")
 				.metadata(s3Metadata).enabled(true).build();
 		assertThrows(IllegalArgumentException.class, () -> missingS3.operations.create(invalidS3));
+	}
+
+	@Test
+	public void shouldAcceptConfiguredEmbeddingModelBeyondDisplayLimit() throws Exception {
+		MagicTinyflowKnowledgeOptionProvider optionProvider = optionsWithManyEmbeddingModels();
+		assertEquals(200, optionProvider.listModels(200).size());
+		assertFalse(containsOption(optionProvider.listModels(200), "embedding-200"));
+		Fixture fixture = fixture(optionProvider);
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>(definition("Tail model").getMetadata());
+		metadata.put("embeddingModelKey", "embedding-200");
+		TinyflowKnowledgeDefinition definition = TinyflowKnowledgeDefinition.builder().providerKey("fw-plus-local")
+				.tenantId("tenant-a").knowledgeId("kb-tail").name("Tail model")
+				.metadata(metadata).enabled(true).build();
+
+		fixture.operations.create(definition);
+
+		assertNotNull(fixture.operations.find("tenant-a", "kb-tail"));
+	}
+
+	@Test
+	public void shouldRejectChatModelAsEmbeddingModel() throws Exception {
+		Fixture fixture = fixture(optionsWithManyEmbeddingModels());
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>(definition("Chat model").getMetadata());
+		metadata.put("embeddingModelKey", "chat-main");
+		TinyflowKnowledgeDefinition definition = TinyflowKnowledgeDefinition.builder().providerKey("fw-plus-local")
+				.tenantId("tenant-a").knowledgeId("kb-chat").name("Chat model")
+				.metadata(metadata).enabled(true).build();
+
+		assertThrows(IllegalArgumentException.class, () -> fixture.operations.create(definition));
 	}
 
 	@Test
@@ -346,6 +387,23 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 	}
 
 	@Test
+	public void shouldPersistAndRetryConcurrentDedupeObjectCleanup() throws Exception {
+		Fixture fixture = fixture();
+		fixture.operations.create(definition("Knowledge"));
+		fixture.gateway.returnDocumentId = "doc-concurrent";
+		fixture.storage.deleteFailures = 2;
+
+		assertThrows(RuntimeException.class, () -> fixture.operations.importDocument(
+				command("source-race", "file", "race.txt", "text/plain", "race")));
+
+		assertEquals(1, fixture.repository.findVectorCompensations("tenant-a", "kb-1").size());
+		fixture.storage.deleteFailures = 0;
+		retryCompensations(fixture);
+		assertEquals(Collections.singletonList("object-ref-1"), fixture.storage.deleted);
+		assertTrue(fixture.repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
+	}
+
+	@Test
 	public void shouldDeleteStoredObjectsWhenKnowledgeDeletionCompletes() throws Exception {
 		Fixture fixture = fixture();
 		fixture.operations.create(definition("Knowledge"));
@@ -382,6 +440,10 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 	}
 
 	private Fixture fixture() throws Exception {
+		return fixture(options());
+	}
+
+	private Fixture fixture(MagicTinyflowKnowledgeOptionProvider optionProvider) throws Exception {
 		MagicApiTinyflowKnowledgeRepository repository = new MagicApiTinyflowKnowledgeRepository(
 				resources(Files.createTempDirectory("tinyflow-operations").toFile()));
 		RecordingStorage storage = new RecordingStorage();
@@ -411,7 +473,42 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 				new TinyflowKnowledgeMaintenanceService(repository, indexer, vectors, storage);
 		return new Fixture(repository, storage, gateway, provider, vectorStore,
 				new DefaultMagicTinyflowKnowledgeOperations(
-						repository, storage, gateway, registry, vectors, maintenance, options()));
+						repository, storage, gateway, registry, vectors, maintenance, optionProvider));
+	}
+
+	private MagicTinyflowKnowledgeOptionProvider optionsWithManyEmbeddingModels() {
+		MagicDynamicModelDataSource models = mock(MagicDynamicModelDataSource.class);
+		MagicDynamicVectorDataSource vectors = mock(MagicDynamicVectorDataSource.class);
+		MagicDynamicS3DataSource s3 = mock(MagicDynamicS3DataSource.class);
+		LinkedHashSet<String> modelKeys = new LinkedHashSet<String>();
+		for (int index = 0; index <= 200; index++) {
+			String key = String.format("embedding-%03d", index);
+			AiModel model = mock(AiModel.class);
+			when(model.getType()).thenReturn(AiModelType.EMBEDDING);
+			when(model.getProvider()).thenReturn("test");
+			when(models.getModel(key)).thenReturn(model);
+			modelKeys.add(key);
+		}
+		AiModel chat = mock(AiModel.class);
+		when(chat.getType()).thenReturn(AiModelType.CHAT);
+		when(chat.getProvider()).thenReturn("test");
+		when(models.getModel("chat-main")).thenReturn(chat);
+		modelKeys.add("chat-main");
+		when(models.keys()).thenReturn(modelKeys);
+		AiEmbeddingStore vector = mock(AiEmbeddingStore.class);
+		when(vectors.keys()).thenReturn(new LinkedHashSet<String>(Collections.singletonList("vector-main")));
+		when(vectors.get("vector-main")).thenReturn(vector);
+		S3DataSourceInfo storage = new S3DataSourceInfo();
+		storage.setKey("s3-main"); storage.setEnableStorage("true");
+		when(s3.datasourceNodes()).thenReturn(Collections.singletonList(storage));
+		return new DefaultMagicTinyflowKnowledgeOptionProvider(models, vectors, s3);
+	}
+
+	private boolean containsOption(List<MagicTinyflowKnowledgeOptionProvider.Option> options, String key) {
+		for (MagicTinyflowKnowledgeOptionProvider.Option option : options) {
+			if (key.equals(option.getKey())) return true;
+		}
+		return false;
 	}
 
 	private MagicTinyflowKnowledgeOptionProvider options() {
@@ -428,6 +525,17 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 						"s3-main", "Storage", "OBJECT_STORAGE", "test"));
 			}
 		};
+	}
+
+	private void retryCompensations(Fixture fixture) {
+		DefaultTinyflowIngestionService.IngestionIndex index = new DefaultTinyflowIngestionService.IngestionIndex() {
+			@Override public void embed(String tenantId, String knowledgeId,
+					String documentId, List<TinyflowChunk> chunks) { }
+			@Override public Map<String, List<String>> index(String tenantId, String knowledgeId,
+					String documentId, List<TinyflowChunk> chunks) { return Collections.emptyMap(); }
+			@Override public void delete(String tenantId, String knowledgeId, List<String> vectorIds) { }
+		};
+		new TinyflowVectorCompensator(fixture.repository, index, fixture.storage).retry("tenant-a", "kb-1");
 	}
 
 	private void seedSource(MagicApiTinyflowKnowledgeRepository repository, String sourceId,
@@ -531,6 +639,7 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 
 	private static final class RecordingStorage implements TinyflowObjectStorage {
 		private int puts;
+		private int deleteFailures;
 		private Map<String, Object> lastMetadata;
 		private final List<String> deleted = new ArrayList<String>();
 		@Override public StoredObject put(String tenantId, String objectKey, InputStream input, String mediaType,
@@ -542,7 +651,13 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 			return new ByteArrayInputStream(new byte[0]);
 		}
 		@Override public boolean exists(String tenantId, String objectKey) { return true; }
-		@Override public void delete(String tenantId, String objectKey) { deleted.add(objectKey); }
+		@Override public void delete(String tenantId, String objectKey) {
+			if (deleteFailures > 0) {
+				deleteFailures--;
+				throw new IllegalStateException("Object delete failed");
+			}
+			deleted.add(objectKey);
+		}
 	}
 
 	private static final class RecordingProvider implements TinyflowKnowledgeProvider {

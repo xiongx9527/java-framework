@@ -470,7 +470,8 @@ public class MagicApiTinyflowKnowledgeRepository implements TinyflowKnowledgeRep
 		value.setRecordType(TinyflowIngestionTaskMagicResourceStorage.COMPENSATION); value.setTenantId(compensation.getTenantId());
 		value.setKnowledgeId(compensation.getKnowledgeId()); value.setCompensationId(compensation.getCompensationId());
 		value.setSourceId(compensation.getSourceId()); value.setDocumentId(compensation.getDocumentId());
-		value.setVectorIds(copyList(compensation.getVectorIds())); value.setOperation(compensation.getOperation()); value.setStage(compensation.getStage());
+		value.setVectorIds(copyList(compensation.getVectorIds())); value.setOperation(compensation.getOperation());
+		value.setStage(compensation.getStage()); value.setObjectKey(compensation.getObjectKey());
 		save(value);
 	}
 
@@ -526,7 +527,8 @@ public class MagicApiTinyflowKnowledgeRepository implements TinyflowKnowledgeRep
 
 	private VectorCompensation compensation(TinyflowKnowledgeMagicResource value) {
 		return new VectorCompensation(value.getCompensationId(), value.getTenantId(), value.getKnowledgeId(),
-				value.getSourceId(), value.getDocumentId(), copyList(value.getVectorIds()), value.getOperation(), value.getStage());
+				value.getSourceId(), value.getDocumentId(), copyList(value.getVectorIds()), value.getOperation(),
+				value.getStage(), value.getObjectKey());
 	}
 
 	private AccessKey accessKey(TinyflowKnowledgeMagicResource value) {

@@ -81,6 +81,22 @@ public class MagicApiTinyflowObjectStorageTest {
 		assertEquals(1, backend.deletes);
 	}
 
+	@Test
+	public void shouldTreatRepeatedDeleteOfMissingObjectAsSuccess() throws Exception {
+		RecordingBackend backend = new RecordingBackend();
+		MagicApiTinyflowObjectStorage storage = new MagicApiTinyflowObjectStorage(backend, 1024L);
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
+		metadata.put("s3Key", "main-s3");
+		TinyflowObjectStorage.StoredObject stored = storage.put("tenant-a", "manual.txt",
+				new ByteArrayInputStream("body".getBytes(StandardCharsets.UTF_8)), "text/plain", metadata);
+
+		storage.delete("tenant-a", stored.getObjectKey());
+		storage.delete("tenant-a", stored.getObjectKey());
+
+		assertFalse(storage.exists("tenant-a", stored.getObjectKey()));
+		assertEquals(2, backend.deletes);
+	}
+
 	private byte[] read(InputStream input) throws Exception {
 		byte[] bytes = new byte[16];
 		int length = input.read(bytes);
@@ -96,10 +112,11 @@ public class MagicApiTinyflowObjectStorageTest {
 		private int uploads;
 		private int reads;
 		private int deletes;
+		private boolean exists;
 
 		@Override public MagicApiTinyflowObjectStorage.UploadedObject upload(String s3Key, String path,
 				byte[] content, String filename, String mediaType) {
-			this.s3Key = s3Key; this.path = path; this.filename = filename; uploads++;
+			this.s3Key = s3Key; this.path = path; this.filename = filename; uploads++; exists = true;
 			return new MagicApiTinyflowObjectStorage.UploadedObject(
 					"https://bucket.example.test/" + path + "/" + filename
 							+ "?X-Amz-Credential=temporary-secret", path, filename);
@@ -110,7 +127,11 @@ public class MagicApiTinyflowObjectStorageTest {
 			return new ByteArrayInputStream("body".getBytes(StandardCharsets.UTF_8));
 		}
 
-		@Override public boolean exists(MagicApiTinyflowObjectStorage.ObjectReference reference) { return true; }
-		@Override public void delete(MagicApiTinyflowObjectStorage.ObjectReference reference) { deletes++; }
+		@Override public boolean exists(MagicApiTinyflowObjectStorage.ObjectReference reference) { return exists; }
+		@Override public void delete(MagicApiTinyflowObjectStorage.ObjectReference reference) {
+			deletes++;
+			if (!exists) throw new IllegalStateException("Object is missing");
+			exists = false;
+		}
 	}
 }

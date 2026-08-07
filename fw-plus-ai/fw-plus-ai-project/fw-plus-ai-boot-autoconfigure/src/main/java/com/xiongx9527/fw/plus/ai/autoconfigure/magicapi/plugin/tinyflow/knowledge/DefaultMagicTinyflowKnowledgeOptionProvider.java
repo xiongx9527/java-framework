@@ -76,6 +76,28 @@ public final class DefaultMagicTinyflowKnowledgeOptionProvider implements MagicT
 		return sortedLimited(options, limit);
 	}
 
+	@Override
+	public boolean hasEmbeddingModel(String key) {
+		if (!text(key)) return false;
+		AiModel model = modelDataSource.getModel(key);
+		return model != null && model.getType() == AiModelType.EMBEDDING;
+	}
+
+	@Override
+	public boolean hasVectorStore(String key) {
+		return text(key) && vectorDataSource.get(key) != null;
+	}
+
+	@Override
+	public boolean hasS3Storage(String key) {
+		if (!text(key)) return false;
+		for (S3DataSourceInfo info : safe(s3DataSource.datasourceNodes())) {
+			if (info != null && key.equals(info.getKey())
+					&& !"false".equalsIgnoreCase(info.getEnableStorage())) return true;
+		}
+		return false;
+	}
+
 	private Map<String, String> modelNames(List<ModelDataSourceInfo> infos) {
 		Map<String, String> result = new LinkedHashMap<String, String>();
 		for (ModelDataSourceInfo info : safe(infos)) {

@@ -133,6 +133,23 @@ public class TinyflowIngestionServiceTest {
 	}
 
 	@Test
+	public void shouldResumeResourceCleanupAfterObjectWasAlreadyDeleted() {
+		storage.values.put("object-old", "old content".getBytes(StandardCharsets.UTF_8));
+		service.importDocument(fileImport("source-replay", "sha256-old", null, "object-old"));
+		repository.failDeleteDocumentVersionOnce = true;
+		storage.failWhenMissing = true;
+
+		service.importDocument(fileImport("source-replay", "sha256-new", "new content", null));
+
+		assertFalse(storage.exists("tenant-a", "object-old"));
+		assertEquals(1, repository.compensations.size());
+		new TinyflowVectorCompensator(repository, index, storage).retry("tenant-a", "kb-1");
+		assertTrue(repository.findDocumentVersions("tenant-a", "kb-1", "source-replay").stream()
+				.noneMatch(document -> "sha256-old".equals(document.getChecksum())));
+		assertTrue(repository.compensations.isEmpty());
+	}
+
+	@Test
 	public void shouldKeepDisabledDocumentDisabledThroughIngestionCopies() {
 		TinyflowIngestionTask task = service.importDocument(
 				fileImport("source-disabled", "sha256-disabled", "disabled content", null, false));
@@ -254,7 +271,7 @@ public class TinyflowIngestionServiceTest {
 		assertEquals(1, repository.compensations.size());
 		assertEquals(TinyflowVectorCompensator.DELETE_FAILED_IMPORT,
 				repository.compensations.get(0).getOperation());
-		assertEquals(TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING,
+		assertEquals(TinyflowKnowledgeRepository.VectorCompensation.OBJECT_PENDING,
 				repository.compensations.get(0).getStage());
 
 		storage.failDelete = false;
@@ -757,6 +774,7 @@ public class TinyflowIngestionServiceTest {
 	private static final class InMemoryObjectStorage implements TinyflowObjectStorage {
 		private final Map<String, byte[]> values = new LinkedHashMap<String, byte[]>();
 		private boolean failDelete;
+		private boolean failWhenMissing;
 
 		@Override
 		public StoredObject put(String tenantId, String objectKey, InputStream input, String mediaType,
@@ -783,6 +801,9 @@ public class TinyflowIngestionServiceTest {
 			if (failDelete) {
 				throw new IllegalStateException("Object delete failed");
 			}
+			if (failWhenMissing && !values.containsKey(objectKey)) {
+				throw new IllegalStateException("Object is already missing");
+			}
 			values.remove(objectKey);
 		}
 	}
@@ -802,6 +823,7 @@ public class TinyflowIngestionServiceTest {
 		private volatile boolean concurrentUpdateBeforeDelete;
 		private volatile String failTaskStatusOnce;
 		private volatile boolean failActivation;
+		private volatile boolean failDeleteDocumentVersionOnce;
 		private final CountDownLatch completionEntered = new CountDownLatch(1);
 		private final CountDownLatch releaseCompletion = new CountDownLatch(1);
 
@@ -907,6 +929,10 @@ public class TinyflowIngestionServiceTest {
 		@Override
 		public synchronized void deleteDocumentVersion(String tenantId, String knowledgeId,
 				String sourceId, String documentId) {
+			if (failDeleteDocumentVersionOnce) {
+				failDeleteDocumentVersionOnce = false;
+				throw new IllegalStateException("Document deletion failed");
+			}
 			String documentKey = documentKey(tenantId, knowledgeId, documentId);
 			TinyflowDocument document = documents.get(documentKey);
 			if (document == null) {

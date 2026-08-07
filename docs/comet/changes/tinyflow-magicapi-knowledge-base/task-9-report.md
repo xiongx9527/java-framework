@@ -14,9 +14,11 @@
 
 | 范围 | 命令 | 结果 |
 | --- | --- | --- |
-| Core local 全模块 | `mvn -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-local test` | `89` tests，0 failures，0 errors，0 skipped，BUILD SUCCESS |
-| Task 9 完整聚焦矩阵 | `mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.*Test,MagicApiTinyflowProviderTest,MagicApiTinyflowVectorStoreProviderContractTest,TinyflowAutoConfigurationTest' test` | `100` tests，0 failures，0 errors，0 skipped，BUILD SUCCESS |
-| AI Boot AutoConfigure 全回归 | `mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure test` | `506` tests，0 failures，0 errors，0 skipped，BUILD SUCCESS |
+| Core ingestion/compensator 聚焦 | `mvn -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-local -Dtest='TinyflowIngestionServiceTest' test` | `28` tests，0 failures，0 errors，0 skipped，BUILD SUCCESS |
+| Magic object storage/operations 聚焦 | `mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='MagicApiTinyflowObjectStorageTest,DefaultMagicTinyflowKnowledgeOperationsTest,DefaultMagicTinyflowKnowledgeOptionProviderTest' test` | `26` tests，0 failures，0 errors，0 skipped，BUILD SUCCESS |
+| Core local 全模块 | `mvn -f fw-plus-core/pom.xml -pl fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-local test` | `90` tests，0 failures，0 errors，0 skipped，BUILD SUCCESS |
+| Task 9 完整聚焦矩阵 | `mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.*Test,MagicApiTinyflowProviderTest,MagicApiTinyflowVectorStoreProviderContractTest,TinyflowAutoConfigurationTest' test` | `104` tests，0 failures，0 errors，0 skipped，BUILD SUCCESS |
+| AI Boot AutoConfigure 全回归 | `mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure test` | `510` tests，0 failures，0 errors，0 skipped，BUILD SUCCESS |
 | Tinyflow 插件 S3 依赖 | `mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-magicapi-plugin/fw-plus-ai-magicapi-plugin-tinyflow dependency:tree -Dincludes=com.xiongx9527.fw.plus.boot:fw-plus-magicapi-plugin-s3` | BUILD SUCCESS；直接 `compile` 依赖 `fw-plus-magicapi-plugin-s3:0.1.1-SNAPSHOT` |
 | 差异格式 | `git diff --check` | 通过，无输出 |
 
@@ -31,6 +33,13 @@
 | I4 默认权限 allow-all、默认 audit no-op、Controller 吞审计异常 | 默认 evaluator 委托 Magic-API `AuthorizationInterceptor` 并 fail closed；默认 sink 将 JSON 事件写入 `.tinyflow-audit`，不新增第七类业务 Magic Resource；审计失败在成功路径抛出，在业务失败路径作为 suppressed 保留。覆盖 `MagicTinyflowKnowledgeHttpConfigurationTest.shouldMapDefaultKnowledgeActionsToMagicApiAuthorization`、`shouldRejectMissingIdentityOrDeniedKnowledgeActionByDefault`、`shouldStartWithoutMagicConfigurationAndKeepDefaultPermissionFailClosed`、`shouldPersistDefaultAuditEventsWithoutRegisteringSeventhMagicResource`，以及 `MagicTinyflowKnowledgeControllerSecurityTest.shouldExposeAuditPersistenceFailureAfterSuccessfulAction`、`shouldPreserveBusinessFailureAndSuppressAuditPersistenceFailure`。 | Task 9 完整聚焦矩阵命令；AI Boot AutoConfigure 全回归命令 | Task 9 `100` tests、AI Boot `506` tests，均 0 failures、0 errors，BUILD SUCCESS |
 | I5 管理 API 缺少请求硬上限 | 对普通字符串、名称、URL、query、metadata/options 字符串、容器元素和嵌套深度集中限制，并检测循环引用；正文继续使用 20 MiB 字节上限。覆盖 `MagicTinyflowKnowledgeManagementControllerTest.shouldRejectOversizedRequestStrings`、`shouldRejectOversizedUrlBeforeFetch`、`shouldRejectOversizedRecallQuery`、`shouldRejectTooManyStructuredMapEntries`、`shouldRejectTooManyStructuredCollectionEntries`、`shouldRejectOverdeepStructuredOptions`。 | Task 9 完整聚焦矩阵命令 | `100` tests，0 failures，0 errors，BUILD SUCCESS |
 | I6 ChunkUpdateRequest 省略 metadata 会清空并误触发向量替换 | 请求未提供 metadata 时保留当前 metadata；显式空 Map 仍表示清空。覆盖 `DefaultMagicTinyflowKnowledgeOperationsTest.shouldPreserveChunkMetadataWhenControllerRequestOmitsIt`，同时断言 vector ID 不变且无向量增删。 | Core local 全模块命令；Task 9 完整聚焦矩阵命令 | Core `89` tests、Task 9 `100` tests，均 0 failures、0 errors，BUILD SUCCESS |
+
+## Fix round 2 findings
+
+| Finding | 修复与 covering test | 验证命令 | 结果 |
+| --- | --- | --- | --- |
+| R2-I1 S3 补偿重放不可靠，且并发 dedupe 的临时上传清理失败后未持久化 | 删除补偿增加 `OBJECT_PENDING` 阶段，对象删除成功后先持久推进到 `RESOURCE_PENDING`，后续资源删除失败时重试不再重复删除对象；增加独立 `objectKey` 与 `DELETE_TEMPORARY_OBJECT` 持久补偿；S3 facade 仅在删除失败且确认对象已不存在时将重复删除视为成功。覆盖 `TinyflowIngestionServiceTest.shouldResumeResourceCleanupAfterObjectWasAlreadyDeleted`、`shouldRetainFailedObjectCleanupAndCompleteItOnRetry`、`DefaultMagicTinyflowKnowledgeOperationsTest.shouldPersistAndRetryConcurrentDedupeObjectCleanup`、`MagicApiTinyflowObjectStorageTest.shouldTreatRepeatedDeleteOfMissingObjectAsSuccess`。 | Core ingestion/compensator 聚焦命令；Magic object storage/operations 聚焦命令；Task 9 完整聚焦矩阵命令 | Core 聚焦 `28` tests、Magic 聚焦 `26` tests、Task 9 `104` tests，均 0 failures、0 errors，BUILD SUCCESS |
+| R2-I2 knowledge key 校验依赖 UI 最多 200 条的展示列表，且 direct lookup 后必须继续约束 Embedding 类型 | option provider 增加按 key 的内部校验 API；默认实现直接查询 model/vector/S3 数据源，UI `listModels/listVectors/listS3` 仍保留 200 上限；`embeddingModelKey` 仅接受 `AiModelType.EMBEDDING`。覆盖 `DefaultMagicTinyflowKnowledgeOperationsTest.shouldAcceptConfiguredEmbeddingModelBeyondDisplayLimit`、`shouldRejectChatModelAsEmbeddingModel`、`shouldRejectMissingEmbeddingAndS3ResourceKeys`。 | Magic object storage/operations 聚焦命令；Task 9 完整聚焦矩阵命令；AI Boot AutoConfigure 全回归命令 | Magic 聚焦 `26` tests、Task 9 `104` tests、AI Boot `510` tests，均 0 failures、0 errors，BUILD SUCCESS |
 
 ## 关键回归证据
 
