@@ -48,8 +48,8 @@ public final class DataChangeDispatcher {
 		try (DataChangeScope ignored = DataChangeScope.suppress()) {
 			handler.handle(event);
 		} catch (Exception cause) {
-			DataChangeException exception = new DataChangeException(DataChangeErrorCode.HANDLER,
-					"HANDLER_FAILED: " + handler.getClass().getName(), cause);
+			DataChangeException exception = new DataChangeException(DataChangeErrorCode.HANDLER_FAILED,
+					"HANDLER_FAILED: " + handler.getClass().getName());
 			if (event != null && event.getConsistencyLevel() == ConsistencyLevel.TRANSACTIONAL) {
 				throw exception;
 			}
@@ -59,7 +59,7 @@ public final class DataChangeDispatcher {
 
 	private void report(DataChangeEvent event, DataChangeException exception) {
 		if (errorHandler != null) {
-			try {
+			try (DataChangeScope ignored = DataChangeScope.suppress()) {
 				errorHandler.handle(new DataChangeFailure(event, exception));
 			} catch (Exception ignored) {
 				// Best-effort dispatch cannot let error reporting stop later handlers.

@@ -31,7 +31,7 @@ public final class JdbcTableMetadataResolver {
 			cache.put(key, resolved);
 			return resolved;
 		} catch (SQLException exception) {
-			throw new DataChangeException(DataChangeErrorCode.SNAPSHOT,
+			throw new DataChangeException(DataChangeErrorCode.SNAPSHOT_QUERY_FAILED,
 					"Unable to resolve JDBC metadata for " + table, exception);
 		}
 	}
@@ -43,7 +43,8 @@ public final class JdbcTableMetadataResolver {
 
 	private List<String> keyColumns(DatabaseMetaData metadata, TableIdentifier table) throws SQLException {
 		List<KeyColumn> keys = new ArrayList<KeyColumn>();
-		ResultSet resultSet = metadata.getPrimaryKeys(table.getCatalog(), table.getSchema(), table.getTable());
+		ResultSet resultSet = metadata.getPrimaryKeys(identifier(metadata, table.getCatalog()),
+				identifier(metadata, table.getSchema()), identifier(metadata, table.getTable()));
 		try {
 			while (resultSet.next()) {
 				keys.add(new KeyColumn(resultSet.getShort("KEY_SEQ"), resultSet.getString("COLUMN_NAME")));
@@ -66,7 +67,8 @@ public final class JdbcTableMetadataResolver {
 
 	private List<String> columns(DatabaseMetaData metadata, TableIdentifier table) throws SQLException {
 		List<String> columns = new ArrayList<String>();
-		ResultSet resultSet = metadata.getColumns(table.getCatalog(), table.getSchema(), table.getTable(), null);
+		ResultSet resultSet = metadata.getColumns(identifier(metadata, table.getCatalog()),
+				identifier(metadata, table.getSchema()), identifier(metadata, table.getTable()), null);
 		try {
 			while (resultSet.next()) {
 				columns.add(resultSet.getString("COLUMN_NAME"));
@@ -75,6 +77,11 @@ public final class JdbcTableMetadataResolver {
 			resultSet.close();
 		}
 		return columns;
+	}
+
+	private String identifier(DatabaseMetaData metadata, String value) throws SQLException {
+		return value != null && metadata.storesUpperCaseIdentifiers()
+				? value.toUpperCase(java.util.Locale.ENGLISH) : value;
 	}
 
 	private static final class KeyColumn {

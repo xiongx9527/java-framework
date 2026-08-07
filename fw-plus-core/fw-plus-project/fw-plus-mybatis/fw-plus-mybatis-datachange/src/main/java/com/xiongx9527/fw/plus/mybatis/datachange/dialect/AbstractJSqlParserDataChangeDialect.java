@@ -196,7 +196,10 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 		ItemsList itemsList = ((ValuesStatement) valuesBodies.get(0)).getExpressions();
 		if (itemsList instanceof ExpressionList) {
 			List<Expression> rows = ((ExpressionList) itemsList).getExpressions();
-			if (rows.size() == 1 && rows.get(0) instanceof RowConstructor) {
+			if (rows.size() == 1 && !(rows.get(0) instanceof RowConstructor)) {
+				return rows;
+			}
+			if (rows.size() == 1) {
 				ExpressionList values = ((RowConstructor) rows.get(0)).getExprList();
 				return values == null ? Collections.<Expression>emptyList() : values.getExpressions();
 			}

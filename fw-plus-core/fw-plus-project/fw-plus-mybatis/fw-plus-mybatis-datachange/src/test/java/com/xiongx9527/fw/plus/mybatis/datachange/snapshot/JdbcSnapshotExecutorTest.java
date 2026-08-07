@@ -10,6 +10,8 @@ import com.xiongx9527.fw.plus.mybatis.datachange.dialect.SnapshotQuery;
 import com.xiongx9527.fw.plus.mybatis.datachange.interceptor.DataChangeScopeHolder;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.jdbc.ScriptRunner;
+import org.apache.ibatis.logging.Log;
+import org.apache.ibatis.logging.jdbc.ConnectionLogger;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.ParameterMapping;
 import org.apache.ibatis.session.Configuration;
@@ -28,6 +30,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -39,6 +42,20 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class JdbcSnapshotExecutorTest {
+	@Test
+	void doesNotExposeSnapshotBindingsThroughMybatisConnectionLogger() throws Exception {
+		try (Connection connection = h2("snapshot_logging")) {
+			RecordingLog log = new RecordingLog();
+			Connection logged = ConnectionLogger.newInstance(connection, log, 1);
+			SnapshotQuery query = new SnapshotQuery(
+					"SELECT TENANT_ID, ORDER_NO, AMOUNT FROM ORDER_LINE WHERE STATUS = ?",
+					Collections.singletonList(SnapshotParameter.value("ACTIVE")));
+
+			new JdbcSnapshotExecutor().query(logged, query, metadata(), new Configuration(), 10);
+
+			assertThat(log.messages).noneMatch(message -> message.contains("ACTIVE"));
+		}
+	}
 
 	@Test
 	void bindsBoundSqlParameterThroughConfiguredTypeHandler() throws Exception {
@@ -153,7 +170,7 @@ class JdbcSnapshotExecutorTest {
 
 		assertThatThrownBy(() -> queryOneKey(connection, 1))
 				.isInstanceOf(DataChangeException.class)
-				.hasMessage("SNAPSHOT_EXECUTION_FAILED")
+				.hasMessage("SNAPSHOT_QUERY_FAILED")
 				.hasNoCause()
 				.satisfies(error -> assertThat(error.getSuppressed()).isEmpty());
 	}
@@ -224,5 +241,16 @@ class JdbcSnapshotExecutorTest {
 		public Status getNullableResult(ResultSet resultSet, int columnIndex) throws SQLException { return null; }
 		@Override
 		public Status getNullableResult(CallableStatement statement, int columnIndex) throws SQLException { return null; }
+	}
+
+	private static final class RecordingLog implements Log {
+		private final List<String> messages = new ArrayList<String>();
+		@Override public boolean isDebugEnabled() { return true; }
+		@Override public boolean isTraceEnabled() { return true; }
+		@Override public void error(String value, Throwable error) { messages.add(value); }
+		@Override public void error(String value) { messages.add(value); }
+		@Override public void debug(String value) { messages.add(value); }
+		@Override public void trace(String value) { messages.add(value); }
+		@Override public void warn(String value) { messages.add(value); }
 	}
 }

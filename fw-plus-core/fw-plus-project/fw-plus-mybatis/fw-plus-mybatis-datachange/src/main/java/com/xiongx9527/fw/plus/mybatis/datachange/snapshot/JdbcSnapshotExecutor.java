@@ -5,8 +5,11 @@ import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeException;
 import com.xiongx9527.fw.plus.mybatis.datachange.api.RowIdentity;
 import com.xiongx9527.fw.plus.mybatis.datachange.dialect.SnapshotQuery;
 import com.xiongx9527.fw.plus.mybatis.datachange.interceptor.DataChangeScope;
+import org.apache.ibatis.logging.jdbc.ConnectionLogger;
 import org.apache.ibatis.session.Configuration;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -41,7 +44,7 @@ public final class JdbcSnapshotExecutor {
 		}
 		validateKeyColumns(metadata.getKeyColumns());
 		try (DataChangeScope ignored = DataChangeScope.suppress();
-			 PreparedStatement statement = connection.prepareStatement(query.getSql())) {
+			 PreparedStatement statement = unlogged(connection).prepareStatement(query.getSql())) {
 			statement.setMaxRows(maxRows == Integer.MAX_VALUE ? Integer.MAX_VALUE : maxRows + 1);
 			binder.bind(statement, query.getParameters(), configuration);
 			try (ResultSet rows = statement.executeQuery()) {
@@ -52,6 +55,18 @@ public final class JdbcSnapshotExecutor {
 		} catch (SQLException exception) {
 			throw executionFailed();
 		}
+	}
+
+	private Connection unlogged(Connection connection) {
+		Connection current = connection;
+		while (current != null && Proxy.isProxyClass(current.getClass())) {
+			InvocationHandler handler = Proxy.getInvocationHandler(current);
+			if (!(handler instanceof ConnectionLogger)) { break; }
+			Connection unwrapped = ((ConnectionLogger) handler).getConnection();
+			if (unwrapped == current) { break; }
+			current = unwrapped;
+		}
+		return current;
 	}
 
 	private DataChangeException sanitize(RuntimeException exception) {
@@ -67,7 +82,7 @@ public final class JdbcSnapshotExecutor {
 	}
 
 	private DataChangeException executionFailed() {
-		return new DataChangeException(DataChangeErrorCode.SNAPSHOT, "SNAPSHOT_EXECUTION_FAILED");
+		return new DataChangeException(DataChangeErrorCode.SNAPSHOT_QUERY_FAILED, "SNAPSHOT_QUERY_FAILED");
 	}
 
 	private List<RowSnapshot> read(ResultSet rows, List<String> keyColumns, int maxRows) throws SQLException {
