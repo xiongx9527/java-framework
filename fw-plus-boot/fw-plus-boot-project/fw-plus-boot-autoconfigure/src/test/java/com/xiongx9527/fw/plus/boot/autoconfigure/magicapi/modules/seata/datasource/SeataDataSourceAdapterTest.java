@@ -113,7 +113,7 @@ class SeataDataSourceAdapterTest {
 				}));
 
 		assertThat(thrown).isInstanceOf(DbTxException.class);
-		assertThat(((DbTxException) thrown).getCode()).isEqualTo(DbTxErrorCode.DBTX_BEGIN_FAILED);
+		assertThat(((DbTxException) thrown).getDbTxCode()).isEqualTo(DbTxErrorCode.DBTX_BEGIN_FAILED);
 		assertThat(thrown).hasMessageContaining("orders");
 		assertThat(transactionLookup).isFalse();
 		assertThat(globalBegin).isFalse();

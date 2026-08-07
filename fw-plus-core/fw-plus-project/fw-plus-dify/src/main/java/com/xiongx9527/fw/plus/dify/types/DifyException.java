@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.dify.types;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import com.xiongx9527.fw.plus.common.exception.BizException;
 import lombok.Getter;
 
 import java.util.HashMap;
@@ -10,7 +11,7 @@ import java.util.Map;
 /**
  * Dify exception type
  */
-public class DifyException extends RuntimeException {
+public class DifyException extends BizException {
     @Getter
     private String original;
 
@@ -24,7 +25,7 @@ public class DifyException extends RuntimeException {
     private Integer difyStatus;
 
     @Getter
-    private String code;
+    private String difyCode;
 
     private String message;
 
@@ -49,7 +50,7 @@ public class DifyException extends RuntimeException {
             JSONObject object = JSON.parseObject(response);
             this.difyStatus = object.getInteger("status");
             this.status = this.difyStatus != null ? this.difyStatus : status;
-            this.code = object.getString("code");
+            this.difyCode = object.getString("code");
             this.message = object.getString("message");
             this.params = object.getString("params");
             if (this.message == null || this.message.trim().length() == 0) {
@@ -71,7 +72,7 @@ public class DifyException extends RuntimeException {
         map.put("status", status);
         map.put("httpStatus", httpStatus);
         map.put("difyStatus", difyStatus);
-        map.put("code", code);
+        map.put("code", difyCode);
         map.put("message", message);
         map.put("params", params);
         return JSON.toJSONString(map);

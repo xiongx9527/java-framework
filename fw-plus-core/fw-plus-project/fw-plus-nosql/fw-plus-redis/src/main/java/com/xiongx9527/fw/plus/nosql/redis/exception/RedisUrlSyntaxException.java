@@ -1,12 +1,13 @@
 package com.xiongx9527.fw.plus.nosql.redis.exception;
-import com.xiongx9527.fw.plus.common.exception.BaseRuntimeException;
+
+import com.xiongx9527.fw.plus.common.exception.BizException;
 
 /**
  * Exception thrown when a Redis URL is malformed or invalid.
  *
  * @author Scott Frederick
  */
-public class RedisUrlSyntaxException extends BaseRuntimeException {
+public class RedisUrlSyntaxException extends BizException {
 
     /**
      * 构造一个RedisURL语法异常实例

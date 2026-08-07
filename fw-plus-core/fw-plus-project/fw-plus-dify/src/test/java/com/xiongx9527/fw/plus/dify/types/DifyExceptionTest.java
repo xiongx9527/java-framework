@@ -11,7 +11,7 @@ public class DifyExceptionTest {
         assertEquals(Integer.valueOf(422), exception.getHttpStatus());
         assertEquals(Integer.valueOf(400), exception.getDifyStatus());
         assertEquals(Integer.valueOf(400), exception.getStatus());
-        assertEquals("invalid_param", exception.getCode());
+        assertEquals("invalid_param", exception.getDifyCode());
         assertEquals("bad request", exception.getMessage());
         assertEquals("name", exception.getParams());
         assertContains(exception.getOriginal(), "invalid_param");

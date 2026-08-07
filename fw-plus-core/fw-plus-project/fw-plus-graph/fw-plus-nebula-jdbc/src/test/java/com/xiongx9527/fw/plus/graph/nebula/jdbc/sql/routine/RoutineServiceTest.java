@@ -2,7 +2,6 @@ package com.xiongx9527.fw.plus.graph.nebula.jdbc.sql.routine;
 
 import org.junit.Test;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,7 +36,7 @@ public class RoutineServiceTest {
 			service.create("graph_a", "alice", sql);
 			fail("Duplicate create must fail");
 		}
-		catch (SQLException exception) {
+		catch (RoutineException exception) {
 			assertEquals(1304, exception.getErrorCode());
 			assertEquals("42000", exception.getSQLState());
 		}
@@ -58,7 +57,7 @@ public class RoutineServiceTest {
 			service.drop("graph_a", "alice", "DROP PROCEDURE p");
 			fail("Missing drop must fail");
 		}
-		catch (SQLException exception) {
+		catch (RoutineException exception) {
 			assertEquals(1305, exception.getErrorCode());
 			assertEquals("42000", exception.getSQLState());
 			assertTrue(exception.getMessage().contains("p"));
@@ -89,7 +88,7 @@ public class RoutineServiceTest {
 			service.create("graph_a", "alice", "CREATE PROCEDURE p() BEGIN SELECT 1; END");
 			fail("CREATE PROCEDURE must require routine manage permission");
 		}
-		catch (SQLException exception) {
+		catch (RoutineException exception) {
 			assertEquals(1142, exception.getErrorCode());
 			assertEquals("42000", exception.getSQLState());
 		}
@@ -107,7 +106,7 @@ public class RoutineServiceTest {
 			denied.call("graph_a", "bob", "CALL p()", null, null);
 			fail("CALL must require routine execute permission");
 		}
-		catch (SQLException exception) {
+		catch (RoutineException exception) {
 			assertEquals(1142, exception.getErrorCode());
 			assertEquals("42000", exception.getSQLState());
 		}

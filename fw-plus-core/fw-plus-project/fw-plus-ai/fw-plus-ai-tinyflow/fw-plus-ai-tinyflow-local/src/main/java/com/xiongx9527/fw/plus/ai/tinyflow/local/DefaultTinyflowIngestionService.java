@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowIngestionTask;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowObjectStorage;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowParsedDocument;
+import com.xiongx9527.fw.plus.common.exception.BizException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -550,7 +551,7 @@ public final class DefaultTinyflowIngestionService {
 
 		void delete(String tenantId, String knowledgeId, List<String> vectorIds) throws Exception;
 
-		final class PartialIndexException extends Exception {
+		final class PartialIndexException extends BizException {
 			private static final long serialVersionUID = 1L;
 			private final Map<String, List<String>> partialResult;
 

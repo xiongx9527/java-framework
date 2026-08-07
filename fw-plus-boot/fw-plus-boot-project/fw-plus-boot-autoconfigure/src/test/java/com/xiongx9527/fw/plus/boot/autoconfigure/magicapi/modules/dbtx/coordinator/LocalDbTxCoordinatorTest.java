@@ -88,7 +88,7 @@ class LocalDbTxCoordinatorTest {
 		DbTxException thrown = (DbTxException) catchThrowable(() -> fixture.coordinator.execute(
 				definition("b", "a"), () -> "unused"));
 
-		assertThat(thrown.getCode()).isEqualTo(DbTxErrorCode.DBTX_BEGIN_FAILED);
+		assertThat(thrown.getDbTxCode()).isEqualTo(DbTxErrorCode.DBTX_BEGIN_FAILED);
 		assertThat(thrown.getCause()).hasMessageContaining("b begin failed");
 		assertThat(fixture.events).containsExactly("a:begin", "b:begin", "a:rollback");
 		assertNoSpringResources();
@@ -120,7 +120,7 @@ class LocalDbTxCoordinatorTest {
 		DbTxException thrown = (DbTxException) catchThrowable(() -> fixture.coordinator.execute(
 				definition("a", "b"), () -> "ok"));
 
-		assertThat(thrown.getCode()).isEqualTo(DbTxErrorCode.DBTX_COMMIT_FAILED);
+		assertThat(thrown.getDbTxCode()).isEqualTo(DbTxErrorCode.DBTX_COMMIT_FAILED);
 		assertOutcome(thrown.getOutcome(), "b", Collections.<String>emptyList(),
 				Collections.singletonList("a"), Collections.<String>emptyList(),
 				Collections.singletonList("b"));
@@ -136,7 +136,7 @@ class LocalDbTxCoordinatorTest {
 		DbTxException thrown = (DbTxException) catchThrowable(() -> fixture.coordinator.execute(
 				definition("a", "b"), () -> "ok"));
 
-		assertThat(thrown.getCode()).isEqualTo(DbTxErrorCode.DBTX_HEURISTIC_MIXED);
+		assertThat(thrown.getDbTxCode()).isEqualTo(DbTxErrorCode.DBTX_HEURISTIC_MIXED);
 		assertOutcome(thrown.getOutcome(), "a", Collections.singletonList("b"),
 				Collections.<String>emptyList(), Collections.<String>emptyList(),
 				Collections.singletonList("a"));
@@ -153,7 +153,7 @@ class LocalDbTxCoordinatorTest {
 		DbTxException thrown = (DbTxException) catchThrowable(() -> fixture.coordinator.execute(
 				definition("a", "b"), () -> "ok"));
 
-		assertThat(thrown.getCode()).isEqualTo(DbTxErrorCode.DBTX_COMMIT_FAILED);
+		assertThat(thrown.getDbTxCode()).isEqualTo(DbTxErrorCode.DBTX_COMMIT_FAILED);
 		assertOutcome(thrown.getOutcome(), "b", Collections.<String>emptyList(),
 				Collections.<String>emptyList(), Collections.singletonList("a"),
 				Collections.singletonList("b"));
@@ -173,7 +173,7 @@ class LocalDbTxCoordinatorTest {
 			DbTxException thrown = (DbTxException) catchThrowable(() -> fixture.coordinator.execute(
 					definition("a", "b"), () -> "unused"));
 
-			assertThat(thrown.getCode()).isEqualTo(DbTxErrorCode.DBTX_AMBIENT_TRANSACTION);
+			assertThat(thrown.getDbTxCode()).isEqualTo(DbTxErrorCode.DBTX_AMBIENT_TRANSACTION);
 			assertThat(fixture.events).isEmpty();
 			assertThat(TransactionSynchronizationManager.hasResource(outerDataSource)).isTrue();
 		} finally {

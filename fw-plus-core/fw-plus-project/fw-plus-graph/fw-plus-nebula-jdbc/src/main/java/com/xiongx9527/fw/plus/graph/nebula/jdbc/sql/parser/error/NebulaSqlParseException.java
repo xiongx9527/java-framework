@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.graph.nebula.jdbc.sql.parser.error;
 
-public class NebulaSqlParseException extends Exception {
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
+public class NebulaSqlParseException extends BizException {
 
 	private final NebulaSqlParseError error;
 

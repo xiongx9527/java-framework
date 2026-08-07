@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeAccessKeyRepository;
+import com.xiongx9527.fw.plus.common.exception.BizException;
 import com.xiongx9527.fw.plus.dify.dataset.types.external.KnowledgeArgs;
 import com.xiongx9527.fw.plus.dify.dataset.types.external.KnowledgeMetadataCondition;
 import org.springframework.http.HttpStatus;
@@ -49,6 +50,8 @@ public class TinyflowDifyExternalController {
 				service.authorizeScope(accessKey, knowledgeId);
 			}
 			return ResponseEntity.ok(service.retrieval(accessKey, parse(body)));
+		} catch (HeaderException exception) {
+			return error(403, 1001, exception.getMessage());
 		} catch (TinyflowDifyExternalKnowledgeService.ExternalKnowledgeException exception) {
 			return error(exception.getStatus(), exception.getCode(), exception.getMessage());
 		} catch (RuntimeException exception) {
@@ -180,8 +183,8 @@ public class TinyflowDifyExternalController {
 		return ResponseEntity.status(HttpStatus.valueOf(status)).contentType(MediaType.APPLICATION_JSON).body(body);
 	}
 
-	private static final class HeaderException extends TinyflowDifyExternalKnowledgeService.ExternalKnowledgeException {
+	private static final class HeaderException extends BizException {
 		private static final long serialVersionUID = 1L;
-		private HeaderException() { super(403, 1001, "Authorization header is required"); }
+		private HeaderException() { super("Authorization header is required"); }
 	}
 }
