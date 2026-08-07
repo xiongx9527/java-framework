@@ -59,3 +59,17 @@ mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
 - 已确认 `RowIdentity` 未将主键值转为字符串，联合主键测试覆盖数值和字符串混合键。
 - 已确认 Handler 顺序、`supports=false`、事务失败、尽力而为继续、作用域内调用、嵌套/幂等/异常退出/线程隔离均有测试。
 - Maven 输出包含本机 settings 的既有 `repository` 标签警告；不影响编译或测试结果。
+
+## 修复轮 1：未监听逻辑删除列
+
+- 修复内容：`ChangeDiffEngine` 先计算行操作。字段列表为空时，仍保留 `LOGICAL_DELETE` 行；其他操作（包括普通 `UPDATE`）继续要求存在真实监听字段。
+- 覆盖测试：`ChangeDiffEngineTest#emitsLogicalDeleteWhenDeleteColumnIsNotMonitored`。它配置只监听 `display_name`，将未监听的 `deleted` 从 `0` 变为 `1`，断言产生 `LOGICAL_DELETE` 且字段列表为空。
+- RED：修复前执行下列命令，8 项中该新测试失败，实际操作列表为 `[]`，缺少 `LOGICAL_DELETE`。
+
+```text
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mybatis-datachange -Dtest=ChangeDiffEngineTest test
+```
+
+- GREEN：修复后同一命令为 8 tests，0 failures，0 errors。
+- 全量验证：`mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml -pl fw-plus-mybatis-datachange test` 为 38 tests，0 failures，0 errors。

@@ -33,9 +33,10 @@ public final class ChangeDiffEngine {
 		for (RowIdentity identity : identities) {
 			RowSnapshot beforeRow = before.get(identity);
 			RowSnapshot afterRow = after.get(identity);
+			DataChangeOperation operation = operation(monitor, beforeRow, afterRow);
 			List<FieldChange> fields = changes(monitor, columnProperties, beforeRow, afterRow);
-			if (!fields.isEmpty()) {
-				changes.add(new RowChange(operation(monitor, beforeRow, afterRow), identity, fields));
+			if (!fields.isEmpty() || operation == DataChangeOperation.LOGICAL_DELETE) {
+				changes.add(new RowChange(operation, identity, fields));
 			}
 		}
 		return new TableChange(table, changes);
