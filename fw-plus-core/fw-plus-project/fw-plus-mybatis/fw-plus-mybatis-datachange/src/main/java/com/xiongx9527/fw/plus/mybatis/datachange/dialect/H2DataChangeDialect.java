@@ -47,7 +47,7 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 		for (ParameterMapping mapping : target.getPredicateParameterMappings()) {
 			parameters.add(SnapshotParameter.boundSql(mapping, target.getBoundSql()));
 		}
-		return new SnapshotQuery(sql.toString(), parameters);
+		return new SnapshotQuery(sql.toString(), parameters, target.getMaxRows() + 1);
 	}
 
 	@Override
@@ -76,7 +76,7 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 			}
 		}
 		appendLimit(sql, target);
-		return new SnapshotQuery(sql.toString(), parameters);
+		return new SnapshotQuery(sql.toString(), parameters, target.getMaxRows() + 1);
 	}
 
 	@Override
