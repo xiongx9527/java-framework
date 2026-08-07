@@ -16,7 +16,7 @@ public final class DataChangeExecutionContext {
 	private final DataChangeFrameworkAdapter frameworkAdapter;
 	private final Object executionOwner;
 	private final List<StatementChangePlan> plans = new ArrayList<StatementChangePlan>();
-	private final List<Integer> updateCounts = new ArrayList<Integer>();
+	private final List<JdbcStatementResult> statementResults = new ArrayList<JdbcStatementResult>();
 	private List<StatementChangePlan> currentPlans = Collections.emptyList();
 	private Connection connection;
 	private ConsistencyLevel consistencyLevel;
@@ -51,8 +51,8 @@ public final class DataChangeExecutionContext {
 	public List<StatementChangePlan> getPlans() {
 		return Collections.unmodifiableList(new ArrayList<StatementChangePlan>(plans));
 	}
-	public List<Integer> getUpdateCounts() {
-		return Collections.unmodifiableList(new ArrayList<Integer>(updateCounts));
+	public List<JdbcStatementResult> getStatementResults() {
+		return Collections.unmodifiableList(new ArrayList<JdbcStatementResult>(statementResults));
 	}
 	public List<StatementChangePlan> getCurrentPlans() { return currentPlans; }
 
@@ -68,8 +68,8 @@ public final class DataChangeExecutionContext {
 		plans.addAll(statementPlans);
 	}
 
-	void addUpdateCounts(List<Integer> counts) {
-		if (counts != null) { updateCounts.addAll(counts); }
+	void addStatementResults(List<JdbcStatementResult> results) {
+		if (results != null) { statementResults.addAll(results); }
 	}
 	void markBatch(Statement statement, String sql) {
 		batch = true;

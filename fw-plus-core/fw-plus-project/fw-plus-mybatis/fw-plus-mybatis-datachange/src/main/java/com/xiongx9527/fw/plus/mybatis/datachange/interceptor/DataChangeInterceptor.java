@@ -40,6 +40,7 @@ import java.util.Properties;
 		@Signature(type = Executor.class, method = "flushStatements", args = {}),
 		@Signature(type = Executor.class, method = "commit", args = {boolean.class}),
 		@Signature(type = Executor.class, method = "rollback", args = {boolean.class}),
+		@Signature(type = Executor.class, method = "close", args = {boolean.class}),
 		@Signature(type = Executor.class, method = "query",
 				args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}),
 		@Signature(type = Executor.class, method = "query",
@@ -73,6 +74,9 @@ public final class DataChangeInterceptor implements Interceptor {
 		if (invocation.getTarget() instanceof Executor && "rollback".equals(method)) {
 			return interceptRollback(invocation);
 		}
+		if (invocation.getTarget() instanceof Executor && "close".equals(method)) {
+			return interceptClose(invocation);
+		}
 		if (invocation.getTarget() instanceof Executor && "query".equals(method)) {
 			return interceptFlushBefore(invocation);
 		}
@@ -103,7 +107,7 @@ public final class DataChangeInterceptor implements Interceptor {
 			Object result = invocation.proceed();
 			if (context.isBatch()) { return result; }
 			List<StatementChange> statements = engine.afterStatement(context, context.getPlans(),
-					context.getUpdateCounts());
+					context.getStatementResults());
 			engine.dispatch(context, statements);
 			return result;
 		}
@@ -147,17 +151,17 @@ public final class DataChangeInterceptor implements Interceptor {
 		if (!current.isPresent() || !(result instanceof Number)) { return result; }
 		DataChangeExecutionContext context = current.get();
 		int updateCount = ((Number) result).intValue();
-		List<Integer> updateCounts;
+		List<JdbcStatementResult> statementResults;
 		try {
-			updateCounts = updateCountCollector.collect((Statement) invocation.getArgs()[0], updateCount);
+			statementResults = updateCountCollector.collect((Statement) invocation.getArgs()[0], updateCount);
 		} catch (SQLException failure) {
 			engine.handlePostProcessingFailure(context, new DataChangeException(DataChangeErrorCode.UNKNOWN,
 					"DATA_CHANGE_UPDATE_COUNT_UNAVAILABLE"));
 			return result;
 		}
-		context.addUpdateCounts(updateCounts);
+		context.addStatementResults(statementResults);
 		engine.captureStatementResults(context, context.getCurrentPlans(),
-				(Statement) invocation.getArgs()[0], updateCounts);
+				(Statement) invocation.getArgs()[0], statementResults);
 		return result;
 	}
 
@@ -168,15 +172,13 @@ public final class DataChangeInterceptor implements Interceptor {
 		DataChangeExecutionContext context = current.get();
 		Statement statement = (Statement) invocation.getArgs()[0];
 		StatementHandler handler = (StatementHandler) invocation.getTarget();
-		context.markBatch(statement, handler.getBoundSql().getSql());
-		List<StatementChangePlan> plans = context.getCurrentPlans();
-		if (plans.isEmpty()) {
-			engine.initializeConnection(context, statement.getConnection());
-			plans = engine.beforeStatement(context, new BoundSqlContext(handler.getBoundSql(),
-					context.getConsistencyLevel() == com.xiongx9527.fw.plus.mybatis.datachange.api.ConsistencyLevel.TRANSACTIONAL,
-					configuration.getMaxSnapshotRows()));
-			context.registerPlans(plans);
-		}
+		BoundSql boundSql = handler.getBoundSql();
+		context.markBatch(statement, boundSql.getSql());
+		engine.initializeConnection(context, statement.getConnection());
+		List<StatementChangePlan> plans = engine.beforeStatement(context, new BoundSqlContext(boundSql,
+				context.getConsistencyLevel() == com.xiongx9527.fw.plus.mybatis.datachange.api.ConsistencyLevel.TRANSACTIONAL,
+				configuration.getMaxSnapshotRows()));
+		context.registerPlans(plans);
 		batchCoordinator.collect(context, plans);
 		try {
 			return invocation.proceed();
@@ -214,6 +216,11 @@ public final class DataChangeInterceptor implements Interceptor {
 	}
 
 	private Object interceptRollback(Invocation invocation) throws Throwable {
+		batchCoordinator.discard(lifecycleContext(invocation));
+		return invocation.proceed();
+	}
+
+	private Object interceptClose(Invocation invocation) throws Throwable {
 		batchCoordinator.discard(lifecycleContext(invocation));
 		return invocation.proceed();
 	}

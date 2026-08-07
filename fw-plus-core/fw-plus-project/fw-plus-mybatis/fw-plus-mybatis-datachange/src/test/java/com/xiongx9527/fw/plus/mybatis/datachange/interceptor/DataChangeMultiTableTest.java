@@ -63,9 +63,10 @@ class DataChangeMultiTableTest {
 					new BoundSqlContext(mappedStatement.getBoundSql(null)));
 			statement.executeUpdate("DELETE FROM account_summary WHERE id=1");
 			statement.executeUpdate("DELETE FROM account WHERE id=1");
-			engine.captureStatementResults(context, plans, mock(Statement.class), Collections.singletonList(2));
+			List<JdbcStatementResult> results = Collections.singletonList(JdbcStatementResult.updateCount(2));
+			engine.captureStatementResults(context, plans, mock(Statement.class), results);
 
-			List<StatementChange> changes = engine.afterStatement(context, plans, Collections.singletonList(2));
+			List<StatementChange> changes = engine.afterStatement(context, plans, results);
 
 			assertThat(changes).hasSize(1);
 			assertThat(changes.get(0).getAffectedRows()).isEqualTo(2);

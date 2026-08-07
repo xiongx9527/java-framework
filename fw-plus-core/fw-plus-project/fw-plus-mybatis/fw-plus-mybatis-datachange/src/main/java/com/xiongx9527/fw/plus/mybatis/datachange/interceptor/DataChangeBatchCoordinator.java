@@ -56,8 +56,9 @@ public final class DataChangeBatchCoordinator {
 				if (groupIndex >= groups.size()) { break; }
 				BatchChangePlan group = groups.get(groupIndex);
 				if (!group.matches(result)) { continue; }
-				changes.addAll(changes(group, result));
-				if (group.getContext().isPostProcessingFailed()) { return; }
+				List<StatementChange> groupChanges = changes(group, result);
+				if (hasPostProcessingFailure(group)) { return; }
+				changes.addAll(groupChanges);
 				groupIndex++;
 			}
 			if (groupIndex != groups.size()) { throw invalidState(); }
@@ -96,10 +97,19 @@ public final class DataChangeBatchCoordinator {
 		for (int index = 0; index < entries.size(); index++) {
 			BatchChangePlan.Entry entry = entries.get(index);
 			engine.captureStatementResults(entry.getContext(), entry.getPlans(),
-					entry.getContext().getBatchStatement(), Collections.singletonList(Integer.valueOf(counts[index])));
+					entry.getContext().getBatchStatement(),
+					Collections.singletonList(JdbcStatementResult.updateCount(counts[index])));
 		}
+		if (hasPostProcessingFailure(group)) { return Collections.emptyList(); }
 		List<StatementChangePlan> collapsed = collapse(entries, affectedRows(counts));
-		return engine.afterStatement(group.getContext(), collapsed, Collections.<Integer>emptyList());
+		return engine.afterStatement(group.getContext(), collapsed, Collections.<JdbcStatementResult>emptyList());
+	}
+
+	private boolean hasPostProcessingFailure(BatchChangePlan group) {
+		for (BatchChangePlan.Entry entry : group.getEntries()) {
+			if (entry.getContext().isPostProcessingFailed()) { return true; }
+		}
+		return false;
 	}
 
 	private List<StatementChangePlan> collapse(List<BatchChangePlan.Entry> entries, int affectedRows) {

@@ -8,21 +8,25 @@ import java.util.List;
 
 public final class JdbcUpdateCountCollector {
 
-	public List<Integer> collect(Statement statement, int firstUpdateCount) throws SQLException {
-		List<Integer> counts = new ArrayList<Integer>();
+	public List<JdbcStatementResult> collect(Statement statement, int firstUpdateCount) throws SQLException {
+		List<JdbcStatementResult> results = new ArrayList<JdbcStatementResult>();
 		if (firstUpdateCount != -1) {
-			counts.add(Integer.valueOf(firstUpdateCount));
+			results.add(JdbcStatementResult.updateCount(firstUpdateCount));
+		} else if (statement.getResultSet() != null) {
+			results.add(JdbcStatementResult.resultSet());
 		}
 		while (true) {
 			boolean resultSet = statement.getMoreResults();
+			if (resultSet) {
+				results.add(JdbcStatementResult.resultSet());
+				continue;
+			}
 			int updateCount = statement.getUpdateCount();
-			if (!resultSet && updateCount == -1) {
+			if (updateCount == -1) {
 				break;
 			}
-			if (updateCount != -1) {
-				counts.add(Integer.valueOf(updateCount));
-			}
+			results.add(JdbcStatementResult.updateCount(updateCount));
 		}
-		return Collections.unmodifiableList(counts);
+		return Collections.unmodifiableList(results);
 	}
 }
