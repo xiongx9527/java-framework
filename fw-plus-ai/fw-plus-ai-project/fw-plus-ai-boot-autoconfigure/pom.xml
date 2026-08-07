@@ -102,6 +102,13 @@
             <optional>true</optional>
         </dependency>
 
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-dify</artifactId>
+			<scope>compile</scope>
+			<optional>true</optional>
+		</dependency>
+
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-tinyflow-core</artifactId>

@@ -15,6 +15,7 @@ public interface TinyflowKnowledgeAccessKeyRepository {
 		private final String accessKeyId;
 		private final String tenantId;
 		private final String knowledgeId;
+		private final String prefix;
 		private final String hashAlgorithm;
 		private final String salt;
 		private final int cost;
@@ -22,10 +23,11 @@ public interface TinyflowKnowledgeAccessKeyRepository {
 		private final boolean enabled;
 
 		public AccessKey(String accessKeyId, String tenantId, String knowledgeId,
-				String hashAlgorithm, String salt, int cost, String accessKeyHash, boolean enabled) {
+				String prefix, String hashAlgorithm, String salt, int cost, String accessKeyHash, boolean enabled) {
 			this.accessKeyId = TinyflowKnowledgeReference.requireText(accessKeyId, "accessKeyId");
 			this.tenantId = TinyflowKnowledgeReference.requireText(tenantId, "tenantId");
 			this.knowledgeId = TinyflowKnowledgeReference.requireText(knowledgeId, "knowledgeId");
+			this.prefix = TinyflowKnowledgeReference.requireText(prefix, "prefix");
 			this.hashAlgorithm = TinyflowKnowledgeReference.requireText(hashAlgorithm, "hashAlgorithm");
 			if (!STRONG_ALGORITHM.equals(this.hashAlgorithm)) {
 				throw new IllegalArgumentException("Unsupported or weak access key hash algorithm");
@@ -42,6 +44,7 @@ public interface TinyflowKnowledgeAccessKeyRepository {
 		public String getAccessKeyId() { return accessKeyId; }
 		public String getTenantId() { return tenantId; }
 		public String getKnowledgeId() { return knowledgeId; }
+		public String getPrefix() { return prefix; }
 		public String getHashAlgorithm() { return hashAlgorithm; }
 		public String getSalt() { return salt; }
 		public int getCost() { return cost; }
