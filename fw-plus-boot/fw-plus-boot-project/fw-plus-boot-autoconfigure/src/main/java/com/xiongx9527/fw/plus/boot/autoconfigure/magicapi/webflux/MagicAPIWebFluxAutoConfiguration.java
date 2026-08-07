@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller.webflux.Mag
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProperties;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.options.MagicJdbcClassOptionProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.DataSourceBuilder;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.ManagedMagicDynamicDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.MyDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ResultProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.resource.MyDefaultMagicResourceService;
@@ -123,7 +124,7 @@ public class MagicAPIWebFluxAutoConfiguration implements WebFluxConfigurer {
     @Bean
     @ConditionalOnMissingBean
     public MagicDynamicDataSource magicDynamicDataSource() {
-        return new MagicDynamicDataSource();
+        return new ManagedMagicDynamicDataSource();
     }
 
     @Bean
