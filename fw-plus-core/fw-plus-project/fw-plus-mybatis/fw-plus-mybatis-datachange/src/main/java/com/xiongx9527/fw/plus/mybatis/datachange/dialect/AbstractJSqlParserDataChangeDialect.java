@@ -12,7 +12,6 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.execute.Execute;
 import net.sf.jsqlparser.statement.insert.Insert;
-import net.sf.jsqlparser.statement.insert.InsertConflictTarget;
 import net.sf.jsqlparser.statement.merge.Merge;
 import net.sf.jsqlparser.statement.merge.MergeInsert;
 import net.sf.jsqlparser.statement.merge.MergeUpdate;
@@ -74,22 +73,24 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 	}
 
 	private ChangeTarget target(Statement statement, StatementOperation operation, Table table,
-								List<ParameterMapping> mappings, BoundSqlContext context) {
+									List<ParameterMapping> mappings, BoundSqlContext context) {
 		Expression where = where(statement);
 		List<Join> joins = joins(statement);
-		List<Expression> predicateExpressions = new ArrayList<Expression>();
+		List<Expression> matchExpressions = new ArrayList<Expression>();
 		for (Join join : joins) {
-			addJoinSourceExpressions(predicateExpressions, join);
+			addJoinSourceExpressions(matchExpressions, join);
 			if (join.getOnExpressions() != null) {
-				predicateExpressions.addAll(join.getOnExpressions());
+				matchExpressions.addAll(join.getOnExpressions());
 			}
 		}
+		List<Expression> predicateExpressions = new ArrayList<Expression>(matchExpressions);
 		if (where != null) { predicateExpressions.add(where); }
 		Table snapshotSource = statement instanceof Delete ? ((Delete) statement).getTable() : table;
 		return new ChangeTarget(operation, JSqlParserTargetDetector.identifier(table), table, where, joins,
-				assignedColumns(statement, mappings), mappings, mappingsFor(predicateExpressions, mappings),
-				Collections.<String>emptyList(), context.getBoundSql(), snapshotSource, isUpsert(statement),
-				conflictColumns(statement));
+					assignedColumns(statement, mappings), mappings, mappingsFor(predicateExpressions, mappings),
+					Collections.<String>emptyList(), context.getBoundSql(), snapshotSource, isUpsert(statement),
+					conflictTarget(statement)).withMatchParameterMappings(mappingsFor(matchExpressions, mappings))
+					.withReturnsRows(returnsRows(statement));
 	}
 
 	private boolean isUpsert(Statement statement) {
@@ -98,14 +99,31 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 		return insert.isUseDuplicate() || insert.getConflictAction() != null;
 	}
 
-	private List<String> conflictColumns(Statement statement) {
-		if (!(statement instanceof Insert)) { return Collections.emptyList(); }
-		InsertConflictTarget conflict = ((Insert) statement).getConflictTarget();
-		if (conflict == null || conflict.getIndexColumnName() == null
-				|| conflict.getIndexColumnName().trim().isEmpty()) {
-			return Collections.emptyList();
+	private boolean returnsRows(Statement statement) {
+		if (statement instanceof Insert) {
+			return ((Insert) statement).getReturningExpressionList() != null;
 		}
-		return Collections.singletonList(conflict.getIndexColumnName());
+		if (statement instanceof Update) {
+			return ((Update) statement).getReturningExpressionList() != null;
+		}
+		return statement instanceof Delete && ((Delete) statement).getReturningExpressionList() != null;
+	}
+
+	private ConflictTarget conflictTarget(Statement statement) {
+		if (!(statement instanceof Insert)) { return ConflictTarget.none(); }
+		net.sf.jsqlparser.statement.insert.InsertConflictTarget conflict =
+				((Insert) statement).getConflictTarget();
+		if (conflict == null) { return ConflictTarget.none(); }
+		if (conflict.getConstraintName() != null && !conflict.getConstraintName().trim().isEmpty()) {
+			return ConflictTarget.constraint(conflict.getConstraintName());
+		}
+		if (conflict.getIndexExpression() != null) {
+			return ConflictTarget.expression(conflict.getIndexExpression());
+		}
+		if (conflict.getIndexColumnName() != null && !conflict.getIndexColumnName().trim().isEmpty()) {
+			return ConflictTarget.columns(Collections.singletonList(conflict.getIndexColumnName()));
+		}
+		return ConflictTarget.none();
 	}
 
 	private void addJoinSourceExpressions(List<Expression> expressions, Join join) {

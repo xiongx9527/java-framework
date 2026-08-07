@@ -7,6 +7,10 @@
 	<insert id="insertExplicit">
 		INSERT INTO sys_user(id, name) VALUES(#{id}, #{name})
 	</insert>
+	<insert id="upsert">
+		INSERT INTO sys_user(id, name) VALUES(#{id}, #{name})
+		ON DUPLICATE KEY UPDATE name = VALUES(name)
+	</insert>
 	<update id="rename">
 		UPDATE sys_user SET name = #{name} WHERE id = #{id}
 	</update>
@@ -27,6 +31,15 @@
 	</update>
 	<update id="renameComposite">
 		UPDATE tenant_user SET name = #{name} WHERE tenant_id = #{tenantId} AND user_id = #{userId}
+	</update>
+	<update id="mergeComposite">
+		MERGE INTO tenant_user target
+		USING (SELECT CAST(#{tenantId} AS BIGINT) AS tenant_id,
+			CAST(#{userId} AS BIGINT) AS user_id, CAST(#{name} AS VARCHAR(64)) AS name) source
+		ON (target.tenant_id = source.tenant_id AND target.user_id = source.user_id)
+		WHEN MATCHED THEN UPDATE SET target.name = source.name
+		WHEN NOT MATCHED THEN INSERT (tenant_id, user_id, name)
+		VALUES (source.tenant_id, source.user_id, source.name)
 	</update>
 	<select id="findName" resultType="string">
 		SELECT name FROM sys_user WHERE id = #{id}

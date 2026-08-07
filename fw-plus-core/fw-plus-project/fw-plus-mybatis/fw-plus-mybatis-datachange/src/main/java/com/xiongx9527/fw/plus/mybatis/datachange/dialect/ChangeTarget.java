@@ -21,13 +21,15 @@ public final class ChangeTarget {
 	private final List<AssignedColumn> assignedColumns;
 	private final List<ParameterMapping> parameterMappings;
 	private final List<ParameterMapping> predicateParameterMappings;
+	private final List<ParameterMapping> matchParameterMappings;
 	private final List<String> keyColumnsHint;
 	private final List<String> monitoredColumns;
 	private final int maxRows;
 	private final boolean lockRows;
 	private final BoundSql boundSql;
 	private final boolean upsert;
-	private final List<String> conflictColumnsHint;
+	private final boolean returnsRows;
+	private final ConflictTarget conflictTarget;
 
 	public ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
 						List<Join> joins, List<AssignedColumn> assignedColumns,
@@ -35,7 +37,7 @@ public final class ChangeTarget {
 						List<String> keyColumnsHint) {
 		this(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
 					predicateParameterMappings, keyColumnsHint, Collections.<String>emptyList(), 1000, false, null,
-					sourceTable, false, Collections.<String>emptyList());
+					sourceTable, false, ConflictTarget.none());
 	}
 
 	ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
@@ -44,7 +46,7 @@ public final class ChangeTarget {
 			List<String> keyColumnsHint, BoundSql boundSql) {
 		this(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
 					predicateParameterMappings, keyColumnsHint, Collections.<String>emptyList(), 1000, false, boundSql,
-					sourceTable, false, Collections.<String>emptyList());
+					sourceTable, false, ConflictTarget.none());
 	}
 
 	ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
@@ -53,7 +55,7 @@ public final class ChangeTarget {
 			List<String> keyColumnsHint, BoundSql boundSql, Table snapshotSourceTable) {
 		this(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
 				predicateParameterMappings, keyColumnsHint, Collections.<String>emptyList(), 1000, false, boundSql,
-					snapshotSourceTable, false, Collections.<String>emptyList());
+						snapshotSourceTable, false, ConflictTarget.none());
 	}
 
 	ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
@@ -62,16 +64,38 @@ public final class ChangeTarget {
 			List<String> keyColumnsHint, BoundSql boundSql, Table snapshotSourceTable,
 			boolean upsert, List<String> conflictColumnsHint) {
 		this(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
+				predicateParameterMappings, keyColumnsHint, boundSql, snapshotSourceTable, upsert,
+				conflictColumnsHint == null || conflictColumnsHint.isEmpty() ? ConflictTarget.none()
+						: ConflictTarget.columns(conflictColumnsHint));
+	}
+
+	ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
+			List<Join> joins, List<AssignedColumn> assignedColumns,
+			List<ParameterMapping> parameterMappings, List<ParameterMapping> predicateParameterMappings,
+			List<String> keyColumnsHint, BoundSql boundSql, Table snapshotSourceTable,
+			boolean upsert, ConflictTarget conflictTarget) {
+		this(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
 				predicateParameterMappings, keyColumnsHint, Collections.<String>emptyList(), 1000, false, boundSql,
-				snapshotSourceTable, upsert, conflictColumnsHint);
+				snapshotSourceTable, upsert, conflictTarget);
 	}
 
 	private ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
 						 List<Join> joins, List<AssignedColumn> assignedColumns,
 						 List<ParameterMapping> parameterMappings, List<ParameterMapping> predicateParameterMappings,
-							 List<String> keyColumnsHint, List<String> monitoredColumns, int maxRows, boolean lockRows,
-							 BoundSql boundSql, Table snapshotSourceTable, boolean upsert,
-							 List<String> conflictColumnsHint) {
+						 List<String> keyColumnsHint, List<String> monitoredColumns, int maxRows, boolean lockRows,
+								 BoundSql boundSql, Table snapshotSourceTable, boolean upsert,
+								 ConflictTarget conflictTarget) {
+		this(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
+				predicateParameterMappings, Collections.<ParameterMapping>emptyList(), keyColumnsHint, monitoredColumns,
+				maxRows, lockRows, boundSql, snapshotSourceTable, upsert, false, conflictTarget);
+	}
+
+	private ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
+			List<Join> joins, List<AssignedColumn> assignedColumns,
+			List<ParameterMapping> parameterMappings, List<ParameterMapping> predicateParameterMappings,
+			List<ParameterMapping> matchParameterMappings, List<String> keyColumnsHint,
+			List<String> monitoredColumns, int maxRows, boolean lockRows, BoundSql boundSql,
+			Table snapshotSourceTable, boolean upsert, boolean returnsRows, ConflictTarget conflictTarget) {
 		this.operation = operation;
 		this.table = table;
 		this.sourceTable = sourceTable;
@@ -81,13 +105,15 @@ public final class ChangeTarget {
 		this.assignedColumns = immutable(assignedColumns);
 		this.parameterMappings = immutable(parameterMappings);
 		this.predicateParameterMappings = immutable(predicateParameterMappings);
+		this.matchParameterMappings = immutable(matchParameterMappings);
 		this.keyColumnsHint = immutable(keyColumnsHint);
 		this.monitoredColumns = immutable(monitoredColumns);
 		this.maxRows = maxRows;
 		this.lockRows = lockRows;
 		this.boundSql = boundSql;
 		this.upsert = upsert;
-		this.conflictColumnsHint = immutable(conflictColumnsHint);
+		this.returnsRows = returnsRows;
+		this.conflictTarget = conflictTarget == null ? ConflictTarget.none() : conflictTarget;
 	}
 
 	public StatementOperation getOperation() { return operation; }
@@ -99,13 +125,28 @@ public final class ChangeTarget {
 	public List<AssignedColumn> getAssignedColumns() { return assignedColumns; }
 	public List<ParameterMapping> getParameterMappings() { return parameterMappings; }
 	public List<ParameterMapping> getPredicateParameterMappings() { return predicateParameterMappings; }
+	public List<ParameterMapping> getMatchParameterMappings() { return matchParameterMappings; }
 	public List<String> getKeyColumnsHint() { return keyColumnsHint; }
 	public List<String> getMonitoredColumns() { return monitoredColumns; }
 	public int getMaxRows() { return maxRows; }
 	public boolean isLockRows() { return lockRows; }
 	public BoundSql getBoundSql() { return boundSql; }
 	public boolean isUpsert() { return upsert; }
-	public List<String> getConflictColumnsHint() { return conflictColumnsHint; }
+	public boolean isReturnsRows() { return returnsRows; }
+	public ConflictTarget getConflictTarget() { return conflictTarget; }
+	public List<String> getConflictColumnsHint() { return conflictTarget.getColumns(); }
+
+	ChangeTarget withMatchParameterMappings(List<ParameterMapping> mappings) {
+		return new ChangeTarget(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
+				predicateParameterMappings, mappings, keyColumnsHint, monitoredColumns, maxRows, lockRows, boundSql,
+				snapshotSourceTable, upsert, returnsRows, conflictTarget);
+	}
+
+	ChangeTarget withReturnsRows(boolean value) {
+		return new ChangeTarget(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
+				predicateParameterMappings, matchParameterMappings, keyColumnsHint, monitoredColumns, maxRows, lockRows,
+				boundSql, snapshotSourceTable, upsert, value, conflictTarget);
+	}
 
 	public ChangeTarget withSnapshotConfiguration(List<String> keyColumns, List<String> columns,
 												  int configuredMaxRows, boolean configuredLockRows) {
@@ -113,8 +154,8 @@ public final class ChangeTarget {
 			throw new IllegalArgumentException("maxRows must be greater than zero");
 		}
 		return new ChangeTarget(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
-					predicateParameterMappings, keyColumns, columns, configuredMaxRows, configuredLockRows, boundSql,
-					snapshotSourceTable, upsert, conflictColumnsHint);
+				predicateParameterMappings, matchParameterMappings, keyColumns, columns, configuredMaxRows,
+				configuredLockRows, boundSql, snapshotSourceTable, upsert, returnsRows, conflictTarget);
 	}
 
 	private <T> List<T> immutable(List<T> values) {

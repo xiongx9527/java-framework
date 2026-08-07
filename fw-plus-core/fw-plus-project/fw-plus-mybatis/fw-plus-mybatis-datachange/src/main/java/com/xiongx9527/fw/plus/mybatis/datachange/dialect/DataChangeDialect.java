@@ -29,8 +29,15 @@ public interface DataChangeDialect {
 	}
 	default List<String> resolveIdentityColumns(Connection connection, ChangeTarget target,
 			List<String> defaultColumns) {
-		List<String> selected = target != null && !target.getConflictColumnsHint().isEmpty()
-				? target.getConflictColumnsHint() : defaultColumns;
+		ConflictTarget conflict = target == null ? ConflictTarget.none() : target.getConflictTarget();
+		if (conflict.getType() == ConflictTarget.Type.CONSTRAINT
+				|| conflict.getType() == ConflictTarget.Type.EXPRESSION) {
+			throw new com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeException(
+					com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeErrorCode.ROW_IDENTITY_UNAVAILABLE,
+					"ROW_IDENTITY_UNAVAILABLE");
+		}
+		List<String> selected = conflict.getType() == ConflictTarget.Type.COLUMNS
+				? conflict.getColumns() : defaultColumns;
 		return Collections.unmodifiableList(new ArrayList<String>(
 				selected == null ? Collections.<String>emptyList() : selected));
 	}

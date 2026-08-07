@@ -28,6 +28,7 @@ import com.xiongx9527.fw.plus.mybatis.datachange.dialect.DataChangeDialect;
 import com.xiongx9527.fw.plus.mybatis.datachange.dialect.DataChangeDialectRegistry;
 import com.xiongx9527.fw.plus.mybatis.datachange.dialect.DatabaseMetadata;
 import com.xiongx9527.fw.plus.mybatis.datachange.dialect.H2DataChangeDialect;
+import com.xiongx9527.fw.plus.mybatis.datachange.dialect.MySqlDataChangeDialect;
 import com.xiongx9527.fw.plus.mybatis.datachange.dialect.SnapshotQuery;
 import com.xiongx9527.fw.plus.mybatis.datachange.diff.ChangeDiffEngine;
 import com.xiongx9527.fw.plus.mybatis.datachange.dispatch.DataChangeDispatcher;
@@ -77,7 +78,7 @@ class DataChangeInterceptorH2Test {
 	void setUp() throws Exception {
 		dataSource = new JdbcDataSource();
 		dataSource.setURL("jdbc:h2:mem:datachange_" + DATABASE_SEQUENCE.incrementAndGet()
-				+ ";DB_CLOSE_DELAY=-1");
+				+ ";MODE=MySQL;DB_CLOSE_DELAY=-1");
 		initializeSchema();
 		recordingHandler = new RecordingHandler();
 		errorHandler = new RecordingErrorHandler();
@@ -119,6 +120,44 @@ class DataChangeInterceptorH2Test {
 		assertThat(row.getIdentity().getKeyValues()).containsEntry("ID", user.getId());
 		assertThat(field(row, "NAME").getAfterValue()).isEqualTo("created");
 		assertThat(field(row, "DELETED").getAfterValue()).isEqualTo(0);
+	}
+
+	@Test
+	void classifiesUpsertInsertAndMatchedUpdateFromProductionChain() throws Exception {
+		useMySqlProductionDialect();
+		assertThat(mapper.upsert(21L, "inserted")).isEqualTo(1);
+		StatementChange inserted = onlyStatement(recordingHandler.singleEvent());
+		assertThat(inserted.getAffectedRows()).isEqualTo(1);
+		assertThat(inserted.getTables().get(0).getRows().get(0).getOperation())
+				.isEqualTo(DataChangeOperation.INSERT);
+
+		recordingHandler.clear();
+		assertThat(mapper.upsert(21L, "updated")).isGreaterThan(0);
+		StatementChange updated = onlyStatement(recordingHandler.singleEvent());
+		assertThat(updated.getAffectedRows()).isGreaterThan(0);
+		RowChange row = updated.getTables().get(0).getRows().get(0);
+		assertThat(row.getOperation()).isEqualTo(DataChangeOperation.UPDATE);
+		assertThat(field(row, "NAME").getBeforeValue()).isEqualTo("inserted");
+		assertThat(field(row, "NAME").getAfterValue()).isEqualTo("updated");
+	}
+
+	@Test
+	void classifiesMergeInsertAndMatchedUpdateFromProductionChain() throws Exception {
+		useMySqlProductionDialect();
+		assertThat(mapper.mergeComposite(7L, 31L, "inserted")).isEqualTo(1);
+		StatementChange inserted = onlyStatement(recordingHandler.singleEvent());
+		assertThat(inserted.getAffectedRows()).isEqualTo(1);
+		assertThat(inserted.getTables().get(0).getRows().get(0).getOperation())
+				.isEqualTo(DataChangeOperation.INSERT);
+
+		recordingHandler.clear();
+		assertThat(mapper.mergeComposite(7L, 31L, "updated")).isEqualTo(1);
+		StatementChange updated = onlyStatement(recordingHandler.singleEvent());
+		assertThat(updated.getAffectedRows()).isEqualTo(1);
+		RowChange row = updated.getTables().get(0).getRows().get(0);
+		assertThat(row.getOperation()).isEqualTo(DataChangeOperation.UPDATE);
+		assertThat(field(row, "NAME").getBeforeValue()).isEqualTo("inserted");
+		assertThat(field(row, "NAME").getAfterValue()).isEqualTo("updated");
 	}
 
 	@Test
@@ -319,6 +358,11 @@ class DataChangeInterceptorH2Test {
 		errorHandler.failures.clear();
 	}
 
+	private void useMySqlProductionDialect() {
+		dialect.delegate = new MySqlH2Dialect();
+		reopenSession(10, true);
+	}
+
 	private SqlSessionFactory buildSessionFactory(int maxRows) {
 		DataChangeConfiguration properties = new DataChangeConfiguration();
 		properties.setEnabled(true);
@@ -413,12 +457,16 @@ class DataChangeInterceptorH2Test {
 	}
 
 	private RowChange onlyRow(DataChangeEvent event) {
-		assertThat(event.getStatements()).hasSize(1);
-		StatementChange statement = event.getStatements().get(0);
+		StatementChange statement = onlyStatement(event);
 		assertThat(statement.getTables()).hasSize(1);
 		TableChange table = statement.getTables().get(0);
 		assertThat(table.getRows()).hasSize(1);
 		return table.getRows().get(0);
+	}
+
+	private StatementChange onlyStatement(DataChangeEvent event) {
+		assertThat(event.getStatements()).hasSize(1);
+		return event.getStatements().get(0);
 	}
 
 	private FieldChange field(RowChange row, String column) {
@@ -496,7 +544,7 @@ class DataChangeInterceptorH2Test {
 	}
 
 	private static final class ToggleH2Dialect implements DataChangeDialect {
-		private final H2DataChangeDialect delegate = new H2DataChangeDialect();
+		private DataChangeDialect delegate = new H2DataChangeDialect();
 		private boolean failAfterSnapshot;
 
 		@Override
@@ -507,6 +555,12 @@ class DataChangeInterceptorH2Test {
 
 		@Override
 		public List<AnalyzedStatement> analyze(BoundSqlContext context) { return delegate.analyze(context); }
+
+		@Override
+		public List<String> resolveIdentityColumns(Connection connection, ChangeTarget target,
+				List<String> defaultColumns) {
+			return delegate.resolveIdentityColumns(connection, target, defaultColumns);
+		}
 
 		@Override
 		public SnapshotQuery buildBeforeQuery(ChangeTarget target) { return delegate.buildBeforeQuery(target); }
@@ -527,5 +581,12 @@ class DataChangeInterceptorH2Test {
 
 		@Override
 		public int getOrder() { return delegate.getOrder(); }
+	}
+
+	private static final class MySqlH2Dialect extends MySqlDataChangeDialect {
+		@Override
+		public boolean supports(DatabaseMetadata metadata) {
+			return metadata != null && "h2".equals(metadata.getProductName());
+		}
 	}
 }
