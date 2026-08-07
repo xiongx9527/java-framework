@@ -11,6 +11,22 @@ import static org.assertj.core.api.Assertions.entry;
 class DataChangeModelTest {
 
 	@Test
+	void consistencyLevelsDescribeTransactionalAndBestEffortDispatch() {
+		assertThat(ConsistencyLevel.TRANSACTIONAL).isNotNull();
+		assertThat(ConsistencyLevel.BEST_EFFORT).isNotNull();
+	}
+
+	@Test
+	void fieldChangeRetainsColumnAndPropertyNamesSeparately() {
+		FieldChange change = new FieldChange("display_name", "displayName", "A", "B");
+
+		assertThat(change.getColumnName()).isEqualTo("display_name");
+		assertThat(change.getPropertyName()).isEqualTo("displayName");
+		assertThat(change.getBeforeValue()).isEqualTo("A");
+		assertThat(change.getAfterValue()).isEqualTo("B");
+	}
+
+	@Test
 	void rowIdentitySupportsCompositeKeysWithoutStringConversion() {
 		Map<String, Object> keys = new LinkedHashMap<String, Object>();
 		keys.put("tenant_id", 7L);
