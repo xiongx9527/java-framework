@@ -324,16 +324,20 @@ public final class GeneratedKeyResolver {
 	}
 
 	private List<RowIdentity> identities(List<Map<String, Object>> values) {
-		List<RowIdentity> identities = new ArrayList<RowIdentity>();
-		Set<RowIdentity> unique = new HashSet<RowIdentity>();
-		for (Map<String, Object> value : values) {
-			RowIdentity identity = new RowIdentity(value);
-			if (!unique.add(identity)) {
-				throw unavailable();
+		try {
+			List<RowIdentity> identities = new ArrayList<RowIdentity>();
+			Set<RowIdentity> unique = new HashSet<RowIdentity>();
+			for (Map<String, Object> value : values) {
+				RowIdentity identity = new RowIdentity(value);
+				if (!unique.add(identity)) {
+					throw unavailable();
+				}
+				identities.add(identity);
 			}
-			identities.add(identity);
+			return Collections.unmodifiableList(identities);
+		} catch (RuntimeException exception) {
+			throw unavailable();
 		}
-		return Collections.unmodifiableList(identities);
 	}
 
 	private DataChangeException unavailable() {
