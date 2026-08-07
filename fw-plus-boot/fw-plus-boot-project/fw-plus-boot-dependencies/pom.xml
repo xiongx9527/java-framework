@@ -777,6 +777,24 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-mybatisplus</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-mybatisflex</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-spring-bean</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
             <!--
             <dependency>
                 <groupId>org.dromara.dynamictp</groupId>

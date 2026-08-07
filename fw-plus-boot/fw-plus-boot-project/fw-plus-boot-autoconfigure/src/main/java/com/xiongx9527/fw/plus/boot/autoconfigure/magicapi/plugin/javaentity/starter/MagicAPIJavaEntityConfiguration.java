@@ -12,7 +12,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
+import org.ssssssss.magicapi.core.model.Plugin;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(value = MagicConfiguration.class,
@@ -20,7 +22,9 @@ import org.ssssssss.magicapi.core.config.MagicConfiguration;
 @ConditionalOnProperty(prefix = "magic-api.plugin.java-entity", name = "enabled",
         havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(JavaEntityProperties.class)
-public class MagicAPIJavaEntityConfiguration {
+public class MagicAPIJavaEntityConfiguration implements MagicPluginConfiguration {
+
+    private static final String JAVASCRIPT_FILENAME = "magic-java-entity.1.0.0.iife.js";
 
     @Bean
     @ConditionalOnMissingBean
@@ -60,5 +64,10 @@ public class MagicAPIJavaEntityConfiguration {
     @ConditionalOnMissingBean
     public EntityModule entityModule(DynamicEntityRegistry registry) {
         return new EntityModule(registry);
+    }
+
+    @Override
+    public Plugin plugin() {
+        return new Plugin("java-entity", "MagicJavaEntity", JAVASCRIPT_FILENAME);
     }
 }

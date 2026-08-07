@@ -58,6 +58,9 @@ public class JavaEntityMagicDynamicRegistry implements MagicDynamicRegistry<Java
         try {
             for (JavaEntityInfo source : sources.values()) {
                 try {
+                    if (!source.isEnabled()) {
+                        continue;
+                    }
                     if (storage.buildMappingKey(source).equals(mappingKey)) {
                         return source.copy();
                     }
@@ -128,11 +131,21 @@ public class JavaEntityMagicDynamicRegistry implements MagicDynamicRegistry<Java
     }
 
     private boolean rebuild() {
-        return entityRegistry.rebuild(new ArrayList<>(sources.values()));
+        return entityRegistry.rebuild(enabledSources());
     }
 
     private String resourceKey(JavaEntityInfo entity) {
         String id = entity.getId();
         return id == null || id.trim().isEmpty() ? storage.buildMappingKey(entity) : id;
+    }
+
+    private List<JavaEntityInfo> enabledSources() {
+        List<JavaEntityInfo> enabled = new ArrayList<>();
+        for (JavaEntityInfo source : sources.values()) {
+            if (source.isEnabled()) {
+                enabled.add(source.copy());
+            }
+        }
+        return enabled;
     }
 }

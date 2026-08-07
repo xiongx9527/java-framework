@@ -22,6 +22,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.starter.M
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.starter.MagicAPIRocketMqConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.starter.MagicAPIS3Configuration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.satoken.starter.MagicAPISaTokenConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.springbean.starter.MagicAPISpringBeanConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.MagicSwaggerConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.task.starter.MagicAPITaskConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.starter.MagicAPIVueConfiguration;
@@ -42,6 +43,7 @@ import org.springframework.context.annotation.Import;
          MagicAPIRabbitMqConfiguration.class,
          MagicAPIKafkaConfiguration.class,
          MagicAPIJavaEntityConfiguration.class,
+         MagicAPISpringBeanConfiguration.class,
          MagicAPIPulsarConfiguration.class,
          MagicAPIDbBrowserConfiguration.class,
          MagicAPIDebeziumConfiguration.class,
