@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -476,12 +477,23 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 					registry.registerDirect(info("orders-id", "orders")));
 			assertThat(dynamicDataSource.nodePublished.await(5, TimeUnit.SECONDS)).isTrue();
 			CountDownLatch unregisterAttempting = new CountDownLatch(1);
-			Future<Throwable> removal = executor.submit(() ->
-					org.assertj.core.api.Assertions.catchThrowable(
-							() -> registry.unregisterDirect("orders", unregisterAttempting)));
+			AtomicReference<Thread> removalThread = new AtomicReference<Thread>();
+			Future<Throwable> removal = executor.submit(() -> {
+				removalThread.set(Thread.currentThread());
+				return org.assertj.core.api.Assertions.catchThrowable(
+						() -> registry.unregisterDirect("orders", unregisterAttempting));
+			});
 
 			assertThat(unregisterAttempting.await(5, TimeUnit.SECONDS)).isTrue();
-			assertThat(dynamicDataSource.deleteEntered.getCount()).isOne();
+			Thread.State removalState = awaitBlockedOrDeleteEntered(
+					removalThread.get(), dynamicDataSource.deleteEntered);
+			assertThat(removalState)
+					.as("removal worker state when deleteEntered=%s",
+							dynamicDataSource.deleteEntered.getCount())
+					.isEqualTo(Thread.State.BLOCKED);
+			assertThat(dynamicDataSource.deleteEntered.getCount())
+					.as("removal worker state: %s", removalState)
+					.isOne();
 			dynamicDataSource.releasePut.countDown();
 			assertThat(registration.get(5, TimeUnit.SECONDS)).isTrue();
 			assertThat(dynamicDataSource.deleteEntered.await(5, TimeUnit.SECONDS)).isTrue();
@@ -519,7 +531,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 	}
 
 	@Test
-	void unidentifiablePublishedNodeIsRemovedAndItsChainIsClosedExactlyOnce() {
+	void hiddenPublishedNodeSnapshotDoesNotPreventExactNodeRegistration() {
 		HidingPublishedNodeMagicDynamicDataSource dynamicDataSource =
 				new HidingPublishedNodeMagicDynamicDataSource();
 		AvailableDataSource rawDataSource = new AvailableDataSource();
@@ -528,16 +540,65 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(rawDataSource),
 				Arrays.<MagicDataSourceDecorator>asList(first, second));
 
-		assertThatThrownBy(() -> registry.registerDirect(info("orders-id", "orders")))
-				.isInstanceOf(IllegalStateException.class)
-				.hasMessageContaining("published DataSource node");
+		assertThat(registry.registerDirect(info("orders-id", "orders"))).isTrue();
+		assertThat(rawDataSource.closeCount).isZero();
+		assertThat(first.stages.get(0).closeCount).isZero();
+		assertThat(second.stages.get(0).closeCount).isZero();
+		assertThat(dynamicDataSource.datasourceNodes()).isEmpty();
 
-		assertThat(dynamicDataSource.datasources()).doesNotContain("orders");
+		registry.unregisterDirect("orders");
+
+		assertThat(first.removedStages.get("orders")).isSameAs(first.stages.get(0));
+		assertThat(second.removedStages.get("orders")).isSameAs(second.stages.get(0));
 		assertThat(rawDataSource.closeCount).isOne();
 		assertThat(first.stages.get(0).closeCount).isOne();
 		assertThat(second.stages.get(0).closeCount).isOne();
 		assertThat(first.cleanupCount).isZero();
 		assertThat(second.cleanupCount).isZero();
+	}
+
+	@Test
+	void replacementAfterIdentityLookupIsNotDeletedByFailedCompensation() throws Exception {
+		BlockingPublishedNodeLookupMagicDynamicDataSource dynamicDataSource =
+				new BlockingPublishedNodeLookupMagicDynamicDataSource();
+		AvailableDataSource firstRaw = new AvailableDataSource();
+		CascadingStageDecorator firstInner = new CascadingStageDecorator();
+		CascadingStageDecorator firstOuter = new CascadingStageDecorator();
+		TestRegistry firstRegistry = registry(dynamicDataSource, new FixedBuilder(firstRaw),
+				Arrays.<MagicDataSourceDecorator>asList(firstInner, firstOuter));
+		AvailableDataSource replacementRaw = new AvailableDataSource();
+		CascadingStageDecorator replacementDecorator = new CascadingStageDecorator();
+		TestRegistry replacementRegistry = registry(dynamicDataSource, new FixedBuilder(replacementRaw),
+				Collections.<MagicDataSourceDecorator>singletonList(replacementDecorator));
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		try {
+			Future<Throwable> firstRegistration = executor.submit(() ->
+					org.assertj.core.api.Assertions.catchThrowable(
+							() -> firstRegistry.registerDirect(info("first-id", "orders"))));
+			assertThat(dynamicDataSource.publishedNodeRead.await(5, TimeUnit.SECONDS)).isTrue();
+			assertThat(replacementRegistry.registerDirect(info("replacement-id", "orders"))).isTrue();
+			replacementDecorator.removedStages.clear();
+			dynamicDataSource.releasePublishedNodeRead.countDown();
+			firstRegistration.get(5, TimeUnit.SECONDS);
+
+			DataSource replacement = findDataSource(dynamicDataSource, "orders");
+			assertThat(replacement).isSameAs(replacementDecorator.stages.get(0));
+			assertThat(replacement.getConnection()).isSameAs(replacementRaw.connection);
+			assertThat(replacementRaw.closeCount).isZero();
+			assertThat(replacementDecorator.stages.get(0).closeCount).isZero();
+			assertThat(firstRaw.closeCount).isOne();
+			assertThat(firstInner.stages.get(0).closeCount).isOne();
+			assertThat(firstOuter.stages.get(0).closeCount).isOne();
+			assertThat(firstInner.cleanupCount).isZero();
+			assertThat(firstOuter.cleanupCount).isZero();
+
+			replacementRegistry.unregisterDirect("orders");
+			assertThat(replacementDecorator.removedStages.get("orders"))
+					.isSameAs(replacementDecorator.stages.get(0));
+		} finally {
+			dynamicDataSource.releasePublishedNodeRead.countDown();
+			executor.shutdownNow();
+		}
 	}
 
 	@Test
@@ -780,6 +841,45 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		}
 	}
 
+	private static final class BlockingPublishedNodeLookupMagicDynamicDataSource
+			extends MagicDynamicDataSource {
+
+		private final CountDownLatch publishedNodeRead = new CountDownLatch(1);
+		private final CountDownLatch releasePublishedNodeRead = new CountDownLatch(1);
+		private boolean hideNextSnapshot;
+		private boolean firstPut = true;
+		private boolean blockNextLookup = true;
+
+		@Override
+		public void put(String id, String key, String name, DataSource dataSource, int maxRows) {
+			super.put(id, key, name, dataSource, maxRows);
+			if (firstPut) {
+				firstPut = false;
+				hideNextSnapshot = true;
+			}
+		}
+
+		@Override
+		public DataSourceNode getDataSource(String key) {
+			DataSourceNode node = super.getDataSource(key);
+			if (blockNextLookup) {
+				blockNextLookup = false;
+				publishedNodeRead.countDown();
+				await(releasePublishedNodeRead, "published node lookup release timed out");
+			}
+			return node;
+		}
+
+		@Override
+		public java.util.Collection<DataSourceNode> datasourceNodes() {
+			if (hideNextSnapshot) {
+				hideNextSnapshot = false;
+				return Collections.emptyList();
+			}
+			return super.datasourceNodes();
+		}
+	}
+
 	private static final class PerRegistrationStageDecorator implements MagicDataSourceDecorator {
 
 		private final List<DataSource> createdStages = new ArrayList<DataSource>();
@@ -973,6 +1073,21 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 			Thread.currentThread().interrupt();
 			throw new IllegalStateException("interrupted", e);
 		}
+	}
+
+	private static Thread.State awaitBlockedOrDeleteEntered(Thread worker,
+			CountDownLatch deleteEntered) {
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+		Thread.State state = worker.getState();
+		while (state != Thread.State.BLOCKED && deleteEntered.getCount() != 0) {
+			if (System.nanoTime() >= deadline) {
+				throw new AssertionError("removal worker did not block or enter delete; state="
+						+ state + ", deleteEntered=" + deleteEntered.getCount());
+			}
+			Thread.yield();
+			state = worker.getState();
+		}
+		return state;
 	}
 
 	private static final class PreparedVetoAdapter implements DbTxDataSourceAdapter {

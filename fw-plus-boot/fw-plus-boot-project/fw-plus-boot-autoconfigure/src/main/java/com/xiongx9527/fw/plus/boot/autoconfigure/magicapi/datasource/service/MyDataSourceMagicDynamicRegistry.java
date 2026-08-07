@@ -220,9 +220,9 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
 					throw e;
 				}
 				cleanupDisposition = RegistrationCleanupDisposition.DYNAMIC_DATA_SOURCE_OWNED;
-				MagicDynamicDataSource.DataSourceNode publishedNode =
-						findPublishedNode(info.getId(), info.getKey(), datasource, replacedNodes);
 				forgetDecorationStages(replacedNodes);
+				MagicDynamicDataSource.DataSourceNode publishedNode =
+						findPublishedNode(info.getId(), info.getKey(), datasource);
 				registeredDecorationStages.put(publishedNode,
 						Collections.unmodifiableList(new ArrayList<DecorationStage>(decorationStages)));
 			}
@@ -274,46 +274,22 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
         return nodes;
     }
 
-	private MagicDynamicDataSource.DataSourceNode findPublishedNode(String id, String key, DataSource dataSource,
-			List<MagicDynamicDataSource.DataSourceNode> replacedNodes) {
-		List<MagicDynamicDataSource.DataSourceNode> candidates = new ArrayList<MagicDynamicDataSource.DataSourceNode>();
-		for (MagicDynamicDataSource.DataSourceNode node : findDataSources(id, key)) {
-			if (node.getDataSource() == dataSource && !containsIdentity(replacedNodes, node)) {
-				candidates.add(node);
-			}
-		}
-		if (candidates.size() != 1) {
-			IllegalStateException failure =
-					new IllegalStateException("Unable to identify the published DataSource node: " + key);
-			forgetDecorationStages(replacedNodes);
-			if (isCurrentDataSource(key, dataSource)) {
-				try {
-					magicDynamicDataSource.delete(key);
-				} catch (Throwable cleanupFailure) {
-					addSuppressed(failure, cleanupFailure);
-				}
-			}
-			throw failure;
-		}
-		return candidates.get(0);
-	}
-
-	private boolean isCurrentDataSource(String key, DataSource dataSource) {
+	private MagicDynamicDataSource.DataSourceNode findPublishedNode(String id, String key,
+			DataSource dataSource) {
+		MagicDynamicDataSource.DataSourceNode publishedNode;
 		try {
-			return magicDynamicDataSource.getDataSource(key).getDataSource() == dataSource;
+			publishedNode = magicDynamicDataSource.getDataSource(key);
 		} catch (RuntimeException e) {
-			return false;
+			throw new IllegalStateException(
+					"Unable to identify the published DataSource node: " + key, e);
 		}
-	}
-
-	private boolean containsIdentity(List<MagicDynamicDataSource.DataSourceNode> nodes,
-			MagicDynamicDataSource.DataSourceNode candidate) {
-		for (MagicDynamicDataSource.DataSourceNode node : nodes) {
-			if (node == candidate) {
-				return true;
-			}
+		if (publishedNode.getDataSource() != dataSource
+				|| !Objects.equals(key, publishedNode.getKey())
+				|| !Objects.equals(id, publishedNode.getId())) {
+			throw new IllegalStateException(
+					"Unable to identify the published DataSource node: " + key);
 		}
-		return false;
+		return publishedNode;
 	}
 
 	private List<RemovalClaim> prepareRemove(List<MagicDynamicDataSource.DataSourceNode> nodes) {
