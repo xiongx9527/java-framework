@@ -6,11 +6,13 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocumentImport;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowIngestionTask;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeDefinition;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeProviderRegistry;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRequest;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeResult;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowObjectStorage;
 import com.xiongx9527.fw.plus.ai.tinyflow.local.DefaultTinyflowIngestionService;
 import com.xiongx9527.fw.plus.ai.tinyflow.local.index.TinyflowKnowledgeMaintenanceService;
+import com.xiongx9527.fw.plus.ai.tinyflow.local.index.TinyflowVectorCompensator;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreDescriptor;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
 
@@ -163,9 +165,25 @@ public final class DefaultMagicTinyflowKnowledgeOperations implements MagicTinyf
 		} catch (RuntimeException exception) {
 			if (objectReference != null) {
 				try { objectStorage.delete(command.getTenantId(), objectReference); }
-				catch (RuntimeException cleanupFailure) { exception.addSuppressed(cleanupFailure); }
+				catch (RuntimeException cleanupFailure) {
+					exception.addSuppressed(cleanupFailure);
+					persistTemporaryObjectCleanup(command, document, objectReference, exception);
+				}
 			}
 			throw exception;
+		}
+	}
+
+	private void persistTemporaryObjectCleanup(ImportCommand command, TinyflowDocument document,
+			String objectReference, RuntimeException original) {
+		try {
+			repository.saveVectorCompensation(new TinyflowKnowledgeRepository.VectorCompensation(
+					UUID.randomUUID().toString(), command.getTenantId(), command.getKnowledgeId(), command.getSourceId(),
+					document.getDocumentId(), Collections.<String>emptyList(),
+					TinyflowVectorCompensator.DELETE_TEMPORARY_OBJECT,
+					TinyflowKnowledgeRepository.VectorCompensation.OBJECT_PENDING, objectReference));
+		} catch (RuntimeException persistenceFailure) {
+			original.addSuppressed(persistenceFailure);
 		}
 	}
 
@@ -262,24 +280,16 @@ public final class DefaultMagicTinyflowKnowledgeOperations implements MagicTinyf
 				throw new IllegalArgumentException("Unsupported knowledge metadata: " + key);
 			}
 		}
-		requireOption(optionProvider.listModels(200),
-				required(definition.getMetadata().get(EMBEDDING_MODEL_KEY), EMBEDDING_MODEL_KEY), EMBEDDING_MODEL_KEY);
-		requireOption(optionProvider.listVectors(200),
-				required(definition.getMetadata().get(VECTOR_STORE_KEY), VECTOR_STORE_KEY), VECTOR_STORE_KEY);
-		requireOption(optionProvider.listS3(200),
-				required(definition.getMetadata().get(S3_KEY), S3_KEY), S3_KEY);
+		String embeddingModelKey = required(definition.getMetadata().get(EMBEDDING_MODEL_KEY), EMBEDDING_MODEL_KEY);
+		String vectorStoreKey = required(definition.getMetadata().get(VECTOR_STORE_KEY), VECTOR_STORE_KEY);
+		String s3Key = required(definition.getMetadata().get(S3_KEY), S3_KEY);
+		requireOption(optionProvider.hasEmbeddingModel(embeddingModelKey), embeddingModelKey, EMBEDDING_MODEL_KEY);
+		requireOption(optionProvider.hasVectorStore(vectorStoreKey), vectorStoreKey, VECTOR_STORE_KEY);
+		requireOption(optionProvider.hasS3Storage(s3Key), s3Key, S3_KEY);
 	}
 
-	private void requireOption(List<MagicTinyflowKnowledgeOptionProvider.Option> options,
-			String key, String field) {
-		if (options != null) {
-			for (MagicTinyflowKnowledgeOptionProvider.Option option : options) {
-				if (option != null && key.equals(option.getKey())) {
-					return;
-				}
-			}
-		}
-		throw new IllegalArgumentException(field + " is not configured: " + key);
+	private void requireOption(boolean configured, String key, String field) {
+		if (!configured) throw new IllegalArgumentException(field + " is not configured: " + key);
 	}
 
 	private <T> PageResult<T> page(List<T> values, int page, int size) {

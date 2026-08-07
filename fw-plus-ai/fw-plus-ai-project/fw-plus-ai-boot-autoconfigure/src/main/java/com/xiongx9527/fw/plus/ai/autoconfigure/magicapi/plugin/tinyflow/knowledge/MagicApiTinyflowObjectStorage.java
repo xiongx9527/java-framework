@@ -72,7 +72,12 @@ public class MagicApiTinyflowObjectStorage implements TinyflowObjectStorage {
 
 	@Override
 	public void delete(String tenantId, String objectKey) {
-		backend.delete(reference(tenantId, objectKey));
+		ObjectReference reference = reference(tenantId, objectKey);
+		try {
+			backend.delete(reference);
+		} catch (RuntimeException exception) {
+			if (backend.exists(reference)) throw exception;
+		}
 	}
 
 	private ObjectReference reference(String tenantId, String objectKey) {

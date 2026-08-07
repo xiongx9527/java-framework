@@ -114,6 +114,7 @@ public interface TinyflowKnowledgeRepository {
 
 	final class VectorCompensation {
 		public static final String VECTOR_PENDING = "VECTOR_PENDING";
+		public static final String OBJECT_PENDING = "OBJECT_PENDING";
 		public static final String RESOURCE_PENDING = "RESOURCE_PENDING";
 		public static final String TASK_PENDING = "TASK_PENDING";
 		public static final String COMPLETE = "COMPLETE";
@@ -126,6 +127,7 @@ public interface TinyflowKnowledgeRepository {
 		private final List<String> vectorIds;
 		private final String operation;
 		private final String stage;
+		private final String objectKey;
 
 		public VectorCompensation(String compensationId, String tenantId, String knowledgeId,
 				String sourceId, String documentId, List<String> vectorIds, String operation) {
@@ -135,6 +137,12 @@ public interface TinyflowKnowledgeRepository {
 
 		public VectorCompensation(String compensationId, String tenantId, String knowledgeId,
 				String sourceId, String documentId, List<String> vectorIds, String operation, String stage) {
+			this(compensationId, tenantId, knowledgeId, sourceId, documentId, vectorIds, operation, stage, null);
+		}
+
+		public VectorCompensation(String compensationId, String tenantId, String knowledgeId,
+				String sourceId, String documentId, List<String> vectorIds, String operation, String stage,
+				String objectKey) {
 			this.compensationId = TinyflowKnowledgeReference.requireText(compensationId, "compensationId");
 			this.tenantId = TinyflowKnowledgeReference.requireText(tenantId, "tenantId");
 			this.knowledgeId = TinyflowKnowledgeReference.requireText(knowledgeId, "knowledgeId");
@@ -144,6 +152,7 @@ public interface TinyflowKnowledgeRepository {
 					: Collections.unmodifiableList(new ArrayList<String>(vectorIds));
 			this.operation = TinyflowKnowledgeReference.requireText(operation, "operation");
 			this.stage = TinyflowKnowledgeReference.requireText(stage, "stage");
+			this.objectKey = objectKey;
 		}
 
 		public String getCompensationId() { return compensationId; }
@@ -154,10 +163,11 @@ public interface TinyflowKnowledgeRepository {
 		public List<String> getVectorIds() { return vectorIds; }
 		public String getOperation() { return operation; }
 		public String getStage() { return stage; }
+		public String getObjectKey() { return objectKey; }
 
 		public VectorCompensation withStage(String nextStage) {
 			return new VectorCompensation(compensationId, tenantId, knowledgeId, sourceId, documentId,
-					vectorIds, operation, nextStage);
+					vectorIds, operation, nextStage, objectKey);
 		}
 	}
 

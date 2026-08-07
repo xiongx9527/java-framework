@@ -10,6 +10,36 @@ public interface MagicTinyflowKnowledgeOptionProvider {
 
 	List<Option> listS3(int limit);
 
+	default boolean hasEmbeddingModel(String key) {
+		if (key == null) return false;
+		List<Option> options = listModels(200);
+		if (options == null) return false;
+		for (Option option : options) {
+			if (option != null && key.equals(option.getKey()) && "EMBEDDING".equals(option.getType())) return true;
+		}
+		return false;
+	}
+
+	default boolean hasVectorStore(String key) {
+		if (key == null) return false;
+		List<Option> options = listVectors(200);
+		if (options == null) return false;
+		for (Option option : options) {
+			if (option != null && key.equals(option.getKey())) return true;
+		}
+		return false;
+	}
+
+	default boolean hasS3Storage(String key) {
+		if (key == null) return false;
+		List<Option> options = listS3(200);
+		if (options == null) return false;
+		for (Option option : options) {
+			if (option != null && key.equals(option.getKey())) return true;
+		}
+		return false;
+	}
+
 	final class Option {
 		private final String key;
 		private final String name;
