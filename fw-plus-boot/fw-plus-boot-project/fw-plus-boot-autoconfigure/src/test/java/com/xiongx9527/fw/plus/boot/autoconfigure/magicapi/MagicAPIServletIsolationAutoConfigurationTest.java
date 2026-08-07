@@ -11,7 +11,8 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.boot.context.annotation.Configurations;
+import org.springframework.web.multipart.support.StandardServletMultipartResolver;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.resource.Resource;
@@ -64,30 +65,35 @@ class MagicAPIServletIsolationAutoConfigurationTest {
     void usesManagedDynamicDataSourceByDefault() {
         new WebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
+                        MagicAPIAutoConfiguration.class,
                         MagicAPIDynamicDataSourceAutoConfiguration.class))
-                .run(context -> assertThat(context.getBean(MagicDynamicDataSource.class))
-                        .isInstanceOf(ManagedMagicDynamicDataSource.class));
+                .withBean(StandardServletMultipartResolver.class,
+                        StandardServletMultipartResolver::new)
+                .withBean(RequestMappingHandlerMapping.class,
+                        RequestMappingHandlerMapping::new)
+                .run(context -> {
+                    assertThat(context).hasSingleBean(MagicDynamicDataSource.class);
+                    assertThat(context.getBean(MagicDynamicDataSource.class))
+                            .isInstanceOf(ManagedMagicDynamicDataSource.class);
+                });
     }
 
     @Test
     void backsOffForAUserProvidedDynamicDataSource() {
         new WebApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
+                        MagicAPIAutoConfiguration.class,
                         MagicAPIDynamicDataSourceAutoConfiguration.class))
+                .withBean(StandardServletMultipartResolver.class,
+                        StandardServletMultipartResolver::new)
+                .withBean(RequestMappingHandlerMapping.class,
+                        RequestMappingHandlerMapping::new)
                 .withUserConfiguration(UserDynamicDataSourceConfiguration.class)
-                .run(context -> assertThat(context.getBean(MagicDynamicDataSource.class))
-                        .isSameAs(UserDynamicDataSourceConfiguration.DYNAMIC_DATA_SOURCE));
-    }
-
-    @Test
-    void ordersManagedDynamicDataSourceBeforeUpstreamServletConfiguration() {
-        Class<?>[] ordered = Configurations.getClasses(AutoConfigurations.of(
-                MagicAPIAutoConfiguration.class,
-                MagicAPIDynamicDataSourceAutoConfiguration.class));
-
-        assertThat(ordered).containsExactly(
-                MagicAPIDynamicDataSourceAutoConfiguration.class,
-                MagicAPIAutoConfiguration.class);
+                .run(context -> {
+                    assertThat(context).hasSingleBean(MagicDynamicDataSource.class);
+                    assertThat(context.getBean(MagicDynamicDataSource.class))
+                            .isSameAs(UserDynamicDataSourceConfiguration.DYNAMIC_DATA_SOURCE);
+                });
     }
 
     @Test

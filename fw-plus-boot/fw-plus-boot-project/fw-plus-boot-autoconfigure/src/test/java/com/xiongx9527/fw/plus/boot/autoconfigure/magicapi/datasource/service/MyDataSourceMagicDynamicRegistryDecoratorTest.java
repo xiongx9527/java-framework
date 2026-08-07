@@ -39,6 +39,8 @@ import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -47,7 +49,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void appliesDecoratorsInOrderAndNotifiesBeforeReplacingOldNode() {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
 		CloseTrackingDataSource replacement = new CloseTrackingDataSource();
 		dynamicDataSource.put("old-id", "orders", "Old", oldDataSource, 100);
@@ -67,7 +69,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void buildFailureKeepsOldNodeAndReturnsFalse() {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
 		dynamicDataSource.put("old-id", "orders", "Old", oldDataSource, 100);
 		List<String> events = new ArrayList<String>();
@@ -88,7 +90,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void notifiesDecoratorsBeforeDeletingNode() {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
 		dynamicDataSource.put("old-id", "orders", "Old", oldDataSource, 100);
 		List<String> events = new ArrayList<String>();
@@ -104,7 +106,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void notifiesOldKeyWhenSameIdMovesToANewKey() {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
 		CloseTrackingDataSource replacement = new CloseTrackingDataSource();
 		dynamicDataSource.put("same-id", "old-orders", "Old", oldDataSource, 100);
@@ -121,7 +123,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void replacementVetoRunsAllHooksKeepsOldWrapperOpenAndClosesNewChain() throws Exception {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingDataSource oldRaw = new CloseTrackingDataSource();
 		DbTxAwareDataSource oldAware = new DbTxAwareDataSource("orders", oldRaw,
 				Collections.<DbTxDataSourceAdapter>emptyList());
@@ -147,7 +149,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void deleteVetoRunsAllHooksAndKeepsNodeOpen() {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
 		dynamicDataSource.put("old-id", "orders", "Old", oldDataSource, 100);
 		List<String> events = new ArrayList<String>();
@@ -166,7 +168,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void decoratorFailureClosesNewChainAndKeepsOldNode() {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
 		CloseTrackingDataSource replacement = new CloseTrackingDataSource();
 		dynamicDataSource.put("old-id", "orders", "Old", oldDataSource, 100);
@@ -186,7 +188,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void decoratorFailureRollsBackEverySuccessfulStageAndClosesRawOnce() {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingDataSource raw = new CloseTrackingDataSource();
 		List<String> cleanupEvents = new ArrayList<String>();
 		OwnedStageDecorator first = new OwnedStageDecorator("first", cleanupEvents);
@@ -209,7 +211,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void cleanupFailureIsSuppressedAndRemainingStagesAndRawAreClosed() {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingDataSource raw = new CloseTrackingDataSource();
 		OwnedStageDecorator first = new OwnedStageDecorator();
 		OwnedStageDecorator second = new OwnedStageDecorator(new IOException("cleanup failed"));
@@ -233,7 +235,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void activeLocalTransactionVetoesReplacementAndCommitsThroughOriginalDataSource() throws Exception {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingH2DataSource oldRaw = h2DataSource("replace-old");
 		CloseTrackingH2DataSource replacementRaw = h2DataSource("replace-new");
 		JdbcTemplate oldJdbc = new JdbcTemplate(oldRaw);
@@ -292,7 +294,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void activeLocalTransactionVetoesDeletionAndRollsBackThroughOriginalDataSource() throws Exception {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingH2DataSource oldRaw = h2DataSource("delete-old");
 		JdbcTemplate oldJdbc = new JdbcTemplate(oldRaw);
 		oldJdbc.execute("create table tx_test(id integer primary key)");
@@ -348,7 +350,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void replacementPassesTheDbTxDecorationStageWhenAnOuterDecoratorWrapsIt() throws Exception {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingDataSource oldRaw = new CloseTrackingDataSource();
 		CloseTrackingDataSource replacementRaw = new CloseTrackingDataSource();
 		PreparedVetoAdapter adapter = new PreparedVetoAdapter();
@@ -375,7 +377,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void deletionPassesTheDbTxDecorationStageWhenAnOuterDecoratorWrapsIt() throws Exception {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		CloseTrackingDataSource oldRaw = new CloseTrackingDataSource();
 		PreparedVetoAdapter adapter = new PreparedVetoAdapter();
 		OuterDataSourceDecorator outer = new OuterDataSourceDecorator();
@@ -399,7 +401,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void releasesEarlierLeasesWhenALaterParticipantCannotBeAcquired() throws Exception {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		DbTxAwareDataSource first = new DbTxAwareDataSource("first", new CloseTrackingDataSource(),
 				Collections.<DbTxDataSourceAdapter>emptyList());
 		DbTxAwareDataSource second = new DbTxAwareDataSource("second", new CloseTrackingDataSource(),
@@ -510,7 +512,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 	@Test
 	void sharedFinalDataSourceKeepsDecorationStagesOwnedByEachNode() {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		PerRegistrationStageDecorator stageDecorator = new PerRegistrationStageDecorator();
 		CloseTrackingDataSource sharedFinalDataSource = new CloseTrackingDataSource();
 		List<MagicDataSourceDecorator> decorators = Arrays.<MagicDataSourceDecorator>asList(
@@ -551,19 +553,85 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 	}
 
 	@Test
-	void customParentSubtypeFailsFastInsteadOfInferringAnEquivalentReplacement() {
-		EquivalentReplacementMagicDynamicDataSource dynamicDataSource =
-				new EquivalentReplacementMagicDynamicDataSource();
+	void exactParentWithDecoratorsFailsBeforeAnyRegistrationSideEffect() {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
+		dynamicDataSource.put("old-id", "orders", "Old", oldDataSource, 100);
 		CloseTrackingDataSource rawDataSource = new CloseTrackingDataSource();
-		OwnedStageDecorator decorator = new OwnedStageDecorator();
-		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(rawDataSource),
+		SideEffectTrackingBuilder builder = new SideEffectTrackingBuilder(rawDataSource);
+		LifecycleTrackingDecorator decorator = new LifecycleTrackingDecorator();
+		TestRegistry registry = registry(dynamicDataSource, builder,
 				Collections.<MagicDataSourceDecorator>singletonList(decorator));
 
-		assertThatThrownBy(() -> registry.registerDirect(info("orders-id", "orders")))
-				.isInstanceOf(IllegalStateException.class)
-				.hasMessageContaining("ManagedMagicDynamicDataSource");
-		assertThat(rawDataSource.closeCount).isOne();
-		assertThat(decorator.stage.closeCount).isOne();
+		Throwable failure = catchThrowable(
+				() -> registry.registerDirect(info("orders-id", "orders")));
+
+		assertAll(
+				() -> assertThat(failure).isInstanceOf(IllegalStateException.class)
+						.hasMessageContaining("ManagedMagicDynamicDataSource"),
+				() -> assertThat(builder.buildCount).isZero(),
+				() -> assertThat(decorator.decorateCount).isZero(),
+				() -> assertThat(decorator.startRemoveCount).isZero(),
+				() -> assertThat(decorator.beforeRemoveCount).isZero(),
+				() -> assertThat(dynamicDataSource.getDataSource("orders").getDataSource())
+						.isSameAs(oldDataSource),
+				() -> assertThat(oldDataSource.closeCount).isZero(),
+				() -> assertThat(rawDataSource.closeCount).isZero());
+	}
+
+	@Test
+	void unmanagedSubtypeWithDecoratorsFailsBeforeAnyRegistrationSideEffect() {
+		UnmanagedMagicDynamicDataSource dynamicDataSource =
+				new UnmanagedMagicDynamicDataSource();
+		CloseTrackingDataSource oldDataSource = new CloseTrackingDataSource();
+		dynamicDataSource.put("old-id", "orders", "Old", oldDataSource, 100);
+		CloseTrackingDataSource rawDataSource = new CloseTrackingDataSource();
+		SideEffectTrackingBuilder builder = new SideEffectTrackingBuilder(rawDataSource);
+		LifecycleTrackingDecorator decorator = new LifecycleTrackingDecorator();
+		TestRegistry registry = registry(dynamicDataSource, builder,
+				Collections.<MagicDataSourceDecorator>singletonList(decorator));
+
+		Throwable failure = catchThrowable(
+				() -> registry.registerDirect(info("orders-id", "orders")));
+
+		assertAll(
+				() -> assertThat(failure).isInstanceOf(IllegalStateException.class)
+						.hasMessageContaining("ManagedMagicDynamicDataSource"),
+				() -> assertThat(builder.buildCount).isZero(),
+				() -> assertThat(decorator.decorateCount).isZero(),
+				() -> assertThat(decorator.startRemoveCount).isZero(),
+				() -> assertThat(decorator.beforeRemoveCount).isZero(),
+				() -> assertThat(dynamicDataSource.getDataSource("orders").getDataSource())
+						.isSameAs(oldDataSource),
+				() -> assertThat(oldDataSource.closeCount).isZero(),
+				() -> assertThat(rawDataSource.closeCount).isZero());
+	}
+
+	@Test
+	void exactParentWithoutDecoratorsKeepsLegacyRegistrationCompatibility() {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		CloseTrackingDataSource rawDataSource = new CloseTrackingDataSource();
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(rawDataSource),
+				Collections.<MagicDataSourceDecorator>emptyList());
+
+		assertThat(registry.registerDirect(info("orders-id", "orders"))).isTrue();
+
+		assertThat(dynamicDataSource.getDataSource("orders").getDataSource())
+				.isSameAs(rawDataSource);
+	}
+
+	@Test
+	void registryAcquiresManagedDatasourceMonitorBeforeAtomicPublication() {
+		LockObservingManagedMagicDynamicDataSource dynamicDataSource =
+				new LockObservingManagedMagicDynamicDataSource();
+		TestRegistry registry = registry(dynamicDataSource,
+				new FixedBuilder(new CloseTrackingDataSource()),
+				Collections.<MagicDataSourceDecorator>singletonList(
+						new LifecycleTrackingDecorator()));
+
+		assertThat(registry.registerDirect(info("orders-id", "orders"))).isTrue();
+
+		assertThat(dynamicDataSource.monitorHeldByRegistry).isTrue();
 	}
 
 	@Test
@@ -652,23 +720,6 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 	}
 
 	@Test
-	void exactParentCompatibilityPublishesAndRemovesItsDecorationStages() {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
-		AvailableDataSource rawDataSource = new AvailableDataSource();
-		CascadingStageDecorator decorator = new CascadingStageDecorator();
-		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(rawDataSource),
-				Collections.<MagicDataSourceDecorator>singletonList(decorator));
-
-		assertThat(registry.registerDirect(info("orders-id", "orders"))).isTrue();
-		registry.unregisterDirect("orders");
-
-		assertThat(decorator.removedStages.get("orders")).isSameAs(decorator.stages.get(0));
-		assertThat(rawDataSource.closeCount).isOne();
-		assertThat(decorator.stages.get(0).closeCount).isOne();
-		assertThat(decorator.cleanupCount).isZero();
-	}
-
-	@Test
 	void startRemoveErrorRollsBackEarlierClaims() throws Exception {
 		assertRemovalErrorRollsBackEarlierClaim(true);
 	}
@@ -679,7 +730,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 	}
 
 	private void assertRemovalErrorRollsBackEarlierClaim(boolean failDuringStart) throws Exception {
-		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		MagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
 		DbTxAwareDataSource aware = new DbTxAwareDataSource("orders", new CloseTrackingDataSource(),
 				Collections.<DbTxDataSourceAdapter>emptyList());
 		dynamicDataSource.put("old-id", "orders", "Old", aware, 100);
@@ -786,6 +837,22 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		}
 	}
 
+	private static final class SideEffectTrackingBuilder extends DataSourceBuilder {
+
+		private final DataSource dataSource;
+		private int buildCount;
+
+		private SideEffectTrackingBuilder(DataSource dataSource) {
+			this.dataSource = dataSource;
+		}
+
+		@Override
+		DataSource buildDataSource(String type, Map<String, Object> properties) {
+			buildCount++;
+			return dataSource;
+		}
+	}
+
 	private static final class FailingBuilder extends DataSourceBuilder {
 
 		@Override
@@ -884,14 +951,20 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		}
 	}
 
-	private static final class EquivalentReplacementMagicDynamicDataSource
+	private static final class UnmanagedMagicDynamicDataSource
 			extends MagicDynamicDataSource {
+	}
+
+	private static final class LockObservingManagedMagicDynamicDataSource
+			extends ManagedMagicDynamicDataSource {
+
+		private boolean monitorHeldByRegistry;
 
 		@Override
-		public void put(String id, String key, String name,
+		public DataSourceNode putAndGet(String id, String key, String name,
 				DataSource dataSource, int maxRows) {
-			super.put(id, key, name, dataSource, maxRows);
-			super.put(id, key, name, dataSource, maxRows);
+			monitorHeldByRegistry = Thread.holdsLock(this);
+			return super.putAndGet(id, key, name, dataSource, maxRows);
 		}
 	}
 
@@ -1169,6 +1242,29 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		@Override
 		public void beforeRemove(String key, DataSource dataSource) {
 			events.add("remove:" + name + ":" + key);
+		}
+	}
+
+	private static final class LifecycleTrackingDecorator implements MagicDataSourceDecorator {
+
+		private int decorateCount;
+		private int startRemoveCount;
+		private int beforeRemoveCount;
+
+		@Override
+		public DataSource decorate(String key, DataSource dataSource) {
+			decorateCount++;
+			return dataSource;
+		}
+
+		@Override
+		public void startRemove(String key, DataSource dataSource) {
+			startRemoveCount++;
+		}
+
+		@Override
+		public void beforeRemove(String key, DataSource dataSource) {
+			beforeRemoveCount++;
 		}
 	}
 

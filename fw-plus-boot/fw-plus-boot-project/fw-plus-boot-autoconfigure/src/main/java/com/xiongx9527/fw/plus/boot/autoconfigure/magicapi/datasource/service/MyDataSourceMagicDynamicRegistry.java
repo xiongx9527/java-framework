@@ -21,7 +21,6 @@ import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -51,8 +50,9 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
 
 	private final Object lifecycleMonitor = new Object();
 
-	private final Map<MagicDynamicDataSource.DataSourceNode, List<DecorationStage>> registeredDecorationStages =
-			new IdentityHashMap<MagicDynamicDataSource.DataSourceNode, List<DecorationStage>>();
+	private final WeakIdentityMap<MagicDynamicDataSource.DataSourceNode, List<DecorationStage>>
+			registeredDecorationStages =
+			new WeakIdentityMap<MagicDynamicDataSource.DataSourceNode, List<DecorationStage>>();
 
     /**
      * 当前类的类加载器实例
@@ -139,9 +139,10 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
      * @param mappingNode 包含数据源信息的映射节点
      * @return 注册是否成功（始终返回true）
      */
-    @Override
-    protected boolean register(MappingNode<DataSourceInfo> mappingNode) {
-        DataSourceInfo info = mappingNode.getEntity();
+	@Override
+	protected boolean register(MappingNode<DataSourceInfo> mappingNode) {
+		ManagedMagicDynamicDataSource managedDataSource = managedDataSourceForDecorators();
+		DataSourceInfo info = mappingNode.getEntity();
         Map<String, Object> properties = new HashMap<>(info.getProperties());
         String other = MagicAPIConfigUtils.getDbConfig(info.getKey(), "other", "");
         if (StringUtils.isNotBlank(other)) {
@@ -209,20 +210,39 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
 				List<MagicDynamicDataSource.DataSourceNode> replacedNodes =
 						findDataSources(info.getId(), info.getKey());
 				removalClaims = prepareRemove(replacedNodes);
-				MagicDynamicDataSource.DataSourceNode publishedNode;
-				try {
-					publishedNode = publishDataSource(info, datasource);
-				} catch (RuntimeException e) {
-					afterRemoveFailure(removalClaims, e);
-					throw e;
-				} catch (Error e) {
-					afterRemoveFailure(removalClaims, e);
-					throw e;
+				if (managedDataSource == null) {
+					try {
+						magicDynamicDataSource.put(info.getId(), info.getKey(), info.getName(),
+								datasource, info.getMaxRows());
+					} catch (RuntimeException e) {
+						afterRemoveFailure(removalClaims, e);
+						throw e;
+					} catch (Error e) {
+						afterRemoveFailure(removalClaims, e);
+						throw e;
+					}
+					cleanupDisposition = RegistrationCleanupDisposition.DYNAMIC_DATA_SOURCE_OWNED;
+				} else {
+					synchronized (managedDataSource) {
+						MagicDynamicDataSource.DataSourceNode publishedNode;
+						try {
+							publishedNode = managedDataSource.putAndGet(
+									info.getId(), info.getKey(), info.getName(),
+									datasource, info.getMaxRows());
+						} catch (RuntimeException e) {
+							afterRemoveFailure(removalClaims, e);
+							throw e;
+						} catch (Error e) {
+							afterRemoveFailure(removalClaims, e);
+							throw e;
+						}
+						cleanupDisposition = RegistrationCleanupDisposition.DYNAMIC_DATA_SOURCE_OWNED;
+						forgetDecorationStages(replacedNodes);
+						registeredDecorationStages.put(publishedNode,
+								Collections.unmodifiableList(
+										new ArrayList<DecorationStage>(decorationStages)));
+					}
 				}
-				cleanupDisposition = RegistrationCleanupDisposition.DYNAMIC_DATA_SOURCE_OWNED;
-				forgetDecorationStages(replacedNodes);
-				registeredDecorationStages.put(publishedNode,
-						Collections.unmodifiableList(new ArrayList<DecorationStage>(decorationStages)));
 			}
 		} catch (RuntimeException e) {
 			if (cleanupDisposition == RegistrationCleanupDisposition.REGISTRY_OWNED) {
@@ -243,8 +263,9 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
      *
      * @param mappingNode 需要取消注册的数据源映射节点
 	 */
-    @Override
+	@Override
 	protected void unregister(MappingNode<DataSourceInfo> mappingNode) {
+		managedDataSourceForDecorators();
 		synchronized (lifecycleMonitor) {
 			List<MagicDynamicDataSource.DataSourceNode> nodes =
 					findDataSources(null, mappingNode.getMappingKey());
@@ -272,31 +293,16 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
         return nodes;
     }
 
-	private MagicDynamicDataSource.DataSourceNode publishDataSource(DataSourceInfo info,
-			DataSource dataSource) {
+	private ManagedMagicDynamicDataSource managedDataSourceForDecorators() {
+		if (dataSourceDecorators.isEmpty()) {
+			return null;
+		}
 		if (magicDynamicDataSource instanceof ManagedMagicDynamicDataSource) {
-			return ((ManagedMagicDynamicDataSource) magicDynamicDataSource).putAndGet(
-					info.getId(), info.getKey(), info.getName(), dataSource, info.getMaxRows());
+			return (ManagedMagicDynamicDataSource) magicDynamicDataSource;
 		}
-		if (magicDynamicDataSource.getClass() != MagicDynamicDataSource.class) {
-			throw new IllegalStateException("Custom MagicDynamicDataSource subtypes must extend "
-					+ ManagedMagicDynamicDataSource.class.getSimpleName()
-					+ " to publish decoration stages safely");
-		}
-		synchronized (magicDynamicDataSource) {
-			magicDynamicDataSource.put(info.getId(), info.getKey(), info.getName(),
-					dataSource, info.getMaxRows());
-			return publishedDataSource(info.getKey());
-		}
-	}
-
-	private MagicDynamicDataSource.DataSourceNode publishedDataSource(String key) {
-		try {
-			return magicDynamicDataSource.getDataSource(key);
-		} catch (RuntimeException e) {
-			throw new IllegalStateException(
-					"Unable to identify the published DataSource node: " + key, e);
-		}
+		throw new IllegalStateException("MagicDynamicDataSource must extend "
+				+ ManagedMagicDynamicDataSource.class.getSimpleName()
+				+ " when datasource decorators are configured");
 	}
 
 	private List<RemovalClaim> prepareRemove(List<MagicDynamicDataSource.DataSourceNode> nodes) {
