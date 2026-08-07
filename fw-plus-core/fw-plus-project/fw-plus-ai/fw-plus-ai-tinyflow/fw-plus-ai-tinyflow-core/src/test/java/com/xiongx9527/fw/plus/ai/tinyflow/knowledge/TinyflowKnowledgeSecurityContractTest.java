@@ -27,7 +27,8 @@ public class TinyflowKnowledgeSecurityContractTest {
 	@Test
 	public void shouldKeepStrongHashParametersWithoutPlaintext() {
 		TinyflowKnowledgeAccessKeyRepository.AccessKey accessKey =
-				accessKey("PBKDF2WithHmacSHA256", "random-salt", 120000, "derived-hash");
+				accessKey("visible-prefix", "PBKDF2WithHmacSHA256", "random-salt", 120000, "derived-hash");
+		assertEquals("visible-prefix", accessKey.getPrefix());
 		assertEquals("PBKDF2WithHmacSHA256", accessKey.getHashAlgorithm());
 		assertEquals("random-salt", accessKey.getSalt());
 		assertEquals(120000, accessKey.getCost());
@@ -43,8 +44,13 @@ public class TinyflowKnowledgeSecurityContractTest {
 
 	private TinyflowKnowledgeAccessKeyRepository.AccessKey accessKey(String algorithm, String salt,
 			int cost, String hash) {
+		return accessKey("visible-prefix", algorithm, salt, cost, hash);
+	}
+
+	private TinyflowKnowledgeAccessKeyRepository.AccessKey accessKey(String prefix, String algorithm, String salt,
+			int cost, String hash) {
 		return new TinyflowKnowledgeAccessKeyRepository.AccessKey(
-				"key-1", "tenant-a", "kb-1", algorithm, salt, cost, hash, true);
+				"key-1", "tenant-a", "kb-1", prefix, algorithm, salt, cost, hash, true);
 	}
 
 	private void assertNoMapFieldOrConstructorParameter(Class<?> type) {
