@@ -91,6 +91,25 @@ class ChangeDiffEngineTest {
 	}
 
 	@Test
+	void emitsLogicalDeleteWhenDeleteColumnIsNotMonitored() {
+		TableMonitor monitor = monitorIncluding("display_name");
+		LogicalDeleteConfiguration logicalDelete = new LogicalDeleteConfiguration();
+		logicalDelete.setColumn("deleted");
+		logicalDelete.setDeletedValue(1);
+		logicalDelete.setNotDeletedValue(0);
+		monitor.setLogicalDelete(logicalDelete);
+
+		TableChange change = engine.diff(table("sys_user"), monitor,
+				Collections.<String, String>emptyMap(),
+				Collections.singletonList(row(keys("id", 1L), values("display_name", "A", "deleted", 0))),
+				Collections.singletonList(row(keys("id", 1L), values("display_name", "A", "deleted", 1))));
+
+		assertThat(change.getRows()).extracting(RowChange::getOperation)
+				.containsExactly(DataChangeOperation.LOGICAL_DELETE);
+		assertThat(change.getRows().get(0).getFields()).isEmpty();
+	}
+
+	@Test
 	void emitsInsertAndUpdateRowsForUpsertSnapshot() {
 		TableChange change = engine.diff(table("sys_user"), monitorIncluding("display_name"),
 				Collections.<String, String>emptyMap(), rows(1L, "A"), rows(1L, "B", 2L, "C"));
