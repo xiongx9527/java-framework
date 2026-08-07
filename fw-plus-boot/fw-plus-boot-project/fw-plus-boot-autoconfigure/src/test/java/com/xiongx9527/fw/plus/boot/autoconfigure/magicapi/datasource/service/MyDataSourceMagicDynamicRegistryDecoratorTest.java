@@ -475,11 +475,13 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 			Future<Boolean> registration = executor.submit(() ->
 					registry.registerDirect(info("orders-id", "orders")));
 			assertThat(dynamicDataSource.nodePublished.await(5, TimeUnit.SECONDS)).isTrue();
+			CountDownLatch unregisterAttempting = new CountDownLatch(1);
 			Future<Throwable> removal = executor.submit(() ->
 					org.assertj.core.api.Assertions.catchThrowable(
-							() -> registry.unregisterDirect("orders")));
+							() -> registry.unregisterDirect("orders", unregisterAttempting)));
 
-			assertThat(dynamicDataSource.deleteEntered.await(250, TimeUnit.MILLISECONDS)).isFalse();
+			assertThat(unregisterAttempting.await(5, TimeUnit.SECONDS)).isTrue();
+			assertThat(dynamicDataSource.deleteEntered.getCount()).isOne();
 			dynamicDataSource.releasePut.countDown();
 			assertThat(registration.get(5, TimeUnit.SECONDS)).isTrue();
 			assertThat(dynamicDataSource.deleteEntered.await(5, TimeUnit.SECONDS)).isTrue();
@@ -517,18 +519,103 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 	}
 
 	@Test
-	void unidentifiablePublishedNodeFailsRegistrationWithoutLeavingTheNodeRegistered() {
+	void unidentifiablePublishedNodeIsRemovedAndItsChainIsClosedExactlyOnce() {
 		HidingPublishedNodeMagicDynamicDataSource dynamicDataSource =
 				new HidingPublishedNodeMagicDynamicDataSource();
-		CloseTrackingDataSource rawDataSource = new CloseTrackingDataSource();
+		AvailableDataSource rawDataSource = new AvailableDataSource();
+		CascadingStageDecorator first = new CascadingStageDecorator();
+		CascadingStageDecorator second = new CascadingStageDecorator();
 		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(rawDataSource),
-				Collections.<MagicDataSourceDecorator>emptyList());
+				Arrays.<MagicDataSourceDecorator>asList(first, second));
 
 		assertThatThrownBy(() -> registry.registerDirect(info("orders-id", "orders")))
 				.isInstanceOf(IllegalStateException.class)
 				.hasMessageContaining("published DataSource node");
 
 		assertThat(dynamicDataSource.datasources()).doesNotContain("orders");
+		assertThat(rawDataSource.closeCount).isOne();
+		assertThat(first.stages.get(0).closeCount).isOne();
+		assertThat(second.stages.get(0).closeCount).isOne();
+		assertThat(first.cleanupCount).isZero();
+		assertThat(second.cleanupCount).isZero();
+	}
+
+	@Test
+	void unidentifiablePublicationDoesNotDeleteTheReplacementNodeOrCleanTheOldChainTwice() throws Exception {
+		BlockingPublicationMagicDynamicDataSource dynamicDataSource =
+				new BlockingPublicationMagicDynamicDataSource();
+		AvailableDataSource firstRaw = new AvailableDataSource();
+		CascadingStageDecorator firstInner = new CascadingStageDecorator();
+		CascadingStageDecorator firstOuter = new CascadingStageDecorator();
+		TestRegistry firstRegistry = registry(dynamicDataSource, new FixedBuilder(firstRaw),
+				Arrays.<MagicDataSourceDecorator>asList(firstInner, firstOuter));
+		AvailableDataSource replacementRaw = new AvailableDataSource();
+		CascadingStageDecorator replacementDecorator = new CascadingStageDecorator();
+		TestRegistry replacementRegistry = registry(dynamicDataSource, new FixedBuilder(replacementRaw),
+				Collections.<MagicDataSourceDecorator>singletonList(replacementDecorator));
+		ExecutorService executor = Executors.newSingleThreadExecutor();
+		try {
+			Future<Throwable> firstRegistration = executor.submit(() ->
+					org.assertj.core.api.Assertions.catchThrowable(
+							() -> firstRegistry.registerDirect(info("first-id", "orders"))));
+			assertThat(dynamicDataSource.nodePublished.await(5, TimeUnit.SECONDS)).isTrue();
+			assertThat(replacementRegistry.registerDirect(info("replacement-id", "orders"))).isTrue();
+			replacementDecorator.removedStages.clear();
+			dynamicDataSource.releaseDelete.countDown();
+			dynamicDataSource.releasePut.countDown();
+
+			assertThat(firstRegistration.get(5, TimeUnit.SECONDS))
+					.isInstanceOf(IllegalStateException.class)
+					.hasMessageContaining("published DataSource node");
+			DataSource replacement = findDataSource(dynamicDataSource, "orders");
+			assertThat(replacement).isSameAs(replacementDecorator.stages.get(0));
+			assertThat(replacement.getConnection()).isSameAs(replacementRaw.connection);
+			assertThat(replacementRaw.closeCount).isZero();
+			assertThat(replacementDecorator.stages.get(0).closeCount).isZero();
+			assertThat(firstRaw.closeCount).isOne();
+			assertThat(firstInner.stages.get(0).closeCount).isOne();
+			assertThat(firstOuter.stages.get(0).closeCount).isOne();
+			assertThat(firstInner.cleanupCount).isZero();
+			assertThat(firstOuter.cleanupCount).isZero();
+
+			replacementRegistry.unregisterDirect("orders");
+			assertThat(replacementDecorator.removedStages.get("orders"))
+					.isSameAs(replacementDecorator.stages.get(0));
+		} finally {
+			dynamicDataSource.releaseDelete.countDown();
+			dynamicDataSource.releasePut.countDown();
+			executor.shutdownNow();
+		}
+	}
+
+	@Test
+	void startRemoveErrorRollsBackEarlierClaims() throws Exception {
+		assertRemovalErrorRollsBackEarlierClaim(true);
+	}
+
+	@Test
+	void beforeRemoveErrorRollsBackEarlierClaims() throws Exception {
+		assertRemovalErrorRollsBackEarlierClaim(false);
+	}
+
+	private void assertRemovalErrorRollsBackEarlierClaim(boolean failDuringStart) throws Exception {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		DbTxAwareDataSource aware = new DbTxAwareDataSource("orders", new CloseTrackingDataSource(),
+				Collections.<DbTxDataSourceAdapter>emptyList());
+		dynamicDataSource.put("old-id", "orders", "Old", aware, 100);
+		ClaimTrackingDecorator claimed = new ClaimTrackingDecorator();
+		AssertionError lifecycleError = new AssertionError("lifecycle error");
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(new CloseTrackingDataSource()),
+				Arrays.<MagicDataSourceDecorator>asList(
+						claimed, new ErrorLifecycleDecorator(failDuringStart, lifecycleError)));
+
+		Throwable failure = org.assertj.core.api.Assertions.catchThrowable(
+				() -> registry.unregisterDirect("orders"));
+
+		assertThat(failure).isSameAs(lifecycleError);
+		assertThat(claimed.failureCount).isOne();
+		try (DbTxAwareDataSource.Lease ignored = aware.acquireLease()) {
+		}
 	}
 
 	private static DbTxDefinition localDefinition() {
@@ -591,9 +678,16 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		}
 
 		private void unregisterDirect(String key) {
+			unregisterDirect(key, null);
+		}
+
+		private void unregisterDirect(String key, CountDownLatch attempting) {
 			DataSourceInfo info = info("old-id", key);
 			MappingNode<DataSourceInfo> node = new MappingNode<DataSourceInfo>(info);
 			node.setMappingKey(key);
+			if (attempting != null) {
+				attempting.countDown();
+			}
 			unregister(node);
 		}
 	}
@@ -653,12 +747,16 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 
 		private final CountDownLatch nodePublished = new CountDownLatch(1);
 		private final CountDownLatch releasePut = new CountDownLatch(1);
+		private boolean blockNextPut = true;
 
 		@Override
 		public void put(String id, String key, String name, DataSource dataSource, int maxRows) {
 			super.put(id, key, name, dataSource, maxRows);
-			nodePublished.countDown();
-			await(releasePut, "put release timed out");
+			if (blockNextPut) {
+				blockNextPut = false;
+				nodePublished.countDown();
+				await(releasePut, "put release timed out");
+			}
 		}
 	}
 
@@ -711,6 +809,158 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		@Override
 		public DataSource decorate(String key, DataSource dataSource) {
 			return sharedDataSource;
+		}
+	}
+
+	private static final class CascadingStageDecorator implements MagicDataSourceDecorator {
+
+		private final List<CascadingDataSource> stages = new ArrayList<CascadingDataSource>();
+		private final Map<String, DataSource> removedStages = new HashMap<String, DataSource>();
+		private int cleanupCount;
+
+		@Override
+		public DataSource decorate(String key, DataSource dataSource) {
+			CascadingDataSource stage = new CascadingDataSource(dataSource);
+			stages.add(stage);
+			return stage;
+		}
+
+		@Override
+		public void beforeRemove(String key, DataSource dataSource) {
+			removedStages.put(key, dataSource);
+		}
+
+		@Override
+		public void cleanupAfterDecorationFailure(String key, DataSource dataSource) throws Exception {
+			cleanupCount++;
+			((AutoCloseable) dataSource).close();
+		}
+	}
+
+	private static final class CascadingDataSource extends DelegatingDataSource implements Closeable {
+
+		private int closeCount;
+
+		private CascadingDataSource(DataSource delegate) {
+			super(delegate);
+		}
+
+		@Override
+		public void close() throws IOException {
+			closeCount++;
+			((Closeable) getTargetDataSource()).close();
+		}
+	}
+
+	private static final class AvailableDataSource implements DataSource, Closeable {
+
+		private final Connection connection = mock(Connection.class);
+		private int closeCount;
+
+		@Override
+		public Connection getConnection() throws SQLException {
+			if (closeCount > 0) {
+				throw new SQLException("closed");
+			}
+			return connection;
+		}
+
+		@Override
+		public Connection getConnection(String username, String password) throws SQLException {
+			return getConnection();
+		}
+
+		@Override
+		public void close() {
+			closeCount++;
+		}
+
+		@Override
+		public PrintWriter getLogWriter() {
+			return null;
+		}
+
+		@Override
+		public void setLogWriter(PrintWriter out) {
+		}
+
+		@Override
+		public void setLoginTimeout(int seconds) {
+		}
+
+		@Override
+		public int getLoginTimeout() {
+			return 0;
+		}
+
+		@Override
+		public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+			throw new SQLFeatureNotSupportedException();
+		}
+
+		@Override
+		public <T> T unwrap(Class<T> iface) throws SQLException {
+			throw new SQLException("not a wrapper");
+		}
+
+		@Override
+		public boolean isWrapperFor(Class<?> iface) {
+			return false;
+		}
+	}
+
+	private static final class ClaimTrackingDecorator implements MagicDataSourceDecorator {
+
+		private int failureCount;
+
+		@Override
+		public DataSource decorate(String key, DataSource dataSource) {
+			return dataSource;
+		}
+
+		@Override
+		public void startRemove(String key, DataSource dataSource) {
+			try {
+				((DbTxAwareDataSource) dataSource).startRemove();
+			} catch (SQLException e) {
+				throw new IllegalStateException(e);
+			}
+		}
+
+		@Override
+		public void afterRemoveFailure(String key, DataSource dataSource) {
+			failureCount++;
+			((DbTxAwareDataSource) dataSource).cancelRemove();
+		}
+	}
+
+	private static final class ErrorLifecycleDecorator implements MagicDataSourceDecorator {
+
+		private final boolean failDuringStart;
+		private final Error failure;
+
+		private ErrorLifecycleDecorator(boolean failDuringStart, Error failure) {
+			this.failDuringStart = failDuringStart;
+			this.failure = failure;
+		}
+
+		@Override
+		public DataSource decorate(String key, DataSource dataSource) {
+			return dataSource;
+		}
+
+		@Override
+		public void startRemove(String key, DataSource dataSource) {
+			if (failDuringStart) {
+				throw failure;
+			}
+		}
+
+		@Override
+		public void beforeRemove(String key, DataSource dataSource) {
+			if (!failDuringStart) {
+				throw failure;
+			}
 		}
 	}
 

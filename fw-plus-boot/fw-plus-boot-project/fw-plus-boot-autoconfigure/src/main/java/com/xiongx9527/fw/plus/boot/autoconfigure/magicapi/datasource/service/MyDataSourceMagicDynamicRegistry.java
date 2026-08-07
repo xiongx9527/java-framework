@@ -202,6 +202,8 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
             throw e;
         }
 		List<RemovalClaim> removalClaims = Collections.emptyList();
+		RegistrationCleanupDisposition cleanupDisposition =
+				RegistrationCleanupDisposition.REGISTRY_OWNED;
 		try {
 			synchronized (lifecycleMonitor) {
 				List<MagicDynamicDataSource.DataSourceNode> replacedNodes =
@@ -210,11 +212,6 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
 				try {
 					magicDynamicDataSource.put(info.getId(), info.getKey(), info.getName(),
 							datasource, info.getMaxRows());
-					MagicDynamicDataSource.DataSourceNode publishedNode =
-							findPublishedNode(info.getId(), info.getKey(), datasource, replacedNodes);
-					forgetDecorationStages(replacedNodes);
-					registeredDecorationStages.put(publishedNode,
-							Collections.unmodifiableList(new ArrayList<DecorationStage>(decorationStages)));
 				} catch (RuntimeException e) {
 					afterRemoveFailure(removalClaims, e);
 					throw e;
@@ -222,12 +219,22 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
 					afterRemoveFailure(removalClaims, e);
 					throw e;
 				}
+				cleanupDisposition = RegistrationCleanupDisposition.DYNAMIC_DATA_SOURCE_OWNED;
+				MagicDynamicDataSource.DataSourceNode publishedNode =
+						findPublishedNode(info.getId(), info.getKey(), datasource, replacedNodes);
+				forgetDecorationStages(replacedNodes);
+				registeredDecorationStages.put(publishedNode,
+						Collections.unmodifiableList(new ArrayList<DecorationStage>(decorationStages)));
 			}
 		} catch (RuntimeException e) {
-			rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
+			if (cleanupDisposition == RegistrationCleanupDisposition.REGISTRY_OWNED) {
+				rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
+			}
 			throw e;
 		} catch (Error e) {
-			rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
+			if (cleanupDisposition == RegistrationCleanupDisposition.REGISTRY_OWNED) {
+				rollbackDecoration(info.getKey(), rawDataSource, decorationStages, e);
+			}
 			throw e;
 		}
 		return true;
@@ -279,14 +286,24 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
 			IllegalStateException failure =
 					new IllegalStateException("Unable to identify the published DataSource node: " + key);
 			forgetDecorationStages(replacedNodes);
-			try {
-				magicDynamicDataSource.delete(key);
-			} catch (Throwable cleanupFailure) {
-				addSuppressed(failure, cleanupFailure);
+			if (isCurrentDataSource(key, dataSource)) {
+				try {
+					magicDynamicDataSource.delete(key);
+				} catch (Throwable cleanupFailure) {
+					addSuppressed(failure, cleanupFailure);
+				}
 			}
 			throw failure;
 		}
 		return candidates.get(0);
+	}
+
+	private boolean isCurrentDataSource(String key, DataSource dataSource) {
+		try {
+			return magicDynamicDataSource.getDataSource(key).getDataSource() == dataSource;
+		} catch (RuntimeException e) {
+			return false;
+		}
 	}
 
 	private boolean containsIdentity(List<MagicDynamicDataSource.DataSourceNode> nodes,
@@ -302,25 +319,30 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
 	private List<RemovalClaim> prepareRemove(List<MagicDynamicDataSource.DataSourceNode> nodes) {
 		List<RemovalClaim> removalClaims = new ArrayList<RemovalClaim>();
 		RuntimeException failure = null;
-		for (MagicDynamicDataSource.DataSourceNode node : nodes) {
-			for (DecorationStage stage : decorationStages(node)) {
-				try {
-					stage.decorator.startRemove(node.getKey(), stage.dataSource);
-					removalClaims.add(new RemovalClaim(node.getKey(), stage));
-				} catch (RuntimeException e) {
-					failure = append(failure, e);
+		try {
+			for (MagicDynamicDataSource.DataSourceNode node : nodes) {
+				for (DecorationStage stage : decorationStages(node)) {
+					try {
+						stage.decorator.startRemove(node.getKey(), stage.dataSource);
+						removalClaims.add(new RemovalClaim(node.getKey(), stage));
+					} catch (RuntimeException e) {
+						failure = append(failure, e);
+					}
 				}
 			}
-		}
-		for (MagicDynamicDataSource.DataSourceNode node : nodes) {
-			for (DecorationStage stage : decorationStages(node)) {
-				try {
-					stage.decorator.beforeRemove(node.getKey(), stage.dataSource);
-				} catch (RuntimeException e) {
-					failure = append(failure, e);
+			for (MagicDynamicDataSource.DataSourceNode node : nodes) {
+				for (DecorationStage stage : decorationStages(node)) {
+					try {
+						stage.decorator.beforeRemove(node.getKey(), stage.dataSource);
+					} catch (RuntimeException e) {
+						failure = append(failure, e);
+					}
 				}
-            }
-        }
+			}
+		} catch (Error e) {
+			afterRemoveFailure(removalClaims, e);
+			throw e;
+		}
 		if (failure != null) {
 			afterRemoveFailure(removalClaims, failure);
 			throw failure;
@@ -414,6 +436,11 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
 			this.key = key;
 			this.stage = stage;
 		}
+	}
+
+	private enum RegistrationCleanupDisposition {
+		REGISTRY_OWNED,
+		DYNAMIC_DATA_SOURCE_OWNED
 	}
 
     /**
