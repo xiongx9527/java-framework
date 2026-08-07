@@ -13,7 +13,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock.LockModul
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.MagicDataSourceDecorator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.starter.MagicAPIDbTxConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.starter.MagicAPISeataConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.mybatisflex.MyBatisFlexConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.starter.MyBatisFlexConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.starter.MybatisPlusModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.template.TemplateModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.trace.TraceModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.uid.UidModuleConfiguration;
@@ -65,6 +66,7 @@ import java.util.*;
          UidModuleConfiguration.class,
 		 LockModuleConfiguration.class,
 		 MyBatisFlexConfiguration.class,
+		 MybatisPlusModuleConfiguration.class,
 		 TemplateModuleConfiguration.class,
          MagicApiPluginAutoConfiguration.class,
 		 DifyModuleConfiguration.class,
