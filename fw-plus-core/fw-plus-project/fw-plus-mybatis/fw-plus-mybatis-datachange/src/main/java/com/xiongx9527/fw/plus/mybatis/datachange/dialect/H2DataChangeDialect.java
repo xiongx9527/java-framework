@@ -45,7 +45,7 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 		}
 		List<SnapshotParameter> parameters = new ArrayList<SnapshotParameter>();
 		for (ParameterMapping mapping : target.getPredicateParameterMappings()) {
-			parameters.add(SnapshotParameter.boundSql(mapping));
+			parameters.add(SnapshotParameter.boundSql(mapping, target.getBoundSql()));
 		}
 		return new SnapshotQuery(sql.toString(), parameters);
 	}
