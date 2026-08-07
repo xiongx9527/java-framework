@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.coordinator;
+package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.coordinator;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.coordinator.DbTxCallback;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.coordinator.DbTxCoordinator;

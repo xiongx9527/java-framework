@@ -9,7 +9,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.Man
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.MyDataSourceMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.MagicDataSourceDecorator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.starter.MagicAPIDbTxConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.starter.MagicAPISeataConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.starter.MagicAPISeataConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.provider.ResultProvider;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.resource.MyDefaultMagicResourceService;
 import org.springframework.beans.factory.ObjectProvider;
