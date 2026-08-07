@@ -10,7 +10,12 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 
 public class TinyflowKnowledgeAccessKeyService {
 
@@ -21,20 +26,38 @@ public class TinyflowKnowledgeAccessKeyService {
 	private static final int PREFIX_BYTES = 9;
 	private static final int SALT_BYTES = 16;
 	private static final int SECRET_BYTES = 32;
+	private static final int DEFAULT_GLOBAL_AUTH_LIMIT = 256;
+	private static final int DEFAULT_PREFIX_AUTH_LIMIT = 16;
+	private static final int AUTH_PREFIX_CAPACITY = 1024;
+	private static final long AUTH_WINDOW_NANOS = TimeUnit.SECONDS.toNanos(1L);
 
 	private final TinyflowKnowledgeAccessKeyRepository repository;
 	private final SecureRandom secureRandom;
+	private final PreAuthenticationLimiter authenticationLimiter;
 
 	public TinyflowKnowledgeAccessKeyService(TinyflowKnowledgeAccessKeyRepository repository) {
 		this(repository, new SecureRandom());
 	}
 
 	TinyflowKnowledgeAccessKeyService(TinyflowKnowledgeAccessKeyRepository repository, SecureRandom secureRandom) {
+		this(repository, secureRandom, DEFAULT_GLOBAL_AUTH_LIMIT, DEFAULT_PREFIX_AUTH_LIMIT,
+				new LongSupplier() {
+					@Override public long getAsLong() { return System.nanoTime(); }
+				});
+	}
+
+	TinyflowKnowledgeAccessKeyService(TinyflowKnowledgeAccessKeyRepository repository, SecureRandom secureRandom,
+			int globalAuthLimit, int prefixAuthLimit, LongSupplier nanoTime) {
 		if (repository == null || secureRandom == null) {
 			throw new IllegalArgumentException("Access key repository and random source must not be null");
 		}
+		if (globalAuthLimit <= 0 || prefixAuthLimit <= 0 || nanoTime == null) {
+			throw new IllegalArgumentException("Access key authentication limits and clock must be valid");
+		}
 		this.repository = repository;
 		this.secureRandom = secureRandom;
+		this.authenticationLimiter = new PreAuthenticationLimiter(
+				globalAuthLimit, prefixAuthLimit, AUTH_PREFIX_CAPACITY, nanoTime);
 	}
 
 	public CreatedAccessKey create(String tenantId, String knowledgeId) {
@@ -69,28 +92,33 @@ public class TinyflowKnowledgeAccessKeyService {
 
 	public TinyflowKnowledgeAccessKeyRepository.AccessKey authenticate(String token) {
 		TokenParts parts = parse(token);
-		char[] secret = parts.secret.toCharArray();
 		byte[] saltBytes = parts.saltBytes;
-		byte[] derived = null;
 		try {
-			derived = derive(secret, saltBytes, ITERATIONS);
-			String hash = encode(derived);
-			TinyflowKnowledgeAccessKeyRepository.AccessKey accessKey = repository.findByHash(hash);
+			authenticationLimiter.check(parts.prefix);
+			TinyflowKnowledgeAccessKeyRepository.AccessKey accessKey = repository.findByPrefix(parts.prefix);
 			if (accessKey == null || !accessKey.isEnabled()
 					|| !ALGORITHM.equals(accessKey.getHashAlgorithm())
 					|| accessKey.getCost() != ITERATIONS
 					|| !constantTimeEquals(parts.prefix, accessKey.getPrefix())
-					|| !constantTimeEquals(parts.salt, accessKey.getSalt())
-					|| !constantTimeEquals(hash, accessKey.getAccessKeyHash())) {
+					|| !constantTimeEquals(parts.salt, accessKey.getSalt())) {
 				throw new AuthenticationException();
 			}
-			return accessKey;
-		} finally {
-			Arrays.fill(secret, '\0');
-			Arrays.fill(saltBytes, (byte) 0);
-			if (derived != null) {
-				Arrays.fill(derived, (byte) 0);
+			char[] secret = parts.secret.toCharArray();
+			byte[] derived = null;
+			try {
+				derived = derive(secret, saltBytes, accessKey.getCost());
+				if (!constantTimeEquals(encode(derived), accessKey.getAccessKeyHash())) {
+					throw new AuthenticationException();
+				}
+				return accessKey;
+			} finally {
+				Arrays.fill(secret, '\0');
+				if (derived != null) {
+					Arrays.fill(derived, (byte) 0);
+				}
 			}
+		} finally {
+			Arrays.fill(saltBytes, (byte) 0);
 		}
 	}
 
@@ -190,6 +218,90 @@ public class TinyflowKnowledgeAccessKeyService {
 			this.salt = salt;
 			this.secret = secret;
 			this.saltBytes = saltBytes;
+		}
+	}
+
+	private static final class PreAuthenticationLimiter {
+		private final int globalLimit;
+		private final int prefixLimit;
+		private final int prefixCapacity;
+		private final LongSupplier nanoTime;
+		private final LinkedHashMap<String, AttemptWindow> prefixWindows =
+				new LinkedHashMap<String, AttemptWindow>(16, 0.75F, true);
+		private boolean globalStarted;
+		private long globalStartedAt;
+		private int globalCount;
+
+		private PreAuthenticationLimiter(int globalLimit, int prefixLimit, int prefixCapacity,
+				LongSupplier nanoTime) {
+			this.globalLimit = globalLimit;
+			this.prefixLimit = prefixLimit;
+			this.prefixCapacity = prefixCapacity;
+			this.nanoTime = nanoTime;
+		}
+
+		private synchronized void check(String prefix) {
+			long now = nanoTime.getAsLong();
+			if (!globalStarted || expired(now, globalStartedAt)) {
+				globalStarted = true;
+				globalStartedAt = now;
+				globalCount = 0;
+				removeExpired(now);
+			}
+			if (globalCount >= globalLimit) {
+				throw new AuthenticationException();
+			}
+
+			AttemptWindow window = prefixWindows.get(prefix);
+			if (window == null || expired(now, window.startedAt)) {
+				if (window == null) {
+					ensureCapacity(now);
+					window = new AttemptWindow(now);
+					prefixWindows.put(prefix, window);
+				} else {
+					window.startedAt = now;
+					window.count = 0;
+				}
+			}
+			if (window.count >= prefixLimit) {
+				throw new AuthenticationException();
+			}
+			window.count++;
+			globalCount++;
+		}
+
+		private void ensureCapacity(long now) {
+			removeExpired(now);
+			if (prefixWindows.size() < prefixCapacity) {
+				return;
+			}
+			Iterator<Map.Entry<String, AttemptWindow>> iterator = prefixWindows.entrySet().iterator();
+			if (iterator.hasNext()) {
+				iterator.next();
+				iterator.remove();
+			}
+		}
+
+		private void removeExpired(long now) {
+			Iterator<Map.Entry<String, AttemptWindow>> iterator = prefixWindows.entrySet().iterator();
+			while (iterator.hasNext()) {
+				if (expired(now, iterator.next().getValue().startedAt)) {
+					iterator.remove();
+				}
+			}
+		}
+
+		private boolean expired(long now, long startedAt) {
+			return now - startedAt >= AUTH_WINDOW_NANOS;
+		}
+	}
+
+	private static final class AttemptWindow {
+		private long startedAt;
+		private int count;
+
+		private AttemptWindow(long startedAt) {
+			this.startedAt = startedAt;
 		}
 	}
 }

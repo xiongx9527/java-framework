@@ -25,6 +25,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -165,6 +167,26 @@ public class TinyflowDifyExternalControllerTest {
 	}
 
 	@Test
+	public void shouldAuthenticateAndAuthorizeScopeBeforeParsingBrokenJson() throws Exception {
+		String brokenBody = "{\"knowledge_id\":\"kb-1\",\"query\":";
+		assertBrokenBodyError(null, brokenBody, 403, 1001);
+		assertBrokenBodyError("Basic value", brokenBody, 403, 1001);
+		assertBrokenBodyError("Bearer invalid", brokenBody, 401, 1002);
+
+		String revokedToken = accessKeyService.create("tenant-a", "kb-1").getToken();
+		TinyflowKnowledgeAccessKeyRepository.AccessKey revoked = accessKeys.lastSaved;
+		accessKeys.save(new TinyflowKnowledgeAccessKeyRepository.AccessKey(revoked.getAccessKeyId(),
+				revoked.getTenantId(), revoked.getKnowledgeId(), revoked.getPrefix(), revoked.getHashAlgorithm(),
+				revoked.getSalt(), revoked.getCost(), revoked.getAccessKeyHash(), false));
+		assertBrokenBodyError("Bearer " + revokedToken, brokenBody, 401, 1002);
+
+		String wrongScopeToken = accessKeyService.create("tenant-a", "kb-other").getToken();
+		assertBrokenBodyError("Bearer " + wrongScopeToken, brokenBody, 401, 1002);
+		assertBrokenBodyError("Bearer " + token, brokenBody, 400, 1003);
+		assertEquals(0, provider.calls);
+	}
+
+	@Test
 	public void shouldRejectMalformedAndTamperedTokensWithTheSameError() throws Exception {
 		assertError("Bearer tfk2.prefix.salt.secret", 401, 1002);
 		assertError("Bearer tfk1.prefix.salt", 401, 1002);
@@ -186,7 +208,11 @@ public class TinyflowDifyExternalControllerTest {
 			Map<String, Object> condition = new LinkedHashMap<String, Object>();
 			condition.put("name", "field-" + conditions.size());
 			condition.put("comparison_operator", operator);
-			condition.put("value", "expected");
+			if ("in".equals(operator) || "not in".equals(operator)) {
+				condition.put("value", Arrays.asList("expected"));
+			} else if (!"empty".equals(operator) && !"not empty".equals(operator)) {
+				condition.put("value", "expected");
+			}
 			conditions.add(condition);
 		}
 		metadataCondition.put("conditions", conditions);
@@ -251,11 +277,14 @@ public class TinyflowDifyExternalControllerTest {
 	@Test
 	public void shouldConvertTimeoutAndInternalFailureToStableErrors() throws Exception {
 		properties.setRequestTimeout(Duration.ofMillis(25));
-		provider.delayMillis = 250L;
+		provider.block = true;
 		rebuildService();
 		assertBodyError(validRequest(), 504, 3002);
+		assertTrue(provider.entered.await(1L, TimeUnit.SECONDS));
+		assertTrue(provider.interrupted.await(1L, TimeUnit.SECONDS));
 
-		provider.delayMillis = 0L;
+		provider.block = false;
+		provider.release.countDown();
 		provider.failure = new IllegalStateException("sensitive cause");
 		assertBodyError(validRequest(), 500, 5000);
 		mockMvc.perform(post("/external-knowledge/retrieval").header("Authorization", "Bearer " + token)
@@ -309,6 +338,17 @@ public class TinyflowDifyExternalControllerTest {
 		return request;
 	}
 
+	private void assertBrokenBodyError(String authorization, String body, int status, int code) throws Exception {
+		org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request =
+				post("/external-knowledge/retrieval").contentType(MediaType.APPLICATION_JSON).content(body);
+		if (authorization != null) {
+			request.header("Authorization", authorization);
+		}
+		mockMvc.perform(request)
+				.andExpect(status().is(status))
+				.andExpect(jsonPath("$.error_code").value(code));
+	}
+
 	private TinyflowKnowledgeDefinition definition(String providerKey, boolean enabled) {
 		return TinyflowKnowledgeDefinition.builder().providerKey(providerKey).tenantId("tenant-a")
 				.knowledgeId("kb-1").name("Knowledge").enabled(enabled).build();
@@ -319,7 +359,10 @@ public class TinyflowDifyExternalControllerTest {
 		private TinyflowKnowledgeResult result = TinyflowKnowledgeResult.empty();
 		private TinyflowKnowledgeRequest request;
 		private RuntimeException failure;
-		private long delayMillis;
+		private boolean block;
+		private final CountDownLatch entered = new CountDownLatch(1);
+		private final CountDownLatch release = new CountDownLatch(1);
+		private final CountDownLatch interrupted = new CountDownLatch(1);
 		private int calls;
 
 		@Override public String getKey() { return "fw-plus-local"; }
@@ -327,10 +370,12 @@ public class TinyflowDifyExternalControllerTest {
 		@Override public TinyflowKnowledgeResult retrieve(TinyflowKnowledgeRequest value) {
 			calls++;
 			request = value;
-			if (delayMillis > 0L) {
+			if (block) {
+				entered.countDown();
 				try {
-					Thread.sleep(delayMillis);
+					release.await();
 				} catch (InterruptedException exception) {
+					interrupted.countDown();
 					Thread.currentThread().interrupt();
 				}
 			}
@@ -343,17 +388,21 @@ public class TinyflowDifyExternalControllerTest {
 
 	private static final class InMemoryAccessKeyRepository implements TinyflowKnowledgeAccessKeyRepository {
 		private final Map<String, AccessKey> values = new ConcurrentHashMap<String, AccessKey>();
+		private final Map<String, AccessKey> prefixValues = new ConcurrentHashMap<String, AccessKey>();
 		private AccessKey lastSaved;
 		@Override public AccessKey findByHash(String accessKeyHash) { return values.get(accessKeyHash); }
+		@Override public AccessKey findByPrefix(String prefix) { return prefixValues.get(prefix); }
 		@Override public void save(AccessKey accessKey) {
 			lastSaved = accessKey;
 			values.put(accessKey.getAccessKeyHash(), accessKey);
+			prefixValues.put(accessKey.getPrefix(), accessKey);
 		}
 		@Override public void delete(String tenantId, String knowledgeId, String accessKeyId) {
 			for (AccessKey key : new ArrayList<AccessKey>(values.values())) {
 				if (tenantId.equals(key.getTenantId()) && knowledgeId.equals(key.getKnowledgeId())
 						&& accessKeyId.equals(key.getAccessKeyId())) {
 					values.remove(key.getAccessKeyHash());
+					prefixValues.remove(key.getPrefix());
 				}
 			}
 		}

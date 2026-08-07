@@ -1,7 +1,10 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow.dify;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeAccessKeyRepository;
 import com.xiongx9527.fw.plus.dify.dataset.types.external.KnowledgeArgs;
 import com.xiongx9527.fw.plus.dify.dataset.types.external.KnowledgeMetadataCondition;
 import org.springframework.http.HttpStatus;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,10 +40,15 @@ public class TinyflowDifyExternalController {
 			produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<?> retrieval(
 			@RequestHeader(value = "Authorization", required = false) String authorization,
-			@RequestBody JsonNode body) {
+			@RequestBody String body) {
 		try {
 			String token = bearerToken(authorization);
-			return ResponseEntity.ok(service.retrieval(token, parse(body)));
+			TinyflowKnowledgeAccessKeyRepository.AccessKey accessKey = service.authenticateAccessKey(token);
+			String knowledgeId = extractKnowledgeId(body);
+			if (knowledgeId != null) {
+				service.authorizeScope(accessKey, knowledgeId);
+			}
+			return ResponseEntity.ok(service.retrieval(accessKey, parse(body)));
 		} catch (TinyflowDifyExternalKnowledgeService.ExternalKnowledgeException exception) {
 			return error(exception.getStatus(), exception.getCode(), exception.getMessage());
 		} catch (RuntimeException exception) {
@@ -64,7 +73,13 @@ public class TinyflowDifyExternalController {
 		return token;
 	}
 
-	private KnowledgeArgs parse(JsonNode body) {
+	private KnowledgeArgs parse(String rawBody) {
+		JsonNode body;
+		try {
+			body = OBJECT_MAPPER.readTree(rawBody);
+		} catch (IOException exception) {
+			throw invalidRequest();
+		}
 		if (body == null || !body.isObject()) {
 			throw invalidRequest();
 		}
@@ -126,6 +141,28 @@ public class TinyflowDifyExternalController {
 			args.setMetadata_condition(metadata);
 		}
 		return args;
+	}
+
+	private String extractKnowledgeId(String rawBody) {
+		if (rawBody == null) {
+			return null;
+		}
+		try (JsonParser parser = OBJECT_MAPPER.getFactory().createParser(rawBody)) {
+			if (parser.nextToken() != JsonToken.START_OBJECT) {
+				return null;
+			}
+			while (parser.nextToken() == JsonToken.FIELD_NAME) {
+				String fieldName = parser.getCurrentName();
+				JsonToken valueToken = parser.nextToken();
+				if ("knowledge_id".equals(fieldName) && valueToken == JsonToken.VALUE_STRING) {
+					return parser.getValueAsString();
+				}
+				parser.skipChildren();
+			}
+		} catch (IOException ignored) {
+			return null;
+		}
+		return null;
 	}
 
 	private String text(JsonNode node) {
