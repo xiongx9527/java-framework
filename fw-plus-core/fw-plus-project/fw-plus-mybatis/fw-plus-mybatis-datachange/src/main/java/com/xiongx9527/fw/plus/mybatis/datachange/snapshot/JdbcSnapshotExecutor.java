@@ -47,12 +47,27 @@ public final class JdbcSnapshotExecutor {
 			try (ResultSet rows = statement.executeQuery()) {
 				return read(rows, metadata.getKeyColumns(), maxRows);
 			}
-		} catch (DataChangeException exception) {
-			throw exception;
+		} catch (RuntimeException exception) {
+			throw sanitize(exception);
 		} catch (SQLException exception) {
-			throw new DataChangeException(DataChangeErrorCode.SNAPSHOT,
-					"SNAPSHOT_EXECUTION_FAILED");
+			throw executionFailed();
 		}
+	}
+
+	private DataChangeException sanitize(RuntimeException exception) {
+		if (exception instanceof DataChangeException) {
+			DataChangeErrorCode code = ((DataChangeException) exception).getCode();
+			if (code == DataChangeErrorCode.SNAPSHOT_LIMIT_EXCEEDED
+					|| code == DataChangeErrorCode.UNIQUE_KEY_UNAVAILABLE
+					|| code == DataChangeErrorCode.INVALID_UNIQUE_KEY) {
+				return new DataChangeException(code, code.name());
+			}
+		}
+		return executionFailed();
+	}
+
+	private DataChangeException executionFailed() {
+		return new DataChangeException(DataChangeErrorCode.SNAPSHOT, "SNAPSHOT_EXECUTION_FAILED");
 	}
 
 	private List<RowSnapshot> read(ResultSet rows, List<String> keyColumns, int maxRows) throws SQLException {
