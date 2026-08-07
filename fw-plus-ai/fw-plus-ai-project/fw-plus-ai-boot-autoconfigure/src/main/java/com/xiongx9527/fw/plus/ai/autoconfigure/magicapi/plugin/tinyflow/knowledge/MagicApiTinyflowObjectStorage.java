@@ -23,7 +23,8 @@ import java.util.UUID;
 
 public class MagicApiTinyflowObjectStorage implements TinyflowObjectStorage {
 
-	private static final String VERSION = "tfs3v1";
+	private static final String VERSION = "tfs3v2";
+	private static final String LEGACY_VERSION = "tfs3v1";
 	private static final String S3_KEY = "s3Key";
 	private static final long DEFAULT_MAX_BYTES = 20L * 1024L * 1024L;
 	private final StorageBackend backend;
@@ -50,8 +51,8 @@ public class MagicApiTinyflowObjectStorage implements TinyflowObjectStorage {
 		byte[] content = readAll(input, maxBytes);
 		String path = "tinyflow/" + encode(tenant) + "/" + UUID.randomUUID().toString().replace("-", "");
 		UploadedObject uploaded = backend.upload(s3Key, path, content, filename, mediaType);
-		if (uploaded == null || uploaded.url == null) throw new IOException("S3 upload did not return an object reference");
-		ObjectReference reference = new ObjectReference(s3Key, tenant, uploaded.url,
+		if (uploaded == null) throw new IOException("S3 upload did not return an object reference");
+		ObjectReference reference = new ObjectReference(s3Key, tenant,
 				uploaded.path == null ? path : uploaded.path, uploaded.filename == null ? filename : uploaded.filename);
 		Map<String, Object> safeMetadata = new LinkedHashMap<String, Object>();
 		safeMetadata.put(S3_KEY, s3Key);
@@ -151,28 +152,34 @@ public class MagicApiTinyflowObjectStorage implements TinyflowObjectStorage {
 	static final class ObjectReference {
 		private final String s3Key;
 		private final String tenantId;
-		private final String url;
 		private final String path;
 		private final String filename;
 
-		private ObjectReference(String s3Key, String tenantId, String url, String path, String filename) {
+		private ObjectReference(String s3Key, String tenantId, String path, String filename) {
 			this.s3Key = required(s3Key, S3_KEY); this.tenantId = required(tenantId, "tenantId");
-			this.url = required(url, "url"); this.path = required(path, "path"); this.filename = required(filename, "filename");
+			this.path = required(path, "path"); this.filename = required(filename, "filename");
 		}
 
 		private String encode() {
 			return VERSION + "." + MagicApiTinyflowObjectStorage.encode(s3Key) + "."
-					+ MagicApiTinyflowObjectStorage.encode(tenantId) + "." + MagicApiTinyflowObjectStorage.encode(url)
-					+ "." + MagicApiTinyflowObjectStorage.encode(path) + "." + MagicApiTinyflowObjectStorage.encode(filename);
+					+ MagicApiTinyflowObjectStorage.encode(tenantId) + "."
+					+ MagicApiTinyflowObjectStorage.encode(path) + "." + MagicApiTinyflowObjectStorage.encode(filename);
 		}
 
 		private static ObjectReference decode(String value) {
 			try {
 				String[] parts = required(value, "objectKey").split("\\.", -1);
-				if (parts.length != 6 || !VERSION.equals(parts[0])) throw new IllegalArgumentException("Invalid S3 object reference");
-				return new ObjectReference(MagicApiTinyflowObjectStorage.decode(parts[1]),
-						MagicApiTinyflowObjectStorage.decode(parts[2]), MagicApiTinyflowObjectStorage.decode(parts[3]),
-						MagicApiTinyflowObjectStorage.decode(parts[4]), MagicApiTinyflowObjectStorage.decode(parts[5]));
+				if (parts.length == 5 && VERSION.equals(parts[0])) {
+					return new ObjectReference(MagicApiTinyflowObjectStorage.decode(parts[1]),
+							MagicApiTinyflowObjectStorage.decode(parts[2]), MagicApiTinyflowObjectStorage.decode(parts[3]),
+							MagicApiTinyflowObjectStorage.decode(parts[4]));
+				}
+				if (parts.length == 6 && LEGACY_VERSION.equals(parts[0])) {
+					return new ObjectReference(MagicApiTinyflowObjectStorage.decode(parts[1]),
+							MagicApiTinyflowObjectStorage.decode(parts[2]), MagicApiTinyflowObjectStorage.decode(parts[4]),
+							MagicApiTinyflowObjectStorage.decode(parts[5]));
+				}
+				throw new IllegalArgumentException("Invalid S3 object reference");
 			} catch (IllegalArgumentException exception) {
 				throw new IllegalArgumentException("Invalid S3 object reference", exception);
 			}
@@ -203,8 +210,8 @@ public class MagicApiTinyflowObjectStorage implements TinyflowObjectStorage {
 
 		@Override public InputStream get(ObjectReference reference, long maxBytes) throws IOException {
 			MyFileStorageService service = service(reference.s3Key);
-			validate(reference);
-			String signedUrl = service.generatePresignedUrlByUrl(reference.url, null, reference.path, reference.filename);
+			String objectUrl = objectUrl(reference);
+			String signedUrl = service.generatePresignedUrlByUrl(objectUrl, null, reference.path, reference.filename);
 			validateUrl(reference, signedUrl);
 			HttpURLConnection connection = connection(signedUrl, "GET");
 			try {
@@ -219,8 +226,8 @@ public class MagicApiTinyflowObjectStorage implements TinyflowObjectStorage {
 		@Override public boolean exists(ObjectReference reference) {
 			try {
 				MyFileStorageService service = service(reference.s3Key);
-				validate(reference);
-				String signedUrl = service.generatePresignedUrlByUrl(reference.url, null, reference.path, reference.filename);
+				String objectUrl = objectUrl(reference);
+				String signedUrl = service.generatePresignedUrlByUrl(objectUrl, null, reference.path, reference.filename);
 				validateUrl(reference, signedUrl);
 				HttpURLConnection connection = connection(signedUrl, "HEAD");
 				try { int status = connection.getResponseCode(); return status >= 200 && status < 300; }
@@ -231,18 +238,15 @@ public class MagicApiTinyflowObjectStorage implements TinyflowObjectStorage {
 		}
 
 		@Override public void delete(ObjectReference reference) {
-			validate(reference);
-			if (!service(reference.s3Key).delete(reference.url)) throw new IllegalStateException("S3 object delete failed");
+			if (!service(reference.s3Key).delete(objectUrl(reference))) {
+				throw new IllegalStateException("S3 object delete failed");
+			}
 		}
 
 		private MyFileStorageService service(String key) {
 			MyFileStorageService service = dataSource.getFileStorageService(key);
 			if (service == null) throw new IllegalArgumentException("S3 data source not found: " + key);
 			return service;
-		}
-
-		private void validate(ObjectReference reference) {
-			validateUrl(reference, reference.url);
 		}
 
 		private void validateUrl(ObjectReference reference, String value) {
@@ -257,6 +261,20 @@ public class MagicApiTinyflowObjectStorage implements TinyflowObjectStorage {
 						|| uri.getPath() == null || !uri.getPath().endsWith(suffix) || uri.getPath().contains("..")) {
 					throw new SecurityException("S3 object reference is outside configured data source");
 				}
+			} catch (java.net.URISyntaxException exception) {
+				throw new SecurityException("S3 object reference is invalid", exception);
+			}
+		}
+
+		private String objectUrl(ObjectReference reference) {
+			try {
+				S3DataSourceInfo info = info(reference.s3Key);
+				String authority = info.getBucketName() + "." + trimSlashes(info.getEndPoint());
+				URI uri = new URI(info.getEndPointSchema(), null, authority, -1,
+						"/" + trimSlashes(reference.path) + "/" + reference.filename, null, null);
+				String value = uri.toASCIIString();
+				validateUrl(reference, value);
+				return value;
 			} catch (java.net.URISyntaxException exception) {
 				throw new SecurityException("S3 object reference is invalid", exception);
 			}

@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowIngestionTask;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowObjectStorage;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowParsedDocument;
+import com.xiongx9527.fw.plus.ai.tinyflow.local.index.TinyflowVectorCompensator;
 import com.xiongx9527.fw.plus.common.exception.BizException;
 
 import java.io.ByteArrayInputStream;
@@ -240,27 +241,75 @@ public final class DefaultTinyflowIngestionService {
 	}
 
 	private void fail(TaskControl control, String failedStage) {
+		TinyflowKnowledgeRepository.VectorCompensation cleanup = null;
 		synchronized (control) {
 			if (control.cancelled) {
-				finishCancelledLocked(control);
-				return;
-			}
-			if (!isTerminal(control.status)) {
-				transitionLocked(control, "FAILED", "Ingestion failed during " + safeStage(failedStage),
+				cleanup = finishCancelledLocked(control);
+			} else if (!isTerminal(control.status)) {
+				cleanup = terminalTransitionLocked(control, "FAILED",
+						"Ingestion failed during " + safeStage(failedStage),
 						safeStage(failedStage));
 			}
 		}
+		completeObjectCleanup(cleanup);
 	}
 
 	private void finishCancelled(TaskControl control) {
+		TinyflowKnowledgeRepository.VectorCompensation cleanup;
 		synchronized (control) {
-			finishCancelledLocked(control);
+			cleanup = finishCancelledLocked(control);
 		}
+		completeObjectCleanup(cleanup);
 	}
 
-	private void finishCancelledLocked(TaskControl control) {
+	private TinyflowKnowledgeRepository.VectorCompensation finishCancelledLocked(TaskControl control) {
 		if (!isTerminal(control.status)) {
-			transitionLocked(control, "CANCELLED", null, null);
+			return terminalTransitionLocked(control, "CANCELLED", null, null);
+		}
+		return null;
+	}
+
+	private TinyflowKnowledgeRepository.VectorCompensation terminalTransitionLocked(TaskControl control,
+			String status, String message, String failedStage) {
+		if (!allowsTransition(control.status, status)) {
+			throw new IllegalStateException("Illegal ingestion status transition");
+		}
+		TinyflowIngestionTask task = snapshotLocked(control, status, message, failedStage);
+		TinyflowKnowledgeRepository.VectorCompensation cleanup = objectCleanupCompensation(control);
+		if (cleanup == null) {
+			repository.saveTask(task);
+		} else {
+			repository.saveTaskWithVectorCompensation(task, cleanup);
+		}
+		control.status = status;
+		control.stage = status;
+		return cleanup;
+	}
+
+	private TinyflowKnowledgeRepository.VectorCompensation objectCleanupCompensation(TaskControl control) {
+		TinyflowDocument document = control.document;
+		if (document.getSourceUri() == null || !document.getMetadata().containsKey("s3Key")) {
+			return null;
+		}
+		TinyflowDocument active = repository.findActiveDocument(
+				document.getTenantId(), document.getKnowledgeId(), document.getSourceId());
+		if (active != null && document.getDocumentId().equals(active.getDocumentId())) {
+			return null;
+		}
+		return new TinyflowKnowledgeRepository.VectorCompensation(UUID.randomUUID().toString(),
+				document.getTenantId(), document.getKnowledgeId(), document.getSourceId(), document.getDocumentId(),
+				Collections.<String>emptyList(), TinyflowVectorCompensator.DELETE_FAILED_IMPORT,
+				TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING);
+	}
+
+	private void completeObjectCleanup(TinyflowKnowledgeRepository.VectorCompensation cleanup) {
+		if (cleanup == null) {
+			return;
+		}
+		try {
+			new TinyflowVectorCompensator(repository, ingestionIndex, objectStorage).complete(cleanup);
+		} catch (Exception ignored) {
+			// The failed task and durable compensation remain available for retry.
 		}
 	}
 
@@ -330,6 +379,7 @@ public final class DefaultTinyflowIngestionService {
 
 	private boolean complete(TaskControl control, TinyflowDocument completedDocument,
 			List<TinyflowChunk> indexedChunks) {
+		List<TinyflowKnowledgeRepository.VectorCompensation> cleanupCompensations;
 		synchronized (control) {
 			if (control.cancelled) {
 				return false;
@@ -338,12 +388,41 @@ public final class DefaultTinyflowIngestionService {
 				throw new IllegalStateException("Illegal ingestion status transition");
 			}
 			TinyflowIngestionTask completedTask = snapshotLocked(control, "COMPLETED", null, null);
-			repository.completeIngestion(completedDocument, indexedChunks, completedTask);
+			cleanupCompensations = cleanupCompensations(completedDocument);
+			repository.completeIngestionWithVectorCompensations(
+					completedDocument, indexedChunks, completedTask, cleanupCompensations);
 			control.document = completedDocument;
 			control.status = "COMPLETED";
 			control.stage = "COMPLETED";
-			return true;
 		}
+		TinyflowVectorCompensator compensator = new TinyflowVectorCompensator(
+				repository, ingestionIndex, objectStorage);
+		for (TinyflowKnowledgeRepository.VectorCompensation compensation : cleanupCompensations) {
+			try {
+				compensator.complete(compensation);
+			} catch (Exception ignored) {
+				// The durable compensation remains available for a later retry.
+			}
+		}
+		return true;
+	}
+
+	private List<TinyflowKnowledgeRepository.VectorCompensation> cleanupCompensations(
+			TinyflowDocument completedDocument) {
+		List<TinyflowKnowledgeRepository.VectorCompensation> values =
+				new ArrayList<TinyflowKnowledgeRepository.VectorCompensation>();
+		List<TinyflowDocument> versions = repository.findDocumentVersions(
+				completedDocument.getTenantId(), completedDocument.getKnowledgeId(), completedDocument.getSourceId());
+		for (TinyflowDocument version : versions) {
+			if (!completedDocument.getDocumentId().equals(version.getDocumentId())) {
+				values.add(new TinyflowKnowledgeRepository.VectorCompensation(UUID.randomUUID().toString(),
+						version.getTenantId(), version.getKnowledgeId(), version.getSourceId(), version.getDocumentId(),
+						collectVectorIds(repository.findChunksByDocument(
+								version.getTenantId(), version.getKnowledgeId(), version.getDocumentId())),
+						TinyflowVectorCompensator.DELETE_OLD_VERSION));
+			}
+		}
+		return values;
 	}
 
 	private void compensate(TaskControl control) {

@@ -25,24 +25,31 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 public final class DefaultMagicTinyflowKnowledgeOperations implements MagicTinyflowKnowledgeOperations {
 
 	private static final String LOCAL = "fw-plus-local";
+	private static final String EMBEDDING_MODEL_KEY = "embeddingModelKey";
 	private static final String VECTOR_STORE_KEY = "vectorStoreKey";
 	private static final String S3_KEY = "s3Key";
+	private static final Set<String> KNOWLEDGE_METADATA_KEYS = Collections.unmodifiableSet(
+			new HashSet<String>(Arrays.asList(EMBEDDING_MODEL_KEY, VECTOR_STORE_KEY, S3_KEY)));
 	private final MagicApiTinyflowKnowledgeRepository repository;
 	private final TinyflowObjectStorage objectStorage;
 	private final IngestionGateway ingestion;
 	private final TinyflowKnowledgeProviderRegistry providers;
 	private final TinyflowVectorStoreProvider vectorStores;
 	private final TinyflowKnowledgeMaintenanceService maintenance;
+	private final MagicTinyflowKnowledgeOptionProvider optionProvider;
 
 	public DefaultMagicTinyflowKnowledgeOperations(MagicApiTinyflowKnowledgeRepository repository,
 			TinyflowObjectStorage objectStorage, final DefaultTinyflowIngestionService ingestionService,
 			TinyflowKnowledgeProviderRegistry providers, TinyflowVectorStoreProvider vectorStores,
-			TinyflowKnowledgeMaintenanceService maintenance) {
+			TinyflowKnowledgeMaintenanceService maintenance, MagicTinyflowKnowledgeOptionProvider optionProvider) {
 		this(repository, objectStorage, new IngestionGateway() {
 			@Override public TinyflowIngestionTask importDocument(TinyflowDocumentImport request) {
 				return ingestionService.importDocument(request);
@@ -50,16 +57,16 @@ public final class DefaultMagicTinyflowKnowledgeOperations implements MagicTinyf
 			@Override public TinyflowIngestionTask cancel(String tenantId, String knowledgeId, String taskId) {
 				return ingestionService.cancel(tenantId, knowledgeId, taskId);
 			}
-		}, providers, vectorStores, maintenance);
+		}, providers, vectorStores, maintenance, optionProvider);
 		if (ingestionService == null) throw new IllegalArgumentException("ingestionService must not be null");
 	}
 
 	DefaultMagicTinyflowKnowledgeOperations(MagicApiTinyflowKnowledgeRepository repository,
 			TinyflowObjectStorage objectStorage, IngestionGateway ingestion,
 			TinyflowKnowledgeProviderRegistry providers, TinyflowVectorStoreProvider vectorStores,
-			TinyflowKnowledgeMaintenanceService maintenance) {
+			TinyflowKnowledgeMaintenanceService maintenance, MagicTinyflowKnowledgeOptionProvider optionProvider) {
 		if (repository == null || objectStorage == null || ingestion == null || providers == null
-				|| vectorStores == null || maintenance == null) {
+				|| vectorStores == null || maintenance == null || optionProvider == null) {
 			throw new IllegalArgumentException("Knowledge operation dependencies must not be null");
 		}
 		this.repository = repository;
@@ -68,6 +75,7 @@ public final class DefaultMagicTinyflowKnowledgeOperations implements MagicTinyf
 		this.providers = providers;
 		this.vectorStores = vectorStores;
 		this.maintenance = maintenance;
+		this.optionProvider = optionProvider;
 	}
 
 	@Override public KnowledgeRecord create(TinyflowKnowledgeDefinition definition) {
@@ -113,6 +121,11 @@ public final class DefaultMagicTinyflowKnowledgeOperations implements MagicTinyf
 		if (!knowledge.isEnabled()) throw new IllegalStateException("Knowledge is disabled");
 		byte[] content = command.getContent();
 		String checksum = sha256(content);
+		TinyflowDocument active = repository.findActiveDocument(
+				command.getTenantId(), command.getKnowledgeId(), command.getSourceId());
+		if (active != null && checksum.equals(active.getChecksum())) {
+			return ingestion.importDocument(importRequest(command, active));
+		}
 		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
 		metadata.put("mediaType", command.getMediaType());
 		metadata.put("filename", command.getName());
@@ -140,13 +153,13 @@ public final class DefaultMagicTinyflowKnowledgeOperations implements MagicTinyf
 				.sourceType(command.getSourceType()).documentId(UUID.randomUUID().toString()).checksum(checksum)
 				.name(command.getName()).content(inlineContent).sourceUri(objectReference).sourceVersion(checksum)
 				.metadata(metadata).enabled(true).build();
-		Map<String, Object> options = new LinkedHashMap<String, Object>(command.getOptions());
-		options.put("mediaType", command.getMediaType());
-		TinyflowDocumentImport request = TinyflowDocumentImport.builder().providerKey(LOCAL)
-				.tenantId(command.getTenantId()).knowledgeId(command.getKnowledgeId())
-				.document(document).options(options).build();
+		TinyflowDocumentImport request = importRequest(command, document);
 		try {
-			return ingestion.importDocument(request);
+			TinyflowIngestionTask task = ingestion.importDocument(request);
+			if (objectReference != null && !document.getDocumentId().equals(task.getDocumentId())) {
+				objectStorage.delete(command.getTenantId(), objectReference);
+			}
+			return task;
 		} catch (RuntimeException exception) {
 			if (objectReference != null) {
 				try { objectStorage.delete(command.getTenantId(), objectReference); }
@@ -154,6 +167,13 @@ public final class DefaultMagicTinyflowKnowledgeOperations implements MagicTinyf
 			}
 			throw exception;
 		}
+	}
+
+	private TinyflowDocumentImport importRequest(ImportCommand command, TinyflowDocument document) {
+		Map<String, Object> options = new LinkedHashMap<String, Object>(command.getOptions());
+		options.put("mediaType", command.getMediaType());
+		return TinyflowDocumentImport.builder().providerKey(LOCAL).tenantId(command.getTenantId())
+				.knowledgeId(command.getKnowledgeId()).document(document).options(options).build();
 	}
 
 	@Override public PageResult<TinyflowChunk> listChunks(String tenantId, String knowledgeId,
@@ -215,7 +235,9 @@ public final class DefaultMagicTinyflowKnowledgeOperations implements MagicTinyf
 		for (TinyflowVectorStoreDescriptor value : vectorStores.list()) {
 			if (value != null && storeKey.equals(value.getKey())) { descriptor = value; break; }
 		}
-		if (descriptor == null) throw new IllegalArgumentException("Vector store is not configured: " + storeKey);
+		if (descriptor == null || vectorStores.get(storeKey) == null) {
+			throw new IllegalArgumentException("Vector store is not configured: " + storeKey);
+		}
 		repository.saveKnowledgeWithVectorStoreOwnership(definition, expectedVersion, storeKey,
 				descriptor.isMetadataFilterSupported());
 	}
@@ -235,6 +257,29 @@ public final class DefaultMagicTinyflowKnowledgeOperations implements MagicTinyf
 		if (definition == null || !LOCAL.equals(definition.getProviderKey())) {
 			throw new IllegalArgumentException("providerKey must be fw-plus-local");
 		}
+		for (String key : definition.getMetadata().keySet()) {
+			if (!KNOWLEDGE_METADATA_KEYS.contains(key)) {
+				throw new IllegalArgumentException("Unsupported knowledge metadata: " + key);
+			}
+		}
+		requireOption(optionProvider.listModels(200),
+				required(definition.getMetadata().get(EMBEDDING_MODEL_KEY), EMBEDDING_MODEL_KEY), EMBEDDING_MODEL_KEY);
+		requireOption(optionProvider.listVectors(200),
+				required(definition.getMetadata().get(VECTOR_STORE_KEY), VECTOR_STORE_KEY), VECTOR_STORE_KEY);
+		requireOption(optionProvider.listS3(200),
+				required(definition.getMetadata().get(S3_KEY), S3_KEY), S3_KEY);
+	}
+
+	private void requireOption(List<MagicTinyflowKnowledgeOptionProvider.Option> options,
+			String key, String field) {
+		if (options != null) {
+			for (MagicTinyflowKnowledgeOptionProvider.Option option : options) {
+				if (option != null && key.equals(option.getKey())) {
+					return;
+				}
+			}
+		}
+		throw new IllegalArgumentException(field + " is not configured: " + key);
 	}
 
 	private <T> PageResult<T> page(List<T> values, int page, int size) {

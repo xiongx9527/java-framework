@@ -6,6 +6,7 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -36,6 +37,13 @@ public class MagicApiTinyflowObjectStorageTest {
 		assertFalse(stored.getObjectKey().contains("plain-secret"));
 		assertFalse(stored.getMetadata().containsKey("secretKey"));
 		assertEquals("manual.txt", stored.getMetadata().get("filename"));
+		String[] referenceParts = stored.getObjectKey().split("\\.", -1);
+		assertEquals("tfs3v2", referenceParts[0]);
+		assertEquals(5, referenceParts.length);
+		for (int index = 1; index < referenceParts.length; index++) {
+			String value = new String(Base64.getUrlDecoder().decode(referenceParts[index]), StandardCharsets.UTF_8);
+			assertFalse(value.contains("X-Amz-Credential"));
+		}
 	}
 
 	@Test
@@ -93,7 +101,8 @@ public class MagicApiTinyflowObjectStorageTest {
 				byte[] content, String filename, String mediaType) {
 			this.s3Key = s3Key; this.path = path; this.filename = filename; uploads++;
 			return new MagicApiTinyflowObjectStorage.UploadedObject(
-					"https://bucket.example.test/" + path + "/" + filename, path, filename);
+					"https://bucket.example.test/" + path + "/" + filename
+							+ "?X-Amz-Credential=temporary-secret", path, filename);
 		}
 
 		@Override public InputStream get(MagicApiTinyflowObjectStorage.ObjectReference reference, long maxBytes) {
