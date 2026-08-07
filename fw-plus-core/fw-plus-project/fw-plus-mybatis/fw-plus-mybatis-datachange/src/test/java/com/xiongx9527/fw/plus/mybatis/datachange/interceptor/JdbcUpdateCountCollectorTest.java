@@ -2,7 +2,9 @@ package com.xiongx9527.fw.plus.mybatis.datachange.interceptor;
 
 import org.junit.jupiter.api.Test;
 
+import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -16,7 +18,11 @@ class JdbcUpdateCountCollectorTest {
 		when(statement.getMoreResults()).thenReturn(false, false);
 		when(statement.getUpdateCount()).thenReturn(7, -1);
 
-		assertThat(new JdbcUpdateCountCollector().collect(statement, 3)).containsExactly(3, 7);
+		List<JdbcStatementResult> results = new JdbcUpdateCountCollector().collect(statement, 3);
+
+		assertThat(results).extracting(JdbcStatementResult::getType)
+				.containsExactly(JdbcStatementResult.Type.UPDATE_COUNT, JdbcStatementResult.Type.UPDATE_COUNT);
+		assertThat(results).extracting(JdbcStatementResult::getUpdateCount).containsExactly(3, 7);
 	}
 
 	@Test
@@ -26,15 +32,21 @@ class JdbcUpdateCountCollectorTest {
 		when(statement.getUpdateCount()).thenReturn(-1);
 
 		assertThat(new JdbcUpdateCountCollector().collect(statement, Statement.SUCCESS_NO_INFO))
-				.containsExactly(Statement.SUCCESS_NO_INFO);
+				.singleElement().extracting(JdbcStatementResult::getUpdateCount)
+				.isEqualTo(Statement.SUCCESS_NO_INFO);
 	}
 
 	@Test
-	void skipsResultSetsUntilTheNextUpdateCount() throws Exception {
+	void preservesResultSetsBeforeTheNextUpdateCount() throws Exception {
 		Statement statement = mock(Statement.class);
-		when(statement.getMoreResults()).thenReturn(true, false, false);
-		when(statement.getUpdateCount()).thenReturn(-1, 5, -1);
+		when(statement.getResultSet()).thenReturn(mock(ResultSet.class));
+		when(statement.getMoreResults()).thenReturn(false, false);
+		when(statement.getUpdateCount()).thenReturn(5, -1);
 
-		assertThat(new JdbcUpdateCountCollector().collect(statement, -1)).containsExactly(5);
+		List<JdbcStatementResult> results = new JdbcUpdateCountCollector().collect(statement, -1);
+
+		assertThat(results).extracting(JdbcStatementResult::getType)
+				.containsExactly(JdbcStatementResult.Type.RESULT_SET, JdbcStatementResult.Type.UPDATE_COUNT);
+		assertThat(results.get(1).getUpdateCount()).isEqualTo(5);
 	}
 }

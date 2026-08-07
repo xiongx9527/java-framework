@@ -110,15 +110,16 @@ public final class DataChangeEngine {
 
 	public void captureStatementResult(DataChangeExecutionContext context, List<StatementChangePlan> plans,
 			Statement statement, int updateCount) {
-		captureStatementResults(context, plans, statement, Collections.singletonList(Integer.valueOf(updateCount)));
+		captureStatementResults(context, plans, statement,
+				Collections.singletonList(JdbcStatementResult.updateCount(updateCount)));
 	}
 
 	public void captureStatementResults(DataChangeExecutionContext context, List<StatementChangePlan> plans,
-			Statement statement, List<Integer> updateCounts) {
+			Statement statement, List<JdbcStatementResult> results) {
 		if (plans == null || plans.isEmpty()) { return; }
 		try {
 			for (StatementChangePlan plan : plans) {
-				int updateCount = countAt(updateCounts, plan.getStatementIndex());
+				int updateCount = countAt(results, plan.getStatementIndex());
 				List<RowIdentity> identities = !isSuccessful(updateCount)
 						? Collections.<RowIdentity>emptyList() : identities(context, plan, statement);
 				plan.captureResult(updateCount, identities);
@@ -129,7 +130,7 @@ public final class DataChangeEngine {
 	}
 
 	public List<StatementChange> afterStatement(DataChangeExecutionContext context,
-			List<StatementChangePlan> plans, List<Integer> updateCounts) {
+			List<StatementChangePlan> plans, List<JdbcStatementResult> results) {
 		if (context.isPostProcessingFailed() || plans == null || plans.isEmpty()) {
 			return Collections.emptyList();
 		}
@@ -137,7 +138,7 @@ public final class DataChangeEngine {
 			Map<Integer, List<TableChange>> grouped = new LinkedHashMap<Integer, List<TableChange>>();
 			Map<Integer, Integer> affectedRows = new LinkedHashMap<Integer, Integer>();
 			for (StatementChangePlan plan : plans) {
-				int count = effectiveUpdateCount(plan, updateCounts);
+				int count = effectiveUpdateCount(plan, results);
 				if (!isSuccessful(count)) { continue; }
 				List<RowSnapshot> after = plan.getTarget().getOperation() == StatementOperation.PHYSICAL_DELETE
 						? Collections.<RowSnapshot>emptyList()
@@ -200,15 +201,16 @@ public final class DataChangeEngine {
 		return identities;
 	}
 
-	private int effectiveUpdateCount(StatementChangePlan plan, List<Integer> updateCounts) {
+	private int effectiveUpdateCount(StatementChangePlan plan, List<JdbcStatementResult> results) {
 		if (plan.getUpdateCount() != -1) { return plan.getUpdateCount(); }
 		int index = plan.getStatementIndex();
-		return countAt(updateCounts, index);
+		return countAt(results, index);
 	}
 
-	private int countAt(List<Integer> updateCounts, int index) {
-		return updateCounts != null && index >= 0 && index < updateCounts.size()
-				&& updateCounts.get(index) != null ? updateCounts.get(index).intValue() : -1;
+	private int countAt(List<JdbcStatementResult> results, int index) {
+		if (results == null || index < 0 || index >= results.size()) { return -1; }
+		JdbcStatementResult result = results.get(index);
+		return result != null && result.isUpdateCount() ? result.getUpdateCount() : -1;
 	}
 
 	private boolean isSuccessful(int count) {

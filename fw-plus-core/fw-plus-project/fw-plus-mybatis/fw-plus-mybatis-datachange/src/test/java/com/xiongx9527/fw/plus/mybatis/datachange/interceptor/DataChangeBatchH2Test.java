@@ -21,7 +21,16 @@ import com.xiongx9527.fw.plus.mybatis.datachange.interceptor.fixture.TestUser;
 import com.xiongx9527.fw.plus.mybatis.datachange.snapshot.JdbcTableMetadataResolver;
 import com.xiongx9527.fw.plus.mybatis.datachange.snapshot.SnapshotService;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
+import org.apache.ibatis.builder.StaticSqlSource;
+import org.apache.ibatis.executor.BatchResult;
+import org.apache.ibatis.executor.Executor;
+import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.mapping.Environment;
+import org.apache.ibatis.mapping.BoundSql;
+import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.mapping.SqlCommandType;
+import org.apache.ibatis.plugin.Invocation;
+import org.apache.ibatis.plugin.Plugin;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ExecutorType;
 import org.apache.ibatis.session.SqlSession;
@@ -33,6 +42,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -42,9 +53,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class DataChangeBatchH2Test {
 	private static final AtomicInteger DATABASE_SEQUENCE = new AtomicInteger();
@@ -54,6 +68,8 @@ class DataChangeBatchH2Test {
 	private RecordingHandler recordingHandler;
 	private RecordingErrorHandler errorHandler;
 	private FailingHandler failingHandler;
+	private DataChangeEngine engine;
+	private DataChangeInterceptor interceptor;
 
 	@BeforeEach
 	void setUp() throws Exception {
@@ -207,6 +223,108 @@ class DataChangeBatchH2Test {
 		assertThat(errorHandler.failures).hasSize(1);
 	}
 
+	@Test
+	void batchRebuildsPlanFromBoundSqlAfterPrepare() throws Throwable {
+		insertUser(1L, "first-before");
+		insertUser(2L, "second-before");
+		Configuration mybatis = new Configuration();
+		String preparedSql = "UPDATE sys_user SET name='ignored' WHERE id=1";
+		String batchedSql = "UPDATE sys_user SET name='second-after' WHERE id=2";
+		MappedStatement mappedStatement = new MappedStatement.Builder(mybatis, "mutableBatch",
+				new StaticSqlSource(mybatis, preparedSql), SqlCommandType.UPDATE).build();
+		BoundSql prepared = new BoundSql(mybatis, preparedSql, Collections.emptyList(), null);
+		BoundSql batched = new BoundSql(mybatis, batchedSql, Collections.emptyList(), null);
+		AtomicReference<BoundSql> currentSql = new AtomicReference<BoundSql>(prepared);
+		StatementHandler handler = mock(StatementHandler.class);
+		Statement batchStatement = mock(Statement.class);
+		Executor owner = mock(Executor.class);
+		when(handler.getBoundSql()).thenAnswer(invocation -> currentSql.get());
+		when(handler.prepare(org.mockito.ArgumentMatchers.any(Connection.class),
+				org.mockito.ArgumentMatchers.isNull())).thenReturn(batchStatement);
+		DataChangeExecutionContext context = new DataChangeExecutionContext(mappedStatement, null,
+				new MybatisDataChangeFrameworkAdapter(), owner);
+
+		try (Connection connection = dataSource.getConnection();
+				 DataChangeExecutionContextHolder.Scope ignored = DataChangeExecutionContextHolder.push(context)) {
+			interceptor.intercept(new Invocation(handler,
+					StatementHandler.class.getMethod("prepare", Connection.class, Integer.class),
+					new Object[] { connection, null }));
+			currentSql.set(batched);
+			when(batchStatement.getConnection()).thenReturn(connection);
+			interceptor.intercept(new Invocation(handler,
+					StatementHandler.class.getMethod("batch", Statement.class),
+					new Object[] { batchStatement }));
+			try (Statement update = connection.createStatement()) {
+				update.executeUpdate(batchedSql);
+			}
+			BatchResult batchResult = new BatchResult(mappedStatement, batchedSql);
+			batchResult.setUpdateCounts(new int[] { 1 });
+			when(owner.flushStatements()).thenReturn(Collections.singletonList(batchResult));
+			interceptor.intercept(new Invocation(owner, Executor.class.getMethod("flushStatements"), new Object[0]));
+		}
+
+		RowChange row = onlyRow(recordingHandler.singleEvent());
+		assertThat(row.getIdentity().getKeyValues()).containsEntry("ID", 2L);
+		assertThat(row.getBefore()).containsEntry("NAME", "second-before");
+		assertThat(row.getAfter()).containsEntry("NAME", "second-after");
+	}
+
+	@Test
+	void closeReleasesPendingBatchWithoutExplicitRollback() throws Exception {
+		insertUser(1L, "before");
+		SqlSession session = factory.openSession(ExecutorType.BATCH, false);
+		Object owner = executionOwner(session);
+		session.getMapper(TestUserMapper.class).rename(1L, "after");
+		assertThat(hasPending(owner)).isTrue();
+
+		session.close();
+
+		assertThat(hasPending(owner)).isFalse();
+		assertThat(recordingHandler.events).isEmpty();
+		assertThat(selectName(1L)).isEqualTo("before");
+	}
+
+	@Test
+	void secondEntryPostProcessingFailureSuppressesTheWholeFlushEvent() throws Exception {
+		insertUser(1L, "first-after");
+		Configuration mybatis = new Configuration();
+		String sql = "INSERT INTO sys_user(id, name) VALUES(?, ?)";
+		MappedStatement mappedStatement = new MappedStatement.Builder(mybatis, "batchInsertPostFailure",
+				new StaticSqlSource(mybatis, sql), SqlCommandType.INSERT).build();
+		DataChangeFrameworkAdapter adapter = new MybatisDataChangeFrameworkAdapter();
+		Object owner = new Object();
+		DataChangeExecutionContext first = new DataChangeExecutionContext(mappedStatement,
+				Collections.<String, Object>singletonMap("ID", 1L), adapter, owner);
+		DataChangeExecutionContext second = new DataChangeExecutionContext(mappedStatement,
+				Collections.<String, Object>singletonMap("NAME", "missing-key"), adapter, owner);
+		Statement firstStatement = mock(Statement.class);
+		Statement secondStatement = mock(Statement.class);
+		DataChangeBatchCoordinator coordinator = new DataChangeBatchCoordinator(engine);
+
+		try (Connection connection = dataSource.getConnection()) {
+			engine.initializeConnection(first, connection);
+			engine.initializeConnection(second, connection);
+			List<StatementChangePlan> firstPlans = engine.beforeStatement(first,
+					new com.xiongx9527.fw.plus.mybatis.datachange.dialect.BoundSqlContext(
+							mappedStatement.getBoundSql(first.getParameterObject())));
+			List<StatementChangePlan> secondPlans = engine.beforeStatement(second,
+					new com.xiongx9527.fw.plus.mybatis.datachange.dialect.BoundSqlContext(
+							mappedStatement.getBoundSql(second.getParameterObject())));
+			first.markBatch(firstStatement, sql);
+			second.markBatch(secondStatement, sql);
+			coordinator.collect(first, firstPlans);
+			coordinator.collect(second, secondPlans);
+			BatchResult result = new BatchResult(mappedStatement, sql);
+			result.setUpdateCounts(new int[] { 1, 1 });
+
+			coordinator.flush(new DataChangeExecutionContext(null, null, null, owner),
+					Collections.singletonList(result));
+		}
+
+		assertThat(recordingHandler.events).isEmpty();
+		assertThat(errorHandler.failures).isNotEmpty();
+	}
+
 	private SqlSessionFactory buildSessionFactory() {
 		DataChangeConfiguration properties = new DataChangeConfiguration();
 		properties.setEnabled(true);
@@ -217,7 +335,7 @@ class DataChangeBatchH2Test {
 				new MybatisDataChangeFrameworkAdapter());
 		DataChangeDispatcher dispatcher = new DataChangeDispatcher(
 				Arrays.<DataChangeHandler>asList(failingHandler, recordingHandler), errorHandler);
-		DataChangeEngine engine = new DataChangeEngine(properties,
+		engine = new DataChangeEngine(properties,
 				new TableMonitorRegistry(properties.getTables()), new DataChangeFrameworkAdapterRegistry(adapters),
 				new DataChangeDialectRegistry(Collections.<DataChangeDialect>singletonList(new H2DataChangeDialect())),
 				new JdbcTableMetadataResolver(), new SnapshotService(), new ChangeDiffEngine(), dispatcher, errorHandler);
@@ -228,8 +346,31 @@ class DataChangeBatchH2Test {
 		InputStream input = DataChangeBatchH2Test.class.getClassLoader().getResourceAsStream(resource);
 		if (input == null) { throw new IllegalStateException("Missing mapper fixture"); }
 		new XMLMapperBuilder(input, configuration, resource, configuration.getSqlFragments()).parse();
-		configuration.addInterceptor(new DataChangeInterceptor(properties, engine));
+		interceptor = new DataChangeInterceptor(properties, engine);
+		configuration.addInterceptor(interceptor);
 		return new SqlSessionFactoryBuilder().build(configuration);
+	}
+
+	private Object executionOwner(SqlSession session) throws Exception {
+		Field executor = session.getClass().getDeclaredField("executor");
+		executor.setAccessible(true);
+		Object owner = executor.get(session);
+		if (owner != null && Proxy.isProxyClass(owner.getClass())) {
+			Object handler = Proxy.getInvocationHandler(owner);
+			if (handler instanceof Plugin) {
+				Field target = Plugin.class.getDeclaredField("target");
+				target.setAccessible(true);
+				owner = target.get(handler);
+			}
+		}
+		return owner;
+	}
+
+	private boolean hasPending(Object owner) throws Exception {
+		Field coordinator = DataChangeInterceptor.class.getDeclaredField("batchCoordinator");
+		coordinator.setAccessible(true);
+		return ((DataChangeBatchCoordinator) coordinator.get(interceptor))
+				.hasPending(new DataChangeExecutionContext(null, null, null, owner));
 	}
 
 	private TableMonitor monitor(String table, List<String> keys) {

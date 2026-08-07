@@ -159,3 +159,118 @@ BUILD SUCCESS
 
 - H2 2.1.214 对分号多语句只暴露第一个 update count，因此多语句 Statement 分组使用真实 Engine/H2 快照与显式 JDBC counts 验证；`JdbcUpdateCountCollector` 的完整 `getMoreResults()` 链使用 JDBC Statement mock 覆盖。MySQL 等能返回完整结果链的驱动仍建议在后续集成环境补一条真实驱动测试。
 - 测试运行时 MyBatis 自身 DEBUG 日志会打印 fixture 参数；Task 7 新增生产代码没有新增日志，也不会把参数写入 SQL、异常或日志。
+
+## 修复轮 1/5
+
+### Finding 修复
+
+- Critical 1：新增 `JdbcStatementResult`，用 `RESULT_SET` / `UPDATE_COUNT` 显式保留 JDBC 结果类型与顺序。`JdbcUpdateCountCollector` 不再压缩 ResultSet，`DataChangeEngine` 按解析语句的 `statementIndex` 读取对应结构化结果；非 update-count 位置保持不可审计，不使用占位 `0` 猜测行数。
+- Important 1：`StatementHandler.batch` 每次只使用当次 `handler.getBoundSql()` 重建 before 计划；prepare 阶段的 `currentPlans` 不再作为 Batch 计划来源。
+- Important 2：新增 `Executor.close(boolean)` 拦截，在保持原 `close` 调用与异常语义不变的前提下，先释放该 Executor 的 pending Batch 状态。
+- Important 3：实际 flush 的任一 entry 标记 `postProcessingFailed` 后，整个 flush 立即停止事件构造和派发，不再输出前序 entry 的部分成功事件。
+
+### 新增/调整测试
+
+- `JdbcUpdateCountCollectorTest#preservesResultSetsBeforeTheNextUpdateCount`
+- `DataChangeMultiStatementTest#resultSetBeforeDmlKeepsTheDmlStatementIndexAndCount`
+- `DataChangeBatchH2Test#batchRebuildsPlanFromBoundSqlAfterPrepare`
+- `DataChangeBatchH2Test#closeReleasesPendingBatchWithoutExplicitRollback`
+- `DataChangeBatchH2Test#secondEntryPostProcessingFailureSuppressesTheWholeFlushEvent`
+
+### RED 证据
+
+结构化结果测试先行：
+
+```bash
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mybatis-datachange \
+  -Dtest=JdbcUpdateCountCollectorTest,DataChangeMultiStatementTest test
+```
+
+```text
+16 compilation errors
+找不到符号: 类 JdbcStatementResult
+BUILD FAILURE
+```
+
+Batch 三项 finding 测试先行：
+
+```bash
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mybatis-datachange -Dtest=DataChangeBatchH2Test test
+```
+
+```text
+Tests run: 12, Failures: 3, Errors: 0, Skipped: 0
+batchRebuildsPlanFromBoundSqlAfterPrepare: Expected size 1 but was 0
+closeReleasesPendingBatchWithoutExplicitRollback: expected false but was true
+secondEntryPostProcessingFailureSuppressesTheWholeFlushEvent: 错误回调次数断言不准确
+BUILD FAILURE
+```
+
+第三项测试最初让首 entry 也进入失败路径，且过度约束了错误回调次数；改为断言真实契约“零事件且存在失败上报”后，旧实现因命中首 context 检查而意外通过。随后让首 entry 明确提供 `ID`、仅第二 entry 生成键失败，单测稳定得到 `Expecting empty but was: [DataChangeEvent]`，确认 finding 被真实覆盖。
+
+### GREEN 与最终验证
+
+结构化结果定向 GREEN：
+
+```text
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+四个 finding 定向集合：
+
+```bash
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mybatis-datachange \
+  -Dtest=JdbcUpdateCountCollectorTest,DataChangeMultiStatementTest,DataChangeBatchH2Test test
+```
+
+```text
+Tests run: 18, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+Task 7 定向集合：
+
+```bash
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mybatis-datachange \
+  -Dtest=DataChangeBatchH2Test,DataChangeMultiStatementTest,DataChangeMultiTableTest,JdbcUpdateCountCollectorTest test
+```
+
+```text
+Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+Task 6 H2 回归：
+
+```bash
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mybatis-datachange -Dtest=DataChangeInterceptorH2Test test
+```
+
+```text
+Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+模块全量：
+
+```bash
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mybatis-datachange test
+```
+
+```text
+Tests run: 137, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+### 修复轮自审与顾虑
+
+- `git diff --check` 通过；公共生产源码仍无 Plus、Flex、Spring 或 `MpBase` 引用。
+- `close` 集成测试使用真实 Batch `SqlSession` 验证业务回滚、零事件和 pending 所有权释放；反射只用于读取插件内部 owner/pending 状态。
+- H2 2.1.214 仍不能提供完整的分号多语句 JDBC 结果链；本轮使用 JDBC Statement mock 生成真实顺序的 `[ResultSet, updateCount=1]`，并把 Collector 输出直接送入真实 Engine/H2 快照流程。MySQL 等真实驱动集成测试仍为后续建议。

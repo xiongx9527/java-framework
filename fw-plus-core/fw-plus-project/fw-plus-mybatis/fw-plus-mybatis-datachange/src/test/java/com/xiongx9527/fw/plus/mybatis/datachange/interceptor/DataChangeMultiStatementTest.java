@@ -24,14 +24,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class DataChangeMultiStatementTest {
 	private static final AtomicInteger DATABASE_SEQUENCE = new AtomicInteger();
@@ -54,7 +55,7 @@ class DataChangeMultiStatementTest {
 		String sql = "UPDATE sys_user SET name='first-after' WHERE id=1; "
 				+ "UPDATE sys_user SET name='second-after' WHERE id=2";
 
-		List<StatementChange> changes = execute(sql, Arrays.asList(1, 1), new DatabaseMutation() {
+		List<StatementChange> changes = execute(sql, updateCounts(1, 1), new DatabaseMutation() {
 			@Override public void run(Statement statement) throws Exception {
 				statement.executeUpdate("UPDATE sys_user SET name='first-after' WHERE id=1");
 				statement.executeUpdate("UPDATE sys_user SET name='second-after' WHERE id=2");
@@ -68,7 +69,7 @@ class DataChangeMultiStatementTest {
 	@Test
 	void successNoInfoRemainsUnknownInsteadOfGuessingRows() throws Exception {
 		List<StatementChange> changes = execute("UPDATE sys_user SET name='after' WHERE id=1",
-				Collections.singletonList(Statement.SUCCESS_NO_INFO), new DatabaseMutation() {
+				updateCounts(Statement.SUCCESS_NO_INFO), new DatabaseMutation() {
 					@Override public void run(Statement statement) throws Exception {
 						statement.executeUpdate("UPDATE sys_user SET name='after' WHERE id=1");
 					}
@@ -79,9 +80,15 @@ class DataChangeMultiStatementTest {
 	}
 
 	@Test
-	void callBeforeDmlDoesNotCreateAnEmptyStatementChange() throws Exception {
-		List<StatementChange> changes = execute("CALL 1; UPDATE sys_user SET name='after' WHERE id=1",
-				Arrays.asList(0, 1), new DatabaseMutation() {
+	void resultSetBeforeDmlKeepsTheDmlStatementIndexAndCount() throws Exception {
+		Statement jdbcStatement = mock(Statement.class);
+		when(jdbcStatement.getResultSet()).thenReturn(mock(ResultSet.class));
+		when(jdbcStatement.getMoreResults()).thenReturn(false, false);
+		when(jdbcStatement.getUpdateCount()).thenReturn(1, -1);
+		List<JdbcStatementResult> results = new JdbcUpdateCountCollector().collect(jdbcStatement, -1);
+
+		List<StatementChange> changes = execute("SELECT name FROM sys_user WHERE id=1; "
+				+ "UPDATE sys_user SET name='after' WHERE id=1", results, new DatabaseMutation() {
 					@Override public void run(Statement statement) throws Exception {
 						statement.executeUpdate("UPDATE sys_user SET name='after' WHERE id=1");
 					}
@@ -93,8 +100,8 @@ class DataChangeMultiStatementTest {
 		});
 	}
 
-	private List<StatementChange> execute(String sql, List<Integer> counts, DatabaseMutation mutation)
-			throws Exception {
+	private List<StatementChange> execute(String sql, List<JdbcStatementResult> results, DatabaseMutation mutation)
+				throws Exception {
 		DataChangeConfiguration properties = configuration();
 		DataChangeFrameworkAdapter adapter = new MybatisDataChangeFrameworkAdapter();
 		DataChangeEngine engine = new DataChangeEngine(properties,
@@ -112,9 +119,15 @@ class DataChangeMultiStatementTest {
 			List<StatementChangePlan> plans = engine.beforeStatement(context,
 					new BoundSqlContext(mappedStatement.getBoundSql(null)));
 			mutation.run(statement);
-			engine.captureStatementResults(context, plans, mock(Statement.class), counts);
-			return engine.afterStatement(context, plans, counts);
+			engine.captureStatementResults(context, plans, mock(Statement.class), results);
+			return engine.afterStatement(context, plans, results);
 		}
+	}
+
+	private List<JdbcStatementResult> updateCounts(int... counts) {
+		List<JdbcStatementResult> results = new java.util.ArrayList<JdbcStatementResult>();
+		for (int count : counts) { results.add(JdbcStatementResult.updateCount(count)); }
+		return results;
 	}
 
 	private DataChangeConfiguration configuration() {
