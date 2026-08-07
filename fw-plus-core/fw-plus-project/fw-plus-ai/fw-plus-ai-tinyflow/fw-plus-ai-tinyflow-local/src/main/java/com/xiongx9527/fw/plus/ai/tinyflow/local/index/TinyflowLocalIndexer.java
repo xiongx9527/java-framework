@@ -102,11 +102,30 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 		}
 	}
 
+	TinyflowChunk indexReplacementChunk(TinyflowDocument document, TinyflowChunk chunk) {
+		List<TinyflowChunk> chunks = Collections.singletonList(chunk);
+		try {
+			embed(document.getTenantId(), document.getKnowledgeId(), document.getDocumentId(), chunks);
+			return withVectorIds(chunks, index(document.getTenantId(), document.getKnowledgeId(),
+					document.getDocumentId(), chunks, true)).get(0);
+		} catch (DefaultTinyflowIngestionService.IngestionIndex.PartialIndexException exception) {
+			recordCompensation(document, collectVectorIds(exception.getPartialResult()),
+					TinyflowVectorCompensator.INDEX_ROLLBACK);
+			throw new TinyflowException("Failed to write replacement vector index", exception);
+		} catch (Exception exception) {
+			throw exception instanceof TinyflowException ? (TinyflowException) exception
+					: new TinyflowException("Failed to prepare replacement vector index", exception);
+		} finally {
+			embeddings.remove(documentKey(document.getTenantId(), document.getKnowledgeId(), document.getDocumentId()));
+		}
+	}
+
 	@Override
 	public void embed(String tenantId, String knowledgeId, String documentId, List<TinyflowChunk> chunks) throws Exception {
-		TinyflowEmbeddingModel model = modelProvider.getEmbeddingModel(embeddingModelKey);
+		String resolvedModelKey = resolveEmbeddingModelKey(tenantId, knowledgeId);
+		TinyflowEmbeddingModel model = modelProvider.getEmbeddingModel(resolvedModelKey);
 		if (model == null) {
-			throw new TinyflowException("Embedding model is unavailable: " + embeddingModelKey);
+			throw new TinyflowException("Embedding model is unavailable: " + resolvedModelKey);
 		}
 		Map<String, float[]> values = new LinkedHashMap<String, float[]>();
 		for (TinyflowChunk chunk : safeChunks(chunks)) {
@@ -123,6 +142,11 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 	@Override
 	public Map<String, List<String>> index(String tenantId, String knowledgeId, String documentId,
 			List<TinyflowChunk> chunks) throws Exception {
+		return index(tenantId, knowledgeId, documentId, chunks, false);
+	}
+
+	private Map<String, List<String>> index(String tenantId, String knowledgeId, String documentId,
+			List<TinyflowChunk> chunks, boolean temporaryDocumentIds) throws Exception {
 		String resolvedStoreKey = resolveVectorStoreKey(tenantId, knowledgeId);
 		TinyflowVectorStore store = vectorStoreProvider.get(resolvedStoreKey);
 		if (store == null) {
@@ -144,8 +168,10 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 					if (vector == null) {
 						throw new TinyflowException("Embedding is unavailable for chunk " + chunk.getChunkId());
 					}
+					String vectorDocumentId = temporaryDocumentIds
+							? chunk.getChunkId() + "-" + UUID.randomUUID().toString() : chunk.getChunkId();
 					String vectorId = store.add(new TinyflowVectorDocument(
-							chunk.getChunkId(), chunk.getContent(), vector, metadata(chunk)));
+								vectorDocumentId, chunk.getContent(), vector, metadata(chunk)));
 					if (isBlank(vectorId)) {
 						throw new TinyflowException("Vector store returned an invalid vector id mapping");
 					}
@@ -243,6 +269,18 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 		Object configured = definition.getMetadata().get(TinyflowKnowledgeMaintenanceService.VECTOR_STORE_KEY);
 		if (configured == null || isBlank(String.valueOf(configured))) {
 			throw new TinyflowException("Knowledge vectorStoreKey is required");
+		}
+		return String.valueOf(configured);
+	}
+
+	private String resolveEmbeddingModelKey(String tenantId, String knowledgeId) {
+		TinyflowKnowledgeDefinition definition = repository.findKnowledge(tenantId, knowledgeId);
+		if (definition == null) {
+			return embeddingModelKey;
+		}
+		Object configured = definition.getMetadata().get(TinyflowKnowledgeMaintenanceService.EMBEDDING_MODEL_KEY);
+		if (configured == null || isBlank(String.valueOf(configured))) {
+			throw new TinyflowException("Knowledge embeddingModelKey is required");
 		}
 		return String.valueOf(configured);
 	}

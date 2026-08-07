@@ -115,6 +115,22 @@ public class TinyflowLocalIndexerTest {
 	}
 
 	@Test
+	public void shouldResolveEmbeddingModelForEachKnowledge() {
+		MemoryRepository repository = new MemoryRepository();
+		RecordingStore store = new RecordingStore();
+		RecordingModelProvider models = new RecordingModelProvider();
+		repository.saveKnowledge(knowledge("kb-1", "embedding-a", "store-a"), 0L);
+		repository.saveKnowledge(knowledge("kb-2", "embedding-b", "store-a"), 0L);
+		TinyflowLocalIndexer indexer = new TinyflowLocalIndexer(repository, models,
+				new FixedStoreProvider(store, true), "fallback-model", "store-a", 10);
+
+		indexer.index(document("kb-1", "doc-a"), chunks("kb-1", "doc-a", 1));
+		indexer.index(document("kb-2", "doc-b"), chunks("kb-2", "doc-b", 1));
+
+		assertEquals(Arrays.asList("embedding-a", "embedding-b"), models.requestedKeys);
+	}
+
+	@Test
 	public void shouldTreatDuplicateAndMissingVectorIdsAsSuccessfullyDeleted() {
 		RecordingStore store = new RecordingStore();
 		List<String> vectorIds = Arrays.asList("vec-existing", "vec-missing", "vec-existing");
@@ -133,15 +149,23 @@ public class TinyflowLocalIndexerTest {
 	}
 
 	static TinyflowDocument document(String documentId) {
-		return TinyflowDocument.builder().tenantId("tenant-a").knowledgeId("kb-1")
+		return document("kb-1", documentId);
+	}
+
+	static TinyflowDocument document(String knowledgeId, String documentId) {
+		return TinyflowDocument.builder().tenantId("tenant-a").knowledgeId(knowledgeId)
 				.sourceId("source-1").sourceType("file").documentId(documentId).checksum("checksum-" + documentId)
 				.name("fixture.txt").content("fixture").build();
 	}
 
 	static List<TinyflowChunk> chunks(String documentId, int count) {
+		return chunks("kb-1", documentId, count);
+	}
+
+	static List<TinyflowChunk> chunks(String knowledgeId, String documentId, int count) {
 		List<TinyflowChunk> values = new ArrayList<TinyflowChunk>();
 		for (int index = 1; index <= count; index++) {
-			values.add(TinyflowChunk.builder().tenantId("tenant-a").knowledgeId("kb-1")
+			values.add(TinyflowChunk.builder().tenantId("tenant-a").knowledgeId(knowledgeId)
 					.sourceId("source-1").sourceType("file").documentId(documentId).chunkId("chunk-" + index)
 					.content("chunk content " + index).build());
 		}
@@ -149,10 +173,15 @@ public class TinyflowLocalIndexerTest {
 	}
 
 	static TinyflowKnowledgeDefinition knowledge(String storeKey) {
+		return knowledge("kb-1", "model-a", storeKey);
+	}
+
+	static TinyflowKnowledgeDefinition knowledge(String knowledgeId, String embeddingModelKey, String storeKey) {
 		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
+		metadata.put("embeddingModelKey", embeddingModelKey);
 		metadata.put(TinyflowKnowledgeMaintenanceService.VECTOR_STORE_KEY, storeKey);
 		return TinyflowKnowledgeDefinition.builder().providerKey("fw-plus-local").tenantId("tenant-a")
-				.knowledgeId("kb-1").name("Knowledge").metadata(metadata).build();
+				.knowledgeId(knowledgeId).name("Knowledge").metadata(metadata).build();
 	}
 
 	static final class FixedModelProvider implements TinyflowModelProvider {
@@ -163,6 +192,17 @@ public class TinyflowLocalIndexerTest {
 		@Override public dev.langchain4j.model.chat.ChatLanguageModel getChatModel(String key) { return null; }
 		@Override public TinyflowEmbeddingModel getEmbeddingModel(String key) {
 			return available ? text -> new float[] { text.length() } : null;
+		}
+	}
+
+	static final class RecordingModelProvider implements TinyflowModelProvider {
+		final List<String> requestedKeys = new ArrayList<String>();
+		@Override public List<TinyflowModelDescriptor> listChatModels() { return Collections.emptyList(); }
+		@Override public List<TinyflowModelDescriptor> listEmbeddingModels() { return Collections.emptyList(); }
+		@Override public dev.langchain4j.model.chat.ChatLanguageModel getChatModel(String key) { return null; }
+		@Override public TinyflowEmbeddingModel getEmbeddingModel(String key) {
+			requestedKeys.add(key);
+			return text -> new float[] { text.length() };
 		}
 	}
 
@@ -287,6 +327,15 @@ public class TinyflowLocalIndexerTest {
 			for (TinyflowDocument document : documents.values()) { if (tenantId.equals(document.getTenantId()) && knowledgeId.equals(document.getKnowledgeId()) && sourceId.equals(document.getSourceId())) { values.add(document); } }
 			return values;
 		}
+		@Override public List<TinyflowDocument> findDocumentsByKnowledge(String tenantId, String knowledgeId) {
+			List<TinyflowDocument> values = new ArrayList<TinyflowDocument>();
+			for (TinyflowDocument document : documents.values()) {
+				if (tenantId.equals(document.getTenantId()) && knowledgeId.equals(document.getKnowledgeId())) {
+					values.add(document);
+				}
+			}
+			return values;
+		}
 		@Override public void activateDocumentVersion(String tenantId, String knowledgeId, String sourceId, String documentId) {
 			if (failActivation) { failActivation = false; throw new IllegalStateException("activation failed"); }
 			active.put(sourceKey(tenantId, knowledgeId, sourceId), documentId);
@@ -318,7 +367,30 @@ public class TinyflowLocalIndexerTest {
 		}
 		@Override public List<TinyflowChunk> findChunksByVectorIds(String tenantId, String knowledgeId, List<String> vectorIds) { return Collections.emptyList(); }
 		@Override public List<TinyflowKnowledgeMatch> searchChunksByKeyword(String tenantId, String knowledgeId, String query, int limit) { return Collections.emptyList(); }
-		@Override public void updateChunk(String tenantId, String knowledgeId, String chunkId, boolean enabled, String content, Map<String, Object> metadata) { throw new UnsupportedOperationException(); }
+		@Override public void updateChunk(String tenantId, String knowledgeId, String chunkId,
+				boolean enabled, String content, Map<String, Object> metadata) {
+			TinyflowChunk current = findChunk(tenantId, knowledgeId, chunkId);
+			if (current == null) { throw new IllegalArgumentException("Chunk not found"); }
+			storedChunks.put(chunkKey(tenantId, knowledgeId, chunkId), copyChunk(
+					current, enabled, content, metadata, current.getVectorIds()));
+		}
+		@Override public void replaceChunkWithVectorCompensation(TinyflowChunk chunk,
+				VectorCompensation compensation) {
+			Map<String, TinyflowChunk> chunkSnapshot = new LinkedHashMap<String, TinyflowChunk>(storedChunks);
+			List<VectorCompensation> compensationSnapshot = new ArrayList<VectorCompensation>(compensations);
+			try {
+				TinyflowChunk current = findChunk(chunk.getTenantId(), chunk.getKnowledgeId(), chunk.getChunkId());
+				if (current == null || !current.getVectorIds().equals(compensation.getVectorIds())) {
+					throw new IllegalStateException("Chunk vector mapping changed before replacement");
+				}
+				saveChunks(Collections.singletonList(chunk));
+				saveVectorCompensation(compensation);
+			} catch (RuntimeException exception) {
+				storedChunks.clear(); storedChunks.putAll(chunkSnapshot);
+				compensations.clear(); compensations.addAll(compensationSnapshot);
+				throw exception;
+			}
+		}
 		@Override public void saveTask(TinyflowIngestionTask task) {
 			if ("task".equals(failCompensationStartAt) && "DELETE_PENDING".equals(task.getStatus())) {
 				failCompensationStartAt = null;
@@ -402,6 +474,15 @@ public class TinyflowLocalIndexerTest {
 		}
 		@Override public void deleteVectorCompensation(String tenantId, String knowledgeId, String compensationId) {
 			for (VectorCompensation compensation : new ArrayList<VectorCompensation>(compensations)) { if (compensationId.equals(compensation.getCompensationId())) { compensations.remove(compensation); } }
+		}
+		private TinyflowChunk copyChunk(TinyflowChunk source, boolean enabled, String content,
+				Map<String, Object> metadata, List<String> vectorIds) {
+			return TinyflowChunk.builder().tenantId(source.getTenantId()).knowledgeId(source.getKnowledgeId())
+					.sourceId(source.getSourceId()).sourceType(source.getSourceType()).documentId(source.getDocumentId())
+					.chunkId(source.getChunkId()).content(content).sourceUri(source.getSourceUri())
+					.sourceVersion(source.getSourceVersion()).location(source.getLocation()).position(source.getPosition())
+					.parentChunkId(source.getParentChunkId()).tokenCount(source.getTokenCount()).metadata(metadata)
+					.enabled(enabled).vectorIds(vectorIds).build();
 		}
 		private static String key(String tenantId, String knowledgeId) { return tenantId + "|" + knowledgeId; }
 		private static String sourceKey(String tenantId, String knowledgeId, String sourceId) { return key(tenantId, knowledgeId) + "|" + sourceId; }
