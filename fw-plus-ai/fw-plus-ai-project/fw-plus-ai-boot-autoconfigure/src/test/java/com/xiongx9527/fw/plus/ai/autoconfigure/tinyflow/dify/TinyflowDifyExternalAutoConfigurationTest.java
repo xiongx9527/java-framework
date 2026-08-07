@@ -9,15 +9,21 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeProviderReg
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRequest;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeResult;
+import com.xiongx9527.fw.plus.ai.tinyflow.local.FwPlusLocalKnowledgeProvider;
+import com.xiongx9527.fw.plus.ai.tinyflow.local.retrieval.TinyflowLocalRetriever;
+import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
+import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
 import com.xiongx9527.fw.plus.dify.dataset.IKnowledgeService;
 import dev.tinyflow.core.knowledge.KnowledgeManager;
 import org.junit.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -94,6 +100,39 @@ public class TinyflowDifyExternalAutoConfigurationTest {
 	}
 
 	@Test
+	public void shouldNotInstantiateRegistryBeforeBeanPostProcessorsAreActive() {
+		AtomicInteger registryCreations = new AtomicInteger();
+		AtomicInteger registryPostProcesses = new AtomicInteger();
+		TinyflowKnowledgeRepository repository = mock(TinyflowKnowledgeRepository.class);
+		FwPlusLocalKnowledgeProvider localProvider = localProvider(repository);
+
+		contextRunner
+				.withBean(BeanPostProcessor.class, () -> new BeanPostProcessor() {
+					@Override public Object postProcessAfterInitialization(Object bean, String beanName) {
+						if (bean instanceof TinyflowKnowledgeProviderRegistry) {
+							registryPostProcesses.incrementAndGet();
+						}
+						return bean;
+					}
+				})
+				.withBean(FwPlusLocalKnowledgeProvider.class, () -> localProvider)
+				.withBean(TinyflowKnowledgeProviderRegistry.class, () -> {
+					registryCreations.incrementAndGet();
+					return new TinyflowKnowledgeProviderRegistry(Collections.singletonList(localProvider));
+				})
+				.withBean(TinyflowKnowledgeRepository.class, () -> repository)
+				.withBean(TinyflowKnowledgeAccessKeyRepository.class,
+						() -> mock(TinyflowKnowledgeAccessKeyRepository.class))
+				.withPropertyValues("fw.plus.ai.tinyflow.dify.external.enabled=true")
+				.run(context -> {
+					assertFalse(context.getStartupFailure() != null);
+					assertTrue(context.containsBean("tinyflowDifyExternalController"));
+					assertEquals(1, registryCreations.get());
+					assertEquals(1, registryPostProcesses.get());
+				});
+	}
+
+	@Test
 	public void shouldNotLoadWhenDifyKnowledgeContractIsMissing() {
 		withRequiredBeans(contextRunner).withClassLoader(new FilteredClassLoader(IKnowledgeService.class))
 				.withPropertyValues("fw.plus.ai.tinyflow.dify.external.enabled=true")
@@ -130,16 +169,20 @@ public class TinyflowDifyExternalAutoConfigurationTest {
 	}
 
 	private ApplicationContextRunner withRequiredBeans(ApplicationContextRunner runner) {
-		TinyflowKnowledgeProvider local = new TinyflowKnowledgeProvider() {
-			@Override public String getKey() { return "fw-plus-local"; }
-			@Override public TinyflowKnowledgeCapabilities capabilities() { return TinyflowKnowledgeCapabilities.retrievalOnly(); }
-			@Override public TinyflowKnowledgeResult retrieve(TinyflowKnowledgeRequest request) { return TinyflowKnowledgeResult.empty(); }
-		};
+		TinyflowKnowledgeRepository repository = mock(TinyflowKnowledgeRepository.class);
+		FwPlusLocalKnowledgeProvider local = localProvider(repository);
 		return runner
+				.withBean(FwPlusLocalKnowledgeProvider.class, () -> local)
 				.withBean(TinyflowKnowledgeProviderRegistry.class,
 						() -> new TinyflowKnowledgeProviderRegistry(Collections.singletonList(local)))
-				.withBean(TinyflowKnowledgeRepository.class, () -> mock(TinyflowKnowledgeRepository.class))
+				.withBean(TinyflowKnowledgeRepository.class, () -> repository)
 				.withBean(TinyflowKnowledgeAccessKeyRepository.class,
 						() -> mock(TinyflowKnowledgeAccessKeyRepository.class));
+	}
+
+	private FwPlusLocalKnowledgeProvider localProvider(TinyflowKnowledgeRepository repository) {
+		TinyflowLocalRetriever retriever = new TinyflowLocalRetriever(repository,
+				mock(TinyflowModelProvider.class), mock(TinyflowVectorStoreProvider.class), null);
+		return new FwPlusLocalKnowledgeProvider(repository, retriever);
 	}
 }

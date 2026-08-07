@@ -4,11 +4,14 @@ import org.junit.Test;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public class TinyflowKnowledgeSecurityContractTest {
 
@@ -33,6 +36,24 @@ public class TinyflowKnowledgeSecurityContractTest {
 		assertEquals("random-salt", accessKey.getSalt());
 		assertEquals(120000, accessKey.getCost());
 		assertEquals("derived-hash", accessKey.getAccessKeyHash());
+	}
+
+	@Test
+	public void shouldKeepLegacyEightArgumentAccessKeyConstructorCompatible() {
+		TinyflowKnowledgeAccessKeyRepository.AccessKey accessKey =
+				new TinyflowKnowledgeAccessKeyRepository.AccessKey("legacy-key", "tenant-a", "kb-1",
+						"PBKDF2WithHmacSHA256", "random-salt", 120000, "derived-hash", true);
+
+		assertEquals("legacy-key", accessKey.getPrefix());
+		assertEquals("derived-hash", accessKey.getAccessKeyHash());
+	}
+
+	@Test
+	public void shouldExposePrefixLookupAsDefaultRepositoryMethod() throws Exception {
+		Method method = TinyflowKnowledgeAccessKeyRepository.class.getMethod("findByPrefix", String.class);
+
+		assertTrue(method.isDefault());
+		assertNull(new LegacyRepository().findByPrefix("unknown-prefix"));
 	}
 
 	@Test
@@ -64,5 +85,11 @@ public class TinyflowKnowledgeSecurityContractTest {
 						Map.class.isAssignableFrom(parameterType));
 			}
 		}
+	}
+
+	private static final class LegacyRepository implements TinyflowKnowledgeAccessKeyRepository {
+		@Override public AccessKey findByHash(String accessKeyHash) { return null; }
+		@Override public void save(AccessKey accessKey) { }
+		@Override public void delete(String tenantId, String knowledgeId, String accessKeyId) { }
 	}
 }

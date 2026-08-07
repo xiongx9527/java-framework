@@ -4,6 +4,10 @@ public interface TinyflowKnowledgeAccessKeyRepository {
 
 	AccessKey findByHash(String accessKeyHash);
 
+	default AccessKey findByPrefix(String prefix) {
+		return null;
+	}
+
 	void save(AccessKey accessKey);
 
 	void delete(String tenantId, String knowledgeId, String accessKeyId);
@@ -21,6 +25,15 @@ public interface TinyflowKnowledgeAccessKeyRepository {
 		private final int cost;
 		private final String accessKeyHash;
 		private final boolean enabled;
+
+		/**
+		 * Legacy constructor retained for source and binary compatibility. Existing records use their
+		 * access key id as the lookup prefix; newly issued keys use the explicit random prefix constructor.
+		 */
+		public AccessKey(String accessKeyId, String tenantId, String knowledgeId,
+				String hashAlgorithm, String salt, int cost, String accessKeyHash, boolean enabled) {
+			this(accessKeyId, tenantId, knowledgeId, accessKeyId, hashAlgorithm, salt, cost, accessKeyHash, enabled);
+		}
 
 		public AccessKey(String accessKeyId, String tenantId, String knowledgeId,
 				String prefix, String hashAlgorithm, String salt, int cost, String accessKeyHash, boolean enabled) {
