@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.storage.TinyflowChunkMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.storage.TinyflowDifyConnectionMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.storage.TinyflowDocumentMagicResourceStorage;
@@ -10,6 +12,8 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowChunk;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocument;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowIngestionTask;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeDefinition;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
+import com.xiongx9527.fw.plus.ai.tinyflow.local.index.TinyflowVectorCompensator;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,6 +31,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.file.Files;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -102,6 +107,27 @@ public class MagicApiTinyflowKnowledgeRepositoryPersistenceTest {
 		assertSame(rollbackFailure, diagnostic.getCause());
 	}
 
+	@Test
+	public void shouldReadResourcePendingWithoutStageSchemaAsLegacy() throws Exception {
+		File root = Files.createTempDirectory("tinyflow-legacy-compensation").toFile();
+		MagicApiTinyflowKnowledgeRepository first = repository(service(root));
+		first.saveVectorCompensation(new TinyflowKnowledgeRepository.VectorCompensation(
+				"compensation-legacy", "tenant-a", "kb-1", "source-1", "document-1",
+				Collections.<String>emptyList(), TinyflowVectorCompensator.DELETE_FAILED_IMPORT,
+				TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING));
+		File jsonFile = singleJsonFile(new File(root, TinyflowIngestionTaskMagicResourceStorage.FOLDER));
+		JSONObject json = JSON.parseObject(new String(Files.readAllBytes(jsonFile.toPath()), StandardCharsets.UTF_8));
+		json.remove("stageSchemaVersion");
+		Files.write(jsonFile.toPath(), JSON.toJSONString(json).getBytes(StandardCharsets.UTF_8));
+
+		MagicApiTinyflowKnowledgeRepository restarted = repository(service(root));
+		TinyflowKnowledgeRepository.VectorCompensation compensation =
+				restarted.findVectorCompensations("tenant-a", "kb-1").get(0);
+
+		assertEquals(TinyflowKnowledgeRepository.VectorCompensation.LEGACY_STAGE_SCHEMA_VERSION,
+				compensation.getStageSchemaVersion());
+	}
+
 	private MagicApiTinyflowKnowledgeRepository repository(MagicResourceService service) {
 		return new MagicApiTinyflowKnowledgeRepository(service);
 	}
@@ -144,5 +170,11 @@ public class MagicApiTinyflowKnowledgeRepositoryPersistenceTest {
 		File[] files = folder.listFiles((directory, name) -> name.endsWith(".json"));
 		assertEquals(1, files == null ? 0 : files.length);
 		return files[0].getName().substring(0, files[0].getName().length() - ".json".length());
+	}
+
+	private File singleJsonFile(File folder) {
+		File[] files = folder.listFiles((directory, name) -> name.endsWith(".json"));
+		assertEquals(1, files == null ? 0 : files.length);
+		return files[0];
 	}
 }

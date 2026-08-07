@@ -96,6 +96,15 @@ public final class TinyflowVectorCompensator {
 			advance(compensation, stage, TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING);
 			stage = TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING;
 		}
+		if (isLegacyResourcePending(compensation, stage)) {
+			if (DELETE_PENDING.equals(compensation.getOperation())) {
+				deleteStoredObjects(repository.findDocumentVersions(
+						compensation.getTenantId(), compensation.getKnowledgeId(), compensation.getSourceId()));
+			} else if (DELETE_OLD_VERSION.equals(compensation.getOperation())
+					|| DELETE_FAILED_IMPORT.equals(compensation.getOperation())) {
+				deleteStoredObject(document(compensation));
+			}
+		}
 		if ((DELETE_OLD_VERSION.equals(compensation.getOperation())
 				|| DELETE_FAILED_IMPORT.equals(compensation.getOperation()))
 				&& TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING.equals(stage)) {
@@ -139,6 +148,13 @@ public final class TinyflowVectorCompensator {
 				|| DELETE_FAILED_IMPORT.equals(operation) || DELETE_PENDING.equals(operation)
 				|| DELETE_TEMPORARY_OBJECT.equals(operation)
 				|| DELETE_REPLACED_CHUNK_VECTORS.equals(operation);
+	}
+
+	private boolean isLegacyResourcePending(TinyflowKnowledgeRepository.VectorCompensation compensation,
+			String stage) {
+		return compensation.getStageSchemaVersion()
+				== TinyflowKnowledgeRepository.VectorCompensation.LEGACY_STAGE_SCHEMA_VERSION
+				&& TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING.equals(stage);
 	}
 
 	private TinyflowDocument document(TinyflowKnowledgeRepository.VectorCompensation compensation) {

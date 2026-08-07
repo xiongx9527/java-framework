@@ -150,6 +150,32 @@ public class TinyflowIngestionServiceTest {
 	}
 
 	@Test
+	public void shouldRetryLegacyResourcePendingObjectBeforeRepositoryCleanup() {
+		storage.values.put("object-legacy", "legacy content".getBytes(StandardCharsets.UTF_8));
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
+		metadata.put("s3Key", "s3-main");
+		repository.saveDocument(TinyflowDocument.builder().tenantId("tenant-a").knowledgeId("kb-1")
+				.sourceId("source-legacy").sourceType("file").documentId("document-legacy")
+				.checksum("sha256-legacy").sourceUri("object-legacy").metadata(metadata).build());
+		repository.saveVectorCompensation(new TinyflowKnowledgeRepository.VectorCompensation(
+				"compensation-legacy", "tenant-a", "kb-1", "source-legacy", "document-legacy",
+				Collections.<String>emptyList(), TinyflowVectorCompensator.DELETE_FAILED_IMPORT,
+				TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING));
+		repository.failDeleteDocumentVersionOnce = true;
+
+		new TinyflowVectorCompensator(repository, index, storage).retry("tenant-a", "kb-1");
+
+		assertFalse(storage.exists("tenant-a", "object-legacy"));
+		assertEquals(1, repository.findDocumentVersions("tenant-a", "kb-1", "source-legacy").size());
+		assertEquals(1, repository.compensations.size());
+
+		new TinyflowVectorCompensator(repository, index, storage).retry("tenant-a", "kb-1");
+
+		assertTrue(repository.findDocumentVersions("tenant-a", "kb-1", "source-legacy").isEmpty());
+		assertTrue(repository.compensations.isEmpty());
+	}
+
+	@Test
 	public void shouldKeepDisabledDocumentDisabledThroughIngestionCopies() {
 		TinyflowIngestionTask task = service.importDocument(
 				fileImport("source-disabled", "sha256-disabled", "disabled content", null, false));

@@ -11,33 +11,15 @@ public interface MagicTinyflowKnowledgeOptionProvider {
 	List<Option> listS3(int limit);
 
 	default boolean hasEmbeddingModel(String key) {
-		if (key == null) return false;
-		List<Option> options = listModels(200);
-		if (options == null) return false;
-		for (Option option : options) {
-			if (option != null && key.equals(option.getKey()) && "EMBEDDING".equals(option.getType())) return true;
-		}
-		return false;
+		throw new UnsupportedOperationException("Direct embedding model lookup is not implemented");
 	}
 
 	default boolean hasVectorStore(String key) {
-		if (key == null) return false;
-		List<Option> options = listVectors(200);
-		if (options == null) return false;
-		for (Option option : options) {
-			if (option != null && key.equals(option.getKey())) return true;
-		}
-		return false;
+		throw new UnsupportedOperationException("Direct vector store lookup is not implemented");
 	}
 
 	default boolean hasS3Storage(String key) {
-		if (key == null) return false;
-		List<Option> options = listS3(200);
-		if (options == null) return false;
-		for (Option option : options) {
-			if (option != null && key.equals(option.getKey())) return true;
-		}
-		return false;
+		throw new UnsupportedOperationException("Direct S3 storage lookup is not implemented");
 	}
 
 	final class Option {

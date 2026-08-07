@@ -42,6 +42,7 @@ public class TinyflowKnowledgeMagicResource extends MagicEntity {
 	private String operation;
 	private String stage;
 	private String objectKey;
+	private Integer stageSchemaVersion;
 	private String accessKeyId;
 	private String prefix;
 	private String hashAlgorithm;
@@ -88,6 +89,7 @@ public class TinyflowKnowledgeMagicResource extends MagicEntity {
 		copy.operation = operation;
 		copy.stage = stage;
 		copy.objectKey = objectKey;
+		copy.stageSchemaVersion = stageSchemaVersion;
 		copy.accessKeyId = accessKeyId;
 		copy.prefix = prefix;
 		copy.hashAlgorithm = hashAlgorithm;
@@ -174,6 +176,8 @@ public class TinyflowKnowledgeMagicResource extends MagicEntity {
 	public void setStage(String stage) { this.stage = stage; }
 	public String getObjectKey() { return objectKey; }
 	public void setObjectKey(String objectKey) { this.objectKey = objectKey; }
+	public Integer getStageSchemaVersion() { return stageSchemaVersion; }
+	public void setStageSchemaVersion(Integer stageSchemaVersion) { this.stageSchemaVersion = stageSchemaVersion; }
 	public String getAccessKeyId() { return accessKeyId; }
 	public void setAccessKeyId(String accessKeyId) { this.accessKeyId = accessKeyId; }
 	public String getPrefix() { return prefix; }

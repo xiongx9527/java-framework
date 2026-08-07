@@ -472,6 +472,7 @@ public class MagicApiTinyflowKnowledgeRepository implements TinyflowKnowledgeRep
 		value.setSourceId(compensation.getSourceId()); value.setDocumentId(compensation.getDocumentId());
 		value.setVectorIds(copyList(compensation.getVectorIds())); value.setOperation(compensation.getOperation());
 		value.setStage(compensation.getStage()); value.setObjectKey(compensation.getObjectKey());
+		value.setStageSchemaVersion(compensation.getStageSchemaVersion());
 		save(value);
 	}
 
@@ -526,9 +527,11 @@ public class MagicApiTinyflowKnowledgeRepository implements TinyflowKnowledgeRep
 	}
 
 	private VectorCompensation compensation(TinyflowKnowledgeMagicResource value) {
+		int stageSchemaVersion = value.getStageSchemaVersion() == null
+				? VectorCompensation.LEGACY_STAGE_SCHEMA_VERSION : value.getStageSchemaVersion();
 		return new VectorCompensation(value.getCompensationId(), value.getTenantId(), value.getKnowledgeId(),
 				value.getSourceId(), value.getDocumentId(), copyList(value.getVectorIds()), value.getOperation(),
-				value.getStage(), value.getObjectKey());
+				value.getStage(), value.getObjectKey(), stageSchemaVersion);
 	}
 
 	private AccessKey accessKey(TinyflowKnowledgeMagicResource value) {
