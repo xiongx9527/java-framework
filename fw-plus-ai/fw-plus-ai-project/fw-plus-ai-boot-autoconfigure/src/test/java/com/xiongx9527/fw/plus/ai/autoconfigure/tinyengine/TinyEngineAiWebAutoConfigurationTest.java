@@ -29,7 +29,11 @@ public class TinyEngineAiWebAutoConfigurationTest {
 	public void shouldRegisterControllerWhenWebIsEnabled() {
 		this.contextRunner
 				.withPropertyValues("fw.plus.tiny-engine.ai.web.enabled=true")
-				.run(context -> assertEquals(1, context.getBeansWithAnnotation(RestController.class).size()));
+				.run(context -> {
+					assertEquals(2, context.getBeansWithAnnotation(RestController.class).size());
+					Set<String> patterns = mappedPatterns(context.getBean(RequestMappingHandlerMapping.class));
+					assertTrue(patterns.contains("/app-center/api/ai/search"));
+				});
 	}
 
 	@Test
@@ -54,7 +58,8 @@ public class TinyEngineAiWebAutoConfigurationTest {
 						"fw.plus.tiny-engine.ai.web.chat-path=/custom-chat",
 						"fw.plus.tiny-engine.ai.web.chat-completions-path=/custom-completions",
 						"fw.plus.tiny-engine.ai.web.encrypt-key-path=/custom-encrypt-key",
-						"fw.plus.tiny-engine.ai.web.search-path=/custom-search")
+						"fw.plus.tiny-engine.ai.web.search-path=/custom-search",
+						"fw.plus.tiny-engine.ai.official.enabled=false")
 				.run(context -> {
 					Set<String> patterns = mappedPatterns(context.getBean(RequestMappingHandlerMapping.class));
 					assertTrue(patterns.contains("/custom-ai/custom-chat"));

@@ -89,6 +89,26 @@ export default {
       }
     }
 
+    const DIRECTORY_ACCESS_REJECTED_MESSAGE = /系统文件|system\s*files?|sensitive|blocked|not\s+allowed|not\s+permitted|permission|denied/i
+
+    const isDirectoryAccessRejected = (error) => {
+      const name = error?.name
+      const message = String(error?.message || error || '')
+
+      return name === 'SecurityError' || name === 'NotAllowedError' || DIRECTORY_ACCESS_REJECTED_MESSAGE.test(message)
+    }
+
+    const isDirectoryPickerCanceled = (error) => error?.name === 'AbortError' && !isDirectoryAccessRejected(error)
+
+    const saveCodeAsZip = async (saveData) => {
+      await fs.writeFilesAsZip(saveData)
+      useNotify({
+        type: 'warning',
+        title: '代码保存已改为下载 zip 压缩包',
+        message: '当前浏览器不允许写入所选文件夹，请解压后使用。'
+      })
+    }
+
     const { getAllNestedBlocksSchema, generateAppCode } = getMetaApi('engine.service.generateCode')
 
     const getAllPageDetails = async (pageList) => {
@@ -296,18 +316,42 @@ export default {
     }
 
     const confirm = async (saveData) => {
-      const isDirHandleValid = await validateDirHandle()
-      if (!isDirHandleValid) {
-        const dirHandle = await fs.getUserBaseDirHandle()
-        // 保存用户授权的文件夹句柄
-        initDirHandle(dirHandle)
-        useNotify({ type: 'info', title: '代码保存中...' })
-        state.showDialogbox = false
-      }
-
       try {
+        const isDirHandleValid = await validateDirHandle()
+        if (!isDirHandleValid) {
+          try {
+            const dirHandle = await fs.getUserBaseDirHandle()
+            // 保存用户授权的文件夹句柄
+            initDirHandle(dirHandle)
+          } catch (error) {
+            if (isDirectoryPickerCanceled(error)) {
+              return
+            }
+
+            if (isDirectoryAccessRejected(error)) {
+              state.showDialogbox = false
+              await saveCodeAsZip(saveData)
+              return
+            }
+
+            throw error
+          }
+          useNotify({ type: 'info', title: '代码保存中...' })
+          state.showDialogbox = false
+        }
+
         // 生成代码到本地
-        await saveCodeToLocal(saveData)
+        try {
+          await saveCodeToLocal(saveData)
+        } catch (error) {
+          if (isDirectoryAccessRejected(error)) {
+            state.dirHandle = null
+            await saveCodeAsZip(saveData)
+            return
+          }
+
+          throw error
+        }
 
         useNotify({
           type: 'success',

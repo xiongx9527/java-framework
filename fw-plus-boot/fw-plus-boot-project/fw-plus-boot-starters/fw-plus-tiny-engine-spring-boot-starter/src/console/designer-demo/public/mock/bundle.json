@@ -7694,7 +7694,7 @@
             "name": "TinyVueHuicharts组件库",
             "package": "@opentiny/vue-huicharts",
             "version": "3.22.0",
-            "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+            "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
           },
           "group": "chart",
           "category": "图表组件",
@@ -8072,7 +8072,7 @@
             "name": "TinyVueHuicharts组件库",
             "package": "@opentiny/vue-huicharts",
             "version": "3.22.0",
-            "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+            "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
           },
           "group": "chart",
           "category": "图表组件",
@@ -8733,7 +8733,7 @@
             "name": "TinyVueHuicharts组件库",
             "package": "@opentiny/vue-huicharts",
             "version": "3.22.0",
-            "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+            "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
           },
           "group": "chart",
           "category": "图表组件",
@@ -9181,7 +9181,7 @@
             "name": "TinyVueHuicharts组件库",
             "package": "@opentiny/vue-huicharts",
             "version": "3.22.0",
-            "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+            "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
           },
           "group": "chart",
           "category": "图表组件",
@@ -9510,7 +9510,7 @@
             "name": "TinyVueHuicharts组件库",
             "package": "@opentiny/vue-huicharts",
             "version": "3.22.0",
-            "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+            "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
           },
           "group": "chart",
           "category": "图表组件",
@@ -9878,7 +9878,7 @@
             "name": "TinyVueHuicharts组件库",
             "package": "@opentiny/vue-huicharts",
             "version": "3.22.0",
-            "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+            "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
           },
           "group": "chart",
           "category": "图表组件",
@@ -10225,7 +10225,7 @@
             "name": "TinyVueHuicharts组件库",
             "package": "@opentiny/vue-huicharts",
             "version": "3.22.0",
-            "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+            "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
           },
           "group": "chart",
           "category": "图表组件",
@@ -10525,7 +10525,7 @@
             "name": "TinyVueHuicharts组件库",
             "package": "@opentiny/vue-huicharts",
             "version": "3.22.0",
-            "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+            "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
           },
           "group": "chart",
           "category": "图表组件",
@@ -10920,7 +10920,7 @@
             "name": "TinyVueHuicharts组件库",
             "package": "@opentiny/vue-huicharts",
             "version": "3.22.0",
-            "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+            "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
           },
           "group": "chart",
           "category": "图表组件",
@@ -11357,7 +11357,7 @@
             "name": "TinyVueHuicharts组件库",
             "package": "@opentiny/vue-huicharts",
             "version": "3.22.0",
-            "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+            "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
           },
           "group": "chart",
           "category": "图表组件",
@@ -11737,7 +11737,7 @@
             "name": "TinyVueHuicharts组件库",
             "package": "@opentiny/vue-huicharts",
             "version": "3.22.0",
-            "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+            "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
           },
           "group": "chart",
           "category": "图表组件",
@@ -12055,7 +12055,7 @@
             "name": "TinyVueHuicharts组件库",
             "package": "@opentiny/vue-huicharts",
             "version": "3.22.0",
-            "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+            "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
           },
           "group": "chart",
           "category": "图表组件",
@@ -31400,23 +31400,23 @@
           "package": "@opentiny/vue-huicharts",
           "version": "3.22.0",
           "destructuring": true,
-          "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/3.22/files/dist3/tiny-vue-huicharts.mjs"
+          "script": "https://unpkg.com/@opentiny/vue-runtime@3.22/dist3/tiny-vue-huicharts.mjs"
         },
         {
           "name": "TinyVue组件库",
           "package": "@opentiny/vue",
           "version": "3.20.0",
           "destructuring": true,
-          "script": "https://registry.npmmirror.com/@opentiny/vue-runtime/~3.20/files/dist3/tiny-vue-pc.mjs",
-          "css": "https://registry.npmmirror.com/@opentiny/vue-theme/~3.20/files/index.css"
+          "script": "https://unpkg.com/@opentiny/vue-runtime@~3.20/dist3/tiny-vue-pc.mjs",
+          "css": "https://unpkg.com/@opentiny/vue-theme@~3.20/index.css"
         },
         {
           "name": "element-plus组件库",
           "package": "element-plus",
           "version": "2.4.2",
           "destructuring": true,
-          "script": "https://registry.npmmirror.com/element-plus/2.4.2/files/dist/index.full.mjs",
-          "css": "https://registry.npmmirror.com/element-plus/2.4.2/files/dist/index.css"
+          "script": "https://unpkg.com/element-plus@2.4.2/dist/index.full.mjs",
+          "css": "https://unpkg.com/element-plus@2.4.2/dist/index.css"
         }
       ]
     }

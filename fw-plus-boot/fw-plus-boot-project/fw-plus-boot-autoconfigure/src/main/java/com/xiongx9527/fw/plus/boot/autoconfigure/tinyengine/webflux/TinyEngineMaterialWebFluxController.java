@@ -2,13 +2,18 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webflux;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFacade;
 import com.xiongx9527.fw.plus.tinyengine.common.model.Result;
+import com.xiongx9527.fw.plus.tinyengine.common.util.TinyEngineFileSecurityUtils;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockBuildDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockParam;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockParamDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.ResourceRequestDto;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockGroup;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Resource;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.ResourceGroup;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -19,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
@@ -50,6 +56,21 @@ public class TinyEngineMaterialWebFluxController {
 	@GetMapping("/block/detail/{id}")
 	public Mono<ResponseEntity<? extends Result<?>>> blockDetail(@PathVariable Integer id) {
 		return TinyEngineWebFluxSupport.submit(executor, () -> facade.blockDetail(id));
+	}
+
+	@GetMapping("/block-history")
+	public Mono<ResponseEntity<? extends Result<?>>> blockHistories(@RequestParam("block") Integer blockId) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.blockHistories(blockId));
+	}
+
+	@GetMapping("/block/tenants")
+	public Mono<ResponseEntity<? extends Result<?>>> blockTenants() {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.blockTenants());
+	}
+
+	@GetMapping("/block/users")
+	public Mono<ResponseEntity<? extends Result<?>>> blockUsers() {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.blockUsers());
 	}
 
 	@PostMapping("/block/create")
@@ -168,6 +189,30 @@ public class TinyEngineMaterialWebFluxController {
 	@PostMapping("/resource/create")
 	public Mono<ResponseEntity<? extends Result<?>>> createResource(@RequestBody Resource resource) {
 		return TinyEngineWebFluxSupport.submit(executor, () -> facade.createResource(resource));
+	}
+
+	@PostMapping("/resource/create/batch")
+	public Mono<ResponseEntity<? extends Result<?>>> createResources(@RequestBody List<Resource> resources) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.createResources(resources));
+	}
+
+	@PostMapping(value = "/resource/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public Mono<ResponseEntity<? extends Result<?>>> uploadResource(@RequestPart("file") FilePart file,
+			@RequestParam(required = false) Integer appId) {
+		if (file == null) {
+			return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST)
+					.body(Result.failed("400", "Resource upload file is required")));
+		}
+		try {
+			TinyEngineFileSecurityUtils.validateRelativePath(file.filename());
+		} catch (IllegalArgumentException ex) {
+			return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Result.failed("400", ex.getMessage())));
+		}
+		ResourceRequestDto request = new ResourceRequestDto();
+		request.setName(file.filename());
+		request.setAppId(appId);
+		request.setIsResource(true);
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.uploadResource(request));
 	}
 
 	@PutMapping("/resource/update/{id}")

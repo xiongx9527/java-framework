@@ -14,6 +14,8 @@ import com.xiongx9527.fw.plus.tinyengine.model.dto.SchemaI18n;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.I18nEntry;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.I18nLang;
 import com.xiongx9527.fw.plus.tinyengine.service.I18nEntryService;
+import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
+import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,9 @@ public class I18nEntryServiceImpl extends ServiceImpl<I18nEntryMapper, I18nEntry
 
 	@Autowired
 	private I18nLangMapper i18nLangMapper;
+
+	@Autowired
+	private TinyEngineUserContext userContext;
 
 	@Override
 	public I18nEntryListResult findAllI18nEntry() {
@@ -136,6 +141,7 @@ public class I18nEntryServiceImpl extends ServiceImpl<I18nEntryMapper, I18nEntry
 			condition.setHostType(entry.getHostType());
 			condition.setHost(Integer.valueOf(entry.getHost()));
 			condition.setKey(key);
+			condition.setTenantId(getTenantId());
 			List<I18nEntryDto> matches = baseMapper.queryI18nEntryByCondition(condition);
 			if (matches == null) {
 				continue;
@@ -146,6 +152,11 @@ public class I18nEntryServiceImpl extends ServiceImpl<I18nEntryMapper, I18nEntry
 			deleted.addAll(matches);
 		}
 		return deleted;
+	}
+
+	private String getTenantId() {
+		TinyEngineUser user = userContext == null ? null : userContext.getCurrentUser();
+		return user == null ? null : user.getTenantId();
 	}
 
 	@Override

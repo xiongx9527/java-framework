@@ -15,6 +15,7 @@ import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Collections;
 import java.util.StringJoiner;
@@ -31,8 +32,25 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
 	private TinyEngineUserContext userContext;
 
 	@Override
+	public boolean save(Model model) {
+		prepareCreate(model);
+		return baseMapper.createModel(model) == 1;
+	}
+
+	@Override
 	public Model queryModelById(Integer id) {
 		return baseMapper.selectById(id);
+	}
+
+	@Override
+	public Model queryModelDetailById(Integer id) {
+		TinyEngineUser user = userContext == null ? null : userContext.getCurrentUser();
+		if (id == null || user == null || user.getTenantId() == null || user.getTenantId().trim().isEmpty()) {
+			return null;
+		}
+		return baseMapper.selectOne(new QueryWrapper<Model>()
+				.eq("id", id)
+				.eq("tenant_id", user.getTenantId()));
 	}
 
 	@Override
@@ -48,15 +66,20 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
 	@Override
 	public Page<Model> pageQuery(int currentPage, int pageSize, String nameCn, String nameEn) {
 		QueryWrapper<Model> query = new QueryWrapper<Model>();
-		if (nameCn != null && !nameCn.isEmpty()) {
-			query.like("name_cn", nameCn);
-		}
-		if (nameEn != null && !nameEn.isEmpty()) {
-			if (nameCn != null && !nameCn.isEmpty()) {
-				query.or().like("name_en", nameEn);
-			} else {
-				query.like("name_en", nameEn);
-			}
+		final boolean hasNameCn = nameCn != null && !nameCn.isEmpty();
+		final boolean hasNameEn = nameEn != null && !nameEn.isEmpty();
+		if (hasNameCn || hasNameEn) {
+			query.and(names -> {
+				if (hasNameCn) {
+					names.like("name_cn", nameCn);
+				}
+				if (hasNameEn) {
+					if (hasNameCn) {
+						names.or();
+					}
+					names.like("name_en", nameEn);
+				}
+			});
 		}
 		TinyEngineUser user = userContext == null ? null : userContext.getCurrentUser();
 		if (user != null) {
@@ -107,6 +130,35 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
 	@Override
 	public List<Model> queryModelByCondition(Model model) {
 		return baseMapper.queryModelByCondition(model);
+	}
+
+	private void prepareCreate(Model model) {
+		if (model == null) {
+			return;
+		}
+		if (isBlank(model.getNameCn()) && !isBlank(model.getNameEn())) {
+			model.setNameCn(model.getNameEn());
+		}
+		if (isBlank(model.getNameEn()) && !isBlank(model.getNameCn())) {
+			model.setNameEn(model.getNameCn());
+		}
+		TinyEngineUser user = userContext == null ? null : userContext.getCurrentUser();
+		LocalDateTime now = LocalDateTime.now();
+		if (user != null) {
+			model.setTenantId(user.getTenantId());
+			model.setRenterId(user.getRenterId());
+			model.setCreatedBy(user.getUserId());
+			model.setLastUpdatedBy(user.getUserId());
+			if (model.getPlatformId() == null) {
+				model.setPlatformId(user.getPlatformId());
+			}
+		}
+		model.setCreatedTime(now);
+		model.setLastUpdatedTime(now);
+	}
+
+	private boolean isBlank(String value) {
+		return value == null || value.trim().isEmpty();
 	}
 
 	private List<ParametersDto> safeParameters(Model model) {

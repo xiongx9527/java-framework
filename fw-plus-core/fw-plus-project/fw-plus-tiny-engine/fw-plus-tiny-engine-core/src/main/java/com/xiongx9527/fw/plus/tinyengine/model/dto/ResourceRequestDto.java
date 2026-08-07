@@ -20,6 +20,7 @@ package com.xiongx9527.fw.plus.tinyengine.model.dto;
 public class ResourceRequestDto {
     private String name;
     private boolean isResource;
+	private Integer appId;
 
 	public String getName() {
 		return name;
@@ -35,5 +36,13 @@ public class ResourceRequestDto {
 
 	public void setIsResource(boolean isResource) {
 		this.isResource = isResource;
+	}
+
+	public Integer getAppId() {
+		return appId;
+	}
+
+	public void setAppId(Integer appId) {
+		this.appId = appId;
 	}
 }

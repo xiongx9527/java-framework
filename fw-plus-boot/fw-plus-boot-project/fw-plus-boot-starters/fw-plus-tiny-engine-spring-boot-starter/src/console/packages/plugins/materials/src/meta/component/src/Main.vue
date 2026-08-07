@@ -7,13 +7,13 @@
       <tiny-collapse-item
         v-for="(item, index) in state.components"
         :key="item.group"
-        :title="item.label?.[locale] || item.group"
+        :title="getLocaleText(item.label, item.group)"
         :name="index"
       >
         <ul class="component-group" :style="{ gridTemplateColumns }">
           <template v-for="child in item.children" :key="child.component">
             <canvas-drag-item
-              v-if="!child.hidden && (child.name?.[locale] || child.name)"
+              v-if="!child.hidden && getLocaleText(child.name)"
               :data="generateNode({ component: child.snippetName || child.component })"
               @click="componentClick"
             >
@@ -21,9 +21,7 @@
                 <div class="component-item-component">
                   <svg-icon :name="child?.icon?.toLowerCase() || 'row'"></svg-icon>
                 </div>
-                <span class="component-item-name" :title="child.name?.[locale] || child.name">{{
-                  child.name?.[locale] || child.name
-                }}</span>
+                <span class="component-item-name" :title="getLocaleText(child.name)">{{ getLocaleText(child.name) }}</span>
               </li>
             </canvas-drag-item>
           </template>
@@ -68,6 +66,14 @@ export default {
 
     type Component = typeof componentsWithChildren.value[number]
 
+    const getLocaleText = (value?: Record<string, string> | string, fallback = '') => {
+      if (!value || typeof value === 'string') {
+        return value || fallback
+      }
+
+      return value?.[locale.value] || value?.zh_CN || value?.en_US || fallback
+    }
+
     const fetchComponents = (components: Component[], name: string) => {
       if (!name) {
         return components
@@ -78,7 +84,7 @@ export default {
         const children: Component['children'] = []
 
         component.children.forEach((child) => {
-          if ((child.name?.[locale.value as 'zh_CN'] || '')?.toLowerCase().indexOf(name.toLowerCase()) > -1) {
+          if (getLocaleText(child.name).toLowerCase().indexOf(name.toLowerCase()) > -1) {
             children.push(child)
           }
         })
@@ -160,6 +166,7 @@ export default {
       gridTemplateColumns,
       state,
       change,
+      getLocaleText,
       generateNode,
       componentClick
     }

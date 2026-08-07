@@ -30,7 +30,7 @@ public class TinyEngineModelWebFluxController {
 		this.executor = executor;
 	}
 
-	@GetMapping("/material-center/api/model/list")
+	@GetMapping({"/material-center/api/model/list", "/material-center/api/model"})
 	public Mono<ResponseEntity<? extends Result<?>>> models(@RequestParam(required = false) Integer currentPage,
 			@RequestParam(required = false) Integer pageSize, @RequestParam(required = false) String nameCn,
 			@RequestParam(required = false) String nameEn) {

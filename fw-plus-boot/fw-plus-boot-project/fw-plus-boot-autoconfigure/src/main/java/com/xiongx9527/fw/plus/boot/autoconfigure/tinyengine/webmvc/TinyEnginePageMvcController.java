@@ -3,9 +3,11 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webmvc;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFacade;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.web.TinyEngineWebResponses;
 import com.xiongx9527.fw.plus.tinyengine.common.model.Result;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.PreviewParam;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -57,6 +59,33 @@ public class TinyEnginePageMvcController {
 				return TinyEngineWebResponses.notFound("TinyEngine page not found: " + id);
 			}
 			return TinyEngineWebResponses.ok(page);
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/pages/delete/{id}")
+	public ResponseEntity<? extends Result<?>> deletePage(@PathVariable Integer id) {
+		try {
+			return TinyEngineWebResponses.ok(facade.deletePage(id));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping("/pages/copy")
+	public ResponseEntity<? extends Result<?>> copyPage(@RequestBody Page page) {
+		try {
+			return TinyEngineWebResponses.ok(facade.copyPage(page));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/preview/metadata")
+	public ResponseEntity<? extends Result<?>> previewMetadata(@ModelAttribute PreviewParam previewParam) {
+		try {
+			return TinyEngineWebResponses.ok(facade.previewMetadata(previewParam));
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}

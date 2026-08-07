@@ -3,6 +3,7 @@ import {
   useResource,
   useMessage,
   defineService,
+  getMergeMeta,
   getMetaApi,
   META_SERVICE
 } from '@opentiny/tiny-engine-meta-register'
@@ -257,13 +258,17 @@ export default defineService({
       }
     })
 
-    fetchUserInfo().then((data: any) => {
-      if (data) {
-        state.userInfo = data
-        userState.userInfo = data
-      }
+    if (getMergeMeta('engine.config')?.enableLogin) {
+      fetchUserInfo().then((data: any) => {
+        if (data) {
+          state.userInfo = data
+          userState.userInfo = data
+        }
+        publish({ topic: 'global_service_init_finish' })
+      })
+    } else {
       publish({ topic: 'global_service_init_finish' })
-    })
+    }
   },
   apis: () => ({
     getLoginStatus,

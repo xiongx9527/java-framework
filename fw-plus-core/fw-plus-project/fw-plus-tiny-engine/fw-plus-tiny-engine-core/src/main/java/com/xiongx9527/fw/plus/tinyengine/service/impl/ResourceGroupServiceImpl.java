@@ -16,6 +16,7 @@ import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -45,7 +46,12 @@ public class ResourceGroupServiceImpl extends ServiceImpl<ResourceGroupMapper, R
 
 	@Override
 	public ResourceGroup queryResourceGroupById(Integer id) {
-		return baseMapper.queryResourceGroupById(id, currentUserId());
+		String userId = currentUserId();
+		String tenantId = currentTenantId();
+		if (userId == null || tenantId == null) {
+			return null;
+		}
+		return baseMapper.queryResourceGroupById(id, userId, tenantId);
 	}
 
 	@Override
@@ -97,6 +103,19 @@ public class ResourceGroupServiceImpl extends ServiceImpl<ResourceGroupMapper, R
 
 	@Override
 	public ResourceGroup createResourceGroup(ResourceGroup resourceGroup) {
+		TinyEngineUser user = currentUser();
+		LocalDateTime now = LocalDateTime.now();
+		if (user != null) {
+			resourceGroup.setTenantId(user.getTenantId());
+			resourceGroup.setRenterId(user.getRenterId());
+			resourceGroup.setCreatedBy(user.getUserId());
+			resourceGroup.setLastUpdatedBy(user.getUserId());
+			if (resourceGroup.getPlatformId() == null) {
+				resourceGroup.setPlatformId(user.getPlatformId());
+			}
+		}
+		resourceGroup.setCreatedTime(now);
+		resourceGroup.setLastUpdatedTime(now);
 		QueryWrapper<ResourceGroup> query = new QueryWrapper<ResourceGroup>()
 				.eq("name", resourceGroup.getName()).eq("app_id", resourceGroup.getAppId());
 		if (baseMapper.selectOne(query) != null) {
@@ -108,9 +127,18 @@ public class ResourceGroupServiceImpl extends ServiceImpl<ResourceGroupMapper, R
 		return baseMapper.selectById(resourceGroup.getId());
 	}
 
+	private TinyEngineUser currentUser() {
+		return userContext == null ? null : userContext.getCurrentUser();
+	}
+
 	private String currentUserId() {
-		TinyEngineUser user = userContext == null ? null : userContext.getCurrentUser();
+		TinyEngineUser user = currentUser();
 		return user == null ? null : user.getUserId();
+	}
+
+	private String currentTenantId() {
+		TinyEngineUser user = currentUser();
+		return user == null ? null : user.getTenantId();
 	}
 
 	private ServiceException failure(ExceptionEnum error) {

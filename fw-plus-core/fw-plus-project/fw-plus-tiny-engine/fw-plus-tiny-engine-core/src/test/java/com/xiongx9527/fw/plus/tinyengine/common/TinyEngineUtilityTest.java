@@ -95,6 +95,14 @@ class TinyEngineUtilityTest {
 	void fileSecurityUtilsShouldRejectPathTraversal() {
 		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("../secret.json"));
 		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("pages/../../secret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("%2e%2e%2fsecret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("%252e%252e%252fsecret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("pages/%2E%2E/secret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("pages%5c..%5csecret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("/tmp/secret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("C:\\temp\\secret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("\\\\server\\share\\secret.json"));
+		assertTrue(TinyEngineFileSecurityUtils.checkPathHasCrossDir("safe/evil%00.png"));
 		assertFalse(TinyEngineFileSecurityUtils.checkPathHasCrossDir("pages/home.json"));
 		assertThrows(IllegalArgumentException.class, () -> TinyEngineFileSecurityUtils.validateRelativePath("../secret.json"));
 	}

@@ -15,6 +15,10 @@ public interface PageService extends IService<Page> {
 
 	Page delPage(Integer id);
 
+	Page copyPage(Page page);
+
+	Page restorePageHistory(Integer historyId);
+
 	Page createPage(Page page);
 
 	Page createFolder(Page page);

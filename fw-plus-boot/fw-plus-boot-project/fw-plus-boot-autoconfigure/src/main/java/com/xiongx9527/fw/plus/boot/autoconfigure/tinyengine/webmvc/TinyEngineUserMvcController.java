@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -92,6 +93,19 @@ public class TinyEngineUserMvcController {
 			TinyEnginePrincipal principal = currentUser(authorization, tenantId);
 			List<TinyEngineTenant> tenants = userSystemService.tenants(principal);
 			return TinyEngineWebResponses.ok(tenants);
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/user/tenant")
+	public ResponseEntity<? extends Result<?>> tenant(
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "X-Tenant-Id", required = false) String currentTenantId,
+			@RequestParam String tenantId) {
+		try {
+			TinyEnginePrincipal principal = currentUser(authorization, currentTenantId);
+			return TinyEngineWebResponses.ok(userSystemService.switchTenant(principal, tenantId));
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}

@@ -294,6 +294,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.ssssssss</groupId>
             <artifactId>magic-api-plugin-redis</artifactId>
             <scope>compile</scope>

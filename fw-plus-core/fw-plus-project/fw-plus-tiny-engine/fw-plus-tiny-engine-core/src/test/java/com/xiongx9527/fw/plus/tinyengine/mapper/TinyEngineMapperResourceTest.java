@@ -71,6 +71,17 @@ public class TinyEngineMapperResourceTest {
 			"普通应用与应用模板排序都必须支持 created_time");
 	}
 
+	@Test
+	public void taskRecordMapperShouldUseOfficialTaskRecordColumns() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+			.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "TaskRecordMapper.xml");
+		String content = readContent(resource);
+		assertTrue(content.contains("task_type AS task_type_id"), "TaskRecord 查询必须兼容官方 task_type 字段");
+		assertTrue(content.contains("build_id AS unique_id"), "TaskRecord 查询必须兼容官方 build_id 字段");
+		assertFalse(content.contains("WHERE task_type_id=#{taskTypeId}"), "TaskRecord 条件不得查询不存在的 task_type_id 字段");
+		assertFalse(content.contains("and unique_id=#{uniqueId}"), "TaskRecord 条件不得查询不存在的 unique_id 字段");
+	}
+
 	private Set<String> findMapperInterfaceNames(PathMatchingResourcePatternResolver resolver) throws Exception {
 		Set<String> mapperNames = new LinkedHashSet<String>();
 		for (Resource resource : resolver.getResources("classpath*:com/xiongx9527/fw/plus/tinyengine/mapper/*Mapper.class")) {

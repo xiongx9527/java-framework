@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiongx9527.fw.plus.tinyengine.mapper.TaskRecordMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.TaskRecord;
 import com.xiongx9527.fw.plus.tinyengine.service.TaskRecordService;
+import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
+import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -11,6 +14,9 @@ import java.util.List;
 
 @Service
 public class TaskRecordServiceImpl extends ServiceImpl<TaskRecordMapper, TaskRecord> implements TaskRecordService {
+
+	@Autowired
+	private TinyEngineUserContext userContext;
 
 	@Override
 	public List<TaskRecord> queryAllTaskRecord() {
@@ -20,6 +26,16 @@ public class TaskRecordServiceImpl extends ServiceImpl<TaskRecordMapper, TaskRec
 	@Override
 	public TaskRecord queryTaskRecordById(Integer id) {
 		return baseMapper.queryTaskRecordById(id);
+	}
+
+	@Override
+	public TaskRecord taskStatus(Integer id) {
+		TaskRecord condition = new TaskRecord();
+		condition.setId(id);
+		TinyEngineUser user = userContext == null ? null : userContext.getCurrentUser();
+		condition.setTenantId(user == null ? null : user.getTenantId());
+		List<TaskRecord> records = baseMapper.queryTaskRecordByCondition(condition);
+		return records == null || records.isEmpty() ? null : records.get(0);
 	}
 
 	@Override
