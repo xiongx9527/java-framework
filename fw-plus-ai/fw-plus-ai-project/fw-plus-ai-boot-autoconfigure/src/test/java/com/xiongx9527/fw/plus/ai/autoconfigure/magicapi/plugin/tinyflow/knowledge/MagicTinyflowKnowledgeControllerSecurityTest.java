@@ -112,6 +112,41 @@ public class MagicTinyflowKnowledgeControllerSecurityTest {
 		assertEquals(Arrays.asList("tenant", "permission", "action", "audit"), sequence);
 	}
 
+	@Test
+	public void shouldExposeAuditPersistenceFailureAfterSuccessfulAction() {
+		List<String> sequence = new ArrayList<String>();
+		RecordingRepository repository = new RecordingRepository(sequence);
+		MagicTinyflowKnowledgeController controller = new MagicTinyflowKnowledgeController(repository,
+				new TinyflowKnowledgeAccessKeyService(repository), request -> "tenant-a",
+				(tenantId, action, resourceId, request) -> { },
+				event -> { throw new IllegalStateException("audit persistence failed"); });
+
+		IllegalStateException error = assertThrows(IllegalStateException.class,
+				() -> controller.saveDifyConnection(validConnection(), null));
+
+		assertEquals("audit persistence failed", error.getMessage());
+		assertEquals(1, repository.actionCount);
+	}
+
+	@Test
+	public void shouldPreserveBusinessFailureAndSuppressAuditPersistenceFailure() {
+		List<String> sequence = new ArrayList<String>();
+		RecordingRepository repository = new RecordingRepository(sequence);
+		IllegalStateException businessFailure = new IllegalStateException("business failed");
+		repository.failure = businessFailure;
+		MagicTinyflowKnowledgeController controller = new MagicTinyflowKnowledgeController(repository,
+				new TinyflowKnowledgeAccessKeyService(repository), request -> "tenant-a",
+				(tenantId, action, resourceId, request) -> { },
+				event -> { throw new IllegalStateException("audit persistence failed"); });
+
+		IllegalStateException error = assertThrows(IllegalStateException.class,
+				() -> controller.saveDifyConnection(validConnection(), null));
+
+		assertTrue(error == businessFailure);
+		assertEquals(1, error.getSuppressed().length);
+		assertEquals("audit persistence failed", error.getSuppressed()[0].getMessage());
+	}
+
 	private void assertFailureStage(String stage, RuntimeException failure, boolean permissionFailure) {
 		List<String> sequence = new ArrayList<String>();
 		RecordingRepository repository = new RecordingRepository(sequence);

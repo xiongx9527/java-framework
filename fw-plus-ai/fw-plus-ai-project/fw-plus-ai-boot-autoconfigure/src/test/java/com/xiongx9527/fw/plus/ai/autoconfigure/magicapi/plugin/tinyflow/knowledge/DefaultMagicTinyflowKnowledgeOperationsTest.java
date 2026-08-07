@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledg
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.storage.TinyflowIngestionTaskMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.storage.TinyflowKnowledgeKeyMagicResourceStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.storage.TinyflowKnowledgeMagicResourceStorage;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow.dify.TinyflowKnowledgeAccessKeyService;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowChunk;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocument;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocumentImport;
@@ -91,6 +92,38 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 	}
 
 	@Test
+	public void shouldRejectUnknownKnowledgeMetadataWithoutPersistingIt() throws Exception {
+		Fixture fixture = fixture();
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>(definition("Unsafe").getMetadata());
+		metadata.put("secretKey", "must-not-be-persisted");
+		TinyflowKnowledgeDefinition unsafe = TinyflowKnowledgeDefinition.builder().providerKey("fw-plus-local")
+				.tenantId("tenant-a").knowledgeId("kb-1").name("Unsafe").metadata(metadata).enabled(true).build();
+
+		assertThrows(IllegalArgumentException.class, () -> fixture.operations.create(unsafe));
+
+		assertNull(fixture.operations.find("tenant-a", "kb-1"));
+	}
+
+	@Test
+	public void shouldRejectMissingEmbeddingAndS3ResourceKeys() throws Exception {
+		Fixture missingModel = fixture();
+		Map<String, Object> modelMetadata = new LinkedHashMap<String, Object>(definition("Missing model").getMetadata());
+		modelMetadata.put("embeddingModelKey", "embedding-missing");
+		TinyflowKnowledgeDefinition invalidModel = TinyflowKnowledgeDefinition.builder().providerKey("fw-plus-local")
+				.tenantId("tenant-a").knowledgeId("kb-model").name("Missing model")
+				.metadata(modelMetadata).enabled(true).build();
+		assertThrows(IllegalArgumentException.class, () -> missingModel.operations.create(invalidModel));
+
+		Fixture missingS3 = fixture();
+		Map<String, Object> s3Metadata = new LinkedHashMap<String, Object>(definition("Missing S3").getMetadata());
+		s3Metadata.put("s3Key", "s3-missing");
+		TinyflowKnowledgeDefinition invalidS3 = TinyflowKnowledgeDefinition.builder().providerKey("fw-plus-local")
+				.tenantId("tenant-a").knowledgeId("kb-s3").name("Missing S3")
+				.metadata(s3Metadata).enabled(true).build();
+		assertThrows(IllegalArgumentException.class, () -> missingS3.operations.create(invalidS3));
+	}
+
+	@Test
 	public void shouldDeleteEverySourceBeforeRemovingKnowledgeDefinition() throws Exception {
 		Fixture fixture = fixture();
 		fixture.operations.create(definition("Knowledge"));
@@ -164,6 +197,30 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 				false, "content", Collections.<String, Object>emptyMap());
 
 		assertFalse(updated.isEnabled());
+		assertEquals(Collections.singletonList("vec-old"), updated.getVectorIds());
+		assertTrue(fixture.vectorStore.added.isEmpty());
+		assertTrue(fixture.vectorStore.removed.isEmpty());
+	}
+
+	@Test
+	public void shouldPreserveChunkMetadataWhenControllerRequestOmitsIt() throws Exception {
+		Fixture fixture = fixture();
+		fixture.operations.create(definition("Knowledge"));
+		seedSource(fixture.repository, "source-1", "doc-1", "chunk-1", "vec-old",
+				Collections.<String, Object>singletonMap("tag", "original"));
+		MagicTinyflowKnowledgeController controller = new MagicTinyflowKnowledgeController(
+				fixture.repository, new TinyflowKnowledgeAccessKeyService(fixture.repository), request -> "tenant-a",
+				(tenantId, action, resourceId, request) -> { }, event -> { }, null,
+				fixture.operations, null, options());
+		MagicTinyflowKnowledgeController.ChunkUpdateRequest request =
+				new MagicTinyflowKnowledgeController.ChunkUpdateRequest();
+		request.setKnowledgeId("kb-1"); request.setChunkId("chunk-1");
+		request.setContent("content"); request.setEnabled(false);
+
+		TinyflowChunk updated = controller.updateChunk(request, null);
+
+		assertFalse(updated.isEnabled());
+		assertEquals("original", updated.getMetadata().get("tag"));
 		assertEquals(Collections.singletonList("vec-old"), updated.getVectorIds());
 		assertTrue(fixture.vectorStore.added.isEmpty());
 		assertTrue(fixture.vectorStore.removed.isEmpty());
@@ -259,6 +316,55 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 	}
 
 	@Test
+	public void shouldSkipObjectUploadWhenActiveSourceChecksumMatches() throws Exception {
+		Fixture fixture = fixture();
+		fixture.operations.create(definition("Knowledge"));
+		TinyflowDocument active = TinyflowDocument.builder().tenantId("tenant-a").knowledgeId("kb-1")
+				.sourceId("source-same").sourceType("file").documentId("doc-existing")
+				.checksum("0967115f2813a3541eaef77de9d9d5773f1c0c04314b0bbfe4ff3b3b1c55b5d5")
+				.name("same.txt").sourceUri("object-ref-existing").enabled(true).build();
+		fixture.repository.saveDocument(active);
+		fixture.repository.activateDocumentVersion("tenant-a", "kb-1", "source-same", "doc-existing");
+
+		fixture.operations.importDocument(command("source-same", "file", "same.txt", "text/plain", "same"));
+
+		assertEquals(0, fixture.storage.puts);
+		assertEquals("doc-existing", fixture.gateway.imports.get(0).getDocument().getDocumentId());
+	}
+
+	@Test
+	public void shouldDeleteNewUploadWhenConcurrentImportReturnsExistingDocument() throws Exception {
+		Fixture fixture = fixture();
+		fixture.operations.create(definition("Knowledge"));
+		fixture.gateway.returnDocumentId = "doc-concurrent";
+
+		TinyflowIngestionTask task = fixture.operations.importDocument(
+				command("source-race", "file", "race.txt", "text/plain", "race"));
+
+		assertEquals("doc-concurrent", task.getDocumentId());
+		assertEquals(Collections.singletonList("object-ref-1"), fixture.storage.deleted);
+	}
+
+	@Test
+	public void shouldDeleteStoredObjectsWhenKnowledgeDeletionCompletes() throws Exception {
+		Fixture fixture = fixture();
+		fixture.operations.create(definition("Knowledge"));
+		TinyflowDocument document = TinyflowDocument.builder().tenantId("tenant-a").knowledgeId("kb-1")
+				.sourceId("source-file").sourceType("file").documentId("doc-file").checksum("checksum-file")
+				.name("file.txt").sourceUri("object-ref-file")
+				.metadata(Collections.<String, Object>singletonMap("s3Key", "s3-main")).enabled(true).build();
+		fixture.repository.saveDocument(document);
+		fixture.repository.saveChunks(Collections.singletonList(TinyflowChunk.builder().tenantId("tenant-a")
+				.knowledgeId("kb-1").sourceId("source-file").sourceType("file").documentId("doc-file")
+				.chunkId("chunk-file").content("content").vectorIds(Collections.singletonList("vec-file")).build()));
+		fixture.repository.activateDocumentVersion("tenant-a", "kb-1", "source-file", "doc-file");
+
+		fixture.operations.delete("tenant-a", "kb-1", 1L);
+
+		assertEquals(Collections.singletonList("object-ref-file"), fixture.storage.deleted);
+	}
+
+	@Test
 	public void shouldPageChunksTasksAndRouteRecallOnlyToLocalProvider() throws Exception {
 		Fixture fixture = fixture();
 		fixture.operations.create(definition("Knowledge"));
@@ -302,20 +408,43 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 		TinyflowLocalIndexer indexer = new TinyflowLocalIndexer(
 				repository, models, vectors, "embedding-main", "vector-main", 64);
 		TinyflowKnowledgeMaintenanceService maintenance =
-				new TinyflowKnowledgeMaintenanceService(repository, indexer, vectors);
+				new TinyflowKnowledgeMaintenanceService(repository, indexer, vectors, storage);
 		return new Fixture(repository, storage, gateway, provider, vectorStore,
 				new DefaultMagicTinyflowKnowledgeOperations(
-						repository, storage, gateway, registry, vectors, maintenance));
+						repository, storage, gateway, registry, vectors, maintenance, options()));
+	}
+
+	private MagicTinyflowKnowledgeOptionProvider options() {
+		return new MagicTinyflowKnowledgeOptionProvider() {
+			@Override public List<Option> listModels(int limit) {
+				return Collections.singletonList(new Option(
+						"embedding-main", "Embedding", "EMBEDDING", "test"));
+			}
+			@Override public List<Option> listVectors(int limit) {
+				return Collections.singletonList(new Option("vector-main", "Vector", "VECTOR", "test"));
+			}
+			@Override public List<Option> listS3(int limit) {
+				return Collections.singletonList(new Option(
+						"s3-main", "Storage", "OBJECT_STORAGE", "test"));
+			}
+		};
 	}
 
 	private void seedSource(MagicApiTinyflowKnowledgeRepository repository, String sourceId,
 			String documentId, String chunkId, String vectorId) {
+		seedSource(repository, sourceId, documentId, chunkId, vectorId,
+				Collections.<String, Object>emptyMap());
+	}
+
+	private void seedSource(MagicApiTinyflowKnowledgeRepository repository, String sourceId,
+			String documentId, String chunkId, String vectorId, Map<String, Object> metadata) {
 		repository.saveDocument(TinyflowDocument.builder().tenantId("tenant-a").knowledgeId("kb-1")
 				.sourceId(sourceId).sourceType("text").documentId(documentId).checksum("checksum-" + documentId)
 				.name(documentId + ".txt").content("content").build());
 		repository.saveChunks(Collections.singletonList(TinyflowChunk.builder().tenantId("tenant-a")
 				.knowledgeId("kb-1").sourceId(sourceId).sourceType("text").documentId(documentId)
-				.chunkId(chunkId).content("content").vectorIds(Collections.singletonList(vectorId)).build()));
+				.chunkId(chunkId).content("content").metadata(metadata)
+				.vectorIds(Collections.singletonList(vectorId)).build()));
 		repository.activateDocumentVersion("tenant-a", "kb-1", sourceId, documentId);
 	}
 
@@ -386,11 +515,13 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 
 	private static final class RecordingGateway implements DefaultMagicTinyflowKnowledgeOperations.IngestionGateway {
 		private final List<TinyflowDocumentImport> imports = new ArrayList<TinyflowDocumentImport>();
+		private String returnDocumentId;
 		@Override public TinyflowIngestionTask importDocument(TinyflowDocumentImport request) {
 			imports.add(request);
 			return TinyflowIngestionTask.builder().taskId("task-" + imports.size()).providerKey("fw-plus-local")
 					.tenantId(request.getTenantId()).knowledgeId(request.getKnowledgeId())
-					.documentId(request.getDocument().getDocumentId()).status("PENDING").build();
+					.documentId(returnDocumentId == null ? request.getDocument().getDocumentId() : returnDocumentId)
+					.status("PENDING").build();
 		}
 		@Override public TinyflowIngestionTask cancel(String tenantId, String knowledgeId, String taskId) {
 			return TinyflowIngestionTask.builder().taskId(taskId).providerKey("fw-plus-local").tenantId(tenantId)
@@ -401,6 +532,7 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 	private static final class RecordingStorage implements TinyflowObjectStorage {
 		private int puts;
 		private Map<String, Object> lastMetadata;
+		private final List<String> deleted = new ArrayList<String>();
 		@Override public StoredObject put(String tenantId, String objectKey, InputStream input, String mediaType,
 				Map<String, Object> metadata) {
 			puts++; lastMetadata = metadata;
@@ -410,7 +542,7 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 			return new ByteArrayInputStream(new byte[0]);
 		}
 		@Override public boolean exists(String tenantId, String objectKey) { return true; }
-		@Override public void delete(String tenantId, String objectKey) { }
+		@Override public void delete(String tenantId, String objectKey) { deleted.add(objectKey); }
 	}
 
 	private static final class RecordingProvider implements TinyflowKnowledgeProvider {

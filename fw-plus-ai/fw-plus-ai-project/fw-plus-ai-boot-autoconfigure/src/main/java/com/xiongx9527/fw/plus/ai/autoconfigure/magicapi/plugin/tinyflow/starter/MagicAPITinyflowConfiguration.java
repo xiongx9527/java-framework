@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledg
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.MagicApiTinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.MagicApiTinyflowObjectStorage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.MagicTinyflowKnowledgeAuditSink;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.MagicResourceTinyflowKnowledgeAuditSink;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.MagicTinyflowKnowledgeController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.MagicTinyflowKnowledgeHttpController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.MagicTinyflowKnowledgeOperations;
@@ -57,7 +58,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.ssssssss.magicapi.core.config.Constants;
+import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.context.MagicUser;
+import org.ssssssss.magicapi.core.interceptor.Authorization;
 import org.ssssssss.magicapi.core.config.MagicPluginConfiguration;
 import org.ssssssss.magicapi.core.model.Plugin;
 import org.ssssssss.magicapi.core.service.MagicResourceService;
@@ -124,13 +127,40 @@ public class MagicAPITinyflowConfiguration implements MagicPluginConfiguration {
 	}
 
 	@Bean @ConditionalOnMissingBean
-	public MagicTinyflowKnowledgePermissionEvaluator magicTinyflowKnowledgePermissionEvaluator() {
-		return (tenantId, action, resourceId, request) -> { };
+	public MagicTinyflowKnowledgePermissionEvaluator magicTinyflowKnowledgePermissionEvaluator(
+			ObjectProvider<MagicConfiguration> configurations) {
+		return (tenantId, action, resourceId, request) -> {
+			if (request == null) throw new SecurityException("Tinyflow request is unavailable");
+			Object principal = request.getAttribute(Constants.ATTRIBUTE_MAGIC_USER);
+			if (!(principal instanceof MagicUser)) throw new SecurityException("Tinyflow user is unavailable");
+			MagicUser user = (MagicUser) principal;
+			if (user.getId() == null || user.getId().trim().length() == 0) {
+				throw new SecurityException("Tinyflow user is unavailable");
+			}
+			MagicConfiguration configuration = configurations.getIfAvailable();
+			if (configuration == null || configuration.getAuthorizationInterceptor() == null
+					|| !configuration.getAuthorizationInterceptor().allowVisit(
+							user, request, knowledgeAuthorization(action))) {
+				throw new SecurityException("Tinyflow permission denied");
+			}
+		};
+	}
+
+	private Authorization knowledgeAuthorization(String action) {
+		if (action == null || action.trim().length() == 0) {
+			throw new SecurityException("Tinyflow action is unavailable");
+		}
+		if (action.endsWith(":delete")) return Authorization.DELETE;
+		if (action.endsWith(":view") || action.endsWith(":list") || action.startsWith("option:")
+				|| "knowledge:recall".equals(action) || "dify:test".equals(action)) {
+			return Authorization.VIEW;
+		}
+		return Authorization.SAVE;
 	}
 
 	@Bean @ConditionalOnMissingBean
-	public MagicTinyflowKnowledgeAuditSink magicTinyflowKnowledgeAuditSink() {
-		return event -> { };
+	public MagicTinyflowKnowledgeAuditSink magicTinyflowKnowledgeAuditSink(MagicResourceService resources) {
+		return new MagicResourceTinyflowKnowledgeAuditSink(resources);
 	}
 
 	@Bean @ConditionalOnMissingBean
@@ -174,8 +204,8 @@ public class MagicAPITinyflowConfiguration implements MagicPluginConfiguration {
 	@Bean @ConditionalOnMissingBean @ConditionalOnBean(TinyflowLocalIndexer.class)
 	public TinyflowKnowledgeMaintenanceService tinyflowKnowledgeMaintenanceService(
 			MagicApiTinyflowKnowledgeRepository repository, TinyflowLocalIndexer indexer,
-			TinyflowVectorStoreProvider vectors) {
-		return new TinyflowKnowledgeMaintenanceService(repository, indexer, vectors);
+			TinyflowVectorStoreProvider vectors, TinyflowObjectStorage objectStorage) {
+		return new TinyflowKnowledgeMaintenanceService(repository, indexer, vectors, objectStorage);
 	}
 
 	@Bean @ConditionalOnMissingBean @ConditionalOnBean(TinyflowLocalIndexer.class)
@@ -211,9 +241,9 @@ public class MagicAPITinyflowConfiguration implements MagicPluginConfiguration {
 	public MagicTinyflowKnowledgeOperations magicTinyflowKnowledgeOperations(MagicApiTinyflowKnowledgeRepository repository,
 			TinyflowObjectStorage storage, DefaultTinyflowIngestionService ingestion,
 			TinyflowKnowledgeProviderRegistry providers, TinyflowVectorStoreProvider vectors,
-			TinyflowKnowledgeMaintenanceService maintenance) {
+			TinyflowKnowledgeMaintenanceService maintenance, MagicTinyflowKnowledgeOptionProvider options) {
 		return new DefaultMagicTinyflowKnowledgeOperations(
-				repository, storage, ingestion, providers, vectors, maintenance);
+				repository, storage, ingestion, providers, vectors, maintenance, options);
 	}
 
 	@Bean @ConditionalOnMissingBean

@@ -120,6 +120,73 @@ public class MagicTinyflowKnowledgeManagementControllerTest {
 		assertThrows(IllegalArgumentException.class, () -> controller.listS3Options(201, null));
 	}
 
+	@Test
+	public void shouldRejectOversizedRequestStrings() {
+		MagicTinyflowKnowledgeController.KnowledgeRequest request = knowledgeRequest();
+		request.setName(repeat('n', 513));
+
+		assertThrows(IllegalArgumentException.class,
+				() -> controller(new RecordingOperations(), options()).createKnowledge(request, null));
+	}
+
+	@Test
+	public void shouldRejectOversizedUrlBeforeFetch() {
+		MagicTinyflowKnowledgeController.UrlImportRequest request = new MagicTinyflowKnowledgeController.UrlImportRequest();
+		request.setKnowledgeId("kb-1"); request.setSourceId("source-url");
+		request.setUrl("https://public.test/" + repeat('u', 4097));
+
+		assertThrows(IllegalArgumentException.class,
+				() -> controller(new RecordingOperations(), options()).importUrl(request, null));
+	}
+
+	@Test
+	public void shouldRejectOversizedRecallQuery() {
+		MagicTinyflowKnowledgeController.RecallRequest request = new MagicTinyflowKnowledgeController.RecallRequest();
+		request.setKnowledgeId("kb-1"); request.setQuery(repeat('q', 8193)); request.setTopK(5);
+
+		assertThrows(IllegalArgumentException.class,
+				() -> controller(new RecordingOperations(), options()).recall(request, null));
+	}
+
+	@Test
+	public void shouldRejectTooManyStructuredMapEntries() {
+		MagicTinyflowKnowledgeController.KnowledgeRequest request = knowledgeRequest();
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
+		for (int index = 0; index < 65; index++) metadata.put("key-" + index, index);
+		request.setMetadata(metadata);
+
+		assertThrows(IllegalArgumentException.class,
+				() -> controller(new RecordingOperations(), options()).createKnowledge(request, null));
+	}
+
+	@Test
+	public void shouldRejectTooManyStructuredCollectionEntries() {
+		MagicTinyflowKnowledgeController.RecallRequest request = new MagicTinyflowKnowledgeController.RecallRequest();
+		request.setKnowledgeId("kb-1"); request.setQuery("hello"); request.setTopK(5);
+		List<Integer> values = new ArrayList<Integer>();
+		for (int index = 0; index < 65; index++) values.add(index);
+		request.setOptions(Collections.<String, Object>singletonMap("values", values));
+
+		assertThrows(IllegalArgumentException.class,
+				() -> controller(new RecordingOperations(), options()).recall(request, null));
+	}
+
+	@Test
+	public void shouldRejectOverdeepStructuredOptions() {
+		MagicTinyflowKnowledgeController.RecallRequest request = new MagicTinyflowKnowledgeController.RecallRequest();
+		request.setKnowledgeId("kb-1"); request.setQuery("hello"); request.setTopK(5);
+		Map<String, Object> root = new LinkedHashMap<String, Object>();
+		Map<String, Object> current = root;
+		for (int depth = 0; depth < 9; depth++) {
+			Map<String, Object> child = new LinkedHashMap<String, Object>();
+			current.put("child", child); current = child;
+		}
+		request.setOptions(root);
+
+		assertThrows(IllegalArgumentException.class,
+				() -> controller(new RecordingOperations(), options()).recall(request, null));
+	}
+
 	private MagicTinyflowKnowledgeController controller(RecordingOperations operations,
 			MagicTinyflowKnowledgeOptionProvider optionProvider) {
 		MagicApiTinyflowKnowledgeRepository repository = new MagicApiTinyflowKnowledgeRepository(
@@ -144,6 +211,12 @@ public class MagicTinyflowKnowledgeManagementControllerTest {
 		metadata.put("vectorStoreKey", "vector-main"); metadata.put("s3Key", "s3-main");
 		request.setMetadata(metadata); request.setEnabled(true); request.setExpectedVersion(0L);
 		return request;
+	}
+
+	private String repeat(char value, int length) {
+		char[] chars = new char[length];
+		Arrays.fill(chars, value);
+		return new String(chars);
 	}
 
 	private MagicTinyflowKnowledgeOptionProvider options() {

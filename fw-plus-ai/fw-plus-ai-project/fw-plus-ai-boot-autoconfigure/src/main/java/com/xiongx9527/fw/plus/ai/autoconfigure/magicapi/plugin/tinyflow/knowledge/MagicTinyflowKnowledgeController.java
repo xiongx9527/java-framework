@@ -11,9 +11,12 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeResult;
 import org.ssssssss.magicapi.core.servlet.MagicHttpServletRequest;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +27,13 @@ public class MagicTinyflowKnowledgeController {
 	private static final int MAX_OPTION_LIMIT = 200;
 	private static final int MAX_SECURITY_LIST_SIZE = 200;
 	private static final int MAX_IMPORT_BYTES = 20 * 1024 * 1024;
+	private static final int MAX_REQUEST_STRING_LENGTH = 8192;
+	private static final int MAX_NAME_LENGTH = 512;
+	private static final int MAX_URL_LENGTH = 4096;
+	private static final int MAX_QUERY_LENGTH = 8192;
+	private static final int MAX_STRUCTURED_STRING_LENGTH = 4096;
+	private static final int MAX_STRUCTURED_ENTRIES = 64;
+	private static final int MAX_STRUCTURED_DEPTH = 8;
 	private final MagicApiTinyflowKnowledgeRepository repository;
 	private final TinyflowKnowledgeAccessKeyService accessKeyService;
 	private final MagicTinyflowTenantResolver tenantResolver;
@@ -158,7 +168,8 @@ public class MagicTinyflowKnowledgeController {
 		try {
 			permissionEvaluator.check(tenantId, "knowledge:import", knowledgeId, servletRequest);
 			validateImport(request);
-			required(request.getName(), "name"); required(request.getContent(), "content");
+			required(request.getName(), "name"); bounded(request.getName(), "name", MAX_NAME_LENGTH);
+			nonBlank(request.getContent(), "content");
 			byte[] content = request.getContent().getBytes(StandardCharsets.UTF_8);
 			limit(content);
 			TinyflowIngestionTask result = management().importDocument(command(tenantId, request, "text",
@@ -177,7 +188,8 @@ public class MagicTinyflowKnowledgeController {
 		try {
 			permissionEvaluator.check(tenantId, "knowledge:import", knowledgeId, servletRequest);
 			validateImport(request);
-			required(request.getFilename(), "filename"); required(request.getMediaType(), "mediaType");
+			required(request.getFilename(), "filename"); bounded(request.getFilename(), "filename", MAX_NAME_LENGTH);
+			required(request.getMediaType(), "mediaType");
 			limit(request.getContent());
 			TinyflowIngestionTask result = management().importDocument(command(tenantId, request, "file",
 					request.getFilename(), request.getMediaType(), request.getContent(), null));
@@ -194,7 +206,7 @@ public class MagicTinyflowKnowledgeController {
 		String knowledgeId = request == null ? null : request.getKnowledgeId();
 		try {
 			permissionEvaluator.check(tenantId, "knowledge:import", knowledgeId, servletRequest);
-			validateImport(request); required(request.getUrl(), "url");
+			validateImport(request); required(request.getUrl(), "url"); bounded(request.getUrl(), "url", MAX_URL_LENGTH);
 			if (urlImporter == null) throw new IllegalStateException("URL importer is unavailable");
 			MagicTinyflowSafeUrlImporter.ImportedContent imported;
 			try {
@@ -235,7 +247,8 @@ public class MagicTinyflowKnowledgeController {
 		try {
 			permissionEvaluator.check(tenantId, "chunk:update", chunkId, servletRequest);
 			if (request == null) throw new IllegalArgumentException("request must not be null");
-			required(knowledgeId, "knowledgeId"); required(chunkId, "chunkId"); required(request.getContent(), "content");
+			required(knowledgeId, "knowledgeId"); required(chunkId, "chunkId"); nonBlank(request.getContent(), "content");
+			limit(request.getContent().getBytes(StandardCharsets.UTF_8)); structured(request.getMetadata(), "metadata");
 			TinyflowChunk result = management().updateChunk(tenantId, knowledgeId, chunkId,
 					request.isEnabled(), request.getContent(), request.getMetadata());
 			audit(tenantId, "chunk:update", chunkId, true, null);
@@ -279,6 +292,7 @@ public class MagicTinyflowKnowledgeController {
 			permissionEvaluator.check(tenantId, "knowledge:recall", knowledgeId, servletRequest);
 			if (request == null) throw new IllegalArgumentException("request must not be null");
 			required(knowledgeId, "knowledgeId"); required(request.getQuery(), "query");
+			bounded(request.getQuery(), "query", MAX_QUERY_LENGTH); structured(request.getOptions(), "options");
 			if (request.getTopK() < 1 || request.getTopK() > MAX_PAGE_SIZE) {
 				throw new IllegalArgumentException("topK must be between 1 and 100");
 			}
@@ -450,6 +464,9 @@ public class MagicTinyflowKnowledgeController {
 	private void validateKnowledge(KnowledgeRequest request, boolean update) {
 		if (request == null) throw new IllegalArgumentException("request must not be null");
 		required(request.getKnowledgeId(), "knowledgeId"); required(request.getName(), "name");
+		bounded(request.getName(), "name", MAX_NAME_LENGTH);
+		bounded(request.getDescription(), "description", MAX_REQUEST_STRING_LENGTH);
+		structured(request.getMetadata(), "metadata");
 		if (update && request.getExpectedVersion() <= 0L) {
 			throw new IllegalArgumentException("expectedVersion must be positive");
 		}
@@ -458,6 +475,7 @@ public class MagicTinyflowKnowledgeController {
 	private void validateImport(BaseImportRequest request) {
 		if (request == null) throw new IllegalArgumentException("request must not be null");
 		required(request.getKnowledgeId(), "knowledgeId"); required(request.getSourceId(), "sourceId");
+		structured(request.getOptions(), "options");
 	}
 
 	private MagicTinyflowKnowledgeOperations.ImportCommand command(String tenantId, BaseImportRequest request,
@@ -535,17 +553,91 @@ public class MagicTinyflowKnowledgeController {
 		required(request.getConnectionId(), "connectionId"); required(request.getKnowledgeId(), "knowledgeId");
 		required(request.getBaseUrl(), "baseUrl"); required(request.getDatasetId(), "datasetId");
 		required(request.getCredentialRef(), "credentialRef");
+		bounded(request.getBaseUrl(), "baseUrl", MAX_URL_LENGTH);
+		bounded(request.getApiKey(), "apiKey", MAX_STRUCTURED_STRING_LENGTH);
 	}
 
 	private void required(String value, String field) {
+		nonBlank(value, field); bounded(value, field, MAX_REQUEST_STRING_LENGTH);
+	}
+
+	private void nonBlank(String value, String field) {
 		if (value == null || value.trim().length() == 0) throw new IllegalArgumentException(field + " must not be blank");
 	}
 
+	private void bounded(String value, String field, int limit) {
+		if (value != null && value.length() > limit) {
+			throw new IllegalArgumentException(field + " exceeds length limit");
+		}
+	}
+
+	private void structured(Object value, String field) {
+		structured(value, field, 0, new IdentityHashMap<Object, Boolean>());
+	}
+
+	private void structured(Object value, String field, int depth, IdentityHashMap<Object, Boolean> visiting) {
+		if (value == null) return;
+		if (depth > MAX_STRUCTURED_DEPTH) throw new IllegalArgumentException(field + " exceeds depth limit");
+		if (value instanceof CharSequence) {
+			bounded(value.toString(), field, MAX_STRUCTURED_STRING_LENGTH); return;
+		}
+		if (value instanceof Map) {
+			Map<?, ?> map = (Map<?, ?>) value;
+			if (map.size() > MAX_STRUCTURED_ENTRIES) throw new IllegalArgumentException(field + " exceeds entry limit");
+			enter(value, field, visiting);
+			try {
+				for (Map.Entry<?, ?> entry : map.entrySet()) {
+					if (!(entry.getKey() instanceof String)) {
+						throw new IllegalArgumentException(field + " keys must be strings");
+					}
+					bounded((String) entry.getKey(), field + " key", MAX_NAME_LENGTH);
+					structured(entry.getValue(), field, depth + 1, visiting);
+				}
+			} finally { visiting.remove(value); }
+			return;
+		}
+		if (value instanceof Collection) {
+			Collection<?> collection = (Collection<?>) value;
+			if (collection.size() > MAX_STRUCTURED_ENTRIES) throw new IllegalArgumentException(field + " exceeds entry limit");
+			enter(value, field, visiting);
+			try {
+				for (Object item : collection) structured(item, field, depth + 1, visiting);
+			} finally { visiting.remove(value); }
+			return;
+		}
+		if (value.getClass().isArray()) {
+			int length = Array.getLength(value);
+			if (length > MAX_STRUCTURED_ENTRIES) throw new IllegalArgumentException(field + " exceeds entry limit");
+			enter(value, field, visiting);
+			try {
+				for (int index = 0; index < length; index++) {
+					structured(Array.get(value, index), field, depth + 1, visiting);
+				}
+			} finally { visiting.remove(value); }
+		}
+	}
+
+	private void enter(Object value, String field, IdentityHashMap<Object, Boolean> visiting) {
+		if (visiting.put(value, Boolean.TRUE) != null) {
+			throw new IllegalArgumentException(field + " must not contain cycles");
+		}
+	}
+
 	private void audit(String tenantId, String action, String resourceId, boolean success, RuntimeException error) {
+		if (!success && error instanceof AuditPersistenceException) return;
 		try {
 			auditSink.record(new MagicTinyflowKnowledgeAuditSink.AuditEvent(tenantId, action, resourceId, success,
 					error == null ? null : error.getClass().getName()));
-		} catch (RuntimeException ignored) { }
+		} catch (RuntimeException auditFailure) {
+			if (error == null) throw new AuditPersistenceException(auditFailure);
+			if (auditFailure != error) error.addSuppressed(auditFailure);
+		}
+	}
+
+	private static final class AuditPersistenceException extends IllegalStateException {
+		private AuditPersistenceException(RuntimeException cause) {
+			super(cause.getMessage(), cause);
+		}
 	}
 
 	public static final class KnowledgeView {
@@ -664,7 +756,7 @@ public class MagicTinyflowKnowledgeController {
 		private String chunkId;
 		private boolean enabled = true;
 		private String content;
-		private Map<String, Object> metadata = new LinkedHashMap<String, Object>();
+		private Map<String, Object> metadata;
 		public String getTenantId() { return tenantId; }
 		public void setTenantId(String tenantId) { this.tenantId = tenantId; }
 		public String getKnowledgeId() { return knowledgeId; }

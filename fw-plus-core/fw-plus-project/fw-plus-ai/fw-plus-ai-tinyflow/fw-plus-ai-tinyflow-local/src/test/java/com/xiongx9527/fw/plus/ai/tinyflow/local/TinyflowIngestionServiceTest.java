@@ -12,6 +12,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowObjectStorage;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowParsedDocument;
 import com.xiongx9527.fw.plus.ai.tinyflow.local.chunk.NormalChunkStrategy;
+import com.xiongx9527.fw.plus.ai.tinyflow.local.index.TinyflowVectorCompensator;
 import com.xiongx9527.fw.plus.ai.tinyflow.local.parser.CompositeTinyflowDocumentParser;
 import com.xiongx9527.fw.plus.ai.tinyflow.local.retrieval.TinyflowLocalRetriever;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowEmbeddingModel;
@@ -78,15 +79,57 @@ public class TinyflowIngestionServiceTest {
 	}
 
 	@Test
-	public void shouldPreserveSourceIdAndCreateNewDocumentVersion() {
+	public void shouldSwitchAndDeleteSupersededDocumentVersionAfterSuccessfulImport() {
 		service.importDocument(fileImport("source-1", "sha256-old", "old content", null));
 		TinyflowDocument v1 = repository.findActiveDocument("tenant-a", "kb-1", "source-1");
-		service.importDocument(fileImport("source-1", "sha256-new", "new content", null));
+		List<String> oldVectorIds = repository.findChunksByDocument("tenant-a", "kb-1", v1.getDocumentId())
+				.get(0).getVectorIds();
+
+		TinyflowIngestionTask task = service.importDocument(
+				fileImport("source-1", "sha256-new", "new content", null));
 		TinyflowDocument v2 = repository.findActiveDocument("tenant-a", "kb-1", "source-1");
 
+		assertEquals("COMPLETED", latest(task.getTaskId()).getStatus());
 		assertEquals(v1.getSourceId(), v2.getSourceId());
 		assertNotEquals(v1.getDocumentId(), v2.getDocumentId());
-		assertEquals(2, repository.findDocumentVersions("tenant-a", "kb-1", "source-1").size());
+		assertEquals(Collections.singletonList(v2),
+				repository.findDocumentVersions("tenant-a", "kb-1", "source-1"));
+		assertTrue(repository.findChunksByDocument("tenant-a", "kb-1", v1.getDocumentId()).isEmpty());
+		assertEquals(oldVectorIds, index.lastDeletedVectorIds);
+		assertTrue(repository.compensations.isEmpty());
+	}
+
+	@Test
+	public void shouldKeepNewVersionActiveAndRetainCleanupWhenOldVectorDeletionFails() {
+		service.importDocument(fileImport("source-cleanup", "sha256-old", "old content", null));
+		TinyflowDocument oldVersion = repository.findActiveDocument(
+				"tenant-a", "kb-1", "source-cleanup");
+		List<String> oldVectorIds = repository.findChunksByDocument(
+				"tenant-a", "kb-1", oldVersion.getDocumentId()).get(0).getVectorIds();
+		index.failDelete = true;
+
+		TinyflowIngestionTask task = service.importDocument(
+				fileImport("source-cleanup", "sha256-new", "new content", null));
+		TinyflowDocument active = repository.findActiveDocument("tenant-a", "kb-1", "source-cleanup");
+
+		assertEquals("COMPLETED", latest(task.getTaskId()).getStatus());
+		assertNotEquals(oldVersion.getDocumentId(), active.getDocumentId());
+		assertEquals(2, repository.findDocumentVersions("tenant-a", "kb-1", "source-cleanup").size());
+		assertEquals(1, repository.compensations.size());
+		TinyflowKnowledgeRepository.VectorCompensation compensation = repository.compensations.get(0);
+		assertEquals("DELETE_OLD_VERSION", compensation.getOperation());
+		assertEquals(TinyflowKnowledgeRepository.VectorCompensation.VECTOR_PENDING, compensation.getStage());
+		assertEquals(oldVersion.getDocumentId(), compensation.getDocumentId());
+		assertEquals(oldVectorIds, compensation.getVectorIds());
+
+		index.failDelete = false;
+		new TinyflowVectorCompensator(repository, index).retry("tenant-a", "kb-1");
+
+		assertEquals(Collections.singletonList(active),
+				repository.findDocumentVersions("tenant-a", "kb-1", "source-cleanup"));
+		assertTrue(repository.findChunksByDocument(
+				"tenant-a", "kb-1", oldVersion.getDocumentId()).isEmpty());
+		assertTrue(repository.compensations.isEmpty());
 	}
 
 	@Test
@@ -165,6 +208,79 @@ public class TinyflowIngestionServiceTest {
 		assertEquals(0, failed.getMetadata().get("retryCount"));
 		assertFalse(failed.getMessage().contains("secret-token"));
 		assertFalse(failed.getMessage().contains("/private"));
+	}
+
+	@Test
+	public void shouldDeleteUploadedObjectAndFailedVersionWhenAsyncIngestionFails() {
+		storage.values.put("object-fail", "bad".getBytes(StandardCharsets.UTF_8));
+		TinyflowDocumentParser failing = new TinyflowDocumentParser() {
+			@Override public boolean supports(String mediaType, String fileName) { return true; }
+			@Override public TinyflowParsedDocument parse(InputStream input, ParseContext context) throws IOException {
+				throw new IOException("parse failed");
+			}
+		};
+		DefaultTinyflowIngestionService failingService = service(Runnable::run,
+				new CompositeTinyflowDocumentParser(Collections.singletonList(failing)));
+
+		TinyflowIngestionTask task = failingService.importDocument(
+				fileImport("source-object-fail", "sha256-object-fail", null, "object-fail"));
+
+		assertEquals("FAILED", latest(task.getTaskId()).getStatus());
+		assertFalse(storage.exists("tenant-a", "object-fail"));
+		assertTrue(repository.findDocumentVersions(
+				"tenant-a", "kb-1", "source-object-fail").isEmpty());
+		assertTrue(repository.compensations.isEmpty());
+	}
+
+	@Test
+	public void shouldRetainFailedObjectCleanupAndCompleteItOnRetry() {
+		storage.values.put("object-cleanup-retry", "bad".getBytes(StandardCharsets.UTF_8));
+		storage.failDelete = true;
+		TinyflowDocumentParser failing = new TinyflowDocumentParser() {
+			@Override public boolean supports(String mediaType, String fileName) { return true; }
+			@Override public TinyflowParsedDocument parse(InputStream input, ParseContext context) throws IOException {
+				throw new IOException("parse failed");
+			}
+		};
+		DefaultTinyflowIngestionService failingService = service(Runnable::run,
+				new CompositeTinyflowDocumentParser(Collections.singletonList(failing)));
+
+		failingService.importDocument(fileImport(
+				"source-cleanup-retry", "sha256-cleanup-retry", null, "object-cleanup-retry"));
+
+		assertTrue(storage.exists("tenant-a", "object-cleanup-retry"));
+		assertEquals(1, repository.findDocumentVersions(
+				"tenant-a", "kb-1", "source-cleanup-retry").size());
+		assertEquals(1, repository.compensations.size());
+		assertEquals(TinyflowVectorCompensator.DELETE_FAILED_IMPORT,
+				repository.compensations.get(0).getOperation());
+		assertEquals(TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING,
+				repository.compensations.get(0).getStage());
+
+		storage.failDelete = false;
+		new TinyflowVectorCompensator(repository, index, storage).retry("tenant-a", "kb-1");
+
+		assertFalse(storage.exists("tenant-a", "object-cleanup-retry"));
+		assertTrue(repository.findDocumentVersions(
+				"tenant-a", "kb-1", "source-cleanup-retry").isEmpty());
+		assertTrue(repository.compensations.isEmpty());
+	}
+
+	@Test
+	public void shouldDeleteUploadedObjectWhenQueuedIngestionIsCancelled() {
+		storage.values.put("object-cancel", "cancel".getBytes(StandardCharsets.UTF_8));
+		ManualExecutor executor = new ManualExecutor();
+		DefaultTinyflowIngestionService queued = service(executor, CompositeTinyflowDocumentParser.defaults());
+		TinyflowIngestionTask pending = queued.importDocument(
+				fileImport("source-object-cancel", "sha256-object-cancel", null, "object-cancel"));
+
+		queued.cancel("tenant-a", "kb-1", pending.getTaskId());
+		executor.runNext();
+
+		assertFalse(storage.exists("tenant-a", "object-cancel"));
+		assertTrue(repository.findDocumentVersions(
+				"tenant-a", "kb-1", "source-object-cancel").isEmpty());
+		assertTrue(repository.compensations.isEmpty());
 	}
 
 	@Test
@@ -503,6 +619,9 @@ public class TinyflowIngestionServiceTest {
 		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
 		metadata.put("checksum", checksum);
 		metadata.put("mediaType", "text/plain");
+		if (objectKey != null) {
+			metadata.put("s3Key", "s3-main");
+		}
 		TinyflowDocument document = TinyflowDocument.builder().tenantId("tenant-a").knowledgeId("kb-1")
 				.sourceId(sourceId).sourceType("file").documentId("request-document")
 				.checksum(checksum).name("fixture.txt").content(content).sourceUri(objectKey).metadata(metadata)
@@ -637,6 +756,7 @@ public class TinyflowIngestionServiceTest {
 
 	private static final class InMemoryObjectStorage implements TinyflowObjectStorage {
 		private final Map<String, byte[]> values = new LinkedHashMap<String, byte[]>();
+		private boolean failDelete;
 
 		@Override
 		public StoredObject put(String tenantId, String objectKey, InputStream input, String mediaType,
@@ -660,6 +780,9 @@ public class TinyflowIngestionServiceTest {
 
 		@Override
 		public void delete(String tenantId, String objectKey) {
+			if (failDelete) {
+				throw new IllegalStateException("Object delete failed");
+			}
 			values.remove(objectKey);
 		}
 	}
@@ -784,7 +907,24 @@ public class TinyflowIngestionServiceTest {
 		@Override
 		public synchronized void deleteDocumentVersion(String tenantId, String knowledgeId,
 				String sourceId, String documentId) {
-			// This ingestion fixture never creates version-cleanup compensation.
+			String documentKey = documentKey(tenantId, knowledgeId, documentId);
+			TinyflowDocument document = documents.get(documentKey);
+			if (document == null) {
+				return;
+			}
+			if (!sourceId.equals(document.getSourceId())) {
+				throw new IllegalArgumentException("Document does not belong to source");
+			}
+			if (documentId.equals(active.get(sourceKey(tenantId, knowledgeId, sourceId)))) {
+				throw new IllegalStateException("Active document version cannot be deleted");
+			}
+			documents.remove(documentKey);
+			for (TinyflowChunk chunk : new ArrayList<TinyflowChunk>(chunks.values())) {
+				if (tenantId.equals(chunk.getTenantId()) && knowledgeId.equals(chunk.getKnowledgeId())
+						&& documentId.equals(chunk.getDocumentId())) {
+					chunks.remove(chunkKey(tenantId, knowledgeId, chunk.getChunkId()));
+				}
+			}
 		}
 
 		@Override

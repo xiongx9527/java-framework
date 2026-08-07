@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocument;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowIngestionTask;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeDefinition;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowObjectStorage;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreDescriptor;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
 
@@ -28,15 +29,23 @@ public final class TinyflowKnowledgeMaintenanceService {
 	private final TinyflowKnowledgeRepository repository;
 	private final TinyflowLocalIndexer indexer;
 	private final TinyflowVectorStoreProvider vectorStoreProvider;
+	private final TinyflowObjectStorage objectStorage;
 
 	public TinyflowKnowledgeMaintenanceService(TinyflowKnowledgeRepository repository,
 			TinyflowLocalIndexer indexer, TinyflowVectorStoreProvider vectorStoreProvider) {
+		this(repository, indexer, vectorStoreProvider, null);
+	}
+
+	public TinyflowKnowledgeMaintenanceService(TinyflowKnowledgeRepository repository,
+			TinyflowLocalIndexer indexer, TinyflowVectorStoreProvider vectorStoreProvider,
+			TinyflowObjectStorage objectStorage) {
 		if (repository == null || indexer == null || vectorStoreProvider == null) {
 			throw new IllegalArgumentException("Maintenance dependencies must not be null");
 		}
 		this.repository = repository;
 		this.indexer = indexer;
 		this.vectorStoreProvider = vectorStoreProvider;
+		this.objectStorage = objectStorage;
 	}
 
 	public TinyflowKnowledgeDefinition create(TinyflowKnowledgeDefinition definition) {
@@ -117,7 +126,7 @@ public final class TinyflowKnowledgeMaintenanceService {
 			throw new TinyflowException("Knowledge source deletion could not be started", exception);
 		}
 		try {
-			new TinyflowVectorCompensator(repository, indexer).complete(compensation);
+			compensator().complete(compensation);
 		} catch (Exception exception) {
 			throw new TinyflowException("Knowledge source deletion is pending compensation", exception);
 		}
@@ -149,7 +158,8 @@ public final class TinyflowKnowledgeMaintenanceService {
 			throw new TinyflowException("Chunk was not found");
 		}
 		Map<String, Object> replacementMetadata = metadata == null
-				? Collections.<String, Object>emptyMap() : new LinkedHashMap<String, Object>(metadata);
+				? new LinkedHashMap<String, Object>(current.getMetadata())
+				: new LinkedHashMap<String, Object>(metadata);
 		if (Objects.equals(current.getContent(), content)
 				&& Objects.equals(current.getMetadata(), replacementMetadata)) {
 			repository.updateChunk(tenantId, knowledgeId, chunkId, enabled, content, replacementMetadata);
@@ -169,7 +179,7 @@ public final class TinyflowKnowledgeMaintenanceService {
 			throw new TinyflowException("Chunk replacement could not be persisted", exception);
 		}
 		try {
-			new TinyflowVectorCompensator(repository, indexer).complete(cleanup);
+			compensator().complete(cleanup);
 		} catch (Exception exception) {
 			throw new TinyflowException("Chunk replacement is pending vector cleanup", exception);
 		}
@@ -192,7 +202,7 @@ public final class TinyflowKnowledgeMaintenanceService {
 			TinyflowKnowledgeRepository.VectorCompensation rollback = indexer.recordCompensation(
 					document, indexed.getVectorIds(), TinyflowVectorCompensator.INDEX_ROLLBACK);
 			if (rollback != null) {
-				new TinyflowVectorCompensator(repository, indexer).complete(rollback);
+				compensator().complete(rollback);
 			}
 		} catch (Exception cleanupFailure) {
 			original.addSuppressed(cleanupFailure);
@@ -200,7 +210,7 @@ public final class TinyflowKnowledgeMaintenanceService {
 	}
 
 	private void completePendingCompensations(String tenantId, String knowledgeId) {
-		TinyflowVectorCompensator compensator = new TinyflowVectorCompensator(repository, indexer);
+		TinyflowVectorCompensator compensator = compensator();
 		for (TinyflowKnowledgeRepository.VectorCompensation compensation
 				: repository.findVectorCompensations(tenantId, knowledgeId)) {
 			try {
@@ -213,10 +223,14 @@ public final class TinyflowKnowledgeMaintenanceService {
 
 	private void cleanupOldVersion(TinyflowKnowledgeRepository.VectorCompensation compensation) {
 		try {
-			new TinyflowVectorCompensator(repository, indexer).complete(compensation);
+			compensator().complete(compensation);
 		} catch (Exception exception) {
 			throw new TinyflowException("Old document version cleanup is pending compensation", exception);
 		}
+	}
+
+	private TinyflowVectorCompensator compensator() {
+		return new TinyflowVectorCompensator(repository, indexer, objectStorage);
 	}
 
 	private List<TinyflowKnowledgeRepository.VectorCompensation> cleanupCompensations(

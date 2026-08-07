@@ -1,29 +1,52 @@
 package com.xiongx9527.fw.plus.ai.tinyflow.local.index;
 
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowIngestionTask;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowDocument;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
+import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowObjectStorage;
+import com.xiongx9527.fw.plus.ai.tinyflow.local.DefaultTinyflowIngestionService;
 
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** Retries durable vector cleanup and completes the resource transition recorded by each operation. */
 public final class TinyflowVectorCompensator {
 	static final String INDEX_ROLLBACK = "INDEX_ROLLBACK";
-	static final String DELETE_OLD_VERSION = "DELETE_OLD_VERSION";
+	public static final String DELETE_OLD_VERSION = "DELETE_OLD_VERSION";
+	public static final String DELETE_FAILED_IMPORT = "DELETE_FAILED_IMPORT";
 	static final String DELETE_PENDING = "DELETE_PENDING";
 	static final String DELETE_REPLACED_CHUNK_VECTORS = "DELETE_REPLACED_CHUNK_VECTORS";
 
 	private final TinyflowKnowledgeRepository repository;
-	private final TinyflowLocalIndexer indexer;
+	private final DefaultTinyflowIngestionService.IngestionIndex indexer;
+	private final TinyflowObjectStorage objectStorage;
 
 	public TinyflowVectorCompensator(TinyflowKnowledgeRepository repository, TinyflowLocalIndexer indexer) {
+		this(repository, (DefaultTinyflowIngestionService.IngestionIndex) indexer, null);
+	}
+
+	public TinyflowVectorCompensator(TinyflowKnowledgeRepository repository, TinyflowLocalIndexer indexer,
+			TinyflowObjectStorage objectStorage) {
+		this(repository, (DefaultTinyflowIngestionService.IngestionIndex) indexer, objectStorage);
+	}
+
+	public TinyflowVectorCompensator(TinyflowKnowledgeRepository repository,
+			DefaultTinyflowIngestionService.IngestionIndex indexer) {
+		this(repository, indexer, null);
+	}
+
+	public TinyflowVectorCompensator(TinyflowKnowledgeRepository repository,
+			DefaultTinyflowIngestionService.IngestionIndex indexer, TinyflowObjectStorage objectStorage) {
 		if (repository == null || indexer == null) {
 			throw new IllegalArgumentException("repository and indexer must not be null");
 		}
 		this.repository = repository;
 		this.indexer = indexer;
+		this.objectStorage = objectStorage;
 	}
 
 	public void retry(String tenantId, String knowledgeId) {
@@ -38,7 +61,7 @@ public final class TinyflowVectorCompensator {
 		}
 	}
 
-	void complete(TinyflowKnowledgeRepository.VectorCompensation compensation) throws Exception {
+	public void complete(TinyflowKnowledgeRepository.VectorCompensation compensation) throws Exception {
 		if (compensation == null || !isSupported(compensation.getOperation())) {
 			return;
 		}
@@ -52,8 +75,10 @@ public final class TinyflowVectorCompensator {
 			advance(compensation, stage, nextStage);
 			stage = nextStage;
 		}
-		if (DELETE_OLD_VERSION.equals(compensation.getOperation())
+		if ((DELETE_OLD_VERSION.equals(compensation.getOperation())
+				|| DELETE_FAILED_IMPORT.equals(compensation.getOperation()))
 				&& TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING.equals(stage)) {
+			deleteStoredObject(document(compensation));
 			repository.deleteDocumentVersion(compensation.getTenantId(), compensation.getKnowledgeId(),
 					compensation.getSourceId(), compensation.getDocumentId());
 			advance(compensation, stage, TinyflowKnowledgeRepository.VectorCompensation.COMPLETE);
@@ -61,6 +86,8 @@ public final class TinyflowVectorCompensator {
 		}
 		if (DELETE_PENDING.equals(compensation.getOperation())
 				&& TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING.equals(stage)) {
+			deleteStoredObjects(repository.findDocumentVersions(
+					compensation.getTenantId(), compensation.getKnowledgeId(), compensation.getSourceId()));
 			repository.deleteDocumentsBySource(
 					compensation.getTenantId(), compensation.getKnowledgeId(), compensation.getSourceId());
 			advance(compensation, stage, TinyflowKnowledgeRepository.VectorCompensation.TASK_PENDING);
@@ -86,7 +113,34 @@ public final class TinyflowVectorCompensator {
 
 	private boolean isSupported(String operation) {
 		return INDEX_ROLLBACK.equals(operation) || DELETE_OLD_VERSION.equals(operation)
-				|| DELETE_PENDING.equals(operation) || DELETE_REPLACED_CHUNK_VECTORS.equals(operation);
+				|| DELETE_FAILED_IMPORT.equals(operation) || DELETE_PENDING.equals(operation)
+				|| DELETE_REPLACED_CHUNK_VECTORS.equals(operation);
+	}
+
+	private TinyflowDocument document(TinyflowKnowledgeRepository.VectorCompensation compensation) {
+		for (TinyflowDocument document : repository.findDocumentVersions(compensation.getTenantId(),
+				compensation.getKnowledgeId(), compensation.getSourceId())) {
+			if (compensation.getDocumentId().equals(document.getDocumentId())) {
+				return document;
+			}
+		}
+		return null;
+	}
+
+	private void deleteStoredObjects(List<TinyflowDocument> documents) {
+		Set<String> deleted = new LinkedHashSet<String>();
+		for (TinyflowDocument document : documents) {
+			if (document != null && document.getSourceUri() != null && deleted.add(document.getSourceUri())) {
+				deleteStoredObject(document);
+			}
+		}
+	}
+
+	private void deleteStoredObject(TinyflowDocument document) {
+		if (objectStorage != null && document != null && document.getSourceUri() != null
+				&& document.getMetadata().containsKey("s3Key")) {
+			objectStorage.delete(document.getTenantId(), document.getSourceUri());
+		}
 	}
 
 	private TinyflowIngestionTask deletedTask(TinyflowKnowledgeRepository.VectorCompensation compensation) {
