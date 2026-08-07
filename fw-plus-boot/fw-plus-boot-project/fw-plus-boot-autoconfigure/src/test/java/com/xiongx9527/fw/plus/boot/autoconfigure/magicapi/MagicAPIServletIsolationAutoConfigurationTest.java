@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller.MagicAPIController;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.ManagedMagicDynamicDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.filter.auth.AuthConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.filter.auth.AuthFilter;
 import org.junit.jupiter.api.Test;
@@ -10,12 +11,14 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.context.annotation.Configurations;
 import org.ssssssss.magicapi.core.config.MagicAPIProperties;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.resource.Resource;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 import org.ssssssss.magicapi.datasource.model.DataSourceInfo;
 import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
+import org.ssssssss.magicapi.spring.boot.starter.MagicAPIAutoConfiguration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -56,6 +59,36 @@ class MagicAPIServletIsolationAutoConfigurationTest {
                     "magic-api.plugin.satoken.enabled=false",
                     "magic-api.plugin.mcp.enabled=false")
             .withUserConfiguration(MagicApiConfiguration.class);
+
+    @Test
+    void usesManagedDynamicDataSourceByDefault() {
+        new WebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        MagicAPIDynamicDataSourceAutoConfiguration.class))
+                .run(context -> assertThat(context.getBean(MagicDynamicDataSource.class))
+                        .isInstanceOf(ManagedMagicDynamicDataSource.class));
+    }
+
+    @Test
+    void backsOffForAUserProvidedDynamicDataSource() {
+        new WebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        MagicAPIDynamicDataSourceAutoConfiguration.class))
+                .withUserConfiguration(UserDynamicDataSourceConfiguration.class)
+                .run(context -> assertThat(context.getBean(MagicDynamicDataSource.class))
+                        .isSameAs(UserDynamicDataSourceConfiguration.DYNAMIC_DATA_SOURCE));
+    }
+
+    @Test
+    void ordersManagedDynamicDataSourceBeforeUpstreamServletConfiguration() {
+        Class<?>[] ordered = Configurations.getClasses(AutoConfigurations.of(
+                MagicAPIAutoConfiguration.class,
+                MagicAPIDynamicDataSourceAutoConfiguration.class));
+
+        assertThat(ordered).containsExactly(
+                MagicAPIDynamicDataSourceAutoConfiguration.class,
+                MagicAPIAutoConfiguration.class);
+    }
 
     @Test
     void excludesServletAuthBeansInReactiveWebContext() {
@@ -100,5 +133,17 @@ class MagicAPIServletIsolationAutoConfigurationTest {
             return mock(Resource.class);
         }
 
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    static class UserDynamicDataSourceConfiguration {
+
+        private static final MagicDynamicDataSource DYNAMIC_DATA_SOURCE =
+                new MagicDynamicDataSource();
+
+        @Bean
+        MagicDynamicDataSource userMagicDynamicDataSource() {
+            return DYNAMIC_DATA_SOURCE;
+        }
     }
 }

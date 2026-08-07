@@ -531,6 +531,42 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 	}
 
 	@Test
+	void equivalentReplacementAfterPublicationDoesNotReceiveThePublishedNodesStages() {
+		EquivalentReplacementManagedMagicDynamicDataSource dynamicDataSource =
+				new EquivalentReplacementManagedMagicDynamicDataSource();
+		PerRegistrationStageDecorator stageDecorator = new PerRegistrationStageDecorator();
+		CloseTrackingDataSource sharedFinalDataSource = new CloseTrackingDataSource();
+		TestRegistry registry = registry(dynamicDataSource,
+				new FixedBuilder(new CloseTrackingDataSource()),
+				Arrays.<MagicDataSourceDecorator>asList(
+						stageDecorator, new SharedFinalDataSourceDecorator(sharedFinalDataSource)));
+
+		assertThat(registry.registerDirect(info("orders-id", "orders"))).isTrue();
+		DataSource publishedStage = stageDecorator.createdStages.get(0);
+		registry.unregisterDirect("orders");
+
+		assertThat(stageDecorator.removedStages.get("orders"))
+				.isSameAs(sharedFinalDataSource)
+				.isNotSameAs(publishedStage);
+	}
+
+	@Test
+	void customParentSubtypeFailsFastInsteadOfInferringAnEquivalentReplacement() {
+		EquivalentReplacementMagicDynamicDataSource dynamicDataSource =
+				new EquivalentReplacementMagicDynamicDataSource();
+		CloseTrackingDataSource rawDataSource = new CloseTrackingDataSource();
+		OwnedStageDecorator decorator = new OwnedStageDecorator();
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(rawDataSource),
+				Collections.<MagicDataSourceDecorator>singletonList(decorator));
+
+		assertThatThrownBy(() -> registry.registerDirect(info("orders-id", "orders")))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("ManagedMagicDynamicDataSource");
+		assertThat(rawDataSource.closeCount).isOne();
+		assertThat(decorator.stage.closeCount).isOne();
+	}
+
+	@Test
 	void hiddenPublishedNodeSnapshotDoesNotPreventExactNodeRegistration() {
 		HidingPublishedNodeMagicDynamicDataSource dynamicDataSource =
 				new HidingPublishedNodeMagicDynamicDataSource();
@@ -558,51 +594,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 	}
 
 	@Test
-	void replacementAfterIdentityLookupIsNotDeletedByFailedCompensation() throws Exception {
-		BlockingPublishedNodeLookupMagicDynamicDataSource dynamicDataSource =
-				new BlockingPublishedNodeLookupMagicDynamicDataSource();
-		AvailableDataSource firstRaw = new AvailableDataSource();
-		CascadingStageDecorator firstInner = new CascadingStageDecorator();
-		CascadingStageDecorator firstOuter = new CascadingStageDecorator();
-		TestRegistry firstRegistry = registry(dynamicDataSource, new FixedBuilder(firstRaw),
-				Arrays.<MagicDataSourceDecorator>asList(firstInner, firstOuter));
-		AvailableDataSource replacementRaw = new AvailableDataSource();
-		CascadingStageDecorator replacementDecorator = new CascadingStageDecorator();
-		TestRegistry replacementRegistry = registry(dynamicDataSource, new FixedBuilder(replacementRaw),
-				Collections.<MagicDataSourceDecorator>singletonList(replacementDecorator));
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		try {
-			Future<Throwable> firstRegistration = executor.submit(() ->
-					org.assertj.core.api.Assertions.catchThrowable(
-							() -> firstRegistry.registerDirect(info("first-id", "orders"))));
-			assertThat(dynamicDataSource.publishedNodeRead.await(5, TimeUnit.SECONDS)).isTrue();
-			assertThat(replacementRegistry.registerDirect(info("replacement-id", "orders"))).isTrue();
-			replacementDecorator.removedStages.clear();
-			dynamicDataSource.releasePublishedNodeRead.countDown();
-			firstRegistration.get(5, TimeUnit.SECONDS);
-
-			DataSource replacement = findDataSource(dynamicDataSource, "orders");
-			assertThat(replacement).isSameAs(replacementDecorator.stages.get(0));
-			assertThat(replacement.getConnection()).isSameAs(replacementRaw.connection);
-			assertThat(replacementRaw.closeCount).isZero();
-			assertThat(replacementDecorator.stages.get(0).closeCount).isZero();
-			assertThat(firstRaw.closeCount).isOne();
-			assertThat(firstInner.stages.get(0).closeCount).isOne();
-			assertThat(firstOuter.stages.get(0).closeCount).isOne();
-			assertThat(firstInner.cleanupCount).isZero();
-			assertThat(firstOuter.cleanupCount).isZero();
-
-			replacementRegistry.unregisterDirect("orders");
-			assertThat(replacementDecorator.removedStages.get("orders"))
-					.isSameAs(replacementDecorator.stages.get(0));
-		} finally {
-			dynamicDataSource.releasePublishedNodeRead.countDown();
-			executor.shutdownNow();
-		}
-	}
-
-	@Test
-	void unidentifiablePublicationDoesNotDeleteTheReplacementNodeOrCleanTheOldChainTwice() throws Exception {
+	void managedPublicationBlocksAnotherRegistryUntilTheNodeIsReady() throws Exception {
 		BlockingPublicationMagicDynamicDataSource dynamicDataSource =
 				new BlockingPublicationMagicDynamicDataSource();
 		AvailableDataSource firstRaw = new AvailableDataSource();
@@ -614,20 +606,27 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		CascadingStageDecorator replacementDecorator = new CascadingStageDecorator();
 		TestRegistry replacementRegistry = registry(dynamicDataSource, new FixedBuilder(replacementRaw),
 				Collections.<MagicDataSourceDecorator>singletonList(replacementDecorator));
-		ExecutorService executor = Executors.newSingleThreadExecutor();
+		ExecutorService executor = Executors.newFixedThreadPool(2);
 		try {
-			Future<Throwable> firstRegistration = executor.submit(() ->
-					org.assertj.core.api.Assertions.catchThrowable(
-							() -> firstRegistry.registerDirect(info("first-id", "orders"))));
+			Future<Boolean> firstRegistration = executor.submit(() ->
+					firstRegistry.registerDirect(info("first-id", "orders")));
 			assertThat(dynamicDataSource.nodePublished.await(5, TimeUnit.SECONDS)).isTrue();
-			assertThat(replacementRegistry.registerDirect(info("replacement-id", "orders"))).isTrue();
-			replacementDecorator.removedStages.clear();
-			dynamicDataSource.releaseDelete.countDown();
-			dynamicDataSource.releasePut.countDown();
+			AtomicReference<Thread> replacementThread = new AtomicReference<Thread>();
+			CountDownLatch replacementAttempting = new CountDownLatch(1);
+			Future<Boolean> replacementRegistration = executor.submit(() -> {
+				replacementThread.set(Thread.currentThread());
+				replacementAttempting.countDown();
+				return replacementRegistry.registerDirect(info("replacement-id", "orders"));
+			});
+			assertThat(replacementAttempting.await(5, TimeUnit.SECONDS)).isTrue();
+			assertThat(awaitBlockedOrDeleteEntered(
+					replacementThread.get(), dynamicDataSource.deleteEntered))
+					.isEqualTo(Thread.State.BLOCKED);
 
-			assertThat(firstRegistration.get(5, TimeUnit.SECONDS))
-					.isInstanceOf(IllegalStateException.class)
-					.hasMessageContaining("published DataSource node");
+			dynamicDataSource.releasePut.countDown();
+			assertThat(firstRegistration.get(5, TimeUnit.SECONDS)).isTrue();
+			assertThat(replacementRegistration.get(5, TimeUnit.SECONDS)).isTrue();
+
 			DataSource replacement = findDataSource(dynamicDataSource, "orders");
 			assertThat(replacement).isSameAs(replacementDecorator.stages.get(0));
 			assertThat(replacement.getConnection()).isSameAs(replacementRaw.connection);
@@ -638,15 +637,35 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 			assertThat(firstOuter.stages.get(0).closeCount).isOne();
 			assertThat(firstInner.cleanupCount).isZero();
 			assertThat(firstOuter.cleanupCount).isZero();
+			assertThat(replacementDecorator.removedStages.get("orders"))
+					.isSameAs(firstOuter.stages.get(0));
 
+			dynamicDataSource.releaseDelete.countDown();
 			replacementRegistry.unregisterDirect("orders");
 			assertThat(replacementDecorator.removedStages.get("orders"))
 					.isSameAs(replacementDecorator.stages.get(0));
 		} finally {
-			dynamicDataSource.releaseDelete.countDown();
 			dynamicDataSource.releasePut.countDown();
+			dynamicDataSource.releaseDelete.countDown();
 			executor.shutdownNow();
 		}
+	}
+
+	@Test
+	void exactParentCompatibilityPublishesAndRemovesItsDecorationStages() {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		AvailableDataSource rawDataSource = new AvailableDataSource();
+		CascadingStageDecorator decorator = new CascadingStageDecorator();
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(rawDataSource),
+				Collections.<MagicDataSourceDecorator>singletonList(decorator));
+
+		assertThat(registry.registerDirect(info("orders-id", "orders"))).isTrue();
+		registry.unregisterDirect("orders");
+
+		assertThat(decorator.removedStages.get("orders")).isSameAs(decorator.stages.get(0));
+		assertThat(rawDataSource.closeCount).isOne();
+		assertThat(decorator.stages.get(0).closeCount).isOne();
+		assertThat(decorator.cleanupCount).isZero();
 	}
 
 	@Test
@@ -790,7 +809,7 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		}
 	}
 
-	private static class BlockingDeleteMagicDynamicDataSource extends MagicDynamicDataSource {
+	private static class BlockingDeleteMagicDynamicDataSource extends ManagedMagicDynamicDataSource {
 
 		final CountDownLatch deleteEntered = new CountDownLatch(1);
 		final CountDownLatch releaseDelete = new CountDownLatch(1);
@@ -811,24 +830,29 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		private boolean blockNextPut = true;
 
 		@Override
-		public void put(String id, String key, String name, DataSource dataSource, int maxRows) {
-			super.put(id, key, name, dataSource, maxRows);
+		public synchronized DataSourceNode putAndGet(String id, String key, String name,
+				DataSource dataSource, int maxRows) {
+			DataSourceNode publishedNode = super.putAndGet(id, key, name, dataSource, maxRows);
 			if (blockNextPut) {
 				blockNextPut = false;
 				nodePublished.countDown();
 				await(releasePut, "put release timed out");
 			}
+			return publishedNode;
 		}
 	}
 
-	private static final class HidingPublishedNodeMagicDynamicDataSource extends MagicDynamicDataSource {
+	private static final class HidingPublishedNodeMagicDynamicDataSource
+			extends ManagedMagicDynamicDataSource {
 
 		private boolean hideNextSnapshot;
 
 		@Override
-		public void put(String id, String key, String name, DataSource dataSource, int maxRows) {
-			super.put(id, key, name, dataSource, maxRows);
+		public synchronized DataSourceNode putAndGet(String id, String key, String name,
+				DataSource dataSource, int maxRows) {
+			DataSourceNode publishedNode = super.putAndGet(id, key, name, dataSource, maxRows);
 			hideNextSnapshot = true;
+			return publishedNode;
 		}
 
 		@Override
@@ -841,42 +865,33 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		}
 	}
 
-	private static final class BlockingPublishedNodeLookupMagicDynamicDataSource
+	private static final class EquivalentReplacementManagedMagicDynamicDataSource
+			extends ManagedMagicDynamicDataSource {
+
+		@Override
+		public synchronized void put(String id, String key, String name,
+				DataSource dataSource, int maxRows) {
+			super.put(id, key, name, dataSource, maxRows);
+			super.put(id, key, name, dataSource, maxRows);
+		}
+
+		@Override
+		public synchronized DataSourceNode putAndGet(String id, String key, String name,
+				DataSource dataSource, int maxRows) {
+			DataSourceNode publishedNode = super.putAndGet(id, key, name, dataSource, maxRows);
+			super.put(id, key, name, dataSource, maxRows);
+			return publishedNode;
+		}
+	}
+
+	private static final class EquivalentReplacementMagicDynamicDataSource
 			extends MagicDynamicDataSource {
 
-		private final CountDownLatch publishedNodeRead = new CountDownLatch(1);
-		private final CountDownLatch releasePublishedNodeRead = new CountDownLatch(1);
-		private boolean hideNextSnapshot;
-		private boolean firstPut = true;
-		private boolean blockNextLookup = true;
-
 		@Override
-		public void put(String id, String key, String name, DataSource dataSource, int maxRows) {
+		public void put(String id, String key, String name,
+				DataSource dataSource, int maxRows) {
 			super.put(id, key, name, dataSource, maxRows);
-			if (firstPut) {
-				firstPut = false;
-				hideNextSnapshot = true;
-			}
-		}
-
-		@Override
-		public DataSourceNode getDataSource(String key) {
-			DataSourceNode node = super.getDataSource(key);
-			if (blockNextLookup) {
-				blockNextLookup = false;
-				publishedNodeRead.countDown();
-				await(releasePublishedNodeRead, "published node lookup release timed out");
-			}
-			return node;
-		}
-
-		@Override
-		public java.util.Collection<DataSourceNode> datasourceNodes() {
-			if (hideNextSnapshot) {
-				hideNextSnapshot = false;
-				return Collections.emptyList();
-			}
-			return super.datasourceNodes();
+			super.put(id, key, name, dataSource, maxRows);
 		}
 	}
 

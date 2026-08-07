@@ -209,9 +209,9 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
 				List<MagicDynamicDataSource.DataSourceNode> replacedNodes =
 						findDataSources(info.getId(), info.getKey());
 				removalClaims = prepareRemove(replacedNodes);
+				MagicDynamicDataSource.DataSourceNode publishedNode;
 				try {
-					magicDynamicDataSource.put(info.getId(), info.getKey(), info.getName(),
-							datasource, info.getMaxRows());
+					publishedNode = publishDataSource(info, datasource);
 				} catch (RuntimeException e) {
 					afterRemoveFailure(removalClaims, e);
 					throw e;
@@ -221,8 +221,6 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
 				}
 				cleanupDisposition = RegistrationCleanupDisposition.DYNAMIC_DATA_SOURCE_OWNED;
 				forgetDecorationStages(replacedNodes);
-				MagicDynamicDataSource.DataSourceNode publishedNode =
-						findPublishedNode(info.getId(), info.getKey(), datasource);
 				registeredDecorationStages.put(publishedNode,
 						Collections.unmodifiableList(new ArrayList<DecorationStage>(decorationStages)));
 			}
@@ -274,22 +272,31 @@ public class MyDataSourceMagicDynamicRegistry extends DataSourceMagicDynamicRegi
         return nodes;
     }
 
-	private MagicDynamicDataSource.DataSourceNode findPublishedNode(String id, String key,
+	private MagicDynamicDataSource.DataSourceNode publishDataSource(DataSourceInfo info,
 			DataSource dataSource) {
-		MagicDynamicDataSource.DataSourceNode publishedNode;
+		if (magicDynamicDataSource instanceof ManagedMagicDynamicDataSource) {
+			return ((ManagedMagicDynamicDataSource) magicDynamicDataSource).putAndGet(
+					info.getId(), info.getKey(), info.getName(), dataSource, info.getMaxRows());
+		}
+		if (magicDynamicDataSource.getClass() != MagicDynamicDataSource.class) {
+			throw new IllegalStateException("Custom MagicDynamicDataSource subtypes must extend "
+					+ ManagedMagicDynamicDataSource.class.getSimpleName()
+					+ " to publish decoration stages safely");
+		}
+		synchronized (magicDynamicDataSource) {
+			magicDynamicDataSource.put(info.getId(), info.getKey(), info.getName(),
+					dataSource, info.getMaxRows());
+			return publishedDataSource(info.getKey());
+		}
+	}
+
+	private MagicDynamicDataSource.DataSourceNode publishedDataSource(String key) {
 		try {
-			publishedNode = magicDynamicDataSource.getDataSource(key);
+			return magicDynamicDataSource.getDataSource(key);
 		} catch (RuntimeException e) {
 			throw new IllegalStateException(
 					"Unable to identify the published DataSource node: " + key, e);
 		}
-		if (publishedNode.getDataSource() != dataSource
-				|| !Objects.equals(key, publishedNode.getKey())
-				|| !Objects.equals(id, publishedNode.getId())) {
-			throw new IllegalStateException(
-					"Unable to identify the published DataSource node: " + key);
-		}
-		return publishedNode;
 	}
 
 	private List<RemovalClaim> prepareRemove(List<MagicDynamicDataSource.DataSourceNode> nodes) {
