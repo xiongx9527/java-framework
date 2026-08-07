@@ -110,6 +110,9 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 				|| select.getFetch() != null) {
 			throw new SqlAnalysisException("JOIN source cannot be modelled reliably");
 		}
+		if (select.getTop() != null && select.getTop().getExpression() != null) {
+			expressions.add(select.getTop().getExpression());
+		}
 		for (SelectItem item : select.getSelectItems()) {
 			if (!(item instanceof SelectExpressionItem)) {
 				throw new SqlAnalysisException("JOIN source cannot be modelled reliably");

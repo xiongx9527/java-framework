@@ -183,6 +183,36 @@ class H2DataChangeDialectTest {
 	}
 
 	@Test
+	void executesJoinSnapshotWithTopParameterBeforeDerivedTableProjection() throws Exception {
+		ChangeTarget target = dialect.analyze(context(
+				"UPDATE sys_user u JOIN (SELECT TOP ? CAST(? AS BIGINT) AS id) d ON d.id = u.id "
+						+ "SET u.name = ? WHERE u.id = ?",
+				"topLimit", "derivedId", "name", "userId")).get(0).getTargets().get(0)
+				.withSnapshotConfiguration(Arrays.asList("ID"), Arrays.asList("NAME"), 1000, false);
+		SnapshotQuery query = dialect.buildBeforeQuery(target);
+
+		assertThat(query.getSql()).isEqualTo("SELECT u.\"ID\", u.\"NAME\" FROM \"SYS_USER\" u "
+				+ "JOIN (SELECT TOP ? CAST(? AS BIGINT) AS id) d ON d.id = u.id "
+				+ "WHERE u.id = ? FETCH FIRST 1001 ROWS ONLY");
+		assertThat(placeholderCount(query.getSql())).isEqualTo(3);
+		assertThat(query.getParameters()).extracting(parameter -> parameter.getParameterMapping().getProperty())
+				.containsExactly("topLimit", "derivedId", "userId");
+
+		try (Connection connection = h2("join_top_snapshot"); Statement statement = connection.createStatement()) {
+			statement.execute("CREATE TABLE SYS_USER(ID BIGINT PRIMARY KEY, NAME VARCHAR(20))");
+			statement.execute("INSERT INTO SYS_USER(ID, NAME) VALUES (1, 'before')");
+			try (PreparedStatement prepared = connection.prepareStatement(query.getSql())) {
+				prepared.setInt(1, 1);
+				prepared.setLong(2, 1L);
+				prepared.setLong(3, 1L);
+				try (ResultSet rows = prepared.executeQuery()) {
+					assertThat(rows.next()).isTrue();
+				}
+			}
+		}
+	}
+
+	@Test
 	void executesMergeUsingSubselectWithAliasAndParametersInSqlOrder() throws Exception {
 		ChangeTarget target = dialect.analyze(context(
 				"MERGE INTO sys_user target USING (SELECT CAST(? AS BIGINT) AS id, "
@@ -206,6 +236,37 @@ class H2DataChangeDialectTest {
 				prepared.setLong(1, 1L);
 				prepared.setString(2, "A");
 				prepared.setString(3, "A");
+				try (ResultSet rows = prepared.executeQuery()) {
+					assertThat(rows.next()).isTrue();
+				}
+			}
+		}
+	}
+
+	@Test
+	void executesMergeUsingSubselectWithTopParameterBeforeProjection() throws Exception {
+		ChangeTarget target = dialect.analyze(context(
+				"MERGE INTO sys_user target USING "
+						+ "(SELECT TOP ? CAST(? AS BIGINT) AS id) source "
+						+ "ON (target.id = source.id) "
+						+ "WHEN MATCHED THEN UPDATE SET target.name = ?",
+				"topLimit", "usingId", "name")).get(0).getTargets().get(0)
+				.withSnapshotConfiguration(Arrays.asList("ID"), Arrays.asList("NAME"), 1000, false);
+		SnapshotQuery query = dialect.buildBeforeQuery(target);
+
+		assertThat(query.getSql()).isEqualTo("SELECT target.\"ID\", target.\"NAME\" "
+				+ "FROM \"SYS_USER\" target JOIN (SELECT TOP ? CAST(? AS BIGINT) AS id) source "
+				+ "ON target.id = source.id FETCH FIRST 1001 ROWS ONLY");
+		assertThat(placeholderCount(query.getSql())).isEqualTo(2);
+		assertThat(query.getParameters()).extracting(parameter -> parameter.getParameterMapping().getProperty())
+				.containsExactly("topLimit", "usingId");
+
+		try (Connection connection = h2("merge_top_snapshot"); Statement statement = connection.createStatement()) {
+			statement.execute("CREATE TABLE SYS_USER(ID BIGINT PRIMARY KEY, NAME VARCHAR(20))");
+			statement.execute("INSERT INTO SYS_USER(ID, NAME) VALUES (1, 'before')");
+			try (PreparedStatement prepared = connection.prepareStatement(query.getSql())) {
+				prepared.setInt(1, 1);
+				prepared.setLong(2, 1L);
 				try (ResultSet rows = prepared.executeQuery()) {
 					assertThat(rows.next()).isTrue();
 				}
@@ -267,6 +328,14 @@ class H2DataChangeDialectTest {
 
 	private Connection h2(String database) throws Exception {
 		return DriverManager.getConnection("jdbc:h2:mem:" + database + ";DB_CLOSE_DELAY=-1", "sa", "");
+	}
+
+	private int placeholderCount(String sql) {
+		int count = 0;
+		for (int index = 0; index < sql.length(); index++) {
+			if (sql.charAt(index) == '?') { count++; }
+		}
+		return count;
 	}
 
 	private RowIdentity identity(String firstKey, Object firstValue, String secondKey, Object secondValue) {
