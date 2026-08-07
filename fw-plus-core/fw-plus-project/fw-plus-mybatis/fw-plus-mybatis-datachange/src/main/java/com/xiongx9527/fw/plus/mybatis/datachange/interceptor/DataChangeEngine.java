@@ -110,10 +110,16 @@ public final class DataChangeEngine {
 
 	public void captureStatementResult(DataChangeExecutionContext context, List<StatementChangePlan> plans,
 			Statement statement, int updateCount) {
+		captureStatementResults(context, plans, statement, Collections.singletonList(Integer.valueOf(updateCount)));
+	}
+
+	public void captureStatementResults(DataChangeExecutionContext context, List<StatementChangePlan> plans,
+			Statement statement, List<Integer> updateCounts) {
 		if (plans == null || plans.isEmpty()) { return; }
 		try {
 			for (StatementChangePlan plan : plans) {
-				List<RowIdentity> identities = updateCount <= 0
+				int updateCount = countAt(updateCounts, plan.getStatementIndex());
+				List<RowIdentity> identities = !isSuccessful(updateCount)
 						? Collections.<RowIdentity>emptyList() : identities(context, plan, statement);
 				plan.captureResult(updateCount, identities);
 			}
@@ -129,9 +135,10 @@ public final class DataChangeEngine {
 		}
 		try {
 			Map<Integer, List<TableChange>> grouped = new LinkedHashMap<Integer, List<TableChange>>();
+			Map<Integer, Integer> affectedRows = new LinkedHashMap<Integer, Integer>();
 			for (StatementChangePlan plan : plans) {
 				int count = effectiveUpdateCount(plan, updateCounts);
-				if (count <= 0) { continue; }
+				if (!isSuccessful(count)) { continue; }
 				List<RowSnapshot> after = plan.getTarget().getOperation() == StatementOperation.PHYSICAL_DELETE
 						? Collections.<RowSnapshot>emptyList()
 						: snapshots.readAfter(context.getConnection(), plan.getDialect(), plan.getTarget(),
@@ -146,10 +153,13 @@ public final class DataChangeEngine {
 					grouped.put(Integer.valueOf(plan.getStatementIndex()), tables);
 				}
 				tables.add(change);
+				affectedRows.put(Integer.valueOf(plan.getStatementIndex()), Integer.valueOf(count));
 			}
 			List<StatementChange> changes = new ArrayList<StatementChange>();
 			for (Map.Entry<Integer, List<TableChange>> entry : grouped.entrySet()) {
-				changes.add(new StatementChange(context.getMappedStatement().getId(), entry.getValue()));
+				Integer count = affectedRows.get(entry.getKey());
+				changes.add(new StatementChange(context.getMappedStatement().getId(), entry.getKey().intValue(),
+						count == null ? -1 : count.intValue(), entry.getValue()));
 			}
 			return Collections.unmodifiableList(changes);
 		} catch (RuntimeException exception) {
@@ -161,6 +171,10 @@ public final class DataChangeEngine {
 	public void dispatch(DataChangeExecutionContext context, List<StatementChange> statements) {
 		if (context.isPostProcessingFailed() || statements == null || statements.isEmpty()) { return; }
 		dispatcher.dispatch(new DataChangeEvent(context.getConsistencyLevel(), statements));
+	}
+
+	void handlePostProcessingFailure(DataChangeExecutionContext context, RuntimeException exception) {
+		handlePostFailure(context, safe(exception));
 	}
 
 	private FrameworkChangeMetadata resolveFramework(DataChangeExecutionContext context, BoundSqlContext boundSql,
@@ -187,10 +201,18 @@ public final class DataChangeEngine {
 	}
 
 	private int effectiveUpdateCount(StatementChangePlan plan, List<Integer> updateCounts) {
-		if (plan.getUpdateCount() >= 0) { return plan.getUpdateCount(); }
+		if (plan.getUpdateCount() != -1) { return plan.getUpdateCount(); }
 		int index = plan.getStatementIndex();
+		return countAt(updateCounts, index);
+	}
+
+	private int countAt(List<Integer> updateCounts, int index) {
 		return updateCounts != null && index >= 0 && index < updateCounts.size()
-				? updateCounts.get(index).intValue() : -1;
+				&& updateCounts.get(index) != null ? updateCounts.get(index).intValue() : -1;
+	}
+
+	private boolean isSuccessful(int count) {
+		return count > 0 || count == Statement.SUCCESS_NO_INFO;
 	}
 
 	private int maxRows(TableMonitor monitor) {

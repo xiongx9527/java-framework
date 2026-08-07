@@ -84,9 +84,10 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 			}
 		}
 		if (where != null) { predicateExpressions.add(where); }
+		Table snapshotSource = statement instanceof Delete ? ((Delete) statement).getTable() : table;
 		return new ChangeTarget(operation, JSqlParserTargetDetector.identifier(table), table, where, joins,
 				assignedColumns(statement, mappings), mappings, mappingsFor(predicateExpressions, mappings),
-				Collections.<String>emptyList(), context.getBoundSql());
+				Collections.<String>emptyList(), context.getBoundSql(), snapshotSource);
 	}
 
 	private void addJoinSourceExpressions(List<Expression> expressions, Join join) {

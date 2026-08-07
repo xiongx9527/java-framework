@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.mybatis.datachange.api.ConsistencyLevel;
 import org.apache.ibatis.mapping.MappedStatement;
 
 import java.sql.Connection;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,18 +14,28 @@ public final class DataChangeExecutionContext {
 	private final MappedStatement mappedStatement;
 	private final Object parameterObject;
 	private final DataChangeFrameworkAdapter frameworkAdapter;
+	private final Object executionOwner;
 	private final List<StatementChangePlan> plans = new ArrayList<StatementChangePlan>();
 	private final List<Integer> updateCounts = new ArrayList<Integer>();
 	private List<StatementChangePlan> currentPlans = Collections.emptyList();
 	private Connection connection;
 	private ConsistencyLevel consistencyLevel;
 	private boolean postProcessingFailed;
+	private boolean batch;
+	private Statement batchStatement;
+	private String batchSql;
 
 	public DataChangeExecutionContext(MappedStatement mappedStatement, Object parameterObject,
 			DataChangeFrameworkAdapter frameworkAdapter) {
+		this(mappedStatement, parameterObject, frameworkAdapter, null);
+	}
+
+	DataChangeExecutionContext(MappedStatement mappedStatement, Object parameterObject,
+			DataChangeFrameworkAdapter frameworkAdapter, Object executionOwner) {
 		this.mappedStatement = mappedStatement;
 		this.parameterObject = parameterObject;
 		this.frameworkAdapter = frameworkAdapter;
+		this.executionOwner = executionOwner;
 	}
 
 	public MappedStatement getMappedStatement() { return mappedStatement; }
@@ -33,6 +44,10 @@ public final class DataChangeExecutionContext {
 	public Connection getConnection() { return connection; }
 	public ConsistencyLevel getConsistencyLevel() { return consistencyLevel; }
 	public boolean isPostProcessingFailed() { return postProcessingFailed; }
+	public Object getExecutionOwner() { return executionOwner; }
+	public boolean isBatch() { return batch; }
+	public Statement getBatchStatement() { return batchStatement; }
+	public String getBatchSql() { return batchSql; }
 	public List<StatementChangePlan> getPlans() {
 		return Collections.unmodifiableList(new ArrayList<StatementChangePlan>(plans));
 	}
@@ -53,6 +68,13 @@ public final class DataChangeExecutionContext {
 		plans.addAll(statementPlans);
 	}
 
-	void addUpdateCount(int count) { updateCounts.add(Integer.valueOf(count)); }
+	void addUpdateCounts(List<Integer> counts) {
+		if (counts != null) { updateCounts.addAll(counts); }
+	}
+	void markBatch(Statement statement, String sql) {
+		batch = true;
+		batchStatement = statement;
+		batchSql = sql;
+	}
 	void markPostProcessingFailed() { postProcessingFailed = true; }
 }

@@ -92,8 +92,8 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 			if (qualifier != null) { sql.append(qualifier).append('.'); }
 			sql.append(quote(columns.get(index)));
 		}
-		sql.append(" FROM ").append(qualifiedTable(target));
-		Alias alias = target.getSourceTable() == null ? null : target.getSourceTable().getAlias();
+		sql.append(" FROM ").append(qualifiedTable(target.getSnapshotSourceTable(), target.getTable()));
+		Alias alias = target.getSnapshotSourceTable() == null ? null : target.getSnapshotSourceTable().getAlias();
 		if (alias != null) {
 			sql.append(alias.isUseAs() ? " AS " : " ").append(alias.getName());
 		}
@@ -130,20 +130,23 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 	}
 
 	private String qualifiedTable(ChangeTarget target) {
-		if (target.getSourceTable() != null && target.getSourceTable().getNameParts() != null
-				&& !target.getSourceTable().getNameParts().isEmpty()) {
+		return qualifiedTable(target.getSourceTable(), target.getTable());
+	}
+
+	private String qualifiedTable(net.sf.jsqlparser.schema.Table sourceTable, TableIdentifier fallback) {
+		if (sourceTable != null && sourceTable.getNameParts() != null
+				&& !sourceTable.getNameParts().isEmpty()) {
 			StringBuilder sourceName = new StringBuilder();
-			List<String> parts = target.getSourceTable().getNameParts();
+			List<String> parts = sourceTable.getNameParts();
 			for (int index = parts.size() - 1; index >= 0; index--) {
 				appendPart(sourceName, parts.get(index));
 			}
 			return sourceName.toString();
 		}
-		TableIdentifier table = target.getTable();
 		StringBuilder name = new StringBuilder();
-		appendPart(name, table.getCatalog());
-		appendPart(name, table.getSchema());
-		appendPart(name, table.getTable());
+		appendPart(name, fallback.getCatalog());
+		appendPart(name, fallback.getSchema());
+		appendPart(name, fallback.getTable());
 		return name.toString();
 	}
 

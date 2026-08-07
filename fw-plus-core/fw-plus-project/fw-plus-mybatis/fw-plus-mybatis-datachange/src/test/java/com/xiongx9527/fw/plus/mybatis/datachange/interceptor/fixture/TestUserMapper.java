@@ -14,4 +14,5 @@ public interface TestUserMapper {
 	int renameUnmonitored(@Param("id") Long id, @Param("name") String name);
 	int renameComposite(@Param("tenantId") Long tenantId, @Param("userId") Long userId,
 			@Param("name") String name);
+	String findName(@Param("id") Long id);
 }
