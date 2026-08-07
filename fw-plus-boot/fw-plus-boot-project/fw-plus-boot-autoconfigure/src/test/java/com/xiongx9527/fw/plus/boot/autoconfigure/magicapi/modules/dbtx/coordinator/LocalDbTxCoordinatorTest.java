@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.coordinator;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxAwareDataSource;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceAdapter;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception.DbTxErrorCode;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception.DbTxException;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.model.DbTxDefinition;
@@ -26,6 +28,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,8 +58,8 @@ class LocalDbTxCoordinatorTest {
 
 		assertThat(fixture.coordinator.getName()).isEqualTo("local");
 		Object result = fixture.coordinator.execute(definition("b", "a"), () -> {
-			assertThat(TransactionSynchronizationManager.hasResource(fixture.a)).isTrue();
-			assertThat(TransactionSynchronizationManager.hasResource(fixture.b)).isTrue();
+			assertThat(TransactionSynchronizationManager.hasResource(fixture.aParticipant)).isTrue();
+			assertThat(TransactionSynchronizationManager.hasResource(fixture.bParticipant)).isTrue();
 			return "ok";
 		});
 
@@ -182,6 +185,32 @@ class LocalDbTxCoordinatorTest {
 		assertNoSpringResources();
 	}
 
+	@Test
+	void rejectsUnmanagedParticipantBeforeBeginningAnyTransactionOrExecutingCallback() {
+		List<String> events = new ArrayList<String>();
+		FaultInjectingDataSource managedRaw = new FaultInjectingDataSource(
+				"a", h2DataSource("managed"), events);
+		FaultInjectingDataSource unmanaged = new FaultInjectingDataSource(
+				"b", h2DataSource("unmanaged"), events);
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		dynamicDataSource.put("a", new DbTxAwareDataSource("a", managedRaw,
+				Collections.<DbTxDataSourceAdapter>emptyList()));
+		dynamicDataSource.put("b", unmanaged);
+		AtomicBoolean callbackExecuted = new AtomicBoolean();
+
+		Throwable failure = catchThrowable(() -> new LocalDbTxCoordinator(dynamicDataSource)
+				.execute(definition("a", "b"), () -> {
+					callbackExecuted.set(true);
+					return "unused";
+				}));
+
+		assertThat(failure).isInstanceOfSatisfying(DbTxException.class, exception ->
+				assertThat(exception.getDbTxCode()).isEqualTo(DbTxErrorCode.DBTX_BEGIN_FAILED));
+		assertThat(callbackExecuted).isFalse();
+		assertThat(events).isEmpty();
+		assertNoSpringResources();
+	}
+
 	private static void assertOutcome(DbTxOutcome outcome, String failedDataSource,
 			List<String> committed, List<String> rolledBack, List<String> rollbackFailed,
 			List<String> unknown) {
@@ -199,10 +228,15 @@ class LocalDbTxCoordinatorTest {
 		List<String> events = new ArrayList<>();
 		FaultInjectingDataSource a = new FaultInjectingDataSource("a", h2DataSource("a"), events);
 		FaultInjectingDataSource b = new FaultInjectingDataSource("b", h2DataSource("b"), events);
+		DataSource aParticipant = new DbTxAwareDataSource("a", a,
+				Collections.<DbTxDataSourceAdapter>emptyList());
+		DataSource bParticipant = new DbTxAwareDataSource("b", b,
+				Collections.<DbTxDataSourceAdapter>emptyList());
 		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
-		dynamicDataSource.put("b", b);
-		dynamicDataSource.put("a", a);
-		return new Fixture(new LocalDbTxCoordinator(dynamicDataSource), a, b, events);
+		dynamicDataSource.put("b", bParticipant);
+		dynamicDataSource.put("a", aParticipant);
+		return new Fixture(new LocalDbTxCoordinator(dynamicDataSource), a, b,
+				aParticipant, bParticipant, events);
 	}
 
 	private static DriverManagerDataSource h2DataSource(String name) {
@@ -225,13 +259,18 @@ class LocalDbTxCoordinatorTest {
 		private final LocalDbTxCoordinator coordinator;
 		private final FaultInjectingDataSource a;
 		private final FaultInjectingDataSource b;
+		private final DataSource aParticipant;
+		private final DataSource bParticipant;
 		private final List<String> events;
 
 		private Fixture(LocalDbTxCoordinator coordinator, FaultInjectingDataSource a,
-				FaultInjectingDataSource b, List<String> events) {
+				FaultInjectingDataSource b, DataSource aParticipant,
+				DataSource bParticipant, List<String> events) {
 			this.coordinator = coordinator;
 			this.a = a;
 			this.b = b;
+			this.aParticipant = aParticipant;
+			this.bParticipant = bParticipant;
 			this.events = events;
 		}
 	}

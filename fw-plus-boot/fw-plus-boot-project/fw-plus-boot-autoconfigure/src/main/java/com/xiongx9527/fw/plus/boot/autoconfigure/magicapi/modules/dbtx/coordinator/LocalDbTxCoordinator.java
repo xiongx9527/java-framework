@@ -84,7 +84,14 @@ public class LocalDbTxCoordinator implements DbTxCoordinator {
 		for (String key : keys) {
 			try {
 				MagicDynamicDataSource.DataSourceNode node = dynamicDataSource.getDataSource(key);
-				participants.add(new Participant(key, node, dbTxDataSource(node.getDataSource())));
+				DbTxAwareDataSource dataSource = dbTxDataSource(node.getDataSource());
+				if (dataSource == null) {
+					throw new DbTxException(DbTxErrorCode.DBTX_BEGIN_FAILED,
+							"Local transaction DataSource is not DBTX-aware: " + key);
+				}
+				participants.add(new Participant(key, node, dataSource));
+			} catch (DbTxException e) {
+				throw e;
 			} catch (Throwable resolveFailure) {
 				throw new DbTxException(DbTxErrorCode.DBTX_BEGIN_FAILED,
 						"Failed to resolve local transaction DataSource: " + key, resolveFailure);
@@ -96,9 +103,6 @@ public class LocalDbTxCoordinator implements DbTxCoordinator {
 	private List<DbTxAwareDataSource.Lease> acquireLeases(List<Participant> participants) {
 		List<DbTxAwareDataSource.Lease> leases = new ArrayList<DbTxAwareDataSource.Lease>();
 		for (Participant participant : participants) {
-			if (participant.dataSource == null) {
-				continue;
-			}
 			try {
 				leases.add(participant.dataSource.acquireLease());
 			} catch (Throwable acquisitionFailure) {
