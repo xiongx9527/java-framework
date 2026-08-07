@@ -70,7 +70,7 @@ class TinyEngineReactiveWebConfigurationTest {
 
 		new TinyEngineServletWebConfiguration().addResourceHandlers(registry);
 
-		verify(registration).addResourceLocations("classpath:/tiny-engine/");
+		verify(registration).addResourceLocations("classpath:/META-INF/resources/tiny-engine/");
 	}
 
 	@Test

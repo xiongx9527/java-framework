@@ -14,6 +14,12 @@ final class TinyEngineWebFluxSupport {
 
 	static Mono<ResponseEntity<? extends Result<?>>> submit(TinyEngineReactiveExecutor executor, Callable<?> task) {
 		Callable<ResponseEntity<? extends Result<?>>> responseTask = () -> TinyEngineWebResponses.ok(task.call());
-		return executor.submit(responseTask).onErrorResume(ex -> Mono.just(TinyEngineWebResponses.error(ex)));
+		return submitResponse(executor, responseTask);
+	}
+
+	static Mono<ResponseEntity<? extends Result<?>>> submitResponse(TinyEngineReactiveExecutor executor,
+			Callable<ResponseEntity<? extends Result<?>>> task) {
+		return executor.submit(task).onErrorResume(Exception.class,
+				ex -> Mono.just(TinyEngineWebResponses.error(ex)));
 	}
 }

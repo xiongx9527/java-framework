@@ -182,7 +182,18 @@ const actions = {
     window.open(getTargetUrl('ecosystem/material'), '_blank')
   },
   logout() {
-    window.location.href = '/platform-center/api/logout'
+    const { setNeedToLogin } = getMetaApi(META_SERVICE.GlobalService)
+    const clearLogin = () => {
+      localStorage.removeItem('engineToken')
+      setNeedToLogin(true)
+    }
+    if (!localStorage.getItem('engineToken')) {
+      clearLogin()
+      return
+    }
+    getMetaApi(META_SERVICE.Http)
+      .post('/platform-center/api/user/logout', {})
+      .finally(clearLogin)
   },
   saveAppHistory() {
     state.show = true

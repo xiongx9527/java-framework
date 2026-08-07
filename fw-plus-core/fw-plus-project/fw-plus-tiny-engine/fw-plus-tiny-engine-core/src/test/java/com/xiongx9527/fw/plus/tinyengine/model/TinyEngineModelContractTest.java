@@ -2,14 +2,19 @@ package com.xiongx9527.fw.plus.tinyengine.model;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler;
 import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockParam;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Block;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockHistory;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Model;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Platform;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.ResourceGroup;
 import org.apache.ibatis.type.MappedTypes;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -120,6 +126,68 @@ public class TinyEngineModelContractTest {
 	public void shouldNotProvideAiOrChatDtos() {
 		assertClassIsAbsent("com.xiongx9527.fw.plus.tinyengine.model.dto.AiDto");
 		assertClassIsAbsent("com.xiongx9527.fw.plus.tinyengine.model.dto.ChatDto");
+	}
+
+	@Test
+	public void shouldAcceptOfficialAppPlatformFieldAliases() throws Exception {
+		Field platformField = App.class.getDeclaredField("platformId");
+		JsonProperty jsonProperty = platformField.getAnnotation(JsonProperty.class);
+		JsonAlias jsonAlias = platformField.getAnnotation(JsonAlias.class);
+		assertNotNull(jsonProperty, "App#platformId 必须兼容官方 platform 字段");
+		assertEquals("platform", jsonProperty.value());
+		assertNotNull(jsonAlias, "App#platformId 必须兼容 platformId/platform_id 字段");
+		assertTrue(java.util.Arrays.asList(jsonAlias.value()).contains("platformId"));
+		assertTrue(java.util.Arrays.asList(jsonAlias.value()).contains("platform_id"));
+	}
+
+	@Test
+	public void shouldAcceptOfficialBlockGroupAppFieldAliases() throws Exception {
+		Field appField = com.xiongx9527.fw.plus.tinyengine.model.entity.BlockGroup.class.getDeclaredField("appId");
+		JsonProperty jsonProperty = appField.getAnnotation(JsonProperty.class);
+		JsonAlias jsonAlias = appField.getAnnotation(JsonAlias.class);
+		assertNotNull(jsonProperty, "BlockGroup#appId 必须兼容官方 app 字段");
+		assertEquals("app", jsonProperty.value());
+		assertNotNull(jsonAlias, "BlockGroup#appId 必须兼容 appId/app_id 字段");
+		assertTrue(java.util.Arrays.asList(jsonAlias.value()).contains("appId"));
+		assertTrue(java.util.Arrays.asList(jsonAlias.value()).contains("app_id"));
+	}
+
+	@Test
+	public void shouldAcceptOfficialResourceGroupAppFieldAliases() throws Exception {
+		Field appField = ResourceGroup.class.getDeclaredField("appId");
+		JsonProperty jsonProperty = appField.getAnnotation(JsonProperty.class);
+		JsonAlias jsonAlias = appField.getAnnotation(JsonAlias.class);
+		assertNotNull(jsonProperty, "ResourceGroup#appId 必须兼容官方 app 字段");
+		assertEquals("app", jsonProperty.value());
+		assertNotNull(jsonAlias, "ResourceGroup#appId 必须兼容 appId/app_id 字段");
+		assertTrue(java.util.Arrays.asList(jsonAlias.value()).contains("appId"));
+		assertTrue(java.util.Arrays.asList(jsonAlias.value()).contains("app_id"));
+	}
+
+	@Test
+	public void shouldAcceptOfficialModelFieldAliases() throws Exception {
+		Field appField = Model.class.getDeclaredField("appId");
+		JsonAlias appAlias = appField.getAnnotation(JsonAlias.class);
+		assertNotNull(appAlias, "Model#appId 必须兼容 app/app_id 字段");
+		assertTrue(java.util.Arrays.asList(appAlias.value()).contains("app"));
+		assertTrue(java.util.Arrays.asList(appAlias.value()).contains("app_id"));
+
+		Field platformField = Model.class.getDeclaredField("platformId");
+		JsonAlias platformAlias = platformField.getAnnotation(JsonAlias.class);
+		assertNotNull(platformAlias, "Model#platformId 必须兼容 platform/platform_id 字段");
+		assertTrue(java.util.Arrays.asList(platformAlias.value()).contains("platform"));
+		assertTrue(java.util.Arrays.asList(platformAlias.value()).contains("platform_id"));
+
+		Field nameCnField = Model.class.getDeclaredField("nameCn");
+		JsonAlias nameCnAlias = nameCnField.getAnnotation(JsonAlias.class);
+		assertNotNull(nameCnAlias, "Model#nameCn 必须兼容 name/name_cn 字段");
+		assertTrue(java.util.Arrays.asList(nameCnAlias.value()).contains("name"));
+		assertTrue(java.util.Arrays.asList(nameCnAlias.value()).contains("name_cn"));
+
+		Field nameEnField = Model.class.getDeclaredField("nameEn");
+		JsonAlias nameEnAlias = nameEnField.getAnnotation(JsonAlias.class);
+		assertNotNull(nameEnAlias, "Model#nameEn 必须兼容 name_en 字段");
+		assertTrue(java.util.Arrays.asList(nameEnAlias.value()).contains("name_en"));
 	}
 
 	private void assertTypeHandler(Class<?> modelClass, String fieldName, Class<?> expectedTypeHandler) throws Exception {

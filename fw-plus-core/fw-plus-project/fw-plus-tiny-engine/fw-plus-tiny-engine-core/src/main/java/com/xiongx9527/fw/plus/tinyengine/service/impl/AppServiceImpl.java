@@ -5,12 +5,14 @@ import com.xiongx9527.fw.plus.tinyengine.common.exception.ExceptionEnum;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
 import com.xiongx9527.fw.plus.tinyengine.mapper.AppMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.I18nEntryMapper;
+import com.xiongx9527.fw.plus.tinyengine.mapper.PageMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.I18nEntryDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.SchemaI18n;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.I18nEntry;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Platform;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 import com.xiongx9527.fw.plus.tinyengine.service.AppService;
 import com.xiongx9527.fw.plus.tinyengine.service.I18nEntryService;
 import com.xiongx9527.fw.plus.tinyengine.service.PlatformService;
@@ -18,7 +20,9 @@ import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +39,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 	private I18nEntryService i18nEntryService;
 	@Autowired
 	private I18nEntryMapper i18nEntryMapper;
+	@Autowired
+	private PageMapper pageMapper;
 
 	public AppServiceImpl(TinyEngineUserContext userContext) {
 		this.userContext = userContext;
@@ -75,9 +81,22 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 	}
 
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public App deleteAppById(Integer id) {
-		App app = baseMapper.queryAppById(id, tenantId());
-		if (app == null || baseMapper.deleteAppById(id, tenantId()) < 1) {
+		String currentTenant = requiredTenantId();
+		App app = baseMapper.queryAppById(id, currentTenant);
+		if (app == null) {
+			throw failure(ExceptionEnum.CM009);
+		}
+		List<Page> pages = pageMapper.queryPageByApp(id);
+		if (pages != null) {
+			for (Page page : pages) {
+				if (page != null && page.getId() != null) {
+					pageMapper.deletePageById(page.getId());
+				}
+			}
+		}
+		if (baseMapper.deleteAppById(id, currentTenant) < 1) {
 			throw failure(ExceptionEnum.CM009);
 		}
 		return app;
@@ -88,7 +107,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		if (app == null || app.getId() == null) {
 			throw failure(ExceptionEnum.CM002);
 		}
-		String targetTenant = app.getTenantId() == null ? tenantId() : app.getTenantId();
+		String targetTenant = requiredTenantId();
 		app.setTenantId(targetTenant);
 		App existing = baseMapper.queryAppById(app.getId(), targetTenant);
 		if (existing == null) {
@@ -110,20 +129,54 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
 	@Override
 	public App createApp(App app) {
-		String currentTenant = tenantId();
-		if (currentTenant == null) {
-			throw failure(ExceptionEnum.CM337);
-		}
+		String currentTenant = requiredTenantId();
+		TinyEngineUser currentUser = currentUser();
+		String currentUserId = currentUser == null ? null : currentUser.getUserId();
+		LocalDateTime now = LocalDateTime.now();
 		app.setTenantId(currentTenant);
+		app.setCreatedBy(currentUserId);
+		app.setLastUpdatedBy(currentUserId);
+		app.setCreatedTime(now);
+		app.setLastUpdatedTime(now);
+		applyPlatformDefaults(app);
 		if (!baseMapper.queryAppByCondition(app).isEmpty()) {
 			throw failure(ExceptionEnum.CM003);
 		}
 		app.setIsPublish(false);
-		app.setPlatformHistoryId("1");
+		if (app.getPlatformHistoryId() == null || app.getPlatformHistoryId().isEmpty()) {
+			app.setPlatformHistoryId("1");
+		}
 		if (baseMapper.createApp(app) < 1) {
 			throw failure(ExceptionEnum.CM001);
 		}
 		return app;
+	}
+
+	@Override
+	public App saveApp(Integer id, Map<String, Object> request) {
+		App app = new App();
+		app.setId(id);
+		Object version = request == null ? null : request.get("version");
+		if (version != null) {
+			app.setLatest(String.valueOf(version));
+		}
+		return updateAppById(app);
+	}
+
+	@Override
+	public App publishApp(Integer id, Map<String, Object> request) {
+		App app = new App();
+		app.setId(id);
+		app.setIsPublish(Boolean.TRUE);
+		Object branch = request == null ? null : request.get("branch");
+		if (branch != null) {
+			app.setBranch(String.valueOf(branch));
+		}
+		Object version = request == null ? null : request.get("version");
+		if (version != null) {
+			app.setLatest(String.valueOf(version));
+		}
+		return updateAppById(app);
 	}
 
 	@Override
@@ -138,11 +191,61 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 	}
 
 	private String tenantId() {
-		TinyEngineUser user = userContext == null ? null : userContext.getCurrentUser();
+		TinyEngineUser user = currentUser();
 		return user == null ? null : user.getTenantId();
+	}
+
+	private TinyEngineUser currentUser() {
+		return userContext == null ? null : userContext.getCurrentUser();
+	}
+
+	private String requiredTenantId() {
+		String currentTenant = tenantId();
+		if (currentTenant == null) {
+			throw failure(ExceptionEnum.CM337);
+		}
+		return currentTenant;
 	}
 
 	private ServiceException failure(ExceptionEnum error) {
 		return new ServiceException(error.getResultCode(), error.getResultMsg());
+	}
+
+	private void applyPlatformDefaults(App app) {
+		if (app == null || platformService == null) {
+			return;
+		}
+		Platform platform = null;
+		if (app.getPlatformId() != null) {
+			platform = platformService.queryPlatformById(app.getPlatformId());
+		} else {
+			platform = defaultPlatform(platformService.queryAllPlatform());
+			if (platform != null) {
+				app.setPlatformId(platform.getId());
+			}
+		}
+		if ((app.getPlatformHistoryId() == null || app.getPlatformHistoryId().isEmpty())
+				&& platform != null && platform.getLatestHistoryId() != null) {
+			app.setPlatformHistoryId(String.valueOf(platform.getLatestHistoryId()));
+		}
+	}
+
+	private Platform defaultPlatform(List<Platform> platforms) {
+		if (platforms == null || platforms.isEmpty()) {
+			return null;
+		}
+		Platform first = null;
+		for (Platform platform : platforms) {
+			if (platform == null || platform.getId() == null) {
+				continue;
+			}
+			if (first == null) {
+				first = platform;
+			}
+			if (Boolean.TRUE.equals(platform.getIsDefault())) {
+				return platform;
+			}
+		}
+		return first;
 	}
 }

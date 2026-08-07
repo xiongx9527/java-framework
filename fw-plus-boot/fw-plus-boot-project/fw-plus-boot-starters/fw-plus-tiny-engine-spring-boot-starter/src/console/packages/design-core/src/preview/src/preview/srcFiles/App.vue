@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { provide, watch } from 'vue'
+import { onBeforeUnmount, onMounted, provide, watch } from 'vue'
 import { I18nInjectionKey, createI18n } from 'vue-i18n'
 import { createPinia } from 'pinia'
 import { useBroadcastChannel } from '@vueuse/core'
@@ -14,6 +14,29 @@ import lowcode from './lowcode.js'
 import messages from './locales.js'
 import Main from './Main.vue'
 import locale from '@opentiny/vue-locale'
+
+const TINY_ENGINE_LOCALE_CHANGE = 'tiny-engine:locale-change'
+const LOCALE_STORAGE_KEY = 'tiny-engine-locale'
+
+const normalizeLocale = (value) => (String(value) === 'en_US' ? 'en_US' : 'zh_CN')
+
+const getInitialLocale = () => {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return 'zh_CN'
+  }
+
+  return normalizeLocale(window.localStorage.getItem(LOCALE_STORAGE_KEY))
+}
+
+const persistLocale = (localeValue) => {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, localeValue)
+  }
+
+  if (typeof document !== 'undefined') {
+    document.documentElement?.setAttribute?.('lang', localeValue === 'en_US' ? 'en' : 'zh-CN')
+  }
+}
 
 const customCreateI18n = ({ locale, messages }) => {
   const newMessages = {}
@@ -29,8 +52,9 @@ const customCreateI18n = ({ locale, messages }) => {
   })
 }
 
+const initialLocale = getInitialLocale()
 const i18n = locale.initI18n({
-  i18n: { locale: 'zh_CN' },
+  i18n: { locale: initialLocale },
   createI18n: customCreateI18n,
   messages: {
     zhCN: {
@@ -55,8 +79,33 @@ provide(I18nInjectionKey, i18n)
 
 const { data } = useBroadcastChannel({ name: BROADCAST_CHANNEL.PreviewLang })
 
+const setLocale = (value) => {
+  if (value) {
+    const localeValue = normalizeLocale(value)
+    i18n.global.locale.value = localeValue
+    persistLocale(localeValue)
+  }
+}
+
 watch(data, () => {
-  i18n.global.locale.value = data.value
+  setLocale(data.value)
+})
+
+const handleLocaleMessage = (event) => {
+  const message = event?.data
+  if (message?.type !== TINY_ENGINE_LOCALE_CHANGE || message?.channel !== BROADCAST_CHANNEL.PreviewLang) {
+    return
+  }
+
+  setLocale(message.value)
+}
+
+onMounted(() => {
+  window.addEventListener('message', handleLocaleMessage)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('message', handleLocaleMessage)
 })
 
 window.__app__.use(createPinia())

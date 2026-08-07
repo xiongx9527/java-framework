@@ -39,8 +39,20 @@ public class AppExtensionServiceImpl extends ServiceImpl<AppExtensionMapper, App
 
 	@Override
 	public AppExtension updateAppExtensionById(AppExtension appExtension) {
-		if (appExtension == null || appExtension.getId() == null
-				|| baseMapper.updateAppExtensionById(appExtension) != 1) {
+		if (appExtension == null || appExtension.getId() == null) {
+			throw failure(ExceptionEnum.CM001);
+		}
+		AppExtension existing = findAppExtensionById(appExtension.getId());
+		if (existing == null) {
+			throw failure(ExceptionEnum.CM009);
+		}
+		if (appExtension.getApp() == null) {
+			appExtension.setApp(existing.getApp());
+		}
+		if (appExtension.getCategory() == null) {
+			appExtension.setCategory(existing.getCategory());
+		}
+		if (baseMapper.updateAppExtensionById(appExtension) != 1) {
 			throw failure(ExceptionEnum.CM001);
 		}
 		return findAppExtensionById(appExtension.getId());

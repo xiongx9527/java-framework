@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.tinyengine.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiongx9527.fw.plus.tinyengine.mapper.BlockHistoryMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockHistory;
@@ -39,5 +40,16 @@ public class BlockHistoryServiceImpl extends ServiceImpl<BlockHistoryMapper, Blo
 	@Override
 	public Integer createBlockHistory(BlockHistory blockHistory) {
 		return baseMapper.createBlockHistory(blockHistory);
+	}
+
+	@Override
+	public List<BlockHistory> findBlockHistoriesByBlockId(Integer blockId, String tenantId) {
+		if (blockId == null || tenantId == null || tenantId.trim().isEmpty()) {
+			return java.util.Collections.emptyList();
+		}
+		return baseMapper.selectList(new QueryWrapper<BlockHistory>()
+				.eq("ref_id", blockId)
+				.eq("tenant_id", tenantId)
+				.orderByDesc("id"));
 	}
 }

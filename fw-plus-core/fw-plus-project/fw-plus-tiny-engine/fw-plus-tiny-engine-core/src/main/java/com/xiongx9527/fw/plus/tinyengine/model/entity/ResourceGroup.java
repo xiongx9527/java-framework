@@ -14,6 +14,8 @@ package com.xiongx9527.fw.plus.tinyengine.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.xiongx9527.fw.plus.tinyengine.common.model.BaseEntity;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +29,10 @@ import java.util.List;
 @TableName("t_resource_group")
 public class ResourceGroup extends BaseEntity {
 private String name;
+@JsonProperty("app")
+@JsonAlias({"appId", "app_id"})
 private Integer appId;
+@JsonAlias("platform_id")
 private Integer platformId;
 private String description;
 

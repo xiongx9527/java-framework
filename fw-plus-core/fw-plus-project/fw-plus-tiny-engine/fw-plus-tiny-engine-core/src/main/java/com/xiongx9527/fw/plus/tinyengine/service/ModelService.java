@@ -9,6 +9,7 @@ import java.util.List;
 public interface ModelService extends IService<Model> {
 
 	Model queryModelById(Integer id);
+	Model queryModelDetailById(Integer id);
 	List<Model> getModelByName(String nameCn);
 	List<Model> getModelByEnName(String nameEn);
 	Page<Model> pageQuery(int currentPage, int pageSize, String nameCn, String nameEn);

@@ -14,6 +14,7 @@ package com.xiongx9527.fw.plus.tinyengine.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.xiongx9527.fw.plus.tinyengine.common.model.BaseEntity;
 import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler;
@@ -38,6 +39,7 @@ public class App extends BaseEntity {
 private String name;
 private String appWebsite;
 @JsonProperty("platform")
+@JsonAlias({"platformId", "platform_id"})
     private Integer platformId;
 private String platformHistoryId;
 private String publishUrl;

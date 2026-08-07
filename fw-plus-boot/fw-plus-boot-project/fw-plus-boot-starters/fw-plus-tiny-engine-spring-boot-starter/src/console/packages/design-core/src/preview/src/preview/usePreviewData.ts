@@ -14,6 +14,7 @@ import {
 } from './http'
 import generateMetaFiles, { processAppJsCode } from './generate'
 import srcFiles from './srcFiles'
+import { addScriptAndStyle, collectMaterialComponentsMap, mergeComponentsMap } from './materialDeps'
 
 const { COMPONENT_NAME } = constants
 const ROOT_ID = '0'
@@ -236,22 +237,6 @@ const getAppData = async () => {
   return appData
 }
 
-const addScriptAndStyle = (scripts: Map<string, string>, styles: Set<string>, pkg: Record<string, string>) => {
-  if (pkg.package && pkg.script) {
-    scripts.set(pkg.package, pkg.script)
-  }
-
-  if (Array.isArray(pkg.css)) {
-    pkg.css.forEach((style: string) => {
-      if (style) {
-        styles.add(style)
-      }
-    })
-  } else if (pkg.css) {
-    styles.add(pkg.css)
-  }
-}
-
 const getMaterialDeps = async () => {
   const bundleUrls = getMergeMeta('engine.config')?.material || []
   const materials = await Promise.allSettled(
@@ -276,28 +261,31 @@ const getMaterialDeps = async () => {
       })
   }
 
-  materials
+  const materialList = materials
     .filter((item) => item.status === 'fulfilled' && item.value.materials)
     .map((item: any) => item.value.materials)
-    .forEach((item) => {
-      const { packages, components } = item
+  const componentsMap = collectMaterialComponentsMap(materialList)
 
-      if (Array.isArray(packages)) {
-        packages.forEach((pkg) => {
-          addScriptAndStyle(scripts, styles, pkg)
-        })
-      }
+  materialList.forEach((item) => {
+    const { packages, components } = item
 
-      if (Array.isArray(components)) {
-        components.forEach((component) => {
-          addScriptAndStyle(scripts, styles, component.npm)
-        })
-      }
-    })
+    if (Array.isArray(packages)) {
+      packages.forEach((pkg) => {
+        addScriptAndStyle(scripts, styles, pkg)
+      })
+    }
+
+    if (Array.isArray(components)) {
+      components.forEach((component) => {
+        addScriptAndStyle(scripts, styles, component.npm)
+      })
+    }
+  })
 
   return {
     scripts: Object.fromEntries(scripts),
-    styles: Array.from(styles)
+    styles: Array.from(styles),
+    componentsMap
   }
 }
 
@@ -371,14 +359,16 @@ export const usePreviewData = ({ setFiles, store, setImportMap }: IUsePreviewDat
 
   // 根据新的参数更新预览
   const updatePreview = async (params: {
-    currentPage: IPage
+    currentPage: IPage | null
     ancestors: IPage[]
     scripts: Record<string, string>
     styles: string[]
+    componentsMap: Array<Record<string, any>>
   }) => {
     const searchParams = new URLSearchParams(location.search)
     const previewType = searchParams.get('previewType')
     const { appData, metaData, importMapData } = await getBasicData(basicFiles, params.scripts)
+    const componentsMap = mergeComponentsMap(appData?.componentsMap || [], params.componentsMap || [])
 
     if (previewType === 'page') {
       previewState.currentPage = params.currentPage
@@ -409,11 +399,11 @@ export const usePreviewData = ({ setFiles, store, setImportMap }: IUsePreviewDat
       )
       blocks = blocks.concat(currentPageBlocks)
       const pageCode = [
-        ...getPageAncestryFiles(appData, params),
+        ...getPageAncestryFiles({ ...appData, componentsMap }, params),
         ...(blocks || []).map((blockSchema) => {
           return {
             panelName: `${blockSchema.fileName}.vue`,
-            panelValue: generatePageCode(blockSchema, appData?.componentsMap || [], { blockRelativePath: './' }) || '',
+            panelValue: generatePageCode(blockSchema, componentsMap, { blockRelativePath: './' }) || '',
             panelType: 'vue'
           }
         })
@@ -442,6 +432,7 @@ export const usePreviewData = ({ setFiles, store, setImportMap }: IUsePreviewDat
         ]
 
         const [appData, pageList] = await Promise.all(promises)
+        const componentsMap = mergeComponentsMap(appData?.componentsMap || [], params.componentsMap || [])
         const pageDetailList = pageList
 
         // 这里需要手动传入 blockSet 的原因是多页面可能会存在重复的区块
@@ -477,7 +468,7 @@ export const usePreviewData = ({ setFiles, store, setImportMap }: IUsePreviewDat
           }),
           blockSchema,
           // 物料数据
-          componentsMap: [...(appData.componentsMap || [])],
+          componentsMap,
           // 物料依赖
           packages: [...(appData.packages || [])],
           meta: {
@@ -641,14 +632,17 @@ export const usePreviewData = ({ setFiles, store, setImportMap }: IUsePreviewDat
   }
 
   const loadInitialData = async () => {
+    const searchParams = new URLSearchParams(location.search)
+    const previewType = searchParams.get('previewType')
+    const isAppPreview = previewType === 'app'
     const { currentPage, ancestors } = await getPageOrBlockByApi()
     previewState.currentPage = currentPage
     previewState.ancestors = ancestors
 
-    const { scripts, styles } = await getMaterialDeps()
+    const { scripts, styles, componentsMap } = await getMaterialDeps()
 
-    if (currentPage) {
-      updatePreview({ currentPage, ancestors, scripts, styles })
+    if (currentPage || isAppPreview) {
+      updatePreview({ currentPage, ancestors, scripts, styles, componentsMap })
     }
   }
 

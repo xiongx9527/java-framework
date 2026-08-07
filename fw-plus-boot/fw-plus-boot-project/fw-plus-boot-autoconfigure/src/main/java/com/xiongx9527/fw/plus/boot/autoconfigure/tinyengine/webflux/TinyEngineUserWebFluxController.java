@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
@@ -80,7 +81,16 @@ public class TinyEngineUserWebFluxController {
 			@RequestHeader(value = "Authorization", required = false) String authorization,
 			@RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
 		return submitWithPrincipal(authorization, tenantId,
-				principal -> TinyEngineWebResponses.ok(userSystemService.tenants(principal)));
+					principal -> TinyEngineWebResponses.ok(userSystemService.tenants(principal)));
+	}
+
+	@GetMapping("/user/tenant")
+	public Mono<ResponseEntity<? extends Result<?>>> tenant(
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "X-Tenant-Id", required = false) String currentTenantId,
+			@RequestParam String tenantId) {
+		return submitWithPrincipal(authorization, currentTenantId,
+				principal -> TinyEngineWebResponses.ok(userSystemService.switchTenant(principal, tenantId)));
 	}
 
 	@PostMapping("/tenant/create")
