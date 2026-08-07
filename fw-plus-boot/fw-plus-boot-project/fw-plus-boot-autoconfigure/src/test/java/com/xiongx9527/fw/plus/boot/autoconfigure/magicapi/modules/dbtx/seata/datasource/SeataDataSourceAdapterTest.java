@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.datasource;
+package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.datasource;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxAwareDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceAdapter;
@@ -6,8 +6,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasourc
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception.DbTxErrorCode;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.exception.DbTxException;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.model.DbTxDefinition;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.coordinator.SeataDbTxCoordinator;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.coordinator.SeataTransaction;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.coordinator.SeataDbTxCoordinator;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.coordinator.SeataTransaction;
 import io.seata.core.model.GlobalStatus;
 import io.seata.rm.datasource.DataSourceProxy;
 import io.seata.rm.datasource.SeataDataSourceProxy;

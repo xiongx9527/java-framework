@@ -6,8 +6,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.coordinat
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.coordinator.LocalDbTxCoordinator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxAwareDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceDecorator;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.coordinator.SeataDbTxCoordinator;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.datasource.SeataDataSourceAdapter;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.coordinator.SeataDbTxCoordinator;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.datasource.SeataDataSourceAdapter;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;

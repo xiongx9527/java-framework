@@ -12,7 +12,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dify.DifyModul
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.lock.LockModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.MagicDataSourceDecorator;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.starter.MagicAPIDbTxConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.starter.MagicAPISeataConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.starter.MagicAPISeataConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisflex.starter.MyBatisFlexConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mybatisplus.starter.MybatisPlusModuleConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.template.TemplateModuleConfiguration;

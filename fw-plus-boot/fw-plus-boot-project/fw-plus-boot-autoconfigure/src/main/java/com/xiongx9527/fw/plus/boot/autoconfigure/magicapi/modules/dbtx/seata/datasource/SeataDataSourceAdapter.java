@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.datasource;
+package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.datasource;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.datasource.DbTxDataSourceAdapter;
 import io.seata.rm.datasource.DataSourceProxy;

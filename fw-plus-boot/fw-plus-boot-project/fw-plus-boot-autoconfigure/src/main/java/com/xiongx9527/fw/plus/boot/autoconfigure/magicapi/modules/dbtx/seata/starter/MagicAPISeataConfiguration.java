@@ -1,9 +1,9 @@
-package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.starter;
+package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.starter;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.coordinator.DefaultSeataTransactionFactory;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.coordinator.SeataDbTxCoordinator;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.coordinator.SeataTransactionFactory;
-import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.seata.datasource.SeataDataSourceAdapter;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.coordinator.DefaultSeataTransactionFactory;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.coordinator.SeataDbTxCoordinator;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.coordinator.SeataTransactionFactory;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.modules.dbtx.seata.datasource.SeataDataSourceAdapter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
