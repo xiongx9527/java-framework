@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.mybatis.datachange.adapter.GeneratedKeyAccessor;
 import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeErrorCode;
 import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeException;
 import com.xiongx9527.fw.plus.mybatis.datachange.api.RowIdentity;
+import com.xiongx9527.fw.plus.mybatis.datachange.dialect.DataChangeDialect;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.reflection.MetaObject;
@@ -26,6 +27,15 @@ import java.util.Map;
 import java.util.Set;
 
 public final class GeneratedKeyResolver {
+	private final DataChangeDialect dialect;
+
+	public GeneratedKeyResolver() {
+		this(null);
+	}
+
+	public GeneratedKeyResolver(DataChangeDialect dialect) {
+		this.dialect = dialect;
+	}
 
 	public List<RowIdentity> resolve(MappedStatement mappedStatement, Object parameterObject, Statement statement,
 			FrameworkChangeMetadata frameworkMetadata, List<String> keyColumns) {
@@ -36,28 +46,38 @@ public final class GeneratedKeyResolver {
 		List<String> keys = validKeys(keyColumns);
 		GeneratedKeyAccessor accessor = frameworkMetadata == null ? null
 				: frameworkMetadata.getGeneratedKeyAccessor();
-		List<Object> parameters = insertionParameters(parameterObject);
+		List<Object> parameters;
+		try {
+			parameters = insertionParameters(parameterObject, mappedStatement);
+		} catch (RuntimeException exception) {
+			throw unavailable();
+		}
 		if (parameters.isEmpty()) {
 			throw unavailable();
 		}
 		List<Map<String, Object>> existing = new ArrayList<Map<String, Object>>();
 		boolean allComplete = true;
-		try {
-			for (Object parameter : parameters) {
-				Map<String, Object> values = directValues(parameter, mappedStatement, keys);
-				if (!complete(values, keys) && accessor != null) {
+		for (Object parameter : parameters) {
+			Map<String, Object> values;
+			try {
+				values = directValues(parameter, mappedStatement, keys);
+			} catch (RuntimeException exception) {
+				values = new LinkedHashMap<String, Object>();
+			}
+			if (!complete(values, keys) && accessor != null) {
+				try {
 					Map<String, Object> adapted = ordered(accessor.readKeyValues(parameter, keys), keys, false);
 					for (String key : keys) {
 						if ((!values.containsKey(key) || values.get(key) == null) && adapted.containsKey(key)) {
 							values.put(key, adapted.get(key));
 						}
 					}
+				} catch (RuntimeException ignored) {
+					// Continue with JDBC generated keys without exposing adapter details.
 				}
-				existing.add(values);
-				allComplete &= complete(values, keys);
 			}
-		} catch (RuntimeException exception) {
-			throw unavailable();
+			existing.add(values);
+			allComplete &= complete(values, keys);
 		}
 		if (allComplete) {
 			return identities(existing);
@@ -95,9 +115,31 @@ public final class GeneratedKeyResolver {
 				throw unavailable();
 			}
 			return Collections.unmodifiableList(identities);
-		} catch (DataChangeException exception) {
-			throw exception;
+		} catch (RuntimeException exception) {
+			return dialectLookup(mappedStatement, parameterObject, statement, frameworkMetadata, keys,
+					parameters.size());
 		} catch (SQLException exception) {
+			return dialectLookup(mappedStatement, parameterObject, statement, frameworkMetadata, keys,
+					parameters.size());
+		}
+	}
+
+	private List<RowIdentity> dialectLookup(MappedStatement mappedStatement, Object parameterObject,
+			Statement statement, FrameworkChangeMetadata frameworkMetadata, List<String> keys, int parameterCount) {
+		if (dialect == null) { throw unavailable(); }
+		try {
+			List<RowIdentity> resolved = dialect.lookupGeneratedKeys(mappedStatement, parameterObject, statement,
+					frameworkMetadata, keys);
+			if (resolved == null || resolved.size() != parameterCount) { throw unavailable(); }
+			List<Map<String, Object>> values = new ArrayList<Map<String, Object>>();
+			for (RowIdentity identity : resolved) {
+				if (identity == null) { throw unavailable(); }
+				Map<String, Object> ordered = ordered(identity.getKeyValues(), keys, true);
+				if (!complete(ordered, keys)) { throw unavailable(); }
+				values.add(ordered);
+			}
+			return identities(values);
+		} catch (RuntimeException exception) {
 			throw unavailable();
 		}
 	}
@@ -115,12 +157,12 @@ public final class GeneratedKeyResolver {
 					}
 				}
 			}
-			return values;
-		}
-		MetaObject metaObject = SystemMetaObject.forObject(parameter);
-		for (String key : keys) {
-			if (metaObject.hasGetter(key)) {
-				values.put(key, metaObject.getValue(key));
+		} else {
+			MetaObject metaObject = SystemMetaObject.forObject(parameter);
+			for (String key : keys) {
+				if (metaObject.hasGetter(key)) {
+					values.put(key, metaObject.getValue(key));
+				}
 			}
 		}
 		addMappedKeyProperties(values, parameter, mappedStatement, keys);
@@ -131,24 +173,25 @@ public final class GeneratedKeyResolver {
 			MappedStatement mappedStatement, List<String> keys) {
 		String[] properties = mappedStatement.getKeyProperties();
 		String[] columns = mappedStatement.getKeyColumns();
-		if (properties == null || properties.length != keys.size()) { return; }
-		for (int keyIndex = 0; keyIndex < keys.size(); keyIndex++) {
-			String key = keys.get(keyIndex);
+		if (properties == null || properties.length == 0) { return; }
+		if (columns != null && columns.length > 0 && columns.length != properties.length) { return; }
+		if ((columns == null || columns.length == 0) && properties.length != keys.size()) { return; }
+		for (int propertyIndex = 0; propertyIndex < properties.length; propertyIndex++) {
+			String key = columns == null || columns.length == 0
+					? keys.get(propertyIndex) : matchingKey(keys, columns[propertyIndex]);
+			if (key == null) { continue; }
 			if (values.containsKey(key) && values.get(key) != null) { continue; }
-			int propertyIndex = propertyIndex(columns, key, keyIndex, properties.length);
-			if (propertyIndex < 0) { continue; }
 			Object value = propertyValue(parameter, properties[propertyIndex]);
 			if (value != null) { values.put(key, value); }
 		}
 	}
 
-	private int propertyIndex(String[] columns, String key, int defaultIndex, int propertyCount) {
-		if (columns == null || columns.length == 0) { return defaultIndex; }
-		if (columns.length != propertyCount) { return -1; }
-		for (int index = 0; index < columns.length; index++) {
-			if (columns[index] != null && columns[index].equalsIgnoreCase(key)) { return index; }
+	private String matchingKey(List<String> keys, String column) {
+		if (column == null) { return null; }
+		for (String key : keys) {
+			if (key.equalsIgnoreCase(column)) { return key; }
 		}
-		return -1;
+		return null;
 	}
 
 	private Object propertyValue(Object parameter, String property) {
@@ -174,8 +217,8 @@ public final class GeneratedKeyResolver {
 		return keys;
 	}
 
-	private List<Object> insertionParameters(Object parameterObject) {
-		Object batch = batchValue(parameterObject);
+	private List<Object> insertionParameters(Object parameterObject, MappedStatement mappedStatement) {
+		Object batch = batchValue(parameterObject, mappedStatement);
 		if (batch instanceof Collection) {
 			return new ArrayList<Object>((Collection<?>) batch);
 		}
@@ -189,7 +232,7 @@ public final class GeneratedKeyResolver {
 		return Collections.singletonList(parameterObject);
 	}
 
-	private Object batchValue(Object parameterObject) {
+	private Object batchValue(Object parameterObject, MappedStatement mappedStatement) {
 		if (parameterObject instanceof Collection || parameterObject != null && parameterObject.getClass().isArray()) {
 			return parameterObject;
 		}
@@ -198,9 +241,21 @@ public final class GeneratedKeyResolver {
 		}
 		Map<?, ?> values = (Map<?, ?>) parameterObject;
 		for (String alias : new String[] { "list", "collection", "array" }) {
-			Object value = values.get(alias);
+			Object value = values.containsKey(alias) ? values.get(alias) : null;
 			if (value instanceof Collection || value != null && value.getClass().isArray()) {
 				return value;
+			}
+		}
+		String[] keyProperties = mappedStatement.getKeyProperties();
+		if (keyProperties != null) {
+			for (String keyProperty : keyProperties) {
+				int separator = keyProperty == null ? -1 : keyProperty.indexOf('.');
+				if (separator <= 0) { continue; }
+				String alias = keyProperty.substring(0, separator);
+				Object value = values.containsKey(alias) ? values.get(alias) : null;
+				if (value instanceof Collection || value != null && value.getClass().isArray()) {
+					return value;
+				}
 			}
 		}
 		return null;

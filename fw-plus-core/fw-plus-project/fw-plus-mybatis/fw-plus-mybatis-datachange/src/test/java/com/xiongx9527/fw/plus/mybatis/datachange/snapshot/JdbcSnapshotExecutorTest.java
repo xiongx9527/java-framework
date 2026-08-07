@@ -123,6 +123,42 @@ class JdbcSnapshotExecutorTest {
 	}
 
 	@Test
+	void sanitizesCloseFailureWithoutCauseOrSuppressedDetails() throws Exception {
+		Connection connection = Mockito.mock(Connection.class);
+		PreparedStatement statement = Mockito.mock(PreparedStatement.class);
+		ResultSet resultSet = Mockito.mock(ResultSet.class);
+		ResultSetMetaData resultSetMetadata = Mockito.mock(ResultSetMetaData.class);
+		when(connection.prepareStatement("SELECT ID FROM T")).thenReturn(statement);
+		when(statement.executeQuery()).thenReturn(resultSet);
+		when(resultSet.next()).thenReturn(true, true);
+		when(resultSet.getMetaData()).thenReturn(resultSetMetadata);
+		when(resultSetMetadata.getColumnCount()).thenReturn(1);
+		when(resultSetMetadata.getColumnLabel(1)).thenReturn("ID");
+		when(resultSet.getObject(1)).thenReturn(1L);
+		Mockito.doThrow(new SQLException("close leaked secret-value")).when(resultSet).close();
+
+		assertThatThrownBy(() -> queryOneKey(connection, 1))
+				.isInstanceOf(DataChangeException.class)
+				.hasMessage("SNAPSHOT_LIMIT_EXCEEDED")
+				.hasNoCause()
+				.satisfies(error -> assertThat(error.getSuppressed()).isEmpty());
+	}
+
+	@Test
+	void sanitizesJdbcRuntimeExceptionWithoutSensitiveDetails() throws Exception {
+		Connection connection = Mockito.mock(Connection.class);
+		PreparedStatement statement = Mockito.mock(PreparedStatement.class);
+		when(connection.prepareStatement("SELECT ID FROM T")).thenReturn(statement);
+		when(statement.executeQuery()).thenThrow(new RuntimeException("driver leaked secret-value"));
+
+		assertThatThrownBy(() -> queryOneKey(connection, 1))
+				.isInstanceOf(DataChangeException.class)
+				.hasMessage("SNAPSHOT_EXECUTION_FAILED")
+				.hasNoCause()
+				.satisfies(error -> assertThat(error.getSuppressed()).isEmpty());
+	}
+
+	@Test
 	void serviceReadsBeforeSnapshotWithOnlyPredicateParameterMappings() throws Exception {
 		Configuration configuration = new Configuration();
 		List<ParameterMapping> mappings = Arrays.asList(
@@ -157,6 +193,14 @@ class JdbcSnapshotExecutorTest {
 			runner.runScript(schema);
 		}
 		return connection;
+	}
+
+	private List<RowSnapshot> queryOneKey(Connection connection, int maxRows) {
+		return new JdbcSnapshotExecutor().query(connection,
+				new SnapshotQuery("SELECT ID FROM T", Collections.<SnapshotParameter>emptyList()),
+				new JdbcTableMetadata(new TableIdentifier(null, null, "T"),
+						Collections.singletonList("ID"), Collections.singletonList("ID")),
+				new Configuration(), maxRows);
 	}
 
 	private JdbcTableMetadata metadata() {
