@@ -74,7 +74,8 @@ public final class JdbcSnapshotExecutor {
 			DataChangeErrorCode code = ((DataChangeException) exception).getCode();
 			if (code == DataChangeErrorCode.SNAPSHOT_LIMIT_EXCEEDED
 					|| code == DataChangeErrorCode.UNIQUE_KEY_UNAVAILABLE
-					|| code == DataChangeErrorCode.INVALID_UNIQUE_KEY) {
+						|| code == DataChangeErrorCode.INVALID_UNIQUE_KEY
+						|| code == DataChangeErrorCode.ROW_IDENTITY_UNAVAILABLE) {
 				return new DataChangeException(code, code.name());
 			}
 		}

@@ -12,6 +12,7 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.execute.Execute;
 import net.sf.jsqlparser.statement.insert.Insert;
+import net.sf.jsqlparser.statement.insert.InsertConflictTarget;
 import net.sf.jsqlparser.statement.merge.Merge;
 import net.sf.jsqlparser.statement.merge.MergeInsert;
 import net.sf.jsqlparser.statement.merge.MergeUpdate;
@@ -87,7 +88,24 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 		Table snapshotSource = statement instanceof Delete ? ((Delete) statement).getTable() : table;
 		return new ChangeTarget(operation, JSqlParserTargetDetector.identifier(table), table, where, joins,
 				assignedColumns(statement, mappings), mappings, mappingsFor(predicateExpressions, mappings),
-				Collections.<String>emptyList(), context.getBoundSql(), snapshotSource);
+				Collections.<String>emptyList(), context.getBoundSql(), snapshotSource, isUpsert(statement),
+				conflictColumns(statement));
+	}
+
+	private boolean isUpsert(Statement statement) {
+		if (!(statement instanceof Insert)) { return false; }
+		Insert insert = (Insert) statement;
+		return insert.isUseDuplicate() || insert.getConflictAction() != null;
+	}
+
+	private List<String> conflictColumns(Statement statement) {
+		if (!(statement instanceof Insert)) { return Collections.emptyList(); }
+		InsertConflictTarget conflict = ((Insert) statement).getConflictTarget();
+		if (conflict == null || conflict.getIndexColumnName() == null
+				|| conflict.getIndexColumnName().trim().isEmpty()) {
+			return Collections.emptyList();
+		}
+		return Collections.singletonList(conflict.getIndexColumnName());
 	}
 
 	private void addJoinSourceExpressions(List<Expression> expressions, Join join) {

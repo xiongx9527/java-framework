@@ -91,6 +91,7 @@ public final class DataChangeEngine {
 				JdbcTableMetadata jdbcMetadata = metadataResolver.resolve(connection, detectedTarget.getTable());
 				FrameworkChangeMetadata framework = resolveFramework(context, boundSql, monitor, jdbcMetadata);
 				List<String> keys = identityResolver.resolve(monitor, framework, jdbcMetadata);
+				keys = dialect.resolveIdentityColumns(connection, detectedTarget, keys);
 				ChangeTarget target = detectedTarget.withSnapshotConfiguration(keys, monitoredColumns(monitor),
 						maxRows(monitor), context.getConsistencyLevel() == ConsistencyLevel.TRANSACTIONAL);
 				List<RowSnapshot> before = target.getOperation() == StatementOperation.INSERT

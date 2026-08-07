@@ -6,6 +6,8 @@ import com.xiongx9527.fw.plus.mybatis.datachange.api.RowIdentity;
 import org.apache.ibatis.mapping.MappedStatement;
 
 import java.sql.Statement;
+import java.sql.Connection;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -24,6 +26,13 @@ public interface DataChangeDialect {
 	default List<RowIdentity> lookupGeneratedKeys(MappedStatement mappedStatement, Object parameterObject,
 			Statement statement, FrameworkChangeMetadata frameworkMetadata, List<String> keyColumns) {
 		return Collections.emptyList();
+	}
+	default List<String> resolveIdentityColumns(Connection connection, ChangeTarget target,
+			List<String> defaultColumns) {
+		List<String> selected = target != null && !target.getConflictColumnsHint().isEmpty()
+				? target.getConflictColumnsHint() : defaultColumns;
+		return Collections.unmodifiableList(new ArrayList<String>(
+				selected == null ? Collections.<String>emptyList() : selected));
 	}
 	int getOrder();
 }
