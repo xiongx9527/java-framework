@@ -5,6 +5,7 @@ import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.Join;
 import org.apache.ibatis.mapping.ParameterMapping;
+import org.apache.ibatis.mapping.BoundSql;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,19 +24,29 @@ public final class ChangeTarget {
 	private final List<String> monitoredColumns;
 	private final int maxRows;
 	private final boolean lockRows;
+	private final BoundSql boundSql;
 
 	public ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
 						List<Join> joins, List<AssignedColumn> assignedColumns,
 						List<ParameterMapping> parameterMappings, List<ParameterMapping> predicateParameterMappings,
 						List<String> keyColumnsHint) {
 		this(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
-				predicateParameterMappings, keyColumnsHint, Collections.<String>emptyList(), 1000, false);
+				predicateParameterMappings, keyColumnsHint, Collections.<String>emptyList(), 1000, false, null);
+	}
+
+	ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
+			List<Join> joins, List<AssignedColumn> assignedColumns,
+			List<ParameterMapping> parameterMappings, List<ParameterMapping> predicateParameterMappings,
+			List<String> keyColumnsHint, BoundSql boundSql) {
+		this(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
+				predicateParameterMappings, keyColumnsHint, Collections.<String>emptyList(), 1000, false, boundSql);
 	}
 
 	private ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
 						 List<Join> joins, List<AssignedColumn> assignedColumns,
 						 List<ParameterMapping> parameterMappings, List<ParameterMapping> predicateParameterMappings,
-						 List<String> keyColumnsHint, List<String> monitoredColumns, int maxRows, boolean lockRows) {
+						 List<String> keyColumnsHint, List<String> monitoredColumns, int maxRows, boolean lockRows,
+						 BoundSql boundSql) {
 		this.operation = operation;
 		this.table = table;
 		this.sourceTable = sourceTable;
@@ -48,6 +59,7 @@ public final class ChangeTarget {
 		this.monitoredColumns = immutable(monitoredColumns);
 		this.maxRows = maxRows;
 		this.lockRows = lockRows;
+		this.boundSql = boundSql;
 	}
 
 	public StatementOperation getOperation() { return operation; }
@@ -62,6 +74,7 @@ public final class ChangeTarget {
 	public List<String> getMonitoredColumns() { return monitoredColumns; }
 	public int getMaxRows() { return maxRows; }
 	public boolean isLockRows() { return lockRows; }
+	public BoundSql getBoundSql() { return boundSql; }
 
 	public ChangeTarget withSnapshotConfiguration(List<String> keyColumns, List<String> columns,
 												  int configuredMaxRows, boolean configuredLockRows) {
@@ -69,7 +82,7 @@ public final class ChangeTarget {
 			throw new IllegalArgumentException("maxRows must be greater than zero");
 		}
 		return new ChangeTarget(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
-				predicateParameterMappings, keyColumns, columns, configuredMaxRows, configuredLockRows);
+				predicateParameterMappings, keyColumns, columns, configuredMaxRows, configuredLockRows, boundSql);
 	}
 
 	private <T> List<T> immutable(List<T> values) {

@@ -65,7 +65,7 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 			}
 			List<ChangeTarget> targets = new ArrayList<ChangeTarget>();
 			for (Table table : tables) {
-				targets.add(target(statement, operation, table, statementMappings));
+				targets.add(target(statement, operation, table, statementMappings, context));
 			}
 			analyzed.add(new AnalyzedStatement(parsed.getStatementIndex(), true, targets));
 		}
@@ -73,7 +73,7 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 	}
 
 	private ChangeTarget target(Statement statement, StatementOperation operation, Table table,
-								List<ParameterMapping> mappings) {
+								List<ParameterMapping> mappings, BoundSqlContext context) {
 		Expression where = where(statement);
 		List<Join> joins = joins(statement);
 		List<Expression> predicateExpressions = new ArrayList<Expression>();
@@ -86,7 +86,7 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 		if (where != null) { predicateExpressions.add(where); }
 		return new ChangeTarget(operation, JSqlParserTargetDetector.identifier(table), table, where, joins,
 				assignedColumns(statement, mappings), mappings, mappingsFor(predicateExpressions, mappings),
-				Collections.<String>emptyList());
+				Collections.<String>emptyList(), context.getBoundSql());
 	}
 
 	private void addJoinSourceExpressions(List<Expression> expressions, Join join) {
