@@ -15,6 +15,7 @@ public final class ChangeTarget {
 	private final StatementOperation operation;
 	private final TableIdentifier table;
 	private final Table sourceTable;
+	private final Table snapshotSourceTable;
 	private final Expression where;
 	private final List<Join> joins;
 	private final List<AssignedColumn> assignedColumns;
@@ -31,7 +32,8 @@ public final class ChangeTarget {
 						List<ParameterMapping> parameterMappings, List<ParameterMapping> predicateParameterMappings,
 						List<String> keyColumnsHint) {
 		this(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
-				predicateParameterMappings, keyColumnsHint, Collections.<String>emptyList(), 1000, false, null);
+					predicateParameterMappings, keyColumnsHint, Collections.<String>emptyList(), 1000, false, null,
+					sourceTable);
 	}
 
 	ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
@@ -39,17 +41,28 @@ public final class ChangeTarget {
 			List<ParameterMapping> parameterMappings, List<ParameterMapping> predicateParameterMappings,
 			List<String> keyColumnsHint, BoundSql boundSql) {
 		this(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
-				predicateParameterMappings, keyColumnsHint, Collections.<String>emptyList(), 1000, false, boundSql);
+					predicateParameterMappings, keyColumnsHint, Collections.<String>emptyList(), 1000, false, boundSql,
+					sourceTable);
+	}
+
+	ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
+			List<Join> joins, List<AssignedColumn> assignedColumns,
+			List<ParameterMapping> parameterMappings, List<ParameterMapping> predicateParameterMappings,
+			List<String> keyColumnsHint, BoundSql boundSql, Table snapshotSourceTable) {
+		this(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
+				predicateParameterMappings, keyColumnsHint, Collections.<String>emptyList(), 1000, false, boundSql,
+				snapshotSourceTable);
 	}
 
 	private ChangeTarget(StatementOperation operation, TableIdentifier table, Table sourceTable, Expression where,
 						 List<Join> joins, List<AssignedColumn> assignedColumns,
 						 List<ParameterMapping> parameterMappings, List<ParameterMapping> predicateParameterMappings,
-						 List<String> keyColumnsHint, List<String> monitoredColumns, int maxRows, boolean lockRows,
-						 BoundSql boundSql) {
+							 List<String> keyColumnsHint, List<String> monitoredColumns, int maxRows, boolean lockRows,
+							 BoundSql boundSql, Table snapshotSourceTable) {
 		this.operation = operation;
 		this.table = table;
 		this.sourceTable = sourceTable;
+		this.snapshotSourceTable = snapshotSourceTable;
 		this.where = where;
 		this.joins = immutable(joins);
 		this.assignedColumns = immutable(assignedColumns);
@@ -65,6 +78,7 @@ public final class ChangeTarget {
 	public StatementOperation getOperation() { return operation; }
 	public TableIdentifier getTable() { return table; }
 	public Table getSourceTable() { return sourceTable; }
+	public Table getSnapshotSourceTable() { return snapshotSourceTable; }
 	public Expression getWhere() { return where; }
 	public List<Join> getJoins() { return joins; }
 	public List<AssignedColumn> getAssignedColumns() { return assignedColumns; }
@@ -82,7 +96,8 @@ public final class ChangeTarget {
 			throw new IllegalArgumentException("maxRows must be greater than zero");
 		}
 		return new ChangeTarget(operation, table, sourceTable, where, joins, assignedColumns, parameterMappings,
-				predicateParameterMappings, keyColumns, columns, configuredMaxRows, configuredLockRows, boundSql);
+					predicateParameterMappings, keyColumns, columns, configuredMaxRows, configuredLockRows, boundSql,
+					snapshotSourceTable);
 	}
 
 	private <T> List<T> immutable(List<T> values) {

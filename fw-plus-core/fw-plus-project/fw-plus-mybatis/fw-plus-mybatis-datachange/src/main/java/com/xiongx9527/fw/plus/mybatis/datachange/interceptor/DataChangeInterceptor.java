@@ -1,10 +1,15 @@
 package com.xiongx9527.fw.plus.mybatis.datachange.interceptor;
 
 import com.xiongx9527.fw.plus.mybatis.datachange.adapter.DataChangeFrameworkAdapter;
+import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeErrorCode;
+import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeException;
 import com.xiongx9527.fw.plus.mybatis.datachange.api.StatementChange;
 import com.xiongx9527.fw.plus.mybatis.datachange.config.DataChangeConfiguration;
 import com.xiongx9527.fw.plus.mybatis.datachange.dialect.BoundSqlContext;
+import org.apache.ibatis.cache.CacheKey;
+import org.apache.ibatis.executor.BatchResult;
 import org.apache.ibatis.executor.Executor;
+import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.plugin.Interceptor;
@@ -13,8 +18,11 @@ import org.apache.ibatis.plugin.Invocation;
 import org.apache.ibatis.plugin.Plugin;
 import org.apache.ibatis.plugin.Signature;
 import org.apache.ibatis.executor.statement.StatementHandler;
+import org.apache.ibatis.session.ResultHandler;
+import org.apache.ibatis.session.RowBounds;
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.Optional;
@@ -26,15 +34,28 @@ import java.util.Properties;
 		@Signature(type = StatementHandler.class, method = "prepare",
 				args = {Connection.class, Integer.class}),
 		@Signature(type = StatementHandler.class, method = "update",
-				args = {Statement.class})
+				args = {Statement.class}),
+		@Signature(type = StatementHandler.class, method = "batch",
+				args = {Statement.class}),
+		@Signature(type = Executor.class, method = "flushStatements", args = {}),
+		@Signature(type = Executor.class, method = "commit", args = {boolean.class}),
+		@Signature(type = Executor.class, method = "rollback", args = {boolean.class}),
+		@Signature(type = Executor.class, method = "query",
+				args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class}),
+		@Signature(type = Executor.class, method = "query",
+				args = {MappedStatement.class, Object.class, RowBounds.class, ResultHandler.class,
+						CacheKey.class, BoundSql.class})
 })
 public final class DataChangeInterceptor implements Interceptor {
 	private final DataChangeConfiguration configuration;
 	private final DataChangeEngine engine;
+	private final DataChangeBatchCoordinator batchCoordinator;
+	private final JdbcUpdateCountCollector updateCountCollector = new JdbcUpdateCountCollector();
 
 	public DataChangeInterceptor(DataChangeConfiguration configuration, DataChangeEngine engine) {
 		this.configuration = configuration;
 		this.engine = engine;
+		this.batchCoordinator = new DataChangeBatchCoordinator(engine);
 	}
 
 	@Override
@@ -43,11 +64,26 @@ public final class DataChangeInterceptor implements Interceptor {
 		if (invocation.getTarget() instanceof Executor && "update".equals(method)) {
 			return interceptExecutorUpdate(invocation);
 		}
+		if (invocation.getTarget() instanceof Executor && "flushStatements".equals(method)) {
+			return interceptFlushStatements(invocation);
+		}
+		if (invocation.getTarget() instanceof Executor && "commit".equals(method)) {
+			return interceptFlushBefore(invocation);
+		}
+		if (invocation.getTarget() instanceof Executor && "rollback".equals(method)) {
+			return interceptRollback(invocation);
+		}
+		if (invocation.getTarget() instanceof Executor && "query".equals(method)) {
+			return interceptFlushBefore(invocation);
+		}
 		if (invocation.getTarget() instanceof StatementHandler && "prepare".equals(method)) {
 			return interceptPrepare(invocation);
 		}
 		if (invocation.getTarget() instanceof StatementHandler && "update".equals(method)) {
 			return interceptStatementUpdate(invocation);
+		}
+		if (invocation.getTarget() instanceof StatementHandler && "batch".equals(method)) {
+			return interceptStatementBatch(invocation);
 		}
 		return invocation.proceed();
 	}
@@ -61,9 +97,11 @@ public final class DataChangeInterceptor implements Interceptor {
 		if (!isDml(mappedStatement.getSqlCommandType())) { return invocation.proceed(); }
 		DataChangeFrameworkAdapter adapter = engine.selectAdapter(mappedStatement, parameterObject);
 		if (adapter == null) { return invocation.proceed(); }
-		DataChangeExecutionContext context = new DataChangeExecutionContext(mappedStatement, parameterObject, adapter);
+		DataChangeExecutionContext context = new DataChangeExecutionContext(mappedStatement, parameterObject, adapter,
+				invocation.getTarget());
 		try (DataChangeExecutionContextHolder.Scope ignored = DataChangeExecutionContextHolder.push(context)) {
 			Object result = invocation.proceed();
+			if (context.isBatch()) { return result; }
 			List<StatementChange> statements = engine.afterStatement(context, context.getPlans(),
 					context.getUpdateCounts());
 			engine.dispatch(context, statements);
@@ -109,10 +147,84 @@ public final class DataChangeInterceptor implements Interceptor {
 		if (!current.isPresent() || !(result instanceof Number)) { return result; }
 		DataChangeExecutionContext context = current.get();
 		int updateCount = ((Number) result).intValue();
-		context.addUpdateCount(updateCount);
-		engine.captureStatementResult(context, context.getCurrentPlans(),
-				(Statement) invocation.getArgs()[0], updateCount);
+		List<Integer> updateCounts;
+		try {
+			updateCounts = updateCountCollector.collect((Statement) invocation.getArgs()[0], updateCount);
+		} catch (SQLException failure) {
+			engine.handlePostProcessingFailure(context, new DataChangeException(DataChangeErrorCode.UNKNOWN,
+					"DATA_CHANGE_UPDATE_COUNT_UNAVAILABLE"));
+			return result;
+		}
+		context.addUpdateCounts(updateCounts);
+		engine.captureStatementResults(context, context.getCurrentPlans(),
+				(Statement) invocation.getArgs()[0], updateCounts);
 		return result;
+	}
+
+	private Object interceptStatementBatch(Invocation invocation) throws Throwable {
+		if (DataChangeScopeHolder.isSuppressed()) { return invocation.proceed(); }
+		Optional<DataChangeExecutionContext> current = DataChangeExecutionContextHolder.current();
+		if (!current.isPresent()) { return invocation.proceed(); }
+		DataChangeExecutionContext context = current.get();
+		Statement statement = (Statement) invocation.getArgs()[0];
+		StatementHandler handler = (StatementHandler) invocation.getTarget();
+		context.markBatch(statement, handler.getBoundSql().getSql());
+		List<StatementChangePlan> plans = context.getCurrentPlans();
+		if (plans.isEmpty()) {
+			engine.initializeConnection(context, statement.getConnection());
+			plans = engine.beforeStatement(context, new BoundSqlContext(handler.getBoundSql(),
+					context.getConsistencyLevel() == com.xiongx9527.fw.plus.mybatis.datachange.api.ConsistencyLevel.TRANSACTIONAL,
+					configuration.getMaxSnapshotRows()));
+			context.registerPlans(plans);
+		}
+		batchCoordinator.collect(context, plans);
+		try {
+			return invocation.proceed();
+		} catch (Throwable failure) {
+			batchCoordinator.discard(context);
+			throw failure;
+		}
+	}
+
+	private Object interceptFlushStatements(Invocation invocation) throws Throwable {
+		DataChangeExecutionContext context = lifecycleContext(invocation);
+		if (!batchCoordinator.hasPending(context)) { return invocation.proceed(); }
+		try {
+			Object result = invocation.proceed();
+			batchCoordinator.flush(context, batchResults(result));
+			return result;
+		} catch (Throwable failure) {
+			batchCoordinator.discard(context);
+			throw failure;
+		}
+	}
+
+	private Object interceptFlushBefore(Invocation invocation) throws Throwable {
+		DataChangeExecutionContext context = lifecycleContext(invocation);
+		if (batchCoordinator.hasPending(context)) {
+			try {
+				List<BatchResult> results = ((Executor) invocation.getTarget()).flushStatements();
+				batchCoordinator.flush(context, results);
+			} catch (Throwable failure) {
+				batchCoordinator.discard(context);
+				throw failure;
+			}
+		}
+		return invocation.proceed();
+	}
+
+	private Object interceptRollback(Invocation invocation) throws Throwable {
+		batchCoordinator.discard(lifecycleContext(invocation));
+		return invocation.proceed();
+	}
+
+	private DataChangeExecutionContext lifecycleContext(Invocation invocation) {
+		return new DataChangeExecutionContext(null, null, null, invocation.getTarget());
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<BatchResult> batchResults(Object result) {
+		return result instanceof List ? (List<BatchResult>) result : java.util.Collections.<BatchResult>emptyList();
 	}
 
 	private boolean isDml(SqlCommandType commandType) {

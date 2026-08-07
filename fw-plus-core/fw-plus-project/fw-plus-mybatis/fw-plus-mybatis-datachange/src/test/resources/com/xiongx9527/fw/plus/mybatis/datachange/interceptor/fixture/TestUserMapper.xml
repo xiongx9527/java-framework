@@ -28,4 +28,7 @@
 	<update id="renameComposite">
 		UPDATE tenant_user SET name = #{name} WHERE tenant_id = #{tenantId} AND user_id = #{userId}
 	</update>
+	<select id="findName" resultType="string">
+		SELECT name FROM sys_user WHERE id = #{id}
+	</select>
 </mapper>
