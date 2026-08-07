@@ -174,6 +174,6 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 	}
 
 	private DataChangeException snapshotFailure(String message) {
-		return new DataChangeException(DataChangeErrorCode.SNAPSHOT, message);
+		return new DataChangeException(DataChangeErrorCode.SNAPSHOT_QUERY_FAILED, message);
 	}
 }

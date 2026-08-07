@@ -25,6 +25,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class H2DataChangeDialectTest {
+	@Test
+	void analyzesSingleColumnInsertWithoutRowConstructorWrapper() {
+		BoundSqlContext context = context("INSERT INTO sys_user(name) VALUES(?)", "name");
+
+		AnalyzedStatement statement = dialect.analyze(context).get(0);
+
+		assertThat(statement.getTargets()).hasSize(1);
+		assertThat(statement.getTargets().get(0).getAssignedColumns())
+				.extracting(AssignedColumn::getColumn).containsExactly("name");
+	}
 	private final H2DataChangeDialect dialect = new H2DataChangeDialect();
 
 	@ParameterizedTest

@@ -265,8 +265,11 @@ public final class JSqlParserTargetDetector {
 			return false;
 		}
 		List<Expression> rows = ((ExpressionList) ((ValuesStatement) bodies.get(0)).getExpressions()).getExpressions();
-		if (rows.size() != 1 || !(rows.get(0) instanceof RowConstructor)) {
+		if (rows.size() != 1) {
 			return false;
+		}
+		if (!(rows.get(0) instanceof RowConstructor)) {
+			return insert.getColumns().size() == 1;
 		}
 		ExpressionList values = ((RowConstructor) rows.get(0)).getExprList();
 		return values != null && values.getExpressions().size() == insert.getColumns().size();

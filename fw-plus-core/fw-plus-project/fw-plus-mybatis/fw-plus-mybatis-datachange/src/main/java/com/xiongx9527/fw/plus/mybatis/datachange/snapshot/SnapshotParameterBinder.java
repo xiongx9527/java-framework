@@ -38,19 +38,19 @@ public final class SnapshotParameterBinder {
 				handler.setParameter(statement, index + 1, value, jdbcType);
 			}
 		} catch (SQLException exception) {
-			throw new DataChangeException(DataChangeErrorCode.SNAPSHOT,
+			throw new DataChangeException(DataChangeErrorCode.SNAPSHOT_QUERY_FAILED,
 					"SNAPSHOT_PARAMETER_BINDING_FAILED");
 		} catch (DataChangeException exception) {
 			throw exception;
 		} catch (RuntimeException exception) {
-			throw new DataChangeException(DataChangeErrorCode.SNAPSHOT,
+			throw new DataChangeException(DataChangeErrorCode.SNAPSHOT_QUERY_FAILED,
 					"SNAPSHOT_PARAMETER_BINDING_FAILED");
 		}
 	}
 
 	private Object boundValue(BoundSql boundSql, ParameterMapping mapping, Configuration configuration) {
 		if (boundSql == null) {
-			throw new DataChangeException(DataChangeErrorCode.SNAPSHOT,
+			throw new DataChangeException(DataChangeErrorCode.SNAPSHOT_QUERY_FAILED,
 					"SNAPSHOT_PARAMETER_CONTEXT_UNAVAILABLE");
 		}
 		String property = mapping.getProperty();
