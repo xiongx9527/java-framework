@@ -72,3 +72,86 @@ mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
 - 新增 brief 指定的 6 个 Task 6 生产类、H2/Holder 测试和 Mapper 夹具。
 - 最小前置修改限于精确错误码、H2 metadata 大小写、单列 INSERT AST、快照日志代理解包及对应回归测试。
 - 未实现 Batch、多语句和多表执行扩展，留给 Task 7。
+
+---
+
+# 修复轮 1/5：Handler 生命周期与 prepare 资源边界
+
+## Finding 1：Handler 生命周期统一失败处理
+
+### 根因
+
+- `DataChangeDispatcher` 原先在 suppression scope 和 `try/catch` 外调用 `getOrder()` 与 `supports()`。
+- 两个生命周期方法中的嵌套 Mapper 会重新进入数据变更拦截器；方法异常也不会遵循 Handler 已约定的事务级别语义。
+- `BEST_EFFORT` 无法安全报告后继续其他 Handler，`TRANSACTIONAL` 也无法统一转换为净化后的 `HANDLER_FAILED`。
+
+### 新增回归测试
+
+- `DataChangeDispatcherTest#bestEffortSupportsFailureIsSanitizedReportedAndDoesNotStopLaterHandlers`
+- `DataChangeDispatcherTest#transactionalSupportsFailurePropagatesSanitizedHandlerFailure`
+- `DataChangeDispatcherTest#invokesOrderAndSupportsInsideSuppressionScope`
+- `DataChangeDispatcherTest#bestEffortOrderFailureIsReportedAndSkipsOnlyFailingHandler`
+- `DataChangeInterceptorH2Test#suppressesNestedMapperCallFromHandlerSupports`
+
+### RED / GREEN
+
+Dispatcher 首轮 RED：8 tests 中 2 failures、2 errors；真实 H2 嵌套 Mapper RED：期望 1 个审计事件，实际 2 个。
+
+修复后命令：
+
+```bash
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mybatis-datachange \
+  -Dtest=DataChangeDispatcherTest,DataChangeInterceptorH2Test#suppressesNestedMapperCallFromHandlerSupports test
+```
+
+结果：9 tests，0 failures，0 errors，BUILD SUCCESS。
+
+实现将 `getOrder()`、`supports()`、`handle()` 全部纳入 `DataChangeScope.suppress()` 与统一失败转换；排序只使用已安全读取的整数 order。`BEST_EFFORT` 报告净化后的 `HANDLER_FAILED` 并继续，`TRANSACTIONAL` 直接抛出净化异常。
+
+## Finding 2：prepare 后审计失败关闭 Statement
+
+### 根因
+
+MyBatis 在 `StatementHandler.prepare()` 返回后才把 Statement 赋给外层 `SimpleExecutor#doUpdate` 的局部变量。当前拦截器先取得底层返回值，再执行 before snapshot；若审计准备失败，拦截器抛出异常导致外层赋值未完成，MyBatis 的 `finally` 看到的 Statement 仍为 `null`，因此不能关闭已创建的 JDBC 资源。
+
+### 新增回归测试
+
+- `DataChangeInterceptorPrepareTest#closesPreparedStatementWhenBeforeSnapshotFailsWithoutLeakingCloseFailure`
+
+测试使用真实 H2 Connection、真实 `DataChangeEngine` 和真实 before snapshot 查询路径；`StatementHandler.prepare()` 返回测试 Statement 后，故意让 before snapshot 产生 `SNAPSHOT_QUERY_FAILED`。Statement 的 `close()` 同时抛出包含 `secret-binding` 的 `SQLException`，用于验证关闭动作与异常隔离。
+
+首轮 RED 命令：
+
+```bash
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mybatis-datachange \
+  -Dtest=DataChangeInterceptorPrepareTest test
+```
+
+结果：1 test，1 failure；期望 close 调用 1 次，实际 0 次。原始 `SNAPSHOT_QUERY_FAILED` 的错误码、固定消息、无 cause 和无 suppressed 断言均已先通过。
+
+修复后同命令结果：1 test，0 failures，0 errors。`interceptPrepare` 仅在底层 prepare 已返回 Statement 且后续审计准备失败时显式关闭；suppression 或无执行上下文的直通路径不关闭。close 自身的任何失败被完全隔离，不替换原异常，也不进入 cause / suppressed，敏感绑定值不会泄漏。
+
+## 最终验证
+
+定向回归：
+
+```bash
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mybatis-datachange \
+  -Dtest=DataChangeDispatcherTest,DataChangeInterceptorPrepareTest,DataChangeInterceptorH2Test test
+```
+
+结果：26 tests，0 failures，0 errors，0 skipped，BUILD SUCCESS。
+
+模块全量：
+
+```bash
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mybatis-datachange test
+```
+
+结果：118 tests，0 failures，0 errors，0 skipped，BUILD SUCCESS。
+
+`git diff --check` 通过；修复范围限于 `DataChangeDispatcher`、`DataChangeInterceptor` 及对应三个测试类。

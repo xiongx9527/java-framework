@@ -30,31 +30,46 @@ public final class DataChangeDispatcher {
 	}
 
 	public void dispatch(DataChangeEvent event) {
-		List<DataChangeHandler> orderedHandlers = new ArrayList<DataChangeHandler>(handlers);
-		Collections.sort(orderedHandlers, new Comparator<DataChangeHandler>() {
+		List<OrderedHandler> orderedHandlers = new ArrayList<OrderedHandler>();
+		for (DataChangeHandler handler : handlers) {
+			Integer order = order(handler, event);
+			if (order != null) { orderedHandlers.add(new OrderedHandler(handler, order.intValue())); }
+		}
+		Collections.sort(orderedHandlers, new Comparator<OrderedHandler>() {
 			@Override
-			public int compare(DataChangeHandler first, DataChangeHandler second) {
-				return Integer.compare(first.getOrder(), second.getOrder());
+			public int compare(OrderedHandler first, OrderedHandler second) {
+				return Integer.compare(first.order, second.order);
 			}
 		});
-		for (DataChangeHandler handler : orderedHandlers) {
-			if (handler.supports(event)) {
-				dispatch(handler, event);
-			}
+		for (OrderedHandler ordered : orderedHandlers) {
+			dispatch(ordered.handler, event);
+		}
+	}
+
+	private Integer order(DataChangeHandler handler, DataChangeEvent event) {
+		try (DataChangeScope ignored = DataChangeScope.suppress()) {
+			return Integer.valueOf(handler.getOrder());
+		} catch (Exception cause) {
+			failure(handler, event);
+			return null;
 		}
 	}
 
 	private void dispatch(DataChangeHandler handler, DataChangeEvent event) {
 		try (DataChangeScope ignored = DataChangeScope.suppress()) {
-			handler.handle(event);
+			if (handler.supports(event)) { handler.handle(event); }
 		} catch (Exception cause) {
-			DataChangeException exception = new DataChangeException(DataChangeErrorCode.HANDLER_FAILED,
-					"HANDLER_FAILED: " + handler.getClass().getName());
-			if (event != null && event.getConsistencyLevel() == ConsistencyLevel.TRANSACTIONAL) {
-				throw exception;
-			}
-			report(event, exception);
+			failure(handler, event);
 		}
+	}
+
+	private void failure(DataChangeHandler handler, DataChangeEvent event) {
+		DataChangeException exception = new DataChangeException(DataChangeErrorCode.HANDLER_FAILED,
+				"HANDLER_FAILED: " + handler.getClass().getName());
+		if (event != null && event.getConsistencyLevel() == ConsistencyLevel.TRANSACTIONAL) {
+			throw exception;
+		}
+		report(event, exception);
 	}
 
 	private void report(DataChangeEvent event, DataChangeException exception) {
@@ -64,6 +79,16 @@ public final class DataChangeDispatcher {
 			} catch (Exception ignored) {
 				// Best-effort dispatch cannot let error reporting stop later handlers.
 			}
+		}
+	}
+
+	private static final class OrderedHandler {
+		private final DataChangeHandler handler;
+		private final int order;
+
+		private OrderedHandler(DataChangeHandler handler, int order) {
+			this.handler = handler;
+			this.order = order;
 		}
 	}
 }
