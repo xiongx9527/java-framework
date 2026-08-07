@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.mybatis.datachange.dialect;
 
+import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeErrorCode;
 import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeException;
 import com.xiongx9527.fw.plus.mybatis.datachange.api.TableIdentifier;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,19 @@ class DataChangeDialectRegistryTest {
 
 		assertThatThrownBy(() -> registry.select(connection("H2", 2, 2)))
 				.isInstanceOf(DataChangeException.class)
-				.hasMessageContaining("AMBIGUOUS_DIALECT");
+				.extracting(exception -> ((DataChangeException) exception).getCode())
+				.isEqualTo(DataChangeErrorCode.AMBIGUOUS_DIALECT);
+	}
+
+	@Test
+	void rejectsUnsupportedDatabaseWithDedicatedErrorCode() throws Exception {
+		DataChangeDialectRegistry registry = new DataChangeDialectRegistry(
+				Arrays.asList(dialect("h2", 100, false)));
+
+		assertThatThrownBy(() -> registry.select(connection("UnknownDB", 1, 0)))
+				.isInstanceOf(DataChangeException.class)
+				.extracting(exception -> ((DataChangeException) exception).getCode())
+				.isEqualTo(DataChangeErrorCode.UNSUPPORTED_DIALECT);
 	}
 
 	@Test
