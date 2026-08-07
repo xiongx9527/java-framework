@@ -299,7 +299,8 @@ public final class DefaultTinyflowIngestionService {
 		return new TinyflowKnowledgeRepository.VectorCompensation(UUID.randomUUID().toString(),
 				document.getTenantId(), document.getKnowledgeId(), document.getSourceId(), document.getDocumentId(),
 				Collections.<String>emptyList(), TinyflowVectorCompensator.DELETE_FAILED_IMPORT,
-				TinyflowKnowledgeRepository.VectorCompensation.OBJECT_PENDING);
+				TinyflowKnowledgeRepository.VectorCompensation.OBJECT_PENDING, null,
+				TinyflowKnowledgeRepository.VectorCompensation.CURRENT_STAGE_SCHEMA_VERSION);
 	}
 
 	private void completeObjectCleanup(TinyflowKnowledgeRepository.VectorCompensation cleanup) {

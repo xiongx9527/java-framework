@@ -53,6 +53,7 @@ import org.ssssssss.magicapi.utils.WebUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -150,6 +151,22 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 		fixture.operations.create(definition);
 
 		assertNotNull(fixture.operations.find("tenant-a", "kb-tail"));
+	}
+
+	@Test
+	public void shouldUseCustomProviderDirectLookupsBeyondDisplayLimit() throws Exception {
+		MagicTinyflowKnowledgeOptionProvider optionProvider = customOptionsWithManyModels();
+		assertEquals(200, optionProvider.listModels(200).size());
+		assertFalse(containsOption(optionProvider.listModels(200), "embedding-200"));
+		Fixture fixture = fixture(optionProvider);
+
+		fixture.operations.create(definitionWithEmbedding("kb-tail-custom", "embedding-200"));
+
+		assertNotNull(fixture.operations.find("tenant-a", "kb-tail-custom"));
+		assertThrows(IllegalArgumentException.class,
+				() -> fixture.operations.create(definitionWithEmbedding("kb-unknown-custom", "embedding-unknown")));
+		assertThrows(IllegalArgumentException.class,
+				() -> fixture.operations.create(definitionWithEmbedding("kb-chat-custom", "chat-main")));
 	}
 
 	@Test
@@ -397,10 +414,20 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 				command("source-race", "file", "race.txt", "text/plain", "race")));
 
 		assertEquals(1, fixture.repository.findVectorCompensations("tenant-a", "kb-1").size());
+		assertEquals(TinyflowKnowledgeRepository.VectorCompensation.OBJECT_PENDING,
+				fixture.repository.findVectorCompensations("tenant-a", "kb-1").get(0).getStage());
 		fixture.storage.deleteFailures = 0;
 		retryCompensations(fixture);
 		assertEquals(Collections.singletonList("object-ref-1"), fixture.storage.deleted);
 		assertTrue(fixture.repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
+	}
+
+	@Test
+	public void shouldKeepTemporaryObjectPendingWhenS3MissingCheckFails() throws Exception {
+		assertS3MissingCheckFailureKeepsObjectPending(
+				new IllegalStateException("S3 exists failed with status 403"));
+		assertS3MissingCheckFailureKeepsObjectPending(
+				new IllegalStateException("S3 exists failed with status 503", new IOException("timeout")));
 	}
 
 	@Test
@@ -504,6 +531,37 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 		return new DefaultMagicTinyflowKnowledgeOptionProvider(models, vectors, s3);
 	}
 
+	private MagicTinyflowKnowledgeOptionProvider customOptionsWithManyModels() {
+		final List<MagicTinyflowKnowledgeOptionProvider.Option> models =
+				new ArrayList<MagicTinyflowKnowledgeOptionProvider.Option>();
+		final Map<String, String> modelTypes = new LinkedHashMap<String, String>();
+		for (int index = 0; index <= 200; index++) {
+			String key = String.format("embedding-%03d", index);
+			modelTypes.put(key, "EMBEDDING");
+			if (index < 200) {
+				models.add(new MagicTinyflowKnowledgeOptionProvider.Option(key, key, "EMBEDDING", "test"));
+			}
+		}
+		modelTypes.put("chat-main", "CHAT");
+		return new MagicTinyflowKnowledgeOptionProvider() {
+			@Override public List<Option> listModels(int limit) {
+				return Collections.unmodifiableList(new ArrayList<Option>(models.subList(0, Math.min(limit, models.size()))));
+			}
+			@Override public List<Option> listVectors(int limit) {
+				return Collections.singletonList(new Option("vector-main", "Vector", "VECTOR", "test"));
+			}
+			@Override public List<Option> listS3(int limit) {
+				return Collections.singletonList(new Option(
+						"s3-main", "Storage", "OBJECT_STORAGE", "test"));
+			}
+			@Override public boolean hasEmbeddingModel(String key) {
+				return "EMBEDDING".equals(modelTypes.get(key));
+			}
+			@Override public boolean hasVectorStore(String key) { return "vector-main".equals(key); }
+			@Override public boolean hasS3Storage(String key) { return "s3-main".equals(key); }
+		};
+	}
+
 	private boolean containsOption(List<MagicTinyflowKnowledgeOptionProvider.Option> options, String key) {
 		for (MagicTinyflowKnowledgeOptionProvider.Option option : options) {
 			if (key.equals(option.getKey())) return true;
@@ -524,18 +582,60 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 				return Collections.singletonList(new Option(
 						"s3-main", "Storage", "OBJECT_STORAGE", "test"));
 			}
+			@Override public boolean hasEmbeddingModel(String key) { return "embedding-main".equals(key); }
+			@Override public boolean hasVectorStore(String key) { return "vector-main".equals(key); }
+			@Override public boolean hasS3Storage(String key) { return "s3-main".equals(key); }
 		};
 	}
 
 	private void retryCompensations(Fixture fixture) {
-		DefaultTinyflowIngestionService.IngestionIndex index = new DefaultTinyflowIngestionService.IngestionIndex() {
+		new TinyflowVectorCompensator(fixture.repository, compensationIndex(), fixture.storage)
+				.retry("tenant-a", "kb-1");
+	}
+
+	private DefaultTinyflowIngestionService.IngestionIndex compensationIndex() {
+		return new DefaultTinyflowIngestionService.IngestionIndex() {
 			@Override public void embed(String tenantId, String knowledgeId,
 					String documentId, List<TinyflowChunk> chunks) { }
 			@Override public Map<String, List<String>> index(String tenantId, String knowledgeId,
 					String documentId, List<TinyflowChunk> chunks) { return Collections.emptyMap(); }
 			@Override public void delete(String tenantId, String knowledgeId, List<String> vectorIds) { }
 		};
-		new TinyflowVectorCompensator(fixture.repository, index, fixture.storage).retry("tenant-a", "kb-1");
+	}
+
+	private void assertS3MissingCheckFailureKeepsObjectPending(final RuntimeException missingCheckFailure)
+			throws Exception {
+		Fixture fixture = fixture();
+		MagicApiTinyflowObjectStorage.StorageBackend backend = new MagicApiTinyflowObjectStorage.StorageBackend() {
+			@Override public MagicApiTinyflowObjectStorage.UploadedObject upload(String s3Key, String path,
+					byte[] content, String filename, String mediaType) {
+				return new MagicApiTinyflowObjectStorage.UploadedObject(null, path, filename);
+			}
+			@Override public InputStream get(MagicApiTinyflowObjectStorage.ObjectReference reference, long maxBytes) {
+				return new ByteArrayInputStream(new byte[0]);
+			}
+			@Override public boolean exists(MagicApiTinyflowObjectStorage.ObjectReference reference) {
+				throw missingCheckFailure;
+			}
+			@Override public void delete(MagicApiTinyflowObjectStorage.ObjectReference reference) {
+				throw new IllegalStateException("S3 object delete failed");
+			}
+		};
+		MagicApiTinyflowObjectStorage storage = new MagicApiTinyflowObjectStorage(backend, 1024L);
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
+		metadata.put("s3Key", "s3-main");
+		String objectKey = storage.put("tenant-a", "temporary.txt",
+				new ByteArrayInputStream("body".getBytes(StandardCharsets.UTF_8)), "text/plain", metadata)
+				.getObjectKey();
+		fixture.repository.saveVectorCompensation(new TinyflowKnowledgeRepository.VectorCompensation(
+				"compensation-s3", "tenant-a", "kb-1", "source-s3", "document-s3",
+				Collections.<String>emptyList(), TinyflowVectorCompensator.DELETE_TEMPORARY_OBJECT,
+				TinyflowKnowledgeRepository.VectorCompensation.OBJECT_PENDING, objectKey));
+
+		new TinyflowVectorCompensator(fixture.repository, compensationIndex(), storage).retry("tenant-a", "kb-1");
+
+		assertEquals(TinyflowKnowledgeRepository.VectorCompensation.OBJECT_PENDING,
+				fixture.repository.findVectorCompensations("tenant-a", "kb-1").get(0).getStage());
 	}
 
 	private void seedSource(MagicApiTinyflowKnowledgeRepository repository, String sourceId,
@@ -570,6 +670,14 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 		metadata.put("s3Key", "s3-main");
 		return TinyflowKnowledgeDefinition.builder().providerKey("fw-plus-local").tenantId("tenant-a")
 				.knowledgeId("kb-1").name(name).metadata(metadata).enabled(true).build();
+	}
+
+	private TinyflowKnowledgeDefinition definitionWithEmbedding(String knowledgeId, String embeddingModelKey) {
+		Map<String, Object> metadata = new LinkedHashMap<String, Object>(definition("Knowledge").getMetadata());
+		metadata.put("embeddingModelKey", embeddingModelKey);
+		return TinyflowKnowledgeDefinition.builder().providerKey("fw-plus-local")
+				.tenantId("tenant-a").knowledgeId(knowledgeId).name("Knowledge")
+				.metadata(metadata).enabled(true).build();
 	}
 
 	private MagicResourceService resources(File root) {

@@ -113,6 +113,8 @@ public interface TinyflowKnowledgeRepository {
 	void deleteVectorCompensation(String tenantId, String knowledgeId, String compensationId);
 
 	final class VectorCompensation {
+		public static final int LEGACY_STAGE_SCHEMA_VERSION = 1;
+		public static final int CURRENT_STAGE_SCHEMA_VERSION = 2;
 		public static final String VECTOR_PENDING = "VECTOR_PENDING";
 		public static final String OBJECT_PENDING = "OBJECT_PENDING";
 		public static final String RESOURCE_PENDING = "RESOURCE_PENDING";
@@ -128,21 +130,30 @@ public interface TinyflowKnowledgeRepository {
 		private final String operation;
 		private final String stage;
 		private final String objectKey;
+		private final int stageSchemaVersion;
 
 		public VectorCompensation(String compensationId, String tenantId, String knowledgeId,
 				String sourceId, String documentId, List<String> vectorIds, String operation) {
 			this(compensationId, tenantId, knowledgeId, sourceId, documentId, vectorIds,
-					operation, VECTOR_PENDING);
+					operation, VECTOR_PENDING, null, CURRENT_STAGE_SCHEMA_VERSION);
 		}
 
 		public VectorCompensation(String compensationId, String tenantId, String knowledgeId,
 				String sourceId, String documentId, List<String> vectorIds, String operation, String stage) {
-			this(compensationId, tenantId, knowledgeId, sourceId, documentId, vectorIds, operation, stage, null);
+			this(compensationId, tenantId, knowledgeId, sourceId, documentId, vectorIds, operation, stage, null,
+					LEGACY_STAGE_SCHEMA_VERSION);
 		}
 
 		public VectorCompensation(String compensationId, String tenantId, String knowledgeId,
 				String sourceId, String documentId, List<String> vectorIds, String operation, String stage,
 				String objectKey) {
+			this(compensationId, tenantId, knowledgeId, sourceId, documentId, vectorIds, operation, stage, objectKey,
+					CURRENT_STAGE_SCHEMA_VERSION);
+		}
+
+		public VectorCompensation(String compensationId, String tenantId, String knowledgeId,
+				String sourceId, String documentId, List<String> vectorIds, String operation, String stage,
+				String objectKey, int stageSchemaVersion) {
 			this.compensationId = TinyflowKnowledgeReference.requireText(compensationId, "compensationId");
 			this.tenantId = TinyflowKnowledgeReference.requireText(tenantId, "tenantId");
 			this.knowledgeId = TinyflowKnowledgeReference.requireText(knowledgeId, "knowledgeId");
@@ -153,6 +164,10 @@ public interface TinyflowKnowledgeRepository {
 			this.operation = TinyflowKnowledgeReference.requireText(operation, "operation");
 			this.stage = TinyflowKnowledgeReference.requireText(stage, "stage");
 			this.objectKey = objectKey;
+			if (stageSchemaVersion < LEGACY_STAGE_SCHEMA_VERSION) {
+				throw new IllegalArgumentException("stageSchemaVersion must be positive");
+			}
+			this.stageSchemaVersion = stageSchemaVersion;
 		}
 
 		public String getCompensationId() { return compensationId; }
@@ -164,10 +179,11 @@ public interface TinyflowKnowledgeRepository {
 		public String getOperation() { return operation; }
 		public String getStage() { return stage; }
 		public String getObjectKey() { return objectKey; }
+		public int getStageSchemaVersion() { return stageSchemaVersion; }
 
 		public VectorCompensation withStage(String nextStage) {
 			return new VectorCompensation(compensationId, tenantId, knowledgeId, sourceId, documentId,
-					vectorIds, operation, nextStage, objectKey);
+					vectorIds, operation, nextStage, objectKey, stageSchemaVersion);
 		}
 	}
 

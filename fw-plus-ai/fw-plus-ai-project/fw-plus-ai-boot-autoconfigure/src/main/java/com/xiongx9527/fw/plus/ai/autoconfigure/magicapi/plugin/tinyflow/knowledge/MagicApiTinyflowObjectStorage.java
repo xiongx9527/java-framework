@@ -76,7 +76,12 @@ public class MagicApiTinyflowObjectStorage implements TinyflowObjectStorage {
 		try {
 			backend.delete(reference);
 		} catch (RuntimeException exception) {
-			if (backend.exists(reference)) throw exception;
+			try {
+				if (backend.exists(reference)) throw exception;
+			} catch (RuntimeException confirmationFailure) {
+				if (confirmationFailure != exception) exception.addSuppressed(confirmationFailure);
+				throw exception;
+			}
 		}
 	}
 
@@ -229,17 +234,7 @@ public class MagicApiTinyflowObjectStorage implements TinyflowObjectStorage {
 		}
 
 		@Override public boolean exists(ObjectReference reference) {
-			try {
-				MyFileStorageService service = service(reference.s3Key);
-				String objectUrl = objectUrl(reference);
-				String signedUrl = service.generatePresignedUrlByUrl(objectUrl, null, reference.path, reference.filename);
-				validateUrl(reference, signedUrl);
-				HttpURLConnection connection = connection(signedUrl, "HEAD");
-				try { int status = connection.getResponseCode(); return status >= 200 && status < 300; }
-				finally { connection.disconnect(); }
-			} catch (IOException exception) {
-				return false;
-			}
+			return service(reference.s3Key).exists(objectUrl(reference));
 		}
 
 		@Override public void delete(ObjectReference reference) {

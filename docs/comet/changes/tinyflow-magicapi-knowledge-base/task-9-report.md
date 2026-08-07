@@ -41,6 +41,21 @@
 | R2-I1 S3 补偿重放不可靠，且并发 dedupe 的临时上传清理失败后未持久化 | 删除补偿增加 `OBJECT_PENDING` 阶段，对象删除成功后先持久推进到 `RESOURCE_PENDING`，后续资源删除失败时重试不再重复删除对象；增加独立 `objectKey` 与 `DELETE_TEMPORARY_OBJECT` 持久补偿；S3 facade 仅在删除失败且确认对象已不存在时将重复删除视为成功。覆盖 `TinyflowIngestionServiceTest.shouldResumeResourceCleanupAfterObjectWasAlreadyDeleted`、`shouldRetainFailedObjectCleanupAndCompleteItOnRetry`、`DefaultMagicTinyflowKnowledgeOperationsTest.shouldPersistAndRetryConcurrentDedupeObjectCleanup`、`MagicApiTinyflowObjectStorageTest.shouldTreatRepeatedDeleteOfMissingObjectAsSuccess`。 | Core ingestion/compensator 聚焦命令；Magic object storage/operations 聚焦命令；Task 9 完整聚焦矩阵命令 | Core 聚焦 `28` tests、Magic 聚焦 `26` tests、Task 9 `104` tests，均 0 failures、0 errors，BUILD SUCCESS |
 | R2-I2 knowledge key 校验依赖 UI 最多 200 条的展示列表，且 direct lookup 后必须继续约束 Embedding 类型 | option provider 增加按 key 的内部校验 API；默认实现直接查询 model/vector/S3 数据源，UI `listModels/listVectors/listS3` 仍保留 200 上限；`embeddingModelKey` 仅接受 `AiModelType.EMBEDDING`。覆盖 `DefaultMagicTinyflowKnowledgeOperationsTest.shouldAcceptConfiguredEmbeddingModelBeyondDisplayLimit`、`shouldRejectChatModelAsEmbeddingModel`、`shouldRejectMissingEmbeddingAndS3ResourceKeys`。 | Magic object storage/operations 聚焦命令；Task 9 完整聚焦矩阵命令；AI Boot AutoConfigure 全回归命令 | Magic 聚焦 `26` tests、Task 9 `104` tests、AI Boot `510` tests，均 0 failures、0 errors，BUILD SUCCESS |
 
+## Fix round 3 findings
+
+Round 3 新增聚焦命令：
+
+- Boot S3 聚焦：`mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='MyFileStorageServiceTest' test`
+- Magic 相关聚焦：`mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='DefaultMagicTinyflowKnowledgeOperationsTest,DefaultMagicTinyflowKnowledgeOptionProviderTest,MagicTinyflowKnowledgeManagementControllerTest,MagicApiTinyflowKnowledgeRepositoryPersistenceTest,MagicApiTinyflowObjectStorageTest' test`
+
+| Finding | 修复与 covering test | 验证命令 | 结果 |
+| --- | --- | --- | --- |
+| R3-I1 旧持久化记录中的 `RESOURCE_PENDING` 仍可能需要删除对象，不能按新阶段语义直接删除 repository resource | `VectorCompensation` 增加阶段 schema version：缺失版本按 v1 读取，v1 `RESOURCE_PENDING` 先重试对象删除；新补偿写入 v2，v2 `RESOURCE_PENDING` 表示对象已删除。Magic Resource 持久化 `stageSchemaVersion`。覆盖 `TinyflowIngestionServiceTest.shouldRetryLegacyResourcePendingObjectBeforeRepositoryCleanup`、`MagicApiTinyflowKnowledgeRepositoryPersistenceTest.shouldReadResourcePendingWithoutStageSchemaAsLegacy`。 | Core ingestion/compensator 聚焦命令；Core local 全模块命令；Task 9 完整聚焦矩阵命令 | Core 聚焦 `29` tests、Core local `91` tests、Task 9 `109` tests，均 0 failures、0 errors，BUILD SUCCESS |
+| R3-I2 S3 删除后的 missing 确认把 403、5xx 和网络异常误判为对象不存在 | Boot `MyFileStorageService.exists(String)` 通过存储 SDK 判断对象状态；只有明确不存在返回 false，鉴权、服务端和网络异常原样传播。Tinyflow S3 backend 复用该 API；删除失败后的确认失败保留原删除异常，并将确认异常作为 suppressed。覆盖 `MyFileStorageServiceTest.existsReturnsFalseForConfirmedMissingAndTrueForExistingObject`、`existsPropagatesForbiddenServerAndIoFailures`、`MagicApiTinyflowObjectStorageTest.shouldTreatOnlyConfirmedS3MissingAsDeleteSuccess`、`shouldPropagateForbiddenAndIoFailureWhenMissingCannotBeConfirmed`、`DefaultMagicTinyflowKnowledgeOperationsTest.shouldKeepTemporaryObjectPendingWhenS3MissingCheckFails`。 | Boot S3 聚焦；Magic 相关聚焦；Task 9 完整聚焦矩阵命令；AI Boot AutoConfigure 全回归命令 | Boot `2` tests、Magic 相关 `43` tests、Task 9 `109` tests、AI Boot `515` tests，均 0 failures、0 errors，BUILD SUCCESS |
+| R3-I3 自定义 option provider 仍可继承基于 `list*(200)` 的错误 direct lookup | 接口默认 direct lookup 改为明确抛出 `UnsupportedOperationException`，未实现时 fail closed；仓内 provider 均显式实现按 key 查找，UI 列表仍限制 200。覆盖 `DefaultMagicTinyflowKnowledgeOperationsTest.shouldUseCustomProviderDirectLookupsBeyondDisplayLimit`，同时验证自定义 provider 的第 201 个 Embedding 可用、unknown 与 CHAT 拒绝。 | Magic 相关聚焦；Task 9 完整聚焦矩阵命令；AI Boot AutoConfigure 全回归命令 | Magic 相关 `43` tests、Task 9 `109` tests、AI Boot `515` tests，均 0 failures、0 errors，BUILD SUCCESS |
+
+Round 3 另外确认 Tinyflow 插件仍直接以 `compile` 依赖 `fw-plus-magicapi-plugin-s3:0.1.1-SNAPSHOT`，`git diff --check` 通过且无输出。
+
 ## 关键回归证据
 
 - 两个知识库分别请求各自的 Embedding 模型 key。

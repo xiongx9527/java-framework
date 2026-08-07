@@ -224,6 +224,9 @@ public class MagicTinyflowKnowledgeManagementControllerTest {
 			@Override public List<Option> listModels(int limit) { return option("model"); }
 			@Override public List<Option> listVectors(int limit) { return option("vector"); }
 			@Override public List<Option> listS3(int limit) { return option("s3"); }
+			@Override public boolean hasEmbeddingModel(String key) { return "model-1".equals(key); }
+			@Override public boolean hasVectorStore(String key) { return "vector-1".equals(key); }
+			@Override public boolean hasS3Storage(String key) { return "s3-1".equals(key); }
 			private List<Option> option(String type) {
 				return Collections.singletonList(new Option(type + "-1", type + " name", type, "provider"));
 			}
