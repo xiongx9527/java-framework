@@ -2,8 +2,6 @@ package com.xiongx9527.fw.plus.graph.nebula.jdbc.sql.routine;
 
 import org.junit.Test;
 
-import java.sql.SQLException;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -90,7 +88,7 @@ public class RoutineStatementParserTest {
 			RoutineStatementParser.parse(sql);
 			fail("SQL must fail: " + sql);
 		}
-		catch (SQLException exception) {
+		catch (RoutineException exception) {
 			assertEquals("42000", exception.getSQLState());
 			assertTrue(exception.getMessage().contains("网关 routine 子集不支持"));
 		}

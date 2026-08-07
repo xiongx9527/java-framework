@@ -1,10 +1,12 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.compiler;
 
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class JavaEntityCompilationException extends RuntimeException {
+public class JavaEntityCompilationException extends BizException {
 
     private final List<JavaEntityDiagnostic> diagnostics;
 

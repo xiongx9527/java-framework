@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.dify.dataset.types.external;
 
 import com.alibaba.fastjson.annotation.JSONField;
+import com.xiongx9527.fw.plus.common.exception.BizException;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,7 +14,7 @@ import java.util.Map;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class KnowledgeException extends RuntimeException {
+public class KnowledgeException extends BizException {
     /**
      * 错误代码
      */

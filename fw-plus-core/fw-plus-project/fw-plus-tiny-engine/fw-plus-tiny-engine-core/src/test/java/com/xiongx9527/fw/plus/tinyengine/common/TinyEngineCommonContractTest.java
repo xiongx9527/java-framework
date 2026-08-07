@@ -40,7 +40,7 @@ class TinyEngineCommonContractTest {
 	void serviceExceptionShouldRetainCodeAndMessage() {
 		ServiceException exception = new ServiceException("TE001", "page not found");
 
-		assertEquals("TE001", exception.getCode());
+		assertEquals("TE001", exception.getServiceCode());
 		assertEquals("page not found", exception.getMessage());
 	}
 

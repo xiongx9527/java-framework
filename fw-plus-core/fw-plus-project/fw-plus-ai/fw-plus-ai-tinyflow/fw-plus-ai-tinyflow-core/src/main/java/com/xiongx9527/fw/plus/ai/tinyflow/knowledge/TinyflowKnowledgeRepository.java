@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.tinyflow.knowledge;
 
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -149,7 +151,7 @@ public interface TinyflowKnowledgeRepository {
 		}
 	}
 
-	final class OptimisticLockException extends RuntimeException {
+	final class OptimisticLockException extends BizException {
 		private static final long serialVersionUID = 1L;
 		private final long expectedVersion;
 		private final long actualVersion;
@@ -164,7 +166,7 @@ public interface TinyflowKnowledgeRepository {
 		public long getActualVersion() { return actualVersion; }
 	}
 
-	final class VectorStoreOwnershipException extends RuntimeException {
+	final class VectorStoreOwnershipException extends BizException {
 		private static final long serialVersionUID = 1L;
 		private final String vectorStoreKey;
 
@@ -176,7 +178,7 @@ public interface TinyflowKnowledgeRepository {
 		public String getVectorStoreKey() { return vectorStoreKey; }
 	}
 
-	final class CompensationStageException extends RuntimeException {
+	final class CompensationStageException extends BizException {
 		private static final long serialVersionUID = 1L;
 		private final String expectedStage;
 		private final String actualStage;

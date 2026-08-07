@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.tinyflow.dify;
 
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeAccessKeyRepository;
+import com.xiongx9527.fw.plus.common.exception.BizException;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
@@ -203,7 +204,7 @@ public class TinyflowKnowledgeAccessKeyService {
 		public String getToken() { return token; }
 	}
 
-	static final class AuthenticationException extends RuntimeException {
+	static final class AuthenticationException extends BizException {
 		private static final long serialVersionUID = 1L;
 	}
 

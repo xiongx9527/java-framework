@@ -9,6 +9,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRepository;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeRequest;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowKnowledgeResult;
 import com.xiongx9527.fw.plus.ai.tinyflow.knowledge.TinyflowMetadataCondition;
+import com.xiongx9527.fw.plus.common.exception.BizException;
 import com.xiongx9527.fw.plus.dify.dataset.IKnowledgeService;
 import com.xiongx9527.fw.plus.dify.dataset.types.external.KnowledgeArgs;
 import com.xiongx9527.fw.plus.dify.dataset.types.external.KnowledgeMetadataCondition;
@@ -331,7 +332,7 @@ public class TinyflowDifyExternalKnowledgeService implements IKnowledgeService, 
 		}
 	}
 
-	static class ExternalKnowledgeException extends RuntimeException {
+	static class ExternalKnowledgeException extends BizException {
 		private static final long serialVersionUID = 1L;
 		private final int status;
 		private final int code;
@@ -343,7 +344,8 @@ public class TinyflowDifyExternalKnowledgeService implements IKnowledgeService, 
 		}
 
 		int getStatus() { return status; }
-		int getCode() { return code; }
+		@Override
+		public int getCode() { return code; }
 	}
 
 	private static final class ValidatedRequest {

@@ -62,7 +62,7 @@ class SeataDbTxCoordinatorTest {
 		}));
 
 		assertThat(thrown).isInstanceOf(DbTxException.class);
-		assertThat(((DbTxException) thrown).getCode()).isEqualTo(DbTxErrorCode.DBTX_BEGIN_FAILED);
+		assertThat(((DbTxException) thrown).getDbTxCode()).isEqualTo(DbTxErrorCode.DBTX_BEGIN_FAILED);
 		assertThat(thrown).hasMessageContaining("b").hasRootCauseMessage("unsupported database");
 		assertThat(events).containsExactly("a:prepare", "b:prepare");
 	}
@@ -144,7 +144,7 @@ class SeataDbTxCoordinatorTest {
 
 		assertThat(thrown).isInstanceOf(DbTxException.class);
 		DbTxException exception = (DbTxException) thrown;
-		assertThat(exception.getCode()).isEqualTo(DbTxErrorCode.DBTX_COMMIT_FAILED);
+		assertThat(exception.getDbTxCode()).isEqualTo(DbTxErrorCode.DBTX_COMMIT_FAILED);
 		assertThat(exception.getCause()).isSameAs(transaction.commitFailure);
 		assertThat(exception).hasMessageContaining("10.0.0.8:8091:12345")
 				.hasMessageContaining("CommitFailed");

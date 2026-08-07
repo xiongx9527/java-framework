@@ -71,7 +71,7 @@ class MagicAPISeataConfigurationTest {
 					assertThatThrownBy(() -> module.transaction("seata",
 							Collections.singletonList("primary"), ignored -> null))
 							.isInstanceOfSatisfying(DbTxException.class, exception -> {
-								assertThat(exception.getCode())
+								assertThat(exception.getDbTxCode())
 										.isEqualTo(DbTxErrorCode.DBTX_COORDINATOR_UNAVAILABLE);
 								assertThat(exception).hasMessage("Coordinator is unavailable: seata");
 							});
