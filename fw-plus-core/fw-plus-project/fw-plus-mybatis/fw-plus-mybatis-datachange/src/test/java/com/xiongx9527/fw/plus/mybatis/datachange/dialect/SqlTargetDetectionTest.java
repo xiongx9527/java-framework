@@ -8,6 +8,8 @@ import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.ParameterMapping;
 import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 
 import java.sql.Connection;
@@ -51,6 +53,18 @@ class SqlTargetDetectionTest {
 	@Test
 	void rejectsH2MergeShortcutWithoutTextFallback() {
 		assertThatThrownBy(() -> detector.detect("MERGE INTO sys_user KEY(id) VALUES (?,?)"))
+				.isInstanceOf(DataChangeException.class)
+				.extracting(exception -> ((DataChangeException) exception).getCode())
+				.isEqualTo(DataChangeErrorCode.UNSUPPORTED_SQL);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {
+			"INSERT INTO sys_user(id,name) VALUES (?,?),(?,?)",
+			"INSERT INTO sys_user(id,name) SELECT id,name FROM source_user"
+	})
+	void rejectsInsertShapesThatCannotBeReliablyModelled(String sql) {
+		assertThatThrownBy(() -> detector.detect(sql))
 				.isInstanceOf(DataChangeException.class)
 				.extracting(exception -> ((DataChangeException) exception).getCode())
 				.isEqualTo(DataChangeErrorCode.UNSUPPORTED_SQL);

@@ -32,7 +32,7 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 			throw snapshotFailure("An INSERT statement has no before snapshot");
 		}
 		List<String> columns = snapshotColumns(target);
-		StringBuilder sql = selectPrefix(target, columns);
+		StringBuilder sql = selectPrefix(target, columns, !target.getJoins().isEmpty());
 		for (Join join : target.getJoins()) {
 			sql.append(' ').append(join.toString().trim());
 		}
@@ -56,7 +56,7 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 		if (keys.isEmpty()) {
 			throw snapshotFailure("A unique key is required for an after snapshot");
 		}
-		StringBuilder sql = selectPrefix(target, snapshotColumns(target));
+		StringBuilder sql = selectPrefix(target, snapshotColumns(target), false);
 		List<SnapshotParameter> parameters = new ArrayList<SnapshotParameter>();
 		sql.append(" WHERE ");
 		if (identities == null || identities.isEmpty()) {
@@ -84,18 +84,25 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 		return 100;
 	}
 
-	private StringBuilder selectPrefix(ChangeTarget target, List<String> columns) {
+	private StringBuilder selectPrefix(ChangeTarget target, List<String> columns, boolean qualifyColumns) {
 		StringBuilder sql = new StringBuilder("SELECT ");
+		String qualifier = qualifyColumns ? projectionQualifier(target) : null;
 		for (int index = 0; index < columns.size(); index++) {
 			if (index > 0) { sql.append(", "); }
+			if (qualifier != null) { sql.append(qualifier).append('.'); }
 			sql.append(quote(columns.get(index)));
 		}
-		sql.append(" FROM ").append(qualifiedTable(target.getTable()));
+		sql.append(" FROM ").append(qualifiedTable(target));
 		Alias alias = target.getSourceTable() == null ? null : target.getSourceTable().getAlias();
 		if (alias != null) {
 			sql.append(alias.isUseAs() ? " AS " : " ").append(alias.getName());
 		}
 		return sql;
+	}
+
+	private String projectionQualifier(ChangeTarget target) {
+		Alias alias = target.getSourceTable() == null ? null : target.getSourceTable().getAlias();
+		return alias == null ? qualifiedTable(target) : alias.getName();
 	}
 
 	private List<String> snapshotColumns(ChangeTarget target) {
@@ -122,7 +129,17 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 		sql.append(" FETCH FIRST ").append(limit).append(" ROWS ONLY");
 	}
 
-	private String qualifiedTable(TableIdentifier table) {
+	private String qualifiedTable(ChangeTarget target) {
+		if (target.getSourceTable() != null && target.getSourceTable().getNameParts() != null
+				&& !target.getSourceTable().getNameParts().isEmpty()) {
+			StringBuilder sourceName = new StringBuilder();
+			List<String> parts = target.getSourceTable().getNameParts();
+			for (int index = parts.size() - 1; index >= 0; index--) {
+				appendPart(sourceName, parts.get(index));
+			}
+			return sourceName.toString();
+		}
+		TableIdentifier table = target.getTable();
 		StringBuilder name = new StringBuilder();
 		appendPart(name, table.getCatalog());
 		appendPart(name, table.getSchema());
@@ -137,7 +154,13 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 	}
 
 	private String quote(String identifier) {
-		String normalized = identifier == null ? "" : identifier.toUpperCase(Locale.ENGLISH);
+		String normalized;
+		if (identifier != null && identifier.length() >= 2 && identifier.charAt(0) == '"'
+				&& identifier.charAt(identifier.length() - 1) == '"') {
+			normalized = identifier.substring(1, identifier.length() - 1).replace("\"\"", "\"");
+		} else {
+			normalized = identifier == null ? "" : identifier.toUpperCase(Locale.ENGLISH);
+		}
 		return '"' + normalized.replace("\"", "\"\"") + '"';
 	}
 

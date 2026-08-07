@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.mybatis.datachange.dialect;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
 import net.sf.jsqlparser.expression.JdbcParameter;
+import net.sf.jsqlparser.expression.RowConstructor;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.ItemsList;
 import net.sf.jsqlparser.schema.Column;
@@ -15,8 +16,12 @@ import net.sf.jsqlparser.statement.merge.Merge;
 import net.sf.jsqlparser.statement.merge.MergeInsert;
 import net.sf.jsqlparser.statement.merge.MergeUpdate;
 import net.sf.jsqlparser.statement.select.Join;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.SelectExpressionItem;
+import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SelectBody;
 import net.sf.jsqlparser.statement.select.SetOperationList;
+import net.sf.jsqlparser.statement.select.SubSelect;
 import net.sf.jsqlparser.statement.update.Update;
 import net.sf.jsqlparser.statement.update.UpdateSet;
 import net.sf.jsqlparser.statement.values.ValuesStatement;
@@ -45,8 +50,14 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 			}
 			StatementOperation operation = JSqlParserTargetDetector.operation(statement);
 			if (operation == null) {
+				if (JSqlParserTargetDetector.isDmlToken(parsed.getFirstTokenKind())) {
+					throw new SqlAnalysisException("SQL statement is not supported for data change auditing");
+				}
 				analyzed.add(AnalyzedStatement.nonAuditable(parsed.getStatementIndex()));
 				continue;
+			}
+			if (statement instanceof Insert && !JSqlParserTargetDetector.isSupportedInsert((Insert) statement)) {
+				throw new SqlAnalysisException("INSERT statement cannot be modelled reliably");
 			}
 			List<Table> tables = JSqlParserTargetDetector.targetTables(statement);
 			if (tables.isEmpty()) {
@@ -65,16 +76,46 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 								List<ParameterMapping> mappings) {
 		Expression where = where(statement);
 		List<Join> joins = joins(statement);
-		List<Expression> predicates = new ArrayList<Expression>();
+		List<Expression> predicateExpressions = new ArrayList<Expression>();
 		for (Join join : joins) {
+			addJoinSourceExpressions(predicateExpressions, join);
 			if (join.getOnExpressions() != null) {
-				predicates.addAll(join.getOnExpressions());
+				predicateExpressions.addAll(join.getOnExpressions());
 			}
 		}
-		if (where != null) { predicates.add(where); }
+		if (where != null) { predicateExpressions.add(where); }
 		return new ChangeTarget(operation, JSqlParserTargetDetector.identifier(table), table, where, joins,
-				assignedColumns(statement, mappings), mappings, mappingsFor(predicates, mappings),
+				assignedColumns(statement, mappings), mappings, mappingsFor(predicateExpressions, mappings),
 				Collections.<String>emptyList());
+	}
+
+	private void addJoinSourceExpressions(List<Expression> expressions, Join join) {
+		if (join.getRightItem() instanceof Table) {
+			return;
+		}
+		if (!(join.getRightItem() instanceof SubSelect)) {
+			throw new SqlAnalysisException("JOIN source cannot be modelled reliably");
+		}
+		SubSelect subSelect = (SubSelect) join.getRightItem();
+		if (subSelect.getWithItemsList() != null && !subSelect.getWithItemsList().isEmpty()) {
+			throw new SqlAnalysisException("JOIN source cannot be modelled reliably");
+		}
+		if (!(subSelect.getSelectBody() instanceof PlainSelect)) {
+			throw new SqlAnalysisException("JOIN source cannot be modelled reliably");
+		}
+		PlainSelect select = (PlainSelect) subSelect.getSelectBody();
+		if (select.getFromItem() != null || select.getJoins() != null || select.getWhere() != null
+				|| select.getHaving() != null || select.getGroupBy() != null
+				|| select.getOrderByElements() != null || select.getLimit() != null || select.getOffset() != null
+				|| select.getFetch() != null) {
+			throw new SqlAnalysisException("JOIN source cannot be modelled reliably");
+		}
+		for (SelectItem item : select.getSelectItems()) {
+			if (!(item instanceof SelectExpressionItem)) {
+				throw new SqlAnalysisException("JOIN source cannot be modelled reliably");
+			}
+			expressions.add(((SelectExpressionItem) item).getExpression());
+		}
 	}
 
 	private Expression where(Statement statement) {
@@ -102,6 +143,8 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 				merge.getUsingTable().setAlias(merge.getUsingAlias());
 				join.setRightItem(merge.getUsingTable());
 			} else if (merge.getUsingSelect() != null) {
+				merge.getUsingSelect().setUseBrackets(true);
+				merge.getUsingSelect().setAlias(merge.getUsingAlias());
 				join.setRightItem(merge.getUsingSelect());
 			} else {
 				throw new SqlAnalysisException("Unable to determine MERGE source");
@@ -149,7 +192,11 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 		}
 		ItemsList itemsList = ((ValuesStatement) valuesBodies.get(0)).getExpressions();
 		if (itemsList instanceof ExpressionList) {
-			return ((ExpressionList) itemsList).getExpressions();
+			List<Expression> rows = ((ExpressionList) itemsList).getExpressions();
+			if (rows.size() == 1 && rows.get(0) instanceof RowConstructor) {
+				ExpressionList values = ((RowConstructor) rows.get(0)).getExprList();
+				return values == null ? Collections.<Expression>emptyList() : values.getExpressions();
+			}
 		}
 		return Collections.emptyList();
 	}
