@@ -29,11 +29,11 @@ public class MySqlDataChangeDialect extends AbstractStandardDataChangeDialect {
 
 	public List<String> resolveOnDuplicateKeyColumns(Connection connection, ChangeTarget target) {
 		if (connection == null || target == null || !target.isUpsert()) {
-			throw identityUnavailable(null);
+			throw identityUnavailable();
 		}
 		try {
 			DatabaseMetaData metadata = connection.getMetaData();
-			Map<String, List<IndexColumn>> indexes = uniqueIndexes(metadata, target);
+			Map<String, List<IndexColumn>> indexes = uniqueIndexes(connection, metadata, target);
 			List<List<String>> matches = new ArrayList<List<String>>();
 			for (List<IndexColumn> index : indexes.values()) {
 				Collections.sort(index, new Comparator<IndexColumn>() {
@@ -50,10 +50,10 @@ public class MySqlDataChangeDialect extends AbstractStandardDataChangeDialect {
 				}
 				if (match && !columns.isEmpty()) { matches.add(columns); }
 			}
-			if (matches.size() != 1) { throw identityUnavailable(null); }
+			if (matches.size() != 1) { throw identityUnavailable(); }
 			return Collections.unmodifiableList(new ArrayList<String>(matches.get(0)));
-		} catch (SQLException exception) {
-			throw identityUnavailable(exception);
+		} catch (Exception exception) {
+			throw identityUnavailable();
 		}
 	}
 
@@ -69,13 +69,12 @@ public class MySqlDataChangeDialect extends AbstractStandardDataChangeDialect {
 				selected == null ? Collections.<String>emptyList() : selected));
 	}
 
-	private Map<String, List<IndexColumn>> uniqueIndexes(DatabaseMetaData metadata, ChangeTarget target)
+	private Map<String, List<IndexColumn>> uniqueIndexes(Connection connection, DatabaseMetaData metadata,
+			ChangeTarget target)
 			throws SQLException {
 		Map<String, List<IndexColumn>> indexes = new LinkedHashMap<String, List<IndexColumn>>();
-		ResultSet rows = metadata.getIndexInfo(identifier(metadata, target.getTable().getCatalog()),
-				identifier(metadata, target.getTable().getSchema()),
-				identifier(metadata, target.getTable().getTable()), true, false);
-		try {
+		MetadataTableName name = metadataName(connection, metadata, target);
+		try (ResultSet rows = metadata.getIndexInfo(name.catalog, name.schema, name.table, true, false)) {
 			while (rows.next()) {
 				String indexName = rows.getString("INDEX_NAME");
 				String columnName = rows.getString("COLUMN_NAME");
@@ -87,10 +86,30 @@ public class MySqlDataChangeDialect extends AbstractStandardDataChangeDialect {
 				}
 				columns.add(new IndexColumn(rows.getShort("ORDINAL_POSITION"), columnName));
 			}
-		} finally {
-			rows.close();
 		}
 		return indexes;
+	}
+
+	private MetadataTableName metadataName(Connection connection, DatabaseMetaData metadata, ChangeTarget target)
+			throws SQLException {
+		String catalog = target.getTable().getCatalog();
+		String schema = target.getTable().getSchema();
+		boolean databaseIsSchema = "database".equalsIgnoreCase(metadata.getSchemaTerm());
+		boolean databaseIsCatalog = "database".equalsIgnoreCase(metadata.getCatalogTerm()) || !databaseIsSchema;
+		if (catalog == null && schema != null) {
+			if (databaseIsSchema) {
+				catalog = null;
+			} else if (databaseIsCatalog) {
+				catalog = schema;
+				schema = null;
+			}
+		}
+		if (catalog == null && schema == null) {
+			if (databaseIsSchema) { schema = connection.getSchema(); }
+			else { catalog = connection.getCatalog(); }
+		}
+		return new MetadataTableName(identifier(metadata, catalog), identifier(metadata, schema),
+				identifier(metadata, target.getTable().getTable()));
 	}
 
 	private boolean assigned(ChangeTarget target, String column) {
@@ -105,11 +124,8 @@ public class MySqlDataChangeDialect extends AbstractStandardDataChangeDialect {
 				? value.toUpperCase(Locale.ENGLISH) : value;
 	}
 
-	private DataChangeException identityUnavailable(Throwable cause) {
-		return cause == null
-				? new DataChangeException(DataChangeErrorCode.ROW_IDENTITY_UNAVAILABLE, "ROW_IDENTITY_UNAVAILABLE")
-				: new DataChangeException(DataChangeErrorCode.ROW_IDENTITY_UNAVAILABLE,
-						"ROW_IDENTITY_UNAVAILABLE", cause);
+	private DataChangeException identityUnavailable() {
+		return new DataChangeException(DataChangeErrorCode.ROW_IDENTITY_UNAVAILABLE, "ROW_IDENTITY_UNAVAILABLE");
 	}
 
 	private String unquote(String identifier, char quote) {
@@ -125,6 +141,18 @@ public class MySqlDataChangeDialect extends AbstractStandardDataChangeDialect {
 		private IndexColumn(short position, String name) {
 			this.position = position;
 			this.name = name;
+		}
+	}
+
+	private static final class MetadataTableName {
+		private final String catalog;
+		private final String schema;
+		private final String table;
+
+		private MetadataTableName(String catalog, String schema, String table) {
+			this.catalog = catalog;
+			this.schema = schema;
+			this.table = table;
 		}
 	}
 }

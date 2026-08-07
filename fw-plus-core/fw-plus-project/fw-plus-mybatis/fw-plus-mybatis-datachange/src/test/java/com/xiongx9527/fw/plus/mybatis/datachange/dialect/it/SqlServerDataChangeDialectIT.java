@@ -13,6 +13,7 @@ class SqlServerDataChangeDialectIT extends DialectDatabaseContract {
 	void runsRealDatabaseContract() throws Exception { runContract(); }
 
 	@Override protected boolean supportsCreatedSchema() { return true; }
+	@Override protected String driverClassName() { return "com.microsoft.sqlserver.jdbc.SQLServerDriver"; }
 	@Override protected String qualified(String schema, String table) { return '[' + schema + "].[" + table + ']'; }
 	@Override protected String createTableSql(String table) {
 		return "CREATE TABLE " + table + " (id BIGINT IDENTITY(1,1) UNIQUE, tenant_id BIGINT NOT NULL, "
@@ -27,15 +28,11 @@ class SqlServerDataChangeDialectIT extends DialectDatabaseContract {
 				+ "AND target.order_no=deleted.order_no; END");
 	}
 	@Override protected String upsertSql(String table) {
-		return "MERGE INTO " + table + " target USING (VALUES (?,?,?,?)) source(id,tenant_id,order_no,amount) "
-				+ "ON target.tenant_id=source.tenant_id AND target.order_no=source.order_no "
+		return "MERGE INTO " + table + " target USING (SELECT CAST(#{tenant_id} AS BIGINT) AS tenant_id, "
+				+ "CAST(#{order_no} AS VARCHAR(40)) AS order_no, CAST(#{amount} AS INT) AS amount) source "
+				+ "ON (target.tenant_id=source.tenant_id AND target.order_no=source.order_no) "
 				+ "WHEN MATCHED THEN UPDATE SET amount=source.amount "
 				+ "WHEN NOT MATCHED THEN INSERT (tenant_id,order_no,amount) "
 				+ "VALUES (source.tenant_id,source.order_no,source.amount);";
-	}
-	@Override protected String mergeSql(String table) {
-		return "MERGE INTO " + table + " target USING (VALUES (?,?,?)) source(amount,tenant_id,order_no) "
-				+ "ON target.tenant_id=source.tenant_id AND target.order_no=source.order_no "
-				+ "WHEN MATCHED THEN UPDATE SET amount=source.amount;";
 	}
 }

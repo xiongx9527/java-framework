@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -96,6 +97,25 @@ class DataChangeMultiStatementTest {
 
 		assertThat(changes).singleElement().satisfies(change -> {
 			assertThat(change.getStatementIndex()).isEqualTo(1);
+			assertThat(change.getAffectedRows()).isEqualTo(1);
+		});
+	}
+
+	@Test
+	void returningResultSetSharesStatementIndexWithFollowingUpdateCount() throws Exception {
+		List<JdbcStatementResult> results = Arrays.asList(JdbcStatementResult.resultSet(),
+				JdbcStatementResult.updateCount(1));
+
+		List<StatementChange> changes = execute(
+				"UPDATE sys_user SET name='after' WHERE id=1 RETURNING id", results,
+				new DatabaseMutation() {
+					@Override public void run(Statement statement) throws Exception {
+						statement.executeUpdate("UPDATE sys_user SET name='after' WHERE id=1");
+					}
+				});
+
+		assertThat(changes).singleElement().satisfies(change -> {
+			assertThat(change.getStatementIndex()).isZero();
 			assertThat(change.getAffectedRows()).isEqualTo(1);
 		});
 	}

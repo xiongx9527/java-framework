@@ -5,6 +5,9 @@ import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeException;
 import com.xiongx9527.fw.plus.mybatis.datachange.api.RowIdentity;
 import com.xiongx9527.fw.plus.mybatis.datachange.api.TableIdentifier;
 import net.sf.jsqlparser.expression.Alias;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
+import net.sf.jsqlparser.expression.JdbcParameter;
 import net.sf.jsqlparser.statement.select.Join;
 import org.apache.ibatis.mapping.ParameterMapping;
 
@@ -29,6 +32,7 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 	@Override
 	public SnapshotQuery buildBeforeQuery(ChangeTarget target) {
 		if (target.getOperation() == StatementOperation.INSERT) {
+			if (target.isUpsert()) { return buildAssignedIdentityQuery(target, true); }
 			throw snapshotFailure("An INSERT statement has no before snapshot");
 		}
 		List<String> columns = snapshotColumns(target);
@@ -52,6 +56,8 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 
 	@Override
 	public SnapshotQuery buildAfterQuery(ChangeTarget target, List<RowIdentity> identities) {
+		if (target.isUpsert()) { return buildAssignedIdentityQuery(target, false); }
+		if (target.getOperation() == StatementOperation.MERGE) { return buildMergeMatchQuery(target); }
 		List<String> keys = target.getKeyColumnsHint();
 		if (keys.isEmpty()) {
 			throw snapshotFailure("A unique key is required for an after snapshot");
@@ -98,6 +104,59 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 			sql.append(alias.isUseAs() ? " AS " : " ").append(alias.getName());
 		}
 		return sql;
+	}
+
+	private SnapshotQuery buildAssignedIdentityQuery(ChangeTarget target, boolean lockRows) {
+		List<String> keys = target.getKeyColumnsHint();
+		if (keys.isEmpty()) { throw identityFailure(); }
+		StringBuilder sql = selectPrefix(target, snapshotColumns(target), false);
+		List<SnapshotParameter> parameters = new ArrayList<SnapshotParameter>();
+		sql.append(" WHERE ");
+		for (int index = 0; index < keys.size(); index++) {
+			if (index > 0) { sql.append(" AND "); }
+			String key = keys.get(index);
+			AssignedColumn assigned = assigned(target, key);
+			int parameterCount = assigned == null || assigned.getExpression() == null
+					? 0 : parameterCount(assigned.getExpression());
+			if (assigned == null || parameterCount == 0
+					|| parameterCount != assigned.getParameterMappings().size()) {
+				throw identityFailure();
+			}
+			sql.append(quote(key)).append(" = (").append(assigned.getExpression()).append(')');
+			for (ParameterMapping mapping : assigned.getParameterMappings()) {
+				parameters.add(SnapshotParameter.boundSql(mapping, target.getBoundSql()));
+			}
+		}
+		appendLimit(sql, target);
+		if (lockRows) { sql.append(" FOR UPDATE"); }
+		return new SnapshotQuery(sql.toString(), parameters, target.getMaxRows() + 1);
+	}
+
+	private SnapshotQuery buildMergeMatchQuery(ChangeTarget target) {
+		StringBuilder sql = selectPrefix(target, snapshotColumns(target), true);
+		for (Join join : target.getJoins()) { sql.append(' ').append(join.toString().trim()); }
+		appendLimit(sql, target);
+		List<SnapshotParameter> parameters = new ArrayList<SnapshotParameter>();
+		for (ParameterMapping mapping : target.getMatchParameterMappings()) {
+			parameters.add(SnapshotParameter.boundSql(mapping, target.getBoundSql()));
+		}
+		return new SnapshotQuery(sql.toString(), parameters, target.getMaxRows() + 1);
+	}
+
+	private AssignedColumn assigned(ChangeTarget target, String key) {
+		for (AssignedColumn assigned : target.getAssignedColumns()) {
+			if (assigned.getColumn() != null && assigned.getColumn().equalsIgnoreCase(key)) { return assigned; }
+		}
+		return null;
+	}
+
+	private int parameterCount(Expression expression) {
+		final int[] count = new int[]{0};
+		expression.accept(new ExpressionVisitorAdapter() {
+			@Override
+			public void visit(JdbcParameter parameter) { count[0]++; }
+		});
+		return count[0];
 	}
 
 	private String projectionQualifier(ChangeTarget target) {
@@ -178,5 +237,10 @@ public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDiale
 
 	private DataChangeException snapshotFailure(String message) {
 		return new DataChangeException(DataChangeErrorCode.SNAPSHOT_QUERY_FAILED, message);
+	}
+
+	private DataChangeException identityFailure() {
+		return new DataChangeException(DataChangeErrorCode.ROW_IDENTITY_UNAVAILABLE,
+				"ROW_IDENTITY_UNAVAILABLE");
 	}
 }

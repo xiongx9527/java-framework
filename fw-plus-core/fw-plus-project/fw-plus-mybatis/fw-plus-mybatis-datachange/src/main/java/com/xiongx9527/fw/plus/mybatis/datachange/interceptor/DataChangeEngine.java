@@ -38,10 +38,12 @@ import java.sql.Connection;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public final class DataChangeEngine {
 	private final DataChangeConfiguration configuration;
@@ -94,7 +96,7 @@ public final class DataChangeEngine {
 				keys = dialect.resolveIdentityColumns(connection, detectedTarget, keys);
 				ChangeTarget target = detectedTarget.withSnapshotConfiguration(keys, monitoredColumns(monitor),
 						maxRows(monitor), context.getConsistencyLevel() == ConsistencyLevel.TRANSACTIONAL);
-				List<RowSnapshot> before = target.getOperation() == StatementOperation.INSERT
+				List<RowSnapshot> before = target.getOperation() == StatementOperation.INSERT && !target.isUpsert()
 						? Collections.<RowSnapshot>emptyList()
 						: snapshots.readBefore(connection, dialect, target, jdbcMetadata,
 								context.getMappedStatement().getConfiguration());
@@ -120,7 +122,7 @@ public final class DataChangeEngine {
 		if (plans == null || plans.isEmpty()) { return; }
 		try {
 			for (StatementChangePlan plan : plans) {
-				int updateCount = countAt(results, plan.getStatementIndex());
+				int updateCount = countAt(results, plans, plan);
 				List<RowIdentity> identities = !isSuccessful(updateCount)
 						? Collections.<RowIdentity>emptyList() : identities(context, plan, statement);
 				plan.captureResult(updateCount, identities);
@@ -139,7 +141,7 @@ public final class DataChangeEngine {
 			Map<Integer, List<TableChange>> grouped = new LinkedHashMap<Integer, List<TableChange>>();
 			Map<Integer, Integer> affectedRows = new LinkedHashMap<Integer, Integer>();
 			for (StatementChangePlan plan : plans) {
-				int count = effectiveUpdateCount(plan, results);
+					int count = effectiveUpdateCount(plan, plans, results);
 				if (!isSuccessful(count)) { continue; }
 				List<RowSnapshot> after = plan.getTarget().getOperation() == StatementOperation.PHYSICAL_DELETE
 						? Collections.<RowSnapshot>emptyList()
@@ -192,7 +194,7 @@ public final class DataChangeEngine {
 
 	private List<RowIdentity> identities(DataChangeExecutionContext context, StatementChangePlan plan,
 			Statement statement) {
-		if (plan.getTarget().getOperation() == StatementOperation.INSERT) {
+		if (plan.getTarget().getOperation() == StatementOperation.INSERT && !plan.getTarget().isUpsert()) {
 			return new GeneratedKeyResolver(plan.getDialect()).resolve(context.getMappedStatement(),
 					context.getParameterObject(), statement, plan.getFrameworkMetadata(),
 					plan.getTarget().getKeyColumnsHint());
@@ -202,10 +204,40 @@ public final class DataChangeEngine {
 		return identities;
 	}
 
-	private int effectiveUpdateCount(StatementChangePlan plan, List<JdbcStatementResult> results) {
+	private int effectiveUpdateCount(StatementChangePlan plan, List<StatementChangePlan> plans,
+			List<JdbcStatementResult> results) {
 		if (plan.getUpdateCount() != -1) { return plan.getUpdateCount(); }
-		int index = plan.getStatementIndex();
-		return countAt(results, index);
+		return countAt(results, plans, plan);
+	}
+
+	private int countAt(List<JdbcStatementResult> results, List<StatementChangePlan> plans,
+			StatementChangePlan current) {
+		int returningOffset = 0;
+		Set<Integer> returningStatements = new HashSet<Integer>();
+		for (StatementChangePlan plan : plans) {
+			if (plan.getStatementIndex() >= current.getStatementIndex()) { break; }
+			if (!plan.getTarget().isReturnsRows()
+					|| !returningStatements.add(Integer.valueOf(plan.getStatementIndex()))) { continue; }
+			int candidate = plan.getStatementIndex() + returningOffset;
+			if (isResultSet(results, candidate) && isUpdateCount(results, candidate + 1)) { returningOffset++; }
+		}
+		int resultIndex = current.getStatementIndex() + returningOffset;
+		if (current.getTarget().isReturnsRows() && isResultSet(results, resultIndex)
+				&& isUpdateCount(results, resultIndex + 1)) {
+			resultIndex++;
+		}
+		return countAt(results, resultIndex);
+	}
+
+	private boolean isResultSet(List<JdbcStatementResult> results, int index) {
+		return results != null && index >= 0 && index < results.size()
+				&& results.get(index) != null
+				&& results.get(index).getType() == JdbcStatementResult.Type.RESULT_SET;
+	}
+
+	private boolean isUpdateCount(List<JdbcStatementResult> results, int index) {
+		return results != null && index >= 0 && index < results.size()
+				&& results.get(index) != null && results.get(index).isUpdateCount();
 	}
 
 	private int countAt(List<JdbcStatementResult> results, int index) {
