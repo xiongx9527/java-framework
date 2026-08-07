@@ -33,6 +33,11 @@ public interface TinyflowKnowledgeRepository {
 
 	List<TinyflowDocument> findDocumentVersions(String tenantId, String knowledgeId, String sourceId);
 
+	/** Returns every document version owned by one knowledge definition. */
+	default List<TinyflowDocument> findDocumentsByKnowledge(String tenantId, String knowledgeId) {
+		throw new UnsupportedOperationException("Knowledge document enumeration is not supported");
+	}
+
 	/**
 	 * Atomically switches the active document version. Implementations must validate the complete
 	 * tenant/knowledge/source/document identity before changing state. A failed switch leaves the
@@ -62,6 +67,11 @@ public interface TinyflowKnowledgeRepository {
 
 	void updateChunk(String tenantId, String knowledgeId, String chunkId, boolean enabled,
 			String content, Map<String, Object> metadata);
+
+	/** Atomically replaces one chunk and persists the compensation for its superseded vectors. */
+	default void replaceChunkWithVectorCompensation(TinyflowChunk chunk, VectorCompensation compensation) {
+		throw new UnsupportedOperationException("Atomic chunk replacement is not supported");
+	}
 
 	void saveTask(TinyflowIngestionTask task);
 

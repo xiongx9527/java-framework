@@ -377,6 +377,50 @@ public class TinyflowKnowledgeMaintenanceServiceTest {
 		assertEquals("DELETED", lastTask(repository).getStatus());
 	}
 
+	@Test
+	public void shouldDeleteInactiveSourceBeforeKnowledgeDefinition() {
+		TinyflowLocalIndexerTest.MemoryRepository repository = new TinyflowLocalIndexerTest.MemoryRepository();
+		TinyflowLocalIndexerTest.RecordingStore store = new TinyflowLocalIndexerTest.RecordingStore();
+		TinyflowLocalIndexer indexer = TinyflowLocalIndexerTest.indexer(repository, store, true, true, 10);
+		TinyflowKnowledgeMaintenanceService maintenance = new TinyflowKnowledgeMaintenanceService(repository, indexer,
+				new TinyflowLocalIndexerTest.FixedStoreProvider(store, true));
+		repository.saveKnowledge(knowledge("kb-1", "store-a"), 0L);
+		repository.saveDocument(TinyflowLocalIndexerTest.document("doc-inactive"));
+		repository.saveChunks(Collections.singletonList(withVector(
+				TinyflowLocalIndexerTest.chunks("doc-inactive", 1).get(0), "vec-inactive")));
+
+		maintenance.deleteKnowledge("tenant-a", "kb-1", 1L);
+
+		assertTrue(repository.findKnowledge("tenant-a", "kb-1") == null);
+		assertTrue(repository.findDocumentVersions("tenant-a", "kb-1", "source-1").isEmpty());
+		assertEquals(Collections.singletonList("vec-inactive"), store.removed);
+	}
+
+	@Test
+	public void shouldPersistReplacementCleanupForRetryWhenOldVectorDeletionFails() {
+		TinyflowLocalIndexerTest.MemoryRepository repository = new TinyflowLocalIndexerTest.MemoryRepository();
+		TinyflowLocalIndexerTest.RecordingStore store = new TinyflowLocalIndexerTest.RecordingStore();
+		TinyflowLocalIndexer indexer = TinyflowLocalIndexerTest.indexer(repository, store, true, true, 10);
+		TinyflowKnowledgeMaintenanceService maintenance = new TinyflowKnowledgeMaintenanceService(repository, indexer,
+				new TinyflowLocalIndexerTest.FixedStoreProvider(store, true));
+		seedActive(repository);
+		store.failRemove = true;
+
+		assertThrows(TinyflowException.class, () -> maintenance.updateChunk(
+				"tenant-a", "kb-1", "chunk-1", true, "replacement", Collections.<String, Object>emptyMap()));
+
+		TinyflowChunk replacement = repository.findChunk("tenant-a", "kb-1", "chunk-1");
+		assertEquals("replacement", replacement.getContent());
+		assertFalse(replacement.getVectorIds().contains("vec-old-1"));
+		assertEquals("DELETE_REPLACED_CHUNK_VECTORS",
+				repository.findVectorCompensations("tenant-a", "kb-1").get(0).getOperation());
+
+		store.failRemove = false;
+		new TinyflowVectorCompensator(repository, indexer).retry("tenant-a", "kb-1");
+		assertTrue(repository.findVectorCompensations("tenant-a", "kb-1").isEmpty());
+		assertTrue(store.removed.contains("vec-old-1"));
+	}
+
 	private static void seedActive(TinyflowLocalIndexerTest.MemoryRepository repository) {
 		repository.saveKnowledge(knowledge("kb-1", "store-a"), 0L);
 		List<TinyflowChunk> chunks = TinyflowLocalIndexerTest.chunks("doc-v1", 2);
@@ -402,6 +446,7 @@ public class TinyflowKnowledgeMaintenanceServiceTest {
 
 	private static TinyflowKnowledgeDefinition knowledge(String knowledgeId, String storeKey) {
 		Map<String, Object> metadata = new LinkedHashMap<String, Object>();
+		metadata.put("embeddingModelKey", "model-a");
 		metadata.put("vectorStoreKey", storeKey);
 		return TinyflowKnowledgeDefinition.builder().providerKey("fw-plus-local").tenantId("tenant-a")
 				.knowledgeId(knowledgeId).name(knowledgeId).metadata(metadata).build();

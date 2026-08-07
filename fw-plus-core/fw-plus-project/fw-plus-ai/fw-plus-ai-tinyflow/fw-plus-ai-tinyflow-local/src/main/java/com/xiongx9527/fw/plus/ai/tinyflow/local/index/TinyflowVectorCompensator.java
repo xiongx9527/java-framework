@@ -13,6 +13,7 @@ public final class TinyflowVectorCompensator {
 	static final String INDEX_ROLLBACK = "INDEX_ROLLBACK";
 	static final String DELETE_OLD_VERSION = "DELETE_OLD_VERSION";
 	static final String DELETE_PENDING = "DELETE_PENDING";
+	static final String DELETE_REPLACED_CHUNK_VECTORS = "DELETE_REPLACED_CHUNK_VECTORS";
 
 	private final TinyflowKnowledgeRepository repository;
 	private final TinyflowLocalIndexer indexer;
@@ -45,6 +46,7 @@ public final class TinyflowVectorCompensator {
 		if (TinyflowKnowledgeRepository.VectorCompensation.VECTOR_PENDING.equals(stage)) {
 			indexer.delete(compensation.getTenantId(), compensation.getKnowledgeId(), compensation.getVectorIds());
 			String nextStage = INDEX_ROLLBACK.equals(compensation.getOperation())
+					|| DELETE_REPLACED_CHUNK_VECTORS.equals(compensation.getOperation())
 					? TinyflowKnowledgeRepository.VectorCompensation.COMPLETE
 					: TinyflowKnowledgeRepository.VectorCompensation.RESOURCE_PENDING;
 			advance(compensation, stage, nextStage);
@@ -84,7 +86,7 @@ public final class TinyflowVectorCompensator {
 
 	private boolean isSupported(String operation) {
 		return INDEX_ROLLBACK.equals(operation) || DELETE_OLD_VERSION.equals(operation)
-				|| DELETE_PENDING.equals(operation);
+				|| DELETE_PENDING.equals(operation) || DELETE_REPLACED_CHUNK_VECTORS.equals(operation);
 	}
 
 	private TinyflowIngestionTask deletedTask(TinyflowKnowledgeRepository.VectorCompensation compensation) {

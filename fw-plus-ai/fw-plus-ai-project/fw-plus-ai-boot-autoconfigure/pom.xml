@@ -237,6 +237,13 @@
             <optional>true</optional>
         </dependency>
 
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus.boot</groupId>
+			<artifactId>fw-plus-magicapi-plugin-s3</artifactId>
+			<scope>compile</scope>
+			<optional>true</optional>
+		</dependency>
+
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-context</artifactId>

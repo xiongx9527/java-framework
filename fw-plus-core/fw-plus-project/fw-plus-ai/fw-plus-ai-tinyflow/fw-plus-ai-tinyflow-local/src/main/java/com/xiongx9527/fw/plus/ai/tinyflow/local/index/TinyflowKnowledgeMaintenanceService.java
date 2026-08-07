@@ -12,13 +12,17 @@ import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 /** Coordinates create, rebuild and source deletion while preserving an old active version on failure. */
 public final class TinyflowKnowledgeMaintenanceService {
 
+	public static final String EMBEDDING_MODEL_KEY = "embeddingModelKey";
 	public static final String VECTOR_STORE_KEY = "vectorStoreKey";
 
 	private final TinyflowKnowledgeRepository repository;
@@ -97,16 +101,18 @@ public final class TinyflowKnowledgeMaintenanceService {
 
 	public void deleteSource(String tenantId, String knowledgeId, String sourceId) {
 		TinyflowDocument active = repository.findActiveDocument(tenantId, knowledgeId, sourceId);
-		if (active == null) {
+		List<TinyflowDocument> versions = repository.findDocumentVersions(tenantId, knowledgeId, sourceId);
+		if (active == null && versions.isEmpty()) {
 			return;
 		}
+		TinyflowDocument reference = active == null ? versions.get(0) : active;
 		descriptor(vectorStoreKey(requireKnowledge(tenantId, knowledgeId)));
 		List<String> vectorIds = vectorIdsForSource(tenantId, knowledgeId, sourceId);
 		TinyflowKnowledgeRepository.VectorCompensation compensation =
-				indexer.createCompensation(active, vectorIds, TinyflowVectorCompensator.DELETE_PENDING);
+				indexer.createCompensation(reference, vectorIds, TinyflowVectorCompensator.DELETE_PENDING);
 		try {
 			repository.saveTaskWithVectorCompensation(
-					task(active, "DELETE_PENDING", "Deleting source vectors"), compensation);
+					task(reference, "DELETE_PENDING", "Deleting source vectors"), compensation);
 		} catch (Exception exception) {
 			throw new TinyflowException("Knowledge source deletion could not be started", exception);
 		}
@@ -114,6 +120,94 @@ public final class TinyflowKnowledgeMaintenanceService {
 			new TinyflowVectorCompensator(repository, indexer).complete(compensation);
 		} catch (Exception exception) {
 			throw new TinyflowException("Knowledge source deletion is pending compensation", exception);
+		}
+	}
+
+	public void deleteKnowledge(String tenantId, String knowledgeId, long expectedVersion) {
+		long actualVersion = repository.findKnowledgeVersion(tenantId, knowledgeId);
+		if (actualVersion != expectedVersion) {
+			throw new TinyflowKnowledgeRepository.OptimisticLockException(expectedVersion, actualVersion);
+		}
+		completePendingCompensations(tenantId, knowledgeId);
+		Set<String> sourceIds = new LinkedHashSet<String>();
+		for (TinyflowDocument document : repository.findDocumentsByKnowledge(tenantId, knowledgeId)) {
+			sourceIds.add(document.getSourceId());
+		}
+		for (String sourceId : sourceIds) {
+			deleteSource(tenantId, knowledgeId, sourceId);
+		}
+		if (!repository.findVectorCompensations(tenantId, knowledgeId).isEmpty()) {
+			throw new TinyflowException("Knowledge deletion is pending compensation");
+		}
+		repository.deleteKnowledge(tenantId, knowledgeId, expectedVersion);
+	}
+
+	public TinyflowChunk updateChunk(String tenantId, String knowledgeId, String chunkId,
+			boolean enabled, String content, Map<String, Object> metadata) {
+		TinyflowChunk current = repository.findChunk(tenantId, knowledgeId, chunkId);
+		if (current == null) {
+			throw new TinyflowException("Chunk was not found");
+		}
+		Map<String, Object> replacementMetadata = metadata == null
+				? Collections.<String, Object>emptyMap() : new LinkedHashMap<String, Object>(metadata);
+		if (Objects.equals(current.getContent(), content)
+				&& Objects.equals(current.getMetadata(), replacementMetadata)) {
+			repository.updateChunk(tenantId, knowledgeId, chunkId, enabled, content, replacementMetadata);
+			return repository.findChunk(tenantId, knowledgeId, chunkId);
+		}
+
+		TinyflowDocument document = requireDocument(current);
+		TinyflowChunk replacement = copyChunk(current, content, replacementMetadata, enabled,
+				Collections.<String>emptyList());
+		TinyflowChunk indexed = indexer.indexReplacementChunk(document, replacement);
+		TinyflowKnowledgeRepository.VectorCompensation cleanup = indexer.createCompensation(
+				document, current.getVectorIds(), TinyflowVectorCompensator.DELETE_REPLACED_CHUNK_VECTORS);
+		try {
+			repository.replaceChunkWithVectorCompensation(indexed, cleanup);
+		} catch (RuntimeException exception) {
+			rollbackReplacementVectors(document, indexed, exception);
+			throw new TinyflowException("Chunk replacement could not be persisted", exception);
+		}
+		try {
+			new TinyflowVectorCompensator(repository, indexer).complete(cleanup);
+		} catch (Exception exception) {
+			throw new TinyflowException("Chunk replacement is pending vector cleanup", exception);
+		}
+		return repository.findChunk(tenantId, knowledgeId, chunkId);
+	}
+
+	private TinyflowDocument requireDocument(TinyflowChunk chunk) {
+		for (TinyflowDocument document : repository.findDocumentsByKnowledge(
+				chunk.getTenantId(), chunk.getKnowledgeId())) {
+			if (chunk.getDocumentId().equals(document.getDocumentId())) {
+				return document;
+			}
+		}
+		throw new TinyflowException("Chunk document was not found");
+	}
+
+	private void rollbackReplacementVectors(TinyflowDocument document, TinyflowChunk indexed,
+			RuntimeException original) {
+		try {
+			TinyflowKnowledgeRepository.VectorCompensation rollback = indexer.recordCompensation(
+					document, indexed.getVectorIds(), TinyflowVectorCompensator.INDEX_ROLLBACK);
+			if (rollback != null) {
+				new TinyflowVectorCompensator(repository, indexer).complete(rollback);
+			}
+		} catch (Exception cleanupFailure) {
+			original.addSuppressed(cleanupFailure);
+		}
+	}
+
+	private void completePendingCompensations(String tenantId, String knowledgeId) {
+		TinyflowVectorCompensator compensator = new TinyflowVectorCompensator(repository, indexer);
+		for (TinyflowKnowledgeRepository.VectorCompensation compensation
+				: repository.findVectorCompensations(tenantId, knowledgeId)) {
+			try {
+				compensator.complete(compensation);
+			} catch (Exception exception) {
+				throw new TinyflowException("Knowledge deletion is pending compensation", exception);
+			}
 		}
 	}
 
@@ -185,6 +279,16 @@ public final class TinyflowKnowledgeMaintenanceService {
 					.enabled(chunk.isEnabled()).build());
 		}
 		return values;
+	}
+
+	private TinyflowChunk copyChunk(TinyflowChunk source, String content, Map<String, Object> metadata,
+			boolean enabled, List<String> vectorIds) {
+		return TinyflowChunk.builder().tenantId(source.getTenantId()).knowledgeId(source.getKnowledgeId())
+				.sourceId(source.getSourceId()).sourceType(source.getSourceType()).documentId(source.getDocumentId())
+				.chunkId(source.getChunkId()).content(content).sourceUri(source.getSourceUri())
+				.sourceVersion(source.getSourceVersion()).location(source.getLocation()).position(source.getPosition())
+				.parentChunkId(source.getParentChunkId()).tokenCount(source.getTokenCount()).metadata(metadata)
+				.enabled(enabled).vectorIds(vectorIds).build();
 	}
 
 	private TinyflowIngestionTask task(TinyflowDocument document, String status, String message) {
