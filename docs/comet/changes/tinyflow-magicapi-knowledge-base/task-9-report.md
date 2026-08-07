@@ -56,6 +56,25 @@ Round 3 新增聚焦命令：
 
 Round 3 另外确认 Tinyflow 插件仍直接以 `compile` 依赖 `fw-plus-magicapi-plugin-s3:0.1.1-SNAPSHOT`，`git diff --check` 通过且无输出。
 
+## Fix round 4 findings
+
+RED 命令：
+
+`mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='MyFileStorageServiceTest' test`
+
+RED 结果：`4` tests，`1` failure、`1` error，BUILD FAILURE。`existsRejectsUnresolvableUrlInsteadOfReportingMissing` 证明 URL 无法解析时旧实现未抛异常；`existsUsesResolvedBasePathStorageRoute` 证明非空 `basePath` 下旧实现按相对 `path` 选择了错误的存储服务。
+
+| Finding | 修复与 covering test | 验证命令 | GREEN 结果 |
+| --- | --- | --- | --- |
+| R4-I1 `exists(String)` 把本地 URL 解析失败误报为远端 missing，并按 `path` 而非上传使用的 `basePath` 路由 | URL 无法解析时抛出明确的 `FileStorageRuntimeException`；解析成功后按 `FileInfo.basePath` 选择 `FileStorageService`。覆盖 `MyFileStorageServiceTest.existsRejectsUnresolvableUrlInsteadOfReportingMissing`、`existsUsesResolvedBasePathStorageRoute`，并保留明确 remote missing=false 与 403/5xx/IOException 原异常传播覆盖。 | Boot S3 聚焦；Magic object storage/operations 聚焦；Task 9 完整聚焦矩阵；AI Boot AutoConfigure 全回归 | Boot `4` tests、Magic 聚焦 `30` tests、Task 9 `109` tests、AI Boot `515` tests，均 0 failures、0 errors，BUILD SUCCESS |
+
+GREEN 命令：
+
+- Boot S3 聚焦：`mvn -f fw-plus-boot/pom.xml -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest='MyFileStorageServiceTest' test`
+- Magic object storage/operations 聚焦：`mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='MagicApiTinyflowObjectStorageTest,DefaultMagicTinyflowKnowledgeOperationsTest,DefaultMagicTinyflowKnowledgeOptionProviderTest' test`
+- Task 9 完整聚焦矩阵：`mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure -Dtest='com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.tinyflow.knowledge.*Test,MagicApiTinyflowProviderTest,MagicApiTinyflowVectorStoreProviderContractTest,TinyflowAutoConfigurationTest' test`
+- AI Boot AutoConfigure 全回归：`mvn -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure test`
+
 ## 关键回归证据
 
 - 两个知识库分别请求各自的 Embedding 模型 key。

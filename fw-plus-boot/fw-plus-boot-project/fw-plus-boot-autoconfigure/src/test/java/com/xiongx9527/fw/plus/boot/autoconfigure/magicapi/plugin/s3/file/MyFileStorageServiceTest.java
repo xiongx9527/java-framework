@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MyFileStorageServiceTest {
@@ -26,6 +27,24 @@ class MyFileStorageServiceTest {
 
 		assertFalse(service.exists(objectUrl()));
 		assertTrue(service.exists(objectUrl()));
+	}
+
+	@Test
+	void existsRejectsUnresolvableUrlInsteadOfReportingMissing() {
+		FileStorageRuntimeException failure = assertThrows(FileStorageRuntimeException.class,
+				() -> service(mock(FileStorageService.class)).exists("https://other.example/object.txt"));
+
+		assertTrue(failure.getMessage().contains("resolve file information"));
+	}
+
+	@Test
+	void existsUsesResolvedBasePathStorageRoute() {
+		FileStorageService storage = mock(FileStorageService.class);
+		when(storage.exists(any(FileInfo.class))).thenReturn(true);
+
+		assertTrue(service(storage, "uploads").exists(
+				"https://bucket.storage.example/uploads/tinyflow/tenant-a/object.txt"));
+		verify(storage).exists(any(FileInfo.class));
 	}
 
 	@Test
@@ -46,11 +65,15 @@ class MyFileStorageServiceTest {
 	}
 
 	private MyFileStorageService service(FileStorageService storage) {
+		return service(storage, "");
+	}
+
+	private MyFileStorageService service(FileStorageService storage, String basePath) {
 		S3DataSourceInfo info = new S3DataSourceInfo();
 		info.setPlatform("amazon-s3");
 		info.setEndPoint("storage.example");
 		info.setBucketName("bucket");
-		info.setBasePath("");
+		info.setBasePath(basePath);
 		return new MyFileStorageService(storage, info);
 	}
 

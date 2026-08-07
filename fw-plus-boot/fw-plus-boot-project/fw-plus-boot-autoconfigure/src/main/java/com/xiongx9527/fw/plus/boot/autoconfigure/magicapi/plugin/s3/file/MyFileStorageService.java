@@ -1093,7 +1093,10 @@ public class MyFileStorageService {
      */
     public boolean exists(String url) {
         FileInfo fileInfo = this.getFileInfoByUrl(url,null,null,null);
-        return fileInfo != null && this.getFileStorageServiceByPath(fileInfo.getPath()).exists(fileInfo);
+        if (fileInfo == null) {
+            throw new FileStorageRuntimeException("Failed to resolve file information from URL");
+        }
+        return this.getFileStorageServiceByPath(fileInfo.getBasePath()).exists(fileInfo);
     }
 
     /**
