@@ -76,16 +76,30 @@ public final class DataChangeInterceptor implements Interceptor {
 		if (DataChangeScopeHolder.isSuppressed()) { return result; }
 		Optional<DataChangeExecutionContext> current = DataChangeExecutionContextHolder.current();
 		if (!current.isPresent()) { return result; }
-		DataChangeExecutionContext context = current.get();
-		Connection connection = (Connection) invocation.getArgs()[0];
-		engine.initializeConnection(context, connection);
-		StatementHandler handler = (StatementHandler) invocation.getTarget();
-		List<StatementChangePlan> plans = engine.beforeStatement(context,
-				new BoundSqlContext(handler.getBoundSql(),
-						context.getConsistencyLevel() == com.xiongx9527.fw.plus.mybatis.datachange.api.ConsistencyLevel.TRANSACTIONAL,
-						configuration.getMaxSnapshotRows()));
-		context.registerPlans(plans);
-		return result;
+		try {
+			DataChangeExecutionContext context = current.get();
+			Connection connection = (Connection) invocation.getArgs()[0];
+			engine.initializeConnection(context, connection);
+			StatementHandler handler = (StatementHandler) invocation.getTarget();
+			List<StatementChangePlan> plans = engine.beforeStatement(context,
+					new BoundSqlContext(handler.getBoundSql(),
+							context.getConsistencyLevel() == com.xiongx9527.fw.plus.mybatis.datachange.api.ConsistencyLevel.TRANSACTIONAL,
+							configuration.getMaxSnapshotRows()));
+			context.registerPlans(plans);
+			return result;
+		} catch (Throwable failure) {
+			closeSafely(result);
+			throw failure;
+		}
+	}
+
+	private void closeSafely(Object result) {
+		if (!(result instanceof Statement)) { return; }
+		try {
+			((Statement) result).close();
+		} catch (Throwable ignored) {
+			// Cleanup failure must not replace or expose details from the audit preparation failure.
+		}
 	}
 
 	private Object interceptStatementUpdate(Invocation invocation) throws Throwable {

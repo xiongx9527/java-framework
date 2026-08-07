@@ -289,6 +289,19 @@ class DataChangeInterceptorH2Test {
 		assertThat(DataChangeExecutionContextHolder.current()).isEmpty();
 	}
 
+	@Test
+	void suppressesNestedMapperCallFromHandlerSupports() throws Exception {
+		insertUser(1L, "outer-before", 0);
+		insertUser(2L, "nested-before", 0);
+		failingHandler.supportsMapper = mapper;
+
+		assertThat(mapper.rename(1L, "outer-after")).isEqualTo(1);
+
+		assertThat(selectString("SELECT name FROM sys_user WHERE id = 2")).isEqualTo("nested-after");
+		assertThat(recordingHandler.events).hasSize(1);
+		assertThat(errorHandler.failures).isEmpty();
+	}
+
 	private void openSession(int maxRows) {
 		sessionFactory = buildSessionFactory(maxRows);
 		session = sessionFactory.openSession(true);
@@ -452,9 +465,21 @@ class DataChangeInterceptorH2Test {
 	private static final class ToggleFailingHandler implements DataChangeHandler {
 		private boolean fail;
 		private TestUserMapper nestedMapper;
+		private TestUserMapper supportsMapper;
+		private boolean insideSupportsMapper;
 
 		@Override
-		public boolean supports(DataChangeEvent event) { return fail || nestedMapper != null; }
+		public boolean supports(DataChangeEvent event) {
+			if (supportsMapper != null && !insideSupportsMapper) {
+				insideSupportsMapper = true;
+				try {
+					supportsMapper.rename(2L, "nested-after");
+				} finally {
+					insideSupportsMapper = false;
+				}
+			}
+			return fail || nestedMapper != null;
+		}
 
 		@Override
 		public void handle(DataChangeEvent event) {

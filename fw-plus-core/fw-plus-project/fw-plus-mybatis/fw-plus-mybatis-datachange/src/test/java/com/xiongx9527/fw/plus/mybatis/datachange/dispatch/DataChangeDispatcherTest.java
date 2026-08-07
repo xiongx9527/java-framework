@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.mybatis.datachange.dispatch;
 
 import com.xiongx9527.fw.plus.mybatis.datachange.api.ConsistencyLevel;
+import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeErrorCode;
 import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeErrorHandler;
 import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeEvent;
 import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeException;
@@ -74,6 +75,75 @@ class DataChangeDispatcherTest {
 		assertThat(DataChangeScopeHolder.isSuppressed()).isFalse();
 	}
 
+	@Test
+	void bestEffortSupportsFailureIsSanitizedReportedAndDoesNotStopLaterHandlers() {
+		RecordingHandler recordingHandler = new RecordingHandler(10, true);
+		RecordingErrorHandler errorHandler = new RecordingErrorHandler();
+		DataChangeDispatcher dispatcher = dispatcher(supportsFailingHandler(0), recordingHandler, errorHandler);
+
+		dispatcher.dispatch(event(ConsistencyLevel.BEST_EFFORT));
+
+		assertThat(errorHandler.failures()).singleElement().satisfies(failure -> {
+			assertThat(failure.getCode()).isEqualTo(DataChangeErrorCode.HANDLER_FAILED);
+			assertThat(failure.getException()).hasMessageNotContaining("secret-binding").hasNoCause();
+		});
+		assertThat(recordingHandler.events()).hasSize(1);
+	}
+
+	@Test
+	void transactionalSupportsFailurePropagatesSanitizedHandlerFailure() {
+		RecordingErrorHandler errorHandler = new RecordingErrorHandler();
+
+		assertThatThrownBy(() -> dispatcher(supportsFailingHandler(0), errorHandler)
+				.dispatch(event(ConsistencyLevel.TRANSACTIONAL)))
+				.isInstanceOf(DataChangeException.class)
+				.hasMessageContaining("HANDLER_FAILED")
+				.hasMessageNotContaining("secret-binding")
+				.hasNoCause();
+		assertThat(errorHandler.failures()).isEmpty();
+	}
+
+	@Test
+	void invokesOrderAndSupportsInsideSuppressionScope() {
+		AtomicBoolean orderSuppressed = new AtomicBoolean(false);
+		AtomicBoolean supportsSuppressed = new AtomicBoolean(false);
+		DataChangeHandler handler = new DataChangeHandler() {
+			@Override
+			public boolean supports(DataChangeEvent event) {
+				supportsSuppressed.set(DataChangeScopeHolder.isSuppressed());
+				return false;
+			}
+
+			@Override
+			public void handle(DataChangeEvent event) { }
+
+			@Override
+			public int getOrder() {
+				orderSuppressed.set(DataChangeScopeHolder.isSuppressed());
+				return 0;
+			}
+		};
+
+		dispatcher(handler, new RecordingErrorHandler()).dispatch(event(ConsistencyLevel.BEST_EFFORT));
+
+		assertThat(orderSuppressed).isTrue();
+		assertThat(supportsSuppressed).isTrue();
+		assertThat(DataChangeScopeHolder.isSuppressed()).isFalse();
+	}
+
+	@Test
+	void bestEffortOrderFailureIsReportedAndSkipsOnlyFailingHandler() {
+		RecordingHandler recordingHandler = new RecordingHandler(10, true);
+		RecordingErrorHandler errorHandler = new RecordingErrorHandler();
+		DataChangeDispatcher dispatcher = dispatcher(orderFailingHandler(), recordingHandler, errorHandler);
+
+		dispatcher.dispatch(event(ConsistencyLevel.BEST_EFFORT));
+
+		assertThat(errorHandler.failures()).singleElement()
+				.extracting(DataChangeFailure::getCode).isEqualTo(DataChangeErrorCode.HANDLER_FAILED);
+		assertThat(recordingHandler.events()).hasSize(1);
+	}
+
 	private static DataChangeDispatcher dispatcher(DataChangeHandler handler, RecordingErrorHandler errorHandler) {
 		return dispatcher(handler, null, errorHandler);
 	}
@@ -102,6 +172,34 @@ class DataChangeDispatcherTest {
 
 			@Override
 			public int getOrder() { return order; }
+		};
+	}
+
+	private static DataChangeHandler supportsFailingHandler(final int order) {
+		return new DataChangeHandler() {
+			@Override
+			public boolean supports(DataChangeEvent event) {
+				throw new IllegalStateException("secret-binding");
+			}
+
+			@Override
+			public void handle(DataChangeEvent event) { }
+
+			@Override
+			public int getOrder() { return order; }
+		};
+	}
+
+	private static DataChangeHandler orderFailingHandler() {
+		return new DataChangeHandler() {
+			@Override
+			public boolean supports(DataChangeEvent event) { return true; }
+
+			@Override
+			public void handle(DataChangeEvent event) { }
+
+			@Override
+			public int getOrder() { throw new IllegalStateException("secret-binding"); }
 		};
 	}
 
