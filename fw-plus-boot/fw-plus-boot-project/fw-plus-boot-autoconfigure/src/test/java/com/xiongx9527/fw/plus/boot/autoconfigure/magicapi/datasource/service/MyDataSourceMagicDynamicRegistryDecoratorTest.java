@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DelegatingDataSource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 import org.ssssssss.magicapi.datasource.model.DataSourceInfo;
 import org.ssssssss.magicapi.datasource.model.MagicDynamicDataSource;
@@ -38,6 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.api.Assertions.assertAll;
@@ -443,11 +445,19 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 					org.assertj.core.api.Assertions.catchThrowable(
 							() -> firstRegistry.unregisterDirect("orders")));
 			assertThat(dynamicDataSource.deleteEntered.await(5, TimeUnit.SECONDS)).isTrue();
-			Future<Throwable> secondRemoval = executor.submit(() ->
-					org.assertj.core.api.Assertions.catchThrowable(
-							() -> secondRegistry.unregisterDirect("orders")));
+			AtomicReference<Thread> secondRemovalThread = new AtomicReference<Thread>();
+			CountDownLatch secondRemovalAttempting = new CountDownLatch(1);
+			Future<Throwable> secondRemoval = executor.submit(() -> {
+				secondRemovalThread.set(Thread.currentThread());
+				secondRemovalAttempting.countDown();
+				return org.assertj.core.api.Assertions.catchThrowable(
+						() -> secondRegistry.unregisterDirect("orders"));
+			});
 
-			assertThat(secondRemoval.get(5, TimeUnit.SECONDS)).isInstanceOf(IllegalStateException.class);
+			assertThat(secondRemovalAttempting.await(5, TimeUnit.SECONDS)).isTrue();
+			assertThat(awaitBlockedOrCompleted(secondRemovalThread.get(), secondRemoval))
+					.isEqualTo(Thread.State.BLOCKED);
+			assertThat(secondRemoval.isDone()).isFalse();
 			Throwable leaseFailure = org.assertj.core.api.Assertions.catchThrowable(() -> {
 				try (DbTxAwareDataSource.Lease ignored = oldAware.acquireLease()) {
 				}
@@ -457,10 +467,207 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 					.hasMessageContaining("being removed");
 			dynamicDataSource.releaseDelete.countDown();
 			assertThat(firstRemoval.get(5, TimeUnit.SECONDS)).isNull();
+			assertThat(secondRemoval.get(5, TimeUnit.SECONDS)).isNull();
 		} finally {
 			dynamicDataSource.releaseDelete.countDown();
 			executor.shutdownNow();
 		}
+	}
+
+	@Test
+	void plainManagedPutCannotInterleaveWithRegistryReplacementAfterOldNodeClaim() throws Exception {
+		PlainPutObservingManagedMagicDynamicDataSource dynamicDataSource =
+				new PlainPutObservingManagedMagicDynamicDataSource();
+		AvailableDataSource oldRaw = new AvailableDataSource();
+		DbTxAwareDataSource oldAware = new DbTxAwareDataSource("orders", oldRaw,
+				Collections.<DbTxDataSourceAdapter>emptyList());
+		dynamicDataSource.put("old-id", "orders", "Old", oldAware, 100);
+		AvailableDataSource registryReplacement = new AvailableDataSource();
+		AvailableDataSource externalReplacement = new AvailableDataSource();
+		BlockingRemovalDecorator blocking = new BlockingRemovalDecorator();
+		TestRegistry registry = registry(dynamicDataSource,
+				new FixedBuilder(registryReplacement),
+				Arrays.<MagicDataSourceDecorator>asList(
+						new DbTxDataSourceDecorator(
+								Collections.<DbTxDataSourceAdapter>emptyList()),
+						blocking));
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+		try {
+			Future<Boolean> replacement = executor.submit(() ->
+					registry.registerDirect(info("registry-id", "orders")));
+			assertThat(blocking.beforeRemoveEntered.await(5, TimeUnit.SECONDS)).isTrue();
+			dynamicDataSource.observeNextPlainPut();
+			AtomicReference<Thread> plainPutThread = new AtomicReference<Thread>();
+			CountDownLatch plainPutAttempting = new CountDownLatch(1);
+			Future<?> plainPut = executor.submit(() -> {
+				plainPutThread.set(Thread.currentThread());
+				plainPutAttempting.countDown();
+				dynamicDataSource.put("external-id", "orders", "External",
+						externalReplacement, 100);
+			});
+
+			assertThat(plainPutAttempting.await(5, TimeUnit.SECONDS)).isTrue();
+			assertThat(dynamicDataSource.plainPutEntered.await(5, TimeUnit.SECONDS)).isTrue();
+			Thread.State state = awaitBlockedOrDeleteEntered(
+					plainPutThread.get(), dynamicDataSource.plainPutCompleted);
+			assertThat(state).isEqualTo(Thread.State.BLOCKED);
+			assertThat(dynamicDataSource.plainPutCompleted.getCount()).isOne();
+
+			blocking.releaseBeforeRemove.countDown();
+			assertThat(replacement.get(5, TimeUnit.SECONDS)).isTrue();
+			plainPut.get(5, TimeUnit.SECONDS);
+
+			assertThat(blocking.removedDataSource.get()).isSameAs(oldAware);
+			assertThat(findDataSource(dynamicDataSource, "orders"))
+					.isSameAs(externalReplacement);
+			assertThat(oldRaw.closeCount).isOne();
+			assertThat(registryReplacement.closeCount).isOne();
+			assertThat(externalReplacement.closeCount).isZero();
+		} finally {
+			blocking.releaseBeforeRemove.countDown();
+			executor.shutdownNow();
+		}
+	}
+
+	@Test
+	void plainManagedPutCannotInterleaveWithRegistryUnregisterAfterOldNodeClaim() throws Exception {
+		PlainPutObservingManagedMagicDynamicDataSource dynamicDataSource =
+				new PlainPutObservingManagedMagicDynamicDataSource();
+		AvailableDataSource oldRaw = new AvailableDataSource();
+		DbTxAwareDataSource oldAware = new DbTxAwareDataSource("orders", oldRaw,
+				Collections.<DbTxDataSourceAdapter>emptyList());
+		dynamicDataSource.put("old-id", "orders", "Old", oldAware, 100);
+		AvailableDataSource externalReplacement = new AvailableDataSource();
+		BlockingRemovalDecorator blocking = new BlockingRemovalDecorator();
+		TestRegistry registry = registry(dynamicDataSource,
+				new FixedBuilder(new AvailableDataSource()),
+				Arrays.<MagicDataSourceDecorator>asList(
+						new DbTxDataSourceDecorator(
+								Collections.<DbTxDataSourceAdapter>emptyList()),
+						blocking));
+		ExecutorService executor = Executors.newFixedThreadPool(2);
+		try {
+			Future<?> unregister = executor.submit(() -> registry.unregisterDirect("orders"));
+			assertThat(blocking.beforeRemoveEntered.await(5, TimeUnit.SECONDS)).isTrue();
+			dynamicDataSource.observeNextPlainPut();
+			AtomicReference<Thread> plainPutThread = new AtomicReference<Thread>();
+			CountDownLatch plainPutAttempting = new CountDownLatch(1);
+			Future<?> plainPut = executor.submit(() -> {
+				plainPutThread.set(Thread.currentThread());
+				plainPutAttempting.countDown();
+				dynamicDataSource.put("external-id", "orders", "External",
+						externalReplacement, 100);
+			});
+
+			assertThat(plainPutAttempting.await(5, TimeUnit.SECONDS)).isTrue();
+			assertThat(dynamicDataSource.plainPutEntered.await(5, TimeUnit.SECONDS)).isTrue();
+			Thread.State state = awaitBlockedOrDeleteEntered(
+					plainPutThread.get(), dynamicDataSource.plainPutCompleted);
+			assertThat(state).isEqualTo(Thread.State.BLOCKED);
+			assertThat(dynamicDataSource.plainPutCompleted.getCount()).isOne();
+
+			blocking.releaseBeforeRemove.countDown();
+			unregister.get(5, TimeUnit.SECONDS);
+			plainPut.get(5, TimeUnit.SECONDS);
+
+			assertThat(blocking.removedDataSource.get()).isSameAs(oldAware);
+			assertThat(findDataSource(dynamicDataSource, "orders"))
+					.isSameAs(externalReplacement);
+			assertThat(oldRaw.closeCount).isOne();
+			assertThat(externalReplacement.closeCount).isZero();
+		} finally {
+			blocking.releaseBeforeRemove.countDown();
+			executor.shutdownNow();
+		}
+	}
+
+	@Test
+	void replacementCloseErrorKeepsPublishedNodeOpenAndTransfersLifecycleOwnership() throws Exception {
+		ManagedMagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
+		DataSourceCloseError closeError = new DataSourceCloseError("old close failed");
+		ErrorThrowingDataSource oldRaw = new ErrorThrowingDataSource(closeError);
+		DbTxAwareDataSource oldAware = new DbTxAwareDataSource("orders", oldRaw,
+				Collections.<DbTxDataSourceAdapter>emptyList());
+		dynamicDataSource.put("old-id", "orders", "Old", oldAware, 100);
+		AvailableDataSource newRaw = new AvailableDataSource();
+		RemovalOutcomeTrackingDecorator outcome = new RemovalOutcomeTrackingDecorator();
+		CascadingStageDecorator outer = new CascadingStageDecorator();
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(newRaw),
+				Arrays.<MagicDataSourceDecorator>asList(
+						new DbTxDataSourceDecorator(
+								Collections.<DbTxDataSourceAdapter>emptyList()),
+						outcome, outer));
+
+		Throwable failure = catchThrowable(
+				() -> registry.registerDirect(info("new-id", "orders")));
+
+		assertThat(failure).isSameAs(closeError);
+		assertThat(failure.getSuppressed()).isEmpty();
+		MagicDynamicDataSource.DataSourceNode publishedNode =
+				dynamicDataSource.getDataSource("orders");
+		assertThat(publishedNode.getDataSource()).isSameAs(outer.stages.get(0));
+		assertThat(decorationStagesFor(registry, publishedNode)).isNotNull();
+		assertThat(newRaw.getConnection()).isSameAs(newRaw.connection);
+		assertThat(newRaw.closeCount).isZero();
+		assertThat(outer.stages.get(0).closeCount).isZero();
+		assertThat(oldRaw.closeCount).isOne();
+		assertThat(outcome.startRemoveCount).isOne();
+		assertThat(outcome.failureCount).isZero();
+		assertThat(catchThrowable(oldAware::acquireLease))
+				.isInstanceOf(SQLException.class).hasMessageContaining("closed");
+		DbTxAwareDataSource publishedAware = (DbTxAwareDataSource)
+				outer.stages.get(0).getTargetDataSource();
+		try (DbTxAwareDataSource.Lease ignored = publishedAware.acquireLease()) {
+		}
+
+		registry.unregisterDirect("orders");
+
+		assertThat(dynamicDataSource.datasources()).doesNotContain("orders");
+		assertThat(outcome.failureCount).isZero();
+		assertThat(outcome.startRemoveCount).isEqualTo(2);
+		assertThat(outer.removedStages.get("orders")).isSameAs(outer.stages.get(0));
+		assertThat(newRaw.closeCount).isOne();
+		assertThat(outer.stages.get(0).closeCount).isOne();
+	}
+
+	@Test
+	void deleteCloseErrorKeepsCompletedRemovalAndForgetsExactNodeMetadata() throws Exception {
+		ManagedMagicDynamicDataSource dynamicDataSource = new ManagedMagicDynamicDataSource();
+		DataSourceCloseError closeError = new DataSourceCloseError("delete close failed");
+		ErrorThrowingDataSource oldRaw = new ErrorThrowingDataSource(closeError);
+		RemovalOutcomeTrackingDecorator outcome = new RemovalOutcomeTrackingDecorator();
+		CascadingStageDecorator outer = new CascadingStageDecorator();
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(oldRaw),
+				Arrays.<MagicDataSourceDecorator>asList(
+						new DbTxDataSourceDecorator(
+								Collections.<DbTxDataSourceAdapter>emptyList()),
+						outcome, outer));
+		assertThat(registry.registerDirect(info("old-id", "orders"))).isTrue();
+		MagicDynamicDataSource.DataSourceNode oldNode = dynamicDataSource.getDataSource("orders");
+		DbTxAwareDataSource oldAware = (DbTxAwareDataSource)
+				outer.stages.get(0).getTargetDataSource();
+
+		Throwable failure = catchThrowable(() -> registry.unregisterDirect("orders"));
+
+		assertThat(failure).isSameAs(closeError);
+		assertThat(failure.getSuppressed()).isEmpty();
+		assertThat(dynamicDataSource.datasources()).doesNotContain("orders");
+		assertThat(decorationStagesFor(registry, oldNode)).isNull();
+		assertThat(oldRaw.closeCount).isOne();
+		assertThat(outer.stages.get(0).closeCount).isOne();
+		assertThat(outcome.startRemoveCount).isOne();
+		assertThat(outcome.failureCount).isZero();
+		assertThat(catchThrowable(oldAware::acquireLease))
+				.isInstanceOf(SQLException.class).hasMessageContaining("closed");
+
+		AvailableDataSource replacement = new AvailableDataSource();
+		dynamicDataSource.put("replacement-id", "orders", "Replacement", replacement, 100);
+		assertThat(dynamicDataSource.getDataSource("orders").getDataSource())
+				.isSameAs(replacement);
+		assertThat(replacement.getConnection()).isSameAs(replacement.connection);
+		assertThat(replacement.closeCount).isZero();
+		dynamicDataSource.delete("orders");
+		assertThat(replacement.closeCount).isOne();
 	}
 
 	@Test
@@ -621,6 +828,30 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 	}
 
 	@Test
+	void exactParentWithoutDecoratorsKeepsPublishedReplacementOpenAfterCloseError()
+			throws Exception {
+		MagicDynamicDataSource dynamicDataSource = new MagicDynamicDataSource();
+		DataSourceCloseError closeError = new DataSourceCloseError("legacy old close failed");
+		ErrorThrowingDataSource oldRaw = new ErrorThrowingDataSource(closeError);
+		dynamicDataSource.put("old-id", "orders", "Old", oldRaw, 100);
+		AvailableDataSource newRaw = new AvailableDataSource();
+		TestRegistry registry = registry(dynamicDataSource, new FixedBuilder(newRaw),
+				Collections.<MagicDataSourceDecorator>emptyList());
+
+		Throwable failure = catchThrowable(
+				() -> registry.registerDirect(info("new-id", "orders")));
+
+		assertThat(failure).isSameAs(closeError);
+		assertThat(failure.getSuppressed()).isEmpty();
+		assertThat(dynamicDataSource.getDataSource("orders").getDataSource())
+				.isSameAs(newRaw);
+		assertThatCode(newRaw::getConnection).doesNotThrowAnyException();
+		assertThat(newRaw.getConnection()).isSameAs(newRaw.connection);
+		assertThat(newRaw.closeCount).isZero();
+		assertThat(oldRaw.closeCount).isOne();
+	}
+
+	@Test
 	void registryAcquiresManagedDatasourceMonitorBeforeAtomicPublication() {
 		LockObservingManagedMagicDynamicDataSource dynamicDataSource =
 				new LockObservingManagedMagicDynamicDataSource();
@@ -771,6 +1002,15 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 			}
 		}
 		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Object decorationStagesFor(MyDataSourceMagicDynamicRegistry registry,
+			MagicDynamicDataSource.DataSourceNode node) {
+		WeakIdentityMap<MagicDynamicDataSource.DataSourceNode, ?> stages =
+				(WeakIdentityMap<MagicDynamicDataSource.DataSourceNode, ?>)
+						ReflectionTestUtils.getField(registry, "registeredDecorationStages");
+		return stages == null ? null : stages.get(node);
 	}
 
 	private static TestRegistry registry(MagicDynamicDataSource dynamicDataSource,
@@ -968,6 +1208,73 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		}
 	}
 
+	private static final class PlainPutObservingManagedMagicDynamicDataSource
+			extends ManagedMagicDynamicDataSource {
+
+		private final CountDownLatch plainPutEntered = new CountDownLatch(1);
+		private final CountDownLatch plainPutCompleted = new CountDownLatch(1);
+		private volatile boolean observeNextPlainPut;
+
+		private void observeNextPlainPut() {
+			observeNextPlainPut = true;
+		}
+
+		@Override
+		public void put(String id, String key, String name, DataSource dataSource, int maxRows) {
+			boolean observe = observeNextPlainPut;
+			if (observe) {
+				observeNextPlainPut = false;
+				plainPutEntered.countDown();
+			}
+			super.put(id, key, name, dataSource, maxRows);
+			if (observe) {
+				plainPutCompleted.countDown();
+			}
+		}
+	}
+
+	private static final class BlockingRemovalDecorator implements MagicDataSourceDecorator {
+
+		private final CountDownLatch beforeRemoveEntered = new CountDownLatch(1);
+		private final CountDownLatch releaseBeforeRemove = new CountDownLatch(1);
+		private final AtomicReference<DataSource> removedDataSource =
+				new AtomicReference<DataSource>();
+
+		@Override
+		public DataSource decorate(String key, DataSource dataSource) {
+			return dataSource;
+		}
+
+		@Override
+		public void beforeRemove(String key, DataSource dataSource) {
+			removedDataSource.set(dataSource);
+			beforeRemoveEntered.countDown();
+			await(releaseBeforeRemove, "beforeRemove release timed out");
+		}
+	}
+
+	private static final class RemovalOutcomeTrackingDecorator
+			implements MagicDataSourceDecorator {
+
+		private int startRemoveCount;
+		private int failureCount;
+
+		@Override
+		public DataSource decorate(String key, DataSource dataSource) {
+			return dataSource;
+		}
+
+		@Override
+		public void startRemove(String key, DataSource dataSource) {
+			startRemoveCount++;
+		}
+
+		@Override
+		public void afterRemoveFailure(String key, DataSource dataSource) {
+			failureCount++;
+		}
+	}
+
 	private static final class PerRegistrationStageDecorator implements MagicDataSourceDecorator {
 
 		private final List<DataSource> createdStages = new ArrayList<DataSource>();
@@ -1040,10 +1347,10 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		}
 	}
 
-	private static final class AvailableDataSource implements DataSource, Closeable {
+	private static class AvailableDataSource implements DataSource, Closeable {
 
 		private final Connection connection = mock(Connection.class);
-		private int closeCount;
+		int closeCount;
 
 		@Override
 		public Connection getConnection() throws SQLException {
@@ -1094,6 +1401,28 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 		@Override
 		public boolean isWrapperFor(Class<?> iface) {
 			return false;
+		}
+	}
+
+	private static final class ErrorThrowingDataSource extends AvailableDataSource {
+
+		private final Error closeFailure;
+
+		private ErrorThrowingDataSource(Error closeFailure) {
+			this.closeFailure = closeFailure;
+		}
+
+		@Override
+		public void close() {
+			super.close();
+			throw closeFailure;
+		}
+	}
+
+	private static final class DataSourceCloseError extends AssertionError {
+
+		private DataSourceCloseError(String message) {
+			super(message);
 		}
 	}
 
@@ -1171,6 +1500,19 @@ class MyDataSourceMagicDynamicRegistryDecoratorTest {
 			if (System.nanoTime() >= deadline) {
 				throw new AssertionError("removal worker did not block or enter delete; state="
 						+ state + ", deleteEntered=" + deleteEntered.getCount());
+			}
+			Thread.yield();
+			state = worker.getState();
+		}
+		return state;
+	}
+
+	private static Thread.State awaitBlockedOrCompleted(Thread worker, Future<?> operation) {
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+		Thread.State state = worker.getState();
+		while (state != Thread.State.BLOCKED && !operation.isDone()) {
+			if (System.nanoTime() >= deadline) {
+				throw new AssertionError("worker did not block or complete; state=" + state);
 			}
 			Thread.yield();
 			state = worker.getState();
