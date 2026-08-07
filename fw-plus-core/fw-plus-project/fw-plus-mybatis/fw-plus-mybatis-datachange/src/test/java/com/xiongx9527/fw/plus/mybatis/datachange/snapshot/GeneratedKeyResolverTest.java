@@ -178,6 +178,24 @@ class GeneratedKeyResolverTest {
 	}
 
 	@Test
+	void sanitizesRuntimeExceptionFromCompleteIdentityHashCode() {
+		Object secretKey = new Object() {
+			@Override
+			public int hashCode() {
+				throw new RuntimeException("secret-value");
+			}
+		};
+		Map<String, Object> parameter = values("ID", secretKey);
+
+		assertThatThrownBy(() -> resolver.resolve(mappedStatement(), parameter,
+				Mockito.mock(Statement.class), metadata(null), Collections.singletonList("ID")))
+				.isInstanceOf(DataChangeException.class)
+				.hasMessage("GENERATED_KEY_UNAVAILABLE")
+				.hasNoCause()
+				.satisfies(error -> assertThat(error.getSuppressed()).isEmpty());
+	}
+
+	@Test
 	void failsClosedWhenGeneratedKeysDoNotCoverEveryInsertParameter() throws Exception {
 		Statement statement = Mockito.mock(Statement.class);
 		ResultSet generatedKeys = Mockito.mock(ResultSet.class);
