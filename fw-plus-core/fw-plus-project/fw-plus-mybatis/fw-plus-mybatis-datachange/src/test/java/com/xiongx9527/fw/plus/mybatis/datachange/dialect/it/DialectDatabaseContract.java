@@ -268,7 +268,7 @@ abstract class DialectDatabaseContract {
 				Collections.<String, Object>emptyMap());
 		MappedStatement.Builder builder = new MappedStatement.Builder(configuration, id, source, command);
 		if (generatedKey) {
-			builder.keyGenerator(Jdbc3KeyGenerator.INSTANCE).keyProperty("id").keyColumn("ID");
+			builder.keyGenerator(Jdbc3KeyGenerator.INSTANCE).keyProperty("id").keyColumn("id");
 		}
 		configuration.addMappedStatement(builder.build());
 	}
