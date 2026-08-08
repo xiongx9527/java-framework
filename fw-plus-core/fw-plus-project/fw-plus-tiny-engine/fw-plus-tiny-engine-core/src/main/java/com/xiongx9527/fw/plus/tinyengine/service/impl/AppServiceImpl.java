@@ -134,6 +134,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 			}
 			App codeCondition = new App();
 			codeCondition.setCode(app.getCode().trim());
+			codeCondition.setTenantId(targetTenant);
 			if (!baseMapper.queryAppByCondition(codeCondition).isEmpty()) {
 				throw failure(ExceptionEnum.CM003);
 			}
@@ -194,6 +195,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		}
 		App condition = new App();
 		condition.setCode(app.getCode().trim());
+		condition.setTenantId(app.getTenantId());
 		if (!baseMapper.queryAppByCondition(condition).isEmpty()) {
 			throw failure(ExceptionEnum.CM003);
 		}

@@ -437,12 +437,12 @@ public class TinyEngineSampleAuthConfiguration {
 		}
 
 		private List<Tenant> queryTenants(String userId, String currentTenantId) {
-			if (!tableExists("r_auth_users_units_roles") || !tableExists("t_tenant")) {
+			if (!tableExists("t_user") || !tableExists("t_tenant")) {
 				return Collections.emptyList();
 			}
 			return jdbcTemplate.query("select distinct tt.* from t_tenant tt "
-							+ "inner join r_auth_users_units_roles raur on tt.id = raur.tenant_id "
-							+ "where raur.user_id = ? and tt.enable = true order by tt.id",
+							+ "inner join t_user tu on tt.id = tu.tenant_id "
+							+ "where tu.id = ? and tt.enable = true order by tt.id",
 					(rs, rowNum) -> {
 						Tenant tenant = new Tenant();
 						tenant.setId(String.valueOf(rs.getObject("id")));
@@ -458,12 +458,12 @@ public class TinyEngineSampleAuthConfiguration {
 		}
 
 		private boolean hasTenant(String userId, String tenantId) {
-			if (!tableExists("r_auth_users_units_roles")) {
+			if (!tableExists("t_user")) {
 				return true;
 			}
-			Integer count = jdbcTemplate.queryForObject("select count(1) from r_auth_users_units_roles raur "
-					+ "inner join t_tenant tt on tt.id = raur.tenant_id "
-					+ "where raur.user_id = ? and raur.tenant_id = ? and tt.enable = true", Integer.class, Integer.valueOf(userId),
+			Integer count = jdbcTemplate.queryForObject("select count(1) from t_user tu "
+					+ "inner join t_tenant tt on tt.id = tu.tenant_id "
+					+ "where tu.id = ? and tu.tenant_id = ? and tt.enable = true", Integer.class, Integer.valueOf(userId),
 					Integer.valueOf(normalizeTenantId(tenantId)));
 			return count != null && count.intValue() > 0;
 		}
