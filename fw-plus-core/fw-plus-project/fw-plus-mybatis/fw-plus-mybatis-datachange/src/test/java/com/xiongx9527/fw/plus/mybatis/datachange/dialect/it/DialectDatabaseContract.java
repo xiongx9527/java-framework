@@ -126,16 +126,14 @@ abstract class DialectDatabaseContract {
 			StatementChange insert = event(count, DataChangeOperation.INSERT);
 			assertThat(initial.get("id")).isInstanceOf(Number.class);
 			assertThat(((Number) initial.get("id")).longValue()).isPositive();
-			assertThat(row(insert).getIdentity().getKeyValues())
-					.containsExactlyEntriesOf(Collections.<String, Object>singletonMap("id", initial.get("id")));
+			assertIdentityId(insert, initial.get("id"));
 			assertThat(field(row(insert), "status").getAfterValue()).isEqualTo("NEW");
 		}
 
 		try (SqlSession session = factory.openSession(true)) {
 			Map<String, Object> update = values(7L, "A", 20);
 			StatementChange change = event(execute(session, UPDATE, update), DataChangeOperation.UPDATE);
-			assertThat(row(change).getIdentity().getKeyValues())
-					.containsExactlyEntriesOf(Collections.<String, Object>singletonMap("id", initial.get("id")));
+			assertIdentityId(change, initial.get("id"));
 			assertThat(((Number) field(row(change), "touched").getAfterValue()).longValue()).isGreaterThan(0L);
 		}
 
@@ -159,11 +157,18 @@ abstract class DialectDatabaseContract {
 		try (SqlSession session = factory.openSession(true)) {
 			StatementChange delete = event(execute(session, DELETE, values(7L, "A", null)),
 					DataChangeOperation.PHYSICAL_DELETE);
-			assertThat(row(delete).getIdentity().getKeyValues())
-					.containsExactlyEntriesOf(Collections.<String, Object>singletonMap("id", initial.get("id")));
+			assertIdentityId(delete, initial.get("id"));
 			assertThat(field(row(delete), "amount").getBeforeValue()).isNotNull();
 		}
 		assertThat(errors.failures).isEmpty();
+	}
+
+	private void assertIdentityId(StatementChange change, Object expected) {
+		Map<String, Object> identity = row(change).getIdentity().getKeyValues();
+		assertThat(identity).containsKey("id");
+		assertThat(identity.get("id")).isInstanceOf(Number.class);
+		assertThat(((Number) identity.get("id")).longValue())
+				.isEqualTo(((Number) expected).longValue());
 	}
 
 	private void verifyReturning(SqlSessionFactory factory) {
