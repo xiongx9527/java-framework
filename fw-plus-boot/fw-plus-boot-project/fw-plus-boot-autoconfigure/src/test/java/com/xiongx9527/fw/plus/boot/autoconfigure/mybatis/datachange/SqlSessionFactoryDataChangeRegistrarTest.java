@@ -9,6 +9,7 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 
@@ -17,7 +18,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class SqlSessionFactoryDataChangeRegistrarTest {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-			.withConfiguration(AutoConfigurations.of(MybatisDataChangeAutoConfiguration.class))
+			.withConfiguration(AutoConfigurations.of(ConfigurationPropertiesAutoConfiguration.class,
+					MybatisDataChangeAutoConfiguration.class))
 			.withPropertyValues("fw.plus.mybatis-datachange.enabled=true",
 					"fw.plus.mybatis-datachange.tables[0].name=sys_user");
 
