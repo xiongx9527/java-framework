@@ -18,11 +18,4 @@
     <properties>
         <main.basedir>${basedir}/../../..</main.basedir>
     </properties>
-    <dependencies>
-        <dependency>
-            <groupId>com.xiongx9527.fw.plus</groupId>
-            <artifactId>fw-plus-common</artifactId>
-        </dependency>
-	</dependencies>
-
 </project>

@@ -19,7 +19,7 @@
 ## 行为覆盖
 
 - 仅在 MappedStatement namespace 可加载且属于真实 Flex `BaseMapper` 继承链时支持 DML。
-- 直接实体、标准参数包装、QueryWrapper 表信息和多级 Mapper 泛型按顺序解析；无效候选继续回退。
+- 直接实体、标准参数包装、唯一且无歧义的 QueryWrapper 表信息和多级 Mapper 泛型按顺序解析；无效候选继续回退。
 - 普通 MyBatis Mapper 与 Plus Mapper 即使传入已初始化 Flex TableInfo 的实体，也不会被 Flex 适配器抢占。
 - 映射主键、property-column、ignore、逻辑删除、version、onInsert/onUpdate，并保持声明顺序；公共 `FrameworkChangeMetadata` 提供不可变快照。
 - 动态 schema/table 仅保留实体静态元数据；运行目标仍由公共层分析最终 BoundSql。
@@ -64,6 +64,56 @@ BUILD SUCCESS
 ```
 
 补充检查：生产类 class-file major version 为 `52`；`git diff --check` 通过；生产源码/POM 未引用 Spring、mf-base 或 Plus，Plus 仅存在于 test scope。
+
+## 修复轮 1/5
+
+### 修复内容
+
+- 实体和 QueryWrapper 别名仅对真实 `MapperMethod.ParamMap` 拆包；普通业务 `Map` 一律回退 Mapper 泛型。
+- QueryWrapper 的 `queryTables` 仅在严格单表、schema 全名与简单表名解析出的有效实体候选唯一时采用；多表、已知/未知混合以及名称冲突均回退 Mapper 泛型。
+- fill 元数据改为按 `TableInfoFactory.getColumnFields(...)` 声明顺序统一解析 `IdInfo` 与普通 `ColumnInfo`，主键同时声明 `@Id` 和 `@Column(onInsertValue/onUpdateValue)` 时会进入 fill 列表，且 property/column 均不重复。
+- 从 `fw-plus-mf` 聚合父 POM 删除 `fw-plus-common` 继承依赖，不向子模块下移。
+
+### RED
+
+```text
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mf/fw-plus-mf-datachange -am \
+  -Dtest=MybatisFlexDataChangeAdapterTest \
+  -Dsurefire.failIfNoSpecifiedTests=false test
+
+Tests run: 17, Failures: 6, Errors: 0, Skipped: 0
+BUILD FAILURE
+```
+
+6 个失败分别覆盖普通 Map 实体别名、普通 Map Wrapper 别名、QueryWrapper 多表、已知/未知表混合、schema/simple-name 实体歧义以及主键 fill 缺失，均为本轮预期缺陷。
+
+### GREEN 与完整验证
+
+聚焦 GREEN：
+
+```text
+Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+公共层、mf-base、Plus 与 Flex 完整验证：
+
+```text
+mvn -f fw-plus-core/fw-plus-project/fw-plus-mybatis/pom.xml \
+  -pl fw-plus-mf/fw-plus-mf-base,fw-plus-mf/fw-plus-mf-datachange,fw-plus-mp/fw-plus-mp-datachange \
+  -am clean test
+
+fw-plus-mybatis-datachange: 181 tests
+fw-plus-mf-base:             no sources / no tests
+fw-plus-mp-datachange:       13 tests
+fw-plus-mf-datachange:       17 tests
+合计:                        211 tests
+Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+补充检查：compile `dependency:tree` 显示 mf-base 无依赖，mf-datachange 仅依赖公共 DataChange 模块和 `mybatis-flex-core`；两个模块 effective POM 的项目级 `fw-plus-common` 依赖数均为 `0`。生产源码无 Spring、Plus、mf-base、common 引用；三个生产 class-file major version 均为 `52`；`git diff --check` 通过。
 
 ## 非阻塞提示
 

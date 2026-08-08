@@ -41,6 +41,7 @@ class MybatisFlexDataChangeAdapterTest {
 	static void initializeMetadata() {
 		TableInfoFactory.ofEntityClass(FlexUserFixture.class);
 		TableInfoFactory.ofEntityClass(OtherFlexUserFixture.class);
+		TableInfoFactory.ofEntityClass(UnscopedAuditUserFixture.class);
 		TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(),
 				PlusUserMapper.class.getName()), PlusUser.class);
 	}
@@ -84,13 +85,64 @@ class MybatisFlexDataChangeAdapterTest {
 
 	@Test
 	void resolvesEntityFromQueryWrapperTable() {
-		QueryWrapper wrapper = QueryWrapper.create().from(FlexUserFixture.class);
+		QueryWrapper wrapper = QueryWrapper.create().from(OtherFlexUserFixture.class);
 		ParamMap<Object> parameters = new ParamMap<Object>();
 		parameters.put("$$query", wrapper);
 
+		FrameworkChangeMetadata metadata = adapter.resolve(invocationFor(parameters, FlexUserMapper.class));
+
+		assertThat(metadata.getTable().getTable()).isEqualTo("other_flex_user");
+	}
+
+	@Test
+	void plainMapEntityAliasesDoNotOverrideMapperGeneric() {
+		Map<String, Object> parameters = new LinkedHashMap<String, Object>();
+		parameters.put("entity", new FlexUserFixture());
+		parameters.put("record", new FlexUserFixture());
+		parameters.put("param1", new FlexUserFixture());
+		parameters.put("arg0", new FlexUserFixture());
+
 		FrameworkChangeMetadata metadata = adapter.resolve(invocationFor(parameters, OtherFlexUserMapper.class));
 
-		assertThat(metadata.getTable().getTable()).isEqualTo("audit_user");
+		assertThat(metadata.getTable().getTable()).isEqualTo("other_flex_user");
+	}
+
+	@Test
+	void plainMapWrapperAliasesDoNotOverrideMapperGeneric() {
+		Map<String, Object> parameters = new LinkedHashMap<String, Object>();
+		parameters.put("wrapper", QueryWrapper.create().from(FlexUserFixture.class));
+		parameters.put("$$query", QueryWrapper.create().from(FlexUserFixture.class));
+
+		FrameworkChangeMetadata metadata = adapter.resolve(invocationFor(parameters, OtherFlexUserMapper.class));
+
+		assertThat(metadata.getTable().getTable()).isEqualTo("other_flex_user");
+	}
+
+	@Test
+	void multipleQueryTablesFallBackToMapperGeneric() {
+		QueryWrapper wrapper = QueryWrapper.create().from(FlexUserFixture.class, OtherFlexUserFixture.class);
+
+		FrameworkChangeMetadata metadata = adapter.resolve(invocationFor(wrapper, OtherFlexUserMapper.class));
+
+		assertThat(metadata.getTable().getTable()).isEqualTo("other_flex_user");
+	}
+
+	@Test
+	void knownAndUnknownQueryTablesFallBackToMapperGeneric() {
+		QueryWrapper wrapper = QueryWrapper.create().from("missing_runtime_table").from(FlexUserFixture.class);
+
+		FrameworkChangeMetadata metadata = adapter.resolve(invocationFor(wrapper, OtherFlexUserMapper.class));
+
+		assertThat(metadata.getTable().getTable()).isEqualTo("other_flex_user");
+	}
+
+	@Test
+	void ambiguousSchemaAndSimpleTableNamesFallBackToMapperGeneric() {
+		QueryWrapper wrapper = QueryWrapper.create().from(FlexUserFixture.class);
+
+		FrameworkChangeMetadata metadata = adapter.resolve(invocationFor(wrapper, OtherFlexUserMapper.class));
+
+		assertThat(metadata.getTable().getTable()).isEqualTo("other_flex_user");
 	}
 
 	@Test
@@ -135,9 +187,11 @@ class MybatisFlexDataChangeAdapterTest {
 		assertThat(metadata.getVersionField())
 				.isEqualTo(new FrameworkFieldMetadata("version", "lock_version"));
 		assertThat(metadata.getInsertFillFields()).containsExactly(
+				new FrameworkFieldMetadata("userId", "user_id"),
 				new FrameworkFieldMetadata("createdAt", "created_at"),
 				new FrameworkFieldMetadata("updatedAt", "updated_at"));
 		assertThat(metadata.getUpdateFillFields()).containsExactly(
+				new FrameworkFieldMetadata("userId", "user_id"),
 				new FrameworkFieldMetadata("updatedAt", "updated_at"));
 	}
 

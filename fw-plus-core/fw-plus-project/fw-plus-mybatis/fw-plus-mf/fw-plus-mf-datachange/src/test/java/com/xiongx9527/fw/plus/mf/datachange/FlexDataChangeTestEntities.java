@@ -7,6 +7,7 @@ import com.mybatisflex.annotation.Table;
 @Table(value = "audit_user", schema = "audit")
 class FlexUserFixture {
 	@Id("user_id")
+	@Column(value = "user_id", onInsertValue = "uuid()", onUpdateValue = "uuid()")
 	Long userId;
 	@Column("display_name")
 	String name;
@@ -25,5 +26,11 @@ class FlexUserFixture {
 @Table("other_flex_user")
 class OtherFlexUserFixture {
 	@Id("other_id")
+	Long id;
+}
+
+@Table("audit_user")
+class UnscopedAuditUserFixture {
+	@Id("unscoped_id")
 	Long id;
 }

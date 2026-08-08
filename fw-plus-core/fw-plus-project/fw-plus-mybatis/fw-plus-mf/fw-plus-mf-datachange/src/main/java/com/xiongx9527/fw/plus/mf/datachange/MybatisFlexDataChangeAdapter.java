@@ -18,8 +18,10 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public final class MybatisFlexDataChangeAdapter implements DataChangeFrameworkAdapter {
 	private static final int ORDER = 100;
@@ -115,10 +117,20 @@ public final class MybatisFlexDataChangeAdapter implements DataChangeFrameworkAd
 		Map<String, String> fillColumns = insert ? tableInfo.getOnInsertColumns() : tableInfo.getOnUpdateColumns();
 		if (fillColumns == null || fillColumns.isEmpty()) { return Collections.emptyList(); }
 		List<FrameworkFieldMetadata> fields = new ArrayList<FrameworkFieldMetadata>();
-		for (ColumnInfo columnInfo : columns(tableInfo)) {
-			if (!columnInfo.isIgnore() && fillColumns.containsKey(columnInfo.getColumn())) {
-				fields.add(new FrameworkFieldMetadata(columnInfo.getProperty(), columnInfo.getColumn()));
+		Set<String> addedProperties = new LinkedHashSet<String>();
+		Set<String> addedColumns = new LinkedHashSet<String>();
+		Map<String, String> tableMappings = tableInfo.getPropertyColumnMapping();
+		for (Field field : TableInfoFactory.getColumnFields(tableInfo.getEntityClass())) {
+			String property = field.getName();
+			String column = tableMappings.get(property);
+			ColumnInfo columnInfo = columnInfo(tableInfo, property);
+			if (column == null || columnInfo == null || columnInfo.isIgnore() || !fillColumns.containsKey(column)
+					|| addedProperties.contains(property) || addedColumns.contains(column)) {
+				continue;
 			}
+			fields.add(new FrameworkFieldMetadata(property, column));
+			addedProperties.add(property);
+			addedColumns.add(column);
 		}
 		return fields;
 	}
