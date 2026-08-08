@@ -17,6 +17,7 @@ import com.xiongx9527.fw.plus.tinyengine.service.CanvasService;
 import com.xiongx9527.fw.plus.tinyengine.service.DatasourceService;
 import com.xiongx9527.fw.plus.tinyengine.service.I18nEntryService;
 import com.xiongx9527.fw.plus.tinyengine.service.PageService;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAccessDeniedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -36,6 +37,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -56,6 +58,8 @@ class TinyEngineAppPageMvcApiContractTest {
 	@BeforeEach
 	void setUp() {
 		appService = mock(AppService.class);
+		when(appService.requireEnabledApp(any(Integer.class))).thenAnswer(invocation ->
+				appService.queryAppById(invocation.getArgument(0)));
 		pageService = mock(PageService.class);
 		appExtensionService = mock(AppExtensionService.class);
 		datasourceService = mock(DatasourceService.class);
@@ -168,6 +172,39 @@ class TinyEngineAppPageMvcApiContractTest {
 	}
 
 	@Test
+	void disabledApplicationRemainsListedButRejectsApplicationOperations() throws Exception {
+		App disabled = app(1, "disabled-app");
+		disabled.setEnable(Boolean.FALSE);
+		AppDto dto = new AppDto();
+		dto.setApps(Collections.singletonList(disabled));
+		dto.setTotal(Integer.valueOf(1));
+		when(appService.queryAllAppByPage(eq(Integer.valueOf(1)), eq(Integer.valueOf(20)), isNull(),
+				any(App.class))).thenReturn(dto);
+		when(appService.requireEnabledApp(Integer.valueOf(1)))
+				.thenThrow(new TinyEngineAccessDeniedException("TinyEngine application is disabled"));
+		Page page = page(7, "home");
+		page.setApp(Integer.valueOf(1));
+		when(pageService.queryPageById(Integer.valueOf(7))).thenReturn(page);
+
+		mvc.perform(get("/app-center/api/apps/page")
+						.param("currentPage", "1").param("pageSize", "20"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.apps[0].enable", is(false)));
+		mvc.perform(get("/app-center/api/apps/preview/1"))
+				.andExpect(status().isForbidden());
+		mvc.perform(get("/app-center/api/pages/list/1"))
+				.andExpect(status().isForbidden());
+		mvc.perform(get("/app-center/api/apps/extension/list")
+						.param("app", "1").param("category", "utils"))
+				.andExpect(status().isForbidden());
+		mvc.perform(get("/app-center/api/apps/canvas/lock")
+						.param("id", "7").param("state", "occupy").param("type", "page"))
+				.andExpect(status().isForbidden());
+
+		verify(canvasService, never()).lockCanvas(Integer.valueOf(7), "occupy", "page");
+	}
+
+	@Test
 	void appCreateDetailAndSchemaUseCoreService() throws Exception {
 		App created = app(9, "created-app");
 		when(appService.createApp(any(App.class))).thenReturn(created);
@@ -274,7 +311,7 @@ class TinyEngineAppPageMvcApiContractTest {
 		mvc.perform(get("/app-center/api/pages/detail/7"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.id", is(7)));
-		verify(pageService).queryPageById(Integer.valueOf(7));
+		verify(pageService, times(2)).queryPageById(Integer.valueOf(7));
 	}
 
 	@Test

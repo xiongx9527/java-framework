@@ -159,12 +159,12 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 
 	@Override
 	public Object previewApp(Integer id, Map<String, Object> request) {
-		return appService.queryAppById(id);
+		return appService.requireEnabledApp(id);
 	}
 
 	@Override
 	public App appDetail(Integer id) {
-		return appService.queryAppById(id);
+		return appService.requireEnabledApp(id);
 	}
 
 	@Override
@@ -219,11 +219,20 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 				? null : String.valueOf(request.get("state"));
 		String type = request == null || request.get("type") == null
 				? null : String.valueOf(request.get("type"));
+		if ("page".equals(type)) {
+			Page page = pageService.queryPageById(appId);
+			if (page != null) {
+				appService.requireEnabledApp(page.getApp());
+			}
+		} else {
+			appService.requireEnabledApp(appId);
+		}
 		return canvasService.lockCanvas(appId, state, type);
 	}
 
 	@Override
 	public List<AppExtension> appExtensions(Integer app, String category) {
+		appService.requireEnabledApp(app);
 		if (appExtensionService == null) {
 			return Collections.emptyList();
 		}
@@ -236,21 +245,29 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 
 	@Override
 	public AppExtension createAppExtension(AppExtension extension) {
+		requireEnabledApp(extension == null ? null : extension.getApp());
 		return appExtensionService.createAppExtension(extension);
 	}
 
 	@Override
 	public AppExtension updateAppExtension(AppExtension extension) {
+		AppExtension stored = extension == null || extension.getId() == null
+				? null : appExtensionService.findAppExtensionById(extension.getId());
+		requireEnabledApp(extension != null && extension.getApp() != null
+				? extension.getApp() : stored == null ? null : stored.getApp());
 		return appExtensionService.updateAppExtensionById(extension);
 	}
 
 	@Override
 	public AppExtension deleteAppExtension(Integer id) {
+		AppExtension stored = appExtensionService.findAppExtensionById(id);
+		requireEnabledApp(stored == null ? null : stored.getApp());
 		return appExtensionService.deleteAppExtensionById(id);
 	}
 
 	@Override
 	public Page createPage(Page page) {
+		requireEnabledApp(page == null ? null : page.getApp());
 		if (Boolean.FALSE.equals(page.getIsPage())) {
 			return pageService.createFolder(page);
 		}
@@ -259,6 +276,9 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 
 	@Override
 	public Page updatePage(Integer id, Page page) {
+		Page stored = pageService.queryPageById(id);
+		requireEnabledApp(page != null && page.getApp() != null
+				? page.getApp() : stored == null ? null : stored.getApp());
 		page.setId(id);
 		page.setCreatedTime(null);
 		page.setLastUpdatedTime(null);
@@ -271,32 +291,43 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 
 	@Override
 	public List<Page> pages(Integer appId) {
+		appService.requireEnabledApp(appId);
 		return pageService.queryAllPage(appId);
 	}
 
 	@Override
 	public Page pageDetail(Integer id) {
-		return pageService.queryPageById(id);
+		Page page = pageService.queryPageById(id);
+		requireEnabledApp(page == null ? null : page.getApp());
+		return page;
 	}
 
 	@Override
 	public Page deletePage(Integer id) {
+		Page page = pageService.queryPageById(id);
+		requireEnabledApp(page == null ? null : page.getApp());
 		return pageService.delPage(id);
 	}
 
 	@Override
 	public Page copyPage(Page page) {
+		Page source = page == null || page.getId() == null ? null : pageService.queryPageById(page.getId());
+		requireEnabledApp(source == null ? null : source.getApp());
 		return pageService.copyPage(page);
 	}
 
 	@Override
 	public List<PageHistory> pageHistories(Integer pageId) {
+		Page page = pageService.queryPageById(pageId);
+		requireEnabledApp(page == null ? null : page.getApp());
 		return pageHistoryService.findPageHistories(pageId);
 	}
 
 	@Override
 	public PageHistory pageHistoryDetail(Integer historyId) {
-		return pageHistoryService.findPageHistoryById(historyId);
+		PageHistory history = pageHistoryService.findPageHistoryById(historyId);
+		requireEnabledApp(history == null ? null : history.getApp());
+		return history;
 	}
 
 	@Override
@@ -310,6 +341,8 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 		}
 		Integer historyId = value instanceof Number
 				? Integer.valueOf(((Number) value).intValue()) : Integer.valueOf(String.valueOf(value));
+		PageHistory history = pageHistoryService.findPageHistoryById(historyId);
+		requireEnabledApp(history == null ? null : history.getApp());
 		return pageService.restorePageHistory(historyId);
 	}
 
@@ -317,11 +350,12 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 	@SuppressWarnings("unchecked")
 	public PreviewDto previewMetadata(PreviewParam previewParam) {
 		PreviewDto preview = new PreviewDto();
-		Integer appId = previewParam.getApp();
-		preview.setUtils(toSchemaUtils(appExtensions(appId, "utils")));
+		Integer appId = previewParam.getApp() == null ? previewParam.getId() : previewParam.getApp();
 
 		if ("block".equals(previewParam.getType())) {
 			BlockDto block = blockService.queryBlockById(previewParam.getId());
+			requireEnabledApp(block == null ? null : block.getAppId());
+			preview.setUtils(toSchemaUtils(appExtensions(block == null ? null : block.getAppId(), "utils")));
 			Map<String, Object> content = block == null ? null : block.getContent();
 			Object blockDataSource = content == null ? null : content.get("dataSource");
 			preview.setDataSource(blockDataSource instanceof Map
@@ -332,7 +366,8 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 			return preview;
 		}
 
-		App app = appService.queryAppById(appId);
+		App app = appService.requireEnabledApp(appId);
+		preview.setUtils(toSchemaUtils(appExtensions(appId, "utils")));
 		Map<String, Object> dataSource = new LinkedHashMap<String, Object>();
 		Datasource condition = new Datasource();
 		condition.setApp(appId);
@@ -350,17 +385,20 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 
 	@Override
 	public List<Block> blocks(String appId, String groupId) {
+		requireEnabledApp(integerValue(appId));
 		return blockService.listNew(appId, groupId);
 	}
 
 	@Override
 	public List<Block> blockList(BlockParamDto blockParamDto) {
+		requireEnabledApp(blockParamDto == null ? null : integerValue(blockParamDto.getAppId()));
 		IPage<Block> page = blockService.findBlocksByPagetionList(blockParamDto);
 		return page == null ? Collections.<Block>emptyList() : page.getRecords();
 	}
 
 	@Override
 	public List<BlockHistory> blockHistories(Integer blockId) {
+		requireBlockApplication(blockId);
 		return blockService.blockHistories(blockId);
 	}
 
@@ -376,16 +414,25 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 
 	@Override
 	public BlockDto blockDetail(Integer id) {
-		return blockService.queryBlockById(id);
+		BlockDto block = blockService.queryBlockById(id);
+		requireEnabledApp(block == null ? null : block.getAppId());
+		return block;
 	}
 
 	@Override
 	public BlockDto createBlock(BlockParam blockParam) {
+		requireEnabledApp(blockParam == null ? null : blockParam.getAppId());
 		return blockService.createBlock(blockParam);
 	}
 
 	@Override
 	public BlockDto updateBlock(Integer id, BlockParam blockParam) {
+		Integer appId = blockParam == null ? null : blockParam.getAppId();
+		if (appId == null) {
+			BlockDto stored = blockService.queryBlockById(id);
+			appId = stored == null ? null : stored.getAppId();
+		}
+		requireEnabledApp(appId);
 		blockParam.setId(id);
 		return blockService.updateBlockById(blockParam);
 	}
@@ -393,12 +440,18 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 	@Override
 	public BlockDto deleteBlock(Integer id) {
 		BlockDto block = blockService.queryBlockById(id);
+		requireEnabledApp(block == null ? null : block.getAppId());
 		blockService.deleteBlockById(id);
 		return block;
 	}
 
 	@Override
 	public BlockDto deployBlock(BlockBuildDto blockBuildDto) {
+		BlockDto block = blockBuildDto == null ? null : blockBuildDto.getBlock();
+		if (block != null && block.getAppId() == null && block.getId() != null) {
+			block = blockService.queryBlockById(block.getId());
+		}
+		requireEnabledApp(block == null ? null : block.getAppId());
 		return blockService.deploy(blockBuildDto);
 	}
 
@@ -420,16 +473,21 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 
 	@Override
 	public List<BlockGroup> blockGroups(List<Integer> ids, Integer appId, String from) {
+		requireEnabledApp(appId);
 		return blockGroupService.getBlockGroupByIdsOrAppId(ids, appId, from);
 	}
 
 	@Override
 	public BlockGroup createBlockGroup(BlockGroup blockGroup) {
+		requireEnabledApp(blockGroup == null ? null : blockGroup.getAppId());
 		return blockGroupService.createBlockGroup(blockGroup);
 	}
 
 	@Override
 	public List<BlockGroup> updateBlockGroup(Integer id, BlockGroup blockGroup) {
+		BlockGroup stored = blockGroupService.findBlockGroupById(id);
+		requireEnabledApp(blockGroup != null && blockGroup.getAppId() != null
+				? blockGroup.getAppId() : stored == null ? null : stored.getAppId());
 		blockGroup.setId(id);
 		blockGroupService.updateBlockGroupById(blockGroup);
 		return singletonIfPresent(blockGroupService.findBlockGroupById(id));
@@ -438,6 +496,7 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 	@Override
 	public List<BlockGroup> deleteBlockGroup(Integer id) {
 		BlockGroup blockGroup = blockGroupService.findBlockGroupById(id);
+		requireEnabledApp(blockGroup == null ? null : blockGroup.getAppId());
 		blockGroupService.deleteBlockGroupById(id);
 		return singletonIfPresent(blockGroup);
 	}
@@ -462,17 +521,23 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 
 	@Override
 	public Model modelDetail(Integer id) {
-		return modelService.queryModelDetailById(id);
+		Model model = modelService.queryModelDetailById(id);
+		requireEnabledApp(model == null ? null : model.getAppId());
+		return model;
 	}
 
 	@Override
 	public Model createModel(Model model) {
+		requireEnabledApp(model == null ? null : model.getAppId());
 		modelService.save(model);
 		return model;
 	}
 
 	@Override
 	public Model updateModel(Integer id, Model model) {
+		Model stored = modelService.queryModelById(id);
+		requireEnabledApp(model != null && model.getAppId() != null
+				? model.getAppId() : stored == null ? null : stored.getAppId());
 		model.setId(id);
 		modelService.updateById(model);
 		Model updated = modelService.queryModelById(id);
@@ -482,12 +547,14 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 	@Override
 	public Model deleteModel(Integer id) {
 		Model model = modelService.queryModelById(id);
+		requireEnabledApp(model == null ? null : model.getAppId());
 		modelService.removeById(id);
 		return model;
 	}
 
 	@Override
 	public List<Datasource> datasources(Integer appId) {
+		requireEnabledApp(appId);
 		Datasource datasource = new Datasource();
 		datasource.setApp(appId);
 		return datasourceService.queryDatasourceByCondition(datasource);
@@ -495,28 +562,41 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 
 	@Override
 	public Datasource datasourceDetail(Integer id) {
-		return datasourceService.queryDatasourceById(id);
+		Datasource datasource = datasourceService.queryDatasourceById(id);
+		requireEnabledApp(datasource == null ? null : datasource.getApp());
+		return datasource;
 	}
 
 	@Override
 	public Datasource createDatasource(Datasource datasource) {
+		requireEnabledApp(datasource == null ? null : datasource.getApp());
 		return datasourceService.createDatasource(datasource);
 	}
 
 	@Override
 	public Datasource updateDatasource(Integer id, Datasource datasource) {
+		Datasource stored = datasourceService.queryDatasourceById(id);
+		requireEnabledApp(datasource != null && datasource.getApp() != null
+				? datasource.getApp() : stored == null ? null : stored.getApp());
 		datasource.setId(id);
 		return datasourceService.updateDatasourceById(datasource);
 	}
 
 	@Override
 	public Datasource deleteDatasource(Integer id) {
+		Datasource stored = datasourceService.queryDatasourceById(id);
+		requireEnabledApp(stored == null ? null : stored.getApp());
 		return datasourceService.deleteDatasourceById(id);
 	}
 
 	@Override
 	public AppDto appTemplates(Integer currentPage, Integer pageSize, String orderBy, App app) {
 		return appTemplateService.queryAllAppTemplate(currentPage, pageSize, orderBy, app);
+	}
+
+	@Override
+	public App setAppTemplate(Integer id, Boolean isTemplate, String templateType) {
+		return appService.setAppTemplate(id, isTemplate, templateType);
 	}
 
 	@Override
@@ -531,27 +611,36 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 
 	@Override
 	public List<ResourceGroup> resourceGroupsByApp(Integer appId) {
+		requireEnabledApp(appId);
 		return resourceGroupService.queryResourceGroupByAppId(appId);
 	}
 
 	@Override
 	public ResourceGroup resourceGroupDetail(Integer id) {
-		return resourceGroupService.queryResourceGroupById(id);
+		ResourceGroup group = resourceGroupService.queryResourceGroupById(id);
+		requireEnabledApp(group == null ? null : group.getAppId());
+		return group;
 	}
 
 	@Override
 	public ResourceGroup createResourceGroup(ResourceGroup resourceGroup) {
+		requireEnabledApp(resourceGroup == null ? null : resourceGroup.getAppId());
 		return resourceGroupService.createResourceGroup(resourceGroup);
 	}
 
 	@Override
 	public ResourceGroup updateResourceGroup(Integer id, ResourceGroup resourceGroup) {
+		ResourceGroup stored = resourceGroupService.queryResourceGroupById(id);
+		requireEnabledApp(resourceGroup != null && resourceGroup.getAppId() != null
+				? resourceGroup.getAppId() : stored == null ? null : stored.getAppId());
 		resourceGroup.setId(id);
 		return resourceGroupService.updateResourceGroupById(resourceGroup);
 	}
 
 	@Override
 	public ResourceGroup deleteResourceGroup(Integer id) {
+		ResourceGroup stored = resourceGroupService.queryResourceGroupById(id);
+		requireEnabledApp(stored == null ? null : stored.getAppId());
 		return resourceGroupService.deleteResourceGroupById(id);
 	}
 
@@ -562,38 +651,53 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 
 	@Override
 	public List<Resource> resourcesByGroup(Integer resourceGroupId) {
+		ResourceGroup group = resourceGroupService.queryResourceGroupById(resourceGroupId);
+		requireEnabledApp(group == null ? null : group.getAppId());
 		return resourceService.queryResourceByResourceGroupId(resourceGroupId);
 	}
 
 	@Override
 	public Resource resourceDetail(Integer id) {
-		return resourceService.queryResourceById(id);
+		Resource resource = resourceService.queryResourceById(id);
+		requireResourceApplication(resource);
+		return resource;
 	}
 
 	@Override
 	public Resource createResource(Resource resource) {
+		requireResourceApplication(resource);
 		resourceService.save(resource);
 		return resource;
 	}
 
 	@Override
 	public List<Resource> createResources(List<Resource> resources) {
+		if (resources != null) {
+			for (Resource resource : resources) {
+				requireResourceApplication(resource);
+			}
+		}
 		return resourceService.createResources(resources);
 	}
 
 	@Override
 	public Object uploadResource(ResourceRequestDto request) {
+		requireEnabledApp(request == null ? null : request.getAppId());
 		return resourceService.uploadResource(request);
 	}
 
 	@Override
 	public Resource updateResource(Integer id, Resource resource) {
+		Resource stored = resourceService.queryResourceById(id);
+		requireResourceApplication(resource != null && resource.getAppId() != null ? resource : stored);
 		resource.setId(id);
 		return resourceService.updateResourceById(resource);
 	}
 
 	@Override
 	public Resource deleteResource(Integer id) {
+		Resource stored = resourceService.queryResourceById(id);
+		requireResourceApplication(stored);
 		return resourceService.deleteResourceById(id);
 	}
 
@@ -602,21 +706,28 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 		if (host == null) {
 			return i18nEntryService.findAllI18nEntry();
 		}
+		requireI18nHost(host, hostType);
 		return i18nEntryService.findI18nEntryByApp(host, hostType);
 	}
 
 	@Override
 	public List<I18nEntry> createI18nEntries(OperateI18nEntries entries) {
+		requireI18nHost(entries == null ? null : integerValue(entries.getHost()),
+				entries == null ? null : entries.getHostType());
 		return i18nEntryService.create(entries);
 	}
 
 	@Override
 	public List<I18nEntryDto> deleteI18nEntries(DeleteI18nEntry entry) {
+		requireI18nHost(entry == null ? null : integerValue(entry.getHost()),
+				entry == null ? null : entry.getHostType());
 		return i18nEntryService.deleteI18nEntriesByHostAndHostTypeAndKey(entry);
 	}
 
 	@Override
 	public List<I18nEntryDto> bulkDeleteI18nEntries(DeleteI18nEntry entry) {
+		requireI18nHost(entry == null ? null : integerValue(entry.getHost()),
+				entry == null ? null : entry.getHostType());
 		return i18nEntryService.deleteI18nEntriesByHostAndHostTypeAndKey(entry);
 	}
 
@@ -627,7 +738,46 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 
 	@Override
 	public Object updateI18nEntriesFile(Integer appId) {
+		requireEnabledApp(appId);
 		return externalCapability.unsupported("i18n-entry-file-update");
+	}
+
+	private void requireEnabledApp(Integer appId) {
+		if (appId != null) {
+			appService.requireEnabledApp(appId);
+		}
+	}
+
+	private void requireBlockApplication(Integer blockId) {
+		BlockDto block = blockId == null ? null : blockService.queryBlockById(blockId);
+		requireEnabledApp(block == null ? null : block.getAppId());
+	}
+
+	private void requireResourceApplication(Resource resource) {
+		if (resource == null) {
+			return;
+		}
+		Integer appId = resource.getAppId();
+		if (appId == null && resource.getResourceGroupId() != null) {
+			ResourceGroup group = resourceGroupService.queryResourceGroupById(resource.getResourceGroupId());
+			appId = group == null ? null : group.getAppId();
+		}
+		requireEnabledApp(appId);
+	}
+
+	private void requireI18nHost(Integer host, String hostType) {
+		if ("app".equals(hostType)) {
+			requireEnabledApp(host);
+		} else if ("block".equals(hostType)) {
+			requireBlockApplication(host);
+		}
+	}
+
+	private static Integer integerValue(String value) {
+		if (value == null || value.trim().isEmpty()) {
+			return null;
+		}
+		return Integer.valueOf(value);
 	}
 
 	private static int defaultNumber(Integer value, int defaultValue) {

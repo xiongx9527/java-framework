@@ -72,6 +72,30 @@ public class TinyEngineMapperResourceTest {
 	}
 
 	@Test
+	public void appListShouldExposeCreatorNameForDisplay() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+			.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
+		String content = readContent(resource);
+		assertTrue(content.contains("LEFT JOIN t_user creator ON A.created_by = creator.id"),
+			"应用列表必须关联用户表以显示创建人名称");
+		assertTrue(content.contains("COALESCE(creator.username, A.created_by) AS created_by"),
+			"应用列表 created_by 应优先返回用户名而不是用户 id");
+		assertTrue(content.contains("AND A.created_by = #{createdBy}"),
+			"我的应用筛选仍必须使用原始创建人 id");
+	}
+
+	@Test
+	public void appMapperShouldPersistAndExposeEnableState() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+			.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
+		String content = readContent(resource);
+		assertTrue(content.contains("<result column=\"enable\" property=\"enable\"/>"),
+			"AppMapper 必须将 enable 映射到应用实体");
+		assertTrue(content.contains("enable = #{enable}"), "AppMapper 必须支持更新应用启用状态");
+		assertTrue(content.contains(", enable"), "AppMapper 必须在查询和新增列中包含 enable");
+	}
+
+	@Test
 	public void taskRecordMapperShouldUseOfficialTaskRecordColumns() throws Exception {
 		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
 			.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "TaskRecordMapper.xml");

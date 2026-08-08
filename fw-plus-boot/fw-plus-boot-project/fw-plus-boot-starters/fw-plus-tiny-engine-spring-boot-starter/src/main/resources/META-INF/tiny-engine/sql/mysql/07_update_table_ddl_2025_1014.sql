@@ -30,7 +30,8 @@ ALTER TABLE t_model DROP INDEX u_idx_model;
 ALTER TABLE t_model
     ADD INDEX u_idx_model (`tenant_id`, `platform_id`, `app_id`, `name_cn`,`version`);
 
-ALTER TABLE t_user DROP COLUMN email, DROP COLUMN tenant_id, DROP COLUMN site_id,DROP COLUMN renter_id,DROP COLUMN created_by,DROP COLUMN last_updated_by;
+ALTER TABLE t_user DROP COLUMN email, DROP COLUMN site_id,DROP COLUMN renter_id,DROP COLUMN created_by,DROP COLUMN last_updated_by;
+ALTER TABLE t_user DROP COLUMN IF EXISTS role;
 
 
 ALTER TABLE t_user

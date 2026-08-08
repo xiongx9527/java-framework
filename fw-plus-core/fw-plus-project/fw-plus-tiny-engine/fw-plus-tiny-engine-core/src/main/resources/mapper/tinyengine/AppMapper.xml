@@ -7,8 +7,8 @@
     <!-- 通用查询列 -->
     <sql id="Base_Column_List">
         id
-        , name, app_website, platform_id, platform_history_id, industry_id, scene_id, publish_url, editor_url, visit_url, image_url,
-        assets_url, state, published, home_page_id, css, config, constants, data_handler, description, latest,
+        , name, code, app_website, platform_id, platform_history_id, industry_id, scene_id, publish_url, editor_url, visit_url, image_url,
+        assets_url, state, enable, published, home_page_id, css, config, constants, data_handler, description, latest,
         git_group, project_name, branch, is_demo, is_default, template_type, is_template, set_template_time, set_template_by,
         set_default_by, framework, global_state, default_lang, extend_config, data_hash, can_associate,
         data_source_global, created_by, last_updated_by, created_time, last_updated_time, tenant_id, renter_id, site_id
@@ -51,6 +51,12 @@
         </if>
         <if test="state!=null and state!=''">
             AND A.state = #{state}
+        </if>
+        <if test="code!=null and code!=''">
+            AND A.code = #{code}
+        </if>
+        <if test="enable!=null">
+            AND A.enable = #{enable}
         </if>
         <if test="isPublish!=null">
             AND A.published = #{isPublish}
@@ -188,6 +194,12 @@
         <if test="state!=null and state!=''">
             state = #{state},
         </if>
+        <if test="code!=null and code!=''">
+            code = #{code},
+        </if>
+        <if test="enable!=null">
+            enable = #{enable},
+        </if>
         <if test="isPublish!=null">
             published = #{isPublish},
         </if>
@@ -291,6 +303,7 @@
     <resultMap id="AppMap" type="com.xiongx9527.fw.plus.tinyengine.model.entity.App">
         <id column="id" property="id"/>
         <result column="name" property="name"/>
+        <result column="code" property="code"/>
         <result column="app_website" property="appWebsite"/>
         <result column="platform_id" property="platformId"/>
         <result column="platform_history_id" property="platformHistoryId"/>
@@ -300,6 +313,7 @@
         <result column="image_url" property="imageUrl"/>
         <result column="assets_url" property="assetsUrl"/>
         <result column="state" property="state"/>
+        <result column="enable" property="enable"/>
         <result column="published" property="isPublish"/>
         <result column="home_page_id" property="homePage"/>
         <result column="css" property="css"/>
@@ -368,6 +382,7 @@
     <sql id="App_Base_Column_List">
         A.id,
         A.name,
+        A.code,
         A.app_website,
         A.platform_id,
         A.industry_id,
@@ -379,6 +394,7 @@
         A.image_url,
         A.assets_url,
         A.state,
+        A.enable,
         A.published,
         A.home_page_id,
         A.css,
@@ -404,7 +420,7 @@
         A.data_hash,
         A.can_associate,
         A.data_source_global,
-        A.created_by,
+        COALESCE(creator.username, A.created_by) AS created_by,
         A.last_updated_by,
         A.created_time,
         A.last_updated_time,
@@ -418,6 +434,7 @@
         FROM t_app A
         LEFT JOIN t_business_category industry ON A.industry_id = industry.id AND A.industry_id  IS NOT NULL
         LEFT JOIN t_business_category scene ON A.scene_id = scene.id AND A.scene_id  IS NOT NULL
+        LEFT JOIN t_user creator ON A.created_by = creator.id
     </sql>
     <sql id="Common_Column_List">
         <include refid="App_Base_Column_List"/>,
@@ -556,6 +573,7 @@
     <insert id="createApp" useGeneratedKeys="true" keyProperty="id" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.App">
         INSERT INTO t_app ( id
         , name
+        , code
         , app_website
         , platform_id
         , platform_history_id
@@ -567,6 +585,7 @@
         , image_url
         , assets_url
         , state
+        , enable
         , published
         , home_page_id
         , css
@@ -601,6 +620,7 @@
         , site_id)
         VALUES ( #{id}
         , #{name}
+        , #{code}
         , #{appWebsite}
         , #{platformId}
         , #{platformHistoryId}
@@ -612,6 +632,7 @@
         , #{imageUrl}
         , #{assetsUrl}
         , #{state}
+        , #{enable}
         , #{isPublish}
         , #{homePage}
         , #{css}

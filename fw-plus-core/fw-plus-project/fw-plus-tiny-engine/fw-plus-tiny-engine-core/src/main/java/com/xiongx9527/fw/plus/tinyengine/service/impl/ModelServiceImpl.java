@@ -144,18 +144,21 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
 		}
 		TinyEngineUser user = userContext == null ? null : userContext.getCurrentUser();
 		LocalDateTime now = LocalDateTime.now();
-		if (user != null) {
-			model.setTenantId(user.getTenantId());
-			model.setRenterId(user.getRenterId());
-			model.setCreatedBy(user.getUserId());
-			model.setLastUpdatedBy(user.getUserId());
+			if (user != null) {
+				model.setTenantId(user.getTenantId());
+				model.setRenterId(user.getRenterId());
+				model.setCreatedBy(user.getUserId());
+				model.setLastUpdatedBy(user.getUserId());
 			if (model.getPlatformId() == null) {
 				model.setPlatformId(user.getPlatformId());
+				}
 			}
+			if (model.getParameters() == null) {
+				model.setParameters(Collections.<ParametersDto>emptyList());
+			}
+			model.setCreatedTime(now);
+			model.setLastUpdatedTime(now);
 		}
-		model.setCreatedTime(now);
-		model.setLastUpdatedTime(now);
-	}
 
 	private boolean isBlank(String value) {
 		return value == null || value.trim().isEmpty();

@@ -91,14 +91,18 @@ public class BlockGroupServiceImpl extends ServiceImpl<BlockGroupMapper, BlockGr
 	}
 
 	@Override
-	public BlockGroup createBlockGroup(BlockGroup blockGroup) {
-		TinyEngineUser currentUser = currentUser();
-		if (currentUser != null) {
-			blockGroup.setTenantId(currentUser.getTenantId());
-			blockGroup.setCreatedBy(currentUser.getUserId());
-			blockGroup.setLastUpdatedBy(currentUser.getUserId());
-		}
-		LocalDateTime now = LocalDateTime.now();
+		public BlockGroup createBlockGroup(BlockGroup blockGroup) {
+			TinyEngineUser currentUser = currentUser();
+			if (currentUser != null) {
+				blockGroup.setTenantId(currentUser.getTenantId());
+				blockGroup.setRenterId(currentUser.getRenterId());
+				blockGroup.setCreatedBy(currentUser.getUserId());
+				blockGroup.setLastUpdatedBy(currentUser.getUserId());
+				if (blockGroup.getPlatformId() == null) {
+					blockGroup.setPlatformId(currentUser.getPlatformId());
+				}
+			}
+			LocalDateTime now = LocalDateTime.now();
 		blockGroup.setCreatedTime(now);
 		blockGroup.setLastUpdatedTime(now);
 		if (!baseMapper.queryBlockGroupByCondition(blockGroup).isEmpty()) {

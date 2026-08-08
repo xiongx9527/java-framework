@@ -1,0 +1,14 @@
+/.idea/
+/node_modules/
+/skills-lock.json
+/package.json
+/package-lock.json
+/.codegraph/
+/logDir_IS_UNDEFINED/
+/.worktrees/
+/.claude/worktrees/
+/.claude/settings.local.json
+/.superpowers/
+/.comet/
+/.DS_Store
+/.superpowers/
