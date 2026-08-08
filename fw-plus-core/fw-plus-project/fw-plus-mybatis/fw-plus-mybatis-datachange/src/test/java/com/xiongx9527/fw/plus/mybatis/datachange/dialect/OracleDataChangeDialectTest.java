@@ -1,9 +1,14 @@
 package com.xiongx9527.fw.plus.mybatis.datachange.dialect;
 
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.expression.Alias;
+import net.sf.jsqlparser.expression.MySQLIndexHint;
+import net.sf.jsqlparser.expression.SQLServerHints;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.merge.Merge;
 import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Pivot;
+import net.sf.jsqlparser.statement.select.UnPivot;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,6 +63,24 @@ class OracleDataChangeDialectTest extends AbstractDataChangeDialectContract {
 		assertThat(target.getMatchParameterMappings())
 				.extracting(mapping -> mapping.getProperty())
 				.containsExactly("tenantId", "orderNo", "amount");
+	}
+
+	@Test
+	void rejectsPivotAndUnpivotDecorationsOnDual() {
+		assertThat(dialect.isSingleRowSource(new Table("dual").withPivot(new Pivot()))).isFalse();
+		assertThat(dialect.isSingleRowSource(new Table("dual").withUnPivot(new UnPivot()))).isFalse();
+	}
+
+	@Test
+	void rejectsDatabaseLinkAliasAndPlatformHintsOnDual() {
+		assertThat(dialect.isSingleRowSource(new Table("dual@remote"))).isFalse();
+		assertThat(dialect.isSingleRowSource(new Table("dual@dual"))).isFalse();
+		assertThat(dialect.isSingleRowSource(new Table("dual").withAlias(new Alias("d")))).isFalse();
+		assertThat(dialect.isSingleRowSource(new Table("dual")
+				.withHint(new MySQLIndexHint("USE", "INDEX", java.util.Collections.singletonList("idx")))))
+				.isFalse();
+		assertThat(dialect.isSingleRowSource(new Table("dual")
+				.withSqlServerHints(new SQLServerHints().withNoLock()))).isFalse();
 	}
 
 	private net.sf.jsqlparser.statement.Statement parse(String sql) {

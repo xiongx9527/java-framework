@@ -29,8 +29,13 @@ public final class OracleDataChangeDialect extends AbstractStandardDataChangeDia
 	protected boolean isSingleRowSource(FromItem fromItem) {
 		if (!(fromItem instanceof Table)) { return false; }
 		Table table = (Table) fromItem;
+		String name = table.getName();
 		String database = table.getDatabase() == null ? null : table.getDatabase().getDatabaseName();
-		return table.getSchemaName() == null && (database == null || database.isEmpty())
-				&& "dual".equalsIgnoreCase(table.getName());
+		return table.getNameParts().size() == 1
+				&& name != null && name.equals(table.getNameParts().get(0))
+				&& table.getSchemaName() == null && (database == null || database.isEmpty())
+				&& "dual".equalsIgnoreCase(name)
+				&& table.getAlias() == null && table.getPivot() == null && table.getUnPivot() == null
+				&& table.getIndexHint() == null && table.getSqlServerHints() == null;
 	}
 }

@@ -99,8 +99,11 @@ public class MySqlDataChangeDialect extends AbstractStandardDataChangeDialect {
 		boolean databaseIsSchema = supportsSchemas && !supportsCatalogs;
 		boolean databaseIsCatalog = supportsCatalogs && !supportsSchemas;
 		if (!databaseIsSchema && !databaseIsCatalog) {
-			databaseIsSchema = "database".equalsIgnoreCase(metadata.getSchemaTerm());
-			databaseIsCatalog = !databaseIsSchema;
+			String schemaTerm = term(metadata.getSchemaTerm());
+			String catalogTerm = term(metadata.getCatalogTerm());
+			databaseIsSchema = "schema".equals(schemaTerm) && "catalog".equals(catalogTerm);
+			databaseIsCatalog = schemaTerm.isEmpty() && "database".equals(catalogTerm);
+			if (databaseIsSchema == databaseIsCatalog) { throw identityUnavailable(); }
 		}
 		if (catalog == null && schema != null) {
 			if (databaseIsSchema) {
@@ -128,6 +131,10 @@ public class MySqlDataChangeDialect extends AbstractStandardDataChangeDialect {
 	private String identifier(DatabaseMetaData metadata, String value) throws SQLException {
 		return value != null && metadata.storesUpperCaseIdentifiers()
 				? value.toUpperCase(Locale.ENGLISH) : value;
+	}
+
+	private String term(String value) {
+		return value == null ? "" : value.trim().toLowerCase(Locale.ENGLISH);
 	}
 
 	private DataChangeException identityUnavailable() {
