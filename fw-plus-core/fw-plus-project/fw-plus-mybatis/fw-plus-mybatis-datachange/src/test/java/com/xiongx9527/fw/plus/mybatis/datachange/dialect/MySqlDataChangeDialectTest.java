@@ -95,6 +95,55 @@ class MySqlDataChangeDialectTest extends AbstractDataChangeDialectContract {
 	}
 
 	@Test
+	void mapsTwoPartMysqlNameToSchemaFromConnectorSchemaTermsWhenCapabilitiesAreAmbiguous() throws Exception {
+		Connection connection = mock(Connection.class);
+		DatabaseMetaData metadata = uniqueIndexMetadata("email");
+		when(connection.getMetaData()).thenReturn(metadata);
+		when(metadata.supportsCatalogsInDataManipulation()).thenReturn(false);
+		when(metadata.supportsSchemasInDataManipulation()).thenReturn(false);
+		when(metadata.getSchemaTerm()).thenReturn("SCHEMA");
+		when(metadata.getCatalogTerm()).thenReturn("CATALOG");
+
+		assertThat(dialect.resolveOnDuplicateKeyColumns(connection, qualifiedTarget()))
+				.containsExactly("email");
+
+		verify(metadata).getIndexInfo(null, "tenant_db", "audit_order", true, false);
+	}
+
+	@Test
+	void mapsTwoPartMysqlNameToCatalogFromConnectorCatalogTermsWhenCapabilitiesAreAmbiguous() throws Exception {
+		Connection connection = mock(Connection.class);
+		DatabaseMetaData metadata = uniqueIndexMetadata("email");
+		when(connection.getMetaData()).thenReturn(metadata);
+		when(metadata.supportsCatalogsInDataManipulation()).thenReturn(false);
+		when(metadata.supportsSchemasInDataManipulation()).thenReturn(false);
+		when(metadata.getSchemaTerm()).thenReturn("");
+		when(metadata.getCatalogTerm()).thenReturn("database");
+
+		assertThat(dialect.resolveOnDuplicateKeyColumns(connection, qualifiedTarget()))
+				.containsExactly("email");
+
+		verify(metadata).getIndexInfo("tenant_db", null, "audit_order", true, false);
+	}
+
+	@Test
+	void rejectsAmbiguousNamespaceTermsWithoutLeakingMetadataFailure() throws Exception {
+		Connection connection = mock(Connection.class);
+		DatabaseMetaData metadata = uniqueIndexMetadata("email");
+		when(connection.getMetaData()).thenReturn(metadata);
+		when(metadata.supportsCatalogsInDataManipulation()).thenReturn(false);
+		when(metadata.supportsSchemasInDataManipulation()).thenReturn(false);
+		when(metadata.getSchemaTerm()).thenReturn("database");
+		when(metadata.getCatalogTerm()).thenReturn("catalog");
+
+		assertSanitized(connection);
+		org.mockito.Mockito.verify(metadata, org.mockito.Mockito.never())
+				.getIndexInfo(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any(),
+						org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(true),
+						org.mockito.ArgumentMatchers.eq(false));
+	}
+
+	@Test
 	void usesCurrentCatalogForUnqualifiedNameWhenCatalogsAreSupported() throws Exception {
 		Connection connection = mock(Connection.class);
 		DatabaseMetaData metadata = uniqueIndexMetadata("email");
