@@ -1,8 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.mp;
 
 import com.xiongx9527.fw.plus.common.encrypt.DefaultEncryptor;
-import com.xiongx9527.fw.plus.mp.datachange.DataChangeInterceptor;
-import com.xiongx9527.fw.plus.mp.datachange.properties.DataChangeProperties;
 import com.xiongx9527.fw.plus.mp.encrypt.FieldDecryptInterceptor;
 import com.xiongx9527.fw.plus.mp.encrypt.FieldEncryptInterceptor;
 import org.junit.jupiter.api.Test;
@@ -39,15 +37,6 @@ class MpAutoConfigurationTest {
 						.doesNotHaveBean(DefaultEncryptor.class)
 						.doesNotHaveBean(FieldEncryptInterceptor.class)
 						.doesNotHaveBean(FieldDecryptInterceptor.class));
-	}
-
-	@Test
-	void dataChangeInterceptorRequiresHandlerBean() {
-		new ApplicationContextRunner()
-				.withConfiguration(AutoConfigurations.of(MpDataChangeAutoConfiguration.class))
-				.run(context -> assertThat(context)
-						.hasSingleBean(DataChangeProperties.class)
-						.doesNotHaveBean(DataChangeInterceptor.class));
 	}
 
 	@Configuration(proxyBeanMethods = false)

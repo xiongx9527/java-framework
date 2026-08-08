@@ -18,7 +18,7 @@ import javax.sql.DataSource;
 @AutoConfigureAfter(name = {"org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
         "com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceAutoConfiguration"})
 @Import({MpBaseAutoConfiguration.class, MpJoinAutoConfiguration.class,
-        MpDataChangeAutoConfiguration.class, MpEncryptAutoConfiguration.class,
-        MpDataScopeAutoConfiguration.class})
+		MpEncryptAutoConfiguration.class,
+		MpDataScopeAutoConfiguration.class})
 public class MpAutoConfiguration {
 }
