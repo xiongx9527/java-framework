@@ -16,9 +16,11 @@ import net.sf.jsqlparser.statement.merge.Merge;
 import net.sf.jsqlparser.statement.merge.MergeInsert;
 import net.sf.jsqlparser.statement.merge.MergeUpdate;
 import net.sf.jsqlparser.statement.select.Join;
+import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
+import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectBody;
 import net.sf.jsqlparser.statement.select.SetOperationList;
 import net.sf.jsqlparser.statement.select.SubSelect;
@@ -45,7 +47,8 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 			parameterOffset += parsed.getParameterCount();
 			Statement statement = parsed.getStatement();
 			if (parsed.isCall() || statement instanceof Execute) {
-				analyzed.add(AnalyzedStatement.nonAuditable(parsed.getStatementIndex()));
+				analyzed.add(AnalyzedStatement.nonAuditable(parsed.getStatementIndex(),
+						AnalyzedStatement.JdbcResultRequirement.OPTIONAL));
 				continue;
 			}
 			StatementOperation operation = JSqlParserTargetDetector.operation(statement);
@@ -53,7 +56,9 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 				if (JSqlParserTargetDetector.isDmlToken(parsed.getFirstTokenKind())) {
 					throw new SqlAnalysisException("SQL statement is not supported for data change auditing");
 				}
-				analyzed.add(AnalyzedStatement.nonAuditable(parsed.getStatementIndex()));
+				analyzed.add(AnalyzedStatement.nonAuditable(parsed.getStatementIndex(),
+						statement instanceof Select ? AnalyzedStatement.JdbcResultRequirement.RESULT_SET
+								: AnalyzedStatement.JdbcResultRequirement.UPDATE_COUNT));
 				continue;
 			}
 			if (statement instanceof Insert && !JSqlParserTargetDetector.isSupportedInsert((Insert) statement)) {
@@ -67,9 +72,17 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 			for (Table table : tables) {
 				targets.add(target(statement, operation, table, statementMappings, context));
 			}
-			analyzed.add(new AnalyzedStatement(parsed.getStatementIndex(), true, targets));
+			analyzed.add(AnalyzedStatement.auditable(parsed.getStatementIndex(),
+					jdbcResultRequirement(targets), targets));
 		}
 		return Collections.unmodifiableList(analyzed);
+	}
+
+	private AnalyzedStatement.JdbcResultRequirement jdbcResultRequirement(List<ChangeTarget> targets) {
+		for (ChangeTarget target : targets) {
+			if (target.isReturnsRows()) { return AnalyzedStatement.JdbcResultRequirement.RETURNING; }
+		}
+		return AnalyzedStatement.JdbcResultRequirement.UPDATE_COUNT;
 	}
 
 	private ChangeTarget target(Statement statement, StatementOperation operation, Table table,
@@ -141,10 +154,11 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 			throw new SqlAnalysisException("JOIN source cannot be modelled reliably");
 		}
 		PlainSelect select = (PlainSelect) subSelect.getSelectBody();
-		if (select.getFromItem() != null || select.getJoins() != null || select.getWhere() != null
+		if ((select.getFromItem() != null && !isSingleRowSource(select.getFromItem()))
+				|| select.getJoins() != null || select.getWhere() != null
 				|| select.getHaving() != null || select.getGroupBy() != null
 				|| select.getOrderByElements() != null || select.getLimit() != null || select.getOffset() != null
-				|| select.getFetch() != null) {
+				|| select.getFetch() != null || hasUnsupportedSourceClause(select)) {
 			throw new SqlAnalysisException("JOIN source cannot be modelled reliably");
 		}
 		if (select.getTop() != null && select.getTop().getExpression() != null) {
@@ -156,6 +170,23 @@ public abstract class AbstractJSqlParserDataChangeDialect implements DataChangeD
 			}
 			expressions.add(((SelectExpressionItem) item).getExpression());
 		}
+	}
+
+	protected boolean isSingleRowSource(FromItem fromItem) {
+		return false;
+	}
+
+	private boolean hasUnsupportedSourceClause(PlainSelect select) {
+		return select.getIntoTables() != null && !select.getIntoTables().isEmpty()
+				|| select.getOptimizeFor() != null || select.getSkip() != null || select.getFirst() != null
+				|| select.getDistinct() != null || select.getOracleHierarchical() != null
+				|| select.isOracleSiblings() || select.isForUpdate() || select.getForUpdateTable() != null
+				|| select.getOracleHint() != null || select.getWait() != null || select.getForXmlPath() != null
+				|| select.getKsqlWindow() != null || select.isEmitChanges() || select.getWithIsolation() != null
+				|| select.getWindowDefinitions() != null && !select.getWindowDefinitions().isEmpty()
+				|| select.isSkipLocked() || select.getMySqlHintStraightJoin()
+				|| select.getMySqlSqlCalcFoundRows() || select.getMySqlSqlCacheFlag() != null
+				|| select.isNoWait();
 	}
 
 	private Expression where(Statement statement) {

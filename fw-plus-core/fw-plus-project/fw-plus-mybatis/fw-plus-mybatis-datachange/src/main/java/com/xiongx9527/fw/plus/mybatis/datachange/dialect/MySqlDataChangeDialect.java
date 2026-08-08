@@ -94,8 +94,14 @@ public class MySqlDataChangeDialect extends AbstractStandardDataChangeDialect {
 			throws SQLException {
 		String catalog = target.getTable().getCatalog();
 		String schema = target.getTable().getSchema();
-		boolean databaseIsSchema = "database".equalsIgnoreCase(metadata.getSchemaTerm());
-		boolean databaseIsCatalog = "database".equalsIgnoreCase(metadata.getCatalogTerm()) || !databaseIsSchema;
+		boolean supportsSchemas = metadata.supportsSchemasInDataManipulation();
+		boolean supportsCatalogs = metadata.supportsCatalogsInDataManipulation();
+		boolean databaseIsSchema = supportsSchemas && !supportsCatalogs;
+		boolean databaseIsCatalog = supportsCatalogs && !supportsSchemas;
+		if (!databaseIsSchema && !databaseIsCatalog) {
+			databaseIsSchema = "database".equalsIgnoreCase(metadata.getSchemaTerm());
+			databaseIsCatalog = !databaseIsSchema;
+		}
 		if (catalog == null && schema != null) {
 			if (databaseIsSchema) {
 				catalog = null;

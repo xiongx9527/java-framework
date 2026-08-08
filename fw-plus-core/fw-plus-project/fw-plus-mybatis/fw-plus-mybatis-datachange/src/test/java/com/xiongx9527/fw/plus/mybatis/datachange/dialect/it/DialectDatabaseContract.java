@@ -126,12 +126,16 @@ abstract class DialectDatabaseContract {
 			StatementChange insert = event(count, DataChangeOperation.INSERT);
 			assertThat(initial.get("id")).isInstanceOf(Number.class);
 			assertThat(((Number) initial.get("id")).longValue()).isPositive();
+			assertThat(row(insert).getIdentity().getKeyValues())
+					.containsExactlyEntriesOf(Collections.<String, Object>singletonMap("id", initial.get("id")));
 			assertThat(field(row(insert), "status").getAfterValue()).isEqualTo("NEW");
 		}
 
 		try (SqlSession session = factory.openSession(true)) {
 			Map<String, Object> update = values(7L, "A", 20);
 			StatementChange change = event(execute(session, UPDATE, update), DataChangeOperation.UPDATE);
+			assertThat(row(change).getIdentity().getKeyValues())
+					.containsExactlyEntriesOf(Collections.<String, Object>singletonMap("id", initial.get("id")));
 			assertThat(((Number) field(row(change), "touched").getAfterValue()).longValue()).isGreaterThan(0L);
 		}
 
@@ -155,6 +159,8 @@ abstract class DialectDatabaseContract {
 		try (SqlSession session = factory.openSession(true)) {
 			StatementChange delete = event(execute(session, DELETE, values(7L, "A", null)),
 					DataChangeOperation.PHYSICAL_DELETE);
+			assertThat(row(delete).getIdentity().getKeyValues())
+					.containsExactlyEntriesOf(Collections.<String, Object>singletonMap("id", initial.get("id")));
 			assertThat(field(row(delete), "amount").getBeforeValue()).isNotNull();
 		}
 		assertThat(errors.failures).isEmpty();
@@ -164,8 +170,16 @@ abstract class DialectDatabaseContract {
 		if (returningSql("ignored") == null) { return; }
 		try (SqlSession session = factory.openSession(true)) {
 			Map<String, Object> values = values(9L, "RETURNING", 11);
-			StatementChange change = event(execute(session, RETURNING, values), DataChangeOperation.INSERT);
-			assertThat(row(change).getIdentity().getKeyValues()).containsEntry("tenant_id", 9L);
+			int actualCount = execute(session, RETURNING, values);
+			assertThat(actualCount).isIn(-1, 1);
+			DataChangeEvent event = events.singleEvent();
+			assertThat(event.getStatements()).singleElement();
+			StatementChange change = event.getStatements().get(0);
+			assertThat(change.getAffectedRows()).isEqualTo(1);
+			assertThat(row(change).getOperation()).isEqualTo(DataChangeOperation.INSERT);
+			assertThat(row(change).getIdentity().getKeyValues()).containsOnlyKeys("id");
+			assertThat(row(change).getIdentity().getKeyValues().get("id")).isInstanceOf(Number.class);
+			assertThat(errors.failures).isEmpty();
 		}
 	}
 
@@ -294,8 +308,8 @@ abstract class DialectDatabaseContract {
 		TableMonitor monitor = new TableMonitor();
 		monitor.setSchema(monitorSchema(schema));
 		monitor.setName(table);
-		monitor.setKeyColumns(Arrays.asList("tenant_id", "order_no"));
-		monitor.setIncludeColumns(Arrays.asList("id", "amount", "status", "touched"));
+		monitor.setKeyColumns(Collections.singletonList("id"));
+		monitor.setIncludeColumns(Arrays.asList("amount", "status", "touched"));
 		return monitor;
 	}
 

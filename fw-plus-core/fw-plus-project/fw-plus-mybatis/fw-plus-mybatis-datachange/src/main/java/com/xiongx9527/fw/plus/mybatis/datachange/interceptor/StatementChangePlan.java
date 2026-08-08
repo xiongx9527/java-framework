@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.mybatis.datachange.api.RowIdentity;
 import com.xiongx9527.fw.plus.mybatis.datachange.config.TableMonitor;
 import com.xiongx9527.fw.plus.mybatis.datachange.dialect.ChangeTarget;
 import com.xiongx9527.fw.plus.mybatis.datachange.dialect.DataChangeDialect;
+import com.xiongx9527.fw.plus.mybatis.datachange.dialect.AnalyzedStatement;
 import com.xiongx9527.fw.plus.mybatis.datachange.snapshot.JdbcTableMetadata;
 import com.xiongx9527.fw.plus.mybatis.datachange.snapshot.RowSnapshot;
 
@@ -14,6 +15,8 @@ import java.util.List;
 
 public final class StatementChangePlan {
 	private final int statementIndex;
+	private final int statementCount;
+	private final List<AnalyzedStatement.JdbcResultRequirement> jdbcResultRequirements;
 	private final ChangeTarget target;
 	private final TableMonitor monitor;
 	private final JdbcTableMetadata tableMetadata;
@@ -23,10 +26,14 @@ public final class StatementChangePlan {
 	private List<RowIdentity> identities = Collections.emptyList();
 	private int updateCount = -1;
 
-	public StatementChangePlan(int statementIndex, ChangeTarget target, TableMonitor monitor,
+	public StatementChangePlan(int statementIndex,
+			List<AnalyzedStatement.JdbcResultRequirement> jdbcResultRequirements,
+			ChangeTarget target, TableMonitor monitor,
 			JdbcTableMetadata tableMetadata, FrameworkChangeMetadata frameworkMetadata,
 			DataChangeDialect dialect, List<RowSnapshot> beforeRows) {
 		this.statementIndex = statementIndex;
+		this.jdbcResultRequirements = immutable(jdbcResultRequirements);
+		this.statementCount = this.jdbcResultRequirements.size();
 		this.target = target;
 		this.monitor = monitor;
 		this.tableMetadata = tableMetadata;
@@ -36,6 +43,10 @@ public final class StatementChangePlan {
 	}
 
 	public int getStatementIndex() { return statementIndex; }
+	public int getStatementCount() { return statementCount; }
+	public List<AnalyzedStatement.JdbcResultRequirement> getJdbcResultRequirements() {
+		return jdbcResultRequirements;
+	}
 	public ChangeTarget getTarget() { return target; }
 	public TableMonitor getMonitor() { return monitor; }
 	public JdbcTableMetadata getTableMetadata() { return tableMetadata; }

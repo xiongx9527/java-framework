@@ -67,8 +67,10 @@ class MySqlDataChangeDialectTest extends AbstractDataChangeDialectContract {
 		Connection connection = mock(Connection.class);
 		DatabaseMetaData metadata = uniqueIndexMetadata("email");
 		when(connection.getMetaData()).thenReturn(metadata);
-		when(metadata.getCatalogTerm()).thenReturn("database");
-		when(metadata.getSchemaTerm()).thenReturn("");
+		when(metadata.supportsCatalogsInDataManipulation()).thenReturn(true);
+		when(metadata.supportsSchemasInDataManipulation()).thenReturn(false);
+		when(metadata.getCatalogTerm()).thenReturn("CATALOG");
+		when(metadata.getSchemaTerm()).thenReturn("SCHEMA");
 
 		assertThat(dialect.resolveOnDuplicateKeyColumns(connection, qualifiedTarget()))
 				.containsExactly("email");
@@ -81,10 +83,42 @@ class MySqlDataChangeDialectTest extends AbstractDataChangeDialectContract {
 		Connection connection = mock(Connection.class);
 		DatabaseMetaData metadata = uniqueIndexMetadata("email");
 		when(connection.getMetaData()).thenReturn(metadata);
-		when(metadata.getCatalogTerm()).thenReturn("catalog");
-		when(metadata.getSchemaTerm()).thenReturn("database");
+		when(metadata.supportsCatalogsInDataManipulation()).thenReturn(false);
+		when(metadata.supportsSchemasInDataManipulation()).thenReturn(true);
+		when(metadata.getCatalogTerm()).thenReturn("CATALOG");
+		when(metadata.getSchemaTerm()).thenReturn("SCHEMA");
 
 		assertThat(dialect.resolveOnDuplicateKeyColumns(connection, qualifiedTarget()))
+				.containsExactly("email");
+
+		verify(metadata).getIndexInfo(null, "tenant_db", "audit_order", true, false);
+	}
+
+	@Test
+	void usesCurrentCatalogForUnqualifiedNameWhenCatalogsAreSupported() throws Exception {
+		Connection connection = mock(Connection.class);
+		DatabaseMetaData metadata = uniqueIndexMetadata("email");
+		when(connection.getMetaData()).thenReturn(metadata);
+		when(metadata.supportsCatalogsInDataManipulation()).thenReturn(true);
+		when(metadata.supportsSchemasInDataManipulation()).thenReturn(false);
+		when(connection.getCatalog()).thenReturn("tenant_db");
+
+		assertThat(dialect.resolveOnDuplicateKeyColumns(connection, unqualifiedTarget()))
+				.containsExactly("email");
+
+		verify(metadata).getIndexInfo("tenant_db", null, "audit_order", true, false);
+	}
+
+	@Test
+	void usesCurrentSchemaForUnqualifiedNameWhenSchemasAreSupported() throws Exception {
+		Connection connection = mock(Connection.class);
+		DatabaseMetaData metadata = uniqueIndexMetadata("email");
+		when(connection.getMetaData()).thenReturn(metadata);
+		when(metadata.supportsCatalogsInDataManipulation()).thenReturn(false);
+		when(metadata.supportsSchemasInDataManipulation()).thenReturn(true);
+		when(connection.getSchema()).thenReturn("tenant_db");
+
+		assertThat(dialect.resolveOnDuplicateKeyColumns(connection, unqualifiedTarget()))
 				.containsExactly("email");
 
 		verify(metadata).getIndexInfo(null, "tenant_db", "audit_order", true, false);
@@ -107,6 +141,12 @@ class MySqlDataChangeDialectTest extends AbstractDataChangeDialectContract {
 
 	private ChangeTarget qualifiedTarget() {
 		return dialect.analyze(context("INSERT INTO tenant_db.audit_order(id,email,amount) VALUES(?,?,?) "
+				+ "ON DUPLICATE KEY UPDATE amount=VALUES(amount)", "id", "email", "amount"))
+				.get(0).getTargets().get(0);
+	}
+
+	private ChangeTarget unqualifiedTarget() {
+		return dialect.analyze(context("INSERT INTO audit_order(id,email,amount) VALUES(?,?,?) "
 				+ "ON DUPLICATE KEY UPDATE amount=VALUES(amount)", "id", "email", "amount"))
 				.get(0).getTargets().get(0);
 	}

@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -84,6 +85,7 @@ public final class DataChangeEngine {
 		List<AnalyzedStatement> analyzed = dialects.analyze(connection, boundSql, monitors);
 		if (!containsTargets(analyzed)) { return Collections.emptyList(); }
 		DataChangeDialect dialect = dialects.select(connection);
+		List<AnalyzedStatement.JdbcResultRequirement> jdbcResultRequirements = jdbcResultRequirements(analyzed);
 		List<StatementChangePlan> plans = new ArrayList<StatementChangePlan>();
 		for (AnalyzedStatement statement : analyzed) {
 			for (ChangeTarget detectedTarget : statement.getTargets()) {
@@ -100,7 +102,7 @@ public final class DataChangeEngine {
 						? Collections.<RowSnapshot>emptyList()
 						: snapshots.readBefore(connection, dialect, target, jdbcMetadata,
 								context.getMappedStatement().getConfiguration());
-				plans.add(new StatementChangePlan(statement.getStatementIndex(), target, monitor,
+				plans.add(new StatementChangePlan(statement.getStatementIndex(), jdbcResultRequirements, target, monitor,
 						jdbcMetadata, framework, dialect, before));
 			}
 		}
@@ -124,7 +126,7 @@ public final class DataChangeEngine {
 			for (StatementChangePlan plan : plans) {
 				int updateCount = countAt(results, plans, plan);
 				List<RowIdentity> identities = !isSuccessful(updateCount)
-						? Collections.<RowIdentity>emptyList() : identities(context, plan, statement);
+						? Collections.<RowIdentity>emptyList() : identities(context, plan, statement, plans, results);
 				plan.captureResult(updateCount, identities);
 			}
 		} catch (RuntimeException exception) {
@@ -141,7 +143,7 @@ public final class DataChangeEngine {
 			Map<Integer, List<TableChange>> grouped = new LinkedHashMap<Integer, List<TableChange>>();
 			Map<Integer, Integer> affectedRows = new LinkedHashMap<Integer, Integer>();
 			for (StatementChangePlan plan : plans) {
-					int count = effectiveUpdateCount(plan, plans, results);
+				int count = effectiveUpdateCount(plan, plans, results);
 				if (!isSuccessful(count)) { continue; }
 				List<RowSnapshot> after = plan.getTarget().getOperation() == StatementOperation.PHYSICAL_DELETE
 						? Collections.<RowSnapshot>emptyList()
@@ -193,8 +195,9 @@ public final class DataChangeEngine {
 	}
 
 	private List<RowIdentity> identities(DataChangeExecutionContext context, StatementChangePlan plan,
-			Statement statement) {
+			Statement statement, List<StatementChangePlan> plans, List<JdbcStatementResult> results) {
 		if (plan.getTarget().getOperation() == StatementOperation.INSERT && !plan.getTarget().isUpsert()) {
+			if (plan.getTarget().isReturnsRows()) { return returnedIdentities(plan, plans, results); }
 			return new GeneratedKeyResolver(plan.getDialect()).resolve(context.getMappedStatement(),
 					context.getParameterObject(), statement, plan.getFrameworkMetadata(),
 					plan.getTarget().getKeyColumnsHint());
@@ -202,6 +205,35 @@ public final class DataChangeEngine {
 		List<RowIdentity> identities = new ArrayList<RowIdentity>();
 		for (RowSnapshot row : plan.getBeforeRows()) { identities.add(row.getIdentity()); }
 		return identities;
+	}
+
+	private List<RowIdentity> returnedIdentities(StatementChangePlan plan, List<StatementChangePlan> plans,
+			List<JdbcStatementResult> results) {
+		JdbcStatementResult result = resultAt(results, plans, plan);
+		if (result == null || !result.hasCapturedRows()) { throw identityUnavailable(); }
+		List<RowIdentity> identities = new ArrayList<RowIdentity>();
+		for (Map<String, Object> row : result.getRows()) {
+			Map<String, Object> keys = new LinkedHashMap<String, Object>();
+			for (String key : plan.getTarget().getKeyColumnsHint()) {
+				Object value = valueIgnoreCase(row, key);
+				if (value == null) { throw identityUnavailable(); }
+				keys.put(key, value);
+			}
+			identities.add(new RowIdentity(keys));
+		}
+		return Collections.unmodifiableList(identities);
+	}
+
+	private Object valueIgnoreCase(Map<String, Object> values, String key) {
+		for (Map.Entry<String, Object> entry : values.entrySet()) {
+			if (key.equalsIgnoreCase(entry.getKey())) { return entry.getValue(); }
+		}
+		return null;
+	}
+
+	private DataChangeException identityUnavailable() {
+		return new DataChangeException(DataChangeErrorCode.ROW_IDENTITY_UNAVAILABLE,
+				"ROW_IDENTITY_UNAVAILABLE");
 	}
 
 	private int effectiveUpdateCount(StatementChangePlan plan, List<StatementChangePlan> plans,
@@ -212,21 +244,81 @@ public final class DataChangeEngine {
 
 	private int countAt(List<JdbcStatementResult> results, List<StatementChangePlan> plans,
 			StatementChangePlan current) {
-		int returningOffset = 0;
-		Set<Integer> returningStatements = new HashSet<Integer>();
-		for (StatementChangePlan plan : plans) {
-			if (plan.getStatementIndex() >= current.getStatementIndex()) { break; }
-			if (!plan.getTarget().isReturnsRows()
-					|| !returningStatements.add(Integer.valueOf(plan.getStatementIndex()))) { continue; }
-			int candidate = plan.getStatementIndex() + returningOffset;
-			if (isResultSet(results, candidate) && isUpdateCount(results, candidate + 1)) { returningOffset++; }
+		StatementResultBoundary boundary = boundaryAt(results, plans, current);
+		if (boundary == null) { return -1; }
+		JdbcStatementResult result = results.get(boundary.resultIndex);
+		if (current.getTarget().isReturnsRows() && result.getType() == JdbcStatementResult.Type.RESULT_SET) {
+			if (boundary.updateCountIndex >= 0) { return countAt(results, boundary.updateCountIndex); }
+			return result.hasCapturedRows() ? result.getRows().size() : -1;
 		}
-		int resultIndex = current.getStatementIndex() + returningOffset;
-		if (current.getTarget().isReturnsRows() && isResultSet(results, resultIndex)
-				&& isUpdateCount(results, resultIndex + 1)) {
-			resultIndex++;
+		return countAt(results, boundary.resultIndex);
+	}
+
+	private JdbcStatementResult resultAt(List<JdbcStatementResult> results, List<StatementChangePlan> plans,
+			StatementChangePlan current) {
+		StatementResultBoundary boundary = boundaryAt(results, plans, current);
+		return boundary == null ? null : results.get(boundary.resultIndex);
+	}
+
+	private StatementResultBoundary boundaryAt(List<JdbcStatementResult> results, List<StatementChangePlan> plans,
+			StatementChangePlan current) {
+		if (results == null) { return null; }
+		Set<StatementResultBoundary> candidates = new LinkedHashSet<StatementResultBoundary>();
+		mapResults(results, plans, current, 0, 0, -1, -1, candidates,
+				new HashSet<ResultMappingState>());
+		return candidates.size() == 1 ? candidates.iterator().next() : null;
+	}
+
+	private void mapResults(List<JdbcStatementResult> results, List<StatementChangePlan> plans,
+			StatementChangePlan current, int statementIndex, int resultIndex,
+			int currentResultIndex, int currentUpdateCountIndex,
+			Set<StatementResultBoundary> candidates, Set<ResultMappingState> visited) {
+		if (candidates.size() > 1 || !visited.add(new ResultMappingState(statementIndex, resultIndex,
+				currentResultIndex, currentUpdateCountIndex))) { return; }
+		if (statementIndex == current.getStatementCount()) {
+			if (resultIndex == results.size() && currentResultIndex >= 0) {
+				candidates.add(new StatementResultBoundary(currentResultIndex, currentUpdateCountIndex));
+			}
+			return;
 		}
-		return countAt(results, resultIndex);
+		AnalyzedStatement.JdbcResultRequirement requirement =
+				current.getJdbcResultRequirements().get(statementIndex);
+		if (requirement == AnalyzedStatement.JdbcResultRequirement.OPTIONAL) {
+			mapResults(results, plans, current, statementIndex + 1, resultIndex,
+					currentResultIndex, currentUpdateCountIndex, candidates, visited);
+			if (resultIndex < results.size()) {
+				mapResults(results, plans, current, statementIndex + 1, resultIndex + 1,
+						currentResultIndex, currentUpdateCountIndex, candidates, visited);
+			}
+			return;
+		}
+		if (resultIndex >= results.size()) { return; }
+		boolean returning = requirement == AnalyzedStatement.JdbcResultRequirement.RETURNING;
+		if (returning && !isResultSet(results, resultIndex)
+				|| requirement == AnalyzedStatement.JdbcResultRequirement.RESULT_SET
+						&& !isResultSet(results, resultIndex)
+				|| requirement == AnalyzedStatement.JdbcResultRequirement.UPDATE_COUNT
+						&& !isUpdateCount(results, resultIndex)) { return; }
+		int capturedResult = statementIndex == current.getStatementIndex()
+				? resultIndex : currentResultIndex;
+		mapResults(results, plans, current, statementIndex + 1, resultIndex + 1,
+				capturedResult, currentUpdateCountIndex, candidates, visited);
+		if (returning && isUpdateCount(results, resultIndex + 1)) {
+			int capturedCount = statementIndex == current.getStatementIndex()
+					? resultIndex + 1 : currentUpdateCountIndex;
+			mapResults(results, plans, current, statementIndex + 1, resultIndex + 2,
+					capturedResult, capturedCount, candidates, visited);
+		}
+	}
+
+	private List<AnalyzedStatement.JdbcResultRequirement> jdbcResultRequirements(
+			List<AnalyzedStatement> statements) {
+		List<AnalyzedStatement.JdbcResultRequirement> requirements =
+				new ArrayList<AnalyzedStatement.JdbcResultRequirement>();
+		for (AnalyzedStatement statement : statements) {
+			requirements.add(statement.getJdbcResultRequirement());
+		}
+		return Collections.unmodifiableList(requirements);
 	}
 
 	private boolean isResultSet(List<JdbcStatementResult> results, int index) {
@@ -244,6 +336,57 @@ public final class DataChangeEngine {
 		if (results == null || index < 0 || index >= results.size()) { return -1; }
 		JdbcStatementResult result = results.get(index);
 		return result != null && result.isUpdateCount() ? result.getUpdateCount() : -1;
+	}
+
+	private static final class StatementResultBoundary {
+		private final int resultIndex;
+		private final int updateCountIndex;
+
+		private StatementResultBoundary(int resultIndex, int updateCountIndex) {
+			this.resultIndex = resultIndex;
+			this.updateCountIndex = updateCountIndex;
+		}
+
+		@Override
+		public boolean equals(Object value) {
+			if (!(value instanceof StatementResultBoundary)) { return false; }
+			StatementResultBoundary other = (StatementResultBoundary) value;
+			return resultIndex == other.resultIndex && updateCountIndex == other.updateCountIndex;
+		}
+
+		@Override
+		public int hashCode() { return 31 * resultIndex + updateCountIndex; }
+	}
+
+	private static final class ResultMappingState {
+		private final int statementIndex;
+		private final int resultIndex;
+		private final int currentResultIndex;
+		private final int currentUpdateCountIndex;
+
+		private ResultMappingState(int statementIndex, int resultIndex,
+				int currentResultIndex, int currentUpdateCountIndex) {
+			this.statementIndex = statementIndex;
+			this.resultIndex = resultIndex;
+			this.currentResultIndex = currentResultIndex;
+			this.currentUpdateCountIndex = currentUpdateCountIndex;
+		}
+
+		@Override
+		public boolean equals(Object value) {
+			if (!(value instanceof ResultMappingState)) { return false; }
+			ResultMappingState other = (ResultMappingState) value;
+			return statementIndex == other.statementIndex && resultIndex == other.resultIndex
+					&& currentResultIndex == other.currentResultIndex
+					&& currentUpdateCountIndex == other.currentUpdateCountIndex;
+		}
+
+		@Override
+		public int hashCode() {
+			int hash = 31 * statementIndex + resultIndex;
+			hash = 31 * hash + currentResultIndex;
+			return 31 * hash + currentUpdateCountIndex;
+		}
 	}
 
 	private boolean isSuccessful(int count) {
