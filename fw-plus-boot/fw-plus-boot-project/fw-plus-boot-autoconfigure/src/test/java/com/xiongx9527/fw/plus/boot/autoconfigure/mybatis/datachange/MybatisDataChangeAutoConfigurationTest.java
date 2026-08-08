@@ -44,6 +44,7 @@ import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -67,6 +68,7 @@ class MybatisDataChangeAutoConfigurationTest {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
 			.withConfiguration(AutoConfigurations.of(
+					ConfigurationPropertiesAutoConfiguration.class,
 					MybatisDataChangeAutoConfiguration.class,
 					MpDataChangeAdapterAutoConfiguration.class,
 					MfDataChangeAdapterAutoConfiguration.class));
