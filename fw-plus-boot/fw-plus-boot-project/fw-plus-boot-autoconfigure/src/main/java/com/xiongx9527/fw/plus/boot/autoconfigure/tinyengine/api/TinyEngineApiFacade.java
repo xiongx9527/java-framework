@@ -144,6 +144,7 @@ public interface TinyEngineApiFacade {
 	AppDto appTemplates(Integer currentPage, Integer pageSize, String orderBy, App app);
 
 	App createAppTemplate(App app);
+	App setAppTemplate(Integer id, Boolean isTemplate, String templateType);
 
 	List<ResourceGroup> resourceGroups();
 

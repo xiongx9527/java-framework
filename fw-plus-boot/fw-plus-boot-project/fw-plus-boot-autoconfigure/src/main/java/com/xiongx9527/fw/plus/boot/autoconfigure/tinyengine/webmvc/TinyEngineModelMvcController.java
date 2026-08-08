@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("${fw.plus.tiny-engine.web.base-path:}")
 public class TinyEngineModelMvcController {
@@ -138,6 +140,18 @@ public class TinyEngineModelMvcController {
 	public ResponseEntity<? extends Result<?>> createAppTemplate(@RequestBody App app) {
 		try {
 			return TinyEngineWebResponses.ok(facade.createAppTemplate(app));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping("/app-center/api/app-template/set")
+	public ResponseEntity<? extends Result<?>> setAppTemplate(@RequestBody Map<String, Object> request) {
+		try {
+			Integer id = Integer.valueOf(String.valueOf(request.get("id")));
+			Boolean isTemplate = Boolean.valueOf(String.valueOf(request.get("isTemplate")));
+			String templateType = request.get("templateType") == null ? null : String.valueOf(request.get("templateType"));
+			return TinyEngineWebResponses.ok(facade.setAppTemplate(id, isTemplate, templateType));
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}

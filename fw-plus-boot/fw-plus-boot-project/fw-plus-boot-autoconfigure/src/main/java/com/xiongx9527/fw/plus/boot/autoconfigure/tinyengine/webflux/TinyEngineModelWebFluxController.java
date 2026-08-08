@@ -98,6 +98,14 @@ public class TinyEngineModelWebFluxController {
 		return TinyEngineWebFluxSupport.submit(executor, () -> facade.createAppTemplate(app));
 	}
 
+	@PostMapping("/app-center/api/app-template/set")
+	public Mono<ResponseEntity<? extends Result<?>>> setAppTemplate(@RequestBody java.util.Map<String, Object> request) {
+		Integer id = Integer.valueOf(String.valueOf(request.get("id")));
+		Boolean isTemplate = Boolean.valueOf(String.valueOf(request.get("isTemplate")));
+		String templateType = request.get("templateType") == null ? null : String.valueOf(request.get("templateType"));
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.setAppTemplate(id, isTemplate, templateType));
+	}
+
 	@GetMapping("/app-center/api/i18n/entries")
 	public Mono<ResponseEntity<? extends Result<?>>> i18nEntries(@RequestParam(required = false) Integer host,
 			@RequestParam(value = "host_type", required = false) String hostType) {
