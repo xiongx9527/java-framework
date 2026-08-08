@@ -1,8 +1,13 @@
 package com.xiongx9527.fw.plus.mybatis.datachange.dialect;
 
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.schema.Table;
+import net.sf.jsqlparser.statement.merge.Merge;
+import net.sf.jsqlparser.statement.select.PlainSelect;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OracleDataChangeDialectTest extends AbstractDataChangeDialectContract {
 	private final OracleDataChangeDialect dialect = new OracleDataChangeDialect();
@@ -31,5 +36,53 @@ class OracleDataChangeDialectTest extends AbstractDataChangeDialectContract {
 
 		assertThat(dialect.buildBeforeQuery(target).getSql())
 				.contains("WHERE (id = ? OR id = ?) AND ROWNUM <= 1001");
+	}
+
+	@Test
+	void analyzesSingleRowMergeSourceFromOracleDualInBindingOrder() {
+		String sql = "MERGE INTO audit_order target USING ("
+				+ "SELECT ? tenant_id, ? order_no, ? amount FROM dual) source "
+				+ "ON (target.tenant_id=source.tenant_id AND target.order_no=source.order_no) "
+				+ "WHEN MATCHED THEN UPDATE SET target.amount=source.amount "
+				+ "WHEN NOT MATCHED THEN INSERT (tenant_id,order_no,amount) "
+				+ "VALUES (source.tenant_id,source.order_no,source.amount)";
+		Merge merge = (Merge) parse(sql);
+		Table source = (Table) ((PlainSelect) merge.getUsingSelect().getSelectBody()).getFromItem();
+		assertThat(source.getName()).isEqualToIgnoringCase("dual");
+		assertThat(source.getSchemaName()).isNull();
+		assertThat(source.getDatabase().getDatabaseName()).isNullOrEmpty();
+
+		ChangeTarget target = dialect.analyze(context(sql,
+				"tenantId", "orderNo", "amount")).get(0).getTargets().get(0);
+
+		assertThat(target.getMatchParameterMappings())
+				.extracting(mapping -> mapping.getProperty())
+				.containsExactly("tenantId", "orderNo", "amount");
+	}
+
+	private net.sf.jsqlparser.statement.Statement parse(String sql) {
+		try {
+			return CCJSqlParserUtil.parse(sql);
+		} catch (net.sf.jsqlparser.JSQLParserException exception) {
+			throw new AssertionError(exception);
+		}
+	}
+
+	@Test
+	void rejectsComplexMergeSourceEvenWhenItReadsFromDual() {
+		assertThatThrownBy(() -> dialect.analyze(context("MERGE INTO audit_order target USING ("
+				+ "SELECT ? tenant_id FROM dual WHERE ? = 1) source "
+				+ "ON (target.tenant_id=source.tenant_id) "
+				+ "WHEN MATCHED THEN UPDATE SET target.amount=1", "tenantId", "guard")))
+				.isInstanceOf(SqlAnalysisException.class);
+	}
+
+	@Test
+	void rejectsHierarchicalMergeSourceThatCanExpandDualToMultipleRows() {
+		assertThatThrownBy(() -> dialect.analyze(context("MERGE INTO audit_order target USING ("
+				+ "SELECT ? tenant_id FROM dual CONNECT BY LEVEL <= ?) source "
+				+ "ON (target.tenant_id=source.tenant_id) "
+				+ "WHEN MATCHED THEN UPDATE SET target.amount=1", "tenantId", "levels")))
+				.isInstanceOf(SqlAnalysisException.class);
 	}
 }

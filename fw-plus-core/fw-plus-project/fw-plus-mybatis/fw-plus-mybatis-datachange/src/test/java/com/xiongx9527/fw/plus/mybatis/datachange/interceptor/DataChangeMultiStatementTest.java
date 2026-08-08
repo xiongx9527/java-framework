@@ -29,6 +29,8 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -102,6 +104,22 @@ class DataChangeMultiStatementTest {
 	}
 
 	@Test
+	void callWithoutJdbcResultDoesNotShiftFollowingDmlCount() throws Exception {
+		List<StatementChange> changes = execute("CALL refresh_cache(); "
+				+ "UPDATE sys_user SET name='after' WHERE id=1", updateCounts(1),
+				new DatabaseMutation() {
+					@Override public void run(Statement statement) throws Exception {
+						statement.executeUpdate("UPDATE sys_user SET name='after' WHERE id=1");
+					}
+				});
+
+		assertThat(changes).singleElement().satisfies(change -> {
+			assertThat(change.getStatementIndex()).isEqualTo(1);
+			assertThat(change.getAffectedRows()).isEqualTo(1);
+		});
+	}
+
+	@Test
 	void returningResultSetSharesStatementIndexWithFollowingUpdateCount() throws Exception {
 		List<JdbcStatementResult> results = Arrays.asList(JdbcStatementResult.resultSet(),
 				JdbcStatementResult.updateCount(1));
@@ -117,6 +135,95 @@ class DataChangeMultiStatementTest {
 		assertThat(changes).singleElement().satisfies(change -> {
 			assertThat(change.getStatementIndex()).isZero();
 			assertThat(change.getAffectedRows()).isEqualTo(1);
+		});
+	}
+
+	@Test
+	void returningResultSetDoesNotConsumeFollowingStatementsUpdateCount() throws Exception {
+		List<JdbcStatementResult> results = Arrays.asList(JdbcStatementResult.resultSet(),
+				JdbcStatementResult.updateCount(1));
+
+		List<StatementChange> changes = execute(
+				"UPDATE sys_user SET name='first-after' WHERE id=1 RETURNING id; "
+						+ "UPDATE sys_user SET name='second-after' WHERE id=2", results,
+				new DatabaseMutation() {
+					@Override public void run(Statement statement) throws Exception {
+						statement.executeUpdate("UPDATE sys_user SET name='first-after' WHERE id=1");
+						statement.executeUpdate("UPDATE sys_user SET name='second-after' WHERE id=2");
+					}
+				});
+
+		assertThat(changes).singleElement().satisfies(change -> {
+			assertThat(change.getStatementIndex()).isEqualTo(1);
+			assertThat(change.getAffectedRows()).isEqualTo(1);
+		});
+	}
+
+	@Test
+	void unmonitoredReturningStillKeepsFollowingMonitoredDmlBoundary() throws Exception {
+		List<JdbcStatementResult> results = Arrays.asList(JdbcStatementResult.resultSet(),
+				JdbcStatementResult.updateCount(1));
+
+		List<StatementChange> changes = execute(
+				"UPDATE ignored_user SET name='ignored' WHERE id=1 RETURNING id; "
+						+ "UPDATE sys_user SET name='after' WHERE id=1", results,
+				new DatabaseMutation() {
+					@Override public void run(Statement statement) throws Exception {
+						statement.executeUpdate("UPDATE sys_user SET name='after' WHERE id=1");
+					}
+				});
+
+		assertThat(changes).singleElement().satisfies(change -> {
+			assertThat(change.getStatementIndex()).isEqualTo(1);
+			assertThat(change.getAffectedRows()).isEqualTo(1);
+		});
+	}
+
+	@Test
+	void returningOwnCountAndFollowingUpdateCountKeepSeparateStatements() throws Exception {
+		List<JdbcStatementResult> results = Arrays.asList(JdbcStatementResult.resultSet(),
+				JdbcStatementResult.updateCount(1), JdbcStatementResult.updateCount(1));
+
+		List<StatementChange> changes = execute(
+				"UPDATE sys_user SET name='first-after' WHERE id=1 RETURNING id; "
+						+ "UPDATE sys_user SET name='second-after' WHERE id=2", results,
+				new DatabaseMutation() {
+					@Override public void run(Statement statement) throws Exception {
+						statement.executeUpdate("UPDATE sys_user SET name='first-after' WHERE id=1");
+						statement.executeUpdate("UPDATE sys_user SET name='second-after' WHERE id=2");
+					}
+				});
+
+		assertThat(changes).extracting(StatementChange::getStatementIndex).containsExactly(0, 1);
+		assertThat(changes).extracting(StatementChange::getAffectedRows).containsExactly(1, 1);
+	}
+
+	@Test
+	void returningInsertUsesReturnedGeneratedIdForAfterSnapshot() throws Exception {
+		Map<String, Object> returned = new LinkedHashMap<String, Object>();
+		returned.put("ID", 3L);
+		List<JdbcStatementResult> results = Arrays.asList(
+				JdbcStatementResult.resultSet(Collections.singletonList(returned)),
+				JdbcStatementResult.updateCount(1));
+
+		List<StatementChange> changes = execute(
+				"INSERT INTO sys_user(name) VALUES('returned') RETURNING id", results,
+				new DatabaseMutation() {
+					@Override public void run(Statement statement) throws Exception {
+						statement.executeUpdate("INSERT INTO sys_user(id, name) VALUES(3, 'returned')");
+					}
+				});
+
+		assertThat(changes).singleElement().satisfies(change -> {
+			assertThat(change.getStatementIndex()).isZero();
+			assertThat(change.getTables().get(0).getRows()).singleElement().satisfies(row -> {
+				assertThat(row.getIdentity().getKeyValues())
+						.containsExactlyEntriesOf(Collections.<String, Object>singletonMap("ID", 3L));
+				assertThat(row.getFields()).anySatisfy(field -> {
+					assertThat(field.getColumnName()).isEqualToIgnoringCase("NAME");
+					assertThat(field.getAfterValue()).isEqualTo("returned");
+				});
+			});
 		});
 	}
 

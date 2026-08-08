@@ -223,7 +223,9 @@ class DataChangeInterceptorH2Test {
 
 		RowChange row = onlyRow(recordingHandler.singleEvent());
 		assertThat(user.getId()).isPositive();
-		assertThat(row.getIdentity().getKeyValues()).containsEntry("ID", user.getId());
+		assertThat(row.getIdentity().getKeyValues())
+				.containsExactlyEntriesOf(Collections.<String, Object>singletonMap("ID", user.getId()));
+		assertThat(field(row, "NAME").getAfterValue()).isEqualTo("generated");
 	}
 
 	@Test

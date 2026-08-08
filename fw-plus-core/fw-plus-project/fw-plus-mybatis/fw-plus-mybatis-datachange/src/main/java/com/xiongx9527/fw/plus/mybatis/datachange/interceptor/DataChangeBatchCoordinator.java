@@ -187,7 +187,9 @@ public final class DataChangeBatchCoordinator {
 		}
 
 		private StatementChangePlan build(int affectedRows) {
-			StatementChangePlan plan = new StatementChangePlan(latest.getStatementIndex(), latest.getTarget(),
+			StatementChangePlan plan = new StatementChangePlan(latest.getStatementIndex(),
+					latest.getJdbcResultRequirements(),
+					latest.getTarget(),
 					latest.getMonitor(), latest.getTableMetadata(), latest.getFrameworkMetadata(), latest.getDialect(),
 					new ArrayList<RowSnapshot>(before.values()));
 			plan.captureResult(affectedRows, new ArrayList<RowIdentity>(identities));

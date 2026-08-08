@@ -24,9 +24,12 @@ import org.apache.ibatis.session.RowBounds;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 
 @Intercepts({
 		@Signature(type = Executor.class, method = "update",
@@ -153,7 +156,12 @@ public final class DataChangeInterceptor implements Interceptor {
 		int updateCount = ((Number) result).intValue();
 		List<JdbcStatementResult> statementResults;
 		try {
-			statementResults = updateCountCollector.collect((Statement) invocation.getArgs()[0], updateCount);
+			List<StatementChangePlan> plans = context.getCurrentPlans();
+			List<String> returningColumns = returningColumns(plans);
+			statementResults = returningColumns.isEmpty()
+					? updateCountCollector.collect((Statement) invocation.getArgs()[0], updateCount)
+					: updateCountCollector.collect((Statement) invocation.getArgs()[0], updateCount,
+							returningColumns, returningMaxRows(plans));
 		} catch (SQLException failure) {
 			engine.handlePostProcessingFailure(context, new DataChangeException(DataChangeErrorCode.UNKNOWN,
 					"DATA_CHANGE_UPDATE_COUNT_UNAVAILABLE"));
@@ -163,6 +171,22 @@ public final class DataChangeInterceptor implements Interceptor {
 		engine.captureStatementResults(context, context.getCurrentPlans(),
 				(Statement) invocation.getArgs()[0], statementResults);
 		return result;
+	}
+
+	private List<String> returningColumns(List<StatementChangePlan> plans) {
+		Set<String> columns = new LinkedHashSet<String>();
+		for (StatementChangePlan plan : plans) {
+			if (plan.getTarget().isReturnsRows()) { columns.addAll(plan.getTarget().getKeyColumnsHint()); }
+		}
+		return new ArrayList<String>(columns);
+	}
+
+	private int returningMaxRows(List<StatementChangePlan> plans) {
+		int maxRows = Integer.MAX_VALUE;
+		for (StatementChangePlan plan : plans) {
+			if (plan.getTarget().isReturnsRows()) { maxRows = Math.min(maxRows, plan.getTarget().getMaxRows()); }
+		}
+		return maxRows == Integer.MAX_VALUE ? configuration.getMaxSnapshotRows() : maxRows;
 	}
 
 	private Object interceptStatementBatch(Invocation invocation) throws Throwable {
