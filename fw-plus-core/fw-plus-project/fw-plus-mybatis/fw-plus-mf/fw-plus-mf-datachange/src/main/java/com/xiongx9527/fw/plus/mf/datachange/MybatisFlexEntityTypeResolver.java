@@ -8,6 +8,7 @@ import com.mybatisflex.core.table.IdInfo;
 import com.mybatisflex.core.table.TableInfo;
 import com.mybatisflex.core.table.TableInfoFactory;
 import com.xiongx9527.fw.plus.mybatis.datachange.adapter.DataChangeInvocation;
+import org.apache.ibatis.binding.MapperMethod.ParamMap;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.reflection.MetaObject;
@@ -42,6 +43,7 @@ final class MybatisFlexEntityTypeResolver {
 			return parameterObject instanceof QueryWrapper ? null : validEntityType(parameterObject == null
 					? null : parameterObject.getClass());
 		}
+		if (!(parameterObject instanceof ParamMap)) { return null; }
 		Map<?, ?> parameters = (Map<?, ?>) parameterObject;
 		for (String key : ENTITY_KEYS) {
 			if (!parameters.containsKey(key)) { continue; }
@@ -57,7 +59,7 @@ final class MybatisFlexEntityTypeResolver {
 		if (parameterObject instanceof QueryWrapper) {
 			return wrapperEntityType((QueryWrapper) parameterObject);
 		}
-		if (!(parameterObject instanceof Map)) { return null; }
+		if (!(parameterObject instanceof ParamMap)) { return null; }
 		Map<?, ?> parameters = (Map<?, ?>) parameterObject;
 		for (String key : QUERY_KEYS) {
 			if (!parameters.containsKey(key)) { continue; }
@@ -79,15 +81,19 @@ final class MybatisFlexEntityTypeResolver {
 		if (!metaObject.hasGetter("queryTables")) { return null; }
 		Object queryTables = metaObject.getValue("queryTables");
 		if (!(queryTables instanceof List)) { return null; }
-		for (Object queryTable : (List<?>) queryTables) {
-			if (!(queryTable instanceof QueryTable)) { continue; }
-			QueryTable table = (QueryTable) queryTable;
-			TableInfo tableInfo = TableInfoFactory.ofTableName(table.getNameWithSchema());
-			if (tableInfo == null) { tableInfo = TableInfoFactory.ofTableName(table.getName()); }
-			Class<?> entityType = tableInfo == null ? null : validEntityType(tableInfo.getEntityClass());
-			if (entityType != null) { return entityType; }
-		}
-		return null;
+		List<?> tables = (List<?>) queryTables;
+		if (tables.size() != 1 || !(tables.get(0) instanceof QueryTable)) { return null; }
+		QueryTable table = (QueryTable) tables.get(0);
+		Class<?> schemaEntityType = tableEntityType(table.getNameWithSchema());
+		Class<?> simpleEntityType = tableEntityType(table.getName());
+		if (schemaEntityType == null) { return simpleEntityType; }
+		if (simpleEntityType == null) { return schemaEntityType; }
+		return schemaEntityType == simpleEntityType ? schemaEntityType : null;
+	}
+
+	private Class<?> tableEntityType(String tableName) {
+		TableInfo tableInfo = TableInfoFactory.ofTableName(tableName);
+		return tableInfo == null ? null : validEntityType(tableInfo.getEntityClass());
 	}
 
 	private Class<?> validEntityType(Class<?> entityType) {
