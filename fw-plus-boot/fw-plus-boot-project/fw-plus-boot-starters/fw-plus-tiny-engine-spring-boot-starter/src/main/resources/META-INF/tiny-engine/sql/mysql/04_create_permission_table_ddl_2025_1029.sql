@@ -4,13 +4,15 @@ create table `t_permission_role`
 (
     `id`                int          not null auto_increment comment '主键id',
     `name`           varchar(255) not null comment '名称',
+    `code`           varchar(255) not null comment '唯一标识',
+    `role_type`      varchar(60)  not null default 'app' comment '角色类型',
     `description`       varchar(2000) comment '描述',
     `created_by`        varchar(60)  not null comment '创建人',
     `created_time`      timestamp    not null default current_timestamp comment '创建时间',
     `last_updated_by`   varchar(60)  not null comment '最后修改人',
     `last_updated_time` timestamp    not null default current_timestamp comment '更新时间',
     primary key (`id`) using btree,
-    unique index `u_idx_permission_role` (`name`) using btree
+    unique index `u_idx_permission_role_code` (`code`) using btree
 ) engine = innodb comment = '';
 
 drop table if exists `r_auth_users_units_roles`;

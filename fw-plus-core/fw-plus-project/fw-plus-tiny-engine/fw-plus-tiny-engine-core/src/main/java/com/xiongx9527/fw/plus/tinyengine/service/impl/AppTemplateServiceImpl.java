@@ -144,17 +144,25 @@ public class AppTemplateServiceImpl extends ServiceImpl<AppMapper, App> implemen
 	}
 
 	private void copyAppExtensions(int templateId, int appId) {
+		App targetApp = baseMapper.queryAppById(appId, getTenantId());
+		if (targetApp == null) {
+			throw error(ExceptionEnum.CM009);
+		}
 		AppExtension condition = new AppExtension();
 		condition.setApp(templateId);
 		List<AppExtension> extensions = appExtensionMapper.queryAppExtensionByCondition(condition);
 		if (extensions == null) {
 			return;
 		}
-		for (AppExtension extension : extensions) {
-			clearAudit(extension);
-			extension.setApp(appId);
-			appExtensionMapper.createAppExtension(extension);
-		}
+			for (AppExtension extension : extensions) {
+				clearAudit(extension);
+				extension.setApp(appId);
+				extension.setPlatformId(targetApp.getPlatformId());
+				extension.setTenantId(targetApp.getTenantId());
+				extension.setRenterId(targetApp.getRenterId());
+				extension.setSiteId(targetApp.getSiteId());
+				appExtensionMapper.createAppExtension(extension);
+			}
 	}
 
 	private void copyDatasources(int templateId, int appId) {

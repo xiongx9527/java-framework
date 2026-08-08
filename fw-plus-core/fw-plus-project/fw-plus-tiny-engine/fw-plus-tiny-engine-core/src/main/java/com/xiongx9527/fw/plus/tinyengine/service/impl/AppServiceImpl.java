@@ -16,6 +16,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 import com.xiongx9527.fw.plus.tinyengine.service.AppService;
 import com.xiongx9527.fw.plus.tinyengine.service.I18nEntryService;
 import com.xiongx9527.fw.plus.tinyengine.service.PlatformService;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAccessDeniedException;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
 import org.springframework.stereotype.Service;
@@ -76,6 +77,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 	}
 
 	@Override
+	public App requireEnabledApp(Integer id) {
+		App app = queryAppById(id);
+		if (Boolean.FALSE.equals(app.getEnable())) {
+			throw new TinyEngineAccessDeniedException("TinyEngine application is disabled");
+		}
+		return app;
+	}
+
+	@Override
 	public List<App> queryAppByCondition(App app) {
 		return baseMapper.queryAppByCondition(app);
 	}
@@ -88,6 +98,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		if (app == null) {
 			throw failure(ExceptionEnum.CM009);
 		}
+		ensureEnabled(app);
 		List<Page> pages = pageMapper.queryPageByApp(id);
 		if (pages != null) {
 			for (Page page : pages) {
@@ -112,6 +123,20 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		App existing = baseMapper.queryAppById(app.getId(), targetTenant);
 		if (existing == null) {
 			throw failure(ExceptionEnum.CM009);
+		}
+		if (Boolean.FALSE.equals(existing.getEnable()) && !Boolean.TRUE.equals(app.getEnable())) {
+			ensureEnabled(existing);
+		}
+		if (app.getCode() != null && !app.getCode().trim().isEmpty()
+				&& !app.getCode().trim().equals(existing.getCode())) {
+			if (app.getCode().trim().length() > 20) {
+				throw failure(ExceptionEnum.CM002);
+			}
+			App codeCondition = new App();
+			codeCondition.setCode(app.getCode().trim());
+			if (!baseMapper.queryAppByCondition(codeCondition).isEmpty()) {
+				throw failure(ExceptionEnum.CM003);
+			}
 		}
 		if (app.getExtendConfig() != null && !app.getExtendConfig().isEmpty()) {
 			Platform platform = platformService.queryPlatformById(existing.getPlatformId());
@@ -138,6 +163,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		app.setLastUpdatedBy(currentUserId);
 		app.setCreatedTime(now);
 		app.setLastUpdatedTime(now);
+		if (app.getEnable() == null) {
+			app.setEnable(Boolean.TRUE);
+		}
+		ensureUniqueAppCode(app);
 		applyPlatformDefaults(app);
 		if (!baseMapper.queryAppByCondition(app).isEmpty()) {
 			throw failure(ExceptionEnum.CM003);
@@ -149,8 +178,27 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		if (baseMapper.createApp(app) < 1) {
 			throw failure(ExceptionEnum.CM001);
 		}
+		createDefaultHomePage(app, currentUserId, now);
 		return app;
 	}
+
+	private void ensureUniqueAppCode(App app) {
+		if (app == null) {
+			return;
+		}
+		if (app.getCode() == null || app.getCode().trim().isEmpty()) {
+			throw failure(ExceptionEnum.CM002);
+		}
+		if (app.getCode().trim().length() > 20) {
+			throw failure(ExceptionEnum.CM002);
+		}
+		App condition = new App();
+		condition.setCode(app.getCode().trim());
+		if (!baseMapper.queryAppByCondition(condition).isEmpty()) {
+			throw failure(ExceptionEnum.CM003);
+		}
+	}
+
 
 	@Override
 	public App saveApp(Integer id, Map<String, Object> request) {
@@ -160,6 +208,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		if (version != null) {
 			app.setLatest(String.valueOf(version));
 		}
+		return updateAppById(app);
+	}
+
+	@Override
+	public App setAppTemplate(Integer id, Boolean isTemplate, String templateType) {
+		App app = new App();
+		app.setId(id);
+		app.setIsTemplate(isTemplate);
+		app.setTemplateType(templateType);
 		return updateAppById(app);
 	}
 
@@ -211,6 +268,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		return new ServiceException(error.getResultCode(), error.getResultMsg());
 	}
 
+	private void ensureEnabled(App app) {
+		if (app != null && Boolean.FALSE.equals(app.getEnable())) {
+			throw new TinyEngineAccessDeniedException("TinyEngine application is disabled");
+		}
+	}
+
 	private void applyPlatformDefaults(App app) {
 		if (app == null || platformService == null) {
 			return;
@@ -247,5 +310,51 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 			}
 		}
 		return first;
+	}
+
+	private void createDefaultHomePage(App app, String currentUserId, LocalDateTime now) {
+		if (app == null || app.getId() == null || app.getHomePage() != null || pageMapper == null) {
+			return;
+		}
+		Page page = new Page();
+		page.setName("home");
+		page.setApp(app.getId());
+		page.setRoute("/");
+		page.setPageContent(defaultPageContent());
+		page.setIsBody(true);
+		page.setParentId("0");
+		page.setGroup("staticPages");
+		page.setDepth(0);
+		page.setIsPage(true);
+		page.setOccupierBy(currentUserId);
+		page.setIsDefault(false);
+		page.setCreatedBy(currentUserId);
+		page.setLastUpdatedBy(currentUserId);
+		page.setCreatedTime(now);
+		page.setLastUpdatedTime(now);
+		page.setTenantId(app.getTenantId());
+		page.setRenterId(app.getRenterId());
+		page.setSiteId(app.getSiteId());
+		if (pageMapper.createPage(page) < 1 || page.getId() == null) {
+			throw failure(ExceptionEnum.CM001);
+		}
+		Page created = pageMapper.queryPageById(page.getId());
+		Integer homePage = created == null ? page.getId() : created.getId();
+		App update = new App();
+		update.setId(app.getId());
+		update.setHomePage(homePage);
+		update.setTenantId(app.getTenantId());
+		if (baseMapper.updateAppById(update) < 1) {
+			throw failure(ExceptionEnum.CM001);
+		}
+		app.setHomePage(homePage);
+	}
+
+	private Map<String, Object> defaultPageContent() {
+		Map<String, Object> schema = new HashMap<String, Object>();
+		schema.put("componentName", "Page");
+		schema.put("props", new HashMap<String, Object>());
+		schema.put("children", new java.util.ArrayList<Object>());
+		return schema;
 	}
 }

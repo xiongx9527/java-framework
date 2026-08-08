@@ -328,6 +328,17 @@ class TinyEngineServiceContractTest {
 		request.setSetTemplateBy("owner");
 		App persisted = new App();
 		persisted.setId(22);
+		persisted.setPlatformId(2);
+		persisted.setTenantId("tenant-9");
+		persisted.setRenterId("renter-9");
+		persisted.setSiteId("site-9");
+		AppExtension templateExtension = new AppExtension();
+		templateExtension.setId(31);
+		templateExtension.setApp(3);
+		templateExtension.setPlatformId(1);
+		templateExtension.setTenantId("template-tenant");
+		templateExtension.setRenterId("template-renter");
+		templateExtension.setSiteId("template-site");
 		doAnswer(invocation -> {
 			((App) invocation.getArgument(0)).setId(22);
 			return 1;
@@ -335,7 +346,8 @@ class TinyEngineServiceContractTest {
 		when(appMapper.queryAppById(22, "tenant-9")).thenReturn(persisted);
 		when(pageService.queryAllPage(3)).thenReturn(Collections.<Page>emptyList());
 		when(pageHistoryMapper.queryPageHistoryByAppId(3)).thenReturn(Collections.<PageHistory>emptyList());
-		when(extensionMapper.queryAppExtensionByCondition(any())).thenReturn(Collections.emptyList());
+		when(extensionMapper.queryAppExtensionByCondition(any()))
+				.thenReturn(Collections.singletonList(templateExtension));
 		when(datasourceMapper.queryDatasourceByCondition(any())).thenReturn(Collections.emptyList());
 		when(i18nEntryMapper.findI18nEntriesByHostandHostType(3, "app")).thenReturn(Collections.emptyList());
 		when(modelMapper.queryModelByCondition(any())).thenReturn(Collections.emptyList());
@@ -345,7 +357,15 @@ class TinyEngineServiceContractTest {
 		assertSame(persisted, result);
 		assertFalse(request.getIsTemplate());
 		assertNull(request.getSetTemplateBy());
-		verify(appMapper).queryAppById(22, "tenant-9");
+		verify(appMapper, times(2)).queryAppById(22, "tenant-9");
+		org.mockito.ArgumentCaptor<AppExtension> extensionCaptor =
+				org.mockito.ArgumentCaptor.forClass(AppExtension.class);
+		verify(extensionMapper).createAppExtension(extensionCaptor.capture());
+		assertEquals(Integer.valueOf(22), extensionCaptor.getValue().getApp());
+		assertEquals(Integer.valueOf(2), extensionCaptor.getValue().getPlatformId());
+		assertEquals("tenant-9", extensionCaptor.getValue().getTenantId());
+		assertEquals("renter-9", extensionCaptor.getValue().getRenterId());
+		assertEquals("site-9", extensionCaptor.getValue().getSiteId());
 	}
 
 	@Test
@@ -383,6 +403,9 @@ class TinyEngineServiceContractTest {
 		when(mapper.queryAppTotal("tenant-9")).thenReturn(0);
 		App created = new App();
 		created.setName("new-app");
+		created.setCode("new_app");
+		created.setCode("new_app");
+		created.setCode("new_app");
 		when(mapper.queryAppByCondition(created)).thenReturn(Collections.<App>emptyList());
 		when(mapper.createApp(created)).thenReturn(1);
 
@@ -999,6 +1022,7 @@ class TinyEngineServiceContractTest {
 				method("queryAllApp", generic(List.class, App.class)),
 				method("queryAllAppByPage", type(AppDto.class), Integer.class, Integer.class, String.class, App.class),
 				method("queryAppById", type(App.class), Integer.class),
+				method("requireEnabledApp", type(App.class), Integer.class),
 				method("queryAppByCondition", generic(List.class, App.class), App.class),
 				method("deleteAppById", type(App.class), Integer.class),
 				method("updateAppById", type(App.class), App.class),

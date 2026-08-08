@@ -37,6 +37,10 @@ private String orgCode;
 private String nameCn;
 private String nameEn;
 private String description;
+private Boolean isSystem;
+
+    @TableField("enable")
+private Boolean isEnable;
 
     @TableField(exist = false)
 private Boolean isInUse;
@@ -93,6 +97,22 @@ private LocalDateTime lastUpdatedTime;
 
 	public void setDescription(String description) {
 		this.description = description;
+	}
+
+	public Boolean getIsSystem() {
+		return isSystem;
+	}
+
+	public void setIsSystem(Boolean isSystem) {
+		this.isSystem = isSystem;
+	}
+
+	public Boolean getIsEnable() {
+		return isEnable;
+	}
+
+	public void setIsEnable(Boolean isEnable) {
+		this.isEnable = isEnable;
 	}
 
 	public Boolean getIsInUse() {

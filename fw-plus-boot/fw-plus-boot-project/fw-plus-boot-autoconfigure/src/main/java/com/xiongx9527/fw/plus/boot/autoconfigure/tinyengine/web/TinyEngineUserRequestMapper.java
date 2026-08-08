@@ -22,8 +22,12 @@ public final class TinyEngineUserRequestMapper {
 	}
 
 	public static TinyEnginePasswordResetRequest toPasswordResetRequest(Map<String, Object> body) {
+		String verificationCode = string(body, "verificationCode");
+		if (verificationCode == null) {
+			verificationCode = string(body, "publicKey");
+		}
 		return new TinyEnginePasswordResetRequest(string(body, "username"), string(body, "tenantId"),
-				string(body, "verificationCode"), string(body, "password"));
+				verificationCode, string(body, "password"));
 	}
 
 	public static TinyEngineTenantCreateRequest toTenantCreateRequest(Map<String, Object> body) {

@@ -31,6 +31,7 @@ import com.xiongx9527.fw.plus.tinyengine.service.ModelService;
 import com.xiongx9527.fw.plus.tinyengine.service.PageService;
 import com.xiongx9527.fw.plus.tinyengine.service.ResourceGroupService;
 import com.xiongx9527.fw.plus.tinyengine.service.ResourceService;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAccessDeniedException;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineUnsupportedCapabilityException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,6 +78,8 @@ class TinyEngineMaterialModelMvcApiContractTest {
 	@BeforeEach
 	void setUp() {
 		appService = mock(AppService.class);
+		when(appService.requireEnabledApp(any(Integer.class))).thenAnswer(invocation ->
+				appService.queryAppById(invocation.getArgument(0)));
 		pageService = mock(PageService.class);
 		blockService = mock(BlockService.class);
 		blockGroupService = mock(BlockGroupService.class);
@@ -92,6 +95,34 @@ class TinyEngineMaterialModelMvcApiContractTest {
 				resourceGroupService, resourceService, i18nEntryService, null, new DefaultTinyEngineExternalCapability());
 		mvc = MockMvcBuilders.standaloneSetup(new TinyEngineMaterialMvcController(facade),
 				new TinyEngineModelMvcController(facade), new TinyEngineI18nMvcController(facade)).build();
+	}
+
+	@Test
+	void disabledApplicationRejectsMaterialDatasourceModelResourceAndI18nOperations() throws Exception {
+		when(appService.requireEnabledApp(Integer.valueOf(9)))
+				.thenThrow(new TinyEngineAccessDeniedException("TinyEngine application is disabled"));
+
+		mvc.perform(get("/material-center/api/blocks").param("appId", "9"))
+				.andExpect(status().isForbidden());
+		mvc.perform(get("/app-center/api/sources/list/9"))
+				.andExpect(status().isForbidden());
+		mvc.perform(post("/material-center/api/model/create")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"nameCn\":\"模型\",\"nameEn\":\"Model\",\"appId\":9}"))
+				.andExpect(status().isForbidden());
+		mvc.perform(post("/material-center/api/resource-group/create")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"name\":\"media\",\"app\":9}"))
+				.andExpect(status().isForbidden());
+		mvc.perform(get("/app-center/api/i18n/entries")
+						.param("host", "9").param("host_type", "app"))
+				.andExpect(status().isForbidden());
+
+		verify(blockService, never()).listNew("9", null);
+		verify(datasourceService, never()).queryDatasourceByCondition(any(Datasource.class));
+		verify(modelService, never()).save(any(Model.class));
+		verify(resourceGroupService, never()).createResourceGroup(any(ResourceGroup.class));
+		verify(i18nEntryService, never()).findI18nEntryByApp(Integer.valueOf(9), "app");
 	}
 
 	@Test

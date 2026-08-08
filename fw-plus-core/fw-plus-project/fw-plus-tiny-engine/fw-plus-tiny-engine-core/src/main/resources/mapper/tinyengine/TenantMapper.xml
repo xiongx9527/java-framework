@@ -7,7 +7,7 @@
     <!-- 通用查询列 -->
     <sql id="Base_Column_List">
         id
-        , name_cn, name_en, description, created_by, last_updated_by, created_time, last_updated_time,
+        , name_cn, name_en, description, is_system, enable, created_by, last_updated_by, created_time, last_updated_time,
         org_code
     </sql>
 
@@ -21,6 +21,12 @@
         </if>
         <if test="description!=null and description!=''">
             AND description = #{description}
+        </if>
+        <if test="isSystem!=null">
+            AND is_system = #{isSystem}
+        </if>
+        <if test="isEnable!=null">
+            AND enable = #{isEnable}
         </if>
         <if test="createdBy!=null and createdBy!=''">
             AND created_by = #{createdBy}
@@ -50,6 +56,12 @@
         <if test="description!=null and description!=''">
             description = #{description},
         </if>
+        <if test="isSystem!=null">
+            is_system = #{isSystem},
+        </if>
+        <if test="isEnable!=null">
+            enable = #{isEnable},
+        </if>
         <if test="createdBy!=null and createdBy!=''">
             created_by = #{createdBy},
         </if>
@@ -74,6 +86,8 @@
         <result column="name_cn" property="nameCn"/>
         <result column="name_en" property="nameEn"/>
         <result column="description" property="description"/>
+        <result column="is_system" property="isSystem"/>
+        <result column="enable" property="isEnable"/>
         <result column="created_by" property="createdBy"/>
         <result column="last_updated_by" property="lastUpdatedBy"/>
         <result column="created_time" property="createdTime"/>
@@ -129,6 +143,8 @@
                              , name_cn
                              , name_en
                              , description
+                             , is_system
+                             , enable
                              , created_by
                              , last_updated_by
                              , created_time
@@ -138,6 +154,8 @@
                , #{nameCn}
                , #{nameEn}
                , #{description}
+               , #{isSystem}
+               , #{isEnable}
                , #{createdBy}
                , #{lastUpdatedBy}
                , #{createdTime}

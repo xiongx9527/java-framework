@@ -20,11 +20,11 @@ ALTER TABLE t_model DROP CONSTRAINT u_idx_model;
 CREATE INDEX u_idx_model ON t_model (tenant_id, platform_id, app_id, name_cn, version);
 
 ALTER TABLE t_user DROP COLUMN email;
-ALTER TABLE t_user DROP COLUMN tenant_id;
 ALTER TABLE t_user DROP COLUMN site_id;
 ALTER TABLE t_user DROP COLUMN renter_id;
 ALTER TABLE t_user DROP COLUMN created_by;
 ALTER TABLE t_user DROP COLUMN last_updated_by;
+ALTER TABLE t_user DROP COLUMN IF EXISTS role;
 
 ALTER TABLE t_user ADD COLUMN password VARCHAR(200);
 ALTER TABLE t_user ADD COLUMN email VARCHAR(200);
