@@ -34,3 +34,15 @@ export const updateApplication = (id, params) =>
 
 // 应用管理 -- 删除应用
 export const deleteApplication = (id) => getMetaApi(META_SERVICE.Http).get(`/app-center/api/apps/delete/${id}`)
+
+// 应用管理 -- 设置/取消模板
+export const setAppTemplate = (params) => getMetaApi(META_SERVICE.Http).post(`/app-center/api/app-template/set`, params)
+// 应用管理 -- 设置/取消模板
+
+// 应用管理 -- 设置/取消模板
+
+// 应用管理 -- 设置/取消模板
+
+// 应用管理 -- 设置/取消模板
+
+// 应用管理 -- 设置/取消模板
