@@ -21,12 +21,14 @@ final class MybatisPlusEntityTypeResolver {
 
 	Class<?> resolve(DataChangeInvocation invocation) {
 		if (invocation == null) { return null; }
+		MapperMetadata mapperMetadata = mapperMetadata(invocation.getMappedStatement());
+		if (mapperMetadata == null) { return null; }
 		Object parameterObject = invocation.getParameterObject();
 		Class<?> directEntityType = directEntityType(parameterObject);
 		if (directEntityType != null) { return directEntityType; }
 		Class<?> wrapperEntityType = wrapperEntityType(parameterObject);
 		if (wrapperEntityType != null) { return wrapperEntityType; }
-		return mapperEntityType(invocation.getMappedStatement());
+		return mapperMetadata.entityType;
 	}
 
 	private Class<?> directEntityType(Object parameterObject) {
@@ -42,11 +44,15 @@ final class MybatisPlusEntityTypeResolver {
 	private Class<?> wrapperEntityType(Object parameterObject) {
 		Wrapper<?> wrapper = wrapper(parameterObject);
 		if (wrapper == null) { return null; }
-		if (wrapper.getEntity() != null) { return wrapper.getEntity().getClass(); }
-		MetaObject metaObject = SystemMetaObject.forObject(wrapper);
-		if (!metaObject.hasGetter("entityClass")) { return null; }
-		Object entityClass = metaObject.getValue("entityClass");
-		return entityClass instanceof Class ? (Class<?>) entityClass : null;
+		Class<?> entityType = wrapper.getEntity() == null ? null : wrapper.getEntity().getClass();
+		if (entityType == null) {
+			MetaObject metaObject = SystemMetaObject.forObject(wrapper);
+			if (metaObject.hasGetter("entityClass")) {
+				Object entityClass = metaObject.getValue("entityClass");
+				entityType = entityClass instanceof Class ? (Class<?>) entityClass : null;
+			}
+		}
+		return entityType != null && TableInfoHelper.getTableInfo(entityType) != null ? entityType : null;
 	}
 
 	private Wrapper<?> wrapper(Object parameterObject) {
@@ -57,14 +63,16 @@ final class MybatisPlusEntityTypeResolver {
 		return candidate instanceof Wrapper ? (Wrapper<?>) candidate : null;
 	}
 
-	private Class<?> mapperEntityType(MappedStatement mappedStatement) {
+	private MapperMetadata mapperMetadata(MappedStatement mappedStatement) {
 		if (mappedStatement == null || mappedStatement.getId() == null) { return null; }
 		String id = mappedStatement.getId();
 		int separator = id.lastIndexOf('.');
 		if (separator <= 0) { return null; }
 		try {
 			Class<?> mapperType = Resources.classForName(id.substring(0, separator));
-			return resolveBaseMapperType(mapperType, Collections.<TypeVariable<?>, Type>emptyMap());
+			if (!BaseMapper.class.isAssignableFrom(mapperType)) { return null; }
+			return new MapperMetadata(resolveBaseMapperType(mapperType,
+					Collections.<TypeVariable<?>, Type>emptyMap()));
 		} catch (ClassNotFoundException ignored) {
 			return null;
 		}
@@ -114,5 +122,13 @@ final class MybatisPlusEntityTypeResolver {
 			return (Class<?>) ((ParameterizedType) type).getRawType();
 		}
 		return null;
+	}
+
+	private static final class MapperMetadata {
+		private final Class<?> entityType;
+
+		private MapperMetadata(Class<?> entityType) {
+			this.entityType = entityType;
+		}
 	}
 }

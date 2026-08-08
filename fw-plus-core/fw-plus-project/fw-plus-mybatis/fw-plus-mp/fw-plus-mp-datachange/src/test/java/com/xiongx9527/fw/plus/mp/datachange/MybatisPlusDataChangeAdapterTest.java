@@ -22,6 +22,7 @@ import org.apache.ibatis.mapping.SqlCommandType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -147,13 +148,50 @@ class MybatisPlusDataChangeAdapterTest {
 		assertThat(adapter.getOrder()).isEqualTo(200);
 	}
 
+	@Test
+	void doesNotSupportPlainMapperEvenWhenParameterHasPlusTableInfo() {
+		assertThat(adapter.supports(invocationFor(new PlusUser(), PlainUserMapper.class))).isFalse();
+	}
+
+	@Test
+	void doesNotSupportUnresolvableMapperNamespace() {
+		assertThat(adapter.supports(invocationFor(new PlusUser(), "missing.mapper.UserMapper"))).isFalse();
+	}
+
+	@Test
+	void resolvesEntityFromProxyOfMultilevelPlusMapper() {
+		Class<?> proxyMapper = Proxy.getProxyClass(PlusUserMapper.class.getClassLoader(), PlusUserMapper.class);
+
+		FrameworkChangeMetadata metadata = adapter.resolve(invocationFor(null, proxyMapper));
+
+		assertThat(metadata.getTable().getTable()).isEqualTo("audit_user");
+	}
+
+	@Test
+	void fallsBackToMapperGenericWhenWrapperEntityTypeHasNoTableInfo() {
+		LambdaUpdateWrapper<UnmappedUser> wrapper = new LambdaUpdateWrapper<UnmappedUser>(UnmappedUser.class);
+		DataChangeInvocation invocation = invocationFor(wrapper, PlusUserMapper.class);
+
+		assertThat(adapter.supports(invocation)).isTrue();
+		assertThat(adapter.resolve(invocation).getTable().getTable()).isEqualTo("audit_user");
+	}
+
 	private DataChangeInvocation invocationFor(Object parameterObject, Class<?> mapperType) {
 		return invocationFor(parameterObject, mapperType, SqlCommandType.UPDATE);
 	}
 
+	private DataChangeInvocation invocationFor(Object parameterObject, String mapperNamespace) {
+		return invocationFor(parameterObject, mapperNamespace, SqlCommandType.UPDATE);
+	}
+
 	private DataChangeInvocation invocationFor(Object parameterObject, Class<?> mapperType,
 			SqlCommandType commandType) {
-		String id = mapperType.getName() + ".change";
+		return invocationFor(parameterObject, mapperType.getName(), commandType);
+	}
+
+	private DataChangeInvocation invocationFor(Object parameterObject, String mapperNamespace,
+			SqlCommandType commandType) {
+		String id = mapperNamespace + ".change";
 		String sql = commandType == SqlCommandType.INSERT
 				? "insert into final_sql_table(display_name) values (?)"
 				: "update final_sql_table set display_name = ?";
@@ -171,6 +209,9 @@ class MybatisPlusDataChangeAdapterTest {
 	}
 
 	interface OtherUserMapper extends GenericMapper<OtherUser> {
+	}
+
+	interface PlainUserMapper {
 	}
 
 	@TableName("audit_user")
@@ -200,5 +241,8 @@ class MybatisPlusDataChangeAdapterTest {
 	static class OtherUser {
 		@TableId("other_id")
 		private Long id;
+	}
+
+	static class UnmappedUser {
 	}
 }
