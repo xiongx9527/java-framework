@@ -129,6 +129,7 @@ public class MybatisDataChangeAutoConfiguration {
 	@ConditionalOnMissingBean
 	@ConditionalOnBean(DataChangeHandler.class)
 	@ConditionalOnProperty(prefix = "fw.plus.mybatis-datachange", name = "enabled", havingValue = "true")
+	@ConditionalOnProperty(prefix = "fw.plus.mybatis-datachange", name = "tables[0].name")
 	public DataChangeInterceptor dataChangeInterceptor(DataChangeConfiguration configuration,
 			DataChangeEngine engine) {
 		return configuration.getTables().isEmpty() ? null : new DataChangeInterceptor(configuration, engine);
