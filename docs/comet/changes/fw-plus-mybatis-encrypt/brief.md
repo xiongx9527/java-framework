@@ -37,6 +37,7 @@
 - D2: 能力边界保留写入加密 + 查询解密双向（用户确认）。
 - D3（设计决定）: 按 datachange 模式重写，拦截器/处理器上移通用核心；`fw-plus-mp-encrypt` 只保留 MP 元数据适配与兼容重导出；boot 自动配置同步调整。
 - D4（设计决定）: 列名映射通过 SPI（FieldNameResolver 类契约）由 MP/Flex 适配器提供；通用核心反射解析 `@FieldEncrypt` 与类型约束，不依赖 `@TableField`/Flex 注解。
+- D5（用户确认 2026-08-09）: 字段 MetaObject 定位使用**属性名**（修正原 @TableField 列名定位导致加密静默失效的缺陷）；列名由 FieldNameResolver SPI 提供（spec 已同步更新）。
 
 # Open questions
 
