@@ -277,7 +277,7 @@ var one = mybatisplus.selectById(User.javaClass(), 1)
 mybatisplus.deleteById(User.javaClass(), 1)
 ```
 
-分页仍走 MyBatis-Plus 分页拦截器，不在插件里硬写 `LIMIT/OFFSET`。Plus/Flex 脚本侧字段写法统一为 Java 属性名：有 ORM 注解列名时使用注解映射，没有注解列名时使用属性名本身：
+分页仍走 MyBatis-Plus 分页拦截器，不在插件里硬写 `LIMIT/OFFSET`。Plus/Flex 脚本侧字段写法统一为 Java 属性名：有 ORM 注解列名时使用注解映射，没有注解列名时使用属性名本身。非表字段（Plus 的 `@TableField(exist = false)`、Flex 的 `@Column(ignore = true)`）和未知属性在动态 wrapper 条件里会直接跳过，不抛错：
 
 ```javascript
 var query = mybatisplus.query(User.javaClass())

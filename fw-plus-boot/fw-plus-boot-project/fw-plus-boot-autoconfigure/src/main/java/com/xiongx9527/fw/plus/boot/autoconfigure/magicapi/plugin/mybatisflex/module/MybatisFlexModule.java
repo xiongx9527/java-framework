@@ -372,6 +372,15 @@ public class MybatisFlexModule implements MagicDbSqlOperations,
     }
 
     private static String flexColumnName(Class<?> entityClass, String property) {
+        String columnName = flexColumnNameOrNull(entityClass, property);
+        if (columnName == null) {
+            throw new IllegalArgumentException("MyBatis-Flex property is not a table field: "
+                    + entityClass.getName() + "." + property);
+        }
+        return columnName;
+    }
+
+    private static String flexColumnNameOrNull(Class<?> entityClass, String property) {
         if (entityClass == null) {
             throw new IllegalArgumentException("MyBatis-Flex entity class must not be null");
         }
@@ -382,14 +391,12 @@ public class MybatisFlexModule implements MagicDbSqlOperations,
             if (property.equals(field.getName())) {
                 Column column = field.getAnnotation(Column.class);
                 if (column != null && column.ignore()) {
-                    throw new IllegalArgumentException("MyBatis-Flex property is not a table field: "
-                            + entityClass.getName() + "." + property);
+                    return null;
                 }
                 return flexColumnName(field, column);
             }
         }
-        throw new IllegalArgumentException("MyBatis-Flex property not found: "
-                + entityClass.getName() + "." + property);
+        return null;
     }
 
     private static boolean flexHasProperty(Class<?> entityClass, String property) {
@@ -1635,8 +1642,11 @@ public class MybatisFlexModule implements MagicDbSqlOperations,
 
         public DynamicFlexQueryWrapper selectAs(Class<?> entityClass, String alias, String property, String asProperty) {
             registerAlias(alias, entityClass);
-            this.selects.add(column(entityClass, alias, property).as(asProperty));
-            refreshSelects();
+            QueryColumn column = columnOrNull(entityClass, alias, property);
+            if (column != null) {
+                this.selects.add(column.as(asProperty));
+                refreshSelects();
+            }
             return this;
         }
 
@@ -1692,62 +1702,111 @@ public class MybatisFlexModule implements MagicDbSqlOperations,
         }
 
         public DynamicFlexQueryWrapper eq(boolean condition, String alias, String property, Object value) {
-            return append(condition, column(alias, property).eq(value));
+            if (condition) {
+                QueryColumn column = columnOrNull(alias, property);
+                return append(column != null, column == null ? null : column.eq(value));
+            }
+            return this;
         }
 
         public DynamicFlexQueryWrapper ne(boolean condition, String alias, String property, Object value) {
-            return append(condition, column(alias, property).ne(value));
+            if (condition) {
+                QueryColumn column = columnOrNull(alias, property);
+                return append(column != null, column == null ? null : column.ne(value));
+            }
+            return this;
         }
 
         public DynamicFlexQueryWrapper like(boolean condition, String alias, String property, Object value) {
-            return append(condition, column(alias, property).like(value));
+            if (condition) {
+                QueryColumn column = columnOrNull(alias, property);
+                return append(column != null, column == null ? null : column.like(value));
+            }
+            return this;
         }
 
         public DynamicFlexQueryWrapper ge(boolean condition, String alias, String property, Object value) {
-            return append(condition, column(alias, property).ge(value));
+            if (condition) {
+                QueryColumn column = columnOrNull(alias, property);
+                return append(column != null, column == null ? null : column.ge(value));
+            }
+            return this;
         }
 
         public DynamicFlexQueryWrapper le(boolean condition, String alias, String property, Object value) {
-            return append(condition, column(alias, property).le(value));
+            if (condition) {
+                QueryColumn column = columnOrNull(alias, property);
+                return append(column != null, column == null ? null : column.le(value));
+            }
+            return this;
         }
 
         public DynamicFlexQueryWrapper gt(boolean condition, String alias, String property, Object value) {
-            return append(condition, column(alias, property).gt(value));
+            if (condition) {
+                QueryColumn column = columnOrNull(alias, property);
+                return append(column != null, column == null ? null : column.gt(value));
+            }
+            return this;
         }
 
         public DynamicFlexQueryWrapper lt(boolean condition, String alias, String property, Object value) {
-            return append(condition, column(alias, property).lt(value));
+            if (condition) {
+                QueryColumn column = columnOrNull(alias, property);
+                return append(column != null, column == null ? null : column.lt(value));
+            }
+            return this;
         }
 
         public DynamicFlexQueryWrapper in(boolean condition, String alias, String property, Collection<?> values) {
-            return append(condition, column(alias, property).in(values));
+            if (condition) {
+                QueryColumn column = columnOrNull(alias, property);
+                return append(column != null, column == null ? null : column.in(values));
+            }
+            return this;
         }
 
         public DynamicFlexQueryWrapper isNull(boolean condition, String alias, String property) {
-            return append(condition, column(alias, property).isNull(true));
+            if (condition) {
+                QueryColumn column = columnOrNull(alias, property);
+                return append(column != null, column == null ? null : column.isNull(true));
+            }
+            return this;
         }
 
         public DynamicFlexQueryWrapper isNotNull(boolean condition, String alias, String property) {
-            return append(condition, column(alias, property).isNotNull(true));
+            if (condition) {
+                QueryColumn column = columnOrNull(alias, property);
+                return append(column != null, column == null ? null : column.isNotNull(true));
+            }
+            return this;
         }
 
         public DynamicFlexQueryWrapper groupBy(String alias, String property) {
-            this.delegate.groupBy(column(alias, property));
+            QueryColumn column = columnOrNull(alias, property);
+            if (column != null) {
+                this.delegate.groupBy(column);
+            }
             return this;
         }
 
         public DynamicFlexQueryWrapper orderByAsc(String alias, String property) {
-            this.delegate.orderBy(column(alias, property), true);
+            QueryColumn column = columnOrNull(alias, property);
+            if (column != null) {
+                this.delegate.orderBy(column, true);
+            }
             return this;
         }
 
         public DynamicFlexQueryWrapper orderByDesc(String alias, String property) {
-            this.delegate.orderBy(column(alias, property), false);
+            QueryColumn column = columnOrNull(alias, property);
+            if (column != null) {
+                this.delegate.orderBy(column, false);
+            }
             return this;
         }
 
         private DynamicFlexQueryWrapper append(boolean condition, QueryCondition queryCondition) {
-            if (condition) {
+            if (condition && queryCondition != null) {
                 if (this.hasWhere) {
                     this.delegate.and(queryCondition);
                 } else {
@@ -1766,8 +1825,17 @@ public class MybatisFlexModule implements MagicDbSqlOperations,
             return column(requireAliasClass(alias), alias, property);
         }
 
+        private QueryColumn columnOrNull(String alias, String property) {
+            return columnOrNull(requireAliasClass(alias), alias, property);
+        }
+
         private QueryColumn column(Class<?> entityClass, String alias, String property) {
             return new QueryColumn(alias, flexColumnName(entityClass, property));
+        }
+
+        private QueryColumn columnOrNull(Class<?> entityClass, String alias, String property) {
+            String columnName = flexColumnNameOrNull(entityClass, property);
+            return columnName == null ? null : new QueryColumn(alias, columnName);
         }
 
         private void registerAlias(String alias, Class<?> entityClass) {

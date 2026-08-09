@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" role="img" aria-labelledby="title desc">
+	<title id="title">fw-plus Java 开发框架</title>
+	<desc id="desc">面向 Java 8 的模块化开发框架，从 Core 与 Boot 延伸到 Cloud、AI 和 Samples。</desc>
+	<rect width="1200" height="380" rx="6" fill="#0B0F14"/>
+
+	<g fill="none" stroke="#25303A" stroke-width="1">
+		<path d="M56 72H1144"/>
+		<path d="M56 310H1144"/>
+		<path d="M688 72V310"/>
+	</g>
+
+	<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16" fill="#8A96A3">
+		<text x="56" y="47">JAVA FRAMEWORK / MODULAR SYSTEM</text>
+		<text x="1144" y="47" text-anchor="end">0.1.1-SNAPSHOT</text>
+	</g>
+
+	<g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif">
+		<text x="56" y="170" font-size="82" font-weight="700" fill="#F4F7F5">fw-plus</text>
+		<rect x="58" y="192" width="88" height="5" rx="2.5" fill="#EF4444"/>
+		<text x="56" y="240" font-size="28" font-weight="600" fill="#F4F7F5">面向 Java 8 的模块化开发框架</text>
+		<text x="56" y="278" font-size="20" fill="#8A96A3">统一依赖、自动配置与可组合的企业级扩展</text>
+	</g>
+
+	<g transform="translate(724 98)" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+		<path d="M18 24V178H132" fill="none" stroke="#EF4444" stroke-width="3"/>
+		<path d="M132 90H236" fill="none" stroke="#22C7A9" stroke-width="3"/>
+		<path d="M132 178H236" fill="none" stroke="#22C7A9" stroke-width="3"/>
+		<path d="M236 90H358V134" fill="none" stroke="#4B5966" stroke-width="2"/>
+		<path d="M236 178H358V134" fill="none" stroke="#4B5966" stroke-width="2"/>
+
+		<g>
+			<circle cx="18" cy="24" r="8" fill="#EF4444"/>
+			<text x="42" y="31" font-size="22" font-weight="700" fill="#F4F7F5">CORE</text>
+			<text x="42" y="55" font-size="16" fill="#8A96A3">foundation</text>
+		</g>
+		<g>
+			<circle cx="132" cy="90" r="8" fill="#EF4444"/>
+			<text x="156" y="97" font-size="22" font-weight="700" fill="#F4F7F5">BOOT</text>
+			<text x="156" y="121" font-size="16" fill="#8A96A3">autoconfigure</text>
+		</g>
+		<g>
+			<circle cx="236" cy="90" r="8" fill="#22C7A9"/>
+			<text x="260" y="97" font-size="20" font-weight="700" fill="#F4F7F5">CLOUD</text>
+		</g>
+		<g>
+			<circle cx="236" cy="178" r="8" fill="#22C7A9"/>
+			<text x="260" y="185" font-size="20" font-weight="700" fill="#F4F7F5">AI</text>
+		</g>
+		<g>
+			<circle cx="358" cy="134" r="8" fill="#F4F7F5"/>
+			<text x="334" y="169" text-anchor="middle" font-size="16" fill="#8A96A3">SAMPLES</text>
+		</g>
+	</g>
+
+	<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="16">
+		<text x="56" y="344" fill="#F4F7F5">JAVA 8</text>
+		<text x="135" y="344" fill="#4B5966">/</text>
+		<text x="156" y="344" fill="#F4F7F5">SPRING BOOT 2.7.18</text>
+		<text x="350" y="344" fill="#4B5966">/</text>
+		<text x="371" y="344" fill="#F4F7F5">MAGIC-API 2.2.2</text>
+		<text x="1144" y="344" text-anchor="end" fill="#8A96A3">CORE → BOOT → CLOUD / AI</text>
+	</g>
+</svg>

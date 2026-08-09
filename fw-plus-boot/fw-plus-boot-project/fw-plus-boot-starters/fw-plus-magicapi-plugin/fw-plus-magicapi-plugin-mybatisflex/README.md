@@ -76,7 +76,7 @@
 
 实体类可以不加注解；如果需要映射表名和字段名，建议使用 MyBatis-Flex 注解。
 
-Flex 和 Plus 的脚本写法保持统一：脚本里写 Java 属性名，插件内部再解析数据库列名。有 `@Column("列名")` 时使用注解列名；没有写注解列名时使用属性名本身；`@Column(ignore = true)` 不作为数据库字段。
+Flex 和 Plus 的脚本写法保持统一：脚本里写 Java 属性名，插件内部再解析数据库列名。有 `@Column("列名")` 时使用注解列名；没有写注解列名时使用属性名本身；`@Column(ignore = true)` 不作为数据库字段。动态 wrapper 条件里写到 `ignore = true` 字段或未知属性时会直接跳过该条件，不会抛错。
 
 ```java
 package demo;
@@ -295,6 +295,8 @@ var query = mybatisflex.query(User.javaClass(), 'u')
 
 return mybatisflex.paginate(1, 10, query)
 ```
+
+`@Column(ignore = true)` 字段不是表字段，作为动态条件字段时会被跳过。
 
 ## 动态 SQL 能力
 

@@ -58,6 +58,8 @@ class MybatisPlusModuleEntityMapTest {
 		MybatisPlusModule.DynamicMpQueryWrapper wrapper = module.query(MpUser.class)
 				.eq(true, "id", 1L)
 				.like(true, "userName", "张")
+				.eq(true, "password", "secret")
+				.eq(true, "unknownProp", "ignored")
 				.eq(false, "remark", "skip")
 				.orderByDesc("id");
 
@@ -65,6 +67,10 @@ class MybatisPlusModuleEntityMapTest {
 				.contains("user_id")
 				.contains("user_name")
 				.contains("ORDER BY user_id DESC")
+				.doesNotContain("password")
+				.doesNotContain("secret")
+				.doesNotContain("unknownProp")
+				.doesNotContain("ignored")
 				.doesNotContain("remark");
 	}
 

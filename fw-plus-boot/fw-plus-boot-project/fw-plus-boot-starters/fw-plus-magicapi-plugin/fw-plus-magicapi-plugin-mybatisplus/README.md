@@ -76,7 +76,7 @@
 
 实体类可以不加注解；如果需要映射表名和字段名，建议使用 MyBatis-Plus 注解。
 
-Plus 和 Flex 的脚本写法保持统一：脚本里写 Java 属性名，插件内部再解析数据库列名。有 `@TableId("列名")`、`@TableField("列名")` 时使用注解列名；没有写注解列名时使用属性名本身；`@TableField(exist = false)` 不作为数据库字段。
+Plus 和 Flex 的脚本写法保持统一：脚本里写 Java 属性名，插件内部再解析数据库列名。有 `@TableId("列名")`、`@TableField("列名")` 时使用注解列名；没有写注解列名时使用属性名本身；`@TableField(exist = false)` 不作为数据库字段。动态 wrapper 条件里写到 `exist = false` 字段或未知属性时会直接跳过该条件，不会抛错。
 
 ```java
 package demo;
@@ -333,7 +333,7 @@ wrapper.like(body.keyword != null && body.keyword != '', 'userName', body.keywor
 return mapper.selectPage(1, 10, wrapper)
 ```
 
-`mybatisplus.query(User.javaClass())` 是动态实体 wrapper，字段参数统一写 Java 属性名；有注解映射时自动转换成数据库列名，没有注解时直接使用属性名。
+`mybatisplus.query(User.javaClass())` 是动态实体 wrapper，字段参数统一写 Java 属性名；有注解映射时自动转换成数据库列名，没有注解时直接使用属性名。`@TableField(exist = false)` 字段不是表字段，作为动态条件字段时会被跳过。
 
 分页依赖 MyBatis-Plus 分页拦截器。插件侧会使用 MyBatis-Plus 的 `Page` 参数，具体 SQL 分页方言由 MP 拦截器处理。
 

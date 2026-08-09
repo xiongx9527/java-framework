@@ -21,6 +21,14 @@
             <artifactId>fw-plus-ai-tinyflow-core</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-tinyflow-local</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-dify</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
             <artifactId>fw-plus-ai-model-spring-boot-starter</artifactId>
         </dependency>
@@ -117,6 +125,20 @@
                                     <includes>
                                         <include>tinyflow-ui.js</include>
                                         <include>tinyflow-ui.css</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${project.basedir}/src/main/frontend/tinyflow-ui/node_modules/@tinyflow-ai/ui</directory>
+                                    <targetPath>licenses/tinyflow-ai-ui</targetPath>
+                                    <includes>
+                                        <include>LICENSE</include>
+                                    </includes>
+                                </resource>
+                                <resource>
+                                    <directory>${project.basedir}/src/main/frontend/tinyflow-ui/node_modules/vue</directory>
+                                    <targetPath>licenses/vue</targetPath>
+                                    <includes>
+                                        <include>LICENSE</include>
                                     </includes>
                                 </resource>
                             </resources>
