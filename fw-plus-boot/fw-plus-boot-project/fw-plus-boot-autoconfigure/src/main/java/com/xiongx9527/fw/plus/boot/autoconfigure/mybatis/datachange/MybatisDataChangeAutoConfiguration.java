@@ -20,6 +20,7 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -128,8 +129,7 @@ public class MybatisDataChangeAutoConfiguration {
 	@Order(Ordered.LOWEST_PRECEDENCE)
 	@ConditionalOnMissingBean
 	@ConditionalOnBean(DataChangeHandler.class)
-	@ConditionalOnProperty(prefix = "fw.plus.mybatis-datachange", name = "enabled", havingValue = "true")
-	@ConditionalOnProperty(prefix = "fw.plus.mybatis-datachange", name = "tables[0].name")
+	@ConditionalOnExpression("${fw.plus.mybatis-datachange.enabled:false} and '${fw.plus.mybatis-datachange.tables[0].name:}' != ''")
 	public DataChangeInterceptor dataChangeInterceptor(DataChangeConfiguration configuration,
 			DataChangeEngine engine) {
 		return configuration.getTables().isEmpty() ? null : new DataChangeInterceptor(configuration, engine);
