@@ -10,5 +10,5 @@
   "isolation": "worktree",
   "changeBranch": "comet/fw-plus-mybatis-encrypt",
   "targetBranch": "dev",
-  "finish": null
+  "finish": "merge"
 }
