@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi;
+package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.ManagedMagicDynamicDataSource;
 import org.springframework.beans.factory.annotation.Autowired;

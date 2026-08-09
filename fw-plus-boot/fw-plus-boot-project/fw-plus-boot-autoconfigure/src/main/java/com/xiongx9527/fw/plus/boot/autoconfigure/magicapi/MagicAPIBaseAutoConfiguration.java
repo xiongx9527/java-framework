@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi;
 
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.MagicAPIDynamicDataSourceAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.webflux.MagicAPIWebFluxAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
