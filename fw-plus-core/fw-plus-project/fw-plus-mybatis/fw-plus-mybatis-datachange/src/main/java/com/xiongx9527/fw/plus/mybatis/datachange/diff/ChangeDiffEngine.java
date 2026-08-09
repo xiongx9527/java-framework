@@ -103,6 +103,13 @@ public final class ChangeDiffEngine {
 	}
 
 	private Object value(RowSnapshot row, String column) {
-		return row == null ? null : row.getValues().get(column);
+		if (row == null || column == null) { return null; }
+		Map<String, Object> values = row.getValues();
+		Object direct = values.get(column);
+		if (direct != null || values.containsKey(column)) { return direct; }
+		for (Map.Entry<String, Object> entry : values.entrySet()) {
+			if (column.equalsIgnoreCase(entry.getKey())) { return entry.getValue(); }
+		}
+		return null;
 	}
 }

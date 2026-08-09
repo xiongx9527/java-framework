@@ -14,7 +14,7 @@ class SqlServerDataChangeDialectIT extends DialectDatabaseContract {
 
 	@Override protected boolean supportsCreatedSchema() { return true; }
 	@Override protected String driverClassName() { return "com.microsoft.sqlserver.jdbc.SQLServerDriver"; }
-	@Override protected String qualified(String schema, String table) { return '[' + schema + "].[" + table + ']'; }
+	@Override protected String qualified(String schema, String table) { return schema + "." + table; }
 	@Override protected String createTableSql(String table) {
 		return "CREATE TABLE " + table + " (id BIGINT IDENTITY(1,1) UNIQUE, tenant_id BIGINT NOT NULL, "
 				+ "order_no VARCHAR(40) NOT NULL, amount INT NOT NULL, status VARCHAR(20) DEFAULT 'NEW', "
