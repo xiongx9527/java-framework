@@ -1,11 +1,8 @@
 # mp-encrypt-field-security Specification
 
 ## Purpose
-
-定义 `fw-plus-mp-encrypt` 基于 `@FieldEncrypt` 注解的字段加解密契约：哪些字段在何时被加密/解密、类型约束、列名映射与加密器选择规则，并通过测试固化这些行为，防止回归。
-
+TBD - created by archiving change mp-encrypt-hardening. Update Purpose after archive.
 ## Requirements
-
 ### Requirement: INSERT/UPDATE 时加密 String 字段
 
 带有 `@FieldEncrypt` 且值为非空 `String` 的实体字段，在 MyBatis `INSERT`/`UPDATE` 执行前 MUST 被加密为密文。
@@ -61,3 +58,4 @@
 - **GIVEN** 注解指定了自定义 `IEncryptor` 类
 - **WHEN** 多次执行加解密
 - **THEN** 使用该类实例且同一类只创建一次（缓存复用）
+
