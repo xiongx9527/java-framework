@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.boot.autoconfigure.mp;
+package com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mp;
 
 import com.baomidou.mybatisplus.core.injector.ISqlInjector;
 import com.github.yulichang.autoconfigure.MybatisPlusJoinProperties;

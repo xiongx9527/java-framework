@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.boot.autoconfigure.mp;
+package com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mp;
 
 import com.xiongx9527.fw.plus.mp.datachange.MybatisPlusDataChangeAdapter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
