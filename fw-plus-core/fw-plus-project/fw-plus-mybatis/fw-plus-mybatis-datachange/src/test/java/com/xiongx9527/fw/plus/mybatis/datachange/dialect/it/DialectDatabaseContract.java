@@ -124,16 +124,20 @@ abstract class DialectDatabaseContract {
 		try (SqlSession session = factory.openSession(true)) {
 			int count = execute(session, INSERT, initial);
 			StatementChange insert = event(count, DataChangeOperation.INSERT);
-			assertThat(initial.get("id")).isInstanceOf(Number.class);
-			assertThat(((Number) initial.get("id")).longValue()).isPositive();
-			assertIdentityId(insert, initial.get("id"));
+			if (keyColumns().size() == 1 && "id".equalsIgnoreCase(keyColumns().get(0))) {
+				assertThat(initial.get("id")).isInstanceOf(Number.class);
+				assertThat(((Number) initial.get("id")).longValue()).isPositive();
+				assertIdentityId(insert, initial.get("id"));
+			}
 			assertThat(field(row(insert), "status").getAfterValue()).isEqualTo("NEW");
 		}
 
 		try (SqlSession session = factory.openSession(true)) {
 			Map<String, Object> update = values(7L, "A", 20);
 			StatementChange change = event(execute(session, UPDATE, update), DataChangeOperation.UPDATE);
-			assertIdentityId(change, initial.get("id"));
+			if (keyColumns().size() == 1 && "id".equalsIgnoreCase(keyColumns().get(0))) {
+				assertIdentityId(change, initial.get("id"));
+			}
 			assertThat(((Number) field(row(change), "touched").getAfterValue()).longValue()).isGreaterThan(0L);
 		}
 
@@ -146,8 +150,8 @@ abstract class DialectDatabaseContract {
 			Map<String, Object> matched = values(7L, "A", 40);
 			StatementChange update = event(execute(session, UPSERT, matched), DataChangeOperation.UPDATE,
 					acceptedUpsertCounts());
-			assertThat(field(row(update), "amount").getBeforeValue()).isEqualTo(20);
-			assertThat(field(row(update), "amount").getAfterValue()).isEqualTo(40);
+			assertThat(((Number) field(row(update), "amount").getBeforeValue()).intValue()).isEqualTo(20);
+			assertThat(((Number) field(row(update), "amount").getAfterValue()).intValue()).isEqualTo(40);
 		}
 
 		verifyReturning(factory);
@@ -317,6 +321,7 @@ abstract class DialectDatabaseContract {
 		monitor.setIncludeColumns(Arrays.asList("amount", "status", "touched"));
 		return monitor;
 	}
+	protected List<String> keyColumns() { return Collections.singletonList("id"); }
 
 	private void createObjects(Connection connection, String schema, String table) throws Exception {
 		try (Statement statement = connection.createStatement()) {
