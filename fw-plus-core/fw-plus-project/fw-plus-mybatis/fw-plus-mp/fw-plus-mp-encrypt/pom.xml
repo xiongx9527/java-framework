@@ -18,6 +18,10 @@
     <dependencies>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-mybatis-encrypt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-mp-base</artifactId>
         </dependency>
         <dependency>
