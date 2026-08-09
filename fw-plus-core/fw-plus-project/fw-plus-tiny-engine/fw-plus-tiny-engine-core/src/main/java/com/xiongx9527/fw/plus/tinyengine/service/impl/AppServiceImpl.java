@@ -214,11 +214,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 	}
 
 	@Override
-	public App setAppTemplate(Integer id, Boolean isTemplate, String templateType) {
+	public App setAppTemplate(Integer id, Boolean isTemplate, String templateType, Integer industryId, Integer sceneId, String framework) {
 		App app = new App();
 		app.setId(id);
 		app.setIsTemplate(isTemplate);
 		app.setTemplateType(templateType);
+		app.setIndustryId(industryId);
+		app.setSceneId(sceneId);
+		app.setFramework(framework);
 		return updateAppById(app);
 	}
 

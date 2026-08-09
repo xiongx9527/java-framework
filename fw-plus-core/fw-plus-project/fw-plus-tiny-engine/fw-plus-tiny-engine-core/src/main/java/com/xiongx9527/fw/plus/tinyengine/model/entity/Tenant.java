@@ -38,6 +38,8 @@ private String nameCn;
 private String nameEn;
 private String description;
 private Boolean isSystem;
+private String platformDomain;
+private String customDomain;
 
     @TableField("enable")
 private Boolean isEnable;
@@ -97,6 +99,22 @@ private LocalDateTime lastUpdatedTime;
 
 	public void setDescription(String description) {
 		this.description = description;
+	}
+
+	public String getPlatformDomain() {
+		return platformDomain;
+	}
+
+	public void setPlatformDomain(String platformDomain) {
+		this.platformDomain = platformDomain;
+	}
+
+	public String getCustomDomain() {
+		return customDomain;
+	}
+
+	public void setCustomDomain(String customDomain) {
+		this.customDomain = customDomain;
 	}
 
 	public Boolean getIsSystem() {

@@ -595,8 +595,8 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 	}
 
 	@Override
-	public App setAppTemplate(Integer id, Boolean isTemplate, String templateType) {
-		return appService.setAppTemplate(id, isTemplate, templateType);
+	public App setAppTemplate(Integer id, Boolean isTemplate, String templateType, Integer industryId, Integer sceneId, String framework) {
+		return appService.setAppTemplate(id, isTemplate, templateType, industryId, sceneId, framework);
 	}
 
 	@Override

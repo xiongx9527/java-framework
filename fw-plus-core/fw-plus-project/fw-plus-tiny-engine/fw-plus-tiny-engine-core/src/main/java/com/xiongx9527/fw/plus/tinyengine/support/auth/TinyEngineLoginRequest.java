@@ -5,11 +5,17 @@ public class TinyEngineLoginRequest {
 	private final String username;
 	private final String password;
 	private final String tenantId;
+	private final String requestHost;
 
 	public TinyEngineLoginRequest(String username, String password, String tenantId) {
+		this(username, password, tenantId, null);
+	}
+
+	public TinyEngineLoginRequest(String username, String password, String tenantId, String requestHost) {
 		this.username = username;
 		this.password = password;
 		this.tenantId = tenantId;
+		this.requestHost = requestHost;
 	}
 
 	public String getUsername() {
@@ -22,5 +28,9 @@ public class TinyEngineLoginRequest {
 
 	public String getTenantId() {
 		return tenantId;
+	}
+
+	public String getRequestHost() {
+		return requestHost;
 	}
 }

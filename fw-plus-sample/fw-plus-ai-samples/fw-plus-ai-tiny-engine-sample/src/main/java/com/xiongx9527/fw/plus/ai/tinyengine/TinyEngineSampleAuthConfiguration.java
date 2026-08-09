@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.crypto.SecretKey;
@@ -217,17 +218,18 @@ public class TinyEngineSampleAuthConfiguration {
 			if (request == null || isBlank(request.getUsername()) || isBlank(request.getPassword())) {
 				throw new TinyEngineUnsupportedCapabilityException("TinyEngine username and password are required");
 			}
+			String salt = randomSalt();
+			String publicKey = randomRecoveryCode();
+			// Public registration must not trust a tenant id supplied by the client.
+			String tenantId = tenantIdByHost(request.getRequestHost(), true);
 			if (userByUsername(request.getUsername()) != null) {
 				throw new TinyEngineUnsupportedCapabilityException("TinyEngine username already exists");
 			}
-			String salt = randomSalt();
-			String publicKey = randomRecoveryCode();
-			String tenantId = normalizeTenantId(request.getTenantId());
 			jdbcTemplate.update("insert into t_user(username, password, salt, public_key, email, tenant_id, enable, is_admin, is_public) "
 							+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 					request.getUsername(), hash(request.getPassword(), salt), salt, publicKey, null, tenantId,
 					Boolean.TRUE, Boolean.FALSE, Boolean.FALSE);
-			Map<String, Object> user = userByUsername(request.getUsername());
+			Map<String, Object> user = userByUsernameAndTenant(request.getUsername(), tenantId);
 			if (DEFAULT_TENANT_ID.equals(tenantId)) {
 				ensureDefaultTenant(jdbcTemplate);
 				ensureTenantMembership(jdbcTemplate, string(user, "id"), DEFAULT_TENANT_ID, Integer.valueOf(5),
@@ -241,7 +243,9 @@ public class TinyEngineSampleAuthConfiguration {
 			if (request == null || isBlank(request.getUsername()) || isBlank(request.getNewPassword())) {
 				throw new TinyEngineUnsupportedCapabilityException("TinyEngine username and password are required");
 			}
-			Map<String, Object> user = userByUsername(request.getUsername());
+			Map<String, Object> user = isBlank(request.getTenantId())
+					? userByUsername(request.getUsername())
+					: userByUsernameAndTenant(request.getUsername(), request.getTenantId());
 			if (user == null || !enabled(user)) {
 				throw new TinyEngineUnauthenticatedException("TinyEngine username is invalid");
 			}
@@ -320,8 +324,12 @@ public class TinyEngineSampleAuthConfiguration {
 					string(user, "salt"))) {
 				throw new TinyEngineUnauthenticatedException("TinyEngine username or password is invalid");
 			}
-			String tenantId = normalizeTenantId(isBlank(request.getTenantId()) ? string(user, "tenant_id")
-					: request.getTenantId());
+			String tenantId = isBlank(request.getRequestHost())
+					? normalizeTenantId(request.getTenantId() == null ? string(user, "tenant_id") : request.getTenantId())
+					: tenantIdByHost(request.getRequestHost(), false);
+			if (!hasTenant(string(user, "id"), tenantId)) {
+				throw new TinyEngineUnauthenticatedException("TinyEngine user is not assigned to host tenant");
+			}
 			requireTenantEnabled(tenantId);
 			return principal(user, tenantId);
 		}
@@ -416,6 +424,19 @@ public class TinyEngineSampleAuthConfiguration {
 				return jdbcTemplate.queryForMap("select * from t_user where username = ?", username);
 			} catch (EmptyResultDataAccessException ignored) {
 				return null;
+			} catch (IncorrectResultSizeDataAccessException ex) {
+				throw new TinyEngineUnsupportedCapabilityException("用户名对应多个用户，无法登录");
+			}
+		}
+
+		protected Map<String, Object> userByUsernameAndTenant(String username, String tenantId) {
+			try {
+				return jdbcTemplate.queryForMap("select * from t_user where username = ? and tenant_id = ?",
+						username, normalizeTenantId(tenantId));
+			} catch (EmptyResultDataAccessException ignored) {
+				return null;
+			} catch (IncorrectResultSizeDataAccessException ex) {
+				throw new TinyEngineUnsupportedCapabilityException("租户内用户名对应多个用户，无法登录");
 			}
 		}
 
@@ -493,6 +514,45 @@ public class TinyEngineSampleAuthConfiguration {
 			Map<String, Object> tenant = queryForMap(jdbcTemplate,
 					"select * from t_tenant where name_en = ? order by id desc limit 1", tenantName);
 			return tenant == null ? null : tenant(tenant, false);
+		}
+
+		private String tenantIdByHost(String host, boolean fallbackToSystem) {
+			String normalizedHost = normalizeHost(host);
+			if (!tableExists("t_tenant")) {
+				if (fallbackToSystem) {
+					return DEFAULT_TENANT_ID;
+				}
+				throw new TinyEngineUnauthenticatedException("当前访问域名未匹配到可用租户");
+			}
+			if (!isBlank(normalizedHost)) {
+				Map<String, Object> tenant = queryForMap(jdbcTemplate,
+						"select id from t_tenant where enable = true and (platform_domain = ? or custom_domain = ?) "
+								+ "order by id limit 1",
+						normalizedHost, normalizedHost);
+				if (tenant != null && !isBlank(string(tenant, "id"))) {
+					return string(tenant, "id");
+				}
+			}
+			if (!fallbackToSystem) {
+				throw new TinyEngineUnauthenticatedException(
+						"当前访问域名未匹配到可用租户");
+			}
+			Map<String, Object> systemTenant = queryForMap(jdbcTemplate,
+					"select id from t_tenant where enable = true and is_system = true order by id limit 1");
+			if (systemTenant == null || isBlank(string(systemTenant, "id"))) {
+				throw new TinyEngineUnsupportedCapabilityException(
+						"当前访问域名未匹配到可用租户，且系统租户不存在");
+			}
+			return string(systemTenant, "id");
+		}
+
+		private String normalizeHost(String host) {
+			if (isBlank(host)) {
+				return null;
+			}
+			String value = host.trim().toLowerCase(java.util.Locale.ROOT);
+			int separator = value.indexOf(':');
+			return separator > 0 ? value.substring(0, separator) : value;
 		}
 
 		private Tenant tenant(Map<String, Object> row, boolean inUse) {

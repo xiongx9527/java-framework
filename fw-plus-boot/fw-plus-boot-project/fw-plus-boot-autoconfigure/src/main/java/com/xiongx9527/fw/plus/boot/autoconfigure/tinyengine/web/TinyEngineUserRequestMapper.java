@@ -13,12 +13,21 @@ public final class TinyEngineUserRequestMapper {
 	}
 
 	public static TinyEngineLoginRequest toLoginRequest(Map<String, Object> body) {
-		return new TinyEngineLoginRequest(string(body, "username"), string(body, "password"), string(body, "tenantId"));
+		return toLoginRequest(body, null);
+	}
+
+	public static TinyEngineLoginRequest toLoginRequest(Map<String, Object> body, String requestHost) {
+		return new TinyEngineLoginRequest(string(body, "username"), string(body, "password"),
+				string(body, "tenantId"), requestHost);
 	}
 
 	public static TinyEngineRegistrationRequest toRegistrationRequest(Map<String, Object> body) {
+		return toRegistrationRequest(body, null);
+	}
+
+	public static TinyEngineRegistrationRequest toRegistrationRequest(Map<String, Object> body, String requestHost) {
 		return new TinyEngineRegistrationRequest(string(body, "username"), string(body, "displayName"),
-				string(body, "password"), string(body, "tenantId"));
+				string(body, "password"), null, requestHost);
 	}
 
 	public static TinyEnginePasswordResetRequest toPasswordResetRequest(Map<String, Object> body) {
