@@ -1,0 +1,5 @@
+{
+  "openspec_proposal": "docs/openspec/changes/mybatis-autoconfig-aggregator/proposal.md",
+  "openspec_design": "docs/openspec/changes/mybatis-autoconfig-aggregator/design.md",
+  "openspec_tasks": "docs/openspec/changes/mybatis-autoconfig-aggregator/tasks.md"
+}
