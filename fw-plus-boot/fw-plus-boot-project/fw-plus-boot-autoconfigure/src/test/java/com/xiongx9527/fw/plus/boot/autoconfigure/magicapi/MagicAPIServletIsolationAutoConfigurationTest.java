@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.controller.MagicAPIController;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.MagicAPIDynamicDataSourceAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.datasource.service.ManagedMagicDynamicDataSource;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.filter.auth.AuthConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.filter.auth.AuthFilter;
