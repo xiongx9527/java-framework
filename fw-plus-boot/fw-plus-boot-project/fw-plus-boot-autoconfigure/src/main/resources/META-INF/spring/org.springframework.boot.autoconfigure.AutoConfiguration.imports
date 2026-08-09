@@ -4,11 +4,11 @@ com.xiongx9527.fw.plus.boot.autoconfigure.web.WebAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.mate.MateAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.nosql.NoSqlAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.jdbc.JdbcAutoConfiguration
-com.xiongx9527.fw.plus.boot.autoconfigure.mp.MpAutoConfiguration
+com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mp.MpAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.datachange.MybatisDataChangeAutoConfiguration
-com.xiongx9527.fw.plus.boot.autoconfigure.mp.MpDataChangeAdapterAutoConfiguration
-com.xiongx9527.fw.plus.boot.autoconfigure.mf.MfDataChangeAdapterAutoConfiguration
-com.xiongx9527.fw.plus.boot.autoconfigure.mf.MfEncryptAutoConfiguration
+com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mp.MpDataChangeAdapterAutoConfiguration
+com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mf.MfDataChangeAdapterAutoConfiguration
+com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mf.MfEncryptAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.template.TemplateAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.uid.UIDAutoConfiguration
 com.xiongx9527.fw.plus.boot.autoconfigure.report.ReportAutoConfiguration

@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.boot.autoconfigure.mf;
+package com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mf;
 
 import com.xiongx9527.fw.plus.mf.datachange.MybatisFlexDataChangeAdapter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;

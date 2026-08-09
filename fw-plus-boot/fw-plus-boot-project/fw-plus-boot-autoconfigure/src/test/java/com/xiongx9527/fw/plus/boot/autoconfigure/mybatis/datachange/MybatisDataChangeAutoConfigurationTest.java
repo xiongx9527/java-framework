@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.datachange;
 
-import com.xiongx9527.fw.plus.boot.autoconfigure.mf.MfDataChangeAdapterAutoConfiguration;
-import com.xiongx9527.fw.plus.boot.autoconfigure.mp.MpDataChangeAdapterAutoConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mf.MfDataChangeAdapterAutoConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mp.MpDataChangeAdapterAutoConfiguration;
 import com.xiongx9527.fw.plus.mf.datachange.MybatisFlexDataChangeAdapter;
 import com.xiongx9527.fw.plus.mp.datachange.MybatisPlusDataChangeAdapter;
 import com.xiongx9527.fw.plus.mybatis.datachange.adapter.DataChangeFrameworkAdapterRegistry;
