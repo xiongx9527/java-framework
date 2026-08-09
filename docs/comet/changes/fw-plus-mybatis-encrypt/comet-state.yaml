@@ -1,0 +1,23 @@
+schema: comet.native.v3
+minimum_runtime_version: 3
+revision: 2
+verification_protocol: legacy-v1
+name: fw-plus-mybatis-encrypt
+language: zh-CN
+phase: build
+brief: brief.md
+approval: confirmed
+approved_contract_hash: 44366505d424b3ce01d3d1ed287ff8320b26fac017ce8ed104d1b11746be3109
+spec_changes:
+  - capability: mybatis-encrypt
+    operation: create
+    source: specs/mybatis-encrypt/spec.md
+    base_hash: null
+verification_result: pending
+verification_report: null
+implementation_scope: null
+verification_evidence: null
+partial_allowance: null
+archived: false
+created_at: 2026-08-09
+run_id: c0e2f266-1967-440b-8f48-e5db4bf714c4

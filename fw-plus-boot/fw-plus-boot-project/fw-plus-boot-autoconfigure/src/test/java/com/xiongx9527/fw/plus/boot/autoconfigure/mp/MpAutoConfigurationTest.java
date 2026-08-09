@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.mp;
 
 import com.xiongx9527.fw.plus.common.encrypt.DefaultEncryptor;
-import com.xiongx9527.fw.plus.mp.encrypt.FieldDecryptInterceptor;
-import com.xiongx9527.fw.plus.mp.encrypt.FieldEncryptInterceptor;
+import com.xiongx9527.fw.plus.mybatis.encrypt.interceptor.FieldDecryptInterceptor;
+import com.xiongx9527.fw.plus.mybatis.encrypt.interceptor.FieldEncryptInterceptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;

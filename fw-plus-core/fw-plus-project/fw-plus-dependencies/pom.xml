@@ -1191,6 +1191,16 @@
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mybatis-encrypt</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mf-encrypt</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mp-datascope</artifactId>
                 <version>${project.version}</version>
             </dependency>

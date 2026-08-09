@@ -1,0 +1,14 @@
+{
+  "schema": "comet.native.workspace.v3",
+  "capturedAt": "2026-08-09T06:45:48.442Z",
+  "capturedRevision": 1,
+  "nativeRootRef": "docs/comet",
+  "projectRootId": "df24cf822d6abe2a3dd520e05633effc36825ea1f1e5488d078a66998d6ce44f",
+  "nativeRootId": "436dccb326593fe46eb9509eca14d182f45f8dbd9856532f00ae26312e3e82ce",
+  "projectRootPathId": "9afc4a5ab5fce18e427feea9cf910b69bb65144ec13729eb0c7a2d97b87cf5d9",
+  "nativeRootPathId": "de89d9e27225c48b25ffb9078bf7ebb07741b02a387ac84f2e23c12eb66bdfef",
+  "isolation": "worktree",
+  "changeBranch": "comet/fw-plus-mybatis-encrypt",
+  "targetBranch": "dev",
+  "finish": null
+}
