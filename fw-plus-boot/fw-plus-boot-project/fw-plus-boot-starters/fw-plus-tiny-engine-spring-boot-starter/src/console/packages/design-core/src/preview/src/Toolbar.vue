@@ -45,7 +45,8 @@ export default {
         } else {
           setBreadcrumbPage([newVal?.name])
         }
-      }
+      },
+      { immediate: true }
     )
 
     const setViewPort = (item) => {
