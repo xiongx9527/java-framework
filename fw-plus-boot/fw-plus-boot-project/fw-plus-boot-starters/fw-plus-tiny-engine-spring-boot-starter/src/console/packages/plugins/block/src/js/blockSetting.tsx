@@ -598,7 +598,9 @@ const createBlock = (block = {}) => {
       return data
     })
     .catch((error) => {
-      message({ message: error.message, status: 'error' })
+      const detail = error?.message || String(error || '区块创建失败')
+      message({ message: detail, status: 'error' })
+      throw error
     })
 }
 
