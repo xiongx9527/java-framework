@@ -11,6 +11,9 @@ const verifyUi = ui => {
 	if (ui.version && ui.version !== UI_VERSION) {
 		throw new Error(`Tinyflow UI 版本不匹配：需要 ${UI_VERSION}，实际 ${ui.version}`);
 	}
+	if (typeof ui.mountKnowledge !== 'function') {
+		throw new Error('Tinyflow UI 加载完成但缺少 FwPlusTinyflowUi.mountKnowledge 构造器');
+	}
 	return ui;
 };
 

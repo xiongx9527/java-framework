@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MybatisFlexModuleEntityRowTest {
 
@@ -93,6 +92,8 @@ class MybatisFlexModuleEntityRowTest {
 		MybatisFlexModule.DynamicFlexQueryWrapper wrapper = module.query(FlexUser.class, "u")
 				.eq(true, "u", "id", 1L)
 				.like(true, "u", "userName", "张")
+				.eq(true, "u", "password", "secret")
+				.eq(true, "u", "unknownProp", "ignored")
 				.eq(false, "u", "remark", "skip")
 				.orderByDesc("u", "remark");
 
@@ -101,10 +102,10 @@ class MybatisFlexModuleEntityRowTest {
 				.contains("`u`.`user_name`")
 				.contains("ORDER BY `u`.`remark` DESC")
 				.doesNotContain("password")
+				.doesNotContain("secret")
+				.doesNotContain("unknownProp")
+				.doesNotContain("ignored")
 				.doesNotContain("skip");
-		assertThatThrownBy(() -> module.query(FlexUser.class, "u").eq(true, "u", "password", "secret"))
-				.isInstanceOf(IllegalArgumentException.class)
-				.hasMessageContaining("not a table field");
 	}
 
 	static class FlexUser {

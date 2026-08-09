@@ -932,18 +932,25 @@ public class MybatisPlusModule implements MagicDbSqlOperations,
 	}
 
 	private String columnName(Class<?> entityClass, String property) {
+		String columnName = nullableColumnName(entityClass, property);
+		if (columnName == null) {
+			throw new IllegalArgumentException("MyBatis-Plus property is not a table field: "
+					+ entityClass.getName() + "." + property);
+		}
+		return columnName;
+	}
+
+	private String nullableColumnName(Class<?> entityClass, String property) {
 		if (StringUtils.isBlank(property)) {
 			throw new IllegalArgumentException("MyBatis-Plus property must not be blank");
 		}
 		Field field = fieldByProperty(entityClass, property);
 		if (field == null) {
-			throw new IllegalArgumentException("MyBatis-Plus property not found: "
-					+ entityClass.getName() + "." + property);
+			return null;
 		}
 		TableField tableField = field.getAnnotation(TableField.class);
 		if (tableField != null && !tableField.exist()) {
-			throw new IllegalArgumentException("MyBatis-Plus property is not a table field: "
-					+ entityClass.getName() + "." + property);
+			return null;
 		}
 		TableId tableId = field.getAnnotation(TableId.class);
 		if (tableId != null && StringUtils.isNotBlank(tableId.value())) {
@@ -1049,7 +1056,13 @@ public class MybatisPlusModule implements MagicDbSqlOperations,
 			}
 			List<String> columns = new ArrayList<>();
 			for (String property : properties) {
-				columns.add(column(property));
+				String column = columnOrNull(property);
+				if (column != null) {
+					columns.add(column);
+				}
+			}
+			if (columns.isEmpty()) {
+				return this;
 			}
 			this.delegate.select(columns.toArray(new String[columns.size()]));
 			return this;
@@ -1061,91 +1074,130 @@ public class MybatisPlusModule implements MagicDbSqlOperations,
 
 		public DynamicMpQueryWrapper eq(boolean condition, String property, Object value) {
 			if (condition) {
-				this.delegate.eq(true, column(property), value);
+				String column = columnOrNull(property);
+				if (column != null) {
+					this.delegate.eq(true, column, value);
+				}
 			}
 			return this;
 		}
 
 		public DynamicMpQueryWrapper ne(boolean condition, String property, Object value) {
 			if (condition) {
-				this.delegate.ne(true, column(property), value);
+				String column = columnOrNull(property);
+				if (column != null) {
+					this.delegate.ne(true, column, value);
+				}
 			}
 			return this;
 		}
 
 		public DynamicMpQueryWrapper like(boolean condition, String property, Object value) {
 			if (condition) {
-				this.delegate.like(true, column(property), value);
+				String column = columnOrNull(property);
+				if (column != null) {
+					this.delegate.like(true, column, value);
+				}
 			}
 			return this;
 		}
 
 		public DynamicMpQueryWrapper ge(boolean condition, String property, Object value) {
 			if (condition) {
-				this.delegate.ge(true, column(property), value);
+				String column = columnOrNull(property);
+				if (column != null) {
+					this.delegate.ge(true, column, value);
+				}
 			}
 			return this;
 		}
 
 		public DynamicMpQueryWrapper le(boolean condition, String property, Object value) {
 			if (condition) {
-				this.delegate.le(true, column(property), value);
+				String column = columnOrNull(property);
+				if (column != null) {
+					this.delegate.le(true, column, value);
+				}
 			}
 			return this;
 		}
 
 		public DynamicMpQueryWrapper gt(boolean condition, String property, Object value) {
 			if (condition) {
-				this.delegate.gt(true, column(property), value);
+				String column = columnOrNull(property);
+				if (column != null) {
+					this.delegate.gt(true, column, value);
+				}
 			}
 			return this;
 		}
 
 		public DynamicMpQueryWrapper lt(boolean condition, String property, Object value) {
 			if (condition) {
-				this.delegate.lt(true, column(property), value);
+				String column = columnOrNull(property);
+				if (column != null) {
+					this.delegate.lt(true, column, value);
+				}
 			}
 			return this;
 		}
 
 		public DynamicMpQueryWrapper in(boolean condition, String property, Collection<?> values) {
 			if (condition) {
-				this.delegate.in(true, column(property), values);
+				String column = columnOrNull(property);
+				if (column != null) {
+					this.delegate.in(true, column, values);
+				}
 			}
 			return this;
 		}
 
 		public DynamicMpQueryWrapper isNull(boolean condition, String property) {
 			if (condition) {
-				this.delegate.isNull(true, column(property));
+				String column = columnOrNull(property);
+				if (column != null) {
+					this.delegate.isNull(true, column);
+				}
 			}
 			return this;
 		}
 
 		public DynamicMpQueryWrapper isNotNull(boolean condition, String property) {
 			if (condition) {
-				this.delegate.isNotNull(true, column(property));
+				String column = columnOrNull(property);
+				if (column != null) {
+					this.delegate.isNotNull(true, column);
+				}
 			}
 			return this;
 		}
 
 		public DynamicMpQueryWrapper groupBy(String property) {
-			this.delegate.groupBy(true, column(property));
+			String column = columnOrNull(property);
+			if (column != null) {
+				this.delegate.groupBy(true, column);
+			}
 			return this;
 		}
 
 		public DynamicMpQueryWrapper orderByAsc(String property) {
-			this.delegate.orderBy(true, true, column(property));
+			String column = columnOrNull(property);
+			if (column != null) {
+				this.delegate.orderBy(true, true, column);
+			}
 			return this;
 		}
 
 		public DynamicMpQueryWrapper orderByDesc(String property) {
-			this.delegate.orderBy(true, false, column(property));
+			String column = columnOrNull(property);
+			if (column != null) {
+				this.delegate.orderBy(true, false, column);
+			}
 			return this;
 		}
 
-		private String column(String property) {
-			return this.module.columnName(this.entityClass, property);
+		private String columnOrNull(String property) {
+			return this.module.nullableColumnName(this.entityClass, property);
 		}
 	}
 
