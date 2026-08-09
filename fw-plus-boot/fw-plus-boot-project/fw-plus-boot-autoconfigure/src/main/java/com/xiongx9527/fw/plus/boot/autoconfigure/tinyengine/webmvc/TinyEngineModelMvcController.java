@@ -151,7 +151,10 @@ public class TinyEngineModelMvcController {
 			Integer id = Integer.valueOf(String.valueOf(request.get("id")));
 			Boolean isTemplate = Boolean.valueOf(String.valueOf(request.get("isTemplate")));
 			String templateType = request.get("templateType") == null ? null : String.valueOf(request.get("templateType"));
-			return TinyEngineWebResponses.ok(facade.setAppTemplate(id, isTemplate, templateType));
+			Integer industryId = request.get("industryId") == null ? null : Integer.valueOf(String.valueOf(request.get("industryId")));
+			Integer sceneId = request.get("sceneId") == null ? null : Integer.valueOf(String.valueOf(request.get("sceneId")));
+			String framework = request.get("framework") == null ? null : String.valueOf(request.get("framework"));
+			return TinyEngineWebResponses.ok(facade.setAppTemplate(id, isTemplate, templateType, industryId, sceneId, framework));
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}

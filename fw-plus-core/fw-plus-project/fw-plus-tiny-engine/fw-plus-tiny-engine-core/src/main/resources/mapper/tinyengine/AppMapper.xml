@@ -447,7 +447,7 @@
         SELECT
         <include refid="Common_Column_List"/>
         <include refid="Common_Join"/>
-        WHERE A.is_template IS NOT TRUE AND A.tenant_id = #{tenantId}
+        WHERE A.tenant_id = #{tenantId}
         ORDER BY A.created_time DESC
     </select>
 
@@ -456,7 +456,7 @@
         <include refid="Common_Column_List"/>
         <include refid="Common_Join"/>
         <where>
-            A.is_template IS NOT TRUE
+            A.tenant_id = #{tenantId}
             <if test="name != null and name != ''">
                 AND A.name LIKE CONCAT('%', #{name}, '%')
             </if>

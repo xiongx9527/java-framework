@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import javax.servlet.http.HttpServletRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -34,19 +35,20 @@ public class TinyEngineUserMvcController {
 	}
 
 	@PostMapping("/user/login")
-	public ResponseEntity<? extends Result<?>> login(@RequestBody Map<String, Object> body) {
+	public ResponseEntity<? extends Result<?>> login(@RequestBody Map<String, Object> body, HttpServletRequest request) {
 		try {
-			return TinyEngineWebResponses.ok(userSystemService.login(TinyEngineUserRequestMapper.toLoginRequest(body)));
+			return TinyEngineWebResponses.ok(userSystemService.login(
+					TinyEngineUserRequestMapper.toLoginRequest(body, request.getHeader("Host"))));
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}
 	}
 
 	@PostMapping("/user/register")
-	public ResponseEntity<? extends Result<?>> register(@RequestBody Map<String, Object> body) {
+	public ResponseEntity<? extends Result<?>> register(@RequestBody Map<String, Object> body, HttpServletRequest request) {
 		try {
 			return TinyEngineWebResponses.ok(userSystemService.register(
-					TinyEngineUserRequestMapper.toRegistrationRequest(body)));
+					TinyEngineUserRequestMapper.toRegistrationRequest(body, request.getHeader("Host"))));
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}

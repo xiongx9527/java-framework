@@ -21,6 +21,6 @@ public interface AppService extends IService<App> {
 	App createApp(App app);
 	App saveApp(Integer id, Map<String, Object> request);
 	App publishApp(Integer id, Map<String, Object> request);
-	App setAppTemplate(Integer id, Boolean isTemplate, String templateType);
+	App setAppTemplate(Integer id, Boolean isTemplate, String templateType, Integer industryId, Integer sceneId, String framework);
 	SchemaI18n formatI18nEntrites(List<I18nEntryDto> i18nEntries, Integer usedIn, Integer id);
 }

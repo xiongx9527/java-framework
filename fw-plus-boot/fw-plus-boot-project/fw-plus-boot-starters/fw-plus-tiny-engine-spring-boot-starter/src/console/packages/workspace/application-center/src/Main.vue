@@ -231,14 +231,7 @@ export default {
             .then(() => {
               getApplicationList()
             })
-            .catch((error) => {
-              Notify({
-                type: 'error',
-                message: error,
-                position: 'top-right',
-                duration: 5000
-              })
-            })
+            .catch(() => {})
         }
       })
     }
@@ -282,14 +275,7 @@ export default {
             })
             getApplicationList()
           })
-          .catch((error) => {
-            Notify({
-              type: 'error',
-              message: error,
-              position: 'top-right',
-              duration: 5000
-            })
-          })
+          .catch(() => {})
       })
     }
 
@@ -316,14 +302,7 @@ export default {
             })
             getApplicationList()
           })
-          .catch((error) => {
-            Notify({
-              type: 'error',
-              message: error,
-              position: 'top-right',
-              duration: 5000
-            })
-          })
+          .catch(() => {})
       })
     }
 
@@ -356,14 +335,7 @@ export default {
             })
             getApplicationList()
           })
-          .catch((error) => {
-            Notify({
-              type: 'error',
-              message: error,
-              position: 'top-right',
-              duration: 5000
-            })
-          })
+          .catch(() => {})
       } else {
         createApplication(formData)
           .then(() => {
@@ -375,14 +347,7 @@ export default {
             })
             getApplicationList()
           })
-          .catch((error) => {
-            Notify({
-              type: 'error',
-              message: error,
-              position: 'top-right',
-              duration: 5000
-            })
-          })
+          .catch(() => {})
       }
     }
 
