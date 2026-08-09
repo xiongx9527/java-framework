@@ -39,4 +39,14 @@ public class AuditHandler implements DataChangeHandler {
 
 ## 数据库支持
 
-内置方言覆盖 MySQL、MariaDB、PostgreSQL、Oracle 和 SQL Server。当前已使用真实数据库验证 MySQL 5.7、MariaDB 11、PostgreSQL 16；Oracle 和 SQL Server 尚未执行真实库测试。
+内置方言覆盖 MySQL、MariaDB、PostgreSQL、Oracle 和 SQL Server。当前已使用真实数据库验证：
+
+- MySQL 5.7
+- MariaDB 11
+- PostgreSQL 16
+- Oracle Free 23c
+- SQL Server 2022
+
+每个数据库均执行了 INSERT、UPDATE、UPSERT、RETURNING/生成键、回滚、并发锁和 DELETE 等契约场景。Oracle JDBC 返回的大写列标签和 `NUMBER -> BigDecimal` 类型差异已在 diff 和集成契约中兼容。
+
+MyBatis-Plus 和 MyBatis-Flex 适配器也分别通过了模块测试；Flex 测试同时覆盖两种适配器注册共存场景。
