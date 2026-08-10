@@ -10,6 +10,7 @@ public class JavaEntityProperties {
     private long maxSourceBytes = 262144L;
     private long maxTotalSourceBytes = 2097152L;
     private Duration compileTimeout = Duration.ofSeconds(30L);
+    private int maxConcurrentCompilations = 1;
     private int maxDiagnostics = 100;
     private int maxDiagnosticMessageLength = 500;
 
@@ -35,6 +36,14 @@ public class JavaEntityProperties {
 
     public void setCompileTimeout(Duration compileTimeout) {
         this.compileTimeout = compileTimeout;
+    }
+
+    public int getMaxConcurrentCompilations() {
+        return maxConcurrentCompilations;
+    }
+
+    public void setMaxConcurrentCompilations(int maxConcurrentCompilations) {
+        this.maxConcurrentCompilations = maxConcurrentCompilations;
     }
 
     public int getMaxDiagnostics() {

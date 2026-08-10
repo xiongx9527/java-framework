@@ -24,9 +24,12 @@ magic-api:
       max-source-bytes: 262144
       max-total-source-bytes: 2097152
       compile-timeout: 30s
+      max-concurrent-compilations: 1
       max-diagnostics: 100
       max-diagnostic-message-length: 500
 ```
+
+编译超时后会中断候选任务；不响应中断的任务仍占用并发名额，退出前新的编译会返回 `compiler.busy`。
 
 设置 `magic-api.plugin.java-entity.enabled=false` 可完全禁用自动配置。未引入独立插件依赖时，动态实体自动配置也不会激活。
 
@@ -615,6 +618,8 @@ return mybatisplus.update("""
 ```
 
 如果存在多个同名动态实体，例如 `demo.User` 和 `test.User`，简单类名 `User` 不会作为唯一别名使用，请写全限定类名。
+
+MyBatis XML 插件会把解析出的动态 `Class` 保存在 `TypeAliasRegistry`、`MappedStatement` 等第三方缓存中。仅热更新 Java Entity Resource 不会刷新这些已注册类型引用；实体结构变化后需要重启服务以重建 MyBatis 配置。本限制不影响 `entity` 模块和直接从 `DynamicEntityRegistry` 重新解析描述器的热更新语义。
 
 资源元信息：
 
