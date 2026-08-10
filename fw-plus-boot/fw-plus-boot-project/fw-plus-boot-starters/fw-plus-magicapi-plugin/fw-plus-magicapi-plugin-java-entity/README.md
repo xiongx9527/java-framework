@@ -21,9 +21,16 @@ magic-api:
   plugin:
     java-entity:
       enabled: true
+      max-source-bytes: 262144
+      max-total-source-bytes: 2097152
+      compile-timeout: 30s
+      max-concurrent-compilations: 1
+      max-diagnostics: 100
+      max-diagnostic-message-length: 500
 ```
 
 运行环境必须使用 JDK，不能只用 JRE，因为动态编译依赖 `javax.tools.JavaCompiler`。
+编译超时后会中断候选任务；不响应中断的任务仍占用并发名额，退出前新的编译会返回 `compiler.busy`。
 
 ## 控制台使用
 
@@ -284,6 +291,7 @@ String jsonText = objectMapper.writeValueAsString(user);
 - 支持 Java 17 运行环境；源码仍需遵守当前项目编译兼容约束。
 - 不生成动态 Mapper。
 - 不提供数据库 CRUD、分页、Wrapper、Join 或 XML Mapper 能力。
+- 外部框架取得 `javaClass()` 后可能缓存该 `Class`；本插件不清理第三方缓存，也不承诺被第三方缓存引用的退休代际可回收。
 - 不提供 JVM 内不可信代码沙箱；Java 源码拥有宿主 JVM 的代码执行权限，只允许受信任的 Magic-API 管理员编辑和启用。
 
 ## 相关插件说明

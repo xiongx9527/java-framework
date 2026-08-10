@@ -42,7 +42,7 @@ public class JavaEntityMagicResourceStorage implements MagicResourceStorage<Java
 
     @Override
     public boolean requirePath() {
-        return false;
+        return true;
     }
 
     @Override
@@ -78,12 +78,15 @@ public class JavaEntityMagicResourceStorage implements MagicResourceStorage<Java
         List<JavaEntityInfo> result = new ArrayList<>();
         if (magicResourceService != null) {
             for (JavaEntityInfo existing : magicResourceService.<JavaEntityInfo>files(RESOURCE_TYPE)) {
-                if (!Objects.equals(existing.getId(), candidate.getId())) {
+                if (existing != null && existing.isEnabled()
+                        && !Objects.equals(existing.getId(), candidate.getId())) {
                     result.add(existing.copy());
                 }
             }
         }
-        result.add(candidate.copy());
+        if (candidate.isEnabled()) {
+            result.add(candidate.copy());
+        }
         return result;
     }
 
