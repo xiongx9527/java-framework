@@ -1,0 +1,238 @@
+{
+  "schema": "comet.native.verification-evidence.v2",
+  "change": "fw-plus-mybatis-encrypt",
+  "sourceRevision": 3,
+  "result": "pass",
+  "freshness": "complete",
+  "contractHash": "2676fb29471f2ff031f02d173565b0db21383e76460b4d8f6ff8be6963ce9cae",
+  "acceptanceCriteriaHash": "0294de23b942fdcee3b10d126bd14ee9958946add98533cdb55082e117010910",
+  "implementationScopeRef": "runtime/evidence/scopes/f7503d4cdf4ba7af331e9b4cd332d4f753e824f22cff33664656f5635d55cfa3.json",
+  "implementationScopeHash": "f7503d4cdf4ba7af331e9b4cd332d4f753e824f22cff33664656f5635d55cfa3",
+  "reportRef": "verification.md",
+  "reportHash": "a3f97e45b839a9d7f015c007ee2835c7387aae0f05dc57c4d2efd3b9713be6db",
+  "acceptanceTrace": {
+    "schema": "comet.native.acceptance-trace.v2",
+    "nativeRootRef": "docs/comet",
+    "criteriaHash": "0294de23b942fdcee3b10d126bd14ee9958946add98533cdb55082e117010910",
+    "total": 20,
+    "evidenced": 20,
+    "skipped": 0,
+    "entries": [
+      {
+        "acceptanceId": "acceptance-10d083795f704c10daf03e8194d7d05fff51425910010e8ee2e687851c4603bb",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-2f9f844d7ad9669a762ca0c50390d539622b3995c623e04020b5d6ba9c560aa3",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-2fff5e28ac5027ce1b00817279d63ba517204f7ed262db761f55fbd9f299b7ec",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/3794cdded21803fe4c0d7cebb5babe16e0f194b4e69e04966652a7386f24b8b7.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-4d40d68bdbb379db9b9679e40a139de4e882d6a11e828f36b8a4e6b5f59d6045",
+        "status": "passed",
+        "kind": "spec-scenario",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/e03b5d3e53df2d4b042932835e8e103b26489d8f4a73c908944d5f9ecd3dda8f.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-63c53dc7ad912e1c7828d36d0008a7b10a3593c49af79a4565be3c58220b48eb",
+        "status": "passed",
+        "kind": "spec-scenario",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/3794cdded21803fe4c0d7cebb5babe16e0f194b4e69e04966652a7386f24b8b7.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-66a3f930b0797792d5acc44fa90bd55d870d286a67b178560586941b4d643843",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/9132008846cd178c229c13062357d87a5fd5c6744984db15aef87254c9dc9bfc.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-7352893977fed6cc32fff1d6f207fc6a24162fa89df43e1dbf5d68c341ebcc4a",
+        "status": "passed",
+        "kind": "spec-scenario",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/e03b5d3e53df2d4b042932835e8e103b26489d8f4a73c908944d5f9ecd3dda8f.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-8bf70e76b4e49391896b1c4e08b79f1043421158dce6bc321e1545ccb6d8ec22",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/fa62a1439651db12d8b293326d4d131664866d07f26add1974043082a75a89d3.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-9982fb37ae86b8460d023506b8abb2455afe27c581652a4b3908839999c4ede4",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-99ad561880b227943b3ecd34161dc0f01ac8fe5fd4c5a13ebbc8c9b73d517d37",
+        "status": "passed",
+        "kind": "spec-scenario",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/9132008846cd178c229c13062357d87a5fd5c6744984db15aef87254c9dc9bfc.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-9b5cdb423e6cf869ba747c8aa0c6b2f541145d9711bc2b26e9c89834a122a8e1",
+        "status": "passed",
+        "kind": "spec-scenario",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/e03b5d3e53df2d4b042932835e8e103b26489d8f4a73c908944d5f9ecd3dda8f.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-abc2448e7e3cfe316e486ce4b10854ca911aa1622fb1eccc3b347d7a3f41fb5f",
+        "status": "passed",
+        "kind": "spec-scenario",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/fa62a1439651db12d8b293326d4d131664866d07f26add1974043082a75a89d3.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-b24f5d6a11ae3a03a5a31ed8010a7558f7ef054dbae1ef59fd5f8069fb09e539",
+        "status": "passed",
+        "kind": "spec-scenario",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/3794cdded21803fe4c0d7cebb5babe16e0f194b4e69e04966652a7386f24b8b7.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-b4df3ae081b101838a47acdf77d507afe6f8f604f876797fb937f32041325ebd",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-be084d58d44e5958fab47c46042754359952b392066255773735c681ba84f537",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-be315a951c0eb75c9c6535e6f47f84537d4d10a6c71686a9ba0c8134cec1649d",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/e03b5d3e53df2d4b042932835e8e103b26489d8f4a73c908944d5f9ecd3dda8f.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-daaa792b8d76293c1e126bcb9fff6def190c35a4df3105c35808b0d89a7eb23b",
+        "status": "passed",
+        "kind": "spec-scenario",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-e45654620c14bf26a69b247e1d7febe2c2a24c8077644b274bd312e86fc2126d",
+        "status": "passed",
+        "kind": "spec-scenario",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/3794cdded21803fe4c0d7cebb5babe16e0f194b4e69e04966652a7386f24b8b7.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-f53be9a4e660ff8f597d86a2278061697cbbbe6c37370120b9676eaedbadfa65",
+        "status": "passed",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/fa62a1439651db12d8b293326d4d131664866d07f26add1974043082a75a89d3.json"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-fc474ddb94f535091147415265f4403012ece28911dd71cf5d41abeb57cf333f",
+        "status": "passed",
+        "kind": "spec-must",
+        "source": "specs/mybatis-encrypt/spec.md",
+        "evidenceRefs": [
+          "runtime/evidence/receipts/9132008846cd178c229c13062357d87a5fd5c6744984db15aef87254c9dc9bfc.json"
+        ],
+        "skippedReason": null
+      }
+    ],
+    "traceHash": "91a3cc875f71e82804d6d84b881fff2c4862d8e6ea1d3e96bcb9182f680b0f63"
+  },
+  "partialAllowanceRef": null,
+  "partialAllowanceHash": null,
+  "requiredReceiptRefs": [
+    "runtime/evidence/receipts/d9ccdb45cac2f7bac2b24369ab1e41041bcf644ab5dfbf1aae465d9c46fbf5dd.json"
+  ],
+  "receiptRefs": [
+    "runtime/evidence/receipts/3794cdded21803fe4c0d7cebb5babe16e0f194b4e69e04966652a7386f24b8b7.json",
+    "runtime/evidence/receipts/9132008846cd178c229c13062357d87a5fd5c6744984db15aef87254c9dc9bfc.json",
+    "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json",
+    "runtime/evidence/receipts/e03b5d3e53df2d4b042932835e8e103b26489d8f4a73c908944d5f9ecd3dda8f.json",
+    "runtime/evidence/receipts/fa62a1439651db12d8b293326d4d131664866d07f26add1974043082a75a89d3.json"
+  ],
+  "createdAt": "2026-08-09T09:22:48.182Z",
+  "envelopeHash": "7d38b23ac3fbd8759a0b0a3450f5fc39aefd32f7a2419a64f037d5e897b8afa8"
+}

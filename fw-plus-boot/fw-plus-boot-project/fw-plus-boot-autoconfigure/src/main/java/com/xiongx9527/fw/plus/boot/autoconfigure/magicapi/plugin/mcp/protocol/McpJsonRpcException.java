@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.protocol;
 
-public class McpJsonRpcException extends RuntimeException {
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
+public class McpJsonRpcException extends BizException {
 
 	private final int code;
 

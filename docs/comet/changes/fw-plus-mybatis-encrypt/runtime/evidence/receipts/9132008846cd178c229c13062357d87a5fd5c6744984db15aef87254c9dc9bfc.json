@@ -1,0 +1,50 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "fw-plus-mybatis-encrypt",
+    "sourceRevision": 3,
+    "contractHash": "2676fb29471f2ff031f02d173565b0db21383e76460b4d8f6ff8be6963ce9cae",
+    "scopeHash": "f7503d4cdf4ba7af331e9b4cd332d4f753e824f22cff33664656f5635d55cfa3",
+    "snapshotHash": "352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f",
+    "artifactHash": "1aa92ce55c4063d7517784acf602f7e75cc35e687b2f16cc7c4c6dcc3780ffe8"
+  },
+  "acceptanceIds": [
+    "acceptance-66a3f930b0797792d5acc44fa90bd55d870d286a67b178560586941b4d643843",
+    "acceptance-99ad561880b227943b3ecd34161dc0f01ac8fe5fd4c5a13ebbc8c9b73d517d37",
+    "acceptance-fc474ddb94f535091147415265f4403012ece28911dd71cf5d41abeb57cf333f"
+  ],
+  "actor": "native-runtime:command:bash",
+  "issuedAt": "2026-08-09T09:21:49.963Z",
+  "evidence": {
+    "executable": "bash",
+    "args": [
+      "-c",
+      "mvn -f fw-plus-boot/pom.xml test -pl fw-plus-boot-project/fw-plus-boot-autoconfigure -Dtest=MpAutoConfigurationTest -DfailIfNoTests=false -q >/tmp/encrypt-boot-mvn.log 2>&1; ec=$?; echo \"mvn exit=$ec\"; tail -15 /tmp/encrypt-boot-mvn.log; exit $ec"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-09T09:21:40.432Z",
+    "endedAt": "2026-08-09T09:21:49.963Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "8261aa3fcc43904b53374c9c5a858f7bf8b48b85",
+      "afterCommit": "8261aa3fcc43904b53374c9c5a858f7bf8b48b85"
+    },
+    "afterFence": {
+      "snapshotHash": "352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f",
+      "scopeHash": "f7503d4cdf4ba7af331e9b4cd332d4f753e824f22cff33664656f5635d55cfa3",
+      "matched": true
+    },
+    "outputHash": "4134ef91a6a8d16144dae6dac9173ce6eaeda5357b9e9fafddf02bc7e33c25de",
+    "outputSummary": "mvn exit=0\nSLF4J: Class path contains multiple SLF4J bindings.\nSLF4J: Found binding in [jar:file:/Users/xiongxiao/.m2/repository/org/apache/logging/log4j/log4j-slf4j-impl/2.17.1/log4j-slf4j-impl-2.17.1.jar!/org/slf4j/impl/StaticLoggerBinder.class]\nSLF4J: Found binding in [jar:file:/Users/xiongxiao/.m2/repository/org/slf4j/slf4j-reload4j/1.7.36/slf4j-reload4j-1.7.36.jar!/org/slf4j/impl/StaticLoggerBinder.class]\nSLF4J: Found binding in [jar:file:/Users/xiongxiao/.m2/repository/ch/qos/logback/logback-classic/1.2.12/logback-classic-1.2.12.jar!/org/slf4j/impl/StaticLoggerBinder.class]\nSLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.\nSLF4J: Actual binding is of type [org.apache.logging.slf4j.Log4jLoggerFactory]\n _ _   |_  _ _|_. ___ _ |    _  .  _  .  _  \n| | |\\/|_)(_| | |_\\  |_)||_|_\\  | (_) | | | \n     /               |          /\n                                    1.5.2",
+    "outputTruncated": false
+  },
+  "receiptHash": "9132008846cd178c229c13062357d87a5fd5c6744984db15aef87254c9dc9bfc"
+}

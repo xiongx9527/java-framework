@@ -18,6 +18,10 @@ public interface AiEmbeddingStore {
 
     void remove(String id);
 
+    /**
+     * Removes the requested ids idempotently. Implementations must treat duplicate or already missing ids as
+     * successfully removed so callers can safely retry a durable compensation after an uncertain result.
+     */
     void removeAll(List<String> ids);
 
     AiEmbeddingSearchResult search(AiEmbeddingQuery query);

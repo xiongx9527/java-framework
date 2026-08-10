@@ -6,6 +6,8 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Collections;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class DsSessionProcessorTest {
@@ -15,6 +17,7 @@ class DsSessionProcessorTest {
     @AfterEach
     void tearDown() {
         RequestContextHolder.resetRequestAttributes();
+        DsRequestContextHolder.clear();
     }
 
     @Test
@@ -52,5 +55,30 @@ class DsSessionProcessorTest {
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
         assertEquals("tenant_b", processor.doDetermineDatasource(null, "#session.ds"));
+    }
+
+    @Test
+    void determineDatasourceReadsReactiveSessionSnapshot() {
+        DsRequestContext context = new DsRequestContext(
+                Collections.<String, java.util.List<String>>emptyMap(),
+                Collections.<String, Object>singletonMap("ds", "tenant_session"));
+
+        try (DsRequestContextHolder.Scope ignored = DsRequestContextHolder.open(context)) {
+            assertEquals("tenant_session", processor.doDetermineDatasource(null, "#session.ds"));
+        }
+    }
+
+    @Test
+    void determineDatasourcePrefersServletSessionOverReactiveSnapshot() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.getSession(true).setAttribute("ds", "tenant_servlet");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+        DsRequestContext context = new DsRequestContext(
+                Collections.<String, java.util.List<String>>emptyMap(),
+                Collections.<String, Object>singletonMap("ds", "tenant_reactive"));
+
+        try (DsRequestContextHolder.Scope ignored = DsRequestContextHolder.open(context)) {
+            assertEquals("tenant_servlet", processor.doDetermineDatasource(null, "#session.ds"));
+        }
     }
 }

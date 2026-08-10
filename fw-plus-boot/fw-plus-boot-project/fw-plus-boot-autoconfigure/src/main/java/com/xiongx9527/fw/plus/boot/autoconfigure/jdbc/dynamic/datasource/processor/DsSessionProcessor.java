@@ -46,15 +46,17 @@ public class DsSessionProcessor extends DsProcessor {
             return null;
         }
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-        if (!(requestAttributes instanceof ServletRequestAttributes)) {
-            return null;
+        if (requestAttributes instanceof ServletRequestAttributes) {
+            HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+            HttpSession session = request.getSession(false);
+            if (session == null) {
+                return null;
+            }
+            Object datasource = session.getAttribute(sessionAttributeName);
+            return datasource == null ? null : datasource.toString();
         }
-        HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
-        HttpSession session = request.getSession(false);
-        if (session == null) {
-            return null;
-        }
-        Object datasource = session.getAttribute(sessionAttributeName);
+        DsRequestContext context = DsRequestContextHolder.getContext();
+        Object datasource = context == null ? null : context.getSessionAttribute(sessionAttributeName);
         return datasource == null ? null : datasource.toString();
     }
 

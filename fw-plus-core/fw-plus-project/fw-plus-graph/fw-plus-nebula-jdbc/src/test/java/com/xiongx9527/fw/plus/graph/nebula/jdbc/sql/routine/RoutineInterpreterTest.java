@@ -66,7 +66,7 @@ public class RoutineInterpreterTest {
 			service.call("graph_a", "alice", "CALL p()", null, new RecordingExecutor());
 			fail("Argument mismatch must fail");
 		}
-		catch (SQLException exception) {
+		catch (RoutineException exception) {
 			assertEquals(1318, exception.getErrorCode());
 			assertEquals("42000", exception.getSQLState());
 		}
@@ -100,7 +100,7 @@ public class RoutineInterpreterTest {
 			service.call("graph_a", "alice", "CALL p()", null, new RecordingExecutor());
 			fail("Statement budget must fail");
 		}
-		catch (SQLException exception) {
+		catch (RoutineException exception) {
 			assertEquals(1317, exception.getErrorCode());
 			assertEquals("70100", exception.getSQLState());
 		}
@@ -117,7 +117,7 @@ public class RoutineInterpreterTest {
 			service.call("graph_a", "alice", "CALL p()", null, executor);
 			fail("Nested IF body statements must count toward statement budget");
 		}
-		catch (SQLException exception) {
+		catch (RoutineException exception) {
 			assertEquals(1317, exception.getErrorCode());
 			assertEquals("70100", exception.getSQLState());
 			assertEquals(0, executor.calls.size());
@@ -134,7 +134,7 @@ public class RoutineInterpreterTest {
 			service.call("graph_a", "alice", "CALL p()", null, new RecordingExecutor());
 			fail("Body CALL must fail");
 		}
-		catch (SQLException exception) {
+		catch (RoutineException exception) {
 			assertEquals(1235, exception.getErrorCode());
 			assertEquals("42000", exception.getSQLState());
 		}
@@ -169,7 +169,7 @@ public class RoutineInterpreterTest {
 			service.call("graph_a", "alice", "CALL p()", null, executor);
 			fail("Timeout budget must fail");
 		}
-		catch (SQLException exception) {
+		catch (RoutineException exception) {
 			assertEquals(1317, exception.getErrorCode());
 			assertEquals("70100", exception.getSQLState());
 			assertEquals(0, executor.calls.size());
@@ -188,7 +188,7 @@ public class RoutineInterpreterTest {
 			service.call("graph_a", "alice", "CALL p()", null, executor);
 			fail("Timeout budget must be checked after a body SQL returns");
 		}
-		catch (SQLException exception) {
+		catch (RoutineException exception) {
 			assertEquals(1317, exception.getErrorCode());
 			assertEquals("70100", exception.getSQLState());
 			assertEquals(1, executor.calls.size());

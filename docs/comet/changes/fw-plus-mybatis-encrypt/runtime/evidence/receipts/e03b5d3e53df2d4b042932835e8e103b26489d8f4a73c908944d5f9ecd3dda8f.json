@@ -1,0 +1,51 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "automated-check",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "fw-plus-mybatis-encrypt",
+    "sourceRevision": 3,
+    "contractHash": "2676fb29471f2ff031f02d173565b0db21383e76460b4d8f6ff8be6963ce9cae",
+    "scopeHash": "f7503d4cdf4ba7af331e9b4cd332d4f753e824f22cff33664656f5635d55cfa3",
+    "snapshotHash": "352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f",
+    "artifactHash": "1aa92ce55c4063d7517784acf602f7e75cc35e687b2f16cc7c4c6dcc3780ffe8"
+  },
+  "acceptanceIds": [
+    "acceptance-4d40d68bdbb379db9b9679e40a139de4e882d6a11e828f36b8a4e6b5f59d6045",
+    "acceptance-7352893977fed6cc32fff1d6f207fc6a24162fa89df43e1dbf5d68c341ebcc4a",
+    "acceptance-9b5cdb423e6cf869ba747c8aa0c6b2f541145d9711bc2b26e9c89834a122a8e1",
+    "acceptance-be315a951c0eb75c9c6535e6f47f84537d4d10a6c71686a9ba0c8134cec1649d"
+  ],
+  "actor": "native-runtime:command:bash",
+  "issuedAt": "2026-08-09T09:21:09.026Z",
+  "evidence": {
+    "executable": "bash",
+    "args": [
+      "-c",
+      "mvn -f fw-plus-core/pom.xml test -pl fw-plus-project/fw-plus-mybatis/fw-plus-mp/fw-plus-mp-encrypt -q >/tmp/encrypt-mp-mvn.log 2>&1; ec=$?; echo \"mvn exit=$ec\"; tail -15 /tmp/encrypt-mp-mvn.log; exit $ec"
+    ],
+    "cwd": ".",
+    "exitCode": 0,
+    "signal": null,
+    "timedOut": false,
+    "timeoutMs": 120000,
+    "startedAt": "2026-08-09T09:21:04.111Z",
+    "endedAt": "2026-08-09T09:21:09.026Z",
+    "worktree": {
+      "provider": "git",
+      "root": ".",
+      "beforeCommit": "8261aa3fcc43904b53374c9c5a858f7bf8b48b85",
+      "afterCommit": "8261aa3fcc43904b53374c9c5a858f7bf8b48b85"
+    },
+    "afterFence": {
+      "snapshotHash": "352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f",
+      "scopeHash": "f7503d4cdf4ba7af331e9b4cd332d4f753e824f22cff33664656f5635d55cfa3",
+      "matched": true
+    },
+    "outputHash": "28855ec732f9ff522172a5f33d827f281297ae0ba9a0cb2c74c03ce47a83d071",
+    "outputSummary": "mvn exit=0\nSLF4J: Failed to load class \"org.slf4j.impl.StaticLoggerBinder\".\nSLF4J: Defaulting to no-operation (NOP) logger implementation\nSLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.",
+    "outputTruncated": false
+  },
+  "receiptHash": "e03b5d3e53df2d4b042932835e8e103b26489d8f4a73c908944d5f9ecd3dda8f"
+}

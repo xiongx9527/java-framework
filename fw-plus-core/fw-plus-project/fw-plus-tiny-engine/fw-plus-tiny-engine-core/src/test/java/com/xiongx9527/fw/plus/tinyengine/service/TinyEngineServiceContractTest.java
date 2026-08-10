@@ -799,7 +799,7 @@ class TinyEngineServiceContractTest {
 		TinyEngineSqlIdentifierException exception = assertThrows(TinyEngineSqlIdentifierException.class,
 				() -> service.getTableById(1));
 
-		assertEquals("TE_SQL_IDENTIFIER_INVALID", exception.getCode());
+		assertEquals("TE_SQL_IDENTIFIER_INVALID", exception.getServiceCode());
 		assertTrue(exception.getMessage().contains("table name"));
 	}
 
@@ -817,7 +817,7 @@ class TinyEngineServiceContractTest {
 		TinyEngineSqlIdentifierException exception = assertThrows(TinyEngineSqlIdentifierException.class,
 				() -> service.getTableById(1));
 
-		assertEquals("TE_SQL_IDENTIFIER_INVALID", exception.getCode());
+		assertEquals("TE_SQL_IDENTIFIER_INVALID", exception.getServiceCode());
 		assertTrue(exception.getMessage().contains("field name"));
 	}
 
@@ -835,7 +835,7 @@ class TinyEngineServiceContractTest {
 
 		ServiceException exception = assertThrows(ServiceException.class, () -> service.getTableById(1));
 
-		assertEquals("CM002", exception.getCode());
+		assertEquals("CM002", exception.getServiceCode());
 	}
 
 	@Test
@@ -855,7 +855,7 @@ class TinyEngineServiceContractTest {
 
 		ServiceException exception = assertThrows(ServiceException.class, () -> service.createTenant(tenant));
 
-		assertEquals("CM342", exception.getCode());
+		assertEquals("CM342", exception.getServiceCode());
 		verify(mapper, never()).createTenant(any(Tenant.class));
 		verify(relationMapper, never()).createAuthUsersUnitsRoles(any(AuthUsersUnitsRoles.class));
 	}
@@ -878,7 +878,7 @@ class TinyEngineServiceContractTest {
 
 		ServiceException exception = assertThrows(ServiceException.class, () -> service.createTenant(tenant));
 
-		assertEquals("CM001", exception.getCode());
+		assertEquals("CM001", exception.getServiceCode());
 		verify(mapper).createTenant(tenant);
 		verify(relationMapper).createAuthUsersUnitsRoles(any(AuthUsersUnitsRoles.class));
 		Transactional transactional = TenantServiceImpl.class.getMethod("createTenant", Tenant.class)
@@ -901,7 +901,7 @@ class TinyEngineServiceContractTest {
 
 		ServiceException exception = assertThrows(ServiceException.class, () -> service.createTenant(tenant));
 
-		assertEquals("CM001", exception.getCode());
+		assertEquals("CM001", exception.getServiceCode());
 		verify(relationMapper, never()).createAuthUsersUnitsRoles(any(AuthUsersUnitsRoles.class));
 	}
 
@@ -925,7 +925,7 @@ class TinyEngineServiceContractTest {
 
 		ServiceException exception = assertThrows(ServiceException.class, () -> service.delPage(31));
 
-		assertEquals("CM001", exception.getCode());
+		assertEquals("CM001", exception.getServiceCode());
 		assertInvocation(mapper, "deletePageIfAvailable", 31, "user-7");
 		verify(mapper, never()).deletePageById(31);
 	}

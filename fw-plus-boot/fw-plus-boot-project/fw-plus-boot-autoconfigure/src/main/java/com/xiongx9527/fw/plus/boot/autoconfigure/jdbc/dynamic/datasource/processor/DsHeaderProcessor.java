@@ -45,11 +45,12 @@ public class DsHeaderProcessor extends DsProcessor {
             return null;
         }
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-        if (!(requestAttributes instanceof ServletRequestAttributes)) {
-            return null;
+        if (requestAttributes instanceof ServletRequestAttributes) {
+            HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+            return request.getHeader(headerName);
         }
-        HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
-        return request.getHeader(headerName);
+        DsRequestContext context = DsRequestContextHolder.getContext();
+        return context == null ? null : context.getHeader(headerName);
     }
 
 }
