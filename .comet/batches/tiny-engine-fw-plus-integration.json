@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "batchId": "tiny-engine-fw-plus-integration",
+  "originalGoal": "将 tiny-engine-backend-java 的低代码后端能力封装到 fw-plus 体系：基础能力在 fw-plus-core 实现，fw-plus-boot 提供 Spring Boot starter，fw-plus-ai 提供 AI 扩展能力。",
+  "createdAt": "2026-07-27T11:45:36Z",
+  "language": "zh-CN",
+  "changes": [
+    {
+      "name": "integrate-tiny-engine-core",
+      "goal": "在 fw-plus-core 提炼 TinyEngine 基础能力，包括模型、DTO、异常、工具、动态模型、Mapper/XML、SQL 资源和核心服务接口/实现。",
+      "scope": "新增或扩展 fw-plus-core 模块，适配 Java 8 与 Spring Boot 2.7.18 约束，保留 TinyEngine 低代码后端核心领域能力供上层 starter 复用。",
+      "nonGoals": "不提供 Spring Boot 自动配置与 starter；不实现 AI Chat、RAG 或模型运行时扩展；不直接把 tiny-engine-backend-java 作为嵌套 git 仓库整体并入。",
+      "acceptanceScenarios": [
+        "core 模块可以在 Java 8 下编译通过，不使用 Java 9+ API。",
+        "TinyEngine 主要实体、DTO、Mapper XML、SQL 初始化资源和核心服务可以被上层模块引用。",
+        "动态模型与 SQL 标识符校验等安全边界保留或增强，危险输入被拒绝。"
+      ],
+      "dependsOn": [],
+      "recommendedOrder": 1,
+      "status": "selected"
+    },
+    {
+      "name": "add-tiny-engine-boot-starter",
+      "goal": "在 fw-plus-boot 增加 TinyEngine 自动配置和 Spring Boot starter，把 core 中的低代码后端能力以可配置方式暴露给宿主应用。",
+      "scope": "新增 fw-plus-boot starter 与 autoconfigure 配置，覆盖属性绑定、Mapper 扫描、资源加载、Controller 注册、启用开关和基础样例验证。",
+      "nonGoals": "不重复实现 core 领域逻辑；不实现 AI Chat/RAG 扩展；不迁移到 Spring Boot 3 或 JDK 17。",
+      "acceptanceScenarios": [
+        "宿主 Spring Boot 2.7.18 应用引入 starter 后可以通过配置启用 TinyEngine REST API。",
+        "Mapper/XML 和 SQL 资源能够随 starter 正确加载。",
+        "自动配置支持总开关和必要子能力开关，禁用时不注册 TinyEngine 控制器与服务。"
+      ],
+      "dependsOn": [
+        "integrate-tiny-engine-core"
+      ],
+      "recommendedOrder": 2,
+      "status": "open-complete"
+    },
+    {
+      "name": "add-tiny-engine-ai-starter",
+      "goal": "在 fw-plus-ai 增加 TinyEngine AI 扩展 starter，默认使用 LangChain4j，并预留 Spring AI、Spring AI Alibaba 与 AgentScope2 Java 版扩展点。",
+      "scope": "新增 AI 扩展模块或 starter，适配 TinyEngine AI Chat、RAG、向量存储、模型配置和运行时 Provider SPI；默认 Provider 基于 LangChain4j，其他 Provider 后续可独立接入。",
+      "nonGoals": "不把 Spring AI、Spring AI Alibaba、AgentScope2 Java 版作为第一版硬依赖；不重构整个 fw-plus-ai 模型抽象；不引入与当前 BOM 冲突的主线版本。",
+      "acceptanceScenarios": [
+        "引入 AI starter 后默认通过 LangChain4j 提供 TinyEngine AI Chat/RAG 能力。",
+        "AI 能力可独立启用或关闭，缺少模型或向量库时有明确降级或失败行为。",
+        "Provider SPI 能表达 LangChain4j、Spring AI、Spring AI Alibaba、AgentScope2 Java 版和业务自定义运行时的接入边界。"
+      ],
+      "dependsOn": [
+        "integrate-tiny-engine-core"
+      ],
+      "recommendedOrder": 3,
+      "status": "open-complete"
+    }
+  ]
+}

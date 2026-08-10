@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "batchId": "askdata-java-integration",
+  "originalGoal": "将 SQLBot 参考能力按 Java 8 约束重写为 fw-plus 的智能问数能力，先提供 Spring Boot Starter，再提供 Magic-API AI 插件；避免使用 SQLBot 品牌名称。",
+  "createdAt": "2026-07-24T11:43:52+0800",
+  "language": "zh-CN",
+  "changes": [
+    {
+      "name": "add-askdata-spring-boot-starter",
+      "goal": "新增 fw-plus-ai-askdata-spring-boot-starter，提供 Java 8 版智能问数核心引擎。",
+      "scope": "模型适配、数据源元数据抽象、Prompt 模板、Text-to-SQL、SQL 校验、只读 SQL 执行、结构化结果返回，并复用 fw-plus-ai 和 Spring Boot 2.7.18 的现有模块风格。",
+      "nonGoals": "不实现 Magic-API 脚本模块，不迁移 SQLBot 完整 UI、用户体系、安装器或品牌资源，不逐行翻译 SQLBot 源码。",
+      "acceptanceScenarios": [
+        "Spring Boot 项目引入 starter 后，可以通过 Java 服务接口把自然语言问题转换为 SQL 并执行只读查询。",
+        "在 Java 8 环境下编译通过，未使用 Java 9+ API。",
+        "生成 SQL 必须经过只读语句校验和数据量限制策略，危险语句被拒绝。"
+      ],
+      "dependsOn": [],
+      "recommendedOrder": 1,
+      "status": "selected"
+    },
+    {
+      "name": "add-askdata-magicapi-plugin",
+      "goal": "新增 fw-plus-ai-magicapi-plugin-askdata，将 AskData 智能问数能力暴露给 Magic-API 脚本。",
+      "scope": "新增 Magic-API 插件模块、自动配置、脚本导入模块 import askdata、脚本侧问数 API，并依赖 add-askdata-spring-boot-starter 提供核心能力。",
+      "nonGoals": "不重复实现核心 Text-to-SQL 引擎，不引入 SQLBot 品牌资源，不实现完整前端控制台。",
+      "acceptanceScenarios": [
+        "Magic-API 启动后可以注册 askdata 模块。",
+        "脚本中可以调用 askdata 的问数方法并拿到结构化结果。",
+        "插件配置、启用开关和模块命名遵循现有 Magic-API 插件风格。"
+      ],
+      "dependsOn": [
+        "add-askdata-spring-boot-starter"
+      ],
+      "recommendedOrder": 2,
+      "status": "open-complete"
+    }
+  ]
+}
