@@ -1,0 +1,974 @@
+{
+  "schema": "comet.native.implementation-scope.v2",
+  "contractHash": "45ed58098657881dad0e5906b28952a9fc6ce05cb1f7317f7851f6825eca0478",
+  "baselineProjectionRef": "runtime/evidence/snapshots/f68f1fcad539e79479fd5ec41e2242458e67ff308acb4bb8f9f1d18bd2579d07.json",
+  "baselineProjectionHash": "f68f1fcad539e79479fd5ec41e2242458e67ff308acb4bb8f9f1d18bd2579d07",
+  "currentProjectionRef": "runtime/evidence/snapshots/e5b530073949537b168f6c9364bb5b9095064b1dcad7be98134d19434b8abf3b.json",
+  "currentProjectionHash": "e5b530073949537b168f6c9364bb5b9095064b1dcad7be98134d19434b8abf3b",
+  "complete": false,
+  "declaredArtifacts": [
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityRegistry.java",
+      "kind": "file"
+    }
+  ],
+  "changes": [
+    {
+      "path": "docs/magicapi-dynamic-java-entity.md",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "3cb7d66cabebc5f23aa9ffcc981df6cbc9777d11006c56a5e8b0f033f93395e8",
+        "size": 5338
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "docs/superpowers/plans/2026-08-05-magicapi-dynamic-java-entity.md",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "51355604986dddfd13d8a03df5acca3dc3654c923c7824dee51f65146a17287d",
+        "size": 31508
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "docs/superpowers/specs/2026-08-05-magicapi-dynamic-java-entity-design.md",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "24a79c35a73eeafa4070a29690b624a5b623540c0befeed5893522b884b978ed",
+        "size": 6690
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/MagicApiPluginAutoConfiguration.java",
+      "kind": "modified",
+      "before": {
+        "hash": "f582156de8d6ff37f8d82f786b3e517fbe046fb600bc52f8bbda69a5391326f8",
+        "size": 4076
+      },
+      "after": {
+        "hash": "aa52a92a6e0b8a12bde08e91631a98221ca61b337097a57e2affbcb84797b962",
+        "size": 4241
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/CompilationClasspathResolver.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "eda5b213ebd9f57282eb963819db9dc695238366dd95d1387a1677ca62bb1520",
+        "size": 8208
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/CompiledGeneration.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "5094ea36ceb116be52c64f3ba35b8813b18a4b988f3b6e8c5d8ce57dd9bb3eff",
+        "size": 967
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/GenerationClassLoader.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "96a4e5cd0f76a3c05f908aeebad5d4073f2443a3c255d37369f1d3f7448cd33d",
+        "size": 1317
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/InMemoryJavaEntityCompiler.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "767e7b4d24f8dc40ceb3ef1cad473b4c7f48d62126f1930131c5d007ae6ece53",
+        "size": 9298
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaEntityCompilationException.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f597644c5e82b340064ececee66e98885ea5271364e9bc0ee8352f5c824b5e7a",
+        "size": 995
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaEntityDiagnostic.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ac014b4193a0776c67327ebfee04d439b2883b9ada2ac2a157c4ac14ac800d48",
+        "size": 868
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaSourceAnalyzer.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "904cc4c13a3498b6bc12879f11f02cdc77e160ce50db2f3c3c771151c62232ca",
+        "size": 7479
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaSourceUnit.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "320d5050678fb0a9399aed5f55ee8b27a395dd8981a6fe4c4d436eaed2025b44",
+        "size": 1160
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/MemoryJavaFileManager.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "307ab4b5a3139e8550c4ab6c91be507352b3a0371d949dd31c2facc7d81d4b43",
+        "size": 1957
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/model/JavaEntityInfo.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "43d5746d3239800bf756078d9cbf6a2d3d7a91c821cebc42f796d2ad0a0733ce",
+        "size": 515
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/module/EntityModule.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "35b482a86422df432c3a235548f9b14b56f1a73a8c43bfe970b8492f1b58051b",
+        "size": 1063
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityDescriptor.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ce45fd0beb8aa79dc54757dbeaab5ba9a4131b494ebb920ada7fc9f219c424e1",
+        "size": 7304
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityGeneration.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "26c4d8b0b5267defea9aa3c71fdbbc56f9403a1294650035ba6845459cd729bc",
+        "size": 3533
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityRegistry.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "200e27a7da211b2ee9db78f3ad51526ee957cdf7f11df94ddd2c9cb5caea5d7f",
+        "size": 12455
+      },
+      "attributedTo": [
+        {
+          "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityRegistry.java",
+          "kind": "file"
+        }
+      ]
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityStatus.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d8550b1db5606dd7355d35d7f10b7b3a404092c729f2db22b384491744cbe7e6",
+        "size": 1562
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicDynamicRegistry.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1d6cb08d2af3a2a90cae9ea1d0e6a41627c992c49ee2c20703a2167a6c80f4d8",
+        "size": 4802
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicResourceStorage.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "4f98d4cf291c58e897447b020ab0731ccae18953f507fad2a3e2e814f6e5a616",
+        "size": 2019
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/starter/JavaEntityProperties.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "34b2f31f4abb229c14320565660c92692ef1efb9b1e3afef14f9820fe1049687",
+        "size": 1576
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/starter/MagicAPIJavaEntityConfiguration.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b69a5e8e0829209de21867ae4d1300e448ef793aa567910a40abef1661eef5eb",
+        "size": 3019
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/DynamicJavaEntityIntegrationTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "8996ad3359650956f086013d78c6ba095c6c2f6b3d10c720057962d82ffcca10",
+        "size": 9921
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/InMemoryJavaEntityCompilerTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "02e640676df9696a779e931f927cb2413920ded6692eb6309bc0fdc336deaa97",
+        "size": 5126
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaSourceAnalyzerTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "dcfaa84ea65112804aa07d8f895ceb753241f560a2782609c9f220f0b92d4c1a",
+        "size": 4024
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/module/EntityModuleTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "31fa78c8f42559c2270dfc32afc58f1800cb64f1b1e9d59517f5ff82b585259a",
+        "size": 2200
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityDescriptorTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f6b486df141a6df6e48d0081434ac215deae6b6e588abd46cee4eb746c2ac74f",
+        "size": 4666
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityRegistryTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "c788665c1a9fdf746fd9d828ce0915c430f896f445ffa96731b9310ddee048dd",
+        "size": 8096
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicDynamicRegistryTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "72a4d57ba6a586af3b74156b384665655fc4498f6f9e756eec867ba27bc87728",
+        "size": 4581
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicResourceStorageTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b3c6995cfd4cc25677586486bc8171f0eb1dd4e6fe15a6ff97c8afbfb9523e70",
+        "size": 2240
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/starter/MagicAPIJavaEntityConfigurationTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7dbc0173f1769b862965550a08c4c35ac61311485f80450f1516964d5177c75c",
+        "size": 2893
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/starter/magicapi/javaentity/JavaEntityPluginMarker.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "dc956ed613f9ea2a9daa3ce8181d9b0455131fe1df1b85c7dec470162f0ec1aa",
+        "size": 158
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-dependencies/pom.xml",
+      "kind": "modified",
+      "before": {
+        "hash": "846563f7618a8181e75ad04b40dc0d8e0417e32d71e967caca8b37e042f6ac86",
+        "size": 31385
+      },
+      "after": {
+        "hash": "f212551f1d2d3f7568643301f061086218fd59562fd63a17e1e19943d6411e47",
+        "size": 31631
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/pom.xml",
+      "kind": "modified",
+      "before": {
+        "hash": "ce2ce3e712cfbd9b4e8fae486b8f6448fbbe02f68173f2a4df7aec7b1c57042b",
+        "size": 5714
+      },
+      "after": {
+        "hash": "0ec57afffcdda2cac4153a8340689a4f6d827c201c4e8517e626f97027634413",
+        "size": 5775
+      },
+      "attributedTo": []
+    }
+  ],
+  "unattributed": [
+    {
+      "path": "docs/magicapi-dynamic-java-entity.md",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "3cb7d66cabebc5f23aa9ffcc981df6cbc9777d11006c56a5e8b0f033f93395e8",
+        "size": 5338
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "docs/superpowers/plans/2026-08-05-magicapi-dynamic-java-entity.md",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "51355604986dddfd13d8a03df5acca3dc3654c923c7824dee51f65146a17287d",
+        "size": 31508
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "docs/superpowers/specs/2026-08-05-magicapi-dynamic-java-entity-design.md",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "24a79c35a73eeafa4070a29690b624a5b623540c0befeed5893522b884b978ed",
+        "size": 6690
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/MagicApiPluginAutoConfiguration.java",
+      "kind": "modified",
+      "before": {
+        "hash": "f582156de8d6ff37f8d82f786b3e517fbe046fb600bc52f8bbda69a5391326f8",
+        "size": 4076
+      },
+      "after": {
+        "hash": "aa52a92a6e0b8a12bde08e91631a98221ca61b337097a57e2affbcb84797b962",
+        "size": 4241
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/CompilationClasspathResolver.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "eda5b213ebd9f57282eb963819db9dc695238366dd95d1387a1677ca62bb1520",
+        "size": 8208
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/CompiledGeneration.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "5094ea36ceb116be52c64f3ba35b8813b18a4b988f3b6e8c5d8ce57dd9bb3eff",
+        "size": 967
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/GenerationClassLoader.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "96a4e5cd0f76a3c05f908aeebad5d4073f2443a3c255d37369f1d3f7448cd33d",
+        "size": 1317
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/InMemoryJavaEntityCompiler.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "767e7b4d24f8dc40ceb3ef1cad473b4c7f48d62126f1930131c5d007ae6ece53",
+        "size": 9298
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaEntityCompilationException.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f597644c5e82b340064ececee66e98885ea5271364e9bc0ee8352f5c824b5e7a",
+        "size": 995
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaEntityDiagnostic.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ac014b4193a0776c67327ebfee04d439b2883b9ada2ac2a157c4ac14ac800d48",
+        "size": 868
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaSourceAnalyzer.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "904cc4c13a3498b6bc12879f11f02cdc77e160ce50db2f3c3c771151c62232ca",
+        "size": 7479
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaSourceUnit.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "320d5050678fb0a9399aed5f55ee8b27a395dd8981a6fe4c4d436eaed2025b44",
+        "size": 1160
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/MemoryJavaFileManager.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "307ab4b5a3139e8550c4ab6c91be507352b3a0371d949dd31c2facc7d81d4b43",
+        "size": 1957
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/model/JavaEntityInfo.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "43d5746d3239800bf756078d9cbf6a2d3d7a91c821cebc42f796d2ad0a0733ce",
+        "size": 515
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/module/EntityModule.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "35b482a86422df432c3a235548f9b14b56f1a73a8c43bfe970b8492f1b58051b",
+        "size": 1063
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityDescriptor.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "ce45fd0beb8aa79dc54757dbeaab5ba9a4131b494ebb920ada7fc9f219c424e1",
+        "size": 7304
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityGeneration.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "26c4d8b0b5267defea9aa3c71fdbbc56f9403a1294650035ba6845459cd729bc",
+        "size": 3533
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityStatus.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "d8550b1db5606dd7355d35d7f10b7b3a404092c729f2db22b384491744cbe7e6",
+        "size": 1562
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicDynamicRegistry.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1d6cb08d2af3a2a90cae9ea1d0e6a41627c992c49ee2c20703a2167a6c80f4d8",
+        "size": 4802
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicResourceStorage.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "4f98d4cf291c58e897447b020ab0731ccae18953f507fad2a3e2e814f6e5a616",
+        "size": 2019
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/starter/JavaEntityProperties.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "34b2f31f4abb229c14320565660c92692ef1efb9b1e3afef14f9820fe1049687",
+        "size": 1576
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/starter/MagicAPIJavaEntityConfiguration.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b69a5e8e0829209de21867ae4d1300e448ef793aa567910a40abef1661eef5eb",
+        "size": 3019
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/DynamicJavaEntityIntegrationTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "8996ad3359650956f086013d78c6ba095c6c2f6b3d10c720057962d82ffcca10",
+        "size": 9921
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/InMemoryJavaEntityCompilerTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "02e640676df9696a779e931f927cb2413920ded6692eb6309bc0fdc336deaa97",
+        "size": 5126
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaSourceAnalyzerTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "dcfaa84ea65112804aa07d8f895ceb753241f560a2782609c9f220f0b92d4c1a",
+        "size": 4024
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/module/EntityModuleTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "31fa78c8f42559c2270dfc32afc58f1800cb64f1b1e9d59517f5ff82b585259a",
+        "size": 2200
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityDescriptorTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "f6b486df141a6df6e48d0081434ac215deae6b6e588abd46cee4eb746c2ac74f",
+        "size": 4666
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityRegistryTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "c788665c1a9fdf746fd9d828ce0915c430f896f445ffa96731b9310ddee048dd",
+        "size": 8096
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicDynamicRegistryTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "72a4d57ba6a586af3b74156b384665655fc4498f6f9e756eec867ba27bc87728",
+        "size": 4581
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicResourceStorageTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b3c6995cfd4cc25677586486bc8171f0eb1dd4e6fe15a6ff97c8afbfb9523e70",
+        "size": 2240
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/starter/MagicAPIJavaEntityConfigurationTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7dbc0173f1769b862965550a08c4c35ac61311485f80450f1516964d5177c75c",
+        "size": 2893
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/starter/magicapi/javaentity/JavaEntityPluginMarker.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "dc956ed613f9ea2a9daa3ce8181d9b0455131fe1df1b85c7dec470162f0ec1aa",
+        "size": 158
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-dependencies/pom.xml",
+      "kind": "modified",
+      "before": {
+        "hash": "846563f7618a8181e75ad04b40dc0d8e0417e32d71e967caca8b37e042f6ac86",
+        "size": 31385
+      },
+      "after": {
+        "hash": "f212551f1d2d3f7568643301f061086218fd59562fd63a17e1e19943d6411e47",
+        "size": 31631
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/pom.xml",
+      "kind": "modified",
+      "before": {
+        "hash": "ce2ce3e712cfbd9b4e8fae486b8f6448fbbe02f68173f2a4df7aec7b1c57042b",
+        "size": 5714
+      },
+      "after": {
+        "hash": "0ec57afffcdda2cac4153a8340689a4f6d827c201c4e8517e626f97027634413",
+        "size": 5775
+      },
+      "attributedTo": []
+    }
+  ],
+  "unresolvedScopes": [
+    {
+      "id": "scope:79574ba8841cbdf4ff781c4cdb5b04433dbaf2d294b09165f54012b6e54d0bc7",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "docs/magicapi-dynamic-java-entity.md",
+      "reason": "Changed path is not covered by a declared artifact: docs/magicapi-dynamic-java-entity.md"
+    },
+    {
+      "id": "scope:db1ddeec2a530e21f77b22a3e1256c1b253fb25e6dadab3d57e95065ec6789b9",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "docs/superpowers/plans/2026-08-05-magicapi-dynamic-java-entity.md",
+      "reason": "Changed path is not covered by a declared artifact: docs/superpowers/plans/2026-08-05-magicapi-dynamic-java-entity.md"
+    },
+    {
+      "id": "scope:269a4d13d0ed60f3e795204b8d9b79c123842b91c2e96a715e2d481da5157f1e",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "docs/superpowers/specs/2026-08-05-magicapi-dynamic-java-entity-design.md",
+      "reason": "Changed path is not covered by a declared artifact: docs/superpowers/specs/2026-08-05-magicapi-dynamic-java-entity-design.md"
+    },
+    {
+      "id": "scope:44f85a7eb4a543b70152ba4924bf4d3073f6b74cd4a6f2f3104499f09cfa0fde",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/MagicApiPluginAutoConfiguration.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/MagicApiPluginAutoConfiguration.java"
+    },
+    {
+      "id": "scope:cfde2450f8dd99c228c0ea2d162a55e770a4d70d64f7c48bae90428bb93543f3",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/CompilationClasspathResolver.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/CompilationClasspathResolver.java"
+    },
+    {
+      "id": "scope:39cdc0bf88bd3cb30ac06b5e762dcc3c76b402ccbea018340a8d710869acaaa1",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/CompiledGeneration.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/CompiledGeneration.java"
+    },
+    {
+      "id": "scope:c72e09da3423812c3e8ad601064061c53db06653a9d1a953f6639892f37b2974",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/GenerationClassLoader.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/GenerationClassLoader.java"
+    },
+    {
+      "id": "scope:fa7eaa32b133b558e4f81905aef0023be74733b998c0346acd2dea3f06404205",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/InMemoryJavaEntityCompiler.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/InMemoryJavaEntityCompiler.java"
+    },
+    {
+      "id": "scope:2832fa4f3364cd64e93cb33dbf036b8e0070366ae88c2ebd45eeeb311513ecc9",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaEntityCompilationException.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaEntityCompilationException.java"
+    },
+    {
+      "id": "scope:81142a90e643f05e1d69f8c25edef1c665cdae9925399c6972b16ca53145111a",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaEntityDiagnostic.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaEntityDiagnostic.java"
+    },
+    {
+      "id": "scope:0bd93bc50b4907d1f63fcf2485f6d67d8e187457127b9b39f992d626478ce634",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaSourceAnalyzer.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaSourceAnalyzer.java"
+    },
+    {
+      "id": "scope:758a33c4e45f3b558bf69c276aaff4b970a42e71b6306cc4a8cba3e51002aaed",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaSourceUnit.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaSourceUnit.java"
+    },
+    {
+      "id": "scope:ea16ceb3a7511024251fc2ffc52d7c695b5dcc03b7881ded0131d65a78771a62",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/MemoryJavaFileManager.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/MemoryJavaFileManager.java"
+    },
+    {
+      "id": "scope:f6f5938031c3d6d2596c7e78815cba57c08fd838700fd0ba63259ba0911feff7",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/model/JavaEntityInfo.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/model/JavaEntityInfo.java"
+    },
+    {
+      "id": "scope:ec7702fefb6b0462423257a3e3155152b661f25b8ffe7b13d1358dcfb8709e77",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/module/EntityModule.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/module/EntityModule.java"
+    },
+    {
+      "id": "scope:c9cc54c46e44edaf9ed65bc5392157cd9d156c57eb24b042be518fdb969aa421",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityDescriptor.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityDescriptor.java"
+    },
+    {
+      "id": "scope:b71536bcd0cb9cc107fa0acca5d8b66455a5ebf309a438e49495ae8e377bfbd4",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityGeneration.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityGeneration.java"
+    },
+    {
+      "id": "scope:f68916d43007f912b8f40f00df739087c2fdbd04f33b3396843167bc376deb8c",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityStatus.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityStatus.java"
+    },
+    {
+      "id": "scope:186489ce646a0058cb1e5f736044a6e368c72a877a40edfd24c497b05f550d4a",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicDynamicRegistry.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicDynamicRegistry.java"
+    },
+    {
+      "id": "scope:0d39cd08c828dd81baaec7221d128a0a923e2b601e37980054573ac859bdfbe5",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicResourceStorage.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicResourceStorage.java"
+    },
+    {
+      "id": "scope:90aa9dd941f2e16581875921f75f1a06e0490b041cf6ccc55ba8b2bdeb71d2aa",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/starter/JavaEntityProperties.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/starter/JavaEntityProperties.java"
+    },
+    {
+      "id": "scope:307b13bdc843881c7152b04588e685eb6f117bbd1fd8ef1061b2743082177461",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/starter/MagicAPIJavaEntityConfiguration.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/starter/MagicAPIJavaEntityConfiguration.java"
+    },
+    {
+      "id": "scope:a4bf7443884f8a9e7d638f5ac2690a7e1ba1665ea627b7539b06b954ced7624e",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/DynamicJavaEntityIntegrationTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/DynamicJavaEntityIntegrationTest.java"
+    },
+    {
+      "id": "scope:7a9d3e551dbf2e8aa39cd96b75375e918e7542a66ec89c53f122b5a715529e92",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/InMemoryJavaEntityCompilerTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/InMemoryJavaEntityCompilerTest.java"
+    },
+    {
+      "id": "scope:b1211e5873f0ef2f8772263e468cedadce7cefeb437c55970220eab8426dabc9",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaSourceAnalyzerTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/compiler/JavaSourceAnalyzerTest.java"
+    },
+    {
+      "id": "scope:5b3d8dd2a7ec5ad517f928a72c60dd42e54cea04c34752ff1d5f72132397949b",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/module/EntityModuleTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/module/EntityModuleTest.java"
+    },
+    {
+      "id": "scope:6284b368d6215c68e4dd6822a730c58252338ec857939b8307f6665ce75dbf99",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityDescriptorTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityDescriptorTest.java"
+    },
+    {
+      "id": "scope:9786a20b492b3dcd0bd765d898a072a5910fb365160822d750209c83c78c4a9b",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityRegistryTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/runtime/DynamicEntityRegistryTest.java"
+    },
+    {
+      "id": "scope:e8bd05bd46597b7e9d5ae80ed672fd64d43931a7531c48df318a86b3596474e2",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicDynamicRegistryTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicDynamicRegistryTest.java"
+    },
+    {
+      "id": "scope:5f927d67cabc915724c77ebff5c5ca64b81b6054a3a8ecb1708c27932073ab77",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicResourceStorageTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/service/JavaEntityMagicResourceStorageTest.java"
+    },
+    {
+      "id": "scope:8f13ba8e45e242cb7655e7a5b61bed7aa396e100ef0afbfb9f043a5b2485364f",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/starter/MagicAPIJavaEntityConfigurationTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/javaentity/starter/MagicAPIJavaEntityConfigurationTest.java"
+    },
+    {
+      "id": "scope:41adde3c88abd0be305886948b0f2a2616feeb94b6f0c04fb16d312d79edb976",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/starter/magicapi/javaentity/JavaEntityPluginMarker.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/starter/magicapi/javaentity/JavaEntityPluginMarker.java"
+    },
+    {
+      "id": "scope:6bd5520a1ac8df9552cc09547c5149da93ebf7d953e99d77e162510a2a7b7482",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-dependencies/pom.xml",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-dependencies/pom.xml"
+    },
+    {
+      "id": "scope:72da8572eae8f9141ce13327851e15811888da9321eab973fcf59505b2ac5eb9",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/pom.xml",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-plugin/pom.xml"
+    }
+  ],
+  "noCodeReason": null,
+  "scopeHash": "ce38f0af7ecbc120d76db7b6cf2a15886c6b65658a48ef9c17b9fef9f180bb1b"
+}
