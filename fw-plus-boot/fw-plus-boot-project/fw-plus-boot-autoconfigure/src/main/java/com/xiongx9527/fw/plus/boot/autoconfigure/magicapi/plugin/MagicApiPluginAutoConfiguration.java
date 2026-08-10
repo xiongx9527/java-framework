@@ -43,7 +43,6 @@ import org.springframework.context.annotation.Import;
          MagicAPIRabbitMqConfiguration.class,
          MagicAPIKafkaConfiguration.class,
          MagicAPIJavaEntityConfiguration.class,
-         MagicAPISpringBeanConfiguration.class,
          MagicAPIPulsarConfiguration.class,
          MagicAPIDbBrowserConfiguration.class,
          MagicAPIDebeziumConfiguration.class,

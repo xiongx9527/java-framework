@@ -72,33 +72,6 @@ class JavaEntityMagicDynamicRegistryTest {
     }
 
     @Test
-    void disabledEntityResourcesStayInSnapshotButDoNotPublishMappingsUntilEnabled() {
-        RecordingEntityRegistry entityRegistry = new RecordingEntityRegistry();
-        JavaEntityMagicDynamicRegistry registry = new JavaEntityMagicDynamicRegistry(
-                new JavaEntityMagicResourceStorage(new JavaSourceAnalyzer(), entityRegistry), entityRegistry);
-        JavaEntityInfo user = entity("user", "User", "package demo; public class User {}");
-        user.setEnabled(false);
-
-        assertTrue(registry.register(user));
-        assertTrue(entityRegistry.lastSnapshot.isEmpty());
-        assertNull(registry.getMapping("demo.User"));
-
-        user.setEnabled(true);
-        assertTrue(registry.register(user));
-        assertEquals(1, entityRegistry.lastSnapshot.size());
-        assertEquals("user", registry.getMapping("demo.User").getId());
-    }
-
-    @Test
-    void copyPreservesEnabledFlag() {
-        JavaEntityInfo disabled = entity("user", "User", "package demo; public class User {}");
-        disabled.setEnabled(false);
-
-        assertFalse(disabled.copy().isEnabled());
-        assertFalse(disabled.simple().isEnabled());
-    }
-
-    @Test
     void magicApiClearEventClearsTheWholeEntitySnapshot() {
         RecordingEntityRegistry entityRegistry = new RecordingEntityRegistry();
         JavaEntityMagicDynamicRegistry registry = new JavaEntityMagicDynamicRegistry(

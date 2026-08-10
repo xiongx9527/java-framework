@@ -1,8 +1,6 @@
 package com.xiongx9527.fw.plus.ai.tinyflow;
 
-import com.xiongx9527.fw.plus.common.exception.BizException;
-
-public class TinyflowException extends BizException {
+public class TinyflowException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;
 

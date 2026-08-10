@@ -24,10 +24,5 @@
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-dify</artifactId>
         </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 </project>

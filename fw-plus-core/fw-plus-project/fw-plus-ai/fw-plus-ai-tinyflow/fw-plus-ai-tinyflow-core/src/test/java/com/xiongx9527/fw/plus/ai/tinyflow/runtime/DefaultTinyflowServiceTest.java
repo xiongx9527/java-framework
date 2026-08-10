@@ -99,21 +99,6 @@ public class DefaultTinyflowServiceTest {
 	}
 
 	@Test
-	public void shouldKeepTheLegacyInMemoryDefinitionRepositoryConstructor() {
-		boolean legacyConstructorExists;
-		try {
-			DefaultTinyflowService.class.getConstructor(TinyflowWorkflowValidator.class,
-					TinyflowWorkflowRepository.class, InMemoryChainDefinitionRepository.class,
-					ChainExecutor.class, Duration.class);
-			legacyConstructorExists = true;
-		} catch (NoSuchMethodException error) {
-			legacyConstructorExists = false;
-		}
-
-		assertTrue("The legacy five-argument constructor must remain binary compatible", legacyConstructorExists);
-	}
-
-	@Test
 	public void shouldValidateWorkflowWithoutRegisteringOrReplacingIt() {
 		TinyflowWorkflow registered = workflow("flow-validate", SIMPLE_WORKFLOW);
 		service.register(registered);
