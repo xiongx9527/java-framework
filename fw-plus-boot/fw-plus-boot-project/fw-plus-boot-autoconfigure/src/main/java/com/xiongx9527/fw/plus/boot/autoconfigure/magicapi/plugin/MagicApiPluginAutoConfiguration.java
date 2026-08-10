@@ -11,6 +11,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.elasticsearch.s
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.freemarker.starter.MagicAPIFreemarkerConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.influx.starter.MagicAPIInfluxConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.kafka.starter.MagicAPIKafkaConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.starter.MagicAPIJavaEntityConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mongo.starter.MagicAPIMongoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.starter.MagicAPIMqttConfiguration;
@@ -21,6 +22,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.redis.starter.M
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.starter.MagicAPIRocketMqConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.starter.MagicAPIS3Configuration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.satoken.starter.MagicAPISaTokenConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.springbean.starter.MagicAPISpringBeanConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.MagicSwaggerConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.task.starter.MagicAPITaskConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.vue3.starter.MagicAPIVueConfiguration;
@@ -40,6 +42,8 @@ import org.springframework.context.annotation.Import;
          MagicAPIRocketMqConfiguration.class,
          MagicAPIRabbitMqConfiguration.class,
          MagicAPIKafkaConfiguration.class,
+         MagicAPIJavaEntityConfiguration.class,
+         MagicAPISpringBeanConfiguration.class,
          MagicAPIPulsarConfiguration.class,
          MagicAPIDbBrowserConfiguration.class,
          MagicAPIDebeziumConfiguration.class,

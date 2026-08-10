@@ -1,17 +1,19 @@
 package com.xiongx9527.fw.plus.tinyengine.common.exception;
 
-public class ServiceException extends RuntimeException {
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
+public class ServiceException extends BizException {
 
 	private static final long serialVersionUID = 1L;
 
-	private final String code;
+	private final String serviceCode;
 
 	public ServiceException(String code, String message) {
 		super(message);
-		this.code = code;
+		this.serviceCode = code;
 	}
 
-	public String getCode() {
-		return code;
+	public String getServiceCode() {
+		return serviceCode;
 	}
 }

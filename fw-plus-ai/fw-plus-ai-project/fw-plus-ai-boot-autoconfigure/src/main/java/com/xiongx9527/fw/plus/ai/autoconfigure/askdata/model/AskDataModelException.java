@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model;
 
-public class AskDataModelException extends RuntimeException {
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
+public class AskDataModelException extends BizException {
 
 	private final String errorCode;
 

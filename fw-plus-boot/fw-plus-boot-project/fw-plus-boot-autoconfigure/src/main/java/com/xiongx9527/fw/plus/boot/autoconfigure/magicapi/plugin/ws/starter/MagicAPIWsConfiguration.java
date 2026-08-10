@@ -103,7 +103,7 @@ public class MagicAPIWsConfiguration implements MagicPluginConfiguration , BaseS
      * @return SimpleDynamicWebSocketHandler实例
      */
     @Bean
-    @DependsOn(value = {"wsDataSourceInfoMagicResourceStorage", "wsSubscribeInfoMagicResourceStorage"})
+    @DependsOn(value = {"springUtils", "wsDataSourceInfoMagicResourceStorage", "wsSubscribeInfoMagicResourceStorage"})
     @ConditionalOnMissingBean(type = {"org.springframework.data.redis.core.StringRedisTemplate"})
     public BaseDynamicWebSocketHandler simpleDynamicWebSocketHandler(WsDataSourceInfoMagicResourceStorage magicDataSourceStorage
             , WsSubscribeInfoMagicResourceStorage wsSubscribeInfoMagicResourceStorage) {

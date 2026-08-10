@@ -1,0 +1,6 @@
+{
+  "openspec_proposal": "docs/openspec/changes/merge-mp-mf-into-mybatis/proposal.md",
+  "openspec_design": "docs/openspec/changes/merge-mp-mf-into-mybatis/design.md",
+  "openspec_tasks": "docs/openspec/changes/merge-mp-mf-into-mybatis/tasks.md",
+  "archive_directory": "docs/openspec/changes/archive/2026-08-09-merge-mp-mf-into-mybatis"
+}
