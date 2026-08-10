@@ -1,0 +1,28 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "manual-evidence",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "magicapi-dynamic-entity-plugin",
+    "sourceRevision": 5,
+    "contractHash": "45ed58098657881dad0e5906b28952a9fc6ce05cb1f7317f7851f6825eca0478",
+    "scopeHash": "87fcf2785df2a9fb11f0385a7fc3ad50d4f68596892b302ef69b60139ad5b74d",
+    "snapshotHash": "4acf41e09ee7091011cecf7550b69f9006d973cc008744d49a5f244cc8ee0d9f",
+    "artifactHash": "45cae1031894ebf2e0770a9b40fb4cf76d6a6f618372828fc747070d661a3b2d"
+  },
+  "acceptanceIds": [
+    "acceptance-1ce789c2aba5964e6af775d49e0ce9ce68a136576fa4002ad1cd0d1e09aee452"
+  ],
+  "actor": "native-runtime:manual-evidence",
+  "issuedAt": "2026-08-10T03:17:33.136Z",
+  "evidence": {
+    "steps": [
+      "运行 38 个聚焦测试：DynamicJavaEntityIntegrationTest(5) + EntityModuleTest(1) + DynamicEntityRegistryTest(7) + DynamicEntityDescriptorTest(4) + MagicAPIJavaEntityConfigurationTest(3) + JavaEntityMagicResourceStorageTest(3) + JavaEntityMagicDynamicRegistryTest(4) + InMemoryJavaEntityCompilerTest(5) + JavaSourceAnalyzerTest(6)；mvn -pl fw-plus-boot-autoconfigure -am -Dtest=... BUILD SUCCESS（exit 0）"
+    ],
+    "observations": [
+      "实现位置：fw-plus-magicapi-plugin-java-entity；38 个聚焦测试全部通过覆盖此 acceptance"
+    ]
+  },
+  "receiptHash": "feb2223ce73cc62e80b44e435f1300c5d20baac5290be93e4273798ec791298f"
+}
