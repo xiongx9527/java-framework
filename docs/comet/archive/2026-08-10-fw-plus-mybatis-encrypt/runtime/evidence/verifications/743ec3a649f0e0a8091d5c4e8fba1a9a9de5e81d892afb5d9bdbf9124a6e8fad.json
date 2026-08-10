@@ -6,10 +6,10 @@
   "freshness": "complete",
   "contractHash": "2676fb29471f2ff031f02d173565b0db21383e76460b4d8f6ff8be6963ce9cae",
   "acceptanceCriteriaHash": "0294de23b942fdcee3b10d126bd14ee9958946add98533cdb55082e117010910",
-  "implementationScopeRef": "runtime/evidence/scopes/f7503d4cdf4ba7af331e9b4cd332d4f753e824f22cff33664656f5635d55cfa3.json",
-  "implementationScopeHash": "f7503d4cdf4ba7af331e9b4cd332d4f753e824f22cff33664656f5635d55cfa3",
+  "implementationScopeRef": "runtime/evidence/scopes/a6281a872eda208febb1cdbb70818a763454cd071616c9aad8e1cef556ea5644.json",
+  "implementationScopeHash": "a6281a872eda208febb1cdbb70818a763454cd071616c9aad8e1cef556ea5644",
   "reportRef": "verification.md",
-  "reportHash": "a3f97e45b839a9d7f015c007ee2835c7387aae0f05dc57c4d2efd3b9713be6db",
+  "reportHash": "0f5b2989dc2b638ebe3a08941b9d52333a9f112cd3ece578d507604dde9eb38b",
   "acceptanceTrace": {
     "schema": "comet.native.acceptance-trace.v2",
     "nativeRootRef": "docs/comet",
@@ -24,7 +24,7 @@
         "kind": "spec-must",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json"
+          "runtime/evidence/receipts/799ce67fa5a77da09e84fa2cc266945ff2b2709c049a43539efaa2ca6c292c83.json"
         ],
         "skippedReason": null
       },
@@ -34,7 +34,7 @@
         "kind": "spec-must",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json"
+          "runtime/evidence/receipts/799ce67fa5a77da09e84fa2cc266945ff2b2709c049a43539efaa2ca6c292c83.json"
         ],
         "skippedReason": null
       },
@@ -44,7 +44,7 @@
         "kind": "brief-example",
         "source": "brief.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/3794cdded21803fe4c0d7cebb5babe16e0f194b4e69e04966652a7386f24b8b7.json"
+          "runtime/evidence/receipts/c3375dbd618417a21fd5fa3e1130cf59a5683bd1b5b42ca42d0fda089df1d3a9.json"
         ],
         "skippedReason": null
       },
@@ -54,7 +54,7 @@
         "kind": "spec-scenario",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/e03b5d3e53df2d4b042932835e8e103b26489d8f4a73c908944d5f9ecd3dda8f.json"
+          "runtime/evidence/receipts/84b1afe4a51d076cb1159f7f1402225316682b196de91d6a79916dcc29e889ad.json"
         ],
         "skippedReason": null
       },
@@ -64,7 +64,7 @@
         "kind": "spec-scenario",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/3794cdded21803fe4c0d7cebb5babe16e0f194b4e69e04966652a7386f24b8b7.json"
+          "runtime/evidence/receipts/c3375dbd618417a21fd5fa3e1130cf59a5683bd1b5b42ca42d0fda089df1d3a9.json"
         ],
         "skippedReason": null
       },
@@ -74,7 +74,7 @@
         "kind": "brief-example",
         "source": "brief.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/9132008846cd178c229c13062357d87a5fd5c6744984db15aef87254c9dc9bfc.json"
+          "runtime/evidence/receipts/ad5e0de3582d0699310c9b74fdc3b33afa50c0b91617843999ca0bd4505d4bb6.json"
         ],
         "skippedReason": null
       },
@@ -84,7 +84,7 @@
         "kind": "spec-scenario",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/e03b5d3e53df2d4b042932835e8e103b26489d8f4a73c908944d5f9ecd3dda8f.json"
+          "runtime/evidence/receipts/84b1afe4a51d076cb1159f7f1402225316682b196de91d6a79916dcc29e889ad.json"
         ],
         "skippedReason": null
       },
@@ -94,7 +94,7 @@
         "kind": "spec-must",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/fa62a1439651db12d8b293326d4d131664866d07f26add1974043082a75a89d3.json"
+          "runtime/evidence/receipts/2d5cd0da004d600b9058ab8d88a22e6713193ff141380a2e8c4264cbf4ea6d8f.json"
         ],
         "skippedReason": null
       },
@@ -104,7 +104,7 @@
         "kind": "spec-must",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json"
+          "runtime/evidence/receipts/799ce67fa5a77da09e84fa2cc266945ff2b2709c049a43539efaa2ca6c292c83.json"
         ],
         "skippedReason": null
       },
@@ -114,7 +114,7 @@
         "kind": "spec-scenario",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/9132008846cd178c229c13062357d87a5fd5c6744984db15aef87254c9dc9bfc.json"
+          "runtime/evidence/receipts/ad5e0de3582d0699310c9b74fdc3b33afa50c0b91617843999ca0bd4505d4bb6.json"
         ],
         "skippedReason": null
       },
@@ -124,7 +124,7 @@
         "kind": "spec-scenario",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/e03b5d3e53df2d4b042932835e8e103b26489d8f4a73c908944d5f9ecd3dda8f.json"
+          "runtime/evidence/receipts/84b1afe4a51d076cb1159f7f1402225316682b196de91d6a79916dcc29e889ad.json"
         ],
         "skippedReason": null
       },
@@ -134,7 +134,7 @@
         "kind": "spec-scenario",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/fa62a1439651db12d8b293326d4d131664866d07f26add1974043082a75a89d3.json"
+          "runtime/evidence/receipts/2d5cd0da004d600b9058ab8d88a22e6713193ff141380a2e8c4264cbf4ea6d8f.json"
         ],
         "skippedReason": null
       },
@@ -144,7 +144,7 @@
         "kind": "spec-scenario",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/3794cdded21803fe4c0d7cebb5babe16e0f194b4e69e04966652a7386f24b8b7.json"
+          "runtime/evidence/receipts/c3375dbd618417a21fd5fa3e1130cf59a5683bd1b5b42ca42d0fda089df1d3a9.json"
         ],
         "skippedReason": null
       },
@@ -154,7 +154,7 @@
         "kind": "spec-must",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json"
+          "runtime/evidence/receipts/799ce67fa5a77da09e84fa2cc266945ff2b2709c049a43539efaa2ca6c292c83.json"
         ],
         "skippedReason": null
       },
@@ -164,7 +164,7 @@
         "kind": "brief-example",
         "source": "brief.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json"
+          "runtime/evidence/receipts/799ce67fa5a77da09e84fa2cc266945ff2b2709c049a43539efaa2ca6c292c83.json"
         ],
         "skippedReason": null
       },
@@ -174,7 +174,7 @@
         "kind": "brief-example",
         "source": "brief.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/e03b5d3e53df2d4b042932835e8e103b26489d8f4a73c908944d5f9ecd3dda8f.json"
+          "runtime/evidence/receipts/84b1afe4a51d076cb1159f7f1402225316682b196de91d6a79916dcc29e889ad.json"
         ],
         "skippedReason": null
       },
@@ -184,7 +184,7 @@
         "kind": "spec-scenario",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json"
+          "runtime/evidence/receipts/799ce67fa5a77da09e84fa2cc266945ff2b2709c049a43539efaa2ca6c292c83.json"
         ],
         "skippedReason": null
       },
@@ -194,7 +194,7 @@
         "kind": "spec-scenario",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/3794cdded21803fe4c0d7cebb5babe16e0f194b4e69e04966652a7386f24b8b7.json"
+          "runtime/evidence/receipts/c3375dbd618417a21fd5fa3e1130cf59a5683bd1b5b42ca42d0fda089df1d3a9.json"
         ],
         "skippedReason": null
       },
@@ -204,7 +204,7 @@
         "kind": "brief-example",
         "source": "brief.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/fa62a1439651db12d8b293326d4d131664866d07f26add1974043082a75a89d3.json"
+          "runtime/evidence/receipts/2d5cd0da004d600b9058ab8d88a22e6713193ff141380a2e8c4264cbf4ea6d8f.json"
         ],
         "skippedReason": null
       },
@@ -214,25 +214,25 @@
         "kind": "spec-must",
         "source": "specs/mybatis-encrypt/spec.md",
         "evidenceRefs": [
-          "runtime/evidence/receipts/9132008846cd178c229c13062357d87a5fd5c6744984db15aef87254c9dc9bfc.json"
+          "runtime/evidence/receipts/ad5e0de3582d0699310c9b74fdc3b33afa50c0b91617843999ca0bd4505d4bb6.json"
         ],
         "skippedReason": null
       }
     ],
-    "traceHash": "91a3cc875f71e82804d6d84b881fff2c4862d8e6ea1d3e96bcb9182f680b0f63"
+    "traceHash": "0efc772bdc2d2e239d4813d194e470aaf0d7a6835f4132820eaad4e5c7e7bcf8"
   },
   "partialAllowanceRef": null,
   "partialAllowanceHash": null,
   "requiredReceiptRefs": [
-    "runtime/evidence/receipts/d9ccdb45cac2f7bac2b24369ab1e41041bcf644ab5dfbf1aae465d9c46fbf5dd.json"
+    "runtime/evidence/receipts/a68931b7ce2ca4e059f04f31841f048f2ed5c954d8bcd467c468b080b1575d48.json"
   ],
   "receiptRefs": [
-    "runtime/evidence/receipts/3794cdded21803fe4c0d7cebb5babe16e0f194b4e69e04966652a7386f24b8b7.json",
-    "runtime/evidence/receipts/9132008846cd178c229c13062357d87a5fd5c6744984db15aef87254c9dc9bfc.json",
-    "runtime/evidence/receipts/abcf90a21a0d283aa8244dd8f7d632de92d597bf51746b61c161cf75aa17ccdf.json",
-    "runtime/evidence/receipts/e03b5d3e53df2d4b042932835e8e103b26489d8f4a73c908944d5f9ecd3dda8f.json",
-    "runtime/evidence/receipts/fa62a1439651db12d8b293326d4d131664866d07f26add1974043082a75a89d3.json"
+    "runtime/evidence/receipts/2d5cd0da004d600b9058ab8d88a22e6713193ff141380a2e8c4264cbf4ea6d8f.json",
+    "runtime/evidence/receipts/799ce67fa5a77da09e84fa2cc266945ff2b2709c049a43539efaa2ca6c292c83.json",
+    "runtime/evidence/receipts/84b1afe4a51d076cb1159f7f1402225316682b196de91d6a79916dcc29e889ad.json",
+    "runtime/evidence/receipts/ad5e0de3582d0699310c9b74fdc3b33afa50c0b91617843999ca0bd4505d4bb6.json",
+    "runtime/evidence/receipts/c3375dbd618417a21fd5fa3e1130cf59a5683bd1b5b42ca42d0fda089df1d3a9.json"
   ],
-  "createdAt": "2026-08-09T09:22:48.182Z",
-  "envelopeHash": "7d38b23ac3fbd8759a0b0a3450f5fc39aefd32f7a2419a64f037d5e897b8afa8"
+  "createdAt": "2026-08-10T05:01:02.927Z",
+  "envelopeHash": "743ec3a649f0e0a8091d5c4e8fba1a9a9de5e81d892afb5d9bdbf9124a6e8fad"
 }

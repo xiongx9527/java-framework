@@ -1,0 +1,15 @@
+{
+  "schema": "comet.native.implementation-scope.v2",
+  "contractHash": "2676fb29471f2ff031f02d173565b0db21383e76460b4d8f6ff8be6963ce9cae",
+  "baselineProjectionRef": "runtime/evidence/snapshots/1a8dd2d9fe632147dc38b8b6d70e5523126b613a1eb08fc542e6df4104effc84.json",
+  "baselineProjectionHash": "1a8dd2d9fe632147dc38b8b6d70e5523126b613a1eb08fc542e6df4104effc84",
+  "currentProjectionRef": "runtime/evidence/snapshots/352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f.json",
+  "currentProjectionHash": "352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f",
+  "complete": true,
+  "declaredArtifacts": [],
+  "changes": [],
+  "unattributed": [],
+  "unresolvedScopes": [],
+  "noCodeReason": "本 change 用于正式记录已落入 dev 的字段加解密三层化重构（commit 8261aa3f 新增通用核心与 MF 适配层、改造 MP 适配层、更新 boot 自动配置；commit 17686eb1 完成验证）。worktree 从 dev 创建，baseline 已包含这些实现，因此本 worktree 无新增代码改动。后续 Verify 阶段将基于 dev 已落库的代码运行编译与测试，确认与 brief 及完整目标规格一致。",
+  "scopeHash": "a6281a872eda208febb1cdbb70818a763454cd071616c9aad8e1cef556ea5644"
+}

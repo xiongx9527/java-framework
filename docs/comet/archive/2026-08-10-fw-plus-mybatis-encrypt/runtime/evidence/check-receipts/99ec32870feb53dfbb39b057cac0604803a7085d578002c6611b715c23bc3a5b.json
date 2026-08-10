@@ -13,26 +13,26 @@
       "maxIssues": 128
     }
   },
-  "inputHash": "b6f3e8c380e8d4ed2cd273dff8761e26ff39fc84863b2dd73eb00fc9adb41dff",
+  "inputHash": "384d9c23e7abcbfca8638a424a19cf547894248b66ac3465bf7f256d6b4e4fd5",
   "status": "passed",
-  "startedAt": "2026-08-09T09:22:42.496Z",
-  "endedAt": "2026-08-09T09:22:44.920Z",
+  "startedAt": "2026-08-10T05:00:52.528Z",
+  "endedAt": "2026-08-10T05:00:57.092Z",
   "contract": {
     "expectedHash": "2676fb29471f2ff031f02d173565b0db21383e76460b4d8f6ff8be6963ce9cae",
     "beforeHash": "2676fb29471f2ff031f02d173565b0db21383e76460b4d8f6ff8be6963ce9cae",
     "afterHash": "2676fb29471f2ff031f02d173565b0db21383e76460b4d8f6ff8be6963ce9cae"
   },
   "implementation": {
-    "scopeHash": "f7503d4cdf4ba7af331e9b4cd332d4f753e824f22cff33664656f5635d55cfa3",
+    "scopeHash": "a6281a872eda208febb1cdbb70818a763454cd071616c9aad8e1cef556ea5644",
     "expectedSnapshotHash": "352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f",
     "beforeSnapshotHash": "352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f",
     "afterSnapshotHash": "352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f"
   },
   "counts": {
-    "filesSelected": 29,
-    "filesScanned": 29,
+    "filesSelected": 0,
+    "filesScanned": 0,
     "binaryFilesSkipped": 0,
-    "bytesScanned": 131426,
+    "bytesScanned": 0,
     "issueCount": 0,
     "recordedIssueCount": 0
   },
@@ -40,5 +40,5 @@
   "issuesTruncated": false,
   "stale": false,
   "staleReasons": [],
-  "receiptHash": "8fb7694caa0f8d3d947334beda84ed21d34b31ce07f860f2b818e08521f63c83"
+  "receiptHash": "99ec32870feb53dfbb39b057cac0604803a7085d578002c6611b715c23bc3a5b"
 }

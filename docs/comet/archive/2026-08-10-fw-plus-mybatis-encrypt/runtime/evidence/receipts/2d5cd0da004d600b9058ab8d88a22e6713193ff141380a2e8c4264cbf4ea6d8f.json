@@ -7,9 +7,9 @@
     "change": "fw-plus-mybatis-encrypt",
     "sourceRevision": 3,
     "contractHash": "2676fb29471f2ff031f02d173565b0db21383e76460b4d8f6ff8be6963ce9cae",
-    "scopeHash": "f7503d4cdf4ba7af331e9b4cd332d4f753e824f22cff33664656f5635d55cfa3",
+    "scopeHash": "a6281a872eda208febb1cdbb70818a763454cd071616c9aad8e1cef556ea5644",
     "snapshotHash": "352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f",
-    "artifactHash": "1aa92ce55c4063d7517784acf602f7e75cc35e687b2f16cc7c4c6dcc3780ffe8"
+    "artifactHash": "ebcd90ea834cea6cc6bc4399a9ba965b610596d0c6c024f390123465e2d4fbd2"
   },
   "acceptanceIds": [
     "acceptance-8bf70e76b4e49391896b1c4e08b79f1043421158dce6bc321e1545ccb6d8ec22",
@@ -17,14 +17,14 @@
     "acceptance-f53be9a4e660ff8f597d86a2278061697cbbbe6c37370120b9676eaedbadfa65"
   ],
   "actor": "native-runtime:manual-evidence",
-  "issuedAt": "2026-08-09T09:22:03.538Z",
+  "issuedAt": "2026-08-10T03:28:32.816Z",
   "evidence": {
     "steps": [
-      "检查 fw-plus-mybatis-encrypt/pom.xml 的依赖声明"
+      "人工核对 fw-plus-core/fw-plus-project/fw-plus-mybatis/fw-plus-mybatis-encrypt/pom.xml 的依赖列表"
     ],
     "observations": [
-      "pom 编译依赖仅 org.mybatis:mybatis、com.xiongx9527.fw.plus:fw-plus-common、fw-plus-annotation；test 依赖仅 junit-jupiter/assertj-core/h2；不含 com.baomidou、com.ln、spring-* 编译依赖（人工核对 pom.xml）"
+      "pom.xml 编译依赖仅 org.mybatis:mybatis、fw-plus-common、fw-plus-annotation 三项；测试依赖 junit-jupiter、assertj-core、h2（均为 test scope）。不含 com.baomidou(mybatis-plus)、com.ln(mybatis-flex)、spring-* 任何编译依赖。通用核心框架无关性满足。"
     ]
   },
-  "receiptHash": "fa62a1439651db12d8b293326d4d131664866d07f26add1974043082a75a89d3"
+  "receiptHash": "2d5cd0da004d600b9058ab8d88a22e6713193ff141380a2e8c4264cbf4ea6d8f"
 }
