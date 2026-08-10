@@ -1,0 +1,31 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "manual-evidence",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "fw-plus-mybatis-encrypt",
+    "sourceRevision": 3,
+    "contractHash": "2676fb29471f2ff031f02d173565b0db21383e76460b4d8f6ff8be6963ce9cae",
+    "scopeHash": "a6281a872eda208febb1cdbb70818a763454cd071616c9aad8e1cef556ea5644",
+    "snapshotHash": "352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f",
+    "artifactHash": "ebcd90ea834cea6cc6bc4399a9ba965b610596d0c6c024f390123465e2d4fbd2"
+  },
+  "acceptanceIds": [
+    "acceptance-2fff5e28ac5027ce1b00817279d63ba517204f7ed262db761f55fbd9f299b7ec",
+    "acceptance-63c53dc7ad912e1c7828d36d0008a7b10a3593c49af79a4565be3c58220b48eb",
+    "acceptance-b24f5d6a11ae3a03a5a31ed8010a7558f7ef054dbae1ef59fd5f8069fb09e539",
+    "acceptance-e45654620c14bf26a69b247e1d7febe2c2a24c8077644b274bd312e86fc2126d"
+  ],
+  "actor": "native-runtime:manual-evidence",
+  "issuedAt": "2026-08-10T03:28:09.018Z",
+  "evidence": {
+    "steps": [
+      "执行 mvn -B -f fw-plus-core/pom.xml test -pl fw-plus-project/fw-plus-mybatis/fw-plus-mf/fw-plus-mf-encrypt -DfailIfNoTests=false"
+    ],
+    "observations": [
+      "BUILD SUCCESS。Tests run: 5, Failures: 0, Errors: 0, Skipped: 0。覆盖：MybatisFlexFieldNameResolverTest(3, Flex @Column 列名映射)、MfFieldEncryptH2Test(2, MF 端到端 INSERT 落库为密文 + SELECT 返回明文)。"
+    ]
+  },
+  "receiptHash": "c3375dbd618417a21fd5fa3e1130cf59a5683bd1b5b42ca42d0fda089df1d3a9"
+}
