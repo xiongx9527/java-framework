@@ -423,15 +423,33 @@ public class AskDataAutoConfiguration {
     @ConditionalOnMissingBean
     public AskDataVectorRetriever askDataVectorRetriever(AskDataProperties properties,
             ObjectProvider<AiEmbeddingStoreRegistry> embeddingStoreRegistryProvider,
+            ObjectProvider<AskDataModelRegistry> modelRegistryProvider,
+            ObjectProvider<AiModelRegistry> aiModelRegistryProvider,
+            com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter modelRouter) {
+        return createAskDataVectorRetriever(properties, embeddingStoreRegistryProvider, modelRegistryProvider,
+                aiModelRegistryProvider.getIfAvailable(), modelRouter);
+    }
+
+    public AskDataVectorRetriever askDataVectorRetriever(AskDataProperties properties,
+            ObjectProvider<AiEmbeddingStoreRegistry> embeddingStoreRegistryProvider,
             ObjectProvider<AskDataModelRegistry> modelRegistryProvider) {
+        return createAskDataVectorRetriever(properties, embeddingStoreRegistryProvider, modelRegistryProvider,
+                null, null);
+    }
+
+    private AskDataVectorRetriever createAskDataVectorRetriever(AskDataProperties properties,
+            ObjectProvider<AiEmbeddingStoreRegistry> embeddingStoreRegistryProvider,
+            ObjectProvider<AskDataModelRegistry> modelRegistryProvider, AiModelRegistry aiModelRegistry,
+            com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter modelRouter) {
         validateDefaultVectorConfiguration(properties);
         AiEmbeddingStoreRegistry registry = embeddingStoreRegistryProvider.getIfAvailable();
         AskDataModelRegistry modelRegistry = modelRegistryProvider.getIfAvailable();
-        if (registry == null || modelRegistry == null) {
+        if (registry == null || (modelRegistry == null && aiModelRegistry == null)) {
             return new CompositeAskDataVectorRetriever(Collections.<AskDataVectorRetriever>emptyList(),
                     properties.getVector().getDefaultTopK());
         }
-        return new AiEmbeddingStoreAskDataVectorRetriever(registry, modelRegistry, properties.getVector().getStore());
+        return new AiEmbeddingStoreAskDataVectorRetriever(registry, modelRegistry, aiModelRegistry, modelRouter,
+                properties, properties.getVector().getStore());
     }
 
     @Bean

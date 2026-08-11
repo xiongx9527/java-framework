@@ -47,7 +47,9 @@ fw:
           default-max-rows: 100
 ```
 
-`request-timeout-millis` 是传给 Core Chat Adapter 的单次调用超时；`infrastructure-failure-timeout-millis` 只用于旧 LangChain4j 兼容层按调用耗时识别基础设施故障，不能替代 provider HTTP 客户端超时。两者默认均为 30000 毫秒，但语义独立。
+`request-timeout-millis` 是传给 Core Chat/Embedding Adapter 的单次调用超时；`infrastructure-failure-timeout-millis` 只用于旧 LangChain4j 兼容层按调用耗时识别基础设施故障，不能替代 provider HTTP 客户端超时。两者默认均为 30000 毫秒，但语义独立。
+
+默认 Flow 的 Chat 与 Embedding 都通过 Core Router 选择中立模型。请求需要独立指定 Embedding 模型时，在 `AskDataRequest.options` 中设置 `embeddingModelKey`；未设置时按 `embedding-candidates` 和 `default-embedding-model` 路由。Flow 会向每次向量检索加入 `projectId`、`operatorId`、`datasourceKey` 和 `authorizationVersion` 过滤条件，因此所选 `AiEmbeddingStore` 必须返回 `supportsFilters() == true` 并实际应用 filters。无法应用 filters 的 Store 会 fail-closed；旧 LangChain4j `EmbeddingStore` 兼容适配器也会明确拒绝带授权过滤的查询。
 
 需要 LangChain4j 时，由业务应用显式引入 Adapter Starter：
 
