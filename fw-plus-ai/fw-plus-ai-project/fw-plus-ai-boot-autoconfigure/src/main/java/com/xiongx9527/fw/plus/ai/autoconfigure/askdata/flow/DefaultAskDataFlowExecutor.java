@@ -512,10 +512,12 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         AskDataModelResult routed = coreModelRouter.route(routeRequest);
         while (true) {
             result.addModelAttempt(routed.getModelKey());
-            publishModelRouted(request, result, routed.getModelKey());
+            publishModelAttempt(request, result, routed, AskDataEvent.ModelState.ATTEMPTED, null, null, null);
             AskDataChatResult chatResult = coreChatModel.chat(new AskDataChatRequest(request.getProjectContext(),
                     prompt, routed.getModelKey(), Collections.<String, Object>emptyMap(), modelTimeoutMillis()));
             if (chatResult == null) {
+                publishModelAttempt(request, result, routed, AskDataEvent.ModelState.FAILED,
+                        AskDataErrorCode.MODEL_RESPONSE_INVALID, "INVALID_MODEL_RESPONSE", null);
                 throw new AskDataModelException(AskDataErrorCode.MODEL_RESPONSE_INVALID,
                         "AskData Core Chat 模型未返回结果");
             }
@@ -523,16 +525,29 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 String actualModelKey = isBlank(chatResult.getActualModelKey())
                         ? routed.getModelKey() : chatResult.getActualModelKey();
                 result.setActualModelKey(actualModelKey);
+                publishModelAttempt(request, result, routed, AskDataEvent.ModelState.SUCCEEDED,
+                        null, null, actualModelKey);
                 return new AskDataModelResponse(chatResult.getAnswer(), null, actualModelKey);
             }
-            if (!AskDataChatResult.MODEL_INFRASTRUCTURE_FAILURE.equals(chatResult.getErrorCode())
-                    || !chatResult.isRetryable() || !properties.getModel().isFallbackEnabled()) {
+            boolean retryableInfrastructureFailure = AskDataChatResult.MODEL_INFRASTRUCTURE_FAILURE
+                    .equals(chatResult.getErrorCode()) && chatResult.isRetryable();
+            if (!retryableInfrastructureFailure || !properties.getModel().isFallbackEnabled()) {
+                publishModelAttempt(request, result, routed, AskDataEvent.ModelState.FAILED,
+                        chatResult.getErrorCode(), retryableInfrastructureFailure
+                                ? "FALLBACK_DISABLED" : "NON_RETRYABLE_FAILURE",
+                        chatResult.getActualModelKey());
                 throw new AskDataModelException(chatResult.getErrorCode(), chatResult.getErrorMessage());
             }
             try {
-                routed = coreModelRouter.fallback(routeRequest,
+                AskDataModelResult next = coreModelRouter.fallback(routeRequest,
                         AskDataModelResult.infrastructureFailure(routed, chatResult.getErrorMessage()));
+                publishModelAttempt(request, result, routed, AskDataEvent.ModelState.FAILED,
+                        chatResult.getErrorCode(), "RETRYABLE_INFRASTRUCTURE_FAILURE",
+                        chatResult.getActualModelKey());
+                routed = next;
             } catch (IllegalArgumentException noCandidate) {
+                publishModelAttempt(request, result, routed, AskDataEvent.ModelState.FAILED,
+                        chatResult.getErrorCode(), "CANDIDATES_EXHAUSTED", chatResult.getActualModelKey());
                 throw new AskDataModelException(chatResult.getErrorCode(), chatResult.getErrorMessage());
             }
         }
@@ -1314,12 +1329,13 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
     }
 
-    private void publishModelRouted(AskDataRequest request, AskDataResult result, String modelKey) {
+    private void publishModelAttempt(AskDataRequest request, AskDataResult result, AskDataModelResult routed,
+            AskDataEvent.ModelState state, String failureCode, String switchReason, String actualModelKey) {
         if (eventPublisher == null || request == null || request.getProjectContext() == null) {
             return;
         }
-        eventPublisher.publish(AskDataEvent.modelRouted(request.getProjectContext(), result.getConversationId(),
-                modelKey, "AskData model attempt"));
+        eventPublisher.publish(AskDataEvent.modelAttempt(request.getProjectContext(), result.getConversationId(),
+                routed.getModelKey(), routed.getRoutePolicy(), state, failureCode, switchReason, actualModelKey));
     }
 
     private boolean hasValidProjectContext(AskDataRequest request) {

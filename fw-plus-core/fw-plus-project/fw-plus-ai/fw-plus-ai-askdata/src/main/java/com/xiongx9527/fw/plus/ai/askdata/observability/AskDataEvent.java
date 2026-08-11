@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.observability;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy;
 
 /**
  * AskData 对话生命周期中的厂商无关观测事件。
@@ -10,6 +11,12 @@ import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
  * 写入原始问题、SQL 参数、凭证或模型原始响应。</p>
  */
 public class AskDataEvent {
+
+	public enum ModelState {
+		ATTEMPTED,
+		SUCCEEDED,
+		FAILED
+	}
 
 	/**
 	 * 对话执行过程必须覆盖的事件类型。
@@ -48,6 +55,11 @@ public class AskDataEvent {
 	private final String authorizationVersion;
 	private final String authorizationSource;
 	private final String modelKey;
+	private final AskDataModelRoutePolicy modelRoutePolicy;
+	private final ModelState modelState;
+	private final String modelFailureCode;
+	private final String modelSwitchReason;
+	private final String actualModelKey;
 
 	/**
 	 * 创建一条已脱敏的生命周期事件。
@@ -59,12 +71,13 @@ public class AskDataEvent {
 	 * @throws IllegalArgumentException 当上下文或事件类型为空时抛出
 	 */
 	public AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message) {
-		this(context, traceId, type, message, null, null, null, null, null);
+		this(context, traceId, type, message, null, null, null, null, null, null, null, null, null, null);
 	}
 
 	private AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message,
 			String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
-			String modelKey) {
+			String modelKey, AskDataModelRoutePolicy modelRoutePolicy, ModelState modelState,
+			String modelFailureCode, String modelSwitchReason, String actualModelKey) {
 		if (context == null) {
 			throw new IllegalArgumentException("context 不能为空");
 		}
@@ -80,12 +93,17 @@ public class AskDataEvent {
 		this.authorizationVersion = authorizationVersion;
 		this.authorizationSource = authorizationSource;
 		this.modelKey = modelKey;
+		this.modelRoutePolicy = modelRoutePolicy;
+		this.modelState = modelState;
+		this.modelFailureCode = modelFailureCode;
+		this.modelSwitchReason = modelSwitchReason;
+		this.actualModelKey = actualModelKey;
 	}
 
 	public static AskDataEvent governanceDenied(AskDataProjectContext context, String traceId, String datasourceKey,
 			String denialCode, String authorizationVersion, String authorizationSource) {
 		return new AskDataEvent(context, traceId, Type.GOVERNANCE_DENIED, "AskData 治理拒绝", datasourceKey,
-				denialCode, authorizationVersion, authorizationSource, null);
+				denialCode, authorizationVersion, authorizationSource, null, null, null, null, null, null);
 	}
 
 	public static AskDataEvent modelRouted(AskDataProjectContext context, String traceId, String modelKey,
@@ -94,7 +112,21 @@ public class AskDataEvent {
 			throw new IllegalArgumentException("modelKey 不能为空");
 		}
 		return new AskDataEvent(context, traceId, Type.MODEL_ROUTED, message, null, null, null, null,
-				modelKey.trim());
+				modelKey.trim(), null, ModelState.ATTEMPTED, null, null, null);
+	}
+
+	public static AskDataEvent modelAttempt(AskDataProjectContext context, String traceId, String modelKey,
+			AskDataModelRoutePolicy routePolicy, ModelState state, String failureCode, String switchReason,
+			String actualModelKey) {
+		if (modelKey == null || modelKey.trim().length() == 0 || routePolicy == null || state == null) {
+			throw new IllegalArgumentException("modelKey、routePolicy 和 state 不能为空");
+		}
+		if (state == ModelState.FAILED && (failureCode == null || failureCode.trim().length() == 0)) {
+			throw new IllegalArgumentException("失败模型事件必须携带 failureCode");
+		}
+		return new AskDataEvent(context, traceId, Type.MODEL_ROUTED, "AskData 模型尝试", null, null, null, null,
+				modelKey.trim(), routePolicy, state, normalize(failureCode), normalize(switchReason),
+				normalize(actualModelKey));
 	}
 
 	/**
@@ -138,4 +170,13 @@ public class AskDataEvent {
 	public String getAuthorizationVersion() { return authorizationVersion; }
 	public String getAuthorizationSource() { return authorizationSource; }
 	public String getModelKey() { return modelKey; }
+	public AskDataModelRoutePolicy getModelRoutePolicy() { return modelRoutePolicy; }
+	public ModelState getModelState() { return modelState; }
+	public String getModelFailureCode() { return modelFailureCode; }
+	public String getModelSwitchReason() { return modelSwitchReason; }
+	public String getActualModelKey() { return actualModelKey; }
+
+	private static String normalize(String value) {
+		return value == null || value.trim().length() == 0 ? null : value.trim();
+	}
 }

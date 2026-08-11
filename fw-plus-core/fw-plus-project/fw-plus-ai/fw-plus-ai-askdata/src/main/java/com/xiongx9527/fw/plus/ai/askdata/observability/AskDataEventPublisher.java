@@ -45,7 +45,10 @@ public interface AskDataEventPublisher {
 				}
 				AskDataMonitoringLog log = new AskDataMonitoringLog(event.getContext(), event.getTraceId(),
 						event.getType(), event.getMessage(), event.getDatasourceKey(), event.getDenialCode(),
-						event.getAuthorizationVersion(), event.getAuthorizationSource(), event.getModelKey());
+						event.getAuthorizationVersion(), event.getAuthorizationSource(), event.getModelKey(),
+						event.getModelRoutePolicy() == null ? null : event.getModelRoutePolicy().name(),
+						event.getModelState() == null ? null : event.getModelState().name(), event.getModelFailureCode(),
+						event.getModelSwitchReason(), event.getActualModelKey());
 				store.append(log.getContext(), log.toStorageLog());
 			}
 		};

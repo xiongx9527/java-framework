@@ -133,6 +133,39 @@ public class DefaultAskDataFlowExecutorTest {
     }
 
     @Test
+    public void shouldPublishStructuredEventsForEveryCoreModelAttempt() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.properties.getModel().setChatCandidates(Collections.singletonList("fallback-model"));
+        dependencies.properties.getModel().setDefaultChatModel("fallback-model");
+        dependencies.coreModelRouter = new com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter() { };
+        dependencies.coreChatModel = request -> "test-model".equals(request.getModelKey())
+                ? com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.failure("test-model",
+                        "MODEL_INFRASTRUCTURE_FAILURE", "temporary outage", true)
+                : com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.success(
+                        "{\"sql\":\"select count(*) from orders\"}", "provider-fallback");
+
+        AskDataResult result = dependencies.executor("legacy-must-not-run").execute(request(true));
+
+        assertTrue(result.isSuccess());
+        List<AskDataEvent> modelEvents = new java.util.ArrayList<AskDataEvent>();
+        for (AskDataEvent event : dependencies.events) {
+            if (event.getType() == AskDataEvent.Type.MODEL_ROUTED) {
+                modelEvents.add(event);
+            }
+        }
+        assertEquals(4, modelEvents.size());
+        assertEquals(AskDataEvent.ModelState.ATTEMPTED, modelEvents.get(0).getModelState());
+        assertEquals(com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy.REQUEST_MODEL_KEY,
+                modelEvents.get(0).getModelRoutePolicy());
+        assertEquals(AskDataEvent.ModelState.FAILED, modelEvents.get(1).getModelState());
+        assertEquals("MODEL_INFRASTRUCTURE_FAILURE", modelEvents.get(1).getModelFailureCode());
+        assertEquals("RETRYABLE_INFRASTRUCTURE_FAILURE", modelEvents.get(1).getModelSwitchReason());
+        assertEquals(AskDataEvent.ModelState.ATTEMPTED, modelEvents.get(2).getModelState());
+        assertEquals(AskDataEvent.ModelState.SUCCEEDED, modelEvents.get(3).getModelState());
+        assertEquals("provider-fallback", modelEvents.get(3).getActualModelKey());
+    }
+
+    @Test
     public void shouldNotFallbackAfterNonRetryableCoreModelFailure() {
         StubDependencies dependencies = new StubDependencies();
         dependencies.properties.getModel().setChatCandidates(Collections.singletonList("fallback-model"));
