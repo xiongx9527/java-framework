@@ -45,6 +45,7 @@ fw:
           execute-enabled: true
           read-only-connection-required: true
           default-max-rows: 100
+          query-timeout-seconds: 30
         flow:
           multi-question-max-concurrency: 4
           multi-question-timeout-millis: 30000
@@ -80,6 +81,61 @@ request.setOptions(Collections.<String, Object>singletonMap(
 无依赖节点在 `multi-question-max-concurrency` 上限内并发执行，默认值为 `4`；整个计划受 `multi-question-timeout-millis` 约束，默认值为 `30000` 毫秒。`failurePolicy=SKIP` 会在任一依赖失败时跳过当前节点，`CONTINUE` 则允许节点在依赖已终态后继续。每个 `childResults` 条目携带 `questionId`、`dependsOn` 和独立 `questionState`；终态固定为 `SUCCEEDED`、`FAILED`、`TIMED_OUT`、`CANCELLED` 或 `SKIPPED`，失败结果使用对应的稳定错误码。
 
 配置 `AskDataConversationStore` 后，Flow 会在计划开始及每个子问题进入终态时保存父检查点，并使用 `<parentConversationId>:<questionId>` 作为稳定子会话 ID。恢复请求可传父 `resumeToken` 或 `conversationId`；已终态节点直接从父检查点恢复，未终态节点从其最新子检查点继续，因此已完成的 SQL 不会重放。恢复时请求身份、检查点版本和完整 DAG 快照必须一致，否则 fail-closed。集群部署必须提供共享会话存储；默认内存实现只适用于单实例，进程退出后不可恢复。
+
+## SQL 阶段化插件
+
+Core SQL 管线按 `ASSEMBLE`、`BIND_PARAMETERS`、`REWRITE`、`PREPARE` 的固定阶段顺序处理不可变 `AskDataSqlCommand`；同一阶段按 `order` 升序、能力 key 字典序执行。旧 `AskDataSqlInterceptor` 默认属于 `REWRITE`，无需修改即可继续使用。命令插件结束后，Flow 会重新注入治理行级谓词，再执行 Boot 方言/元数据校验和 Core 最终安全校验；校验成功后才进入只读执行。`RESULT_MAP` 只在执行完成且执行检查点已保存后运行。
+
+SQL 插件同时是 `SQL_PLUGIN` 能力 Provider。Spring Bean 会被能力注册表检查重复 key 和 Core 版本，并被自动加入插件链。下面的插件在参数绑定阶段增加组织条件和具名参数：
+
+```java
+@Bean
+public AskDataSqlInterceptor organizationScopePlugin() {
+    return new AskDataSqlInterceptor() {
+        public String getKey() {
+            return "organization-scope";
+        }
+
+        public int getOrder() {
+            return 100;
+        }
+
+        public AskDataSqlPhase getPhase() {
+            return AskDataSqlPhase.BIND_PARAMETERS;
+        }
+
+        public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+            return command.withSql(command.getSql() + " AND organization_id = :organizationId")
+                    .withParameter(AskDataSqlParameter.of("organizationId", "organization-1"));
+        }
+    };
+}
+```
+
+插件可以新增命名参数；已有参数必须完整保留。同名同值追加是幂等操作，同名不同值、删除参数、SQL 中存在未绑定参数、扩大授权对象或弱化治理摘要都会立即拒绝。最终 JDBC 执行器只从校验后的 `AskDataSqlCommand` 绑定参数，不从插件取得连接。`AskDataSqlAudit` 记录能力 key、阶段、成功/失败、SQL 是否发生改写、参数名和参数数量，不记录 SQL 参数值。
+
+结果映射实现 `AskDataSqlResultMapper`：
+
+```java
+@Bean
+public AskDataSqlResultMapper businessResultMapper() {
+    return new AskDataSqlResultMapper() {
+        public String getKey() {
+            return "business-result";
+        }
+
+        public int getOrder() {
+            return 100;
+        }
+
+        public AskDataSqlResult map(AskDataSqlCommand command, AskDataSqlResult result) {
+            return result.withRows(mapRows(result.getRows()));
+        }
+    };
+}
+```
+
+映射器只能替换结构化列和行，不能改变执行终态、实际执行行数、`default-max-rows` 行数上限或 `query-timeout-seconds` 超时事实，也不能扩充超过实际读取行数的结果。违反约束时审计记录插件 key 与 `RESULT_MAP` 失败阶段，问数结果返回失败，但已完成 SQL 不会重放。
 
 需要 LangChain4j 时，由业务应用显式引入 Adapter Starter：
 

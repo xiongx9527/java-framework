@@ -52,6 +52,20 @@ public final class AskDataSqlParameter {
 		return snapshot(value);
 	}
 
+	public boolean hasSameValue(AskDataSqlParameter other) {
+		return other != null && name.equals(other.name) && deepEquals(value, other.value);
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		return this == other || other instanceof AskDataSqlParameter && hasSameValue((AskDataSqlParameter) other);
+	}
+
+	@Override
+	public int hashCode() {
+		return 31 * name.hashCode() + deepHashCode(value);
+	}
+
 	private static Object snapshot(Object source) {
 		if (source == null || isKnownImmutable(source)) {
 			return source;
@@ -115,5 +129,107 @@ public final class AskDataSqlParameter {
 				|| value instanceof Short || value instanceof Integer || value instanceof Long || value instanceof Float
 				|| value instanceof Double || value instanceof BigInteger || value instanceof BigDecimal || value instanceof UUID
 				|| value instanceof Enum || value instanceof Class || value.getClass().getName().startsWith("java.time.");
+	}
+
+	private static boolean deepEquals(Object left, Object right) {
+		if (left == right) {
+			return true;
+		}
+		if (left == null || right == null || !left.getClass().equals(right.getClass())) {
+			return false;
+		}
+		if (left.getClass().isArray()) {
+			int length = Array.getLength(left);
+			if (length != Array.getLength(right)) {
+				return false;
+			}
+			for (int index = 0; index < length; index++) {
+				if (!deepEquals(Array.get(left, index), Array.get(right, index))) {
+					return false;
+				}
+			}
+			return true;
+		}
+		if (left instanceof List) {
+			List<?> leftList = (List<?>) left;
+			List<?> rightList = (List<?>) right;
+			if (leftList.size() != rightList.size()) {
+				return false;
+			}
+			for (int index = 0; index < leftList.size(); index++) {
+				if (!deepEquals(leftList.get(index), rightList.get(index))) {
+					return false;
+				}
+			}
+			return true;
+		}
+		if (left instanceof Map) {
+			Map<?, ?> leftMap = (Map<?, ?>) left;
+			Map<?, ?> rightMap = (Map<?, ?>) right;
+			if (leftMap.size() != rightMap.size()) {
+				return false;
+			}
+			for (Map.Entry<?, ?> entry : leftMap.entrySet()) {
+				if (!rightMap.containsKey(entry.getKey())
+						|| !deepEquals(entry.getValue(), rightMap.get(entry.getKey()))) {
+					return false;
+				}
+			}
+			return true;
+		}
+		if (left instanceof Set) {
+			List<?> rightValues = new ArrayList<Object>((Set<?>) right);
+			boolean[] matched = new boolean[rightValues.size()];
+			for (Object leftValue : (Set<?>) left) {
+				boolean found = false;
+				for (int index = 0; index < rightValues.size(); index++) {
+					if (!matched[index] && deepEquals(leftValue, rightValues.get(index))) {
+						matched[index] = true;
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					return false;
+				}
+			}
+			return true;
+		}
+		return left.equals(right);
+	}
+
+	private static int deepHashCode(Object value) {
+		if (value == null) {
+			return 0;
+		}
+		if (value.getClass().isArray()) {
+			int hash = 1;
+			for (int index = 0; index < Array.getLength(value); index++) {
+				hash = 31 * hash + deepHashCode(Array.get(value, index));
+			}
+			return hash;
+		}
+		if (value instanceof Set) {
+			int hash = 0;
+			for (Object item : (Set<?>) value) {
+				hash += deepHashCode(item);
+			}
+			return hash;
+		}
+		if (value instanceof Iterable) {
+			int hash = 1;
+			for (Object item : (Iterable<?>) value) {
+				hash = 31 * hash + deepHashCode(item);
+			}
+			return hash;
+		}
+		if (value instanceof Map) {
+			int hash = 0;
+			for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
+				hash += deepHashCode(entry.getKey()) ^ deepHashCode(entry.getValue());
+			}
+			return hash;
+		}
+		return value.hashCode();
 	}
 }
