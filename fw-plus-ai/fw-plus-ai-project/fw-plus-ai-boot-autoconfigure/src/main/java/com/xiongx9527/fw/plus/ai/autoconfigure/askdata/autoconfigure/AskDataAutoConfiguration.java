@@ -42,6 +42,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetri
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AiEmbeddingStoreAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.CompositeAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner;
+import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityProvider;
+import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityRegistry;
+import com.xiongx9527.fw.plus.ai.askdata.capability.DefaultAskDataCapabilityRegistry;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService;
@@ -89,6 +92,14 @@ public class AskDataAutoConfiguration {
 	@ConditionalOnMissingBean
 	public AskDataProperties askDataProperties() {
 		return new AskDataProperties();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	public AskDataCapabilityRegistry askDataCapabilityRegistry(AskDataProperties properties,
+			ObjectProvider<AskDataCapabilityProvider> provider) {
+		return new DefaultAskDataCapabilityRegistry("0.1.1-SNAPSHOT",
+				properties.getState().isClusterMode(), provider.orderedStream().collect(Collectors.toList()));
 	}
 
     /**
