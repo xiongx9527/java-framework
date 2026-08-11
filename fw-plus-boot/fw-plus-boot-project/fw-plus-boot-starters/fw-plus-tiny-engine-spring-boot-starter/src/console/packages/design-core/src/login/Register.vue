@@ -1,7 +1,7 @@
 <template>
   <div class="register-main">
     <div class="register-title">注册账号</div>
-    <tiny-form :model="state.registerData">
+    <tiny-form :model="state.registerData" @keyup.enter="handleRegister">
       <tiny-form-item prop="username">
         <tiny-input v-model="state.registerData.username" placeholder="请输入用户名"></tiny-input>
       </tiny-form-item>
@@ -105,7 +105,7 @@ export default {
     }
 
     const handleRegister = () => {
-      if (state.pwManualShow) {
+      if (!isReady.value) {
         return
       }
 
