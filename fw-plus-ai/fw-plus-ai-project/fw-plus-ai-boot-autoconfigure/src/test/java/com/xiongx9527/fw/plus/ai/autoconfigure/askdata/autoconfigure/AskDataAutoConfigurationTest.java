@@ -32,6 +32,10 @@ import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
+import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityDescriptor;
+import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityProvider;
+import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityRegistry;
+import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelType;
@@ -90,7 +94,33 @@ public class AskDataAutoConfigurationTest {
             assertTrue(context.getBean(com.xiongx9527.fw.plus.ai.askdata.api.AskDataService.class) != null);
             assertTrue(context.getBean(AskDataDialectRegistry.class) != null);
             assertTrue(context.getBean(AskDataAgentDispatcher.class) != null);
+            assertTrue(context.getBean(AskDataCapabilityRegistry.class) != null);
         });
+    }
+
+    @Test
+    public void shouldRegisterBusinessCoreCapabilityProvider() {
+        AskDataCapabilityProvider provider = capabilityProvider("business-chat");
+
+        contextRunner.withBean("businessChatCapability", AskDataCapabilityProvider.class, () -> provider)
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    assertEquals("business-chat", context.getBean(AskDataCapabilityRegistry.class)
+                            .get("business-chat").getKey());
+                });
+    }
+
+    @Test
+    public void shouldRejectDuplicateCoreCapabilityKeysAtStartup() {
+        contextRunner
+                .withBean("firstBusinessCapability", AskDataCapabilityProvider.class,
+                        () -> capabilityProvider("duplicate-chat"))
+                .withBean("secondBusinessCapability", AskDataCapabilityProvider.class,
+                        () -> capabilityProvider("duplicate-chat"))
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() != null);
+                    assertTrue(context.getStartupFailure().getMessage().contains("duplicate-chat"));
+                });
     }
 
     @Test
@@ -464,6 +494,16 @@ public class AskDataAutoConfigurationTest {
                         throw new UnsupportedOperationException(method.toString());
                     }
                 });
+    }
+
+    private AskDataCapabilityProvider capabilityProvider(final String key) {
+        return new AskDataCapabilityProvider() {
+            @Override
+            public AskDataCapabilityDescriptor getDescriptor() {
+                return new AskDataCapabilityDescriptor(key, AskDataCapabilityType.MODEL, "1.0.0",
+                        "0.1.1-SNAPSHOT", "0.1.1-SNAPSHOT", 0, true);
+            }
+        };
     }
 
     private static class TestAskDataSubAgent implements AskDataSubAgent {
