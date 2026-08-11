@@ -266,9 +266,8 @@
 
         <where>
             rg.id = #{id}
-            <if test="groupCreatedBy != null">
-                AND rg.created_by = #{groupCreatedBy}
-            </if>
+            AND rg.created_by = #{groupCreatedBy}
+            AND rg.tenant_id = #{tenantId}
         </where>
     </select>
 

@@ -7,15 +7,20 @@ import com.xiongx9527.fw.plus.tinyengine.model.dto.SchemaI18n;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 
 import java.util.List;
+import java.util.Map;
 
 public interface AppService extends IService<App> {
 
 	List<App> queryAllApp();
 	AppDto queryAllAppByPage(Integer currentPage, Integer pageSize, String orderBy, App app);
 	App queryAppById(Integer id);
+	App requireEnabledApp(Integer id);
 	List<App> queryAppByCondition(App app);
 	App deleteAppById(Integer id);
 	App updateAppById(App app);
 	App createApp(App app);
+	App saveApp(Integer id, Map<String, Object> request);
+	App publishApp(Integer id, Map<String, Object> request);
+	App setAppTemplate(Integer id, Boolean isTemplate, String templateType, Integer industryId, Integer sceneId, String framework);
 	SchemaI18n formatI18nEntrites(List<I18nEntryDto> i18nEntries, Integer usedIn, Integer id);
 }

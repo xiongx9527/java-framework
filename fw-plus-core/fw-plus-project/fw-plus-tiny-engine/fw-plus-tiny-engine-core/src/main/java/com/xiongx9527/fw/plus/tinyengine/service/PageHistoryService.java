@@ -14,6 +14,8 @@ public interface PageHistoryService extends IService<PageHistory> {
 
 	PageHistory findPageHistoryById(Integer historyId);
 
+	List<PageHistory> findPageHistories(Integer pageId);
+
 	List<PageHistory> findPageHistoryByCondition(PageHistory pageHistory);
 
 	Integer deletePageHistoryById(Integer id);

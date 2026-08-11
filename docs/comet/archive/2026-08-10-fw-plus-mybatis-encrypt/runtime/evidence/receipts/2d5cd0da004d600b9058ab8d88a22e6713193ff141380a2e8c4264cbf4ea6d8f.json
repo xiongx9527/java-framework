@@ -1,0 +1,30 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "manual-evidence",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "fw-plus-mybatis-encrypt",
+    "sourceRevision": 3,
+    "contractHash": "2676fb29471f2ff031f02d173565b0db21383e76460b4d8f6ff8be6963ce9cae",
+    "scopeHash": "a6281a872eda208febb1cdbb70818a763454cd071616c9aad8e1cef556ea5644",
+    "snapshotHash": "352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f",
+    "artifactHash": "ebcd90ea834cea6cc6bc4399a9ba965b610596d0c6c024f390123465e2d4fbd2"
+  },
+  "acceptanceIds": [
+    "acceptance-8bf70e76b4e49391896b1c4e08b79f1043421158dce6bc321e1545ccb6d8ec22",
+    "acceptance-abc2448e7e3cfe316e486ce4b10854ca911aa1622fb1eccc3b347d7a3f41fb5f",
+    "acceptance-f53be9a4e660ff8f597d86a2278061697cbbbe6c37370120b9676eaedbadfa65"
+  ],
+  "actor": "native-runtime:manual-evidence",
+  "issuedAt": "2026-08-10T03:28:32.816Z",
+  "evidence": {
+    "steps": [
+      "人工核对 fw-plus-core/fw-plus-project/fw-plus-mybatis/fw-plus-mybatis-encrypt/pom.xml 的依赖列表"
+    ],
+    "observations": [
+      "pom.xml 编译依赖仅 org.mybatis:mybatis、fw-plus-common、fw-plus-annotation 三项；测试依赖 junit-jupiter、assertj-core、h2（均为 test scope）。不含 com.baomidou(mybatis-plus)、com.ln(mybatis-flex)、spring-* 任何编译依赖。通用核心框架无关性满足。"
+    ]
+  },
+  "receiptHash": "2d5cd0da004d600b9058ab8d88a22e6713193ff141380a2e8c4264cbf4ea6d8f"
+}

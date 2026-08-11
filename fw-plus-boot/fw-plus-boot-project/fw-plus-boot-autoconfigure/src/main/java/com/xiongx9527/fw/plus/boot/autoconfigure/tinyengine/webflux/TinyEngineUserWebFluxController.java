@@ -14,7 +14,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -39,15 +41,19 @@ public class TinyEngineUserWebFluxController {
 	}
 
 	@PostMapping("/user/login")
-	public Mono<ResponseEntity<? extends Result<?>>> login(@RequestBody Map<String, Object> body) {
+	public Mono<ResponseEntity<? extends Result<?>>> login(@RequestBody Map<String, Object> body,
+			ServerWebExchange exchange) {
 		return submit(() -> TinyEngineWebResponses.ok(userSystemService.login(
-				TinyEngineUserRequestMapper.toLoginRequest(body))));
+				TinyEngineUserRequestMapper.toLoginRequest(body,
+						exchange.getRequest().getHeaders().getFirst("Host")))));
 	}
 
 	@PostMapping("/user/register")
-	public Mono<ResponseEntity<? extends Result<?>>> register(@RequestBody Map<String, Object> body) {
+	public Mono<ResponseEntity<? extends Result<?>>> register(@RequestBody Map<String, Object> body,
+			ServerWebExchange exchange) {
 		return submit(() -> TinyEngineWebResponses.ok(userSystemService.register(
-				TinyEngineUserRequestMapper.toRegistrationRequest(body))));
+				TinyEngineUserRequestMapper.toRegistrationRequest(body,
+						exchange.getRequest().getHeaders().getFirst("Host")))));
 	}
 
 	@PostMapping("/user/forgot-password")
@@ -80,7 +86,16 @@ public class TinyEngineUserWebFluxController {
 			@RequestHeader(value = "Authorization", required = false) String authorization,
 			@RequestHeader(value = "X-Tenant-Id", required = false) String tenantId) {
 		return submitWithPrincipal(authorization, tenantId,
-				principal -> TinyEngineWebResponses.ok(userSystemService.tenants(principal)));
+					principal -> TinyEngineWebResponses.ok(userSystemService.tenants(principal)));
+	}
+
+	@GetMapping("/user/tenant")
+	public Mono<ResponseEntity<? extends Result<?>>> tenant(
+			@RequestHeader(value = "Authorization", required = false) String authorization,
+			@RequestHeader(value = "X-Tenant-Id", required = false) String currentTenantId,
+			@RequestParam String tenantId) {
+		return submitWithPrincipal(authorization, currentTenantId,
+				principal -> TinyEngineWebResponses.ok(userSystemService.switchTenant(principal, tenantId)));
 	}
 
 	@PostMapping("/tenant/create")

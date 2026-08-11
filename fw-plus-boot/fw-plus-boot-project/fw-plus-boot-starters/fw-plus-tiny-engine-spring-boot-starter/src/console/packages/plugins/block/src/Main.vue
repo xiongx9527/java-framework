@@ -326,19 +326,20 @@ export default {
 
     const editBlock = async (block) => {
       const isEdit = true
-
-      if (isSaved()) {
-        await refreshBlockData(block)
-        getMetaApi(META_SERVICE.GlobalService).updateBlockId(block.id)
-        useBlock().initBlock(block, {}, isEdit)
-      } else {
-        confirm({
-          message: '当前画布内容尚未保存，是否要继续切换?',
-          exec: async () => {
+      const open = async () => {
+        try {
             await refreshBlockData(block)
+            getMetaApi(META_SERVICE.GlobalService).updateBlockId(block.id)
             useBlock().initBlock(block, {}, isEdit)
-          }
-        })
+        } catch (error) {
+          const detail = error?.message || String(error || '打开区块失败')
+          useModal().message({ message: detail, status: 'error' })
+        }
+      }
+      if (isSaved()) {
+        await open()
+      } else {
+        confirm({ message: '当前画布内容尚未保存，是否要继续切换?', exec: open })
       }
     }
 

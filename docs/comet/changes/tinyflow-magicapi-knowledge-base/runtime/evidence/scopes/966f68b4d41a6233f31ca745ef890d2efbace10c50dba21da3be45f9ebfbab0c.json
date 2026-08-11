@@ -1,0 +1,975 @@
+{
+  "schema": "comet.native.implementation-scope.v2",
+  "contractHash": "a0358c2ac2187f59ebf77b7379c608a1226247d1002128d551674814587fa8a0",
+  "baselineProjectionRef": "runtime/evidence/snapshots/16a78e2ace7c45733625fca6772a07c504288c7a248edb2688eb3d01b7fbe5e6.json",
+  "baselineProjectionHash": "16a78e2ace7c45733625fca6772a07c504288c7a248edb2688eb3d01b7fbe5e6",
+  "currentProjectionRef": "runtime/evidence/snapshots/1775d36114a9f7bde2bbce73c98e469d67358a61ceb230f0a465adc15a964cf5.json",
+  "currentProjectionHash": "1775d36114a9f7bde2bbce73c98e469d67358a61ceb230f0a465adc15a964cf5",
+  "complete": false,
+  "declaredArtifacts": [],
+  "changes": [
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/pom.xml",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "e06de6d7fa0a996f745bb3ab498ef63cd498af8c69ed1e9a0ec4c6aadf4f7c0d",
+        "size": 1109
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/TinyflowException.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "00d06e50184c07232ff35f0d4317f2b95ebf7ade1b8c073f7701b84a05a7615e",
+        "size": 312
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/model/TinyflowEmbeddingModel.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7a7a0236a2353e0bf96c409b69d431f3004e3117f7bbce4ebe19442eb6b619d4",
+        "size": 125
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/model/TinyflowModelDescriptor.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "aa2686c1ad9dab2b5a7e4e9829933fe451cb88e73b6014e8b99b1ca98c33a817",
+        "size": 583
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/model/TinyflowModelProvider.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "c544857f95c4b8df83d9416985c396cb240dfa322f9b115aaf23ca9f4ca3e243",
+        "size": 379
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeDescriptor.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7694345a58e1f19e5a1f42a9a5b9a5f06cffb1a5c9e94252bf411213b3f52c29",
+        "size": 894
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeProvider.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "eff690d22681fa6090377e416e662ec436678dd593f10dcf026d43142d580013",
+        "size": 246
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeProviderRegistry.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "077c0e187ea76beca12a6e6c87120812980ec211e3c918c461e8fb1e67a4311e",
+        "size": 3524
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/DefaultTinyflowService.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "df2af663e62aae425907d6a02b71a339f7d726f3a9f93fac861a91c30399cd91",
+        "size": 8427
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/InMemoryChainDefinitionRepository.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "68158bc0c1a701e5c30031fd462dc03dd47c4ea0786a742a018bb49b7febd9a0",
+        "size": 997
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/TinyflowAsyncResult.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "18559a078bcd5a2f4307d41ed31c9e9bf238f0f7a5b881b38d0fe9e159af5bc3",
+        "size": 412
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/TinyflowExecutionRequest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "e2d4072a4f77ccf0434a1825951962359298c986dc9ccc607d0d764a29f943e6",
+        "size": 801
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/TinyflowService.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "11e701ba2293b326a0e48e357bb03d082460e6d8a3b6f123b879ecd87ff1216c",
+        "size": 677
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorDocument.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9ee95ad1266faa2555ddd5e2b2fea295341f6e16f0e761cd9fb7a50b0cad49c5",
+        "size": 925
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorMatch.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "2f06c890347e7a966e14cf34a07b9de72f7e491c35803839cc4e0d05c59951f4",
+        "size": 846
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorStore.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "dff9a6dd75f2b1a8c3e843e05b91e7c5ff18d39e064f327e427d07146611b265",
+        "size": 301
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorStoreDescriptor.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "22f809d2cc8eac74a17d5a7ffeaa293b5e4532acdda66f3c7ccb7b0f0a12726c",
+        "size": 822
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorStoreProvider.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "8f7995191b1bec13c1020a315cdc19d30753afc502398c08744e035ddb2bea27",
+        "size": 210
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/InMemoryTinyflowWorkflowRepository.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "70bd8e0827e1fd86448125bb62e42ae241fb7abb8a46a841ac94fc69925c0332",
+        "size": 1498
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowExecutionResult.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "2d40533dd48c5973e0ab0beaf0ea556c341dd84718e3b764d72e160faf2fc200",
+        "size": 798
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflow.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b7047960ecfabc8bc933f4e1975d9d8a923b5acb6e76d8b84be38fcf4304c052",
+        "size": 1084
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflowRepository.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "5279a7b5bb60483c9e1ef5a1839645cac983dde5183576c2e9127040f978c8c8",
+        "size": 252
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflowValidator.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "62bc2a8f465dc70b1a88a78bcc7ba6a5e2ab179c95f81bc5c37b584ca0d126c8",
+        "size": 5386
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/dev/tinyflow/langchain4j/provider/Langchain4jLlm.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "013e70e0a4d3bb6185223a24782237a79d797d836eaeaf4bba73839a11b1d136",
+        "size": 2368
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/TinyflowDependencyBoundaryTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "81adb7aa95ef38375a57611b11d84a8c8f92b991bd8075d7b25d6838cbe71fa1",
+        "size": 517
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeProviderRegistryTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "e3fe8c0cd85becad4ba59c1d0308a38655167878cfd7d217f2dc2741f7105e17",
+        "size": 2276
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/DefaultTinyflowServiceTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "e07f0d643f37d797002082dcb976e4f07b922a0b4a08bfd88de1e7a5a7502e4d",
+        "size": 10397
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflowValidatorTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "56bd41485348355ea56c3b96ac8b0faa078e390053fd249d0ac116e92b311f2e",
+        "size": 5969
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/dev/tinyflow/langchain4j/provider/Langchain4jLlmClasspathTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "db3f33d070a4578f92a5bf8584b037c7bc1164984897d926ffb0d29fd9c638e2",
+        "size": 1224
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/dev/tinyflow/langchain4j/provider/Langchain4jLlmTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1c7aa3fffcacb6166c8b25a73bcbbd92bcc4f2bb19304946c2fcd37399adb4aa",
+        "size": 5860
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-dify/pom.xml",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7176f4d92e3fd14635f39874d10d8784bcf7af85e77371df163ec8eac3110972",
+        "size": 978
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-local/pom.xml",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "36ba630f469065643bd0942b6063d06aa789a785e47af7cadf8b651d13435703",
+        "size": 1144
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/pom.xml",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "2be57714979c1f31edab420d4eab6e209abd780e79e6702af5487b3293c52e1d",
+        "size": 827
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/pom.xml",
+      "kind": "modified",
+      "before": {
+        "hash": "4aae4522036ccb10fefe0d0ed8c4bc782f1b38608880ce40ac737f659627a243",
+        "size": 1176
+      },
+      "after": {
+        "hash": "52b6492c7bd3f94dd7d7f8eace0bf174cfeb31dd5fa018cfbdf2d1d334ae6302",
+        "size": 1221
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml",
+      "kind": "modified",
+      "before": {
+        "hash": "9d7841da29e28b6704a3b1f9a022f09f5c424443017646c7e569cc4ee19c6646",
+        "size": 61710
+      },
+      "after": {
+        "hash": "095f8de6edbf94177cb1b8e9ef4ede3a2d802dfc28765984e545d2809df91d15",
+        "size": 62658
+      },
+      "attributedTo": []
+    }
+  ],
+  "unattributed": [
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/pom.xml",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "e06de6d7fa0a996f745bb3ab498ef63cd498af8c69ed1e9a0ec4c6aadf4f7c0d",
+        "size": 1109
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/TinyflowException.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "00d06e50184c07232ff35f0d4317f2b95ebf7ade1b8c073f7701b84a05a7615e",
+        "size": 312
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/model/TinyflowEmbeddingModel.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7a7a0236a2353e0bf96c409b69d431f3004e3117f7bbce4ebe19442eb6b619d4",
+        "size": 125
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/model/TinyflowModelDescriptor.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "aa2686c1ad9dab2b5a7e4e9829933fe451cb88e73b6014e8b99b1ca98c33a817",
+        "size": 583
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/model/TinyflowModelProvider.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "c544857f95c4b8df83d9416985c396cb240dfa322f9b115aaf23ca9f4ca3e243",
+        "size": 379
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeDescriptor.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7694345a58e1f19e5a1f42a9a5b9a5f06cffb1a5c9e94252bf411213b3f52c29",
+        "size": 894
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeProvider.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "eff690d22681fa6090377e416e662ec436678dd593f10dcf026d43142d580013",
+        "size": 246
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeProviderRegistry.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "077c0e187ea76beca12a6e6c87120812980ec211e3c918c461e8fb1e67a4311e",
+        "size": 3524
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/DefaultTinyflowService.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "df2af663e62aae425907d6a02b71a339f7d726f3a9f93fac861a91c30399cd91",
+        "size": 8427
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/InMemoryChainDefinitionRepository.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "68158bc0c1a701e5c30031fd462dc03dd47c4ea0786a742a018bb49b7febd9a0",
+        "size": 997
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/TinyflowAsyncResult.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "18559a078bcd5a2f4307d41ed31c9e9bf238f0f7a5b881b38d0fe9e159af5bc3",
+        "size": 412
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/TinyflowExecutionRequest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "e2d4072a4f77ccf0434a1825951962359298c986dc9ccc607d0d764a29f943e6",
+        "size": 801
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/TinyflowService.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "11e701ba2293b326a0e48e357bb03d082460e6d8a3b6f123b879ecd87ff1216c",
+        "size": 677
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorDocument.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "9ee95ad1266faa2555ddd5e2b2fea295341f6e16f0e761cd9fb7a50b0cad49c5",
+        "size": 925
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorMatch.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "2f06c890347e7a966e14cf34a07b9de72f7e491c35803839cc4e0d05c59951f4",
+        "size": 846
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorStore.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "dff9a6dd75f2b1a8c3e843e05b91e7c5ff18d39e064f327e427d07146611b265",
+        "size": 301
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorStoreDescriptor.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "22f809d2cc8eac74a17d5a7ffeaa293b5e4532acdda66f3c7ccb7b0f0a12726c",
+        "size": 822
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorStoreProvider.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "8f7995191b1bec13c1020a315cdc19d30753afc502398c08744e035ddb2bea27",
+        "size": 210
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/InMemoryTinyflowWorkflowRepository.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "70bd8e0827e1fd86448125bb62e42ae241fb7abb8a46a841ac94fc69925c0332",
+        "size": 1498
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowExecutionResult.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "2d40533dd48c5973e0ab0beaf0ea556c341dd84718e3b764d72e160faf2fc200",
+        "size": 798
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflow.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "b7047960ecfabc8bc933f4e1975d9d8a923b5acb6e76d8b84be38fcf4304c052",
+        "size": 1084
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflowRepository.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "5279a7b5bb60483c9e1ef5a1839645cac983dde5183576c2e9127040f978c8c8",
+        "size": 252
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflowValidator.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "62bc2a8f465dc70b1a88a78bcc7ba6a5e2ab179c95f81bc5c37b584ca0d126c8",
+        "size": 5386
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/dev/tinyflow/langchain4j/provider/Langchain4jLlm.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "013e70e0a4d3bb6185223a24782237a79d797d836eaeaf4bba73839a11b1d136",
+        "size": 2368
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/TinyflowDependencyBoundaryTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "81adb7aa95ef38375a57611b11d84a8c8f92b991bd8075d7b25d6838cbe71fa1",
+        "size": 517
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeProviderRegistryTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "e3fe8c0cd85becad4ba59c1d0308a38655167878cfd7d217f2dc2741f7105e17",
+        "size": 2276
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/DefaultTinyflowServiceTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "e07f0d643f37d797002082dcb976e4f07b922a0b4a08bfd88de1e7a5a7502e4d",
+        "size": 10397
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflowValidatorTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "56bd41485348355ea56c3b96ac8b0faa078e390053fd249d0ac116e92b311f2e",
+        "size": 5969
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/dev/tinyflow/langchain4j/provider/Langchain4jLlmClasspathTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "db3f33d070a4578f92a5bf8584b037c7bc1164984897d926ffb0d29fd9c638e2",
+        "size": 1224
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/dev/tinyflow/langchain4j/provider/Langchain4jLlmTest.java",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "1c7aa3fffcacb6166c8b25a73bcbbd92bcc4f2bb19304946c2fcd37399adb4aa",
+        "size": 5860
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-dify/pom.xml",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "7176f4d92e3fd14635f39874d10d8784bcf7af85e77371df163ec8eac3110972",
+        "size": 978
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-local/pom.xml",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "36ba630f469065643bd0942b6063d06aa789a785e47af7cadf8b651d13435703",
+        "size": 1144
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/pom.xml",
+      "kind": "added",
+      "before": null,
+      "after": {
+        "hash": "2be57714979c1f31edab420d4eab6e209abd780e79e6702af5487b3293c52e1d",
+        "size": 827
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/pom.xml",
+      "kind": "modified",
+      "before": {
+        "hash": "4aae4522036ccb10fefe0d0ed8c4bc782f1b38608880ce40ac737f659627a243",
+        "size": 1176
+      },
+      "after": {
+        "hash": "52b6492c7bd3f94dd7d7f8eace0bf174cfeb31dd5fa018cfbdf2d1d334ae6302",
+        "size": 1221
+      },
+      "attributedTo": []
+    },
+    {
+      "path": "fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml",
+      "kind": "modified",
+      "before": {
+        "hash": "9d7841da29e28b6704a3b1f9a022f09f5c424443017646c7e569cc4ee19c6646",
+        "size": 61710
+      },
+      "after": {
+        "hash": "095f8de6edbf94177cb1b8e9ef4ede3a2d802dfc28765984e545d2809df91d15",
+        "size": 62658
+      },
+      "attributedTo": []
+    }
+  ],
+  "unresolvedScopes": [
+    {
+      "id": "scope:58eee7a4ae285b938cee9c810c05e0f4b0bf5963b72073234b137b749e5a90e6",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/pom.xml",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/pom.xml"
+    },
+    {
+      "id": "scope:37f59b644044c0299c4984a9e8d6e77cf8c19a2b9dc9f0f255cc34acb7e0e598",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/TinyflowException.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/TinyflowException.java"
+    },
+    {
+      "id": "scope:9ccdffcc976269ae9251ad0cec8d1aa0beb7ac3f5e934c4c6c4c45c4363dbf93",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/model/TinyflowEmbeddingModel.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/model/TinyflowEmbeddingModel.java"
+    },
+    {
+      "id": "scope:881b207ac23d02fdb0a9fccd9a9a9f81b0a9a9424140c5244e76b0b1aee41a3b",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/model/TinyflowModelDescriptor.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/model/TinyflowModelDescriptor.java"
+    },
+    {
+      "id": "scope:018def760844d9d002b80de6241116c5a5e59b1109d3b9ffc0260cbf24a7fccc",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/model/TinyflowModelProvider.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/model/TinyflowModelProvider.java"
+    },
+    {
+      "id": "scope:70e79614da8d711902fdc52440e9d62f963f5b46e84f76fd4fe5fa0888e5d1ae",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeDescriptor.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeDescriptor.java"
+    },
+    {
+      "id": "scope:405e7acb2419af928079f54775ee6b6a6fde414d6d72c580098c99a287c14881",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeProvider.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeProvider.java"
+    },
+    {
+      "id": "scope:d7ca04d6ac5f2b5cdf302cbb537d70fd987a0c6cc813b1111c72778ef0b846a5",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeProviderRegistry.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeProviderRegistry.java"
+    },
+    {
+      "id": "scope:85a9afa095a94fccabcf11b4f61d0d0d66a6208324d287977ae4c8d77c2bc670",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/DefaultTinyflowService.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/DefaultTinyflowService.java"
+    },
+    {
+      "id": "scope:b3d17222983dd4611cc44c0292402d327c033c5f2ab7cb085dfd64b5542cdc0e",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/InMemoryChainDefinitionRepository.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/InMemoryChainDefinitionRepository.java"
+    },
+    {
+      "id": "scope:ae4bb15d53449e97017bc2096df7b14b542580abb781d86fcae514132b15e9ed",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/TinyflowAsyncResult.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/TinyflowAsyncResult.java"
+    },
+    {
+      "id": "scope:a6d70e7f014a0cabb323b6079f81b590e7430030fa012ee81f7e62b54ec01028",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/TinyflowExecutionRequest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/TinyflowExecutionRequest.java"
+    },
+    {
+      "id": "scope:8c8098a2c845ee43cca0dd47027e8180b6bd03b7541dd9c7f47ec4962e61c7b9",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/TinyflowService.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/TinyflowService.java"
+    },
+    {
+      "id": "scope:6d7a40894551bc2bf225497074d36c3853717f08acd8d905bac7bb5e594aae5f",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorDocument.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorDocument.java"
+    },
+    {
+      "id": "scope:25fa9c66ebc610ef93148f19dfac8e3a217092955a5bde8d625c95c77fe3d28a",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorMatch.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorMatch.java"
+    },
+    {
+      "id": "scope:c0d6a95feed0d095d9016c6b8f230e4bfa440c8ea88a90d0d184165846c7655a",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorStore.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorStore.java"
+    },
+    {
+      "id": "scope:82b051dae7a554a4f53b2eecf9bbeb48e7b802fbdfb5e6682bcd49894bdc7556",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorStoreDescriptor.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorStoreDescriptor.java"
+    },
+    {
+      "id": "scope:b6d8692e785eff1a824df7bbfda9368f45658f665e681f8dae57e2c6b215384d",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorStoreProvider.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/vector/TinyflowVectorStoreProvider.java"
+    },
+    {
+      "id": "scope:5f2ba712808e8ff1170cbf2001d88061fc49fe3684fe735f07f64ee8025e70fd",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/InMemoryTinyflowWorkflowRepository.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/InMemoryTinyflowWorkflowRepository.java"
+    },
+    {
+      "id": "scope:3986d4c015ef5026845ae7f902f68a46f41c25121656b10fa56fefe0e35b4abe",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowExecutionResult.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowExecutionResult.java"
+    },
+    {
+      "id": "scope:255fc6d1ce3d43a242539e55cef24ac14d0db39354877165162718ceba443a10",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflow.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflow.java"
+    },
+    {
+      "id": "scope:a58b5c0f84dc35704446f5c7d88cb4711ee88dbd220f8b87a2590b44a7d0cea2",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflowRepository.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflowRepository.java"
+    },
+    {
+      "id": "scope:98eb76f18728d9da3aa44481d86814d9bd376f281588099333f4bc3debfae73c",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflowValidator.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflowValidator.java"
+    },
+    {
+      "id": "scope:a35c6b3da667a51bab089669d1168d2f733327d516833fcf75566a0f9d31b2dc",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/dev/tinyflow/langchain4j/provider/Langchain4jLlm.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/main/java/dev/tinyflow/langchain4j/provider/Langchain4jLlm.java"
+    },
+    {
+      "id": "scope:c66f1ca2213060abeae2f85c75ffd6ab12b71ae999c5682289195a1eb9413426",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/TinyflowDependencyBoundaryTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/TinyflowDependencyBoundaryTest.java"
+    },
+    {
+      "id": "scope:171e859542a68596e106bb640c7cc367430f24c37e664cdfb9fdfa60d7b3a5b3",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeProviderRegistryTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/node/TinyflowNodeProviderRegistryTest.java"
+    },
+    {
+      "id": "scope:77157aa555c397a621c4f979c37921af223c0c37c91fe171de14ff3b903340cb",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/DefaultTinyflowServiceTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/runtime/DefaultTinyflowServiceTest.java"
+    },
+    {
+      "id": "scope:672f939272d18cf3f4d5c580ca875088ac6b08893ab02faa7352a5fb251cbea0",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflowValidatorTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/com/xiongx9527/fw/plus/ai/tinyflow/workflow/TinyflowWorkflowValidatorTest.java"
+    },
+    {
+      "id": "scope:80d5985cd8687bac738ea14cabc7ec8807b8168e0c20e6ffc91f6110f7a47539",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/dev/tinyflow/langchain4j/provider/Langchain4jLlmClasspathTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/dev/tinyflow/langchain4j/provider/Langchain4jLlmClasspathTest.java"
+    },
+    {
+      "id": "scope:60751e088c451b8b292c965f204850e791c5a26ce0964dc0af15feec94e75af5",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/dev/tinyflow/langchain4j/provider/Langchain4jLlmTest.java",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-core/src/test/java/dev/tinyflow/langchain4j/provider/Langchain4jLlmTest.java"
+    },
+    {
+      "id": "scope:d63cf846fc149f79c4cf1d19377503525247efb948dc716c9d3ec61e68b8c260",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-dify/pom.xml",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-dify/pom.xml"
+    },
+    {
+      "id": "scope:ad6677722d6674fae45bf46a0c66f74f342dc41b35b9a3bb5b549def5dc81bc2",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-local/pom.xml",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/fw-plus-ai-tinyflow-local/pom.xml"
+    },
+    {
+      "id": "scope:7821c1dee809ef37bcd2cdc1bd838d713e8b9714e14378d61b9b4b40b5249b84",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/pom.xml",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-tinyflow/pom.xml"
+    },
+    {
+      "id": "scope:609052ea7ef81dac1782dc6d82e4e0545cc51cc9307f1083bb93ebc5e8d23ee1",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-ai/pom.xml",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-ai/pom.xml"
+    },
+    {
+      "id": "scope:c785910cd79ecf007decf89ca517b924c0dc39ce06066ad23c4485b8e60928d9",
+      "kind": "unattributed-change",
+      "source": "implementation-scope",
+      "path": "fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml",
+      "reason": "Changed path is not covered by a declared artifact: fw-plus-core/fw-plus-project/fw-plus-dependencies/pom.xml"
+    }
+  ],
+  "noCodeReason": "本次仅澄清并重新确认既有同步超时契约，未产生实现代码变更。",
+  "scopeHash": "966f68b4d41a6233f31ca745ef890d2efbace10c50dba21da3be45f9ebfbab0c"
+}

@@ -14,6 +14,7 @@ package com.xiongx9527.fw.plus.tinyengine.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.xiongx9527.fw.plus.tinyengine.common.model.BaseEntity;
 import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler;
@@ -36,8 +37,10 @@ import java.util.Map;
 @TableName(value = "t_app", autoResultMap = true)
 public class App extends BaseEntity {
 private String name;
+private String code;
 private String appWebsite;
 @JsonProperty("platform")
+@JsonAlias({"platformId", "platform_id"})
     private Integer platformId;
 private String platformHistoryId;
 private String publishUrl;
@@ -47,6 +50,7 @@ private String visitUrl;
     private String imageUrl;
 private String assetsUrl;
 private Integer state;
+private Boolean enable;
 @JsonProperty("published")
     private Boolean isPublish;
 private Integer homePage;
@@ -95,6 +99,14 @@ private List<BusinessCategory> scene = new ArrayList<>();
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	public String getCode() {
+		return code;
+	}
+
+	public void setCode(String code) {
+		this.code = code;
 	}
 
 	public String getAppWebsite() {
@@ -167,6 +179,14 @@ private List<BusinessCategory> scene = new ArrayList<>();
 
 	public void setState(Integer state) {
 		this.state = state;
+	}
+
+	public Boolean getEnable() {
+		return enable;
+	}
+
+	public void setEnable(Boolean enable) {
+		this.enable = enable;
 	}
 
 	public Boolean getIsPublish() {

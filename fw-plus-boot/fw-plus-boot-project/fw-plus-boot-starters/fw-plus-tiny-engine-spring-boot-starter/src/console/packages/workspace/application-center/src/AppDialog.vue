@@ -12,6 +12,9 @@
       <tiny-form-item label="应用名称" prop="name">
         <tiny-input v-model="formState.name" placeholder="请输入"></tiny-input>
       </tiny-form-item>
+      <tiny-form-item label="应用编码" prop="code">
+        <tiny-input v-model="formState.code" placeholder="必填，最长20个字符"></tiny-input>
+      </tiny-form-item>
       <tiny-form-item label="应用描述" prop="description">
         <tiny-input v-model="formState.description" type="textarea" placeholder="请输入此次发布的修改点"></tiny-input>
       </tiny-form-item>
@@ -81,6 +84,7 @@ export default {
 
     const formState = reactive({
       name: props.template.name || '',
+      code: props.template.code || '',
       description: props.template.description || '',
       sceneId: props.template.sceneId || null,
       industryId: props.template.industryId || null,
@@ -99,6 +103,20 @@ export default {
           validator: (rule: any, value: string, callback: any) => {
             if (!/^[\w\-_]+$/.test(value)) {
               callback(new Error('应用名称只能包括英文、数字、中划线和下划线'))
+            } else {
+              callback()
+            }
+          }
+        }
+      ],
+      code: [
+        { required: true, message: '应用编码必填', trigger: 'blur' },
+        { max: 20, message: '应用编码最长20个字符', trigger: 'blur' },
+        {
+          trigger: 'blur',
+          validator: (rule: any, value: string, callback: any) => {
+            if (value && !/^[\w\-]+$/.test(value)) {
+              callback(new Error('应用编码只能包括英文、数字、下划线和中划线'))
             } else {
               callback()
             }

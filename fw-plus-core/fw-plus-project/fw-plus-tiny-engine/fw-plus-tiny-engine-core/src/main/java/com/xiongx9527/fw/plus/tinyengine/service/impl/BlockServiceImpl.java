@@ -12,6 +12,7 @@ import com.xiongx9527.fw.plus.tinyengine.mapper.BlockGroupMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.BlockHistoryMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.BlockMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.I18nEntryMapper;
+import com.xiongx9527.fw.plus.tinyengine.mapper.TenantMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.UserMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockBuildDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockDto;
@@ -25,7 +26,9 @@ import com.xiongx9527.fw.plus.tinyengine.model.entity.Block;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockGroup;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockGroupBlock;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockHistory;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Tenant;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.User;
+import com.xiongx9527.fw.plus.tinyengine.service.BlockHistoryService;
 import com.xiongx9527.fw.plus.tinyengine.service.BlockService;
 import com.xiongx9527.fw.plus.tinyengine.service.I18nEntryService;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
@@ -57,6 +60,10 @@ public class BlockServiceImpl extends ServiceImpl<BlockMapper, Block> implements
 	@Autowired
 	private UserMapper userMapper;
 	@Autowired
+	private TenantMapper tenantMapper;
+	@Autowired
+	private BlockHistoryService blockHistoryService;
+	@Autowired
 	private AppMapper appMapper;
 	@Autowired
 	private BlockHistoryMapper blockHistoryMapper;
@@ -74,6 +81,36 @@ public class BlockServiceImpl extends ServiceImpl<BlockMapper, Block> implements
 	@Override
 	public List<Block> queryAllBlock() {
 		return baseMapper.queryAllBlock();
+	}
+
+	@Override
+	public List<BlockHistory> blockHistories(Integer blockId) {
+		List<BlockHistory> histories = blockHistoryService.findBlockHistoriesByBlockId(blockId, currentTenantId());
+		return histories == null ? Collections.<BlockHistory>emptyList() : histories;
+	}
+
+	@Override
+	public List<Tenant> blockTenants() {
+		String tenantId = currentTenantId();
+		if (!notEmpty(tenantId)) {
+			return Collections.emptyList();
+		}
+		List<Tenant> tenants = tenantMapper.selectList(new QueryWrapper<Tenant>().eq("id", tenantId));
+		return tenants == null ? Collections.<Tenant>emptyList() : tenants;
+	}
+
+	@Override
+	public List<User> blockUsers() {
+		String tenantId = currentTenantId();
+		if (!notEmpty(tenantId)) {
+			return Collections.emptyList();
+		}
+		List<String> authorIds = baseMapper.selectDistinctCreatedByTenant(tenantId);
+		if (authorIds == null || authorIds.isEmpty()) {
+			return Collections.emptyList();
+		}
+		List<User> users = userMapper.selectUsersByIds(authorIds);
+		return users == null ? Collections.<User>emptyList() : users;
 	}
 
 	@Override

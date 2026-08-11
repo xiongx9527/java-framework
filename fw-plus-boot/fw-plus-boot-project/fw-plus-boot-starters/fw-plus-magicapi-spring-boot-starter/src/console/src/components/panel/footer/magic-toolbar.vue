@@ -11,7 +11,7 @@
                             <magic-icon icon="close" :title="$i('editor.tab.close')" v-if="toolbar.allowClose" @click="closeTab(toolbar)"/>
                         </div>
                     </div>
-                    <component :is="toolbar.component" v-bind="toolbar.data"/>
+                    <component :is="toolbar.component" v-bind="toolbar.data" :ref="component => setToolbarComponent(toolbar, component)"/>
                 </magic-resizer>
             </magic-navbar-item>
         </magic-navbar>
@@ -24,6 +24,7 @@ import $i from '../../../scripts/i18n.js'
 import Message from '../../../scripts/constants/message.js'
 import constants from '../../../scripts/constants.js'
 import { stableSortByOrder } from '../../../scripts/plugin-extension.js'
+import { removeToolbarByIdentity, requestToolbarClose } from './magic-toolbar-close.js'
 
 const navbar = ref(null)
 const isFullscreen = ref(false)
@@ -86,7 +87,9 @@ stableSortByOrder(pluginToolbars).forEach(it => {
 		title: $i(it.title),
         component: shallowRef(it.component),
         fullscreen: it.fullscreen,
-        allowClose: it.allowClose
+		allowClose: it.allowClose,
+		beforeClose: it.beforeClose,
+		componentInstance: null
 	})
 })
 const opened = ref({})
@@ -100,16 +103,20 @@ const setOpenedToolbars = (type, force) => {
     }
 }
 setOpenedToolbars('')
-const closeTab = toolbar => {
-  const index = toolbars.findIndex(it => it.id === toolbar.id)
-  if(index > -1){
-    toolbars.splice(index, 1)
-  }
-  navbar.value.select(-1)
+const setToolbarComponent = (toolbar, component) => {
+	toolbar.componentInstance = component
 }
-bus.$on(Message.ADD_FOOTER_TOOLBAR, (toolbar) => {
-  if(toolbar.id) {
-    closeTab(toolbar)
+const closeTab = async toolbar => {
+  const openedToolbar = toolbars.find(it => it === toolbar || (toolbar.id && it.id === toolbar.id))
+  if(!openedToolbar) return false
+  const closed = await requestToolbarClose(openedToolbar, openedToolbar.componentInstance, () => removeToolbarByIdentity(toolbars, openedToolbar))
+  if (closed && navbar.value) navbar.value.select(-1)
+  return closed
+}
+bus.$on(Message.ADD_FOOTER_TOOLBAR, async (toolbar) => {
+  const index = toolbar.id && toolbars.findIndex(it => it.id === toolbar.id)
+  if(index > -1 && !await closeTab(toolbar)) {
+    return
   }
   navbar.value.select(toolbars.push(toolbar) - 1)
 })

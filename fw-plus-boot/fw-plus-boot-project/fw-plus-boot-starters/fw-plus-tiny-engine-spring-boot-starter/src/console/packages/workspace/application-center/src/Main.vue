@@ -32,23 +32,33 @@
       <div class="list-wrap">
         <div class="list" v-if="state.type === 'default'">
           <template v-for="item in appList" :key="item.id">
-            <div class="item">
+            <div :class="['item', { disabled: !isApplicationEnabled(item) }]">
               <div class="app-name">
                 <svg-icon :name="item.assetsUrl || 'template-cover-1'" class="app-img"></svg-icon>
                 <div class="app-name-content">
                   <div class="app-name-text">{{ item.name }}</div>
+                  <div class="app-code">{{ item.code }}</div>
+                  <div class="app-status">{{ isApplicationEnabled(item) ? '已启用' : '已停用' }}</div>
                   <div class="app-desc">{{ item.description }}</div>
                 </div>
               </div>
               <div class="app-operation">
-                <div class="option" @click="openApplication(item)">
+                <div v-if="isApplicationEnabled(item)" class="option" @click="openApplication(item)">
                   <svg-icon name="cloud-shell"></svg-icon>
                   <span class="option-text">开发应用</span>
                 </div>
-                <tiny-divider direction="vertical"></tiny-divider>
-                <div class="option" @click="handleDelete(item)">
+                <tiny-divider v-if="isApplicationEnabled(item)" direction="vertical"></tiny-divider>
+                <div v-if="isApplicationEnabled(item)" class="option" @click="handleDelete(item)">
                   <svg-icon name="delete"></svg-icon>
                   <span class="option-text">删除应用</span>
+                </div>
+                <tiny-divider v-if="isApplicationEnabled(item)" direction="vertical"></tiny-divider>
+                <div class="option" @click="handleEnableChange(item)">
+                  <span class="option-text">{{ isApplicationEnabled(item) ? '停用' : '启用' }}</span>
+                </div>
+                <tiny-divider direction="vertical"></tiny-divider>
+                <div class="option" @click="handleSetTemplate(item)">
+                  <span class="option-text">{{ item.isTemplate ? '取消模板' : '发布为模板' }}</span>
                 </div>
               </div>
             </div>
@@ -63,13 +73,27 @@
               </div>
             </template>
           </tiny-grid-column>
+          <tiny-grid-column field="code" title="应用编码" show-overflow></tiny-grid-column>
           <tiny-grid-column field="created_at" title="创建时间" show-overflow></tiny-grid-column>
           <tiny-grid-column field="createdBy" title="创建人" show-overflow></tiny-grid-column>
           <tiny-grid-column field="description" title="应用描述" show-overflow></tiny-grid-column>
-          <tiny-grid-column width="180" field="operation" title="操作">
+          <tiny-grid-column width="90" field="enable" title="状态">
+            <template #default="data">{{ isApplicationEnabled(data.row) ? '已启用' : '已停用' }}</template>
+          </tiny-grid-column>
+          <tiny-grid-column width="240" field="operation" title="操作">
             <template #default="data">
-              <tiny-button type="text" @click="openApplication(data.row)"> 开发应用 </tiny-button>
-              <tiny-button type="text" @click="handleDelete(data.row)"> 删除应用 </tiny-button>
+              <tiny-button v-if="isApplicationEnabled(data.row)" type="text" @click="openApplication(data.row)">
+                开发应用
+              </tiny-button>
+              <tiny-button v-if="isApplicationEnabled(data.row)" type="text" @click="handleDelete(data.row)">
+                删除应用
+              </tiny-button>
+              <tiny-button type="text" @click="handleEnableChange(data.row)">
+                {{ isApplicationEnabled(data.row) ? '停用' : '启用' }}
+              </tiny-button>
+              <tiny-button type="text" @click="handleSetTemplate(data.row)">
+                {{ data.row.isTemplate ? '取消模板' : '发布为模板' }}
+              </tiny-button>
             </template>
           </tiny-grid-column>
         </tiny-grid>
@@ -97,7 +121,8 @@ import { iconSearch } from '@opentiny/vue-icon'
 import { SearchEmpty } from '@opentiny/tiny-engine-common'
 import { getMetaApi, META_SERVICE } from '@opentiny/tiny-engine-meta-register'
 import AppDialog from './AppDialog.vue'
-import { fetchApplicationList, createApplication, updateApplication, deleteApplication } from './js/http'
+import { fetchApplicationList, createApplication, updateApplication, deleteApplication, setAppTemplate } from './js/http'
+import { applicationEnableUpdate, isApplicationEnabled } from './js/application-enable-state.mjs'
 
 export default {
   components: {
@@ -154,6 +179,12 @@ export default {
 
     const queryParams = new URLSearchParams(location.search)
 
+    const normalizeAppForDisplay = (app) => ({
+      ...app,
+      created_at: app.created_at || app.createdTime,
+      createdBy: app.creator || app.createdByName || app.createdBy
+    })
+
     const state = reactive({
       appFilter: 'all',
       orderBy: 'created_time',
@@ -172,13 +203,13 @@ export default {
         currentPage: state.currentPage,
         pageSize: state.pageSize,
         name: state.appSearchKey,
-        createdBy: state.appFilter === 'all' ? '' : info.id
+        createdBy: state.appFilter === 'all' ? '' : info.id || info.userId
       }
       if (state.orderBy === 'last_updated_time') {
         params.orderBy = state.orderBy
       }
       fetchApplicationList(Object.fromEntries(Object.entries(params).filter(([, value]) => !!value))).then((res) => {
-        appList.value = res.apps || []
+        appList.value = (res.apps || []).map(normalizeAppForDisplay)
         state.total = res.total
       })
     }
@@ -188,6 +219,9 @@ export default {
     }
 
     const handleDelete = (template) => {
+      if (!isApplicationEnabled(template)) {
+        return
+      }
       Modal.confirm({
         message: '即将删除应用，删除后不可恢复，请谨慎操作。',
         title: '删除应用'
@@ -197,19 +231,15 @@ export default {
             .then(() => {
               getApplicationList()
             })
-            .catch((error) => {
-              Notify({
-                type: 'error',
-                message: error,
-                position: 'top-right',
-                duration: 5000
-              })
-            })
+            .catch(() => {})
         }
       })
     }
 
     const openApplication = (template) => {
+      if (!isApplicationEnabled(template)) {
+        return
+      }
       const href = window.location.href.split('?')[0] || './'
       const newUrl = `${href}?type=app&id=${template.id}&tenant=${template.tenantId || queryParams.get('tenant')}`
       if (window.self !== window.top) {
@@ -223,6 +253,57 @@ export default {
       } else {
         window.open(newUrl)
       }
+    }
+
+    const handleEnableChange = (application) => {
+      const update = applicationEnableUpdate(application)
+      const action = update.enable ? '启用' : '停用'
+      Modal.confirm({
+        message: `确认${action}应用“${application.name}”？`,
+        title: `${action}应用`
+      }).then((result) => {
+        if (result !== 'confirm') {
+          return
+        }
+        updateApplication(application.id, update)
+          .then(() => {
+            Notify({
+              type: 'success',
+              message: `应用${action}成功`,
+              position: 'top-right',
+              duration: 3000
+            })
+            getApplicationList()
+          })
+          .catch(() => {})
+      })
+    }
+
+    const handleSetTemplate = (application) => {
+      const action = application.isTemplate ? '取消模板' : '发布为模板'
+      Modal.confirm({
+        message: `确认${action}"${application.name}"？`,
+        title: action
+      }).then((result) => {
+        if (result !== 'confirm') {
+          return
+        }
+        setAppTemplate({
+          id: application.id,
+          isTemplate: !application.isTemplate,
+          templateType: application.isTemplate ? null : 'app'
+        })
+          .then(() => {
+            Notify({
+              type: 'success',
+              message: `应用${action}成功`,
+              position: 'top-right',
+              duration: 3000
+            })
+            getApplicationList()
+          })
+          .catch(() => {})
+      })
     }
 
     const typeClick = (type) => {
@@ -254,14 +335,7 @@ export default {
             })
             getApplicationList()
           })
-          .catch((error) => {
-            Notify({
-              type: 'error',
-              message: error,
-              position: 'top-right',
-              duration: 5000
-            })
-          })
+          .catch(() => {})
       } else {
         createApplication(formData)
           .then(() => {
@@ -273,14 +347,7 @@ export default {
             })
             getApplicationList()
           })
-          .catch((error) => {
-            Notify({
-              type: 'error',
-              message: error,
-              position: 'top-right',
-              duration: 5000
-            })
-          })
+          .catch(() => {})
       }
     }
 
@@ -298,6 +365,9 @@ export default {
       getApplicationList,
       typeClick,
       handleDelete,
+      handleEnableChange,
+      handleSetTemplate,
+      isApplicationEnabled,
       openApplication,
       confirmApp,
       pageSizeChange,
@@ -368,6 +438,9 @@ export default {
     &:hover {
       border-color: var(--te-template-app-center-item-border-color-hover);
     }
+    &.disabled {
+      opacity: 0.72;
+    }
     .app-name {
       display: flex;
       gap: 16px;
@@ -394,12 +467,18 @@ export default {
           white-space: nowrap;
           text-overflow: ellipsis;
         }
+        .app-status {
+          margin-top: 2px;
+          font-size: 12px;
+          line-height: 18px;
+          color: var(--te-template-center-common-item-desc-text-color);
+        }
       }
     }
     .app-operation {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 10px;
       padding-top: 12px;
       margin-top: 16px;
       border-top: 1px dashed var(--te-template-app-center-item-border-color);

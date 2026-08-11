@@ -1,0 +1,27 @@
+schema: comet.native.v3
+minimum_runtime_version: 3
+revision: 2
+verification_protocol: legacy-v1
+name: tinyflow-magicapi-knowledge-base
+language: zh-CN
+phase: build
+brief: brief.md
+approval: confirmed
+approved_contract_hash: 2a7a57d499dfd3b5cea79a7078f6409e711f8e28a1cc82dd8b66be6cc1a9c148
+spec_changes:
+  - capability: tinyflow-knowledge-base
+    operation: create
+    source: specs/tinyflow-knowledge-base/spec.md
+    base_hash: null
+  - capability: tinyflow-workflow
+    operation: create
+    source: specs/tinyflow-workflow/spec.md
+    base_hash: null
+verification_result: pending
+verification_report: null
+implementation_scope: null
+verification_evidence: null
+partial_allowance: null
+archived: false
+created_at: 2026-08-05
+run_id: f9ea5613-4d8c-4004-bdf1-039d813e16ef

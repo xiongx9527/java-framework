@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth;
 
-public class McpAuthorizationException extends RuntimeException {
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
+public class McpAuthorizationException extends BizException {
 
 	private final int status;
 

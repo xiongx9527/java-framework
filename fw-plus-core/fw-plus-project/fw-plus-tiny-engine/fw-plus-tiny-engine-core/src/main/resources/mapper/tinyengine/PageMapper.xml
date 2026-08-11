@@ -310,6 +310,14 @@
 		  AND (occupier_by IS NULL OR occupier_by = #{userId})
 	</update>
 
+	<update id="updatePageHistoryPointer">
+		UPDATE t_page
+		SET latest_version = #{latestVersion},
+			latest_history_id = #{latestHistoryId}
+		WHERE id = #{id}
+		  AND (tenant_id = #{tenantId} OR tenant_id IS NULL)
+	</update>
+
     <!-- 新增表t_page数据 -->
     <insert id="createPage" useGeneratedKeys="true" keyProperty="id"
             parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.Page">

@@ -15,4 +15,4 @@ import { getMetaApi, META_SERVICE } from '@opentiny/tiny-engine-meta-register'
 
 // 锁定页面
 export const requestBlockPage = (params: string) =>
-  getMetaApi(META_SERVICE.Http).get(`app-center/api/apps/canvas/lock?${params}`)
+  getMetaApi(META_SERVICE.Http).get(`${window.location.origin}/app-center/api/apps/canvas/lock?${params}`)

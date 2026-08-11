@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 
@@ -79,7 +80,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 	@Transactional(rollbackFor = Exception.class)
 	public Page delPage(Integer id) {
 		Page page = baseMapper.queryPageById(id);
-		if (page == null) {
+		if (!belongsToCurrentTenant(page)) {
 			throw error(ExceptionEnum.CM009);
 		}
 		if (!Boolean.TRUE.equals(page.getIsPage())) {
@@ -98,6 +99,55 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 
 	@Override
 	@Transactional(rollbackFor = Exception.class)
+	public Page copyPage(Page request) {
+		if (request == null || request.getId() == null) {
+			throw error(ExceptionEnum.CM002);
+		}
+		Page source = baseMapper.queryPageById(request.getId());
+		if (!belongsToCurrentTenant(source)) {
+			throw error(ExceptionEnum.CM009);
+		}
+		request.setId(null);
+		request.setApp(source.getApp());
+		request.setIsPage(source.getIsPage());
+		request.setTenantId(null);
+		request.setRenterId(null);
+		request.setSiteId(null);
+		request.setCreatedBy(null);
+		request.setLastUpdatedBy(null);
+		request.setCreatedTime(null);
+		request.setLastUpdatedTime(null);
+		request.setLatestVersion(null);
+		request.setLatestHistoryId(null);
+		return createPage(request);
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public Page restorePageHistory(Integer historyId) {
+		PageHistory history = pageHistoryService.findPageHistoryById(historyId);
+		if (history == null || history.getPage() == null) {
+			throw error(ExceptionEnum.CM009);
+		}
+		Page current = baseMapper.queryPageById(history.getPage());
+		if (!belongsToCurrentTenant(current)) {
+			throw error(ExceptionEnum.CM009);
+		}
+		Page restored = new Page();
+		BeanUtils.copyProperties(history, restored);
+		restored.setId(current.getId());
+		restored.setApp(current.getApp());
+		restored.setTenantId(current.getTenantId());
+		restored.setRenterId(current.getRenterId());
+		restored.setSiteId(current.getSiteId());
+		restored.setCreatedBy(current.getCreatedBy());
+		restored.setCreatedTime(current.getCreatedTime());
+		restored.setMessage("还原页面");
+		return updatePage(restored);
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public Page createPage(Page page) {
 		if (page == null || page.getApp() == null) {
 			throw error(ExceptionEnum.CM002);
@@ -112,6 +162,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 		page.setOccupierBy(getCurrentUserId());
 		page.setIsDefault(false);
 		page.setDepth(0);
+		prepareCreateAudit(page);
 		ensurePageDoesNotExist(page);
 		if (baseMapper.createPage(page) < 1 || page.getId() == null) {
 			throw error(ExceptionEnum.CM001);
@@ -143,6 +194,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 		page.setIsDefault(false);
 		page.setIsBody(true);
 		page.setOccupierBy(getCurrentUserId());
+		prepareCreateAudit(page);
 		ensurePageDoesNotExist(page);
 		if (baseMapper.createPage(page) < 1 || page.getId() == null) {
 			throw error(ExceptionEnum.CM001);
@@ -245,6 +297,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 		App app = new App();
 		app.setId(appId);
 		app.setHomePage(pageId);
+		app.setTenantId(getTenantId());
 		if (appMapper.updateAppById(app) < 1) {
 			throw error(ExceptionEnum.CM001);
 		}
@@ -289,6 +342,38 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 		if (pageHistoryService.createPageHistory(history) < 1) {
 			throw error(ExceptionEnum.CM001);
 		}
+		if (history.getId() == null || !Integer.valueOf(1).equals(baseMapper.updatePageHistoryPointer(page.getId(),
+				history.getVersion(), history.getId(), page.getTenantId()))) {
+			throw error(ExceptionEnum.CM001);
+		}
+		page.setLatestHistoryId(history.getId());
+		page.setLatestVersion(history.getVersion());
+	}
+
+	private void prepareCreateAudit(Page page) {
+		TinyEngineUser user = userContext == null ? null : userContext.getCurrentUser();
+		String userId = user == null ? null : user.getUserId();
+		LocalDateTime now = LocalDateTime.now();
+		if (page.getCreatedBy() == null) {
+			page.setCreatedBy(userId);
+		}
+		if (page.getLastUpdatedBy() == null) {
+			page.setLastUpdatedBy(userId);
+		}
+		if (page.getCreatedTime() == null) {
+			page.setCreatedTime(now);
+		}
+		if (page.getLastUpdatedTime() == null) {
+			page.setLastUpdatedTime(now);
+		}
+		if (user != null) {
+			if (page.getTenantId() == null) {
+				page.setTenantId(user.getTenantId());
+			}
+			if (page.getRenterId() == null) {
+				page.setRenterId(user.getRenterId());
+			}
+		}
 	}
 
 	private String getCurrentUserId() {
@@ -299,6 +384,14 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, Page> implements Pa
 	private String getTenantId() {
 		TinyEngineUser user = userContext.getCurrentUser();
 		return user == null ? null : user.getTenantId();
+	}
+
+	private boolean belongsToCurrentTenant(Page page) {
+		if (page == null) {
+			return false;
+		}
+		String tenantId = getTenantId();
+		return page.getTenantId() == null || tenantId == null || tenantId.equals(page.getTenantId());
 	}
 
 	private ServiceException error(ExceptionEnum error) {

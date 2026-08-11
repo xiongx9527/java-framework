@@ -1,8 +1,8 @@
 package com.xiongx9527.fw.plus.graph.nebula.jdbc.sql.routine;
 
-import java.sql.SQLException;
+import com.xiongx9527.fw.plus.common.exception.BizException;
 
-public class RoutineException extends SQLException {
+public class RoutineException extends BizException {
 
 	public static final int ER_PARSE_ERROR = 1064;
 	public static final int ER_SP_ALREADY_EXISTS = 1304;
@@ -12,8 +12,21 @@ public class RoutineException extends SQLException {
 	public static final int ER_QUERY_INTERRUPTED = 1317;
 	public static final int ER_TABLEACCESS_DENIED_ERROR = 1142;
 
+	private final String sqlState;
+	private final int vendorCode;
+
 	public RoutineException(String message, String sqlState, int vendorCode) {
-		super(message, sqlState, vendorCode);
+		super(message);
+		this.sqlState = sqlState;
+		this.vendorCode = vendorCode;
+	}
+
+	public String getSQLState() {
+		return sqlState;
+	}
+
+	public int getErrorCode() {
+		return vendorCode;
 	}
 
 	public static RoutineException syntax(String message) {

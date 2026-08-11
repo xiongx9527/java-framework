@@ -197,6 +197,7 @@
         <!--jakarta版本号-->
         <jakarta.version>6.0.0</jakarta.version>
 		<langchain4j.version>1.18.0</langchain4j.version>
+        <tinyflow.version>2.0.7</tinyflow.version>
         <jedis.version>5.0.0</jedis.version>
         <datastax-java-driver.version>4.17.0</datastax-java-driver.version>
         <infinispan.version>13.0.22.Final</infinispan.version>
@@ -283,6 +284,11 @@
                 <groupId>dev.langchain4j</groupId>
                 <artifactId>langchain4j-dashscope</artifactId>
                 <version>0.36.2</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.tinyflow</groupId>
+                <artifactId>tinyflow-core</artifactId>
+                <version>${tinyflow.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.datastax.oss</groupId>
@@ -1204,7 +1210,22 @@
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mybatis-datachange</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mp-encrypt</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mybatis-encrypt</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mf-encrypt</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1215,6 +1236,11 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mf-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mf-datachange</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1265,6 +1291,21 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-ai-store-embedding</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-tinyflow-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-tinyflow-local</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-tinyflow-dify</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -14,15 +14,18 @@ import {
   useResource,
   useCanvas,
   useMessage,
+  useTranslate,
   getMergeMeta,
   META_SERVICE
 } from '@opentiny/tiny-engine-meta-register'
 import { isVsCodeEnv } from '@opentiny/tiny-engine-common/js/environments'
+import { applyLocaleToI18n } from '@opentiny/tiny-engine-common/js/i18n'
 import { useBroadcastChannel } from '@vueuse/core'
 import { constants } from '@opentiny/tiny-engine-utils'
 import Login from './login/Index.vue'
 
 const { BROADCAST_CHANNEL } = constants
+const TINY_ENGINE_LOCALE_CHANGE = 'tiny-engine:locale-change'
 
 export default {
   components: {
@@ -67,10 +70,25 @@ export default {
       useResource().handlePopStateEvent()
     }
 
+    const handleLocaleMessage = (event) => {
+      const message = event?.data
+      if (message?.type !== TINY_ENGINE_LOCALE_CHANGE || message?.channel !== BROADCAST_CHANNEL.CanvasLang) {
+        return
+      }
+
+      const { value } = message
+      if (value) {
+        const locale = applyLocaleToI18n(value)
+        useTranslate().currentLanguage.value = locale
+      }
+    }
+
     window.addEventListener('popstate', handlePopStateEvent)
+    window.addEventListener('message', handleLocaleMessage)
 
     onUnmounted(() => {
       window.removeEventListener('popstate', handlePopStateEvent)
+      window.removeEventListener('message', handleLocaleMessage)
     })
 
     watch(

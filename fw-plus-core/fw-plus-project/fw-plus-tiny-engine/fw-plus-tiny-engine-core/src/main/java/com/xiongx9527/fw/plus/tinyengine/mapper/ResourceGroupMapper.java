@@ -42,7 +42,9 @@ public interface ResourceGroupMapper extends BaseMapper<ResourceGroup> {
      * @param groupCreatedBy the groupCreatedBy
      * @return the resourceGroup
      */
-    ResourceGroup queryResourceGroupById(Integer id, String groupCreatedBy);
+    ResourceGroup queryResourceGroupById(@Param("id") Integer id,
+                                         @Param("groupCreatedBy") String groupCreatedBy,
+                                         @Param("tenantId") String tenantId);
 
     /**
      * 根据条件查询表t_resource_group数据

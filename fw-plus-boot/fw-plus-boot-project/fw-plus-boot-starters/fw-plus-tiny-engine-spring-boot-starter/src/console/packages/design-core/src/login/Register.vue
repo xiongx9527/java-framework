@@ -124,7 +124,8 @@ export default {
           password: state.registerData.password
         })
         .then((data) => {
-          useLogin().userState.publicKey = data?.publicKey
+          const registerResult = data?.data || data
+          useLogin().userState.publicKey = registerResult?.publicKey || registerResult?.recoveryCode
 
           emit('changeStatus', useLogin().SUCCESS)
         })

@@ -1,0 +1,246 @@
+package com.xiongx9527.fw.plus.mybatis.datachange.dialect;
+
+import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeErrorCode;
+import com.xiongx9527.fw.plus.mybatis.datachange.api.DataChangeException;
+import com.xiongx9527.fw.plus.mybatis.datachange.api.RowIdentity;
+import com.xiongx9527.fw.plus.mybatis.datachange.api.TableIdentifier;
+import net.sf.jsqlparser.expression.Alias;
+import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
+import net.sf.jsqlparser.expression.JdbcParameter;
+import net.sf.jsqlparser.statement.select.Join;
+import org.apache.ibatis.mapping.ParameterMapping;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+public final class H2DataChangeDialect extends AbstractJSqlParserDataChangeDialect {
+	@Override
+	public boolean supports(DatabaseMetadata metadata) {
+		return metadata != null && "h2".equals(metadata.getProductName());
+	}
+
+	@Override
+	public TableIdentifier normalize(TableIdentifier table) {
+		if (table == null) { return null; }
+		return new TableIdentifier(table.getCatalog(), table.getSchema(), table.getTable());
+	}
+
+	@Override
+	public SnapshotQuery buildBeforeQuery(ChangeTarget target) {
+		if (target.getOperation() == StatementOperation.INSERT) {
+			if (target.isUpsert()) { return buildAssignedIdentityQuery(target, true); }
+			throw snapshotFailure("An INSERT statement has no before snapshot");
+		}
+		List<String> columns = snapshotColumns(target);
+		StringBuilder sql = selectPrefix(target, columns, !target.getJoins().isEmpty());
+		for (Join join : target.getJoins()) {
+			sql.append(' ').append(join.toString().trim());
+		}
+		if (target.getWhere() != null) {
+			sql.append(" WHERE ").append(target.getWhere());
+		}
+		appendLimit(sql, target);
+		if (target.isLockRows()) {
+			sql.append(" FOR UPDATE");
+		}
+		List<SnapshotParameter> parameters = new ArrayList<SnapshotParameter>();
+		for (ParameterMapping mapping : target.getPredicateParameterMappings()) {
+			parameters.add(SnapshotParameter.boundSql(mapping, target.getBoundSql()));
+		}
+		return new SnapshotQuery(sql.toString(), parameters, target.getMaxRows() + 1);
+	}
+
+	@Override
+	public SnapshotQuery buildAfterQuery(ChangeTarget target, List<RowIdentity> identities) {
+		if (target.isUpsert()) { return buildAssignedIdentityQuery(target, false); }
+		if (target.getOperation() == StatementOperation.MERGE) { return buildMergeMatchQuery(target); }
+		List<String> keys = target.getKeyColumnsHint();
+		if (keys.isEmpty()) {
+			throw snapshotFailure("A unique key is required for an after snapshot");
+		}
+		StringBuilder sql = selectPrefix(target, snapshotColumns(target), false);
+		List<SnapshotParameter> parameters = new ArrayList<SnapshotParameter>();
+		sql.append(" WHERE ");
+		if (identities == null || identities.isEmpty()) {
+			sql.append("1 = 0");
+		} else {
+			for (int rowIndex = 0; rowIndex < identities.size(); rowIndex++) {
+				if (rowIndex > 0) { sql.append(" OR "); }
+				sql.append('(');
+				Map<String, Object> values = identities.get(rowIndex).getKeyValues();
+				for (int keyIndex = 0; keyIndex < keys.size(); keyIndex++) {
+					if (keyIndex > 0) { sql.append(" AND "); }
+					String key = keys.get(keyIndex);
+					sql.append(quote(key)).append(" = ?");
+					parameters.add(SnapshotParameter.value(value(values, key)));
+				}
+				sql.append(')');
+			}
+		}
+		appendLimit(sql, target);
+		return new SnapshotQuery(sql.toString(), parameters, target.getMaxRows() + 1);
+	}
+
+	@Override
+	public int getOrder() {
+		return 100;
+	}
+
+	private StringBuilder selectPrefix(ChangeTarget target, List<String> columns, boolean qualifyColumns) {
+		StringBuilder sql = new StringBuilder("SELECT ");
+		String qualifier = qualifyColumns ? projectionQualifier(target) : null;
+		for (int index = 0; index < columns.size(); index++) {
+			if (index > 0) { sql.append(", "); }
+			if (qualifier != null) { sql.append(qualifier).append('.'); }
+			sql.append(quote(columns.get(index)));
+		}
+		sql.append(" FROM ").append(qualifiedTable(target.getSnapshotSourceTable(), target.getTable()));
+		Alias alias = target.getSnapshotSourceTable() == null ? null : target.getSnapshotSourceTable().getAlias();
+		if (alias != null) {
+			sql.append(alias.isUseAs() ? " AS " : " ").append(alias.getName());
+		}
+		return sql;
+	}
+
+	private SnapshotQuery buildAssignedIdentityQuery(ChangeTarget target, boolean lockRows) {
+		List<String> keys = target.getKeyColumnsHint();
+		if (keys.isEmpty()) { throw identityFailure(); }
+		StringBuilder sql = selectPrefix(target, snapshotColumns(target), false);
+		List<SnapshotParameter> parameters = new ArrayList<SnapshotParameter>();
+		sql.append(" WHERE ");
+		for (int index = 0; index < keys.size(); index++) {
+			if (index > 0) { sql.append(" AND "); }
+			String key = keys.get(index);
+			AssignedColumn assigned = assigned(target, key);
+			int parameterCount = assigned == null || assigned.getExpression() == null
+					? 0 : parameterCount(assigned.getExpression());
+			if (assigned == null || parameterCount == 0
+					|| parameterCount != assigned.getParameterMappings().size()) {
+				throw identityFailure();
+			}
+			sql.append(quote(key)).append(" = (").append(assigned.getExpression()).append(')');
+			for (ParameterMapping mapping : assigned.getParameterMappings()) {
+				parameters.add(SnapshotParameter.boundSql(mapping, target.getBoundSql()));
+			}
+		}
+		appendLimit(sql, target);
+		if (lockRows) { sql.append(" FOR UPDATE"); }
+		return new SnapshotQuery(sql.toString(), parameters, target.getMaxRows() + 1);
+	}
+
+	private SnapshotQuery buildMergeMatchQuery(ChangeTarget target) {
+		StringBuilder sql = selectPrefix(target, snapshotColumns(target), true);
+		for (Join join : target.getJoins()) { sql.append(' ').append(join.toString().trim()); }
+		appendLimit(sql, target);
+		List<SnapshotParameter> parameters = new ArrayList<SnapshotParameter>();
+		for (ParameterMapping mapping : target.getMatchParameterMappings()) {
+			parameters.add(SnapshotParameter.boundSql(mapping, target.getBoundSql()));
+		}
+		return new SnapshotQuery(sql.toString(), parameters, target.getMaxRows() + 1);
+	}
+
+	private AssignedColumn assigned(ChangeTarget target, String key) {
+		for (AssignedColumn assigned : target.getAssignedColumns()) {
+			if (assigned.getColumn() != null && assigned.getColumn().equalsIgnoreCase(key)) { return assigned; }
+		}
+		return null;
+	}
+
+	private int parameterCount(Expression expression) {
+		final int[] count = new int[]{0};
+		expression.accept(new ExpressionVisitorAdapter() {
+			@Override
+			public void visit(JdbcParameter parameter) { count[0]++; }
+		});
+		return count[0];
+	}
+
+	private String projectionQualifier(ChangeTarget target) {
+		Alias alias = target.getSourceTable() == null ? null : target.getSourceTable().getAlias();
+		return alias == null ? qualifiedTable(target) : alias.getName();
+	}
+
+	private List<String> snapshotColumns(ChangeTarget target) {
+		Map<String, String> columns = new LinkedHashMap<String, String>();
+		addColumns(columns, target.getKeyColumnsHint());
+		addColumns(columns, target.getMonitoredColumns());
+		if (columns.isEmpty()) {
+			throw snapshotFailure("Snapshot columns must not be empty");
+		}
+		return new ArrayList<String>(columns.values());
+	}
+
+	private void addColumns(Map<String, String> columns, List<String> additions) {
+		for (String column : additions) {
+			String key = column.toLowerCase(Locale.ENGLISH);
+			if (!columns.containsKey(key)) {
+				columns.put(key, column);
+			}
+		}
+	}
+
+	private void appendLimit(StringBuilder sql, ChangeTarget target) {
+		long limit = (long) target.getMaxRows() + 1L;
+		sql.append(" FETCH FIRST ").append(limit).append(" ROWS ONLY");
+	}
+
+	private String qualifiedTable(ChangeTarget target) {
+		return qualifiedTable(target.getSourceTable(), target.getTable());
+	}
+
+	private String qualifiedTable(net.sf.jsqlparser.schema.Table sourceTable, TableIdentifier fallback) {
+		if (sourceTable != null && sourceTable.getNameParts() != null
+				&& !sourceTable.getNameParts().isEmpty()) {
+			StringBuilder sourceName = new StringBuilder();
+			List<String> parts = sourceTable.getNameParts();
+			for (int index = parts.size() - 1; index >= 0; index--) {
+				appendPart(sourceName, parts.get(index));
+			}
+			return sourceName.toString();
+		}
+		StringBuilder name = new StringBuilder();
+		appendPart(name, fallback.getCatalog());
+		appendPart(name, fallback.getSchema());
+		appendPart(name, fallback.getTable());
+		return name.toString();
+	}
+
+	private void appendPart(StringBuilder name, String part) {
+		if (part == null || part.isEmpty()) { return; }
+		if (name.length() > 0) { name.append('.'); }
+		name.append(quote(part));
+	}
+
+	private String quote(String identifier) {
+		String normalized;
+		if (identifier != null && identifier.length() >= 2 && identifier.charAt(0) == '"'
+				&& identifier.charAt(identifier.length() - 1) == '"') {
+			normalized = identifier.substring(1, identifier.length() - 1).replace("\"\"", "\"");
+		} else {
+			normalized = identifier == null ? "" : identifier.toUpperCase(Locale.ENGLISH);
+		}
+		return '"' + normalized.replace("\"", "\"\"") + '"';
+	}
+
+	private Object value(Map<String, Object> values, String key) {
+		for (Map.Entry<String, Object> entry : values.entrySet()) {
+			if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(key)) {
+				return entry.getValue();
+			}
+		}
+		throw snapshotFailure("Row identity does not contain every unique key column");
+	}
+
+	private DataChangeException snapshotFailure(String message) {
+		return new DataChangeException(DataChangeErrorCode.SNAPSHOT_QUERY_FAILED, message);
+	}
+
+	private DataChangeException identityFailure() {
+		return new DataChangeException(DataChangeErrorCode.ROW_IDENTITY_UNAVAILABLE,
+				"ROW_IDENTITY_UNAVAILABLE");
+	}
+}

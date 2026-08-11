@@ -97,6 +97,35 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-tinyflow-core</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-dify</artifactId>
+			<scope>compile</scope>
+			<optional>true</optional>
+		</dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-tinyflow-core</artifactId>
+            <version>${revision}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-tinyflow-local</artifactId>
+			<version>${revision}</version>
+			<optional>true</optional>
+		</dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-langchain4j-core</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
@@ -208,6 +237,13 @@
             <optional>true</optional>
         </dependency>
 
+		<dependency>
+			<groupId>com.xiongx9527.fw.plus.boot</groupId>
+			<artifactId>fw-plus-magicapi-plugin-s3</artifactId>
+			<scope>compile</scope>
+			<optional>true</optional>
+		</dependency>
+
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-context</artifactId>
@@ -291,6 +327,12 @@
             <artifactId>jackson-databind</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>

@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine;
 
 import com.xiongx9527.fw.plus.tinyengine.support.auth.DefaultTinyEngineUserSystemService;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.SystemTinyEngineUserSystemService;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAccountProvider;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAuthenticationProvider;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEnginePermissionEvaluator;
@@ -35,6 +36,14 @@ public class TinyEngineCoreConfiguration {
 	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.security", name = "enabled", havingValue = "true")
 	public TinyEngineRequestUserScope tinyEngineRequestUserScope() {
 		return new TinyEngineRequestUserScope();
+	}
+
+	@Bean
+	@ConditionalOnMissingBean
+	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.security", name = "enabled", havingValue = "false",
+			matchIfMissing = true)
+	public TinyEngineUserSystemService systemTinyEngineUserSystemService(TinyEngineUserContext userContext) {
+		return new SystemTinyEngineUserSystemService(userContext);
 	}
 
 	@Bean

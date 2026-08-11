@@ -62,6 +62,16 @@ class TinyEngineUserMvcControllerTest {
 				.andExpect(jsonPath("$.data[0].tenantId", is("tenant-1")));
 	}
 
+	@Test
+	void userTenantAliasSwitchesTenantWithQueryParameter() throws Exception {
+		mvc.perform(get("/platform-center/api/user/tenant")
+						.header("Authorization", "Bearer token-1")
+						.header("X-Tenant-Id", "tenant-1")
+						.param("tenantId", "tenant-2"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.tenantId", is("tenant-2")));
+	}
+
 	static class RecordingUserSystemService implements TinyEngineUserSystemService {
 
 		@Override

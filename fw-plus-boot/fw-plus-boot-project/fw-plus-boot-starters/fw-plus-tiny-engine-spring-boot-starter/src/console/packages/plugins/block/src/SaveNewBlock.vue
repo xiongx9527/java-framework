@@ -72,7 +72,7 @@ export default {
     const visible = computed(() => props.boxVisibility)
     const { PLUGIN_NAME, activePlugin } = useLayout()
     const { isSaved } = useCanvas()
-    const { confirm } = useModal()
+    const { confirm, message } = useModal()
     const formRef = ref(null)
 
     const categoryList = computed(() =>
@@ -95,6 +95,9 @@ export default {
         getMetaApi(META_SERVICE.GlobalService).updateBlockId(block.id)
         activePlugin(PLUGIN_NAME.Materials)
         cancel()
+      }).catch((error) => {
+        const detail = error?.message || String(error || '区块创建失败')
+        message({ message: detail, status: 'error' })
       })
     }
     const addBlock = () => {

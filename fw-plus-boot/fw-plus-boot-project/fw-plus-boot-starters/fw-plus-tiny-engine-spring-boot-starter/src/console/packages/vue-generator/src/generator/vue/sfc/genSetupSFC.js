@@ -1,4 +1,4 @@
-import { BUILTIN_COMPONENTS_MAP } from '@/constant'
+import { BUILTIN_COMPONENTS_MAP, DEFAULT_COMPONENTS_MAP } from '@/constant'
 import { getImportMap } from './parseImport'
 import {
   genTemplateByHook,
@@ -270,8 +270,8 @@ export const genSFCWithDefaultPlugin = (schema, componentsMap, config = {}, next
     }
   }
 
-  // 兼容单独调用的场景，单独调用时，这里会默认加上 builtInComponents
-  const compsMapWithBuiltIn = [...componentsMap, ...BUILTIN_COMPONENTS_MAP]
+  // 兼容单独调用的场景，单独调用时，这里会默认加上默认 TinyVue 组件与内置组件
+  const compsMapWithBuiltIn = [...componentsMap, ...DEFAULT_COMPONENTS_MAP, ...BUILTIN_COMPONENTS_MAP]
 
   return generateSFCFile(schema, compsMapWithBuiltIn, newConfig, nextPage)
 }
