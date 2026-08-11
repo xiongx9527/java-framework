@@ -95,6 +95,8 @@ public class InMemoryAskDataConversationStore implements AskDataConversationStor
         target.setModelKey(source.getModelKey());
         target.setActualModelKey(source.getActualModelKey());
         target.setModelAttempts(source.getModelAttempts());
+        target.setActualEmbeddingModelKey(source.getActualEmbeddingModelKey());
+        target.setEmbeddingModelAttempts(source.getEmbeddingModelAttempts());
         target.setDatasourceKey(source.getDatasourceKey());
         target.setDialect(source.getDialect());
         target.setMaxRows(source.getMaxRows());

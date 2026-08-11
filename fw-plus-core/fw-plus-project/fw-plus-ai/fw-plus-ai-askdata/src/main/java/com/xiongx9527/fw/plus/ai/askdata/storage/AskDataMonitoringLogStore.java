@@ -50,6 +50,7 @@ public interface AskDataMonitoringLogStore {
 		private final String denialCode;
 		private final String authorizationVersion;
 		private final String authorizationSource;
+		private final String modelType;
 		private final String modelKey;
 		private final String modelRoutePolicy;
 		private final String modelState;
@@ -75,12 +76,21 @@ public interface AskDataMonitoringLogStore {
 				String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
 				String modelKey) {
 			this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
-					authorizationSource, modelKey, null, null, null, null, null);
+					authorizationSource, null, modelKey, null, null, null, null, null);
 		}
 
 		public MonitoringLog(AskDataProjectContext context, String traceId, String eventType, String message,
 				String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
 				String modelKey, String modelRoutePolicy, String modelState, String modelFailureCode,
+				String modelSwitchReason, String actualModelKey) {
+			this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+					authorizationSource, null, modelKey, modelRoutePolicy, modelState, modelFailureCode,
+					modelSwitchReason, actualModelKey);
+		}
+
+		public MonitoringLog(AskDataProjectContext context, String traceId, String eventType, String message,
+				String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
+				String modelType, String modelKey, String modelRoutePolicy, String modelState, String modelFailureCode,
 				String modelSwitchReason, String actualModelKey) {
 			this.context = context;
 			this.traceId = traceId;
@@ -90,6 +100,7 @@ public interface AskDataMonitoringLogStore {
 			this.denialCode = denialCode;
 			this.authorizationVersion = authorizationVersion;
 			this.authorizationSource = authorizationSource;
+			this.modelType = modelType;
 			this.modelKey = modelKey;
 			this.modelRoutePolicy = modelRoutePolicy;
 			this.modelState = modelState;
@@ -115,7 +126,7 @@ public interface AskDataMonitoringLogStore {
 				throw new IllegalArgumentException("监控日志归属与存储上下文不一致");
 			}
 			return context == null ? new MonitoringLog(owner, traceId, eventType, message, datasourceKey,
-					denialCode, authorizationVersion, authorizationSource, modelKey, modelRoutePolicy, modelState,
+					denialCode, authorizationVersion, authorizationSource, modelType, modelKey, modelRoutePolicy, modelState,
 					modelFailureCode, modelSwitchReason, actualModelKey) : this;
 		}
 
@@ -131,6 +142,7 @@ public interface AskDataMonitoringLogStore {
 		public String getDenialCode() { return denialCode; }
 		public String getAuthorizationVersion() { return authorizationVersion; }
 		public String getAuthorizationSource() { return authorizationSource; }
+		public String getModelType() { return modelType; }
 		public String getModelKey() { return modelKey; }
 		public String getModelRoutePolicy() { return modelRoutePolicy; }
 		public String getModelState() { return modelState; }

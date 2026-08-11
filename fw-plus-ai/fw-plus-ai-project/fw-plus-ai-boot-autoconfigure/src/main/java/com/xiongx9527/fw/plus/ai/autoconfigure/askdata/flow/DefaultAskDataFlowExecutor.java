@@ -25,8 +25,11 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlAuthorizati
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidationResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataModelAttemptTrace;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDocument;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetrievalException;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetrievalResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlan;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner;
@@ -446,7 +449,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         int maxRows = maxRows(request);
         List<AskDataRetrievedDocument> documents;
         try {
-            documents = retrieveDocuments(request, authorizationSummary(context));
+            documents = retrieveDocuments(request, authorizationSummary(context), result);
         } catch (RuntimeException ex) {
             return failure(result, "prompt", AskDataErrorCode.VECTOR_RETRIEVAL_FAILED, message(ex));
         }
@@ -1174,6 +1177,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             checkpoint.setModelKey(request == null ? null : request.getModelKey());
             checkpoint.setActualModelKey(result.getActualModelKey());
             checkpoint.setModelAttempts(result.getModelAttempts());
+            checkpoint.setActualEmbeddingModelKey(result.getActualEmbeddingModelKey());
+            checkpoint.setEmbeddingModelAttempts(result.getEmbeddingModelAttempts());
             checkpoint.setDatasourceKey(request == null ? null : request.getDatasourceKey());
             checkpoint.setMaxRows(Integer.valueOf(maxRows(request)));
             checkpoint.setExecute(Boolean.valueOf(isExecutionEnabled(request)));
@@ -1210,6 +1215,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         result.setRowCount(checkpoint.getRowCount());
         result.setActualModelKey(checkpoint.getActualModelKey());
         result.setModelAttempts(checkpoint.getModelAttempts());
+        result.setActualEmbeddingModelKey(checkpoint.getActualEmbeddingModelKey());
+        result.setEmbeddingModelAttempts(checkpoint.getEmbeddingModelAttempts());
         result.setSteps(new ArrayList<AskDataStepLog>(checkpoint.getSteps()));
         for (String completedStep : checkpoint.getCompletedSteps()) {
             if (!hasSuccessfulStep(result.getSteps(), completedStep)) {
@@ -1361,7 +1368,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     }
 
     private List<AskDataRetrievedDocument> retrieveDocuments(AskDataRequest request,
-            AskDataAuthorizationSummary authorizationSummary) {
+            AskDataAuthorizationSummary authorizationSummary, AskDataResult result) {
         if (vectorRetriever == null) {
             return Collections.emptyList();
         }
@@ -1369,16 +1376,48 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         String[] retrieveTypes = { "schema", "term", "example" };
         Map<String, Object> filters = vectorAuthorizationFilters(request, authorizationSummary);
         for (String retrieveType : retrieveTypes) {
-            List<AskDataRetrievedDocument> retrieved = vectorRetriever.retrieve(new AskDataVectorQuery(
+            AskDataVectorQuery query = new AskDataVectorQuery(
                     request == null ? null : request.getProjectContext(), embeddingModelKey(request), retrieveType,
-                    request == null ? null : request.getDatasourceKey(),
-                    request == null ? null : request.getDatasourceKey(),
-                    request == null ? null : request.getQuestion(), topK(), filters));
-            if (retrieved != null) {
-                documents.addAll(retrieved);
+                    request == null ? null : request.getDatasourceKey(), request == null ? null : request.getDatasourceKey(),
+                    request == null ? null : request.getQuestion(), topK(), filters);
+            try {
+                AskDataVectorRetrievalResult retrievalResult = vectorRetriever.retrieveWithResult(query);
+                if (retrievalResult != null) {
+                    recordEmbeddingAttempts(request, result, retrievalResult.getModelAttempts(),
+                            retrievalResult.getActualEmbeddingModelKey());
+                    documents.addAll(retrievalResult.getDocuments());
+                }
+            } catch (AskDataVectorRetrievalException ex) {
+                recordEmbeddingAttempts(request, result, ex.getModelAttempts(), null);
+                throw ex;
             }
         }
         return documents;
+    }
+
+    private void recordEmbeddingAttempts(AskDataRequest request, AskDataResult result,
+            List<AskDataModelAttemptTrace> attempts, String actualEmbeddingModelKey) {
+        if (result == null) {
+            return;
+        }
+        for (AskDataModelAttemptTrace attempt : attempts == null
+                ? Collections.<AskDataModelAttemptTrace>emptyList() : attempts) {
+            if (attempt == null) {
+                continue;
+            }
+            if (attempt.getState() == AskDataEvent.ModelState.ATTEMPTED) {
+                result.addEmbeddingModelAttempt(attempt.getModelKey());
+            }
+            if (eventPublisher != null && request != null && request.getProjectContext() != null) {
+                eventPublisher.publish(AskDataEvent.modelAttempt(request.getProjectContext(), result.getConversationId(),
+                        AskDataEvent.ModelType.EMBEDDING, attempt.getModelKey(), attempt.getRoutePolicy(),
+                        attempt.getState(), attempt.getFailureCode(), attempt.getSwitchReason(),
+                        attempt.getActualModelKey()));
+            }
+        }
+        if (!isBlank(actualEmbeddingModelKey)) {
+            result.setActualEmbeddingModelKey(actualEmbeddingModelKey);
+        }
     }
 
     private Map<String, Object> vectorAuthorizationFilters(AskDataRequest request,

@@ -116,6 +116,8 @@ public class AskDataConversationStoreTest {
         AskDataConversationStore store = new InMemoryAskDataConversationStore();
         AskDataCheckpoint checkpoint = checkpoint("checkpoint-1", "resume-1", "1", 1000L);
         checkpoint.setCompletedSteps(new ArrayList<String>(Arrays.asList("metadata")));
+        checkpoint.setActualEmbeddingModelKey("embedding-provider");
+        checkpoint.setEmbeddingModelAttempts(Arrays.asList("embedding-primary", "embedding-provider"));
         AskDataStepLog stepLog = new AskDataStepLog("metadata", "Metadata", true, "loaded");
         checkpoint.setSteps(new ArrayList<AskDataStepLog>(Arrays.asList(stepLog)));
 
@@ -129,6 +131,9 @@ public class AskDataConversationStoreTest {
         AskDataCheckpoint loaded = store.loadByResumeToken("resume-1");
         assertEquals(null, loaded.getSql());
         assertEquals(Arrays.asList("metadata"), loaded.getCompletedSteps());
+        assertEquals("embedding-provider", loaded.getActualEmbeddingModelKey());
+        assertEquals(Arrays.asList("embedding-primary", "embedding-provider"),
+                loaded.getEmbeddingModelAttempts());
         assertEquals("loaded", loaded.getSteps().get(0).getMessage());
         assertEquals(true, loaded.getSteps().get(0).isSuccess());
 

@@ -15,6 +15,8 @@ public class AskDataCheckpoint {
     private String modelKey;
     private String actualModelKey;
     private List<String> modelAttempts = new ArrayList<String>();
+    private String actualEmbeddingModelKey;
+    private List<String> embeddingModelAttempts = new ArrayList<String>();
     private String datasourceKey;
     private String dialect;
     private Integer maxRows;
@@ -48,6 +50,15 @@ public class AskDataCheckpoint {
     public List<String> getModelAttempts() { return new ArrayList<String>(modelAttempts); }
     public void setModelAttempts(List<String> modelAttempts) {
         this.modelAttempts = modelAttempts == null ? new ArrayList<String>() : new ArrayList<String>(modelAttempts);
+    }
+    public String getActualEmbeddingModelKey() { return actualEmbeddingModelKey; }
+    public void setActualEmbeddingModelKey(String actualEmbeddingModelKey) {
+        this.actualEmbeddingModelKey = actualEmbeddingModelKey;
+    }
+    public List<String> getEmbeddingModelAttempts() { return new ArrayList<String>(embeddingModelAttempts); }
+    public void setEmbeddingModelAttempts(List<String> embeddingModelAttempts) {
+        this.embeddingModelAttempts = embeddingModelAttempts == null
+                ? new ArrayList<String>() : new ArrayList<String>(embeddingModelAttempts);
     }
     public String getDatasourceKey() { return datasourceKey; }
     public void setDatasourceKey(String datasourceKey) { this.datasourceKey = datasourceKey; }

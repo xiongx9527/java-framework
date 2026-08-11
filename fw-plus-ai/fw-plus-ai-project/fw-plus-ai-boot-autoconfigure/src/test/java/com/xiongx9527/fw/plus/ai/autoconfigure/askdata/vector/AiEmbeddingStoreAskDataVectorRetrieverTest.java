@@ -7,7 +7,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistr
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRequest;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelResult;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
 import com.xiongx9527.fw.plus.ai.model.AiEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.model.AiEmbeddingRequest;
 import com.xiongx9527.fw.plus.ai.model.AiEmbeddingResult;
@@ -102,6 +104,38 @@ public class AiEmbeddingStoreAskDataVectorRetrieverTest {
     }
 
     @Test
+    public void shouldReturnStructuredAttemptsAfterNeutralEmbeddingFallback() {
+        RecordingStore store = new RecordingStore(new AiEmbeddingSearchResult(Collections.<AiEmbeddingMatch>emptyList()));
+        CapturingEmbeddingModel primary = new CapturingEmbeddingModel("embedding-primary");
+        primary.failure = AiModelException.infrastructureFailure("temporary outage", null);
+        CapturingEmbeddingModel fallback = new CapturingEmbeddingModel("embedding-fallback");
+        AskDataProperties properties = new AskDataProperties();
+        properties.getModel().setEmbeddingCandidates(Collections.singletonList("embedding-primary"));
+        properties.getModel().setDefaultEmbeddingModel("embedding-fallback");
+        AskDataVectorRetriever retriever = new AiEmbeddingStoreAskDataVectorRetriever(
+                new SingleStoreRegistry("knowledge", store), embeddingModels(),
+                modelRegistry(primary, fallback), new RecordingModelRouter(), properties, "knowledge");
+
+        AskDataVectorRetrievalResult result = retriever.retrieveWithResult(new AskDataVectorQuery(
+                new AskDataProjectContext("project-1", "operator-1"), null, "term", "orders",
+                "knowledge", "GMV", 3, Collections.<String, Object>emptyMap()));
+
+        assertEquals("embedding-fallback", result.getActualEmbeddingModelKey());
+        assertEquals(4, result.getModelAttempts().size());
+        assertEquals(AskDataEvent.ModelState.ATTEMPTED, result.getModelAttempts().get(0).getState());
+        assertEquals(AskDataModelRoutePolicy.PROJECT_KEY,
+                result.getModelAttempts().get(0).getRoutePolicy());
+        assertEquals(AskDataEvent.ModelState.FAILED, result.getModelAttempts().get(1).getState());
+        assertEquals(AiModelException.MODEL_INFRASTRUCTURE_FAILURE,
+                result.getModelAttempts().get(1).getFailureCode());
+        assertEquals("RETRYABLE_INFRASTRUCTURE_FAILURE",
+                result.getModelAttempts().get(1).getSwitchReason());
+        assertEquals(AskDataEvent.ModelState.ATTEMPTED, result.getModelAttempts().get(2).getState());
+        assertEquals(AskDataEvent.ModelState.SUCCEEDED, result.getModelAttempts().get(3).getState());
+        assertEquals("embedding-fallback", result.getModelAttempts().get(3).getActualModelKey());
+    }
+
+    @Test
     public void shouldNotFallbackAfterNeutralEmbeddingRequestRejection() {
         RecordingStore store = new RecordingStore(new AiEmbeddingSearchResult(Collections.<AiEmbeddingMatch>emptyList()));
         CapturingEmbeddingModel primary = new CapturingEmbeddingModel("embedding-primary");
@@ -123,6 +157,29 @@ public class AiEmbeddingStoreAskDataVectorRetrieverTest {
         assertEquals(1, primary.callCount);
         assertEquals(0, fallback.callCount);
         assertEquals(0, store.searchCount);
+    }
+
+    @Test
+    public void shouldPreserveStructuredAttemptWhenNeutralEmbeddingFails() {
+        RecordingStore store = new RecordingStore(new AiEmbeddingSearchResult(Collections.<AiEmbeddingMatch>emptyList()));
+        CapturingEmbeddingModel primary = new CapturingEmbeddingModel("embedding-primary");
+        primary.failure = AiModelException.requestRejected("invalid request", null);
+        AskDataProperties properties = new AskDataProperties();
+        properties.getModel().setDefaultEmbeddingModel("embedding-primary");
+        AskDataVectorRetriever retriever = new AiEmbeddingStoreAskDataVectorRetriever(
+                new SingleStoreRegistry("knowledge", store), embeddingModels(), singleModelRegistry(primary),
+                new RecordingModelRouter(), properties, "knowledge");
+
+        AskDataVectorRetrievalException exception = assertThrows(AskDataVectorRetrievalException.class,
+                () -> retriever.retrieveWithResult(new AskDataVectorQuery(
+                        new AskDataProjectContext("project-1", "operator-1"), null, "term", "orders",
+                        "knowledge", "GMV", 3, Collections.<String, Object>emptyMap())));
+
+        assertEquals(AiModelException.MODEL_REQUEST_REJECTED, exception.getErrorCode());
+        assertEquals(2, exception.getModelAttempts().size());
+        assertEquals(AskDataEvent.ModelState.ATTEMPTED, exception.getModelAttempts().get(0).getState());
+        assertEquals(AskDataEvent.ModelState.FAILED, exception.getModelAttempts().get(1).getState());
+        assertEquals("NON_RETRYABLE_FAILURE", exception.getModelAttempts().get(1).getSwitchReason());
     }
 
     @Test
