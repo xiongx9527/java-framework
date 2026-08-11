@@ -1,7 +1,7 @@
 ## 1. 中立模型与向量契约
 
-- [ ] 1.1 为 `fw-plus-ai-model` 编写失败契约测试，覆盖类型化 Chat/Embedding、批量输入、实际模型 key、超时、参数、用量摘要和不可变复制。
-- [ ] 1.2 增强 `AiModel` 类型化能力及请求/结果对象，保持 Java 8 和现有 `AiModelAdapter`/`AiModelRegistry` 兼容。
+- [x] 1.1 为 `fw-plus-ai-model` 编写失败契约测试，覆盖类型化 Chat/Embedding、批量输入、实际模型 key、超时、参数、用量摘要和不可变复制。
+- [x] 1.2 增强 `AiModel` 类型化能力及请求/结果对象，保持 Java 8 和现有 `AiModelAdapter`/`AiModelRegistry` 兼容。
 - [ ] 1.3 为 `fw-plus-ai-store-embedding` 编写失败测试，覆盖查询过滤不可变复制、过滤能力拒绝和参数校验。
 - [ ] 1.4 增强 `AiEmbeddingQuery` 与 Store Adapter 能力诊断，确保权限相关过滤条件不得静默丢弃。
 - [ ] 1.5 运行模型和 Embedding Store 模块测试并检查 Core 运行依赖树。
