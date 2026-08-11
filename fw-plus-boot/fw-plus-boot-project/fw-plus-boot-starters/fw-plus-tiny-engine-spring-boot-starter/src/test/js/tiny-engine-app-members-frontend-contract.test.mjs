@@ -34,6 +34,8 @@ test('member dialog protects owner and current operator and supports retry plus 
   assert.match(dialog, /updateAppMember/)
   assert.match(dialog, /deleteAppMember/)
   assert.match(dialog, /loadMembers/)
+  assert.match(dialog, /members\.value\.some\(\(member\)\s*=>\s*String\(member\.userId\)\s*===\s*userId\)/)
+  assert.match(dialog, /该用户已是应用成员/)
 })
 
 test('application member HTTP client uses the shared MVC and WebFlux API contract', () => {

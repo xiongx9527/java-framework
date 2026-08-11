@@ -10,6 +10,7 @@ import com.xiongx9527.fw.plus.tinyengine.service.ResourceService;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineUserSystemService;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineRequestUserScope;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -60,8 +61,20 @@ public class TinyEngineReactiveWebConfiguration implements WebFluxConfigurer {
 	@Bean
 	@ConditionalOnMissingBean
 	public TinyEngineReactiveExecutor tinyEngineReactiveExecutor(
-			@Qualifier("tinyEngineBlockingScheduler") Scheduler scheduler, TinyEngineProperties properties) {
-		return new TinyEngineReactiveExecutor(scheduler, properties.getWebflux().getScheduler().getTimeout());
+			@Qualifier("tinyEngineBlockingScheduler") Scheduler scheduler, TinyEngineProperties properties,
+			ObjectProvider<TinyEngineRequestUserScope> userScopeProvider) {
+		return new TinyEngineReactiveExecutor(scheduler, properties.getWebflux().getScheduler().getTimeout(),
+				userScopeProvider.getIfAvailable());
+	}
+
+	@Bean
+	@ConditionalOnBean(TinyEngineRequestUserScope.class)
+	@ConditionalOnMissingBean
+	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.security", name = "enabled", havingValue = "true")
+	public TinyEngineReactiveAuthenticationFilter tinyEngineReactiveAuthenticationFilter(
+			TinyEngineCredentialExtractor credentialExtractor, TinyEngineUserSystemService userSystemService,
+			TinyEngineReactiveExecutor executor) {
+		return new TinyEngineReactiveAuthenticationFilter(credentialExtractor, userSystemService, executor);
 	}
 
 	@Bean

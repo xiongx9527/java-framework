@@ -10,8 +10,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.Map;
 
@@ -36,8 +38,13 @@ public class TinyEngineOfficialAiController {
 	}
 
 	@PostMapping({"/ai/chat", "/chat/completions"})
-	public ResponseEntity<?> chat(@RequestBody Map<String, Object> body,
-			@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization) {
+	public void chat(@RequestBody Map<String, Object> body,
+			@RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authorization,
+			HttpServletResponse servletResponse) throws IOException {
+		writeResponse(chat(body, authorization), servletResponse);
+	}
+
+	public ResponseEntity<?> chat(Map<String, Object> body, String authorization) {
 		TinyEngineOfficialAiRequest request;
 		try {
 			request = TinyEngineOfficialAiRequest.parse(body, authorization, credentialCipher);
@@ -51,6 +58,22 @@ public class TinyEngineOfficialAiController {
 		}
 		TinyEngineOfficialAiResponse response = gateway.execute(request);
 		return ResponseEntity.status(response.getClientStatusCode()).headers(response.getHeaders()).body(response.getBody());
+	}
+
+	private void writeResponse(ResponseEntity<?> response, HttpServletResponse servletResponse) throws IOException {
+		servletResponse.setStatus(response.getStatusCodeValue());
+		for (Map.Entry<String, List<String>> header : response.getHeaders().entrySet()) {
+			for (String value : header.getValue()) {
+				servletResponse.addHeader(header.getKey(), value);
+			}
+		}
+		Object body = response.getBody();
+		if (body instanceof StreamingResponseBody) {
+			((StreamingResponseBody) body).writeTo(servletResponse.getOutputStream());
+		} else if (body instanceof byte[]) {
+			servletResponse.getOutputStream().write((byte[]) body);
+		}
+		servletResponse.flushBuffer();
 	}
 
 	private ResponseEntity<StreamingResponseBody> streamResponse(final TinyEngineOfficialAiRequest request) {
@@ -83,6 +106,13 @@ public class TinyEngineOfficialAiController {
 							}
 						}
 					});
+				} catch (TinyEngineUpstreamException ex) {
+					try {
+						outputStream.write(ex.toSseError());
+						outputStream.flush();
+					} catch (IOException ioException) {
+						throw new IllegalStateException("TinyEngine AI client disconnected", ioException);
+					}
 				} finally {
 					TinyEngineSseSession active = session.get();
 					if (active != null) {

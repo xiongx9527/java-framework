@@ -119,6 +119,10 @@ export default {
         notifyError(null, !userId ? '请输入用户 ID' : '不可操作自己')
         return
       }
+      if (members.value.some((member) => String(member.userId) === userId)) {
+        notifyError(null, '该用户已是应用成员')
+        return
+      }
       mutating.value = true
       try {
         await addAppMember(props.application.id, { userId, roleCode: newMember.roleCode })

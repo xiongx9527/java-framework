@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -248,6 +249,63 @@ public class TinyEngineOfficialAiControllerTest {
 						.getBytes(StandardCharsets.UTF_8));
 			}
 		};
+		MockMvc mvc = MockMvcBuilders.standaloneSetup(new TinyEngineOfficialAiController(gateway,
+				Sm4TinyEngineAiCredentialCipher.from(new TinyEngineAiProperties().getOfficial()))).build();
+
+		mvc.perform(post("/app-center/api/chat/completions")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"baseUrl\":\"http://example.test\",\"apiKey\":\"plain-key\","
+								+ "\"model\":\"gpt-test\",\"stream\":true}"))
+				.andExpect(status().isOk())
+				.andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM))
+				.andExpect(header().string("Cache-Control", "no-cache"))
+				.andExpect(header().string("X-Accel-Buffering", "no"))
+				.andExpect(content().string("data: {\"choices\":[{\"delta\":{\"content\":\"A\"}}]}\n\n"));
+	}
+
+	@Test
+	public void shouldRejectStreamingUpstreamAuthenticationFailureBeforeForwardingFrames() throws Exception {
+		upstream = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+		upstream.createContext("/v1/chat/completions", exchange -> {
+			readAll(exchange.getRequestBody());
+			byte[] responseBytes = "{\"error\":{\"message\":\"invalid key\"}}"
+					.getBytes(StandardCharsets.UTF_8);
+			exchange.getResponseHeaders().add("Content-Type", "application/json");
+			exchange.sendResponseHeaders(401, responseBytes.length);
+			exchange.getResponseBody().write(responseBytes);
+			exchange.close();
+		});
+		upstream.start();
+		TinyEngineOpenAiCompatibleGateway gateway = new DefaultTinyEngineOpenAiCompatibleGateway(
+				new TinyEngineAiProperties(), objectMapper);
+		TinyEngineOfficialAiRequest request = TinyEngineOfficialAiRequest.parse(
+				objectMapper.readValue(validStreamingChatBody(
+						"http://127.0.0.1:" + upstream.getAddress().getPort(), "stream-secret"), Map.class),
+				null, null);
+		AtomicInteger frames = new AtomicInteger();
+
+		TinyEngineUpstreamException error = org.junit.jupiter.api.Assertions.assertThrows(
+				TinyEngineUpstreamException.class, () -> gateway.stream(request, bytes -> frames.incrementAndGet()));
+
+		assertEquals(502, error.getStatusCode());
+		assertEquals(0, frames.get());
+		assertFalse(error.getMessage().contains("stream-secret"));
+	}
+
+	@Test
+	public void shouldReturnSanitizedSseErrorWithoutTurningModelFailureIntoLoginFailure() throws Exception {
+		TinyEngineOpenAiCompatibleGateway gateway = new TinyEngineOpenAiCompatibleGateway() {
+			@Override
+			public TinyEngineOfficialAiResponse execute(TinyEngineOfficialAiRequest request) {
+				throw new UnsupportedOperationException();
+			}
+
+			@Override
+			public void stream(TinyEngineOfficialAiRequest request, TinyEngineSseConsumer consumer) {
+				throw new TinyEngineUpstreamException(502, "INVALID_API_KEY",
+						"TinyEngine AI upstream credential rejected");
+			}
+		};
 		TinyEngineOfficialAiController controller = new TinyEngineOfficialAiController(gateway,
 				Sm4TinyEngineAiCredentialCipher.from(new TinyEngineAiProperties().getOfficial()));
 		Map<String, Object> request = new LinkedHashMap<String, Object>();
@@ -256,16 +314,17 @@ public class TinyEngineOfficialAiControllerTest {
 		request.put("model", "gpt-test");
 		request.put("stream", true);
 
-		ResponseEntity<?> response = controller.chat(request, null);
-
-		assertEquals(MediaType.TEXT_EVENT_STREAM, response.getHeaders().getContentType());
-		assertEquals("no-cache", response.getHeaders().getCacheControl());
-		assertEquals("no", response.getHeaders().getFirst("X-Accel-Buffering"));
+		ResponseEntity<?> response = controller.chat(request, "Bearer engine-token");
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		((org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody) response.getBody())
 				.writeTo(outputStream);
-		assertEquals("data: {\"choices\":[{\"delta\":{\"content\":\"A\"}}]}\n\n",
-				new String(outputStream.toByteArray(), StandardCharsets.UTF_8));
+		String body = new String(outputStream.toByteArray(), StandardCharsets.UTF_8);
+
+		assertEquals(200, response.getStatusCodeValue());
+		assertTrue(body.contains("INVALID_API_KEY"));
+		assertTrue(body.contains("data: [DONE]"));
+		assertFalse(body.contains("plain-key"));
+		assertFalse(body.contains("engine-token"));
 	}
 
 	private MockMvc officialMvc() {
@@ -285,6 +344,16 @@ public class TinyEngineOfficialAiControllerTest {
 				+ "\"baseUrl\":\"" + baseUrl + "\","
 				+ "\"apiKey\":\"" + apiKey + "\","
 				+ "\"model\":\"gpt-test\","
+				+ "\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}]"
+				+ "}";
+	}
+
+	private static String validStreamingChatBody(String baseUrl, String apiKey) {
+		return "{"
+				+ "\"baseUrl\":\"" + baseUrl + "\","
+				+ "\"apiKey\":\"" + apiKey + "\","
+				+ "\"model\":\"gpt-test\","
+				+ "\"stream\":true,"
 				+ "\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}]"
 				+ "}";
 	}

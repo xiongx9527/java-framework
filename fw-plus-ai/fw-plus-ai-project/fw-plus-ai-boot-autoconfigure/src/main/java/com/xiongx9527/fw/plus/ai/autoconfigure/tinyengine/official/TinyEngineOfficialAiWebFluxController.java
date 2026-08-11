@@ -115,6 +115,11 @@ public class TinyEngineOfficialAiWebFluxController {
 				if (!sink.isCancelled()) {
 					sink.complete();
 				}
+			} catch (TinyEngineUpstreamException ex) {
+				if (!sink.isCancelled()) {
+					sink.next(DefaultDataBufferFactory.sharedInstance.wrap(ex.toSseError()));
+					sink.complete();
+				}
 			} catch (RuntimeException ex) {
 				if (!sink.isCancelled()) {
 					sink.error(ex);
