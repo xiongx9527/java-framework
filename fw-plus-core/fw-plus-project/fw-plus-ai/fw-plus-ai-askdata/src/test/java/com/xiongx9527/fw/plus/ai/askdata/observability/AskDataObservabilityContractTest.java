@@ -12,6 +12,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -25,15 +26,78 @@ public class AskDataObservabilityContractTest {
 
 		assertTrue(eventTypes.contains(AskDataEvent.Type.CONVERSATION_STARTED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.QUESTION_PLANNED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.SUB_QUESTION_STARTED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.SUB_QUESTION_COMPLETED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.MODEL_ROUTED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.AGENT_NODE_EXECUTED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.TOOL_STARTED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.TOOL_COMPLETED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.SQL_PLUGIN_STARTED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.SQL_PLUGIN_COMPLETED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.SQL_COMPOSED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.SQL_VALIDATED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.SQL_EXECUTION_STARTED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.SQL_EXECUTED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.LONG_TERM_MEMORY_RECALL_STARTED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.LONG_TERM_MEMORY_RECALL_COMPLETED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.CONTEXT_COMPRESSION_DEGRADED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.MONITORING_DELIVERY_DEGRADED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.CHECKPOINT_SAVED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.RECOVERY_ATTEMPTED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.CONVERSATION_COMPLETED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.CONVERSATION_FAILED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.GOVERNANCE_DENIED));
+	}
+
+	@Test
+	public void shouldExposeImmutableExecutionCorrelationDimensions() {
+		AskDataEventCorrelation correlation = AskDataEventCorrelation.builder("request-1", "conversation-1")
+				.subQuestionId("question-1")
+				.graphNodeId("generate-sql")
+				.agentKey("business-generator")
+				.instanceId("instance-1")
+				.parentEventId("parent-1")
+				.build();
+		AskDataEvent event = AskDataEvent.correlated(new AskDataProjectContext("project-a", "operator-a"),
+				"trace-1", AskDataEvent.Type.AGENT_NODE_EXECUTED, "sanitized", correlation);
+
+		assertEquals("request-1", event.getCorrelation().getRequestId());
+		assertEquals("question-1", event.getCorrelation().getSubQuestionId());
+		assertEquals("generate-sql", event.getCorrelation().getGraphNodeId());
+		assertEquals("business-generator", event.getCorrelation().getAgentKey());
+		assertEquals("instance-1", event.getCorrelation().getInstanceId());
+		assertEquals("parent-1", event.getCorrelation().getParentEventId());
+		assertTrue(event.getCorrelation().getEventId() != null);
+	}
+
+	@Test
+	public void shouldFallBackWithoutThrowingWhenMonitoringStoresFail() {
+		AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
+		RecordingMonitoringLogStore fallback = new RecordingMonitoringLogStore();
+		AskDataMonitoringLogStore failing = new AskDataMonitoringLogStore() {
+			@Override public void append(AskDataProjectContext ignored, MonitoringLog log) {
+				throw new IllegalStateException("offline");
+			}
+			@Override public List<MonitoringLog> list(AskDataProjectContext ignored) {
+				return new ArrayList<MonitoringLog>();
+			}
+		};
+		AskDataEvent event = new AskDataEvent(context, "trace-1",
+				AskDataEvent.Type.CONVERSATION_STARTED, "sanitized");
+
+		assertDoesNotThrow(() -> AskDataEventPublisher.toStore(failing, fallback).publish(event));
+		assertEquals(1, fallback.logs.size());
+		assertEquals("MONITORING_DELIVERY_DEGRADED", fallback.logs.get(0).getEventType());
+
+		AskDataMonitoringLogStore failingFallback = new AskDataMonitoringLogStore() {
+			@Override public void append(AskDataProjectContext ignored, MonitoringLog log) {
+				throw new IllegalStateException("fallback offline");
+			}
+			@Override public List<MonitoringLog> list(AskDataProjectContext ignored) {
+				return new ArrayList<MonitoringLog>();
+			}
+		};
+		assertDoesNotThrow(() -> AskDataEventPublisher.toStore(failing, failingFallback).publish(event));
 	}
 
 	@Test
@@ -113,6 +177,20 @@ public class AskDataObservabilityContractTest {
 		assertEquals("MODEL_INFRASTRUCTURE_FAILURE", log.getModelFailureCode());
 		assertEquals("RETRYABLE_INFRASTRUCTURE_FAILURE", log.getModelSwitchReason());
 		assertEquals(null, log.getActualModelKey());
+	}
+
+	@Test
+	public void shouldPreserveCorrelationInMonitoringStorage() {
+		AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
+		AskDataEvent event = AskDataEvent.correlated(context, "trace-1", AskDataEvent.Type.SQL_COMPOSED,
+				"sanitized", AskDataEventCorrelation.builder("request-1", "conversation-1")
+						.graphNodeId("generate-sql").build());
+		RecordingMonitoringLogStore store = new RecordingMonitoringLogStore();
+
+		AskDataEventPublisher.toStore(store).publish(event);
+
+		assertEquals("request-1", store.logs.get(0).getCorrelation().getRequestId());
+		assertEquals("generate-sql", store.logs.get(0).getCorrelation().getGraphNodeId());
 	}
 
 	private static class RecordingMonitoringLogStore implements AskDataMonitoringLogStore {

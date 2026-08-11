@@ -34,6 +34,17 @@ public interface AskDataEventPublisher {
 	 * @throws IllegalArgumentException 当存储为空时抛出
 	 */
 	static AskDataEventPublisher toStore(final AskDataMonitoringLogStore store) {
+		return toStore(store, null);
+	}
+
+	/**
+	 * 创建带本地诊断 fallback 的基础日志发布器。
+	 *
+	 * <p>主存储失败后只向 fallback 写入脱敏降级诊断，不复制可能含业务摘要的原事件。两级存储均失败时
+	 * 也不会向业务流程抛出异常。</p>
+	 */
+	static AskDataEventPublisher toStore(final AskDataMonitoringLogStore store,
+			final AskDataMonitoringLogStore fallbackStore) {
 		if (store == null) {
 			throw new IllegalArgumentException("store 不能为空");
 		}
@@ -43,15 +54,46 @@ public interface AskDataEventPublisher {
 				if (event == null) {
 					throw new IllegalArgumentException("event 不能为空");
 				}
-				AskDataMonitoringLog log = new AskDataMonitoringLog(event.getContext(), event.getTraceId(),
-						event.getType(), event.getMessage(), event.getDatasourceKey(), event.getDenialCode(),
-						event.getAuthorizationVersion(), event.getAuthorizationSource(),
-						event.getModelType() == null ? null : event.getModelType().name(), event.getModelKey(),
-						event.getModelRoutePolicy() == null ? null : event.getModelRoutePolicy().name(),
-						event.getModelState() == null ? null : event.getModelState().name(), event.getModelFailureCode(),
-						event.getModelSwitchReason(), event.getActualModelKey());
-				store.append(log.getContext(), log.toStorageLog());
+				try {
+					store.append(event.getContext(), monitoringLog(event).toStorageLog());
+				} catch (RuntimeException primaryFailure) {
+					appendFallbackDiagnostic(fallbackStore, event);
+				}
 			}
 		};
+	}
+
+	static AskDataMonitoringLog monitoringLog(AskDataEvent event) {
+		return new AskDataMonitoringLog(event.getContext(), event.getTraceId(), event.getType(), event.getMessage(),
+				event.getDatasourceKey(), event.getDenialCode(), event.getAuthorizationVersion(),
+				event.getAuthorizationSource(), event.getModelType() == null ? null : event.getModelType().name(),
+				event.getModelKey(), event.getModelRoutePolicy() == null ? null : event.getModelRoutePolicy().name(),
+				event.getModelState() == null ? null : event.getModelState().name(), event.getModelFailureCode(),
+				event.getModelSwitchReason(), event.getActualModelKey(), event.getCorrelation());
+	}
+
+	static void appendFallbackDiagnostic(AskDataMonitoringLogStore fallbackStore, AskDataEvent failedEvent) {
+		if (fallbackStore == null || failedEvent == null) {
+			return;
+		}
+		try {
+			String traceId = failedEvent.getTraceId();
+			AskDataEventCorrelation original = failedEvent.getCorrelation();
+			AskDataEventCorrelation correlation = null;
+			if (original != null) {
+				correlation = AskDataEventCorrelation.builder(original.getRequestId(), original.getConversationId())
+						.subQuestionId(original.getSubQuestionId()).graphNodeId(original.getGraphNodeId())
+						.agentKey(original.getAgentKey()).instanceId(original.getInstanceId())
+						.parentEventId(original.getEventId()).build();
+			}
+			AskDataEvent diagnostic = correlation == null
+					? new AskDataEvent(failedEvent.getContext(), traceId,
+							AskDataEvent.Type.MONITORING_DELIVERY_DEGRADED, "AskData 监控存储降级")
+					: AskDataEvent.correlated(failedEvent.getContext(), traceId,
+							AskDataEvent.Type.MONITORING_DELIVERY_DEGRADED, "AskData 监控存储降级", correlation);
+			fallbackStore.append(diagnostic.getContext(), monitoringLog(diagnostic).toStorageLog());
+		} catch (RuntimeException fallbackFailure) {
+			// 本地诊断失败不能改变 AskData 业务结果。
+		}
 	}
 }

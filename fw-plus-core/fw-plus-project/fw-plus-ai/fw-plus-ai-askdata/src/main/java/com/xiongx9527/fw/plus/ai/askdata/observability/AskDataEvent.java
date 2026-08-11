@@ -31,22 +31,92 @@ public class AskDataEvent {
 		CONVERSATION_STARTED,
 		/** 问题已经完成计划。 */
 		QUESTION_PLANNED,
+		/** 问题规划失败。 */
+		QUESTION_PLAN_FAILED,
+		/** 子问题开始执行。 */
+		SUB_QUESTION_STARTED,
+		/** 子问题执行成功。 */
+		SUB_QUESTION_COMPLETED,
+		/** 子问题执行失败。 */
+		SUB_QUESTION_FAILED,
+		/** 子问题因依赖策略被跳过。 */
+		SUB_QUESTION_SKIPPED,
+		/** 子问题执行超时。 */
+		SUB_QUESTION_TIMED_OUT,
+		/** 子问题被取消。 */
+		SUB_QUESTION_CANCELLED,
+		/** 治理后的元数据已经解析。 */
+		METADATA_RESOLVED,
+		/** 已构建脱敏边界内的 Prompt。 */
+		PROMPT_BUILT,
 		/** 已选择模型或模型路由。 */
 		MODEL_ROUTED,
 		/** 已执行一个智能体节点。 */
 		AGENT_NODE_EXECUTED,
+		/** Agent 节点执行失败。 */
+		AGENT_NODE_FAILED,
+		/** 工具调用开始。 */
+		TOOL_STARTED,
+		/** 工具调用完成。 */
+		TOOL_COMPLETED,
+		/** 工具调用失败。 */
+		TOOL_FAILED,
+		/** SQL 插件阶段开始。 */
+		SQL_PLUGIN_STARTED,
+		/** SQL 插件阶段完成。 */
+		SQL_PLUGIN_COMPLETED,
+		/** SQL 插件阶段失败。 */
+		SQL_PLUGIN_FAILED,
+		/** SQL 插件、治理规则和参数已经完成组装。 */
+		SQL_COMPOSED,
+		/** SQL 组装失败。 */
+		SQL_COMPOSITION_FAILED,
 		/** SQL 已通过或未通过安全校验。 */
 		SQL_VALIDATED,
+		/** SQL 校验失败。 */
+		SQL_VALIDATION_FAILED,
+		/** SQL 即将进入受控执行。 */
+		SQL_EXECUTION_STARTED,
 		/** SQL 已提交执行并获得执行结果。 */
 		SQL_EXECUTED,
+		/** SQL 执行失败。 */
+		SQL_EXECUTION_FAILED,
+		/** 长期记忆召回开始。 */
+		LONG_TERM_MEMORY_RECALL_STARTED,
+		/** 长期记忆召回完成。 */
+		LONG_TERM_MEMORY_RECALL_COMPLETED,
+		/** 长期记忆召回失败。 */
+		LONG_TERM_MEMORY_RECALL_FAILED,
+		/** 上下文压缩开始。 */
+		CONTEXT_COMPRESSION_STARTED,
+		/** 上下文压缩已完成。 */
+		CONTEXT_COMPRESSION_COMPLETED,
+		/** 语义压缩失败并切换至确定性压缩。 */
+		CONTEXT_COMPRESSION_DEGRADED,
+		/** 上下文压缩完全失败。 */
+		CONTEXT_COMPRESSION_FAILED,
+		/** 检查点保存开始。 */
+		CHECKPOINT_SAVE_STARTED,
 		/** 可恢复的检查点已保存。 */
 		CHECKPOINT_SAVED,
+		/** 检查点保存失败。 */
+		CHECKPOINT_SAVE_FAILED,
 		/** 已尝试从检查点恢复。 */
 		RECOVERY_ATTEMPTED,
+		/** 已从检查点恢复。 */
+		RECOVERY_COMPLETED,
+		/** 检查点恢复失败。 */
+		RECOVERY_FAILED,
+		/** 外部监控存储失败并切换至本地诊断。 */
+		MONITORING_DELIVERY_DEGRADED,
+		/** 外部观测导出失败或任务被拒绝。 */
+		OBSERVABILITY_EXPORT_DEGRADED,
 		/** 对话已正常结束。 */
 		CONVERSATION_COMPLETED,
 		/** 对话已异常结束。 */
 		CONVERSATION_FAILED,
+		/** 对话被取消。 */
+		CONVERSATION_CANCELLED,
 		/** 治理授权拒绝或解析失败。 */
 		GOVERNANCE_DENIED
 	}
@@ -66,6 +136,7 @@ public class AskDataEvent {
 	private final String modelFailureCode;
 	private final String modelSwitchReason;
 	private final String actualModelKey;
+	private final AskDataEventCorrelation correlation;
 
 	/**
 	 * 创建一条已脱敏的生命周期事件。
@@ -77,13 +148,15 @@ public class AskDataEvent {
 	 * @throws IllegalArgumentException 当上下文或事件类型为空时抛出
 	 */
 	public AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message) {
-		this(context, traceId, type, message, null, null, null, null, null, null, null, null, null, null, null);
+		this(context, traceId, type, message, null, null, null, null, null, null, null, null, null, null, null,
+				defaultCorrelation(traceId));
 	}
 
 	private AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message,
 			String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
 			ModelType modelType, String modelKey, AskDataModelRoutePolicy modelRoutePolicy, ModelState modelState,
-			String modelFailureCode, String modelSwitchReason, String actualModelKey) {
+			String modelFailureCode, String modelSwitchReason, String actualModelKey,
+			AskDataEventCorrelation correlation) {
 		if (context == null) {
 			throw new IllegalArgumentException("context 不能为空");
 		}
@@ -105,12 +178,24 @@ public class AskDataEvent {
 		this.modelFailureCode = modelFailureCode;
 		this.modelSwitchReason = modelSwitchReason;
 		this.actualModelKey = actualModelKey;
+		this.correlation = correlation;
+	}
+
+	/** 创建携带完整关联维度的已脱敏事件。 */
+	public static AskDataEvent correlated(AskDataProjectContext context, String traceId, Type type, String message,
+			AskDataEventCorrelation correlation) {
+		if (correlation == null) {
+			throw new IllegalArgumentException("correlation 不能为空");
+		}
+		return new AskDataEvent(context, traceId, type, message, null, null, null, null, null, null, null, null,
+				null, null, null, correlation);
 	}
 
 	public static AskDataEvent governanceDenied(AskDataProjectContext context, String traceId, String datasourceKey,
 			String denialCode, String authorizationVersion, String authorizationSource) {
 		return new AskDataEvent(context, traceId, Type.GOVERNANCE_DENIED, "AskData 治理拒绝", datasourceKey,
-				denialCode, authorizationVersion, authorizationSource, null, null, null, null, null, null, null);
+				denialCode, authorizationVersion, authorizationSource, null, null, null, null, null, null, null,
+				defaultCorrelation(traceId));
 	}
 
 	public static AskDataEvent modelRouted(AskDataProjectContext context, String traceId, String modelKey,
@@ -119,7 +204,8 @@ public class AskDataEvent {
 			throw new IllegalArgumentException("modelKey 不能为空");
 		}
 		return new AskDataEvent(context, traceId, Type.MODEL_ROUTED, message, null, null, null, null,
-				ModelType.CHAT, modelKey.trim(), null, ModelState.ATTEMPTED, null, null, null);
+				ModelType.CHAT, modelKey.trim(), null, ModelState.ATTEMPTED, null, null, null,
+				defaultCorrelation(traceId));
 	}
 
 	public static AskDataEvent modelAttempt(AskDataProjectContext context, String traceId, String modelKey,
@@ -132,6 +218,14 @@ public class AskDataEvent {
 	public static AskDataEvent modelAttempt(AskDataProjectContext context, String traceId, ModelType modelType,
 			String modelKey, AskDataModelRoutePolicy routePolicy, ModelState state, String failureCode,
 			String switchReason, String actualModelKey) {
+		return modelAttempt(context, traceId, modelType, modelKey, routePolicy, state, failureCode, switchReason,
+				actualModelKey, defaultCorrelation(traceId));
+	}
+
+	/** 创建携带完整执行关联维度的模型尝试事件。 */
+	public static AskDataEvent modelAttempt(AskDataProjectContext context, String traceId, ModelType modelType,
+			String modelKey, AskDataModelRoutePolicy routePolicy, ModelState state, String failureCode,
+			String switchReason, String actualModelKey, AskDataEventCorrelation correlation) {
 		if (modelType == null || modelKey == null || modelKey.trim().length() == 0
 				|| routePolicy == null || state == null) {
 			throw new IllegalArgumentException("modelType、modelKey、routePolicy 和 state 不能为空");
@@ -141,7 +235,7 @@ public class AskDataEvent {
 		}
 		return new AskDataEvent(context, traceId, Type.MODEL_ROUTED, "AskData 模型尝试", null, null, null, null,
 				modelType, modelKey.trim(), routePolicy, state, normalize(failureCode), normalize(switchReason),
-				normalize(actualModelKey));
+				normalize(actualModelKey), correlation);
 	}
 
 	/**
@@ -191,6 +285,12 @@ public class AskDataEvent {
 	public String getModelFailureCode() { return modelFailureCode; }
 	public String getModelSwitchReason() { return modelSwitchReason; }
 	public String getActualModelKey() { return actualModelKey; }
+	public AskDataEventCorrelation getCorrelation() { return correlation; }
+
+	private static AskDataEventCorrelation defaultCorrelation(String traceId) {
+		String normalized = normalize(traceId);
+		return normalized == null ? null : AskDataEventCorrelation.builder(normalized, normalized).build();
+	}
 
 	private static String normalize(String value) {
 		return value == null || value.trim().length() == 0 ? null : value.trim();

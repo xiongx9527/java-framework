@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.storage;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventCorrelation;
 
 import java.util.Collections;
 import java.util.List;
@@ -57,6 +58,7 @@ public interface AskDataMonitoringLogStore {
 		private final String modelFailureCode;
 		private final String modelSwitchReason;
 		private final String actualModelKey;
+		private final AskDataEventCorrelation correlation;
 
 		public MonitoringLog(String traceId, String eventType, String message) {
 			this(null, traceId, eventType, message, null, null, null, null, null);
@@ -92,6 +94,15 @@ public interface AskDataMonitoringLogStore {
 				String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
 				String modelType, String modelKey, String modelRoutePolicy, String modelState, String modelFailureCode,
 				String modelSwitchReason, String actualModelKey) {
+			this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+					authorizationSource, modelType, modelKey, modelRoutePolicy, modelState, modelFailureCode,
+					modelSwitchReason, actualModelKey, null);
+		}
+
+		public MonitoringLog(AskDataProjectContext context, String traceId, String eventType, String message,
+				String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
+				String modelType, String modelKey, String modelRoutePolicy, String modelState, String modelFailureCode,
+				String modelSwitchReason, String actualModelKey, AskDataEventCorrelation correlation) {
 			this.context = context;
 			this.traceId = traceId;
 			this.eventType = eventType;
@@ -107,6 +118,7 @@ public interface AskDataMonitoringLogStore {
 			this.modelFailureCode = modelFailureCode;
 			this.modelSwitchReason = modelSwitchReason;
 			this.actualModelKey = actualModelKey;
+			this.correlation = correlation;
 		}
 
 		public String getTraceId() {
@@ -127,7 +139,7 @@ public interface AskDataMonitoringLogStore {
 			}
 			return context == null ? new MonitoringLog(owner, traceId, eventType, message, datasourceKey,
 					denialCode, authorizationVersion, authorizationSource, modelType, modelKey, modelRoutePolicy, modelState,
-					modelFailureCode, modelSwitchReason, actualModelKey) : this;
+					modelFailureCode, modelSwitchReason, actualModelKey, correlation) : this;
 		}
 
 		public String getEventType() {
@@ -149,5 +161,6 @@ public interface AskDataMonitoringLogStore {
 		public String getModelFailureCode() { return modelFailureCode; }
 		public String getModelSwitchReason() { return modelSwitchReason; }
 		public String getActualModelKey() { return actualModelKey; }
+		public AskDataEventCorrelation getCorrelation() { return correlation; }
 	}
 }

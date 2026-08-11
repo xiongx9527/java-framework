@@ -99,7 +99,7 @@ public class AskDataMonitoringLogQueryService {
                 eventType, log.getMessage(), log.getDatasourceKey(), log.getDenialCode(),
                 log.getAuthorizationVersion(), log.getAuthorizationSource(), log.getModelType(), log.getModelKey(),
                 log.getModelRoutePolicy(), log.getModelState(), log.getModelFailureCode(),
-                log.getModelSwitchReason(), log.getActualModelKey());
+                log.getModelSwitchReason(), log.getActualModelKey(), log.getCorrelation());
         return accessPolicy.canRead(requester, administrativeScope, monitoringLog);
     }
 

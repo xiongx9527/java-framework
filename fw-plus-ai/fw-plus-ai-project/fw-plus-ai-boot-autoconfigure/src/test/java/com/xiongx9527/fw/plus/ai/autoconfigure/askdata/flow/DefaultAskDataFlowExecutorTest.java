@@ -83,6 +83,47 @@ public class DefaultAskDataFlowExecutorTest {
     }
 
     @Test
+    public void shouldPublishEveryStableLifecycleStageInOrder() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.conversationStore = new InMemoryAskDataConversationStore();
+        dependencies.contextCompressor = new DefaultAskDataContextCompressor(dependencies.properties);
+        dependencies.coreModelRouter = new com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter() { };
+        dependencies.coreChatModel = request -> com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.success(
+                "{\"sql\":\"select count(*) from orders\"}", "provider-chat");
+
+        AskDataResult result = dependencies.executor("legacy-must-not-run").execute(request(true));
+
+        assertTrue(result.isSuccess());
+        assertContainsInOrder(eventTypes(dependencies.events),
+                AskDataEvent.Type.CONVERSATION_STARTED,
+                AskDataEvent.Type.QUESTION_PLANNED,
+                AskDataEvent.Type.SUB_QUESTION_STARTED,
+                AskDataEvent.Type.METADATA_RESOLVED,
+                AskDataEvent.Type.PROMPT_BUILT,
+                AskDataEvent.Type.MODEL_ROUTED,
+                AskDataEvent.Type.SQL_COMPOSED,
+                AskDataEvent.Type.SQL_VALIDATED,
+                AskDataEvent.Type.SQL_EXECUTION_STARTED,
+                AskDataEvent.Type.SQL_EXECUTED,
+                AskDataEvent.Type.SUB_QUESTION_COMPLETED,
+                AskDataEvent.Type.CONVERSATION_COMPLETED);
+        assertTrue(eventTypes(dependencies.events).contains(AskDataEvent.Type.CHECKPOINT_SAVED));
+        assertTrue(eventTypes(dependencies.events).contains(AskDataEvent.Type.CONTEXT_COMPRESSION_COMPLETED));
+    }
+
+    @Test
+    public void shouldNotChangeFlowResultWhenLifecyclePublisherFails() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.eventPublisher = event -> { throw new IllegalStateException("monitoring offline"); };
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request(true));
+
+        assertTrue(result.isSuccess());
+        assertEquals(1, dependencies.executorCalls);
+    }
+
+    @Test
     public void shouldGenerateSqlThroughModelRegistryRoutingEntry() {
         StubDependencies dependencies = new StubDependencies();
         AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
@@ -954,6 +995,24 @@ public class DefaultAskDataFlowExecutorTest {
         return keys;
     }
 
+    private List<AskDataEvent.Type> eventTypes(List<AskDataEvent> events) {
+        List<AskDataEvent.Type> types = new java.util.ArrayList<AskDataEvent.Type>();
+        for (AskDataEvent event : events) {
+            types.add(event.getType());
+        }
+        return types;
+    }
+
+    private void assertContainsInOrder(List<AskDataEvent.Type> actual, AskDataEvent.Type... expected) {
+        int cursor = 0;
+        for (AskDataEvent.Type type : actual) {
+            if (cursor < expected.length && expected[cursor] == type) {
+                cursor++;
+            }
+        }
+        assertEquals(expected.length, cursor, "生命周期事件缺失或顺序错误: " + actual);
+    }
+
     private static class StubDependencies {
 
         private final AskDataProperties properties = new AskDataProperties();
@@ -977,6 +1036,7 @@ public class DefaultAskDataFlowExecutorTest {
         private AskDataConversationStore conversationStore;
         private AskDataContextCompressor contextCompressor;
         private final List<AskDataEvent> events = new java.util.ArrayList<AskDataEvent>();
+        private com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher eventPublisher = events::add;
         private com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel coreChatModel;
         private com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter coreModelRouter;
         private AskDataAgentStepRegistry agentStepRegistry;
@@ -1106,7 +1166,7 @@ public class DefaultAskDataFlowExecutorTest {
                     }, new AskDataSqlAudit());
             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                     promptProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor, null,
-                    Collections.<AskDataAgent>emptyList(), event -> events.add(event),
+                    Collections.<AskDataAgent>emptyList(), eventPublisher,
                     com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner.simple(), sqlInterceptorChain,
                     null, governanceProvider, coreChatModel, coreModelRouter, agentStepRegistry);
         }
