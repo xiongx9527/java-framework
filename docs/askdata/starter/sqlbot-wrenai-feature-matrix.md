@@ -1,6 +1,6 @@
 # SQLBot / WrenAI 功能矩阵
 
-本矩阵逐项追踪 `feature-list.md` 的 SQLBot 与 WrenAI 功能。产品语义以 **SQLBot 优先**：重复项保留 SQLBot 的项目、权限、MCP、嵌入和企业集成边界，WrenAI 只作为语义层、评测、生成或调度增强。本矩阵的状态用于区分当前 Starter 已交付能力类型：默认实现、SPI 契约、文档契约和需外部测试租户联调的业务集成。
+本矩阵逐项追踪根目录 [功能清单](../../../openspec/changes/rework-ai-askdata-core-starter/feature-list.md) 的 SQLBot 与 WrenAI 功能；该文件是设计期事实源。产品语义以 **SQLBot 优先**：重复项保留 SQLBot 的项目、权限、MCP、嵌入和企业集成边界，WrenAI 只作为语义层、评测、生成或调度增强。本矩阵的状态用于区分当前 Starter 已交付能力类型：默认实现、SPI 契约、文档契约和需外部测试租户联调的业务集成。
 
 状态含义：**已实现**为当前 Core/Starter 已有默认实现并有自动化验证；**默认/SPI 覆盖**为已有基础 SPI 或单机默认实现，生产需业务共享实现；**默认拒绝 + 业务桥接可验证**为 Core/Starter 默认拒绝、业务可通过治理 SPI 显式接入且有自动化验证，真实 IAM 数据仍由业务提供；**契约覆盖**为接口、配置、存储、文档和测试契约已交付；**业务适配覆盖**为 Starter 已提供后端契约，具体 UI、CLI 或管理服务由业务模块接入；**业务集成契约覆盖**为外部系统协议边界和联调用例已交付，真实租户连通需业务凭据验证。
 
@@ -49,7 +49,7 @@
 | SQLBot | 智能问数与训练 | 推荐 | FL §1.4 | SQLBot 优先 | WrenAI recommendation 算法增强 | rework-ai-askdata-core-starter | Core | Recommendation SPI | 内存/SPI；askdata_recommendation | IDX, STORE, DB | REC-01 | 默认/SPI 覆盖 | 单机内存且不能跨人共享画像。 |
 | SQLBot | 模型与运行时 | AI 模型配置 | FL §1.5 | SQLBot 优先 | WrenAI 模型路由增强 | rework-ai-askdata-core-starter | Core/Starter | model.* 配置/能力 key | 路由诊断/askdata_model_config | CFG, DB | MODEL-01 | 已实现 | API Key 托管和企业模型管理需业务接入验证。 |
 | SQLBot | 模型与运行时 | 模型接入 | FL §1.5 | SQLBot 优先 | WrenAI 厂商列表补充 | rework-ai-askdata-core-starter | Core/api-mcp | CapabilityProvider | 逻辑模型 key | RT | MODEL-02 | 契约覆盖 | 当前仅 LangChain4j Adapter 已实现且需业务显式引入；其余需适配。 |
-| SQLBot | 模型与运行时 | Ollama 部署模型接入 | FL §1.5 | SQLBot 优先 | 与 WrenAI Ollama 共用 | rework-ai-askdata-core-starter | Starter | model.default-chat-model/embedding | 路由诊断 | IDX, CFG | MODEL-03 | 契约覆盖 | `qwen3:32b`/`bge-m3` 是默认查找 key；Ollama Provider 由业务显式引入。 |
+| SQLBot | 模型与运行时 | Ollama 部署模型接入 | FL §1.5 | SQLBot 优先 | 与 WrenAI Ollama 共用 | rework-ai-askdata-core-starter | Adapter/业务应用 | `framework=langchain4j` + 业务模型 key | 路由诊断 | IDX, CFG | MODEL-03 | 契约覆盖 | Ollama Provider、Chat/Embedding 模型 key 和模型名称均由业务显式配置；Starter 无厂商默认值。 |
 | SQLBot | 模型与运行时 | LangChain4j Adapter | FL §1.5 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | Starter | 自动配置/Bean 覆盖 | 路由诊断 | IDX, RT | AUTO-01 | 已实现 | 由业务显式引入，不是 Starter 传递依赖。 |
 | SQLBot | 模型与运行时 | Spring AI 替换 | FL §1.5 | SQLBot 优先 | 运行时替换共用 | rework-ai-askdata-core-starter | Core | Runtime SPI | 远程运行时状态/SPI | RT, J17 | RT-01 | 契约覆盖 | 当前未实现；Java 17 / Boot 3 独立 Adapter 或 Remote Runtime。 |
 | SQLBot | 模型与运行时 | Spring AI Alibaba 替换 | FL §1.5 | SQLBot 优先 | 运行时替换共用 | rework-ai-askdata-core-starter | Core | Runtime SPI/MCP/A2A | 远程运行时状态/SPI | RT, J17 | RT-02 | 契约覆盖 | 不兼容时只能远程部署，需业务接入验证适配器。 |

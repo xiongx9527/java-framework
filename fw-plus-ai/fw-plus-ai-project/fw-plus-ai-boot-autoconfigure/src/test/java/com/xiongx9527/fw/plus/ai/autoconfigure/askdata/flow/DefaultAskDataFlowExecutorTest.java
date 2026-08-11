@@ -61,6 +61,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class DefaultAskDataFlowExecutorTest {
@@ -121,6 +122,33 @@ public class DefaultAskDataFlowExecutorTest {
 
         assertTrue(result.isSuccess());
         assertEquals(1, dependencies.executorCalls);
+    }
+
+    @Test
+    public void shouldPersistCoreRuntimeStateAndRecallAuthorizedLongTermMemory() {
+        StubDependencies dependencies = new StubDependencies();
+        com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores stores =
+                com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores.singleNode();
+        com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory memory =
+                com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory.inMemory();
+        memory.remember(new com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry(
+                "memory-1", new AskDataProjectContext("default", "default"), "orders", "policy-v1",
+                "confirmed business fact", "select-summary", Collections.singleton("orders.*"),
+                "confirmed-query", 0.9D, "project-policy", System.currentTimeMillis(),
+                System.currentTimeMillis() + 60000L));
+        dependencies.runtimeStateServices = new AskDataRuntimeStateServices(stores.agentStates(), stores.leases(),
+                stores.idempotencyKeys(), stores.auditStates(), memory);
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request(true));
+
+        assertTrue(result.isSuccess());
+        assertTrue(dependencies.prompt.contains("confirmed business fact"));
+        assertNotNull(stores.agentStates().load(new AskDataProjectContext("default", "default"),
+                result.getConversationId()));
+        assertNotNull(stores.auditStates().load(new AskDataProjectContext("default", "default"),
+                result.getConversationId()));
+        assertTrue(eventTypes(dependencies.events).contains(AskDataEvent.Type.LONG_TERM_MEMORY_RECALL_COMPLETED));
     }
 
     @Test
@@ -1044,6 +1072,7 @@ public class DefaultAskDataFlowExecutorTest {
         private com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel coreChatModel;
         private com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter coreModelRouter;
         private AskDataAgentStepRegistry agentStepRegistry;
+        private AskDataRuntimeStateServices runtimeStateServices;
 
         private DefaultAskDataFlowExecutor executor(final String modelResponse) {
             properties.getSql().setExecuteEnabled(globalExecutionEnabled);
@@ -1129,6 +1158,9 @@ public class DefaultAskDataFlowExecutorTest {
                     }
                     observedMetadata.append(metadata.getTerms()).append(metadata.getExamples())
                             .append(metadata.getPromptFragments());
+                    for (AskDataRetrievedDocument document : documents) {
+                        observedMetadata.append(document.getContent());
+                    }
                     prompt = observedMetadata.toString();
                     return "prompt";
                 }
@@ -1172,7 +1204,8 @@ public class DefaultAskDataFlowExecutorTest {
                     promptProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor, null,
                     Collections.<AskDataAgent>emptyList(), eventPublisher,
                     com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner.simple(), sqlInterceptorChain,
-                    null, governanceProvider, coreChatModel, coreModelRouter, agentStepRegistry);
+                    null, governanceProvider, coreChatModel, coreModelRouter, agentStepRegistry,
+                    runtimeStateServices);
         }
     }
 }

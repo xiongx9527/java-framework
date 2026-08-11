@@ -101,13 +101,21 @@ request.setOptions(Collections.<String, Object>singletonMap(
 
 未配置外部监控存储时，默认使用按 `projectId + operatorId` 隔离的内存环形日志，每个作用域默认保留 `1000` 条，由 `state.monitoring-log-capacity` 调整；超限淘汰最早记录，进程重启后全部丢失。业务替换外部 `AskDataMonitoringLogStore` 后，主存储失败会尝试向独立本地环形存储写一条脱敏 `MONITORING_DELIVERY_DEGRADED` 诊断；两级存储均失败也不会向 Flow 冒泡。
 
-Exporter 通过异步执行器逐个隔离：单个 exporter 抛错或任务被拒绝时写本地 `OBSERVABILITY_EXPORT_DEGRADED` 诊断，并继续其他 exporter 与业务流程。配置中的 `otel`、`langfuse`、`langsmith` 当前只是无厂商 SDK 的占位实现，不代表已经连接外部平台；真实导出必须由业务提供实现或替换 `askDataObservationEventPublisher`，并继续遵守脱敏和不阻断约束。
+Exporter 通过异步执行器逐个隔离：单个 exporter 抛错或任务被拒绝时写本地 `OBSERVABILITY_EXPORT_DEGRADED` 诊断，并继续其他 exporter 与业务流程。`otel`、`langfuse`、`langsmith` 已实现厂商中立的 trace/span/generation 记录映射和批量发送，但 Starter 不绑定厂商 SDK、端点或凭据；业务必须提供唯一 `AskDataObservationTransport` Bean，把脱敏 `AskDataObservationRecord` 发送到真实平台。没有 Transport 时这些能力 key 不存在，启用对应 exporter 会在启动期明确失败。
 
 ## 上下文压缩
 
 默认 `DefaultAskDataContextCompressor` 是确定性、无 AI 框架实现，摘要只记录完成步骤、当前步骤、检查点/token 是否存在、SQL 状态、执行状态、行数、检索/步骤计数和错误码，不拼接原始问题、Prompt、模型响应、检索正文或步骤正文。可恢复对象继续保留项目/操作人、会话/检查点、请求与实际模型 key、数据源/方言、SQL、校验/执行状态、当前/已完成步骤、行数和错误码。
 
 业务提供语义压缩器时，应使用 `FallbackAskDataContextCompressor` 与确定性压缩组合。语义压缩抛错或返回空摘要时发布 `CONTEXT_COMPRESSION_DEGRADED` 并回落；语义压缩成功也只替换有界摘要，恢复安全字段仍以确定性结果为准。
+
+LangChain4j 语义压缩由业务显式创建并注册，例如 `new LangChain4jAskDataContextCompressor("langchain4j-summary", chatModel)`；随后配置 `conversation.compressor=langchain4j-summary`。Starter 默认仍使用 `deterministic`，不会为了压缩隐式选择模型或 Provider。
+
+## 图运行时选择
+
+`flow.graph-runtime` 默认为 `sequential`，使用 Core 顺序图执行器。业务需要 Java LangGraph/LangGraph4j 时，实现 `LangGraph4jAskDataTransport`，创建 `LangGraph4jAskDataGraphAdapter("langgraph4j", transport)` 并作为 `AskDataCapabilityProvider` 注册，再设置 `flow.graph-runtime=langgraph4j`。Adapter 只接管状态图调度，节点仍回调 Core `AskDataAgentNodeExecutor`，因此不能跳过治理、状态、SQL 安全或观测。
+
+未知 key、重复 Provider、契约版本不兼容或 `transport.isAvailable()==false` 不会回退为另一个图库；默认顺序执行只在配置明确为 `sequential` 时生效。
 
 ## SQL 阶段化插件
 
@@ -228,6 +236,8 @@ public AskDataAgent businessSqlGenerator() {
 ```
 
 然后通过 `fw.plus.ai.model` 和 `fw.plus.ai.embedding-store` 定义同名中立 key。AskData 只消费注册表，不要求业务 Bean 暴露 LangChain4j 原生类型。
+
+完整的 LangChain4j OpenAI-compatible Provider、业务治理 Bean、元数据、JDBC 初始化和顺序问数示例见 [langchain4j-jdbc](../../../../docs/askdata/starter/examples/langchain4j-jdbc/README.md)。示例使用显式业务 key，不代表 OpenAI、Ollama 或任一模型是 Starter 默认值。
 
 ## 业务 Bean 覆盖点
 

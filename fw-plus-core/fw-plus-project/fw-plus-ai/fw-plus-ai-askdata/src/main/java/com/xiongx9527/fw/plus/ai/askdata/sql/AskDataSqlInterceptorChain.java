@@ -44,6 +44,10 @@ public final class AskDataSqlInterceptorChain {
 	}
 
 	public AskDataSqlCommand execute(AskDataSqlCommand command) {
+		return execute(command, null);
+	}
+
+	public AskDataSqlCommand execute(AskDataSqlCommand command, AskDataSqlAudit.Correlation correlation) {
 		if (command == null) {
 			throw new IllegalArgumentException("command 不能为空");
 		}
@@ -62,14 +66,14 @@ public final class AskDataSqlInterceptorChain {
 				current = new AskDataSqlCommand(before.getContext(), rewritten.getSql(),
 						mergeParameters(before, rewritten), authorizedObjects(before, authorizationSummary),
 						authorizationSummary);
-				audit.record(node.key, node.phase.name(), "SUCCEEDED", before, current);
+				audit.record(node.key, node.phase.name(), "SUCCEEDED", before, current, correlation);
 				lastPluginKey = node.key;
 			} catch (RuntimeException ex) {
-				audit.record(node.key, node.phase.name(), "FAILED", before, rewritten);
+				audit.record(node.key, node.phase.name(), "FAILED", before, rewritten, correlation);
 				throw pluginFailure(node.key, node.phase, ex);
 			}
 		}
-		validateFinalCommand(current, lastPluginKey);
+		validateFinalCommand(current, lastPluginKey, correlation);
 		return current;
 	}
 
@@ -77,6 +81,11 @@ public final class AskDataSqlInterceptorChain {
 	 * 在 SQL 受限执行完成后映射结构化结果。
 	 */
 	public AskDataSqlResult mapResult(AskDataSqlCommand command, AskDataSqlResult result) {
+		return mapResult(command, result, null);
+	}
+
+	public AskDataSqlResult mapResult(AskDataSqlCommand command, AskDataSqlResult result,
+			AskDataSqlAudit.Correlation correlation) {
 		if (command == null || result == null) {
 			throw new IllegalArgumentException("command 和 result 不能为空");
 		}
@@ -89,16 +98,17 @@ public final class AskDataSqlInterceptorChain {
 				}
 				validateExecutionFacts(current, mapped);
 				current = mapped;
-				audit.record(node.key, AskDataSqlPhase.RESULT_MAP.name(), "SUCCEEDED", command, command);
+				audit.record(node.key, AskDataSqlPhase.RESULT_MAP.name(), "SUCCEEDED", command, command, correlation);
 			} catch (RuntimeException ex) {
-				audit.record(node.key, AskDataSqlPhase.RESULT_MAP.name(), "FAILED", command, command);
+				audit.record(node.key, AskDataSqlPhase.RESULT_MAP.name(), "FAILED", command, command, correlation);
 				throw pluginFailure(node.key, AskDataSqlPhase.RESULT_MAP, ex);
 			}
 		}
 		return current;
 	}
 
-	private void validateFinalCommand(AskDataSqlCommand command, String lastPluginKey) {
+	private void validateFinalCommand(AskDataSqlCommand command, String lastPluginKey,
+			AskDataSqlAudit.Correlation correlation) {
 		try {
 			validateNamedParameterBindings(command);
 			AskDataSqlValidator.Result result = validator.validate(command);
@@ -108,10 +118,10 @@ public final class AskDataSqlInterceptorChain {
 			if (!result.isAccepted()) {
 				throw new IllegalArgumentException(result.getFailureCategory().name() + ": " + result.getMessage());
 			}
-			audit.record("validator", "FINAL_VALIDATE", "SUCCEEDED", command, command);
+			audit.record("validator", "FINAL_VALIDATE", "SUCCEEDED", command, command, correlation);
 		} catch (RuntimeException ex) {
 			audit.record(lastPluginKey == null ? "validator" : lastPluginKey,
-					"FINAL_VALIDATE", "FAILED", command, command);
+					"FINAL_VALIDATE", "FAILED", command, command, correlation);
 			throw ex;
 		}
 	}

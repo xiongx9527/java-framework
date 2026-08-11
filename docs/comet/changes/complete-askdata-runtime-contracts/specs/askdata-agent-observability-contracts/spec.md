@@ -1,7 +1,7 @@
 # askdata-agent-observability-contracts Specification
 
 ## Purpose
-TBD - created by archiving change rework-ai-askdata-core-starter. Update Purpose after archive.
+定义 AskData 请求、模型、Agent、工具、SQL、记忆、检查点和恢复阶段的厂商中立观测契约，确保完整执行链可关联、敏感数据不外泄，并使本地日志或外部导出失败始终与业务结果隔离。
 ## Requirements
 
 ### Requirement: Complete vendor-neutral lifecycle event emission

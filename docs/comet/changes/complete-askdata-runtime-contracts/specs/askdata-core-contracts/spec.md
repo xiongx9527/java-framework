@@ -1,7 +1,7 @@
 # askdata-core-contracts Specification
 
 ## Purpose
-TBD - created by archiving change rework-ai-askdata-core-starter. Update Purpose after archive.
+定义 AskData、通用模型与向量存储在 Java 8 基线下的厂商中立 Core 契约，使业务能够显式选择模型、Embedding、向量、状态、Agent、SQL、治理和观测实现，并在不修改默认 Flow 的前提下通过版本化能力注册表替换或组合这些能力。
 ## Requirements
 
 ### Requirement: Typed AI and AskData core contracts

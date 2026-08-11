@@ -1,7 +1,7 @@
 # askdata-query-engine Specification
 
 ## Purpose
-TBD - created by archiving change add-askdata-spring-boot-starter. Update Purpose after archive.
+定义 AskData Spring Boot Starter 的中立问数执行、模型路由、多问题 DAG、SQL 安全、Agent 编排、状态恢复、治理授权和业务扩展行为，并明确当前 Java 8 分支只交付由业务显式选择的 LangChain4j Adapter。
 ## Requirements
 
 ### Requirement: Replaceable AskData flow steps
@@ -153,9 +153,9 @@ TBD - created by archiving change add-askdata-spring-boot-starter. Update Purpos
 - **WHEN** Java 17 / Spring Boot 3 分支提供 AgentScope Adapter 并选择对应能力 key
 - **THEN** AskData SHALL 通过 Core SPI 或 Remote Runtime 使用 HarnessAgent、分布式状态、模型注册、权限、记忆压缩、tracing、MCP/A2A/AG-UI 和多 Agent 能力
 
-#### Scenario: Use Ollama as the starter default vendor
-- **WHEN** 业务显式引入 LangChain4j Adapter Starter、选择 Ollama Provider 且未覆盖该 Adapter 的厂商配置
-- **THEN** LangChain4j Adapter Starter MAY 使用 Ollama 作为其局部默认厂商；公共 AskData Starter SHALL 不创建或传递默认 Ollama 配置
+#### Scenario: Use Ollama only when explicitly selected
+- **WHEN** 业务显式引入 LangChain4j Adapter Starter、Ollama Provider SDK，并把某个中立模型 key 配置为 Ollama
+- **THEN** LangChain4j Adapter SHALL 只为该显式配置创建 Ollama 能力；公共 AskData Starter 和 LangChain4j Adapter Starter 均 SHALL 不创建默认 Ollama 模型、默认 Provider 配置或凭据
 
 #### Scenario: Keep Ollama out of Core contracts
 - **WHEN** 业务应用仅依赖 `fw-plus-ai-askdata` Core API
@@ -264,7 +264,7 @@ TBD - created by archiving change add-askdata-spring-boot-starter. Update Purpos
 
 #### Scenario: Compress long conversation context
 - **WHEN** AskData 会话上下文超过配置的压缩阈值
-- **THEN** 系统 SHALL 使用基于 LangChain4j 的上下文压缩器生成摘要，并保留当前步骤所需的结构化字段、模型 key、项目 key、数据源 key、SQL、步骤状态和错误信息
+- **THEN** 系统 SHALL 默认使用不依赖 AI 框架的确定性压缩器生成有界摘要，并保留当前步骤所需的结构化字段、模型 key、项目 key、数据源 key、SQL、步骤状态和错误信息；只有业务显式选择语义压缩能力 key 时才使用 LangChain4j Adapter
 
 #### Scenario: Recall long-term memory before SQL generation
 - **WHEN** AskData 在生成 SQL 前存在当前项目和主体可访问的有效长期记忆
@@ -390,7 +390,7 @@ TBD - created by archiving change add-askdata-spring-boot-starter. Update Purpos
 - **THEN** 插件 SHALL 在受限执行完成后映射结构化结果，且不得改变已记录的执行状态、行数上限、超时结论或审计事实
 
 ### Requirement: AskData core operational documentation
-系统 SHALL 随 Starter 提供详细中文文档，覆盖架构与模块、依赖、快速开始、Ollama 默认厂商、完整配置属性、Java API、能力注册、业务覆盖、模型路由和兜底、向量、SQL 插件、Doris 安全、多 Agent、多提问、长期记忆、项目/操作人隔离、管理员监控、LangSmith/Langfuse、上下文压缩、恢复、单机/集群存储矩阵、迁移和排障。
+系统 SHALL 随 Starter 提供详细中文文档，覆盖架构与模块、依赖、快速开始、业务显式选择模型/Embedding/向量 Provider、完整配置属性、Java API、能力注册、业务覆盖、模型路由和兜底、向量、SQL 插件、Doris 安全、多 Agent、多提问、长期记忆、项目/操作人隔离、管理员监控、LangSmith/Langfuse/OpenTelemetry、上下文压缩、恢复、单机/集群存储矩阵、迁移和排障。
 
 #### Scenario: Configure single-instance flow
 - **WHEN** 开发者仅配置 LangChain4j 模型和 JDBC 数据源
@@ -453,7 +453,7 @@ TBD - created by archiving change add-askdata-spring-boot-starter. Update Purpos
 - **THEN** 文档 SHALL 提供测试用例清单，覆盖单元、契约、自动配置、SQL 安全、存储一致性、模型路由/兜底、多 Agent/恢复、长期记忆/推荐权限、监控审计、文档示例和后续前后端联调，并为每个用例记录前置条件、输入、期望结果、验证证据和关联 SQLBot/WrenAI 功能项
 
 #### Scenario: Document runtime replacement steps
-- **WHEN** 业务方计划从默认 LangChain4j/Ollama 替换为 Spring AI、Spring AI Alibaba、AgentScope Java 2.0+ 或自定义运行时
+- **WHEN** 业务方计划从当前显式选择的 LangChain4j/Ollama 组合替换为 Spring AI、Spring AI Alibaba、AgentScope Java 2.0+ 或自定义运行时
 - **THEN** 文档 SHALL 提供依赖引入、配置前缀、能力 key、Bean/SPI 覆盖、模型/embedding/向量/工具/RAG/Agent/状态/观测映射、限制、回滚和验证用例；若目标运行时不兼容 Java 8 / Spring Boot 2.7.18，文档 SHALL 额外提供 Java 17 独立适配服务的工程结构、部署拓扑、协议选择、鉴权签名、上下文传递、超时/重试/熔断、流式返回、错误映射、监控审计、版本矩阵和联调测试
 
 #### Scenario: Support SQLBot external integration capabilities

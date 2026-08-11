@@ -1,0 +1,49 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:askdata-demo;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  sql:
+    init:
+      mode: always
+
+fw-plus:
+  ai:
+    model:
+      enabled: true
+      default-model: business-chat
+      models:
+        business-chat:
+          framework: langchain4j
+          provider: openai
+          type: CHAT
+          enabled: true
+          properties:
+            baseUrl: ${ASKDATA_PROVIDER_BASE_URL}
+            apiKey: ${ASKDATA_PROVIDER_API_KEY}
+            modelName: ${ASKDATA_PROVIDER_MODEL}
+
+fw:
+  plus:
+    ai:
+      askdata:
+        enabled: true
+        model:
+          default-chat-model: business-chat
+          chat-candidates:
+            - business-chat
+        flow:
+          graph-runtime: sequential
+        sql:
+          execute-enabled: true
+          default-max-rows: 100
+          query-timeout-seconds: 30
+          # H2 演示连接不可靠报告 readOnly；生产环境必须保持 true 并使用只读账号。
+          read-only-connection-required: false
+        state:
+          cluster-mode: false
+        vector:
+          store: memory
+        observability:
+          enabled: false
