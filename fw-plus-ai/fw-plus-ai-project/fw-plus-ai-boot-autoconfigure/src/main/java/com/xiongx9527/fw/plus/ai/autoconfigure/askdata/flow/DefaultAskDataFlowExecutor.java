@@ -50,6 +50,7 @@ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRequest;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelResult;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventCorrelation;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlExecutionStatus;
@@ -93,6 +94,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private static final String MULTI_QUESTION_OPTION = "questions";
     private static final String EMBEDDING_MODEL_OPTION = "embeddingModelKey";
     private static final String AUTHORIZATION_SUMMARY_ATTRIBUTE = "askDataAuthorizationSummary";
+    private static final String OBSERVABILITY_REQUEST_ID_OPTION = "askDataObservabilityRequestId";
+    private static final String OBSERVABILITY_SUB_QUESTION_ID_OPTION = "askDataObservabilitySubQuestionId";
     private static final String GOVERNANCE_ERROR_VERSION = "governance-error-v1";
     private static final String GOVERNANCE_ERROR_SOURCE = "governance-provider-error";
 
@@ -281,7 +284,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         try {
             plan = plannedQuestions(request);
         } catch (IllegalArgumentException ex) {
-            return failure(new AskDataResult(), "multi-question", AskDataErrorCode.SUBQUESTION_FAILED, message(ex));
+            AskDataResult failed = failure(new AskDataResult(), "multi-question",
+                    AskDataErrorCode.SUBQUESTION_FAILED, message(ex));
+            publishLifecycleEvent(request, failed, AskDataEvent.Type.QUESTION_PLAN_FAILED,
+                    "AskData 问题规划失败");
+            return failed;
         }
         if (plan != null && plan.isMultiQuestion()) {
             return executeMultiple(request, plan);
@@ -315,15 +322,34 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 && isBlank(result.getConversationId())) {
             result.setConversationId(UUID.randomUUID().toString());
         }
+        String subQuestionId = observationOption(request, OBSERVABILITY_SUB_QUESTION_ID_OPTION);
+        if (!isBlank(subQuestionId)) {
+            result.setQuestionId(subQuestionId);
+        }
         AskDataStepContext context = new AskDataStepContext(request);
         context.getAttributes().put(AUTHORIZATION_SUMMARY_ATTRIBUTE, authorizationSummary);
         publishLifecycleEvent(request, result, AskDataEvent.Type.CONVERSATION_STARTED, "AskData 对话已开始");
+        publishLifecycleEvent(request, result, AskDataEvent.Type.QUESTION_PLANNED, "AskData 问题计划已完成");
+        boolean rootSingleQuestion = isBlank(subQuestionId);
+        if (rootSingleQuestion) {
+            publishSubQuestionEvent(request, result, "question-1", AskDataEvent.Type.SUB_QUESTION_STARTED,
+                    "AskData 子问题已开始");
+        }
         AskDataResult completed;
         if (resumeRequested) {
             publishLifecycleEvent(request, result, AskDataEvent.Type.RECOVERY_ATTEMPTED, "AskData 恢复已尝试");
             completed = resume(request, result, context);
+            publishLifecycleEvent(request, completed, completed.isSuccess() ? AskDataEvent.Type.RECOVERY_COMPLETED
+                    : AskDataEvent.Type.RECOVERY_FAILED,
+                    completed.isSuccess() ? "AskData 恢复已完成" : "AskData 恢复失败");
         } else {
             completed = executeNew(request, result, context);
+        }
+        if (rootSingleQuestion) {
+            publishSubQuestionEvent(request, completed, "question-1",
+                    completed.isSuccess() ? AskDataEvent.Type.SUB_QUESTION_COMPLETED
+                            : AskDataEvent.Type.SUB_QUESTION_FAILED,
+                    "AskData 子问题已进入终态");
         }
         publishLifecycleEvent(request, completed, completed.isSuccess() ? AskDataEvent.Type.CONVERSATION_COMPLETED
                 : AskDataEvent.Type.CONVERSATION_FAILED, completed.isSuccess() ? "AskData 对话已完成" : "AskData 对话失败");
@@ -355,6 +381,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         } else {
             aggregated.setConversationId(UUID.randomUUID().toString());
         }
+        publishLifecycleEvent(request, aggregated, AskDataEvent.Type.CONVERSATION_STARTED, "AskData 多问题对话已开始");
+        publishLifecycleEvent(request, aggregated, AskDataEvent.Type.QUESTION_PLANNED, "AskData 多问题计划已完成");
         final ConcurrentMap<String, AskDataResult> childResults = new ConcurrentHashMap<String, AskDataResult>();
         final Map<String, AskDataSubQuestion> questionsById;
         try {
@@ -379,6 +407,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         AskDataMultiQuestionResult terminalResults;
         try {
             terminalResults = new AskDataMultiQuestionExecutor().execute(multiRequest, question -> {
+                publishSubQuestionEvent(request, aggregated, question.getId(), AskDataEvent.Type.SUB_QUESTION_STARTED,
+                        "AskData 子问题已开始");
                 AskDataRequest childRequest = copyForQuestion(request, question, aggregated.getConversationId());
                 boolean resumeChild = prepareChildResume(childRequest);
                 AskDataResult child = executeSingle(childRequest, resumeChild);
@@ -394,6 +424,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                     child = terminalChildResult(question, terminal, aggregated.getConversationId());
                     childResults.put(terminal.getQuestionId(), child);
                 }
+                publishSubQuestionEvent(request, aggregated, terminal.getQuestionId(),
+                        subQuestionEventType(terminal.getState()), "AskData 子问题已进入终态");
                 AskDataResult failed = saveMultiQuestionCheckpoint(request, aggregated, plan, childResults);
                 if (failed != null) {
                     checkpointFailure.compareAndSet(null, failed);
@@ -422,7 +454,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             failed.setChildResults(aggregated.getChildResults());
             return failed;
         }
-        return finalCheckpointFailure == null ? aggregated : finalCheckpointFailure;
+        AskDataResult completed = finalCheckpointFailure == null ? aggregated : finalCheckpointFailure;
+        publishLifecycleEvent(request, completed, completed.isSuccess() ? AskDataEvent.Type.CONVERSATION_COMPLETED
+                : AskDataEvent.Type.CONVERSATION_FAILED,
+                completed.isSuccess() ? "AskData 多问题对话已完成" : "AskData 多问题对话失败");
+        return completed;
     }
 
     private AskDataRequest copyForQuestion(AskDataRequest source, AskDataSubQuestion question,
@@ -436,7 +472,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         target.setConversationId(parentConversationId + ":" + question.getId());
         target.setExecute(source.getExecute());
         target.setMaxRows(source.getMaxRows());
-        target.setOptions(source.getOptions());
+        Map<String, Object> options = source.getOptions() == null ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(source.getOptions());
+        options.put(OBSERVABILITY_REQUEST_ID_OPTION, parentConversationId);
+        options.put(OBSERVABILITY_SUB_QUESTION_ID_OPTION, question.getId());
+        target.setOptions(options);
         return target;
     }
 
@@ -730,12 +770,18 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             checkpoint.setErrorCode(result.getErrorCode());
             checkpoint.setVersion(checkpointVersion());
             checkpoint.setCreatedAt(new Date());
+            publishStepEvent(request, result, AskDataEvent.Type.CHECKPOINT_SAVE_STARTED, "multi-question", null,
+                    "AskData 多问题检查点保存已开始");
             AskDataCheckpoint saved = conversationStore.save(checkpoint);
             AskDataCheckpoint responseCheckpoint = saved == null ? checkpoint : saved;
             result.setCheckpointId(responseCheckpoint.getCheckpointId());
             result.setResumeToken(responseCheckpoint.getResumeToken());
+            publishStepEvent(request, result, AskDataEvent.Type.CHECKPOINT_SAVED, "multi-question", null,
+                    "AskData 多问题检查点已保存");
             return null;
         } catch (RuntimeException ex) {
+            publishStepEvent(request, result, AskDataEvent.Type.CHECKPOINT_SAVE_FAILED, "multi-question", null,
+                    "AskData 多问题检查点保存失败");
             AskDataResult failed = AskDataResult.failure(AskDataErrorCode.CONTEXT_COMPRESSION_FAILED, message(ex));
             failed.setConversationId(result.getConversationId());
             failed.setCheckpointId(result.getCheckpointId());
@@ -805,6 +851,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         context.setMetadata(metadata);
         result.addStep("metadata", "Metadata", true, "Metadata loaded");
+        publishStepEvent(request, result, AskDataEvent.Type.METADATA_RESOLVED, "metadata", null,
+                "AskData 元数据已解析");
         AskDataResult checkpointFailure = saveCheckpoint(context, result, "metadata", null, null);
         if (checkpointFailure != null) {
             return checkpointFailure;
@@ -882,9 +930,14 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                         : success ? stepResult.getOutputSummary() : stepResult.getErrorMessage();
                 context.getAttributes().put("askData.mainAgent." + name, message);
                 result.addStep("agent:" + name, "Agent " + name, success, message);
+                publishStepEvent(context.getRequest(), result,
+                        success ? AskDataEvent.Type.AGENT_NODE_EXECUTED : AskDataEvent.Type.AGENT_NODE_FAILED,
+                        "agent:" + name, name, success ? "AskData Agent 已完成" : "AskData Agent 执行失败");
             } catch (RuntimeException ex) {
                 context.getAttributes().put("askData.mainAgent." + name, message(ex));
                 result.addStep("agent:" + name, "Agent " + name, false, message(ex));
+                publishStepEvent(context.getRequest(), result, AskDataEvent.Type.AGENT_NODE_FAILED,
+                        "agent:" + name, name, "AskData Agent 执行失败");
             }
         }
         AskDataDispatchResult dispatchResult = null;
@@ -910,6 +963,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 }
                 context.getAttributes().put("askData.subAgent." + name, message);
                 result.addStep("sub-agent:" + name, "Sub-agent " + name, subAgentResult.isSuccess(), message);
+                publishStepEvent(context.getRequest(), result,
+                        subAgentResult.isSuccess() ? AskDataEvent.Type.AGENT_NODE_EXECUTED
+                                : AskDataEvent.Type.AGENT_NODE_FAILED,
+                        "sub-agent:" + name, name,
+                        subAgentResult.isSuccess() ? "AskData 子 Agent 已完成" : "AskData 子 Agent 执行失败");
             }
         }
         result.addStep("merge-sub-agents", "Merge agents", true,
@@ -925,11 +983,18 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private AskDataAgentStepResult executeStepAgent(
             com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent agent,
             AskDataAgentStepContext agentContext) {
-        AskDataAgentStepResult agentResult = agent.execute(agentContext);
-        if (agentResult == null) {
-            throw new IllegalArgumentException("Agent " + agent.getKey() + " 未返回步骤结果");
+        try {
+            AskDataAgentStepResult agentResult = agent.execute(agentContext);
+            if (agentResult == null) {
+                throw new IllegalArgumentException("Agent " + agent.getKey() + " 未返回步骤结果");
+            }
+            publishAgentStepEvent(agent, agentContext, agentResult.isSuccess()
+                    ? AskDataEvent.Type.AGENT_NODE_EXECUTED : AskDataEvent.Type.AGENT_NODE_FAILED);
+            return agentResult;
+        } catch (RuntimeException ex) {
+            publishAgentStepEvent(agent, agentContext, AskDataEvent.Type.AGENT_NODE_FAILED);
+            throw ex;
         }
-        return agentResult;
     }
 
     private AskDataAgentStepContext agentContext(String stepKey, AskDataRequest request, AskDataResult result,
@@ -989,6 +1054,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         context.setPrompt(prompt);
         result.addStep("prompt", "Prompt", true, "Prompt built");
+        publishStepEvent(request, result, AskDataEvent.Type.PROMPT_BUILT, "prompt", null,
+                "AskData Prompt 已构建");
 
         String generatedSql;
         com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent generateAgent =
@@ -1042,6 +1109,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         context.setSql(generatedSql);
         result.addStep("generate-sql", "Generate SQL", true, "SQL generated");
+        publishStepEvent(request, result, AskDataEvent.Type.SQL_COMPOSED, "generate-sql",
+                generateAgent == null ? null : generateAgent.getKey(), "AskData SQL 已组装");
         AskDataResult checkpointFailure = saveCheckpoint(context, result, "generate-sql", null, null);
         if (checkpointFailure != null) {
             return checkpointFailure;
@@ -1349,6 +1418,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         context.setSql(validation.getSql());
         context.setSqlValidated(Boolean.TRUE);
         result.addStep("validate-sql", "Validate SQL", true, "SQL validated");
+        publishStepEvent(request, result, AskDataEvent.Type.SQL_VALIDATED, "validate-sql",
+                validateAgent == null ? null : validateAgent.getKey(), "AskData SQL 已校验");
         AskDataResult checkpointFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
         return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getCommand())
                 : checkpointFailure;
@@ -1367,6 +1438,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             if (inFlightFailure != null) {
                 return inFlightFailure;
             }
+            publishStepEvent(request, result, AskDataEvent.Type.SQL_EXECUTION_STARTED, "execute-sql", null,
+                    "AskData SQL 执行已开始");
             com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent executeAgent =
                     stepAgent(AskDataAgentStepKey.EXECUTE_SQL);
             if (executeAgent == null) {
@@ -1407,6 +1480,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             context.setSqlExecuted(Boolean.TRUE);
             context.setExecutionState(EXECUTION_COMPLETED);
             result.addStep("execute-sql", "Execute SQL", true, "SQL executed");
+            publishStepEvent(request, result, AskDataEvent.Type.SQL_EXECUTED, "execute-sql",
+                    executeAgent == null ? null : executeAgent.getKey(), "AskData SQL 已执行");
             AskDataResult checkpointFailure = saveCheckpoint(context, result, "execute-sql",
                     context.getSqlValidated(), context.getSqlExecuted());
             if (checkpointFailure != null) {
@@ -1424,6 +1499,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             context.setSqlExecuted(Boolean.FALSE);
             context.setExecutionState(EXECUTION_SKIPPED);
             result.addStep("execute-sql", "Execute SQL", true, "SQL execution skipped");
+            publishStepEvent(request, result, AskDataEvent.Type.SQL_EXECUTED, "execute-sql", null,
+                    "AskData SQL 执行已跳过");
             AskDataResult checkpointFailure = saveCheckpoint(context, result, "execute-sql",
                     context.getSqlValidated(), context.getSqlExecuted());
             if (checkpointFailure != null) {
@@ -1472,6 +1549,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 : validation.getErrorCode();
         String errorMessage = validation == null ? "AskData SQL validation failed" : validation.getMessage();
         publishGovernanceDenied(request, result, authorizationSummary, false, errorCode);
+        publishStepEvent(request, result, AskDataEvent.Type.SQL_VALIDATED, "validate-sql", null,
+                "AskData SQL 校验失败");
         return failure(result, "validate-sql", errorCode, errorMessage);
     }
 
@@ -1899,7 +1978,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 ? GOVERNANCE_ERROR_SOURCE : authorizationSummary.getAuthorizationSource();
         String traceId = result == null || isBlank(result.getConversationId())
                 ? UUID.randomUUID().toString() : result.getConversationId();
-        eventPublisher.publish(AskDataEvent.governanceDenied(request.getProjectContext(), traceId,
+        safePublish(AskDataEvent.governanceDenied(request.getProjectContext(), traceId,
                 request.getDatasourceKey(), denialCode, version, source));
     }
 
@@ -1913,18 +1992,29 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (conversationStore == null || contextCompressor == null || isBlank(result.getConversationId())) {
             return null;
         }
+        boolean compressionCompleted = false;
         try {
             context.setCompletedSteps(completedSteps(result));
             context.setStepLogs(result.getSteps());
             context.setSqlValidated(sqlValidated == null ? context.getSqlValidated() : sqlValidated);
             context.setSqlExecuted(sqlExecuted == null ? context.getSqlExecuted() : sqlExecuted);
             context.setRowCount(result.getRowCount());
+            context.setCurrentStep(currentStep);
+            context.setConversationId(result.getConversationId());
+            context.setCheckpointId(UUID.randomUUID().toString());
+            context.setResumeToken(UUID.randomUUID().toString());
+            context.setActualModelKey(result.getActualModelKey());
+            publishStepEvent(context.getRequest(), result, AskDataEvent.Type.CONTEXT_COMPRESSION_STARTED,
+                    currentStep, null, "AskData 上下文压缩已开始");
             AskDataCompressedContext compressed = contextCompressor.compress(context);
+            compressionCompleted = true;
+            publishStepEvent(context.getRequest(), result, AskDataEvent.Type.CONTEXT_COMPRESSION_COMPLETED,
+                    currentStep, null, "AskData 上下文压缩已完成");
             AskDataCheckpoint checkpoint = new AskDataCheckpoint();
             AskDataRequest request = context.getRequest();
             checkpoint.setConversationId(result.getConversationId());
-            checkpoint.setCheckpointId(UUID.randomUUID().toString());
-            checkpoint.setResumeToken(UUID.randomUUID().toString());
+            checkpoint.setCheckpointId(context.getCheckpointId());
+            checkpoint.setResumeToken(context.getResumeToken());
             checkpoint.setRequestSummary(request == null ? null : request.getQuestion());
             checkpoint.setModelKey(request == null ? null : request.getModelKey());
             checkpoint.setActualModelKey(result.getActualModelKey());
@@ -1949,12 +2039,20 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             checkpoint.setErrorCode(result.getErrorCode());
             checkpoint.setVersion(checkpointVersion());
             checkpoint.setCreatedAt(new Date());
+            publishStepEvent(context.getRequest(), result, AskDataEvent.Type.CHECKPOINT_SAVE_STARTED,
+                    currentStep, null, "AskData 检查点保存已开始");
             AskDataCheckpoint saved = conversationStore.save(checkpoint);
             AskDataCheckpoint responseCheckpoint = saved == null ? checkpoint : saved;
             result.setCheckpointId(responseCheckpoint.getCheckpointId());
             result.setResumeToken(responseCheckpoint.getResumeToken());
+            publishStepEvent(context.getRequest(), result, AskDataEvent.Type.CHECKPOINT_SAVED, currentStep, null,
+                    "AskData 检查点已保存");
             return null;
         } catch (RuntimeException ex) {
+            publishStepEvent(context.getRequest(), result, compressionCompleted
+                            ? AskDataEvent.Type.CHECKPOINT_SAVE_FAILED
+                            : AskDataEvent.Type.CONTEXT_COMPRESSION_FAILED,
+                    currentStep, null, compressionCompleted ? "AskData 检查点保存失败" : "AskData 上下文压缩失败");
             return failure(result, currentStep, AskDataErrorCode.CONTEXT_COMPRESSION_FAILED, message(ex));
         }
     }
@@ -1984,6 +2082,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         context.setSqlExecuted(checkpoint.getSqlExecuted());
         context.setExecutionState(checkpoint.getExecutionState());
         context.setRowCount(checkpoint.getRowCount());
+        context.setCurrentStep(checkpoint.getCurrentStep());
+        context.setConversationId(checkpoint.getConversationId());
+        context.setCheckpointId(checkpoint.getCheckpointId());
+        context.setResumeToken(checkpoint.getResumeToken());
+        context.setActualModelKey(checkpoint.getActualModelKey());
         context.setCompletedSteps(checkpoint.getCompletedSteps());
         context.setStepLogs(checkpoint.getSteps());
         context.setErrorCode(checkpoint.getErrorCode());
@@ -2084,7 +2187,85 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         AskDataProjectContext projectContext = request.getProjectContext();
         if (projectContext != null) {
-            eventPublisher.publish(new AskDataEvent(projectContext, result.getConversationId(), type, message));
+            safePublish(correlatedEvent(request, result, type, message, null, null));
+        }
+    }
+
+    private void publishStepEvent(AskDataRequest request, AskDataResult result, AskDataEvent.Type type,
+            String graphNodeId, String agentKey, String message) {
+        if (eventPublisher == null || request == null || request.getProjectContext() == null || result == null) {
+            return;
+        }
+        safePublish(correlatedEvent(request, result, type, message, graphNodeId, agentKey));
+    }
+
+    private AskDataEvent correlatedEvent(AskDataRequest request, AskDataResult result, AskDataEvent.Type type,
+            String message, String graphNodeId, String agentKey) {
+        AskDataEventCorrelation correlation = eventCorrelation(request, result, graphNodeId, agentKey);
+        return AskDataEvent.correlated(request.getProjectContext(), correlation.getConversationId(), type, message,
+                correlation);
+    }
+
+    private AskDataEventCorrelation eventCorrelation(AskDataRequest request, AskDataResult result,
+            String graphNodeId, String agentKey) {
+        String conversationId = !isBlank(result.getConversationId()) ? result.getConversationId()
+                : !isBlank(request.getConversationId()) ? request.getConversationId() : "unassigned";
+        String requestId = observationOption(request, OBSERVABILITY_REQUEST_ID_OPTION);
+        if (isBlank(requestId)) { requestId = conversationId; }
+        String subQuestionId = !isBlank(result.getQuestionId()) ? result.getQuestionId()
+                : observationOption(request, OBSERVABILITY_SUB_QUESTION_ID_OPTION);
+        return AskDataEventCorrelation.builder(requestId, conversationId)
+                .subQuestionId(subQuestionId).graphNodeId(graphNodeId).agentKey(agentKey)
+                .instanceId(instanceId()).build();
+    }
+
+    private void publishSubQuestionEvent(AskDataRequest request, AskDataResult parent, String subQuestionId,
+            AskDataEvent.Type type, String message) {
+        if (eventPublisher == null || request == null || request.getProjectContext() == null || parent == null) {
+            return;
+        }
+        String conversationId = isBlank(parent.getConversationId()) ? "unassigned" : parent.getConversationId();
+        AskDataEventCorrelation correlation = AskDataEventCorrelation.builder(conversationId, conversationId)
+                .subQuestionId(subQuestionId).graphNodeId("multi-question").instanceId(instanceId()).build();
+        safePublish(AskDataEvent.correlated(request.getProjectContext(), conversationId, type, message, correlation));
+    }
+
+    private void publishAgentStepEvent(com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent agent,
+            AskDataAgentStepContext context, AskDataEvent.Type type) {
+        if (eventPublisher == null || agent == null || context == null || context.getProjectContext() == null) {
+            return;
+        }
+        String conversationId = isBlank(context.getConversationId()) ? "unassigned" : context.getConversationId();
+        AskDataEventCorrelation correlation = AskDataEventCorrelation.builder(conversationId, conversationId)
+                .graphNodeId(context.getStepKey()).agentKey(agent.getKey()).instanceId(instanceId()).build();
+        safePublish(AskDataEvent.correlated(context.getProjectContext(), conversationId, type,
+                type == AskDataEvent.Type.AGENT_NODE_EXECUTED ? "AskData Agent 节点已完成" : "AskData Agent 节点失败",
+                correlation));
+    }
+
+    private AskDataEvent.Type subQuestionEventType(AskDataSubQuestionResult.State state) {
+        if (state == AskDataSubQuestionResult.State.SUCCEEDED) { return AskDataEvent.Type.SUB_QUESTION_COMPLETED; }
+        if (state == AskDataSubQuestionResult.State.TIMED_OUT) { return AskDataEvent.Type.SUB_QUESTION_TIMED_OUT; }
+        if (state == AskDataSubQuestionResult.State.CANCELLED) { return AskDataEvent.Type.SUB_QUESTION_CANCELLED; }
+        if (state == AskDataSubQuestionResult.State.SKIPPED) { return AskDataEvent.Type.SUB_QUESTION_SKIPPED; }
+        return AskDataEvent.Type.SUB_QUESTION_FAILED;
+    }
+
+    private String observationOption(AskDataRequest request, String key) {
+        if (request == null || request.getOptions() == null) { return null; }
+        Object value = request.getOptions().get(key);
+        return value instanceof String && !isBlank((String) value) ? ((String) value).trim() : null;
+    }
+
+    private String instanceId() {
+        String configured = System.getProperty("fw.plus.ai.askdata.instance-id");
+        return isBlank(configured) ? "local" : configured.trim();
+    }
+
+    private void safePublish(AskDataEvent event) {
+        if (eventPublisher == null || event == null) { return; }
+        try { eventPublisher.publish(event); } catch (RuntimeException ignored) {
+            // 可观测性失败不能改变模型、SQL、检查点或对话状态。
         }
     }
 
@@ -2093,8 +2274,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (eventPublisher == null || request == null || request.getProjectContext() == null) {
             return;
         }
-        eventPublisher.publish(AskDataEvent.modelAttempt(request.getProjectContext(), result.getConversationId(),
-                routed.getModelKey(), routed.getRoutePolicy(), state, failureCode, switchReason, actualModelKey));
+        safePublish(AskDataEvent.modelAttempt(request.getProjectContext(), result.getConversationId(),
+                AskDataEvent.ModelType.CHAT, routed.getModelKey(), routed.getRoutePolicy(), state, failureCode,
+                switchReason, actualModelKey, eventCorrelation(request, result, "model", null)));
     }
 
     private boolean hasValidProjectContext(AskDataRequest request) {
@@ -2161,10 +2343,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 result.addEmbeddingModelAttempt(attempt.getModelKey());
             }
             if (eventPublisher != null && request != null && request.getProjectContext() != null) {
-                eventPublisher.publish(AskDataEvent.modelAttempt(request.getProjectContext(), result.getConversationId(),
+                safePublish(AskDataEvent.modelAttempt(request.getProjectContext(), result.getConversationId(),
                         AskDataEvent.ModelType.EMBEDDING, attempt.getModelKey(), attempt.getRoutePolicy(),
                         attempt.getState(), attempt.getFailureCode(), attempt.getSwitchReason(),
-                        attempt.getActualModelKey()));
+                        attempt.getActualModelKey(), eventCorrelation(request, result, "embedding", null)));
             }
         }
         if (!isBlank(actualEmbeddingModelKey)) {

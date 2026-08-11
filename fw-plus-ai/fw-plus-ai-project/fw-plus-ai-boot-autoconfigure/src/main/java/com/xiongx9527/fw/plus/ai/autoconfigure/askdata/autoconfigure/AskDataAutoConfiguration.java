@@ -207,8 +207,12 @@ public class AskDataAutoConfiguration {
      */
     @Bean(name = "askDataMonitoringLogEventPublisher")
     @Primary
-    public AskDataEventPublisher askDataMonitoringLogEventPublisher(AskDataMonitoringLogStore monitoringLogStore) {
-        return AskDataEventPublisher.toStore(monitoringLogStore);
+    public AskDataEventPublisher askDataMonitoringLogEventPublisher(AskDataMonitoringLogStore monitoringLogStore,
+            AskDataProperties properties) {
+        Integer capacity = properties.getState().getMonitoringLogCapacity();
+        int fallbackCapacity = capacity == null || capacity.intValue() <= 0 ? 1000 : capacity.intValue();
+        return AskDataEventPublisher.toStore(monitoringLogStore,
+                new InMemoryAskDataMonitoringLogStore(fallbackCapacity));
     }
 
     /**
@@ -240,8 +244,13 @@ public class AskDataAutoConfiguration {
                 if ("langsmith".equalsIgnoreCase(name)) { exporters.add(new LangSmithAskDataObservationExporter()); }
             }
         }
+        Integer capacity = properties.getState().getMonitoringLogCapacity();
+        int diagnosticCapacity = capacity == null || capacity.intValue() <= 0 ? 1000 : capacity.intValue();
+        AskDataEventPublisher diagnosticPublisher = AskDataEventPublisher.toStore(
+                new InMemoryAskDataMonitoringLogStore(diagnosticCapacity));
         return new AsyncAskDataObservationExporter(exporters,
-                new org.springframework.core.task.SimpleAsyncTaskExecutor("askdata-observability-"));
+                new org.springframework.core.task.SimpleAsyncTaskExecutor("askdata-observability-"),
+                diagnosticPublisher);
     }
 
 	@Bean
@@ -654,7 +663,11 @@ public class AskDataAutoConfiguration {
         return new AskDataEventPublisher() {
             @Override
             public void publish(com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent event) {
-                monitoringLogEventPublisher.publish(event);
+                try {
+                    monitoringLogEventPublisher.publish(event);
+                } catch (RuntimeException monitoringFailure) {
+                    // 自定义基础发布器也不能改变 AskData 业务结果。
+                }
                 for (AskDataEventPublisher externalPublisher : externalPublishers) {
                     try {
                         externalPublisher.publish(event);
