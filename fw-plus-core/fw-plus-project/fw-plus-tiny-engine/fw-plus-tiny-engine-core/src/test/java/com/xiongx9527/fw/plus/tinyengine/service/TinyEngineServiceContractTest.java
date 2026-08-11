@@ -308,6 +308,7 @@ class TinyEngineServiceContractTest {
 	@Test
 	void templateCloneCopiesCoreDataAndUsesTenantCondition() {
 		AppMapper appMapper = mock(AppMapper.class);
+		PageMapper pageMapper = mock(PageMapper.class);
 		PageService pageService = mock(PageService.class);
 		PageHistoryMapper pageHistoryMapper = mock(PageHistoryMapper.class);
 		AppExtensionMapper extensionMapper = mock(AppExtensionMapper.class);
@@ -316,6 +317,7 @@ class TinyEngineServiceContractTest {
 		ModelMapper modelMapper = mock(ModelMapper.class);
 		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
 		setBaseMapper(service, appMapper);
+		ReflectionTestUtils.setField(service, "pageMapper", pageMapper);
 		ReflectionTestUtils.setField(service, "pageService", pageService);
 		ReflectionTestUtils.setField(service, "pageHistoryMapper", pageHistoryMapper);
 		ReflectionTestUtils.setField(service, "appExtensionMapper", extensionMapper);
@@ -324,8 +326,14 @@ class TinyEngineServiceContractTest {
 		ReflectionTestUtils.setField(service, "modelMapper", modelMapper);
 		App request = new App();
 		request.setId(3);
+		request.setCode("new-app-code");
 		request.setIsTemplate(true);
 		request.setSetTemplateBy("owner");
+		App template = new App();
+		template.setId(Integer.valueOf(3));
+		template.setCode("template-code");
+		when(appMapper.queryAppTemplateById(Integer.valueOf(3), "tenant-9")).thenReturn(template);
+		when(appMapper.queryAppByCondition(any(App.class))).thenReturn(Collections.<App>emptyList());
 		App persisted = new App();
 		persisted.setId(22);
 		persisted.setPlatformId(2);
@@ -339,12 +347,17 @@ class TinyEngineServiceContractTest {
 		templateExtension.setTenantId("template-tenant");
 		templateExtension.setRenterId("template-renter");
 		templateExtension.setSiteId("template-site");
+		Page templatePage = page(41, 3, true);
+		templatePage.setCreatedBy("template-creator");
+		templatePage.setCreatedTime(java.time.LocalDateTime.of(2026, 8, 11, 10, 0));
+		templatePage.setLastUpdatedBy("template-updater");
+		templatePage.setLastUpdatedTime(java.time.LocalDateTime.of(2026, 8, 11, 11, 0));
 		doAnswer(invocation -> {
 			((App) invocation.getArgument(0)).setId(22);
 			return 1;
 		}).when(appMapper).createApp(request);
 		when(appMapper.queryAppById(22, "tenant-9")).thenReturn(persisted);
-		when(pageService.queryAllPage(3)).thenReturn(Collections.<Page>emptyList());
+		when(pageMapper.queryPageByApp(Integer.valueOf(3))).thenReturn(Collections.singletonList(templatePage));
 		when(pageHistoryMapper.queryPageHistoryByAppId(3)).thenReturn(Collections.<PageHistory>emptyList());
 		when(extensionMapper.queryAppExtensionByCondition(any()))
 				.thenReturn(Collections.singletonList(templateExtension));
@@ -357,6 +370,17 @@ class TinyEngineServiceContractTest {
 		assertSame(persisted, result);
 		assertFalse(request.getIsTemplate());
 		assertNull(request.getSetTemplateBy());
+		assertEquals("new-app-code", request.getCode());
+		verify(pageMapper).queryPageByApp(Integer.valueOf(3));
+		verify(pageService, never()).queryAllPage(Integer.valueOf(3));
+		org.mockito.ArgumentCaptor<Page> pageCaptor = org.mockito.ArgumentCaptor.forClass(Page.class);
+		verify(pageService).createPage(pageCaptor.capture());
+		assertEquals(Integer.valueOf(22), pageCaptor.getValue().getApp());
+		assertNull(pageCaptor.getValue().getId());
+		assertNull(pageCaptor.getValue().getCreatedBy());
+		assertNull(pageCaptor.getValue().getCreatedTime());
+		assertNull(pageCaptor.getValue().getLastUpdatedBy());
+		assertNull(pageCaptor.getValue().getLastUpdatedTime());
 		verify(appMapper, times(2)).queryAppById(22, "tenant-9");
 		org.mockito.ArgumentCaptor<AppExtension> extensionCaptor =
 				org.mockito.ArgumentCaptor.forClass(AppExtension.class);
@@ -366,6 +390,74 @@ class TinyEngineServiceContractTest {
 		assertEquals("tenant-9", extensionCaptor.getValue().getTenantId());
 		assertEquals("renter-9", extensionCaptor.getValue().getRenterId());
 		assertEquals("site-9", extensionCaptor.getValue().getSiteId());
+	}
+
+	@Test
+	void templateCloneRejectsDuplicateApplicationCodeBeforeInsert() {
+		AppMapper mapper = mock(AppMapper.class);
+		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
+		setBaseMapper(service, mapper);
+		App request = new App();
+		request.setId(3);
+		request.setCode("duplicate-code");
+		App template = new App();
+		template.setId(3);
+		when(mapper.queryAppTemplateById(3, "tenant-9")).thenReturn(template);
+		when(mapper.queryAppByCondition(any(App.class))).thenReturn(Collections.singletonList(new App()));
+
+		assertThrows(ServiceException.class, () -> service.createAppByTemplate(request));
+
+		org.mockito.ArgumentCaptor<App> conditionCaptor = org.mockito.ArgumentCaptor.forClass(App.class);
+		verify(mapper).queryAppByCondition(conditionCaptor.capture());
+		assertEquals("duplicate-code", conditionCaptor.getValue().getCode());
+		assertEquals("tenant-9", conditionCaptor.getValue().getTenantId());
+		verify(mapper, never()).createApp(any(App.class));
+	}
+
+	@Test
+	void templateCloneRejectsBlankApplicationCodeBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode("   ");
+	}
+
+	@Test
+	void templateCloneRejectsApplicationCodeWithInvalidCharactersBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode("invalid.code");
+	}
+
+	@Test
+	void templateCloneRejectsApplicationCodeLongerThanTwentyCharactersBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode("abcdefghijklmnopqrstu");
+	}
+
+	@Test
+	void templateCloneRejectsUnverifiedTemplateSourceBeforeInsert() {
+		AppMapper mapper = mock(AppMapper.class);
+		PageMapper pageMapper = mock(PageMapper.class);
+		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "pageMapper", pageMapper);
+		App request = new App();
+		request.setId(Integer.valueOf(3));
+		request.setCode("new-app-code");
+
+		ServiceException exception = assertThrows(ServiceException.class,
+				() -> service.createAppByTemplate(request));
+
+		assertEquals("CM009", exception.getServiceCode());
+		verify(mapper).queryAppTemplateById(Integer.valueOf(3), "tenant-9");
+		verify(mapper, never()).queryAppByCondition(any(App.class));
+		verify(mapper, never()).createApp(any(App.class));
+		verify(pageMapper, never()).queryPageByApp(any());
+	}
+
+	@Test
+	void templateCloneRollsBackForAnyException() throws Exception {
+		Transactional transactional = AppTemplateServiceImpl.class
+				.getMethod("createAppByTemplate", App.class)
+				.getAnnotation(Transactional.class);
+
+		assertNotNull(transactional);
+		assertTrue(Arrays.asList(transactional.rollbackFor()).contains(Exception.class));
 	}
 
 	@Test
@@ -1249,6 +1341,25 @@ class TinyEngineServiceContractTest {
 		model.setNameEn(nameEn);
 		model.setParameters(Arrays.asList(parameters));
 		return model;
+	}
+
+	private static void assertTemplateCloneRejectsInvalidCode(String code) {
+		AppMapper mapper = mock(AppMapper.class);
+		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
+		setBaseMapper(service, mapper);
+		App request = new App();
+		request.setId(Integer.valueOf(3));
+		request.setCode(code);
+		App template = new App();
+		template.setId(Integer.valueOf(3));
+		when(mapper.queryAppTemplateById(Integer.valueOf(3), "tenant-9")).thenReturn(template);
+
+		ServiceException exception = assertThrows(ServiceException.class,
+				() -> service.createAppByTemplate(request));
+
+		assertEquals("CM002", exception.getServiceCode());
+		verify(mapper, never()).queryAppByCondition(any(App.class));
+		verify(mapper, never()).createApp(any(App.class));
 	}
 
 	private static TinyEngineUserContext context(String userId, String tenantId) {
