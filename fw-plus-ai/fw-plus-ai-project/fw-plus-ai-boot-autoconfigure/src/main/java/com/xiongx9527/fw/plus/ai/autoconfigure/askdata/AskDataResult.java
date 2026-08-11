@@ -23,6 +23,8 @@ public class AskDataResult {
     private String rawModelResponse;
     private String actualModelKey;
     private List<String> modelAttempts = new ArrayList<String>();
+    private String actualEmbeddingModelKey;
+    private List<String> embeddingModelAttempts = new ArrayList<String>();
     /**
      * 显式多问题请求的子执行结果。
      *
@@ -182,6 +184,29 @@ public class AskDataResult {
     public void addModelAttempt(String modelKey) {
         if (modelKey != null && modelKey.trim().length() > 0) {
             modelAttempts.add(modelKey.trim());
+        }
+    }
+
+    public String getActualEmbeddingModelKey() {
+        return actualEmbeddingModelKey;
+    }
+
+    public void setActualEmbeddingModelKey(String actualEmbeddingModelKey) {
+        this.actualEmbeddingModelKey = actualEmbeddingModelKey;
+    }
+
+    public List<String> getEmbeddingModelAttempts() {
+        return new ArrayList<String>(embeddingModelAttempts);
+    }
+
+    public void setEmbeddingModelAttempts(List<String> embeddingModelAttempts) {
+        this.embeddingModelAttempts = embeddingModelAttempts == null
+                ? new ArrayList<String>() : new ArrayList<String>(embeddingModelAttempts);
+    }
+
+    public void addEmbeddingModelAttempt(String modelKey) {
+        if (modelKey != null && modelKey.trim().length() > 0) {
+            embeddingModelAttempts.add(modelKey.trim());
         }
     }
 

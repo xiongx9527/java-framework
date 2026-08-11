@@ -54,21 +54,28 @@ public class AiEmbeddingStoreAskDataVectorRetriever implements AskDataVectorRetr
 
     @Override
     public List<AskDataRetrievedDocument> retrieve(AskDataVectorQuery query) {
+        return retrieveWithResult(query).getDocuments();
+    }
+
+    @Override
+    public AskDataVectorRetrievalResult retrieveWithResult(AskDataVectorQuery query) {
         if (query == null || isBlank(query.getQuestion())) {
-            return Collections.emptyList();
+            return AskDataVectorRetrievalResult.documents(Collections.<AskDataRetrievedDocument>emptyList());
         }
         AiEmbeddingStore store = resolveStore();
 		if (!query.getFilters().isEmpty() && !store.supportsFilters()) {
 			throw new AiEmbeddingStoreException("AskData 向量存储不支持授权过滤: " + store.getKey());
 		}
-        float[] values = embed(query);
-        if (values == null || values.length == 0) {
-            return Collections.emptyList();
+        EmbeddingExecution embedding = embed(query);
+        if (embedding.values == null || embedding.values.length == 0) {
+            return new AskDataVectorRetrievalResult(Collections.<AskDataRetrievedDocument>emptyList(),
+                    embedding.modelAttempts, embedding.actualModelKey);
         }
-        AiEmbeddingSearchResult result = store.search(new AiEmbeddingQuery(new AiEmbeddingVector(values),
+        AiEmbeddingSearchResult result = store.search(new AiEmbeddingQuery(new AiEmbeddingVector(embedding.values),
 					query.getTopK() <= 0 ? 5 : query.getTopK(), 0.0D, query.getFilters()));
         if (result == null || result.getMatches().isEmpty()) {
-            return Collections.emptyList();
+            return new AskDataVectorRetrievalResult(Collections.<AskDataRetrievedDocument>emptyList(),
+                    embedding.modelAttempts, embedding.actualModelKey);
         }
         List<AskDataRetrievedDocument> documents = new ArrayList<AskDataRetrievedDocument>();
         for (AiEmbeddingMatch match : result.getMatches()) {
@@ -77,45 +84,73 @@ public class AiEmbeddingStoreAskDataVectorRetriever implements AskDataVectorRetr
                 documents.add(new AskDataRetrievedDocument(document.getText(), document.getMetadata()));
             }
         }
-        return documents;
+        return new AskDataVectorRetrievalResult(documents, embedding.modelAttempts, embedding.actualModelKey);
     }
 
-    private float[] embed(AskDataVectorQuery query) {
+    private EmbeddingExecution embed(AskDataVectorQuery query) {
         if (neutralModelRegistry != null && modelRouter != null && query.getProjectContext() != null) {
             return embedNeutral(query);
         }
         AskDataEmbeddingModel embeddingModel = modelRegistry == null ? null
                 : modelRegistry.getEmbeddingModel(query.getEmbeddingModelKey());
         if (embeddingModel == null) {
-            return null;
+            return EmbeddingExecution.empty();
         }
         List<Float> values = embeddingModel.embed(query.getQuestion());
-        return values == null || values.isEmpty() ? null : toArray(values);
+        return new EmbeddingExecution(values == null || values.isEmpty() ? null : toArray(values),
+                Collections.<AskDataModelAttemptTrace>emptyList(), null);
     }
 
-    private float[] embedNeutral(AskDataVectorQuery query) {
+    private EmbeddingExecution embedNeutral(AskDataVectorQuery query) {
         AskDataModelRequest routeRequest = embeddingRouteRequest(query);
         AskDataModelResult routed = modelRouter.route(routeRequest);
+        List<AskDataModelAttemptTrace> attempts = new ArrayList<AskDataModelAttemptTrace>();
         while (true) {
-            AiEmbeddingModel embeddingModel = neutralEmbeddingModel(routed.getModelKey());
+            attempts.add(AskDataModelAttemptTrace.attempted(routed.getModelKey(), routed.getRoutePolicy()));
             try {
+                AiEmbeddingModel embeddingModel = neutralEmbeddingModel(routed.getModelKey());
                 AiEmbeddingResult result = embeddingModel.embed(new AiEmbeddingRequest(
                         Collections.singletonList(query.getQuestion()), Collections.<String, Object>emptyMap(),
                         requestTimeoutMillis()));
                 if (result == null || result.getEmbeddings().size() != 1) {
-                    throw new AiModelException("Embedding 模型必须为单条输入返回一个向量");
+                    attempts.add(AskDataModelAttemptTrace.failed(routed.getModelKey(), routed.getRoutePolicy(),
+                            AiModelException.MODEL_ERROR, "INVALID_MODEL_RESPONSE", null));
+                    throw new AskDataVectorRetrievalException(
+                            new AiModelException("Embedding 模型必须为单条输入返回一个向量"), attempts);
                 }
-                return result.getEmbeddings().get(0);
+                String actualModelKey = isBlank(result.getActualModelKey())
+                        ? routed.getModelKey() : result.getActualModelKey();
+                attempts.add(AskDataModelAttemptTrace.succeeded(routed.getModelKey(), routed.getRoutePolicy(),
+                        actualModelKey));
+                return new EmbeddingExecution(result.getEmbeddings().get(0), attempts, actualModelKey);
+            } catch (AskDataVectorRetrievalException ex) {
+                throw ex;
             } catch (AiModelException ex) {
-                if (!AiModelException.MODEL_INFRASTRUCTURE_FAILURE.equals(ex.getErrorCode()) || !ex.isRetryable()
-                        || properties == null || properties.getModel() == null
-                        || !properties.getModel().isFallbackEnabled()) {
-                    throw ex;
+                boolean retryableInfrastructureFailure = AiModelException.MODEL_INFRASTRUCTURE_FAILURE
+                        .equals(ex.getErrorCode()) && ex.isRetryable();
+                if (!retryableInfrastructureFailure || !fallbackEnabled()) {
+                    attempts.add(AskDataModelAttemptTrace.failed(routed.getModelKey(), routed.getRoutePolicy(),
+                            ex.getErrorCode(), retryableInfrastructureFailure
+                                    ? "FALLBACK_DISABLED" : "NON_RETRYABLE_FAILURE", null));
+                    throw new AskDataVectorRetrievalException(ex, attempts);
                 }
-                routed = modelRouter.fallback(routeRequest,
-                        AskDataModelResult.infrastructureFailure(routed, safeMessage(ex)));
+                try {
+                    AskDataModelResult next = modelRouter.fallback(routeRequest,
+                            AskDataModelResult.infrastructureFailure(routed, safeMessage(ex)));
+                    attempts.add(AskDataModelAttemptTrace.failed(routed.getModelKey(), routed.getRoutePolicy(),
+                            ex.getErrorCode(), "RETRYABLE_INFRASTRUCTURE_FAILURE", null));
+                    routed = next;
+                } catch (IllegalArgumentException noCandidate) {
+                    attempts.add(AskDataModelAttemptTrace.failed(routed.getModelKey(), routed.getRoutePolicy(),
+                            ex.getErrorCode(), "CANDIDATES_EXHAUSTED", null));
+                    throw new AskDataVectorRetrievalException(ex, attempts);
+                }
             }
         }
+    }
+
+    private boolean fallbackEnabled() {
+        return properties != null && properties.getModel() != null && properties.getModel().isFallbackEnabled();
     }
 
     private AiEmbeddingModel neutralEmbeddingModel(String modelKey) {
@@ -190,5 +225,23 @@ public class AiEmbeddingStoreAskDataVectorRetriever implements AskDataVectorRetr
 
     private boolean isBlank(String value) {
         return value == null || value.trim().length() == 0;
+    }
+
+    private static final class EmbeddingExecution {
+
+        private final float[] values;
+        private final List<AskDataModelAttemptTrace> modelAttempts;
+        private final String actualModelKey;
+
+        private EmbeddingExecution(float[] values, List<AskDataModelAttemptTrace> modelAttempts,
+                String actualModelKey) {
+            this.values = values;
+            this.modelAttempts = modelAttempts;
+            this.actualModelKey = actualModelKey;
+        }
+
+        private static EmbeddingExecution empty() {
+            return new EmbeddingExecution(null, Collections.<AskDataModelAttemptTrace>emptyList(), null);
+        }
     }
 }

@@ -12,6 +12,11 @@ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy;
  */
 public class AskDataEvent {
 
+	public enum ModelType {
+		CHAT,
+		EMBEDDING
+	}
+
 	public enum ModelState {
 		ATTEMPTED,
 		SUCCEEDED,
@@ -54,6 +59,7 @@ public class AskDataEvent {
 	private final String denialCode;
 	private final String authorizationVersion;
 	private final String authorizationSource;
+	private final ModelType modelType;
 	private final String modelKey;
 	private final AskDataModelRoutePolicy modelRoutePolicy;
 	private final ModelState modelState;
@@ -71,12 +77,12 @@ public class AskDataEvent {
 	 * @throws IllegalArgumentException 当上下文或事件类型为空时抛出
 	 */
 	public AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message) {
-		this(context, traceId, type, message, null, null, null, null, null, null, null, null, null, null);
+		this(context, traceId, type, message, null, null, null, null, null, null, null, null, null, null, null);
 	}
 
 	private AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message,
 			String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
-			String modelKey, AskDataModelRoutePolicy modelRoutePolicy, ModelState modelState,
+			ModelType modelType, String modelKey, AskDataModelRoutePolicy modelRoutePolicy, ModelState modelState,
 			String modelFailureCode, String modelSwitchReason, String actualModelKey) {
 		if (context == null) {
 			throw new IllegalArgumentException("context 不能为空");
@@ -92,6 +98,7 @@ public class AskDataEvent {
 		this.denialCode = denialCode;
 		this.authorizationVersion = authorizationVersion;
 		this.authorizationSource = authorizationSource;
+		this.modelType = modelType;
 		this.modelKey = modelKey;
 		this.modelRoutePolicy = modelRoutePolicy;
 		this.modelState = modelState;
@@ -103,7 +110,7 @@ public class AskDataEvent {
 	public static AskDataEvent governanceDenied(AskDataProjectContext context, String traceId, String datasourceKey,
 			String denialCode, String authorizationVersion, String authorizationSource) {
 		return new AskDataEvent(context, traceId, Type.GOVERNANCE_DENIED, "AskData 治理拒绝", datasourceKey,
-				denialCode, authorizationVersion, authorizationSource, null, null, null, null, null, null);
+				denialCode, authorizationVersion, authorizationSource, null, null, null, null, null, null, null);
 	}
 
 	public static AskDataEvent modelRouted(AskDataProjectContext context, String traceId, String modelKey,
@@ -112,20 +119,28 @@ public class AskDataEvent {
 			throw new IllegalArgumentException("modelKey 不能为空");
 		}
 		return new AskDataEvent(context, traceId, Type.MODEL_ROUTED, message, null, null, null, null,
-				modelKey.trim(), null, ModelState.ATTEMPTED, null, null, null);
+				ModelType.CHAT, modelKey.trim(), null, ModelState.ATTEMPTED, null, null, null);
 	}
 
 	public static AskDataEvent modelAttempt(AskDataProjectContext context, String traceId, String modelKey,
 			AskDataModelRoutePolicy routePolicy, ModelState state, String failureCode, String switchReason,
 			String actualModelKey) {
-		if (modelKey == null || modelKey.trim().length() == 0 || routePolicy == null || state == null) {
-			throw new IllegalArgumentException("modelKey、routePolicy 和 state 不能为空");
+		return modelAttempt(context, traceId, ModelType.CHAT, modelKey, routePolicy, state, failureCode,
+				switchReason, actualModelKey);
+	}
+
+	public static AskDataEvent modelAttempt(AskDataProjectContext context, String traceId, ModelType modelType,
+			String modelKey, AskDataModelRoutePolicy routePolicy, ModelState state, String failureCode,
+			String switchReason, String actualModelKey) {
+		if (modelType == null || modelKey == null || modelKey.trim().length() == 0
+				|| routePolicy == null || state == null) {
+			throw new IllegalArgumentException("modelType、modelKey、routePolicy 和 state 不能为空");
 		}
 		if (state == ModelState.FAILED && (failureCode == null || failureCode.trim().length() == 0)) {
 			throw new IllegalArgumentException("失败模型事件必须携带 failureCode");
 		}
 		return new AskDataEvent(context, traceId, Type.MODEL_ROUTED, "AskData 模型尝试", null, null, null, null,
-				modelKey.trim(), routePolicy, state, normalize(failureCode), normalize(switchReason),
+				modelType, modelKey.trim(), routePolicy, state, normalize(failureCode), normalize(switchReason),
 				normalize(actualModelKey));
 	}
 
@@ -169,6 +184,7 @@ public class AskDataEvent {
 	public String getDenialCode() { return denialCode; }
 	public String getAuthorizationVersion() { return authorizationVersion; }
 	public String getAuthorizationSource() { return authorizationSource; }
+	public ModelType getModelType() { return modelType; }
 	public String getModelKey() { return modelKey; }
 	public AskDataModelRoutePolicy getModelRoutePolicy() { return modelRoutePolicy; }
 	public ModelState getModelState() { return modelState; }

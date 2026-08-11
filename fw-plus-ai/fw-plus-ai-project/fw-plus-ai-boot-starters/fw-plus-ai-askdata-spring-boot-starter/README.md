@@ -51,6 +51,8 @@ fw:
 
 默认 Flow 的 Chat 与 Embedding 都通过 Core Router 选择中立模型。请求需要独立指定 Embedding 模型时，在 `AskDataRequest.options` 中设置 `embeddingModelKey`；未设置时按 `embedding-candidates` 和 `default-embedding-model` 路由。Flow 会向每次向量检索加入 `projectId`、`operatorId`、`datasourceKey` 和 `authorizationVersion` 过滤条件，因此所选 `AiEmbeddingStore` 必须返回 `supportsFilters() == true` 并实际应用 filters。无法应用 filters 的 Store 会 fail-closed；旧 LangChain4j `EmbeddingStore` 兼容适配器也会明确拒绝带授权过滤的查询。
 
+Chat 与 Embedding 只有可重试基础设施故障允许切换候选。返回结果和检查点分别通过 `actualModelKey` / `modelAttempts`、`actualEmbeddingModelKey` / `embeddingModelAttempts` 保存最终实际 key 与尝试顺序；监控事件使用 `modelType=CHAT|EMBEDDING`，并记录路由层级、失败码、切换原因和最终状态。自定义 `AskDataVectorRetriever` 可继续只实现 `retrieve`；需要提供 Embedding 路由审计时覆盖兼容的 `retrieveWithResult`。
+
 需要 LangChain4j 时，由业务应用显式引入 Adapter Starter：
 
 ```xml

@@ -19,6 +19,7 @@ public class AskDataMonitoringLog {
 	private final String denialCode;
 	private final String authorizationVersion;
 	private final String authorizationSource;
+	private final String modelType;
 	private final String modelKey;
 	private final String modelRoutePolicy;
 	private final String modelState;
@@ -51,12 +52,21 @@ public class AskDataMonitoringLog {
 			String message, String datasourceKey, String denialCode, String authorizationVersion,
 			String authorizationSource, String modelKey) {
 		this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
-				authorizationSource, modelKey, null, null, null, null, null);
+				authorizationSource, null, modelKey, null, null, null, null, null);
 	}
 
 	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
 			String message, String datasourceKey, String denialCode, String authorizationVersion,
 			String authorizationSource, String modelKey, String modelRoutePolicy, String modelState,
+			String modelFailureCode, String modelSwitchReason, String actualModelKey) {
+		this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, null, modelKey, modelRoutePolicy, modelState, modelFailureCode,
+				modelSwitchReason, actualModelKey);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource, String modelType, String modelKey, String modelRoutePolicy, String modelState,
 			String modelFailureCode, String modelSwitchReason, String actualModelKey) {
 		if (context == null) {
 			throw new IllegalArgumentException("context 不能为空");
@@ -72,6 +82,7 @@ public class AskDataMonitoringLog {
 		this.denialCode = denialCode;
 		this.authorizationVersion = authorizationVersion;
 		this.authorizationSource = authorizationSource;
+		this.modelType = modelType;
 		this.modelKey = modelKey;
 		this.modelRoutePolicy = modelRoutePolicy;
 		this.modelState = modelState;
@@ -120,6 +131,7 @@ public class AskDataMonitoringLog {
 	public String getDenialCode() { return denialCode; }
 	public String getAuthorizationVersion() { return authorizationVersion; }
 	public String getAuthorizationSource() { return authorizationSource; }
+	public String getModelType() { return modelType; }
 	public String getModelKey() { return modelKey; }
 	public String getModelRoutePolicy() { return modelRoutePolicy; }
 	public String getModelState() { return modelState; }
@@ -138,7 +150,7 @@ public class AskDataMonitoringLog {
 	 */
 	public AskDataMonitoringLogStore.MonitoringLog toStorageLog() {
 		return new AskDataMonitoringLogStore.MonitoringLog(context, traceId, eventType.name(), message,
-				datasourceKey, denialCode, authorizationVersion, authorizationSource, modelKey, modelRoutePolicy,
+				datasourceKey, denialCode, authorizationVersion, authorizationSource, modelType, modelKey, modelRoutePolicy,
 				modelState, modelFailureCode, modelSwitchReason, actualModelKey);
 	}
 }

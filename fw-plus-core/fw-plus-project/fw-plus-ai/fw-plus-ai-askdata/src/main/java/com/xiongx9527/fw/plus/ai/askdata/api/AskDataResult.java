@@ -16,6 +16,8 @@ public class AskDataResult {
 	private final AskDataError error;
 	private final String actualModelKey;
 	private final List<String> modelAttempts;
+	private final String actualEmbeddingModelKey;
+	private final List<String> embeddingModelAttempts;
 
 	/**
 	 * 创建查询结果。
@@ -27,14 +29,21 @@ public class AskDataResult {
 	 * @param error 失败错误；为空表示成功
 	 */
 	public AskDataResult(String answer, AskDataError error) {
-		this(answer, error, null, Collections.<String>emptyList());
+		this(answer, error, null, Collections.<String>emptyList(), null, Collections.<String>emptyList());
 	}
 
 	public AskDataResult(String answer, AskDataError error, String actualModelKey, List<String> modelAttempts) {
+		this(answer, error, actualModelKey, modelAttempts, null, Collections.<String>emptyList());
+	}
+
+	public AskDataResult(String answer, AskDataError error, String actualModelKey, List<String> modelAttempts,
+			String actualEmbeddingModelKey, List<String> embeddingModelAttempts) {
 		this.answer = answer;
 		this.error = error;
 		this.actualModelKey = actualModelKey;
 		this.modelAttempts = immutableAttempts(modelAttempts);
+		this.actualEmbeddingModelKey = actualEmbeddingModelKey;
+		this.embeddingModelAttempts = immutableAttempts(embeddingModelAttempts);
 	}
 
 	/**
@@ -48,10 +57,16 @@ public class AskDataResult {
 	}
 
 	public static AskDataResult success(String answer, String actualModelKey, List<String> modelAttempts) {
+		return success(answer, actualModelKey, modelAttempts, null, Collections.<String>emptyList());
+	}
+
+	public static AskDataResult success(String answer, String actualModelKey, List<String> modelAttempts,
+			String actualEmbeddingModelKey, List<String> embeddingModelAttempts) {
 		if (actualModelKey == null || actualModelKey.trim().length() == 0) {
 			throw new IllegalArgumentException("actualModelKey 不能为空");
 		}
-		return new AskDataResult(answer, null, actualModelKey.trim(), modelAttempts);
+		return new AskDataResult(answer, null, actualModelKey.trim(), modelAttempts,
+				normalize(actualEmbeddingModelKey), embeddingModelAttempts);
 	}
 
 	/**
@@ -66,6 +81,15 @@ public class AskDataResult {
 			throw new IllegalArgumentException("error 不能为空");
 		}
 		return new AskDataResult(null, error);
+	}
+
+	public static AskDataResult failure(AskDataError error, String actualModelKey, List<String> modelAttempts,
+			String actualEmbeddingModelKey, List<String> embeddingModelAttempts) {
+		if (error == null) {
+			throw new IllegalArgumentException("error 不能为空");
+		}
+		return new AskDataResult(null, error, normalize(actualModelKey), modelAttempts,
+				normalize(actualEmbeddingModelKey), embeddingModelAttempts);
 	}
 
 	/**
@@ -103,10 +127,22 @@ public class AskDataResult {
 		return modelAttempts;
 	}
 
+	public String getActualEmbeddingModelKey() {
+		return actualEmbeddingModelKey;
+	}
+
+	public List<String> getEmbeddingModelAttempts() {
+		return embeddingModelAttempts;
+	}
+
 	private static List<String> immutableAttempts(List<String> attempts) {
 		if (attempts == null || attempts.isEmpty()) {
 			return Collections.emptyList();
 		}
 		return Collections.unmodifiableList(new ArrayList<String>(attempts));
+	}
+
+	private static String normalize(String value) {
+		return value == null || value.trim().length() == 0 ? null : value.trim();
 	}
 }

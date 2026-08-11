@@ -6,7 +6,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataCheckpoint;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.DefaultAskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.InMemoryAskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadata;
@@ -26,7 +28,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidationR
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.AskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.DefaultAskDataSqlValidator;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDocument;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataModelAttemptTrace;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetrievalResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
@@ -163,6 +167,63 @@ public class DefaultAskDataFlowExecutorTest {
         assertEquals(AskDataEvent.ModelState.ATTEMPTED, modelEvents.get(2).getModelState());
         assertEquals(AskDataEvent.ModelState.SUCCEEDED, modelEvents.get(3).getModelState());
         assertEquals("provider-fallback", modelEvents.get(3).getActualModelKey());
+    }
+
+    @Test
+    public void shouldRecordEveryEmbeddingAttemptInResultCheckpointAndEvents() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.conversationStore = new InMemoryAskDataConversationStore();
+        dependencies.contextCompressor = new DefaultAskDataContextCompressor(dependencies.properties);
+        dependencies.vectorRetriever = new AskDataVectorRetriever() {
+            @Override
+            public List<AskDataRetrievedDocument> retrieve(AskDataVectorQuery query) {
+                return retrieveWithResult(query).getDocuments();
+            }
+
+            @Override
+            public AskDataVectorRetrievalResult retrieveWithResult(AskDataVectorQuery query) {
+                dependencies.retrieveTypes.add(query.getRetrieveType());
+                dependencies.vectorQueries.add(query);
+                return new AskDataVectorRetrievalResult(Collections.<AskDataRetrievedDocument>emptyList(),
+                        Arrays.asList(
+                                AskDataModelAttemptTrace.attempted("embedding-primary",
+                                        com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy.PROJECT_KEY),
+                                AskDataModelAttemptTrace.failed("embedding-primary",
+                                        com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy.PROJECT_KEY,
+                                        "MODEL_INFRASTRUCTURE_FAILURE",
+                                        "RETRYABLE_INFRASTRUCTURE_FAILURE", "embedding-primary"),
+                                AskDataModelAttemptTrace.attempted("embedding-fallback",
+                                        com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy.DEFAULT_KEY),
+                                AskDataModelAttemptTrace.succeeded("embedding-fallback",
+                                        com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy.DEFAULT_KEY,
+                                        "provider-embedding-fallback")), "provider-embedding-fallback");
+            }
+        };
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request(true));
+
+        assertTrue(result.isSuccess());
+        assertEquals("provider-embedding-fallback", result.getActualEmbeddingModelKey());
+        assertEquals(Arrays.asList("embedding-primary", "embedding-fallback", "embedding-primary",
+                "embedding-fallback", "embedding-primary", "embedding-fallback"),
+                result.getEmbeddingModelAttempts());
+        AskDataCheckpoint checkpoint = dependencies.conversationStore.loadLatest(result.getConversationId());
+        assertEquals("provider-embedding-fallback", checkpoint.getActualEmbeddingModelKey());
+        assertEquals(result.getEmbeddingModelAttempts(), checkpoint.getEmbeddingModelAttempts());
+        List<AskDataEvent> embeddingEvents = new java.util.ArrayList<AskDataEvent>();
+        for (AskDataEvent event : dependencies.events) {
+            if (event.getType() == AskDataEvent.Type.MODEL_ROUTED
+                    && event.getModelType() == AskDataEvent.ModelType.EMBEDDING) {
+                embeddingEvents.add(event);
+            }
+        }
+        assertEquals(12, embeddingEvents.size());
+        assertEquals(AskDataEvent.ModelState.ATTEMPTED, embeddingEvents.get(0).getModelState());
+        assertEquals(AskDataEvent.ModelState.FAILED, embeddingEvents.get(1).getModelState());
+        assertEquals("RETRYABLE_INFRASTRUCTURE_FAILURE", embeddingEvents.get(1).getModelSwitchReason());
+        assertEquals(AskDataEvent.ModelState.SUCCEEDED, embeddingEvents.get(3).getModelState());
+        assertEquals("provider-embedding-fallback", embeddingEvents.get(3).getActualModelKey());
     }
 
     @Test
@@ -783,6 +844,7 @@ public class DefaultAskDataFlowExecutorTest {
         private AskDataSqlCommand executedCommand;
         private List<AskDataSqlInterceptor> sqlInterceptors = Collections.emptyList();
         private AskDataConversationStore conversationStore;
+        private AskDataContextCompressor contextCompressor;
         private final List<AskDataEvent> events = new java.util.ArrayList<AskDataEvent>();
         private com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel coreChatModel;
         private com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter coreModelRouter;
@@ -911,7 +973,7 @@ public class DefaultAskDataFlowExecutorTest {
                         }
                     }, new AskDataSqlAudit());
             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
-                    promptProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, null, null,
+                    promptProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor, null,
                     Collections.<AskDataAgent>emptyList(), event -> events.add(event),
                     com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner.simple(), sqlInterceptorChain,
                     null, governanceProvider, coreChatModel, coreModelRouter);

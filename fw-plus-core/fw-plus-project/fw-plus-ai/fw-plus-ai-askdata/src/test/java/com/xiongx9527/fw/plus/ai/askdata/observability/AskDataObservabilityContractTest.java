@@ -97,7 +97,8 @@ public class AskDataObservabilityContractTest {
 	@Test
 	public void shouldPreserveStructuredModelAttemptDimensions() {
 		AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
-		AskDataEvent event = AskDataEvent.modelAttempt(context, "trace-model", "chat-primary",
+		AskDataEvent event = AskDataEvent.modelAttempt(context, "trace-model", AskDataEvent.ModelType.EMBEDDING,
+				"embedding-primary",
 				AskDataModelRoutePolicy.REQUEST_MODEL_KEY, AskDataEvent.ModelState.FAILED,
 				"MODEL_INFRASTRUCTURE_FAILURE", "RETRYABLE_INFRASTRUCTURE_FAILURE", null);
 		RecordingMonitoringLogStore store = new RecordingMonitoringLogStore();
@@ -105,7 +106,8 @@ public class AskDataObservabilityContractTest {
 		AskDataEventPublisher.toStore(store).publish(event);
 
 		AskDataMonitoringLogStore.MonitoringLog log = store.logs.get(0);
-		assertEquals("chat-primary", log.getModelKey());
+		assertEquals("EMBEDDING", log.getModelType());
+		assertEquals("embedding-primary", log.getModelKey());
 		assertEquals("REQUEST_MODEL_KEY", log.getModelRoutePolicy());
 		assertEquals("FAILED", log.getModelState());
 		assertEquals("MODEL_INFRASTRUCTURE_FAILURE", log.getModelFailureCode());

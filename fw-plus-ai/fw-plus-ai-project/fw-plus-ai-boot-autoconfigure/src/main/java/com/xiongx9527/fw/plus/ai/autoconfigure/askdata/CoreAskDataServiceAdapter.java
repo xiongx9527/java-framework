@@ -53,17 +53,22 @@ public class CoreAskDataServiceAdapter implements com.xiongx9527.fw.plus.ai.askd
 		}
 		if (!legacyResult.isSuccess()) {
 			return failure(defaultValue(legacyResult.getErrorCode(), AskDataErrorCode.MODEL_RESPONSE_INVALID),
-					"问数执行失败，请查看监控日志");
+					"问数执行失败，请查看监控日志", legacyResult);
 		}
-		if (legacyResult.getActualModelKey() == null || legacyResult.getActualModelKey().trim().length() == 0) {
-			return com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult.success(legacyResult.getBrief());
-		}
-		return com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult.success(legacyResult.getBrief(),
-				legacyResult.getActualModelKey(), legacyResult.getModelAttempts());
+		return new com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult(legacyResult.getBrief(), null,
+				legacyResult.getActualModelKey(), legacyResult.getModelAttempts(),
+				legacyResult.getActualEmbeddingModelKey(), legacyResult.getEmbeddingModelAttempts());
 	}
 
 	private com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult failure(String code, String message) {
 		return com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult.failure(new AskDataError(code, message));
+	}
+
+	private com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult failure(String code, String message,
+			AskDataResult legacyResult) {
+		return com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult.failure(new AskDataError(code, message),
+				legacyResult.getActualModelKey(), legacyResult.getModelAttempts(),
+				legacyResult.getActualEmbeddingModelKey(), legacyResult.getEmbeddingModelAttempts());
 	}
 
 	private String defaultValue(String value, String defaultValue) {
