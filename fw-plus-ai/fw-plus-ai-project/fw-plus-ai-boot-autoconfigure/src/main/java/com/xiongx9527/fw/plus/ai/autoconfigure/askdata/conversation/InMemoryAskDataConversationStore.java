@@ -1,9 +1,12 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataColumn;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -97,6 +100,9 @@ public class InMemoryAskDataConversationStore implements AskDataConversationStor
         target.setModelAttempts(source.getModelAttempts());
         target.setActualEmbeddingModelKey(source.getActualEmbeddingModelKey());
         target.setEmbeddingModelAttempts(source.getEmbeddingModelAttempts());
+        target.setMultiQuestion(source.getMultiQuestion());
+        target.setMultiQuestionPlanSnapshot(source.getMultiQuestionPlanSnapshot());
+        target.setChildResults(copyResults(source.getChildResults()));
         target.setDatasourceKey(source.getDatasourceKey());
         target.setDialect(source.getDialect());
         target.setMaxRows(source.getMaxRows());
@@ -114,6 +120,71 @@ public class InMemoryAskDataConversationStore implements AskDataConversationStor
         target.setErrorCode(source.getErrorCode());
         target.setVersion(source.getVersion());
         target.setCreatedAt(source.getCreatedAt());
+        return target;
+    }
+
+    private List<AskDataResult> copyResults(List<AskDataResult> source) {
+        List<AskDataResult> target = new ArrayList<AskDataResult>();
+        if (source != null) {
+            for (AskDataResult result : source) {
+                if (result != null) {
+                    target.add(copyResult(result));
+                }
+            }
+        }
+        return target;
+    }
+
+    private AskDataResult copyResult(AskDataResult source) {
+        AskDataResult target = new AskDataResult();
+        target.setSuccess(source.isSuccess());
+        target.setErrorCode(source.getErrorCode());
+        target.setErrorMessage(source.getErrorMessage());
+        target.setSql(source.getSql());
+        target.setTables(new ArrayList<String>(source.getTables()));
+        target.setChartType(source.getChartType());
+        target.setBrief(source.getBrief());
+        target.setColumns(copyColumns(source.getColumns()));
+        target.setRows(copyRows(source.getRows()));
+        target.setRowCount(source.getRowCount());
+        target.setSteps(copyStepLogs(source.getSteps()));
+        target.setConversationId(source.getConversationId());
+        target.setResumeToken(source.getResumeToken());
+        target.setCheckpointId(source.getCheckpointId());
+        target.setActualModelKey(source.getActualModelKey());
+        target.setModelAttempts(source.getModelAttempts());
+        target.setActualEmbeddingModelKey(source.getActualEmbeddingModelKey());
+        target.setEmbeddingModelAttempts(source.getEmbeddingModelAttempts());
+        target.setQuestionId(source.getQuestionId());
+        target.setQuestionState(source.getQuestionState());
+        target.setDependsOn(source.getDependsOn());
+        target.setChildResults(copyResults(source.getChildResults()));
+        return target;
+    }
+
+    private List<AskDataColumn> copyColumns(List<AskDataColumn> source) {
+        List<AskDataColumn> target = new ArrayList<AskDataColumn>();
+        if (source != null) {
+            for (AskDataColumn column : source) {
+                if (column != null) {
+                    AskDataColumn copied = new AskDataColumn();
+                    copied.setName(column.getName());
+                    copied.setLabel(column.getLabel());
+                    copied.setType(column.getType());
+                    target.add(copied);
+                }
+            }
+        }
+        return target;
+    }
+
+    private List<Map<String, Object>> copyRows(List<Map<String, Object>> source) {
+        List<Map<String, Object>> target = new ArrayList<Map<String, Object>>();
+        if (source != null) {
+            for (Map<String, Object> row : source) {
+                target.add(row == null ? null : new LinkedHashMap<String, Object>(row));
+            }
+        }
         return target;
     }
 

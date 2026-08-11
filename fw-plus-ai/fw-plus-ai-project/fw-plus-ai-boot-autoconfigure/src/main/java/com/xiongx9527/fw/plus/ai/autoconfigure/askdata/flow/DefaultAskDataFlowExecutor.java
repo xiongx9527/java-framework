@@ -31,8 +31,13 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetrievalException;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetrievalResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataMultiQuestionExecutor;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataMultiQuestionRequest;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataMultiQuestionResult;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlan;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataSubQuestion;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataSubQuestionResult;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatRequest;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult;
@@ -65,6 +70,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
@@ -243,13 +251,14 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
     @Override
     public AskDataResult execute(AskDataRequest request) {
-        List<String> questions = plannedQuestions(request);
-        if (questions.size() > 1) {
-            if (isResumeRequested(request)) {
-                return failure(new AskDataResult(), "multi-question", AskDataErrorCode.RESUME_FAILED,
-                        "AskData 多问题请求不支持恢复执行");
-            }
-            return executeMultiple(request, questions);
+        AskDataQuestionPlan plan;
+        try {
+            plan = plannedQuestions(request);
+        } catch (IllegalArgumentException ex) {
+            return failure(new AskDataResult(), "multi-question", AskDataErrorCode.SUBQUESTION_FAILED, message(ex));
+        }
+        if (plan != null && plan.isMultiQuestion()) {
+            return executeMultiple(request, plan);
         }
         return executeSingle(request);
     }
@@ -260,6 +269,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
      * <p>该路径保留原有的会话、恢复和步骤顺序；仅多问题计划会进入聚合流程。</p>
      */
     private AskDataResult executeSingle(AskDataRequest request) {
+        return executeSingle(request, isResumeRequested(request));
+    }
+
+    private AskDataResult executeSingle(AskDataRequest request, boolean resumeRequested) {
         AskDataResult result = new AskDataResult();
         if (request != null) {
             result.setConversationId(request.getConversationId());
@@ -272,7 +285,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (governanceProvider != null && authorizationSummary == null) {
             return result;
         }
-        if (!isResumeRequested(request) && conversationStore != null && contextCompressor != null
+        if (!resumeRequested && conversationStore != null && contextCompressor != null
                 && isBlank(result.getConversationId())) {
             result.setConversationId(UUID.randomUUID().toString());
         }
@@ -280,7 +293,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         context.getAttributes().put(AUTHORIZATION_SUMMARY_ATTRIBUTE, authorizationSummary);
         publishLifecycleEvent(request, result, AskDataEvent.Type.CONVERSATION_STARTED, "AskData 对话已开始");
         AskDataResult completed;
-        if (isResumeRequested(request)) {
+        if (resumeRequested) {
             publishLifecycleEvent(request, result, AskDataEvent.Type.RECOVERY_ATTEMPTED, "AskData 恢复已尝试");
             completed = resume(request, result, context);
         } else {
@@ -297,73 +310,457 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
      * <p>子请求复用同一项目和操作人上下文，不会把其中任一问题的失败扩散到其他问题。每个子结果写入
      * 独立审计步骤，聚合结果仅汇总是否全部成功，不合并敏感的模型输出或 SQL。</p>
      */
-    private AskDataResult executeMultiple(AskDataRequest request, List<String> questions) {
+    private AskDataResult executeMultiple(final AskDataRequest request, final AskDataQuestionPlan plan) {
         AskDataResult aggregated = new AskDataResult();
-        if (request != null) {
-            aggregated.setConversationId(request.getConversationId());
+        if (!hasValidProjectContext(request)) {
+            return failure(aggregated, "request", AskDataErrorCode.MODEL_RESPONSE_INVALID,
+                    "AskData 请求缺少有效项目与操作人上下文");
         }
-        boolean allSucceeded = true;
-        for (int index = 0; index < questions.size(); index++) {
-            AskDataResult child = executeSingle(copyForQuestion(request, questions.get(index)));
-            child.addStep("child-audit", "Child audit", child.isSuccess(), "Child question completed");
-            aggregated.getChildResults().add(child);
-            allSucceeded = allSucceeded && child.isSuccess();
+        final boolean resumeRequested = isResumeRequested(request);
+        AskDataCheckpoint parentCheckpoint = null;
+        if (resumeRequested) {
+            parentCheckpoint = loadMultiQuestionCheckpoint(request, aggregated, plan);
+            if (parentCheckpoint == null) {
+                return aggregated;
+            }
+            aggregated.setConversationId(parentCheckpoint.getConversationId());
+            aggregated.setCheckpointId(parentCheckpoint.getCheckpointId());
+            aggregated.setResumeToken(parentCheckpoint.getResumeToken());
+        } else {
+            aggregated.setConversationId(UUID.randomUUID().toString());
         }
+        final ConcurrentMap<String, AskDataResult> childResults = new ConcurrentHashMap<String, AskDataResult>();
+        final Map<String, AskDataSubQuestion> questionsById;
+        try {
+            questionsById = questionsById(plan);
+        } catch (IllegalArgumentException ex) {
+            return failure(aggregated, "multi-question", AskDataErrorCode.SUBQUESTION_FAILED, message(ex));
+        }
+        final List<AskDataSubQuestionResult> restored;
+        try {
+            restored = restoreMultiQuestionResults(parentCheckpoint, questionsById, childResults);
+        } catch (IllegalArgumentException ex) {
+            return failure(aggregated, "multi-question", AskDataErrorCode.RESUME_FAILED, message(ex));
+        }
+        AskDataResult initialCheckpointFailure = saveMultiQuestionCheckpoint(request, aggregated, plan, childResults);
+        if (initialCheckpointFailure != null) {
+            return initialCheckpointFailure;
+        }
+        AskDataMultiQuestionRequest multiRequest = new AskDataMultiQuestionRequest(request.getProjectContext(),
+                aggregated.getConversationId(), plan.getSubQuestions(), multiQuestionTimeoutMillis(),
+                multiQuestionMaxConcurrency(), restored);
+        final AtomicReference<AskDataResult> checkpointFailure = new AtomicReference<AskDataResult>();
+        AskDataMultiQuestionResult terminalResults;
+        try {
+            terminalResults = new AskDataMultiQuestionExecutor().execute(multiRequest, question -> {
+                AskDataRequest childRequest = copyForQuestion(request, question, aggregated.getConversationId());
+                boolean resumeChild = prepareChildResume(childRequest);
+                AskDataResult child = executeSingle(childRequest, resumeChild);
+                decorateChildResult(child, question,
+                        child.isSuccess() ? AskDataSubQuestionResult.State.SUCCEEDED
+                                : AskDataSubQuestionResult.State.FAILED);
+                childResults.putIfAbsent(question.getId(), child);
+                return toCoreResult(child);
+            }, terminal -> {
+                AskDataSubQuestion question = questionsById.get(terminal.getQuestionId());
+                AskDataResult child = childResults.get(terminal.getQuestionId());
+                if (child == null || !terminal.getState().name().equals(child.getQuestionState())) {
+                    child = terminalChildResult(question, terminal, aggregated.getConversationId());
+                    childResults.put(terminal.getQuestionId(), child);
+                }
+                AskDataResult failed = saveMultiQuestionCheckpoint(request, aggregated, plan, childResults);
+                if (failed != null) {
+                    checkpointFailure.compareAndSet(null, failed);
+                    multiRequest.cancel();
+                }
+            });
+        } catch (IllegalArgumentException ex) {
+            return failure(aggregated, "multi-question", AskDataErrorCode.SUBQUESTION_FAILED, message(ex));
+        }
+        aggregated.setChildResults(orderedChildResults(plan, childResults, terminalResults,
+                aggregated.getConversationId()));
+        boolean allSucceeded = allChildrenSucceeded(aggregated.getChildResults());
         aggregated.setSuccess(allSucceeded);
+        if (!allSucceeded) {
+            AskDataResult firstFailure = firstFailedChild(aggregated.getChildResults());
+            aggregated.setErrorCode(firstFailure == null || isBlank(firstFailure.getErrorCode())
+                    ? AskDataErrorCode.SUBQUESTION_FAILED : firstFailure.getErrorCode());
+            aggregated.setErrorMessage(firstFailure == null ? "One or more child questions failed"
+                    : firstFailure.getErrorMessage());
+        }
         aggregated.addStep("multi-question", "Multi question", allSucceeded,
                 allSucceeded ? "All child questions completed" : "One or more child questions failed");
-        return aggregated;
+        AskDataResult finalCheckpointFailure = saveMultiQuestionCheckpoint(request, aggregated, plan, childResults);
+        if (checkpointFailure.get() != null) {
+            AskDataResult failed = checkpointFailure.get();
+            failed.setChildResults(aggregated.getChildResults());
+            return failed;
+        }
+        return finalCheckpointFailure == null ? aggregated : finalCheckpointFailure;
     }
 
-    private AskDataRequest copyForQuestion(AskDataRequest source, String question) {
+    private AskDataRequest copyForQuestion(AskDataRequest source, AskDataSubQuestion question,
+            String parentConversationId) {
         AskDataRequest target = new AskDataRequest();
-        target.setQuestion(question);
-        target.setProjectContext(source == null ? null : source.getProjectContext());
-        target.setDatasourceKey(source == null ? null : source.getDatasourceKey());
-        target.setDialect(source == null ? null : source.getDialect());
-        target.setModelKey(source == null ? null : source.getModelKey());
-        target.setConversationId(source == null ? null : source.getConversationId());
-        target.setResumeToken(source == null ? null : source.getResumeToken());
-        target.setExecute(source == null ? null : source.getExecute());
-        target.setMaxRows(source == null ? null : source.getMaxRows());
-        target.setOptions(source == null ? null : source.getOptions());
+        target.setQuestion(question.getQuestion());
+        target.setProjectContext(source.getProjectContext());
+        target.setDatasourceKey(source.getDatasourceKey());
+        target.setDialect(source.getDialect());
+        target.setModelKey(source.getModelKey());
+        target.setConversationId(parentConversationId + ":" + question.getId());
+        target.setExecute(source.getExecute());
+        target.setMaxRows(source.getMaxRows());
+        target.setOptions(source.getOptions());
         return target;
     }
 
-    private List<String> explicitQuestions(AskDataRequest request) {
-        if (request == null || request.getOptions() == null) {
-            return Collections.emptyList();
+    private AskDataQuestionPlan plannedQuestions(AskDataRequest request) {
+        if (request == null) {
+            return null;
+        }
+        AskDataQuestionPlan explicit = explicitQuestionPlan(request);
+        AskDataQuestionPlan plan = explicit == null ? questionPlanner.plan(request.getQuestion()) : explicit;
+        if (plan == null) {
+            throw new IllegalArgumentException("AskData 问题计划不能为空");
+        }
+        return plan;
+    }
+
+    private AskDataQuestionPlan explicitQuestionPlan(AskDataRequest request) {
+        if (request.getOptions() == null || !request.getOptions().containsKey(MULTI_QUESTION_OPTION)) {
+            return null;
         }
         Object configuredQuestions = request.getOptions().get(MULTI_QUESTION_OPTION);
         if (!(configuredQuestions instanceof Iterable<?>)) {
-            return Collections.emptyList();
+            throw new IllegalArgumentException("questions 必须是字符串或结构化子问题列表");
         }
-        List<String> questions = new ArrayList<String>();
+        List<String> strings = new ArrayList<String>();
+        List<AskDataSubQuestion> structured = new ArrayList<AskDataSubQuestion>();
         for (Object configuredQuestion : (Iterable<?>) configuredQuestions) {
-            if (configuredQuestion instanceof String && !isBlank((String) configuredQuestion)) {
-                questions.add(((String) configuredQuestion).trim());
+            if (configuredQuestion instanceof String) {
+                if (!structured.isEmpty() || isBlank((String) configuredQuestion)) {
+                    throw new IllegalArgumentException("questions 不能混用字符串与结构化子问题");
+                }
+                strings.add(((String) configuredQuestion).trim());
+            } else if (configuredQuestion instanceof Map<?, ?>) {
+                if (!strings.isEmpty()) {
+                    throw new IllegalArgumentException("questions 不能混用字符串与结构化子问题");
+                }
+                structured.add(structuredQuestion((Map<?, ?>) configuredQuestion));
+            } else {
+                throw new IllegalArgumentException("questions 包含不支持的子问题类型");
             }
         }
-        return questions;
+        if (!structured.isEmpty()) {
+            return AskDataQuestionPlan.ofSubQuestions(structured);
+        }
+        if (!strings.isEmpty()) {
+            return questionPlanner.plan(strings);
+        }
+        throw new IllegalArgumentException("questions 不能为空");
     }
 
-    /**
-     * 将显式列表或复合问题转换为合法的 Core 问题计划。
-     *
-     * <p>无计划、无效计划或单问题计划均回退至原单问题流程，不会调用模型补充问题。</p>
-     */
-    private List<String> plannedQuestions(AskDataRequest request) {
-        if (request == null) {
+    private AskDataSubQuestion structuredQuestion(Map<?, ?> value) {
+        String id = requiredString(value.get("id"), "question.id");
+        String question = requiredString(value.get("question"), "question.question");
+        List<String> dependsOn = stringList(value.get("dependsOn"), "question.dependsOn");
+        AskDataSubQuestion.FailurePolicy failurePolicy = failurePolicy(value.get("failurePolicy"));
+        long timeoutMillis = timeoutMillis(value.get("timeoutMillis"));
+        return new AskDataSubQuestion(id, question, dependsOn, failurePolicy, timeoutMillis);
+    }
+
+    private String requiredString(Object value, String name) {
+        if (!(value instanceof String) || isBlank((String) value)) {
+            throw new IllegalArgumentException(name + " 不能为空");
+        }
+        return ((String) value).trim();
+    }
+
+    private List<String> stringList(Object value, String name) {
+        if (value == null) {
             return Collections.emptyList();
+        }
+        if (!(value instanceof Iterable<?>)) {
+            throw new IllegalArgumentException(name + " 必须是字符串列表");
+        }
+        List<String> result = new ArrayList<String>();
+        for (Object entry : (Iterable<?>) value) {
+            result.add(requiredString(entry, name));
+        }
+        return result;
+    }
+
+    private AskDataSubQuestion.FailurePolicy failurePolicy(Object value) {
+        if (value == null) {
+            return AskDataSubQuestion.FailurePolicy.SKIP;
+        }
+        if (!(value instanceof String)) {
+            throw new IllegalArgumentException("question.failurePolicy 必须是 SKIP 或 CONTINUE");
+        }
+        String policy = ((String) value).trim();
+        if ("SKIP".equalsIgnoreCase(policy)) {
+            return AskDataSubQuestion.FailurePolicy.SKIP;
+        }
+        if ("CONTINUE".equalsIgnoreCase(policy)) {
+            return AskDataSubQuestion.FailurePolicy.CONTINUE;
+        }
+        throw new IllegalArgumentException("question.failurePolicy 必须是 SKIP 或 CONTINUE");
+    }
+
+    private long timeoutMillis(Object value) {
+        if (value == null) {
+            return 0L;
+        }
+        if (!(value instanceof Number)) {
+            throw new IllegalArgumentException("question.timeoutMillis 必须是非负整数");
+        }
+        long timeout = ((Number) value).longValue();
+        if (timeout < 0L) {
+            throw new IllegalArgumentException("question.timeoutMillis 不能为负数");
+        }
+        return timeout;
+    }
+
+    private Map<String, AskDataSubQuestion> questionsById(AskDataQuestionPlan plan) {
+        Map<String, AskDataSubQuestion> result = new LinkedHashMap<String, AskDataSubQuestion>();
+        for (AskDataSubQuestion question : plan.getSubQuestions()) {
+            if (result.put(question.getId(), question) != null) {
+                throw new IllegalArgumentException("子问题 ID 不可重复: " + question.getId());
+            }
+        }
+        return result;
+    }
+
+    private AskDataCheckpoint loadMultiQuestionCheckpoint(AskDataRequest request, AskDataResult result,
+            AskDataQuestionPlan plan) {
+        if (conversationStore == null) {
+            failure(result, "multi-question", AskDataErrorCode.RESUME_FAILED,
+                    "AskData conversation store is not configured");
+            return null;
         }
         try {
-            List<String> explicitQuestions = explicitQuestions(request);
-            AskDataQuestionPlan plan = explicitQuestions.isEmpty()
-                    ? questionPlanner.plan(request.getQuestion()) : questionPlanner.plan(explicitQuestions);
-            return plan.isMultiQuestion() ? plan.getQuestions() : Collections.<String>emptyList();
-        } catch (IllegalArgumentException ex) {
+            AskDataCheckpoint checkpoint = !isBlank(request.getResumeToken())
+                    ? conversationStore.loadByResumeToken(request.getResumeToken())
+                    : conversationStore.loadLatest(request.getConversationId());
+            if (checkpoint == null) {
+                failure(result, "multi-question", AskDataErrorCode.CHECKPOINT_NOT_FOUND,
+                        "AskData multi-question checkpoint was not found");
+                return null;
+            }
+            AskDataCheckpoint latest = conversationStore.loadLatest(checkpoint.getConversationId());
+            if (latest != null) {
+                checkpoint = latest;
+            }
+            if (!Boolean.TRUE.equals(checkpoint.getMultiQuestion())
+                    || !equals(checkpointVersion(), checkpoint.getVersion())
+                    || !equals(multiQuestionPlanSnapshot(plan), checkpoint.getMultiQuestionPlanSnapshot())
+                    || !requestIdentityMatches(request, checkpoint)) {
+                failure(result, "multi-question", AskDataErrorCode.RESUME_FAILED,
+                        "AskData multi-question checkpoint identity or version does not match");
+                return null;
+            }
+            return checkpoint;
+        } catch (RuntimeException ex) {
+            failure(result, "multi-question", AskDataErrorCode.RESUME_FAILED, message(ex));
+            return null;
+        }
+    }
+
+    private List<AskDataSubQuestionResult> restoreMultiQuestionResults(AskDataCheckpoint checkpoint,
+            Map<String, AskDataSubQuestion> questionsById, ConcurrentMap<String, AskDataResult> childResults) {
+        if (checkpoint == null) {
             return Collections.emptyList();
         }
+        List<AskDataSubQuestionResult> restored = new ArrayList<AskDataSubQuestionResult>();
+        for (AskDataResult child : checkpoint.getChildResults()) {
+            if (child == null || isBlank(child.getQuestionId()) || isBlank(child.getQuestionState())) {
+                throw new IllegalArgumentException("父检查点包含无效子问题终态");
+            }
+            AskDataSubQuestion question = questionsById.get(child.getQuestionId());
+            if (question == null || childResults.putIfAbsent(child.getQuestionId(), child) != null) {
+                throw new IllegalArgumentException("父检查点子问题 ID 与当前计划不匹配");
+            }
+            child.setDependsOn(question.getDependsOn());
+            restored.add(toCoreResult(child));
+        }
+        for (AskDataSubQuestionResult terminal : restored) {
+            AskDataSubQuestion question = questionsById.get(terminal.getQuestionId());
+            if (!childResults.keySet().containsAll(question.getDependsOn())) {
+                throw new IllegalArgumentException("父检查点子问题缺少前置依赖终态: " + terminal.getQuestionId());
+            }
+        }
+        return restored;
+    }
+
+    private boolean prepareChildResume(AskDataRequest childRequest) {
+        if (conversationStore == null) {
+            return false;
+        }
+        AskDataCheckpoint childCheckpoint = conversationStore.loadLatest(childRequest.getConversationId());
+        if (childCheckpoint == null) {
+            return false;
+        }
+        childRequest.setResumeToken(childCheckpoint.getResumeToken());
+        return true;
+    }
+
+    private void decorateChildResult(AskDataResult child, AskDataSubQuestion question,
+            AskDataSubQuestionResult.State state) {
+        child.setQuestionId(question.getId());
+        child.setQuestionState(state.name());
+        child.setDependsOn(question.getDependsOn());
+        child.addStep("child-audit", "Child audit", child.isSuccess(), "Child question completed");
+    }
+
+    private AskDataSubQuestionResult toCoreResult(AskDataResult child) {
+        String questionId = child.getQuestionId();
+        String state = child.getQuestionState();
+        if (AskDataSubQuestionResult.State.SUCCEEDED.name().equals(state)) {
+            return AskDataSubQuestionResult.success(questionId, child.getBrief());
+        }
+        if (AskDataSubQuestionResult.State.FAILED.name().equals(state)) {
+            return AskDataSubQuestionResult.failed(questionId,
+                    isBlank(child.getErrorCode()) ? AskDataErrorCode.SUBQUESTION_FAILED : child.getErrorCode(),
+                    child.getErrorMessage());
+        }
+        if (AskDataSubQuestionResult.State.TIMED_OUT.name().equals(state)) {
+            return AskDataSubQuestionResult.timedOut(questionId);
+        }
+        if (AskDataSubQuestionResult.State.CANCELLED.name().equals(state)) {
+            return AskDataSubQuestionResult.cancelled(questionId);
+        }
+        if (AskDataSubQuestionResult.State.SKIPPED.name().equals(state)) {
+            return AskDataSubQuestionResult.skipped(questionId);
+        }
+        throw new IllegalArgumentException("未知子问题终态: " + state);
+    }
+
+    private AskDataResult terminalChildResult(AskDataSubQuestion question, AskDataSubQuestionResult terminal,
+            String parentConversationId) {
+        AskDataResult child = AskDataResult.failure(terminal.getErrorCode(), terminal.getErrorMessage());
+        child.setConversationId(parentConversationId + ":" + terminal.getQuestionId());
+        decorateChildResult(child, question, terminal.getState());
+        return child;
+    }
+
+    private List<AskDataResult> orderedChildResults(AskDataQuestionPlan plan,
+            ConcurrentMap<String, AskDataResult> childResults, AskDataMultiQuestionResult terminalResults,
+            String parentConversationId) {
+        List<AskDataResult> ordered = new ArrayList<AskDataResult>();
+        for (AskDataSubQuestion question : plan.getSubQuestions()) {
+            AskDataResult child = childResults.get(question.getId());
+            if (child == null) {
+                child = terminalChildResult(question, terminalResults.getResult(question.getId()),
+                        parentConversationId);
+            }
+            ordered.add(child);
+        }
+        return ordered;
+    }
+
+    private boolean allChildrenSucceeded(List<AskDataResult> children) {
+        for (AskDataResult child : children) {
+            if (!child.isSuccess() || !AskDataSubQuestionResult.State.SUCCEEDED.name().equals(child.getQuestionState())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private AskDataResult firstFailedChild(List<AskDataResult> children) {
+        for (AskDataResult child : children) {
+            if (!child.isSuccess()) {
+                return child;
+            }
+        }
+        return null;
+    }
+
+    private AskDataResult saveMultiQuestionCheckpoint(AskDataRequest request, AskDataResult result,
+            AskDataQuestionPlan plan, Map<String, AskDataResult> childResults) {
+        if (conversationStore == null || isBlank(result.getConversationId())) {
+            return null;
+        }
+        try {
+            AskDataCheckpoint checkpoint = new AskDataCheckpoint();
+            checkpoint.setConversationId(result.getConversationId());
+            checkpoint.setCheckpointId(UUID.randomUUID().toString());
+            checkpoint.setResumeToken(UUID.randomUUID().toString());
+            checkpoint.setRequestSummary(request.getQuestion());
+            checkpoint.setModelKey(request.getModelKey());
+            checkpoint.setDatasourceKey(request.getDatasourceKey());
+            checkpoint.setDialect(request.getDialect());
+            checkpoint.setMaxRows(Integer.valueOf(maxRows(request)));
+            checkpoint.setExecute(Boolean.valueOf(isExecutionEnabled(request)));
+            checkpoint.setRequestOptionsSnapshot(checkpointScopeSnapshot(request));
+            checkpoint.setMultiQuestion(Boolean.TRUE);
+            checkpoint.setMultiQuestionPlanSnapshot(multiQuestionPlanSnapshot(plan));
+            checkpoint.setChildResults(availableChildResults(plan, childResults));
+            if (checkpoint.getChildResults().size() == plan.getSubQuestions().size()) {
+                checkpoint.setCompletedSteps(Collections.singletonList("multi-question"));
+            }
+            checkpoint.setCurrentStep("multi-question");
+            checkpoint.setSteps(result.getSteps());
+            checkpoint.setErrorCode(result.getErrorCode());
+            checkpoint.setVersion(checkpointVersion());
+            checkpoint.setCreatedAt(new Date());
+            AskDataCheckpoint saved = conversationStore.save(checkpoint);
+            AskDataCheckpoint responseCheckpoint = saved == null ? checkpoint : saved;
+            result.setCheckpointId(responseCheckpoint.getCheckpointId());
+            result.setResumeToken(responseCheckpoint.getResumeToken());
+            return null;
+        } catch (RuntimeException ex) {
+            AskDataResult failed = AskDataResult.failure(AskDataErrorCode.CONTEXT_COMPRESSION_FAILED, message(ex));
+            failed.setConversationId(result.getConversationId());
+            failed.setCheckpointId(result.getCheckpointId());
+            failed.setResumeToken(result.getResumeToken());
+            failed.setChildResults(availableChildResults(plan, childResults));
+            failed.addStep("multi-question", "multi-question", false, message(ex));
+            return failed;
+        }
+    }
+
+    private List<AskDataResult> availableChildResults(AskDataQuestionPlan plan,
+            Map<String, AskDataResult> childResults) {
+        List<AskDataResult> available = new ArrayList<AskDataResult>();
+        for (AskDataSubQuestion question : plan.getSubQuestions()) {
+            AskDataResult child = childResults.get(question.getId());
+            if (child != null) {
+                available.add(child);
+            }
+        }
+        return available;
+    }
+
+    private String multiQuestionPlanSnapshot(AskDataQuestionPlan plan) {
+        StringBuilder snapshot = new StringBuilder("[");
+        for (AskDataSubQuestion question : plan.getSubQuestions()) {
+            if (snapshot.length() > 1) {
+                snapshot.append(',');
+            }
+            snapshot.append("{\"id\":").append(jsonString(question.getId()))
+                    .append(",\"question\":").append(jsonString(question.getQuestion()))
+                    .append(",\"dependsOn\":[");
+            for (int index = 0; index < question.getDependsOn().size(); index++) {
+                if (index > 0) {
+                    snapshot.append(',');
+                }
+                snapshot.append(jsonString(question.getDependsOn().get(index)));
+            }
+            snapshot.append("],\"failurePolicy\":").append(jsonString(question.getFailurePolicy().name()))
+                    .append(",\"timeoutMillis\":").append(question.getTimeoutMillis()).append('}');
+        }
+        return snapshot.append(']').toString();
+    }
+
+    private int multiQuestionMaxConcurrency() {
+        Integer value = properties.getFlow().getMultiQuestionMaxConcurrency();
+        return value == null || value.intValue() <= 0 ? 1 : value.intValue();
+    }
+
+    private long multiQuestionTimeoutMillis() {
+        Integer value = properties.getFlow().getMultiQuestionTimeoutMillis();
+        return value == null || value.intValue() <= 0 ? 30000L : value.longValue();
     }
 
     private AskDataResult executeNew(AskDataRequest request, AskDataResult result, AskDataStepContext context) {
