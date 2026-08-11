@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataService;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataCheckpoint;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataAgentDispatcher;
@@ -400,6 +401,41 @@ public class AskDataAutoConfigurationTest {
     public void shouldGenerateSqlWhenNoSubAgentIsRegistered() {
         withDefaultFlowDependencies()
                 .run(context -> assertSuccessfulSql(context.getBean(AskDataService.class).ask(createRequest())));
+    }
+
+    @Test
+    public void shouldPreferBusinessCoreChatModelOverLegacyRegistry() {
+        withDefaultFlowDependencies()
+                .withPropertyValues("fw.plus.ai.askdata.model.default-chat-model=test-model")
+                .withBean(com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel.class,
+                        () -> request -> com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.success(
+                                "{\"sql\":\"" + SQL + "\"}", "business-provider-chat"))
+                .run(context -> {
+                    AskDataRequest request = createRequest();
+                    request.setModelKey("test-model");
+                    AskDataResult result = context.getBean(AskDataService.class).ask(request);
+
+                    assertTrue(result.isSuccess());
+                    assertEquals("business-provider-chat", result.getActualModelKey());
+                    assertEquals(Collections.singletonList("test-model"), result.getModelAttempts());
+                    AskDataCheckpoint checkpoint = context.getBean(AskDataConversationStore.class)
+                            .loadLatest(result.getConversationId());
+                    assertEquals("business-provider-chat", checkpoint.getActualModelKey());
+                    assertEquals(Collections.singletonList("test-model"), checkpoint.getModelAttempts());
+
+                    java.util.List<com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog>
+                            logs = context.getBean(
+                                    com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.class)
+                                    .list(request.getProjectContext());
+                    com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog routed = null;
+                    for (com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog log : logs) {
+                        if ("MODEL_ROUTED".equals(log.getEventType())) {
+                            routed = log;
+                        }
+                    }
+                    assertTrue(routed != null);
+                    assertEquals("test-model", routed.getModelKey());
+                });
     }
 
     private ApplicationContextRunner withDefaultFlowDependencies() {

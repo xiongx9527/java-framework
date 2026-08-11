@@ -31,6 +31,11 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetri
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlan;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatRequest;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRequest;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelResult;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
@@ -89,6 +94,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private final AskDataSqlInterceptorChain sqlInterceptorChain;
     private final com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreSqlValidator;
     private final AskDataGovernanceProvider governanceProvider;
+    private final com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel coreChatModel;
+    private final AskDataModelRouter coreModelRouter;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -191,6 +198,22 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataQuestionPlanner questionPlanner, AskDataSqlInterceptorChain sqlInterceptorChain,
             com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreSqlValidator,
             AskDataGovernanceProvider governanceProvider) {
+        this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
+                sqlValidator, sqlExecutor, conversationStore, contextCompressor, agentDispatcher, mainAgents,
+                eventPublisher, questionPlanner, sqlInterceptorChain, coreSqlValidator, governanceProvider, null, null);
+    }
+
+    public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+            AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+            AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
+            List<AskDataAgent> mainAgents, AskDataEventPublisher eventPublisher,
+            AskDataQuestionPlanner questionPlanner, AskDataSqlInterceptorChain sqlInterceptorChain,
+            com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreSqlValidator,
+            AskDataGovernanceProvider governanceProvider,
+            com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel coreChatModel,
+            AskDataModelRouter coreModelRouter) {
         this.properties = properties;
         this.modelRegistry = modelRegistry;
         this.metadataProvider = metadataProvider;
@@ -210,6 +233,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         this.coreSqlValidator = coreSqlValidator;
         this.governanceProvider = governanceProvider == null ? new DefaultDenyAskDataGovernanceProvider()
                 : governanceProvider;
+        this.coreChatModel = coreChatModel;
+        this.coreModelRouter = coreModelRouter;
     }
 
     @Override
@@ -436,7 +461,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
         AskDataModelResponse modelResponse;
         try {
-            modelResponse = modelRegistry.generate(request, prompt);
+            modelResponse = generateModelResponse(request, prompt, result);
         } catch (AskDataModelException ex) {
             return failure(result, "generate-sql", ex.getErrorCode(), message(ex));
         } catch (RuntimeException ex) {
@@ -471,6 +496,78 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
 
         return validateAndExecute(request, result, context, metadata, generatedSql);
+    }
+
+    private AskDataModelResponse generateModelResponse(AskDataRequest request, String prompt, AskDataResult result) {
+        if (coreChatModel == null || coreModelRouter == null) {
+            AskDataModelResponse response = modelRegistry.generate(request, prompt);
+            if (response != null && !isBlank(response.getModelKey())) {
+                result.addModelAttempt(response.getModelKey());
+                result.setActualModelKey(response.getModelKey());
+            }
+            return response;
+        }
+        AskDataModelRequest routeRequest = chatRouteRequest(request);
+        AskDataModelResult routed = coreModelRouter.route(routeRequest);
+        while (true) {
+            result.addModelAttempt(routed.getModelKey());
+            publishModelRouted(request, result, routed.getModelKey());
+            AskDataChatResult chatResult = coreChatModel.chat(new AskDataChatRequest(request.getProjectContext(),
+                    prompt, routed.getModelKey(), Collections.<String, Object>emptyMap(), modelTimeoutMillis()));
+            if (chatResult == null) {
+                throw new AskDataModelException(AskDataErrorCode.MODEL_RESPONSE_INVALID,
+                        "AskData Core Chat 模型未返回结果");
+            }
+            if (chatResult.isSuccess()) {
+                String actualModelKey = isBlank(chatResult.getActualModelKey())
+                        ? routed.getModelKey() : chatResult.getActualModelKey();
+                result.setActualModelKey(actualModelKey);
+                return new AskDataModelResponse(chatResult.getAnswer(), null, actualModelKey);
+            }
+            if (!AskDataChatResult.MODEL_INFRASTRUCTURE_FAILURE.equals(chatResult.getErrorCode())
+                    || !chatResult.isRetryable() || !properties.getModel().isFallbackEnabled()) {
+                throw new AskDataModelException(chatResult.getErrorCode(), chatResult.getErrorMessage());
+            }
+            try {
+                routed = coreModelRouter.fallback(routeRequest,
+                        AskDataModelResult.infrastructureFailure(routed, chatResult.getErrorMessage()));
+            } catch (IllegalArgumentException noCandidate) {
+                throw new AskDataModelException(chatResult.getErrorCode(), chatResult.getErrorMessage());
+            }
+        }
+    }
+
+    private AskDataModelRequest chatRouteRequest(AskDataRequest request) {
+        String[] routeKeys = { "", "", "", "", "" };
+        routeKeys[0] = normalized(request == null ? null : request.getModelKey());
+        String defaultKey = normalized(properties == null || properties.getModel() == null
+                ? null : properties.getModel().getDefaultChatModel());
+        int routeIndex = 1;
+        if (properties != null && properties.getModel() != null
+                && properties.getModel().getChatCandidates() != null) {
+            for (String candidate : properties.getModel().getChatCandidates()) {
+                String candidateKey = normalized(candidate);
+                if (candidateKey.length() > 0 && !candidateKey.equals(routeKeys[0])
+                        && !candidateKey.equals(defaultKey) && routeIndex < 4) {
+                    routeKeys[routeIndex++] = candidateKey;
+                }
+            }
+        }
+        routeKeys[4] = defaultKey;
+        return new AskDataModelRequest(request.getProjectContext(), routeKeys[0], routeKeys[1], routeKeys[2],
+                routeKeys[3], routeKeys[4]);
+    }
+
+    private long modelTimeoutMillis() {
+        if (properties == null || properties.getModel() == null
+                || properties.getModel().getRequestTimeoutMillis() == null) {
+            return 0L;
+        }
+        return Math.max(0L, properties.getModel().getRequestTimeoutMillis().longValue());
+    }
+
+    private String normalized(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private AskDataResult resume(AskDataRequest request, AskDataResult result, AskDataStepContext context) {
@@ -1059,6 +1156,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             checkpoint.setResumeToken(UUID.randomUUID().toString());
             checkpoint.setRequestSummary(request == null ? null : request.getQuestion());
             checkpoint.setModelKey(request == null ? null : request.getModelKey());
+            checkpoint.setActualModelKey(result.getActualModelKey());
+            checkpoint.setModelAttempts(result.getModelAttempts());
             checkpoint.setDatasourceKey(request == null ? null : request.getDatasourceKey());
             checkpoint.setMaxRows(Integer.valueOf(maxRows(request)));
             checkpoint.setExecute(Boolean.valueOf(isExecutionEnabled(request)));
@@ -1093,6 +1192,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         result.setResumeToken(checkpoint.getResumeToken());
         result.setSql(checkpoint.getSql());
         result.setRowCount(checkpoint.getRowCount());
+        result.setActualModelKey(checkpoint.getActualModelKey());
+        result.setModelAttempts(checkpoint.getModelAttempts());
         result.setSteps(new ArrayList<AskDataStepLog>(checkpoint.getSteps()));
         for (String completedStep : checkpoint.getCompletedSteps()) {
             if (!hasSuccessfulStep(result.getSteps(), completedStep)) {
@@ -1210,6 +1311,14 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (projectContext != null) {
             eventPublisher.publish(new AskDataEvent(projectContext, result.getConversationId(), type, message));
         }
+    }
+
+    private void publishModelRouted(AskDataRequest request, AskDataResult result, String modelKey) {
+        if (eventPublisher == null || request == null || request.getProjectContext() == null) {
+            return;
+        }
+        eventPublisher.publish(AskDataEvent.modelRouted(request.getProjectContext(), result.getConversationId(),
+                modelKey, "AskData model attempt"));
     }
 
     private boolean hasValidProjectContext(AskDataRequest request) {

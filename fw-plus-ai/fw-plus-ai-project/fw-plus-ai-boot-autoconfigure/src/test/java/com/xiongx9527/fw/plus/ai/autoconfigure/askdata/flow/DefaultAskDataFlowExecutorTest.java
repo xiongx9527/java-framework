@@ -82,6 +82,92 @@ public class DefaultAskDataFlowExecutorTest {
     }
 
     @Test
+    public void shouldUseCoreChatModelAndReturnActualModelKey() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.coreModelRouter = new com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter() { };
+        dependencies.coreChatModel = request -> com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.success(
+                "{\"sql\":\"select count(*) from orders\"}", "provider-chat");
+
+        AskDataResult result = dependencies.executor("legacy-must-not-run").execute(request(true));
+
+        assertTrue(result.isSuccess());
+        assertFalse(dependencies.routedGenerateCalled);
+        assertEquals("provider-chat", result.getActualModelKey());
+        assertEquals(Collections.singletonList("test-model"), result.getModelAttempts());
+    }
+
+    @Test
+    public void shouldUseDedicatedCoreModelRequestTimeout() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.properties.getModel().setRequestTimeoutMillis(1800);
+        dependencies.properties.getModel().setInfrastructureFailureTimeoutMillis(1);
+        dependencies.coreModelRouter = new com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter() { };
+        dependencies.coreChatModel = request -> {
+            assertEquals(1800L, request.getTimeoutMillis());
+            return com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.success(
+                    "{\"sql\":\"select count(*) from orders\"}", "provider-chat");
+        };
+
+        AskDataResult result = dependencies.executor("legacy-must-not-run").execute(request(true));
+
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void shouldFallbackOnlyAfterRetryableCoreModelFailure() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.properties.getModel().setChatCandidates(Collections.singletonList("fallback-model"));
+        dependencies.properties.getModel().setDefaultChatModel("fallback-model");
+        dependencies.coreModelRouter = new com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter() { };
+        dependencies.coreChatModel = request -> "test-model".equals(request.getModelKey())
+                ? com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.failure("test-model",
+                        "MODEL_INFRASTRUCTURE_FAILURE", "temporary outage", true)
+                : com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.success(
+                        "{\"sql\":\"select count(*) from orders\"}", "provider-fallback");
+
+        AskDataResult result = dependencies.executor("legacy-must-not-run").execute(request(true));
+
+        assertTrue(result.isSuccess());
+        assertEquals(Arrays.asList("test-model", "fallback-model"), result.getModelAttempts());
+        assertEquals("provider-fallback", result.getActualModelKey());
+    }
+
+    @Test
+    public void shouldNotFallbackAfterNonRetryableCoreModelFailure() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.properties.getModel().setChatCandidates(Collections.singletonList("fallback-model"));
+        dependencies.properties.getModel().setDefaultChatModel("fallback-model");
+        dependencies.coreModelRouter = new com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter() { };
+        dependencies.coreChatModel = request -> com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.failure(
+                request.getModelKey(), "MODEL_REQUEST_REJECTED", "invalid credentials", false);
+
+        AskDataResult result = dependencies.executor("legacy-must-not-run").execute(request(true));
+
+        assertFalse(result.isSuccess());
+        assertEquals("MODEL_REQUEST_REJECTED", result.getErrorCode());
+        assertEquals(Collections.singletonList("test-model"), result.getModelAttempts());
+    }
+
+    @Test
+    public void shouldNotFallbackWhenNonInfrastructureFailureClaimsRetryable() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.properties.getModel().setChatCandidates(Collections.singletonList("fallback-model"));
+        dependencies.properties.getModel().setDefaultChatModel("fallback-model");
+        dependencies.coreModelRouter = new com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter() { };
+        dependencies.coreChatModel = request -> "test-model".equals(request.getModelKey())
+                ? com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.failure("test-model",
+                        "MODEL_REQUEST_REJECTED", "invalid request", true)
+                : com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.success(
+                        "{\"sql\":\"select count(*) from orders\"}", "must-not-run");
+
+        AskDataResult result = dependencies.executor("legacy-must-not-run").execute(request(true));
+
+        assertFalse(result.isSuccess());
+        assertEquals("MODEL_REQUEST_REJECTED", result.getErrorCode());
+        assertEquals(Collections.singletonList("test-model"), result.getModelAttempts());
+    }
+
+    @Test
     public void shouldReturnModelNotFoundWhenConfiguredModelIsMissing() {
         StubDependencies dependencies = new StubDependencies();
         AskDataResult result = dependencies.executor(null).execute(request(true));
@@ -647,6 +733,8 @@ public class DefaultAskDataFlowExecutorTest {
         private List<AskDataSqlInterceptor> sqlInterceptors = Collections.emptyList();
         private AskDataConversationStore conversationStore;
         private final List<AskDataEvent> events = new java.util.ArrayList<AskDataEvent>();
+        private com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel coreChatModel;
+        private com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter coreModelRouter;
 
         private DefaultAskDataFlowExecutor executor(final String modelResponse) {
             properties.getSql().setExecuteEnabled(globalExecutionEnabled);
@@ -774,7 +862,7 @@ public class DefaultAskDataFlowExecutorTest {
                     promptProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, null, null,
                     Collections.<AskDataAgent>emptyList(), event -> events.add(event),
                     com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner.simple(), sqlInterceptorChain,
-                    null, governanceProvider);
+                    null, governanceProvider, coreChatModel, coreModelRouter);
         }
     }
 }

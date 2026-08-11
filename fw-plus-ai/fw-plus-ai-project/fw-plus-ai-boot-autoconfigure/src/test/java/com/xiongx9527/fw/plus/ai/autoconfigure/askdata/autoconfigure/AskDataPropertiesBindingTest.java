@@ -21,6 +21,7 @@ public class AskDataPropertiesBindingTest {
 						"fw.plus.ai.askdata.model.embedding-candidates=embedding-default,embedding-fallback",
                         "fw.plus.ai.askdata.model.fallback-enabled=false",
                         "fw.plus.ai.askdata.model.infrastructure-failure-timeout-millis=15000",
+                        "fw.plus.ai.askdata.model.request-timeout-millis=12000",
                         "fw.plus.ai.askdata.sql.execute-enabled=false",
                         "fw.plus.ai.askdata.sql.default-max-rows=200",
                         "fw.plus.ai.askdata.sql.query-timeout-seconds=12",
@@ -39,6 +40,7 @@ public class AskDataPropertiesBindingTest {
 							properties.getModel().getEmbeddingCandidates());
                     assertEquals(false, properties.getModel().isFallbackEnabled());
                     assertEquals(Integer.valueOf(15000), properties.getModel().getInfrastructureFailureTimeoutMillis());
+                    assertEquals(Integer.valueOf(12000), properties.getModel().getRequestTimeoutMillis());
                     assertEquals(Integer.valueOf(200), properties.getSql().getDefaultMaxRows());
                     assertEquals(Integer.valueOf(12), properties.getSql().getQueryTimeoutSeconds());
                     assertEquals(false, properties.getSql().isReadOnlyConnectionRequired());

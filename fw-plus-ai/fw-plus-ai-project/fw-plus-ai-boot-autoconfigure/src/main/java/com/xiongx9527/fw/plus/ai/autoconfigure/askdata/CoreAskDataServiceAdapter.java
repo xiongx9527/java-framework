@@ -9,8 +9,8 @@ import com.xiongx9527.fw.plus.ai.askdata.api.AskDataError;
  * 旧流程的真实权限校验、审计和恢复授权仍由后续桥接或业务覆盖实现完成；本默认适配器仅用于兼容既有单项目流程，
  * 不得被用作跨项目资源访问的授权依据。</p>
  *
- * <p>适配结果仅保留 Core 可公开的答案或稳定错误码，避免旧流程的 SQL、模型响应、会话令牌以及存储实现细节
- * 逸出到 Core 契约。恢复令牌和其他敏感执行状态仍由旧流程在受控内部边界处理。</p>
+ * <p>适配结果保留 Core 可公开的答案、稳定错误码以及脱敏后的模型 key/尝试顺序，避免旧流程的 SQL、模型原始响应、
+ * 会话令牌以及存储实现细节逸出到 Core 契约。恢复令牌和其他敏感执行状态仍由旧流程在受控内部边界处理。</p>
  */
 public class CoreAskDataServiceAdapter implements com.xiongx9527.fw.plus.ai.askdata.api.AskDataService {
 
@@ -55,7 +55,11 @@ public class CoreAskDataServiceAdapter implements com.xiongx9527.fw.plus.ai.askd
 			return failure(defaultValue(legacyResult.getErrorCode(), AskDataErrorCode.MODEL_RESPONSE_INVALID),
 					"问数执行失败，请查看监控日志");
 		}
-		return com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult.success(legacyResult.getBrief());
+		if (legacyResult.getActualModelKey() == null || legacyResult.getActualModelKey().trim().length() == 0) {
+			return com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult.success(legacyResult.getBrief());
+		}
+		return com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult.success(legacyResult.getBrief(),
+				legacyResult.getActualModelKey(), legacyResult.getModelAttempts());
 	}
 
 	private com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult failure(String code, String message) {

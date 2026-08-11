@@ -47,6 +47,7 @@ public class AskDataEvent {
 	private final String denialCode;
 	private final String authorizationVersion;
 	private final String authorizationSource;
+	private final String modelKey;
 
 	/**
 	 * 创建一条已脱敏的生命周期事件。
@@ -58,11 +59,12 @@ public class AskDataEvent {
 	 * @throws IllegalArgumentException 当上下文或事件类型为空时抛出
 	 */
 	public AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message) {
-		this(context, traceId, type, message, null, null, null, null);
+		this(context, traceId, type, message, null, null, null, null, null);
 	}
 
 	private AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message,
-			String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource) {
+			String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
+			String modelKey) {
 		if (context == null) {
 			throw new IllegalArgumentException("context 不能为空");
 		}
@@ -77,12 +79,22 @@ public class AskDataEvent {
 		this.denialCode = denialCode;
 		this.authorizationVersion = authorizationVersion;
 		this.authorizationSource = authorizationSource;
+		this.modelKey = modelKey;
 	}
 
 	public static AskDataEvent governanceDenied(AskDataProjectContext context, String traceId, String datasourceKey,
 			String denialCode, String authorizationVersion, String authorizationSource) {
 		return new AskDataEvent(context, traceId, Type.GOVERNANCE_DENIED, "AskData 治理拒绝", datasourceKey,
-				denialCode, authorizationVersion, authorizationSource);
+				denialCode, authorizationVersion, authorizationSource, null);
+	}
+
+	public static AskDataEvent modelRouted(AskDataProjectContext context, String traceId, String modelKey,
+			String message) {
+		if (modelKey == null || modelKey.trim().length() == 0) {
+			throw new IllegalArgumentException("modelKey 不能为空");
+		}
+		return new AskDataEvent(context, traceId, Type.MODEL_ROUTED, message, null, null, null, null,
+				modelKey.trim());
 	}
 
 	/**
@@ -125,4 +137,5 @@ public class AskDataEvent {
 	public String getDenialCode() { return denialCode; }
 	public String getAuthorizationVersion() { return authorizationVersion; }
 	public String getAuthorizationSource() { return authorizationSource; }
+	public String getModelKey() { return modelKey; }
 }

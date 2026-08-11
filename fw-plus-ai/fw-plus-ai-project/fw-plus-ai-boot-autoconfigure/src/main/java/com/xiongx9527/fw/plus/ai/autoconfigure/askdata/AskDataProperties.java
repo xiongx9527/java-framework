@@ -113,6 +113,10 @@ public class AskDataProperties {
          */
         private Integer infrastructureFailureTimeoutMillis = 30000;
         /**
+         * 传递给 Core Chat 模型的单次请求超时，单位为毫秒；小于等于 0 表示由模型适配器决定。
+         */
+        private Integer requestTimeoutMillis = 30000;
+        /**
          * 单机进程内模型路由诊断快照的最大记录数。完整审计应由监控 SPI 持久化，不能依赖此内存快照。
          */
         private Integer routeAuditRecordCapacity = 100;
@@ -171,6 +175,14 @@ public class AskDataProperties {
 
         public void setInfrastructureFailureTimeoutMillis(Integer infrastructureFailureTimeoutMillis) {
             this.infrastructureFailureTimeoutMillis = infrastructureFailureTimeoutMillis;
+        }
+
+        public Integer getRequestTimeoutMillis() {
+            return requestTimeoutMillis;
+        }
+
+        public void setRequestTimeoutMillis(Integer requestTimeoutMillis) {
+            this.requestTimeoutMillis = requestTimeoutMillis;
         }
 
         public Integer getRouteAuditRecordCapacity() {

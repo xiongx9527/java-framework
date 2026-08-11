@@ -97,7 +97,7 @@ public class AskDataMonitoringLogQueryService {
         }
         AskDataMonitoringLog monitoringLog = new AskDataMonitoringLog(log.getContext(), log.getTraceId(),
                 eventType, log.getMessage(), log.getDatasourceKey(), log.getDenialCode(),
-                log.getAuthorizationVersion(), log.getAuthorizationSource());
+                log.getAuthorizationVersion(), log.getAuthorizationSource(), log.getModelKey());
         return accessPolicy.canRead(requester, administrativeScope, monitoringLog);
     }
 
