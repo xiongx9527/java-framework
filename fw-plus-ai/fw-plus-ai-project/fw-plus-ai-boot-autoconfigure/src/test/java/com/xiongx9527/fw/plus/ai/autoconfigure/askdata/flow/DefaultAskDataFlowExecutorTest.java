@@ -279,6 +279,23 @@ public class DefaultAskDataFlowExecutorTest {
     }
 
     @Test
+    public void shouldPassGovernanceScopeToEveryVectorQuery() {
+        StubDependencies dependencies = new StubDependencies();
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request(false));
+
+        assertTrue(result.isSuccess());
+        assertEquals(3, dependencies.vectorQueries.size());
+        for (AskDataVectorQuery query : dependencies.vectorQueries) {
+            assertEquals("default", query.getProjectContext().getProjectId());
+            assertEquals("default", query.getProjectContext().getOperatorId());
+            assertEquals("orders", query.getFilters().get("datasourceKey"));
+            assertEquals("policy-v1", query.getFilters().get("authorizationVersion"));
+        }
+    }
+
+    @Test
     public void shouldRejectModelGeneratedUnauthorizedColumn() {
         StubDependencies dependencies = new StubDependencies();
         dependencies.governanceProvider = request -> allowed(request, Collections.singletonList(
@@ -718,6 +735,7 @@ public class DefaultAskDataFlowExecutorTest {
         private AskDataDialectRegistry dialectRegistry = new AskDataDialectRegistry();
         private AskDataVectorRetriever vectorRetriever;
         private final List<String> retrieveTypes = new java.util.ArrayList<String>();
+        private final List<AskDataVectorQuery> vectorQueries = new java.util.ArrayList<AskDataVectorQuery>();
         private int metadataCalls;
         private int executorCalls;
         private boolean globalExecutionEnabled = true;
@@ -802,6 +820,7 @@ public class DefaultAskDataFlowExecutorTest {
                     @Override
                     public List<AskDataRetrievedDocument> retrieve(AskDataVectorQuery query) {
                         retrieveTypes.add(query.getRetrieveType());
+                        vectorQueries.add(query);
                         return Collections.emptyList();
                     }
                 };

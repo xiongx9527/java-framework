@@ -73,6 +73,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private static final String EXECUTION_COMPLETED = "COMPLETED";
     private static final String EXECUTION_SKIPPED = "SKIPPED";
     private static final String MULTI_QUESTION_OPTION = "questions";
+    private static final String EMBEDDING_MODEL_OPTION = "embeddingModelKey";
     private static final String AUTHORIZATION_SUMMARY_ATTRIBUTE = "askDataAuthorizationSummary";
     private static final String GOVERNANCE_ERROR_VERSION = "governance-error-v1";
     private static final String GOVERNANCE_ERROR_SOURCE = "governance-provider-error";
@@ -445,7 +446,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         int maxRows = maxRows(request);
         List<AskDataRetrievedDocument> documents;
         try {
-            documents = retrieveDocuments(request);
+            documents = retrieveDocuments(request, authorizationSummary(context));
         } catch (RuntimeException ex) {
             return failure(result, "prompt", AskDataErrorCode.VECTOR_RETRIEVAL_FAILED, message(ex));
         }
@@ -1343,21 +1344,48 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return true;
     }
 
-    private List<AskDataRetrievedDocument> retrieveDocuments(AskDataRequest request) {
+    private List<AskDataRetrievedDocument> retrieveDocuments(AskDataRequest request,
+            AskDataAuthorizationSummary authorizationSummary) {
         if (vectorRetriever == null) {
             return Collections.emptyList();
         }
         List<AskDataRetrievedDocument> documents = new ArrayList<AskDataRetrievedDocument>();
         String[] retrieveTypes = { "schema", "term", "example" };
+        Map<String, Object> filters = vectorAuthorizationFilters(request, authorizationSummary);
         for (String retrieveType : retrieveTypes) {
-            List<AskDataRetrievedDocument> retrieved = vectorRetriever.retrieve(new AskDataVectorQuery(retrieveType,
-                    request == null ? null : request.getDatasourceKey(), request == null ? null : request.getDatasourceKey(),
-                    request == null ? null : request.getQuestion(), topK(), Collections.<String, Object>emptyMap()));
+            List<AskDataRetrievedDocument> retrieved = vectorRetriever.retrieve(new AskDataVectorQuery(
+                    request == null ? null : request.getProjectContext(), embeddingModelKey(request), retrieveType,
+                    request == null ? null : request.getDatasourceKey(),
+                    request == null ? null : request.getDatasourceKey(),
+                    request == null ? null : request.getQuestion(), topK(), filters));
             if (retrieved != null) {
                 documents.addAll(retrieved);
             }
         }
         return documents;
+    }
+
+    private Map<String, Object> vectorAuthorizationFilters(AskDataRequest request,
+            AskDataAuthorizationSummary authorizationSummary) {
+        Map<String, Object> filters = new LinkedHashMap<String, Object>();
+        AskDataProjectContext projectContext = request == null ? null : request.getProjectContext();
+        if (projectContext != null) {
+            filters.put("projectId", projectContext.getProjectId());
+            filters.put("operatorId", projectContext.getOperatorId());
+        }
+        if (request != null && !isBlank(request.getDatasourceKey())) {
+            filters.put("datasourceKey", request.getDatasourceKey());
+        }
+        if (authorizationSummary != null && !isBlank(authorizationSummary.getAuthorizationVersion())) {
+            filters.put("authorizationVersion", authorizationSummary.getAuthorizationVersion());
+        }
+        return filters;
+    }
+
+    private String embeddingModelKey(AskDataRequest request) {
+        Object value = request == null || request.getOptions() == null
+                ? null : request.getOptions().get(EMBEDDING_MODEL_OPTION);
+        return value instanceof String && !isBlank((String) value) ? ((String) value).trim() : null;
     }
 
     private int maxRows(AskDataRequest request) {

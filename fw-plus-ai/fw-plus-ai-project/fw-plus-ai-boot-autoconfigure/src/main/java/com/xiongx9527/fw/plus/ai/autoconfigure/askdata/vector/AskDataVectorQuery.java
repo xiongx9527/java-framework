@@ -1,11 +1,15 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector;
 
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class AskDataVectorQuery {
 
+    private final AskDataProjectContext projectContext;
+    private final String embeddingModelKey;
     private final String retrieveType;
     private final String datasourceKey;
     private final String vectorStoreKey;
@@ -15,6 +19,13 @@ public class AskDataVectorQuery {
 
     public AskDataVectorQuery(String retrieveType, String datasourceKey, String vectorStoreKey,
             String question, int topK, Map<String, Object> filters) {
+        this(null, null, retrieveType, datasourceKey, vectorStoreKey, question, topK, filters);
+    }
+
+    public AskDataVectorQuery(AskDataProjectContext projectContext, String embeddingModelKey, String retrieveType,
+            String datasourceKey, String vectorStoreKey, String question, int topK, Map<String, Object> filters) {
+        this.projectContext = projectContext;
+        this.embeddingModelKey = normalize(embeddingModelKey);
         this.retrieveType = retrieveType;
         this.datasourceKey = datasourceKey;
         this.vectorStoreKey = vectorStoreKey;
@@ -24,10 +35,16 @@ public class AskDataVectorQuery {
                 : Collections.unmodifiableMap(new LinkedHashMap<String, Object>(filters));
     }
 
+    public AskDataProjectContext getProjectContext() { return projectContext; }
+    public String getEmbeddingModelKey() { return embeddingModelKey; }
     public String getRetrieveType() { return retrieveType; }
     public String getDatasourceKey() { return datasourceKey; }
     public String getVectorStoreKey() { return vectorStoreKey; }
     public String getQuestion() { return question; }
     public int getTopK() { return topK; }
     public Map<String, Object> getFilters() { return filters; }
+
+    private String normalize(String value) {
+        return value == null ? null : value.trim();
+    }
 }
