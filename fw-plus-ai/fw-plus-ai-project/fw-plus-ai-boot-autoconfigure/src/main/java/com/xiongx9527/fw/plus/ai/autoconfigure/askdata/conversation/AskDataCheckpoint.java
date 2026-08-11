@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
 
 import java.util.ArrayList;
@@ -17,6 +18,9 @@ public class AskDataCheckpoint {
     private List<String> modelAttempts = new ArrayList<String>();
     private String actualEmbeddingModelKey;
     private List<String> embeddingModelAttempts = new ArrayList<String>();
+    private Boolean multiQuestion;
+    private String multiQuestionPlanSnapshot;
+    private List<AskDataResult> childResults = new ArrayList<AskDataResult>();
     private String datasourceKey;
     private String dialect;
     private Integer maxRows;
@@ -59,6 +63,17 @@ public class AskDataCheckpoint {
     public void setEmbeddingModelAttempts(List<String> embeddingModelAttempts) {
         this.embeddingModelAttempts = embeddingModelAttempts == null
                 ? new ArrayList<String>() : new ArrayList<String>(embeddingModelAttempts);
+    }
+    public Boolean getMultiQuestion() { return multiQuestion; }
+    public void setMultiQuestion(Boolean multiQuestion) { this.multiQuestion = multiQuestion; }
+    public String getMultiQuestionPlanSnapshot() { return multiQuestionPlanSnapshot; }
+    public void setMultiQuestionPlanSnapshot(String multiQuestionPlanSnapshot) {
+        this.multiQuestionPlanSnapshot = multiQuestionPlanSnapshot;
+    }
+    public List<AskDataResult> getChildResults() { return new ArrayList<AskDataResult>(childResults); }
+    public void setChildResults(List<AskDataResult> childResults) {
+        this.childResults = childResults == null ? new ArrayList<AskDataResult>()
+                : new ArrayList<AskDataResult>(childResults);
     }
     public String getDatasourceKey() { return datasourceKey; }
     public void setDatasourceKey(String datasourceKey) { this.datasourceKey = datasourceKey; }

@@ -252,6 +252,8 @@ public class AskDataProperties {
     public static class Flow {
 
         private Integer defaultSubAgentTimeoutMillis = 30000;
+        private Integer multiQuestionMaxConcurrency = 4;
+        private Integer multiQuestionTimeoutMillis = 30000;
 
         public Integer getDefaultSubAgentTimeoutMillis() {
             return defaultSubAgentTimeoutMillis;
@@ -259,6 +261,28 @@ public class AskDataProperties {
 
         public void setDefaultSubAgentTimeoutMillis(Integer defaultSubAgentTimeoutMillis) {
             this.defaultSubAgentTimeoutMillis = defaultSubAgentTimeoutMillis;
+        }
+
+        public Integer getMultiQuestionMaxConcurrency() {
+            return multiQuestionMaxConcurrency;
+        }
+
+        public void setMultiQuestionMaxConcurrency(Integer multiQuestionMaxConcurrency) {
+            if (multiQuestionMaxConcurrency == null || multiQuestionMaxConcurrency.intValue() <= 0) {
+                throw new IllegalArgumentException("multiQuestionMaxConcurrency must be greater than zero");
+            }
+            this.multiQuestionMaxConcurrency = multiQuestionMaxConcurrency;
+        }
+
+        public Integer getMultiQuestionTimeoutMillis() {
+            return multiQuestionTimeoutMillis;
+        }
+
+        public void setMultiQuestionTimeoutMillis(Integer multiQuestionTimeoutMillis) {
+            if (multiQuestionTimeoutMillis == null || multiQuestionTimeoutMillis.intValue() <= 0) {
+                throw new IllegalArgumentException("multiQuestionTimeoutMillis must be greater than zero");
+            }
+            this.multiQuestionTimeoutMillis = multiQuestionTimeoutMillis;
         }
     }
 

@@ -26,6 +26,8 @@ public class AskDataPropertiesBindingTest {
                         "fw.plus.ai.askdata.sql.default-max-rows=200",
                         "fw.plus.ai.askdata.sql.query-timeout-seconds=12",
                         "fw.plus.ai.askdata.sql.read-only-connection-required=false",
+                        "fw.plus.ai.askdata.flow.multi-question-max-concurrency=6",
+                        "fw.plus.ai.askdata.flow.multi-question-timeout-millis=45000",
                         "fw.plus.ai.askdata.conversation.compression-threshold-chars=8000",
                         "fw.plus.ai.askdata.conversation.max-checkpoints-per-conversation=10",
                         "fw.plus.ai.askdata.state.monitoring-log-capacity=20")
@@ -44,6 +46,8 @@ public class AskDataPropertiesBindingTest {
                     assertEquals(Integer.valueOf(200), properties.getSql().getDefaultMaxRows());
                     assertEquals(Integer.valueOf(12), properties.getSql().getQueryTimeoutSeconds());
                     assertEquals(false, properties.getSql().isReadOnlyConnectionRequired());
+                    assertEquals(Integer.valueOf(6), properties.getFlow().getMultiQuestionMaxConcurrency());
+                    assertEquals(Integer.valueOf(45000), properties.getFlow().getMultiQuestionTimeoutMillis());
                     assertEquals(Integer.valueOf(8000), properties.getConversation().getCompressionThresholdChars());
                     assertEquals(Integer.valueOf(10), properties.getConversation().getMaxCheckpointsPerConversation());
                     assertEquals(Integer.valueOf(20), properties.getState().getMonitoringLogCapacity());
@@ -63,6 +67,8 @@ public class AskDataPropertiesBindingTest {
 					assertEquals(java.util.Arrays.asList("bge-m3"), properties.getModel().getEmbeddingCandidates());
 					assertEquals(Integer.valueOf(30), properties.getSql().getQueryTimeoutSeconds());
 					assertEquals(true, properties.getSql().isReadOnlyConnectionRequired());
+					assertEquals(Integer.valueOf(4), properties.getFlow().getMultiQuestionMaxConcurrency());
+					assertEquals(Integer.valueOf(30000), properties.getFlow().getMultiQuestionTimeoutMillis());
 				});
 	}
 }

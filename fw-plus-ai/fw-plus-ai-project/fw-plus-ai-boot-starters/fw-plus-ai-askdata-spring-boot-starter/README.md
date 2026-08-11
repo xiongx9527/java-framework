@@ -45,6 +45,9 @@ fw:
           execute-enabled: true
           read-only-connection-required: true
           default-max-rows: 100
+        flow:
+          multi-question-max-concurrency: 4
+          multi-question-timeout-millis: 30000
 ```
 
 `request-timeout-millis` 是传给 Core Chat/Embedding Adapter 的单次调用超时；`infrastructure-failure-timeout-millis` 只用于旧 LangChain4j 兼容层按调用耗时识别基础设施故障，不能替代 provider HTTP 客户端超时。两者默认均为 30000 毫秒，但语义独立。
@@ -52,6 +55,31 @@ fw:
 默认 Flow 的 Chat 与 Embedding 都通过 Core Router 选择中立模型。请求需要独立指定 Embedding 模型时，在 `AskDataRequest.options` 中设置 `embeddingModelKey`；未设置时按 `embedding-candidates` 和 `default-embedding-model` 路由。Flow 会向每次向量检索加入 `projectId`、`operatorId`、`datasourceKey` 和 `authorizationVersion` 过滤条件，因此所选 `AiEmbeddingStore` 必须返回 `supportsFilters() == true` 并实际应用 filters。无法应用 filters 的 Store 会 fail-closed；旧 LangChain4j `EmbeddingStore` 兼容适配器也会明确拒绝带授权过滤的查询。
 
 Chat 与 Embedding 只有可重试基础设施故障允许切换候选。返回结果和检查点分别通过 `actualModelKey` / `modelAttempts`、`actualEmbeddingModelKey` / `embeddingModelAttempts` 保存最终实际 key 与尝试顺序；监控事件使用 `modelType=CHAT|EMBEDDING`，并记录路由层级、失败码、切换原因和最终状态。自定义 `AskDataVectorRetriever` 可继续只实现 `retrieve`；需要提供 Embedding 路由审计时覆盖兼容的 `retrieveWithResult`。
+
+## 多问题 DAG 与恢复
+
+`AskDataRequest.options.questions` 可以是字符串列表，也可以是结构化子问题列表。字符串列表按声明顺序生成 `question-1`、`question-2` 等稳定 ID；结构化列表显式提供 `id`、`question`、`dependsOn`、`failurePolicy` 和可选的 `timeoutMillis`：
+
+```java
+Map<String, Object> first = new LinkedHashMap<String, Object>();
+first.put("id", "orders");
+first.put("question", "订单数量");
+first.put("dependsOn", Collections.emptyList());
+
+Map<String, Object> summary = new LinkedHashMap<String, Object>();
+summary.put("id", "summary");
+summary.put("question", "汇总订单结论");
+summary.put("dependsOn", Collections.singletonList("orders"));
+summary.put("failurePolicy", "SKIP");
+summary.put("timeoutMillis", Long.valueOf(5000L));
+
+request.setOptions(Collections.<String, Object>singletonMap(
+        "questions", Arrays.asList(first, summary)));
+```
+
+无依赖节点在 `multi-question-max-concurrency` 上限内并发执行，默认值为 `4`；整个计划受 `multi-question-timeout-millis` 约束，默认值为 `30000` 毫秒。`failurePolicy=SKIP` 会在任一依赖失败时跳过当前节点，`CONTINUE` 则允许节点在依赖已终态后继续。每个 `childResults` 条目携带 `questionId`、`dependsOn` 和独立 `questionState`；终态固定为 `SUCCEEDED`、`FAILED`、`TIMED_OUT`、`CANCELLED` 或 `SKIPPED`，失败结果使用对应的稳定错误码。
+
+配置 `AskDataConversationStore` 后，Flow 会在计划开始及每个子问题进入终态时保存父检查点，并使用 `<parentConversationId>:<questionId>` 作为稳定子会话 ID。恢复请求可传父 `resumeToken` 或 `conversationId`；已终态节点直接从父检查点恢复，未终态节点从其最新子检查点继续，因此已完成的 SQL 不会重放。恢复时请求身份、检查点版本和完整 DAG 快照必须一致，否则 fail-closed。集群部署必须提供共享会话存储；默认内存实现只适用于单实例，进程退出后不可恢复。
 
 需要 LangChain4j 时，由业务应用显式引入 Adapter Starter：
 

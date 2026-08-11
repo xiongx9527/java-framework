@@ -25,6 +25,9 @@ public class AskDataResult {
     private List<String> modelAttempts = new ArrayList<String>();
     private String actualEmbeddingModelKey;
     private List<String> embeddingModelAttempts = new ArrayList<String>();
+    private String questionId;
+    private String questionState;
+    private List<String> dependsOn = new ArrayList<String>();
     /**
      * 显式多问题请求的子执行结果。
      *
@@ -208,6 +211,30 @@ public class AskDataResult {
         if (modelKey != null && modelKey.trim().length() > 0) {
             embeddingModelAttempts.add(modelKey.trim());
         }
+    }
+
+    public String getQuestionId() {
+        return questionId;
+    }
+
+    public void setQuestionId(String questionId) {
+        this.questionId = questionId;
+    }
+
+    public String getQuestionState() {
+        return questionState;
+    }
+
+    public void setQuestionState(String questionState) {
+        this.questionState = questionState;
+    }
+
+    public List<String> getDependsOn() {
+        return new ArrayList<String>(dependsOn);
+    }
+
+    public void setDependsOn(List<String> dependsOn) {
+        this.dependsOn = dependsOn == null ? new ArrayList<String>() : new ArrayList<String>(dependsOn);
     }
 
     public List<AskDataResult> getChildResults() {

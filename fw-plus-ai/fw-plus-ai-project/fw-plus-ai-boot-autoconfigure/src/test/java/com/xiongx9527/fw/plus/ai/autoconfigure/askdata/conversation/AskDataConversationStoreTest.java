@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation;
 
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
@@ -118,6 +119,14 @@ public class AskDataConversationStoreTest {
         checkpoint.setCompletedSteps(new ArrayList<String>(Arrays.asList("metadata")));
         checkpoint.setActualEmbeddingModelKey("embedding-provider");
         checkpoint.setEmbeddingModelAttempts(Arrays.asList("embedding-primary", "embedding-provider"));
+        AskDataResult child = new AskDataResult();
+        child.setSuccess(true);
+        child.setQuestionId("q1");
+        child.setQuestionState("SUCCEEDED");
+        child.setBrief("saved child");
+        checkpoint.setMultiQuestion(Boolean.TRUE);
+        checkpoint.setMultiQuestionPlanSnapshot("plan-v1");
+        checkpoint.setChildResults(Arrays.asList(child));
         AskDataStepLog stepLog = new AskDataStepLog("metadata", "Metadata", true, "loaded");
         checkpoint.setSteps(new ArrayList<AskDataStepLog>(Arrays.asList(stepLog)));
 
@@ -125,8 +134,10 @@ public class AskDataConversationStoreTest {
         checkpoint.setSql("select forged");
         checkpoint.getCompletedSteps().add("validate-sql");
         checkpoint.getSteps().get(0).setMessage("mutated");
+        checkpoint.getChildResults().get(0).setBrief("mutated child");
         saved.getCompletedSteps().add("execute-sql");
         saved.getSteps().get(0).setSuccess(false);
+        saved.getChildResults().get(0).setQuestionState("FAILED");
 
         AskDataCheckpoint loaded = store.loadByResumeToken("resume-1");
         assertEquals(null, loaded.getSql());
@@ -136,12 +147,18 @@ public class AskDataConversationStoreTest {
                 loaded.getEmbeddingModelAttempts());
         assertEquals("loaded", loaded.getSteps().get(0).getMessage());
         assertEquals(true, loaded.getSteps().get(0).isSuccess());
+        assertEquals(Boolean.TRUE, loaded.getMultiQuestion());
+        assertEquals("plan-v1", loaded.getMultiQuestionPlanSnapshot());
+        assertEquals("saved child", loaded.getChildResults().get(0).getBrief());
+        assertEquals("SUCCEEDED", loaded.getChildResults().get(0).getQuestionState());
 
         loaded.getCompletedSteps().add("generate-sql");
         loaded.getSteps().get(0).setMessage("changed-after-load");
+        loaded.getChildResults().get(0).setBrief("changed-after-load");
         AskDataCheckpoint reloaded = store.loadByResumeToken("resume-1");
         assertEquals(Arrays.asList("metadata"), reloaded.getCompletedSteps());
         assertEquals("loaded", reloaded.getSteps().get(0).getMessage());
+        assertEquals("saved child", reloaded.getChildResults().get(0).getBrief());
     }
 
     private AskDataCheckpoint checkpoint(String checkpointId, String resumeToken, String version, long createdAt) {
