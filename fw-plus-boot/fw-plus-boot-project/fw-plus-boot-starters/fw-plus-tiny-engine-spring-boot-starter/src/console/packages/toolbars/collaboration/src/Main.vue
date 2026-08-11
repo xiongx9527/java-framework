@@ -52,6 +52,7 @@ import { reactive, watchEffect } from 'vue'
 import { Popover } from '@opentiny/vue'
 import { useLayout } from '@opentiny/tiny-engine-meta-register'
 import { ToolbarBase } from '@opentiny/tiny-engine-common'
+import defaultAvator from '../../../design-core/public/img/defaultAvator.png'
 import type { Component } from 'vue'
 
 export default {
@@ -76,13 +77,13 @@ export default {
     })
 
     watchEffect(() => {
-      state.url = 'img/defaultAvator.png'
+      state.url = defaultAvator
       state.userLists = [
         {
           pageName: '当前页',
           users: [
             {
-              userHead: 'img/defaultAvator.png',
+              userHead: defaultAvator,
               userName: layoutState.pageStatus.data?.username,
               status: '编辑'
             }

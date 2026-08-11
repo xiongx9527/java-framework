@@ -175,7 +175,8 @@ public class TinyEngineProperties {
 	public static class Mapper {
 
 		private boolean enabled = true;
-		private String basePackage = "com.xiongx9527.fw.plus.tinyengine.mapper";
+		private String basePackage = "com.xiongx9527.fw.plus.tinyengine.mapper,"
+				+ "com.xiongx9527.fw.plus.tinyengine.dynamic.mapper";
 		private String[] mapperLocations = new String[] {"classpath*:mapper/tinyengine/**/*.xml"};
 
 		public boolean isEnabled() {

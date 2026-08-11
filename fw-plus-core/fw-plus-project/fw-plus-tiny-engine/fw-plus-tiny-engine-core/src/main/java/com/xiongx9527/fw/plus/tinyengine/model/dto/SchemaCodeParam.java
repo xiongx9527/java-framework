@@ -23,6 +23,9 @@ public class SchemaCodeParam {
     private Integer app;
     private Map<String, Object> pageInfo;
     private Integer platform;
+    private String type;
+    private Integer id;
+    private Integer history;
 
 	public Integer getApp() {
 		return app;
@@ -46,5 +49,29 @@ public class SchemaCodeParam {
 
 	public void setPlatform(Integer platform) {
 		this.platform = platform;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public Integer getId() {
+		return id;
+	}
+
+	public void setId(Integer id) {
+		this.id = id;
+	}
+
+	public Integer getHistory() {
+		return history;
+	}
+
+	public void setHistory(Integer history) {
+		this.history = history;
 	}
 }

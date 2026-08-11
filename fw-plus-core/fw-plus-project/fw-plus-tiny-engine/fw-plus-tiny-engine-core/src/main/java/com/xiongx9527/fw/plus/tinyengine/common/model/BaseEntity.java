@@ -1,9 +1,13 @@
 package com.xiongx9527.fw.plus.tinyengine.common.model;
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+
 import java.time.LocalDateTime;
 
 public class BaseEntity {
 
+	@TableId(value = "id", type = IdType.AUTO)
 	private Integer id;
 	private String createdBy;
 	private String lastUpdatedBy;

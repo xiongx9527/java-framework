@@ -42,6 +42,7 @@ private String password;
 private String salt;
 private String publicKey;
 private String privateKey;
+private String tenantId;
 
     @TableField("enable")
 private Boolean isEnable;
@@ -115,6 +116,14 @@ private List<Tenant> tenant = new ArrayList<>();
 
 	public void setPrivateKey(String privateKey) {
 		this.privateKey = privateKey;
+	}
+
+	public String getTenantId() {
+		return tenantId;
+	}
+
+	public void setTenantId(String tenantId) {
+		this.tenantId = tenantId;
 	}
 
 	public Boolean getIsEnable() {

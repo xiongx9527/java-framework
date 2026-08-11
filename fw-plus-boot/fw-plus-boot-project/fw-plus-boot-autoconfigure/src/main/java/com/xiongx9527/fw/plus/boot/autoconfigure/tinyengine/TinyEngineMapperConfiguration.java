@@ -29,7 +29,6 @@ public class TinyEngineMapperConfiguration {
 	public static MapperScannerConfigurer tinyEngineMapperScannerConfigurer(TinyEngineProperties properties) {
 		MapperScannerConfigurer mapperScannerConfigurer = new MapperScannerConfigurer();
 		mapperScannerConfigurer.setBasePackage(properties.getMapper().getBasePackage());
-		mapperScannerConfigurer.setProcessPropertyPlaceHolders(true);
 		return mapperScannerConfigurer;
 	}
 

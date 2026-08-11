@@ -11,6 +11,8 @@ public interface TaskRecordService extends IService<TaskRecord> {
 
 	TaskRecord queryTaskRecordById(Integer id);
 
+	TaskRecord taskStatus(Integer id);
+
 	List<TaskRecord> queryTaskRecordByCondition(TaskRecord taskRecord);
 
 	Integer deleteTaskRecordById(Integer id);

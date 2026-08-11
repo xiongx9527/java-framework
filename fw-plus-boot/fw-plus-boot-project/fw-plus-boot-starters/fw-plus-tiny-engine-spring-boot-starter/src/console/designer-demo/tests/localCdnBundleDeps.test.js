@@ -107,11 +107,11 @@ describe('localCDN bundle依赖本地化测试', () => {
     expect(packages[0].script).not.toContain('https://unpkg.com')
     expect(packages[0].script).toContain('./material-static/')
     
-    // 检查 element-plus 的路径是否已本地化
-    expect(packages[1].script).toContain('https://registry.npmmirror.com')
-    expect(packages[1].script).not.toContain('./material-static/')
-    expect(packages[1].css).toContain('https://registry.npmmirror.com')
-    expect(packages[1].css).not.toContain('./material-static/')
+    // 检查 element-plus 的 npmmirror 路径也已本地化
+    expect(packages[1].script).not.toContain('https://registry.npmmirror.com')
+    expect(packages[1].script).toContain('./material-static/')
+    expect(packages[1].css).not.toContain('https://registry.npmmirror.com')
+    expect(packages[1].css).toContain('./material-static/')
   })
   
   it('应该将物料依赖包复制到产物CDN目录', () => {
@@ -132,9 +132,9 @@ describe('localCDN bundle依赖本地化测试', () => {
     expect(fs.existsSync(tinyVueCssPath)).toBe(true)
     
     // 检查 element-plus 是否已复制
-    const elementDir = fs.readdirSync(localCdnDir)
+    const elementDir = fs.readdirSync(path.resolve(distDir, 'material-static'))
       .find(dir => dir.startsWith('element-plus@'))
 
-    expect(elementDir).not.toBeDefined()
+    expect(elementDir).toBeDefined()
   })
 }) 

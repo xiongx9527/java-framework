@@ -1,11 +1,13 @@
 package com.xiongx9527.fw.plus.common.uid.exception;
 
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
 /**
  * UidGenerateException
  * 
  * @author yutianbao
  */
-public class UidGenerateException extends RuntimeException {
+public class UidGenerateException extends BizException {
 
     /**
      * Serial Version UID

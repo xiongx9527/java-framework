@@ -16,8 +16,29 @@
  */
 const DEFAULT_COMPONENTS_MAP = [
   {
+    componentName: 'TinyActionMenu',
+    exportName: 'TinyActionMenu',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
     componentName: 'TinyAlert',
     exportName: 'Alert',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyAnchor',
+    exportName: 'TinyAnchor',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyBadge',
+    exportName: 'TinyBadge',
     package: '@opentiny/vue',
     version: '^3.10.0',
     destructuring: true
@@ -39,6 +60,48 @@ const DEFAULT_COMPONENTS_MAP = [
   {
     componentName: 'TinyButton',
     exportName: 'Button',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyButtonGroup',
+    exportName: 'ButtonGroup',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyCalendar',
+    exportName: 'TinyCalendar',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyCard',
+    exportName: 'TinyCard',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyCarousel',
+    exportName: 'Carousel',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyCarouselItem',
+    exportName: 'CarouselItem',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyCascader',
+    exportName: 'TinyCascader',
     package: '@opentiny/vue',
     version: '^3.10.0',
     destructuring: true
@@ -86,6 +149,13 @@ const DEFAULT_COMPONENTS_MAP = [
     destructuring: true
   },
   {
+    componentName: 'TinyContainer',
+    exportName: 'TinyContainer',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
     componentName: 'TinyDatePicker',
     exportName: 'DatePicker',
     package: '@opentiny/vue',
@@ -95,6 +165,34 @@ const DEFAULT_COMPONENTS_MAP = [
   {
     componentName: 'TinyDialogBox',
     exportName: 'DialogBox',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyDivider',
+    exportName: 'TinyDivider',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyDrawer',
+    exportName: 'TinyDrawer',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyDropdown',
+    exportName: 'TinyDropdown',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyFileUpload',
+    exportName: 'TinyFileUpload',
     package: '@opentiny/vue',
     version: '^3.10.0',
     destructuring: true
@@ -125,6 +223,97 @@ const DEFAULT_COMPONENTS_MAP = [
     exportName: 'Grid',
     package: '@opentiny/vue',
     version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyGridColumn',
+    exportName: 'TinyGridColumn',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyHuichartsBar',
+    exportName: 'TinyHuichartsBar',
+    package: '@opentiny/vue-huicharts',
+    version: '3.22.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyHuichartsFunnel',
+    exportName: 'TinyHuichartsFunnel',
+    package: '@opentiny/vue-huicharts',
+    version: '3.22.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyHuichartsGauge',
+    exportName: 'TinyHuichartsGauge',
+    package: '@opentiny/vue-huicharts',
+    version: '3.22.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyHuichartsGraph',
+    exportName: 'TinyHuichartsGraph',
+    package: '@opentiny/vue-huicharts',
+    version: '3.22.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyHuichartsHistogram',
+    exportName: 'TinyHuichartsHistogram',
+    package: '@opentiny/vue-huicharts',
+    version: '3.22.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyHuichartsLine',
+    exportName: 'TinyHuichartsLine',
+    package: '@opentiny/vue-huicharts',
+    version: '3.22.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyHuichartsPie',
+    exportName: 'TinyHuichartsPie',
+    package: '@opentiny/vue-huicharts',
+    version: '3.22.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyHuichartsProcess',
+    exportName: 'TinyHuichartsProcess',
+    package: '@opentiny/vue-huicharts',
+    version: '3.22.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyHuichartsRadar',
+    exportName: 'TinyHuichartsRadar',
+    package: '@opentiny/vue-huicharts',
+    version: '3.22.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyHuichartsRing',
+    exportName: 'TinyHuichartsRing',
+    package: '@opentiny/vue-huicharts',
+    version: '3.22.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyHuichartsScatter',
+    exportName: 'TinyHuichartsScatter',
+    package: '@opentiny/vue-huicharts',
+    version: '3.22.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyHuichartsWaterfall',
+    exportName: 'TinyHuichartsWaterfall',
+    package: '@opentiny/vue-huicharts',
+    version: '3.22.0',
     destructuring: true
   },
   {
@@ -2060,6 +2249,20 @@ const DEFAULT_COMPONENTS_MAP = [
     destructuring: true
   },
   {
+    componentName: 'TinyLayout',
+    exportName: 'Layout',
+    package: '@opentiny/vue',
+    version: '3.20.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyLink',
+    exportName: 'TinyLink',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
     componentName: 'TinyInput',
     exportName: 'Input',
     package: '@opentiny/vue',
@@ -2102,8 +2305,29 @@ const DEFAULT_COMPONENTS_MAP = [
     destructuring: true
   },
   {
+    componentName: 'TinyProgress',
+    exportName: 'TinyProgress',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
     componentName: 'TinyRadio',
     exportName: 'Radio',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyRadioGroup',
+    exportName: 'TinyRadioGroup',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyRate',
+    exportName: 'TinyRate',
     package: '@opentiny/vue',
     version: '^3.10.0',
     destructuring: true
@@ -2130,6 +2354,34 @@ const DEFAULT_COMPONENTS_MAP = [
     destructuring: true
   },
   {
+    componentName: 'TinySkeleton',
+    exportName: 'TinySkeleton',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinySlider',
+    exportName: 'TinySlider',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyStatistic',
+    exportName: 'TinyStatistic',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinySteps',
+    exportName: 'TinySteps',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
     componentName: 'TinySwitch',
     exportName: 'Switch',
     package: '@opentiny/vue',
@@ -2151,6 +2403,13 @@ const DEFAULT_COMPONENTS_MAP = [
     destructuring: true
   },
   {
+    componentName: 'TinyTag',
+    exportName: 'TinyTag',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
     componentName: 'TinyTimeLine',
     exportName: 'TimeLine',
     package: '@opentiny/vue',
@@ -2165,8 +2424,22 @@ const DEFAULT_COMPONENTS_MAP = [
     destructuring: true
   },
   {
+    componentName: 'TinyTransfer',
+    exportName: 'TinyTransfer',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
     componentName: 'TinyTree',
     exportName: 'Tree',
+    package: '@opentiny/vue',
+    version: '^3.10.0',
+    destructuring: true
+  },
+  {
+    componentName: 'TinyTreeMenu',
+    exportName: 'TinyTreeMenu',
     package: '@opentiny/vue',
     version: '^3.10.0',
     destructuring: true

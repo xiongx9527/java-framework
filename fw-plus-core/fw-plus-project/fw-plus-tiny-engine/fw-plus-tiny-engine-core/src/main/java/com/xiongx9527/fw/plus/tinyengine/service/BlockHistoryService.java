@@ -13,4 +13,5 @@ public interface BlockHistoryService extends IService<BlockHistory> {
 	Integer deleteBlockHistoryById(Integer id);
 	Integer updateBlockHistoryById(BlockHistory blockHistory);
 	Integer createBlockHistory(BlockHistory blockHistory);
+	List<BlockHistory> findBlockHistoriesByBlockId(Integer blockId, String tenantId);
 }

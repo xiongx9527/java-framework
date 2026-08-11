@@ -44,14 +44,50 @@ import lombok.Getter;
  * @see ErrorCategory    错误分类
  */
 @Getter
-public class BizException extends BaseRuntimeException {
+public class BizException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
+    private static final int DEFAULT_CODE = 50_999_000;
 
     /** 8 位统一状态码 */
     private final int code;
     /** 附加数据，可为 null */
     private final Object data;
+
+    /** 通用异常 */
+    public BizException() {
+        super();
+        this.code = DEFAULT_CODE;
+        this.data = null;
+    }
+
+    /** 通用异常 + 消息 */
+    public BizException(String message) {
+        super(message);
+        this.code = DEFAULT_CODE;
+        this.data = null;
+    }
+
+    /** 通用异常 + 消息 + 原始异常 */
+    public BizException(String message, Throwable cause) {
+        super(message, cause);
+        this.code = DEFAULT_CODE;
+        this.data = null;
+    }
+
+    /** 通用异常 + 格式化消息 */
+    public BizException(String msgFormat, Object... args) {
+        super(String.format(msgFormat, args));
+        this.code = DEFAULT_CODE;
+        this.data = null;
+    }
+
+    /** 通用异常 + 原始异常 */
+    public BizException(Throwable cause) {
+        super(cause);
+        this.code = DEFAULT_CODE;
+        this.data = null;
+    }
 
     /**
      * 自由组合错误码

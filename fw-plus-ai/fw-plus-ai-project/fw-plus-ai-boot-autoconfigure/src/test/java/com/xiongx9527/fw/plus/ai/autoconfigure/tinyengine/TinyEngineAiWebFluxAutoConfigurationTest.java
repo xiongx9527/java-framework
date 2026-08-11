@@ -36,6 +36,16 @@ class TinyEngineAiWebFluxAutoConfigurationTest {
 	}
 
 	@Test
+	void servletApplicationRegistersControllerWhenOnlyChatIsEnabled() {
+		new WebApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(WebMvcAutoConfiguration.class,
+						TinyEngineAiAutoConfiguration.class))
+				.withBean(TinyEngineAiChatService.class, TestChatService::new)
+				.withPropertyValues("fw.plus.tiny-engine.ai.web.enabled=true")
+				.run(context -> assertThat(context).hasSingleBean(TinyEngineAiController.class));
+	}
+
+	@Test
 	void reactiveApplicationRegistersOnlyWebFluxTinyEngineAiController() {
 		reactiveRunner.run(context -> {
 			assertThat(context).hasSingleBean(TinyEngineAiWebFluxController.class);

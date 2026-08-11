@@ -36,6 +36,7 @@
         <module>fw-plus-magicapi-plugin-mcp</module>
         <module>fw-plus-magicapi-plugin-mqttclient</module>
         <module>fw-plus-magicapi-plugin-word</module>
+        <module>fw-plus-magicapi-plugin-java-entity</module>
     </modules>
 
     <artifactId>fw-plus-magicapi-plugin</artifactId>

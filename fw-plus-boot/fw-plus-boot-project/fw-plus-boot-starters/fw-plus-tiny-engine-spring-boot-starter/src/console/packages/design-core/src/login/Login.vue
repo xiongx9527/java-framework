@@ -62,7 +62,12 @@ export default {
           password: state.loginData.password
         })
         .then((data: any) => {
-          localStorage.setItem('engineToken', data.token)
+          const token = data.token || data.accessToken
+          if (!token) {
+            setNeedToLogin(true)
+            return
+          }
+          localStorage.setItem('engineToken', token)
           fetchUserInfo().then((infoData: any) => {
             if (infoData) {
               setUserInfo({ ...data, ...infoData })

@@ -11,6 +11,13 @@ import {
 } from './locateCdnNpmInfo.js'
 
 const { readJsonSync } = fs
+const BUNDLE_CDN_PREFIXES = ['https://unpkg.com', 'https://registry.npmmirror.com']
+
+const getBundleCdnPrefixes = (originCdnPrefix) => {
+  const prefixes = Array.isArray(originCdnPrefix) ? originCdnPrefix : [originCdnPrefix]
+
+  return [...new Set(prefixes.concat(BUNDLE_CDN_PREFIXES).filter(Boolean))]
+}
 
 export function extraBundleCdnLink(filename, originCdnPrefix) {
   const result = new Set()
@@ -39,6 +46,15 @@ export function extraBundleCdnLink(filename, originCdnPrefix) {
   })
 
   return [...result]
+}
+
+export function extraBundleCdnLinks(filename, originCdnPrefix) {
+  return getBundleCdnPrefixes(originCdnPrefix).flatMap((prefix) =>
+    extraBundleCdnLink(filename, prefix).map((url) => ({
+      url,
+      prefix
+    }))
+  )
 }
 
 export function replaceBundleCdnLink(bundle, fileMap) {
@@ -76,8 +92,8 @@ export function copyBundleDeps({
   dir = 'material-static',
   bundleTempDir = 'bundle-deps/material-static'
 }) {
-  const cdnFiles = extraBundleCdnLink(bundleFile, originCdnPrefix)
-    .map((url) => getCdnPathNpmInfoForSingleFile(url, originCdnPrefix, base, dir, false, bundleTempDir))
+  const cdnFiles = extraBundleCdnLinks(bundleFile, originCdnPrefix)
+    .map(({ url, prefix }) => getCdnPathNpmInfoForSingleFile(url, prefix, base, dir, false, bundleTempDir))
     // 比如 url 前缀跟 originCdnPrefix 不匹配，或者 url 格式不正确 的场景有可能会导致匹配失败
     // 匹配失败时，会返回 null，需要过滤掉
     .filter(Boolean)

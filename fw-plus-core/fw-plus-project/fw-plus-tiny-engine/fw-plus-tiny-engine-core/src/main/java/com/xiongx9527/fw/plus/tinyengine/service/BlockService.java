@@ -8,6 +8,8 @@ import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockParam;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockParamDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.NotGroupDto;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Block;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockHistory;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Tenant;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.User;
 
 import java.util.List;
@@ -29,4 +31,7 @@ public interface BlockService extends IService<Block> {
 	List<BlockDto> getNotInGroupBlocks(NotGroupDto notGroupDto);
 	BlockDto getBlockByLabel(String label, Integer appId);
 	BlockDto deploy(BlockBuildDto blockBuildDto);
+	List<BlockHistory> blockHistories(Integer blockId);
+	List<Tenant> blockTenants();
+	List<User> blockUsers();
 }

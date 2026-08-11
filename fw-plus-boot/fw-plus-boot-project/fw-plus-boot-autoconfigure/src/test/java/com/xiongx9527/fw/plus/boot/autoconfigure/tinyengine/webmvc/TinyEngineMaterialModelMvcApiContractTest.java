@@ -6,15 +6,20 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFac
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockParam;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.DeleteI18nEntry;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.I18nEntryDto;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Block;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockGroup;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockHistory;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BusinessCategory;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Datasource;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.I18nEntry;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Model;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Resource;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.ResourceGroup;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Tenant;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.User;
 import com.xiongx9527.fw.plus.tinyengine.service.AppService;
 import com.xiongx9527.fw.plus.tinyengine.service.AppTemplateService;
 import com.xiongx9527.fw.plus.tinyengine.service.BlockGroupService;
@@ -26,11 +31,14 @@ import com.xiongx9527.fw.plus.tinyengine.service.ModelService;
 import com.xiongx9527.fw.plus.tinyengine.service.PageService;
 import com.xiongx9527.fw.plus.tinyengine.service.ResourceGroupService;
 import com.xiongx9527.fw.plus.tinyengine.service.ResourceService;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAccessDeniedException;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineUnsupportedCapabilityException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
@@ -42,9 +50,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -68,6 +78,8 @@ class TinyEngineMaterialModelMvcApiContractTest {
 	@BeforeEach
 	void setUp() {
 		appService = mock(AppService.class);
+		when(appService.requireEnabledApp(any(Integer.class))).thenAnswer(invocation ->
+				appService.queryAppById(invocation.getArgument(0)));
 		pageService = mock(PageService.class);
 		blockService = mock(BlockService.class);
 		blockGroupService = mock(BlockGroupService.class);
@@ -80,9 +92,37 @@ class TinyEngineMaterialModelMvcApiContractTest {
 		i18nEntryService = mock(I18nEntryService.class);
 		TinyEngineApiFacade facade = new DefaultTinyEngineApiFacade(appService, pageService, blockService,
 				blockGroupService, businessCategoryService, modelService, datasourceService, appTemplateService,
-				resourceGroupService, resourceService, i18nEntryService, new DefaultTinyEngineExternalCapability());
+				resourceGroupService, resourceService, i18nEntryService, null, new DefaultTinyEngineExternalCapability());
 		mvc = MockMvcBuilders.standaloneSetup(new TinyEngineMaterialMvcController(facade),
-				new TinyEngineModelMvcController(facade)).build();
+				new TinyEngineModelMvcController(facade), new TinyEngineI18nMvcController(facade)).build();
+	}
+
+	@Test
+	void disabledApplicationRejectsMaterialDatasourceModelResourceAndI18nOperations() throws Exception {
+		when(appService.requireEnabledApp(Integer.valueOf(9)))
+				.thenThrow(new TinyEngineAccessDeniedException("TinyEngine application is disabled"));
+
+		mvc.perform(get("/material-center/api/blocks").param("appId", "9"))
+				.andExpect(status().isForbidden());
+		mvc.perform(get("/app-center/api/sources/list/9"))
+				.andExpect(status().isForbidden());
+		mvc.perform(post("/material-center/api/model/create")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"nameCn\":\"模型\",\"nameEn\":\"Model\",\"appId\":9}"))
+				.andExpect(status().isForbidden());
+		mvc.perform(post("/material-center/api/resource-group/create")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"name\":\"media\",\"app\":9}"))
+				.andExpect(status().isForbidden());
+		mvc.perform(get("/app-center/api/i18n/entries")
+						.param("host", "9").param("host_type", "app"))
+				.andExpect(status().isForbidden());
+
+		verify(blockService, never()).listNew("9", null);
+		verify(datasourceService, never()).queryDatasourceByCondition(any(Datasource.class));
+		verify(modelService, never()).save(any(Model.class));
+		verify(resourceGroupService, never()).createResourceGroup(any(ResourceGroup.class));
+		verify(i18nEntryService, never()).findI18nEntryByApp(Integer.valueOf(9), "app");
 	}
 
 	@Test
@@ -222,7 +262,7 @@ class TinyEngineMaterialModelMvcApiContractTest {
 				new com.baomidou.mybatisplus.extension.plugins.pagination.Page<Model>(1, 10);
 		page.setRecords(Collections.singletonList(model));
 		when(modelService.pageQuery(1, 10, "用户", "User")).thenReturn(page);
-		when(modelService.queryModelById(Integer.valueOf(6))).thenReturn(model);
+		when(modelService.queryModelDetailById(Integer.valueOf(6))).thenReturn(model);
 		when(modelService.save(any(Model.class))).thenReturn(true);
 		when(modelService.updateById(any(Model.class))).thenReturn(true);
 		when(modelService.removeById(Integer.valueOf(6))).thenReturn(true);
@@ -238,7 +278,7 @@ class TinyEngineMaterialModelMvcApiContractTest {
 		mvc.perform(get("/material-center/api/model/detail/6"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.nameCn", is("用户模型")));
-		verify(modelService).queryModelById(Integer.valueOf(6));
+		verify(modelService).queryModelDetailById(Integer.valueOf(6));
 
 		mvc.perform(post("/material-center/api/model/create")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -366,6 +406,104 @@ class TinyEngineMaterialModelMvcApiContractTest {
 				.andExpect(status().isNotImplemented())
 				.andExpect(jsonPath("$.success", is(false)))
 				.andExpect(jsonPath("$.code", is("501")));
+	}
+
+	@Test
+	void i18nBulkDeleteRouteIsAvailable() throws Exception {
+		I18nEntryDto deleted = new I18nEntryDto();
+		deleted.setId(Integer.valueOf(7));
+		when(i18nEntryService.deleteI18nEntriesByHostAndHostTypeAndKey(any(DeleteI18nEntry.class)))
+				.thenReturn(Collections.singletonList(deleted));
+
+		mvc.perform(post("/app-center/api/i18n/entries/bulk/delete")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"host\":\"1\",\"host_type\":\"app\",\"key_in\":[\"hello\"]}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data[0].id", is(7)));
+
+		ArgumentCaptor<DeleteI18nEntry> entryCaptor = ArgumentCaptor.forClass(DeleteI18nEntry.class);
+		verify(i18nEntryService).deleteI18nEntriesByHostAndHostTypeAndKey(entryCaptor.capture());
+		assertThat(entryCaptor.getValue().getHost()).isEqualTo("1");
+		assertThat(entryCaptor.getValue().getHostType()).isEqualTo("app");
+		assertThat(entryCaptor.getValue().getKeyIn()).containsExactly("hello");
+	}
+
+	@Test
+	void advancedMaterialRoutesMatchOfficialRequestAndResponseShapes() throws Exception {
+		BlockHistory history = new BlockHistory();
+		history.setId(Integer.valueOf(21));
+		history.setRefId(Integer.valueOf(1));
+		history.setVersion("1.2.0");
+		Tenant tenant = new Tenant();
+		tenant.setId("tenant-9");
+		User user = new User();
+		user.setId("user-7");
+		user.setUsername("alice");
+		Resource first = resource(31, "logo.png");
+		Resource second = resource(32, "hero.png");
+		when(blockService.blockHistories(Integer.valueOf(1))).thenReturn(Collections.singletonList(history));
+		when(blockService.blockTenants()).thenReturn(Collections.singletonList(tenant));
+		when(blockService.blockUsers()).thenReturn(Collections.singletonList(user));
+		when(resourceService.createResources(any())).thenReturn(Arrays.asList(first, second));
+
+		mvc.perform(get("/material-center/api/block-history").param("block", "1"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data[0].id", is(21)))
+				.andExpect(jsonPath("$.data[0].version", is("1.2.0")));
+		verify(blockService).blockHistories(Integer.valueOf(1));
+
+		mvc.perform(get("/material-center/api/block/tenants"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data[0].id", is("tenant-9")));
+		verify(blockService).blockTenants();
+
+		mvc.perform(get("/material-center/api/block/users"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data[0].username", is("alice")));
+		verify(blockService).blockUsers();
+
+		mvc.perform(post("/material-center/api/resource/create/batch")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("[{\"name\":\"logo.png\"},{\"name\":\"hero.png\"}]"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data[0].id", is(31)))
+				.andExpect(jsonPath("$.data[1].id", is(32)));
+		verify(resourceService).createResources(any());
+	}
+
+	@Test
+	void resourceUploadRejectsTraversalAndReportsUnavailableStorage() throws Exception {
+		MockMultipartFile traversal = new MockMultipartFile("file", "../secret.png", "image/png",
+				new byte[] {1, 2, 3});
+		mvc.perform(multipart("/material-center/api/resource/upload").file(traversal).param("appId", "9"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.success", is(false)));
+		verify(resourceService, never()).uploadResource(any());
+
+		when(resourceService.uploadResource(any())).thenThrow(
+				new TinyEngineUnsupportedCapabilityException("TinyEngine resource upload storage is unavailable"));
+		MockMultipartFile valid = new MockMultipartFile("file", "logo.png", "image/png", new byte[] {1, 2, 3});
+		mvc.perform(multipart("/material-center/api/resource/upload").file(valid).param("appId", "9"))
+				.andExpect(status().isNotImplemented())
+				.andExpect(jsonPath("$.code", is("501")));
+	}
+
+	@Test
+	void modelOfficialAliasAndDetailKeepOfficialResultShape() throws Exception {
+		Model detail = model(41, "订单", "order_model");
+		when(modelService.pageQuery(1, 20, null, null)).thenReturn(
+				new com.baomidou.mybatisplus.extension.plugins.pagination.Page<Model>(1, 20));
+		when(modelService.queryModelDetailById(Integer.valueOf(41))).thenReturn(detail);
+
+		mvc.perform(get("/material-center/api/model").param("currentPage", "1").param("pageSize", "20"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.current", is(1)));
+		verify(modelService).pageQuery(1, 20, null, null);
+
+		mvc.perform(get("/material-center/api/model/detail/41"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.id", is(41)))
+				.andExpect(jsonPath("$.data.nameEn", is("order_model")));
 	}
 
 	private static Block block(Integer id, String label) {

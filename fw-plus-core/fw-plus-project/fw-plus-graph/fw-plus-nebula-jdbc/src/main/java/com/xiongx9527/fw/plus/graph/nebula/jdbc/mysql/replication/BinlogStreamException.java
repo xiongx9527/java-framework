@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.graph.nebula.jdbc.mysql.replication;
 
-public class BinlogStreamException extends Exception {
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
+public class BinlogStreamException extends BizException {
 	private final BinlogStreamFailure failure;
 
 	private BinlogStreamException(BinlogStreamFailure failure, String message) {

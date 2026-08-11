@@ -258,6 +258,17 @@ const responseErrorHandler = (error) => {
   if (response) {
     const { data } = response
 
+    if (response.status === 401 || response.status === 403) {
+      toLogin()
+
+      return Promise.reject({
+        type: 'AUTH_ERROR',
+        code: data?.code || response.status,
+        message: data?.message || data?.error?.message || '认证失败，请重新登录',
+        skipShowError: true
+      })
+    }
+
     if (data && data.code && LoginErrorCode.includes(data.code)) {
       toLogin()
 

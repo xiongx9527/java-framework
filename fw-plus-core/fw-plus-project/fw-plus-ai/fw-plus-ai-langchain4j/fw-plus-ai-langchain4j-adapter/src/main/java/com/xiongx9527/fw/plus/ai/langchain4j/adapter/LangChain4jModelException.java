@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.langchain4j.adapter;
 
-public class LangChain4jModelException extends RuntimeException {
+import com.xiongx9527.fw.plus.common.exception.BizException;
+
+public class LangChain4jModelException extends BizException {
 
     public LangChain4jModelException(String message) {
         super(message);

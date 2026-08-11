@@ -17,6 +17,7 @@ import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -90,7 +91,20 @@ public class BlockGroupServiceImpl extends ServiceImpl<BlockGroupMapper, BlockGr
 	}
 
 	@Override
-	public BlockGroup createBlockGroup(BlockGroup blockGroup) {
+		public BlockGroup createBlockGroup(BlockGroup blockGroup) {
+			TinyEngineUser currentUser = currentUser();
+			if (currentUser != null) {
+				blockGroup.setTenantId(currentUser.getTenantId());
+				blockGroup.setRenterId(currentUser.getRenterId());
+				blockGroup.setCreatedBy(currentUser.getUserId());
+				blockGroup.setLastUpdatedBy(currentUser.getUserId());
+				if (blockGroup.getPlatformId() == null) {
+					blockGroup.setPlatformId(currentUser.getPlatformId());
+				}
+			}
+			LocalDateTime now = LocalDateTime.now();
+		blockGroup.setCreatedTime(now);
+		blockGroup.setLastUpdatedTime(now);
 		if (!baseMapper.queryBlockGroupByCondition(blockGroup).isEmpty()) {
 			throw failure(ExceptionEnum.CM003);
 		}
@@ -140,8 +154,12 @@ public class BlockGroupServiceImpl extends ServiceImpl<BlockGroupMapper, BlockGr
 	}
 
 	private String currentUserId() {
-		TinyEngineUser user = userContext == null ? null : userContext.getCurrentUser();
+		TinyEngineUser user = currentUser();
 		return user == null ? null : user.getUserId();
+	}
+
+	private TinyEngineUser currentUser() {
+		return userContext == null ? null : userContext.getCurrentUser();
 	}
 
 	private ServiceException failure(ExceptionEnum error) {

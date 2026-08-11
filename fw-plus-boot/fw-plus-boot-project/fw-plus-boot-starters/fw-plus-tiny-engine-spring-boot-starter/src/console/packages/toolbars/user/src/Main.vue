@@ -84,9 +84,21 @@ export default {
         : []
     })
 
-    const logOut = () => {
+    const clearLogin = () => {
       localStorage.removeItem('engineToken')
       setNeedToLogin(true)
+    }
+
+    const logOut = () => {
+      const token = localStorage.getItem('engineToken')
+      if (!token) {
+        clearLogin()
+        return
+      }
+
+      getMetaApi(META_SERVICE.Http)
+        .post('/platform-center/api/user/logout', {})
+        .finally(clearLogin)
     }
 
     const createTenant = () => {
@@ -96,6 +108,12 @@ export default {
           state.isShowTenantTip = false
         }, 2000)
 
+        return
+      }
+
+      if (!localStorage.getItem('engineToken')) {
+        useModal().message({ message: '请先登录后再创建组织', status: 'warning' })
+        setNeedToLogin(true)
         return
       }
 

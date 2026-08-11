@@ -3,7 +3,9 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webmvc;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFacade;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.web.TinyEngineWebResponses;
 import com.xiongx9527.fw.plus.tinyengine.common.model.Result;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.AppExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,10 +46,120 @@ public class TinyEngineAppMvcController {
 		}
 	}
 
+	@GetMapping("/app-center/api/apps/list/{platformId}")
+	public ResponseEntity<? extends Result<?>> appList(@PathVariable Integer platformId) {
+		try {
+			App app = new App();
+			app.setPlatformId(platformId);
+			AppDto page = facade.appsPage(Integer.valueOf(1), Integer.valueOf(1000), null, app);
+			return TinyEngineWebResponses.ok(page == null ? null : page.getApps());
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
 	@PostMapping("/app-center/api/apps/create")
 	public ResponseEntity<? extends Result<?>> createApp(@RequestBody App app) {
 		try {
 			return TinyEngineWebResponses.ok(facade.createApp(app));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping("/app-center/api/apps/update/{id}")
+	public ResponseEntity<? extends Result<?>> updateApp(@PathVariable Integer id, @RequestBody App app) {
+		try {
+			return TinyEngineWebResponses.ok(facade.updateApp(id, app));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/app-center/api/apps/delete/{id}")
+	public ResponseEntity<? extends Result<?>> deleteApp(@PathVariable Integer id) {
+		try {
+			return TinyEngineWebResponses.ok(facade.deleteApp(id));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/app-center/api/apps/save/{id}")
+	public ResponseEntity<? extends Result<?>> saveApp(@PathVariable Integer id,
+			@RequestParam Map<String, Object> request) {
+		try {
+			return TinyEngineWebResponses.ok(facade.saveApp(id, request));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping("/app-center/api/apps/publish/{id}")
+	public ResponseEntity<? extends Result<?>> publishApp(@PathVariable Integer id,
+			@RequestBody(required = false) Map<String, Object> request) {
+		try {
+			return TinyEngineWebResponses.ok(facade.publishApp(id, request));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/app-center/api/apps/preview/{id}")
+	public ResponseEntity<? extends Result<?>> previewApp(@PathVariable Integer id,
+			@RequestParam Map<String, Object> request) {
+		try {
+			return TinyEngineWebResponses.ok(facade.previewApp(id, request));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/app-center/api/apps/extension/list")
+	public ResponseEntity<? extends Result<?>> appExtensions(@RequestParam Integer app,
+			@RequestParam String category) {
+		try {
+			return TinyEngineWebResponses.ok(facade.appExtensions(app, category));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping("/app-center/api/apps/extension/create")
+	public ResponseEntity<? extends Result<?>> createAppExtension(@RequestBody AppExtension extension) {
+		try {
+			return TinyEngineWebResponses.ok(facade.createAppExtension(extension));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping("/app-center/api/apps/extension/update")
+	public ResponseEntity<? extends Result<?>> updateAppExtension(@RequestBody AppExtension extension) {
+		try {
+			return TinyEngineWebResponses.ok(facade.updateAppExtension(extension));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/app-center/api/apps/extension/delete")
+	public ResponseEntity<? extends Result<?>> deleteAppExtension(@RequestParam Integer id) {
+		try {
+			return TinyEngineWebResponses.ok(facade.deleteAppExtension(id));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/app-center/api/apps/canvas/lock")
+	public ResponseEntity<? extends Result<?>> lockCanvas(@RequestParam Integer id,
+			@RequestParam String state, @RequestParam String type) {
+		try {
+			Map<String, Object> request = new java.util.LinkedHashMap<String, Object>();
+			request.put("state", state);
+			request.put("type", type);
+			return TinyEngineWebResponses.ok(facade.lockCanvas(id, request));
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}
@@ -66,7 +178,7 @@ public class TinyEngineAppMvcController {
 		}
 	}
 
-	@GetMapping("/app-center/v1/api/apps/schema/{id}")
+	@GetMapping({"/app-center/v1/api/apps/schema/{id}", "/app-center/api/apps/schema/{id}"})
 	public ResponseEntity<? extends Result<?>> appSchema(@PathVariable Integer id) {
 		try {
 			Map<String, Object> schema = facade.appSchema(id);
@@ -74,6 +186,15 @@ public class TinyEngineAppMvcController {
 				return TinyEngineWebResponses.notFound("TinyEngine app schema not found: " + id);
 			}
 			return TinyEngineWebResponses.ok(schema);
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/app-center/api/apps/schema/components/{id}")
+	public ResponseEntity<? extends Result<?>> appSchemaComponents(@PathVariable Integer id) {
+		try {
+			return TinyEngineWebResponses.ok(facade.appSchemaComponents(id));
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}

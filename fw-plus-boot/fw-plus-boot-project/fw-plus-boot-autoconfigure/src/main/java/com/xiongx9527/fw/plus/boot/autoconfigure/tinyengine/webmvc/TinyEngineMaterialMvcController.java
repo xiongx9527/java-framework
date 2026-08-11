@@ -3,13 +3,17 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webmvc;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFacade;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.web.TinyEngineWebResponses;
 import com.xiongx9527.fw.plus.tinyengine.common.model.Result;
+import com.xiongx9527.fw.plus.tinyengine.common.util.TinyEngineFileSecurityUtils;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockBuildDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockParam;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockParamDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.ResourceRequestDto;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockGroup;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Resource;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.ResourceGroup;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -57,6 +61,33 @@ public class TinyEngineMaterialMvcController {
 	public ResponseEntity<? extends Result<?>> blockDetail(@PathVariable Integer id) {
 		try {
 			return TinyEngineWebResponses.ok(facade.blockDetail(id));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/block-history")
+	public ResponseEntity<? extends Result<?>> blockHistories(@RequestParam("block") Integer blockId) {
+		try {
+			return TinyEngineWebResponses.ok(facade.blockHistories(blockId));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/block/tenants")
+	public ResponseEntity<? extends Result<?>> blockTenants() {
+		try {
+			return TinyEngineWebResponses.ok(facade.blockTenants());
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/block/users")
+	public ResponseEntity<? extends Result<?>> blockUsers() {
+		try {
+			return TinyEngineWebResponses.ok(facade.blockUsers());
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}
@@ -257,6 +288,36 @@ public class TinyEngineMaterialMvcController {
 	public ResponseEntity<? extends Result<?>> createResource(@RequestBody Resource resource) {
 		try {
 			return TinyEngineWebResponses.ok(facade.createResource(resource));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping("/resource/create/batch")
+	public ResponseEntity<? extends Result<?>> createResources(@RequestBody List<Resource> resources) {
+		try {
+			return TinyEngineWebResponses.ok(facade.createResources(resources));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping(value = "/resource/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<? extends Result<?>> uploadResource(@RequestParam("file") MultipartFile file,
+			@RequestParam(required = false) Integer appId) {
+		try {
+			if (file == null || file.isEmpty()) {
+				throw new IllegalArgumentException("Resource upload file is required");
+			}
+			String fileName = file.getOriginalFilename();
+			TinyEngineFileSecurityUtils.validateRelativePath(fileName);
+			ResourceRequestDto request = new ResourceRequestDto();
+			request.setName(fileName);
+			request.setAppId(appId);
+			request.setIsResource(true);
+			return TinyEngineWebResponses.ok(facade.uploadResource(request));
+		} catch (IllegalArgumentException ex) {
+			return ResponseEntity.badRequest().body(Result.failed("400", ex.getMessage()));
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}

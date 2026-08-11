@@ -1,0 +1,23 @@
+schema: comet.native.v3
+minimum_runtime_version: 3
+revision: 7
+verification_protocol: legacy-v1
+name: magicapi-dynamic-entity-plugin
+language: zh-CN
+phase: archive
+brief: brief.md
+approval: confirmed
+approved_contract_hash: 45ed58098657881dad0e5906b28952a9fc6ce05cb1f7317f7851f6825eca0478
+spec_changes:
+  - capability: magicapi-dynamic-java-entity
+    operation: create
+    source: specs/magicapi-dynamic-java-entity/spec.md
+    base_hash: null
+verification_result: pass
+verification_report: verification.md
+implementation_scope: runtime/evidence/scopes/87fcf2785df2a9fb11f0385a7fc3ad50d4f68596892b302ef69b60139ad5b74d.json
+verification_evidence: runtime/evidence/verifications/a7f4b900ae664bdae8930a4d5a037052d544c7e983792691b30f3bfbe94d8fd7.json
+partial_allowance: null
+archived: true
+created_at: 2026-08-05
+run_id: 64513446-9b47-4eae-9221-2a61f59d45f8

@@ -18,6 +18,7 @@ import {
   useCanvas,
   usePage,
   useBlock,
+  useLayout,
   getMetaApi,
   META_SERVICE,
   getMergeMeta
@@ -56,6 +57,22 @@ interface ScriptDep {
 
 // 保存预览窗口引用
 let previewWindow: Window | null = null
+
+const appendViewportQueryParam = (queryParams: URLSearchParams, key: string, value: unknown) => {
+  if (value !== undefined && value !== null && value !== '') {
+    queryParams.set(key, String(value))
+  }
+}
+
+const appendViewportQueryParams = (queryParams: URLSearchParams) => {
+  const dimension = useLayout().getDimension()
+
+  appendViewportQueryParam(queryParams, 'deviceType', dimension.deviceType)
+  appendViewportQueryParam(queryParams, 'width', dimension.width)
+  appendViewportQueryParam(queryParams, 'minWidth', dimension.minWidth)
+  appendViewportQueryParam(queryParams, 'maxWidth', dimension.maxWidth)
+  appendViewportQueryParam(queryParams, 'height', dimension.height)
+}
 
 const getScriptAndStyleDeps = (): {
   scripts: ScriptDep
@@ -276,26 +293,30 @@ const getQueryParams = (params: PreviewParams = {}, isHistory: boolean = false):
   const theme = getMetaApi(META_SERVICE.ThemeSwitch)?.getThemeState()?.theme
   const framework = getMergeMeta('engine.config')?.dslMode
   const platform = getMergeMeta('engine.config')?.platformId
+  const queryParams = new URLSearchParams()
 
-  let query = `tenant=${tenant}&id=${paramsMap.get('id')}&theme=${theme}&framework=${framework}`
-
-  query += `&platform=${platform}`
+  queryParams.set('tenant', tenant)
+  queryParams.set('id', paramsMap.get('id') || '')
+  queryParams.set('theme', theme || '')
+  queryParams.set('framework', framework || '')
+  queryParams.set('platform', platform === undefined || platform === null ? '' : String(platform))
+  appendViewportQueryParams(queryParams)
 
   if (pageId) {
-    query += `&pageid=${pageId}`
+    queryParams.set('pageid', pageId)
   }
 
   if (blockId) {
-    query += `&blockid=${blockId}`
+    queryParams.set('blockid', blockId)
   }
 
   if (isHistory) {
-    query += `&history=${params.history}`
+    queryParams.set('history', params.history || '')
   }
 
-  query += `&previewType=${params.previewType}`
+  queryParams.set('previewType', params.previewType || '')
 
-  return query
+  return queryParams.toString()
 }
 
 const open = (params: PreviewParams = {}, isHistory: boolean = false) => {
@@ -326,7 +347,8 @@ const open = (params: PreviewParams = {}, isHistory: boolean = false) => {
   }
 
   if (previewWindow && !previewWindow.closed) {
-    // 如果预览窗口存在，则聚焦预览窗口
+    // 如果预览窗口存在，则刷新到最新预览地址，确保画布尺寸和终端类型同步
+    previewWindow.location.href = openUrl
     previewWindow.focus()
     return
   }

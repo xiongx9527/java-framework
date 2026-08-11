@@ -14,8 +14,7 @@
         <module>fw-plus-parent</module>
         <module>fw-plus-common</module>
         <module>fw-plus-annotation</module>
-        <module>fw-plus-mf</module>
-        <module>fw-plus-mp</module>
+        <module>fw-plus-mybatis</module>
         <module>fw-plus-easytrans</module>
         <module>fw-plus-poi</module>
         <module>fw-plus-jdbc</module>

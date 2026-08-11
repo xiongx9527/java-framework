@@ -18,6 +18,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ClassPathBeanDefinitionScanner;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.env.Environment;
 import org.springframework.core.type.MethodMetadata;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
@@ -30,6 +31,7 @@ import org.springframework.util.ClassUtils;
 		"com.xiongx9527.fw.plus.tinyengine.service.impl.ResourceServiceImpl"
 })
 @ConditionalOnProperty(prefix = "fw.plus.tiny-engine.service", name = "enabled", havingValue = "true", matchIfMissing = true)
+@Import(TinyEngineDynamicServiceConfiguration.class)
 public class TinyEngineServiceConfiguration {
 
 	@Bean

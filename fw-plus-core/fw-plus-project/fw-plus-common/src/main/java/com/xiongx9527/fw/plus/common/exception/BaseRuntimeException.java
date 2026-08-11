@@ -1,6 +1,6 @@
 package com.xiongx9527.fw.plus.common.exception;
 
-public class BaseRuntimeException extends RuntimeException {
+public class BaseRuntimeException extends BizException {
 
     /**
      * Serial Version UID

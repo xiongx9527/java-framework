@@ -12,9 +12,10 @@
 <script lang="ts">
 /* metaService: engine.toolbars.lock.Main */
 import { computed, reactive } from 'vue'
-import { useCanvas, useLayout, useBlock, useNotify } from '@opentiny/tiny-engine-meta-register'
+import { useCanvas, useLayout, useBlock, useNotify, getMetaApi, META_SERVICE } from '@opentiny/tiny-engine-meta-register'
 import { constants } from '@opentiny/tiny-engine-utils'
 import { ToolbarBase } from '@opentiny/tiny-engine-common'
+import { getCanvasStatus } from '@opentiny/tiny-engine-common/js/canvas'
 import { requestBlockPage } from './http'
 
 const { COMPONENT_NAME, PAGE_STATUS } = constants
@@ -41,6 +42,8 @@ const statusMessageMap = {
     nextOptName: '解锁'
   }
 }
+
+const isValidLockTargetId = (id: any) => id !== undefined && id !== null && id !== ''
 
 export default {
   components: {
@@ -75,7 +78,33 @@ export default {
       }
     })
 
+    const syncLockStatus = (type: string, newState: string) => {
+      const occupier = newState === PAGE_STATUS.Occupy ? getMetaApi(META_SERVICE.GlobalService).getUserInfo() : undefined
+
+      if (type === 'page' && pageState.currentPage) {
+        pageState.currentPage.occupier = occupier
+      }
+
+      if (type === 'block') {
+        const currentBlock = getCurrentBlock()
+        if (currentBlock) {
+          currentBlock.occupier = occupier
+        }
+      }
+
+      layoutState.pageStatus = getCanvasStatus(occupier)
+    }
+
     const lockPage = (id: any, type: string, newState: string) => {
+      if (!isValidLockTargetId(id)) {
+        useNotify({
+          type: 'warning',
+          message: type === 'page' ? '当前应用还没有可锁定的页面，请先新建页面' : '当前区块不存在，无法锁定'
+        })
+        state.disabled = false
+        return
+      }
+
       requestBlockPage(`id=${id}&state=${newState}&type=${type}`)
         .then((data: { operate: string }) => {
           if (data?.operate === 'success') {
@@ -83,7 +112,7 @@ export default {
               type: 'success',
               message: statusMessageMap[newState].message(type)
             })
-            layoutState.pageStatus.state = newState
+            syncLockStatus(type, newState)
           } else {
             const pageInfo = layoutState.pageStatus?.data
             useNotify({
@@ -119,10 +148,11 @@ export default {
 
       state.disabled = true
 
-      if (pageState.pageSchema.componentName !== COMPONENT_NAME.Block) {
-        lockPage(pageState.currentPage.id, 'page', optType)
+      if (pageState.pageSchema?.componentName !== COMPONENT_NAME.Block) {
+        const currentPageId = pageState.currentPage?.id ?? pageState.pageSchema?.id
+        lockPage(currentPageId, 'page', optType)
       } else {
-        lockPage(getCurrentBlock().id, 'block', optType)
+        lockPage(getCurrentBlock()?.id, 'block', optType)
       }
     }
 

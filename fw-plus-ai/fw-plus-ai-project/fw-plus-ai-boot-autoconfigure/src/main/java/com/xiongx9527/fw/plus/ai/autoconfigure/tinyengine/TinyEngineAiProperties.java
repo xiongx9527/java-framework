@@ -14,6 +14,7 @@ public class TinyEngineAiProperties {
 	private Vector vector = new Vector();
 	private Model model = new Model();
 	private Store store = new Store();
+	private Official official = new Official();
 
 	public boolean isEnabled() { return enabled; }
 	public void setEnabled(boolean enabled) { this.enabled = enabled; }
@@ -35,6 +36,8 @@ public class TinyEngineAiProperties {
 	public void setModel(Model model) { this.model = model == null ? new Model() : model; }
 	public Store getStore() { return store; }
 	public void setStore(Store store) { this.store = store == null ? new Store() : store; }
+	public Official getOfficial() { return official; }
+	public void setOfficial(Official official) { this.official = official == null ? new Official() : official; }
 
 	public static class Chat {
 		private boolean enabled;
@@ -106,5 +109,23 @@ public class TinyEngineAiProperties {
 		private String storeKey;
 		public String getStoreKey() { return storeKey; }
 		public void setStoreKey(String storeKey) { this.storeKey = storeKey; }
+	}
+
+	public static class Official {
+		private boolean enabled = true;
+		private String sm4Key;
+		private int connectTimeoutMillis = 10000;
+		private int readTimeoutMillis = 120000;
+		private int maxResponseBytes = 10 * 1024 * 1024;
+		public boolean isEnabled() { return enabled; }
+		public void setEnabled(boolean enabled) { this.enabled = enabled; }
+		public String getSm4Key() { return sm4Key; }
+		public void setSm4Key(String sm4Key) { this.sm4Key = sm4Key; }
+		public int getConnectTimeoutMillis() { return connectTimeoutMillis; }
+		public void setConnectTimeoutMillis(int connectTimeoutMillis) { this.connectTimeoutMillis = connectTimeoutMillis; }
+		public int getReadTimeoutMillis() { return readTimeoutMillis; }
+		public void setReadTimeoutMillis(int readTimeoutMillis) { this.readTimeoutMillis = readTimeoutMillis; }
+		public int getMaxResponseBytes() { return maxResponseBytes; }
+		public void setMaxResponseBytes(int maxResponseBytes) { this.maxResponseBytes = maxResponseBytes; }
 	}
 }

@@ -6,12 +6,19 @@ public class TinyEngineRegistrationRequest {
 	private final String displayName;
 	private final String password;
 	private final String tenantId;
+	private final String requestHost;
 
 	public TinyEngineRegistrationRequest(String username, String displayName, String password, String tenantId) {
+		this(username, displayName, password, tenantId, null);
+	}
+
+	public TinyEngineRegistrationRequest(String username, String displayName, String password, String tenantId,
+			String requestHost) {
 		this.username = username;
 		this.displayName = displayName;
 		this.password = password;
 		this.tenantId = tenantId;
+		this.requestHost = requestHost;
 	}
 
 	public String getUsername() {
@@ -28,5 +35,9 @@ public class TinyEngineRegistrationRequest {
 
 	public String getTenantId() {
 		return tenantId;
+	}
+
+	public String getRequestHost() {
+		return requestHost;
 	}
 }

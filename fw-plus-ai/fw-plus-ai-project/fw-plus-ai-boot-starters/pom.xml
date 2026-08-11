@@ -19,6 +19,7 @@
         <module>fw-plus-ai-askdata-spring-boot-starter</module>
         <module>fw-plus-ai-tiny-engine-spring-boot-starter</module>
         <module>fw-plus-ai-tiny-engine-plugin-langchain4j</module>
+        <module>fw-plus-ai-tinyflow-spring-boot-starter</module>
     </modules>
     <artifactId>fw-plus-ai-boot-starters</artifactId>
 
