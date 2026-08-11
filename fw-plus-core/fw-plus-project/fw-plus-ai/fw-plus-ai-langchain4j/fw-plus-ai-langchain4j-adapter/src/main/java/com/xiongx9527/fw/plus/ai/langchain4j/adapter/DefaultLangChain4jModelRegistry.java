@@ -89,7 +89,15 @@ public class DefaultLangChain4jModelRegistry implements LangChain4jModelRegistry
         definition.setType(model == null || model.getModelType() == null ? null
                 : AiModelType.valueOf(model.getModelType().name()));
         definition.setEnabled(true);
-        return new LangChain4jAiModel(definition, model);
+		if (AiModelType.CHAT == definition.getType()
+				&& model.getModel() instanceof dev.langchain4j.model.chat.ChatLanguageModel) {
+			return new LangChain4jAiChatModel(definition, model);
+		}
+		if (AiModelType.EMBEDDING == definition.getType()
+				&& model.getModel() instanceof dev.langchain4j.model.embedding.EmbeddingModel) {
+			return new LangChain4jAiEmbeddingModel(definition, model);
+		}
+		return new LangChain4jAiModel(definition, model);
     }
 
     private boolean isBlank(String value) {
