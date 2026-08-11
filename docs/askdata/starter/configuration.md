@@ -16,7 +16,7 @@
 | --- | --- | --- |
 | `enabled` | `true` | 启用 AskData 默认装配；业务自定义 Bean 仍优先。 |
 | `model.provider` | `ollama` | 路由审计中的提供方诊断标签，不决定 Core 路由，也不注入厂商 SDK。 |
-| `model.default-chat-model` | `qwen3:32b` | 默认聊天逻辑 key，应存在于已注册 LangChain4j 模型中。 |
+| `model.default-chat-model` | `qwen3:32b` | 默认聊天逻辑 key，应存在于业务显式安装的中立模型注册表中；该值不会创建 Ollama 模型。 |
 | `model.default-embedding-model` | `bge-m3` | 默认向量逻辑 key，与聊天模型独立注册。 |
 | `model.chat-candidates` | `[qwen3:32b]` | 聊天候选顺序；上层将其与请求、项目、数据源、任务策略合成为路由请求。 |
 | `model.embedding-candidates` | `[bge-m3]` | 向量候选顺序。 |

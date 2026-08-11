@@ -4,6 +4,8 @@
 
 本 starter 提供 AskData 的 Spring Boot 2.7.x / Java 8 自动配置。业务配置使用 `fw.plus.ai.askdata`，模型和向量能力统一解析中立注册表：聊天/embedding 模型 key 解析到 `AiModelRegistry`（来自 `fw-plus-ai-model`），向量 store key 解析到 `AiEmbeddingStoreRegistry`（来自 `fw-plus-ai-store-embedding`）。AskData 业务代码不应把 LangChain4j 原生模型或 store 当作主接口。
 
+当前实现范围：LangChain4j Adapter 已在 Java 8 分支实现，但必须由业务显式引入；AskData Starter 单独启动时不会创建 LangChain4j、Ollama、Provider 模型或凭据 Bean。Spring AI、Spring AI Alibaba、AgentScope 仅规划在 Java 17 / Spring Boot 3 分支实现，当前没有可用 artifact 或 framework 配置值，详见 [Java 17 运行时 Adapter 规划](../../../../docs/askdata/java17-runtime-adapters.md)。
+
 ## Maven 依赖
 
 ```xml
@@ -49,6 +51,17 @@ fw:
         flow:
           multi-question-max-concurrency: 4
           multi-question-timeout-millis: 30000
+        conversation:
+          compression-threshold-chars: 12000
+          checkpoint-version: "1"
+          max-checkpoints-per-conversation: 100
+        state:
+          cluster-mode: false
+          store: memory
+          monitoring-log-capacity: 1000
+        observability:
+          enabled: false
+          exporters: []
 ```
 
 `request-timeout-millis` 是传给 Core Chat/Embedding Adapter 的单次调用超时；`infrastructure-failure-timeout-millis` 只用于旧 LangChain4j 兼容层按调用耗时识别基础设施故障，不能替代 provider HTTP 客户端超时。两者默认均为 30000 毫秒，但语义独立。
@@ -80,7 +93,21 @@ request.setOptions(Collections.<String, Object>singletonMap(
 
 无依赖节点在 `multi-question-max-concurrency` 上限内并发执行，默认值为 `4`；整个计划受 `multi-question-timeout-millis` 约束，默认值为 `30000` 毫秒。`failurePolicy=SKIP` 会在任一依赖失败时跳过当前节点，`CONTINUE` 则允许节点在依赖已终态后继续。每个 `childResults` 条目携带 `questionId`、`dependsOn` 和独立 `questionState`；终态固定为 `SUCCEEDED`、`FAILED`、`TIMED_OUT`、`CANCELLED` 或 `SKIPPED`，失败结果使用对应的稳定错误码。
 
-配置 `AskDataConversationStore` 后，Flow 会在计划开始及每个子问题进入终态时保存父检查点，并使用 `<parentConversationId>:<questionId>` 作为稳定子会话 ID。恢复请求可传父 `resumeToken` 或 `conversationId`；已终态节点直接从父检查点恢复，未终态节点从其最新子检查点继续，因此已完成的 SQL 不会重放。恢复时请求身份、检查点版本和完整 DAG 快照必须一致，否则 fail-closed。集群部署必须提供共享会话存储；默认内存实现只适用于单实例，进程退出后不可恢复。
+配置 `AskDataConversationStore` 后，Flow 会在计划开始及每个子问题进入终态时保存父检查点，并使用 `<parentConversationId>:<questionId>` 作为稳定子会话 ID。恢复请求可传父 `resumeToken` 或 `conversationId`；已终态节点直接从父检查点恢复，未终态节点从其最新子检查点继续，因此已完成的 SQL 不会重放。检查点显式保存 `projectId`、`operatorId` 和 `authorizationVersion`，默认内存存储按项目与操作人分区 conversation/token 索引。跨作用域恢复表现为检查点不存在；同一作用域授权版本漂移、请求身份、检查点版本或完整 DAG 快照不一致时恢复失败。集群部署必须提供共享会话存储；默认内存实现只适用于单实例，进程退出后不可恢复。
+
+## 生命周期观测与故障隔离
+
+默认 Flow 发布对话、问题计划/子问题、模型尝试、Agent/Tool、SQL 插件/校验/执行、长期记忆、上下文压缩、检查点、恢复、治理拒绝、取消、完成和失败事件。关联对象包含 `eventId`、`requestId`、`subQuestionId`、`conversationId`、`graphNodeId`、`agentKey`、`instanceId`、`parentEventId`；事件本身同时绑定项目、操作人、数据源、授权版本和可用的实际模型 key，不写原始 Prompt、凭据、SQL 参数值、记忆或结果正文。
+
+未配置外部监控存储时，默认使用按 `projectId + operatorId` 隔离的内存环形日志，每个作用域默认保留 `1000` 条，由 `state.monitoring-log-capacity` 调整；超限淘汰最早记录，进程重启后全部丢失。业务替换外部 `AskDataMonitoringLogStore` 后，主存储失败会尝试向独立本地环形存储写一条脱敏 `MONITORING_DELIVERY_DEGRADED` 诊断；两级存储均失败也不会向 Flow 冒泡。
+
+Exporter 通过异步执行器逐个隔离：单个 exporter 抛错或任务被拒绝时写本地 `OBSERVABILITY_EXPORT_DEGRADED` 诊断，并继续其他 exporter 与业务流程。配置中的 `otel`、`langfuse`、`langsmith` 当前只是无厂商 SDK 的占位实现，不代表已经连接外部平台；真实导出必须由业务提供实现或替换 `askDataObservationEventPublisher`，并继续遵守脱敏和不阻断约束。
+
+## 上下文压缩
+
+默认 `DefaultAskDataContextCompressor` 是确定性、无 AI 框架实现，摘要只记录完成步骤、当前步骤、检查点/token 是否存在、SQL 状态、执行状态、行数、检索/步骤计数和错误码，不拼接原始问题、Prompt、模型响应、检索正文或步骤正文。可恢复对象继续保留项目/操作人、会话/检查点、请求与实际模型 key、数据源/方言、SQL、校验/执行状态、当前/已完成步骤、行数和错误码。
+
+业务提供语义压缩器时，应使用 `FallbackAskDataContextCompressor` 与确定性压缩组合。语义压缩抛错或返回空摘要时发布 `CONTEXT_COMPRESSION_DEGRADED` 并回落；语义压缩成功也只替换有界摘要，恢复安全字段仍以确定性结果为准。
 
 ## SQL 阶段化插件
 
@@ -178,7 +205,9 @@ public AskDataAgent businessSqlGenerator() {
 
 步骤替换不改变安全边界：`select-tables` 只能从治理后授权表中收窄；`validate-sql` 返回的命令仍须保留项目、操作人、参数和授权边界，并再次经过治理、方言/元数据及 Core 最终校验；`execute-sql` 必须返回与上下文相同的行数上限和超时事实，且结果不得超限；结果映射仍在执行完成检查点后运行。Agent 返回失败、空结果或越界结果时 Flow fail-closed。
 
-需要 LangChain4j 时，由业务应用显式引入 Adapter Starter：
+## LangChain4j Adapter
+
+当前 Java 8 分支已实现 LangChain4j 对中立 Chat、批量 Embedding、向量与 AskData SPI 的适配。需要 LangChain4j 时，由业务应用显式引入 Adapter Starter：
 
 ```xml
 <dependency>
