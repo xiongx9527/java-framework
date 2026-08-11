@@ -98,6 +98,7 @@ export default {
 
     const loadMembers = async () => {
       if (!props.application?.id) return
+      if (loading.value) return
       loading.value = true
       loadError.value = ''
       try {
