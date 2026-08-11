@@ -413,10 +413,12 @@ public class AskDataAutoConfiguration {
     @ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain.class)
     public com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain askDataSqlInterceptorChain(
             ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor> interceptorProvider,
+            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlResultMapper> resultMapperProvider,
             com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator validator,
             com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit audit) {
         return new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain(
-                interceptorProvider.orderedStream().collect(Collectors.toList()), validator, audit);
+                interceptorProvider.orderedStream().collect(Collectors.toList()),
+                resultMapperProvider.orderedStream().collect(Collectors.toList()), validator, audit);
     }
 
     @Bean

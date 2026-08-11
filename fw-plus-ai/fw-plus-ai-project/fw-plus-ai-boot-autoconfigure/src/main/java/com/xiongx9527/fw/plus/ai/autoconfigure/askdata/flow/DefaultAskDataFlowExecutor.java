@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataErrorCode;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataColumn;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
@@ -47,8 +48,10 @@ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlExecutionStatus;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlParameter;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlResult;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationPurpose;
@@ -1208,22 +1211,32 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 String errorMessage = execution == null ? "AskData SQL execution failed" : execution.getErrorMessage();
                 return failure(result, "execute-sql", errorCode, errorMessage);
             }
-            result.setColumns(execution.getColumns());
-            result.setRows(execution.getRows());
             result.setRowCount(Integer.valueOf(execution.getRowCount()));
             context.setRowCount(Integer.valueOf(execution.getRowCount()));
             context.setSqlExecuted(Boolean.TRUE);
             context.setExecutionState(EXECUTION_COMPLETED);
             result.addStep("execute-sql", "Execute SQL", true, "SQL executed");
+            AskDataResult checkpointFailure = saveCheckpoint(context, result, "execute-sql",
+                    context.getSqlValidated(), context.getSqlExecuted());
+            if (checkpointFailure != null) {
+                return checkpointFailure;
+            }
+            try {
+                AskDataSqlResult mapped = mapSqlResult(command, execution, maxRows(request));
+                result.setColumns(toLegacyColumns(mapped));
+                result.setRows(mapped.getRows());
+            } catch (RuntimeException ex) {
+                return failure(result, "format-result", AskDataErrorCode.SQL_EXECUTION_FAILED, message(ex));
+            }
         } else {
             context.setSqlExecuted(Boolean.FALSE);
             context.setExecutionState(EXECUTION_SKIPPED);
             result.addStep("execute-sql", "Execute SQL", true, "SQL execution skipped");
-        }
-        AskDataResult checkpointFailure = saveCheckpoint(context, result, "execute-sql", context.getSqlValidated(),
-                context.getSqlExecuted());
-        if (checkpointFailure != null) {
-            return checkpointFailure;
+            AskDataResult checkpointFailure = saveCheckpoint(context, result, "execute-sql",
+                    context.getSqlValidated(), context.getSqlExecuted());
+            if (checkpointFailure != null) {
+                return checkpointFailure;
+            }
         }
         result.setSuccess(true);
         result.addStep("format-result", "Format Result", true, "Result formatted");
@@ -1266,9 +1279,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             command = commandForInterceptors(request, command);
             AskDataSqlCommand rewritten = sqlInterceptorChain.execute(command);
             AskDataAuthorizationSummary finalSummary = rewritten.getAuthorizationSummary();
-            command = governedCommand(request, rewritten.getSql(), finalSummary,
+            AskDataSqlCommand governed = governedCommand(request, rewritten.getSql(), finalSummary,
                     finalSummary == null ? Collections.<AskDataRowPredicate>emptyList()
                             : finalSummary.getRowPredicates());
+            command = withMergedParameters(rewritten, governed);
             AskDataMetadata finalMetadata = authorizedMetadata(request, metadata, command.getAuthorizationSummary());
             AskDataSqlValidationResult finalValidation = sqlValidator.validate(command.getSql(), dialect,
                     maxRows(request), finalMetadata);
@@ -1277,8 +1291,64 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             }
             command = command.withSql(finalValidation.getSql());
         }
+        validateNamedParameters(command);
         validateCoreCommand(command);
         return AskDataSqlValidationResult.accepted(command);
+    }
+
+    private AskDataSqlCommand withMergedParameters(AskDataSqlCommand pluginCommand, AskDataSqlCommand governedCommand) {
+        Map<String, AskDataSqlParameter> parameters = new LinkedHashMap<String, AskDataSqlParameter>();
+        for (AskDataSqlParameter parameter : pluginCommand.getParameters()) {
+            parameters.put(parameter.getName(), parameter);
+        }
+        for (AskDataSqlParameter parameter : governedCommand.getParameters()) {
+            AskDataSqlParameter existing = parameters.get(parameter.getName());
+            if (existing != null && !existing.hasSameValue(parameter)) {
+                throw new IllegalArgumentException("命名参数冲突: " + parameter.getName());
+            }
+            if (existing == null) {
+                parameters.put(parameter.getName(), parameter);
+            }
+        }
+        return new AskDataSqlCommand(governedCommand.getContext(), governedCommand.getSql(),
+                new ArrayList<AskDataSqlParameter>(parameters.values()), governedCommand.getAuthorizedObjects(),
+                governedCommand.getAuthorizationSummary());
+    }
+
+    private void validateNamedParameters(AskDataSqlCommand command) {
+        for (String parameterName : namedParameterNames(command.getSql())) {
+            if (command.getParameter(parameterName) == null) {
+                throw new IllegalArgumentException("无法绑定命名参数: " + parameterName);
+            }
+        }
+    }
+
+    private AskDataSqlResult mapSqlResult(AskDataSqlCommand command, AskDataSqlExecutionResult execution,
+            int rowLimit) {
+        List<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlColumn> columns =
+                new ArrayList<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlColumn>();
+        for (AskDataColumn column : execution.getColumns()) {
+            columns.add(new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlColumn(column.getName(),
+                    column.getLabel(), column.getType()));
+        }
+        Integer timeoutSeconds = properties.getSql().getQueryTimeoutSeconds();
+        long timeoutMillis = timeoutSeconds == null || timeoutSeconds.intValue() <= 0 ? 0L
+                : timeoutSeconds.longValue() * 1000L;
+        AskDataSqlResult result = AskDataSqlResult.of(columns, execution.getRows(),
+                AskDataSqlExecutionStatus.SUCCEEDED, execution.getRowCount(), rowLimit, timeoutMillis);
+        return sqlInterceptorChain == null ? result : sqlInterceptorChain.mapResult(command, result);
+    }
+
+    private List<AskDataColumn> toLegacyColumns(AskDataSqlResult result) {
+        List<AskDataColumn> columns = new ArrayList<AskDataColumn>();
+        for (com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlColumn mappedColumn : result.getColumns()) {
+            AskDataColumn column = new AskDataColumn();
+            column.setName(mappedColumn.getName());
+            column.setLabel(mappedColumn.getLabel());
+            column.setType(mappedColumn.getType());
+            columns.add(column);
+        }
+        return columns;
     }
 
     private AskDataSqlValidationResult validateCheckpointSql(AskDataRequest request, AskDataMetadata metadata,
