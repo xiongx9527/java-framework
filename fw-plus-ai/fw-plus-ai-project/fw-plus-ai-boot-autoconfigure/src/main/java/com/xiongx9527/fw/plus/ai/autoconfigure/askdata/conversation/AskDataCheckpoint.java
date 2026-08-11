@@ -13,6 +13,8 @@ public class AskDataCheckpoint {
     private String resumeToken;
     private String requestSummary;
     private String modelKey;
+    private String actualModelKey;
+    private List<String> modelAttempts = new ArrayList<String>();
     private String datasourceKey;
     private String dialect;
     private Integer maxRows;
@@ -41,6 +43,12 @@ public class AskDataCheckpoint {
     public void setRequestSummary(String requestSummary) { this.requestSummary = requestSummary; }
     public String getModelKey() { return modelKey; }
     public void setModelKey(String modelKey) { this.modelKey = modelKey; }
+    public String getActualModelKey() { return actualModelKey; }
+    public void setActualModelKey(String actualModelKey) { this.actualModelKey = actualModelKey; }
+    public List<String> getModelAttempts() { return new ArrayList<String>(modelAttempts); }
+    public void setModelAttempts(List<String> modelAttempts) {
+        this.modelAttempts = modelAttempts == null ? new ArrayList<String>() : new ArrayList<String>(modelAttempts);
+    }
     public String getDatasourceKey() { return datasourceKey; }
     public void setDatasourceKey(String datasourceKey) { this.datasourceKey = datasourceKey; }
     public String getDialect() { return dialect; }

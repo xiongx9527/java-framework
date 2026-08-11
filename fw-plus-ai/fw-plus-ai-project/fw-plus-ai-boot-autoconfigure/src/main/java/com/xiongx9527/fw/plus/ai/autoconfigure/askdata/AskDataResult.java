@@ -21,6 +21,8 @@ public class AskDataResult {
     private String resumeToken;
     private String checkpointId;
     private String rawModelResponse;
+    private String actualModelKey;
+    private List<String> modelAttempts = new ArrayList<String>();
     /**
      * 显式多问题请求的子执行结果。
      *
@@ -159,6 +161,28 @@ public class AskDataResult {
 
     public void setRawModelResponse(String rawModelResponse) {
         this.rawModelResponse = rawModelResponse;
+    }
+
+    public String getActualModelKey() {
+        return actualModelKey;
+    }
+
+    public void setActualModelKey(String actualModelKey) {
+        this.actualModelKey = actualModelKey;
+    }
+
+    public List<String> getModelAttempts() {
+        return new ArrayList<String>(modelAttempts);
+    }
+
+    public void setModelAttempts(List<String> modelAttempts) {
+        this.modelAttempts = modelAttempts == null ? new ArrayList<String>() : new ArrayList<String>(modelAttempts);
+    }
+
+    public void addModelAttempt(String modelKey) {
+        if (modelKey != null && modelKey.trim().length() > 0) {
+            modelAttempts.add(modelKey.trim());
+        }
     }
 
     public List<AskDataResult> getChildResults() {

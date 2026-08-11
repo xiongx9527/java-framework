@@ -4,6 +4,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataFlowExecutor;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -79,6 +81,8 @@ public class DefaultAskDataServiceTest {
         AskDataResult legacyResult = new AskDataResult();
         legacyResult.setSuccess(true);
         legacyResult.setBrief("订单总数为 10");
+        legacyResult.setActualModelKey("provider-fallback");
+        legacyResult.setModelAttempts(Arrays.asList("primary", "fallback"));
         flowExecutor.result = legacyResult;
         CoreAskDataServiceAdapter service = new CoreAskDataServiceAdapter(new DefaultAskDataService(flowExecutor));
         AskDataProjectContext projectContext = new AskDataProjectContext("project-a", "operator-a");
@@ -89,6 +93,8 @@ public class DefaultAskDataServiceTest {
 
         assertTrue(result.isSuccess());
         assertEquals("订单总数为 10", result.getAnswer());
+        assertEquals("provider-fallback", result.getActualModelKey());
+        assertEquals(Arrays.asList("primary", "fallback"), result.getModelAttempts());
         assertEquals(1, flowExecutor.calls);
         assertSame(projectContext, flowExecutor.request.getProjectContext());
         assertEquals("project-a", flowExecutor.request.getProjectContext().getProjectId());

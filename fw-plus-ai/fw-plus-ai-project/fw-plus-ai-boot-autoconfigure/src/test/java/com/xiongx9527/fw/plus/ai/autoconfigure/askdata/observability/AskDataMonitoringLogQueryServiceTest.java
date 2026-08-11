@@ -123,6 +123,21 @@ public class AskDataMonitoringLogQueryServiceTest {
     }
 
     @Test
+    public void shouldPreserveModelKeyWhenEvaluatingAccessPolicy() {
+        InMemoryAskDataMonitoringLogStore store = new InMemoryAskDataMonitoringLogStore(10);
+        AskDataProjectContext owner = new AskDataProjectContext("project-a", "operator-b");
+        AskDataProjectContext administrator = new AskDataProjectContext("project-a", "admin-a");
+        store.append(owner, new AskDataMonitoringLogStore.MonitoringLog(owner, "conversation-1", "MODEL_ROUTED",
+                "model attempt", null, null, null, null, "provider-chat"));
+        AskDataMonitoringLogAccessPolicy modelPolicy = (requester, administratorAllowed, log) ->
+                administratorAllowed && "provider-chat".equals(log.getModelKey());
+        AskDataMonitoringLogQueryService service = new AskDataMonitoringLogQueryService(store, modelPolicy,
+                projectAdministrator("admin-a"));
+
+        assertEquals(1, service.queryProject(administrator, "project-a", AskDataMonitoringLogQuery.all()).size());
+    }
+
+    @Test
     public void shouldWireCoreGovernanceProviderFromAutoConfiguration() {
         InMemoryAskDataMonitoringLogStore store = new InMemoryAskDataMonitoringLogStore(10);
         AskDataMonitoringLogQueryService service = new AskDataAutoConfiguration()

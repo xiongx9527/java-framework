@@ -36,6 +36,8 @@ fw:
           embedding-candidates:
             - embedding-default
           fallback-enabled: true
+          request-timeout-millis: 30000
+          infrastructure-failure-timeout-millis: 30000
         vector:
           store: knowledge
           default-top-k: 5
@@ -44,6 +46,8 @@ fw:
           read-only-connection-required: true
           default-max-rows: 100
 ```
+
+`request-timeout-millis` 是传给 Core Chat Adapter 的单次调用超时；`infrastructure-failure-timeout-millis` 只用于旧 LangChain4j 兼容层按调用耗时识别基础设施故障，不能替代 provider HTTP 客户端超时。两者默认均为 30000 毫秒，但语义独立。
 
 需要 LangChain4j 时，由业务应用显式引入 Adapter Starter：
 

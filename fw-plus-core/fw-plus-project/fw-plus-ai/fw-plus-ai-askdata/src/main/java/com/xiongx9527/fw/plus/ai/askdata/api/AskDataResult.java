@@ -1,5 +1,9 @@
 package com.xiongx9527.fw.plus.ai.askdata.api;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * AskData 的核心查询结果。
  *
@@ -10,6 +14,8 @@ public class AskDataResult {
 
 	private final String answer;
 	private final AskDataError error;
+	private final String actualModelKey;
+	private final List<String> modelAttempts;
 
 	/**
 	 * 创建查询结果。
@@ -21,8 +27,14 @@ public class AskDataResult {
 	 * @param error 失败错误；为空表示成功
 	 */
 	public AskDataResult(String answer, AskDataError error) {
+		this(answer, error, null, Collections.<String>emptyList());
+	}
+
+	public AskDataResult(String answer, AskDataError error, String actualModelKey, List<String> modelAttempts) {
 		this.answer = answer;
 		this.error = error;
+		this.actualModelKey = actualModelKey;
+		this.modelAttempts = immutableAttempts(modelAttempts);
 	}
 
 	/**
@@ -33,6 +45,13 @@ public class AskDataResult {
 	 */
 	public static AskDataResult success(String answer) {
 		return new AskDataResult(answer, null);
+	}
+
+	public static AskDataResult success(String answer, String actualModelKey, List<String> modelAttempts) {
+		if (actualModelKey == null || actualModelKey.trim().length() == 0) {
+			throw new IllegalArgumentException("actualModelKey 不能为空");
+		}
+		return new AskDataResult(answer, null, actualModelKey.trim(), modelAttempts);
 	}
 
 	/**
@@ -74,5 +93,20 @@ public class AskDataResult {
 	 */
 	public AskDataError getError() {
 		return error;
+	}
+
+	public String getActualModelKey() {
+		return actualModelKey;
+	}
+
+	public List<String> getModelAttempts() {
+		return modelAttempts;
+	}
+
+	private static List<String> immutableAttempts(List<String> attempts) {
+		if (attempts == null || attempts.isEmpty()) {
+			return Collections.emptyList();
+		}
+		return Collections.unmodifiableList(new ArrayList<String>(attempts));
 	}
 }

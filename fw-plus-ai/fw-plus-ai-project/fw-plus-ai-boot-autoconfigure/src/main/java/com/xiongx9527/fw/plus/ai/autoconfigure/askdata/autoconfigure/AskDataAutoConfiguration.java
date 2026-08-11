@@ -28,6 +28,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.EmptyAskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AiModelAskDataModelRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AiModelRegistryAskDataChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataMemoryRecallAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataRecommendationAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialectRegistry;
@@ -251,6 +252,12 @@ public class AskDataAutoConfiguration {
 	}
 
     @Bean
+    @ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter.class)
+    public com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter askDataModelRouter() {
+        return new com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter() { };
+    }
+
+    @Bean
     @ConditionalOnMissingBean
     public AskDataMetadataProvider askDataMetadataProvider() {
         return new EmptyAskDataMetadataProvider();
@@ -460,15 +467,26 @@ public class AskDataAutoConfiguration {
             ObjectProvider<AskDataEventPublisher> eventPublisherProvider, AskDataQuestionPlanner questionPlanner,
             ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain> sqlInterceptorChainProvider,
             ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator> coreSqlValidatorProvider,
-            AskDataGovernanceProvider governanceProvider) {
+            AskDataGovernanceProvider governanceProvider,
+            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel> coreChatModelProvider,
+            com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter modelRouter,
+            ObjectProvider<AiModelRegistry> aiModelRegistryProvider) {
         List<AskDataAgent> mainAgents = agentProvider.orderedStream()
                 .filter(agent -> !(agent instanceof AskDataSubAgent))
                 .collect(Collectors.toList());
+        com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel coreChatModel =
+                coreChatModelProvider.getIfAvailable();
+        if (coreChatModel == null) {
+            AiModelRegistry aiModelRegistry = aiModelRegistryProvider.getIfAvailable();
+            if (aiModelRegistry != null) {
+                coreChatModel = new AiModelRegistryAskDataChatModel(aiModelRegistry);
+            }
+        }
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
                 agentDispatcher, mainAgents, combineEventPublishers(monitoringLogEventPublisher, eventPublisherProvider),
                 questionPlanner, sqlInterceptorChainProvider.getIfAvailable(), coreSqlValidatorProvider.getIfAvailable(),
-                governanceProvider);
+                governanceProvider, coreChatModel, modelRouter);
     }
 
 	/**

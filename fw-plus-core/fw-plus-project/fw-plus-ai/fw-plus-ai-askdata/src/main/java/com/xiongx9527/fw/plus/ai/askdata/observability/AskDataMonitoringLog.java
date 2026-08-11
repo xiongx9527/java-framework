@@ -19,6 +19,7 @@ public class AskDataMonitoringLog {
 	private final String denialCode;
 	private final String authorizationVersion;
 	private final String authorizationSource;
+	private final String modelKey;
 
 	/**
 	 * 创建一条已脱敏的监控日志。
@@ -31,12 +32,19 @@ public class AskDataMonitoringLog {
 	 */
 	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
 			String message) {
-		this(context, traceId, eventType, message, null, null, null, null);
+		this(context, traceId, eventType, message, null, null, null, null, null);
 	}
 
 	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
 			String message, String datasourceKey, String denialCode, String authorizationVersion,
 			String authorizationSource) {
+		this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, null);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource, String modelKey) {
 		if (context == null) {
 			throw new IllegalArgumentException("context 不能为空");
 		}
@@ -51,6 +59,7 @@ public class AskDataMonitoringLog {
 		this.denialCode = denialCode;
 		this.authorizationVersion = authorizationVersion;
 		this.authorizationSource = authorizationSource;
+		this.modelKey = modelKey;
 	}
 
 	/**
@@ -93,6 +102,7 @@ public class AskDataMonitoringLog {
 	public String getDenialCode() { return denialCode; }
 	public String getAuthorizationVersion() { return authorizationVersion; }
 	public String getAuthorizationSource() { return authorizationSource; }
+	public String getModelKey() { return modelKey; }
 
 	/**
 	 * 转换为监控日志存储 SPI 所使用的最小审计记录。
@@ -105,6 +115,6 @@ public class AskDataMonitoringLog {
 	 */
 	public AskDataMonitoringLogStore.MonitoringLog toStorageLog() {
 		return new AskDataMonitoringLogStore.MonitoringLog(context, traceId, eventType.name(), message,
-				datasourceKey, denialCode, authorizationVersion, authorizationSource);
+				datasourceKey, denialCode, authorizationVersion, authorizationSource, modelKey);
 	}
 }

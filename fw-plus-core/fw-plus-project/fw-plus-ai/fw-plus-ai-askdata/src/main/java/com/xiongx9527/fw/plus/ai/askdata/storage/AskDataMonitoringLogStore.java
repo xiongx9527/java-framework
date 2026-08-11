@@ -50,17 +50,25 @@ public interface AskDataMonitoringLogStore {
 		private final String denialCode;
 		private final String authorizationVersion;
 		private final String authorizationSource;
+		private final String modelKey;
 
 		public MonitoringLog(String traceId, String eventType, String message) {
-			this(null, traceId, eventType, message, null, null, null, null);
+			this(null, traceId, eventType, message, null, null, null, null, null);
 		}
 
 		public MonitoringLog(AskDataProjectContext context, String traceId, String eventType, String message) {
-			this(context, traceId, eventType, message, null, null, null, null);
+			this(context, traceId, eventType, message, null, null, null, null, null);
 		}
 
 		public MonitoringLog(AskDataProjectContext context, String traceId, String eventType, String message,
 				String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource) {
+			this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+					authorizationSource, null);
+		}
+
+		public MonitoringLog(AskDataProjectContext context, String traceId, String eventType, String message,
+				String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
+				String modelKey) {
 			this.context = context;
 			this.traceId = traceId;
 			this.eventType = eventType;
@@ -69,6 +77,7 @@ public interface AskDataMonitoringLogStore {
 			this.denialCode = denialCode;
 			this.authorizationVersion = authorizationVersion;
 			this.authorizationSource = authorizationSource;
+			this.modelKey = modelKey;
 		}
 
 		public String getTraceId() {
@@ -88,7 +97,7 @@ public interface AskDataMonitoringLogStore {
 				throw new IllegalArgumentException("监控日志归属与存储上下文不一致");
 			}
 			return context == null ? new MonitoringLog(owner, traceId, eventType, message, datasourceKey,
-					denialCode, authorizationVersion, authorizationSource) : this;
+					denialCode, authorizationVersion, authorizationSource, modelKey) : this;
 		}
 
 		public String getEventType() {
@@ -103,5 +112,6 @@ public interface AskDataMonitoringLogStore {
 		public String getDenialCode() { return denialCode; }
 		public String getAuthorizationVersion() { return authorizationVersion; }
 		public String getAuthorizationSource() { return authorizationSource; }
+		public String getModelKey() { return modelKey; }
 	}
 }

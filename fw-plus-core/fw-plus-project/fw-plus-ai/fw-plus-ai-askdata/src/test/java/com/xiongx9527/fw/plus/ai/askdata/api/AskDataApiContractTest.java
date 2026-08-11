@@ -4,6 +4,9 @@ import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -96,6 +99,18 @@ class AskDataApiContractTest {
 		assertEquals("查询结果", success.getAnswer());
 		assertTrue(!failure.isSuccess());
 		assertEquals(error, failure.getError());
+	}
+
+	@Test
+	void 成功结果应不可变地保留实际模型Key和尝试顺序() {
+		List<String> attempts = new ArrayList<String>(Arrays.asList("primary", "fallback"));
+
+		AskDataResult result = AskDataResult.success("查询结果", "provider-fallback", attempts);
+		attempts.add("unexpected");
+
+		assertEquals("provider-fallback", result.getActualModelKey());
+		assertEquals(Arrays.asList("primary", "fallback"), result.getModelAttempts());
+		assertThrows(UnsupportedOperationException.class, () -> result.getModelAttempts().add("unexpected"));
 	}
 
 	private void assertNotFrameworkType(Class<?> type) {
