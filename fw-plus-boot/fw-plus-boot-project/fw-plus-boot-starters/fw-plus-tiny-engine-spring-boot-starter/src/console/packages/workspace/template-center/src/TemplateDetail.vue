@@ -86,14 +86,7 @@ export default {
             duration: 5000
           })
         })
-        .catch((error: any) => {
-          Notify({
-            type: 'error',
-            message: error,
-            position: 'top-right',
-            duration: 5000
-          })
-        })
+        .catch(() => undefined)
     }
 
     onMounted(() => {
