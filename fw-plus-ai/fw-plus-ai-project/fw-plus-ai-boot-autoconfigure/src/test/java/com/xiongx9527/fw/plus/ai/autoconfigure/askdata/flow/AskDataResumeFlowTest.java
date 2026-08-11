@@ -218,7 +218,7 @@ public class AskDataResumeFlowTest {
 
         assertTrue(initial.isSuccess());
         assertFalse(resumed.isSuccess());
-        assertEquals(AskDataErrorCode.RESUME_FAILED, resumed.getErrorCode());
+        assertEquals(AskDataErrorCode.CHECKPOINT_NOT_FOUND, resumed.getErrorCode());
         assertEquals(1, fixture.executorCalls);
     }
 
@@ -234,7 +234,42 @@ public class AskDataResumeFlowTest {
 
         assertTrue(initial.isSuccess());
         assertFalse(resumed.isSuccess());
+        assertEquals(AskDataErrorCode.CHECKPOINT_NOT_FOUND, resumed.getErrorCode());
+        assertEquals(1, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldRejectResumeWhenAuthorizationVersionChanged() {
+        Fixture fixture = new Fixture();
+        AskDataResult initial = fixture.executor().execute(fixture.requestWithoutConversation());
+        fixture.authorizationVersion = "policy-v2";
+        AskDataRequest resume = fixture.request();
+        resume.setConversationId(initial.getConversationId());
+        resume.setResumeToken(initial.getResumeToken());
+
+        AskDataResult resumed = fixture.executor().execute(resume);
+
+        assertTrue(initial.isSuccess());
+        assertFalse(resumed.isSuccess());
         assertEquals(AskDataErrorCode.RESUME_FAILED, resumed.getErrorCode());
+        assertEquals(1, fixture.executorCalls);
+    }
+
+    @Test
+    public void shouldLoadLatestCheckpointWithinProjectAndOperatorScope() {
+        Fixture fixture = new Fixture();
+        AskDataCheckpoint projectCheckpoint = fixture.validatedCheckpoint("resume-project-a", "1");
+        fixture.store.save(projectCheckpoint);
+        AskDataCheckpoint otherProjectCheckpoint = fixture.validatedCheckpoint("resume-project-b", "1");
+        otherProjectCheckpoint.setProjectId("project-b");
+        otherProjectCheckpoint.setOperatorId("operator-b");
+        otherProjectCheckpoint.setRequestOptionsSnapshot("[\"project-b\",\"operator-b\",null]");
+        fixture.store.save(otherProjectCheckpoint);
+
+        AskDataResult resumed = fixture.executor().execute(fixture.request());
+
+        assertTrue(resumed.isSuccess());
+        assertEquals("select * from orders limit 100", resumed.getSql());
         assertEquals(1, fixture.executorCalls);
     }
 
@@ -383,6 +418,9 @@ public class AskDataResumeFlowTest {
         Fixture fixture = new Fixture();
         AskDataCheckpoint checkpoint = new AskDataCheckpoint();
         checkpoint.setConversationId("conversation-1");
+        checkpoint.setProjectId("project-a");
+        checkpoint.setOperatorId("operator-a");
+        checkpoint.setAuthorizationVersion("policy-v1");
         checkpoint.setCheckpointId("checkpoint-metadata");
         checkpoint.setResumeToken("resume-metadata");
         checkpoint.setVersion("1");
@@ -417,7 +455,7 @@ public class AskDataResumeFlowTest {
 
         assertTrue(result.isSuccess());
         assertTrue(result.getConversationId() != null && result.getConversationId().length() > 0);
-        assertTrue(fixture.store.loadLatest(result.getConversationId()) != null);
+        assertTrue(fixture.store.loadLatest(fixture.request().getProjectContext(), result.getConversationId()) != null);
     }
 
     @Test
@@ -451,6 +489,7 @@ public class AskDataResumeFlowTest {
         private boolean failExecution;
         private boolean rejectValidatedSql;
         private boolean metadataAuthorized = true;
+        private String authorizationVersion = "policy-v1";
         private AskDataSqlInterceptorChain sqlInterceptorChain;
         private com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreSqlValidator;
 
@@ -481,6 +520,9 @@ public class AskDataResumeFlowTest {
         private AskDataCheckpoint validatedCheckpoint(String token, String version) {
             AskDataCheckpoint checkpoint = new AskDataCheckpoint();
             checkpoint.setConversationId("conversation-1");
+            checkpoint.setProjectId("project-a");
+            checkpoint.setOperatorId("operator-a");
+            checkpoint.setAuthorizationVersion("policy-v1");
             checkpoint.setCheckpointId("checkpoint-1");
             checkpoint.setResumeToken(token);
             checkpoint.setVersion(version);
@@ -580,15 +622,20 @@ public class AskDataResumeFlowTest {
             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                     promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, store, contextCompressor,
                     null, Collections.<AskDataAgent>emptyList(), null, null, sqlInterceptorChain, coreSqlValidator,
-                    request -> allowedOrders(request));
+                    request -> allowedOrders(request, authorizationVersion));
         }
     }
 
     private static AskDataAuthorizationSummary allowedOrders(AskDataAuthorizationRequest request) {
+        return allowedOrders(request, "policy-v1");
+    }
+
+    private static AskDataAuthorizationSummary allowedOrders(AskDataAuthorizationRequest request,
+            String authorizationVersion) {
         return AskDataAuthorizationSummary.allow(request, Arrays.asList(
                 new AskDataAuthorizedObject("orders", "orders", "*"),
                 new AskDataAuthorizedObject("other-datasource", "orders", "*")), Collections.emptyList(),
-                "policy-v1", "test-governance", AskDataAdministrativeScope.none());
+                authorizationVersion, "test-governance", AskDataAdministrativeScope.none());
     }
 
     private void assertIdentityMismatch(String field) {

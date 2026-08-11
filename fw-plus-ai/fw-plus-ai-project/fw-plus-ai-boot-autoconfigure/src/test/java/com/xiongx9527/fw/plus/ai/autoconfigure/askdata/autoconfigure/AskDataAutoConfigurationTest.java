@@ -336,7 +336,7 @@ public class AskDataAutoConfigurationTest {
                     assertTrue(hasStep(result, "sub-agent:test-sub-agent"));
                     assertTrue(hasStep(result, "merge-sub-agents"));
                     assertTrue(context.getBean(AskDataConversationStore.class)
-                            .loadLatest(result.getConversationId()) != null);
+                            .loadLatest(createRequest().getProjectContext(), result.getConversationId()) != null);
                     java.util.List<com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog> logs =
                             context.getBean(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.class)
                                     .list(new com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext("default", "default"));
@@ -437,7 +437,7 @@ public class AskDataAutoConfigurationTest {
                     assertEquals("business-provider-chat", result.getActualModelKey());
                     assertEquals(Collections.singletonList("test-model"), result.getModelAttempts());
                     AskDataCheckpoint checkpoint = context.getBean(AskDataConversationStore.class)
-                            .loadLatest(result.getConversationId());
+                            .loadLatest(request.getProjectContext(), result.getConversationId());
                     assertEquals("business-provider-chat", checkpoint.getActualModelKey());
                     assertEquals(Collections.singletonList("test-model"), checkpoint.getModelAttempts());
 

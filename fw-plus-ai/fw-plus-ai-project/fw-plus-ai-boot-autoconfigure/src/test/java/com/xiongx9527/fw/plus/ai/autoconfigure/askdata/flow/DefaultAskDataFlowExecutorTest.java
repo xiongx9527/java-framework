@@ -351,7 +351,8 @@ public class DefaultAskDataFlowExecutorTest {
         assertEquals(Arrays.asList("embedding-primary", "embedding-fallback", "embedding-primary",
                 "embedding-fallback", "embedding-primary", "embedding-fallback"),
                 result.getEmbeddingModelAttempts());
-        AskDataCheckpoint checkpoint = dependencies.conversationStore.loadLatest(result.getConversationId());
+        AskDataCheckpoint checkpoint = dependencies.conversationStore.loadLatest(
+                new AskDataProjectContext("default", "default"), result.getConversationId());
         assertEquals("provider-embedding-fallback", checkpoint.getActualEmbeddingModelKey());
         assertEquals(result.getEmbeddingModelAttempts(), checkpoint.getEmbeddingModelAttempts());
         List<AskDataEvent> embeddingEvents = new java.util.ArrayList<AskDataEvent>();
@@ -968,6 +969,9 @@ public class DefaultAskDataFlowExecutorTest {
     private static AskDataCheckpoint completedCheckpoint() {
         AskDataCheckpoint checkpoint = new AskDataCheckpoint();
         checkpoint.setConversationId("conversation-1");
+        checkpoint.setProjectId("default");
+        checkpoint.setOperatorId("default");
+        checkpoint.setAuthorizationVersion("policy-v1");
         checkpoint.setCheckpointId("checkpoint-executed");
         checkpoint.setResumeToken("resume-executed");
         checkpoint.setVersion("1");

@@ -385,6 +385,9 @@ public class AskDataMultiQuestionFlowTest {
     private AskDataCheckpoint parentCheckpoint(AskDataResult completed) {
         AskDataCheckpoint checkpoint = new AskDataCheckpoint();
         checkpoint.setConversationId("parent");
+        checkpoint.setProjectId("project-a");
+        checkpoint.setOperatorId("operator-a");
+        checkpoint.setAuthorizationVersion("policy-v1");
         checkpoint.setCheckpointId("checkpoint-parent");
         checkpoint.setResumeToken("resume-parent");
         checkpoint.setRequestSummary("structured plan");
