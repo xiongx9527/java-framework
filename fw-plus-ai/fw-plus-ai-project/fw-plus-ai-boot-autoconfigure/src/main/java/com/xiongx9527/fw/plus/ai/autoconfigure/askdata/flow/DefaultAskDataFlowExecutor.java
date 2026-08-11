@@ -35,6 +35,10 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetri
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataMultiQuestionExecutor;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataMultiQuestionRequest;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataMultiQuestionResult;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepContext;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepKey;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepRegistry;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepResult;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlan;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataSubQuestion;
@@ -111,6 +115,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private final AskDataGovernanceProvider governanceProvider;
     private final com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel coreChatModel;
     private final AskDataModelRouter coreModelRouter;
+    private final AskDataAgentStepRegistry agentStepRegistry;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
@@ -229,6 +234,23 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataGovernanceProvider governanceProvider,
             com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel coreChatModel,
             AskDataModelRouter coreModelRouter) {
+        this(properties, modelRegistry, metadataProvider, vectorRetriever, promptTemplateProvider, dialectRegistry,
+                sqlValidator, sqlExecutor, conversationStore, contextCompressor, agentDispatcher, mainAgents,
+                eventPublisher, questionPlanner, sqlInterceptorChain, coreSqlValidator, governanceProvider,
+                coreChatModel, coreModelRouter, null);
+    }
+
+    public DefaultAskDataFlowExecutor(AskDataProperties properties, AskDataModelRegistry modelRegistry,
+            AskDataMetadataProvider metadataProvider, AskDataVectorRetriever vectorRetriever,
+            AskDataPromptTemplateProvider promptTemplateProvider, AskDataDialectRegistry dialectRegistry,
+            AskDataSqlValidator sqlValidator, AskDataSqlExecutor sqlExecutor, AskDataConversationStore conversationStore,
+            AskDataContextCompressor contextCompressor, AskDataAgentDispatcher agentDispatcher,
+            List<AskDataAgent> mainAgents, AskDataEventPublisher eventPublisher,
+            AskDataQuestionPlanner questionPlanner, AskDataSqlInterceptorChain sqlInterceptorChain,
+            com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator coreSqlValidator,
+            AskDataGovernanceProvider governanceProvider,
+            com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel coreChatModel,
+            AskDataModelRouter coreModelRouter, AskDataAgentStepRegistry agentStepRegistry) {
         this.properties = properties;
         this.modelRegistry = modelRegistry;
         this.metadataProvider = metadataProvider;
@@ -250,6 +272,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 : governanceProvider;
         this.coreChatModel = coreChatModel;
         this.coreModelRouter = coreModelRouter;
+        this.agentStepRegistry = agentStepRegistry;
     }
 
     @Override
@@ -786,6 +809,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (checkpointFailure != null) {
             return checkpointFailure;
         }
+        metadata = selectTables(request, result, context, metadata);
+        if (metadata == null) {
+            return result;
+        }
+        context.setMetadata(metadata);
 
         AskDataResult agentFailure = runAgentsAndSaveCheckpoint(context, result);
         if (agentFailure != null) {
@@ -793,6 +821,52 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
 
         return generateSqlAndValidate(request, result, context, metadata);
+    }
+
+    private AskDataMetadata selectTables(AskDataRequest request, AskDataResult result, AskDataStepContext context,
+            AskDataMetadata metadata) {
+        return selectTables(request, result, context, metadata, true);
+    }
+
+    private AskDataMetadata selectTables(AskDataRequest request, AskDataResult result, AskDataStepContext context,
+            AskDataMetadata metadata, boolean recordStep) {
+        com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent agent =
+                stepAgent(AskDataAgentStepKey.SELECT_TABLES);
+        if (agent == null) {
+            return metadata;
+        }
+        AskDataAgentStepResult agentResult;
+        try {
+            agentResult = executeStepAgent(agent, agentContext(AskDataAgentStepKey.SELECT_TABLES,
+                    request, result, metadata, null, null, null));
+        } catch (RuntimeException ex) {
+            failure(result, AskDataAgentStepKey.SELECT_TABLES, AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
+            return null;
+        }
+        if (!agentResult.isSuccess()) {
+            agentFailure(result, AskDataAgentStepKey.SELECT_TABLES, agentResult);
+            return null;
+        }
+        Set<String> selectedResources = new LinkedHashSet<String>(agentResult.getSelectedResources());
+        Set<String> authorizedResources = new LinkedHashSet<String>(metadataResources(metadata));
+        if (selectedResources.isEmpty() || !authorizedResources.containsAll(selectedResources)) {
+            failure(result, AskDataAgentStepKey.SELECT_TABLES, DefaultDenyAskDataGovernanceProvider.DENIAL_CODE,
+                    "select-tables Agent 只能收窄治理后授权表");
+            return null;
+        }
+        List<AskDataTable> selectedTables = new ArrayList<AskDataTable>();
+        for (AskDataTable table : metadata.getTables()) {
+            if (table != null && selectedResources.contains(table.getName())) {
+                selectedTables.add(table);
+            }
+        }
+        AskDataMetadata selectedMetadata = new AskDataMetadata(metadata.getDialect(), selectedTables,
+                Collections.<String>emptyList(), Collections.<String>emptyList(), Collections.<String>emptyList());
+        result.setTables(new ArrayList<String>(selectedResources));
+        if (recordStep) {
+            result.addStep(AskDataAgentStepKey.SELECT_TABLES, "Select tables", true, "Authorized tables selected");
+        }
+        return selectedMetadata;
     }
 
     private AskDataResult runAgentsAndSaveCheckpoint(AskDataStepContext context, AskDataResult result) {
@@ -844,6 +918,59 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return saveCheckpoint(context, result, "merge-sub-agents", null, null);
     }
 
+    private com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent stepAgent(String stepKey) {
+        return agentStepRegistry == null ? null : agentStepRegistry.get(stepKey);
+    }
+
+    private AskDataAgentStepResult executeStepAgent(
+            com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent agent,
+            AskDataAgentStepContext agentContext) {
+        AskDataAgentStepResult agentResult = agent.execute(agentContext);
+        if (agentResult == null) {
+            throw new IllegalArgumentException("Agent " + agent.getKey() + " 未返回步骤结果");
+        }
+        return agentResult;
+    }
+
+    private AskDataAgentStepContext agentContext(String stepKey, AskDataRequest request, AskDataResult result,
+            AskDataMetadata metadata, String prompt, AskDataSqlCommand sqlCommand, AskDataSqlResult sqlResult) {
+        com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata coreMetadata = metadata == null ? null
+                : new com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata(request.getDatasourceKey(),
+                        metadataResources(metadata));
+        return AskDataAgentStepContext.builder(stepKey, request.getProjectContext(), request.getQuestion())
+                .datasourceKey(request.getDatasourceKey())
+                .conversationId(result.getConversationId())
+                .metadata(coreMetadata)
+                .selectedResources(metadataResources(metadata))
+                .prompt(prompt)
+                .sqlCommand(sqlCommand)
+                .sqlResult(sqlResult)
+                .rowLimit(maxRows(request))
+                .timeoutMillis(queryTimeoutMillis())
+                .build();
+    }
+
+    private List<String> metadataResources(AskDataMetadata metadata) {
+        if (metadata == null || metadata.getTables().isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> resources = new ArrayList<String>();
+        for (AskDataTable table : metadata.getTables()) {
+            if (table != null && !isBlank(table.getName())) {
+                resources.add(table.getName());
+            }
+        }
+        return resources;
+    }
+
+    private AskDataResult agentFailure(AskDataResult result, String stepKey, AskDataAgentStepResult agentResult) {
+        String errorCode = isBlank(agentResult.getErrorCode())
+                ? AskDataErrorCode.SUBQUESTION_FAILED : agentResult.getErrorCode();
+        String errorMessage = isBlank(agentResult.getErrorMessage())
+                ? stepKey + " Agent 执行失败" : agentResult.getErrorMessage();
+        return failure(result, stepKey, errorCode, errorMessage);
+    }
+
     private AskDataResult generateSqlAndValidate(AskDataRequest request, AskDataResult result,
             AskDataStepContext context, AskDataMetadata metadata) {
         int maxRows = maxRows(request);
@@ -863,36 +990,57 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         context.setPrompt(prompt);
         result.addStep("prompt", "Prompt", true, "Prompt built");
 
-        AskDataModelResponse modelResponse;
-        try {
-            modelResponse = generateModelResponse(request, prompt, result);
-        } catch (AskDataModelException ex) {
-            return failure(result, "generate-sql", ex.getErrorCode(), message(ex));
-        } catch (RuntimeException ex) {
-            return failure(result, "generate-sql", AskDataErrorCode.MODEL_RESPONSE_INVALID, message(ex));
-        }
-        if (modelResponse == null || isBlank(modelResponse.getText())) {
-            return failure(result, "generate-sql", AskDataErrorCode.MODEL_RESPONSE_INVALID,
-                    "AskData model response is empty");
-        }
-        context.setRawModelResponse(modelResponse.getText());
-        result.setRawModelResponse(modelResponse.getText());
-        JsonNode modelJson;
-        try {
-            modelJson = objectMapper.readTree(modelResponse.getText());
-        } catch (Exception ex) {
-            return failure(result, "generate-sql", AskDataErrorCode.MODEL_RESPONSE_INVALID,
-                    "AskData model response is not valid JSON");
-        }
-        String generatedSql = textValue(modelJson, "sql");
-        if (isBlank(generatedSql)) {
-            return failure(result, "generate-sql", AskDataErrorCode.MODEL_RESPONSE_INVALID,
-                    "AskData model response does not contain SQL");
+        String generatedSql;
+        com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent generateAgent =
+                stepAgent(AskDataAgentStepKey.GENERATE_SQL);
+        if (generateAgent == null) {
+            AskDataModelResponse modelResponse;
+            try {
+                modelResponse = generateModelResponse(request, prompt, result);
+            } catch (AskDataModelException ex) {
+                return failure(result, "generate-sql", ex.getErrorCode(), message(ex));
+            } catch (RuntimeException ex) {
+                return failure(result, "generate-sql", AskDataErrorCode.MODEL_RESPONSE_INVALID, message(ex));
+            }
+            if (modelResponse == null || isBlank(modelResponse.getText())) {
+                return failure(result, "generate-sql", AskDataErrorCode.MODEL_RESPONSE_INVALID,
+                        "AskData model response is empty");
+            }
+            context.setRawModelResponse(modelResponse.getText());
+            result.setRawModelResponse(modelResponse.getText());
+            JsonNode modelJson;
+            try {
+                modelJson = objectMapper.readTree(modelResponse.getText());
+            } catch (Exception ex) {
+                return failure(result, "generate-sql", AskDataErrorCode.MODEL_RESPONSE_INVALID,
+                        "AskData model response is not valid JSON");
+            }
+            generatedSql = textValue(modelJson, "sql");
+            if (isBlank(generatedSql)) {
+                return failure(result, "generate-sql", AskDataErrorCode.MODEL_RESPONSE_INVALID,
+                        "AskData model response does not contain SQL");
+            }
+            result.setTables(textValues(modelJson.get("tables")));
+            result.setChartType(textValue(modelJson, "chartType"));
+            result.setBrief(textValue(modelJson, "brief"));
+        } else {
+            AskDataAgentStepResult agentResult;
+            try {
+                agentResult = executeStepAgent(generateAgent, agentContext(AskDataAgentStepKey.GENERATE_SQL,
+                        request, result, metadata, prompt, null, null));
+            } catch (RuntimeException ex) {
+                return failure(result, "generate-sql", AskDataErrorCode.SUBQUESTION_FAILED, message(ex));
+            }
+            if (!agentResult.isSuccess()) {
+                return agentFailure(result, AskDataAgentStepKey.GENERATE_SQL, agentResult);
+            }
+            generatedSql = agentResult.getSql();
+            if (isBlank(generatedSql)) {
+                return failure(result, "generate-sql", AskDataErrorCode.MODEL_RESPONSE_INVALID,
+                        "generate-sql Agent 未返回 SQL");
+            }
         }
         context.setSql(generatedSql);
-        result.setTables(textValues(modelJson.get("tables")));
-        result.setChartType(textValue(modelJson, "chartType"));
-        result.setBrief(textValue(modelJson, "brief"));
         result.addStep("generate-sql", "Generate SQL", true, "SQL generated");
         AskDataResult checkpointFailure = saveCheckpoint(context, result, "generate-sql", null, null);
         if (checkpointFailure != null) {
@@ -985,6 +1133,13 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return Math.max(0L, properties.getModel().getRequestTimeoutMillis().longValue());
     }
 
+    private long queryTimeoutMillis() {
+        Integer timeoutSeconds = properties == null || properties.getSql() == null
+                ? null : properties.getSql().getQueryTimeoutSeconds();
+        return timeoutSeconds == null || timeoutSeconds.intValue() <= 0
+                ? 0L : timeoutSeconds.longValue() * 1000L;
+    }
+
     private String normalized(String value) {
         return value == null ? "" : value.trim();
     }
@@ -1042,30 +1197,13 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             if (!hasAuthorizedMetadata(metadata)) {
                 return governanceDeniedForMetadata(request, result, authorizationSummary(context));
             }
+            metadata = selectTables(request, result, context, metadata,
+                    !hasSuccessfulStep(result.getSteps(), AskDataAgentStepKey.SELECT_TABLES));
+            if (metadata == null) {
+                return result;
+            }
             context.setMetadata(metadata);
-            AskDataDialect dialect;
-            try {
-                dialect = dialectRegistry.getDialect(checkpoint.getDialect());
-            } catch (RuntimeException ex) {
-                return failure(result, "validate-sql", AskDataErrorCode.DIALECT_RESOLUTION_FAILED, message(ex));
-            }
-            AskDataSqlValidationResult validation;
-            try {
-                validation = validateSql(request, metadata, checkpoint.getSql(), dialect, authorizationSummary(context));
-            } catch (RuntimeException ex) {
-                return validationFailure(request, result, AskDataSqlValidationResult.rejected(
-                        AskDataErrorCode.SQL_REJECTED, message(ex)), authorizationSummary(context));
-            }
-            if (validation == null || !validation.isValid()) {
-                return validationFailure(request, result, validation, authorizationSummary(context));
-            }
-            context.setSql(validation.getSql());
-            context.setSqlValidated(Boolean.TRUE);
-            result.setSql(validation.getSql());
-            result.addStep("validate-sql", "Validate SQL", true, "SQL validated");
-            AskDataResult checkpointFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
-            return checkpointFailure == null ? executeValidatedSql(request, result, context, validation.getCommand())
-                    : checkpointFailure;
+            return validateAndExecute(request, result, context, metadata, checkpoint.getSql());
         }
         if (contains(checkpoint, "metadata") || contains(checkpoint, "merge-sub-agents")) {
             AskDataMetadata metadata;
@@ -1081,6 +1219,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             metadata = authorizedMetadata(request, metadata, authorizationSummary(context));
             if (!hasAuthorizedMetadata(metadata)) {
                 return governanceDeniedForMetadata(request, result, authorizationSummary(context));
+            }
+            metadata = selectTables(request, result, context, metadata,
+                    !hasSuccessfulStep(result.getSteps(), AskDataAgentStepKey.SELECT_TABLES));
+            if (metadata == null) {
+                return result;
             }
             context.setMetadata(metadata);
             return generateSqlAndValidate(request, result, context, metadata);
@@ -1168,9 +1311,33 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         } catch (RuntimeException ex) {
             return failure(result, "validate-sql", AskDataErrorCode.DIALECT_RESOLUTION_FAILED, message(ex));
         }
+        AskDataSqlCommand candidateCommand = candidateCommand(request, generatedSql, authorizationSummary(context));
+        com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent validateAgent =
+                stepAgent(AskDataAgentStepKey.VALIDATE_SQL);
+        if (validateAgent != null) {
+            AskDataAgentStepResult agentResult;
+            try {
+                agentResult = executeStepAgent(validateAgent, agentContext(AskDataAgentStepKey.VALIDATE_SQL,
+                        request, result, metadata, context.getPrompt(), candidateCommand, null));
+            } catch (RuntimeException ex) {
+                return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
+            }
+            if (!agentResult.isSuccess()) {
+                return agentFailure(result, AskDataAgentStepKey.VALIDATE_SQL, agentResult);
+            }
+            if (agentResult.getSqlCommand() == null) {
+                return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED,
+                        "validate-sql Agent 未返回 SQL 命令");
+            }
+            try {
+                candidateCommand = secureAgentCommand(candidateCommand, agentResult.getSqlCommand());
+            } catch (RuntimeException ex) {
+                return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
+            }
+        }
         AskDataSqlValidationResult validation;
         try {
-            validation = validateSql(request, metadata, generatedSql, dialect, authorizationSummary(context));
+            validation = validateSql(request, metadata, candidateCommand, dialect, authorizationSummary(context));
         } catch (RuntimeException ex) {
             return validationFailure(request, result, AskDataSqlValidationResult.rejected(
                     AskDataErrorCode.SQL_REJECTED, message(ex)), authorizationSummary(context));
@@ -1193,26 +1360,50 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED,
                     "AskData SQL validation did not produce a final command");
         }
+        AskDataSqlResult structuredResult = null;
         if (isExecutionEnabled(request)) {
             context.setExecutionState(EXECUTION_EXECUTING);
             AskDataResult inFlightFailure = saveCheckpoint(context, result, "validate-sql", Boolean.TRUE, null);
             if (inFlightFailure != null) {
                 return inFlightFailure;
             }
-            AskDataSqlExecutionResult execution;
-            try {
-                execution = sqlExecutor.execute(request, command);
-            } catch (RuntimeException ex) {
-                return failure(result, "execute-sql", AskDataErrorCode.SQL_EXECUTION_FAILED, message(ex));
+            com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent executeAgent =
+                    stepAgent(AskDataAgentStepKey.EXECUTE_SQL);
+            if (executeAgent == null) {
+                AskDataSqlExecutionResult execution;
+                try {
+                    execution = sqlExecutor.execute(request, command);
+                } catch (RuntimeException ex) {
+                    return failure(result, "execute-sql", AskDataErrorCode.SQL_EXECUTION_FAILED, message(ex));
+                }
+                if (execution == null || !execution.isSuccess()) {
+                    String errorCode = execution == null || isBlank(execution.getErrorCode())
+                            ? AskDataErrorCode.SQL_EXECUTION_FAILED : execution.getErrorCode();
+                    String errorMessage = execution == null
+                            ? "AskData SQL execution failed" : execution.getErrorMessage();
+                    return failure(result, "execute-sql", errorCode, errorMessage);
+                }
+                structuredResult = toCoreSqlResult(execution, maxRows(request));
+            } else {
+                AskDataAgentStepResult agentResult;
+                try {
+                    agentResult = executeStepAgent(executeAgent, agentContext(AskDataAgentStepKey.EXECUTE_SQL,
+                            request, result, context.getMetadata(), context.getPrompt(), command, null));
+                } catch (RuntimeException ex) {
+                    return failure(result, "execute-sql", AskDataErrorCode.SQL_EXECUTION_FAILED, message(ex));
+                }
+                if (!agentResult.isSuccess()) {
+                    return agentFailure(result, AskDataAgentStepKey.EXECUTE_SQL, agentResult);
+                }
+                structuredResult = agentResult.getSqlResult();
+                try {
+                    validateAgentSqlResult(structuredResult, maxRows(request));
+                } catch (RuntimeException ex) {
+                    return failure(result, "execute-sql", AskDataErrorCode.SQL_EXECUTION_FAILED, message(ex));
+                }
             }
-            if (execution == null || !execution.isSuccess()) {
-                String errorCode = execution == null || isBlank(execution.getErrorCode())
-                        ? AskDataErrorCode.SQL_EXECUTION_FAILED : execution.getErrorCode();
-                String errorMessage = execution == null ? "AskData SQL execution failed" : execution.getErrorMessage();
-                return failure(result, "execute-sql", errorCode, errorMessage);
-            }
-            result.setRowCount(Integer.valueOf(execution.getRowCount()));
-            context.setRowCount(Integer.valueOf(execution.getRowCount()));
+            result.setRowCount(Integer.valueOf(structuredResult.getExecutedRowCount()));
+            context.setRowCount(Integer.valueOf(structuredResult.getExecutedRowCount()));
             context.setSqlExecuted(Boolean.TRUE);
             context.setExecutionState(EXECUTION_COMPLETED);
             result.addStep("execute-sql", "Execute SQL", true, "SQL executed");
@@ -1222,7 +1413,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 return checkpointFailure;
             }
             try {
-                AskDataSqlResult mapped = mapSqlResult(command, execution, maxRows(request));
+                AskDataSqlResult mapped = mapSqlResult(command, structuredResult);
+                structuredResult = mapped;
                 result.setColumns(toLegacyColumns(mapped));
                 result.setRows(mapped.getRows());
             } catch (RuntimeException ex) {
@@ -1238,9 +1430,40 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 return checkpointFailure;
             }
         }
+        AskDataResult interpretationFailure = interpretResult(request, result, context, command, structuredResult);
+        if (interpretationFailure != null) {
+            return interpretationFailure;
+        }
         result.setSuccess(true);
         result.addStep("format-result", "Format Result", true, "Result formatted");
         return result;
+    }
+
+    private AskDataResult interpretResult(AskDataRequest request, AskDataResult result, AskDataStepContext context,
+            AskDataSqlCommand command, AskDataSqlResult sqlResult) {
+        com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent interpretAgent =
+                stepAgent(AskDataAgentStepKey.INTERPRET_RESULT);
+        if (interpretAgent == null) {
+            return null;
+        }
+        AskDataAgentStepResult agentResult;
+        try {
+            agentResult = executeStepAgent(interpretAgent, agentContext(AskDataAgentStepKey.INTERPRET_RESULT,
+                    request, result, context.getMetadata(), context.getPrompt(), command, sqlResult));
+        } catch (RuntimeException ex) {
+            return failure(result, AskDataAgentStepKey.INTERPRET_RESULT,
+                    AskDataErrorCode.SUBQUESTION_FAILED, message(ex));
+        }
+        if (!agentResult.isSuccess()) {
+            return agentFailure(result, AskDataAgentStepKey.INTERPRET_RESULT, agentResult);
+        }
+        if (isBlank(agentResult.getInterpretation())) {
+            return failure(result, AskDataAgentStepKey.INTERPRET_RESULT,
+                    AskDataErrorCode.SUBQUESTION_FAILED, "interpret-result Agent 未返回解释");
+        }
+        result.setBrief(agentResult.getInterpretation());
+        result.addStep(AskDataAgentStepKey.INTERPRET_RESULT, "Interpret result", true, "Result interpreted");
+        return null;
     }
 
     private AskDataResult validationFailure(AskDataRequest request, AskDataResult result,
@@ -1259,14 +1482,24 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
     private AskDataSqlValidationResult validateSql(AskDataRequest request, AskDataMetadata metadata, String sql,
             AskDataDialect dialect, AskDataAuthorizationSummary authorizationSummary) {
+        return validateSql(request, metadata, candidateCommand(request, sql, authorizationSummary), dialect,
+                authorizationSummary);
+    }
+
+    private AskDataSqlValidationResult validateSql(AskDataRequest request, AskDataMetadata metadata,
+            AskDataSqlCommand candidateCommand, AskDataDialect dialect,
+            AskDataAuthorizationSummary authorizationSummary) {
         AskDataMetadata authorizedMetadata = authorizedMetadata(request, metadata, authorizationSummary);
-        AskDataSqlValidationResult validation = sqlValidator.validate(sql, dialect, maxRows(request), authorizedMetadata);
+        AskDataSqlValidationResult validation = sqlValidator.validate(candidateCommand.getSql(), dialect,
+                maxRows(request), authorizedMetadata);
         if (validation == null || !validation.isValid()) {
             return validation;
         }
-        AskDataSqlCommand command = governedCommand(request, validation.getSql(), authorizationSummary,
+        AskDataSqlCommand governedCandidate = governedCommand(request, validation.getSql(), authorizationSummary,
                 authorizationSummary == null ? Collections.<AskDataRowPredicate>emptyList()
                         : authorizationSummary.getRowPredicates());
+        AskDataSqlCommand command = withMergedParameters(candidateCommand.withSql(validation.getSql()),
+                governedCandidate);
         if (!command.getSql().equals(validation.getSql())) {
             AskDataSqlValidationResult governedValidation = sqlValidator.validate(command.getSql(), dialect,
                     maxRows(request), authorizedMetadata);
@@ -1296,6 +1529,42 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return AskDataSqlValidationResult.accepted(command);
     }
 
+    private AskDataSqlCommand candidateCommand(AskDataRequest request, String sql,
+            AskDataAuthorizationSummary authorizationSummary) {
+        return new AskDataSqlCommand(request.getProjectContext(), sql, sqlParameters(request, authorizationSummary, sql),
+                authorizedObjects(request, authorizationSummary), authorizationSummary);
+    }
+
+    private AskDataSqlCommand secureAgentCommand(AskDataSqlCommand original, AskDataSqlCommand rewritten) {
+        if (!sameProjectContext(original.getContext(), rewritten.getContext())
+                || original.getAuthorizationSummary() != rewritten.getAuthorizationSummary()
+                || !original.getAuthorizedObjects().equals(rewritten.getAuthorizedObjects())) {
+            throw new IllegalArgumentException("Agent 不能替换项目、操作人或治理授权边界");
+        }
+        List<AskDataSqlParameter> parameters = new ArrayList<AskDataSqlParameter>(original.getParameters());
+        for (AskDataSqlParameter required : original.getParameters()) {
+            AskDataSqlParameter candidate = rewritten.getParameter(required.getName());
+            if (candidate == null || !required.hasSameValue(candidate)) {
+                throw new IllegalArgumentException("Agent 不能删除或修改命名参数: " + required.getName());
+            }
+        }
+        for (AskDataSqlParameter parameter : rewritten.getParameters()) {
+            AskDataSqlParameter existing = original.getParameter(parameter.getName());
+            if (existing == null) {
+                parameters.add(parameter);
+            } else if (!existing.hasSameValue(parameter)) {
+                throw new IllegalArgumentException("命名参数冲突: " + parameter.getName());
+            }
+        }
+        return new AskDataSqlCommand(original.getContext(), rewritten.getSql(), parameters,
+                original.getAuthorizedObjects(), original.getAuthorizationSummary());
+    }
+
+    private boolean sameProjectContext(AskDataProjectContext first, AskDataProjectContext second) {
+        return first != null && second != null && equals(first.getProjectId(), second.getProjectId())
+                && equals(first.getOperatorId(), second.getOperatorId());
+    }
+
     private AskDataSqlCommand withMergedParameters(AskDataSqlCommand pluginCommand, AskDataSqlCommand governedCommand) {
         Map<String, AskDataSqlParameter> parameters = new LinkedHashMap<String, AskDataSqlParameter>();
         for (AskDataSqlParameter parameter : pluginCommand.getParameters()) {
@@ -1323,20 +1592,36 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
     }
 
-    private AskDataSqlResult mapSqlResult(AskDataSqlCommand command, AskDataSqlExecutionResult execution,
-            int rowLimit) {
+    private AskDataSqlResult toCoreSqlResult(AskDataSqlExecutionResult execution, int rowLimit) {
         List<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlColumn> columns =
                 new ArrayList<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlColumn>();
         for (AskDataColumn column : execution.getColumns()) {
             columns.add(new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlColumn(column.getName(),
                     column.getLabel(), column.getType()));
         }
-        Integer timeoutSeconds = properties.getSql().getQueryTimeoutSeconds();
-        long timeoutMillis = timeoutSeconds == null || timeoutSeconds.intValue() <= 0 ? 0L
-                : timeoutSeconds.longValue() * 1000L;
-        AskDataSqlResult result = AskDataSqlResult.of(columns, execution.getRows(),
-                AskDataSqlExecutionStatus.SUCCEEDED, execution.getRowCount(), rowLimit, timeoutMillis);
+        return AskDataSqlResult.of(columns, execution.getRows(), AskDataSqlExecutionStatus.SUCCEEDED,
+                execution.getRowCount(), rowLimit, queryTimeoutMillis());
+    }
+
+    private AskDataSqlResult mapSqlResult(AskDataSqlCommand command, AskDataSqlResult result) {
         return sqlInterceptorChain == null ? result : sqlInterceptorChain.mapResult(command, result);
+    }
+
+    private void validateAgentSqlResult(AskDataSqlResult result, int rowLimit) {
+        if (result == null) {
+            throw new IllegalArgumentException("execute-sql Agent 未返回 SQL 结果");
+        }
+        if (result.getExecutionStatus() != AskDataSqlExecutionStatus.SUCCEEDED) {
+            throw new IllegalArgumentException("execute-sql Agent 返回非成功执行状态: "
+                    + result.getExecutionStatus());
+        }
+        if (result.getRowLimit() != rowLimit || result.getTimeoutMillis() != queryTimeoutMillis()) {
+            throw new IllegalArgumentException("execute-sql Agent 不能改变行数上限或超时边界");
+        }
+        int maximumRows = Math.min(result.getExecutedRowCount(), rowLimit);
+        if (result.getExecutedRowCount() > rowLimit || result.getRows().size() > maximumRows) {
+            throw new IllegalArgumentException("execute-sql Agent 返回结果超过受限行数");
+        }
     }
 
     private List<AskDataColumn> toLegacyColumns(AskDataSqlResult result) {

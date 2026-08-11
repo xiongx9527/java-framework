@@ -137,6 +137,47 @@ public AskDataSqlResultMapper businessResultMapper() {
 
 映射器只能替换结构化列和行，不能改变执行终态、实际执行行数、`default-max-rows` 行数上限或 `query-timeout-seconds` 超时事实，也不能扩充超过实际读取行数的结果。违反约束时审计记录插件 key 与 `RESULT_MAP` 失败阶段，问数结果返回失败，但已完成 SQL 不会重放。
 
+## 业务 Agent 步骤替换
+
+业务可以注册 Core `AskDataAgent` Bean，按稳定步骤 key 替换默认 Flow 的单个业务步骤：
+
+| 步骤 key | 类型化输出 | 未注册时的默认行为 |
+| --- | --- | --- |
+| `select-tables` | `selectedTables(...)` | 使用治理过滤后的全部授权表 |
+| `generate-sql` | `generatedSql(...)` | 通过 Core Router 调用聊天模型并解析 SQL |
+| `validate-sql` | `validatedSql(...)` | 使用默认 SQL 校验管线 |
+| `execute-sql` | `executedSql(...)` | 使用默认只读 JDBC 执行器 |
+| `interpret-result` | `interpreted(...)` | 保留模型返回的默认 `brief` |
+
+`AskDataAgentStepContext` 携带项目与操作人、问题、数据源、会话、治理后元数据、已选表、Prompt、SQL 命令、结构化 SQL 结果、行数上限和超时。Agent 通过 `getPriority()` 声明优先级；同一步骤选择唯一最高优先级实现，最高优先级并列时应用启动失败并列出冲突 Agent key 与实现类。未声明步骤 key 的旧 `AskDataAgent` 标记实现不会替换默认步骤。
+
+下面的 Java 8 示例只替换 SQL 生成，默认模型不会再次调用，后续默认校验和执行继续运行：
+
+```java
+@Bean
+public AskDataAgent businessSqlGenerator() {
+    return new AskDataAgent() {
+        public String getKey() {
+            return "business-sql-generator";
+        }
+
+        public String getStepKey() {
+            return AskDataAgentStepKey.GENERATE_SQL;
+        }
+
+        public int getPriority() {
+            return 100;
+        }
+
+        public AskDataAgentStepResult execute(AskDataAgentStepContext context) {
+            return AskDataAgentStepResult.generatedSql("select count(*) from orders");
+        }
+    };
+}
+```
+
+步骤替换不改变安全边界：`select-tables` 只能从治理后授权表中收窄；`validate-sql` 返回的命令仍须保留项目、操作人、参数和授权边界，并再次经过治理、方言/元数据及 Core 最终校验；`execute-sql` 必须返回与上下文相同的行数上限和超时事实，且结果不得超限；结果映射仍在执行完成检查点后运行。Agent 返回失败、空结果或越界结果时 Flow fail-closed。
+
 需要 LangChain4j 时，由业务应用显式引入 Adapter Starter：
 
 ```xml
