@@ -24,5 +24,9 @@ public interface AiEmbeddingStore {
      */
     void removeAll(List<String> ids);
 
+	default boolean supportsFilters() {
+		return false;
+	}
+
     AiEmbeddingSearchResult search(AiEmbeddingQuery query);
 }
