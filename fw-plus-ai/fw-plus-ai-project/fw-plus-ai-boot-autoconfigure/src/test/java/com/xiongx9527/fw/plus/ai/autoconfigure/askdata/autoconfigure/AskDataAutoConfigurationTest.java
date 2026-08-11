@@ -96,7 +96,25 @@ public class AskDataAutoConfigurationTest {
             assertTrue(context.getBean(AskDataDialectRegistry.class) != null);
             assertTrue(context.getBean(AskDataAgentDispatcher.class) != null);
             assertTrue(context.getBean(AskDataCapabilityRegistry.class) != null);
+            assertTrue(context.getBean(com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepRegistry.class) != null);
         });
+    }
+
+    @Test
+    public void shouldRejectAmbiguousCoreStepAgentsAtStartup() {
+        contextRunner
+                .withBean("firstGenerateSqlAgent", com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent.class,
+                        () -> coreStepAgent("first-generator", 10))
+                .withBean("secondGenerateSqlAgent", com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent.class,
+                        () -> coreStepAgent("second-generator", 10))
+                .run(context -> {
+                    Throwable failure = context.getStartupFailure();
+                    assertTrue(failure != null);
+                    String messages = failureMessages(failure);
+                    assertTrue(messages.contains("generate-sql"));
+                    assertTrue(messages.contains("first-generator"));
+                    assertTrue(messages.contains("second-generator"));
+                });
     }
 
     @Test
@@ -540,6 +558,42 @@ public class AskDataAutoConfigurationTest {
                         "0.1.1-SNAPSHOT", "0.1.1-SNAPSHOT", 0, true);
             }
         };
+    }
+
+    private com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent coreStepAgent(final String key,
+            final int priority) {
+        return new com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent() {
+            @Override
+            public String getKey() {
+                return key;
+            }
+
+            @Override
+            public String getStepKey() {
+                return com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepKey.GENERATE_SQL;
+            }
+
+            @Override
+            public int getPriority() {
+                return priority;
+            }
+
+            @Override
+            public com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepResult execute(
+                    com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepContext context) {
+                return com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepResult.generatedSql("select 1");
+            }
+        };
+    }
+
+    private String failureMessages(Throwable failure) {
+        StringBuilder messages = new StringBuilder();
+        Throwable current = failure;
+        while (current != null) {
+            messages.append(current.getMessage()).append('\n');
+            current = current.getCause();
+        }
+        return messages.toString();
     }
 
     private static class TestAskDataSubAgent implements AskDataSubAgent {

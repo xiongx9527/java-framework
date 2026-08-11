@@ -32,6 +32,10 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataModelAttemp
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetrievalResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepContext;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepKey;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepRegistry;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepResult;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
@@ -45,7 +49,10 @@ import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlColumn;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlExecutionStatus;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlParameter;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlResult;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -83,6 +90,101 @@ public class DefaultAskDataFlowExecutorTest {
 
         assertTrue(result.isSuccess());
         assertTrue(dependencies.routedGenerateCalled);
+    }
+
+    @Test
+    public void shouldUseGenerateSqlAgentWithoutInvokingDefaultModel() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.agentStepRegistry = registry(stepAgent("business-generator", AskDataAgentStepKey.GENERATE_SQL,
+                context -> AskDataAgentStepResult.generatedSql("select count(*) from orders")));
+
+        AskDataResult result = dependencies.executor(null).execute(request(true));
+
+        assertTrue(result.isSuccess());
+        assertFalse(dependencies.routedGenerateCalled);
+        assertEquals(SQL, result.getSql());
+        assertEquals(1, dependencies.executorCalls);
+        assertTrue(stepKeys(result).contains(AskDataAgentStepKey.GENERATE_SQL));
+    }
+
+    @Test
+    public void shouldAllowSelectTablesAgentToNarrowAuthorizedMetadata() {
+        StubDependencies dependencies = new StubDependencies();
+        final AskDataAgentStepContext[] observed = new AskDataAgentStepContext[1];
+        dependencies.governanceProvider = request -> allowed(request, Arrays.asList(
+                new AskDataAuthorizedObject("orders", "orders", "*"),
+                new AskDataAuthorizedObject("orders", "payments", "*")),
+                Collections.<AskDataRowPredicate>emptyList());
+        dependencies.metadataProvider = request -> new AskDataMetadata("mysql", Arrays.asList(
+                new AskDataTable("orders", Collections.singletonList(new AskDataColumn("id", "bigint"))),
+                new AskDataTable("payments", Collections.singletonList(new AskDataColumn("id", "bigint")))),
+                Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+        dependencies.agentStepRegistry = registry(stepAgent("business-selector", AskDataAgentStepKey.SELECT_TABLES,
+                context -> {
+                    observed[0] = context;
+                    return AskDataAgentStepResult.selectedTables(Collections.singletonList("orders"));
+                }));
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request(false));
+
+        assertTrue(result.isSuccess());
+        assertEquals(Arrays.asList("orders", "payments"), observed[0].getMetadata().getResources());
+        assertTrue(dependencies.prompt.contains("orders.id"));
+        assertFalse(dependencies.prompt.contains("payments.id"));
+    }
+
+    @Test
+    public void shouldRevalidateSqlReturnedByValidateAgent() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.useDefaultSqlValidator = true;
+        dependencies.agentStepRegistry = registry(stepAgent("unsafe-validator", AskDataAgentStepKey.VALIDATE_SQL,
+                context -> AskDataAgentStepResult.validatedSql(
+                        context.getSqlCommand().withSql("delete from orders"))));
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select id from orders\"}")
+                .execute(request(true));
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.SQL_REJECTED, result.getErrorCode());
+        assertEquals(0, dependencies.executorCalls);
+    }
+
+    @Test
+    public void shouldUseExecuteSqlAgentWithoutInvokingDefaultExecutor() {
+        StubDependencies dependencies = new StubDependencies();
+        java.util.Map<String, Object> row = new java.util.LinkedHashMap<String, Object>();
+        row.put("count", Long.valueOf(7L));
+        AskDataSqlResult agentResult = AskDataSqlResult.of(
+                Collections.singletonList(new AskDataSqlColumn("count", "count", "bigint")),
+                Collections.singletonList(row), AskDataSqlExecutionStatus.SUCCEEDED, 1, 100, 30000L);
+        dependencies.agentStepRegistry = registry(stepAgent("business-executor", AskDataAgentStepKey.EXECUTE_SQL,
+                context -> AskDataAgentStepResult.executedSql(agentResult)));
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request(true));
+
+        assertTrue(result.isSuccess());
+        assertEquals(0, dependencies.executorCalls);
+        assertEquals(Integer.valueOf(1), result.getRowCount());
+        assertEquals(Long.valueOf(7L), result.getRows().get(0).get("count"));
+    }
+
+    @Test
+    public void shouldUseInterpretResultAgentAfterRestrictedExecution() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.agentStepRegistry = registry(stepAgent("business-interpreter",
+                AskDataAgentStepKey.INTERPRET_RESULT, context -> {
+                    assertTrue(context.getSqlResult() != null);
+                    return AskDataAgentStepResult.interpreted("业务解释");
+                }));
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request(true));
+
+        assertTrue(result.isSuccess());
+        assertEquals("业务解释", result.getBrief());
+        assertTrue(stepKeys(result).contains(AskDataAgentStepKey.INTERPRET_RESULT));
     }
 
     @Test
@@ -793,6 +895,35 @@ public class DefaultAskDataFlowExecutorTest {
                 AskDataAdministrativeScope.none());
     }
 
+    private static AskDataAgentStepRegistry registry(
+            com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent agent) {
+        return new AskDataAgentStepRegistry(Collections.singletonList(agent));
+    }
+
+    private static com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent stepAgent(final String key,
+            final String stepKey, final StepExecution execution) {
+        return new com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent() {
+            @Override
+            public String getKey() {
+                return key;
+            }
+
+            @Override
+            public String getStepKey() {
+                return stepKey;
+            }
+
+            @Override
+            public AskDataAgentStepResult execute(AskDataAgentStepContext context) {
+                return execution.execute(context);
+            }
+        };
+    }
+
+    private interface StepExecution {
+        AskDataAgentStepResult execute(AskDataAgentStepContext context);
+    }
+
     private static AskDataCheckpoint completedCheckpoint() {
         AskDataCheckpoint checkpoint = new AskDataCheckpoint();
         checkpoint.setConversationId("conversation-1");
@@ -848,6 +979,7 @@ public class DefaultAskDataFlowExecutorTest {
         private final List<AskDataEvent> events = new java.util.ArrayList<AskDataEvent>();
         private com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel coreChatModel;
         private com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter coreModelRouter;
+        private AskDataAgentStepRegistry agentStepRegistry;
 
         private DefaultAskDataFlowExecutor executor(final String modelResponse) {
             properties.getSql().setExecuteEnabled(globalExecutionEnabled);
@@ -976,7 +1108,7 @@ public class DefaultAskDataFlowExecutorTest {
                     promptProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor, null,
                     Collections.<AskDataAgent>emptyList(), event -> events.add(event),
                     com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner.simple(), sqlInterceptorChain,
-                    null, governanceProvider, coreChatModel, coreModelRouter);
+                    null, governanceProvider, coreChatModel, coreModelRouter, agentStepRegistry);
         }
     }
 }

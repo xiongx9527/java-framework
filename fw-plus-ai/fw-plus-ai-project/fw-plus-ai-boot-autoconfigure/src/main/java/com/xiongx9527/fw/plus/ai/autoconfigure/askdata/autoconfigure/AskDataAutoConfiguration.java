@@ -462,6 +462,14 @@ public class AskDataAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepRegistry askDataAgentStepRegistry(
+            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent> agentProvider) {
+        return new com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepRegistry(
+                agentProvider.orderedStream().collect(Collectors.toList()));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public AskDataConversationStore askDataConversationStore(AskDataProperties properties) {
         validateLegacyConversationConfiguration(properties);
         Integer capacity = properties.getConversation().getMaxCheckpointsPerConversation();
@@ -490,7 +498,8 @@ public class AskDataAutoConfiguration {
             AskDataGovernanceProvider governanceProvider,
             ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel> coreChatModelProvider,
             com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter modelRouter,
-            ObjectProvider<AiModelRegistry> aiModelRegistryProvider) {
+            ObjectProvider<AiModelRegistry> aiModelRegistryProvider,
+            com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepRegistry agentStepRegistry) {
         List<AskDataAgent> mainAgents = agentProvider.orderedStream()
                 .filter(agent -> !(agent instanceof AskDataSubAgent))
                 .collect(Collectors.toList());
@@ -506,7 +515,7 @@ public class AskDataAutoConfiguration {
                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
                 agentDispatcher, mainAgents, combineEventPublishers(monitoringLogEventPublisher, eventPublisherProvider),
                 questionPlanner, sqlInterceptorChainProvider.getIfAvailable(), coreSqlValidatorProvider.getIfAvailable(),
-                governanceProvider, coreChatModel, modelRouter);
+                governanceProvider, coreChatModel, modelRouter, agentStepRegistry);
     }
 
 	/**
