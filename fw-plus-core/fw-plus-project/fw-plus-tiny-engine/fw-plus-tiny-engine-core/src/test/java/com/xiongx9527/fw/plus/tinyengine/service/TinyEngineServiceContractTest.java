@@ -430,6 +430,16 @@ class TinyEngineServiceContractTest {
 	}
 
 	@Test
+	void templateCloneRejectsApplicationCodeWithSurroundingWhitespaceBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode(" valid-code ");
+	}
+
+	@Test
+	void templateCloneRejectsTwentyCharacterApplicationCodeWithTrailingWhitespaceBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode("abcdefghijklmnopqrst ");
+	}
+
+	@Test
 	void templateCloneRejectsUnverifiedTemplateSourceBeforeInsert() {
 		AppMapper mapper = mock(AppMapper.class);
 		PageMapper pageMapper = mock(PageMapper.class);

@@ -110,16 +110,16 @@ public class AppTemplateServiceImpl extends ServiceImpl<AppMapper, App> implemen
 
 	private void validateNewAppCode(App app) {
 		String code = app == null ? null : app.getCode();
-		if (code == null || !code.trim().matches("^[A-Za-z0-9_-]{1,20}$")) {
+		if (code == null || !code.matches("^[A-Za-z0-9_-]{1,20}$")) {
 			throw error(ExceptionEnum.CM002);
 		}
 		App condition = new App();
-		condition.setCode(code.trim());
+		condition.setCode(code);
 		condition.setTenantId(getTenantId());
 		if (!baseMapper.queryAppByCondition(condition).isEmpty()) {
 			throw error(ExceptionEnum.CM003);
 		}
-		app.setCode(code.trim());
+		app.setCode(code);
 	}
 
 	@Override
