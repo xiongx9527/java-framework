@@ -47,3 +47,10 @@ test('TinyEngine Robot keeps official AI endpoints and upstream model presets', 
   assert.match(modelConfig, /provider:\s*'bailian'/)
   assert.match(modelConfig, /provider:\s*'deepseek'/)
 })
+
+test('inline completion sends the model key in the proxy request body only', () => {
+  const completion = readFileSync(path.join(FRONTEND_ROOT, 'packages/common/js/completion.js'), 'utf8')
+
+  assert.match(completion, /baseUrl,\s*apiKey,\s*stream:\s*false/)
+  assert.doesNotMatch(completion, /Authorization:\s*`Bearer\s*\$\{apiKey/)
+})

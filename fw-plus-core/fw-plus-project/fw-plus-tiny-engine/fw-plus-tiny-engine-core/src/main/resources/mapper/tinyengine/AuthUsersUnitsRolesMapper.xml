@@ -7,7 +7,7 @@
     <!-- 通用查询列 -->
     <sql id="Base_Column_List">
         id
-        , tenant_id, user_id, unit_id, unit_type, role_id, expired_time, created_by, last_updated_by, created_time, last_updated_time
+        , tenant_id, user_id, unit_id, unit_type, role_id, owner_guard, expired_time, created_by, last_updated_by, created_time, last_updated_time
     </sql>
 
     <!-- 通用条件列 -->
@@ -60,6 +60,8 @@
         </if>
         <if test="roleId!=null">
             role_id = #{roleId},
+            owner_guard = CASE WHEN EXISTS (SELECT 1 FROM t_permission_role PR
+                WHERE PR.id = #{roleId} AND PR.role_type = 'app' AND PR.code = 'app_owner') THEN 1 ELSE NULL END,
         </if>
         <if test="expiredTime!=null">
             expired_time = #{expiredTime},
@@ -87,6 +89,7 @@
         <result column="unit_id" property="unitId"/>
         <result column="unit_type" property="unitType"/>
         <result column="role_id" property="roleId"/>
+        <result column="owner_guard" property="ownerGuard"/>
         <result column="expired_time" property="expiredTime"/>
         <result column="created_by" property="createdBy"/>
         <result column="last_updated_by" property="lastUpdatedBy"/>
@@ -144,6 +147,7 @@
                                               unit_id,
                                               unit_type,
                                               role_id,
+                                              owner_guard,
                                               expired_time,
                                               created_by,
                                               created_time,
@@ -155,6 +159,8 @@
                 #{unitId},
                 #{unitType},
                 #{roleId},
+                CASE WHEN EXISTS (SELECT 1 FROM t_permission_role PR
+                    WHERE PR.id = #{roleId} AND PR.role_type = 'app' AND PR.code = 'app_owner') THEN 1 ELSE NULL END,
                 #{expiredTime},
                 #{createdBy},
                 #{createdTime},
@@ -166,7 +172,8 @@
         VALUES (user_id), unit_id =
         VALUES (unit_id), unit_type =
         VALUES (unit_type), role_id =
-        VALUES (role_id), expired_time =
+        VALUES (role_id), owner_guard =
+        VALUES (owner_guard), expired_time =
         VALUES (expired_time), last_updated_by =
         VALUES (last_updated_by), last_updated_time =
         VALUES (last_updated_time)

@@ -43,9 +43,10 @@
 
 	<insert id="insertRole">
 		INSERT INTO r_auth_users_units_roles
-			(user_id, unit_id, unit_type, tenant_id, role_id, expired_time,
+			(user_id, unit_id, unit_type, tenant_id, role_id, owner_guard, expired_time,
 			 created_by, created_time, last_updated_by, last_updated_time)
-		SELECT #{userId}, #{appId}, 'app', #{tenantId}, PR.id, #{expiredTime},
+		SELECT #{userId}, #{appId}, 'app', #{tenantId}, PR.id,
+			CASE WHEN PR.code = 'app_owner' THEN 1 ELSE NULL END, #{expiredTime},
 			#{operator}, CURRENT_TIMESTAMP, #{operator}, CURRENT_TIMESTAMP
 		FROM t_permission_role PR
 		WHERE PR.code = #{roleCode} AND PR.role_type = 'app'
@@ -55,6 +56,7 @@
 		UPDATE r_auth_users_units_roles
 		SET role_id = (SELECT PR.id FROM t_permission_role PR
 			WHERE PR.code = #{roleCode} AND PR.role_type = 'app'),
+			owner_guard = NULL,
 			expired_time = #{expiredTime}, last_updated_by = #{operator}, last_updated_time = CURRENT_TIMESTAMP
 		WHERE tenant_id = #{tenantId} AND unit_id = #{appId} AND unit_type = 'app'
 			AND user_id = #{userId}

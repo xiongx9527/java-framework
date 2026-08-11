@@ -70,6 +70,7 @@ public class AppRoleServiceImpl implements AppRoleService {
 		TinyEngineUser operator = requireMemberOperation(appId, request == null ? null : request.getUserId());
 		AppRoleCode role = mutableRole(request == null ? null : request.getRoleCode());
 		lockExistingApp(operator.getTenantId(), appId);
+		requireMemberPermission(appId);
 		requireTenantUser(operator.getTenantId(), request.getUserId());
 		if (roleMapper.countAppRelation(operator.getTenantId(), appId, request.getUserId()) > 0) {
 			throw new IllegalStateException("User already has an application role");
@@ -91,6 +92,7 @@ public class AppRoleServiceImpl implements AppRoleService {
 		TinyEngineUser operator = requireMemberOperation(appId, userId);
 		AppRoleCode role = mutableRole(request == null ? null : request.getRoleCode());
 		lockExistingApp(operator.getTenantId(), appId);
+		requireMemberPermission(appId);
 		requireTenantUser(operator.getTenantId(), userId);
 		if (roleMapper.updateRole(operator.getTenantId(), appId, userId, role.getCode(),
 				request.getExpiredTime(), operator.getUserId()) != 1) {
@@ -104,8 +106,9 @@ public class AppRoleServiceImpl implements AppRoleService {
 	public void removeMember(Integer appId, String userId) {
 		TinyEngineUser operator = requireMemberOperation(appId, userId);
 		lockExistingApp(operator.getTenantId(), appId);
+		requireMemberPermission(appId);
 		if (roleMapper.deleteMemberRole(operator.getTenantId(), appId, userId) != 1) {
-			throw new IllegalStateException("Mutable application member does not exist");
+			throw new IllegalStateException("Only app_admin or app_dev members can be removed");
 		}
 	}
 
@@ -133,12 +136,26 @@ public class AppRoleServiceImpl implements AppRoleService {
 	}
 
 	private TinyEngineUser requireMemberOperation(Integer appId, String targetUserId) {
-		requirePermission(appId, AppPermission.MANAGE_MEMBERS);
+		requireMemberPermission(appId);
 		TinyEngineUser operator = currentUser();
-		if (operator == null || targetUserId == null || targetUserId.equals(operator.getUserId())) {
-			throw denied();
+		if (operator == null) {
+			throw memberDenied();
+		}
+		if (targetUserId == null || targetUserId.trim().length() == 0) {
+			throw new IllegalArgumentException("Application member userId is required");
+		}
+		if (targetUserId.equals(operator.getUserId())) {
+			throw new IllegalArgumentException("Cannot manage your own application role");
 		}
 		return operator;
+	}
+
+	private void requireMemberPermission(Integer appId) {
+		try {
+			requirePermission(appId, AppPermission.MANAGE_MEMBERS);
+		} catch (TinyEngineAccessDeniedException ex) {
+			throw memberDenied();
+		}
 	}
 
 	private void lockExistingApp(String tenantId, Integer appId) {
@@ -149,7 +166,7 @@ public class AppRoleServiceImpl implements AppRoleService {
 
 	private void requireTenantUser(String tenantId, String userId) {
 		if (roleMapper.countUserInTenant(tenantId, userId) != 1) {
-			throw denied();
+			throw new IllegalArgumentException("Target user does not belong to the current tenant");
 		}
 	}
 
@@ -165,7 +182,7 @@ public class AppRoleServiceImpl implements AppRoleService {
 	private AppRoleCode mutableRole(String roleCode) {
 		AppRoleCode role = AppRoleCode.fromCode(roleCode);
 		if (role != AppRoleCode.APP_ADMIN && role != AppRoleCode.APP_DEV) {
-			throw denied();
+			throw new IllegalArgumentException("Only app_admin or app_dev can be assigned");
 		}
 		return role;
 	}
@@ -194,5 +211,10 @@ public class AppRoleServiceImpl implements AppRoleService {
 
 	private TinyEngineAccessDeniedException denied() {
 		return new TinyEngineAccessDeniedException("TinyEngine application permission denied");
+	}
+
+	private TinyEngineAccessDeniedException memberDenied() {
+		return new TinyEngineAccessDeniedException(
+				"Only app_owner or app_admin can manage application members");
 	}
 }

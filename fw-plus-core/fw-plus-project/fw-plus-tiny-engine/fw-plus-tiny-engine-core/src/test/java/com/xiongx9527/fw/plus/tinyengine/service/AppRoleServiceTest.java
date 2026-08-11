@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -93,11 +94,28 @@ class AppRoleServiceTest {
 		when(roleMapper.countAppRelation("tenant-9", 3, "user-8")).thenReturn(1);
 
 		AppMemberRoleRequest self = request("user-7", "app_dev");
-		assertThrows(TinyEngineAccessDeniedException.class, () -> service.addMember(3, self));
-		assertThrows(TinyEngineAccessDeniedException.class,
-				() -> service.addMember(3, request("user-8", "app_owner")));
+		assertEquals("Cannot manage your own application role",
+				assertThrows(IllegalArgumentException.class, () -> service.addMember(3, self)).getMessage());
+		assertEquals("Only app_admin or app_dev can be assigned",
+				assertThrows(IllegalArgumentException.class,
+						() -> service.addMember(3, request("user-8", "app_owner"))).getMessage());
 		assertThrows(IllegalStateException.class,
 				() -> service.addMember(3, request("user-8", "app_dev")));
+		verify(roleMapper, never()).insertRole(any(), any(), any(), any(), any(), any());
+	}
+
+	@Test
+	void memberWriteRechecksOperatorPermissionAfterApplicationLock() {
+		AppRoleMapper roleMapper = mock(AppRoleMapper.class);
+		AppRoleServiceImpl service = service(roleMapper, appMapperWithApp(), "user-7");
+		when(roleMapper.findActiveRoleCode("tenant-9", 3, "user-7"))
+				.thenReturn("app_admin")
+				.thenReturn(null);
+		when(roleMapper.lockApp("tenant-9", 3)).thenReturn(3);
+
+		assertThrows(TinyEngineAccessDeniedException.class,
+				() -> service.addMember(3, request("user-8", "app_dev")));
+		verify(roleMapper, never()).countUserInTenant("tenant-9", "user-8");
 		verify(roleMapper, never()).insertRole(any(), any(), any(), any(), any(), any());
 	}
 
