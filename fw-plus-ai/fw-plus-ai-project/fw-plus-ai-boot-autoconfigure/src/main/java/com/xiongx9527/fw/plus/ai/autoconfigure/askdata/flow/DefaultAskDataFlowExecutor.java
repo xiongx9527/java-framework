@@ -368,10 +368,14 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return failure(aggregated, "request", AskDataErrorCode.MODEL_RESPONSE_INVALID,
                     "AskData 请求缺少有效项目与操作人上下文");
         }
+        final AskDataAuthorizationSummary authorizationSummary = authorize(request, aggregated);
+        if (authorizationSummary == null) {
+            return aggregated;
+        }
         final boolean resumeRequested = isResumeRequested(request);
         AskDataCheckpoint parentCheckpoint = null;
         if (resumeRequested) {
-            parentCheckpoint = loadMultiQuestionCheckpoint(request, aggregated, plan);
+            parentCheckpoint = loadMultiQuestionCheckpoint(request, aggregated, plan, authorizationSummary);
             if (parentCheckpoint == null) {
                 return aggregated;
             }
@@ -396,7 +400,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         } catch (IllegalArgumentException ex) {
             return failure(aggregated, "multi-question", AskDataErrorCode.RESUME_FAILED, message(ex));
         }
-        AskDataResult initialCheckpointFailure = saveMultiQuestionCheckpoint(request, aggregated, plan, childResults);
+        AskDataResult initialCheckpointFailure = saveMultiQuestionCheckpoint(request, aggregated, plan, childResults,
+                authorizationSummary);
         if (initialCheckpointFailure != null) {
             return initialCheckpointFailure;
         }
@@ -426,7 +431,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 }
                 publishSubQuestionEvent(request, aggregated, terminal.getQuestionId(),
                         subQuestionEventType(terminal.getState()), "AskData 子问题已进入终态");
-                AskDataResult failed = saveMultiQuestionCheckpoint(request, aggregated, plan, childResults);
+                AskDataResult failed = saveMultiQuestionCheckpoint(request, aggregated, plan, childResults,
+                        authorizationSummary);
                 if (failed != null) {
                     checkpointFailure.compareAndSet(null, failed);
                     multiRequest.cancel();
@@ -448,7 +454,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         aggregated.addStep("multi-question", "Multi question", allSucceeded,
                 allSucceeded ? "All child questions completed" : "One or more child questions failed");
-        AskDataResult finalCheckpointFailure = saveMultiQuestionCheckpoint(request, aggregated, plan, childResults);
+        AskDataResult finalCheckpointFailure = saveMultiQuestionCheckpoint(request, aggregated, plan, childResults,
+                authorizationSummary);
         if (checkpointFailure.get() != null) {
             AskDataResult failed = checkpointFailure.get();
             failed.setChildResults(aggregated.getChildResults());
@@ -598,29 +605,30 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     }
 
     private AskDataCheckpoint loadMultiQuestionCheckpoint(AskDataRequest request, AskDataResult result,
-            AskDataQuestionPlan plan) {
+            AskDataQuestionPlan plan, AskDataAuthorizationSummary authorizationSummary) {
         if (conversationStore == null) {
             failure(result, "multi-question", AskDataErrorCode.RESUME_FAILED,
                     "AskData conversation store is not configured");
             return null;
         }
         try {
+            AskDataProjectContext projectContext = request.getProjectContext();
             AskDataCheckpoint checkpoint = !isBlank(request.getResumeToken())
-                    ? conversationStore.loadByResumeToken(request.getResumeToken())
-                    : conversationStore.loadLatest(request.getConversationId());
+                    ? conversationStore.loadByResumeToken(projectContext, request.getResumeToken())
+                    : conversationStore.loadLatest(projectContext, request.getConversationId());
             if (checkpoint == null) {
                 failure(result, "multi-question", AskDataErrorCode.CHECKPOINT_NOT_FOUND,
                         "AskData multi-question checkpoint was not found");
                 return null;
             }
-            AskDataCheckpoint latest = conversationStore.loadLatest(checkpoint.getConversationId());
+            AskDataCheckpoint latest = conversationStore.loadLatest(projectContext, checkpoint.getConversationId());
             if (latest != null) {
                 checkpoint = latest;
             }
             if (!Boolean.TRUE.equals(checkpoint.getMultiQuestion())
                     || !equals(checkpointVersion(), checkpoint.getVersion())
                     || !equals(multiQuestionPlanSnapshot(plan), checkpoint.getMultiQuestionPlanSnapshot())
-                    || !requestIdentityMatches(request, checkpoint)) {
+                    || !requestIdentityMatches(request, checkpoint, authorizationSummary)) {
                 failure(result, "multi-question", AskDataErrorCode.RESUME_FAILED,
                         "AskData multi-question checkpoint identity or version does not match");
                 return null;
@@ -662,7 +670,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (conversationStore == null) {
             return false;
         }
-        AskDataCheckpoint childCheckpoint = conversationStore.loadLatest(childRequest.getConversationId());
+        AskDataCheckpoint childCheckpoint = conversationStore.loadLatest(childRequest.getProjectContext(),
+                childRequest.getConversationId());
         if (childCheckpoint == null) {
             return false;
         }
@@ -743,13 +752,17 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     }
 
     private AskDataResult saveMultiQuestionCheckpoint(AskDataRequest request, AskDataResult result,
-            AskDataQuestionPlan plan, Map<String, AskDataResult> childResults) {
+            AskDataQuestionPlan plan, Map<String, AskDataResult> childResults,
+            AskDataAuthorizationSummary authorizationSummary) {
         if (conversationStore == null || isBlank(result.getConversationId())) {
             return null;
         }
         try {
             AskDataCheckpoint checkpoint = new AskDataCheckpoint();
             checkpoint.setConversationId(result.getConversationId());
+            checkpoint.setProjectId(request.getProjectContext().getProjectId());
+            checkpoint.setOperatorId(request.getProjectContext().getOperatorId());
+            checkpoint.setAuthorizationVersion(authorizationSummary.getAuthorizationVersion());
             checkpoint.setCheckpointId(UUID.randomUUID().toString());
             checkpoint.setResumeToken(UUID.randomUUID().toString());
             checkpoint.setRequestSummary(request.getQuestion());
@@ -772,7 +785,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             checkpoint.setCreatedAt(new Date());
             publishStepEvent(request, result, AskDataEvent.Type.CHECKPOINT_SAVE_STARTED, "multi-question", null,
                     "AskData 多问题检查点保存已开始");
-            AskDataCheckpoint saved = conversationStore.save(checkpoint);
+            AskDataCheckpoint saved = conversationStore.save(request.getProjectContext(), checkpoint);
             AskDataCheckpoint responseCheckpoint = saved == null ? checkpoint : saved;
             result.setCheckpointId(responseCheckpoint.getCheckpointId());
             result.setResumeToken(responseCheckpoint.getResumeToken());
@@ -1217,17 +1230,18 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (conversationStore == null) {
             return failure(result, "resume", AskDataErrorCode.CHECKPOINT_NOT_FOUND, "AskData conversation store is not configured");
         }
+        AskDataProjectContext projectContext = request.getProjectContext();
         AskDataCheckpoint checkpoint = !isBlank(request.getResumeToken())
-                ? conversationStore.loadByResumeToken(request.getResumeToken())
-                : conversationStore.loadLatest(request.getConversationId());
+                ? conversationStore.loadByResumeToken(projectContext, request.getResumeToken())
+                : conversationStore.loadLatest(projectContext, request.getConversationId());
         if (checkpoint == null) {
             return failure(result, "resume", AskDataErrorCode.CHECKPOINT_NOT_FOUND, "AskData checkpoint was not found");
         }
-        AskDataCheckpoint latest = conversationStore.loadLatest(checkpoint.getConversationId());
+        AskDataCheckpoint latest = conversationStore.loadLatest(projectContext, checkpoint.getConversationId());
         if (latest != null) {
             checkpoint = latest;
         }
-        if (!requestIdentityMatches(request, checkpoint)) {
+        if (!requestIdentityMatches(request, checkpoint, authorizationSummary(context))) {
             return failure(result, "resume", AskDataErrorCode.RESUME_FAILED,
                     "AskData resume request does not match checkpoint identity");
         }
@@ -2012,7 +2026,13 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                     currentStep, null, "AskData 上下文压缩已完成");
             AskDataCheckpoint checkpoint = new AskDataCheckpoint();
             AskDataRequest request = context.getRequest();
+            AskDataProjectContext projectContext = request == null ? null : request.getProjectContext();
+            AskDataAuthorizationSummary authorizationSummary = authorizationSummary(context);
             checkpoint.setConversationId(result.getConversationId());
+            checkpoint.setProjectId(projectContext == null ? null : projectContext.getProjectId());
+            checkpoint.setOperatorId(projectContext == null ? null : projectContext.getOperatorId());
+            checkpoint.setAuthorizationVersion(authorizationSummary == null
+                    ? null : authorizationSummary.getAuthorizationVersion());
             checkpoint.setCheckpointId(context.getCheckpointId());
             checkpoint.setResumeToken(context.getResumeToken());
             checkpoint.setRequestSummary(request == null ? null : request.getQuestion());
@@ -2041,7 +2061,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             checkpoint.setCreatedAt(new Date());
             publishStepEvent(context.getRequest(), result, AskDataEvent.Type.CHECKPOINT_SAVE_STARTED,
                     currentStep, null, "AskData 检查点保存已开始");
-            AskDataCheckpoint saved = conversationStore.save(checkpoint);
+            AskDataCheckpoint saved = conversationStore.save(projectContext, checkpoint);
             AskDataCheckpoint responseCheckpoint = saved == null ? checkpoint : saved;
             result.setCheckpointId(responseCheckpoint.getCheckpointId());
             result.setResumeToken(responseCheckpoint.getResumeToken());
@@ -2401,11 +2421,18 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return properties.getSql().isExecuteEnabled() && (request == null || !Boolean.FALSE.equals(request.getExecute()));
     }
 
-    private boolean requestIdentityMatches(AskDataRequest request, AskDataCheckpoint checkpoint) {
+    private boolean requestIdentityMatches(AskDataRequest request, AskDataCheckpoint checkpoint,
+            AskDataAuthorizationSummary authorizationSummary) {
         if (request == null || checkpoint == null) {
             return false;
         }
-        if (!equals(request.getDatasourceKey(), checkpoint.getDatasourceKey())
+        AskDataProjectContext projectContext = request.getProjectContext();
+        if (projectContext == null
+                || !equals(projectContext.getProjectId(), checkpoint.getProjectId())
+                || !equals(projectContext.getOperatorId(), checkpoint.getOperatorId())
+                || authorizationSummary == null
+                || !equals(authorizationSummary.getAuthorizationVersion(), checkpoint.getAuthorizationVersion())
+                || !equals(request.getDatasourceKey(), checkpoint.getDatasourceKey())
                 || !equals(request.getModelKey(), checkpoint.getModelKey())
                 || !equals(request.getQuestion(), checkpoint.getRequestSummary())
                 || !equals(Integer.valueOf(maxRows(request)), checkpoint.getMaxRows())

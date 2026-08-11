@@ -10,6 +10,9 @@ import java.util.List;
 public class AskDataCheckpoint {
 
     private String conversationId;
+    private String projectId;
+    private String operatorId;
+    private String authorizationVersion;
     private String checkpointId;
     private String resumeToken;
     private String requestSummary;
@@ -41,6 +44,14 @@ public class AskDataCheckpoint {
 
     public String getConversationId() { return conversationId; }
     public void setConversationId(String conversationId) { this.conversationId = conversationId; }
+    public String getProjectId() { return projectId; }
+    public void setProjectId(String projectId) { this.projectId = projectId; }
+    public String getOperatorId() { return operatorId; }
+    public void setOperatorId(String operatorId) { this.operatorId = operatorId; }
+    public String getAuthorizationVersion() { return authorizationVersion; }
+    public void setAuthorizationVersion(String authorizationVersion) {
+        this.authorizationVersion = authorizationVersion;
+    }
     public String getCheckpointId() { return checkpointId; }
     public void setCheckpointId(String checkpointId) { this.checkpointId = checkpointId; }
     public String getResumeToken() { return resumeToken; }

@@ -3,6 +3,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataColumn;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -34,18 +35,22 @@ public class InMemoryAskDataConversationStore implements AskDataConversationStor
 
     @Override
     public AskDataCheckpoint save(AskDataCheckpoint checkpoint) {
-        if (checkpoint == null || isBlank(checkpoint.getConversationId())) {
-            throw new IllegalArgumentException("Checkpoint conversationId must not be blank");
+        if (checkpoint == null || isBlank(checkpoint.getConversationId())
+                || isBlank(checkpoint.getProjectId()) || isBlank(checkpoint.getOperatorId())
+                || isBlank(checkpoint.getAuthorizationVersion())) {
+            throw new IllegalArgumentException(
+                    "Checkpoint projectId, operatorId, authorizationVersion and conversationId must not be blank");
         }
         AskDataCheckpoint stored = snapshot(checkpoint);
         if (stored.getCreatedAt() == null) {
             stored.setCreatedAt(new Date());
         }
-        List<AskDataCheckpoint> checkpoints = checkpointsByConversation.get(stored.getConversationId());
+        String conversationKey = conversationKey(stored.getProjectId(), stored.getOperatorId(),
+                stored.getConversationId());
+        List<AskDataCheckpoint> checkpoints = checkpointsByConversation.get(conversationKey);
         if (checkpoints == null) {
             List<AskDataCheckpoint> newCheckpoints = new ArrayList<AskDataCheckpoint>();
-            List<AskDataCheckpoint> existing = checkpointsByConversation.putIfAbsent(stored.getConversationId(),
-                    newCheckpoints);
+            List<AskDataCheckpoint> existing = checkpointsByConversation.putIfAbsent(conversationKey, newCheckpoints);
             checkpoints = existing == null ? newCheckpoints : existing;
         }
         synchronized (checkpoints) {
@@ -53,45 +58,96 @@ public class InMemoryAskDataConversationStore implements AskDataConversationStor
             while (checkpoints.size() > maxCheckpointsPerConversation) {
                 AskDataCheckpoint evicted = checkpoints.remove(0);
                 if (!isBlank(evicted.getResumeToken())) {
-                    checkpointsByResumeToken.remove(evicted.getResumeToken(), evicted);
+                    checkpointsByResumeToken.remove(resumeTokenKey(evicted.getProjectId(), evicted.getOperatorId(),
+                            evicted.getResumeToken()), evicted);
                 }
             }
         }
         if (!isBlank(stored.getResumeToken())) {
-            checkpointsByResumeToken.put(stored.getResumeToken(), stored);
+            checkpointsByResumeToken.put(resumeTokenKey(stored.getProjectId(), stored.getOperatorId(),
+                    stored.getResumeToken()), stored);
         }
         return snapshot(stored);
     }
 
     @Override
+    public AskDataCheckpoint save(AskDataProjectContext projectContext, AskDataCheckpoint checkpoint) {
+        if (!AskDataConversationStore.isBoundTo(projectContext, checkpoint)) {
+            throw new IllegalArgumentException("Checkpoint does not match the requested project and operator scope");
+        }
+        return save(checkpoint);
+    }
+
+    @Override
+    @Deprecated
     public AskDataCheckpoint loadLatest(String conversationId) {
-        List<AskDataCheckpoint> checkpoints = checkpointsByConversation.get(conversationId);
+        return null;
+    }
+
+    @Override
+    public AskDataCheckpoint loadLatest(AskDataProjectContext projectContext, String conversationId) {
+        if (projectContext == null || isBlank(projectContext.getProjectId())
+                || isBlank(projectContext.getOperatorId()) || isBlank(conversationId)) {
+            return null;
+        }
+        List<AskDataCheckpoint> checkpoints = checkpointsByConversation.get(conversationKey(
+                projectContext.getProjectId(), projectContext.getOperatorId(), conversationId));
+        AskDataCheckpoint latest = latest(checkpoints, conversationId);
+        return AskDataConversationStore.isBoundTo(projectContext, latest) ? snapshot(latest) : null;
+    }
+
+    @Override
+    @Deprecated
+    public AskDataCheckpoint loadByResumeToken(String resumeToken) {
+        return null;
+    }
+
+    @Override
+    public AskDataCheckpoint loadByResumeToken(AskDataProjectContext projectContext, String resumeToken) {
+        if (projectContext == null || isBlank(projectContext.getProjectId())
+                || isBlank(projectContext.getOperatorId()) || isBlank(resumeToken)) {
+            return null;
+        }
+        AskDataCheckpoint checkpoint = checkpointsByResumeToken.get(resumeTokenKey(projectContext.getProjectId(),
+                projectContext.getOperatorId(), resumeToken));
+        return AskDataConversationStore.isBoundTo(projectContext, checkpoint) ? snapshot(checkpoint) : null;
+    }
+
+    private AskDataCheckpoint latest(List<AskDataCheckpoint> checkpoints, String conversationId) {
         if (checkpoints == null) {
             return null;
         }
         synchronized (checkpoints) {
             AskDataCheckpoint latest = null;
             for (AskDataCheckpoint checkpoint : checkpoints) {
-                if (latest == null || createdAt(checkpoint) >= createdAt(latest)) {
+                if (conversationId.equals(checkpoint.getConversationId())
+                        && (latest == null || createdAt(checkpoint) >= createdAt(latest))) {
                     latest = checkpoint;
                 }
             }
-            return latest == null ? null : snapshot(latest);
+            return latest;
         }
     }
 
-    @Override
-    public AskDataCheckpoint loadByResumeToken(String resumeToken) {
-        if (isBlank(resumeToken)) {
-            return null;
-        }
-        AskDataCheckpoint checkpoint = checkpointsByResumeToken.get(resumeToken);
-        return checkpoint == null ? null : snapshot(checkpoint);
+    private String conversationKey(String projectId, String operatorId, String conversationId) {
+        return keyPart(projectId) + keyPart(operatorId) + keyPart(conversationId);
+    }
+
+    private String resumeTokenKey(String projectId, String operatorId, String resumeToken) {
+        return keyPart(projectId) + keyPart(operatorId) + keyPart(resumeToken);
+    }
+
+    private String keyPart(String value) {
+        String normalized = value == null ? "" : value;
+        return normalized.length() + ":" + normalized;
     }
 
     private AskDataCheckpoint snapshot(AskDataCheckpoint source) {
         AskDataCheckpoint target = new AskDataCheckpoint();
         target.setConversationId(source.getConversationId());
+        target.setProjectId(source.getProjectId());
+        target.setOperatorId(source.getOperatorId());
+        target.setAuthorizationVersion(source.getAuthorizationVersion());
         target.setCheckpointId(source.getCheckpointId());
         target.setResumeToken(source.getResumeToken());
         target.setRequestSummary(source.getRequestSummary());
