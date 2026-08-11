@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingMatch;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingQuery;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingSearchResult;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingVector;
 
@@ -34,6 +35,9 @@ public class AiEmbeddingStoreAskDataVectorRetriever implements AskDataVectorRetr
             return Collections.emptyList();
         }
         AiEmbeddingStore store = resolveStore();
+		if (!query.getFilters().isEmpty() && !store.supportsFilters()) {
+			throw new AiEmbeddingStoreException("AskData 向量存储不支持授权过滤: " + store.getKey());
+		}
         AskDataEmbeddingModel embeddingModel = modelRegistry == null ? null : modelRegistry.getEmbeddingModel(null);
         if (embeddingModel == null) {
             return Collections.emptyList();
@@ -43,7 +47,7 @@ public class AiEmbeddingStoreAskDataVectorRetriever implements AskDataVectorRetr
             return Collections.emptyList();
         }
         AiEmbeddingSearchResult result = store.search(new AiEmbeddingQuery(new AiEmbeddingVector(toArray(values)),
-                query.getTopK() <= 0 ? 5 : query.getTopK(), 0.0D));
+				query.getTopK() <= 0 ? 5 : query.getTopK(), 0.0D, query.getFilters()));
         if (result == null || result.getMatches().isEmpty()) {
             return Collections.emptyList();
         }

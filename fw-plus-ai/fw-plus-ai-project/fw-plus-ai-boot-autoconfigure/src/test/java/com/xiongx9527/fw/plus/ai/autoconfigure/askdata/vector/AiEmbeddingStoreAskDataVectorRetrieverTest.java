@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingMatch;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingQuery;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingSearchResult;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStore;
+import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreException;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreType;
 import org.junit.jupiter.api.Test;
@@ -53,6 +54,38 @@ public class AiEmbeddingStoreAskDataVectorRetrieverTest {
                 Collections.<String, Object>emptyMap())).isEmpty());
         assertEquals(0, store.searchCount);
     }
+
+	@Test
+	public void shouldPreserveAuthorizedFiltersWhenStoreSupportsThem() {
+		RecordingStore store = new RecordingStore(
+				new AiEmbeddingSearchResult(Collections.<AiEmbeddingMatch>emptyList()), true);
+		AskDataVectorRetriever retriever = new AiEmbeddingStoreAskDataVectorRetriever(
+				new SingleStoreRegistry("knowledge", store), embeddingModels(), "knowledge");
+		Map<String, Object> filters = new LinkedHashMap<String, Object>();
+		filters.put("projectId", "project-1");
+
+		retriever.retrieve(new AskDataVectorQuery("term", "orders", "knowledge", "GMV", 3, filters));
+		filters.put("projectId", "project-2");
+
+		assertEquals("project-1", store.query.getFilters().get("projectId"));
+		assertThrows(UnsupportedOperationException.class,
+				() -> store.query.getFilters().put("operatorId", "operator-1"));
+	}
+
+	@Test
+	public void shouldRejectAuthorizedFiltersWhenStoreCannotApplyThem() {
+		RecordingStore store = new RecordingStore(
+				new AiEmbeddingSearchResult(Collections.<AiEmbeddingMatch>emptyList()));
+		AskDataVectorRetriever retriever = new AiEmbeddingStoreAskDataVectorRetriever(
+				new SingleStoreRegistry("knowledge", store), embeddingModels(), "knowledge");
+
+		AiEmbeddingStoreException exception = assertThrows(AiEmbeddingStoreException.class,
+				() -> retriever.retrieve(new AskDataVectorQuery("term", "orders", "knowledge", "GMV", 3,
+						Collections.<String, Object>singletonMap("projectId", "project-1"))));
+
+		assertTrue(exception.getMessage().contains("knowledge"));
+		assertEquals(0, store.searchCount);
+	}
 
     @Test
     public void shouldDiagnoseMissingConfiguredStore() {
@@ -105,11 +138,17 @@ public class AiEmbeddingStoreAskDataVectorRetrieverTest {
     private static final class RecordingStore implements AiEmbeddingStore {
 
         private final AiEmbeddingSearchResult result;
+		private final boolean supportsFilters;
         private int searchCount;
         private AiEmbeddingQuery query;
 
         private RecordingStore(AiEmbeddingSearchResult result) {
+			this(result, false);
+		}
+
+		private RecordingStore(AiEmbeddingSearchResult result, boolean supportsFilters) {
             this.result = result;
+			this.supportsFilters = supportsFilters;
         }
 
         @Override public String getKey() { return "knowledge"; }
@@ -120,6 +159,7 @@ public class AiEmbeddingStoreAskDataVectorRetrieverTest {
         @Override public List<String> addAll(List<AiEmbeddingDocument> documents) { return Collections.emptyList(); }
         @Override public void remove(String id) { }
         @Override public void removeAll(List<String> ids) { }
+		@Override public boolean supportsFilters() { return supportsFilters; }
 
         @Override
         public AiEmbeddingSearchResult search(AiEmbeddingQuery query) {
