@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.tinyengine.mapper.AppMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.DatasourceMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.I18nEntryMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.ModelMapper;
+import com.xiongx9527.fw.plus.tinyengine.mapper.PageMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.PageHistoryMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.I18nEntryDto;
@@ -40,6 +41,8 @@ public class AppTemplateServiceImpl extends ServiceImpl<AppMapper, App> implemen
 
 	@Autowired
 	private PageService pageService;
+	@Autowired
+	private PageMapper pageMapper;
 	@Autowired
 	private PageHistoryMapper pageHistoryMapper;
 	@Autowired
@@ -87,6 +90,10 @@ public class AppTemplateServiceImpl extends ServiceImpl<AppMapper, App> implemen
 			throw error(ExceptionEnum.CM002);
 		}
 		int templateId = app.getId();
+		if (baseMapper.queryAppTemplateById(templateId, getTenantId()) == null) {
+			throw error(ExceptionEnum.CM009);
+		}
+		validateNewAppCode(app);
 		app.setId(null);
 		app.setIsTemplate(false);
 		app.setSetTemplateBy(null);
@@ -99,6 +106,20 @@ public class AppTemplateServiceImpl extends ServiceImpl<AppMapper, App> implemen
 			throw error(ExceptionEnum.CM009);
 		}
 		return created;
+	}
+
+	private void validateNewAppCode(App app) {
+		String code = app == null ? null : app.getCode();
+		if (code == null || !code.trim().matches("^[A-Za-z0-9_-]{1,20}$")) {
+			throw error(ExceptionEnum.CM002);
+		}
+		App condition = new App();
+		condition.setCode(code.trim());
+		condition.setTenantId(getTenantId());
+		if (!baseMapper.queryAppByCondition(condition).isEmpty()) {
+			throw error(ExceptionEnum.CM003);
+		}
+		app.setCode(code.trim());
 	}
 
 	@Override
@@ -116,7 +137,7 @@ public class AppTemplateServiceImpl extends ServiceImpl<AppMapper, App> implemen
 	}
 
 	private void copyPages(int templateId, int appId) {
-		List<Page> pages = pageService.queryAllPage(templateId);
+		List<Page> pages = pageMapper.queryPageByApp(templateId);
 		if (pages == null) {
 			return;
 		}
