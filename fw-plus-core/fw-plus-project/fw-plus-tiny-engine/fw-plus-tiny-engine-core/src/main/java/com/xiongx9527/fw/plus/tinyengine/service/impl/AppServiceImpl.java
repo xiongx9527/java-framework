@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.tinyengine.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ExceptionEnum;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
 import com.xiongx9527.fw.plus.tinyengine.mapper.AppMapper;
@@ -14,9 +13,11 @@ import com.xiongx9527.fw.plus.tinyengine.model.entity.I18nEntry;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Platform;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 import com.xiongx9527.fw.plus.tinyengine.service.AppService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppRoleService;
 import com.xiongx9527.fw.plus.tinyengine.service.I18nEntryService;
 import com.xiongx9527.fw.plus.tinyengine.service.PlatformService;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAccessDeniedException;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.AppPermission;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
 import org.springframework.stereotype.Service;
@@ -29,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
+public class AppServiceImpl extends MapperServiceSupport<AppMapper> implements AppService {
 	private static final int DEFAULT_PAGE_SIZE = 10;
 	private static final int MAX_PAGE_SIZE = 1000;
 
@@ -42,6 +43,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 	private I18nEntryMapper i18nEntryMapper;
 	@Autowired
 	private PageMapper pageMapper;
+	@Autowired
+	private AppRoleService appRoleService;
 
 	public AppServiceImpl(TinyEngineUserContext userContext) {
 		this.userContext = userContext;
@@ -49,7 +52,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
 	@Override
 	public List<App> queryAllApp() {
-		return baseMapper.queryAllApp(tenantId());
+		TinyEngineUser user = currentUser();
+		return baseMapper.queryVisibleApps(tenantId(), userId(user), isSystem(user));
 	}
 
 	@Override
@@ -60,10 +64,16 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		int offset = offsetValue > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) offsetValue;
 		App condition = app == null ? new App() : app;
 		AppDto result = new AppDto();
-		result.setApps(baseMapper.queryAllAppByPage(safeSize, offset, condition.getName(),
-				condition.getIndustryId(), condition.getSceneId(), condition.getFramework(), orderBy,
-				condition.getCreatedBy(), tenantId()));
-		result.setTotal(baseMapper.queryAppTotal(tenantId()));
+		TinyEngineUser user = currentUser();
+		String currentTenant = tenantId();
+		String currentUserId = userId(user);
+		boolean systemContext = isSystem(user);
+		result.setApps(baseMapper.queryVisibleAppsByPage(safeSize, offset, condition.getName(),
+				condition.getIndustryId(), condition.getSceneId(), condition.getFramework(), condition.getPlatformId(),
+				orderBy, condition.getCreatedBy(), currentTenant, currentUserId, systemContext));
+		result.setTotal(baseMapper.queryVisibleAppTotal(condition.getName(), condition.getIndustryId(),
+				condition.getSceneId(), condition.getFramework(), condition.getPlatformId(), condition.getCreatedBy(),
+				currentTenant, currentUserId, systemContext));
 		return result;
 	}
 
@@ -73,6 +83,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		if (app == null) {
 			throw failure(ExceptionEnum.CM009);
 		}
+		requirePermission(id, AppPermission.READ);
 		return app;
 	}
 
@@ -87,7 +98,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
 	@Override
 	public List<App> queryAppByCondition(App app) {
-		return baseMapper.queryAppByCondition(app);
+		List<App> apps = baseMapper.queryAppByCondition(app);
+		if (apps != null) {
+			for (App result : apps) {
+				requirePermission(result == null ? null : result.getId(), AppPermission.READ);
+			}
+		}
+		return apps;
 	}
 
 	@Override
@@ -98,6 +115,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		if (app == null) {
 			throw failure(ExceptionEnum.CM009);
 		}
+		requirePermission(id, AppPermission.DELETE);
 		ensureEnabled(app);
 		List<Page> pages = pageMapper.queryPageByApp(id);
 		if (pages != null) {
@@ -107,6 +125,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 				}
 			}
 		}
+		if (appRoleService != null) {
+			appRoleService.deleteAppRoles(id, currentTenant);
+		}
 		if (baseMapper.deleteAppById(id, currentTenant) < 1) {
 			throw failure(ExceptionEnum.CM009);
 		}
@@ -115,6 +136,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
 	@Override
 	public App updateAppById(App app) {
+		return updateAppById(app, AppPermission.MANAGE);
+	}
+
+	private App updateAppById(App app, AppPermission permission) {
 		if (app == null || app.getId() == null) {
 			throw failure(ExceptionEnum.CM002);
 		}
@@ -124,6 +149,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		if (existing == null) {
 			throw failure(ExceptionEnum.CM009);
 		}
+		requirePermission(app.getId(), permission);
 		if (Boolean.FALSE.equals(existing.getEnable()) && !Boolean.TRUE.equals(app.getEnable())) {
 			ensureEnabled(existing);
 		}
@@ -154,6 +180,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 	}
 
 	@Override
+	@Transactional(rollbackFor = Exception.class)
 	public App createApp(App app) {
 		String currentTenant = requiredTenantId();
 		TinyEngineUser currentUser = currentUser();
@@ -180,6 +207,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 			throw failure(ExceptionEnum.CM001);
 		}
 		createDefaultHomePage(app, currentUserId, now);
+		if (appRoleService != null) {
+			appRoleService.createOwner(app.getId(), currentTenant, currentUserId);
+		}
 		return app;
 	}
 
@@ -210,7 +240,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		if (version != null) {
 			app.setLatest(String.valueOf(version));
 		}
-		return updateAppById(app);
+		return updateAppById(app, AppPermission.DEVELOP);
 	}
 
 	@Override
@@ -238,7 +268,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 		if (version != null) {
 			app.setLatest(String.valueOf(version));
 		}
-		return updateAppById(app);
+		return updateAppById(app, AppPermission.PUBLISH);
 	}
 
 	@Override
@@ -259,6 +289,20 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
 	private TinyEngineUser currentUser() {
 		return userContext == null ? null : userContext.getCurrentUser();
+	}
+
+	private String userId(TinyEngineUser user) {
+		return user == null ? null : user.getUserId();
+	}
+
+	private boolean isSystem(TinyEngineUser user) {
+		return user != null && "system".equals(user.getUserId());
+	}
+
+	private void requirePermission(Integer appId, AppPermission permission) {
+		if (appRoleService != null) {
+			appRoleService.requirePermission(appId, permission);
+		}
 	}
 
 	private String requiredTenantId() {

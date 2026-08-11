@@ -23,7 +23,7 @@ test('TinyEngine starter owns every SQL resource declared by its manifest', () =
     .map(line => line.trim())
     .filter(line => line && !line.startsWith('#'))
 
-  assert.equal(entries.length, 23)
+  assert.equal(entries.length, 27)
   for (const entry of entries) {
     const separator = entry.indexOf('=')
     assert.notEqual(separator, -1, `invalid manifest entry: ${entry}`)

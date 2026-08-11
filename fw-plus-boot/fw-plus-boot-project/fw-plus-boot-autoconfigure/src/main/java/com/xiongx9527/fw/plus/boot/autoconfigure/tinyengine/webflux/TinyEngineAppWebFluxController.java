@@ -4,12 +4,15 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFac
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.web.TinyEngineWebResponses;
 import com.xiongx9527.fw.plus.tinyengine.common.model.Result;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberRoleRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.AppExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -69,6 +72,32 @@ public class TinyEngineAppWebFluxController {
 	@GetMapping("/app-center/api/apps/delete/{id}")
 	public Mono<ResponseEntity<? extends Result<?>>> deleteApp(@PathVariable Integer id) {
 		return TinyEngineWebFluxSupport.submit(executor, () -> facade.deleteApp(id));
+	}
+
+	@GetMapping("/app-center/api/apps/{appId}/members")
+	public Mono<ResponseEntity<? extends Result<?>>> appMembers(@PathVariable Integer appId) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.appMembers(appId));
+	}
+
+	@PostMapping("/app-center/api/apps/{appId}/members")
+	public Mono<ResponseEntity<? extends Result<?>>> addAppMember(@PathVariable Integer appId,
+			@RequestBody AppMemberRoleRequest request) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.addAppMember(appId, request));
+	}
+
+	@PutMapping("/app-center/api/apps/{appId}/members/{userId}")
+	public Mono<ResponseEntity<? extends Result<?>>> changeAppMember(@PathVariable Integer appId,
+			@PathVariable String userId, @RequestBody AppMemberRoleRequest request) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.changeAppMember(appId, userId, request));
+	}
+
+	@DeleteMapping("/app-center/api/apps/{appId}/members/{userId}")
+	public Mono<ResponseEntity<? extends Result<?>>> removeAppMember(@PathVariable Integer appId,
+			@PathVariable String userId) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> {
+			facade.removeAppMember(appId, userId);
+			return Boolean.TRUE;
+		});
 	}
 
 	@GetMapping("/app-center/api/apps/save/{id}")

@@ -10,7 +10,7 @@ const REPO_ROOT = path.resolve(MODULE_ROOT, '../../../..')
 const FRONTEND_ROOT = path.join(MODULE_ROOT, 'src/console')
 const SAMPLE_ROOT = path.join(REPO_ROOT, 'fw-plus-sample/fw-plus-ai-samples/fw-plus-ai-tiny-engine-sample')
 
-test('TinyEngine AI sample configuration does not embed model endpoint or credentials', () => {
+test('TinyEngine AI sample configuration reads model settings from runtime environment', () => {
   const files = [
     path.join(SAMPLE_ROOT, 'src/main/resources/application.yml'),
     path.join(SAMPLE_ROOT, 'src/test/resources/application.yml')
@@ -18,7 +18,11 @@ test('TinyEngine AI sample configuration does not embed model endpoint or creden
 
   for (const file of files) {
     const sampleYaml = readFileSync(file, 'utf8')
-    assert.doesNotMatch(sampleYaml, /^\s+(baseUrl|apiKey|modelName):\s*\S+/m, file)
+    if (/^\s+models:\s*$/m.test(sampleYaml)) {
+      assert.match(sampleYaml, /baseUrl:\s*\$\{TINY_ENGINE_AI_BASE_URL:/, file)
+      assert.match(sampleYaml, /apiKey:\s*\$\{TINY_ENGINE_AI_API_KEY:change-me\}/, file)
+      assert.match(sampleYaml, /modelName:\s*\$\{TINY_ENGINE_AI_MODEL_NAME:/, file)
+    }
     assert.doesNotMatch(sampleYaml, /sk-[A-Za-z0-9]/, file)
   }
 })

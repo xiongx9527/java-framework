@@ -4,6 +4,8 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.DefaultTinyEngin
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.DefaultTinyEngineExternalCapability;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFacade;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberRoleRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.CanvasDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.I18nEntryListResult;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.SchemaI18n;
@@ -13,6 +15,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.entity.Datasource;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 import com.xiongx9527.fw.plus.tinyengine.service.AppExtensionService;
 import com.xiongx9527.fw.plus.tinyengine.service.AppService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppRoleService;
 import com.xiongx9527.fw.plus.tinyengine.service.CanvasService;
 import com.xiongx9527.fw.plus.tinyengine.service.DatasourceService;
 import com.xiongx9527.fw.plus.tinyengine.service.I18nEntryService;
@@ -42,6 +45,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -53,6 +58,7 @@ class TinyEngineAppPageMvcApiContractTest {
 	private DatasourceService datasourceService;
 	private I18nEntryService i18nEntryService;
 	private CanvasService canvasService;
+	private AppRoleService appRoleService;
 	private MockMvc mvc;
 
 	@BeforeEach
@@ -65,9 +71,10 @@ class TinyEngineAppPageMvcApiContractTest {
 		datasourceService = mock(DatasourceService.class);
 		i18nEntryService = mock(I18nEntryService.class);
 		canvasService = mock(CanvasService.class);
+		appRoleService = mock(AppRoleService.class);
 		TinyEngineApiFacade facade = new DefaultTinyEngineApiFacade(appService, pageService, null, null, null,
 				null, datasourceService, null, null, null, i18nEntryService, appExtensionService,
-				canvasService, new DefaultTinyEngineExternalCapability());
+				canvasService, null, null, new DefaultTinyEngineExternalCapability(), appRoleService);
 		mvc = MockMvcBuilders.standaloneSetup(new TinyEngineAppMvcController(facade),
 				new TinyEnginePageMvcController(facade)).build();
 	}
@@ -78,6 +85,7 @@ class TinyEngineAppPageMvcApiContractTest {
 		when(appService.updateAppById(any(App.class))).thenReturn(updated);
 		when(appService.deleteAppById(Integer.valueOf(1))).thenReturn(updated);
 		when(appService.saveApp(eq(Integer.valueOf(1)), any(Map.class))).thenReturn(updated);
+		when(appService.publishApp(eq(Integer.valueOf(1)), any(Map.class))).thenReturn(updated);
 		when(appService.queryAppById(Integer.valueOf(1))).thenReturn(updated);
 
 		mvc.perform(post("/app-center/api/apps/update/1")
@@ -97,13 +105,39 @@ class TinyEngineAppPageMvcApiContractTest {
 		mvc.perform(post("/app-center/api/apps/publish/1")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{\"branch\":\"release/1.2\"}"))
-				.andExpect(status().isNotImplemented())
-				.andExpect(jsonPath("$.success", is(false)))
-				.andExpect(jsonPath("$.error.message", is("TinyEngine 应用发布能力未配置")));
-		verify(appService, never()).publishApp(eq(Integer.valueOf(1)), any(Map.class));
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.id", is(1)));
+		verify(appService).publishApp(eq(Integer.valueOf(1)), any(Map.class));
 		mvc.perform(get("/app-center/api/apps/preview/1"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.id", is(1)));
+	}
+
+	@Test
+	void memberRoutesKeepAddChangeAndRemoveAsSeparateCoreOperations() throws Exception {
+		AppMemberDto member = new AppMemberDto();
+		member.setUserId("8");
+		member.setRoleCode("app_dev");
+		when(appRoleService.members(Integer.valueOf(1))).thenReturn(java.util.Collections.singletonList(member));
+		when(appRoleService.addMember(eq(Integer.valueOf(1)), any(AppMemberRoleRequest.class))).thenReturn(member);
+		when(appRoleService.changeMember(eq(Integer.valueOf(1)), eq("8"), any(AppMemberRoleRequest.class)))
+				.thenReturn(member);
+
+		mvc.perform(get("/app-center/api/apps/1/members"))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.data[0].roleCode", is("app_dev")));
+		mvc.perform(post("/app-center/api/apps/1/members").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"userId\":\"8\",\"roleCode\":\"app_dev\"}"))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.data.userId", is("8")));
+		mvc.perform(put("/app-center/api/apps/1/members/8").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"roleCode\":\"app_admin\"}"))
+				.andExpect(status().isOk());
+		mvc.perform(delete("/app-center/api/apps/1/members/8"))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.data", is(true)));
+
+		verify(appRoleService).members(Integer.valueOf(1));
+		verify(appRoleService).addMember(eq(Integer.valueOf(1)), any(AppMemberRoleRequest.class));
+		verify(appRoleService).changeMember(eq(Integer.valueOf(1)), eq("8"), any(AppMemberRoleRequest.class));
+		verify(appRoleService).removeMember(Integer.valueOf(1), "8");
 	}
 
 	@Test

@@ -67,8 +67,8 @@ public class TinyEngineMapperResourceTest {
 			.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
 		String content = readContent(resource);
 		assertFalse(content.contains("orderBy == 'create_time'"), "AppMapper 不得使用不存在的 create_time 排序字段");
-		assertEquals(2, count(content, "<when test=\"orderBy == 'created_time'\">A.created_time</when>"),
-			"普通应用与应用模板排序都必须支持 created_time");
+		assertEquals(3, count(content, "<when test=\"orderBy == 'created_time'\">A.created_time</when>"),
+			"角色过滤应用、兼容应用与应用模板排序都必须支持 created_time");
 	}
 
 	@Test
@@ -93,6 +93,18 @@ public class TinyEngineMapperResourceTest {
 			"AppMapper 必须将 enable 映射到应用实体");
 		assertTrue(content.contains("enable = #{enable}"), "AppMapper 必须支持更新应用启用状态");
 		assertTrue(content.contains(", enable"), "AppMapper 必须在查询和新增列中包含 enable");
+	}
+
+	@Test
+	public void visibleAppListShouldExposeCurrentUsersTrustedRole() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+			.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
+		String content = readContent(resource);
+		assertTrue(content.contains("<result column=\"current_role\" property=\"currentRole\"/>"),
+			"应用列表必须映射当前用户的可信应用角色");
+		assertTrue(content.contains("AS current_role"), "可见应用查询必须返回 current_role");
+		assertTrue(content.contains("UR_CURRENT.user_id = #{userId}"),
+			"current_role 必须按当前登录用户查询，不能由展示字段推断");
 	}
 
 	@Test

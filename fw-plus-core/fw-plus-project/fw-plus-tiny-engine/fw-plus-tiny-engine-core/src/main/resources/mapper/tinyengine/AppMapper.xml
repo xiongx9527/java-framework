@@ -348,6 +348,7 @@
         <result column="tenant_id" property="tenantId"/>
         <result column="renter_id" property="renterId"/>
         <result column="site_id" property="siteId"/>
+		<result column="current_role" property="currentRole"/>
         <!-- 行业分类映射 -->
         <association property="industry" javaType="com.xiongx9527.fw.plus.tinyengine.model.entity.BusinessCategory">
             <id column="industry_id" property="id"/>
@@ -443,6 +444,24 @@
         scene.id as scene_id, scene.code as scene_code, scene.name as scene_name,
         scene.business_group as scene_business_group
     </sql>
+	<sql id="Current_Role_Column">
+		<choose>
+			<when test="systemContext">'app_owner'</when>
+			<otherwise>
+				(SELECT MAX(PR_CURRENT.code)
+				 FROM r_auth_users_units_roles UR_CURRENT
+				 INNER JOIN t_permission_role PR_CURRENT ON PR_CURRENT.id = UR_CURRENT.role_id
+				 WHERE UR_CURRENT.tenant_id = #{tenantId}
+					AND UR_CURRENT.unit_id = A.id
+					AND UR_CURRENT.unit_type = 'app'
+					AND UR_CURRENT.user_id = #{userId}
+					AND (UR_CURRENT.expired_time IS NULL OR UR_CURRENT.expired_time &gt; CURRENT_TIMESTAMP)
+					AND PR_CURRENT.role_type = 'app'
+					AND PR_CURRENT.code IN ('app_owner', 'app_admin', 'app_dev'))
+			</otherwise>
+		</choose>
+		AS current_role
+	</sql>
     <select id="queryAllApp" resultMap="AppMap">
         SELECT
         <include refid="Common_Column_List"/>
@@ -450,6 +469,74 @@
         WHERE A.tenant_id = #{tenantId}
         ORDER BY A.created_time DESC
     </select>
+
+	<sql id="VisibleRoleCondition">
+		<if test="!systemContext">
+			<choose>
+				<when test="userId != null and userId != ''">
+					AND EXISTS (
+						SELECT 1 FROM r_auth_users_units_roles UR
+						INNER JOIN t_permission_role PR ON PR.id = UR.role_id
+						WHERE UR.tenant_id = #{tenantId} AND UR.unit_id = A.id AND UR.unit_type = 'app'
+							AND UR.user_id = #{userId}
+							AND (UR.expired_time IS NULL OR UR.expired_time &gt; CURRENT_TIMESTAMP)
+							AND PR.role_type = 'app' AND PR.code IN ('app_owner', 'app_admin', 'app_dev')
+					)
+				</when>
+				<otherwise>AND 1 = 0</otherwise>
+			</choose>
+		</if>
+	</sql>
+
+	<sql id="VisibleAppConditions">
+		A.tenant_id = #{tenantId} AND A.is_template IS NOT TRUE
+		<if test="name != null and name != ''">
+			AND A.name LIKE CONCAT('%', #{name}, '%')
+		</if>
+		<if test="industryId != null">
+			AND A.industry_id = #{industryId}
+		</if>
+		<if test="sceneId != null">
+			AND A.scene_id = #{sceneId}
+		</if>
+		<if test="framework != null and framework != ''">
+			AND A.framework = #{framework}
+		</if>
+		<if test="platformId != null">
+			AND A.platform_id = #{platformId}
+		</if>
+		<if test="createdBy != null and createdBy != ''">
+			AND A.created_by = #{createdBy}
+		</if>
+		<include refid="VisibleRoleCondition"/>
+	</sql>
+
+	<select id="queryVisibleApps" resultMap="AppMap">
+		SELECT <include refid="Common_Column_List"/>, <include refid="Current_Role_Column"/>
+		<include refid="Common_Join"/>
+		WHERE A.tenant_id = #{tenantId} AND A.is_template IS NOT TRUE
+		<include refid="VisibleRoleCondition"/>
+		ORDER BY A.created_time DESC
+	</select>
+
+	<select id="queryVisibleAppsByPage" resultMap="AppMap">
+		SELECT <include refid="Common_Column_List"/>, <include refid="Current_Role_Column"/>
+		<include refid="Common_Join"/>
+		<where><include refid="VisibleAppConditions"/></where>
+		ORDER BY
+		<choose>
+			<when test="orderBy == 'created_time'">A.created_time</when>
+			<when test="orderBy == 'last_updated_time'">A.last_updated_time</when>
+			<otherwise>A.id</otherwise>
+		</choose>
+		DESC
+		LIMIT #{pageSize} OFFSET #{offset}
+	</select>
+
+	<select id="queryVisibleAppTotal" resultType="int">
+		SELECT COUNT(A.id) FROM t_app A
+		<where><include refid="VisibleAppConditions"/></where>
+	</select>
 
     <select id="queryAllAppByPage" resultMap="AppMap">
         SELECT
