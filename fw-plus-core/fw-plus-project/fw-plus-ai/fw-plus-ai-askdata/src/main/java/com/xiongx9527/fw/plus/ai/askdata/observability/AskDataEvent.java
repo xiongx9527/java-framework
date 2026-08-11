@@ -55,6 +55,8 @@ public class AskDataEvent {
 		AGENT_NODE_EXECUTED,
 		/** Agent 节点执行失败。 */
 		AGENT_NODE_FAILED,
+		/** 可选图运行时不可用，默认 Flow 回退到确定性顺序执行。 */
+		GRAPH_RUNTIME_FALLBACK,
 		/** 工具调用开始。 */
 		TOOL_STARTED,
 		/** 工具调用完成。 */

@@ -10,6 +10,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConve
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataAgentDispatcher;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataAgent;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataFlowExecutor;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataRuntimeStateServices;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataStepContext;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataStepResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataSubAgent;
@@ -37,6 +38,23 @@ import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityDescriptor;
 import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityProvider;
 import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityRegistry;
 import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentGraph;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentGraphRuntime;
+import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentNodeExecutor;
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAuditStateStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataIdempotencyKeyStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataJdbcStorageClient;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataLeaseStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataRedisStorageClient;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataSharedStorageClient;
+import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorDocument;
+import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorSearchRequest;
+import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorStore;
+import com.xiongx9527.fw.plus.ai.askdata.vector.InMemoryAskDataVectorStore;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModelType;
@@ -63,7 +81,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -139,6 +160,152 @@ public class AskDataAutoConfigurationTest {
                 .run(context -> {
                     assertTrue(context.getStartupFailure() != null);
                     assertTrue(context.getStartupFailure().getMessage().contains("duplicate-chat"));
+                });
+    }
+
+    @Test
+    public void shouldSelectConfiguredGraphRuntimeAndInjectItIntoFlowStateServices() {
+        AskDataAgentGraphRuntime runtime = availableGraphRuntime("business-langgraph");
+
+        contextRunner
+                .withPropertyValues("fw.plus.ai.askdata.flow.graph-runtime=business-langgraph")
+                .withBean("businessGraphRuntimeCapability", AskDataCapabilityProvider.class,
+                        () -> graphRuntimeProvider("business-langgraph", runtime))
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    assertSame(runtime, context.getBean(AskDataAgentGraphRuntime.class));
+                    assertSame(runtime, context.getBean(AskDataRuntimeStateServices.class).getGraphRuntime());
+                });
+    }
+
+    @Test
+    public void shouldRejectUnknownConfiguredGraphRuntimeAtStartup() {
+        contextRunner.withPropertyValues("fw.plus.ai.askdata.flow.graph-runtime=missing-graph-runtime")
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() != null);
+                    assertTrue(failureMessages(context.getStartupFailure()).contains("missing-graph-runtime"));
+                });
+    }
+
+    @Test
+    public void shouldRejectConfiguredCapabilityWithWrongGraphRuntimeType() {
+        contextRunner
+                .withPropertyValues("fw.plus.ai.askdata.flow.graph-runtime=business-chat")
+                .withBean("businessChatCapability", AskDataCapabilityProvider.class,
+                        () -> capabilityProvider("business-chat"))
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() != null);
+                    assertTrue(failureMessages(context.getStartupFailure()).contains("能力类型不匹配"));
+                });
+    }
+
+    @Test
+    public void shouldExposeWritableDefaultMemoryVectorCapability() {
+        contextRunner.run(context -> {
+            AskDataVectorStore store = context.getBean(AskDataVectorStore.class);
+            AskDataProjectContext scope = new AskDataProjectContext("project-a", "operator-a");
+            store.upsert(scope, new AskDataVectorDocument("doc-1", "orders", new float[] {1F, 0F}));
+
+            assertEquals("doc-1", store.search(scope,
+                    new AskDataVectorSearchRequest(new float[] {1F, 0F}, 1)).get(0).getId());
+            assertSame(store, context.getBean(AskDataCapabilityRegistry.class).getCapability("memory",
+                    AskDataCapabilityType.VECTOR, AskDataVectorStore.class));
+        });
+    }
+
+    @Test
+    public void shouldSelectBusinessVectorCapabilityByConfiguredKey() {
+        AskDataVectorStore store = new InMemoryAskDataVectorStore();
+
+        contextRunner
+                .withPropertyValues("fw.plus.ai.askdata.vector.store=business-vector")
+                .withBean("businessVectorCapability", AskDataCapabilityProvider.class,
+                        () -> vectorStoreProvider("business-vector", store))
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    assertSame(store, context.getBean(AskDataVectorStore.class));
+                });
+    }
+
+    @Test
+    public void shouldComposeJdbcAndRedisStateClientsByCategory() {
+        MapBackedJdbcClient jdbc = new MapBackedJdbcClient();
+        MapBackedRedisClient redis = new MapBackedRedisClient();
+
+        contextRunner
+                .withPropertyValues(
+                        "fw.plus.ai.askdata.state.conversation-store=jdbc",
+                        "fw.plus.ai.askdata.state.checkpoint-store=jdbc",
+                        "fw.plus.ai.askdata.state.agent-state-store=redis",
+                        "fw.plus.ai.askdata.state.lease-store=redis",
+                        "fw.plus.ai.askdata.state.idempotency-store=redis",
+                        "fw.plus.ai.askdata.state.audit-store=jdbc",
+                        "fw.plus.ai.askdata.state.monitoring-store=jdbc")
+                .withBean(AskDataJdbcStorageClient.class, () -> jdbc)
+                .withBean(AskDataRedisStorageClient.class, () -> redis)
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    AskDataProjectContext scope = new AskDataProjectContext("project-a", "operator-a");
+                    com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore conversations =
+                            context.getBean(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class);
+                    conversations.save(scope, "conversation-1",
+                            new com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.Conversation(
+                                    "question", "answer"));
+                    assertEquals("answer", conversations.load(scope, "conversation-1").getAnswer());
+                    assertTrue(context.getBean(AskDataLeaseStore.class)
+                            .tryAcquire(scope, "conversation-1", "node-a", 10000L));
+                    assertTrue(context.getBean(AskDataIdempotencyKeyStore.class).recordIfAbsent(scope, "request-1",
+                            new AskDataIdempotencyKeyStore.IdempotencyRecord("running", "conversation-1")));
+                    context.getBean(AskDataAuditStateStore.class).save(scope, "audit-1",
+                            new AskDataAuditStateStore.AuditState("RUNNING", "started", 1L));
+                    context.getBean(AskDataMonitoringLogStore.class).append(scope,
+                            new AskDataMonitoringLogStore.MonitoringLog("trace-1", "MODEL", "completed"));
+
+                    AskDataRuntimeStateServices services = context.getBean(AskDataRuntimeStateServices.class);
+					assertEquals(AskDataCapabilityType.STORE,
+							context.getBean(AskDataCapabilityRegistry.class).get("jdbc").getType());
+					assertEquals(AskDataCapabilityType.STORE,
+							context.getBean(AskDataCapabilityRegistry.class).get("redis").getType());
+                    assertSame(context.getBean(AskDataAgentStateStore.class), services.getAgentStateStore());
+                    assertSame(context.getBean(AskDataLeaseStore.class), services.getLeaseStore());
+                    assertSame(context.getBean(AskDataIdempotencyKeyStore.class), services.getIdempotencyKeyStore());
+                    assertSame(context.getBean(AskDataAuditStateStore.class), services.getAuditStateStore());
+                });
+    }
+
+    @Test
+    public void shouldSelectBusinessConversationStoreCapabilityByCategoryKey() {
+        com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore store =
+                new com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore() {
+                    @Override
+                    public void save(AskDataProjectContext context, String conversationId, Conversation conversation) {
+                    }
+
+                    @Override
+                    public Conversation load(AskDataProjectContext context, String conversationId) {
+                        return null;
+                    }
+                };
+
+        contextRunner
+                .withPropertyValues("fw.plus.ai.askdata.state.conversation-store=business-conversation")
+                .withBean("businessConversationCapability", AskDataCapabilityProvider.class,
+                        () -> storeProvider("business-conversation", store))
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    assertSame(store, context.getBean(
+                            com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class));
+                });
+    }
+
+    @Test
+    public void shouldRejectMissingSharedStateClientAtStartup() {
+        contextRunner.withPropertyValues("fw.plus.ai.askdata.state.lease-store=redis")
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() != null);
+                    String messages = failureMessages(context.getStartupFailure());
+                    assertTrue(messages.contains("AskDataRedisStorageClient"));
+					assertTrue(messages.contains("共享 STORE 能力"));
                 });
     }
 
@@ -422,6 +589,74 @@ public class AskDataAutoConfigurationTest {
     }
 
     @Test
+    public void shouldFallBackBeforeGraphNodeExecutionWhenConfiguredRuntimeIsUnavailable() {
+        final int[] runtimeCalls = new int[] {0};
+        final int[] agentCalls = new int[] {0};
+        AskDataAgentGraphRuntime runtime = new AskDataAgentGraphRuntime() {
+            @Override
+            public String getKey() { return "unavailable-runtime"; }
+
+            @Override
+            public boolean isAvailable() { return false; }
+
+            @Override
+            public List<String> execute(AskDataAgentGraph graph, AskDataAgentNodeExecutor executor) {
+                runtimeCalls[0]++;
+                throw new AssertionError("不可用运行时不应进入 execute");
+            }
+        };
+
+        withDefaultFlowDependencies()
+                .withBean(AskDataAgentGraphRuntime.class, () -> runtime)
+                .withBean(AskDataAgent.class, () -> countingAgent("fallback-agent", agentCalls))
+                .run(context -> {
+                    assertSuccessfulSql(context.getBean(AskDataService.class).ask(createRequest()));
+                    assertEquals(0, runtimeCalls[0]);
+                    assertEquals(1, agentCalls[0]);
+                    assertTrue(hasLifecycleEvent(context.getBean(
+                                    com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.class)
+                                    .list(new com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext(
+                                            "default", "default")),
+                            "GRAPH_RUNTIME_FALLBACK"));
+                });
+    }
+
+    @Test
+    public void shouldNotReplayGraphNodesAfterRuntimeFailureOnceExecutionStarted() {
+        final int[] firstAgentCalls = new int[] {0};
+        final int[] secondAgentCalls = new int[] {0};
+        AskDataAgentGraphRuntime runtime = new AskDataAgentGraphRuntime() {
+            @Override
+            public String getKey() { return "partial-runtime"; }
+
+            @Override
+            public boolean isAvailable() { return true; }
+
+            @Override
+            public List<String> execute(AskDataAgentGraph graph, AskDataAgentNodeExecutor executor) {
+                executor.execute(graph.getNodes().get(0));
+                throw new IllegalStateException("runtime failed after the first node");
+            }
+        };
+
+        withDefaultFlowDependencies()
+                .withBean(AskDataAgentGraphRuntime.class, () -> runtime)
+                .withBean("firstMainAgent", AskDataAgent.class,
+                        () -> countingAgent("first-main", firstAgentCalls))
+                .withBean("secondMainAgent", AskDataAgent.class,
+                        () -> countingAgent("second-main", secondAgentCalls))
+                .run(context -> {
+                    assertSuccessfulSql(context.getBean(AskDataService.class).ask(createRequest()));
+                    assertEquals(1, firstAgentCalls[0] + secondAgentCalls[0]);
+                    assertTrue(!hasLifecycleEvent(context.getBean(
+                                    com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.class)
+                                    .list(new com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext(
+                                            "default", "default")),
+                            "GRAPH_RUNTIME_FALLBACK"));
+                });
+    }
+
+    @Test
     public void shouldPreferBusinessCoreChatModelOverLegacyRegistry() {
         withDefaultFlowDependencies()
                 .withPropertyValues("fw.plus.ai.askdata.model.default-chat-model=test-model")
@@ -560,6 +795,73 @@ public class AskDataAutoConfigurationTest {
         };
     }
 
+    private AskDataCapabilityProvider graphRuntimeProvider(final String key,
+            final AskDataAgentGraphRuntime runtime) {
+        return new AskDataCapabilityProvider() {
+            @Override
+            public AskDataCapabilityDescriptor getDescriptor() {
+                return new AskDataCapabilityDescriptor(key, AskDataCapabilityType.RUNTIME_ADAPTER, "1.0.0",
+                        "0.1.1-SNAPSHOT", "0.1.1-SNAPSHOT", 0, true,
+                        "fw.plus.ai.askdata.flow." + key);
+            }
+
+            @Override
+            public Object getCapability() {
+                return runtime;
+            }
+        };
+    }
+
+    private AskDataCapabilityProvider vectorStoreProvider(final String key, final AskDataVectorStore store) {
+        return new com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorStoreProvider(key,
+                "fw.plus.ai.askdata.vector." + key, true, store);
+    }
+
+    private AskDataCapabilityProvider storeProvider(final String key, final Object store) {
+        return new AskDataCapabilityProvider() {
+            @Override
+            public AskDataCapabilityDescriptor getDescriptor() {
+                return new AskDataCapabilityDescriptor(key, AskDataCapabilityType.STORE, "1.0.0",
+                        "0.1.1-SNAPSHOT", "0.1.1-SNAPSHOT", 0, true,
+                        "fw.plus.ai.askdata.state." + key);
+            }
+
+            @Override
+            public Object getCapability() {
+                return store;
+            }
+        };
+    }
+
+    private AskDataAgentGraphRuntime availableGraphRuntime(final String key) {
+        return new AskDataAgentGraphRuntime() {
+            @Override
+            public String getKey() { return key; }
+
+            @Override
+            public boolean isAvailable() { return true; }
+
+            @Override
+            public List<String> execute(AskDataAgentGraph graph, AskDataAgentNodeExecutor executor) {
+                return new com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentGraphExecutor()
+                        .execute(graph, executor);
+            }
+        };
+    }
+
+    private AskDataAgent countingAgent(final String name, final int[] calls) {
+        return new AskDataAgent() {
+            @Override
+            public String getName() { return name; }
+
+            @Override
+            public AskDataStepResult execute(AskDataStepContext context) {
+                calls[0]++;
+                return AskDataStepResult.success(name + " completed");
+            }
+        };
+    }
+
     private com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent coreStepAgent(final String key,
             final int priority) {
         return new com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent() {
@@ -642,6 +944,43 @@ public class AskDataAutoConfigurationTest {
         public AskDataSubAgentResult executeSubTask(AskDataSubAgentRequest request) {
             recordExecuteSubTaskInvocation();
             throw new RuntimeException("sub-agent failed");
+        }
+    }
+
+    private static final class MapBackedJdbcClient extends MapBackedSharedClient
+            implements AskDataJdbcStorageClient {
+    }
+
+    private static final class MapBackedRedisClient extends MapBackedSharedClient
+            implements AskDataRedisStorageClient {
+    }
+
+    private static class MapBackedSharedClient implements AskDataSharedStorageClient {
+
+        private final ConcurrentMap<String, Object> values = new ConcurrentHashMap<String, Object>();
+
+        @Override
+        public Object get(String key) {
+            return values.get(key);
+        }
+
+        @Override
+        public boolean putIfAbsent(String key, Object value) {
+            return values.putIfAbsent(key, value) == null;
+        }
+
+        @Override
+        public boolean compareAndSet(String key, Object expectedValue, Object newValue) {
+            if (expectedValue == null) {
+                return newValue == null ? !values.containsKey(key) : values.putIfAbsent(key, newValue) == null;
+            }
+            return newValue == null ? values.remove(key, expectedValue)
+                    : values.replace(key, expectedValue, newValue);
+        }
+
+        @Override
+        public void put(String key, Object value) {
+            values.put(key, value);
         }
     }
 }

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class AskDataPropertiesBindingTest {
 
@@ -55,16 +56,16 @@ public class AskDataPropertiesBindingTest {
     }
 
 	@Test
-	public void shouldUseOllamaDefaultsWhenModelPropertiesAreNotOverridden() {
+	public void shouldKeepProviderAndModelSelectionEmptyByDefault() {
 		new ApplicationContextRunner()
 				.withUserConfiguration(AskDataAutoConfiguration.class)
 				.run(context -> {
 					AskDataProperties properties = context.getBean(AskDataProperties.class);
-					assertEquals("ollama", properties.getModel().getProvider());
-					assertEquals("qwen3:32b", properties.getModel().getDefaultChatModel());
-					assertEquals("bge-m3", properties.getModel().getDefaultEmbeddingModel());
-					assertEquals(java.util.Arrays.asList("qwen3:32b"), properties.getModel().getChatCandidates());
-					assertEquals(java.util.Arrays.asList("bge-m3"), properties.getModel().getEmbeddingCandidates());
+					assertNull(properties.getModel().getProvider());
+					assertNull(properties.getModel().getDefaultChatModel());
+					assertNull(properties.getModel().getDefaultEmbeddingModel());
+					assertEquals(java.util.Collections.emptyList(), properties.getModel().getChatCandidates());
+					assertEquals(java.util.Collections.emptyList(), properties.getModel().getEmbeddingCandidates());
 					assertEquals(Integer.valueOf(30), properties.getSql().getQueryTimeoutSeconds());
 					assertEquals(true, properties.getSql().isReadOnlyConnectionRequired());
 					assertEquals(Integer.valueOf(4), properties.getFlow().getMultiQuestionMaxConcurrency());

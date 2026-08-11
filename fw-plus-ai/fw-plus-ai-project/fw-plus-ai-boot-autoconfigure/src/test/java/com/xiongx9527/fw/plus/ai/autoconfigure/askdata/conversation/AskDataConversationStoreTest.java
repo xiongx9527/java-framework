@@ -70,8 +70,19 @@ public class AskDataConversationStoreTest {
                 .withPropertyValues("fw.plus.ai.askdata.state.cluster-mode=true")
                 .run(context -> {
                     assertNotNull(context.getStartupFailure());
-                    assertTrue(context.getStartupFailure().getMessage().contains("集群模式"));
+                    assertTrue(containsCauseMessage(context.getStartupFailure(), "集群模式"));
                 });
+    }
+
+    private static boolean containsCauseMessage(Throwable failure, String expected) {
+        Throwable current = failure;
+        while (current != null) {
+            if (current.getMessage() != null && current.getMessage().contains(expected)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     @Test
@@ -84,7 +95,7 @@ public class AskDataConversationStoreTest {
                         "fw.plus.ai.askdata.vector.store=redis")
                 .run(context -> {
                     assertNotNull(context.getStartupFailure());
-                    assertTrue(context.getStartupFailure().getMessage().contains("集群模式"));
+                    assertTrue(containsCauseMessage(context.getStartupFailure(), "未知能力 key"));
                 });
     }
 

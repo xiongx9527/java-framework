@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AskDataMultiQuestionFlowTest {
@@ -111,6 +112,49 @@ public class AskDataMultiQuestionFlowTest {
         adapter.record(another, "another operator");
 
         assertEquals(Collections.singletonList("current operator"), adapter.recommend(current));
+    }
+
+    @Test
+    public void shouldPersistParentRuntimeStateAndUseIndependentChildIdempotencyKeys() {
+        com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores stores =
+                com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores.singleNode();
+        AskDataRuntimeStateServices stateServices = new AskDataRuntimeStateServices(stores.agentStates(),
+                stores.leases(), stores.idempotencyKeys(), stores.auditStates(), AskDataLongTermMemory.inMemory());
+        List<com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent> events =
+                new java.util.ArrayList<com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent>();
+        AskDataRequest request = request(FIRST_QUESTION, SECOND_QUESTION);
+        request.getOptions().put("idempotencyKey", "batch-1");
+
+        AskDataResult result = executor(false, new AskDataProperties(), null, null, null, stateServices,
+                events::add).execute(request);
+
+        AskDataProjectContext context = request.getProjectContext();
+        assertTrue(result.isSuccess());
+        assertNotNull(stores.idempotencyKeys().load(context, "batch-1"));
+        assertNotNull(stores.idempotencyKeys().load(context, "batch-1:question-1"));
+        assertNotNull(stores.idempotencyKeys().load(context, "batch-1:question-2"));
+        assertEquals("COMPLETED", stores.agentStates().load(context, result.getConversationId()).getStatus());
+        assertEquals(2, stores.agentStates().load(context, result.getConversationId()).getSubTasks().size());
+        assertEquals("SUCCEEDED", stores.auditStates().load(context, result.getConversationId()).getStatus());
+        assertTrue(stores.leases().tryAcquire(context, result.getConversationId(), "next-owner", 1000L));
+        assertParentCorrelation(events, result.getConversationId());
+    }
+
+    @Test
+    public void shouldPersistFailedParentTerminalState() {
+        com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores stores =
+                com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores.singleNode();
+        AskDataRuntimeStateServices stateServices = new AskDataRuntimeStateServices(stores.agentStates(),
+                stores.leases(), stores.idempotencyKeys(), stores.auditStates(), AskDataLongTermMemory.inMemory());
+
+        AskDataResult result = executor(true, new AskDataProperties(), null, null, null, stateServices, null)
+                .execute(compoundRequest());
+
+        AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
+        assertFalse(result.isSuccess());
+        assertEquals("FAILED", stores.agentStates().load(context, result.getConversationId()).getStatus());
+        assertEquals("FAILED", stores.auditStates().load(context, result.getConversationId()).getStatus());
+        assertTrue(stores.leases().tryAcquire(context, result.getConversationId(), "next-owner", 1000L));
     }
 
     @Test
@@ -302,6 +346,13 @@ public class AskDataMultiQuestionFlowTest {
     private DefaultAskDataFlowExecutor executor(final boolean failSecondQuestion, AskDataProperties properties,
             final QuestionExecutionProbe probe, AskDataConversationStore conversationStore,
             AskDataContextCompressor contextCompressor) {
+        return executor(failSecondQuestion, properties, probe, conversationStore, contextCompressor, null, null);
+    }
+
+    private DefaultAskDataFlowExecutor executor(final boolean failSecondQuestion, AskDataProperties properties,
+            final QuestionExecutionProbe probe, AskDataConversationStore conversationStore,
+            AskDataContextCompressor contextCompressor, AskDataRuntimeStateServices runtimeStateServices,
+            com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher eventPublisher) {
         AskDataModelRegistry modelRegistry = new AskDataModelRegistry() {
             @Override
             public AskDataModelResponse generate(AskDataRequest request, String prompt) {
@@ -379,7 +430,29 @@ public class AskDataMultiQuestionFlowTest {
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                 promptProvider, new AskDataDialectRegistry(), validator, sqlExecutor, conversationStore,
                 contextCompressor, null,
-                Collections.<AskDataAgent>emptyList(), null, null, null, null, request -> allowedOrders(request));
+                Collections.<AskDataAgent>emptyList(), eventPublisher,
+                com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner.simple(), null, null,
+                request -> allowedOrders(request), null, null, null, runtimeStateServices);
+    }
+
+    private void assertParentCorrelation(
+            List<com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent> events, String conversationId) {
+        String rootEventId = conversationId + ":root";
+        boolean rootFound = false;
+        boolean childFound = false;
+        for (com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent event : events) {
+            if (event.getCorrelation() == null) {
+                continue;
+            }
+            if (event.getType()
+                    == com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent.Type.CONVERSATION_STARTED) {
+                rootFound = rootEventId.equals(event.getCorrelation().getEventId());
+            } else if (rootEventId.equals(event.getCorrelation().getParentEventId())) {
+                childFound = true;
+            }
+        }
+        assertTrue(rootFound);
+        assertTrue(childFound);
     }
 
     private AskDataCheckpoint parentCheckpoint(AskDataResult completed) {

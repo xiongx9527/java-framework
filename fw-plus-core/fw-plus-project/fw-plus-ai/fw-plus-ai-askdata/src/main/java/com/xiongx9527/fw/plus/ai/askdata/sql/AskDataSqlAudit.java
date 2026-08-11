@@ -28,10 +28,15 @@ public class AskDataSqlAudit {
 
 	public synchronized void record(String interceptorKey, String phase, String outcome,
 			AskDataSqlCommand before, AskDataSqlCommand after) {
+		record(interceptorKey, phase, outcome, before, after, null);
+	}
+
+	public synchronized void record(String interceptorKey, String phase, String outcome,
+			AskDataSqlCommand before, AskDataSqlCommand after, Correlation correlation) {
 		while (records.size() >= DEFAULT_RECORD_CAPACITY) {
 			records.remove(0);
 		}
-		records.add(new Record(interceptorKey, phase, outcome, before, after));
+		records.add(new Record(interceptorKey, phase, outcome, before, after, correlation));
 	}
 
 	/**
@@ -51,9 +56,12 @@ public class AskDataSqlAudit {
 		private final boolean sqlChanged;
 		private final List<String> parameterNames;
 		private final List<String> addedParameterNames;
+		private final String requestId;
+		private final String conversationId;
+		private final String authorizationVersion;
 
 		private Record(String interceptorKey, String phase, String outcome,
-				AskDataSqlCommand before, AskDataSqlCommand after) {
+				AskDataSqlCommand before, AskDataSqlCommand after, Correlation correlation) {
 			if (interceptorKey == null || interceptorKey.trim().length() == 0) {
 				throw new IllegalArgumentException("interceptorKey 不能为空白");
 			}
@@ -69,6 +77,9 @@ public class AskDataSqlAudit {
 			this.sqlChanged = before != null && after != null && !before.getSql().equals(after.getSql());
 			this.parameterNames = parameterNames(after == null ? before : after);
 			this.addedParameterNames = addedParameterNames(before, after);
+			this.requestId = correlation == null ? null : correlation.getRequestId();
+			this.conversationId = correlation == null ? null : correlation.getConversationId();
+			this.authorizationVersion = correlation == null ? null : correlation.getAuthorizationVersion();
 		}
 
 		public String getInterceptorKey() {
@@ -99,6 +110,10 @@ public class AskDataSqlAudit {
 			return addedParameterNames;
 		}
 
+		public String getRequestId() { return requestId; }
+		public String getConversationId() { return conversationId; }
+		public String getAuthorizationVersion() { return authorizationVersion; }
+
 		@Override
 		public String toString() {
 			return "Record{" + "interceptorKey='" + interceptorKey + '\'' + ", phase='" + phase + '\''
@@ -128,6 +143,27 @@ public class AskDataSqlAudit {
 				}
 			}
 			return Collections.unmodifiableList(names);
+		}
+	}
+
+	/** SQL 审计与治理事件共用的脱敏关联标识。 */
+	public static final class Correlation {
+		private final String requestId;
+		private final String conversationId;
+		private final String authorizationVersion;
+		public Correlation(String requestId, String conversationId, String authorizationVersion) {
+			this.requestId = require(requestId, "requestId");
+			this.conversationId = require(conversationId, "conversationId");
+			this.authorizationVersion = require(authorizationVersion, "authorizationVersion");
+		}
+		public String getRequestId() { return requestId; }
+		public String getConversationId() { return conversationId; }
+		public String getAuthorizationVersion() { return authorizationVersion; }
+		private static String require(String value, String name) {
+			if (value == null || value.trim().length() == 0) {
+				throw new IllegalArgumentException(name + " 不能为空白");
+			}
+			return value.trim();
 		}
 	}
 }

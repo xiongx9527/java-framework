@@ -2,6 +2,46 @@
 
 流程图中的“业务扩展”表示可接入接口，不等同于当前 Starter 默认已完成的项目治理、企业集成或远程运行时实现。
 
+## 项目治理与数据源接入
+
+```mermaid
+flowchart TD
+    A[业务 IAM 认证操作人] --> B[创建或选择项目]
+    B --> C[维护成员角色与管理范围]
+    C --> D[登记数据源逻辑 key]
+    D --> E[业务密钥服务解析连接凭据]
+    E --> F[只读连接和方言探测]
+    F --> G[同步表列约束和描述]
+    G --> H[治理桥映射数据源表列行权限]
+    H --> I{授权摘要完整且绑定当前主体}
+    I -- 否 --> J[拒绝发布并写操作审计]
+    I -- 是 --> K[发布元数据版本供训练和问数使用]
+```
+
+数据源实体、连接器、密钥服务和 IAM 由业务实现。Starter 只消费绑定 `projectId + operatorId + datasourceKey + purpose` 的授权摘要，不以连接成功或元数据存在推断权限。
+
+## 训练与 MDL 语义模型闭环
+
+```mermaid
+flowchart TD
+    A[治理后的元数据版本] --> B[维护术语 Prompt instructions 和 SQL pair]
+    B --> C[构建 MDL 模型列关系指标与视图]
+    C --> D[validate 与 dry-plan]
+    D --> E{对象权限和语义约束通过}
+    E -- 否 --> F[保留失败版本和部署日志]
+    E -- 是 --> G[生成 manifest 与 semanticVersion]
+    G --> H[Embedding 模型路由]
+    H --> I[按项目数据源授权标签写向量索引]
+    I --> J[评测 Text-to-SQL 召回和安全]
+    J --> K{评测门禁通过}
+    K -- 否 --> B
+    K -- 是 --> L[发布可用语义版本]
+    L --> M[问数反馈与授权变更]
+    M --> B
+```
+
+当前 Core/Starter 提供元数据、向量、版本、权限和评测接入边界；MDL 管理、训练 UI、连接器和真实评测服务属于业务模块，未在默认功能清单中宣称已实现。
+
 ## 业务流程
 
 ```mermaid
@@ -118,6 +158,50 @@ flowchart LR
     E --> O[Langfuse/LangSmith/OpenTelemetry/业务平台]
     E -. 导出失败隔离 .-> S
 ```
+
+## 推荐闭环
+
+```mermaid
+flowchart TD
+    A[授权后的历史问题记忆和语义资产] --> B[按 projectId 和 operatorId 加载候选]
+    B --> C[按 datasourceKey 和授权对象先过滤]
+    C --> D[丢弃归属不明或越权候选]
+    D --> E[组合相关性偏好反馈和长期记忆分值]
+    E --> F[稳定排序与数量截断]
+    F --> G[向当前操作人展示推荐]
+    G --> H[记录曝光点击采纳或否定反馈]
+    H --> I[写入来源授权版本和脱敏审计]
+    I --> A
+```
+
+通用候选不得携带个人画像分值；授权版本变化、成员撤销或数据源权限收窄后，旧候选必须重新过滤，不能仅依赖历史排序结果。
+
+## 前后端联调
+
+```mermaid
+sequenceDiagram
+    participant UI as Vue3 控制台或嵌入组件
+    participant SDK as 前端 API SDK
+    participant IAM as 业务 IAM 和 Token 服务
+    participant API as 业务 REST 或 MCP 发布层
+    participant ASK as AskData Starter
+    participant DB as 只读数据源
+    UI->>IAM: 登录或换取短期嵌入 token
+    IAM-->>UI: projectId operatorId 和授权映射
+    UI->>SDK: 选择项目数据源并提交问题
+    SDK->>API: 请求或流式连接以及关联 ID
+    API->>ASK: 中立 DTO 和已认证上下文
+    ASK->>ASK: 治理 元数据 模型路由 SQL 安全
+    ASK->>DB: 具名参数只读查询
+    DB-->>ASK: 结构化行列结果
+    ASK-->>API: 子任务状态 答案 图表 DTO 或稳定错误
+    API-->>SDK: JSON SSE 或 MCP 事件
+    SDK-->>UI: 渲染结果 恢复状态和推荐
+    UI->>API: 提交反馈或取消
+    API->>ASK: 绑定同一项目操作人和请求关联
+```
+
+页面不得持有 appSecret、数据库凭据或 Provider API Key。Mock 服务先固定 DTO、错误和事件顺序；后端接入后使用相同契约完成项目切换、超时、取消、部分失败、恢复、越权和脱敏联调。
 
 ## 外部集成
 
