@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api;
 
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberRoleRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockBuildDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockParam;
@@ -42,9 +44,14 @@ public interface TinyEngineApiFacade {
 
 	App deleteApp(Integer id);
 
+	List<AppMemberDto> appMembers(Integer appId);
+	AppMemberDto addAppMember(Integer appId, AppMemberRoleRequest request);
+	AppMemberDto changeAppMember(Integer appId, String userId, AppMemberRoleRequest request);
+	void removeAppMember(Integer appId, String userId);
+
 	Object saveApp(Integer id, Map<String, Object> request);
 
-	Map<String, Object> publishApp(Integer id, Map<String, Object> request);
+	Object publishApp(Integer id, Map<String, Object> request);
 
 	Object previewApp(Integer id, Map<String, Object> request);
 

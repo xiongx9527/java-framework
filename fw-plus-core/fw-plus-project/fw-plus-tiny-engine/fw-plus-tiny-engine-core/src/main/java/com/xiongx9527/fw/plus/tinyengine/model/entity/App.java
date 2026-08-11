@@ -93,6 +93,9 @@ private List<BusinessCategory> industry = new ArrayList<>();
     @TableField(exist = false)
 private List<BusinessCategory> scene = new ArrayList<>();
 
+    @TableField(exist = false)
+private String currentRole;
+
 	public String getName() {
 		return name;
 	}
@@ -419,5 +422,13 @@ private List<BusinessCategory> scene = new ArrayList<>();
 
 	public void setScene(List<BusinessCategory> scene) {
 		this.scene = scene;
+	}
+
+	public String getCurrentRole() {
+		return currentRole;
+	}
+
+	public void setCurrentRole(String currentRole) {
+		this.currentRole = currentRole;
 	}
 }

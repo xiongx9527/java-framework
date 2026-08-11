@@ -33,6 +33,9 @@ public interface AppMapper extends BaseMapper<App> {
      */
     List<App> queryAllApp(String tenantId);
 
+	List<App> queryVisibleApps(@Param("tenantId") String tenantId, @Param("userId") String userId,
+			@Param("systemContext") boolean systemContext);
+
     /**
      * 分页查询应用所有信息
      * @param offset the offset
@@ -47,6 +50,19 @@ public interface AppMapper extends BaseMapper<App> {
      */
     List<App> queryAllAppByPage(Integer pageSize, Integer offset, String name, Integer industryId,
         Integer sceneId, String framework, String orderBy, String createdBy, String tenantId);
+
+	List<App> queryVisibleAppsByPage(@Param("pageSize") Integer pageSize, @Param("offset") Integer offset,
+			@Param("name") String name, @Param("industryId") Integer industryId,
+			@Param("sceneId") Integer sceneId, @Param("framework") String framework,
+			@Param("platformId") Integer platformId, @Param("orderBy") String orderBy,
+			@Param("createdBy") String createdBy, @Param("tenantId") String tenantId,
+			@Param("userId") String userId, @Param("systemContext") boolean systemContext);
+
+	int queryVisibleAppTotal(@Param("name") String name, @Param("industryId") Integer industryId,
+			@Param("sceneId") Integer sceneId, @Param("framework") String framework,
+			@Param("platformId") Integer platformId, @Param("createdBy") String createdBy,
+			@Param("tenantId") String tenantId, @Param("userId") String userId,
+			@Param("systemContext") boolean systemContext);
 
     /**
      * 查询表t_app 应用总数

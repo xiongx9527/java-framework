@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.tinyengine.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ExceptionEnum;
 import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
 import com.xiongx9527.fw.plus.tinyengine.mapper.AppExtensionMapper;
@@ -20,6 +19,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.entity.Model;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.PageHistory;
 import com.xiongx9527.fw.plus.tinyengine.service.AppTemplateService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppRoleService;
 import com.xiongx9527.fw.plus.tinyengine.service.PageService;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
@@ -30,9 +30,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 @Service
-public class AppTemplateServiceImpl extends ServiceImpl<AppMapper, App> implements AppTemplateService {
+public class AppTemplateServiceImpl extends MapperServiceSupport<AppMapper> implements AppTemplateService {
 
 	private static final int DEFAULT_PAGE_SIZE = 10;
 	private static final int MAX_PAGE_SIZE = 1000;
@@ -53,6 +54,8 @@ public class AppTemplateServiceImpl extends ServiceImpl<AppMapper, App> implemen
 	private I18nEntryMapper i18nEntryMapper;
 	@Autowired
 	private ModelMapper modelMapper;
+	@Autowired
+	private AppRoleService appRoleService;
 
 	public AppTemplateServiceImpl(TinyEngineUserContext userContext) {
 		this.userContext = userContext;
@@ -94,11 +97,21 @@ public class AppTemplateServiceImpl extends ServiceImpl<AppMapper, App> implemen
 			throw error(ExceptionEnum.CM009);
 		}
 		validateNewAppCode(app);
+		TinyEngineUser currentUser = userContext == null ? null : userContext.getCurrentUser();
+		LocalDateTime now = LocalDateTime.now();
 		app.setId(null);
 		app.setIsTemplate(false);
 		app.setSetTemplateBy(null);
+		app.setTenantId(getTenantId());
+		app.setCreatedBy(currentUser == null ? null : currentUser.getUserId());
+		app.setLastUpdatedBy(currentUser == null ? null : currentUser.getUserId());
+		app.setCreatedTime(now);
+		app.setLastUpdatedTime(now);
 		if (baseMapper.createApp(app) < 1 || app.getId() == null) {
 			throw error(ExceptionEnum.CM001);
+		}
+		if (appRoleService != null) {
+			appRoleService.createOwner(app.getId(), getTenantId(), currentUser == null ? null : currentUser.getUserId());
 		}
 		copyData(templateId, app.getId());
 		App created = baseMapper.queryAppById(app.getId(), getTenantId());
@@ -124,6 +137,18 @@ public class AppTemplateServiceImpl extends ServiceImpl<AppMapper, App> implemen
 
 	@Override
 	public Integer updateAppTemplateById(App app) {
+		if (app == null || app.getId() == null) {
+			throw error(ExceptionEnum.CM002);
+		}
+		App template = baseMapper.queryAppTemplateById(app.getId(), getTenantId());
+		if (template == null) {
+			throw error(ExceptionEnum.CM009);
+		}
+		app.setId(template.getId());
+		app.setIsTemplate(true);
+		app.setTenantId(template.getTenantId());
+		app.setRenterId(template.getRenterId());
+		app.setSiteId(template.getSiteId());
 		return baseMapper.updateAppById(app);
 	}
 

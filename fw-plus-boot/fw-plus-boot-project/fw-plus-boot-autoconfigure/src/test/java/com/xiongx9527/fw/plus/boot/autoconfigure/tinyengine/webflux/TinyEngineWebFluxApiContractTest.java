@@ -15,6 +15,8 @@ import com.xiongx9527.fw.plus.tinyengine.dynamic.model.DynamicPageResult;
 import com.xiongx9527.fw.plus.tinyengine.dynamic.model.DynamicQuery;
 import com.xiongx9527.fw.plus.tinyengine.dynamic.service.DynamicService;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberRoleRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.AppExtension;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineUserSystemService;
@@ -41,6 +43,7 @@ import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -113,6 +116,36 @@ class TinyEngineWebFluxApiContractTest {
 				.expectBody()
 				.jsonPath("$.data.id").isEqualTo(1);
 		verify(facade).createApp(any(App.class));
+	}
+
+	@Test
+	void memberRoutesDelegateToTheSameCoreFacadeOperations() {
+		TinyEngineApiFacade facade = mock(TinyEngineApiFacade.class);
+		AppMemberDto member = new AppMemberDto();
+		member.setUserId("8");
+		member.setRoleCode("app_dev");
+		when(facade.appMembers(Integer.valueOf(1))).thenReturn(Collections.singletonList(member));
+		when(facade.addAppMember(any(Integer.class), any(AppMemberRoleRequest.class))).thenReturn(member);
+		when(facade.changeAppMember(any(Integer.class), any(String.class), any(AppMemberRoleRequest.class)))
+				.thenReturn(member);
+		TinyEngineReactiveExecutor executor = new TinyEngineReactiveExecutor(
+				Schedulers.newSingle("tiny-engine-member-test"), Duration.ofSeconds(5));
+		WebTestClient client = WebTestClient.bindToController(new TinyEngineAppWebFluxController(facade, executor))
+				.build();
+
+		client.get().uri("/app-center/api/apps/1/members").exchange().expectStatus().isOk()
+				.expectBody().jsonPath("$.data[0].roleCode").isEqualTo("app_dev");
+		client.post().uri("/app-center/api/apps/1/members").contentType(MediaType.APPLICATION_JSON)
+				.bodyValue("{\"userId\":\"8\",\"roleCode\":\"app_dev\"}").exchange()
+				.expectStatus().isOk();
+		client.put().uri("/app-center/api/apps/1/members/8").contentType(MediaType.APPLICATION_JSON)
+				.bodyValue("{\"roleCode\":\"app_admin\"}").exchange().expectStatus().isOk();
+		client.delete().uri("/app-center/api/apps/1/members/8").exchange().expectStatus().isOk();
+
+		verify(facade).appMembers(Integer.valueOf(1));
+		verify(facade).addAppMember(eq(Integer.valueOf(1)), any(AppMemberRoleRequest.class));
+		verify(facade).changeAppMember(eq(Integer.valueOf(1)), eq("8"), any(AppMemberRoleRequest.class));
+		verify(facade).removeAppMember(Integer.valueOf(1), "8");
 	}
 
 	@Test
