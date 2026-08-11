@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.observability;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
 import org.junit.jupiter.api.Test;
 
@@ -91,6 +92,25 @@ public class AskDataObservabilityContractTest {
 		assertEquals("COLUMN_DENIED", log.getDenialCode());
 		assertEquals("policy-v7", log.getAuthorizationVersion());
 		assertEquals("iam-main", log.getAuthorizationSource());
+	}
+
+	@Test
+	public void shouldPreserveStructuredModelAttemptDimensions() {
+		AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
+		AskDataEvent event = AskDataEvent.modelAttempt(context, "trace-model", "chat-primary",
+				AskDataModelRoutePolicy.REQUEST_MODEL_KEY, AskDataEvent.ModelState.FAILED,
+				"MODEL_INFRASTRUCTURE_FAILURE", "RETRYABLE_INFRASTRUCTURE_FAILURE", null);
+		RecordingMonitoringLogStore store = new RecordingMonitoringLogStore();
+
+		AskDataEventPublisher.toStore(store).publish(event);
+
+		AskDataMonitoringLogStore.MonitoringLog log = store.logs.get(0);
+		assertEquals("chat-primary", log.getModelKey());
+		assertEquals("REQUEST_MODEL_KEY", log.getModelRoutePolicy());
+		assertEquals("FAILED", log.getModelState());
+		assertEquals("MODEL_INFRASTRUCTURE_FAILURE", log.getModelFailureCode());
+		assertEquals("RETRYABLE_INFRASTRUCTURE_FAILURE", log.getModelSwitchReason());
+		assertEquals(null, log.getActualModelKey());
 	}
 
 	private static class RecordingMonitoringLogStore implements AskDataMonitoringLogStore {

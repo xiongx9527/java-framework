@@ -20,6 +20,11 @@ public class AskDataMonitoringLog {
 	private final String authorizationVersion;
 	private final String authorizationSource;
 	private final String modelKey;
+	private final String modelRoutePolicy;
+	private final String modelState;
+	private final String modelFailureCode;
+	private final String modelSwitchReason;
+	private final String actualModelKey;
 
 	/**
 	 * 创建一条已脱敏的监控日志。
@@ -45,6 +50,14 @@ public class AskDataMonitoringLog {
 	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
 			String message, String datasourceKey, String denialCode, String authorizationVersion,
 			String authorizationSource, String modelKey) {
+		this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, modelKey, null, null, null, null, null);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource, String modelKey, String modelRoutePolicy, String modelState,
+			String modelFailureCode, String modelSwitchReason, String actualModelKey) {
 		if (context == null) {
 			throw new IllegalArgumentException("context 不能为空");
 		}
@@ -60,6 +73,11 @@ public class AskDataMonitoringLog {
 		this.authorizationVersion = authorizationVersion;
 		this.authorizationSource = authorizationSource;
 		this.modelKey = modelKey;
+		this.modelRoutePolicy = modelRoutePolicy;
+		this.modelState = modelState;
+		this.modelFailureCode = modelFailureCode;
+		this.modelSwitchReason = modelSwitchReason;
+		this.actualModelKey = actualModelKey;
 	}
 
 	/**
@@ -103,6 +121,11 @@ public class AskDataMonitoringLog {
 	public String getAuthorizationVersion() { return authorizationVersion; }
 	public String getAuthorizationSource() { return authorizationSource; }
 	public String getModelKey() { return modelKey; }
+	public String getModelRoutePolicy() { return modelRoutePolicy; }
+	public String getModelState() { return modelState; }
+	public String getModelFailureCode() { return modelFailureCode; }
+	public String getModelSwitchReason() { return modelSwitchReason; }
+	public String getActualModelKey() { return actualModelKey; }
 
 	/**
 	 * 转换为监控日志存储 SPI 所使用的最小审计记录。
@@ -115,6 +138,7 @@ public class AskDataMonitoringLog {
 	 */
 	public AskDataMonitoringLogStore.MonitoringLog toStorageLog() {
 		return new AskDataMonitoringLogStore.MonitoringLog(context, traceId, eventType.name(), message,
-				datasourceKey, denialCode, authorizationVersion, authorizationSource, modelKey);
+				datasourceKey, denialCode, authorizationVersion, authorizationSource, modelKey, modelRoutePolicy,
+				modelState, modelFailureCode, modelSwitchReason, actualModelKey);
 	}
 }

@@ -51,6 +51,11 @@ public interface AskDataMonitoringLogStore {
 		private final String authorizationVersion;
 		private final String authorizationSource;
 		private final String modelKey;
+		private final String modelRoutePolicy;
+		private final String modelState;
+		private final String modelFailureCode;
+		private final String modelSwitchReason;
+		private final String actualModelKey;
 
 		public MonitoringLog(String traceId, String eventType, String message) {
 			this(null, traceId, eventType, message, null, null, null, null, null);
@@ -69,6 +74,14 @@ public interface AskDataMonitoringLogStore {
 		public MonitoringLog(AskDataProjectContext context, String traceId, String eventType, String message,
 				String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
 				String modelKey) {
+			this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+					authorizationSource, modelKey, null, null, null, null, null);
+		}
+
+		public MonitoringLog(AskDataProjectContext context, String traceId, String eventType, String message,
+				String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
+				String modelKey, String modelRoutePolicy, String modelState, String modelFailureCode,
+				String modelSwitchReason, String actualModelKey) {
 			this.context = context;
 			this.traceId = traceId;
 			this.eventType = eventType;
@@ -78,6 +91,11 @@ public interface AskDataMonitoringLogStore {
 			this.authorizationVersion = authorizationVersion;
 			this.authorizationSource = authorizationSource;
 			this.modelKey = modelKey;
+			this.modelRoutePolicy = modelRoutePolicy;
+			this.modelState = modelState;
+			this.modelFailureCode = modelFailureCode;
+			this.modelSwitchReason = modelSwitchReason;
+			this.actualModelKey = actualModelKey;
 		}
 
 		public String getTraceId() {
@@ -97,7 +115,8 @@ public interface AskDataMonitoringLogStore {
 				throw new IllegalArgumentException("监控日志归属与存储上下文不一致");
 			}
 			return context == null ? new MonitoringLog(owner, traceId, eventType, message, datasourceKey,
-					denialCode, authorizationVersion, authorizationSource, modelKey) : this;
+					denialCode, authorizationVersion, authorizationSource, modelKey, modelRoutePolicy, modelState,
+					modelFailureCode, modelSwitchReason, actualModelKey) : this;
 		}
 
 		public String getEventType() {
@@ -113,5 +132,10 @@ public interface AskDataMonitoringLogStore {
 		public String getAuthorizationVersion() { return authorizationVersion; }
 		public String getAuthorizationSource() { return authorizationSource; }
 		public String getModelKey() { return modelKey; }
+		public String getModelRoutePolicy() { return modelRoutePolicy; }
+		public String getModelState() { return modelState; }
+		public String getModelFailureCode() { return modelFailureCode; }
+		public String getModelSwitchReason() { return modelSwitchReason; }
+		public String getActualModelKey() { return actualModelKey; }
 	}
 }

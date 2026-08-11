@@ -128,9 +128,13 @@ public class AskDataMonitoringLogQueryServiceTest {
         AskDataProjectContext owner = new AskDataProjectContext("project-a", "operator-b");
         AskDataProjectContext administrator = new AskDataProjectContext("project-a", "admin-a");
         store.append(owner, new AskDataMonitoringLogStore.MonitoringLog(owner, "conversation-1", "MODEL_ROUTED",
-                "model attempt", null, null, null, null, "provider-chat"));
+                "model attempt", null, null, null, null, "provider-chat", "REQUEST_MODEL_KEY", "SUCCEEDED",
+                null, null, "provider-chat-v2"));
         AskDataMonitoringLogAccessPolicy modelPolicy = (requester, administratorAllowed, log) ->
-                administratorAllowed && "provider-chat".equals(log.getModelKey());
+                administratorAllowed && "provider-chat".equals(log.getModelKey())
+                        && "REQUEST_MODEL_KEY".equals(log.getModelRoutePolicy())
+                        && "SUCCEEDED".equals(log.getModelState())
+                        && "provider-chat-v2".equals(log.getActualModelKey());
         AskDataMonitoringLogQueryService service = new AskDataMonitoringLogQueryService(store, modelPolicy,
                 projectAdministrator("admin-a"));
 
