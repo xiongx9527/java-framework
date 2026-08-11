@@ -54,7 +54,7 @@ public class TinyEngineOfficialAiWebFluxController {
 				return sseResponse(request);
 			}
 			TinyEngineOfficialAiResponse response = gateway.execute(request);
-			return (ResponseEntity<?>) ResponseEntity.status(response.getStatusCode()).headers(response.getHeaders())
+				return (ResponseEntity<?>) ResponseEntity.status(response.getClientStatusCode()).headers(response.getHeaders())
 					.body(response.getBody());
 		}).subscribeOn(Schedulers.boundedElastic());
 	}

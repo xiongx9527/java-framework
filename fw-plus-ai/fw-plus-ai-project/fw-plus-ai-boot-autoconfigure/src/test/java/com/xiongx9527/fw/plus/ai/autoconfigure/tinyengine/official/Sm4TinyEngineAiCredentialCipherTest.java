@@ -80,7 +80,7 @@ public class Sm4TinyEngineAiCredentialCipherTest {
 	}
 
 	@Test
-	public void shouldPreferBearerAuthorizationOverBodyApiKeyAndLeaveRawApiKeyUnchanged() {
+	public void shouldIgnoreEngineAuthorizationAndUseBodyApiKey() {
 		TinyEngineAiCredentialCipher cipher = new Sm4TinyEngineAiCredentialCipher(BASE64_SM4_KEY);
 		Map<String, Object> body = new LinkedHashMap<String, Object>();
 		body.put("apiKey", "body-key");
@@ -88,8 +88,8 @@ public class Sm4TinyEngineAiCredentialCipherTest {
 
 		TinyEngineOfficialAiRequest request = TinyEngineOfficialAiRequest.parse(body, "Bearer header-key", cipher);
 
-		assertEquals("header-key", request.getApiKey());
-		assertEquals("Bearer header-key", request.getAuthorization());
+		assertEquals("body-key", request.getApiKey());
+		assertEquals("Bearer body-key", request.getAuthorization());
 		assertEquals("gpt-test", request.getForwardBody().get("model"));
 		assertFalse(request.getForwardBody().containsKey("apiKey"));
 	}

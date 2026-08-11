@@ -278,11 +278,16 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
       throw new Error('Axios client is not configured')
     }
 
+    const proxyHeaders = { ...headers }
+    delete proxyHeaders.Authorization
     const requestOptions: AxiosRequestConfig = {
       method: 'POST',
       url: apiUrl || this.apiUrl,
-      headers,
-      data: requestData,
+      headers: proxyHeaders,
+      data: {
+        ...requestData,
+        apiKey: this.apiKey
+      },
       signal,
       adapter: this.createFetchAdapter(isStream)
     }

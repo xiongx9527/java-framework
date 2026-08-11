@@ -18,6 +18,10 @@ public class TinyEngineOfficialAiResponse {
 		return statusCode;
 	}
 
+	public int getClientStatusCode() {
+		return statusCode == 401 || statusCode == 403 ? 502 : statusCode;
+	}
+
 	public HttpHeaders getHeaders() {
 		return headers;
 	}

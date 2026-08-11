@@ -50,7 +50,7 @@ public class TinyEngineOfficialAiController {
 			return streamResponse(request);
 		}
 		TinyEngineOfficialAiResponse response = gateway.execute(request);
-		return ResponseEntity.status(response.getStatusCode()).headers(response.getHeaders()).body(response.getBody());
+		return ResponseEntity.status(response.getClientStatusCode()).headers(response.getHeaders()).body(response.getBody());
 	}
 
 	private ResponseEntity<StreamingResponseBody> streamResponse(final TinyEngineOfficialAiRequest request) {
