@@ -14,7 +14,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@opentiny/vue', () => ({
   TinyForm: { template: '<form><slot /></form>' },
   TinyFormItem: { template: '<div><slot /></div>' },
-  TinyInput: { template: '<input />' },
+  TinyInput: {
+    emits: ['keyup'],
+    template: '<input @keyup.stop="$emit(\'keyup\', $event)" />'
+  },
   TinyButton: { template: '<button><slot /></button>' },
   TinyTooltip: { template: '<div><slot /></div>' }
 }))
@@ -37,7 +40,10 @@ vi.mock('@opentiny/tiny-engine-meta-register', () => ({
 const stubs = {
   TinyForm: { template: '<form><slot /></form>' },
   TinyFormItem: { template: '<div><slot /></div>' },
-  TinyInput: { template: '<input />' },
+  TinyInput: {
+    emits: ['keyup'],
+    template: '<input @keyup.stop="$emit(\'keyup\', $event)" />'
+  },
   TinyButton: { template: '<button><slot /></button>' },
   TinyTooltip: { template: '<div><slot /></div>' },
   SvgIcon: { template: '<span />' }
@@ -51,37 +57,41 @@ describe('TinyEngine account forms Enter submission', () => {
   it('submits login with Enter only when both credentials are present', async () => {
     const wrapper = mount(Login, { global: { stubs } })
 
-    await wrapper.find('form').trigger('keyup', { key: 'Enter' })
+    const inputs = wrapper.findAll('input')
+    await inputs[0].trigger('keyup', { key: 'Enter' })
     expect(mocks.post).not.toHaveBeenCalled()
 
     wrapper.vm.state.loginData.username = 'admin'
     wrapper.vm.state.loginData.password = 'REDACTED'
     await nextTick()
-    await wrapper.find('form').trigger('keyup', { key: 'Enter' })
-
-    expect(mocks.post).toHaveBeenCalledOnce()
-    expect(mocks.post).toHaveBeenCalledWith('/platform-center/api/user/login', {
-      username: 'admin',
-      password: 'REDACTED'
-    })
+    for (const input of inputs) {
+      await input.trigger('keyup', { key: 'Enter' })
+      expect(mocks.post).toHaveBeenLastCalledWith('/platform-center/api/user/login', {
+        username: 'admin',
+        password: 'REDACTED'
+      })
+    }
+    expect(mocks.post).toHaveBeenCalledTimes(inputs.length)
   })
 
   it('submits registration with Enter only when the existing validation passes', async () => {
     const wrapper = mount(Register, { global: { stubs } })
 
-    await wrapper.find('form').trigger('keyup', { key: 'Enter' })
+    const inputs = wrapper.findAll('input')
+    await inputs[0].trigger('keyup', { key: 'Enter' })
     expect(mocks.post).not.toHaveBeenCalled()
 
     wrapper.vm.state.registerData.username = 'enter-user'
     wrapper.vm.state.registerData.password = 'REDACTED'
     wrapper.vm.state.registerData.confirmPassword = 'REDACTED'
     await nextTick()
-    await wrapper.find('form').trigger('keyup', { key: 'Enter' })
-
-    expect(mocks.post).toHaveBeenCalledOnce()
-    expect(mocks.post).toHaveBeenCalledWith('/platform-center/api/user/register', {
-      username: 'enter-user',
-      password: 'REDACTED'
-    })
+    for (const input of inputs) {
+      await input.trigger('keyup', { key: 'Enter' })
+      expect(mocks.post).toHaveBeenLastCalledWith('/platform-center/api/user/register', {
+        username: 'enter-user',
+        password: 'REDACTED'
+      })
+    }
+    expect(mocks.post).toHaveBeenCalledTimes(inputs.length)
   })
 })
