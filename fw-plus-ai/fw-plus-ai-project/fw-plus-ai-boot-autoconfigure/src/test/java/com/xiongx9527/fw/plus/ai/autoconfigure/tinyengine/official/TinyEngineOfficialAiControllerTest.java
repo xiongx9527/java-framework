@@ -72,7 +72,7 @@ public class TinyEngineOfficialAiControllerTest {
 				.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
 				.andExpect(jsonPath("$.id").value("chatcmpl-test"));
 
-		assertEquals("Bearer header-key", upstreamAuthorization.get());
+		assertEquals("Bearer body-key", upstreamAuthorization.get());
 		JsonNode forwarded = objectMapper.readTree(upstreamBody.get());
 		assertFalse(forwarded.has("baseUrl"));
 		assertFalse(forwarded.has("apiKey"));
@@ -102,7 +102,8 @@ public class TinyEngineOfficialAiControllerTest {
 	@Test
 	public void shouldForwardUpstreamErrorStatusBodyAndContentType() throws Exception {
 		AtomicInteger index = new AtomicInteger();
-		int[] statuses = new int[] {401, 429, 500};
+		int[] upstreamStatuses = new int[] {401, 429, 500};
+		int[] clientStatuses = new int[] {502, 429, 500};
 		String[] responses = new String[] {
 				"{\"error\":{\"message\":\"invalid key\"}}",
 				"{\"error\":{\"message\":\"rate limited\"}}",
@@ -114,18 +115,18 @@ public class TinyEngineOfficialAiControllerTest {
 			readAll(exchange.getRequestBody());
 			byte[] responseBytes = responses[current].getBytes(StandardCharsets.UTF_8);
 			exchange.getResponseHeaders().add("Content-Type", "application/json");
-			exchange.sendResponseHeaders(statuses[current], responseBytes.length);
+			exchange.sendResponseHeaders(upstreamStatuses[current], responseBytes.length);
 			exchange.getResponseBody().write(responseBytes);
 			exchange.close();
 		});
 		upstream.start();
 		MockMvc mvc = officialMvc();
 
-		for (int i = 0; i < statuses.length; i++) {
+		for (int i = 0; i < clientStatuses.length; i++) {
 			mvc.perform(post("/app-center/api/ai/chat")
 							.contentType(MediaType.APPLICATION_JSON)
 							.content(validChatBody("http://127.0.0.1:" + upstream.getAddress().getPort(), "secret-key")))
-					.andExpect(status().is(statuses[i]))
+					.andExpect(status().is(clientStatuses[i]))
 					.andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
 					.andExpect(content().json(responses[i]));
 		}
