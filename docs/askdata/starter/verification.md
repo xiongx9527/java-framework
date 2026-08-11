@@ -21,7 +21,7 @@
 | 范围 | 验证内容 | 当前状态 |
 | --- | --- | --- |
 | Core | Java 8 Core 契约、SQL 插件链、存储、记忆、推荐、Agent、Remote Runtime 契约 | 定向测试已通过；Java 17 独立适配服务仍需真实服务联调 |
-| AI 自动配置 | 默认 LangChain4j/Ollama、条件装配、JDBC SQL 执行超时、只读连接边界和 Starter 测试 | 定向 AskData 测试已通过；真实 Ollama 服务联调仍需环境 |
+| AI 自动配置 | 业务显式选择的 LangChain4j Adapter、无默认 Provider、条件装配、JDBC SQL 执行超时、只读连接边界和 Starter 测试 | 定向 AskData 测试已通过；真实 Provider 服务联调仍需环境 |
 | 集群存储 | JDBC/Redis/向量库双节点读写、租约、幂等、迁移和故障注入 | 需要隔离测试集群 |
 | 外部系统 | DataEase、MaxKB、Dify、Coze、n8n、MCP、以及由业务 IAM/JustAuth 对接的企业微信、钉钉和飞书 | 需要测试租户、回调域名和可撤销凭证；AskData 只验证已映射的 `operatorId/projectId` |
 | Java 17 运行时 | HTTP/SSE、RPC、消息、MCP 版本协商、错误映射、灰度和回滚 | 需要独立 Java 17 适配服务 |
