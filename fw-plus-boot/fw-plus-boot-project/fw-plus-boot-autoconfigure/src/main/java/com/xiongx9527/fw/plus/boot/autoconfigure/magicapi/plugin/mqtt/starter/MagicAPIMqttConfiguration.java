@@ -6,9 +6,11 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.model.Stan
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.module.MqttModule;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.service.MqttDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.service.MqttDataSourceMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.service.MqttDashboardService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.service.MqttSubscribeInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.service.MqttSubscribeMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.web.MagicMqttController;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.dreamlu.iot.mqtt.core.server.MqttServer;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -143,7 +145,16 @@ public class MagicAPIMqttConfiguration implements MagicPluginConfiguration {
      */
     @Override
     public Plugin plugin() {
-        return new Plugin("mqtt", "MagicMqtt", "magic-mqtt.1.0.0.iife.js");
+        Plugin plugin = new Plugin("mqtt", "MagicMqtt", "magic-mqtt.1.0.0.iife.js");
+        String adminEnabled = SpringUtils.getAppConfig("magic-api.plugin.mqtt.admin.enabled", "false");
+        plugin.setAdminEnabled(Boolean.parseBoolean(adminEnabled));
+        return plugin;
+    }
+
+    @Bean
+    public MqttDashboardService mqttDashboardService(BaseMagicDynamicMqttDataSource magicDynamicMqttDataSource,
+                                                      @Autowired(required = false) MqttServer mqttServer) {
+        return new MqttDashboardService(magicDynamicMqttDataSource, mqttServer);
     }
 
     /**

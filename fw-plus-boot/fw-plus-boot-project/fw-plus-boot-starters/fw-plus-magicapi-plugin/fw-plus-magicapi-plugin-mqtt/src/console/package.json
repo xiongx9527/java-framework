@@ -5,10 +5,10 @@
   "main": "index.js",
   "scripts": {
     "build": "vite build",
-    "test": "node --test test/open-target.test.mjs"
+    "test": "node --test test/mqtt-dashboard.test.mjs"
   },
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@vitejs/plugin-vue": "^2.0.1",
     "vite": "^2.7.10",
