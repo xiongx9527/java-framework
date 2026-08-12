@@ -3,7 +3,7 @@ name: mybatis-datascope-adapters
 language: zh-CN
 phase: archive
 status: active
-state_version: 32
+state_version: 36
 brief: brief.md
 spec_changes:
   - capability: mybatis-datascope
@@ -18,7 +18,7 @@ loop:
   stage: archive-ready
   goal_cycle: 1
   iteration: 4
-  attempt: 4
+  attempt: 5
   retry_epoch: 1
   failed_iteration_count: 0
   no_progress_count: 0
@@ -580,22 +580,22 @@ blockers: []
 verification:
   candidate_id: fde919a2-bfdf-49e3-b544-3361a8ffb8d6
   identity_provider: skill-coordinated
-  verifier_execution_ref: skill-coordinated:verifier:9b737570-91de-4f2e-93b4-cea7073add16
+  verifier_execution_ref: skill-coordinated:verifier:e43e8a5f-28b4-4e07-929a-922e8373ff9b
   iteration: 4
-  attempt: 4
+  attempt: 5
   assurance: skill-coordinated
   verdict: pass
   checks: []
   summary:
-    text: SpringBeanInfo 直接继承 PathMagicEntity；自身声明 enabled、description，simple/copy
-      复制；JavaSourceAnalyzer 保留兼容重载并新增字符串重载；SpringBean 资源存储/注册器使用新重载；13 项定向测试和
-      git diff --check 通过。
+    text: SpringBeanInfo 直接继承 PathMagicEntity；自身声明 enabled/description，simple/copy
+      复制；JavaSourceAnalyzer 兼容重载；SpringBean 存储/注册器使用新重载；13 项定向测试和 git diff
+      --check 通过。
     truncated: false
   risks:
-    - text: 完整 datascope 未重新执行。
+    - text: 完整 datascope 未重新执行
       truncated: false
   risks_truncated: false
-  completed_at: 2026-08-12T03:46:08.068Z
+  completed_at: 2026-08-12T05:19:37.407Z
 history:
   - goal_cycle: 1
     iteration: 1
@@ -923,6 +923,27 @@ history:
         git diff --check 通过。
       truncated: false
     completed_at: 2026-08-12T03:46:08.068Z
+  - goal_cycle: 1
+    iteration: 4
+    attempt: 4
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Local Runtime was unavailable at Archive ready; the synchronized
+        implementation must be verified again.
+      truncated: false
+    completed_at: 2026-08-12T05:16:24.051Z
+  - goal_cycle: 1
+    iteration: 4
+    attempt: 5
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: SpringBeanInfo 直接继承 PathMagicEntity；自身声明 enabled/description，simple/copy
+        复制；JavaSourceAnalyzer 兼容重载；SpringBean 存储/注册器使用新重载；13 项定向测试和 git diff
+        --check 通过。
+      truncated: false
+    completed_at: 2026-08-12T05:19:37.407Z
 history_overflow:
   dropped_entries: 0
   first_dropped_at: null
