@@ -50,12 +50,15 @@ class SpringBeanMagicDynamicRegistryTest {
     }
 
     @Test
-    void copyPreservesEnabledFlag() {
+    void copyPreservesEnabledFlagAndDescription() {
         SpringBeanInfo disabled = bean("svc", "DemoService", "package demo; public class DemoService {}");
         disabled.setEnabled(false);
+        disabled.setDescription("demo service");
 
         assertFalse(disabled.copy().isEnabled());
         assertFalse(disabled.simple().isEnabled());
+        assertEquals("demo service", disabled.copy().getDescription());
+        assertEquals("demo service", disabled.simple().getDescription());
     }
 
     private static SpringBeanInfo bean(String id, String name, String source) {
