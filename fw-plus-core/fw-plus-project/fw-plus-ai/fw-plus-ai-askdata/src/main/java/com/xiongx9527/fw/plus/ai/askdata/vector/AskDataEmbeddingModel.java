@@ -19,4 +19,29 @@ public interface AskDataEmbeddingModel {
 	 * @return 新数组形式的有限浮点向量
 	 */
 	float[] embed(AskDataProjectContext context, String text);
+
+	/**
+	 * 使用 Router 已选择的稳定模型 key 生成向量。
+	 *
+	 * <p>默认实现保持现有二参数 SPI 的源码与二进制兼容；需要管理多个模型实例的 Adapter 应覆盖本方法，
+	 * 并严格使用 {@code modelKey} 选择实例。默认 Flow 已完成请求、项目、数据源、Agent、策略和候选链路由，
+	 * Adapter 不得重新解释层级优先级或静默切换其他模型。</p>
+	 *
+	 * @param context 当前项目和已认证操作人
+	 * @param text 已获授权且准备送模的文本
+	 * @param modelKey Core Router 选中的稳定模型 key
+	 * @return 新数组形式的有限浮点向量
+	 */
+	default float[] embed(AskDataProjectContext context, String text, String modelKey) {
+		return embed(context, text);
+	}
+
+	/**
+	 * 返回带稳定失败分类和模型用量的 Embedding 结果。
+	 *
+	 * <p>旧实现无需修改即可继续工作；需要受控候选切换或精确用量审计的 Adapter 应覆盖本方法。</p>
+	 */
+	default AskDataEmbeddingResult embedResult(AskDataProjectContext context, String text, String modelKey) {
+		return AskDataEmbeddingResult.success(embed(context, text, modelKey), modelKey);
+	}
 }

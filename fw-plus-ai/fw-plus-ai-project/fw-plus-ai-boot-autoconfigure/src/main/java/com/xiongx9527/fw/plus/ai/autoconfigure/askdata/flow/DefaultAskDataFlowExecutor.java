@@ -18,6 +18,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelResponse;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelException;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.LegacyAskDataModelRegistryChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialect;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialectRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataPromptTemplateProvider;
@@ -54,6 +55,9 @@ import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRequest;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelResult;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelAttempt;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelSelection;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelUsage;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventCorrelation;
@@ -74,6 +78,7 @@ import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernancePr
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAuditStateStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataIdempotencyKeyStore;
+import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataEmbeddingResult;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -89,6 +94,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
@@ -301,22 +307,30 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         this.coreSqlValidator = coreSqlValidator;
         this.governanceProvider = governanceProvider == null ? new DefaultDenyAskDataGovernanceProvider()
                 : governanceProvider;
-        this.coreChatModel = coreChatModel;
-        this.coreModelRouter = coreModelRouter;
+        this.coreChatModel = coreChatModel == null && modelRegistry != null
+                ? new LegacyAskDataModelRegistryChatModel(modelRegistry) : coreChatModel;
+        this.coreModelRouter = coreModelRouter == null ? new AskDataModelRouter() { } : coreModelRouter;
         this.agentStepRegistry = agentStepRegistry;
         this.runtimeStateServices = runtimeStateServices;
     }
 
     @Override
     public AskDataResult execute(AskDataRequest request) {
+        ensureObservationRequestId(request);
+        AskDataResult planning = observationResult(request);
+        publishLifecycleEvent(request, planning, AskDataEvent.Type.QUESTION_PLAN_STARTED,
+                "AskData 问题规划已开始");
         AskDataQuestionPlan plan;
         try {
             plan = plannedQuestions(request);
-        } catch (IllegalArgumentException ex) {
+        } catch (RuntimeException ex) {
             AskDataResult failed = failure(new AskDataResult(), "multi-question",
-                    AskDataErrorCode.SUBQUESTION_FAILED, message(ex));
-            publishLifecycleEvent(request, failed, AskDataEvent.Type.QUESTION_PLAN_FAILED,
-                    "AskData 问题规划失败");
+                    isCancellation(ex) ? AskDataErrorCode.SUBQUESTION_CANCELLED : AskDataErrorCode.SUBQUESTION_FAILED,
+                    message(ex));
+            AskDataEvent.Type type = isCancellation(ex)
+                    ? AskDataEvent.Type.QUESTION_PLAN_CANCELLED : AskDataEvent.Type.QUESTION_PLAN_FAILED;
+            publishLifecycleEvent(request, failed, type, type == AskDataEvent.Type.QUESTION_PLAN_CANCELLED
+                    ? "AskData 问题规划已取消" : "AskData 问题规划失败");
             return failed;
         }
         if (plan != null && plan.isMultiQuestion()) {
@@ -383,24 +397,31 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                     "AskData 子问题已开始");
         }
         AskDataResult completed;
-        if (resumeRequested) {
-            publishLifecycleEvent(request, result, AskDataEvent.Type.RECOVERY_ATTEMPTED, "AskData 恢复已尝试");
-            completed = resume(request, result, context);
-            publishLifecycleEvent(request, completed, completed.isSuccess() ? AskDataEvent.Type.RECOVERY_COMPLETED
-                    : AskDataEvent.Type.RECOVERY_FAILED,
-                    completed.isSuccess() ? "AskData 恢复已完成" : "AskData 恢复失败");
-        } else {
-            completed = executeNew(request, result, context);
+        try {
+            if (resumeRequested) {
+                publishLifecycleEvent(request, result, AskDataEvent.Type.RECOVERY_ATTEMPTED, "AskData 恢复已尝试");
+                completed = resume(request, result, context);
+                publishLifecycleEvent(request, completed, completed.isSuccess() ? AskDataEvent.Type.RECOVERY_COMPLETED
+                        : AskDataEvent.Type.RECOVERY_FAILED,
+                        completed.isSuccess() ? "AskData 恢复已完成" : "AskData 恢复失败");
+            } else {
+                completed = executeNew(request, result, context);
+            }
+        } catch (RuntimeException ex) {
+            completed = failure(result, isCancellation(ex) ? "cancelled" : "flow",
+                    isCancellation(ex) ? AskDataErrorCode.SUBQUESTION_CANCELLED : AskDataErrorCode.SUBQUESTION_FAILED,
+                    message(ex));
         }
         if (rootSingleQuestion) {
             publishSubQuestionEvent(request, completed, "question-1",
-                    completed.isSuccess() ? AskDataEvent.Type.SUB_QUESTION_COMPLETED
-                            : AskDataEvent.Type.SUB_QUESTION_FAILED,
+                    completed.isSuccess() ? AskDataEvent.Type.SUB_QUESTION_COMPLETED : isCancelled(completed)
+                            ? AskDataEvent.Type.SUB_QUESTION_CANCELLED : AskDataEvent.Type.SUB_QUESTION_FAILED,
                     "AskData 子问题已进入终态");
         }
-        publishLifecycleEvent(request, completed, completed.isSuccess() ? AskDataEvent.Type.CONVERSATION_COMPLETED
-                : AskDataEvent.Type.CONVERSATION_FAILED, completed.isSuccess() ? "AskData 对话已完成" : "AskData 对话失败");
-        saveAgentState(request, completed, completed.isSuccess() ? "COMPLETED" : "FAILED", "terminal");
+        if (completed.isSuccess()) publishInterface(request, completed);
+        AskDataEvent.Type terminalType = conversationTerminalType(completed);
+        publishLifecycleEvent(request, completed, terminalType, terminalMessage(terminalType, false));
+        saveAgentState(request, completed, eventStatus(terminalType), "terminal");
         saveAuditState(request, completed);
         return completed;
     }
@@ -450,7 +471,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 completed = executeMultipleWithState(request, plan, aggregated, parentCheckpoint,
                         authorizationSummary);
             } catch (RuntimeException ex) {
-                completed = failure(aggregated, "multi-question", AskDataErrorCode.SUBQUESTION_FAILED,
+                completed = failure(aggregated, "multi-question",
+                        isCancellation(ex) ? AskDataErrorCode.SUBQUESTION_CANCELLED
+                                : AskDataErrorCode.SUBQUESTION_FAILED,
                         message(ex));
             }
             return completeMultiple(request, completed);
@@ -496,6 +519,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 AskDataResult child = executeSingle(childRequest, resumeChild);
                 decorateChildResult(child, question,
                         child.isSuccess() ? AskDataSubQuestionResult.State.SUCCEEDED
+                                : isCancelled(child) ? AskDataSubQuestionResult.State.CANCELLED
                                 : AskDataSubQuestionResult.State.FAILED);
                 childResults.putIfAbsent(question.getId(), child);
                 return toCoreResult(child);
@@ -520,6 +544,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         aggregated.setChildResults(orderedChildResults(plan, childResults, terminalResults,
                 aggregated.getConversationId()));
+        aggregateModelAttempts(aggregated);
         boolean allSucceeded = allChildrenSucceeded(aggregated.getChildResults());
         aggregated.setSuccess(allSucceeded);
         if (!allSucceeded) {
@@ -543,10 +568,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     }
 
     private AskDataResult completeMultiple(AskDataRequest request, AskDataResult completed) {
-        publishLifecycleEvent(request, completed, completed.isSuccess() ? AskDataEvent.Type.CONVERSATION_COMPLETED
-                : AskDataEvent.Type.CONVERSATION_FAILED,
-                completed.isSuccess() ? "AskData 多问题对话已完成" : "AskData 多问题对话失败");
-        saveAgentState(request, completed, completed.isSuccess() ? "COMPLETED" : "FAILED", "terminal");
+        if (completed.isSuccess()) publishInterface(request, completed);
+        AskDataEvent.Type terminalType = conversationTerminalType(completed);
+        publishLifecycleEvent(request, completed, terminalType, terminalMessage(terminalType, true));
+        saveAgentState(request, completed, eventStatus(terminalType), "terminal");
         saveAuditState(request, completed);
         return completed;
     }
@@ -559,6 +584,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         target.setDatasourceKey(source.getDatasourceKey());
         target.setDialect(source.getDialect());
         target.setModelKey(source.getModelKey());
+        target.setChatModelSelection(source.getChatModelSelection());
+        target.setEmbeddingModelSelection(source.getEmbeddingModelSelection());
+        target.setPublishRequest(null);
         target.setConversationId(parentConversationId + ":" + question.getId());
         target.setExecute(source.getExecute());
         target.setMaxRows(source.getMaxRows());
@@ -568,7 +596,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (parentIdempotencyKey instanceof String && !isBlank((String) parentIdempotencyKey)) {
             options.put("idempotencyKey", ((String) parentIdempotencyKey).trim() + ":" + question.getId());
         }
-        options.put(OBSERVABILITY_REQUEST_ID_OPTION, parentConversationId);
+        String parentRequestId = observationOption(source, OBSERVABILITY_REQUEST_ID_OPTION);
+        options.put(OBSERVABILITY_REQUEST_ID_OPTION,
+                isBlank(parentRequestId) ? parentConversationId : parentRequestId);
         options.put(OBSERVABILITY_SUB_QUESTION_ID_OPTION, question.getId());
         target.setOptions(options);
         return target;
@@ -771,6 +801,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         child.setQuestionId(question.getId());
         child.setQuestionState(state.name());
         child.setDependsOn(question.getDependsOn());
+        child.setFailurePolicy(question.getFailurePolicy().name());
         child.addStep("child-audit", "Child audit", child.isSuccess(), "Child question completed");
     }
 
@@ -854,6 +885,13 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             checkpoint.setResumeToken(UUID.randomUUID().toString());
             checkpoint.setRequestSummary(request.getQuestion());
             checkpoint.setModelKey(request.getModelKey());
+            checkpoint.setActualModelKey(result.getActualModelKey());
+            checkpoint.setModelAttempts(result.getModelAttempts());
+            checkpoint.setModelAttemptDetails(result.getModelAttemptDetails());
+            checkpoint.setActualEmbeddingModelKey(result.getActualEmbeddingModelKey());
+            checkpoint.setEmbeddingModelAttempts(result.getEmbeddingModelAttempts());
+            checkpoint.setEmbeddingModelAttemptDetails(result.getEmbeddingModelAttemptDetails());
+            checkpoint.setModelRouteSnapshot(modelRouteSnapshot(request));
             checkpoint.setDatasourceKey(request.getDatasourceKey());
             checkpoint.setDialect(request.getDialect());
             checkpoint.setMaxRows(Integer.valueOf(maxRows(request)));
@@ -938,7 +976,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     private AskDataResult executeNew(AskDataRequest request, AskDataResult result, AskDataStepContext context) {
         AskDataMetadata metadata;
         try {
-            metadata = metadataProvider.load(request, authorizationSummary(context));
+            metadata = loadMetadata(request, authorizationSummary(context));
         } catch (RuntimeException ex) {
             return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
         }
@@ -988,7 +1026,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             agentResult = executeStepAgent(agent, agentContext(AskDataAgentStepKey.SELECT_TABLES,
                     request, result, metadata, null, null, null));
         } catch (RuntimeException ex) {
-            failure(result, AskDataAgentStepKey.SELECT_TABLES, AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
+            failure(result, AskDataAgentStepKey.SELECT_TABLES,
+                    isCancellation(ex) ? AskDataErrorCode.SUBQUESTION_CANCELLED
+                            : AskDataErrorCode.METADATA_NOT_FOUND,
+                    message(ex));
             return null;
         }
         if (!agentResult.isSuccess()) {
@@ -1078,7 +1119,12 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         AskDataAgentGraphRuntime runtime = runtimeStateServices == null ? null
                 : runtimeStateServices.getGraphRuntime();
         if (runtime == null) {
+            publishStepEvent(context.getRequest(), result, AskDataEvent.Type.GRAPH_RUNTIME_NOT_ENABLED,
+                    "agent-graph", "sequential", "AskData 未启用外部图编排，使用确定性顺序执行");
             runtime = new AskDataAgentGraphExecutor();
+		} else if (runtime instanceof AskDataAgentGraphExecutor) {
+            publishStepEvent(context.getRequest(), result, AskDataEvent.Type.GRAPH_RUNTIME_NOT_ENABLED,
+                    "agent-graph", runtime.getKey(), "AskData 未启用外部图编排，使用确定性顺序执行");
         }
         try {
             if (!runtime.isAvailable()) {
@@ -1090,6 +1136,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                         + "，expected=" + nodes.size() + "，actual=" + executedNodeIds.size());
             }
         } catch (RuntimeException ex) {
+            if (isCancellation(ex)) {
+                throw ex;
+            }
             if (executedNodeIds.isEmpty() && !(runtime instanceof AskDataAgentGraphExecutor)) {
                 publishStepEvent(context.getRequest(), result, AskDataEvent.Type.GRAPH_RUNTIME_FALLBACK,
                         "agent-graph", runtime.getKey(), "AskData 图运行时不可用，已回退顺序执行");
@@ -1109,6 +1158,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
     private String executeMainAgent(AskDataAgent agent, AskDataStepContext context, AskDataResult result) {
         String name = agentName(agent);
+        publishStepEvent(context.getRequest(), result, AskDataEvent.Type.AGENT_NODE_STARTED,
+                "agent:" + name, name, "AskData Agent 已开始");
         try {
             AskDataStepResult stepResult = agent == null ? null : agent.execute(context);
             boolean success = stepResult != null && stepResult.isSuccess();
@@ -1124,8 +1175,14 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             String failureMessage = message(ex);
             context.getAttributes().put("askData.mainAgent." + name, failureMessage);
             result.addStep("agent:" + name, "Agent " + name, false, failureMessage);
-            publishStepEvent(context.getRequest(), result, AskDataEvent.Type.AGENT_NODE_FAILED,
-                    "agent:" + name, name, "AskData Agent 执行失败");
+            AskDataEvent.Type type = isCancellation(ex) ? AskDataEvent.Type.AGENT_NODE_CANCELLED
+                    : AskDataEvent.Type.AGENT_NODE_FAILED;
+            publishStepEvent(context.getRequest(), result, type,
+                    "agent:" + name, name, type == AskDataEvent.Type.AGENT_NODE_CANCELLED
+                            ? "AskData Agent 已取消" : "AskData Agent 执行失败");
+            if (type == AskDataEvent.Type.AGENT_NODE_CANCELLED) {
+                throw ex;
+            }
             return failureMessage;
         }
     }
@@ -1134,12 +1191,21 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         AskDataProperties.Flow flow = properties == null ? null : properties.getFlow();
         Integer timeout = flow == null ? null : flow.getDefaultSubAgentTimeoutMillis();
         AskDataDispatchResult dispatchResult;
+        publishStepEvent(context.getRequest(), result, AskDataEvent.Type.AGENT_NODE_STARTED,
+                "sub-agent-dispatcher", "dispatcher", "AskData 子 Agent 调度已开始");
         try {
             dispatchResult = agentDispatcher.dispatch(new AskDataDispatchRequest(
                     Collections.<AskDataSubAgent>emptyList(), context,
                     timeout == null ? 0L : timeout.longValue(), AskDataDispatchRequest.FailurePolicy.CONTINUE, null));
         } catch (RuntimeException ex) {
             result.addStep("sub-agent:dispatcher", "Sub-agent dispatcher", false, message(ex));
+            publishStepEvent(context.getRequest(), result, isCancellation(ex)
+                            ? AskDataEvent.Type.AGENT_NODE_CANCELLED : AskDataEvent.Type.AGENT_NODE_FAILED,
+                    "sub-agent-dispatcher", "dispatcher", isCancellation(ex)
+                            ? "AskData 子 Agent 调度已取消" : "AskData 子 Agent 调度失败");
+            if (isCancellation(ex)) {
+                throw ex;
+            }
             return null;
         }
         if (dispatchResult == null) {
@@ -1180,6 +1246,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent agent,
             AskDataAgentStepContext agentContext) {
         try {
+            publishAgentStepEvent(agent, agentContext, AskDataEvent.Type.AGENT_NODE_STARTED);
             AskDataAgentStepResult agentResult = agent.execute(agentContext);
             if (agentResult == null) {
                 throw new IllegalArgumentException("Agent " + agent.getKey() + " 未返回步骤结果");
@@ -1188,7 +1255,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                     ? AskDataEvent.Type.AGENT_NODE_EXECUTED : AskDataEvent.Type.AGENT_NODE_FAILED);
             return agentResult;
         } catch (RuntimeException ex) {
-            publishAgentStepEvent(agent, agentContext, AskDataEvent.Type.AGENT_NODE_FAILED);
+            publishAgentStepEvent(agent, agentContext, isCancellation(ex)
+                    ? AskDataEvent.Type.AGENT_NODE_CANCELLED : AskDataEvent.Type.AGENT_NODE_FAILED);
             throw ex;
         }
     }
@@ -1201,6 +1269,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return AskDataAgentStepContext.builder(stepKey, request.getProjectContext(), request.getQuestion())
                 .datasourceKey(request.getDatasourceKey())
                 .conversationId(result.getConversationId())
+                .requestId(observationOption(request, OBSERVABILITY_REQUEST_ID_OPTION))
+                .subQuestionId(!isBlank(result.getQuestionId()) ? result.getQuestionId()
+                        : observationOption(request, OBSERVABILITY_SUB_QUESTION_ID_OPTION))
                 .metadata(coreMetadata)
                 .selectedResources(metadataResources(metadata))
                 .prompt(prompt)
@@ -1293,7 +1364,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 agentResult = executeStepAgent(generateAgent, agentContext(AskDataAgentStepKey.GENERATE_SQL,
                         request, result, metadata, prompt, null, null));
             } catch (RuntimeException ex) {
-                return failure(result, "generate-sql", AskDataErrorCode.SUBQUESTION_FAILED, message(ex));
+                return failure(result, "generate-sql",
+                        isCancellation(ex) ? AskDataErrorCode.SUBQUESTION_CANCELLED
+                                : AskDataErrorCode.SUBQUESTION_FAILED,
+                        message(ex));
             }
             if (!agentResult.isSuccess()) {
                 return agentFailure(result, AskDataAgentStepKey.GENERATE_SQL, agentResult);
@@ -1317,24 +1391,23 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     }
 
     private AskDataModelResponse generateModelResponse(AskDataRequest request, String prompt, AskDataResult result) {
-        if (coreChatModel == null || coreModelRouter == null) {
-            AskDataModelResponse response = modelRegistry.generate(request, prompt);
-            if (response != null && !isBlank(response.getModelKey())) {
-                result.addModelAttempt(response.getModelKey());
-                result.setActualModelKey(response.getModelKey());
-            }
-            return response;
+        if (coreChatModel == null) {
+            throw new AskDataModelException(AskDataErrorCode.MODEL_NOT_FOUND,
+                    "AskData 未配置可执行的 Core Chat 模型适配器");
         }
         AskDataModelRequest routeRequest = chatRouteRequest(request);
         AskDataModelResult routed = coreModelRouter.route(routeRequest);
         while (true) {
             result.addModelAttempt(routed.getModelKey());
-            publishModelAttempt(request, result, routed, AskDataEvent.ModelState.ATTEMPTED, null, null, null);
+            publishModelAttempt(request, result, routed, AskDataEvent.ModelState.ATTEMPTED, null, null, null,
+                    AskDataModelUsage.unknown());
             AskDataChatResult chatResult = coreChatModel.chat(new AskDataChatRequest(request.getProjectContext(),
-                    prompt, routed.getModelKey(), Collections.<String, Object>emptyMap(), modelTimeoutMillis()));
+                    request.getQuestion(), prompt, routed.getModelKey(), Collections.<String, Object>emptyMap(),
+                    modelTimeoutMillis()));
             if (chatResult == null) {
                 publishModelAttempt(request, result, routed, AskDataEvent.ModelState.FAILED,
-                        AskDataErrorCode.MODEL_RESPONSE_INVALID, "INVALID_MODEL_RESPONSE", null);
+                        AskDataErrorCode.MODEL_RESPONSE_INVALID, "INVALID_MODEL_RESPONSE", null,
+                        AskDataModelUsage.unknown());
                 throw new AskDataModelException(AskDataErrorCode.MODEL_RESPONSE_INVALID,
                         "AskData Core Chat 模型未返回结果");
             }
@@ -1343,7 +1416,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                         ? routed.getModelKey() : chatResult.getActualModelKey();
                 result.setActualModelKey(actualModelKey);
                 publishModelAttempt(request, result, routed, AskDataEvent.ModelState.SUCCEEDED,
-                        null, null, actualModelKey);
+                        null, null, actualModelKey, chatResult.getUsage());
                 return new AskDataModelResponse(chatResult.getAnswer(), null, actualModelKey);
             }
             boolean retryableInfrastructureFailure = AskDataChatResult.MODEL_INFRASTRUCTURE_FAILURE
@@ -1352,7 +1425,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 publishModelAttempt(request, result, routed, AskDataEvent.ModelState.FAILED,
                         chatResult.getErrorCode(), retryableInfrastructureFailure
                                 ? "FALLBACK_DISABLED" : "NON_RETRYABLE_FAILURE",
-                        chatResult.getActualModelKey());
+                        chatResult.getActualModelKey(), chatResult.getUsage());
                 throw new AskDataModelException(chatResult.getErrorCode(), chatResult.getErrorMessage());
             }
             try {
@@ -1360,35 +1433,42 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                         AskDataModelResult.infrastructureFailure(routed, chatResult.getErrorMessage()));
                 publishModelAttempt(request, result, routed, AskDataEvent.ModelState.FAILED,
                         chatResult.getErrorCode(), "RETRYABLE_INFRASTRUCTURE_FAILURE",
-                        chatResult.getActualModelKey());
+                        chatResult.getActualModelKey(), chatResult.getUsage());
                 routed = next;
             } catch (IllegalArgumentException noCandidate) {
                 publishModelAttempt(request, result, routed, AskDataEvent.ModelState.FAILED,
-                        chatResult.getErrorCode(), "CANDIDATES_EXHAUSTED", chatResult.getActualModelKey());
+                        chatResult.getErrorCode(), "CANDIDATES_EXHAUSTED", chatResult.getActualModelKey(),
+                        chatResult.getUsage());
                 throw new AskDataModelException(chatResult.getErrorCode(), chatResult.getErrorMessage());
             }
         }
     }
 
     private AskDataModelRequest chatRouteRequest(AskDataRequest request) {
-        String[] routeKeys = { "", "", "", "", "" };
-        routeKeys[0] = normalized(request == null ? null : request.getModelKey());
+        AskDataModelSelection selection = request == null || request.getChatModelSelection() == null
+                ? AskDataModelSelection.empty() : request.getChatModelSelection();
+        String explicitKey = normalized(request == null ? null : request.getModelKey());
+        if (explicitKey.length() == 0) explicitKey = normalized(selection.getRequestModelKey());
         String defaultKey = normalized(properties == null || properties.getModel() == null
                 ? null : properties.getModel().getDefaultChatModel());
-        int routeIndex = 1;
+        if (defaultKey.length() == 0 && modelRegistry != null) {
+            defaultKey = normalized(modelRegistry.getDefaultChatModelKey());
+        }
+        List<String> fallbacks = new ArrayList<String>(selection.getFallbackModelKeys());
         if (properties != null && properties.getModel() != null
                 && properties.getModel().getChatCandidates() != null) {
             for (String candidate : properties.getModel().getChatCandidates()) {
                 String candidateKey = normalized(candidate);
-                if (candidateKey.length() > 0 && !candidateKey.equals(routeKeys[0])
-                        && !candidateKey.equals(defaultKey) && routeIndex < 4) {
-                    routeKeys[routeIndex++] = candidateKey;
+                if (candidateKey.length() > 0 && !candidateKey.equals(explicitKey)
+                        && !candidateKey.equals(defaultKey) && !fallbacks.contains(candidateKey)) {
+                    fallbacks.add(candidateKey);
                 }
             }
         }
-        routeKeys[4] = defaultKey;
-        return new AskDataModelRequest(request.getProjectContext(), routeKeys[0], routeKeys[1], routeKeys[2],
-                routeKeys[3], routeKeys[4]);
+        return new AskDataModelRequest(request.getProjectContext(), explicitKey,
+                selection.getProjectModelKey(), selection.getDatasourceModelKey(),
+                selection.getAgentTaskModelKey(), selection.getPolicyModelKey(), fallbacks, defaultKey,
+                selection.getPolicyTags());
     }
 
     private long modelTimeoutMillis() {
@@ -1452,7 +1532,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (contains(checkpoint, "generate-sql")) {
             AskDataMetadata metadata;
             try {
-                metadata = metadataProvider.load(request, authorizationSummary(context));
+                metadata = loadMetadata(request, authorizationSummary(context));
             } catch (RuntimeException ex) {
                 return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
             }
@@ -1475,7 +1555,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         if (contains(checkpoint, "metadata") || contains(checkpoint, "merge-sub-agents")) {
             AskDataMetadata metadata;
             try {
-                metadata = metadataProvider.load(request, authorizationSummary(context));
+                metadata = loadMetadata(request, authorizationSummary(context));
             } catch (RuntimeException ex) {
                 return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
             }
@@ -1503,7 +1583,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataStepContext context, AskDataCheckpoint checkpoint) {
         AskDataMetadata metadata;
         try {
-            metadata = metadataProvider.load(request, authorizationSummary(context));
+            metadata = loadMetadata(request, authorizationSummary(context));
         } catch (RuntimeException ex) {
             return governanceDeniedForMetadata(request, result, authorizationSummary(context));
         }
@@ -1531,7 +1611,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             AskDataStepContext context, AskDataCheckpoint checkpoint) {
         AskDataMetadata metadata;
         try {
-            metadata = metadataProvider.load(request, authorizationSummary(context));
+            metadata = loadMetadata(request, authorizationSummary(context));
         } catch (RuntimeException ex) {
             return failure(result, "metadata", AskDataErrorCode.METADATA_NOT_FOUND, message(ex));
         }
@@ -1587,7 +1667,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 agentResult = executeStepAgent(validateAgent, agentContext(AskDataAgentStepKey.VALIDATE_SQL,
                         request, result, metadata, context.getPrompt(), candidateCommand, null));
             } catch (RuntimeException ex) {
-                return failure(result, "validate-sql", AskDataErrorCode.SQL_REJECTED, message(ex));
+                return failure(result, "validate-sql",
+                        isCancellation(ex) ? AskDataErrorCode.SUBQUESTION_CANCELLED : AskDataErrorCode.SQL_REJECTED,
+                        message(ex));
             }
             if (!agentResult.isSuccess()) {
                 return agentFailure(result, AskDataAgentStepKey.VALIDATE_SQL, agentResult);
@@ -1673,7 +1755,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                     agentResult = executeStepAgent(executeAgent, agentContext(AskDataAgentStepKey.EXECUTE_SQL,
                             request, result, context.getMetadata(), context.getPrompt(), command, null));
                 } catch (RuntimeException ex) {
-                    return failure(result, "execute-sql", AskDataErrorCode.SQL_EXECUTION_FAILED, message(ex));
+                    return failure(result, "execute-sql",
+                            isCancellation(ex) ? AskDataErrorCode.SUBQUESTION_CANCELLED
+                                    : AskDataErrorCode.SQL_EXECUTION_FAILED,
+                            message(ex));
                 }
                 if (!agentResult.isSuccess()) {
                     return agentFailure(result, AskDataAgentStepKey.EXECUTE_SQL, agentResult);
@@ -1739,7 +1824,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                     request, result, context.getMetadata(), context.getPrompt(), command, sqlResult));
         } catch (RuntimeException ex) {
             return failure(result, AskDataAgentStepKey.INTERPRET_RESULT,
-                    AskDataErrorCode.SUBQUESTION_FAILED, message(ex));
+                    isCancellation(ex) ? AskDataErrorCode.SUBQUESTION_CANCELLED
+                            : AskDataErrorCode.SUBQUESTION_FAILED,
+                    message(ex));
         }
         if (!agentResult.isSuccess()) {
             return agentFailure(result, AskDataAgentStepKey.INTERPRET_RESULT, agentResult);
@@ -2155,6 +2242,57 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 Collections.<String>emptyList(), Collections.<String>emptyList());
     }
 
+    private AskDataMetadata loadMetadata(AskDataRequest request,
+            AskDataAuthorizationSummary authorizationSummary) {
+        com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider coreProvider =
+                runtimeStateServices == null ? null : runtimeStateServices.getMetadataProvider();
+        if (coreProvider == null) {
+            return metadataProvider == null ? null : metadataProvider.load(request, authorizationSummary);
+        }
+        com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata core = coreProvider.load(
+                request.getProjectContext(), request.getDatasourceKey());
+        if (core == null) return null;
+        Set<String> resources = new LinkedHashSet<String>(core.getResources());
+        Map<String, List<com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn>> columnsByTable =
+                new LinkedHashMap<String, List<com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn>>();
+        for (AskDataAuthorizedObject object : authorizationSummary == null
+                ? Collections.<AskDataAuthorizedObject>emptyList() : authorizationSummary.getAuthorizedObjects()) {
+            if (object == null || !equals(request.getDatasourceKey(), object.getDatasourceKey())
+                    || !containsCoreResource(resources, object.getTableName(), object.getColumnName())) continue;
+            List<com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn> columns =
+                    columnsByTable.get(object.getTableName());
+            if (columns == null) {
+                columns = new ArrayList<com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn>();
+                columnsByTable.put(object.getTableName(), columns);
+            }
+            if (!containsColumn(columns, object.getColumnName())) {
+                columns.add(new com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn(
+                        object.getColumnName(), "authorized"));
+            }
+        }
+        List<AskDataTable> tables = new ArrayList<AskDataTable>();
+        for (Map.Entry<String, List<com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn>> entry
+                : columnsByTable.entrySet()) {
+            tables.add(new AskDataTable(entry.getKey(), entry.getValue(), containsColumn(entry.getValue(), "*")));
+        }
+        return new AskDataMetadata(request.getDialect(), tables, core.getResources(),
+                Collections.<String>emptyList(), Collections.<String>emptyList());
+    }
+
+    private boolean containsCoreResource(Set<String> resources, String tableName, String columnName) {
+        if (resources == null || resources.isEmpty()) return false;
+        return resources.contains(tableName) || resources.contains(tableName + ".*")
+                || resources.contains(tableName + "." + columnName);
+    }
+
+    private boolean containsColumn(
+            List<com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn> columns, String name) {
+        for (com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn column : columns) {
+            if (column != null && equals(column.getName(), name)) return true;
+        }
+        return false;
+    }
+
     private boolean hasAuthorizedMetadata(AskDataMetadata metadata) {
         return metadata != null && !metadata.getTables().isEmpty();
     }
@@ -2212,10 +2350,16 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 ? GOVERNANCE_ERROR_VERSION : authorizationSummary.getAuthorizationVersion();
         String source = providerError || authorizationSummary == null
                 ? GOVERNANCE_ERROR_SOURCE : authorizationSummary.getAuthorizationSource();
-        String traceId = result == null || isBlank(result.getConversationId())
-                ? UUID.randomUUID().toString() : result.getConversationId();
+        AskDataResult correlatedResult = result == null ? observationResult(request) : result;
+        String traceId = !isBlank(correlatedResult.getConversationId()) ? correlatedResult.getConversationId()
+                : observationOption(request, OBSERVABILITY_REQUEST_ID_OPTION);
+        if (isBlank(traceId)) traceId = "unassigned";
         safePublish(AskDataEvent.governanceDenied(request.getProjectContext(), traceId,
-                request.getDatasourceKey(), denialCode, version, source));
+                request.getDatasourceKey(), denialCode, version, source,
+                "governance",
+                AskDataAuthorizationPurpose.QUERY,
+                eventCorrelation(request, correlatedResult, "governance", null,
+                        AskDataEvent.Type.GOVERNANCE_DENIED)));
     }
 
     private AskDataAuthorizationSummary authorizationSummary(AskDataStepContext context) {
@@ -2244,6 +2388,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                     currentStep, null, "AskData 上下文压缩已开始");
             AskDataCompressedContext compressed = contextCompressor.compress(context);
             compressionCompleted = true;
+            result.setCompressedContext(compressed == null ? null : compressed.getCompressedSummary());
+            result.setContextCompressionStatus("COMPRESSED");
             publishStepEvent(context.getRequest(), result, AskDataEvent.Type.CONTEXT_COMPRESSION_COMPLETED,
                     currentStep, null, "AskData 上下文压缩已完成");
             AskDataCheckpoint checkpoint = new AskDataCheckpoint();
@@ -2261,8 +2407,11 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             checkpoint.setModelKey(request == null ? null : request.getModelKey());
             checkpoint.setActualModelKey(result.getActualModelKey());
             checkpoint.setModelAttempts(result.getModelAttempts());
+            checkpoint.setModelAttemptDetails(result.getModelAttemptDetails());
             checkpoint.setActualEmbeddingModelKey(result.getActualEmbeddingModelKey());
             checkpoint.setEmbeddingModelAttempts(result.getEmbeddingModelAttempts());
+            checkpoint.setEmbeddingModelAttemptDetails(result.getEmbeddingModelAttemptDetails());
+            checkpoint.setModelRouteSnapshot(modelRouteSnapshot(request));
             checkpoint.setDatasourceKey(request == null ? null : request.getDatasourceKey());
             checkpoint.setMaxRows(Integer.valueOf(maxRows(request)));
             checkpoint.setExecute(Boolean.valueOf(isExecutionEnabled(request)));
@@ -2291,6 +2440,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                     "AskData 检查点已保存");
             return null;
         } catch (RuntimeException ex) {
+            result.setContextCompressionStatus(compressionCompleted ? "COMPRESSED" : "FAILED");
             publishStepEvent(context.getRequest(), result, compressionCompleted
                             ? AskDataEvent.Type.CHECKPOINT_SAVE_FAILED
                             : AskDataEvent.Type.CONTEXT_COMPRESSION_FAILED,
@@ -2307,8 +2457,13 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         result.setRowCount(checkpoint.getRowCount());
         result.setActualModelKey(checkpoint.getActualModelKey());
         result.setModelAttempts(checkpoint.getModelAttempts());
+        result.setModelAttemptDetails(checkpoint.getModelAttemptDetails());
         result.setActualEmbeddingModelKey(checkpoint.getActualEmbeddingModelKey());
         result.setEmbeddingModelAttempts(checkpoint.getEmbeddingModelAttempts());
+        result.setEmbeddingModelAttemptDetails(checkpoint.getEmbeddingModelAttemptDetails());
+        result.setCompressedContext(checkpoint.getCompressedSummary());
+        result.setContextCompressionStatus(isBlank(checkpoint.getCompressedSummary())
+                ? "NOT_COMPRESSED" : "COMPRESSED");
         result.setSteps(new ArrayList<AskDataStepLog>(checkpoint.getSteps()));
         for (String completedStep : checkpoint.getCompletedSteps()) {
             if (!hasSuccessfulStep(result.getSteps(), completedStep)) {
@@ -2464,13 +2619,17 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         String subQuestionId = !isBlank(result.getQuestionId()) ? result.getQuestionId()
                 : observationOption(request, OBSERVABILITY_SUB_QUESTION_ID_OPTION);
         String rootEventId = requestId + ":root";
+        String childRootEventId = isBlank(subQuestionId) ? null : requestId + ":" + subQuestionId + ":root";
         AskDataEventCorrelation.Builder builder = AskDataEventCorrelation.builder(requestId, conversationId)
                 .subQuestionId(subQuestionId).graphNodeId(graphNodeId).agentKey(agentKey)
                 .instanceId(instanceId());
         if (type == AskDataEvent.Type.CONVERSATION_STARTED) {
-            builder.eventId(rootEventId);
+            builder.eventId(childRootEventId == null ? rootEventId : childRootEventId);
+            if (childRootEventId != null) {
+                builder.parentEventId(rootEventId);
+            }
         } else {
-            builder.parentEventId(rootEventId);
+            builder.parentEventId(childRootEventId == null ? rootEventId : childRootEventId);
         }
         return builder.build();
     }
@@ -2495,12 +2654,19 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return;
         }
         String conversationId = isBlank(context.getConversationId()) ? "unassigned" : context.getConversationId();
-        AskDataEventCorrelation correlation = AskDataEventCorrelation.builder(conversationId, conversationId)
+        String requestId = isBlank(context.getRequestId()) ? conversationId : context.getRequestId();
+        String parentEventId = isBlank(context.getSubQuestionId()) ? requestId + ":root"
+                : requestId + ":" + context.getSubQuestionId() + ":root";
+        AskDataEventCorrelation correlation = AskDataEventCorrelation.builder(requestId, conversationId)
+                .subQuestionId(context.getSubQuestionId())
                 .graphNodeId(context.getStepKey()).agentKey(agent.getKey()).instanceId(instanceId())
-                .parentEventId(conversationId + ":root").build();
+                .parentEventId(parentEventId).build();
+        String message = type == AskDataEvent.Type.AGENT_NODE_STARTED ? "AskData Agent 节点已开始"
+                : type == AskDataEvent.Type.AGENT_NODE_EXECUTED ? "AskData Agent 节点已完成"
+                : type == AskDataEvent.Type.AGENT_NODE_CANCELLED ? "AskData Agent 节点已取消"
+                : "AskData Agent 节点失败";
         safePublish(AskDataEvent.correlated(context.getProjectContext(), conversationId, type,
-                type == AskDataEvent.Type.AGENT_NODE_EXECUTED ? "AskData Agent 节点已完成" : "AskData Agent 节点失败",
-                correlation));
+                message, correlation));
     }
 
     private AskDataEvent.Type subQuestionEventType(AskDataSubQuestionResult.State state) {
@@ -2530,13 +2696,22 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
     }
 
     private void publishModelAttempt(AskDataRequest request, AskDataResult result, AskDataModelResult routed,
-            AskDataEvent.ModelState state, String failureCode, String switchReason, String actualModelKey) {
-        if (eventPublisher == null || request == null || request.getProjectContext() == null) {
+            AskDataEvent.ModelState state, String failureCode, String switchReason, String actualModelKey,
+            AskDataModelUsage usage) {
+        if (request == null || request.getProjectContext() == null || result == null || routed == null) {
             return;
         }
+        if (state != AskDataEvent.ModelState.ATTEMPTED) {
+            result.addModelAttemptDetail(new AskDataModelAttempt(AskDataModelAttempt.ModelType.CHAT,
+                    routed.getModelKey(), routed.getRoutePolicy(), routed.getRouteReason(),
+                    AskDataModelAttempt.State.valueOf(state.name()), failureCode, switchReason, actualModelKey,
+                    usage));
+        }
+        if (eventPublisher == null) return;
         safePublish(AskDataEvent.modelAttempt(request.getProjectContext(), result.getConversationId(),
                 AskDataEvent.ModelType.CHAT, routed.getModelKey(), routed.getRoutePolicy(), state, failureCode,
-                switchReason, actualModelKey, eventCorrelation(request, result, "model", null)));
+                switchReason, actualModelKey, eventCorrelation(request, result, "model", null), usage,
+                routed.getRouteReason()));
     }
 
     private boolean hasValidProjectContext(AskDataRequest request) {
@@ -2629,7 +2804,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             String childStatus = isBlank(child.getQuestionState())
                     ? child.isSuccess() ? "SUCCEEDED" : "FAILED" : child.getQuestionState();
             subTasks.add(new AskDataAgentStateStore.SubTaskState(child.getQuestionId(), child.getQuestionId(),
-                    childStatus));
+                    childStatus, child.getFailurePolicy(), child.getErrorCode()));
             plan.add(child.getQuestionId());
         }
         if (plan.isEmpty()) {
@@ -2639,8 +2814,13 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 new ArrayList<AskDataAgentStateStore.ToolSummary>();
         List<AskDataAgentStateStore.ModelRouteAttempt> attempts =
                 new ArrayList<AskDataAgentStateStore.ModelRouteAttempt>();
-        for (String modelKey : result.getModelAttempts()) {
-            attempts.add(new AskDataAgentStateStore.ModelRouteAttempt(modelKey, "ATTEMPTED", null));
+        List<AskDataModelAttempt> allAttempts = new ArrayList<AskDataModelAttempt>(result.getModelAttemptDetails());
+        allAttempts.addAll(result.getEmbeddingModelAttemptDetails());
+        for (AskDataModelAttempt attempt : allAttempts) {
+            attempts.add(new AskDataAgentStateStore.ModelRouteAttempt(attempt.getModelKey(),
+                    attempt.getState().name(), attempt.getFailureCode(), attempt.getModelType().name(),
+                    attempt.getRoutePolicy().name(), attempt.getRouteReason(), attempt.getFailureCode(),
+                    attempt.getSwitchReason(), attempt.getActualModelKey()));
         }
         List<AskDataAgentStateStore.StepLog> steps = new ArrayList<AskDataAgentStateStore.StepLog>();
         for (AskDataStepLog step : result.getSteps()) {
@@ -2651,8 +2831,9 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                         step.isSuccess() ? "SUCCEEDED" : "FAILED", step.getMessage()));
             }
         }
-        AskDataAgentStateStore.AgentState state = new AskDataAgentStateStore.AgentState(status, currentStage, null,
-                AskDataAgentStateStore.ContextCompressionStatus.NOT_COMPRESSED, nodes,
+        AskDataAgentStateStore.ContextCompressionStatus compressionStatus = compressionStatus(result);
+        AskDataAgentStateStore.AgentState state = new AskDataAgentStateStore.AgentState(status, currentStage,
+                result.getCompressedContext(), compressionStatus, nodes,
                 subTasks, plan, tools, attempts, steps);
         runtimeStateServices.getAgentStateStore().save(request.getProjectContext(), result.getConversationId(), state);
     }
@@ -2671,8 +2852,31 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         }
         store.save(request.getProjectContext(), result.getConversationId(),
                 new AskDataAuditStateStore.AuditState(result.isSuccess() ? "SUCCEEDED" : "FAILED",
-                        isBlank(result.getErrorCode()) ? "terminal" : result.getErrorCode(),
+                        auditDetail(result),
                         sequence));
+    }
+
+    private AskDataAgentStateStore.ContextCompressionStatus compressionStatus(AskDataResult result) {
+        if (result == null || isBlank(result.getContextCompressionStatus())) {
+            return AskDataAgentStateStore.ContextCompressionStatus.NOT_COMPRESSED;
+        }
+        try {
+            return AskDataAgentStateStore.ContextCompressionStatus.valueOf(result.getContextCompressionStatus());
+        } catch (IllegalArgumentException ex) {
+            return AskDataAgentStateStore.ContextCompressionStatus.FAILED;
+        }
+    }
+
+    private String auditDetail(AskDataResult result) {
+        StringBuilder detail = new StringBuilder(isBlank(result.getErrorCode()) ? "terminal" : result.getErrorCode());
+        for (AskDataModelAttempt attempt : result.getModelAttemptDetails()) {
+            detail.append('|').append(attempt.getModelType()).append(':').append(attempt.getModelKey())
+                    .append(':').append(attempt.getRoutePolicy()).append(':').append(attempt.getRouteReason())
+                    .append(':').append(attempt.getState());
+            if (!isBlank(attempt.getFailureCode())) detail.append(':').append(attempt.getFailureCode());
+            if (!isBlank(attempt.getSwitchReason())) detail.append(':').append(attempt.getSwitchReason());
+        }
+        return detail.toString();
     }
 
     private List<AskDataRetrievedDocument> recallLongTermMemory(AskDataRequest request, AskDataResult result,
@@ -2719,6 +2923,62 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return result;
     }
 
+    private void ensureObservationRequestId(AskDataRequest request) {
+        if (request == null || !isBlank(observationOption(request, OBSERVABILITY_REQUEST_ID_OPTION))) return;
+        Map<String, Object> options = request.getOptions() == null ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(request.getOptions());
+        options.put(OBSERVABILITY_REQUEST_ID_OPTION, UUID.randomUUID().toString());
+        request.setOptions(options);
+    }
+
+    private void publishInterface(AskDataRequest request, AskDataResult result) {
+        if (request == null || request.getPublishRequest() == null || result == null || !result.isSuccess()) return;
+        if (runtimeStateServices == null || runtimeStateServices.getInterfacePublisher() == null) {
+            failure(result, "publish-interface", AskDataErrorCode.INTERFACE_PUBLISH_FAILED,
+                    "AskData 请求显式要求发布接口，但未配置 Core InterfacePublisher");
+            return;
+        }
+        try {
+            com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataPublishedInterface published =
+                    runtimeStateServices.getInterfacePublisher().publish(request.getProjectContext(),
+                            request.getPublishRequest());
+            if (published == null) {
+                failure(result, "publish-interface", AskDataErrorCode.INTERFACE_PUBLISH_FAILED,
+                        "AskData InterfacePublisher 未返回发布结果");
+                return;
+            }
+            result.setPublishedInterface(published);
+            result.addStep("publish-interface", "Publish interface", true, "Interface published");
+        } catch (RuntimeException ex) {
+            failure(result, "publish-interface", AskDataErrorCode.INTERFACE_PUBLISH_FAILED, message(ex));
+        }
+    }
+
+    private AskDataEvent.Type conversationTerminalType(AskDataResult result) {
+        if (result != null && result.isSuccess()) return AskDataEvent.Type.CONVERSATION_COMPLETED;
+        return isCancelled(result) ? AskDataEvent.Type.CONVERSATION_CANCELLED
+                : AskDataEvent.Type.CONVERSATION_FAILED;
+    }
+
+    private boolean isCancelled(AskDataResult result) {
+        if (result == null) return false;
+        if (AskDataErrorCode.SUBQUESTION_CANCELLED.equals(result.getErrorCode())
+                || AskDataSubQuestionResult.State.CANCELLED.name().equals(result.getQuestionState())) return true;
+        for (AskDataResult child : result.getChildResults()) {
+            if (child != null && AskDataSubQuestionResult.State.CANCELLED.name().equals(child.getQuestionState())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String terminalMessage(AskDataEvent.Type type, boolean multiple) {
+        String prefix = multiple ? "AskData 多问题对话" : "AskData 对话";
+        if (type == AskDataEvent.Type.CONVERSATION_COMPLETED) return prefix + "已完成";
+        if (type == AskDataEvent.Type.CONVERSATION_CANCELLED) return prefix + "已取消";
+        return prefix + "失败";
+    }
+
     private String eventStatus(AskDataEvent.Type type) {
         if (type == null) {
             return "RUNNING";
@@ -2738,6 +2998,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
     private List<AskDataRetrievedDocument> retrieveDocuments(AskDataRequest request,
             AskDataAuthorizationSummary authorizationSummary, AskDataResult result) {
+        if (runtimeStateServices != null && runtimeStateServices.getEmbeddingModel() != null
+                && runtimeStateServices.getRagRetriever() != null) {
+            return retrieveCoreDocuments(request, authorizationSummary, result);
+        }
         if (vectorRetriever == null) {
             return Collections.emptyList();
         }
@@ -2745,8 +3009,8 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         String[] retrieveTypes = { "schema", "term", "example" };
         Map<String, Object> filters = vectorAuthorizationFilters(request, authorizationSummary);
         for (String retrieveType : retrieveTypes) {
-            AskDataVectorQuery query = new AskDataVectorQuery(
-                    request == null ? null : request.getProjectContext(), embeddingModelKey(request), retrieveType,
+            AskDataVectorQuery query = AskDataVectorQuery.withModelSelection(
+                    request == null ? null : request.getProjectContext(), embeddingModelSelection(request), retrieveType,
                     request == null ? null : request.getDatasourceKey(), request == null ? null : request.getDatasourceKey(),
                     request == null ? null : request.getQuestion(), topK(), filters);
             try {
@@ -2764,6 +3028,114 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return documents;
     }
 
+    private List<AskDataRetrievedDocument> retrieveCoreDocuments(AskDataRequest request,
+            AskDataAuthorizationSummary authorizationSummary, AskDataResult result) {
+        AskDataModelRequest routeRequest = embeddingRouteRequest(request);
+        AskDataModelResult routed = coreModelRouter.route(routeRequest);
+        List<AskDataModelAttemptTrace> attempts = new ArrayList<AskDataModelAttemptTrace>();
+        float[] vector;
+        String actualModelKey;
+        while (true) {
+            attempts.add(AskDataModelAttemptTrace.attempted(routed));
+            AskDataEmbeddingResult embeddingResult;
+            try {
+                embeddingResult = runtimeStateServices.getEmbeddingModel().embedResult(request.getProjectContext(),
+                        request.getQuestion(), routed.getModelKey());
+            } catch (RuntimeException ex) {
+                attempts.add(AskDataModelAttemptTrace.failed(routed, "MODEL_ERROR",
+                        "NON_RETRYABLE_FAILURE", null));
+                recordEmbeddingAttempts(request, result, attempts, null);
+                throw ex;
+            }
+            if (embeddingResult == null) {
+                attempts.add(AskDataModelAttemptTrace.failed(routed, "MODEL_ERROR",
+                        "INVALID_MODEL_RESPONSE", null));
+                recordEmbeddingAttempts(request, result, attempts, null);
+                throw new IllegalStateException("Core Embedding 模型未返回结果");
+            }
+            if (embeddingResult.isSuccess()) {
+                vector = embeddingResult.getVector();
+                if (vector == null || vector.length == 0) {
+                    attempts.add(AskDataModelAttemptTrace.failed(routed, "MODEL_ERROR",
+                            "INVALID_MODEL_RESPONSE", embeddingResult.getActualModelKey(),
+                            embeddingResult.getUsage()));
+                    recordEmbeddingAttempts(request, result, attempts, null);
+                    throw new IllegalStateException("Core Embedding 模型未返回向量");
+                }
+                actualModelKey = isBlank(embeddingResult.getActualModelKey())
+                        ? routed.getModelKey() : embeddingResult.getActualModelKey();
+                attempts.add(AskDataModelAttemptTrace.succeeded(routed, actualModelKey,
+                        embeddingResult.getUsage()));
+                recordEmbeddingAttempts(request, result, attempts, actualModelKey);
+                break;
+            }
+            boolean retryableInfrastructureFailure = AskDataEmbeddingResult.MODEL_INFRASTRUCTURE_FAILURE
+                    .equals(embeddingResult.getErrorCode()) && embeddingResult.isRetryable();
+            if (!retryableInfrastructureFailure || !properties.getModel().isFallbackEnabled()) {
+                attempts.add(AskDataModelAttemptTrace.failed(routed, embeddingResult.getErrorCode(),
+                        retryableInfrastructureFailure ? "FALLBACK_DISABLED" : "NON_RETRYABLE_FAILURE",
+                        embeddingResult.getActualModelKey(), embeddingResult.getUsage()));
+                recordEmbeddingAttempts(request, result, attempts, null);
+                throw new IllegalStateException(embeddingResult.getErrorMessage());
+            }
+            try {
+                AskDataModelResult next = coreModelRouter.fallback(routeRequest,
+                        AskDataModelResult.infrastructureFailure(routed, embeddingResult.getErrorMessage()));
+                attempts.add(AskDataModelAttemptTrace.failed(routed, embeddingResult.getErrorCode(),
+                        "RETRYABLE_INFRASTRUCTURE_FAILURE", embeddingResult.getActualModelKey(),
+                        embeddingResult.getUsage()));
+                routed = next;
+            } catch (IllegalArgumentException noCandidate) {
+                attempts.add(AskDataModelAttemptTrace.failed(routed, embeddingResult.getErrorCode(),
+                        "CANDIDATES_EXHAUSTED", embeddingResult.getActualModelKey(),
+                        embeddingResult.getUsage()));
+                recordEmbeddingAttempts(request, result, attempts, null);
+                throw new IllegalStateException(embeddingResult.getErrorMessage());
+            }
+        }
+        Map<String, String> filters = stringFilters(vectorAuthorizationFilters(request, authorizationSummary));
+        List<com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorDocument> retrieved =
+                runtimeStateServices.getRagRetriever().retrieve(request.getProjectContext(),
+                        new com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorSearchRequest(
+                                vector, topK(), filters));
+        List<AskDataRetrievedDocument> documents = new ArrayList<AskDataRetrievedDocument>();
+        for (com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorDocument document : retrieved == null
+                ? Collections.<com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorDocument>emptyList()
+                : retrieved) {
+            if (document != null && document.getContent() != null) {
+                documents.add(new AskDataRetrievedDocument(document.getContent(),
+                        new LinkedHashMap<String, Object>(document.getMetadata())));
+            }
+        }
+        return documents;
+    }
+
+    private Map<String, String> stringFilters(Map<String, Object> values) {
+        Map<String, String> result = new LinkedHashMap<String, String>();
+        for (Map.Entry<String, Object> entry : values.entrySet()) {
+            if (entry.getValue() != null) result.put(entry.getKey(), String.valueOf(entry.getValue()));
+        }
+        return result;
+    }
+
+    private AskDataModelRequest embeddingRouteRequest(AskDataRequest request) {
+        AskDataModelSelection selection = embeddingModelSelection(request);
+        List<String> fallbacks = new ArrayList<String>(selection.getFallbackModelKeys());
+        if (properties != null && properties.getModel() != null
+                && properties.getModel().getEmbeddingCandidates() != null) {
+            for (String candidate : properties.getModel().getEmbeddingCandidates()) {
+                String key = normalized(candidate);
+                if (key.length() > 0 && !fallbacks.contains(key)) fallbacks.add(key);
+            }
+        }
+        String defaultKey = normalized(properties == null || properties.getModel() == null
+                ? null : properties.getModel().getDefaultEmbeddingModel());
+        return new AskDataModelRequest(request.getProjectContext(), selection.getRequestModelKey(),
+                selection.getProjectModelKey(), selection.getDatasourceModelKey(),
+                selection.getAgentTaskModelKey(), selection.getPolicyModelKey(), fallbacks, defaultKey,
+                selection.getPolicyTags());
+    }
+
     private void recordEmbeddingAttempts(AskDataRequest request, AskDataResult result,
             List<AskDataModelAttemptTrace> attempts, String actualEmbeddingModelKey) {
         if (result == null) {
@@ -2777,15 +3149,37 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             if (attempt.getState() == AskDataEvent.ModelState.ATTEMPTED) {
                 result.addEmbeddingModelAttempt(attempt.getModelKey());
             }
+            if (attempt.getState() != AskDataEvent.ModelState.ATTEMPTED) {
+                result.addEmbeddingModelAttemptDetail(attempt.toCore(AskDataModelAttempt.ModelType.EMBEDDING));
+            }
             if (eventPublisher != null && request != null && request.getProjectContext() != null) {
                 safePublish(AskDataEvent.modelAttempt(request.getProjectContext(), result.getConversationId(),
                         AskDataEvent.ModelType.EMBEDDING, attempt.getModelKey(), attempt.getRoutePolicy(),
                         attempt.getState(), attempt.getFailureCode(), attempt.getSwitchReason(),
-                        attempt.getActualModelKey(), eventCorrelation(request, result, "embedding", null)));
+                        attempt.getActualModelKey(), eventCorrelation(request, result, "embedding", null),
+                        attempt.getUsage(), attempt.getRouteReason()));
             }
         }
         if (!isBlank(actualEmbeddingModelKey)) {
             result.setActualEmbeddingModelKey(actualEmbeddingModelKey);
+        }
+    }
+
+    private void aggregateModelAttempts(AskDataResult aggregated) {
+        for (AskDataResult child : aggregated.getChildResults()) {
+            if (child == null) continue;
+            for (String modelKey : child.getModelAttempts()) aggregated.addModelAttempt(modelKey);
+            for (String modelKey : child.getEmbeddingModelAttempts()) aggregated.addEmbeddingModelAttempt(modelKey);
+            List<AskDataModelAttempt> chat = aggregated.getModelAttemptDetails();
+            chat.addAll(child.getModelAttemptDetails());
+            aggregated.setModelAttemptDetails(chat);
+            List<AskDataModelAttempt> embedding = aggregated.getEmbeddingModelAttemptDetails();
+            embedding.addAll(child.getEmbeddingModelAttemptDetails());
+            aggregated.setEmbeddingModelAttemptDetails(embedding);
+            if (!isBlank(child.getActualModelKey())) aggregated.setActualModelKey(child.getActualModelKey());
+            if (!isBlank(child.getActualEmbeddingModelKey())) {
+                aggregated.setActualEmbeddingModelKey(child.getActualEmbeddingModelKey());
+            }
         }
     }
 
@@ -2806,10 +3200,18 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
         return filters;
     }
 
-    private String embeddingModelKey(AskDataRequest request) {
+    private AskDataModelSelection embeddingModelSelection(AskDataRequest request) {
+        AskDataModelSelection selection = request == null || request.getEmbeddingModelSelection() == null
+                ? AskDataModelSelection.empty() : request.getEmbeddingModelSelection();
         Object value = request == null || request.getOptions() == null
                 ? null : request.getOptions().get(EMBEDDING_MODEL_OPTION);
-        return value instanceof String && !isBlank((String) value) ? ((String) value).trim() : null;
+        if (!(value instanceof String) || isBlank((String) value)) return selection;
+        return AskDataModelSelection.builder().requestModelKey(((String) value).trim())
+                .projectModelKey(selection.getProjectModelKey())
+                .datasourceModelKey(selection.getDatasourceModelKey())
+                .agentTaskModelKey(selection.getAgentTaskModelKey())
+                .policyModelKey(selection.getPolicyModelKey())
+                .fallbackModelKeys(selection.getFallbackModelKeys()).policyTags(selection.getPolicyTags()).build();
     }
 
     private int maxRows(AskDataRequest request) {
@@ -2852,6 +3254,7 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
                 || !equals(request.getQuestion(), checkpoint.getRequestSummary())
                 || !equals(Integer.valueOf(maxRows(request)), checkpoint.getMaxRows())
                 || !equals(Boolean.valueOf(isExecutionEnabled(request)), checkpoint.getExecute())
+                || !equals(modelRouteSnapshot(request), checkpoint.getModelRouteSnapshot())
                 || !optionsIdentityMatches(request, checkpoint)) {
             return false;
         }
@@ -2879,12 +3282,46 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
             return null;
         }
         return "[" + jsonString(projectContext.getProjectId()) + "," + jsonString(projectContext.getOperatorId())
-                + "," + optionsSnapshot + "]";
+                + "," + optionsSnapshot + "," + jsonString(modelRouteSnapshot(request)) + ","
+                + jsonString(request.getPublishRequest() == null ? null
+                        : request.getPublishRequest().getName() + ":" + request.getPublishRequest().getDefinitionId())
+                + "]";
+    }
+
+    private String modelRouteSnapshot(AskDataRequest request) {
+        if (request == null) return null;
+        try {
+            Map<String, Object> values = new LinkedHashMap<String, Object>();
+            values.put("chat", selectionSnapshot(request.getChatModelSelection(), request.getModelKey()));
+            values.put("embedding", selectionSnapshot(request.getEmbeddingModelSelection(), null));
+            return normalizeOptionValue(values, new IdentityHashMap<Object, Boolean>());
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
+    private Map<String, Object> selectionSnapshot(AskDataModelSelection selection, String compatibilityKey) {
+        AskDataModelSelection value = selection == null ? AskDataModelSelection.empty() : selection;
+        Map<String, Object> snapshot = new LinkedHashMap<String, Object>();
+        snapshot.put("request", isBlank(compatibilityKey) ? value.getRequestModelKey() : compatibilityKey.trim());
+        snapshot.put("project", value.getProjectModelKey());
+        snapshot.put("datasource", value.getDatasourceModelKey());
+        snapshot.put("agent", value.getAgentTaskModelKey());
+        snapshot.put("policy", value.getPolicyModelKey());
+        snapshot.put("fallbacks", value.getFallbackModelKeys());
+        snapshot.put("tags", value.getPolicyTags());
+        return snapshot;
     }
 
     private String requestOptionsSnapshot(AskDataRequest request) {
         try {
-            return normalizeOptionValue(request == null ? null : request.getOptions(),
+            Map<String, Object> options = request == null || request.getOptions() == null ? null
+                    : new LinkedHashMap<String, Object>(request.getOptions());
+            if (options != null) {
+                options.remove(OBSERVABILITY_REQUEST_ID_OPTION);
+                options.remove(OBSERVABILITY_SUB_QUESTION_ID_OPTION);
+            }
+            return normalizeOptionValue(options,
                     new IdentityHashMap<Object, Boolean>());
         } catch (RuntimeException ex) {
             return null;
@@ -3007,6 +3444,10 @@ public class DefaultAskDataFlowExecutor implements AskDataFlowExecutor {
 
     private String message(RuntimeException ex) {
         return isBlank(ex.getMessage()) ? ex.getClass().getSimpleName() : ex.getMessage();
+    }
+
+    private boolean isCancellation(RuntimeException ex) {
+        return ex instanceof CancellationException || Thread.currentThread().isInterrupted();
     }
 
     private boolean equals(Object first, Object second) {

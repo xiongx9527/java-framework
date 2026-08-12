@@ -36,7 +36,7 @@
 | SQLBot | 数据源与方言 | Apache Hive | FL §1.3 | SQLBot 优先 | 并集必选 | rework-ai-askdata-core-starter | governance/query-engine | 方言/只读执行 SPI | askdata_datasource | SQL, DB | CONN-14 | 业务适配覆盖 | 需业务接入验证。 |
 | SQLBot | 智能问数与训练 | 智能问数 | FL §1.4 | SQLBot 优先 | WrenAI Text-to-SQL 增强 | add-askdata-governance-permission-bridge | Core/Starter | AskDataService + AskDataGovernanceProvider | 内存/SPI | IDX, FLOW | CORE-01 | 默认拒绝 + 业务桥接可验证 | 默认单项目流程在模型调用前取授权摘要；宿主承担真实数据权限。 |
 | SQLBot | 智能问数与训练 | 多轮上下文 | FL §1.4 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | Core | 会话/压缩/检查点 SPI | 内存会话/检查点 | CFG, STORE | STATE-01 | 默认/SPI 覆盖 | 默认内存仅单机，压缩与共享持久化需业务实现。 |
-| SQLBot | 智能问数与训练 | 多提问 | FL §1.4 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | Core | 问题规划/聚合 | 子问题审计 | IDX, FLOW | CORE-02 | 已实现 | 恢复令牌的多提问请求受控拒绝。 |
+| SQLBot | 智能问数与训练 | 多提问 | FL §1.4 | SQLBot 优先 | 不重复 | rework-ai-askdata-core-starter | Core | 问题规划/聚合 | 父检查点/子问题审计 | IDX, FLOW | CORE-02 | 已实现 | 匹配身份、授权版本、计划与路由快照时恢复未完成节点；已完成 SQL 不重放。 |
 | SQLBot | 智能问数与训练 | SQL 安全 | FL §1.4 | SQLBot 优先 | WrenAI dry-plan/dry-run 增强 | add-askdata-governance-permission-bridge | Core/Starter | SQL 校验器、插件、只读执行器、授权摘要 | 内存审计/SPI | SQL, FLOW | SQL-01 | 默认拒绝 + 业务桥接可验证 | 插件只能收窄授权；对象/行级谓词仍在最终 SQL 校验边界内。 |
 | SQLBot | 智能问数与训练 | 图表/图片渲染 | FL §1.4 | SQLBot 优先 | 与 WrenAI Text-to-Chart 合并 | rework-ai-askdata-core-starter | api-mcp/console | 图表 DTO/API 由业务适配定义 | 资源存储由业务适配定义 | FLOW | FE-02 | 业务适配覆盖 | 当前只返回受控问数结果，不渲染图表/图片。 |
 | SQLBot | 智能问数与训练 | 仪表板 | FL §1.4 | SQLBot 优先 | WrenAI 生成/调度增强 | rework-ai-askdata-core-starter | api-mcp/console | 仪表板 API 由业务适配定义 | 仪表板存储由业务适配定义 | DB | FE-03 | 业务适配覆盖 | 需业务接入验证。 |

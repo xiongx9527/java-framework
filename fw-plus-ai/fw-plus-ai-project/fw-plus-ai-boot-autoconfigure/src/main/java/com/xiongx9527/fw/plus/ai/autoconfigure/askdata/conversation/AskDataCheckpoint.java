@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelAttempt;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -21,6 +22,9 @@ public class AskDataCheckpoint {
     private List<String> modelAttempts = new ArrayList<String>();
     private String actualEmbeddingModelKey;
     private List<String> embeddingModelAttempts = new ArrayList<String>();
+    private List<AskDataModelAttempt> modelAttemptDetails = new ArrayList<AskDataModelAttempt>();
+    private List<AskDataModelAttempt> embeddingModelAttemptDetails = new ArrayList<AskDataModelAttempt>();
+    private String modelRouteSnapshot;
     private Boolean multiQuestion;
     private String multiQuestionPlanSnapshot;
     private List<AskDataResult> childResults = new ArrayList<AskDataResult>();
@@ -75,6 +79,23 @@ public class AskDataCheckpoint {
         this.embeddingModelAttempts = embeddingModelAttempts == null
                 ? new ArrayList<String>() : new ArrayList<String>(embeddingModelAttempts);
     }
+    public List<AskDataModelAttempt> getModelAttemptDetails() {
+        return new ArrayList<AskDataModelAttempt>(modelAttemptDetails);
+    }
+    public void setModelAttemptDetails(List<AskDataModelAttempt> modelAttemptDetails) {
+        this.modelAttemptDetails = modelAttemptDetails == null ? new ArrayList<AskDataModelAttempt>()
+                : new ArrayList<AskDataModelAttempt>(modelAttemptDetails);
+    }
+    public List<AskDataModelAttempt> getEmbeddingModelAttemptDetails() {
+        return new ArrayList<AskDataModelAttempt>(embeddingModelAttemptDetails);
+    }
+    public void setEmbeddingModelAttemptDetails(List<AskDataModelAttempt> embeddingModelAttemptDetails) {
+        this.embeddingModelAttemptDetails = embeddingModelAttemptDetails == null
+                ? new ArrayList<AskDataModelAttempt>()
+                : new ArrayList<AskDataModelAttempt>(embeddingModelAttemptDetails);
+    }
+    public String getModelRouteSnapshot() { return modelRouteSnapshot; }
+    public void setModelRouteSnapshot(String modelRouteSnapshot) { this.modelRouteSnapshot = modelRouteSnapshot; }
     public Boolean getMultiQuestion() { return multiQuestion; }
     public void setMultiQuestion(Boolean multiQuestion) { this.multiQuestion = multiQuestion; }
     public String getMultiQuestionPlanSnapshot() { return multiQuestionPlanSnapshot; }

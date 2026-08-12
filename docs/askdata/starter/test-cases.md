@@ -13,7 +13,7 @@
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | UNIT-01 | 单元 | 验证项目与操作人上下文拒绝空白并规范化输入。 | 创建 `AskDataProjectContext`。 | 分别传 null、空白、带首尾空白的 projectId/operatorId。 | 空白抛稳定参数错误；合法值去除首尾空白。 | SQLBot 工作空间/项目、权限配置；WrenAI metadata constraints | 当前证据：Core 上下文单测；后续保留回归。 |
 | UNIT-02 | 单元 | 验证能力注册表的 key、版本、优先级和集群兼容性。 | 构造多个 CapabilityProvider。 | 注册重复 key、越界版本、非集群能力；查询同类列表。 | 非法注册拒绝；列表按优先级降序再按 key 排序且不可修改。 | SQLBot 模型配置/插件能力；WrenAI validate、model substitute | 当前证据：`AskDataCapabilityRegistryTest`。 |
-| UNIT-03 | 单元 | 验证多问题拆分、部分失败聚合和恢复令牌限制。 | 提供成功/失败子问题桩。 | 提交显式列表和中英文分号复合问题；再带恢复令牌提交多问题。 | 子问题独立审计并保留部分结果；带恢复令牌的多提问受控拒绝。 | SQLBot 多提问；WrenAI 后台任务、轮询结果 | 当前证据：Starter 已实现边界；精确回归命令见 `verification.md`。 |
+| UNIT-03 | 单元 | 验证多问题拆分、部分失败聚合和父检查点恢复。 | 提供成功/失败/超时子问题桩及合法父检查点。 | 提交显式列表和中英文分号复合问题；再以相同项目、操作人、授权版本、计划和路由快照恢复。 | 子问题独立终态并保留部分结果；只执行未完成节点，成功节点与已完成 SQL 不重放；身份、版本或快照漂移受控拒绝。 | SQLBot 多提问；WrenAI 后台任务、轮询结果 | 当前证据：`AskDataMultiQuestionFlowTest` 覆盖 DAG、部分失败、超时、取消、父检查点恢复和不重放。 |
 | CONTRACT-01 | 契约 | 验证业务覆盖 Bean 不改变 Core 隔离、错误和审计契约。 | 提供自定义 AskDataService/模型 Provider。 | 以不同项目和操作人调用默认与覆盖实现。 | 覆盖实现仍接收并传递上下文；不泄露跨范围状态；错误为稳定 DTO。 | SQLBot 模型接入、项目权限；WrenAI 可嵌入 API | 后续补充：所有第三方 Provider 接入必须运行。 |
 | CONTRACT-02 | 契约 | 验证 SQL 插件不得获得裸连接且插件输出必经最终校验。 | 注入记录型插件和恶意插件。 | 恶意插件将候选 SQL 改为写 SQL 或拼接参数。 | 插件只有受控命令；最终校验拒绝写入和拼接结果并写审计。 | SQLBot SQL 安全；WrenAI dry-plan、dry-run | 当前证据：SQL 安全文档要求；后续在 Core SQL 模块补契约测试。 |
 | CONTRACT-03 | 契约 | 验证共享存储实现的项目/操作人隔离、租约、版本和幂等。 | JDBC/Redis/业务 Store 测试实现。 | 跨节点读写会话、检查点、Agent 状态；争抢同一租约。 | 跨范围读取为空/拒绝；版本冲突和租约失败受控；幂等键不重复执行。 | SQLBot 多轮上下文；WrenAI 后台任务、任务轮询 | 后续补充：持久化 SPI 接入前必测。 |
@@ -29,7 +29,7 @@
 | AGENT-02 | 多 Agent/recovery | 验证 SQL/外部副作用不确定时绝不自动重放。 | 模拟执行中断及外部工具调用。 | 在 SQL 已发送或工具结果未知时请求恢复。 | 返回受控不确定/恢复失败，保留审计，等待业务授权。 | SQLBot SQL 安全；WrenAI dry-run、后台任务 | 当前证据：恢复和 Java 17 文档；后续故障注入测试。 |
 | MEM-01 | memory/recommendation 权限 | 验证长期记忆不跨项目或跨操作人召回。 | 两项目两操作人写入相似记忆。 | 使用另一操作人或项目查询并尝试回退。 | 只返回同项目同操作人内容；撤销后不可读取。 | SQLBot 长期记忆；WrenAI 历史问题 | 当前证据：默认内存桥接与存储矩阵；后续持久化 SPI 契约。 |
 | MEM-02 | memory/recommendation 权限 | 验证推荐画像、反馈与管理员查询权限。 | 写入不同人推荐和监控日志。 | 查询自己的推荐、其他人推荐和跨项目管理日志。 | 个人画像不复用；默认管理员仅可读授权项目；跨项目需宿主显式授权。 | SQLBot 推荐、操作日志；WrenAI 问题推荐、ask feedback | 当前证据：`index.md`、`storage-matrix.md`；后续权限 IT。 |
-| AUD-01 | monitoring audit | 验证强制生命周期日志、脱敏和导出失败隔离。 | 记录型本地 Store 和失败的 Langfuse/LangSmith/OTel 导出器。 | 覆盖会话、路由、Agent、SQL、恢复、完成/失败事件。 | 每阶段有本地脱敏日志；外部导出失败不影响问数；敏感字段未落日志。 | SQLBot 操作日志；WrenAI 遥测 | 当前证据：监控 Store 测试和 `flow-diagrams.md`；后续导出适配器测试。 |
+| AUD-01 | monitoring audit | 验证强制生命周期日志、脱敏和导出失败隔离。 | 记录型本地 Store 和失败的 Langfuse/LangSmith/OTel 导出器。 | 覆盖规划、会话、子问题、路由、Agent、SQL、恢复、取消、完成/失败事件及 Langfuse 容器关闭尾批。 | 每阶段有本地脱敏日志；外部导出失败不影响问数；敏感字段未落日志；关闭时未满批次被 flush。 | SQLBot 操作日志；WrenAI 遥测 | 当前证据：`AskDataObservabilityContractTest`、`VendorObservationExporterTest` 和 Flow 生命周期测试。 |
 | J17-01 | Java 17 remote runtime | 验证协议 payload、认证、版本协商与错误映射。 | Java 8 主进程、Java 17 桩服务、mTLS/JWT/HMAC 之一。 | 调用 HTTP/SSE/MCP/A2A/gRPC 中已选协议，发送兼容/不兼容版本和各类错误。 | 仅脱敏 DTO 出站；版本不兼容拒绝；网络/超时可重试，认证/输入/协议错误不可重试。 | SQLBot 模型/MCP 接入；WrenAI 可嵌入 API、Provider 模型 | 当前证据：`java17-remote-runtime.md`；后续每个传输实现 IT。 |
 | J17-02 | Java 17 remote runtime | 验证远程运行时不可扩权、不可改写路由、可灰度回退。 | 远程服务尝试更改项目、数据源或模型 key。 | 发送篡改响应、健康失败和熔断场景。 | 主进程拒绝越权字段；按项目/能力 key 灰度；回退至业务上一已验证的 LangChain4j 能力 key。 | SQLBot 模型路由/平台接入；WrenAI model substitute | 后续补安全与灰度集成测试。 |
 | FE-01 | frontend integration | 验证控制台/嵌入式小助手只使用后端短期 token。 | Vue3 测试宿主页、token 服务桩。 | 以浮窗、全屏、区域嵌入加载；检查 localStorage、Cookie、Header。 | 不暴露 appSecret/宿主凭据；token 过期/越权被拒绝；项目/操作人上下文完整。 | SQLBot 小助手/嵌入式对接；WrenAI 可嵌入 API | 业务接入前端后补 Playwright 测试。 |

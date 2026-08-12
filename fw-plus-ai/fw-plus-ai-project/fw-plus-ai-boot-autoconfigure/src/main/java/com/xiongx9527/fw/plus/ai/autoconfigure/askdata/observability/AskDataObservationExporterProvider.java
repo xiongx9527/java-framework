@@ -5,7 +5,7 @@ import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityProvider;
 import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType;
 
 /** 将观测 exporter 注册为版本化 Core 能力。 */
-public final class AskDataObservationExporterProvider implements AskDataCapabilityProvider {
+public final class AskDataObservationExporterProvider implements AskDataCapabilityProvider, AutoCloseable {
 	private final AskDataCapabilityDescriptor descriptor;
 	private final AskDataObservationExporter exporter;
 	public AskDataObservationExporterProvider(String key, String configurationNamespace,
@@ -17,4 +17,12 @@ public final class AskDataObservationExporterProvider implements AskDataCapabili
 	}
 	@Override public AskDataCapabilityDescriptor getDescriptor() { return descriptor; }
 	@Override public Object getCapability() { return exporter; }
+	@Override public void close() {
+		if (exporter instanceof LangfuseAskDataObservationExporter) {
+			try { ((LangfuseAskDataObservationExporter) exporter).flush(); }
+			catch (RuntimeException ignored) {
+				// 停机观测传输失败不得阻止 Spring 容器正常关闭。
+			}
+		}
+	}
 }

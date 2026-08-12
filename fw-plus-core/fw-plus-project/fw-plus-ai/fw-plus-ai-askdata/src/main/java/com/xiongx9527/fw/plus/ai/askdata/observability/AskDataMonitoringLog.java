@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.askdata.observability;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelUsage;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
 
 /**
@@ -19,13 +20,17 @@ public class AskDataMonitoringLog {
 	private final String denialCode;
 	private final String authorizationVersion;
 	private final String authorizationSource;
+	private final String capabilityKey;
+	private final String purposeKey;
 	private final String modelType;
 	private final String modelKey;
 	private final String modelRoutePolicy;
+	private final String modelRouteReason;
 	private final String modelState;
 	private final String modelFailureCode;
 	private final String modelSwitchReason;
 	private final String actualModelKey;
+	private final AskDataModelUsage modelUsage;
 	private final AskDataEventCorrelation correlation;
 
 	/**
@@ -79,6 +84,27 @@ public class AskDataMonitoringLog {
 			String authorizationSource, String modelType, String modelKey, String modelRoutePolicy, String modelState,
 			String modelFailureCode, String modelSwitchReason, String actualModelKey,
 			AskDataEventCorrelation correlation) {
+		this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, null, null, modelType, modelKey, modelRoutePolicy, modelState,
+				modelFailureCode, modelSwitchReason, actualModelKey, AskDataModelUsage.unknown(), correlation);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource, String capabilityKey, String purposeKey, String modelType, String modelKey,
+			String modelRoutePolicy, String modelState, String modelFailureCode, String modelSwitchReason,
+			String actualModelKey, AskDataModelUsage modelUsage, AskDataEventCorrelation correlation) {
+		this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, capabilityKey, purposeKey, modelType, modelKey, modelRoutePolicy, modelState,
+				modelFailureCode, modelSwitchReason, actualModelKey, modelUsage, correlation, null);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource, String capabilityKey, String purposeKey, String modelType, String modelKey,
+			String modelRoutePolicy, String modelState, String modelFailureCode, String modelSwitchReason,
+			String actualModelKey, AskDataModelUsage modelUsage, AskDataEventCorrelation correlation,
+			String modelRouteReason) {
 		if (context == null) {
 			throw new IllegalArgumentException("context 不能为空");
 		}
@@ -93,13 +119,17 @@ public class AskDataMonitoringLog {
 		this.denialCode = denialCode;
 		this.authorizationVersion = authorizationVersion;
 		this.authorizationSource = authorizationSource;
+		this.capabilityKey = capabilityKey;
+		this.purposeKey = purposeKey;
 		this.modelType = modelType;
 		this.modelKey = modelKey;
 		this.modelRoutePolicy = modelRoutePolicy;
+		this.modelRouteReason = modelRouteReason;
 		this.modelState = modelState;
 		this.modelFailureCode = modelFailureCode;
 		this.modelSwitchReason = modelSwitchReason;
 		this.actualModelKey = actualModelKey;
+		this.modelUsage = modelUsage == null ? AskDataModelUsage.unknown() : modelUsage;
 		this.correlation = correlation;
 	}
 
@@ -143,13 +173,17 @@ public class AskDataMonitoringLog {
 	public String getDenialCode() { return denialCode; }
 	public String getAuthorizationVersion() { return authorizationVersion; }
 	public String getAuthorizationSource() { return authorizationSource; }
+	public String getCapabilityKey() { return capabilityKey; }
+	public String getPurposeKey() { return purposeKey; }
 	public String getModelType() { return modelType; }
 	public String getModelKey() { return modelKey; }
 	public String getModelRoutePolicy() { return modelRoutePolicy; }
+	public String getModelRouteReason() { return modelRouteReason; }
 	public String getModelState() { return modelState; }
 	public String getModelFailureCode() { return modelFailureCode; }
 	public String getModelSwitchReason() { return modelSwitchReason; }
 	public String getActualModelKey() { return actualModelKey; }
+	public AskDataModelUsage getModelUsage() { return modelUsage; }
 	public AskDataEventCorrelation getCorrelation() { return correlation; }
 
 	/**
@@ -163,7 +197,8 @@ public class AskDataMonitoringLog {
 	 */
 	public AskDataMonitoringLogStore.MonitoringLog toStorageLog() {
 		return new AskDataMonitoringLogStore.MonitoringLog(context, traceId, eventType.name(), message,
-				datasourceKey, denialCode, authorizationVersion, authorizationSource, modelType, modelKey, modelRoutePolicy,
-				modelState, modelFailureCode, modelSwitchReason, actualModelKey, correlation);
+				datasourceKey, denialCode, authorizationVersion, authorizationSource, capabilityKey, purposeKey,
+				modelType, modelKey, modelRoutePolicy, modelState, modelFailureCode, modelSwitchReason,
+				actualModelKey, modelUsage, correlation, modelRouteReason);
 	}
 }

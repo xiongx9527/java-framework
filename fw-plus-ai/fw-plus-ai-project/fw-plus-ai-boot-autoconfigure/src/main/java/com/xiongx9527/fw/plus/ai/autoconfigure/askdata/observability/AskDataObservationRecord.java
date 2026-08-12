@@ -57,7 +57,20 @@ public final class AskDataObservationRecord {
 		put(metadata, "actualModelKey", event.getActualModelKey());
 		put(metadata, "modelState", event.getModelState() == null ? null : event.getModelState().name());
 		put(metadata, "modelFailureCode", event.getModelFailureCode());
+		put(metadata, "modelSwitchReason", event.getModelSwitchReason());
+		put(metadata, "modelRoutePolicy", event.getModelRoutePolicy() == null
+				? null : event.getModelRoutePolicy().name());
+		put(metadata, "modelRouteReason", event.getModelRouteReason());
+		if (event.getModelUsage() != null && !event.getModelUsage().isUnknown()) {
+			put(metadata, "inputTokens", String.valueOf(event.getModelUsage().getInputTokens()));
+			put(metadata, "outputTokens", String.valueOf(event.getModelUsage().getOutputTokens()));
+			put(metadata, "totalTokens", String.valueOf(event.getModelUsage().getTotalTokens()));
+			put(metadata, "cost", event.getModelUsage().getCost() == null
+					? null : event.getModelUsage().getCost().toPlainString());
+		}
 		put(metadata, "authorizationVersion", event.getAuthorizationVersion());
+		put(metadata, "capabilityKey", event.getCapabilityKey());
+		put(metadata, "purposeKey", event.getPurposeKey());
 		return new AskDataObservationRecord(kind, event.getContext().getProjectId(),
 				event.getContext().getOperatorId(), correlation.getRequestId(), correlation.getConversationId(),
 				correlation.getEventId(), correlation.getParentEventId(), event.getType().name(), metadata);

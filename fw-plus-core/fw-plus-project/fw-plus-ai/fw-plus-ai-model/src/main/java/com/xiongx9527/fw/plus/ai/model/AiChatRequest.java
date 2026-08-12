@@ -1,7 +1,5 @@
 package com.xiongx9527.fw.plus.ai.model;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 public final class AiChatRequest {
@@ -29,7 +27,7 @@ public final class AiChatRequest {
 	}
 
 	public Map<String, Object> getParameters() {
-		return parameters;
+		return AiModelImmutableValues.immutableMap(parameters);
 	}
 
 	public long getTimeoutMillis() {
@@ -37,9 +35,6 @@ public final class AiChatRequest {
 	}
 
 	private static Map<String, Object> immutableParameters(Map<String, Object> parameters) {
-		if (parameters == null || parameters.isEmpty()) {
-			return Collections.emptyMap();
-		}
-		return Collections.unmodifiableMap(new LinkedHashMap<String, Object>(parameters));
+		return AiModelImmutableValues.immutableMap(parameters);
 	}
 }

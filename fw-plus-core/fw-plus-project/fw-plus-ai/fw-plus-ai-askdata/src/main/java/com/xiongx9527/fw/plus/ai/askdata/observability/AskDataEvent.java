@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.askdata.observability;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelUsage;
 
 /**
  * AskData 对话生命周期中的厂商无关观测事件。
@@ -29,10 +30,14 @@ public class AskDataEvent {
 	public enum Type {
 		/** 对话已创建或开始处理。 */
 		CONVERSATION_STARTED,
+		/** 问题规划已开始。 */
+		QUESTION_PLAN_STARTED,
 		/** 问题已经完成计划。 */
 		QUESTION_PLANNED,
 		/** 问题规划失败。 */
 		QUESTION_PLAN_FAILED,
+		/** 问题规划被取消。 */
+		QUESTION_PLAN_CANCELLED,
 		/** 子问题开始执行。 */
 		SUB_QUESTION_STARTED,
 		/** 子问题执行成功。 */
@@ -51,10 +56,16 @@ public class AskDataEvent {
 		PROMPT_BUILT,
 		/** 已选择模型或模型路由。 */
 		MODEL_ROUTED,
+		/** 智能体节点开始执行。 */
+		AGENT_NODE_STARTED,
 		/** 已执行一个智能体节点。 */
 		AGENT_NODE_EXECUTED,
 		/** Agent 节点执行失败。 */
 		AGENT_NODE_FAILED,
+		/** Agent 节点被取消。 */
+		AGENT_NODE_CANCELLED,
+		/** 当前使用确定性顺序执行，未启用外部图编排。 */
+		GRAPH_RUNTIME_NOT_ENABLED,
 		/** 可选图运行时不可用，默认 Flow 回退到确定性顺序执行。 */
 		GRAPH_RUNTIME_FALLBACK,
 		/** 工具调用开始。 */
@@ -131,13 +142,17 @@ public class AskDataEvent {
 	private final String denialCode;
 	private final String authorizationVersion;
 	private final String authorizationSource;
+	private final String capabilityKey;
+	private final String purposeKey;
 	private final ModelType modelType;
 	private final String modelKey;
 	private final AskDataModelRoutePolicy modelRoutePolicy;
+	private final String modelRouteReason;
 	private final ModelState modelState;
 	private final String modelFailureCode;
 	private final String modelSwitchReason;
 	private final String actualModelKey;
+	private final AskDataModelUsage modelUsage;
 	private final AskDataEventCorrelation correlation;
 
 	/**
@@ -150,15 +165,28 @@ public class AskDataEvent {
 	 * @throws IllegalArgumentException 当上下文或事件类型为空时抛出
 	 */
 	public AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message) {
-		this(context, traceId, type, message, null, null, null, null, null, null, null, null, null, null, null,
-				defaultCorrelation(traceId));
+		this(context, traceId, type, message, null, null, null, null, null, null, null, null, null, null,
+				null, null, null, null, defaultCorrelation(traceId));
 	}
 
 	private AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message,
 			String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
-			ModelType modelType, String modelKey, AskDataModelRoutePolicy modelRoutePolicy, ModelState modelState,
-			String modelFailureCode, String modelSwitchReason, String actualModelKey,
+			String capabilityKey, String purposeKey, ModelType modelType, String modelKey,
+			AskDataModelRoutePolicy modelRoutePolicy, ModelState modelState, String modelFailureCode,
+			String modelSwitchReason, String actualModelKey, AskDataModelUsage modelUsage,
 			AskDataEventCorrelation correlation) {
+		this(context, traceId, type, message, datasourceKey, denialCode, authorizationVersion, authorizationSource,
+				capabilityKey, purposeKey, modelType, modelKey, modelRoutePolicy, modelState, modelFailureCode,
+				modelSwitchReason, actualModelKey, modelUsage, correlation,
+				modelRoutePolicy == null ? null : modelRoutePolicy.name());
+	}
+
+	private AskDataEvent(AskDataProjectContext context, String traceId, Type type, String message,
+			String datasourceKey, String denialCode, String authorizationVersion, String authorizationSource,
+			String capabilityKey, String purposeKey, ModelType modelType, String modelKey,
+			AskDataModelRoutePolicy modelRoutePolicy, ModelState modelState, String modelFailureCode,
+			String modelSwitchReason, String actualModelKey, AskDataModelUsage modelUsage,
+			AskDataEventCorrelation correlation, String modelRouteReason) {
 		if (context == null) {
 			throw new IllegalArgumentException("context 不能为空");
 		}
@@ -173,13 +201,17 @@ public class AskDataEvent {
 		this.denialCode = denialCode;
 		this.authorizationVersion = authorizationVersion;
 		this.authorizationSource = authorizationSource;
+		this.capabilityKey = capabilityKey;
+		this.purposeKey = purposeKey;
 		this.modelType = modelType;
 		this.modelKey = modelKey;
 		this.modelRoutePolicy = modelRoutePolicy;
+		this.modelRouteReason = normalize(modelRouteReason);
 		this.modelState = modelState;
 		this.modelFailureCode = modelFailureCode;
 		this.modelSwitchReason = modelSwitchReason;
 		this.actualModelKey = actualModelKey;
+		this.modelUsage = modelUsage == null ? AskDataModelUsage.unknown() : modelUsage;
 		this.correlation = correlation;
 	}
 
@@ -190,14 +222,28 @@ public class AskDataEvent {
 			throw new IllegalArgumentException("correlation 不能为空");
 		}
 		return new AskDataEvent(context, traceId, type, message, null, null, null, null, null, null, null, null,
-				null, null, null, correlation);
+				null, null, null, null, null, null, correlation);
 	}
 
 	public static AskDataEvent governanceDenied(AskDataProjectContext context, String traceId, String datasourceKey,
 			String denialCode, String authorizationVersion, String authorizationSource) {
+		return governanceDenied(context, traceId, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, null, null, defaultCorrelation(traceId));
+	}
+
+	public static AskDataEvent governanceDenied(AskDataProjectContext context, String traceId, String datasourceKey,
+			String denialCode, String authorizationVersion, String authorizationSource, String capabilityKey,
+			String purposeKey) {
+		return governanceDenied(context, traceId, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, capabilityKey, purposeKey, defaultCorrelation(traceId));
+	}
+
+	public static AskDataEvent governanceDenied(AskDataProjectContext context, String traceId, String datasourceKey,
+			String denialCode, String authorizationVersion, String authorizationSource, String capabilityKey,
+			String purposeKey, AskDataEventCorrelation correlation) {
 		return new AskDataEvent(context, traceId, Type.GOVERNANCE_DENIED, "AskData 治理拒绝", datasourceKey,
-				denialCode, authorizationVersion, authorizationSource, null, null, null, null, null, null, null,
-				defaultCorrelation(traceId));
+				denialCode, authorizationVersion, authorizationSource, normalize(capabilityKey), normalize(purposeKey),
+				null, null, null, null, null, null, null, null, correlation);
 	}
 
 	public static AskDataEvent modelRouted(AskDataProjectContext context, String traceId, String modelKey,
@@ -205,8 +251,8 @@ public class AskDataEvent {
 		if (modelKey == null || modelKey.trim().length() == 0) {
 			throw new IllegalArgumentException("modelKey 不能为空");
 		}
-		return new AskDataEvent(context, traceId, Type.MODEL_ROUTED, message, null, null, null, null,
-				ModelType.CHAT, modelKey.trim(), null, ModelState.ATTEMPTED, null, null, null,
+		return new AskDataEvent(context, traceId, Type.MODEL_ROUTED, message, null, null, null, null, null, null,
+				ModelType.CHAT, modelKey.trim(), null, ModelState.ATTEMPTED, null, null, null, null,
 				defaultCorrelation(traceId));
 	}
 
@@ -221,23 +267,39 @@ public class AskDataEvent {
 			String modelKey, AskDataModelRoutePolicy routePolicy, ModelState state, String failureCode,
 			String switchReason, String actualModelKey) {
 		return modelAttempt(context, traceId, modelType, modelKey, routePolicy, state, failureCode, switchReason,
-				actualModelKey, defaultCorrelation(traceId));
+				actualModelKey, defaultCorrelation(traceId), AskDataModelUsage.unknown());
 	}
 
 	/** 创建携带完整执行关联维度的模型尝试事件。 */
 	public static AskDataEvent modelAttempt(AskDataProjectContext context, String traceId, ModelType modelType,
 			String modelKey, AskDataModelRoutePolicy routePolicy, ModelState state, String failureCode,
 			String switchReason, String actualModelKey, AskDataEventCorrelation correlation) {
+		return modelAttempt(context, traceId, modelType, modelKey, routePolicy, state, failureCode, switchReason,
+				actualModelKey, correlation, AskDataModelUsage.unknown());
+	}
+
+	public static AskDataEvent modelAttempt(AskDataProjectContext context, String traceId, ModelType modelType,
+			String modelKey, AskDataModelRoutePolicy routePolicy, ModelState state, String failureCode,
+			String switchReason, String actualModelKey, AskDataEventCorrelation correlation,
+			AskDataModelUsage modelUsage) {
+		return modelAttempt(context, traceId, modelType, modelKey, routePolicy, state, failureCode, switchReason,
+				actualModelKey, correlation, modelUsage, routePolicy == null ? null : routePolicy.name());
+	}
+
+	public static AskDataEvent modelAttempt(AskDataProjectContext context, String traceId, ModelType modelType,
+			String modelKey, AskDataModelRoutePolicy routePolicy, ModelState state, String failureCode,
+			String switchReason, String actualModelKey, AskDataEventCorrelation correlation,
+			AskDataModelUsage modelUsage, String routeReason) {
 		if (modelType == null || modelKey == null || modelKey.trim().length() == 0
-				|| routePolicy == null || state == null) {
-			throw new IllegalArgumentException("modelType、modelKey、routePolicy 和 state 不能为空");
+				|| routePolicy == null || state == null || normalize(routeReason) == null) {
+			throw new IllegalArgumentException("modelType、modelKey、routePolicy、routeReason 和 state 不能为空");
 		}
 		if (state == ModelState.FAILED && (failureCode == null || failureCode.trim().length() == 0)) {
 			throw new IllegalArgumentException("失败模型事件必须携带 failureCode");
 		}
 		return new AskDataEvent(context, traceId, Type.MODEL_ROUTED, "AskData 模型尝试", null, null, null, null,
-				modelType, modelKey.trim(), routePolicy, state, normalize(failureCode), normalize(switchReason),
-				normalize(actualModelKey), correlation);
+				null, null, modelType, modelKey.trim(), routePolicy, state, normalize(failureCode),
+				normalize(switchReason), normalize(actualModelKey), modelUsage, correlation, routeReason);
 	}
 
 	/**
@@ -280,13 +342,17 @@ public class AskDataEvent {
 	public String getDenialCode() { return denialCode; }
 	public String getAuthorizationVersion() { return authorizationVersion; }
 	public String getAuthorizationSource() { return authorizationSource; }
+	public String getCapabilityKey() { return capabilityKey; }
+	public String getPurposeKey() { return purposeKey; }
 	public ModelType getModelType() { return modelType; }
 	public String getModelKey() { return modelKey; }
 	public AskDataModelRoutePolicy getModelRoutePolicy() { return modelRoutePolicy; }
+	public String getModelRouteReason() { return modelRouteReason; }
 	public ModelState getModelState() { return modelState; }
 	public String getModelFailureCode() { return modelFailureCode; }
 	public String getModelSwitchReason() { return modelSwitchReason; }
 	public String getActualModelKey() { return actualModelKey; }
+	public AskDataModelUsage getModelUsage() { return modelUsage; }
 	public AskDataEventCorrelation getCorrelation() { return correlation; }
 
 	private static AskDataEventCorrelation defaultCorrelation(String traceId) {

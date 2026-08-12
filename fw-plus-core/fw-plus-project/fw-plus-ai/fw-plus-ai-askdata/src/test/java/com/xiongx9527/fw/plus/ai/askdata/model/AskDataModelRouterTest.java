@@ -3,6 +3,11 @@ package com.xiongx9527.fw.plus.ai.askdata.model;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -29,6 +34,36 @@ public class AskDataModelRouterTest {
 	}
 
 	@Test
+	public void shouldRoutePolicyAndConfiguredFallbacksWithoutMislabelingThemAsBusinessScopes() {
+		Map<String, String> policyTags = new LinkedHashMap<String, String>();
+		policyTags.put("workload", "analytical");
+		AskDataModelRequest request = new AskDataModelRequest(
+				new AskDataProjectContext("project-1", "operator-1"), "", "", "", "",
+				"policy-model", Arrays.asList("fallback-a", "fallback-a", "fallback-b"), "default-model",
+				policyTags);
+
+		AskDataModelResult policy = router.route(request);
+		AskDataModelResult firstFallback = router.fallback(request,
+				AskDataModelResult.infrastructureFailure(policy, "temporarily unavailable"));
+		AskDataModelResult secondFallback = router.fallback(request,
+				AskDataModelResult.infrastructureFailure(firstFallback, "temporarily unavailable"));
+		AskDataModelResult defaultRoute = router.fallback(request,
+				AskDataModelResult.infrastructureFailure(secondFallback, "temporarily unavailable"));
+
+		assertRoute(policy, "policy-model", AskDataModelRoutePolicy.POLICY_TAG_KEY);
+		assertEquals("POLICY_TAG_KEY", policy.getRouteReason());
+		assertRoute(firstFallback, "fallback-a", AskDataModelRoutePolicy.CONFIGURED_FALLBACK);
+		assertEquals("CONFIGURED_FALLBACK[0]", firstFallback.getRouteReason());
+		assertRoute(secondFallback, "fallback-b", AskDataModelRoutePolicy.CONFIGURED_FALLBACK);
+		assertEquals("CONFIGURED_FALLBACK[2]", secondFallback.getRouteReason());
+		assertRoute(defaultRoute, "default-model", AskDataModelRoutePolicy.DEFAULT_KEY);
+		policyTags.put("risk", "high");
+		assertEquals(Collections.singletonMap("workload", "analytical"), request.getPolicyTags());
+		assertThrows(UnsupportedOperationException.class,
+				() -> request.getPolicyTags().put("risk", "high"));
+	}
+
+	@Test
 	public void shouldFallbackToNextCandidateAfterInfrastructureFailure() {
 		AskDataModelRequest request = request("request-model", "project-model", "datasource-model", "task-model", "default-model");
 
@@ -40,18 +75,21 @@ public class AskDataModelRouterTest {
 	}
 
 	@Test
-	public void shouldFallbackAfterTheFailedRoutePolicyWhenModelKeysAreDuplicated() {
+	public void shouldTryEachActualModelOnlyOnceWhenRouteLayersUseTheSameKey() {
 		AskDataModelRequest request = request("shared-model", "shared-model", "datasource-model", "task-model", "default-model");
 
 		AskDataModelResult requestRoute = router.route(request);
-		AskDataModelResult projectRoute = router.fallback(request,
-				AskDataModelResult.infrastructureFailure(requestRoute, "请求级模型网关暂不可用"));
 		AskDataModelResult datasourceRoute = router.fallback(request,
-				AskDataModelResult.infrastructureFailure(projectRoute, "项目级模型网关暂不可用"));
+				AskDataModelResult.infrastructureFailure(requestRoute, "请求级模型网关暂不可用"));
+		AskDataModelResult taskRoute = router.fallback(request,
+				AskDataModelResult.infrastructureFailure(datasourceRoute, "数据源级模型网关暂不可用"));
 
 		assertRoute(requestRoute, "shared-model", AskDataModelRoutePolicy.REQUEST_MODEL_KEY);
-		assertRoute(projectRoute, "shared-model", AskDataModelRoutePolicy.PROJECT_KEY);
 		assertRoute(datasourceRoute, "datasource-model", AskDataModelRoutePolicy.DATASOURCE_KEY);
+		assertRoute(taskRoute, "task-model", AskDataModelRoutePolicy.AGENT_TASK_KEY);
+		assertEquals(0, requestRoute.getCandidateIndex());
+		assertEquals(1, datasourceRoute.getCandidateIndex());
+		assertEquals(2, taskRoute.getCandidateIndex());
 	}
 
 	@Test

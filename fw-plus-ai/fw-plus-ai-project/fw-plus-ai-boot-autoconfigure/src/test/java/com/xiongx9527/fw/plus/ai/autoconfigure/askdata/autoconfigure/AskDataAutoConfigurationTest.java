@@ -179,6 +179,71 @@ public class AskDataAutoConfigurationTest {
     }
 
     @Test
+    public void shouldWireSingleBusinessCoreSpisIntoDefaultFlowRuntime() {
+        com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider metadataProvider =
+                (context, datasourceKey) -> new com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata(
+                        datasourceKey, Collections.singletonList("orders.*"));
+        com.xiongx9527.fw.plus.ai.askdata.vector.AskDataEmbeddingModel embeddingModel =
+                (context, text) -> new float[] {1F, 2F};
+        com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever ragRetriever =
+                new com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever(
+                        new InMemoryAskDataVectorStore());
+        com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataInterfacePublisher publisher =
+                new com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataInterfacePublisher() {
+                    @Override
+                    public com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataPublishedInterface publish(
+                            AskDataProjectContext context,
+                            com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataPublishRequest request) {
+                        return new com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataPublishedInterface(
+                                "interface-1", request.getName(), request.getDefinitionId());
+                    }
+
+                    @Override
+                    public void unpublish(AskDataProjectContext context, String interfaceId) { }
+                };
+
+        contextRunner
+                .withBean("businessCoreMetadata", com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider.class,
+                        () -> metadataProvider)
+                .withBean("businessCoreEmbedding", com.xiongx9527.fw.plus.ai.askdata.vector.AskDataEmbeddingModel.class,
+                        () -> embeddingModel)
+                .withBean("businessCoreRag", com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever.class,
+                        () -> ragRetriever)
+                .withBean("businessCorePublisher",
+                        com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataInterfacePublisher.class,
+                        () -> publisher)
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    AskDataRuntimeStateServices services = context.getBean(AskDataRuntimeStateServices.class);
+                    assertSame(metadataProvider, services.getMetadataProvider());
+                    assertSame(embeddingModel, services.getEmbeddingModel());
+                    assertSame(ragRetriever, services.getRagRetriever());
+                    assertSame(publisher, services.getInterfacePublisher());
+                });
+    }
+
+    @Test
+    public void shouldRejectMultipleBusinessBeansForTheSameCoreSpiAtStartup() {
+        contextRunner
+                .withBean("firstCoreMetadata",
+                        com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider.class,
+                        () -> (context, datasourceKey) ->
+                                new com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata(
+                                        datasourceKey, Collections.singletonList("orders.*")))
+                .withBean("secondCoreMetadata",
+                        com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider.class,
+                        () -> (context, datasourceKey) ->
+                                new com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata(
+                                        datasourceKey, Collections.singletonList("payments.*")))
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() != null);
+                    String messages = failureMessages(context.getStartupFailure());
+                    assertTrue(messages.contains("Core Metadata"));
+                    assertTrue(messages.contains("实际数量: 2"));
+                });
+    }
+
+    @Test
     public void shouldRejectUnknownConfiguredGraphRuntimeAtStartup() {
         contextRunner.withPropertyValues("fw.plus.ai.askdata.flow.graph-runtime=missing-graph-runtime")
                 .run(context -> {
@@ -240,7 +305,8 @@ public class AskDataAutoConfigurationTest {
                         "fw.plus.ai.askdata.state.lease-store=redis",
                         "fw.plus.ai.askdata.state.idempotency-store=redis",
                         "fw.plus.ai.askdata.state.audit-store=jdbc",
-                        "fw.plus.ai.askdata.state.monitoring-store=jdbc")
+                        "fw.plus.ai.askdata.state.monitoring-store=jdbc",
+                        "fw.plus.ai.askdata.state.long-term-memory-store=jdbc")
                 .withBean(AskDataJdbcStorageClient.class, () -> jdbc)
                 .withBean(AskDataRedisStorageClient.class, () -> redis)
                 .run(context -> {
@@ -260,6 +326,15 @@ public class AskDataAutoConfigurationTest {
                             new AskDataAuditStateStore.AuditState("RUNNING", "started", 1L));
                     context.getBean(AskDataMonitoringLogStore.class).append(scope,
                             new AskDataMonitoringLogStore.MonitoringLog("trace-1", "MODEL", "completed"));
+                    com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory memory = context.getBean(
+                            com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory.class);
+                    com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry memoryEntry =
+                            new com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry(
+                                    scope, "orders", "v1", "jdbc-memory");
+                    memory.remember(memoryEntry);
+                    assertEquals("jdbc-memory", memory.find(scope, "orders", "v1").get(0).getContent());
+                    assertTrue(memory.forget(scope, memoryEntry.getId(), "test", System.currentTimeMillis()));
+                    assertTrue(memory.find(scope, "orders", "v1").isEmpty());
 
                     AskDataRuntimeStateServices services = context.getBean(AskDataRuntimeStateServices.class);
 					assertEquals(AskDataCapabilityType.STORE,
@@ -270,6 +345,27 @@ public class AskDataAutoConfigurationTest {
                     assertSame(context.getBean(AskDataLeaseStore.class), services.getLeaseStore());
                     assertSame(context.getBean(AskDataIdempotencyKeyStore.class), services.getIdempotencyKeyStore());
                     assertSame(context.getBean(AskDataAuditStateStore.class), services.getAuditStateStore());
+                });
+    }
+
+    @Test
+    public void shouldUseRedisSharedClientForLongTermMemoryLifecycle() {
+        contextRunner
+                .withPropertyValues("fw.plus.ai.askdata.state.long-term-memory-store=redis")
+                .withBean(AskDataRedisStorageClient.class, MapBackedRedisClient::new)
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() == null);
+                    AskDataProjectContext scope = new AskDataProjectContext("project-a", "operator-a");
+                    com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory memory = context.getBean(
+                            com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory.class);
+                    com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry entry =
+                            new com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry(
+                                    scope, "orders", "v1", "redis-memory");
+                    memory.remember(entry);
+                    assertEquals("redis-memory", memory.find(scope, "orders", "v1").get(0).getContent());
+                    assertTrue(memory.forget(scope, entry.getId(), "test", System.currentTimeMillis()));
+                    assertTrue(memory.find(scope, "orders", "v1").isEmpty());
+                    assertEquals(entry.getId(), memory.listForgetAudits(scope).get(0).getMemoryId());
                 });
     }
 
@@ -589,6 +685,25 @@ public class AskDataAutoConfigurationTest {
     }
 
     @Test
+    public void shouldRecordGraphRuntimeNotEnabledWhenUsingDefaultSequentialRuntime() {
+        final int[] agentCalls = new int[] {0};
+
+        withDefaultFlowDependencies()
+                .withBean(AskDataAgent.class, () -> countingAgent("sequential-agent", agentCalls))
+                .run(context -> {
+                    assertSuccessfulSql(context.getBean(AskDataService.class).ask(createRequest()));
+                    assertEquals(1, agentCalls[0]);
+                    java.util.List<com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.MonitoringLog>
+                            logs = context.getBean(
+                                    com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore.class)
+                                    .list(new com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext(
+                                            "default", "default"));
+                    assertTrue(hasLifecycleEvent(logs, "GRAPH_RUNTIME_NOT_ENABLED"));
+                    assertTrue(!hasLifecycleEvent(logs, "GRAPH_RUNTIME_FALLBACK"));
+                });
+    }
+
+    @Test
     public void shouldFallBackBeforeGraphNodeExecutionWhenConfiguredRuntimeIsUnavailable() {
         final int[] runtimeCalls = new int[] {0};
         final int[] agentCalls = new int[] {0};
@@ -735,7 +850,7 @@ public class AskDataAutoConfigurationTest {
     }
 
     private void assertSuccessfulSql(AskDataResult result) {
-        assertTrue(result.isSuccess());
+        assertTrue(result.isSuccess(), "AskData 执行失败: " + result.getErrorCode() + " - " + result.getErrorMessage());
         assertEquals(SQL, result.getSql());
     }
 

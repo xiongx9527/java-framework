@@ -154,8 +154,11 @@ public class InMemoryAskDataConversationStore implements AskDataConversationStor
         target.setModelKey(source.getModelKey());
         target.setActualModelKey(source.getActualModelKey());
         target.setModelAttempts(source.getModelAttempts());
+        target.setModelAttemptDetails(source.getModelAttemptDetails());
         target.setActualEmbeddingModelKey(source.getActualEmbeddingModelKey());
         target.setEmbeddingModelAttempts(source.getEmbeddingModelAttempts());
+        target.setEmbeddingModelAttemptDetails(source.getEmbeddingModelAttemptDetails());
+        target.setModelRouteSnapshot(source.getModelRouteSnapshot());
         target.setMultiQuestion(source.getMultiQuestion());
         target.setMultiQuestionPlanSnapshot(source.getMultiQuestionPlanSnapshot());
         target.setChildResults(copyResults(source.getChildResults()));
@@ -209,11 +212,17 @@ public class InMemoryAskDataConversationStore implements AskDataConversationStor
         target.setCheckpointId(source.getCheckpointId());
         target.setActualModelKey(source.getActualModelKey());
         target.setModelAttempts(source.getModelAttempts());
+        target.setModelAttemptDetails(source.getModelAttemptDetails());
         target.setActualEmbeddingModelKey(source.getActualEmbeddingModelKey());
         target.setEmbeddingModelAttempts(source.getEmbeddingModelAttempts());
+        target.setEmbeddingModelAttemptDetails(source.getEmbeddingModelAttemptDetails());
+        target.setPublishedInterface(source.getPublishedInterface());
+        target.setCompressedContext(source.getCompressedContext());
+        target.setContextCompressionStatus(source.getContextCompressionStatus());
         target.setQuestionId(source.getQuestionId());
         target.setQuestionState(source.getQuestionState());
         target.setDependsOn(source.getDependsOn());
+        target.setFailurePolicy(source.getFailurePolicy());
         target.setChildResults(copyResults(source.getChildResults()));
         return target;
     }

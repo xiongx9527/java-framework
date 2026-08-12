@@ -1,10 +1,14 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelAttempt;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelUsage;
 import com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores;
 import org.junit.jupiter.api.Test;
 
 import java.util.Date;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -37,6 +41,10 @@ public class CoreAskDataConversationStoreAdapterTest {
 		checkpoint.setCheckpointId("checkpoint-a");
 		checkpoint.setResumeToken("resume-a");
 		checkpoint.setCurrentStep("metadata");
+		checkpoint.setModelAttemptDetails(Collections.singletonList(new AskDataModelAttempt(
+				AskDataModelAttempt.ModelType.CHAT, "chat-a", AskDataModelRoutePolicy.DEFAULT_KEY,
+				"DEFAULT_KEY", AskDataModelAttempt.State.SUCCEEDED, null, null, "chat-a",
+				AskDataModelUsage.unknown())));
 		checkpoint.setVersion("1");
 		checkpoint.setCreatedAt(new Date());
 		return checkpoint;

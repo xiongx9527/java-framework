@@ -25,15 +25,29 @@ public class TypedAiModelContractTest {
 	public void shouldDefensivelyCopyChatRequestParameters() {
 		Map<String, Object> parameters = new LinkedHashMap<String, Object>();
 		parameters.put("temperature", Double.valueOf(0.2D));
+		List<String> stop = new ArrayList<String>(Arrays.asList("END"));
+		Map<String, Object> response = new LinkedHashMap<String, Object>();
+		response.put("stop", stop);
+		int[] seed = new int[] { 7 };
+		parameters.put("response", response);
+		parameters.put("seed", seed);
 
 		AiChatRequest request = new AiChatRequest("prompt", parameters, 3000L);
 		parameters.put("temperature", Double.valueOf(0.8D));
+		stop.add("DONE");
+		seed[0] = 9;
 
 		assertEquals("prompt", request.getInput());
 		assertEquals(Double.valueOf(0.2D), request.getParameters().get("temperature"));
+		assertEquals(Arrays.asList("END"), nestedList(request.getParameters(), "response", "stop"));
+		assertArrayEquals(new int[] { 7 }, (int[]) request.getParameters().get("seed"));
 		assertEquals(3000L, request.getTimeoutMillis());
 		assertThrows(UnsupportedOperationException.class,
 				() -> request.getParameters().put("topP", Double.valueOf(0.9D)));
+		assertThrows(UnsupportedOperationException.class,
+				() -> nestedList(request.getParameters(), "response", "stop").add("DONE"));
+		((int[]) request.getParameters().get("seed"))[0] = 11;
+		assertArrayEquals(new int[] { 7 }, (int[]) request.getParameters().get("seed"));
 	}
 
 	@Test
@@ -41,16 +55,21 @@ public class TypedAiModelContractTest {
 		List<String> inputs = new ArrayList<String>(Arrays.asList("first", "second"));
 		Map<String, Object> parameters = new LinkedHashMap<String, Object>();
 		parameters.put("dimensions", Integer.valueOf(3));
+		List<String> tags = new ArrayList<String>(Arrays.asList("business"));
+		parameters.put("tags", tags);
 
 		AiEmbeddingRequest request = new AiEmbeddingRequest(inputs, parameters, 5000L);
 		inputs.add("third");
-		parameters.clear();
+		tags.add("private");
 
 		assertEquals(Arrays.asList("first", "second"), request.getInputs());
 		assertEquals(Integer.valueOf(3), request.getParameters().get("dimensions"));
+		assertEquals(Arrays.asList("business"), request.getParameters().get("tags"));
 		assertEquals(5000L, request.getTimeoutMillis());
 		assertThrows(UnsupportedOperationException.class, () -> request.getInputs().add("third"));
 		assertThrows(UnsupportedOperationException.class, () -> request.getParameters().clear());
+		assertThrows(UnsupportedOperationException.class,
+				() -> ((List<String>) request.getParameters().get("tags")).add("private"));
 	}
 
 	@Test
@@ -91,5 +110,10 @@ public class TypedAiModelContractTest {
 		assertArrayEquals(new float[] { 0.3F, 0.4F }, result.getEmbeddings().get(1));
 		assertThrows(UnsupportedOperationException.class,
 				() -> result.getEmbeddings().add(new float[] { 0.5F }));
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<String> nestedList(Map<String, Object> values, String mapKey, String listKey) {
+		return (List<String>) ((Map<String, Object>) values.get(mapKey)).get(listKey);
 	}
 }

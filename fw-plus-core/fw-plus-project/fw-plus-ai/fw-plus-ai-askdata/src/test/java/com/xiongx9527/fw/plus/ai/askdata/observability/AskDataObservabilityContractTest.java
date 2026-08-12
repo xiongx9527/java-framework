@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.askdata.observability;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelUsage;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
 import org.junit.jupiter.api.Test;
 
@@ -9,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -25,11 +27,16 @@ public class AskDataObservabilityContractTest {
 		EnumSet<AskDataEvent.Type> eventTypes = EnumSet.copyOf(Arrays.asList(AskDataEvent.Type.values()));
 
 		assertTrue(eventTypes.contains(AskDataEvent.Type.CONVERSATION_STARTED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.QUESTION_PLAN_STARTED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.QUESTION_PLANNED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.QUESTION_PLAN_CANCELLED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.SUB_QUESTION_STARTED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.SUB_QUESTION_COMPLETED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.MODEL_ROUTED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.AGENT_NODE_STARTED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.AGENT_NODE_EXECUTED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.AGENT_NODE_CANCELLED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.GRAPH_RUNTIME_NOT_ENABLED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.TOOL_STARTED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.TOOL_COMPLETED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.SQL_PLUGIN_STARTED));
@@ -46,6 +53,7 @@ public class AskDataObservabilityContractTest {
 		assertTrue(eventTypes.contains(AskDataEvent.Type.RECOVERY_ATTEMPTED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.CONVERSATION_COMPLETED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.CONVERSATION_FAILED));
+		assertTrue(eventTypes.contains(AskDataEvent.Type.CONVERSATION_CANCELLED));
 		assertTrue(eventTypes.contains(AskDataEvent.Type.GOVERNANCE_DENIED));
 	}
 
@@ -102,15 +110,19 @@ public class AskDataObservabilityContractTest {
 
 	@Test
 	public void shouldExposeSanitizedGovernanceDenialFields() {
+		AskDataEventCorrelation correlation = AskDataEventCorrelation.builder("request-1", "conversation-1").build();
 		AskDataEvent event = AskDataEvent.governanceDenied(
 				new AskDataProjectContext("project-a", "operator-a"), "conversation-1", "analytics",
-				"DATASOURCE_DENIED", "policy-v7", "iam-main");
+				"DATASOURCE_DENIED", "policy-v7", "iam-main", "governance", "QUERY", correlation);
 
 		assertEquals(AskDataEvent.Type.GOVERNANCE_DENIED, event.getType());
 		assertEquals("analytics", event.getDatasourceKey());
 		assertEquals("DATASOURCE_DENIED", event.getDenialCode());
 		assertEquals("policy-v7", event.getAuthorizationVersion());
 		assertEquals("iam-main", event.getAuthorizationSource());
+		assertEquals("governance", event.getCapabilityKey());
+		assertEquals("QUERY", event.getPurposeKey());
+		assertEquals("request-1", event.getCorrelation().getRequestId());
 	}
 
 	@Test
@@ -164,7 +176,9 @@ public class AskDataObservabilityContractTest {
 		AskDataEvent event = AskDataEvent.modelAttempt(context, "trace-model", AskDataEvent.ModelType.EMBEDDING,
 				"embedding-primary",
 				AskDataModelRoutePolicy.REQUEST_MODEL_KEY, AskDataEvent.ModelState.FAILED,
-				"MODEL_INFRASTRUCTURE_FAILURE", "RETRYABLE_INFRASTRUCTURE_FAILURE", null);
+				"MODEL_INFRASTRUCTURE_FAILURE", "RETRYABLE_INFRASTRUCTURE_FAILURE", null,
+				AskDataEventCorrelation.builder("request-1", "conversation-1").build(),
+				AskDataModelUsage.unknown(), "request.embeddingModelKey");
 		RecordingMonitoringLogStore store = new RecordingMonitoringLogStore();
 
 		AskDataEventPublisher.toStore(store).publish(event);
@@ -177,6 +191,22 @@ public class AskDataObservabilityContractTest {
 		assertEquals("MODEL_INFRASTRUCTURE_FAILURE", log.getModelFailureCode());
 		assertEquals("RETRYABLE_INFRASTRUCTURE_FAILURE", log.getModelSwitchReason());
 		assertEquals(null, log.getActualModelKey());
+		assertEquals("request.embeddingModelKey", log.getModelRouteReason());
+	}
+
+	@Test
+	public void shouldPreserveModelTokenUsageAndCostForExternalExporters() {
+		AskDataEvent event = AskDataEvent.modelAttempt(
+				new AskDataProjectContext("project-a", "operator-a"), "trace-model",
+				AskDataEvent.ModelType.CHAT, "chat-primary", AskDataModelRoutePolicy.REQUEST_MODEL_KEY,
+				AskDataEvent.ModelState.SUCCEEDED, null, null, "provider-chat",
+				AskDataEventCorrelation.builder("request-1", "conversation-1").build(),
+				new AskDataModelUsage(7L, 3L, 10L, new BigDecimal("0.0012")));
+
+		assertEquals(Long.valueOf(7L), event.getModelUsage().getInputTokens());
+		assertEquals(Long.valueOf(3L), event.getModelUsage().getOutputTokens());
+		assertEquals(Long.valueOf(10L), event.getModelUsage().getTotalTokens());
+		assertEquals(new BigDecimal("0.0012"), event.getModelUsage().getCost());
 	}
 
 	@Test

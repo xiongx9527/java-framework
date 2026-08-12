@@ -1,8 +1,19 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelAttempt;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelUsage;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore;
+
+import java.io.IOException;
+import java.math.BigDecimal;
 
 /**
  * 将旧 Flow 检查点单向写入 Core 会话与检查点 SPI。
@@ -27,6 +38,10 @@ public final class CoreAskDataConversationStoreAdapter implements AskDataConvers
 		this.conversationStore = conversationStore;
 		this.checkpointStore = checkpointStore;
 		this.objectMapper = new ObjectMapper();
+		SimpleModule module = new SimpleModule("askdata-checkpoint-contracts");
+		module.addDeserializer(AskDataModelUsage.class, new ModelUsageDeserializer());
+		module.addDeserializer(AskDataModelAttempt.class, new ModelAttemptDeserializer());
+		this.objectMapper.registerModule(module);
 	}
 
 	@Override
@@ -123,5 +138,55 @@ public final class CoreAskDataConversationStoreAdapter implements AskDataConvers
 
 	private static boolean notBlank(String value) {
 		return value != null && value.trim().length() > 0;
+	}
+
+	private static final class ModelUsageDeserializer extends JsonDeserializer<AskDataModelUsage> {
+		@Override
+		public AskDataModelUsage deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+			JsonNode node = parser.getCodec().readTree(parser);
+			JsonNode input = node.get("inputTokens");
+			if (input == null || input.isNull()) {
+				return AskDataModelUsage.unknown();
+			}
+			JsonNode output = node.get("outputTokens");
+			JsonNode total = node.get("totalTokens");
+			if (output == null || output.isNull() || total == null || total.isNull()) {
+				throw context.mappingException("AskData 模型用量必须同时包含 input/output/total tokens");
+			}
+			JsonNode cost = node.get("cost");
+			return new AskDataModelUsage(input.longValue(), output.longValue(), total.longValue(),
+					cost == null || cost.isNull() ? null : new BigDecimal(cost.asText()));
+		}
+	}
+
+	private static final class ModelAttemptDeserializer extends JsonDeserializer<AskDataModelAttempt> {
+		@Override
+		public AskDataModelAttempt deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+			JsonNode node = parser.getCodec().readTree(parser);
+			JsonNode usageNode = node.get("usage");
+			AskDataModelUsage usage = usageNode == null || usageNode.isNull()
+					? AskDataModelUsage.unknown()
+					: parser.getCodec().treeToValue(usageNode, AskDataModelUsage.class);
+			return new AskDataModelAttempt(
+					AskDataModelAttempt.ModelType.valueOf(requiredText(node, "modelType", context)),
+					requiredText(node, "modelKey", context),
+					AskDataModelRoutePolicy.valueOf(requiredText(node, "routePolicy", context)),
+					requiredText(node, "routeReason", context),
+					AskDataModelAttempt.State.valueOf(requiredText(node, "state", context)),
+					optionalText(node, "failureCode"), optionalText(node, "switchReason"),
+					optionalText(node, "actualModelKey"), usage);
+		}
+
+		private static String requiredText(JsonNode node, String field, DeserializationContext context)
+				throws IOException {
+			String value = optionalText(node, field);
+			if (!notBlank(value)) throw context.mappingException("AskData 模型尝试缺少字段: " + field);
+			return value;
+		}
+
+		private static String optionalText(JsonNode node, String field) {
+			JsonNode value = node.get(field);
+			return value == null || value.isNull() ? null : value.asText();
+		}
 	}
 }

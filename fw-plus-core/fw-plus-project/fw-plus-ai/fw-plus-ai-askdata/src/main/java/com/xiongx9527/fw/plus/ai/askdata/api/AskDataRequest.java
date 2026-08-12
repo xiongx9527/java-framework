@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.askdata.api;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelSelection;
+import com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataPublishRequest;
 
 /**
  * AskData 的核心查询请求。
@@ -12,6 +14,13 @@ public class AskDataRequest {
 
 	private final AskDataProjectContext projectContext;
 	private final String question;
+	private final String datasourceKey;
+	private final String dialect;
+	private final AskDataModelSelection chatModelSelection;
+	private final AskDataModelSelection embeddingModelSelection;
+	private final Boolean execute;
+	private final Integer maxRows;
+	private final AskDataPublishRequest publishRequest;
 
 	/**
 	 * 创建数据问答请求。
@@ -24,11 +33,33 @@ public class AskDataRequest {
 	 * @throws IllegalArgumentException 当上下文或问题为空、空白时抛出
 	 */
 	public AskDataRequest(AskDataProjectContext projectContext, String question) {
+		this(projectContext, question, null, null, AskDataModelSelection.empty(),
+				AskDataModelSelection.empty(), null, null, null);
+	}
+
+	public AskDataRequest(AskDataProjectContext projectContext, String question, String datasourceKey, String dialect,
+			AskDataModelSelection chatModelSelection, AskDataModelSelection embeddingModelSelection,
+			Boolean execute, Integer maxRows, AskDataPublishRequest publishRequest) {
 		if (projectContext == null) {
 			throw new IllegalArgumentException("projectContext 不能为空");
 		}
+		if (maxRows != null && maxRows.intValue() <= 0) {
+			throw new IllegalArgumentException("maxRows 必须大于 0");
+		}
 		this.projectContext = projectContext;
 		this.question = requireNonBlank(question, "question");
+		this.datasourceKey = normalize(datasourceKey);
+		this.dialect = normalize(dialect);
+		this.chatModelSelection = chatModelSelection == null ? AskDataModelSelection.empty() : chatModelSelection;
+		this.embeddingModelSelection = embeddingModelSelection == null
+				? AskDataModelSelection.empty() : embeddingModelSelection;
+		this.execute = execute;
+		this.maxRows = maxRows;
+		this.publishRequest = publishRequest;
+	}
+
+	public static Builder builder(AskDataProjectContext projectContext, String question) {
+		return new Builder(projectContext, question);
 	}
 
 	/**
@@ -47,6 +78,18 @@ public class AskDataRequest {
 	 */
 	public String getQuestion() {
 		return question;
+	}
+
+	public String getDatasourceKey() { return datasourceKey; }
+	public String getDialect() { return dialect; }
+	public AskDataModelSelection getChatModelSelection() { return chatModelSelection; }
+	public AskDataModelSelection getEmbeddingModelSelection() { return embeddingModelSelection; }
+	public Boolean getExecute() { return execute; }
+	public Integer getMaxRows() { return maxRows; }
+	public AskDataPublishRequest getPublishRequest() { return publishRequest; }
+
+	private static String normalize(String value) {
+		return value == null || value.trim().length() == 0 ? null : value.trim();
 	}
 
 	private static String requireNonBlank(String value, String fieldName) {
@@ -74,5 +117,34 @@ public class AskDataRequest {
 
 	private static boolean isWhitespace(char character) {
 		return Character.isWhitespace(character) || Character.isSpaceChar(character);
+	}
+
+	public static final class Builder {
+		private final AskDataProjectContext projectContext;
+		private final String question;
+		private String datasourceKey;
+		private String dialect;
+		private AskDataModelSelection chatModelSelection = AskDataModelSelection.empty();
+		private AskDataModelSelection embeddingModelSelection = AskDataModelSelection.empty();
+		private Boolean execute;
+		private Integer maxRows;
+		private AskDataPublishRequest publishRequest;
+
+		private Builder(AskDataProjectContext projectContext, String question) {
+			this.projectContext = projectContext;
+			this.question = question;
+		}
+
+		public Builder datasourceKey(String value) { this.datasourceKey = value; return this; }
+		public Builder dialect(String value) { this.dialect = value; return this; }
+		public Builder chatModelSelection(AskDataModelSelection value) { this.chatModelSelection = value; return this; }
+		public Builder embeddingModelSelection(AskDataModelSelection value) { this.embeddingModelSelection = value; return this; }
+		public Builder execute(Boolean value) { this.execute = value; return this; }
+		public Builder maxRows(Integer value) { this.maxRows = value; return this; }
+		public Builder publishRequest(AskDataPublishRequest value) { this.publishRequest = value; return this; }
+		public AskDataRequest build() {
+			return new AskDataRequest(projectContext, question, datasourceKey, dialect, chatModelSelection,
+					embeddingModelSelection, execute, maxRows, publishRequest);
+		}
 	}
 }

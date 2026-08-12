@@ -17,6 +17,7 @@ public final class AskDataErrorCode {
     public static final String SUBQUESTION_TIMED_OUT = "SUBQUESTION_TIMED_OUT";
     public static final String SUBQUESTION_CANCELLED = "SUBQUESTION_CANCELLED";
     public static final String SUBQUESTION_SKIPPED = "SUBQUESTION_SKIPPED";
+    public static final String INTERFACE_PUBLISH_FAILED = "INTERFACE_PUBLISH_FAILED";
 
     private AskDataErrorCode() {
     }

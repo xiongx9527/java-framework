@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.askdata.storage;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory;
+import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -98,6 +100,23 @@ class AskDataSharedStorageTest {
 				new AskDataIdempotencyKeyStore.IdempotencyRecord("running", "checkpoint-1")));
 		assertFalse(stores.idempotencyKeys().recordIfAbsent(context, "request-1",
 				new AskDataIdempotencyKeyStore.IdempotencyRecord("completed", "checkpoint-2")));
+	}
+
+	@Test
+	void 共享适配器应跨实例保存隔离的长期记忆与遗忘审计() {
+		MapBackedJdbcClient client = new MapBackedJdbcClient();
+		AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
+		AskDataLongTermMemory beforeRestart = AskDataSharedStoreAdapter.jdbc(client).longTermMemory();
+		AskDataMemoryEntry entry = new AskDataMemoryEntry(context, "orders", "v1", "monthly revenue");
+		beforeRestart.remember(entry);
+
+		AskDataLongTermMemory afterRestart = AskDataSharedStoreAdapter.jdbc(client).longTermMemory();
+
+		assertEquals(1, afterRestart.find(context, "orders", "v1").size());
+		assertEquals("monthly revenue", afterRestart.find(context, "orders", "v1").get(0).getContent());
+		assertTrue(afterRestart.forget(context, entry.getId(), "business request", System.currentTimeMillis()));
+		assertTrue(afterRestart.find(context, "orders", "v1").isEmpty());
+		assertEquals(entry.getId(), afterRestart.listForgetAudits(context).get(0).getMemoryId());
 	}
 
 	private static final class MapBackedJdbcClient extends MapBackedClient implements AskDataJdbcStorageClient {

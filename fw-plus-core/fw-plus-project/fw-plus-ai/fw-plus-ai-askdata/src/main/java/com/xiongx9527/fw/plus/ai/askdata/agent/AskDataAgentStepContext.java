@@ -19,6 +19,8 @@ public final class AskDataAgentStepContext {
 	private final String question;
 	private final String datasourceKey;
 	private final String conversationId;
+	private final String requestId;
+	private final String subQuestionId;
 	private final AskDataMetadata metadata;
 	private final List<String> selectedResources;
 	private final String prompt;
@@ -45,6 +47,8 @@ public final class AskDataAgentStepContext {
 		this.question = builder.question.trim();
 		this.datasourceKey = normalize(builder.datasourceKey);
 		this.conversationId = normalize(builder.conversationId);
+		this.requestId = normalize(builder.requestId);
+		this.subQuestionId = normalize(builder.subQuestionId);
 		this.metadata = builder.metadata;
 		this.selectedResources = immutableResources(builder.selectedResources);
 		this.prompt = builder.prompt;
@@ -77,6 +81,9 @@ public final class AskDataAgentStepContext {
 	public String getConversationId() {
 		return conversationId;
 	}
+
+	public String getRequestId() { return requestId; }
+	public String getSubQuestionId() { return subQuestionId; }
 
 	public AskDataMetadata getMetadata() {
 		return metadata;
@@ -131,6 +138,8 @@ public final class AskDataAgentStepContext {
 		private final String question;
 		private String datasourceKey;
 		private String conversationId;
+		private String requestId;
+		private String subQuestionId;
 		private AskDataMetadata metadata;
 		private List<String> selectedResources = Collections.emptyList();
 		private String prompt;
@@ -154,6 +163,9 @@ public final class AskDataAgentStepContext {
 			this.conversationId = value;
 			return this;
 		}
+
+		public Builder requestId(String value) { this.requestId = value; return this; }
+		public Builder subQuestionId(String value) { this.subQuestionId = value; return this; }
 
 		public Builder metadata(AskDataMetadata value) {
 			this.metadata = value;

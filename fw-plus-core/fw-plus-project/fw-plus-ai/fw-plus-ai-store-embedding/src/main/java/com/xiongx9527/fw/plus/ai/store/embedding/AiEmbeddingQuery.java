@@ -1,7 +1,6 @@
 package com.xiongx9527.fw.plus.ai.store.embedding;
 
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 public final class AiEmbeddingQuery {
@@ -32,9 +31,7 @@ public final class AiEmbeddingQuery {
 		this.vector = vector;
 		this.maxResults = maxResults;
 		this.minScore = minScore;
-		this.filters = filters == null || filters.isEmpty()
-				? Collections.<String, Object>emptyMap()
-				: Collections.unmodifiableMap(new LinkedHashMap<String, Object>(filters));
+		this.filters = AiEmbeddingImmutableValues.immutableMap(filters);
     }
 
     public AiEmbeddingVector getVector() {
@@ -50,6 +47,6 @@ public final class AiEmbeddingQuery {
     }
 
 	public Map<String, Object> getFilters() {
-		return filters;
+		return AiEmbeddingImmutableValues.immutableMap(filters);
 	}
 }
