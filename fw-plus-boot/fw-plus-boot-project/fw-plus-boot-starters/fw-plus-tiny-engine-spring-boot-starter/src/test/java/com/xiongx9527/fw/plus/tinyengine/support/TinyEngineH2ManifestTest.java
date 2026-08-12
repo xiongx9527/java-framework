@@ -34,7 +34,8 @@ class TinyEngineH2ManifestTest {
 				"classpath:META-INF/tiny-engine/sql/h2/init_data_2025_1023.sql",
 				"classpath:META-INF/tiny-engine/sql/h2/init_data_2025_1125.sql",
 				"classpath:META-INF/tiny-engine/sql/h2/init_data_2026_0810_app_roles.sql",
-				"classpath:META-INF/tiny-engine/sql/h2/update_table_2026_0811_owner_guard.sql");
+				"classpath:META-INF/tiny-engine/sql/h2/update_table_2026_0811_owner_guard.sql",
+				"classpath:META-INF/tiny-engine/sql/h2/14_create_ai_model_config_ddl.sql");
 		List<String> scripts = new TinyEngineSqlScriptManifest().getScripts("h2");
 		assertEquals(expectedScripts, scripts);
 
