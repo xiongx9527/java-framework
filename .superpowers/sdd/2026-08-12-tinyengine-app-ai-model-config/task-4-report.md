@@ -60,7 +60,7 @@ mvn -f fw-plus-boot/pom.xml test \
 
 ## 提交
 
-`342d9f73`（`TinyEngine: 暴露应用 AI 模型配置接口`）。
+实现提交：`1b23df6a`（`TinyEngine: 暴露应用 AI 模型配置接口`）。
 
 ## 关注点
 
