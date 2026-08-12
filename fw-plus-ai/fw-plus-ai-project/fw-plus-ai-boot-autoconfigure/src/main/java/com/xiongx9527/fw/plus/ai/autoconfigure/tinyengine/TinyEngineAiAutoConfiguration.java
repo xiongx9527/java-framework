@@ -272,9 +272,7 @@ public class TinyEngineAiAutoConfiguration {
 		}
 
 		private TinyEngineAiProvider provider(AiModelInvocationConfig invocation, TinyEngineAiCapability capability) {
-			TinyEngineAiProvider provider = invocation == null || isBlank(invocation.getProvider())
-					? providerRegistry.requireCapability(capability)
-					: providerRegistry.getProvider(invocation.getProvider());
+			TinyEngineAiProvider provider = providerRegistry.requireCapability(capability);
 			if (!provider.supports(capability)) {
 				throw new IllegalStateException("TinyEngine AI provider '" + provider.getKey()
 						+ "' does not support capability '" + capability + "'");
@@ -286,6 +284,7 @@ public class TinyEngineAiAutoConfiguration {
 			TinyEngineChatRequest target = new TinyEngineChatRequest();
 			target.setAppId(request.getAppId());
 			target.setServiceId(request.getServiceId());
+			target.setProvider(invocation.getProvider());
 			target.setModelName(invocation.getModelName());
 			target.setModelKey(invocation.getModelName());
 			target.setModel(invocation.getModelName());
