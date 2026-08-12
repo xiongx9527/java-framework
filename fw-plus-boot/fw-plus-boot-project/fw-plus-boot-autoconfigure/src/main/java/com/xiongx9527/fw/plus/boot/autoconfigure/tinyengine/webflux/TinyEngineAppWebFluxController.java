@@ -4,6 +4,9 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFac
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.web.TinyEngineWebResponses;
 import com.xiongx9527.fw.plus.tinyengine.common.model.Result;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelImportRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberRoleRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.AppExtension;
@@ -98,6 +101,65 @@ public class TinyEngineAppWebFluxController {
 			facade.removeAppMember(appId, userId);
 			return Boolean.TRUE;
 		});
+	}
+
+	@GetMapping("/app-center/api/apps/{appId}/ai-model-services")
+	public Mono<ResponseEntity<? extends Result<?>>> usableAiModelServices(@PathVariable Integer appId) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.usableAiModelServices(appId));
+	}
+
+	@GetMapping("/app-center/api/apps/{appId}/ai-model-services/manage")
+	public Mono<ResponseEntity<? extends Result<?>>> manageableAiModelServices(@PathVariable Integer appId) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.manageableAiModelServices(appId));
+	}
+
+	@PostMapping("/app-center/api/apps/{appId}/ai-model-services")
+	public Mono<ResponseEntity<? extends Result<?>>> createAiModelService(@PathVariable Integer appId,
+			@RequestBody AiModelServiceRequest request) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.createAiModelService(appId, request));
+	}
+
+	@PutMapping("/app-center/api/apps/{appId}/ai-model-services/{serviceId}")
+	public Mono<ResponseEntity<? extends Result<?>>> updateAiModelService(@PathVariable Integer appId,
+			@PathVariable Long serviceId, @RequestBody AiModelServiceRequest request) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.updateAiModelService(appId, serviceId, request));
+	}
+
+	@DeleteMapping("/app-center/api/apps/{appId}/ai-model-services/{serviceId}")
+	public Mono<ResponseEntity<? extends Result<?>>> deleteAiModelService(@PathVariable Integer appId,
+			@PathVariable Long serviceId) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> {
+			facade.deleteAiModelService(appId, serviceId);
+			return Boolean.TRUE;
+		});
+	}
+
+	@PostMapping("/app-center/api/apps/{appId}/ai-model-services/{serviceId}/models")
+	public Mono<ResponseEntity<? extends Result<?>>> addAiModel(@PathVariable Integer appId, @PathVariable Long serviceId,
+			@RequestBody AiModelRequest request) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.addAiModel(appId, serviceId, request));
+	}
+
+	@PutMapping("/app-center/api/apps/{appId}/ai-model-services/{serviceId}/models/{modelId}")
+	public Mono<ResponseEntity<? extends Result<?>>> updateAiModel(@PathVariable Integer appId, @PathVariable Long serviceId,
+			@PathVariable Long modelId, @RequestBody AiModelRequest request) {
+		return TinyEngineWebFluxSupport.submit(executor,
+				() -> facade.updateAiModel(appId, serviceId, modelId, request));
+	}
+
+	@DeleteMapping("/app-center/api/apps/{appId}/ai-model-services/{serviceId}/models/{modelId}")
+	public Mono<ResponseEntity<? extends Result<?>>> deleteAiModel(@PathVariable Integer appId, @PathVariable Long serviceId,
+			@PathVariable Long modelId) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> {
+			facade.deleteAiModel(appId, serviceId, modelId);
+			return Boolean.TRUE;
+		});
+	}
+
+	@PostMapping("/app-center/api/apps/{appId}/ai-model-services/import-local")
+	public Mono<ResponseEntity<? extends Result<?>>> importAiModelServices(@PathVariable Integer appId,
+			@RequestBody AiModelImportRequest request) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.importAiModelServices(appId, request));
 	}
 
 	@GetMapping("/app-center/api/apps/save/{id}")
