@@ -6,6 +6,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistr
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRequest;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelResult;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelSelection;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelUsage;
 import com.xiongx9527.fw.plus.ai.model.AiEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.model.AiEmbeddingRequest;
 import com.xiongx9527.fw.plus.ai.model.AiEmbeddingResult;
@@ -88,7 +90,7 @@ public class AiEmbeddingStoreAskDataVectorRetriever implements AskDataVectorRetr
     }
 
     private EmbeddingExecution embed(AskDataVectorQuery query) {
-        if (neutralModelRegistry != null && modelRouter != null && query.getProjectContext() != null) {
+        if (modelRouter != null && query.getProjectContext() != null) {
             return embedNeutral(query);
         }
         AskDataEmbeddingModel embeddingModel = modelRegistry == null ? null
@@ -106,22 +108,18 @@ public class AiEmbeddingStoreAskDataVectorRetriever implements AskDataVectorRetr
         AskDataModelResult routed = modelRouter.route(routeRequest);
         List<AskDataModelAttemptTrace> attempts = new ArrayList<AskDataModelAttemptTrace>();
         while (true) {
-            attempts.add(AskDataModelAttemptTrace.attempted(routed.getModelKey(), routed.getRoutePolicy()));
+            attempts.add(AskDataModelAttemptTrace.attempted(routed));
             try {
-                AiEmbeddingModel embeddingModel = neutralEmbeddingModel(routed.getModelKey());
-                AiEmbeddingResult result = embeddingModel.embed(new AiEmbeddingRequest(
-                        Collections.singletonList(query.getQuestion()), Collections.<String, Object>emptyMap(),
-                        requestTimeoutMillis()));
+                AiEmbeddingResult result = executeEmbedding(query, routed.getModelKey());
                 if (result == null || result.getEmbeddings().size() != 1) {
-                    attempts.add(AskDataModelAttemptTrace.failed(routed.getModelKey(), routed.getRoutePolicy(),
+                    attempts.add(AskDataModelAttemptTrace.failed(routed,
                             AiModelException.MODEL_ERROR, "INVALID_MODEL_RESPONSE", null));
                     throw new AskDataVectorRetrievalException(
                             new AiModelException("Embedding 模型必须为单条输入返回一个向量"), attempts);
                 }
                 String actualModelKey = isBlank(result.getActualModelKey())
                         ? routed.getModelKey() : result.getActualModelKey();
-                attempts.add(AskDataModelAttemptTrace.succeeded(routed.getModelKey(), routed.getRoutePolicy(),
-                        actualModelKey));
+                attempts.add(AskDataModelAttemptTrace.succeeded(routed, actualModelKey, usage(result)));
                 return new EmbeddingExecution(result.getEmbeddings().get(0), attempts, actualModelKey);
             } catch (AskDataVectorRetrievalException ex) {
                 throw ex;
@@ -129,7 +127,7 @@ public class AiEmbeddingStoreAskDataVectorRetriever implements AskDataVectorRetr
                 boolean retryableInfrastructureFailure = AiModelException.MODEL_INFRASTRUCTURE_FAILURE
                         .equals(ex.getErrorCode()) && ex.isRetryable();
                 if (!retryableInfrastructureFailure || !fallbackEnabled()) {
-                    attempts.add(AskDataModelAttemptTrace.failed(routed.getModelKey(), routed.getRoutePolicy(),
+                    attempts.add(AskDataModelAttemptTrace.failed(routed,
                             ex.getErrorCode(), retryableInfrastructureFailure
                                     ? "FALLBACK_DISABLED" : "NON_RETRYABLE_FAILURE", null));
                     throw new AskDataVectorRetrievalException(ex, attempts);
@@ -137,11 +135,11 @@ public class AiEmbeddingStoreAskDataVectorRetriever implements AskDataVectorRetr
                 try {
                     AskDataModelResult next = modelRouter.fallback(routeRequest,
                             AskDataModelResult.infrastructureFailure(routed, safeMessage(ex)));
-                    attempts.add(AskDataModelAttemptTrace.failed(routed.getModelKey(), routed.getRoutePolicy(),
+                    attempts.add(AskDataModelAttemptTrace.failed(routed,
                             ex.getErrorCode(), "RETRYABLE_INFRASTRUCTURE_FAILURE", null));
                     routed = next;
                 } catch (IllegalArgumentException noCandidate) {
-                    attempts.add(AskDataModelAttemptTrace.failed(routed.getModelKey(), routed.getRoutePolicy(),
+                    attempts.add(AskDataModelAttemptTrace.failed(routed,
                             ex.getErrorCode(), "CANDIDATES_EXHAUSTED", null));
                     throw new AskDataVectorRetrievalException(ex, attempts);
                 }
@@ -164,21 +162,45 @@ public class AiEmbeddingStoreAskDataVectorRetriever implements AskDataVectorRetr
         return (AiEmbeddingModel) model;
     }
 
+    private AiEmbeddingResult executeEmbedding(AskDataVectorQuery query, String modelKey) {
+        if (neutralModelRegistry != null) {
+            return neutralEmbeddingModel(modelKey).embed(new AiEmbeddingRequest(
+                    Collections.singletonList(query.getQuestion()), Collections.<String, Object>emptyMap(),
+                    requestTimeoutMillis()));
+        }
+        AskDataEmbeddingModel legacy = modelRegistry == null ? null : modelRegistry.getEmbeddingModel(modelKey);
+        if (legacy == null) {
+            throw AiModelException.requestRejected("未找到 Embedding 模型: " + modelKey, null);
+        }
+        List<Float> values = legacy.embed(query.getQuestion());
+        if (values == null || values.isEmpty()) {
+            throw new AiModelException("Embedding 模型未返回向量");
+        }
+        return new AiEmbeddingResult(Collections.singletonList(toArray(values)), modelKey, null);
+    }
+
     private AskDataModelRequest embeddingRouteRequest(AskDataVectorQuery query) {
-        String[] routeKeys = { normalize(query.getEmbeddingModelKey()), "", "", "", defaultEmbeddingModelKey() };
-        int routeIndex = 1;
+        AskDataModelSelection selection = query.getModelSelection() == null
+                ? AskDataModelSelection.empty() : query.getModelSelection();
+        List<String> fallbacks = new ArrayList<String>(selection.getFallbackModelKeys());
         if (properties != null && properties.getModel() != null
                 && properties.getModel().getEmbeddingCandidates() != null) {
             for (String candidate : properties.getModel().getEmbeddingCandidates()) {
                 String candidateKey = normalize(candidate);
-                if (candidateKey.length() > 0 && !candidateKey.equals(routeKeys[0])
-                        && !candidateKey.equals(routeKeys[4]) && routeIndex < 4) {
-                    routeKeys[routeIndex++] = candidateKey;
-                }
+                if (candidateKey.length() > 0 && !fallbacks.contains(candidateKey)) fallbacks.add(candidateKey);
             }
         }
-        return new AskDataModelRequest(query.getProjectContext(), routeKeys[0], routeKeys[1], routeKeys[2],
-                routeKeys[3], routeKeys[4]);
+        return new AskDataModelRequest(query.getProjectContext(), selection.getRequestModelKey(),
+                selection.getProjectModelKey(), selection.getDatasourceModelKey(), selection.getAgentTaskModelKey(),
+                selection.getPolicyModelKey(), fallbacks, defaultEmbeddingModelKey(), selection.getPolicyTags());
+    }
+
+    private AskDataModelUsage usage(AiEmbeddingResult result) {
+        if (result == null || result.getUsage() == null || result.getUsage().isUnknown()) {
+            return AskDataModelUsage.unknown();
+        }
+        return new AskDataModelUsage(result.getUsage().getInputTokens(), result.getUsage().getOutputTokens(),
+                result.getUsage().getTotalTokens(), null);
     }
 
     private String defaultEmbeddingModelKey() {

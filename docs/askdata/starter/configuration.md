@@ -23,7 +23,7 @@ AskData Starter 使用 `fw.plus.ai.askdata` 前缀。配置只选择逻辑能力
 | `model.infrastructure-failure-timeout-millis` | `30000` | 正整数；旧兼容层故障分类阈值 | 不是网络客户端超时；业务 Adapter 可提供更准确错误分类 |
 | `model.route-audit-record-capacity` | `100` | 正整数；单机诊断快照容量 | 非正数回落安全容量；完整审计应使用监控 Store |
 
-模型路由优先级固定为请求 key、项目 key、数据源 key、Agent 任务 key、默认 key；同一 key 一次请求内不重复尝试。AskData Starter 不创建 LangChain4j、Ollama、OpenAI 或其他 Provider，也不读取 API Key。
+模型路由优先级固定为请求 key、项目 key、数据源 key、Agent 任务 key、策略 key、显式 fallback 列表、默认 key；策略标签交给可替换 Router 判定，但不能携带凭据。同一 key 一次请求内不重复尝试，只有无副作用模型节点的可重试基础设施故障才进入下一候选。AskData Starter 不创建 LangChain4j、Ollama、OpenAI 或其他 Provider，也不读取 API Key。
 
 ## Flow、SQL 与会话
 
@@ -58,7 +58,7 @@ AskData Starter 使用 `fw.plus.ai.askdata` 前缀。配置只选择逻辑能力
 | `state.idempotency-store` | `memory` | 父子请求幂等 Store key | 子问题使用 `<parentKey>:<questionId>`；冲突不能重复副作用 |
 | `state.audit-store` | `memory` | 运行终态审计 Store key | sequence 必须单调递增；失败不能伪造成功 |
 | `state.monitoring-store` | `memory` | 强制生命周期日志 Store key | 外部 Store 失败回落本地脱敏诊断，不改变业务结果 |
-| `state.long-term-memory-store` | `memory` | 长期记忆 Store key | 未知 key 启动失败；业务也可直接提供 `AskDataLongTermMemory` Bean |
+| `state.long-term-memory-store` | `memory` | 长期记忆 Store key；内置 `jdbc`/`redis` 复用共享客户端 | 选择 `jdbc`/`redis` 时必须存在且只能存在一个对应共享 client Bean；未知 key、缺失或重复 client 启动失败；业务也可直接提供 `AskDataLongTermMemory` Bean |
 | `state.monitoring-log-capacity` | `1000` | 正整数、每个项目/操作人作用域 | 超限淘汰最早日志；不是合规审计持久化方案 |
 | `vector.store` | `memory` | Core `VECTOR` 能力 key | 集群选择 `memory` 启动失败；未知 key 或类型错误明确失败 |
 | `vector.default-top-k` | `5` | 大于 0 | 应按语料、上下文和延迟压测；授权 filters 无法落实时拒绝检索 |
@@ -71,8 +71,8 @@ AskData Starter 使用 `fw.plus.ai.askdata` 前缀。配置只选择逻辑能力
 | --- | --- | --- | --- | --- |
 | `memory` | `VECTOR` | 单机内存向量写入/召回；`vector.store` 默认 | `cluster-mode=false` | 集群启动拒绝；重启数据丢失 |
 | `memory` | 分类默认 Store | 会话、检查点、Agent、租约、幂等、审计、监控、长期记忆 | `cluster-mode=false` | 集群启动拒绝；各分类可独立覆盖 |
-| `jdbc` | `STORE` | 由一个 `AskDataJdbcStorageClient` 组合全部分类 Store | 容器中恰好一个 client Bean；业务负责 schema/事务/凭据 | 0 个或多个 client、未知 key、版本不兼容均启动失败 |
-| `redis` | `STORE` | 由一个 `AskDataRedisStorageClient` 组合热状态、租约和幂等等 Store | 容器中恰好一个 client Bean；业务负责原子性/TTL/凭据 | 0 个或多个 client、未知 key、版本不兼容均启动失败 |
+| `jdbc` | `STORE` | 由一个 `AskDataJdbcStorageClient` 组合会话、检查点、Agent、租约、幂等、审计、监控与长期记忆 | 容器中恰好一个 client Bean；业务负责 schema、事务、序列化与凭据 | 0 个或多个 client、未知 key、版本不兼容均启动失败；客户端不满足原子 `putIfAbsent/compareAndSet` 契约时运行失败 |
+| `redis` | `STORE` | 由一个 `AskDataRedisStorageClient` 组合热状态、租约、幂等及长期记忆等分类 Store | 容器中恰好一个 client Bean；业务负责 Lua/WATCH 原子性、TTL、序列化与凭据 | 0 个或多个 client、未知 key、版本不兼容均启动失败；非原子 GET/SET 实现不符合契约 |
 | `sequential` | 图运行时默认 | Core 顺序图执行，不依赖外部图库 | 无 | 仅提供进程内执行；集群恢复仍依赖共享 Store |
 | 业务 graph key | `RUNTIME_ADAPTER` | `LangGraph4jAskDataGraphAdapter` 或业务图运行时 | 注册唯一 Provider 且 `isAvailable=true` | 缺失、重复、不可用或版本不兼容启动/执行失败 |
 | `deterministic` | 压缩默认 | 无模型确定性摘要 | 无 | 不产生语义摘要，但保留恢复安全字段 |
@@ -129,4 +129,4 @@ fw:
           store: business-vector
 ```
 
-该配置还要求业务提供唯一 JDBC/Redis client Bean 和 `business-vector` 能力，并完成迁移、备份、租约 TTL、幂等、双节点恢复、容量、脱敏与故障切换验证。Starter 不自动创建这些外部资源。
+该配置还要求业务提供唯一 JDBC/Redis client Bean 和 `business-vector` 能力，并完成迁移、备份、租约 TTL、幂等、双节点恢复、容量、脱敏与故障切换验证。`long-term-memory-store=jdbc` 会调用同一个共享客户端完成 `remember/find/forget` 和遗忘审计；改为 `redis` 时语义相同。Starter 不自动创建表、Redis keyspace、连接、客户端或凭据，缺少对应 client Bean 会在启动期失败。

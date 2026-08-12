@@ -2,7 +2,6 @@ package com.xiongx9527.fw.plus.ai.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -38,7 +37,7 @@ public final class AiEmbeddingRequest {
 	}
 
 	public Map<String, Object> getParameters() {
-		return parameters;
+		return AiModelImmutableValues.immutableMap(parameters);
 	}
 
 	public long getTimeoutMillis() {
@@ -46,9 +45,6 @@ public final class AiEmbeddingRequest {
 	}
 
 	private static Map<String, Object> immutableParameters(Map<String, Object> parameters) {
-		if (parameters == null || parameters.isEmpty()) {
-			return Collections.emptyMap();
-		}
-		return Collections.unmodifiableMap(new LinkedHashMap<String, Object>(parameters));
+		return AiModelImmutableValues.immutableMap(parameters);
 	}
 }

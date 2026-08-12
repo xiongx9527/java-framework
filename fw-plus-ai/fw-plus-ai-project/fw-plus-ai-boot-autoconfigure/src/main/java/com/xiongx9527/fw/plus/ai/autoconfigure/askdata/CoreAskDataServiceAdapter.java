@@ -47,6 +47,14 @@ public class CoreAskDataServiceAdapter implements com.xiongx9527.fw.plus.ai.askd
 		AskDataRequest legacyRequest = new AskDataRequest();
 		legacyRequest.setQuestion(request.getQuestion());
 		legacyRequest.setProjectContext(request.getProjectContext());
+		legacyRequest.setDatasourceKey(request.getDatasourceKey());
+		legacyRequest.setDialect(request.getDialect());
+		legacyRequest.setChatModelSelection(request.getChatModelSelection());
+		legacyRequest.setEmbeddingModelSelection(request.getEmbeddingModelSelection());
+		legacyRequest.setModelKey(request.getChatModelSelection().getRequestModelKey());
+		legacyRequest.setExecute(request.getExecute());
+		legacyRequest.setMaxRows(request.getMaxRows());
+		legacyRequest.setPublishRequest(request.getPublishRequest());
 		AskDataResult legacyResult = legacyService.ask(legacyRequest);
 		if (legacyResult == null) {
 			return failure(AskDataErrorCode.MODEL_RESPONSE_INVALID, "旧问数流程未返回结果");
@@ -57,7 +65,9 @@ public class CoreAskDataServiceAdapter implements com.xiongx9527.fw.plus.ai.askd
 		}
 		return new com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult(legacyResult.getBrief(), null,
 				legacyResult.getActualModelKey(), legacyResult.getModelAttempts(),
-				legacyResult.getActualEmbeddingModelKey(), legacyResult.getEmbeddingModelAttempts());
+				legacyResult.getActualEmbeddingModelKey(), legacyResult.getEmbeddingModelAttempts(),
+				legacyResult.getModelAttemptDetails(), legacyResult.getEmbeddingModelAttemptDetails(),
+				legacyResult.getPublishedInterface());
 	}
 
 	private com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult failure(String code, String message) {
@@ -68,7 +78,9 @@ public class CoreAskDataServiceAdapter implements com.xiongx9527.fw.plus.ai.askd
 			AskDataResult legacyResult) {
 		return com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult.failure(new AskDataError(code, message),
 				legacyResult.getActualModelKey(), legacyResult.getModelAttempts(),
-				legacyResult.getActualEmbeddingModelKey(), legacyResult.getEmbeddingModelAttempts());
+				legacyResult.getActualEmbeddingModelKey(), legacyResult.getEmbeddingModelAttempts(),
+				legacyResult.getModelAttemptDetails(), legacyResult.getEmbeddingModelAttemptDetails(),
+				legacyResult.getPublishedInterface());
 	}
 
 	private String defaultValue(String value, String defaultValue) {

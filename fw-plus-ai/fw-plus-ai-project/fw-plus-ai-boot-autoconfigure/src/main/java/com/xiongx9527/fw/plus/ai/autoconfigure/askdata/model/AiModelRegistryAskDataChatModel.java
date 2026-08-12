@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model;
 
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatRequest;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelUsage;
 import com.xiongx9527.fw.plus.ai.model.AiChatModel;
 import com.xiongx9527.fw.plus.ai.model.AiChatRequest;
 import com.xiongx9527.fw.plus.ai.model.AiChatResult;
@@ -40,17 +41,25 @@ public final class AiModelRegistryAskDataChatModel
 					"模型不支持类型化 Chat 契约", false);
 		}
 		try {
-			AiChatResult result = ((AiChatModel) model).chat(new AiChatRequest(request.getQuestion(),
+			AiChatResult result = ((AiChatModel) model).chat(new AiChatRequest(request.getPrompt(),
 					request.getParameters(), request.getTimeoutMillis()));
 			if (result == null) {
 				return AskDataChatResult.failure(modelKey, AiModelException.MODEL_ERROR, "聊天模型未返回结果", false);
 			}
-			return AskDataChatResult.success(result.getText(), result.getActualModelKey());
+			return AskDataChatResult.success(result.getText(), result.getActualModelKey(), usage(result));
 		} catch (AiModelException ex) {
 			return AskDataChatResult.failure(modelKey, ex.getErrorCode(), safeMessage(ex), ex.isRetryable());
 		} catch (RuntimeException ex) {
 			return AskDataChatResult.failure(modelKey, AiModelException.MODEL_ERROR, "聊天模型执行失败", false);
 		}
+	}
+
+	private AskDataModelUsage usage(AiChatResult result) {
+		if (result == null || result.getUsage() == null || result.getUsage().isUnknown()) {
+			return AskDataModelUsage.unknown();
+		}
+		return new AskDataModelUsage(result.getUsage().getInputTokens(), result.getUsage().getOutputTokens(),
+				result.getUsage().getTotalTokens(), null);
 	}
 
 	private static String safeMessage(AiModelException exception) {

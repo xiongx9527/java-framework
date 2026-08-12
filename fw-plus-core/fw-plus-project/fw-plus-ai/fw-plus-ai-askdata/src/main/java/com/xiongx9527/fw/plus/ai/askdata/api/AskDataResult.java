@@ -1,5 +1,8 @@
 package com.xiongx9527.fw.plus.ai.askdata.api;
 
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelAttempt;
+import com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataPublishedInterface;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,6 +21,9 @@ public class AskDataResult {
 	private final List<String> modelAttempts;
 	private final String actualEmbeddingModelKey;
 	private final List<String> embeddingModelAttempts;
+	private final List<AskDataModelAttempt> modelAttemptDetails;
+	private final List<AskDataModelAttempt> embeddingModelAttemptDetails;
+	private final AskDataPublishedInterface publishedInterface;
 
 	/**
 	 * 创建查询结果。
@@ -38,12 +44,24 @@ public class AskDataResult {
 
 	public AskDataResult(String answer, AskDataError error, String actualModelKey, List<String> modelAttempts,
 			String actualEmbeddingModelKey, List<String> embeddingModelAttempts) {
+		this(answer, error, actualModelKey, modelAttempts, actualEmbeddingModelKey, embeddingModelAttempts,
+				Collections.<AskDataModelAttempt>emptyList(), Collections.<AskDataModelAttempt>emptyList(), null);
+	}
+
+	public AskDataResult(String answer, AskDataError error, String actualModelKey, List<String> modelAttempts,
+			String actualEmbeddingModelKey, List<String> embeddingModelAttempts,
+			List<AskDataModelAttempt> modelAttemptDetails,
+			List<AskDataModelAttempt> embeddingModelAttemptDetails,
+			AskDataPublishedInterface publishedInterface) {
 		this.answer = answer;
 		this.error = error;
 		this.actualModelKey = actualModelKey;
 		this.modelAttempts = immutableAttempts(modelAttempts);
 		this.actualEmbeddingModelKey = actualEmbeddingModelKey;
 		this.embeddingModelAttempts = immutableAttempts(embeddingModelAttempts);
+		this.modelAttemptDetails = immutableDetails(modelAttemptDetails);
+		this.embeddingModelAttemptDetails = immutableDetails(embeddingModelAttemptDetails);
+		this.publishedInterface = publishedInterface;
 	}
 
 	/**
@@ -85,11 +103,21 @@ public class AskDataResult {
 
 	public static AskDataResult failure(AskDataError error, String actualModelKey, List<String> modelAttempts,
 			String actualEmbeddingModelKey, List<String> embeddingModelAttempts) {
+		return failure(error, actualModelKey, modelAttempts, actualEmbeddingModelKey, embeddingModelAttempts,
+				Collections.<AskDataModelAttempt>emptyList(), Collections.<AskDataModelAttempt>emptyList(), null);
+	}
+
+	public static AskDataResult failure(AskDataError error, String actualModelKey, List<String> modelAttempts,
+			String actualEmbeddingModelKey, List<String> embeddingModelAttempts,
+			List<AskDataModelAttempt> modelAttemptDetails,
+			List<AskDataModelAttempt> embeddingModelAttemptDetails,
+			AskDataPublishedInterface publishedInterface) {
 		if (error == null) {
 			throw new IllegalArgumentException("error 不能为空");
 		}
 		return new AskDataResult(null, error, normalize(actualModelKey), modelAttempts,
-				normalize(actualEmbeddingModelKey), embeddingModelAttempts);
+				normalize(actualEmbeddingModelKey), embeddingModelAttempts, modelAttemptDetails,
+				embeddingModelAttemptDetails, publishedInterface);
 	}
 
 	/**
@@ -135,11 +163,20 @@ public class AskDataResult {
 		return embeddingModelAttempts;
 	}
 
+	public List<AskDataModelAttempt> getModelAttemptDetails() { return modelAttemptDetails; }
+	public List<AskDataModelAttempt> getEmbeddingModelAttemptDetails() { return embeddingModelAttemptDetails; }
+	public AskDataPublishedInterface getPublishedInterface() { return publishedInterface; }
+
 	private static List<String> immutableAttempts(List<String> attempts) {
 		if (attempts == null || attempts.isEmpty()) {
 			return Collections.emptyList();
 		}
 		return Collections.unmodifiableList(new ArrayList<String>(attempts));
+	}
+
+	private static List<AskDataModelAttempt> immutableDetails(List<AskDataModelAttempt> attempts) {
+		return attempts == null || attempts.isEmpty() ? Collections.<AskDataModelAttempt>emptyList()
+				: Collections.unmodifiableList(new ArrayList<AskDataModelAttempt>(attempts));
 	}
 
 	private static String normalize(String value) {

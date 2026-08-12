@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.askdata.storage;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory;
+import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -204,6 +206,87 @@ public final class AskDataSharedStoreAdapter {
 		};
 	}
 
+	/** 通过同一 JDBC/Redis 客户端保存可跨实例恢复的长期记忆。 */
+	public AskDataLongTermMemory longTermMemory() {
+		return new AskDataLongTermMemory() {
+			@Override
+			public void remember(AskDataMemoryEntry entry) {
+				AskDataMemoryEntry checked = require(entry, "memoryEntry");
+				String storageKey = key(checked.getContext(), "long-term-memory", "entries");
+				for (;;) {
+					MemoryBatch previous = (MemoryBatch) client.get(storageKey);
+					List<AskDataMemoryEntry> entries = previous == null ? new ArrayList<AskDataMemoryEntry>()
+							: new ArrayList<AskDataMemoryEntry>(previous.entries);
+					entries.add(checked);
+					if (client.compareAndSet(storageKey, previous, new MemoryBatch(entries))) return;
+				}
+			}
+
+			@Override
+			public List<AskDataMemoryEntry> find(AskDataProjectContext context, String datasourceKey,
+					String semanticVersion) {
+				String checkedDatasource = requireId(datasourceKey);
+				String checkedVersion = requireId(semanticVersion);
+				MemoryBatch batch = (MemoryBatch) client.get(key(context, "long-term-memory", "entries"));
+				if (batch == null) return Collections.emptyList();
+				List<AskDataMemoryEntry> result = new ArrayList<AskDataMemoryEntry>();
+				for (AskDataMemoryEntry entry : batch.entries) {
+					if (checkedDatasource.equals(entry.getDatasourceKey())
+							&& checkedVersion.equals(entry.getSemanticVersion())) result.add(entry);
+				}
+				return Collections.unmodifiableList(result);
+			}
+
+			@Override
+			public boolean forget(AskDataProjectContext context, String memoryId, String reason,
+					long forgottenAtEpochMillis) {
+				if (forgottenAtEpochMillis < 1L) throw new IllegalArgumentException("forgottenAtEpochMillis 必须大于 0");
+				String checkedId = requireId(memoryId);
+				String checkedReason = requireId(reason);
+				String storageKey = key(context, "long-term-memory", "entries");
+				for (;;) {
+					MemoryBatch previous = (MemoryBatch) client.get(storageKey);
+					if (previous == null) return false;
+					List<AskDataMemoryEntry> entries = new ArrayList<AskDataMemoryEntry>(previous.entries);
+					boolean removed = false;
+					for (int index = 0; index < entries.size(); index++) {
+						if (checkedId.equals(entries.get(index).getId())) {
+							entries.remove(index);
+							removed = true;
+							break;
+						}
+					}
+					if (!removed) return false;
+					if (client.compareAndSet(storageKey, previous, new MemoryBatch(entries))) {
+						appendForgetAudit(context, new AskDataLongTermMemory.ForgetAudit(
+								context, checkedId, checkedReason, forgottenAtEpochMillis));
+						return true;
+					}
+				}
+			}
+
+			@Override
+			public List<AskDataLongTermMemory.ForgetAudit> listForgetAudits(AskDataProjectContext context) {
+				ForgetAuditBatch batch = (ForgetAuditBatch) client.get(
+						key(context, "long-term-memory", "forget-audits"));
+				return batch == null ? Collections.<AskDataLongTermMemory.ForgetAudit>emptyList()
+						: batch.audits;
+			}
+		};
+	}
+
+	private void appendForgetAudit(AskDataProjectContext context, AskDataLongTermMemory.ForgetAudit audit) {
+		String storageKey = key(context, "long-term-memory", "forget-audits");
+		for (;;) {
+			ForgetAuditBatch previous = (ForgetAuditBatch) client.get(storageKey);
+			List<AskDataLongTermMemory.ForgetAudit> audits = previous == null
+					? new ArrayList<AskDataLongTermMemory.ForgetAudit>()
+					: new ArrayList<AskDataLongTermMemory.ForgetAudit>(previous.audits);
+			audits.add(audit);
+			if (client.compareAndSet(storageKey, previous, new ForgetAuditBatch(audits))) return;
+		}
+	}
+
 	private void registerMonitoringScope(AskDataProjectContext context) {
 		String storageKey = projectIndexKey(context.getProjectId());
 		String operatorId = requireId(context.getOperatorId());
@@ -274,6 +357,21 @@ public final class AskDataSharedStoreAdapter {
 
 		private MonitoringScopeIndex(Set<String> operatorIds) {
 			this.operatorIds = Collections.unmodifiableList(new ArrayList<String>(operatorIds));
+		}
+	}
+
+	private static final class MemoryBatch {
+		private final List<AskDataMemoryEntry> entries;
+		private MemoryBatch(List<AskDataMemoryEntry> entries) {
+			this.entries = Collections.unmodifiableList(new ArrayList<AskDataMemoryEntry>(entries));
+		}
+	}
+
+	private static final class ForgetAuditBatch {
+		private final List<AskDataLongTermMemory.ForgetAudit> audits;
+		private ForgetAuditBatch(List<AskDataLongTermMemory.ForgetAudit> audits) {
+			this.audits = Collections.unmodifiableList(
+					new ArrayList<AskDataLongTermMemory.ForgetAudit>(audits));
 		}
 	}
 }

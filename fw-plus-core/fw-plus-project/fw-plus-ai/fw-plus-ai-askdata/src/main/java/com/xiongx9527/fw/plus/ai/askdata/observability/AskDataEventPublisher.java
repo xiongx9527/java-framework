@@ -66,10 +66,12 @@ public interface AskDataEventPublisher {
 	static AskDataMonitoringLog monitoringLog(AskDataEvent event) {
 		return new AskDataMonitoringLog(event.getContext(), event.getTraceId(), event.getType(), event.getMessage(),
 				event.getDatasourceKey(), event.getDenialCode(), event.getAuthorizationVersion(),
-				event.getAuthorizationSource(), event.getModelType() == null ? null : event.getModelType().name(),
+				event.getAuthorizationSource(), event.getCapabilityKey(), event.getPurposeKey(),
+				event.getModelType() == null ? null : event.getModelType().name(),
 				event.getModelKey(), event.getModelRoutePolicy() == null ? null : event.getModelRoutePolicy().name(),
 				event.getModelState() == null ? null : event.getModelState().name(), event.getModelFailureCode(),
-				event.getModelSwitchReason(), event.getActualModelKey(), event.getCorrelation());
+				event.getModelSwitchReason(), event.getActualModelKey(), event.getModelUsage(), event.getCorrelation(),
+				event.getModelRouteReason());
 	}
 
 	static void appendFallbackDiagnostic(AskDataMonitoringLogStore fallbackStore, AskDataEvent failedEvent) {

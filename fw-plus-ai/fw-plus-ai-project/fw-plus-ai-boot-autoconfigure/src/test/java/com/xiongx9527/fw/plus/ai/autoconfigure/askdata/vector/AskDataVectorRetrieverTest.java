@@ -8,9 +8,12 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class AskDataVectorRetrieverTest {
@@ -59,5 +62,23 @@ public class AskDataVectorRetrieverTest {
                 Collections.<String, Object>emptyMap()));
 
         assertEquals(7, actualTopK[0]);
+    }
+
+    @Test
+    public void shouldDeeplyProtectAuthorizationFilters() {
+        List<String> tables = new java.util.ArrayList<String>(Collections.singletonList("orders"));
+        Map<String, Object> scope = new LinkedHashMap<String, Object>();
+        scope.put("tables", tables);
+        Map<String, Object> filters = new LinkedHashMap<String, Object>();
+        filters.put("scope", scope);
+
+        AskDataVectorQuery query = new AskDataVectorQuery("schema", "order", "vec", "订单数", 3, filters);
+        tables.add("secrets");
+
+        assertEquals(Collections.singletonList("orders"),
+                ((Map<?, ?>) query.getFilters().get("scope")).get("tables"));
+        assertThrows(UnsupportedOperationException.class,
+                () -> ((List<Object>) ((Map<?, ?>) query.getFilters().get("scope")).get("tables"))
+                        .add("secrets"));
     }
 }

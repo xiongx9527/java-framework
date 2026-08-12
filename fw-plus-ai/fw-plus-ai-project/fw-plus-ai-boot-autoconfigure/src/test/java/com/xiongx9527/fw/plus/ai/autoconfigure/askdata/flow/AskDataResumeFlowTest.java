@@ -50,6 +50,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class AskDataResumeFlowTest {
 
+    private static final String DEFAULT_MODEL_ROUTE_SNAPSHOT =
+            "{\"chat\":{\"agent\":null,\"datasource\":null,\"fallbacks\":[],\"policy\":null,"
+                    + "\"project\":null,\"request\":\"model-1\",\"tags\":{}},\"embedding\":{\"agent\":null,"
+                    + "\"datasource\":null,\"fallbacks\":[],\"policy\":null,\"project\":null,"
+                    + "\"request\":null,\"tags\":{}}}";
+
     @Test
     public void shouldResumeValidatedSqlWithoutRepeatingEarlierSteps() {
         Fixture fixture = new Fixture();
@@ -59,7 +65,7 @@ public class AskDataResumeFlowTest {
         request.setResumeToken("resume-validate");
         AskDataResult result = fixture.executor().execute(request);
 
-        assertTrue(result.isSuccess());
+        assertTrue(result.isSuccess(), result.getErrorCode() + ":" + result.getErrorMessage());
         assertEquals("select * from orders limit 100", result.getSql());
         assertEquals(1, fixture.metadataCalls);
         assertEquals(0, fixture.promptCalls);
@@ -263,7 +269,7 @@ public class AskDataResumeFlowTest {
         AskDataCheckpoint otherProjectCheckpoint = fixture.validatedCheckpoint("resume-project-b", "1");
         otherProjectCheckpoint.setProjectId("project-b");
         otherProjectCheckpoint.setOperatorId("operator-b");
-        otherProjectCheckpoint.setRequestOptionsSnapshot("[\"project-b\",\"operator-b\",null]");
+        otherProjectCheckpoint.setRequestOptionsSnapshot(scopeSnapshot("project-b", "operator-b"));
         fixture.store.save(otherProjectCheckpoint);
 
         AskDataResult resumed = fixture.executor().execute(fixture.request());
@@ -430,7 +436,8 @@ public class AskDataResumeFlowTest {
         checkpoint.setRequestSummary("订单数量");
         checkpoint.setMaxRows(Integer.valueOf(100));
         checkpoint.setExecute(Boolean.TRUE);
-        checkpoint.setRequestOptionsSnapshot("[\"project-a\",\"operator-a\",null]");
+        checkpoint.setModelRouteSnapshot(DEFAULT_MODEL_ROUTE_SNAPSHOT);
+        checkpoint.setRequestOptionsSnapshot(scopeSnapshot("project-a", "operator-a"));
         checkpoint.setCompletedSteps(Collections.singletonList("metadata"));
         checkpoint.setCurrentStep("metadata");
         fixture.store.save(checkpoint);
@@ -532,7 +539,8 @@ public class AskDataResumeFlowTest {
             checkpoint.setRequestSummary("订单数量");
             checkpoint.setMaxRows(Integer.valueOf(100));
             checkpoint.setExecute(Boolean.TRUE);
-            checkpoint.setRequestOptionsSnapshot("[\"project-a\",\"operator-a\",null]");
+            checkpoint.setModelRouteSnapshot(DEFAULT_MODEL_ROUTE_SNAPSHOT);
+            checkpoint.setRequestOptionsSnapshot(scopeSnapshot("project-a", "operator-a"));
             checkpoint.setSql("select * from orders limit 100");
             checkpoint.setSqlValidated(Boolean.TRUE);
             checkpoint.setCompletedSteps(Arrays.asList("metadata", "prompt", "generate-sql", "validate-sql"));
@@ -628,6 +636,11 @@ public class AskDataResumeFlowTest {
 
     private static AskDataAuthorizationSummary allowedOrders(AskDataAuthorizationRequest request) {
         return allowedOrders(request, "policy-v1");
+    }
+
+    private static String scopeSnapshot(String projectId, String operatorId) {
+        return "[\"" + projectId + "\",\"" + operatorId + "\",{},\""
+                + DEFAULT_MODEL_ROUTE_SNAPSHOT.replace("\"", "\\\"") + "\",null]";
     }
 
     private static AskDataAuthorizationSummary allowedOrders(AskDataAuthorizationRequest request,

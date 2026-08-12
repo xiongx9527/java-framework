@@ -32,11 +32,14 @@ class AskDataCoreSpiContractTest {
 		Map<String, Object> parameters = new LinkedHashMap<String, Object>();
 		parameters.put("temperature", Double.valueOf(0.2D));
 
-		AskDataChatRequest request = new AskDataChatRequest(context, "question", "requested-chat", parameters, 2500L);
+		AskDataChatRequest request = new AskDataChatRequest(context, "question", "sanitized prompt",
+				"requested-chat", parameters, 2500L);
 		parameters.put("temperature", Double.valueOf(0.9D));
 		AskDataChatResult result = AskDataChatResult.success("answer", "actual-chat");
 
 		assertEquals("requested-chat", request.getModelKey());
+		assertEquals("question", request.getQuestion());
+		assertEquals("sanitized prompt", request.getPrompt());
 		assertEquals(Double.valueOf(0.2D), request.getParameters().get("temperature"));
 		assertEquals(2500L, request.getTimeoutMillis());
 		assertThrows(UnsupportedOperationException.class,

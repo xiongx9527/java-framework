@@ -123,7 +123,7 @@ public class AiEmbeddingStoreAskDataVectorRetrieverTest {
         assertEquals("embedding-fallback", result.getActualEmbeddingModelKey());
         assertEquals(4, result.getModelAttempts().size());
         assertEquals(AskDataEvent.ModelState.ATTEMPTED, result.getModelAttempts().get(0).getState());
-        assertEquals(AskDataModelRoutePolicy.PROJECT_KEY,
+        assertEquals(AskDataModelRoutePolicy.CONFIGURED_FALLBACK,
                 result.getModelAttempts().get(0).getRoutePolicy());
         assertEquals(AskDataEvent.ModelState.FAILED, result.getModelAttempts().get(1).getState());
         assertEquals(AiModelException.MODEL_INFRASTRUCTURE_FAILURE,

@@ -6,6 +6,10 @@ import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAuditStateStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataIdempotencyKeyStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataLeaseStore;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentGraphRuntime;
+import com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider;
+import com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataInterfacePublisher;
+import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataEmbeddingModel;
+import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever;
 
 /**
  * 默认 Flow 使用的 Core 状态 SPI 集合。
@@ -21,6 +25,10 @@ public final class AskDataRuntimeStateServices {
 	private final AskDataAuditStateStore auditStateStore;
 	private final AskDataLongTermMemory longTermMemory;
 	private final AskDataAgentGraphRuntime graphRuntime;
+	private final AskDataMetadataProvider metadataProvider;
+	private final AskDataEmbeddingModel embeddingModel;
+	private final AskDataRagRetriever ragRetriever;
+	private final AskDataInterfacePublisher interfacePublisher;
 
 	public AskDataRuntimeStateServices(AskDataAgentStateStore agentStateStore, AskDataLeaseStore leaseStore,
 			AskDataIdempotencyKeyStore idempotencyKeyStore, AskDataAuditStateStore auditStateStore,
@@ -31,12 +39,25 @@ public final class AskDataRuntimeStateServices {
 	public AskDataRuntimeStateServices(AskDataAgentStateStore agentStateStore, AskDataLeaseStore leaseStore,
 			AskDataIdempotencyKeyStore idempotencyKeyStore, AskDataAuditStateStore auditStateStore,
 			AskDataLongTermMemory longTermMemory, AskDataAgentGraphRuntime graphRuntime) {
+		this(agentStateStore, leaseStore, idempotencyKeyStore, auditStateStore, longTermMemory, graphRuntime,
+				null, null, null, null);
+	}
+
+	public AskDataRuntimeStateServices(AskDataAgentStateStore agentStateStore, AskDataLeaseStore leaseStore,
+			AskDataIdempotencyKeyStore idempotencyKeyStore, AskDataAuditStateStore auditStateStore,
+			AskDataLongTermMemory longTermMemory, AskDataAgentGraphRuntime graphRuntime,
+			AskDataMetadataProvider metadataProvider, AskDataEmbeddingModel embeddingModel,
+			AskDataRagRetriever ragRetriever, AskDataInterfacePublisher interfacePublisher) {
 		this.agentStateStore = agentStateStore;
 		this.leaseStore = leaseStore;
 		this.idempotencyKeyStore = idempotencyKeyStore;
 		this.auditStateStore = auditStateStore;
 		this.longTermMemory = longTermMemory;
 		this.graphRuntime = graphRuntime;
+		this.metadataProvider = metadataProvider;
+		this.embeddingModel = embeddingModel;
+		this.ragRetriever = ragRetriever;
+		this.interfacePublisher = interfacePublisher;
 	}
 
 	public AskDataAgentStateStore getAgentStateStore() { return agentStateStore; }
@@ -45,4 +66,8 @@ public final class AskDataRuntimeStateServices {
 	public AskDataAuditStateStore getAuditStateStore() { return auditStateStore; }
 	public AskDataLongTermMemory getLongTermMemory() { return longTermMemory; }
 	public AskDataAgentGraphRuntime getGraphRuntime() { return graphRuntime; }
+	public AskDataMetadataProvider getMetadataProvider() { return metadataProvider; }
+	public AskDataEmbeddingModel getEmbeddingModel() { return embeddingModel; }
+	public AskDataRagRetriever getRagRetriever() { return ragRetriever; }
+	public AskDataInterfacePublisher getInterfacePublisher() { return interfacePublisher; }
 }

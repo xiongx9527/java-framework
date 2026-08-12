@@ -55,9 +55,13 @@ import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlParameter;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlResult;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CancellationException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -149,6 +153,235 @@ public class DefaultAskDataFlowExecutorTest {
         assertNotNull(stores.auditStates().load(new AskDataProjectContext("default", "default"),
                 result.getConversationId()));
         assertTrue(eventTypes(dependencies.events).contains(AskDataEvent.Type.LONG_TERM_MEMORY_RECALL_COMPLETED));
+    }
+
+    @Test
+    public void shouldRouteChatThroughRealBusinessLayersAndPersistDetailedTerminalAttempts() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.conversationStore = new InMemoryAskDataConversationStore();
+        dependencies.contextCompressor = new DefaultAskDataContextCompressor(dependencies.properties);
+        dependencies.properties.getModel().setDefaultChatModel("chat-default");
+        dependencies.coreModelRouter = new com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter() { };
+        dependencies.coreChatModel = modelRequest -> "chat-default".equals(modelRequest.getModelKey())
+                ? com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.success(
+                        "{\"sql\":\"select count(*) from orders\"}", "provider-chat-default")
+                : com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.failure(modelRequest.getModelKey(),
+                        com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.MODEL_INFRASTRUCTURE_FAILURE,
+                        "temporary unavailable", true);
+        com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores stores =
+                com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores.singleNode();
+        dependencies.runtimeStateServices = new AskDataRuntimeStateServices(stores.agentStates(), stores.leases(),
+                stores.idempotencyKeys(), stores.auditStates(),
+                com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory.inMemory());
+        AskDataRequest request = request(false);
+        request.setModelKey(null);
+        request.setChatModelSelection(com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelSelection.builder()
+                .requestModelKey("chat-request").projectModelKey("chat-project")
+                .datasourceModelKey("chat-datasource").agentTaskModelKey("chat-agent")
+                .policyModelKey("chat-policy").fallbackModelKeys(Collections.singletonList("chat-fallback"))
+                .policyTags(Collections.singletonMap("purpose", "askdata")).build());
+
+        AskDataResult result = dependencies.executor("legacy-must-not-run").execute(request);
+
+        assertTrue(result.isSuccess());
+        assertEquals(Arrays.asList("chat-request", "chat-project", "chat-datasource", "chat-agent",
+                "chat-policy", "chat-fallback", "chat-default"), result.getModelAttempts());
+        assertEquals("provider-chat-default", result.getActualModelKey());
+        assertEquals(Arrays.asList(
+                com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy.REQUEST_MODEL_KEY,
+                com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy.PROJECT_KEY,
+                com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy.DATASOURCE_KEY,
+                com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy.AGENT_TASK_KEY,
+                com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy.POLICY_TAG_KEY,
+                com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy.CONFIGURED_FALLBACK,
+                com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy.DEFAULT_KEY),
+                routePolicies(result.getModelAttemptDetails()));
+        assertEquals("RETRYABLE_INFRASTRUCTURE_FAILURE",
+                result.getModelAttemptDetails().get(0).getSwitchReason());
+        assertEquals(com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelAttempt.State.SUCCEEDED,
+                result.getModelAttemptDetails().get(6).getState());
+        AskDataCheckpoint checkpoint = dependencies.conversationStore.loadLatest(request.getProjectContext(),
+                result.getConversationId());
+        assertEquals(routePolicies(result.getModelAttemptDetails()), routePolicies(checkpoint.getModelAttemptDetails()));
+        assertTrue(checkpoint.getModelRouteSnapshot().contains("chat-project"));
+        com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore.AgentState state =
+                stores.agentStates().load(request.getProjectContext(), result.getConversationId());
+        assertEquals(7, state.getModelRouteAttempts().size());
+        assertEquals("CONFIGURED_FALLBACK", state.getModelRouteAttempts().get(5).getRoutePolicy());
+        assertEquals("RETRYABLE_INFRASTRUCTURE_FAILURE",
+                state.getModelRouteAttempts().get(0).getSwitchReason());
+        assertEquals("provider-chat-default", state.getModelRouteAttempts().get(6).getActualModelKey());
+        assertEquals(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore.ContextCompressionStatus.COMPRESSED,
+                state.getContextCompressionStatus());
+        assertTrue(state.getCompressedContext() != null && !state.getCompressedContext().trim().isEmpty());
+    }
+
+    @Test
+    public void shouldUseCoreMetadataEmbeddingRagAndPublisherBeansWithEmbeddingRouting() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.conversationStore = new InMemoryAskDataConversationStore();
+        dependencies.contextCompressor = new DefaultAskDataContextCompressor(dependencies.properties);
+        dependencies.properties.getModel().setDefaultChatModel("chat-default");
+        dependencies.properties.getModel().setDefaultEmbeddingModel("embedding-default");
+        dependencies.coreModelRouter = new com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter() { };
+        dependencies.coreChatModel = modelRequest -> com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatResult.success(
+                "{\"sql\":\"select count(*) from orders\"}", "provider-chat");
+        final List<String> embeddedModelKeys = new ArrayList<String>();
+        final Map<String, String> observedFilters = new LinkedHashMap<String, String>();
+        final int[] metadataCalls = new int[] {0};
+        final int[] publishCalls = new int[] {0};
+        com.xiongx9527.fw.plus.ai.askdata.vector.AskDataEmbeddingModel embeddingModel =
+                new com.xiongx9527.fw.plus.ai.askdata.vector.AskDataEmbeddingModel() {
+                    @Override
+                    public float[] embed(AskDataProjectContext context, String text) {
+                        throw new AssertionError("Flow 应调用携带模型 key 的 Embedding 结果入口");
+                    }
+
+                    @Override
+                    public com.xiongx9527.fw.plus.ai.askdata.vector.AskDataEmbeddingResult embedResult(
+                            AskDataProjectContext context, String text, String modelKey) {
+                        embeddedModelKeys.add(modelKey);
+                        if ("embedding-default".equals(modelKey)) {
+                            return com.xiongx9527.fw.plus.ai.askdata.vector.AskDataEmbeddingResult.success(
+                                    new float[] {1F, 2F}, "provider-embedding-default");
+                        }
+                        return com.xiongx9527.fw.plus.ai.askdata.vector.AskDataEmbeddingResult.failure(
+                                com.xiongx9527.fw.plus.ai.askdata.vector.AskDataEmbeddingResult
+                                        .MODEL_INFRASTRUCTURE_FAILURE,
+                                "embedding temporarily unavailable", true);
+                    }
+                };
+        com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorStore vectorStore =
+                new com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorStore() {
+                    @Override
+                    public void upsert(AskDataProjectContext context,
+                            com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorDocument document) { }
+
+                    @Override
+                    public List<com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorDocument> search(
+                            AskDataProjectContext context,
+                            com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorSearchRequest searchRequest) {
+                        observedFilters.putAll(searchRequest.getFilters());
+                        return Collections.singletonList(
+                                new com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorDocument(
+                                        "doc-1", "core-rag-document", new float[] {1F, 2F}));
+                    }
+                };
+        com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataInterfacePublisher publisher =
+                new com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataInterfacePublisher() {
+                    @Override
+                    public com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataPublishedInterface publish(
+                            AskDataProjectContext context,
+                            com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataPublishRequest publishRequest) {
+                        publishCalls[0]++;
+                        return new com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataPublishedInterface(
+                                "interface-1", publishRequest.getName(), publishRequest.getDefinitionId());
+                    }
+
+                    @Override
+                    public void unpublish(AskDataProjectContext context, String interfaceId) { }
+                };
+        com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider coreMetadata =
+                (context, datasourceKey) -> {
+                    metadataCalls[0]++;
+                    return new com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadata(
+                            datasourceKey, Collections.singletonList("orders.*"));
+                };
+        com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores stores =
+                com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores.singleNode();
+        dependencies.runtimeStateServices = new AskDataRuntimeStateServices(stores.agentStates(), stores.leases(),
+                stores.idempotencyKeys(), stores.auditStates(),
+                com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory.inMemory(), null,
+                coreMetadata, embeddingModel,
+                new com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever(vectorStore), publisher);
+        AskDataRequest request = request(false);
+        request.setModelKey(null);
+        request.setChatModelSelection(com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelSelection.builder()
+                .requestModelKey("chat-default").build());
+        request.setEmbeddingModelSelection(com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelSelection.builder()
+                .requestModelKey("embedding-request").projectModelKey("embedding-project")
+                .datasourceModelKey("embedding-datasource").agentTaskModelKey("embedding-agent")
+                .policyModelKey("embedding-policy")
+                .fallbackModelKeys(Collections.singletonList("embedding-fallback")).build());
+        request.setPublishRequest(new com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataPublishRequest(
+                "orders-query", "definition-1"));
+
+        AskDataResult result = dependencies.executor("legacy-must-not-run").execute(request);
+
+        assertTrue(result.isSuccess());
+        assertEquals(1, metadataCalls[0]);
+        assertEquals(Arrays.asList("embedding-request", "embedding-project", "embedding-datasource",
+                "embedding-agent", "embedding-policy", "embedding-fallback", "embedding-default"),
+                embeddedModelKeys);
+        assertEquals(embeddedModelKeys, result.getEmbeddingModelAttempts());
+        assertEquals("provider-embedding-default", result.getActualEmbeddingModelKey());
+        assertEquals("CONFIGURED_FALLBACK",
+                result.getEmbeddingModelAttemptDetails().get(5).getRoutePolicy().name());
+        assertEquals("default", observedFilters.get("projectId"));
+        assertEquals("default", observedFilters.get("operatorId"));
+        assertEquals("orders", observedFilters.get("datasourceKey"));
+        assertEquals("policy-v1", observedFilters.get("authorizationVersion"));
+        assertTrue(dependencies.prompt.contains("core-rag-document"));
+        assertEquals(1, publishCalls[0]);
+        assertEquals("interface-1", result.getPublishedInterface().getId());
+    }
+
+    @Test
+    public void shouldReturnCancelledTerminalAndLifecycleWhenStepAgentCancels() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.agentStepRegistry = registry(stepAgent("cancel-generator", AskDataAgentStepKey.GENERATE_SQL,
+                context -> { throw new CancellationException("business cancellation"); }));
+
+        AskDataResult result = dependencies.executor(null).execute(request(false));
+
+        assertFalse(result.isSuccess());
+        assertEquals(AskDataErrorCode.SUBQUESTION_CANCELLED, result.getErrorCode());
+        assertTrue(eventTypes(dependencies.events).contains(AskDataEvent.Type.AGENT_NODE_STARTED));
+        assertTrue(eventTypes(dependencies.events).contains(AskDataEvent.Type.AGENT_NODE_CANCELLED));
+        assertTrue(eventTypes(dependencies.events).contains(AskDataEvent.Type.SUB_QUESTION_CANCELLED));
+        assertTrue(eventTypes(dependencies.events).contains(AskDataEvent.Type.CONVERSATION_CANCELLED));
+    }
+
+    @Test
+    public void shouldPreserveParentRequestAndChildRootForMultiQuestionStepAgents() {
+        StubDependencies dependencies = new StubDependencies();
+        final List<AskDataAgentStepContext> contexts = Collections.synchronizedList(
+                new ArrayList<AskDataAgentStepContext>());
+        dependencies.agentStepRegistry = registry(stepAgent("business-generator", AskDataAgentStepKey.GENERATE_SQL,
+                context -> {
+                    contexts.add(context);
+                    return AskDataAgentStepResult.generatedSql("select count(*) from orders");
+                }));
+        AskDataRequest request = request(false);
+        request.setOptions(new LinkedHashMap<String, Object>());
+        request.getOptions().put("questions", Arrays.asList("订单数量", "退款数量"));
+
+        AskDataResult result = dependencies.executor(null).execute(request);
+
+        assertTrue(result.isSuccess());
+        String requestId = (String) request.getOptions().get("askDataObservabilityRequestId");
+        assertTrue(requestId != null && !requestId.trim().isEmpty());
+        assertEquals(2, contexts.size());
+        for (AskDataAgentStepContext context : contexts) {
+            assertEquals(requestId, context.getRequestId());
+            assertTrue(context.getSubQuestionId() != null && !context.getSubQuestionId().trim().isEmpty());
+            assertEquals(result.getConversationId() + ":" + context.getSubQuestionId(),
+                    context.getConversationId());
+        }
+        int agentEvents = 0;
+        for (AskDataEvent event : dependencies.events) {
+            if (event.getType() != AskDataEvent.Type.AGENT_NODE_STARTED
+                    && event.getType() != AskDataEvent.Type.AGENT_NODE_EXECUTED) {
+                continue;
+            }
+            agentEvents++;
+            assertEquals(requestId, event.getCorrelation().getRequestId());
+            assertTrue(event.getCorrelation().getSubQuestionId() != null
+                    && !event.getCorrelation().getSubQuestionId().trim().isEmpty());
+            assertEquals(requestId + ":" + event.getCorrelation().getSubQuestionId() + ":root",
+                    event.getCorrelation().getParentEventId());
+        }
+        assertEquals(4, agentEvents);
     }
 
     @Test
@@ -650,6 +883,41 @@ public class DefaultAskDataFlowExecutorTest {
     }
 
     @Test
+    public void shouldCorrelateFinalAuthorizationFailureWithSqlAudit() {
+        StubDependencies dependencies = new StubDependencies();
+        dependencies.governanceProvider = request -> allowedOrders(request);
+        dependencies.sqlInterceptors = Collections.singletonList(new AskDataSqlInterceptor() {
+            @Override public String getKey() { return "rewrite-to-unauthorized-table"; }
+            @Override public int getOrder() { return 1; }
+            @Override public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+                return command.withSql("select count(*) from payments");
+            }
+        });
+        AskDataRequest request = request(true);
+
+        AskDataResult result = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request);
+
+        assertFalse(result.isSuccess());
+        AskDataSqlAudit.Record failedAudit = null;
+        for (AskDataSqlAudit.Record record : dependencies.sqlAudit.getRecords()) {
+            if ("FINAL_VALIDATE".equals(record.getPhase()) && "FAILED".equals(record.getOutcome())) {
+                failedAudit = record;
+            }
+        }
+        assertNotNull(failedAudit);
+        AskDataEvent governance = eventOfType(dependencies.events, AskDataEvent.Type.GOVERNANCE_DENIED);
+        assertNotNull(governance);
+        assertEquals(request.getOptions().get("askDataObservabilityRequestId"), failedAudit.getRequestId());
+        assertEquals(governance.getCorrelation().getRequestId(), failedAudit.getRequestId());
+        assertEquals(governance.getCorrelation().getConversationId(), failedAudit.getConversationId());
+        assertEquals(governance.getAuthorizationVersion(), failedAudit.getAuthorizationVersion());
+        assertEquals("policy-v1", failedAudit.getAuthorizationVersion());
+        assertEquals("governance", governance.getCapabilityKey());
+        assertEquals("QUERY", governance.getPurposeKey());
+    }
+
+    @Test
     public void shouldInjectRowPredicateAndPassGovernedParameterToFinalCommand() {
         StubDependencies dependencies = new StubDependencies();
         dependencies.governanceProvider = request -> allowedOrdersWithRowPredicate(request);
@@ -778,8 +1046,8 @@ public class DefaultAskDataFlowExecutorTest {
         AskDataResult result = dependencies.executor("{\"sql\":\"select id from orders\"}").execute(request);
 
         assertFalse(result.isSuccess());
-        assertEquals(1, dependencies.events.size());
-        AskDataEvent event = dependencies.events.get(0);
+        AskDataEvent event = eventOfType(dependencies.events, AskDataEvent.Type.GOVERNANCE_DENIED);
+        assertNotNull(event);
         assertEquals(AskDataEvent.Type.GOVERNANCE_DENIED, event.getType());
         assertEquals("orders", event.getDatasourceKey());
         assertEquals(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE, event.getDenialCode());
@@ -801,8 +1069,8 @@ public class DefaultAskDataFlowExecutorTest {
                 .execute(request(false));
 
         assertFalse(result.isSuccess());
-        assertEquals(1, dependencies.events.size());
-        AskDataEvent event = dependencies.events.get(0);
+        AskDataEvent event = eventOfType(dependencies.events, AskDataEvent.Type.GOVERNANCE_DENIED);
+        assertNotNull(event);
         assertEquals(AskDataEvent.Type.GOVERNANCE_DENIED, event.getType());
         assertEquals(DefaultDenyAskDataGovernanceProvider.DENIAL_CODE, event.getDenialCode());
         assertFalse(event.getAuthorizationVersion() == null || event.getAuthorizationVersion().trim().isEmpty());
@@ -814,14 +1082,19 @@ public class DefaultAskDataFlowExecutorTest {
     @Test
     public void shouldDenyCompletedCheckpointWhenCurrentMetadataDoesNotAuthorizeCheckpointSql() {
         StubDependencies dependencies = new StubDependencies();
+        dependencies.conversationStore = new InMemoryAskDataConversationStore();
+        dependencies.contextCompressor = new DefaultAskDataContextCompressor(dependencies.properties);
+        AskDataResult initial = dependencies.executor("{\"sql\":\"select count(*) from orders\"}")
+                .execute(request(true));
+        assertTrue(initial.isSuccess());
+        dependencies.metadataCalls = 0;
+        dependencies.executorCalls = 0;
         dependencies.governanceProvider = request -> allowed(request, Collections.singletonList(
                 new AskDataAuthorizedObject("orders", "unknown_table", "*")),
                 Collections.<AskDataRowPredicate>emptyList());
-        dependencies.conversationStore = new InMemoryAskDataConversationStore();
-        dependencies.conversationStore.save(completedCheckpoint());
         AskDataRequest request = request(true);
-        request.setConversationId("conversation-1");
-        request.setResumeToken("resume-executed");
+        request.setConversationId(initial.getConversationId());
+        request.setResumeToken(initial.getResumeToken());
 
         AskDataResult result = dependencies.executor("unused").execute(request);
 
@@ -1019,6 +1292,16 @@ public class DefaultAskDataFlowExecutorTest {
         return checkpoint;
     }
 
+    private List<com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy> routePolicies(
+            List<com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelAttempt> attempts) {
+        List<com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy> policies =
+                new ArrayList<com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy>();
+        for (com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelAttempt attempt : attempts) {
+            policies.add(attempt.getRoutePolicy());
+        }
+        return policies;
+    }
+
     private List<String> stepKeys(AskDataResult result) {
         java.util.ArrayList<String> keys = new java.util.ArrayList<String>();
         for (AskDataStepLog step : result.getSteps()) {
@@ -1033,6 +1316,13 @@ public class DefaultAskDataFlowExecutorTest {
             types.add(event.getType());
         }
         return types;
+    }
+
+    private AskDataEvent eventOfType(List<AskDataEvent> events, AskDataEvent.Type expected) {
+        for (AskDataEvent event : events) {
+            if (event != null && event.getType() == expected) return event;
+        }
+        return null;
     }
 
     private void assertContainsInOrder(List<AskDataEvent.Type> actual, AskDataEvent.Type... expected) {
@@ -1065,6 +1355,7 @@ public class DefaultAskDataFlowExecutorTest {
         private AskDataAuthorizationSummary authorizationSummaryInSqlCommand;
         private AskDataSqlCommand executedCommand;
         private List<AskDataSqlInterceptor> sqlInterceptors = Collections.emptyList();
+        private final AskDataSqlAudit sqlAudit = new AskDataSqlAudit();
         private AskDataConversationStore conversationStore;
         private AskDataContextCompressor contextCompressor;
         private final List<AskDataEvent> events = new java.util.ArrayList<AskDataEvent>();
@@ -1101,6 +1392,7 @@ public class DefaultAskDataFlowExecutorTest {
                     return new AskDataChatModel() {
                         @Override
                         public AskDataModelResponse generate(String prompt) {
+                            routedGenerateCalled = true;
                             return new AskDataModelResponse(modelResponse, modelResponse, "test-model");
                         }
                     };
@@ -1199,7 +1491,7 @@ public class DefaultAskDataFlowExecutorTest {
                             }
                             return Result.success();
                         }
-                    }, new AskDataSqlAudit());
+                    }, sqlAudit);
             return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                     promptProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor, null,
                     Collections.<AskDataAgent>emptyList(), eventPublisher,

@@ -8,8 +8,8 @@
 | --- | --- | --- |
 | Java SDK 示例编译 | `cd docs/askdata/starter && javac -source 8 -target 8 -d .verify-plugin-sdk examples/AskDataPluginSdkExample.java` | 通过，Java 8 源码和目标版本均指定 |
 | Java SDK 示例执行 | `java -cp .verify-plugin-sdk AskDataPluginSdkExample` | 通过，输出 `PLUGIN_SDK_EXAMPLE_OK` |
-| Core 完整 JDK 8 reactor | `JAVA_HOME=<zulu-8> mvn -f fw-plus-core/fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-askdata,fw-plus-ai/fw-plus-ai-model,fw-plus-ai/fw-plus-ai-store-embedding,fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-adapter -am clean install` | 2026-08-11 通过，10 个 reactor 模块成功；Common 7、AskData 119、Model 19、Embedding Store 19、LangChain4j Adapter 37，共 201 项测试，0 failures、0 errors |
-| AI 自动配置与 Starter 完整 JDK 8 reactor | `JAVA_HOME=<zulu-8> mvn -f fw-plus-ai/fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure,fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -am clean test` | 2026-08-11 通过，9 个 reactor 模块成功；AI 自动配置 594、AskData Starter 2，共 596 项测试，0 failures、0 errors |
+| Core 完整 JDK 8 reactor | `JAVA_HOME=<zulu-8> mvn -f fw-plus-core/fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-askdata,fw-plus-ai/fw-plus-ai-model,fw-plus-ai/fw-plus-ai-store-embedding,fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-adapter -am clean install` | 2026-08-11 通过，10 个 reactor 模块成功；Common 7、AskData 122、Model 19、Embedding Store 19、LangChain4j Adapter 37，共 204 项测试，0 failures、0 errors |
+| AI 自动配置与 Starter 完整 JDK 8 reactor | `JAVA_HOME=<zulu-8> mvn -f fw-plus-ai/fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure,fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -am clean test` | 2026-08-11 通过，9 个 reactor 模块成功；AI 自动配置 606、AskData Starter 2，共 608 项测试，0 failures、0 errors |
 | LangChain4j + JDBC 独立示例 | `JAVA_HOME=<zulu-8> mvn -f docs/askdata/starter/examples/langchain4j-jdbc/pom.xml clean compile` | 2026-08-11 通过；示例 `target` 已清理 |
 | Core 运行时依赖边界 | 对 AskData、Model、Embedding Store 执行 `dependency:tree -Dscope=runtime` | 通过，不含 Spring 或 LangChain4j 依赖 |
 | AskData Starter 依赖边界 | 对 AskData Starter 执行 `dependency:tree -Dscope=runtime` | 通过，不含 LangChain4j、Spring AI、Spring AI Alibaba 或 AgentScope 依赖 |

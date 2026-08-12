@@ -35,6 +35,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.EmptyAskDataMeta
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AiModelAskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AiModelRegistryAskDataChatModel;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.LegacyAskDataModelRegistryChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataMemoryRecallAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataRecommendationAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialectRegistry;
@@ -184,6 +185,10 @@ public class AskDataAutoConfiguration {
             AskDataCapabilityRegistry capabilityRegistry) {
         String key = configuredStore(properties.getState().getLongTermMemoryStore(), properties.getState().getStore());
         if (!isMemory(key)) {
+			AskDataSharedStoreAdapter shared = sharedStore(capabilityRegistry, key);
+			if (shared != null) {
+				return shared.longTermMemory();
+			}
             return capabilityRegistry.getCapability(key,
                     com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.STORE,
                     AskDataLongTermMemory.class);
@@ -652,6 +657,13 @@ public class AskDataAutoConfiguration {
                 aiModelRegistryProvider.getIfAvailable(), modelRouter);
     }
 
+	@Bean
+	@ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever.class)
+	public com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever coreAskDataRagRetriever(
+			AskDataVectorStore vectorStore) {
+		return new com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever(vectorStore);
+	}
+
     public AskDataVectorRetriever askDataVectorRetriever(AskDataProperties properties,
             ObjectProvider<AiEmbeddingStoreRegistry> embeddingStoreRegistryProvider,
             ObjectProvider<AskDataModelRegistry> modelRegistryProvider) {
@@ -732,9 +744,17 @@ public class AskDataAutoConfiguration {
     public AskDataRuntimeStateServices askDataRuntimeStateServices(AskDataAgentStateStore agentStateStore,
             AskDataLeaseStore leaseStore, AskDataIdempotencyKeyStore idempotencyKeyStore,
             AskDataAuditStateStore auditStateStore, AskDataLongTermMemory longTermMemory,
-            com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentGraphRuntime graphRuntime) {
+            com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentGraphRuntime graphRuntime,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider> metadataProviders,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.vector.AskDataEmbeddingModel> embeddingModels,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever> ragRetrievers,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataInterfacePublisher> interfacePublishers) {
         return new AskDataRuntimeStateServices(agentStateStore, leaseStore, idempotencyKeyStore, auditStateStore,
-                longTermMemory, graphRuntime);
+				longTermMemory, graphRuntime,
+				singleOptional(metadataProviders, "Core Metadata"),
+				singleOptional(embeddingModels, "Core Embedding"),
+				singleOptional(ragRetrievers, "Core RAG"),
+				singleOptional(interfacePublishers, "Core InterfacePublisher"));
     }
 
     @Bean
@@ -766,6 +786,9 @@ public class AskDataAutoConfiguration {
                 coreChatModel = new AiModelRegistryAskDataChatModel(aiModelRegistry);
             }
         }
+		if (coreChatModel == null) {
+			coreChatModel = new LegacyAskDataModelRegistryChatModel(modelRegistry);
+		}
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
                 agentDispatcher, mainAgents, combineEventPublishers(monitoringLogEventPublisher, eventPublisherProvider),
@@ -842,6 +865,16 @@ public class AskDataAutoConfiguration {
     private static boolean isMemory(String key) {
         return "memory".equalsIgnoreCase(key);
     }
+
+	private static <T> T singleOptional(ObjectProvider<T> provider, String capabilityName) {
+		List<T> values = provider == null ? Collections.<T>emptyList()
+				: provider.orderedStream().collect(Collectors.toList());
+		if (values.size() > 1) {
+			throw new IllegalStateException("AskData " + capabilityName + " SPI 最多只能存在一个 Bean，实际数量: "
+					+ values.size());
+		}
+		return values.isEmpty() ? null : values.get(0);
+	}
 
     private void validateDefaultVectorConfiguration(AskDataProperties properties) {
         if (properties.getState().isClusterMode() && "memory".equalsIgnoreCase(properties.getVector().getStore())) {

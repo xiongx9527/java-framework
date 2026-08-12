@@ -70,8 +70,10 @@ public class AskDataMultiQuestionFlowTest {
     private void assertAuditedChildResults(AskDataResult result) {
         List<AskDataResult> children = result.getChildResults();
         assertEquals(2, children.size());
-        assertTrue(children.get(0).isSuccess());
-        assertTrue(children.get(1).isSuccess());
+        assertTrue(children.get(0).isSuccess(), children.get(0).getErrorCode() + ":"
+                + children.get(0).getErrorMessage());
+        assertTrue(children.get(1).isSuccess(), children.get(1).getErrorCode() + ":"
+                + children.get(1).getErrorMessage());
         assertTrue(hasChildAuditStep(children.get(0)));
         assertTrue(hasChildAuditStep(children.get(1)));
     }
@@ -133,11 +135,14 @@ public class AskDataMultiQuestionFlowTest {
         assertNotNull(stores.idempotencyKeys().load(context, "batch-1"));
         assertNotNull(stores.idempotencyKeys().load(context, "batch-1:question-1"));
         assertNotNull(stores.idempotencyKeys().load(context, "batch-1:question-2"));
-        assertEquals("COMPLETED", stores.agentStates().load(context, result.getConversationId()).getStatus());
+        assertEquals("SUCCEEDED", stores.agentStates().load(context, result.getConversationId()).getStatus());
         assertEquals(2, stores.agentStates().load(context, result.getConversationId()).getSubTasks().size());
+        assertEquals("SKIP", stores.agentStates().load(context, result.getConversationId())
+                .getSubTasks().get(0).getFailurePolicy());
         assertEquals("SUCCEEDED", stores.auditStates().load(context, result.getConversationId()).getStatus());
         assertTrue(stores.leases().tryAcquire(context, result.getConversationId(), "next-owner", 1000L));
-        assertParentCorrelation(events, result.getConversationId());
+        assertParentCorrelation(events, result.getConversationId(),
+                (String) request.getOptions().get("askDataObservabilityRequestId"));
     }
 
     @Test
@@ -163,7 +168,7 @@ public class AskDataMultiQuestionFlowTest {
 
         AskDataResult result = executor(false).execute(request);
 
-        assertTrue(result.isSuccess());
+        assertTrue(result.isSuccess(), result.getErrorCode() + ":" + result.getErrorMessage());
         assertTrue(result.getChildResults().isEmpty());
     }
 
@@ -238,16 +243,26 @@ public class AskDataMultiQuestionFlowTest {
         AskDataProperties properties = new AskDataProperties();
         properties.getSql().setExecuteEnabled(true);
         properties.getFlow().setMultiQuestionMaxConcurrency(1);
-        InMemoryAskDataConversationStore store = new InMemoryAskDataConversationStore();
+        InMemoryAskDataConversationStore seedStore = new InMemoryAskDataConversationStore();
+        AskDataRequest seedRequest = structuredDagRequest(0L);
+        seedRequest.setExecute(Boolean.TRUE);
+        AskDataResult seedResult = executor(false, properties, null, seedStore,
+                new DefaultAskDataContextCompressor(properties)).execute(seedRequest);
+        assertTrue(seedResult.isSuccess());
+        AskDataCheckpoint checkpoint = seedStore.loadLatest(seedRequest.getProjectContext(),
+                seedResult.getConversationId());
+        assertNotNull(checkpoint);
         AskDataResult completed = new AskDataResult();
         completed.setSuccess(true);
         completed.setQuestionId("q1");
         completed.setQuestionState("SUCCEEDED");
-        completed.setConversationId("parent:q1");
+        completed.setConversationId(checkpoint.getConversationId() + ":q1");
         completed.setSql("select count(*) from orders limit 100");
         completed.setRowCount(Integer.valueOf(0));
         completed.setBrief("restored");
-        AskDataCheckpoint checkpoint = parentCheckpoint(completed);
+        checkpoint.setChildResults(Collections.singletonList(completed));
+        checkpoint.setResumeToken("resume-parent");
+        InMemoryAskDataConversationStore store = new InMemoryAskDataConversationStore();
         store.save(checkpoint);
         AtomicInteger firstModelCalls = new AtomicInteger();
         AtomicInteger firstSqlCalls = new AtomicInteger();
@@ -275,7 +290,7 @@ public class AskDataMultiQuestionFlowTest {
         AskDataResult result = executor(false, properties, probe, store,
                 new DefaultAskDataContextCompressor(properties)).execute(request);
 
-        assertTrue(result.isSuccess());
+        assertTrue(result.isSuccess(), result.getErrorCode() + ":" + result.getErrorMessage());
         assertEquals(0, firstModelCalls.get());
         assertEquals(0, firstSqlCalls.get());
         assertEquals(2, totalSqlCalls.get());
@@ -436,54 +451,36 @@ public class AskDataMultiQuestionFlowTest {
     }
 
     private void assertParentCorrelation(
-            List<com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent> events, String conversationId) {
-        String rootEventId = conversationId + ":root";
+            List<com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent> events, String conversationId,
+            String requestId) {
+        String rootEventId = requestId + ":root";
         boolean rootFound = false;
-        boolean childFound = false;
+        java.util.Set<String> childRoots = new java.util.HashSet<String>();
+        java.util.Set<String> childIds = new java.util.HashSet<String>();
         for (com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent event : events) {
             if (event.getCorrelation() == null) {
                 continue;
             }
+            assertEquals(requestId, event.getCorrelation().getRequestId());
             if (event.getType()
-                    == com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent.Type.CONVERSATION_STARTED) {
-                rootFound = rootEventId.equals(event.getCorrelation().getEventId());
-            } else if (rootEventId.equals(event.getCorrelation().getParentEventId())) {
-                childFound = true;
+                    == com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent.Type.CONVERSATION_STARTED
+                    && conversationId.equals(event.getCorrelation().getConversationId())) {
+                rootFound = rootEventId.equals(event.getCorrelation().getEventId())
+                        && event.getCorrelation().getSubQuestionId() == null;
+            } else if (event.getType()
+                    == com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent.Type.CONVERSATION_STARTED
+                    && event.getCorrelation().getSubQuestionId() != null) {
+                String childId = event.getCorrelation().getSubQuestionId();
+                assertEquals(conversationId + ":" + childId, event.getCorrelation().getConversationId());
+                assertEquals(rootEventId, event.getCorrelation().getParentEventId());
+                assertEquals(requestId + ":" + childId + ":root", event.getCorrelation().getEventId());
+                childRoots.add(event.getCorrelation().getEventId());
+                childIds.add(childId);
             }
         }
         assertTrue(rootFound);
-        assertTrue(childFound);
-    }
-
-    private AskDataCheckpoint parentCheckpoint(AskDataResult completed) {
-        AskDataCheckpoint checkpoint = new AskDataCheckpoint();
-        checkpoint.setConversationId("parent");
-        checkpoint.setProjectId("project-a");
-        checkpoint.setOperatorId("operator-a");
-        checkpoint.setAuthorizationVersion("policy-v1");
-        checkpoint.setCheckpointId("checkpoint-parent");
-        checkpoint.setResumeToken("resume-parent");
-        checkpoint.setRequestSummary("structured plan");
-        checkpoint.setModelKey("test-model");
-        checkpoint.setDatasourceKey("orders");
-        checkpoint.setDialect("mysql");
-        checkpoint.setMaxRows(Integer.valueOf(100));
-        checkpoint.setExecute(Boolean.TRUE);
-        checkpoint.setRequestOptionsSnapshot("[\"project-a\",\"operator-a\",{\"questions\":["
-                + "{\"dependsOn\":[],\"id\":\"q1\",\"question\":\"first\"},"
-                + "{\"dependsOn\":[],\"id\":\"q2\",\"question\":\"second\"},"
-                + "{\"dependsOn\":[\"q1\",\"q2\"],\"id\":\"q3\",\"question\":\"third\"}]}]");
-        checkpoint.setMultiQuestion(Boolean.TRUE);
-        checkpoint.setMultiQuestionPlanSnapshot("[{\"id\":\"q1\",\"question\":\"first\","
-                + "\"dependsOn\":[],\"failurePolicy\":\"SKIP\",\"timeoutMillis\":0},"
-                + "{\"id\":\"q2\",\"question\":\"second\",\"dependsOn\":[],"
-                + "\"failurePolicy\":\"SKIP\",\"timeoutMillis\":0},"
-                + "{\"id\":\"q3\",\"question\":\"third\",\"dependsOn\":[\"q1\",\"q2\"],"
-                + "\"failurePolicy\":\"SKIP\",\"timeoutMillis\":0}]");
-        checkpoint.setChildResults(Collections.singletonList(completed));
-        checkpoint.setCurrentStep("multi-question");
-        checkpoint.setVersion("1");
-        return checkpoint;
+        assertEquals(new java.util.HashSet<String>(Arrays.asList("question-1", "question-2")), childIds);
+        assertEquals(2, childRoots.size());
     }
 
     private static AskDataAuthorizationSummary allowedOrders(AskDataAuthorizationRequest request) {

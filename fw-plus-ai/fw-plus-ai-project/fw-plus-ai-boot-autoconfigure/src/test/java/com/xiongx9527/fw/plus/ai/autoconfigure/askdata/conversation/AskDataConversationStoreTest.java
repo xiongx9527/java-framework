@@ -4,6 +4,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelAttempt;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRoutePolicy;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelUsage;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore;
 import org.junit.jupiter.api.Test;
@@ -135,11 +138,20 @@ public class AskDataConversationStoreTest {
         checkpoint.setCompletedSteps(new ArrayList<String>(Arrays.asList("metadata")));
         checkpoint.setActualEmbeddingModelKey("embedding-provider");
         checkpoint.setEmbeddingModelAttempts(Arrays.asList("embedding-primary", "embedding-provider"));
+        checkpoint.setModelRouteSnapshot("route-v1");
+        checkpoint.setModelAttemptDetails(Arrays.asList(succeededAttempt("chat-provider",
+                AskDataModelAttempt.ModelType.CHAT)));
+        checkpoint.setEmbeddingModelAttemptDetails(Arrays.asList(succeededAttempt("embedding-provider",
+                AskDataModelAttempt.ModelType.EMBEDDING)));
         AskDataResult child = new AskDataResult();
         child.setSuccess(true);
         child.setQuestionId("q1");
         child.setQuestionState("SUCCEEDED");
         child.setBrief("saved child");
+        child.setFailurePolicy("CONTINUE");
+        child.setCompressedContext("compressed child");
+        child.setContextCompressionStatus("COMPRESSED");
+        child.setModelAttemptDetails(checkpoint.getModelAttemptDetails());
         checkpoint.setMultiQuestion(Boolean.TRUE);
         checkpoint.setMultiQuestionPlanSnapshot("plan-v1");
         checkpoint.setChildResults(Arrays.asList(child));
@@ -161,12 +173,20 @@ public class AskDataConversationStoreTest {
         assertEquals("embedding-provider", loaded.getActualEmbeddingModelKey());
         assertEquals(Arrays.asList("embedding-primary", "embedding-provider"),
                 loaded.getEmbeddingModelAttempts());
+        assertEquals("route-v1", loaded.getModelRouteSnapshot());
+        assertEquals("chat-provider", loaded.getModelAttemptDetails().get(0).getActualModelKey());
+        assertEquals("embedding-provider",
+                loaded.getEmbeddingModelAttemptDetails().get(0).getActualModelKey());
         assertEquals("loaded", loaded.getSteps().get(0).getMessage());
         assertEquals(true, loaded.getSteps().get(0).isSuccess());
         assertEquals(Boolean.TRUE, loaded.getMultiQuestion());
         assertEquals("plan-v1", loaded.getMultiQuestionPlanSnapshot());
         assertEquals("saved child", loaded.getChildResults().get(0).getBrief());
         assertEquals("SUCCEEDED", loaded.getChildResults().get(0).getQuestionState());
+        assertEquals("CONTINUE", loaded.getChildResults().get(0).getFailurePolicy());
+        assertEquals("compressed child", loaded.getChildResults().get(0).getCompressedContext());
+        assertEquals("chat-provider",
+                loaded.getChildResults().get(0).getModelAttemptDetails().get(0).getActualModelKey());
 
         loaded.getCompletedSteps().add("generate-sql");
         loaded.getSteps().get(0).setMessage("changed-after-load");
@@ -217,5 +237,11 @@ public class AskDataConversationStoreTest {
         checkpoint.setVersion(version);
         checkpoint.setCreatedAt(new Date(createdAt));
         return checkpoint;
+    }
+
+    private AskDataModelAttempt succeededAttempt(String modelKey, AskDataModelAttempt.ModelType modelType) {
+        return new AskDataModelAttempt(modelType, modelKey, AskDataModelRoutePolicy.DEFAULT_KEY,
+                "DEFAULT_KEY", AskDataModelAttempt.State.SUCCEEDED, null, null, modelKey,
+                AskDataModelUsage.unknown());
     }
 }
