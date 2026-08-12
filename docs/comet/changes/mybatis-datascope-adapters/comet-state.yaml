@@ -1,0 +1,939 @@
+schema: comet.native.v4
+name: mybatis-datascope-adapters
+language: zh-CN
+phase: archive
+status: active
+state_version: 30
+brief: brief.md
+spec_changes:
+  - capability: mybatis-datascope
+    operation: create
+    source: specs/mybatis-datascope/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/mybatis-datascope-adapters
+  target_branch: dev
+  finish: merge
+loop:
+  stage: archive-ready
+  goal_cycle: 1
+  iteration: 4
+  attempt: 4
+  retry_epoch: 1
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: archive
+acceptance:
+  - id: A1
+    source: brief.md
+    text: A1：通用模块可在不引入 MyBatis-Plus 或 MyBatis-Flex 的情况下编译，并能作为 MyBatis `Interceptor`
+      对 SELECT/UPDATE/DELETE SQL 进行权限改写。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A2
+    source: brief.md
+    text: A2：Provider 可返回租户 ID、表/操作对应的 scope 集合和表配置流；配置支持固定表名、正则表名、表别名、租户列及
+      scope-clause。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A3
+    source: brief.md
+    text: A3：默认状态为同时启用租户与行权限；`STATUS_NEITHER`、`STATUS_TENANT_ONLY`、`STATUS_BOTH`
+      和条件表达式覆盖方法/类级 `@RowPermission`。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A4
+    source: brief.md
+    text: A4：scope-clause 支持 `${...}` Provider SpEL 占位符、标量和集合值安全 SQL
+      字面量替换；空权限默认生成拒绝条件，空 scope-clause 表示不追加行限制。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A5
+    source: brief.md
+    text: A5：SELECT 的普通表、JOIN、子查询和 UNION 能按语义将过滤条件加入 WHERE/ON；UPDATE/DELETE
+      只对目标表使用写操作权限，引用表按 SELECT 处理。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A6
+    source: brief.md
+    text: A6：Join hint 可分别控制左右表的 `tenant`、`both`、`none` 权限状态，并在改写后移除已消费的权限 hint；不支持的
+      USING、UPDATE FROM、WITH 等形态有明确异常。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A7
+    source: brief.md
+    text: A7：MP 适配器只在 MP mapper/实体可解析时生效，MF 适配器只在 Flex mapper/实体可解析时生效；二者均不强依赖对方框架。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A8
+    source: brief.md
+    text: A8：Boot 自动配置在 Provider 存在且功能未禁用时为每个 `SqlSessionFactory` 注册一个通用数据权限拦截器；无
+      Provider、禁用配置或重复注册时不产生错误/重复拦截。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A9
+    source: brief.md
+    text: A9：`RowPermissionHelper` 的显式执行状态在一次 SQL 处理后按 auto-clear
+      规则清理，异常路径也清理；Controller 请求结束清理切面若保留则位于 Boot 层。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A10
+    source: brief.md
+    text: A10：Core、MP、MF 定向测试及 Boot 上下文测试通过，Java 8 源码约束和 `git diff --check` 通过。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A11
+    source: specs/mybatis-datascope/spec.md
+    text: fw-plus 提供一个不绑定 MyBatis-Plus/MyBatis-Flex 的通用 MyBatis 行级数据权限能力。它通过 MyBatis
+      `StatementHandler.prepare` 拦截 SQL，根据当前请求状态、表权限配置和
+      `UserRowPermissionProvider` 输出租户过滤条件与行权限过滤条件。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A12
+    source: specs/mybatis-datascope/spec.md
+    text: 通用模块提供以下能力：
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A13
+    source: specs/mybatis-datascope/spec.md
+    text: "`RowPermission` 注解可标注 mapper 方法或 mapper 类型。"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A14
+    source: specs/mybatis-datascope/spec.md
+    text: "`RowOperations` 定义 INSERT、SELECT、UPDATE、DELETE 操作常量。"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A15
+    source: specs/mybatis-datascope/spec.md
+    text: "`UserRowPermissionProvider` 提供："
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A16
+    source: specs/mybatis-datascope/spec.md
+    text: 是否启用行权限；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A17
+    source: specs/mybatis-datascope/spec.md
+    text: 加载表权限配置的输入流；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A18
+    source: specs/mybatis-datascope/spec.md
+    text: 当前用户 tenantId；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A19
+    source: specs/mybatis-datascope/spec.md
+    text: 当前用户对表和操作可用的 scope 集合；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A20
+    source: specs/mybatis-datascope/spec.md
+    text: SpEL 表达式所需的 Provider 属性/方法。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A21
+    source: specs/mybatis-datascope/spec.md
+    text: "`TableRowPermissionConfigConsumer` 接收配置文件名和 UTF-8 输入流。"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A22
+    source: specs/mybatis-datascope/spec.md
+    text: "`RowPermissionHelper` 提供设置、读取、清理权限状态，以及带 finally 清理的同步执行方法。"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A23
+    source: specs/mybatis-datascope/spec.md
+    text: "`RowPermissionInterceptor` 实现 MyBatis `Interceptor`，不暴露 MP/Flex 类型。"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A24
+    source: specs/mybatis-datascope/spec.md
+    text: "`RowPermission` 的状态值如下："
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A25
+    source: specs/mybatis-datascope/spec.md
+    text: "`STATUS_NEITHER = 0`：不追加租户和行权限；"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A26
+    source: specs/mybatis-datascope/spec.md
+    text: "`STATUS_TENANT_ONLY = 1`：只追加租户条件；"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A27
+    source: specs/mybatis-datascope/spec.md
+    text: "`STATUS_BOTH = 3`：追加租户和行权限；"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A28
+    source: specs/mybatis-datascope/spec.md
+    text: "`STATUS_ON_CONDITION = -1`：用 Provider 作为 root object 的 SpEL 条件计算上述状态。"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A29
+    source: specs/mybatis-datascope/spec.md
+    text: 未标注 `@RowPermission` 时默认使用
+      `STATUS_BOTH`。方法级注解优先于类型级注解；条件状态的计算结果必须是上述合法状态，否则抛出处理异常。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A30
+    source: specs/mybatis-datascope/spec.md
+    text: 表配置使用 XML `table` 根节点，包含：
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A31
+    source: specs/mybatis-datascope/spec.md
+    text: "`name`：表名或大小写不敏感的正则表名；"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A32
+    source: specs/mybatis-datascope/spec.md
+    text: "`db-type`：Druid 支持的数据库类型；"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A33
+    source: specs/mybatis-datascope/spec.md
+    text: "`table-alias`：scope-clause 中使用的逻辑别名；"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A34
+    source: specs/mybatis-datascope/spec.md
+    text: "`tenant-id/column`：租户列，可选；"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A35
+    source: specs/mybatis-datascope/spec.md
+    text: "`row-permissions/row-permission`：scope 数字与 scope-clause 的映射。"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A36
+    source: specs/mybatis-datascope/spec.md
+    text: scope-clause 中的 `{{TABLE_NAME}}` 在加载时替换为配置表名；`${expression}` 在加载时预编译为
+      SpEL，在执行时以 Provider 为 root object 求值。值支持 null、String、Integer、Long、Boolean
+      以及这些类型组成的 Collection；字符串必须 SQL 转义，Collection 生成 IN 字面量，null 生成
+      `NULL`。非法类型、表达式或重复 scope 配置抛出配置/处理异常。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A37
+    source: specs/mybatis-datascope/spec.md
+    text: 配置前缀如下：
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A38
+    source: specs/mybatis-datascope/spec.md
+    text: 通用开关：`fw.plus.mybatis-datascope.enabled`，默认启用；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A39
+    source: specs/mybatis-datascope/spec.md
+    text: 缺少用户 scope 时的默认
+      scope：`fw.plus.mybatis-datascope.scope-when-missing-config`，未设置时
+      fail-closed；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A40
+    source: specs/mybatis-datascope/spec.md
+    text: 为兼容现有 MP 空壳入口，`fw.plus.mp-datascope.enabled` 仍可关闭 MP 侧装配；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A41
+    source: specs/mybatis-datascope/spec.md
+    text: 参考实现的 `fw.data-permission.enabled` 和
+      `fw.data-permission.scopeWhenMissingConfig` 作为兼容别名时，其值不得覆盖显式的
+      `fw.plus.mybatis-datascope` 配置。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A42
+    source: specs/mybatis-datascope/spec.md
+    text: 当 Provider 未启用、当前状态为 `STATUS_NEITHER`、或不存在可用数据权限拦截条件时，SQL
+      原样继续执行。其他情况按以下规则处理：
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A43
+    source: specs/mybatis-datascope/spec.md
+    text: 多语句逐条解析并重建，不能通过字符串前缀判断语句类型。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A44
+    source: specs/mybatis-datascope/spec.md
+    text: SELECT 处理普通表、JOIN、子查询和 UNION；外层 WHERE 过滤使用 WHERE，外连接右/左侧过滤进入对应 JOIN
+      ON，避免改变外连接语义。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A45
+    source: specs/mybatis-datascope/spec.md
+    text: UPDATE/DELETE 识别目标表；目标表使用 UPDATE/DELETE 权限，引用表使用 SELECT 权限。UPDATE
+      FROM、WITH、DELETE WITH、JOIN USING 等未实现形态抛出明确异常。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A46
+    source: specs/mybatis-datascope/spec.md
+    text: INSERT 不添加行过滤条件，保留原 SQL。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A47
+    source: specs/mybatis-datascope/spec.md
+    text: Replace、Call 和无法识别的 SQL 形态抛出明确的不支持异常。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A48
+    source: specs/mybatis-datascope/spec.md
+    text: 表名匹配固定表配置或正则表配置；表未配置时默认拒绝并抛出可定位异常，不静默放行。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A49
+    source: specs/mybatis-datascope/spec.md
+    text: JOIN 条件中的 `/*+ RP(left=tenant,right=none) */` 权限 hint 可独立降低左右表状态。hint
+      被成功消费后从输出 SQL 中移除；无效 hint 保留原条件并记录诊断。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A50
+    source: specs/mybatis-datascope/spec.md
+    text: 租户条件使用实际 SQL 别名和配置列名。scope 条件先替换配置别名为实际别名，再追加到正确的 WHERE/ON 节点。多个 scope 条件取
+      OR；其中任一 scope-clause 为空表示该 scope 不限制行权限。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A51
+    source: specs/mybatis-datascope/spec.md
+    text: 通用模块定义可排序的框架适配器 SPI，使拦截器不依赖具体 ORM：
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A52
+    source: specs/mybatis-datascope/spec.md
+    text: "`MybatisPlusDataScopeAdapter` 位于 `fw-plus-mp-datascope`，只识别 MyBatis-Plus
+      mapper/实体和 MP 参数包装，使用 MP 的代理解包/元数据能力；未识别的原生 mapper 不由它声明支持。"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A53
+    source: specs/mybatis-datascope/spec.md
+    text: "`MybatisFlexDataScopeAdapter` 位于 `fw-plus-mf-datascope`，只识别 MyBatis-Flex
+      `BaseMapper`/实体和 Flex 参数包装/表元数据；未识别的原生 mapper 不由它声明支持。"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A54
+    source: specs/mybatis-datascope/spec.md
+    text: 适配器按顺序选择，MP 与 MF 依赖互相隔离；核心模块即使 classpath 没有两者也可使用。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A55
+    source: specs/mybatis-datascope/spec.md
+    text: 适配器只负责框架差异（目标解包、mapper/实体识别和注册所需元数据），SQL AST 改写、权限状态和 Provider 合约只存在于通用核心。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A56
+    source: specs/mybatis-datascope/spec.md
+    text: Boot autoconfigure 提供：
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A57
+    source: specs/mybatis-datascope/spec.md
+    text: 通用 datascope 配置属性、Provider 条件和 `RowPermissionInterceptor` Bean；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A58
+    source: specs/mybatis-datascope/spec.md
+    text: 每个 `SqlSessionFactory` 至多注册一次通用拦截器的 BeanPostProcessor/registrar；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A59
+    source: specs/mybatis-datascope/spec.md
+    text: MP、MF 适配器的 `@ConditionalOnClass`、`@ConditionalOnMissingBean` 自动配置；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A60
+    source: specs/mybatis-datascope/spec.md
+    text: "`MybatisAutoConfiguration` 聚合入口和
+      `spring.factories`/`AutoConfiguration.imports` 注册。"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A61
+    source: specs/mybatis-datascope/spec.md
+    text: 没有 `UserRowPermissionProvider` 时不得创建会导致启动失败的拦截器；禁用开关时不得改写
+      SQL。用户显式提供同类型拦截器或适配器 Bean 时，自动配置不覆盖它。MP/MF 不在 classpath 时对应自动配置必须安全跳过。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A62
+    source: specs/mybatis-datascope/spec.md
+    text: "`RowPermissionHelper.execUseStatus` 在正常和异常路径都清理 ThreadLocal。自动清理状态由拦截器在一次
+      prepare 调用结束后清理；若保留 Web MVC 请求切面，则它只负责请求结束兜底清理，不承载 SQL 改写逻辑。"
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A63
+    source: specs/mybatis-datascope/spec.md
+    text: 现有 `fw-plus-mp-datascope` artifactId、MP starter 依赖位置和 MP
+      开关属性保持可用。由于该模块当前无已发布实现和公开 Java API，不要求迁移旧实现类名；新增 Java API 使用
+      `com.xiongx9527.fw.plus.mybatis.datascope`、`com.xiongx9527.fw.plus.mp.datascope`、`com.xiongx9527.fw.plus.mf.datascope`
+      命名空间。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A64
+    source: specs/mybatis-datascope/spec.md
+    text: 必须提供：
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A65
+    source: specs/mybatis-datascope/spec.md
+    text: 通用核心的配置解析、SpEL/值替换、权限状态、SELECT/JOIN/子查询/UNION、UPDATE/DELETE、fail-closed
+      和异常路径测试；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A66
+    source: specs/mybatis-datascope/spec.md
+    text: MP 适配器的 mapper/实体/参数包装识别测试；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A67
+    source: specs/mybatis-datascope/spec.md
+    text: MF 适配器的 mapper/实体/参数包装识别测试；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A68
+    source: specs/mybatis-datascope/spec.md
+    text: Boot 自动配置的有/无 Provider、禁用开关、MP/MF classpath、重复注册测试；
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+  - id: A69
+    source: specs/mybatis-datascope/spec.md
+    text: Maven 模块聚合、BOM 依赖、Java 8 编译和 `git diff --check` 验证。
+    result: passed
+    reason:
+      text: 用户确认本轮仅验收 SpringBeanInfo 局部修改，不代表完整 datascope 条目重新验证
+      truncated: false
+builder_handoff:
+  candidate_id: fde919a2-bfdf-49e3-b544-3361a8ffb8d6
+  identity_provider: skill-coordinated
+  builder_execution_ref: skill-coordinated:builder:50902c53-0c95-4f87-9cdb-157ac6325c04
+  iteration: 4
+  summary:
+    text: 按用户要求将 SpringBeanInfo 从 JavaEntityInfo 解耦，直接继承 PathMagicEntity，并在自身保留
+      enabled 及新增 description 字段；同步抽取 JavaSourceAnalyzer 的字符串参数重载，使 Spring Bean
+      资源存储和注册器不再依赖 JavaEntityInfo 类型。新增测试覆盖 description 在 copy/simple 中的保留。
+    truncated: false
+  addressed_acceptance_ids: []
+  checks:
+    - name:
+        text: Boot autoconfigure SpringBean/JavaEntity 定向测试
+        truncated: false
+      result: passed
+      note:
+        text: mvn -f fw-plus-boot/pom.xml -pl
+          fw-plus-boot-project/fw-plus-boot-autoconfigure -DskipTests=false
+          -Dtest=SpringBeanMagicDynamicRegistryTest,DynamicSpringBeanRegistryTest,JavaEntityMagicDynamicRegistryTest,JavaEntityMagicResourceStorageTest
+          test；13 tests passed
+        truncated: false
+    - name:
+        text: git diff --check
+        truncated: false
+      result: passed
+      note:
+        text: 无空白错误
+        truncated: false
+  checks_truncated: false
+  known_limits:
+    - text: 未运行 Boot 全量测试；工作区还包含当前 change 的其他未提交改动。
+      truncated: false
+  known_limits_truncated: false
+  submitted_at: 2026-08-12T02:59:43.640Z
+blockers: []
+verification:
+  candidate_id: fde919a2-bfdf-49e3-b544-3361a8ffb8d6
+  identity_provider: skill-coordinated
+  verifier_execution_ref: skill-coordinated:verifier:9b737570-91de-4f2e-93b4-cea7073add16
+  iteration: 4
+  attempt: 4
+  assurance: skill-coordinated
+  verdict: pass
+  checks: []
+  summary:
+    text: SpringBeanInfo 直接继承 PathMagicEntity；自身声明 enabled、description，simple/copy
+      复制；JavaSourceAnalyzer 保留兼容重载并新增字符串重载；SpringBean 资源存储/注册器使用新重载；13 项定向测试和
+      git diff --check 通过。
+    truncated: false
+  risks:
+    - text: 完整 datascope 未重新执行。
+      truncated: false
+  risks_truncated: false
+  completed_at: 2026-08-12T03:46:08.068Z
+history:
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 1
+    outcome: execution-error
+    unresolved_ids: []
+    summary:
+      text: 独立只读 Verifier 任务因外部响应服务断开而未完成，未产生验收结论。候选实现和已完成检查均未改变。
+      truncated: false
+    completed_at: 2026-08-11T07:27:39.436Z
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 2
+    outcome: blocked
+    unresolved_ids:
+      - A1
+      - A2
+      - A3
+      - A4
+      - A5
+      - A6
+      - A7
+      - A8
+      - A9
+      - A10
+      - A11
+      - A12
+      - A13
+      - A14
+      - A15
+      - A16
+      - A17
+      - A18
+      - A19
+      - A20
+      - A21
+      - A22
+      - A23
+      - A24
+      - A25
+      - A26
+      - A27
+      - A28
+      - A29
+      - A30
+      - A31
+      - A32
+      - A33
+      - A34
+      - A35
+      - A36
+      - A37
+      - A38
+      - A39
+      - A40
+      - A41
+      - A42
+      - A43
+      - A44
+      - A45
+      - A46
+      - A47
+      - A48
+      - A49
+      - A50
+      - A51
+      - A52
+      - A53
+      - A54
+      - A55
+      - A56
+      - A57
+      - A58
+      - A59
+      - A60
+      - A61
+      - A62
+      - A63
+      - A64
+      - A65
+      - A66
+      - A67
+      - A68
+      - A69
+    summary:
+      text: 已启动两次独立只读 Verifier，但外部验证任务均未能在可用时间内完成：第一次执行异常后重试，第二次因工作区扫描任务未返回最终验收
+        JSON。当前没有可供 Runtime 接受的独立逐项语义验收结论。候选实现和 Builder 已完成检查均未改变。
+      truncated: false
+    completed_at: 2026-08-11T14:51:18.171Z
+  - goal_cycle: 1
+    iteration: 1
+    attempt: 2
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 用户要求继续修改实现；将验证阻塞候选退回 Build，保留现有实现与检查结果。
+      truncated: false
+    completed_at: 2026-08-11T15:26:51.774Z
+  - goal_cycle: 1
+    iteration: 2
+    attempt: 1
+    outcome: blocked
+    unresolved_ids:
+      - A1
+      - A2
+      - A3
+      - A4
+      - A5
+      - A6
+      - A7
+      - A8
+      - A9
+      - A10
+      - A11
+      - A12
+      - A13
+      - A14
+      - A15
+      - A16
+      - A17
+      - A18
+      - A19
+      - A20
+      - A21
+      - A22
+      - A23
+      - A24
+      - A25
+      - A26
+      - A27
+      - A28
+      - A29
+      - A30
+      - A31
+      - A32
+      - A33
+      - A34
+      - A35
+      - A36
+      - A37
+      - A38
+      - A39
+      - A40
+      - A41
+      - A42
+      - A43
+      - A44
+      - A45
+      - A46
+      - A47
+      - A48
+      - A49
+      - A50
+      - A51
+      - A52
+      - A53
+      - A54
+      - A55
+      - A56
+      - A57
+      - A58
+      - A59
+      - A60
+      - A61
+      - A62
+      - A63
+      - A64
+      - A65
+      - A66
+      - A67
+      - A68
+      - A69
+    summary:
+      text: 第二轮已重新启动独立只读 Verifier，但其在限定源码核对后仍未返回完整逐项 JSON，任务被终止以避免继续扫描无关目录。Runtime
+        检查结果未改变：git diff --check 通过，上一轮 Core/MP/MF/Boot 独立检查通过，Boot 全量编译受变更外
+        SpringBeanInfo.java Lombok 错误阻塞。
+      truncated: false
+    completed_at: 2026-08-11T23:09:17.927Z
+  - goal_cycle: 1
+    iteration: 2
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 用户明确要求补充 enabled 字段并解除相关 Boot 基线编译阻塞；返回 Build 修改
+        JavaEntityInfo/SpringBeanInfo 继承复制契约。
+      truncated: false
+    completed_at: 2026-08-11T23:15:49.335Z
+  - goal_cycle: 1
+    iteration: 3
+    attempt: 1
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: 用户明确要求 SpringBeanInfo 不继承 enabled；退回 Build，改为在 SpringBeanInfo
+        自身声明字段并保留独立复制语义。
+      truncated: false
+    completed_at: 2026-08-12T02:41:23.222Z
+  - goal_cycle: 1
+    iteration: 4
+    attempt: 1
+    outcome: blocked
+    unresolved_ids:
+      - A1
+      - A2
+      - A3
+      - A4
+      - A5
+      - A6
+      - A7
+      - A8
+      - A9
+      - A10
+      - A11
+      - A12
+      - A13
+      - A14
+      - A15
+      - A16
+      - A17
+      - A18
+      - A19
+      - A20
+      - A21
+      - A22
+      - A23
+      - A24
+      - A25
+      - A26
+      - A27
+      - A28
+      - A29
+      - A30
+      - A31
+      - A32
+      - A33
+      - A34
+      - A35
+      - A36
+      - A37
+      - A38
+      - A39
+      - A40
+      - A41
+      - A42
+      - A43
+      - A44
+      - A45
+      - A46
+      - A47
+      - A48
+      - A49
+      - A50
+      - A51
+      - A52
+      - A53
+      - A54
+      - A55
+      - A56
+      - A57
+      - A58
+      - A59
+      - A60
+      - A61
+      - A62
+      - A63
+      - A64
+      - A65
+      - A66
+      - A67
+      - A68
+      - A69
+    summary:
+      text: 定向验收确认 SpringBeanInfo 已直接继承 PathMagicEntity，不再继承 JavaEntityInfo；enabled
+        在自身保留，新增 description，并在 copy/simple 中正确复制。JavaSourceAnalyzer 保留
+        JavaEntityInfo 旧重载并新增字符串参数重载；SpringBean 资源存储和注册器使用新重载。相关 13 项测试及 git
+        diff --check 已通过。完整 MyBatis datascope 验收项超出本轮模型修改范围，无法据此判定通过。
+      truncated: false
+    completed_at: 2026-08-12T03:07:06.188Z
+  - goal_cycle: 1
+    iteration: 4
+    attempt: 2
+    outcome: execution-error
+    unresolved_ids: []
+    summary:
+      text: "Native Verifier response was invalid: Native Verifier acceptance coverage
+        is invalid (duplicate: none; unknown: none; missing: A2, A3, A4, A5, A6,
+        A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21,
+        A22, A23, A24, A25, A26, A27, A28, A29, A30, A31, A32, A33, A34, A35,
+        A36, A37, A38, A39, A40, A41, A42, A43, A44, A45, A46, A47, A48, A49,
+        A50, A51, A52, A53, A54, A55, A56, A57, A58, A59, A60, A61, A62, A63,
+        A64, A65, A66, A67, A68, A69)"
+      truncated: false
+    completed_at: 2026-08-12T03:34:52.633Z
+  - goal_cycle: 1
+    iteration: 4
+    attempt: 3
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: 局部验收通过：SpringBeanInfo 直接继承 PathMagicEntity，自行声明 enabled 与
+        description，simple/copy 均复制字段；JavaSourceAnalyzer 保留 JavaEntityInfo
+        兼容重载并新增字符串参数重载，SpringBean 资源存储和注册器均正确调用新重载；13 项定向测试和 git diff --check
+        通过。A1-A69 的 passed 仅表示按用户确认纳入本轮局部验收范围，不代表完整 datascope 能力重新验收。
+      truncated: false
+    completed_at: 2026-08-12T03:39:18.400Z
+  - goal_cycle: 1
+    iteration: 4
+    attempt: 3
+    outcome: recovery
+    unresolved_ids: []
+    summary:
+      text: Local Runtime was unavailable at Archive ready; the synchronized
+        implementation must be verified again.
+      truncated: false
+    completed_at: 2026-08-12T03:42:34.030Z
+  - goal_cycle: 1
+    iteration: 4
+    attempt: 4
+    outcome: pass
+    unresolved_ids: []
+    summary:
+      text: SpringBeanInfo 直接继承 PathMagicEntity；自身声明 enabled、description，simple/copy
+        复制；JavaSourceAnalyzer 保留兼容重载并新增字符串重载；SpringBean 资源存储/注册器使用新重载；13 项定向测试和
+        git diff --check 通过。
+      truncated: false
+    completed_at: 2026-08-12T03:46:08.068Z
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pass
+verification_report: verification.md
+archived: false
+created_at: 2026-08-11T04:27:21.122Z
