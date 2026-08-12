@@ -1,6 +1,10 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api;
 
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelImportRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberRoleRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockBuildDto;
@@ -48,6 +52,16 @@ public interface TinyEngineApiFacade {
 	AppMemberDto addAppMember(Integer appId, AppMemberRoleRequest request);
 	AppMemberDto changeAppMember(Integer appId, String userId, AppMemberRoleRequest request);
 	void removeAppMember(Integer appId, String userId);
+
+	List<AiModelServiceDto> usableAiModelServices(Integer appId);
+	List<AiModelServiceDto> manageableAiModelServices(Integer appId);
+	AiModelServiceDto createAiModelService(Integer appId, AiModelServiceRequest request);
+	AiModelServiceDto updateAiModelService(Integer appId, Long serviceId, AiModelServiceRequest request);
+	void deleteAiModelService(Integer appId, Long serviceId);
+	AiModelServiceDto addAiModel(Integer appId, Long serviceId, AiModelRequest request);
+	AiModelServiceDto updateAiModel(Integer appId, Long serviceId, Long modelId, AiModelRequest request);
+	void deleteAiModel(Integer appId, Long serviceId, Long modelId);
+	List<AiModelServiceDto> importAiModelServices(Integer appId, AiModelImportRequest request);
 
 	Object saveApp(Integer id, Map<String, Object> request);
 
