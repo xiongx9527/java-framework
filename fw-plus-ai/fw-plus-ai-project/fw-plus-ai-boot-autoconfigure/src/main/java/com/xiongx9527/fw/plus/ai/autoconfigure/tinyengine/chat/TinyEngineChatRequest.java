@@ -12,6 +12,7 @@ public class TinyEngineChatRequest {
 
 	private Integer appId;
 	private Long serviceId;
+	private String provider;
 	private String modelName;
 	private String modelKey;
 	private String model;
@@ -46,6 +47,15 @@ public class TinyEngineChatRequest {
 
 	public void setServiceId(Long serviceId) {
 		this.serviceId = serviceId;
+	}
+
+	@JsonIgnore
+	public String getProvider() {
+		return provider;
+	}
+
+	public void setProvider(String provider) {
+		this.provider = provider;
 	}
 
 	public String getModelName() {
