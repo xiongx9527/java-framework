@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -107,6 +108,37 @@ class AppLifecycleServiceTest {
 		order.verify(appRoleService).deleteAppRoles(Integer.valueOf(1), "tenant-9");
 		order.verify(appMapper).deleteAppById(Integer.valueOf(1), "tenant-9");
 		verify(appRoleService).requirePermission(Integer.valueOf(1), AppPermission.DELETE);
+	}
+
+	@Test
+	void deleteAppRemovesAiConfigurationBeforeRolesAndPropagatesCleanupFailure() {
+		AppMapper appMapper = mock(AppMapper.class);
+		PageMapper pageMapper = mock(PageMapper.class);
+		AppServiceImpl service = service(appMapper, pageMapper);
+		AppRoleService appRoleService = mock(AppRoleService.class);
+		AppAiModelConfigService aiModelConfigService = mock(AppAiModelConfigService.class);
+		ReflectionTestUtils.setField(service, "appRoleService", appRoleService);
+		ReflectionTestUtils.setField(service, "appAiModelConfigService", aiModelConfigService);
+		App stored = new App();
+		stored.setId(Integer.valueOf(1));
+		when(appMapper.queryAppById(Integer.valueOf(1), "tenant-9")).thenReturn(stored);
+		when(pageMapper.queryPageByApp(Integer.valueOf(1))).thenReturn(Collections.<Page>emptyList());
+		when(appMapper.deleteAppById(Integer.valueOf(1), "tenant-9")).thenReturn(Integer.valueOf(1));
+
+		service.deleteAppById(Integer.valueOf(1));
+
+		InOrder order = inOrder(aiModelConfigService, appRoleService, appMapper);
+		order.verify(aiModelConfigService).deleteByApp(Integer.valueOf(1), "tenant-9");
+		order.verify(appRoleService).deleteAppRoles(Integer.valueOf(1), "tenant-9");
+		order.verify(appMapper).deleteAppById(Integer.valueOf(1), "tenant-9");
+
+		doThrow(new IllegalStateException("AI cleanup failed")).when(aiModelConfigService)
+				.deleteByApp(Integer.valueOf(1), "tenant-9");
+		assertThatThrownBy(() -> service.deleteAppById(Integer.valueOf(1)))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessage("AI cleanup failed");
+		verify(appRoleService, times(1)).deleteAppRoles(Integer.valueOf(1), "tenant-9");
+		verify(appMapper, times(1)).deleteAppById(Integer.valueOf(1), "tenant-9");
 	}
 
 	@Test
