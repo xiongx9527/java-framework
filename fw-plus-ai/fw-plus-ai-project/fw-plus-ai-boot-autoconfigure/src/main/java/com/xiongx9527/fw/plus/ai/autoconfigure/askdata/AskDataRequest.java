@@ -1,6 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata;
 
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelSelection;
+import com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataPublishRequest;
 
 import java.util.Map;
 
@@ -15,6 +17,9 @@ public class AskDataRequest {
     private String datasourceKey;
     private String dialect;
     private String modelKey;
+    private AskDataModelSelection chatModelSelection = AskDataModelSelection.empty();
+    private AskDataModelSelection embeddingModelSelection = AskDataModelSelection.empty();
+    private AskDataPublishRequest publishRequest;
     private String conversationId;
     private String resumeToken;
     private Boolean execute;
@@ -60,6 +65,18 @@ public class AskDataRequest {
     public void setModelKey(String modelKey) {
         this.modelKey = modelKey;
     }
+
+    public AskDataModelSelection getChatModelSelection() { return chatModelSelection; }
+    public void setChatModelSelection(AskDataModelSelection chatModelSelection) {
+        this.chatModelSelection = chatModelSelection == null ? AskDataModelSelection.empty() : chatModelSelection;
+    }
+    public AskDataModelSelection getEmbeddingModelSelection() { return embeddingModelSelection; }
+    public void setEmbeddingModelSelection(AskDataModelSelection embeddingModelSelection) {
+        this.embeddingModelSelection = embeddingModelSelection == null
+                ? AskDataModelSelection.empty() : embeddingModelSelection;
+    }
+    public AskDataPublishRequest getPublishRequest() { return publishRequest; }
+    public void setPublishRequest(AskDataPublishRequest publishRequest) { this.publishRequest = publishRequest; }
 
     public String getConversationId() {
         return conversationId;

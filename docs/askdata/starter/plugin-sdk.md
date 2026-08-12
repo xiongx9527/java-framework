@@ -1,6 +1,6 @@
 # 插件 SDK 与业务覆盖
 
-AskData Core 只定义稳定的 Java 8 值对象和 SPI。Starter 默认把 LangChain4j/Ollama 接入这些 SPI，业务可以按能力 key 替换单个插件，也可以覆盖完整 `AskDataService`。插件没有权限、审计或 SQL 最终放行权；这些边界始终由 Core/Starter 持有。
+AskData Core 只定义稳定的 Java 8 值对象和 SPI。LangChain4j Adapter 已实现但由业务显式引入；Starter 本身不创建 LangChain4j、Ollama 或 Provider。业务可以按能力 key 提供单个插件，也可以覆盖完整 `AskDataService`。插件没有权限、审计或 SQL 最终放行权；这些边界始终由 Core/Starter 持有。
 
 ## 能力边界
 

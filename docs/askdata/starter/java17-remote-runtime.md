@@ -20,7 +20,7 @@
 2. 在 Starter 侧注册 Remote Runtime 能力 key、协议版本、支持的模型/Agent 能力、超时和熔断配置。
 3. Remote Runtime 只接受被 Core 已决策的模型 key；不得在远程端改写项目、数据源或任务路由优先级。
 4. 发布健康检查、能力版本和兼容范围；版本不匹配时拒绝调用并记录稳定错误码。
-5. 灰度时按项目或能力 key 放量，保留默认 LangChain4j/Ollama 可回退路径。
+5. 灰度时按项目或能力 key 放量，保留业务上一已验证的 LangChain4j 能力 key 作为可回退路径；AskData Starter 本身不提供默认模型。
 
 ## 传输方式
 

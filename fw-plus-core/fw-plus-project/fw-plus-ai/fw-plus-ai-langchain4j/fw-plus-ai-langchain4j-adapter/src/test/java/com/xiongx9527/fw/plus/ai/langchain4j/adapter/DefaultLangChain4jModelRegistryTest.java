@@ -5,11 +5,19 @@ import com.xiongx9527.fw.plus.ai.model.AiModelAdapter;
 import com.xiongx9527.fw.plus.ai.model.AiModelDefinition;
 import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import com.xiongx9527.fw.plus.ai.model.DefaultAiModelRegistry;
+import dev.langchain4j.data.embedding.Embedding;
+import dev.langchain4j.data.message.AiMessage;
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.segment.TextSegment;
+import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.embedding.EmbeddingModel;
+import dev.langchain4j.model.output.Response;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -113,7 +121,32 @@ public class DefaultLangChain4jModelRegistryTest {
         }
 
         public LangChain4jModel create(LangChain4jModelDefinition definition) {
-            return new LangChain4jModel(definition.getProvider(), definition.getModelType(), new Object());
+			Object model = definition.getModelType() == LangChain4jModelType.CHAT
+					? chatModel() : embeddingModel();
+			return new LangChain4jModel(definition.getProvider(), definition.getModelType(), model);
         }
+
+		private ChatLanguageModel chatModel() {
+			return new ChatLanguageModel() {
+				@Override
+				public Response<AiMessage> generate(List<ChatMessage> messages) {
+					return Response.from(AiMessage.from("answer"));
+				}
+			};
+		}
+
+		private EmbeddingModel embeddingModel() {
+			return new EmbeddingModel() {
+				@Override
+				public Response<List<Embedding>> embedAll(List<TextSegment> segments) {
+					return Response.from(Collections.singletonList(Embedding.from(new float[] { 0.1F })));
+				}
+
+				@Override
+				public int dimension() {
+					return 1;
+				}
+			};
+		}
     }
 }

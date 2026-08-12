@@ -4,7 +4,7 @@
 
 本 starter 提供 Java 8 / Spring Boot 2.7.x 下的中立向量存储自动配置入口。业务代码应依赖 `fw-plus-ai-store-embedding` 的中立契约，不直接暴露 LangChain4j `EmbeddingStore<TextSegment>`、Spring AI `VectorStore` 或 AgentScope 2 Java SDK 类型。
 
-当前默认 LangChain4j 实现需要同时引入：
+业务选择当前 Java 8 已实现的 LangChain4j Adapter 时，同时引入：
 
 ```xml
 <dependency>
@@ -25,7 +25,7 @@
 
 ## 配置方式
 
-向量存储统一使用 `fw-plus.ai.embedding-store` 前缀。默认 LangChain4j 实现的 `framework` 填写 `langchain4j`，Qdrant、Milvus、Redis 等写在 `provider`。
+向量存储统一使用 `fw-plus.ai.embedding-store` 前缀。业务选择 LangChain4j 时将 `framework` 写为 `langchain4j`，Qdrant、Milvus、Redis 等写在 `provider`。
 
 ```yaml
 fw-plus:
@@ -61,7 +61,7 @@ Magic-API 的 `vector[...]` 保持按业务 key 访问，但返回中立 facade�
 
 ## LangChain4j 切换到其他实现
 
-当前版本只有默认 LangChain4j adapter。后续接入 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java 时，切换步骤应是：
+当前 Java 8 版本只实现 LangChain4j Adapter。后续接入 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java 时，切换步骤应是：
 
 1. 保留本 starter。
 2. 移除 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
@@ -78,7 +78,7 @@ AgentScope 2 Java 必须按进程内 SDK adapter 适配，不能用外部 HTTP�
 
 ## 回滚
 
-如果迁移后无法启动，优先回滚到默认 LangChain4j：
+如果迁移后无法启动，优先回滚到业务上一版 LangChain4j 组合：
 
 1. 恢复 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
 2. 将 `framework` 改回 `langchain4j`。
