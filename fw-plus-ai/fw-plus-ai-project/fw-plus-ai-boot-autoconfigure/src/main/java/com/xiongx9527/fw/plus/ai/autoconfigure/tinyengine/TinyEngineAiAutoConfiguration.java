@@ -23,6 +23,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiP
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProviderRegistry;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelInvocationConfig;
+import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -112,7 +114,7 @@ public class TinyEngineAiAutoConfiguration {
 	@ConditionalOnMissingBean(TinyEngineAiChatService.class)
 	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.chat", name = "enabled", havingValue = "true")
 	public TinyEngineAiChatService tinyEngineAiChatService(TinyEngineAiProviderRegistry providerRegistry,
-			TinyEngineAiProperties properties) {
+			TinyEngineAiProperties properties, ObjectProvider<AppAiModelConfigService> configServiceProvider) {
 		String missingDependencyPolicy = normalizeMissingDependencyPolicy(properties.getMissingDependencyPolicy());
 		String unavailableReason = chatUnavailableReason(providerRegistry);
 		if (unavailableReason != null) {
@@ -121,7 +123,7 @@ public class TinyEngineAiAutoConfiguration {
 			}
 			throw new IllegalStateException(unavailableReason);
 		}
-		return new DefaultTinyEngineAiChatService(providerRegistry);
+		return new DefaultTinyEngineAiChatService(providerRegistry, configServiceProvider.getIfAvailable());
 	}
 
 	@Bean
@@ -238,19 +240,76 @@ public class TinyEngineAiAutoConfiguration {
 
 	private static final class DefaultTinyEngineAiChatService implements TinyEngineAiChatService {
 		private final TinyEngineAiProviderRegistry providerRegistry;
+		private final AppAiModelConfigService configService;
 
-		private DefaultTinyEngineAiChatService(TinyEngineAiProviderRegistry providerRegistry) {
+		private DefaultTinyEngineAiChatService(TinyEngineAiProviderRegistry providerRegistry,
+				AppAiModelConfigService configService) {
 			this.providerRegistry = providerRegistry;
+			this.configService = configService;
 		}
 
 		@Override
 		public TinyEngineChatResponse chat(TinyEngineChatRequest request) {
-			return providerRegistry.requireCapability(TinyEngineAiCapability.CHAT).chat(request);
+			AiModelInvocationConfig invocation = resolveInvocation(request);
+			return provider(invocation, TinyEngineAiCapability.CHAT).chat(providerRequest(request, invocation));
 		}
 
 		@Override
 		public List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request) {
-			return providerRegistry.requireCapability(TinyEngineAiCapability.STREAMING_CHAT).stream(request);
+			AiModelInvocationConfig invocation = resolveInvocation(request);
+			return provider(invocation, TinyEngineAiCapability.STREAMING_CHAT).stream(providerRequest(request, invocation));
+		}
+
+		private AiModelInvocationConfig resolveInvocation(TinyEngineChatRequest request) {
+			if (request == null || request.getAppId() == null || request.getServiceId() == null
+					|| isBlank(request.getModelName())) {
+				throw new IllegalArgumentException("appId, serviceId and modelName are required");
+			}
+			if (configService == null) {
+				throw new IllegalStateException("TinyEngine AI application model configuration service is unavailable");
+			}
+			return configService.resolveInvocation(request.getAppId(), request.getServiceId(), request.getModelName());
+		}
+
+		private TinyEngineAiProvider provider(AiModelInvocationConfig invocation, TinyEngineAiCapability capability) {
+			TinyEngineAiProvider provider = invocation == null || isBlank(invocation.getProvider())
+					? providerRegistry.requireCapability(capability)
+					: providerRegistry.getProvider(invocation.getProvider());
+			if (!provider.supports(capability)) {
+				throw new IllegalStateException("TinyEngine AI provider '" + provider.getKey()
+						+ "' does not support capability '" + capability + "'");
+			}
+			return provider;
+		}
+
+		private TinyEngineChatRequest providerRequest(TinyEngineChatRequest request, AiModelInvocationConfig invocation) {
+			TinyEngineChatRequest target = new TinyEngineChatRequest();
+			target.setAppId(request.getAppId());
+			target.setServiceId(request.getServiceId());
+			target.setModelName(invocation.getModelName());
+			target.setModelKey(invocation.getModelName());
+			target.setModel(invocation.getModelName());
+			target.setBaseUrl(invocation.getBaseUrl());
+			target.setApiKey(invocation.getApiKey());
+			target.setMessage(request.getMessage());
+			target.setMessages(request.getMessages());
+			target.setStream(request.getStream());
+			target.setMaxTokens(request.getMaxTokens());
+			target.setPresencePenalty(request.getPresencePenalty());
+			target.setFrequencyPenalty(request.getFrequencyPenalty());
+			target.setResponseFormat(request.getResponseFormat());
+			target.setEnableThinking(request.getEnableThinking());
+			target.setToolChoice(request.getToolChoice());
+			target.setParallelToolCalls(request.getParallelToolCalls());
+			target.setEnableSearch(request.getEnableSearch());
+			target.setStreamOptions(request.getStreamOptions());
+			target.setSearchOptions(request.getSearchOptions());
+			target.setTools(request.getTools());
+			return target;
+		}
+
+		private boolean isBlank(String value) {
+			return value == null || value.trim().length() == 0;
 		}
 	}
 

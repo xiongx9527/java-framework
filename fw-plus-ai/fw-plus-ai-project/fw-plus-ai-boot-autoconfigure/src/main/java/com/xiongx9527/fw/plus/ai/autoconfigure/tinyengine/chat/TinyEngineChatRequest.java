@@ -1,12 +1,22 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@JsonIgnoreProperties({"baseUrl", "apiKey"})
 public class TinyEngineChatRequest {
 
+	private Integer appId;
+	private Long serviceId;
+	private String modelName;
 	private String modelKey;
+	private String model;
+	private String baseUrl;
+	private String apiKey;
 	private String message;
 	private List<TinyEngineChatMessage> messages = new ArrayList<TinyEngineChatMessage>();
 	private Boolean stream;
@@ -22,12 +32,62 @@ public class TinyEngineChatRequest {
 	private Map<String, Object> searchOptions;
 	private List<Map<String, Object>> tools = new ArrayList<Map<String, Object>>();
 
+	public Integer getAppId() {
+		return appId;
+	}
+
+	public void setAppId(Integer appId) {
+		this.appId = appId;
+	}
+
+	public Long getServiceId() {
+		return serviceId;
+	}
+
+	public void setServiceId(Long serviceId) {
+		this.serviceId = serviceId;
+	}
+
+	public String getModelName() {
+		return modelName;
+	}
+
+	public void setModelName(String modelName) {
+		this.modelName = modelName;
+	}
+
 	public String getModelKey() {
 		return modelKey;
 	}
 
 	public void setModelKey(String modelKey) {
 		this.modelKey = modelKey;
+	}
+
+	public String getModel() {
+		return model;
+	}
+
+	public void setModel(String model) {
+		this.model = model;
+	}
+
+	@JsonIgnore
+	public String getBaseUrl() {
+		return baseUrl;
+	}
+
+	public void setBaseUrl(String baseUrl) {
+		this.baseUrl = baseUrl;
+	}
+
+	@JsonIgnore
+	public String getApiKey() {
+		return apiKey;
+	}
+
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
 	}
 
 	public String getMessage() {
