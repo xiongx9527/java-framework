@@ -21,6 +21,7 @@ import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Method;
@@ -35,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -96,7 +98,7 @@ class AppAiModelConfigServiceTest {
 		List<AiModelServiceDto> result = fixture.service.listUsable(Integer.valueOf(2));
 
 		assertThat(result).hasSize(1);
-		assertThat(result.get(0).getId()).isEqualTo(Integer.valueOf(10));
+		assertThat(result.get(0).getId()).isEqualTo(Long.valueOf(10));
 		assertThat(result.get(0).getModels()).extracting(AiModelConfig::getName).containsExactly("enabled");
 	}
 
@@ -157,6 +159,34 @@ class AppAiModelConfigServiceTest {
 	}
 
 	@Test
+	void keepingBlankApiKeyRejectsFinalEnabledServiceWithoutKey() {
+		Fixture allowEmptyToRequired = fixture("admin");
+		AiModelServiceConfig emptyAllowed = serviceConfig(10L, true, null);
+		emptyAllowed.setAllowEmptyApiKey(Boolean.TRUE);
+		when(allowEmptyToRequired.serviceMapper.findService("tenant-9", 2, 10L)).thenReturn(emptyAllowed);
+		AiModelServiceRequest requireKey = serviceRequest("openai", " ");
+		requireKey.setAllowEmptyApiKey(Boolean.FALSE);
+
+		assertThatThrownBy(() -> allowEmptyToRequired.service.updateService(2, 10L, requireKey))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("apiKey");
+		verify(allowEmptyToRequired.serviceMapper, never()).updateKeepingApiKey(any(AiModelServiceConfig.class));
+
+		Fixture disabledToEnabled = fixture("admin");
+		AiModelServiceConfig disabledWithoutKey = serviceConfig(10L, false, null);
+		disabledWithoutKey.setAllowEmptyApiKey(Boolean.FALSE);
+		when(disabledToEnabled.serviceMapper.findService("tenant-9", 2, 10L)).thenReturn(disabledWithoutKey);
+		AiModelServiceRequest enable = serviceRequest("openai", null);
+		enable.setAllowEmptyApiKey(null);
+		enable.setEnabled(Boolean.TRUE);
+
+		assertThatThrownBy(() -> disabledToEnabled.service.updateService(2, 10L, enable))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("apiKey");
+		verify(disabledToEnabled.serviceMapper, never()).updateKeepingApiKey(any(AiModelServiceConfig.class));
+	}
+
+	@Test
 	void writesRejectCrossApplicationIdentifiers() {
 		Fixture fixture = fixture("admin");
 		when(fixture.serviceMapper.findService("tenant-9", 2, 10L)).thenReturn(null);
@@ -174,7 +204,7 @@ class AppAiModelConfigServiceTest {
 	@Test
 	void importRejectsNonEmptyDatabaseBeforeWritingAnything() {
 		Fixture fixture = fixture("owner");
-		when(fixture.serviceMapper.findServices("tenant-9", 2))
+		when(fixture.serviceMapper.findServicesForUpdate("tenant-9", 2))
 				.thenReturn(Collections.singletonList(serviceConfig(10, true, "secret")));
 
 		assertThatThrownBy(() -> fixture.service.importLocal(2, validImport()))
@@ -193,7 +223,7 @@ class AppAiModelConfigServiceTest {
 		fixture.app.setExtendConfig(original);
 		when(fixture.serviceMapper.insertService(any(AiModelServiceConfig.class))).thenAnswer(invocation -> {
 			AiModelServiceConfig inserted = invocation.getArgument(0);
-			inserted.setId(100);
+			inserted.setId(100L);
 			fixture.persistedServices.add(inserted);
 			return 1;
 		});
@@ -203,7 +233,13 @@ class AppAiModelConfigServiceTest {
 		});
 		when(fixture.appMapper.updateAppById(any(App.class))).thenReturn(1);
 
-		List<AiModelServiceDto> result = fixture.service.importLocal(2, validImport());
+		AiModelImportRequest importRequest = validImport();
+		importRequest.getSettings().setDefaultModel("openai:gpt-4o");
+		importRequest.getSettings().setQuickModel("openai:gpt-4o-mini");
+		importRequest.getSettings().setChatMode("assistant");
+		importRequest.getSettings().setEnableThinking(Boolean.TRUE);
+		importRequest.getSettings().setAdditionalProperty("temperature", Double.valueOf(0.6D));
+		List<AiModelServiceDto> result = fixture.service.importLocal(2, importRequest);
 
 		assertThat(result).hasSize(1);
 		verify(fixture.modelMapper).insertModel(org.mockito.ArgumentMatchers.argThat(
@@ -211,10 +247,170 @@ class AppAiModelConfigServiceTest {
 						&& Integer.valueOf(2).equals(model.getAppId())));
 		verify(fixture.appMapper).updateAppById(org.mockito.ArgumentMatchers.argThat(update -> {
 			Map<String, Object> extendConfig = update.getExtendConfig();
-			return extendConfig != original && "dark".equals(extendConfig.get("theme"))
-					&& extendConfig.get("aiModelSettings") instanceof AppAiModelSettings;
+			if (extendConfig == original || !"dark".equals(extendConfig.get("theme"))
+					|| !(extendConfig.get("aiModelSettings") instanceof AppAiModelSettings)) {
+				return false;
+			}
+			AppAiModelSettings settings = (AppAiModelSettings) extendConfig.get("aiModelSettings");
+			return "openai:gpt-4o".equals(settings.getDefaultModel())
+					&& "openai:gpt-4o-mini".equals(settings.getQuickModel())
+					&& "assistant".equals(settings.getChatMode())
+					&& Boolean.TRUE.equals(settings.getEnableThinking())
+					&& Double.valueOf(0.6D).equals(settings.getAdditionalProperties().get("temperature"));
 		}));
 		assertThat(original).containsOnlyKeys("theme");
+	}
+
+	@Test
+	void syncingServicesPreservesApplicationAiBehaviorSettings() {
+		Fixture fixture = fixture("owner");
+		AppAiModelSettings existing = new AppAiModelSettings();
+		existing.setDefaultModel("openai:gpt-4o");
+		existing.setQuickModel("openai:gpt-4o-mini");
+		existing.setChatMode("assistant");
+		existing.setEnableThinking(Boolean.TRUE);
+		existing.setAdditionalProperty("temperature", Double.valueOf(0.6D));
+		Map<String, Object> extendConfig = new LinkedHashMap<String, Object>();
+		extendConfig.put("aiModelSettings", existing);
+		fixture.app.setExtendConfig(extendConfig);
+		when(fixture.serviceMapper.insertService(any(AiModelServiceConfig.class))).thenAnswer(invocation -> {
+			AiModelServiceConfig inserted = invocation.getArgument(0);
+			inserted.setId(100L);
+			fixture.persistedServices.add(inserted);
+			return 1;
+		});
+
+		fixture.service.createService(2, serviceRequest("openai", "secret"));
+
+		verify(fixture.appMapper).updateAppById(org.mockito.ArgumentMatchers.argThat(update -> {
+			Object value = update.getExtendConfig().get("aiModelSettings");
+			if (!(value instanceof AppAiModelSettings)) {
+				return false;
+			}
+			AppAiModelSettings settings = (AppAiModelSettings) value;
+			return "openai:gpt-4o".equals(settings.getDefaultModel())
+					&& "openai:gpt-4o-mini".equals(settings.getQuickModel())
+					&& "assistant".equals(settings.getChatMode())
+					&& Boolean.TRUE.equals(settings.getEnableThinking())
+					&& Double.valueOf(0.6D).equals(settings.getAdditionalProperties().get("temperature"))
+					&& settings.getServices().size() == 1;
+		}));
+	}
+
+	@Test
+	void importLocksTenantApplicationBeforeCheckingDatabaseEmptiness() {
+		Fixture fixture = fixture("owner");
+		when(fixture.appMapper.lockAppForUpdate("tenant-9", 2)).thenReturn(fixture.app);
+		when(fixture.serviceMapper.findServicesForUpdate("tenant-9", 2))
+				.thenReturn(Collections.singletonList(serviceConfig(10L, true, "secret")));
+
+		assertThatThrownBy(() -> fixture.service.importLocal(2, validImport()))
+				.isInstanceOf(IllegalStateException.class);
+
+		org.mockito.InOrder order = inOrder(fixture.appMapper, fixture.serviceMapper);
+		order.verify(fixture.appMapper).lockAppForUpdate("tenant-9", 2);
+		order.verify(fixture.serviceMapper).findServicesForUpdate("tenant-9", 2);
+		verify(fixture.appMapper, never()).lockAppForUpdate("other-tenant", 2);
+	}
+
+	@Test
+	void importMergesSettingsWithApplicationSnapshotReadAfterLock() {
+		Fixture fixture = fixture("owner");
+		Map<String, Object> staleConfig = new LinkedHashMap<String, Object>();
+		staleConfig.put("theme", "dark");
+		fixture.app.setExtendConfig(staleConfig);
+		App lockedApp = new App();
+		lockedApp.setId(2);
+		lockedApp.setTenantId("tenant-9");
+		Map<String, Object> latestConfig = new LinkedHashMap<String, Object>(staleConfig);
+		latestConfig.put("concurrentSetting", "preserved");
+		lockedApp.setExtendConfig(latestConfig);
+		when(fixture.appMapper.lockAppForUpdate("tenant-9", 2)).thenReturn(lockedApp);
+		when(fixture.serviceMapper.insertService(any(AiModelServiceConfig.class))).thenAnswer(invocation -> {
+			AiModelServiceConfig inserted = invocation.getArgument(0);
+			inserted.setId(100L);
+			fixture.persistedServices.add(inserted);
+			return 1;
+		});
+		when(fixture.modelMapper.insertModel(any(AiModelConfig.class))).thenAnswer(invocation -> {
+			fixture.persistedModels.add(invocation.getArgument(0));
+			return 1;
+		});
+
+		fixture.service.importLocal(2, validImport());
+
+		verify(fixture.appMapper).updateAppById(org.mockito.ArgumentMatchers.argThat(update ->
+				"preserved".equals(update.getExtendConfig().get("concurrentSetting"))));
+	}
+
+	@Test
+	void allAiConfigurationWritesLockApplicationBeforeAccessingChildTables() {
+		Fixture createService = fixture("owner");
+		when(createService.serviceMapper.insertService(any(AiModelServiceConfig.class))).thenAnswer(invocation -> {
+			AiModelServiceConfig inserted = invocation.getArgument(0);
+			inserted.setId(10L);
+			createService.persistedServices.add(inserted);
+			return 1;
+		});
+		createService.service.createService(2, serviceRequest("openai", "secret"));
+		org.mockito.InOrder createServiceOrder = inOrder(createService.appMapper, createService.serviceMapper);
+		createServiceOrder.verify(createService.appMapper).lockAppForUpdate("tenant-9", 2);
+		createServiceOrder.verify(createService.serviceMapper).insertService(any(AiModelServiceConfig.class));
+
+		Fixture updateService = fixture("owner");
+		when(updateService.serviceMapper.findService("tenant-9", 2, 10L))
+				.thenReturn(serviceConfig(10L, true, "secret"));
+		when(updateService.serviceMapper.updateKeepingApiKey(any(AiModelServiceConfig.class))).thenReturn(1);
+		updateService.service.updateService(2, 10L, serviceRequest("openai", null));
+		org.mockito.InOrder updateServiceOrder = inOrder(updateService.appMapper, updateService.serviceMapper);
+		updateServiceOrder.verify(updateService.appMapper).lockAppForUpdate("tenant-9", 2);
+		updateServiceOrder.verify(updateService.serviceMapper).findService("tenant-9", 2, 10L);
+
+		Fixture deleteService = fixture("owner");
+		when(deleteService.serviceMapper.findService("tenant-9", 2, 10L))
+				.thenReturn(serviceConfig(10L, true, "secret"));
+		when(deleteService.serviceMapper.deleteService("tenant-9", 2, 10L)).thenReturn(1);
+		deleteService.service.deleteService(2, 10L);
+		org.mockito.InOrder deleteServiceOrder = inOrder(deleteService.appMapper, deleteService.serviceMapper);
+		deleteServiceOrder.verify(deleteService.appMapper).lockAppForUpdate("tenant-9", 2);
+		deleteServiceOrder.verify(deleteService.serviceMapper).findService("tenant-9", 2, 10L);
+
+		Fixture addModel = fixture("owner");
+		when(addModel.serviceMapper.findService("tenant-9", 2, 10L))
+				.thenReturn(serviceConfig(10L, true, "secret"));
+		when(addModel.modelMapper.insertModel(any(AiModelConfig.class))).thenReturn(1);
+		addModel.service.addModel(2, 10L, modelRequest("gpt-4o"));
+		org.mockito.InOrder addModelOrder = inOrder(addModel.appMapper, addModel.serviceMapper);
+		addModelOrder.verify(addModel.appMapper).lockAppForUpdate("tenant-9", 2);
+		addModelOrder.verify(addModel.serviceMapper).findService("tenant-9", 2, 10L);
+
+		Fixture updateModel = fixture("owner");
+		when(updateModel.serviceMapper.findService("tenant-9", 2, 10L))
+				.thenReturn(serviceConfig(10L, true, "secret"));
+		when(updateModel.modelMapper.findModel("tenant-9", 2, 20L))
+				.thenReturn(modelConfig(20L, 10L, "gpt-4o", true));
+		when(updateModel.modelMapper.updateModel(any(AiModelConfig.class))).thenReturn(1);
+		updateModel.service.updateModel(2, 10L, 20L, modelRequest("gpt-4o"));
+		org.mockito.InOrder updateModelOrder = inOrder(updateModel.appMapper, updateModel.serviceMapper);
+		updateModelOrder.verify(updateModel.appMapper).lockAppForUpdate("tenant-9", 2);
+		updateModelOrder.verify(updateModel.serviceMapper).findService("tenant-9", 2, 10L);
+
+		Fixture deleteModel = fixture("owner");
+		when(deleteModel.serviceMapper.findService("tenant-9", 2, 10L))
+				.thenReturn(serviceConfig(10L, true, "secret"));
+		when(deleteModel.modelMapper.findModel("tenant-9", 2, 20L))
+				.thenReturn(modelConfig(20L, 10L, "gpt-4o", true));
+		when(deleteModel.modelMapper.deleteModel("tenant-9", 2, 20L)).thenReturn(1);
+		deleteModel.service.deleteModel(2, 10L, 20L);
+		org.mockito.InOrder deleteModelOrder = inOrder(deleteModel.appMapper, deleteModel.serviceMapper);
+		deleteModelOrder.verify(deleteModel.appMapper).lockAppForUpdate("tenant-9", 2);
+		deleteModelOrder.verify(deleteModel.serviceMapper).findService("tenant-9", 2, 10L);
+
+		Fixture deleteByApp = fixture("owner");
+		deleteByApp.service.deleteByApp(2, "tenant-9");
+		org.mockito.InOrder deleteByAppOrder = inOrder(deleteByApp.appMapper, deleteByApp.modelMapper);
+		deleteByAppOrder.verify(deleteByApp.appMapper).lockAppForUpdate("tenant-9", 2);
+		deleteByAppOrder.verify(deleteByApp.modelMapper).deleteByApp("tenant-9", 2);
 	}
 
 	@Test
@@ -234,6 +430,7 @@ class AppAiModelConfigServiceTest {
 		Transactional transactional = method.getAnnotation(Transactional.class);
 		assertThat(transactional).isNotNull();
 		assertThat(transactional.rollbackFor()).contains(Exception.class);
+		assertThat(transactional.isolation()).isEqualTo(Isolation.READ_COMMITTED);
 	}
 
 	private static Fixture fixture(String userId) {
@@ -253,10 +450,15 @@ class AppAiModelConfigServiceTest {
 		fixture.app.setEnable(Boolean.TRUE);
 		fixture.app.setTenantId("tenant-9");
 		when(fixture.appMapper.queryAppById(2, "tenant-9")).thenReturn(fixture.app);
+		when(fixture.appMapper.lockAppForUpdate("tenant-9", 2)).thenReturn(fixture.app);
 		fixture.persistedServices = new java.util.ArrayList<AiModelServiceConfig>();
 		fixture.persistedModels = new java.util.ArrayList<AiModelConfig>();
 		when(fixture.serviceMapper.findServices("tenant-9", 2)).thenAnswer(invocation -> fixture.persistedServices);
+		when(fixture.serviceMapper.findServicesForUpdate("tenant-9", 2))
+				.thenAnswer(invocation -> fixture.persistedServices);
 		when(fixture.modelMapper.findModels("tenant-9", 2)).thenAnswer(invocation -> fixture.persistedModels);
+		when(fixture.modelMapper.findModelsForUpdate("tenant-9", 2))
+				.thenAnswer(invocation -> fixture.persistedModels);
 		when(fixture.appMapper.updateAppById(any(App.class))).thenReturn(1);
 		fixture.service = new AppAiModelConfigServiceImpl(context, fixture.roleService, fixture.appMapper,
 				fixture.serviceMapper, fixture.modelMapper);
@@ -294,7 +496,7 @@ class AppAiModelConfigServiceTest {
 		return request;
 	}
 
-	private static AiModelServiceConfig serviceConfig(int id, boolean enabled, String apiKey) {
+	private static AiModelServiceConfig serviceConfig(long id, boolean enabled, String apiKey) {
 		AiModelServiceConfig service = new AiModelServiceConfig();
 		service.setId(id);
 		service.setAppId(2);
@@ -310,7 +512,7 @@ class AppAiModelConfigServiceTest {
 		return service;
 	}
 
-	private static AiModelConfig modelConfig(int id, long serviceId, String name, boolean enabled) {
+	private static AiModelConfig modelConfig(long id, long serviceId, String name, boolean enabled) {
 		AiModelConfig model = new AiModelConfig();
 		model.setId(id);
 		model.setAppId(2);

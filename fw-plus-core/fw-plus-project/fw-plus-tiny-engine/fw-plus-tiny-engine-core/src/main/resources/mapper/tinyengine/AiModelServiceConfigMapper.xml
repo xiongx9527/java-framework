@@ -27,6 +27,11 @@
 		WHERE tenant_id = #{tenantId} AND app_id = #{appId} ORDER BY sort_order, id
 	</select>
 
+	<select id="findServicesForUpdate" resultMap="AiModelServiceConfigMap">
+		SELECT <include refid="ServiceColumns"/> FROM t_ai_model_service
+		WHERE tenant_id = #{tenantId} AND app_id = #{appId} FOR UPDATE
+	</select>
+
 	<select id="findService" resultMap="AiModelServiceConfigMap">
 		SELECT <include refid="ServiceColumns"/> FROM t_ai_model_service
 		WHERE tenant_id = #{tenantId} AND app_id = #{appId} AND id = #{serviceId}

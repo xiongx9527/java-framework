@@ -8,7 +8,7 @@ import java.util.List;
 
 public class AiModelServiceDto {
 
-	private Integer id;
+	private Long id;
 	private String serviceKey;
 	private String provider;
 	private String label;
@@ -35,8 +35,8 @@ public class AiModelServiceDto {
 		return dto;
 	}
 
-	public Integer getId() { return id; }
-	public void setId(Integer id) { this.id = id; }
+	public Long getId() { return id; }
+	public void setId(Long id) { this.id = id; }
 	public String getServiceKey() { return serviceKey; }
 	public void setServiceKey(String serviceKey) { this.serviceKey = serviceKey; }
 	public String getProvider() { return provider; }
