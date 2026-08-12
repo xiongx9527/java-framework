@@ -9,6 +9,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -53,6 +55,31 @@ class AskDataMemoryAndRecommendationTest {
 
 		assertEquals(1, entries.size());
 		assertEquals("matched", invoke(entries.get(0), "getContent", new Class[0]));
+	}
+
+	@Test
+	void 长期记忆必须过滤过期和未授权条目并支持遗忘审计() {
+		AskDataLongTermMemory memory = AskDataLongTermMemory.inMemory();
+		AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
+		long now = System.currentTimeMillis();
+		AskDataMemoryEntry active = new AskDataMemoryEntry("memory-active", context, "ds-a", "v1", "active",
+				"select-summary", Collections.singleton("orders.amount"), "confirmed-query", 0.9D,
+				"project-policy", now, now + 60000L);
+		AskDataMemoryEntry expired = new AskDataMemoryEntry("memory-expired", context, "ds-a", "v1", "expired",
+				"select-summary", Collections.singleton("orders.amount"), "confirmed-query", 0.8D,
+				"project-policy", now - 60000L, now - 1L);
+		memory.remember(active);
+		memory.remember(expired);
+
+		List<AskDataMemoryEntry> recalled = memory.find(context, "ds-a", "v1",
+				Collections.singleton("orders.amount"), now);
+
+		assertEquals(Collections.singletonList("memory-active"), Collections.singletonList(recalled.get(0).getId()));
+		assertTrue(memory.find(context, "ds-a", "v1", Collections.singleton("orders.id"), now).isEmpty());
+		assertTrue(memory.forget(context, "memory-active", "user-request", now + 1L));
+		assertTrue(memory.find(context, "ds-a", "v1", Collections.singleton("orders.amount"), now + 2L).isEmpty());
+		assertEquals("user-request", memory.listForgetAudits(context).get(0).getReason());
+		assertFalse(memory.forget(context, "missing", "user-request", now + 2L));
 	}
 
 	@Test

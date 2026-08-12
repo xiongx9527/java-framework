@@ -16,6 +16,7 @@ public final class AskDataCapabilityDescriptor {
 	private final String maximumCoreVersion;
 	private final int priority;
 	private final boolean clusterCompatible;
+	private final String configurationNamespace;
 
 	/**
 	 * 创建不可变能力描述符。
@@ -33,6 +34,19 @@ public final class AskDataCapabilityDescriptor {
 	 */
 	public AskDataCapabilityDescriptor(String key, AskDataCapabilityType type, String version,
 			String minimumCoreVersion, String maximumCoreVersion, int priority, boolean clusterCompatible) {
+		this(key, type, version, minimumCoreVersion, maximumCoreVersion, priority, clusterCompatible,
+				"fw.plus.ai.askdata.capabilities." + requireNonBlank(key, "key"));
+	}
+
+	/**
+	 * 创建带专属配置命名空间的不可变能力描述符。
+	 *
+	 * <p>命名空间用于 Starter 在启动期定位实现专属配置和输出诊断。Core 只保存名称，不读取配置值，
+	 * 因而不会依赖 Spring 或具体实现。</p>
+	 */
+	public AskDataCapabilityDescriptor(String key, AskDataCapabilityType type, String version,
+			String minimumCoreVersion, String maximumCoreVersion, int priority, boolean clusterCompatible,
+			String configurationNamespace) {
 		this.key = requireNonBlank(key, "key");
 		if (type == null) {
 			throw new IllegalArgumentException("type 不能为空");
@@ -46,6 +60,7 @@ public final class AskDataCapabilityDescriptor {
 		}
 		this.priority = priority;
 		this.clusterCompatible = clusterCompatible;
+		this.configurationNamespace = requireNonBlank(configurationNamespace, "configurationNamespace");
 	}
 
 	/**
@@ -109,6 +124,15 @@ public final class AskDataCapabilityDescriptor {
 	 */
 	public boolean isClusterCompatible() {
 		return clusterCompatible;
+	}
+
+	/**
+	 * 获取实现专属配置命名空间。
+	 *
+	 * @return 稳定且非空白的配置前缀
+	 */
+	public String getConfigurationNamespace() {
+		return configurationNamespace;
 	}
 
 	private static String requireNonBlank(String value, String fieldName) {

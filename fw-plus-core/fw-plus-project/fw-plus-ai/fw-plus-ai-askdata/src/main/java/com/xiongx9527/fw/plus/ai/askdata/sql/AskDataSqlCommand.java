@@ -90,6 +90,28 @@ public final class AskDataSqlCommand {
 		return new AskDataSqlCommand(context, sql, parameters, authorizedObjects, rewrittenAuthorizationSummary);
 	}
 
+	/**
+	 * 返回追加单个命名参数的新命令。同名同值参数保持幂等，同名不同值参数立即拒绝。
+	 *
+	 * @param parameter 待追加参数
+	 * @return 包含参数的新命令
+	 */
+	public AskDataSqlCommand withParameter(AskDataSqlParameter parameter) {
+		if (parameter == null) {
+			throw new IllegalArgumentException("parameter 不能为空");
+		}
+		AskDataSqlParameter existing = getParameter(parameter.getName());
+		if (existing != null) {
+			if (!existing.hasSameValue(parameter)) {
+				throw new IllegalArgumentException("命名参数冲突: " + parameter.getName());
+			}
+			return this;
+		}
+		List<AskDataSqlParameter> appended = new ArrayList<AskDataSqlParameter>(parameters);
+		appended.add(parameter);
+		return new AskDataSqlCommand(context, sql, appended, authorizedObjects, authorizationSummary);
+	}
+
 	private static List<AskDataSqlParameter> copyParameters(List<AskDataSqlParameter> source) {
 		List<AskDataSqlParameter> copy = new ArrayList<AskDataSqlParameter>(source.size());
 		for (AskDataSqlParameter parameter : source) {

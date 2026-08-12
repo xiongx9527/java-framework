@@ -14,4 +14,16 @@ public interface AskDataCapabilityProvider {
 	 * @return 能力描述符，不能为空
 	 */
 	AskDataCapabilityDescriptor getDescriptor();
+
+	/**
+	 * 返回真正执行该能力的中立实现实例。
+	 *
+	 * <p>Provider 可以同时承担能力实现，此时使用默认返回值即可；包装第三方客户端或业务 Bean 时应返回被包装的
+	 * Core SPI 实例。注册表只按调用方给出的 Core 接口类型进行校验，不会把厂商类型暴露给 Core。</p>
+	 *
+	 * @return 与描述符类型一致的能力实例，不能为空
+	 */
+	default Object getCapability() {
+		return this;
+	}
 }

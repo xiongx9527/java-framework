@@ -4,6 +4,9 @@ import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -96,6 +99,26 @@ class AskDataApiContractTest {
 		assertEquals("查询结果", success.getAnswer());
 		assertTrue(!failure.isSuccess());
 		assertEquals(error, failure.getError());
+	}
+
+	@Test
+	void 成功结果应不可变地保留实际模型Key和尝试顺序() {
+		List<String> attempts = new ArrayList<String>(Arrays.asList("primary", "fallback"));
+		List<String> embeddingAttempts = new ArrayList<String>(Arrays.asList("embedding-primary", "embedding-fallback"));
+
+		AskDataResult result = AskDataResult.success("查询结果", "provider-fallback", attempts,
+				"provider-embedding", embeddingAttempts);
+		attempts.add("unexpected");
+		embeddingAttempts.add("unexpected");
+
+		assertEquals("provider-fallback", result.getActualModelKey());
+		assertEquals(Arrays.asList("primary", "fallback"), result.getModelAttempts());
+		assertEquals("provider-embedding", result.getActualEmbeddingModelKey());
+		assertEquals(Arrays.asList("embedding-primary", "embedding-fallback"),
+				result.getEmbeddingModelAttempts());
+		assertThrows(UnsupportedOperationException.class, () -> result.getModelAttempts().add("unexpected"));
+		assertThrows(UnsupportedOperationException.class,
+				() -> result.getEmbeddingModelAttempts().add("unexpected"));
 	}
 
 	private void assertNotFrameworkType(Class<?> type) {

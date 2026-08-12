@@ -18,17 +18,23 @@ public class AskDataStepContext {
     private List<AskDataRetrievedDocument> retrievedDocuments = new ArrayList<AskDataRetrievedDocument>();
     private String prompt;
     private String rawModelResponse;
+    private String conversationId;
+    private String checkpointId;
+    private String resumeToken;
+    private String actualModelKey;
     private String sql;
     private Boolean sqlValidated;
     private Boolean sqlExecuted;
     private String executionState;
     private Integer rowCount;
+    private String currentStep;
     private List<String> completedSteps = new ArrayList<String>();
     private List<AskDataStepLog> stepLogs = new ArrayList<AskDataStepLog>();
     private String errorCode;
 
     public AskDataStepContext(AskDataRequest request) {
         this.request = request;
+        this.conversationId = request == null ? null : request.getConversationId();
     }
 
     public AskDataRequest getRequest() {
@@ -72,6 +78,15 @@ public class AskDataStepContext {
         this.rawModelResponse = rawModelResponse;
     }
 
+    public String getConversationId() { return conversationId; }
+    public void setConversationId(String conversationId) { this.conversationId = conversationId; }
+    public String getCheckpointId() { return checkpointId; }
+    public void setCheckpointId(String checkpointId) { this.checkpointId = checkpointId; }
+    public String getResumeToken() { return resumeToken; }
+    public void setResumeToken(String resumeToken) { this.resumeToken = resumeToken; }
+    public String getActualModelKey() { return actualModelKey; }
+    public void setActualModelKey(String actualModelKey) { this.actualModelKey = actualModelKey; }
+
     public String getSql() {
         return sql;
     }
@@ -88,6 +103,8 @@ public class AskDataStepContext {
     public void setExecutionState(String executionState) { this.executionState = executionState; }
     public Integer getRowCount() { return rowCount; }
     public void setRowCount(Integer rowCount) { this.rowCount = rowCount; }
+    public String getCurrentStep() { return currentStep; }
+    public void setCurrentStep(String currentStep) { this.currentStep = currentStep; }
     public List<String> getCompletedSteps() { return completedSteps; }
     public void setCompletedSteps(List<String> completedSteps) {
         this.completedSteps = completedSteps == null ? new ArrayList<String>() : new ArrayList<String>(completedSteps);
