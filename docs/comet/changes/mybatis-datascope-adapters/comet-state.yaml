@@ -3,7 +3,7 @@ name: mybatis-datascope-adapters
 language: zh-CN
 phase: archive
 status: active
-state_version: 30
+state_version: 32
 brief: brief.md
 spec_changes:
   - capability: mybatis-datascope
