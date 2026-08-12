@@ -33,22 +33,27 @@ public class JavaSourceAnalyzer {
     }
 
     public JavaSourceUnit analyze(JavaEntityInfo entity) {
+        return analyze(entity == null ? null : entity.getId(), entity == null ? null : entity.getName(),
+                entity == null ? null : entity.getScript());
+    }
+
+    public JavaSourceUnit analyze(String resourceId, String resourceName, String source) {
         if (compiler == null) {
-            throw failure(entity, 0, 0, "compiler.unavailable", "当前运行环境未提供 JDK JavaCompiler");
+            throw failure(resourceId, 0, 0, "compiler.unavailable", "当前运行环境未提供 JDK JavaCompiler");
         }
-        if (entity == null || entity.getScript() == null || entity.getScript().trim().isEmpty()) {
-            throw failure(entity, 0, 0, "entity.source.empty", "动态实体 Java 源码不能为空");
+        if (source == null || source.trim().isEmpty()) {
+            throw failure(resourceId, 0, 0, "entity.source.empty", "动态实体 Java 源码不能为空");
         }
 
         DiagnosticCollector<JavaFileObject> collector = new DiagnosticCollector<>();
         StandardJavaFileManager fileManager = compiler.getStandardFileManager(collector, Locale.ROOT, null);
         try {
-            JavaFileObject source = new SourceFileObject(entity.getName(), entity.getScript());
+            JavaFileObject sourceFile = new SourceFileObject(resourceName, source);
             JavaCompiler.CompilationTask task = compiler.getTask(null, fileManager, collector,
-                    Arrays.asList("-proc:none", "-source", "8"), null, Collections.singletonList(source));
+                    Arrays.asList("-proc:none", "-source", "8"), null, Collections.singletonList(sourceFile));
             Iterable<?> parsed = (Iterable<?>) invokeTreeMethod(task,
                     "com.sun.source.util.JavacTask", "parse");
-            List<JavaEntityDiagnostic> parserErrors = parserErrors(entity, collector);
+            List<JavaEntityDiagnostic> parserErrors = parserErrors(resourceId, collector);
             if (!parserErrors.isEmpty()) {
                 throw new JavaEntityCompilationException(parserErrors);
             }
@@ -64,26 +69,26 @@ public class JavaSourceAnalyzer {
                 }
             }
             if (publicClasses.size() != 1) {
-                throw failure(entity, 0, 0, "entity.public-class.count",
+                throw failure(resourceId, 0, 0, "entity.public-class.count",
                         "每个动态实体 Resource 必须且只能包含一个顶级公开类");
             }
 
             String simpleName = String.valueOf(invokeTreeMethod(publicClasses.get(0),
                     "com.sun.source.tree.ClassTree", "getSimpleName"));
-            if (!simpleName.equals(entity.getName())) {
-                throw failure(entity, 0, 0, "entity.resource-name.mismatch",
-                        "Resource 名称 " + entity.getName() + " 必须与公开类 " + simpleName + " 一致");
+            if (!simpleName.equals(resourceName)) {
+                throw failure(resourceId, 0, 0, "entity.resource-name.mismatch",
+                        "Resource 名称 " + resourceName + " 必须与公开类 " + simpleName + " 一致");
             }
             Object packageNode = invokeTreeMethod(unit,
                     "com.sun.source.tree.CompilationUnitTree", "getPackageName");
             String packageName = packageNode == null ? "" : packageNode.toString();
             String className = packageName.isEmpty() ? simpleName : packageName + "." + simpleName;
-            return new JavaSourceUnit(entity.getId(), entity.getName(), entity.getScript(),
+            return new JavaSourceUnit(resourceId, resourceName, source,
                     packageName, simpleName, className);
         } catch (JavaEntityCompilationException exception) {
             throw exception;
         } catch (Exception exception) {
-            throw failure(entity, 0, 0, "compiler.source.parse", "无法解析动态实体 Java 语法树");
+            throw failure(resourceId, 0, 0, "compiler.source.parse", "无法解析动态实体 Java 语法树");
         } finally {
             try {
                 fileManager.close();
@@ -120,26 +125,22 @@ public class JavaSourceAnalyzer {
         }
     }
 
-    private static List<JavaEntityDiagnostic> parserErrors(JavaEntityInfo entity,
+    private static List<JavaEntityDiagnostic> parserErrors(String resourceId,
                                                             DiagnosticCollector<JavaFileObject> collector) {
         List<JavaEntityDiagnostic> errors = new ArrayList<>();
         for (Diagnostic<? extends JavaFileObject> diagnostic : collector.getDiagnostics()) {
             if (diagnostic.getKind() == Diagnostic.Kind.ERROR) {
-                errors.add(new JavaEntityDiagnostic(resourceId(entity), diagnostic.getLineNumber(),
+                errors.add(new JavaEntityDiagnostic(resourceId, diagnostic.getLineNumber(),
                         diagnostic.getColumnNumber(), diagnostic.getCode(), sanitize(diagnostic.getMessage(Locale.ROOT))));
             }
         }
         return errors;
     }
 
-    private static JavaEntityCompilationException failure(JavaEntityInfo entity, long line, long column,
+    private static JavaEntityCompilationException failure(String resourceId, long line, long column,
                                                            String code, String message) {
         return new JavaEntityCompilationException(
-                new JavaEntityDiagnostic(resourceId(entity), line, column, code, sanitize(message)));
-    }
-
-    private static String resourceId(JavaEntityInfo entity) {
-        return entity == null ? "" : entity.getId();
+                new JavaEntityDiagnostic(resourceId, line, column, code, sanitize(message)));
     }
 
     private static String sanitize(String message) {
