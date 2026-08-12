@@ -22,4 +22,9 @@ public interface AiModelConfigMapper extends BaseMapper<AiModelConfig> {
 
 	int deleteModel(@Param("tenantId") String tenantId, @Param("appId") Integer appId,
 			@Param("modelId") Long modelId);
+
+	int deleteByService(@Param("tenantId") String tenantId, @Param("appId") Integer appId,
+			@Param("serviceId") Long serviceId);
+
+	int deleteByApp(@Param("tenantId") String tenantId, @Param("appId") Integer appId);
 }

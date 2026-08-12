@@ -7,6 +7,7 @@ public class AiModelServiceRequest {
 	private String label;
 	private String baseUrl;
 	private String apiKey;
+	private Boolean clearApiKey;
 	private Boolean allowEmptyApiKey;
 	private Boolean enabled;
 	private Integer sortOrder;
@@ -21,6 +22,8 @@ public class AiModelServiceRequest {
 	public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
 	public String getApiKey() { return apiKey; }
 	public void setApiKey(String apiKey) { this.apiKey = apiKey; }
+	public Boolean getClearApiKey() { return clearApiKey; }
+	public void setClearApiKey(Boolean clearApiKey) { this.clearApiKey = clearApiKey; }
 	public Boolean getAllowEmptyApiKey() { return allowEmptyApiKey; }
 	public void setAllowEmptyApiKey(Boolean allowEmptyApiKey) { this.allowEmptyApiKey = allowEmptyApiKey; }
 	public Boolean getEnabled() { return enabled; }

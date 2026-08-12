@@ -43,7 +43,17 @@
 		WHERE id = #{id} AND tenant_id = #{tenantId} AND app_id = #{appId}
 	</update>
 
+	<update id="updateKeepingApiKey" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.AiModelServiceConfig">
+		UPDATE t_ai_model_service
+		SET service_key = #{serviceKey}, provider = #{provider}, label = #{label}, base_url = #{baseUrl}, allow_empty_api_key = #{allowEmptyApiKey}, enabled = #{enabled}, sort_order = #{sortOrder}, last_updated_by = #{lastUpdatedBy}, last_updated_time = #{lastUpdatedTime}
+		WHERE id = #{id} AND tenant_id = #{tenantId} AND app_id = #{appId}
+	</update>
+
 	<delete id="deleteService">
 		DELETE FROM t_ai_model_service WHERE tenant_id = #{tenantId} AND app_id = #{appId} AND id = #{serviceId}
+	</delete>
+
+	<delete id="deleteByApp">
+		DELETE FROM t_ai_model_service WHERE tenant_id = #{tenantId} AND app_id = #{appId}
 	</delete>
 </mapper>

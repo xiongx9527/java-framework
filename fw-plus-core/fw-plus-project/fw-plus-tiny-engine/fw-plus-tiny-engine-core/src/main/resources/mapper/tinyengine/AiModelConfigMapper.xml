@@ -46,4 +46,12 @@
 	<delete id="deleteModel">
 		DELETE FROM t_ai_model WHERE tenant_id = #{tenantId} AND app_id = #{appId} AND id = #{modelId}
 	</delete>
+
+	<delete id="deleteByService">
+		DELETE FROM t_ai_model WHERE tenant_id = #{tenantId} AND app_id = #{appId} AND service_id = #{serviceId}
+	</delete>
+
+	<delete id="deleteByApp">
+		DELETE FROM t_ai_model WHERE tenant_id = #{tenantId} AND app_id = #{appId}
+	</delete>
 </mapper>

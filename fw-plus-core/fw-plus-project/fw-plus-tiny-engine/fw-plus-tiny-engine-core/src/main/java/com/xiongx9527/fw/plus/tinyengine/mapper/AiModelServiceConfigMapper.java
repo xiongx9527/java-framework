@@ -17,6 +17,10 @@ public interface AiModelServiceConfigMapper extends BaseMapper<AiModelServiceCon
 
 	int updateService(AiModelServiceConfig service);
 
+	int updateKeepingApiKey(AiModelServiceConfig service);
+
 	int deleteService(@Param("tenantId") String tenantId, @Param("appId") Integer appId,
 			@Param("serviceId") Long serviceId);
+
+	int deleteByApp(@Param("tenantId") String tenantId, @Param("appId") Integer appId);
 }
