@@ -108,6 +108,33 @@ public class TinyEngineMapperResourceTest {
 	}
 
 	@Test
+	public void appMapperShouldLockOneTenantApplicationForAiImport() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+				.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
+		String content = readContent(resource);
+		assertTrue(content.contains("<select id=\"lockAppForUpdate\""),
+				"AppMapper 必须暴露导入串行化行锁");
+		assertTrue(content.contains("WHERE tenant_id = #{tenantId} AND id = #{appId}"),
+				"导入行锁必须同时按 tenantId 和 appId 限定");
+		assertTrue(content.contains("FOR UPDATE"), "导入行锁必须使用 FOR UPDATE");
+	}
+
+	@Test
+	public void aiImportEmptyChecksShouldUseCurrentReads() throws Exception {
+		Resource serviceResource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+				.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AiModelServiceConfigMapper.xml");
+		Resource modelResource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+				.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AiModelConfigMapper.xml");
+		String serviceContent = readContent(serviceResource);
+		String modelContent = readContent(modelResource);
+
+		assertTrue(serviceContent.contains("<select id=\"findServicesForUpdate\""));
+		assertTrue(modelContent.contains("<select id=\"findModelsForUpdate\""));
+		assertTrue(serviceContent.contains("FOR UPDATE"), "服务空表检查必须使用当前读");
+		assertTrue(modelContent.contains("FOR UPDATE"), "模型空表检查必须使用当前读");
+	}
+
+	@Test
 	public void taskRecordMapperShouldUseOfficialTaskRecordColumns() throws Exception {
 		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
 			.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "TaskRecordMapper.xml");

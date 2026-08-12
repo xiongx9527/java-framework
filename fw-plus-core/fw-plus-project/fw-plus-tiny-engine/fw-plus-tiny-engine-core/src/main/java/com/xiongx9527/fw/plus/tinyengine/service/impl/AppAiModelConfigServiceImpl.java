@@ -10,6 +10,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.AiModelConfig;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.AiModelBaseEntity;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.AiModelServiceConfig;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
@@ -19,6 +20,7 @@ import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAccessDeniedExce
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -62,10 +64,11 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 	}
 
 	@Override
-	@Transactional(rollbackFor = Exception.class)
+	@Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
 	public AiModelServiceDto createService(Integer appId, AiModelServiceRequest request) {
 		Scope scope = requireScope(appId, AppPermission.MANAGE, false);
 		validateServiceRequest(request, true);
+		App lockedApp = lockApp(scope.tenantId, appId);
 		AiModelServiceConfig service = new AiModelServiceConfig();
 		applyServiceRequest(service, request);
 		service.setTenantId(scope.tenantId);
@@ -74,21 +77,22 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		if (serviceMapper.insertService(service) != 1) {
 			throw new IllegalStateException("Failed to create AI model service");
 		}
-		syncSettings(scope.app, scope.tenantId, appId);
-		return findDto(scope.tenantId, appId, longId(service.getId()));
+		syncSettings(lockedApp, scope.tenantId, appId);
+		return findDto(scope.tenantId, appId, service.getId());
 	}
 
 	@Override
-	@Transactional(rollbackFor = Exception.class)
+	@Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
 	public AiModelServiceDto updateService(Integer appId, Long serviceId, AiModelServiceRequest request) {
 		Scope scope = requireScope(appId, AppPermission.MANAGE, false);
 		validateId(serviceId, "serviceId");
-		AiModelServiceConfig service = requireService(scope.tenantId, appId, serviceId);
 		boolean replacement = hasText(request == null ? null : request.getApiKey());
 		boolean clear = request != null && Boolean.TRUE.equals(request.getClearApiKey());
 		if (replacement && clear) {
 			throw new IllegalArgumentException("apiKey replacement and clearApiKey cannot both be set");
 		}
+		App lockedApp = lockApp(scope.tenantId, appId);
+		AiModelServiceConfig service = requireService(scope.tenantId, appId, serviceId);
 		applyServiceRequest(service, request);
 		validateService(service, false);
 		if (clear) {
@@ -97,34 +101,40 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 			}
 			service.setApiKey(null);
 		}
+		if (Boolean.TRUE.equals(service.getEnabled()) && !Boolean.TRUE.equals(service.getAllowEmptyApiKey())
+				&& !hasText(service.getApiKey())) {
+			throw new IllegalArgumentException("apiKey is required for an enabled AI model service");
+		}
 		setUpdateAudit(service, scope.userId);
 		int changed = replacement || clear ? serviceMapper.updateService(service)
 				: serviceMapper.updateKeepingApiKey(service);
 		if (changed != 1) {
 			throw new IllegalStateException("Failed to update AI model service");
 		}
-		syncSettings(scope.app, scope.tenantId, appId);
+		syncSettings(lockedApp, scope.tenantId, appId);
 		return findDto(scope.tenantId, appId, serviceId);
 	}
 
 	@Override
-	@Transactional(rollbackFor = Exception.class)
+	@Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
 	public void deleteService(Integer appId, Long serviceId) {
 		Scope scope = requireScope(appId, AppPermission.MANAGE, false);
+		App lockedApp = lockApp(scope.tenantId, appId);
 		requireService(scope.tenantId, appId, serviceId);
 		modelMapper.deleteByService(scope.tenantId, appId, serviceId);
 		if (serviceMapper.deleteService(scope.tenantId, appId, serviceId) != 1) {
 			throw new IllegalStateException("Failed to delete AI model service");
 		}
-		syncSettings(scope.app, scope.tenantId, appId);
+		syncSettings(lockedApp, scope.tenantId, appId);
 	}
 
 	@Override
-	@Transactional(rollbackFor = Exception.class)
+	@Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
 	public AiModelServiceDto addModel(Integer appId, Long serviceId, AiModelRequest request) {
 		Scope scope = requireScope(appId, AppPermission.MANAGE, false);
-		requireService(scope.tenantId, appId, serviceId);
 		validateModelRequest(request);
+		App lockedApp = lockApp(scope.tenantId, appId);
+		requireService(scope.tenantId, appId, serviceId);
 		AiModelConfig model = new AiModelConfig();
 		applyModelRequest(model, request);
 		model.setTenantId(scope.tenantId);
@@ -134,46 +144,49 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		if (modelMapper.insertModel(model) != 1) {
 			throw new IllegalStateException("Failed to create AI model");
 		}
-		syncSettings(scope.app, scope.tenantId, appId);
+		syncSettings(lockedApp, scope.tenantId, appId);
 		return findDto(scope.tenantId, appId, serviceId);
 	}
 
 	@Override
-	@Transactional(rollbackFor = Exception.class)
+	@Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
 	public AiModelServiceDto updateModel(Integer appId, Long serviceId, Long modelId, AiModelRequest request) {
 		Scope scope = requireScope(appId, AppPermission.MANAGE, false);
+		validateModelRequest(request);
+		App lockedApp = lockApp(scope.tenantId, appId);
 		requireService(scope.tenantId, appId, serviceId);
 		AiModelConfig model = requireModel(scope.tenantId, appId, serviceId, modelId);
-		validateModelRequest(request);
 		applyModelRequest(model, request);
 		model.setServiceId(serviceId);
 		setUpdateAudit(model, scope.userId);
 		if (modelMapper.updateModel(model) != 1) {
 			throw new IllegalStateException("Failed to update AI model");
 		}
-		syncSettings(scope.app, scope.tenantId, appId);
+		syncSettings(lockedApp, scope.tenantId, appId);
 		return findDto(scope.tenantId, appId, serviceId);
 	}
 
 	@Override
-	@Transactional(rollbackFor = Exception.class)
+	@Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
 	public void deleteModel(Integer appId, Long serviceId, Long modelId) {
 		Scope scope = requireScope(appId, AppPermission.MANAGE, false);
+		App lockedApp = lockApp(scope.tenantId, appId);
 		requireService(scope.tenantId, appId, serviceId);
 		requireModel(scope.tenantId, appId, serviceId, modelId);
 		if (modelMapper.deleteModel(scope.tenantId, appId, modelId) != 1) {
 			throw new IllegalStateException("Failed to delete AI model");
 		}
-		syncSettings(scope.app, scope.tenantId, appId);
+		syncSettings(lockedApp, scope.tenantId, appId);
 	}
 
 	@Override
-	@Transactional(rollbackFor = Exception.class)
+	@Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
 	public List<AiModelServiceDto> importLocal(Integer appId, AiModelImportRequest request) {
 		Scope scope = requireScope(appId, AppPermission.MANAGE, false);
 		List<AiModelServiceDto> incoming = validateImport(request);
-		if (!safeServices(serviceMapper.findServices(scope.tenantId, appId)).isEmpty()
-				|| !safeModels(modelMapper.findModels(scope.tenantId, appId)).isEmpty()) {
+		App lockedApp = lockApp(scope.tenantId, appId);
+		if (!safeServices(serviceMapper.findServicesForUpdate(scope.tenantId, appId)).isEmpty()
+				|| !safeModels(modelMapper.findModelsForUpdate(scope.tenantId, appId)).isEmpty()) {
 			throw new IllegalStateException("AI model configuration already exists");
 		}
 		Map<String, String> apiKeys = request.getApiKeys() == null
@@ -191,14 +204,14 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 				model.setId(null);
 				model.setTenantId(scope.tenantId);
 				model.setAppId(appId);
-				model.setServiceId(longId(service.getId()));
+				model.setServiceId(service.getId());
 				setCreateAudit(model, scope.userId);
 				if (modelMapper.insertModel(model) != 1) {
 					throw new IllegalStateException("Failed to import AI model");
 				}
 			}
 		}
-		syncSettings(scope.app, scope.tenantId, appId);
+		syncSettings(lockedApp, scope.tenantId, appId, request.getSettings());
 		return assemble(scope.tenantId, appId, false);
 	}
 
@@ -236,13 +249,22 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 	}
 
 	@Override
-	@Transactional(rollbackFor = Exception.class)
+	@Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
 	public void deleteByApp(Integer appId, String tenantId) {
 		if (appId == null || !hasText(tenantId)) {
 			throw new IllegalArgumentException("appId and tenantId are required");
 		}
+		lockApp(tenantId, appId);
 		modelMapper.deleteByApp(tenantId, appId);
 		serviceMapper.deleteByApp(tenantId, appId);
+	}
+
+	private App lockApp(String tenantId, Integer appId) {
+		App app = appMapper.lockAppForUpdate(tenantId, appId);
+		if (app == null) {
+			throw new IllegalArgumentException("Application does not exist in current tenant");
+		}
+		return app;
 	}
 
 	private Scope requireScope(Integer appId, AppPermission permission, boolean requireEnabled) {
@@ -286,7 +308,7 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 				continue;
 			}
 			AiModelServiceDto dto = AiModelServiceDto.from(service);
-			List<AiModelConfig> serviceModels = byService.get(longId(service.getId()));
+			List<AiModelConfig> serviceModels = byService.get(service.getId());
 			dto.setModels(serviceModels == null ? new ArrayList<AiModelConfig>() : serviceModels);
 			result.add(dto);
 		}
@@ -295,7 +317,7 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 
 	private AiModelServiceDto findDto(String tenantId, Integer appId, Long serviceId) {
 		for (AiModelServiceDto dto : assemble(tenantId, appId, false)) {
-			if (serviceId.equals(longId(dto.getId()))) {
+			if (serviceId.equals(dto.getId())) {
 				return dto;
 			}
 		}
@@ -324,9 +346,14 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 	}
 
 	private void syncSettings(App app, String tenantId, Integer appId) {
+		syncSettings(app, tenantId, appId, null);
+	}
+
+	private void syncSettings(App app, String tenantId, Integer appId, AppAiModelSettings sourceSettings) {
 		Map<String, Object> copied = app.getExtendConfig() == null
 				? new LinkedHashMap<String, Object>() : new LinkedHashMap<String, Object>(app.getExtendConfig());
-		AppAiModelSettings settings = new AppAiModelSettings();
+		AppAiModelSettings settings = AppAiModelSettings.copyOf(
+				sourceSettings == null ? copied.get(SETTINGS_KEY) : sourceSettings);
 		settings.setServices(assemble(tenantId, appId, false));
 		copied.put(SETTINGS_KEY, settings);
 		App update = new App();
@@ -445,7 +472,7 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		return model;
 	}
 
-	private void setCreateAudit(com.xiongx9527.fw.plus.tinyengine.common.model.BaseEntity entity, String userId) {
+	private void setCreateAudit(AiModelBaseEntity entity, String userId) {
 		LocalDateTime now = LocalDateTime.now();
 		entity.setCreatedBy(userId);
 		entity.setLastUpdatedBy(userId);
@@ -453,7 +480,7 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		entity.setLastUpdatedTime(now);
 	}
 
-	private void setUpdateAudit(com.xiongx9527.fw.plus.tinyengine.common.model.BaseEntity entity, String userId) {
+	private void setUpdateAudit(AiModelBaseEntity entity, String userId) {
 		entity.setLastUpdatedBy(userId);
 		entity.setLastUpdatedTime(LocalDateTime.now());
 	}
@@ -466,10 +493,6 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 
 	private static boolean hasText(String value) {
 		return value != null && !value.trim().isEmpty();
-	}
-
-	private static Long longId(Integer id) {
-		return id == null ? null : Long.valueOf(id.longValue());
 	}
 
 	private static List<AiModelServiceConfig> safeServices(List<AiModelServiceConfig> values) {

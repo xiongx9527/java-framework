@@ -2,10 +2,9 @@ package com.xiongx9527.fw.plus.tinyengine.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.xiongx9527.fw.plus.common.mate.annotation.FieldEncrypt;
-import com.xiongx9527.fw.plus.tinyengine.common.model.BaseEntity;
 
 @TableName("t_ai_model_service")
-public class AiModelServiceConfig extends BaseEntity {
+public class AiModelServiceConfig extends AiModelBaseEntity {
 
 	private Integer appId;
 	private String serviceKey;

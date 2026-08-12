@@ -1,10 +1,9 @@
 package com.xiongx9527.fw.plus.tinyengine.model.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.xiongx9527.fw.plus.tinyengine.common.model.BaseEntity;
 
 @TableName("t_ai_model")
-public class AiModelConfig extends BaseEntity {
+public class AiModelConfig extends AiModelBaseEntity {
 
 	private Integer appId;
 	private Long serviceId;

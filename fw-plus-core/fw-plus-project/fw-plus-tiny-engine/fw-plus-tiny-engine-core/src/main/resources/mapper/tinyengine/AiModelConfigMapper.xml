@@ -24,6 +24,11 @@
 		SELECT <include refid="ModelColumns"/> FROM t_ai_model WHERE tenant_id = #{tenantId} AND app_id = #{appId} ORDER BY sort_order, id
 	</select>
 
+	<select id="findModelsForUpdate" resultMap="AiModelConfigMap">
+		SELECT <include refid="ModelColumns"/> FROM t_ai_model
+		WHERE tenant_id = #{tenantId} AND app_id = #{appId} FOR UPDATE
+	</select>
+
 	<select id="findModelsByService" resultMap="AiModelConfigMap">
 		SELECT <include refid="ModelColumns"/> FROM t_ai_model WHERE tenant_id = #{tenantId} AND app_id = #{appId} AND service_id = #{serviceId} ORDER BY sort_order, id
 	</select>

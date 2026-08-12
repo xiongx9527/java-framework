@@ -76,7 +76,7 @@ class AiModelEncryptedPersistenceTest {
 
 		AiModelServiceConfig found;
 		try (SqlSession session = sessionFactory.openSession()) {
-			found = session.getMapper(AiModelServiceConfigMapper.class).findService("tenant-a", 2, service.getId().longValue());
+			found = session.getMapper(AiModelServiceConfigMapper.class).findService("tenant-a", 2, service.getId());
 		}
 		assertNotNull(found);
 		assertEquals("test-api-key", found.getApiKey());
@@ -103,6 +103,32 @@ class AiModelEncryptedPersistenceTest {
 		}
 	}
 
+	@Test
+	void shouldRoundTripGeneratedIdsBeyondIntegerRange() throws Exception {
+		try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
+			statement.execute("alter table t_ai_model_service alter column id restart with 2147483648");
+			statement.execute("alter table t_ai_model alter column id restart with 2147483648");
+		}
+		AiModelServiceConfig service = service("tenant-large", 9, "large-id-key");
+		AiModelConfig model;
+		try (SqlSession session = sessionFactory.openSession(true)) {
+			AiModelServiceConfigMapper serviceMapper = session.getMapper(AiModelServiceConfigMapper.class);
+			AiModelConfigMapper modelMapper = session.getMapper(AiModelConfigMapper.class);
+			serviceMapper.insertService(service);
+			model = model(service, "large-id-model");
+			modelMapper.insertModel(model);
+		}
+
+		assertEquals(Long.valueOf(2147483648L), service.getId());
+		assertEquals(Long.valueOf(2147483648L), model.getId());
+		try (SqlSession session = sessionFactory.openSession()) {
+			assertEquals(service.getId(), session.getMapper(AiModelServiceConfigMapper.class)
+					.findService("tenant-large", 9, service.getId()).getId());
+			assertEquals(model.getId(), session.getMapper(AiModelConfigMapper.class)
+					.findModel("tenant-large", 9, model.getId()).getId());
+		}
+	}
+
 	private static void parseMapper(MybatisConfiguration configuration, String resource) throws Exception {
 		InputStream inputStream = Resources.getResourceAsStream(resource);
 		try {
@@ -112,10 +138,10 @@ class AiModelEncryptedPersistenceTest {
 		}
 	}
 
-	private static String readRawApiKey(Integer id) throws Exception {
+	private static String readRawApiKey(Long id) throws Exception {
 		try (Connection connection = dataSource.getConnection();
 				PreparedStatement statement = connection.prepareStatement("select api_key from t_ai_model_service where id = ?")) {
-			statement.setInt(1, id);
+			statement.setLong(1, id);
 			try (ResultSet resultSet = statement.executeQuery()) {
 				resultSet.next();
 				return resultSet.getString(1);
@@ -142,7 +168,7 @@ class AiModelEncryptedPersistenceTest {
 		AiModelConfig model = new AiModelConfig();
 		model.setTenantId(service.getTenantId());
 		model.setAppId(service.getAppId());
-		model.setServiceId(service.getId().longValue());
+		model.setServiceId(service.getId());
 		model.setName(name);
 		model.setLabel(name);
 		model.setCapabilities("chat");

@@ -646,6 +646,12 @@
         WHERE id = #{id} AND tenant_id = #{tenantId}
     </delete>
 
+	<select id="lockAppForUpdate" resultMap="AppMap">
+		SELECT <include refid="Base_Column_List"/> FROM t_app
+		WHERE tenant_id = #{tenantId} AND id = #{appId}
+		FOR UPDATE
+	</select>
+
     <!-- 根据主键id更新表t_app数据 -->
     <update id="updateAppById" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.App">
         UPDATE t_app

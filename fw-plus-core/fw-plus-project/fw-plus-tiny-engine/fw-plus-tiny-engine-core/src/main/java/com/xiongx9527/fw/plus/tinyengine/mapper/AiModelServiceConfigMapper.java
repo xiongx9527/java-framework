@@ -10,6 +10,9 @@ public interface AiModelServiceConfigMapper extends BaseMapper<AiModelServiceCon
 
 	List<AiModelServiceConfig> findServices(@Param("tenantId") String tenantId, @Param("appId") Integer appId);
 
+	List<AiModelServiceConfig> findServicesForUpdate(@Param("tenantId") String tenantId,
+			@Param("appId") Integer appId);
+
 	AiModelServiceConfig findService(@Param("tenantId") String tenantId, @Param("appId") Integer appId,
 			@Param("serviceId") Long serviceId);
 
