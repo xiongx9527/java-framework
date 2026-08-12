@@ -65,7 +65,7 @@ public class DynamicSpringBeanRegistry implements Closeable {
             try {
                 List<JavaSourceUnit> units = new ArrayList<>();
                 for (SpringBeanInfo source : snapshot) {
-                    units.add(analyzer.analyze(source));
+                    units.add(analyzer.analyze(source.getId(), source.getName(), source.getScript()));
                 }
                 candidate = compiler.compile(candidateVersion, units);
                 Map<String, BeanDefinition> candidateDefinitions = beanDefinitions(candidate);
@@ -93,7 +93,7 @@ public class DynamicSpringBeanRegistry implements Closeable {
         List<JavaSourceUnit> units = new ArrayList<>();
         if (sources != null) {
             for (SpringBeanInfo source : sources) {
-                units.add(analyzer.analyze(source));
+                units.add(analyzer.analyze(source.getId(), source.getName(), source.getScript()));
             }
         }
         CompiledGeneration candidate = compiler.compile(0L, units);
