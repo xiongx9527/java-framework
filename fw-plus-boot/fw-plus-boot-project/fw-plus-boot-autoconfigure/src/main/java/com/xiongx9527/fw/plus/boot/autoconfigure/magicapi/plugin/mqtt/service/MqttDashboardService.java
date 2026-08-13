@@ -204,6 +204,9 @@ public class MqttDashboardService {
         }
         info.setSsl(creator.getSslConfig() != null);
         info.setWebSocket(context.containsKey("TIO_W_S_C"));
+        info.setDecodeQueueSize(context.getDecodeQueueSize());
+        info.setHandlerQueueSize(context.getHandlerQueueSize());
+        info.setSendQueueSize(context.getSendQueueSize());
         info.setCreatedAt(context.stat.timeCreated);
         info.setConnectedAt(context.stat.timeFirstConnected);
         return info;

@@ -37,6 +37,13 @@ class MagicMqttDashboardControllerTest {
     }
 
     @Test
+    void exposesAllUpstreamClientDetailFields() throws Exception {
+        assertThat(MqttDashboardClientInfo.class.getMethod("getDecodeQueueSize")).isNotNull();
+        assertThat(MqttDashboardClientInfo.class.getMethod("getHandlerQueueSize")).isNotNull();
+        assertThat(MqttDashboardClientInfo.class.getMethod("getSendQueueSize")).isNotNull();
+    }
+
+    @Test
     void delegatesEveryDashboardOperationToTheInProcessService() {
         MqttDashboardService service = mock(MqttDashboardService.class);
         List<MqttDashboardServerInfo> servers = Collections.singletonList(new MqttDashboardServerInfo());
