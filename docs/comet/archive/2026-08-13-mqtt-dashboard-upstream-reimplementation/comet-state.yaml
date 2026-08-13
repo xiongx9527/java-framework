@@ -2,8 +2,8 @@ schema: comet.native.v4
 name: mqtt-dashboard-upstream-reimplementation
 language: zh-CN
 phase: archive
-status: active
-state_version: 16
+status: done
+state_version: 17
 brief: brief.md
 spec_changes:
   - capability: mqtt-dashboard
@@ -15,7 +15,7 @@ workspace:
   target_branch: dev
   finish: merge
 loop:
-  stage: archive-ready
+  stage: done
   goal_cycle: 1
   iteration: 2
   attempt: 2
@@ -24,7 +24,7 @@ loop:
   no_progress_count: 0
   execution_failure_count: 0
   previous_unresolved_ids: []
-  next_action: archive
+  next_action: null
 acceptance:
   - id: A1
     source: brief.md
@@ -615,5 +615,5 @@ history_overflow:
     recovery: 0
 verification_result: pass
 verification_report: verification.md
-archived: false
+archived: true
 created_at: 2026-08-12T15:01:36.748Z
