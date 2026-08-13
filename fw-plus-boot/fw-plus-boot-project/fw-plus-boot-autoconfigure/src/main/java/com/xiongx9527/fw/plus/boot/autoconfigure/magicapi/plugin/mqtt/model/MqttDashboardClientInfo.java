@@ -16,6 +16,9 @@ public class MqttDashboardClientInfo {
     private boolean ssl;
     private String ipAddress;
     private int port;
+    private int decodeQueueSize;
+    private int handlerQueueSize;
+    private int sendQueueSize;
     private long connectedAt;
     private long createdAt;
 }
