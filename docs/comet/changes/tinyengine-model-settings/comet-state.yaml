@@ -1,0 +1,509 @@
+schema: comet.native.v4
+name: tinyengine-model-settings
+language: zh-CN
+phase: build
+status: active
+state_version: 2
+brief: brief.md
+spec_changes:
+  - capability: tinyengine-ai-auth
+    operation: modify
+    source: specs/tinyengine-ai-auth/spec.md
+  - capability: tinyengine-app-ai-model-settings
+    operation: create
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+workspace:
+  isolation: worktree
+  change_branch: comet/tinyengine-model-settings
+  target_branch: dev
+  finish: null
+loop:
+  stage: building
+  goal_cycle: 1
+  iteration: 1
+  attempt: 0
+  retry_epoch: 0
+  failed_iteration_count: 0
+  no_progress_count: 0
+  execution_failure_count: 0
+  previous_unresolved_ids: []
+  next_action: submit-builder-candidate
+acceptance:
+  - id: A1
+    source: brief.md
+    text: A1：同一应用的 Owner 创建模型服务和模型后，Admin 可管理，Dev 可读取并调用；无角色、跨租户用户不可读取或调用。
+    result: pending
+    reason: null
+  - id: A2
+    source: brief.md
+    text: A2：Owner/Admin 可新增、修改、删除服务和模型；Dev 的管理请求返回权限不足且不写入数据。
+    result: pending
+    reason: null
+  - id: A3
+    source: brief.md
+    text: A3：管理响应只返回 `hasApiKey` 和固定掩码，不包含明文、密文或可逆令牌；可用列表也不包含 API Key。
+    result: pending
+    reason: null
+  - id: A4
+    source: brief.md
+    text: A4：模型服务实体的 `apiKey` 使用公共 `@FieldEncrypt`；数据库原始 JDBC 查询为密文，Mapper
+      业务读取为明文，业务代码不手动加解密。
+    result: pending
+    reason: null
+  - id: A5
+    source: brief.md
+    text: A5：API Key 留空表示保留，非空表示替换，`clearApiKey=true` 表示清除；替换和清除同时出现时拒绝请求。
+    result: pending
+    reason: null
+  - id: A6
+    source: brief.md
+    text: A6：所有模型配置 SQL 同时约束 `tenant_id` 和 `app_id`，服务 ID 或模型 ID 不能绕过应用隔离。
+    result: pending
+    reason: null
+  - id: A7
+    source: brief.md
+    text: A7：MVC 与 WebFlux 暴露同构的可用列表、管理列表、服务/模型增删改和本地导入 API，均委托同一 Facade/Core
+      服务；WebFlux 使用既有阻塞调度器。
+    result: pending
+    reason: null
+  - id: A8
+    source: brief.md
+    text: A8：聊天请求只包含 `appId`、`serviceId`、`modelName` 和生成参数，不包含
+      `baseUrl`、`apiKey`；旧客户端提交的凭据不得成为正常调用来源。
+    result: pending
+    reason: null
+  - id: A9
+    source: brief.md
+    text: A9：服务端调用 `resolveInvocation` 后，真实 LangChain4j provider 使用解析出的 endpoint、API
+      Key 和模型名请求上游；同步和流式路径均覆盖。
+    result: pending
+    reason: null
+  - id: A10
+    source: brief.md
+    text: A10：上游 401/403 被转换为脱敏模型调用错误，不清除 TinyEngine `engineToken`，不跳转登录；真正的
+      TinyEngine 登录失效仍按既有流程处理。
+    result: pending
+    reason: null
+  - id: A11
+    source: brief.md
+    text: A11：Owner/Admin 的设置界面显示管理功能；Dev 只显示可用模型选择，不显示密钥输入、创建、编辑或删除动作。
+    result: pending
+    reason: null
+  - id: A12
+    source: brief.md
+    text: A12：前端状态、localStorage、聊天请求和普通日志中不保留服务端 API
+      Key；编辑时只显示是否已配置及固定掩码，并支持留空保留和显式清除。
+    result: pending
+    reason: null
+  - id: A13
+    source: brief.md
+    text: A13：旧 localStorage
+      在数据库无配置时只导入一次；数据库已有配置时不覆盖；导入成功才删除模型相关字段，失败时完整保留；聊天设置及未知键不丢失。
+    result: pending
+    reason: null
+  - id: A14
+    source: brief.md
+    text: A14：并发旧配置导入最多成功一次，不产生重复服务/模型，也不会用旧快照覆盖已存在的数据库配置。
+    result: pending
+    reason: null
+  - id: A15
+    source: brief.md
+    text: A15：删除应用时模型、服务、角色关系和应用删除位于一致事务边界；失败时回滚，成功后两张模型配置表无该应用数据。
+    result: pending
+    reason: null
+  - id: A16
+    source: brief.md
+    text: A16：MySQL/H2 迁移可重复执行；服务键、模型名等应用内唯一性成立，主键类型与 BIGINT 一致。
+    result: pending
+    reason: null
+  - id: A17
+    source: brief.md
+    text: A17：Java 8 下 Core、Boot、AI 定向与相关回归通过；Robot 定向 Vitest、可收集全量测试和生产 build 通过。
+    result: pending
+    reason: null
+  - id: A18
+    source: brief.md
+    text: A18：本机 MySQL 验证配置能跨浏览器/用户按应用共享、原始 API Key 列为密文，应用删除后关联数据清理。
+    result: pending
+    reason: null
+  - id: A19
+    source: specs/tinyengine-ai-auth/spec.md
+    text: TinyEngine 应允许已登录且拥有应用权限的用户通过后端代理调用应用配置的 OpenAI 兼容模型，同时严格分离 TinyEngine
+      登录凭据与模型服务凭据。模型服务鉴权或调用失败不得被解释为 TinyEngine 登录失效。
+    result: pending
+    reason: null
+  - id: A20
+    source: specs/tinyengine-ai-auth/spec.md
+    text: "受保护的 TinyEngine AI 请求应继续使用 `Authorization: Bearer <engineToken>` 携带
+      TinyEngine 登录令牌。"
+    result: pending
+    reason: null
+  - id: A21
+    source: specs/tinyengine-ai-auth/spec.md
+    text: TinyEngine 认证过滤器只应把 `Authorization` 解释为 TinyEngine 登录凭据。
+    result: pending
+    reason: null
+  - id: A22
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 登录令牌缺失、无效或过期时，AI 路由应返回明确的 TinyEngine 未认证结果。
+    result: pending
+    reason: null
+  - id: A23
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 模型调用不得覆盖、移除或复用登录令牌作为上游模型凭据。
+    result: pending
+    reason: null
+  - id: A24
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 浏览器正常聊天请求不得携带模型 API Key、密文、可逆令牌或 Base URL。
+    result: pending
+    reason: null
+  - id: A25
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 浏览器只提交应用 ID、模型服务 ID、模型名、消息和生成参数。
+    result: pending
+    reason: null
+  - id: A26
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 后端应从应用共享模型配置中解析并透明解密 API Key，且只在调用上游时构造上游 `Authorization`。
+    result: pending
+    reason: null
+  - id: A27
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 内部模型凭据不得复制到普通日志、错误消息、HTTP 响应或前端状态。
+    result: pending
+    reason: null
+  - id: A28
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 旧浏览器凭据只允许通过受控的一次性迁移 API 导入数据库，不得作为正常聊天链路的备用来源。
+    result: pending
+    reason: null
+  - id: A29
+    source: specs/tinyengine-ai-auth/spec.md
+    text: Chat Completions 路由应注册在前端使用的
+      `/tiny-engine/app-center/api/chat/completions` 路径。
+    result: pending
+    reason: null
+  - id: A30
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 模型 Base URL 应规范到 OpenAI 兼容 API 根路径，最终 Chat Completions 地址应正确。
+    result: pending
+    reason: null
+  - id: A31
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 后端应校验当前用户对请求应用具有有效使用权限，并校验服务和模型已启用。
+    result: pending
+    reason: null
+  - id: A32
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 仓库配置不得包含真实模型 API Key；运行时凭据来自数据库加密配置。
+    result: pending
+    reason: null
+  - id: A33
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 未配置可用服务、模型或所需 API Key 时，前端应显示单次明确提示并停止请求。
+    result: pending
+    reason: null
+  - id: A34
+    source: specs/tinyengine-ai-auth/spec.md
+    text: TinyEngine 返回明确登录错误码，或认证层确认登录令牌无效时，前端应清除 `engineToken` 并进入登录页。
+    result: pending
+    reason: null
+  - id: A35
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 上游模型返回 401/403、限流、网络错误或其他模型调用错误时，前端应显示模型调用错误并保留 `engineToken`、当前页面和当前会话。
+    result: pending
+    reason: null
+  - id: A36
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 全局 HTTP 拦截器不得仅凭代理路由的 HTTP 401/403 认定 TinyEngine 登录失效。
+    result: pending
+    reason: null
+  - id: A37
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 模型错误不得取消无关 TinyEngine 请求或设置全局未登录状态。
+    result: pending
+    reason: null
+  - id: A38
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 非流式 Chat Completions 应返回 Robot 插件可消费的模型内容。
+    result: pending
+    reason: null
+  - id: A39
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 流式 Chat Completions 应返回可消费的 SSE 数据并包含正常完成标记。
+    result: pending
+    reason: null
+  - id: A40
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 流式和非流式调用应遵守相同的应用权限、凭据解析和错误边界。
+    result: pending
+    reason: null
+  - id: A41
+    source: specs/tinyengine-ai-auth/spec.md
+    text: API Key 不得出现在仓库文件、提交消息、测试快照、普通应用日志、错误通知或验收报告中。
+    result: pending
+    reason: null
+  - id: A42
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 诊断日志可以记录应用/模型标识、目标主机、状态分类和追踪标识，但必须脱敏敏感字段与认证头。
+    result: pending
+    reason: null
+  - id: A43
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 测试应使用占位凭据或动态注入凭据，不使用真实 Key。
+    result: pending
+    reason: null
+  - id: A44
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 现有非 AI TinyEngine 请求的登录行为保持不变。
+    result: pending
+    reason: null
+  - id: A45
+    source: specs/tinyengine-ai-auth/spec.md
+    text: Servlet MVC 与 WebFlux 的 TinyEngine 登录认证语义保持一致，AI Controller 不得绕过认证边界。
+    result: pending
+    reason: null
+  - id: A46
+    source: specs/tinyengine-ai-auth/spec.md
+    text: 实现应兼容 Java 8。
+    result: pending
+    reason: null
+  - id: A47
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: TinyEngine 应把 AI 模型服务和模型配置持久化到数据库并按应用共享。应用 Owner 和 Admin 管理配置，Dev
+      使用已启用模型。模型 API Key 对浏览器不可见，由服务端透明解密并用于一次上游调用。
+    result: pending
+    reason: null
+  - id: A48
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 系统应使用 `t_ai_model_service` 保存租户、应用、服务键、provider、显示名称、Base URL、加密 API
+      Key、空密钥策略、启用状态、排序和审计字段。
+    result: pending
+    reason: null
+  - id: A49
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 系统应使用 `t_ai_model` 保存租户、应用、服务 ID、模型名、显示名称、启用状态、能力、排序、设置和审计字段。
+    result: pending
+    reason: null
+  - id: A50
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 所有主键和外键类型应与数据库 BIGINT 对齐。
+    result: pending
+    reason: null
+  - id: A51
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 模型服务实体的 API Key 字段应使用公共 `@FieldEncrypt`，数据库原始值为密文，Mapper 读取为业务明文。
+    result: pending
+    reason: null
+  - id: A52
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 业务服务、Controller、Facade 和前端不得手动加解密 API Key。
+    result: pending
+    reason: null
+  - id: A53
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 管理 DTO 只应返回 `hasApiKey` 和固定掩码；可用 DTO 不应包含 API Key、密文或可逆令牌。
+    result: pending
+    reason: null
+  - id: A54
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: MySQL 与 H2 迁移应幂等，并强制应用内服务键、服务内模型名等唯一性。
+    result: pending
+    reason: null
+  - id: A55
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: "`app_owner`、`app_admin` 应能读取管理视图并新增、修改、删除模型服务和模型。"
+    result: pending
+    reason: null
+  - id: A56
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: "`app_dev` 应能读取可用视图并使用已启用模型，但不能查看管理视图或执行写操作。"
+    result: pending
+    reason: null
+  - id: A57
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 无有效应用角色、关系过期或跨租户用户不得读取、管理或使用配置。
+    result: pending
+    reason: null
+  - id: A58
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 所有 Mapper 操作必须同时约束 `tenant_id` 和 `app_id`；资源 ID 不得绕过隔离。
+    result: pending
+    reason: null
+  - id: A59
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 权限、租户校验和事务必须位于 Core 服务边界，由 MVC、WebFlux 和 AI 调用共享。
+    result: pending
+    reason: null
+  - id: A60
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 系统应提供可用列表、管理列表、服务新增/更新/删除、模型新增/更新/删除、本地配置导入和内部调用解析操作。
+    result: pending
+    reason: null
+  - id: A61
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: API Key 更新采用三态：空白输入保留，非空输入替换，`clearApiKey=true` 清除；替换与清除同时出现时拒绝。
+    result: pending
+    reason: null
+  - id: A62
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 删除服务应同时删除其模型；应用删除应在同一事务中删除该应用全部服务和模型。
+    result: pending
+    reason: null
+  - id: A63
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 模型设置中的 `defaultModel`、`quickModel`、`chatMode`、`enableThinking`
+      及未知设置键在读写、迁移和更新时不得无意丢失。
+    result: pending
+    reason: null
+  - id: A64
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 并发导入应通过统一应用锁和当前读保证最多一次成功，且数据库已有配置时不覆盖。
+    result: pending
+    reason: null
+  - id: A65
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: MVC 与 WebFlux 应提供同构的 `/app-center/api/apps/{appId}/ai-model-services` 资源
+      API。
+    result: pending
+    reason: null
+  - id: A66
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 两个 Web 栈应委托相同 `TinyEngineApiFacade` 和 Core 服务，不在 Controller 复制角色或密钥逻辑。
+    result: pending
+    reason: null
+  - id: A67
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: WebFlux 调用阻塞 Core 服务时应使用现有 blocking scheduler。
+    result: pending
+    reason: null
+  - id: A68
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 错误响应应脱敏，不包含 API Key、认证头或完整上游错误。
+    result: pending
+    reason: null
+  - id: A69
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 浏览器聊天请求应提交 `appId`、`serviceId`、`modelName`、消息和生成参数，不提交 Base URL 或 API Key。
+    result: pending
+    reason: null
+  - id: A70
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: AI Chat Service 应调用 Core 的内部解析接口，校验当前用户可使用目标应用和模型。
+    result: pending
+    reason: null
+  - id: A71
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 内部调用配置应携带 provider、endpoint、解密 API Key、模型名及必要设置，且不参与 HTTP 序列化。
+    result: pending
+    reason: null
+  - id: A72
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 真实 LangChain4j provider 应使用内部调用配置创建本次请求所需的模型客户端，不应继续使用与应用无关的预注册凭据。
+    result: pending
+    reason: null
+  - id: A73
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 同步和流式调用应使用相同的凭据解析和错误边界。
+    result: pending
+    reason: null
+  - id: A74
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 上游 401/403、限流或网络错误应作为模型调用错误返回，不得解释为 TinyEngine 登录失效。
+    result: pending
+    reason: null
+  - id: A75
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: Robot 插件应从当前应用的远端 API 加载服务、模型和选择设置。
+    result: pending
+    reason: null
+  - id: A76
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: Owner/Admin 应看到模型服务和模型的管理入口；Dev 只看到已启用模型的选择能力。
+    result: pending
+    reason: null
+  - id: A77
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 前端状态、表单回填、localStorage 和聊天 payload 不得包含服务端 API Key。
+    result: pending
+    reason: null
+  - id: A78
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 编辑服务时应显示是否已有密钥和固定掩码；空输入保留，显式操作才清除。
+    result: pending
+    reason: null
+  - id: A79
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 同一错误不得由组件和全局拦截器重复弹框。
+    result: pending
+    reason: null
+  - id: A80
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 旧 `tiny-engine-robot-settings` 在远端无配置且操作者可管理时应尝试一次性导入。
+    result: pending
+    reason: null
+  - id: A81
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 远端已有配置时不得导入或覆盖。
+    result: pending
+    reason: null
+  - id: A82
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 导入成功后只删除旧模型服务、模型选择及已迁移字段，保留聊天设置和未知键；迁移失败时不得改写本地配置。
+    result: pending
+    reason: null
+  - id: A83
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 浏览器旧 API Key 仅用于受控迁移请求，不得继续用于正常聊天调用。
+    result: pending
+    reason: null
+  - id: A84
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 删除应用时应先删除模型和服务，再删除应用角色与应用，并保持统一事务和锁顺序。
+    result: pending
+    reason: null
+  - id: A85
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 任一步失败时应回滚；成功后该租户和应用的两张模型配置表应无残留。
+    result: pending
+    reason: null
+  - id: A86
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 实现应兼容 Java 8。
+    result: pending
+    reason: null
+  - id: A87
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: "TinyEngine 登录令牌继续由浏览器通过 `Authorization: Bearer <engineToken>`
+      发送，模型凭据不得覆盖该请求头。"
+    result: pending
+    reason: null
+  - id: A88
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 真正的 TinyEngine 登录错误继续清理登录状态；上游模型错误保留当前页面、会话和登录状态。
+    result: pending
+    reason: null
+  - id: A89
+    source: specs/tinyengine-app-ai-model-settings/spec.md
+    text: 仓库、配置、日志、测试和验收产物不得包含真实 API Key。
+    result: pending
+    reason: null
+builder_handoff: null
+blockers: []
+verification: null
+history: []
+history_overflow:
+  dropped_entries: 0
+  first_dropped_at: null
+  last_dropped_at: null
+  outcome_counts:
+    pass: 0
+    fail: 0
+    blocked: 0
+    execution-error: 0
+    recovery: 0
+verification_result: pending
+verification_report: null
+archived: false
+created_at: 2026-08-13T06:34:27.685Z
