@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.tinyengine.model.dto;
 
-import com.xiongx9527.fw.plus.tinyengine.model.entity.AiModelConfig;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.AiModelServiceConfig;
 
 import java.util.ArrayList;
@@ -18,7 +17,7 @@ public class AiModelServiceDto {
 	private Integer sortOrder;
 	private boolean hasApiKey;
 	private String apiKeyMask;
-	private List<AiModelConfig> models = new ArrayList<AiModelConfig>();
+	private List<AiModelDto> models = new ArrayList<AiModelDto>();
 
 	public static AiModelServiceDto from(AiModelServiceConfig service) {
 		AiModelServiceDto dto = new AiModelServiceDto();
@@ -55,6 +54,6 @@ public class AiModelServiceDto {
 	public void setHasApiKey(boolean hasApiKey) { this.hasApiKey = hasApiKey; }
 	public String getApiKeyMask() { return apiKeyMask; }
 	public void setApiKeyMask(String apiKeyMask) { this.apiKeyMask = apiKeyMask; }
-	public List<AiModelConfig> getModels() { return models; }
-	public void setModels(List<AiModelConfig> models) { this.models = models; }
+	public List<AiModelDto> getModels() { return models; }
+	public void setModels(List<AiModelDto> models) { this.models = models; }
 }

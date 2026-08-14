@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.plugin.langchain4j;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.TinyEngineAiProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatMessage;
@@ -33,6 +35,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -107,10 +110,11 @@ public class LangChain4jTinyEngineAiProviderTest {
 	@Test
 	public void shouldInvokeOpenAiCompatibleEndpointWithResolvedServerCredentials() throws Exception {
 		AtomicReference<String> authorization = new AtomicReference<String>();
+		AtomicReference<String> requestBody = new AtomicReference<String>();
 		upstream = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		upstream.createContext("/v1/chat/completions", exchange -> {
 			authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
-			readAll(exchange.getRequestBody());
+			requestBody.set(readString(exchange.getRequestBody()));
 			byte[] body = ("{\"id\":\"chatcmpl-resolved\",\"object\":\"chat.completion\","
 					+ "\"created\":1,\"model\":\"resolver-model\",\"choices\":[{\"index\":0,"
 					+ "\"message\":{\"role\":\"assistant\",\"content\":\"resolved response\"},"
@@ -128,11 +132,19 @@ public class LangChain4jTinyEngineAiProviderTest {
 		request.setBaseUrl("http://127.0.0.1:" + upstream.getAddress().getPort() + "/v1");
 		request.setApiKey("resolver-key");
 		request.setModel("resolver-model");
+		Map<String, Object> modelSettings = new HashMap<String, Object>();
+		modelSettings.put("temperature", Double.valueOf(0.2D));
+		modelSettings.put("maxTokens", Integer.valueOf(64));
+		request.setModelSettings(modelSettings);
+		request.setMaxTokens(Integer.valueOf(96));
 
 		TinyEngineChatResponse response = provider.chat(request);
 
 		assertEquals("resolved response", response.getContent());
 		assertEquals("Bearer resolver-key", authorization.get());
+		JsonNode upstreamRequest = new ObjectMapper().readTree(requestBody.get());
+		assertEquals(0.2D, upstreamRequest.path("temperature").doubleValue(), 0.0001D);
+		assertEquals(96, upstreamRequest.path("max_tokens").intValue());
 	}
 
 	@Test
@@ -206,10 +218,17 @@ public class LangChain4jTinyEngineAiProviderTest {
 	}
 
 	private void readAll(java.io.InputStream input) throws IOException {
+		readString(input);
+	}
+
+	private String readString(java.io.InputStream input) throws IOException {
+		java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
 		byte[] buffer = new byte[256];
-		while (input.read(buffer) >= 0) {
-			// Consume the request before responding.
+		int read;
+		while ((read = input.read(buffer)) >= 0) {
+			output.write(buffer, 0, read);
 		}
+		return new String(output.toByteArray(), "UTF-8");
 	}
 
 	private LangChain4jTinyEngineAiProvider provider(AiModel model) {

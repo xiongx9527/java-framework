@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelImportRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -31,6 +32,9 @@ class TinyEngineAiModelWebFluxApiContractTest {
 			return Collections.singletonList(service);
 		});
 		when(facade.manageableAiModelServices(Integer.valueOf(2))).thenReturn(Collections.singletonList(service));
+		when(facade.aiModelSettings(Integer.valueOf(2))).thenReturn(settings());
+		when(facade.updateAiModelSettings(eq(Integer.valueOf(2)), any(AppAiModelSettings.class)))
+				.thenReturn(settings());
 		when(facade.createAiModelService(eq(Integer.valueOf(2)), any(AiModelServiceRequest.class))).thenReturn(service);
 		when(facade.updateAiModelService(eq(Integer.valueOf(2)), eq(Long.valueOf(21)),
 				any(AiModelServiceRequest.class))).thenReturn(service);
@@ -49,6 +53,11 @@ class TinyEngineAiModelWebFluxApiContractTest {
 				.expectBody().jsonPath("$.data[0].hasApiKey").isEqualTo(true)
 				.jsonPath("$.data[0].apiKey").doesNotExist();
 		client.get().uri("/app-center/api/apps/2/ai-model-services/manage").exchange().expectStatus().isOk();
+		client.get().uri("/app-center/api/apps/2/ai-model-services/settings").exchange().expectStatus().isOk()
+				.expectBody().jsonPath("$.data.defaultModel").isEqualTo("openai::gpt-4o");
+		client.put().uri("/app-center/api/apps/2/ai-model-services/settings").contentType(MediaType.APPLICATION_JSON)
+				.bodyValue("{\"defaultModel\":\"21::gpt-4o\",\"chatMode\":\"chat\"}")
+				.exchange().expectStatus().isOk();
 		client.post().uri("/app-center/api/apps/2/ai-model-services").contentType(MediaType.APPLICATION_JSON)
 				.bodyValue("{\"serviceKey\":\"openai\"}").exchange().expectStatus().isOk();
 		client.put().uri("/app-center/api/apps/2/ai-model-services/21").contentType(MediaType.APPLICATION_JSON)
@@ -64,6 +73,8 @@ class TinyEngineAiModelWebFluxApiContractTest {
 
 		verify(facade).usableAiModelServices(Integer.valueOf(2));
 		verify(facade).manageableAiModelServices(Integer.valueOf(2));
+		verify(facade).aiModelSettings(Integer.valueOf(2));
+		verify(facade).updateAiModelSettings(eq(Integer.valueOf(2)), any(AppAiModelSettings.class));
 		verify(facade).createAiModelService(eq(Integer.valueOf(2)), any(AiModelServiceRequest.class));
 		verify(facade).updateAiModelService(eq(Integer.valueOf(2)), eq(Long.valueOf(21)),
 				any(AiModelServiceRequest.class));
@@ -82,5 +93,12 @@ class TinyEngineAiModelWebFluxApiContractTest {
 		service.setHasApiKey(true);
 		service.setApiKeyMask("********");
 		return service;
+	}
+
+	private AppAiModelSettings settings() {
+		AppAiModelSettings settings = new AppAiModelSettings();
+		settings.setDefaultModel("openai::gpt-4o");
+		settings.setChatMode("chat");
+		return settings;
 	}
 }

@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelImportRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberRoleRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockBuildDto;
@@ -213,6 +214,16 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 	@Override
 	public List<AiModelServiceDto> manageableAiModelServices(Integer appId) {
 		return requiredAppAiModelConfigService().listManageable(appId);
+	}
+
+	@Override
+	public AppAiModelSettings aiModelSettings(Integer appId) {
+		return requiredAppAiModelConfigService().getSettings(appId);
+	}
+
+	@Override
+	public AppAiModelSettings updateAiModelSettings(Integer appId, AppAiModelSettings settings) {
+		return requiredAppAiModelConfigService().updateSettings(appId, settings);
 	}
 
 	@Override

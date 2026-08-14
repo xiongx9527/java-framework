@@ -48,7 +48,6 @@ export type ProviderConfig = Omit<AIModelConfig, 'provider' | 'providerImplement
 
 export class OpenAICompatibleProvider extends BaseModelProvider {
   private apiUrl: string = 'https://api.openai.com/v1/chat/completions'
-  private apiKey: string = ''
   private defaultModel: string = 'gpt-3.5-turbo'
   private beforeRequest: (request: ChatRequestData) => ChatRequestData | Promise<ChatRequestData> = (req) => req
   private httpClientType: 'axios' | 'fetch' = 'fetch'
@@ -127,10 +126,6 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
       headers.Accept = 'text/event-stream'
     }
 
-    if (this.apiKey) {
-      headers.Authorization = `Bearer ${this.apiKey}`
-    }
-
     return headers
   }
 
@@ -151,7 +146,11 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
     }
 
     const beforeRequest = request.options?.beforeRequest || this.beforeRequest
-    return beforeRequest(requestData)
+    const prepared = await beforeRequest(requestData)
+    if (prepared.appId && prepared.serviceId && prepared.modelName) {
+      delete prepared.model
+    }
+    return prepared
   }
 
   /**
@@ -278,16 +277,11 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
       throw new Error('Axios client is not configured')
     }
 
-    const proxyHeaders = { ...headers }
-    delete proxyHeaders.Authorization
     const requestOptions: AxiosRequestConfig = {
       method: 'POST',
       url: apiUrl || this.apiUrl,
-      headers: proxyHeaders,
-      data: {
-        ...requestData,
-        apiKey: this.apiKey
-      },
+      headers,
+      data: requestData,
       signal,
       adapter: this.createFetchAdapter(isStream)
     }
@@ -376,11 +370,6 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
       this.apiUrl = config.apiUrl
     }
 
-    // apikey允许为空
-    if (typeof config.apiKey === 'string') {
-      this.apiKey = config.apiKey
-    }
-
     if (config.defaultModel) {
       this.defaultModel = config.defaultModel
     }
@@ -404,7 +393,6 @@ export class OpenAICompatibleProvider extends BaseModelProvider {
 
   getBaseConfig(): ProviderConfig {
     return {
-      apiKey: this.apiKey,
       apiUrl: this.apiUrl,
       defaultModel: this.defaultModel,
       httpClientType: this.httpClientType

@@ -14,12 +14,16 @@ fw:
   plus:
     magicapi:
       enabled: false
+    mp-encrypt:
+      private-key: test-key-16-byte
+      public-key: test-key-16-byte
     mp:
       enabled: false
     tiny-engine:
       enabled: true
       sql:
         database: h2
+        auto-initialize: true
       security:
         enabled: false
       ai:

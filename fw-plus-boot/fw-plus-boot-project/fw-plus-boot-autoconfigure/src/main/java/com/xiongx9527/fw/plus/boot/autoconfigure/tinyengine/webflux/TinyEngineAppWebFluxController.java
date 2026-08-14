@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelImportRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberRoleRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.AppExtension;
@@ -111,6 +112,17 @@ public class TinyEngineAppWebFluxController {
 	@GetMapping("/app-center/api/apps/{appId}/ai-model-services/manage")
 	public Mono<ResponseEntity<? extends Result<?>>> manageableAiModelServices(@PathVariable Integer appId) {
 		return TinyEngineWebFluxSupport.submit(executor, () -> facade.manageableAiModelServices(appId));
+	}
+
+	@GetMapping("/app-center/api/apps/{appId}/ai-model-services/settings")
+	public Mono<ResponseEntity<? extends Result<?>>> aiModelSettings(@PathVariable Integer appId) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.aiModelSettings(appId));
+	}
+
+	@PutMapping("/app-center/api/apps/{appId}/ai-model-services/settings")
+	public Mono<ResponseEntity<? extends Result<?>>> updateAiModelSettings(@PathVariable Integer appId,
+			@RequestBody AppAiModelSettings settings) {
+		return TinyEngineWebFluxSupport.submit(executor, () -> facade.updateAiModelSettings(appId, settings));
 	}
 
 	@PostMapping("/app-center/api/apps/{appId}/ai-model-services")

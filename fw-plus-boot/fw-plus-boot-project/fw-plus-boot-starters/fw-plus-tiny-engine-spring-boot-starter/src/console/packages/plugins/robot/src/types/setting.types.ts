@@ -23,8 +23,11 @@ export interface Capability {
 }
 
 export interface ModelConfig {
+  id?: number
   name: string
   label: string
+  enabled?: boolean
+  sortOrder?: number
   capabilities?: {
     toolCalling?: boolean
     vision?: boolean
@@ -32,20 +35,58 @@ export interface ModelConfig {
     compact?: boolean
     jsonOutput?: boolean | Capability
   }
+  settings?: Record<string, unknown> | string
 }
 
 /**
  * 模型服务接口
  */
 export interface ModelService {
-  id: string
+  id: number | string
+  serviceKey?: string
   provider: string
   label: string
   baseUrl: string
-  apiKey: string
+  hasApiKey?: boolean
+  apiKeyMask?: string | null
   allowEmptyApiKey: boolean
-  isBuiltIn: boolean
+  enabled?: boolean
+  sortOrder?: number
+  isBuiltIn?: boolean
   models: ModelConfig[]
+}
+
+export type AppRole = 'app_owner' | 'app_admin' | 'app_dev'
+
+export interface ModelServiceMutation {
+  serviceKey?: string
+  provider?: string
+  label?: string
+  baseUrl?: string
+  apiKey?: string
+  clearApiKey?: boolean
+  allowEmptyApiKey?: boolean
+  enabled?: boolean
+  sortOrder?: number
+}
+
+export interface ModelImportRequest {
+  settings: AppModelSettings
+  apiKeys: Record<string, string>
+}
+
+export interface AppModelSettings {
+  services?: ModelService[]
+  defaultModel?: string
+  quickModel?: string
+  chatMode?: string
+  enableThinking?: boolean
+  [key: string]: unknown
+}
+
+export interface ModelSettingsStorage {
+  getItem(key: string): string | null
+  setItem(key: string, value: string): void
 }
 
 /**
@@ -61,6 +102,9 @@ export interface ModelSelection {
  */
 export interface RobotSettings {
   version?: number
+  appId: number
+  currentRole: AppRole | ''
+  canManage: boolean
   defaultModel: ModelSelection
   quickModel: ModelSelection
   services: ModelService[]
@@ -80,7 +124,7 @@ export type SelectedModelInfo = ModelConfig & {
   // 模型兼容字段
   model?: string
   completeModel?: string
-  // 服务兼容字段
-  baseUrl?: string
-  apiKey?: string
+  appId?: number
+  serviceId?: number
+  modelName?: string
 }

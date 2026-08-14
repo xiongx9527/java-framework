@@ -34,7 +34,16 @@
       </tiny-form-item>
 
       <tiny-form-item prop="apiKey" label="API Key">
-        <tiny-input type="password" v-model="formData.apiKey" placeholder="请输入API Key"></tiny-input>
+        <tiny-input
+          type="password"
+          v-model="formData.apiKey"
+          :placeholder="props.service?.hasApiKey ? '留空则保留现有密钥' : '请输入API Key'"
+          :disabled="formData.clearApiKey"
+        ></tiny-input>
+        <div v-if="props.service?.hasApiKey" class="api-key-status">
+          当前密钥：{{ props.service.apiKeyMask || '********' }}
+        </div>
+        <tiny-checkbox v-if="props.service?.hasApiKey" v-model="formData.clearApiKey">清除现有密钥</tiny-checkbox>
       </tiny-form-item>
 
       <tiny-divider v-if="!isBuiltIn">模型配置</tiny-divider>
@@ -88,7 +97,7 @@ import {
   TinyDivider,
   TinyCheckbox
 } from '@opentiny/vue'
-import type { ModelService, ModelConfig } from '../../../types/setting.types'
+import type { ModelService, ModelConfig, ModelServiceMutation } from '../../../types/setting.types'
 
 const props = defineProps<{
   visible: boolean
@@ -96,7 +105,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'confirm', service: Partial<ModelService>): void
+  (e: 'confirm', service: Partial<ModelService> & ModelServiceMutation): void
 }>()
 
 const dialogVisible = defineModel<boolean>('visible', {
@@ -115,13 +124,15 @@ const createEmptyModel = (): ModelConfig => ({
     vision: false,
     reasoning: false,
     compact: false
-  }
+  },
+  settings: {}
 })
 
-const formData = reactive<Partial<ModelService>>({
+const formData = reactive<Partial<ModelService> & ModelServiceMutation>({
   label: '',
   baseUrl: '',
   apiKey: '',
+  clearApiKey: false,
   provider: 'custom',
   allowEmptyApiKey: true,
   models: [createEmptyModel()]
@@ -144,6 +155,7 @@ const resetForm = () => {
   formData.label = ''
   formData.baseUrl = ''
   formData.apiKey = ''
+  formData.clearApiKey = false
   formData.provider = 'custom'
   formData.allowEmptyApiKey = true
   formData.models = [createEmptyModel()]
@@ -157,7 +169,8 @@ const updateForm = (service?: ModelService) => {
   if (service) {
     formData.label = service.label
     formData.baseUrl = service.baseUrl
-    formData.apiKey = service.apiKey
+    formData.apiKey = ''
+    formData.clearApiKey = false
     formData.provider = service.provider
     formData.allowEmptyApiKey = service.allowEmptyApiKey
     formData.models = service.isBuiltIn ? [] : JSON.parse(JSON.stringify(service.models))
@@ -191,13 +204,14 @@ const handleConfirm = () => {
       return
     }
 
-    const serviceData: Partial<ModelService> = {
+    const serviceData: Partial<ModelService> & ModelServiceMutation = {
       label: formData.label,
       baseUrl: formData.baseUrl,
-      apiKey: formData.apiKey,
       provider: formData.provider,
-      allowEmptyApiKey: formData.allowEmptyApiKey
+      allowEmptyApiKey: formData.allowEmptyApiKey,
+      clearApiKey: formData.clearApiKey
     }
+    if (formData.apiKey?.trim()) serviceData.apiKey = formData.apiKey
 
     // 内置服务只更新API Key
     if (!isBuiltIn.value) {
@@ -229,6 +243,12 @@ const handleConfirm = () => {
 
 .models-section {
   margin-top: 16px;
+}
+
+.api-key-status {
+  margin: 6px 0;
+  color: var(--te-base-color-text-secondary, #808080);
+  font-size: 12px;
 }
 
 .model-item {

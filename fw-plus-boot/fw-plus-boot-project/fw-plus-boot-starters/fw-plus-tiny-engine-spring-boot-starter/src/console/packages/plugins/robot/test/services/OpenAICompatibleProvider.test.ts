@@ -7,15 +7,14 @@ vi.mock('../../src/utils', () => ({
 import { OpenAICompatibleProvider } from '../../src/services/OpenAICompatibleProvider'
 
 describe('OpenAICompatibleProvider TinyEngine proxy credentials', () => {
-  it('keeps the engine Authorization header available and sends the model key in the request body', async () => {
+  it('keeps model credentials out of the browser proxy request', async () => {
     const request = vi.fn().mockResolvedValue({ data: { choices: [] } })
     const provider = new OpenAICompatibleProvider({
-      apiKey: 'model-key',
       apiUrl: 'app-center/api/chat/completions',
       defaultModel: 'gpt-test',
       httpClientType: 'axios',
       axiosClient: { request },
-      beforeRequest: (body) => ({ ...body, baseUrl: 'https://example.test/v1' })
+      beforeRequest: (body) => ({ ...body, appId: 2, serviceId: 11, modelName: 'gpt-test' })
     } as any)
 
     await provider.chat({ messages: [{ role: 'user', content: 'hello' }] } as any)
@@ -23,7 +22,9 @@ describe('OpenAICompatibleProvider TinyEngine proxy credentials', () => {
     expect(request).toHaveBeenCalledOnce()
     const config = request.mock.calls[0][0]
     expect(config.headers.Authorization).toBeUndefined()
-    expect(config.data.apiKey).toBe('model-key')
-    expect(config.data.baseUrl).toBe('https://example.test/v1')
+    expect(config.data).toMatchObject({ appId: 2, serviceId: 11, modelName: 'gpt-test' })
+    expect(config.data).not.toHaveProperty('apiKey')
+    expect(config.data).not.toHaveProperty('baseUrl')
+    expect(config.data).not.toHaveProperty('model')
   })
 })

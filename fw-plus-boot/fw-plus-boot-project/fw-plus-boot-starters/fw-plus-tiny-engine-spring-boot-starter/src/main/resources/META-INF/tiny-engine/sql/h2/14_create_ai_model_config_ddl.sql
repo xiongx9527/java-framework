@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS t_ai_model (
     name VARCHAR(128) NOT NULL,
     label VARCHAR(128) NOT NULL,
     capabilities VARCHAR(2048),
+    settings VARCHAR(4096),
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     sort_order INT NOT NULL DEFAULT 0,
     created_by VARCHAR(64),
@@ -38,3 +39,5 @@ CREATE TABLE IF NOT EXISTS t_ai_model (
 
 CREATE INDEX IF NOT EXISTS idx_ai_model_tenant_app ON t_ai_model (tenant_id, app_id);
 CREATE INDEX IF NOT EXISTS idx_ai_model_service_id ON t_ai_model (service_id);
+
+ALTER TABLE t_ai_model ADD COLUMN IF NOT EXISTS settings VARCHAR(4096);

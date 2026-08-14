@@ -10,6 +10,7 @@ public class AiModelConfig extends AiModelBaseEntity {
 	private String name;
 	private String label;
 	private String capabilities;
+	private String settings;
 	private Boolean enabled;
 	private Integer sortOrder;
 
@@ -23,6 +24,8 @@ public class AiModelConfig extends AiModelBaseEntity {
 	public void setLabel(String label) { this.label = label; }
 	public String getCapabilities() { return capabilities; }
 	public void setCapabilities(String capabilities) { this.capabilities = capabilities; }
+	public String getSettings() { return settings; }
+	public void setSettings(String settings) { this.settings = settings; }
 	public Boolean getEnabled() { return enabled; }
 	public void setEnabled(Boolean enabled) { this.enabled = enabled; }
 	public Integer getSortOrder() { return sortOrder; }

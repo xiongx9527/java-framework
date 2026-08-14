@@ -7,6 +7,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelImportRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberRoleRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.AppExtension;
@@ -144,6 +145,25 @@ public class TinyEngineAppMvcController {
 	public ResponseEntity<? extends Result<?>> manageableAiModelServices(@PathVariable Integer appId) {
 		try {
 			return TinyEngineWebResponses.ok(facade.manageableAiModelServices(appId));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/app-center/api/apps/{appId}/ai-model-services/settings")
+	public ResponseEntity<? extends Result<?>> aiModelSettings(@PathVariable Integer appId) {
+		try {
+			return TinyEngineWebResponses.ok(facade.aiModelSettings(appId));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PutMapping("/app-center/api/apps/{appId}/ai-model-services/settings")
+	public ResponseEntity<? extends Result<?>> updateAiModelSettings(@PathVariable Integer appId,
+			@RequestBody AppAiModelSettings settings) {
+		try {
+			return TinyEngineWebResponses.ok(facade.updateAiModelSettings(appId, settings));
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}

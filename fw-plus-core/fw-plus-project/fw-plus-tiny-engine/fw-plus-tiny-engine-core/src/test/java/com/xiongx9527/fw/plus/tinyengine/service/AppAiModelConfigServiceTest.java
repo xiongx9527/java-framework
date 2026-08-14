@@ -4,6 +4,7 @@ import com.xiongx9527.fw.plus.tinyengine.mapper.AiModelConfigMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.AiModelServiceConfigMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.AppMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelImportRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelInvocationConfig;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceDto;
@@ -34,11 +35,13 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -63,6 +66,7 @@ class AppAiModelConfigServiceTest {
 		AiModelInvocationConfig invocation = fixture.service.resolveInvocation(
 				Integer.valueOf(2), Long.valueOf(10), "gpt-4o");
 		assertThat(invocation.getApiKey()).isEqualTo("secret");
+		assertThat(((Number) invocation.getSettings().get("temperature")).doubleValue()).isEqualTo(0.2D);
 		verify(fixture.roleService).requirePermission(Integer.valueOf(2), AppPermission.READ);
 	}
 
@@ -99,7 +103,7 @@ class AppAiModelConfigServiceTest {
 
 		assertThat(result).hasSize(1);
 		assertThat(result.get(0).getId()).isEqualTo(Long.valueOf(10));
-		assertThat(result.get(0).getModels()).extracting(AiModelConfig::getName).containsExactly("enabled");
+		assertThat(result.get(0).getModels()).extracting(AiModelDto::getName).containsExactly("enabled");
 	}
 
 	@Test
@@ -187,6 +191,25 @@ class AppAiModelConfigServiceTest {
 	}
 
 	@Test
+	void modelSettingsAreValidatedAndOmittedUpdatesPreserveExistingValue() {
+		Fixture fixture = fixture("admin");
+		AiModelServiceConfig service = serviceConfig(10, true, "secret");
+		AiModelConfig existing = modelConfig(20, 10L, "gpt-4o", true);
+		when(fixture.serviceMapper.findService("tenant-9", 2, 10L)).thenReturn(service);
+		when(fixture.modelMapper.findModel("tenant-9", 2, 20L)).thenReturn(existing);
+		when(fixture.modelMapper.updateModel(any(AiModelConfig.class))).thenReturn(1);
+
+		fixture.service.updateModel(2, 10L, 20L, modelRequest("gpt-4o"));
+		assertThat(existing.getSettings()).isEqualTo("{\"temperature\":0.2}");
+
+		AiModelRequest invalid = modelRequest("gpt-4o");
+		invalid.setSettings("not-json");
+		assertThatThrownBy(() -> fixture.service.updateModel(2, 10L, 20L, invalid))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("settings");
+	}
+
+	@Test
 	void writesRejectCrossApplicationIdentifiers() {
 		Fixture fixture = fixture("admin");
 		when(fixture.serviceMapper.findService("tenant-9", 2, 10L)).thenReturn(null);
@@ -216,6 +239,23 @@ class AppAiModelConfigServiceTest {
 	}
 
 	@Test
+	void importRejectsExistingApplicationSettingsEvenWhenServiceTablesAreEmpty() {
+		Fixture fixture = fixture("owner");
+		AppAiModelSettings existing = new AppAiModelSettings();
+		existing.setChatMode("chat");
+		existing.setAdditionalProperty("remoteUnknown", Boolean.FALSE);
+		Map<String, Object> extendConfig = new LinkedHashMap<String, Object>();
+		extendConfig.put("aiModelSettings", existing);
+		fixture.app.setExtendConfig(extendConfig);
+
+		assertThatThrownBy(() -> fixture.service.importLocal(2, validImport()))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("already exists");
+		verify(fixture.serviceMapper, never()).insertService(any(AiModelServiceConfig.class));
+		verify(fixture.modelMapper, never()).insertModel(any(AiModelConfig.class));
+	}
+
+	@Test
 	void importPersistsAllRowsThenCopiesSharedSettingsWithoutDroppingOtherExtendConfigKeys() {
 		Fixture fixture = fixture("owner");
 		Map<String, Object> original = new LinkedHashMap<String, Object>();
@@ -234,17 +274,18 @@ class AppAiModelConfigServiceTest {
 		when(fixture.appMapper.updateAppById(any(App.class))).thenReturn(1);
 
 		AiModelImportRequest importRequest = validImport();
-		importRequest.getSettings().setDefaultModel("openai:gpt-4o");
-		importRequest.getSettings().setQuickModel("openai:gpt-4o-mini");
+		importRequest.getSettings().setDefaultModel("service-7::gpt-4o");
+		importRequest.getSettings().setQuickModel("service-7::gpt-4o-mini");
 		importRequest.getSettings().setChatMode("assistant");
 		importRequest.getSettings().setEnableThinking(Boolean.TRUE);
 		importRequest.getSettings().setAdditionalProperty("temperature", Double.valueOf(0.6D));
 		List<AiModelServiceDto> result = fixture.service.importLocal(2, importRequest);
 
 		assertThat(result).hasSize(1);
-		verify(fixture.modelMapper).insertModel(org.mockito.ArgumentMatchers.argThat(
+		verify(fixture.modelMapper, times(2)).insertModel(org.mockito.ArgumentMatchers.argThat(
 				model -> Long.valueOf(100).equals(model.getServiceId()) && "tenant-9".equals(model.getTenantId())
-						&& Integer.valueOf(2).equals(model.getAppId())));
+						&& Integer.valueOf(2).equals(model.getAppId())
+						&& "{\"temperature\":0.2}".equals(model.getSettings())));
 		verify(fixture.appMapper).updateAppById(org.mockito.ArgumentMatchers.argThat(update -> {
 			Map<String, Object> extendConfig = update.getExtendConfig();
 			if (extendConfig == original || !"dark".equals(extendConfig.get("theme"))
@@ -252,8 +293,8 @@ class AppAiModelConfigServiceTest {
 				return false;
 			}
 			AppAiModelSettings settings = (AppAiModelSettings) extendConfig.get("aiModelSettings");
-			return "openai:gpt-4o".equals(settings.getDefaultModel())
-					&& "openai:gpt-4o-mini".equals(settings.getQuickModel())
+			return "service-7::gpt-4o".equals(settings.getDefaultModel())
+					&& "service-7::gpt-4o-mini".equals(settings.getQuickModel())
 					&& "assistant".equals(settings.getChatMode())
 					&& Boolean.TRUE.equals(settings.getEnableThinking())
 					&& Double.valueOf(0.6D).equals(settings.getAdditionalProperties().get("temperature"));
@@ -295,6 +336,63 @@ class AppAiModelConfigServiceTest {
 					&& Double.valueOf(0.6D).equals(settings.getAdditionalProperties().get("temperature"))
 					&& settings.getServices().size() == 1;
 		}));
+	}
+
+	@Test
+	void developerCanReadAndUpdateSharedBehaviorSettingsWithoutLosingUnknownKeys() {
+		Fixture fixture = fixture("developer");
+		AppAiModelSettings existing = new AppAiModelSettings();
+		existing.setDefaultModel("openai::gpt-old");
+		existing.setQuickModel("openai::gpt-fast");
+		existing.setChatMode("agent");
+		existing.setEnableThinking(Boolean.FALSE);
+		existing.setAdditionalProperty("temperature", Double.valueOf(0.6D));
+		Map<String, Object> extendConfig = new LinkedHashMap<String, Object>();
+		extendConfig.put("theme", "dark");
+		extendConfig.put("aiModelSettings", existing);
+		fixture.app.setExtendConfig(extendConfig);
+		fixture.persistedServices.add(serviceConfig(10L, true, "secret"));
+		fixture.persistedModels.add(modelConfig(20L, 10L, "gpt-4o", true));
+
+		AppAiModelSettings readable = fixture.service.getSettings(Integer.valueOf(2));
+		assertThat(readable.getChatMode()).isEqualTo("agent");
+		assertThat(readable.getAdditionalProperties()).containsEntry("temperature", Double.valueOf(0.6D));
+
+		AppAiModelSettings update = new AppAiModelSettings();
+		update.setDefaultModel("10::gpt-4o");
+		update.setQuickModel("");
+		update.setChatMode("chat");
+		update.setEnableThinking(Boolean.TRUE);
+		AppAiModelSettings updated = fixture.service.updateSettings(Integer.valueOf(2), update);
+
+		assertThat(updated.getDefaultModel()).isEqualTo("service-10::gpt-4o");
+		assertThat(updated.getQuickModel()).isEmpty();
+		assertThat(updated.getChatMode()).isEqualTo("chat");
+		assertThat(updated.getEnableThinking()).isTrue();
+		assertThat(updated.getAdditionalProperties()).containsEntry("temperature", Double.valueOf(0.6D));
+		verify(fixture.roleService).requirePermission(Integer.valueOf(2), AppPermission.DEVELOP);
+		verify(fixture.appMapper).updateAppById(org.mockito.ArgumentMatchers.argThat(app ->
+				"dark".equals(app.getExtendConfig().get("theme"))));
+	}
+
+	@Test
+	void sharedBehaviorSettingsRejectDisabledOrForeignModelReferences() {
+		Fixture fixture = fixture("developer");
+		fixture.persistedServices.add(serviceConfig(10L, true, "secret"));
+		fixture.persistedModels.add(modelConfig(20L, 10L, "disabled", false));
+		fixture.persistedModels.add(modelConfig(21L, 11L, "foreign", true));
+
+		AppAiModelSettings disabled = new AppAiModelSettings();
+		disabled.setDefaultModel("service-10::disabled");
+		assertThatThrownBy(() -> fixture.service.updateSettings(Integer.valueOf(2), disabled))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("enabled");
+
+		AppAiModelSettings foreign = new AppAiModelSettings();
+		foreign.setDefaultModel("service-10::foreign");
+		assertThatThrownBy(() -> fixture.service.updateSettings(Integer.valueOf(2), foreign))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("does not exist");
 	}
 
 	@Test
@@ -422,6 +520,7 @@ class AppAiModelConfigServiceTest {
 		assertRollbackFor("updateModel", Integer.class, Long.class, Long.class, AiModelRequest.class);
 		assertRollbackFor("deleteModel", Integer.class, Long.class, Long.class);
 		assertRollbackFor("importLocal", Integer.class, AiModelImportRequest.class);
+		assertRollbackFor("updateSettings", Integer.class, AppAiModelSettings.class);
 		assertRollbackFor("deleteByApp", Integer.class, String.class);
 	}
 
@@ -459,6 +558,15 @@ class AppAiModelConfigServiceTest {
 		when(fixture.modelMapper.findModels("tenant-9", 2)).thenAnswer(invocation -> fixture.persistedModels);
 		when(fixture.modelMapper.findModelsForUpdate("tenant-9", 2))
 				.thenAnswer(invocation -> fixture.persistedModels);
+		when(fixture.modelMapper.findModelsByService(eq("tenant-9"), eq(Integer.valueOf(2)), any(Long.class)))
+				.thenAnswer(invocation -> {
+					Long serviceId = invocation.getArgument(2);
+					java.util.ArrayList<AiModelConfig> models = new java.util.ArrayList<AiModelConfig>();
+					for (AiModelConfig model : fixture.persistedModels) {
+						if (model != null && serviceId.equals(model.getServiceId())) models.add(model);
+					}
+					return models;
+				});
 		when(fixture.appMapper.updateAppById(any(App.class))).thenReturn(1);
 		fixture.service = new AppAiModelConfigServiceImpl(context, fixture.roleService, fixture.appMapper,
 				fixture.serviceMapper, fixture.modelMapper);
@@ -520,6 +628,7 @@ class AppAiModelConfigServiceTest {
 		model.setServiceId(serviceId);
 		model.setName(name);
 		model.setLabel(name);
+		model.setSettings("{\"temperature\":0.2}");
 		model.setEnabled(enabled);
 		model.setSortOrder(1);
 		return model;
@@ -527,7 +636,8 @@ class AppAiModelConfigServiceTest {
 
 	private static AiModelImportRequest validImport() {
 		AiModelServiceDto service = AiModelServiceDto.from(serviceConfig(7, true, null));
-		service.setModels(Collections.singletonList(modelConfig(8, 7L, "gpt-4o", true)));
+		service.setModels(Arrays.asList(AiModelDto.from(modelConfig(8, 7L, "gpt-4o", true)),
+				AiModelDto.from(modelConfig(9, 7L, "gpt-4o-mini", true))));
 		AppAiModelSettings settings = new AppAiModelSettings();
 		settings.setServices(Collections.singletonList(service));
 		Map<String, String> apiKeys = new LinkedHashMap<String, String>();
