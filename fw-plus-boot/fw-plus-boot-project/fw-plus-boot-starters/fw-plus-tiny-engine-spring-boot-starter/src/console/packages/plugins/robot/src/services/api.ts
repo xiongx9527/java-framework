@@ -118,16 +118,10 @@ export const httpApi = {
   }
 }
 
-export const encryptApi = {
-  encryptKey: (apiKey: string): Promise<{ token: string }> =>
-    getMetaApi(META_SERVICE.Http).post('app-center/api/encrypt-key', { apiKey })
-}
-
 export const apiService = {
   ...aiChatApi,
   ...resourceApi,
-  ...httpApi,
-  ...encryptApi
+  ...httpApi
 }
 
 export default apiService

@@ -113,18 +113,88 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 
 	private Object chatModel(TinyEngineChatRequest request) {
 		if (hasInvocationCredentials(request)) {
-			return OpenAiChatModel.builder().baseUrl(request.getBaseUrl()).apiKey(request.getApiKey())
-					.modelName(request.getModel()).build();
+			OpenAiChatModel.OpenAiChatModelBuilder builder = OpenAiChatModel.builder()
+					.baseUrl(request.getBaseUrl()).apiKey(request.getApiKey()).modelName(request.getModel());
+			applyModelSettings(builder, request);
+			return builder.build();
 		}
 		return resolveNativeModel(request, AiModelType.CHAT).getModel();
 	}
 
 	private Object streamingChatModel(TinyEngineChatRequest request) {
 		if (hasInvocationCredentials(request)) {
-			return OpenAiStreamingChatModel.builder().baseUrl(request.getBaseUrl()).apiKey(request.getApiKey())
-					.modelName(request.getModel()).build();
+			OpenAiStreamingChatModel.OpenAiStreamingChatModelBuilder builder = OpenAiStreamingChatModel.builder()
+					.baseUrl(request.getBaseUrl()).apiKey(request.getApiKey()).modelName(request.getModel());
+			applyModelSettings(builder, request);
+			return builder.build();
 		}
 		return resolveNativeModel(request, AiModelType.STREAMING_CHAT).getModel();
+	}
+
+	private void applyModelSettings(OpenAiChatModel.OpenAiChatModelBuilder builder, TinyEngineChatRequest request) {
+		Map<String, Object> settings = modelSettings(request);
+		builder.temperature(firstDouble(request.getTemperature(), settings, "temperature"));
+		builder.topP(firstDouble(request.getTopP(), settings, "topP", "top_p"));
+		builder.maxTokens(firstInteger(request.getMaxTokens(), settings, "maxTokens", "max_tokens"));
+		builder.presencePenalty(firstDouble(request.getPresencePenalty(), settings, "presencePenalty", "presence_penalty"));
+		builder.frequencyPenalty(firstDouble(request.getFrequencyPenalty(), settings, "frequencyPenalty", "frequency_penalty"));
+		builder.responseFormat(firstString(request.getResponseFormat(), settings, "responseFormat", "response_format"));
+		builder.parallelToolCalls(firstBoolean(request.getParallelToolCalls(), settings, "parallelToolCalls", "parallel_tool_calls"));
+	}
+
+	private void applyModelSettings(OpenAiStreamingChatModel.OpenAiStreamingChatModelBuilder builder,
+			TinyEngineChatRequest request) {
+		Map<String, Object> settings = modelSettings(request);
+		builder.temperature(firstDouble(request.getTemperature(), settings, "temperature"));
+		builder.topP(firstDouble(request.getTopP(), settings, "topP", "top_p"));
+		builder.maxTokens(firstInteger(request.getMaxTokens(), settings, "maxTokens", "max_tokens"));
+		builder.presencePenalty(firstDouble(request.getPresencePenalty(), settings, "presencePenalty", "presence_penalty"));
+		builder.frequencyPenalty(firstDouble(request.getFrequencyPenalty(), settings, "frequencyPenalty", "frequency_penalty"));
+		builder.responseFormat(firstString(request.getResponseFormat(), settings, "responseFormat", "response_format"));
+		builder.parallelToolCalls(firstBoolean(request.getParallelToolCalls(), settings, "parallelToolCalls", "parallel_tool_calls"));
+	}
+
+	private Map<String, Object> modelSettings(TinyEngineChatRequest request) {
+		return request == null || request.getModelSettings() == null
+				? java.util.Collections.<String, Object>emptyMap() : request.getModelSettings();
+	}
+
+	private Double firstDouble(Double requestValue, Map<String, Object> settings, String... keys) {
+		if (requestValue != null) return requestValue;
+		Object value = firstSetting(settings, keys);
+		if (value instanceof Number) return Double.valueOf(((Number) value).doubleValue());
+		return value == null ? null : Double.valueOf(String.valueOf(value));
+	}
+
+	private Integer firstInteger(Integer requestValue, Map<String, Object> settings, String... keys) {
+		if (requestValue != null) return requestValue;
+		Object value = firstSetting(settings, keys);
+		if (value instanceof Number) return Integer.valueOf(((Number) value).intValue());
+		return value == null ? null : Integer.valueOf(String.valueOf(value));
+	}
+
+	private Boolean firstBoolean(Boolean requestValue, Map<String, Object> settings, String... keys) {
+		if (requestValue != null) return requestValue;
+		Object value = firstSetting(settings, keys);
+		return value == null ? null : value instanceof Boolean ? (Boolean) value : Boolean.valueOf(String.valueOf(value));
+	}
+
+	private String firstString(String requestValue, Map<String, Object> settings, String... keys) {
+		if (!isBlank(requestValue)) return requestValue;
+		Object value = firstSetting(settings, keys);
+		if (value instanceof Map) {
+			Object type = ((Map<?, ?>) value).get("type");
+			return type == null ? null : String.valueOf(type);
+		}
+		return value == null ? null : String.valueOf(value);
+	}
+
+	private Object firstSetting(Map<String, Object> settings, String... keys) {
+		if (settings == null || keys == null) return null;
+		for (String key : keys) {
+			if (settings.containsKey(key)) return settings.get(key);
+		}
+		return null;
 	}
 
 	private boolean hasInvocationCredentials(TinyEngineChatRequest request) {

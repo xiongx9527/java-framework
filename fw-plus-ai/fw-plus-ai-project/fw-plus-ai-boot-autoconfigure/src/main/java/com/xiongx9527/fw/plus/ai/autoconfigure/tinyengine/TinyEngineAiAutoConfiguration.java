@@ -290,10 +290,13 @@ public class TinyEngineAiAutoConfiguration {
 			target.setModel(invocation.getModelName());
 			target.setBaseUrl(invocation.getBaseUrl());
 			target.setApiKey(invocation.getApiKey());
+			target.setModelSettings(invocation.getSettings());
 			target.setMessage(request.getMessage());
 			target.setMessages(request.getMessages());
 			target.setStream(request.getStream());
 			target.setMaxTokens(request.getMaxTokens());
+			target.setTemperature(request.getTemperature());
+			target.setTopP(request.getTopP());
 			target.setPresencePenalty(request.getPresencePenalty());
 			target.setFrequencyPenalty(request.getFrequencyPenalty());
 			target.setResponseFormat(request.getResponseFormat());

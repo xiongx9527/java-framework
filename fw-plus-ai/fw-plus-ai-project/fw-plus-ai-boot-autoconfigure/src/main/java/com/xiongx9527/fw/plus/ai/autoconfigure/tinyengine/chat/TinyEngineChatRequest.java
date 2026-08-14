@@ -1,13 +1,15 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-@JsonIgnoreProperties({"baseUrl", "apiKey"})
+@JsonIgnoreProperties({"baseUrl", "apiKey", "modelSettings"})
 public class TinyEngineChatRequest {
 
 	private Integer appId;
@@ -18,10 +20,13 @@ public class TinyEngineChatRequest {
 	private String model;
 	private String baseUrl;
 	private String apiKey;
+	private Map<String, Object> modelSettings;
 	private String message;
 	private List<TinyEngineChatMessage> messages = new ArrayList<TinyEngineChatMessage>();
 	private Boolean stream;
 	private Integer maxTokens;
+	private Double temperature;
+	private Double topP;
 	private Double presencePenalty;
 	private Double frequencyPenalty;
 	private String responseFormat;
@@ -100,6 +105,15 @@ public class TinyEngineChatRequest {
 		this.apiKey = apiKey;
 	}
 
+	@JsonIgnore
+	public Map<String, Object> getModelSettings() {
+		return modelSettings;
+	}
+
+	public void setModelSettings(Map<String, Object> modelSettings) {
+		this.modelSettings = modelSettings;
+	}
+
 	public String getMessage() {
 		return message;
 	}
@@ -128,14 +142,33 @@ public class TinyEngineChatRequest {
 		return maxTokens;
 	}
 
+	@JsonAlias("max_tokens")
 	public void setMaxTokens(Integer maxTokens) {
 		this.maxTokens = maxTokens;
+	}
+
+	public Double getTemperature() {
+		return temperature;
+	}
+
+	public void setTemperature(Double temperature) {
+		this.temperature = temperature;
+	}
+
+	public Double getTopP() {
+		return topP;
+	}
+
+	@JsonAlias("top_p")
+	public void setTopP(Double topP) {
+		this.topP = topP;
 	}
 
 	public Double getPresencePenalty() {
 		return presencePenalty;
 	}
 
+	@JsonAlias("presence_penalty")
 	public void setPresencePenalty(Double presencePenalty) {
 		this.presencePenalty = presencePenalty;
 	}
@@ -144,6 +177,7 @@ public class TinyEngineChatRequest {
 		return frequencyPenalty;
 	}
 
+	@JsonAlias("frequency_penalty")
 	public void setFrequencyPenalty(Double frequencyPenalty) {
 		this.frequencyPenalty = frequencyPenalty;
 	}
@@ -156,10 +190,21 @@ public class TinyEngineChatRequest {
 		this.responseFormat = responseFormat;
 	}
 
+	@JsonSetter("response_format")
+	public void setOpenAiResponseFormat(Object responseFormat) {
+		if (responseFormat instanceof Map) {
+			Object type = ((Map<?, ?>) responseFormat).get("type");
+			this.responseFormat = type == null ? null : String.valueOf(type);
+		} else {
+			this.responseFormat = responseFormat == null ? null : String.valueOf(responseFormat);
+		}
+	}
+
 	public Boolean getEnableThinking() {
 		return enableThinking;
 	}
 
+	@JsonAlias("enable_thinking")
 	public void setEnableThinking(Boolean enableThinking) {
 		this.enableThinking = enableThinking;
 	}
@@ -168,6 +213,7 @@ public class TinyEngineChatRequest {
 		return toolChoice;
 	}
 
+	@JsonAlias("tool_choice")
 	public void setToolChoice(String toolChoice) {
 		this.toolChoice = toolChoice;
 	}
@@ -176,6 +222,7 @@ public class TinyEngineChatRequest {
 		return parallelToolCalls;
 	}
 
+	@JsonAlias("parallel_tool_calls")
 	public void setParallelToolCalls(Boolean parallelToolCalls) {
 		this.parallelToolCalls = parallelToolCalls;
 	}
@@ -184,6 +231,7 @@ public class TinyEngineChatRequest {
 		return enableSearch;
 	}
 
+	@JsonAlias("enable_search")
 	public void setEnableSearch(Boolean enableSearch) {
 		this.enableSearch = enableSearch;
 	}
@@ -192,6 +240,7 @@ public class TinyEngineChatRequest {
 		return streamOptions;
 	}
 
+	@JsonAlias("stream_options")
 	public void setStreamOptions(Map<String, Object> streamOptions) {
 		this.streamOptions = streamOptions;
 	}
@@ -200,6 +249,7 @@ public class TinyEngineChatRequest {
 		return searchOptions;
 	}
 
+	@JsonAlias("search_options")
 	public void setSearchOptions(Map<String, Object> searchOptions) {
 		this.searchOptions = searchOptions;
 	}

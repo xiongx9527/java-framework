@@ -24,6 +24,7 @@ import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -74,6 +75,24 @@ class TinyEngineAiWebFluxAutoConfigurationTest {
 	}
 
 	@Test
+	void chatRequestAcceptsOpenAiCompatibleSnakeCaseGenerationParameters() throws Exception {
+		TinyEngineChatRequest request = new ObjectMapper().readValue(
+				"{\"appId\":2,\"serviceId\":10,\"modelName\":\"test-model\","
+						+ "\"max_tokens\":128,\"top_p\":0.8,\"presence_penalty\":0.3,"
+						+ "\"frequency_penalty\":0.1,\"response_format\":{\"type\":\"json_object\"},"
+						+ "\"enable_thinking\":true,\"parallel_tool_calls\":false}",
+				TinyEngineChatRequest.class);
+
+		assertThat(request.getMaxTokens()).isEqualTo(Integer.valueOf(128));
+		assertThat(request.getTopP()).isEqualTo(Double.valueOf(0.8D));
+		assertThat(request.getPresencePenalty()).isEqualTo(Double.valueOf(0.3D));
+		assertThat(request.getFrequencyPenalty()).isEqualTo(Double.valueOf(0.1D));
+		assertThat(request.getResponseFormat()).isEqualTo("json_object");
+		assertThat(request.getEnableThinking()).isTrue();
+		assertThat(request.getParallelToolCalls()).isFalse();
+	}
+
+	@Test
 	void defaultChatServiceResolvesServerSideCredentialsAndIgnoresLegacyClientCredentials() throws Exception {
 		AppAiModelConfigService configService = mock(AppAiModelConfigService.class);
 		TinyEngineAiProvider provider = mock(TinyEngineAiProvider.class);
@@ -81,8 +100,9 @@ class TinyEngineAiWebFluxAutoConfigurationTest {
 		when(provider.supports(TinyEngineAiCapability.CHAT)).thenReturn(true);
 		when(provider.chat(org.mockito.ArgumentMatchers.any(TinyEngineChatRequest.class)))
 				.thenReturn(new TinyEngineChatResponse("ok"));
-		when(configService.resolveInvocation(2, 10L, "test-model"))
-				.thenReturn(invocation("https://example.invalid/v1", "test-key"));
+		AiModelInvocationConfig resolved = invocation("https://example.invalid/v1", "test-key");
+		when(configService.resolveInvocation(2, 10L, "test-model")).thenReturn(resolved);
+		assertThat(new ObjectMapper().writeValueAsString(resolved)).isEqualTo("{}");
 		TinyEngineAiProperties properties = new TinyEngineAiProperties();
 		StaticListableBeanFactory beanFactory = new StaticListableBeanFactory();
 		beanFactory.addBean("configService", configService);
@@ -90,16 +110,17 @@ class TinyEngineAiWebFluxAutoConfigurationTest {
 				new TinyEngineAiProviderRegistry(Collections.singletonList(provider), "test"), properties,
 				beanFactory.getBeanProvider(AppAiModelConfigService.class));
 		TinyEngineChatRequest request = new ObjectMapper().readValue(
-				"{\"appId\":2,\"serviceId\":10,\"modelName\":\"test-model\",\"baseUrl\":\"https://attacker.invalid\",\"apiKey\":\"attacker-key\"}",
+				"{\"appId\":2,\"serviceId\":10,\"modelName\":\"test-model\",\"baseUrl\":\"https://attacker.invalid\",\"apiKey\":\"attacker-key\",\"modelSettings\":{\"temperature\":1}}",
 				TinyEngineChatRequest.class);
-		assertThat(new ObjectMapper().writeValueAsString(request)).doesNotContain("baseUrl", "apiKey");
+		assertThat(new ObjectMapper().writeValueAsString(request)).doesNotContain("baseUrl", "apiKey", "modelSettings");
 
 		chatService.chat(request);
 
 		verify(configService).resolveInvocation(2, 10L, "test-model");
 		verify(provider).chat(argThat(it -> "test-model".equals(it.getModel())
 				&& "https://example.invalid/v1".equals(it.getBaseUrl())
-				&& "test-key".equals(it.getApiKey())));
+				&& "test-key".equals(it.getApiKey())
+				&& Double.valueOf(0.2D).equals(it.getModelSettings().get("temperature"))));
 	}
 
 	@Test
@@ -122,6 +143,9 @@ class TinyEngineAiWebFluxAutoConfigurationTest {
 		value.setBaseUrl(baseUrl);
 		value.setApiKey(apiKey);
 		value.setModelName("test-model");
+		Map<String, Object> settings = new java.util.LinkedHashMap<String, Object>();
+		settings.put("temperature", Double.valueOf(0.2D));
+		value.setSettings(settings);
 		return value;
 	}
 

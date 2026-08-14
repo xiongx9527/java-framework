@@ -111,6 +111,9 @@ public interface AppMapper extends BaseMapper<App> {
      */
     App queryAppById(Integer id, String tenantId);
 
+	App queryVisibleAppById(@Param("tenantId") String tenantId, @Param("appId") Integer appId,
+			@Param("userId") String userId, @Param("systemContext") boolean systemContext);
+
     App lockAppForUpdate(@Param("tenantId") String tenantId, @Param("appId") Integer appId);
 
     /**

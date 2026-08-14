@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelImportRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberRoleRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockBuildDto;
@@ -55,6 +56,8 @@ public interface TinyEngineApiFacade {
 
 	List<AiModelServiceDto> usableAiModelServices(Integer appId);
 	List<AiModelServiceDto> manageableAiModelServices(Integer appId);
+	AppAiModelSettings aiModelSettings(Integer appId);
+	AppAiModelSettings updateAiModelSettings(Integer appId, AppAiModelSettings settings);
 	AiModelServiceDto createAiModelService(Integer appId, AiModelServiceRequest request);
 	AiModelServiceDto updateAiModelService(Integer appId, Long serviceId, AiModelServiceRequest request);
 	void deleteAiModelService(Integer appId, Long serviceId);

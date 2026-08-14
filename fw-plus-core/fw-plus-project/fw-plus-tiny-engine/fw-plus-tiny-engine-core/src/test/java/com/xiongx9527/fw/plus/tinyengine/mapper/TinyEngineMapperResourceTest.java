@@ -108,6 +108,19 @@ public class TinyEngineMapperResourceTest {
 	}
 
 	@Test
+	public void appDetailShouldExposeCurrentUsersTrustedRole() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+				.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
+		String content = readContent(resource);
+		assertTrue(content.contains("<select id=\"queryVisibleAppById\""),
+				"应用详情必须使用独立的当前用户可见查询");
+		assertTrue(content.contains("SELECT <include refid=\"Common_Column_List\"/>, <include refid=\"Current_Role_Column\"/>"),
+				"应用详情必须返回 current_role");
+		assertTrue(content.contains("A.id = #{appId} AND A.tenant_id = #{tenantId}"),
+				"应用详情必须同时按 appId 和 tenantId 隔离");
+	}
+
+	@Test
 	public void appMapperShouldLockOneTenantApplicationForAiImport() throws Exception {
 		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
 				.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
@@ -117,6 +130,16 @@ public class TinyEngineMapperResourceTest {
 		assertTrue(content.contains("WHERE tenant_id = #{tenantId} AND id = #{appId}"),
 				"导入行锁必须同时按 tenantId 和 appId 限定");
 		assertTrue(content.contains("FOR UPDATE"), "导入行锁必须使用 FOR UPDATE");
+	}
+
+	@Test
+	public void aiModelMapperShouldPersistModelSettings() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+				.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AiModelConfigMapper.xml");
+		String content = readContent(resource);
+		assertTrue(content.contains("column=\"settings\" property=\"settings\""));
+		assertTrue(content.contains("name, label, capabilities, settings, enabled"));
+		assertTrue(content.contains("#{settings}"));
 	}
 
 	@Test

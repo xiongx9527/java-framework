@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelInvocationConfig;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
 
 import java.util.List;
 
@@ -12,6 +13,8 @@ public interface AppAiModelConfigService {
 
 	List<AiModelServiceDto> listUsable(Integer appId);
 	List<AiModelServiceDto> listManageable(Integer appId);
+	AppAiModelSettings getSettings(Integer appId);
+	AppAiModelSettings updateSettings(Integer appId, AppAiModelSettings settings);
 	AiModelServiceDto createService(Integer appId, AiModelServiceRequest request);
 	AiModelServiceDto updateService(Integer appId, Long serviceId, AiModelServiceRequest request);
 	void deleteService(Integer appId, Long serviceId);

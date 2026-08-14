@@ -84,15 +84,14 @@ export default function useChatMode(): ModeHooks {
 
   const onBeforeRequest = async (requestParams: any) => {
     const tools = await useMcpServer().getLLMTools()
-    const { model, baseUrl, config, capabilities } = getSelectedModelInfo()
+    const { appId, serviceId, modelName, config, capabilities } = getSelectedModelInfo()
 
     // 添加 MCP 工具
     if (!requestParams.tools && tools?.length && capabilities?.toolCalling !== false) {
       Object.assign(requestParams, { tools })
     }
 
-    requestParams.baseUrl = baseUrl
-    requestParams.model = model
+    Object.assign(requestParams, { appId, serviceId, modelName, model: modelName })
 
     if (capabilities?.reasoning?.extraBody) {
       const extraBody = config?.enableThinking

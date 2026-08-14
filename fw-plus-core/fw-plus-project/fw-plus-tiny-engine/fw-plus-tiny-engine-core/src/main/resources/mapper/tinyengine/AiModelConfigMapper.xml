@@ -10,6 +10,7 @@
 		<result column="name" property="name"/>
 		<result column="label" property="label"/>
 		<result column="capabilities" property="capabilities"/>
+		<result column="settings" property="settings"/>
 		<result column="enabled" property="enabled"/>
 		<result column="sort_order" property="sortOrder"/>
 		<result column="created_by" property="createdBy"/>
@@ -18,7 +19,7 @@
 		<result column="last_updated_time" property="lastUpdatedTime"/>
 	</resultMap>
 
-	<sql id="ModelColumns">id, tenant_id, app_id, service_id, name, label, capabilities, enabled, sort_order, created_by, created_time, last_updated_by, last_updated_time</sql>
+	<sql id="ModelColumns">id, tenant_id, app_id, service_id, name, label, capabilities, settings, enabled, sort_order, created_by, created_time, last_updated_by, last_updated_time</sql>
 
 	<select id="findModels" resultMap="AiModelConfigMap">
 		SELECT <include refid="ModelColumns"/> FROM t_ai_model WHERE tenant_id = #{tenantId} AND app_id = #{appId} ORDER BY sort_order, id
@@ -38,13 +39,13 @@
 	</select>
 
 	<insert id="insertModel" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.AiModelConfig" useGeneratedKeys="true" keyProperty="id">
-		INSERT INTO t_ai_model (tenant_id, app_id, service_id, name, label, capabilities, enabled, sort_order, created_by, created_time, last_updated_by, last_updated_time)
-		VALUES (#{tenantId}, #{appId}, #{serviceId}, #{name}, #{label}, #{capabilities}, #{enabled}, #{sortOrder}, #{createdBy}, #{createdTime}, #{lastUpdatedBy}, #{lastUpdatedTime})
+		INSERT INTO t_ai_model (tenant_id, app_id, service_id, name, label, capabilities, settings, enabled, sort_order, created_by, created_time, last_updated_by, last_updated_time)
+		VALUES (#{tenantId}, #{appId}, #{serviceId}, #{name}, #{label}, #{capabilities}, #{settings}, #{enabled}, #{sortOrder}, #{createdBy}, #{createdTime}, #{lastUpdatedBy}, #{lastUpdatedTime})
 	</insert>
 
 	<update id="updateModel" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.AiModelConfig">
 		UPDATE t_ai_model
-		SET service_id = #{serviceId}, name = #{name}, label = #{label}, capabilities = #{capabilities}, enabled = #{enabled}, sort_order = #{sortOrder}, last_updated_by = #{lastUpdatedBy}, last_updated_time = #{lastUpdatedTime}
+		SET service_id = #{serviceId}, name = #{name}, label = #{label}, capabilities = #{capabilities}, settings = #{settings}, enabled = #{enabled}, sort_order = #{sortOrder}, last_updated_by = #{lastUpdatedBy}, last_updated_time = #{lastUpdatedTime}
 		WHERE id = #{id} AND tenant_id = #{tenantId} AND app_id = #{appId}
 	</update>
 

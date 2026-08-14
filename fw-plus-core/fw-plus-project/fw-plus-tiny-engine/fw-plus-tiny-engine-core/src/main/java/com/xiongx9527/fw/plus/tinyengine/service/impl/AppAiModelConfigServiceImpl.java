@@ -1,10 +1,13 @@
 package com.xiongx9527.fw.plus.tinyengine.service.impl;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.tinyengine.mapper.AiModelConfigMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.AiModelServiceConfigMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.AppMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelImportRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelInvocationConfig;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
@@ -61,6 +64,36 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 	public List<AiModelServiceDto> listManageable(Integer appId) {
 		Scope scope = requireScope(appId, AppPermission.MANAGE, false);
 		return assemble(scope.tenantId, appId, false);
+	}
+
+	@Override
+	public AppAiModelSettings getSettings(Integer appId) {
+		Scope scope = requireScope(appId, AppPermission.READ, true);
+		return settingsView(scope.app, scope.tenantId, appId);
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_COMMITTED)
+	public AppAiModelSettings updateSettings(Integer appId, AppAiModelSettings request) {
+		Scope scope = requireScope(appId, AppPermission.DEVELOP, true);
+		if (request == null) {
+			throw new IllegalArgumentException("AI model settings are required");
+		}
+		App lockedApp = lockApp(scope.tenantId, appId);
+		AppAiModelSettings settings = AppAiModelSettings.copyOf(
+				lockedApp.getExtendConfig() == null ? null : lockedApp.getExtendConfig().get(SETTINGS_KEY));
+		if (request.getDefaultModel() != null) {
+			settings.setDefaultModel(normalizeSelection(scope.tenantId, appId, request.getDefaultModel(), "defaultModel"));
+		}
+		if (request.getQuickModel() != null) {
+			settings.setQuickModel(normalizeSelection(scope.tenantId, appId, request.getQuickModel(), "quickModel"));
+		}
+		if (request.getChatMode() != null) settings.setChatMode(request.getChatMode());
+		if (request.getEnableThinking() != null) settings.setEnableThinking(request.getEnableThinking());
+		settings.getAdditionalProperties().putAll(request.getAdditionalProperties());
+		settings.setServices(assemble(scope.tenantId, appId, false));
+		persistSettings(lockedApp, scope.tenantId, appId, settings);
+		return settingsView(settings, scope.tenantId, appId);
 	}
 
 	@Override
@@ -185,6 +218,9 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		Scope scope = requireScope(appId, AppPermission.MANAGE, false);
 		List<AiModelServiceDto> incoming = validateImport(request);
 		App lockedApp = lockApp(scope.tenantId, appId);
+		if (lockedApp.getExtendConfig() != null && lockedApp.getExtendConfig().containsKey(SETTINGS_KEY)) {
+			throw new IllegalStateException("AI model configuration already exists");
+		}
 		if (!safeServices(serviceMapper.findServicesForUpdate(scope.tenantId, appId)).isEmpty()
 				|| !safeModels(modelMapper.findModelsForUpdate(scope.tenantId, appId)).isEmpty()) {
 			throw new IllegalStateException("AI model configuration already exists");
@@ -199,7 +235,7 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 			if (serviceMapper.insertService(service) != 1 || service.getId() == null) {
 				throw new IllegalStateException("Failed to import AI model service");
 			}
-			for (AiModelConfig sourceModel : safeModels(source.getModels())) {
+			for (AiModelDto sourceModel : safeModelDtos(source.getModels())) {
 				AiModelConfig model = copyModel(sourceModel);
 				model.setId(null);
 				model.setTenantId(scope.tenantId);
@@ -211,7 +247,16 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 				}
 			}
 		}
-		syncSettings(lockedApp, scope.tenantId, appId, request.getSettings());
+		AppAiModelSettings importedSettings = AppAiModelSettings.copyOf(request.getSettings());
+		if (importedSettings.getDefaultModel() != null) {
+			importedSettings.setDefaultModel(normalizeSelection(scope.tenantId, appId,
+					importedSettings.getDefaultModel(), "defaultModel"));
+		}
+		if (importedSettings.getQuickModel() != null) {
+			importedSettings.setQuickModel(normalizeSelection(scope.tenantId, appId,
+					importedSettings.getQuickModel(), "quickModel"));
+		}
+		syncSettings(lockedApp, scope.tenantId, appId, importedSettings);
 		return assemble(scope.tenantId, appId, false);
 	}
 
@@ -245,6 +290,7 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		result.setBaseUrl(service.getBaseUrl());
 		result.setApiKey(service.getApiKey());
 		result.setModelName(selected.getName());
+		result.setSettings(parseModelSettings(selected.getSettings()));
 		return result;
 	}
 
@@ -290,17 +336,17 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 	private List<AiModelServiceDto> assemble(String tenantId, Integer appId, boolean enabledOnly) {
 		List<AiModelServiceConfig> services = safeServices(serviceMapper.findServices(tenantId, appId));
 		List<AiModelConfig> models = safeModels(modelMapper.findModels(tenantId, appId));
-		Map<Long, List<AiModelConfig>> byService = new HashMap<Long, List<AiModelConfig>>();
+		Map<Long, List<AiModelDto>> byService = new HashMap<Long, List<AiModelDto>>();
 		for (AiModelConfig model : models) {
 			if (model == null || (enabledOnly && !Boolean.TRUE.equals(model.getEnabled()))) {
 				continue;
 			}
-			List<AiModelConfig> values = byService.get(model.getServiceId());
+			List<AiModelDto> values = byService.get(model.getServiceId());
 			if (values == null) {
-				values = new ArrayList<AiModelConfig>();
+				values = new ArrayList<AiModelDto>();
 				byService.put(model.getServiceId(), values);
 			}
-			values.add(model);
+			values.add(AiModelDto.from(model));
 		}
 		List<AiModelServiceDto> result = new ArrayList<AiModelServiceDto>();
 		for (AiModelServiceConfig service : services) {
@@ -308,8 +354,8 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 				continue;
 			}
 			AiModelServiceDto dto = AiModelServiceDto.from(service);
-			List<AiModelConfig> serviceModels = byService.get(service.getId());
-			dto.setModels(serviceModels == null ? new ArrayList<AiModelConfig>() : serviceModels);
+			List<AiModelDto> serviceModels = byService.get(service.getId());
+			dto.setModels(serviceModels == null ? new ArrayList<AiModelDto>() : serviceModels);
 			result.add(dto);
 		}
 		return result;
@@ -323,7 +369,7 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		}
 		AiModelServiceConfig service = requireService(tenantId, appId, serviceId);
 		AiModelServiceDto dto = AiModelServiceDto.from(service);
-		dto.setModels(safeModels(modelMapper.findModelsByService(tenantId, appId, serviceId)));
+		dto.setModels(toModelDtos(modelMapper.findModelsByService(tenantId, appId, serviceId)));
 		return dto;
 	}
 
@@ -355,6 +401,12 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		AppAiModelSettings settings = AppAiModelSettings.copyOf(
 				sourceSettings == null ? copied.get(SETTINGS_KEY) : sourceSettings);
 		settings.setServices(assemble(tenantId, appId, false));
+		persistSettings(app, tenantId, appId, settings);
+	}
+
+	private void persistSettings(App app, String tenantId, Integer appId, AppAiModelSettings settings) {
+		Map<String, Object> copied = app.getExtendConfig() == null
+				? new LinkedHashMap<String, Object>() : new LinkedHashMap<String, Object>(app.getExtendConfig());
 		copied.put(SETTINGS_KEY, settings);
 		App update = new App();
 		update.setId(appId);
@@ -363,6 +415,55 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		if (appMapper.updateAppById(update) != 1) {
 			throw new IllegalStateException("Failed to update application AI model settings");
 		}
+	}
+
+	private AppAiModelSettings settingsView(App app, String tenantId, Integer appId) {
+		return settingsView(AppAiModelSettings.copyOf(
+				app.getExtendConfig() == null ? null : app.getExtendConfig().get(SETTINGS_KEY)), tenantId, appId);
+	}
+
+	private AppAiModelSettings settingsView(AppAiModelSettings source, String tenantId, Integer appId) {
+		AppAiModelSettings settings = AppAiModelSettings.copyOf(source);
+		settings.setServices(assemble(tenantId, appId, true));
+		return settings;
+	}
+
+	private String normalizeSelection(String tenantId, Integer appId, String selection, String fieldName) {
+		if (!hasText(selection)) {
+			return "";
+		}
+		String[] parts = selection.split("::", 2);
+		if (parts.length != 2 || !hasText(parts[0]) || !hasText(parts[1])) {
+			throw new IllegalArgumentException(fieldName + " must use serviceId or serviceKey with modelName");
+		}
+		AiModelServiceConfig selectedService = null;
+		for (AiModelServiceConfig service : safeServices(serviceMapper.findServices(tenantId, appId))) {
+			if (service == null) continue;
+			if (parts[0].equals(service.getServiceKey()) || parts[0].equals(String.valueOf(service.getId()))) {
+				selectedService = service;
+				break;
+			}
+		}
+		if (selectedService == null) {
+			throw new IllegalArgumentException(fieldName + " service does not exist in this application");
+		}
+		if (!Boolean.TRUE.equals(selectedService.getEnabled())) {
+			throw new IllegalArgumentException(fieldName + " service must be enabled");
+		}
+		AiModelConfig selectedModel = null;
+		for (AiModelConfig model : safeModels(modelMapper.findModelsByService(tenantId, appId, selectedService.getId()))) {
+			if (model != null && parts[1].equals(model.getName())) {
+				selectedModel = model;
+				break;
+			}
+		}
+		if (selectedModel == null) {
+			throw new IllegalArgumentException(fieldName + " model does not exist in this application service");
+		}
+		if (!Boolean.TRUE.equals(selectedModel.getEnabled())) {
+			throw new IllegalArgumentException(fieldName + " model must be enabled");
+		}
+		return selectedService.getServiceKey() + "::" + selectedModel.getName();
 	}
 
 	private List<AiModelServiceDto> validateImport(AiModelImportRequest request) {
@@ -384,7 +485,7 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 				throw new IllegalArgumentException("Imported AI model service requires an API key");
 			}
 			Map<String, Boolean> modelNames = new HashMap<String, Boolean>();
-			for (AiModelConfig model : safeModels(service.getModels())) {
+			for (AiModelDto model : safeModelDtos(service.getModels())) {
 				if (model == null || !hasText(model.getName()) || !hasText(model.getLabel())) {
 					throw new IllegalArgumentException("Imported AI model is invalid");
 				}
@@ -445,6 +546,7 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		model.setName(request.getName().trim());
 		model.setLabel(request.getLabel().trim());
 		model.setCapabilities(request.getCapabilities());
+		if (request.getSettings() != null) model.setSettings(normalizeModelSettings(request.getSettings()));
 		model.setEnabled(request.getEnabled() == null ? Boolean.TRUE : request.getEnabled());
 		model.setSortOrder(request.getSortOrder() == null ? Integer.valueOf(0) : request.getSortOrder());
 	}
@@ -462,11 +564,12 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		return service;
 	}
 
-	private AiModelConfig copyModel(AiModelConfig source) {
+	private AiModelConfig copyModel(AiModelDto source) {
 		AiModelConfig model = new AiModelConfig();
 		model.setName(source.getName().trim());
 		model.setLabel(source.getLabel().trim());
 		model.setCapabilities(source.getCapabilities());
+		model.setSettings(normalizeModelSettings(source.getSettings()));
 		model.setEnabled(source.getEnabled() == null ? Boolean.TRUE : source.getEnabled());
 		model.setSortOrder(source.getSortOrder() == null ? Integer.valueOf(0) : source.getSortOrder());
 		return model;
@@ -495,8 +598,45 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		return value != null && !value.trim().isEmpty();
 	}
 
+	private String normalizeModelSettings(String value) {
+		if (!hasText(value)) {
+			return null;
+		}
+		try {
+			JSONObject parsed = JSON.parseObject(value);
+			if (parsed == null) {
+				throw new IllegalArgumentException("AI model settings must be a JSON object");
+			}
+			return JSON.toJSONString(parsed);
+		} catch (IllegalArgumentException ex) {
+			throw ex;
+		} catch (RuntimeException ex) {
+			throw new IllegalArgumentException("AI model settings must be a valid JSON object", ex);
+		}
+	}
+
+	private Map<String, Object> parseModelSettings(String value) {
+		String normalized = normalizeModelSettings(value);
+		if (normalized == null) {
+			return Collections.<String, Object>emptyMap();
+		}
+		return new LinkedHashMap<String, Object>(JSON.parseObject(normalized));
+	}
+
 	private static List<AiModelServiceConfig> safeServices(List<AiModelServiceConfig> values) {
 		return values == null ? Collections.<AiModelServiceConfig>emptyList() : values;
+	}
+
+	private static List<AiModelDto> safeModelDtos(List<AiModelDto> values) {
+		return values == null ? Collections.<AiModelDto>emptyList() : values;
+	}
+
+	private static List<AiModelDto> toModelDtos(List<AiModelConfig> values) {
+		List<AiModelDto> result = new ArrayList<AiModelDto>();
+		for (AiModelConfig model : safeModels(values)) {
+			if (model != null) result.add(AiModelDto.from(model));
+		}
+		return result;
 	}
 
 	private static List<AiModelConfig> safeModels(List<AiModelConfig> values) {

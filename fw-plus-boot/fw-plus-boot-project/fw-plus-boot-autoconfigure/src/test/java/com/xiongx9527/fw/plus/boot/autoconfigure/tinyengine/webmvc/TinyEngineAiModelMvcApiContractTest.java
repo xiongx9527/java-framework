@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelImportRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
 import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,9 @@ class TinyEngineAiModelMvcApiContractTest {
 		AiModelServiceDto service = service();
 		when(facade.usableAiModelServices(Integer.valueOf(2))).thenReturn(Collections.singletonList(service));
 		when(facade.manageableAiModelServices(Integer.valueOf(2))).thenReturn(Collections.singletonList(service));
+		when(facade.aiModelSettings(Integer.valueOf(2))).thenReturn(settings());
+		when(facade.updateAiModelSettings(eq(Integer.valueOf(2)), any(AppAiModelSettings.class)))
+				.thenReturn(settings());
 		when(facade.createAiModelService(eq(Integer.valueOf(2)), any(AiModelServiceRequest.class))).thenReturn(service);
 		when(facade.updateAiModelService(eq(Integer.valueOf(2)), eq(Long.valueOf(21)),
 				any(AiModelServiceRequest.class))).thenReturn(service);
@@ -60,6 +64,13 @@ class TinyEngineAiModelMvcApiContractTest {
 		mvc.perform(get("/app-center/api/apps/2/ai-model-services/manage"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data[0].apiKey").doesNotExist());
+		mvc.perform(get("/app-center/api/apps/2/ai-model-services/settings"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.defaultModel").value("openai::gpt-4o"));
+		mvc.perform(put("/app-center/api/apps/2/ai-model-services/settings")
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"defaultModel\":\"21::gpt-4o\",\"chatMode\":\"chat\"}"))
+				.andExpect(status().isOk());
 		mvc.perform(post("/app-center/api/apps/2/ai-model-services").contentType(MediaType.APPLICATION_JSON)
 					.content("{\"serviceKey\":\"openai\",\"apiKey\":\"client-supplied\"}"))
 				.andExpect(status().isOk());
@@ -84,6 +95,8 @@ class TinyEngineAiModelMvcApiContractTest {
 
 		verify(facade).usableAiModelServices(Integer.valueOf(2));
 		verify(facade).manageableAiModelServices(Integer.valueOf(2));
+		verify(facade).aiModelSettings(Integer.valueOf(2));
+		verify(facade).updateAiModelSettings(eq(Integer.valueOf(2)), any(AppAiModelSettings.class));
 		verify(facade).createAiModelService(eq(Integer.valueOf(2)), any(AiModelServiceRequest.class));
 		verify(facade).updateAiModelService(eq(Integer.valueOf(2)), eq(Long.valueOf(21)),
 				any(AiModelServiceRequest.class));
@@ -106,6 +119,8 @@ class TinyEngineAiModelMvcApiContractTest {
 
 		coreFacade.usableAiModelServices(Integer.valueOf(2));
 		coreFacade.manageableAiModelServices(Integer.valueOf(2));
+		coreFacade.aiModelSettings(Integer.valueOf(2));
+		coreFacade.updateAiModelSettings(Integer.valueOf(2), new AppAiModelSettings());
 		coreFacade.createAiModelService(Integer.valueOf(2), serviceRequest);
 		coreFacade.updateAiModelService(Integer.valueOf(2), Long.valueOf(21), serviceRequest);
 		coreFacade.deleteAiModelService(Integer.valueOf(2), Long.valueOf(21));
@@ -116,6 +131,8 @@ class TinyEngineAiModelMvcApiContractTest {
 
 		verify(configService).listUsable(Integer.valueOf(2));
 		verify(configService).listManageable(Integer.valueOf(2));
+		verify(configService).getSettings(Integer.valueOf(2));
+		verify(configService).updateSettings(eq(Integer.valueOf(2)), any(AppAiModelSettings.class));
 		verify(configService).createService(Integer.valueOf(2), serviceRequest);
 		verify(configService).updateService(Integer.valueOf(2), Long.valueOf(21), serviceRequest);
 		verify(configService).deleteService(Integer.valueOf(2), Long.valueOf(21));
@@ -132,5 +149,12 @@ class TinyEngineAiModelMvcApiContractTest {
 		service.setHasApiKey(true);
 		service.setApiKeyMask("********");
 		return service;
+	}
+
+	private AppAiModelSettings settings() {
+		AppAiModelSettings settings = new AppAiModelSettings();
+		settings.setDefaultModel("openai::gpt-4o");
+		settings.setChatMode("chat");
+		return settings;
 	}
 }

@@ -82,7 +82,8 @@ public class AppServiceImpl extends MapperServiceSupport<AppMapper> implements A
 
 	@Override
 	public App queryAppById(Integer id) {
-		App app = baseMapper.queryAppById(id, tenantId());
+		TinyEngineUser user = currentUser();
+		App app = baseMapper.queryVisibleAppById(tenantId(), id, userId(user), isSystem(user));
 		if (app == null) {
 			throw failure(ExceptionEnum.CM009);
 		}

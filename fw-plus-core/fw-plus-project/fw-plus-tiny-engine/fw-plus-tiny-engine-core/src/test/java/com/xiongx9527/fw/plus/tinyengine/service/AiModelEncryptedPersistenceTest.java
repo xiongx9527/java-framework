@@ -60,7 +60,7 @@ class AiModelEncryptedPersistenceTest {
 
 		try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
 			statement.execute("create table t_ai_model_service (id bigint auto_increment primary key, tenant_id varchar(64) not null, app_id int not null, service_key varchar(64) not null, provider varchar(64) not null, label varchar(128) not null, base_url varchar(1024) not null, api_key varchar(2048), allow_empty_api_key boolean not null, enabled boolean not null, sort_order int not null, created_by varchar(64), created_time timestamp, last_updated_by varchar(64), last_updated_time timestamp)");
-			statement.execute("create table t_ai_model (id bigint auto_increment primary key, tenant_id varchar(64) not null, app_id int not null, service_id bigint not null, name varchar(128) not null, label varchar(128) not null, capabilities varchar(2048), enabled boolean not null, sort_order int not null, created_by varchar(64), created_time timestamp, last_updated_by varchar(64), last_updated_time timestamp)");
+			statement.execute("create table t_ai_model (id bigint auto_increment primary key, tenant_id varchar(64) not null, app_id int not null, service_id bigint not null, name varchar(128) not null, label varchar(128) not null, capabilities varchar(2048), settings varchar(4096), enabled boolean not null, sort_order int not null, created_by varchar(64), created_time timestamp, last_updated_by varchar(64), last_updated_time timestamp)");
 		}
 	}
 
@@ -83,6 +83,13 @@ class AiModelEncryptedPersistenceTest {
 		String json = JSON.toJSONString(AiModelServiceDto.from(service));
 		assertFalse(json.contains("test-api-key"));
 		assertFalse(json.contains(raw));
+		AiModelServiceDto dto = AiModelServiceDto.from(service);
+		dto.setModels(java.util.Collections.singletonList(com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelDto.from(
+				model(service, "safe-model"))));
+		String modelJson = JSON.toJSONString(dto);
+		assertFalse(modelJson.contains("tenant-a"));
+		assertFalse(modelJson.contains("appId"));
+		assertFalse(modelJson.contains("createdBy"));
 	}
 
 	@Test
