@@ -57,7 +57,7 @@ class TinyEngineReactiveAuthenticationFilterTest {
 		TinyEngineReactiveAuthenticationFilter filter = new TinyEngineReactiveAuthenticationFilter(
 				new TinyEngineCredentialExtractor(), userSystemService, executor);
 		MockServerWebExchange protectedExchange = MockServerWebExchange.from(
-				MockServerHttpRequest.get("/app-center/api/apps"));
+				MockServerHttpRequest.post("/tiny-engine/app-center/api/chat/completions"));
 
 		filter.filter(protectedExchange, current -> Mono.empty()).block();
 

@@ -30,6 +30,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.core.io.Resource;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import javax.sql.DataSource;
@@ -148,6 +150,16 @@ class TinyEngineAutoConfigurationTest {
 	}
 
 	@Test
+	void mapperScannerDoesNotPreventTinyEnginePropertiesBinding() {
+		contextRunner.withUserConfiguration(SqlSessionFactoryConfiguration.class)
+				.withPropertyValues(
+						"fw.plus.tiny-engine.enabled=true",
+						"fw.plus.tiny-engine.sql.database=h2")
+				.run(context -> assertThat(context.getBean(TinyEngineProperties.class).getSql().getDatabase())
+						.isEqualTo("h2"));
+	}
+
+	@Test
 	void mapperScannerKeepsBasePackageWhenPlaceholderConfigurerExists() {
 		contextRunner.withUserConfiguration(SqlSessionFactoryConfiguration.class,
 					PlaceholderConfigurerConfiguration.class)
@@ -246,6 +258,22 @@ class TinyEngineAutoConfigurationTest {
 	}
 
 	@Test
+	void autoInitializeExecutesManifestScriptsAgainstDataSource() {
+		contextRunner.withUserConfiguration(H2DataSourceConfiguration.class)
+				.withPropertyValues(
+						"fw.plus.tiny-engine.enabled=true",
+						"fw.plus.tiny-engine.sql.database=h2",
+						"fw.plus.tiny-engine.sql.auto-initialize=true",
+						"fw.plus.tiny-engine.sql.manifest-location=classpath:tinyengine-test-sql/manifest.properties")
+				.run(context -> {
+					assertThat(context).hasNotFailed();
+					JdbcTemplate jdbcTemplate = new JdbcTemplate(context.getBean(DataSource.class));
+					assertThat(jdbcTemplate.queryForObject(
+							"select count(1) from tiny_engine_boot_init", Integer.class)).isEqualTo(1);
+				});
+	}
+
+	@Test
 	void missingSqlManifestBacksOffWhenAutoInitializeDisabled() {
 		contextRunner.withPropertyValues(
 						"fw.plus.tiny-engine.enabled=true",
@@ -317,6 +345,16 @@ class TinyEngineAutoConfigurationTest {
 			org.apache.ibatis.session.Configuration configuration = new org.apache.ibatis.session.Configuration();
 			configuration.setEnvironment(new Environment("test", new JdbcTransactionFactory(), mock(DataSource.class)));
 			return new DefaultSqlSessionFactory(configuration);
+		}
+	}
+
+	@Configuration
+	static class H2DataSourceConfiguration {
+
+		@Bean
+		DataSource dataSource() {
+			return new DriverManagerDataSource(
+					"jdbc:h2:mem:tiny_engine_boot_init;MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
 		}
 	}
 

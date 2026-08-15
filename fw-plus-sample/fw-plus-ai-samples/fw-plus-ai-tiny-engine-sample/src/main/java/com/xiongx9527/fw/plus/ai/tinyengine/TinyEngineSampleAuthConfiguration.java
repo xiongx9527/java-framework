@@ -699,19 +699,33 @@ public class TinyEngineSampleAuthConfiguration {
 
 	private static void ensurePermissionRole(JdbcTemplate jdbcTemplate, Integer id, String name, String roleType,
 			String description) {
+		boolean hasRoleType = hasPermissionRoleColumn(jdbcTemplate, "role_type");
+		boolean hasCode = hasPermissionRoleColumn(jdbcTemplate, "code");
 		Integer count = jdbcTemplate.queryForObject("select count(1) from t_permission_role where id = ? or name = ?",
 				Integer.class, id, name);
 		if (count != null && count.intValue() > 0) {
-			if (hasPermissionRoleTypeColumn(jdbcTemplate)) {
+			if (hasRoleType) {
 				jdbcTemplate.update("update t_permission_role set role_type = ? where id = ? or name = ?",
 						roleType, id, name);
 			}
+			if (hasCode) {
+				jdbcTemplate.update("update t_permission_role set code = ? where id = ? or name = ?",
+						name, id, name);
+			}
 			return;
 		}
-		if (hasPermissionRoleTypeColumn(jdbcTemplate)) {
+		if (hasRoleType && hasCode) {
+			jdbcTemplate.update("insert into t_permission_role(id, name, code, role_type, description, created_by, "
+							+ "last_updated_by, created_time, last_updated_time) values (?, ?, ?, ?, ?, ?, ?, "
+							+ "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", id, name, name, roleType, description, "1", "1");
+		} else if (hasRoleType) {
 			jdbcTemplate.update("insert into t_permission_role(id, name, role_type, description, created_by, "
 							+ "last_updated_by, created_time, last_updated_time) values (?, ?, ?, ?, ?, ?, "
 							+ "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", id, name, roleType, description, "1", "1");
+		} else if (hasCode) {
+			jdbcTemplate.update("insert into t_permission_role(id, name, code, description, created_by, last_updated_by, "
+							+ "created_time, last_updated_time) values (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+					id, name, name, description, "1", "1");
 		} else {
 			jdbcTemplate.update("insert into t_permission_role(id, name, description, created_by, last_updated_by, "
 							+ "created_time, last_updated_time) values (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
@@ -719,10 +733,13 @@ public class TinyEngineSampleAuthConfiguration {
 		}
 	}
 
-	private static boolean hasPermissionRoleTypeColumn(JdbcTemplate jdbcTemplate) {
+	private static boolean hasPermissionRoleColumn(JdbcTemplate jdbcTemplate, String columnName) {
 		try {
-			jdbcTemplate.queryForObject("select role_type from t_permission_role where 1 = 0", Object.class);
-			return true;
+			Integer count = jdbcTemplate.queryForObject(
+					"select count(1) from information_schema.columns "
+							+ "where lower(table_name) = 't_permission_role' and lower(column_name) = ?",
+					Integer.class, columnName.toLowerCase());
+			return count != null && count.intValue() > 0;
 		} catch (Exception ignored) {
 			return false;
 		}

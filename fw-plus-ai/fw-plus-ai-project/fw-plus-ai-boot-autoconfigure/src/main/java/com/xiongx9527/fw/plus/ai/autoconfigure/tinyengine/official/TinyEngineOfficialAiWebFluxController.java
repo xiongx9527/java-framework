@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -18,8 +17,11 @@ import reactor.core.scheduler.Schedulers;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
-@RestController
+/**
+ * @deprecated 旧的浏览器直传模型凭据适配器，仅为源码兼容保留，不再由自动配置注册。
+ */
 @RequestMapping("/app-center/api")
+@Deprecated
 public class TinyEngineOfficialAiWebFluxController {
 
 	private final TinyEngineOpenAiCompatibleGateway gateway;

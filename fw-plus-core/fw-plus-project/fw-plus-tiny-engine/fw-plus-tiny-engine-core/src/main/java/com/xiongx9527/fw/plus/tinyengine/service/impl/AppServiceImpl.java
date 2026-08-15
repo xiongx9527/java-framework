@@ -13,6 +13,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.entity.I18nEntry;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Platform;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 import com.xiongx9527.fw.plus.tinyengine.service.AppService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
 import com.xiongx9527.fw.plus.tinyengine.service.AppRoleService;
 import com.xiongx9527.fw.plus.tinyengine.service.I18nEntryService;
 import com.xiongx9527.fw.plus.tinyengine.service.PlatformService;
@@ -45,6 +46,8 @@ public class AppServiceImpl extends MapperServiceSupport<AppMapper> implements A
 	private PageMapper pageMapper;
 	@Autowired
 	private AppRoleService appRoleService;
+	@Autowired(required = false)
+	private AppAiModelConfigService appAiModelConfigService;
 
 	public AppServiceImpl(TinyEngineUserContext userContext) {
 		this.userContext = userContext;
@@ -79,7 +82,8 @@ public class AppServiceImpl extends MapperServiceSupport<AppMapper> implements A
 
 	@Override
 	public App queryAppById(Integer id) {
-		App app = baseMapper.queryAppById(id, tenantId());
+		TinyEngineUser user = currentUser();
+		App app = baseMapper.queryVisibleAppById(tenantId(), id, userId(user), isSystem(user));
 		if (app == null) {
 			throw failure(ExceptionEnum.CM009);
 		}
@@ -124,6 +128,9 @@ public class AppServiceImpl extends MapperServiceSupport<AppMapper> implements A
 					pageMapper.deletePageById(page.getId());
 				}
 			}
+		}
+		if (appAiModelConfigService != null) {
+			appAiModelConfigService.deleteByApp(id, currentTenant);
 		}
 		if (appRoleService != null) {
 			appRoleService.deleteAppRoles(id, currentTenant);
