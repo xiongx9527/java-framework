@@ -6,7 +6,10 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.CoreAskDataServiceAdapter
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.DefaultAskDataService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.CoreAskDataConversationStoreAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.DefaultAskDataContextCompressor;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.CoreAskDataContextCompressorAdapter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.FallbackAskDataContextCompressor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.InMemoryAskDataConversationStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.InMemoryAskDataMonitoringLogStore;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AskDataMonitoringLogQueryService;
@@ -15,11 +18,14 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AsyncAskDat
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.OpenTelemetryAskDataObservationExporter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.LangfuseAskDataObservationExporter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.LangSmithAskDataObservationExporter;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AskDataObservationExporterProvider;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability.AskDataObservationTransport;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataAgentDispatcher;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataAgent;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataFlowExecutor;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataSubAgent;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.DefaultAskDataFlowExecutor;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataRuntimeStateServices;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.SequentialAskDataAgentDispatcher;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataColumn;
@@ -28,6 +34,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.AskDataTable;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.metadata.EmptyAskDataMetadataProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AskDataModelRegistry;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AiModelAskDataModelRegistry;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.AiModelRegistryAskDataChatModel;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.model.LegacyAskDataModelRegistryChatModel;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataMemoryRecallAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.memory.AskDataRecommendationAdapter;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.prompt.AskDataDialectRegistry;
@@ -41,7 +49,11 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql.JdbcAskDataSqlExecuto
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AiEmbeddingStoreAskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.CompositeAskDataVectorRetriever;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorStoreProvider;
 import com.xiongx9527.fw.plus.ai.askdata.agent.AskDataQuestionPlanner;
+import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityProvider;
+import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityRegistry;
+import com.xiongx9527.fw.plus.ai.askdata.capability.DefaultAskDataCapabilityRegistry;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory;
 import com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService;
@@ -54,14 +66,23 @@ import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizedObject;
 import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAuditStateStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataIdempotencyKeyStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataLeaseStore;
 import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataJdbcStorageClient;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataRedisStorageClient;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataSharedStoreAdapter;
 import com.xiongx9527.fw.plus.ai.askdata.storage.InMemoryAskDataStores;
+import com.xiongx9527.fw.plus.ai.askdata.vector.AskDataVectorStore;
+import com.xiongx9527.fw.plus.ai.askdata.vector.InMemoryAskDataVectorStore;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -79,6 +100,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * AskData 的中立 Spring Boot 自动配置入口。
+ *
+ * <p>该配置只负责发现、校验和连接 Core SPI。业务 Bean 优先于默认实现；通过配置选择的能力必须在唯一
+ * {@link AskDataCapabilityRegistry} 中存在且版本兼容。公共 Starter 不选择 LangChain4j、Ollama 或任何 Provider，
+ * 不读取模型凭据，也不会在集群模式下把本地内存状态伪装为共享状态。</p>
+ *
+ * <p>默认 Flow 始终保留项目与操作人隔离、治理 fail-closed、SQL 最终校验、租约/幂等和脱敏观测边界。
+ * 业务替换模型、存储、图运行时、压缩器或导出器时不得绕过这些约束。</p>
+ */
 @AutoConfiguration
 @ConditionalOnProperty(prefix = "fw.plus.ai.askdata", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties
@@ -91,12 +122,77 @@ public class AskDataAutoConfiguration {
 		return new AskDataProperties();
 	}
 
+	@Bean
+	@ConditionalOnMissingBean
+	public AskDataCapabilityRegistry askDataCapabilityRegistry(AskDataProperties properties,
+			ObjectProvider<AskDataCapabilityProvider> provider) {
+		return new DefaultAskDataCapabilityRegistry("0.1.1-SNAPSHOT",
+				properties.getState().isClusterMode(), provider.orderedStream().collect(Collectors.toList()));
+	}
+
+	@Bean(name = "askDataMemoryVectorCapability")
+	@ConditionalOnProperty(prefix = "fw.plus.ai.askdata.state", name = "cluster-mode", havingValue = "false",
+			matchIfMissing = true)
+	public AskDataCapabilityProvider askDataMemoryVectorCapability() {
+		return new AskDataVectorStoreProvider("memory", "fw.plus.ai.askdata.vector.memory", false,
+				new InMemoryAskDataVectorStore());
+	}
+
+	@Bean(name = "askDataJdbcSharedStoreCapability")
+	@ConditionalOnBean(AskDataJdbcStorageClient.class)
+	public AskDataCapabilityProvider askDataJdbcSharedStoreCapability(
+			ObjectProvider<AskDataJdbcStorageClient> clients) {
+		List<AskDataJdbcStorageClient> values = clients.orderedStream().collect(Collectors.toList());
+		if (values.size() != 1) {
+			throw new IllegalStateException("AskData JDBC 状态能力必须存在且只能存在一个 "
+					+ AskDataJdbcStorageClient.class.getName() + " Bean，实际数量: " + values.size());
+		}
+		return new AskDataSharedStoreProvider("jdbc", AskDataSharedStoreAdapter.jdbc(values.get(0)));
+	}
+
+	@Bean(name = "askDataRedisSharedStoreCapability")
+	@ConditionalOnBean(AskDataRedisStorageClient.class)
+	public AskDataCapabilityProvider askDataRedisSharedStoreCapability(
+			ObjectProvider<AskDataRedisStorageClient> clients) {
+		List<AskDataRedisStorageClient> values = clients.orderedStream().collect(Collectors.toList());
+		if (values.size() != 1) {
+			throw new IllegalStateException("AskData Redis 状态能力必须存在且只能存在一个 "
+					+ AskDataRedisStorageClient.class.getName() + " Bean，实际数量: " + values.size());
+		}
+		return new AskDataSharedStoreProvider("redis", AskDataSharedStoreAdapter.redis(values.get(0)));
+	}
+
+	@Bean
+	@ConditionalOnMissingBean(AskDataVectorStore.class)
+	public AskDataVectorStore askDataVectorStore(AskDataProperties properties,
+			AskDataCapabilityRegistry capabilityRegistry) {
+		validateDefaultVectorConfiguration(properties);
+		String key = properties.getVector().getStore();
+		if (key == null || key.trim().length() == 0) {
+			key = "memory";
+		}
+		return capabilityRegistry.getCapability(key.trim(),
+				com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.VECTOR,
+				AskDataVectorStore.class);
+	}
+
     /**
      * 创建单节点默认长期记忆 SPI；业务可替换为持久化实现。
      */
     @Bean
     @ConditionalOnMissingBean
-    public AskDataLongTermMemory askDataLongTermMemory(AskDataProperties properties) {
+    public AskDataLongTermMemory askDataLongTermMemory(AskDataProperties properties,
+            AskDataCapabilityRegistry capabilityRegistry) {
+        String key = configuredStore(properties.getState().getLongTermMemoryStore(), properties.getState().getStore());
+        if (!isMemory(key)) {
+			AskDataSharedStoreAdapter shared = sharedStore(capabilityRegistry, key);
+			if (shared != null) {
+				return shared.longTermMemory();
+			}
+            return capabilityRegistry.getCapability(key,
+                    com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.STORE,
+                    AskDataLongTermMemory.class);
+        }
         validateLocalStateConfiguration(properties);
         return AskDataLongTermMemory.inMemory();
     }
@@ -151,7 +247,17 @@ public class AskDataAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class)
     public com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore coreAskDataConversationStore(
-            AskDataProperties properties) {
+            AskDataProperties properties, AskDataCapabilityRegistry capabilityRegistry) {
+        String key = configuredStore(properties.getState().getConversationStore(), properties.getState().getStore());
+        if (!isMemory(key)) {
+			AskDataSharedStoreAdapter shared = sharedStore(capabilityRegistry, key);
+			if (shared != null) {
+				return shared.conversations();
+			}
+            return capabilityRegistry.getCapability(key,
+                    com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.STORE,
+                    com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class);
+        }
         validateLocalStateConfiguration(properties);
         return InMemoryAskDataStores.singleNode().conversations();
     }
@@ -161,7 +267,18 @@ public class AskDataAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(AskDataCheckpointStore.class)
-    public AskDataCheckpointStore askDataCheckpointStore(AskDataProperties properties) {
+    public AskDataCheckpointStore askDataCheckpointStore(AskDataProperties properties,
+            AskDataCapabilityRegistry capabilityRegistry) {
+        String key = configuredStore(properties.getState().getCheckpointStore(), properties.getState().getStore());
+        if (!isMemory(key)) {
+			AskDataSharedStoreAdapter shared = sharedStore(capabilityRegistry, key);
+			if (shared != null) {
+				return shared.checkpoints();
+			}
+            return capabilityRegistry.getCapability(key,
+                    com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.STORE,
+                    AskDataCheckpointStore.class);
+        }
         validateLocalStateConfiguration(properties);
         return InMemoryAskDataStores.singleNode().checkpoints();
     }
@@ -171,9 +288,74 @@ public class AskDataAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(AskDataAgentStateStore.class)
-    public AskDataAgentStateStore askDataAgentStateStore(AskDataProperties properties) {
+    public AskDataAgentStateStore askDataAgentStateStore(AskDataProperties properties,
+            AskDataCapabilityRegistry capabilityRegistry) {
+        String key = configuredStore(properties.getState().getAgentStateStore(), properties.getState().getStore());
+        if (!isMemory(key)) {
+			AskDataSharedStoreAdapter shared = sharedStore(capabilityRegistry, key);
+			if (shared != null) {
+				return shared.agentStates();
+			}
+            return capabilityRegistry.getCapability(key,
+                    com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.STORE,
+                    AskDataAgentStateStore.class);
+        }
         validateLocalStateConfiguration(properties);
         return InMemoryAskDataStores.singleNode().agentStates();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(AskDataLeaseStore.class)
+    public AskDataLeaseStore askDataLeaseStore(AskDataProperties properties,
+            AskDataCapabilityRegistry capabilityRegistry) {
+        String key = configuredStore(properties.getState().getLeaseStore(), properties.getState().getStore());
+        if (!isMemory(key)) {
+			AskDataSharedStoreAdapter shared = sharedStore(capabilityRegistry, key);
+			if (shared != null) {
+				return shared.leases();
+			}
+            return capabilityRegistry.getCapability(key,
+                    com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.STORE,
+                    AskDataLeaseStore.class);
+        }
+        validateLocalStateConfiguration(properties);
+        return InMemoryAskDataStores.singleNode().leases();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(AskDataIdempotencyKeyStore.class)
+    public AskDataIdempotencyKeyStore askDataIdempotencyKeyStore(AskDataProperties properties,
+            AskDataCapabilityRegistry capabilityRegistry) {
+        String key = configuredStore(properties.getState().getIdempotencyStore(), properties.getState().getStore());
+        if (!isMemory(key)) {
+			AskDataSharedStoreAdapter shared = sharedStore(capabilityRegistry, key);
+			if (shared != null) {
+				return shared.idempotencyKeys();
+			}
+            return capabilityRegistry.getCapability(key,
+                    com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.STORE,
+                    AskDataIdempotencyKeyStore.class);
+        }
+        validateLocalStateConfiguration(properties);
+        return InMemoryAskDataStores.singleNode().idempotencyKeys();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(AskDataAuditStateStore.class)
+    public AskDataAuditStateStore askDataAuditStateStore(AskDataProperties properties,
+            AskDataCapabilityRegistry capabilityRegistry) {
+        String key = configuredStore(properties.getState().getAuditStore(), properties.getState().getStore());
+        if (!isMemory(key)) {
+			AskDataSharedStoreAdapter shared = sharedStore(capabilityRegistry, key);
+			if (shared != null) {
+				return shared.auditStates();
+			}
+            return capabilityRegistry.getCapability(key,
+                    com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.STORE,
+                    AskDataAuditStateStore.class);
+        }
+        validateLocalStateConfiguration(properties);
+        return InMemoryAskDataStores.singleNode().auditStates();
     }
 
     /**
@@ -181,7 +363,18 @@ public class AskDataAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(AskDataMonitoringLogStore.class)
-    public AskDataMonitoringLogStore askDataMonitoringLogStore(AskDataProperties properties) {
+    public AskDataMonitoringLogStore askDataMonitoringLogStore(AskDataProperties properties,
+            AskDataCapabilityRegistry capabilityRegistry) {
+        String key = configuredStore(properties.getState().getMonitoringStore(), properties.getState().getStore());
+        if (!isMemory(key)) {
+			AskDataSharedStoreAdapter shared = sharedStore(capabilityRegistry, key);
+			if (shared != null) {
+				return shared.monitoringLogs();
+			}
+            return capabilityRegistry.getCapability(key,
+                    com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.STORE,
+                    AskDataMonitoringLogStore.class);
+        }
         validateDefaultMonitoringLogConfiguration(properties);
         Integer capacity = properties.getState().getMonitoringLogCapacity();
         return new InMemoryAskDataMonitoringLogStore(capacity == null || capacity.intValue() <= 0 ? 1000
@@ -195,8 +388,12 @@ public class AskDataAutoConfiguration {
      */
     @Bean(name = "askDataMonitoringLogEventPublisher")
     @Primary
-    public AskDataEventPublisher askDataMonitoringLogEventPublisher(AskDataMonitoringLogStore monitoringLogStore) {
-        return AskDataEventPublisher.toStore(monitoringLogStore);
+    public AskDataEventPublisher askDataMonitoringLogEventPublisher(AskDataMonitoringLogStore monitoringLogStore,
+            AskDataProperties properties) {
+        Integer capacity = properties.getState().getMonitoringLogCapacity();
+        int fallbackCapacity = capacity == null || capacity.intValue() <= 0 ? 1000 : capacity.intValue();
+        return AskDataEventPublisher.toStore(monitoringLogStore,
+                new InMemoryAskDataMonitoringLogStore(fallbackCapacity));
     }
 
     /**
@@ -219,17 +416,45 @@ public class AskDataAutoConfiguration {
 
     @Bean(name = "askDataObservationEventPublisher")
     @ConditionalOnMissingBean(name = "askDataObservationEventPublisher")
-    public AskDataEventPublisher askDataObservationEventPublisher(AskDataProperties properties) {
+    public AskDataEventPublisher askDataObservationEventPublisher(AskDataProperties properties,
+            AskDataCapabilityRegistry capabilityRegistry) {
         List<AskDataObservationExporter> exporters = new ArrayList<AskDataObservationExporter>();
         if (properties.getObservability().isEnabled()) {
             for (String name : properties.getObservability().getExporters()) {
-                if ("otel".equalsIgnoreCase(name)) { exporters.add(new OpenTelemetryAskDataObservationExporter()); }
-                if ("langfuse".equalsIgnoreCase(name)) { exporters.add(new LangfuseAskDataObservationExporter()); }
-                if ("langsmith".equalsIgnoreCase(name)) { exporters.add(new LangSmithAskDataObservationExporter()); }
+                String key = "otel".equalsIgnoreCase(name) ? "opentelemetry" : name;
+                exporters.add(capabilityRegistry.getCapability(key,
+                        com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.OBSERVABILITY_EXPORTER,
+                        AskDataObservationExporter.class));
             }
         }
+        Integer capacity = properties.getState().getMonitoringLogCapacity();
+        int diagnosticCapacity = capacity == null || capacity.intValue() <= 0 ? 1000 : capacity.intValue();
+        AskDataEventPublisher diagnosticPublisher = AskDataEventPublisher.toStore(
+                new InMemoryAskDataMonitoringLogStore(diagnosticCapacity));
         return new AsyncAskDataObservationExporter(exporters,
-                new org.springframework.core.task.SimpleAsyncTaskExecutor("askdata-observability-"));
+                new org.springframework.core.task.SimpleAsyncTaskExecutor("askdata-observability-"),
+                diagnosticPublisher);
+    }
+
+    @Bean(name = "askDataLangSmithObservationCapability")
+    @ConditionalOnBean(AskDataObservationTransport.class)
+    public AskDataCapabilityProvider askDataLangSmithObservationCapability(AskDataObservationTransport transport) {
+        return new AskDataObservationExporterProvider("langsmith", "fw.plus.ai.askdata.observability.langsmith",
+                new LangSmithAskDataObservationExporter(transport));
+    }
+
+    @Bean(name = "askDataLangfuseObservationCapability")
+    @ConditionalOnBean(AskDataObservationTransport.class)
+    public AskDataCapabilityProvider askDataLangfuseObservationCapability(AskDataObservationTransport transport) {
+        return new AskDataObservationExporterProvider("langfuse", "fw.plus.ai.askdata.observability.langfuse",
+                new LangfuseAskDataObservationExporter(transport));
+    }
+
+    @Bean(name = "askDataOpenTelemetryObservationCapability")
+    @ConditionalOnBean(AskDataObservationTransport.class)
+    public AskDataCapabilityProvider askDataOpenTelemetryObservationCapability(AskDataObservationTransport transport) {
+        return new AskDataObservationExporterProvider("opentelemetry", "fw.plus.ai.askdata.observability.otel",
+                new OpenTelemetryAskDataObservationExporter(transport));
     }
 
 	@Bean
@@ -238,6 +463,12 @@ public class AskDataAutoConfiguration {
 			ObjectProvider<AiModelRegistry> modelRegistryProvider) {
 		return new AiModelAskDataModelRegistry(properties, modelRegistryProvider.getIfAvailable());
 	}
+
+    @Bean
+    @ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter.class)
+    public com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter askDataModelRouter() {
+        return new com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter() { };
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -394,26 +625,65 @@ public class AskDataAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain.class)
     public com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain askDataSqlInterceptorChain(
-            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor> interceptorProvider,
+            AskDataCapabilityRegistry capabilityRegistry,
             com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator validator,
             com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlAudit audit) {
+        List<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor> interceptors =
+                new ArrayList<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor>();
+        List<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlResultMapper> resultMappers =
+                new ArrayList<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlResultMapper>();
+        for (AskDataCapabilityProvider provider : capabilityRegistry.listProviders(
+                com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.SQL_PLUGIN)) {
+            Object capability = provider.getCapability();
+            if (capability instanceof com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor) {
+                interceptors.add((com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor) capability);
+            }
+            if (capability instanceof com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlResultMapper) {
+                resultMappers.add((com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlResultMapper) capability);
+            }
+        }
         return new com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain(
-                interceptorProvider.orderedStream().collect(Collectors.toList()), validator, audit);
+                interceptors, resultMappers, validator, audit);
     }
 
     @Bean
     @ConditionalOnMissingBean
     public AskDataVectorRetriever askDataVectorRetriever(AskDataProperties properties,
             ObjectProvider<AiEmbeddingStoreRegistry> embeddingStoreRegistryProvider,
+            ObjectProvider<AskDataModelRegistry> modelRegistryProvider,
+            ObjectProvider<AiModelRegistry> aiModelRegistryProvider,
+            com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter modelRouter) {
+        return createAskDataVectorRetriever(properties, embeddingStoreRegistryProvider, modelRegistryProvider,
+                aiModelRegistryProvider.getIfAvailable(), modelRouter);
+    }
+
+	@Bean
+	@ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever.class)
+	public com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever coreAskDataRagRetriever(
+			AskDataVectorStore vectorStore) {
+		return new com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever(vectorStore);
+	}
+
+    public AskDataVectorRetriever askDataVectorRetriever(AskDataProperties properties,
+            ObjectProvider<AiEmbeddingStoreRegistry> embeddingStoreRegistryProvider,
             ObjectProvider<AskDataModelRegistry> modelRegistryProvider) {
+        return createAskDataVectorRetriever(properties, embeddingStoreRegistryProvider, modelRegistryProvider,
+                null, null);
+    }
+
+    private AskDataVectorRetriever createAskDataVectorRetriever(AskDataProperties properties,
+            ObjectProvider<AiEmbeddingStoreRegistry> embeddingStoreRegistryProvider,
+            ObjectProvider<AskDataModelRegistry> modelRegistryProvider, AiModelRegistry aiModelRegistry,
+            com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter modelRouter) {
         validateDefaultVectorConfiguration(properties);
         AiEmbeddingStoreRegistry registry = embeddingStoreRegistryProvider.getIfAvailable();
         AskDataModelRegistry modelRegistry = modelRegistryProvider.getIfAvailable();
-        if (registry == null || modelRegistry == null) {
+        if (registry == null || (modelRegistry == null && aiModelRegistry == null)) {
             return new CompositeAskDataVectorRetriever(Collections.<AskDataVectorRetriever>emptyList(),
                     properties.getVector().getDefaultTopK());
         }
-        return new AiEmbeddingStoreAskDataVectorRetriever(registry, modelRegistry, properties.getVector().getStore());
+        return new AiEmbeddingStoreAskDataVectorRetriever(registry, modelRegistry, aiModelRegistry, modelRouter,
+                properties, properties.getVector().getStore());
     }
 
     @Bean
@@ -423,18 +693,68 @@ public class AskDataAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    public AskDataConversationStore askDataConversationStore(AskDataProperties properties) {
-        validateLegacyConversationConfiguration(properties);
-        Integer capacity = properties.getConversation().getMaxCheckpointsPerConversation();
-        return new InMemoryAskDataConversationStore(capacity == null || capacity.intValue() <= 0 ? 100
-                : capacity.intValue());
+    @ConditionalOnMissingBean(com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentGraphRuntime.class)
+    public com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentGraphRuntime askDataAgentGraphRuntime(
+            AskDataProperties properties, AskDataCapabilityRegistry capabilityRegistry) {
+        String key = properties.getFlow().getGraphRuntime();
+        if (key == null || key.trim().length() == 0 || "sequential".equalsIgnoreCase(key)) {
+            return new com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentGraphExecutor();
+        }
+        return capabilityRegistry.getCapability(key,
+                com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.RUNTIME_ADAPTER,
+                com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentGraphRuntime.class);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public AskDataContextCompressor askDataContextCompressor(AskDataProperties properties) {
-        return new DefaultAskDataContextCompressor(properties);
+    public com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepRegistry askDataAgentStepRegistry(
+            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgent> agentProvider) {
+        return new com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepRegistry(
+                agentProvider.orderedStream().collect(Collectors.toList()));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataConversationStore askDataConversationStore(
+            com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore conversationStore,
+            AskDataCheckpointStore checkpointStore) {
+        return new CoreAskDataConversationStoreAdapter(conversationStore, checkpointStore);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataContextCompressor askDataContextCompressor(AskDataProperties properties,
+            AskDataCapabilityRegistry capabilityRegistry,
+            @Qualifier("askDataMonitoringLogEventPublisher") AskDataEventPublisher eventPublisher) {
+        AskDataContextCompressor deterministic = new DefaultAskDataContextCompressor(properties);
+        String key = properties.getConversation().getCompressor();
+        if (key == null || key.trim().length() == 0 || "deterministic".equalsIgnoreCase(key)) {
+            return deterministic;
+        }
+        com.xiongx9527.fw.plus.ai.askdata.context.AskDataContextCompressor semantic =
+                capabilityRegistry.getCapability(key,
+                        com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.RUNTIME_ADAPTER,
+                        com.xiongx9527.fw.plus.ai.askdata.context.AskDataContextCompressor.class);
+        return new FallbackAskDataContextCompressor(
+                new CoreAskDataContextCompressorAdapter(semantic, deterministic), deterministic, eventPublisher);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public AskDataRuntimeStateServices askDataRuntimeStateServices(AskDataAgentStateStore agentStateStore,
+            AskDataLeaseStore leaseStore, AskDataIdempotencyKeyStore idempotencyKeyStore,
+            AskDataAuditStateStore auditStateStore, AskDataLongTermMemory longTermMemory,
+            com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentGraphRuntime graphRuntime,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.metadata.AskDataMetadataProvider> metadataProviders,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.vector.AskDataEmbeddingModel> embeddingModels,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.vector.AskDataRagRetriever> ragRetrievers,
+			ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataInterfacePublisher> interfacePublishers) {
+        return new AskDataRuntimeStateServices(agentStateStore, leaseStore, idempotencyKeyStore, auditStateStore,
+				longTermMemory, graphRuntime,
+				singleOptional(metadataProviders, "Core Metadata"),
+				singleOptional(embeddingModels, "Core Embedding"),
+				singleOptional(ragRetrievers, "Core RAG"),
+				singleOptional(interfacePublishers, "Core InterfacePublisher"));
     }
 
     @Bean
@@ -449,15 +769,31 @@ public class AskDataAutoConfiguration {
             ObjectProvider<AskDataEventPublisher> eventPublisherProvider, AskDataQuestionPlanner questionPlanner,
             ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain> sqlInterceptorChainProvider,
             ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlValidator> coreSqlValidatorProvider,
-            AskDataGovernanceProvider governanceProvider) {
+            AskDataGovernanceProvider governanceProvider,
+            ObjectProvider<com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel> coreChatModelProvider,
+            com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter modelRouter,
+            ObjectProvider<AiModelRegistry> aiModelRegistryProvider,
+            com.xiongx9527.fw.plus.ai.askdata.agent.AskDataAgentStepRegistry agentStepRegistry,
+            AskDataRuntimeStateServices runtimeStateServices) {
         List<AskDataAgent> mainAgents = agentProvider.orderedStream()
                 .filter(agent -> !(agent instanceof AskDataSubAgent))
                 .collect(Collectors.toList());
+        com.xiongx9527.fw.plus.ai.askdata.model.AskDataChatModel coreChatModel =
+                coreChatModelProvider.getIfAvailable();
+        if (coreChatModel == null) {
+            AiModelRegistry aiModelRegistry = aiModelRegistryProvider.getIfAvailable();
+            if (aiModelRegistry != null) {
+                coreChatModel = new AiModelRegistryAskDataChatModel(aiModelRegistry);
+            }
+        }
+		if (coreChatModel == null) {
+			coreChatModel = new LegacyAskDataModelRegistryChatModel(modelRegistry);
+		}
         return new DefaultAskDataFlowExecutor(properties, modelRegistry, metadataProvider, vectorRetriever,
                 promptTemplateProvider, dialectRegistry, sqlValidator, sqlExecutor, conversationStore, contextCompressor,
                 agentDispatcher, mainAgents, combineEventPublishers(monitoringLogEventPublisher, eventPublisherProvider),
                 questionPlanner, sqlInterceptorChainProvider.getIfAvailable(), coreSqlValidatorProvider.getIfAvailable(),
-                governanceProvider);
+                governanceProvider, coreChatModel, modelRouter, agentStepRegistry, runtimeStateServices);
     }
 
 	/**
@@ -499,6 +835,46 @@ public class AskDataAutoConfiguration {
         }
         throw new IllegalStateException("AskData 集群模式不能使用默认本地内存状态；请提供共享状态存储 SPI 实现");
     }
+
+    private static String configuredStore(String categoryStore, String legacyStore) {
+        String category = categoryStore == null ? null : categoryStore.trim();
+        String legacy = legacyStore == null ? null : legacyStore.trim();
+        if ((category == null || category.length() == 0 || "memory".equalsIgnoreCase(category))
+                && legacy != null && legacy.length() > 0 && !"memory".equalsIgnoreCase(legacy)) {
+            return legacy;
+        }
+        return category == null || category.length() == 0 ? "memory" : category;
+    }
+
+	private AskDataSharedStoreAdapter sharedStore(AskDataCapabilityRegistry capabilityRegistry, String key) {
+		if (!"jdbc".equalsIgnoreCase(key) && !"redis".equalsIgnoreCase(key)) {
+			return null;
+		}
+		try {
+			return capabilityRegistry.getCapability(key.toLowerCase(),
+					com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType.STORE,
+					AskDataSharedStoreAdapter.class);
+		} catch (IllegalArgumentException ex) {
+			String clientType = "jdbc".equalsIgnoreCase(key) ? AskDataJdbcStorageClient.class.getName()
+					: AskDataRedisStorageClient.class.getName();
+			throw new IllegalStateException("AskData 状态配置选择 " + key + " 时必须提供唯一 " + clientType
+					+ " Bean 并注册共享 STORE 能力", ex);
+		}
+	}
+
+    private static boolean isMemory(String key) {
+        return "memory".equalsIgnoreCase(key);
+    }
+
+	private static <T> T singleOptional(ObjectProvider<T> provider, String capabilityName) {
+		List<T> values = provider == null ? Collections.<T>emptyList()
+				: provider.orderedStream().collect(Collectors.toList());
+		if (values.size() > 1) {
+			throw new IllegalStateException("AskData " + capabilityName + " SPI 最多只能存在一个 Bean，实际数量: "
+					+ values.size());
+		}
+		return values.isEmpty() ? null : values.get(0);
+	}
 
     private void validateDefaultVectorConfiguration(AskDataProperties properties) {
         if (properties.getState().isClusterMode() && "memory".equalsIgnoreCase(properties.getVector().getStore())) {
@@ -596,7 +972,11 @@ public class AskDataAutoConfiguration {
         return new AskDataEventPublisher() {
             @Override
             public void publish(com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent event) {
-                monitoringLogEventPublisher.publish(event);
+                try {
+                    monitoringLogEventPublisher.publish(event);
+                } catch (RuntimeException monitoringFailure) {
+                    // 自定义基础发布器也不能改变 AskData 业务结果。
+                }
                 for (AskDataEventPublisher externalPublisher : externalPublishers) {
                     try {
                         externalPublisher.publish(event);

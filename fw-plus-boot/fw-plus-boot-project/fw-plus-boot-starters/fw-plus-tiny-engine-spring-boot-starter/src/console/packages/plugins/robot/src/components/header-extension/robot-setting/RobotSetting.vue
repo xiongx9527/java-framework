@@ -74,7 +74,7 @@
         </tiny-tab-item>
 
         <!-- Tab 2: 模型服务 -->
-        <tiny-tab-item title="模型服务" name="services">
+        <tiny-tab-item v-if="robotSettingState.canManage" title="模型服务" name="services">
           <div class="services-container">
             <div class="services-list">
               <div v-for="service in robotSettingState.services" :key="service.id" class="service-card">
@@ -111,8 +111,8 @@
                   </div>
                   <div class="info-row">
                     <span class="info-label">API Key:</span>
-                    <tiny-tag :type="service.apiKey ? 'success' : 'warning'" size="mini">
-                      {{ service.apiKey ? '已配置' : '未配置' }}
+                    <tiny-tag :type="service.hasApiKey ? 'success' : 'warning'" size="mini">
+                      {{ service.hasApiKey ? '已配置' : '未配置' }}
                     </tiny-tag>
                   </div>
                 </div>
@@ -221,7 +221,7 @@ const selectedDefaultModelInfo = computed(() => {
 
   return {
     serviceName: service.label,
-    hasApiKey: Boolean(service.apiKey)
+    hasApiKey: Boolean(service.hasApiKey)
   }
 })
 
@@ -230,12 +230,12 @@ const handleBack = () => {
   emit('close')
 }
 
-const handleModelChange = () => {
+const handleModelChange = async () => {
   const [defaultServiceId, defaultModelName] = state.modelSelection.defaultModel.split('::')
 
   // 检查API Key
   const defaultService = getServiceById(defaultServiceId)
-  if (defaultService && !defaultService.apiKey && !defaultService.allowEmptyApiKey) {
+  if (defaultService && !defaultService.hasApiKey && !defaultService.allowEmptyApiKey) {
     useNotify({
       type: 'warning',
       title: '未配置API Key',
@@ -251,10 +251,10 @@ const handleModelChange = () => {
       modelName: defaultModelName
     }
   }
-  saveRobotSettingState(updatedState)
+  await saveRobotSettingState(updatedState)
 }
 
-const handleCompactModelChange = () => {
+const handleCompactModelChange = async () => {
   const [quickServiceId = '', quickModelName = ''] = (state.modelSelection.quickModel || '').split('::')
   const updatedState = {
     quickModel: {
@@ -262,7 +262,7 @@ const handleCompactModelChange = () => {
       modelName: quickModelName
     }
   }
-  saveRobotSettingState(updatedState)
+  await saveRobotSettingState(updatedState)
 }
 
 const addService = () => {
@@ -275,17 +275,15 @@ const editService = (service: ModelService) => {
   state.showServiceDialog = true
 }
 
-const handleDeleteService = (serviceId: string) => {
-  deleteService(serviceId)
+const handleDeleteService = async (serviceId: number | string) => {
+  await deleteService(serviceId)
 }
 
-const handleServiceConfirm = (serviceData: Partial<ModelService>) => {
+const handleServiceConfirm = async (serviceData: Partial<ModelService>) => {
   if (serviceData.id) {
-    // 更新现有服务
-    updateService(serviceData.id, serviceData)
+    await updateService(serviceData.id, serviceData)
   } else {
-    // 添加新服务
-    addCustomService(serviceData as any)
+    await addCustomService(serviceData as any)
   }
 }
 </script>

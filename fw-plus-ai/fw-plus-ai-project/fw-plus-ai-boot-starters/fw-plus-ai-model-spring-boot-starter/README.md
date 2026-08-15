@@ -4,7 +4,7 @@
 
 本 starter 提供 Java 8 / Spring Boot 2.7.x 下的中立模型自动配置入口。业务代码应依赖 `fw-plus-ai-model` 的中立契约，不直接依赖 LangChain4j、Spring AI、Spring AI Alibaba 或 AgentScope 2 Java SDK。
 
-当前默认 LangChain4j 实现需要同时引入：
+业务选择当前 Java 8 已实现的 LangChain4j Adapter 时，同时引入：
 
 ```xml
 <dependency>
@@ -23,7 +23,7 @@
 
 ## 配置方式
 
-模型统一使用 `fw-plus.ai.model` 前缀。`framework` 表示实现框架，默认 LangChain4j 填写 `langchain4j`；`provider` 表示厂商或后端。
+模型统一使用 `fw-plus.ai.model` 前缀。`framework` 表示业务选择的实现框架；选择 LangChain4j 时填写 `langchain4j`，`provider` 表示厂商或后端。
 
 ```yaml
 fw-plus:
@@ -38,9 +38,9 @@ fw-plus:
           type: CHAT
           enabled: true
           properties:
-            base-url: http://localhost:11434/v1
-            api-key: ${AI_API_KEY}
-            model-name: gpt-4o-mini
+            baseUrl: http://localhost:11434/v1
+            apiKey: ${AI_API_KEY}
+            modelName: gpt-4o-mini
     embedding-store:
       enabled: false
 ```
@@ -59,7 +59,7 @@ fw-plus:
 
 ## LangChain4j 切换到其他实现
 
-当前版本只有默认 LangChain4j adapter。后续接入 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java 时，切换步骤应是：
+当前 Java 8 版本只实现 LangChain4j Adapter。后续接入 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java 时，切换步骤应是：
 
 1. 保留本 starter。
 2. 移除 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
@@ -76,7 +76,7 @@ AgentScope 2 Java 必须按进程内 SDK adapter 适配，不能用外部 HTTP�
 
 ## 回滚
 
-如果迁移后无法启动，优先回滚到默认 LangChain4j：
+如果迁移后无法启动，优先回滚到业务上一版 LangChain4j 组合：
 
 1. 恢复 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
 2. 将 `framework` 改回 `langchain4j`。

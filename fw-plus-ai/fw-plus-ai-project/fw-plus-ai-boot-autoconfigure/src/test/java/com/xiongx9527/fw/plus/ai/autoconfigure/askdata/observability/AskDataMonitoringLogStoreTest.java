@@ -110,8 +110,19 @@ public class AskDataMonitoringLogStoreTest {
                         () -> legacyConversationStore())
                 .run(context -> {
                     assertTrue(context.getStartupFailure() != null);
-                    assertTrue(context.getStartupFailure().getMessage().contains("监控日志"));
+                    assertTrue(containsCauseMessage(context.getStartupFailure(), "集群模式"));
                 });
+    }
+
+    private static boolean containsCauseMessage(Throwable failure, String expected) {
+        Throwable current = failure;
+        while (current != null) {
+            if (current.getMessage() != null && current.getMessage().contains(expected)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore coreConversationStore() {

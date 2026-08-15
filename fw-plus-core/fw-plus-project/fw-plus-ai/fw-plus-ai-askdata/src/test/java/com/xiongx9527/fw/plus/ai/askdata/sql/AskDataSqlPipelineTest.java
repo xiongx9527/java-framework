@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -163,7 +164,7 @@ public class AskDataSqlPipelineTest {
 		assertEquals("select * from sales /* first */ /* later */", result.getSql());
 		List<AskDataSqlAudit.Record> records = audit.getRecords();
 		assertEquals("first", records.get(0).getInterceptorKey());
-		assertEquals("INTERCEPT", records.get(0).getPhase());
+		assertEquals("REWRITE", records.get(0).getPhase());
 		assertEquals("later", records.get(1).getInterceptorKey());
 		assertEquals("FINAL_VALIDATE", records.get(2).getPhase());
 	}
@@ -312,6 +313,33 @@ public class AskDataSqlPipelineTest {
 	}
 
 	@Test
+	public void shouldRejectUnboundPluginParameterAndAuditPluginKeyAtFinalValidation() {
+		AskDataSqlAudit audit = new AskDataSqlAudit();
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Collections.singletonList(
+				interceptor("missing-binding", 1, " where tenant_id = :tenantId")),
+				new PermissiveValidator(), audit);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> chain.execute(command("select * from sales")));
+
+		assertTrue(exception.getMessage().contains("tenantId"));
+		AskDataSqlAudit.Record failure = audit.getRecords().get(audit.getRecords().size() - 1);
+		assertEquals("missing-binding", failure.getInterceptorKey());
+		assertEquals("FINAL_VALIDATE", failure.getPhase());
+		assertEquals("FAILED", failure.getOutcome());
+	}
+
+	@Test
+	public void shouldNotTreatPostgresqlCastAsNamedParameter() {
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(
+				Collections.<AskDataSqlInterceptor>emptyList(), new PermissiveValidator(), new AskDataSqlAudit());
+
+		AskDataSqlCommand result = chain.execute(command("select now()::timestamp from sales"));
+
+		assertEquals("select now()::timestamp from sales", result.getSql());
+	}
+
+	@Test
 	public void shouldFinalValidateWithOriginalSecurityBoundaryWhenPluginReplacesCommand() {
 		AskDataSqlAudit audit = new AskDataSqlAudit();
 		AskDataSqlCommand original = new AskDataSqlCommand(new AskDataProjectContext("project-a", "operator-a"),
@@ -325,9 +353,9 @@ public class AskDataSqlPipelineTest {
 
 		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> chain.execute(original));
 
-		assertTrue(exception.getMessage().contains("UNAUTHORIZED_OBJECT"));
+		assertTrue(exception.getMessage().contains("tenantId"));
 		assertEquals("combined", audit.getRecords().get(0).getInterceptorKey());
-		assertEquals("FINAL_VALIDATE", audit.getRecords().get(1).getPhase());
+		assertEquals("FAILED", audit.getRecords().get(0).getOutcome());
 	}
 
 	@Test
@@ -353,9 +381,116 @@ public class AskDataSqlPipelineTest {
 						Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-b")), Collections.singleton("sales"))),
 				new PermissiveValidator(), new AskDataSqlAudit());
 
-		AskDataSqlCommand result = chain.execute(original);
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> chain.execute(original));
 
+		assertTrue(exception.getMessage().contains("tenantId"));
+	}
+
+	@Test
+	public void shouldPassPluginAddedParameterToFollowingPluginAndFinalCommand() {
+		final AskDataSqlParameter[] seenByFollowingPlugin = new AskDataSqlParameter[1];
+		AskDataSqlAudit audit = new AskDataSqlAudit();
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Arrays.asList(
+				new AskDataSqlInterceptor() {
+					@Override public String getKey() { return "bind-tenant"; }
+					@Override public int getOrder() { return 1; }
+					@Override public AskDataSqlPhase getPhase() { return AskDataSqlPhase.BIND_PARAMETERS; }
+					@Override public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+						return command.withSql(command.getSql() + " where tenant_id = :tenantId")
+								.withParameter(AskDataSqlParameter.of("tenantId", "tenant-a"));
+					}
+				},
+				new AskDataSqlInterceptor() {
+					@Override public String getKey() { return "observe-tenant"; }
+					@Override public int getOrder() { return 1; }
+					@Override public AskDataSqlPhase getPhase() { return AskDataSqlPhase.PREPARE; }
+					@Override public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+						seenByFollowingPlugin[0] = command.getParameter("tenantId");
+						return command;
+					}
+				}), new PermissiveValidator(), audit);
+
+		AskDataSqlCommand result = chain.execute(command("select * from sales"));
+
+		assertEquals("tenant-a", seenByFollowingPlugin[0].getValue());
 		assertEquals("tenant-a", result.getParameter("tenantId").getValue());
+		AskDataSqlAudit.Record bindRecord = audit.getRecords().get(0);
+		assertEquals(Collections.singletonList("tenantId"), bindRecord.getAddedParameterNames());
+		assertTrue(bindRecord.isSqlChanged());
+		assertEquals(1, bindRecord.getParameterCount());
+		assertFalse(bindRecord.toString().contains("tenant-a"));
+	}
+
+	@Test
+	public void shouldRejectPluginThatRemovesExistingParameter() {
+		AskDataSqlCommand original = new AskDataSqlCommand(new AskDataProjectContext("project-a", "operator-a"),
+				"select * from sales where tenant_id = :tenantId",
+				Collections.singletonList(AskDataSqlParameter.of("tenantId", "tenant-a")),
+				Collections.singleton("sales"));
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Collections.singletonList(
+				maliciousInterceptor("remove-parameter", original.getContext(),
+						Collections.<AskDataSqlParameter>emptyList(), Collections.singleton("sales"))),
+				new PermissiveValidator(), new AskDataSqlAudit());
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> chain.execute(original));
+
+		assertTrue(exception.getMessage().contains("tenantId"));
+	}
+
+	@Test
+	public void shouldRunCommandPluginsByPhaseThenOrderThenKey() {
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(Arrays.asList(
+				interceptor("prepare", 1, AskDataSqlPhase.PREPARE, " /* prepare */"),
+				interceptor("rewrite-z", 1, AskDataSqlPhase.REWRITE, " /* rewrite-z */"),
+				interceptor("bind", 100, AskDataSqlPhase.BIND_PARAMETERS, " /* bind */"),
+				interceptor("rewrite-a", 1, AskDataSqlPhase.REWRITE, " /* rewrite-a */"),
+				interceptor("assemble", 100, AskDataSqlPhase.ASSEMBLE, " /* assemble */")),
+				new PermissiveValidator(), new AskDataSqlAudit());
+
+		AskDataSqlCommand result = chain.execute(command("select * from sales"));
+
+		assertEquals("select * from sales /* assemble */ /* bind */ /* rewrite-a */ /* rewrite-z */ /* prepare */",
+				result.getSql());
+	}
+
+	@Test
+	public void shouldMapResultsInStableOrderWithoutChangingExecutionFacts() {
+		AskDataSqlResultMapper later = resultMapper("later", 20, "later");
+		AskDataSqlResultMapper first = resultMapper("first", 10, "first");
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(
+				Collections.<AskDataSqlInterceptor>emptyList(), Arrays.asList(later, first),
+				new PermissiveValidator(), new AskDataSqlAudit());
+		AskDataSqlResult original = sqlResult("raw", 1, 100, 30000L);
+
+		AskDataSqlResult mapped = chain.mapResult(command("select * from sales"), original);
+
+		assertEquals("raw-first-later", mapped.getRows().get(0).get("value"));
+		assertEquals(AskDataSqlExecutionStatus.SUCCEEDED, mapped.getExecutionStatus());
+		assertEquals(1, mapped.getExecutedRowCount());
+		assertEquals(100, mapped.getRowLimit());
+		assertEquals(30000L, mapped.getTimeoutMillis());
+	}
+
+	@Test
+	public void shouldRejectResultMapperThatChangesExecutionFacts() {
+		AskDataSqlResultMapper mapper = new AskDataSqlResultMapper() {
+			@Override public String getKey() { return "malicious-mapper"; }
+			@Override public int getOrder() { return 1; }
+			@Override public AskDataSqlResult map(AskDataSqlCommand command, AskDataSqlResult result) {
+				return AskDataSqlResult.of(result.getColumns(), result.getRows(),
+						AskDataSqlExecutionStatus.TIMED_OUT, 99, 1000, 1L);
+			}
+		};
+		AskDataSqlAudit audit = new AskDataSqlAudit();
+		AskDataSqlInterceptorChain chain = new AskDataSqlInterceptorChain(
+				Collections.<AskDataSqlInterceptor>emptyList(), Collections.singletonList(mapper),
+				new PermissiveValidator(), audit);
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> chain.mapResult(command("select * from sales"), sqlResult("raw", 1, 100, 30000L)));
+
+		assertTrue(exception.getMessage().contains("执行事实"));
+		assertEquals("FAILED", audit.getRecords().get(0).getOutcome());
 	}
 
 	@Test
@@ -442,6 +577,11 @@ public class AskDataSqlPipelineTest {
 	}
 
 	private static AskDataSqlInterceptor interceptor(final String key, final int order, final String suffix) {
+		return interceptor(key, order, AskDataSqlPhase.REWRITE, suffix);
+	}
+
+	private static AskDataSqlInterceptor interceptor(final String key, final int order,
+			final AskDataSqlPhase phase, final String suffix) {
 		return new AskDataSqlInterceptor() {
 			@Override
 			public String getKey() {
@@ -454,10 +594,35 @@ public class AskDataSqlPipelineTest {
 			}
 
 			@Override
+			public AskDataSqlPhase getPhase() {
+				return phase;
+			}
+
+			@Override
 			public AskDataSqlCommand intercept(AskDataSqlCommand command) {
 				return command.withSql(command.getSql() + suffix);
 			}
 		};
+	}
+
+	private static AskDataSqlResultMapper resultMapper(final String key, final int order, final String suffix) {
+		return new AskDataSqlResultMapper() {
+			@Override public String getKey() { return key; }
+			@Override public int getOrder() { return order; }
+			@Override public AskDataSqlResult map(AskDataSqlCommand command, AskDataSqlResult result) {
+				Map<String, Object> row = new LinkedHashMap<String, Object>();
+				row.put("value", result.getRows().get(0).get("value") + "-" + suffix);
+				return result.withRows(Collections.<Map<String, Object>>singletonList(row));
+			}
+		};
+	}
+
+	private static AskDataSqlResult sqlResult(String value, int executedRowCount, int rowLimit, long timeoutMillis) {
+		Map<String, Object> row = new LinkedHashMap<String, Object>();
+		row.put("value", value);
+		return AskDataSqlResult.of(Collections.singletonList(new AskDataSqlColumn("value", "Value", "varchar")),
+				Collections.<Map<String, Object>>singletonList(row), AskDataSqlExecutionStatus.SUCCEEDED,
+				executedRowCount, rowLimit, timeoutMillis);
 	}
 
 	private static AskDataSqlInterceptor maliciousInterceptor(final String key, final AskDataProjectContext context,

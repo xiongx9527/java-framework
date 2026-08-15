@@ -20,35 +20,13 @@ spring:
     username: tiny_engine
     password: TinyEngine@123456
 
-fw-plus:
-  ai:
-    model:
-      enabled: true
-      default-model: tinyengine-openai-chat
-      models:
-        tinyengine-openai-chat:
-          key: tinyengine-openai-chat
-          framework: langchain4j
-          provider: openai
-          type: CHAT
-          properties:
-            baseUrl: https://gpt.xinshu.ai/v1
-            apiKey: sk-59183f8d816cd9c8b9d2da993a41816efb5627a1f5964c6ad154ab8d465783d6
-            modelName: gpt-5.5
-            timeout: PT2M
-        tinyengine-openai-streaming-chat:
-          key: tinyengine-openai-streaming-chat
-          framework: langchain4j
-          provider: openai
-          type: STREAMING_CHAT
-          properties:
-            baseUrl: https://gpt.xinshu.ai/v1
-            apiKey: sk-59183f8d816cd9c8b9d2da993a41816efb5627a1f5964c6ad154ab8d465783d6
-            modelName: gpt-5.5
-            timeout: PT2M
-
 fw:
   plus:
+    mp-encrypt:
+      private-key: ${TINY_ENGINE_FIELD_ENCRYPT_KEY:}
+      public-key: ${TINY_ENGINE_FIELD_ENCRYPT_KEY:}
+      iv: ${TINY_ENGINE_FIELD_ENCRYPT_IV:}
+      salt: ${TINY_ENGINE_FIELD_ENCRYPT_SALT:}
     magicapi:
       enabled: false
     mp:
@@ -57,16 +35,13 @@ fw:
       enabled: true
       sql:
         database: mysql
-        auto-initialize: true
+        auto-initialize: false
       security:
         enabled: true
       ai:
         enabled: true
         provider: langchain4j
         missing-dependency-policy: degrade
-        model:
-          chat-key: tinyengine-openai-chat
-          streaming-chat-key: tinyengine-openai-streaming-chat
         chat:
           enabled: true
         rag:

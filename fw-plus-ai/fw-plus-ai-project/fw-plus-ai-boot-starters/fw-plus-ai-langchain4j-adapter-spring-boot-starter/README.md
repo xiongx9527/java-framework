@@ -2,14 +2,14 @@
 
 ## 当前支持状态
 
-本 starter 是当前默认 LangChain4j 实现，负责把 LangChain4j 的模型和向量 store 接入中立 `fw-plus-ai-model`、`fw-plus-ai-store-embedding` SPI。它同时依赖：
+本 starter 是当前 Java 8 分支已实现的 LangChain4j Adapter，负责把业务显式选择的 LangChain4j 模型和向量 store 接入中立 `fw-plus-ai-model`、`fw-plus-ai-store-embedding` SPI。它同时依赖：
 
 - `fw-plus-ai-model-spring-boot-starter`
 - `fw-plus-ai-store-embedding-spring-boot-starter`
 - `fw-plus-ai-langchain4j-adapter`
 - `fw-plus-ai-boot-autoconfigure`
 
-原独立 LangChain4j adapter autoconfigure artifact 已删除，其自动配置已合并到 `fw-plus-ai-boot-autoconfigure`。业务 Spring Boot 2.7 / Java 8 应用如果要使用默认实现，通常只需要引入本 starter，再按需引入具体 LangChain4j provider SDK。
+原独立 LangChain4j adapter autoconfigure artifact 已删除，其自动配置已合并到 `fw-plus-ai-boot-autoconfigure`。业务 Spring Boot 2.7 / Java 8 应用选择 LangChain4j 时，引入本 starter，并按需引入具体 LangChain4j provider SDK；本 starter 不会成为 AskData Starter 的默认传递依赖。
 
 ```xml
 <dependency>
@@ -36,9 +36,9 @@ fw-plus:
           type: CHAT
           enabled: true
           properties:
-            base-url: http://localhost:11434/v1
-            api-key: ${AI_API_KEY}
-            model-name: gpt-4o-mini
+            baseUrl: http://localhost:11434/v1
+            apiKey: ${AI_API_KEY}
+            modelName: gpt-4o-mini
     embedding-store:
       enabled: true
       default-store: knowledge
@@ -82,7 +82,7 @@ framework: langchain4j
 
 ## LangChain4j 切换到其他实现
 
-当前发布物只交付默认 LangChain4j adapter。后续 Spring AI、Spring AI Alibaba、AgentScope 2 Java adapter 会在 Java 17 / Spring Boot 3.x 高版本线交付。切换时按以下方式处理：
+当前 Java 8 发布物只交付 LangChain4j Adapter。后续 Spring AI、Spring AI Alibaba、AgentScope 2 Java Adapter 会在 Java 17 / Spring Boot 3.x 高版本线交付。切换时按以下方式处理：
 
 1. 删除本 starter。
 2. 保留 `fw-plus-ai-model-spring-boot-starter` 和 `fw-plus-ai-store-embedding-spring-boot-starter`，或由目标 adapter starter 传递它们。
@@ -103,7 +103,7 @@ AgentScope 2 Java 必须按进程内 SDK adapter 实现，不能用外部 HTTP�
 
 ## 回滚
 
-回滚默认实现时，保留或恢复本 starter，并确认：
+回滚到业务上一版 LangChain4j 组合时，保留或恢复本 starter，并确认：
 
 1. `fw-plus.ai.model` 和 `fw-plus.ai.embedding-store` 的 `framework` 为 `langchain4j`。
 2. provider SDK 已显式加入业务应用。

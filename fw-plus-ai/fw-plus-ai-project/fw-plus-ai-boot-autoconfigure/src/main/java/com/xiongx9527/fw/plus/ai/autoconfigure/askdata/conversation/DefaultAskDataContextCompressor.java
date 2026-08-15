@@ -2,9 +2,8 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
-import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataStepLog;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataStepContext;
-import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDocument;
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 
 public class DefaultAskDataContextCompressor implements AskDataContextCompressor {
 
@@ -24,38 +23,52 @@ public class DefaultAskDataContextCompressor implements AskDataContextCompressor
         AskDataCompressedContext compressed = new AskDataCompressedContext();
         AskDataRequest request = context.getRequest();
         if (request != null) {
-            compressed.setConversationId(request.getConversationId());
+            AskDataProjectContext projectContext = request.getProjectContext();
+            if (projectContext != null) {
+                compressed.setProjectId(projectContext.getProjectId());
+                compressed.setOperatorId(projectContext.getOperatorId());
+            }
             compressed.setModelKey(request.getModelKey());
             compressed.setDatasourceKey(request.getDatasourceKey());
             compressed.setDialect(request.getDialect());
         }
+        compressed.setConversationId(context.getConversationId());
+        compressed.setCheckpointId(context.getCheckpointId());
+        compressed.setResumeToken(context.getResumeToken());
+        compressed.setActualModelKey(context.getActualModelKey());
         compressed.setSql(context.getSql());
         compressed.setSqlValidated(context.getSqlValidated());
+        compressed.setSqlExecuted(context.getSqlExecuted());
+        compressed.setExecutionState(context.getExecutionState());
+        compressed.setRowCount(context.getRowCount());
+        compressed.setCurrentStep(context.getCurrentStep());
         compressed.setCompletedSteps(context.getCompletedSteps());
         compressed.setErrorCode(context.getErrorCode());
-        compressed.setCompressedSummary(limit(text(context), threshold()));
+        compressed.setCompressedSummary(limit(summary(context), threshold()));
         return compressed;
     }
 
-    private String text(AskDataStepContext context) {
+    private String summary(AskDataStepContext context) {
         StringBuilder summary = new StringBuilder();
-        append(summary, context.getPrompt());
-        append(summary, context.getRawModelResponse());
-        for (AskDataRetrievedDocument document : context.getRetrievedDocuments()) {
-            append(summary, document == null ? null : document.getContent());
-        }
-        for (AskDataStepLog step : context.getStepLogs()) {
-            append(summary, step == null ? null : step.getMessage());
-        }
+        append(summary, "completedSteps", context.getCompletedSteps());
+        append(summary, "currentStep", context.getCurrentStep());
+        append(summary, "checkpointPresent", Boolean.valueOf(context.getCheckpointId() != null));
+        append(summary, "resumeTokenPresent", Boolean.valueOf(context.getResumeToken() != null));
+        append(summary, "sqlPresent", Boolean.valueOf(context.getSql() != null && context.getSql().length() > 0));
+        append(summary, "sqlValidated", context.getSqlValidated());
+        append(summary, "sqlExecuted", context.getSqlExecuted());
+        append(summary, "executionState", context.getExecutionState());
+        append(summary, "rowCount", context.getRowCount());
+        append(summary, "retrievedDocumentCount", Integer.valueOf(context.getRetrievedDocuments().size()));
+        append(summary, "stepLogCount", Integer.valueOf(context.getStepLogs().size()));
+        append(summary, "errorCode", context.getErrorCode());
         return summary.toString();
     }
 
-    private void append(StringBuilder target, String value) {
-        if (value != null && value.length() > 0) {
-            if (target.length() > 0) {
-                target.append('\n');
-            }
-            target.append(value);
+    private void append(StringBuilder target, String label, Object value) {
+        if (value != null) {
+            if (target.length() > 0) { target.append(';'); }
+            target.append(label).append('=').append(value);
         }
     }
 

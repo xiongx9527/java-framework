@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xiongx9527.fw.plus.tinyengine.mapper.AppRoleMapper">
+	<select id="findActiveRoleCode" resultType="java.lang.String">
+		SELECT PR.code
+		FROM r_auth_users_units_roles UR
+		INNER JOIN t_permission_role PR ON PR.id = UR.role_id AND PR.role_type = 'app'
+		INNER JOIN t_app A ON A.id = UR.unit_id AND A.tenant_id = #{tenantId}
+		WHERE UR.tenant_id = #{tenantId} AND UR.unit_id = #{appId} AND UR.unit_type = 'app'
+			AND UR.user_id = #{userId} AND (UR.expired_time IS NULL OR UR.expired_time &gt; CURRENT_TIMESTAMP)
+			AND PR.code IN ('app_owner', 'app_admin', 'app_dev')
+	</select>
+
+	<select id="findMembers" resultType="com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberDto">
+		SELECT UR.id, UR.user_id AS user_id, U.username, PR.code AS role_code, UR.expired_time
+		FROM r_auth_users_units_roles UR
+		INNER JOIN t_permission_role PR ON PR.id = UR.role_id AND PR.role_type = 'app'
+		LEFT JOIN t_user U ON U.id = UR.user_id AND U.tenant_id = #{tenantId}
+		WHERE UR.tenant_id = #{tenantId} AND UR.unit_id = #{appId} AND UR.unit_type = 'app'
+			AND PR.code IN ('app_owner', 'app_admin', 'app_dev')
+		ORDER BY CASE PR.code WHEN 'app_owner' THEN 1 WHEN 'app_admin' THEN 2 ELSE 3 END, UR.id
+	</select>
+
+	<select id="lockApp" resultType="java.lang.Integer">
+		SELECT id FROM t_app WHERE id = #{appId} AND tenant_id = #{tenantId} FOR UPDATE
+	</select>
+
+	<select id="countUserInTenant" resultType="int">
+		SELECT COUNT(*) FROM t_user WHERE id = #{userId} AND tenant_id = #{tenantId}
+	</select>
+
+	<select id="countAppRelation" resultType="int">
+		SELECT COUNT(*) FROM r_auth_users_units_roles
+		WHERE tenant_id = #{tenantId} AND unit_id = #{appId} AND unit_type = 'app' AND user_id = #{userId}
+	</select>
+
+	<select id="countOwner" resultType="int">
+		SELECT COUNT(*) FROM r_auth_users_units_roles UR
+		INNER JOIN t_permission_role PR ON PR.id = UR.role_id
+		WHERE UR.tenant_id = #{tenantId} AND UR.unit_id = #{appId} AND UR.unit_type = 'app'
+			AND PR.role_type = 'app' AND PR.code = 'app_owner'
+	</select>
+
+	<insert id="insertRole">
+		INSERT INTO r_auth_users_units_roles
+			(user_id, unit_id, unit_type, tenant_id, role_id, owner_guard, expired_time,
+			 created_by, created_time, last_updated_by, last_updated_time)
+		SELECT #{userId}, #{appId}, 'app', #{tenantId}, PR.id,
+			CASE WHEN PR.code = 'app_owner' THEN 1 ELSE NULL END, #{expiredTime},
+			#{operator}, CURRENT_TIMESTAMP, #{operator}, CURRENT_TIMESTAMP
+		FROM t_permission_role PR
+		WHERE PR.code = #{roleCode} AND PR.role_type = 'app'
+	</insert>
+
+	<update id="updateRole">
+		UPDATE r_auth_users_units_roles
+		SET role_id = (SELECT PR.id FROM t_permission_role PR
+			WHERE PR.code = #{roleCode} AND PR.role_type = 'app'),
+			owner_guard = NULL,
+			expired_time = #{expiredTime}, last_updated_by = #{operator}, last_updated_time = CURRENT_TIMESTAMP
+		WHERE tenant_id = #{tenantId} AND unit_id = #{appId} AND unit_type = 'app'
+			AND user_id = #{userId}
+			AND role_id IN (SELECT PR.id FROM t_permission_role PR
+				WHERE PR.role_type = 'app' AND PR.code IN ('app_admin', 'app_dev'))
+	</update>
+
+	<delete id="deleteMemberRole">
+		DELETE FROM r_auth_users_units_roles
+		WHERE tenant_id = #{tenantId} AND unit_id = #{appId} AND unit_type = 'app' AND user_id = #{userId}
+			AND role_id IN (SELECT PR.id FROM t_permission_role PR
+				WHERE PR.role_type = 'app' AND PR.code IN ('app_admin', 'app_dev'))
+	</delete>
+
+	<delete id="deleteAppRoles">
+		DELETE FROM r_auth_users_units_roles
+		WHERE tenant_id = #{tenantId} AND unit_id = #{appId} AND unit_type = 'app'
+	</delete>
+</mapper>

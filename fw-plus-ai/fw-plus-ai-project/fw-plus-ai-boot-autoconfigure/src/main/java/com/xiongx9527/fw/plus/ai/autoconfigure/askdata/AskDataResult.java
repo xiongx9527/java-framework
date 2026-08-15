@@ -1,5 +1,8 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata;
 
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelAttempt;
+import com.xiongx9527.fw.plus.ai.askdata.publishing.AskDataPublishedInterface;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +24,19 @@ public class AskDataResult {
     private String resumeToken;
     private String checkpointId;
     private String rawModelResponse;
+    private String actualModelKey;
+    private List<String> modelAttempts = new ArrayList<String>();
+    private String actualEmbeddingModelKey;
+    private List<String> embeddingModelAttempts = new ArrayList<String>();
+    private List<AskDataModelAttempt> modelAttemptDetails = new ArrayList<AskDataModelAttempt>();
+    private List<AskDataModelAttempt> embeddingModelAttemptDetails = new ArrayList<AskDataModelAttempt>();
+    private AskDataPublishedInterface publishedInterface;
+    private String compressedContext;
+    private String contextCompressionStatus;
+    private String questionId;
+    private String questionState;
+    private List<String> dependsOn = new ArrayList<String>();
+    private String failurePolicy;
     /**
      * 显式多问题请求的子执行结果。
      *
@@ -160,6 +176,116 @@ public class AskDataResult {
     public void setRawModelResponse(String rawModelResponse) {
         this.rawModelResponse = rawModelResponse;
     }
+
+    public String getActualModelKey() {
+        return actualModelKey;
+    }
+
+    public void setActualModelKey(String actualModelKey) {
+        this.actualModelKey = actualModelKey;
+    }
+
+    public List<String> getModelAttempts() {
+        return new ArrayList<String>(modelAttempts);
+    }
+
+    public void setModelAttempts(List<String> modelAttempts) {
+        this.modelAttempts = modelAttempts == null ? new ArrayList<String>() : new ArrayList<String>(modelAttempts);
+    }
+
+    public void addModelAttempt(String modelKey) {
+        if (modelKey != null && modelKey.trim().length() > 0) {
+            modelAttempts.add(modelKey.trim());
+        }
+    }
+
+    public String getActualEmbeddingModelKey() {
+        return actualEmbeddingModelKey;
+    }
+
+    public void setActualEmbeddingModelKey(String actualEmbeddingModelKey) {
+        this.actualEmbeddingModelKey = actualEmbeddingModelKey;
+    }
+
+    public List<String> getEmbeddingModelAttempts() {
+        return new ArrayList<String>(embeddingModelAttempts);
+    }
+
+    public void setEmbeddingModelAttempts(List<String> embeddingModelAttempts) {
+        this.embeddingModelAttempts = embeddingModelAttempts == null
+                ? new ArrayList<String>() : new ArrayList<String>(embeddingModelAttempts);
+    }
+
+    public void addEmbeddingModelAttempt(String modelKey) {
+        if (modelKey != null && modelKey.trim().length() > 0) {
+            embeddingModelAttempts.add(modelKey.trim());
+        }
+    }
+
+    public List<AskDataModelAttempt> getModelAttemptDetails() {
+        return new ArrayList<AskDataModelAttempt>(modelAttemptDetails);
+    }
+
+    public void setModelAttemptDetails(List<AskDataModelAttempt> modelAttemptDetails) {
+        this.modelAttemptDetails = modelAttemptDetails == null ? new ArrayList<AskDataModelAttempt>()
+                : new ArrayList<AskDataModelAttempt>(modelAttemptDetails);
+    }
+
+    public void addModelAttemptDetail(AskDataModelAttempt attempt) {
+        if (attempt != null) modelAttemptDetails.add(attempt);
+    }
+
+    public List<AskDataModelAttempt> getEmbeddingModelAttemptDetails() {
+        return new ArrayList<AskDataModelAttempt>(embeddingModelAttemptDetails);
+    }
+
+    public void setEmbeddingModelAttemptDetails(List<AskDataModelAttempt> embeddingModelAttemptDetails) {
+        this.embeddingModelAttemptDetails = embeddingModelAttemptDetails == null
+                ? new ArrayList<AskDataModelAttempt>()
+                : new ArrayList<AskDataModelAttempt>(embeddingModelAttemptDetails);
+    }
+
+    public void addEmbeddingModelAttemptDetail(AskDataModelAttempt attempt) {
+        if (attempt != null) embeddingModelAttemptDetails.add(attempt);
+    }
+
+    public AskDataPublishedInterface getPublishedInterface() { return publishedInterface; }
+    public void setPublishedInterface(AskDataPublishedInterface publishedInterface) {
+        this.publishedInterface = publishedInterface;
+    }
+    public String getCompressedContext() { return compressedContext; }
+    public void setCompressedContext(String compressedContext) { this.compressedContext = compressedContext; }
+    public String getContextCompressionStatus() { return contextCompressionStatus; }
+    public void setContextCompressionStatus(String contextCompressionStatus) {
+        this.contextCompressionStatus = contextCompressionStatus;
+    }
+
+    public String getQuestionId() {
+        return questionId;
+    }
+
+    public void setQuestionId(String questionId) {
+        this.questionId = questionId;
+    }
+
+    public String getQuestionState() {
+        return questionState;
+    }
+
+    public void setQuestionState(String questionState) {
+        this.questionState = questionState;
+    }
+
+    public List<String> getDependsOn() {
+        return new ArrayList<String>(dependsOn);
+    }
+
+    public void setDependsOn(List<String> dependsOn) {
+        this.dependsOn = dependsOn == null ? new ArrayList<String>() : new ArrayList<String>(dependsOn);
+    }
+
+    public String getFailurePolicy() { return failurePolicy; }
+    public void setFailurePolicy(String failurePolicy) { this.failurePolicy = failurePolicy; }
 
     public List<AskDataResult> getChildResults() {
         return childResults;

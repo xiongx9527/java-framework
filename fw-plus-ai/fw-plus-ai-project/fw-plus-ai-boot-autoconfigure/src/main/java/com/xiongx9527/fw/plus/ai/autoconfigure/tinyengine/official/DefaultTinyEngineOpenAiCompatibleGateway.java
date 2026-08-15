@@ -93,6 +93,14 @@ public class DefaultTinyEngineOpenAiCompatibleGateway implements TinyEngineOpenA
 			try (OutputStream outputStream = connection.getOutputStream()) {
 				outputStream.write(requestBody);
 			}
+			int statusCode = connection.getResponseCode();
+			if (statusCode >= 400) {
+				throw new TinyEngineUpstreamException(clientStatusCode(statusCode),
+						statusCode == 401 || statusCode == 403 ? "INVALID_API_KEY" : "UPSTREAM_ERROR",
+						statusCode == 401 || statusCode == 403
+								? "TinyEngine AI upstream credential rejected"
+								: "TinyEngine AI upstream streaming request failed");
+			}
 			try (InputStream inputStream = responseStream(connection)) {
 				if (inputStream == null) {
 					return;
@@ -108,6 +116,10 @@ public class DefaultTinyEngineOpenAiCompatibleGateway implements TinyEngineOpenA
 				connection.disconnect();
 			}
 		}
+	}
+
+	private int clientStatusCode(int upstreamStatusCode) {
+		return upstreamStatusCode == 401 || upstreamStatusCode == 403 ? 502 : upstreamStatusCode;
 	}
 
 	private void readSseFrames(InputStream inputStream, TinyEngineSseConsumer consumer) throws IOException {
