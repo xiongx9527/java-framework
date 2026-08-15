@@ -129,7 +129,7 @@ public class LangChain4jTinyEngineAiProviderTest {
 				LangChain4jModelType.CHAT, new RecordingChatModel()));
 		TinyEngineChatRequest request = request("registry-model", false);
 		request.setProvider("openai");
-		request.setBaseUrl("http://127.0.0.1:" + upstream.getAddress().getPort() + "/v1");
+		request.setBaseUrl("http://127.0.0.1:" + upstream.getAddress().getPort() + "/v1/chat/completions/");
 		request.setApiKey("resolver-key");
 		request.setModel("resolver-model");
 		Map<String, Object> modelSettings = new HashMap<String, Object>();
@@ -179,6 +179,30 @@ public class LangChain4jTinyEngineAiProviderTest {
 			assertEquals("data: {\"error\":{\"code\":\"INVALID_API_KEY\",\"message\":\"TinyEngine AI upstream credential rejected\"}}\n\ndata: [DONE]\n\n",
 					new String(exception.toSseError(), "UTF-8"));
 		}
+	}
+
+	@Test
+	public void shouldNormalizeNonHttpChatNetworkFailures() {
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("chat-default", AiModelType.CHAT,
+				LangChain4jModelType.CHAT, new FailingChatModel()));
+
+		TinyEngineUpstreamException exception = assertThrows(TinyEngineUpstreamException.class,
+				() -> provider.chat(request("chat-default", false)));
+
+		assertEquals(502, exception.getStatusCode());
+		assertEquals("TinyEngine AI upstream request failed", exception.getMessage());
+	}
+
+	@Test
+	public void shouldNormalizeNonHttpStreamingNetworkFailures() {
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("stream-default", AiModelType.STREAMING_CHAT,
+				LangChain4jModelType.STREAMING_CHAT, new FailingStreamingChatModel()));
+
+		TinyEngineUpstreamException exception = assertThrows(TinyEngineUpstreamException.class,
+				() -> provider.stream(request("stream-default", true)));
+
+		assertEquals(502, exception.getStatusCode());
+		assertEquals("TinyEngine AI upstream request failed", exception.getMessage());
 	}
 
 	private TinyEngineChatRequest request(String modelKey, boolean stream) {
@@ -279,6 +303,25 @@ public class LangChain4jTinyEngineAiProviderTest {
 			handler.onNext("he");
 			handler.onNext("llo");
 			handler.onComplete(Response.from(AiMessage.from("stream answer")));
+		}
+	}
+
+	private static final class FailingChatModel implements ChatLanguageModel {
+		@Override
+		public Response<AiMessage> generate(List<ChatMessage> messages) {
+			throw new IllegalStateException("connection refused with internal details");
+		}
+
+		@Override
+		public ChatResponse chat(ChatRequest request) {
+			throw new IllegalStateException("connection refused with internal details");
+		}
+	}
+
+	private static final class FailingStreamingChatModel implements StreamingChatLanguageModel {
+		@Override
+		public void generate(List<ChatMessage> messages, StreamingResponseHandler<AiMessage> handler) {
+			handler.onError(new java.net.ConnectException("connection refused with internal details"));
 		}
 	}
 }

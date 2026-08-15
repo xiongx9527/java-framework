@@ -14,19 +14,20 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.DefaultTinyEn
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.DefaultTinyEngineOfficialRagGateway;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.Sm4TinyEngineAiCredentialCipher;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineAiCredentialCipher;
-import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineOfficialAiController;
-import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineOfficialAiWebFluxController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineOpenAiCompatibleGateway;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineOfficialRagGateway;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiCapability;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProviderRegistry;
+import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.TinyEngineAutoConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webflux.TinyEngineReactiveExecutor;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelInvocationConfig;
 import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -38,6 +39,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 @Configuration
+@AutoConfigureAfter(TinyEngineAutoConfiguration.class)
 @ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(TinyEngineAiProperties.class)
 public class TinyEngineAiAutoConfiguration {
@@ -54,11 +56,13 @@ public class TinyEngineAiAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
+	@ConditionalOnBean(TinyEngineReactiveExecutor.class)
 	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.web", name = "enabled", havingValue = "true")
 	public TinyEngineAiWebFluxController tinyEngineAiWebFluxController(
 			ObjectProvider<TinyEngineAiChatService> chatServiceProvider,
-			ObjectProvider<TinyEngineRagService> ragServiceProvider) {
-		return new TinyEngineAiWebFluxController(chatService(chatServiceProvider), ragService(ragServiceProvider));
+			ObjectProvider<TinyEngineRagService> ragServiceProvider,
+			TinyEngineReactiveExecutor executor) {
+		return new TinyEngineAiWebFluxController(chatService(chatServiceProvider), ragService(ragServiceProvider), executor);
 	}
 
 	@Bean
@@ -86,28 +90,6 @@ public class TinyEngineAiAutoConfiguration {
 		ObjectMapper objectMapper = objectMapperProvider.getIfAvailable();
 		return new DefaultTinyEngineOfficialRagGateway(ragService(ragServiceProvider),
 				objectMapper == null ? new ObjectMapper() : objectMapper);
-	}
-
-	@Bean
-	@ConditionalOnMissingBean
-	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-	@ConditionalOnBean({TinyEngineOpenAiCompatibleGateway.class, TinyEngineAiCredentialCipher.class})
-	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.web", name = "enabled", havingValue = "true")
-	public TinyEngineOfficialAiController tinyEngineOfficialAiController(
-			TinyEngineOpenAiCompatibleGateway gateway, TinyEngineAiCredentialCipher credentialCipher,
-			TinyEngineOfficialRagGateway ragGateway) {
-		return new TinyEngineOfficialAiController(gateway, credentialCipher, ragGateway);
-	}
-
-	@Bean
-	@ConditionalOnMissingBean
-	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
-	@ConditionalOnBean({TinyEngineOpenAiCompatibleGateway.class, TinyEngineAiCredentialCipher.class})
-	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.web", name = "enabled", havingValue = "true")
-	public TinyEngineOfficialAiWebFluxController tinyEngineOfficialAiWebFluxController(
-			TinyEngineOpenAiCompatibleGateway gateway, TinyEngineAiCredentialCipher credentialCipher,
-			TinyEngineOfficialRagGateway ragGateway) {
-		return new TinyEngineOfficialAiWebFluxController(gateway, credentialCipher, ragGateway);
 	}
 
 	@Bean

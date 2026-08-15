@@ -18,6 +18,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.entity.AiModelServiceConfig;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
 import com.xiongx9527.fw.plus.tinyengine.service.AppRoleService;
+import com.xiongx9527.fw.plus.tinyengine.support.ai.OpenAiCompatibleBaseUrl;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.AppPermission;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAccessDeniedException;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
@@ -287,7 +288,7 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		result.setAppId(appId);
 		result.setServiceId(serviceId);
 		result.setProvider(service.getProvider());
-		result.setBaseUrl(service.getBaseUrl());
+		result.setBaseUrl(OpenAiCompatibleBaseUrl.normalize(service.getBaseUrl()));
 		result.setApiKey(service.getApiKey());
 		result.setModelName(selected.getName());
 		result.setSettings(parseModelSettings(selected.getSettings()));
@@ -532,7 +533,7 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		if (request.getServiceKey() != null) service.setServiceKey(request.getServiceKey().trim());
 		if (request.getProvider() != null) service.setProvider(request.getProvider().trim());
 		if (request.getLabel() != null) service.setLabel(request.getLabel().trim());
-		if (request.getBaseUrl() != null) service.setBaseUrl(request.getBaseUrl().trim());
+		if (request.getBaseUrl() != null) service.setBaseUrl(OpenAiCompatibleBaseUrl.normalize(request.getBaseUrl()));
 		if (hasText(request.getApiKey())) service.setApiKey(request.getApiKey());
 		if (request.getAllowEmptyApiKey() != null) service.setAllowEmptyApiKey(request.getAllowEmptyApiKey());
 		if (request.getEnabled() != null) service.setEnabled(request.getEnabled());
@@ -556,7 +557,7 @@ public class AppAiModelConfigServiceImpl implements AppAiModelConfigService {
 		service.setServiceKey(source.getServiceKey().trim());
 		service.setProvider(source.getProvider().trim());
 		service.setLabel(source.getLabel().trim());
-		service.setBaseUrl(source.getBaseUrl().trim());
+		service.setBaseUrl(OpenAiCompatibleBaseUrl.normalize(source.getBaseUrl()));
 		service.setApiKey(hasText(apiKey) ? apiKey : null);
 		service.setAllowEmptyApiKey(Boolean.TRUE.equals(source.getAllowEmptyApiKey()));
 		service.setEnabled(source.getEnabled() == null ? Boolean.TRUE : source.getEnabled());
