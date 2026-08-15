@@ -102,6 +102,7 @@ class DynamicJavaEntityIntegrationTest {
         InMemoryJavaEntityCompiler compiler = new InMemoryJavaEntityCompiler(
                 javaCompiler, DynamicJavaEntityIntegrationTest.class.getClassLoader());
         JavaEntityProperties properties = new AwaitingTimeoutProperties(javaCompiler);
+        properties.setMaxConcurrentCompilations(2);
         DynamicEntityRegistry registry = registry(compiler, properties);
         try {
             assertFalse(registry.rebuild(Collections.singletonList(entity("first", "First",
@@ -118,6 +119,29 @@ class DynamicJavaEntityIntegrationTest {
             assertEquals("value", registry.resolve("Second").javaClass().getField("value").getName());
         } catch (NoSuchFieldException exception) {
             throw new AssertionError(exception);
+        } finally {
+            javaCompiler.releaseFirstTask();
+            registry.close();
+        }
+    }
+
+    @Test
+    void rejectsNewCompilationWhileTimedOutTaskConsumesTheConcurrencyLimit() {
+        StallingJavaCompiler javaCompiler = new StallingJavaCompiler(ToolProvider.getSystemJavaCompiler());
+        InMemoryJavaEntityCompiler compiler = new InMemoryJavaEntityCompiler(
+                javaCompiler, DynamicJavaEntityIntegrationTest.class.getClassLoader());
+        JavaEntityProperties properties = new AwaitingTimeoutProperties(javaCompiler);
+        DynamicEntityRegistry registry = registry(compiler, properties);
+        try {
+            assertFalse(registry.rebuild(Collections.singletonList(entity("first", "First",
+                    "public class First {}"))));
+            assertEquals("compiler.timeout", registry.status().getDiagnostics().get(0).getCode());
+
+            properties.setCompileTimeout(Duration.ofSeconds(30L));
+            assertFalse(registry.rebuild(Collections.singletonList(entity("second", "Second",
+                    "public class Second {}"))));
+            assertEquals("compiler.busy", registry.status().getDiagnostics().get(0).getCode());
+            assertEquals(0L, registry.currentVersion());
         } finally {
             javaCompiler.releaseFirstTask();
             registry.close();

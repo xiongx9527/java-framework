@@ -5,7 +5,9 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.DefaultTinyEngin
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFacade;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineExternalCapability;
 import com.xiongx9527.fw.plus.tinyengine.service.AppExtensionService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
 import com.xiongx9527.fw.plus.tinyengine.service.AppService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppRoleService;
 import com.xiongx9527.fw.plus.tinyengine.service.AppTemplateService;
 import com.xiongx9527.fw.plus.tinyengine.service.BlockGroupService;
 import com.xiongx9527.fw.plus.tinyengine.service.BlockService;
@@ -39,11 +41,12 @@ public class TinyEngineApiConfiguration {
 			ResourceGroupService resourceGroupService, ResourceService resourceService,
 			I18nEntryService i18nEntryService, AppExtensionService appExtensionService,
 			CanvasService canvasService, PageHistoryService pageHistoryService, TaskRecordService taskRecordService,
-			TinyEngineExternalCapability externalCapability) {
+			TinyEngineExternalCapability externalCapability, AppRoleService appRoleService,
+			AppAiModelConfigService appAiModelConfigService) {
 		return new DefaultTinyEngineApiFacade(appService, pageService, blockService, blockGroupService,
 				businessCategoryService, modelService, datasourceService, appTemplateService, resourceGroupService,
 				resourceService, i18nEntryService, appExtensionService, canvasService, pageHistoryService,
-				taskRecordService, externalCapability);
+				taskRecordService, externalCapability, appRoleService, appAiModelConfigService);
 	}
 
 	@Bean
@@ -63,6 +66,7 @@ public class TinyEngineApiConfiguration {
 		}
 
 		@ConditionalOnBean({AppService.class, PageService.class, BlockService.class, BlockGroupService.class,
+				AppRoleService.class, AppAiModelConfigService.class,
 				BusinessCategoryService.class, ModelService.class, DatasourceService.class, AppTemplateService.class,
 				ResourceGroupService.class, ResourceService.class, I18nEntryService.class, AppExtensionService.class,
 				CanvasService.class, PageHistoryService.class, TaskRecordService.class})

@@ -2,8 +2,11 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelUsage;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventCorrelation;
 import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataMonitoringLogAccessPolicy;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
+import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationPurpose;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationSummary;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataGovernanceProvider;
 import com.xiongx9527.fw.plus.ai.askdata.security.DefaultDenyAskDataGovernanceProvider;
@@ -40,6 +43,13 @@ public class AskDataMonitoringLogQueryServiceTest {
         assertEquals(1, auditLogs.size());
         assertEquals("MONITORING_LOG_QUERY", auditLogs.get(0).getEventType());
         assertEquals("admin-a", auditLogs.get(0).getContext().getOperatorId());
+        assertEquals(AskDataMonitoringLogQueryService.MONITORING_LOG_DATASOURCE,
+                auditLogs.get(0).getDatasourceKey());
+        assertEquals(AskDataMonitoringLogQueryService.GOVERNANCE_CAPABILITY,
+                auditLogs.get(0).getCapabilityKey());
+        assertEquals(AskDataAuthorizationPurpose.MONITORING_LOG_QUERY, auditLogs.get(0).getPurposeKey());
+        assertEquals("policy-v1", auditLogs.get(0).getAuthorizationVersion());
+        assertEquals("iam-main", auditLogs.get(0).getAuthorizationSource());
         assertTrue(auditLogs.get(0).getMessage().contains("subject=project-a/admin-a"));
         assertTrue(auditLogs.get(0).getMessage().contains("scope=PROJECT:[project-a]"));
         assertTrue(auditLogs.get(0).getMessage().contains("resultCount=2"));
@@ -63,6 +73,12 @@ public class AskDataMonitoringLogQueryServiceTest {
                 AskDataMonitoringLogQuery.all()).size());
         assertEquals(0, service.queryProject(administrator, "project-b",
                 AskDataMonitoringLogQuery.all()).size());
+        List<AskDataMonitoringLogStore.MonitoringLog> auditLogs = store.list(administrator);
+        assertEquals(2, auditLogs.size());
+        assertEquals("GOVERNANCE_DENIED", auditLogs.get(1).getEventType());
+        assertEquals(AskDataMonitoringLogQueryService.GOVERNANCE_CAPABILITY,
+                auditLogs.get(1).getCapabilityKey());
+        assertEquals(AskDataAuthorizationPurpose.MONITORING_LOG_QUERY, auditLogs.get(1).getPurposeKey());
     }
 
     @Test
@@ -84,6 +100,9 @@ public class AskDataMonitoringLogQueryServiceTest {
         assertEquals("NOT_ADMIN", auditLogs.get(0).getDenialCode());
         assertEquals("policy-v1", auditLogs.get(0).getAuthorizationVersion());
         assertEquals("iam-main", auditLogs.get(0).getAuthorizationSource());
+        assertEquals(AskDataMonitoringLogQueryService.GOVERNANCE_CAPABILITY,
+                auditLogs.get(0).getCapabilityKey());
+        assertEquals(AskDataAuthorizationPurpose.MONITORING_LOG_QUERY, auditLogs.get(0).getPurposeKey());
         assertFalse(auditLogs.get(0).getMessage().contains("conversation-1"));
     }
 
@@ -105,6 +124,10 @@ public class AskDataMonitoringLogQueryServiceTest {
                 || auditLog.getAuthorizationVersion().trim().isEmpty());
         assertFalse(auditLog.getAuthorizationSource() == null
                 || auditLog.getAuthorizationSource().trim().isEmpty());
+        assertEquals(AskDataMonitoringLogQueryService.MONITORING_LOG_DATASOURCE,
+                auditLog.getDatasourceKey());
+        assertEquals(AskDataMonitoringLogQueryService.GOVERNANCE_CAPABILITY, auditLog.getCapabilityKey());
+        assertEquals(AskDataAuthorizationPurpose.MONITORING_LOG_QUERY, auditLog.getPurposeKey());
         assertFalse(auditLog.getMessage().contains("never-log-this"));
     }
 
@@ -117,6 +140,29 @@ public class AskDataMonitoringLogQueryServiceTest {
         AskDataMonitoringLogAccessPolicy ownerPolicy = (requester, administratorAllowed, log) ->
                 administratorAllowed && "operator-b".equals(log.getContext().getOperatorId());
         AskDataMonitoringLogQueryService service = new AskDataMonitoringLogQueryService(store, ownerPolicy,
+                projectAdministrator("admin-a"));
+
+        assertEquals(1, service.queryProject(administrator, "project-a", AskDataMonitoringLogQuery.all()).size());
+    }
+
+    @Test
+    public void shouldPreserveModelKeyWhenEvaluatingAccessPolicy() {
+        InMemoryAskDataMonitoringLogStore store = new InMemoryAskDataMonitoringLogStore(10);
+        AskDataProjectContext owner = new AskDataProjectContext("project-a", "operator-b");
+        AskDataProjectContext administrator = new AskDataProjectContext("project-a", "admin-a");
+        store.append(owner, new AskDataMonitoringLogStore.MonitoringLog(owner, "conversation-1", "MODEL_ROUTED",
+                "model attempt", null, null, null, null, null, null, "EMBEDDING", "provider-embedding",
+                "REQUEST_MODEL_KEY", "SUCCEEDED", null, null, "provider-embedding-v2",
+                AskDataModelUsage.unknown(), AskDataEventCorrelation.builder("request-1", "conversation-1").build(),
+                "request.embeddingModelKey"));
+        AskDataMonitoringLogAccessPolicy modelPolicy = (requester, administratorAllowed, log) ->
+                administratorAllowed && "EMBEDDING".equals(log.getModelType())
+                        && "provider-embedding".equals(log.getModelKey())
+                        && "REQUEST_MODEL_KEY".equals(log.getModelRoutePolicy())
+                        && "request.embeddingModelKey".equals(log.getModelRouteReason())
+                        && "SUCCEEDED".equals(log.getModelState())
+                        && "provider-embedding-v2".equals(log.getActualModelKey());
+        AskDataMonitoringLogQueryService service = new AskDataMonitoringLogQueryService(store, modelPolicy,
                 projectAdministrator("admin-a"));
 
         assertEquals(1, service.queryProject(administrator, "project-a", AskDataMonitoringLogQuery.all()).size());

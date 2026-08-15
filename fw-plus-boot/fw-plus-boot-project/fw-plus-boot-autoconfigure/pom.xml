@@ -312,6 +312,14 @@
 
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-mybatis-datascope</artifactId>
+            <version>${revision}</version>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-mybatis-datachange</artifactId>
             <version>${revision}</version>
             <scope>compile</scope>
@@ -321,6 +329,14 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-mp-datachange</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-mf-datascope</artifactId>
+            <version>${revision}</version>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>

@@ -57,7 +57,7 @@ public class SpringBeanMagicResourceStorage implements MagicResourceStorage<Spri
 
     @Override
     public String buildMappingKey(SpringBeanInfo entity) {
-        return analyzer.analyze(entity).getClassName();
+        return analyzer.analyze(entity.getId(), entity.getName(), entity.getScript()).getClassName();
     }
 
     @Override

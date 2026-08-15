@@ -24,6 +24,37 @@
 
 执行顺序是授权、规划、模型路由、SQL 插件、最终校验、只读执行、结果解释和审计。任何一步失败都返回稳定错误码，不用另一个模型掩盖权限或 SQL 错误。
 
+### Core Chat/Embedding 分层路由
+
+Core 请求直接表达真实业务来源，不把普通候选伪装成项目、数据源或 Agent 配置：
+
+```java
+AskDataModelSelection chat = AskDataModelSelection.builder()
+        .requestModelKey("chat-request")
+        .projectModelKey("chat-project")
+        .datasourceModelKey("chat-datasource")
+        .agentTaskModelKey("chat-agent")
+        .policyModelKey("chat-policy")
+        .fallbackModelKeys(Arrays.asList("chat-fallback-a", "chat-fallback-b"))
+        .policyTags(Collections.singletonMap("purpose", "askdata"))
+        .build();
+AskDataModelSelection embedding = AskDataModelSelection.builder()
+        .projectModelKey("embedding-project")
+        .datasourceModelKey("embedding-datasource")
+        .fallbackModelKeys(Collections.singletonList("embedding-fallback"))
+        .build();
+AskDataRequest request = AskDataRequest.builder(
+        new AskDataProjectContext("project-a", "operator-a"), "查询本月已支付订单数")
+        .datasourceKey("sales")
+        .chatModelSelection(chat)
+        .embeddingModelSelection(embedding)
+        .execute(Boolean.FALSE)
+        .build();
+AskDataResult result = askDataService.ask(request);
+```
+
+需要相应导入 Core 的 `AskDataRequest`、`AskDataResult`、`AskDataService`、`AskDataProjectContext` 和 `AskDataModelSelection`，以及 JDK 的 `Arrays`、`Collections`。Router 按请求、项目、数据源、Agent、策略、fallback、默认顺序分别处理 Chat 与 Embedding；响应、检查点、AgentState 和监控日志记录真实路由原因、每次尝试及最终实际模型 key。
+
 ## 显式多问题
 
 ```json
@@ -39,7 +70,7 @@
 }
 ```
 
-每个子问题拥有 `questionId`、独立审计和独立状态，聚合结果不能把失败子问题改写成零值。带恢复令牌的多问题请求应拒绝或要求业务显式选择子问题，防止重复执行已开始的副作用。
+每个子问题拥有 `questionId`、独立审计和独立状态，聚合结果不能把失败子问题改写成零值。多问题恢复使用父检查点：恢复令牌、项目、操作人、授权版本、计划快照和模型路由快照全部一致时，只调度未完成节点；已成功节点和已完成 SQL 不重放。任一身份或快照不匹配、检查点版本不兼容、SQL 副作用状态不确定时受控拒绝恢复。
 
 ## 自然语言复合问题
 
@@ -61,3 +92,9 @@
 ```
 
 调用方应展示成功项和失败原因，允许仅重试 `q2`；重试请求带原 `requestId`、新的幂等键和授权上下文，不能重新执行已经成功的子问题。认证、权限、输入、预算和 SQL 安全错误不触发模型或子问题兜底。
+
+## 生命周期与取消
+
+正常请求发布 `QUESTION_PLAN_STARTED`，随后进入对话、计划、子问题、模型、Agent、SQL、记忆、压缩、检查点和终态事件。步骤 Agent 必须先发布 `AGENT_NODE_STARTED`，再以 `AGENT_NODE_EXECUTED`、`AGENT_NODE_FAILED` 或 `AGENT_NODE_CANCELLED` 唯一结束。取消会保留已完成子结果，并依次形成对应的 `SUB_QUESTION_CANCELLED` 与 `CONVERSATION_CANCELLED`；规划阶段取消使用 `QUESTION_PLAN_CANCELLED`。
+
+父请求、子问题和 Agent 事件共享父 `requestId`。每个子问题使用独立子会话与 child-root event，并携带 `subQuestionId` 和 `parentEventId` 回指父链。所有事件仅包含脱敏摘要；本地日志、LangSmith、Langfuse 或 OpenTelemetry 传输失败不得修改取消、SQL 或对话结果。

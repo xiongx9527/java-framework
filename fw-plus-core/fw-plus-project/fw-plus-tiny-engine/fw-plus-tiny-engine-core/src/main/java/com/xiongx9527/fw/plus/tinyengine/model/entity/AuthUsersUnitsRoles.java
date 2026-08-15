@@ -25,6 +25,7 @@ private Integer unitId;
 private String unitType;
 private Integer tenantId;
 private Integer roleId;
+private Integer ownerGuard;
 @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime expiredTime;
 
@@ -90,6 +91,14 @@ private String lastUpdatedBy;
 
 	public void setRoleId(Integer roleId) {
 		this.roleId = roleId;
+	}
+
+	public Integer getOwnerGuard() {
+		return ownerGuard;
+	}
+
+	public void setOwnerGuard(Integer ownerGuard) {
+		this.ownerGuard = ownerGuard;
 	}
 
 	public LocalDateTime getExpiredTime() {

@@ -1,10 +1,9 @@
 package com.xiongx9527.fw.plus.tinyengine.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 
-public interface AppTemplateService extends IService<App> {
+public interface AppTemplateService {
 
 	AppDto queryAllAppTemplate(Integer currentPage, Integer pageSize, String orderBy, App app);
 

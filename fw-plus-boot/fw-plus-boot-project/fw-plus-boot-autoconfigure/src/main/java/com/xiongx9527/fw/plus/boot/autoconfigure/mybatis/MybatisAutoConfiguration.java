@@ -1,10 +1,13 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.mybatis;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.datachange.MybatisDataChangeAutoConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.datascope.MybatisDataScopeAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mf.MfDataChangeAdapterAutoConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mf.MfDataScopeAdapterAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mf.MfEncryptAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mp.MpAutoConfiguration;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mp.MpDataChangeAdapterAutoConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.mp.MpEncryptAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.context.annotation.Configuration;
@@ -32,9 +35,12 @@ import org.springframework.context.annotation.Import;
 })
 @Import({
 		MpAutoConfiguration.class,
+		MpEncryptAutoConfiguration.class,
 		MybatisDataChangeAutoConfiguration.class,
+		MybatisDataScopeAutoConfiguration.class,
 		MpDataChangeAdapterAutoConfiguration.class,
 		MfDataChangeAdapterAutoConfiguration.class,
+		MfDataScopeAdapterAutoConfiguration.class,
 		MfEncryptAutoConfiguration.class
 })
 public class MybatisAutoConfiguration {

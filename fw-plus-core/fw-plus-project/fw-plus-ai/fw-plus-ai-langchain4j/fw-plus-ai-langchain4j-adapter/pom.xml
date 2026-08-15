@@ -39,6 +39,10 @@
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-ai-askdata</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
             <artifactId>fw-plus-ai-store-embedding</artifactId>
             <exclusions>
                 <exclusion>

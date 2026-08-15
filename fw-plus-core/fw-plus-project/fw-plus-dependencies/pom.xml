@@ -1210,6 +1210,11 @@
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mybatis-datascope</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mybatis-datachange</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -1236,6 +1241,11 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mf-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mf-datascope</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

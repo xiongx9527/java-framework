@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -331,24 +332,34 @@ class TinyEngineServiceContractTest {
 	@Test
 	void templateCloneCopiesCoreDataAndUsesTenantCondition() {
 		AppMapper appMapper = mock(AppMapper.class);
+		PageMapper pageMapper = mock(PageMapper.class);
 		PageService pageService = mock(PageService.class);
 		PageHistoryMapper pageHistoryMapper = mock(PageHistoryMapper.class);
 		AppExtensionMapper extensionMapper = mock(AppExtensionMapper.class);
 		DatasourceMapper datasourceMapper = mock(DatasourceMapper.class);
 		I18nEntryMapper i18nEntryMapper = mock(I18nEntryMapper.class);
 		ModelMapper modelMapper = mock(ModelMapper.class);
+		AppRoleService appRoleService = mock(AppRoleService.class);
 		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
 		setBaseMapper(service, appMapper);
+		ReflectionTestUtils.setField(service, "pageMapper", pageMapper);
 		ReflectionTestUtils.setField(service, "pageService", pageService);
 		ReflectionTestUtils.setField(service, "pageHistoryMapper", pageHistoryMapper);
 		ReflectionTestUtils.setField(service, "appExtensionMapper", extensionMapper);
 		ReflectionTestUtils.setField(service, "datasourceMapper", datasourceMapper);
 		ReflectionTestUtils.setField(service, "i18nEntryMapper", i18nEntryMapper);
 		ReflectionTestUtils.setField(service, "modelMapper", modelMapper);
+		ReflectionTestUtils.setField(service, "appRoleService", appRoleService);
 		App request = new App();
 		request.setId(3);
+		request.setCode("new-app-code");
 		request.setIsTemplate(true);
 		request.setSetTemplateBy("owner");
+		App template = new App();
+		template.setId(Integer.valueOf(3));
+		template.setCode("template-code");
+		when(appMapper.queryAppTemplateById(Integer.valueOf(3), "tenant-9")).thenReturn(template);
+		when(appMapper.queryAppByCondition(any(App.class))).thenReturn(Collections.<App>emptyList());
 		App persisted = new App();
 		persisted.setId(22);
 		persisted.setPlatformId(2);
@@ -362,12 +373,17 @@ class TinyEngineServiceContractTest {
 		templateExtension.setTenantId("template-tenant");
 		templateExtension.setRenterId("template-renter");
 		templateExtension.setSiteId("template-site");
+		Page templatePage = page(41, 3, true);
+		templatePage.setCreatedBy("template-creator");
+		templatePage.setCreatedTime(java.time.LocalDateTime.of(2026, 8, 11, 10, 0));
+		templatePage.setLastUpdatedBy("template-updater");
+		templatePage.setLastUpdatedTime(java.time.LocalDateTime.of(2026, 8, 11, 11, 0));
 		doAnswer(invocation -> {
 			((App) invocation.getArgument(0)).setId(22);
 			return 1;
 		}).when(appMapper).createApp(request);
 		when(appMapper.queryAppById(22, "tenant-9")).thenReturn(persisted);
-		when(pageService.queryAllPage(3)).thenReturn(Collections.<Page>emptyList());
+		when(pageMapper.queryPageByApp(Integer.valueOf(3))).thenReturn(Collections.singletonList(templatePage));
 		when(pageHistoryMapper.queryPageHistoryByAppId(3)).thenReturn(Collections.<PageHistory>emptyList());
 		when(extensionMapper.queryAppExtensionByCondition(any()))
 				.thenReturn(Collections.singletonList(templateExtension));
@@ -380,6 +396,20 @@ class TinyEngineServiceContractTest {
 		assertSame(persisted, result);
 		assertFalse(request.getIsTemplate());
 		assertNull(request.getSetTemplateBy());
+		assertEquals("new-app-code", request.getCode());
+		assertEquals("tenant-9", request.getTenantId());
+		assertEquals("user-7", request.getCreatedBy());
+		verify(appRoleService).createOwner(Integer.valueOf(22), "tenant-9", "user-7");
+		verify(pageMapper).queryPageByApp(Integer.valueOf(3));
+		verify(pageService, never()).queryAllPage(Integer.valueOf(3));
+		org.mockito.ArgumentCaptor<Page> pageCaptor = org.mockito.ArgumentCaptor.forClass(Page.class);
+		verify(pageService).createPage(pageCaptor.capture());
+		assertEquals(Integer.valueOf(22), pageCaptor.getValue().getApp());
+		assertNull(pageCaptor.getValue().getId());
+		assertNull(pageCaptor.getValue().getCreatedBy());
+		assertNull(pageCaptor.getValue().getCreatedTime());
+		assertNull(pageCaptor.getValue().getLastUpdatedBy());
+		assertNull(pageCaptor.getValue().getLastUpdatedTime());
 		verify(appMapper, times(2)).queryAppById(22, "tenant-9");
 		org.mockito.ArgumentCaptor<AppExtension> extensionCaptor =
 				org.mockito.ArgumentCaptor.forClass(AppExtension.class);
@@ -392,6 +422,84 @@ class TinyEngineServiceContractTest {
 	}
 
 	@Test
+	void templateCloneRejectsDuplicateApplicationCodeBeforeInsert() {
+		AppMapper mapper = mock(AppMapper.class);
+		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
+		setBaseMapper(service, mapper);
+		App request = new App();
+		request.setId(3);
+		request.setCode("duplicate-code");
+		App template = new App();
+		template.setId(3);
+		when(mapper.queryAppTemplateById(3, "tenant-9")).thenReturn(template);
+		when(mapper.queryAppByCondition(any(App.class))).thenReturn(Collections.singletonList(new App()));
+
+		assertThrows(ServiceException.class, () -> service.createAppByTemplate(request));
+
+		org.mockito.ArgumentCaptor<App> conditionCaptor = org.mockito.ArgumentCaptor.forClass(App.class);
+		verify(mapper).queryAppByCondition(conditionCaptor.capture());
+		assertEquals("duplicate-code", conditionCaptor.getValue().getCode());
+		assertEquals("tenant-9", conditionCaptor.getValue().getTenantId());
+		verify(mapper, never()).createApp(any(App.class));
+	}
+
+	@Test
+	void templateCloneRejectsBlankApplicationCodeBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode("   ");
+	}
+
+	@Test
+	void templateCloneRejectsApplicationCodeWithInvalidCharactersBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode("invalid.code");
+	}
+
+	@Test
+	void templateCloneRejectsApplicationCodeLongerThanTwentyCharactersBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode("abcdefghijklmnopqrstu");
+	}
+
+	@Test
+	void templateCloneRejectsApplicationCodeWithSurroundingWhitespaceBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode(" valid-code ");
+	}
+
+	@Test
+	void templateCloneRejectsTwentyCharacterApplicationCodeWithTrailingWhitespaceBeforeInsert() {
+		assertTemplateCloneRejectsInvalidCode("abcdefghijklmnopqrst ");
+	}
+
+	@Test
+	void templateCloneRejectsUnverifiedTemplateSourceBeforeInsert() {
+		AppMapper mapper = mock(AppMapper.class);
+		PageMapper pageMapper = mock(PageMapper.class);
+		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
+		setBaseMapper(service, mapper);
+		ReflectionTestUtils.setField(service, "pageMapper", pageMapper);
+		App request = new App();
+		request.setId(Integer.valueOf(3));
+		request.setCode("new-app-code");
+
+		ServiceException exception = assertThrows(ServiceException.class,
+				() -> service.createAppByTemplate(request));
+
+		assertEquals("CM009", exception.getServiceCode());
+		verify(mapper).queryAppTemplateById(Integer.valueOf(3), "tenant-9");
+		verify(mapper, never()).queryAppByCondition(any(App.class));
+		verify(mapper, never()).createApp(any(App.class));
+		verify(pageMapper, never()).queryPageByApp(any());
+	}
+
+	@Test
+	void templateCloneRollsBackForAnyException() throws Exception {
+		Transactional transactional = AppTemplateServiceImpl.class
+				.getMethod("createAppByTemplate", App.class)
+				.getAnnotation(Transactional.class);
+
+		assertNotNull(transactional);
+		assertTrue(Arrays.asList(transactional.rollbackFor()).contains(Exception.class));
+	}
+
+	@Test
 	void tenantAndUserConditionsArePassedToMappers() {
 		TinyEngineUserContext context = context("user-7", "tenant-9");
 		AppMapper appMapper = mock(AppMapper.class);
@@ -400,7 +508,7 @@ class TinyEngineServiceContractTest {
 		ResourceGroupMapper resourceGroupMapper = mock(ResourceGroupMapper.class);
 		ResourceGroupServiceImpl resourceGroupService = new ResourceGroupServiceImpl(context);
 		setBaseMapper(resourceGroupService, resourceGroupMapper);
-		when(appMapper.queryAllApp("tenant-9")).thenReturn(Collections.<App>emptyList());
+		when(appMapper.queryVisibleApps("tenant-9", "user-7", false)).thenReturn(Collections.<App>emptyList());
 		when(resourceGroupMapper.queryAllResourceGroupAndResource("user-7"))
 				.thenReturn(Collections.<ResourceGroup>emptyList());
 
@@ -408,7 +516,7 @@ class TinyEngineServiceContractTest {
 		resourceGroupService.queryAllResourceGroupAndResource();
 		resourceGroupService.queryResourceGroupById(Integer.valueOf(21));
 
-		verify(appMapper).queryAllApp("tenant-9");
+		verify(appMapper).queryVisibleApps("tenant-9", "user-7", false);
 		verify(resourceGroupMapper).queryAllResourceGroupAndResource("user-7");
 		verify(resourceGroupMapper).queryResourceGroupById(Integer.valueOf(21), "user-7", "tenant-9");
 	}
@@ -421,9 +529,12 @@ class TinyEngineServiceContractTest {
 		setBaseMapper(service, mapper);
 		App filter = new App();
 		filter.setName("demo");
-		when(mapper.queryAllAppByPage(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+		filter.setPlatformId(Integer.valueOf(4));
+		when(mapper.queryVisibleAppsByPage(any(), any(), any(), any(), any(), any(), any(), any(), any(),
+				any(), any(), anyBoolean()))
 				.thenReturn(Collections.<App>emptyList());
-		when(mapper.queryAppTotal("tenant-9")).thenReturn(0);
+		when(mapper.queryVisibleAppTotal(any(), any(), any(), any(), any(), any(), any(), any(), anyBoolean()))
+				.thenReturn(0);
 		App created = new App();
 		created.setName("new-app");
 		created.setCode("new_app");
@@ -441,8 +552,10 @@ class TinyEngineServiceContractTest {
 		assertSame(created, createResult);
 		assertEquals("tenant-9", created.getTenantId());
 		assertFalse(created.getIsPublish());
-		verify(mapper).queryAllAppByPage(1000, Integer.MAX_VALUE, "demo", null, null, null,
-				"id desc", null, "tenant-9");
+		verify(mapper).queryVisibleAppsByPage(1000, Integer.MAX_VALUE, "demo", null, null, null, Integer.valueOf(4),
+				"id desc", null, "tenant-9", "user-7", false);
+		verify(mapper).queryVisibleAppTotal("demo", null, null, null, Integer.valueOf(4), null,
+				"tenant-9", "user-7", false);
 		verify(mapper).createApp(created);
 	}
 
@@ -482,9 +595,15 @@ class TinyEngineServiceContractTest {
 	@Test
 	void resourceQueriesPassCurrentUserToMapper() {
 		ResourceMapper mapper = mock(ResourceMapper.class);
+		ResourceGroupService resourceGroupService = mock(ResourceGroupService.class);
+		ResourceGroup group = new ResourceGroup();
+		group.setId(Integer.valueOf(12));
+		group.setAppId(Integer.valueOf(3));
+		when(resourceGroupService.queryResourceGroupById(Integer.valueOf(12))).thenReturn(group);
 		ResourceServiceImpl service = new ResourceServiceImpl();
 		setBaseMapper(service, mapper);
 		setFieldIfPresent(service, "userContext", context("user-7", "tenant-9"));
+		setFieldIfPresent(service, "resourceGroupService", resourceGroupService);
 		when(mapper.findResourceByResourceGroupId(12, "user-7"))
 				.thenReturn(Collections.<Resource>emptyList());
 
@@ -1052,6 +1171,8 @@ class TinyEngineServiceContractTest {
 				method("createApp", type(App.class), App.class),
 				method("saveApp", type(App.class), Integer.class, Map.class),
 				method("publishApp", type(App.class), Integer.class, Map.class),
+				method("setAppTemplate", type(App.class), Integer.class, Boolean.class, String.class,
+						Integer.class, Integer.class, String.class),
 				method("formatI18nEntrites", type(SchemaI18n.class), List.class, Integer.class, Integer.class)));
 		contracts.put(AppTemplateService.class, Arrays.asList(
 				method("queryAllAppTemplate", type(AppDto.class), Integer.class, Integer.class, String.class, App.class),
@@ -1163,6 +1284,9 @@ class TinyEngineServiceContractTest {
 				method("updateMaterialById", type(Material.class), Material.class),
 				method("createMaterial", type(Material.class), Material.class)));
 		contracts.put(ModelService.class, Arrays.asList(
+				method("save", type(boolean.class), Model.class),
+				method("updateById", type(boolean.class), Model.class),
+				method("removeById", type(boolean.class), java.io.Serializable.class),
 				method("queryModelById", type(Model.class), Integer.class),
 				method("queryModelDetailById", type(Model.class), Integer.class),
 				method("getModelByName", generic(List.class, Model.class), String.class),
@@ -1185,6 +1309,8 @@ class TinyEngineServiceContractTest {
 				method("findLatestPublishPage", generic(IPage.class, PublishedPageVo.class), PageQueryVo.class),
 				method("selectMaxVersionOfPageHistory", type(String.class), String.class, Integer.class)));
 		contracts.put(PageService.class, Arrays.asList(
+				method("save", type(boolean.class), Page.class),
+				method("updateById", type(boolean.class), Page.class),
 				method("queryAllPage", generic(List.class, Page.class), Integer.class),
 				method("queryPageById", type(Page.class), Integer.class),
 				method("queryPageByCondition", generic(List.class, Page.class), Page.class),
@@ -1225,6 +1351,7 @@ class TinyEngineServiceContractTest {
 				method("updateResourceGroupById", type(ResourceGroup.class), ResourceGroup.class),
 				method("createResourceGroup", type(ResourceGroup.class), ResourceGroup.class)));
 		contracts.put(ResourceService.class, Arrays.asList(
+				method("save", type(boolean.class), Resource.class),
 				method("queryAllResource", generic(List.class, Resource.class)),
 				method("queryResourcesByNameAndDes", generic(List.class, Resource.class), String.class, String.class),
 				method("queryResourceById", type(Resource.class), Integer.class),
@@ -1272,6 +1399,25 @@ class TinyEngineServiceContractTest {
 		model.setNameEn(nameEn);
 		model.setParameters(Arrays.asList(parameters));
 		return model;
+	}
+
+	private static void assertTemplateCloneRejectsInvalidCode(String code) {
+		AppMapper mapper = mock(AppMapper.class);
+		AppTemplateServiceImpl service = new AppTemplateServiceImpl(context("user-7", "tenant-9"));
+		setBaseMapper(service, mapper);
+		App request = new App();
+		request.setId(Integer.valueOf(3));
+		request.setCode(code);
+		App template = new App();
+		template.setId(Integer.valueOf(3));
+		when(mapper.queryAppTemplateById(Integer.valueOf(3), "tenant-9")).thenReturn(template);
+
+		ServiceException exception = assertThrows(ServiceException.class,
+				() -> service.createAppByTemplate(request));
+
+		assertEquals("CM002", exception.getServiceCode());
+		verify(mapper, never()).queryAppByCondition(any(App.class));
+		verify(mapper, never()).createApp(any(App.class));
 	}
 
 	private static TinyEngineUserContext context(String userId, String tenantId) {

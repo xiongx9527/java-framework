@@ -32,9 +32,9 @@ fw-plus:
           provider: openai
           type: CHAT
           properties:
-            baseUrl: https://gpt.xinshu.ai/v1
-            apiKey: REDACTED
-            modelName: gpt-5.5
+            baseUrl: ${TINY_ENGINE_AI_BASE_URL:https://gpt.fufu666.top/v1}
+            apiKey: ${TINY_ENGINE_AI_API_KEY:change-me}
+            modelName: ${TINY_ENGINE_AI_MODEL_NAME:gpt-5.5}
             timeout: PT2M
         tinyengine-openai-streaming-chat:
           key: tinyengine-openai-streaming-chat
@@ -42,9 +42,9 @@ fw-plus:
           provider: openai
           type: STREAMING_CHAT
           properties:
-            baseUrl: https://gpt.xinshu.ai/v1
-            apiKey: REDACTED
-            modelName: gpt-5.5
+            baseUrl: ${TINY_ENGINE_AI_BASE_URL:https://gpt.fufu666.top/v1}
+            apiKey: ${TINY_ENGINE_AI_API_KEY:change-me}
+            modelName: ${TINY_ENGINE_AI_MODEL_NAME:gpt-5.5}
             timeout: PT2M
 
 fw:

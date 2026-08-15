@@ -12,6 +12,7 @@
     <packaging>pom</packaging>
     <artifactId>fw-plus-mybatis</artifactId>
     <modules>
+        <module>fw-plus-mybatis-datascope</module>
         <module>fw-plus-mybatis-datachange</module>
         <module>fw-plus-mybatis-encrypt</module>
         <module>fw-plus-mf</module>

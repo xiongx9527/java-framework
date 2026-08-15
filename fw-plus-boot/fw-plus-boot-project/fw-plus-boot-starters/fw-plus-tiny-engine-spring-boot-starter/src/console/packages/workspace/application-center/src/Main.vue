@@ -48,16 +48,23 @@
                   <span class="option-text">开发应用</span>
                 </div>
                 <tiny-divider v-if="isApplicationEnabled(item)" direction="vertical"></tiny-divider>
-                <div v-if="isApplicationEnabled(item)" class="option" @click="handleDelete(item)">
+                <div v-if="canManageMembers(item)" class="option" @click="openMemberDialog(item)">
+                  <span class="option-text">成员管理</span>
+                </div>
+                <tiny-divider v-if="canManageMembers(item)" direction="vertical"></tiny-divider>
+                <div v-if="isApplicationEnabled(item) && canDeleteApplication(item)" class="option" @click="handleDelete(item)">
                   <svg-icon name="delete"></svg-icon>
                   <span class="option-text">删除应用</span>
                 </div>
-                <tiny-divider v-if="isApplicationEnabled(item)" direction="vertical"></tiny-divider>
-                <div class="option" @click="handleEnableChange(item)">
+                <tiny-divider
+                  v-if="isApplicationEnabled(item) && canDeleteApplication(item)"
+                  direction="vertical"
+                ></tiny-divider>
+                <div v-if="canManageApplication(item)" class="option" @click="handleEnableChange(item)">
                   <span class="option-text">{{ isApplicationEnabled(item) ? '停用' : '启用' }}</span>
                 </div>
-                <tiny-divider direction="vertical"></tiny-divider>
-                <div class="option" @click="handleSetTemplate(item)">
+                <tiny-divider v-if="canManageApplication(item)" direction="vertical"></tiny-divider>
+                <div v-if="canManageApplication(item)" class="option" @click="handleSetTemplate(item)">
                   <span class="option-text">{{ item.isTemplate ? '取消模板' : '发布为模板' }}</span>
                 </div>
               </div>
@@ -85,13 +92,18 @@
               <tiny-button v-if="isApplicationEnabled(data.row)" type="text" @click="openApplication(data.row)">
                 开发应用
               </tiny-button>
-              <tiny-button v-if="isApplicationEnabled(data.row)" type="text" @click="handleDelete(data.row)">
+              <tiny-button v-if="canManageMembers(data.row)" type="text" @click="openMemberDialog(data.row)">成员管理</tiny-button>
+              <tiny-button
+                v-if="isApplicationEnabled(data.row) && canDeleteApplication(data.row)"
+                type="text"
+                @click="handleDelete(data.row)"
+              >
                 删除应用
               </tiny-button>
-              <tiny-button type="text" @click="handleEnableChange(data.row)">
+              <tiny-button v-if="canManageApplication(data.row)" type="text" @click="handleEnableChange(data.row)">
                 {{ isApplicationEnabled(data.row) ? '停用' : '启用' }}
               </tiny-button>
-              <tiny-button type="text" @click="handleSetTemplate(data.row)">
+              <tiny-button v-if="canManageApplication(data.row)" type="text" @click="handleSetTemplate(data.row)">
                 {{ data.row.isTemplate ? '取消模板' : '发布为模板' }}
               </tiny-button>
             </template>
@@ -111,6 +123,11 @@
       ></tiny-pager>
     </div>
     <app-dialog v-model:visible="state.appVisible" @confirm="confirmApp"></app-dialog>
+    <app-member-dialog
+      v-model:visible="state.memberVisible"
+      :application="state.memberApp"
+      :current-user-id="currentUserId"
+    ></app-member-dialog>
   </div>
 </template>
 
@@ -121,6 +138,7 @@ import { iconSearch } from '@opentiny/vue-icon'
 import { SearchEmpty } from '@opentiny/tiny-engine-common'
 import { getMetaApi, META_SERVICE } from '@opentiny/tiny-engine-meta-register'
 import AppDialog from './AppDialog.vue'
+import AppMemberDialog from './AppMemberDialog.vue'
 import { fetchApplicationList, createApplication, updateApplication, deleteApplication, setAppTemplate } from './js/http'
 import { applicationEnableUpdate, isApplicationEnabled } from './js/application-enable-state.mjs'
 
@@ -135,11 +153,14 @@ export default {
     TinySearch: Search,
     SearchEmpty,
     TinyIconSearch: iconSearch(),
-    AppDialog
+    AppDialog,
+    AppMemberDialog
   },
 
   setup() {
     const { getUserInfo } = getMetaApi(META_SERVICE.GlobalService)
+    const currentUserInfo = getUserInfo() || {}
+    const currentUserId = currentUserInfo.id || currentUserInfo.userId || ''
     const appList = ref([])
 
     const appFilterOptions = [
@@ -194,7 +215,9 @@ export default {
       pageSize: 10,
       currentPage: 1,
       pageSizes: [10, 20, 30, 40],
-      appVisible: false
+      appVisible: false,
+      memberVisible: false,
+      memberApp: null
     })
 
     const getApplicationList = () => {
@@ -218,8 +241,20 @@ export default {
       state.appVisible = true
     }
 
+    const canManageMembers = (application) => ['app_owner', 'app_admin'].includes(application?.currentRole)
+    const canManageApplication = (application) => ['app_owner', 'app_admin'].includes(application?.currentRole)
+    const canDeleteApplication = (application) => application?.currentRole === 'app_owner'
+
+    const openMemberDialog = (application) => {
+      if (!canManageMembers(application)) {
+        return
+      }
+      state.memberApp = application
+      state.memberVisible = true
+    }
+
     const handleDelete = (template) => {
-      if (!isApplicationEnabled(template)) {
+      if (!isApplicationEnabled(template) || !canDeleteApplication(template)) {
         return
       }
       Modal.confirm({
@@ -256,6 +291,9 @@ export default {
     }
 
     const handleEnableChange = (application) => {
+      if (!canManageApplication(application)) {
+        return
+      }
       const update = applicationEnableUpdate(application)
       const action = update.enable ? '启用' : '停用'
       Modal.confirm({
@@ -280,6 +318,9 @@ export default {
     }
 
     const handleSetTemplate = (application) => {
+      if (!canManageApplication(application)) {
+        return
+      }
       const action = application.isTemplate ? '取消模板' : '发布为模板'
       Modal.confirm({
         message: `确认${action}"${application.name}"？`,
@@ -361,12 +402,17 @@ export default {
       appFilterOptions,
       appOrderByOptions,
       arrangeOptions,
+      currentUserId,
       creatApp,
       getApplicationList,
       typeClick,
       handleDelete,
       handleEnableChange,
       handleSetTemplate,
+      canManageMembers,
+      canManageApplication,
+      canDeleteApplication,
+      openMemberDialog,
       isApplicationEnabled,
       openApplication,
       confirmApp,
@@ -477,6 +523,7 @@ export default {
     }
     .app-operation {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       gap: 10px;
       padding-top: 12px;
