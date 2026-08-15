@@ -67,8 +67,8 @@ public class TinyEngineMapperResourceTest {
 			.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
 		String content = readContent(resource);
 		assertFalse(content.contains("orderBy == 'create_time'"), "AppMapper 不得使用不存在的 create_time 排序字段");
-		assertEquals(2, count(content, "<when test=\"orderBy == 'created_time'\">A.created_time</when>"),
-			"普通应用与应用模板排序都必须支持 created_time");
+		assertEquals(3, count(content, "<when test=\"orderBy == 'created_time'\">A.created_time</when>"),
+			"角色过滤应用、兼容应用与应用模板排序都必须支持 created_time");
 	}
 
 	@Test
@@ -93,6 +93,68 @@ public class TinyEngineMapperResourceTest {
 			"AppMapper 必须将 enable 映射到应用实体");
 		assertTrue(content.contains("enable = #{enable}"), "AppMapper 必须支持更新应用启用状态");
 		assertTrue(content.contains(", enable"), "AppMapper 必须在查询和新增列中包含 enable");
+	}
+
+	@Test
+	public void visibleAppListShouldExposeCurrentUsersTrustedRole() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+			.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
+		String content = readContent(resource);
+		assertTrue(content.contains("<result column=\"current_role\" property=\"currentRole\"/>"),
+			"应用列表必须映射当前用户的可信应用角色");
+		assertTrue(content.contains("AS current_role"), "可见应用查询必须返回 current_role");
+		assertTrue(content.contains("UR_CURRENT.user_id = #{userId}"),
+			"current_role 必须按当前登录用户查询，不能由展示字段推断");
+	}
+
+	@Test
+	public void appDetailShouldExposeCurrentUsersTrustedRole() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+				.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
+		String content = readContent(resource);
+		assertTrue(content.contains("<select id=\"queryVisibleAppById\""),
+				"应用详情必须使用独立的当前用户可见查询");
+		assertTrue(content.contains("SELECT <include refid=\"Common_Column_List\"/>, <include refid=\"Current_Role_Column\"/>"),
+				"应用详情必须返回 current_role");
+		assertTrue(content.contains("A.id = #{appId} AND A.tenant_id = #{tenantId}"),
+				"应用详情必须同时按 appId 和 tenantId 隔离");
+	}
+
+	@Test
+	public void appMapperShouldLockOneTenantApplicationForAiImport() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+				.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
+		String content = readContent(resource);
+		assertTrue(content.contains("<select id=\"lockAppForUpdate\""),
+				"AppMapper 必须暴露导入串行化行锁");
+		assertTrue(content.contains("WHERE tenant_id = #{tenantId} AND id = #{appId}"),
+				"导入行锁必须同时按 tenantId 和 appId 限定");
+		assertTrue(content.contains("FOR UPDATE"), "导入行锁必须使用 FOR UPDATE");
+	}
+
+	@Test
+	public void aiModelMapperShouldPersistModelSettings() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+				.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AiModelConfigMapper.xml");
+		String content = readContent(resource);
+		assertTrue(content.contains("column=\"settings\" property=\"settings\""));
+		assertTrue(content.contains("name, label, capabilities, settings, enabled"));
+		assertTrue(content.contains("#{settings}"));
+	}
+
+	@Test
+	public void aiImportEmptyChecksShouldUseCurrentReads() throws Exception {
+		Resource serviceResource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+				.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AiModelServiceConfigMapper.xml");
+		Resource modelResource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+				.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AiModelConfigMapper.xml");
+		String serviceContent = readContent(serviceResource);
+		String modelContent = readContent(modelResource);
+
+		assertTrue(serviceContent.contains("<select id=\"findServicesForUpdate\""));
+		assertTrue(modelContent.contains("<select id=\"findModelsForUpdate\""));
+		assertTrue(serviceContent.contains("FOR UPDATE"), "服务空表检查必须使用当前读");
+		assertTrue(modelContent.contains("FOR UPDATE"), "模型空表检查必须使用当前读");
 	}
 
 	@Test

@@ -1,9 +1,20 @@
 package com.xiongx9527.fw.plus.ai.tinyengine;
 
+import com.sun.net.httpserver.HttpServer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.TinyEngineAiController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFacade;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webmvc.TinyEngineAppMvcController;
 import com.xiongx9527.fw.plus.tinyengine.mapper.ResourceMapper;
+import com.xiongx9527.fw.plus.tinyengine.mapper.AiModelServiceConfigMapper;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelInvocationConfig;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
+import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppService;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineCredential;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineLoginRequest;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineLoginResult;
@@ -14,6 +25,7 @@ import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineTenant;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineTenantCreateRequest;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineUnauthenticatedException;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineUserSystemService;
+import com.xiongx9527.fw.plus.mybatis.encrypt.interceptor.FieldEncryptInterceptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
@@ -21,11 +33,16 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,9 +54,11 @@ class TinyEngineAiSampleApplicationTest {
 	void startsWithTinyEnginePersistenceAndAiWebEndpoint() throws Exception {
 		Class<?> applicationClass = Class.forName(
 				"com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineAiSampleApplication");
-		try (ConfigurableApplicationContext context = new SpringApplication(applicationClass).run()) {
+		try (ConfigurableApplicationContext context = new SpringApplication(applicationClass)
+				.run("--fw.plus.tiny-engine.sql.auto-initialize=true")) {
 			assertThat(context.getBean(ResourceMapper.class)).isNotNull();
 			assertThat(context.getBean(TinyEngineAiController.class)).isNotNull();
+			assertThat(context.getBean(FieldEncryptInterceptor.class)).isNotNull();
 			int port = ((ServletWebServerApplicationContext) context).getWebServer().getPort();
 			HttpURLConnection connection = (HttpURLConnection) new URL(
 					"http://127.0.0.1:" + port + "/tiny-engine/index.html").openConnection();
@@ -47,7 +66,7 @@ class TinyEngineAiSampleApplicationTest {
 			connection.setReadTimeout(5000);
 
 			try {
-			assertAll(
+				assertAll(
 					() -> assertThat(context.getBeansOfType(TinyEngineApiFacade.class)).hasSize(1),
 					() -> assertThat(context.getBeansOfType(TinyEngineAppMvcController.class)).hasSize(1),
 					() -> assertThat(connection.getResponseCode()).isEqualTo(200),
@@ -55,8 +74,68 @@ class TinyEngineAiSampleApplicationTest {
 			} finally {
 				connection.disconnect();
 			}
+
+			JdbcTemplate jdbc = context.getBean(JdbcTemplate.class);
+			AppAiModelConfigService configService = context.getBean(AppAiModelConfigService.class);
+			AppService appService = context.getBean(AppService.class);
+			AiModelServiceConfigMapper serviceMapper = context.getBean(AiModelServiceConfigMapper.class);
+			jdbc.update("insert into t_user(username, email, enable, is_admin, is_public, tenant_id) "
+					+ "values (?, ?, ?, ?, ?, ?)", "ai-config-test-user", "ai-config-test@example.com",
+					Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, "system");
+			Integer creatorId = jdbc.queryForObject(
+					"select id from t_user where username = 'ai-config-test-user'", Integer.class);
+			jdbc.update("insert into t_app(name, code, platform_id, enable, tenant_id, created_by, last_updated_by) "
+					+ "values (?, ?, ?, ?, ?, ?, ?)", "AI Config Test", "ai-config-test", Integer.valueOf(1),
+					Boolean.TRUE, "system", String.valueOf(creatorId), String.valueOf(creatorId));
+			Integer appId = jdbc.queryForObject("select id from t_app where code = 'ai-config-test'", Integer.class);
+
+			AiModelServiceRequest serviceRequest = new AiModelServiceRequest();
+			serviceRequest.setServiceKey("test-openai");
+			serviceRequest.setProvider("openai");
+			serviceRequest.setLabel("Test OpenAI");
+			serviceRequest.setBaseUrl("https://example.invalid/v1");
+			serviceRequest.setApiKey("sample-placeholder-key");
+			serviceRequest.setAllowEmptyApiKey(Boolean.FALSE);
+			serviceRequest.setEnabled(Boolean.TRUE);
+			AiModelServiceDto created = configService.createService(appId, serviceRequest);
+
+			AiModelRequest modelRequest = new AiModelRequest();
+			modelRequest.setName("sample-model");
+			modelRequest.setLabel("Sample Model");
+			modelRequest.setCapabilities("{\"toolCalling\":true}");
+			modelRequest.setEnabled(Boolean.TRUE);
+			configService.addModel(appId, created.getId(), modelRequest);
+			AppAiModelSettings settings = new AppAiModelSettings();
+			settings.setDefaultModel(created.getId() + "::sample-model");
+			settings.setQuickModel(created.getId() + "::sample-model");
+			settings.setChatMode("chat");
+			settings.setEnableThinking(Boolean.TRUE);
+			configService.updateSettings(appId, settings);
+
+			String raw = jdbc.queryForObject("select api_key from t_ai_model_service where app_id = ?",
+					String.class, appId);
+			AiModelInvocationConfig invocation = configService.resolveInvocation(
+					appId, created.getId(), "sample-model");
+			AppAiModelSettings shared = configService.getSettings(appId);
+
+			assertAll(
+					() -> assertThat(raw).isNotEqualTo("sample-placeholder-key"),
+					() -> assertThat(serviceMapper.findService("system", appId, created.getId()).getApiKey())
+							.isEqualTo("sample-placeholder-key"),
+					() -> assertThat(invocation.getApiKey()).isEqualTo("sample-placeholder-key"),
+					() -> assertThat(shared.getDefaultModel()).isEqualTo("test-openai::sample-model"),
+					() -> assertThat(shared.getChatMode()).isEqualTo("chat"));
+
+			appService.deleteAppById(appId);
+			assertAll(
+					() -> assertThat(jdbc.queryForObject("select count(1) from t_ai_model where app_id = ?",
+							Integer.class, appId)).isZero(),
+					() -> assertThat(jdbc.queryForObject("select count(1) from t_ai_model_service where app_id = ?",
+							Integer.class, appId)).isZero(),
+							() -> assertThat(jdbc.queryForObject("select count(1) from t_app where id = ?",
+							Integer.class, appId)).isZero());
+			}
 		}
-	}
 
 	@Test
 	void platformInitializerRestoresOfficialDefaultPlatformWhenMissing() throws Exception {
@@ -84,6 +163,98 @@ class TinyEngineAiSampleApplicationTest {
 				() -> assertThat(jdbcTemplate.queryForObject(
 						"select count(1) from t_platform_history where id = 1 and ref_id = 1 and version = '1.0.0'",
 						Integer.class)).isEqualTo(Integer.valueOf(1)));
+	}
+
+	@Test
+	void appCenterChatUsesServerSideModelConfiguration() throws Exception {
+		AtomicReference<String> upstreamAuthorization = new AtomicReference<String>();
+		AtomicReference<String> upstreamRequest = new AtomicReference<String>();
+		HttpServer upstream = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+		upstream.createContext("/v1/chat/completions", exchange -> {
+			upstreamAuthorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
+			upstreamRequest.set(readString(exchange.getRequestBody()));
+			byte[] response = ("{\"id\":\"chatcmpl-sample\",\"object\":\"chat.completion\","
+					+ "\"created\":1,\"model\":\"sample-model\",\"choices\":[{\"index\":0,"
+					+ "\"message\":{\"role\":\"assistant\",\"content\":\"sample response\"},"
+					+ "\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":1,"
+					+ "\"completion_tokens\":1,\"total_tokens\":2}}")
+					.getBytes(StandardCharsets.UTF_8);
+			exchange.getResponseHeaders().set("Content-Type", "application/json");
+			exchange.sendResponseHeaders(200, response.length);
+			exchange.getResponseBody().write(response);
+			exchange.close();
+		});
+		upstream.start();
+		try {
+			Class<?> applicationClass = Class.forName(
+					"com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineAiSampleApplication");
+			try (ConfigurableApplicationContext context = new SpringApplication(applicationClass)
+					.run("--fw.plus.tiny-engine.sql.auto-initialize=true",
+							"--fw.plus.tiny-engine.web.base-path=/tiny-engine")) {
+				JdbcTemplate jdbc = context.getBean(JdbcTemplate.class);
+				AppAiModelConfigService configService = context.getBean(AppAiModelConfigService.class);
+				jdbc.update("insert into t_user(username, email, enable, is_admin, is_public, tenant_id) "
+						+ "values (?, ?, ?, ?, ?, ?)", "ai-route-test-user", "ai-route-test@example.com",
+						Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, "system");
+				Integer creatorId = jdbc.queryForObject(
+						"select id from t_user where username = 'ai-route-test-user'", Integer.class);
+				jdbc.update("insert into t_app(name, code, platform_id, enable, tenant_id, created_by, last_updated_by) "
+						+ "values (?, ?, ?, ?, ?, ?, ?)", "AI Route Test", "ai-route-test", Integer.valueOf(1),
+						Boolean.TRUE, "system", String.valueOf(creatorId), String.valueOf(creatorId));
+				Integer appId = jdbc.queryForObject("select id from t_app where code = 'ai-route-test'", Integer.class);
+
+				AiModelServiceRequest serviceRequest = new AiModelServiceRequest();
+				serviceRequest.setServiceKey("route-openai");
+				serviceRequest.setProvider("openai");
+				serviceRequest.setLabel("Route OpenAI");
+				serviceRequest.setBaseUrl("http://127.0.0.1:" + upstream.getAddress().getPort()
+						+ "/v1/chat/completions/");
+				serviceRequest.setApiKey("server-placeholder-key");
+				serviceRequest.setAllowEmptyApiKey(Boolean.FALSE);
+				serviceRequest.setEnabled(Boolean.TRUE);
+				AiModelServiceDto service = configService.createService(appId, serviceRequest);
+				AiModelRequest modelRequest = new AiModelRequest();
+				modelRequest.setName("sample-model");
+				modelRequest.setLabel("Sample Model");
+				modelRequest.setEnabled(Boolean.TRUE);
+				configService.addModel(appId, service.getId(), modelRequest);
+
+				int port = ((ServletWebServerApplicationContext) context).getWebServer().getPort();
+				HttpURLConnection connection = (HttpURLConnection) new URL(
+						"http://127.0.0.1:" + port
+								+ "/tiny-engine/app-center/api/chat/completions").openConnection();
+				connection.setRequestMethod("POST");
+				connection.setRequestProperty("Content-Type", "application/json");
+				connection.setDoOutput(true);
+				byte[] request = ("{\"appId\":" + appId + ",\"serviceId\":" + service.getId()
+						+ ",\"modelName\":\"sample-model\",\"model\":\"attacker-model\","
+						+ "\"baseUrl\":\"https://attacker.invalid/v1\",\"apiKey\":\"attacker-key\","
+						+ "\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}]}")
+						.getBytes(StandardCharsets.UTF_8);
+				connection.getOutputStream().write(request);
+				try {
+					int responseCode = connection.getResponseCode();
+					String responseBody = readString(connection.getInputStream());
+					JsonNode responseJson = new ObjectMapper().readTree(responseBody);
+					JsonNode forwarded = new ObjectMapper().readTree(upstreamRequest.get());
+					assertAll(
+							() -> assertThat(responseCode).isEqualTo(200),
+							() -> assertThat(connection.getContentType()).contains("application/json"),
+							() -> assertThat(responseJson.path("object").asText()).isEqualTo("chat.completion"),
+							() -> assertThat(responseJson.path("model").asText()).isEqualTo("sample-model"),
+							() -> assertThat(responseJson.path("choices").path(0).path("message")
+									.path("content").asText()).isEqualTo("sample response"),
+							() -> assertThat(upstreamAuthorization.get()).isEqualTo("Bearer server-placeholder-key"),
+							() -> assertThat(forwarded.path("model").asText()).isEqualTo("sample-model"),
+							() -> assertThat(upstreamRequest.get())
+									.doesNotContain("attacker-model", "attacker-key", "attacker.invalid"));
+				} finally {
+					connection.disconnect();
+				}
+			}
+		} finally {
+			upstream.stop(0);
+		}
 	}
 
 	@Test
@@ -196,6 +367,26 @@ class TinyEngineAiSampleApplicationTest {
 						new TinyEngineTenantCreateRequest(null, "forbidden")))
 						.isInstanceOf(TinyEngineUnauthenticatedException.class)
 						.hasMessageContaining("Tinybuilder_Admin"));
+	}
+
+	@Test
+	void sampleAdminInitializerWritesPermissionRoleCodes() throws Exception {
+		DriverManagerDataSource dataSource = new DriverManagerDataSource(
+				"jdbc:h2:mem:tiny_engine_permission_role_codes;MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		createAuthTables(jdbcTemplate);
+		TinyEngineSampleAuthConfiguration.SampleAuthProperties properties =
+				new TinyEngineSampleAuthConfiguration.SampleAuthProperties();
+		properties.getAdmin().setUsername("admin");
+		properties.getAdmin().setPassword("REDACTED");
+
+		new TinyEngineSampleAuthConfiguration().tinyEngineSampleAdminInitializer(jdbcTemplate, properties).run(null);
+
+		assertThat(jdbcTemplate.queryForList(
+				"select code from t_permission_role order by id", String.class))
+				.containsExactly("Tinybuilder_Admin", "Tinybuilder_Tenant_Admin",
+						"Tinybuilder_Platform_Admin", "Tinybuilder_App_Admin",
+						"Tinybuilder_App_Developer", "Guest");
 	}
 
 	@Test
@@ -343,6 +534,16 @@ class TinyEngineAiSampleApplicationTest {
 				() -> assertThat(pom).doesNotContain("<artifactId>sa-token-spring-boot-starter</artifactId>"));
 	}
 
+	private static String readString(InputStream input) throws IOException {
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		byte[] buffer = new byte[512];
+		int read;
+		while ((read = input.read(buffer)) >= 0) {
+			output.write(buffer, 0, read);
+		}
+		return new String(output.toByteArray(), StandardCharsets.UTF_8);
+	}
+
 	private void createAuthTables(JdbcTemplate jdbcTemplate) {
 		jdbcTemplate.execute("create table t_user (id int auto_increment primary key, username varchar(255), "
 				+ "password varchar(255), salt varchar(255), public_key varchar(255), email varchar(255), tenant_id varchar(60), "
@@ -352,8 +553,9 @@ class TinyEngineAiSampleApplicationTest {
 				+ "created_time timestamp, last_updated_time timestamp, org_code varchar(255), is_system boolean, "
 				+ "enable boolean not null default true)");
 		jdbcTemplate.execute("create table t_permission_role (id int primary key, name varchar(255), "
-				+ "role_type varchar(60), description varchar(2000), created_by varchar(60), created_time timestamp, "
-				+ "last_updated_by varchar(60), last_updated_time timestamp)");
+				+ "role_type varchar(60), code varchar(255) not null, description varchar(2000), "
+				+ "created_by varchar(60), created_time timestamp, last_updated_by varchar(60), "
+				+ "last_updated_time timestamp)");
 		jdbcTemplate.execute("create table r_auth_users_units_roles (id int auto_increment primary key, "
 				+ "user_id int, unit_id int, unit_type varchar(60), tenant_id int, role_id int, "
 				+ "expired_time timestamp, created_by varchar(60), created_time timestamp, "

@@ -25,6 +25,9 @@ class AskDataAgentGraphContractTest {
 		assertEquals("second-answer", new AskDataMultiQuestionResult(Arrays.asList(
 				new AskDataSubQuestionResult("q1", "first-answer"),
 				new AskDataSubQuestionResult("q2", "second-answer"))).getAnswer("q2"));
+		AskDataQuestionPlan compatiblePlan = new AskDataQuestionPlan(Arrays.asList("first", "second"));
+		assertEquals("question-1", compatiblePlan.getSubQuestions().get(0).getId());
+		assertEquals("question-2", compatiblePlan.getSubQuestions().get(1).getId());
 	}
 
 	@Test

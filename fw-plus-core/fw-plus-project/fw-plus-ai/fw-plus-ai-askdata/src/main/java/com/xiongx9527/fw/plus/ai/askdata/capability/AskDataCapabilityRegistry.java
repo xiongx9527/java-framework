@@ -32,6 +32,19 @@ public interface AskDataCapabilityRegistry {
 	AskDataCapabilityDescriptor get(String key);
 
 	/**
+	 * 按稳定 key、能力类别和 Core SPI 类型解析实际实现。
+	 *
+	 * <p>三项条件必须同时匹配。未知 key、类别不一致、Provider 返回空值或实现类型不兼容均立即失败，
+	 * 禁止静默回退到默认实现。</p>
+	 */
+	<T> T getCapability(String key, AskDataCapabilityType expectedType, Class<T> capabilityType);
+
+	/**
+	 * 列出指定类别的 Provider，顺序与描述符列表一致且不可修改。
+	 */
+	List<AskDataCapabilityProvider> listProviders(AskDataCapabilityType type);
+
+	/**
 	 * 列出指定类别的已注册能力。
 	 *
 	 * <p>返回结果不可修改，并按优先级降序、key 升序稳定排序，以保证各节点选择结果一致。</p>

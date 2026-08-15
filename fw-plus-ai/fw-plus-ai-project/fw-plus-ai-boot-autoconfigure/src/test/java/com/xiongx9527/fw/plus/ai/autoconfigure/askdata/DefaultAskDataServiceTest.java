@@ -4,6 +4,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.flow.AskDataFlowExecutor;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -79,6 +81,10 @@ public class DefaultAskDataServiceTest {
         AskDataResult legacyResult = new AskDataResult();
         legacyResult.setSuccess(true);
         legacyResult.setBrief("订单总数为 10");
+        legacyResult.setActualModelKey("provider-fallback");
+        legacyResult.setModelAttempts(Arrays.asList("primary", "fallback"));
+        legacyResult.setActualEmbeddingModelKey("provider-embedding");
+        legacyResult.setEmbeddingModelAttempts(Arrays.asList("embedding-primary", "provider-embedding"));
         flowExecutor.result = legacyResult;
         CoreAskDataServiceAdapter service = new CoreAskDataServiceAdapter(new DefaultAskDataService(flowExecutor));
         AskDataProjectContext projectContext = new AskDataProjectContext("project-a", "operator-a");
@@ -89,6 +95,11 @@ public class DefaultAskDataServiceTest {
 
         assertTrue(result.isSuccess());
         assertEquals("订单总数为 10", result.getAnswer());
+        assertEquals("provider-fallback", result.getActualModelKey());
+        assertEquals(Arrays.asList("primary", "fallback"), result.getModelAttempts());
+        assertEquals("provider-embedding", result.getActualEmbeddingModelKey());
+        assertEquals(Arrays.asList("embedding-primary", "provider-embedding"),
+                result.getEmbeddingModelAttempts());
         assertEquals(1, flowExecutor.calls);
         assertSame(projectContext, flowExecutor.request.getProjectContext());
         assertEquals("project-a", flowExecutor.request.getProjectContext().getProjectId());
@@ -98,8 +109,11 @@ public class DefaultAskDataServiceTest {
     @Test
     public void shouldAdaptLegacyFailureToCoreError() {
         RecordingFlowExecutor flowExecutor = new RecordingFlowExecutor();
-        flowExecutor.result = AskDataResult.failure(AskDataErrorCode.SQL_REJECTED,
+        AskDataResult legacyFailure = AskDataResult.failure(AskDataErrorCode.SQL_REJECTED,
                 "JDBC execute failed: select * from confidential_orders");
+        legacyFailure.setActualEmbeddingModelKey("provider-embedding");
+        legacyFailure.setEmbeddingModelAttempts(Arrays.asList("embedding-primary", "provider-embedding"));
+        flowExecutor.result = legacyFailure;
         CoreAskDataServiceAdapter service = new CoreAskDataServiceAdapter(new DefaultAskDataService(flowExecutor));
 
         com.xiongx9527.fw.plus.ai.askdata.api.AskDataResult result = service.ask(
@@ -107,6 +121,9 @@ public class DefaultAskDataServiceTest {
                         new AskDataProjectContext("project-a", "operator-a"), "删除订单"));
 
         assertFalse(result.isSuccess());
+        assertEquals("provider-embedding", result.getActualEmbeddingModelKey());
+        assertEquals(Arrays.asList("embedding-primary", "provider-embedding"),
+                result.getEmbeddingModelAttempts());
         assertEquals(AskDataErrorCode.SQL_REJECTED, result.getError().getCode());
         assertEquals("问数执行失败，请查看监控日志", result.getError().getMessage());
         assertFalse(result.getError().getMessage().contains("JDBC"));

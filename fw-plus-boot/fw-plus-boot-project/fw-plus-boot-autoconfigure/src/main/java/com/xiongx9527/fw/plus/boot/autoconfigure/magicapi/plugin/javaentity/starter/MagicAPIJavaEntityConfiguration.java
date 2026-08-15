@@ -6,6 +6,7 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.modu
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.runtime.DynamicEntityRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.service.JavaEntityMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.javaentity.service.JavaEntityMagicResourceStorage;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,29 +24,31 @@ import org.ssssssss.magicapi.core.config.MagicConfiguration;
 public class MagicAPIJavaEntityConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(name = "javaEntitySourceAnalyzer")
     public JavaSourceAnalyzer javaEntitySourceAnalyzer() {
         return new JavaSourceAnalyzer();
     }
 
     @Bean
-    @ConditionalOnMissingBean
+    @ConditionalOnMissingBean(name = "inMemoryJavaEntityCompiler")
     public InMemoryJavaEntityCompiler inMemoryJavaEntityCompiler() {
         return new InMemoryJavaEntityCompiler();
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public DynamicEntityRegistry dynamicEntityRegistry(JavaSourceAnalyzer analyzer,
-                                                       InMemoryJavaEntityCompiler compiler,
-                                                       JavaEntityProperties properties) {
+    public DynamicEntityRegistry dynamicEntityRegistry(
+            @Qualifier("javaEntitySourceAnalyzer") JavaSourceAnalyzer analyzer,
+            @Qualifier("inMemoryJavaEntityCompiler") InMemoryJavaEntityCompiler compiler,
+            JavaEntityProperties properties) {
         return new DynamicEntityRegistry(analyzer, compiler, properties);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public JavaEntityMagicResourceStorage javaEntityMagicResourceStorage(JavaSourceAnalyzer analyzer,
-                                                                         DynamicEntityRegistry registry) {
+    public JavaEntityMagicResourceStorage javaEntityMagicResourceStorage(
+            @Qualifier("javaEntitySourceAnalyzer") JavaSourceAnalyzer analyzer,
+            DynamicEntityRegistry registry) {
         return new JavaEntityMagicResourceStorage(analyzer, registry);
     }
 

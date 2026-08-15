@@ -82,13 +82,25 @@ class DynamicEntityDescriptorTest {
     void propertyMetadataDoesNotRetainRetiredGenerationClassLoader() throws Exception {
         WeakReference<ClassLoader> classLoader = createAndReleaseGeneration();
 
-        for (int attempt = 0; attempt < 40 && classLoader.get() != null; attempt++) {
-            System.gc();
-            System.runFinalization();
-            Thread.sleep(25L);
-        }
+        awaitCollection(classLoader);
 
         assertNull(classLoader.get(), "属性元数据不应通过全局缓存固定退休代际 ClassLoader");
+    }
+
+    @Test
+    void liveRegistryDoesNotRetainThePreviousGenerationClassLoader() throws Exception {
+        DynamicEntityRegistry registry = new DynamicEntityRegistry(
+                new JavaSourceAnalyzer(), new InMemoryJavaEntityCompiler());
+        try {
+            WeakReference<ClassLoader> retired = replaceGeneration(registry);
+
+            awaitCollection(retired);
+
+            assertNull(retired.get(), "当前注册表不应固定已经退休的代际 ClassLoader");
+            assertEquals(2L, registry.currentVersion());
+        } finally {
+            registry.close();
+        }
     }
 
     private static WeakReference<ClassLoader> createAndReleaseGeneration() {
@@ -108,6 +120,31 @@ class DynamicEntityDescriptorTest {
             return new WeakReference<>(descriptor.javaClass().getClassLoader());
         } finally {
             registry.close();
+        }
+    }
+
+    private static WeakReference<ClassLoader> replaceGeneration(DynamicEntityRegistry registry) {
+        JavaEntityInfo first = new JavaEntityInfo();
+        first.setId("User");
+        first.setName("User");
+        first.setScript("package retired; public class User { public String first; }");
+        assertTrue(registry.rebuild(Collections.singletonList(first)));
+        WeakReference<ClassLoader> retired = new WeakReference<>(
+                registry.resolve("User").javaClass().getClassLoader());
+
+        JavaEntityInfo second = new JavaEntityInfo();
+        second.setId("User");
+        second.setName("User");
+        second.setScript("package retired; public class User { public String second; }");
+        assertTrue(registry.rebuild(Collections.singletonList(second)));
+        return retired;
+    }
+
+    private static void awaitCollection(WeakReference<?> reference) throws InterruptedException {
+        for (int attempt = 0; attempt < 40 && reference.get() != null; attempt++) {
+            System.gc();
+            System.runFinalization();
+            Thread.sleep(25L);
         }
     }
 

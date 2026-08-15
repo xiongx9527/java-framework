@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.sql;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataColumn;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.AskDataResult;
@@ -18,6 +19,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataRetrievedDo
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorQuery;
 import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever;
 import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityRegistry;
+import com.xiongx9527.fw.plus.ai.askdata.capability.AskDataCapabilityType;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAdministrativeScope;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationPurpose;
 import com.xiongx9527.fw.plus.ai.askdata.security.AskDataAuthorizationRequest;
@@ -29,6 +32,9 @@ import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlCommand;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptor;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlInterceptorChain;
 import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlParameter;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlPhase;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlResult;
+import com.xiongx9527.fw.plus.ai.askdata.sql.AskDataSqlResultMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -36,7 +42,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -60,6 +68,19 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
 
             assertEquals("select * from orders where tenant_id = :tenantId", rewritten.getSql());
             assertEquals("tenant-1", rewritten.getParameter("tenantId").getValue());
+        } finally {
+            context.close();
+        }
+    }
+
+    @Test
+    public void shouldRegisterSqlPluginInCoreCapabilityRegistry() {
+        AnnotationConfigApplicationContext context = context(TenantInterceptorConfiguration.class);
+        try {
+            AskDataCapabilityRegistry registry = context.getBean(AskDataCapabilityRegistry.class);
+
+            assertEquals(1, registry.list(AskDataCapabilityType.SQL_PLUGIN).size());
+            assertEquals("tenant-predicate", registry.list(AskDataCapabilityType.SQL_PLUGIN).get(0).getKey());
         } finally {
             context.close();
         }
@@ -129,7 +150,7 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
             List<AskDataSqlAudit.Record> records = context.getBean(AskDataSqlAudit.class).getRecords();
             assertEquals(2, records.size());
             assertEquals("tenant-predicate", records.get(0).getInterceptorKey());
-            assertEquals("INTERCEPT", records.get(0).getPhase());
+            assertEquals("REWRITE", records.get(0).getPhase());
             assertEquals("validator", records.get(1).getInterceptorKey());
             assertEquals("FINAL_VALIDATE", records.get(1).getPhase());
         } finally {
@@ -201,6 +222,39 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
             assertFalse(result.isSuccess());
             assertTrue(result.getErrorMessage().contains("metadata denied"));
             assertNull(context.getBean(CapturingSqlExecutor.class).getExecutedSql());
+        } finally {
+            context.close();
+        }
+    }
+
+    @Test
+    public void shouldPassPluginAddedNamedParameterToExecutionCommand() {
+        AnnotationConfigApplicationContext context = flowContext(PluginParameterConfiguration.class);
+        try {
+            AskDataResult result = context.getBean(AskDataFlowExecutor.class).execute(request());
+
+            assertTrue(result.isSuccess());
+            AskDataSqlCommand executedCommand = context.getBean(CapturingSqlExecutor.class).getExecutedCommand();
+            assertNotNull(executedCommand);
+            assertEquals("organization-1", executedCommand.getParameter("organizationId").getValue());
+            assertTrue(executedCommand.getSql().contains(":organizationId"));
+        } finally {
+            context.close();
+        }
+    }
+
+    @Test
+    public void shouldMapStructuredResultAfterExecutionWithoutChangingRowCount() {
+        AnnotationConfigApplicationContext context = flowContext(ResultMapperConfiguration.class);
+        try {
+            AskDataResult result = context.getBean(AskDataFlowExecutor.class).execute(request());
+
+            assertTrue(result.isSuccess());
+            assertEquals("mapped", result.getRows().get(0).get("value"));
+            assertEquals(Integer.valueOf(1), result.getRowCount());
+            List<AskDataSqlAudit.Record> records = context.getBean(AskDataSqlAudit.class).getRecords();
+            assertEquals("result-mapper", records.get(records.size() - 1).getInterceptorKey());
+            assertEquals("RESULT_MAP", records.get(records.size() - 1).getPhase());
         } finally {
             context.close();
         }
@@ -391,6 +445,40 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
     }
 
     @Configuration
+    static class PluginParameterConfiguration {
+
+        @Bean
+        public AskDataSqlInterceptor organizationParameterInterceptor() {
+            return new AskDataSqlInterceptor() {
+                @Override public String getKey() { return "organization-parameter"; }
+                @Override public int getOrder() { return 1; }
+                @Override public AskDataSqlPhase getPhase() { return AskDataSqlPhase.BIND_PARAMETERS; }
+                @Override public AskDataSqlCommand intercept(AskDataSqlCommand command) {
+                    return command.withSql(command.getSql() + " where organization_id = :organizationId")
+                            .withParameter(AskDataSqlParameter.of("organizationId", "organization-1"));
+                }
+            };
+        }
+    }
+
+    @Configuration
+    static class ResultMapperConfiguration {
+
+        @Bean
+        public AskDataSqlResultMapper resultMapper() {
+            return new AskDataSqlResultMapper() {
+                @Override public String getKey() { return "result-mapper"; }
+                @Override public int getOrder() { return 1; }
+                @Override public AskDataSqlResult map(AskDataSqlCommand command, AskDataSqlResult result) {
+                    Map<String, Object> row = new LinkedHashMap<String, Object>();
+                    row.put("value", "mapped");
+                    return result.withRows(Collections.<Map<String, Object>>singletonList(row));
+                }
+            };
+        }
+    }
+
+    @Configuration
     static class PermissiveCoreValidatorConfiguration {
 
         @Bean
@@ -553,15 +641,33 @@ public class AskDataSqlInterceptorAutoConfigurationTest {
     static class CapturingSqlExecutor implements AskDataSqlExecutor {
 
         private String executedSql;
+        private AskDataSqlCommand executedCommand;
 
         @Override
         public AskDataSqlExecutionResult execute(AskDataRequest request, String sql) {
             executedSql = sql;
-            return AskDataSqlExecutionResult.success(Collections.emptyList(), Collections.emptyList());
+            AskDataColumn column = new AskDataColumn();
+            column.setName("value");
+            column.setLabel("Value");
+            column.setType("varchar");
+            Map<String, Object> row = new LinkedHashMap<String, Object>();
+            row.put("value", "raw");
+            return AskDataSqlExecutionResult.success(Collections.singletonList(column),
+                    Collections.<Map<String, Object>>singletonList(row));
+        }
+
+        @Override
+        public AskDataSqlExecutionResult execute(AskDataRequest request, AskDataSqlCommand command) {
+            executedCommand = command;
+            return execute(request, command.getSql());
         }
 
         String getExecutedSql() {
             return executedSql;
+        }
+
+        AskDataSqlCommand getExecutedCommand() {
+            return executedCommand;
         }
     }
 }

@@ -13,6 +13,11 @@ public final class AskDataErrorCode {
     public static final String RESUME_FAILED = "RESUME_FAILED";
     public static final String CHECKPOINT_NOT_FOUND = "CHECKPOINT_NOT_FOUND";
     public static final String CONTEXT_COMPRESSION_FAILED = "CONTEXT_COMPRESSION_FAILED";
+    public static final String SUBQUESTION_FAILED = "SUBQUESTION_FAILED";
+    public static final String SUBQUESTION_TIMED_OUT = "SUBQUESTION_TIMED_OUT";
+    public static final String SUBQUESTION_CANCELLED = "SUBQUESTION_CANCELLED";
+    public static final String SUBQUESTION_SKIPPED = "SUBQUESTION_SKIPPED";
+    public static final String INTERFACE_PUBLISH_FAILED = "INTERFACE_PUBLISH_FAILED";
 
     private AskDataErrorCode() {
     }

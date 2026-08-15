@@ -2,6 +2,13 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelImportRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberRoleRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockBuildDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockParam;
@@ -34,7 +41,9 @@ import com.xiongx9527.fw.plus.tinyengine.model.entity.Tenant;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.User;
 import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineUnsupportedCapabilityException;
 import com.xiongx9527.fw.plus.tinyengine.service.AppExtensionService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
 import com.xiongx9527.fw.plus.tinyengine.service.AppService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppRoleService;
 import com.xiongx9527.fw.plus.tinyengine.service.AppTemplateService;
 import com.xiongx9527.fw.plus.tinyengine.service.BlockGroupService;
 import com.xiongx9527.fw.plus.tinyengine.service.BlockService;
@@ -74,6 +83,8 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 	private final PageHistoryService pageHistoryService;
 	private final TaskRecordService taskRecordService;
 	private final TinyEngineExternalCapability externalCapability;
+	private final AppRoleService appRoleService;
+	private final AppAiModelConfigService appAiModelConfigService;
 
 	public DefaultTinyEngineApiFacade(AppService appService, PageService pageService) {
 		this(appService, pageService, null, null, null, null, null, null, null, null, null, null, null,
@@ -107,6 +118,32 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 			ResourceGroupService resourceGroupService, ResourceService resourceService, I18nEntryService i18nEntryService,
 			AppExtensionService appExtensionService, CanvasService canvasService, PageHistoryService pageHistoryService,
 			TaskRecordService taskRecordService, TinyEngineExternalCapability externalCapability) {
+		this(appService, pageService, blockService, blockGroupService, businessCategoryService, modelService,
+				datasourceService, appTemplateService, resourceGroupService, resourceService, i18nEntryService,
+				appExtensionService, canvasService, pageHistoryService, taskRecordService, externalCapability, null, null);
+	}
+
+	public DefaultTinyEngineApiFacade(AppService appService, PageService pageService, BlockService blockService,
+			BlockGroupService blockGroupService, BusinessCategoryService businessCategoryService,
+			ModelService modelService, DatasourceService datasourceService, AppTemplateService appTemplateService,
+			ResourceGroupService resourceGroupService, ResourceService resourceService,
+			I18nEntryService i18nEntryService, AppExtensionService appExtensionService, CanvasService canvasService,
+			PageHistoryService pageHistoryService, TaskRecordService taskRecordService,
+			TinyEngineExternalCapability externalCapability, AppRoleService appRoleService) {
+		this(appService, pageService, blockService, blockGroupService, businessCategoryService, modelService,
+				datasourceService, appTemplateService, resourceGroupService, resourceService, i18nEntryService,
+				appExtensionService, canvasService, pageHistoryService, taskRecordService, externalCapability,
+				appRoleService, null);
+	}
+
+	public DefaultTinyEngineApiFacade(AppService appService, PageService pageService, BlockService blockService,
+			BlockGroupService blockGroupService, BusinessCategoryService businessCategoryService,
+			ModelService modelService, DatasourceService datasourceService, AppTemplateService appTemplateService,
+			ResourceGroupService resourceGroupService, ResourceService resourceService,
+			I18nEntryService i18nEntryService, AppExtensionService appExtensionService, CanvasService canvasService,
+			PageHistoryService pageHistoryService, TaskRecordService taskRecordService,
+			TinyEngineExternalCapability externalCapability, AppRoleService appRoleService,
+			AppAiModelConfigService appAiModelConfigService) {
 		this.appService = appService;
 		this.pageService = pageService;
 		this.blockService = blockService;
@@ -123,6 +160,8 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 		this.pageHistoryService = pageHistoryService;
 		this.taskRecordService = taskRecordService;
 		this.externalCapability = externalCapability;
+		this.appRoleService = appRoleService;
+		this.appAiModelConfigService = appAiModelConfigService;
 	}
 
 	@Override
@@ -148,13 +187,102 @@ public class DefaultTinyEngineApiFacade implements TinyEngineApiFacade {
 	}
 
 	@Override
+	public List<AppMemberDto> appMembers(Integer appId) {
+		return requiredAppRoleService().members(appId);
+	}
+
+	@Override
+	public AppMemberDto addAppMember(Integer appId, AppMemberRoleRequest request) {
+		return requiredAppRoleService().addMember(appId, request);
+	}
+
+	@Override
+	public AppMemberDto changeAppMember(Integer appId, String userId, AppMemberRoleRequest request) {
+		return requiredAppRoleService().changeMember(appId, userId, request);
+	}
+
+	@Override
+	public void removeAppMember(Integer appId, String userId) {
+		requiredAppRoleService().removeMember(appId, userId);
+	}
+
+	@Override
+	public List<AiModelServiceDto> usableAiModelServices(Integer appId) {
+		return requiredAppAiModelConfigService().listUsable(appId);
+	}
+
+	@Override
+	public List<AiModelServiceDto> manageableAiModelServices(Integer appId) {
+		return requiredAppAiModelConfigService().listManageable(appId);
+	}
+
+	@Override
+	public AppAiModelSettings aiModelSettings(Integer appId) {
+		return requiredAppAiModelConfigService().getSettings(appId);
+	}
+
+	@Override
+	public AppAiModelSettings updateAiModelSettings(Integer appId, AppAiModelSettings settings) {
+		return requiredAppAiModelConfigService().updateSettings(appId, settings);
+	}
+
+	@Override
+	public AiModelServiceDto createAiModelService(Integer appId, AiModelServiceRequest request) {
+		return requiredAppAiModelConfigService().createService(appId, request);
+	}
+
+	@Override
+	public AiModelServiceDto updateAiModelService(Integer appId, Long serviceId, AiModelServiceRequest request) {
+		return requiredAppAiModelConfigService().updateService(appId, serviceId, request);
+	}
+
+	@Override
+	public void deleteAiModelService(Integer appId, Long serviceId) {
+		requiredAppAiModelConfigService().deleteService(appId, serviceId);
+	}
+
+	@Override
+	public AiModelServiceDto addAiModel(Integer appId, Long serviceId, AiModelRequest request) {
+		return requiredAppAiModelConfigService().addModel(appId, serviceId, request);
+	}
+
+	@Override
+	public AiModelServiceDto updateAiModel(Integer appId, Long serviceId, Long modelId, AiModelRequest request) {
+		return requiredAppAiModelConfigService().updateModel(appId, serviceId, modelId, request);
+	}
+
+	@Override
+	public void deleteAiModel(Integer appId, Long serviceId, Long modelId) {
+		requiredAppAiModelConfigService().deleteModel(appId, serviceId, modelId);
+	}
+
+	@Override
+	public List<AiModelServiceDto> importAiModelServices(Integer appId, AiModelImportRequest request) {
+		return requiredAppAiModelConfigService().importLocal(appId, request);
+	}
+
+	private AppRoleService requiredAppRoleService() {
+		if (appRoleService == null) {
+			throw new TinyEngineUnsupportedCapabilityException("TinyEngine 应用成员管理能力未配置");
+		}
+		return appRoleService;
+	}
+
+	private AppAiModelConfigService requiredAppAiModelConfigService() {
+		if (appAiModelConfigService == null) {
+			throw new TinyEngineUnsupportedCapabilityException("TinyEngine 应用 AI 模型配置能力未配置");
+		}
+		return appAiModelConfigService;
+	}
+
+	@Override
 	public Object saveApp(Integer id, Map<String, Object> request) {
 		return appService.saveApp(id, request);
 	}
 
 	@Override
-	public Map<String, Object> publishApp(Integer id, Map<String, Object> request) {
-		throw new TinyEngineUnsupportedCapabilityException("TinyEngine 应用发布能力未配置");
+	public Object publishApp(Integer id, Map<String, Object> request) {
+		return appService.publishApp(id, request);
 	}
 
 	@Override

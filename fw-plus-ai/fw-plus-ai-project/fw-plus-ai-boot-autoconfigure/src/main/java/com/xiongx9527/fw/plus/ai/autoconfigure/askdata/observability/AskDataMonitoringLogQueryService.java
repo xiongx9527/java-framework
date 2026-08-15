@@ -21,6 +21,7 @@ import java.util.UUID;
 public class AskDataMonitoringLogQueryService {
 
     public static final String MONITORING_LOG_DATASOURCE = "askdata-monitoring-log";
+    public static final String GOVERNANCE_CAPABILITY = "governance";
 
     private final AskDataMonitoringLogStore store;
     private final AskDataMonitoringLogAccessPolicy accessPolicy;
@@ -80,7 +81,9 @@ public class AskDataMonitoringLogQueryService {
                 + ",authorizationSource=" + authorizationSummary.getAuthorizationSource()
                 + ",traceFilter=" + traceFilterSummary(query);
         store.append(requester, new AskDataMonitoringLogStore.MonitoringLog(requester, null,
-                "MONITORING_LOG_QUERY", auditMessage));
+                "MONITORING_LOG_QUERY", auditMessage, MONITORING_LOG_DATASOURCE, null,
+                authorizationSummary.getAuthorizationVersion(), authorizationSummary.getAuthorizationSource(),
+                GOVERNANCE_CAPABILITY, AskDataAuthorizationPurpose.MONITORING_LOG_QUERY));
         return result;
     }
 
@@ -97,7 +100,10 @@ public class AskDataMonitoringLogQueryService {
         }
         AskDataMonitoringLog monitoringLog = new AskDataMonitoringLog(log.getContext(), log.getTraceId(),
                 eventType, log.getMessage(), log.getDatasourceKey(), log.getDenialCode(),
-                log.getAuthorizationVersion(), log.getAuthorizationSource());
+                log.getAuthorizationVersion(), log.getAuthorizationSource(), log.getCapabilityKey(),
+                log.getPurposeKey(), log.getModelType(), log.getModelKey(), log.getModelRoutePolicy(),
+                log.getModelState(), log.getModelFailureCode(), log.getModelSwitchReason(), log.getActualModelKey(),
+                log.getModelUsage(), log.getCorrelation(), log.getModelRouteReason());
         return accessPolicy.canRead(requester, administrativeScope, monitoringLog);
     }
 
@@ -113,7 +119,8 @@ public class AskDataMonitoringLogQueryService {
         String source = providerError || authorizationSummary == null
                 ? "governance-provider-error" : authorizationSummary.getAuthorizationSource();
         AskDataEventPublisher.toStore(store).publish(AskDataEvent.governanceDenied(requester,
-                UUID.randomUUID().toString(), MONITORING_LOG_DATASOURCE, denialCode, version, source));
+                UUID.randomUUID().toString(), MONITORING_LOG_DATASOURCE, denialCode, version, source,
+                GOVERNANCE_CAPABILITY, AskDataAuthorizationPurpose.MONITORING_LOG_QUERY));
     }
 
     private String traceFilterSummary(AskDataMonitoringLogQuery query) {

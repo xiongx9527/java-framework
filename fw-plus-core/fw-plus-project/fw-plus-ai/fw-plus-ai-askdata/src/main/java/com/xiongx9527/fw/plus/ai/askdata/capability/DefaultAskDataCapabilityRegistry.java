@@ -19,6 +19,7 @@ public class DefaultAskDataCapabilityRegistry implements AskDataCapabilityRegist
 	private final String coreVersion;
 	private final boolean clusterEnabled;
 	private final Map<String, AskDataCapabilityDescriptor> descriptors = new LinkedHashMap<String, AskDataCapabilityDescriptor>();
+	private final Map<String, AskDataCapabilityProvider> providers = new LinkedHashMap<String, AskDataCapabilityProvider>();
 
 	/**
 	 * 创建不包含初始 Provider 的能力注册表。
@@ -80,6 +81,7 @@ public class DefaultAskDataCapabilityRegistry implements AskDataCapabilityRegist
 			throw new IllegalArgumentException("集群模式不支持该能力: " + descriptor.getKey());
 		}
 		descriptors.put(descriptor.getKey(), descriptor);
+		providers.put(descriptor.getKey(), provider);
 	}
 
 	@Override
@@ -89,6 +91,35 @@ public class DefaultAskDataCapabilityRegistry implements AskDataCapabilityRegist
 			throw new IllegalArgumentException("未知能力 key: " + key + "，可用 key: " + descriptors.keySet());
 		}
 		return descriptor;
+	}
+
+	@Override
+	public synchronized <T> T getCapability(String key, AskDataCapabilityType expectedType, Class<T> capabilityType) {
+		if (expectedType == null || capabilityType == null) {
+			throw new IllegalArgumentException("expectedType 和 capabilityType 不能为空");
+		}
+		AskDataCapabilityDescriptor descriptor = get(key);
+		if (descriptor.getType() != expectedType) {
+			throw new IllegalArgumentException("能力类型不匹配: key=" + key + "，期望=" + expectedType
+					+ "，实际=" + descriptor.getType());
+		}
+		AskDataCapabilityProvider provider = providers.get(descriptor.getKey());
+		Object capability = provider == null ? null : provider.getCapability();
+		if (!capabilityType.isInstance(capability)) {
+			throw new IllegalArgumentException("能力实现类型不匹配: key=" + key + "，配置命名空间="
+					+ descriptor.getConfigurationNamespace() + "，期望=" + capabilityType.getName() + "，实际="
+					+ (capability == null ? "null" : capability.getClass().getName()));
+		}
+		return capabilityType.cast(capability);
+	}
+
+	@Override
+	public synchronized List<AskDataCapabilityProvider> listProviders(AskDataCapabilityType type) {
+		List<AskDataCapabilityProvider> result = new ArrayList<AskDataCapabilityProvider>();
+		for (AskDataCapabilityDescriptor descriptor : list(type)) {
+			result.add(providers.get(descriptor.getKey()));
+		}
+		return Collections.unmodifiableList(result);
 	}
 
 	@Override

@@ -111,11 +111,56 @@ public class AskDataCapabilityRegistryTest {
 		});
 	}
 
+	@Test
+	public void shouldResolveTypedCapabilityInstanceByStableKey() {
+		final Runnable capability = new Runnable() {
+			@Override
+			public void run() {
+			}
+		};
+		DefaultAskDataCapabilityRegistry registry = new DefaultAskDataCapabilityRegistry("1.0", false);
+		registry.register(provider(descriptor("business-store", AskDataCapabilityType.STORE, "1.0", "1.0", "1.0",
+				10, true, "business.askdata.store"), capability));
+
+		assertEquals(capability, registry.getCapability("business-store", AskDataCapabilityType.STORE, Runnable.class));
+		assertEquals("business.askdata.store", registry.get("business-store").getConfigurationNamespace());
+	}
+
+	@Test
+	public void shouldRejectCapabilityTypeOrImplementationMismatch() {
+		DefaultAskDataCapabilityRegistry registry = new DefaultAskDataCapabilityRegistry("1.0", false);
+		registry.register(provider(descriptor("business-store", AskDataCapabilityType.STORE, "1.0", "1.0", "1.0",
+				10, true, "business.askdata.store"), "not-a-store"));
+
+		assertIllegalArgument("能力类型", new Runnable() {
+			@Override
+			public void run() {
+				registry.getCapability("business-store", AskDataCapabilityType.MODEL, String.class);
+			}
+		});
+		assertIllegalArgument("实现类型", new Runnable() {
+			@Override
+			public void run() {
+				registry.getCapability("business-store", AskDataCapabilityType.STORE, Runnable.class);
+			}
+		});
+	}
+
 	private static AskDataCapabilityProvider provider(final AskDataCapabilityDescriptor descriptor) {
+		return provider(descriptor, null);
+	}
+
+	private static AskDataCapabilityProvider provider(final AskDataCapabilityDescriptor descriptor,
+			final Object capability) {
 		return new AskDataCapabilityProvider() {
 			@Override
 			public AskDataCapabilityDescriptor getDescriptor() {
 				return descriptor;
+			}
+
+			@Override
+			public Object getCapability() {
+				return capability == null ? this : capability;
 			}
 		};
 	}
@@ -124,6 +169,13 @@ public class AskDataCapabilityRegistryTest {
 			String minimumCoreVersion, String maximumCoreVersion, int priority, boolean clusterCompatible) {
 		return new AskDataCapabilityDescriptor(key, type, version, minimumCoreVersion, maximumCoreVersion, priority,
 				clusterCompatible);
+	}
+
+	private static AskDataCapabilityDescriptor descriptor(String key, AskDataCapabilityType type, String version,
+			String minimumCoreVersion, String maximumCoreVersion, int priority, boolean clusterCompatible,
+			String configurationNamespace) {
+		return new AskDataCapabilityDescriptor(key, type, version, minimumCoreVersion, maximumCoreVersion, priority,
+				clusterCompatible, configurationNamespace);
 	}
 
 	private static void assertIllegalArgument(String messagePart, Runnable action) {

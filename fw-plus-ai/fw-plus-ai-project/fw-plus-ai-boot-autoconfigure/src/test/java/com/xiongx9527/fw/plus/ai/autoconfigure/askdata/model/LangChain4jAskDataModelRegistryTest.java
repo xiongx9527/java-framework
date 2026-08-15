@@ -30,12 +30,13 @@ import java.util.concurrent.TimeoutException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
 public class LangChain4jAskDataModelRegistryTest {
 
 	@Test
-	public void shouldUseOllamaDefaultLogicalKeysForChatAndEmbeddingModels() {
+	public void shouldNotSelectProviderOrModelKeysByDefault() {
 		AskDataProperties properties = new AskDataProperties();
 		Map<String, ChatLanguageModel> chatModels = new HashMap<String, ChatLanguageModel>();
 		chatModels.put("qwen3:32b", chatModel("ollama-chat"));
@@ -44,10 +45,8 @@ public class LangChain4jAskDataModelRegistryTest {
 
 		AskDataModelRegistry registry = registry(properties, modelRegistry(chatModels, embeddingModels));
 
-		assertEquals("qwen3:32b", registry.getDefaultChatModelKey());
-		assertEquals("bge-m3", registry.getDefaultEmbeddingModelKey());
-		assertEquals("ollama-chat", registry.getChatModel(null).generate("question").getText());
-		assertEquals(java.util.Arrays.asList(0.1F, 0.2F), registry.getEmbeddingModel(null).embed("question"));
+		assertNull(registry.getDefaultChatModelKey());
+		assertNull(registry.getDefaultEmbeddingModelKey());
 	}
 
 	@Test

@@ -3,7 +3,11 @@
     <div class="login-title">欢迎登录</div>
     <tiny-form ref="ruleFormRef" :model="state.loginData">
       <tiny-form-item prop="username">
-        <tiny-input v-model="state.loginData.username" placeholder="请输入用户名"></tiny-input>
+        <tiny-input
+          v-model="state.loginData.username"
+          placeholder="请输入用户名"
+          @keyup.enter="handleLogin"
+        ></tiny-input>
       </tiny-form-item>
       <tiny-form-item prop="password">
         <tiny-input
@@ -11,6 +15,7 @@
           type="password"
           show-password
           placeholder="请输入密码"
+          @keyup.enter="handleLogin"
         ></tiny-input>
       </tiny-form-item>
       <tiny-form-item>
@@ -56,6 +61,10 @@ export default {
     })
 
     const handleLogin = () => {
+      if (!isReady.value) {
+        return
+      }
+
       getMetaApi(META_SERVICE.Http)
         .post('/platform-center/api/user/login', {
           username: state.loginData.username,

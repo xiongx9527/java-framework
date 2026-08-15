@@ -1,11 +1,13 @@
 package com.xiongx9527.fw.plus.tinyengine.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
 
 import java.util.List;
 
-public interface PageService extends IService<Page> {
+public interface PageService {
+
+	boolean save(Page page);
+	boolean updateById(Page page);
 
 	List<Page> queryAllPage(Integer appId);
 

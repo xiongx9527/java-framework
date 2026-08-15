@@ -2,7 +2,7 @@
 
 ## 适用范围
 
-本文是中立 model/store adapter 发布线的迁移指南。该发布线继续以 Java 8、Spring Boot 2.7.18 和 LangChain4j 0.35.0 为默认实现基线，同时删除旧 model/store 模块和 starter；它不是 Spring AI、Spring AI Alibaba 或 AgentScope 2 adapter 的实现或兼容性证明。
+本文是中立 model/store adapter 发布线的迁移指南。该发布线以 Java 8、Spring Boot 2.7.18 为运行基线；LangChain4j 0.35.0 是当前唯一已实现、但必须由业务显式选择的 Adapter。该发布线同时删除旧 model/store 模块和 starter；它不是 Spring AI、Spring AI Alibaba 或 AgentScope 2 adapter 的实现或兼容性证明。
 
 AskData 模块保留。本次迁移文档不修改其源码，也不把它宣称为已切换到中立模型或未来 framework；在其他 adapter、Boot 和 Magic-API 工作完成且再次获得明确确认之前，AskData 的依赖迁移和回归均是后续集成任务。
 
@@ -70,7 +70,7 @@ fw-plus:
             port: 6334
 ```
 
-`framework` 是 adapter 标识，不是 provider 名称。当前默认实现填写 `langchain4j`。只安装一个可支持 provider/type 的 adapter 时可省略它；一旦安装多个 adapter，所有会产生歧义的 model/store 定义必须显式填写 framework。
+`framework` 是 adapter 标识，不是 provider 名称。业务选择当前已实现的 LangChain4j Adapter 时填写 `langchain4j`。只安装一个可支持 provider/type 的 adapter 时可省略它；一旦安装多个 adapter，所有会产生歧义的 model/store 定义必须显式填写 framework。
 
 ## 3. 自动发现与失败诊断
 
