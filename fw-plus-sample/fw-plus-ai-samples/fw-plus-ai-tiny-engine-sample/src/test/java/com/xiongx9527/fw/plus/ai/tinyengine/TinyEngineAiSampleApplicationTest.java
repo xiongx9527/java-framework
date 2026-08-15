@@ -1,5 +1,8 @@
 package com.xiongx9527.fw.plus.ai.tinyengine;
 
+import com.sun.net.httpserver.HttpServer;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.TinyEngineAiController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFacade;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webmvc.TinyEngineAppMvcController;
@@ -30,11 +33,16 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -155,6 +163,98 @@ class TinyEngineAiSampleApplicationTest {
 				() -> assertThat(jdbcTemplate.queryForObject(
 						"select count(1) from t_platform_history where id = 1 and ref_id = 1 and version = '1.0.0'",
 						Integer.class)).isEqualTo(Integer.valueOf(1)));
+	}
+
+	@Test
+	void appCenterChatUsesServerSideModelConfiguration() throws Exception {
+		AtomicReference<String> upstreamAuthorization = new AtomicReference<String>();
+		AtomicReference<String> upstreamRequest = new AtomicReference<String>();
+		HttpServer upstream = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+		upstream.createContext("/v1/chat/completions", exchange -> {
+			upstreamAuthorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
+			upstreamRequest.set(readString(exchange.getRequestBody()));
+			byte[] response = ("{\"id\":\"chatcmpl-sample\",\"object\":\"chat.completion\","
+					+ "\"created\":1,\"model\":\"sample-model\",\"choices\":[{\"index\":0,"
+					+ "\"message\":{\"role\":\"assistant\",\"content\":\"sample response\"},"
+					+ "\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":1,"
+					+ "\"completion_tokens\":1,\"total_tokens\":2}}")
+					.getBytes(StandardCharsets.UTF_8);
+			exchange.getResponseHeaders().set("Content-Type", "application/json");
+			exchange.sendResponseHeaders(200, response.length);
+			exchange.getResponseBody().write(response);
+			exchange.close();
+		});
+		upstream.start();
+		try {
+			Class<?> applicationClass = Class.forName(
+					"com.xiongx9527.fw.plus.ai.tinyengine.TinyEngineAiSampleApplication");
+			try (ConfigurableApplicationContext context = new SpringApplication(applicationClass)
+					.run("--fw.plus.tiny-engine.sql.auto-initialize=true",
+							"--fw.plus.tiny-engine.web.base-path=/tiny-engine")) {
+				JdbcTemplate jdbc = context.getBean(JdbcTemplate.class);
+				AppAiModelConfigService configService = context.getBean(AppAiModelConfigService.class);
+				jdbc.update("insert into t_user(username, email, enable, is_admin, is_public, tenant_id) "
+						+ "values (?, ?, ?, ?, ?, ?)", "ai-route-test-user", "ai-route-test@example.com",
+						Boolean.TRUE, Boolean.TRUE, Boolean.FALSE, "system");
+				Integer creatorId = jdbc.queryForObject(
+						"select id from t_user where username = 'ai-route-test-user'", Integer.class);
+				jdbc.update("insert into t_app(name, code, platform_id, enable, tenant_id, created_by, last_updated_by) "
+						+ "values (?, ?, ?, ?, ?, ?, ?)", "AI Route Test", "ai-route-test", Integer.valueOf(1),
+						Boolean.TRUE, "system", String.valueOf(creatorId), String.valueOf(creatorId));
+				Integer appId = jdbc.queryForObject("select id from t_app where code = 'ai-route-test'", Integer.class);
+
+				AiModelServiceRequest serviceRequest = new AiModelServiceRequest();
+				serviceRequest.setServiceKey("route-openai");
+				serviceRequest.setProvider("openai");
+				serviceRequest.setLabel("Route OpenAI");
+				serviceRequest.setBaseUrl("http://127.0.0.1:" + upstream.getAddress().getPort()
+						+ "/v1/chat/completions/");
+				serviceRequest.setApiKey("server-placeholder-key");
+				serviceRequest.setAllowEmptyApiKey(Boolean.FALSE);
+				serviceRequest.setEnabled(Boolean.TRUE);
+				AiModelServiceDto service = configService.createService(appId, serviceRequest);
+				AiModelRequest modelRequest = new AiModelRequest();
+				modelRequest.setName("sample-model");
+				modelRequest.setLabel("Sample Model");
+				modelRequest.setEnabled(Boolean.TRUE);
+				configService.addModel(appId, service.getId(), modelRequest);
+
+				int port = ((ServletWebServerApplicationContext) context).getWebServer().getPort();
+				HttpURLConnection connection = (HttpURLConnection) new URL(
+						"http://127.0.0.1:" + port
+								+ "/tiny-engine/app-center/api/chat/completions").openConnection();
+				connection.setRequestMethod("POST");
+				connection.setRequestProperty("Content-Type", "application/json");
+				connection.setDoOutput(true);
+				byte[] request = ("{\"appId\":" + appId + ",\"serviceId\":" + service.getId()
+						+ ",\"modelName\":\"sample-model\",\"model\":\"attacker-model\","
+						+ "\"baseUrl\":\"https://attacker.invalid/v1\",\"apiKey\":\"attacker-key\","
+						+ "\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}]}")
+						.getBytes(StandardCharsets.UTF_8);
+				connection.getOutputStream().write(request);
+				try {
+					int responseCode = connection.getResponseCode();
+					String responseBody = readString(connection.getInputStream());
+					JsonNode responseJson = new ObjectMapper().readTree(responseBody);
+					JsonNode forwarded = new ObjectMapper().readTree(upstreamRequest.get());
+					assertAll(
+							() -> assertThat(responseCode).isEqualTo(200),
+							() -> assertThat(connection.getContentType()).contains("application/json"),
+							() -> assertThat(responseJson.path("object").asText()).isEqualTo("chat.completion"),
+							() -> assertThat(responseJson.path("model").asText()).isEqualTo("sample-model"),
+							() -> assertThat(responseJson.path("choices").path(0).path("message")
+									.path("content").asText()).isEqualTo("sample response"),
+							() -> assertThat(upstreamAuthorization.get()).isEqualTo("Bearer server-placeholder-key"),
+							() -> assertThat(forwarded.path("model").asText()).isEqualTo("sample-model"),
+							() -> assertThat(upstreamRequest.get())
+									.doesNotContain("attacker-model", "attacker-key", "attacker.invalid"));
+				} finally {
+					connection.disconnect();
+				}
+			}
+		} finally {
+			upstream.stop(0);
+		}
 	}
 
 	@Test
@@ -432,6 +532,16 @@ class TinyEngineAiSampleApplicationTest {
 				() -> assertThat(pom).contains("<artifactId>jjwt-jackson</artifactId>"),
 				() -> assertThat(pom).doesNotContain("<artifactId>spring-boot-starter-data-redis</artifactId>"),
 				() -> assertThat(pom).doesNotContain("<artifactId>sa-token-spring-boot-starter</artifactId>"));
+	}
+
+	private static String readString(InputStream input) throws IOException {
+		ByteArrayOutputStream output = new ByteArrayOutputStream();
+		byte[] buffer = new byte[512];
+		int read;
+		while ((read = input.read(buffer)) >= 0) {
+			output.write(buffer, 0, read);
+		}
+		return new String(output.toByteArray(), StandardCharsets.UTF_8);
 	}
 
 	private void createAuthTables(JdbcTemplate jdbcTemplate) {

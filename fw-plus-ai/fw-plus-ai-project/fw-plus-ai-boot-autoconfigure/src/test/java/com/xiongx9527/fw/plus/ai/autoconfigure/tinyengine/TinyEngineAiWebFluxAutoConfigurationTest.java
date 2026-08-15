@@ -5,6 +5,8 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatReq
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatResponse;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatStreamChunk;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineUpstreamException;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineOfficialAiController;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineOfficialAiWebFluxController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiCapability;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProviderRegistry;
@@ -12,19 +14,29 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.TinyEngineRagReque
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.TinyEngineRagSearchResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineAiChatService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineRagService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.TinyEngineAutoConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webflux.TinyEngineReactiveExecutor;
+import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineRequestUserScope;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelInvocationConfig;
 import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.web.reactive.WebFluxAutoConfiguration;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -46,6 +58,7 @@ class TinyEngineAiWebFluxAutoConfigurationTest {
 			.withConfiguration(AutoConfigurations.of(WebFluxAutoConfiguration.class, TinyEngineAiAutoConfiguration.class))
 			.withBean(TinyEngineAiChatService.class, TestChatService::new)
 			.withBean(TinyEngineRagService.class, TestRagService::new)
+			.withBean(TinyEngineReactiveExecutor.class, TinyEngineAiWebFluxAutoConfigurationTest::executor)
 			.withPropertyValues("fw.plus.tiny-engine.ai.web.enabled=true");
 
 	@Test
@@ -53,6 +66,8 @@ class TinyEngineAiWebFluxAutoConfigurationTest {
 		servletRunner.run(context -> {
 			assertThat(context).hasSingleBean(TinyEngineAiController.class);
 			assertThat(context).doesNotHaveBean(TinyEngineAiWebFluxController.class);
+			assertThat(context).doesNotHaveBean(TinyEngineOfficialAiController.class);
+			assertThat(context).doesNotHaveBean(TinyEngineOfficialAiWebFluxController.class);
 		});
 	}
 
@@ -71,7 +86,16 @@ class TinyEngineAiWebFluxAutoConfigurationTest {
 		reactiveRunner.run(context -> {
 			assertThat(context).hasSingleBean(TinyEngineAiWebFluxController.class);
 			assertThat(context).doesNotHaveBean(TinyEngineAiController.class);
+			assertThat(context).doesNotHaveBean(TinyEngineOfficialAiController.class);
+			assertThat(context).doesNotHaveBean(TinyEngineOfficialAiWebFluxController.class);
 		});
+	}
+
+	@Test
+	void aiAutoConfigurationRunsAfterTinyEngineBootAutoConfiguration() {
+		AutoConfigureAfter order = TinyEngineAiAutoConfiguration.class.getAnnotation(AutoConfigureAfter.class);
+		assertThat(order).isNotNull();
+		assertThat(order.value()).contains(TinyEngineAutoConfiguration.class);
 	}
 
 	@Test
@@ -110,7 +134,7 @@ class TinyEngineAiWebFluxAutoConfigurationTest {
 				new TinyEngineAiProviderRegistry(Collections.singletonList(provider), "test"), properties,
 				beanFactory.getBeanProvider(AppAiModelConfigService.class));
 		TinyEngineChatRequest request = new ObjectMapper().readValue(
-				"{\"appId\":2,\"serviceId\":10,\"modelName\":\"test-model\",\"baseUrl\":\"https://attacker.invalid\",\"apiKey\":\"attacker-key\",\"modelSettings\":{\"temperature\":1}}",
+				"{\"appId\":2,\"serviceId\":10,\"modelName\":\"test-model\",\"model\":\"attacker-model\",\"baseUrl\":\"https://attacker.invalid\",\"apiKey\":\"attacker-key\",\"modelSettings\":{\"temperature\":1}}",
 				TinyEngineChatRequest.class);
 		assertThat(new ObjectMapper().writeValueAsString(request)).doesNotContain("baseUrl", "apiKey", "modelSettings");
 
@@ -126,7 +150,7 @@ class TinyEngineAiWebFluxAutoConfigurationTest {
 	@Test
 	void webFluxControllerConvertsUpstreamAuthorizationFailureToModelInvocationError() {
 		TinyEngineAiWebFluxController controller = new TinyEngineAiWebFluxController(
-				new FailingChatService(), new TestRagService());
+				new FailingChatService(), new TestRagService(), executor());
 		TinyEngineChatRequest request = new TinyEngineChatRequest();
 		request.setAppId(Integer.valueOf(2));
 		request.setServiceId(Long.valueOf(10));
@@ -136,6 +160,110 @@ class TinyEngineAiWebFluxAutoConfigurationTest {
 				org.springframework.web.server.ResponseStatusException.class, () -> controller.chat(request).block());
 		assertEquals(org.springframework.http.HttpStatus.BAD_GATEWAY, exception.getStatus());
 		assertEquals("TinyEngine AI model invocation failed", exception.getReason());
+	}
+
+	@Test
+	void webFluxControllerReturnsOpenAiCompatibleSseFramesOverHttp() {
+		final TinyEngineChatRequest[] seenRequest = new TinyEngineChatRequest[1];
+		final TinyEngineChatRequest[] seenChatRequest = new TinyEngineChatRequest[1];
+		TinyEngineAiChatService chatService = new TinyEngineAiChatService() {
+			@Override
+			public TinyEngineChatResponse chat(TinyEngineChatRequest request) {
+				seenChatRequest[0] = request;
+				return new TinyEngineChatResponse("chat");
+			}
+
+			@Override
+			public List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request) {
+				seenRequest[0] = request;
+				return java.util.Arrays.asList(new TinyEngineChatStreamChunk("stream", false),
+						new TinyEngineChatStreamChunk(null, true));
+			}
+		};
+		WebTestClient client = WebTestClient.bindToController(
+				new TinyEngineAiWebFluxController(chatService, new TestRagService(), executor())).build();
+
+		client.post().uri("/app-center/api/chat/completions")
+				.contentType(MediaType.APPLICATION_JSON)
+				.accept(MediaType.TEXT_EVENT_STREAM)
+				.bodyValue("{\"appId\":2,\"serviceId\":10,\"modelName\":\"test-model\",\"stream\":true,"
+						+ "\"baseUrl\":\"https://attacker.invalid/v1\",\"apiKey\":\"attacker-key\"}")
+				.exchange()
+				.expectStatus().isOk()
+				.expectHeader().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM)
+				.expectBody(String.class)
+				.value(body -> {
+					assertThat(body).contains("data: {\"choices\":[{\"index\":0,\"delta\":{\"content\":\"stream\"}");
+					assertThat(body).contains("\"finish_reason\":\"stop\"");
+					assertThat(body).contains("data: [DONE]\n\n");
+				});
+		assertThat(seenRequest[0]).isNotNull();
+		assertThat(seenRequest[0].getBaseUrl()).isNull();
+		assertThat(seenRequest[0].getApiKey()).isNull();
+
+		client.post().uri("/app-center/api/ai/chat")
+				.contentType(MediaType.APPLICATION_JSON)
+				.bodyValue("{\"appId\":2,\"serviceId\":10,\"modelName\":\"test-model\","
+						+ "\"model\":\"attacker-model\",\"baseUrl\":\"https://attacker.invalid/v1\","
+						+ "\"apiKey\":\"attacker-key\"}")
+				.exchange()
+				.expectStatus().isOk()
+				.expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+				.expectBody()
+				.jsonPath("$.object").isEqualTo("chat.completion")
+				.jsonPath("$.model").isEqualTo("test-model")
+				.jsonPath("$.choices[0].message.role").isEqualTo("assistant")
+				.jsonPath("$.choices[0].message.content").isEqualTo("chat")
+				.jsonPath("$.choices[0].finish_reason").isEqualTo("stop");
+		assertThat(seenChatRequest[0]).isNotNull();
+		assertThat(seenChatRequest[0].getModelName()).isEqualTo("test-model");
+		assertThat(seenChatRequest[0].getBaseUrl()).isNull();
+		assertThat(seenChatRequest[0].getApiKey()).isNull();
+
+		client.post().uri("/tiny-engine/ai/chat/completions")
+				.contentType(MediaType.APPLICATION_JSON)
+				.bodyValue("{\"appId\":2,\"serviceId\":10,\"modelName\":\"test-model\"}")
+				.exchange()
+				.expectStatus().isNotFound();
+	}
+
+	@Test
+	void webFluxControllerRunsFormalChatOnTinyEngineBlockingScheduler() {
+		Scheduler scheduler = Schedulers.newSingle("tiny-engine-ai-blocking-test");
+		try {
+			AtomicReference<String> invocationThread = new AtomicReference<String>();
+			TinyEngineAiChatService chatService = new TinyEngineAiChatService() {
+				@Override
+				public TinyEngineChatResponse chat(TinyEngineChatRequest request) {
+					invocationThread.set(Thread.currentThread().getName());
+					return new TinyEngineChatResponse("chat");
+				}
+
+				@Override
+				public List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request) {
+					throw new UnsupportedOperationException();
+				}
+			};
+			TinyEngineReactiveExecutor executor = new TinyEngineReactiveExecutor(scheduler, Duration.ofSeconds(5),
+					new TinyEngineRequestUserScope());
+			TinyEngineAiWebFluxController controller = new TinyEngineAiWebFluxController(
+					chatService, new TestRagService(), executor);
+			TinyEngineChatRequest request = new TinyEngineChatRequest();
+			request.setAppId(Integer.valueOf(2));
+			request.setServiceId(Long.valueOf(10));
+			request.setModelName("test-model");
+
+			controller.chatCompletions(request).block();
+
+			assertThat(invocationThread.get()).startsWith("tiny-engine-ai-blocking-test");
+		} finally {
+			scheduler.dispose();
+		}
+	}
+
+	private static TinyEngineReactiveExecutor executor() {
+		return new TinyEngineReactiveExecutor(Schedulers.immediate(), Duration.ofSeconds(5),
+				new TinyEngineRequestUserScope());
 	}
 
 	private AiModelInvocationConfig invocation(String baseUrl, String apiKey) {

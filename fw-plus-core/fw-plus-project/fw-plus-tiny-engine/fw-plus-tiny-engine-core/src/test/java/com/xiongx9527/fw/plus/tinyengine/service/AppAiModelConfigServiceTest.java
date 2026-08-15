@@ -131,6 +131,31 @@ class AppAiModelConfigServiceTest {
 	}
 
 	@Test
+	void serviceWritesAndInvocationNormalizeOpenAiCompatibleBaseUrl() {
+		Fixture fixture = fixture("owner");
+		final AiModelServiceConfig[] inserted = new AiModelServiceConfig[1];
+		when(fixture.serviceMapper.insertService(any(AiModelServiceConfig.class))).thenAnswer(invocation -> {
+			inserted[0] = invocation.getArgument(0);
+			inserted[0].setId(Long.valueOf(100));
+			fixture.persistedServices.add(inserted[0]);
+			return 1;
+		});
+		when(fixture.serviceMapper.findService("tenant-9", Integer.valueOf(2), Long.valueOf(100)))
+				.thenAnswer(invocation -> inserted[0]);
+		AiModelServiceRequest request = serviceRequest("openai", "secret");
+		request.setBaseUrl(" https://api.openai.com/v1/chat/completions/ ");
+
+		fixture.service.createService(Integer.valueOf(2), request);
+
+		assertThat(inserted[0].getBaseUrl()).isEqualTo("https://api.openai.com/v1");
+		inserted[0].setBaseUrl("https://api.openai.com/v1/chat/completions/");
+		fixture.persistedModels.add(modelConfig(20, 100L, "gpt-4o", true));
+		AiModelInvocationConfig invocation = fixture.service.resolveInvocation(
+				Integer.valueOf(2), Long.valueOf(100), "gpt-4o");
+		assertThat(invocation.getBaseUrl()).isEqualTo("https://api.openai.com/v1");
+	}
+
+	@Test
 	void serviceApiKeyUpdateHasKeepReplaceAndClearStates() {
 		Fixture fixture = fixture("admin");
 		AiModelServiceConfig stored = serviceConfig(10, true, "old-secret");

@@ -47,6 +47,11 @@ class TinyEngineServletAuthenticationFilterTest {
 				.andExpect(jsonPath("$.success", is(false)))
 				.andExpect(jsonPath("$.code", is("401")));
 		verify(appService, never()).createApp(any(App.class));
+		mvc.perform(post("/tiny-engine/app-center/api/chat/completions")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"appId\":2,\"serviceId\":10,\"modelName\":\"test-model\"}"))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code", is("401")));
 
 		TinyEnginePrincipal principal = new TinyEnginePrincipal("u1", "User One", "system", "system",
 				Integer.valueOf(1));
