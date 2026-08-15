@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * AskData 长期记忆契约。
@@ -39,6 +40,41 @@ public interface AskDataLongTermMemory {
 	List<AskDataMemoryEntry> find(AskDataProjectContext context, String datasourceKey, String semanticVersion);
 
 	/**
+	 * 在当前授权对象和时间范围内召回仍有效的记忆。
+	 *
+	 * <p>条目声明授权范围时，调用方的当前授权必须完整包含该范围；权限撤销后条目即不可召回。空授权范围只兼容
+	 * 旧条目，业务应逐步迁移为显式范围。</p>
+	 */
+	default List<AskDataMemoryEntry> find(AskDataProjectContext context, String datasourceKey, String semanticVersion,
+			Set<String> authorizedScope, long nowEpochMillis) {
+		List<AskDataMemoryEntry> visible = new ArrayList<AskDataMemoryEntry>();
+		Set<String> checkedScope = authorizedScope == null ? Collections.<String>emptySet() : authorizedScope;
+		for (AskDataMemoryEntry entry : find(context, datasourceKey, semanticVersion)) {
+			if (entry != null && !entry.isExpired(nowEpochMillis)
+					&& (entry.getAuthorizationScope().isEmpty()
+							|| checkedScope.containsAll(entry.getAuthorizationScope()))) {
+				visible.add(entry);
+			}
+		}
+		return Collections.unmodifiableList(visible);
+	}
+
+	/**
+	 * 按隔离范围遗忘一条记忆并保存脱敏删除审计。
+	 */
+	default boolean forget(AskDataProjectContext context, String memoryId, String reason,
+			long forgottenAtEpochMillis) {
+		return false;
+	}
+
+	/**
+	 * 返回当前项目和操作人的遗忘审计，不包含记忆正文。
+	 */
+	default List<ForgetAudit> listForgetAudits(AskDataProjectContext context) {
+		return Collections.emptyList();
+	}
+
+	/**
 	 * 创建用于契约测试和单节点开发的内存参考实现。
 	 *
 	 * @return 不具备跨进程持久化能力的内存实现
@@ -53,6 +89,7 @@ public interface AskDataLongTermMemory {
 	final class InMemory implements AskDataLongTermMemory {
 
 		private final List<AskDataMemoryEntry> entries = Collections.synchronizedList(new ArrayList<AskDataMemoryEntry>());
+		private final List<ForgetAudit> forgetAudits = Collections.synchronizedList(new ArrayList<ForgetAudit>());
 
 		@Override
 		public void remember(AskDataMemoryEntry entry) {
@@ -64,11 +101,22 @@ public interface AskDataLongTermMemory {
 
 		@Override
 		public List<AskDataMemoryEntry> find(AskDataProjectContext context, String datasourceKey, String semanticVersion) {
+			return find(context, datasourceKey, semanticVersion, Collections.<String>emptySet(),
+					System.currentTimeMillis());
+		}
+
+		@Override
+		public List<AskDataMemoryEntry> find(AskDataProjectContext context, String datasourceKey, String semanticVersion,
+				Set<String> authorizedScope, long nowEpochMillis) {
 			if (context == null) {
 				throw new IllegalArgumentException("context 不能为空");
 			}
+			if (nowEpochMillis < 1L) {
+				throw new IllegalArgumentException("nowEpochMillis 必须大于 0");
+			}
 			String normalizedDatasourceKey = requireNonBlank(datasourceKey, "datasourceKey");
 			String normalizedSemanticVersion = requireNonBlank(semanticVersion, "semanticVersion");
+			Set<String> checkedScope = authorizedScope == null ? Collections.<String>emptySet() : authorizedScope;
 			List<AskDataMemoryEntry> matched = new ArrayList<AskDataMemoryEntry>();
 			synchronized (entries) {
 				for (AskDataMemoryEntry entry : entries) {
@@ -76,12 +124,57 @@ public interface AskDataLongTermMemory {
 					if (context.getProjectId().equals(entryContext.getProjectId())
 							&& context.getOperatorId().equals(entryContext.getOperatorId())
 							&& normalizedDatasourceKey.equals(entry.getDatasourceKey())
-							&& normalizedSemanticVersion.equals(entry.getSemanticVersion())) {
+							&& normalizedSemanticVersion.equals(entry.getSemanticVersion())
+							&& !entry.isExpired(nowEpochMillis)
+							&& (entry.getAuthorizationScope().isEmpty()
+									|| checkedScope.containsAll(entry.getAuthorizationScope()))) {
 						matched.add(entry);
 					}
 				}
 			}
-			return matched;
+			return Collections.unmodifiableList(matched);
+		}
+
+		@Override
+		public boolean forget(AskDataProjectContext context, String memoryId, String reason,
+				long forgottenAtEpochMillis) {
+			if (context == null || forgottenAtEpochMillis < 1L) {
+				throw new IllegalArgumentException("context 和 forgottenAtEpochMillis 必须有效");
+			}
+			String checkedId = requireNonBlank(memoryId, "memoryId");
+			String checkedReason = requireNonBlank(reason, "reason");
+			synchronized (entries) {
+				for (int index = 0; index < entries.size(); index++) {
+					AskDataMemoryEntry entry = entries.get(index);
+					if (checkedId.equals(entry.getId()) && sameScope(context, entry.getContext())) {
+						entries.remove(index);
+						forgetAudits.add(new ForgetAudit(context, checkedId, checkedReason, forgottenAtEpochMillis));
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		@Override
+		public List<ForgetAudit> listForgetAudits(AskDataProjectContext context) {
+			if (context == null) {
+				throw new IllegalArgumentException("context 不能为空");
+			}
+			List<ForgetAudit> result = new ArrayList<ForgetAudit>();
+			synchronized (forgetAudits) {
+				for (ForgetAudit audit : forgetAudits) {
+					if (sameScope(context, audit.getContext())) {
+						result.add(audit);
+					}
+				}
+			}
+			return Collections.unmodifiableList(result);
+		}
+
+		private static boolean sameScope(AskDataProjectContext left, AskDataProjectContext right) {
+			return left.getProjectId().equals(right.getProjectId())
+					&& left.getOperatorId().equals(right.getOperatorId());
 		}
 
 		private static String requireNonBlank(String value, String name) {
@@ -90,5 +183,24 @@ public interface AskDataLongTermMemory {
 			}
 			return value.trim();
 		}
+	}
+
+	/** 已脱敏的长期记忆遗忘审计。 */
+	final class ForgetAudit {
+		private final AskDataProjectContext context;
+		private final String memoryId;
+		private final String reason;
+		private final long forgottenAtEpochMillis;
+		public ForgetAudit(AskDataProjectContext context, String memoryId, String reason,
+				long forgottenAtEpochMillis) {
+			this.context = context;
+			this.memoryId = memoryId;
+			this.reason = reason;
+			this.forgottenAtEpochMillis = forgottenAtEpochMillis;
+		}
+		public AskDataProjectContext getContext() { return context; }
+		public String getMemoryId() { return memoryId; }
+		public String getReason() { return reason; }
+		public long getForgottenAtEpochMillis() { return forgottenAtEpochMillis; }
 	}
 }

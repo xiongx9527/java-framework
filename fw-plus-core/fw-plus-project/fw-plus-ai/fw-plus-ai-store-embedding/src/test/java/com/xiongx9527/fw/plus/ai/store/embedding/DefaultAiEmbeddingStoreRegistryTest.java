@@ -174,6 +174,46 @@ public class DefaultAiEmbeddingStoreRegistryTest {
         assertNotSame(matches, result.getMatches());
     }
 
+	@Test
+	public void shouldDefensivelyCopyEmbeddingQueryFilters() {
+		Map<String, Object> filters = new LinkedHashMap<String, Object>();
+		filters.put("projectId", "project-1");
+		List<String> tables = new ArrayList<String>(Collections.singletonList("orders"));
+		Map<String, Object> authorization = new LinkedHashMap<String, Object>();
+		authorization.put("tables", tables);
+		filters.put("authorization", authorization);
+		AiEmbeddingQuery query = new AiEmbeddingQuery(new AiEmbeddingVector(new float[] { 0.1F, 0.2F }),
+				5, 0.6D, filters);
+
+		filters.put("projectId", "project-2");
+		tables.add("secrets");
+
+		assertEquals("project-1", query.getFilters().get("projectId"));
+		assertEquals(Collections.singletonList("orders"),
+				((Map<?, ?>) query.getFilters().get("authorization")).get("tables"));
+		assertThrows(UnsupportedOperationException.class,
+				() -> query.getFilters().put("operatorId", "operator-1"));
+		assertThrows(UnsupportedOperationException.class,
+				() -> ((List<Object>) ((Map<?, ?>) query.getFilters().get("authorization")).get("tables"))
+						.add("secrets"));
+	}
+
+	@Test
+	public void shouldRejectInvalidEmbeddingQueryParameters() {
+		AiEmbeddingVector vector = new AiEmbeddingVector(new float[] { 0.1F });
+
+		assertThrows(IllegalArgumentException.class, () -> new AiEmbeddingQuery(null, 5, 0.0D));
+		assertThrows(IllegalArgumentException.class, () -> new AiEmbeddingQuery(vector, 0, 0.0D));
+		assertThrows(IllegalArgumentException.class, () -> new AiEmbeddingQuery(vector, 5, -0.1D));
+		assertThrows(IllegalArgumentException.class, () -> new AiEmbeddingQuery(vector, 5, 1.1D));
+		assertThrows(IllegalArgumentException.class, () -> new AiEmbeddingQuery(vector, 5, Double.NaN));
+	}
+
+	@Test
+	public void shouldDefaultToRejectingStoreSideFilters() {
+		assertFalse(new FakeStore().supportsFilters());
+	}
+
     private AiEmbeddingStoreDefinition definition(String key, boolean enabled) {
         AiEmbeddingStoreDefinition definition = new AiEmbeddingStoreDefinition();
         definition.setKey(key);

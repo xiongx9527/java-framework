@@ -5,6 +5,11 @@ import com.xiongx9527.fw.plus.tinyengine.mapper.PageMapper;
 import com.xiongx9527.fw.plus.tinyengine.mapper.UserMapper;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.CanvasDto;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.User;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Block;
+import com.xiongx9527.fw.plus.tinyengine.service.AppRoleService;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.AppPermission;
+import org.springframework.beans.factory.annotation.Autowired;
 import com.xiongx9527.fw.plus.tinyengine.service.CanvasService;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
 import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
@@ -18,6 +23,8 @@ public class CanvasServiceImpl implements CanvasService {
 	private final BlockMapper blockMapper;
 	private final UserMapper userMapper;
 	private final TinyEngineUserContext userContext;
+	@Autowired
+	private AppRoleService appRoleService;
 
 	public CanvasServiceImpl(PageMapper pageMapper, BlockMapper blockMapper, UserMapper userMapper,
 			TinyEngineUserContext userContext) {
@@ -30,6 +37,17 @@ public class CanvasServiceImpl implements CanvasService {
 	@Override
 	@Transactional(rollbackFor = Exception.class)
 	public CanvasDto lockCanvas(Integer id, String state, String type) {
+		Integer appId;
+		if ("page".equals(type)) {
+			Page page = pageMapper.queryPageById(id);
+			appId = page == null ? null : page.getApp();
+		} else {
+			Block block = blockMapper.queryBlockById(id);
+			appId = block == null ? null : block.getAppId();
+		}
+		if (appRoleService != null) {
+			appRoleService.requirePermission(appId, AppPermission.READ);
+		}
 		User user = currentUser();
 		String occupier = user.getId();
 		String nextOccupier = "occupy".equals(state) ? occupier : null;

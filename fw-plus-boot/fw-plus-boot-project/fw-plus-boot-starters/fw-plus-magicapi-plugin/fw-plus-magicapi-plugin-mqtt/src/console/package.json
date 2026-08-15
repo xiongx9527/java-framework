@@ -1,17 +1,37 @@
 {
   "name": "magic-mqtt",
   "version": "1.0.0",
-  "description": "Magic-API MQTT Plugin",
+  "description": "Magic-API MQTT Plugin with mica-mqtt-dashboard",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "build": "vite build",
-    "test": "node --test test/open-target.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "type-check": "vue-tsc --noEmit"
   },
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "axios": "^1.19.0",
+    "dayjs": "^1.11.21",
+    "echarts": "^5.4.3",
+    "element-plus": "^2.14.3",
+    "mqtt": "^5.15.2",
+    "pinia": "^3.0.4",
+    "vue-echarts": "^6.6.1",
+    "vue-router": "^5.2.0"
+  },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^2.0.1",
-    "vite": "^2.7.10",
-    "vue": "^3.2.26"
+    "@types/node": "^26.1.2",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "typescript": "^6.0.3",
+    "vite": "^8.2.0",
+    "vite-plugin-css-injected-by-js": "^3.5.2",
+    "vue": "^3.5.41",
+    "vue-tsc": "^3.3.9"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.0"
   }
 }

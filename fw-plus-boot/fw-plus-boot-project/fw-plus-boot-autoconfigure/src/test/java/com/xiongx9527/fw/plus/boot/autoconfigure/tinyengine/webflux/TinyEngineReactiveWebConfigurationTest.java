@@ -4,6 +4,12 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.TinyEngineAutoConfig
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.web.TinyEngineResourceController;
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webmvc.TinyEngineServletWebConfiguration;
 import com.xiongx9527.fw.plus.tinyengine.service.ResourceService;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAuthenticationProvider;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineCredential;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineLoginRequest;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineLoginResult;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEnginePermissionEvaluator;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEnginePrincipal;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ReactiveWebApplicationContextRunner;
@@ -61,6 +67,14 @@ class TinyEngineReactiveWebConfigurationTest {
 	}
 
 	@Test
+	void reactiveSecurityRegistersAuthenticationFilter() {
+		reactiveRunner.withUserConfiguration(SecurityProviderConfiguration.class)
+				.withPropertyValues("fw.plus.tiny-engine.security.enabled=true")
+				.run(context -> assertThat(context)
+						.hasSingleBean(TinyEngineReactiveAuthenticationFilter.class));
+	}
+
+	@Test
 	void servletConfigurationMapsTinyEngineFrontendFromTinyEngineClasspathDirectory() {
 		org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry =
 				mock(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry.class);
@@ -90,6 +104,34 @@ class TinyEngineReactiveWebConfigurationTest {
 		@Bean
 		ResourceService resourceService() {
 			return mock(ResourceService.class);
+		}
+	}
+
+	@Configuration
+	static class SecurityProviderConfiguration {
+
+		@Bean
+		TinyEngineAuthenticationProvider tinyEngineAuthenticationProvider() {
+			return new TinyEngineAuthenticationProvider() {
+				@Override
+				public TinyEngineLoginResult login(TinyEngineLoginRequest request) {
+					return new TinyEngineLoginResult("token", "Bearer", 3600L);
+				}
+
+				@Override
+				public TinyEnginePrincipal resolve(TinyEngineCredential credential) {
+					return new TinyEnginePrincipal("u1", "User One", credential.getTenantId(), "r1", 1);
+				}
+
+				@Override
+				public void logout(TinyEngineCredential credential) {
+				}
+			};
+		}
+
+		@Bean
+		TinyEnginePermissionEvaluator tinyEnginePermissionEvaluator() {
+			return (principal, permission) -> { };
 		}
 	}
 }

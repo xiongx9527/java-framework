@@ -2,7 +2,6 @@ package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
 
 public class TinyEngineOfficialAiRequest {
@@ -56,8 +55,7 @@ public class TinyEngineOfficialAiRequest {
 
 	private static String resolveApiKey(String authorizationHeader, Object bodyApiKey,
 			TinyEngineAiCredentialCipher cipher) {
-		String bearerValue = bearerValue(authorizationHeader);
-		String candidate = bearerValue == null ? asString(bodyApiKey) : bearerValue;
+		String candidate = asString(bodyApiKey);
 		if (candidate == null) {
 			return null;
 		}
@@ -68,18 +66,6 @@ public class TinyEngineOfficialAiRequest {
 			return cipher.decrypt(candidate);
 		}
 		return candidate;
-	}
-
-	private static String bearerValue(String authorizationHeader) {
-		if (authorizationHeader == null) {
-			return null;
-		}
-		String trimmed = authorizationHeader.trim();
-		if (trimmed.toLowerCase(Locale.ENGLISH).startsWith(BEARER_PREFIX.toLowerCase(Locale.ENGLISH))) {
-			String value = trimmed.substring(BEARER_PREFIX.length()).trim();
-			return value.length() == 0 ? null : value;
-		}
-		return null;
 	}
 
 	private static String asString(Object value) {

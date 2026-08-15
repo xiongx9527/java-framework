@@ -1,10 +1,14 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.plugin.langchain4j;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.net.httpserver.HttpServer;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.TinyEngineAiProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatMessage;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatResponse;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatStreamChunk;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineUpstreamException;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProvider;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
@@ -21,19 +25,33 @@ import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.output.Response;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class LangChain4jTinyEngineAiProviderTest {
+
+	private HttpServer upstream;
+
+	@AfterEach
+	public void stopUpstream() {
+		if (upstream != null) {
+			upstream.stop(0);
+		}
+	}
 
 	@Test
 	public void shouldInvokeNativeChatModelWithMappedMessagesAndParameters() {
@@ -89,6 +107,104 @@ public class LangChain4jTinyEngineAiProviderTest {
 		assertEquals("TinyEngine AI provider 'langchain4j' does not support tool mapping yet", exception.getMessage());
 	}
 
+	@Test
+	public void shouldInvokeOpenAiCompatibleEndpointWithResolvedServerCredentials() throws Exception {
+		AtomicReference<String> authorization = new AtomicReference<String>();
+		AtomicReference<String> requestBody = new AtomicReference<String>();
+		upstream = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+		upstream.createContext("/v1/chat/completions", exchange -> {
+			authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
+			requestBody.set(readString(exchange.getRequestBody()));
+			byte[] body = ("{\"id\":\"chatcmpl-resolved\",\"object\":\"chat.completion\","
+					+ "\"created\":1,\"model\":\"resolver-model\",\"choices\":[{\"index\":0,"
+					+ "\"message\":{\"role\":\"assistant\",\"content\":\"resolved response\"},"
+					+ "\"finish_reason\":\"stop\"}]}").getBytes("UTF-8");
+			exchange.getResponseHeaders().set("Content-Type", "application/json");
+			exchange.sendResponseHeaders(200, body.length);
+			exchange.getResponseBody().write(body);
+			exchange.close();
+		});
+		upstream.start();
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("registry-model", AiModelType.CHAT,
+				LangChain4jModelType.CHAT, new RecordingChatModel()));
+		TinyEngineChatRequest request = request("registry-model", false);
+		request.setProvider("openai");
+		request.setBaseUrl("http://127.0.0.1:" + upstream.getAddress().getPort() + "/v1/chat/completions/");
+		request.setApiKey("resolver-key");
+		request.setModel("resolver-model");
+		Map<String, Object> modelSettings = new HashMap<String, Object>();
+		modelSettings.put("temperature", Double.valueOf(0.2D));
+		modelSettings.put("maxTokens", Integer.valueOf(64));
+		request.setModelSettings(modelSettings);
+		request.setMaxTokens(Integer.valueOf(96));
+
+		TinyEngineChatResponse response = provider.chat(request);
+
+		assertEquals("resolved response", response.getContent());
+		assertEquals("Bearer resolver-key", authorization.get());
+		JsonNode upstreamRequest = new ObjectMapper().readTree(requestBody.get());
+		assertEquals(0.2D, upstreamRequest.path("temperature").doubleValue(), 0.0001D);
+		assertEquals(96, upstreamRequest.path("max_tokens").intValue());
+	}
+
+	@Test
+	public void shouldNormalizeOpenAiCompatibleChatAuthorizationFailures() throws Exception {
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("registry-model", AiModelType.CHAT,
+				LangChain4jModelType.CHAT, new RecordingChatModel()));
+
+		for (int statusCode : new int[] {401, 403}) {
+			startAuthorizationFailure(statusCode);
+
+			TinyEngineUpstreamException exception = assertThrows(TinyEngineUpstreamException.class,
+					() -> provider.chat(resolvedRequest("registry-model", false)));
+
+			assertEquals(statusCode, exception.getStatusCode());
+			assertEquals("data: {\"error\":{\"code\":\"INVALID_API_KEY\",\"message\":\"TinyEngine AI upstream credential rejected\"}}\n\ndata: [DONE]\n\n",
+					new String(exception.toSseError(), "UTF-8"));
+		}
+	}
+
+	@Test
+	public void shouldNormalizeOpenAiCompatibleStreamingAuthorizationFailures() throws Exception {
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("registry-model", AiModelType.STREAMING_CHAT,
+				LangChain4jModelType.STREAMING_CHAT, new RecordingStreamingChatModel()));
+
+		for (int statusCode : new int[] {401, 403}) {
+			startAuthorizationFailure(statusCode);
+
+			TinyEngineUpstreamException exception = assertThrows(TinyEngineUpstreamException.class,
+					() -> provider.stream(resolvedRequest("registry-model", true)));
+
+			assertEquals(statusCode, exception.getStatusCode());
+			assertEquals("data: {\"error\":{\"code\":\"INVALID_API_KEY\",\"message\":\"TinyEngine AI upstream credential rejected\"}}\n\ndata: [DONE]\n\n",
+					new String(exception.toSseError(), "UTF-8"));
+		}
+	}
+
+	@Test
+	public void shouldNormalizeNonHttpChatNetworkFailures() {
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("chat-default", AiModelType.CHAT,
+				LangChain4jModelType.CHAT, new FailingChatModel()));
+
+		TinyEngineUpstreamException exception = assertThrows(TinyEngineUpstreamException.class,
+				() -> provider.chat(request("chat-default", false)));
+
+		assertEquals(502, exception.getStatusCode());
+		assertEquals("TinyEngine AI upstream request failed", exception.getMessage());
+	}
+
+	@Test
+	public void shouldNormalizeNonHttpStreamingNetworkFailures() {
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("stream-default", AiModelType.STREAMING_CHAT,
+				LangChain4jModelType.STREAMING_CHAT, new FailingStreamingChatModel()));
+
+		TinyEngineUpstreamException exception = assertThrows(TinyEngineUpstreamException.class,
+				() -> provider.stream(request("stream-default", true)));
+
+		assertEquals(502, exception.getStatusCode());
+		assertEquals("TinyEngine AI upstream request failed", exception.getMessage());
+	}
+
 	private TinyEngineChatRequest request(String modelKey, boolean stream) {
 		TinyEngineChatRequest request = new TinyEngineChatRequest();
 		request.setModelKey(modelKey);
@@ -98,6 +214,45 @@ public class LangChain4jTinyEngineAiProviderTest {
 		messages.add(new TinyEngineChatMessage("user", "hello"));
 		request.setMessages(messages);
 		return request;
+	}
+
+	private TinyEngineChatRequest resolvedRequest(String modelKey, boolean stream) {
+		TinyEngineChatRequest request = request(modelKey, stream);
+		request.setProvider("openai");
+		request.setBaseUrl("http://127.0.0.1:" + upstream.getAddress().getPort() + "/v1");
+		request.setApiKey("resolver-key");
+		request.setModel("resolver-model");
+		return request;
+	}
+
+	private void startAuthorizationFailure(int statusCode) throws IOException {
+		if (upstream != null) {
+			upstream.stop(0);
+		}
+		upstream = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+		upstream.createContext("/v1/chat/completions", exchange -> {
+			readAll(exchange.getRequestBody());
+			byte[] body = "{\"error\":{\"message\":\"invalid key\"}}".getBytes("UTF-8");
+			exchange.getResponseHeaders().set("Content-Type", "application/json");
+			exchange.sendResponseHeaders(statusCode, body.length);
+			exchange.getResponseBody().write(body);
+			exchange.close();
+		});
+		upstream.start();
+	}
+
+	private void readAll(java.io.InputStream input) throws IOException {
+		readString(input);
+	}
+
+	private String readString(java.io.InputStream input) throws IOException {
+		java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+		byte[] buffer = new byte[256];
+		int read;
+		while ((read = input.read(buffer)) >= 0) {
+			output.write(buffer, 0, read);
+		}
+		return new String(output.toByteArray(), "UTF-8");
 	}
 
 	private LangChain4jTinyEngineAiProvider provider(AiModel model) {
@@ -148,6 +303,25 @@ public class LangChain4jTinyEngineAiProviderTest {
 			handler.onNext("he");
 			handler.onNext("llo");
 			handler.onComplete(Response.from(AiMessage.from("stream answer")));
+		}
+	}
+
+	private static final class FailingChatModel implements ChatLanguageModel {
+		@Override
+		public Response<AiMessage> generate(List<ChatMessage> messages) {
+			throw new IllegalStateException("connection refused with internal details");
+		}
+
+		@Override
+		public ChatResponse chat(ChatRequest request) {
+			throw new IllegalStateException("connection refused with internal details");
+		}
+	}
+
+	private static final class FailingStreamingChatModel implements StreamingChatLanguageModel {
+		@Override
+		public void generate(List<ChatMessage> messages, StreamingResponseHandler<AiMessage> handler) {
+			handler.onError(new java.net.ConnectException("connection refused with internal details"));
 		}
 	}
 }

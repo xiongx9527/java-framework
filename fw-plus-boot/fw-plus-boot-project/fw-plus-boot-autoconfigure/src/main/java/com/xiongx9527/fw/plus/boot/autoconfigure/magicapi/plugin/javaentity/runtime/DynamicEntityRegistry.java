@@ -17,13 +17,16 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -32,6 +35,7 @@ public class DynamicEntityRegistry implements AutoCloseable {
     private final JavaSourceAnalyzer analyzer;
     private final InMemoryJavaEntityCompiler compiler;
     private final JavaEntityProperties properties;
+    private final Semaphore compilationPermits;
     private ExecutorService compileExecutor;
     private final ReentrantLock rebuildLock = new ReentrantLock();
     private final AtomicReference<DynamicEntityGeneration> current =
@@ -49,6 +53,7 @@ public class DynamicEntityRegistry implements AutoCloseable {
         this.analyzer = analyzer;
         this.compiler = compiler;
         this.properties = properties;
+        this.compilationPermits = new Semaphore(Math.max(1, properties.getMaxConcurrentCompilations()));
         this.compileExecutor = newCompileExecutor();
         if (!compiler.isAvailable()) {
             status.set(DynamicEntityStatus.unavailable());
@@ -164,18 +169,31 @@ public class DynamicEntityRegistry implements AutoCloseable {
     }
 
     private CompiledGeneration compile(long version, List<JavaSourceUnit> units) {
-        Future<CompiledGeneration> future = compileExecutor.submit(() -> compiler.compile(version, units));
+        if (!compilationPermits.tryAcquire()) {
+            throw new JavaEntityCompilationException(new JavaEntityDiagnostic("", 0, 0,
+                    "compiler.busy", "动态实体编译并发数量已达到限制"));
+        }
+        CompileInvocation invocation = new CompileInvocation(version, units);
+        Future<CompiledGeneration> future;
+        try {
+            future = compileExecutor.submit(invocation);
+        } catch (RuntimeException exception) {
+            invocation.releaseIfNotStarted();
+            throw exception;
+        }
         Duration timeout = properties.getCompileTimeout();
         long timeoutMillis = timeout == null ? 30000L : Math.max(1L, timeout.toMillis());
         try {
             return future.get(timeoutMillis, TimeUnit.MILLISECONDS);
         } catch (TimeoutException exception) {
             future.cancel(true);
+            invocation.releaseIfNotStarted();
             rotateCompileExecutor();
             throw new JavaEntityCompilationException(new JavaEntityDiagnostic("", 0, 0,
                     "compiler.timeout", "动态实体编译超过限制时间 " + timeoutMillis + "ms"));
         } catch (InterruptedException exception) {
             future.cancel(true);
+            invocation.releaseIfNotStarted();
             rotateCompileExecutor();
             Thread.currentThread().interrupt();
             throw new JavaEntityCompilationException(new JavaEntityDiagnostic("", 0, 0,
@@ -300,6 +318,36 @@ public class DynamicEntityRegistry implements AutoCloseable {
             Thread thread = new Thread(runnable, "magicapi-java-entity-compiler");
             thread.setDaemon(true);
             return thread;
+        }
+    }
+
+    private final class CompileInvocation implements Callable<CompiledGeneration> {
+
+        private final long version;
+        private final List<JavaSourceUnit> units;
+        private final AtomicBoolean started = new AtomicBoolean();
+
+        private CompileInvocation(long version, List<JavaSourceUnit> units) {
+            this.version = version;
+            this.units = units;
+        }
+
+        @Override
+        public CompiledGeneration call() {
+            if (!started.compareAndSet(false, true)) {
+                throw new IllegalStateException("动态实体编译任务已取消");
+            }
+            try {
+                return compiler.compile(version, units);
+            } finally {
+                compilationPermits.release();
+            }
+        }
+
+        private void releaseIfNotStarted() {
+            if (started.compareAndSet(false, true)) {
+                compilationPermits.release();
+            }
         }
     }
 

@@ -20,6 +20,35 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TinyEngineOfficialAiWebFluxControllerTest {
 
 	@Test
+	void mapsUpstreamAuthenticationFailureToBadGateway() {
+		TinyEngineOpenAiCompatibleGateway gateway = new TinyEngineOpenAiCompatibleGateway() {
+			@Override
+			public TinyEngineOfficialAiResponse execute(TinyEngineOfficialAiRequest request) {
+				return new TinyEngineOfficialAiResponse(401, new HttpHeaders(),
+						"{\"error\":{\"message\":\"invalid key\"}}".getBytes(StandardCharsets.UTF_8));
+			}
+
+			@Override
+			public void stream(TinyEngineOfficialAiRequest request, TinyEngineSseConsumer consumer) {
+				throw new UnsupportedOperationException();
+			}
+		};
+		TinyEngineOfficialAiWebFluxController controller = new TinyEngineOfficialAiWebFluxController(gateway,
+				new TinyEngineAiCredentialCipher() {
+					@Override public String encrypt(String plainText) { return plainText; }
+					@Override public String decrypt(String token) { return token; }
+				});
+		Map<String, Object> request = new LinkedHashMap<String, Object>();
+		request.put("baseUrl", "http://example.test");
+		request.put("apiKey", "model-key");
+		request.put("model", "gpt-test");
+
+		org.springframework.http.ResponseEntity<?> response = controller.chat(request, "Bearer engine-token").block();
+
+		assertEquals(502, response.getStatusCodeValue());
+	}
+
+	@Test
 	void returnsRawSseFramesWithNoBufferingHeadersAndClosesGatewayOnCancellation() {
 		AtomicBoolean closed = new AtomicBoolean();
 		TinyEngineOpenAiCompatibleGateway gateway = new TinyEngineOpenAiCompatibleGateway() {
@@ -42,6 +71,7 @@ class TinyEngineOfficialAiWebFluxControllerTest {
 
 		Map<String, Object> request = new LinkedHashMap<String, Object>();
 		request.put("baseUrl", "http://example.test");
+		request.put("apiKey", "model-key");
 		request.put("model", "gpt-test");
 		request.put("stream", true);
 		org.springframework.http.ResponseEntity<?> response = controller.chat(request, "Bearer test-key").block();

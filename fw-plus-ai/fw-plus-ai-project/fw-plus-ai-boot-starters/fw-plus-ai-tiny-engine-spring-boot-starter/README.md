@@ -119,9 +119,9 @@ fw-plus:
 
 设置 `fw.plus.tiny-engine.ai.enabled=false` 时，TinyEngine AI 自动配置整体不生效，不创建 TinyEngine Chat、RAG、知识库服务和默认 provider Bean。单独设置 `chat.enabled=false` 或 `rag.enabled=false` 时，只关闭对应能力；聊天关闭不会要求向量依赖，RAG 关闭也不会创建 RAG/知识库服务。
 
-## REST 兼容入口
+## REST 入口
 
-REST 路由默认关闭。启用后，Controller 仅在 Servlet Web 应用中且 Chat、RAG 服务均已注册时生效；总开关关闭时不会注册任何 TinyEngine AI 路由。所有路径可单独配置，默认前缀为 `/tiny-engine/ai`，不会占用宿主应用的既有 API 前缀。
+REST 路由默认关闭。启用后，Servlet MVC 或 WebFlux Controller 会注册 Robot 实际使用的 app-center 路由；总开关关闭时不会注册任何 TinyEngine AI 路由。路由统一位于 `fw.plus.tiny-engine.web.base-path` 下，因此会复用 TinyEngine 的登录认证、应用权限和租户上下文。
 
 ```yaml
 fw:
@@ -130,14 +130,18 @@ fw:
       ai:
         web:
           enabled: true
-          base-path: /tiny-engine/ai
-          chat-path: /chat
-          chat-completions-path: /chat/completions
-          encrypt-key-path: /encrypt-key
-          search-path: /search
 ```
 
-启用后提供 `POST` Chat、Chat Completions 和 Search 路由。Chat Completions 的 `stream=true` 返回现有服务生成的 chunk 列表；`stream=false` 时与 Chat 一样返回普通响应。Encrypt Key 路由当前明确返回 HTTP 501，因为 starter 未实现密钥解密，调用方不得将其当作成功结果。
+启用后提供以下 `POST` 路由：
+
+- `${fw.plus.tiny-engine.web.base-path}/app-center/api/ai/chat`
+- `${fw.plus.tiny-engine.web.base-path}/app-center/api/chat/completions`
+- `${fw.plus.tiny-engine.web.base-path}/app-center/api/ai/search`
+- `${fw.plus.tiny-engine.web.base-path}/app-center/api/encrypt-key`
+
+Chat 请求只接受 `appId`、`serviceId`、`modelName`、消息和生成参数；浏览器提交的 `baseUrl`、`apiKey` 与内部模型设置会被忽略，真实凭据由服务端应用模型配置解析。`stream=true` 返回 `text/event-stream`，每个 `data:` 帧使用 OpenAI `choices[].delta` 结构并以 `data: [DONE]` 正常结束；非流式响应固定为 JSON。Encrypt Key 路由明确返回 HTTP 501，旧的浏览器直传凭据 Controller 不再由自动配置注册。
+
+早期 `fw.plus.tiny-engine.ai.web.base-path`、`chat-path`、`chat-completions-path`、`encrypt-key-path` 和 `search-path` 属性仅保留配置兼容性，不再注册认证边界之外的 `/tiny-engine/ai/*` 路由。
 
 ## 旧坐标边界
 

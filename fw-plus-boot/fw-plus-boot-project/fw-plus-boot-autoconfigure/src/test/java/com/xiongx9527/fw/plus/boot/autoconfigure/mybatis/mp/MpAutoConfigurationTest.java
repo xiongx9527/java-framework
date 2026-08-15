@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.mybatis.encrypt.interceptor.FieldDecryptIntercepto
 import com.xiongx9527.fw.plus.mybatis.encrypt.interceptor.FieldEncryptInterceptor;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import com.xiongx9527.fw.plus.boot.autoconfigure.mybatis.MybatisAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +38,17 @@ class MpAutoConfigurationTest {
 						.doesNotHaveBean(DefaultEncryptor.class)
 						.doesNotHaveBean(FieldEncryptInterceptor.class)
 						.doesNotHaveBean(FieldDecryptInterceptor.class));
+	}
+
+	@Test
+	void aggregateRegistersEncryptionEvenWhenOtherMpEnhancementsAreDisabled() {
+		new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(MybatisAutoConfiguration.class))
+				.withUserConfiguration(DataSourceConfiguration.class)
+				.withPropertyValues("fw.plus.mp.enabled=false")
+				.run(context -> assertThat(context)
+						.hasSingleBean(FieldEncryptInterceptor.class)
+						.hasSingleBean(FieldDecryptInterceptor.class));
 	}
 
 	@Configuration(proxyBeanMethods = false)

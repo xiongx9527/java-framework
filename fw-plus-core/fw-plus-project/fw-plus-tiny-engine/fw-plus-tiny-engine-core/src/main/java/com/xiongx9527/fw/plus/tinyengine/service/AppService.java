@@ -1,6 +1,5 @@
 package com.xiongx9527.fw.plus.tinyengine.service;
 
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.I18nEntryDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.SchemaI18n;
@@ -9,7 +8,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 import java.util.List;
 import java.util.Map;
 
-public interface AppService extends IService<App> {
+public interface AppService {
 
 	List<App> queryAllApp();
 	AppDto queryAllAppByPage(Integer currentPage, Integer pageSize, String orderBy, App app);

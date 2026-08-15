@@ -1,7 +1,6 @@
 package com.xiongx9527.fw.plus.tinyengine.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.service.IService;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockBuildDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockDto;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.BlockParam;
@@ -15,7 +14,7 @@ import com.xiongx9527.fw.plus.tinyengine.model.entity.User;
 import java.util.List;
 import java.util.Map;
 
-public interface BlockService extends IService<Block> {
+public interface BlockService {
 
 	List<Block> queryAllBlock();
 	BlockDto queryBlockById(Integer id);

@@ -4,12 +4,19 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.api.TinyEngineApiFac
 import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.web.TinyEngineWebResponses;
 import com.xiongx9527.fw.plus.tinyengine.common.model.Result;
 import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelImportRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelServiceRequest;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppMemberRoleRequest;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
 import com.xiongx9527.fw.plus.tinyengine.model.entity.AppExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -80,6 +87,155 @@ public class TinyEngineAppMvcController {
 	public ResponseEntity<? extends Result<?>> deleteApp(@PathVariable Integer id) {
 		try {
 			return TinyEngineWebResponses.ok(facade.deleteApp(id));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/app-center/api/apps/{appId}/members")
+	public ResponseEntity<? extends Result<?>> appMembers(@PathVariable Integer appId) {
+		try {
+			return TinyEngineWebResponses.ok(facade.appMembers(appId));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping("/app-center/api/apps/{appId}/members")
+	public ResponseEntity<? extends Result<?>> addAppMember(@PathVariable Integer appId,
+			@RequestBody AppMemberRoleRequest request) {
+		try {
+			return TinyEngineWebResponses.ok(facade.addAppMember(appId, request));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PutMapping("/app-center/api/apps/{appId}/members/{userId}")
+	public ResponseEntity<? extends Result<?>> changeAppMember(@PathVariable Integer appId,
+			@PathVariable String userId, @RequestBody AppMemberRoleRequest request) {
+		try {
+			return TinyEngineWebResponses.ok(facade.changeAppMember(appId, userId, request));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@DeleteMapping("/app-center/api/apps/{appId}/members/{userId}")
+	public ResponseEntity<? extends Result<?>> removeAppMember(@PathVariable Integer appId,
+			@PathVariable String userId) {
+		try {
+			facade.removeAppMember(appId, userId);
+			return TinyEngineWebResponses.ok(Boolean.TRUE);
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/app-center/api/apps/{appId}/ai-model-services")
+	public ResponseEntity<? extends Result<?>> usableAiModelServices(@PathVariable Integer appId) {
+		try {
+			return TinyEngineWebResponses.ok(facade.usableAiModelServices(appId));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/app-center/api/apps/{appId}/ai-model-services/manage")
+	public ResponseEntity<? extends Result<?>> manageableAiModelServices(@PathVariable Integer appId) {
+		try {
+			return TinyEngineWebResponses.ok(facade.manageableAiModelServices(appId));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@GetMapping("/app-center/api/apps/{appId}/ai-model-services/settings")
+	public ResponseEntity<? extends Result<?>> aiModelSettings(@PathVariable Integer appId) {
+		try {
+			return TinyEngineWebResponses.ok(facade.aiModelSettings(appId));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PutMapping("/app-center/api/apps/{appId}/ai-model-services/settings")
+	public ResponseEntity<? extends Result<?>> updateAiModelSettings(@PathVariable Integer appId,
+			@RequestBody AppAiModelSettings settings) {
+		try {
+			return TinyEngineWebResponses.ok(facade.updateAiModelSettings(appId, settings));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping("/app-center/api/apps/{appId}/ai-model-services")
+	public ResponseEntity<? extends Result<?>> createAiModelService(@PathVariable Integer appId,
+			@RequestBody AiModelServiceRequest request) {
+		try {
+			return TinyEngineWebResponses.ok(facade.createAiModelService(appId, request));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PutMapping("/app-center/api/apps/{appId}/ai-model-services/{serviceId}")
+	public ResponseEntity<? extends Result<?>> updateAiModelService(@PathVariable Integer appId,
+			@PathVariable Long serviceId, @RequestBody AiModelServiceRequest request) {
+		try {
+			return TinyEngineWebResponses.ok(facade.updateAiModelService(appId, serviceId, request));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@DeleteMapping("/app-center/api/apps/{appId}/ai-model-services/{serviceId}")
+	public ResponseEntity<? extends Result<?>> deleteAiModelService(@PathVariable Integer appId,
+			@PathVariable Long serviceId) {
+		try {
+			facade.deleteAiModelService(appId, serviceId);
+			return TinyEngineWebResponses.ok(Boolean.TRUE);
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping("/app-center/api/apps/{appId}/ai-model-services/{serviceId}/models")
+	public ResponseEntity<? extends Result<?>> addAiModel(@PathVariable Integer appId, @PathVariable Long serviceId,
+			@RequestBody AiModelRequest request) {
+		try {
+			return TinyEngineWebResponses.ok(facade.addAiModel(appId, serviceId, request));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PutMapping("/app-center/api/apps/{appId}/ai-model-services/{serviceId}/models/{modelId}")
+	public ResponseEntity<? extends Result<?>> updateAiModel(@PathVariable Integer appId, @PathVariable Long serviceId,
+			@PathVariable Long modelId, @RequestBody AiModelRequest request) {
+		try {
+			return TinyEngineWebResponses.ok(facade.updateAiModel(appId, serviceId, modelId, request));
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@DeleteMapping("/app-center/api/apps/{appId}/ai-model-services/{serviceId}/models/{modelId}")
+	public ResponseEntity<? extends Result<?>> deleteAiModel(@PathVariable Integer appId, @PathVariable Long serviceId,
+			@PathVariable Long modelId) {
+		try {
+			facade.deleteAiModel(appId, serviceId, modelId);
+			return TinyEngineWebResponses.ok(Boolean.TRUE);
+		} catch (Throwable ex) {
+			return TinyEngineWebResponses.error(ex);
+		}
+	}
+
+	@PostMapping("/app-center/api/apps/{appId}/ai-model-services/import-local")
+	public ResponseEntity<? extends Result<?>> importAiModelServices(@PathVariable Integer appId,
+			@RequestBody AiModelImportRequest request) {
+		try {
+			return TinyEngineWebResponses.ok(facade.importAiModelServices(appId, request));
 		} catch (Throwable ex) {
 			return TinyEngineWebResponses.error(ex);
 		}

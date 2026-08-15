@@ -14,12 +14,16 @@ fw:
   plus:
     magicapi:
       enabled: false
+    mp-encrypt:
+      private-key: REDACTED
+      public-key: REDACTED
     mp:
       enabled: false
     tiny-engine:
       enabled: true
       sql:
         database: h2
+        auto-initialize: true
       security:
         enabled: false
       ai:

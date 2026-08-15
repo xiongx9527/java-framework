@@ -8,20 +8,22 @@
 | --- | --- | --- |
 | Java SDK 示例编译 | `cd docs/askdata/starter && javac -source 8 -target 8 -d .verify-plugin-sdk examples/AskDataPluginSdkExample.java` | 通过，Java 8 源码和目标版本均指定 |
 | Java SDK 示例执行 | `java -cp .verify-plugin-sdk AskDataPluginSdkExample` | 通过，输出 `PLUGIN_SDK_EXAMPLE_OK` |
-| Core 定向测试 | `cd fw-plus-core && ./mvnw -pl fw-plus-project/fw-plus-ai/fw-plus-ai-askdata test` | 2026-07-28 17:56 通过，71 项测试、0 failures、0 errors、0 skipped |
-| AI 自动配置定向测试 | `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-autoconfigure clean test -Dtest='*AskData*Test'` | 2026-07-28 17:57 通过，133 项测试、0 failures、0 errors、0 skipped；包含集群拒绝本地状态、SQL 安全、监控日志、模型路由、JDBC 查询超时和只读连接边界 |
-| Starter 依赖链测试 | `cd fw-plus-ai && ./mvnw -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -am test` | 2026-07-28 18:03 通过，11 个 reactor 模块成功；AI 自动配置 196 项测试、0 failures、0 errors、0 skipped；AskData Starter 空源码模块按当前结构构建通过 |
-| OpenSpec 严格校验 | `openspec validate rework-ai-askdata-core-starter --strict` | 2026-07-28 18:02 通过 |
-| 未完成标记扫描 | 对目标目录执行精确模式扫描 | 通过，无匹配 |
-| Markdown 空白检查 | `git diff --check -- docs/askdata/starter` | 通过；全仓库检查另有既有 `.superpowers/sdd` EOF 空白 |
-| 提交文件范围 | `git diff-tree --no-commit-id --name-only -r HEAD` | 本次提交清单仅包含 `docs/askdata/starter/**` |
+| Core 完整 JDK 8 reactor | `JAVA_HOME=<zulu-8> mvn -f fw-plus-core/fw-plus-project/pom.xml -pl fw-plus-ai/fw-plus-ai-askdata,fw-plus-ai/fw-plus-ai-model,fw-plus-ai/fw-plus-ai-store-embedding,fw-plus-ai/fw-plus-ai-langchain4j/fw-plus-ai-langchain4j-adapter -am clean install` | 2026-08-11 通过，10 个 reactor 模块成功；Common 7、AskData 122、Model 19、Embedding Store 19、LangChain4j Adapter 37，共 204 项测试，0 failures、0 errors |
+| AI 自动配置与 Starter 完整 JDK 8 reactor | `JAVA_HOME=<zulu-8> mvn -f fw-plus-ai/fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure,fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter -am clean test` | 2026-08-11 通过，9 个 reactor 模块成功；AI 自动配置 606、AskData Starter 2，共 608 项测试，0 failures、0 errors |
+| LangChain4j + JDBC 独立示例 | `JAVA_HOME=<zulu-8> mvn -f docs/askdata/starter/examples/langchain4j-jdbc/pom.xml clean compile` | 2026-08-11 通过；示例 `target` 已清理 |
+| Core 运行时依赖边界 | 对 AskData、Model、Embedding Store 执行 `dependency:tree -Dscope=runtime` | 通过，不含 Spring 或 LangChain4j 依赖 |
+| AskData Starter 依赖边界 | 对 AskData Starter 执行 `dependency:tree -Dscope=runtime` | 通过，不含 LangChain4j、Spring AI、Spring AI Alibaba 或 AgentScope 依赖 |
+| Java 8 API 与字节码 | 扫描 Java 9+ API，并以 JDK 8 `javap -verbose` 检查代表类 | 通过，无 Java 9+ API 命中；Core API、Checkpoint SPI、Model、Embedding Store、LangChain4j Adapter 和 AskData 自动配置代表类均为 major version 52 |
+| Java 17 Adapter 文档 | `docs/ai-framework-migration/verify-migration-docs.sh` | 通过，Spring AI、Spring AI Alibaba、AgentScope 三份目标文档满足发布边界；校验同时禁止把 LangChain4j 写成默认实现 |
+| 文档完整性 | 检查 TBD/默认厂商表述、功能清单事实源、Markdown 表格列数和本地链接 | 通过；无 TBD，无默认模型或 Provider，`openspec/changes/rework-ai-askdata-core-starter/feature-list.md` 存在，表格和链接有效 |
+| Markdown 空白检查 | `git diff --check` | 通过 |
 
 ## 需要运行的环境验证
 
 | 范围 | 验证内容 | 当前状态 |
 | --- | --- | --- |
 | Core | Java 8 Core 契约、SQL 插件链、存储、记忆、推荐、Agent、Remote Runtime 契约 | 定向测试已通过；Java 17 独立适配服务仍需真实服务联调 |
-| AI 自动配置 | 默认 LangChain4j/Ollama、条件装配、JDBC SQL 执行超时、只读连接边界和 Starter 测试 | 定向 AskData 测试已通过；真实 Ollama 服务联调仍需环境 |
+| AI 自动配置 | 业务显式选择的 LangChain4j Adapter、无默认 Provider、条件装配、JDBC SQL 执行超时、只读连接边界和 Starter 测试 | 定向 AskData 测试已通过；真实 Provider 服务联调仍需环境 |
 | 集群存储 | JDBC/Redis/向量库双节点读写、租约、幂等、迁移和故障注入 | 需要隔离测试集群 |
 | 外部系统 | DataEase、MaxKB、Dify、Coze、n8n、MCP、以及由业务 IAM/JustAuth 对接的企业微信、钉钉和飞书 | 需要测试租户、回调域名和可撤销凭证；AskData 只验证已映射的 `operatorId/projectId` |
 | Java 17 运行时 | HTTP/SSE、RPC、消息、MCP 版本协商、错误映射、灰度和回滚 | 需要独立 Java 17 适配服务 |
