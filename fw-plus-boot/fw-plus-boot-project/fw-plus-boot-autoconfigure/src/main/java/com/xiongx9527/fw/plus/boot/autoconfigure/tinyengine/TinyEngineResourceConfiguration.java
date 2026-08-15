@@ -1,5 +1,6 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -10,8 +11,11 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternUtils;
+import org.springframework.jdbc.datasource.init.DataSourceInitializer;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.util.StringUtils;
 
+import javax.sql.DataSource;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,6 +37,23 @@ public class TinyEngineResourceConfiguration {
 		return new TinyEngineSqlResources(manifestLocation, properties.getSql().getDatabase(),
 				properties.getSql().isAutoInitialize(), manifest,
 				loadScriptResources(resolver, manifest, properties.getSql().getDatabase(), properties.getSql().isAutoInitialize()));
+	}
+
+	@Bean
+	@ConditionalOnBean(DataSource.class)
+	@ConditionalOnMissingBean(name = "tinyEngineSqlDataSourceInitializer")
+	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.sql", name = "auto-initialize", havingValue = "true")
+	public DataSourceInitializer tinyEngineSqlDataSourceInitializer(DataSource dataSource,
+			TinyEngineSqlResources sqlResources) {
+		ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+		populator.setContinueOnError(false);
+		populator.setIgnoreFailedDrops(false);
+		populator.addScripts(sqlResources.getScripts().toArray(new Resource[sqlResources.getScripts().size()]));
+
+		DataSourceInitializer initializer = new DataSourceInitializer();
+		initializer.setDataSource(dataSource);
+		initializer.setDatabasePopulator(populator);
+		return initializer;
 	}
 
 	private static List<Resource> loadScriptResources(ResourcePatternResolver resolver, Resource manifest,

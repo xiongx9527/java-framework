@@ -28,12 +28,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AppLifecycleServiceTest {
+
+	@Test
+	void queryAppByIdLoadsTrustedRoleForCurrentUser() {
+		AppMapper appMapper = mock(AppMapper.class);
+		AppServiceImpl service = service(appMapper, mock(PageMapper.class));
+		App stored = new App();
+		stored.setId(Integer.valueOf(1));
+		stored.setCurrentRole("app_admin");
+		when(appMapper.queryVisibleAppById("tenant-9", Integer.valueOf(1), "user-7", false))
+				.thenReturn(stored);
+
+		App result = service.queryAppById(Integer.valueOf(1));
+
+		assertThat(result.getCurrentRole()).isEqualTo("app_admin");
+		verify(appMapper).queryVisibleAppById("tenant-9", Integer.valueOf(1), "user-7", false);
+	}
 
 	@Test
 	void saveAndPublishUpdateLifecycleFields() {
@@ -110,6 +127,37 @@ class AppLifecycleServiceTest {
 	}
 
 	@Test
+	void deleteAppRemovesAiConfigurationBeforeRolesAndPropagatesCleanupFailure() {
+		AppMapper appMapper = mock(AppMapper.class);
+		PageMapper pageMapper = mock(PageMapper.class);
+		AppServiceImpl service = service(appMapper, pageMapper);
+		AppRoleService appRoleService = mock(AppRoleService.class);
+		AppAiModelConfigService aiModelConfigService = mock(AppAiModelConfigService.class);
+		ReflectionTestUtils.setField(service, "appRoleService", appRoleService);
+		ReflectionTestUtils.setField(service, "appAiModelConfigService", aiModelConfigService);
+		App stored = new App();
+		stored.setId(Integer.valueOf(1));
+		when(appMapper.queryAppById(Integer.valueOf(1), "tenant-9")).thenReturn(stored);
+		when(pageMapper.queryPageByApp(Integer.valueOf(1))).thenReturn(Collections.<Page>emptyList());
+		when(appMapper.deleteAppById(Integer.valueOf(1), "tenant-9")).thenReturn(Integer.valueOf(1));
+
+		service.deleteAppById(Integer.valueOf(1));
+
+		InOrder order = inOrder(aiModelConfigService, appRoleService, appMapper);
+		order.verify(aiModelConfigService).deleteByApp(Integer.valueOf(1), "tenant-9");
+		order.verify(appRoleService).deleteAppRoles(Integer.valueOf(1), "tenant-9");
+		order.verify(appMapper).deleteAppById(Integer.valueOf(1), "tenant-9");
+
+		doThrow(new IllegalStateException("AI cleanup failed")).when(aiModelConfigService)
+				.deleteByApp(Integer.valueOf(1), "tenant-9");
+		assertThatThrownBy(() -> service.deleteAppById(Integer.valueOf(1)))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessage("AI cleanup failed");
+		verify(appRoleService, times(1)).deleteAppRoles(Integer.valueOf(1), "tenant-9");
+		verify(appMapper, times(1)).deleteAppById(Integer.valueOf(1), "tenant-9");
+	}
+
+	@Test
 	void createAppUsesCurrentUserAuditFields() {
 		AppMapper appMapper = mock(AppMapper.class);
 		PageMapper pageMapper = mock(PageMapper.class);
@@ -173,6 +221,7 @@ class AppLifecycleServiceTest {
 		disabled.setId(Integer.valueOf(1));
 		disabled.setTenantId("tenant-9");
 		disabled.setEnable(Boolean.FALSE);
+		when(appMapper.queryVisibleAppById("tenant-9", Integer.valueOf(1), "user-7", false)).thenReturn(disabled);
 		when(appMapper.queryAppById(Integer.valueOf(1), "tenant-9")).thenReturn(disabled);
 		when(appMapper.updateAppById(org.mockito.ArgumentMatchers.any(App.class))).thenReturn(Integer.valueOf(1));
 

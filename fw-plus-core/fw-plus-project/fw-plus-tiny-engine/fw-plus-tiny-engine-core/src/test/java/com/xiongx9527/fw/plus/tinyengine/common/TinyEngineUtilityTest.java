@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.tinyengine.common.util.TinyEngineFileSecurityUtils
 import com.xiongx9527.fw.plus.tinyengine.common.util.TinyEngineHashUtils;
 import com.xiongx9527.fw.plus.tinyengine.common.util.TinyEngineJsonUtils;
 import com.xiongx9527.fw.plus.tinyengine.common.util.TinyEngineSchemaUtils;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppAiModelSettings;
 import org.apache.ibatis.type.JdbcType;
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +41,24 @@ class TinyEngineUtilityTest {
 
 		assertEquals(object, TinyEngineJsonUtils.parseObject(TinyEngineJsonUtils.toJson(object)));
 		assertEquals(array, TinyEngineJsonUtils.parseArray(TinyEngineJsonUtils.toJson(array)));
+	}
+
+	@Test
+	void jsonUtilsShouldPreserveUnknownAiModelSettingsAsTopLevelProperties() {
+		AppAiModelSettings settings = new AppAiModelSettings();
+		settings.setDefaultModel("qwen-max");
+		settings.setAdditionalProperty("temperature", 0.7D);
+		Map<String, Object> extendConfig = new HashMap<String, Object>();
+		extendConfig.put("aiModelSettings", settings);
+
+		JSONObject persisted = TinyEngineJsonUtils.parseObject(TinyEngineJsonUtils.toJson(extendConfig));
+		JSONObject persistedSettings = persisted.getJSONObject("aiModelSettings");
+
+		assertEquals("qwen-max", persistedSettings.getString("defaultModel"));
+		assertEquals(0.7D, persistedSettings.getDoubleValue("temperature"), 0.0D);
+		assertFalse(persistedSettings.containsKey("additionalProperties"));
+		AppAiModelSettings restored = AppAiModelSettings.copyOf(persistedSettings);
+		assertEquals(0.7D, ((Number) restored.getAdditionalProperties().get("temperature")).doubleValue(), 0.0D);
 	}
 
 	@Test

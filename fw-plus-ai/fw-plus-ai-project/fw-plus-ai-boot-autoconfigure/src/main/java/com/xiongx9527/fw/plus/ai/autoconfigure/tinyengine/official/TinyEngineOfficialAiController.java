@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.servlet.http.HttpServletResponse;
@@ -17,8 +16,11 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.Map;
 
-@RestController
+/**
+ * @deprecated 旧的浏览器直传模型凭据适配器，仅为源码兼容保留，不再由自动配置注册。
+ */
 @RequestMapping("/app-center/api")
+@Deprecated
 public class TinyEngineOfficialAiController {
 
 	private final TinyEngineOpenAiCompatibleGateway gateway;

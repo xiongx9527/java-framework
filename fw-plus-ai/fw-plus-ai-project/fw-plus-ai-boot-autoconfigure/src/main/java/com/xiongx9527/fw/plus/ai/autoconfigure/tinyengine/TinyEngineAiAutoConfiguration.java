@@ -14,17 +14,20 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.DefaultTinyEn
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.DefaultTinyEngineOfficialRagGateway;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.Sm4TinyEngineAiCredentialCipher;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineAiCredentialCipher;
-import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineOfficialAiController;
-import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineOfficialAiWebFluxController;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineOpenAiCompatibleGateway;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineOfficialRagGateway;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiCapability;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProvider;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProviderRegistry;
+import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.TinyEngineAutoConfiguration;
+import com.xiongx9527.fw.plus.boot.autoconfigure.tinyengine.webflux.TinyEngineReactiveExecutor;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.store.embedding.AiEmbeddingStoreRegistry;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AiModelInvocationConfig;
+import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -36,6 +39,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 @Configuration
+@AutoConfigureAfter(TinyEngineAutoConfiguration.class)
 @ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai", name = "enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(TinyEngineAiProperties.class)
 public class TinyEngineAiAutoConfiguration {
@@ -52,11 +56,13 @@ public class TinyEngineAiAutoConfiguration {
 	@Bean
 	@ConditionalOnMissingBean
 	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
+	@ConditionalOnBean(TinyEngineReactiveExecutor.class)
 	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.web", name = "enabled", havingValue = "true")
 	public TinyEngineAiWebFluxController tinyEngineAiWebFluxController(
 			ObjectProvider<TinyEngineAiChatService> chatServiceProvider,
-			ObjectProvider<TinyEngineRagService> ragServiceProvider) {
-		return new TinyEngineAiWebFluxController(chatService(chatServiceProvider), ragService(ragServiceProvider));
+			ObjectProvider<TinyEngineRagService> ragServiceProvider,
+			TinyEngineReactiveExecutor executor) {
+		return new TinyEngineAiWebFluxController(chatService(chatServiceProvider), ragService(ragServiceProvider), executor);
 	}
 
 	@Bean
@@ -87,32 +93,10 @@ public class TinyEngineAiAutoConfiguration {
 	}
 
 	@Bean
-	@ConditionalOnMissingBean
-	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-	@ConditionalOnBean({TinyEngineOpenAiCompatibleGateway.class, TinyEngineAiCredentialCipher.class})
-	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.web", name = "enabled", havingValue = "true")
-	public TinyEngineOfficialAiController tinyEngineOfficialAiController(
-			TinyEngineOpenAiCompatibleGateway gateway, TinyEngineAiCredentialCipher credentialCipher,
-			TinyEngineOfficialRagGateway ragGateway) {
-		return new TinyEngineOfficialAiController(gateway, credentialCipher, ragGateway);
-	}
-
-	@Bean
-	@ConditionalOnMissingBean
-	@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
-	@ConditionalOnBean({TinyEngineOpenAiCompatibleGateway.class, TinyEngineAiCredentialCipher.class})
-	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.web", name = "enabled", havingValue = "true")
-	public TinyEngineOfficialAiWebFluxController tinyEngineOfficialAiWebFluxController(
-			TinyEngineOpenAiCompatibleGateway gateway, TinyEngineAiCredentialCipher credentialCipher,
-			TinyEngineOfficialRagGateway ragGateway) {
-		return new TinyEngineOfficialAiWebFluxController(gateway, credentialCipher, ragGateway);
-	}
-
-	@Bean
 	@ConditionalOnMissingBean(TinyEngineAiChatService.class)
 	@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.chat", name = "enabled", havingValue = "true")
 	public TinyEngineAiChatService tinyEngineAiChatService(TinyEngineAiProviderRegistry providerRegistry,
-			TinyEngineAiProperties properties) {
+			TinyEngineAiProperties properties, ObjectProvider<AppAiModelConfigService> configServiceProvider) {
 		String missingDependencyPolicy = normalizeMissingDependencyPolicy(properties.getMissingDependencyPolicy());
 		String unavailableReason = chatUnavailableReason(providerRegistry);
 		if (unavailableReason != null) {
@@ -121,7 +105,7 @@ public class TinyEngineAiAutoConfiguration {
 			}
 			throw new IllegalStateException(unavailableReason);
 		}
-		return new DefaultTinyEngineAiChatService(providerRegistry);
+		return new DefaultTinyEngineAiChatService(providerRegistry, configServiceProvider.getIfAvailable());
 	}
 
 	@Bean
@@ -238,19 +222,78 @@ public class TinyEngineAiAutoConfiguration {
 
 	private static final class DefaultTinyEngineAiChatService implements TinyEngineAiChatService {
 		private final TinyEngineAiProviderRegistry providerRegistry;
+		private final AppAiModelConfigService configService;
 
-		private DefaultTinyEngineAiChatService(TinyEngineAiProviderRegistry providerRegistry) {
+		private DefaultTinyEngineAiChatService(TinyEngineAiProviderRegistry providerRegistry,
+				AppAiModelConfigService configService) {
 			this.providerRegistry = providerRegistry;
+			this.configService = configService;
 		}
 
 		@Override
 		public TinyEngineChatResponse chat(TinyEngineChatRequest request) {
-			return providerRegistry.requireCapability(TinyEngineAiCapability.CHAT).chat(request);
+			AiModelInvocationConfig invocation = resolveInvocation(request);
+			return provider(invocation, TinyEngineAiCapability.CHAT).chat(providerRequest(request, invocation));
 		}
 
 		@Override
 		public List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request) {
-			return providerRegistry.requireCapability(TinyEngineAiCapability.STREAMING_CHAT).stream(request);
+			AiModelInvocationConfig invocation = resolveInvocation(request);
+			return provider(invocation, TinyEngineAiCapability.STREAMING_CHAT).stream(providerRequest(request, invocation));
+		}
+
+		private AiModelInvocationConfig resolveInvocation(TinyEngineChatRequest request) {
+			if (request == null || request.getAppId() == null || request.getServiceId() == null
+					|| isBlank(request.getModelName())) {
+				throw new IllegalArgumentException("appId, serviceId and modelName are required");
+			}
+			if (configService == null) {
+				throw new IllegalStateException("TinyEngine AI application model configuration service is unavailable");
+			}
+			return configService.resolveInvocation(request.getAppId(), request.getServiceId(), request.getModelName());
+		}
+
+		private TinyEngineAiProvider provider(AiModelInvocationConfig invocation, TinyEngineAiCapability capability) {
+			TinyEngineAiProvider provider = providerRegistry.requireCapability(capability);
+			if (!provider.supports(capability)) {
+				throw new IllegalStateException("TinyEngine AI provider '" + provider.getKey()
+						+ "' does not support capability '" + capability + "'");
+			}
+			return provider;
+		}
+
+		private TinyEngineChatRequest providerRequest(TinyEngineChatRequest request, AiModelInvocationConfig invocation) {
+			TinyEngineChatRequest target = new TinyEngineChatRequest();
+			target.setAppId(request.getAppId());
+			target.setServiceId(request.getServiceId());
+			target.setProvider(invocation.getProvider());
+			target.setModelName(invocation.getModelName());
+			target.setModelKey(invocation.getModelName());
+			target.setModel(invocation.getModelName());
+			target.setBaseUrl(invocation.getBaseUrl());
+			target.setApiKey(invocation.getApiKey());
+			target.setModelSettings(invocation.getSettings());
+			target.setMessage(request.getMessage());
+			target.setMessages(request.getMessages());
+			target.setStream(request.getStream());
+			target.setMaxTokens(request.getMaxTokens());
+			target.setTemperature(request.getTemperature());
+			target.setTopP(request.getTopP());
+			target.setPresencePenalty(request.getPresencePenalty());
+			target.setFrequencyPenalty(request.getFrequencyPenalty());
+			target.setResponseFormat(request.getResponseFormat());
+			target.setEnableThinking(request.getEnableThinking());
+			target.setToolChoice(request.getToolChoice());
+			target.setParallelToolCalls(request.getParallelToolCalls());
+			target.setEnableSearch(request.getEnableSearch());
+			target.setStreamOptions(request.getStreamOptions());
+			target.setSearchOptions(request.getSearchOptions());
+			target.setTools(request.getTools());
+			return target;
+		}
+
+		private boolean isBlank(String value) {
+			return value == null || value.trim().length() == 0;
 		}
 	}
 
