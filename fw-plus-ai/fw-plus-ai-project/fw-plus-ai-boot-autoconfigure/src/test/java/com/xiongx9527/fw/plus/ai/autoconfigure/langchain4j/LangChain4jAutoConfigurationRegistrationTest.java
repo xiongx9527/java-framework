@@ -68,8 +68,8 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		EXPECTED_CLASS_CONDITIONS.put(
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jCoreAutoConfiguration",
 				new String[] {
-						"dev.langchain4j.model.chat.ChatLanguageModel",
-						"dev.langchain4j.model.chat.StreamingChatLanguageModel",
+						"dev.langchain4j.model.chat.ChatModel",
+						"dev.langchain4j.model.chat.StreamingChatModel",
 						"dev.langchain4j.service.spring.AiService"
 				});
 		EXPECTED_CLASS_CONDITIONS.put(
@@ -132,14 +132,14 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		EXPECTED_CLASS_CONDITIONS.put(
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jRedisEmbeddingStoreAutoConfiguration",
 				new String[] {
-						"dev.langchain4j.store.embedding.redis.RedisEmbeddingStore"
+						"dev.langchain4j.community.store.embedding.redis.RedisEmbeddingStore"
 				});
 		EXPECTED_CLASS_CONDITIONS.put(
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jQianfanAutoConfiguration",
 				new String[] {
-						"dev.langchain4j.model.qianfan.QianfanChatModel",
-						"dev.langchain4j.model.qianfan.QianfanStreamingChatModel",
-						"dev.langchain4j.model.qianfan.QianfanEmbeddingModel"
+						"dev.langchain4j.community.model.qianfan.QianfanChatModel",
+						"dev.langchain4j.community.model.qianfan.QianfanStreamingChatModel",
+						"dev.langchain4j.community.model.qianfan.QianfanEmbeddingModel"
 				});
 		EXPECTED_CLASS_CONDITIONS.put(
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jMilvusEmbeddingStoreAutoConfiguration",
@@ -149,9 +149,9 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		EXPECTED_CLASS_CONDITIONS.put(
 				"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.LangChain4jDashScopeAutoConfiguration",
 				new String[] {
-						"dev.langchain4j.model.dashscope.QwenChatModel",
-						"dev.langchain4j.model.dashscope.QwenStreamingChatModel",
-						"dev.langchain4j.model.dashscope.QwenEmbeddingModel"
+						"dev.langchain4j.community.model.dashscope.QwenChatModel",
+						"dev.langchain4j.community.model.dashscope.QwenStreamingChatModel",
+						"dev.langchain4j.community.model.dashscope.QwenEmbeddingModel"
 				});
 	}
 
@@ -179,7 +179,7 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 
 		assertNotNull("LangChain4jAutoConfiguration should declare @ConditionalOnClass", conditional);
 		assertEquals(new LinkedHashSet<String>(Arrays.asList("dev.langchain4j.spring.LangChain4jAutoConfig")),
-				classNames(conditional.value()));
+				classNames(conditional));
 	}
 
 	@Test
@@ -203,7 +203,7 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 
 			assertNotNull(className + " should declare @ConditionalOnClass", conditional);
 			assertEquals(new LinkedHashSet<String>(Arrays.asList(EXPECTED_CLASS_CONDITIONS.get(className))),
-					classNames(conditional.value()));
+					classNames(conditional));
 		}
 	}
 
@@ -279,11 +279,12 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		return classNames;
 	}
 
-	private Set<String> classNames(Class<?>[] classes) {
+	private Set<String> classNames(ConditionalOnClass conditional) {
 		Set<String> classNames = new LinkedHashSet<String>();
-		for (Class<?> type : classes) {
+		for (Class<?> type : conditional.value()) {
 			classNames.add(type.getName());
 		}
+		classNames.addAll(Arrays.asList(conditional.name()));
 		return classNames;
 	}
 

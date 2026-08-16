@@ -17,15 +17,11 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.StreamingResponseHandler;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.output.Response;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -41,8 +37,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class LangChain4jTinyEngineAiProviderTest {
 
 	@Test
-	public void shouldPreserveResponseFormatForLegacyChatLanguageModelOverride() {
-		OverridingChatLanguageModel chatModel = new OverridingChatLanguageModel();
+	public void shouldPreserveResponseFormatForChatModel() {
+		OverridingChatModel chatModel = new OverridingChatModel();
 		LangChain4jTinyEngineAiProvider provider = provider(aiModel("chat-default", AiModelType.CHAT,
 				LangChain4jModelType.CHAT, chatModel));
 		TinyEngineChatRequest request = request("chat-default", false);
@@ -55,8 +51,8 @@ public class LangChain4jTinyEngineAiProviderTest {
 	}
 
 	@Test
-	public void shouldInvokeLegacyGenerateOnlyChatLanguageModel() {
-		GenerateOnlyChatLanguageModel chatModel = new GenerateOnlyChatLanguageModel();
+	public void shouldInvokeChatModelThroughModernApi() {
+		GenerateOnlyChatModel chatModel = new GenerateOnlyChatModel();
 		LangChain4jTinyEngineAiProvider provider = provider(aiModel("chat-default", AiModelType.CHAT,
 				LangChain4jModelType.CHAT, chatModel));
 
@@ -67,7 +63,7 @@ public class LangChain4jTinyEngineAiProviderTest {
 	}
 
 	@Test
-	public void shouldInvokePlainChatModelWithoutLegacyCompatibilityInterface() {
+	public void shouldInvokePlainChatModel() {
 		PlainChatModel chatModel = new PlainChatModel();
 		LangChain4jTinyEngineAiProvider provider = provider(aiModel("chat-default", AiModelType.CHAT,
 				LangChain4jModelType.CHAT, chatModel));
@@ -79,7 +75,7 @@ public class LangChain4jTinyEngineAiProviderTest {
 	}
 
 	@Test
-	public void shouldInvokePlainStreamingChatModelWithoutLegacyCompatibilityInterface() {
+	public void shouldInvokePlainStreamingChatModel() {
 		PlainStreamingChatModel streamingModel = new PlainStreamingChatModel();
 		LangChain4jTinyEngineAiProvider provider = provider(aiModel("stream-default", AiModelType.STREAMING_CHAT,
 				LangChain4jModelType.STREAMING_CHAT, streamingModel));
@@ -145,7 +141,7 @@ public class LangChain4jTinyEngineAiProviderTest {
 	}
 
 	@Test
-	public void shouldInvokeLegacyGenerateOnlyStreamingChatLanguageModel() {
+	public void shouldInvokeStreamingChatModelThroughModernApi() {
 		RecordingStreamingChatModel streamingModel = new RecordingStreamingChatModel();
 		LangChain4jTinyEngineAiProvider provider = provider(aiModel("stream-default", AiModelType.STREAMING_CHAT,
 				LangChain4jModelType.STREAMING_CHAT, streamingModel));
@@ -241,13 +237,14 @@ public class LangChain4jTinyEngineAiProviderTest {
 		}
 	}
 
-	private static final class RecordingStreamingChatModel implements StreamingChatLanguageModel {
+	private static final class RecordingStreamingChatModel implements StreamingChatModel {
 		private List<ChatMessage> messages = Collections.emptyList();
-		@Override public void generate(List<ChatMessage> messages, StreamingResponseHandler<AiMessage> handler) {
-			this.messages = messages;
-			handler.onNext("he");
-			handler.onNext("llo");
-			handler.onComplete(Response.from(AiMessage.from("stream answer")));
+		@Override public void chat(ChatRequest request,
+				dev.langchain4j.model.chat.response.StreamingChatResponseHandler handler) {
+			this.messages = request.messages();
+			handler.onPartialResponse("he");
+			handler.onPartialResponse("llo");
+			handler.onCompleteResponse(ChatResponse.builder().aiMessage(AiMessage.from("stream answer")).build());
 		}
 	}
 
@@ -272,26 +269,22 @@ public class LangChain4jTinyEngineAiProviderTest {
 		}
 	}
 
-	private static final class GenerateOnlyChatLanguageModel implements ChatLanguageModel {
+	private static final class GenerateOnlyChatModel implements ChatModel {
 		private List<ChatMessage> messages = Collections.emptyList();
 
 		@Override
-		public Response<AiMessage> generate(List<ChatMessage> messages) {
-			this.messages = messages;
-			return Response.from(AiMessage.from("legacy generate answer"));
+		public ChatResponse chat(ChatRequest request) {
+			this.messages = request.messages();
+			return ChatResponse.builder().aiMessage(AiMessage.from("legacy generate answer")).build();
 		}
 	}
 
-	private static final class OverridingChatLanguageModel extends BaseOverridingChatLanguageModel {
+	private static final class OverridingChatModel extends BaseOverridingChatModel {
 	}
 
-	private static class BaseOverridingChatLanguageModel implements ChatLanguageModel {
+	private static class BaseOverridingChatModel implements ChatModel {
 		protected ChatRequest request;
 
-		@Override
-		public Response<AiMessage> generate(List<ChatMessage> messages) {
-			return Response.from(AiMessage.from("legacy generate answer"));
-		}
 
 		@Override
 		public ChatResponse chat(ChatRequest request) {

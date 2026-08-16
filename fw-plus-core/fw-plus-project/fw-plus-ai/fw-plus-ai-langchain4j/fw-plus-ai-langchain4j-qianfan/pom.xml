@@ -30,7 +30,7 @@
 
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-qianfan</artifactId>
+            <artifactId>langchain4j-community-qianfan</artifactId>
         </dependency>
     </dependencies>
 

@@ -7,7 +7,7 @@ import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRequest;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelResult;
 import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelRouter;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 
 import java.util.LinkedHashMap;
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeoutException;
 public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 
 	private final AskDataProperties properties;
-	private final Map<String, ChatLanguageModel> chatModels;
+	private final Map<String, ChatModel> chatModels;
 	private final Map<String, EmbeddingModel> embeddingModels;
 	private final AskDataModelRouter modelRouter = new AskDataModelRouter() {
 	};
@@ -30,11 +30,11 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 			.synchronizedList(new ArrayList<AskDataModelRouteAuditRecord>());
 
 	public LangChain4jAskDataModelRegistry(AskDataProperties properties,
-			Map<String, ChatLanguageModel> directChatModels,
+			Map<String, ChatModel> directChatModels,
 			Map<String, EmbeddingModel> directEmbeddingModels,
 			List<LangChain4jAskDataModelSource> modelSources) {
 		this.properties = properties;
-		this.chatModels = new LinkedHashMap<String, ChatLanguageModel>();
+		this.chatModels = new LinkedHashMap<String, ChatModel>();
 		this.embeddingModels = new LinkedHashMap<String, EmbeddingModel>();
 		if (modelSources != null) {
 			for (LangChain4jAskDataModelSource modelSource : modelSources) {
@@ -58,14 +58,14 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 	public AskDataChatModel getChatModel(String modelKey) {
 		final String resolvedKey = resolveModelKey(modelKey, properties.getModel().getChatCandidates(),
 				getDefaultChatModelKey(), chatModels);
-		final ChatLanguageModel chatLanguageModel = chatModels.get(resolvedKey);
-		if (chatLanguageModel == null) {
+		final ChatModel chatModel = chatModels.get(resolvedKey);
+		if (chatModel == null) {
 			throw modelNotFound("聊天", resolvedKey);
 		}
 		return new AskDataChatModel() {
 			@Override
 			public AskDataModelResponse generate(String prompt) {
-				return new AskDataModelResponse(chatLanguageModel.generate(prompt), null, resolvedKey);
+				return new AskDataModelResponse(chatModel.chat(prompt), null, resolvedKey);
 			}
 		};
 	}
@@ -120,11 +120,11 @@ public class LangChain4jAskDataModelRegistry implements AskDataModelRegistry {
 		while (true) {
 			long startedAt = System.currentTimeMillis();
 			try {
-				ChatLanguageModel chatLanguageModel = chatModels.get(routedResult.getModelKey());
-				if (chatLanguageModel == null) {
+				ChatModel chatModel = chatModels.get(routedResult.getModelKey());
+				if (chatModel == null) {
 					throw modelNotFound("聊天", routedResult.getModelKey());
 				}
-				String response = chatLanguageModel.generate(prompt);
+				String response = chatModel.chat(prompt);
 				recordRoute(routedResult);
 				return new AskDataModelResponse(response, null, routedResult.getModelKey());
 			} catch (AskDataModelException ex) {

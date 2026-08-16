@@ -13,7 +13,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreDescriptor;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowExecutionResult;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflow;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import org.junit.jupiter.api.Test;
 import org.ssssssss.magicapi.core.config.MagicConfiguration;
 import org.ssssssss.magicapi.core.model.JsonBean;
@@ -247,7 +247,7 @@ class MagicTinyflowControllerTest {
 				return Collections.singletonList(new TinyflowModelDescriptor("chat-main", "Chat", "CHAT", "test"));
 			}
 			@Override public List<TinyflowModelDescriptor> listEmbeddingModels() { return Collections.emptyList(); }
-			@Override public ChatLanguageModel getChatModel(String key) { return null; }
+			@Override public ChatModel getChatModel(String key) { return null; }
 			@Override public TinyflowEmbeddingModel getEmbeddingModel(String key) { return null; }
 		};
 	}

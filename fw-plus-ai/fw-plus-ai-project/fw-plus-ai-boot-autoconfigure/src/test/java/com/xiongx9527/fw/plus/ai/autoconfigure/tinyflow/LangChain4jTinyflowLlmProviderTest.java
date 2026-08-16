@@ -16,7 +16,9 @@ import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import dev.tinyflow.core.llm.Llm;
@@ -38,7 +40,7 @@ public class LangChain4jTinyflowLlmProviderTest {
 
 	@Test
 	public void shouldResolveBlankKeysToTheRealDefaultChatModelAndBackOffNonStringKeys() {
-		FixedChatLanguageModel defaultChatModel = new FixedChatLanguageModel("default-chat-response");
+		FixedChatModel defaultChatModel = new FixedChatModel("default-chat-response");
 		TinyflowModelProvider modelProvider = provider(models("default-chat", model("default-chat", AiModelType.CHAT,
 				LangChain4jModelType.CHAT, defaultChatModel)), "default-chat");
 		LangChain4jTinyflowLlmProvider provider = new LangChain4jTinyflowLlmProvider(modelProvider);
@@ -141,19 +143,19 @@ public class LangChain4jTinyflowLlmProviderTest {
 		}
 	}
 
-	private static final class FixedChatLanguageModel implements ChatLanguageModel {
+	private static final class FixedChatModel implements ChatModel {
 		private final String response;
 		private final java.util.List<java.util.List<ChatMessage>> invocations =
 				new ArrayList<java.util.List<ChatMessage>>();
 
-		private FixedChatLanguageModel(String response) {
+		private FixedChatModel(String response) {
 			this.response = response;
 		}
 
 		@Override
-		public Response<AiMessage> generate(java.util.List<ChatMessage> messages) {
-			invocations.add(new ArrayList<ChatMessage>(messages));
-			return Response.from(AiMessage.from(response));
+		public ChatResponse chat(ChatRequest request) {
+			invocations.add(new ArrayList<ChatMessage>(request.messages()));
+			return ChatResponse.builder().aiMessage(AiMessage.from(response)).build();
 		}
 
 		private int getInvocationCount() {

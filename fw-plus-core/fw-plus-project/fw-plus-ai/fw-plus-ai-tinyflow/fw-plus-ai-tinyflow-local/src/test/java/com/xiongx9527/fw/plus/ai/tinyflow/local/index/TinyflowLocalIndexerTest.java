@@ -189,7 +189,7 @@ public class TinyflowLocalIndexerTest {
 		FixedModelProvider(boolean available) { this.available = available; }
 		@Override public List<TinyflowModelDescriptor> listChatModels() { return Collections.emptyList(); }
 		@Override public List<TinyflowModelDescriptor> listEmbeddingModels() { return Collections.emptyList(); }
-		@Override public dev.langchain4j.model.chat.ChatLanguageModel getChatModel(String key) { return null; }
+		@Override public dev.langchain4j.model.chat.ChatModel getChatModel(String key) { return null; }
 		@Override public TinyflowEmbeddingModel getEmbeddingModel(String key) {
 			return available ? text -> new float[] { text.length() } : null;
 		}
@@ -199,7 +199,7 @@ public class TinyflowLocalIndexerTest {
 		final List<String> requestedKeys = new ArrayList<String>();
 		@Override public List<TinyflowModelDescriptor> listChatModels() { return Collections.emptyList(); }
 		@Override public List<TinyflowModelDescriptor> listEmbeddingModels() { return Collections.emptyList(); }
-		@Override public dev.langchain4j.model.chat.ChatLanguageModel getChatModel(String key) { return null; }
+		@Override public dev.langchain4j.model.chat.ChatModel getChatModel(String key) { return null; }
 		@Override public TinyflowEmbeddingModel getEmbeddingModel(String key) {
 			requestedKeys.add(key);
 			return text -> new float[] { text.length() };

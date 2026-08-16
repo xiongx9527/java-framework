@@ -23,7 +23,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.AbstractTinyflowVectorStoreContractTest;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStore;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 
 import java.util.Collections;
 import java.util.List;
@@ -150,7 +150,7 @@ public abstract class AbstractLangChain4jTinyflowVectorStoreContractTest
 		return new TinyflowLocalIndexer(repository, new TinyflowModelProvider() {
 			@Override public List<TinyflowModelDescriptor> listChatModels() { return Collections.emptyList(); }
 			@Override public List<TinyflowModelDescriptor> listEmbeddingModels() { return Collections.emptyList(); }
-			@Override public ChatLanguageModel getChatModel(String key) { return null; }
+			@Override public ChatModel getChatModel(String key) { return null; }
 			@Override public TinyflowEmbeddingModel getEmbeddingModel(String key) {
 				return text -> new float[] { 1.0f };
 			}

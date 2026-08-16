@@ -304,7 +304,13 @@
         </dependency>
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-redis</artifactId>
+            <artifactId>langchain4j-community-redis</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-zhipu-ai</artifactId>
             <scope>compile</scope>
             <optional>true</optional>
         </dependency>

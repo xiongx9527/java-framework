@@ -8,8 +8,8 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.tinyflow.core.chain.Chain;
 import dev.tinyflow.core.llm.Llm;
 import dev.tinyflow.core.node.LlmNode;
@@ -20,10 +20,10 @@ import java.util.Objects;
 
 public final class Langchain4jLlm implements Llm {
 
-	private final ChatLanguageModel chatLanguageModel;
+	private final ChatModel chatModel;
 
-	public Langchain4jLlm(ChatLanguageModel chatLanguageModel) {
-		this.chatLanguageModel = Objects.requireNonNull(chatLanguageModel, "chatLanguageModel");
+	public Langchain4jLlm(ChatModel chatModel) {
+		this.chatModel = Objects.requireNonNull(chatModel, "chatModel");
 	}
 
 	@Override
@@ -35,16 +35,16 @@ public final class Langchain4jLlm implements Llm {
 			throw new TinyflowException("Failed to map Tinyflow message to LangChain4j");
 		}
 
-		Response<AiMessage> response;
+		ChatResponse response;
 		try {
-			response = chatLanguageModel.generate(messages);
+			response = chatModel.chat(messages);
 		} catch (RuntimeException e) {
 			throw new TinyflowException("LangChain4j model invocation failed", e);
 		}
-		if (response == null || response.content() == null || isBlank(response.content().text())) {
+		if (response == null || response.aiMessage() == null || isBlank(response.aiMessage().text())) {
 			throw new TinyflowException("LangChain4j model returned an empty response");
 		}
-		return response.content().text();
+		return response.aiMessage().text();
 	}
 
 	private List<ChatMessage> toMessages(MessageInfo message) {

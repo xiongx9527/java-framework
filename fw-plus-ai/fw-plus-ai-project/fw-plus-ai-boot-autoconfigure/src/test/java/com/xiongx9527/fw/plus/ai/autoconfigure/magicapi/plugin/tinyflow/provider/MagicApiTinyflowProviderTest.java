@@ -44,8 +44,9 @@ class MagicApiTinyflowProviderTest {
 	@Test
 	void shouldMergeSpringModelRegistryAndExposeOnlyCapabilities() {
 		Map<String, AiModel> models = new LinkedHashMap<String, AiModel>();
-		models.put("chat-main", nativeModel("chat-main", AiModelType.CHAT, new dev.langchain4j.model.chat.ChatLanguageModel() {
-			@Override public dev.langchain4j.model.output.Response<dev.langchain4j.data.message.AiMessage> generate(java.util.List<dev.langchain4j.data.message.ChatMessage> messages) { return null; }
+		models.put("chat-main", nativeModel("chat-main", AiModelType.CHAT, new dev.langchain4j.model.chat.ChatModel() {
+			@Override public dev.langchain4j.model.chat.response.ChatResponse chat(
+					dev.langchain4j.model.chat.request.ChatRequest request) { return null; }
 		}));
 		models.put("embedding-main", nativeModel("embedding-main", AiModelType.EMBEDDING, new dev.langchain4j.model.embedding.EmbeddingModel() {
 			@Override public dev.langchain4j.model.output.Response<java.util.List<dev.langchain4j.data.embedding.Embedding>> embedAll(java.util.List<dev.langchain4j.data.segment.TextSegment> segments) { return null; }
@@ -65,9 +66,9 @@ class MagicApiTinyflowProviderTest {
 
 	@Test
 	void shouldRegisterMagicDynamicModelsBeforeTheDefaultTinyflowProvider() {
-		dev.langchain4j.model.chat.ChatLanguageModel chatModel = new dev.langchain4j.model.chat.ChatLanguageModel() {
-			@Override public dev.langchain4j.model.output.Response<dev.langchain4j.data.message.AiMessage> generate(
-					java.util.List<dev.langchain4j.data.message.ChatMessage> messages) { return null; }
+		dev.langchain4j.model.chat.ChatModel chatModel = new dev.langchain4j.model.chat.ChatModel() {
+			@Override public dev.langchain4j.model.chat.response.ChatResponse chat(
+					dev.langchain4j.model.chat.request.ChatRequest request) { return null; }
 		};
 		dev.langchain4j.model.embedding.EmbeddingModel embeddingModel = new dev.langchain4j.model.embedding.EmbeddingModel() {
 			@Override public dev.langchain4j.model.output.Response<java.util.List<dev.langchain4j.data.embedding.Embedding>> embedAll(

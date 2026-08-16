@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @ConditionalOnClass(name = {
 		"com.xiongx9527.fw.plus.ai.model.AiModelRegistry",
 		"com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel",
-		"dev.langchain4j.model.chat.ChatLanguageModel",
+		"dev.langchain4j.model.chat.ChatModel",
 		"dev.langchain4j.model.embedding.EmbeddingModel"
 })
 @ConditionalOnProperty(prefix = "fw.plus.ai.askdata", name = "enabled", havingValue = "true", matchIfMissing = true)

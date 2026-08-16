@@ -28,13 +28,13 @@ public class Langchain4jLlmClasspathTest {
 	}
 
 	@Test
-	public void shouldCompileCompatibilityClassForJava8() throws Exception {
+	public void shouldCompileCompatibilityClassForJava17() throws Exception {
 		InputStream stream = getClass().getClassLoader().getResourceAsStream(CLASS_RESOURCE);
 		DataInputStream input = new DataInputStream(stream);
 		try {
 			assertEquals(0xCAFEBABE, input.readInt());
 			input.readUnsignedShort();
-			assertEquals(52, input.readUnsignedShort());
+			assertEquals(61, input.readUnsignedShort());
 		} finally {
 			input.close();
 		}

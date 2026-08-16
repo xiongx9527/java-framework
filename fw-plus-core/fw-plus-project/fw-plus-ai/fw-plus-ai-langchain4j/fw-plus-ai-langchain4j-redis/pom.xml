@@ -25,7 +25,7 @@
 
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-redis</artifactId>
+            <artifactId>langchain4j-community-redis</artifactId>
         </dependency>
     </dependencies>
 

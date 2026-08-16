@@ -17,7 +17,7 @@ import java.util.List;
 public class LangChain4jEmbeddingStoreAdapterAutoConfiguration {
 
 	@Bean
-	@ConditionalOnClass(name = "dev.langchain4j.store.embedding.redis.RedisEmbeddingStore")
+	@ConditionalOnClass(name = "dev.langchain4j.community.store.embedding.redis.RedisEmbeddingStore")
 	@ConditionalOnMissingBean(name = "redisStackEmbeddingStoreProviderAdapter")
 	public EmbeddingStoreProviderAdapter redisStackEmbeddingStoreProviderAdapter() {
 		return new RedisStackEmbeddingStoreProviderAdapter();

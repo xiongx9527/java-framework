@@ -7,8 +7,9 @@ import dev.langchain4j.data.message.ImageContent;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.output.Response;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.tinyflow.core.llm.Llm;
 import org.junit.Test;
 
@@ -28,7 +29,7 @@ public class Langchain4jLlmTest {
 
 	@Test
 	public void shouldGenerateWithSystemTextAndImageMessages() {
-		CapturingChatLanguageModel model = new CapturingChatLanguageModel(Response.from(AiMessage.from("ok")));
+		CapturingChatModel model = new CapturingChatModel(response("ok"));
 		Langchain4jLlm llm = new Langchain4jLlm(model);
 
 		String answer = llm.chat(messageInfo("system", "question", "https://example.test/a.png"),
@@ -52,7 +53,7 @@ public class Langchain4jLlmTest {
 	public void shouldWrapModelException() {
 		String sensitiveValue = "secret-value";
 		IllegalStateException modelFailure = new IllegalStateException("model failed with token=" + sensitiveValue);
-		Langchain4jLlm llm = new Langchain4jLlm(new ThrowingChatLanguageModel(modelFailure));
+		Langchain4jLlm llm = new Langchain4jLlm(new ThrowingChatModel(modelFailure));
 
 		TinyflowException failure = assertThrows(TinyflowException.class,
 				() -> llm.chat(messageInfo(null, "question", null), new Llm.ChatOptions(), null, null));
@@ -66,7 +67,7 @@ public class Langchain4jLlmTest {
 	public void shouldRedactSensitiveInvalidImageUriFromMappingFailure() {
 		String sensitiveValue = "secret-value";
 		Langchain4jLlm llm = new Langchain4jLlm(
-				new CapturingChatLanguageModel(Response.from(AiMessage.from("unused"))));
+				new CapturingChatModel(response("unused")));
 
 		TinyflowException failure = assertThrows(TinyflowException.class,
 				() -> llm.chat(messageInfo(null, "question",
@@ -80,7 +81,7 @@ public class Langchain4jLlmTest {
 
 	@Test
 	public void shouldRejectNullResponse() {
-		Langchain4jLlm llm = new Langchain4jLlm(new CapturingChatLanguageModel(null));
+		Langchain4jLlm llm = new Langchain4jLlm(new CapturingChatModel(null));
 
 		assertThrows(TinyflowException.class,
 				() -> llm.chat(messageInfo(null, "question", null), new Llm.ChatOptions(), null, null));
@@ -88,13 +89,13 @@ public class Langchain4jLlmTest {
 
 	@Test
 	public void shouldRejectNullAiMessage() {
-		Response<AiMessage> response = new Response<AiMessage>(AiMessage.from("unused")) {
+		ChatResponse response = new ChatResponse(ChatResponse.builder().aiMessage(AiMessage.from("unused"))) {
 			@Override
-			public AiMessage content() {
+			public AiMessage aiMessage() {
 				return null;
 			}
 		};
-		Langchain4jLlm llm = new Langchain4jLlm(new CapturingChatLanguageModel(response));
+		Langchain4jLlm llm = new Langchain4jLlm(new CapturingChatModel(response));
 
 		assertThrows(TinyflowException.class,
 				() -> llm.chat(messageInfo(null, "question", null), new Llm.ChatOptions(), null, null));
@@ -103,7 +104,7 @@ public class Langchain4jLlmTest {
 	@Test
 	public void shouldRejectEmptyAiMessageText() {
 		Langchain4jLlm llm = new Langchain4jLlm(
-				new CapturingChatLanguageModel(Response.from(AiMessage.from(""))));
+				new CapturingChatModel(response("")));
 
 		assertThrows(TinyflowException.class,
 				() -> llm.chat(messageInfo(null, "question", null), new Llm.ChatOptions(), null, null));
@@ -112,10 +113,14 @@ public class Langchain4jLlmTest {
 	@Test
 	public void shouldRejectBlankAiMessageText() {
 		Langchain4jLlm llm = new Langchain4jLlm(
-				new CapturingChatLanguageModel(Response.from(AiMessage.from(" \t"))));
+				new CapturingChatModel(response(" \t")));
 
 		assertThrows(TinyflowException.class,
 				() -> llm.chat(messageInfo(null, "question", null), new Llm.ChatOptions(), null, null));
+	}
+
+	private static ChatResponse response(String text) {
+		return ChatResponse.builder().aiMessage(AiMessage.from(text)).build();
 	}
 
 	private static Llm.MessageInfo messageInfo(String systemMessage, String message, String image) {
@@ -126,30 +131,30 @@ public class Langchain4jLlmTest {
 		return messageInfo;
 	}
 
-	private static final class CapturingChatLanguageModel implements ChatLanguageModel {
-		private final Response<AiMessage> response;
+	private static final class CapturingChatModel implements ChatModel {
+		private final ChatResponse response;
 		private List<ChatMessage> messages;
 
-		private CapturingChatLanguageModel(Response<AiMessage> response) {
+		private CapturingChatModel(ChatResponse response) {
 			this.response = response;
 		}
 
 		@Override
-		public Response<AiMessage> generate(List<ChatMessage> messages) {
-			this.messages = new ArrayList<ChatMessage>(messages);
+		public ChatResponse chat(ChatRequest request) {
+			this.messages = new ArrayList<ChatMessage>(request.messages());
 			return response;
 		}
 	}
 
-	private static final class ThrowingChatLanguageModel implements ChatLanguageModel {
+	private static final class ThrowingChatModel implements ChatModel {
 		private final RuntimeException failure;
 
-		private ThrowingChatLanguageModel(RuntimeException failure) {
+		private ThrowingChatModel(RuntimeException failure) {
 			this.failure = failure;
 		}
 
 		@Override
-		public Response<AiMessage> generate(List<ChatMessage> messages) {
+		public ChatResponse chat(ChatRequest request) {
 			throw failure;
 		}
 	}

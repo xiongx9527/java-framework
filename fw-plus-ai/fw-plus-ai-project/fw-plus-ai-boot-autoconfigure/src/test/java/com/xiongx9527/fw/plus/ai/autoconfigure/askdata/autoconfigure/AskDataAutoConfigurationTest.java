@@ -65,7 +65,7 @@ import com.xiongx9527.fw.plus.ai.model.AiModelType;
 import com.xiongx9527.fw.plus.ai.model.DefaultAiModelRegistry;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -524,7 +524,7 @@ public class AskDataAutoConfigurationTest {
                 .withPropertyValues(
                         "fw.plus.ai.askdata.model.default-chat-model=directChat",
                         "fw.plus.ai.askdata.model.default-embedding-model=directEmbedding")
-                .withBean("directChat", ChatLanguageModel.class, () -> chatModel("direct-response"))
+                .withBean("directChat", ChatModel.class, () -> chatModel("direct-response"))
                 .withBean("directEmbedding", EmbeddingModel.class, () -> embeddingModel(0.3F, 0.7F))
                 .run(context -> {
                     assertTrue(context.getStartupFailure() == null);
@@ -874,12 +874,12 @@ public class AskDataAutoConfigurationTest {
         return false;
     }
 
-    private ChatLanguageModel chatModel(final String response) {
-        return (ChatLanguageModel) Proxy.newProxyInstance(getClass().getClassLoader(),
-                new Class<?>[] {ChatLanguageModel.class}, new InvocationHandler() {
+    private ChatModel chatModel(final String response) {
+        return (ChatModel) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[] {ChatModel.class}, new InvocationHandler() {
                     @Override
                     public Object invoke(Object proxy, Method method, Object[] args) {
-                        if ("generate".equals(method.getName()) && method.getReturnType() == String.class) {
+                        if ("chat".equals(method.getName()) && method.getReturnType() == String.class) {
                             return response;
                         }
                         throw new UnsupportedOperationException(method.toString());

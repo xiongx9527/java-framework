@@ -170,8 +170,9 @@ public final class TinyflowLocalIndexer implements DefaultTinyflowIngestionServi
 					}
 					String vectorDocumentId = temporaryDocumentIds
 							? chunk.getChunkId() + "-" + UUID.randomUUID().toString() : chunk.getChunkId();
-					String vectorId = store.add(new TinyflowVectorDocument(
-								vectorDocumentId, chunk.getContent(), vector, metadata(chunk)));
+					List<String> vectorIds = store.addAll(Collections.singletonList(new TinyflowVectorDocument(
+							vectorDocumentId, chunk.getContent(), vector, metadata(chunk))));
+					String vectorId = vectorIds == null || vectorIds.isEmpty() ? null : vectorIds.get(0);
 					if (isBlank(vectorId)) {
 						throw new TinyflowException("Vector store returned an invalid vector id mapping");
 					}

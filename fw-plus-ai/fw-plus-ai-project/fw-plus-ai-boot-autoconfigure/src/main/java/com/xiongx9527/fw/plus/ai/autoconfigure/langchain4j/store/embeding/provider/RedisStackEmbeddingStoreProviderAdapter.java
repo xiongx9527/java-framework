@@ -5,7 +5,10 @@ import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreException;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.EmbeddingStoreProviderAdapter;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.store.embedding.EmbeddingStore;
-import dev.langchain4j.store.embedding.redis.RedisEmbeddingStore;
+import dev.langchain4j.community.store.embedding.redis.RedisEmbeddingStore;
+import redis.clients.jedis.DefaultJedisClientConfig;
+import redis.clients.jedis.HostAndPort;
+import redis.clients.jedis.UnifiedJedis;
 
 public class RedisStackEmbeddingStoreProviderAdapter implements EmbeddingStoreProviderAdapter {
 
@@ -22,11 +25,21 @@ public class RedisStackEmbeddingStoreProviderAdapter implements EmbeddingStorePr
             ProviderAdapterSupport.requiredIntegerProperty(definition, "port");
             ProviderAdapterSupport.requiredStringProperty(definition, "indexName");
             ProviderAdapterSupport.requiredIntegerProperty(definition, "dimension");
+            String username = ProviderAdapterSupport.stringProperty(definition, "username");
+            String password = ProviderAdapterSupport.stringProperty(definition, "password");
+            DefaultJedisClientConfig.Builder clientConfig = DefaultJedisClientConfig.builder();
+            if (username != null) {
+                clientConfig.user(username);
+            }
+            if (password != null) {
+                clientConfig.password(password);
+            }
+            UnifiedJedis unifiedJedis = new UnifiedJedis(
+                    new HostAndPort(ProviderAdapterSupport.stringProperty(definition, "host"),
+                            ProviderAdapterSupport.integerProperty(definition, "port")),
+                    clientConfig.build());
             return RedisEmbeddingStore.builder()
-                    .host(ProviderAdapterSupport.stringProperty(definition, "host"))
-                    .port(ProviderAdapterSupport.integerProperty(definition, "port"))
-                    .user(ProviderAdapterSupport.stringProperty(definition, "username"))
-                    .password(ProviderAdapterSupport.stringProperty(definition, "password"))
+                    .unifiedJedis(unifiedJedis)
                     .indexName(ProviderAdapterSupport.stringProperty(definition, "indexName"))
                     .dimension(ProviderAdapterSupport.integerProperty(definition, "dimension"))
                     .metadataKeys(ProviderAdapterSupport.metadataKeys(definition))

@@ -11,7 +11,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.TinyflowException;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelDescriptor;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 
 import java.util.ArrayList;
@@ -42,13 +42,13 @@ public class LangChain4jRegistryTinyflowModelProvider implements TinyflowModelPr
 	}
 
 	@Override
-	public ChatLanguageModel getChatModel(String key) {
+	public ChatModel getChatModel(String key) {
 		String resolvedKey = resolveKey(key);
 		Object model = nativeModel(resolvedKey);
-		if (!hasType(resolvedKey, true) || !(model instanceof ChatLanguageModel)) {
+		if (!hasType(resolvedKey, true) || !(model instanceof ChatModel)) {
 			throw unsupported("chat", resolvedKey);
 		}
-		return (ChatLanguageModel) model;
+		return (ChatModel) model;
 	}
 
 	@Override
@@ -75,7 +75,7 @@ public class LangChain4jRegistryTinyflowModelProvider implements TinyflowModelPr
 		for (String key : keys()) {
 			try {
 				Object model = nativeModel(key);
-				if (hasType(key, chat) && ((chat && model instanceof ChatLanguageModel)
+				if (hasType(key, chat) && ((chat && model instanceof ChatModel)
 						|| (!chat && model instanceof EmbeddingModel))) {
 					descriptors.add(descriptor(key, chat));
 				}

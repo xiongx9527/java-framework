@@ -172,7 +172,7 @@ public class TinyflowAutoConfigurationTest {
 	private static final class StubTinyflowModelProvider implements TinyflowModelProvider {
 		@Override public java.util.List<com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelDescriptor> listChatModels() { return java.util.Collections.emptyList(); }
 		@Override public java.util.List<com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelDescriptor> listEmbeddingModels() { return java.util.Collections.emptyList(); }
-		@Override public dev.langchain4j.model.chat.ChatLanguageModel getChatModel(String key) { return null; }
+		@Override public dev.langchain4j.model.chat.ChatModel getChatModel(String key) { return null; }
 		@Override public com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowEmbeddingModel getEmbeddingModel(String key) { return null; }
 	}
 

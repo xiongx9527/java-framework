@@ -8,7 +8,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.TinyflowException;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowEmbeddingModel;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelDescriptor;
 import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 
 import java.util.ArrayList;
@@ -37,12 +37,12 @@ public final class MagicApiTinyflowModelProvider implements TinyflowModelProvide
 	}
 
 	@Override
-	public ChatLanguageModel getChatModel(String key) {
+	public ChatModel getChatModel(String key) {
 		Object nativeModel = nativeModel(key, AiModelType.CHAT);
-		if (!(nativeModel instanceof ChatLanguageModel)) {
+		if (!(nativeModel instanceof ChatModel)) {
 			throw unavailable("chat", key);
 		}
-		return (ChatLanguageModel) nativeModel;
+		return (ChatModel) nativeModel;
 	}
 
 	@Override
@@ -84,7 +84,7 @@ public final class MagicApiTinyflowModelProvider implements TinyflowModelProvide
 			return false;
 		}
 		Object nativeModel = ((LangChain4jAiModel) model).getNativeModel().getModel();
-		return type == AiModelType.CHAT ? nativeModel instanceof ChatLanguageModel : nativeModel instanceof EmbeddingModel;
+		return type == AiModelType.CHAT ? nativeModel instanceof ChatModel : nativeModel instanceof EmbeddingModel;
 	}
 
 	private TinyflowException unavailable(String capability, String key) {

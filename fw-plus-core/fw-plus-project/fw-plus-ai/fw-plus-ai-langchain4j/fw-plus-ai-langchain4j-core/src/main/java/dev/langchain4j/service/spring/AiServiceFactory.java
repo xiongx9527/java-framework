@@ -18,8 +18,8 @@ import org.springframework.beans.factory.FactoryBean;
 
 class AiServiceFactory implements FactoryBean<Object> {
     private final Class<Object> aiServiceClass;
-    private ChatModel chatLanguageModel;
-    private StreamingChatModel streamingChatLanguageModel;
+    private ChatModel chatModel;
+    private StreamingChatModel streamingChatModel;
     private ChatMemory chatMemory;
     private ChatMemoryProvider chatMemoryProvider;
     private ContentRetriever contentRetriever;
@@ -30,12 +30,12 @@ class AiServiceFactory implements FactoryBean<Object> {
         this.aiServiceClass = aiServiceClass;
     }
 
-    public void setChatLanguageModel(ChatModel chatLanguageModel) {
-        this.chatLanguageModel = chatLanguageModel;
+    public void setChatModel(ChatModel chatModel) {
+        this.chatModel = chatModel;
     }
 
-    public void setStreamingChatLanguageModel(StreamingChatModel streamingChatLanguageModel) {
-        this.streamingChatLanguageModel = streamingChatLanguageModel;
+    public void setStreamingChatModel(StreamingChatModel streamingChatModel) {
+        this.streamingChatModel = streamingChatModel;
     }
 
     public void setChatMemory(ChatMemory chatMemory) {
@@ -60,12 +60,12 @@ class AiServiceFactory implements FactoryBean<Object> {
 
     public Object getObject() {
         AiServices<Object> builder = AiServices.builder(this.aiServiceClass);
-        if (this.chatLanguageModel != null) {
-            builder = builder.chatModel(this.chatLanguageModel);
+        if (this.chatModel != null) {
+            builder = builder.chatModel(this.chatModel);
         }
 
-        if (this.streamingChatLanguageModel != null) {
-            builder = builder.streamingChatModel(this.streamingChatLanguageModel);
+        if (this.streamingChatModel != null) {
+            builder = builder.streamingChatModel(this.streamingChatModel);
         }
 
         if (this.chatMemory != null) {

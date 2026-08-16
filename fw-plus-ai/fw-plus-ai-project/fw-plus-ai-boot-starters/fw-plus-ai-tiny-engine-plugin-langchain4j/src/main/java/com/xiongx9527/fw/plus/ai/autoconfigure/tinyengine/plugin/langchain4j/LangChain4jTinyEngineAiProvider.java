@@ -18,15 +18,13 @@ import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.ChatLanguageModel;
-import dev.langchain4j.model.chat.StreamingChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.request.ResponseFormat;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
-import dev.langchain4j.model.output.Response;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,35 +65,20 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 	}
 
 	private ChatResponse chat(Object nativeModel, TinyEngineChatRequest request) {
-		if (nativeModel instanceof ChatLanguageModel
-				&& !overridesChatRequest((ChatLanguageModel) nativeModel)) {
-			Response<AiMessage> response = ((ChatLanguageModel) nativeModel).generate(messages(request));
-			return response == null ? null : ChatResponse.builder().aiMessage(response.content())
-					.tokenUsage(response.tokenUsage()).finishReason(response.finishReason()).build();
-		}
-		ChatLanguageModel model = LangChain4jChatModelAdapter.asChatLanguageModel(nativeModel);
+		ChatModel model = LangChain4jChatModelAdapter.asChatModel(nativeModel);
 		if (model == null) {
-			throw new IllegalStateException("TinyEngine AI provider 'langchain4j' native CHAT model is not ChatLanguageModel");
+			throw new IllegalStateException("TinyEngine AI provider 'langchain4j' native CHAT model is not ChatModel");
 		}
 		return model.chat(chatRequest(request));
-	}
-
-	private boolean overridesChatRequest(ChatLanguageModel model) {
-		try {
-			Method method = model.getClass().getMethod("chat", ChatRequest.class);
-			return !ChatLanguageModel.class.equals(method.getDeclaringClass());
-		} catch (NoSuchMethodException ex) {
-			return false;
-		}
 	}
 
 	@Override
 	public List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request) {
 		LangChain4jModel nativeModel = resolveNativeModel(request, AiModelType.STREAMING_CHAT);
-		StreamingChatLanguageModel model = LangChain4jChatModelAdapter
-				.asStreamingChatLanguageModel(nativeModel.getModel());
+		StreamingChatModel model = LangChain4jChatModelAdapter
+				.asStreamingChatModel(nativeModel.getModel());
 		if (model == null) {
-			throw new IllegalStateException("TinyEngine AI provider 'langchain4j' native STREAMING_CHAT model is not StreamingChatLanguageModel");
+			throw new IllegalStateException("TinyEngine AI provider 'langchain4j' native STREAMING_CHAT model is not StreamingChatModel");
 		}
 		final List<TinyEngineChatStreamChunk> chunks = new ArrayList<TinyEngineChatStreamChunk>();
 		final RuntimeException[] error = new RuntimeException[1];

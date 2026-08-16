@@ -197,8 +197,9 @@
         <!--jakarta版本号-->
         <jakarta.version>6.0.0</jakarta.version>
 		<langchain4j.version>1.18.0</langchain4j.version>
+		<langchain4j-community.version>1.18.0-beta28</langchain4j-community.version>
         <tinyflow.version>2.0.7</tinyflow.version>
-        <jedis.version>5.0.0</jedis.version>
+        <jedis.version>7.2.1</jedis.version>
         <datastax-java-driver.version>4.17.0</datastax-java-driver.version>
         <infinispan.version>13.0.22.Final</infinispan.version>
         <neo4j-java-driver.version>4.4.26</neo4j-java-driver.version>
@@ -272,18 +273,23 @@
             </dependency>
             <dependency>
                 <groupId>dev.langchain4j</groupId>
-                <artifactId>langchain4j-redis</artifactId>
-                <version>0.36.2</version>
+                <artifactId>langchain4j-community-redis</artifactId>
+                <version>${langchain4j-community.version}</version>
             </dependency>
             <dependency>
                 <groupId>dev.langchain4j</groupId>
-                <artifactId>langchain4j-qianfan</artifactId>
-                <version>0.36.2</version>
+                <artifactId>langchain4j-community-qianfan</artifactId>
+                <version>${langchain4j-community.version}</version>
             </dependency>
             <dependency>
                 <groupId>dev.langchain4j</groupId>
-                <artifactId>langchain4j-dashscope</artifactId>
-                <version>0.36.2</version>
+                <artifactId>langchain4j-community-dashscope</artifactId>
+                <version>${langchain4j-community.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-zhipu-ai</artifactId>
+                <version>${langchain4j-community.version}</version>
             </dependency>
             <dependency>
                 <groupId>dev.tinyflow</groupId>
@@ -1095,6 +1101,11 @@
                 <groupId>com.google.zxing</groupId>
                 <artifactId>javase</artifactId>
                 <version>${zxing.core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
+                <artifactId>pdfbox</artifactId>
+                <version>${fontbox.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.pdfbox</groupId>

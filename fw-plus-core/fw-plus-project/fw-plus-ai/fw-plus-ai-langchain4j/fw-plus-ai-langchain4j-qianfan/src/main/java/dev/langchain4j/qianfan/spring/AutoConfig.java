@@ -1,6 +1,6 @@
 package dev.langchain4j.qianfan.spring;
 
-import dev.langchain4j.model.qianfan.*;
+import dev.langchain4j.community.model.qianfan.*;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -85,7 +85,6 @@ public class AutoConfig {
                 .secretKey(languageModelProperties.getSecretKey())
                 .modelName(languageModelProperties.getModelName())
                 .temperature(languageModelProperties.getTemperature())
-                .maxRetries(languageModelProperties.getMaxRetries())
                 .logRequests(languageModelProperties.getLogRequests())
                 .logResponses(languageModelProperties.getLogResponses())
                 .build();

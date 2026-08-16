@@ -19,7 +19,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorMatch;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStore;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreDescriptor;
 import com.xiongx9527.fw.plus.ai.tinyflow.vector.TinyflowVectorStoreProvider;
-import dev.langchain4j.model.chat.ChatLanguageModel;
+import dev.langchain4j.model.chat.ChatModel;
 import org.junit.Test;
 
 import java.lang.reflect.InvocationHandler;
@@ -245,7 +245,7 @@ public class TinyflowLocalRetrieverTest {
 		TinyflowModelProvider recordingModels = new TinyflowModelProvider() {
 			@Override public List<TinyflowModelDescriptor> listChatModels() { return Collections.emptyList(); }
 			@Override public List<TinyflowModelDescriptor> listEmbeddingModels() { return Collections.emptyList(); }
-			@Override public ChatLanguageModel getChatModel(String key) { return null; }
+			@Override public ChatModel getChatModel(String key) { return null; }
 			@Override
 			public TinyflowEmbeddingModel getEmbeddingModel(String key) {
 				return text -> {
@@ -680,7 +680,7 @@ public class TinyflowLocalRetrieverTest {
 	private static final class ModelProvider implements TinyflowModelProvider {
 		@Override public List<TinyflowModelDescriptor> listChatModels() { return Collections.emptyList(); }
 		@Override public List<TinyflowModelDescriptor> listEmbeddingModels() { return Collections.emptyList(); }
-		@Override public ChatLanguageModel getChatModel(String key) { return null; }
+		@Override public ChatModel getChatModel(String key) { return null; }
 		@Override public TinyflowEmbeddingModel getEmbeddingModel(String key) {
 			return "embedding-a".equals(key) ? text -> new float[] { 1F, 0F } : null;
 		}

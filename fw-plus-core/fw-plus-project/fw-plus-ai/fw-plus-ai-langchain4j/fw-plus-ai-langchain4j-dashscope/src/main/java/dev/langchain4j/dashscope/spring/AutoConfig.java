@@ -1,6 +1,6 @@
 package dev.langchain4j.dashscope.spring;
 
-import dev.langchain4j.model.dashscope.*;
+import dev.langchain4j.community.model.dashscope.*;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

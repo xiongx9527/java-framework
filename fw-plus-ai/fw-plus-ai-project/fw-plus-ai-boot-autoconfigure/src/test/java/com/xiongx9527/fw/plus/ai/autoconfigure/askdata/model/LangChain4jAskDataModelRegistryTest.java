@@ -17,7 +17,6 @@ import com.xiongx9527.fw.plus.ai.model.DefaultAiModelRegistry;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.embedding.EmbeddingModel;
@@ -53,7 +52,7 @@ public class LangChain4jAskDataModelRegistryTest {
 	@Test
 	public void shouldUseOllamaDefaultLogicalKeysForChatAndEmbeddingModels() {
 		AskDataProperties properties = new AskDataProperties();
-		Map<String, ChatLanguageModel> chatModels = new HashMap<String, ChatLanguageModel>();
+		Map<String, ChatModel> chatModels = new HashMap<String, ChatModel>();
 		chatModels.put("qwen3:32b", chatModel("ollama-chat"));
 		Map<String, EmbeddingModel> embeddingModels = new HashMap<String, EmbeddingModel>();
 		embeddingModels.put("bge-m3", embeddingModel(0.1F, 0.2F));
@@ -70,7 +69,7 @@ public class LangChain4jAskDataModelRegistryTest {
 	public void shouldSelectRequestLevelChatModelWhenModelKeyExists() {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setDefaultChatModel("default");
-		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		Map<String, ChatModel> models = new HashMap<String, ChatModel>();
 		models.put("default", chatModel("default-sql"));
 		models.put("fast", chatModel("fast-sql"));
 
@@ -83,7 +82,7 @@ public class LangChain4jAskDataModelRegistryTest {
 	public void shouldSelectDefaultChatModelWhenRequestModelKeyIsBlank() {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setDefaultChatModel("default");
-		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		Map<String, ChatModel> models = new HashMap<String, ChatModel>();
 		models.put("default", chatModel("default-sql"));
 
 		AskDataModelRegistry registry = registry(properties, modelRegistry(models, new HashMap<String, EmbeddingModel>()));
@@ -96,7 +95,7 @@ public class LangChain4jAskDataModelRegistryTest {
 	public void shouldFallbackToNextCandidateAfterInfrastructureFailureAndKeepAuditRecords() {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setDefaultChatModel("fallback");
-		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		Map<String, ChatModel> models = new HashMap<String, ChatModel>();
 		models.put("primary", failingChatModel(new RuntimeException(new TimeoutException("ollama timeout"))));
 		models.put("fallback", chatModel("fallback-response"));
 		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
@@ -122,7 +121,7 @@ public class LangChain4jAskDataModelRegistryTest {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setProvider("ollama");
 		properties.getModel().setChatCandidates(java.util.Arrays.asList("primary", "fallback"));
-		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		Map<String, ChatModel> models = new HashMap<String, ChatModel>();
 		models.put("primary", failingChatModel(new RuntimeException(new TimeoutException("ollama timeout"))));
 		models.put("fallback", chatModel("fallback-response"));
 		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
@@ -139,7 +138,7 @@ public class LangChain4jAskDataModelRegistryTest {
 	public void shouldRouteLegacyFlowRequestThroughCoreCandidates() {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setChatCandidates(java.util.Arrays.asList("primary", "fallback"));
-		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		Map<String, ChatModel> models = new HashMap<String, ChatModel>();
 		models.put("primary", failingChatModel(new RuntimeException(new TimeoutException("ollama timeout"))));
 		models.put("fallback", chatModel("fallback-response"));
 		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
@@ -158,7 +157,7 @@ public class LangChain4jAskDataModelRegistryTest {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setFallbackEnabled(false);
 		properties.getModel().setChatCandidates(java.util.Arrays.asList("primary", "fallback"));
-		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		Map<String, ChatModel> models = new HashMap<String, ChatModel>();
 		models.put("primary", failingChatModel(new RuntimeException(new TimeoutException("ollama timeout"))));
 		models.put("fallback", chatModel("fallback-response"));
 		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
@@ -177,7 +176,7 @@ public class LangChain4jAskDataModelRegistryTest {
 	public void shouldNotFallbackAfterOrdinaryRuntimeException() {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setChatCandidates(java.util.Arrays.asList("primary", "fallback"));
-		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		Map<String, ChatModel> models = new HashMap<String, ChatModel>();
 		models.put("primary", failingChatModel(new IllegalStateException("unexpected failure")));
 		models.put("fallback", chatModel("fallback-response"));
 		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
@@ -201,7 +200,7 @@ public class LangChain4jAskDataModelRegistryTest {
 			AskDataProperties properties = new AskDataProperties();
 			properties.getModel().setInfrastructureFailureTimeoutMillis(1);
 			properties.getModel().setChatCandidates(java.util.Arrays.asList("primary", "fallback"));
-			Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+			Map<String, ChatModel> models = new HashMap<String, ChatModel>();
 			models.put("primary", delayedFailingChatModel(failure, 5L));
 			models.put("fallback", chatModel("fallback-response"));
 			LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
@@ -223,7 +222,7 @@ public class LangChain4jAskDataModelRegistryTest {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setRouteAuditRecordCapacity(1);
 		properties.getModel().setChatCandidates(java.util.Arrays.asList("first", "second"));
-		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		Map<String, ChatModel> models = new HashMap<String, ChatModel>();
 		models.put("first", chatModel("first-response"));
 		models.put("second", chatModel("second-response"));
 		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
@@ -241,7 +240,7 @@ public class LangChain4jAskDataModelRegistryTest {
 	public void shouldNotSwitchModelAfterNonRetryableFailure() {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setDefaultChatModel("fallback");
-		Map<String, ChatLanguageModel> models = new HashMap<String, ChatLanguageModel>();
+		Map<String, ChatModel> models = new HashMap<String, ChatModel>();
 		models.put("primary", failingChatModel(new IllegalArgumentException("请求参数不合法")));
 		models.put("fallback", chatModel("fallback-response"));
 		LangChain4jAskDataModelRegistry registry = (LangChain4jAskDataModelRegistry) registry(properties,
@@ -262,7 +261,7 @@ public class LangChain4jAskDataModelRegistryTest {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setDefaultChatModel("default");
 		AskDataModelRegistry registry = registry(properties,
-				modelRegistry(new HashMap<String, ChatLanguageModel>(), new HashMap<String, EmbeddingModel>()));
+				modelRegistry(new HashMap<String, ChatModel>(), new HashMap<String, EmbeddingModel>()));
 
 		try {
 			registry.getChatModel("missing");
@@ -277,7 +276,7 @@ public class LangChain4jAskDataModelRegistryTest {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setDefaultChatModel(null);
 		AskDataModelRegistry registry = new LangChain4jAskDataModelRegistry(properties,
-				Collections.<String, ChatLanguageModel>emptyMap(),
+				Collections.<String, ChatModel>emptyMap(),
 				Collections.<String, EmbeddingModel>emptyMap(),
 				Collections.<LangChain4jAskDataModelSource>emptyList());
 
@@ -296,7 +295,7 @@ public class LangChain4jAskDataModelRegistryTest {
 		Map<String, EmbeddingModel> models = new HashMap<String, EmbeddingModel>();
 		models.put("embedding-default", embeddingModel(0.1F, 0.2F));
 
-		AskDataModelRegistry registry = registry(properties, modelRegistry(new HashMap<String, ChatLanguageModel>(), models));
+		AskDataModelRegistry registry = registry(properties, modelRegistry(new HashMap<String, ChatModel>(), models));
 
 		assertEquals("embedding-default", registry.getDefaultEmbeddingModelKey());
 		assertEquals(java.util.Arrays.asList(0.1F, 0.2F), registry.getEmbeddingModel(null).embed("question"));
@@ -313,7 +312,7 @@ public class LangChain4jAskDataModelRegistryTest {
 		models.put("embedding-default", embeddingModel(0.1F, 0.2F));
 
 		AskDataModelRegistry registry = registry(properties,
-				modelRegistry(new HashMap<String, ChatLanguageModel>(), models));
+				modelRegistry(new HashMap<String, ChatModel>(), models));
 
 		assertEquals(java.util.Arrays.asList(0.3F, 0.5F), registry.getEmbeddingModel(null).embed("question"));
 	}
@@ -323,7 +322,7 @@ public class LangChain4jAskDataModelRegistryTest {
 		AskDataProperties properties = new AskDataProperties();
 		properties.getModel().setDefaultChatModel("direct");
 		properties.getModel().setDefaultEmbeddingModel("managed");
-		Map<String, ChatLanguageModel> directChatModels = new HashMap<String, ChatLanguageModel>();
+		Map<String, ChatModel> directChatModels = new HashMap<String, ChatModel>();
 		directChatModels.put("direct", chatModel("direct-response"));
 		Map<String, EmbeddingModel> managedEmbeddingModels = new HashMap<String, EmbeddingModel>();
 		managedEmbeddingModels.put("managed", embeddingModel(0.4F, 0.6F));
@@ -331,18 +330,18 @@ public class LangChain4jAskDataModelRegistryTest {
 		AskDataModelRegistry registry = new LangChain4jAskDataModelRegistry(properties, directChatModels,
 				Collections.<String, EmbeddingModel>emptyMap(), Collections.<LangChain4jAskDataModelSource>singletonList(
 						new LangChain4jModelRegistryAskDataModelSource(modelRegistry(
-								Collections.<String, ChatLanguageModel>emptyMap(), managedEmbeddingModels))));
+								Collections.<String, ChatModel>emptyMap(), managedEmbeddingModels))));
 
 		assertEquals("direct-response", registry.getChatModel(null).generate("question").getText());
 		assertEquals(java.util.Arrays.asList(0.4F, 0.6F), registry.getEmbeddingModel(null).embed("question"));
 	}
 
-	private ChatLanguageModel chatModel(final String response) {
-		return (ChatLanguageModel) Proxy.newProxyInstance(getClass().getClassLoader(),
-				new Class<?>[] {ChatLanguageModel.class}, new InvocationHandler() {
+	private ChatModel chatModel(final String response) {
+		return (ChatModel) Proxy.newProxyInstance(getClass().getClassLoader(),
+				new Class<?>[] {ChatModel.class}, new InvocationHandler() {
 					@Override
 					public Object invoke(Object proxy, Method method, Object[] args) {
-						if ("generate".equals(method.getName()) && method.getReturnType() == String.class) {
+						if ("chat".equals(method.getName()) && method.getReturnType() == String.class) {
 							return response;
 						}
 						throw new UnsupportedOperationException(method.toString());
@@ -350,12 +349,12 @@ public class LangChain4jAskDataModelRegistryTest {
 				});
 	}
 
-	private ChatLanguageModel failingChatModel(final RuntimeException exception) {
-		return (ChatLanguageModel) Proxy.newProxyInstance(getClass().getClassLoader(),
-				new Class<?>[] {ChatLanguageModel.class}, new InvocationHandler() {
+	private ChatModel failingChatModel(final RuntimeException exception) {
+		return (ChatModel) Proxy.newProxyInstance(getClass().getClassLoader(),
+				new Class<?>[] {ChatModel.class}, new InvocationHandler() {
 					@Override
 					public Object invoke(Object proxy, Method method, Object[] args) {
-						if ("generate".equals(method.getName())) {
+						if ("chat".equals(method.getName())) {
 							throw exception;
 						}
 						throw new UnsupportedOperationException(method.toString());
@@ -363,12 +362,12 @@ public class LangChain4jAskDataModelRegistryTest {
 				});
 	}
 
-	private ChatLanguageModel delayedFailingChatModel(final RuntimeException exception, final long delayMillis) {
-		return (ChatLanguageModel) Proxy.newProxyInstance(getClass().getClassLoader(),
-				new Class<?>[] {ChatLanguageModel.class}, new InvocationHandler() {
+	private ChatModel delayedFailingChatModel(final RuntimeException exception, final long delayMillis) {
+		return (ChatModel) Proxy.newProxyInstance(getClass().getClassLoader(),
+				new Class<?>[] {ChatModel.class}, new InvocationHandler() {
 					@Override
 					public Object invoke(Object proxy, Method method, Object[] args) {
-						if ("generate".equals(method.getName())) {
+						if ("chat".equals(method.getName())) {
 							try {
 								Thread.sleep(delayMillis);
 							} catch (InterruptedException interruptedException) {
@@ -395,10 +394,10 @@ public class LangChain4jAskDataModelRegistryTest {
 				});
 	}
 
-	private AiModelRegistry modelRegistry(Map<String, ChatLanguageModel> chatModels,
+	private AiModelRegistry modelRegistry(Map<String, ChatModel> chatModels,
 			Map<String, EmbeddingModel> embeddingModels) {
 		Map<String, AiModel> models = new HashMap<String, AiModel>();
-		for (Map.Entry<String, ChatLanguageModel> entry : chatModels.entrySet()) {
+		for (Map.Entry<String, ChatModel> entry : chatModels.entrySet()) {
 			models.put(entry.getKey(), aiModel(entry.getKey(), LangChain4jModelType.CHAT, entry.getValue()));
 		}
 		for (Map.Entry<String, EmbeddingModel> entry : embeddingModels.entrySet()) {
@@ -418,7 +417,7 @@ public class LangChain4jAskDataModelRegistryTest {
 
 	private AskDataModelRegistry registry(AskDataProperties properties, AiModelRegistry modelRegistry) {
 		return new LangChain4jAskDataModelRegistry(properties,
-				Collections.<String, ChatLanguageModel>emptyMap(),
+				Collections.<String, ChatModel>emptyMap(),
 				Collections.<String, EmbeddingModel>emptyMap(),
 				Collections.<LangChain4jAskDataModelSource>singletonList(
 						new LangChain4jModelRegistryAskDataModelSource(modelRegistry)));

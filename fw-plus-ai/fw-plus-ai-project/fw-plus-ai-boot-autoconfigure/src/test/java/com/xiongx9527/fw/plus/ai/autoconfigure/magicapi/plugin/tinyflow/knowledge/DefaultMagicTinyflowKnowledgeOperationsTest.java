@@ -489,7 +489,7 @@ public class DefaultMagicTinyflowKnowledgeOperationsTest {
 		TinyflowModelProvider models = new TinyflowModelProvider() {
 			@Override public List<TinyflowModelDescriptor> listChatModels() { return Collections.emptyList(); }
 			@Override public List<TinyflowModelDescriptor> listEmbeddingModels() { return Collections.emptyList(); }
-			@Override public dev.langchain4j.model.chat.ChatLanguageModel getChatModel(String key) { return null; }
+			@Override public dev.langchain4j.model.chat.ChatModel getChatModel(String key) { return null; }
 			@Override public TinyflowEmbeddingModel getEmbeddingModel(String key) {
 				return text -> new float[] { text.length() };
 			}
