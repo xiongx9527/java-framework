@@ -31,7 +31,7 @@ import java.util.Map;
  * @author zhangjuncao
  * @since 2024-10-17
  */
-@TableName(value = "t_block", autoResultMap = true)
+@TableName(value = "t_block", resultMap = "BlockMap", autoResultMap = true)
 public class Block extends BaseEntity {
 private String label;
 @JsonProperty("name_cn")

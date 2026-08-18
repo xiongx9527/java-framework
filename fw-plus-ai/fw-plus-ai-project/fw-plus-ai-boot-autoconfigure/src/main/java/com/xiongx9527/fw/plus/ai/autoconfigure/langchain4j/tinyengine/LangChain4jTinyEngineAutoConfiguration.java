@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.plugin.langchain4j;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.tinyengine;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.TinyEngineAiProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProvider;
@@ -15,14 +15,14 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @ConditionalOnClass({TinyEngineAiProvider.class, LangChain4jAiModel.class})
-@ConditionalOnProperty(prefix = "fw.plus.tiny-engine.ai.plugin.langchain4j", name = "enabled",
+@ConditionalOnProperty(prefix = "fw.plus.ai.langchain4j.adapter", name = "enabled",
 		havingValue = "true", matchIfMissing = true)
 @AutoConfigureAfter(name = {
 		"com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.TinyEngineAiAutoConfiguration",
 		"com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.adapter.LangChain4jAdapterAutoConfiguration"
 })
 @EnableConfigurationProperties(TinyEngineAiProperties.class)
-public class LangChain4jTinyEnginePluginAutoConfiguration {
+public class LangChain4jTinyEngineAutoConfiguration {
 
 	@Bean
 	@ConditionalOnMissingBean(name = "langChain4jTinyEngineAiProvider")

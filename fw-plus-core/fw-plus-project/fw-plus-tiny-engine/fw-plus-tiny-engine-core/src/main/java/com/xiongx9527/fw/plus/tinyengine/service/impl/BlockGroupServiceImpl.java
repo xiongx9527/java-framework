@@ -49,7 +49,11 @@ public class BlockGroupServiceImpl extends MapperServiceSupport<BlockGroupMapper
 
 	@Override
 	public BlockGroup findBlockGroupById(Integer id) {
-		BlockGroup group = baseMapper.queryBlockGroupAndBlockById(id, null, null);
+		return findBlockGroupById(id, null);
+	}
+
+	private BlockGroup findBlockGroupById(Integer id, String groupCreatedBy) {
+		BlockGroup group = baseMapper.queryBlockGroupAndBlockById(id, null, groupCreatedBy);
 		require(group == null ? null : group.getAppId(), AppPermission.READ);
 		applyCurrentVersions(group);
 		return group;
@@ -136,7 +140,7 @@ public class BlockGroupServiceImpl extends MapperServiceSupport<BlockGroupMapper
 		if (baseMapper.createBlockGroup(blockGroup) != 1) {
 			throw failure(ExceptionEnum.CM001);
 		}
-		return findBlockGroupById(blockGroup.getId());
+		return findBlockGroupById(blockGroup.getId(), currentUserId());
 	}
 
 	@Override

@@ -35,7 +35,7 @@ import java.util.Map;
  * @author lu -yg
  * @since 2024-10-17
  */
-@TableName(value = "t_page_history", autoResultMap = true)
+@TableName(value = "t_page_history", resultMap = "PageHistoryMap", autoResultMap = true)
 public class PageHistory {
 @TableId(value = "id", type = IdType.AUTO)
     private Integer id;

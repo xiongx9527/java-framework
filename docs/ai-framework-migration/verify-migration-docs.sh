@@ -23,7 +23,6 @@ framework_example_docs=(
 starter_docs=(
 	"$repo_root/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-model-spring-boot-starter/README.md"
 	"$repo_root/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-store-embedding-spring-boot-starter/README.md"
-	"$repo_root/fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter/README.md"
 )
 embedding_store_example_docs=(
 	"$script_dir/overview.md"
@@ -55,7 +54,7 @@ required_phrases=(
 breaking_required_phrases=(
 	"fw-plus.ai.model"
 	"fw-plus.ai.embedding-store"
-	"fw-plus-ai-langchain4j-adapter-spring-boot-starter"
+	"fw-plus-ai-langchain4j-adapter"
 	"model["
 	"vector["
 )
@@ -128,7 +127,7 @@ for doc_path in $starter_docs; do
 	require_pattern "$doc_path" '业务(显式)?选择.{0,40}LangChain4j' "starter 业务显式选择说明"
 	require_literal "$doc_path" "fw-plus.ai.model" "starter 模型配置前缀"
 	require_literal "$doc_path" "fw-plus.ai.embedding-store" "starter 向量配置前缀"
-	require_literal "$doc_path" "fw-plus-ai-langchain4j-adapter-spring-boot-starter" "starter adapter 坐标"
+	require_literal "$doc_path" "fw-plus-ai-langchain4j-adapter" "Core adapter 坐标"
 	require_literal "$doc_path" "Java 17 / Spring Boot 3.x" "starter Java 17 后续边界"
 	require_literal "$doc_path" "Spring AI" "starter 后续 Spring AI 迁移说明"
 	require_literal "$doc_path" "Spring AI Alibaba" "starter 后续 Spring AI Alibaba 迁移说明"

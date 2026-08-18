@@ -27,7 +27,7 @@ import java.util.List;
  *
  * @since 2025-07-17
  */
-@TableName(value = "t_model", autoResultMap = true)
+@TableName(value = "t_model", resultMap = "ModelMap", autoResultMap = true)
 public class Model extends BaseEntity {
 @JsonAlias({"app", "app_id"})
 private Integer appId;

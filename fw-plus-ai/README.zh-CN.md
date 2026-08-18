@@ -2,19 +2,19 @@
 
 ## 中立 AI adapter 破坏性迁移
 
-本发布线删除旧 LangChain4j model/store 坐标，不保留 POM 别名或旧配置前缀。`fw-plus-ai-model` 与 `fw-plus-ai-store-embedding` 是 Java 8 中立 API；LangChain4j 仍是默认的完整实现，但应用必须显式安装统一 adapter starter。
+本发布线删除旧 LangChain4j model/store 坐标，不保留 POM 别名或旧配置前缀。`fw-plus-ai-model` 与 `fw-plus-ai-store-embedding` 是 Java 8 中立 API；LangChain4j 由核心 adapter 提供，Boot 自动配置由 `fw-plus-ai-boot-autoconfigure` 按 classpath 条件加载。
 
 | 已删除坐标 | 替代坐标 | 说明 |
 | --- | --- | --- |
 | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-model` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 统一的模型与向量实现层 |
 | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-store-embeding` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 注意旧 artifact 的 `embeding` 拼写 |
-| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter` | `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter` | 显式安装 LangChain4j Boot 集成 |
-| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` | `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter` | 同一统一 starter |
+| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 统一 LangChain4j 核心适配 |
+| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 统一 LangChain4j 核心适配 |
 
 ```xml
 <dependency>
-    <groupId>com.xiongx9527.fw.plus.ai</groupId>
-    <artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-starter</artifactId>
+    <groupId>com.xiongx9527.fw.plus</groupId>
+    <artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
     <version>${fw-plus-ai.version}</version>
 </dependency>
 ```
