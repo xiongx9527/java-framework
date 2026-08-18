@@ -23,7 +23,7 @@ public class TinyflowStarterDependencyTest {
 		assertTrue(dependencies.contains("com.xiongx9527.fw.plus:fw-plus-ai-tinyflow-core"));
 		assertTrue(dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-model-spring-boot-starter"));
 		assertTrue(dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-store-embedding-spring-boot-starter"));
-		assertTrue(dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
+		assertTrue(dependencies.contains("com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter"));
 		assertTrue(dependencies.contains("com.xiongx9527.fw.plus.ai:fw-plus-ai-boot-autoconfigure"));
 		assertFalse(dependencies.contains("dev.tinyflow:tinyflow-support-langchain4j"));
 		assertFalse(dependencies.contains("dev.langchain4j:langchain4j-spring-boot-starter"));

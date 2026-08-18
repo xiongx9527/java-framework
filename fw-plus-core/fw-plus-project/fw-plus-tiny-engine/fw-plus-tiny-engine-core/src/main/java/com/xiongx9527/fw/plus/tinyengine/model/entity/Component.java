@@ -30,7 +30,7 @@ import java.util.Map;
  * @author lu -yg
  * @since 2024-10-17
  */
-@TableName(value = "t_component", autoResultMap = true)
+@TableName(value = "t_component", resultMap = "ComponentMap", autoResultMap = true)
 public class Component extends BaseEntity {
 private String version;
 

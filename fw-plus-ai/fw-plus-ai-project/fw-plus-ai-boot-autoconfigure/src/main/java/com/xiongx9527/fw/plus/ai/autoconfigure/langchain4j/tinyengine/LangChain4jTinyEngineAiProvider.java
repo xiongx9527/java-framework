@@ -1,4 +1,4 @@
-package com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.plugin.langchain4j;
+package com.xiongx9527.fw.plus.ai.autoconfigure.langchain4j.tinyengine;
 
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.TinyEngineAiProperties;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatMessage;

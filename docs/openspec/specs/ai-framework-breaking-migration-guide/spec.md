@@ -23,5 +23,5 @@ TBD - created by archiving change neutral-ai-adapter-autodiscovery. Update Purpo
 #### Scenario: Starter 文档覆盖破坏性边界
 - **WHEN** 开发者查看中立 model/store starter 或统一 LangChain4j adapter starter
 - **THEN** 文档 SHALL 明确旧 model/store 专用 artifact 和 starter 不应继续使用。
-- **AND** 文档 SHALL 说明中立 starter 不携带具体 framework SDK，默认 LangChain4j 由 `fw-plus-ai-langchain4j-adapter-spring-boot-starter` 提供。
+- **AND** 文档 SHALL 说明中立 starter 不携带具体 framework SDK，LangChain4j 由业务显式引入 `fw-plus-ai-langchain4j-adapter`，并由 `fw-plus-ai-boot-starter` 提供自动配置。
 - **AND** 文档 SHALL 说明 Spring AI、Spring AI Alibaba 和 AgentScope 2 Java 当前不是已交付实现。

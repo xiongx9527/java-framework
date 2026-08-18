@@ -35,7 +35,7 @@ Maven `package` 需要 Node 与 pnpm；`compile` 不触发前端构建。构建�
 - 配置数据源，推荐生产环境使用 MySQL。
 - 开启 `fw.plus.tiny-engine.enabled=true`。
 - 提供真实登录态与权限实现，不能依赖免登。
-- 如启用 AI，需要额外引入 TinyEngine AI 插件和模型适配依赖，并通过环境变量注入密钥。
+- 如启用 AI，需要额外引入 AI Boot Starter、模型/向量中立 starter、Core Adapter 和 provider SDK，并通过环境变量注入密钥。
 
 Maven 依赖示例：
 
@@ -60,7 +60,19 @@ Maven 依赖示例：
 ```xml
 <dependency>
 	<groupId>com.xiongx9527.fw.plus.ai</groupId>
-	<artifactId>fw-plus-ai-tiny-engine-plugin-langchain4j</artifactId>
+	<artifactId>fw-plus-ai-boot-starter</artifactId>
+</dependency>
+<dependency>
+	<groupId>com.xiongx9527.fw.plus.ai</groupId>
+	<artifactId>fw-plus-ai-model-spring-boot-starter</artifactId>
+</dependency>
+<dependency>
+	<groupId>com.xiongx9527.fw.plus.ai</groupId>
+	<artifactId>fw-plus-ai-store-embedding-spring-boot-starter</artifactId>
+</dependency>
+<dependency>
+	<groupId>com.xiongx9527.fw.plus</groupId>
+	<artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
 </dependency>
 <dependency>
 	<groupId>com.xiongx9527.fw.plus</groupId>

@@ -2,13 +2,30 @@ package com.xiongx9527.fw.plus.tinyengine.mapper;
 
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
+import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.session.Configuration;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.annotation.TableName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 
 import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler;
 import com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.AppExtension;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Block;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.BlockHistory;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Component;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.ComponentLibrary;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Datasource;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Material;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.MaterialHistory;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Model;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.PageHistory;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.PageTemplate;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Platform;
 
 import java.io.InputStream;
 import java.lang.reflect.Method;
@@ -51,6 +68,81 @@ public class TinyEngineMapperResourceTest {
 
 		assertFalse(mapperNames.isEmpty(), "必须扫描到 Tiny Engine Mapper 接口");
 		assertEquals(mapperNames, mapperXmlNames, "Mapper 接口与 XML 资源必须一一对应");
+	}
+
+	@Test
+	public void entitiesWithXmlResultMapsShouldUseThemForCrudMethods() {
+		assertResultMap(App.class, "AppMap");
+		assertResultMap(AppExtension.class, "AppExtensionMap");
+		assertResultMap(Block.class, "BlockMap");
+		assertResultMap(BlockHistory.class, "BlockHistoryMap");
+		assertResultMap(Component.class, "ComponentMap");
+		assertResultMap(ComponentLibrary.class, "ComponentLibraryMap");
+		assertResultMap(Datasource.class, "DatasourceMap");
+		assertResultMap(Material.class, "MaterialMap");
+		assertResultMap(MaterialHistory.class, "MaterialHistoryMap");
+		assertResultMap(Model.class, "ModelMap");
+		assertResultMap(Page.class, "PageMap");
+		assertResultMap(PageHistory.class, "PageHistoryMap");
+		assertResultMap(PageTemplate.class, "PageTemplateMap");
+		assertResultMap(Platform.class, "PlatformMap");
+	}
+
+	@Test
+	public void mybatisPlusCrudStatementsShouldUseExplicitXmlResultMaps() {
+		MybatisConfiguration configuration = new MybatisConfiguration();
+		configuration.getTypeHandlerRegistry().register(JsonObjectTypeHandler.class);
+		configuration.getTypeHandlerRegistry().register(JsonArrayTypeHandler.class);
+
+		assertCrudResultMap(configuration, AppMapper.class, "AppMap");
+		assertCrudResultMap(configuration, AppExtensionMapper.class, "AppExtensionMap");
+		assertCrudResultMap(configuration, BlockMapper.class, "BlockMap");
+		assertCrudResultMap(configuration, BlockHistoryMapper.class, "BlockHistoryMap");
+		assertCrudResultMap(configuration, ComponentMapper.class, "ComponentMap");
+		assertCrudResultMap(configuration, ComponentLibraryMapper.class, "ComponentLibraryMap");
+		assertCrudResultMap(configuration, DatasourceMapper.class, "DatasourceMap");
+		assertCrudResultMap(configuration, MaterialMapper.class, "MaterialMap");
+		assertCrudResultMap(configuration, MaterialHistoryMapper.class, "MaterialHistoryMap");
+		assertCrudResultMap(configuration, ModelMapper.class, "ModelMap");
+		assertCrudResultMap(configuration, PageMapper.class, "PageMap");
+		assertCrudResultMap(configuration, PageHistoryMapper.class, "PageHistoryMap");
+		assertCrudResultMap(configuration, PageTemplateMapper.class, "PageTemplateMap");
+		assertCrudResultMap(configuration, PlatformMapper.class, "PlatformMap");
+	}
+
+	private void assertCrudResultMap(MybatisConfiguration configuration, Class<?> mapperType, String resultMap) {
+		parseMapper(configuration, mapperType.getSimpleName());
+		configuration.addMapper(mapperType);
+		String statementId = mapperType.getName() + ".selectById";
+		assertTrue(configuration.hasStatement(statementId), statementId);
+		MappedStatement statement = configuration.getMappedStatement(statementId);
+		assertEquals(mapperType.getName() + "." + resultMap,
+				statement.getResultMaps().get(0).getId(), statementId);
+	}
+
+	private void parseMapper(MybatisConfiguration configuration, String mapperName) {
+		try {
+			PathMatchingResourcePatternResolver resolver =
+					new PathMatchingResourcePatternResolver(getClass().getClassLoader());
+			Resource resource = resolver.getResource("classpath:" + MAPPER_RESOURCE_ROOT + mapperName + ".xml");
+			InputStream inputStream = resource.getInputStream();
+			try {
+				new XMLMapperBuilder(inputStream, configuration, resource.getURL().toExternalForm(),
+						configuration.getSqlFragments()).parse();
+			} finally {
+				inputStream.close();
+			}
+		} catch (Exception ex) {
+			throw new IllegalStateException("无法解析 Mapper XML: " + mapperName, ex);
+		}
+	}
+
+	private void assertResultMap(Class<?> entityType, String resultMap) {
+		TableName tableName = entityType.getAnnotation(TableName.class);
+
+		assertNotNull(tableName, entityType.getName());
+		assertEquals(resultMap, tableName.resultMap(), entityType.getName());
+		assertTrue(tableName.autoResultMap(), entityType.getName());
 	}
 
 	@Test

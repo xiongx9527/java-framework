@@ -206,6 +206,9 @@ public class TinyEngineSampleAuthConfiguration {
 				principal = tenantPrincipal(principal, credential.getTenantId());
 			}
 			requireTenantEnabled(principal.getTenantId());
+			if (!hasTenant(principal.getUserId(), principal.getTenantId())) {
+				throw new TinyEngineUnauthenticatedException("TinyEngine tenant is not assigned to current user");
+			}
 			return hydratePrincipal(principal);
 		}
 
@@ -221,6 +224,7 @@ public class TinyEngineSampleAuthConfiguration {
 			String salt = randomSalt();
 			String publicKey = randomRecoveryCode();
 			// Public registration must not trust a tenant id supplied by the client.
+			ensureDefaultTenant(jdbcTemplate);
 			String tenantId = tenantIdByHost(request.getRequestHost(), true);
 			if (userByUsername(request.getUsername()) != null) {
 				throw new TinyEngineUnsupportedCapabilityException("TinyEngine username already exists");
@@ -231,7 +235,6 @@ public class TinyEngineSampleAuthConfiguration {
 					Boolean.TRUE, Boolean.FALSE, Boolean.FALSE);
 			Map<String, Object> user = userByUsernameAndTenant(request.getUsername(), tenantId);
 			if (DEFAULT_TENANT_ID.equals(tenantId)) {
-				ensureDefaultTenant(jdbcTemplate);
 				ensureTenantMembership(jdbcTemplate, string(user, "id"), DEFAULT_TENANT_ID, Integer.valueOf(5),
 						string(user, "id"));
 			}
@@ -327,10 +330,10 @@ public class TinyEngineSampleAuthConfiguration {
 			String tenantId = isBlank(request.getRequestHost())
 					? normalizeTenantId(request.getTenantId() == null ? string(user, "tenant_id") : request.getTenantId())
 					: tenantIdByHost(request.getRequestHost(), false);
+			requireTenantEnabled(tenantId);
 			if (!hasTenant(string(user, "id"), tenantId)) {
 				throw new TinyEngineUnauthenticatedException("TinyEngine user is not assigned to host tenant");
 			}
-			requireTenantEnabled(tenantId);
 			return principal(user, tenantId);
 		}
 
@@ -461,32 +464,50 @@ public class TinyEngineSampleAuthConfiguration {
 			if (!tableExists("t_user") || !tableExists("t_tenant")) {
 				return Collections.emptyList();
 			}
-			return jdbcTemplate.query("select distinct tt.* from t_tenant tt "
-							+ "inner join t_user tu on tt.id = tu.tenant_id "
-							+ "where tu.id = ? and tt.enable = true order by tt.id",
-					(rs, rowNum) -> {
-						Tenant tenant = new Tenant();
-						tenant.setId(String.valueOf(rs.getObject("id")));
-						tenant.setNameCn(rs.getString("name_cn"));
-						tenant.setNameEn(rs.getString("name_en"));
-						tenant.setDescription(rs.getString("description"));
-						tenant.setOrgCode(hasColumn(rs, "org_code") ? rs.getString("org_code") : tenant.getId());
-						tenant.setIsSystem(hasColumn(rs, "is_system") && bool(rs.getObject("is_system")));
-						tenant.setIsEnable(bool(rs.getObject("enable")));
-						tenant.setIsInUse(tenant.getId().equals(normalizeTenantId(currentTenantId)));
-						return tenant;
-					}, Integer.valueOf(userId));
+			String membershipClause = tableExists("r_auth_users_units_roles")
+					? " or exists (select 1 from r_auth_users_units_roles r "
+							+ "where r.user_id = ? and r.unit_id = tt.id and r.unit_type = 'tenant')"
+					: "";
+			String sql = "select distinct tt.* from t_tenant tt where tt.enable = true and "
+					+ "(exists (select 1 from t_user tu where tu.id = ? and tu.tenant_id = tt.id)"
+					+ membershipClause + ") order by tt.id";
+			Object[] args = membershipClause.length() == 0
+					? new Object[]{Integer.valueOf(userId)}
+					: new Object[]{Integer.valueOf(userId), Integer.valueOf(userId)};
+			return jdbcTemplate.query(sql, args, (rs, rowNum) -> {
+				Tenant tenant = new Tenant();
+				tenant.setId(String.valueOf(rs.getObject("id")));
+				tenant.setNameCn(rs.getString("name_cn"));
+				tenant.setNameEn(rs.getString("name_en"));
+				tenant.setDescription(rs.getString("description"));
+					tenant.setOrgCode(hasColumn(rs, "org_code") ? rs.getString("org_code") : tenant.getId());
+					tenant.setIsSystem(hasColumn(rs, "is_system") && bool(rs.getObject("is_system")));
+				tenant.setIsEnable(bool(rs.getObject("enable")));
+				tenant.setIsInUse(tenant.getId().equals(normalizeTenantId(currentTenantId)));
+				return tenant;
+			});
 		}
 
 		private boolean hasTenant(String userId, String tenantId) {
-			if (!tableExists("t_user")) {
+			if (!tableExists("t_user") || !tableExists("t_tenant")) {
 				return true;
 			}
-			Integer count = jdbcTemplate.queryForObject("select count(1) from t_user tu "
+			String normalizedTenantId = normalizeTenantId(tenantId);
+			Integer directCount = jdbcTemplate.queryForObject("select count(1) from t_user tu "
 					+ "inner join t_tenant tt on tt.id = tu.tenant_id "
 					+ "where tu.id = ? and tu.tenant_id = ? and tt.enable = true", Integer.class, Integer.valueOf(userId),
-					Integer.valueOf(normalizeTenantId(tenantId)));
-			return count != null && count.intValue() > 0;
+					Integer.valueOf(normalizedTenantId));
+			if (directCount != null && directCount.intValue() > 0) {
+				return true;
+			}
+			if (!tableExists("r_auth_users_units_roles")) {
+				return false;
+			}
+			Integer membershipCount = jdbcTemplate.queryForObject("select count(1) from r_auth_users_units_roles r "
+					+ "inner join t_tenant tt on tt.id = r.unit_id "
+					+ "where r.user_id = ? and r.unit_id = ? and r.unit_type = 'tenant' and tt.enable = true",
+					Integer.class, Integer.valueOf(userId), Integer.valueOf(normalizedTenantId));
+			return membershipCount != null && membershipCount.intValue() > 0;
 		}
 
 		private Tenant saveTenant(String tenantId, String tenantName, String operatorId) {
@@ -770,8 +791,9 @@ public class TinyEngineSampleAuthConfiguration {
 
 	private static boolean hasTenantSystemColumn(JdbcTemplate jdbcTemplate) {
 		try {
-			jdbcTemplate.queryForObject("select is_system from t_tenant where 1 = 0", Object.class);
-			return true;
+			Integer count = jdbcTemplate.queryForObject("select count(1) from information_schema.columns "
+					+ "where lower(table_name) = 't_tenant' and lower(column_name) = 'is_system'", Integer.class);
+			return count != null && count.intValue() > 0;
 		} catch (Exception ignored) {
 			return false;
 		}
