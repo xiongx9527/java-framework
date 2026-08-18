@@ -164,7 +164,17 @@ Core 必须提供框架无关的 `TinyflowNodeProvider` SPI，Starter 收集节�
 
 ## Requirement: Starter 内置 UI
 
-Starter 必须通过独立 npm 工程固定使用 `@tinyflow-ai/ui:1.3.6`，将构建产物和许可证物理打入版本化 classpath 目录；Magic 插件只提供宿主和加载器。
+Starter 必须通过独立 npm 工程固定使用 `@tinyflow-ai/ui:1.3.6`，将构建产物和许可证物理打入版本化 classpath 目录；Magic 插件对 Tinyflow UI 只提供宿主和加载器，知识库对象存储仍可通过独立 S3 依赖复用现有能力。前端工程必须采用 Magic-API 风格的单应用职责目录，不引入 pnpm workspace 或额外 monorepo。
+
+#### Scenario: Magic-API 风格宿主目录
+
+- **WHEN** 开发者进入 Tinyflow Starter 的 `src/main/frontend/tinyflow-ui` 前端工程
+- **THEN** 根目录提供 `package.json`、`package-lock.json`、`vite.config.js` 和单一 `src/index.js` 构建入口
+- **AND** Tinyflow 画布宿主代码位于 `src/components`
+- **AND** 知识库页面和 API 模块位于 `src/plugins/knowledge`
+- **AND** `src/assets`、`src/icons`、`src/scripts` 作为公共资源、图标和脚本职责边界存在并可独立扩展
+- **AND** 现有版本化 Starter 资源输出和 Magic 插件 Tinyflow UI 加载路径保持不变
+- **AND** Magic 插件可继续保留知识库对象存储所需的独立 S3 依赖，不将该依赖视为 Tinyflow UI 资源加载依赖
 
 #### Scenario: 构建和打包
 
