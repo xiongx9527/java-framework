@@ -34,7 +34,7 @@ function fakeTinyflow() {
 }
 
 test('public mount factory always uses the official constructor and isolates host lifecycles', async () => {
-	const { createTinyflowMount } = await import(pathToFileURL(path.join(__dirname, '../src/tinyflow-host.js')).href);
+	const { createTinyflowMount } = await import(pathToFileURL(path.join(__dirname, '../src/components/tinyflow-host.js')).href);
 	const official = fakeTinyflow();
 	const replacement = fakeTinyflow();
 	const mount = createTinyflowMount(official.ctor);
