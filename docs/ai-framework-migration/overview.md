@@ -12,17 +12,22 @@ AskData 模块保留。本次迁移文档不修改其源码，也不把它宣称
 | --- | --- | --- |
 | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-model` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 非 Spring 应用直接装配 LangChain4j 中立 SPI |
 | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-store-embeding` | `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | 同上；旧名称的 `embeding` 是历史拼写 |
-| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter` | `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter` | Spring Boot 模型接入 |
-| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` | `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-adapter-spring-boot-starter` | Spring Boot 向量 store 接入 |
+| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter` | `com.xiongx9527.fw.plus.ai:fw-plus-ai-model-spring-boot-starter` + `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | Spring Boot 模型接入 |
+| `com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` | `com.xiongx9527.fw.plus.ai:fw-plus-ai-store-embedding-spring-boot-starter` + `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` | Spring Boot 向量 store 接入 |
 
 统一 adapter 承载模型、embedding 与 vector store 的 LangChain4j 类型转换、provider 构造及中立 SPI 实现。中立 API/starter 保持独立：`fw-plus-ai-model`、`fw-plus-ai-store-embedding`、`fw-plus-ai-model-spring-boot-starter`、`fw-plus-ai-store-embedding-spring-boot-starter` 不传递具体 framework 或 provider SDK。
 
-Spring Boot 应用至少安装统一 adapter starter：
+Spring Boot 应用安装 AI Boot 自动配置与 Core Adapter；按需再安装模型和向量 store 中立 starter：
 
 ```xml
 <dependency>
     <groupId>com.xiongx9527.fw.plus.ai</groupId>
-    <artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-starter</artifactId>
+    <artifactId>fw-plus-ai-boot-starter</artifactId>
+    <version>${fw-plus-ai.version}</version>
+</dependency>
+<dependency>
+    <groupId>com.xiongx9527.fw.plus</groupId>
+    <artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
     <version>${fw-plus-ai.version}</version>
 </dependency>
 ```
@@ -97,7 +102,7 @@ fw-plus:
   -Dincludes=com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-model,com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-store-embeding,com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-model-spring-boot-starter,com.xiongx9527.fw.plus.ai:fw-plus-ai-langchain4j-store-embeding-spring-boot-starter
 
 # 确认统一 adapter 与所选 provider SDK 是否实际解析
-./fw-plus-ai/mvnw -f fw-plus-ai/pom.xml -pl fw-plus-ai-project/fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter dependency:tree
+./fw-plus-ai/mvnw -f fw-plus-ai/fw-plus-ai-project/pom.xml -pl fw-plus-ai-boot-autoconfigure dependency:tree
 
 # 定位旧坐标和旧前缀；输出非空即表示迁移未完成
 rg -n 'fw-plus-ai-langchain4j-(model|store-embeding)|fw-plus\.ai\.langchain4j\.(model|embedding-store)' .

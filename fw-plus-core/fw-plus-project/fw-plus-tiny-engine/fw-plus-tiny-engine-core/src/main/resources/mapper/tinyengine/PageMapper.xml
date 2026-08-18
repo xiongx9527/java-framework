@@ -234,7 +234,7 @@
         U.last_updated_time AS userLastUpdatedTime,
         U.is_admin
         FROM t_page P
-        LEFT JOIN t_user U ON P.occupier_by = U.id
+        LEFT JOIN t_user U ON P.occupier_by = CONCAT(U.id, '')
         <where>
             P.id = #{id}
         </where>
@@ -271,7 +271,7 @@
         U.last_updated_time AS userLastUpdatedTime,
         U.is_admin
         FROM t_page P
-        LEFT JOIN t_user U ON P.occupier_by = U.id
+        LEFT JOIN t_user U ON P.occupier_by = CONCAT(U.id, '')
         <where>
             <if test="appId != null">
                 AND P.app_id = #{appId}

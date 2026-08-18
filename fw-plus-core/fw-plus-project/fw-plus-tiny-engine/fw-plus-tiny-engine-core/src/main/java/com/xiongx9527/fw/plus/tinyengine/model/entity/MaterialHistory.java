@@ -29,7 +29,7 @@ import java.util.Map;
  * @author lu -yg
  * @since 2024-10-17
  */
-@TableName(value = "t_material_history", autoResultMap = true)
+@TableName(value = "t_material_history", resultMap = "MaterialHistoryMap", autoResultMap = true)
 public class MaterialHistory extends HistoryEntity {
 @TableField(typeHandler = JsonObjectTypeHandler.class)
     private Map<String, Object> content;

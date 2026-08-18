@@ -111,8 +111,8 @@ TBD - created by archiving change upgrade-springboot3-dependencies-and-sync-bran
 
 #### Scenario: AskData 应用选择具体模型适配器
 - **WHEN** 应用只引入 `fw-plus-ai-askdata-spring-boot-starter`
-- **THEN** 该 Starter SHALL NOT 直接依赖 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`
-- **AND** 需要 LangChain4j 的应用 SHALL 自行显式引入 Adapter Starter
+- **THEN** 该 Starter SHALL NOT 直接依赖 `fw-plus-ai-langchain4j-adapter`
+- **AND** 需要 LangChain4j 的应用 SHALL 自行显式引入 `fw-plus-ai-langchain4j-adapter`，Spring Boot 应用同时引入 `fw-plus-ai-boot-starter`
 - **AND** AskData SHALL 继续通过中立模型与向量注册表消费能力
 
 ### Requirement: 分层构建与远端结果可复核

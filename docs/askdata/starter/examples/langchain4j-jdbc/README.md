@@ -24,7 +24,7 @@ JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home \
 
 JAVA_HOME=/Library/Java/JavaVirtualMachines/zulu-8.jdk/Contents/Home \
   /usr/local/bin/mvn -f fw-plus-ai/fw-plus-ai-project/pom.xml \
-  -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter,fw-plus-ai-boot-starters/fw-plus-ai-langchain4j-adapter-spring-boot-starter \
+  -pl fw-plus-ai-boot-starters/fw-plus-ai-askdata-spring-boot-starter \
   -am install -DskipTests
 
 cd docs/askdata/starter/examples/langchain4j-jdbc

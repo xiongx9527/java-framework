@@ -27,8 +27,8 @@
 			<version>${fw-plus.version}</version>
 		</dependency>
 		<dependency>
-			<groupId>com.xiongx9527.fw.plus.ai</groupId>
-			<artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-starter</artifactId>
+			<groupId>com.xiongx9527.fw.plus</groupId>
+			<artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
 			<version>${fw-plus.version}</version>
 		</dependency>
 		<dependency>
