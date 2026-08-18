@@ -168,7 +168,7 @@ Starter 必须通过独立 npm 工程固定使用 `@tinyflow-ai/ui:1.3.6`，将�
 
 #### Scenario: Magic-API 风格宿主目录
 
-- **WHEN** 开发者进入 Tinyflow Starter 的 `src/main/frontend/tinyflow-ui` 前端工程
+- **WHEN** 开发者进入 Tinyflow Starter 的 `src/console` 前端工程
 - **THEN** 根目录提供 `package.json`、`package-lock.json`、`vite.config.js` 和单一 `src/index.js` 构建入口
 - **AND** Tinyflow 画布宿主代码位于 `src/components`
 - **AND** 知识库页面和 API 模块位于 `src/plugins/knowledge`
