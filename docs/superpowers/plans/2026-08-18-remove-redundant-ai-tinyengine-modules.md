@@ -4,11 +4,11 @@
 
 **Goal:** 移除 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`、`fw-plus-ai-tiny-engine-plugin-langchain4j` 和 `fw-plus-ai-tiny-engine-spring-boot-starter`，保留 `fw-plus-ai-langchain4j-adapter` 作为 LangChain4j 核心适配实现，并继续让 Tiny Engine 识别 LangChain4j Provider。
 
-**Architecture:** `fw-plus-ai-tiny-engine-spring-boot-starter` 和 `fw-plus-ai-langchain4j-adapter-spring-boot-starter` 是依赖聚合器，移除后由业务显式引入已有的 `fw-plus-ai-boot-autoconfigure`、基础 Tiny Engine Starter、模型/向量模块和 `fw-plus-ai-langchain4j-adapter`。`fw-plus-ai-langchain4j-adapter` 保留纯 LangChain4j 模型/向量适配；由于 `TinyEngineAiProvider` 当前位于 AI Boot 自动配置层，桥接实现放入现有 `fw-plus-ai-boot-autoconfigure`，由 LangChain4j Adapter 自动配置按 classpath 和配置条件加载，避免 Core 适配器反向依赖 Boot 模块。
+**Architecture:** `fw-plus-ai-tiny-engine-spring-boot-starter` 和 `fw-plus-ai-langchain4j-adapter-spring-boot-starter` 是依赖聚合器，移除后由业务显式引入已有的 `fw-plus-ai-boot-autoconfigure`、基础 Tiny Engine Starter、模型/向量模块和 `fw-plus-ai-langchain4j-adapter`。由于 `TinyEngineAiProvider` 当前位于 AI Boot 自动配置层，LangChain4j 到 Tiny Engine 的 Provider 桥接放入现有 `fw-plus-ai-boot-autoconfigure`，由 LangChain4j Adapter 自动配置按 classpath 和配置条件加载；不让 Core 适配器反向依赖 Boot 模块。
 
 **Tech Stack:** Java 8, Spring Boot 2.7.18, Maven, LangChain4j 0.35.0, Spring Boot auto-configuration, JUnit 5。
 
-**Spec:** 用户确认的模块职责：Tiny Engine AI 标准层不绑定具体 AI 框架；LangChain4j 由 `fw-plus-ai-langchain4j-adapter` 接入；不保留三个冗余 Starter/Plugin 模块。Provider 桥接属于 Boot 自动配置装配层，实际模型/向量适配仍属于 Core Adapter。
+**Spec:** 用户确认的模块职责：Tiny Engine AI 标准层不绑定具体 AI 框架；LangChain4j 由 `fw-plus-ai-langchain4j-adapter` 接入；不保留三个冗余 Starter/Plugin 模块。
 
 ## Global Constraints
 

@@ -30,6 +30,19 @@ class MpAutoConfigurationTest {
 	}
 
 	@Test
+	void rootAutoConfigurationBacksOffJoinWhenJoinDependencyIsMissing() {
+		new ApplicationContextRunner()
+				.withConfiguration(AutoConfigurations.of(MpAutoConfiguration.class))
+				.withUserConfiguration(DataSourceConfiguration.class)
+				.withClassLoader(new FilteredClassLoader(
+						"com.github.yulichang.autoconfigure.MybatisPlusJoinProperties"))
+				.run(context -> {
+					assertThat(context).hasNotFailed();
+					assertThat(context).hasSingleBean(MpAutoConfiguration.class);
+				});
+	}
+
+	@Test
 	void encryptAutoConfigurationBacksOffWhenDisabled() {
 		new ApplicationContextRunner()
 				.withConfiguration(AutoConfigurations.of(MpEncryptAutoConfiguration.class))

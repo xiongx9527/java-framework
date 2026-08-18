@@ -168,8 +168,8 @@ public class TinyEngineMapperResourceTest {
 		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
 			.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "AppMapper.xml");
 		String content = readContent(resource);
-		assertTrue(content.contains("LEFT JOIN t_user creator ON A.created_by = creator.id"),
-			"应用列表必须关联用户表以显示创建人名称");
+		assertTrue(content.contains("LEFT JOIN t_user creator ON A.created_by = CONCAT(creator.id, '')"),
+			"应用列表必须以字符串方式关联用户表以显示创建人名称");
 		assertTrue(content.contains("COALESCE(creator.username, A.created_by) AS created_by"),
 			"应用列表 created_by 应优先返回用户名而不是用户 id");
 		assertTrue(content.contains("AND A.created_by = #{createdBy}"),
@@ -194,7 +194,7 @@ public class TinyEngineMapperResourceTest {
 		String content = readContent(resource);
 		assertTrue(content.contains("<result column=\"current_role\" property=\"currentRole\"/>"),
 			"应用列表必须映射当前用户的可信应用角色");
-		assertTrue(content.contains("AS current_role"), "可见应用查询必须返回 current_role");
+		assertTrue(content.contains("AS \"current_role\""), "可见应用查询必须返回带引号的 current_role");
 		assertTrue(content.contains("UR_CURRENT.user_id = #{userId}"),
 			"current_role 必须按当前登录用户查询，不能由展示字段推断");
 	}
@@ -210,6 +210,15 @@ public class TinyEngineMapperResourceTest {
 				"应用详情必须返回 current_role");
 		assertTrue(content.contains("A.id = #{appId} AND A.tenant_id = #{tenantId}"),
 				"应用详情必须同时按 appId 和 tenantId 隔离");
+	}
+
+	@Test
+	public void pageMapperShouldCompareStringOccupierIdWithNumericUserIdSafely() throws Exception {
+		Resource resource = new PathMatchingResourcePatternResolver(getClass().getClassLoader())
+				.getResource("classpath:" + MAPPER_RESOURCE_ROOT + "PageMapper.xml");
+		String content = readContent(resource);
+		assertEquals(2, count(content, "LEFT JOIN t_user U ON P.occupier_by = CONCAT(U.id, '')"),
+				"PageMapper 必须将用户数字 id 转为字符串，避免 H2 严格类型比较失败");
 	}
 
 	@Test

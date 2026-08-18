@@ -2,9 +2,11 @@ fw:
   plus:
     tiny-engine:
       enabled: true
+      web:
+        base-path: /tiny-engine
       sql:
         database: h2
-        auto-initialize: false
+        auto-initialize: true
 
 spring:
   datasource:

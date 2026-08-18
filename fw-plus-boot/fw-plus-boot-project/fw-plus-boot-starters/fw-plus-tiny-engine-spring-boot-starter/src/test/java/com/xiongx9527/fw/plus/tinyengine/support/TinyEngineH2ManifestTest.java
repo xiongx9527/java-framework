@@ -10,12 +10,15 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class TinyEngineH2ManifestTest {
 
@@ -31,6 +34,7 @@ class TinyEngineH2ManifestTest {
 				"classpath:META-INF/tiny-engine/sql/h2/07_update_table_ddl_2025_1014.sql",
 				"classpath:META-INF/tiny-engine/sql/h2/08_update_table_ddl_2025_1217.sql",
 				"classpath:META-INF/tiny-engine/sql/h2/09_update_table_ddl_2025_1229.sql",
+				"classpath:META-INF/tiny-engine/sql/h2/00_init_default_platform.h2.sql",
 				"classpath:META-INF/tiny-engine/sql/h2/init_data_2025_1023.sql",
 				"classpath:META-INF/tiny-engine/sql/h2/init_data_2025_1125.sql",
 				"classpath:META-INF/tiny-engine/sql/h2/init_data_2026_0810_app_roles.sql",
@@ -44,6 +48,12 @@ class TinyEngineH2ManifestTest {
 			for (String script : scripts) {
 				executeScript(connection, script);
 				executedScripts.add(script);
+			}
+			try (Statement statement = connection.createStatement();
+				 ResultSet resultSet = statement.executeQuery(
+						"SELECT COUNT(*) FROM t_platform WHERE tenant_id = '1' AND is_default = TRUE")) {
+				assertTrue(resultSet.next());
+				assertEquals(1, resultSet.getInt(1), "H2 示例必须提供默认平台");
 			}
 		}
 
