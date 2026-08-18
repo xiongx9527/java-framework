@@ -43,7 +43,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-@ConditionalOnClass({SqlSessionFactory.class, SqlSessionFactoryBean.class})
+@ConditionalOnClass(name = {
+        "org.apache.ibatis.session.SqlSessionFactory",
+        "org.mybatis.spring.SqlSessionFactoryBean",
+        "com.github.yulichang.autoconfigure.MybatisPlusJoinProperties"
+})
 @EnableConfigurationProperties({MpJoinProperties.class})
 @ConditionalOnProperty(prefix = "fw.plus.mp-join", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class MpJoinAutoConfiguration {

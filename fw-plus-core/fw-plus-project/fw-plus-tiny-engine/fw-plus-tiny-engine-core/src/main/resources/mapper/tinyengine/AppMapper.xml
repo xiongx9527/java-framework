@@ -435,7 +435,7 @@
         FROM t_app A
         LEFT JOIN t_business_category industry ON A.industry_id = industry.id AND A.industry_id  IS NOT NULL
         LEFT JOIN t_business_category scene ON A.scene_id = scene.id AND A.scene_id  IS NOT NULL
-        LEFT JOIN t_user creator ON A.created_by = creator.id
+        LEFT JOIN t_user creator ON A.created_by = CONCAT(creator.id, '')
     </sql>
     <sql id="Common_Column_List">
         <include refid="App_Base_Column_List"/>,
@@ -460,7 +460,7 @@
 					AND PR_CURRENT.code IN ('app_owner', 'app_admin', 'app_dev'))
 			</otherwise>
 		</choose>
-		AS current_role
+		AS "current_role"
 	</sql>
     <select id="queryAllApp" resultMap="AppMap">
         SELECT
