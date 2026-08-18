@@ -28,7 +28,7 @@ import java.util.Map;
  * @author zhangjuncao
  * @since 2024-10-17
  */
-@TableName(value = "t_material", autoResultMap = true)
+@TableName(value = "t_material", resultMap = "MaterialMap", autoResultMap = true)
 public class Material extends BaseEntity {
 private String name;
 private String npmName;

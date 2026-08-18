@@ -22,6 +22,7 @@ import java.util.Properties;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -254,16 +255,23 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 	}
 
 	@Test
-	public void shouldKeepAdapterStarterProviderSdkDependenciesOptIn() throws Exception {
-		File starterPom = findAdapterStarterPom();
-		assertTrue("Adapter starter POM should exist: " + starterPom.getAbsolutePath(), starterPom.isFile());
+	public void shouldKeepCoreAdapterProviderSdkDependenciesOptIn() throws Exception {
+		File adapterPom = findAdapterPom();
+		assertTrue("Adapter POM should exist: " + adapterPom.getAbsolutePath(), adapterPom.isFile());
 
-		Set<String> artifactIds = dependencyArtifactIds(starterPom);
+		Set<String> artifactIds = dependencyArtifactIds(adapterPom);
+		assertTrue("Core adapter should depend on fw-plus-ai-model", artifactIds.contains("fw-plus-ai-model"));
+		assertTrue("Core adapter should depend on fw-plus-ai-store-embedding", artifactIds.contains("fw-plus-ai-store-embedding"));
+		assertTrue("Core adapter should depend on langchain4j-core", artifactIds.contains("langchain4j-core"));
+		assertFalse("Core adapter must not depend on a removed Spring Boot starter", artifactIds.contains("fw-plus-ai-langchain4j-adapter-spring-boot-starter"));
 		for (String requiredDependency : REQUIRED_STARTER_DEPENDENCIES) {
-			assertTrue("Adapter starter should depend on " + requiredDependency, artifactIds.contains(requiredDependency));
+			if (!"fw-plus-ai-langchain4j-adapter".equals(requiredDependency)) {
+				assertFalse("Core adapter must not aggregate Boot starter " + requiredDependency,
+						artifactIds.contains(requiredDependency));
+			}
 		}
 		for (String providerSdkArtifact : PROVIDER_SDK_ARTIFACTS) {
-			assertTrue("Adapter starter must not directly depend on " + providerSdkArtifact,
+			assertTrue("Core adapter must not directly depend on " + providerSdkArtifact,
 					!artifactIds.contains(providerSdkArtifact));
 		}
 	}
@@ -288,18 +296,18 @@ public class LangChain4jAutoConfigurationRegistrationTest {
 		return classNames;
 	}
 
-	private File findAdapterStarterPom() {
+	private File findAdapterPom() {
 		File currentDirectory = new File(System.getProperty("user.dir"));
 		while (currentDirectory != null) {
-			File starterPom = new File(currentDirectory,
-					"fw-plus-ai-project/fw-plus-ai-boot-starters/"
-							+ "fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml");
-			if (starterPom.isFile()) {
-				return starterPom;
+			File adapterPom = new File(currentDirectory,
+					"fw-plus-core/fw-plus-project/fw-plus-ai/fw-plus-ai-langchain4j/"
+							+ "fw-plus-ai-langchain4j-adapter/pom.xml");
+			if (adapterPom.isFile()) {
+				return adapterPom;
 			}
 			currentDirectory = currentDirectory.getParentFile();
 		}
-		return new File("fw-plus-ai-langchain4j-adapter-spring-boot-starter/pom.xml");
+		return new File("fw-plus-ai-langchain4j-adapter/pom.xml");
 	}
 
 	private Set<String> dependencyArtifactIds(File pom) throws Exception {

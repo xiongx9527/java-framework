@@ -104,7 +104,7 @@ Cloud 在 Boot 之上提供 Spring Cloud 2021.0.9 扩展，包括 Cloud 通用�
 
 AI 层将模型、向量存储与具体框架实现解耦。应用可先依赖中立 Starter，再显式选择 LangChain4j Adapter、AskData、Tiny Engine 或 Magic-API AI 插件。
 
-> 旧的 LangChain4j model/store 坐标已经删除，不提供 POM 别名。新应用应使用 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`，中立配置前缀为 `fw-plus.ai.model` 与 `fw-plus.ai.embedding-store`。迁移细节见 [AI 框架迁移总览](./docs/ai-framework-migration/overview.md)。
+> 旧的 LangChain4j model/store 坐标已经删除，不提供 POM 别名。新应用应使用 `fw-plus-ai-langchain4j-adapter`，中立配置前缀为 `fw-plus.ai.model` 与 `fw-plus.ai.embedding-store`。迁移细节见 [AI 框架迁移总览](./docs/ai-framework-migration/overview.md)。
 
 ## 能力与模块
 
@@ -174,9 +174,8 @@ AI 层将模型、向量存储与具体框架实现解耦。应用可先依赖�
 | --- | --- |
 | 聚合 | `fw-plus-ai-boot-starter` |
 | 中立 API | `fw-plus-ai-model-spring-boot-starter`、`fw-plus-ai-store-embedding-spring-boot-starter` |
-| Adapter | `fw-plus-ai-langchain4j-adapter-spring-boot-starter` |
-| 应用能力 | `fw-plus-ai-askdata-spring-boot-starter`、`fw-plus-ai-tiny-engine-spring-boot-starter` |
-| Tiny Engine 插件 | `fw-plus-ai-tiny-engine-plugin-langchain4j` |
+| Adapter | `fw-plus-ai-langchain4j-adapter` |
+| 应用能力 | `fw-plus-ai-askdata-spring-boot-starter`、`fw-plus-ai-boot-autoconfigure` 中的 Tiny Engine AI 能力 |
 | Magic-API 插件 | `fw-plus-ai-magicapi-plugin-vector`、`fw-plus-ai-magicapi-plugin-model` |
 
 ## Magic-API 资源模型

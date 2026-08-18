@@ -370,6 +370,57 @@ class TinyEngineAiSampleApplicationTest {
 	}
 
 	@Test
+	void sampleAuthRejectsCurrentUserTenantOverrideWithoutMembership() throws Exception {
+		DriverManagerDataSource dataSource = new DriverManagerDataSource(
+				"jdbc:h2:mem:tiny_engine_tenant_override;MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		createAuthTables(jdbcTemplate);
+		TinyEngineSampleAuthConfiguration.SampleAuthProperties properties =
+				new TinyEngineSampleAuthConfiguration.SampleAuthProperties();
+		properties.setSecret("tiny-engine-backend-secret-key-at-jwt-login");
+		properties.getAdmin().setUsername("admin");
+		properties.getAdmin().setPassword("REDACTED");
+		TinyEngineSampleAuthConfiguration configuration = new TinyEngineSampleAuthConfiguration();
+		TinyEngineUserSystemService service = configuration.tinyEngineSampleUserSystemService(jdbcTemplate, properties);
+		configuration.tinyEngineSampleAdminInitializer(jdbcTemplate, properties).run(null);
+
+		TinyEnginePrincipal registered = service.register(
+				new TinyEngineRegistrationRequest("charlie", null, "DevPass123!", null));
+		TinyEngineLoginResult adminLogin = service.login(new TinyEngineLoginRequest("admin", "REDACTED", null));
+		TinyEnginePrincipal admin = service.currentUser(new TinyEngineCredential(adminLogin.getAccessToken(), null));
+		TinyEngineTenant team = service.createTenant(admin, new TinyEngineTenantCreateRequest(null, "team-a"));
+
+		assertThatThrownBy(() -> service.currentUser(
+				new TinyEngineCredential(service.login(new TinyEngineLoginRequest("charlie", "DevPass123!", null))
+						.getAccessToken(), team.getTenantId())))
+				.isInstanceOf(TinyEngineUnauthenticatedException.class)
+				.hasMessageContaining("not assigned");
+		assertThat(registered.getTenantId()).isEqualTo("1");
+	}
+
+	@Test
+	void sampleRegistrationCreatesMissingDefaultTenantBeforeResolvingPublicTenant() throws Exception {
+		DriverManagerDataSource dataSource = new DriverManagerDataSource(
+				"jdbc:h2:mem:tiny_engine_missing_default_tenant;MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		createAuthTables(jdbcTemplate);
+		TinyEngineSampleAuthConfiguration.SampleAuthProperties properties =
+				new TinyEngineSampleAuthConfiguration.SampleAuthProperties();
+		properties.setSecret("tiny-engine-backend-secret-key-at-jwt-login");
+		TinyEngineUserSystemService service = new TinyEngineSampleAuthConfiguration()
+				.tinyEngineSampleUserSystemService(jdbcTemplate, properties);
+
+		TinyEnginePrincipal registered = service.register(
+				new TinyEngineRegistrationRequest("first-user", null, "DevPass123!", null));
+
+		assertAll(
+				() -> assertThat(registered.getTenantId()).isEqualTo("1"),
+				() -> assertThat(jdbcTemplate.queryForObject(
+						"select count(1) from t_tenant where id = 1 and is_system = true and enable = true",
+						Integer.class)).isEqualTo(Integer.valueOf(1)));
+	}
+
+	@Test
 	void sampleAdminInitializerWritesPermissionRoleCodes() throws Exception {
 		DriverManagerDataSource dataSource = new DriverManagerDataSource(
 				"jdbc:h2:mem:tiny_engine_permission_role_codes;MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
@@ -423,6 +474,30 @@ class TinyEngineAiSampleApplicationTest {
 						.hasMessageContaining("tenant is disabled"),
 				() -> assertThat(service.tenants(admin)).extracting(TinyEngineTenant::getTenantId)
 						.doesNotContain(team.getTenantId()));
+	}
+
+	@Test
+	void sampleAuthSupportsTenantTableWithoutMembershipRelationTable() throws Exception {
+		DriverManagerDataSource dataSource = new DriverManagerDataSource(
+				"jdbc:h2:mem:tiny_engine_tenant_without_membership;MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		createAuthTables(jdbcTemplate);
+		jdbcTemplate.execute("drop table r_auth_users_units_roles");
+		TinyEngineSampleAuthConfiguration.SampleAuthProperties properties =
+				new TinyEngineSampleAuthConfiguration.SampleAuthProperties();
+		properties.setSecret("tiny-engine-backend-secret-key-at-jwt-login");
+		TinyEngineUserSystemService service = new TinyEngineSampleAuthConfiguration()
+				.tinyEngineSampleUserSystemService(jdbcTemplate, properties);
+
+		TinyEnginePrincipal registered = service.register(
+				new TinyEngineRegistrationRequest("legacy-user", null, "DevPass123!", null));
+		TinyEngineLoginResult login = service.login(new TinyEngineLoginRequest("legacy-user", "DevPass123!", null));
+		TinyEnginePrincipal current = service.currentUser(new TinyEngineCredential(login.getAccessToken(), null));
+
+		assertAll(
+				() -> assertThat(registered.getTenantId()).isEqualTo("1"),
+				() -> assertThat(service.tenants(current)).extracting(TinyEngineTenant::getTenantId).containsExactly("1"),
+				() -> assertThat(service.switchTenant(current, "1").getTenantId()).isEqualTo("1"));
 	}
 
 	@Test

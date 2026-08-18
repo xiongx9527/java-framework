@@ -215,12 +215,12 @@ public AskDataAgent businessSqlGenerator() {
 
 ## LangChain4j Adapter
 
-当前 Java 8 分支已实现 LangChain4j 对中立 Chat、批量 Embedding、向量与 AskData SPI 的适配。需要 LangChain4j 时，由业务应用显式引入 Adapter Starter：
+当前 Java 8 分支已实现 LangChain4j 对中立 Chat、批量 Embedding、向量与 AskData SPI 的适配。需要 LangChain4j 时，由业务应用显式引入核心 Adapter：
 
 ```xml
 <dependency>
-    <groupId>com.xiongx9527.fw.plus.ai</groupId>
-    <artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-starter</artifactId>
+    <groupId>com.xiongx9527.fw.plus</groupId>
+    <artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
     <version>${fw-plus-ai.version}</version>
 </dependency>
 ```
@@ -267,4 +267,4 @@ public AskDataVectorRetriever askDataVectorRetriever(AiEmbeddingStoreRegistry st
 
 ## 旧坐标边界
 
-当前 starter line 不使用旧的 `fw-plus-ai-langchain4j-model-spring-boot-starter` 或 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 坐标。它们不是当前主路径，也不应在新应用中与中立 starter 混用；请使用本 starter、`fw-plus-ai-model` / `fw-plus-ai-store-embedding` 中立注册表，并在应用侧按需组合 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
+当前 starter line 不使用旧的 `fw-plus-ai-langchain4j-model-spring-boot-starter` 或 `fw-plus-ai-langchain4j-store-embeding-spring-boot-starter` 坐标。它们不是当前主路径，也不应在新应用中与中立 starter 混用；请使用本 starter、`fw-plus-ai-model` / `fw-plus-ai-store-embedding` 中立注册表，并在应用侧按需组合 `fw-plus-ai-langchain4j-adapter`。

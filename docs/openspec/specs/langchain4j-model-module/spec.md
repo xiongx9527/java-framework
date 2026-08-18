@@ -70,7 +70,7 @@ TBD - created by archiving change add-langchain4j-model-magicapi. Update Purpose
 
 #### Scenario: 应用迁移到统一 adapter starter
 - **WHEN** Boot 2.7 / Java 8 应用需要 LangChain4j 模型实现
-- **THEN** 应用 SHALL 引入 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
+- **THEN** 应用 SHALL 引入 `fw-plus-ai-model-spring-boot-starter` 与 `fw-plus-ai-langchain4j-adapter`，并由 `fw-plus-ai-boot-starter` 提供自动配置。
 - **AND** 不得继续引入已删除的 model artifact。
 
 #### Scenario: 模型创建由中立 factory 和 adapter 承担

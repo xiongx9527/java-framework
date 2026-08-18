@@ -15,6 +15,7 @@ public class TinyflowDifyExternalProperties implements InitializingBean {
 	private Duration requestTimeout = Duration.ofSeconds(5L);
 	private int maxTopK = 20;
 	private int rateLimit = 60;
+	private long maxRequestBodyBytes = 65536L;
 
 	public boolean isEnabled() { return enabled; }
 	public void setEnabled(boolean enabled) { this.enabled = enabled; }
@@ -26,6 +27,8 @@ public class TinyflowDifyExternalProperties implements InitializingBean {
 	public void setMaxTopK(int maxTopK) { this.maxTopK = maxTopK; }
 	public int getRateLimit() { return rateLimit; }
 	public void setRateLimit(int rateLimit) { this.rateLimit = rateLimit; }
+	public long getMaxRequestBodyBytes() { return maxRequestBodyBytes; }
+	public void setMaxRequestBodyBytes(long maxRequestBodyBytes) { this.maxRequestBodyBytes = maxRequestBodyBytes; }
 
 	@Override
 	public void afterPropertiesSet() {
@@ -40,6 +43,9 @@ public class TinyflowDifyExternalProperties implements InitializingBean {
 		}
 		if (rateLimit <= 0) {
 			throw new IllegalArgumentException("Tinyflow Dify external rate limit must be positive");
+		}
+		if (maxRequestBodyBytes <= 0L) {
+			throw new IllegalArgumentException("Tinyflow Dify external max request body bytes must be positive");
 		}
 	}
 }

@@ -13,8 +13,8 @@
     <version>${fw-plus-ai.version}</version>
 </dependency>
 <dependency>
-    <groupId>com.xiongx9527.fw.plus.ai</groupId>
-    <artifactId>fw-plus-ai-langchain4j-adapter-spring-boot-starter</artifactId>
+    <groupId>com.xiongx9527.fw.plus</groupId>
+    <artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
     <version>${fw-plus-ai.version}</version>
 </dependency>
 ```
@@ -62,7 +62,7 @@ fw-plus:
 当前 Java 8 版本只实现 LangChain4j Adapter。后续接入 Spring AI、Spring AI Alibaba 或 AgentScope 2 Java 时，切换步骤应是：
 
 1. 保留本 starter。
-2. 移除 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
+2. 移除 `fw-plus-ai-langchain4j-adapter`。
 3. 引入目标实现的 Java 17 / Spring Boot 3.x adapter starter。
 4. 将 `fw-plus.ai.model.models.<key>.framework` 改成目标 framework。
 5. 保持业务 key 不变，例如 `chat-default`，让 `model[...]` 和 Java API 调用不改 key。
@@ -78,7 +78,7 @@ AgentScope 2 Java 必须按进程内 SDK adapter 适配，不能用外部 HTTP�
 
 如果迁移后无法启动，优先回滚到业务上一版 LangChain4j 组合：
 
-1. 恢复 `fw-plus-ai-langchain4j-adapter-spring-boot-starter`。
+1. 恢复 `fw-plus-ai-langchain4j-adapter`。
 2. 将 `framework` 改回 `langchain4j`。
 3. 确认 provider SDK 已显式加入业务应用。
 4. 保持 `fw-plus.ai.model` 的业务 key 不变。
