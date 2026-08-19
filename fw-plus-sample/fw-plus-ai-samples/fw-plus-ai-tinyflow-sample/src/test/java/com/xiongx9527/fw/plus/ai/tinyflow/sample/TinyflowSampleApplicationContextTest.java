@@ -16,7 +16,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "fw-plus.ai.model.enabled=false",
         "fw.plus.ai.tinyflow.enabled=true",
-        "spring.autoconfigure.exclude=com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration,com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration",
         "server.port=0"
 })
 public class TinyflowSampleApplicationContextTest {

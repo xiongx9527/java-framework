@@ -4,6 +4,10 @@ server:
 spring:
   application:
     name: fw-plus-ai-tinyflow-sample
+  autoconfigure:
+    exclude:
+      - com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
+      - com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration
 
 fw:
   plus:
