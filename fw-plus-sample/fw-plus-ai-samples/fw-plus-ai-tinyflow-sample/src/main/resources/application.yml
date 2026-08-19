@@ -1,0 +1,32 @@
+server:
+  port: ${SERVER_PORT:18080}
+
+spring:
+  application:
+    name: fw-plus-ai-tinyflow-sample
+
+fw:
+  plus:
+    ai:
+      tinyflow:
+        enabled: true
+
+fw-plus:
+  ai:
+    model:
+      enabled: true
+      default-model: chat-default
+      models:
+        chat-default:
+          framework: langchain4j
+          provider: openai
+          type: chat
+          enabled: true
+          properties:
+            base-url: ${OPENAI_BASE_URL}
+            api-key: ${OPENAI_API_KEY}
+            model-name: ${OPENAI_MODEL}
+    langchain4j:
+      enabled: true
+      adapter:
+        enabled: true
