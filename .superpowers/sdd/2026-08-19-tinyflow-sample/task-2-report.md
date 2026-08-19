@@ -55,6 +55,17 @@ mvn -o -f fw-plus-sample/fw-plus-ai-samples/pom.xml \
 - 未启动真实服务，未执行真实 OpenAI 模型调用；需由运行环境提供三个 `OPENAI_*` 环境变量并显式设置 `FW_PLUS_AI_MODEL_ENABLED=true` 才创建模型。
 - 未处理 Task 3。
 
+## 生产自动配置排除修复
+
+- 在 sample `application.yml` 增加 `spring.autoconfigure.exclude`，排除缺少可选运行时依赖的 `MagicAPIBaseAutoConfiguration` 和 `AskDataAutoConfiguration`。
+- 保留 Tinyflow 与模型自动配置；没有写入任何 API key 或假凭据。
+- 启动 health 回归测试先在删除测试排除后失败，根因为 `MagicPluginConfiguration.class` 缺失；恢复生产配置排除后 focused tests 通过。
+- focused Maven tests：PASS，`Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`。
+
+## Task 1 / Task 2 聚合器同步说明
+
+Task 1 的样例聚合器 flattened POM 已由 Maven 根据已登记的 `fw-plus-ai-tinyflow-sample` module 同步更新；本次仅提交该聚合器生成文件，不提交 `docs/superpowers/plans`。
+
 ## Test hygiene fix
 
 - 删除 `TinyflowSampleControllerTest` 未使用的 `SpringExtension` import；测试仍通过全限定类名声明扩展。
