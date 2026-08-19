@@ -32,15 +32,17 @@ public class TinyflowSampleApplicationContextTest {
     }
 
     @Test
-    public void applicationConfigurationUsesLegacyLangChain4jModelProperties() throws Exception {
+    public void applicationConfigurationUsesBoundNeutralModelProperties() throws Exception {
         String yaml = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/resources/application.yml")),
                 java.nio.charset.StandardCharsets.UTF_8);
-        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("    langchain4j:"));
-        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("      model:"));
-        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("model-type: chat"));
-        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("base-url: ${OPENAI_BASE_URL}"));
-        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("api-key: ${OPENAI_API_KEY}"));
-        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("model-name: ${OPENAI_MODEL}"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("    model:"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("      default-model: chat-default"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("          framework: langchain4j"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("          type: chat"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("            baseUrl: ${OPENAI_BASE_URL}"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("            apiKey: ${OPENAI_API_KEY}"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("            modelName: ${OPENAI_MODEL}"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("enabled: ${FW_PLUS_AI_MODEL_ENABLED:false}"));
     }
 
     @Test
