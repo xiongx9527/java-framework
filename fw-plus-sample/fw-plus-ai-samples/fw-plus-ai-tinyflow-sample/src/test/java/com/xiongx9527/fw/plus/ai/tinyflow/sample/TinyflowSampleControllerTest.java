@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,10 +30,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @org.junit.jupiter.api.extension.ExtendWith(org.springframework.test.context.junit.jupiter.SpringExtension.class)
 @WebMvcTest(TinyflowSampleController.class)
 @ContextConfiguration(classes = TinyflowSampleController.class)
+@org.springframework.test.context.TestPropertySource(properties = "sample.api.token=test-token")
 public class TinyflowSampleControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private Environment environment;
 
     @MockBean
     private TinyflowService tinyflowService;
@@ -44,6 +49,19 @@ public class TinyflowSampleControllerTest {
     public void modelIsAvailableForSuccessfulExecutionTests() {
         when(tinyflowModelProvider.listChatModels()).thenReturn(
                 Collections.singletonList(new TinyflowModelDescriptor("chat-default", "chat-default", "CHAT", "openai")));
+    }
+
+    @Test
+    public void executeRequiresConfiguredSampleToken() throws Exception {
+        String token = environment.getProperty("sample.api.token");
+        org.junit.jupiter.api.Assertions.assertNotNull(token);
+        org.junit.jupiter.api.Assertions.assertFalse(token.trim().isEmpty());
+
+        mockMvc.perform(post("/api/tinyflow/execute")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"message\":\"hello\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("TINYFLOW_UNAUTHORIZED"));
     }
 
     @Test
@@ -64,6 +82,7 @@ public class TinyflowSampleControllerTest {
 
         mockMvc.perform(post("/api/tinyflow/execute")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sample-Api-Token", "test-token")
                         .content("{\"message\":\"hello\",\"variables\":{\"tenant\":\"acme\",\"message\":\"old\"}}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.instanceId").value("instance-1"))
@@ -82,6 +101,7 @@ public class TinyflowSampleControllerTest {
 
         mockMvc.perform(post("/api/tinyflow/execute")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sample-Api-Token", "test-token")
                         .content("{\"message\":\"hello\"}"))
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.error").value("TINYFLOW_MODEL_UNAVAILABLE"))
@@ -96,6 +116,7 @@ public class TinyflowSampleControllerTest {
 
         mockMvc.perform(post("/api/tinyflow/execute")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Sample-Api-Token", "test-token")
                         .content("{\"message\":\"hello\"}"))
                 .andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.error").value("TINYFLOW_EXECUTION_FAILED"))

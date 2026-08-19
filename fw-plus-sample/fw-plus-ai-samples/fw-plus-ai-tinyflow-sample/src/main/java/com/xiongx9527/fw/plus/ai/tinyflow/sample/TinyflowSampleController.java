@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowService;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowExecutionResult;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflow;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -36,12 +38,14 @@ public class TinyflowSampleController {
     private final TinyflowService tinyflowService;
     private final ResourceLoader resourceLoader;
     private final TinyflowModelProvider modelProvider;
+    private final Environment environment;
 
     public TinyflowSampleController(TinyflowService tinyflowService, ResourceLoader resourceLoader,
-            TinyflowModelProvider modelProvider) {
+            TinyflowModelProvider modelProvider, Environment environment) {
         this.tinyflowService = tinyflowService;
         this.resourceLoader = resourceLoader;
         this.modelProvider = modelProvider;
+        this.environment = environment;
     }
 
     @PostConstruct
@@ -63,7 +67,12 @@ public class TinyflowSampleController {
     }
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, path = "/execute")
-    public TinyflowExecutionResult execute(@RequestBody ExecuteRequest request) {
+    public TinyflowExecutionResult execute(@RequestHeader(value = "X-Sample-Api-Token", required = false) String token,
+            @RequestBody ExecuteRequest request) {
+        String expectedToken = environment.getProperty("sample.api.token");
+        if (expectedToken == null || expectedToken.trim().length() == 0 || !expectedToken.equals(token)) {
+            throw new TinyflowUnauthorizedException();
+        }
         if (modelProvider == null || modelProvider.listChatModels().isEmpty()) {
             throw new TinyflowModelUnavailableException();
         }
@@ -74,6 +83,12 @@ public class TinyflowSampleController {
             variables.put("message", request.getMessage());
         }
         return tinyflowService.execute(WORKFLOW_ID, variables);
+    }
+
+    @ExceptionHandler(TinyflowUnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized() {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ErrorResponse("TINYFLOW_UNAUTHORIZED", "Authentication required"));
     }
 
     @ExceptionHandler(TinyflowModelUnavailableException.class)
@@ -112,6 +127,10 @@ public class TinyflowSampleController {
             output.write(buffer, 0, read);
         }
         return output.toByteArray();
+    }
+
+    private static final class TinyflowUnauthorizedException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
     }
 
     private static final class TinyflowModelUnavailableException extends RuntimeException {

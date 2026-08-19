@@ -9,6 +9,14 @@ spring:
       - com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
       - com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration
 
+sample:
+  api:
+    token: ${SAMPLE_API_TOKEN}
+  autoconfigure:
+    exclude:
+      - com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.MagicAPIBaseAutoConfiguration
+      - com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration
+
 fw:
   plus:
     ai:

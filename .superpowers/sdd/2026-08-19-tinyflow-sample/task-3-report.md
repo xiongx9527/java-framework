@@ -53,12 +53,20 @@ curl -i --max-time 10 http://127.0.0.1:18080/api/tinyflow/health
 
 ## Final real verification
 
+安全修复：`POST /api/tinyflow/execute` 现在要求 `SAMPLE_API_TOKEN` 环境变量对应的 `X-Sample-Api-Token` 请求头；未提供或不匹配返回 HTTP 401，health 保持公开。token 只通过 `${SAMPLE_API_TOKEN}` 环境变量占位符注入，不写默认值、不记录日志。测试覆盖匿名 401 和合法 token 请求。
+
 在最终配置下已完成真实 HTTP 验证：
 
 - `GET /api/tinyflow/health` 返回 HTTP 200，body 为 `{status:UP,workflowId:real-chat}`。
 - `POST /api/tinyflow/execute` 返回 HTTP 200，但 body 为 `instanceId:null, outputs:{}, suspended:false`，没有有效模型文本，因此不能宣称真实模型调用成功。
 - 日志确认 LangChain4j/OpenAI 实际发起了上游请求；上游 `https://gpt.fufu666.top` 出现 TLS handshake/connection reset（`SSLException`/`SSLHandshakeException`/`EOF`），请求未获得有效模型响应。
 - 服务已停止，进程检查未发现残留 sample 进程。
+
+## Final test count and conclusion
+
+- focused Maven tests：PASS，最终共 `8` tests，0 failures，0 errors；此前未加入鉴权时为 7 tests，鉴权回归后为 8 tests。
+- 早期无 `OPENAI_API_KEY` 的启动失败仅是初始验证阶段；最终配置下已完成 health/execute 验证。
+- 最终结论：health HTTP 200；execute HTTP 200 但 `instanceId:null, outputs:{}, suspended:false`；日志确认已发起 LangChain4j/OpenAI 请求，但上游 TLS handshake/connection reset（`SSLException`/`SSLHandshakeException`/`EOF`），没有有效模型文本，不能宣称真实模型调用成功。
 
 ## Concerns
 
