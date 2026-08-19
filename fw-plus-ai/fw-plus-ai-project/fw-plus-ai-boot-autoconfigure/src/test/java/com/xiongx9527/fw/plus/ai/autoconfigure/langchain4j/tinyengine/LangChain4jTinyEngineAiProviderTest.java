@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -145,6 +146,29 @@ public class LangChain4jTinyEngineAiProviderTest {
 		JsonNode upstreamRequest = new ObjectMapper().readTree(requestBody.get());
 		assertEquals(0.2D, upstreamRequest.path("temperature").doubleValue(), 0.0001D);
 		assertEquals(96, upstreamRequest.path("max_tokens").intValue());
+	}
+
+	@Test
+	public void shouldAvoidRetryingDynamicInvocationFailures() throws Exception {
+		AtomicInteger attempts = new AtomicInteger();
+		upstream = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+		upstream.createContext("/v1/chat/completions", exchange -> {
+			attempts.incrementAndGet();
+			byte[] body = "{\"error\":{\"message\":\"unavailable\"}}".getBytes("UTF-8");
+			exchange.getResponseHeaders().set("Content-Type", "application/json");
+			exchange.sendResponseHeaders(503, body.length);
+			exchange.getResponseBody().write(body);
+			exchange.close();
+		});
+		upstream.start();
+		LangChain4jTinyEngineAiProvider provider = provider(aiModel("registry-model", AiModelType.CHAT,
+				LangChain4jModelType.CHAT, new RecordingChatModel()));
+
+		TinyEngineUpstreamException exception = assertThrows(TinyEngineUpstreamException.class,
+				() -> provider.chat(resolvedRequest("registry-model", false)));
+
+		assertEquals(503, exception.getStatusCode());
+		assertEquals(1, attempts.get());
 	}
 
 	@Test

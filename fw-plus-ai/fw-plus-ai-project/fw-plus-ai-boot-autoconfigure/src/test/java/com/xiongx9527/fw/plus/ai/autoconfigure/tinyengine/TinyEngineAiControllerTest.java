@@ -8,6 +8,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.TinyEngineRagReque
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.TinyEngineRagSearchResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineAiChatService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineRagService;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAccessDeniedException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -101,6 +103,49 @@ public class TinyEngineAiControllerTest {
 	}
 
 	@Test
+	public void shouldMapApplicationPermissionFailureToForbiddenResponse() throws Exception {
+		MockMvc mvc = standaloneSetup(new TinyEngineAiController(new AccessDeniedChatService(), new RecordingRagService()))
+				.build();
+
+		mvc.perform(post("/app-center/api/chat/completions")
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"appId\":2,\"serviceId\":10,\"modelName\":\"test-model\"}"))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("403"))
+				.andExpect(jsonPath("$.message").value("TinyEngine application permission denied"))
+				.andExpect(content().string(not(containsString("TinyEngineAccessDeniedException"))));
+	}
+
+	@Test
+	public void shouldMapMissingModelConfigurationToBadRequestResponse() throws Exception {
+		MockMvc mvc = standaloneSetup(new TinyEngineAiController(new MissingModelChatService(), new RecordingRagService()))
+				.build();
+
+		mvc.perform(post("/app-center/api/chat/completions")
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"appId\":2,\"serviceId\":10,\"modelName\":\"missing-model\"}"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("400"))
+				.andExpect(jsonPath("$.message").value("TinyEngine AI model configuration is invalid"))
+				.andExpect(content().string(not(containsString("IllegalArgumentException"))));
+	}
+
+	@Test
+	public void shouldMapUpstreamFailureToSanitizedBadGatewayResponse() throws Exception {
+		MockMvc mvc = standaloneSetup(new TinyEngineAiController(new UnreachableChatService(), new RecordingRagService()))
+				.build();
+
+		mvc.perform(post("/app-center/api/chat/completions")
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"appId\":2,\"serviceId\":10,\"modelName\":\"test-model\"}"))
+				.andExpect(status().isBadGateway())
+				.andExpect(jsonPath("$.code").value("502"))
+				.andExpect(jsonPath("$.message").value("TinyEngine AI upstream request failed"))
+				.andExpect(content().string(not(containsString("server-api-key"))))
+				.andExpect(content().string(not(containsString("TinyEngineUpstreamException"))));
+	}
+
+	@Test
 	public void shouldRejectUnsupportedEncryptKeyRequest() {
 		TinyEngineAiController controller = new TinyEngineAiController(new RecordingChatService(), new RecordingRagService());
 
@@ -159,6 +204,33 @@ public class TinyEngineAiControllerTest {
 		@Override public boolean isAvailable() { return true; }
 		@Override public String getUnavailableReason() { return null; }
 		@Override public TinyEngineRagSearchResult search(TinyEngineRagRequest request) { lastRequest = request; return result; }
+	}
+
+	private static final class AccessDeniedChatService implements TinyEngineAiChatService {
+		@Override public TinyEngineChatResponse chat(TinyEngineChatRequest request) {
+			throw new TinyEngineAccessDeniedException("TinyEngine application permission denied");
+		}
+		@Override public List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request) {
+			return Collections.emptyList();
+		}
+	}
+
+	private static final class MissingModelChatService implements TinyEngineAiChatService {
+		@Override public TinyEngineChatResponse chat(TinyEngineChatRequest request) {
+			throw new IllegalArgumentException("AI model does not exist in this application service");
+		}
+		@Override public List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request) {
+			return Collections.emptyList();
+		}
+	}
+
+	private static final class UnreachableChatService implements TinyEngineAiChatService {
+		@Override public TinyEngineChatResponse chat(TinyEngineChatRequest request) {
+			throw new TinyEngineUpstreamException(502, "UPSTREAM_ERROR", "Failed to connect to https://provider.invalid/v1");
+		}
+		@Override public List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request) {
+			return Collections.emptyList();
+		}
 	}
 
 	private static final class FailingChatService implements TinyEngineAiChatService {
