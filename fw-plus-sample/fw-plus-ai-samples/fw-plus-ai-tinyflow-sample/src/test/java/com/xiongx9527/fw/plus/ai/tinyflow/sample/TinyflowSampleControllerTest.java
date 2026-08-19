@@ -1,5 +1,7 @@
 package com.xiongx9527.fw.plus.ai.tinyflow.sample;
 
+import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelDescriptor;
+import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowService;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowExecutionResult;
 import org.junit.jupiter.api.Test;
@@ -15,7 +17,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.verify;
@@ -37,6 +38,15 @@ public class TinyflowSampleControllerTest {
     @MockBean
     private TinyflowService tinyflowService;
 
+    @MockBean
+    private TinyflowModelProvider tinyflowModelProvider;
+
+    @org.junit.jupiter.api.BeforeEach
+    public void modelIsAvailableForSuccessfulExecutionTests() {
+        when(tinyflowModelProvider.listChatModels()).thenReturn(
+                Collections.singletonList(new TinyflowModelDescriptor("chat-default", "chat-default", "CHAT", "openai")));
+    }
+
     @Test
     public void healthReturnsWorkflowStatusWithoutExecutingWorkflow() throws Exception {
         mockMvc.perform(get("/api/tinyflow/health"))
@@ -47,6 +57,7 @@ public class TinyflowSampleControllerTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void executeMergesVariablesAndMessageAndReturnsResultFields() throws Exception {
         when(tinyflowService.execute(eq("real-chat"), anyMap()))
                 .thenReturn(new TinyflowExecutionResult("instance-1",
@@ -60,16 +71,16 @@ public class TinyflowSampleControllerTest {
                 .andExpect(jsonPath("$.outputs.answer").value("hello back"))
                 .andExpect(jsonPath("$.suspended").value(false));
 
-        ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
+        ArgumentCaptor<Map<String, Object>> variables = ArgumentCaptor.forClass(Map.class);
         verify(tinyflowService).execute(eq("real-chat"), variables.capture());
         assertEquals("acme", variables.getValue().get("tenant"));
         assertEquals("hello", variables.getValue().get("message"));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void executeWithoutModelConfigurationReturnsStableServiceUnavailableResponse() throws Exception {
-        when(tinyflowService.execute(eq("real-chat"), anyMap()))
-                .thenThrow(new IllegalStateException("Tinyflow model is not configured"));
+        when(tinyflowModelProvider.listChatModels()).thenReturn(Collections.<TinyflowModelDescriptor>emptyList());
 
         mockMvc.perform(post("/api/tinyflow/execute")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -77,6 +88,20 @@ public class TinyflowSampleControllerTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.error").value("TINYFLOW_MODEL_UNAVAILABLE"))
                 .andExpect(jsonPath("$.message").value("Tinyflow model is not configured"))
+                .andExpect(jsonPath("$.trace").doesNotExist());
+    }
+
+    @Test
+    public void ordinaryExceptionContainingModelAndUrlTextReturnsSafeBadGatewayResponse() throws Exception {
+        when(tinyflowService.execute(eq("real-chat"), anyMap()))
+                .thenThrow(new RuntimeException("model https://secret.example/v1/api-key=hidden"));
+
+        mockMvc.perform(post("/api/tinyflow/execute")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"message\":\"hello\"}"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.error").value("TINYFLOW_EXECUTION_FAILED"))
+                .andExpect(jsonPath("$.message").value("Tinyflow execution failed"))
                 .andExpect(jsonPath("$.trace").doesNotExist());
     }
 }
