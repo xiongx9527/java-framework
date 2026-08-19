@@ -64,9 +64,10 @@ mvn -o -f fw-plus-sample/fw-plus-ai-samples/pom.xml \
 
 ## Task 3 配置结构修复
 
-- 将 sample 配置从中立 `fw-plus.ai.model` 结构改为现有 LangChain4j legacy 配置：`fw-plus.ai.langchain4j.model.models.chat-default`，模型字段直接使用 `provider`、`model-type`、`base-url`、`api-key`、`model-name`，并保留 `enabled/default-model`。
-- `FW_PLUS_AI_MODEL_ENABLED` 现在映射到正确的 `fw-plus.ai.langchain4j.model.enabled` 前缀；OpenAI 三项仍只读取环境变量。
-- 增加配置契约测试，锁定实际前缀和字段结构；focused Maven tests：PASS，`Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`。
+只读追踪确认：`TinyflowSampleController` 的 503 直接来自 `TinyflowModelProvider.listChatModels().isEmpty()`；provider 只枚举 `AiModelRegistry`/`LangChain4jModelRegistry` 中实际创建成功且类型为 CHAT 的模型。此前 `fw-plus.ai.langchain4j.model` 是历史前缀，但当前自动配置绑定的是 `AiModelProperties` 的 `fw-plus.ai.model`；因此 registry 没有 `chat-default`，列表为空。修复为 `fw-plus.ai.model`，并把 adapter 需要的字段放入 `properties` 使用内部键名 `baseUrl`、`apiKey`、`modelName`，避免 reflective adapter 把 `base-url` 当成未知 builder property。`FW_PLUS_AI_MODEL_ENABLED` 现在控制正确的中立模型开关。
+
+- 增加配置契约测试，锁定 `fw-plus.ai.model`、`framework/type` 和 provider 属性。
+- focused Maven tests：PASS，`Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`。
 
 ## 生产自动配置排除修复
 

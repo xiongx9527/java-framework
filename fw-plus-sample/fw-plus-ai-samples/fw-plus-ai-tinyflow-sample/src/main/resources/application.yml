@@ -17,16 +17,20 @@ fw:
 
 fw-plus:
   ai:
+    model:
+      enabled: ${FW_PLUS_AI_MODEL_ENABLED:false}
+      default-model: chat-default
+      models:
+        chat-default:
+          framework: langchain4j
+          provider: openai
+          type: chat
+          enabled: true
+          properties:
+            baseUrl: ${OPENAI_BASE_URL}
+            apiKey: ${OPENAI_API_KEY}
+            modelName: ${OPENAI_MODEL}
     langchain4j:
       enabled: true
-      model:
-        enabled: ${FW_PLUS_AI_MODEL_ENABLED:false}
-        default-model: chat-default
-        models:
-          chat-default:
-            provider: openai
-            model-type: chat
-            base-url: ${OPENAI_BASE_URL}
-            api-key: ${OPENAI_API_KEY}
-            model-name: ${OPENAI_MODEL}
-            enabled: true
+      adapter:
+        enabled: true
