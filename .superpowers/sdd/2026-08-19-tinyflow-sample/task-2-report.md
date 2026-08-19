@@ -9,7 +9,7 @@
   - `GET /api/tinyflow/health` 返回 `status=UP` 和 `workflowId=real-chat`，不执行模型调用。
   - `POST /api/tinyflow/execute` 复制请求变量，仅在 message 非 null 时写入 `message`，调用真实 `TinyflowService.execute("real-chat", variables)`，直接序列化 `TinyflowExecutionResult` 的 `instanceId`、`outputs`、`suspended`。
   - 生命周期阶段通过 `ResourceLoader` 原样读取 workflow JSON，拒绝缺失/空资源，先 `validate` 后 `register`。
-  - 模型不可用时返回稳定 `503 TINYFLOW_MODEL_UNAVAILABLE`；其他执行异常返回稳定 `502 TINYFLOW_EXECUTION_FAILED`，响应不包含堆栈或凭据，敏感错误文本会被降级为通用消息。
+  - 模型不可用时返回稳定 `503 TINYFLOW_MODEL_UNAVAILABLE`；其他执行异常统一返回稳定 `502 TINYFLOW_EXECUTION_FAILED`，响应不包含原始异常 message、URL、堆栈或凭据。
 - 增加 `workflows/real-chat.json`：`startNode -> llmNode -> endNode`，LLM 节点使用 `llmId=chat-default`，用户输入通过 Tinyflow 原生 `{{message}}` 模板变量传递。
 - 增加 `application.yml`：默认关闭统一模型自动配置（`FW_PLUS_AI_MODEL_ENABLED` 可显式开启）；`OPENAI_BASE_URL`、`OPENAI_API_KEY`、`OPENAI_MODEL` 均为环境变量占位符，无凭据默认值。无 OpenAI 环境变量时应用仍可启动并提供 health；执行在模型不可用时走 503。
 - 增加 MockMvc HTTP 合约测试，使用测试替身，不触发真实模型调用。
@@ -17,9 +17,9 @@
 
 ## TDD 证据
 
-1. 首先写入 reviewer 回归测试：变量合并/workflowId、模型不可用 503、无模型环境启动 health。
-2. 修复前测试按预期失败：异常未映射为 503；原有 health 测试错误地验证了 slice context 中不会发生的生命周期交互；完整 context 首次暴露了样例聚合器中 Magic-API/AskData 自动配置缺少可选运行时类的问题。
-3. 完成错误映射、条件模型配置和测试上下文排除后，focused 测试通过。
+1. 首先写入 reviewer 回归测试：变量合并/workflowId、配置缺失 503、普通异常（即使 message 含 model/URL）仍为 502 且固定安全消息、无模型环境启动 health。
+2. 修复前测试按预期失败：异常未映射为稳定响应；完整 context 首次暴露了样例聚合器中 Magic-API/AskData 自动配置缺少可选运行时类的问题。
+3. 定义专用 `TinyflowModelUnavailableException`，仅该类型映射 503；其余 RuntimeException 统一映射 502，不读取原始 message。完成错误映射、条件模型配置和测试上下文排除后，focused 测试通过。
 
 ## 测试
 
@@ -29,7 +29,7 @@
 mvn -f fw-plus-sample/fw-plus-ai-samples/pom.xml -pl fw-plus-ai-tinyflow-sample test
 ```
 
-结果：PASS，`Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`。
+结果：PASS，`Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`。
 
 另外单独运行无模型启动测试也 PASS：
 

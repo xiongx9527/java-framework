@@ -1,6 +1,7 @@
 package com.xiongx9527.fw.plus.ai.tinyflow.sample;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowService;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowExecutionResult;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowWorkflow;
@@ -34,10 +35,13 @@ public class TinyflowSampleController {
 
     private final TinyflowService tinyflowService;
     private final ResourceLoader resourceLoader;
+    private final TinyflowModelProvider modelProvider;
 
-    public TinyflowSampleController(TinyflowService tinyflowService, ResourceLoader resourceLoader) {
+    public TinyflowSampleController(TinyflowService tinyflowService, ResourceLoader resourceLoader,
+            TinyflowModelProvider modelProvider) {
         this.tinyflowService = tinyflowService;
         this.resourceLoader = resourceLoader;
+        this.modelProvider = modelProvider;
     }
 
     @PostConstruct
@@ -60,6 +64,9 @@ public class TinyflowSampleController {
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, path = "/execute")
     public TinyflowExecutionResult execute(@RequestBody ExecuteRequest request) {
+        if (modelProvider == null || modelProvider.listChatModels().isEmpty()) {
+            throw new TinyflowModelUnavailableException();
+        }
         Map<String, Object> variables = request == null || request.getVariables() == null
                 ? new LinkedHashMap<String, Object>()
                 : new LinkedHashMap<String, Object>(request.getVariables());
@@ -69,35 +76,16 @@ public class TinyflowSampleController {
         return tinyflowService.execute(WORKFLOW_ID, variables);
     }
 
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ErrorResponse> handleUnavailable(IllegalStateException error) {
-        String message = error.getMessage();
-        if (message == null || message.trim().length() == 0) {
-            message = "Tinyflow model is unavailable";
-        }
+    @ExceptionHandler(TinyflowModelUnavailableException.class)
+    public ResponseEntity<ErrorResponse> handleUnavailable() {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(new ErrorResponse("TINYFLOW_MODEL_UNAVAILABLE", safeMessage(message)));
+                .body(new ErrorResponse("TINYFLOW_MODEL_UNAVAILABLE", "Tinyflow model is not configured"));
     }
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ErrorResponse> handleExecutionFailure(RuntimeException error) {
-        String message = error.getMessage();
-        String lower = message == null ? "" : message.toLowerCase(java.util.Locale.ROOT);
-        if (lower.contains("model") || lower.contains("llm") || lower.contains("api key")) {
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                    .body(new ErrorResponse("TINYFLOW_MODEL_UNAVAILABLE", safeMessage(message)));
-        }
+    public ResponseEntity<ErrorResponse> handleExecutionFailure() {
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
                 .body(new ErrorResponse("TINYFLOW_EXECUTION_FAILED", "Tinyflow execution failed"));
-    }
-
-    private String safeMessage(String message) {
-        String lower = message.toLowerCase(java.util.Locale.ROOT);
-        if (lower.contains("api key") || lower.contains("apikey") || lower.contains("token")
-                || lower.contains("password") || lower.contains("secret")) {
-            return "Tinyflow model is unavailable";
-        }
-        return message;
     }
 
     private String readWorkflow(Resource resource) {
@@ -124,6 +112,10 @@ public class TinyflowSampleController {
             output.write(buffer, 0, read);
         }
         return output.toByteArray();
+    }
+
+    private static final class TinyflowModelUnavailableException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
     }
 
     public static class ErrorResponse {
