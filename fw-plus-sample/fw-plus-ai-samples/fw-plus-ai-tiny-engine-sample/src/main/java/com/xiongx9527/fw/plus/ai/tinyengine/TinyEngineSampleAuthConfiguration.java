@@ -545,7 +545,8 @@ public class TinyEngineSampleAuthConfiguration {
 				}
 				throw new TinyEngineUnauthenticatedException("当前访问域名未匹配到可用租户");
 			}
-			if (!isBlank(normalizedHost)) {
+			boolean hasDomainColumns = hasTenantDomainColumns(jdbcTemplate);
+			if (!isBlank(normalizedHost) && hasDomainColumns) {
 				Map<String, Object> tenant = queryForMap(jdbcTemplate,
 						"select id from t_tenant where enable = true and (platform_domain = ? or custom_domain = ?) "
 								+ "order by id limit 1",
@@ -554,7 +555,7 @@ public class TinyEngineSampleAuthConfiguration {
 					return string(tenant, "id");
 				}
 			}
-			if (!fallbackToSystem) {
+			if (!fallbackToSystem && hasDomainColumns) {
 				throw new TinyEngineUnauthenticatedException(
 						"当前访问域名未匹配到可用租户");
 			}
@@ -817,6 +818,21 @@ public class TinyEngineSampleAuthConfiguration {
 		try {
 			Integer count = jdbcTemplate.queryForObject("select count(1) from information_schema.columns "
 					+ "where lower(table_name) = 't_tenant' and lower(column_name) = 'enable'", Integer.class);
+			return count != null && count.intValue() > 0;
+		} catch (Exception ignored) {
+			return false;
+		}
+	}
+
+	private static boolean hasTenantDomainColumns(JdbcTemplate jdbcTemplate) {
+		return hasTenantColumn(jdbcTemplate, "platform_domain") || hasTenantColumn(jdbcTemplate, "custom_domain");
+	}
+
+	private static boolean hasTenantColumn(JdbcTemplate jdbcTemplate, String columnName) {
+		try {
+			Integer count = jdbcTemplate.queryForObject("select count(1) from information_schema.columns "
+					+ "where lower(table_name) = 't_tenant' and lower(column_name) = ?", Integer.class,
+					columnName.toLowerCase());
 			return count != null && count.intValue() > 0;
 		} catch (Exception ignored) {
 			return false;

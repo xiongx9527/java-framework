@@ -445,6 +445,27 @@ class TinyEngineAiSampleApplicationTest {
 	}
 
 	@Test
+	void sampleAuthFallsBackToSystemTenantWhenHostDomainColumnsAreUnavailable() throws Exception {
+		DriverManagerDataSource dataSource = new DriverManagerDataSource(
+				"jdbc:h2:mem:tiny_engine_host_without_domain_columns;MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		createAuthTables(jdbcTemplate);
+		TinyEngineSampleAuthConfiguration.SampleAuthProperties properties =
+				new TinyEngineSampleAuthConfiguration.SampleAuthProperties();
+		properties.setSecret("tiny-engine-backend-secret-key-at-jwt-login");
+		properties.getAdmin().setUsername("admin");
+		properties.getAdmin().setPassword("TinyEngine@123456");
+		TinyEngineSampleAuthConfiguration configuration = new TinyEngineSampleAuthConfiguration();
+		TinyEngineUserSystemService service = configuration.tinyEngineSampleUserSystemService(jdbcTemplate, properties);
+		configuration.tinyEngineSampleAdminInitializer(jdbcTemplate, properties).run(null);
+
+		TinyEngineLoginResult login = service.login(
+				new TinyEngineLoginRequest("admin", "TinyEngine@123456", null, "127.0.0.1:18084"));
+
+		assertThat(login.getAccessToken()).isNotBlank();
+	}
+
+	@Test
 	void sampleAdminInitializerWritesPermissionRoleCodes() throws Exception {
 		DriverManagerDataSource dataSource = new DriverManagerDataSource(
 				"jdbc:h2:mem:tiny_engine_permission_role_codes;MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
