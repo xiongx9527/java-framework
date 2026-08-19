@@ -775,10 +775,24 @@ public class TinyEngineSampleAuthConfiguration {
 		if (count != null && count.intValue() > 0) {
 			return;
 		}
-		if (hasTenantSystemColumn(jdbcTemplate)) {
+		boolean hasSystemColumn = hasTenantSystemColumn(jdbcTemplate);
+		boolean hasEnableColumn = hasTenantEnableColumn(jdbcTemplate);
+		if (hasSystemColumn && hasEnableColumn) {
+			jdbcTemplate.update("insert into t_tenant(id, name_cn, name_en, description, is_system, enable, created_by, "
+						+ "last_updated_by, created_time, last_updated_time, org_code) values (?, ?, ?, ?, ?, ?, ?, ?, "
+						+ "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)", Integer.valueOf(DEFAULT_TENANT_ID), "公共租户",
+					DEFAULT_TENANT_NAME, "Default tenant for new user to explore.", Boolean.TRUE, Boolean.TRUE, "1", "1",
+					DEFAULT_TENANT_NAME);
+		} else if (hasSystemColumn) {
 			jdbcTemplate.update("insert into t_tenant(id, name_cn, name_en, description, is_system, created_by, "
-							+ "last_updated_by, created_time, last_updated_time, org_code) values (?, ?, ?, ?, ?, ?, ?, "
-							+ "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)", Integer.valueOf(DEFAULT_TENANT_ID), "公共租户",
+						+ "last_updated_by, created_time, last_updated_time, org_code) values (?, ?, ?, ?, ?, ?, ?, "
+						+ "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)", Integer.valueOf(DEFAULT_TENANT_ID), "公共租户",
+					DEFAULT_TENANT_NAME, "Default tenant for new user to explore.", Boolean.TRUE, "1", "1",
+					DEFAULT_TENANT_NAME);
+		} else if (hasEnableColumn) {
+			jdbcTemplate.update("insert into t_tenant(id, name_cn, name_en, description, enable, created_by, "
+						+ "last_updated_by, created_time, last_updated_time, org_code) values (?, ?, ?, ?, ?, ?, ?, "
+						+ "CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)", Integer.valueOf(DEFAULT_TENANT_ID), "公共租户",
 					DEFAULT_TENANT_NAME, "Default tenant for new user to explore.", Boolean.TRUE, "1", "1",
 					DEFAULT_TENANT_NAME);
 		} else {
@@ -793,6 +807,16 @@ public class TinyEngineSampleAuthConfiguration {
 		try {
 			Integer count = jdbcTemplate.queryForObject("select count(1) from information_schema.columns "
 					+ "where lower(table_name) = 't_tenant' and lower(column_name) = 'is_system'", Integer.class);
+			return count != null && count.intValue() > 0;
+		} catch (Exception ignored) {
+			return false;
+		}
+	}
+
+	private static boolean hasTenantEnableColumn(JdbcTemplate jdbcTemplate) {
+		try {
+			Integer count = jdbcTemplate.queryForObject("select count(1) from information_schema.columns "
+					+ "where lower(table_name) = 't_tenant' and lower(column_name) = 'enable'", Integer.class);
 			return count != null && count.intValue() > 0;
 		} catch (Exception ignored) {
 			return false;
