@@ -15,6 +15,38 @@
         <maven.test.skip>false</maven.test.skip>
     </properties>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>assert-tinyflow-sample-layout</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <loadfile property="tinyflow.sample.pom" srcFile="${project.basedir}/pom.xml"/>
+                                <loadfile property="tinyflow.samples.pom" srcFile="${project.basedir}/../pom.xml"/>
+                                <condition property="tinyflow.sample.layout.valid">
+                                    <and>
+                                        <contains string="${tinyflow.sample.pom}" substring="&lt;artifactId&gt;fw-plus-ai-tinyflow-sample&lt;/artifactId&gt;"/>
+                                        <contains string="${tinyflow.samples.pom}" substring="&lt;module&gt;fw-plus-ai-tinyflow-sample&lt;/module&gt;"/>
+                                    </and>
+                                </condition>
+                                <fail unless="tinyflow.sample.layout.valid" message="fw-plus-ai-tinyflow-sample must declare its artifactId and be registered in the AI samples aggregator"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
     <dependencies>
         <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
