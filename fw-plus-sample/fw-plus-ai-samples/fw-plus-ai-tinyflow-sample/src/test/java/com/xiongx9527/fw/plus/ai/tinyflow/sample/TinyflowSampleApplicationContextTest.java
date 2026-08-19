@@ -32,6 +32,18 @@ public class TinyflowSampleApplicationContextTest {
     }
 
     @Test
+    public void applicationConfigurationUsesLegacyLangChain4jModelProperties() throws Exception {
+        String yaml = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/main/resources/application.yml")),
+                java.nio.charset.StandardCharsets.UTF_8);
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("    langchain4j:"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("      model:"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("model-type: chat"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("base-url: ${OPENAI_BASE_URL}"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("api-key: ${OPENAI_API_KEY}"));
+        org.junit.jupiter.api.Assertions.assertTrue(yaml.contains("model-name: ${OPENAI_MODEL}"));
+    }
+
+    @Test
     public void startsWithoutOpenAiEnvironmentAndServesHealth() throws Exception {
         mockMvc.perform(get("/api/tinyflow/health"))
                 .andExpect(status().isOk())

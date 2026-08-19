@@ -60,7 +60,13 @@ mvn -o -f fw-plus-sample/fw-plus-ai-samples/pom.xml \
 - 参考 `fw-plus-ai-tiny-engine-sample/pom.xml`，在 Tinyflow child POM 显式补充 `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` 和 `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-openai`。
 - 这些依赖分别提供统一 LangChain4j adapter 和 OpenAI provider 实现；未写入任何 API key。
 - 增加 POM 依赖契约测试，验证两个实际 artifactId 已声明。
-- focused Maven tests：PASS，`Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`。
+- focused Maven tests：PASS，`Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`。
+
+## Task 3 配置结构修复
+
+- 将 sample 配置从中立 `fw-plus.ai.model` 结构改为现有 LangChain4j legacy 配置：`fw-plus.ai.langchain4j.model.models.chat-default`，模型字段直接使用 `provider`、`model-type`、`base-url`、`api-key`、`model-name`，并保留 `enabled/default-model`。
+- `FW_PLUS_AI_MODEL_ENABLED` 现在映射到正确的 `fw-plus.ai.langchain4j.model.enabled` 前缀；OpenAI 三项仍只读取环境变量。
+- 增加配置契约测试，锁定实际前缀和字段结构；focused Maven tests：PASS，`Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`。
 
 ## 生产自动配置排除修复
 
