@@ -14,7 +14,7 @@ fw:
 fw-plus:
   ai:
     model:
-      enabled: true
+      enabled: ${FW_PLUS_AI_MODEL_ENABLED:false}
       default-model: chat-default
       models:
         chat-default:
