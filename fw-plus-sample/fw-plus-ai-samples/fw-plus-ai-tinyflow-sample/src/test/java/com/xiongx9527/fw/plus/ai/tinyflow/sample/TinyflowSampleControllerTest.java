@@ -5,7 +5,6 @@ import com.xiongx9527.fw.plus.ai.tinyflow.model.TinyflowModelProvider;
 import com.xiongx9527.fw.plus.ai.tinyflow.runtime.TinyflowService;
 import com.xiongx9527.fw.plus.ai.tinyflow.workflow.TinyflowExecutionResult;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -27,7 +26,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@org.junit.jupiter.api.extension.ExtendWith(SpringExtension.class)
+@org.junit.jupiter.api.extension.ExtendWith(org.springframework.test.context.junit.jupiter.SpringExtension.class)
 @WebMvcTest(TinyflowSampleController.class)
 @ContextConfiguration(classes = TinyflowSampleController.class)
 public class TinyflowSampleControllerTest {
@@ -77,7 +76,6 @@ public class TinyflowSampleControllerTest {
         assertEquals("hello", variables.getValue().get("message"));
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void executeWithoutModelConfigurationReturnsStableServiceUnavailableResponse() throws Exception {
         when(tinyflowModelProvider.listChatModels()).thenReturn(Collections.<TinyflowModelDescriptor>emptyList());

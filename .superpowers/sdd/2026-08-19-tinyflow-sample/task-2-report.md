@@ -54,3 +54,9 @@ mvn -o -f fw-plus-sample/fw-plus-ai-samples/pom.xml \
 - 完整 Spring Boot context 测试需要排除当前 sample classpath 中缺少的 Magic-API 与 AskData 可选自动配置；这只影响测试上下文，未修改生产自动配置。
 - 未启动真实服务，未执行真实 OpenAI 模型调用；需由运行环境提供三个 `OPENAI_*` 环境变量并显式设置 `FW_PLUS_AI_MODEL_ENABLED=true` 才创建模型。
 - 未处理 Task 3。
+
+## Test hygiene fix
+
+- 删除 `TinyflowSampleControllerTest` 未使用的 `SpringExtension` import；测试仍通过全限定类名声明扩展。
+- 删除配置缺失测试上冗余的 `@SuppressWarnings("unchecked")`；仅保留 `ArgumentCaptor` 变量合并测试所需 suppression。
+- 复跑 focused Maven tests：PASS，`Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`。
