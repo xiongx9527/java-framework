@@ -55,6 +55,13 @@ mvn -o -f fw-plus-sample/fw-plus-ai-samples/pom.xml \
 - 未启动真实服务，未执行真实 OpenAI 模型调用；需由运行环境提供三个 `OPENAI_*` 环境变量并显式设置 `FW_PLUS_AI_MODEL_ENABLED=true` 才创建模型。
 - 未处理 Task 3。
 
+## Task 3 / 真实启动依赖修复
+
+- 参考 `fw-plus-ai-tiny-engine-sample/pom.xml`，在 Tinyflow child POM 显式补充 `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-adapter` 和 `com.xiongx9527.fw.plus:fw-plus-ai-langchain4j-openai`。
+- 这些依赖分别提供统一 LangChain4j adapter 和 OpenAI provider 实现；未写入任何 API key。
+- 增加 POM 依赖契约测试，验证两个实际 artifactId 已声明。
+- focused Maven tests：PASS，`Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`。
+
 ## 生产自动配置排除修复
 
 - 在 sample `application.yml` 增加 `spring.autoconfigure.exclude`，排除缺少可选运行时依赖的 `MagicAPIBaseAutoConfiguration` 和 `AskDataAutoConfiguration`。
