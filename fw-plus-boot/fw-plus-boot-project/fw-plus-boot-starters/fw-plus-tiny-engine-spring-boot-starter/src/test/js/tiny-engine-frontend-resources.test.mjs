@@ -72,7 +72,8 @@ test('TinyEngine generated frontend artifacts are ignored by git', () => {
 
   assert.match(gitignore, /^node_modules$/m)
   assert.match(gitignore, /^dist\/$/m)
-  assert.match(gitignore, /^pnpm-lock\.yaml$/m)
+  assert.equal(existsSync(path.join(FRONTEND_ROOT, 'pnpm-lock.yaml')), true)
+  assert.doesNotMatch(gitignore, /^pnpm-lock\.yaml$/m)
 })
 
 test('TinyEngine frontend workspace does not reference the removed mock server package', () => {
@@ -147,7 +148,10 @@ test('TinyEngine collaboration avatar is bundled instead of requested from a mis
 test('TinyEngine frontend workspace has package-safe pnpm build configuration', () => {
   const workspace = readFileSync(path.join(FRONTEND_ROOT, 'pnpm-workspace.yaml'), 'utf8')
   const rootPackage = JSON.parse(readFileSync(path.join(FRONTEND_ROOT, 'package.json'), 'utf8'))
+  const npmrc = readFileSync(path.join(FRONTEND_ROOT, '.npmrc'), 'utf8')
 
+  assert.equal(rootPackage.packageManager, 'pnpm@11.9.0')
+  assert.match(npmrc, /^registry=https:\/\/registry\.npmjs\.org\/$/m)
   assert.equal(rootPackage.scripts.build, 'pnpm run build:plugin && pnpm run build:prod')
   assert.match(rootPackage.scripts['build:plugin'], /--filter !@opentiny\/tiny-engine-cli/)
   assert.match(workspace, /allowBuilds:\s*\n(?:.*\n)*?\s+esbuild: true/)

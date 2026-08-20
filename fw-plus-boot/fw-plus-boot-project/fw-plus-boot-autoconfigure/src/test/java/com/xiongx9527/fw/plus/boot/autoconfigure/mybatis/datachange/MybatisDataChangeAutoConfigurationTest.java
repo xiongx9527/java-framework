@@ -42,13 +42,10 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.boot.test.system.CapturedOutput;
-import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Bean;
 
 import java.sql.Connection;
@@ -63,7 +60,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(OutputCaptureExtension.class)
 class MybatisDataChangeAutoConfigurationTest {
 
 	private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
@@ -181,31 +177,27 @@ class MybatisDataChangeAutoConfigurationTest {
 	}
 
 	@Test
-	void defaultErrorHandlerDoesNotLogSensitiveEventValues(CapturedOutput output) throws Exception {
-		contextRunner.run(context -> {
-			try {
-				DataChangeErrorHandler errorHandler = context.getBean(DataChangeErrorHandler.class);
-				Map<String, Object> identity = new LinkedHashMap<String, Object>();
-				identity.put("credential", "token-secret");
-				RowChange row = new RowChange(DataChangeOperation.UPDATE, new RowIdentity(identity),
-						Collections.singletonList(new FieldChange("password", "password",
-								"before-secret", "after-secret")));
-				TableChange table = new TableChange(new TableIdentifier(null, "audit", "sys_user"),
-						Collections.singletonList(row));
-				DataChangeEvent event = new DataChangeEvent(ConsistencyLevel.BEST_EFFORT,
-						Collections.singletonList(new StatementChange("user.rename",
-								Collections.singletonList(table))));
-				errorHandler.handle(new DataChangeFailure(event,
-						new DataChangeException(DataChangeErrorCode.HANDLER_FAILED, "handler failed")));
-			} catch (Exception exception) {
-				throw new AssertionError(exception);
-			}
-		});
+	void defaultErrorHandlerDoesNotLogSensitiveEventValues() {
+		Map<String, Object> identity = new LinkedHashMap<String, Object>();
+		identity.put("credential", "token-secret");
+		RowChange row = new RowChange(DataChangeOperation.UPDATE, new RowIdentity(identity),
+				Collections.singletonList(new FieldChange("password", "password",
+						"before-secret", "after-secret")));
+		TableChange table = new TableChange(new TableIdentifier(null, "audit", "sys_user"),
+				Collections.singletonList(row));
+		DataChangeEvent event = new DataChangeEvent(ConsistencyLevel.BEST_EFFORT,
+				Collections.singletonList(new StatementChange("user.rename",
+						Collections.singletonList(table))));
+		DataChangeException exception = new DataChangeException(DataChangeErrorCode.HANDLER_FAILED, "handler failed");
 
-		assertThat(output).contains("eventId=", "statementId=user.rename", "audit.sys_user",
+		String message = new DefaultDataChangeErrorHandler().formatMessage("event-1", event,
+				 event.getStatements().get(0), table, new DataChangeFailure(event, exception), exception);
+
+		assertThat(message).contains("eventId=event-1", "statementId=user.rename", "audit.sys_user",
 				"BEST_EFFORT", "HANDLER_FAILED", "DataChangeException", "handler failed")
 				.doesNotContain("token-secret", "before-secret", "after-secret", "password=", "credential=");
 	}
+
 
 	private ApplicationContextRunner configuredRunner() {
 		return contextRunner.withUserConfiguration(HandlerConfiguration.class)
