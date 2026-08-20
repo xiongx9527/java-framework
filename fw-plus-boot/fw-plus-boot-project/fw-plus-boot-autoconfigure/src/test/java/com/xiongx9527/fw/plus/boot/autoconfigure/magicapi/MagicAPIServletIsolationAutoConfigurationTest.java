@@ -35,6 +35,7 @@ class MagicAPIServletIsolationAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(MagicAPIBaseAutoConfiguration.class))
             .withPropertyValues(
                     "magic.api.mybatis-flex.enabled=false",
+                    "magic.api.mybatis-plus.enabled=false",
                     "fw.plus.plumelog.enabled=false",
                     "magic-api.plugin.config.enabled=false",
                     "magic-api.plugin.freemarker.enabled=false",
