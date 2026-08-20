@@ -42,8 +42,14 @@ public final class DefaultDataChangeErrorHandler implements DataChangeErrorHandl
 
 	private void log(String eventId, DataChangeEvent event, StatementChange statement, TableChange table,
 			DataChangeFailure failure, DataChangeException exception) {
-		LOGGER.error("Data change handling failed: eventId={}, statementId={}, table={}, consistency={}, "
-					+ "errorCode={}, exceptionType={}, exceptionMessage={}",
+		LOGGER.error(formatMessage(eventId, event, statement, table, failure, exception));
+
+	}
+
+	String formatMessage(String eventId, DataChangeEvent event, StatementChange statement, TableChange table,
+			DataChangeFailure failure, DataChangeException exception) {
+		return String.format("Data change handling failed: eventId=%s, statementId=%s, table=%s, consistency=%s, "
+				+ "errorCode=%s, exceptionType=%s, exceptionMessage=%s",
 				eventId,
 				statement == null ? null : statement.getStatementId(),
 				table == null ? null : table.getTable(),
