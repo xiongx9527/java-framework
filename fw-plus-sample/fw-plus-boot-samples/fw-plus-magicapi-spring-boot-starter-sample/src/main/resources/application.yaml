@@ -25,7 +25,7 @@ spring:
   datasource1:
       url1: jdbc:mysql://xxxxxxxx:3306/test?allowMultiQueries=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
       username: test
-      password: k{z9Aacx+NA}M&+3
+      password: 333333
       driver-class-name: com.mysql.cj.jdbc.Driver
       type1: com.alibaba.druid.pool.DruidDataSource
       name: 默认数据源
