@@ -5,6 +5,7 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatMes
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatRequest;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatResponse;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.chat.TinyEngineChatStreamChunk;
+import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.official.TinyEngineUpstreamException;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiCapability;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.provider.TinyEngineAiProvider;
 import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jAiModel;
@@ -13,6 +14,8 @@ import com.xiongx9527.fw.plus.ai.langchain4j.adapter.LangChain4jModel;
 import com.xiongx9527.fw.plus.ai.model.AiModel;
 import com.xiongx9527.fw.plus.ai.model.AiModelRegistry;
 import com.xiongx9527.fw.plus.ai.model.AiModelType;
+import com.xiongx9527.fw.plus.tinyengine.support.ai.OpenAiCompatibleBaseUrl;
+import dev.ai4j.openai4j.OpenAiHttpException;
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.data.message.SystemMessage;
@@ -26,6 +29,7 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,8 +58,21 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 
 	@Override
 	public TinyEngineChatResponse chat(TinyEngineChatRequest request) {
-		LangChain4jModel nativeModel = resolveNativeModel(request, AiModelType.CHAT);
-		ChatResponse response = chat(nativeModel.getModel(), request);
+		boolean dynamic = hasInvocationCredentials(request);
+		Object nativeModel = dynamic ? chatModel(request) : resolveNativeModel(request, AiModelType.CHAT).getModel();
+		ChatModel model = LangChain4jChatModelAdapter.asChatModel(nativeModel);
+		if (model == null) {
+			throw new IllegalStateException("TinyEngine AI provider 'langchain4j' native CHAT model is not ChatModel");
+		}
+		ChatResponse response;
+		try {
+			response = model.chat(chatRequest(request));
+		} catch (RuntimeException ex) {
+			if (!dynamic) {
+				throw ex;
+			}
+			throw normalizeUpstreamFailure(ex);
+		}
 		AiMessage message = response == null ? null : response.aiMessage();
 		Map<String, Object> metadata = requestMetadata(request);
 		if (response != null && response.finishReason() != null) {
@@ -64,50 +81,195 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 		return new TinyEngineChatResponse(message == null ? null : message.text(), metadata);
 	}
 
-	private ChatResponse chat(Object nativeModel, TinyEngineChatRequest request) {
-		ChatModel model = LangChain4jChatModelAdapter.asChatModel(nativeModel);
-		if (model == null) {
-			throw new IllegalStateException("TinyEngine AI provider 'langchain4j' native CHAT model is not ChatModel");
-		}
-		return model.chat(chatRequest(request));
-	}
-
 	@Override
 	public List<TinyEngineChatStreamChunk> stream(TinyEngineChatRequest request) {
-		LangChain4jModel nativeModel = resolveNativeModel(request, AiModelType.STREAMING_CHAT);
-		StreamingChatModel model = LangChain4jChatModelAdapter
-				.asStreamingChatModel(nativeModel.getModel());
+		boolean dynamic = hasInvocationCredentials(request);
+		Object nativeModel = dynamic ? streamingChatModel(request)
+				: resolveNativeModel(request, AiModelType.STREAMING_CHAT).getModel();
+		StreamingChatModel model = LangChain4jChatModelAdapter.asStreamingChatModel(nativeModel);
 		if (model == null) {
 			throw new IllegalStateException("TinyEngine AI provider 'langchain4j' native STREAMING_CHAT model is not StreamingChatModel");
 		}
 		final List<TinyEngineChatStreamChunk> chunks = new ArrayList<TinyEngineChatStreamChunk>();
 		final RuntimeException[] error = new RuntimeException[1];
 		final CountDownLatch completed = new CountDownLatch(1);
-		model.chat(chatRequest(request), new StreamingChatResponseHandler() {
-			@Override
-			public void onPartialResponse(String token) {
-				chunks.add(new TinyEngineChatStreamChunk(token, false));
-			}
+		try {
+			model.chat(chatRequest(request), new StreamingChatResponseHandler() {
+				@Override
+				public void onPartialResponse(String token) {
+					chunks.add(new TinyEngineChatStreamChunk(token, false));
+				}
 
-			@Override
-			public void onCompleteResponse(ChatResponse response) {
-				AiMessage message = response == null ? null : response.aiMessage();
-				chunks.add(new TinyEngineChatStreamChunk(message == null ? null : message.text(), true));
-				completed.countDown();
-			}
+				@Override
+				public void onCompleteResponse(ChatResponse response) {
+					AiMessage message = response == null ? null : response.aiMessage();
+					chunks.add(new TinyEngineChatStreamChunk(message == null ? null : message.text(), true));
+					completed.countDown();
+				}
 
-			@Override
-			public void onError(Throwable throwable) {
-				error[0] = throwable instanceof RuntimeException ? (RuntimeException) throwable
-						: new IllegalStateException("TinyEngine AI streaming chat failed", throwable);
-				completed.countDown();
+				@Override
+				public void onError(Throwable throwable) {
+					error[0] = dynamic ? normalizeUpstreamFailure(throwable)
+							: throwable instanceof RuntimeException ? (RuntimeException) throwable
+							: new IllegalStateException("TinyEngine AI streaming chat failed", throwable);
+					completed.countDown();
+				}
+			});
+		} catch (RuntimeException ex) {
+			if (!dynamic) {
+				throw ex;
 			}
-		});
-		awaitCompletion(completed);
+			throw normalizeUpstreamFailure(ex);
+		}
+		try {
+			awaitCompletion(completed);
+		} catch (RuntimeException ex) {
+			if (!dynamic) {
+				throw ex;
+			}
+			throw normalizeUpstreamFailure(ex);
+		}
 		if (error[0] != null) {
 			throw error[0];
 		}
 		return chunks;
+	}
+
+	private Object chatModel(TinyEngineChatRequest request) {
+		if (hasInvocationCredentials(request)) {
+			dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder builder =
+					dev.langchain4j.model.openai.OpenAiChatModel.builder()
+							.baseUrl(OpenAiCompatibleBaseUrl.normalize(request.getBaseUrl()))
+							.apiKey(request.getApiKey()).modelName(request.getModel()).maxRetries(Integer.valueOf(1));
+			applyModelSettings(builder, request);
+			return builder.build();
+		}
+		return resolveNativeModel(request, AiModelType.CHAT).getModel();
+	}
+
+	private Object streamingChatModel(TinyEngineChatRequest request) {
+		if (hasInvocationCredentials(request)) {
+			dev.langchain4j.model.openai.OpenAiStreamingChatModel.OpenAiStreamingChatModelBuilder builder =
+					dev.langchain4j.model.openai.OpenAiStreamingChatModel.builder()
+							.baseUrl(OpenAiCompatibleBaseUrl.normalize(request.getBaseUrl()))
+							.apiKey(request.getApiKey()).modelName(request.getModel());
+			applyModelSettings(builder, request);
+			return builder.build();
+		}
+		return resolveNativeModel(request, AiModelType.STREAMING_CHAT).getModel();
+	}
+
+	private void applyModelSettings(dev.langchain4j.model.openai.OpenAiChatModel.OpenAiChatModelBuilder builder,
+			TinyEngineChatRequest request) {
+		Map<String, Object> settings = modelSettings(request);
+		builder.temperature(firstDouble(request.getTemperature(), settings, "temperature"));
+		builder.topP(firstDouble(request.getTopP(), settings, "topP", "top_p"));
+		builder.maxTokens(firstInteger(request.getMaxTokens(), settings, "maxTokens", "max_tokens"));
+		builder.presencePenalty(firstDouble(request.getPresencePenalty(), settings, "presencePenalty", "presence_penalty"));
+		builder.frequencyPenalty(firstDouble(request.getFrequencyPenalty(), settings, "frequencyPenalty", "frequency_penalty"));
+		builder.responseFormat(firstString(request.getResponseFormat(), settings, "responseFormat", "response_format"));
+		builder.parallelToolCalls(firstBoolean(request.getParallelToolCalls(), settings, "parallelToolCalls", "parallel_tool_calls"));
+	}
+
+	private void applyModelSettings(
+			dev.langchain4j.model.openai.OpenAiStreamingChatModel.OpenAiStreamingChatModelBuilder builder,
+			TinyEngineChatRequest request) {
+		Map<String, Object> settings = modelSettings(request);
+		builder.temperature(firstDouble(request.getTemperature(), settings, "temperature"));
+		builder.topP(firstDouble(request.getTopP(), settings, "topP", "top_p"));
+		builder.maxTokens(firstInteger(request.getMaxTokens(), settings, "maxTokens", "max_tokens"));
+		builder.presencePenalty(firstDouble(request.getPresencePenalty(), settings, "presencePenalty", "presence_penalty"));
+		builder.frequencyPenalty(firstDouble(request.getFrequencyPenalty(), settings, "frequencyPenalty", "frequency_penalty"));
+		builder.responseFormat(firstString(request.getResponseFormat(), settings, "responseFormat", "response_format"));
+		builder.parallelToolCalls(firstBoolean(request.getParallelToolCalls(), settings, "parallelToolCalls", "parallel_tool_calls"));
+	}
+
+	private Map<String, Object> modelSettings(TinyEngineChatRequest request) {
+		return request == null || request.getModelSettings() == null
+				? Collections.<String, Object>emptyMap() : request.getModelSettings();
+	}
+
+	private Double firstDouble(Double requestValue, Map<String, Object> settings, String... keys) {
+		if (requestValue != null) return requestValue;
+		Object value = firstSetting(settings, keys);
+		if (value instanceof Number) return Double.valueOf(((Number) value).doubleValue());
+		return value == null ? null : Double.valueOf(String.valueOf(value));
+	}
+
+	private Integer firstInteger(Integer requestValue, Map<String, Object> settings, String... keys) {
+		if (requestValue != null) return requestValue;
+		Object value = firstSetting(settings, keys);
+		if (value instanceof Number) return Integer.valueOf(((Number) value).intValue());
+		return value == null ? null : Integer.valueOf(String.valueOf(value));
+	}
+
+	private Boolean firstBoolean(Boolean requestValue, Map<String, Object> settings, String... keys) {
+		if (requestValue != null) return requestValue;
+		Object value = firstSetting(settings, keys);
+		return value == null ? null : value instanceof Boolean ? (Boolean) value : Boolean.valueOf(String.valueOf(value));
+	}
+
+	private String firstString(String requestValue, Map<String, Object> settings, String... keys) {
+		if (!isBlank(requestValue)) return requestValue;
+		Object value = firstSetting(settings, keys);
+		if (value instanceof Map) {
+			Object type = ((Map<?, ?>) value).get("type");
+			return type == null ? null : String.valueOf(type);
+		}
+		return value == null ? null : String.valueOf(value);
+	}
+
+	private Object firstSetting(Map<String, Object> settings, String... keys) {
+		if (settings == null || keys == null) return null;
+		for (String key : keys) {
+			if (settings.containsKey(key)) return settings.get(key);
+		}
+		return null;
+	}
+
+	private boolean hasInvocationCredentials(TinyEngineChatRequest request) {
+		if (request == null || isBlank(request.getBaseUrl()) || isBlank(request.getModel())) {
+			return false;
+		}
+		if (!"openai".equalsIgnoreCase(request.getProvider())) {
+			throw new IllegalStateException("TinyEngine AI provider 'langchain4j' does not support invocation provider");
+		}
+		return true;
+	}
+
+	private RuntimeException normalizeUpstreamFailure(Throwable throwable) {
+		if (throwable instanceof TinyEngineUpstreamException) {
+			return (TinyEngineUpstreamException) throwable;
+		}
+		OpenAiHttpException upstream = findOpenAiHttpException(throwable);
+		if (upstream != null) {
+			return upstreamFailure(upstream);
+		}
+		TinyEngineUpstreamException failure = new TinyEngineUpstreamException(502, "UPSTREAM_ERROR",
+				"TinyEngine AI upstream request failed");
+		if (throwable != null) {
+			failure.initCause(throwable);
+		}
+		return failure;
+	}
+
+	private OpenAiHttpException findOpenAiHttpException(Throwable throwable) {
+		Throwable current = throwable;
+		while (current != null) {
+			if (current instanceof OpenAiHttpException) {
+				return (OpenAiHttpException) current;
+			}
+			current = current.getCause();
+		}
+		return null;
+	}
+
+	private TinyEngineUpstreamException upstreamFailure(OpenAiHttpException ex) {
+		int statusCode = ex.code();
+		return new TinyEngineUpstreamException(statusCode,
+				statusCode == 401 || statusCode == 403 ? "INVALID_API_KEY" : "UPSTREAM_ERROR",
+				statusCode == 401 || statusCode == 403
+						? "TinyEngine AI upstream credential rejected" : "TinyEngine AI upstream request failed");
 	}
 
 	private ChatRequest chatRequest(TinyEngineChatRequest request) {

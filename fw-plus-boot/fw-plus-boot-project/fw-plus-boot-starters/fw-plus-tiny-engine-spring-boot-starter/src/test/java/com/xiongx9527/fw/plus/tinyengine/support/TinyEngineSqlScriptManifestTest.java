@@ -3,9 +3,12 @@ package com.xiongx9527.fw.plus.tinyengine.support;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Properties;
 import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -80,12 +83,30 @@ public class TinyEngineSqlScriptManifestTest {
 		assertTrue(scripts.isEmpty(), "未知数据库必须返回空脚本列表");
 	}
 
-	private void assertScriptsAreOrdered(String database, List<String> scripts) {
-		String previous = "";
-		for (String script : scripts) {
-			assertTrue(previous.compareTo(script) <= 0, database + " 脚本顺序必须稳定");
-			previous = script;
+	private void assertScriptsAreOrdered(String database, List<String> scripts) throws Exception {
+		Properties manifest = new Properties();
+		InputStream inputStream = getClass().getClassLoader().getResourceAsStream(MANIFEST_RESOURCE);
+		assertNotNull(inputStream, "SQL manifest 资源不存在");
+		try {
+			manifest.load(inputStream);
+		} finally {
+			inputStream.close();
 		}
+
+		List<String> keys = new ArrayList<String>();
+		String prefix = database + ".";
+		for (Object key : manifest.keySet()) {
+			String propertyName = String.valueOf(key);
+			if (propertyName.startsWith(prefix)) {
+				keys.add(propertyName);
+			}
+		}
+		Collections.sort(keys);
+		List<String> expected = new ArrayList<String>(keys.size());
+		for (String key : keys) {
+			expected.add(manifest.getProperty(key));
+		}
+		assertEquals(expected, scripts, database + " 脚本必须遵循 manifest key 顺序");
 		assertEquals(scripts.size(), new java.util.LinkedHashSet<String>(scripts).size(), database + " 不得重复声明脚本");
 	}
 
