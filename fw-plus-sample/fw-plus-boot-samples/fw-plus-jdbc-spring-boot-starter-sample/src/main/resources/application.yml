@@ -29,9 +29,7 @@ server:
 spring:
   datasource:
       driver-class-name: com.mysql.cj.jdbc.Driver
-      password: G%wLtxwSxy*A#E81
-      url: jdbc:mysql://172.17.240.242:3306/fw-plus-test?allowMultiQueries=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
-      username: fw-plus-test
+      password: xxxxxxx
 
   mvc:
         pathmatch:
