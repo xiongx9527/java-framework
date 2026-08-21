@@ -5,7 +5,7 @@ server:
 app:
   id: report-api
 apollo:
-  meta: http://172.17.17.185:8080
+  meta: http://cxxxxxx:8080
   bootstrap:
     enabled: true
     namespaces: application,datasource.yaml,redis.yaml,kafka.yaml,pulsar.yaml,debezium.yaml,s3.yaml
@@ -17,15 +17,15 @@ spring:
       version: 1.0.0
   data:
     mongodb:
-      host: 172.17.240.242
+      host: xxxxxxx
       port: 27017
       database: test
       username: test
       password: test
   datasource1:
-      url1: jdbc:mysql://172.17.240.242:3306/test?allowMultiQueries=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
+      url1: jdbc:mysql://xxxxxxxx:3306/test?allowMultiQueries=true&useUnicode=true&useSSL=false&serverTimezone=Asia/Shanghai
       username: test
-      password: k{z9Aacx+NA}M&+3
+      password: 333333
       driver-class-name: com.mysql.cj.jdbc.Driver
       type1: com.alibaba.druid.pool.DruidDataSource
       name: 默认数据源
@@ -40,9 +40,9 @@ spring:
     active: test
   redis:
     # 默认数据源
-    host: 172.17.18.177
+    host: xxxxxxx
     port: 6379
-    password: Q4kT6tkvjjoKXkc3
+    password: xxxxxxx
     database: 3
     # 集群环境打开下面注释，单机不需要打开(单机只需要用上面的配置即可)
     #cluster:

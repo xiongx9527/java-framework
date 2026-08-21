@@ -43,47 +43,6 @@
 			<url>http://www.apache.org/licenses/LICENSE-2.0</url>
 		</license>
 	</licenses>
-	<!--开发者信息
-	<developers>
-		<developer>
-			<id>jugui-tech nanchang group</id>
-			<name>巨龟科技南昌团队</name>
-			<organization>jugui-tech</organization>
-			<organizationUrl>https://gitee.com/jugui-tech</organizationUrl>
-			<email>xiongxiao@jugui-tech.com</email>
-		</developer>
-	</developers>
-	-->
-	<!--
-	配置拉取仓库地址
-	<repositories>
-		<repository>
-			<id>jugui-snapshot</id>
-			<url>http://172.17.1.6:28081/repository/jugui-snapshot/</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>jugui-release</id>
-			<url>http://172.17.1.6:28081/repository/jugui-release/</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-	</repositories>
-    发布仓库地址
-	<distributionManagement>
-		<repository>
-			<id>jugui-release</id>
-			<url>http://172.17.1.6:28081/repository/jugui-release/</url>
-		</repository>
-		<snapshotRepository>
-			<id>jugui-snapshot</id>
-			<url>http://172.17.1.6:28081/repository/jugui-snapshot/</url>
-		</snapshotRepository>
-	</distributionManagement>
-	-->
 	<!--编译插件-->
 	<build>
 		<plugins>
