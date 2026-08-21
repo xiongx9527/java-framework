@@ -1,0 +1,416 @@
+package com.xiongx9527.fw.plus.tinyengine.service.impl;
+
+import com.xiongx9527.fw.plus.tinyengine.common.exception.ExceptionEnum;
+import com.xiongx9527.fw.plus.tinyengine.common.exception.ServiceException;
+import com.xiongx9527.fw.plus.tinyengine.mapper.AppMapper;
+import com.xiongx9527.fw.plus.tinyengine.mapper.I18nEntryMapper;
+import com.xiongx9527.fw.plus.tinyengine.mapper.PageMapper;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.AppDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.I18nEntryDto;
+import com.xiongx9527.fw.plus.tinyengine.model.dto.SchemaI18n;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.App;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.I18nEntry;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Platform;
+import com.xiongx9527.fw.plus.tinyengine.model.entity.Page;
+import com.xiongx9527.fw.plus.tinyengine.service.AppService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppAiModelConfigService;
+import com.xiongx9527.fw.plus.tinyengine.service.AppRoleService;
+import com.xiongx9527.fw.plus.tinyengine.service.I18nEntryService;
+import com.xiongx9527.fw.plus.tinyengine.service.PlatformService;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAccessDeniedException;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.AppPermission;
+import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUser;
+import com.xiongx9527.fw.plus.tinyengine.support.context.TinyEngineUserContext;
+import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class AppServiceImpl extends MapperServiceSupport<AppMapper> implements AppService {
+	private static final int DEFAULT_PAGE_SIZE = 10;
+	private static final int MAX_PAGE_SIZE = 1000;
+
+	private final TinyEngineUserContext userContext;
+	@Autowired
+	private PlatformService platformService;
+	@Autowired
+	private I18nEntryService i18nEntryService;
+	@Autowired
+	private I18nEntryMapper i18nEntryMapper;
+	@Autowired
+	private PageMapper pageMapper;
+	@Autowired
+	private AppRoleService appRoleService;
+	@Autowired(required = false)
+	private AppAiModelConfigService appAiModelConfigService;
+
+	public AppServiceImpl(TinyEngineUserContext userContext) {
+		this.userContext = userContext;
+	}
+
+	@Override
+	public List<App> queryAllApp() {
+		TinyEngineUser user = currentUser();
+		return baseMapper.queryVisibleApps(tenantId(), userId(user), isSystem(user));
+	}
+
+	@Override
+	public AppDto queryAllAppByPage(Integer currentPage, Integer pageSize, String orderBy, App app) {
+		int safePage = currentPage == null || currentPage < 1 ? 1 : currentPage;
+		int safeSize = pageSize == null || pageSize < 1 ? DEFAULT_PAGE_SIZE : Math.min(pageSize, MAX_PAGE_SIZE);
+		long offsetValue = (long) (safePage - 1) * safeSize;
+		int offset = offsetValue > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) offsetValue;
+		App condition = app == null ? new App() : app;
+		AppDto result = new AppDto();
+		TinyEngineUser user = currentUser();
+		String currentTenant = tenantId();
+		String currentUserId = userId(user);
+		boolean systemContext = isSystem(user);
+		result.setApps(baseMapper.queryVisibleAppsByPage(safeSize, offset, condition.getName(),
+				condition.getIndustryId(), condition.getSceneId(), condition.getFramework(), condition.getPlatformId(),
+				orderBy, condition.getCreatedBy(), currentTenant, currentUserId, systemContext));
+		result.setTotal(baseMapper.queryVisibleAppTotal(condition.getName(), condition.getIndustryId(),
+				condition.getSceneId(), condition.getFramework(), condition.getPlatformId(), condition.getCreatedBy(),
+				currentTenant, currentUserId, systemContext));
+		return result;
+	}
+
+	@Override
+	public App queryAppById(Integer id) {
+		TinyEngineUser user = currentUser();
+		App app = baseMapper.queryVisibleAppById(tenantId(), id, userId(user), isSystem(user));
+		if (app == null) {
+			throw failure(ExceptionEnum.CM009);
+		}
+		requirePermission(id, AppPermission.READ);
+		return app;
+	}
+
+	@Override
+	public App requireEnabledApp(Integer id) {
+		App app = queryAppById(id);
+		if (Boolean.FALSE.equals(app.getEnable())) {
+			throw new TinyEngineAccessDeniedException("TinyEngine application is disabled");
+		}
+		return app;
+	}
+
+	@Override
+	public List<App> queryAppByCondition(App app) {
+		List<App> apps = baseMapper.queryAppByCondition(app);
+		if (apps != null) {
+			for (App result : apps) {
+				requirePermission(result == null ? null : result.getId(), AppPermission.READ);
+			}
+		}
+		return apps;
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public App deleteAppById(Integer id) {
+		String currentTenant = requiredTenantId();
+		App app = baseMapper.queryAppById(id, currentTenant);
+		if (app == null) {
+			throw failure(ExceptionEnum.CM009);
+		}
+		requirePermission(id, AppPermission.DELETE);
+		ensureEnabled(app);
+		List<Page> pages = pageMapper.queryPageByApp(id);
+		if (pages != null) {
+			for (Page page : pages) {
+				if (page != null && page.getId() != null) {
+					pageMapper.deletePageById(page.getId());
+				}
+			}
+		}
+		if (appAiModelConfigService != null) {
+			appAiModelConfigService.deleteByApp(id, currentTenant);
+		}
+		if (appRoleService != null) {
+			appRoleService.deleteAppRoles(id, currentTenant);
+		}
+		if (baseMapper.deleteAppById(id, currentTenant) < 1) {
+			throw failure(ExceptionEnum.CM009);
+		}
+		return app;
+	}
+
+	@Override
+	public App updateAppById(App app) {
+		return updateAppById(app, AppPermission.MANAGE);
+	}
+
+	private App updateAppById(App app, AppPermission permission) {
+		if (app == null || app.getId() == null) {
+			throw failure(ExceptionEnum.CM002);
+		}
+		String targetTenant = requiredTenantId();
+		app.setTenantId(targetTenant);
+		App existing = baseMapper.queryAppById(app.getId(), targetTenant);
+		if (existing == null) {
+			throw failure(ExceptionEnum.CM009);
+		}
+		requirePermission(app.getId(), permission);
+		if (Boolean.FALSE.equals(existing.getEnable()) && !Boolean.TRUE.equals(app.getEnable())) {
+			ensureEnabled(existing);
+		}
+		if (app.getCode() != null && !app.getCode().trim().isEmpty()
+				&& !app.getCode().trim().equals(existing.getCode())) {
+			if (app.getCode().trim().length() > 20) {
+				throw failure(ExceptionEnum.CM002);
+			}
+			App codeCondition = new App();
+			codeCondition.setCode(app.getCode().trim());
+			codeCondition.setTenantId(targetTenant);
+			if (!baseMapper.queryAppByCondition(codeCondition).isEmpty()) {
+				throw failure(ExceptionEnum.CM003);
+			}
+		}
+		if (app.getExtendConfig() != null && !app.getExtendConfig().isEmpty()) {
+			Platform platform = platformService.queryPlatformById(existing.getPlatformId());
+			if (platform != null && platform.getAppExtendConfig() != null) {
+				Map<String, Object> inherited = new HashMap<String, Object>(platform.getAppExtendConfig());
+				inherited.remove("route");
+				app.getExtendConfig().putAll(inherited);
+			}
+		}
+		if (baseMapper.updateAppById(app) < 1) {
+			throw failure(ExceptionEnum.CM001);
+		}
+		return baseMapper.queryAppById(app.getId(), targetTenant);
+	}
+
+	@Override
+	@Transactional(rollbackFor = Exception.class)
+	public App createApp(App app) {
+		String currentTenant = requiredTenantId();
+		TinyEngineUser currentUser = currentUser();
+		String currentUserId = currentUser == null ? null : currentUser.getUserId();
+		LocalDateTime now = LocalDateTime.now();
+		app.setTenantId(currentTenant);
+		app.setCreatedBy(currentUserId);
+		app.setLastUpdatedBy(currentUserId);
+		app.setCreatedTime(now);
+		app.setLastUpdatedTime(now);
+		if (app.getEnable() == null) {
+			app.setEnable(Boolean.TRUE);
+		}
+		ensureUniqueAppCode(app);
+		applyPlatformDefaults(app);
+		if (!baseMapper.queryAppByCondition(app).isEmpty()) {
+			throw failure(ExceptionEnum.CM003);
+		}
+		app.setIsPublish(false);
+		if (app.getPlatformHistoryId() == null || app.getPlatformHistoryId().isEmpty()) {
+			app.setPlatformHistoryId("1");
+		}
+		if (baseMapper.createApp(app) < 1) {
+			throw failure(ExceptionEnum.CM001);
+		}
+		createDefaultHomePage(app, currentUserId, now);
+		if (appRoleService != null) {
+			appRoleService.createOwner(app.getId(), currentTenant, currentUserId);
+		}
+		return app;
+	}
+
+	private void ensureUniqueAppCode(App app) {
+		if (app == null) {
+			return;
+		}
+		if (app.getCode() == null || app.getCode().trim().isEmpty()) {
+			throw failure(ExceptionEnum.CM002);
+		}
+		if (app.getCode().trim().length() > 20) {
+			throw failure(ExceptionEnum.CM002);
+		}
+		App condition = new App();
+		condition.setCode(app.getCode().trim());
+		condition.setTenantId(app.getTenantId());
+		if (!baseMapper.queryAppByCondition(condition).isEmpty()) {
+			throw failure(ExceptionEnum.CM003);
+		}
+	}
+
+
+	@Override
+	public App saveApp(Integer id, Map<String, Object> request) {
+		App app = new App();
+		app.setId(id);
+		Object version = request == null ? null : request.get("version");
+		if (version != null) {
+			app.setLatest(String.valueOf(version));
+		}
+		return updateAppById(app, AppPermission.DEVELOP);
+	}
+
+	@Override
+	public App setAppTemplate(Integer id, Boolean isTemplate, String templateType, Integer industryId, Integer sceneId, String framework) {
+		App app = new App();
+		app.setId(id);
+		app.setIsTemplate(isTemplate);
+		app.setTemplateType(templateType);
+		app.setIndustryId(industryId);
+		app.setSceneId(sceneId);
+		app.setFramework(framework);
+		return updateAppById(app);
+	}
+
+	@Override
+	public App publishApp(Integer id, Map<String, Object> request) {
+		App app = new App();
+		app.setId(id);
+		app.setIsPublish(Boolean.TRUE);
+		Object branch = request == null ? null : request.get("branch");
+		if (branch != null) {
+			app.setBranch(String.valueOf(branch));
+		}
+		Object version = request == null ? null : request.get("version");
+		if (version != null) {
+			app.setLatest(String.valueOf(version));
+		}
+		return updateAppById(app, AppPermission.PUBLISH);
+	}
+
+	@Override
+	public SchemaI18n formatI18nEntrites(List<I18nEntryDto> i18nEntries, Integer usedIn, Integer id) {
+		if (i18nEntries != null && !i18nEntries.isEmpty()) {
+			return i18nEntryService.formatEntriesList(i18nEntries);
+		}
+		I18nEntry condition = new I18nEntry();
+		condition.setHostType(Integer.valueOf(1).equals(usedIn) ? "app" : "block");
+		return i18nEntryService.formatEntriesList(
+				i18nEntryMapper.findI18nEntriesByHostandHostType(id, condition.getHostType()));
+	}
+
+	private String tenantId() {
+		TinyEngineUser user = currentUser();
+		return user == null ? null : user.getTenantId();
+	}
+
+	private TinyEngineUser currentUser() {
+		return userContext == null ? null : userContext.getCurrentUser();
+	}
+
+	private String userId(TinyEngineUser user) {
+		return user == null ? null : user.getUserId();
+	}
+
+	private boolean isSystem(TinyEngineUser user) {
+		return user != null && "system".equals(user.getUserId());
+	}
+
+	private void requirePermission(Integer appId, AppPermission permission) {
+		if (appRoleService != null) {
+			appRoleService.requirePermission(appId, permission);
+		}
+	}
+
+	private String requiredTenantId() {
+		String currentTenant = tenantId();
+		if (currentTenant == null) {
+			throw failure(ExceptionEnum.CM337);
+		}
+		return currentTenant;
+	}
+
+	private ServiceException failure(ExceptionEnum error) {
+		return new ServiceException(error.getResultCode(), error.getResultMsg());
+	}
+
+	private void ensureEnabled(App app) {
+		if (app != null && Boolean.FALSE.equals(app.getEnable())) {
+			throw new TinyEngineAccessDeniedException("TinyEngine application is disabled");
+		}
+	}
+
+	private void applyPlatformDefaults(App app) {
+		if (app == null || platformService == null) {
+			return;
+		}
+		Platform platform = null;
+		if (app.getPlatformId() != null) {
+			platform = platformService.queryPlatformById(app.getPlatformId());
+		} else {
+			platform = defaultPlatform(platformService.queryAllPlatform());
+			if (platform != null) {
+				app.setPlatformId(platform.getId());
+			}
+		}
+		if ((app.getPlatformHistoryId() == null || app.getPlatformHistoryId().isEmpty())
+				&& platform != null && platform.getLatestHistoryId() != null) {
+			app.setPlatformHistoryId(String.valueOf(platform.getLatestHistoryId()));
+		}
+	}
+
+	private Platform defaultPlatform(List<Platform> platforms) {
+		if (platforms == null || platforms.isEmpty()) {
+			return null;
+		}
+		Platform first = null;
+		for (Platform platform : platforms) {
+			if (platform == null || platform.getId() == null) {
+				continue;
+			}
+			if (first == null) {
+				first = platform;
+			}
+			if (Boolean.TRUE.equals(platform.getIsDefault())) {
+				return platform;
+			}
+		}
+		return first;
+	}
+
+	private void createDefaultHomePage(App app, String currentUserId, LocalDateTime now) {
+		if (app == null || app.getId() == null || app.getHomePage() != null || pageMapper == null) {
+			return;
+		}
+		Page page = new Page();
+		page.setName("home");
+		page.setApp(app.getId());
+		page.setRoute("/");
+		page.setPageContent(defaultPageContent());
+		page.setIsBody(true);
+		page.setParentId("0");
+		page.setGroup("staticPages");
+		page.setDepth(0);
+		page.setIsPage(true);
+		page.setOccupierBy(currentUserId);
+		page.setIsDefault(false);
+		page.setCreatedBy(currentUserId);
+		page.setLastUpdatedBy(currentUserId);
+		page.setCreatedTime(now);
+		page.setLastUpdatedTime(now);
+		page.setTenantId(app.getTenantId());
+		page.setRenterId(app.getRenterId());
+		page.setSiteId(app.getSiteId());
+		if (pageMapper.createPage(page) < 1 || page.getId() == null) {
+			throw failure(ExceptionEnum.CM001);
+		}
+		Page created = pageMapper.queryPageById(page.getId());
+		Integer homePage = created == null ? page.getId() : created.getId();
+		App update = new App();
+		update.setId(app.getId());
+		update.setHomePage(homePage);
+		update.setTenantId(app.getTenantId());
+		if (baseMapper.updateAppById(update) < 1) {
+			throw failure(ExceptionEnum.CM001);
+		}
+		app.setHomePage(homePage);
+	}
+
+	private Map<String, Object> defaultPageContent() {
+		Map<String, Object> schema = new HashMap<String, Object>();
+		schema.put("componentName", "Page");
+		schema.put("props", new HashMap<String, Object>());
+		schema.put("children", new java.util.ArrayList<Object>());
+		return schema;
+	}
+}

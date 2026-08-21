@@ -6,9 +6,11 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.model.Stan
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.module.MqttModule;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.service.MqttDataSourceInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.service.MqttDataSourceMagicDynamicRegistry;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.service.MqttDashboardService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.service.MqttSubscribeInfoMagicResourceStorage;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.service.MqttSubscribeMagicDynamicRegistry;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.web.MagicMqttController;
+import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.dreamlu.iot.mqtt.core.server.MqttServer;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +28,8 @@ import org.ssssssss.magicapi.core.model.Plugin;
 import org.ssssssss.magicapi.core.web.MagicControllerRegister;
 
 @Slf4j
-@ConditionalOnProperty(prefix = "magic-api.plugin.mqtt", name = "enabled", havingValue = "true", matchIfMissing = true)
+// 内置 MQTT 服务端会监听端口并承担 Broker 职责；普通外连 Broker 场景请使用 mqttclient 插件。
+@ConditionalOnProperty(prefix = "magic-api.plugin.mqtt", name = "enabled", havingValue = "true", matchIfMissing = false)
 @ConditionalOnClass(name = {"net.dreamlu.iot.mqtt.spring.server.MqttServerTemplate"})
 @EnableConfigurationProperties(MagicAPIMqttConfig.class)
 @Configuration
@@ -79,9 +82,9 @@ public class MagicAPIMqttConfiguration implements MagicPluginConfiguration {
      */
     @Bean
     @DependsOn(value={"magicDynamicMqttDataSource"})
-    public MqttModule mqttModule(BaseMagicDynamicMqttDataSource magicDynamicWeaviateDataSource,
+    public MqttModule mqttModule(BaseMagicDynamicMqttDataSource magicDynamicMqttDataSource,
                                  @Autowired(required = false) MqttServer mqttServer) {
-        return new MqttModule(magicDynamicWeaviateDataSource, mqttServer);
+        return new MqttModule(magicDynamicMqttDataSource, mqttServer);
     }
 
     /**
@@ -142,7 +145,16 @@ public class MagicAPIMqttConfiguration implements MagicPluginConfiguration {
      */
     @Override
     public Plugin plugin() {
-        return new Plugin("mqtt", "MagicMqtt", "magic-mqtt.1.0.0.iife.js");
+        Plugin plugin = new Plugin("mqtt", "MagicMqtt", "magic-mqtt.1.0.0.iife.js");
+        String adminEnabled = SpringUtils.getAppConfig("magic-api.plugin.mqtt.admin.enabled", "false");
+        plugin.setAdminEnabled(Boolean.parseBoolean(adminEnabled));
+        return plugin;
+    }
+
+    @Bean
+    public MqttDashboardService mqttDashboardService(BaseMagicDynamicMqttDataSource magicDynamicMqttDataSource,
+                                                      @Autowired(required = false) MqttServer mqttServer) {
+        return new MqttDashboardService(magicDynamicMqttDataSource, mqttServer);
     }
 
     /**

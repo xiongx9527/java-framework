@@ -1,0 +1,14 @@
+{
+  "change": "add-nebula-sql-parser-core",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "a9f8a76b33eab2c4f2b704ca3eb23bd5dbf757b71c2ded45a82f0f6985297ec3",
+  "files": [
+    { "path": "openspec/changes/add-nebula-sql-parser-core/proposal.md", "sha256": "42030c3a77c1cb82a50faed02a7482fba97f73a8caff06c0b140230feb383b52" },
+    { "path": "openspec/changes/add-nebula-sql-parser-core/design.md", "sha256": "6bdd946d37103bf872a9f709e63262b08716abbdc45a1df388540a0a955b6070" },
+    { "path": "openspec/changes/add-nebula-sql-parser-core/tasks.md", "sha256": "4e55093e6473c7eeebad0d387e4f1305d38acfb3f42fcc0382c81aeb3522eca3" },
+    { "path": "openspec/changes/add-nebula-sql-parser-core/specs/nebula-sql-parser-core/spec.md", "sha256": "35757c820ae6ac1b49f5156b76ac12ff9284220ac8ab614ce8c198a1e3357887" }
+  ]
+}

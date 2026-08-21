@@ -2,6 +2,8 @@ import localZhCN from './i18n/zh-cn.js'
 import localEn from './i18n/en.js'
 import MagicMqttDataSource from './service/magic-mqtt-datasource.js'
 import MagicMqttDatasourceInfo from './components/magic-mqtt-datasource-info.vue'
+import MagicMqttDashboard from './components/magic-mqtt-dashboard.vue'
+import { setMagicMqttDashboardRuntime } from './service/magic-mqtt-dashboard-runtime.js'
 
 // Manually inject SVG icon (vite-plugin-svg-icons doesn't work in library/IIFE mode)
 if (typeof window !== 'undefined') {
@@ -26,7 +28,9 @@ export default (opt) => {
     const i18n = opt.i18n
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
+    setMagicMqttDashboardRuntime(opt)
     return {
+        name: 'mqtt',
         datasources: [{
             type: 'mqtt-datasource',
             icon: '#magic-mqtt-mqtt',
@@ -34,6 +38,16 @@ export default (opt) => {
             name: i18n.format('mqtt.datasource.name'),
             service: MagicMqttDataSource(opt.request, i18n.format, opt.modal, opt.JavaClass),
             component: MagicMqttDatasourceInfo
+        }],
+        toolbars: [{
+            id: 'mqtt-dashboard',
+            title: i18n.format('mqtt.dashboard.title'),
+            icon: '#magic-mqtt-mqtt',
+            order: 420,
+            component: MagicMqttDashboard,
+            adminOnly: true,
+            allowClose: true,
+            fullscreen: true
         }]
     }
 }

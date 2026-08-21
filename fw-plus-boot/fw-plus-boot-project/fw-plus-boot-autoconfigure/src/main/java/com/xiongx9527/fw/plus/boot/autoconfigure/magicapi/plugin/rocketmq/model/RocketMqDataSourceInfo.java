@@ -3,6 +3,9 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rocketmq.model
 import lombok.Data;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 public class RocketMqDataSourceInfo extends MagicEntity {
 
@@ -34,7 +37,7 @@ public class RocketMqDataSourceInfo extends MagicEntity {
 	/**
 	 * 其他配置
 	 */
-	private String other;
+	private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
 	@Override
 	public MagicEntity simple() {
@@ -44,7 +47,7 @@ public class RocketMqDataSourceInfo extends MagicEntity {
 		dataSourceInfo.setSecretKey(this.secretKey);
 		dataSourceInfo.setNameServer(this.nameServer);
 		dataSourceInfo.setKey(this.key);
-		dataSourceInfo.setOther(this.other);
+		dataSourceInfo.setProperties(copyProperties());
 		dataSourceInfo.setGroup(this.group);
 		return dataSourceInfo;
 	}
@@ -57,8 +60,14 @@ public class RocketMqDataSourceInfo extends MagicEntity {
 		dataSourceInfo.setSecretKey(this.secretKey);
 		dataSourceInfo.setNameServer(this.nameServer);
 		dataSourceInfo.setKey(this.key);
-		dataSourceInfo.setOther(this.other);
+		dataSourceInfo.setProperties(copyProperties());
 		dataSourceInfo.setGroup(this.group);
 		return dataSourceInfo;
+	}
+
+	private Map<String, Object> copyProperties() {
+		return this.properties == null
+				? new LinkedHashMap<String, Object>()
+				: new LinkedHashMap<String, Object>(this.properties);
 	}
 }

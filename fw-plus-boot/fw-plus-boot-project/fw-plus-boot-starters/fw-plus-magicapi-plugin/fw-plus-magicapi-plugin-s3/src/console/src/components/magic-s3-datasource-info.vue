@@ -45,30 +45,81 @@
       <magic-select v-model:value="info.presignedUrlMethod" :placeholder="$i('s3.datasource.form.placeholder.presignedUrlMethod')" :options="presignedUrlMethodOptions" width="100%" />
     </div>
     <div class="magic-form-row">
-      <label>{{ $i('s3.datasource.form.other') }}</label>
-      <magic-monaco-editor v-model:value="info.other" :placeholder="$i('s3.datasource.form.placeholder.other')" language="json" style="height:150px" />
+      <label>{{ $i('s3.datasource.form.properties') }}</label>
+      <magic-monaco-editor v-model:value="info.propertiesText" :placeholder="$i('s3.datasource.form.placeholder.properties')" language="json" style="height:150px" />
     </div>
   </div>
 </template>
 
 <script setup>
-import {inject} from 'vue'
+import {inject, onMounted, ref, watch} from 'vue'
+import {loadS3PlatformOptions} from '../service/magic-s3-datasource.js'
 
 const $i = inject('i18n.format')
 
 const props = defineProps({
   info: {
     type: Object,
-    default: () => ({ other: '{}' })
+    default: () => ({ properties: {} })
   }
 })
 
-const platformOptions = [
+const defaultPlatformOptions = [
   { text: 'minio', value: 'minio' },
   { text: 'aliyun-oss', value: 'aliyun-oss' },
   { text: 'tencent-cos', value: 'tencent-cos' },
   { text: 'aws-s3', value: 'aws-s3' }
 ]
+
+const platformOptions = ref(defaultPlatformOptions.slice())
+
+const normalizeOptions = (options) => {
+  if (!Array.isArray(options)) {
+    return []
+  }
+  const values = new Set()
+  return options
+    .filter(option => option && option.value)
+    .filter(option => {
+      if (values.has(option.value)) {
+        return false
+      }
+      values.add(option.value)
+      return true
+    })
+    .map(option => ({
+      text: option.text || option.value,
+      value: option.value
+    }))
+}
+
+const ensureCurrentPlatformOption = () => {
+  const current = props.info && props.info.platform
+  if (!current) {
+    return
+  }
+  if (!platformOptions.value.some(option => option.value === current)) {
+    platformOptions.value = platformOptions.value.concat([{ text: current, value: current }])
+  }
+}
+
+const loadPlatformOptions = () => {
+  loadS3PlatformOptions().then(options => {
+    if (options !== null) {
+      platformOptions.value = normalizeOptions(options)
+    }
+    ensureCurrentPlatformOption()
+  })
+}
+
+onMounted(() => {
+  ensureCurrentPlatformOption()
+  loadPlatformOptions()
+})
+
+watch(() => props.info && props.info.platform, () => {
+  ensureCurrentPlatformOption()
+})
 
 const presignedUrlMethodOptions = [
   { text: 'PUT', value: 'PUT' },

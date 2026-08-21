@@ -57,21 +57,22 @@
       <magic-select v-model:value="info.serverIdType" :placeholder="$i('debezium.datasource.form.placeholder.serverIdType')" :options="serverIdTypeOptions" width="100%" />
     </div>
     <div class="magic-form-row">
-      <label>{{ $i('debezium.datasource.form.other') }}</label>
-      <magic-monaco-editor v-model:value="info.other" :placeholder="$i('debezium.datasource.form.placeholder.other')" language="json" style="height:150px" />
+      <label>{{ $i('debezium.datasource.form.properties') }}</label>
+      <magic-monaco-editor v-model:value="info.propertiesText" :placeholder="$i('debezium.datasource.form.placeholder.properties')" language="json" style="height:150px" />
     </div>
   </div>
 </template>
 
 <script setup>
-import {inject} from 'vue'
+import {inject, onMounted, ref, watch} from 'vue'
 
 const $i = inject('i18n.format')
+const service = inject('service', {})['debezium-datasource']
 
 const props = defineProps({
   info: {
     type: Object,
-    default: () => ({ other: '{}' })
+    default: () => ({ properties: {} })
   }
 })
 
@@ -80,11 +81,52 @@ const serverIdTypeOptions = [
   { text: $i('debezium.datasource.form.serverIdTypeOptions.fixed'), value: 'fixed' }
 ]
 
-const connectorOptions = [
-  { text: 'io.debezium.connector.mysql.MySqlConnector', value: 'io.debezium.connector.mysql.MySqlConnector' },
-  { text: 'io.debezium.connector.postgresql.PostgresConnector', value: 'io.debezium.connector.postgresql.PostgresConnector' },
-  { text: 'io.debezium.connector.sqlserver.SqlServerConnector', value: 'io.debezium.connector.sqlserver.SqlServerConnector' },
-  { text: 'io.debezium.connector.oracle.OracleConnector', value: 'io.debezium.connector.oracle.OracleConnector' },
-  { text: 'io.debezium.connector.mongodb.MongoDbConnector', value: 'io.debezium.connector.mongodb.MongoDbConnector' }
-]
+const connectorOptions = ref([])
+
+const normalizeConnectorOptions = (options) => {
+  if (!Array.isArray(options)) {
+    return []
+  }
+  return options
+    .filter((option) => option && option.value)
+    .map((option) => ({
+      text: option.text || option.value,
+      value: option.value
+    }))
+}
+
+const mergeCurrentConnectorOption = () => {
+  const currentValue = props.info && props.info.connectorClass
+  if (!currentValue) {
+    return
+  }
+  if (connectorOptions.value.some((option) => option.value === currentValue)) {
+    return
+  }
+  connectorOptions.value = connectorOptions.value.concat({
+    text: currentValue,
+    value: currentValue
+  })
+}
+
+const loadConnectorOptions = () => {
+  if (!service || !service.loadConnectorOptions) {
+    mergeCurrentConnectorOption()
+    return
+  }
+  service.loadConnectorOptions((options) => {
+    connectorOptions.value = normalizeConnectorOptions(options)
+    mergeCurrentConnectorOption()
+  }, () => {
+    mergeCurrentConnectorOption()
+  })
+}
+
+onMounted(() => {
+  loadConnectorOptions()
+})
+
+watch(() => props.info && props.info.connectorClass, () => {
+  mergeCurrentConnectorOption()
+})
 </script>

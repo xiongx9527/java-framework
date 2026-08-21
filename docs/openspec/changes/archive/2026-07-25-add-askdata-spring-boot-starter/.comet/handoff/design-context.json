@@ -1,0 +1,14 @@
+{
+  "change": "add-askdata-spring-boot-starter",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "0f8f0d25e7ebba62e59588dd584e4980b600a638abad33fc7edda0e519450072",
+  "files": [
+    { "path": "openspec/changes/add-askdata-spring-boot-starter/proposal.md", "sha256": "143575daee36a65aeecbf63d46c73a4297fff1535f81cbac7be5dd9e97f79902" },
+    { "path": "openspec/changes/add-askdata-spring-boot-starter/design.md", "sha256": "ea1d1ee70c61b9cef7ada933a6482783f1805d7053a0cfa36c3759fed1648ef7" },
+    { "path": "openspec/changes/add-askdata-spring-boot-starter/tasks.md", "sha256": "226e20dbbb0fdbab5f6a373de0c88cbca5759ec5c2e40f9dfb97d538a601bd3f" },
+    { "path": "openspec/changes/add-askdata-spring-boot-starter/specs/askdata-query-engine/spec.md", "sha256": "a55fec827bdd4aefff3c4b35e495c61bfb4f257a36f3f08eae336236325859e2" }
+  ]
+}

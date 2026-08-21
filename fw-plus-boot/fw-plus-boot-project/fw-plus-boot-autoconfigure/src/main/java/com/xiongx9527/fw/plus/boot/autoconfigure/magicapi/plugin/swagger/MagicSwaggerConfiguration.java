@@ -5,10 +5,15 @@ import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.swagger.entity.
 import io.swagger.v3.oas.models.OpenAPI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springdoc.core.*;
+import org.springdoc.core.models.GroupedOpenApi;
+import org.springdoc.core.properties.AbstractSwaggerUiConfigProperties;
+import org.springdoc.core.properties.SpringDocConfigProperties;
+import org.springdoc.core.properties.SwaggerUiConfigParameters;
+import org.springdoc.core.properties.SwaggerUiConfigProperties;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
@@ -26,7 +31,7 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.impl.RequestMagicDynamicRegistry;
 import org.ssssssss.magicapi.utils.Mapping;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,11 +43,14 @@ import java.util.Set;
  * 该配置类实现了Swagger端点的动态注册以及Swagger UI的配置
  */
 @ConditionalOnProperty(prefix = "magic-api.plugin.swagger", name = "enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @Configuration
 @EnableConfigurationProperties(SwaggerConfig.class)
 //org.ssssssss.magicapi.swagger
 @ConditionalOnClass({OpenAPI.class, GroupedOpenApi.class,org.ssssssss.magicapi.swagger.SwaggerConfig.class})
 public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
+	private static final String JAVASCRIPT_FILENAME = "magic-swagger.1.0.0.iife.js";
+	private static final String FRONTEND_RESOURCE = "magic-editor/plugins/" + JAVASCRIPT_FILENAME;
 
 	private final SwaggerConfig swaggerConfig;
 	private final MagicResourceService magicResourceService;
@@ -82,7 +90,10 @@ public class MagicSwaggerConfiguration implements MagicPluginConfiguration {
 	 */
 	@Override
 	public Plugin plugin() {
-		return new Plugin("swagger");
+		if (MagicSwaggerConfiguration.class.getClassLoader().getResource(FRONTEND_RESOURCE) == null) {
+			return new Plugin("swagger");
+		}
+		return new Plugin("swagger", "MagicSwagger", JAVASCRIPT_FILENAME);
 	}
 
 	/**

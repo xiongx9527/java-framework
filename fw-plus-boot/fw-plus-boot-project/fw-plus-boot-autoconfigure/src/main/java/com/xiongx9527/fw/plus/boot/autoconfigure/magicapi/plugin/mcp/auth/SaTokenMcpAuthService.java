@@ -2,7 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.auth;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mcp.starter.MagicAPIMcpProperties;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Collections;
 
 public class SaTokenMcpAuthService implements McpAuthService {
@@ -18,10 +18,14 @@ public class SaTokenMcpAuthService implements McpAuthService {
 
 	@Override
 	public McpPrincipal authenticate(HttpServletRequest request) {
+		return authenticate(request == null ? null : request.getHeader("Authorization"));
+	}
+
+	@Override
+	public McpPrincipal authenticate(String authorization) {
 		if (!properties.getAuth().isEnabled()) {
 			return new McpPrincipal("anonymous", Collections.emptySet());
 		}
-		String authorization = request == null ? null : request.getHeader("Authorization");
 		if (authorization == null || !authorization.startsWith("Bearer ")) {
 			throw new McpAuthorizationException(401, "Missing bearer token");
 		}

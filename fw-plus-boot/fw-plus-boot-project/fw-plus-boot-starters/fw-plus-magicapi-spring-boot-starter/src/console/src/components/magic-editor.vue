@@ -21,7 +21,7 @@
     </div>
 </template>
 <script setup>
-import request, { addLoadingListener } from '../scripts/request.js'
+import request, { addLoadingListener, removeLoadingListener } from '../scripts/request.js'
 import constants from '../scripts/constants.js'
 import HotKey from '../scripts/hotkey.js'
 import defaultTheme from '../scripts/editor/default-theme.js'
@@ -41,6 +41,7 @@ import MagicWebSocket from '../scripts/websocket.js'
 import modal from './common/dialog/magic-modal.js'
 import Socket from '../scripts/constants/socket.js'
 import Message from '../scripts/constants/message.js'
+import { installPlugin as registerPlugin } from '../scripts/plugin-loader.js'
 import { loadPlugin, randomString, replaceURL } from '../scripts/utils.js'
 import store from '../scripts/store.js'
 import * as monaco from 'monaco-editor'
@@ -132,7 +133,9 @@ const installPlugin = () => {
       Promise.all((constants.PLUGINS_DATA).filter(it => it.javascriptFilename).map(plugin => new Promise(r => {
         bus.status('plugin.loading', true, plugin.name)
         loadPlugin(replaceURL(link + '/plugins/' + plugin.javascriptFilename)).then(() => {
-          constants.PLUGINS.push(window[plugin.globalName]({
+          registerPlugin({
+            factory: window[plugin.globalName],
+			plugin,
             'i18n': { add: i18nAdd, format: $i },
             request,
             constants,
@@ -141,7 +144,7 @@ const installPlugin = () => {
             modal,
             JavaClass,
             monaco
-          }))
+          })
           bus.status('plugin.loaded', true, plugin.name)
           r();
         }).catch(e => {
@@ -196,8 +199,23 @@ provide('options', options)
 request.sendGet('/optionList').success(res => {
 	res.forEach(it => options.push(it))
 })
+const loadJdbcClassOptions = () => {
+	request.sendGet('/datasource/options').success(res => {
+		if(res && Array.isArray(res.jdbcDrivers)){
+			constants.JDBC_DRIVERS = res.jdbcDrivers
+		}
+		if(res && Array.isArray(res.datasourceTypes)){
+			constants.DATASOURCE_TYPES = res.datasourceTypes
+		}
+	}).exception((code, message) => {
+		console.warn('load jdbc class options failed', code, message)
+	}).error(e => {
+		console.warn('load jdbc class options failed', e)
+	})
+}
 const onLogin = () => {
 	constants.LOGINED = true
+	loadJdbcClassOptions()
 	websocket = new MagicWebSocket(replaceURL(link.replace(/^http/, 'ws') + '/console'))
 	nextTick(() => componentMain.value.loadResources())
 }

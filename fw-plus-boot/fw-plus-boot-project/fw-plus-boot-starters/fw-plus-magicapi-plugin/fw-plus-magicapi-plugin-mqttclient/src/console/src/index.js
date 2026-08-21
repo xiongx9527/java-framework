@@ -47,6 +47,7 @@ export default (opt) => {
             type: 'mqttclient-subscribe',
             title: 'mqttclient.subscribe.title',
             icon: 'parameter',
+            order: 600,
             component: MagicMqttClientSubscribeInfo
         }]
     }

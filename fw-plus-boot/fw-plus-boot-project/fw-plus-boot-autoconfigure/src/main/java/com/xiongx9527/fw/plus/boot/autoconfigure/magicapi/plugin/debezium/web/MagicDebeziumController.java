@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.web;
 
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.common.BaseService;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.model.DebeziumConnectorOption;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.debezium.model.DebeziumDataSourceInfo;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoIterable;
@@ -22,11 +23,21 @@ import org.ssssssss.magicapi.utils.JdbcUtils;
 import java.net.URLEncoder;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
 @Slf4j
 public class MagicDebeziumController extends MagicController implements MagicExceptionHandler , BaseService  {
+
+    private static final List<String> DEFAULT_CONNECTOR_CLASSES = Collections.unmodifiableList(Arrays.asList(
+            "io.debezium.connector.mysql.MySqlConnector",
+            "io.debezium.connector.postgresql.PostgresConnector",
+            "io.debezium.connector.sqlserver.SqlServerConnector",
+            "io.debezium.connector.oracle.OracleConnector",
+            "io.debezium.connector.mongodb.MongoDbConnector"
+    ));
 
     /**
      * 构造函数，用于创建MagicDebeziumController实例
@@ -35,6 +46,29 @@ public class MagicDebeziumController extends MagicController implements MagicExc
      */
     public MagicDebeziumController(MagicConfiguration configuration) {
         super(configuration);
+    }
+
+    private List<DebeziumConnectorOption> availableConnectorOptions() {
+        return availableConnectorOptions(DEFAULT_CONNECTOR_CLASSES, MagicDebeziumController.class.getClassLoader());
+    }
+
+    List<DebeziumConnectorOption> availableConnectorOptions(List<String> connectorClasses, ClassLoader classLoader) {
+        List<DebeziumConnectorOption> options = new ArrayList<>();
+        for (String connectorClass : connectorClasses) {
+            if (isConnectorClassPresent(connectorClass, classLoader)) {
+                options.add(new DebeziumConnectorOption(connectorClass, connectorClass));
+            }
+        }
+        return options;
+    }
+
+    private boolean isConnectorClassPresent(String connectorClass, ClassLoader classLoader) {
+        try {
+            Class.forName(connectorClass, false, classLoader);
+            return true;
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     /**
@@ -262,5 +296,11 @@ public class MagicDebeziumController extends MagicController implements MagicExc
             String message = e.getMessage() != null ? e.getMessage() : "未知错误";
             return new JsonBean<>("数据源连接失败: " + message);
         }
+    }
+
+    @RequestMapping("/debezium/datasource/connector-options")
+    @ResponseBody
+    public JsonBean<List<DebeziumConnectorOption>> connectorOptions() {
+        return new JsonBean<>(availableConnectorOptions());
     }
 }

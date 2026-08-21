@@ -10,7 +10,7 @@ import org.ssssssss.magicapi.core.model.MagicNotify;
 import org.ssssssss.magicapi.core.service.MagicAPIService;
 import org.ssssssss.magicapi.utils.JsonUtils;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.util.Collections;
 import java.util.List;
 

@@ -42,7 +42,7 @@ export default {
                 password: 'Password',
                 extra: 'Type',
                 group: 'Group Id',
-                other: 'Other',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
@@ -50,9 +50,40 @@ export default {
                     username: 'Please Enter Kafka username, Optional',
                     password: 'Please Enter Kafka password, Optional',
                     extra: 'Please Enter Kafka Access Type',
-                    other: 'Please Enter Kafka Other Config, eg: {xxxx: "yyyy"}'
+                    properties: 'JSON object, for example: {"key": "value"}'
                 }
             }
-        }
+        },
+        title: 'Kafka Management',
+        loading: 'Loading...',
+        refresh: 'Refresh',
+        selectStorage: 'Select Storage',
+        loadStoragesFailed: 'Failed to load storage',
+        loadTopicsFailed: 'Failed to load topics',
+        loadTopicInfoFailed: 'Failed to load topic information',
+        loadConsumerGroupsFailed: 'Failed to load consumer groups',
+        noTopicInfo: 'No topic information available',
+        fullscreen: 'Fullscreen',
+        exitFullscreen: 'Exit Fullscreen',
+        noPlugin: 'Kafka plugin not installed',
+        noPluginSubtext: 'Please install Kafka plugin to use Kafka management features',
+        consumerGroupOffset: 'Consumer Group Offset',
+        topic: 'Topic',
+        consumerGroup: 'Consumer Group',
+        selectConsumerGroup: 'Select Consumer Group',
+        resetOffsets: 'Reset Offsets',
+        resetOffsetsSuccess: 'Reset offsets success',
+        resetOffsetsFailed: 'Failed to reset offsets',
+        delete: 'Delete',
+        deleteTopic: 'Delete Topic',
+        deleteTopicConfirm: 'Are you sure you want to delete topic {0}?',
+        deleteTopicSuccess: 'Delete topic success',
+        deleteTopicFailed: 'Failed to delete topic',
+        deletingTopic: 'Deleting topic...',
+        cancel: 'Cancel',
+        confirm: 'Confirm',
+        close: 'Close',
+        pleaseSelect: 'Please select',
+        pleaseSelectConsumerGroup: 'Please select consumer group'
     }
 }

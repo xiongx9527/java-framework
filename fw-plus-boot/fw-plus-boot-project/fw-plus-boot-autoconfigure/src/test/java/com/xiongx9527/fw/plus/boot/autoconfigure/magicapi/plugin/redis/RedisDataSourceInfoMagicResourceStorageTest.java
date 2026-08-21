@@ -50,7 +50,6 @@ class RedisDataSourceInfoMagicResourceStorageTest {
 		info.setKey(key);
 		info.setHostname("127.0.0.1");
 		info.setPort("6379");
-		info.setOther("{}");
 		return info;
 	}
 }

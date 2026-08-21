@@ -4,6 +4,8 @@ import MagicKafkaSubscribe from './service/magic-kafka-subscribe.js'
 import MagicKafkaDataSource from './service/magic-kafka-datasource.js'
 import MagicKafkaDatasourceInfo from './components/magic-kafka-datasource-info.vue'
 import MagicKafkaSubscribeInfo from './components/magic-kafka-subscribe-info.vue'
+import MagicKafka from './components/magic-kafka.vue'
+import { setMagicKafkaRuntime } from './service/magic-kafka-runtime.js'
 
 // Manually inject SVG icon (vite-plugin-svg-icons doesn't work in library/IIFE mode)
 if (typeof window !== 'undefined') {
@@ -28,7 +30,16 @@ export default (opt) => {
     const i18n = opt.i18n
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
+    setMagicKafkaRuntime(opt)
     return {
+        name: 'kafka',
+        statusBarItems: [{
+            icon: '#magic-kafka-kafka',
+            title: 'Kafka',
+            displayKey: 'kafka',
+            order: 200,
+            onClick: () => window.open('https://kafka.apache.org/', '_blank')
+        }],
         resource: [{
             type: 'kafka-subscribe',
             icon: '#magic-kafka-kafka',
@@ -47,7 +58,17 @@ export default (opt) => {
             type: 'kafka-subscribe',
             title: 'kafka.subscribe.title',
             icon: '#magic-kafka-kafka',
+            order: 400,
             component: MagicKafkaSubscribeInfo
+        }, {
+            id: 'kafka',
+            title: i18n.format('kafka.title'),
+            icon: '#magic-kafka-kafka',
+            order: 410,
+            component: MagicKafka,
+            adminOnly: true,
+            allowClose: true,
+            fullscreen: true
         }]
     }
 }

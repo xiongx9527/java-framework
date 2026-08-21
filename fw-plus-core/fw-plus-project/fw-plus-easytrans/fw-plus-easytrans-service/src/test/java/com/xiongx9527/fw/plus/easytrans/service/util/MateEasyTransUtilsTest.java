@@ -17,6 +17,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -88,6 +89,72 @@ class MateEasyTransUtilsTest {
     }
 
     @Test
+    void transFieldsKeepsFinalListSlotsWhenTranslationReturnsOriginalList() throws Exception {
+        CountingTransService transService = new CountingTransService();
+        TestVo vo = new TestVo(5L);
+        bsFinalListHolder holder = new bsFinalListHolder(null, vo);
+
+        MateEasyTransUtils.transFields(holder, transService, false,
+                new ArrayList<>(), null, null);
+
+        assertEquals(2, holder.vos.size());
+        assertNull(holder.vos.get(0));
+        assertSame(vo, holder.vos.get(1));
+        assertEquals("yes", vo.getTransMap().get("translated"));
+    }
+
+    @Test
+    void transBatchSkipsNonVoItemsInMixedVoCollection() throws Exception {
+        CountingTransService transService = new CountingTransService();
+        TestVo vo = new TestVo(6L);
+        List<Object> source = new ArrayList<>(Arrays.asList(null, vo, "x"));
+
+        Collection result = assertDoesNotThrow(() -> MateEasyTransUtils.transBatch(source, transService, false,
+                new ArrayList<>(), null, null));
+
+        assertSame(source, result);
+        assertEquals(3, source.size());
+        assertNull(source.get(0));
+        assertSame(vo, source.get(1));
+        assertEquals("x", source.get(2));
+        assertEquals("yes", vo.getTransMap().get("translated"));
+    }
+
+    @Test
+    void transBatchProxyKeepsNonVoItemsInMixedVoCollection() throws Exception {
+        CountingTransService transService = new CountingTransService();
+        TestVo vo = new TestVo(9L);
+        List<Object> source = new ArrayList<>(Arrays.asList(vo, "x"));
+
+        Collection result = assertDoesNotThrow(() -> MateEasyTransUtils.transBatch(source, transService, true,
+                new ArrayList<>(), null, null));
+
+        List resultList = new ArrayList(result);
+        assertEquals(2, resultList.size());
+        assertTrue(resultList.get(0) instanceof VO);
+        assertEquals("x", resultList.get(1));
+        assertEquals("yes", vo.getTransMap().get("translated"));
+    }
+
+    @Test
+    void transBatchAddsVoRootsToVisitedContextBeforeRecursingFields() throws Exception {
+        CountingTransService transService = new CountingTransService();
+        TestVo first = new TestVo(7L);
+        TestVo second = new TestVo(8L);
+        BatchRoot root = new BatchRoot(Arrays.asList(first, second));
+        first.other = second;
+        second.other = first;
+
+        MateEasyTransUtils.transFields(root, transService, false,
+                new ArrayList<>(), null, null);
+
+        assertEquals(1, transService.transMoreCount);
+        assertEquals(2, transService.transOneCount);
+        assertSame(second, first.other);
+        assertSame(first, second.other);
+    }
+
+    @Test
     void transOneDoesNotRecurseForeverOnCycle() throws Exception {
         CountingTransService transService = new CountingTransService();
         Node node = new Node();
@@ -121,17 +188,70 @@ class MateEasyTransUtilsTest {
     }
 
     @Test
-    void createProxyVoReturnsOriginalVoWithoutAssignmentErrorWhenGeneratedClassIsNull(CapturedOutput output) throws Exception {
-        TestVo vo = new TestVo(3L);
+    void genNewClassUsesOriginalPackageForPackagePrivateVo() throws Exception {
+        TestVo vo = new TestVo(10L);
         vo.getTransMap().put("dynamicField", "value");
-        proxyClassMap().put(TestVo.class, TestVo.class);
-        proxyClassFieldMap().put(TestVo.class, new java.util.LinkedHashSet<>(Arrays.asList("otherField")));
+        Map<Class, Class> proxyClassMap = proxyClassMap();
+        Map<Class, Set<String>> proxyClassFieldMap = proxyClassFieldMap();
+        Class originalProxyClass = proxyClassMap.get(TestVo.class);
+        Set<String> originalProxyFields = proxyClassFieldMap.get(TestVo.class);
+        Class generatedClass = null;
+        try {
+            proxyClassMap.remove(TestVo.class);
 
-        Object result = MateEasyTransUtils.createProxyVo(vo);
+            generatedClass = MateEasyTransUtils.genNewClass(vo);
 
-        assertSame(vo, result);
-        assertTrue(output.getOut().contains("生成新class错误"));
-        assertTrue(!output.getOut().contains("easy trans 赋值错误"));
+            assertNotNull(generatedClass);
+            assertEquals(TestVo.class.getPackage().getName(), generatedClass.getPackage().getName());
+            assertTrue(TestVo.class.isAssignableFrom(generatedClass));
+            assertTrue(proxyClassFieldMap.get(generatedClass).contains("dynamicField"));
+        } finally {
+            if (generatedClass != null) {
+                proxyClassFieldMap.remove(generatedClass);
+            }
+            if (originalProxyClass == null) {
+                proxyClassMap.remove(TestVo.class);
+            } else {
+                proxyClassMap.put(TestVo.class, originalProxyClass);
+            }
+            if (originalProxyFields == null) {
+                proxyClassFieldMap.remove(TestVo.class);
+            } else {
+                proxyClassFieldMap.put(TestVo.class, originalProxyFields);
+            }
+        }
+    }
+
+    @Test
+    void createProxyVoReturnsOriginalVoWithoutAssignmentErrorWhenGeneratedClassIsNull(CapturedOutput output) throws Exception {
+        FinalVo vo = new FinalVo();
+        vo.getTransMap().put("dynamicField", "value");
+        Map<Class, Class> proxyClassMap = proxyClassMap();
+        Map<Class, Set<String>> proxyClassFieldMap = proxyClassFieldMap();
+        Class originalProxyClass = proxyClassMap.get(FinalVo.class);
+        Set<String> originalProxyFields = proxyClassFieldMap.get(FinalVo.class);
+        try {
+            proxyClassMap.put(FinalVo.class, FinalVo.class);
+            proxyClassFieldMap.put(FinalVo.class, new java.util.LinkedHashSet<>(Arrays.asList("otherField")));
+
+            Object result = MateEasyTransUtils.createProxyVo(vo);
+
+            assertSame(vo, result);
+            String outputText = output.getOut() + output.getErr();
+            assertTrue(outputText.contains("Cannot subclass primitive, array or final types"));
+            assertTrue(!outputText.contains("easy trans 赋值错误"));
+        } finally {
+            if (originalProxyClass == null) {
+                proxyClassMap.remove(FinalVo.class);
+            } else {
+                proxyClassMap.put(FinalVo.class, originalProxyClass);
+            }
+            if (originalProxyFields == null) {
+                proxyClassFieldMap.remove(FinalVo.class);
+            } else {
+                proxyClassFieldMap.put(FinalVo.class, originalProxyFields);
+            }
+        }
     }
 
     @Test
@@ -185,6 +305,7 @@ class MateEasyTransUtilsTest {
     static class TestVo implements VO {
         private final Long id;
         private final Map<String, Object> transMap = new java.util.LinkedHashMap<>();
+        TestVo other;
 
         TestVo(Long id) {
             this.id = id;
@@ -193,6 +314,15 @@ class MateEasyTransUtilsTest {
         public Long getId() {
             return id;
         }
+
+        @Override
+        public Map<String, Object> getTransMap() {
+            return transMap;
+        }
+    }
+
+    static final class FinalVo implements VO {
+        private final Map<String, Object> transMap = new java.util.LinkedHashMap<>();
 
         @Override
         public Map<String, Object> getTransMap() {
@@ -210,6 +340,14 @@ class MateEasyTransUtilsTest {
 
     static class Node {
         Node self;
+    }
+
+    static class BatchRoot {
+        List<TestVo> vos;
+
+        BatchRoot(List<TestVo> vos) {
+            this.vos = vos;
+        }
     }
 
     enum SampleEnum {

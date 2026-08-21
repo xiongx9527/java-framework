@@ -27,7 +27,7 @@
 
         <dependency>
             <groupId>org.jeecgframework.jimureport</groupId>
-            <artifactId>jimureport-spring-boot-starter</artifactId>
+            <artifactId>jimureport-spring-boot3-starter</artifactId>
         </dependency>
 
         <dependency>
@@ -42,7 +42,7 @@
 
         <dependency>
             <groupId>org.jeecgframework.jimureport</groupId>
-            <artifactId>jimubi-spring-boot-starter</artifactId>
+            <artifactId>jimubi-spring-boot3-starter</artifactId>
         </dependency>
 
     </dependencies>

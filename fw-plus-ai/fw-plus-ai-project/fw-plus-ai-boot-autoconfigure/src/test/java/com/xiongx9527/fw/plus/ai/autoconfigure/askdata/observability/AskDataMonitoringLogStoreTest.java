@@ -1,0 +1,226 @@
+package com.xiongx9527.fw.plus.ai.autoconfigure.askdata.observability;
+
+import com.xiongx9527.fw.plus.ai.autoconfigure.askdata.autoconfigure.AskDataAutoConfiguration;
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEvent;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataEventPublisher;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataMonitoringLog;
+import com.xiongx9527.fw.plus.ai.askdata.observability.AskDataMonitoringLogAccessPolicy;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+public class AskDataMonitoringLogStoreTest {
+
+    @Test
+    public void shouldPersistSanitizedLifecycleEventAndRequireProjectAdministratorForReading() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(AskDataAutoConfiguration.class)
+                .run(context -> {
+                    AskDataProjectContext owner = new AskDataProjectContext("project-a", "operator-a");
+                    AskDataEventPublisher publisher = context.getBean(AskDataEventPublisher.class);
+                    AskDataMonitoringLogStore store = context.getBean(AskDataMonitoringLogStore.class);
+                    AskDataMonitoringLogAccessPolicy accessPolicy =
+                            context.getBean(AskDataMonitoringLogAccessPolicy.class);
+
+                    publisher.publish(new AskDataEvent(owner, "trace-1", AskDataEvent.Type.CONVERSATION_STARTED,
+                            "已脱敏的对话开始摘要"));
+
+                    AskDataMonitoringLogStore.MonitoringLog stored = store.list(owner).get(0);
+                    assertEquals("trace-1", stored.getTraceId());
+                    assertEquals("CONVERSATION_STARTED", stored.getEventType());
+                    AskDataMonitoringLog monitoringLog = new AskDataMonitoringLog(owner, stored.getTraceId(),
+                            AskDataEvent.Type.valueOf(stored.getEventType()), stored.getMessage());
+                    assertTrue(accessPolicy.canRead(new AskDataProjectContext("project-a", "admin-a"), true,
+                            monitoringLog));
+                    assertFalse(accessPolicy.canRead(owner, false, monitoringLog));
+                    assertFalse(accessPolicy.canRead(new AskDataProjectContext("project-b", "admin-b"), true,
+                            monitoringLog));
+                });
+    }
+
+    @Test
+    public void shouldRetainOnlyConfiguredNumberOfMonitoringLogsPerScope() {
+        AskDataProjectContext context = new AskDataProjectContext("project-a", "operator-a");
+        InMemoryAskDataMonitoringLogStore store = new InMemoryAskDataMonitoringLogStore(1);
+        store.append(context, new AskDataMonitoringLogStore.MonitoringLog("trace-1", "CONVERSATION_STARTED", "started"));
+        store.append(context, new AskDataMonitoringLogStore.MonitoringLog("trace-2", "CONVERSATION_COMPLETED", "completed"));
+
+        assertEquals(1, store.list(context).size());
+        assertEquals("trace-2", store.list(context).get(0).getTraceId());
+    }
+
+    @Test
+    public void shouldKeepScopesSeparateWhenIdsContainNulCharacters() {
+        InMemoryAskDataMonitoringLogStore store = new InMemoryAskDataMonitoringLogStore(2);
+        AskDataProjectContext first = new AskDataProjectContext("project\u0000operator", "a");
+        AskDataProjectContext second = new AskDataProjectContext("project", "operator\u0000a");
+
+        store.append(first, new AskDataMonitoringLogStore.MonitoringLog("trace-first", "STARTED", "first"));
+        store.append(second, new AskDataMonitoringLogStore.MonitoringLog("trace-second", "STARTED", "second"));
+
+        assertEquals("trace-first", store.list(first).get(0).getTraceId());
+        assertEquals("trace-second", store.list(second).get(0).getTraceId());
+    }
+
+    @Test
+    public void shouldListAllOperatorsByProjectWithImmutableOwnership() {
+        InMemoryAskDataMonitoringLogStore store = new InMemoryAskDataMonitoringLogStore(2);
+        AskDataProjectContext first = new AskDataProjectContext("project-a", "operator-a");
+        AskDataProjectContext second = new AskDataProjectContext("project-a", "operator-b");
+        store.append(first, new AskDataMonitoringLogStore.MonitoringLog("trace-first", "STARTED", "first"));
+        store.append(second, new AskDataMonitoringLogStore.MonitoringLog("trace-second", "STARTED", "second"));
+
+        java.util.List<AskDataMonitoringLogStore.MonitoringLog> logs = store.listProject("project-a");
+
+        assertEquals(2, logs.size());
+        assertEquals("operator-a", logs.get(0).getContext().getOperatorId());
+        assertEquals("operator-b", logs.get(1).getContext().getOperatorId());
+    }
+
+    @Test
+    public void shouldRejectDefaultMonitoringLogStoreInClusterModeWhenBusinessProvidesOtherSharedStores() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(AskDataAutoConfiguration.class)
+                .withPropertyValues("fw.plus.ai.askdata.state.cluster-mode=true")
+                .withBean("customCoreConversationStore",
+                        com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore.class,
+                        () -> coreConversationStore())
+                .withBean("customCoreCheckpointStore",
+                        com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore.class,
+                        () -> coreCheckpointStore())
+                .withBean("customCoreAgentStateStore",
+                        com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore.class,
+                        () -> coreAgentStateStore())
+                .withBean("customLongTermMemory",
+                        com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory.class,
+                        () -> sharedLongTermMemory())
+                .withBean("customRecommendationService",
+                        com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService.class,
+                        () -> sharedRecommendationService())
+                .withBean("customVectorRetriever",
+                        com.xiongx9527.fw.plus.ai.autoconfigure.askdata.vector.AskDataVectorRetriever.class,
+                        () -> query -> java.util.Collections.emptyList())
+                .withBean("customLegacyConversationStore",
+                        com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore.class,
+                        () -> legacyConversationStore())
+                .run(context -> {
+                    assertTrue(context.getStartupFailure() != null);
+                    assertTrue(containsCauseMessage(context.getStartupFailure(), "集群模式"));
+                });
+    }
+
+    private static boolean containsCauseMessage(Throwable failure, String expected) {
+        Throwable current = failure;
+        while (current != null) {
+            if (current.getMessage() != null && current.getMessage().contains(expected)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore coreConversationStore() {
+        return new com.xiongx9527.fw.plus.ai.askdata.storage.AskDataConversationStore() {
+            @Override
+            public void save(AskDataProjectContext context, String conversationId, Conversation conversation) {
+            }
+
+            @Override
+            public Conversation load(AskDataProjectContext context, String conversationId) {
+                return null;
+            }
+        };
+    }
+
+    private com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore coreCheckpointStore() {
+        return new com.xiongx9527.fw.plus.ai.askdata.storage.AskDataCheckpointStore() {
+            @Override
+            public Checkpoint save(AskDataProjectContext context, String checkpointId, Checkpoint checkpoint) {
+                return checkpoint;
+            }
+
+            @Override
+            public Checkpoint load(AskDataProjectContext context, String checkpointId) {
+                return null;
+            }
+        };
+    }
+
+    private com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore coreAgentStateStore() {
+        return new com.xiongx9527.fw.plus.ai.askdata.storage.AskDataAgentStateStore() {
+            @Override
+            public void save(AskDataProjectContext context, String agentId, AgentState state) {
+            }
+
+            @Override
+            public AgentState load(AskDataProjectContext context, String agentId) {
+                return null;
+            }
+        };
+    }
+
+    private com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory sharedLongTermMemory() {
+        return new com.xiongx9527.fw.plus.ai.askdata.memory.AskDataLongTermMemory() {
+            @Override
+            public void remember(com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry entry) {
+            }
+
+            @Override
+            public java.util.List<com.xiongx9527.fw.plus.ai.askdata.memory.AskDataMemoryEntry> find(
+                    AskDataProjectContext context, String datasourceKey, String semanticVersion) {
+                return java.util.Collections.emptyList();
+            }
+        };
+    }
+
+    private com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService sharedRecommendationService() {
+        return new com.xiongx9527.fw.plus.ai.askdata.memory.AskDataRecommendationService() {
+            @Override
+            public void record(AskDataProjectContext context, String recommendation) {
+            }
+
+            @Override
+            public java.util.List<String> recommend(AskDataProjectContext context) {
+                return java.util.Collections.emptyList();
+            }
+
+            @Override
+            public void registerGeneric(String projectId, String recommendation) {
+            }
+
+            @Override
+            public java.util.List<String> recommend(String projectId, String operatorId,
+                    boolean allowGenericSuggestions) {
+                return java.util.Collections.emptyList();
+            }
+        };
+    }
+
+    private com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore legacyConversationStore() {
+        return new com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataConversationStore() {
+            @Override
+            public com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataCheckpoint save(
+                    com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataCheckpoint checkpoint) {
+                return checkpoint;
+            }
+
+            @Override
+            public com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataCheckpoint loadLatest(
+                    String conversationId) {
+                return null;
+            }
+
+            @Override
+            public com.xiongx9527.fw.plus.ai.autoconfigure.askdata.conversation.AskDataCheckpoint loadByResumeToken(
+                    String resumeToken) {
+                return null;
+            }
+        };
+    }
+}

@@ -4,6 +4,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class MqttDataSourceInfo extends MagicEntity {
@@ -41,7 +44,7 @@ public class MqttDataSourceInfo extends MagicEntity {
     /**
      * 其它配置
      */
-    private String other;
+    private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
     @Override
     public MagicEntity simple() {
@@ -55,7 +58,7 @@ public class MqttDataSourceInfo extends MagicEntity {
         dataSourceInfo.setWebPort(this.webPort);
         dataSourceInfo.setUsername(this.username);
         dataSourceInfo.setPassword(this.password);
-        dataSourceInfo.setOther(this.other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
     }
 
@@ -73,8 +76,14 @@ public class MqttDataSourceInfo extends MagicEntity {
         dataSourceInfo.setPort(this.port);
         dataSourceInfo.setWebPort(this.webPort);
         dataSourceInfo.setUsername(this.username);
-        dataSourceInfo.setOther(this.other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
+    }
+
+    private Map<String, Object> copyProperties() {
+        return this.properties == null
+                ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(this.properties);
     }
 
 }

@@ -19,6 +19,6 @@ class MagicDynamicRedisDataSourceConfigOverrideTest {
 		assertThat(source).contains("MagicAPIConfigUtils.getRedisConfig");
 		assertThat(source).contains("getRedisConfig(dataSourceInfo.getKey(), \"hostname\"");
 		assertThat(source).contains("getRedisConfig(dataSourceInfo.getKey(), \"port\"");
-		assertThat(source).contains("getRedisConfig(dataSourceInfo.getKey(), \"other\"");
+		assertThat(source).contains("getRedisConfig(dataSourceInfo.getKey(), \"properties\"");
 	}
 }

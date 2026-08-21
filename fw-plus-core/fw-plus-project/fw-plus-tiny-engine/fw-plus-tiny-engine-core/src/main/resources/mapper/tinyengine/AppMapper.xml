@@ -1,0 +1,769 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xiongx9527.fw.plus.tinyengine.mapper.AppMapper">
+
+    <!-- 通用设置 -->
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Column_List">
+        id
+        , name, code, app_website, platform_id, platform_history_id, industry_id, scene_id, publish_url, editor_url, visit_url, image_url,
+        assets_url, state, enable, published, home_page_id, css, config, constants, data_handler, description, latest,
+        git_group, project_name, branch, is_demo, is_default, template_type, is_template, set_template_time, set_template_by,
+        set_default_by, framework, global_state, default_lang, extend_config, data_hash, can_associate,
+        data_source_global, created_by, last_updated_by, created_time, last_updated_time, tenant_id, renter_id, site_id
+    </sql>
+
+    <!-- 通用条件列 -->
+    <sql id="AppByCondition">
+        <if test="name!=null and name!=''">
+            AND A.name = #{name}
+        </if>
+        <if test="appWebsite!=null and appWebsite!=''">
+            AND A.app_website = #{appWebsite}
+        </if>
+        <if test="platformId!=null">
+            AND A.platform_id = #{platformId}
+        </if>
+        <if test="platformHistoryId!=null">
+            AND A.platform_history_id = #{platformHistoryId}
+        </if>
+        <if test="industryId!=null">
+            AND A.industry_id = #{industryId}
+        </if>
+        <if test="sceneId!=null">
+            AND A.scene_id = #{sceneId}
+        </if>
+        <if test="publishUrl!=null and publishUrl!=''">
+            AND A.publish_url = #{publishUrl}
+        </if>
+        <if test="editorUrl!=null and editorUrl!=''">
+            AND A.editor_url = #{editorUrl}
+        </if>
+        <if test="visitUrl!=null and visitUrl!=''">
+            AND A.visit_url = #{visitUrl}
+        </if>
+        <if test="imageUrl!=null and imageUrl!=''">
+            AND A.image_url = #{imageUrl}
+        </if>
+        <if test="assetsUrl!=null and assetsUrl!=''">
+            AND A.assets_url = #{assetsUrl}
+        </if>
+        <if test="state!=null and state!=''">
+            AND A.state = #{state}
+        </if>
+        <if test="code!=null and code!=''">
+            AND A.code = #{code}
+        </if>
+        <if test="enable!=null">
+            AND A.enable = #{enable}
+        </if>
+        <if test="isPublish!=null">
+            AND A.published = #{isPublish}
+        </if>
+        <if test="homePage!=null">
+            AND A.home_page_id = #{homePage}
+        </if>
+        <if test="css!=null and css!=''">
+            AND A.css = #{css}
+        </if>
+        <if test="config!=null and config!=''">
+            AND A.config = #{config,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        </if>
+        <if test="constants!=null and constants!=''">
+            AND A.constants = #{constants}
+        </if>
+        <if test="dataHandler!=null and dataHandler!=''">
+            AND A.data_handler = #{dataHandler,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        </if>
+        <if test="description!=null and description!=''">
+            AND A.description = #{description}
+        </if>
+        <if test="latest!=null and latest!=''">
+            AND A.latest = #{latest}
+        </if>
+        <if test="gitGroup!=null and gitGroup!=''">
+            AND A.git_group = #{gitGroup}
+        </if>
+        <if test="projectName!=null and projectName!=''">
+            AND A.project_name = #{projectName}
+        </if>
+        <if test="branch!=null and branch!=''">
+            AND A.branch = #{branch}
+        </if>
+        <if test="isDemo!=null">
+            AND A.is_demo = #{isDemo}
+        </if>
+        <if test="isDefault!=null">
+            AND A.is_default = #{isDefault}
+        </if>
+        <if test="templateType!=null and templateType!=''">
+            AND A.template_type = #{templateType}
+        </if>
+        <if test="isTemplate!=null">
+            AND A.is_template = #{isTemplate}
+        </if>
+        <if test="setTemplateTime!=null">
+            AND A.set_template_time = #{setTemplateTime}
+        </if>
+        <if test="setTemplateBy!=null and setTemplateBy!=''">
+            AND A.set_template_by = #{setTemplateBy}
+        </if>
+        <if test="setDefaultBy!=null and setDefaultBy!=''">
+            AND A.set_default_by = #{setDefaultBy}
+        </if>
+        <if test="framework!=null and framework!=''">
+            AND A.framework = #{framework}
+        </if>
+        <if test="globalState!=null and globalState!=''">
+            AND A.global_state = #{globalState,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
+        </if>
+        <if test="defaultLang!=null and defaultLang!=''">
+            AND A.default_lang = #{defaultLang}
+        </if>
+        <if test="extendConfig!=null and extendConfig!=''">
+            AND A.extend_config = #{extendConfig,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        </if>
+        <if test="dataHash!=null and dataHash!=''">
+            AND A.data_hash = #{dataHash}
+        </if>
+        <if test="canAssociate!=null">
+            AND A.can_associate = #{canAssociate}
+        </if>
+        <if test="dataSourceGlobal!=null and dataSourceGlobal!=''">
+            AND A.data_source_global = #{dataSourceGlobal,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        </if>
+        <if test="createdBy!=null and createdBy!=''">
+            AND A.created_by = #{createdBy}
+        </if>
+        <if test="lastUpdatedBy!=null and lastUpdatedBy!=''">
+            AND A.last_updated_by = #{lastUpdatedBy}
+        </if>
+        <if test="createdTime!=null">
+            AND A.created_time = #{createdTime}
+        </if>
+        <if test="lastUpdatedTime!=null">
+            AND A.last_updated_time = #{lastUpdatedTime}
+        </if>
+        <if test="tenantId!=null and tenantId!=''">
+            AND A.tenant_id = #{tenantId}
+        </if>
+        <if test="renterId!=null and renterId!=''">
+            AND A.renter_id = #{renterId}
+        </if>
+        <if test="siteId!=null and siteId!=''">
+            AND A.site_id = #{siteId}
+        </if>
+    </sql>
+
+    <!-- 通用设置列 -->
+    <sql id="AppSetColumns">
+        <if test="name!=null and name!=''">
+            name = #{name},
+        </if>
+        <if test="appWebsite!=null and appWebsite!=''">
+            app_website = #{appWebsite},
+        </if>
+        <if test="platformId!=null">
+            platform_id = #{platformId},
+        </if>
+        <if test="platformHistoryId!=null">
+            platform_history_id = #{platformHistoryId},
+        </if>
+        <if test="industryId!=null">
+            industry_id = #{industryId},
+        </if>
+        <if test="sceneId!=null">
+            scene_id = #{sceneId},
+        </if>
+        <if test="publishUrl!=null and publishUrl!=''">
+            publish_url = #{publishUrl},
+        </if>
+        <if test="editorUrl!=null and editorUrl!=''">
+            editor_url = #{editorUrl},
+        </if>
+        <if test="visitUrl!=null and visitUrl!=''">
+            visit_url = #{visitUrl},
+        </if>
+        <if test="imageUrl!=null and imageUrl!=''">
+            image_url = #{imageUrl},
+        </if>
+        <if test="assetsUrl!=null and assetsUrl!=''">
+            assets_url = #{assetsUrl},
+        </if>
+        <if test="state!=null and state!=''">
+            state = #{state},
+        </if>
+        <if test="code!=null and code!=''">
+            code = #{code},
+        </if>
+        <if test="enable!=null">
+            enable = #{enable},
+        </if>
+        <if test="isPublish!=null">
+            published = #{isPublish},
+        </if>
+        <if test="homePage!=null">
+            home_page_id = #{homePage},
+        </if>
+        <if test="css!=null and css!=''">
+            css = #{css},
+        </if>
+        <if test="config!=null and config!=''">
+            config = #{config,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
+        </if>
+        <if test="constants!=null and constants!=''">
+            constants = #{constants},
+        </if>
+        <if test="dataHandler!=null and dataHandler!=''">
+            data_handler = #{dataHandler,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
+        </if>
+        <if test="description!=null and description!=''">
+            description = #{description},
+        </if>
+        <if test="latest!=null and latest!=''">
+            latest = #{latest},
+        </if>
+        <if test="gitGroup!=null and gitGroup!=''">
+            git_group = #{gitGroup},
+        </if>
+        <if test="projectName!=null and projectName!=''">
+            project_name = #{projectName},
+        </if>
+        <if test="branch!=null and branch!=''">
+            branch = #{branch},
+        </if>
+        <if test="isDemo!=null">
+            is_demo = #{isDemo},
+        </if>
+        <if test="isDefault!=null">
+            is_default = #{isDefault},
+        </if>
+        <if test="templateType!=null and templateType!=''">
+            template_type = #{templateType},
+        </if>
+        <if test="isTemplate!=null">
+            is_template = #{isTemplate},
+        </if>
+        <if test="setTemplateTime!=null">
+            set_template_time = #{setTemplateTime},
+        </if>
+        <if test="setTemplateBy!=null and setTemplateBy!=''">
+            set_template_by = #{setTemplateBy},
+        </if>
+        <if test="setDefaultBy!=null and setDefaultBy!=''">
+            set_default_by = #{setDefaultBy},
+        </if>
+        <if test="framework!=null and framework!=''">
+            framework = #{framework},
+        </if>
+        <if test="globalState!=null and globalState!=''">
+            global_state = #{globalState,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler},
+        </if>
+        <if test="defaultLang!=null and defaultLang!=''">
+            default_lang = #{defaultLang},
+        </if>
+        <if test="extendConfig!=null and extendConfig!=''">
+            extend_config = #{extendConfig,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
+        </if>
+        <if test="dataHash!=null and dataHash!=''">
+            data_hash = #{dataHash},
+        </if>
+        <if test="canAssociate!=null">
+            can_associate = #{canAssociate},
+        </if>
+        <if test="dataSourceGlobal!=null and dataSourceGlobal!=''">
+            data_source_global = #{dataSourceGlobal,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
+        </if>
+        <if test="createdBy!=null and createdBy!=''">
+            created_by = #{createdBy},
+        </if>
+        <if test="lastUpdatedBy!=null and lastUpdatedBy!=''">
+            last_updated_by = #{lastUpdatedBy},
+        </if>
+        <if test="createdTime!=null">
+            created_time = #{createdTime},
+        </if>
+        <if test="lastUpdatedTime!=null">
+            last_updated_time = #{lastUpdatedTime},
+        </if>
+        <if test="tenantId!=null and tenantId!=''">
+            tenant_id = #{tenantId},
+        </if>
+        <if test="renterId!=null and renterId!=''">
+            renter_id = #{renterId},
+        </if>
+        <if test="siteId!=null and siteId!=''">
+            site_id = #{siteId},
+        </if>
+    </sql>
+
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="AppMap" type="com.xiongx9527.fw.plus.tinyengine.model.entity.App">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="code" property="code"/>
+        <result column="app_website" property="appWebsite"/>
+        <result column="platform_id" property="platformId"/>
+        <result column="platform_history_id" property="platformHistoryId"/>
+        <result column="publish_url" property="publishUrl"/>
+        <result column="editor_url" property="editorUrl"/>
+        <result column="visit_url" property="visitUrl"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="assets_url" property="assetsUrl"/>
+        <result column="state" property="state"/>
+        <result column="enable" property="enable"/>
+        <result column="published" property="isPublish"/>
+        <result column="home_page_id" property="homePage"/>
+        <result column="css" property="css"/>
+        <result column="config" property="config" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="constants" property="constants"/>
+        <result column="data_handler" property="dataHandler" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="description" property="description"/>
+        <result column="latest" property="latest"/>
+        <result column="git_group" property="gitGroup"/>
+        <result column="project_name" property="projectName"/>
+        <result column="branch" property="branch"/>
+        <result column="is_demo" property="isDemo"/>
+        <result column="is_default" property="isDefault"/>
+        <result column="template_type" property="templateType"/>
+        <result column="is_template" property="isTemplate"/>
+        <result column="industry_id" property="industryId"/>
+        <result column="scene_id" property="sceneId"/>
+        <result column="set_template_time" property="setTemplateTime"/>
+        <result column="set_template_by" property="setTemplateBy"/>
+        <result column="set_default_by" property="setDefaultBy"/>
+        <result column="framework" property="framework"/>
+        <result column="global_state" property="globalState" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
+        <result column="default_lang" property="defaultLang"/>
+        <result column="extend_config" property="extendConfig" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="data_hash" property="dataHash"/>
+        <result column="can_associate" property="canAssociate"/>
+        <result column="data_source_global" property="dataSourceGlobal" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="last_updated_by" property="lastUpdatedBy"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="last_updated_time" property="lastUpdatedTime"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="renter_id" property="renterId"/>
+        <result column="site_id" property="siteId"/>
+		<result column="current_role" property="currentRole"/>
+        <!-- 行业分类映射 -->
+        <association property="industry" javaType="com.xiongx9527.fw.plus.tinyengine.model.entity.BusinessCategory">
+            <id column="industry_id" property="id"/>
+            <result column="industry_code" property="code"/>
+            <result column="industry_name" property="name"/>
+            <result column="industry_business_group" property="businessGroup"/>
+            <result column="industry_created_by" property="createdBy"/>
+            <result column="industry_last_updated_by" property="lastUpdatedBy"/>
+            <result column="industry_created_time" property="createdTime"/>
+            <result column="industry_last_updated_time" property="lastUpdatedTime"/>
+            <result column="industry_tenant_id" property="tenantId"/>
+            <result column="industry_renter_id" property="renterId"/>
+            <result column="industry_site_id" property="siteId"/>
+        </association>
+
+        <!-- 场景分类映射 -->
+        <association property="scene" javaType="com.xiongx9527.fw.plus.tinyengine.model.entity.BusinessCategory">
+            <id column="scene_id" property="id"/>
+            <result column="scene_code" property="code"/>
+            <result column="scene_name" property="name"/>
+            <result column="scene_business_group" property="businessGroup"/>
+            <result column="scene_created_by" property="createdBy"/>
+            <result column="scene_last_updated_by" property="lastUpdatedBy"/>
+            <result column="scene_created_time" property="createdTime"/>
+            <result column="scene_last_updated_time" property="lastUpdatedTime"/>
+            <result column="scene_tenant_id" property="tenantId"/>
+            <result column="scene_renter_id" property="renterId"/>
+            <result column="scene_site_id" property="siteId"/>
+        </association>
+    </resultMap>
+    <!-- 公共列定义 -->
+    <sql id="App_Base_Column_List">
+        A.id,
+        A.name,
+        A.code,
+        A.app_website,
+        A.platform_id,
+        A.industry_id,
+        A.scene_id,
+        A.platform_history_id,
+        A.publish_url,
+        A.editor_url,
+        A.visit_url,
+        A.image_url,
+        A.assets_url,
+        A.state,
+        A.enable,
+        A.published,
+        A.home_page_id,
+        A.css,
+        A.config,
+        A.constants,
+        A.data_handler,
+        A.description,
+        A.latest,
+        A.git_group,
+        A.project_name,
+        A.branch,
+        A.is_demo,
+        A.is_default,
+        A.template_type,
+        A.is_template,
+        A.set_template_time,
+        A.set_template_by,
+        A.set_default_by,
+        A.framework,
+        A.global_state,
+        A.default_lang,
+        A.extend_config,
+        A.data_hash,
+        A.can_associate,
+        A.data_source_global,
+        COALESCE(creator.username, A.created_by) AS created_by,
+        A.last_updated_by,
+        A.created_time,
+        A.last_updated_time,
+        A.tenant_id,
+        A.renter_id,
+        A.site_id
+    </sql>
+
+    <!-- 公共 JOIN 逻辑 -->
+    <sql id="Common_Join">
+        FROM t_app A
+        LEFT JOIN t_business_category industry ON A.industry_id = industry.id AND A.industry_id  IS NOT NULL
+        LEFT JOIN t_business_category scene ON A.scene_id = scene.id AND A.scene_id  IS NOT NULL
+        LEFT JOIN t_user creator ON A.created_by = CONCAT(creator.id, '')
+    </sql>
+    <sql id="Common_Column_List">
+        <include refid="App_Base_Column_List"/>,
+        industry.id as industry_id, industry.code as industry_code, industry.name as industry_name,
+        industry.business_group as industry_business_group,
+        scene.id as scene_id, scene.code as scene_code, scene.name as scene_name,
+        scene.business_group as scene_business_group
+    </sql>
+	<sql id="Current_Role_Column">
+		<choose>
+			<when test="systemContext">'app_owner'</when>
+			<otherwise>
+				(SELECT MAX(PR_CURRENT.code)
+				 FROM r_auth_users_units_roles UR_CURRENT
+				 INNER JOIN t_permission_role PR_CURRENT ON PR_CURRENT.id = UR_CURRENT.role_id
+				 WHERE UR_CURRENT.tenant_id = #{tenantId}
+					AND UR_CURRENT.unit_id = A.id
+					AND UR_CURRENT.unit_type = 'app'
+					AND UR_CURRENT.user_id = #{userId}
+					AND (UR_CURRENT.expired_time IS NULL OR UR_CURRENT.expired_time &gt; CURRENT_TIMESTAMP)
+					AND PR_CURRENT.role_type = 'app'
+					AND PR_CURRENT.code IN ('app_owner', 'app_admin', 'app_dev'))
+			</otherwise>
+		</choose>
+		AS "current_role"
+	</sql>
+    <select id="queryAllApp" resultMap="AppMap">
+        SELECT
+        <include refid="Common_Column_List"/>
+        <include refid="Common_Join"/>
+        WHERE A.tenant_id = #{tenantId}
+        ORDER BY A.created_time DESC
+    </select>
+
+	<sql id="VisibleRoleCondition">
+		<if test="!systemContext">
+			<choose>
+				<when test="userId != null and userId != ''">
+					AND EXISTS (
+						SELECT 1 FROM r_auth_users_units_roles UR
+						INNER JOIN t_permission_role PR ON PR.id = UR.role_id
+						WHERE UR.tenant_id = #{tenantId} AND UR.unit_id = A.id AND UR.unit_type = 'app'
+							AND UR.user_id = #{userId}
+							AND (UR.expired_time IS NULL OR UR.expired_time &gt; CURRENT_TIMESTAMP)
+							AND PR.role_type = 'app' AND PR.code IN ('app_owner', 'app_admin', 'app_dev')
+					)
+				</when>
+				<otherwise>AND 1 = 0</otherwise>
+			</choose>
+		</if>
+	</sql>
+
+	<sql id="VisibleAppConditions">
+		A.tenant_id = #{tenantId} AND A.is_template IS NOT TRUE
+		<if test="name != null and name != ''">
+			AND A.name LIKE CONCAT('%', #{name}, '%')
+		</if>
+		<if test="industryId != null">
+			AND A.industry_id = #{industryId}
+		</if>
+		<if test="sceneId != null">
+			AND A.scene_id = #{sceneId}
+		</if>
+		<if test="framework != null and framework != ''">
+			AND A.framework = #{framework}
+		</if>
+		<if test="platformId != null">
+			AND A.platform_id = #{platformId}
+		</if>
+		<if test="createdBy != null and createdBy != ''">
+			AND A.created_by = #{createdBy}
+		</if>
+		<include refid="VisibleRoleCondition"/>
+	</sql>
+
+	<select id="queryVisibleApps" resultMap="AppMap">
+		SELECT <include refid="Common_Column_List"/>, <include refid="Current_Role_Column"/>
+		<include refid="Common_Join"/>
+		WHERE A.tenant_id = #{tenantId} AND A.is_template IS NOT TRUE
+		<include refid="VisibleRoleCondition"/>
+		ORDER BY A.created_time DESC
+	</select>
+
+	<select id="queryVisibleAppsByPage" resultMap="AppMap">
+		SELECT <include refid="Common_Column_List"/>, <include refid="Current_Role_Column"/>
+		<include refid="Common_Join"/>
+		<where><include refid="VisibleAppConditions"/></where>
+		ORDER BY
+		<choose>
+			<when test="orderBy == 'created_time'">A.created_time</when>
+			<when test="orderBy == 'last_updated_time'">A.last_updated_time</when>
+			<otherwise>A.id</otherwise>
+		</choose>
+		DESC
+		LIMIT #{pageSize} OFFSET #{offset}
+	</select>
+
+	<select id="queryVisibleAppTotal" resultType="int">
+		SELECT COUNT(A.id) FROM t_app A
+		<where><include refid="VisibleAppConditions"/></where>
+	</select>
+
+    <select id="queryAllAppByPage" resultMap="AppMap">
+        SELECT
+        <include refid="Common_Column_List"/>
+        <include refid="Common_Join"/>
+        <where>
+            A.tenant_id = #{tenantId}
+            <if test="name != null and name != ''">
+                AND A.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="industryId != null">
+                AND A.industry_id = #{industryId}
+            </if>
+            <if test="sceneId != null">
+                AND A.scene_id = #{sceneId}
+            </if>
+            <if test="framework != null">
+                AND A.framework = #{framework}
+            </if>
+            <if test="createdBy != null">
+                AND A.created_by = #{createdBy}
+            </if>
+            <if test="tenantId != null">
+                AND A.tenant_id = #{tenantId}
+            </if>
+        </where>
+        ORDER BY
+        <choose>
+            <when test="orderBy == 'created_time'">A.created_time</when>
+            <when test="orderBy == 'last_updated_time'">A.last_updated_time</when>
+            <otherwise>A.id</otherwise>
+        </choose>
+        DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+    <!-- 查询应用模版所有数据 -->
+    <select id="queryAllAppTemplate" resultMap="AppMap">
+        SELECT
+        <include refid="Common_Column_List"/>
+        <include refid="Common_Join"/>
+        <where>
+            A.is_template = true
+            <if test="name != null and name != ''">
+                AND A.name LIKE CONCAT('%', #{name}, '%')
+            </if>
+            <if test="industryId != null">
+                AND A.industry_id = #{industryId}
+            </if>
+            <if test="sceneId != null">
+                AND A.scene_id = #{sceneId}
+            </if>
+            <if test="framework != null">
+                AND A.framework = #{framework}
+            </if>
+            <if test="createdBy != null">
+                AND A.created_by = #{createdBy}
+            </if>
+            <if test="tenantId != null">
+                AND A.tenant_id = #{tenantId}
+            </if>
+        </where>
+        ORDER BY
+        <choose>
+            <when test="orderBy == 'created_time'">A.created_time</when>
+            <when test="orderBy == 'last_updated_time'">A.last_updated_time</when>
+            <otherwise>A.id</otherwise>
+        </choose>
+        DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
+	<select id="queryVisibleAppById" resultMap="AppMap">
+		SELECT <include refid="Common_Column_List"/>, <include refid="Current_Role_Column"/>
+		<include refid="Common_Join"/>
+		WHERE A.id = #{appId} AND A.tenant_id = #{tenantId}
+		<include refid="VisibleRoleCondition"/>
+	</select>
+
+    <!-- 根据主键id查询表t_app信息 -->
+    <select id="queryAppById" resultMap="AppMap">
+        SELECT
+        <include refid="Common_Column_List"/>
+        <include refid="Common_Join"/>
+        <where>
+            A.id = #{id} AND A.tenant_id = #{tenantId}
+        </where>
+    </select>
+
+    <!-- 根据主键id查询应用模版信息 -->
+    <select id="queryAppTemplateById" resultMap="AppMap">
+        SELECT
+        <include refid="Common_Column_List"/>
+        <include refid="Common_Join"/>
+        <where>
+        A.tenant_id = #{tenantId} AND
+        A.id = #{id} AND A.is_template = true
+        </where>
+    </select>
+
+    <!-- 根据条件查询表t_app数据 -->
+    <select id="queryAppByCondition" resultMap="AppMap">
+        SELECT
+        <include refid="Common_Column_List"/>
+        <include refid="Common_Join"/>
+        WHERE 1=1
+        <include refid="AppByCondition"/>
+    </select>
+
+    <!-- 根据主键id删除表t_app数据 -->
+    <delete id="deleteAppById">
+        DELETE
+        FROM t_app
+        WHERE id = #{id} AND tenant_id = #{tenantId}
+    </delete>
+
+	<select id="lockAppForUpdate" resultMap="AppMap">
+		SELECT <include refid="Base_Column_List"/> FROM t_app
+		WHERE tenant_id = #{tenantId} AND id = #{appId}
+		FOR UPDATE
+	</select>
+
+    <!-- 根据主键id更新表t_app数据 -->
+    <update id="updateAppById" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.App">
+        UPDATE t_app
+        <set>
+            <include refid="AppSetColumns"/>
+        </set>
+        WHERE
+        id = #{id} AND tenant_id = #{tenantId}
+    </update>
+
+    <!-- 新增表t_app数据 -->
+    <insert id="createApp" useGeneratedKeys="true" keyProperty="id" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.App">
+        INSERT INTO t_app ( id
+        , name
+        , code
+        , app_website
+        , platform_id
+        , platform_history_id
+        , industry_id
+        , scene_id
+        , publish_url
+        , editor_url
+        , visit_url
+        , image_url
+        , assets_url
+        , state
+        , enable
+        , published
+        , home_page_id
+        , css
+        , config
+        , constants
+        , data_handler
+        , description
+        , latest
+        , git_group
+        , project_name
+        , branch
+        , is_demo
+        , is_default
+        , template_type
+        , is_template
+        , set_template_time
+        , set_template_by
+        , set_default_by
+        , framework
+        , global_state
+        , default_lang
+        , extend_config
+        , data_hash
+        , can_associate
+        , data_source_global
+        , created_by
+        , last_updated_by
+        , created_time
+        , last_updated_time
+        , tenant_id
+        , renter_id
+        , site_id)
+        VALUES ( #{id}
+        , #{name}
+        , #{code}
+        , #{appWebsite}
+        , #{platformId}
+        , #{platformHistoryId}
+        , #{industryId}
+        , #{sceneId}
+        , #{publishUrl}
+        , #{editorUrl}
+        , #{visitUrl}
+        , #{imageUrl}
+        , #{assetsUrl}
+        , #{state}
+        , #{enable}
+        , #{isPublish}
+        , #{homePage}
+        , #{css}
+        , #{config,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        , #{constants}
+        , #{dataHandler,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        , #{description}
+        , #{latest}
+        , #{gitGroup}
+        , #{projectName}
+        , #{branch}
+        , #{isDemo}
+        , #{isDefault}
+        , #{templateType}
+        , #{isTemplate}
+        , #{setTemplateTime}
+        , #{setTemplateBy}
+        , #{setDefaultBy}
+        , #{framework}
+        , #{globalState,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
+        , #{defaultLang}
+        , #{extendConfig,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        , #{dataHash}
+        , #{canAssociate}
+        , #{dataSourceGlobal,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        , #{createdBy}
+        , #{lastUpdatedBy}
+        , #{createdTime}
+        , #{lastUpdatedTime}
+        , #{tenantId}
+        , #{renterId}
+        , #{siteId})
+    </insert>
+</mapper>

@@ -1,0 +1,14 @@
+{
+  "change": "dynamic-debezium-connector-options",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "1290896d15366a1801040671d139a47ec6bd61f6389d0944559f1556db368bfa",
+  "files": [
+    { "path": "openspec/changes/dynamic-debezium-connector-options/proposal.md", "sha256": "ae8c918110c34c20ad1bbbcf43d3bddb8f5ffc9a3ac87fd8979fa522f12c90d2" },
+    { "path": "openspec/changes/dynamic-debezium-connector-options/design.md", "sha256": "bb70bd93039ca427df4e062472ff2a3dcae93059499f52ed2753aa9e0900865a" },
+    { "path": "openspec/changes/dynamic-debezium-connector-options/tasks.md", "sha256": "0b1488f926c41cc7fd3628906708c37256fa0756b284863a30c49918612f84e3" },
+    { "path": "openspec/changes/dynamic-debezium-connector-options/specs/debezium-connector-options/spec.md", "sha256": "18f13486b9ddb7d3f502689634fade1ae16d9398fac32c2dc5af4edadf981615" }
+  ]
+}

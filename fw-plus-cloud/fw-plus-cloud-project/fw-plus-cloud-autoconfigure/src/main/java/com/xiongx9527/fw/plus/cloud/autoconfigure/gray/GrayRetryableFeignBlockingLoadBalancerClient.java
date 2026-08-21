@@ -105,10 +105,8 @@ public class GrayRetryableFeignBlockingLoadBalancerClient implements feign.Clien
             }
             org.springframework.cloud.client.loadbalancer.Response<ServiceInstance> lbResponse = new DefaultResponse(
                     retrievedServiceInstance);
-            LoadBalancerProperties loadBalancerProperties = loadBalancerClientFactory.getProperties(serviceId);
-            Response response = LoadBalancerUtils.executeWithLoadBalancerLifecycleProcessing(delegate, options,
-                    feignRequest, lbRequest, lbResponse, supportedLifecycleProcessors, retrievedServiceInstance != null,
-                    loadBalancerProperties.isUseRawStatusCodeInResponseData());
+			Response response = LoadBalancerUtils.executeWithLoadBalancerLifecycleProcessing(delegate, options,
+					feignRequest, lbRequest, lbResponse, supportedLifecycleProcessors, retrievedServiceInstance != null);
             int responseStatus = response.status();
             if (retryPolicy != null && retryPolicy.retryableStatusCode(responseStatus)) {
                 if (LOG.isDebugEnabled()) {
@@ -156,21 +154,21 @@ public class GrayRetryableFeignBlockingLoadBalancerClient implements feign.Clien
     }
 
     private HttpRequest toHttpRequest(Request request) {
-        return new HttpRequest() {
-            @Override
-            public HttpMethod getMethod() {
-                return HttpMethod.resolve(request.httpMethod().name());
-            }
+		return new HttpRequest() {
+			@Override
+			public HttpMethod getMethod() {
+				return HttpMethod.valueOf(request.httpMethod().name());
+			}
 
             @Override
-            public String getMethodValue() {
-                return getMethod().name();
-            }
+			public URI getURI() {
+				return URI.create(request.url());
+			}
 
-            @Override
-            public URI getURI() {
-                return URI.create(request.url());
-            }
+			@Override
+			public Map<String, Object> getAttributes() {
+				return new HashMap<>(request.requestTemplate().queries());
+			}
 
             @Override
             public HttpHeaders getHeaders() {

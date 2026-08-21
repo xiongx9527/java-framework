@@ -26,8 +26,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.*;
+import jakarta.validation.*;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.*;
@@ -45,7 +44,7 @@ public class CommonsValidator {
     private static Field constraintValidatorContextImplBasePathField = null;
 
     /**
-     * javax.validation验证器实例
+     * jakarta.validation验证器实例
      *
      * <p>用于执行Bean Validation规范定义的验证操作</p>
      */
@@ -63,7 +62,7 @@ public class CommonsValidator {
      *
      * <p>负责初始化验证器相关的组件：
      * 1. 调用init()方法进行自定义初始化
-     * 2. 构建默认的javax.validation验证器
+     * 2. 构建默认的jakarta.validation验证器
      * 3. 创建Spring表达式解析器</p>
      */
     static {
@@ -258,7 +257,7 @@ public class CommonsValidator {
      */
     public static BindingResult bindingResult(Object data) {
         // 从请求中提取参数并绑定到data对象上
-        return WebUtils.bindRequestParameters((HttpServletRequest)WebUtils.getRequest().getRequest(), data);
+        return WebUtils.bindRequestParameters(WebUtils.getRequest(), data);
     }
 
     /**

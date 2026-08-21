@@ -7,7 +7,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * @author TaoYu
@@ -45,11 +45,12 @@ public class DsHeaderProcessor extends DsProcessor {
             return null;
         }
         RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
-        if (!(requestAttributes instanceof ServletRequestAttributes)) {
-            return null;
+        if (requestAttributes instanceof ServletRequestAttributes) {
+            HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
+            return request.getHeader(headerName);
         }
-        HttpServletRequest request = ((ServletRequestAttributes) requestAttributes).getRequest();
-        return request.getHeader(headerName);
+        DsRequestContext context = DsRequestContextHolder.getContext();
+        return context == null ? null : context.getHeader(headerName);
     }
 
 }

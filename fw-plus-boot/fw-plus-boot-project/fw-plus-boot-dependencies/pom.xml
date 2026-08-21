@@ -19,38 +19,31 @@
         <!--  jackson版本号 -->
         <jackson.version>2.20.1</jackson.version>
         <!--  RocketMQ版本号 -->
-        <rocketmq.version>5.1.3</rocketmq.version>
+        <rocketmq.version>5.3.2</rocketmq.version>
         <!--pulsar版本号-->
         <pulsar-client.version>2.11.2</pulsar-client.version>
-        <!--  mysql-binlog-connector-java版本号 -->
-        <mysql-binlog-connector-java.version>0.30.1</mysql-binlog-connector-java.version>
-        <!--  lock4j版本号 -->
+		<!--  lock4j版本号 -->
         <lock4j.version>2.2.7</lock4j.version>
         <!--  debezium版本号 -->
         <debezium.version>1.9.8.Final</debezium.version>
-        <debezium-server.version>1.6.4.Final</debezium-server.version>
-        <!--  paimon版本号 -->
-        <paimon.version>1.2.0</paimon.version>
-        <!--  influxdb-sdk-java版本号 -->
+		<!--  influxdb-sdk-java版本号 -->
         <influxdb.version>6.7.0</influxdb.version>
         <!--  resilience4j版本号 -->
         <resilience4j.version>2.3.0</resilience4j.version>
         <!--  akali版本号 -->
         <akali.version>1.1.5</akali.version>
+        <!--  sentinel版本号 -->
+        <sentinel.version>1.8.6</sentinel.version>
         <!--  elasticsearch版本号 -->
         <elasticsearch-sdk-java.version>8.19.8</elasticsearch-sdk-java.version>
-        <!--  langchain4j版本号 -->
-        <langchain4j.version>0.35.0</langchain4j.version>
-        <!--  tika版本号 -->
-        <tika.version>3.2.3</tika.version>
-        <!--  grpc版本号 -->
+		<!--  grpc版本号 -->
         <grpc.version>1.65.1</grpc.version>
         <!--  netty版本号 -->
-        <netty.version>4.1.94.Final</netty.version>
+        <netty.version>4.1.128.Final</netty.version>
         <!-- wildfly版本号 -->
         <wildfly.version>1.7.0.Final</wildfly.version>
         <!--  jwt版本号 -->
-        <jjwt.version>0.12.7</jjwt.version>
+        <jjwt.version>0.13.0</jjwt.version>
         <!--  dynamic-tp版本号 -->
         <dynamic-tp.version>1.2.2</dynamic-tp.version>
         <!--  kotlin版本号 -->
@@ -59,14 +52,14 @@
         <sms4j.version>3.3.5</sms4j.version>
         <!--  ognl版本号 -->
         <ognl.version>3.4.7</ognl.version>
-        <!--  activation版本号 -->
-        <activation.version>1.1.1</activation.version>
+        <!--  jakarta activation版本号 -->
+        <jakarta.activation.version>2.1.4</jakarta.activation.version>
         <!--  snappy-java版本号 -->
-        <snappy-java.version>1.1.8.4</snappy-java.version>
-        <!--  javax.ws.rs版本号 -->
-        <javax.ws.rs.version>2.1.1</javax.ws.rs.version>
+        <snappy-java.version>1.1.10.8</snappy-java.version>
+        <!--  jakarta ws.rs版本号 -->
+        <jakarta.ws.rs.version>3.1.0</jakarta.ws.rs.version>
         <!--  jspecify版本号 -->
-        <jspecify.version>1.0.0</jspecify.version>
+        <jspecify.version>1.0.1</jspecify.version>
         <!--  netty-websocket版本号 -->
         <netty-websocket.version>0.12.0</netty-websocket.version>
         <!--  mica版本号 -->
@@ -74,9 +67,11 @@
         <!--  mica-mqtt版本号 -->
         <mica-mqtt.version>2.3.9</mica-mqtt.version>
         <!--  plumelog版本号 -->
-        <plumelog.version>3.5.2</plumelog.version>
+        <plumelog.version>3.5.3</plumelog.version>
         <!--  spring-boot-admin版本号 -->
-        <spring-boot-admin.version>2.7.16</spring-boot-admin.version>
+        <spring-boot-admin.version>3.5.6</spring-boot-admin.version>
+        <!--  atomikos版本号 -->
+        <atomikos.version>6.0.1</atomikos.version>
         <!-- spring-cloud-stream版本号 -->
         <spring-cloud-stream.version>4.3.0</spring-cloud-stream.version>
         <!-- spring-cloud-core版本号 -->
@@ -87,13 +82,9 @@
         <spring-cloud-stream-redis.version>1.0.0.RELEASE</spring-cloud-stream-redis.version>
         <!-- spring-cloud-stream-rocketmq版本号 -->
         <spring-cloud-stream-rocketmq.version>2.3.0.RELEASE</spring-cloud-stream-rocketmq.version>
-        <!-- spring-cloud-stream-rocketmq版本号 -->
-        <alibaba-spring-cloud-starter-stream-rocketmq.version>2021.0.5.0</alibaba-spring-cloud-starter-stream-rocketmq.version>
-        <!-- spring-cloud-azure-starter-stream-eventhubs版本号 -->
-        <spring-cloud-azure-starter-stream-eventhubs.version>5.21.0</spring-cloud-azure-starter-stream-eventhubs.version>
-        <!-- spring-cloud-starter-stream-redis版本号 -->
-        <spring-cloud-starter-stream-redis.version>1.0.0.RELEASE</spring-cloud-starter-stream-redis.version>
-    </properties>
+		<!-- spring-cloud-azure-starter-stream-eventhubs版本号 -->
+		<spring-cloud-azure-starter-stream-eventhubs.version>5.21.0</spring-cloud-azure-starter-stream-eventhubs.version>
+	</properties>
     <name>Fw-Plus-Boot Dependencies</name>
     <description>
         fw-plus-boot 依赖库.
@@ -158,6 +149,18 @@
                 <groupId>org.dromara</groupId>
                 <artifactId>akali</artifactId>
                 <version>${akali.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.csp</groupId>
+                <artifactId>sentinel-core</artifactId>
+                <version>${sentinel.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.csp</groupId>
+                <artifactId>sentinel-parameter-flow-control</artifactId>
+                <version>${sentinel.version}</version>
             </dependency>
 
             <dependency>
@@ -229,6 +232,12 @@
                 <version>${jjwt.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>com.atomikos</groupId>
+                <artifactId>transactions-spring-boot3-starter</artifactId>
+                <version>${atomikos.version}</version>
+            </dependency>
+
             <!--debezium-->
             <dependency>
                 <groupId>io.debezium</groupId>
@@ -246,15 +255,15 @@
             </dependency>
 
             <dependency>
-                <groupId>javax.ws.rs</groupId>
-                <artifactId>javax.ws.rs-api</artifactId>
-                <version>${javax.ws.rs.version}</version>
+                <groupId>jakarta.ws.rs</groupId>
+                <artifactId>jakarta.ws.rs-api</artifactId>
+                <version>${jakarta.ws.rs.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>javax.activation</groupId>
-                <artifactId>activation</artifactId>
-                <version>${activation.version}</version>
+                <groupId>jakarta.activation</groupId>
+                <artifactId>jakarta.activation-api</artifactId>
+                <version>${jakarta.activation.version}</version>
             </dependency>
 
             <dependency>
@@ -610,6 +619,18 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-tiny-engine-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-tiny-engine-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-freemarker</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -652,13 +673,31 @@
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-druid</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-swagger</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-admin</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-debezium</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-db</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -737,6 +776,12 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus.boot</groupId>
                 <artifactId>fw-plus-magicapi-plugin-word</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus.boot</groupId>
+                <artifactId>fw-plus-magicapi-plugin-java-entity</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

@@ -11,7 +11,7 @@
                             <magic-icon icon="close" :title="$i('editor.tab.close')" v-if="toolbar.allowClose" @click="closeTab(toolbar)"/>
                         </div>
                     </div>
-                    <component :is="toolbar.component" v-bind="toolbar.data"/>
+                    <component :is="toolbar.component" v-bind="toolbar.data" :ref="component => setToolbarComponent(toolbar, component)"/>
                 </magic-resizer>
             </magic-navbar-item>
         </magic-navbar>
@@ -23,6 +23,8 @@ import bus from '../../../scripts/bus.js'
 import $i from '../../../scripts/i18n.js'
 import Message from '../../../scripts/constants/message.js'
 import constants from '../../../scripts/constants.js'
+import { stableSortByOrder } from '../../../scripts/plugin-extension.js'
+import { removeToolbarByIdentity, requestToolbarClose } from './magic-toolbar-close.js'
 
 const navbar = ref(null)
 const isFullscreen = ref(false)
@@ -72,60 +74,24 @@ const toolbars = reactive([
     { id: 'event', title: $i('toolbars.event'), icon: 'event', component: shallowRef(resolveDynamicComponent('magic-event')), style: { float: 'right'} }
 ])
 
-// 只有当constants.PLUGINS_DATA中包含s3插件时，才添加s3工具栏
-if (constants.PLUGINS_DATA.some(plugin => plugin.name === 's3' && plugin.adminEnabled === true)) {
-    toolbars.push({
-        id: 's3',
-        title: $i('toolbars.s3'),
-        icon: 's3',
-        component: shallowRef(resolveDynamicComponent('magic-s3')),
-        max: 1000,
-        min: 200,
-        value: 500,
-        fullscreen: true
-    })
-}
-
-
-
-// 只有当constants.PLUGINS_DATA中包含pulsar插件时，才添加pulsar工具栏
-if (constants.PLUGINS_DATA.some(plugin => plugin.name === 'pulsar'  && plugin.adminEnabled === true)) {
-    toolbars.push({
-        id: 'pulsar',
-        title: $i('pulsar.title'),
-        icon: 'pulsar',
-        component: shallowRef(resolveDynamicComponent('magic-pulsar')),
-        max: 1000,
-        min: 200,
-        value: 500,
-        fullscreen: true
-    })
-}
-
-// 只有当constants.PLUGINS_DATA中包含kafka插件时，才添加kafka工具栏
-if (constants.PLUGINS_DATA.some(plugin => plugin.name === 'kafka' && plugin.adminEnabled === true)) {
-    toolbars.push({
-        id: 'kafka',
-        title: $i('kafka.title'),
-        icon: 'kafka',
-        component: shallowRef(resolveDynamicComponent('magic-kafka')),
-        max: 1000,
-        min: 200,
-        value: 500,
-        fullscreen: true
-    })
-}
-constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).map(it => it.toolbars).forEach(res => res.forEach(it => {
-	toolbars.unshift({
+const isPluginToolbarVisible = (toolbar, pluginData) => !toolbar.adminOnly || (pluginData && pluginData.adminEnabled === true)
+const pluginToolbars = constants.PLUGINS.filter(it => it.toolbars && it.toolbars.length > 0).reduce((items, plugin) => {
+    const pluginData = constants.PLUGINS_DATA.find(item => item.name === plugin.name)
+    return items.concat(plugin.toolbars.filter(toolbar => isPluginToolbarVisible(toolbar, pluginData)))
+}, [])
+stableSortByOrder(pluginToolbars).forEach(it => {
+	toolbars.push({
         id: it.id,
-		type: it.type,
-		icon: it.icon,
+			type: it.type,
+			icon: it.icon,
 		title: $i(it.title),
         component: shallowRef(it.component),
         fullscreen: it.fullscreen,
-        allowClose: it.allowClose
+		allowClose: it.allowClose,
+		beforeClose: it.beforeClose,
+		componentInstance: null
 	})
-}))
+})
 const opened = ref({})
 const info = ref({})
 provide('opened', opened)
@@ -137,16 +103,20 @@ const setOpenedToolbars = (type, force) => {
     }
 }
 setOpenedToolbars('')
-const closeTab = toolbar => {
-  const index = toolbars.findIndex(it => it.id === toolbar.id)
-  if(index > -1){
-    toolbars.splice(index, 1)
-  }
-  navbar.value.select(-1)
+const setToolbarComponent = (toolbar, component) => {
+	toolbar.componentInstance = component
 }
-bus.$on(Message.ADD_FOOTER_TOOLBAR, (toolbar) => {
-  if(toolbar.id) {
-    closeTab(toolbar)
+const closeTab = async toolbar => {
+  const openedToolbar = toolbars.find(it => it === toolbar || (toolbar.id && it.id === toolbar.id))
+  if(!openedToolbar) return false
+  const closed = await requestToolbarClose(openedToolbar, openedToolbar.componentInstance, () => removeToolbarByIdentity(toolbars, openedToolbar))
+  if (closed && navbar.value) navbar.value.select(-1)
+  return closed
+}
+bus.$on(Message.ADD_FOOTER_TOOLBAR, async (toolbar) => {
+  const index = toolbar.id && toolbars.findIndex(it => it.id === toolbar.id)
+  if(index > -1 && !await closeTab(toolbar)) {
+    return
   }
   navbar.value.select(toolbars.push(toolbar) - 1)
 })

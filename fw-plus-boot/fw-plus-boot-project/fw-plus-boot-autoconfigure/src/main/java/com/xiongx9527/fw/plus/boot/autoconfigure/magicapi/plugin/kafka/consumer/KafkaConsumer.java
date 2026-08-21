@@ -24,6 +24,8 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.ssssssss.magicapi.utils.JsonUtils;
 
+import java.time.Duration;
+
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -740,7 +742,7 @@ public class KafkaConsumer implements BaseService {
             if (isShuttingDown.getAsBoolean()) {
                 log.warn("消费者正在关闭，跳过消息处理，topic: {}", msg.topic());
                 if (acknowledgeFlag) {
-                    acknowledgment.nack(1000);
+                    acknowledgment.nack(Duration.ofMillis(1000));
                 }
                 return;
             }
@@ -763,7 +765,7 @@ public class KafkaConsumer implements BaseService {
                     int retryCount = getRetryCount(msg);
                     if (retryCount < maxRetryTimes) {
                         resetRetryCount(msg, retryCount + 1);
-                        acknowledgment.nack(retryBackoffMs);
+                        acknowledgment.nack(Duration.ofMillis(retryBackoffMs));
                     } else {
                         sendToDeadLetter(msg, e);
                         acknowledgment.acknowledge();

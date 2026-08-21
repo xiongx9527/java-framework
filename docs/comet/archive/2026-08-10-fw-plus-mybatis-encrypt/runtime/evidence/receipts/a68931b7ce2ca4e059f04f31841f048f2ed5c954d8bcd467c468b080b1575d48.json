@@ -1,0 +1,25 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "static-inspection",
+  "role": "required-check",
+  "status": "passed",
+  "bindings": {
+    "change": "fw-plus-mybatis-encrypt",
+    "sourceRevision": 3,
+    "contractHash": "2676fb29471f2ff031f02d173565b0db21383e76460b4d8f6ff8be6963ce9cae",
+    "scopeHash": "a6281a872eda208febb1cdbb70818a763454cd071616c9aad8e1cef556ea5644",
+    "snapshotHash": "352bb84648a70fb3b891d3f2d36e34dfd9e2f5a7f156847449a9f567d1e84d3f",
+    "artifactHash": "ebcd90ea834cea6cc6bc4399a9ba965b610596d0c6c024f390123465e2d4fbd2"
+  },
+  "acceptanceIds": [],
+  "actor": "native-runtime:scoped-text-safety",
+  "issuedAt": "2026-08-10T05:00:57.092Z",
+  "evidence": {
+    "subjects": [],
+    "rule": "scoped-text-safety",
+    "resultSummary": "The built-in scoped inspection passed without skipped or blocking input.",
+    "checkReceiptRef": "runtime/evidence/check-receipts/99ec32870feb53dfbb39b057cac0604803a7085d578002c6611b715c23bc3a5b.json",
+    "checkReceiptHash": "99ec32870feb53dfbb39b057cac0604803a7085d578002c6611b715c23bc3a5b"
+  },
+  "receiptHash": "a68931b7ce2ca4e059f04f31841f048f2ed5c954d8bcd467c468b080b1575d48"
+}

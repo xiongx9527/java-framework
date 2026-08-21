@@ -1,7 +1,5 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.model;
 
-import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.TypeReference;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqtt.common.BaseService;
 import com.xiongx9527.fw.plus.boot.autoconfigure.mqtt.server.broker.cluster.RedisMqttMessageDownReceiver;
@@ -109,25 +107,21 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
             mqttAuth.setPassword(password);
             mqttServerProperties.setAuth(mqttAuth);
         }
-        String other = info.getOther();
-        other = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "other", other);
-        // 从 other JSON 字符串中解析配置信息
-        if (StringUtils.isNotBlank(other)) {
+        String configuredProperties = MagicAPIConfigUtils.getMqttConfig(info.getKey(), "properties", null);
+        Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(info.getProperties(), configuredProperties);
+        if (!properties.isEmpty()) {
             try {
-                // 将 JSON 字符串转换为 Map
-                Map<String, Object> otherConfig = JSON.parseObject(other, new TypeReference<Map<String, Object>>() {});
-                // 连接管理配置 - 从 otherConfig 中获取
-                mqttServerProperties.setHeartbeatTimeout(getConfigValueAsLong(otherConfig, "heartbeatTimeout", getHeartbeatTimeout()));
-                mqttServerProperties.setKeepaliveBackoff(getConfigValueAsFloat(otherConfig, "keepaliveBackoff", getKeepaliveBackoff()));
-                mqttServerProperties.setMaxClientIdLength(getConfigValueAsInt(otherConfig, "maxClientIdLength", getMaxClientIdLength()));
+                mqttServerProperties.setHeartbeatTimeout(getConfigValueAsLong(properties, "heartbeatTimeout", getHeartbeatTimeout()));
+                mqttServerProperties.setKeepaliveBackoff(getConfigValueAsFloat(properties, "keepaliveBackoff", getKeepaliveBackoff()));
+                mqttServerProperties.setMaxClientIdLength(getConfigValueAsInt(properties, "maxClientIdLength", getMaxClientIdLength()));
 
                 // 缓冲区配置 - 从 otherConfig 中获取
-                long readBufferSize = getConfigValueAsLong(otherConfig, "readBufferSize", getReadBufferSize());
+                long readBufferSize = getConfigValueAsLong(properties, "readBufferSize", getReadBufferSize());
                 mqttServerProperties.setReadBufferSize(DataSize.ofBytes(readBufferSize));
-                long maxBytesInMessage = getConfigValueAsLong(otherConfig, "maxBytesInMessage", getMaxBytesInMessage());
+                long maxBytesInMessage = getConfigValueAsLong(properties, "maxBytesInMessage", getMaxBytesInMessage());
                 mqttServerProperties.setMaxBytesInMessage(DataSize.ofBytes(maxBytesInMessage));
 
-                String bufferAllocator = (String) otherConfig.getOrDefault("bufferAllocator", "");
+                String bufferAllocator = (String) properties.getOrDefault("bufferAllocator", "");
                 if (StringUtils.isNotBlank(bufferAllocator)) {
                     if ("HEAP".equalsIgnoreCase(bufferAllocator)) {
                         mqttServerProperties.setBufferAllocator(ByteBufferAllocator.HEAP);
@@ -137,25 +131,25 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
                 }
 
                 // 协议支持标志 - 从 otherConfig 中获取
-                if (otherConfig.containsKey("websocketEnable")) {
-                    mqttServerProperties.setWebsocketEnable((Boolean) otherConfig.get("websocketEnable"));
+                if (properties.containsKey("websocketEnable")) {
+                    mqttServerProperties.setWebsocketEnable((Boolean) properties.get("websocketEnable"));
                 }
 
-                if (otherConfig.containsKey("httpEnable")) {
-                    mqttServerProperties.setHttpEnable((Boolean) otherConfig.get("httpEnable"));
+                if (properties.containsKey("httpEnable")) {
+                    mqttServerProperties.setHttpEnable((Boolean) properties.get("httpEnable"));
                 }
 
-                if (otherConfig.containsKey("statEnable")) {
-                    mqttServerProperties.setStatEnable((Boolean) otherConfig.get("statEnable"));
+                if (properties.containsKey("statEnable")) {
+                    mqttServerProperties.setStatEnable((Boolean) properties.get("statEnable"));
                 }
 
-                if (otherConfig.containsKey("debug")) {
-                    mqttServerProperties.setDebug((Boolean) otherConfig.get("debug"));
+                if (properties.containsKey("debug")) {
+                    mqttServerProperties.setDebug((Boolean) properties.get("debug"));
                 }
 
                 // 解析 HTTP Basic 认证配置
-                if (otherConfig.containsKey("httpBasicAuth")) {
-                    Map<String, Object> httpBasicAuthMap = (Map<String, Object>) otherConfig.get("httpBasicAuth");
+                if (properties.containsKey("httpBasicAuth")) {
+                    Map<String, Object> httpBasicAuthMap = (Map<String, Object>) properties.get("httpBasicAuth");
                     MqttServerProperties.HttpBasicAuth httpBasicAuth = new MqttServerProperties.HttpBasicAuth();
                     httpBasicAuth.setEnable((Boolean) httpBasicAuthMap.getOrDefault("enable", false));
                     httpBasicAuth.setUsername((String) httpBasicAuthMap.getOrDefault("username", ""));
@@ -164,8 +158,8 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
                 }
 
                 // 解析 SSL 配置
-                if (otherConfig.containsKey("ssl")) {
-                    Map<String, Object> sslMap = (Map<String, Object>) otherConfig.get("ssl");
+                if (properties.containsKey("ssl")) {
+                    Map<String, Object> sslMap = (Map<String, Object>) properties.get("ssl");
                     MqttServerProperties.Ssl ssl = new MqttServerProperties.Ssl();
                     ssl.setEnabled((Boolean) sslMap.getOrDefault("enabled", false));
                     ssl.setKeystorePath((String) sslMap.getOrDefault("keystorePath", ""));
@@ -185,7 +179,7 @@ public abstract class BaseMagicDynamicMqttDataSource implements BaseService, Dis
                     mqttServerProperties.setSsl(ssl);
                 }
             } catch (Exception e) {
-                log.warn("解析 other 配置失败: {}", e.getMessage(), e);
+                log.warn("应用 MQTT properties 失败: {}", e.getMessage(), e);
             }
         }
 

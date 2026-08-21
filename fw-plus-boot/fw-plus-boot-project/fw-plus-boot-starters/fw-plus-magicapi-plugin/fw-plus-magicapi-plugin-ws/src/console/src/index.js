@@ -29,11 +29,28 @@ if (typeof window !== 'undefined') {
     }
 }
 
+const resolveWsUrl = (baseURL, pageURL) => {
+    const link = new URL(baseURL || './', pageURL).toString().replace(/\/+$/, '')
+    return link + '/ws/index.html'
+}
+
+const openWs = (baseURL) => {
+    const pageURL = `${location.protocol}//${location.host}${location.pathname}`
+    window.open(resolveWsUrl(baseURL, pageURL), '_blank')
+}
+
 export default (opt) => {
     const i18n = opt.i18n
     i18n.add('zh-cn', localZhCN)
     i18n.add('en', localEn)
     return {
+        statusBarItems: [{
+            icon: '#magic-ws-ws',
+            title: 'Websocket client',
+            displayKey: 'ws',
+            order: 900,
+            onClick: () => openWs(opt.constants && opt.constants.BASE_URL)
+        }],
         resource: [{
             type: 'ws-subscribe',
             icon: '#magic-ws-ws',
@@ -52,6 +69,7 @@ export default (opt) => {
             type: 'ws-subscribe',
             title: 'ws.subscribe.title',
             icon: '#magic-ws-ws',
+            order: 1400,
             component: MagicWsSubscribeInfo
         }]
     }

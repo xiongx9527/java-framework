@@ -1,0 +1,9 @@
+META-INF/spring-configuration-metadata.json
+com/xiongx9527/fw/plus/ai/tinyengine/TinyEngineSampleAuthConfiguration$1.class
+com/xiongx9527/fw/plus/ai/tinyengine/TinyEngineSampleAuthConfiguration$SampleAuthProperties.class
+com/xiongx9527/fw/plus/ai/tinyengine/TinyEngineAiSampleApplication.class
+com/xiongx9527/fw/plus/ai/tinyengine/TinyEngineSampleAuthConfiguration$SampleAuthProperties$Admin.class
+com/xiongx9527/fw/plus/ai/tinyengine/TinyEngineSampleAuthConfiguration$SampleTinyEnginePrincipal.class
+com/xiongx9527/fw/plus/ai/tinyengine/TinyEngineSampleAuthConfiguration.class
+com/xiongx9527/fw/plus/ai/tinyengine/TinyEngineSampleAuthConfiguration$JdbcTinyEngineUserSystemService.class
+com/xiongx9527/fw/plus/ai/tinyengine/TinyEngineSampleAuthConfiguration$TinyEngineRegistrationPrincipal.class

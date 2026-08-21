@@ -4,6 +4,9 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class DebeziumDataSourceInfo extends MagicEntity {
@@ -65,7 +68,7 @@ public class DebeziumDataSourceInfo extends MagicEntity {
     /**
      * 其他配置项
      */
-    private String other;
+    private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
     /**
      * 成员变量，表示当前对象的启用状态
@@ -103,7 +106,7 @@ public class DebeziumDataSourceInfo extends MagicEntity {
         dataSourceInfo.setExcludeTables(this.excludeTables);
         dataSourceInfo.setKafkaServers(this.kafkaServers);
         dataSourceInfo.setKafkaTopic(this.kafkaTopic);
-        dataSourceInfo.setOther(this.other);
+        dataSourceInfo.setProperties(copyProperties());
         dataSourceInfo.setEnabled(this.enabled);
         dataSourceInfo.setServerIdType(this.serverIdType);
         return dataSourceInfo;
@@ -133,10 +136,16 @@ public class DebeziumDataSourceInfo extends MagicEntity {
         dataSourceInfo.setExcludeTables(this.excludeTables);
         dataSourceInfo.setKafkaServers(this.kafkaServers);
         dataSourceInfo.setKafkaTopic(this.kafkaTopic);
-        dataSourceInfo.setOther(this.other);
+        dataSourceInfo.setProperties(copyProperties());
         dataSourceInfo.setEnabled(this.enabled);
         dataSourceInfo.setServerIdType(this.serverIdType);
         return dataSourceInfo;
+    }
+
+    private Map<String, Object> copyProperties() {
+        return this.properties == null
+                ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(this.properties);
     }
 
 }

@@ -29,7 +29,7 @@
 
         <dependency>
             <groupId>org.jeecgframework.jimureport</groupId>
-            <artifactId>jimureport-spring-boot-starter</artifactId>
+            <artifactId>jimureport-spring-boot3-starter</artifactId>
         </dependency>
 
         <!-- 未使用：无 NoSQL 数据源功能引用，按需启用 -->

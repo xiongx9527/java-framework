@@ -3,6 +3,9 @@ package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.rabbitmq.model
 import lombok.Data;
 import org.ssssssss.magicapi.core.model.MagicEntity;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @Data
 public class RabbitMqDataSourceInfo extends MagicEntity {
     private String host;
@@ -11,7 +14,7 @@ public class RabbitMqDataSourceInfo extends MagicEntity {
     private String password;
     private String key;
     private String virtualHost;
-    private String other;
+    private Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
     public RabbitMqDataSourceInfo() {
     }
@@ -34,7 +37,7 @@ public class RabbitMqDataSourceInfo extends MagicEntity {
         dataSourceInfo.setPort(this.port);
         dataSourceInfo.setVirtualHost(this.virtualHost);
         dataSourceInfo.setKey(this.key);
-        dataSourceInfo.setOther(this.other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
     }
 
@@ -56,8 +59,14 @@ public class RabbitMqDataSourceInfo extends MagicEntity {
         dataSourceInfo.setPort(this.port);
         dataSourceInfo.setVirtualHost(this.virtualHost);
         dataSourceInfo.setKey(this.key);
-        dataSourceInfo.setOther(this.other);
+        dataSourceInfo.setProperties(copyProperties());
         return dataSourceInfo;
+    }
+
+    private Map<String, Object> copyProperties() {
+        return this.properties == null
+                ? new LinkedHashMap<String, Object>()
+                : new LinkedHashMap<String, Object>(this.properties);
     }
 
 

@@ -2,6 +2,7 @@ package com.xiongx9527.fw.plus.dify.types;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
+import com.xiongx9527.fw.plus.common.exception.BizException;
 import lombok.Getter;
 
 import java.util.HashMap;
@@ -10,61 +11,54 @@ import java.util.Map;
 /**
  * Dify exception type
  */
-public class DifyException extends RuntimeException {
-    /**
-     * original dify response
-     */
+public class DifyException extends BizException {
     @Getter
     private String original;
 
-    /**
-     * response status | http status
-     */
+    @Getter
     private Integer status;
 
-    /**
-     * dify response -> code
-     */
     @Getter
-    private String code;
+    private Integer httpStatus;
 
-    /**
-     * dify response -> message
-     */
+    @Getter
+    private Integer difyStatus;
+
+    @Getter
+    private String difyCode;
+
     private String message;
 
-    /**
-     * dify response -> params
-     */
     @Getter
     private String params;
 
-    /**
-     * constructor
-     */
     public DifyException() {
         super();
     }
 
-    /**
-     * constructor
-     * @param response String
-     * @param status http status
-     */
     public DifyException(String response, Integer status) {
-        try {
-            JSONObject object = JSON.parseObject(response);
+        this.httpStatus = status;
+        this.status = status;
+        this.original = response;
 
-            this.status = object.getInteger("status");
-            this.code = object.getString("code");
-            this.message = object.getString("message");
-            this.params = object.getString("params");
-        } catch (Exception e) {
-            this.status = status;
-            this.message = response;
+        if (response == null || response.trim().length() == 0) {
+            this.message = "Dify request failed with HTTP status " + status;
+            return;
         }
 
-        this.original = response;
+        try {
+            JSONObject object = JSON.parseObject(response);
+            this.difyStatus = object.getInteger("status");
+            this.status = this.difyStatus != null ? this.difyStatus : status;
+            this.difyCode = object.getString("code");
+            this.message = object.getString("message");
+            this.params = object.getString("params");
+            if (this.message == null || this.message.trim().length() == 0) {
+                this.message = response;
+            }
+        } catch (Exception e) {
+            this.message = response;
+        }
     }
 
     @Override
@@ -76,10 +70,11 @@ public class DifyException extends RuntimeException {
     public String toString() {
         Map<String, Object> map = new HashMap<>();
         map.put("status", status);
-        map.put("code", code);
+        map.put("httpStatus", httpStatus);
+        map.put("difyStatus", difyStatus);
+        map.put("code", difyCode);
         map.put("message", message);
         map.put("params", params);
         return JSON.toJSONString(map);
     }
-
 }

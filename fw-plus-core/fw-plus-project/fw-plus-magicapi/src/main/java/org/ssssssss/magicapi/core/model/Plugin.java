@@ -2,6 +2,9 @@ package org.ssssssss.magicapi.core.model;
 
 import lombok.Data;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Data
 public class Plugin {
 
@@ -24,6 +27,8 @@ public class Plugin {
 	 * 是否启用管理员模式
 	 */
 	private Boolean adminEnabled = false;
+
+	private Map<String, Object> attributes = new HashMap<>();
 
 	/**
 	 * 构造插件实例

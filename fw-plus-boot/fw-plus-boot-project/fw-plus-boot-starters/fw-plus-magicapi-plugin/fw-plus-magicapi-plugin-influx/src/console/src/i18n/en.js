@@ -12,7 +12,7 @@ export default {
                 token: 'Token',
                 org: 'Org',
                 bucket: 'Bucket',
-                other: 'Other',
+                properties: 'Properties',
                 placeholder: {
                     name: 'DataSource Name, Only Display Use',
                     key: 'DataSource Key, Required',
@@ -22,7 +22,7 @@ export default {
                     token: 'Please Enter token, Optional',
                     org: 'Please Enter org, Optional',
                     bucket: 'Please Enter bucket, Optional',
-                    other: 'Please Enter Influx Other Config, eg: {xxxx: "yyyy"}'
+                    properties: 'JSON object, for example: {"key": "value"}'
                 }
             }
         }

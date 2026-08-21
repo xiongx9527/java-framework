@@ -26,11 +26,13 @@ export default (opt) => {
             type: 'mcp-resource',
             title: 'mcp.resource.title',
             icon: '#magic-mcp-resource',
+            order: 500,
             component: MagicMcpResourceInfo,
         }, {
             type: 'mcp-prompt',
             title: 'mcp.prompt.title',
             icon: '#magic-mcp-prompt',
+            order: 510,
             component: MagicMcpPromptInfo,
         }]
     }

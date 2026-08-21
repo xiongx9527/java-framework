@@ -37,56 +37,10 @@
             <groupId>io.debezium</groupId>
             <artifactId>debezium-embedded</artifactId>
         </dependency>
-
-        <!--
-        <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-server-kafka</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>quarkus-bootstrap-runner</artifactId>
-                    <groupId>io.quarkus</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>slf4j-jboss-logmanager</artifactId>
-                    <groupId>org.jboss.slf4j</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        -->
-
-        <dependency>
+		<dependency>
             <groupId>io.debezium</groupId>
             <artifactId>debezium-connector-mysql</artifactId>
         </dependency>
-
-        <!-- 按需启用其他 connector -->
-        <!--
-        <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-connector-postgres</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-connector-sqlserver</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-connector-mongodb</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-connector-oracle</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.debezium</groupId>
-            <artifactId>debezium-connector-db2</artifactId>
-        </dependency>
-        -->
-    </dependencies>
+	</dependencies>
 
 </project>

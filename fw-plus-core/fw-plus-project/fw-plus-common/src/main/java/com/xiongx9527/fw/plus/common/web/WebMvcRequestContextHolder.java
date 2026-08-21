@@ -8,10 +8,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -155,6 +155,14 @@ public class WebMvcRequestContextHolder {
                 return this.request.getParameterValues(name);
             }
             return null;
+        }
+
+        @Override
+        public Enumeration<String> getParameterNames() {
+            if (null!=this.request) {
+                return this.request.getParameterNames();
+            }
+            return Collections.emptyEnumeration();
         }
 
         @Override

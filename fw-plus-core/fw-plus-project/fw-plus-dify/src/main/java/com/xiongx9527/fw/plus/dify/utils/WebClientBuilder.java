@@ -84,18 +84,22 @@ public class WebClientBuilder {
      * 创建IWebClient对象时，会默认执行登录
      */
     public IWebConsoleClient connect() {
-        if (server == null || userName == null || password == null) {
-            throw new RuntimeException("Dify Web Client Connect Error: params is not defined");
-        }
+        String normalizedServer = DifyValidationUtils.normalizeServer(server, "web", "connect");
+        String requiredUserName = DifyValidationUtils.requireText(userName, "userName", "web", "connect");
+        String requiredPassword = DifyValidationUtils.requireText(password, "password", "web", "connect");
 
         try {
-            WebConfig config = WebConfig.builder().server(server).userName(userName).password(password).build();
+            WebConfig config = WebConfig.builder()
+                    .server(normalizedServer)
+                    .userName(requiredUserName)
+                    .password(requiredPassword)
+                    .build();
             TokenList tokenList = WebAuthService.login(config);
-            return new WebClientImpl(server, tokenList);
+            return new WebClientImpl(normalizedServer, tokenList);
         } catch (DifyClientException | DifyException e) {
             throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Dify Web Client Connect Error: ", e);
+            throw new DifyClientException("Dify web client connect error", e);
         }
     }
 

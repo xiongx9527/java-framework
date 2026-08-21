@@ -106,6 +106,9 @@ public class ExcelParser extends ExcelAbstractParser {
      */
     @Override
     public byte[] toHtml(byte[] srcBytes) {
+        if (this.excel2Html == null) {
+            throw new UnsupportedOperationException("Excel to Html conversion is not supported");
+        }
         try {
             return this.excel2Html.change(srcBytes);
         } catch (Exception e) {

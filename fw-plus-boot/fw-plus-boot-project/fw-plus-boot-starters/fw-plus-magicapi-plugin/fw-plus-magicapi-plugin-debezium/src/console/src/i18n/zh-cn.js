@@ -35,7 +35,7 @@ export default {
                     random: '随机（默认）',
                     fixed: '固定'
                 },
-                other: '其它',
+                properties: '连接参数',
                 enabled: '启用',
                 placeholder: {
                     name: '数据源名称，仅显示使用',
@@ -48,6 +48,7 @@ export default {
                     password: '请输入数据库密码，必填',
                     includeTables: '包含表,例如：user,order',
                     excludeTables: '排除表,例如：user,order',
+                    properties: '请输入 JSON 对象，如： {"key": "value"}',
                     enabled: '是否启用'
                 }
             }

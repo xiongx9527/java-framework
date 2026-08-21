@@ -1,7 +1,7 @@
 package com.xiongx9527.fw.plus.boot.common.web.mvc.http;
 
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpServletResponseWrapper;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 
 public abstract class MyWebMvcHttpServletResponseWrapper extends HttpServletResponseWrapper {
 

@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.xiongx9527.fw.plus.boot</groupId>
+        <artifactId>fw-plus-boot-samples</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>fw-plus-magicapi-spring-boot-starter-sample</artifactId>
+
+    <properties>
+        <main.basedir>${basedir}/../../..</main.basedir>
+        <!--执行 Magic-API 全插件集成测试-->
+        <maven.test.skip>false</maven.test.skip>
+        <!--跳过javadoc生成-->
+        <maven.javadoc.skip>true</maven.javadoc.skip>
+        <!--跳过install-->
+        <maven.install.skip>true</maven.install.skip>
+        <!--跳过deploy-->
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
+    <dependencies>
+
+        <!--
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-admin-server-spring-boot-starter</artifactId>
+        </dependency>
+        -->
+
+        <dependency>
+            <groupId>com.ctrip.framework.apollo</groupId>
+            <artifactId>apollo-client</artifactId>
+            <scope>compile</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <!--
+        <dependency>
+            <groupId>com.taobao.arthas</groupId>
+            <artifactId>arthas-spring-boot-starter</artifactId>
+            <version>3.4.8</version>
+            <scope>runtime</scope>
+        </dependency>
+        -->
+
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-admin</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-druid</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-dtp</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-influx</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-mqtt</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-mqttclient</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-task</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-vue3</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-freemarker</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-kafka</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-s3</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-pulsar</artifactId>
+        </dependency>
+
+
+
+
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-rabbitmq</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-rocketmq</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-debezium</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>debezium-connector-mongodb</artifactId>
+                    <groupId>io.debezium</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-db</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-ws</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-swagger</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-elasticsearch</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-redis</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-mongo</artifactId>
+        </dependency>
+
+        <dependency>
+			<groupId>com.xiongx9527.fw.plus.boot</groupId>
+			<artifactId>fw-plus-jdbc-spring-boot-starter</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.mybatis-flex</groupId>
+            <artifactId>mybatis-flex-spring</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.ulisesbocchio</groupId>
+            <artifactId>jasypt-spring-boot-starter</artifactId>
+        </dependency>
+
+
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-config</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-config-server</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-satoken</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-mcp</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.boot</groupId>
+            <artifactId>fw-plus-magicapi-plugin-word</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-model</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus.ai</groupId>
+            <artifactId>fw-plus-ai-magicapi-plugin-vector</artifactId>
+            <version>${revision}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.dev33</groupId>
+            <artifactId>sa-token-oauth2</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-dify</artifactId>
+        </dependency>
+
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-template</artifactId>
+        </dependency>
+
+
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-nebula-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.xiongx9527.fw.plus</groupId>
+            <artifactId>fw-plus-neo4j-jdbc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+
+    </dependencies>
+
+</project>

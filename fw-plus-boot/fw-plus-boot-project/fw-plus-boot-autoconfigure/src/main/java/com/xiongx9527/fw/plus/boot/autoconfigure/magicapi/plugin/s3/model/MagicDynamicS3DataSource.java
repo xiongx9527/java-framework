@@ -1,7 +1,5 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.model;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.file.MultipartFileWrapperAdapter;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.s3.file.MyFileStorageService;
@@ -23,7 +21,6 @@ import org.springframework.beans.factory.DisposableBean;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -89,10 +86,10 @@ public class MagicDynamicS3DataSource implements DisposableBean {
      * 
      * <p>该方法根据传入的平台类型和认证信息，创建对应的云存储平台配置对象。
      * 支持多种云存储平台包括MinIO、Amazon S3、华为云OBS、阿里云OSS、七牛云Kodo、
-     * 腾讯云COS、百度云BOS、又拍云USS等。同时支持从JSON格式的other参数中解析额外配置项。</p>
+     * 腾讯云COS、百度云BOS、又拍云USS等。同时支持properties中的额外配置项。</p>
      *
      * @param platform 存储平台类型标识，如"minio"、"amazon-s3"、"huawei-obs"等。如果为null则默认使用"minio"
-     * @param other JSON格式的额外配置参数字符串，用于设置平台特定的高级配置项
+     * @param additionalProperties 额外配置对象，用于设置平台特定的高级配置项
      * @param accessKey 访问密钥ID，用于身份认证。对于又拍云USS为用户名，腾讯云COS为SecretId
      * @param secretKey 访问密钥密码，用于身份认证。对于又拍云USS为密码
      * @param endPoint 服务端点地址，不同平台的含义可能不同（如地域标识、服务地址等）
@@ -103,7 +100,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
      * @param enableStorageStr 是否启用存储的字符串标识，会被解析为布尔值
      * @return SpringFileStorageProperties 配置属性对象，包含指定平台的完整配置信息
      */
-    private SpringFileStorageProperties createProperties(String platform,String other,
+    private SpringFileStorageProperties createProperties(String platform, Map<String, Object> additionalProperties,
                                                          String accessKey,String secretKey,
                                                          String  endPoint,String domain,String bucketName,String basePath,String defaultAcl,String enableStorageStr) {
         SpringFileStorageProperties properties = new SpringFileStorageProperties();
@@ -111,19 +108,9 @@ public class MagicDynamicS3DataSource implements DisposableBean {
             platform = "minio";
         }
         
-        Map<String, Object> otherProperties = new HashMap<>();
-        if (StringUtils.isNotBlank(other)) {
-            try {
-                ObjectMapper objectMapper = new ObjectMapper();
-                otherProperties = objectMapper.readValue(other, new TypeReference<Map<String, Object>>() {});
-            } catch (Exception e) {
-                otherProperties = new HashMap<>();
-            }
-        }
-
         properties.setDefaultPlatform(platform);
         
-        setAdditionalProperties(properties, otherProperties);
+        setAdditionalProperties(properties, additionalProperties);
         boolean enableStorage = Boolean.parseBoolean(enableStorageStr);
         
         switch (platform.toLowerCase()) {
@@ -139,7 +126,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
                 minioConfig.setBasePath(basePath);
                 minioConfig.setEnableStorage(enableStorage);
 
-                setAdditionalProperties(minioConfig, otherProperties);
+                setAdditionalProperties(minioConfig, additionalProperties);
 
                 minioConfigs.add(minioConfig);
                 properties.setMinio(minioConfigs);
@@ -158,7 +145,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
                 s3Config.setEnableStorage(enableStorage);
                 s3Config.setDefaultAcl(defaultAcl);
 
-                setAdditionalProperties(s3Config, otherProperties);
+                setAdditionalProperties(s3Config, additionalProperties);
 
                 amazonS3Configs.add(s3Config);
                 properties.setAmazonS3(amazonS3Configs);
@@ -177,7 +164,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
                 huaweiObsConfig.setEnableStorage(enableStorage);
                 huaweiObsConfig.setDefaultAcl(defaultAcl);
 
-                setAdditionalProperties(huaweiObsConfig, otherProperties);
+                setAdditionalProperties(huaweiObsConfig, additionalProperties);
 
                 huaweiObsConfigs.add(huaweiObsConfig);
                 properties.setHuaweiObs(huaweiObsConfigs);
@@ -196,7 +183,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
                 aliyunOssConfig.setEnableStorage(enableStorage);
                 aliyunOssConfig.setDefaultAcl(defaultAcl);
 
-                setAdditionalProperties(aliyunOssConfig, otherProperties);
+                setAdditionalProperties(aliyunOssConfig, additionalProperties);
 
                 aliyunOssConfigs.add(aliyunOssConfig);
                 properties.setAliyunOss(aliyunOssConfigs);
@@ -213,7 +200,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
                 qiniuKodoConfig.setBasePath(basePath);
                 qiniuKodoConfig.setEnableStorage(enableStorage);
 
-                setAdditionalProperties(qiniuKodoConfig, otherProperties);
+                setAdditionalProperties(qiniuKodoConfig, additionalProperties);
 
                 qiniuKodoConfigs.add(qiniuKodoConfig);
                 properties.setQiniuKodo(qiniuKodoConfigs);
@@ -232,7 +219,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
                 tencentCosConfig.setEnableStorage(enableStorage);
                 tencentCosConfig.setDefaultAcl(defaultAcl);
 
-                setAdditionalProperties(tencentCosConfig, otherProperties);
+                setAdditionalProperties(tencentCosConfig, additionalProperties);
 
                 tencentCosConfigs.add(tencentCosConfig);
                 properties.setTencentCos(tencentCosConfigs);
@@ -251,7 +238,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
                 baiduBosConfig.setEnableStorage(enableStorage);
                 baiduBosConfig.setDefaultAcl(defaultAcl);
 
-                setAdditionalProperties(baiduBosConfig, otherProperties);
+                setAdditionalProperties(baiduBosConfig, additionalProperties);
 
                 baiduBosConfigs.add(baiduBosConfig);
                 properties.setBaiduBos(baiduBosConfigs);
@@ -268,7 +255,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
                 upyunUssConfig.setBasePath(basePath);
                 upyunUssConfig.setEnableStorage(enableStorage);
 
-                setAdditionalProperties(upyunUssConfig, otherProperties);
+                setAdditionalProperties(upyunUssConfig, additionalProperties);
 
                 upyunUssConfigs.add(upyunUssConfig);
                 properties.setUpyunUss(upyunUssConfigs);
@@ -286,7 +273,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
                 defaultConfig.setBasePath(basePath);
                 defaultConfig.setEnableStorage(enableStorage);
 
-                setAdditionalProperties(defaultConfig, otherProperties);
+                setAdditionalProperties(defaultConfig, additionalProperties);
 
                 defaultConfigs.add(defaultConfig);
                 properties.setMinio(defaultConfigs);
@@ -307,11 +294,10 @@ public class MagicDynamicS3DataSource implements DisposableBean {
         String platform = dataSourceInfo.getPlatform();
         platform = MagicAPIConfigUtils.getS3Config(dataSourceInfo.getKey(), "platform", platform);
 
-        // 解析 other 字段中的额外属性
-        String other = dataSourceInfo.getOther();
-        other = MagicAPIConfigUtils.getS3Config(dataSourceInfo.getKey(), "other", other);
+        String configuredProperties = MagicAPIConfigUtils.getS3Config(dataSourceInfo.getKey(), "properties", null);
+        Map<String, Object> additionalProperties = MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties);
         
-        // 应用 other 中的额外属性到 SpringFileStorageProperties 对象
+        // 应用 properties 中的额外属性到 SpringFileStorageProperties 对象
         String accessKey = dataSourceInfo.getAccessKey();
         accessKey = MagicAPIConfigUtils.getS3Config(dataSourceInfo.getKey(), "accessKey", accessKey);
         String secretKey = dataSourceInfo.getSecretKey();
@@ -330,11 +316,11 @@ public class MagicDynamicS3DataSource implements DisposableBean {
         String enableStorageStr = dataSourceInfo.getEnableStorage() ;
         enableStorageStr = MagicAPIConfigUtils.getS3Config(dataSourceInfo.getKey(), "enableStorage", enableStorageStr);
         String domain = endPointSchema + "://" + bucketName + "." + endPoint;
-        return createProperties(platform,other,accessKey,secretKey,endPoint,domain,bucketName,basePath,defaultAcl,enableStorageStr);
+        return createProperties(platform, additionalProperties, accessKey, secretKey, endPoint, domain, bucketName, basePath, defaultAcl, enableStorageStr);
     }
 
     /**
-     * 使用 other 字段中的额外属性设置配置对象
+     * 使用 properties 中的额外属性设置配置对象
      * @param config 配置对象
      * @param otherProperties 其他属性
      */
@@ -482,7 +468,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
         }
         
         if (properties.getEnableHttpServletRequestFileWrapper()) {
-            if (doesNotExistClass("javax.servlet.http.HttpServletRequest")
+            if (doesNotExistClass("jakarta.servlet.http.HttpServletRequest")
                     && doesNotExistClass("jakarta.servlet.http.HttpServletRequest")) {
                 log.warn(
                         "当前未检测到 Servlet 环境，无法加载 HttpServletRequest 的文件包装适配器，请将参数【dromara.x-file-storage.enable-http-servlet-request-file-wrapper】设置为 【false】来消除此警告");
@@ -536,8 +522,8 @@ public class MagicDynamicS3DataSource implements DisposableBean {
         String platform = dataSourceInfo.getPlatform();
         platform = MagicAPIConfigUtils.getS3Config(dataSourceInfo.getKey(), "platform", platform);
 
-        String other = dataSourceInfo.getOther();
-        other = MagicAPIConfigUtils.getS3Config(dataSourceInfo.getKey(), "other", other);
+        String configuredProperties = MagicAPIConfigUtils.getS3Config(dataSourceInfo.getKey(), "properties", null);
+        Map<String, Object> additionalProperties = MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties);
         
         // 获取S3认证和连接配置信息，支持通过Spring应用配置覆盖
         String accessKey = dataSourceInfo.getAccessKey();
@@ -562,7 +548,7 @@ public class MagicDynamicS3DataSource implements DisposableBean {
         enableStorageStr = MagicAPIConfigUtils.getS3Config(dataSourceInfo.getKey(), "enableStorage", enableStorageStr);
         
         // 创建配置属性对象并构建文件存储服务
-        SpringFileStorageProperties properties = createProperties(platform,other,accessKey,secretKey,endPoint,domain,bucketName,basePath,defaultAcl,enableStorageStr);
+        SpringFileStorageProperties properties = createProperties(platform, additionalProperties, accessKey, secretKey, endPoint, domain, bucketName, basePath, defaultAcl, enableStorageStr);
         FileStorageService fileStorageService = createFileStorageService(properties);
         return fileStorageService;
     }

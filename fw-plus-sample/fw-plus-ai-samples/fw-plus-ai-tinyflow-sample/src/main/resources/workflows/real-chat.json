@@ -1,0 +1,43 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "startNode"
+    },
+    {
+      "id": "chat",
+      "type": "llmNode",
+      "data": {
+        "llmId": "chat-default",
+        "userPrompt": "{{message}}"
+      }
+    },
+    {
+      "id": "end",
+      "type": "endNode",
+      "data": {
+        "outputDefs": [
+          {
+            "id": "answer",
+            "name": "answer",
+            "ref": "chat.output",
+            "refType": "ref",
+            "dataType": "String"
+          }
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "start-to-chat",
+      "source": "start",
+      "target": "chat"
+    },
+    {
+      "id": "chat-to-end",
+      "source": "chat",
+      "target": "end"
+    }
+  ]
+}

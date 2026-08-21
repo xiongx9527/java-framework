@@ -1,17 +1,18 @@
 package com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin;
 
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.aia.starter.MagicAPIAiaConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.qdrant.starter.MagicAPIQdrantConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.redisstack.starter.MagicAPIRedisStackConfiguration;
-import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.weaviate.starter.MagicAPIWeaviateConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.model.starter.MagicAPIModelConfiguration;
+import com.xiongx9527.fw.plus.ai.autoconfigure.magicapi.plugin.vector.starter.MagicAPIVectorConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
-@Import({MagicAPIAiaConfiguration.class,
-        MagicAPIQdrantConfiguration.class,
-        MagicAPIWeaviateConfiguration.class,
-        MagicAPIRedisStackConfiguration.class
+@AutoConfigureAfter(name = {
+        "com.xiongx9527.fw.plus.ai.autoconfigure.model.AiModelAutoConfiguration",
+        "com.xiongx9527.fw.plus.ai.autoconfigure.store.embedding.AiEmbeddingStoreAutoConfiguration"
+})
+@Import({MagicAPIModelConfiguration.class,
+		MagicAPIVectorConfiguration.class
 })
 public class MagicApiPluginAutoConfiguration {
 }

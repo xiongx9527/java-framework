@@ -20,7 +20,7 @@ import org.ssssssss.magicapi.core.service.MagicResourceService;
 import org.ssssssss.magicapi.core.service.MagicResourceStorage;
 import org.yaml.snakeyaml.Yaml;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 import java.util.HashMap;
 import java.util.Map;
 

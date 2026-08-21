@@ -1,0 +1,101 @@
+{
+  "schema": "comet.native.verification-evidence.v1",
+  "change": "replace-magic-entity-other-with-properties",
+  "sourceRevision": 3,
+  "result": "pass",
+  "freshness": "partial",
+  "contractHash": "8a6be406066c651dcd88ff3a0bf5014dc5e76dd3e50417ca4719d14f9fd97153",
+  "acceptanceCriteriaHash": "000a8bb222eb515b18a501d020b8c3a809af6add661b0a719aa5b8e97e6f4eb7",
+  "implementationScopeRef": "runtime/evidence/scopes/e6f300f7b5a5f00644d3ca1996fcd9b167828de860a73be427ddf79e13c957ca.json",
+  "implementationScopeHash": "e6f300f7b5a5f00644d3ca1996fcd9b167828de860a73be427ddf79e13c957ca",
+  "reportRef": "verification.md",
+  "reportHash": "99e51345a8e450a68b439764022d4f03920b7aa691ed8029ad4c7b943f73ac43",
+  "acceptanceTrace": {
+    "schema": "comet.native.acceptance-trace.v1",
+    "nativeRootRef": "docs/comet",
+    "criteriaHash": "000a8bb222eb515b18a501d020b8c3a809af6add661b0a719aa5b8e97e6f4eb7",
+    "total": 5,
+    "evidenced": 5,
+    "skipped": 0,
+    "entries": [
+      {
+        "acceptanceId": "acceptance-710146a73711fda2ac9f92326f7ee0fdec7017a5dd953438ae1f44face0bcd98",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/langchain4j/model/Langchain4jDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/debezium/model/DebeziumDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/dtp/model/DtpDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/elasticsearch/model/ElasticSearchDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/influx/model/InfluxDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/kafka/model/KafkaDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/mongo/model/MongoDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/mqtt/model/MqttDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/mqttclient/model/MqttClientDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/pulsar/model/PulsarDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/rabbitmq/model/RabbitMqDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/redis/model/RedisDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/rocketmq/model/RocketMqDataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/s3/model/S3DataSourceInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/ws/model/WsDataSourceInfo.java"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-a5f6b33c5f9c12006dc365102ae57d54679c823a73a02790c1d2bcf39e982ad0",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/kafka/model/KafkaSubscribeInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/mqttclient/model/MqttClientSubscribeInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/pulsar/model/PulsarSubscribeInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/rabbitmq/model/RabbitMqSubscribeInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/rocketmq/model/RocketMqSubscribeInfo.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/src/console/test/datasource-properties.test.mjs"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-aa93f62e90a81fbd46593546b9fcdc20ee44a562dd2ce618305f33c984922e4e",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/src/console/src/components/panel/main/magic-data-resource.vue",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/src/console/src/scripts/service/datasource-properties.js",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/src/console/test/datasource-properties.test.mjs"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-b65268fd8cc8e12065d06c0e7a11145292e78be53c650e1d453e659c08feb282",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/src/console/src/components/panel/main/magic-data-resource.vue",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/src/console/src/scripts/service/datasource-properties.js",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-starters/fw-plus-magicapi-spring-boot-starter/src/console/test/datasource-properties.test.mjs"
+        ],
+        "skippedReason": null
+      },
+      {
+        "acceptanceId": "acceptance-dd594b3ac9b8af0ebc329c121e5ea2cb42bc5aedc112192469e635fb744db4cf",
+        "kind": "brief-example",
+        "source": "brief.md",
+        "evidenceRefs": [
+          "fw-plus-ai/fw-plus-ai-project/fw-plus-ai-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/ai/autoconfigure/magicapi/plugin/langchain4j/model/MagicDynamicLangchain4jDataSource.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/common/MagicAPIConfigUtils.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/debezium/model/MagicDynamicDebeziumDataSource.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/main/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/plugin/redis/model/MagicDynamicRedisDataSource.java",
+          "fw-plus-boot/fw-plus-boot-project/fw-plus-boot-autoconfigure/src/test/java/com/xiongx9527/fw/plus/boot/autoconfigure/magicapi/common/MagicAPIConfigUtilsTest.java"
+        ],
+        "skippedReason": null
+      }
+    ],
+    "traceHash": "12dc3323d625ff256d1251cd591275150e96b3ae7b8bc8c71fe26b55a2929dc7"
+  },
+  "partialAllowanceRef": "runtime/evidence/allowances/bc1dbc185adc6e6aa139644c31d72c530a2944541829af09342252b21be8e54f.json",
+  "partialAllowanceHash": "bc1dbc185adc6e6aa139644c31d72c530a2944541829af09342252b21be8e54f",
+  "receiptRef": null,
+  "createdAt": "2026-07-27T00:30:17.115Z",
+  "envelopeHash": "34f01157c61a0e729a20a1798d20a933238c14a4a389486f873833a3eefd4a9a"
+}

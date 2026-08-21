@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xiongx9527.fw.plus.tinyengine.mapper.PlatformMapper">
+
+    <!-- 通用设置 -->
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Column_List">
+        id
+        , name, published, last_build_info, description, latest_version, latest_history_id, material_history_id,
+        image_url, sort_plugins, sort_toolbar, is_default, prettier_opts, set_default_by, app_extend_config, data_hash,
+        business_category_id, theme_id, platform_url, vscode_url, tenant_id, renter_id, site_id, created_by, last_updated_by,
+        created_time, last_updated_time
+    </sql>
+
+    <!-- 通用条件列 -->
+    <sql id="PlatformByCondition">
+        <if test="name!=null and name!=''">
+            AND name = #{name}
+        </if>
+        <if test="isPublish!=null">
+            AND published = #{isPublish}
+        </if>
+        <if test="lastBuildInfo!=null and lastBuildInfo!=''">
+            AND last_build_info = #{lastBuildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        </if>
+        <if test="description!=null and description!=''">
+            AND description = #{description}
+        </if>
+        <if test="latestVersion!=null and latestVersion!=''">
+            AND latest_version = #{latestVersion}
+        </if>
+        <if test="latestHistoryId!=null">
+            AND latest_history_id = #{latestHistoryId}
+        </if>
+        <if test="materialHistoryId!=null">
+            AND material_history_id = #{materialHistoryId}
+        </if>
+        <if test="imageUrl!=null and imageUrl!=''">
+            AND image_url = #{imageUrl}
+        </if>
+        <if test="sortPlugins!=null and sortPlugins!=''">
+            AND sort_plugins = #{sortPlugins,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
+        </if>
+        <if test="sortToolbar!=null and sortToolbar!=''">
+            AND sort_toolbar = #{sortToolbar,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
+        </if>
+        <if test="isDefault!=null">
+            AND is_default = #{isDefault}
+        </if>
+        <if test="prettierOpts!=null and prettierOpts!=''">
+            AND prettier_opts = #{prettierOpts}
+        </if>
+        <if test="setDefaultBy!=null and setDefaultBy!=''">
+            AND set_default_by = #{setDefaultBy}
+        </if>
+        <if test="appExtendConfig!=null and appExtendConfig!=''">
+            AND app_extend_config = #{appExtendConfig,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        </if>
+        <if test="dataHash!=null and dataHash!=''">
+            AND data_hash = #{dataHash}
+        </if>
+        <if test="businessCategoryId!=null">
+            AND business_category_id = #{businessCategoryId}
+        </if>
+        <if test="themeId!=null">
+            AND theme_id = #{themeId}
+        </if>
+        <if test="platformUrl!=null and platformUrl!=''">
+            AND platform_url = #{platformUrl}
+        </if>
+        <if test="vscodeUrl!=null and vscodeUrl!=''">
+            AND vscode_url = #{vscodeUrl}
+        </if>
+        <if test="tenantId!=null and tenantId!=''">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="renterId!=null and renterId!=''">
+            AND renter_id = #{renterId}
+        </if>
+        <if test="siteId!=null and siteId!=''">
+            AND site_id = #{siteId}
+        </if>
+        <if test="createdBy!=null and createdBy!=''">
+            AND created_by = #{createdBy}
+        </if>
+        <if test="lastUpdatedBy!=null and lastUpdatedBy!=''">
+            AND last_updated_by = #{lastUpdatedBy}
+        </if>
+        <if test="createdTime!=null">
+            AND created_time = #{createdTime}
+        </if>
+        <if test="lastUpdatedTime!=null">
+            AND last_updated_time = #{lastUpdatedTime}
+        </if>
+    </sql>
+
+    <!-- 通用设置列 -->
+    <sql id="PlatformSetColumns">
+        <if test="name!=null and name!=''">
+            name = #{name},
+        </if>
+        <if test="isPublish!=null">
+            published = #{isPublish},
+        </if>
+        <if test="lastBuildInfo!=null and lastBuildInfo!=''">
+            last_build_info = #{lastBuildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
+        </if>
+        <if test="description!=null and description!=''">
+            description = #{description},
+        </if>
+        <if test="latestVersion!=null and latestVersion!=''">
+            latest_version = #{latestVersion},
+        </if>
+        <if test="latestHistoryId!=null">
+            latest_history_id = #{latestHistoryId},
+        </if>
+        <if test="materialHistoryId!=null">
+            material_history_id = #{materialHistoryId},
+        </if>
+        <if test="imageUrl!=null and imageUrl!=''">
+            image_url = #{imageUrl},
+        </if>
+        <if test="sortPlugins!=null and sortPlugins!=''">
+            sort_plugins = #{sortPlugins,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler},
+        </if>
+        <if test="sortToolbar!=null and sortToolbar!=''">
+            sort_toolbar = #{sortToolbar,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler},
+        </if>
+        <if test="isDefault!=null">
+            is_default = #{isDefault},
+        </if>
+        <if test="prettierOpts!=null and prettierOpts!=''">
+            prettier_opts = #{prettierOpts},
+        </if>
+        <if test="setDefaultBy!=null and setDefaultBy!=''">
+            set_default_by = #{setDefaultBy},
+        </if>
+        <if test="appExtendConfig!=null and appExtendConfig!=''">
+            app_extend_config = #{appExtendConfig,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
+        </if>
+        <if test="dataHash!=null and dataHash!=''">
+            data_hash = #{dataHash},
+        </if>
+        <if test="businessCategoryId!=null">
+            business_category_id = #{businessCategoryId},
+        </if>
+        <if test="themeId!=null">
+            theme_id = #{themeId},
+        </if>
+        <if test="platformUrl!=null and platformUrl!=''">
+            platform_url = #{platformUrl},
+        </if>
+        <if test="vscodeUrl!=null and vscodeUrl!=''">
+            vscode_url = #{vscodeUrl},
+        </if>
+        <if test="tenantId!=null and tenantId!=''">
+            tenant_id = #{tenantId},
+        </if>
+        <if test="renterId!=null and renterId!=''">
+            renter_id = #{renterId},
+        </if>
+        <if test="siteId!=null and siteId!=''">
+            site_id = #{siteId},
+        </if>
+        <if test="createdBy!=null and createdBy!=''">
+            created_by = #{createdBy},
+        </if>
+        <if test="lastUpdatedBy!=null and lastUpdatedBy!=''">
+            last_updated_by = #{lastUpdatedBy},
+        </if>
+        <if test="createdTime!=null">
+            created_time = #{createdTime},
+        </if>
+        <if test="lastUpdatedTime!=null">
+            last_updated_time = #{lastUpdatedTime},
+        </if>
+    </sql>
+
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="PlatformMap" type="com.xiongx9527.fw.plus.tinyengine.model.entity.Platform">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="published" property="isPublish"/>
+        <result column="last_build_info" property="lastBuildInfo" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="description" property="description"/>
+        <result column="latest_version" property="latestVersion"/>
+        <result column="latest_history_id" property="latestHistoryId"/>
+        <result column="material_history_id" property="materialHistoryId"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="sort_plugins" property="sortPlugins" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
+        <result column="sort_toolbar" property="sortToolbar" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
+        <result column="is_default" property="isDefault"/>
+        <result column="prettier_opts" property="prettierOpts"/>
+        <result column="set_default_by" property="setDefaultBy"/>
+        <result column="app_extend_config" property="appExtendConfig" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="data_hash" property="dataHash"/>
+        <result column="business_category_id" property="businessCategoryId"/>
+        <result column="theme_id" property="themeId"/>
+        <result column="platform_url" property="platformUrl"/>
+        <result column="vscode_url" property="vscodeUrl"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="renter_id" property="renterId"/>
+        <result column="site_id" property="siteId"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="last_updated_by" property="lastUpdatedBy"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="last_updated_time" property="lastUpdatedTime"/>
+    </resultMap>
+
+    <!-- 查询表t_platform所有数据 -->
+    <select id="queryAllPlatform" resultMap="PlatformMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_platform
+    </select>
+
+    <!-- 根据主键id查询表t_platform信息 -->
+    <select id="queryPlatformById" resultMap="PlatformMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_platform
+        <where>
+            id = #{id}
+        </where>
+    </select>
+
+    <!-- 根据条件查询表t_platform数据 -->
+    <select id="queryPlatformByCondition" resultMap="PlatformMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_platform
+        WHERE 1=1
+        <include refid="PlatformByCondition"/>
+    </select>
+
+    <!-- 根据主键id删除表t_platform数据 -->
+    <delete id="deletePlatformById">
+        DELETE
+        FROM t_platform
+        WHERE id = #{id}
+    </delete>
+
+    <!-- 根据主键id更新表t_platform数据 -->
+    <update id="updatePlatformById" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.Platform">
+        UPDATE t_platform
+        <set>
+            <include refid="PlatformSetColumns"/>
+        </set>
+        WHERE
+        id=#{id}
+    </update>
+
+    <!-- 新增表t_platform数据 -->
+    <insert id="createPlatform" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.Platform">
+        INSERT INTO t_platform ( id
+        , name
+        , published
+        , last_build_info
+        , description
+        , latest_version
+        , latest_history_id
+        , material_history_id
+        , image_url
+        , sort_plugins
+        , sort_toolbar
+        , is_default
+        , prettier_opts
+        , set_default_by
+        , app_extend_config
+        , data_hash
+        , business_category_id
+        , theme_id
+        , platform_url
+        , vscode_url
+        , tenant_id, renter_id
+        , site_id
+        , created_by
+        , last_updated_by
+        , created_time
+        , last_updated_time)
+        VALUES ( #{id}
+        , #{name}
+        , #{isPublish}
+        , #{lastBuildInfo,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        , #{description}
+        , #{latestVersion}
+        , #{latestHistoryId}
+        , #{materialHistoryId}
+        , #{imageUrl}
+        , #{sortPlugins,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
+        , #{sortToolbar,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
+        , #{isDefault}
+        , #{prettierOpts}
+        , #{setDefaultBy}
+        , #{appExtendConfig,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        , #{dataHash}
+        , #{businessCategoryId}
+        , #{themeId}
+        , #{platformUrl}
+        , #{vscodeUrl}
+        , #{tenantId}
+        , #{renterId}
+        , #{siteId}
+        , #{createdBy}
+        , #{lastUpdatedBy}
+        , #{createdTime}
+        , #{lastUpdatedTime})
+    </insert>
+</mapper>

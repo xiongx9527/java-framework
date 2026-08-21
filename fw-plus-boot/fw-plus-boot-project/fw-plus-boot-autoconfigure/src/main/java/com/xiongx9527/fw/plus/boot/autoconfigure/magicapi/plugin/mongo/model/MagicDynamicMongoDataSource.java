@@ -95,7 +95,7 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
      */
     private MongoDatabaseFactory createClusterMongoDatabaseFactory(MongoDataSourceInfo dataSourceInfo) {
         try {
-            // 从other字段解析集群配置
+            // 从properties字段读取集群配置
             List<String> hosts = new ArrayList<>();
             String hostname = dataSourceInfo.getHostname();
             hostname = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "hostname", hostname);
@@ -107,11 +107,11 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
             username = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "username", username);
             String password = dataSourceInfo.getPassword();
             password = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "password", password);
-            String other = dataSourceInfo.getOther();
-            other = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "other", other);
-            if (StringUtils.isNotBlank(other)) {
+            String configuredProperties = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "properties", null);
+            Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties);
+            if (!properties.isEmpty()) {
                 try {
-                    JSONObject jsonObject = JSON.parseObject(other);
+                    JSONObject jsonObject = new JSONObject(properties);
                     JSONArray nodes = jsonObject.getJSONArray("nodes");
                     if (nodes != null) {
                         for (int i = 0; i < nodes.size(); i++) {
@@ -128,11 +128,11 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
                         }
                     }
                 } catch (Exception e) {
-                    log.warn("解析集群配置失败，使用默认配置: {}", other, e);
+                    log.warn("解析集群properties失败，使用默认配置", e);
                 }
             }
 
-            // 如果没有从other字段解析到节点，则使用host字段
+            // 如果没有从properties字段解析到节点，则使用host字段
             if (hosts.isEmpty() && StringUtils.isNotBlank(hostname) && StringUtils.isNotBlank(portStr)) {
                 hosts.add(hostname.trim() + ":" + portStr);
             }
@@ -182,7 +182,7 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
      */
     private MongoDatabaseFactory createReplicaSetMongoDatabaseFactory(MongoDataSourceInfo dataSourceInfo) {
         try {
-            // 从other字段解析副本集配置
+            // 从properties字段读取副本集配置
             List<String> hosts = new ArrayList<>();
             String hostname = dataSourceInfo.getHostname();
             hostname = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "hostname", hostname);
@@ -194,15 +194,15 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
             username = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "username", username);
             String password = dataSourceInfo.getPassword();
             password = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "password", password);
-            String other = dataSourceInfo.getOther();
-            other = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "other", other);
+            String configuredProperties = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "properties", null);
+            Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties);
 
             // 获取副本集名称和读偏好
             String replicaSet = "";
             String readPreference = ""; // 添加读偏好变量
-            if (StringUtils.isNotBlank(other)) {
+            if (!properties.isEmpty()) {
                 try {
-                    JSONObject jsonObject = JSON.parseObject(other);
+                    JSONObject jsonObject = new JSONObject(properties);
                     JSONArray nodes = jsonObject.getJSONArray("nodes");
                     if (nodes != null) {
                         for (int i = 0; i < nodes.size(); i++) {
@@ -235,11 +235,11 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
                     // 获取读偏好配置
                     readPreference = jsonObject.getString("readPreference");
                 } catch (Exception e) {
-                    log.warn("解析副本集配置失败，使用默认配置: {}", other, e);
+                    log.warn("解析副本集properties失败，使用默认配置", e);
                 }
             }
 
-            // 如果没有从other字段解析到节点，则使用host字段
+            // 如果没有从properties字段解析到节点，则使用host字段
             if (hosts.isEmpty() && StringUtils.isNotBlank(hostname) && StringUtils.isNotBlank(portStr)) {
                 hosts.add(hostname.trim() + ":" + portStr);
             }
@@ -309,13 +309,13 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
             username = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "username", username);
             String password = dataSourceInfo.getPassword();
             password = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "password", password);
-            String other = dataSourceInfo.getOther();
-            other = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "other", other);
+            String configuredProperties = MagicAPIConfigUtils.getMongoConfig(dataSourceInfo.getKey(), "properties", null);
+            Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties);
 
-            // 从other字段解析额外配置
-            if (StringUtils.isNotBlank(other)) {
+            // 从properties字段读取额外配置
+            if (!properties.isEmpty()) {
                 try {
-                    JSONObject jsonObject = JSON.parseObject(other);
+                    JSONObject jsonObject = new JSONObject(properties);
 
                     // 获取主机和端口
                     String otherHost = jsonObject.getString("host");
@@ -343,7 +343,7 @@ public class MagicDynamicMongoDataSource implements DisposableBean {
                         password = otherPassword;
                     }
                 } catch (Exception e) {
-                    log.warn("解析单机配置失败，使用默认配置: {}", other, e);
+                    log.warn("解析单机properties失败，使用默认配置", e);
                 }
             }
 

@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-//@ConditionalOnClass(name = "javax.servlet.http.HttpServletRequest")
+//@ConditionalOnClass(name = "jakarta.servlet.http.HttpServletRequest")
 @Configuration
 public class StaticResourceConfiguration {
 

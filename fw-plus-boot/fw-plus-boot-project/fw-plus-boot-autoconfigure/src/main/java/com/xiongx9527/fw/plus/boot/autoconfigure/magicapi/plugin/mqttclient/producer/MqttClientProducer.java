@@ -2,8 +2,8 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.producer;
 
 import com.alibaba.fastjson2.JSON;
-import com.alibaba.fastjson2.JSONObject;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common.MagicAPIConfigUtils;
+import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.common.MqttClientConfigSupport;
 import com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.plugin.mqttclient.model.MqttClientDataSourceInfo;
 import lombok.extern.slf4j.Slf4j;
 import net.dreamlu.iot.mqtt.codec.MqttQoS;
@@ -14,6 +14,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.tio.utils.buffer.ByteBufferAllocator;
 
 import java.beans.Transient;
+import java.util.Map;
 
 @Slf4j
 public class MqttClientProducer {
@@ -54,67 +55,24 @@ public class MqttClientProducer {
 
     @Transient
     private MqttClientTemplate createMqttClientTemplate() {
-        String ip = dataSourceInfo.getIp();
-        ip = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "ip", ip);
-        String port = dataSourceInfo.getPort();
-        port = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "port", port);
-        String clientId = dataSourceInfo.getClientId();
-        clientId = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "clientId", clientId);
-        String username = dataSourceInfo.getUsername();
-        username = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "username", username);
-        String password = dataSourceInfo.getPassword();
-        password = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "password", password);
-
-        int portInt;
-        try {
-            portInt = Integer.parseInt(port);
-        } catch (Exception e) {
-            portInt = 1883;
-        }
+        String ip = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "ip", dataSourceInfo.getIp());
+        String port = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "port", dataSourceInfo.getPort());
+        String clientId = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "clientId", dataSourceInfo.getClientId());
+        String username = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "username", dataSourceInfo.getUsername());
+        String password = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "password", dataSourceInfo.getPassword());
 
         MqttClientCreator mqttClientCreator = MqttClient.create()
                 .ip(ip)
-                .port(portInt)
+                .port(MqttClientConfigSupport.parsePort(port))
                 .clientId(clientId)
                 .username(username)
                 .password(password)
                 .bufferAllocator(ByteBufferAllocator.HEAP);
 
-        String other = dataSourceInfo.getOther();
-        other = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "other", other);
-        if (StringUtils.isNotBlank(other)) {
-            try {
-                JSONObject jsonObject = JSON.parseObject(other);
-                if (jsonObject.containsKey("keepAliveSec")) {
-                    //client.keepAliveSec(jsonObject.getIntValue("keepAliveSec"));
-                    mqttClientCreator.keepAliveSecs(jsonObject.getIntValue("keepAliveSec"));
-                }
-                if (jsonObject.containsKey("reconnect")) {
-                    mqttClientCreator.reconnect(jsonObject.getBooleanValue("reconnect"));
-                }
-                if (jsonObject.containsKey("reIntervalSec")) {
-                    mqttClientCreator.reInterval(jsonObject.getIntValue("reIntervalSec"));
-                }
-                if (jsonObject.containsKey("readBufferSize")) {
-                    mqttClientCreator.readBufferSize(jsonObject.getIntValue("readBufferSize"));
-                }
-                if (jsonObject.containsKey("maxBytesInMessage")) {
-                    mqttClientCreator.maxBytesInMessage(jsonObject.getIntValue("maxBytesInMessage"));
-                }
-                if (jsonObject.containsKey("cleanSession")) {
-                    mqttClientCreator.cleanSession(jsonObject.getBooleanValue("cleanSession"));
-                }
-                if (jsonObject.containsKey("ssl")) {
-                    //mqttClientCreator.ssl(jsonObject.getBooleanValue("ssl"));
-                    //SslConfig
-                }
-            } catch (Exception e) {
-                log.warn("解析 other 配置失败: {}", e.getMessage(), e);
-            }
-        }
-
-        MqttClientTemplate template = new MqttClientTemplate(mqttClientCreator);
-        return template;
+        String configuredProperties = MagicAPIConfigUtils.getMqttClientConfig(dataSourceInfo.getKey(), "properties", null);
+        Map<String, Object> properties = MagicAPIConfigUtils.mergeProperties(dataSourceInfo.getProperties(), configuredProperties);
+        MqttClientConfigSupport.applyCommonOptions(mqttClientCreator, properties);
+        return new MqttClientTemplate(mqttClientCreator);
     }
 
     public boolean publish(String topic, Object payload) {

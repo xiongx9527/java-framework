@@ -17,7 +17,7 @@ import org.springframework.cloud.client.loadbalancer.RequestData;
 import org.springframework.cloud.client.loadbalancer.ResponseData;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 
 /**
  * @author Olga Maciaszek-Sharma
@@ -34,7 +34,7 @@ final class LoadBalancerUtils {
 	static Response executeWithLoadBalancerLifecycleProcessing(Client feignClient, Request.Options options,
 			Request feignRequest, org.springframework.cloud.client.loadbalancer.Request lbRequest,
 			org.springframework.cloud.client.loadbalancer.Response<ServiceInstance> lbResponse,
-			Set<LoadBalancerLifecycle> supportedLifecycleProcessors, boolean loadBalanced, boolean useRawStatusCodes)
+			Set<LoadBalancerLifecycle> supportedLifecycleProcessors, boolean loadBalanced)
 			throws IOException {
 		supportedLifecycleProcessors.forEach(lifecycle -> lifecycle.onStartRequest(lbRequest, lbResponse));
 		try {
@@ -42,7 +42,7 @@ final class LoadBalancerUtils {
 			if (loadBalanced) {
 				supportedLifecycleProcessors.forEach(
 						lifecycle -> lifecycle.onComplete(new CompletionContext<>(CompletionContext.Status.SUCCESS,
-								lbRequest, lbResponse, buildResponseData(response, useRawStatusCodes))));
+							lbRequest, lbResponse, buildResponseData(response))));
 			}
 			return response;
 		}
@@ -55,29 +55,26 @@ final class LoadBalancerUtils {
 		}
 	}
 
-	static ResponseData buildResponseData(Response response, boolean useRawStatusCodes) {
+	static ResponseData buildResponseData(Response response) {
 		HttpHeaders responseHeaders = new HttpHeaders();
 		response.headers().forEach((key, value) -> responseHeaders.put(key, new ArrayList<>(value)));
-		if (useRawStatusCodes) {
-			return new ResponseData(responseHeaders, null, buildRequestData(response.request()), response.status());
-		}
-		return new ResponseData(HttpStatus.resolve(response.status()), responseHeaders, null,
+		return new ResponseData(HttpStatusCode.valueOf(response.status()), responseHeaders, null,
 				buildRequestData(response.request()));
 	}
 
 	static RequestData buildRequestData(Request request) {
 		HttpHeaders requestHeaders = new HttpHeaders();
 		request.headers().forEach((key, value) -> requestHeaders.put(key, new ArrayList<>(value)));
-		return new RequestData(HttpMethod.resolve(request.httpMethod().name()), URI.create(request.url()),
+		return new RequestData(HttpMethod.valueOf(request.httpMethod().name()), URI.create(request.url()),
 				requestHeaders, null, new HashMap<>());
 	}
 
 	static Response executeWithLoadBalancerLifecycleProcessing(Client feignClient, Request.Options options,
 			Request feignRequest, org.springframework.cloud.client.loadbalancer.Request lbRequest,
 			org.springframework.cloud.client.loadbalancer.Response<ServiceInstance> lbResponse,
-			Set<LoadBalancerLifecycle> supportedLifecycleProcessors, boolean useRawStatusCodes) throws IOException {
+			Set<LoadBalancerLifecycle> supportedLifecycleProcessors) throws IOException {
 		return executeWithLoadBalancerLifecycleProcessing(feignClient, options, feignRequest, lbRequest, lbResponse,
-				supportedLifecycleProcessors, true, useRawStatusCodes);
+				supportedLifecycleProcessors, true);
 	}
 
 }

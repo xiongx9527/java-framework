@@ -65,9 +65,8 @@ public class GrayFeignBlockingLoadBalancerClient implements feign.Client{
         }
         String reconstructedUrl = loadBalancerClient.reconstructURI(instance, originalUri).toString();
         Request newRequest = buildRequest(request, reconstructedUrl);
-        LoadBalancerProperties loadBalancerProperties = loadBalancerClientFactory.getProperties(serviceId);
-        return LoadBalancerUtils.executeWithLoadBalancerLifecycleProcessing(delegate, options, newRequest, lbRequest, lbResponse,
-                supportedLifecycleProcessors, loadBalancerProperties.isUseRawStatusCodeInResponseData());
+		return LoadBalancerUtils.executeWithLoadBalancerLifecycleProcessing(delegate, options, newRequest, lbRequest, lbResponse,
+				supportedLifecycleProcessors);
     }
 
     protected Request buildRequest(Request request, String reconstructedUrl) {

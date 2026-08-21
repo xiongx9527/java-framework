@@ -1,0 +1,1332 @@
+[
+  {
+    "id": "material-center-api-block-categories-by-id-delete",
+    "method": "DELETE",
+    "path": "/material-center/api/block-categories/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#deleteBlockGroup",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#deleteBlockGroup",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-app-template-list-get",
+    "method": "GET",
+    "path": "/app-center/api/app-template/list",
+    "query": [
+      "currentPage",
+      "framework",
+      "industryId",
+      "name",
+      "pageSize",
+      "sceneId"
+    ],
+    "frontendCallSites": [
+      "packages/workspace/template-center/src/js/http.js"
+    ],
+    "officialController": "AppTemplateController#getAllAppTemplateByPage",
+    "currentMvcHandler": "TinyEngineModelMvcController#appTemplates",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#appTemplates",
+    "status": "implemented",
+    "responseShape": "Result<AppDto>"
+  },
+  {
+    "id": "app-center-api-apps-canvas-lock-get",
+    "method": "GET",
+    "path": "/app-center/api/apps/canvas/lock",
+    "query": [
+      "id",
+      "state",
+      "type"
+    ],
+    "frontendCallSites": [
+      "packages/toolbars/lock/src/http.ts"
+    ],
+    "officialController": "CanvasController#lock",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<CanvasDto>"
+  },
+  {
+    "id": "app-center-api-apps-delete-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/apps/delete/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/workspace/application-center/src/js/http.js"
+    ],
+    "officialController": "AppController#deleteApp",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<App>"
+  },
+  {
+    "id": "app-center-api-apps-detail-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/apps/detail/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/common/composable/defaultGlobalService.ts"
+    ],
+    "officialController": "AppController#detail",
+    "currentMvcHandler": "TinyEngineAppMvcController#appDetail",
+    "currentWebFluxHandler": "TinyEngineAppWebFluxController#appDetail",
+    "status": "implemented",
+    "responseShape": "Result<App>"
+  },
+  {
+    "id": "app-center-api-apps-extension-get",
+    "method": "GET",
+    "path": "/app-center/api/apps/extension",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/bridge/src/http.ts"
+    ],
+    "officialController": "AppExtensionController#getAppExtensionById",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<AppExtension>"
+  },
+  {
+    "id": "app-center-api-apps-extension-delete-get",
+    "method": "GET",
+    "path": "/app-center/api/apps/extension/delete",
+    "query": [
+      "app",
+      "id"
+    ],
+    "frontendCallSites": [
+      "packages/plugins/bridge/src/http.ts"
+    ],
+    "officialController": "AppExtensionController#deleteAppExtension",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<AppExtension>"
+  },
+  {
+    "id": "app-center-api-apps-extension-list-get",
+    "method": "GET",
+    "path": "/app-center/api/apps/extension/list",
+    "query": [
+      "app",
+      "category"
+    ],
+    "frontendCallSites": [
+      "packages/plugins/bridge/src/http.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "AppExtensionController#getAllAppExtension",
+    "currentMvcHandler": "TinyEngineAppMvcController#appExtensions",
+    "currentWebFluxHandler": "TinyEngineAppWebFluxController#appExtensions",
+    "status": "implemented",
+    "responseShape": "Result<List<AppExtension>>"
+  },
+  {
+    "id": "app-center-api-apps-list-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/apps/list/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/common/composable/defaultGlobalService.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-apps-page-get",
+    "method": "GET",
+    "path": "/app-center/api/apps/page",
+    "query": [
+      "createdBy",
+      "currentPage",
+      "name",
+      "orderBy",
+      "pageSize"
+    ],
+    "frontendCallSites": [
+      "packages/workspace/application-center/src/js/http.js"
+    ],
+    "officialController": "AppController#getAllAppByPage",
+    "currentMvcHandler": "TinyEngineAppMvcController#appsPage",
+    "currentWebFluxHandler": "TinyEngineAppWebFluxController#appsPage",
+    "status": "implemented",
+    "responseShape": "Result<AppDto>"
+  },
+  {
+    "id": "app-center-api-apps-preview-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/apps/preview/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/design-core/src/preview/src/previewApp.vue"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-apps-save-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/apps/save/{id}",
+    "query": [
+      "version"
+    ],
+    "frontendCallSites": [
+      "packages/toolbars/logo/src/Main.vue"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-apps-schema-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/apps/schema/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/bridge/src/http.ts",
+      "packages/plugins/datasource/src/js/http.ts",
+      "packages/plugins/state/src/js/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-apps-schema-components-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/apps/schema/components/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-code-get",
+    "method": "GET",
+    "path": "/app-center/api/code",
+    "query": [
+      "app",
+      "history",
+      "id",
+      "platform",
+      "type"
+    ],
+    "frontendCallSites": [
+      "packages/design-core/src/preview/src/preview/http.js"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEngineCodegenMvcController#generateCode",
+    "currentWebFluxHandler": "TinyEngineCodegenWebFluxController#generateCode",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-i18n-entries-get",
+    "method": "GET",
+    "path": "/app-center/api/i18n/entries",
+    "query": [
+      "_limit",
+      "host",
+      "host_type"
+    ],
+    "frontendCallSites": [
+      "packages/plugins/i18n/src/composable/useTranslate.ts"
+    ],
+    "officialController": "I18nEntryController#getI18nEntriesByApp",
+    "currentMvcHandler": "TinyEngineModelMvcController#i18nEntries",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#i18nEntries",
+    "status": "implemented",
+    "responseShape": "Result<I18nEntryListResult>"
+  },
+  {
+    "id": "app-center-api-pages-delete-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/pages/delete/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/page/src/http.ts"
+    ],
+    "officialController": "PageController#deletePage",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<Page>"
+  },
+  {
+    "id": "app-center-api-pages-detail-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/pages/detail/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/design-core/src/preview/src/preview/http.js",
+      "packages/plugins/page/src/http.ts"
+    ],
+    "officialController": "PageController#getPageById",
+    "currentMvcHandler": "TinyEnginePageMvcController#pageDetail",
+    "currentWebFluxHandler": "TinyEnginePageWebFluxController#pageDetail",
+    "status": "implemented",
+    "responseShape": "Result<Page>"
+  },
+  {
+    "id": "app-center-api-pages-histories-get",
+    "method": "GET",
+    "path": "/app-center/api/pages/histories",
+    "query": [
+      "page"
+    ],
+    "frontendCallSites": [
+      "packages/design-core/src/preview/src/preview/http.js",
+      "packages/plugins/page/src/http.ts"
+    ],
+    "officialController": "PageHistoryController#getAllPageHistory",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<List<PageHistory>>"
+  },
+  {
+    "id": "app-center-api-pages-histories-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/pages/histories/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/page/src/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-pages-list-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/pages/list/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/design-core/src/preview/src/preview/http.js",
+      "packages/plugins/page/src/http.ts",
+      "packages/toolbars/generate-code/src/http.ts",
+      "packages/toolbars/upload/src/http.ts",
+      "packages/workspace/template-center/src/js/http.js"
+    ],
+    "officialController": "PageController#getAllPage",
+    "currentMvcHandler": "TinyEnginePageMvcController#pages",
+    "currentWebFluxHandler": "TinyEnginePageWebFluxController#pages",
+    "status": "implemented",
+    "responseShape": "Result<List<Page>>"
+  },
+  {
+    "id": "app-center-api-preview-metadata-get",
+    "method": "GET",
+    "path": "/app-center/api/preview/metadata",
+    "query": [
+      "app",
+      "history",
+      "id",
+      "platform",
+      "type"
+    ],
+    "frontendCallSites": [
+      "packages/design-core/src/preview/src/preview/http.js",
+      "packages/toolbars/generate-code/src/http.ts"
+    ],
+    "officialController": "PageController#previewData",
+    "currentMvcHandler": "TinyEnginePageMvcController#previewMetadata",
+    "currentWebFluxHandler": "TinyEnginePageWebFluxController#previewMetadata",
+    "status": "implemented",
+    "responseShape": "Result<PreviewDto>"
+  },
+  {
+    "id": "app-center-api-source-tpl-get",
+    "method": "GET",
+    "path": "/app-center/api/source_tpl",
+    "query": [
+      "id",
+      "platform"
+    ],
+    "frontendCallSites": [
+      "packages/plugins/datasource/src/js/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEngineCodegenMvcController#sourceTemplate",
+    "currentWebFluxHandler": "TinyEngineCodegenWebFluxController#sourceTemplate",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-sources-delete-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/sources/delete/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/datasource/src/js/http.ts"
+    ],
+    "officialController": "DataSourceController#deleteSources",
+    "currentMvcHandler": "TinyEngineModelMvcController#deleteDatasource",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#deleteDatasource",
+    "status": "implemented",
+    "responseShape": "Result<Datasource>"
+  },
+  {
+    "id": "app-center-api-sources-detail-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/sources/detail/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/canvas/render/src/builtin/CanvasCollection.vue",
+      "packages/plugins/datasource/src/js/http.ts"
+    ],
+    "officialController": "DataSourceController#getSourcesById",
+    "currentMvcHandler": "TinyEngineModelMvcController#datasourceDetail",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#datasourceDetail",
+    "status": "implemented",
+    "responseShape": "Result<Datasource>"
+  },
+  {
+    "id": "app-center-api-sources-list-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/sources/list/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/configurator/src/collection-configurator/CollectionConfigurator.vue",
+      "packages/configurator/src/variable-configurator/VariableConfigurator.vue",
+      "packages/plugins/datasource/src/js/http.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "DataSourceController#getAllSources",
+    "currentMvcHandler": "TinyEngineModelMvcController#datasources",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#datasources",
+    "status": "implemented",
+    "responseShape": "Result<List<Datasource>>"
+  },
+  {
+    "id": "app-center-api-tasks-status-by-id-get",
+    "method": "GET",
+    "path": "/app-center/api/tasks/status/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/design-core/src/preview/src/previewApp.vue"
+    ],
+    "officialController": "TaskRecordController#getTaskRecordById",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<TaskRecord>"
+  },
+  {
+    "id": "app-center-v1-api-apps-schema-by-id-get",
+    "method": "GET",
+    "path": "/app-center/v1/api/apps/schema/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/design-core/src/preview/src/preview/http.js",
+      "packages/design-core/src/preview/src/preview/usePreviewData.ts",
+      "packages/plugins/materials/src/composable/useResource.ts",
+      "packages/toolbars/generate-code/src/Main.vue"
+    ],
+    "officialController": "AppV1Controller#getSchema",
+    "currentMvcHandler": "TinyEngineAppMvcController#appSchema",
+    "currentWebFluxHandler": "TinyEngineAppWebFluxController#appSchema",
+    "status": "implemented",
+    "responseShape": "Result<SchemaDto>"
+  },
+  {
+    "id": "material-center-api-block-get",
+    "method": "GET",
+    "path": "/material-center/api/block",
+    "query": [
+      "framework",
+      "groups",
+      "label",
+      "label_contains"
+    ],
+    "frontendCallSites": [
+      "packages/design-core/src/preview/src/preview/http.js",
+      "packages/plugins/block/src/js/http.ts",
+      "packages/plugins/materials/src/composable/block-compile.ts",
+      "packages/toolbars/generate-code/src/http.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "BlockController#find",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#blockList",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#blockList",
+    "status": "implemented",
+    "responseShape": "Result<List<BlockDto>>"
+  },
+  {
+    "id": "material-center-api-block-categories-get",
+    "method": "GET",
+    "path": "/material-center/api/block-categories",
+    "query": [
+      "appId"
+    ],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#blockGroups",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#blockGroups",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "material-center-api-block-groups-get",
+    "method": "GET",
+    "path": "/material-center/api/block-groups",
+    "query": [
+      "app",
+      "appId",
+      "from",
+      "id"
+    ],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts",
+      "packages/plugins/materials/src/meta/block/src/http.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "BlockGroupController#getAllBlockGroups",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#blockGroups",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#blockGroups",
+    "status": "implemented",
+    "responseShape": "Result<List<BlockGroup>>"
+  },
+  {
+    "id": "material-center-api-block-groups-delete-by-id-get",
+    "method": "GET",
+    "path": "/material-center/api/block-groups/delete/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts",
+      "packages/plugins/materials/src/meta/block/src/http.ts"
+    ],
+    "officialController": "BlockGroupController#deleteBlockGroups",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#deleteBlockGroup",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#deleteBlockGroup",
+    "status": "implemented",
+    "responseShape": "Result<List<BlockGroup>>"
+  },
+  {
+    "id": "material-center-api-block-history-get",
+    "method": "GET",
+    "path": "/material-center/api/block-history",
+    "query": [
+      "block"
+    ],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts",
+      "packages/plugins/materials/src/meta/block/src/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#blockHistories",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#blockHistories",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "material-center-api-block-delete-by-id-get",
+    "method": "GET",
+    "path": "/material-center/api/block/delete/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts"
+    ],
+    "officialController": "BlockController#deleteBlock",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#deleteBlock",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#deleteBlock",
+    "status": "implemented",
+    "responseShape": "Result<BlockDto>"
+  },
+  {
+    "id": "material-center-api-block-detail-by-id-get",
+    "method": "GET",
+    "path": "/material-center/api/block/detail/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/design-core/src/preview/src/preview/http.js",
+      "packages/plugins/block/src/js/http.ts",
+      "packages/plugins/materials/src/meta/block/src/http.ts"
+    ],
+    "officialController": "BlockController#getBlocksById",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#blockDetail",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#blockDetail",
+    "status": "implemented",
+    "responseShape": "Result<BlockDto>"
+  },
+  {
+    "id": "material-center-api-block-tags-get",
+    "method": "GET",
+    "path": "/material-center/api/block/tags",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/materials/src/meta/block/src/http.ts"
+    ],
+    "officialController": "BlockController#allTags",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#blockTags",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#blockTags",
+    "status": "implemented",
+    "responseShape": "Result<List<String>>"
+  },
+  {
+    "id": "material-center-api-block-tenants-get",
+    "method": "GET",
+    "path": "/material-center/api/block/tenants",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/materials/src/meta/block/src/http.ts"
+    ],
+    "officialController": "BlockController#allTenant",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#blockTenants",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#blockTenants",
+    "status": "implemented",
+    "responseShape": "Result<List<Tenant>>"
+  },
+  {
+    "id": "material-center-api-block-users-get",
+    "method": "GET",
+    "path": "/material-center/api/block/users",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/materials/src/meta/block/src/http.ts"
+    ],
+    "officialController": "BlockController#allAuthor",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#blockUsers",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#blockUsers",
+    "status": "implemented",
+    "responseShape": "Result<List<User>>"
+  },
+  {
+    "id": "material-center-api-blocks-get",
+    "method": "GET",
+    "path": "/material-center/api/blocks",
+    "query": [
+      "appId",
+      "categoryId",
+      "groupId"
+    ],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts"
+    ],
+    "officialController": "BlockController#getBlockGroups",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#blocks",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#blocks",
+    "status": "implemented",
+    "responseShape": "Result<List<Block>>"
+  },
+  {
+    "id": "material-center-api-business-category-find-get",
+    "method": "GET",
+    "path": "/material-center/api/business-category/find",
+    "query": [
+      "group"
+    ],
+    "frontendCallSites": [
+      "packages/workspace/application-center/src/js/http.js",
+      "packages/workspace/template-center/src/js/http.js"
+    ],
+    "officialController": "BusinessCategoryController#getBusinessCategoryByGroup",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#businessCategoriesByGroup",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#businessCategoriesByGroup",
+    "status": "implemented",
+    "responseShape": "Result<List<BusinessCategory>>"
+  },
+  {
+    "id": "material-center-api-business-category-list-get",
+    "method": "GET",
+    "path": "/material-center/api/business-category/list",
+    "query": [],
+    "frontendCallSites": [
+      "packages/workspace/application-center/src/js/http.js"
+    ],
+    "officialController": "BusinessCategoryController#getAllBusinessCategory",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#businessCategories",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#businessCategories",
+    "status": "implemented",
+    "responseShape": "Result<List<BusinessCategory>>"
+  },
+  {
+    "id": "material-center-api-model-detail-by-id-get",
+    "method": "GET",
+    "path": "/material-center/api/model/detail/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/configurator/src/model-common/http.js"
+    ],
+    "officialController": "ModelController#detail",
+    "currentMvcHandler": "TinyEngineModelMvcController#modelDetail",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#modelDetail",
+    "status": "implemented",
+    "responseShape": "Result<Model>"
+  },
+  {
+    "id": "material-center-api-model-list-get",
+    "method": "GET",
+    "path": "/material-center/api/model/list",
+    "query": [
+      "currentPage",
+      "id",
+      "nameCn",
+      "pageSize"
+    ],
+    "frontendCallSites": [
+      "packages/configurator/src/model-common/http.js",
+      "packages/plugins/model-manager/src/composable/useModelManager.js"
+    ],
+    "officialController": "ModelController#getAllModel",
+    "currentMvcHandler": "TinyEngineModelMvcController#models",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#models",
+    "status": "implemented",
+    "responseShape": "Result<Page<Model>>"
+  },
+  {
+    "id": "material-center-api-resource-group-by-id-get",
+    "method": "GET",
+    "path": "/material-center/api/resource-group/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/robot/src/services/api.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "ResourceGroupController#queryResourceGroupByAppId",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#resourceGroupsByApp",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#resourceGroupsByApp",
+    "status": "implemented",
+    "responseShape": "Result<List<ResourceGroup>>"
+  },
+  {
+    "id": "material-center-api-resource-find-by-id-get",
+    "method": "GET",
+    "path": "/material-center/api/resource/find/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/canvas/container/src/services/agentServices.ts",
+      "packages/plugins/robot/src/services/api.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "ResourceController#getResourceByResourceGroupId",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#resourcesByGroup",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#resourcesByGroup",
+    "status": "implemented",
+    "responseShape": "Result<List<Resource>>"
+  },
+  {
+    "id": "platform-center-api-courses-get",
+    "method": "GET",
+    "path": "/platform-center/api/courses",
+    "query": [
+      "category"
+    ],
+    "frontendCallSites": [
+      "packages/plugins/tutorial/src/js/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEnginePlatformMvcController#courses",
+    "currentWebFluxHandler": "TinyEnginePlatformWebFluxController#courses",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "platform-center-api-courses-by-id-get",
+    "method": "GET",
+    "path": "/platform-center/api/courses/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/tutorial/src/js/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEnginePlatformMvcController#courseDetail",
+    "currentWebFluxHandler": "TinyEnginePlatformWebFluxController#courseDetail",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "platform-center-api-logout-get",
+    "method": "GET",
+    "path": "/platform-center/api/logout",
+    "query": [],
+    "frontendCallSites": [
+      "packages/toolbars/logo/src/Main.vue"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "platform-center-api-user-me-get",
+    "method": "GET",
+    "path": "/platform-center/api/user/me",
+    "query": [],
+    "frontendCallSites": [
+      "packages/common/composable/defaultGlobalService.ts"
+    ],
+    "officialController": "UserController#me",
+    "currentMvcHandler": "TinyEngineUserMvcController#me",
+    "currentWebFluxHandler": "TinyEngineUserWebFluxController#me",
+    "status": "implemented",
+    "responseShape": "Result<User>"
+  },
+  {
+    "id": "platform-center-api-user-tenant-get",
+    "method": "GET",
+    "path": "/platform-center/api/user/tenant",
+    "query": [
+      "tenantId"
+    ],
+    "frontendCallSites": [
+      "packages/common/composable/defaultGlobalService.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-ai-chat-post",
+    "method": "POST",
+    "path": "/app-center/api/ai/chat",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/robot/src/services/api.ts"
+    ],
+    "officialController": "AiChatController#aiChat",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "ResponseEntity<?>"
+  },
+  {
+    "id": "app-center-api-ai-search-post",
+    "method": "POST",
+    "path": "/app-center/api/ai/search",
+    "query": [],
+    "frontendCallSites": [
+      "packages/canvas/container/src/services/agentServices.ts",
+      "packages/plugins/robot/src/services/api.ts"
+    ],
+    "officialController": "AiChatController#searchInCollection",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<List<EmbeddingMatchDto>>"
+  },
+  {
+    "id": "app-center-api-app-template-create-post",
+    "method": "POST",
+    "path": "/app-center/api/app-template/create",
+    "query": [],
+    "frontendCallSites": [
+      "packages/workspace/template-center/src/js/http.js"
+    ],
+    "officialController": "AppTemplateController#createAppTemplate",
+    "currentMvcHandler": "TinyEngineModelMvcController#createAppTemplate",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#createAppTemplate",
+    "status": "implemented",
+    "responseShape": "Result<App>"
+  },
+  {
+    "id": "app-center-api-apps-by-id-i18n-entries-update-post",
+    "method": "POST",
+    "path": "/app-center/api/apps/{id}/i18n/entries/update",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/i18n/src/Main.vue"
+    ],
+    "officialController": "I18nEntryController#updateI18nSingleFile",
+    "currentMvcHandler": "TinyEngineModelMvcController#updateI18nEntriesFile",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#updateI18nEntriesFile",
+    "status": "implemented",
+    "responseShape": "Result<FileResult>"
+  },
+  {
+    "id": "app-center-api-apps-create-post",
+    "method": "POST",
+    "path": "/app-center/api/apps/create",
+    "query": [],
+    "frontendCallSites": [
+      "packages/workspace/application-center/src/js/http.js"
+    ],
+    "officialController": "AppController#createApp",
+    "currentMvcHandler": "TinyEngineAppMvcController#createApp",
+    "currentWebFluxHandler": "TinyEngineAppWebFluxController#createApp",
+    "status": "implemented",
+    "responseShape": "Result<App>"
+  },
+  {
+    "id": "app-center-api-apps-extension-create-post",
+    "method": "POST",
+    "path": "/app-center/api/apps/extension/create",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/bridge/src/http.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "AppExtensionController#createAppExtension",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<AppExtension>"
+  },
+  {
+    "id": "app-center-api-apps-extension-update-post",
+    "method": "POST",
+    "path": "/app-center/api/apps/extension/update",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/bridge/src/http.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "AppExtensionController#updateAppExtension",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<AppExtension>"
+  },
+  {
+    "id": "app-center-api-apps-publish-by-id-post",
+    "method": "POST",
+    "path": "/app-center/api/apps/publish/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/toolbars/logo/src/Main.vue"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-apps-update-by-id-post",
+    "method": "POST",
+    "path": "/app-center/api/apps/update/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/datasource/src/js/http.ts",
+      "packages/plugins/state/src/js/http.ts",
+      "packages/toolbars/upload/src/http.ts",
+      "packages/workspace/application-center/src/js/http.js"
+    ],
+    "officialController": "AppController#updateApp",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<App>"
+  },
+  {
+    "id": "app-center-api-chat-completions-post",
+    "method": "POST",
+    "path": "/app-center/api/chat/completions",
+    "query": [],
+    "frontendCallSites": [
+      "packages/common/js/completion.js"
+    ],
+    "officialController": "AiChatController#completions",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "ResponseEntity<?>"
+  },
+  {
+    "id": "app-center-api-encrypt-key-post",
+    "method": "POST",
+    "path": "/app-center/api/encrypt-key",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/robot/src/services/api.ts"
+    ],
+    "officialController": "AiChatController#getToken",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<AiToken>"
+  },
+  {
+    "id": "app-center-api-i18n-entries-batch-create-post",
+    "method": "POST",
+    "path": "/app-center/api/i18n/entries/batch/create",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/i18n/src/composable/useTranslate.ts"
+    ],
+    "officialController": "I18nEntryController#batchCreateEntries",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<List<I18nEntry>>"
+  },
+  {
+    "id": "app-center-api-i18n-entries-bulk-delete-post",
+    "method": "POST",
+    "path": "/app-center/api/i18n/entries/bulk/delete",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/i18n/src/composable/useTranslate.ts"
+    ],
+    "officialController": "I18nEntryController#deleteI18nEntries",
+    "currentMvcHandler": "TinyEngineModelMvcController#deleteI18nEntries",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#deleteI18nEntries",
+    "status": "implemented",
+    "responseShape": "Result<List<I18nEntryDto>>"
+  },
+  {
+    "id": "app-center-api-i18n-entries-create-post",
+    "method": "POST",
+    "path": "/app-center/api/i18n/entries/create",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/i18n/src/composable/useTranslate.ts"
+    ],
+    "officialController": "I18nEntryController#createI18nEntries",
+    "currentMvcHandler": "TinyEngineModelMvcController#createI18nEntries",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#createI18nEntries",
+    "status": "implemented",
+    "responseShape": "Result<List<I18nEntry>>"
+  },
+  {
+    "id": "app-center-api-i18n-entries-update-post",
+    "method": "POST",
+    "path": "/app-center/api/i18n/entries/update",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/i18n/src/composable/useTranslate.ts"
+    ],
+    "officialController": "I18nEntryController#updateEntry",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "Result<List<I18nEntry>>"
+  },
+  {
+    "id": "app-center-api-page-history-restore-post",
+    "method": "POST",
+    "path": "/app-center/api/pageHistory/restore",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/page/src/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-pages-copy-post",
+    "method": "POST",
+    "path": "/app-center/api/pages/copy",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/page/src/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": null,
+    "currentWebFluxHandler": null,
+    "status": "missing",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-pages-create-post",
+    "method": "POST",
+    "path": "/app-center/api/pages/create",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/page/src/http.ts",
+      "packages/toolbars/upload/src/Main.vue"
+    ],
+    "officialController": "PageController#createPage",
+    "currentMvcHandler": "TinyEnginePageMvcController#createPage",
+    "currentWebFluxHandler": "TinyEnginePageWebFluxController#createPage",
+    "status": "implemented",
+    "responseShape": "Result<Page>"
+  },
+  {
+    "id": "app-center-api-pages-update-by-id-post",
+    "method": "POST",
+    "path": "/app-center/api/pages/update/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/common/js/http.ts",
+      "packages/plugins/page/src/http.ts",
+      "packages/toolbars/upload/src/Main.vue"
+    ],
+    "officialController": "PageController#updatePage",
+    "currentMvcHandler": "TinyEnginePageMvcController#updatePage",
+    "currentWebFluxHandler": "TinyEnginePageWebFluxController#updatePage",
+    "status": "implemented",
+    "responseShape": "Result<Page>"
+  },
+  {
+    "id": "app-center-api-schema2code-post",
+    "method": "POST",
+    "path": "/app-center/api/schema2code",
+    "query": [],
+    "frontendCallSites": [
+      "packages/design-core/src/preview/src/preview/http.js",
+      "packages/toolbars/generate-code/src/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEngineCodegenMvcController#schemaToCode",
+    "currentWebFluxHandler": "TinyEngineCodegenWebFluxController#schemaToCode",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "app-center-api-sources-create-post",
+    "method": "POST",
+    "path": "/app-center/api/sources/create",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/datasource/src/js/http.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "DataSourceController#createSources",
+    "currentMvcHandler": "TinyEngineModelMvcController#createDatasource",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#createDatasource",
+    "status": "implemented",
+    "responseShape": "Result<Datasource>"
+  },
+  {
+    "id": "app-center-api-sources-update-by-id-post",
+    "method": "POST",
+    "path": "/app-center/api/sources/update/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/datasource/src/js/http.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "DataSourceController#updateSources",
+    "currentMvcHandler": "TinyEngineModelMvcController#updateDatasource",
+    "currentWebFluxHandler": "TinyEngineModelWebFluxController#updateDatasource",
+    "status": "implemented",
+    "responseShape": "Result<Datasource>"
+  },
+  {
+    "id": "material-center-api-block-categories-post",
+    "method": "POST",
+    "path": "/material-center/api/block-categories",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#createBlockGroup",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#createBlockGroup",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "material-center-api-block-groups-create-post",
+    "method": "POST",
+    "path": "/material-center/api/block-groups/create",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts",
+      "packages/plugins/materials/src/meta/block/src/http.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "BlockGroupController#createBlockGroups",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#createBlockGroup",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#createBlockGroup",
+    "status": "implemented",
+    "responseShape": "Result<BlockGroup>"
+  },
+  {
+    "id": "material-center-api-block-groups-update-by-id-post",
+    "method": "POST",
+    "path": "/material-center/api/block-groups/update/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts",
+      "packages/plugins/materials/src/meta/block/src/http.ts"
+    ],
+    "officialController": "BlockGroupController#updateBlockGroups",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#updateBlockGroup",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#updateBlockGroup",
+    "status": "implemented",
+    "responseShape": "Result<List<BlockGroup>>"
+  },
+  {
+    "id": "material-center-api-block-create-post",
+    "method": "POST",
+    "path": "/material-center/api/block/create",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "BlockController#createBlocks",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#createBlock",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#createBlock",
+    "status": "implemented",
+    "responseShape": "Result<BlockDto>"
+  },
+  {
+    "id": "material-center-api-block-deploy-post",
+    "method": "POST",
+    "path": "/material-center/api/block/deploy",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "BlockController#build",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#deployBlock",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#deployBlock",
+    "status": "implemented",
+    "responseShape": "Result<BlockDto>"
+  },
+  {
+    "id": "material-center-api-block-update-by-id-post",
+    "method": "POST",
+    "path": "/material-center/api/block/update/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts",
+      "packages/plugins/materials/src/meta/block/src/http.ts",
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "BlockController#updateBlocks",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#updateBlock",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#updateBlock",
+    "status": "implemented",
+    "responseShape": "Result<BlockDto>"
+  },
+  {
+    "id": "material-center-api-resource-group-create-post",
+    "method": "POST",
+    "path": "/material-center/api/resource-group/create",
+    "query": [],
+    "frontendCallSites": [
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "ResourceGroupController#createResourceGroup",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#createResourceGroup",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#createResourceGroup",
+    "status": "implemented",
+    "responseShape": "Result<ResourceGroup>"
+  },
+  {
+    "id": "material-center-api-resource-create-batch-post",
+    "method": "POST",
+    "path": "/material-center/api/resource/create/batch",
+    "query": [],
+    "frontendCallSites": [
+      "packages/toolbars/upload/src/http.ts"
+    ],
+    "officialController": "ResourceController#createResource",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#createResources",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#createResources",
+    "status": "implemented",
+    "responseShape": "Result<List<Resource>>"
+  },
+  {
+    "id": "material-center-api-resource-upload-post",
+    "method": "POST",
+    "path": "/material-center/api/resource/upload",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/robot/src/services/api.ts"
+    ],
+    "officialController": "ResourceController#resourceUpload",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#uploadResource",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#uploadResource",
+    "status": "implemented",
+    "responseShape": "Result<Resource>"
+  },
+  {
+    "id": "platform-center-api-tenant-create-post",
+    "method": "POST",
+    "path": "/platform-center/api/tenant/create",
+    "query": [],
+    "frontendCallSites": [
+      "packages/toolbars/user/src/Main.vue"
+    ],
+    "officialController": "TenantController#createTenant",
+    "currentMvcHandler": "TinyEngineUserMvcController#createTenant",
+    "currentWebFluxHandler": "TinyEngineUserWebFluxController#createTenant",
+    "status": "implemented",
+    "responseShape": "Result<Tenant>"
+  },
+  {
+    "id": "platform-center-api-user-forgot-password-post",
+    "method": "POST",
+    "path": "/platform-center/api/user/forgot-password",
+    "query": [],
+    "frontendCallSites": [
+      "packages/design-core/src/login/ForgotPassword.vue"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEngineUserMvcController#forgotPassword",
+    "currentWebFluxHandler": "TinyEngineUserWebFluxController#forgotPassword",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "platform-center-api-user-login-post",
+    "method": "POST",
+    "path": "/platform-center/api/user/login",
+    "query": [],
+    "frontendCallSites": [
+      "packages/design-core/src/login/Login.vue"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEngineUserMvcController#login",
+    "currentWebFluxHandler": "TinyEngineUserWebFluxController#login",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "platform-center-api-user-register-post",
+    "method": "POST",
+    "path": "/platform-center/api/user/register",
+    "query": [],
+    "frontendCallSites": [
+      "packages/design-core/src/login/Register.vue"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEngineUserMvcController#register",
+    "currentWebFluxHandler": "TinyEngineUserWebFluxController#register",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  },
+  {
+    "id": "material-center-api-block-categories-by-id-put",
+    "method": "PUT",
+    "path": "/material-center/api/block-categories/{id}",
+    "query": [],
+    "frontendCallSites": [
+      "packages/plugins/block/src/js/http.ts"
+    ],
+    "officialController": "NONE（官方后端无同 method/path 路由）",
+    "currentMvcHandler": "TinyEngineMaterialMvcController#updateBlockGroup",
+    "currentWebFluxHandler": "TinyEngineMaterialWebFluxController#updateBlockGroup",
+    "status": "implemented",
+    "responseShape": "N/A（官方后端无同 method/path 路由）"
+  }
+]

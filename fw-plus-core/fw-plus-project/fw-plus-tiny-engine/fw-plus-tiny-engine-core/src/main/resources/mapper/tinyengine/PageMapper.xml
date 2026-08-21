@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.xiongx9527.fw.plus.tinyengine.mapper.PageMapper">
+
+    <!-- 通用设置 -->
+
+    <!-- 通用查询列 -->
+    <sql id="Base_Column_List">
+        id
+        , name, app_id, route, page_content, is_body, parent_id, `group`, `depth`, is_page, occupier_by, is_default,
+        content_blocks, latest_version, latest_history_id, created_by, last_updated_by, created_time, last_updated_time,
+        tenant_id, renter_id, site_id
+    </sql>
+
+    <!-- 通用条件列 -->
+    <sql id="PageByCondition">
+        <if test="name!=null and name!=''">
+            AND name = #{name}
+        </if>
+        <if test="app!=null">
+            AND app_id = #{app}
+        </if>
+        <if test="route!=null and route!=''">
+            AND route = #{route}
+        </if>
+        <if test="pageContent!=null and pageContent!=''">
+            AND page_content = #{pageContent,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+        </if>
+        <if test="isBody!=null">
+            AND is_body = #{isBody}
+        </if>
+        <if test="parentId!=null">
+            AND parent_id = #{parentId}
+        </if>
+        <if test="group!=null and group!=''">
+            AND `group` = #{group}
+        </if>
+        <if test="depth!=null">
+            AND `depth` = #{depth}
+        </if>
+        <if test="isPage!=null">
+            AND is_page = #{isPage}
+        </if>
+        <if test="occupierBy!=null and occupierBy!=''">
+            AND occupier_by = #{occupierBy}
+        </if>
+        <if test="isDefault!=null">
+            AND is_default = #{isDefault}
+        </if>
+        <if test="contentBlocks!=null and contentBlocks!=''">
+            AND content_blocks = #{contentBlocks,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
+        </if>
+        <if test="latestVersion!=null and latestVersion!=''">
+            AND latest_version = #{latestVersion}
+        </if>
+        <if test="latestHistoryId!=null">
+            AND latest_history_id = #{latestHistoryId}
+        </if>
+        <if test="createdBy!=null and createdBy!=''">
+            AND created_by = #{createdBy}
+        </if>
+        <if test="lastUpdatedBy!=null and lastUpdatedBy!=''">
+            AND last_updated_by = #{lastUpdatedBy}
+        </if>
+        <if test="createdTime!=null">
+            AND created_time = #{createdTime}
+        </if>
+        <if test="lastUpdatedTime!=null">
+            AND last_updated_time = #{lastUpdatedTime}
+        </if>
+        <if test="tenantId!=null and tenantId!=''">
+            AND tenant_id = #{tenantId}
+        </if>
+        <if test="renterId!=null and renterId!=''">
+            AND renter_id = #{renterId}
+        </if>
+        <if test="siteId!=null and siteId!=''">
+            AND site_id = #{siteId}
+        </if>
+    </sql>
+
+    <!-- 通用设置列 -->
+    <sql id="PageSetColumns">
+        <if test="name!=null and name!=''">
+            name = #{name},
+        </if>
+        <if test="app!=null">
+            app_id = #{app},
+        </if>
+        <if test="route!=null and route!=''">
+            route = #{route},
+        </if>
+        <if test="pageContent!=null and pageContent!=''">
+            page_content = #{pageContent,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler},
+        </if>
+        <if test="isBody!=null">
+            is_body = #{isBody},
+        </if>
+        <if test="parentId!=null">
+            parent_id = #{parentId},
+        </if>
+        <if test="group!=null and group!=''">
+            `group` = #{group},
+        </if>
+        <if test="depth!=null">
+            `depth` = #{depth},
+        </if>
+        <if test="isPage!=null">
+            is_page = #{isPage},
+        </if>
+        <if test="occupierBy!=''">
+            occupier_by = #{occupierBy},
+        </if>
+        <if test="isDefault!=null">
+            is_default = #{isDefault},
+        </if>
+        <if test="contentBlocks!=null and contentBlocks!=''">
+            content_blocks = #{contentBlocks,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler},
+        </if>
+        <if test="latestVersion!=null and latestVersion!=''">
+            latest_version = #{latestVersion},
+        </if>
+        <if test="latestHistoryId!=null">
+            latest_history_id = #{latestHistoryId},
+        </if>
+        <if test="createdBy!=null and createdBy!=''">
+            created_by = #{createdBy},
+        </if>
+        <if test="lastUpdatedBy!=null and lastUpdatedBy!=''">
+            last_updated_by = #{lastUpdatedBy},
+        </if>
+        <if test="createdTime!=null">
+            created_time = #{createdTime},
+        </if>
+        <if test="lastUpdatedTime!=null">
+            last_updated_time = #{lastUpdatedTime},
+        </if>
+        <if test="tenantId!=null and tenantId!=''">
+            tenant_id = #{tenantId},
+        </if>
+        <if test="renterId!=null and renterId!=''">
+            renter_id = #{renterId},
+        </if>
+        <if test="siteId!=null and siteId!=''">
+            site_id = #{siteId},
+        </if>
+    </sql>
+
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="PageMap" type="com.xiongx9527.fw.plus.tinyengine.model.entity.Page">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="app_id" property="app"/>
+        <result column="route" property="route"/>
+        <result column="page_content" property="pageContent" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler"/>
+        <result column="is_body" property="isBody"/>
+        <result column="parent_id" property="parentId"/>
+        <result column="group" property="group"/>
+        <result column="depth" property="depth"/>
+        <result column="is_page" property="isPage"/>
+        <result column="occupier_by" property="occupierBy"/>
+        <result column="is_default" property="isDefault"/>
+        <result column="content_blocks" property="contentBlocks" typeHandler="com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler"/>
+        <result column="latest_version" property="latestVersion"/>
+        <result column="latest_history_id" property="latestHistoryId"/>
+        <result column="created_by" property="createdBy"/>
+        <result column="last_updated_by" property="lastUpdatedBy"/>
+        <result column="created_time" property="createdTime"/>
+        <result column="last_updated_time" property="lastUpdatedTime"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="renter_id" property="renterId"/>
+        <result column="site_id" property="siteId"/>
+        <association property="occupier" javaType="com.xiongx9527.fw.plus.tinyengine.model.entity.User">
+            <id column="occupierId" property="id"/>
+            <result column="username" property="username"/>
+            <result column="email" property="email"/>
+            <result column="enable" property="isEnable"/>
+            <result column="userCreatedTime" property="createdTime"/>
+            <result column="userLastUpdatedTime" property="lastUpdatedTime"/>
+            <result column="userTenantId" property="tenantId"/>
+            <result column="userSiteId" property="siteId"/>
+            <result column="is_admin" property="isAdmin"/>
+            <result column="is_public" property="isPublic"/>
+        </association>
+    </resultMap>
+
+    <!-- 查询表t_page所有数据 -->
+    <select id="queryAllPage" resultMap="PageMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_page
+    </select>
+
+
+    <!-- 根据条件查询表t_page数据 -->
+    <select id="queryPageByCondition" resultMap="PageMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM t_page
+        WHERE 1=1
+        <include refid="PageByCondition"/>
+    </select>
+
+    <!-- 根据id查询表t_page数据 -->
+    <select id="queryPageById" resultMap="PageMap">
+        SELECT
+        P.id,
+        P.name,
+        P.app_id,
+        P.route,
+        P.page_content,
+        P.is_body,
+        P.parent_id,
+        P.`group`,
+        P.`depth`,
+        P.is_page,
+        P.occupier_by,
+        P.is_default,
+        P.content_blocks,
+        P.latest_version,
+        P.latest_history_id,
+        P.created_by,
+        P.last_updated_by,
+        P.created_time,
+        P.last_updated_time,
+        P.tenant_id,
+        P.site_id,
+        U.id AS occupierId, -- 指定 t_user 的 id 列
+        U.username,
+        U.email,
+        U.enable,
+        U.created_time AS userCreatedTime,
+        U.last_updated_time AS userLastUpdatedTime,
+        U.is_admin
+        FROM t_page P
+        LEFT JOIN t_user U ON P.occupier_by = CONCAT(U.id, '')
+        <where>
+            P.id = #{id}
+        </where>
+    </select>
+    <!-- 根据appId查询表t_page数据 -->
+    <select id="queryPageByApp" resultMap="PageMap">
+        SELECT
+        P.id,
+        P.name,
+        P.app_id,
+        P.route,
+        P.page_content,
+        P.is_body,
+        P.parent_id,
+        P.`group`,
+        P.`depth`,
+        P.is_page,
+        P.occupier_by,
+        P.is_default,
+        P.content_blocks,
+        P.latest_version,
+        P.latest_history_id,
+        P.created_by,
+        P.last_updated_by,
+        P.created_time,
+        P.last_updated_time,
+        P.tenant_id,
+        P.site_id,
+        U.id AS occupierId, -- 指定 t_user 的 id 列
+        U.username,
+        U.email,
+        U.enable,
+        U.created_time AS userCreatedTime,
+        U.last_updated_time AS userLastUpdatedTime,
+        U.is_admin
+        FROM t_page P
+        LEFT JOIN t_user U ON P.occupier_by = CONCAT(U.id, '')
+        <where>
+            <if test="appId != null">
+                AND P.app_id = #{appId}
+            </if>
+
+        </where>
+    </select>
+
+    <!-- 根据主键id删除表t_page数据 -->
+    <delete id="deletePageById">
+        DELETE
+        FROM t_page
+        WHERE id = #{id}
+    </delete>
+
+	<delete id="deletePageIfAvailable">
+		DELETE
+		FROM t_page
+		WHERE id = #{id}
+		  AND (occupier_by IS NULL OR occupier_by = #{userId})
+	</delete>
+
+    <!-- 根据主键id更新表t_page数据 -->
+    <update id="updatePageById" parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.Page">
+        UPDATE t_page
+        <set>
+            <include refid="PageSetColumns"/>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+	<update id="updatePageOccupierIfAvailable">
+		UPDATE t_page
+		SET occupier_by = #{occupierBy}
+		WHERE id = #{id}
+		  AND (occupier_by IS NULL OR occupier_by = #{userId})
+	</update>
+
+	<update id="updatePageHistoryPointer">
+		UPDATE t_page
+		SET latest_version = #{latestVersion},
+			latest_history_id = #{latestHistoryId}
+		WHERE id = #{id}
+		  AND (tenant_id = #{tenantId} OR tenant_id IS NULL)
+	</update>
+
+    <!-- 新增表t_page数据 -->
+    <insert id="createPage" useGeneratedKeys="true" keyProperty="id"
+            parameterType="com.xiongx9527.fw.plus.tinyengine.model.entity.Page">
+        INSERT INTO t_page ( id
+                           , name
+                           , app_id
+                           , route
+                           , page_content
+                           , is_body
+                           , parent_id
+                           , `group`
+                           , `depth`
+                           , is_page
+                           , occupier_by
+                           , is_default
+                           , content_blocks
+                           , latest_version
+                           , latest_history_id
+                           , created_by
+                           , last_updated_by
+                           , created_time
+                           , last_updated_time
+                           , tenant_id, renter_id
+                           , site_id)
+        VALUES ( #{id}
+               , #{name}
+               , #{app}
+               , #{route}
+               , #{pageContent,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonObjectTypeHandler}
+               , #{isBody}
+               , #{parentId}
+               , #{group}
+               , #{depth}
+               , #{isPage}
+               , #{occupierBy}
+               , #{isDefault}
+               , #{contentBlocks,typeHandler=com.xiongx9527.fw.plus.tinyengine.common.typehandler.JsonArrayTypeHandler}
+               , #{latestVersion}
+               , #{latestHistoryId}
+               , #{createdBy}
+               , #{lastUpdatedBy}
+               , #{createdTime}
+               , #{lastUpdatedTime}
+               , #{tenantId}
+               , #{renterId}
+               , #{siteId})
+    </insert>
+</mapper>

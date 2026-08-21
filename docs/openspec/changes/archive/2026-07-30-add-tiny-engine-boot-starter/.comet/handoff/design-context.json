@@ -1,0 +1,14 @@
+{
+  "change": "add-tiny-engine-boot-starter",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "8da6c53ef62af2a8b7700ffa6297b3e4eff62d7f926c54095a140788e7e75902",
+  "files": [
+    { "path": "openspec/changes/add-tiny-engine-boot-starter/proposal.md", "sha256": "fa79dc6a44dfae481307b809bdad404031825d499db1910822aa5c28219e231a" },
+    { "path": "openspec/changes/add-tiny-engine-boot-starter/design.md", "sha256": "90fbab19bb8f28c9c8b6ebddb37cdc70d281b655c8fc11e779a8ebdc21931719" },
+    { "path": "openspec/changes/add-tiny-engine-boot-starter/tasks.md", "sha256": "bb7a26d4174aa4c68947094b04c99d766c855aa6e790fd6af05e42331b0d658e" },
+    { "path": "openspec/changes/add-tiny-engine-boot-starter/specs/tiny-engine-boot-starter/spec.md", "sha256": "b37ac132e0c4f70362f0d114798a48b0240ef33d08ec961e6653e483bd6e806b" }
+  ]
+}

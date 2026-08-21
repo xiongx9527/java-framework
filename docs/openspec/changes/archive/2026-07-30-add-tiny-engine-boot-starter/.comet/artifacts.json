@@ -1,0 +1,9 @@
+{
+  "openspec_proposal": "openspec/changes/archive/2026-07-30-add-tiny-engine-boot-starter/proposal.md",
+  "openspec_design": "openspec/changes/archive/2026-07-30-add-tiny-engine-boot-starter/design.md",
+  "openspec_tasks": "openspec/changes/archive/2026-07-30-add-tiny-engine-boot-starter/tasks.md",
+  "openspec_delta_spec": "openspec/changes/archive/2026-07-30-add-tiny-engine-boot-starter/specs/tiny-engine-boot-starter/spec.md",
+  "handoff_context": "openspec/changes/archive/2026-07-30-add-tiny-engine-boot-starter/.comet/handoff/design-context.json",
+  "handoff_markdown": "openspec/changes/archive/2026-07-30-add-tiny-engine-boot-starter/.comet/handoff/design-context.md",
+  "archive_directory": "openspec/changes/archive/2026-07-30-add-tiny-engine-boot-starter"
+}

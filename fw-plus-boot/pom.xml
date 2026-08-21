@@ -5,12 +5,11 @@
 	<parent>
 		<groupId>com.xiongx9527.fw.plus</groupId>
 		<artifactId>fw-plus-parent</artifactId>
-		<version>0.1.1-SNAPSHOT</version>
+		<version>0.3.0-SNAPSHOT</version>
 		<relativePath />
 	</parent>
 	<packaging>pom</packaging>
 	<modules>
-		<module>fw-plus-boot-samples</module>
 		<module>fw-plus-boot-project</module>
     </modules>
 	<groupId>com.xiongx9527.fw.plus.boot</groupId>
@@ -18,8 +17,8 @@
 	<version>${revision}</version>
 	<name>Fw-Plus-Boot Build</name>
 	<properties>
-		<revision>0.1.1-SNAPSHOT</revision>
-		<jdk.version>1.8</jdk.version>
+		<revision>0.3.0-SNAPSHOT</revision>
+		<jdk.version>17</jdk.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.encoding>UTF-8</maven.compiler.encoding>
 		<maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>

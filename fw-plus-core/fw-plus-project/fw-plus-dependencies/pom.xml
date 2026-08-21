@@ -14,23 +14,24 @@
     <properties>
         <main.basedir>${basedir}/../..</main.basedir>
         <!--spring boot版本号-->
-        <spring-boot-dependencies.version>2.7.18</spring-boot-dependencies.version>
+        <spring-boot-dependencies.version>3.5.8</spring-boot-dependencies.version>
         <!--spring cloud版本号-->
-        <spring-cloud-dependencies.version>2021.0.9</spring-cloud-dependencies.version>
+        <spring-cloud-dependencies.version>2025.0.0</spring-cloud-dependencies.version>
         <!--alibaba cloud版本号-->
-        <spring-cloud-alibaba-dependencies.version>2021.0.5.0</spring-cloud-alibaba-dependencies.version>
+        <spring-cloud-alibaba-dependencies.version>2025.0.0.0</spring-cloud-alibaba-dependencies.version>
         <!--tencent-cloud版本号-->
         <spring-cloud-tencent-dependencies.version>1.14.0-2023.0.0-RC2</spring-cloud-tencent-dependencies.version>
-        <!--  vesoft-java-client版本号 -->
+        <!-- vesoft nebula-java 版本号；fw-plus-nebula-jdbc 默认使用 client 3.8.4，profile nebula-java-5 使用 driver 5.3.0 -->
         <vesoft-java-client.version>3.8.4</vesoft-java-client.version>
+        <vesoft-java-driver.version>5.3.0</vesoft-java-driver.version>
         <!--sa-token版本号-->
-        <sa-token.version>1.44.0</sa-token.version>
+        <sa-token.version>1.45.0</sa-token.version>
         <!--dynamic-tp版本号-->
         <dynamictp.version>1.2.1</dynamictp.version>
         <!--akali版本号-->
         <akali.version>1.1.5</akali.version>
         <!--java-diff-utils版本号-->
-        <java-diff-utils.version>4.16</java-diff-utils.version>
+        <java-diff-utils.version>4.17</java-diff-utils.version>
         <!--hotswap-agent版本号-->
         <hotswap-agent.version>2.0.2</hotswap-agent.version>
         <!--opentelemetry版本号-->
@@ -40,6 +41,9 @@
         <okio.version>3.16.4</okio.version>
         <!--justauth版本号-->
         <JustAuth.version>1.16.7</JustAuth.version>
+        <!--jakarta.servlet-api版本号-->
+        <jakarta.servlet-api.version>6.1.0</jakarta.servlet-api.version>
+        <jakarta-el.version>4.0.2</jakarta-el.version>
         <!--javax.servlet-api版本号-->
         <javax.servlet-api.version>4.0.1</javax.servlet-api.version>
         <!--spring-plugin版本号-->
@@ -83,8 +87,8 @@
         <!--aviator版本号-->
         <aviator.version>5.4.3</aviator.version>
         <!--fastjson版本号-->
-        <fastjson.version>2.0.53</fastjson.version>
-        <fastjson2.version>2.0.53</fastjson2.version>
+        <fastjson.version>2.0.63</fastjson.version>
+        <fastjson2.version>2.0.63</fastjson2.version>
         <!--x-file-storage-spring版本号-->
         <x-file-storage-spring.version>2.2.1</x-file-storage-spring.version>
         <google-cloud-storage.version>2.60.0</google-cloud-storage.version>
@@ -93,17 +97,17 @@
         <jsch.version>0.1.55</jsch.version>
         <json.version>20250517</json.version>
         <qiniu-java-sdk.version>7.19.0</qiniu-java-sdk.version>
-        <sardine.version>5.10</sardine.version>
-        <aws-java-sdk-s3.version>1.12.794</aws-java-sdk-s3.version>
-        <bce-java-sdk.version>0.10.401</bce-java-sdk.version>
-        <cos_api.version>5.6.259</cos_api.version>
+        <sardine.version>5.13</sardine.version>
+        <aws-java-sdk-s3.version>1.12.797</aws-java-sdk-s3.version>
+        <bce-java-sdk.version>0.10.442</bce-java-sdk.version>
+        <cos_api.version>5.6.275</cos_api.version>
 
         <!--aliyun-sdk-oss版本号-->
-        <aliyun-sdk-oss.version>3.18.1</aliyun-sdk-oss.version>
+        <aliyun-sdk-oss.version>3.18.5</aliyun-sdk-oss.version>
         <!--minio版本号-->
         <minio.version>8.5.17</minio.version>
         <!--druid版本号-->
-        <druid.version>1.2.24</druid.version>
+        <druid.version>1.2.28</druid.version>
         <!--json-path版本号-->
         <json-path.version>2.9.0</json-path.version>
         <!--transmittable-thread-local版本号-->
@@ -119,9 +123,9 @@
         <!--mybatis版本号-->
         <mybatis.version>3.5.19</mybatis.version>
         <!--mybatis-spring版本号-->
-        <mybatis-spring.version>2.1.2</mybatis-spring.version>
+        <mybatis-spring.version>3.0.5</mybatis-spring.version>
         <!--mybatis-plus版本号-->
-        <mybatis-plus.version>3.3.2</mybatis-plus.version>
+        <mybatis-plus.version>3.5.16</mybatis-plus.version>
         <!--mybatis-plus-join版本号-->
         <mybatis-plus-join.version>1.5.2</mybatis-plus-join.version>
         <!--mybatis-flux版本号-->
@@ -132,15 +136,13 @@
         <!--pinyin4j版本号-->
         <pinyin4j.version>2.5.1</pinyin4j.version>
         <!--hutool版本号-->
-        <hutool.version>5.8.34</hutool.version>
+        <hutool.version>5.8.47</hutool.version>
         <!--easypoi版本号-->
         <easypoi.version>4.5.0</easypoi.version>
         <poi.version>4.1.2</poi.version>
         <poi-ooxml.version>4.1.2</poi-ooxml.version>
-        <poi-scratchpad.version>4.1.2</poi-scratchpad.version>
-        <poi-ooxml-schemas.version>4.1.2</poi-ooxml-schemas.version>
-        <poi-ooxml-full.version>4.1.2</poi-ooxml-full.version>
-        <poi-ooxml-lite.version>5.4.1</poi-ooxml-lite.version>
+		<poi-ooxml-schemas.version>4.1.2</poi-ooxml-schemas.version>
+		<poi-ooxml-lite.version>5.4.1</poi-ooxml-lite.version>
         <poi-tl.version>1.12.2</poi-tl.version>
         <xmlbeans.version>5.3.0</xmlbeans.version>
         <dom4j.version>2.1.4</dom4j.version>
@@ -149,8 +151,8 @@
         <bcprov-jdk14.version>1.64</bcprov-jdk14.version>
         <bcprov-jdk18on.version>1.78.1</bcprov-jdk18on.version>
         <antlr-runtime.version>3.5.3</antlr-runtime.version>
-        <zxing.core.version>3.5.3</zxing.core.version>
-        <jfreechart.version>1.5.4</jfreechart.version>
+        <zxing.core.version>3.5.4</zxing.core.version>
+        <jfreechart.version>1.5.6</jfreechart.version>
         <fontbox.version>3.0.3</fontbox.version>
         <!--xercesImpl版本号-->
         <xercesImpl.version>2.12.2</xercesImpl.version>
@@ -168,7 +170,7 @@
         <!--jodd-core版本号-->
         <jodd-core.version>5.0.13</jodd-core.version>
         <!--zstd-jni版本号-->
-        <zstd-jni.version>1.5.5-5</zstd-jni.version>
+        <zstd-jni.version>1.5.7-12</zstd-jni.version>
         <!--bcprov-jdk15on版本号-->
         <bcprov-jdk15on.version>1.69</bcprov-jdk15on.version>
         <!--kryo版本号-->
@@ -185,7 +187,7 @@
         <jimureport.version>2.3.4</jimureport.version>
         <jimureport-echarts.version>2.3.0</jimureport-echarts.version>
         <jimunosql.version>2.1.0</jimunosql.version>
-        <jimubi.version>2.3.2.1</jimubi.version>
+        <jimubi.version>2.3.2</jimubi.version>
         <!--jsqlparser版本号-->
         <jsqlparser.version>4.6</jsqlparser.version>
         <!--protostuff版本号-->
@@ -194,15 +196,30 @@
         <protobuf-java.version>3.25.1</protobuf-java.version>
         <!--jakarta版本号-->
         <jakarta.version>6.0.0</jakarta.version>
-        <!--
-        <maven-plugin-plugin.version>3.6.2</maven-plugin-plugin.version>
-        <build-helper-maven-plugin.version>3.2.0</build-helper-maven-plugin.version>
-        <xml-maven-plugin.version>1.0.2</xml-maven-plugin.version>
-        -->
+		<langchain4j.version>1.18.0</langchain4j.version>
+		<langchain4j-community.version>1.18.0-beta28</langchain4j-community.version>
+        <tinyflow.version>2.0.7</tinyflow.version>
+        <jedis.version>7.2.1</jedis.version>
+        <datastax-java-driver.version>4.17.0</datastax-java-driver.version>
+        <infinispan.version>13.0.22.Final</infinispan.version>
+        <neo4j-java-driver.version>4.4.26</neo4j-java-driver.version>
+        <maven-enforcer-plugin.version>3.4.1</maven-enforcer-plugin.version>
+        <exec-maven-plugin.version>3.1.0</exec-maven-plugin.version>
     </properties>
     <description>
         fw-plus 核心库依赖管理.
     </description>
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${exec-maven-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
     <dependencyManagement>
         <dependencies>
             <!--springboot 版本统一管理-->
@@ -245,11 +262,86 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!--vesoft-java-client 配置管理-->
+
+            <!--langchain4j 配置管理-->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-bom</artifactId>
+                <version>${langchain4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-redis</artifactId>
+                <version>${langchain4j-community.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-qianfan</artifactId>
+                <version>${langchain4j-community.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-dashscope</artifactId>
+                <version>${langchain4j-community.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-community-zhipu-ai</artifactId>
+                <version>${langchain4j-community.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.tinyflow</groupId>
+                <artifactId>tinyflow-core</artifactId>
+                <version>${tinyflow.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.datastax.oss</groupId>
+                <artifactId>java-driver-core</artifactId>
+                <version>${datastax-java-driver.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-api</artifactId>
+                <version>${infinispan.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-client-hotrod</artifactId>
+                <version>${infinispan.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-remote-query-client</artifactId>
+                <version>${infinispan.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.infinispan</groupId>
+                <artifactId>infinispan-query-dsl</artifactId>
+                <version>${infinispan.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.neo4j.driver</groupId>
+                <artifactId>neo4j-java-driver</artifactId>
+                <version>${neo4j-java-driver.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>redis.clients</groupId>
+                <artifactId>jedis</artifactId>
+                <version>${jedis.version}</version>
+            </dependency>
+            <!--vesoft nebula-java 3.x client 配置管理-->
             <dependency>
                 <groupId>com.vesoft</groupId>
                 <artifactId>client</artifactId>
                 <version>${vesoft-java-client.version}</version>
+            </dependency>
+            <!--vesoft nebula-java 5.x driver 配置管理-->
+            <dependency>
+                <groupId>com.vesoft</groupId>
+                <artifactId>driver</artifactId>
+                <version>${vesoft-java-driver.version}</version>
             </dependency>
             <!--sa-token 版本统一管理-->
             <dependency>
@@ -299,13 +391,7 @@
                 <artifactId>akali</artifactId>
                 <version>${akali.version}</version>
             </dependency>
-            <!--JustAuth 版本统一管理-->
-            <dependency>
-                <groupId>me.zhyd.oauth</groupId>
-                <artifactId>JustAuth</artifactId>
-                <version>{JustAuth.version}</version>
-            </dependency>
-            <!--java-diff-utils 版本统一管理-->
+			<!--java-diff-utils 版本统一管理-->
             <dependency>
                 <groupId>io.github.java-diff-utils</groupId>
                 <artifactId>java-diff-utils</artifactId>
@@ -353,17 +439,16 @@
                 <artifactId>byte-buddy-agent</artifactId>
                 <version>${byte-buddy.version}</version>
             </dependency>
-            <!--javax.servlet版本统一管理-->
-            <dependency>
-                <groupId>javax.servlet</groupId>
-                <artifactId>javax.servlet-api</artifactId>
-                <version>${javax.servlet-api.version}</version>
-            </dependency>
             <!--jakarta.servlet版本统一管理-->
             <dependency>
                 <groupId>jakarta.servlet</groupId>
                 <artifactId>jakarta.servlet-api</artifactId>
-                <version>${jakarta.version}</version>
+                <version>${jakarta.servlet-api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish</groupId>
+                <artifactId>jakarta.el</artifactId>
+                <version>${jakarta-el.version}</version>
             </dependency>
             <!--commons-collections版本统一管理-->
             <dependency>
@@ -599,7 +684,7 @@
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>
-                <artifactId>druid-spring-boot-starter</artifactId>
+                <artifactId>druid-spring-boot-3-starter</artifactId>
                 <version>${druid.version}</version>
             </dependency>
             <!--redis-keeper版本统一管理-->
@@ -617,7 +702,7 @@
             <!--dynamic-datasource版本统一管理-->
             <dependency>
                 <groupId>com.baomidou</groupId>
-                <artifactId>dynamic-datasource-spring-boot-starter</artifactId>
+                <artifactId>dynamic-datasource-spring-boot3-starter</artifactId>
                 <version>${dynamic-datasource.version}</version>
             </dependency>
             <dependency>
@@ -666,7 +751,17 @@
             </dependency>
             <dependency>
                 <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
                 <artifactId>mybatis-plus-annotation</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
                 <version>${mybatis-plus.version}</version>
             </dependency>
             <dependency>
@@ -814,7 +909,7 @@
             <!--knife4j版本统一管理-->
             <dependency>
                 <groupId>com.github.xiaoymin</groupId>
-                <artifactId>knife4j-openapi3-spring-boot-starter</artifactId>
+                <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
                 <version>${knife4j-openapi3.version}</version>
             </dependency>
             <dependency>
@@ -1009,6 +1104,11 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.pdfbox</groupId>
+                <artifactId>pdfbox</artifactId>
+                <version>${fontbox.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.pdfbox</groupId>
                 <artifactId>fontbox</artifactId>
                 <version>${fontbox.version}</version>
             </dependency>
@@ -1055,7 +1155,7 @@
             <!-- jimureport版本统一管理 -->
             <dependency>
                 <groupId>org.jeecgframework.jimureport</groupId>
-                <artifactId>jimureport-spring-boot-starter</artifactId>
+                <artifactId>jimureport-spring-boot3-starter</artifactId>
                 <version>${jimureport.version}</version>
             </dependency>
             <dependency>
@@ -1070,7 +1170,7 @@
             </dependency>
             <dependency>
                 <groupId>org.jeecgframework.jimureport</groupId>
-                <artifactId>jimubi-spring-boot-starter</artifactId>
+                <artifactId>jimubi-spring-boot3-starter</artifactId>
                 <version>${jimubi.version}</version>
             </dependency>
             <!-- fw-plus 版本统一管理 -->
@@ -1121,7 +1221,27 @@
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mybatis-datascope</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mybatis-datachange</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mp-encrypt</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mybatis-encrypt</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mf-encrypt</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1132,6 +1252,16 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-mf-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mf-datascope</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-mf-datachange</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1171,12 +1301,57 @@
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-askdata</artifactId>
+                <version>${revision}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-model</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-store-embedding</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-tinyflow-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-tinyflow-local</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-tinyflow-dify</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-graph-jdbc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-nebula-jdbc</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-neo4j-jdbc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-dify</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-tiny-engine-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -1190,6 +1365,123 @@
             <dependency>
                 <groupId>com.xiongx9527.fw.plus</groupId>
                 <artifactId>fw-plus-auth-satoken</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-openai</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-anthropic</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-ollama</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-azure-ai-search</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-azure-open-ai</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-voyage-ai</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-github-models</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-vertex-ai-gemini</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-elasticsearch</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-redis</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-qianfan</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-milvus</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-dashscope</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-adapter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-reactor</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-neo4j</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-cassandra</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.xiongx9527.fw.plus</groupId>
+                <artifactId>fw-plus-ai-langchain4j-infinispan</artifactId>
                 <version>${project.version}</version>
             </dependency>
 

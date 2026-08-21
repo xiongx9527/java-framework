@@ -1,0 +1,14 @@
+{
+  "change": "add-nebula-sql-write-and-ddl-support",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "6273e0a1f1ad31f41c7e60a2cfbbdb8ca020cb83d1d486db2ae2a8898bcc03c3",
+  "files": [
+    { "path": "openspec/changes/add-nebula-sql-write-and-ddl-support/proposal.md", "sha256": "5be30953026424a595638f1deda3130fec6040319aaee22e02a29cc6e9a4b5ac" },
+    { "path": "openspec/changes/add-nebula-sql-write-and-ddl-support/design.md", "sha256": "771dabd9f70856ba96fbc9046a34de8b61cf99616f7cfabde68e5839330ee2a0" },
+    { "path": "openspec/changes/add-nebula-sql-write-and-ddl-support/tasks.md", "sha256": "3f8bcf8941639775eaa35d1c1730d18ffc405fac992e4fb7191f09e6b6389023" },
+    { "path": "openspec/changes/add-nebula-sql-write-and-ddl-support/specs/nebula-sql-write-and-ddl-support/spec.md", "sha256": "8ff536fde95fa2d31e837bc6bb2906ea45cdffd3de3ff9ca490d2f129f18aba6" }
+  ]
+}

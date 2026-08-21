@@ -1,0 +1,204 @@
+package com.xiongx9527.fw.plus.ai.askdata.observability;
+
+import com.xiongx9527.fw.plus.ai.askdata.context.AskDataProjectContext;
+import com.xiongx9527.fw.plus.ai.askdata.model.AskDataModelUsage;
+import com.xiongx9527.fw.plus.ai.askdata.storage.AskDataMonitoringLogStore;
+
+/**
+ * 供管理员审计和监控查询的已脱敏 AskData 日志。
+ *
+ * <p>日志把项目作为第一分区、操作人作为第二分区。存储 SPI 和查询适配层必须使用这两个
+ * 标识进行过滤，禁止通过仅按项目或仅按操作人查询而突破隔离边界。</p>
+ */
+public class AskDataMonitoringLog {
+
+	private final AskDataProjectContext context;
+	private final String traceId;
+	private final AskDataEvent.Type eventType;
+	private final String message;
+	private final String datasourceKey;
+	private final String denialCode;
+	private final String authorizationVersion;
+	private final String authorizationSource;
+	private final String capabilityKey;
+	private final String purposeKey;
+	private final String modelType;
+	private final String modelKey;
+	private final String modelRoutePolicy;
+	private final String modelRouteReason;
+	private final String modelState;
+	private final String modelFailureCode;
+	private final String modelSwitchReason;
+	private final String actualModelKey;
+	private final AskDataModelUsage modelUsage;
+	private final AskDataEventCorrelation correlation;
+
+	/**
+	 * 创建一条已脱敏的监控日志。
+	 *
+	 * @param context 项目和操作人隔离上下文，不能为空
+	 * @param traceId 调用链追踪标识，可为空
+	 * @param eventType 对应的生命周期事件类型，不能为空
+	 * @param message 已脱敏日志摘要，可为空
+	 * @throws IllegalArgumentException 当上下文或事件类型为空时抛出
+	 */
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message) {
+		this(context, traceId, eventType, message, null, null, null, null, null);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource) {
+		this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, null);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource, String modelKey) {
+		this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, null, modelKey, null, null, null, null, null);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource, String modelKey, String modelRoutePolicy, String modelState,
+			String modelFailureCode, String modelSwitchReason, String actualModelKey) {
+		this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, null, modelKey, modelRoutePolicy, modelState, modelFailureCode,
+				modelSwitchReason, actualModelKey);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource, String modelType, String modelKey, String modelRoutePolicy, String modelState,
+			String modelFailureCode, String modelSwitchReason, String actualModelKey) {
+		this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, modelType, modelKey, modelRoutePolicy, modelState, modelFailureCode,
+				modelSwitchReason, actualModelKey, null);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource, String modelType, String modelKey, String modelRoutePolicy, String modelState,
+			String modelFailureCode, String modelSwitchReason, String actualModelKey,
+			AskDataEventCorrelation correlation) {
+		this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, null, null, modelType, modelKey, modelRoutePolicy, modelState,
+				modelFailureCode, modelSwitchReason, actualModelKey, AskDataModelUsage.unknown(), correlation);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource, String capabilityKey, String purposeKey, String modelType, String modelKey,
+			String modelRoutePolicy, String modelState, String modelFailureCode, String modelSwitchReason,
+			String actualModelKey, AskDataModelUsage modelUsage, AskDataEventCorrelation correlation) {
+		this(context, traceId, eventType, message, datasourceKey, denialCode, authorizationVersion,
+				authorizationSource, capabilityKey, purposeKey, modelType, modelKey, modelRoutePolicy, modelState,
+				modelFailureCode, modelSwitchReason, actualModelKey, modelUsage, correlation, null);
+	}
+
+	public AskDataMonitoringLog(AskDataProjectContext context, String traceId, AskDataEvent.Type eventType,
+			String message, String datasourceKey, String denialCode, String authorizationVersion,
+			String authorizationSource, String capabilityKey, String purposeKey, String modelType, String modelKey,
+			String modelRoutePolicy, String modelState, String modelFailureCode, String modelSwitchReason,
+			String actualModelKey, AskDataModelUsage modelUsage, AskDataEventCorrelation correlation,
+			String modelRouteReason) {
+		if (context == null) {
+			throw new IllegalArgumentException("context 不能为空");
+		}
+		if (eventType == null) {
+			throw new IllegalArgumentException("eventType 不能为空");
+		}
+		this.context = context;
+		this.traceId = traceId;
+		this.eventType = eventType;
+		this.message = message;
+		this.datasourceKey = datasourceKey;
+		this.denialCode = denialCode;
+		this.authorizationVersion = authorizationVersion;
+		this.authorizationSource = authorizationSource;
+		this.capabilityKey = capabilityKey;
+		this.purposeKey = purposeKey;
+		this.modelType = modelType;
+		this.modelKey = modelKey;
+		this.modelRoutePolicy = modelRoutePolicy;
+		this.modelRouteReason = modelRouteReason;
+		this.modelState = modelState;
+		this.modelFailureCode = modelFailureCode;
+		this.modelSwitchReason = modelSwitchReason;
+		this.actualModelKey = actualModelKey;
+		this.modelUsage = modelUsage == null ? AskDataModelUsage.unknown() : modelUsage;
+		this.correlation = correlation;
+	}
+
+	/**
+	 * 获取日志的项目和操作人隔离上下文。
+	 *
+	 * @return 不为空的隔离上下文
+	 */
+	public AskDataProjectContext getContext() {
+		return context;
+	}
+
+	/**
+	 * 获取调用链追踪标识。
+	 *
+	 * @return 调用方提供的追踪标识，可为空
+	 */
+	public String getTraceId() {
+		return traceId;
+	}
+
+	/**
+	 * 获取日志的生命周期事件类型。
+	 *
+	 * @return 不为空的事件类型
+	 */
+	public AskDataEvent.Type getEventType() {
+		return eventType;
+	}
+
+	/**
+	 * 获取已脱敏的日志摘要。
+	 *
+	 * @return 已脱敏摘要，可为空
+	 */
+	public String getMessage() {
+		return message;
+	}
+
+	public String getDatasourceKey() { return datasourceKey; }
+	public String getDenialCode() { return denialCode; }
+	public String getAuthorizationVersion() { return authorizationVersion; }
+	public String getAuthorizationSource() { return authorizationSource; }
+	public String getCapabilityKey() { return capabilityKey; }
+	public String getPurposeKey() { return purposeKey; }
+	public String getModelType() { return modelType; }
+	public String getModelKey() { return modelKey; }
+	public String getModelRoutePolicy() { return modelRoutePolicy; }
+	public String getModelRouteReason() { return modelRouteReason; }
+	public String getModelState() { return modelState; }
+	public String getModelFailureCode() { return modelFailureCode; }
+	public String getModelSwitchReason() { return modelSwitchReason; }
+	public String getActualModelKey() { return actualModelKey; }
+	public AskDataModelUsage getModelUsage() { return modelUsage; }
+	public AskDataEventCorrelation getCorrelation() { return correlation; }
+
+	/**
+	 * 转换为监控日志存储 SPI 所使用的最小审计记录。
+	 *
+	 * <p>转换保留调用链标识、事件类型和已脱敏摘要；项目及操作人上下文由发布方作为
+	 * {@link AskDataMonitoringLogStore#append(AskDataProjectContext, AskDataMonitoringLogStore.MonitoringLog)}
+	 * 的独立参数传递，以保证存储实现按 {@code projectId + operatorId} 分区。</p>
+	 *
+	 * @return 可追加到监控日志存储的记录
+	 */
+	public AskDataMonitoringLogStore.MonitoringLog toStorageLog() {
+		return new AskDataMonitoringLogStore.MonitoringLog(context, traceId, eventType.name(), message,
+				datasourceKey, denialCode, authorizationVersion, authorizationSource, capabilityKey, purposeKey,
+				modelType, modelKey, modelRoutePolicy, modelState, modelFailureCode, modelSwitchReason,
+				actualModelKey, modelUsage, correlation, modelRouteReason);
+	}
+}

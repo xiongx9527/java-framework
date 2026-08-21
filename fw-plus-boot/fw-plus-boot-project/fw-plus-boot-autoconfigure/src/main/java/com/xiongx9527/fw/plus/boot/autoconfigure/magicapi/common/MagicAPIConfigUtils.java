@@ -1,7 +1,13 @@
 package com.xiongx9527.fw.plus.boot.autoconfigure.magicapi.common;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONException;
+import com.alibaba.fastjson2.TypeReference;
 import com.xiongx9527.fw.plus.common.util.SpringUtils;
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * MagicAPI 配置工具类
@@ -30,6 +36,29 @@ public class MagicAPIConfigUtils {
             return defaultValue;
         }
         return SpringUtils.getAppConfig(PREFIX + suffix, defaultValue);
+    }
+
+    public static Map<String, Object> mergeProperties(Map<String, Object> properties, String configuredProperties) {
+        Map<String, Object> merged = new LinkedHashMap<String, Object>();
+        if (StringUtils.isBlank(configuredProperties)) {
+            if (properties != null) {
+                merged.putAll(properties);
+            }
+        } else {
+            try {
+                Map<String, Object> configured = JSON.parseObject(configuredProperties,
+                        new TypeReference<Map<String, Object>>() {
+                        });
+                if (configured != null) {
+                    merged.putAll(configured);
+                }
+            } catch (JSONException e) {
+                if (properties != null) {
+                    merged.putAll(properties);
+                }
+            }
+        }
+        return merged;
     }
 
     public static String getDbConfig(String key, String configKey, String defaultValue) {

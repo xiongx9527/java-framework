@@ -1,0 +1,28 @@
+{
+  "schema": "comet.native.verification-receipt.v3",
+  "kind": "manual-evidence",
+  "role": "acceptance-evidence",
+  "status": "passed",
+  "bindings": {
+    "change": "magicapi-dynamic-entity-plugin",
+    "sourceRevision": 5,
+    "contractHash": "45ed58098657881dad0e5906b28952a9fc6ce05cb1f7317f7851f6825eca0478",
+    "scopeHash": "87fcf2785df2a9fb11f0385a7fc3ad50d4f68596892b302ef69b60139ad5b74d",
+    "snapshotHash": "4acf41e09ee7091011cecf7550b69f9006d973cc008744d49a5f244cc8ee0d9f",
+    "artifactHash": "45cae1031894ebf2e0770a9b40fb4cf76d6a6f618372828fc747070d661a3b2d"
+  },
+  "acceptanceIds": [
+    "acceptance-075d4a4565fae06ced3dea5c3dd2906eaa1b61a885696bafb4c46e2cb8b5a019"
+  ],
+  "actor": "native-runtime:manual-evidence",
+  "issuedAt": "2026-08-06T03:21:20.768Z",
+  "evidence": {
+    "steps": [
+      "执行动态实体聚焦测试、插件构建和样例校验"
+    ],
+    "observations": [
+      "32 个聚焦测试、10 模块 install、15 个样例 validate 均退出 0，并完成源码审查"
+    ]
+  },
+  "receiptHash": "cf7a063897803138489d7190eff2b6e512a7c4154097acc0cc30e17d9979488c"
+}
