@@ -51,6 +51,7 @@
         <dependency>
             <groupId>com.xiongx9527.fw.plus.ai</groupId>
             <artifactId>fw-plus-ai-tinyflow-spring-boot-starter</artifactId>
+            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>com.xiongx9527.fw.plus</groupId>
