@@ -22,7 +22,7 @@ eureka:
     instance-id: ${spring.application.name}:${spring.cloud.client.ip-address}:${server.port}
   cloud:
     inetutils:
-      preferred-networks[0]: 172.17
+      preferred-networks[0]: xxx.17
 
 
 
