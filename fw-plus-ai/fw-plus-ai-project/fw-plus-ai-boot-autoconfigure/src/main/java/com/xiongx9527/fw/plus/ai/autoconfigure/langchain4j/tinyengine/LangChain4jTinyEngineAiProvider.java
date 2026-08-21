@@ -126,7 +126,7 @@ public class LangChain4jTinyEngineAiProvider implements TinyEngineAiProvider {
 		if (hasInvocationCredentials(request)) {
 			OpenAiChatModel.OpenAiChatModelBuilder builder = OpenAiChatModel.builder()
 					.baseUrl(OpenAiCompatibleBaseUrl.normalize(request.getBaseUrl()))
-					.apiKey(request.getApiKey()).modelName(request.getModel());
+					.apiKey(request.getApiKey()).modelName(request.getModel()).maxRetries(Integer.valueOf(1));
 			applyModelSettings(builder, request);
 			return builder.build();
 		}

@@ -421,6 +421,51 @@ class TinyEngineAiSampleApplicationTest {
 	}
 
 	@Test
+	void sampleAdminInitializerWritesEnableForStrictTenantSchema() throws Exception {
+		DriverManagerDataSource dataSource = new DriverManagerDataSource(
+				"jdbc:h2:mem:tiny_engine_strict_tenant_enable;MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		jdbcTemplate.execute("create table t_user (id int auto_increment primary key, username varchar(255), "
+				+ "password varchar(255), salt varchar(255), public_key varchar(255), email varchar(255), "
+				+ "tenant_id varchar(60), enable boolean, is_admin boolean, is_public boolean)");
+		jdbcTemplate.execute("create table t_tenant (id int primary key, name_cn varchar(255), name_en varchar(255), "
+				+ "description varchar(2000), created_by varchar(60), last_updated_by varchar(60), "
+				+ "created_time timestamp, last_updated_time timestamp, org_code varchar(255), is_system boolean, "
+				+ "enable boolean not null)");
+		TinyEngineSampleAuthConfiguration.SampleAuthProperties properties =
+				new TinyEngineSampleAuthConfiguration.SampleAuthProperties();
+		properties.getAdmin().setUsername("admin");
+		properties.getAdmin().setPassword("REDACTED");
+
+		new TinyEngineSampleAuthConfiguration().tinyEngineSampleAdminInitializer(jdbcTemplate, properties).run(null);
+
+		assertThat(jdbcTemplate.queryForObject(
+				"select count(1) from t_tenant where id = 1 and is_system = true and enable = true",
+				Integer.class)).isEqualTo(Integer.valueOf(1));
+	}
+
+	@Test
+	void sampleAuthFallsBackToSystemTenantWhenHostDomainColumnsAreUnavailable() throws Exception {
+		DriverManagerDataSource dataSource = new DriverManagerDataSource(
+				"jdbc:h2:mem:tiny_engine_host_without_domain_columns;MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");
+		JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+		createAuthTables(jdbcTemplate);
+		TinyEngineSampleAuthConfiguration.SampleAuthProperties properties =
+				new TinyEngineSampleAuthConfiguration.SampleAuthProperties();
+		properties.setSecret("tiny-engine-backend-secret-key-at-jwt-login");
+		properties.getAdmin().setUsername("admin");
+		properties.getAdmin().setPassword("REDACTED");
+		TinyEngineSampleAuthConfiguration configuration = new TinyEngineSampleAuthConfiguration();
+		TinyEngineUserSystemService service = configuration.tinyEngineSampleUserSystemService(jdbcTemplate, properties);
+		configuration.tinyEngineSampleAdminInitializer(jdbcTemplate, properties).run(null);
+
+		TinyEngineLoginResult login = service.login(
+				new TinyEngineLoginRequest("admin", "REDACTED", null, "127.0.0.1:18084"));
+
+		assertThat(login.getAccessToken()).isNotBlank();
+	}
+
+	@Test
 	void sampleAdminInitializerWritesPermissionRoleCodes() throws Exception {
 		DriverManagerDataSource dataSource = new DriverManagerDataSource(
 				"jdbc:h2:mem:tiny_engine_permission_role_codes;MODE=MySQL;DB_CLOSE_DELAY=-1", "sa", "");

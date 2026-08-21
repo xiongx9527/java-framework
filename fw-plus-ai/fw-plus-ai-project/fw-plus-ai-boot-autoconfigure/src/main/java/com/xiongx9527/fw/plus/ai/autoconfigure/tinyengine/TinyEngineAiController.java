@@ -8,6 +8,9 @@ import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.TinyEngineRagReque
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.rag.TinyEngineRagSearchResult;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineAiChatService;
 import com.xiongx9527.fw.plus.ai.autoconfigure.tinyengine.service.TinyEngineRagService;
+import com.xiongx9527.fw.plus.tinyengine.common.model.Result;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineAccessDeniedException;
+import com.xiongx9527.fw.plus.tinyengine.support.auth.TinyEngineUnauthenticatedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -45,7 +48,17 @@ public class TinyEngineAiController {
 			return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
 					.body(TinyEngineChatSseEncoder.chatCompletion(chatService.chat(request), request.getModelName()));
 		} catch (TinyEngineUpstreamException ex) {
-			throw modelInvocationFailure(ex);
+			return failure(HttpStatus.BAD_GATEWAY, "502", upstreamMessage(ex));
+		} catch (TinyEngineUnauthenticatedException ex) {
+			return failure(HttpStatus.UNAUTHORIZED, "401", safeMessage(ex, "TinyEngine authentication is required"));
+		} catch (TinyEngineAccessDeniedException ex) {
+			return failure(HttpStatus.FORBIDDEN, "403", safeMessage(ex, "TinyEngine application permission denied"));
+		} catch (IllegalArgumentException ex) {
+			return failure(HttpStatus.BAD_REQUEST, "400", "TinyEngine AI model configuration is invalid");
+		} catch (IllegalStateException ex) {
+			return failure(HttpStatus.INTERNAL_SERVER_ERROR, "500", "TinyEngine AI model configuration is unavailable");
+		} catch (RuntimeException ex) {
+			return failure(HttpStatus.INTERNAL_SERVER_ERROR, "500", "TinyEngine AI request failed");
 		}
 	}
 
@@ -78,6 +91,23 @@ public class TinyEngineAiController {
 				|| isBlank(request.getModelName())) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "appId, serviceId and modelName are required");
 		}
+	}
+
+	private ResponseEntity<Object> failure(HttpStatus status, String code, String message) {
+		return ResponseEntity.status(status).contentType(MediaType.APPLICATION_JSON)
+				.body(Result.failed(code, message));
+	}
+
+	private String upstreamMessage(TinyEngineUpstreamException ex) {
+		if (ex != null && (ex.getStatusCode() == 401 || ex.getStatusCode() == 403)) {
+			return "TinyEngine AI model invocation failed";
+		}
+		return "TinyEngine AI upstream request failed";
+	}
+
+	private String safeMessage(RuntimeException exception, String fallback) {
+		return exception == null || exception.getMessage() == null || exception.getMessage().trim().isEmpty()
+				? fallback : exception.getMessage();
 	}
 
 	private ResponseStatusException modelInvocationFailure(TinyEngineUpstreamException ex) {
